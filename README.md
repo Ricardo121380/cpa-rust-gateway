@@ -26,6 +26,10 @@
 5. [Grok 与 Kiro 渠道参考实现分析](docs/04-channel-reference-analysis.md)
 6. [上游聚合、统一模型与自有 API 设计](docs/05-upstream-aggregation-design.md)
 7. [Rust AI Gateway 详细开发计划（后续唯一执行基线）](docs/06-development-plan.md)
+8. [需求追踪索引](docs/traceability.md)
+9. [架构决策记录（ADR）](docs/adr/README.md)
+10. [可执行行为契约](docs/contracts/README.md)
+11. [阶段与任务验证报告](docs/reports/README.md)
 
 ## 决策标记
 
