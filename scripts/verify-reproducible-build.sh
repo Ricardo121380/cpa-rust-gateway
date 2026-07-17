@@ -26,7 +26,7 @@ build_once() {
 
   (
     cd "$checkout"
-    CARGO_INCREMENTAL=0 CARGO_TARGET_DIR="$target" cargo build --release --locked --workspace
+    CARGO_TARGET_DIR="$target" ./scripts/build-release.sh
   )
 
   if [[ -n "$(git -C "$checkout" status --porcelain)" ]]; then

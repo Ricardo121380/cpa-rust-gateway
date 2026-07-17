@@ -33,5 +33,7 @@ cargo audit
 - 生产代码禁止 `unwrap()`、`expect()`、`panic!()` 和 crate 级 `allow(unsafe_code)`。
 - `TODO`/`FIXME` 不能作为未登记需求留在 Rust 源码；后续工作必须对应 Task/Issue。
 - 格式、Clippy 和测试必须使用 `rust-toolchain.toml` 固定的同一工具链。
+- Release 产物统一通过 `./scripts/build-release.sh` 构建。macOS linker 会生成非确定性的 Mach-O `LC_UUID` 和关联 ad-hoc signature；脚本先移除 linker signature，按去除 UUID 后的产物内容生成稳定 UUID，再使用固定 identifier 重新 ad-hoc sign。Linux/非 Mach-O 产物保持不变。
+- 禁止为 Apple target 全局使用 `-Wl,-no_uuid`：当前 macOS `dyld` 会拒绝运行缺少 `LC_UUID` 的 build script 和最终程序。
 
 P0-05 会把这些命令封装为统一入口并放入 CI；本文件定义的门槛不能在封装时放宽。
