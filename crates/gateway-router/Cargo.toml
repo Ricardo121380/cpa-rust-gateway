@@ -1,0 +1,19 @@
+[package]
+name = "gateway-router"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+gateway-access = { path = "../gateway-access" }
+gateway-catalog = { path = "../gateway-catalog" }
+gateway-continuity = { path = "../gateway-continuity" }
+gateway-core = { path = "../gateway-core" }
+gateway-provider = { path = "../gateway-provider" }
+gateway-upstream = { path = "../gateway-upstream" }
+
+[lints]
+workspace = true

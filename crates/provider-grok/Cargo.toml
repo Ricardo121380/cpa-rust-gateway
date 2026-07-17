@@ -1,0 +1,18 @@
+[package]
+name = "provider-grok"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+gateway-continuity = { path = "../gateway-continuity" }
+gateway-core = { path = "../gateway-core" }
+gateway-provider = { path = "../gateway-provider" }
+gateway-upstream = { path = "../gateway-upstream" }
+protocol-openai-responses = { path = "../protocol-openai-responses" }
+
+[lints]
+workspace = true

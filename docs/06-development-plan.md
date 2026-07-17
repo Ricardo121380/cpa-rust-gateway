@@ -8,8 +8,8 @@
 | 生效日期 | `2026-07-18` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P0 - Repository and engineering baseline` |
-| 当前任务 | `P0-02` |
-| Rust Workspace | 尚未创建 |
+| 当前任务 | `P0-03` |
+| Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
 
@@ -251,7 +251,7 @@ deploy/
 |---|---|---|---|---|
 | P0-01 | 为目录建立独立 Git 仓库、忽略规则和 Secret 扫描规则 | 计划 v1.0 | `git status` 干净；测试 Secret 被阻止提交 | DONE |
 | P0-02 | 创建 `docs/adr`、`contracts`、`reports` 和需求追踪索引 | P0-01 | 文档链接检查通过 | DONE |
-| P0-03 | 固定 Rust stable/Edition 2024、Workspace、基础 Crate 骨架 | P0-01 | `cargo metadata`、`cargo check --workspace` | PENDING |
+| P0-03 | 固定 Rust stable/Edition 2024、Workspace、基础 Crate 骨架 | P0-01 | `cargo metadata`、`cargo check --workspace` | DONE |
 | P0-04 | 配置 fmt、Clippy、测试、license/advisory 检查 | P0-03 | fmt/clippy/test/deny/audit 全通过 | PENDING |
 | P0-05 | 配置本地统一命令和 CI 快速/完整两条流水线 | P0-04 | 干净环境 CI 成功日志 | PENDING |
 | P0-06 | 记录本地 Mac 与 Jakarta VPS 的硬件、Rust、内核和基准环境 | P0-05 | `docs/reports/environment-baseline.md` | PENDING |

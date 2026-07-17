@@ -1,0 +1,53 @@
+[workspace]
+resolver = "2"
+members = [
+    "apps/gateway",
+    "crates/gateway-access",
+    "crates/gateway-auth",
+    "crates/gateway-catalog",
+    "crates/gateway-continuity",
+    "crates/gateway-control",
+    "crates/gateway-core",
+    "crates/gateway-http-actix",
+    "crates/gateway-observability",
+    "crates/gateway-protocol",
+    "crates/gateway-provider",
+    "crates/gateway-router",
+    "crates/gateway-store",
+    "crates/gateway-stream",
+    "crates/gateway-upstream",
+    "crates/protocol-anthropic",
+    "crates/protocol-openai-responses",
+    "crates/provider-anthropic-compatible",
+    "crates/provider-grok",
+    "crates/provider-kiro",
+    "crates/provider-openai-compatible",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97.1"
+license = "Apache-2.0"
+authors = ["Huang Rui"]
+publish = false
+
+[workspace.dependencies]
+actix-web = { version = "4.11.0", default-features = false, features = ["macros"] }
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = "warn"
+pedantic = "warn"
+expect_used = "deny"
+panic = "deny"
+unwrap_used = "deny"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+panic = "abort"
+strip = "symbols"

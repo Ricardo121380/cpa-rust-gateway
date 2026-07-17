@@ -1,0 +1,21 @@
+[package]
+name = "gateway-control"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+gateway-access = { path = "../gateway-access" }
+gateway-auth = { path = "../gateway-auth" }
+gateway-catalog = { path = "../gateway-catalog" }
+gateway-core = { path = "../gateway-core" }
+gateway-observability = { path = "../gateway-observability" }
+gateway-router = { path = "../gateway-router" }
+gateway-store = { path = "../gateway-store" }
+gateway-upstream = { path = "../gateway-upstream" }
+
+[lints]
+workspace = true

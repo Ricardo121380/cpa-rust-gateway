@@ -1,0 +1,23 @@
+[package]
+name = "gateway-http-actix"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+actix-web.workspace = true
+gateway-auth = { path = "../gateway-auth" }
+gateway-control = { path = "../gateway-control" }
+gateway-core = { path = "../gateway-core" }
+gateway-observability = { path = "../gateway-observability" }
+gateway-protocol = { path = "../gateway-protocol" }
+gateway-router = { path = "../gateway-router" }
+gateway-stream = { path = "../gateway-stream" }
+protocol-anthropic = { path = "../protocol-anthropic" }
+protocol-openai-responses = { path = "../protocol-openai-responses" }
+
+[lints]
+workspace = true
