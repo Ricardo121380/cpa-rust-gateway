@@ -10,7 +10,7 @@
 
 ## 当前状态
 
-- 阶段：`P0 - Repository and engineering baseline`（P0-04 已完成）
+- 阶段：`P0 - Repository and engineering baseline`（P0-05 已完成）
 - 执行计划：`v1.0`，状态 `Locked for execution`
 - CPA 参考版本：`router-for-me/CLIProxyAPI v7.2.80`
 - Release 1：核心范围、技术基线、阶段顺序和门禁已冻结
