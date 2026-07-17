@@ -1,0 +1,696 @@
+# Rust AI Gateway 详细开发计划
+
+## 0. 计划元数据
+
+| 字段 | 值 |
+|---|---|
+| 计划版本 | `v1.0` |
+| 生效日期 | `2026-07-18` |
+| 状态 | `Locked for execution` |
+| 当前阶段 | `P0 - Repository and engineering baseline` |
+| 当前任务 | `P0-01` |
+| Rust Workspace | 尚未创建 |
+| 生产部署 | 尚未开始 |
+| 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
+
+本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
+
+文档优先级：
+
+```text
+用户明确的新指令
+  > 本开发计划
+  > 关键行为与兼容性契约
+  > 目标架构与专项设计
+  > 功能矩阵的初始建议
+  > 参考项目当前实现
+```
+
+## 1. 严格执行规则
+
+### 1.1 任务状态
+
+计划中的任务只能处于以下状态：
+
+| 状态 | 含义 |
+|---|---|
+| `PENDING` | 前置条件未满足或尚未开始 |
+| `IN_PROGRESS` | 当前正在执行；全计划同时最多一个 |
+| `DONE` | 代码、测试、文档和证据均完成 |
+| `BLOCKED` | 已明确记录阻塞条件，无法继续 |
+| `DEFERRED` | 经用户批准移出当前发布范围 |
+
+### 1.2 每个任务的执行循环
+
+1. 读取本文，确认当前 Phase、Task 和前置依赖。
+2. 将且仅将一个 Task 标记为 `IN_PROGRESS`。
+3. 实现该 Task 的最小完整改动，不夹带下一 Task 功能。
+4. 运行该 Task 指定的测试和全局快速门禁。
+5. 保存可复查证据：测试输出、基准、Fixture、日志或报告。
+6. 同步代码文档、行为契约和必要的矩阵状态。
+7. 满足 Definition of Done 后标记 `DONE`。
+8. Phase 内全部任务完成后执行 Phase Gate；Gate 未通过不得进入下一 Phase。
+
+### 1.3 禁止事项
+
+- 不因顺手方便实现未进入当前 Phase 的功能。
+- 不用真实 Provider 的特殊字段污染 `gateway-core`。
+- 不跳过 Mock、Fixture 或差分测试直接接管生产流量。
+- 不在流式热路径查询 SQLite、读取配置文件或执行网络模型发现。
+- 不在任何日志、Fixture、错误信息或 Git 历史中保存真实 Secret。
+- 不把“能编译”“手工请求成功”单独视为 Task 完成。
+- 不在 Phase Gate 失败时用 Feature Flag 掩盖必需功能后继续下一阶段。
+
+### 1.4 计划变更流程
+
+以下变化必须创建 Change Request，并由用户明确批准：
+
+- 调整 Phase 顺序或跳过 Gate。
+- 新增或删除公开接口、Provider、协议或持久化实体。
+- 修改 Canonical Request/Event、错误分类、重试边界或 Secret 方案。
+- 把 `Later/Drop/PENDING` 功能提前加入当前发布。
+- 放宽安全、性能、测试或部署门槛。
+
+Change Request 格式：
+
+```text
+CR-ID:
+原因:
+影响的 Task / Matrix ID / ADR:
+兼容性与迁移影响:
+测试与回滚变化:
+用户批准:
+计划版本变更:
+```
+
+仅修正文案、补充测试或不改变对外行为的内部重构，可以在原 Task 内完成，但仍需记录在完成证据中。
+
+## 2. Release 1 范围
+
+### 2.1 必须交付
+
+- Rust + Actix Web 单节点高性能网关。
+- `GET /healthz`。
+- `GET /v1/models`。
+- `POST /v1/responses`，非流式与 SSE。
+- `POST /v1/messages`，非流式与 SSE。
+- `POST /v1/messages/count_tokens`，仅在存在可证明准确的 Provider/本地能力时返回结果。
+- 自有 Client API Key 和 Access Group。
+- Upstream、单协议 Endpoint、Endpoint-Credential Binding。
+- Public Model、Alias、Model Route、Route Candidate。
+- Priority + Smooth Weighted Round-robin。
+- Candidate 与 Credential 两阶段调度。
+- 首语义事件前 Failover；首语义事件后禁止透明重放。
+- 每 Endpoint+Credential 模型发现和最后成功快照。
+- 结构化 Request、Attempt、Usage、Health、Quota 和 Route Explain。
+- OpenAI-compatible Responses 与 Anthropic-compatible Messages。
+- Grok Build、Kiro、Grok Official、Grok Web 四个专项切片。
+- 管理 API、最小可用管理 Web UI、备份与恢复。
+- systemd 和固定版本 Docker 产物。
+- 与现有服务器链路的差分、灰度和回滚。
+
+### 2.2 Release 1 明确不包含
+
+- 公共 OpenAI Chat Completions 入口及通用 Chat Endpoint。
+- 图片、音频、视频、Gemini 与 Interactions 入站协议。
+- 动态二进制插件、插件商店和在线安装。
+- PostgreSQL、S3、Git Store、Redis 协议复用和多节点控制面。
+- 商业计费、支付、余额充值和按美元扣费。
+- New API/AxonHub 持续同步；只允许后续的一次性 Import Adapter。
+- Grok Web Tool Emulation 默认启用。
+- 未经显式 Route Policy 的跨 Provider 或跨协议 Failover。
+
+## 3. 已冻结的技术基线
+
+这些决定在计划 `v1.0` 中视为已确认，开发期间不得重新隐式选择。
+
+| ID | 决定 |
+|---|---|
+| BL-01 | Rust stable + Edition 2024，HTTP 服务使用 Actix Web；核心不依赖 Actix 类型。 |
+| BL-02 | Release 1 公开推理入口为 Responses 和 Anthropic Messages；Chat Completions 延后。 |
+| BL-03 | 所有请求先进入 `CanonicalRequest`，所有输出转换为 `CanonicalEvent`。 |
+| BL-04 | Tool、Reasoning、Text、Usage、Error 使用显式流状态机；网络 Chunk 边界不影响语义。 |
+| BL-05 | `FirstSemanticEvent` 是透明重试边界；SSE Keepalive 不算语义事件。 |
+| BL-06 | 一个 Upstream Endpoint 只绑定一种 API Format；共享 URL 也拆成不同 Endpoint。 |
+| BL-07 | 先选择 Route Candidate，再在 Endpoint 内租用 Credential；两层权重独立。 |
+| BL-08 | 路由使用不可变 `RouteSnapshot` + `ArcSwap`；一个请求固定使用开始时版本。 |
+| BL-09 | SQLite 保存控制面、版本、长期状态和异步事件；请求热路径不查询 SQLite。 |
+| BL-10 | Request/Attempt/Usage 明细进入有界异步队列；Body 默认关闭，队列满时只允许丢低优先级诊断。 |
+| BL-11 | 上游 Secret 使用 AEAD；Client Key 保存 Prefix + HMAC 摘要；主密钥与数据库分离。 |
+| BL-12 | CacheAffinity、ResponseOwnership、ReasoningReplay、WebConversationState 使用不同存储命名空间。 |
+| BL-13 | Session/Cache Identity 至少隔离 `client_key + provider + upstream_model`。 |
+| BL-14 | Grok Official、Build、Web 使用独立 Provider ID、凭据池、Quota、错误和连续性状态。 |
+| BL-15 | Kiro IDE/CLI 是同一 Kiro Provider 下的 Endpoint Policy，不与通用中转站 Endpoint 混淆。 |
+| BL-16 | 未知 403 默认归类为短期 `EgressRejected`；只有账号级证据才设为 Credential Forbidden。 |
+| BL-17 | Unauthorized 退出调度直到重新授权；Quota 到 Reset 后受控探测；长期状态重启后恢复。 |
+| BL-18 | Catalog 默认建议：Fresh 6h、Stale 24h、Expired 72h；移除需连续 3 次成功缺失且不少于 24h。 |
+| BL-19 | 管理 API 先于 UI；UI 使用独立 TypeScript SPA，不能进入推理热路径。 |
+| BL-20 | Grok Web 使用 Feature Flag，Tool Emulation 默认关闭；通过独立 Gate 后才允许生产启用。 |
+| BL-21 | 现有 CPA/grok2api/Kiro-RS/New API 仅做一次性迁移或临时兼容上游，不成为新网关运行时数据库。 |
+| BL-22 | Release 1 Client Key 只实现权限、到期、RPM、并发和可选 Token 上限，不做美元计费。 |
+
+## 4. 代码库与交付物约定
+
+### 4.1 目标目录
+
+```text
+Cargo.toml
+rust-toolchain.toml
+deny.toml
+
+apps/
+  gateway/
+
+crates/
+  gateway-core/
+  gateway-protocol/
+  protocol-openai-responses/
+  protocol-anthropic/
+  gateway-provider/
+  gateway-upstream/
+  gateway-catalog/
+  gateway-access/
+  gateway-router/
+  gateway-continuity/
+  gateway-auth/
+  gateway-stream/
+  gateway-observability/
+  gateway-store/
+  gateway-control/
+  gateway-http-actix/
+  provider-openai-compatible/
+  provider-anthropic-compatible/
+  provider-grok/
+  provider-kiro/
+
+docs/
+  adr/
+  contracts/
+  reports/
+
+migrations/
+tests/
+  fixtures/
+  integration/
+  differential/
+  e2e/
+benchmarks/
+deploy/
+  systemd/
+  docker/
+```
+
+### 4.2 Git 规则
+
+- `cpa-rust-gateway` 使用独立 Git 仓库，不依赖父目录的未跟踪状态。
+- 主分支：`main`。
+- 开发分支：`codex/<task-id>-<short-name>`。
+- 一个分支只承载一个 Task 或同一 Task 的测试修复。
+- Commit 标题以 Task ID 开头，例如 `P1-03: add canonical event state machine`。
+- Phase Gate 通过后创建带说明的阶段 Tag，例如 `phase-p3-complete`。
+- Release 使用 SemVer，首个服务器候选版本从 `v0.1.0-alpha.1` 开始。
+- 不提交 `.env`、真实数据库、Token、Cookie、OAuth JSON 或生产日志。
+
+### 4.3 Definition of Done
+
+一个 Task 只有同时满足以下条件才能标记为 `DONE`：
+
+- 实现满足本 Task 和对应行为契约。
+- 正常、边界、错误和取消路径有自动化测试。
+- `cargo fmt --check` 通过。
+- `cargo clippy --workspace --all-targets --all-features -- -D warnings` 通过。
+- 受影响测试和 `cargo test --workspace` 通过。
+- 没有新增未解释的 `TODO/FIXME`、明文 Secret 或宽泛 `unwrap/expect`。
+- 对外行为、配置或 Schema 变化已更新文档和迁移说明。
+- 保存完成证据，并更新本文状态。
+
+## 5. Phase 总览
+
+| Phase | 目标 | 进入条件 | 退出 Gate | 状态 |
+|---|---|---|---|---|
+| P0 | 仓库、工具链、ADR、CI 基线 | 本计划锁定 | G0 | PENDING |
+| P1 | Canonical Core + Mock 垂直链路 | G0 | G1 | PENDING |
+| P2 | 聚合控制面、Secret、RouteSnapshot | G1 | G2 | PENDING |
+| P3 | OpenAI Responses 聚合 MVP | G2 | G3 | PENDING |
+| P4 | Catalog、Health、Quota、Explain、观测 | G3 | G4 | PENDING |
+| P5 | Anthropic/Claude Code 兼容 | G4 | G5 | PENDING |
+| P6 | Grok Build | G5 | G6 | PENDING |
+| P7 | Kiro IDE/CLI | G6 | G7 | PENDING |
+| P8 | Grok Official | G7 | G8 | PENDING |
+| P9 | Grok Web | G8 | G9 | PENDING |
+| P10 | 完整管理 API、Web UI、备份恢复 | G9 | G10 | PENDING |
+| P11 | 差分、性能、安全与发布加固 | G10 | G11 | PENDING |
+| P12 | 服务器部署、灰度、切换与回滚 | G11 | G12 | PENDING |
+| P13 | Release 1.1 候选功能 | G12 + 新 CR | 独立计划 | DEFERRED |
+
+## 6. P0 - 仓库与工程基线
+
+目标：得到可重复构建、可审计、无业务功能的 Rust Workspace。
+
+| ID | Task | 依赖 | 完成证据 | 状态 |
+|---|---|---|---|---|
+| P0-01 | 为目录建立独立 Git 仓库、忽略规则和 Secret 扫描规则 | 计划 v1.0 | `git status` 干净；测试 Secret 被阻止提交 | DONE |
+| P0-02 | 创建 `docs/adr`、`contracts`、`reports` 和需求追踪索引 | P0-01 | 文档链接检查通过 | PENDING |
+| P0-03 | 固定 Rust stable/Edition 2024、Workspace、基础 Crate 骨架 | P0-01 | `cargo metadata`、`cargo check --workspace` | PENDING |
+| P0-04 | 配置 fmt、Clippy、测试、license/advisory 检查 | P0-03 | fmt/clippy/test/deny/audit 全通过 | PENDING |
+| P0-05 | 配置本地统一命令和 CI 快速/完整两条流水线 | P0-04 | 干净环境 CI 成功日志 | PENDING |
+| P0-06 | 记录本地 Mac 与 Jakarta VPS 的硬件、Rust、内核和基准环境 | P0-05 | `docs/reports/environment-baseline.md` | PENDING |
+
+### G0 门禁
+
+- Workspace 在全新目录可重复构建。
+- 所有 Crate 依赖方向符合目标架构。
+- `#![deny(unsafe_code)]` 默认启用；例外必须新建 ADR。
+- License Allowlist 不允许无意引入 AGPL 代码。
+- CI 和本地命令得到相同结果。
+
+## 7. P1 - Canonical Core 与 Mock 垂直链路
+
+目标：不依赖真实上游，跑通从 Actix 入站到 Canonical、Mock Provider、再到目标协议输出的完整路径。
+
+主要矩阵：`A01 A03 A07 B01-B17 B23-B30 K01 K02 K05 K09 K10`。
+
+| ID | Task | 依赖 | 完成证据 | 状态 |
+|---|---|---|---|---|
+| P1-01 | 定义稳定 ID、RequestContext、GatewayError 和错误作用域 | G0 | 单元测试 + 错误编码快照 | PENDING |
+| P1-02 | 定义 `CanonicalRequest`、消息、内容、Tool、Thinking 和 Raw Extension | P1-01 | JSON/结构 Round-trip 测试 | PENDING |
+| P1-03 | 定义 `CanonicalEvent` 与 Response/Text/Reasoning/Tool/Usage 状态机 | P1-02 | 状态转换和非法序列测试 | PENDING |
+| P1-04 | 实现有界流、背压、取消传播和 FirstSemanticEvent Tracker | P1-03 | 慢消费者、取消和容量测试 | PENDING |
+| P1-05 | 实现 OpenAI Responses 入站/非流式/SSE Adapter | P1-02,P1-03 | 官方形态 Fixture + 事件快照 | PENDING |
+| P1-06 | 定义小能力 Provider Trait，并实现 Deterministic Mock Provider | P1-02,P1-03 | Mock 文本、Tool、错误、延迟 Fixture | PENDING |
+| P1-07 | 实现 Actix `/healthz` 与 `/v1/responses` 最小 Handler | P1-04,P1-05,P1-06 | HTTP E2E 测试 | PENDING |
+| P1-08 | 实现内存 Client Key Auth Port，为 P2 持久实现保留接口 | P1-07 | 有效、无效、禁用 Key 测试 | PENDING |
+| P1-09 | 建立 Chunk 随机切片、并行 Tool、空参数 Tool 的属性测试 | P1-03,P1-05 | 固定 Seed 与随机 Seed 报告 | PENDING |
+
+### G1 门禁
+
+- `/v1/responses` 非流式和 SSE 均通过 Mock E2E。
+- 任意 Chunk 切分得到相同 Canonical Event 序列。
+- `EnterPlanMode`、`ExitPlanMode` 和普通无参数 Tool 输出 `{}`。
+- 客户端取消后没有遗留上游任务或无限缓冲。
+- FirstSemanticEvent 前后重试状态可被测试明确区分。
+
+## 8. P2 - 聚合控制面、安全与 RouteSnapshot
+
+目标：建立可版本化配置、加密 Secret、自有 Key 和无数据库热路径的路由快照。
+
+主要矩阵：`D01-D31 E01-E29 H01-H13 J01-J03 J08 J09 J15 J18-J20 L01-L05 L17-L36`。
+
+| ID | Task | 依赖 | 完成证据 | 状态 |
+|---|---|---|---|---|
+| P2-01 | 设计并迁移 Config Version、Upstream、Endpoint、Credential 与 Binding 表 | G1 | Migration up/down + FK 测试 | PENDING |
+| P2-02 | 设计并迁移 PublicModel、Alias、Route、Candidate、AccessGroup、ClientKey 表 | P2-01 | Schema 约束和唯一性测试 | PENDING |
+| P2-03 | 实现 AEAD Secret Store、Key Version、Nonce 和主密钥加载 | P2-01 | 加解密、错误密钥、轮换测试 | PENDING |
+| P2-04 | 实现 Client Key 生成、Prefix、HMAC 摘要和常量时间验证 | P2-02,P2-03 | 创建一次可见、验证和撤销测试 | PENDING |
+| P2-05 | 实现 Repository/Service 事务，禁止控制面实体泄露到 Provider | P2-01,P2-02 | Repository 集成测试 | PENDING |
+| P2-06 | 实现 Route Compiler：Alias、引用、能力、Catalog 和冲突校验 | P2-05 | 冲突矩阵与错误快照 | PENDING |
+| P2-07 | 实现 `RouteSnapshot`、ArcSwap、版本固定与回滚 | P2-06 | 并发读/发布/回滚测试 | PENDING |
+| P2-08 | 将 P1 内存 Auth 替换为 Snapshot ClientKeyView | P2-04,P2-07 | 热更新、禁用、过期测试 | PENDING |
+| P2-09 | 实现 EgressPolicy：Scheme、Host、Port、CIDR、DNS、Redirect 校验 | P2-01 | SSRF、DNS Rebinding、私网 Allowlist 测试 | PENDING |
+| P2-10 | 提供最小管理 API/CLI：创建配置、验证、发布、回滚 | P2-05,P2-07 | 原子发布 E2E + 审计事件 | PENDING |
+
+### G2 门禁
+
+- 无效 Alias、悬空 Candidate、重复 Endpoint Format 整版拒绝发布。
+- 100 个并发请求跨 Snapshot 发布仍固定使用各自起始版本。
+- 数据库和备份中不存在明文上游 Secret 或完整 Client Key。
+- 本机上游只有显式 Egress Allowlist 才能访问。
+- 推理热路径通过测试证明不调用 Repository。
+
+## 9. P3 - OpenAI Responses 聚合 MVP
+
+目标：用两个独立 Upstream 实现自有 Key、统一模型名、平滑轮询和首事件前 Failover。
+
+主要矩阵：`C16 D10-D25 E15-E24 G05 G12 G13 G15 G21 K03-K06 L06 L20-L26 L28-L32 L40`。
+
+| ID | Task | 依赖 | 完成证据 | 状态 |
+|---|---|---|---|---|
+| P3-01 | 实现 OpenAI-compatible Responses Endpoint URL/Header/Body 组装 | G2 | URL 组合和 Header 脱敏测试 | PENDING |
+| P3-02 | 实现共享上游 Client Pool、connect/TTFB/idle/total timeout 和代理隔离 | P3-01 | 连接复用、超时、代理测试 | PENDING |
+| P3-03 | 实现 Priority Tier + 预编译 Smooth Weighted Schedule + 原子 Cursor | P2-07 | 权重分布和并发公平性测试 | PENDING |
+| P3-04 | 实现 Endpoint Credential Pool、并发租约、站内权重和释放保证 | P3-03 | 泄漏、取消、饱和和双层公平测试 | PENDING |
+| P3-05 | 实现 Runtime Health/Cooldown/Circuit 基础状态与分片存储 | P3-04 | 状态隔离和恢复测试 | PENDING |
+| P3-06 | 实现 Attempt Orchestrator、排除集合、Retry Budget 和 FirstSemanticEvent Gate | P3-02,P3-05 | 连接/429/5xx/已开流故障矩阵 | PENDING |
+| P3-07 | 实现从 RouteSnapshot 生成的 `/v1/models` 与响应模型名回写 | P2-07,P3-03 | AccessGroup、hard-eligible、回写测试 | PENDING |
+| P3-08 | 发出 Request/Attempt/Usage 结构化事件，不阻塞响应 | P3-06 | 事件关联和队列背压测试 | PENDING |
+| P3-09 | 建立两个可控 Mock HTTP Upstream 的聚合 E2E 套件 | P3-01-P3-08 | 轮询、Failover、取消完整报告 | PENDING |
+| P3-10 | 使用两个真实测试中转 Endpoint 做最小非流式与 SSE 验证 | P3-09 | 脱敏请求/响应和 Trace 证据 | PENDING |
+
+### G3 门禁
+
+- `minimax-m3` 通过本项目 Base URL/Key 可调用两个 Candidate。
+- 等权 1000 次选择分布偏差不超过 10%；加权分布符合预期区间。
+- 一个站配置多个 Key 不改变站间目标流量比例。
+- 首事件前故障可切站，首事件后故障绝不透明重放。
+- 429、5xx、连接错误和凭据饱和都有独立排除原因。
+- 热路径无 SQLite、全局 Mutex 和无界 Channel。
+
+## 10. P4 - Catalog、Health、Quota 与可观测性
+
+目标：让模型目录、可用性和每次路由决策可查询、可解释、可恢复。
+
+主要矩阵：`C26 C27 D20 D24 E18-E22 F13-F15 G01-G28 H12 H13 H19 H20 L09-L16 L30-L33`。
+
+| ID | Task | 依赖 | 完成证据 | 状态 |
+|---|---|---|---|---|
+| P4-01 | 实现每 Endpoint+Credential 的 ModelCatalogSource 调度与 Singleflight | G3 | 并发同步和凭据差异测试 | PENDING |
+| P4-02 | 实现 CatalogSnapshot、Fresh/Stale/Expired 与最后成功回退 | P4-01 | 时间推进和失败保留测试 | PENDING |
+| P4-03 | 实现 added/suspected_removed/removed Diff、Preview/Apply 和移除隔离 | P4-02 | 3 次缺失 + 24h Fixture | PENDING |
+| P4-04 | 实现 Endpoint/Model/Credential Probe、EWMA 和 Circuit 恢复 | P3-05 | 健康时间线和半开测试 | PENDING |
+| P4-05 | 实现 QuotaSnapshot、来源/置信度、Reset 与受控恢复探测 | P4-04 | 429/Quota/Reset Fixture | PENDING |
+| P4-06 | 实现 Route Explain 和 Candidate 排除原因查询 | P3-06,P4-04,P4-05 | 固定输入决策快照 | PENDING |
+| P4-07 | 实现 SQLite 异步 Request/Attempt/Usage/Health Event Writer | P3-08 | 队列、批写、崩溃恢复、quick_check | PENDING |
+| P4-08 | 实现 tracing JSON、Prometheus 和 OpenTelemetry 导出 | P4-07 | 指标/Trace 关联测试 | PENDING |
+| P4-09 | 实现日志脱敏、Body 采样开关和 Secret 泄漏测试 | P4-07,P4-08 | 自动 Secret 扫描报告 | PENDING |
+
+### G4 门禁
+
+- 某 Credential 模型同步失败不影响其它 Credential 和最后成功快照。
+- Catalog 临时故障不会导致 `/v1/models` 抖动。
+- Route Explain 能说明每个 Candidate 的保留、排除和最终选择原因。
+- 403 账号状态、429、Quota、Circuit 和恢复在管理 API 中可见。
+- Event Queue 满时不阻塞推理；关键失败事件不得静默丢失。
+- SQLite `quick_check`、重启恢复和事件关联通过。
+
+## 11. P5 - Anthropic 与 Claude Code 兼容
+
+目标：完成 `/v1/messages`、Claude Code Tool 流和同一 Upstream 多协议 Endpoint 的安全能力门禁。
+
+主要矩阵：`A07 A08 B04 B09-B16 B22 B24-B28 F01-F04 F09-F11 L08 L21 L22 L40`。
+
+| ID | Task | 依赖 | 完成证据 | 状态 |
+|---|---|---|---|---|
+| P5-01 | 实现 Anthropic Messages 入站、非流式和 SSE 出站 Adapter | G4 | Anthropic Fixture 与事件快照 | PENDING |
+| P5-02 | 实现 `count_tokens` Canonical 路由和 Provider Capability；无准确能力时明确拒绝 | P5-01 | 准确路径和 Unsupported 测试 | PENDING |
+| P5-03 | 完成 Tool 增量 JSON、并行 Tool、空参数、必填参数和 ID 映射状态机 | P5-01 | 1-byte Chunk 属性测试 | PENDING |
+| P5-04 | 实现 Pass-through/Canonical/Lossless Bridge 能力分析器 | P5-01,P3-01 | 字段/Tool/Reasoning 不可损转换矩阵 | PENDING |
+| P5-05 | 支持同一 Upstream 的 Responses 与 Anthropic 独立 Endpoint/健康/熔断 | P5-04 | 单协议故障隔离 E2E | PENDING |
+| P5-06 | 实现 Thinking、Stop Reason、Usage、Cache 字段和响应模型回写 | P5-01 | 协议对照 Fixture | PENDING |
+| P5-07 | 建立 Claude Code `--bare` 最小 E2E 和 Plan Mode 回归 | P5-03-P5-06 | 真实客户端脱敏日志 | PENDING |
+| P5-08 | 加入未知字段、畸形流、截断 Tool 和取消 Fuzz/Property Test | P5-03 | 固定 Corpus 和无 Panic 报告 | PENDING |
+
+### G5 门禁
+
+- Claude Code 普通对话、普通 Tool、并行 Tool、Plan Mode 全部通过。
+- 无参数 Tool 补 `{}`；非空未闭合 JSON 必须明确失败。
+- Responses/Anthropic 跨协议只在能力分析通过时参与路由。
+- 同一站一种协议故障不污染其它 Endpoint。
+- SSE 终止事件、Usage 和错误语义符合目标协议。
+
+## 12. P6 - Grok Build
+
+目标：完成第一个专项 Provider，验证 OAuth、Quota、Cache 和 Response Continuity。
+
+主要矩阵：`C02 C28 C32 C33 E06-E12 E25-E29 F07 F10-F18 G24-G28`。
+
+| ID | Task | 依赖 | 完成证据 | 状态 |
+|---|---|---|---|---|
+| P6-01 | 实现 Grok Build Credential、OAuth JSON 导入和 Device Code | G5 | OAuth Mock + 脱敏导入测试 | PENDING |
+| P6-02 | 实现每 Credential Refresh Singleflight、Revision/CAS 和持久化 | P6-01 | 刷新风暴与旧 Token 覆盖测试 | PENDING |
+| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析 | P6-02 | 固定 Fixture + 测试账号验证 | PENDING |
+| P6-04 | 实现模型、Billing、Quota Window 和 Reset 同步 | P6-03 | 来源/置信度和窗口测试 | PENDING |
+| P6-05 | 实现租户隔离 Cache Identity 与 Cache Affinity | P6-03 | 稳定性、隔离和断裂事件测试 | PENDING |
+| P6-06 | 实现 ResponseOwnership 与 ReasoningReplay | P6-03,P6-05 | previous_response 与多轮 Tool 测试 | PENDING |
+| P6-07 | 实现 Build 专用 401/403/429/Quota/Transient 分类 | P6-04 | 错误 Fixture 矩阵 | PENDING |
+| P6-08 | 与 CPA/grok2api Build 行为做 clean-room 差分 | P6-03-P6-07 | 差分报告和 intentional diff 清单 | PENDING |
+
+### G6 门禁
+
+- 两个 Build Credential 的并发、轮询、刷新、Quota 和 Failover 通过。
+- Cache Identity 和 Affinity 均稳定，跨 Client Key 不串缓存。
+- Response Ownership 不允许静默换账号续接。
+- 旧请求不能覆盖新 Token 或错误封禁已刷新 Credential。
+
+## 13. P7 - Kiro IDE/CLI
+
+目标：原生实现 Kiro，不依赖 Kiro-RS 作为长期运行层，并保持 Claude Code 兼容。
+
+主要矩阵：`C35-C47 E25 E26 G24 G28`。
+
+| ID | Task | 依赖 | 完成证据 | 状态 |
+|---|---|---|---|---|
+| P7-01 | 实现 Social、IdC/Enterprise、`ksk_` 三类 Credential | G6 | 各类解析、加密和刷新 Fixture | PENDING |
+| P7-02 | 实现 IDE/CLI Endpoint Policy、Region、Header、Origin 和 URL | P7-01 | 请求快照对照测试 | PENDING |
+| P7-03 | 实现 `profileArn` 查询、回退、注入、来源和审计 | P7-01,P7-02 | Builder/Enterprise 场景测试 | PENDING |
+| P7-04 | 实现 CanonicalRequest 到 Kiro Conversation Request | P7-02 | 多轮消息/Tool Fixture | PENDING |
+| P7-05 | 实现 AWS EventStream 增量解析、CRC、边界和错误恢复 | P7-04 | 任意 Chunk + 损坏帧测试 | PENDING |
+| P7-06 | 实现每 Credential 动态模型与订阅能力、最后成功快照 | P7-01,P4-02 | 部分失败和 stale 测试 | PENDING |
+| P7-07 | 实现 Kiro Tool、AskUserQuestion、Plan Mode 和 Thinking 映射 | P7-04,P7-05 | Claude Code 回归套件 | PENDING |
+| P7-08 | 实现 Kiro 网络、账号、模型、额度和普通 429 分类 | P7-06 | 错误与恢复矩阵 | PENDING |
+| P7-09 | 与服务器定制 Kiro-RS 做差分和真实 `--bare` E2E | P7-03-P7-08 | 差分报告、日志、模型列表 | PENDING |
+
+### G7 门禁
+
+- CLI 和 IDE Endpoint 各自通过非流式、SSE、Tool 和 Thinking。
+- 模型列表不出现重复 `-thinking` 模型。
+- 单 Credential 模型查询失败不拖垮模型并集。
+- EventStream 任意 Chunk 切分结果一致，CRC 错误不可静默忽略。
+- 现有 Kiro-RS 生产路径可作为明确回滚方案。
+
+## 14. P8 - Grok Official
+
+目标：实现 xAI 官方 API Key 路径，并与 Build/Web 完全隔离状态。
+
+主要矩阵：`C01 C03 C04 C31 C33 F07 G24-G27`。
+
+| ID | Task | 依赖 | 完成证据 | 状态 |
+|---|---|---|---|---|
+| P8-01 | 实现 Official API Key、Endpoint、Header 和模型发现 | G7 | 请求/目录 Fixture | PENDING |
+| P8-02 | 实现 Official Responses HTTP 非流式与 SSE | P8-01 | 官方测试账号 E2E | PENDING |
+| P8-03 | 实现 Quota/Rate Header、Reset 和 Billing 元数据 | P8-02 | Header Fixture | PENDING |
+| P8-04 | 实现 Official Tool、Reasoning、Search 能力声明与转换 | P8-02 | Capability 测试 | PENDING |
+| P8-05 | 验证 Official/Build 状态、Affinity、Quota 和故障完全隔离 | P8-02-P8-04 | 隔离 E2E | PENDING |
+| P8-06 | 完成官方路径差分、负载和错误矩阵 | P8-05 | Phase 报告 | PENDING |
+
+### G8 门禁
+
+- Official 与 Build 同名 Public Model 只有显式 Route 才能共同候选。
+- 一个来源的 401/403/429 不改变另一个来源状态。
+- 官方 Tool/Reasoning 能力与公开元数据一致。
+
+## 15. P9 - Grok Web
+
+目标：实现独立 Web/Console Provider，处理浏览器会话、出口指纹和网页协议漂移。
+
+主要矩阵：`C29-C34 D28-D30 E27-E29 F17 G24-G28`。
+
+| ID | Task | 依赖 | 完成证据 | 状态 |
+|---|---|---|---|---|
+| P9-01 | 实现 SSO/Cookie Credential、血缘和独立生命周期 | G8 | 导入、加密、失效测试 | PENDING |
+| P9-02 | 实现 BrowserEgressSession：Cookie、UA、TLS Profile、Proxy 绑定 | P9-01 | 指纹一致性和隔离测试 | PENDING |
+| P9-03 | 实现 Grok Web Chat 请求和流响应解析 | P9-02 | 脱敏网页 Fixture | PENDING |
+| P9-04 | 实现 WebConversationState 与账号/出口强绑定 | P9-03 | 多轮、过期和账号不可用测试 | PENDING |
+| P9-05 | 实现 Statsig 签名缓存、受限失效和 SSRF 防护 | P9-02 | 403、Redirect、域名测试 | PENDING |
+| P9-06 | 实现 REST/gRPC-Web Quota、Tier、Window、Source/Confidence | P9-03 | Quota Fixture | PENDING |
+| P9-07 | 实现 WAF/EgressRejected 与账号 Forbidden 分离 | P9-02,P9-03 | 403 分类矩阵 | PENDING |
+| P9-08 | 实现 Tool Emulation Feature Flag，默认关闭并标记 `emulated` | P9-03 | 开关与能力元数据测试 | PENDING |
+| P9-09 | 完成 Feature Flag 下真实账号 E2E、协议漂移和熔断演练 | P9-04-P9-08 | Canary 报告 | PENDING |
+
+### G9 门禁
+
+- Web 账号、出口、Conversation 和 Cookie 不与 Build/Official 共享状态。
+- WAF 403 默认只影响 Egress Session，除非存在账号级证据。
+- Web 协议漂移只熔断 `grok.web`。
+- Tool Emulation 关闭时不会对 Prompt 做隐式注入。
+- 未经 Canary 报告批准，生产 Feature Flag 保持关闭。
+
+## 16. P10 - 管理 API、Web UI、备份恢复
+
+目标：形成可安全运营的完整控制面，但不影响数据面延迟。
+
+主要矩阵：`H01-H22 J02 J08 J09 J11-J15 J18-J20`。
+
+| ID | Task | 依赖 | 完成证据 | 状态 |
+|---|---|---|---|---|
+| P10-01 | 完整管理 OpenAPI：Upstream、Endpoint、Credential、Catalog、Route、Group、Key | G9 | OpenAPI Contract Test | PENDING |
+| P10-02 | 实现管理鉴权、仅本机/私网策略、审计和 CSRF/CORS 边界 | P10-01 | 未授权和跨站测试 | PENDING |
+| P10-03 | 建立 TypeScript SPA、生成 API Client 和静态资源构建 | P10-01 | 可重复前端构建 | PENDING |
+| P10-04 | 实现 Upstream/Endpoint/Credential 管理与测试工作流 | P10-03 | 浏览器 E2E | PENDING |
+| P10-05 | 实现 PublicModel/Route/Candidate/AccessGroup/ClientKey 工作流 | P10-03 | 创建 `minimax-m3` E2E | PENDING |
+| P10-06 | 实现 Catalog Diff、Health、Quota、403、Route Explain 和请求追踪页面 | P10-03,P4-06 | 浏览器 E2E | PENDING |
+| P10-07 | 实现 Config Version、发布、回滚和操作审计页面 | P10-03,P2-10 | 发布失败/回滚 E2E | PENDING |
+| P10-08 | 实现加密备份、恢复预检、Schema Version 和 Secret Key 说明 | P10-01 | 空机恢复演练 | PENDING |
+| P10-09 | 嵌入静态资源并验证 UI 不进入推理热路径 | P10-03-P10-08 | 性能对比与资源隔离报告 | PENDING |
+
+### G10 门禁
+
+- 可以仅通过 UI/API 完成两站 `minimax-m3` 聚合配置。
+- 所有 Secret 只显示一次或掩码，不可通过 API 回读明文。
+- 配置发布失败时数据面继续使用上一 Snapshot。
+- 空数据库可从备份恢复，并通过 SQLite `quick_check` 和真实请求。
+- UI 开启/关闭对数据面基准无显著影响。
+
+## 17. P11 - 发布加固
+
+目标：证明兼容性、可靠性、性能和安全达到服务器灰度条件。
+
+| ID | Task | 依赖 | 完成证据 | 状态 |
+|---|---|---|---|---|
+| P11-01 | 建立 CPA v7.2.80、grok2api、Kiro-RS 的脱敏差分 Fixture Harness | G10 | 差异分类报告 | PENDING |
+| P11-02 | 完成网络、DNS、TLS、429、5xx、截断流、慢客户端和取消故障注入 | P11-01 | Fault Matrix | PENDING |
+| P11-03 | 建立 Mock Provider Criterion/HTTP 基准和回归阈值 | P11-01 | `benchmarks/baseline.json` | PENDING |
+| P11-04 | 执行并发、长流、连接池、内存、背压和 24h Soak | P11-02,P11-03 | 性能与 Soak 报告 | PENDING |
+| P11-05 | 执行 SSRF、Secret、Auth、权限、依赖和供应链安全审计 | P11-01 | Security Report + SBOM | PENDING |
+| P11-06 | 验证优雅停机、流 Drain、崩溃重启、磁盘满和事件队列降级 | P11-02 | Recovery Report | PENDING |
+| P11-07 | 完成升级/降级 Migration、备份恢复和旧版本回滚演练 | P10-08 | Upgrade/rollback report | PENDING |
+| P11-08 | 生成 Release Candidate 清单、已知差异和生产默认配置 | P11-01-P11-07 | `v0.1.0-alpha.1` 候选说明 | PENDING |
+
+### G11 门禁
+
+- 所有差异均标记为 Intentional、Compatible 或已修复 Regression。
+- 无未分类 Panic、数据竞争、流截断或 Secret 泄漏。
+- 性能基准相对已批准 Baseline：吞吐下降不超过 10%，P99/RSS 恶化不超过 15%。
+- Mock 上游网关附加延迟目标：本地 warm-path P99 不超过 5ms；服务器不超过 10ms。
+- 24h Soak 无内存持续增长、连接泄漏或 SQLite 损坏。
+- 回滚包和恢复步骤已经实际演练，不是只写文档。
+
+## 18. P12 - 服务器部署与灰度
+
+目标：在不破坏现有 CPA/AxonHub/New API/Kiro-RS 的前提下部署、验证、灰度和切换。
+
+| ID | Task | 依赖 | 完成证据 | 状态 |
+|---|---|---|---|---|
+| P12-01 | 构建固定版本二进制、Docker 镜像、SBOM、Checksum 和签名 | G11 | 可验证发布产物 | PENDING |
+| P12-02 | 编写 systemd Unit、只读 Secret、数据目录、日志和资源限制 | P12-01 | `systemd-analyze verify` | PENDING |
+| P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | 带时间戳备份清单 | PENDING |
+| P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | Health、日志、资源状态 | PENDING |
+| P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | 端到端报告 | PENDING |
+| P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | 差异与性能报告 | PENDING |
+| P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | DNS/TLS/Auth 验证 | PENDING |
+| P12-08 | 使用单独 Client Key 开始 10%→25%→50%→100% Canary | P12-06,P12-07 | 每阶段成功率、P95/P99、缓存和错误证据 | PENDING |
+| P12-09 | 在 Canary 中实际执行一次回滚并再次恢复 | P12-08 | 回滚时长和一致性报告 | PENDING |
+| P12-10 | 完成生产切换、72h 观察、发布 Tag 和运维手册 | P12-09 | G12 报告 | PENDING |
+
+### Canary 推进与回滚规则
+
+- 每个流量阶段至少持续 2 小时并包含至少 100 个成功请求；低流量时使用固定合成请求补足。
+- 进入下一阶段前检查：状态码、TTFT、P95/P99、缓存、Tool、Usage、Credential 状态和 Route 分布。
+- 任一条件触发立即回滚：
+  - 相对旧网关新增错误率超过 1%。
+  - P95 延迟持续增加超过 20%。
+  - 出现 Tool/Reasoning/Usage 语义回归。
+  - 出现 Secret 泄漏、数据库损坏、流重复或错误跨账号连续性。
+  - 无法用 Route Explain 解释实际选路。
+
+### G12 门禁
+
+- 100% 流量运行 72h，无 P0/P1 故障。
+- 现有生产路径仍保留固定版本回滚包。
+- 备份、恢复、升级、降级、Secret 轮换和故障排查手册齐全。
+- Release 1 完成后才允许为 P13 创建新计划版本。
+
+## 19. P13 - Release 1.1 候选范围
+
+本阶段当前为 `DEFERRED`，不能在 Release 1 开发中顺手实现。完成 G12 后，通过 Change Request 选择：
+
+| ID | 候选功能 | 当前状态 |
+|---|---|---|
+| P13-01 | OpenAI Chat Completions 入站与 compatible Chat Endpoint | DEFERRED |
+| P13-02 | Chat/Responses 受限无损桥接 | DEFERRED |
+| P13-03 | New API/AxonHub 一次性 Import Adapter | DEFERRED |
+| P13-04 | Cost-aware、Fill-first、Least-loaded 路由 | DEFERRED |
+| P13-05 | 管理调试用单请求 Channel Pin | DEFERRED |
+| P13-06 | 其它矩阵 `Later` 项重新筛选 | DEFERRED |
+
+## 20. 测试体系
+
+### 20.1 测试层级
+
+| 层级 | 目标 | 运行时机 |
+|---|---|---|
+| Unit | 纯函数、状态机、解析器、错误分类 | 每个 Task |
+| Property/Fuzz | Chunk、JSON、EventStream、Alias、Route 冲突 | 相关 Task + Nightly CI |
+| Integration | SQLite、HTTP Client、RouteSnapshot、Credential Lease | 每个 Phase |
+| Contract | OpenAI/Anthropic API 形态和错误语义 | P1/P3/P5 后持续运行 |
+| Differential | CPA/grok2api/Kiro-RS 行为差异 | Provider Gate 与 P11 |
+| E2E | 真实客户端和测试账号 | 每个 Provider Gate |
+| Load/Soak | 延迟、吞吐、RSS、连接、背压 | P3 基线、P11 完整 |
+| Security | Secret、SSRF、Auth、权限、依赖 | P2、P10、P11 |
+
+### 20.2 每次提交快速门禁
+
+```text
+cargo fmt --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace
+secret scan
+changed-doc link check
+```
+
+### 20.3 Phase 完整门禁
+
+```text
+all-feature tests
+integration tests
+contract snapshots
+relevant property/fuzz corpus
+cargo deny / cargo audit
+coverage report
+phase-specific E2E
+phase report
+```
+
+关键状态机、路由编译器、Secret 和重试逻辑要求分支覆盖完整；全 Workspace 行覆盖目标不低于 80%，但不得用无意义测试追求数字。
+
+## 21. 性能与资源纪律
+
+- 所有流使用 `Bytes` 和有界 Channel。
+- 上游 Client 按 Endpoint/EgressPolicy 复用连接池，不按请求创建。
+- RouteSnapshot 读取无全局锁、无磁盘访问。
+- Credential Runtime State 按 Provider/Endpoint/Credential 分片。
+- Token Refresh 按 Credential Singleflight。
+- Body 日志默认关闭；结构化事件批量异步写入。
+- 每次 Phase Gate 记录 CPU、RSS、分配、连接复用、P50/P95/P99 和吞吐。
+- 基准变化超过 G11 阈值必须创建性能说明或修复，不得直接更新 Baseline 掩盖回归。
+
+## 22. 安全纪律
+
+- 日志默认拒绝 Authorization、Cookie、OAuth、SSO、API Key 和原始 Cache Key。
+- Fixture 只允许脱敏或人工生成数据。
+- 自定义 URL 在连接前和 Redirect 后都重新执行 EgressPolicy。
+- Client Key、Management Key 和上游 Credential 使用不同命名空间和权限。
+- 管理端默认只监听本机/私网；公网暴露必须经过 Caddy/Cloudflare 和额外鉴权。
+- Backup 不包含主密钥；恢复流程必须明确数据库与主密钥的组合要求。
+- 依赖升级单独执行测试和差分，不使用无审核的自动大版本更新。
+
+## 23. 需求追踪
+
+| 功能矩阵模块 | 主要执行阶段 |
+|---|---|
+| A 接口与服务器 | P1、P3、P5、P12 |
+| B 协议与流 | P1、P5、P6-P9 |
+| C Provider | P3、P5-P9 |
+| D 模型与路由 | P2-P4 |
+| E 凭据与错误 | P2-P9 |
+| F Thinking/缓存 | P5-P9 |
+| G 可观测性 | P3、P4、P10、P11 |
+| H Management | P2、P4、P10 |
+| I 插件 | Release 1 Drop/Deferred |
+| J 配置与部署 | P0、P2、P10-P12 |
+| K 性能 | P1、P3、P11 |
+| L 上游聚合 | P2-P5，延后项进入 P13 |
+
+每个 Task 实现前需在代码或测试说明中引用对应 Matrix ID/行为契约；若无法映射，必须先创建 Change Request。
+
+## 24. 后续每轮汇报格式
+
+后续开发回合统一使用：
+
+```text
+Plan version:
+Current phase / gate:
+Current task:
+Completed in this turn:
+Verification evidence:
+Files changed:
+Risks or deviations:
+Next task:
+```
+
+最终回复必须明确区分：已完成、仅设计、未验证、受阻和 Deferred，不能用“基本完成”替代状态。
+
+## 25. 计划变更记录
+
+| 版本 | 日期 | 变化 | 批准状态 |
+|---|---|---|---|
+| v1.0 | 2026-07-18 | 建立 Release 1 全阶段、任务、Gate、测试、安全、Git、灰度和变更控制基线 | 当前执行基线 |
