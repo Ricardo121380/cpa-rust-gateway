@@ -1,4 +1,4 @@
-//! Grok Official, Build, and Web adapters with isolated runtime namespaces.
+//! `Grok` Official, Build, and Web adapters with isolated runtime namespaces.
 
 #![deny(unsafe_code)]
 

@@ -1,4 +1,4 @@
-//! Generic Anthropic-compatible upstream provider boundary.
+//! Generic `Anthropic`-compatible upstream provider boundary.
 
 #![deny(unsafe_code)]
 

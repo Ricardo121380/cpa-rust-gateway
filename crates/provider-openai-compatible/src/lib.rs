@@ -1,4 +1,4 @@
-//! Generic OpenAI-compatible upstream provider boundary.
+//! Generic `OpenAI`-compatible upstream provider boundary.
 
 #![deny(unsafe_code)]
 

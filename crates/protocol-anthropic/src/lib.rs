@@ -1,4 +1,4 @@
-//! Anthropic Messages ingress and egress adapter boundary.
+//! `Anthropic` Messages ingress and egress adapter boundary.
 
 #![deny(unsafe_code)]
 

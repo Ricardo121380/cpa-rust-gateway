@@ -1,4 +1,4 @@
-//! OpenAI Responses ingress and egress adapter boundary.
+//! `OpenAI` Responses ingress and egress adapter boundary.
 
 #![deny(unsafe_code)]
 

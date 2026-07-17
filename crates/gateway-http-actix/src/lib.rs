@@ -1,4 +1,4 @@
-//! Actix Web transport shell. Core crates must not depend on this crate.
+//! `Actix Web` transport shell. Core crates must not depend on this crate.
 
 #![deny(unsafe_code)]
 
