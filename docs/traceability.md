@@ -19,7 +19,7 @@
 | P0-03 | BL-01；Plan 4.1、G0 | 首批 ADR 在 P1 按需建立 | Workspace、Crate 边界、工具链 | [P0-03 报告](reports/p0-03-rust-workspace.md) | DONE |
 | P0-04 | Plan 4.3、20、22；Matrix K12 | SEC 契约在相关实现阶段建立 | fmt、Clippy、test、deny、audit | [P0-04 报告](reports/p0-04-quality-gates.md) | DONE |
 | P0-05 | Plan 20.2、20.3；Matrix K12 | 无 | 本地命令与 CI | [P0-05 报告](reports/p0-05-ci-baseline.md) | DONE |
-| P0-06 | Plan P0-06、21；Matrix K12 | 无 | Mac/VPS 环境基线 | P0-06 报告 | PENDING |
+| P0-06 | Plan P0-06、21；Matrix K12 | 无 | Mac/VPS 环境基线 | [P0-06 环境基线](reports/environment-baseline.md) | DONE |
 
 ## 后续 Phase 映射
 
