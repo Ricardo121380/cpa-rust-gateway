@@ -7,8 +7,8 @@
 | 计划版本 | `v1.0` |
 | 生效日期 | `2026-07-18` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P0 - Repository and engineering baseline` |
-| 当前任务 | `G0` |
+| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` |
+| 当前任务 | `P1-01`（尚未开始，`PENDING`） |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -228,7 +228,7 @@ deploy/
 
 | Phase | 目标 | 进入条件 | 退出 Gate | 状态 |
 |---|---|---|---|---|
-| P0 | 仓库、工具链、ADR、CI 基线 | 本计划锁定 | G0 | PENDING |
+| P0 | 仓库、工具链、ADR、CI 基线 | 本计划锁定 | G0 | DONE |
 | P1 | Canonical Core + Mock 垂直链路 | G0 | G1 | PENDING |
 | P2 | 聚合控制面、Secret、RouteSnapshot | G1 | G2 | PENDING |
 | P3 | OpenAI Responses 聚合 MVP | G2 | G3 | PENDING |

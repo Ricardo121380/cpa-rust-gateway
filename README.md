@@ -2,7 +2,7 @@
 
 本目录用于规划一个基于 CPA 功能经验、但从零实现的高性能 AI 网关。
 
-规划阶段已经完成并锁定开发计划 `v1.0`，但尚未创建 Rust 工程代码。HTTP 技术路线确定为 `Rust + Actix Web`；框架只负责接入层，协议、路由、凭据和 Provider 核心不依赖 Actix 类型。
+规划阶段已经完成并锁定开发计划 `v1.0`，P0 工程基线与 21-package Rust Workspace 已建立，但尚未实现推理业务。HTTP 技术路线确定为 `Rust + Actix Web`；框架只负责接入层，协议、路由、凭据和 Provider 核心不依赖 Actix 类型。
 
 第一阶段渠道方向已经锁定为 `Grok Provider Family + Kiro + OpenAI-compatible`。Grok 不作为单一 Provider：官方 API、Build OAuth 与 Web/Console 使用独立 Adapter、凭据池、Quota 和连续性状态；Kiro 同时支持 CLI/IDE 端点，行为以服务器定制 Kiro-RS 为参考。
 
@@ -10,7 +10,7 @@
 
 ## 当前状态
 
-- 阶段：`P0 - Repository and engineering baseline`（P0-06 已完成，等待 G0）
+- 阶段：`P1 - Canonical Core + Mock 垂直链路`（G0 已通过；`P1-01` 尚未开始）
 - 执行计划：`v1.0`，状态 `Locked for execution`
 - CPA 参考版本：`router-for-me/CLIProxyAPI v7.2.80`
 - Release 1：核心范围、技术基线、阶段顺序和门禁已冻结
@@ -59,7 +59,7 @@
 2. 全计划同时最多一个 Task 处于 `IN_PROGRESS`，未通过当前 Gate 不进入下一 Phase。
 3. 功能矩阵中仍为 `待定` 的项目不属于当前 Release 1，不得顺手实现。
 4. 任何范围、顺序、公开行为或门槛变化都必须创建 Change Request，并取得用户明确批准。
-5. 下一步从 `P0-01` 开始；开始前仍不创建 Rust Workspace 或修改服务器。
+5. 下一步从 `P1-01` 开始；当前保持 `PENDING`，本次 G0 收尾不实现任何 P1 功能，也不修改服务器。
 
 ## 实施原则
 

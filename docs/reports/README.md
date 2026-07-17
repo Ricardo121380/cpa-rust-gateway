@@ -18,3 +18,9 @@
 - 失败、偏差、回滚与后续任务。
 
 报告不得保存 Secret、Cookie、Authorization Header、原始 Cache Key、生产 Body 或未脱敏日志。需要原始材料时，只记录受控外部位置和不可逆摘要。
+
+## 已完成阶段
+
+- [G0 阶段门禁报告](g0-gate-report.md)
+- [G0 干净检出完整门禁日志](g0-clean-full-log.md)
+- [G0 可复现构建日志](g0-reproducible-build-log.md)
