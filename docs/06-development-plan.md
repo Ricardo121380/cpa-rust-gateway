@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-18` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P0 - Repository and engineering baseline` |
-| 当前任务 | `P0-06` |
+| 当前任务 | `G0` |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
