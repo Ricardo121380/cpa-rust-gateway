@@ -30,6 +30,17 @@
 9. [架构决策记录（ADR）](docs/adr/README.md)
 10. [可执行行为契约](docs/contracts/README.md)
 11. [阶段与任务验证报告](docs/reports/README.md)
+12. [Crate 依赖边界](docs/crate-boundaries.md)
+13. [质量与供应链门禁](docs/quality-gates.md)
+
+## 本地检查
+
+```bash
+./scripts/check.sh fast
+./scripts/check.sh full
+```
+
+`fast` 执行格式、Clippy、测试、源码、架构、文档、Workflow 和 Secret 检查；`full` 在此基础上执行固定版本的 `cargo-deny` 与 `cargo-audit`。首次运行完整门禁前执行 `./scripts/install-quality-tools.sh`。
 
 ## 决策标记
 
