@@ -7,7 +7,7 @@
 | Date | `2026-07-18` |
 | Branch | `codex/p1-07-actix-responses-handler` |
 | Rust | `1.97.1` |
-| Result | Local PASS; independent review and GitHub CI pending |
+| Result | PASS |
 
 ## Delivered scope
 
@@ -35,6 +35,7 @@
 | `./scripts/check.sh fast` | PASS; format, Clippy, full workspace tests, source/secret/boundary/doc checks |
 | `./scripts/check.sh full` | PASS; fast gate plus dependency policy and RustSec audit |
 | `git diff --check` | PASS |
+| [GitHub CI run 29647267988](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29647267988) | PASS; Fast and Full supply-chain gates |
 
 ## Independent review
 
@@ -47,11 +48,11 @@
 Review passed. The HTTP crate's direct dependency tree contains no `gateway-provider`; the router
 facade is the sole Provider boundary. The review also exercised the complete local fast and full
 gates after inspecting the body-poll FSE commit point, cancellation/drop behavior, and terminal
-failure conversion. Hosted GitHub CI remains the final task-completion condition.
+failure conversion. GitHub CI run `29647267988` passed both Fast and Full supply-chain gates.
 
 ## Limits and next task
 
 P1-07 is intentionally unauthenticated and uses only the deterministic Mock path. It does not
 implement client-key auth, persistent configuration, real Provider selection, retries, management
-surfaces, P1-08, P1-09, P2, or server deployment. The task remains `IN_REVIEW` until independent
-review and all required gates complete.
+surfaces, P1-08, P1-09, P2, or server deployment. P1-08 remains `PENDING` and must be explicitly
+marked as the sole `IN_PROGRESS` task before implementation begins.

@@ -4,7 +4,7 @@
 |---|---|
 | Contract | `BC-HTTP-001` |
 | Task | `P1-07` |
-| Status | `IN_REVIEW` |
+| Status | `DONE` |
 | Domain | Public HTTP entry and Actix body delivery |
 
 ## Entry and boundary
