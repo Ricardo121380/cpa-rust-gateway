@@ -9,6 +9,7 @@ publish.workspace = true
 
 [dependencies]
 actix-web.workspace = true
+futures-util.workspace = true
 gateway-auth = { path = "../gateway-auth" }
 gateway-control = { path = "../gateway-control" }
 gateway-core = { path = "../gateway-core" }
@@ -18,6 +19,7 @@ gateway-router = { path = "../gateway-router" }
 gateway-stream = { path = "../gateway-stream" }
 protocol-anthropic = { path = "../protocol-anthropic" }
 protocol-openai-responses = { path = "../protocol-openai-responses" }
+tokio.workspace = true
 
 [lints]
 workspace = true

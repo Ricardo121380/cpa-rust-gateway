@@ -33,3 +33,4 @@
 - [P1-04 Bounded canonical stream report](p1-04-bounded-stream.md)
 - [P1-05 OpenAI Responses adapter report](p1-05-openai-responses-adapter.md)
 - [P1-06 Deterministic Mock Provider report](p1-06-deterministic-mock-provider.md)
+- [P1-07 Actix Responses handler report](p1-07-actix-responses-handler.md)

@@ -385,6 +385,7 @@ name = "gateway-http-actix"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "futures-util",
  "gateway-auth",
  "gateway-control",
  "gateway-core",
@@ -394,6 +395,7 @@ dependencies = [
  "gateway-stream",
  "protocol-anthropic",
  "protocol-openai-responses",
+ "tokio",
 ]
 
 [[package]]

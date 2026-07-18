@@ -28,5 +28,6 @@ P1 已创建 [BC-CORE-001 Request context and errors](BC-CORE-001-request-contex
 [BC-CORE-003 Canonical event state machine](BC-CORE-003-canonical-event-state-machine.md)，以及
 [BC-STREAM-001 Bounded canonical stream](BC-STREAM-001-bounded-canonical-stream.md) 和
 [BC-PROTOCOL-001 OpenAI Responses adapter](BC-PROTOCOL-001-openai-responses-adapter.md) 和
-[BC-PROVIDER-001 Deterministic Mock Provider](BC-PROVIDER-001-deterministic-mock-provider.md)。
+[BC-PROVIDER-001 Deterministic Mock Provider](BC-PROVIDER-001-deterministic-mock-provider.md) 和
+[BC-HTTP-001 Actix Responses handler](BC-HTTP-001-actix-responses-handler.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。
