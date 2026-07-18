@@ -1,0 +1,21 @@
+{
+  "emissions": [
+    {
+      "after_ms": 25,
+      "event": {
+        "response_start": {
+          "response_id": "mock-delay-response",
+          "extensions": {}
+        }
+      }
+    },
+    {
+      "after_ms": 10,
+      "event": {
+        "response_end": {
+          "extensions": {}
+        }
+      }
+    }
+  ]
+}

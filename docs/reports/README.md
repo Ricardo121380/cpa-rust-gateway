@@ -32,3 +32,4 @@
 - [P1-03 Canonical event state machine report](p1-03-canonical-event-state-machine.md)
 - [P1-04 Bounded canonical stream report](p1-04-bounded-stream.md)
 - [P1-05 OpenAI Responses adapter report](p1-05-openai-responses-adapter.md)
+- [P1-06 Deterministic Mock Provider report](p1-06-deterministic-mock-provider.md)

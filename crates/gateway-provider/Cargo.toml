@@ -9,6 +9,12 @@ publish.workspace = true
 
 [dependencies]
 gateway-core = { path = "../gateway-core" }
+tokio.workspace = true
+
+[dev-dependencies]
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
 
 [lints]
 workspace = true

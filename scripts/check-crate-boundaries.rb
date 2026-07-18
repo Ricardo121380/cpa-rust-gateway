@@ -23,7 +23,7 @@ allowed = {
   "gateway-http-actix" => %w[actix-web gateway-auth gateway-control gateway-core gateway-observability gateway-protocol gateway-router gateway-stream protocol-anthropic protocol-openai-responses],
   "gateway-observability" => %w[gateway-core],
   "gateway-protocol" => %w[gateway-core],
-  "gateway-provider" => %w[gateway-core],
+  "gateway-provider" => %w[gateway-core serde serde_json tokio],
   "gateway-router" => %w[gateway-access gateway-catalog gateway-continuity gateway-core gateway-provider gateway-upstream],
   "gateway-store" => %w[gateway-core],
   "gateway-stream" => %w[gateway-core gateway-protocol tokio tokio-util],
@@ -41,7 +41,7 @@ errors << "workspace member set differs from boundary policy" unless workspace_n
 
 packages.each do |package|
   name = package.fetch("name")
-  actual = package.fetch("dependencies").map { |dependency| dependency.fetch("name") }.sort
+  actual = package.fetch("dependencies").map { |dependency| dependency.fetch("name") }.uniq.sort
   expected = allowed.fetch(name, []).sort
   errors << "#{name}: expected #{expected.inspect}, got #{actual.inspect}" unless actual == expected
 end

@@ -1,0 +1,61 @@
+{
+  "emissions": [
+    {
+      "after_ms": 0,
+      "event": {
+        "response_start": {
+          "response_id": "mock-text-response",
+          "extensions": {}
+        }
+      }
+    },
+    {
+      "after_ms": 0,
+      "event": {
+        "message_start": {
+          "role": "assistant",
+          "extensions": {}
+        }
+      }
+    },
+    {
+      "after_ms": 0,
+      "event": {
+        "text_delta": {
+          "text": "deterministic mock text",
+          "extensions": {}
+        }
+      }
+    },
+    {
+      "after_ms": 0,
+      "event": {
+        "usage_delta": {
+          "usage": {
+            "input_tokens": 3,
+            "output_tokens": 2,
+            "extensions": {}
+          },
+          "is_final": true,
+          "extensions": {}
+        }
+      }
+    },
+    {
+      "after_ms": 0,
+      "event": {
+        "message_end": {
+          "extensions": {}
+        }
+      }
+    },
+    {
+      "after_ms": 0,
+      "event": {
+        "response_end": {
+          "extensions": {}
+        }
+      }
+    }
+  ]
+}

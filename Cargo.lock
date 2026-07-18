@@ -415,6 +415,9 @@ name = "gateway-provider"
 version = "0.1.0"
 dependencies = [
  "gateway-core",
+ "serde",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]

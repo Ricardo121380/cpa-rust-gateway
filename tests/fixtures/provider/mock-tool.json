@@ -1,0 +1,68 @@
+{
+  "emissions": [
+    {
+      "after_ms": 0,
+      "event": {
+        "response_start": {
+          "response_id": "mock-tool-response",
+          "extensions": {}
+        }
+      }
+    },
+    {
+      "after_ms": 0,
+      "event": {
+        "message_start": {
+          "role": "assistant",
+          "extensions": {}
+        }
+      }
+    },
+    {
+      "after_ms": 0,
+      "event": {
+        "tool_call_start": {
+          "call_id": "mock-weather-call",
+          "name": "lookup_weather",
+          "extensions": {}
+        }
+      }
+    },
+    {
+      "after_ms": 0,
+      "event": {
+        "tool_call_arguments_delta": {
+          "call_id": "mock-weather-call",
+          "delta": "{\"city\":\"Jakarta\"}",
+          "extensions": {}
+        }
+      }
+    },
+    {
+      "after_ms": 0,
+      "event": {
+        "tool_call_end": {
+          "call_id": "mock-weather-call",
+          "arguments": {"city":"Jakarta"},
+          "extensions": {}
+        }
+      }
+    },
+    {
+      "after_ms": 0,
+      "event": {
+        "message_end": {
+          "extensions": {}
+        }
+      }
+    },
+    {
+      "after_ms": 0,
+      "event": {
+        "response_end": {
+          "extensions": {}
+        }
+      }
+    }
+  ]
+}
