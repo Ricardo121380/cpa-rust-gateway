@@ -4,7 +4,7 @@
 |---|---|
 | Contract | `BC-AUTH-001` |
 | Task | `P1-08` |
-| Status | `IN_REVIEW` |
+| Status | `DONE` |
 | Domain | Client Key admission authentication |
 
 ## Entry and boundary

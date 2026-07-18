@@ -7,7 +7,7 @@
 | Date | `2026-07-18` |
 | Branch | `codex/p1-08-client-key-auth` |
 | Rust | `1.97.1` |
-| Result | Local PASS; independent review complete; GitHub CI pending |
+| Result | PASS; independent review and GitHub Fast/Full CI complete |
 
 ## Delivered scope
 
@@ -37,6 +37,7 @@
 | `git diff --check` | PASS |
 | `./scripts/check.sh fast` | PASS; format, Clippy, full workspace tests, source/secret/boundary/doc checks |
 | `./scripts/check.sh full` | PASS; fast gate plus dependency policy and RustSec audit |
+| GitHub Actions run `29648767066` | PASS; Fast gate and Full supply-chain gate |
 
 ## Independent review
 

@@ -33,7 +33,7 @@
 | P1-05 | Plan 7；Matrix A01/A03/A07/B01-B17/B23/B27；Behavior 4、5、9 | [BC-PROTOCOL-001](contracts/BC-PROTOCOL-001-openai-responses-adapter.md) | `protocol-openai-responses` Responses 入站、非流式和 SSE 编解码 | [P1-05 报告](reports/p1-05-openai-responses-adapter.md) | DONE |
 | P1-06 | Plan 7；Matrix B01-B17/B23/B27；Behavior 4、5、9 | [BC-PROVIDER-001](contracts/BC-PROVIDER-001-deterministic-mock-provider.md) | `gateway-provider` 小能力 Trait 与 Deterministic Mock | [P1-06 报告](reports/p1-06-deterministic-mock-provider.md) | DONE |
 | P1-07 | Plan 7；BL-01/BL-05；Matrix A01/A03/A07/B29/B30；Behavior 1、4、5、9 | [BC-HTTP-001](contracts/BC-HTTP-001-actix-responses-handler.md) | `gateway-http-actix` `/healthz` 与 `/v1/responses` Mock 垂直链路 | [P1-07 报告](reports/p1-07-actix-responses-handler.md) | DONE |
-| P1-08 | Plan 7；BL-11/BL-22；Behavior 20 | [BC-AUTH-001](contracts/BC-AUTH-001-client-key-auth-port.md) | `gateway-auth` 内存 Client Key Port 与 `gateway-http-actix` Bearer 入口鉴权 | [P1-08 报告](reports/p1-08-in-memory-client-key-auth.md) | IN_PROGRESS (GitHub CI pending) |
+| P1-08 | Plan 7；BL-11/BL-22；Behavior 20 | [BC-AUTH-001](contracts/BC-AUTH-001-client-key-auth-port.md) | `gateway-auth` 内存 Client Key Port 与 `gateway-http-actix` Bearer 入口鉴权 | [P1-08 报告](reports/p1-08-in-memory-client-key-auth.md) | DONE |
 
 ## 后续 Phase 映射
 
