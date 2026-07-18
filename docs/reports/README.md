@@ -24,10 +24,7 @@
 - [G0 阶段门禁报告](g0-gate-report.md)
 - [G0 干净检出完整门禁日志](g0-clean-full-log.md)
 - [G0 可复现构建日志](g0-reproducible-build-log.md)
-
-## 待批准的门禁
-
-- [G1 阶段门禁报告（等待 CR-P1-G1-001）](g1-gate-report.md)
+- [G1 阶段门禁报告](g1-gate-report.md)
 
 ## 已完成任务
 

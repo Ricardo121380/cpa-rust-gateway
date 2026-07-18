@@ -4,14 +4,15 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.0` |
-| 生效日期 | `2026-07-18` |
+| 计划版本 | `v1.1` |
+| 生效日期 | `2026-07-19` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` |
-| 当前任务 | P1 全部 Task 已完成（`DONE`）；G1 审计已完成但 `CR-P1-G1-001` 待用户批准，P2 仍为 `PENDING` |
+| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` 已完成；`P2` 尚未开始 |
+| 当前任务 | `G1` 已通过；`P2-01` 仍为 `PENDING`，未获新指令不得开始 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
+| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -229,7 +230,7 @@ deploy/
 | Phase | 目标 | 进入条件 | 退出 Gate | 状态 |
 |---|---|---|---|---|
 | P0 | 仓库、工具链、ADR、CI 基线 | 本计划锁定 | G0 | DONE |
-| P1 | Canonical Core + Mock 垂直链路 | G0 | G1 | IN_PROGRESS |
+| P1 | Canonical Core + Mock 垂直链路 | G0 | G1 | DONE |
 | P2 | 聚合控制面、Secret、RouteSnapshot | G1 | G2 | PENDING |
 | P3 | OpenAI Responses 聚合 MVP | G2 | G3 | PENDING |
 | P4 | Catalog、Health、Quota、Explain、观测 | G3 | G4 | PENDING |
@@ -285,7 +286,7 @@ deploy/
 ### G1 门禁
 
 - `/v1/responses` 非流式和 SSE 均通过 Mock E2E。
-- 任意 Chunk 切分得到相同 Canonical Event 序列。
+- 对保留每个 Tool 本地片段顺序的任意合法、已解码 UTF-8 参数片段切分与交错，得到相同 Tool 语义投影：`call_id`、`name`、最终 `RawJson`、Responses SSE 和非流式 Function Call 输出一致；`ToolCallArgumentsDelta` 的片段边界可不同。原始网络 bytes、UTF-8 标量内切分及 EventStream 帧不变性仍由后续 Provider 阶段验证。
 - `EnterPlanMode`、`ExitPlanMode` 和普通无参数 Tool 输出 `{}`。
 - 客户端取消后没有遗留上游任务或无限缓冲。
 - FirstSemanticEvent 前后重试状态可被测试明确区分。

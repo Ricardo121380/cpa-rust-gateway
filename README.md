@@ -10,8 +10,8 @@
 
 ## 当前状态
 
-- 阶段：`P1 - Canonical Core + Mock 垂直链路`（G0 已通过；`P1-01` 至 `P1-09` 已完成；G1 等待 `CR-P1-G1-001` 用户批准）
-- 执行计划：`v1.0`，状态 `Locked for execution`
+- 阶段：`P1 - Canonical Core + Mock 垂直链路` 已完成（G0、G1 已通过；`P2` 尚未开始）
+- 执行计划：`v1.1`，状态 `Locked for execution`；`CR-P1-G1-001` 已批准
 - CPA 参考版本：`router-for-me/CLIProxyAPI v7.2.80`
 - Release 1：核心范围、技术基线、阶段顺序和门禁已冻结
 - Rust Workspace：21-package 骨架已创建并通过 P0-03 验证
@@ -59,7 +59,7 @@
 2. 全计划同时最多一个 Task 处于 `IN_PROGRESS`，未通过当前 Gate 不进入下一 Phase。
 3. 功能矩阵中仍为 `待定` 的项目不属于当前 Release 1，不得顺手实现。
 4. 任何范围、顺序、公开行为或门槛变化都必须创建 Change Request，并取得用户明确批准。
-5. P1 的全部 Task 已完成；G1 阶段门禁因 `CR-P1-G1-001` 待用户批准而尚未通过，P2 及后续任务仍为 `PENDING`，不得提前实现其功能，也不修改服务器。
+5. P1 的全部 Task 与 G1 阶段门禁均已完成；`P2-01` 及后续任务仍为 `PENDING`，不得在没有新指令时提前实现其功能，也不修改服务器。
 
 ## 实施原则
 

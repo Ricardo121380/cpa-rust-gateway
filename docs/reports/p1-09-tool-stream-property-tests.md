@@ -90,10 +90,11 @@ final arguments. The review also confirmed that `proptest` is test-only, its loc
 boundary policy are synchronized, fixed/random seeds are reproducible, failure persistence is
 disabled, and the runner script quotes values under strict shell mode.
 
-## GitHub verification and remaining phase boundary
+## GitHub verification and approved phase boundary
 
 GitHub Actions run `29650157066` completed with both Fast and Full gates passing, so P1-09 is
-`DONE`. This task deliberately does not claim raw network-byte partition invariance, EventStream
-parsing, or source-side empty/whitespace normalization; those require a future Provider ingress
-implementation. G1 remains in audit because its literal Canonical Event sequence criterion needs
-an explicit governance decision before the phase can be marked complete.
+`DONE`. `CR-P1-G1-001` was approved on `2026-07-19`: G1 uses this suite's established invariant
+that arbitrary valid, already-decoded Tool argument fragment schedules preserve the same Tool
+semantic projection, while raw `ToolCallArgumentsDelta` boundaries may differ. This task still
+does not claim raw network-byte partition invariance, EventStream parsing, or source-side
+empty/whitespace normalization; those require a future Provider ingress implementation.
