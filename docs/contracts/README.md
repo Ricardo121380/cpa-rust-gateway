@@ -23,6 +23,7 @@ SEC        Secret、SSRF、租户隔离和审计
 CORE       框架无关的 Canonical Core
 ```
 
-P1 已创建 [BC-CORE-001 Request context and errors](BC-CORE-001-request-context-and-errors.md)
-和 [BC-CORE-002 Canonical request](BC-CORE-002-canonical-request.md)。后续契约随对应 Task
-创建并在需求追踪索引中登记。
+P1 已创建 [BC-CORE-001 Request context and errors](BC-CORE-001-request-context-and-errors.md)、
+[BC-CORE-002 Canonical request](BC-CORE-002-canonical-request.md) 和
+[BC-CORE-003 Canonical event state machine](BC-CORE-003-canonical-event-state-machine.md)。后续
+契约随对应 Task 创建并在需求追踪索引中登记。

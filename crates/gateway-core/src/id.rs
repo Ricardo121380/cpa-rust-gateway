@@ -2,6 +2,8 @@
 
 use std::{error::Error, fmt};
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+
 /// Error returned when an opaque gateway identifier is empty.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum InvalidIdentifier {
@@ -74,12 +76,35 @@ macro_rules! opaque_identifier {
                 Self::try_new(value)
             }
         }
+
+        impl Serialize for $name {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                serializer.serialize_str(self.as_str())
+            }
+        }
+
+        impl<'de> Deserialize<'de> for $name {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                let value = String::deserialize(deserializer)?;
+                Self::try_new(value).map_err(de::Error::custom)
+            }
+        }
     };
 }
 
 opaque_identifier!(
     RequestId,
     "Stable identifier for one externally accepted gateway request."
+);
+opaque_identifier!(
+    ResponseId,
+    "Stable identifier for one client-visible canonical response."
 );
 opaque_identifier!(
     AttemptId,
@@ -128,7 +153,7 @@ opaque_identifier!(
 
 #[cfg(test)]
 mod tests {
-    use super::{InvalidIdentifier, RequestId};
+    use super::{InvalidIdentifier, RequestId, ResponseId};
 
     #[test]
     fn identifiers_preserve_a_non_empty_opaque_value() {
@@ -144,5 +169,23 @@ mod tests {
     #[test]
     fn identifiers_reject_an_empty_value() {
         assert_eq!(RequestId::try_new(""), Err(InvalidIdentifier::Empty));
+    }
+
+    #[test]
+    fn response_identifier_json_round_trip_preserves_the_non_empty_invariant()
+    -> Result<(), serde_json::Error> {
+        let result = ResponseId::try_new("response-01");
+
+        assert!(result.is_ok());
+        if let Ok(response_id) = result {
+            let encoded = serde_json::to_string(&response_id)?;
+            let decoded: ResponseId = serde_json::from_str(&encoded)?;
+
+            assert_eq!(encoded, r#""response-01""#);
+            assert_eq!(decoded, response_id);
+        }
+        assert!(serde_json::from_str::<ResponseId>(r#""""#).is_err());
+
+        Ok(())
     }
 }

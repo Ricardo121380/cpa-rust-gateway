@@ -1,0 +1,141 @@
+[
+  {
+    "response_start": {
+      "response_id": "response-01",
+      "extensions": {
+        "vendor_response": {"note": "vendor event data"}
+      }
+    }
+  },
+  {
+    "message_start": {
+      "role": "assistant",
+      "extensions": {}
+    }
+  },
+  {
+    "text_delta": {
+      "text": "Visible answer fragment.",
+      "extensions": {
+        "vendor_text": {"ordinal": 1}
+      }
+    }
+  },
+  {
+    "reasoning_delta": {
+      "text": "Reasoning fragment.",
+      "extensions": {}
+    }
+  },
+  {
+    "tool_call_start": {
+      "call_id": "call-alpha",
+      "name": "lookup_weather",
+      "extensions": {}
+    }
+  },
+  {
+    "tool_call_start": {
+      "call_id": "call-beta",
+      "name": "lookup_timezone",
+      "extensions": {}
+    }
+  },
+  {
+    "tool_call_start": {
+      "call_id": "call-empty",
+      "name": "no_arguments",
+      "extensions": {}
+    }
+  },
+  {
+    "tool_call_arguments_delta": {
+      "call_id": "call-alpha",
+      "delta": "{\"query\":",
+      "extensions": {}
+    }
+  },
+  {
+    "tool_call_arguments_delta": {
+      "call_id": "call-beta",
+      "delta": "{\"timezone\":",
+      "extensions": {}
+    }
+  },
+  {
+    "tool_call_arguments_delta": {
+      "call_id": "call-alpha",
+      "delta": "\"weather\"}",
+      "extensions": {}
+    }
+  },
+  {
+    "tool_call_arguments_delta": {
+      "call_id": "call-beta",
+      "delta": "\"UTC\"}",
+      "extensions": {}
+    }
+  },
+  {
+    "tool_call_end": {
+      "call_id": "call-empty",
+      "arguments": {},
+      "extensions": {
+        "vendor_tool_end": {"empty": true}
+      }
+    }
+  },
+  {
+    "tool_call_end": {
+      "call_id": "call-beta",
+      "arguments": {"timezone":"UTC"},
+      "extensions": {}
+    }
+  },
+  {
+    "tool_call_end": {
+      "call_id": "call-alpha",
+      "arguments": {"query":"weather"},
+      "extensions": {}
+    }
+  },
+  {
+    "usage_delta": {
+      "usage": {
+        "input_tokens": 12,
+        "extensions": {}
+      },
+      "is_final": false,
+      "extensions": {}
+    }
+  },
+  {
+    "message_end": {
+      "extensions": {}
+    }
+  },
+  {
+    "usage_delta": {
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 7,
+        "reasoning_tokens": 2,
+        "cache_read_tokens": 1,
+        "cache_creation_tokens": 0,
+        "cached_tokens": 1,
+        "extensions": {
+          "vendor_usage": {"source": "fixture"}
+        }
+      },
+      "is_final": true,
+      "extensions": {}
+    }
+  },
+  {
+    "response_end": {
+      "extensions": {
+        "vendor_response_end": {"complete": true}
+      }
+    }
+  }
+]

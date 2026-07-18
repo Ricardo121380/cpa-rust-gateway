@@ -2,8 +2,11 @@
 
 use std::{error::Error, fmt};
 
+use serde::{Deserialize, Serialize};
+
 /// Stable internal error category used across gateway layers.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "PascalCase")]
 pub enum GatewayErrorCode {
     /// The client supplied an invalid request or tool schema.
     ClientRequestError,
@@ -94,7 +97,8 @@ impl fmt::Display for GatewayErrorCode {
 ///
 /// Error category and scope are deliberately independent: the same observed transport failure can
 /// be attributable to an egress session or a provider only after bounded evidence is evaluated.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ErrorScope {
     /// The external request itself cannot continue without a client-side change.
     Request,
@@ -144,7 +148,8 @@ impl fmt::Display for ErrorScope {
 }
 
 /// A safe, transport-neutral error returned by a gateway domain operation.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct GatewayError {
     code: GatewayErrorCode,
     scope: ErrorScope,
@@ -252,5 +257,20 @@ mod tests {
         assert_ne!(ErrorScope::EgressSession, ErrorScope::Egress);
         assert_ne!(ErrorScope::Egress, ErrorScope::Provider);
         assert_ne!(ErrorScope::Provider, ErrorScope::Stream);
+    }
+
+    #[test]
+    fn gateway_error_json_uses_the_stable_machine_encodings() -> Result<(), serde_json::Error> {
+        let error = GatewayError::new(GatewayErrorCode::ProviderTransient, ErrorScope::Provider);
+        let encoded = serde_json::to_string(&error)?;
+        let decoded: GatewayError = serde_json::from_str(&encoded)?;
+
+        assert_eq!(
+            encoded,
+            r#"{"code":"ProviderTransient","scope":"provider"}"#
+        );
+        assert_eq!(decoded, error);
+
+        Ok(())
     }
 }
