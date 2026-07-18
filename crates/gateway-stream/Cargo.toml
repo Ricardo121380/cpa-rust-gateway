@@ -10,6 +10,8 @@ publish.workspace = true
 [dependencies]
 gateway-core = { path = "../gateway-core" }
 gateway-protocol = { path = "../gateway-protocol" }
+tokio.workspace = true
+tokio-util.workspace = true
 
 [lints]
 workspace = true

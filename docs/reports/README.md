@@ -30,3 +30,4 @@
 - [P1-01 Request context and errors report](p1-01-request-context-errors.md)
 - [P1-02 Canonical request report](p1-02-canonical-request.md)
 - [P1-03 Canonical event state machine report](p1-03-canonical-event-state-machine.md)
+- [P1-04 Bounded canonical stream report](p1-04-bounded-stream.md)
