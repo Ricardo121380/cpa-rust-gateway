@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-18` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` |
-| 当前任务 | `P1-01`（尚未开始，`PENDING`） |
+| 当前任务 | `P1-01`（已完成，`DONE`）；下一任务 `P1-02`（尚未开始，`PENDING`） |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -229,7 +229,7 @@ deploy/
 | Phase | 目标 | 进入条件 | 退出 Gate | 状态 |
 |---|---|---|---|---|
 | P0 | 仓库、工具链、ADR、CI 基线 | 本计划锁定 | G0 | DONE |
-| P1 | Canonical Core + Mock 垂直链路 | G0 | G1 | PENDING |
+| P1 | Canonical Core + Mock 垂直链路 | G0 | G1 | IN_PROGRESS |
 | P2 | 聚合控制面、Secret、RouteSnapshot | G1 | G2 | PENDING |
 | P3 | OpenAI Responses 聚合 MVP | G2 | G3 | PENDING |
 | P4 | Catalog、Health、Quota、Explain、观测 | G3 | G4 | PENDING |
@@ -272,7 +272,7 @@ deploy/
 
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
-| P1-01 | 定义稳定 ID、RequestContext、GatewayError 和错误作用域 | G0 | 单元测试 + 错误编码快照 | PENDING |
+| P1-01 | 定义稳定 ID、RequestContext、GatewayError 和错误作用域 | G0 | 单元测试 + 错误编码快照 | DONE |
 | P1-02 | 定义 `CanonicalRequest`、消息、内容、Tool、Thinking 和 Raw Extension | P1-01 | JSON/结构 Round-trip 测试 | PENDING |
 | P1-03 | 定义 `CanonicalEvent` 与 Response/Text/Reasoning/Tool/Usage 状态机 | P1-02 | 状态转换和非法序列测试 | PENDING |
 | P1-04 | 实现有界流、背压、取消传播和 FirstSemanticEvent Tracker | P1-03 | 慢消费者、取消和容量测试 | PENDING |

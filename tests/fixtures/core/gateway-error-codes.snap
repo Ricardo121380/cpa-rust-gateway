@@ -1,0 +1,16 @@
+ClientRequestError
+ClientUnauthorized
+RouteNotFound
+CredentialUnavailable
+CredentialUnauthorized
+CredentialForbidden
+CredentialQuotaExceeded
+EgressRejected
+EgressUnavailable
+ProviderRateLimited
+ProviderTransient
+ProviderPermanent
+UpstreamProtocolError
+StreamTruncated
+InternalError
+Cancelled

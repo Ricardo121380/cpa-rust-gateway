@@ -22,6 +22,12 @@
 | P0-06 | Plan P0-06、21；Matrix K12 | 无 | Mac/VPS 环境基线 | [P0-06 环境基线](reports/environment-baseline.md) | DONE |
 | G0 | Plan G0、4.3、20-22 | 无 unsafe 例外 ADR | 干净 full gate、双构建 SHA、阶段审计 | [G0 报告](reports/g0-gate-report.md) | DONE |
 
+## P1 追踪
+
+| Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
+|---|---|---|---|---|---|
+| P1-01 | Plan 7；Matrix B25/G05；Behavior 1、9、15；Channel analysis 5.4 | [BC-CORE-001](contracts/BC-CORE-001-request-context-and-errors.md) | `gateway-core` IDs、RequestContext、GatewayError 与 scope | [P1-01 报告](reports/p1-01-request-context-errors.md) | DONE |
+
 ## 后续 Phase 映射
 
 | 矩阵模块 | 主要 Phase |
