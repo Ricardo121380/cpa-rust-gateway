@@ -9,18 +9,20 @@
 
 ## Entry and boundary
 
-P1 exposes only these unauthenticated endpoints:
+The current P1 surface exposes these endpoints:
 
 ```text
 GET  /healthz
 POST /v1/responses
 ```
 
-`/healthz` returns `200 application/json` with `{"status":"ok"}`. `/v1/responses` accepts raw
-UTF-8 bytes, passes the complete text to `protocol-openai-responses::decode_request`, executes a
-router-owned `ResponsesExecutor`, and returns either a completed Responses JSON object or typed
-Responses SSE frames. It does not add authentication, catalog/route selection, real Provider
-configuration, retries, persistence, management APIs, deployment, or P2 work.
+`/healthz` returns `200 application/json` with `{"status":"ok"}` and remains public.
+`/v1/responses` requires the P1-08 Client Key admission defined by
+[BC-AUTH-001](BC-AUTH-001-client-key-auth-port.md), then accepts raw UTF-8 bytes, passes the
+complete text to `protocol-openai-responses::decode_request`, executes a router-owned
+`ResponsesExecutor`, and returns either a completed Responses JSON object or typed Responses SSE
+frames. It does not add catalog/route selection, real Provider configuration, retries,
+persistence, management APIs, deployment, or P2 work.
 
 The HTTP crate depends on `gateway-router` only through `ResponsesExecutor` and
 `ResponsesEventSource`, whose public surface contains canonical types and boxed standard-library
@@ -29,13 +31,16 @@ API. `gateway-router` adapts P1-06's deterministic Mock Provider behind that fac
 
 ## Request admission and pre-header sequence
 
-- The handler uses `web::Bytes`, not `web::Json`. It validates UTF-8 and invokes
+- Before interpreting or decoding the raw request body, the handler requires exactly one valid
+  Bearer Client Key as specified by BC-AUTH-001. Authentication rejection is a safe pre-header
+  `401` and does not invoke decoding, context creation, router execution, or Provider execution.
+- After authentication, the handler uses `web::Bytes`, not `web::Json`. It validates UTF-8 and invokes
   `decode_request` on the untouched complete body, preserving P1-05 duplicate-name rejection at
   every JSON nesting level.
-- Before creating an HTTP success response it performs, in order: decode, request-context
-  creation, executor start, first source pull, first-event validation as `ResponseStart`, and
-  response-metadata construction. Streaming also validates that a fresh SSE encoder can encode
-  that initial event before it creates headers.
+- Before creating an HTTP success response it performs, in order: authentication, decode,
+  request-context creation, executor start, first source pull, first-event validation as
+  `ResponseStart`, and response-metadata construction. Streaming also validates that a fresh SSE
+  encoder can encode that initial event before it creates headers.
 - The request's public `model` is P1's provisional public-model label. A process-local opaque
   request sequence and Unix-second clock are default implementations; `ResponsesMetadataFactory`
   allows deterministic test or later configuration injection.
@@ -43,7 +48,8 @@ API. `gateway-router` adapts P1-06's deterministic Mock Provider behind that fac
   `{ "error": { "type", "code", "message", "param": null } }` JSON envelope. P1 status mapping
   is `ClientRequestError -> 400`, `ClientUnauthorized -> 401`, `RouteNotFound -> 404`, rate/quota
   errors -> `429`, transient/unavailable errors -> `503`, Provider/protocol/truncation and related
-  upstream errors -> `502`, and internal/cancelled errors -> `500`.
+  upstream errors -> `502`, and internal/cancelled errors -> `500`. A `401` also includes
+  `WWW-Authenticate: Bearer`.
 
 ## Bounded execution and cancellation
 
@@ -90,9 +96,10 @@ returned to Actix.
 
 ## Corresponding tests
 
-- In-process Actix HTTP E2E covers `/healthz`, non-streaming Responses JSON, typed streaming SSE,
-  duplicate JSON-name rejection, pre-start error JSON, canonical post-start failure, source early
-  EOF conversion, and post-header encoder failure conversion.
+- In-process Actix HTTP E2E covers public `/healthz`, authenticated non-streaming Responses JSON,
+  typed streaming SSE, Client Key rejection before decode/Provider execution, duplicate JSON-name
+  rejection, pre-start error JSON, canonical post-start failure, source early EOF conversion, and
+  post-header encoder failure conversion.
 - Direct body tests prove JSON and SSE FirstSemanticEvent remain uncommitted before body polling
   and commit only when their first semantic bytes chunk is returned to Actix.
 - A cancellation test drops an unconsumed SSE body and verifies the delayed router source is

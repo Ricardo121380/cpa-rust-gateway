@@ -1,6 +1,6 @@
 //! `Actix Web` transport shell. Core crates must not depend on this crate.
 //!
-//! P1 exposes a deliberately small, unauthenticated vertical slice: `GET /healthz` and
+//! P1 exposes a deliberately small vertical slice: public `GET /healthz` and Client Key-protected
 //! `POST /v1/responses`. Request bytes are decoded by the protocol adapter rather than Actix's
 //! JSON extractor so duplicate JSON member names remain observable and rejectable.
 
@@ -19,12 +19,13 @@ use std::{
 };
 
 use actix_web::{
-    HttpResponse,
+    HttpRequest, HttpResponse,
     body::{BodySize, MessageBody},
     http::{StatusCode, header},
     web,
 };
 use futures_util::{Stream, stream};
+use gateway_auth::ClientKeyAuthenticator;
 use gateway_core::{
     CanonicalEvent, CanonicalResponse, ErrorScope, GatewayError, GatewayErrorCode, RequestContext,
     RequestId, StreamError,
@@ -107,36 +108,47 @@ impl ResponsesMetadataFactory for SystemResponsesMetadataFactory {
 }
 
 /// Shared Actix application state for P1 Responses endpoints.
+///
+/// An authenticator is mandatory so the public Responses route cannot accidentally retain P1-07's
+/// unauthenticated behavior. Health remains independent of this state-owned authentication path.
 #[derive(Clone)]
 pub struct ResponsesHttpState {
     executor: Arc<dyn ResponsesExecutor>,
+    authenticator: Arc<dyn ClientKeyAuthenticator>,
     metadata_factory: Arc<dyn ResponsesMetadataFactory>,
     stream_capacity: StreamCapacity,
 }
 
 impl ResponsesHttpState {
-    /// Creates P1 HTTP state using the system metadata implementation.
+    /// Creates P1 HTTP state using system metadata and a mandatory Client Key authenticator.
     #[must_use]
-    pub fn new(executor: Arc<dyn ResponsesExecutor>, stream_capacity: StreamCapacity) -> Self {
+    pub fn new(
+        executor: Arc<dyn ResponsesExecutor>,
+        authenticator: Arc<dyn ClientKeyAuthenticator>,
+        stream_capacity: StreamCapacity,
+    ) -> Self {
         Self::with_metadata(
             executor,
             Arc::new(SystemResponsesMetadataFactory::new()),
+            authenticator,
             stream_capacity,
         )
     }
 
-    /// Creates P1 HTTP state with an explicit metadata implementation.
+    /// Creates P1 HTTP state with explicit metadata and Client Key authentication implementations.
     ///
-    /// This is useful for deterministic HTTP tests and later configuration-owned clock/ID
-    /// implementations.
+    /// This is useful for deterministic HTTP tests and later configuration-owned clock/ID and
+    /// P2 snapshot-authenticator implementations.
     #[must_use]
     pub fn with_metadata(
         executor: Arc<dyn ResponsesExecutor>,
         metadata_factory: Arc<dyn ResponsesMetadataFactory>,
+        authenticator: Arc<dyn ClientKeyAuthenticator>,
         stream_capacity: StreamCapacity,
     ) -> Self {
         Self {
             executor,
+            authenticator,
             metadata_factory,
             stream_capacity,
         }
@@ -165,7 +177,16 @@ async fn healthz() -> HttpResponse {
         .body(r#"{"status":"ok"}"#)
 }
 
-async fn responses(state: web::Data<ResponsesHttpState>, body: web::Bytes) -> HttpResponse {
+async fn responses(
+    request: HttpRequest,
+    state: web::Data<ResponsesHttpState>,
+    body: web::Bytes,
+) -> HttpResponse {
+    let _authenticated_client =
+        match authenticate_bearer_request(&request, state.authenticator.as_ref()) {
+            Ok(authenticated_client) => authenticated_client,
+            Err(error) => return pre_header_error(&error),
+        };
     let Ok(body) = std::str::from_utf8(&body) else {
         return pre_header_error(&client_request_error());
     };
@@ -532,9 +553,35 @@ impl MessageBody for JsonDeliveryBody {
 }
 
 fn pre_header_error(error: &GatewayError) -> HttpResponse {
-    HttpResponse::build(error_status(error))
+    let mut response = HttpResponse::build(error_status(error));
+    if error.code() == GatewayErrorCode::ClientUnauthorized {
+        response.insert_header((header::WWW_AUTHENTICATE, "Bearer"));
+    }
+    response
         .content_type("application/json")
         .body(encode_error(error).to_string())
+}
+
+fn authenticate_bearer_request(
+    request: &HttpRequest,
+    authenticator: &dyn ClientKeyAuthenticator,
+) -> Result<gateway_auth::AuthenticatedClient, GatewayError> {
+    let mut values = request.headers().get_all(header::AUTHORIZATION);
+    let Some(value) = values.next() else {
+        return Err(client_unauthorized_error());
+    };
+    if values.next().is_some() {
+        return Err(client_unauthorized_error());
+    }
+    let value = value.to_str().map_err(|_| client_unauthorized_error())?;
+    let Some(presented_key) = value.strip_prefix("Bearer ") else {
+        return Err(client_unauthorized_error());
+    };
+    if presented_key.is_empty() || presented_key.bytes().any(|byte| byte.is_ascii_whitespace()) {
+        return Err(client_unauthorized_error());
+    }
+
+    authenticator.authenticate(presented_key)
 }
 
 const fn error_status(error: &GatewayError) -> StatusCode {
@@ -564,6 +611,10 @@ const fn client_request_error() -> GatewayError {
     GatewayError::new(GatewayErrorCode::ClientRequestError, ErrorScope::Request)
 }
 
+const fn client_unauthorized_error() -> GatewayError {
+    GatewayError::new(GatewayErrorCode::ClientUnauthorized, ErrorScope::Request)
+}
+
 const fn stream_protocol_error() -> GatewayError {
     GatewayError::new(GatewayErrorCode::UpstreamProtocolError, ErrorScope::Stream)
 }
@@ -579,16 +630,22 @@ mod tests {
         future::poll_fn,
         sync::{
             Arc,
-            atomic::{AtomicBool, Ordering},
+            atomic::{AtomicBool, AtomicUsize, Ordering},
         },
         time::Duration,
     };
 
-    use actix_web::{App, body::MessageBody, http::StatusCode, test, web};
+    use actix_web::{
+        App,
+        body::MessageBody,
+        http::{StatusCode, header},
+        test, web,
+    };
+    use gateway_auth::{ClientKeyAuthenticator, InMemoryClientKey, InMemoryClientKeyAuthenticator};
     use gateway_core::{
-        CanonicalEvent, ErrorScope, GatewayError, GatewayErrorCode, MessageEnd, MessageRole,
-        MessageStart, RawExtensions, RawJson, RequestContext, RequestId, ResponseEnd, ResponseId,
-        ResponseStart, StreamError, TextDelta,
+        CanonicalEvent, ClientKeyId, ErrorScope, GatewayError, GatewayErrorCode, MessageEnd,
+        MessageRole, MessageStart, RawExtensions, RawJson, RequestContext, RequestId, ResponseEnd,
+        ResponseId, ResponseStart, StreamError, TextDelta,
     };
     use gateway_router::{
         DeterministicMockEmission, DeterministicMockResponsesExecutor, ResponsesEventSource,
@@ -603,6 +660,8 @@ mod tests {
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
+
+    const TEST_CLIENT_KEY: &str = "p1-test-client-key";
 
     #[derive(Debug)]
     struct FixedMetadata;
@@ -645,6 +704,38 @@ mod tests {
         ])
     }
 
+    fn test_authenticator() -> Result<Arc<dyn ClientKeyAuthenticator>, Box<dyn Error>> {
+        let key = InMemoryClientKey::try_new(
+            TEST_CLIENT_KEY,
+            ClientKeyId::try_new("http-test-client-key")?,
+            true,
+        )?;
+        let authenticator = InMemoryClientKeyAuthenticator::try_new([key])?;
+
+        Ok(Arc::new(authenticator))
+    }
+
+    fn authenticator_with_disabled_key() -> Result<Arc<dyn ClientKeyAuthenticator>, Box<dyn Error>>
+    {
+        let enabled = InMemoryClientKey::try_new(
+            TEST_CLIENT_KEY,
+            ClientKeyId::try_new("http-test-client-key")?,
+            true,
+        )?;
+        let disabled = InMemoryClientKey::try_new(
+            "p1-disabled-client-key",
+            ClientKeyId::try_new("http-disabled-client-key")?,
+            false,
+        )?;
+        let authenticator = InMemoryClientKeyAuthenticator::try_new([enabled, disabled])?;
+
+        Ok(Arc::new(authenticator))
+    }
+
+    fn authorized(request: test::TestRequest) -> test::TestRequest {
+        request.insert_header((header::AUTHORIZATION, format!("Bearer {TEST_CLIENT_KEY}")))
+    }
+
     fn mock_state(events: Vec<CanonicalEvent>) -> Result<ResponsesHttpState, Box<dyn Error>> {
         let emissions = events
             .into_iter()
@@ -658,6 +749,7 @@ mod tests {
         Ok(ResponsesHttpState::with_metadata(
             Arc::new(executor),
             Arc::new(FixedMetadata),
+            test_authenticator()?,
             StreamCapacity::try_new(2)?,
         ))
     }
@@ -681,6 +773,77 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn responses_rejects_invalid_bearer_inputs_before_decode_or_provider_execution()
+    -> TestResult {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let state = ResponsesHttpState::with_metadata(
+            Arc::new(CountingExecutor {
+                calls: calls.clone(),
+            }),
+            Arc::new(FixedMetadata),
+            authenticator_with_disabled_key()?,
+            StreamCapacity::try_new(2)?,
+        );
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let requests = [
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload("not-json")
+                .to_request(),
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .insert_header((header::AUTHORIZATION, "Basic not-a-client-key"))
+                .set_payload("not-json")
+                .to_request(),
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .append_header((header::AUTHORIZATION, format!("Bearer {TEST_CLIENT_KEY}")))
+                .append_header((header::AUTHORIZATION, "Bearer another-test-key"))
+                .set_payload("not-json")
+                .to_request(),
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .insert_header((header::AUTHORIZATION, "Bearer unknown-test-key"))
+                .set_payload("not-json")
+                .to_request(),
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .insert_header((header::AUTHORIZATION, "Bearer p1-disabled-client-key"))
+                .set_payload("not-json")
+                .to_request(),
+        ];
+
+        let mut expected_envelope = None;
+        for request in requests {
+            let response = test::call_service(&app, request).await;
+            assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+            assert_eq!(
+                response
+                    .headers()
+                    .get(header::WWW_AUTHENTICATE)
+                    .and_then(|value| value.to_str().ok()),
+                Some("Bearer")
+            );
+            let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+            assert!(body.contains(r#""code":"ClientUnauthorized""#));
+            assert!(!body.contains("ClientRequestError"));
+            if let Some(expected) = &expected_envelope {
+                assert_eq!(&body, expected);
+            } else {
+                expected_envelope = Some(body);
+            }
+        }
+
+        assert_eq!(calls.load(Ordering::Acquire), 0);
+        Ok(())
+    }
+
+    #[actix_web::test]
     async fn non_streaming_responses_uses_mock_through_router_and_bounded_transport() -> TestResult
     {
         let state = mock_state(text_events()?)?;
@@ -690,10 +853,12 @@ mod tests {
                 .configure(configure),
         )
         .await;
-        let request = test::TestRequest::post()
-            .uri("/v1/responses")
-            .set_payload(r#"{"model":"mock-model","input":"hello"}"#)
-            .to_request();
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(r#"{"model":"mock-model","input":"hello"}"#),
+        )
+        .to_request();
 
         let response = test::call_service(&app, request).await;
         assert_eq!(response.status(), StatusCode::OK);
@@ -720,10 +885,12 @@ mod tests {
                 .configure(configure),
         )
         .await;
-        let request = test::TestRequest::post()
-            .uri("/v1/responses")
-            .set_payload(r#"{"model":"mock-model","input":"hello","stream":true}"#)
-            .to_request();
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(r#"{"model":"mock-model","input":"hello","stream":true}"#),
+        )
+        .to_request();
 
         let response = test::call_service(&app, request).await;
         assert_eq!(response.status(), StatusCode::OK);
@@ -751,10 +918,12 @@ mod tests {
                 .configure(configure),
         )
         .await;
-        let request = test::TestRequest::post()
-            .uri("/v1/responses")
-            .set_payload(r#"{"model":"one","model":"two","input":"hello"}"#)
-            .to_request();
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(r#"{"model":"one","model":"two","input":"hello"}"#),
+        )
+        .to_request();
 
         let response = test::call_service(&app, request).await;
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -777,10 +946,12 @@ mod tests {
                 .configure(configure),
         )
         .await;
-        let request = test::TestRequest::post()
-            .uri("/v1/responses")
-            .set_payload(r#"{"model":"mock-model","input":"hello","stream":true}"#)
-            .to_request();
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(r#"{"model":"mock-model","input":"hello","stream":true}"#),
+        )
+        .to_request();
 
         let response = test::call_service(&app, request).await;
         assert_eq!(response.status(), StatusCode::OK);
@@ -795,6 +966,7 @@ mod tests {
         let state = ResponsesHttpState::with_metadata(
             Arc::new(EarlyEofExecutor),
             Arc::new(FixedMetadata),
+            test_authenticator()?,
             StreamCapacity::try_new(2)?,
         );
         let app = test::init_service(
@@ -803,10 +975,12 @@ mod tests {
                 .configure(configure),
         )
         .await;
-        let request = test::TestRequest::post()
-            .uri("/v1/responses")
-            .set_payload(r#"{"model":"mock-model","input":"hello","stream":true}"#)
-            .to_request();
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(r#"{"model":"mock-model","input":"hello","stream":true}"#),
+        )
+        .to_request();
 
         let response = test::call_service(&app, request).await;
         assert_eq!(response.status(), StatusCode::OK);
@@ -836,10 +1010,12 @@ mod tests {
                 .configure(configure),
         )
         .await;
-        let request = test::TestRequest::post()
-            .uri("/v1/responses")
-            .set_payload(r#"{"model":"mock-model","input":"hello","stream":true}"#)
-            .to_request();
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(r#"{"model":"mock-model","input":"hello","stream":true}"#),
+        )
+        .to_request();
 
         let response = test::call_service(&app, request).await;
         assert_eq!(response.status(), StatusCode::OK);
@@ -855,6 +1031,7 @@ mod tests {
         let state = ResponsesHttpState::with_metadata(
             Arc::new(FailingExecutor),
             Arc::new(FixedMetadata),
+            test_authenticator()?,
             StreamCapacity::try_new(2)?,
         );
         let app = test::init_service(
@@ -863,10 +1040,12 @@ mod tests {
                 .configure(configure),
         )
         .await;
-        let request = test::TestRequest::post()
-            .uri("/v1/responses")
-            .set_payload(r#"{"model":"mock-model","input":"hello"}"#)
-            .to_request();
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(r#"{"model":"mock-model","input":"hello"}"#),
+        )
+        .to_request();
 
         let response = test::call_service(&app, request).await;
         assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
@@ -921,6 +1100,7 @@ mod tests {
                 dropped: dropped.clone(),
             }),
             Arc::new(FixedMetadata),
+            test_authenticator()?,
             StreamCapacity::try_new(1)?,
         );
         let app = test::init_service(
@@ -929,10 +1109,12 @@ mod tests {
                 .configure(configure),
         )
         .await;
-        let request = test::TestRequest::post()
-            .uri("/v1/responses")
-            .set_payload(r#"{"model":"mock-model","input":"hello","stream":true}"#)
-            .to_request();
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(r#"{"model":"mock-model","input":"hello","stream":true}"#),
+        )
+        .to_request();
 
         let response = test::call_service(&app, request).await;
         drop(response);
@@ -940,6 +1122,26 @@ mod tests {
         tokio::task::yield_now().await;
         assert!(dropped.load(Ordering::Acquire));
         Ok(())
+    }
+
+    struct CountingExecutor {
+        calls: Arc<AtomicUsize>,
+    }
+
+    impl ResponsesExecutor for CountingExecutor {
+        fn execute(
+            &self,
+            _context: RequestContext,
+            _request: gateway_core::CanonicalRequest,
+        ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
+            self.calls.fetch_add(1, Ordering::AcqRel);
+            Box::pin(async {
+                Err(GatewayError::new(
+                    GatewayErrorCode::InternalError,
+                    ErrorScope::Internal,
+                ))
+            })
+        }
     }
 
     struct FailingExecutor;
