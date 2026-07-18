@@ -35,3 +35,4 @@
 - [P1-06 Deterministic Mock Provider report](p1-06-deterministic-mock-provider.md)
 - [P1-07 Actix Responses handler report](p1-07-actix-responses-handler.md)
 - [P1-08 In-memory Client Key authentication report](p1-08-in-memory-client-key-auth.md)
+- [P1-09 Tool stream property-test report](p1-09-tool-stream-property-tests.md)
