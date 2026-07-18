@@ -6,8 +6,8 @@
 | Task | `P1-09` |
 | Date | `2026-07-18` |
 | Branch | `codex/p1-09-tool-chunk-properties` |
-| Status | `IN_REVIEW` |
-| Result | Local PASS; independent review complete; GitHub CI pending |
+| Status | `DONE` |
+| Result | PASS; independent review and GitHub Fast/Full CI complete |
 
 ## Delivered scope
 
@@ -79,6 +79,7 @@ network-byte parser, JSON assembly, or empty-input normalization.
 | `./scripts/check.sh fast` | PASS |
 | `./scripts/check.sh full` | PASS; dependency policy and RustSec audit pass |
 | `git diff --check` | PASS |
+| GitHub Actions run `29650157066` | PASS; Fast gate and Full supply-chain gate |
 
 ## Independent review
 
@@ -89,9 +90,10 @@ final arguments. The review also confirmed that `proptest` is test-only, its loc
 boundary policy are synchronized, fixed/random seeds are reproducible, failure persistence is
 disabled, and the runner script quotes values under strict shell mode.
 
-## GitHub verification and remaining boundary
+## GitHub verification and remaining phase boundary
 
-GitHub Fast and Full CI must both pass for this commit before P1-09 is marked `DONE` and the G1
-phase gate is evaluated. This task deliberately does not claim raw network-byte partition
-invariance, EventStream parsing, or source-side empty/whitespace normalization; those require a
-future Provider ingress implementation.
+GitHub Actions run `29650157066` completed with both Fast and Full gates passing, so P1-09 is
+`DONE`. This task deliberately does not claim raw network-byte partition invariance, EventStream
+parsing, or source-side empty/whitespace normalization; those require a future Provider ingress
+implementation. G1 remains in audit because its literal Canonical Event sequence criterion needs
+an explicit governance decision before the phase can be marked complete.

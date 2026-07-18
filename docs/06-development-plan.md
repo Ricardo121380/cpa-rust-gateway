@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-18` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` |
-| 当前任务 | `P1-09`（进行中，`IN_PROGRESS`）；前一任务 `P1-08` 已完成（`DONE`） |
+| 当前任务 | P1 全部 Task 已完成（`DONE`）；G1 阶段门禁审计中，P2 仍为 `PENDING` |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -280,7 +280,7 @@ deploy/
 | P1-06 | 定义小能力 Provider Trait，并实现 Deterministic Mock Provider | P1-02,P1-03 | Mock 文本、Tool、错误、延迟 Fixture | DONE |
 | P1-07 | 实现 Actix `/healthz` 与 `/v1/responses` 最小 Handler | P1-04,P1-05,P1-06 | HTTP E2E 测试 | DONE |
 | P1-08 | 实现内存 Client Key Auth Port，为 P2 持久实现保留接口 | P1-07 | 有效、无效、禁用 Key 测试 | DONE |
-| P1-09 | 建立 Chunk 随机切片、并行 Tool、空参数 Tool 的属性测试 | P1-03,P1-05 | 固定 Seed 与随机 Seed 报告 | IN_PROGRESS |
+| P1-09 | 建立 Chunk 随机切片、并行 Tool、空参数 Tool 的属性测试 | P1-03,P1-05 | 固定 Seed 与随机 Seed 报告 | DONE |
 
 ### G1 门禁
 

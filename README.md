@@ -10,7 +10,7 @@
 
 ## 当前状态
 
-- 阶段：`P1 - Canonical Core + Mock 垂直链路`（G0 已通过；`P1-01` 至 `P1-08` 已完成，`P1-09` 正在进行）
+- 阶段：`P1 - Canonical Core + Mock 垂直链路`（G0 已通过；`P1-01` 至 `P1-09` 已完成；G1 阶段门禁正在审计）
 - 执行计划：`v1.0`，状态 `Locked for execution`
 - CPA 参考版本：`router-for-me/CLIProxyAPI v7.2.80`
 - Release 1：核心范围、技术基线、阶段顺序和门禁已冻结
@@ -59,7 +59,7 @@
 2. 全计划同时最多一个 Task 处于 `IN_PROGRESS`，未通过当前 Gate 不进入下一 Phase。
 3. 功能矩阵中仍为 `待定` 的项目不属于当前 Release 1，不得顺手实现。
 4. 任何范围、顺序、公开行为或门槛变化都必须创建 Change Request，并取得用户明确批准。
-5. `P1-09` 是当前唯一的 `IN_PROGRESS` Task；后续 Phase/Task 仍为 `PENDING`，不得提前实现其功能，也不修改服务器。
+5. P1 的全部 Task 已完成；G1 阶段门禁尚未通过，P2 及后续任务仍为 `PENDING`，不得提前实现其功能，也不修改服务器。
 
 ## 实施原则
 
