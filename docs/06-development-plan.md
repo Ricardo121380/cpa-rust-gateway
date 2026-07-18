@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-18` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` |
-| 当前任务 | `P1-04` 已完成（`DONE`）；下一任务 `P1-05` 尚未开始（`PENDING`） |
+| 当前任务 | `P1-05` 已完成（`DONE`）；下一任务 `P1-06` 尚未开始（`PENDING`） |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -276,7 +276,7 @@ deploy/
 | P1-02 | 定义 `CanonicalRequest`、消息、内容、Tool、Thinking 和 Raw Extension | P1-01 | JSON/结构 Round-trip 测试 | DONE |
 | P1-03 | 定义 `CanonicalEvent` 与 Response/Text/Reasoning/Tool/Usage 状态机 | P1-02 | 状态转换和非法序列测试 | DONE |
 | P1-04 | 实现有界流、背压、取消传播和 FirstSemanticEvent Tracker | P1-03 | 慢消费者、取消和容量测试 | DONE |
-| P1-05 | 实现 OpenAI Responses 入站/非流式/SSE Adapter | P1-02,P1-03 | 官方形态 Fixture + 事件快照 | PENDING |
+| P1-05 | 实现 OpenAI Responses 入站/非流式/SSE Adapter | P1-02,P1-03 | 官方形态 Fixture + 事件快照 | DONE |
 | P1-06 | 定义小能力 Provider Trait，并实现 Deterministic Mock Provider | P1-02,P1-03 | Mock 文本、Tool、错误、延迟 Fixture | PENDING |
 | P1-07 | 实现 Actix `/healthz` 与 `/v1/responses` 最小 Handler | P1-04,P1-05,P1-06 | HTTP E2E 测试 | PENDING |
 | P1-08 | 实现内存 Client Key Auth Port，为 P2 持久实现保留接口 | P1-07 | 有效、无效、禁用 Key 测试 | PENDING |

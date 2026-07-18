@@ -26,5 +26,6 @@ CORE       框架无关的 Canonical Core
 P1 已创建 [BC-CORE-001 Request context and errors](BC-CORE-001-request-context-and-errors.md)、
 [BC-CORE-002 Canonical request](BC-CORE-002-canonical-request.md) 和
 [BC-CORE-003 Canonical event state machine](BC-CORE-003-canonical-event-state-machine.md)，以及
-[BC-STREAM-001 Bounded canonical stream](BC-STREAM-001-bounded-canonical-stream.md)。后续契约
-随对应 Task 创建并在需求追踪索引中登记。
+[BC-STREAM-001 Bounded canonical stream](BC-STREAM-001-bounded-canonical-stream.md) 和
+[BC-PROTOCOL-001 OpenAI Responses adapter](BC-PROTOCOL-001-openai-responses-adapter.md)。后续
+契约随对应 Task 创建并在需求追踪索引中登记。

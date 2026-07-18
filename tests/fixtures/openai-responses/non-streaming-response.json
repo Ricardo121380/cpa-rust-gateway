@@ -1,0 +1,59 @@
+{
+  "created_at": 1700000000,
+  "error": null,
+  "id": "response-01",
+  "incomplete_details": null,
+  "model": "gateway-model",
+  "object": "response",
+  "output": [
+    {
+      "content": [
+        {
+          "text": "Check weather.",
+          "type": "reasoning_text"
+        }
+      ],
+      "id": "rsn_response-01_0",
+      "status": "completed",
+      "type": "reasoning"
+    },
+    {
+      "content": [
+        {
+          "annotations": [],
+          "text": "It is clear.",
+          "type": "output_text"
+        }
+      ],
+      "id": "msg_response-01_1",
+      "role": "assistant",
+      "status": "completed",
+      "type": "message"
+    },
+    {
+      "arguments": "{\"city\":\"Jakarta\"}",
+      "call_id": "call-alpha",
+      "id": "fc_response-01_2",
+      "name": "lookup_weather",
+      "status": "completed",
+      "type": "function_call"
+    },
+    {
+      "arguments": "{\"unit\":\"C\"}",
+      "call_id": "call-beta",
+      "id": "fc_response-01_3",
+      "name": "lookup_temperature",
+      "status": "completed",
+      "type": "function_call"
+    }
+  ],
+  "status": "completed",
+  "usage": {
+    "input_tokens": 12,
+    "output_tokens": 8,
+    "output_tokens_details": {
+      "reasoning_tokens": 3
+    },
+    "total_tokens": 20
+  }
+}

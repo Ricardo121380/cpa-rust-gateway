@@ -30,6 +30,7 @@
 | P1-02 | Plan 7；Matrix B01/B11/B13/B17/B27/K07/F02/F10/F11；Behavior 3、8、12、13 | [BC-CORE-002](contracts/BC-CORE-002-canonical-request.md) | `gateway-core` CanonicalRequest、消息、内容、Tool、Thinking 与 Raw Extension | [P1-02 报告](reports/p1-02-canonical-request.md) | DONE |
 | P1-03 | Plan 7；Matrix B02/B12/B23/B27；Behavior 4、5、9 | [BC-CORE-003](contracts/BC-CORE-003-canonical-event-state-machine.md) | `gateway-core` CanonicalEvent、Response/Text/Reasoning/Tool/Usage 状态机 | [P1-03 报告](reports/p1-03-canonical-event-state-machine.md) | DONE |
 | P1-04 | Plan 7；BL-05；Matrix B29/B30/G27；Behavior 1、6 | [BC-STREAM-001](contracts/BC-STREAM-001-bounded-canonical-stream.md) | `gateway-stream` bounded Canonical Event transport、backpressure、cancellation、FirstSemanticEvent | [P1-04 报告](reports/p1-04-bounded-stream.md) | DONE |
+| P1-05 | Plan 7；Matrix A01/A03/A07/B01-B17/B23/B27；Behavior 4、5、9 | [BC-PROTOCOL-001](contracts/BC-PROTOCOL-001-openai-responses-adapter.md) | `protocol-openai-responses` Responses 入站、非流式和 SSE 编解码 | [P1-05 报告](reports/p1-05-openai-responses-adapter.md) | DONE |
 
 ## 后续 Phase 映射
 

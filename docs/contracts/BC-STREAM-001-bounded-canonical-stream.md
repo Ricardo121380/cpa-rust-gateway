@@ -22,9 +22,10 @@ later HTTP/protocol adapters.
   policy, or persistence work.
 - The stream validates events with `CanonicalEventState`. It carries only `CanonicalEvent`, not
   bytes or target-protocol frames.
-- Only the downstream owner of `StreamControl` may mark FirstSemanticEvent, and only after a
-  canonical event has successfully crossed the client-visible output boundary. The producer has no
-  tracker capability. Enqueue and dequeue alone are not delivery.
+- Only the downstream owner of `StreamControl` may mark FirstSemanticEvent, and only after the
+  P1-07-or-later HTTP writer has successfully written a canonical event's semantic frame to the
+  client-visible output boundary. The producer and P1-05 pure protocol codec have no tracker
+  capability. Enqueue, dequeue, and encoding alone are not delivery.
 
 ## Event sequence
 

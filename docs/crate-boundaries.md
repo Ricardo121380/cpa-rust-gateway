@@ -19,7 +19,7 @@ provider-*
   -> core/provider/upstream + matching protocol/continuity/stream
 
 protocol-*
-  -> gateway-core + gateway-protocol
+  -> gateway-core + gateway-protocol (+ serde JSON codec primitives where required)
 
 gateway-stream
   -> gateway-core + gateway-protocol + Tokio bounded-channel/cancellation primitives

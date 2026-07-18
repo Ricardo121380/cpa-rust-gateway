@@ -83,9 +83,10 @@ pub enum FirstSemanticEvent {
 
 /// Monotonic state that records a downstream client-visible canonical-event delivery.
 ///
-/// P1-05 and later must call [`Self::mark_delivered`] only after the target protocol adapter has
-/// successfully handed the event to the client-visible output. Enqueueing and dequeueing do not
-/// commit this state, and SSE keepalive comments cannot be passed to this API.
+/// P1-07 and later's downstream HTTP writer must call [`Self::mark_delivered`] only after the
+/// target protocol adapter has successfully written the event to client-visible output.
+/// Enqueueing, dequeueing, and pure protocol encoding do not commit this state, and SSE keepalive
+/// comments cannot be passed to this API.
 #[derive(Clone, Debug, Default)]
 pub struct FirstSemanticEventTracker {
     committed: Arc<AtomicBool>,
