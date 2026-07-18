@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-18` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` |
-| 当前任务 | P1 全部 Task 已完成（`DONE`）；G1 阶段门禁审计中，P2 仍为 `PENDING` |
+| 当前任务 | P1 全部 Task 已完成（`DONE`）；G1 审计已完成但 `CR-P1-G1-001` 待用户批准，P2 仍为 `PENDING` |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |

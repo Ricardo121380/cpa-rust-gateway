@@ -35,6 +35,7 @@
 | P1-07 | Plan 7；BL-01/BL-05；Matrix A01/A03/A07/B29/B30；Behavior 1、4、5、9 | [BC-HTTP-001](contracts/BC-HTTP-001-actix-responses-handler.md) | `gateway-http-actix` `/healthz` 与 `/v1/responses` Mock 垂直链路 | [P1-07 报告](reports/p1-07-actix-responses-handler.md) | DONE |
 | P1-08 | Plan 7；BL-11/BL-22；Behavior 20 | [BC-AUTH-001](contracts/BC-AUTH-001-client-key-auth-port.md) | `gateway-auth` 内存 Client Key Port 与 `gateway-http-actix` Bearer 入口鉴权 | [P1-08 报告](reports/p1-08-in-memory-client-key-auth.md) | DONE |
 | P1-09 | Plan 7；BL-04；Behavior 4、5 | [BC-CORE-003](contracts/BC-CORE-003-canonical-event-state-machine.md)、[BC-PROTOCOL-001](contracts/BC-PROTOCOL-001-openai-responses-adapter.md) | `protocol-openai-responses` Canonical Tool 片段随机切分、交错与显式空参数属性测试 | [P1-09 报告](reports/p1-09-tool-stream-property-tests.md) | DONE |
+| G1 | Plan G1；BL-04/BL-05 | [BC-CORE-003](contracts/BC-CORE-003-canonical-event-state-machine.md)、[BC-STREAM-001](contracts/BC-STREAM-001-bounded-canonical-stream.md) | P1-03 至 P1-09 完成审计与 G1 条件核验 | [G1 报告](reports/g1-gate-report.md) | BLOCKED（CR-P1-G1-001 待批准） |
 
 ## 后续 Phase 映射
 
