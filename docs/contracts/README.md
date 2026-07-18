@@ -20,6 +20,9 @@ CRED       凭据状态、刷新、Quota 和错误
 CATALOG    模型发现、Fresh/Stale/Expired 与移除
 CONT       Cache/Response/Replay/Conversation 连续性
 SEC        Secret、SSRF、租户隔离和审计
+CORE       框架无关的 Canonical Core
 ```
 
-第一批可执行契约将在 P1 随 Canonical Mock 垂直链路创建。
+P1 已创建 [BC-CORE-001 Request context and errors](BC-CORE-001-request-context-and-errors.md)
+和 [BC-CORE-002 Canonical request](BC-CORE-002-canonical-request.md)。后续契约随对应 Task
+创建并在需求追踪索引中登记。

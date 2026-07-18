@@ -27,6 +27,7 @@
 | Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
 |---|---|---|---|---|---|
 | P1-01 | Plan 7；Matrix B25/G05；Behavior 1、9、15；Channel analysis 5.4 | [BC-CORE-001](contracts/BC-CORE-001-request-context-and-errors.md) | `gateway-core` IDs、RequestContext、GatewayError 与 scope | [P1-01 报告](reports/p1-01-request-context-errors.md) | DONE |
+| P1-02 | Plan 7；Matrix B01/B11/B13/B17/B27/K07/F02/F10/F11；Behavior 3、8、12、13 | [BC-CORE-002](contracts/BC-CORE-002-canonical-request.md) | `gateway-core` CanonicalRequest、消息、内容、Tool、Thinking 与 Raw Extension | [P1-02 报告](reports/p1-02-canonical-request.md) | DONE |
 
 ## 后续 Phase 映射
 

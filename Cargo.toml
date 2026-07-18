@@ -34,6 +34,8 @@ publish = false
 
 [workspace.dependencies]
 actix-web = { version = "4.11.0", default-features = false, features = ["macros"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = { version = "1.0.150", features = ["raw_value"] }
 
 [workspace.lints.rust]
 unsafe_code = "deny"
