@@ -30,18 +30,20 @@ but it must not enter the inference request hot path.
   remain P2-05 through P2-10 work.
 - Credential ciphertext is an opaque non-empty BLOB with a positive key version. P2-01 does not
   encrypt, decrypt, log, or interpret it; AEAD and master-key loading are exclusively P2-03.
-- `upstreams.egress_policy_id` is a nullable opaque reference in this migration. P2-09 owns the
-  EgressPolicy table and the later referential/URL enforcement migration, so P2-01 does not add a
-  placeholder EgressPolicy entity or behavior.
+- In the version-1 migration, `upstreams.egress_policy_id` is a nullable opaque reference. P2-09
+  later adds the version-scoped `egress_policies` table and same-version write enforcement in
+  migration 3; its URL/DNS/CIDR behavior is defined by ADR-0009 rather than retroactively by this
+  schema decision.
 - Migrations are transactional, recorded by an internal `schema_migrations` table, and have an
   explicit down path. Foreign-key enforcement is enabled and verified on every Store connection.
 
 ## Consequences
 
 Version cloning can retain logical IDs while storing independent rows in separate configuration
-versions. The schema intentionally contains no Repository, management API, route compiler,
-snapshot, secret cryptography, Client Key, Public Model, Candidate, or EgressPolicy behavior.
-Those concerns must add their own migrations and contracts in their assigned P2 Tasks.
+versions. The version-1 schema intentionally contains no Repository, management API, route
+compiler, snapshot, secret cryptography, Client Key, Public Model, Candidate, or EgressPolicy
+behavior. Those concerns add their own migrations and contracts in their assigned P2 Tasks; in
+particular migration 3 supersedes the former opaque EgressPolicy reference.
 
 ## Alternatives considered
 

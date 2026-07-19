@@ -7,8 +7,8 @@
 use std::{fmt, path::Path};
 
 use gateway_core::{
-    AccessGroupId, ClientKeyId, CredentialId, EndpointId, InvalidIdentifier, PublicModelId,
-    RouteCandidateId, RouteId, UpstreamId,
+    AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, InvalidIdentifier,
+    PublicModelId, RouteCandidateId, RouteId, UpstreamId,
 };
 use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
 
@@ -195,6 +195,36 @@ impl EndpointTransport {
     }
 }
 
+/// Persisted redirect behavior for one `EgressPolicy`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum StoredEgressRedirectMode {
+    /// Redirect responses must not be followed.
+    Deny,
+    /// Only same-origin, fully revalidated redirects may be followed.
+    SameOrigin,
+    /// Fully revalidated redirects to another configured Host may be followed.
+    Revalidate,
+}
+
+impl StoredEgressRedirectMode {
+    const fn as_sql(self) -> &'static str {
+        match self {
+            Self::Deny => "deny",
+            Self::SameOrigin => "same_origin",
+            Self::Revalidate => "revalidate",
+        }
+    }
+
+    fn from_sql(value: &str) -> Option<Self> {
+        match value {
+            "deny" => Some(Self::Deny),
+            "same_origin" => Some(Self::SameOrigin),
+            "revalidate" => Some(Self::Revalidate),
+            _ => None,
+        }
+    }
+}
+
 /// Persisted Client Key lifecycle state, independent from the cryptographic implementation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StoredClientKeyStatus {
@@ -335,8 +365,29 @@ pub struct UpstreamConfiguration {
     pub enabled: bool,
     /// Structural JSON array; semantic validation is deferred to P2-06.
     pub tags_json: String,
-    /// Deferred P2-09 opaque egress-policy reference.
-    pub egress_policy_id: Option<String>,
+    /// Optional same-version `EgressPolicy` reference; enabled use is validated by P2-09.
+    pub egress_policy_id: Option<EgressPolicyId>,
+}
+
+/// Version-scoped structural storage for one outbound `EgressPolicy`.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EgressPolicyConfiguration {
+    /// Stable policy identity within the Config Version.
+    pub id: EgressPolicyId,
+    /// Non-secret unique policy name within the Config Version.
+    pub name: String,
+    /// Structural JSON array of scheme labels, parsed semantically by P2-09.
+    pub allowed_schemes_json: String,
+    /// Structural JSON array of exact Host labels, parsed semantically by P2-09.
+    pub allowed_hosts_json: String,
+    /// Structural JSON array of effective port integers, parsed semantically by P2-09.
+    pub allowed_ports_json: String,
+    /// Structural JSON array of CIDR strings, parsed semantically by P2-09.
+    pub allowed_cidrs_json: String,
+    /// Redirect mode stored independently from the transport implementation.
+    pub redirect_mode: StoredEgressRedirectMode,
+    /// Bound for an enabled redirect mode; zero only when redirects are denied.
+    pub max_redirects: i64,
 }
 
 /// One protocol-specific upstream endpoint.
@@ -605,6 +656,8 @@ impl fmt::Debug for StoredClientKey {
 pub struct ControlPlaneConfiguration {
     /// The graph root.
     pub version: ConfigVersion,
+    /// Version-scoped outbound `EgressPolicies`.
+    pub egress_policies: Vec<EgressPolicyConfiguration>,
     /// Version-scoped Upstreams.
     pub upstreams: Vec<UpstreamConfiguration>,
     /// Version-scoped Endpoints.
@@ -666,6 +719,7 @@ impl ControlPlaneConfiguration {
     pub fn new(version: ConfigVersion) -> Self {
         Self {
             version,
+            egress_policies: Vec::new(),
             upstreams: Vec::new(),
             endpoints: Vec::new(),
             credentials: Vec::new(),
@@ -817,6 +871,9 @@ impl ControlPlaneTransaction<'_> {
         self.insert_config_version(&configuration.version)?;
         let config_version_id = &configuration.version.id;
 
+        for egress_policy in &configuration.egress_policies {
+            self.insert_egress_policy(config_version_id, egress_policy)?;
+        }
         for upstream in &configuration.upstreams {
             self.insert_upstream(config_version_id, upstream)?;
         }
@@ -1041,7 +1098,35 @@ impl ControlPlaneTransaction<'_> {
                 &upstream.kind,
                 boolean_to_sql(upstream.enabled),
                 &upstream.tags_json,
-                &upstream.egress_policy_id,
+                upstream
+                    .egress_policy_id
+                    .as_ref()
+                    .map(EgressPolicyId::as_str),
+            ],
+        )?;
+        Ok(())
+    }
+
+    fn insert_egress_policy(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        egress_policy: &EgressPolicyConfiguration,
+    ) -> StoreResult<()> {
+        self.transaction.execute(
+            "INSERT INTO egress_policies (\
+                config_version_id, id, name, allowed_schemes_json, allowed_hosts_json, \
+                allowed_ports_json, allowed_cidrs_json, redirect_mode, max_redirects\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            params![
+                config_version_id.as_str(),
+                egress_policy.id.as_str(),
+                &egress_policy.name,
+                &egress_policy.allowed_schemes_json,
+                &egress_policy.allowed_hosts_json,
+                &egress_policy.allowed_ports_json,
+                &egress_policy.allowed_cidrs_json,
+                egress_policy.redirect_mode.as_sql(),
+                egress_policy.max_redirects,
             ],
         )?;
         Ok(())
@@ -1234,6 +1319,7 @@ fn load_configuration(
 
     Ok(Some(ControlPlaneConfiguration {
         version,
+        egress_policies: load_egress_policies(transaction, config_version_id)?,
         upstreams: load_upstreams(transaction, config_version_id)?,
         endpoints: load_endpoints(transaction, config_version_id)?,
         credentials: load_credentials(transaction, config_version_id)?,
@@ -1283,6 +1369,39 @@ fn load_config_version(
     }))
 }
 
+fn load_egress_policies(
+    transaction: &Transaction<'_>,
+    config_version_id: &ConfigVersionId,
+) -> StoreResult<Vec<EgressPolicyConfiguration>> {
+    let mut statement = transaction.prepare(
+        "SELECT id, name, allowed_schemes_json, allowed_hosts_json, allowed_ports_json, \
+         allowed_cidrs_json, redirect_mode, max_redirects \
+         FROM egress_policies WHERE config_version_id = ?1 ORDER BY id",
+    )?;
+    let mut rows = statement.query([config_version_id.as_str()])?;
+    let mut egress_policies = Vec::new();
+    while let Some(row) = rows.next()? {
+        let redirect_mode_value: String = row.get(6)?;
+        let redirect_mode = StoredEgressRedirectMode::from_sql(&redirect_mode_value)
+            .ok_or_else(|| malformed("egress_policies"))?;
+        let max_redirects: i64 = row.get(7)?;
+        if max_redirects < 0 {
+            return Err(malformed("egress_policies"));
+        }
+        egress_policies.push(EgressPolicyConfiguration {
+            id: read_identifier(row, 0, EgressPolicyId::try_new, "egress_policies")?,
+            name: row.get(1)?,
+            allowed_schemes_json: row.get(2)?,
+            allowed_hosts_json: row.get(3)?,
+            allowed_ports_json: row.get(4)?,
+            allowed_cidrs_json: row.get(5)?,
+            redirect_mode,
+            max_redirects,
+        });
+    }
+    Ok(egress_policies)
+}
+
 fn load_upstreams(
     transaction: &Transaction<'_>,
     config_version_id: &ConfigVersionId,
@@ -1300,7 +1419,12 @@ fn load_upstreams(
             kind: row.get(2)?,
             enabled: read_boolean(row, 3, "upstreams")?,
             tags_json: row.get(4)?,
-            egress_policy_id: row.get(5)?,
+            egress_policy_id: read_optional_identifier(
+                row,
+                5,
+                EgressPolicyId::try_new,
+                "upstreams",
+            )?,
         });
     }
     Ok(upstreams)

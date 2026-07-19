@@ -20,8 +20,9 @@ pub use canonical_event::{
 pub use canonical_request::CanonicalRequest;
 pub use error::{ErrorScope, GatewayError, GatewayErrorCode};
 pub use id::{
-    AccessGroupId, AttemptId, AuthId, ClientKeyId, CredentialId, EndpointId, InvalidIdentifier,
-    ProviderId, PublicModelId, RequestId, ResponseId, RouteCandidateId, RouteId, UpstreamId,
+    AccessGroupId, AttemptId, AuthId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId,
+    InvalidIdentifier, ProviderId, PublicModelId, RequestId, ResponseId, RouteCandidateId, RouteId,
+    UpstreamId,
 };
 pub use message::{
     CanonicalMessage, MessageContent, MessageRole, OpaqueContent, TextContent, ToolCall, ToolResult,

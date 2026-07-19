@@ -4,6 +4,8 @@
 
 /// Transactional management-only Credential and Client Key provisioning service.
 pub mod control_plane_service;
+/// Management-time EgressPolicy compilation and endpoint static admission.
+pub mod egress_policy_compiler;
 /// Semantic Config Version validation and secret-free Route compilation.
 pub mod route_compiler;
 /// Atomic publication and rollback of compiler-approved RouteSnapshots.

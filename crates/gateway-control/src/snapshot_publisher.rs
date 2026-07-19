@@ -23,6 +23,7 @@ use gateway_store::{
     },
 };
 
+use crate::egress_policy_compiler::{EgressPolicyCompileError, EgressPolicyCompiler};
 use crate::route_compiler::{
     CatalogAdmission, CompiledRouteCandidate, CompiledRouteConfiguration, RouteCompileError,
     RouteCompiler,
@@ -67,6 +68,7 @@ impl SnapshotPublicationService {
         let configuration = repository
             .load_configuration(config_version_id)?
             .ok_or(SnapshotPublicationError::ConfigVersionNotFound)?;
+        EgressPolicyCompiler::compile(&configuration)?;
         let compiled = self.compiler.compile(&configuration)?;
         let replacement = Arc::new(route_snapshot_from_compiled(&compiled, &configuration)?);
         let prepared = self.registry.prepare_publication(replacement)?;
@@ -132,6 +134,8 @@ pub enum SnapshotPublicationError {
     ConfigVersionNotFound,
     /// P2-06 rejected the complete persisted graph.
     Compile(RouteCompileError),
+    /// P2-09 rejected an `EgressPolicy` or an enabled Upstream/Endpoint's static egress shape.
+    EgressPolicy(EgressPolicyCompileError),
     /// The compiler output did not meet the router-safe Snapshot boundary.
     SnapshotBuild(RouteSnapshotBuildError),
     /// The runtime publication registry could not reserve the requested transition.
@@ -153,6 +157,9 @@ impl fmt::Display for SnapshotPublicationError {
                 formatter.write_str("requested Config Version was not found")
             }
             Self::Compile(error) => write!(formatter, "RouteSnapshot compilation failed: {error}"),
+            Self::EgressPolicy(error) => {
+                write!(formatter, "EgressPolicy compilation failed: {error}")
+            }
             Self::SnapshotBuild(error) => {
                 write!(formatter, "RouteSnapshot construction failed: {error}")
             }
@@ -181,6 +188,7 @@ impl Error for SnapshotPublicationError {
             | Self::InvalidSnapshotVersion
             | Self::ClientKeyAccessGroupMissing => None,
             Self::Compile(error) => Some(error),
+            Self::EgressPolicy(error) => Some(error),
             Self::SnapshotBuild(error) => Some(error),
             Self::Registry(error) => Some(error),
             Self::Store(error) => Some(error),
@@ -192,6 +200,12 @@ impl Error for SnapshotPublicationError {
 impl From<RouteCompileError> for SnapshotPublicationError {
     fn from(error: RouteCompileError) -> Self {
         Self::Compile(error)
+    }
+}
+
+impl From<EgressPolicyCompileError> for SnapshotPublicationError {
+    fn from(error: EgressPolicyCompileError) -> Self {
+        Self::EgressPolicy(error)
     }
 }
 
@@ -373,19 +387,20 @@ mod tests {
         EndpointCapabilityView, SemanticCapability,
     };
     use gateway_core::{
-        AccessGroupId, ClientKeyId, CredentialId, EndpointId, PublicModelId, RouteCandidateId,
-        RouteId, UpstreamId,
+        AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, PublicModelId,
+        RouteCandidateId, RouteId, UpstreamId,
     };
     use gateway_router::RouteSnapshotRegistry;
     use gateway_store::{
         control_plane::{
             AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus,
             ConfigVersion, ConfigVersionId, ConfigVersionStatus, ControlPlaneConfiguration,
-            CredentialConfiguration, CredentialScope, CredentialStatus, EndpointConfiguration,
-            EndpointCredentialBindingConfiguration, EndpointTransport, ModelAliasConfiguration,
-            ModelRouteConfiguration, PublicModelConfiguration, RouteCandidateConfiguration,
-            RoutePolicy, SqliteControlPlaneRepository, StoredClientKey, StoredClientKeyStatus,
-            TransformMode, UpstreamConfiguration,
+            CredentialConfiguration, CredentialScope, CredentialStatus, EgressPolicyConfiguration,
+            EndpointConfiguration, EndpointCredentialBindingConfiguration, EndpointTransport,
+            ModelAliasConfiguration, ModelRouteConfiguration, PublicModelConfiguration,
+            RouteCandidateConfiguration, RoutePolicy, SqliteControlPlaneRepository,
+            StoredClientKey, StoredClientKeyStatus, StoredEgressRedirectMode, TransformMode,
+            UpstreamConfiguration,
         },
         secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore},
     };
@@ -532,6 +547,43 @@ mod tests {
     }
 
     #[test]
+    fn egress_policy_rejection_keeps_the_active_snapshot_and_draft_unchanged() -> TestResult {
+        let compiler = compiler()?;
+        let bootstrap_configuration = configuration("egress-bootstrap")?;
+        let bootstrap_snapshot = Arc::new(route_snapshot_from_compiled(
+            &compiler.compile(&bootstrap_configuration)?,
+            &bootstrap_configuration,
+        )?);
+        let registry = Arc::new(RouteSnapshotRegistry::new(bootstrap_snapshot));
+        let service = SnapshotPublicationService::new(compiler, Arc::clone(&registry));
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        let active_version = ConfigVersionId::try_new("egress-active")?;
+        let rejected_version = ConfigVersionId::try_new("egress-rejected")?;
+        repository.write_configuration(&configuration(active_version.as_str())?)?;
+        let mut rejected_configuration = configuration(rejected_version.as_str())?;
+        rejected_configuration.upstreams[0].egress_policy_id = None;
+        repository.write_configuration(&rejected_configuration)?;
+
+        service.publish_version(&mut repository, &active_version)?;
+        let publication = service.publish_version(&mut repository, &rejected_version);
+
+        assert!(matches!(
+            publication,
+            Err(SnapshotPublicationError::EgressPolicy(_))
+        ));
+        assert_eq!(registry.load().version().as_str(), active_version.as_str());
+        assert_eq!(
+            version_status(&mut repository, &active_version)?,
+            ConfigVersionStatus::Active
+        );
+        assert_eq!(
+            version_status(&mut repository, &rejected_version)?,
+            ConfigVersionStatus::Draft
+        );
+        Ok(())
+    }
+
+    #[test]
     fn malformed_persisted_client_key_material_leaves_the_active_snapshot_and_draft_unchanged()
     -> TestResult {
         let compiler = compiler()?;
@@ -603,14 +655,7 @@ mod tests {
             created_at_ms: 1,
             description: "P2-07 publication fixture".to_owned(),
         });
-        configuration.upstreams.push(UpstreamConfiguration {
-            id: UpstreamId::try_new("upstream-a")?,
-            name: "station-a".to_owned(),
-            kind: "openai-compatible".to_owned(),
-            enabled: true,
-            tags_json: "[]".to_owned(),
-            egress_policy_id: None,
-        });
+        add_egress_bound_upstream(&mut configuration)?;
         configuration.endpoints.push(EndpointConfiguration {
             id: EndpointId::try_new("endpoint-a")?,
             upstream_id: UpstreamId::try_new("upstream-a")?,
@@ -695,6 +740,33 @@ mod tests {
             None,
         )?);
         Ok(configuration)
+    }
+
+    fn add_egress_bound_upstream(
+        configuration: &mut ControlPlaneConfiguration,
+    ) -> Result<(), Box<dyn Error>> {
+        let egress_policy_id = EgressPolicyId::try_new("egress-policy-a")?;
+        configuration
+            .egress_policies
+            .push(EgressPolicyConfiguration {
+                id: egress_policy_id.clone(),
+                name: "default-egress".to_owned(),
+                allowed_schemes_json: r#"["https"]"#.to_owned(),
+                allowed_hosts_json: r#"["station.example"]"#.to_owned(),
+                allowed_ports_json: "[443]".to_owned(),
+                allowed_cidrs_json: "[]".to_owned(),
+                redirect_mode: StoredEgressRedirectMode::Deny,
+                max_redirects: 0,
+            });
+        configuration.upstreams.push(UpstreamConfiguration {
+            id: UpstreamId::try_new("upstream-a")?,
+            name: "station-a".to_owned(),
+            kind: "openai-compatible".to_owned(),
+            enabled: true,
+            tags_json: "[]".to_owned(),
+            egress_policy_id: Some(egress_policy_id),
+        });
+        Ok(())
     }
 
     fn encrypted_fixture_secret()

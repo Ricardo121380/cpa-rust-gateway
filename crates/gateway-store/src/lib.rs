@@ -15,9 +15,10 @@ pub const COMPONENT: &str = "gateway-store";
 
 const VERSIONED_CONTROL_PLANE_SCHEMA_VERSION: i64 = 1;
 const VERSIONED_ROUTE_ACCESS_SCHEMA_VERSION: i64 = 2;
+const VERSIONED_EGRESS_POLICY_SCHEMA_VERSION: i64 = 3;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = VERSIONED_ROUTE_ACCESS_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = VERSIONED_EGRESS_POLICY_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -36,6 +37,11 @@ const MIGRATIONS: &[Migration] = &[
         version: VERSIONED_ROUTE_ACCESS_SCHEMA_VERSION,
         up: include_str!("../migrations/0002_versioned_route_access.up.sql"),
         down: include_str!("../migrations/0002_versioned_route_access.down.sql"),
+    },
+    Migration {
+        version: VERSIONED_EGRESS_POLICY_SCHEMA_VERSION,
+        up: include_str!("../migrations/0003_egress_policy.up.sql"),
+        down: include_str!("../migrations/0003_egress_policy.down.sql"),
     },
 ];
 
@@ -316,6 +322,7 @@ mod tests {
                 "access_groups",
                 "client_keys",
                 "config_versions",
+                "egress_policies",
                 "endpoint_credential_bindings",
                 "model_aliases",
                 "model_routes",
@@ -330,11 +337,15 @@ mod tests {
     }
 
     #[test]
-    fn version_one_database_upgrades_to_version_two_without_rewriting_history() -> TestResult {
+    fn version_one_database_upgrades_to_current_without_rewriting_history() -> TestResult {
         let mut connection = Connection::open_in_memory()?;
         install_version_one_schema(&connection)?;
         connection.execute_batch("PRAGMA foreign_keys = ON;")?;
         insert_valid_tree(&connection)?;
+        connection.execute(
+            "UPDATE upstreams SET egress_policy_id = ?1 WHERE config_version_id = ?2 AND id = ?3",
+            params!["legacy-policy", "v1", "upstream-a"],
+        )?;
 
         assert_eq!(
             schema_version(&connection)?,
@@ -350,6 +361,21 @@ mod tests {
         )?;
         assert_eq!(upstream_count, 1);
         assert!(super::table_exists(&connection, "client_keys")?);
+        assert!(super::table_exists(&connection, "egress_policies")?);
+        let legacy_policy: (String, String, String) = connection.query_row(
+            "SELECT id, name, allowed_schemes_json FROM egress_policies \
+             WHERE config_version_id = ?1 AND id = ?2",
+            params!["v1", "legacy-policy"],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )?;
+        assert_eq!(
+            legacy_policy,
+            (
+                "legacy-policy".to_owned(),
+                "legacy-unconfigured-legacy-policy".to_owned(),
+                "[]".to_owned(),
+            )
+        );
         Ok(())
     }
 
@@ -565,6 +591,89 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn egress_policy_references_are_version_scoped_and_cannot_be_orphaned() -> TestResult {
+        let mut connection = open_in_memory()?;
+        migrate(&mut connection)?;
+        insert_config_version(&connection, "egress-v1")?;
+        insert_config_version(&connection, "egress-v2")?;
+        insert_valid_egress_policy(&connection, "egress-v1", "policy-a")?;
+
+        let missing_policy = connection.execute(
+            "INSERT INTO upstreams (\
+                config_version_id, id, name, kind, enabled, tags_json, egress_policy_id\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                "egress-v1",
+                "upstream-missing-policy",
+                "missing-policy-station",
+                "relay",
+                1_i64,
+                "[]",
+                "missing-policy",
+            ],
+        );
+        assert!(is_trigger_violation(&missing_policy));
+
+        connection.execute(
+            "INSERT INTO upstreams (\
+                config_version_id, id, name, kind, enabled, tags_json, egress_policy_id\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                "egress-v1",
+                "upstream-valid-policy",
+                "valid-policy-station",
+                "relay",
+                1_i64,
+                "[]",
+                "policy-a",
+            ],
+        )?;
+
+        let cross_version_policy = connection.execute(
+            "INSERT INTO upstreams (\
+                config_version_id, id, name, kind, enabled, tags_json, egress_policy_id\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                "egress-v2",
+                "upstream-cross-version-policy",
+                "cross-version-policy-station",
+                "relay",
+                1_i64,
+                "[]",
+                "policy-a",
+            ],
+        );
+        assert!(is_trigger_violation(&cross_version_policy));
+
+        let renamed_referenced_policy = connection.execute(
+            "UPDATE egress_policies SET id = ?1 WHERE config_version_id = ?2 AND id = ?3",
+            params!["policy-renamed", "egress-v1", "policy-a"],
+        );
+        assert!(is_trigger_violation(&renamed_referenced_policy));
+
+        connection.execute(
+            "DELETE FROM egress_policies WHERE config_version_id = ?1 AND id = ?2",
+            params!["egress-v1", "policy-a"],
+        )?;
+        let cleared_reference: Option<String> = connection.query_row(
+            "SELECT egress_policy_id FROM upstreams WHERE config_version_id = ?1 AND id = ?2",
+            params!["egress-v1", "upstream-valid-policy"],
+            |row| row.get(0),
+        )?;
+        assert!(cleared_reference.is_none());
+
+        connection.execute("DELETE FROM config_versions WHERE id = ?1", ["egress-v1"])?;
+        let remaining_upstreams: i64 = connection.query_row(
+            "SELECT COUNT(*) FROM upstreams WHERE config_version_id = ?1",
+            ["egress-v1"],
+            |row| row.get(0),
+        )?;
+        assert_eq!(remaining_upstreams, 0);
+        assert!(foreign_key_check_is_clean(&connection)?);
+        Ok(())
+    }
+
     fn assert_client_key_constraints(connection: &Connection) {
         let duplicate_client_prefix = connection.execute(
             "INSERT INTO client_keys (\
@@ -762,6 +871,46 @@ mod tests {
         Ok(())
     }
 
+    fn insert_config_version(connection: &Connection, id: &str) -> Result<(), SqliteError> {
+        connection.execute(
+            "INSERT INTO config_versions (id, parent_id, status, created_at_ms, description) \
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                id,
+                Option::<&str>::None,
+                "draft",
+                1_i64,
+                "egress policy fixture"
+            ],
+        )?;
+        Ok(())
+    }
+
+    fn insert_valid_egress_policy(
+        connection: &Connection,
+        config_version_id: &str,
+        id: &str,
+    ) -> Result<(), SqliteError> {
+        connection.execute(
+            "INSERT INTO egress_policies (\
+                config_version_id, id, name, allowed_schemes_json, allowed_hosts_json, \
+                allowed_ports_json, allowed_cidrs_json, redirect_mode, max_redirects\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            params![
+                config_version_id,
+                id,
+                "egress-policy",
+                r#"["https"]"#,
+                r#"["api.example.test"]"#,
+                "[443]",
+                "[]",
+                "deny",
+                0_i64,
+            ],
+        )?;
+        Ok(())
+    }
+
     fn insert_valid_routing_access_tree(connection: &Connection) -> TestResult {
         connection.execute(
             "INSERT INTO public_models (\
@@ -904,6 +1053,14 @@ mod tests {
             result,
             Err(SqliteError::SqliteFailure(code, _))
                 if code.extended_code == ffi::SQLITE_CONSTRAINT_CHECK
+        )
+    }
+
+    fn is_trigger_violation(result: &Result<usize, SqliteError>) -> bool {
+        matches!(
+            result,
+            Err(SqliteError::SqliteFailure(code, _))
+                if code.extended_code == ffi::SQLITE_CONSTRAINT_TRIGGER
         )
     }
 

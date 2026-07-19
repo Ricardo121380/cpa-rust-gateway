@@ -599,6 +599,7 @@ dependencies = [
  "gateway-auth",
  "gateway-core",
  "gateway-provider",
+ "url",
 ]
 
 [[package]]

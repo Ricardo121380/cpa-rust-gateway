@@ -139,6 +139,10 @@ opaque_identifier!(
     "Stable identifier for one protocol-specific upstream endpoint."
 );
 opaque_identifier!(
+    EgressPolicyId,
+    "Stable identifier for one version-scoped outbound egress policy."
+);
+opaque_identifier!(
     PublicModelId,
     "Stable identifier for a client-visible public model."
 );

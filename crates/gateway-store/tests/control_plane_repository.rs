@@ -3,18 +3,18 @@
 use std::error::Error;
 
 use gateway_core::{
-    AccessGroupId, ClientKeyId, CredentialId, EndpointId, PublicModelId, RouteCandidateId, RouteId,
-    UpstreamId,
+    AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, PublicModelId,
+    RouteCandidateId, RouteId, UpstreamId,
 };
 use gateway_store::{
     control_plane::{
         AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus,
         ConfigVersion, ConfigVersionId, ConfigVersionStatus, ControlPlaneConfiguration,
-        CredentialConfiguration, CredentialScope, CredentialStatus, EndpointConfiguration,
-        EndpointCredentialBindingConfiguration, EndpointTransport, ModelAliasConfiguration,
-        ModelRouteConfiguration, PublicModelConfiguration, RouteCandidateConfiguration,
-        RoutePolicy, SqliteControlPlaneRepository, StoredClientKey, StoredClientKeyStatus,
-        TransformMode, UpstreamConfiguration,
+        CredentialConfiguration, CredentialScope, CredentialStatus, EgressPolicyConfiguration,
+        EndpointConfiguration, EndpointCredentialBindingConfiguration, EndpointTransport,
+        ModelAliasConfiguration, ModelRouteConfiguration, PublicModelConfiguration,
+        RouteCandidateConfiguration, RoutePolicy, SqliteControlPlaneRepository, StoredClientKey,
+        StoredClientKeyStatus, StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
     },
     secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore},
 };
@@ -51,6 +51,7 @@ fn repository_round_trips_every_version_scoped_p2_table_without_secret_leakage()
         .load_configuration(&version_a)?
         .ok_or("version-a configuration was not found")?;
     assert_eq!(loaded_a.version.id, version_a);
+    assert_eq!(loaded_a.egress_policies.len(), 1);
     assert_eq!(loaded_a.upstreams.len(), 1);
     assert_eq!(loaded_a.endpoints.len(), 1);
     assert_eq!(loaded_a.credentials.len(), 1);
@@ -63,6 +64,14 @@ fn repository_round_trips_every_version_scoped_p2_table_without_secret_leakage()
     assert_eq!(loaded_a.access_group_routes.len(), 1);
     assert_eq!(loaded_a.client_keys.len(), 1);
     assert_eq!(loaded_a.public_models[0].model_name, "public-a");
+    assert_eq!(loaded_a.egress_policies[0].id.as_str(), "egress-policy-a");
+    assert_eq!(
+        loaded_a.upstreams[0]
+            .egress_policy_id
+            .as_ref()
+            .map(EgressPolicyId::as_str),
+        Some("egress-policy-a")
+    );
     assert_eq!(
         loaded_a.credentials[0].encrypted_secret.key_version(),
         key_version
@@ -96,13 +105,14 @@ fn full_configuration(
         created_at_ms: 1,
         description: format!("repository fixture for {public_model_name}"),
     });
+    configuration.egress_policies.push(default_egress_policy()?);
     configuration.upstreams.push(UpstreamConfiguration {
         id: UpstreamId::try_new("upstream-a")?,
         name: "station-a".to_owned(),
         kind: "openai-compatible".to_owned(),
         enabled: true,
         tags_json: "[\"integration\"]".to_owned(),
-        egress_policy_id: None,
+        egress_policy_id: Some(EgressPolicyId::try_new("egress-policy-a")?),
     });
     configuration.endpoints.push(EndpointConfiguration {
         id: EndpointId::try_new("endpoint-a")?,
@@ -188,4 +198,17 @@ fn full_configuration(
         None,
     )?);
     Ok(configuration)
+}
+
+fn default_egress_policy() -> Result<EgressPolicyConfiguration, Box<dyn Error>> {
+    Ok(EgressPolicyConfiguration {
+        id: EgressPolicyId::try_new("egress-policy-a")?,
+        name: "default-egress".to_owned(),
+        allowed_schemes_json: r#"["https"]"#.to_owned(),
+        allowed_hosts_json: r#"["station.example"]"#.to_owned(),
+        allowed_ports_json: "[443]".to_owned(),
+        allowed_cidrs_json: "[]".to_owned(),
+        redirect_mode: StoredEgressRedirectMode::Deny,
+        max_redirects: 0,
+    })
 }
