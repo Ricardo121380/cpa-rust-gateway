@@ -8,7 +8,7 @@
 | Date | `2026-07-20` |
 | Branch | `codex/p3-03-priority-scheduler` |
 | Rust | `1.97.1` |
-| Result | PASS locally; GitHub Fast/Full acceptance pending |
+| Result | PASS locally and for the implementation commit in GitHub Fast/Full; verification-record acceptance pending |
 
 ## Delivered scope
 
@@ -70,6 +70,13 @@ or production traffic was read, logged, or committed.
 
 ## GitHub CI
 
-The implementation commit's GitHub Fast and Full gates must both pass before the P3-03 acceptance
-record is finalized. Its separate verification-record commit must also pass the same workflow before
-P3-04 can begin.
+GitHub Actions run [29699007296](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29699007296)
+passed for implementation commit `635bb41`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS; completed `2026-07-19T18:39:10Z` |
+| Full supply-chain gate | PASS; completed `2026-07-19T18:49:51Z` |
+
+This completes P3-03 implementation acceptance. The separate verification-record commit must also
+pass the same two jobs before P3-04 can begin.
