@@ -38,3 +38,4 @@
 - [P1-08 In-memory Client Key authentication report](p1-08-in-memory-client-key-auth.md)
 - [P1-09 Tool stream property-test report](p1-09-tool-stream-property-tests.md)
 - [P2-01 Versioned control-plane schema report](p2-01-control-plane-schema.md)
+- [P2-02 Versioned route and access schema report](p2-02-route-access-schema.md)

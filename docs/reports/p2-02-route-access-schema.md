@@ -7,7 +7,7 @@
 | Date | `2026-07-19` |
 | Branch | `codex/p2-02-routing-access-schema` |
 | Rust | `1.97.1` |
-| Result | Local PASS; GitHub Fast/Full CI pending push |
+| Result | PASS |
 
 ## Delivered scope
 
@@ -52,5 +52,13 @@ P2-10. The test digest bytes are fixed non-secret fixtures, not generated or val
 
 ## GitHub CI
 
-The code is ready to commit and push. This report will be updated to `DONE` only after the branch
-receives successful GitHub Fast and Full CI results.
+GitHub Actions run [29673886566](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29673886566)
+passed on commit `a60bfe1`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS |
+| Full supply-chain gate | PASS |
+
+The Fast gate completed at `2026-07-19T04:50:49Z`; the Full supply-chain gate completed at
+`2026-07-19T05:00:01Z`. This completes P2-02 acceptance.

@@ -4,7 +4,7 @@
 |---|---|
 | Contract | `BC-ROUTE-001` |
 | Task | `P2-02` |
-| Status | IN_PROGRESS |
+| Status | DONE |
 | Domain | Versioned Public Model, Route, Access Group, and Client Key persistence |
 
 ## Entry and boundary

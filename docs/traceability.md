@@ -42,7 +42,7 @@
 | Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
 |---|---|---|---|---|---|
 | P2-01 | Plan 8；Matrix `L01-L05`、`E04/E08/E20/E23/E29`、`J03/J18-J20`；Behavior 20 | [ADR-0001](adr/ADR-0001-version-scoped-control-plane-schema.md)、[BC-STORE-001](contracts/BC-STORE-001-versioned-control-plane-schema.md) | `gateway-store` versioned SQLite migration runner and `0001` control-plane schema | [P2-01 报告](reports/p2-01-control-plane-schema.md) | DONE |
-| P2-02 | Plan 8；Matrix `D01/D04/D10/D11/D20/D21/D25/D31`、`H05/H06`、`J18-J20`、`L17-L36`；Behavior 3/17/19/20 | [ADR-0002](adr/ADR-0002-version-scoped-route-access-schema.md)、[BC-ROUTE-001](contracts/BC-ROUTE-001-versioned-route-access-schema.md) | Version 2 routing/access migration and uniqueness/FK tests | Pending P2-02 report | IN_PROGRESS |
+| P2-02 | Plan 8；Matrix `D01/D04/D10/D11/D20/D21/D25/D31`、`H05/H06`、`J18-J20`、`L17-L36`；Behavior 3/17/19/20 | [ADR-0002](adr/ADR-0002-version-scoped-route-access-schema.md)、[BC-ROUTE-001](contracts/BC-ROUTE-001-versioned-route-access-schema.md) | Version 2 routing/access migration and uniqueness/FK tests | [P2-02 报告](reports/p2-02-route-access-schema.md) | DONE |
 
 ## 后续 Phase 映射
 
