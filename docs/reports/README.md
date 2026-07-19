@@ -43,3 +43,5 @@
 - [P2-04 Client Key HMAC credential report](p2-04-client-key-hmac.md)
 - [P2-05 Versioned control-plane Repository and Service report](p2-05-control-plane-service.md)
 - [P2-06 Validated Route Compiler report](p2-06-validated-route-compiler.md)
+- [P2-07 Immutable RouteSnapshot publication report](p2-07-route-snapshot-publication.md)
+- [P2-08 Snapshot Client Key authentication report](p2-08-snapshot-client-key-authentication.md)

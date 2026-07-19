@@ -4,7 +4,7 @@
 |---|---|
 | Contract | `BC-AUTH-003` |
 | Task | `P2-08` |
-| Status | IN_PROGRESS |
+| Status | DONE |
 | Domain | Version-pinned Client Key HMAC admission from RouteSnapshot |
 
 ## Boundary
