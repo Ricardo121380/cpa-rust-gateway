@@ -8,7 +8,7 @@
 | Date | `2026-07-20` |
 | Branch | `codex/p3-02-upstream-client-pool` |
 | Rust | `1.97.1` |
-| Result | PASS locally and for the implementation commit in GitHub Fast/Full; verification-record acceptance pending |
+| Result | PASS locally and in GitHub Fast/Full for both the implementation and verification-record commits |
 
 ## Delivered scope
 
@@ -92,3 +92,15 @@ passed for implementation commit `0b8d93d`.
 
 This completes P3-02 implementation acceptance. The separate verification-record commit must also
 pass the same two jobs before P3-03 can begin.
+
+GitHub Actions run [29697618715](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29697618715)
+then passed for verification-record commit `93d46ce`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS; completed `2026-07-19T17:53:13Z` |
+| Full supply-chain gate | PASS; completed `2026-07-19T18:03:44Z` |
+
+P3-02 is accepted. This final status-record commit is intentionally documentation-only and must
+itself pass the same workflow before a separate P3-03 branch is created and P3-03 becomes the
+plan's sole `IN_PROGRESS` task.
