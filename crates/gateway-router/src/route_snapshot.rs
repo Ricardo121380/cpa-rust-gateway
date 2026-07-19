@@ -267,6 +267,22 @@ impl SnapshotRouteCandidate {
     pub const fn active_binding_count(&self) -> usize {
         self.active_binding_count
     }
+
+    /// Returns whether this retained Candidate is hard-eligible for a public model view.
+    ///
+    /// Runtime lease saturation, 429/Cooldown/Circuit state, and request-local retry exclusions
+    /// are intentionally absent: they control a particular attempt, not whether a compiled
+    /// Public Model remains discoverable. A direct Snapshot constructor can still supply an
+    /// expired Catalog state or zero bindings, so this guard preserves the same public predicate
+    /// outside the normal control-plane compiler.
+    #[must_use]
+    pub const fn is_hard_eligible(&self) -> bool {
+        self.active_binding_count > 0
+            && match self.catalog_admission {
+                SnapshotCatalogAdmission::Listed(state) => state.is_hard_eligible(),
+                SnapshotCatalogAdmission::AllowedUnlisted => true,
+            }
+    }
 }
 
 /// One active Route with deterministically ordered hard-eligible Candidates.
@@ -335,6 +351,19 @@ impl SnapshotRoute {
     #[must_use]
     pub fn candidates(&self) -> &[SnapshotRouteCandidate] {
         &self.candidates
+    }
+
+    /// Returns whether this Route retains at least one compiler-hard-eligible Candidate.
+    ///
+    /// A compiler-approved Candidate has already passed enabled Upstream/Endpoint, Catalog, and
+    /// capability checks. A positive binding count is retained in the Snapshot so a public-model
+    /// view can also prove that at least one Credential binding existed at publication time
+    /// without exposing its identity or consulting mutable runtime availability.
+    #[must_use]
+    pub fn has_hard_eligible_candidate(&self) -> bool {
+        self.candidates
+            .iter()
+            .any(SnapshotRouteCandidate::is_hard_eligible)
     }
 }
 
@@ -723,6 +752,23 @@ impl RouteSnapshot {
         })
     }
 
+    /// Resolves an exact Public Model or Alias only when an Access Group can visibly use it.
+    ///
+    /// This deliberately uses the same immutable permission and hard-eligibility predicate as
+    /// [`Self::public_models_for_access_group`]. Runtime 429/Cooldown/Circuit state is not an
+    /// input, so temporary availability cannot change the public mapping or model list.
+    #[must_use]
+    pub fn resolve_public_model_for_access_group(
+        &self,
+        access_group_id: &AccessGroupId,
+        model_name_or_alias: &str,
+    ) -> Option<&SnapshotPublicModel> {
+        let access_group = self.access_group(access_group_id)?;
+        let public_model = self.resolve_public_model(model_name_or_alias)?;
+        self.public_model_is_visible_to(access_group, public_model)
+            .then_some(public_model)
+    }
+
     /// Returns one exact active public model by client-visible name.
     #[must_use]
     pub fn public_model(&self, model_name: &str) -> Option<&SnapshotPublicModel> {
@@ -732,6 +778,23 @@ impl RouteSnapshot {
     /// Iterates public models in stable name order.
     pub fn public_models(&self) -> impl Iterator<Item = &SnapshotPublicModel> {
         self.public_models.values()
+    }
+
+    /// Iterates Public Models visible to one Access Group in stable public-name order.
+    ///
+    /// A visible model has a Route granted to the group and at least one compiler-retained
+    /// hard-eligible Candidate. This reads only this immutable Snapshot; it does not inspect
+    /// Runtime Health, lease saturation, cooldowns, circuits, persistence, or a live Catalog.
+    pub fn public_models_for_access_group(
+        &self,
+        access_group_id: &AccessGroupId,
+    ) -> impl Iterator<Item = &SnapshotPublicModel> {
+        let access_group = self.access_group(access_group_id);
+        self.public_models.values().filter(move |public_model| {
+            access_group.is_some_and(|access_group| {
+                self.public_model_is_visible_to(access_group, public_model)
+            })
+        })
     }
 
     /// Returns an exact Alias target identity.
@@ -777,6 +840,17 @@ impl RouteSnapshot {
     /// Iterates Client Key views in stable Prefix order.
     pub fn client_keys(&self) -> impl Iterator<Item = &SnapshotClientKeyView> {
         self.client_keys.values()
+    }
+
+    fn public_model_is_visible_to(
+        &self,
+        access_group: &SnapshotAccessGroup,
+        public_model: &SnapshotPublicModel,
+    ) -> bool {
+        access_group.permits_route(public_model.route_id())
+            && self
+                .route(public_model.route_id())
+                .is_some_and(SnapshotRoute::has_hard_eligible_candidate)
     }
 }
 
@@ -1125,6 +1199,65 @@ pub struct SnapshotClientKeyAuthenticator {
     clock: Arc<dyn SnapshotClientKeyClock>,
 }
 
+/// One successfully authenticated Client Key paired with its exact immutable Snapshot.
+///
+/// This value is the P3 public-model boundary: its Access Group filtering, Alias resolution, and
+/// response-name mapping cannot accidentally reload a newer Snapshot after Client Key admission.
+/// It contains no presented Key, HMAC digest, Credential, Endpoint, or Provider state.
+pub struct SnapshotAuthenticatedClient {
+    snapshot: Arc<RouteSnapshot>,
+    authenticated_client: AuthenticatedClient,
+    access_group_id: AccessGroupId,
+}
+
+impl SnapshotAuthenticatedClient {
+    /// Returns the authenticated non-secret Client Key identity.
+    #[must_use]
+    pub fn client_key_id(&self) -> &ClientKeyId {
+        self.authenticated_client.client_key_id()
+    }
+
+    /// Returns the active Access Group that was resolved from the same Snapshot.
+    #[must_use]
+    pub fn access_group_id(&self) -> &AccessGroupId {
+        &self.access_group_id
+    }
+
+    /// Returns the Config Version retained for this authenticated request.
+    #[must_use]
+    pub fn snapshot_version(&self) -> &SnapshotVersion {
+        self.snapshot.version()
+    }
+
+    /// Iterates this Client Key's visible Public Models in stable name order.
+    pub fn public_models(&self) -> impl Iterator<Item = &SnapshotPublicModel> {
+        self.snapshot
+            .public_models_for_access_group(self.access_group_id())
+    }
+
+    /// Resolves an exact Public Model or Alias to its visible stable Public Model.
+    #[must_use]
+    pub fn resolve_public_model(&self, model_name_or_alias: &str) -> Option<&SnapshotPublicModel> {
+        self.snapshot
+            .resolve_public_model_for_access_group(self.access_group_id(), model_name_or_alias)
+    }
+
+    fn into_authenticated_client(self) -> AuthenticatedClient {
+        self.authenticated_client
+    }
+}
+
+impl fmt::Debug for SnapshotAuthenticatedClient {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("SnapshotAuthenticatedClient")
+            .field("snapshot_version", self.snapshot.version())
+            .field("client_key_id", self.client_key_id())
+            .field("access_group_id", self.access_group_id())
+            .finish_non_exhaustive()
+    }
+}
+
 impl SnapshotClientKeyAuthenticator {
     /// Creates an authenticator using the local system clock.
     #[must_use]
@@ -1145,21 +1278,38 @@ impl SnapshotClientKeyAuthenticator {
             clock,
         }
     }
-}
 
-impl fmt::Debug for SnapshotClientKeyAuthenticator {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("SnapshotClientKeyAuthenticator")
-            .field("registry", &self.registry)
-            .field("verifier", &"<redacted>")
-            .finish_non_exhaustive()
-    }
-}
-
-impl ClientKeyAuthenticator for SnapshotClientKeyAuthenticator {
-    fn authenticate(&self, presented_key: &str) -> Result<AuthenticatedClient, GatewayError> {
+    /// Authenticates one presented Key and retains the exact Snapshot used for admission.
+    ///
+    /// Later HTTP model listing and response mapping use the returned value instead of loading
+    /// the registry again, so an atomic publication cannot combine Client Key admission from one
+    /// Config Version with permissions or Public Models from another.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same safe authentication error as [`ClientKeyAuthenticator::authenticate`].
+    pub fn authenticate_pinned(
+        &self,
+        presented_key: &str,
+    ) -> Result<SnapshotAuthenticatedClient, GatewayError> {
         let snapshot = self.registry.load();
+        let authenticated_client = self.authenticate_snapshot(&snapshot, presented_key)?;
+        let access_group_id = authenticated_client
+            .access_group_id()
+            .cloned()
+            .ok_or_else(internal_request_error)?;
+        Ok(SnapshotAuthenticatedClient {
+            snapshot,
+            authenticated_client,
+            access_group_id,
+        })
+    }
+
+    fn authenticate_snapshot(
+        &self,
+        snapshot: &RouteSnapshot,
+        presented_key: &str,
+    ) -> Result<AuthenticatedClient, GatewayError> {
         let prefix = ClientKeyPrefix::try_from_presented_key(presented_key)
             .map_err(|_| client_unauthorized_error())?;
         let client_key = snapshot
@@ -1178,6 +1328,23 @@ impl ClientKeyAuthenticator for SnapshotClientKeyAuthenticator {
             client_key.client_key_id().clone(),
             client_key.access_group_id().clone(),
         ))
+    }
+}
+
+impl fmt::Debug for SnapshotClientKeyAuthenticator {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("SnapshotClientKeyAuthenticator")
+            .field("registry", &self.registry)
+            .field("verifier", &"<redacted>")
+            .finish_non_exhaustive()
+    }
+}
+
+impl ClientKeyAuthenticator for SnapshotClientKeyAuthenticator {
+    fn authenticate(&self, presented_key: &str) -> Result<AuthenticatedClient, GatewayError> {
+        self.authenticate_pinned(presented_key)
+            .map(SnapshotAuthenticatedClient::into_authenticated_client)
     }
 }
 
@@ -1306,6 +1473,49 @@ mod tests {
             .ok_or_else(|| io::Error::other("expected access group"))?;
         assert!(access_group.permits_route(route.id()));
         assert_eq!(snapshot.version().as_str(), "version-a");
+        Ok(())
+    }
+
+    #[test]
+    fn public_model_view_filters_access_groups_and_requires_hard_eligible_candidates() -> TestResult
+    {
+        let snapshot = visibility_snapshot("version-a")?;
+        let group_a = AccessGroupId::try_new("group-a")?;
+        let group_b = AccessGroupId::try_new("group-b")?;
+
+        let visible_to_a = snapshot
+            .public_models_for_access_group(&group_a)
+            .map(SnapshotPublicModel::model_name)
+            .collect::<Vec<_>>();
+        assert_eq!(visible_to_a, vec!["alpha-model", "beta-model"]);
+        assert!(!visible_to_a.contains(&"hidden-model"));
+        assert!(!visible_to_a.contains(&"expired-model"));
+
+        let visible_to_b = snapshot
+            .public_models_for_access_group(&group_b)
+            .map(SnapshotPublicModel::model_name)
+            .collect::<Vec<_>>();
+        assert_eq!(visible_to_b, vec!["beta-model"]);
+
+        let alias = snapshot
+            .resolve_public_model_for_access_group(&group_a, "alias-alpha")
+            .ok_or("expected visible Alias to resolve")?;
+        assert_eq!(alias.model_name(), "alpha-model");
+        assert!(
+            snapshot
+                .resolve_public_model_for_access_group(&group_b, "alias-alpha")
+                .is_none()
+        );
+        assert!(
+            snapshot
+                .resolve_public_model_for_access_group(&group_a, "alias-hidden")
+                .is_none()
+        );
+        assert!(
+            snapshot
+                .resolve_public_model_for_access_group(&group_a, "alias-expired")
+                .is_none()
+        );
         Ok(())
     }
 
@@ -1489,7 +1699,7 @@ mod tests {
     }
 
     #[test]
-    fn snapshot_authenticator_returns_access_group_and_observes_key_disablement_after_publish()
+    fn snapshot_authenticator_pins_public_model_view_and_observes_key_disablement_after_publish()
     -> TestResult {
         let (service, active_record, presented_key) = issued_test_key(None)?;
         let mut disabled_record = active_record.clone();
@@ -1504,14 +1714,22 @@ mod tests {
             Arc::new(FixedClientKeyClock { now_ms: 1 }),
         );
 
-        let authenticated = authenticator.authenticate(presented_key.as_str())?;
+        let authenticated = authenticator.authenticate_pinned(presented_key.as_str())?;
         assert_eq!(authenticated.client_key_id().as_str(), "client-key-a");
+        assert_eq!(authenticated.access_group_id().as_str(), "group-a");
+        assert_eq!(authenticated.snapshot_version().as_str(), "version-a");
         assert_eq!(
             authenticated
-                .access_group_id()
-                .ok_or("expected Snapshot Access Group")?
-                .as_str(),
-            "group-a"
+                .public_models()
+                .map(SnapshotPublicModel::model_name)
+                .collect::<Vec<_>>(),
+            vec!["public-model"]
+        );
+        assert_eq!(
+            authenticated
+                .resolve_public_model("model-alias")
+                .map(SnapshotPublicModel::model_name),
+            Some("public-model")
         );
 
         let held_snapshot = registry.load();
@@ -1524,6 +1742,14 @@ mod tests {
 
         registry.publish(snapshot_with_client_key("version-b", disabled_record)?)?;
         assert_eq!(held_snapshot.version().as_str(), "version-a");
+        assert_eq!(authenticated.snapshot_version().as_str(), "version-a");
+        assert_eq!(
+            authenticated
+                .public_models()
+                .map(SnapshotPublicModel::model_name)
+                .collect::<Vec<_>>(),
+            vec!["public-model"]
+        );
         assert_unauthorized(authenticator.authenticate(presented_key.as_str()))?;
         Ok(())
     }
@@ -1636,6 +1862,155 @@ mod tests {
             client_keys,
         ))?;
         Ok(Arc::new(snapshot))
+    }
+
+    fn visibility_snapshot(version: &str) -> Result<Arc<RouteSnapshot>, Box<dyn Error>> {
+        let alpha_model_id = PublicModelId::try_new("public-model-alpha")?;
+        let beta_model_id = PublicModelId::try_new("public-model-beta")?;
+        let hidden_model_id = PublicModelId::try_new("public-model-hidden")?;
+        let expired_model_id = PublicModelId::try_new("public-model-expired")?;
+        let alpha_route_id = RouteId::try_new("route-alpha")?;
+        let beta_route_id = RouteId::try_new("route-beta")?;
+        let hidden_route_id = RouteId::try_new("route-hidden")?;
+        let expired_route_id = RouteId::try_new("route-expired")?;
+
+        let snapshot = RouteSnapshot::try_new(RouteSnapshotInput::new(
+            SnapshotVersion::try_new(version.to_owned())?,
+            vec![
+                visibility_public_model(
+                    alpha_model_id.clone(),
+                    "alpha-model",
+                    alpha_route_id.clone(),
+                ),
+                visibility_public_model(beta_model_id.clone(), "beta-model", beta_route_id.clone()),
+                visibility_public_model(
+                    hidden_model_id.clone(),
+                    "hidden-model",
+                    hidden_route_id.clone(),
+                ),
+                visibility_public_model(
+                    expired_model_id.clone(),
+                    "expired-model",
+                    expired_route_id.clone(),
+                ),
+            ],
+            vec![
+                ("alias-alpha".to_owned(), alpha_model_id.clone()),
+                ("alias-beta".to_owned(), beta_model_id.clone()),
+                ("alias-hidden".to_owned(), hidden_model_id.clone()),
+                ("alias-expired".to_owned(), expired_model_id.clone()),
+            ],
+            vec![
+                visibility_route(
+                    alpha_route_id.clone(),
+                    alpha_model_id,
+                    "candidate-alpha",
+                    "endpoint-alpha",
+                    1,
+                    CatalogModelState::Fresh,
+                )?,
+                visibility_route(
+                    beta_route_id.clone(),
+                    beta_model_id,
+                    "candidate-beta",
+                    "endpoint-beta",
+                    1,
+                    CatalogModelState::Fresh,
+                )?,
+                visibility_route(
+                    hidden_route_id.clone(),
+                    hidden_model_id,
+                    "candidate-hidden",
+                    "endpoint-hidden",
+                    0,
+                    CatalogModelState::Fresh,
+                )?,
+                visibility_route(
+                    expired_route_id.clone(),
+                    expired_model_id,
+                    "candidate-expired",
+                    "endpoint-expired",
+                    1,
+                    CatalogModelState::Expired,
+                )?,
+            ],
+            vec![
+                SnapshotAccessGroup::new(
+                    AccessGroupId::try_new("group-a")?,
+                    "Group A".to_owned(),
+                    BTreeSet::from([
+                        alpha_route_id.clone(),
+                        beta_route_id.clone(),
+                        hidden_route_id,
+                        expired_route_id,
+                    ]),
+                ),
+                SnapshotAccessGroup::new(
+                    AccessGroupId::try_new("group-b")?,
+                    "Group B".to_owned(),
+                    BTreeSet::from([beta_route_id]),
+                ),
+            ],
+            Vec::new(),
+        ))?;
+        Ok(Arc::new(snapshot))
+    }
+
+    fn visibility_public_model(
+        public_model_id: PublicModelId,
+        model_name: &str,
+        route_id: RouteId,
+    ) -> SnapshotPublicModel {
+        SnapshotPublicModel::new(
+            public_model_id,
+            model_name.to_owned(),
+            format!("{model_name} display"),
+            CapabilitySet::empty(),
+            route_id,
+        )
+    }
+
+    fn visibility_route(
+        route_id: RouteId,
+        public_model_id: PublicModelId,
+        candidate_id: &str,
+        endpoint_id: &str,
+        active_binding_count: usize,
+        catalog_state: CatalogModelState,
+    ) -> Result<SnapshotRoute, Box<dyn Error>> {
+        Ok(SnapshotRoute::new(
+            route_id,
+            public_model_id,
+            SnapshotRoutePolicy::RoundRobin,
+            1,
+            1_000,
+            vec![visibility_candidate(
+                candidate_id,
+                endpoint_id,
+                active_binding_count,
+                catalog_state,
+            )?],
+        ))
+    }
+
+    fn visibility_candidate(
+        candidate_id: &str,
+        endpoint_id: &str,
+        active_binding_count: usize,
+        catalog_state: CatalogModelState,
+    ) -> Result<SnapshotRouteCandidate, Box<dyn Error>> {
+        Ok(SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
+            id: RouteCandidateId::try_new(candidate_id)?,
+            endpoint_id: EndpointId::try_new(endpoint_id)?,
+            upstream_id: UpstreamId::try_new(format!("upstream-{endpoint_id}"))?,
+            upstream_model: format!("upstream-{candidate_id}"),
+            transform_mode: SnapshotTransformMode::Canonical,
+            priority: 0,
+            weight: 1,
+            effective_capabilities: CapabilitySet::empty(),
+            catalog_admission: SnapshotCatalogAdmission::Listed(catalog_state),
+            active_binding_count,
+        }))
     }
 
     fn snapshot_with_candidate_schedule(

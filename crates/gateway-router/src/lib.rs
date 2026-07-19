@@ -25,16 +25,18 @@ pub use attempt_orchestrator::{
     DEFAULT_TRANSIENT_COOLDOWN, StartedAttempt,
 };
 pub use credential_scheduler::{RouteCredentialScheduler, SelectedRouteCredential};
+pub use gateway_catalog::CapabilitySet;
 pub use gateway_core::TransparentRetryGate as AttemptRetryGate;
 pub use route_scheduler::RouteCandidateScheduler;
 pub use route_snapshot::{
     MAX_SCHEDULE_SLOTS_PER_PRIORITY_TIER, PreparedSnapshotPublication, RouteSnapshot,
     RouteSnapshotBuildError, RouteSnapshotInput, RouteSnapshotRegistry, SnapshotAccessGroup,
-    SnapshotCatalogAdmission, SnapshotClientKeyAuthenticator, SnapshotClientKeyClock,
-    SnapshotClientKeyClockError, SnapshotClientKeyView, SnapshotPriorityTierSchedule,
-    SnapshotPublicModel, SnapshotRegistryError, SnapshotRoute, SnapshotRouteCandidate,
-    SnapshotRouteCandidateInput, SnapshotRoutePolicy, SnapshotRouteSchedule, SnapshotTransformMode,
-    SnapshotTransition, SnapshotVersion, SystemSnapshotClientKeyClock,
+    SnapshotAuthenticatedClient, SnapshotCatalogAdmission, SnapshotClientKeyAuthenticator,
+    SnapshotClientKeyClock, SnapshotClientKeyClockError, SnapshotClientKeyView,
+    SnapshotPriorityTierSchedule, SnapshotPublicModel, SnapshotRegistryError, SnapshotRoute,
+    SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
+    SnapshotRouteSchedule, SnapshotTransformMode, SnapshotTransition, SnapshotVersion,
+    SystemSnapshotClientKeyClock,
 };
 pub use runtime_health::{
     DEFAULT_RUNTIME_HEALTH_SHARD_COUNT, MAX_RUNTIME_HEALTH_ENTRIES_PER_SHARD,

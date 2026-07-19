@@ -30,14 +30,17 @@ use gateway_core::{
     CanonicalEvent, CanonicalResponse, ErrorScope, GatewayError, GatewayErrorCode, RequestContext,
     RequestId, StreamError,
 };
-use gateway_router::{ResponsesEventSource, ResponsesExecutor};
+use gateway_router::{
+    ResponsesEventSource, ResponsesExecutor, SnapshotAuthenticatedClient,
+    SnapshotClientKeyAuthenticator,
+};
 use gateway_stream::{
     CanonicalEventSender, CanonicalEventStream, FirstSemanticEventTracker, StreamCancellation,
     StreamCapacity, StreamCapacityError, bounded_canonical_stream,
 };
 use protocol_openai_responses::{
     OpenAiResponseMetadata, OpenAiResponsesSseEncoder, ResponseMode, SseFrame, decode_request,
-    encode_error, encode_response,
+    encode_error, encode_model_list, encode_response,
 };
 
 /// Stable component identifier used by architecture smoke tests.
@@ -110,13 +113,43 @@ impl ResponsesMetadataFactory for SystemResponsesMetadataFactory {
 /// Shared Actix application state for P1 Responses endpoints.
 ///
 /// An authenticator is mandatory so the public Responses route cannot accidentally retain P1-07's
-/// unauthenticated behavior. Health remains independent of this state-owned authentication path.
+/// unauthenticated behavior. P3's Snapshot constructor additionally pins authenticated model
+/// discovery and response mapping to the exact Snapshot used for Client Key admission. Health
+/// remains independent of this state-owned authentication path.
 #[derive(Clone)]
 pub struct ResponsesHttpState {
     executor: Arc<dyn ResponsesExecutor>,
-    authenticator: Arc<dyn ClientKeyAuthenticator>,
+    authenticator: ResponsesAuthenticator,
     metadata_factory: Arc<dyn ResponsesMetadataFactory>,
     stream_capacity: StreamCapacity,
+}
+
+#[derive(Clone)]
+enum ResponsesAuthenticator {
+    Generic(Arc<dyn ClientKeyAuthenticator>),
+    Snapshot(Arc<SnapshotClientKeyAuthenticator>),
+}
+
+enum AuthenticatedResponsesClient {
+    Generic,
+    Snapshot(SnapshotAuthenticatedClient),
+}
+
+impl ResponsesAuthenticator {
+    fn authenticate(
+        &self,
+        presented_key: &str,
+    ) -> Result<AuthenticatedResponsesClient, GatewayError> {
+        match self {
+            Self::Generic(authenticator) => {
+                let _authenticated_client = authenticator.authenticate(presented_key)?;
+                Ok(AuthenticatedResponsesClient::Generic)
+            }
+            Self::Snapshot(authenticator) => authenticator
+                .authenticate_pinned(presented_key)
+                .map(AuthenticatedResponsesClient::Snapshot),
+        }
+    }
 }
 
 impl ResponsesHttpState {
@@ -148,10 +181,41 @@ impl ResponsesHttpState {
     ) -> Self {
         Self {
             executor,
-            authenticator,
+            authenticator: ResponsesAuthenticator::Generic(authenticator),
             metadata_factory,
             stream_capacity,
         }
+    }
+
+    /// Creates P3 HTTP state whose Client Key admission and public-model view share one Snapshot.
+    #[must_use]
+    pub fn with_snapshot_metadata(
+        executor: Arc<dyn ResponsesExecutor>,
+        metadata_factory: Arc<dyn ResponsesMetadataFactory>,
+        authenticator: Arc<SnapshotClientKeyAuthenticator>,
+        stream_capacity: StreamCapacity,
+    ) -> Self {
+        Self {
+            executor,
+            authenticator: ResponsesAuthenticator::Snapshot(authenticator),
+            metadata_factory,
+            stream_capacity,
+        }
+    }
+
+    /// Creates P3 Snapshot-authenticated HTTP state using system request/response metadata.
+    #[must_use]
+    pub fn new_with_snapshot_authentication(
+        executor: Arc<dyn ResponsesExecutor>,
+        authenticator: Arc<SnapshotClientKeyAuthenticator>,
+        stream_capacity: StreamCapacity,
+    ) -> Self {
+        Self::with_snapshot_metadata(
+            executor,
+            Arc::new(SystemResponsesMetadataFactory::new()),
+            authenticator,
+            stream_capacity,
+        )
     }
 }
 
@@ -164,10 +228,11 @@ pub fn default_stream_capacity() -> Result<StreamCapacity, StreamCapacityError> 
     StreamCapacity::try_new(DEFAULT_STREAM_CAPACITY)
 }
 
-/// Registers the P1 health and `OpenAI` Responses routes on an Actix application.
+/// Registers the health, public Models, and `OpenAI` Responses routes on an Actix application.
 pub fn configure(config: &mut web::ServiceConfig) {
     config
         .route("/healthz", web::get().to(healthz))
+        .route("/v1/models", web::get().to(models))
         .route("/v1/responses", web::post().to(responses));
 }
 
@@ -177,16 +242,35 @@ async fn healthz() -> HttpResponse {
         .body(r#"{"status":"ok"}"#)
 }
 
+async fn models(request: HttpRequest, state: web::Data<ResponsesHttpState>) -> HttpResponse {
+    let authenticated_client = match authenticate_bearer_request(&request, &state.authenticator) {
+        Ok(AuthenticatedResponsesClient::Snapshot(authenticated_client)) => authenticated_client,
+        Ok(AuthenticatedResponsesClient::Generic) => return pre_header_error(&route_not_found()),
+        Err(error) => return pre_header_error(&error),
+    };
+    let body = match encode_model_list(
+        authenticated_client
+            .public_models()
+            .map(gateway_router::SnapshotPublicModel::model_name),
+    ) {
+        Ok(body) => body,
+        Err(error) => return pre_header_error(&error),
+    };
+
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .body(body.to_string())
+}
+
 async fn responses(
     request: HttpRequest,
     state: web::Data<ResponsesHttpState>,
     body: web::Bytes,
 ) -> HttpResponse {
-    let _authenticated_client =
-        match authenticate_bearer_request(&request, state.authenticator.as_ref()) {
-            Ok(authenticated_client) => authenticated_client,
-            Err(error) => return pre_header_error(&error),
-        };
+    let authenticated_client = match authenticate_bearer_request(&request, &state.authenticator) {
+        Ok(authenticated_client) => authenticated_client,
+        Err(error) => return pre_header_error(&error),
+    };
     let Ok(body) = std::str::from_utf8(&body) else {
         return pre_header_error(&client_request_error());
     };
@@ -194,7 +278,17 @@ async fn responses(
         Ok(decoded) => decoded,
         Err(error) => return pre_header_error(&error),
     };
-    let public_model = decoded.request.requested_model.clone();
+    let public_model = match &authenticated_client {
+        AuthenticatedResponsesClient::Generic => decoded.request.requested_model.clone(),
+        AuthenticatedResponsesClient::Snapshot(authenticated_client) => {
+            let Some(public_model) =
+                authenticated_client.resolve_public_model(&decoded.request.requested_model)
+            else {
+                return pre_header_error(&route_not_found());
+            };
+            public_model.model_name().to_owned()
+        }
+    };
     let context = match state.metadata_factory.request_context() {
         Ok(context) => context,
         Err(error) => return pre_header_error(&error),
@@ -564,8 +658,13 @@ fn pre_header_error(error: &GatewayError) -> HttpResponse {
 
 fn authenticate_bearer_request(
     request: &HttpRequest,
-    authenticator: &dyn ClientKeyAuthenticator,
-) -> Result<gateway_auth::AuthenticatedClient, GatewayError> {
+    authenticator: &ResponsesAuthenticator,
+) -> Result<AuthenticatedResponsesClient, GatewayError> {
+    let presented_key = presented_bearer_key(request)?;
+    authenticator.authenticate(presented_key)
+}
+
+fn presented_bearer_key(request: &HttpRequest) -> Result<&str, GatewayError> {
     let mut values = request.headers().get_all(header::AUTHORIZATION);
     let Some(value) = values.next() else {
         return Err(client_unauthorized_error());
@@ -581,7 +680,7 @@ fn authenticate_bearer_request(
         return Err(client_unauthorized_error());
     }
 
-    authenticator.authenticate(presented_key)
+    Ok(presented_key)
 }
 
 const fn error_status(error: &GatewayError) -> StatusCode {
@@ -613,6 +712,10 @@ const fn client_request_error() -> GatewayError {
 
 const fn client_unauthorized_error() -> GatewayError {
     GatewayError::new(GatewayErrorCode::ClientUnauthorized, ErrorScope::Request)
+}
+
+const fn route_not_found() -> GatewayError {
+    GatewayError::new(GatewayErrorCode::RouteNotFound, ErrorScope::Model)
 }
 
 const fn stream_protocol_error() -> GatewayError {
@@ -647,15 +750,18 @@ mod tests {
         client_key::{ClientKeyPepper, ClientKeyService},
     };
     use gateway_core::{
-        AccessGroupId, CanonicalEvent, ClientKeyId, ErrorScope, GatewayError, GatewayErrorCode,
-        MessageEnd, MessageRole, MessageStart, RawExtensions, RawJson, RequestContext, RequestId,
-        ResponseEnd, ResponseId, ResponseStart, StreamError, TextDelta,
+        AccessGroupId, CanonicalEvent, ClientKeyId, EndpointId, ErrorScope, GatewayError,
+        GatewayErrorCode, MessageEnd, MessageRole, MessageStart, PublicModelId, RawExtensions,
+        RawJson, RequestContext, RequestId, ResponseEnd, ResponseId, ResponseStart,
+        RouteCandidateId, RouteId, StreamError, TextDelta, UpstreamId,
     };
     use gateway_router::{
-        DeterministicMockEmission, DeterministicMockResponsesExecutor, ResponsesEventSource,
-        ResponsesExecutor, ResponsesFuture, RouteSnapshot, RouteSnapshotInput,
-        RouteSnapshotRegistry, SnapshotAccessGroup, SnapshotClientKeyAuthenticator,
-        SnapshotClientKeyView, SnapshotVersion,
+        CapabilitySet, DeterministicMockEmission, DeterministicMockResponsesExecutor,
+        ResponsesEventSource, ResponsesExecutor, ResponsesFuture, RouteSnapshot,
+        RouteSnapshotInput, RouteSnapshotRegistry, SnapshotAccessGroup, SnapshotCatalogAdmission,
+        SnapshotClientKeyAuthenticator, SnapshotClientKeyView, SnapshotPublicModel, SnapshotRoute,
+        SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
+        SnapshotTransformMode, SnapshotVersion,
     };
     use gateway_stream::{FirstSemanticEventTracker, StreamCapacity, bounded_canonical_stream};
     use protocol_openai_responses::OpenAiResponseMetadata;
@@ -668,6 +774,8 @@ mod tests {
     type TestResult = Result<(), Box<dyn Error>>;
 
     const TEST_CLIENT_KEY: &str = "p1-test-client-key";
+    const SNAPSHOT_PUBLIC_MODEL: &str = "public-model";
+    const SNAPSHOT_MODEL_ALIAS: &str = "client-model-alias";
 
     #[derive(Debug)]
     struct FixedMetadata;
@@ -771,6 +879,12 @@ mod tests {
             gateway_core::ProviderId::try_new("http-snapshot-auth-provider")?,
             emissions,
         )?;
+        snapshot_auth_state_with_executor(Arc::new(executor))
+    }
+
+    fn snapshot_auth_state_with_executor(
+        executor: Arc<dyn ResponsesExecutor>,
+    ) -> Result<(ResponsesHttpState, String), Box<dyn Error>> {
         let service = ClientKeyService::new(ClientKeyPepper::try_from_bytes([0xA5_u8; 32])?);
         let access_group_id = AccessGroupId::try_new("http-snapshot-access-group")?;
         let issued = service.issue(
@@ -779,26 +893,56 @@ mod tests {
             None,
         )?;
         let (record, presented_key) = issued.into_parts();
+        let public_model_id = PublicModelId::try_new("http-snapshot-public-model")?;
+        let route_id = RouteId::try_new("http-snapshot-route")?;
+        let candidate = SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
+            id: RouteCandidateId::try_new("http-snapshot-candidate")?,
+            endpoint_id: EndpointId::try_new("http-snapshot-endpoint")?,
+            upstream_id: UpstreamId::try_new("http-snapshot-upstream")?,
+            upstream_model: "sensitive-upstream-model".to_owned(),
+            transform_mode: SnapshotTransformMode::Canonical,
+            priority: 0,
+            weight: 1,
+            effective_capabilities: CapabilitySet::empty(),
+            catalog_admission: SnapshotCatalogAdmission::AllowedUnlisted,
+            active_binding_count: 1,
+        });
         let snapshot = Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
             SnapshotVersion::try_new("http-snapshot-version")?,
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
+            vec![SnapshotPublicModel::new(
+                public_model_id.clone(),
+                SNAPSHOT_PUBLIC_MODEL.to_owned(),
+                "HTTP Snapshot Public Model".to_owned(),
+                CapabilitySet::empty(),
+                route_id.clone(),
+            )],
+            vec![(SNAPSHOT_MODEL_ALIAS.to_owned(), public_model_id.clone())],
+            vec![SnapshotRoute::new(
+                route_id.clone(),
+                public_model_id,
+                SnapshotRoutePolicy::RoundRobin,
+                1,
+                1_000,
+                vec![candidate],
+            )],
             vec![SnapshotAccessGroup::new(
                 access_group_id,
                 "HTTP Snapshot Access Group".to_owned(),
-                BTreeSet::new(),
+                BTreeSet::from([route_id.clone()]),
             )],
-            vec![SnapshotClientKeyView::new(record, BTreeSet::new())],
+            vec![SnapshotClientKeyView::new(
+                record,
+                BTreeSet::from([route_id]),
+            )],
         ))?);
-        let authenticator = SnapshotClientKeyAuthenticator::new(
+        let authenticator = Arc::new(SnapshotClientKeyAuthenticator::new(
             Arc::new(RouteSnapshotRegistry::new(snapshot)),
             service,
-        );
-        let state = ResponsesHttpState::with_metadata(
-            Arc::new(executor),
+        ));
+        let state = ResponsesHttpState::with_snapshot_metadata(
+            executor,
             Arc::new(FixedMetadata),
-            Arc::new(authenticator),
+            authenticator,
             StreamCapacity::try_new(2)?,
         );
 
@@ -928,7 +1072,69 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn responses_accepts_a_snapshot_client_key_authenticator() -> TestResult {
+    async fn snapshot_models_list_uses_only_the_pinned_public_model_view() -> TestResult {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let (state, presented_key) =
+            snapshot_auth_state_with_executor(Arc::new(CountingExecutor {
+                calls: calls.clone(),
+            }))?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let unauthorized = test::call_service(
+            &app,
+            test::TestRequest::get().uri("/v1/models").to_request(),
+        )
+        .await;
+        assert_eq!(unauthorized.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            unauthorized
+                .headers()
+                .get(header::WWW_AUTHENTICATE)
+                .and_then(|value| value.to_str().ok()),
+            Some("Bearer")
+        );
+        let request = test::TestRequest::get()
+            .uri("/v1/models")
+            .insert_header((header::AUTHORIZATION, format!("Bearer {presented_key}")))
+            .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+        assert!(body.contains(r#""object":"list""#));
+        assert!(body.contains(r#""id":"public-model""#));
+        assert!(body.contains(r#""owned_by":"gateway""#));
+        assert!(!body.contains(SNAPSHOT_MODEL_ALIAS));
+        assert!(!body.contains("sensitive-upstream-model"));
+        assert!(!body.contains("http-snapshot-endpoint"));
+        assert_eq!(calls.load(Ordering::Acquire), 0);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn models_fails_closed_without_snapshot_authentication() -> TestResult {
+        let state = mock_state(text_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = authorized(test::TestRequest::get().uri("/v1/models")).to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+        assert!(body.contains(r#""code":"RouteNotFound""#));
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn snapshot_responses_force_maps_aliases_to_the_public_model_name() -> TestResult {
         let (state, presented_key) = snapshot_auth_state(text_events()?)?;
         let app = test::init_service(
             App::new()
@@ -939,13 +1145,71 @@ mod tests {
         let request = test::TestRequest::post()
             .uri("/v1/responses")
             .insert_header((header::AUTHORIZATION, format!("Bearer {presented_key}")))
-            .set_payload(r#"{"model":"mock-model","input":"hello"}"#)
+            .set_payload(format!(
+                r#"{{"model":"{SNAPSHOT_MODEL_ALIAS}","input":"hello"}}"#
+            ))
             .to_request();
 
         let response = test::call_service(&app, request).await;
         assert_eq!(response.status(), StatusCode::OK);
         let body = String::from_utf8(test::read_body(response).await.to_vec())?;
         assert!(body.contains(r#""status":"completed""#));
+        assert!(body.contains(r#""model":"public-model""#));
+        assert!(!body.contains(SNAPSHOT_MODEL_ALIAS));
+        assert!(!body.contains("sensitive-upstream-model"));
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn snapshot_responses_force_maps_aliases_in_every_sse_response_object() -> TestResult {
+        let (state, presented_key) = snapshot_auth_state(text_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = test::TestRequest::post()
+            .uri("/v1/responses")
+            .insert_header((header::AUTHORIZATION, format!("Bearer {presented_key}")))
+            .set_payload(format!(
+                r#"{{"model":"{SNAPSHOT_MODEL_ALIAS}","input":"hello","stream":true}}"#
+            ))
+            .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+        assert_eq!(body.matches(r#""model":"public-model""#).count(), 3);
+        assert!(!body.contains(SNAPSHOT_MODEL_ALIAS));
+        assert!(!body.contains("sensitive-upstream-model"));
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn snapshot_responses_rejects_a_non_visible_model_before_executor_start() -> TestResult {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let (state, presented_key) =
+            snapshot_auth_state_with_executor(Arc::new(CountingExecutor {
+                calls: calls.clone(),
+            }))?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = test::TestRequest::post()
+            .uri("/v1/responses")
+            .insert_header((header::AUTHORIZATION, format!("Bearer {presented_key}")))
+            .set_payload(r#"{"model":"not-visible","input":"hello"}"#)
+            .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+        assert!(body.contains(r#""code":"RouteNotFound""#));
+        assert_eq!(calls.load(Ordering::Acquire), 0);
         Ok(())
     }
 

@@ -605,6 +605,41 @@ pub fn encode_error(error: &GatewayError) -> Value {
     })
 }
 
+/// Encodes the public `OpenAI`-compatible `/v1/models` list envelope.
+///
+/// Callers supply only already-authorized Public Model names from an immutable route view. The
+/// output intentionally has no route, Candidate, Endpoint, Upstream, Credential, Catalog, or
+/// upstream-model fields. `created` is the stable gateway-owned sentinel because Public Model
+/// publication does not expose a per-model creation timestamp on the data path.
+///
+/// # Errors
+///
+/// Returns `InternalError/Internal` when a caller attempts to encode an empty Public Model name.
+pub fn encode_model_list<I, S>(model_names: I) -> Result<Value, GatewayError>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let mut data = Vec::new();
+    for model_name in model_names {
+        let model_name = model_name.as_ref();
+        if model_name.is_empty() {
+            return Err(internal_error());
+        }
+        data.push(json!({
+            "id": model_name,
+            "object": "model",
+            "created": 0,
+            "owned_by": "gateway",
+        }));
+    }
+
+    Ok(json!({
+        "object": "list",
+        "data": data,
+    }))
+}
+
 /// Encodes one validated successful canonical response as a non-streaming Responses object.
 ///
 /// # Errors
@@ -1804,7 +1839,7 @@ mod tests {
 
     use super::{
         OpenAiResponseMetadata, OpenAiResponsesSseEncoder, ResponseMode, decode_request,
-        encode_error, encode_response,
+        encode_error, encode_model_list, encode_response,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -1933,6 +1968,32 @@ mod tests {
         ] {
             assert!(decode_request(request).is_err());
         }
+    }
+
+    #[test]
+    fn encodes_a_gateway_owned_public_models_list() -> TestResult {
+        let encoded = encode_model_list(["gateway-model", "public-model-two"])?;
+
+        assert_eq!(encoded["object"], "list");
+        assert_eq!(encoded["data"].as_array().map(Vec::len), Some(2));
+        assert_eq!(encoded["data"][0]["id"], "gateway-model");
+        assert_eq!(encoded["data"][0]["object"], "model");
+        assert_eq!(encoded["data"][0]["created"], 0);
+        assert_eq!(encoded["data"][0]["owned_by"], "gateway");
+        assert!(encoded["data"][0].get("upstream_model").is_none());
+        assert!(encoded["data"][0].get("endpoint_id").is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_an_empty_public_model_name_in_a_models_list() {
+        let encoded = encode_model_list([""]);
+        assert!(matches!(
+            encoded,
+            Err(error)
+                if error.code() == GatewayErrorCode::InternalError
+                    && error.scope() == ErrorScope::Internal
+        ));
     }
 
     #[test]

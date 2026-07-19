@@ -47,4 +47,5 @@ P3-03 已建立 [BC-SCHEDULER-001 Priority-tier bounded smooth weighted schedule
 P3-04 已建立 [BC-CRED-001 Endpoint Credential pool leases](BC-CRED-001-endpoint-credential-pool-leases.md)。
 P3-05 已建立 [BC-HEALTH-001 Sharded runtime health state](BC-HEALTH-001-sharded-runtime-health.md)。
 P3-06 已建立 [BC-ROUTER-003 Request-scoped Attempt orchestration](BC-ROUTER-003-request-scoped-attempt-orchestration.md)。
+P3-07 已建立 [BC-ROUTE-002 RouteSnapshot public model view and Responses force mapping](BC-ROUTE-002-routesnapshot-public-model-view.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。
