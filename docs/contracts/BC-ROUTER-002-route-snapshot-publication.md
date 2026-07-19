@@ -4,7 +4,7 @@
 |---|---|
 | Contract | `BC-ROUTER-002` |
 | Task | `P2-07` |
-| Status | IN_PROGRESS |
+| Status | DONE |
 | Domain | Version-pinned RouteSnapshot publication and one-step rollback |
 
 ## Boundary
