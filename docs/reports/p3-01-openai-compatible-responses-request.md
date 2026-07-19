@@ -8,7 +8,7 @@
 | Date | `2026-07-20` |
 | Branch | `codex/p3-01-openai-responses-request` |
 | Rust | `1.97.1` |
-| Result | PASS locally; GitHub acceptance pending |
+| Result | PASS locally and for the implementation commit in GitHub Fast/Full; verification-record acceptance pending |
 
 ## Delivered scope
 
@@ -72,6 +72,13 @@ credential, Authorization header, request body or production traffic was read, l
 
 ## GitHub CI
 
-The implementation commit's GitHub Fast and Full gates must both pass before the P3-01 acceptance
-record is finalized. Its verification-record commit must also pass the same two jobs before P3-02
-can begin.
+GitHub Actions run [29694311704](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29694311704)
+passed for implementation commit `3e2d818`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS; completed `2026-07-19T16:12:00Z` |
+| Full supply-chain gate | PASS; completed `2026-07-19T16:19:51Z` |
+
+This completes P3-01 implementation acceptance. The separate verification-record commit must also
+pass the same two jobs before P3-02 can begin.
