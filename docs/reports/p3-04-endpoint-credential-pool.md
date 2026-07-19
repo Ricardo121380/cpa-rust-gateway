@@ -8,7 +8,7 @@
 | Date | `2026-07-20` |
 | Branch | `codex/p3-04-credential-pool` |
 | Rust | `1.97.1` |
-| Result | PASS locally after review; GitHub Fast/Full acceptance pending |
+| Result | PASS locally and for the implementation commit in GitHub Fast/Full; verification-record acceptance pending |
 
 ## Delivered scope
 
@@ -76,6 +76,14 @@ behavior. All current fixtures use synthetic secrets and endpoints only.
 
 ## GitHub CI
 
-The implementation commit's GitHub Fast and Full gates must both pass before the P3-04 acceptance
-record is finalized. Its separate verification-record and final status commits must also pass the
-same workflow before P3-05 can begin.
+GitHub Actions run [29701408779](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29701408779)
+passed for implementation commit `7ea83ec`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS; completed `2026-07-19T19:54:14Z` |
+| Full supply-chain gate | PASS; completed `2026-07-19T20:05:35Z` |
+
+This completes P3-04 implementation acceptance. The separate verification-record commit must also
+pass the same two jobs before the final status record can be created; that final record must pass
+before P3-05 can begin.

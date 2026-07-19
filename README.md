@@ -10,7 +10,7 @@
 
 ## 当前状态
 
-- 阶段：`P1 - Canonical Core + Mock 垂直链路` 与 `P2 - 聚合控制面、安全与 RouteSnapshot` 已完成（G0、G1、G2 已通过）；`P3` 正在执行（P3-02 与 P3-03 已完成 GitHub 验收；P3-04 Endpoint Credential Pool 正在执行）
+- 阶段：`P1 - Canonical Core + Mock 垂直链路` 与 `P2 - 聚合控制面、安全与 RouteSnapshot` 已完成（G0、G1、G2 已通过）；`P3` 正在执行（P3-02 与 P3-03 已完成 GitHub 验收；P3-04 实现提交的 GitHub Fast/Full 已通过，验证记录待 GitHub 双门禁）
 - 执行计划：`v1.1`，状态 `Locked for execution`；`CR-P1-G1-001` 已批准
 - CPA 参考版本：`router-for-me/CLIProxyAPI v7.2.80`
 - Release 1：核心范围、技术基线、阶段顺序和门禁已冻结
