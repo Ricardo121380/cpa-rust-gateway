@@ -34,6 +34,7 @@ publish = false
 
 [workspace.dependencies]
 actix-web = { version = "4.11.0", default-features = false, features = ["macros"] }
+arc-swap = { version = "1.9.2", default-features = false }
 chacha20poly1305 = { version = "0.10.1", default-features = false, features = ["std"] }
 futures-util = { version = "0.3.32", default-features = false }
 getrandom = { version = "0.3.4", default-features = false }

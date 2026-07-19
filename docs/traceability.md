@@ -47,6 +47,7 @@
 | P2-04 | Plan 8；Matrix `L35`、`J19`；Behavior 20 | [ADR-0004](adr/ADR-0004-client-key-hmac-credential.md)、[BC-AUTH-002](contracts/BC-AUTH-002-client-key-hmac-credential.md) | `gateway-auth` Client Key issue/parse/HMAC/constant-time verification primitives | [P2-04 report](reports/p2-04-client-key-hmac.md) | DONE |
 | P2-05 | Plan 8；Matrix `J18-J20`、`L01-L05`、`L17-L35`；Behavior 14/20 | [ADR-0005](adr/ADR-0005-versioned-control-plane-repository-service.md)、[BC-CONTROL-001](contracts/BC-CONTROL-001-versioned-control-plane-repository-service.md) | Transactional `gateway-store` configuration graph Repository and `gateway-control` provisioning Service | [P2-05 report](reports/p2-05-control-plane-service.md) | DONE |
 | P2-06 | Plan 8；Matrix `D01/D04/D10/D11/D20/D21/D31`、`H05/H06`、`J20`、`L17-L30`；Behavior 3/17/19/20 | [ADR-0006](adr/ADR-0006-validated-route-compiler.md)、[BC-ROUTER-001](contracts/BC-ROUTER-001-validated-route-compiler.md) | `gateway-control` validated Route Compiler with injected Catalog/Endpoint-capability views | [P2-06 report](reports/p2-06-validated-route-compiler.md) | DONE |
+| P2-07 | Plan 8；Matrix `D01/D04/D10/D11/D20/D21/D31`、`H05/H06`、`J20`、`L17-L31`；Behavior 20 | [ADR-0007](adr/ADR-0007-route-snapshot-publication.md)、[BC-ROUTER-002](contracts/BC-ROUTER-002-route-snapshot-publication.md) | `gateway-router` immutable Snapshot registry plus `gateway-control` publish/rollback orchestration | Pending P2-07 report | IN_PROGRESS |
 
 ## 后续 Phase 映射
 

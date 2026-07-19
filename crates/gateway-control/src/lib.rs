@@ -6,6 +6,8 @@
 pub mod control_plane_service;
 /// Semantic Config Version validation and secret-free Route compilation.
 pub mod route_compiler;
+/// Atomic publication and rollback of compiler-approved RouteSnapshots.
+pub mod snapshot_publisher;
 
 /// Stable component identifier used by architecture smoke tests.
 pub const COMPONENT: &str = "gateway-control";

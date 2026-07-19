@@ -73,6 +73,10 @@ pub enum StoreError {
     ///
     /// Publication and archival transitions are deferred to the P2-07 Snapshot publisher.
     ControlPlaneMutationRequiresDraft,
+    /// A requested Config Version does not exist in the Repository.
+    ConfigVersionNotFound,
+    /// A requested Config Version is already the sole active Version.
+    ConfigVersionAlreadyActive,
 }
 
 impl fmt::Display for StoreError {
@@ -100,6 +104,12 @@ impl fmt::Display for StoreError {
             Self::ControlPlaneMutationRequiresDraft => {
                 formatter.write_str("control-plane mutation requires a draft Config Version")
             }
+            Self::ConfigVersionNotFound => {
+                formatter.write_str("requested Config Version does not exist")
+            }
+            Self::ConfigVersionAlreadyActive => {
+                formatter.write_str("requested Config Version is already active")
+            }
         }
     }
 }
@@ -112,7 +122,9 @@ impl Error for StoreError {
             | Self::UnsupportedMigrationHistory { .. }
             | Self::InvalidPersistedControlPlaneRecord { .. }
             | Self::InvalidClientKeyDigestLength { .. }
-            | Self::ControlPlaneMutationRequiresDraft => None,
+            | Self::ControlPlaneMutationRequiresDraft
+            | Self::ConfigVersionNotFound
+            | Self::ConfigVersionAlreadyActive => None,
         }
     }
 }

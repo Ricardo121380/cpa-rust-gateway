@@ -5,12 +5,21 @@
 
 #![deny(unsafe_code)]
 
+mod route_snapshot;
+
 use std::{future::Future, pin::Pin, time::Duration};
 
 use gateway_core::{CanonicalEvent, CanonicalRequest, GatewayError, ProviderId, RequestContext};
 use gateway_provider::{
     CanonicalEventSource, DeterministicMockProvider, InferenceAdapter, MockEmission, MockFixture,
     ProviderFuture,
+};
+
+pub use route_snapshot::{
+    PreparedSnapshotPublication, RouteSnapshot, RouteSnapshotBuildError, RouteSnapshotInput,
+    RouteSnapshotRegistry, SnapshotAccessGroup, SnapshotCatalogAdmission, SnapshotPublicModel,
+    SnapshotRegistryError, SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput,
+    SnapshotRoutePolicy, SnapshotTransformMode, SnapshotTransition, SnapshotVersion,
 };
 
 /// Stable component identifier used by architecture smoke tests.

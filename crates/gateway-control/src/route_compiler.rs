@@ -262,16 +262,33 @@ impl CompiledRouteConfiguration {
         self.aliases.get(alias)
     }
 
+    /// Iterates active Alias-to-Public-Model relations in stable Alias order.
+    pub fn aliases(&self) -> impl Iterator<Item = (&str, &PublicModelId)> {
+        self.aliases
+            .iter()
+            .map(|(alias, public_model_id)| (alias.as_str(), public_model_id))
+    }
+
     /// Returns an active compiled Route by Route identifier.
     #[must_use]
     pub fn route(&self, route_id: &RouteId) -> Option<&CompiledRoute> {
         self.routes.get(route_id)
     }
 
+    /// Iterates active compiled Routes in stable identifier order.
+    pub fn routes(&self) -> impl Iterator<Item = &CompiledRoute> {
+        self.routes.values()
+    }
+
     /// Returns an active Access Group view by identity.
     #[must_use]
     pub fn access_group(&self, access_group_id: &AccessGroupId) -> Option<&CompiledAccessGroup> {
         self.access_groups.get(access_group_id)
+    }
+
+    /// Iterates active compiled Access Groups in stable identifier order.
+    pub fn access_groups(&self) -> impl Iterator<Item = &CompiledAccessGroup> {
+        self.access_groups.values()
     }
 }
 

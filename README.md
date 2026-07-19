@@ -10,7 +10,7 @@
 
 ## 当前状态
 
-- 阶段：`P1 - Canonical Core + Mock 垂直链路` 已完成（G0、G1 已通过）；`P2` 正在执行（P2-01 至 P2-06 已完成，P2-07 待启动）
+- 阶段：`P1 - Canonical Core + Mock 垂直链路` 已完成（G0、G1 已通过）；`P2` 正在执行（P2-01 至 P2-06 已完成，P2-07 进行中）
 - 执行计划：`v1.1`，状态 `Locked for execution`；`CR-P1-G1-001` 已批准
 - CPA 参考版本：`router-for-me/CLIProxyAPI v7.2.80`
 - Release 1：核心范围、技术基线、阶段顺序和门禁已冻结

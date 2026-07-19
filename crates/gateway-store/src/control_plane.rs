@@ -10,7 +10,7 @@ use gateway_core::{
     AccessGroupId, ClientKeyId, CredentialId, EndpointId, InvalidIdentifier, PublicModelId,
     RouteCandidateId, RouteId, UpstreamId,
 };
-use rusqlite::{Connection, Transaction, TransactionBehavior, params};
+use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
 
 use crate::{
     StoreError, StoreResult, migrate,
@@ -629,6 +629,37 @@ pub struct ControlPlaneConfiguration {
     pub client_keys: Vec<StoredClientKey>,
 }
 
+/// One atomic persisted Config Version activation result.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConfigVersionActivation {
+    activated_version_id: ConfigVersionId,
+    replaced_active_version_id: Option<ConfigVersionId>,
+}
+
+impl ConfigVersionActivation {
+    fn new(
+        activated_version_id: ConfigVersionId,
+        replaced_active_version_id: Option<ConfigVersionId>,
+    ) -> Self {
+        Self {
+            activated_version_id,
+            replaced_active_version_id,
+        }
+    }
+
+    /// Returns the Version that became active.
+    #[must_use]
+    pub fn activated_version_id(&self) -> &ConfigVersionId {
+        &self.activated_version_id
+    }
+
+    /// Returns the active Version archived by this transition, if one existed.
+    #[must_use]
+    pub fn replaced_active_version_id(&self) -> Option<&ConfigVersionId> {
+        self.replaced_active_version_id.as_ref()
+    }
+}
+
 impl ControlPlaneConfiguration {
     /// Starts an empty graph rooted at `version`.
     #[must_use]
@@ -733,6 +764,26 @@ impl SqliteControlPlaneRepository {
         let configuration = load_configuration(&transaction, config_version_id)?;
         transaction.commit()?;
         Ok(configuration)
+    }
+
+    /// Atomically activates a draft or archived Config Version.
+    ///
+    /// The current active Version, if any, becomes archived in the same `SQLite` transaction. This
+    /// is a state transition only: callers must compile and reserve a matching immutable runtime
+    /// Snapshot before invoking it.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the Version is absent, already active, malformed in storage, or
+    /// `SQLite` cannot commit the transition.
+    pub fn activate_version(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+    ) -> StoreResult<ConfigVersionActivation> {
+        let mut transaction = self.begin_transaction()?;
+        let activation = transaction.activate_version(config_version_id)?;
+        transaction.commit()?;
+        Ok(activation)
     }
 }
 
@@ -863,6 +914,75 @@ impl ControlPlaneTransaction<'_> {
             ],
         )?;
         Ok(())
+    }
+
+    /// Atomically makes a draft or archived Config Version active and archives the prior active
+    /// Version, if any.
+    ///
+    /// This is the only P2-07 status-transition operation. It intentionally does not write graph
+    /// rows, decrypt Credentials, or construct a runtime Snapshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::ConfigVersionNotFound`] for an absent Version,
+    /// [`StoreError::ConfigVersionAlreadyActive`] for a no-op request, or a fail-closed store error
+    /// for malformed persistent state.
+    pub fn activate_version(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+    ) -> StoreResult<ConfigVersionActivation> {
+        let target_status: Option<String> = self
+            .transaction
+            .query_row(
+                "SELECT status FROM config_versions WHERE id = ?1",
+                [config_version_id.as_str()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let target_status = target_status.ok_or(StoreError::ConfigVersionNotFound)?;
+        match ConfigVersionStatus::from_sql(&target_status) {
+            Some(ConfigVersionStatus::Draft | ConfigVersionStatus::Archived) => {}
+            Some(ConfigVersionStatus::Active) => {
+                return Err(StoreError::ConfigVersionAlreadyActive);
+            }
+            None => return Err(malformed("config_versions")),
+        }
+
+        let replaced_active_version_id: Option<String> = self
+            .transaction
+            .query_row(
+                "SELECT id FROM config_versions WHERE status = ?1",
+                [ConfigVersionStatus::Active.as_sql()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let replaced_active_version_id = replaced_active_version_id
+            .map(ConfigVersionId::try_new)
+            .transpose()
+            .map_err(|_| malformed("config_versions"))?;
+
+        self.transaction.execute(
+            "UPDATE config_versions SET status = ?1 WHERE status = ?2",
+            [
+                ConfigVersionStatus::Archived.as_sql(),
+                ConfigVersionStatus::Active.as_sql(),
+            ],
+        )?;
+        let updated = self.transaction.execute(
+            "UPDATE config_versions SET status = ?1 WHERE id = ?2",
+            [
+                ConfigVersionStatus::Active.as_sql(),
+                config_version_id.as_str(),
+            ],
+        )?;
+        if updated == 1 {
+            Ok(ConfigVersionActivation::new(
+                config_version_id.clone(),
+                replaced_active_version_id,
+            ))
+        } else {
+            Err(StoreError::ConfigVersionNotFound)
+        }
     }
 
     /// Commits every prior write in this transaction.
@@ -1667,6 +1787,59 @@ mod tests {
     }
 
     #[test]
+    fn activation_archives_the_prior_active_version_in_one_transition() -> TestResult {
+        let version_one = ConfigVersionId::try_new("version-one")?;
+        let version_two = ConfigVersionId::try_new("version-two")?;
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        repository.write_configuration(&draft_configuration(version_one.clone(), None))?;
+        repository.write_configuration(&draft_configuration(
+            version_two.clone(),
+            Some(version_one.clone()),
+        ))?;
+
+        let first = repository.activate_version(&version_one)?;
+        assert_eq!(first.activated_version_id(), &version_one);
+        assert!(first.replaced_active_version_id().is_none());
+        assert_eq!(
+            repository
+                .load_configuration(&version_one)?
+                .ok_or("version one is missing")?
+                .version
+                .status,
+            ConfigVersionStatus::Active
+        );
+
+        let second = repository.activate_version(&version_two)?;
+        assert_eq!(second.activated_version_id(), &version_two);
+        assert_eq!(second.replaced_active_version_id(), Some(&version_one));
+        assert_eq!(
+            repository
+                .load_configuration(&version_one)?
+                .ok_or("version one is missing")?
+                .version
+                .status,
+            ConfigVersionStatus::Archived
+        );
+        assert_eq!(
+            repository
+                .load_configuration(&version_two)?
+                .ok_or("version two is missing")?
+                .version
+                .status,
+            ConfigVersionStatus::Active
+        );
+        assert!(matches!(
+            repository.activate_version(&version_two),
+            Err(StoreError::ConfigVersionAlreadyActive)
+        ));
+        assert!(matches!(
+            repository.activate_version(&ConfigVersionId::try_new("missing-version")?),
+            Err(StoreError::ConfigVersionNotFound)
+        ));
+        Ok(())
+    }
+
+    #[test]
     fn credential_and_client_key_mutations_require_an_existing_draft() -> TestResult {
         let version_id = ConfigVersionId::try_new("active-version")?;
         let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
@@ -1746,5 +1919,18 @@ mod tests {
         assert!(loaded.credentials.is_empty());
         assert!(loaded.client_keys.is_empty());
         Ok(())
+    }
+
+    fn draft_configuration(
+        id: ConfigVersionId,
+        parent_id: Option<ConfigVersionId>,
+    ) -> ControlPlaneConfiguration {
+        ControlPlaneConfiguration::new(ConfigVersion {
+            id,
+            parent_id,
+            status: ConfigVersionStatus::Draft,
+            created_at_ms: 1,
+            description: "P2-07 activation fixture".to_owned(),
+        })
     }
 }
