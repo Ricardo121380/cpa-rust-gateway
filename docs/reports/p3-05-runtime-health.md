@@ -8,7 +8,7 @@
 | Date | `2026-07-20` |
 | Branch | `codex/p3-05-runtime-health` |
 | Rust | `1.97.1` |
-| Result | PASS locally and for the implementation commit in GitHub Fast/Full; verification-record acceptance pending |
+| Result | PASS locally and in GitHub Fast/Full for both the implementation and verification-record commits |
 
 ## Delivered scope
 
@@ -85,3 +85,15 @@ passed for implementation commit `db4daaa`.
 This completes P3-05 implementation acceptance. The separate verification-record commit must also
 pass the same two jobs before the final status record can be created; that final record must pass
 before P3-06 can begin.
+
+GitHub Actions run [29704068427](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29704068427)
+then passed for verification-record commit `1a85d16`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS; completed `2026-07-19T21:19:01Z` |
+| Full supply-chain gate | PASS; completed `2026-07-19T21:30:28Z` |
+
+P3-05 is accepted. This final status-record commit is intentionally documentation-only and must
+itself pass the same workflow before a separate P3-06 branch is created and P3-06 becomes the
+plan's sole `IN_PROGRESS` task.
