@@ -4,7 +4,7 @@
 |---|---|
 | Contract | `BC-SEC-001` |
 | Task | `P2-03` |
-| Status | IN_PROGRESS |
+| Status | DONE |
 | Domain | Upstream Secret encryption, Master Key loading, and rotation |
 
 ## Entry and boundary

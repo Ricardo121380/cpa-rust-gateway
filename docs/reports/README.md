@@ -39,3 +39,4 @@
 - [P1-09 Tool stream property-test report](p1-09-tool-stream-property-tests.md)
 - [P2-01 Versioned control-plane schema report](p2-01-control-plane-schema.md)
 - [P2-02 Versioned route and access schema report](p2-02-route-access-schema.md)
+- [P2-03 AEAD Secret Store report](p2-03-aead-secret-store.md)

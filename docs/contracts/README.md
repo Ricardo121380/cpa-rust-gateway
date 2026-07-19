@@ -33,5 +33,5 @@ P1 已创建 [BC-CORE-001 Request context and errors](BC-CORE-001-request-contex
 [BC-AUTH-001 Client Key authentication port](BC-AUTH-001-client-key-auth-port.md)。
 P2-01 已建立 [BC-STORE-001 Versioned control-plane schema](BC-STORE-001-versioned-control-plane-schema.md)。
 P2-02 已建立 [BC-ROUTE-001 Versioned route and access schema](BC-ROUTE-001-versioned-route-access-schema.md)。
-P2-03 正在建立 [BC-SEC-001 AEAD Secret Store](BC-SEC-001-aead-secret-store.md)。
+P2-03 已建立 [BC-SEC-001 AEAD Secret Store](BC-SEC-001-aead-secret-store.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。

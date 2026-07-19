@@ -7,7 +7,7 @@
 | Date | `2026-07-19` |
 | Branch | `codex/p2-03-aead-secret-store` |
 | Rust | `1.97.1` |
-| Result | Local PASS; GitHub Fast/Full CI pending push |
+| Result | PASS |
 
 ## Delivered scope
 
@@ -70,5 +70,13 @@ not deployed key material.
 
 ## GitHub CI
 
-The implementation is ready to commit and push. This report and the P2-03 status will be updated
-to `DONE` only after successful GitHub Fast and Full CI results.
+GitHub Actions run [29675091607](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29675091607)
+passed on commit `cd9d79b`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS |
+| Full supply-chain gate | PASS |
+
+The Fast gate completed at `2026-07-19T05:37:46Z`; the Full supply-chain gate completed at
+`2026-07-19T05:48:53Z`. This completes P2-03 acceptance.
