@@ -45,3 +45,4 @@
 - [P2-06 Validated Route Compiler report](p2-06-validated-route-compiler.md)
 - [P2-07 Immutable RouteSnapshot publication report](p2-07-route-snapshot-publication.md)
 - [P2-08 Snapshot Client Key authentication report](p2-08-snapshot-client-key-authentication.md)
+- [P2-09 EgressPolicy SSRF admission report](p2-09-egress-policy-ssrf-admission.md)

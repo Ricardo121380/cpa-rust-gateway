@@ -4,7 +4,7 @@
 |---|---|
 | Contract | `BC-SEC-002` |
 | Task | `P2-09` |
-| Status | IN_PROGRESS |
+| Status | DONE |
 | Domain | Outbound URL, DNS, CIDR, and redirect admission |
 
 ## Boundary
