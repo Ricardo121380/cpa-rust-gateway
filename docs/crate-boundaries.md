@@ -13,7 +13,7 @@ gateway-control
   -> upstream/catalog/access/router/auth/store/observability
 
 gateway-router
-  -> core/provider/upstream/catalog/access/continuity
+  -> core/auth/provider/upstream/catalog/access/continuity
 
 provider-*
   -> core/provider/upstream + matching protocol/continuity/stream
@@ -46,4 +46,6 @@ gateway-core
   表达确定性 fixture 延迟，但不得依赖 `gateway-stream`、HTTP、SSE、路由、Endpoint 或凭据。
 - Provider 私有 Crate 不被 `gateway-core`、协议公共层或其它 Provider 引用。
 - `gateway-store` 不进入 Router 的请求选择路径；持久数据通过控制面编译为不可变 Snapshot。
+- `gateway-router` 可以使用 `gateway-auth` 的无存储 Client Key HMAC 原语来认证其已编译
+  Snapshot；该边不允许反向的 Router、Store 或 HTTP 依赖进入 `gateway-auth`。
 - 当前精确允许边由 `scripts/check-crate-boundaries.rb` 校验。

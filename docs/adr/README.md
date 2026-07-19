@@ -34,3 +34,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0005 Versioned control-plane Repository and Service](ADR-0005-versioned-control-plane-repository-service.md) — `P2-05`。
 - [ADR-0006 Validated Route Compiler](ADR-0006-validated-route-compiler.md) — `P2-06`。
 - [ADR-0007 Immutable RouteSnapshot publication](ADR-0007-route-snapshot-publication.md) — `P2-07`。
+- [ADR-0008 Snapshot Client Key authentication](ADR-0008-snapshot-client-key-authentication.md) — `P2-08`。

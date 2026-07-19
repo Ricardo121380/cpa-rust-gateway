@@ -14,8 +14,9 @@ configuration. A streaming request also cannot change Config Version midway thro
 
 The P2-01 schema allows one active Config Version, but P2-05 intentionally permits only draft
 mutations. P2-07 must connect a validated graph to an immutable runtime view and make publication
-and one-step rollback explicit, without exposing encrypted Credentials or Client Key digests to the
-runtime snapshot.
+and one-step rollback explicit, without exposing encrypted Credentials. Its initial P2-07 Snapshot
+shape deliberately excluded Client Key HMAC material; P2-08 may add only its separately specified,
+redacted and zeroizing `SnapshotClientKeyView` extension.
 
 ## Decision
 
@@ -65,8 +66,9 @@ bootstrap.
 
 ## Validation and rollback
 
-Tests cover compiler-to-Snapshot conversion without sensitive fields, database activation and
+Tests cover compiler-to-Snapshot conversion without Credential material, database activation and
 archival, compile failure preserving the active Snapshot, concurrent readers pinning their first
 loaded Version across publication, and a one-step rollback that swaps current/previous Versions.
-No schema migration is required. Rolling back P2-07 removes the runtime publisher and restores the
-P2-05 draft-only state; it does not mutate encrypted Credential or Client Key material.
+P2-08 separately validates its redacted Client Key HMAC extension. No schema migration is required.
+Rolling back P2-07 removes the runtime publisher and restores the P2-05 draft-only state; it does
+not mutate encrypted Credential or Client Key material.

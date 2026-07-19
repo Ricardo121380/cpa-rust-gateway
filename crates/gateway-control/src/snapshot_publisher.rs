@@ -6,17 +6,20 @@
 
 use std::{error::Error, fmt, sync::Arc};
 
+use gateway_auth::client_key::{
+    ClientKeyDigest, ClientKeyError, ClientKeyPrefix, ClientKeyRecord, ClientKeyStatus,
+};
 use gateway_router::{
     RouteSnapshot, RouteSnapshotBuildError, RouteSnapshotInput, RouteSnapshotRegistry,
-    SnapshotAccessGroup, SnapshotCatalogAdmission, SnapshotRegistryError, SnapshotRoute,
-    SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
+    SnapshotAccessGroup, SnapshotCatalogAdmission, SnapshotClientKeyView, SnapshotRegistryError,
+    SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
     SnapshotTransformMode, SnapshotTransition, SnapshotVersion,
 };
 use gateway_store::{
     StoreError,
     control_plane::{
-        ConfigVersionActivation, ConfigVersionId, RoutePolicy, SqliteControlPlaneRepository,
-        TransformMode,
+        ConfigVersionActivation, ConfigVersionId, ControlPlaneConfiguration, RoutePolicy,
+        SqliteControlPlaneRepository, StoredClientKey, StoredClientKeyStatus, TransformMode,
     },
 };
 
@@ -65,7 +68,7 @@ impl SnapshotPublicationService {
             .load_configuration(config_version_id)?
             .ok_or(SnapshotPublicationError::ConfigVersionNotFound)?;
         let compiled = self.compiler.compile(&configuration)?;
-        let replacement = Arc::new(route_snapshot_from_compiled(&compiled)?);
+        let replacement = Arc::new(route_snapshot_from_compiled(&compiled, &configuration)?);
         let prepared = self.registry.prepare_publication(replacement)?;
         let activation = repository.activate_version(config_version_id)?;
         let transition = prepared.commit();
@@ -137,6 +140,10 @@ pub enum SnapshotPublicationError {
     Store(StoreError),
     /// A retained Snapshot Version could not be converted back to a persisted identifier.
     InvalidSnapshotVersion,
+    /// A stored Client Key record could not become a safe runtime HMAC view.
+    ClientKeyMaterial(ClientKeyError),
+    /// A stored Client Key referred to an Access Group absent from its persisted Version.
+    ClientKeyAccessGroupMissing,
 }
 
 impl fmt::Display for SnapshotPublicationError {
@@ -154,6 +161,15 @@ impl fmt::Display for SnapshotPublicationError {
             Self::InvalidSnapshotVersion => {
                 formatter.write_str("retained Snapshot Version is not a valid Config Version")
             }
+            Self::ClientKeyMaterial(error) => {
+                write!(
+                    formatter,
+                    "Snapshot Client Key construction failed: {error}"
+                )
+            }
+            Self::ClientKeyAccessGroupMissing => {
+                formatter.write_str("Snapshot Client Key refers to a missing Access Group")
+            }
         }
     }
 }
@@ -161,11 +177,14 @@ impl fmt::Display for SnapshotPublicationError {
 impl Error for SnapshotPublicationError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::ConfigVersionNotFound | Self::InvalidSnapshotVersion => None,
+            Self::ConfigVersionNotFound
+            | Self::InvalidSnapshotVersion
+            | Self::ClientKeyAccessGroupMissing => None,
             Self::Compile(error) => Some(error),
             Self::SnapshotBuild(error) => Some(error),
             Self::Registry(error) => Some(error),
             Self::Store(error) => Some(error),
+            Self::ClientKeyMaterial(error) => Some(error),
         }
     }
 }
@@ -194,8 +213,15 @@ impl From<StoreError> for SnapshotPublicationError {
     }
 }
 
+impl From<ClientKeyError> for SnapshotPublicationError {
+    fn from(error: ClientKeyError) -> Self {
+        Self::ClientKeyMaterial(error)
+    }
+}
+
 fn route_snapshot_from_compiled(
     compiled: &CompiledRouteConfiguration,
+    configuration: &ControlPlaneConfiguration,
 ) -> Result<RouteSnapshot, SnapshotPublicationError> {
     let version = SnapshotVersion::try_new(compiled.config_version_id().as_str().to_owned())
         .map_err(|_| SnapshotPublicationError::InvalidSnapshotVersion)?;
@@ -242,6 +268,7 @@ fn route_snapshot_from_compiled(
             )
         })
         .collect();
+    let client_keys = snapshot_client_keys_from_configuration(compiled, configuration)?;
 
     Ok(RouteSnapshot::try_new(RouteSnapshotInput::new(
         version,
@@ -249,7 +276,53 @@ fn route_snapshot_from_compiled(
         aliases,
         routes,
         access_groups,
+        client_keys,
     ))?)
+}
+
+fn snapshot_client_keys_from_configuration(
+    compiled: &CompiledRouteConfiguration,
+    configuration: &ControlPlaneConfiguration,
+) -> Result<Vec<SnapshotClientKeyView>, SnapshotPublicationError> {
+    let mut client_keys = Vec::new();
+    for stored_client_key in &configuration.client_keys {
+        let persisted_access_group_exists = configuration
+            .access_groups
+            .iter()
+            .any(|access_group| access_group.id == *stored_client_key.access_group_id());
+        if !persisted_access_group_exists {
+            return Err(SnapshotPublicationError::ClientKeyAccessGroupMissing);
+        }
+        let Some(access_group) = compiled.access_group(stored_client_key.access_group_id()) else {
+            continue;
+        };
+        client_keys.push(SnapshotClientKeyView::new(
+            client_key_record(stored_client_key)?,
+            access_group.allowed_route_ids().cloned().collect(),
+        ));
+    }
+    Ok(client_keys)
+}
+
+fn client_key_record(
+    stored_client_key: &StoredClientKey,
+) -> Result<ClientKeyRecord, SnapshotPublicationError> {
+    Ok(ClientKeyRecord::try_new(
+        stored_client_key.id().clone(),
+        stored_client_key.access_group_id().clone(),
+        ClientKeyPrefix::try_new(stored_client_key.prefix().to_owned())?,
+        ClientKeyDigest::try_from_persisted(stored_client_key.secret_digest())?,
+        snapshot_client_key_status(stored_client_key.status()),
+        stored_client_key.expires_at_ms(),
+    )?)
+}
+
+const fn snapshot_client_key_status(status: StoredClientKeyStatus) -> ClientKeyStatus {
+    match status {
+        StoredClientKeyStatus::Active => ClientKeyStatus::Active,
+        StoredClientKeyStatus::Disabled => ClientKeyStatus::Disabled,
+        StoredClientKeyStatus::Revoked => ClientKeyStatus::Revoked,
+    }
 }
 
 const fn snapshot_route_policy(policy: RoutePolicy) -> SnapshotRoutePolicy {
@@ -294,13 +367,14 @@ fn snapshot_route_candidate(candidate: &CompiledRouteCandidate) -> SnapshotRoute
 mod tests {
     use std::{error::Error, io, sync::Arc};
 
+    use gateway_auth::client_key::ClientKeyPrefix;
     use gateway_catalog::{
         CapabilitySet, CatalogModelEntry, CatalogModelState, CatalogView, EndpointCapabilityEntry,
         EndpointCapabilityView, SemanticCapability,
     };
     use gateway_core::{
-        AccessGroupId, CredentialId, EndpointId, PublicModelId, RouteCandidateId, RouteId,
-        UpstreamId,
+        AccessGroupId, ClientKeyId, CredentialId, EndpointId, PublicModelId, RouteCandidateId,
+        RouteId, UpstreamId,
     };
     use gateway_router::RouteSnapshotRegistry;
     use gateway_store::{
@@ -310,7 +384,8 @@ mod tests {
             CredentialConfiguration, CredentialScope, CredentialStatus, EndpointConfiguration,
             EndpointCredentialBindingConfiguration, EndpointTransport, ModelAliasConfiguration,
             ModelRouteConfiguration, PublicModelConfiguration, RouteCandidateConfiguration,
-            RoutePolicy, SqliteControlPlaneRepository, TransformMode, UpstreamConfiguration,
+            RoutePolicy, SqliteControlPlaneRepository, StoredClientKey, StoredClientKeyStatus,
+            TransformMode, UpstreamConfiguration,
         },
         secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore},
     };
@@ -328,6 +403,7 @@ mod tests {
         let bootstrap_configuration = configuration("bootstrap")?;
         let bootstrap_snapshot = Arc::new(route_snapshot_from_compiled(
             &compiler.compile(&bootstrap_configuration)?,
+            &bootstrap_configuration,
         )?);
         let registry = Arc::new(RouteSnapshotRegistry::new(bootstrap_snapshot));
         let service = SnapshotPublicationService::new(compiler, Arc::clone(&registry));
@@ -390,11 +466,17 @@ mod tests {
         );
         let current_snapshot = registry.load();
         assert_eq!(current_snapshot.version().as_str(), version_one.as_str());
+        let client_key = current_snapshot
+            .client_key(&ClientKeyPrefix::try_new("rgw_0123456789abcdef")?)
+            .ok_or("expected compiled Client Key view")?;
+        assert_eq!(client_key.client_key_id().as_str(), "client-key-a");
+        assert_eq!(client_key.access_group_id().as_str(), "access-group-a");
+        assert!(client_key.permits_route(&RouteId::try_new("route-a")?));
 
         let snapshot_debug = format!("{current_snapshot:?}");
         assert!(!snapshot_debug.contains("synthetic-credential"));
         assert!(!snapshot_debug.contains("ciphertext"));
-        assert!(!snapshot_debug.contains("digest"));
+        assert!(snapshot_debug.contains("<redacted>"));
         Ok(())
     }
 
@@ -404,6 +486,7 @@ mod tests {
         let bootstrap_configuration = configuration("bootstrap")?;
         let bootstrap_snapshot = Arc::new(route_snapshot_from_compiled(
             &compiler.compile(&bootstrap_configuration)?,
+            &bootstrap_configuration,
         )?);
         let registry = Arc::new(RouteSnapshotRegistry::new(bootstrap_snapshot));
         let service = SnapshotPublicationService::new(compiler, Arc::clone(&registry));
@@ -435,6 +518,58 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn disabled_access_group_removes_its_client_key_from_the_runtime_snapshot() -> TestResult {
+        let compiler = compiler()?;
+        let mut configuration = configuration("disabled-access-group")?;
+        configuration.access_groups[0].status = AdministrativeStatus::Disabled;
+
+        let snapshot =
+            route_snapshot_from_compiled(&compiler.compile(&configuration)?, &configuration)?;
+
+        assert_eq!(snapshot.client_keys().count(), 0);
+        Ok(())
+    }
+
+    #[test]
+    fn malformed_persisted_client_key_material_leaves_the_active_snapshot_and_draft_unchanged()
+    -> TestResult {
+        let compiler = compiler()?;
+        let bootstrap_configuration = configuration("bootstrap")?;
+        let bootstrap_snapshot = Arc::new(route_snapshot_from_compiled(
+            &compiler.compile(&bootstrap_configuration)?,
+            &bootstrap_configuration,
+        )?);
+        let registry = Arc::new(RouteSnapshotRegistry::new(bootstrap_snapshot));
+        let service = SnapshotPublicationService::new(compiler, Arc::clone(&registry));
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        let active_version = ConfigVersionId::try_new("active-version")?;
+        let malformed_version = ConfigVersionId::try_new("malformed-client-key")?;
+        repository.write_configuration(&configuration(active_version.as_str())?)?;
+        repository.write_configuration(&configuration_with_client_key_prefix(
+            malformed_version.as_str(),
+            "not-a-canonical-prefix",
+        )?)?;
+
+        service.publish_version(&mut repository, &active_version)?;
+        let publication = service.publish_version(&mut repository, &malformed_version);
+
+        assert!(matches!(
+            publication,
+            Err(SnapshotPublicationError::ClientKeyMaterial(_))
+        ));
+        assert_eq!(registry.load().version().as_str(), active_version.as_str());
+        assert_eq!(
+            version_status(&mut repository, &active_version)?,
+            ConfigVersionStatus::Active
+        );
+        assert_eq!(
+            version_status(&mut repository, &malformed_version)?,
+            ConfigVersionStatus::Draft
+        );
+        Ok(())
+    }
+
     fn compiler() -> Result<RouteCompiler, Box<dyn Error>> {
         let endpoint_id = EndpointId::try_new("endpoint-a")?;
         let catalog = CatalogView::try_new([CatalogModelEntry::try_new(
@@ -453,6 +588,13 @@ mod tests {
     }
 
     fn configuration(version: &str) -> Result<ControlPlaneConfiguration, Box<dyn Error>> {
+        configuration_with_client_key_prefix(version, "rgw_0123456789abcdef")
+    }
+
+    fn configuration_with_client_key_prefix(
+        version: &str,
+        client_key_prefix: &str,
+    ) -> Result<ControlPlaneConfiguration, Box<dyn Error>> {
         let version_id = ConfigVersionId::try_new(version.to_owned())?;
         let mut configuration = ControlPlaneConfiguration::new(ConfigVersion {
             id: version_id,
@@ -544,6 +686,14 @@ mod tests {
                 route_id: RouteId::try_new("route-a")?,
                 enabled: true,
             });
+        configuration.client_keys.push(StoredClientKey::try_new(
+            ClientKeyId::try_new("client-key-a")?,
+            AccessGroupId::try_new("access-group-a")?,
+            client_key_prefix,
+            [0xA5_u8; 32],
+            StoredClientKeyStatus::Active,
+            None,
+        )?);
         Ok(configuration)
     }
 

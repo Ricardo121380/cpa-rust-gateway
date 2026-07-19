@@ -626,6 +626,7 @@ const fn internal_error() -> GatewayError {
 #[cfg(test)]
 mod tests {
     use std::{
+        collections::BTreeSet,
         error::Error,
         future::poll_fn,
         sync::{
@@ -641,15 +642,20 @@ mod tests {
         http::{StatusCode, header},
         test, web,
     };
-    use gateway_auth::{ClientKeyAuthenticator, InMemoryClientKey, InMemoryClientKeyAuthenticator};
+    use gateway_auth::{
+        ClientKeyAuthenticator, InMemoryClientKey, InMemoryClientKeyAuthenticator,
+        client_key::{ClientKeyPepper, ClientKeyService},
+    };
     use gateway_core::{
-        CanonicalEvent, ClientKeyId, ErrorScope, GatewayError, GatewayErrorCode, MessageEnd,
-        MessageRole, MessageStart, RawExtensions, RawJson, RequestContext, RequestId, ResponseEnd,
-        ResponseId, ResponseStart, StreamError, TextDelta,
+        AccessGroupId, CanonicalEvent, ClientKeyId, ErrorScope, GatewayError, GatewayErrorCode,
+        MessageEnd, MessageRole, MessageStart, RawExtensions, RawJson, RequestContext, RequestId,
+        ResponseEnd, ResponseId, ResponseStart, StreamError, TextDelta,
     };
     use gateway_router::{
         DeterministicMockEmission, DeterministicMockResponsesExecutor, ResponsesEventSource,
-        ResponsesExecutor, ResponsesFuture,
+        ResponsesExecutor, ResponsesFuture, RouteSnapshot, RouteSnapshotInput,
+        RouteSnapshotRegistry, SnapshotAccessGroup, SnapshotClientKeyAuthenticator,
+        SnapshotClientKeyView, SnapshotVersion,
     };
     use gateway_stream::{FirstSemanticEventTracker, StreamCapacity, bounded_canonical_stream};
     use protocol_openai_responses::OpenAiResponseMetadata;
@@ -752,6 +758,51 @@ mod tests {
             test_authenticator()?,
             StreamCapacity::try_new(2)?,
         ))
+    }
+
+    fn snapshot_auth_state(
+        events: Vec<CanonicalEvent>,
+    ) -> Result<(ResponsesHttpState, String), Box<dyn Error>> {
+        let emissions = events
+            .into_iter()
+            .map(|event| DeterministicMockEmission::new(Duration::ZERO, event))
+            .collect();
+        let executor = DeterministicMockResponsesExecutor::try_new(
+            gateway_core::ProviderId::try_new("http-snapshot-auth-provider")?,
+            emissions,
+        )?;
+        let service = ClientKeyService::new(ClientKeyPepper::try_from_bytes([0xA5_u8; 32])?);
+        let access_group_id = AccessGroupId::try_new("http-snapshot-access-group")?;
+        let issued = service.issue(
+            ClientKeyId::try_new("http-snapshot-client-key")?,
+            access_group_id.clone(),
+            None,
+        )?;
+        let (record, presented_key) = issued.into_parts();
+        let snapshot = Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
+            SnapshotVersion::try_new("http-snapshot-version")?,
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            vec![SnapshotAccessGroup::new(
+                access_group_id,
+                "HTTP Snapshot Access Group".to_owned(),
+                BTreeSet::new(),
+            )],
+            vec![SnapshotClientKeyView::new(record, BTreeSet::new())],
+        ))?);
+        let authenticator = SnapshotClientKeyAuthenticator::new(
+            Arc::new(RouteSnapshotRegistry::new(snapshot)),
+            service,
+        );
+        let state = ResponsesHttpState::with_metadata(
+            Arc::new(executor),
+            Arc::new(FixedMetadata),
+            Arc::new(authenticator),
+            StreamCapacity::try_new(2)?,
+        );
+
+        Ok((state, presented_key.as_str().to_owned()))
     }
 
     #[actix_web::test]
@@ -873,6 +924,28 @@ mod tests {
         assert!(body.contains(r#""status":"completed""#));
         assert!(body.contains(r#""text":"deterministic hello""#));
         assert!(body.contains(r#""created_at":1"#));
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn responses_accepts_a_snapshot_client_key_authenticator() -> TestResult {
+        let (state, presented_key) = snapshot_auth_state(text_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = test::TestRequest::post()
+            .uri("/v1/responses")
+            .insert_header((header::AUTHORIZATION, format!("Bearer {presented_key}")))
+            .set_payload(r#"{"model":"mock-model","input":"hello"}"#)
+            .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+        assert!(body.contains(r#""status":"completed""#));
         Ok(())
     }
 

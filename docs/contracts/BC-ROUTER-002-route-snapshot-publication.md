@@ -11,8 +11,10 @@
 
 `gateway-router::RouteSnapshot` is an immutable, runtime-safe view of P2-06-approved public
 models, aliases, routes, candidates, and Access Group grants. It stores no `SQLite` connection,
-`ControlPlaneConfiguration`, encrypted Credential, plaintext Credential, Client Key digest,
-complete Client Key, Provider instance, or HTTP type.
+`ControlPlaneConfiguration`, encrypted Credential, plaintext Credential, complete Client Key,
+Provider instance, or HTTP type. The P2-07 Snapshot shape initially contained no Client Key digest;
+P2-08's separately specified extension permits only the redacted, zeroizing HMAC record enclosed
+by `SnapshotClientKeyView` for Snapshot authentication.
 
 `RouteSnapshotRegistry` owns `ArcSwap<RouteSnapshot>`. The data plane obtains one `Arc` through
 `load()` and keeps it for the entire request or stream. Only a management publication path obtains
@@ -61,7 +63,7 @@ bootstrap a process from SQLite. P2-08, P3, P4, and P2-10 own those operations.
 ## Corresponding tests
 
 - A P2-06 multi-Candidate compiled graph converts to a deterministic Snapshot containing no
-  secret or digest material.
+  Credential material; P2-08 separately covers its redacted Client Key HMAC view.
 - Database publication transitions `draft -> active` and `active -> archived` atomically.
 - A compiler/snapshot error leaves the currently loaded Snapshot intact.
 - 100 concurrent readers retain their originally loaded Snapshot across a publication.

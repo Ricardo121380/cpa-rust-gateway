@@ -14,13 +14,15 @@ P1-08 defines one transport-neutral Client Key authentication port in `gateway-a
 ```text
 complete presented Client Key
   -> ClientKeyAuthenticator::authenticate
-  -> AuthenticatedClient { ClientKeyId }
+  -> AuthenticatedClient { ClientKeyId, AccessGroupId? }
   |-> GatewayError(ClientUnauthorized, Request)
 ```
 
-`AuthenticatedClient` exposes only a stable `ClientKeyId`, never the presented secret. The port
-does not decide Access Group policy, model visibility, route selection, quota, rate limits,
-credentials, or Provider execution. Those are P2-and-later concerns.
+`AuthenticatedClient` always exposes a stable `ClientKeyId`, never the presented secret. P1's
+in-memory implementation supplies no Access Group; P2's Snapshot implementation may attach its
+resolved `AccessGroupId`. The port does not decide Access Group policy, model visibility, route
+selection, quota, rate limits, credentials, or Provider execution. Those are P2-and-later
+concerns.
 
 P1's implementation is `InMemoryClientKeyAuthenticator`: an immutable, private `BTreeMap` built
 once from enabled/disabled records. A record and authenticator `Debug` output redact complete

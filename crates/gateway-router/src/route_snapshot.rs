@@ -8,13 +8,18 @@ use std::{
     error::Error,
     fmt,
     sync::{Arc, Mutex, MutexGuard},
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 use arc_swap::ArcSwap;
+use gateway_auth::{
+    AuthenticatedClient, ClientKeyAuthenticator,
+    client_key::{ClientKeyPrefix, ClientKeyRecord, ClientKeyService},
+};
 use gateway_catalog::{CapabilitySet, CatalogModelState};
 use gateway_core::{
-    AccessGroupId, EndpointId, InvalidIdentifier, PublicModelId, RouteCandidateId, RouteId,
-    UpstreamId,
+    AccessGroupId, ClientKeyId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode,
+    InvalidIdentifier, PublicModelId, RouteCandidateId, RouteId, UpstreamId,
 };
 
 /// Opaque Config Version identity carried by an immutable runtime Snapshot.
@@ -376,7 +381,64 @@ impl SnapshotAccessGroup {
     }
 }
 
-/// Complete secret-free input used to construct one immutable runtime Snapshot.
+/// A redacted Client Key HMAC record and the copied permissions of its active Access Group.
+#[derive(Clone, Eq, PartialEq)]
+pub struct SnapshotClientKeyView {
+    record: ClientKeyRecord,
+    allowed_route_ids: BTreeSet<RouteId>,
+}
+
+impl SnapshotClientKeyView {
+    /// Creates an already validated Client Key view for one active Access Group.
+    #[must_use]
+    pub fn new(record: ClientKeyRecord, allowed_route_ids: BTreeSet<RouteId>) -> Self {
+        Self {
+            record,
+            allowed_route_ids,
+        }
+    }
+
+    /// Returns the stable Client Key identity without exposing its complete Key or digest.
+    #[must_use]
+    pub fn client_key_id(&self) -> &ClientKeyId {
+        self.record.client_key_id()
+    }
+
+    /// Returns the active Access Group identity resolved for this Key.
+    #[must_use]
+    pub fn access_group_id(&self) -> &AccessGroupId {
+        self.record.access_group_id()
+    }
+
+    /// Returns the public Prefix used for one bounded Snapshot lookup.
+    #[must_use]
+    pub fn prefix(&self) -> &ClientKeyPrefix {
+        self.record.prefix()
+    }
+
+    /// Returns whether this Key's active Access Group permits one Route.
+    #[must_use]
+    pub fn permits_route(&self, route_id: &RouteId) -> bool {
+        self.allowed_route_ids.contains(route_id)
+    }
+
+    /// Iterates the copied allowed Routes in stable identifier order.
+    pub fn allowed_route_ids(&self) -> impl Iterator<Item = &RouteId> {
+        self.allowed_route_ids.iter()
+    }
+}
+
+impl fmt::Debug for SnapshotClientKeyView {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("SnapshotClientKeyView")
+            .field("record", &self.record)
+            .field("allowed_route_ids", &self.allowed_route_ids)
+            .finish()
+    }
+}
+
+/// Complete immutable input used to construct one runtime Snapshot.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RouteSnapshotInput {
     version: SnapshotVersion,
@@ -384,10 +446,11 @@ pub struct RouteSnapshotInput {
     aliases: Vec<(String, PublicModelId)>,
     routes: Vec<SnapshotRoute>,
     access_groups: Vec<SnapshotAccessGroup>,
+    client_keys: Vec<SnapshotClientKeyView>,
 }
 
 impl RouteSnapshotInput {
-    /// Creates one complete secret-free Snapshot input.
+    /// Creates one complete Snapshot input with redacted Client Key HMAC views.
     #[must_use]
     pub fn new(
         version: SnapshotVersion,
@@ -395,6 +458,7 @@ impl RouteSnapshotInput {
         aliases: Vec<(String, PublicModelId)>,
         routes: Vec<SnapshotRoute>,
         access_groups: Vec<SnapshotAccessGroup>,
+        client_keys: Vec<SnapshotClientKeyView>,
     ) -> Self {
         Self {
             version,
@@ -402,6 +466,7 @@ impl RouteSnapshotInput {
             aliases,
             routes,
             access_groups,
+            client_keys,
         }
     }
 }
@@ -415,6 +480,7 @@ pub struct RouteSnapshot {
     aliases: BTreeMap<String, PublicModelId>,
     routes: BTreeMap<RouteId, SnapshotRoute>,
     access_groups: BTreeMap<AccessGroupId, SnapshotAccessGroup>,
+    client_keys: BTreeMap<ClientKeyPrefix, SnapshotClientKeyView>,
 }
 
 impl RouteSnapshot {
@@ -500,6 +566,26 @@ impl RouteSnapshot {
             }
         }
 
+        let mut client_keys = BTreeMap::new();
+        let mut client_key_ids = BTreeSet::new();
+        for client_key in input.client_keys {
+            let access_group = access_groups
+                .get(client_key.access_group_id())
+                .ok_or(RouteSnapshotBuildError::ClientKeyReferencesUnknownAccessGroup)?;
+            if client_key.allowed_route_ids != access_group.allowed_route_ids {
+                return Err(RouteSnapshotBuildError::ClientKeyRoutePermissionsMismatch);
+            }
+            if !client_key_ids.insert(client_key.client_key_id().clone()) {
+                return Err(RouteSnapshotBuildError::DuplicateClientKeyId);
+            }
+            if client_keys
+                .insert(client_key.prefix().clone(), client_key)
+                .is_some()
+            {
+                return Err(RouteSnapshotBuildError::DuplicateClientKeyPrefix);
+            }
+        }
+
         Ok(Self {
             version: input.version,
             public_models,
@@ -507,6 +593,7 @@ impl RouteSnapshot {
             aliases,
             routes,
             access_groups,
+            client_keys,
         })
     }
 
@@ -564,6 +651,17 @@ impl RouteSnapshot {
     pub fn access_groups(&self) -> impl Iterator<Item = &SnapshotAccessGroup> {
         self.access_groups.values()
     }
+
+    /// Returns the Client Key view selected by one canonical public Prefix.
+    #[must_use]
+    pub fn client_key(&self, prefix: &ClientKeyPrefix) -> Option<&SnapshotClientKeyView> {
+        self.client_keys.get(prefix)
+    }
+
+    /// Iterates Client Key views in stable Prefix order.
+    pub fn client_keys(&self) -> impl Iterator<Item = &SnapshotClientKeyView> {
+        self.client_keys.values()
+    }
 }
 
 /// Safe construction failures for a runtime Snapshot input.
@@ -595,6 +693,14 @@ pub enum RouteSnapshotBuildError {
     DuplicateAccessGroup,
     /// An Access Group permitted a Route absent from the Snapshot.
     AccessGroupReferencesUnknownRoute,
+    /// More than one Client Key used the same public Prefix.
+    DuplicateClientKeyPrefix,
+    /// More than one Client Key used the same stable identity.
+    DuplicateClientKeyId,
+    /// A Client Key referred to an Access Group absent from the active Snapshot.
+    ClientKeyReferencesUnknownAccessGroup,
+    /// A Client Key's copied Route permissions did not match its active Access Group.
+    ClientKeyRoutePermissionsMismatch,
 }
 
 impl fmt::Display for RouteSnapshotBuildError {
@@ -616,6 +722,14 @@ impl fmt::Display for RouteSnapshotBuildError {
             Self::DuplicateAccessGroup => "Snapshot has a duplicate Access Group identity",
             Self::AccessGroupReferencesUnknownRoute => {
                 "Snapshot Access Group refers to an unknown Route"
+            }
+            Self::DuplicateClientKeyPrefix => "Snapshot has a duplicate Client Key Prefix",
+            Self::DuplicateClientKeyId => "Snapshot has a duplicate Client Key identity",
+            Self::ClientKeyReferencesUnknownAccessGroup => {
+                "Snapshot Client Key refers to an unknown active Access Group"
+            }
+            Self::ClientKeyRoutePermissionsMismatch => {
+                "Snapshot Client Key permissions do not match its active Access Group"
             }
         };
         formatter.write_str(description)
@@ -776,6 +890,118 @@ impl fmt::Debug for RouteSnapshotRegistry {
     }
 }
 
+/// Supplies a Unix-millisecond timestamp for Snapshot Client Key admission.
+pub trait SnapshotClientKeyClock: Send + Sync {
+    /// Returns the current Unix-millisecond timestamp.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SnapshotClientKeyClockError`] when the local system clock cannot be represented
+    /// safely for P2-04 Client Key expiry verification.
+    fn now_ms(&self) -> Result<i64, SnapshotClientKeyClockError>;
+}
+
+/// System clock implementation used by normal Snapshot Client Key authentication.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SystemSnapshotClientKeyClock;
+
+impl SnapshotClientKeyClock for SystemSnapshotClientKeyClock {
+    fn now_ms(&self) -> Result<i64, SnapshotClientKeyClockError> {
+        let elapsed = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|_| SnapshotClientKeyClockError::Unavailable)?;
+        i64::try_from(elapsed.as_millis()).map_err(|_| SnapshotClientKeyClockError::Unavailable)
+    }
+}
+
+/// Safe clock failures for Snapshot Client Key authentication.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SnapshotClientKeyClockError {
+    /// The system time was before the Unix epoch or outside the supported millisecond range.
+    Unavailable,
+}
+
+impl fmt::Display for SnapshotClientKeyClockError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Unavailable => formatter.write_str("Snapshot Client Key clock is unavailable"),
+        }
+    }
+}
+
+impl Error for SnapshotClientKeyClockError {}
+
+/// Prefix-indexed HMAC Client Key authenticator backed only by the current immutable Snapshot.
+pub struct SnapshotClientKeyAuthenticator {
+    registry: Arc<RouteSnapshotRegistry>,
+    verifier: ClientKeyService,
+    clock: Arc<dyn SnapshotClientKeyClock>,
+}
+
+impl SnapshotClientKeyAuthenticator {
+    /// Creates an authenticator using the local system clock.
+    #[must_use]
+    pub fn new(registry: Arc<RouteSnapshotRegistry>, verifier: ClientKeyService) -> Self {
+        Self::with_clock(registry, verifier, Arc::new(SystemSnapshotClientKeyClock))
+    }
+
+    /// Creates an authenticator with an explicit clock for deterministic embedding or tests.
+    #[must_use]
+    pub fn with_clock(
+        registry: Arc<RouteSnapshotRegistry>,
+        verifier: ClientKeyService,
+        clock: Arc<dyn SnapshotClientKeyClock>,
+    ) -> Self {
+        Self {
+            registry,
+            verifier,
+            clock,
+        }
+    }
+}
+
+impl fmt::Debug for SnapshotClientKeyAuthenticator {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("SnapshotClientKeyAuthenticator")
+            .field("registry", &self.registry)
+            .field("verifier", &"<redacted>")
+            .finish_non_exhaustive()
+    }
+}
+
+impl ClientKeyAuthenticator for SnapshotClientKeyAuthenticator {
+    fn authenticate(&self, presented_key: &str) -> Result<AuthenticatedClient, GatewayError> {
+        let snapshot = self.registry.load();
+        let prefix = ClientKeyPrefix::try_from_presented_key(presented_key)
+            .map_err(|_| client_unauthorized_error())?;
+        let client_key = snapshot
+            .client_key(&prefix)
+            .ok_or_else(client_unauthorized_error)?;
+        let now_ms = self.clock.now_ms().map_err(|_| internal_request_error())?;
+        let is_authenticated = self
+            .verifier
+            .verify(presented_key, &client_key.record, now_ms)
+            .map_err(|_| internal_request_error())?;
+        if !is_authenticated {
+            return Err(client_unauthorized_error());
+        }
+
+        Ok(AuthenticatedClient::with_access_group(
+            client_key.client_key_id().clone(),
+            client_key.access_group_id().clone(),
+        ))
+    }
+}
+
+const fn client_unauthorized_error() -> GatewayError {
+    GatewayError::new(GatewayErrorCode::ClientUnauthorized, ErrorScope::Request)
+}
+
+const fn internal_request_error() -> GatewayError {
+    GatewayError::new(GatewayErrorCode::InternalError, ErrorScope::Request)
+}
+
 /// A control-path reservation whose commit makes a prevalidated Snapshot visible atomically.
 pub struct PreparedSnapshotPublication<'registry> {
     registry: &'registry RouteSnapshotRegistry,
@@ -839,16 +1065,25 @@ mod tests {
         thread,
     };
 
+    use gateway_auth::{
+        ClientKeyAuthenticator,
+        client_key::{
+            ClientKeyDigest, ClientKeyPepper, ClientKeyPrefix, ClientKeyRecord, ClientKeyService,
+            ClientKeyStatus, PresentedClientKey,
+        },
+    };
     use gateway_catalog::{CapabilitySet, CatalogModelState};
 
     use super::{
         RouteSnapshot, RouteSnapshotBuildError, RouteSnapshotInput, RouteSnapshotRegistry,
-        SnapshotAccessGroup, SnapshotCatalogAdmission, SnapshotPublicModel, SnapshotRegistryError,
-        SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
-        SnapshotTransformMode, SnapshotVersion,
+        SnapshotAccessGroup, SnapshotCatalogAdmission, SnapshotClientKeyAuthenticator,
+        SnapshotClientKeyClock, SnapshotClientKeyClockError, SnapshotClientKeyView,
+        SnapshotPublicModel, SnapshotRegistryError, SnapshotRoute, SnapshotRouteCandidate,
+        SnapshotRouteCandidateInput, SnapshotRoutePolicy, SnapshotTransformMode, SnapshotVersion,
     };
     use gateway_core::{
-        AccessGroupId, EndpointId, PublicModelId, RouteCandidateId, RouteId, UpstreamId,
+        AccessGroupId, ClientKeyId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode,
+        PublicModelId, RouteCandidateId, RouteId, UpstreamId,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -903,12 +1138,68 @@ mod tests {
             Vec::new(),
             Vec::new(),
             Vec::new(),
+            Vec::new(),
         ));
 
         assert!(matches!(
             snapshot,
             Err(RouteSnapshotBuildError::PublicModelMissingRoute)
         ));
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_duplicate_or_inconsistent_client_key_views() -> TestResult {
+        let route_id = RouteId::try_new("route-a")?;
+        let allowed_route_ids = BTreeSet::from([route_id]);
+        let first =
+            fixture_client_key_record("client-key-a", "group-a", "rgw_0123456789abcdef", 0xA5)?;
+        let duplicate_prefix =
+            fixture_client_key_record("client-key-b", "group-a", "rgw_0123456789abcdef", 0xB6)?;
+        assert_snapshot_build_error(
+            sample_snapshot_with_client_keys(
+                "duplicate-prefix",
+                vec![
+                    SnapshotClientKeyView::new(first.clone(), allowed_route_ids.clone()),
+                    SnapshotClientKeyView::new(duplicate_prefix, allowed_route_ids.clone()),
+                ],
+            ),
+            RouteSnapshotBuildError::DuplicateClientKeyPrefix,
+        )?;
+
+        let duplicate_id =
+            fixture_client_key_record("client-key-a", "group-a", "rgw_fedcba9876543210", 0xC7)?;
+        assert_snapshot_build_error(
+            sample_snapshot_with_client_keys(
+                "duplicate-id",
+                vec![
+                    SnapshotClientKeyView::new(first.clone(), allowed_route_ids.clone()),
+                    SnapshotClientKeyView::new(duplicate_id, allowed_route_ids.clone()),
+                ],
+            ),
+            RouteSnapshotBuildError::DuplicateClientKeyId,
+        )?;
+
+        let unknown_group =
+            fixture_client_key_record("client-key-b", "group-b", "rgw_fedcba9876543210", 0xD8)?;
+        assert_snapshot_build_error(
+            sample_snapshot_with_client_keys(
+                "unknown-group",
+                vec![SnapshotClientKeyView::new(
+                    unknown_group,
+                    allowed_route_ids.clone(),
+                )],
+            ),
+            RouteSnapshotBuildError::ClientKeyReferencesUnknownAccessGroup,
+        )?;
+
+        assert_snapshot_build_error(
+            sample_snapshot_with_client_keys(
+                "permission-mismatch",
+                vec![SnapshotClientKeyView::new(first, BTreeSet::new())],
+            ),
+            RouteSnapshotBuildError::ClientKeyRoutePermissionsMismatch,
+        )?;
         Ok(())
     }
 
@@ -979,7 +1270,114 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn snapshot_authenticator_returns_access_group_and_observes_key_disablement_after_publish()
+    -> TestResult {
+        let (service, active_record, presented_key) = issued_test_key(None)?;
+        let mut disabled_record = active_record.clone();
+        disabled_record.set_status(ClientKeyStatus::Disabled);
+        let registry = Arc::new(RouteSnapshotRegistry::new(snapshot_with_client_key(
+            "version-a",
+            active_record.clone(),
+        )?));
+        let authenticator = SnapshotClientKeyAuthenticator::with_clock(
+            Arc::clone(&registry),
+            service,
+            Arc::new(FixedClientKeyClock { now_ms: 1 }),
+        );
+
+        let authenticated = authenticator.authenticate(presented_key.as_str())?;
+        assert_eq!(authenticated.client_key_id().as_str(), "client-key-a");
+        assert_eq!(
+            authenticated
+                .access_group_id()
+                .ok_or("expected Snapshot Access Group")?
+                .as_str(),
+            "group-a"
+        );
+
+        let held_snapshot = registry.load();
+        let route_id = RouteId::try_new("route-a")?;
+        let held_key = held_snapshot
+            .client_key(active_record.prefix())
+            .ok_or("expected active Client Key view")?;
+        assert!(held_key.permits_route(&route_id));
+        assert!(format!("{held_key:?}").contains("<redacted>"));
+
+        registry.publish(snapshot_with_client_key("version-b", disabled_record)?)?;
+        assert_eq!(held_snapshot.version().as_str(), "version-a");
+        assert_unauthorized(authenticator.authenticate(presented_key.as_str()))?;
+        Ok(())
+    }
+
+    #[test]
+    fn snapshot_authenticator_fails_closed_at_expiry_and_for_revoked_unknown_and_malformed_keys()
+    -> TestResult {
+        let (service, active_record, presented_key) = issued_test_key(Some(100))?;
+        let registry = Arc::new(RouteSnapshotRegistry::new(snapshot_with_client_key(
+            "version-a",
+            active_record.clone(),
+        )?));
+        let before_expiry = SnapshotClientKeyAuthenticator::with_clock(
+            Arc::clone(&registry),
+            service,
+            Arc::new(FixedClientKeyClock { now_ms: 99 }),
+        );
+        before_expiry.authenticate(presented_key.as_str())?;
+        let wrong_secret = different_canonical_presented_key(presented_key.as_str())?;
+        assert_unauthorized(before_expiry.authenticate(&wrong_secret))?;
+        let unknown_key = canonical_unknown_key(&active_record);
+        assert_unauthorized(before_expiry.authenticate(&unknown_key))?;
+
+        let wrong_pepper = SnapshotClientKeyAuthenticator::with_clock(
+            Arc::clone(&registry),
+            client_key_service_with_pepper(0xB6)?,
+            Arc::new(FixedClientKeyClock { now_ms: 99 }),
+        );
+        assert_unauthorized(wrong_pepper.authenticate(presented_key.as_str()))?;
+
+        let at_expiry = SnapshotClientKeyAuthenticator::with_clock(
+            Arc::clone(&registry),
+            client_key_service()?,
+            Arc::new(FixedClientKeyClock { now_ms: 100 }),
+        );
+        assert_unauthorized(at_expiry.authenticate(presented_key.as_str()))?;
+        assert_unauthorized(at_expiry.authenticate("not-a-client-key"))?;
+
+        let mut revoked_record = active_record;
+        revoked_record.set_status(ClientKeyStatus::Revoked);
+        registry.publish(snapshot_with_client_key("version-b", revoked_record)?)?;
+        let revoked = SnapshotClientKeyAuthenticator::with_clock(
+            registry,
+            client_key_service()?,
+            Arc::new(FixedClientKeyClock { now_ms: 99 }),
+        );
+        assert_unauthorized(revoked.authenticate(presented_key.as_str()))?;
+        Ok(())
+    }
+
     fn sample_snapshot(version: &str) -> Result<Arc<RouteSnapshot>, Box<dyn Error>> {
+        sample_snapshot_with_client_keys(version, Vec::new())
+    }
+
+    fn snapshot_with_client_key(
+        version: &str,
+        client_key_record: ClientKeyRecord,
+    ) -> Result<Arc<RouteSnapshot>, Box<dyn Error>> {
+        let route_id = RouteId::try_new("route-a")?;
+        sample_snapshot_with_client_keys(
+            version,
+            vec![SnapshotClientKeyView::new(
+                client_key_record,
+                BTreeSet::from([route_id]),
+            )],
+        )
+    }
+
+    fn sample_snapshot_with_client_keys(
+        version: &str,
+        client_keys: Vec<SnapshotClientKeyView>,
+    ) -> Result<Arc<RouteSnapshot>, Box<dyn Error>> {
         let public_model_id = PublicModelId::try_new("public-model-a")?;
         let route_id = RouteId::try_new("route-a")?;
         let candidate = SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
@@ -1017,7 +1415,104 @@ mod tests {
                 "Default".to_owned(),
                 BTreeSet::from([route_id]),
             )],
+            client_keys,
         ))?;
         Ok(Arc::new(snapshot))
+    }
+
+    fn issued_test_key(
+        expires_at_ms: Option<i64>,
+    ) -> Result<(ClientKeyService, ClientKeyRecord, PresentedClientKey), Box<dyn Error>> {
+        let service = client_key_service()?;
+        let issued = service.issue(
+            ClientKeyId::try_new("client-key-a")?,
+            AccessGroupId::try_new("group-a")?,
+            expires_at_ms,
+        )?;
+        let (record, presented_key) = issued.into_parts();
+        Ok((service, record, presented_key))
+    }
+
+    fn client_key_service() -> Result<ClientKeyService, Box<dyn Error>> {
+        client_key_service_with_pepper(0xA5)
+    }
+
+    fn client_key_service_with_pepper(pepper_byte: u8) -> Result<ClientKeyService, Box<dyn Error>> {
+        Ok(ClientKeyService::new(ClientKeyPepper::try_from_bytes(
+            [pepper_byte; 32],
+        )?))
+    }
+
+    fn fixture_client_key_record(
+        client_key_id: &str,
+        access_group_id: &str,
+        prefix: &str,
+        digest_byte: u8,
+    ) -> Result<ClientKeyRecord, Box<dyn Error>> {
+        Ok(ClientKeyRecord::try_new(
+            ClientKeyId::try_new(client_key_id)?,
+            AccessGroupId::try_new(access_group_id)?,
+            ClientKeyPrefix::try_new(prefix)?,
+            ClientKeyDigest::try_from_persisted([digest_byte; 32])?,
+            ClientKeyStatus::Active,
+            None,
+        )?)
+    }
+
+    fn assert_snapshot_build_error(
+        result: Result<Arc<RouteSnapshot>, Box<dyn Error>>,
+        expected: RouteSnapshotBuildError,
+    ) -> TestResult {
+        let Err(error) = result else {
+            return Err("Snapshot construction unexpectedly succeeded".into());
+        };
+        let actual = error
+            .downcast_ref::<RouteSnapshotBuildError>()
+            .ok_or("expected RouteSnapshotBuildError")?;
+        assert_eq!(*actual, expected);
+        Ok(())
+    }
+
+    fn different_canonical_presented_key(presented_key: &str) -> Result<String, Box<dyn Error>> {
+        let mut wrong_key = presented_key.to_owned();
+        let last = wrong_key
+            .pop()
+            .ok_or("expected a canonical presented Client Key")?;
+        if !last.is_ascii_hexdigit() {
+            return Err("expected a canonical presented Client Key secret".into());
+        }
+        wrong_key.push(if last == '0' { '1' } else { '0' });
+        Ok(wrong_key)
+    }
+
+    fn canonical_unknown_key(record: &ClientKeyRecord) -> String {
+        let prefix = if record.prefix().as_str() == "rgw_0000000000000000" {
+            "rgw_ffffffffffffffff"
+        } else {
+            "rgw_0000000000000000"
+        };
+        format!("{prefix}_{}", "0".repeat(64))
+    }
+
+    fn assert_unauthorized(
+        result: Result<gateway_auth::AuthenticatedClient, GatewayError>,
+    ) -> TestResult {
+        let Err(error) = result else {
+            return Err("Client Key unexpectedly authenticated".into());
+        };
+        assert_eq!(error.code(), GatewayErrorCode::ClientUnauthorized);
+        assert_eq!(error.scope(), ErrorScope::Request);
+        assert_eq!(error.safe_message(), "the client is not authorized");
+        Ok(())
+    }
+
+    struct FixedClientKeyClock {
+        now_ms: i64,
+    }
+
+    impl SnapshotClientKeyClock for FixedClientKeyClock {
+        fn now_ms(&self) -> Result<i64, SnapshotClientKeyClockError> {
+            Ok(self.now_ms)
+        }
     }
 }

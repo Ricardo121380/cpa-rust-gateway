@@ -17,9 +17,11 @@ use gateway_provider::{
 
 pub use route_snapshot::{
     PreparedSnapshotPublication, RouteSnapshot, RouteSnapshotBuildError, RouteSnapshotInput,
-    RouteSnapshotRegistry, SnapshotAccessGroup, SnapshotCatalogAdmission, SnapshotPublicModel,
-    SnapshotRegistryError, SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput,
-    SnapshotRoutePolicy, SnapshotTransformMode, SnapshotTransition, SnapshotVersion,
+    RouteSnapshotRegistry, SnapshotAccessGroup, SnapshotCatalogAdmission,
+    SnapshotClientKeyAuthenticator, SnapshotClientKeyClock, SnapshotClientKeyClockError,
+    SnapshotClientKeyView, SnapshotPublicModel, SnapshotRegistryError, SnapshotRoute,
+    SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
+    SnapshotTransformMode, SnapshotTransition, SnapshotVersion, SystemSnapshotClientKeyClock,
 };
 
 /// Stable component identifier used by architecture smoke tests.

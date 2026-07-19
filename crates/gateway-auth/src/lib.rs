@@ -12,7 +12,7 @@ pub mod client_key;
 
 use std::{collections::BTreeMap, error::Error, fmt};
 
-use gateway_core::{ClientKeyId, ErrorScope, GatewayError, GatewayErrorCode};
+use gateway_core::{AccessGroupId, ClientKeyId, ErrorScope, GatewayError, GatewayErrorCode};
 
 /// Stable component identifier used by architecture smoke tests.
 pub const COMPONENT: &str = "gateway-auth";
@@ -36,19 +36,44 @@ pub trait ClientKeyAuthenticator: Send + Sync {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AuthenticatedClient {
     client_key_id: ClientKeyId,
+    access_group_id: Option<AccessGroupId>,
 }
 
 impl AuthenticatedClient {
     /// Creates an authenticated identity from its stable Client Key identifier.
     #[must_use]
     pub const fn new(client_key_id: ClientKeyId) -> Self {
-        Self { client_key_id }
+        Self {
+            client_key_id,
+            access_group_id: None,
+        }
+    }
+
+    /// Creates a Snapshot-authenticated identity with its active Access Group.
+    #[must_use]
+    pub const fn with_access_group(
+        client_key_id: ClientKeyId,
+        access_group_id: AccessGroupId,
+    ) -> Self {
+        Self {
+            client_key_id,
+            access_group_id: Some(access_group_id),
+        }
     }
 
     /// Returns the authenticated Client Key identifier without exposing its secret.
     #[must_use]
     pub const fn client_key_id(&self) -> &ClientKeyId {
         &self.client_key_id
+    }
+
+    /// Returns the Snapshot-resolved Access Group when the authenticator supplied one.
+    ///
+    /// P1's temporary in-memory authenticator returns no Access Group; P2's Snapshot
+    /// implementation always supplies one for a successful identity.
+    #[must_use]
+    pub fn access_group_id(&self) -> Option<&AccessGroupId> {
+        self.access_group_id.as_ref()
     }
 }
 
@@ -223,6 +248,25 @@ mod tests {
 
         let authenticated = authenticator.authenticate("generated-test-key")?;
         assert_eq!(authenticated.client_key_id().as_str(), "client-key-enabled");
+        assert!(authenticated.access_group_id().is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn snapshot_identity_retains_the_active_access_group() -> TestResult {
+        let authenticated = super::AuthenticatedClient::with_access_group(
+            ClientKeyId::try_new("client-key-enabled")?,
+            gateway_core::AccessGroupId::try_new("access-group-enabled")?,
+        );
+
+        assert_eq!(authenticated.client_key_id().as_str(), "client-key-enabled");
+        assert_eq!(
+            authenticated
+                .access_group_id()
+                .ok_or("expected Snapshot Access Group")?
+                .as_str(),
+            "access-group-enabled"
+        );
         Ok(())
     }
 

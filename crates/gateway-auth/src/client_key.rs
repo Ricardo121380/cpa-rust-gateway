@@ -121,6 +121,17 @@ impl ClientKeyPrefix {
         Ok(Self(value))
     }
 
+    /// Parses the public Prefix from a complete canonical presented Client Key.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ClientKeyError::InvalidClientKeyPrefix`] when the complete Key does not have the
+    /// exact canonical `rgw_<prefix>_<secret>` representation. The returned Prefix is public
+    /// routing metadata only; this method never exposes the secret segment.
+    pub fn try_from_presented_key(presented_key: &str) -> Result<Self, ClientKeyError> {
+        parse_presented_key_prefix(presented_key)
+    }
+
     /// Returns the non-secret Prefix suitable for indexed lookup and safe audit correlation.
     #[must_use]
     pub fn as_str(&self) -> &str {
@@ -438,7 +449,7 @@ impl ClientKeyService {
     ) -> Result<bool, ClientKeyError> {
         validate_now(now_ms)?;
 
-        let Ok(parsed_prefix) = parse_presented_key_prefix(presented_key) else {
+        let Ok(parsed_prefix) = ClientKeyPrefix::try_from_presented_key(presented_key) else {
             return Ok(false);
         };
         if parsed_prefix != *record.prefix() {
