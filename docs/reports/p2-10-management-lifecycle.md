@@ -78,5 +78,13 @@ Client Key, URL query secret, Authorization header, request body, or production 
 
 ## GitHub CI
 
-The implementation commit's GitHub Fast and Full gates must both pass before the P2-10 acceptance
-record and G2 gate report are finalized.
+GitHub Actions run [29687760913](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29687760913)
+passed for implementation commit `fccdc74`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS; completed `2026-07-19T12:53:18Z` |
+| Full supply-chain gate | PASS; completed `2026-07-19T13:03:57Z` |
+
+This completes P2-10 implementation acceptance. The P2/G2 verification-record commit is pushed
+separately and must also pass the same GitHub workflow before P2 is declared complete.
