@@ -10,7 +10,9 @@ use gateway_core::{
     CanonicalMessage, CanonicalRequest, ErrorScope, GatewayError, GatewayErrorCode, MessageContent,
     RawExtensions, RawJson, ToolDefinition,
 };
-use gateway_upstream::EndpointUrl;
+use gateway_upstream::{
+    AdmittedEgressTarget, EndpointUrl, UpstreamHttpMethod, UpstreamHttpRequest,
+};
 use protocol_openai_responses::ResponseMode;
 use serde_json::{Map, Value};
 use zeroize::Zeroizing;
@@ -108,9 +110,9 @@ impl fmt::Debug for OpenAiResponsesEndpoint {
 
 /// One request-ready OpenAI-compatible Responses target, headers, and JSON body.
 ///
-/// This is not an HTTP-client request type. P3-02 will consume the typed target and the exact
-/// request-scoped header values after it introduces a shared client pool and its own transport
-/// constraints.
+/// This is not an HTTP-client request type. P3-02 consumes its typed target and exact
+/// request-scoped header values only through [`Self::into_transport_request`], after P2-09 admits
+/// the same target and P3-02 applies its shared-client transport constraints.
 #[derive(Eq, PartialEq)]
 pub struct OpenAiResponsesOutboundRequest {
     target: EndpointUrl,
@@ -162,6 +164,47 @@ impl OpenAiResponsesOutboundRequest {
     #[must_use]
     pub fn body(&self) -> &[u8] {
         &self.body
+    }
+
+    /// Consumes this request into a DNS-pinned P3-02 transport request.
+    ///
+    /// The caller must first obtain `admitted_target` by applying P2-09 `EgressPolicy` to this
+    /// exact target. A different allowed URL is not interchangeable: it is rejected before the
+    /// Authorization header or body can be handed to the HTTP client.
+    ///
+    /// # Errors
+    ///
+    /// Returns `EgressRejected/Egress` when the admitted URL does not exactly match this request
+    /// target, or `InternalError/Internal` if the fixed P3-01 headers cannot satisfy P3-02's
+    /// transport request invariant.
+    pub fn into_transport_request(
+        self,
+        admitted_target: AdmittedEgressTarget,
+    ) -> Result<UpstreamHttpRequest, GatewayError> {
+        let Self {
+            target,
+            authorization,
+            accept,
+            body,
+        } = self;
+        if admitted_target.request_url() != target.as_url() {
+            return Err(egress_rejected_error());
+        }
+
+        UpstreamHttpRequest::try_new(
+            admitted_target,
+            UpstreamHttpMethod::Post,
+            [
+                ("accept".to_owned(), accept.to_owned()),
+                (
+                    "authorization".to_owned(),
+                    authorization.as_str().to_owned(),
+                ),
+                ("content-type".to_owned(), "application/json".to_owned()),
+            ],
+            body,
+        )
+        .map_err(|_| internal_error())
     }
 }
 
@@ -531,9 +574,17 @@ const fn internal_error() -> GatewayError {
 
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
+    use std::{
+        collections::BTreeSet,
+        error::Error,
+        net::{IpAddr, Ipv4Addr},
+    };
 
-    use gateway_core::{GatewayErrorCode, MessageContent, RawJson};
+    use gateway_core::{EgressPolicyId, GatewayErrorCode, MessageContent, RawJson};
+    use gateway_upstream::{
+        EgressDnsError, EgressDnsResolver, EgressHost, EgressPolicy, EgressPolicyInput,
+        EgressScheme, RedirectPolicy, UpstreamHttpMethod,
+    };
     use protocol_openai_responses::{ResponseMode, decode_request};
 
     use super::{OpenAiResponsesApiKey, OpenAiResponsesEndpoint, OpenAiResponsesRequestBuilder};
@@ -547,6 +598,26 @@ mod tests {
 
     fn api_key() -> Result<OpenAiResponsesApiKey, Box<dyn Error>> {
         Ok(OpenAiResponsesApiKey::try_new("p3_01_test_credential")?)
+    }
+
+    struct StaticPublicResolver;
+
+    impl EgressDnsResolver for StaticPublicResolver {
+        fn resolve(&self, _host: &EgressHost) -> Result<Vec<IpAddr>, EgressDnsError> {
+            Ok(vec![IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8))])
+        }
+    }
+
+    fn policy() -> Result<EgressPolicy, Box<dyn Error>> {
+        Ok(EgressPolicy::try_new(EgressPolicyInput {
+            id: EgressPolicyId::try_new("p3-02-provider-test-policy")?,
+            name: "provider test policy".to_owned(),
+            allowed_schemes: BTreeSet::from([EgressScheme::Https]),
+            allowed_hosts: BTreeSet::from([EgressHost::try_new("relay.example")?]),
+            allowed_ports: BTreeSet::from([443]),
+            allowed_cidrs: BTreeSet::new(),
+            redirect_policy: RedirectPolicy::Deny,
+        })?)
     }
 
     #[test]
@@ -613,6 +684,53 @@ mod tests {
         ] {
             assert!(!debug.contains(sensitive));
         }
+        Ok(())
+    }
+
+    #[test]
+    fn hands_only_the_exact_egress_admitted_request_to_the_shared_transport()
+    -> Result<(), Box<dyn Error>> {
+        let decoded = decode_request(include_str!(
+            "../../../tests/fixtures/openai-responses/request-canonical.json"
+        ))?;
+        let outbound = OpenAiResponsesRequestBuilder::build(
+            &endpoint()?,
+            &api_key()?,
+            "upstream-model",
+            &decoded.request,
+            decoded.mode,
+        )?;
+        let admitted = policy()?.admit_url(outbound.url(), &StaticPublicResolver)?;
+        let transport = outbound.into_transport_request(admitted)?;
+
+        assert_eq!(transport.method(), UpstreamHttpMethod::Post);
+        assert_eq!(
+            transport
+                .header("authorization")
+                .and_then(|value| value.to_str().ok()),
+            Some("Bearer p3_01_test_credential")
+        );
+        assert!(std::str::from_utf8(transport.body())?.contains("upstream-model"));
+        let debug = format!("{transport:?}");
+        assert!(!debug.contains("p3_01_test_credential"));
+        assert!(!debug.contains("relay.example"));
+
+        let mismatched_outbound = OpenAiResponsesRequestBuilder::build(
+            &endpoint()?,
+            &api_key()?,
+            "upstream-model",
+            &decoded.request,
+            decoded.mode,
+        )?;
+        let mismatched_target = policy()?.admit_url(
+            "https://relay.example/v1/not-responses",
+            &StaticPublicResolver,
+        )?;
+        let mismatch = mismatched_outbound.into_transport_request(mismatched_target);
+        assert_eq!(
+            mismatch.err().map(|error| error.code()),
+            Some(GatewayErrorCode::EgressRejected)
+        );
         Ok(())
     }
 

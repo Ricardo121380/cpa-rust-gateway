@@ -49,3 +49,4 @@
 - [P2-09 EgressPolicy SSRF admission report](p2-09-egress-policy-ssrf-admission.md)
 - [P2-10 Local management lifecycle report](p2-10-management-lifecycle.md)
 - [P3-01 OpenAI-compatible Responses request assembly report](p3-01-openai-compatible-responses-request.md)
+- [P3-02 DNS-pinned upstream client pool report](p3-02-dns-pinned-upstream-client-pool.md)

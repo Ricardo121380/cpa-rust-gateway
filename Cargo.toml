@@ -35,18 +35,21 @@ publish = false
 [workspace.dependencies]
 actix-web = { version = "4.11.0", default-features = false, features = ["macros"] }
 arc-swap = { version = "1.9.2", default-features = false }
+bytes = { version = "1.12.1", default-features = false }
 chacha20poly1305 = { version = "0.10.1", default-features = false, features = ["std"] }
 futures-util = { version = "0.3.32", default-features = false }
 getrandom = { version = "0.3.4", default-features = false }
 hmac = { version = "0.12.1", default-features = false }
 libc = { version = "0.2.182", default-features = false }
+moka = { version = "0.12.11", default-features = false, features = ["sync"] }
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
+reqwest = { version = "0.12.28", default-features = false, features = ["http2", "native-tls", "socks"] }
 rusqlite = { version = "0.40.1", default-features = false, features = ["bundled"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.150", features = ["raw_value"] }
 sha2 = { version = "0.10.9", default-features = false }
 subtle = { version = "2.6.1", default-features = false }
-tokio = { version = "1.53.0", default-features = false, features = ["sync", "macros", "rt", "time"] }
+tokio = { version = "1.53.0", default-features = false, features = ["io-util", "net", "sync", "macros", "rt", "time"] }
 tokio-util = { version = "0.7.18", default-features = false }
 url = { version = "2.5.8", default-features = false }
 zeroize = { version = "1.8.2", default-features = false, features = ["alloc"] }

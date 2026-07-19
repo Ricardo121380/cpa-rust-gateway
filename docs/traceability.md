@@ -58,6 +58,7 @@
 | Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
 |---|---|---|---|---|---|
 | P3-01 | Plan 9；Matrix `C16`、`D10/D11`、`L06`；Behavior 3/17/20 | [ADR-0011](adr/ADR-0011-openai-compatible-responses-request-assembly.md)、[BC-PROVIDER-002](contracts/BC-PROVIDER-002-openai-compatible-responses-request.md) | `gateway-upstream` safe endpoint URL composition and `provider-openai-compatible` Canonical-to-Responses request builder | [P3-01 report](reports/p3-01-openai-compatible-responses-request.md) | DONE |
+| P3-02 | Plan 9；Matrix `C16`、`K03-K06`、`L06`；Behavior 20 | [ADR-0012](adr/ADR-0012-dns-pinned-upstream-client-pool.md)、[BC-UPSTREAM-001](contracts/BC-UPSTREAM-001-dns-pinned-upstream-client-pool.md) | `gateway-upstream` bounded DNS-pinned Client Pool, timeouts, Direct/SOCKS5 isolation, and P3-01 exact-target handoff | [P3-02 report](reports/p3-02-dns-pinned-upstream-client-pool.md) | DONE |
 
 ## 后续 Phase 映射
 
