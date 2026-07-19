@@ -8,7 +8,7 @@
 | Date | `2026-07-20` |
 | Branch | `codex/p3-05-runtime-health` |
 | Rust | `1.97.1` |
-| Result | PASS locally after review; GitHub Fast/Full acceptance pending |
+| Result | PASS locally and for the implementation commit in GitHub Fast/Full; verification-record acceptance pending |
 
 ## Delivered scope
 
@@ -74,6 +74,14 @@ use synthetic IDs and no deployed Credential or Secret.
 
 ## GitHub CI
 
-The implementation commit's GitHub Fast and Full gates must both pass before the P3-05 acceptance
-record is finalized. Its separate verification-record and final status commits must also pass the
-same workflow before P3-06 can begin.
+GitHub Actions run [29703607837](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29703607837)
+passed for implementation commit `db4daaa`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS; completed `2026-07-19T21:04:26Z` |
+| Full supply-chain gate | PASS; completed `2026-07-19T21:15:28Z` |
+
+This completes P3-05 implementation acceptance. The separate verification-record commit must also
+pass the same two jobs before the final status record can be created; that final record must pass
+before P3-06 can begin.
