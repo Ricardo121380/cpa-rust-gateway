@@ -1,10 +1,14 @@
-//! Client and upstream credential boundary without storage implementation.
+//! Client and upstream credential boundary without persistence implementation.
 //!
-//! P1 exposes an immutable in-memory Client Key authentication port. It deliberately does not
-//! issue keys, persist keys, hash secrets, apply access-group policy, or decide routes; P2 replaces
-//! the implementation with a compiled persistent/snapshot-backed view.
+//! P1 exposes an immutable in-memory Client Key authentication port. P2-04 adds storage-neutral
+//! Client Key issuance and HMAC verification primitives, while P2-08 replaces the live P1
+//! authenticator with a compiled persistent/snapshot-backed view. This crate does not persist
+//! keys, apply Access Group policy, or decide routes.
 
 #![deny(unsafe_code)]
+
+/// Client Key issuance, HMAC digest, external Pepper, and constant-time verification primitives.
+pub mod client_key;
 
 use std::{collections::BTreeMap, error::Error, fmt};
 

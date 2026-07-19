@@ -30,3 +30,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0001 Version-scoped control-plane SQLite schema](ADR-0001-version-scoped-control-plane-schema.md) — `P2-01`。
 - [ADR-0002 Version-scoped route and access schema](ADR-0002-version-scoped-route-access-schema.md) — `P2-02`。
 - [ADR-0003 XChaCha20-Poly1305 Secret Store](ADR-0003-xchacha20poly1305-secret-store.md) — `P2-03`。
+- [ADR-0004 Client Key HMAC credential](ADR-0004-client-key-hmac-credential.md) — `P2-04`。

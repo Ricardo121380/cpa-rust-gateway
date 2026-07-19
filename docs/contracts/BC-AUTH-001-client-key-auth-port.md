@@ -57,7 +57,8 @@ API operations.
 P2 can replace the in-memory implementation with a persisted, compiled snapshot implementation of
 the same `ClientKeyAuthenticator` interface: prefix narrows a candidate, a server-pepper HMAC is
 compared in constant time, and the resulting `ClientKeyId` resolves to P2's `ClientKeyView` and
-Access Group. HTTP need not import persistence or cryptographic implementation types.
+Access Group. P2-04 defines the issuance/HMAC primitives; P2-08 owns this live-authenticator
+replacement. HTTP need not import persistence or cryptographic implementation types.
 
 ## Corresponding tests
 
