@@ -51,3 +51,4 @@
 - [P3-01 OpenAI-compatible Responses request assembly report](p3-01-openai-compatible-responses-request.md)
 - [P3-02 DNS-pinned upstream client pool report](p3-02-dns-pinned-upstream-client-pool.md)
 - [P3-03 Priority-tier smooth weighted scheduler report](p3-03-priority-tier-scheduler.md)
+- [P3-04 Endpoint Credential pool report](p3-04-endpoint-credential-pool.md)

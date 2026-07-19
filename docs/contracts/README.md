@@ -44,4 +44,5 @@ P2-10 已建立 [BC-CONTROL-002 Local management lifecycle](BC-CONTROL-002-local
 P3-01 已建立 [BC-PROVIDER-002 OpenAI-compatible Responses outbound request assembly](BC-PROVIDER-002-openai-compatible-responses-request.md)。
 P3-02 已建立 [BC-UPSTREAM-001 DNS-pinned upstream client pool](BC-UPSTREAM-001-dns-pinned-upstream-client-pool.md)。
 P3-03 已建立 [BC-SCHEDULER-001 Priority-tier bounded smooth weighted scheduler](BC-SCHEDULER-001-priority-tier-smooth-weighted-scheduler.md)。
+P3-04 已建立 [BC-CRED-001 Endpoint Credential pool leases](BC-CRED-001-endpoint-credential-pool-leases.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。

@@ -698,6 +698,7 @@ dependencies = [
  "reqwest",
  "tokio",
  "url",
+ "zeroize",
 ]
 
 [[package]]

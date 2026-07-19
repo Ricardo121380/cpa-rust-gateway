@@ -4,6 +4,8 @@
 
 /// Transactional management-only Credential and Client Key provisioning service.
 pub mod control_plane_service;
+/// Management-time decryption and compilation of Endpoint Credential runtime pools.
+pub mod credential_pool_compiler;
 /// Management-time EgressPolicy compilation and endpoint static admission.
 pub mod egress_policy_compiler;
 /// Local transport-neutral lifecycle API for configuration validation and publication.

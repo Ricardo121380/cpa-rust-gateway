@@ -5,6 +5,7 @@
 
 #![deny(unsafe_code)]
 
+mod credential_scheduler;
 mod route_scheduler;
 mod route_snapshot;
 
@@ -16,6 +17,7 @@ use gateway_provider::{
     ProviderFuture,
 };
 
+pub use credential_scheduler::{RouteCredentialScheduler, SelectedRouteCredential};
 pub use route_scheduler::RouteCandidateScheduler;
 pub use route_snapshot::{
     MAX_SCHEDULE_SLOTS_PER_PRIORITY_TIER, PreparedSnapshotPublication, RouteSnapshot,
