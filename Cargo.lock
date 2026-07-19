@@ -494,6 +494,7 @@ dependencies = [
  "gateway-router",
  "gateway-store",
  "gateway-upstream",
+ "serde_json",
 ]
 
 [[package]]

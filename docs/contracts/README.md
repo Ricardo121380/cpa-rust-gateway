@@ -36,4 +36,5 @@ P2-02 已建立 [BC-ROUTE-001 Versioned route and access schema](BC-ROUTE-001-ve
 P2-03 已建立 [BC-SEC-001 AEAD Secret Store](BC-SEC-001-aead-secret-store.md)。
 P2-04 已建立 [BC-AUTH-002 Client Key HMAC credential](BC-AUTH-002-client-key-hmac-credential.md)。
 P2-05 已建立 [BC-CONTROL-001 Versioned control-plane Repository and Service](BC-CONTROL-001-versioned-control-plane-repository-service.md)。
+P2-06 正在建立 [BC-ROUTER-001 Validated Route Compiler](BC-ROUTER-001-validated-route-compiler.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。
