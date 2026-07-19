@@ -6,9 +6,9 @@
 | Gate | `G2` |
 | 日期 | `2026-07-19` |
 | 验证分支 | `codex/p2-10-management-api-cli` |
-| 被测实现 Commit | `fccdc74575920eb3e2ed955cf0d8d1aee73cf570` |
+| 被测实现 Commit | `fccdc74575920eb3e2ed955cf0d8d1aee73cf570`；验证记录 `c569099a25f7299d7d996c20f0e1374687783115` |
 | 本地结果 | `PASS` |
-| 最终状态 | 待本验证记录的 GitHub Fast + Full 门禁 |
+| 最终状态 | `PASS`（GitHub Fast + Full 门禁均通过） |
 
 ## 结论
 
@@ -17,9 +17,11 @@ P2-10 增加了最小本地管理生命周期、事务绑定审计事件、启�
 GitHub Actions [29687760913](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29687760913)
 的 Fast/Full 均为 PASS。
 
-G2 的五项退出条件已有对应代码和测试证据。本报告本身不引入 P3 连接、HTTP 上游、Provider
-运行时、代理、TLS 或真实流量；P3 仍为 `PENDING`。在本验证记录自身的双门禁通过前，不把 P2
-宣告为最终完成。
+验证记录 `c569099` 的 GitHub Actions
+[29688265117](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29688265117)
+已完成：Fast gate 和 Full supply-chain gate 均为 PASS。因此 G2 的五项退出条件已满足，P2
+正式完成。本报告不引入 P3 连接、HTTP 上游、Provider 运行时、代理、TLS 或真实流量；P3 仍为
+`PENDING`，未由本 Gate 自动启动。
 
 ## G2 条件与证据
 
@@ -68,11 +70,10 @@ G2 的五项退出条件已有对应代码和测试证据。本报告本身不�
   activation 前被拒绝，失败不会留下部分状态。
 - 复核确认推理热路径不引入 Repository：新 `ManagementService` 只在 control-plane/CLI 中，
   `gateway-router` 仍只保存/加载 immutable Snapshot，P3 文件、上游 Client 和 Provider 没有修改。
-- 本验证记录仅更新 P2-10 CI 证据和 G2 文档。其自身需完成 GitHub Fast 与 Full 后才最终更新
-  计划状态并结束 P2。
+- 验证记录 `c569099` 的 GitHub Fast 与 Full 已完成且通过；本次将计划、报告目录和追踪索引
+  同步为 P2/G2 `DONE`，不改变任何 P3 文件或运行时行为。
 
 ## 后续
 
-验证记录门禁通过后，P2 结束，`P3-01` 保持 `PENDING`，不会由本 Gate 自动启动。任何 P3
-启动仍必须遵守用户当前的单 session 工作方式和“计划 → 实现 → review → Fast/Full → GitHub
-验收”的顺序。
+P2 已结束，`P3-01` 保持 `PENDING`，不会由本 Gate 自动启动。任何 P3 启动仍必须遵守用户当前的
+单 session 工作方式和“计划 → 实现 → review → Fast/Full → GitHub 验收”的顺序。

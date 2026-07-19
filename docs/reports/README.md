@@ -25,6 +25,7 @@
 - [G0 干净检出完整门禁日志](g0-clean-full-log.md)
 - [G0 可复现构建日志](g0-reproducible-build-log.md)
 - [G1 阶段门禁报告](g1-gate-report.md)
+- [G2 阶段门禁报告](g2-gate-report.md)
 
 ## 已完成任务
 

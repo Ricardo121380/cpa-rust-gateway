@@ -7,8 +7,8 @@
 | 计划版本 | `v1.1` |
 | 生效日期 | `2026-07-19` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` 已完成；`P2 - 聚合控制面、安全与 RouteSnapshot` 实现已完成，待 G2 验收 |
-| 当前任务 | `P2-01` 至 `P2-10` 已完成本地实现与 review；P2-10 验收记录和 G2 均待双门禁通过 |
+| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` 与 `P2 - 聚合控制面、安全与 RouteSnapshot` 已完成；`P3` 尚未开始 |
+| 当前任务 | 无；`P2-01` 至 `P2-10` 与 `G2` 均为 `DONE`，`P3-01` 保持 `PENDING`（未启动） |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -231,7 +231,7 @@ deploy/
 |---|---|---|---|---|
 | P0 | 仓库、工具链、ADR、CI 基线 | 本计划锁定 | G0 | DONE |
 | P1 | Canonical Core + Mock 垂直链路 | G0 | G1 | DONE |
-| P2 | 聚合控制面、Secret、RouteSnapshot | G1 | G2 | PENDING |
+| P2 | 聚合控制面、Secret、RouteSnapshot | G1 | G2 | DONE |
 | P3 | OpenAI Responses 聚合 MVP | G2 | G3 | PENDING |
 | P4 | Catalog、Health、Quota、Explain、观测 | G3 | G4 | PENDING |
 | P5 | Anthropic/Claude Code 兼容 | G4 | G5 | PENDING |

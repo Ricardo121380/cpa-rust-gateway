@@ -51,6 +51,7 @@
 | P2-08 | Plan 8；Matrix `E01/E02/E17/E20`、`H05/H06`、`J19`、`L35` | [ADR-0008](adr/ADR-0008-snapshot-client-key-authentication.md)、[BC-AUTH-003](contracts/BC-AUTH-003-snapshot-client-key-authentication.md) | Prefix-indexed Snapshot ClientKeyView and HMAC authenticator without request-path persistence | [P2-08 report](reports/p2-08-snapshot-client-key-authentication.md) | DONE |
 | P2-09 | Plan 8；Matrix `L36`、`E10`、`J19`；Behavior 20 | [ADR-0009](adr/ADR-0009-egress-policy-ssrf-admission.md)、[BC-SEC-002](contracts/BC-SEC-002-egress-policy-ssrf-admission.md) | Version-scoped EgressPolicy persistence, publication-time static admission, and DNS-pinned SSRF admission | [P2-09 report](reports/p2-09-egress-policy-ssrf-admission.md) | DONE |
 | P2-10 | Plan 8；Matrix `H05`、`J03/J18-J20`；Behavior 20 | [ADR-0010](adr/ADR-0010-local-management-lifecycle.md)、[BC-CONTROL-002](contracts/BC-CONTROL-002-local-management-lifecycle.md) | Transport-neutral local management lifecycle, durable audit events, restart rollback reconstruction, and `gateway admin` CLI | [P2-10 report](reports/p2-10-management-lifecycle.md) | DONE |
+| G2 | Plan G2；P2 Matrix `D/E/H/J/L` | P2 ADR/Contract 集合 | P2-01 至 P2-10 完成审计、Secret/SSRF/热路径与 Snapshot 并发条件核验 | [G2 报告](reports/g2-gate-report.md) | DONE |
 
 ## 后续 Phase 映射
 
