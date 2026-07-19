@@ -42,3 +42,4 @@
 - [P2-03 AEAD Secret Store report](p2-03-aead-secret-store.md)
 - [P2-04 Client Key HMAC credential report](p2-04-client-key-hmac.md)
 - [P2-05 Versioned control-plane Repository and Service report](p2-05-control-plane-service.md)
+- [P2-06 Validated Route Compiler report](p2-06-validated-route-compiler.md)

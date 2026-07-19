@@ -4,7 +4,7 @@
 |---|---|
 | Contract | `BC-ROUTER-001` |
 | Task | `P2-06` |
-| Status | IN_PROGRESS |
+| Status | DONE |
 | Domain | Config Version semantic validation and secret-free Route compilation |
 
 ## Entry and boundary
