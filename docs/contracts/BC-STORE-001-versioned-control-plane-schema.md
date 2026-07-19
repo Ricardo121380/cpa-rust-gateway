@@ -72,7 +72,8 @@ The migration runner does not activate a Config Version, compile a route, or pub
 
 ## Corresponding tests
 
-- Migration up records schema version 1 and creates exactly the five P2-01 control-plane tables.
+- Migration `0001` records schema version 1 and creates exactly the five P2-01 control-plane
+  tables; later migrations preserve that historical version number.
 - A valid Config Version → Upstream → Endpoint/Credential → Binding tree succeeds.
 - Missing Version/Upstream relationships and a cross-Upstream Binding each fail through SQLite
   foreign-key enforcement.

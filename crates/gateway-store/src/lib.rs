@@ -9,8 +9,11 @@ use rusqlite::{Connection, Error as SqliteError};
 /// Stable component identifier used by architecture smoke tests.
 pub const COMPONENT: &str = "gateway-store";
 
+const VERSIONED_CONTROL_PLANE_SCHEMA_VERSION: i64 = 1;
+const VERSIONED_ROUTE_ACCESS_SCHEMA_VERSION: i64 = 2;
+
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = 1;
+pub const CURRENT_SCHEMA_VERSION: i64 = VERSIONED_ROUTE_ACCESS_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -19,11 +22,18 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 ) STRICT;
 ";
 
-const MIGRATIONS: &[Migration] = &[Migration {
-    version: CURRENT_SCHEMA_VERSION,
-    up: include_str!("../migrations/0001_versioned_control_plane.up.sql"),
-    down: include_str!("../migrations/0001_versioned_control_plane.down.sql"),
-}];
+const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: VERSIONED_CONTROL_PLANE_SCHEMA_VERSION,
+        up: include_str!("../migrations/0001_versioned_control_plane.up.sql"),
+        down: include_str!("../migrations/0001_versioned_control_plane.down.sql"),
+    },
+    Migration {
+        version: VERSIONED_ROUTE_ACCESS_SCHEMA_VERSION,
+        up: include_str!("../migrations/0002_versioned_route_access.up.sql"),
+        down: include_str!("../migrations/0002_versioned_route_access.down.sql"),
+    },
+];
 
 struct Migration {
     version: i64,
@@ -226,14 +236,21 @@ fn table_exists(connection: &Connection, table_name: &str) -> StoreResult<bool> 
 mod tests {
     use std::error::Error;
 
-    use rusqlite::{Connection, Error as SqliteError, ErrorCode, params};
+    use rusqlite::{Connection, Error as SqliteError, ffi, params};
 
-    use super::{CURRENT_SCHEMA_VERSION, migrate, open_in_memory, rollback_all, schema_version};
+    use super::{
+        CREATE_SCHEMA_MIGRATIONS, CURRENT_SCHEMA_VERSION, MIGRATIONS,
+        VERSIONED_CONTROL_PLANE_SCHEMA_VERSION, migrate, open_in_memory, rollback_all,
+        schema_version,
+    };
 
     type TestResult = Result<(), Box<dyn Error>>;
 
+    const TEST_CLIENT_KEY_DIGEST_A: [u8; 32] = [0xA5; 32];
+    const TEST_CLIENT_KEY_DIGEST_B: [u8; 32] = [0x5A; 32];
+
     #[test]
-    fn migration_up_is_idempotent_and_creates_the_p2_01_tables() -> TestResult {
+    fn migrations_are_idempotent_and_create_all_p2_schema_tables() -> TestResult {
         let mut connection = Connection::open_in_memory()?;
 
         migrate(&mut connection)?;
@@ -244,13 +261,44 @@ mod tests {
         assert_eq!(
             control_plane_tables(&connection)?,
             vec![
+                "access_group_routes",
+                "access_groups",
+                "client_keys",
                 "config_versions",
                 "endpoint_credential_bindings",
+                "model_aliases",
+                "model_routes",
+                "public_models",
+                "route_candidates",
                 "upstream_credentials",
                 "upstream_endpoints",
                 "upstreams",
             ]
         );
+        Ok(())
+    }
+
+    #[test]
+    fn version_one_database_upgrades_to_version_two_without_rewriting_history() -> TestResult {
+        let mut connection = Connection::open_in_memory()?;
+        install_version_one_schema(&connection)?;
+        connection.execute_batch("PRAGMA foreign_keys = ON;")?;
+        insert_valid_tree(&connection)?;
+
+        assert_eq!(
+            schema_version(&connection)?,
+            Some(VERSIONED_CONTROL_PLANE_SCHEMA_VERSION)
+        );
+        migrate(&mut connection)?;
+
+        assert_eq!(schema_version(&connection)?, Some(CURRENT_SCHEMA_VERSION));
+        let upstream_count: i64 = connection.query_row(
+            "SELECT COUNT(*) FROM upstreams WHERE config_version_id = ?1",
+            ["v1"],
+            |row| row.get(0),
+        )?;
+        assert_eq!(upstream_count, 1);
+        assert!(super::table_exists(&connection, "client_keys")?);
         Ok(())
     }
 
@@ -351,6 +399,224 @@ mod tests {
     }
 
     #[test]
+    fn routing_access_rows_reject_missing_references() -> TestResult {
+        let mut connection = open_in_memory()?;
+        migrate(&mut connection)?;
+        insert_valid_tree(&connection)?;
+        insert_valid_routing_access_tree(&connection)?;
+
+        let missing_alias_target = connection.execute(
+            "INSERT INTO model_aliases (config_version_id, alias, public_model_id) \
+             VALUES (?1, ?2, ?3)",
+            params!["v1", "missing-model", "missing-public-model"],
+        );
+        assert!(is_foreign_key_violation(&missing_alias_target));
+
+        let missing_candidate_route = connection.execute(
+            "INSERT INTO route_candidates (\
+                config_version_id, id, route_id, endpoint_id, upstream_model, credential_scope, \
+                transform_mode, enabled, priority, weight, capability_override_json\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![
+                "v1",
+                "missing-route-candidate",
+                "missing-route",
+                "endpoint-a",
+                "minimax-m3",
+                "endpoint_bindings",
+                "passthrough",
+                1_i64,
+                0_i64,
+                1_i64,
+                "{}",
+            ],
+        );
+        assert!(is_foreign_key_violation(&missing_candidate_route));
+        assert!(foreign_key_check_is_clean(&connection)?);
+        Ok(())
+    }
+
+    #[test]
+    fn routing_access_schema_rejects_duplicate_values_and_invalid_digests() -> TestResult {
+        let mut connection = open_in_memory()?;
+        migrate(&mut connection)?;
+        insert_valid_tree(&connection)?;
+        insert_valid_routing_access_tree(&connection)?;
+
+        let duplicate_model_name = connection.execute(
+            "INSERT INTO public_models (\
+                config_version_id, id, model_name, status, display_name, capabilities_json\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                "v1",
+                "public-model-duplicate",
+                "minimax-m3",
+                "active",
+                "Duplicate MiniMax M3",
+                "{}",
+            ],
+        );
+        assert!(is_uniqueness_violation(&duplicate_model_name));
+
+        let duplicate_alias = connection.execute(
+            "INSERT INTO model_aliases (config_version_id, alias, public_model_id) \
+             VALUES (?1, ?2, ?3)",
+            params!["v1", "mm3", "public-model-a"],
+        );
+        assert!(is_uniqueness_violation(&duplicate_alias));
+
+        let duplicate_route_for_model = connection.execute(
+            "INSERT INTO model_routes (\
+                config_version_id, id, public_model_id, policy, max_attempts, bootstrap_timeout_ms\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                "v1",
+                "route-duplicate",
+                "public-model-a",
+                "round_robin",
+                1_i64,
+                1_000_i64,
+            ],
+        );
+        assert!(is_uniqueness_violation(&duplicate_route_for_model));
+
+        let duplicate_candidate = connection.execute(
+            "INSERT INTO route_candidates (\
+                config_version_id, id, route_id, endpoint_id, upstream_model, credential_scope, \
+                transform_mode, enabled, priority, weight, capability_override_json\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![
+                "v1",
+                "candidate-duplicate",
+                "route-a",
+                "endpoint-a",
+                "minimax-m3",
+                "endpoint_bindings",
+                "passthrough",
+                1_i64,
+                0_i64,
+                100_i64,
+                "{}",
+            ],
+        );
+        assert!(is_uniqueness_violation(&duplicate_candidate));
+
+        let duplicate_access_route = connection.execute(
+            "INSERT INTO access_group_routes (config_version_id, access_group_id, route_id, enabled) \
+             VALUES (?1, ?2, ?3, ?4)",
+            params!["v1", "access-group-a", "route-a", 1_i64],
+        );
+        assert!(is_uniqueness_violation(&duplicate_access_route));
+
+        assert_client_key_constraints(&connection);
+        assert_route_policy_and_scope_constraints(&connection)?;
+        assert!(foreign_key_check_is_clean(&connection)?);
+        Ok(())
+    }
+
+    fn assert_client_key_constraints(connection: &Connection) {
+        let duplicate_client_prefix = connection.execute(
+            "INSERT INTO client_keys (\
+                config_version_id, id, prefix, secret_digest, access_group_id, status, expires_at_ms\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                "v1",
+                "client-key-prefix-duplicate",
+                "rgw_test_a",
+                &TEST_CLIENT_KEY_DIGEST_B,
+                "access-group-a",
+                "active",
+                Option::<i64>::None,
+            ],
+        );
+        assert!(is_uniqueness_violation(&duplicate_client_prefix));
+
+        let duplicate_client_digest = connection.execute(
+            "INSERT INTO client_keys (\
+                config_version_id, id, prefix, secret_digest, access_group_id, status, expires_at_ms\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                "v1",
+                "client-key-digest-duplicate",
+                "rgw_test_digest_duplicate",
+                &TEST_CLIENT_KEY_DIGEST_A,
+                "access-group-a",
+                "active",
+                Option::<i64>::None,
+            ],
+        );
+        assert!(is_uniqueness_violation(&duplicate_client_digest));
+
+        let invalid_digest_length = connection.execute(
+            "INSERT INTO client_keys (\
+                config_version_id, id, prefix, secret_digest, access_group_id, status, expires_at_ms\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                "v1",
+                "client-key-invalid-digest",
+                "rgw_test_invalid_digest",
+                &[1_u8],
+                "access-group-a",
+                "active",
+                Option::<i64>::None,
+            ],
+        );
+        assert!(is_check_violation(&invalid_digest_length));
+    }
+
+    fn assert_route_policy_and_scope_constraints(connection: &Connection) -> TestResult {
+        connection.execute(
+            "INSERT INTO public_models (\
+                config_version_id, id, model_name, status, display_name, capabilities_json\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                "v1",
+                "public-model-policy",
+                "policy-test-model",
+                "active",
+                "Policy Test Model",
+                "{}",
+            ],
+        )?;
+        let invalid_policy = connection.execute(
+            "INSERT INTO model_routes (\
+                config_version_id, id, public_model_id, policy, max_attempts, bootstrap_timeout_ms\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                "v1",
+                "route-invalid-policy",
+                "public-model-policy",
+                "least_loaded",
+                1_i64,
+                1_000_i64,
+            ],
+        );
+        assert!(is_check_violation(&invalid_policy));
+
+        let invalid_scope = connection.execute(
+            "INSERT INTO route_candidates (\
+                config_version_id, id, route_id, endpoint_id, upstream_model, credential_scope, \
+                transform_mode, enabled, priority, weight, capability_override_json\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![
+                "v1",
+                "candidate-invalid-scope",
+                "route-a",
+                "endpoint-a",
+                "minimax-m3",
+                "specific_credentials",
+                "passthrough",
+                1_i64,
+                0_i64,
+                1_i64,
+                "{}",
+            ],
+        );
+        assert!(is_check_violation(&invalid_scope));
+        Ok(())
+    }
+
+    #[test]
     fn migration_up_then_down_restores_the_original_user_tables() -> TestResult {
         let mut connection = open_in_memory()?;
         connection
@@ -358,6 +624,8 @@ mod tests {
         let baseline = user_tables(&connection)?;
 
         migrate(&mut connection)?;
+        insert_valid_tree(&connection)?;
+        insert_valid_routing_access_tree(&connection)?;
         insert_parent_versions(&connection)?;
         rollback_all(&mut connection)?;
 
@@ -443,6 +711,100 @@ mod tests {
         Ok(())
     }
 
+    fn insert_valid_routing_access_tree(connection: &Connection) -> TestResult {
+        connection.execute(
+            "INSERT INTO public_models (\
+                config_version_id, id, model_name, status, display_name, capabilities_json\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                "v1",
+                "public-model-a",
+                "minimax-m3",
+                "active",
+                "MiniMax M3",
+                "{\"tools\":true}",
+            ],
+        )?;
+        connection.execute(
+            "INSERT INTO model_aliases (config_version_id, alias, public_model_id) \
+             VALUES (?1, ?2, ?3)",
+            params!["v1", "mm3", "public-model-a"],
+        )?;
+        connection.execute(
+            "INSERT INTO model_routes (\
+                config_version_id, id, public_model_id, policy, max_attempts, bootstrap_timeout_ms\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                "v1",
+                "route-a",
+                "public-model-a",
+                "smooth_weighted_round_robin",
+                3_i64,
+                20_000_i64,
+            ],
+        )?;
+        connection.execute(
+            "INSERT INTO route_candidates (\
+                config_version_id, id, route_id, endpoint_id, upstream_model, credential_scope, \
+                transform_mode, enabled, priority, weight, capability_override_json\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![
+                "v1",
+                "candidate-a",
+                "route-a",
+                "endpoint-a",
+                "minimax-m3",
+                "endpoint_bindings",
+                "passthrough",
+                1_i64,
+                0_i64,
+                100_i64,
+                "{}",
+            ],
+        )?;
+        connection.execute(
+            "INSERT INTO access_groups (config_version_id, id, name, status, limits_json) \
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                "v1",
+                "access-group-a",
+                "default",
+                "active",
+                "{\"max_concurrency\":4}",
+            ],
+        )?;
+        connection.execute(
+            "INSERT INTO access_group_routes (config_version_id, access_group_id, route_id, enabled) \
+             VALUES (?1, ?2, ?3, ?4)",
+            params!["v1", "access-group-a", "route-a", 1_i64],
+        )?;
+        connection.execute(
+            "INSERT INTO client_keys (\
+                config_version_id, id, prefix, secret_digest, access_group_id, status, expires_at_ms\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                "v1",
+                "client-key-a",
+                "rgw_test_a",
+                &TEST_CLIENT_KEY_DIGEST_A,
+                "access-group-a",
+                "active",
+                Option::<i64>::None,
+            ],
+        )?;
+        Ok(())
+    }
+
+    fn install_version_one_schema(connection: &Connection) -> Result<(), SqliteError> {
+        connection.execute_batch(CREATE_SCHEMA_MIGRATIONS)?;
+        connection.execute_batch(MIGRATIONS[0].up)?;
+        connection.execute(
+            "INSERT INTO schema_migrations (version) VALUES (?1)",
+            [VERSIONED_CONTROL_PLANE_SCHEMA_VERSION],
+        )?;
+        Ok(())
+    }
+
     fn insert_parent_versions(connection: &Connection) -> TestResult {
         connection.execute(
             "INSERT INTO config_versions (id, parent_id, status, created_at_ms, description) \
@@ -472,7 +834,25 @@ mod tests {
     fn is_foreign_key_violation(result: &Result<usize, SqliteError>) -> bool {
         matches!(
             result,
-            Err(SqliteError::SqliteFailure(code, _)) if code.code == ErrorCode::ConstraintViolation
+            Err(SqliteError::SqliteFailure(code, _))
+                if code.extended_code == ffi::SQLITE_CONSTRAINT_FOREIGNKEY
+        )
+    }
+
+    fn is_uniqueness_violation(result: &Result<usize, SqliteError>) -> bool {
+        matches!(
+            result,
+            Err(SqliteError::SqliteFailure(code, _))
+                if code.extended_code == ffi::SQLITE_CONSTRAINT_UNIQUE
+                    || code.extended_code == ffi::SQLITE_CONSTRAINT_PRIMARYKEY
+        )
+    }
+
+    fn is_check_violation(result: &Result<usize, SqliteError>) -> bool {
+        matches!(
+            result,
+            Err(SqliteError::SqliteFailure(code, _))
+                if code.extended_code == ffi::SQLITE_CONSTRAINT_CHECK
         )
     }
 

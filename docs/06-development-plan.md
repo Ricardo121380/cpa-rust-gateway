@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-19` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` 已完成；`P2 - 聚合控制面、安全与 RouteSnapshot` 正在执行 |
-| 当前任务 | `P2-01` 已完成；`P2-02` 仍为 `PENDING`，将在独立分支上按序开始 |
+| 当前任务 | `P2-01` 已完成；`P2-02` 为全计划唯一 `IN_PROGRESS` Task |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -300,7 +300,7 @@ deploy/
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
 | P2-01 | 设计并迁移 Config Version、Upstream、Endpoint、Credential 与 Binding 表 | G1 | Migration up/down + FK 测试 | DONE |
-| P2-02 | 设计并迁移 PublicModel、Alias、Route、Candidate、AccessGroup、ClientKey 表 | P2-01 | Schema 约束和唯一性测试 | PENDING |
+| P2-02 | 设计并迁移 PublicModel、Alias、Route、Candidate、AccessGroup、ClientKey 表 | P2-01 | Schema 约束和唯一性测试 | IN_PROGRESS |
 | P2-03 | 实现 AEAD Secret Store、Key Version、Nonce 和主密钥加载 | P2-01 | 加解密、错误密钥、轮换测试 | PENDING |
 | P2-04 | 实现 Client Key 生成、Prefix、HMAC 摘要和常量时间验证 | P2-02,P2-03 | 创建一次可见、验证和撤销测试 | PENDING |
 | P2-05 | 实现 Repository/Service 事务，禁止控制面实体泄露到 Provider | P2-01,P2-02 | Repository 集成测试 | PENDING |
