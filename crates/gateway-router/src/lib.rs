@@ -8,6 +8,7 @@
 mod credential_scheduler;
 mod route_scheduler;
 mod route_snapshot;
+mod runtime_health;
 
 use std::{future::Future, pin::Pin, time::Duration};
 
@@ -27,6 +28,12 @@ pub use route_snapshot::{
     SnapshotPublicModel, SnapshotRegistryError, SnapshotRoute, SnapshotRouteCandidate,
     SnapshotRouteCandidateInput, SnapshotRoutePolicy, SnapshotRouteSchedule, SnapshotTransformMode,
     SnapshotTransition, SnapshotVersion, SystemSnapshotClientKeyClock,
+};
+pub use runtime_health::{
+    DEFAULT_RUNTIME_HEALTH_SHARD_COUNT, MAX_RUNTIME_HEALTH_ENTRIES_PER_SHARD,
+    MAX_RUNTIME_HEALTH_SHARD_COUNT, RuntimeHealthAvailability, RuntimeHealthClock,
+    RuntimeHealthClockError, RuntimeHealthError, RuntimeHealthKey, RuntimeHealthRegistry,
+    RuntimeHealthRegistryBuildError, SystemRuntimeHealthClock,
 };
 
 /// Stable component identifier used by architecture smoke tests.

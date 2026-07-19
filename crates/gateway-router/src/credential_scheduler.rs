@@ -2,21 +2,25 @@
 //!
 //! P3-03 owns immutable Candidate schedule construction and candidate cursors. P3-04 composes
 //! that selector with independently scheduled Endpoint Credential pools, without allowing an
-//! Endpoint's number of keys to alter Route-level weights. Health, cooldown, circuit, attempt,
-//! retry, transport, and Provider behavior remain outside this module.
+//! Endpoint's number of keys to alter Route-level weights. P3-05 may consult a separate sharded
+//! runtime-health registry; attempt, retry, transport, and Provider behavior remain outside this
+//! module.
 
 use std::sync::Arc;
 
 use gateway_core::{ErrorScope, GatewayError, GatewayErrorCode, RouteId};
 use gateway_upstream::{CredentialLease, EndpointCredentialPools};
 
-use crate::{RouteCandidateScheduler, RouteSnapshot, SnapshotRouteCandidate};
+use crate::{
+    RouteCandidateScheduler, RouteSnapshot, RuntimeHealthRegistry, SnapshotRouteCandidate,
+};
 
 /// A process-local two-stage scheduler for one immutable Route Snapshot and matching pools.
 ///
 /// It owns no `SQLite` handle, mutable health state, or global lock. Candidate and Credential
 /// cursor sets are independent: a Route Candidate is selected first, then its Endpoint pool uses
-/// its own atomic cursor to acquire one bounded concurrent lease.
+/// its own atomic cursor to acquire one bounded concurrent lease. P3-05 methods only consult an
+/// externally owned runtime-health registry; they never classify or mutate runtime state.
 #[derive(Debug)]
 pub struct RouteCredentialScheduler {
     candidates: RouteCandidateScheduler,
@@ -56,9 +60,9 @@ impl RouteCredentialScheduler {
 
     /// Selects an eligible Candidate and immediately acquires one Endpoint Credential lease.
     ///
-    /// The supplied predicate is a narrow composition point for a later P3-05 health/cooldown
-    /// filter. P3-04 only considers its boolean result and never mutates health, circuit, quota,
-    /// retry, or attempt state itself.
+    /// The supplied predicate remains a narrow composition point for later P3-06 attempt
+    /// exclusions. This P3-04-compatible method does not consult or mutate health, circuit, quota,
+    /// retry, or attempt state.
     ///
     /// # Errors
     ///
@@ -78,6 +82,70 @@ impl RouteCredentialScheduler {
                 return false;
             }
             let Some(acquired) = self.credential_pools.try_lease(candidate.endpoint_id()) else {
+                return false;
+            };
+            lease = Some(acquired);
+            true
+        });
+
+        match (candidate, lease) {
+            (Some(candidate), Some(lease)) => Ok(SelectedRouteCredential { candidate, lease }),
+            _ => Err(credential_unavailable_error()),
+        }
+    }
+
+    /// Selects a Candidate and Credential while applying P3-05 runtime availability state.
+    ///
+    /// Endpoint-level Cooldown/Circuit state rejects a Candidate before its pool is read.
+    /// Endpoint/Credential state is applied inside that pool's bounded weighted scan, so a cooled
+    /// Credential does not incorrectly make its healthy sibling Credentials unavailable.
+    ///
+    /// # Errors
+    ///
+    /// Returns `CredentialUnavailable/Credential` without runtime identifiers when no Candidate
+    /// can pass runtime availability and acquire a live Credential lease.
+    pub fn select_runtime_eligible_and_lease(
+        &self,
+        route_id: &RouteId,
+        runtime_health: &RuntimeHealthRegistry,
+    ) -> Result<SelectedRouteCredential, GatewayError> {
+        self.select_eligible_and_lease_with_runtime_health(route_id, runtime_health, |_| true)
+    }
+
+    /// Selects an externally eligible Candidate and Credential while applying runtime health.
+    ///
+    /// This retains the P3-04 caller predicate for later P3-06 attempt exclusions. A clock or
+    /// shard failure in `runtime_health` fails closed by rejecting the affected Candidate or
+    /// Credential, yielding the existing safe `CredentialUnavailable/Credential` result if none
+    /// can acquire a live lease.
+    ///
+    /// # Errors
+    ///
+    /// Returns `CredentialUnavailable/Credential` without runtime identifiers when no Candidate
+    /// can pass the caller predicate, runtime availability, and lease acquisition.
+    pub fn select_eligible_and_lease_with_runtime_health<F>(
+        &self,
+        route_id: &RouteId,
+        runtime_health: &RuntimeHealthRegistry,
+        mut is_candidate_eligible: F,
+    ) -> Result<SelectedRouteCredential, GatewayError>
+    where
+        F: FnMut(&SnapshotRouteCandidate) -> bool,
+    {
+        let mut lease = None;
+        let candidate = self.candidates.select_eligible(route_id, |candidate| {
+            if !is_candidate_eligible(candidate)
+                || !runtime_health.endpoint_is_available(candidate.endpoint_id())
+            {
+                return false;
+            }
+            let Some(acquired) = self.credential_pools.try_lease_eligible(
+                candidate.endpoint_id(),
+                |credential_id| {
+                    runtime_health
+                        .endpoint_credential_is_available(candidate.endpoint_id(), credential_id)
+                },
+            ) else {
                 return false;
             };
             lease = Some(acquired);
@@ -143,7 +211,10 @@ mod tests {
         collections::BTreeMap,
         error::Error,
         io,
-        sync::{Arc, Barrier},
+        sync::{
+            Arc, Barrier,
+            atomic::{AtomicI64, Ordering},
+        },
         thread,
     };
 
@@ -158,7 +229,8 @@ mod tests {
 
     use super::RouteCredentialScheduler;
     use crate::{
-        RouteSnapshot, RouteSnapshotInput, SnapshotCatalogAdmission, SnapshotPublicModel,
+        RouteSnapshot, RouteSnapshotInput, RuntimeHealthClock, RuntimeHealthClockError,
+        RuntimeHealthKey, RuntimeHealthRegistry, SnapshotCatalogAdmission, SnapshotPublicModel,
         SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
         SnapshotTransformMode, SnapshotVersion,
     };
@@ -286,6 +358,64 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn runtime_health_filters_endpoints_and_credentials_without_distorting_fallback() -> TestResult
+    {
+        let (scheduler, route_id) = scheduler(
+            vec![
+                ("candidate-a", "endpoint-a", 0, 1),
+                ("candidate-b", "endpoint-b", 1, 1),
+            ],
+            vec![
+                (
+                    "endpoint-a",
+                    vec![("credential-a-one", 0, 1, 1), ("credential-a-two", 0, 1, 1)],
+                ),
+                ("endpoint-b", vec![("credential-b", 0, 1, 1)]),
+            ],
+        )?;
+        let clock = Arc::new(FixedRuntimeHealthClock::new(100));
+        let runtime_health = RuntimeHealthRegistry::with_clock(clock.clone());
+        let endpoint_a = EndpointId::try_new("endpoint-a")?;
+        let credential_a_one = CredentialId::try_new("credential-a-one")?;
+
+        runtime_health.cool_down_until(
+            RuntimeHealthKey::endpoint_credential(endpoint_a.clone(), credential_a_one),
+            200,
+        )?;
+        let selected = scheduler.select_runtime_eligible_and_lease(&route_id, &runtime_health)?;
+        assert_eq!(selected.candidate().id().as_str(), "candidate-a");
+        assert_eq!(
+            selected.lease().credential_id().as_str(),
+            "credential-a-two"
+        );
+        drop(selected);
+
+        runtime_health.cool_down_until(RuntimeHealthKey::endpoint(endpoint_a), 200)?;
+        let fallback = scheduler.select_runtime_eligible_and_lease(&route_id, &runtime_health)?;
+        assert_eq!(fallback.candidate().id().as_str(), "candidate-b");
+        assert_eq!(fallback.lease().credential_id().as_str(), "credential-b");
+        Ok(())
+    }
+
+    #[test]
+    fn unavailable_runtime_health_clock_fails_closed_before_pool_lease() -> TestResult {
+        let (scheduler, route_id) = scheduler(
+            vec![("candidate-a", "endpoint-a", 0, 1)],
+            vec![("endpoint-a", vec![("credential-a", 0, 1, 1)])],
+        )?;
+        let runtime_health =
+            RuntimeHealthRegistry::with_clock(Arc::new(UnavailableRuntimeHealthClock));
+
+        let Err(error) = scheduler.select_runtime_eligible_and_lease(&route_id, &runtime_health)
+        else {
+            return Err("unavailable runtime-health clock unexpectedly selected a lease".into());
+        };
+        assert_eq!(error.code(), GatewayErrorCode::CredentialUnavailable);
+        assert_eq!(error.scope(), ErrorScope::Credential);
+        Ok(())
+    }
+
     fn scheduler<'a>(
         candidate_specs: Vec<CandidateSpec<'a>>,
         pool_specs: Vec<PoolSpec<'a>>,
@@ -376,6 +506,34 @@ mod tests {
     fn merge_counts(target: &mut BTreeMap<String, usize>, source: BTreeMap<String, usize>) {
         for (key, value) in source {
             *target.entry(key).or_default() += value;
+        }
+    }
+
+    #[derive(Debug)]
+    struct FixedRuntimeHealthClock {
+        now_ms: AtomicI64,
+    }
+
+    impl FixedRuntimeHealthClock {
+        const fn new(now_ms: i64) -> Self {
+            Self {
+                now_ms: AtomicI64::new(now_ms),
+            }
+        }
+    }
+
+    impl RuntimeHealthClock for FixedRuntimeHealthClock {
+        fn now_ms(&self) -> Result<i64, RuntimeHealthClockError> {
+            Ok(self.now_ms.load(Ordering::Acquire))
+        }
+    }
+
+    #[derive(Debug)]
+    struct UnavailableRuntimeHealthClock;
+
+    impl RuntimeHealthClock for UnavailableRuntimeHealthClock {
+        fn now_ms(&self) -> Result<i64, RuntimeHealthClockError> {
+            Err(RuntimeHealthClockError::Unavailable)
         }
     }
 }

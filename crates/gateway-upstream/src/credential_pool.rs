@@ -199,12 +199,30 @@ impl EndpointCredentialPool {
     /// Credential, or Secret diagnostic and means no lease is currently available.
     #[must_use]
     pub fn try_lease(&self) -> Option<CredentialLease> {
+        self.try_lease_eligible(|_| true)
+    }
+
+    /// Attempts to acquire one lease while a caller supplies a non-secret Credential eligibility
+    /// predicate.
+    ///
+    /// The predicate runs only on a stable Credential ID before a capacity reservation. It lets a
+    /// later runtime state layer skip a Cooling or Circuit-open Credential while preserving this
+    /// Endpoint-local pool's bounded priority and weighted scheduling behavior. It must not block,
+    /// query a Store, or inspect Secret material.
+    #[must_use]
+    pub fn try_lease_eligible<F>(&self, mut is_eligible: F) -> Option<CredentialLease>
+    where
+        F: FnMut(&CredentialId) -> bool,
+    {
         for (priority_tier, cursor) in self.priority_tiers.iter().zip(&self.cursors) {
             let slot_indexes = &priority_tier.slot_indexes;
             let start = cursor.fetch_add(1, Ordering::Relaxed);
             for offset in 0..slot_indexes.len() {
                 let slot_index = start.wrapping_add(offset) % slot_indexes.len();
                 let credential = self.credentials.get(slot_indexes[slot_index])?;
+                if !is_eligible(&credential.credential_id) {
+                    continue;
+                }
                 if credential.try_acquire() {
                     return Some(CredentialLease {
                         credential: Arc::clone(credential),
@@ -274,6 +292,20 @@ impl EndpointCredentialPools {
     #[must_use]
     pub fn try_lease(&self, endpoint_id: &EndpointId) -> Option<CredentialLease> {
         self.pool(endpoint_id)?.try_lease()
+    }
+
+    /// Attempts to acquire an Endpoint-local Credential lease after a non-secret eligibility
+    /// predicate approves the candidate Credential ID.
+    #[must_use]
+    pub fn try_lease_eligible<F>(
+        &self,
+        endpoint_id: &EndpointId,
+        is_eligible: F,
+    ) -> Option<CredentialLease>
+    where
+        F: FnMut(&CredentialId) -> bool,
+    {
+        self.pool(endpoint_id)?.try_lease_eligible(is_eligible)
     }
 
     /// Returns the number of Endpoint pools in this immutable set.
@@ -606,6 +638,26 @@ mod tests {
             .ok_or_else(|| io::Error::other("expected replacement lease"))?;
         released.release();
         assert_eq!(pool.active_lease_count(&credential_id), Some(0));
+        Ok(())
+    }
+
+    #[test]
+    fn eligibility_predicate_skips_one_credential_without_changing_pool_scope() -> TestResult {
+        let pool = pool(
+            "endpoint-a",
+            vec![("credential-a", 0, 1, 1), ("credential-b", 0, 1, 1)],
+        )?;
+        let credential_a = CredentialId::try_new("credential-a")?;
+        let credential_b = CredentialId::try_new("credential-b")?;
+
+        let lease = pool
+            .try_lease_eligible(|credential_id| credential_id.as_str() != "credential-a")
+            .ok_or_else(|| io::Error::other("expected the eligible Credential lease"))?;
+        assert_eq!(lease.credential_id().as_str(), "credential-b");
+        assert_eq!(pool.active_lease_count(&credential_a), Some(0));
+        assert_eq!(pool.active_lease_count(&credential_b), Some(1));
+        drop(lease);
+        assert_eq!(pool.active_lease_count(&credential_b), Some(0));
         Ok(())
     }
 

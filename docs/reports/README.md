@@ -52,3 +52,4 @@
 - [P3-02 DNS-pinned upstream client pool report](p3-02-dns-pinned-upstream-client-pool.md)
 - [P3-03 Priority-tier smooth weighted scheduler report](p3-03-priority-tier-scheduler.md)
 - [P3-04 Endpoint Credential pool report](p3-04-endpoint-credential-pool.md)
+- [P3-05 Sharded runtime health report](p3-05-runtime-health.md)

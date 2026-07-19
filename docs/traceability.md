@@ -61,6 +61,7 @@
 | P3-02 | Plan 9；Matrix `C16`、`K03-K06`、`L06`；Behavior 20 | [ADR-0012](adr/ADR-0012-dns-pinned-upstream-client-pool.md)、[BC-UPSTREAM-001](contracts/BC-UPSTREAM-001-dns-pinned-upstream-client-pool.md) | `gateway-upstream` bounded DNS-pinned Client Pool, timeouts, Direct/SOCKS5 isolation, and P3-01 exact-target handoff | [P3-02 report](reports/p3-02-dns-pinned-upstream-client-pool.md) | DONE |
 | P3-03 | Plan 9；Matrix `L24`、`L25`；Behavior 3/20 | [ADR-0013](adr/ADR-0013-priority-tier-smooth-weighted-scheduler.md)、[BC-SCHEDULER-001](contracts/BC-SCHEDULER-001-priority-tier-smooth-weighted-scheduler.md) | `gateway-router` immutable priority-tier plans and atomic-cursor Candidate selection | [P3-03 report](reports/p3-03-priority-tier-scheduler.md) | DONE |
 | P3-04 | Plan 9；Matrix `D12`、`D14`、`D17`、`E16`、`K06`、`L26`；Behavior 3/14/17/20 | [ADR-0014](adr/ADR-0014-endpoint-credential-pool-leases.md)、[BC-CRED-001](contracts/BC-CRED-001-endpoint-credential-pool-leases.md) | `gateway-control` AEAD/AAD pool compiler, `gateway-upstream` bounded atomic Credential leases, and `gateway-router` two-stage selection | [P3-04 report](reports/p3-04-endpoint-credential-pool.md) | DONE |
+| P3-05 | Plan 9；Matrix `E08`、`E11`、`E12`、`K06`、`L30`；Behavior 2/3/17/20 | [ADR-0015](adr/ADR-0015-sharded-runtime-health.md)、[BC-HEALTH-001](contracts/BC-HEALTH-001-sharded-runtime-health.md) | `gateway-router` bounded Endpoint/Credential runtime health shards and health-aware P3-04 scheduling | [P3-05 report](reports/p3-05-runtime-health.md) | IN_PROGRESS |
 
 ## 后续 Phase 映射
 
