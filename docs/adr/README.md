@@ -39,3 +39,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0010 Local management lifecycle and durable publication audit](ADR-0010-local-management-lifecycle.md) — `P2-10`。
 - [ADR-0011 OpenAI-compatible Responses request assembly](ADR-0011-openai-compatible-responses-request-assembly.md) — `P3-01`。
 - [ADR-0012 DNS-pinned bounded upstream client pool](ADR-0012-dns-pinned-upstream-client-pool.md) — `P3-02`。
+- [ADR-0013 Priority-tier bounded smooth weighted scheduler](ADR-0013-priority-tier-smooth-weighted-scheduler.md) — `P3-03`。

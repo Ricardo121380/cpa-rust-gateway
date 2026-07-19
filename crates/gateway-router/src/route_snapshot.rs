@@ -338,6 +338,131 @@ impl SnapshotRoute {
     }
 }
 
+/// Upper bound for one immutable priority-tier schedule.
+///
+/// This keeps Config Version publication and runtime scans bounded even when a persisted weight is
+/// malformed or unexpectedly large. The bound is deliberately applied to every policy: ordinary
+/// round-robin consumes one slot per Candidate, while smooth weighted round-robin consumes one
+/// slot per unit of weight.
+pub const MAX_SCHEDULE_SLOTS_PER_PRIORITY_TIER: usize = 1024;
+
+/// Precompiled immutable Candidate schedule for one Route.
+///
+/// The plan is created while a [`RouteSnapshot`] is built, never while a request is selected. Its
+/// priority tiers are ordered from lower (preferred) to higher values.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SnapshotRouteSchedule {
+    priority_tiers: Vec<SnapshotPriorityTierSchedule>,
+}
+
+impl SnapshotRouteSchedule {
+    fn try_compile(route: &SnapshotRoute) -> Result<Self, RouteSnapshotBuildError> {
+        let mut candidates_by_priority: BTreeMap<i64, Vec<usize>> = BTreeMap::new();
+        for (candidate_index, candidate) in route.candidates().iter().enumerate() {
+            if candidate.priority() < 0 {
+                return Err(RouteSnapshotBuildError::InvalidCandidatePriority);
+            }
+            if candidate.weight() <= 0 {
+                return Err(RouteSnapshotBuildError::InvalidCandidateWeight);
+            }
+            candidates_by_priority
+                .entry(candidate.priority())
+                .or_default()
+                .push(candidate_index);
+        }
+
+        let mut priority_tiers = Vec::with_capacity(candidates_by_priority.len());
+        for (priority, mut candidate_indexes) in candidates_by_priority {
+            candidate_indexes.sort_by(|left, right| {
+                route.candidates()[*left]
+                    .id()
+                    .cmp(route.candidates()[*right].id())
+            });
+            let slot_indexes = match route.policy() {
+                SnapshotRoutePolicy::RoundRobin | SnapshotRoutePolicy::PriorityFailover => {
+                    if candidate_indexes.len() > MAX_SCHEDULE_SLOTS_PER_PRIORITY_TIER {
+                        return Err(RouteSnapshotBuildError::RouteScheduleTooLarge);
+                    }
+                    candidate_indexes
+                }
+                SnapshotRoutePolicy::SmoothWeightedRoundRobin => {
+                    smooth_weighted_slots(route, &candidate_indexes)?
+                }
+            };
+            priority_tiers.push(SnapshotPriorityTierSchedule {
+                priority,
+                slot_indexes,
+            });
+        }
+
+        Ok(Self { priority_tiers })
+    }
+
+    /// Iterates precompiled priority tiers in lower-is-better order.
+    pub fn priority_tiers(&self) -> impl Iterator<Item = &SnapshotPriorityTierSchedule> {
+        self.priority_tiers.iter()
+    }
+}
+
+/// One ordered priority tier within a [`SnapshotRouteSchedule`].
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SnapshotPriorityTierSchedule {
+    priority: i64,
+    slot_indexes: Vec<usize>,
+}
+
+impl SnapshotPriorityTierSchedule {
+    /// Returns the lower-is-better priority value of this tier.
+    #[must_use]
+    pub const fn priority(&self) -> i64 {
+        self.priority
+    }
+
+    pub(crate) fn slot_indexes(&self) -> &[usize] {
+        &self.slot_indexes
+    }
+}
+
+fn smooth_weighted_slots(
+    route: &SnapshotRoute,
+    candidate_indexes: &[usize],
+) -> Result<Vec<usize>, RouteSnapshotBuildError> {
+    let mut total_slots = 0_usize;
+    let mut weights = Vec::with_capacity(candidate_indexes.len());
+    for candidate_index in candidate_indexes {
+        let weight = usize::try_from(route.candidates()[*candidate_index].weight())
+            .map_err(|_| RouteSnapshotBuildError::RouteScheduleTooLarge)?;
+        total_slots = total_slots
+            .checked_add(weight)
+            .ok_or(RouteSnapshotBuildError::RouteScheduleTooLarge)?;
+        if total_slots > MAX_SCHEDULE_SLOTS_PER_PRIORITY_TIER {
+            return Err(RouteSnapshotBuildError::RouteScheduleTooLarge);
+        }
+        weights.push(
+            i64::try_from(weight).map_err(|_| RouteSnapshotBuildError::RouteScheduleTooLarge)?,
+        );
+    }
+
+    let total_weight =
+        i64::try_from(total_slots).map_err(|_| RouteSnapshotBuildError::RouteScheduleTooLarge)?;
+    let mut current_weights = vec![0_i64; weights.len()];
+    let mut slot_indexes = Vec::with_capacity(total_slots);
+    for _ in 0..total_slots {
+        for (current_weight, weight) in current_weights.iter_mut().zip(&weights) {
+            *current_weight += weight;
+        }
+        let mut selected = 0_usize;
+        for candidate_position in 1..current_weights.len() {
+            if current_weights[candidate_position] > current_weights[selected] {
+                selected = candidate_position;
+            }
+        }
+        current_weights[selected] -= total_weight;
+        slot_indexes.push(candidate_indexes[selected]);
+    }
+    Ok(slot_indexes)
+}
+
 /// One active Access Group permission view in a runtime Snapshot.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnapshotAccessGroup {
@@ -479,6 +604,7 @@ pub struct RouteSnapshot {
     public_model_names_by_id: BTreeMap<PublicModelId, String>,
     aliases: BTreeMap<String, PublicModelId>,
     routes: BTreeMap<RouteId, SnapshotRoute>,
+    route_schedules: BTreeMap<RouteId, SnapshotRouteSchedule>,
     access_groups: BTreeMap<AccessGroupId, SnapshotAccessGroup>,
     client_keys: BTreeMap<ClientKeyPrefix, SnapshotClientKeyView>,
 }
@@ -508,24 +634,7 @@ impl RouteSnapshot {
             }
         }
 
-        let mut routes = BTreeMap::new();
-        let mut candidate_ids = BTreeSet::new();
-        for route in input.routes {
-            if routes.insert(route.id.clone(), route.clone()).is_some() {
-                return Err(RouteSnapshotBuildError::DuplicateRoute);
-            }
-            if !public_model_names_by_id.contains_key(&route.public_model_id) {
-                return Err(RouteSnapshotBuildError::UnknownRoutePublicModel);
-            }
-            if route.candidates.is_empty() {
-                return Err(RouteSnapshotBuildError::RouteHasNoCandidates);
-            }
-            for candidate in &route.candidates {
-                if !candidate_ids.insert(candidate.id.clone()) {
-                    return Err(RouteSnapshotBuildError::DuplicateCandidate);
-                }
-            }
-        }
+        let (routes, route_schedules) = build_routes(input.routes, &public_model_names_by_id)?;
 
         for public_model in public_models.values() {
             let route = routes
@@ -592,6 +701,7 @@ impl RouteSnapshot {
             public_model_names_by_id,
             aliases,
             routes,
+            route_schedules,
             access_groups,
             client_keys,
         })
@@ -636,6 +746,12 @@ impl RouteSnapshot {
         self.routes.get(route_id)
     }
 
+    /// Returns the immutable precompiled Candidate schedule for one active Route.
+    #[must_use]
+    pub fn route_schedule(&self, route_id: &RouteId) -> Option<&SnapshotRouteSchedule> {
+        self.route_schedules.get(route_id)
+    }
+
     /// Iterates Routes in stable identifier order.
     pub fn routes(&self) -> impl Iterator<Item = &SnapshotRoute> {
         self.routes.values()
@@ -664,6 +780,40 @@ impl RouteSnapshot {
     }
 }
 
+type BuiltRoutes = (
+    BTreeMap<RouteId, SnapshotRoute>,
+    BTreeMap<RouteId, SnapshotRouteSchedule>,
+);
+
+fn build_routes(
+    input_routes: Vec<SnapshotRoute>,
+    public_model_names_by_id: &BTreeMap<PublicModelId, String>,
+) -> Result<BuiltRoutes, RouteSnapshotBuildError> {
+    let mut routes = BTreeMap::new();
+    let mut route_schedules = BTreeMap::new();
+    let mut candidate_ids = BTreeSet::new();
+    for route in input_routes {
+        if routes.contains_key(&route.id) {
+            return Err(RouteSnapshotBuildError::DuplicateRoute);
+        }
+        if !public_model_names_by_id.contains_key(&route.public_model_id) {
+            return Err(RouteSnapshotBuildError::UnknownRoutePublicModel);
+        }
+        if route.candidates.is_empty() {
+            return Err(RouteSnapshotBuildError::RouteHasNoCandidates);
+        }
+        for candidate in &route.candidates {
+            if !candidate_ids.insert(candidate.id.clone()) {
+                return Err(RouteSnapshotBuildError::DuplicateCandidate);
+            }
+        }
+        let schedule = SnapshotRouteSchedule::try_compile(&route)?;
+        route_schedules.insert(route.id.clone(), schedule);
+        routes.insert(route.id.clone(), route);
+    }
+    Ok((routes, route_schedules))
+}
+
 /// Safe construction failures for a runtime Snapshot input.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RouteSnapshotBuildError {
@@ -681,6 +831,12 @@ pub enum RouteSnapshotBuildError {
     PublicModelRouteMismatch,
     /// A Route had no hard-eligible Candidates.
     RouteHasNoCandidates,
+    /// A Candidate used a negative priority tier.
+    InvalidCandidatePriority,
+    /// A Candidate used a non-positive scheduling weight.
+    InvalidCandidateWeight,
+    /// A precompiled priority-tier schedule would exceed its finite limit.
+    RouteScheduleTooLarge,
     /// More than one Route Candidate used the same stable identity.
     DuplicateCandidate,
     /// An Alias duplicated an active public-model name.
@@ -715,6 +871,9 @@ impl fmt::Display for RouteSnapshotBuildError {
                 "Snapshot public model and Route identities do not agree"
             }
             Self::RouteHasNoCandidates => "Snapshot Route has no hard-eligible Candidates",
+            Self::InvalidCandidatePriority => "Snapshot Candidate has an invalid priority tier",
+            Self::InvalidCandidateWeight => "Snapshot Candidate has an invalid scheduling weight",
+            Self::RouteScheduleTooLarge => "Snapshot Route schedule exceeds its finite limit",
             Self::DuplicateCandidate => "Snapshot has a duplicate Candidate identity",
             Self::AliasConflictsPublicModel => "Snapshot Alias conflicts with a public model name",
             Self::DuplicateAlias => "Snapshot has a duplicate Alias",
@@ -1177,6 +1336,23 @@ mod tests {
     }
 
     #[test]
+    fn rejects_invalid_or_unbounded_candidate_schedules() -> TestResult {
+        assert!(matches!(
+            snapshot_with_candidate_schedule(-1, 1)?,
+            Err(RouteSnapshotBuildError::InvalidCandidatePriority)
+        ));
+        assert!(matches!(
+            snapshot_with_candidate_schedule(0, 0)?,
+            Err(RouteSnapshotBuildError::InvalidCandidateWeight)
+        ));
+        assert!(matches!(
+            snapshot_with_candidate_schedule(0, 1_025)?,
+            Err(RouteSnapshotBuildError::RouteScheduleTooLarge)
+        ));
+        Ok(())
+    }
+
+    #[test]
     fn rejects_duplicate_or_inconsistent_client_key_views() -> TestResult {
         let route_id = RouteId::try_new("route-a")?;
         let allowed_route_ids = BTreeSet::from([route_id]);
@@ -1460,6 +1636,47 @@ mod tests {
             client_keys,
         ))?;
         Ok(Arc::new(snapshot))
+    }
+
+    fn snapshot_with_candidate_schedule(
+        priority: i64,
+        weight: i64,
+    ) -> Result<Result<RouteSnapshot, RouteSnapshotBuildError>, Box<dyn Error>> {
+        let public_model_id = PublicModelId::try_new("public-model-a")?;
+        let route_id = RouteId::try_new("route-a")?;
+        let candidate = SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
+            id: RouteCandidateId::try_new("candidate-a")?,
+            endpoint_id: EndpointId::try_new("endpoint-a")?,
+            upstream_id: UpstreamId::try_new("upstream-a")?,
+            upstream_model: "upstream-model".to_owned(),
+            transform_mode: SnapshotTransformMode::Canonical,
+            priority,
+            weight,
+            effective_capabilities: CapabilitySet::empty(),
+            catalog_admission: SnapshotCatalogAdmission::Listed(CatalogModelState::Fresh),
+            active_binding_count: 1,
+        });
+        Ok(RouteSnapshot::try_new(RouteSnapshotInput::new(
+            SnapshotVersion::try_new("version-a")?,
+            vec![SnapshotPublicModel::new(
+                public_model_id.clone(),
+                "public-model".to_owned(),
+                "Public Model".to_owned(),
+                CapabilitySet::empty(),
+                route_id.clone(),
+            )],
+            Vec::new(),
+            vec![SnapshotRoute::new(
+                route_id,
+                public_model_id,
+                SnapshotRoutePolicy::SmoothWeightedRoundRobin,
+                2,
+                10_000,
+                vec![candidate],
+            )],
+            Vec::new(),
+            Vec::new(),
+        )))
     }
 
     fn issued_test_key(

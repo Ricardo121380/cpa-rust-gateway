@@ -5,6 +5,7 @@
 
 #![deny(unsafe_code)]
 
+mod route_scheduler;
 mod route_snapshot;
 
 use std::{future::Future, pin::Pin, time::Duration};
@@ -15,13 +16,15 @@ use gateway_provider::{
     ProviderFuture,
 };
 
+pub use route_scheduler::RouteCandidateScheduler;
 pub use route_snapshot::{
-    PreparedSnapshotPublication, RouteSnapshot, RouteSnapshotBuildError, RouteSnapshotInput,
-    RouteSnapshotRegistry, SnapshotAccessGroup, SnapshotCatalogAdmission,
-    SnapshotClientKeyAuthenticator, SnapshotClientKeyClock, SnapshotClientKeyClockError,
-    SnapshotClientKeyView, SnapshotPublicModel, SnapshotRegistryError, SnapshotRoute,
-    SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
-    SnapshotTransformMode, SnapshotTransition, SnapshotVersion, SystemSnapshotClientKeyClock,
+    MAX_SCHEDULE_SLOTS_PER_PRIORITY_TIER, PreparedSnapshotPublication, RouteSnapshot,
+    RouteSnapshotBuildError, RouteSnapshotInput, RouteSnapshotRegistry, SnapshotAccessGroup,
+    SnapshotCatalogAdmission, SnapshotClientKeyAuthenticator, SnapshotClientKeyClock,
+    SnapshotClientKeyClockError, SnapshotClientKeyView, SnapshotPriorityTierSchedule,
+    SnapshotPublicModel, SnapshotRegistryError, SnapshotRoute, SnapshotRouteCandidate,
+    SnapshotRouteCandidateInput, SnapshotRoutePolicy, SnapshotRouteSchedule, SnapshotTransformMode,
+    SnapshotTransition, SnapshotVersion, SystemSnapshotClientKeyClock,
 };
 
 /// Stable component identifier used by architecture smoke tests.
