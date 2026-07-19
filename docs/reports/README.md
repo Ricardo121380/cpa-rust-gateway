@@ -54,3 +54,4 @@
 - [P3-04 Endpoint Credential pool report](p3-04-endpoint-credential-pool.md)
 - [P3-05 Sharded runtime health report](p3-05-runtime-health.md)
 - [P3-06 Attempt Orchestrator report](p3-06-attempt-orchestrator.md)
+- [P3-07 RouteSnapshot public model view report](p3-07-routesnapshot-public-model-view.md)
