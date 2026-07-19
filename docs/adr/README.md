@@ -37,3 +37,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0008 Snapshot Client Key authentication](ADR-0008-snapshot-client-key-authentication.md) — `P2-08`。
 - [ADR-0009 EgressPolicy SSRF admission](ADR-0009-egress-policy-ssrf-admission.md) — `P2-09`。
 - [ADR-0010 Local management lifecycle and durable publication audit](ADR-0010-local-management-lifecycle.md) — `P2-10`。
+- [ADR-0011 OpenAI-compatible Responses request assembly](ADR-0011-openai-compatible-responses-request-assembly.md) — `P3-01`。

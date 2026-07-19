@@ -33,7 +33,7 @@ allowed = {
   "provider-anthropic-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-anthropic],
   "provider-grok" => %w[gateway-continuity gateway-core gateway-provider gateway-upstream protocol-openai-responses],
   "provider-kiro" => %w[gateway-core gateway-provider gateway-stream gateway-upstream protocol-anthropic],
-  "provider-openai-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-openai-responses],
+  "provider-openai-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-openai-responses serde_json zeroize],
 }
 
 errors = []

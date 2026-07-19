@@ -53,6 +53,12 @@
 | P2-10 | Plan 8；Matrix `H05`、`J03/J18-J20`；Behavior 20 | [ADR-0010](adr/ADR-0010-local-management-lifecycle.md)、[BC-CONTROL-002](contracts/BC-CONTROL-002-local-management-lifecycle.md) | Transport-neutral local management lifecycle, durable audit events, restart rollback reconstruction, and `gateway admin` CLI | [P2-10 report](reports/p2-10-management-lifecycle.md) | DONE |
 | G2 | Plan G2；P2 Matrix `D/E/H/J/L` | P2 ADR/Contract 集合 | P2-01 至 P2-10 完成审计、Secret/SSRF/热路径与 Snapshot 并发条件核验 | [G2 报告](reports/g2-gate-report.md) | DONE |
 
+## P3 追踪
+
+| Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
+|---|---|---|---|---|---|
+| P3-01 | Plan 9；Matrix `C16`、`D10/D11`、`L06`；Behavior 3/17/20 | [ADR-0011](adr/ADR-0011-openai-compatible-responses-request-assembly.md)、[BC-PROVIDER-002](contracts/BC-PROVIDER-002-openai-compatible-responses-request.md) | `gateway-upstream` safe endpoint URL composition and `provider-openai-compatible` Canonical-to-Responses request builder | [P3-01 report](reports/p3-01-openai-compatible-responses-request.md) | DONE |
+
 ## 后续 Phase 映射
 
 | 矩阵模块 | 主要 Phase |

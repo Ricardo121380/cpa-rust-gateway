@@ -1040,6 +1040,8 @@ dependencies = [
  "gateway-provider",
  "gateway-upstream",
  "protocol-openai-responses",
+ "serde_json",
+ "zeroize",
 ]
 
 [[package]]

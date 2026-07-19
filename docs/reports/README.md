@@ -48,3 +48,4 @@
 - [P2-08 Snapshot Client Key authentication report](p2-08-snapshot-client-key-authentication.md)
 - [P2-09 EgressPolicy SSRF admission report](p2-09-egress-policy-ssrf-admission.md)
 - [P2-10 Local management lifecycle report](p2-10-management-lifecycle.md)
+- [P3-01 OpenAI-compatible Responses request assembly report](p3-01-openai-compatible-responses-request.md)

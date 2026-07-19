@@ -7,8 +7,8 @@
 | 计划版本 | `v1.1` |
 | 生效日期 | `2026-07-19` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` 与 `P2 - 聚合控制面、安全与 RouteSnapshot` 已完成；`P3` 尚未开始 |
-| 当前任务 | 无；`P2-01` 至 `P2-10` 与 `G2` 均为 `DONE`，`P3-01` 保持 `PENDING`（未启动） |
+| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` 与 `P2 - 聚合控制面、安全与 RouteSnapshot` 已完成；`P3 - OpenAI Responses 聚合 MVP` 进行中 |
+| 当前任务 | `P3-01` 已完成本地实现、review 和 Fast/Full，待 GitHub Fast/Full 验收；P3-02 至 P3-10 保持 `PENDING` |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -232,7 +232,7 @@ deploy/
 | P0 | 仓库、工具链、ADR、CI 基线 | 本计划锁定 | G0 | DONE |
 | P1 | Canonical Core + Mock 垂直链路 | G0 | G1 | DONE |
 | P2 | 聚合控制面、Secret、RouteSnapshot | G1 | G2 | DONE |
-| P3 | OpenAI Responses 聚合 MVP | G2 | G3 | PENDING |
+| P3 | OpenAI Responses 聚合 MVP | G2 | G3 | IN_PROGRESS |
 | P4 | Catalog、Health、Quota、Explain、观测 | G3 | G4 | PENDING |
 | P5 | Anthropic/Claude Code 兼容 | G4 | G5 | PENDING |
 | P6 | Grok Build | G5 | G6 | PENDING |
@@ -326,7 +326,7 @@ deploy/
 
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
-| P3-01 | 实现 OpenAI-compatible Responses Endpoint URL/Header/Body 组装 | G2 | URL 组合和 Header 脱敏测试 | PENDING |
+| P3-01 | 实现 OpenAI-compatible Responses Endpoint URL/Header/Body 组装 | G2 | URL 组合和 Header 脱敏测试 | DONE |
 | P3-02 | 实现共享上游 Client Pool、connect/TTFB/idle/total timeout 和代理隔离 | P3-01 | 连接复用、超时、代理测试 | PENDING |
 | P3-03 | 实现 Priority Tier + 预编译 Smooth Weighted Schedule + 原子 Cursor | P2-07 | 权重分布和并发公平性测试 | PENDING |
 | P3-04 | 实现 Endpoint Credential Pool、并发租约、站内权重和释放保证 | P3-03 | 泄漏、取消、饱和和双层公平测试 | PENDING |
