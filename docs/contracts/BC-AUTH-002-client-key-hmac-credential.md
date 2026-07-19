@@ -4,7 +4,7 @@
 |---|---|
 | Contract | `BC-AUTH-002` |
 | Task | `P2-04` |
-| Status | IN_PROGRESS |
+| Status | DONE |
 | Domain | Client Key issuance, storage-safe HMAC verification, and lifecycle admission |
 
 ## Entry and boundary

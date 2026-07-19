@@ -7,7 +7,7 @@
 | Date | `2026-07-19` |
 | Branch | `codex/p2-04-client-key-hmac` |
 | Rust | `1.97.1` |
-| Result | Local PASS; GitHub Fast/Full CI pending push |
+| Result | PASS |
 
 ## Delivered scope
 
@@ -73,5 +73,13 @@ deployed Pepper or Key material.
 
 ## GitHub CI
 
-The implementation is ready to commit and push. This report and the P2-04 status will be updated
-to `DONE` only after successful GitHub Fast and Full CI results.
+GitHub Actions run [29676361709](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29676361709)
+passed on commit `0bff7f2`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS |
+| Full supply-chain gate | PASS |
+
+The Fast gate completed at `2026-07-19T06:25:18Z`; the Full supply-chain gate completed at
+`2026-07-19T06:35:30Z`. This completes P2-04 acceptance.
