@@ -662,6 +662,7 @@ dependencies = [
  "gateway-core",
  "gateway-provider",
  "gateway-upstream",
+ "tokio",
 ]
 
 [[package]]

@@ -14,7 +14,7 @@ use std::{
 
 use gateway_core::RouteId;
 
-use crate::{RouteSnapshot, SnapshotRouteCandidate};
+use crate::{RouteSnapshot, SnapshotRoute, SnapshotRouteCandidate};
 
 /// A process-local, lock-free cursor set for one immutable [`RouteSnapshot`].
 ///
@@ -47,6 +47,15 @@ impl RouteCandidateScheduler {
             })
             .collect();
         Self { snapshot, cursors }
+    }
+
+    /// Returns one immutable Route from the same Snapshot used for selection.
+    ///
+    /// This is a configuration read only. It does not advance a cursor, query a Store, or expose
+    /// any Credential material.
+    #[must_use]
+    pub fn route(&self, route_id: &RouteId) -> Option<&SnapshotRoute> {
+        self.snapshot.route(route_id)
     }
 
     /// Selects the next hard-eligible Candidate from the lowest available priority tier.

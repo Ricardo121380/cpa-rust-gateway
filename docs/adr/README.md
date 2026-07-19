@@ -42,3 +42,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0013 Priority-tier bounded smooth weighted scheduler](ADR-0013-priority-tier-smooth-weighted-scheduler.md) — `P3-03`。
 - [ADR-0014 Endpoint Credential pool leases](ADR-0014-endpoint-credential-pool-leases.md) — `P3-04`。
 - [ADR-0015 Sharded runtime health state](ADR-0015-sharded-runtime-health.md) — `P3-05`。
+- [ADR-0016 Request-scoped Attempt orchestration and transparent-retry gate](ADR-0016-request-scoped-attempt-orchestration.md) — `P3-06`。

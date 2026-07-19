@@ -8,7 +8,7 @@
 
 use std::sync::Arc;
 
-use gateway_core::{ErrorScope, GatewayError, GatewayErrorCode, RouteId};
+use gateway_core::{CredentialId, ErrorScope, GatewayError, GatewayErrorCode, RouteId};
 use gateway_upstream::{CredentialLease, EndpointCredentialPools};
 
 use crate::{
@@ -127,10 +127,41 @@ impl RouteCredentialScheduler {
         &self,
         route_id: &RouteId,
         runtime_health: &RuntimeHealthRegistry,
-        mut is_candidate_eligible: F,
+        is_candidate_eligible: F,
     ) -> Result<SelectedRouteCredential, GatewayError>
     where
         F: FnMut(&SnapshotRouteCandidate) -> bool,
+    {
+        self.select_eligible_and_lease_with_runtime_health_and_binding(
+            route_id,
+            runtime_health,
+            is_candidate_eligible,
+            |_, _| true,
+        )
+    }
+
+    /// Selects an externally eligible Candidate/Credential binding while applying runtime health.
+    ///
+    /// The two predicates execute before a Credential capacity reservation: the Candidate
+    /// predicate runs before an Endpoint pool is read, and the binding predicate runs on only the
+    /// stable Candidate and Credential identities inside that pool. P3-06 uses this boundary to
+    /// exclude an already attempted binding without globally excluding a healthy sibling
+    /// Credential or another Endpoint.
+    ///
+    /// # Errors
+    ///
+    /// Returns `CredentialUnavailable/Credential` without runtime identities when no Candidate
+    /// can pass both predicates, runtime availability, and lease acquisition.
+    pub fn select_eligible_and_lease_with_runtime_health_and_binding<FCandidate, FBinding>(
+        &self,
+        route_id: &RouteId,
+        runtime_health: &RuntimeHealthRegistry,
+        mut is_candidate_eligible: FCandidate,
+        mut is_binding_eligible: FBinding,
+    ) -> Result<SelectedRouteCredential, GatewayError>
+    where
+        FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
+        FBinding: FnMut(&SnapshotRouteCandidate, &CredentialId) -> bool,
     {
         let mut lease = None;
         let candidate = self.candidates.select_eligible(route_id, |candidate| {
@@ -142,8 +173,11 @@ impl RouteCredentialScheduler {
             let Some(acquired) = self.credential_pools.try_lease_eligible(
                 candidate.endpoint_id(),
                 |credential_id| {
-                    runtime_health
-                        .endpoint_credential_is_available(candidate.endpoint_id(), credential_id)
+                    is_binding_eligible(candidate, credential_id)
+                        && runtime_health.endpoint_credential_is_available(
+                            candidate.endpoint_id(),
+                            credential_id,
+                        )
                 },
             ) else {
                 return false;
@@ -156,6 +190,15 @@ impl RouteCredentialScheduler {
             (Some(candidate), Some(lease)) => Ok(SelectedRouteCredential { candidate, lease }),
             _ => Err(credential_unavailable_error()),
         }
+    }
+
+    /// Returns a copy of one Route from the exact immutable Snapshot used for scheduling.
+    ///
+    /// Attempt orchestration uses the copied Route only for its validated retry budget. The result
+    /// contains no Credential or Secret material and does not advance a scheduler cursor.
+    #[must_use]
+    pub fn route(&self, route_id: &RouteId) -> Option<crate::SnapshotRoute> {
+        self.candidates.route(route_id).cloned()
     }
 }
 
@@ -354,6 +397,31 @@ mod tests {
             candidate.id().as_str() != "candidate-a"
         })?;
         assert_eq!(selected.candidate().id().as_str(), "candidate-b");
+        assert_eq!(selected.lease().credential_id().as_str(), "credential-b");
+        Ok(())
+    }
+
+    #[test]
+    fn binding_predicate_skips_an_attempted_credential_before_a_new_lease() -> TestResult {
+        let (scheduler, route_id) = scheduler(
+            vec![("candidate-a", "endpoint-a", 0, 1)],
+            vec![(
+                "endpoint-a",
+                vec![("credential-a", 0, 1, 1), ("credential-b", 0, 1, 1)],
+            )],
+        )?;
+        let runtime_health = RuntimeHealthRegistry::new();
+
+        let selected = scheduler.select_eligible_and_lease_with_runtime_health_and_binding(
+            &route_id,
+            &runtime_health,
+            |_| true,
+            |candidate, credential_id| {
+                candidate.id().as_str() != "candidate-a" || credential_id.as_str() != "credential-a"
+            },
+        )?;
+
+        assert_eq!(selected.candidate().id().as_str(), "candidate-a");
         assert_eq!(selected.lease().credential_id().as_str(), "credential-b");
         Ok(())
     }

@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-19` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` 与 `P2 - 聚合控制面、安全与 RouteSnapshot` 已完成；`P3 - OpenAI Responses 聚合 MVP` 进行中 |
-| 当前任务 | `P3-01` 至 `P3-05` 已验收；P3-05 最终状态记录待 GitHub Fast/Full，只有该记录通过后才可在独立分支将 `P3-06` 设为唯一 `IN_PROGRESS`；`P3-06` 至 `P3-10` 保持 `PENDING` |
+| 当前任务 | `P3-01` 至 `P3-05` 已验收；`P3-06` 是唯一 `IN_PROGRESS` 任务；`P3-07` 至 `P3-10` 保持 `PENDING` |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -331,7 +331,7 @@ deploy/
 | P3-03 | 实现 Priority Tier + 预编译 Smooth Weighted Schedule + 原子 Cursor | P2-07 | 权重分布和并发公平性测试 | DONE |
 | P3-04 | 实现 Endpoint Credential Pool、并发租约、站内权重和释放保证 | P3-03 | 泄漏、取消、饱和和双层公平测试 | DONE |
 | P3-05 | 实现 Runtime Health/Cooldown/Circuit 基础状态与分片存储 | P3-04 | 状态隔离和恢复测试 | DONE |
-| P3-06 | 实现 Attempt Orchestrator、排除集合、Retry Budget 和 FirstSemanticEvent Gate | P3-02,P3-05 | 连接/429/5xx/已开流故障矩阵 | PENDING |
+| P3-06 | 实现 Attempt Orchestrator、排除集合、Retry Budget 和 FirstSemanticEvent Gate | P3-02,P3-05 | 连接/429/5xx/已开流故障矩阵 | IN_PROGRESS |
 | P3-07 | 实现从 RouteSnapshot 生成的 `/v1/models` 与响应模型名回写 | P2-07,P3-03 | AccessGroup、hard-eligible、回写测试 | PENDING |
 | P3-08 | 发出 Request/Attempt/Usage 结构化事件，不阻塞响应 | P3-06 | 事件关联和队列背压测试 | PENDING |
 | P3-09 | 建立两个可控 Mock HTTP Upstream 的聚合 E2E 套件 | P3-01-P3-08 | 轮询、Failover、取消完整报告 | PENDING |

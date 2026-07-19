@@ -14,8 +14,9 @@ use std::{
 
 use gateway_core::{
     CanonicalEvent, CanonicalEventState, ErrorScope, GatewayError, GatewayErrorCode,
+    TransparentRetryGate, TransparentRetryGateFuture,
 };
-use tokio::sync::{Semaphore, mpsc};
+use tokio::sync::{Notify, Semaphore, mpsc};
 use tokio_util::sync::CancellationToken;
 
 /// Stable component identifier used by architecture smoke tests.
@@ -81,6 +82,15 @@ pub enum FirstSemanticEvent {
     AlreadyCommitted,
 }
 
+/// The event that ended a producer's wait for a downstream retry boundary.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FirstSemanticEventWait {
+    /// A semantic canonical event was actually handed to the downstream HTTP body.
+    Delivered,
+    /// The request was cancelled before any semantic event became client-visible.
+    Cancelled,
+}
+
 /// Monotonic state that records a downstream client-visible canonical-event delivery.
 ///
 /// P1-07 and later's downstream HTTP writer must call [`Self::mark_delivered`] only after the
@@ -89,16 +99,23 @@ pub enum FirstSemanticEvent {
 /// comments cannot be passed to this API.
 #[derive(Clone, Debug, Default)]
 pub struct FirstSemanticEventTracker {
-    committed: Arc<AtomicBool>,
+    state: Arc<FirstSemanticEventState>,
+}
+
+#[derive(Debug, Default)]
+struct FirstSemanticEventState {
+    committed: AtomicBool,
+    committed_notification: Notify,
 }
 
 impl FirstSemanticEventTracker {
     /// Records one actually delivered canonical event and returns whether it was the first.
     #[must_use]
     pub fn mark_delivered(&self, _event: &CanonicalEvent) -> FirstSemanticEvent {
-        if self.committed.swap(true, Ordering::AcqRel) {
+        if self.state.committed.swap(true, Ordering::AcqRel) {
             FirstSemanticEvent::AlreadyCommitted
         } else {
+            self.state.committed_notification.notify_waiters();
             FirstSemanticEvent::First
         }
     }
@@ -106,7 +123,7 @@ impl FirstSemanticEventTracker {
     /// Returns whether any canonical event has crossed the client-visible output boundary.
     #[must_use]
     pub fn is_committed(&self) -> bool {
-        self.committed.load(Ordering::Acquire)
+        self.state.committed.load(Ordering::Acquire)
     }
 
     /// Returns whether no canonical event has crossed the downstream output boundary yet.
@@ -117,6 +134,24 @@ impl FirstSemanticEventTracker {
     #[must_use]
     pub fn is_uncommitted(&self) -> bool {
         !self.is_committed()
+    }
+
+    /// Waits until a downstream semantic event has actually been delivered.
+    ///
+    /// A producer uses this after handing its first semantic event to a bounded downstream path
+    /// and before pulling later upstream output. It prevents an upstream failure from triggering
+    /// a transparent retry while that initial event is still queued but cannot be withdrawn.
+    pub async fn wait_until_committed(&self) {
+        loop {
+            let notified = self.state.committed_notification.notified();
+            if self.is_committed() {
+                return;
+            }
+            notified.await;
+            if self.is_committed() {
+                return;
+            }
+        }
     }
 }
 
@@ -189,6 +224,41 @@ impl StreamControl {
     #[must_use]
     pub fn allows_transparent_retry(&self) -> bool {
         !self.is_cancelled() && self.first_semantic_event.is_uncommitted()
+    }
+
+    /// Waits until the first semantic event reaches downstream output or the request is cancelled.
+    ///
+    /// This is intentionally separate from [`Self::allows_transparent_retry`]. A producer that
+    /// has already handed off its first semantic event must use this wait before it reads further
+    /// upstream output, because a queued-but-undelivered event cannot be safely followed by a
+    /// retried duplicate start.
+    pub async fn wait_for_first_semantic_event_or_cancellation(&self) -> FirstSemanticEventWait {
+        if self.is_cancelled() {
+            return FirstSemanticEventWait::Cancelled;
+        }
+        if self.first_semantic_event.is_committed() {
+            return FirstSemanticEventWait::Delivered;
+        }
+
+        tokio::select! {
+            biased;
+            () = self.cancelled() => FirstSemanticEventWait::Cancelled,
+            () = self.first_semantic_event.wait_until_committed() => FirstSemanticEventWait::Delivered,
+        }
+    }
+}
+
+impl TransparentRetryGate for StreamControl {
+    fn is_cancelled(&self) -> bool {
+        StreamControl::is_cancelled(self)
+    }
+
+    fn allows_transparent_retry(&self) -> bool {
+        StreamControl::allows_transparent_retry(self)
+    }
+
+    fn cancelled(&self) -> TransparentRetryGateFuture<'_> {
+        Box::pin(StreamControl::cancelled(self))
     }
 }
 
@@ -354,7 +424,8 @@ mod tests {
     };
 
     use super::{
-        FirstSemanticEvent, StreamCapacity, StreamCapacityError, bounded_canonical_stream,
+        FirstSemanticEvent, FirstSemanticEventWait, StreamCapacity, StreamCapacityError,
+        bounded_canonical_stream,
     };
     use gateway_core::{
         CanonicalEvent, ErrorScope, GatewayError, GatewayErrorCode, MessageRole, MessageStart,
@@ -619,6 +690,47 @@ mod tests {
         assert!(tracker.is_uncommitted());
         assert!(!control.allows_transparent_retry());
 
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn first_semantic_wait_resolves_only_after_delivery() -> TestResult {
+        let capacity = StreamCapacity::try_new(1)?;
+        let (mut sender, stream) = bounded_canonical_stream(capacity);
+        let control = stream.control();
+        let tracker = control.first_semantic_event_tracker();
+        let start = response_start()?;
+
+        sender.send(start.clone()).await?;
+        let wait_control = control.clone();
+        let waiter = tokio::spawn(async move {
+            wait_control
+                .wait_for_first_semantic_event_or_cancellation()
+                .await
+        });
+        tokio::task::yield_now().await;
+        assert!(!waiter.is_finished());
+
+        assert_eq!(tracker.mark_delivered(&start), FirstSemanticEvent::First);
+        assert_eq!(waiter.await?, FirstSemanticEventWait::Delivered);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn first_semantic_wait_resolves_on_cancellation_without_delivery() -> TestResult {
+        let capacity = StreamCapacity::try_new(1)?;
+        let (_sender, stream) = bounded_canonical_stream(capacity);
+        let control = stream.control();
+        let wait_control = control.clone();
+        let waiter = tokio::spawn(async move {
+            wait_control
+                .wait_for_first_semantic_event_or_cancellation()
+                .await
+        });
+        tokio::task::yield_now().await;
+
+        control.cancel();
+        assert_eq!(waiter.await?, FirstSemanticEventWait::Cancelled);
         Ok(())
     }
 }

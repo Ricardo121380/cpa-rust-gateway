@@ -5,6 +5,7 @@
 
 #![deny(unsafe_code)]
 
+mod attempt_orchestrator;
 mod credential_scheduler;
 mod route_scheduler;
 mod route_snapshot;
@@ -18,7 +19,13 @@ use gateway_provider::{
     ProviderFuture,
 };
 
+pub use attempt_orchestrator::{
+    AttemptDriver, AttemptExclusionSet, AttemptFailure, AttemptFuture, AttemptOrchestrator,
+    AttemptOrchestratorConfig, AttemptOrchestratorConfigError, DEFAULT_RATE_LIMIT_COOLDOWN,
+    DEFAULT_TRANSIENT_COOLDOWN, StartedAttempt,
+};
 pub use credential_scheduler::{RouteCredentialScheduler, SelectedRouteCredential};
+pub use gateway_core::TransparentRetryGate as AttemptRetryGate;
 pub use route_scheduler::RouteCandidateScheduler;
 pub use route_snapshot::{
     MAX_SCHEDULE_SLOTS_PER_PRIORITY_TIER, PreparedSnapshotPublication, RouteSnapshot,

@@ -13,7 +13,7 @@ gateway-control
   -> upstream/catalog/access/router/auth/store/observability
 
 gateway-router
-  -> core/auth/provider/upstream/catalog/access/continuity
+  -> core/auth/provider/upstream/catalog/access/continuity + Tokio timeout primitive
 
 provider-*
   -> core/provider/upstream + matching protocol/continuity/stream
@@ -48,4 +48,6 @@ gateway-core
 - `gateway-store` 不进入 Router 的请求选择路径；持久数据通过控制面编译为不可变 Snapshot。
 - `gateway-router` 可以使用 `gateway-auth` 的无存储 Client Key HMAC 原语来认证其已编译
   Snapshot；该边不允许反向的 Router、Store 或 HTTP 依赖进入 `gateway-auth`。
+- `gateway-router` 可以直接使用 Tokio 的受限超时原语来执行 Route 的累计 bootstrap
+  deadline；它不得借此创建后台重试任务、无界队列、HTTP client、Provider 或 Stream 依赖。
 - 当前精确允许边由 `scripts/check-crate-boundaries.rb` 校验。

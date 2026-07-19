@@ -9,6 +9,7 @@ mod id;
 mod message;
 mod raw_extension;
 mod request_context;
+mod retry_gate;
 mod thinking;
 mod tool;
 
@@ -29,6 +30,7 @@ pub use message::{
 };
 pub use raw_extension::{RawExtensionError, RawExtensions, RawJson};
 pub use request_context::RequestContext;
+pub use retry_gate::{TransparentRetryGate, TransparentRetryGateFuture};
 pub use thinking::{InvalidThinkingEffort, Thinking, ThinkingEffort};
 pub use tool::ToolDefinition;
 
