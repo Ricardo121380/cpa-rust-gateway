@@ -8,7 +8,7 @@
 | Date | `2026-07-20` |
 | Branch | `codex/p3-01-openai-responses-request` |
 | Rust | `1.97.1` |
-| Result | PASS locally and for the implementation commit in GitHub Fast/Full; verification-record acceptance pending |
+| Result | PASS locally and in GitHub Fast/Full for both the implementation and verification-record commits |
 
 ## Delivered scope
 
@@ -82,3 +82,15 @@ passed for implementation commit `3e2d818`.
 
 This completes P3-01 implementation acceptance. The separate verification-record commit must also
 pass the same two jobs before P3-02 can begin.
+
+GitHub Actions run [29694743028](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29694743028)
+then passed for verification-record commit `b044f1c`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS; completed `2026-07-19T16:25:08Z` |
+| Full supply-chain gate | PASS; completed `2026-07-19T16:35:00Z` |
+
+P3-01 is accepted. This final status-record commit is intentionally documentation-only and must
+itself pass the same workflow before a separate P3-02 branch is created and P3-02 becomes the
+plan's sole `IN_PROGRESS` task.
