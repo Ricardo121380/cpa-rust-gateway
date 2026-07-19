@@ -4,7 +4,7 @@
 |---|---|
 | Contract | `BC-CONTROL-001` |
 | Task | `P2-05` |
-| Status | IN_PROGRESS |
+| Status | DONE |
 | Domain | Version-scoped configuration Repository, management transactions, and Provider isolation |
 
 ## Entry and boundary

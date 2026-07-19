@@ -41,3 +41,4 @@
 - [P2-02 Versioned route and access schema report](p2-02-route-access-schema.md)
 - [P2-03 AEAD Secret Store report](p2-03-aead-secret-store.md)
 - [P2-04 Client Key HMAC credential report](p2-04-client-key-hmac.md)
+- [P2-05 Versioned control-plane Repository and Service report](p2-05-control-plane-service.md)
