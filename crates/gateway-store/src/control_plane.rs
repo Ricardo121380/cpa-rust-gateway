@@ -713,6 +713,156 @@ impl ConfigVersionActivation {
     }
 }
 
+/// Audited management operation that changed durable configuration visibility.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementAuditAction {
+    /// A complete draft Config Version was created in one transaction.
+    Created,
+    /// A draft or archived Config Version became active and replaced the prior active Version.
+    Published,
+    /// A retained predecessor became active through an explicit rollback.
+    RolledBack,
+}
+
+impl ManagementAuditAction {
+    const fn as_sql(self) -> &'static str {
+        match self {
+            Self::Created => "config_created",
+            Self::Published => "config_published",
+            Self::RolledBack => "config_rolled_back",
+        }
+    }
+
+    fn from_sql(value: &str) -> Option<Self> {
+        match value {
+            "config_created" => Some(Self::Created),
+            "config_published" => Some(Self::Published),
+            "config_rolled_back" => Some(Self::RolledBack),
+            _ => None,
+        }
+    }
+}
+
+/// Bounded, non-secret metadata supplied while recording one management audit event.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementAuditEventDraft {
+    action: ManagementAuditAction,
+    actor: String,
+    occurred_at_ms: i64,
+}
+
+impl ManagementAuditEventDraft {
+    /// Creates bounded metadata for one management event.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidManagementAuditEvent`] when the actor is empty, exceeds the
+    /// persisted 128-character bound, or the supplied Unix timestamp is negative.
+    pub fn try_new(
+        action: ManagementAuditAction,
+        actor: impl Into<String>,
+        occurred_at_ms: i64,
+    ) -> StoreResult<Self> {
+        let actor = actor.into();
+        if actor.is_empty() || actor.chars().count() > 128 || occurred_at_ms < 0 {
+            return Err(StoreError::InvalidManagementAuditEvent);
+        }
+        Ok(Self {
+            action,
+            actor,
+            occurred_at_ms,
+        })
+    }
+
+    /// Returns the operation that this draft records.
+    #[must_use]
+    pub const fn action(&self) -> ManagementAuditAction {
+        self.action
+    }
+
+    /// Returns the non-secret actor label.
+    #[must_use]
+    pub fn actor(&self) -> &str {
+        &self.actor
+    }
+
+    /// Returns the supplied Unix-millisecond timestamp.
+    #[must_use]
+    pub const fn occurred_at_ms(&self) -> i64 {
+        self.occurred_at_ms
+    }
+}
+
+/// One durable, append-only management audit event.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementAuditEvent {
+    id: i64,
+    action: ManagementAuditAction,
+    actor: String,
+    occurred_at_ms: i64,
+    config_version_id: ConfigVersionId,
+    replaced_config_version_id: Option<ConfigVersionId>,
+}
+
+impl ManagementAuditEvent {
+    fn from_draft(
+        id: i64,
+        draft: &ManagementAuditEventDraft,
+        config_version_id: ConfigVersionId,
+        replaced_config_version_id: Option<ConfigVersionId>,
+    ) -> StoreResult<Self> {
+        if id <= 0 {
+            return Err(StoreError::InvalidPersistedControlPlaneRecord {
+                table: "management_audit_events",
+            });
+        }
+        Ok(Self {
+            id,
+            action: draft.action,
+            actor: draft.actor.clone(),
+            occurred_at_ms: draft.occurred_at_ms,
+            config_version_id,
+            replaced_config_version_id,
+        })
+    }
+
+    /// Returns the monotonically increasing durable audit identifier.
+    #[must_use]
+    pub const fn id(&self) -> i64 {
+        self.id
+    }
+
+    /// Returns the audited management operation.
+    #[must_use]
+    pub const fn action(&self) -> ManagementAuditAction {
+        self.action
+    }
+
+    /// Returns the non-secret actor label.
+    #[must_use]
+    pub fn actor(&self) -> &str {
+        &self.actor
+    }
+
+    /// Returns the operation timestamp in Unix milliseconds.
+    #[must_use]
+    pub const fn occurred_at_ms(&self) -> i64 {
+        self.occurred_at_ms
+    }
+
+    /// Returns the Config Version made or kept by the operation.
+    #[must_use]
+    pub fn config_version_id(&self) -> &ConfigVersionId {
+        &self.config_version_id
+    }
+
+    /// Returns the active Config Version replaced by a publish or rollback, if one existed.
+    #[must_use]
+    pub fn replaced_config_version_id(&self) -> Option<&ConfigVersionId> {
+        self.replaced_config_version_id.as_ref()
+    }
+}
+
 impl ControlPlaneConfiguration {
     /// Starts an empty graph rooted at `version`.
     #[must_use]
@@ -802,6 +952,31 @@ impl SqliteControlPlaneRepository {
         transaction.commit()
     }
 
+    /// Writes one complete draft configuration and its `config_created` audit event atomically.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] and leaves neither a partial graph nor an audit event when the
+    /// configuration or its audit metadata is invalid.
+    pub fn write_configuration_with_audit(
+        &mut self,
+        configuration: &ControlPlaneConfiguration,
+        audit_draft: &ManagementAuditEventDraft,
+    ) -> StoreResult<ManagementAuditEvent> {
+        if audit_draft.action() != ManagementAuditAction::Created {
+            return Err(StoreError::InvalidManagementAuditEvent);
+        }
+        let mut transaction = self.begin_transaction()?;
+        transaction.write_configuration(configuration)?;
+        let audit_event = transaction.record_management_audit_event(
+            audit_draft,
+            configuration.version.id.clone(),
+            None,
+        )?;
+        transaction.commit()?;
+        Ok(audit_event)
+    }
+
     /// Loads every persisted P2-01/P2-02 row belonging to one Config Version.
     ///
     /// An absent Config Version returns `Ok(None)`. Malformed stored encrypted envelopes, Key
@@ -818,6 +993,81 @@ impl SqliteControlPlaneRepository {
         let configuration = load_configuration(&transaction, config_version_id)?;
         transaction.commit()?;
         Ok(configuration)
+    }
+
+    /// Loads the one currently active Config Version, if a publication has occurred.
+    ///
+    /// # Errors
+    ///
+    /// Returns a fail-closed error if the active row cannot be decoded into the complete typed
+    /// configuration graph.
+    pub fn load_active_configuration(&mut self) -> StoreResult<Option<ControlPlaneConfiguration>> {
+        let active_id: Option<String> = self
+            .connection
+            .query_row(
+                "SELECT id FROM config_versions WHERE status = ?1",
+                [ConfigVersionStatus::Active.as_sql()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let Some(active_id) = active_id else {
+            return Ok(None);
+        };
+        let active_id =
+            ConfigVersionId::try_new(active_id).map_err(|_| malformed("config_versions"))?;
+        let configuration = self
+            .load_configuration(&active_id)?
+            .ok_or_else(|| malformed("config_versions"))?;
+        if configuration.version.status != ConfigVersionStatus::Active {
+            return Err(malformed("config_versions"));
+        }
+        Ok(Some(configuration))
+    }
+
+    /// Returns durable management audit events in increasing append order.
+    ///
+    /// The event records contain only operation metadata and Config Version identifiers; they
+    /// never contain credentials, ciphertext, Client Key material, or request content.
+    ///
+    /// # Errors
+    ///
+    /// Returns a fail-closed [`StoreError`] if an audit row is malformed or `SQLite` cannot read
+    /// the append-only event sequence.
+    pub fn list_management_audit_events(&mut self) -> StoreResult<Vec<ManagementAuditEvent>> {
+        let transaction = self.connection.transaction()?;
+        let audit_events = load_management_audit_events(&transaction)?;
+        transaction.commit()?;
+        Ok(audit_events)
+    }
+
+    /// Loads the durable predecessor recorded for the active Config Version, if one exists.
+    ///
+    /// This reconstructs the one-step rollback slot after a process restart from the latest
+    /// successful publication or rollback audit event. An absent predecessor is a normal result
+    /// for the first active Version.
+    ///
+    /// # Errors
+    ///
+    /// Returns a fail-closed [`StoreError`] if the audit reference is malformed, absent from the
+    /// configuration store, or no longer archived as a valid rollback predecessor.
+    pub fn load_rollback_predecessor(
+        &mut self,
+        active_config_version_id: &ConfigVersionId,
+    ) -> StoreResult<Option<ControlPlaneConfiguration>> {
+        let transaction = self.connection.transaction()?;
+        let predecessor_id =
+            latest_rollback_predecessor_id(&transaction, active_config_version_id)?;
+        transaction.commit()?;
+        let Some(predecessor_id) = predecessor_id else {
+            return Ok(None);
+        };
+        let predecessor = self
+            .load_configuration(&predecessor_id)?
+            .ok_or_else(|| malformed("management_audit_events"))?;
+        if predecessor.version.status != ConfigVersionStatus::Archived {
+            return Err(malformed("management_audit_events"));
+        }
+        Ok(Some(predecessor))
     }
 
     /// Atomically activates a draft or archived Config Version.
@@ -838,6 +1088,37 @@ impl SqliteControlPlaneRepository {
         let activation = transaction.activate_version(config_version_id)?;
         transaction.commit()?;
         Ok(activation)
+    }
+
+    /// Atomically activates one Version and appends its matching publish or rollback audit event.
+    ///
+    /// The durable activation and audit append commit before a caller can make a matching
+    /// `ArcSwap` publication visible. A failed event insert rolls back the status transition.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidManagementAuditEvent`] when a creation audit is supplied for
+    /// an activation, and otherwise preserves the same failure behavior as [`Self::activate_version`].
+    pub fn activate_version_with_audit(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        audit_draft: &ManagementAuditEventDraft,
+    ) -> StoreResult<(ConfigVersionActivation, ManagementAuditEvent)> {
+        if !matches!(
+            audit_draft.action(),
+            ManagementAuditAction::Published | ManagementAuditAction::RolledBack
+        ) {
+            return Err(StoreError::InvalidManagementAuditEvent);
+        }
+        let mut transaction = self.begin_transaction()?;
+        let activation = transaction.activate_version(config_version_id)?;
+        let audit_event = transaction.record_management_audit_event(
+            audit_draft,
+            activation.activated_version_id().clone(),
+            activation.replaced_active_version_id().cloned(),
+        )?;
+        transaction.commit()?;
+        Ok((activation, audit_event))
     }
 }
 
@@ -1040,6 +1321,34 @@ impl ControlPlaneTransaction<'_> {
         } else {
             Err(StoreError::ConfigVersionNotFound)
         }
+    }
+
+    fn record_management_audit_event(
+        &mut self,
+        audit_draft: &ManagementAuditEventDraft,
+        config_version_id: ConfigVersionId,
+        replaced_config_version_id: Option<ConfigVersionId>,
+    ) -> StoreResult<ManagementAuditEvent> {
+        self.transaction.execute(
+            "INSERT INTO management_audit_events (\
+                action, actor, occurred_at_ms, config_version_id, replaced_config_version_id\
+             ) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                audit_draft.action().as_sql(),
+                audit_draft.actor(),
+                audit_draft.occurred_at_ms(),
+                config_version_id.as_str(),
+                replaced_config_version_id
+                    .as_ref()
+                    .map(ConfigVersionId::as_str),
+            ],
+        )?;
+        ManagementAuditEvent::from_draft(
+            self.transaction.last_insert_rowid(),
+            audit_draft,
+            config_version_id,
+            replaced_config_version_id,
+        )
     }
 
     /// Commits every prior write in this transaction.
@@ -1335,6 +1644,62 @@ fn load_configuration(
         access_group_routes: load_access_group_routes(transaction, config_version_id)?,
         client_keys: load_client_keys(transaction, config_version_id)?,
     }))
+}
+
+fn load_management_audit_events(
+    transaction: &Transaction<'_>,
+) -> StoreResult<Vec<ManagementAuditEvent>> {
+    let mut statement = transaction.prepare(
+        "SELECT id, action, actor, occurred_at_ms, config_version_id, replaced_config_version_id \
+         FROM management_audit_events ORDER BY id",
+    )?;
+    let mut rows = statement.query([])?;
+    let mut audit_events = Vec::new();
+    while let Some(row) = rows.next()? {
+        let id: i64 = row.get(0)?;
+        if id <= 0 {
+            return Err(malformed("management_audit_events"));
+        }
+        let action_value: String = row.get(1)?;
+        let action = ManagementAuditAction::from_sql(&action_value)
+            .ok_or_else(|| malformed("management_audit_events"))?;
+        let actor: String = row.get(2)?;
+        let occurred_at_ms: i64 = row.get(3)?;
+        let draft = ManagementAuditEventDraft::try_new(action, actor, occurred_at_ms)
+            .map_err(|_| malformed("management_audit_events"))?;
+        let config_version_id =
+            read_identifier(row, 4, ConfigVersionId::try_new, "management_audit_events")?;
+        let replaced_config_version_id =
+            read_optional_identifier(row, 5, ConfigVersionId::try_new, "management_audit_events")?;
+        audit_events.push(ManagementAuditEvent::from_draft(
+            id,
+            &draft,
+            config_version_id,
+            replaced_config_version_id,
+        )?);
+    }
+    Ok(audit_events)
+}
+
+fn latest_rollback_predecessor_id(
+    transaction: &Transaction<'_>,
+    active_config_version_id: &ConfigVersionId,
+) -> StoreResult<Option<ConfigVersionId>> {
+    let predecessor_id: Option<Option<String>> = transaction
+        .query_row(
+            "SELECT replaced_config_version_id FROM management_audit_events \
+             WHERE config_version_id = ?1 \
+               AND action IN ('config_published', 'config_rolled_back') \
+             ORDER BY id DESC LIMIT 1",
+            [active_config_version_id.as_str()],
+            |row| row.get(0),
+        )
+        .optional()?;
+    predecessor_id
+        .flatten()
+        .map(ConfigVersionId::try_new)
+        .transpose()
+        .map_err(|_| malformed("management_audit_events"))
 }
 
 fn load_config_version(
@@ -1771,8 +2136,8 @@ mod tests {
     use super::{
         AccessGroupConfiguration, AdministrativeStatus, ConfigVersion, ConfigVersionId,
         ConfigVersionStatus, ControlPlaneConfiguration, CredentialConfiguration, CredentialStatus,
-        SqliteControlPlaneRepository, StoredClientKey, StoredClientKeyStatus,
-        UpstreamConfiguration,
+        ManagementAuditAction, ManagementAuditEventDraft, SqliteControlPlaneRepository,
+        StoredClientKey, StoredClientKeyStatus, UpstreamConfiguration,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -2042,6 +2407,88 @@ mod tests {
             .ok_or("active configuration was not found")?;
         assert!(loaded.credentials.is_empty());
         assert!(loaded.client_keys.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn audit_events_are_durable_and_reconstruct_the_rollback_predecessor() -> TestResult {
+        let version_one = ConfigVersionId::try_new("version-one")?;
+        let version_two = ConfigVersionId::try_new("version-two")?;
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+
+        let created_one = ManagementAuditEventDraft::try_new(
+            ManagementAuditAction::Created,
+            "test-operator",
+            10,
+        )?;
+        let first_event = repository.write_configuration_with_audit(
+            &draft_configuration(version_one.clone(), None),
+            &created_one,
+        )?;
+        assert_eq!(first_event.action(), ManagementAuditAction::Created);
+        assert_eq!(first_event.config_version_id(), &version_one);
+        assert!(first_event.replaced_config_version_id().is_none());
+
+        let created_two = ManagementAuditEventDraft::try_new(
+            ManagementAuditAction::Created,
+            "test-operator",
+            20,
+        )?;
+        repository.write_configuration_with_audit(
+            &draft_configuration(version_two.clone(), Some(version_one.clone())),
+            &created_two,
+        )?;
+
+        let published_one = ManagementAuditEventDraft::try_new(
+            ManagementAuditAction::Published,
+            "test-operator",
+            30,
+        )?;
+        let (_, first_publication_event) =
+            repository.activate_version_with_audit(&version_one, &published_one)?;
+        assert!(
+            first_publication_event
+                .replaced_config_version_id()
+                .is_none()
+        );
+
+        let published_two = ManagementAuditEventDraft::try_new(
+            ManagementAuditAction::Published,
+            "test-operator",
+            40,
+        )?;
+        let (_, second_publication_event) =
+            repository.activate_version_with_audit(&version_two, &published_two)?;
+        assert_eq!(
+            second_publication_event.replaced_config_version_id(),
+            Some(&version_one)
+        );
+
+        let active = repository
+            .load_active_configuration()?
+            .ok_or("expected active configuration")?;
+        assert_eq!(&active.version.id, &version_two);
+        let predecessor = repository
+            .load_rollback_predecessor(&active.version.id)?
+            .ok_or("expected rollback predecessor")?;
+        assert_eq!(predecessor.version.id, version_one);
+        assert_eq!(predecessor.version.status, ConfigVersionStatus::Archived);
+
+        let events = repository.list_management_audit_events()?;
+        assert_eq!(events.len(), 4);
+        assert!(events.windows(2).all(|pair| pair[0].id() < pair[1].id()));
+
+        let update = repository.connection.execute(
+            "UPDATE management_audit_events SET actor = ?1 WHERE id = ?2",
+            params!["different-actor", first_event.id()],
+        );
+        assert!(update.is_err());
+        let delete = repository.connection.execute(
+            "DELETE FROM management_audit_events WHERE id = ?1",
+            [first_event.id()],
+        );
+        assert!(delete.is_err());
+        assert_eq!(repository.list_management_audit_events()?.len(), 4);
         Ok(())
     }
 

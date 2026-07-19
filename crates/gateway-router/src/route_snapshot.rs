@@ -786,6 +786,34 @@ impl RouteSnapshotRegistry {
         }
     }
 
+    /// Creates a registry with one current Snapshot and a durable-management reconstructed
+    /// one-step rollback predecessor.
+    ///
+    /// This is intended for process bootstrap after the control plane has independently loaded
+    /// the active Version and its most recent persisted predecessor. Request readers still only
+    /// observe `current`; the optional predecessor remains exclusively behind the management
+    /// publication mutex.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SnapshotRegistryError::SameVersion`] if the predecessor would not represent a
+    /// real rollback transition.
+    pub fn try_new_with_previous(
+        initial: Arc<RouteSnapshot>,
+        previous: Option<Arc<RouteSnapshot>>,
+    ) -> Result<Self, SnapshotRegistryError> {
+        if previous
+            .as_ref()
+            .is_some_and(|candidate| candidate.version == initial.version)
+        {
+            return Err(SnapshotRegistryError::SameVersion);
+        }
+        Ok(Self {
+            current: ArcSwap::from(initial),
+            publication_state: Mutex::new(SnapshotPublicationState { previous }),
+        })
+    }
+
     /// Loads an owned Snapshot `Arc` for one complete request or stream lifetime.
     #[must_use]
     pub fn load(&self) -> Arc<RouteSnapshot> {
@@ -1255,6 +1283,20 @@ mod tests {
         let forward = registry.rollback()?;
         assert_eq!(forward.previous_version().as_str(), "version-a");
         assert_eq!(forward.current_version().as_str(), "version-b");
+        Ok(())
+    }
+
+    #[test]
+    fn reconstructed_predecessor_supports_the_same_one_step_rollback() -> TestResult {
+        let registry = RouteSnapshotRegistry::try_new_with_previous(
+            sample_snapshot("version-b")?,
+            Some(sample_snapshot("version-a")?),
+        )?;
+
+        let rollback = registry.rollback()?;
+        assert_eq!(rollback.previous_version().as_str(), "version-b");
+        assert_eq!(rollback.current_version().as_str(), "version-a");
+        assert_eq!(registry.load().version().as_str(), "version-a");
         Ok(())
     }
 

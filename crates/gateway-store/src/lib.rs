@@ -16,9 +16,10 @@ pub const COMPONENT: &str = "gateway-store";
 const VERSIONED_CONTROL_PLANE_SCHEMA_VERSION: i64 = 1;
 const VERSIONED_ROUTE_ACCESS_SCHEMA_VERSION: i64 = 2;
 const VERSIONED_EGRESS_POLICY_SCHEMA_VERSION: i64 = 3;
+const MANAGEMENT_AUDIT_SCHEMA_VERSION: i64 = 4;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = VERSIONED_EGRESS_POLICY_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = MANAGEMENT_AUDIT_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -42,6 +43,11 @@ const MIGRATIONS: &[Migration] = &[
         version: VERSIONED_EGRESS_POLICY_SCHEMA_VERSION,
         up: include_str!("../migrations/0003_egress_policy.up.sql"),
         down: include_str!("../migrations/0003_egress_policy.down.sql"),
+    },
+    Migration {
+        version: MANAGEMENT_AUDIT_SCHEMA_VERSION,
+        up: include_str!("../migrations/0004_management_audit.up.sql"),
+        down: include_str!("../migrations/0004_management_audit.down.sql"),
     },
 ];
 
@@ -83,6 +89,11 @@ pub enum StoreError {
     ConfigVersionNotFound,
     /// A requested Config Version is already the sole active Version.
     ConfigVersionAlreadyActive,
+    /// A management audit event did not match its bounded transaction context.
+    ///
+    /// Event values are deliberately not included because caller-provided actor labels must not
+    /// be echoed through storage errors.
+    InvalidManagementAuditEvent,
 }
 
 impl fmt::Display for StoreError {
@@ -116,6 +127,9 @@ impl fmt::Display for StoreError {
             Self::ConfigVersionAlreadyActive => {
                 formatter.write_str("requested Config Version is already active")
             }
+            Self::InvalidManagementAuditEvent => {
+                formatter.write_str("management audit event is invalid for this operation")
+            }
         }
     }
 }
@@ -130,7 +144,8 @@ impl Error for StoreError {
             | Self::InvalidClientKeyDigestLength { .. }
             | Self::ControlPlaneMutationRequiresDraft
             | Self::ConfigVersionNotFound
-            | Self::ConfigVersionAlreadyActive => None,
+            | Self::ConfigVersionAlreadyActive
+            | Self::InvalidManagementAuditEvent => None,
         }
     }
 }
@@ -324,6 +339,7 @@ mod tests {
                 "config_versions",
                 "egress_policies",
                 "endpoint_credential_bindings",
+                "management_audit_events",
                 "model_aliases",
                 "model_routes",
                 "public_models",

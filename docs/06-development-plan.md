@@ -7,8 +7,8 @@
 | 计划版本 | `v1.1` |
 | 生效日期 | `2026-07-19` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` 已完成；`P2 - 聚合控制面、安全与 RouteSnapshot` 正在执行 |
-| 当前任务 | `P2-01` 至 `P2-09` 已完成；`P2-10` 保持 `PENDING`，待 P2-09 验收记录双门禁通过 |
+| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` 已完成；`P2 - 聚合控制面、安全与 RouteSnapshot` 实现已完成，待 G2 验收 |
+| 当前任务 | `P2-01` 至 `P2-10` 已完成本地实现与 review；P2-10 验收记录和 G2 均待双门禁通过 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -308,7 +308,7 @@ deploy/
 | P2-07 | 实现 `RouteSnapshot`、ArcSwap、版本固定与回滚 | P2-06 | 并发读/发布/回滚测试 | DONE |
 | P2-08 | 将 P1 内存 Auth 替换为 Snapshot ClientKeyView | P2-04,P2-07 | 热更新、禁用、过期测试 | DONE |
 | P2-09 | 实现 EgressPolicy：Scheme、Host、Port、CIDR、DNS、Redirect 校验 | P2-01 | SSRF、DNS Rebinding、私网 Allowlist 测试 | DONE |
-| P2-10 | 提供最小管理 API/CLI：创建配置、验证、发布、回滚 | P2-05,P2-07 | 原子发布 E2E + 审计事件 | PENDING |
+| P2-10 | 提供最小管理 API/CLI：创建配置、验证、发布、回滚 | P2-05,P2-07 | 原子发布 E2E + 审计事件 | DONE |
 
 ### G2 门禁
 

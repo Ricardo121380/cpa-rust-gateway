@@ -18,8 +18,9 @@ use gateway_router::{
 use gateway_store::{
     StoreError,
     control_plane::{
-        ConfigVersionActivation, ConfigVersionId, ControlPlaneConfiguration, RoutePolicy,
-        SqliteControlPlaneRepository, StoredClientKey, StoredClientKeyStatus, TransformMode,
+        ConfigVersionActivation, ConfigVersionId, ControlPlaneConfiguration, ManagementAuditEvent,
+        ManagementAuditEventDraft, RoutePolicy, SqliteControlPlaneRepository, StoredClientKey,
+        StoredClientKeyStatus, TransformMode,
     },
 };
 
@@ -29,24 +30,93 @@ use crate::route_compiler::{
     RouteCompiler,
 };
 
+const SYNTHETIC_BOOTSTRAP_VERSION: &str = "bootstrap-empty";
+
 /// Publishes compiler-approved Config Versions through the runtime Snapshot registry.
 #[derive(Clone, Debug)]
 pub struct SnapshotPublicationService {
     compiler: RouteCompiler,
     registry: Arc<RouteSnapshotRegistry>,
+    synthetic_bootstrap_version: Option<SnapshotVersion>,
 }
 
 impl SnapshotPublicationService {
     /// Creates a service with immutable compiler evidence and a shared Snapshot registry.
     #[must_use]
     pub fn new(compiler: RouteCompiler, registry: Arc<RouteSnapshotRegistry>) -> Self {
-        Self { compiler, registry }
+        Self {
+            compiler,
+            registry,
+            synthetic_bootstrap_version: None,
+        }
     }
 
     /// Returns the shared runtime registry used by this service.
     #[must_use]
     pub fn registry(&self) -> &Arc<RouteSnapshotRegistry> {
         &self.registry
+    }
+
+    /// Rebuilds a publisher and Snapshot registry from the persisted active Config Version.
+    ///
+    /// When no Version has ever been published, the registry starts from a deliberately empty
+    /// synthetic Snapshot. It exposes no models, Routes, Access Groups, or Client Keys, so it is a
+    /// safe pre-publication state rather than a database-backed configuration. The first publish
+    /// cannot roll back to that synthetic state; a second persisted publication restores the
+    /// normal one-step rollback behavior.
+    ///
+    /// # Errors
+    ///
+    /// Returns a typed error when the active configuration or its audit-recorded predecessor
+    /// cannot compile into a safe Snapshot. This fails closed instead of starting with an
+    /// unvalidated runtime view.
+    pub fn bootstrap(
+        compiler: RouteCompiler,
+        repository: &mut SqliteControlPlaneRepository,
+    ) -> Result<Self, SnapshotPublicationError> {
+        let (current, previous, synthetic_bootstrap_version) =
+            if let Some(active_configuration) = repository.load_active_configuration()? {
+                let current = Arc::new(compiled_snapshot(&compiler, &active_configuration)?);
+                let previous = repository
+                    .load_rollback_predecessor(&active_configuration.version.id)?
+                    .map(|configuration| compiled_snapshot(&compiler, &configuration).map(Arc::new))
+                    .transpose()?;
+                (current, previous, None)
+            } else {
+                let current = Arc::new(empty_bootstrap_snapshot()?);
+                let synthetic_bootstrap_version = Some(current.version().clone());
+                (current, None, synthetic_bootstrap_version)
+            };
+        let registry = Arc::new(RouteSnapshotRegistry::try_new_with_previous(
+            current, previous,
+        )?);
+        Ok(Self {
+            compiler,
+            registry,
+            synthetic_bootstrap_version,
+        })
+    }
+
+    /// Validates a persisted Version through `EgressPolicy`, `RouteCompiler`, and complete
+    /// router-safe Snapshot construction without changing durable or runtime state.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same safe validation errors as publication while retaining the current active
+    /// Version and Snapshot unchanged.
+    pub fn validate_version(
+        &self,
+        repository: &mut SqliteControlPlaneRepository,
+        config_version_id: &ConfigVersionId,
+    ) -> Result<SnapshotValidation, SnapshotPublicationError> {
+        let configuration = repository
+            .load_configuration(config_version_id)?
+            .ok_or(SnapshotPublicationError::ConfigVersionNotFound)?;
+        let snapshot = compiled_snapshot(&self.compiler, &configuration)?;
+        Ok(SnapshotValidation {
+            config_version_id: configuration.version.id,
+            snapshot_version: snapshot.version().clone(),
+        })
     }
 
     /// Compiles, atomically activates, and makes one persisted Config Version visible.
@@ -65,19 +135,53 @@ impl SnapshotPublicationService {
         repository: &mut SqliteControlPlaneRepository,
         config_version_id: &ConfigVersionId,
     ) -> Result<SnapshotPublication, SnapshotPublicationError> {
+        self.publish_version_with_optional_audit(repository, config_version_id, None)
+    }
+
+    /// Publishes one Config Version and appends a matching durable audit event in the same
+    /// `SQLite` transaction as activation, before committing the `ArcSwap` replacement.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same typed failures as [`Self::publish_version`]. A failed audit append also
+    /// leaves both the persisted active Version and the current Snapshot unchanged.
+    pub fn publish_version_with_audit(
+        &self,
+        repository: &mut SqliteControlPlaneRepository,
+        config_version_id: &ConfigVersionId,
+        audit_draft: &ManagementAuditEventDraft,
+    ) -> Result<SnapshotPublication, SnapshotPublicationError> {
+        if audit_draft.action() != gateway_store::control_plane::ManagementAuditAction::Published {
+            return Err(StoreError::InvalidManagementAuditEvent.into());
+        }
+        self.publish_version_with_optional_audit(repository, config_version_id, Some(audit_draft))
+    }
+
+    fn publish_version_with_optional_audit(
+        &self,
+        repository: &mut SqliteControlPlaneRepository,
+        config_version_id: &ConfigVersionId,
+        audit_draft: Option<&ManagementAuditEventDraft>,
+    ) -> Result<SnapshotPublication, SnapshotPublicationError> {
         let configuration = repository
             .load_configuration(config_version_id)?
             .ok_or(SnapshotPublicationError::ConfigVersionNotFound)?;
-        EgressPolicyCompiler::compile(&configuration)?;
-        let compiled = self.compiler.compile(&configuration)?;
-        let replacement = Arc::new(route_snapshot_from_compiled(&compiled, &configuration)?);
+        let replacement = Arc::new(compiled_snapshot(&self.compiler, &configuration)?);
         let prepared = self.registry.prepare_publication(replacement)?;
-        let activation = repository.activate_version(config_version_id)?;
+        let (activation, audit_event) = match audit_draft {
+            Some(audit_draft) => {
+                let (activation, audit_event) =
+                    repository.activate_version_with_audit(config_version_id, audit_draft)?;
+                (activation, Some(audit_event))
+            }
+            None => (repository.activate_version(config_version_id)?, None),
+        };
         let transition = prepared.commit();
 
         Ok(SnapshotPublication {
             activation,
             transition,
+            audit_event,
         })
     }
 
@@ -92,17 +196,78 @@ impl SnapshotPublicationService {
         &self,
         repository: &mut SqliteControlPlaneRepository,
     ) -> Result<SnapshotPublication, SnapshotPublicationError> {
+        self.rollback_with_optional_audit(repository, None)
+    }
+
+    /// Restores the retained predecessor and records its matching durable rollback audit event.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same typed failures as [`Self::rollback`]. The audit event and status
+    /// transition are one `SQLite` transaction and both occur before the in-memory commit.
+    pub fn rollback_with_audit(
+        &self,
+        repository: &mut SqliteControlPlaneRepository,
+        audit_draft: &ManagementAuditEventDraft,
+    ) -> Result<SnapshotPublication, SnapshotPublicationError> {
+        if audit_draft.action() != gateway_store::control_plane::ManagementAuditAction::RolledBack {
+            return Err(StoreError::InvalidManagementAuditEvent.into());
+        }
+        self.rollback_with_optional_audit(repository, Some(audit_draft))
+    }
+
+    fn rollback_with_optional_audit(
+        &self,
+        repository: &mut SqliteControlPlaneRepository,
+        audit_draft: Option<&ManagementAuditEventDraft>,
+    ) -> Result<SnapshotPublication, SnapshotPublicationError> {
         let prepared = self.registry.prepare_rollback()?;
+        if self
+            .synthetic_bootstrap_version
+            .as_ref()
+            .is_some_and(|version| prepared.target_version() == version)
+        {
+            return Err(SnapshotPublicationError::NoPersistedRollbackTarget);
+        }
         let target_version =
             ConfigVersionId::try_new(prepared.target_version().as_str().to_owned())
                 .map_err(|_| SnapshotPublicationError::InvalidSnapshotVersion)?;
-        let activation = repository.activate_version(&target_version)?;
+        let (activation, audit_event) = match audit_draft {
+            Some(audit_draft) => {
+                let (activation, audit_event) =
+                    repository.activate_version_with_audit(&target_version, audit_draft)?;
+                (activation, Some(audit_event))
+            }
+            None => (repository.activate_version(&target_version)?, None),
+        };
         let transition = prepared.commit();
 
         Ok(SnapshotPublication {
             activation,
             transition,
+            audit_event,
         })
+    }
+}
+
+/// Evidence that a persisted Version can become a complete immutable Snapshot.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SnapshotValidation {
+    config_version_id: ConfigVersionId,
+    snapshot_version: SnapshotVersion,
+}
+
+impl SnapshotValidation {
+    /// Returns the persisted Config Version that completed validation.
+    #[must_use]
+    pub fn config_version_id(&self) -> &ConfigVersionId {
+        &self.config_version_id
+    }
+
+    /// Returns the matching immutable Snapshot Version that was constructed transiently.
+    #[must_use]
+    pub fn snapshot_version(&self) -> &SnapshotVersion {
+        &self.snapshot_version
     }
 }
 
@@ -111,6 +276,7 @@ impl SnapshotPublicationService {
 pub struct SnapshotPublication {
     activation: ConfigVersionActivation,
     transition: SnapshotTransition,
+    audit_event: Option<ManagementAuditEvent>,
 }
 
 impl SnapshotPublication {
@@ -124,6 +290,13 @@ impl SnapshotPublication {
     #[must_use]
     pub fn transition(&self) -> &SnapshotTransition {
         &self.transition
+    }
+
+    /// Returns the durable management audit event recorded with this transition, if the caller
+    /// selected an audited publication API.
+    #[must_use]
+    pub fn audit_event(&self) -> Option<&ManagementAuditEvent> {
+        self.audit_event.as_ref()
     }
 }
 
@@ -144,6 +317,8 @@ pub enum SnapshotPublicationError {
     Store(StoreError),
     /// A retained Snapshot Version could not be converted back to a persisted identifier.
     InvalidSnapshotVersion,
+    /// The only retained predecessor is the safe synthetic Snapshot used before first publish.
+    NoPersistedRollbackTarget,
     /// A stored Client Key record could not become a safe runtime HMAC view.
     ClientKeyMaterial(ClientKeyError),
     /// A stored Client Key referred to an Access Group absent from its persisted Version.
@@ -168,6 +343,9 @@ impl fmt::Display for SnapshotPublicationError {
             Self::InvalidSnapshotVersion => {
                 formatter.write_str("retained Snapshot Version is not a valid Config Version")
             }
+            Self::NoPersistedRollbackTarget => {
+                formatter.write_str("no persisted Config Version is available for rollback")
+            }
             Self::ClientKeyMaterial(error) => {
                 write!(
                     formatter,
@@ -186,6 +364,7 @@ impl Error for SnapshotPublicationError {
         match self {
             Self::ConfigVersionNotFound
             | Self::InvalidSnapshotVersion
+            | Self::NoPersistedRollbackTarget
             | Self::ClientKeyAccessGroupMissing => None,
             Self::Compile(error) => Some(error),
             Self::EgressPolicy(error) => Some(error),
@@ -231,6 +410,29 @@ impl From<ClientKeyError> for SnapshotPublicationError {
     fn from(error: ClientKeyError) -> Self {
         Self::ClientKeyMaterial(error)
     }
+}
+
+fn compiled_snapshot(
+    compiler: &RouteCompiler,
+    configuration: &ControlPlaneConfiguration,
+) -> Result<RouteSnapshot, SnapshotPublicationError> {
+    EgressPolicyCompiler::compile(configuration)?;
+    let compiled_configuration = compiler.compile(configuration)?;
+    route_snapshot_from_compiled(&compiled_configuration, configuration)
+}
+
+fn empty_bootstrap_snapshot() -> Result<RouteSnapshot, SnapshotPublicationError> {
+    let version = SnapshotVersion::try_new(SYNTHETIC_BOOTSTRAP_VERSION)
+        .map_err(|_| SnapshotPublicationError::InvalidSnapshotVersion)?;
+    RouteSnapshot::try_new(RouteSnapshotInput::new(
+        version,
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    ))
+    .map_err(SnapshotPublicationError::from)
 }
 
 fn route_snapshot_from_compiled(
@@ -397,10 +599,10 @@ mod tests {
             ConfigVersion, ConfigVersionId, ConfigVersionStatus, ControlPlaneConfiguration,
             CredentialConfiguration, CredentialScope, CredentialStatus, EgressPolicyConfiguration,
             EndpointConfiguration, EndpointCredentialBindingConfiguration, EndpointTransport,
-            ModelAliasConfiguration, ModelRouteConfiguration, PublicModelConfiguration,
-            RouteCandidateConfiguration, RoutePolicy, SqliteControlPlaneRepository,
-            StoredClientKey, StoredClientKeyStatus, StoredEgressRedirectMode, TransformMode,
-            UpstreamConfiguration,
+            ManagementAuditAction, ManagementAuditEventDraft, ModelAliasConfiguration,
+            ModelRouteConfiguration, PublicModelConfiguration, RouteCandidateConfiguration,
+            RoutePolicy, SqliteControlPlaneRepository, StoredClientKey, StoredClientKeyStatus,
+            StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
         },
         secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore},
     };
@@ -617,6 +819,40 @@ mod tests {
         );
         assert_eq!(
             version_status(&mut repository, &malformed_version)?,
+            ConfigVersionStatus::Draft
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn publication_rejects_a_rollback_audit_action_before_activation() -> TestResult {
+        let compiler = compiler()?;
+        let bootstrap_configuration = configuration("bootstrap")?;
+        let bootstrap_snapshot = Arc::new(route_snapshot_from_compiled(
+            &compiler.compile(&bootstrap_configuration)?,
+            &bootstrap_configuration,
+        )?);
+        let registry = Arc::new(RouteSnapshotRegistry::new(bootstrap_snapshot));
+        let service = SnapshotPublicationService::new(compiler, Arc::clone(&registry));
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        let version = ConfigVersionId::try_new("version-one")?;
+        repository.write_configuration(&configuration(version.as_str())?)?;
+        let wrong_audit = ManagementAuditEventDraft::try_new(
+            ManagementAuditAction::RolledBack,
+            "test-operator",
+            1,
+        )?;
+
+        let publication =
+            service.publish_version_with_audit(&mut repository, &version, &wrong_audit);
+
+        assert!(matches!(
+            publication,
+            Err(SnapshotPublicationError::Store(_))
+        ));
+        assert_eq!(registry.load().version().as_str(), "bootstrap");
+        assert_eq!(
+            version_status(&mut repository, &version)?,
             ConfigVersionStatus::Draft
         );
         Ok(())
