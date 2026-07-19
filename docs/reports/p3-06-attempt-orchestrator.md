@@ -8,7 +8,7 @@
 | Date | `2026-07-20` |
 | Branch | `codex/p3-06-attempt-orchestrator` |
 | Rust | `1.97.1` |
-| Result | PASS locally and for the implementation commit in GitHub Fast/Full; verification-record acceptance pending |
+| Result | PASS locally and in GitHub Fast/Full for both the implementation and verification-record commits |
 
 ## Delivered scope
 
@@ -90,3 +90,14 @@ passed for implementation commit `b4c797f`.
 This completes P3-06 implementation acceptance. The separate verification-record commit must pass
 the same two jobs before the final status record can be created; that final record must also pass
 before P3-07 can begin.
+
+GitHub Actions run [29706503295](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29706503295)
+then passed for verification-record commit `fe70041`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS; completed `2026-07-19T22:40:33Z` |
+| Full supply-chain gate | PASS; completed `2026-07-19T22:51:41Z` |
+
+P3-06 is accepted. This final status-record commit is intentionally documentation-only and must
+itself pass the same workflow before P3-07 can become the plan's sole `IN_PROGRESS` task.
