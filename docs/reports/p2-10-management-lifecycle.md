@@ -8,7 +8,7 @@
 | Date | `2026-07-19` |
 | Branch | `codex/p2-10-management-api-cli` |
 | Rust | `1.97.1` |
-| Result | PASS locally; GitHub acceptance pending |
+| Result | PASS locally and in GitHub Fast/Full acceptance |
 
 ## Delivered scope
 
@@ -86,5 +86,9 @@ passed for implementation commit `fccdc74`.
 | Fast gate | PASS; completed `2026-07-19T12:53:18Z` |
 | Full supply-chain gate | PASS; completed `2026-07-19T13:03:57Z` |
 
-This completes P2-10 implementation acceptance. The P2/G2 verification-record commit is pushed
-separately and must also pass the same GitHub workflow before P2 is declared complete.
+This completes P2-10 implementation acceptance. The separate P2/G2 verification record
+`c569099` passed GitHub Actions
+[29688265117](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29688265117), and the
+final G2 status record `cbd7f66` passed GitHub Actions
+[29688837790](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29688837790). Both
+runs passed Fast and Full, so P2/G2 is complete; P3 remains unstarted.
