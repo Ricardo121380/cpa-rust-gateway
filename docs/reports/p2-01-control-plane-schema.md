@@ -7,7 +7,7 @@
 | Date | `2026-07-19` |
 | Branch | `codex/p2-01-control-plane-schema` |
 | Rust | `1.97.1` |
-| Result | Local PASS; GitHub Fast/Full CI pending push |
+| Result | PASS; review and GitHub Fast/Full CI complete |
 
 ## Delivered scope
 
@@ -51,5 +51,7 @@ remain in P2-02 through P2-10 as assigned by the locked plan.
 
 ## GitHub CI
 
-The code is ready to commit and push. This report will be updated to `DONE` only after the branch
-receives successful GitHub Fast and Full CI results.
+[GitHub Actions run 29672840348](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29672840348)
+passed for commit `451b54a`: Fast gate completed in 1m57s and Full supply-chain gate completed in
+9m57s. GitHub emitted only its platform-level Node 20 deprecation notice for the pinned
+`actions/checkout` runtime; it was not a project check failure or a dependency/security finding.

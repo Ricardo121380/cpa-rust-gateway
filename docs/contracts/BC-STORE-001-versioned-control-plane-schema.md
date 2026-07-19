@@ -4,7 +4,7 @@
 |---|---|
 | Contract | `BC-STORE-001` |
 | Task | `P2-01` |
-| Status | IN_PROGRESS |
+| Status | DONE |
 | Domain | Versioned aggregation control-plane persistence |
 
 ## Entry and boundary

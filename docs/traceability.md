@@ -41,7 +41,7 @@
 
 | Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
 |---|---|---|---|---|---|
-| P2-01 | Plan 8；Matrix `L01-L05`、`E04/E08/E20/E23/E29`、`J03/J18-J20`；Behavior 20 | [ADR-0001](adr/ADR-0001-version-scoped-control-plane-schema.md)、[BC-STORE-001](contracts/BC-STORE-001-versioned-control-plane-schema.md) | `gateway-store` versioned SQLite migration runner and `0001` control-plane schema | [P2-01 报告](reports/p2-01-control-plane-schema.md) | IN_PROGRESS — GitHub CI pending |
+| P2-01 | Plan 8；Matrix `L01-L05`、`E04/E08/E20/E23/E29`、`J03/J18-J20`；Behavior 20 | [ADR-0001](adr/ADR-0001-version-scoped-control-plane-schema.md)、[BC-STORE-001](contracts/BC-STORE-001-versioned-control-plane-schema.md) | `gateway-store` versioned SQLite migration runner and `0001` control-plane schema | [P2-01 报告](reports/p2-01-control-plane-schema.md) | DONE |
 
 ## 后续 Phase 映射
 
