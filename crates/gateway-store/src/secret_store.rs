@@ -1,6 +1,6 @@
 //! AEAD encryption for persisted upstream Secrets and externally supplied Master Keys.
 //!
-//! This module does not know about SQLite rows or HTTP requests. It produces and consumes the
+//! This module does not know about `SQLite` rows or HTTP requests. It produces and consumes the
 //! opaque `(key_version, ciphertext)` pair that a later control-plane Repository will persist.
 
 #![deny(unsafe_code)]

@@ -3,6 +3,7 @@
 #![deny(unsafe_code)]
 
 /// AEAD Secret storage, external Master Key loading, and key-rotation primitives.
+pub mod control_plane;
 pub mod secret_store;
 
 use std::{error::Error, fmt, path::Path};
@@ -56,6 +57,22 @@ pub enum StoreError {
         /// Ordered migration versions found in the database.
         applied: Vec<i64>,
     },
+    /// A persisted control-plane row violates the Repository's fail-closed decoding rules.
+    ///
+    /// The table name is structural metadata only; no row contents are included.
+    InvalidPersistedControlPlaneRecord {
+        /// The table containing the malformed record.
+        table: &'static str,
+    },
+    /// A persisted Client Key digest was not the required opaque 32-byte HMAC value.
+    InvalidClientKeyDigestLength {
+        /// Observed byte count, never digest contents.
+        actual: usize,
+    },
+    /// A P2-05 mutation attempted to create or change a non-draft Config Version.
+    ///
+    /// Publication and archival transitions are deferred to the P2-07 Snapshot publisher.
+    ControlPlaneMutationRequiresDraft,
 }
 
 impl fmt::Display for StoreError {
@@ -68,6 +85,21 @@ impl fmt::Display for StoreError {
             Self::UnsupportedMigrationHistory { .. } => {
                 formatter.write_str("database migration history is not supported by this build")
             }
+            Self::InvalidPersistedControlPlaneRecord { table } => {
+                write!(
+                    formatter,
+                    "persisted control-plane record is malformed in table: {table}"
+                )
+            }
+            Self::InvalidClientKeyDigestLength { actual } => {
+                write!(
+                    formatter,
+                    "persisted Client Key digest has invalid length: {actual} bytes"
+                )
+            }
+            Self::ControlPlaneMutationRequiresDraft => {
+                formatter.write_str("control-plane mutation requires a draft Config Version")
+            }
         }
     }
 }
@@ -76,7 +108,11 @@ impl Error for StoreError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Sqlite(error) => Some(error),
-            Self::ForeignKeysDisabled | Self::UnsupportedMigrationHistory { .. } => None,
+            Self::ForeignKeysDisabled
+            | Self::UnsupportedMigrationHistory { .. }
+            | Self::InvalidPersistedControlPlaneRecord { .. }
+            | Self::InvalidClientKeyDigestLength { .. }
+            | Self::ControlPlaneMutationRequiresDraft => None,
         }
     }
 }
