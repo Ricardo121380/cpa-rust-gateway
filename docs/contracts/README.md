@@ -31,4 +31,5 @@ P1 已创建 [BC-CORE-001 Request context and errors](BC-CORE-001-request-contex
 [BC-PROVIDER-001 Deterministic Mock Provider](BC-PROVIDER-001-deterministic-mock-provider.md) 和
 [BC-HTTP-001 Actix Responses handler](BC-HTTP-001-actix-responses-handler.md) 和
 [BC-AUTH-001 Client Key authentication port](BC-AUTH-001-client-key-auth-port.md)。
+P2-01 正在建立 [BC-STORE-001 Versioned control-plane schema](BC-STORE-001-versioned-control-plane-schema.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。

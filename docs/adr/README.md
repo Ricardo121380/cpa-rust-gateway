@@ -26,3 +26,5 @@ Validation and rollback
 ## 当前索引
 
 P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对具体实现选择建立记录，并在 [需求追踪索引](../traceability.md) 中登记。
+
+- [ADR-0001 Version-scoped control-plane SQLite schema](ADR-0001-version-scoped-control-plane-schema.md) — `P2-01`。

@@ -37,6 +37,12 @@
 | P1-09 | Plan 7；BL-04；Behavior 4、5 | [BC-CORE-003](contracts/BC-CORE-003-canonical-event-state-machine.md)、[BC-PROTOCOL-001](contracts/BC-PROTOCOL-001-openai-responses-adapter.md) | `protocol-openai-responses` Canonical Tool 片段随机切分、交错与显式空参数属性测试 | [P1-09 报告](reports/p1-09-tool-stream-property-tests.md) | DONE |
 | G1 | Plan G1；BL-04/BL-05；CR-P1-G1-001 | [BC-CORE-003](contracts/BC-CORE-003-canonical-event-state-machine.md)、[BC-STREAM-001](contracts/BC-STREAM-001-bounded-canonical-stream.md) | P1-03 至 P1-09 完成审计与 G1 条件核验 | [G1 报告](reports/g1-gate-report.md) | DONE |
 
+## P2 追踪
+
+| Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
+|---|---|---|---|---|---|
+| P2-01 | Plan 8；Matrix `L01-L05`、`E04/E08/E20/E23/E29`、`J03/J18-J20`；Behavior 20 | [ADR-0001](adr/ADR-0001-version-scoped-control-plane-schema.md)、[BC-STORE-001](contracts/BC-STORE-001-versioned-control-plane-schema.md) | `gateway-store` versioned SQLite migration runner and `0001` control-plane schema | [P2-01 报告](reports/p2-01-control-plane-schema.md) | IN_PROGRESS — GitHub CI pending |
+
 ## 后续 Phase 映射
 
 | 矩阵模块 | 主要 Phase |
