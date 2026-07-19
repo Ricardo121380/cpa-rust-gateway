@@ -8,8 +8,12 @@ authors.workspace = true
 publish.workspace = true
 
 [dependencies]
+chacha20poly1305.workspace = true
 gateway-core = { path = "../gateway-core" }
+getrandom.workspace = true
+libc.workspace = true
 rusqlite.workspace = true
+zeroize.workspace = true
 
 [lints]
 workspace = true

@@ -2,6 +2,9 @@
 
 #![deny(unsafe_code)]
 
+/// AEAD Secret storage, external Master Key loading, and key-rotation primitives.
+pub mod secret_store;
+
 use std::{error::Error, fmt, path::Path};
 
 use rusqlite::{Connection, Error as SqliteError};
