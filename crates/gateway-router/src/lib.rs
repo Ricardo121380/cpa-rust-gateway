@@ -11,9 +11,12 @@ mod route_scheduler;
 mod route_snapshot;
 mod runtime_health;
 
-use std::{future::Future, pin::Pin, time::Duration};
+use std::{fmt, future::Future, pin::Pin, sync::Arc, time::Duration};
 
-use gateway_core::{CanonicalEvent, CanonicalRequest, GatewayError, ProviderId, RequestContext};
+use gateway_core::{
+    CanonicalEvent, CanonicalRequest, GatewayError, ProviderId, RequestContext, RouteId,
+    TransparentRetryGate,
+};
 use gateway_provider::{
     CanonicalEventSource, DeterministicMockProvider, InferenceAdapter, MockEmission, MockFixture,
     ProviderFuture,
@@ -52,6 +55,101 @@ pub const COMPONENT: &str = "gateway-router";
 /// macro or a Provider type.
 pub type ResponsesFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
+/// Client-visible representation requested from the `OpenAI` Responses route.
+///
+/// This belongs to the Router-owned execution seam rather than a protocol adapter so an executor
+/// can choose the already-approved upstream request shape without importing HTTP or wire types.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ResponsesResponseMode {
+    /// The caller expects one completed JSON response.
+    NonStreaming,
+    /// The caller expects a server-sent event response.
+    Streaming,
+}
+
+/// One fully admitted request handed from the HTTP boundary to a Responses executor.
+///
+/// The request keeps its original client model reference for observability and provider encoding,
+/// while `route_id` is the exact Snapshot-approved Route selected by the HTTP boundary when
+/// Snapshot authentication is active. The retry gate is created by the bounded downstream
+/// transport before execution starts, so pre-first-semantic-event retry and cancellation share one
+/// request lifetime without making the Router depend on `gateway-stream`.
+#[derive(Clone)]
+pub struct ResponsesExecution {
+    context: RequestContext,
+    request: CanonicalRequest,
+    route_id: Option<RouteId>,
+    mode: ResponsesResponseMode,
+    retry_gate: Arc<dyn TransparentRetryGate>,
+}
+
+impl ResponsesExecution {
+    /// Creates one execution handoff after HTTP authentication, decoding, and model resolution.
+    #[must_use]
+    pub fn new(
+        context: RequestContext,
+        request: CanonicalRequest,
+        route_id: Option<RouteId>,
+        mode: ResponsesResponseMode,
+        retry_gate: Arc<dyn TransparentRetryGate>,
+    ) -> Self {
+        Self {
+            context,
+            request,
+            route_id,
+            mode,
+            retry_gate,
+        }
+    }
+
+    /// Returns the correlation context allocated by the ingress boundary.
+    #[must_use]
+    pub fn context(&self) -> &RequestContext {
+        &self.context
+    }
+
+    /// Returns the canonical request without exposing any HTTP transport type.
+    #[must_use]
+    pub fn request(&self) -> &CanonicalRequest {
+        &self.request
+    }
+
+    /// Returns the Snapshot-approved Route when Snapshot authentication selected one.
+    #[must_use]
+    pub fn route_id(&self) -> Option<&RouteId> {
+        self.route_id.as_ref()
+    }
+
+    /// Returns the requested public response representation.
+    #[must_use]
+    pub const fn mode(&self) -> ResponsesResponseMode {
+        self.mode
+    }
+
+    /// Returns the request's downstream-owned retry and cancellation gate.
+    #[must_use]
+    pub fn retry_gate(&self) -> &Arc<dyn TransparentRetryGate> {
+        &self.retry_gate
+    }
+
+    fn into_legacy_parts(self) -> (RequestContext, CanonicalRequest) {
+        (self.context, self.request)
+    }
+}
+
+impl fmt::Debug for ResponsesExecution {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ResponsesExecution")
+            .field("context", &self.context)
+            .field("request", &self.request)
+            .field("route_id", &self.route_id)
+            .field("mode", &self.mode)
+            .field("retry_gate", &"<downstream-owned>")
+            .finish()
+    }
+}
+
 /// Starts one selected Responses execution without exposing a Provider boundary to transport
 /// crates.
 ///
@@ -64,6 +162,19 @@ pub trait ResponsesExecutor: Send + Sync {
         context: RequestContext,
         request: CanonicalRequest,
     ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>>;
+
+    /// Starts an execution after the HTTP boundary has supplied route, response-mode, and
+    /// downstream retry context.
+    ///
+    /// The default retains the P1 execution surface for legacy embeddings. P3 aggregation
+    /// executors override it to consume the Snapshot-approved Route and shared retry gate.
+    fn execute_routed(
+        &self,
+        execution: ResponsesExecution,
+    ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
+        let (context, request) = execution.into_legacy_parts();
+        self.execute(context, request)
+    }
 }
 
 /// Pull-only canonical output available to an HTTP or other downstream transport.

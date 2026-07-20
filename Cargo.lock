@@ -621,8 +621,11 @@ dependencies = [
  "gateway-protocol",
  "gateway-router",
  "gateway-stream",
+ "gateway-upstream",
  "protocol-anthropic",
  "protocol-openai-responses",
+ "provider-openai-compatible",
+ "serde_json",
  "tokio",
 ]
 

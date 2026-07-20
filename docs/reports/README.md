@@ -56,3 +56,4 @@
 - [P3-06 Attempt Orchestrator report](p3-06-attempt-orchestrator.md)
 - [P3-07 RouteSnapshot public model view report](p3-07-routesnapshot-public-model-view.md)
 - [P3-08 bounded Request, Attempt, and Usage events report](p3-08-bounded-request-attempt-usage-events.md)
+- [P3-09 controlled Mock HTTP aggregation E2E report](p3-09-controlled-mock-http-aggregation-e2e.md)

@@ -21,5 +21,10 @@ protocol-anthropic = { path = "../protocol-anthropic" }
 protocol-openai-responses = { path = "../protocol-openai-responses" }
 tokio.workspace = true
 
+[dev-dependencies]
+gateway-upstream = { path = "../gateway-upstream" }
+provider-openai-compatible = { path = "../provider-openai-compatible" }
+serde_json.workspace = true
+
 [lints]
 workspace = true

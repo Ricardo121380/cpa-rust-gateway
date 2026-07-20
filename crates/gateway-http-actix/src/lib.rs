@@ -29,11 +29,12 @@ use gateway_auth::{AuthenticatedClient, ClientKeyAuthenticator};
 use gateway_core::{
     AccessGroupId, CanonicalEvent, CanonicalResponse, ClientKeyId, ErrorScope, GatewayError,
     GatewayErrorCode, GatewayEvent, GatewayEventSink, GatewayProtocol, NoopGatewayEventSink,
-    RequestContext, RequestEvent, RequestId, ResponseId, StreamError, UsageEvent,
+    RequestContext, RequestEvent, RequestId, ResponseId, StreamError, TransparentRetryGate,
+    UsageEvent,
 };
 use gateway_router::{
-    ResponsesEventSource, ResponsesExecutor, SnapshotAuthenticatedClient,
-    SnapshotClientKeyAuthenticator,
+    ResponsesEventSource, ResponsesExecution, ResponsesExecutor, ResponsesResponseMode,
+    SnapshotAuthenticatedClient, SnapshotClientKeyAuthenticator,
 };
 use gateway_stream::{
     CanonicalEventSender, CanonicalEventStream, FirstSemanticEventTracker, StreamCancellation,
@@ -333,17 +334,18 @@ async fn responses(
         Err(error) => return pre_header_error(&error),
     };
     let requested_model = decoded.request.requested_model.clone();
-    let (public_model, route_alias) = match &authenticated_client {
-        AuthenticatedResponsesClient::Generic(_) => (requested_model.clone(), None),
+    let (public_model, route_alias, route_id) = match &authenticated_client {
+        AuthenticatedResponsesClient::Generic(_) => (requested_model.clone(), None, None),
         AuthenticatedResponsesClient::Snapshot(authenticated_client) => {
             let Some(public_model) =
                 authenticated_client.resolve_public_model(&decoded.request.requested_model)
             else {
                 return pre_header_error(&route_not_found());
             };
+            let route_id = public_model.route_id().clone();
             let public_model = public_model.model_name().to_owned();
             let route_alias = (requested_model != public_model).then(|| requested_model.clone());
-            (public_model, route_alias)
+            (public_model, route_alias, Some(route_id))
         }
     };
     let context = match state.metadata_factory.request_context() {
@@ -364,7 +366,20 @@ async fn responses(
             route_alias,
             decoded.mode == ResponseMode::Streaming,
         )));
-    let mut source = match state.executor.execute(context, decoded.request).await {
+    let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
+    let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
+    let response_mode = match decoded.mode {
+        ResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
+        ResponseMode::Streaming => ResponsesResponseMode::Streaming,
+    };
+    let execution = ResponsesExecution::new(
+        context,
+        decoded.request,
+        route_id,
+        response_mode,
+        retry_gate,
+    );
+    let mut source = match state.executor.execute_routed(execution).await {
         Ok(source) => source,
         Err(error) => return pre_header_error(&error),
     };
@@ -381,23 +396,24 @@ async fn responses(
 
     match decoded.mode {
         ResponseMode::NonStreaming => {
-            non_streaming_response(&state, source, first, metadata, usage_observer).await
+            non_streaming_response(source, first, metadata, usage_observer, sender, stream).await
         }
         ResponseMode::Streaming => {
-            streaming_response(&state, source, first, metadata, usage_observer).await
+            streaming_response(source, first, metadata, usage_observer, sender, stream).await
         }
     }
 }
 
 async fn non_streaming_response(
-    state: &ResponsesHttpState,
     source: Box<dyn ResponsesEventSource>,
     first: CanonicalEvent,
     metadata: OpenAiResponseMetadata,
     usage_observer: UsageEventObserver,
+    sender: CanonicalEventSender,
+    stream: CanonicalEventStream,
 ) -> HttpResponse {
     let mut stream =
-        match start_bounded_transport(source, first, state.stream_capacity, usage_observer).await {
+        match start_bounded_transport(source, first, sender, stream, usage_observer).await {
             Ok(stream) => stream,
             Err(error) => return pre_header_error(&error),
         };
@@ -425,11 +441,12 @@ async fn non_streaming_response(
 }
 
 async fn streaming_response(
-    state: &ResponsesHttpState,
     source: Box<dyn ResponsesEventSource>,
     first: CanonicalEvent,
     metadata: OpenAiResponseMetadata,
     usage_observer: UsageEventObserver,
+    sender: CanonicalEventSender,
+    stream: CanonicalEventStream,
 ) -> HttpResponse {
     // Commit no headers until the initial event is shown encodable by a fresh protocol encoder.
     // The body owns a separate encoder so the first event still travels through P1-04 transport.
@@ -438,11 +455,11 @@ async fn streaming_response(
         return pre_header_error(&error);
     }
 
-    let stream =
-        match start_bounded_transport(source, first, state.stream_capacity, usage_observer).await {
-            Ok(stream) => stream,
-            Err(error) => return pre_header_error(&error),
-        };
+    let stream = match start_bounded_transport(source, first, sender, stream, usage_observer).await
+    {
+        Ok(stream) => stream,
+        Err(error) => return pre_header_error(&error),
+    };
     let tracker = stream.control().first_semantic_event_tracker();
     let body = ResponsesSseBody::new(stream, metadata, tracker);
 
@@ -459,10 +476,10 @@ async fn streaming_response(
 async fn start_bounded_transport(
     source: Box<dyn ResponsesEventSource>,
     first: CanonicalEvent,
-    capacity: StreamCapacity,
+    mut sender: CanonicalEventSender,
+    stream: CanonicalEventStream,
     mut usage_observer: UsageEventObserver,
 ) -> Result<CanonicalEventStream, GatewayError> {
-    let (mut sender, stream) = bounded_canonical_stream(capacity);
     sender.send(first.clone()).await?;
     usage_observer.observe(&first);
     let cancellation = sender.cancellation();

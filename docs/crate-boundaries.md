@@ -44,7 +44,9 @@ gateway-core
 - `gateway-stream` 只承载有界 Canonical Event 交付、背压、取消和语义事件提交边界；不得
   依赖 HTTP、SSE 编码、具体 Provider、路由或持久化类型。
 - `gateway-http-actix` 可以直接使用 Tokio 和 `futures-util`，但仅用于 Actix handler 内的
-  producer task、取消选择和 body polling；它不得直接依赖或暴露任何 Provider trait/type。
+  producer task、取消选择和 body polling；它不得直接依赖或暴露任何 Provider trait/type。P3-09
+  的 `dev-dependencies` 仅用于独立集成测试中组装两个受控 loopback OpenAI-compatible Mock
+  Upstream，不进入该 crate 的库目标或公共 API。
 - `gateway-provider` 的 P1 Mock 只能拉取 Canonical Event；它可以使用 Tokio 的等待原语来
   表达确定性 fixture 延迟，但不得依赖 `gateway-stream`、HTTP、SSE、路由、Endpoint 或凭据。
 - Provider 私有 Crate 不被 `gateway-core`、协议公共层或其它 Provider 引用。
