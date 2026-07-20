@@ -48,6 +48,10 @@ previously supplied chat text are not P3-10 configuration and must never be sele
    Candidate continues to receive its explicit private upstream-model mapping, while every
    client-visible response is checked for the public alias. This change does not select or discover
    an upstream model and does not revise P3-09's loopback-only fixture naming.
+8. The shared harness receives an explicit positive Route bootstrap deadline. P3-09 supplies one
+   second for its controlled Mock peers; P3-10 supplies the same 45-second bound as its configured
+   total transport deadline, so the test cannot convert an otherwise in-flight bounded transport
+   into a synthetic one-second timeout.
 
 ## Consequences
 
@@ -60,6 +64,9 @@ uses the same Snapshot, Client Key, egress, transport, attempt, decoder, event, 
 boundaries that the deterministic Mock E2E already exercises. `direct` and explicit local-DNS
 SOCKS5 profiles are isolated by the existing P3-02 transport; optional private-network CIDRs remain
 per-target P2 egress allowlists rather than a TUN or system-proxy mutation.
+
+The explicit P3-10 bootstrap deadline is a test-boundary alignment only. It does not change the
+P3-02 production transport profile, permit an unbounded connection, or alter P3-09's Mock timing.
 
 P3-10 does not make the application deployable, validate a production service Base URL, introduce a
 generic OpenAI Responses decoder, persist events, or replace P4/P5 work. The ADR becomes

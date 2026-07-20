@@ -7,7 +7,7 @@
 | Matrix / behavior | `C16`, `G05`, `G12-G15`, `G21`, `K03-K06`, `L20-L31`; Behavior 1/4/5/9/17/20 |
 | Date | `2026-07-20` |
 | Branch | `codex/p3-10-real-endpoint-validation` |
-| Status | IN_PROGRESS — three attempts total have stopped at Target `A` / non-streaming; the first `p3-chatgpt-compat` attempt safely classified as `5xx`, and no further revised-boundary traffic may occur without a new user-directed plan |
+| Status | IN_PROGRESS — real aggregation now passes Target `A` and Target `B` non-streaming; Target `A` SSE safely stops at the existing 16 KiB single-frame limit, so Target `B` SSE remains uninvoked |
 
 ## Entry review
 
@@ -58,9 +58,12 @@ CR-ID: CR-P3-G3-001
   Request/Attempt/Usage equality per probe without rendering any correlation value. P3-09 retains
   its fixed deterministic fixture ID.
 - Upstream JSON reads are capped at 64 KiB, each SSE frame at 16 KiB, and client-body verification
-  at 64 KiB under a finite transport deadline. The retained console summary contains only target
-  label, mode, and pass/fail; runtime checks reject a client-visible Base URL, upstream model,
-  upstream credential, or project Client Key.
+  at 64 KiB under a finite transport deadline. The P3-10 Route bootstrap deadline is the same 45
+  seconds as its already-bounded total transport deadline; P3-09's controlled Mock calls retain
+  their prior one-second deadline. The retained console summary contains only target label, mode,
+  pass/fail, and (for a locally generated error envelope) one whitelisted Gateway error category.
+  Runtime checks reject a client-visible Base URL, upstream model, upstream credential, or project
+  Client Key.
 - A response is successful only when its HTTP status is `2xx`, not merely `200`. A stopped run
   prints only its opaque target label, mode, and safe status class; it never prints an exact status,
   URL, model, credential, body, or provider diagnostic.
@@ -71,7 +74,7 @@ CR-ID: CR-P3-G3-001
 
 | Command / review | Result |
 |---|---|
-| `cargo test --locked -p gateway-http-actix --test p3_10_real_endpoint_validation` | PASS; eight non-live guard/config/privacy/output-cap checks passed and the real target remained ignored. |
+| `cargo test --locked -p gateway-http-actix --test p3_10_real_endpoint_validation` | PASS; nine non-live guard/config/privacy/output-cap/error-redaction checks passed and the real target remained ignored. |
 | Ignored private mapping family check | PASS; both nonempty A/B upstream-model mappings matched the authorized ChatGPT-family shape without rendering either value or constructing transport. This is selection evidence only, not a relay capability claim. |
 | Ignored target with every `P3_10_*` variable unset | EXPECTED SAFE STOP; `NotAuthorized` returned in about 0.01 seconds with exit status 101 before Endpoint/harness construction, DNS resolution, or transport. This is guard evidence, not a real-target result. |
 | `cargo test --locked -p gateway-http-actix --test p3_09_aggregation_e2e` | PASS; 3/3 controlled Mock E2E regressions still use the shared test-only harness. |
@@ -158,6 +161,41 @@ target was enabled. The run stopped at its first probe as required.
 | Further traffic | None: Target `B`, both SSE probes, retry, and failover were not invoked |
 | Authorization usage | One of the four revised-boundary probes was sent; the remaining three were deliberately left unused after the anomaly. No cost figure was collected or retained. |
 | Consequence | P3-10 and G3 remain unaccepted. The matching safe `5xx` classification under both the superseded and revised public aliases is not sufficient to attribute a cause; it is not a basis for an automatic retry, provider switch, proxy/TUN change, or decoder change. |
+
+### 2026-07-20 transport-boundary correction and current evidence
+
+A later user direction removed the per-probe count and spend concern for focused diagnostics. The
+ignored P3-10 harness itself still has its fixed A/B/A/B, one-Attempt-per-request structure; no
+automatic retry, failover, proxy/TUN mutation, Endpoint substitution, or decoder broadening was
+performed.
+
+The shared harness had previously fixed its Route bootstrap deadline at one second even though
+P3-10's configured direct transport already allowed a bounded 45-second total request. That outer
+deadline could cancel a live Attempt before the transport produced its first semantic event and
+misclassify the local result as `EgressUnavailable`. The harness now takes an explicit positive
+bootstrap `Duration`: P3-09 continues to pass one second for its controlled Mock peers, while P3-10
+passes the same 45-second total bound used by its transport. This is test-only boundary alignment;
+it does not alter a production timeout, retry policy, decoder, proxy behavior, API, Schema, or
+deployment.
+
+The stopped-run output now parses only a locally generated Gateway error envelope and emits a code
+from the frozen Gateway-code allowlist. Unknown strings collapse to
+`unrecognized_or_non_gateway_error`; no body text or upstream detail is retained or printed.
+
+| Probe / diagnostic | Safe result |
+|---|---|
+| Target `A`, non-streaming, through full P3 aggregation | PASS |
+| Target `B`, non-streaming, through full P3 aggregation | PASS |
+| Target `A`, SSE, through full P3 aggregation | STOPPED before a public response with `StreamTruncated`; Target `B` SSE was not invoked |
+| Direct, bounded A SSE structural check | `2xx` event stream with the required created, assistant-message, nonempty-text, and completed categories; no malformed or unterminated frame was retained |
+| Direct, bounded A SSE frame-size check | One or more individual frames exceeded the existing 16 KiB cap; the affected categories were `response.created`, `response.in_progress`, and `response.completed` |
+
+The A SSE finding is a real compatibility failure against P3-10's existing 16 KiB single-frame
+limit, not evidence that the decoder should silently accept larger frames. P3-10 remains
+`IN_PROGRESS`; accepting a larger bounded frame limit or selecting a separately authorized relay
+with compliant SSE frame sizes requires an explicit user-approved change request. The direct
+diagnostic material was processed in memory and discarded; no Endpoint, credential, model,
+provider response ID, request body, response body, or raw frame is tracked.
 
 ## GitHub CI
 

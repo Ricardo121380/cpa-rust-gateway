@@ -427,6 +427,7 @@ async fn round_robin_reaches_each_controlled_http_upstream() -> TestResult {
         MODEL_ALIAS,
         RequestIdMode::Fixed,
         2,
+        Duration::from_secs(1),
         vec![
             loopback_endpoint(&upstream_a.endpoint(), 0)?,
             loopback_endpoint(&upstream_b.endpoint(), 1)?,
@@ -488,6 +489,7 @@ async fn pre_semantic_http_5xx_fails_over_to_the_second_upstream() -> TestResult
         MODEL_ALIAS,
         RequestIdMode::Fixed,
         2,
+        Duration::from_secs(1),
         vec![
             loopback_endpoint(&failing.endpoint(), 0)?,
             loopback_endpoint(&healthy.endpoint(), 1)?,
@@ -583,6 +585,7 @@ async fn dropping_the_gateway_sse_body_closes_the_live_mock_upstream_attempt() -
         MODEL_ALIAS,
         RequestIdMode::Fixed,
         2,
+        Duration::from_secs(1),
         vec![
             loopback_endpoint(&streaming.endpoint(), 0)?,
             loopback_endpoint(&unused_fallback.endpoint(), 1)?,

@@ -130,12 +130,19 @@ pub(crate) fn build_aggregation_harness(
     model_alias: &str,
     request_id_mode: RequestIdMode,
     max_attempts: i64,
+    bootstrap_timeout: Duration,
     endpoints: Vec<AggregationEndpoint>,
     event_sink: Arc<dyn GatewayEventSink>,
 ) -> Result<AggregationHarness, Box<dyn Error>> {
-    if endpoints.len() != 2 || max_attempts <= 0 {
+    if endpoints.len() != 2 || max_attempts <= 0 || bootstrap_timeout.is_zero() {
         return Err(
-            "P3 aggregation harness requires two endpoints and a positive attempt cap".into(),
+            "P3 aggregation harness requires two endpoints, a positive attempt cap, and a positive bootstrap timeout".into(),
+        );
+    }
+    let bootstrap_timeout_ms = i64::try_from(bootstrap_timeout.as_millis())?;
+    if bootstrap_timeout_ms <= 0 {
+        return Err(
+            "P3 aggregation harness bootstrap timeout must be at least one millisecond".into(),
         );
     }
 
@@ -205,7 +212,7 @@ pub(crate) fn build_aggregation_harness(
             public_model_id,
             SnapshotRoutePolicy::RoundRobin,
             max_attempts,
-            1_000,
+            bootstrap_timeout_ms,
             candidates,
         )],
         vec![SnapshotAccessGroup::new(

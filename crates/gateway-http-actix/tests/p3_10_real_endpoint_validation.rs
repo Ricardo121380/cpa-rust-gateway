@@ -48,6 +48,7 @@ const MODEL_ALIAS: &str = "p3-chatgpt-compat-alias";
 const LIVE_REQUEST_CAP: u32 = 4;
 const PROBE_MAX_OUTPUT_TOKENS: u64 = 32;
 const MAX_CLIENT_RESPONSE_BYTES: usize = 64 * 1024;
+const LIVE_BOOTSTRAP_TIMEOUT: Duration = Duration::from_secs(45);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum LiveConfigError {
@@ -243,7 +244,7 @@ impl EndpointConfig {
             Duration::from_secs(5),
             Duration::from_secs(15),
             Duration::from_secs(20),
-            Duration::from_secs(45),
+            LIVE_BOOTSTRAP_TIMEOUT,
         )
         .map_err(|_| LiveConfigError::InvalidTimeouts)?;
         let credential = self.credential.as_bytes().to_vec();
@@ -404,6 +405,31 @@ fn safe_status_class(status: StatusCode) -> &'static str {
         "5xx"
     } else {
         "other"
+    }
+}
+
+fn safe_gateway_error_code(body: &[u8]) -> &'static str {
+    let code = serde_json::from_slice::<serde_json::Value>(body)
+        .ok()
+        .and_then(|value| value.get("error")?.get("code")?.as_str().map(str::to_owned));
+    match code.as_deref() {
+        Some("ClientRequestError") => "ClientRequestError",
+        Some("ClientUnauthorized") => "ClientUnauthorized",
+        Some("RouteNotFound") => "RouteNotFound",
+        Some("CredentialUnavailable") => "CredentialUnavailable",
+        Some("CredentialUnauthorized") => "CredentialUnauthorized",
+        Some("CredentialForbidden") => "CredentialForbidden",
+        Some("CredentialQuotaExceeded") => "CredentialQuotaExceeded",
+        Some("EgressRejected") => "EgressRejected",
+        Some("EgressUnavailable") => "EgressUnavailable",
+        Some("ProviderRateLimited") => "ProviderRateLimited",
+        Some("ProviderTransient") => "ProviderTransient",
+        Some("ProviderPermanent") => "ProviderPermanent",
+        Some("UpstreamProtocolError") => "UpstreamProtocolError",
+        Some("StreamTruncated") => "StreamTruncated",
+        Some("InternalError") => "InternalError",
+        Some("Cancelled") => "Cancelled",
+        _ => "unrecognized_or_non_gateway_error",
     }
 }
 
@@ -613,6 +639,18 @@ fn non_success_statuses_are_classified_without_rendering_codes() {
     assert_eq!(safe_status_class(StatusCode::BAD_GATEWAY), "5xx");
 }
 
+#[test]
+fn gateway_error_diagnostic_whitelists_only_frozen_codes() {
+    assert_eq!(
+        safe_gateway_error_code(br#"{"error":{"code":"EgressUnavailable"}}"#),
+        "EgressUnavailable"
+    );
+    assert_eq!(
+        safe_gateway_error_code(br#"{"error":{"code":"upstream-private-detail"}}"#),
+        "unrecognized_or_non_gateway_error"
+    );
+}
+
 #[actix_web::test]
 #[ignore = "requires explicit P3_10_* real-test configuration and user authorization"]
 async fn authorized_real_endpoints_validate_non_streaming_and_sse_paths() -> TestResult {
@@ -626,6 +664,7 @@ async fn authorized_real_endpoints_validate_non_streaming_and_sse_paths() -> Tes
         MODEL_ALIAS,
         RequestIdMode::Sequenced,
         1,
+        LIVE_BOOTSTRAP_TIMEOUT,
         inputs,
         event_sink,
     )?;
@@ -657,8 +696,10 @@ async fn authorized_real_endpoints_validate_non_streaming_and_sse_paths() -> Tes
         let status = response.status();
         if !status.is_success() {
             let status_class = safe_status_class(status);
+            let body = bounded_client_body(response).await?;
+            let error_code = safe_gateway_error_code(&body);
             println!(
-                "p3-10 live probe target={endpoint_label} mode={mode} result=stopped status_class={status_class}"
+                "p3-10 live probe target={endpoint_label} mode={mode} result=stopped status_class={status_class} error_code={error_code}"
             );
             return Err(ProbeError::GatewayResponseNotSuccessful(status_class).into());
         }
