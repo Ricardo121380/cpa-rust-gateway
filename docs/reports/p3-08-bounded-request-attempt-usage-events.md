@@ -8,7 +8,7 @@
 | Date | `2026-07-20` |
 | Branch | `codex/p3-08-structured-events` |
 | Rust | `1.97.1` |
-| Result | PASS locally; GitHub Fast/Full acceptance pending |
+| Result | PASS locally and for the implementation commit in GitHub Fast/Full; verification-record acceptance pending |
 
 ## Delivered scope
 
@@ -59,3 +59,17 @@ P3-08 does not write SQLite, batch/flush events, persist health, export tracing/
 enable Body capture, create a real aggregated HTTP executor, call a deployed Endpoint, or expose an
 event query API. P3-09 owns integrated Mock HTTP E2E; P3-10 owns real-endpoint validation;
 P4-07 through P4-09 own durable writer/exporter/logging behavior.
+
+## GitHub CI
+
+GitHub Actions run [29710065770](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29710065770)
+passed for implementation commit `0c0dfe5`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS; completed `2026-07-20T00:53:34Z` |
+| Full supply-chain gate | PASS; completed `2026-07-20T01:04:25Z` |
+
+This completes P3-08 implementation acceptance. The separate verification-record commit must pass
+the same two jobs before the final status record can be created; that final record must also pass
+before P3-09 can become the plan's sole `IN_PROGRESS` task.
