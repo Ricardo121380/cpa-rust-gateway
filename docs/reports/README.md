@@ -26,10 +26,7 @@
 - [G0 可复现构建日志](g0-reproducible-build-log.md)
 - [G1 阶段门禁报告](g1-gate-report.md)
 - [G2 阶段门禁报告](g2-gate-report.md)
-
-## 进行中
-
-- [P3-10 真实测试 Endpoint 验证计划](p3-10-real-test-endpoint-validation.md) — A/B 非流式与 SSE 四路真实聚合已本地通过；P3/G3 最终 GitHub 验收待完成。
+- [G3 阶段门禁报告](g3-gate-report.md)
 
 ## 已完成任务
 
@@ -61,3 +58,4 @@
 - [P3-07 RouteSnapshot public model view report](p3-07-routesnapshot-public-model-view.md)
 - [P3-08 bounded Request, Attempt, and Usage events report](p3-08-bounded-request-attempt-usage-events.md)
 - [P3-09 controlled Mock HTTP aggregation E2E report](p3-09-controlled-mock-http-aggregation-e2e.md)
+- [P3-10 authorized real-test Endpoint validation report](p3-10-real-test-endpoint-validation.md)

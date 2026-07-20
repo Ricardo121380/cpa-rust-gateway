@@ -7,7 +7,7 @@
 | Matrix / behavior | `C16`, `G05`, `G12-G15`, `G21`, `K03-K06`, `L20-L31`; Behavior 1/4/5/9/17/20 |
 | Date | `2026-07-20` |
 | Branch | `codex/p3-10-real-endpoint-validation` |
-| Status | LOCAL PASS — all four authorized full-path probes pass after `CR-P3-G3-003`; final P3/G3 verification record and GitHub acceptance remain pending |
+| Status | PASS — all four authorized full-path probes pass after `CR-P3-G3-003`; the implementation commit passed GitHub Fast and Full, and G3 is accepted |
 
 ## Entry review
 
@@ -325,6 +325,20 @@ This remote result accepts the opt-in local harness, its test-boundary refactor,
 cursor-fairness fixture isolation. It does not authorize a real Endpoint or alter the task's
 `IN_PROGRESS` status. The verification-record commit below must pass the same workflow before this
 local evidence is considered durable.
+
+GitHub Actions run [29761237706](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29761237706)
+then passed for the final P3-10 transport-boundary implementation commit
+`2df79fc433619794962f243bc149ec24103f5149`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS |
+| Full supply-chain gate | PASS |
+
+This accepts the final bounded live-test profile, including the 45-second SSE response-idle bound.
+The earlier run `29760451525` was cancelled after its GitHub-hosted Full runner remained stale past
+its configured 45-minute job limit; it is not used as acceptance evidence. The replacement run used
+the same commit and did not execute the ignored real-target test.
 
 ## Execution protocol
 

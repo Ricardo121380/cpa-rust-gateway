@@ -7,8 +7,8 @@
 | 计划版本 | `v1.1` |
 | 生效日期 | `2026-07-19` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` 与 `P2 - 聚合控制面、安全与 RouteSnapshot` 已完成；`P3 - OpenAI Responses 聚合 MVP` 已本地完成，等待 G3 的 GitHub Fast/Full 验收 |
-| 当前任务 | `P3-01` 至 `P3-09` 已验收；`P3-10` 的两条真实 Candidate × 非流式/SSE 四路聚合已本地通过，ADR/Contract 已接受。P3/G3 仍等待验证记录的 GitHub Fast/Full，未开始 P4。 |
+| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot` 与 `P3 - OpenAI Responses 聚合 MVP` 已完成；`P4 - Catalog、Health、Quota、Explain、观测` 保持 `PENDING`，尚未开始 |
+| 当前任务 | 无；`P3-01` 至 `P3-10` 与 `G3` 均为 `DONE`。P4-01 保持 `PENDING`，不会由本 Gate 自动启动。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -232,7 +232,7 @@ deploy/
 | P0 | 仓库、工具链、ADR、CI 基线 | 本计划锁定 | G0 | DONE |
 | P1 | Canonical Core + Mock 垂直链路 | G0 | G1 | DONE |
 | P2 | 聚合控制面、Secret、RouteSnapshot | G1 | G2 | DONE |
-| P3 | OpenAI Responses 聚合 MVP | G2 | G3 | IN_PROGRESS |
+| P3 | OpenAI Responses 聚合 MVP | G2 | G3 | DONE |
 | P4 | Catalog、Health、Quota、Explain、观测 | G3 | G4 | PENDING |
 | P5 | Anthropic/Claude Code 兼容 | G4 | G5 | PENDING |
 | P6 | Grok Build | G5 | G6 | PENDING |
@@ -335,7 +335,7 @@ deploy/
 | P3-07 | 实现从 RouteSnapshot 生成的 `/v1/models` 与响应模型名回写 | P2-07,P3-03 | AccessGroup、hard-eligible、回写测试 | DONE |
 | P3-08 | 发出 Request/Attempt/Usage 结构化事件，不阻塞响应 | P3-06 | 事件关联和队列背压测试 | DONE |
 | P3-09 | 建立两个可控 Mock HTTP Upstream 的聚合 E2E 套件 | P3-01-P3-08 | 轮询、Failover、取消完整报告 | DONE |
-| P3-10 | 使用两个真实测试中转 Endpoint 做最小非流式与 SSE 验证 | P3-09 | 脱敏请求/响应和 Trace 证据 | LOCAL_PASS_PENDING_G3_CI |
+| P3-10 | 使用两个真实测试中转 Endpoint 做最小非流式与 SSE 验证 | P3-09 | 脱敏请求/响应和 Trace 证据 | DONE |
 
 ### 已批准 Change Request：CR-P3-G3-001
 
