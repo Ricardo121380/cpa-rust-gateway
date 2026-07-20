@@ -8,7 +8,7 @@
 | Date | `2026-07-20` |
 | Branch | `codex/p3-09-mock-upstream-e2e` |
 | Rust | `1.97.1` |
-| Result | PASS locally; GitHub implementation acceptance pending |
+| Result | PASS locally and for the implementation commit in GitHub Fast/Full; verification-record acceptance pending |
 
 ## Delivered scope
 
@@ -67,3 +67,17 @@ server process, persist events, write SQLite, add a generic production OpenAI re
 or broaden Provider dependencies in `gateway-http-actix`'s library target. P3-10 owns minimal
 authorized real-test Endpoint validation; P4 owns persistent event writing, richer status policy,
 and observability exports.
+
+## GitHub CI
+
+GitHub Actions run [29712143553](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29712143553)
+passed for implementation commit `7aad502`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS; completed `2026-07-20T02:15:30Z` |
+| Full supply-chain gate | PASS; completed `2026-07-20T02:26:36Z` |
+
+This completes P3-09 implementation acceptance. The separate verification-record commit must pass
+the same two jobs before the final status record can be created; that final record must also pass
+before P3-10 can begin.
