@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Proposed |
+| Status | Accepted |
 | Date | `2026-07-20` |
 | Task / Matrix / Contract references | `P3-10`; `C16`, `G05`, `G12-G15`, `G21`, `K03-K06`, `L20-L31`; [BC-E2E-002](../contracts/BC-E2E-002-authorized-real-test-endpoint-validation.md) |
 
@@ -56,6 +56,11 @@ previously supplied chat text are not P3-10 configuration and must never be sele
    aligns the finite frame bound with the existing bounded upstream-JSON and client-response reads.
    A frame above that limit remains a safe rejection, and neither raw frames nor a broader
    production decoder are introduced.
+10. Under `CR-P3-G3-003`, only the ignored P3-10 live-test profile raises its SSE response-idle
+    bound from 20 seconds to its existing 45-second total bound. Its connect bound remains five
+    seconds, first-byte bound remains 15 seconds, and Route bootstrap bound remains 45 seconds.
+    The same test-only profile also retains an already-idle pooled connection for at most 45 seconds;
+    this does not alter the P3-02 production transport profile or introduce an unbounded read.
 
 ## Consequences
 

@@ -7,13 +7,14 @@
 | Matrix / behavior | `C16`, `G05`, `G12-G15`, `G21`, `K03-K06`, `L20-L31`; Behavior 1/4/5/9/17/20 |
 | Date | `2026-07-20` |
 | Branch | `codex/p3-10-real-endpoint-validation` |
-| Status | IN_PROGRESS — the original mapping now passes both non-streaming probes and Target `A` SSE at the approved 64 KiB frame bound; Target `B` SSE stops with `EgressUnavailable` under the existing finite upstream transport deadlines, while direct diagnostics show the relay can complete an equivalent bounded SSE request |
+| Status | LOCAL PASS — all four authorized full-path probes pass after `CR-P3-G3-003`; final P3/G3 verification record and GitHub acceptance remain pending |
 
 ## Entry review
 
 P3-09's final GitHub CI run
 [29713118335](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29713118335) completed
-successfully for commit `a9fb25d`. Therefore P3-10 is the plan's only `IN_PROGRESS` Task.
+successfully for commit `a9fb25d`. At that entry point, P3-10 became the plan's only
+`IN_PROGRESS` Task.
 
 The repository contains no tracked real-test Base URL, credential, model, proxy profile, or request
 budget. No ambient API-key variable, prior chat text, local shell history, or test-only P3-09 value
@@ -56,6 +57,24 @@ CR-ID: CR-P3-G3-002
 用户批准: APPROVED，2026-07-20
 ```
 
+## Approved Change Request: CR-P3-G3-003
+
+```text
+CR-ID: CR-P3-G3-003
+原因: Target B 的完整 P3 SSE 探测以安全 `EgressUnavailable` 停止；直接的有界 SSE
+      诊断已证明该 relay 可以完成等价请求。现有 public failure 分类无法区分 15 秒首字节
+      与 20 秒响应 idle 边界。
+影响的 Task / Matrix ID / ADR: P3-10、G3、BC-E2E-002、ADR-0020 与
+      p3_10_real_endpoint_validation；仅修改 ignored live-test profile。
+兼容性与迁移影响: SSE response-idle 从 20 秒提高至现有 45 秒总上限；connect=5 秒、
+      TTFB=15 秒、Route bootstrap=45 秒、max_attempts=1 保持不变。该 test-only
+      profile 的已归还连接保留期也相应最多为 45 秒；无生产 API、Schema、数据库、部署、
+      proxy/TUN 或自动重试变化。
+测试与回滚变化: 增加 timeout 形状断言；批准后重跑完整真实 A/B/A/B 聚合路径直到 B SSE。
+      回滚只能经新的已批准 CR 恢复 20 秒限制。
+用户批准: APPROVED，2026-07-21
+```
+
 ## Delivered local harness
 
 - Added ignored target `p3_10_real_endpoint_validation` plus the shared test-only
@@ -90,7 +109,7 @@ CR-ID: CR-P3-G3-002
 
 | Command / review | Result |
 |---|---|
-| `cargo test --locked -p gateway-http-actix --test p3_10_real_endpoint_validation` | PASS; eleven non-live guard/config/privacy/output-cap/error-redaction/frame-boundary checks passed and the real target remained ignored. |
+| `cargo test --locked -p gateway-http-actix --test p3_10_real_endpoint_validation` | PASS; twelve non-live guard/config/privacy/output-cap/error-redaction/frame-boundary/timeout-shape checks passed and the real target remained ignored. |
 | Ignored private mapping family check | PASS; both nonempty A/B upstream-model mappings matched the authorized ChatGPT-family shape without rendering either value or constructing transport. This is selection evidence only, not a relay capability claim. |
 | Ignored target with every `P3_10_*` variable unset | EXPECTED SAFE STOP; `NotAuthorized` returned in about 0.01 seconds with exit status 101 before Endpoint/harness construction, DNS resolution, or transport. This is guard evidence, not a real-target result. |
 | `cargo test --locked -p gateway-http-actix --test p3_09_aggregation_e2e` | PASS; 5/5 checks: three controlled Mock E2E regressions plus the shared finite-frame boundary checks. |
@@ -98,6 +117,7 @@ CR-ID: CR-P3-G3-002
 | `cargo clippy --locked -p gateway-router -p gateway-http-actix --all-targets --all-features -- -D warnings` and `cargo fmt --all -- --check` | PASS. |
 | `./scripts/check.sh full` | PASS after `CR-P3-G3-001`; complete workspace format, Clippy, tests, source policy, crate boundaries, document links, tracked-secret scan, dependency policy, and RustSec audit passed. The ignored live target remained unexecuted. |
 | `./scripts/check.sh full` after `CR-P3-G3-002` | PASS; format, Clippy, workspace tests, source policy, crate boundaries, document links, tracked-secret scan, dependency policy, and RustSec audit all passed. |
+| `./scripts/check.sh full` after `CR-P3-G3-003` | PASS; format, Clippy, workspace tests, source policy, crate boundaries, document links, tracked-secret scan, dependency policy, and RustSec audit all passed. |
 
 ## Review
 
@@ -262,9 +282,34 @@ before any HTTP-version policy is considered. The gateway's existing P3-10 profi
 finite 15-second first-byte and 20-second body-idle bounds, and both transport failures map to the
 same safe `EgressUnavailable` category; the retained public result cannot distinguish them. The
 finding is not a frame-cap, credential, Endpoint, proxy/TUN, or ordinary decoder semantic mismatch.
-P3-10 and P3 remain `IN_PROGRESS` pending an explicit, evidence-backed test-only transport decision.
-No automatic retry, failover, Endpoint substitution, proxy/TUN mutation, or shared-transport change
-was made.
+P3-10 and P3 remained `IN_PROGRESS` pending an explicit, evidence-backed test-only transport
+decision. That decision was subsequently approved as `CR-P3-G3-003`; its revalidation record
+follows. No automatic retry, failover, Endpoint substitution, proxy/TUN mutation, or shared-
+transport change was made.
+
+### 2026-07-21 idle-bound revalidation
+
+`CR-P3-G3-003` raises only the ignored P3-10 live-test SSE response-idle bound from 20 seconds to
+the existing finite 45-second total deadline. Connect remains five seconds, first-byte remains 15
+seconds, the Route bootstrap deadline remains 45 seconds, and `max_attempts=1` remains unchanged.
+The same test-only profile retains an already-idle pooled connection for at most 45 seconds; no
+production profile, proxy/TUN setting, Endpoint mapping, or decoder behavior changes.
+
+The non-live timeout-shape check proves that configuration before any network activity. The
+authorized full-path revalidation then completed without a stop condition:
+
+| Probe | Safe result |
+|---|---|
+| Target `A`, non-streaming, through full P3 aggregation | PASS |
+| Target `B`, non-streaming, through full P3 aggregation | PASS |
+| Target `A`, SSE, through full P3 aggregation | PASS |
+| Target `B`, SSE, through full P3 aggregation | PASS |
+
+The ignored target command completed successfully in about 13 seconds. It retained only its
+opaque target labels and pass/fail result; no Endpoint, credential, model, request/response body,
+SSE frame, or provider diagnostic was written to tracked evidence. This accepts the real-test
+compatibility result locally. The final P3/G3 status record still requires the ordinary local
+review/full gate and its GitHub verification; P4 remains untouched.
 
 ## GitHub CI
 

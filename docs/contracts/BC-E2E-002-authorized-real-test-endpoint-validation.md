@@ -4,7 +4,7 @@
 |---|---|
 | Contract | `BC-E2E-002` |
 | Task | `P3-10` |
-| Status | Proposed |
+| Status | Accepted |
 | Domain | Opt-in validation of two real OpenAI-compatible Responses test relays |
 
 ## Preconditions
@@ -34,6 +34,7 @@
 | Opt-in guard | Normal `cargo test`, CI, and a missing/invalid live-test switch make zero external requests. A live run needs all explicit P3-10 variables, `P3_10_LIVE_AUTHORIZATION=approved`, and exactly four approved requests. |
 | Isolation | Each target receives one bounded non-streaming and one bounded SSE probe through an explicit Candidate/Endpoint/Credential mapping. The route has `max_attempts=1`; it cannot silently retry, fail over, or substitute an ambient endpoint, credential, proxy, or model. |
 | Bootstrap deadline | P3-10's Route bootstrap deadline is explicitly bounded to the same 45 seconds as its configured total transport deadline. P3-09's controlled Mock target keeps its separate one-second test deadline. |
+| Live transport bound | Under `CR-P3-G3-003`, only the ignored P3-10 live profile uses connect `5s`, first-byte `15s`, SSE response-idle `45s`, and total `45s`. The same test-only profile retains an already-idle pooled connection for at most `45s`; no production profile, retry, proxy, or TUN behavior changes. |
 | Bounded reads | Upstream JSON, client-visible response verification, and each test-only SSE frame are independently capped at 64 KiB. A frame at the limit is accepted; a larger frame is safely rejected without retaining or rendering its raw bytes. |
 | Protocol proof | A successful non-streaming probe has an admitted HTTP target, a successful `2xx` status/content type, and a bounded canonical `ResponseStart` to `ResponseEnd` sequence. A successful SSE probe has a successful `2xx` status, the expected stream content type, starts before output consumption, and terminates through the same bounded canonical path. |
 | Public boundary | Client input uses the fixed test-only `p3-chatgpt-compat` public model and the Snapshot-authenticated project boundary. Client-visible output must use that alias; upstream model, endpoint identity, and credential never escape the response or retained evidence. |

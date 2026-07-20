@@ -29,7 +29,7 @@
 
 ## 进行中
 
-- [P3-10 真实测试 Endpoint 验证计划](p3-10-real-test-endpoint-validation.md) — A/B 非流式与 A SSE 已通过；B SSE 暴露独立的首字节传输兼容性问题，等待单独 CR 决策。
+- [P3-10 真实测试 Endpoint 验证计划](p3-10-real-test-endpoint-validation.md) — A/B 非流式与 SSE 四路真实聚合已本地通过；P3/G3 最终 GitHub 验收待完成。
 
 ## 已完成任务
 

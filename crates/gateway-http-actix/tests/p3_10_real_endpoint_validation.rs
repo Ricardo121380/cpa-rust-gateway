@@ -48,7 +48,11 @@ const MODEL_ALIAS: &str = "p3-chatgpt-compat-alias";
 const LIVE_REQUEST_CAP: u32 = 4;
 const PROBE_MAX_OUTPUT_TOKENS: u64 = 32;
 const MAX_CLIENT_RESPONSE_BYTES: usize = 64 * 1024;
-const LIVE_BOOTSTRAP_TIMEOUT: Duration = Duration::from_secs(45);
+const LIVE_CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
+const LIVE_TTFB_TIMEOUT: Duration = Duration::from_secs(15);
+const LIVE_TOTAL_TIMEOUT: Duration = Duration::from_secs(45);
+const LIVE_BOOTSTRAP_TIMEOUT: Duration = LIVE_TOTAL_TIMEOUT;
+const LIVE_SSE_IDLE_TIMEOUT: Duration = LIVE_TOTAL_TIMEOUT;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum LiveConfigError {
@@ -240,13 +244,7 @@ impl EndpointConfig {
             redirect_policy: RedirectPolicy::Deny,
         })
         .map_err(|_| LiveConfigError::InvalidEgressPolicy)?;
-        let timeouts = UpstreamTimeouts::try_new(
-            Duration::from_secs(5),
-            Duration::from_secs(15),
-            Duration::from_secs(20),
-            LIVE_BOOTSTRAP_TIMEOUT,
-        )
-        .map_err(|_| LiveConfigError::InvalidTimeouts)?;
+        let timeouts = live_timeouts()?;
         let credential = self.credential.as_bytes().to_vec();
         let probe_privacy = ProbePrivacy {
             base_url: self.base_url,
@@ -268,6 +266,16 @@ impl EndpointConfig {
         );
         Ok((input, probe_privacy))
     }
+}
+
+fn live_timeouts() -> Result<UpstreamTimeouts, LiveConfigError> {
+    UpstreamTimeouts::try_new(
+        LIVE_CONNECT_TIMEOUT,
+        LIVE_TTFB_TIMEOUT,
+        LIVE_SSE_IDLE_TIMEOUT,
+        LIVE_TOTAL_TIMEOUT,
+    )
+    .map_err(|_| LiveConfigError::InvalidTimeouts)
 }
 
 fn required_value<F>(read: &mut F, name: &str) -> Result<String, LiveConfigError>
@@ -546,6 +554,17 @@ fn complete_synthetic_configuration_builds_without_network_activity() -> TestRes
     let (inputs, privacy) = config.into_harness_inputs()?;
     assert_eq!(inputs.len(), 2);
     assert_eq!(privacy.len(), 2);
+    Ok(())
+}
+
+#[test]
+fn live_sse_idle_timeout_is_finite_and_aligned_with_the_total_deadline() -> TestResult {
+    let timeouts = live_timeouts()?;
+
+    assert_eq!(timeouts.connect(), LIVE_CONNECT_TIMEOUT);
+    assert_eq!(timeouts.ttfb(), LIVE_TTFB_TIMEOUT);
+    assert_eq!(timeouts.idle(), LIVE_TOTAL_TIMEOUT);
+    assert_eq!(timeouts.total(), LIVE_TOTAL_TIMEOUT);
     Ok(())
 }
 
