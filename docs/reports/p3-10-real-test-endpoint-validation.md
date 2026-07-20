@@ -7,7 +7,7 @@
 | Matrix / behavior | `C16`, `G05`, `G12-G15`, `G21`, `K03-K06`, `L20-L31`; Behavior 1/4/5/9/17/20 |
 | Date | `2026-07-20` |
 | Branch | `codex/p3-10-real-endpoint-validation` |
-| Status | IN_PROGRESS — first authorized probe stopped at the prior exact-`200` check; a fixed `2xx`-accepting harness awaits explicit clean-rerun authorization |
+| Status | IN_PROGRESS — both authorized attempts so far stopped at Target `A` / non-streaming; the latest harness correctly classifies the second as `5xx`, and no further real traffic may occur without a new user-directed plan |
 
 ## Entry review
 
@@ -77,7 +77,9 @@ Credential, transport, or P3-10 behavior changed; 50 repeated executions prove t
 cursor-only assertion is deterministic.
 
 This review accepts only the local harness and its safe guard. It does not accept P3-10, G3, or
-P3 as complete: the four authorized real-target calls and their redacted outcome remain required.
+P3 as complete: successful real-target compatibility evidence for both Candidates and both modes
+is still absent. The two attempts recorded below both stopped at Target `A` / non-streaming, so
+they establish neither Target `B` nor either SSE path.
 
 ## Authorized real-run record
 
@@ -95,6 +97,24 @@ no tracked file received an Endpoint, model, or credential.
 
 The one request counts against the original four-call authorization. A clean rerun must receive a
 new explicit authorization and spend cap before it can send any additional traffic.
+
+### 2026-07-20 follow-up authorization record
+
+The user subsequently authorized up to four additional real probes (five total including the
+previous request), with a total spend ceiling of USD 10. The fixed `2xx`-accepting harness was run
+once under that authorization. It stopped at its first probe as required.
+
+| Field | Recorded safe result |
+|---|---|
+| Second probe | Target `A`, non-streaming |
+| Result | STOPPED after one request because the gateway response was not `2xx` |
+| Retained status | `5xx` class only; no exact status, URL, body, model, credential, or provider diagnostic was retained |
+| Further traffic | None: Target `B`, both SSE probes, retry, and failover were not invoked |
+| Authorization usage | One of the four newly authorized probes was sent; the remaining three were deliberately left unused after the anomaly. No cost figure was collected or retained. |
+| Consequence | P3-10 and G3 remain unaccepted. The unused call capacity is not a basis for an automatic retry, resume, provider switch, proxy/TUN change, or decoder change. |
+
+This is the terminal record for the run: it demonstrates that the revised harness classifies a
+non-success response safely, but it provides no successful real-endpoint compatibility evidence.
 
 ## GitHub CI
 
