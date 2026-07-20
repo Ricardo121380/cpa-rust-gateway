@@ -8,7 +8,7 @@
 | Date | `2026-07-20` |
 | Branch | `codex/p3-07-models-response-rewrite` |
 | Rust | `1.97.1` |
-| Result | PASS locally and for the implementation commit in GitHub Fast/Full; verification-record acceptance pending |
+| Result | PASS locally and in GitHub Fast/Full for both the implementation and verification-record commits |
 
 ## Delivered scope
 
@@ -83,3 +83,14 @@ passed for implementation commit `21fde53`.
 This completes P3-07 implementation acceptance. The separate verification-record commit must pass
 the same two jobs before the final status record can be created; that final record must also pass
 before P3-08 can become the plan's sole `IN_PROGRESS` task.
+
+GitHub Actions run [29708526975](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29708526975)
+then passed for verification-record commit `6a1e35c`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS; completed `2026-07-19T23:51:38Z` |
+| Full supply-chain gate | PASS; completed `2026-07-20T00:02:27Z` |
+
+P3-07 is accepted. This final status-record commit is intentionally documentation-only and must
+itself pass the same workflow before P3-08 can become the plan's sole `IN_PROGRESS` task.
