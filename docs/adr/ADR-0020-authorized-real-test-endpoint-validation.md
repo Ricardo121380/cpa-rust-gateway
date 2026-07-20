@@ -43,6 +43,11 @@ previously supplied chat text are not P3-10 configuration and must never be sele
 6. A protocol mismatch, authorization failure, unexpected billing/consent condition, or any output
    that cannot be safely summarized stops the run. It becomes a redacted compatibility finding; it
    does not authorize broad decoder changes or automatic fallbacks.
+7. Under `CR-P3-G3-001`, the P3-10 public model is the test-only
+   `p3-chatgpt-compat` alias. It is deliberately distinct from a provider model identity: each
+   Candidate continues to receive its explicit private upstream-model mapping, while every
+   client-visible response is checked for the public alias. This change does not select or discover
+   an upstream model and does not revise P3-09's loopback-only fixture naming.
 
 ## Consequences
 

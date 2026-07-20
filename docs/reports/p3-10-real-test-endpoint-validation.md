@@ -7,7 +7,7 @@
 | Matrix / behavior | `C16`, `G05`, `G12-G15`, `G21`, `K03-K06`, `L20-L31`; Behavior 1/4/5/9/17/20 |
 | Date | `2026-07-20` |
 | Branch | `codex/p3-10-real-endpoint-validation` |
-| Status | IN_PROGRESS — both authorized attempts so far stopped at Target `A` / non-streaming; the latest harness correctly classifies the second as `5xx`, and no further real traffic may occur without a new user-directed plan |
+| Status | IN_PROGRESS — both historical attempts stopped at Target `A` / non-streaming; `CR-P3-G3-001` now uses the test-only `p3-chatgpt-compat` public alias, so no revised-boundary real traffic may occur without fresh explicit authorization |
 
 ## Entry review
 
@@ -19,6 +19,26 @@ The repository contains no tracked real-test Base URL, credential, model, proxy 
 budget. No ambient API-key variable, prior chat text, local shell history, or test-only P3-09 value
 is eligible to fill those fields. An authorized operator-controlled file under ignored
 `docs/reports/private/` is the only permitted local source for a real run.
+
+## Approved Change Request: CR-P3-G3-001
+
+```text
+CR-ID: CR-P3-G3-001
+原因: P3-10/G3 曾用 minimax-m3 作为真实测试的公开模型名，但两个 operator-controlled
+      私有 Candidate 映射属于 ChatGPT-family 上游；该命名会把客户端兼容性别名误读为
+      上游模型身份。
+影响的 Task / Matrix ID / ADR: Plan P3-10、G3、BC-E2E-002、ADR-0020 与
+      p3_10_real_endpoint_validation；不修改 P3-09 的 Mock fixture，也不决定 P10 以后的
+      产品 PublicModel。
+兼容性与迁移影响: 无 API、Schema、数据库或部署迁移。P3-10 的 client-visible test-only
+      public model 变为 p3-chatgpt-compat，输入别名为 p3-chatgpt-compat-alias；A/B 仍各自
+      使用私有配置中明确的上游模型，且不会写入 Git 或输出。
+测试与回滚变化: 非实时测试继续验证请求别名、公开模型回写、脱敏和 output cap；批准后重跑
+      完整门禁。回滚仅能通过新的已批准 CR 恢复原文字/常量；不产生外部流量。
+用户批准: APPROVED，2026-07-20
+授权边界: 先前未使用的真实调用额度不自动覆盖这个变更后的公开测试边界；新的真实运行必须
+      有单独的调用数与预算授权。
+```
 
 ## Delivered local harness
 
@@ -44,17 +64,20 @@ is eligible to fill those fields. An authorized operator-controlled file under i
 - A response is successful only when its HTTP status is `2xx`, not merely `200`. A stopped run
   prints only its opaque target label, mode, and safe status class; it never prints an exact status,
   URL, model, credential, body, or provider diagnostic.
+- Its client-visible model is the test-only `p3-chatgpt-compat` alias; each Candidate's actual
+  ChatGPT-family upstream mapping remains private and is not an identity claim in this report.
 
 ## Local verification evidence
 
 | Command / review | Result |
 |---|---|
-| `cargo test --locked -p gateway-http-actix --test p3_10_real_endpoint_validation` | PASS; seven non-live guard/config/privacy/output-cap checks passed and the real target remained ignored. |
+| `cargo test --locked -p gateway-http-actix --test p3_10_real_endpoint_validation` | PASS; eight non-live guard/config/privacy/output-cap checks passed and the real target remained ignored. |
+| Ignored private mapping family check | PASS; both nonempty A/B upstream-model mappings matched the authorized ChatGPT-family shape without rendering either value or constructing transport. This is selection evidence only, not a relay capability claim. |
 | Ignored target with every `P3_10_*` variable unset | EXPECTED SAFE STOP; `NotAuthorized` returned in about 0.01 seconds with exit status 101 before Endpoint/harness construction, DNS resolution, or transport. This is guard evidence, not a real-target result. |
 | `cargo test --locked -p gateway-http-actix --test p3_09_aggregation_e2e` | PASS; 3/3 controlled Mock E2E regressions still use the shared test-only harness. |
 | `cargo test --locked -p gateway-router credential_scheduler::tests::two_layer_atomic_cursors_preserve_route_and_endpoint_weights_under_concurrency -- --exact` (50 repetitions) | PASS; cursor-distribution assertion is now isolated from temporary lease saturation. |
 | `cargo clippy --locked -p gateway-router -p gateway-http-actix --all-targets --all-features -- -D warnings` and `cargo fmt --all -- --check` | PASS. |
-| `./scripts/check.sh full` | PASS; complete workspace format, Clippy, tests, source policy, crate boundaries, document links, tracked-secret scan, dependency policy, and RustSec audit passed. |
+| `./scripts/check.sh full` | PASS after `CR-P3-G3-001`; complete workspace format, Clippy, tests, source policy, crate boundaries, document links, tracked-secret scan, dependency policy, and RustSec audit passed. The ignored live target remained unexecuted. |
 
 ## Review
 
@@ -78,8 +101,9 @@ cursor-only assertion is deterministic.
 
 This review accepts only the local harness and its safe guard. It does not accept P3-10, G3, or
 P3 as complete: successful real-target compatibility evidence for both Candidates and both modes
-is still absent. The two attempts recorded below both stopped at Target `A` / non-streaming, so
-they establish neither Target `B` nor either SSE path.
+is still absent. The two attempts recorded below both stopped at Target `A` / non-streaming under
+the superseded public alias, so they establish neither Target `B` nor either SSE path nor the
+revised `p3-chatgpt-compat` boundary.
 
 ## Authorized real-run record
 
@@ -115,6 +139,9 @@ once under that authorization. It stopped at its first probe as required.
 
 This is the terminal record for the run: it demonstrates that the revised harness classifies a
 non-success response safely, but it provides no successful real-endpoint compatibility evidence.
+
+The user later approved `CR-P3-G3-001`. These two historical attempts remain a safe record only;
+they do not authorize or satisfy a real run under the revised public alias.
 
 ## GitHub CI
 
@@ -192,9 +219,10 @@ cargo test --locked -p gateway-http-actix --test p3_10_real_endpoint_validation 
 
 ## Acceptance criteria
 
-- Each approved target has one successful bounded non-streaming and SSE compatibility result, or a
-  clearly redacted stopped finding with no further unapproved calls.
-- The project boundary keeps the stable public model client-visible and does not expose upstream
+- Each approved target has one successful bounded non-streaming and SSE compatibility result through
+  test-only `p3-chatgpt-compat`, or a clearly redacted stopped finding with no further unapproved
+  calls. A stopped finding is safe execution evidence, not P3-10 completion evidence.
+- The project boundary keeps that test-only public alias client-visible and does not expose upstream
   model, Endpoint, credential, or raw response data.
 - Request/Attempt/Usage correlation, timeout/proxy selection, and first-semantic-event semantics
   are evidenced without retaining their secret-bearing values.

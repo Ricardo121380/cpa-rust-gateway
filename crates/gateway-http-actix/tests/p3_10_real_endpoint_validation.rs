@@ -42,8 +42,9 @@ use zeroize::Zeroizing;
 
 type TestResult = Result<(), Box<dyn Error>>;
 
-const PUBLIC_MODEL: &str = "minimax-m3";
-const MODEL_ALIAS: &str = "minimax-m3-alias";
+// CR-P3-G3-001: a test-only public compatibility alias, not an upstream model identity.
+const PUBLIC_MODEL: &str = "p3-chatgpt-compat";
+const MODEL_ALIAS: &str = "p3-chatgpt-compat-alias";
 const LIVE_REQUEST_CAP: u32 = 4;
 const PROBE_MAX_OUTPUT_TOKENS: u64 = 32;
 const MAX_CLIENT_RESPONSE_BYTES: usize = 64 * 1024;
@@ -565,7 +566,7 @@ fn client_boundary_rejects_internal_values_without_rendering_them() {
     };
     assert!(matches!(
         verify_client_visible_boundary(
-            br#"{"model":"minimax-m3","marker":"synthetic-upstream-model"}"#,
+            br#"{"model":"p3-chatgpt-compat","marker":"synthetic-upstream-model"}"#,
             false,
             &privacy,
             "synthetic-client-key",
@@ -578,6 +579,7 @@ fn client_boundary_rejects_internal_values_without_rendering_them() {
 fn fixed_probe_payload_caps_the_upstream_output() -> TestResult {
     for streaming in [false, true] {
         let payload = probe_payload(streaming);
+        assert!(payload.contains(&format!(r#""model":"{MODEL_ALIAS}""#)));
         let decoded = protocol_openai_responses::decode_request(&payload)?;
         let endpoint = OpenAiResponsesEndpoint::try_new("https://p3-10.invalid/v1", "/responses")?;
         let credential = OpenAiResponsesApiKey::try_new("synthetic-p3-10-credential")?;

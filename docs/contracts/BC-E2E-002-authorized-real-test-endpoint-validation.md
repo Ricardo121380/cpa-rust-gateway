@@ -22,6 +22,10 @@
 - The request input is a fixed, non-sensitive probe with `max_output_tokens=32`. No user prompt,
   production body, account data, tool call, file upload, or side-effecting upstream operation is
   allowed.
+- Under `CR-P3-G3-001`, the fixed client-visible test model is `p3-chatgpt-compat` and its request
+  alias is `p3-chatgpt-compat-alias`. They are test-only compatibility labels, not an assertion of
+  either Candidate's actual upstream model identity. Each Candidate retains its separately supplied,
+  private upstream model mapping.
 
 ## Required behavior
 
@@ -30,7 +34,7 @@
 | Opt-in guard | Normal `cargo test`, CI, and a missing/invalid live-test switch make zero external requests. A live run needs all explicit P3-10 variables, `P3_10_LIVE_AUTHORIZATION=approved`, and exactly four approved requests. |
 | Isolation | Each target receives one bounded non-streaming and one bounded SSE probe through an explicit Candidate/Endpoint/Credential mapping. The route has `max_attempts=1`; it cannot silently retry, fail over, or substitute an ambient endpoint, credential, proxy, or model. |
 | Protocol proof | A successful non-streaming probe has an admitted HTTP target, a successful `2xx` status/content type, and a bounded canonical `ResponseStart` to `ResponseEnd` sequence. A successful SSE probe has a successful `2xx` status, the expected stream content type, starts before output consumption, and terminates through the same bounded canonical path. |
-| Public boundary | Client input uses the configured stable public model and the Snapshot-authenticated project boundary. Client-visible output must use the public model; upstream model, endpoint identity, and credential never escape the response or retained evidence. |
+| Public boundary | Client input uses the fixed test-only `p3-chatgpt-compat` public model and the Snapshot-authenticated project boundary. Client-visible output must use that alias; upstream model, endpoint identity, and credential never escape the response or retained evidence. |
 | Event correlation | Each successful probe has a distinct opaque test Request ID and proves its Request, terminal Attempt, and Usage observations share that one internal correlation without disclosing any value. |
 | Privacy | Console and tracked reports retain only opaque labels and safe summaries. URL, headers, key material, request/response/SSE payloads, provider response IDs, raw trace, and upstream model are forbidden from tracked artifacts. |
 | Stop conditions | An authorization, billing, protocol, timeout, network, safety, or redaction anomaly stops further external probes. No automatic retry or decoder broadening is allowed. |

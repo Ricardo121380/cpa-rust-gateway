@@ -12,7 +12,7 @@
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
-| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证 |
+| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -337,9 +337,25 @@ deploy/
 | P3-09 | 建立两个可控 Mock HTTP Upstream 的聚合 E2E 套件 | P3-01-P3-08 | 轮询、Failover、取消完整报告 | DONE |
 | P3-10 | 使用两个真实测试中转 Endpoint 做最小非流式与 SSE 验证 | P3-09 | 脱敏请求/响应和 Trace 证据 | IN_PROGRESS |
 
+### 已批准 Change Request：CR-P3-G3-001
+
+`2026-07-20` 用户批准。P3-10 的真实测试此前把 `minimax-m3` 同时用作公开路由名和
+验收文字；而两个已核对的私有 Candidate 映射属于 ChatGPT-family 上游。这会混淆“稳定的
+客户端别名”与“实际提供方模型身份”。
+
+- P3-10/G3 的真实验证公开模型改为 test-only `p3-chatgpt-compat`，其请求别名为
+  `p3-chatgpt-compat-alias`。它仅表示对两条 ChatGPT-family 中转的 Responses 兼容性验证，
+  不是任何具体上游模型版本或产品承诺。
+- A、B 继续分别使用 operator-controlled 私有配置中明确给出的上游模型；P3-10 不发现、
+  不展示、也不将它们写入 Git。
+- 此变更不追溯修改 P3-09 的纯 Mock fixture，也不决定 P10 以后的产品 PublicModel。此前
+  两条停止记录保留为安全/传输事实，但不构成修订后公开别名的兼容性证据。
+- 任何修订别名下的真实请求都需要新的明确外部调用与预算授权；先前未使用的调用额度不能
+  自动迁移到这个不同的测试边界。
+
 ### G3 门禁
 
-- `minimax-m3` 通过本项目 Base URL/Key 可调用两个 Candidate。
+- test-only `p3-chatgpt-compat` 通过本项目 Base URL/Key 可调用两个独立的 ChatGPT-family Candidate；它不声明具体上游模型身份。
 - 等权 1000 次选择分布偏差不超过 10%；加权分布符合预期区间。
 - 一个站配置多个 Key 不改变站间目标流量比例。
 - 首事件前故障可切站，首事件后故障绝不透明重放。
