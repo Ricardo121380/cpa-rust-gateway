@@ -7,7 +7,7 @@
 | Matrix / behavior | `C16`, `G05`, `G12-G15`, `G21`, `K03-K06`, `L20-L31`; Behavior 1/4/5/9/17/20 |
 | Date | `2026-07-20` |
 | Branch | `codex/p3-10-real-endpoint-validation` |
-| Status | IN_PROGRESS — both historical attempts stopped at Target `A` / non-streaming; `CR-P3-G3-001` now uses the test-only `p3-chatgpt-compat` public alias, so no revised-boundary real traffic may occur without fresh explicit authorization |
+| Status | IN_PROGRESS — three attempts total have stopped at Target `A` / non-streaming; the first `p3-chatgpt-compat` attempt safely classified as `5xx`, and no further revised-boundary traffic may occur without a new user-directed plan |
 
 ## Entry review
 
@@ -101,9 +101,9 @@ cursor-only assertion is deterministic.
 
 This review accepts only the local harness and its safe guard. It does not accept P3-10, G3, or
 P3 as complete: successful real-target compatibility evidence for both Candidates and both modes
-is still absent. The two attempts recorded below both stopped at Target `A` / non-streaming under
-the superseded public alias, so they establish neither Target `B` nor either SSE path nor the
-revised `p3-chatgpt-compat` boundary.
+is still absent. The two historical attempts recorded below stopped at Target `A` / non-streaming
+under the superseded public alias, and the first revised `p3-chatgpt-compat` attempt also stopped
+at Target `A` / non-streaming. They establish neither Target `B` nor either SSE path.
 
 ## Authorized real-run record
 
@@ -137,11 +137,27 @@ once under that authorization. It stopped at its first probe as required.
 | Authorization usage | One of the four newly authorized probes was sent; the remaining three were deliberately left unused after the anomaly. No cost figure was collected or retained. |
 | Consequence | P3-10 and G3 remain unaccepted. The unused call capacity is not a basis for an automatic retry, resume, provider switch, proxy/TUN change, or decoder change. |
 
-This is the terminal record for the run: it demonstrates that the revised harness classifies a
+This is the terminal record for that follow-up run: it demonstrates that the revised harness classifies a
 non-success response safely, but it provides no successful real-endpoint compatibility evidence.
 
 The user later approved `CR-P3-G3-001`. These two historical attempts remain a safe record only;
 they do not authorize or satisfy a real run under the revised public alias.
+
+### 2026-07-20 revised-boundary authorization record
+
+The user explicitly authorized a fresh P3-10 run under the revised `p3-chatgpt-compat` boundary:
+up to four new probes with a USD 10 maximum budget. A no-transport preflight confirmed the fixed
+four-call cap, direct profile, and two distinct redacted ChatGPT-family mappings before the ignored
+target was enabled. The run stopped at its first probe as required.
+
+| Field | Recorded safe result |
+|---|---|
+| Third probe / first revised-boundary probe | Target `A`, non-streaming |
+| Result | STOPPED after one request because the gateway response was not `2xx` |
+| Retained status | `5xx` class only; no exact status, URL, body, model, credential, or provider diagnostic was retained |
+| Further traffic | None: Target `B`, both SSE probes, retry, and failover were not invoked |
+| Authorization usage | One of the four revised-boundary probes was sent; the remaining three were deliberately left unused after the anomaly. No cost figure was collected or retained. |
+| Consequence | P3-10 and G3 remain unaccepted. The matching safe `5xx` classification under both the superseded and revised public aliases is not sufficient to attribute a cause; it is not a basis for an automatic retry, provider switch, proxy/TUN change, or decoder change. |
 
 ## GitHub CI
 
