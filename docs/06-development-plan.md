@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-19` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路` 与 `P2 - 聚合控制面、安全与 RouteSnapshot` 已完成；`P3 - OpenAI Responses 聚合 MVP` 进行中 |
-| 当前任务 | `P3-01` 至 `P3-08` 已验收；`P3-09` 的实现和验证记录 GitHub Fast/Full 均已通过，最终状态记录待 GitHub 双门禁；只有该记录通过后，`P3-10` 才可成为唯一 `IN_PROGRESS`；`P3-10` 保持 `PENDING` |
+| 当前任务 | `P3-01` 至 `P3-09` 已验收；P3-09 最终状态记录的 GitHub Fast/Full 已通过；`P3-10` 是全计划唯一 `IN_PROGRESS` Task。它先完成受控验证计划与本地脱敏配置准备，收到两个测试 Endpoint 的明确外部调用授权后才发送网络请求。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -335,7 +335,7 @@ deploy/
 | P3-07 | 实现从 RouteSnapshot 生成的 `/v1/models` 与响应模型名回写 | P2-07,P3-03 | AccessGroup、hard-eligible、回写测试 | DONE |
 | P3-08 | 发出 Request/Attempt/Usage 结构化事件，不阻塞响应 | P3-06 | 事件关联和队列背压测试 | DONE |
 | P3-09 | 建立两个可控 Mock HTTP Upstream 的聚合 E2E 套件 | P3-01-P3-08 | 轮询、Failover、取消完整报告 | DONE |
-| P3-10 | 使用两个真实测试中转 Endpoint 做最小非流式与 SSE 验证 | P3-09 | 脱敏请求/响应和 Trace 证据 | PENDING |
+| P3-10 | 使用两个真实测试中转 Endpoint 做最小非流式与 SSE 验证 | P3-09 | 脱敏请求/响应和 Trace 证据 | IN_PROGRESS |
 
 ### G3 门禁
 

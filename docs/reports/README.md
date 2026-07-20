@@ -27,6 +27,10 @@
 - [G1 阶段门禁报告](g1-gate-report.md)
 - [G2 阶段门禁报告](g2-gate-report.md)
 
+## 进行中
+
+- [P3-10 真实测试 Endpoint 验证计划](p3-10-real-test-endpoint-validation.md) — 仅计划与本地配置约束；尚未发送任何外部请求。
+
 ## 已完成任务
 
 - [P1-01 Request context and errors report](p1-01-request-context-errors.md)
