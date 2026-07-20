@@ -7,7 +7,7 @@
 | Matrix / behavior | `C16`, `G05`, `G12-G15`, `G21`, `K03-K06`, `L20-L31`; Behavior 1/4/5/9/17/20 |
 | Date | `2026-07-20` |
 | Branch | `codex/p3-10-real-endpoint-validation` |
-| Status | IN_PROGRESS — harness implementation and local review complete; no external request has been sent |
+| Status | IN_PROGRESS — first authorized probe stopped at the prior exact-`200` check; a fixed `2xx`-accepting harness awaits explicit clean-rerun authorization |
 
 ## Entry review
 
@@ -15,9 +15,10 @@ P3-09's final GitHub CI run
 [29713118335](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29713118335) completed
 successfully for commit `a9fb25d`. Therefore P3-10 is the plan's only `IN_PROGRESS` Task.
 
-The current workspace contains no approved real-test Base URL, credential, model, proxy profile,
-or request budget. No ambient API-key variable, prior chat text, local shell history, or test-only
-P3-09 value is eligible to fill those fields. This plan deliberately makes zero external requests.
+The repository contains no tracked real-test Base URL, credential, model, proxy profile, or request
+budget. No ambient API-key variable, prior chat text, local shell history, or test-only P3-09 value
+is eligible to fill those fields. An authorized operator-controlled file under ignored
+`docs/reports/private/` is the only permitted local source for a real run.
 
 ## Delivered local harness
 
@@ -40,6 +41,9 @@ P3-09 value is eligible to fill those fields. This plan deliberately makes zero 
   at 64 KiB under a finite transport deadline. The retained console summary contains only target
   label, mode, and pass/fail; runtime checks reject a client-visible Base URL, upstream model,
   upstream credential, or project Client Key.
+- A response is successful only when its HTTP status is `2xx`, not merely `200`. A stopped run
+  prints only its opaque target label, mode, and safe status class; it never prints an exact status,
+  URL, model, credential, body, or provider diagnostic.
 
 ## Local verification evidence
 
@@ -74,6 +78,23 @@ cursor-only assertion is deterministic.
 
 This review accepts only the local harness and its safe guard. It does not accept P3-10, G3, or
 P3 as complete: the four authorized real-target calls and their redacted outcome remain required.
+
+## Authorized real-run record
+
+The user authorized use of the local CCSwitch `krill` and `帅api` Codex configurations. The harness
+generated a `0600`, Git-ignored local configuration from those two distinct HTTPS Responses sources;
+no tracked file received an Endpoint, model, or credential.
+
+| Field | Recorded safe result |
+|---|---|
+| First probe | Target `A`, non-streaming |
+| Result | STOPPED after one request because the then-current harness rejected a status other than exact `200` |
+| Retained status | Not available: that revision did not retain a status class, URL, body, or provider diagnostic |
+| Further traffic | None: Target `B`, both SSE probes, retry, and failover were not invoked |
+| Consequence | P3-10 remains unresolved; the harness now accepts any `2xx` and retains only a safe class for a future explicitly authorized clean rerun |
+
+The one request counts against the original four-call authorization. A clean rerun must receive a
+new explicit authorization and spend cap before it can send any additional traffic.
 
 ## GitHub CI
 

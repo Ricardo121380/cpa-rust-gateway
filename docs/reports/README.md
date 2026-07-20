@@ -29,7 +29,7 @@
 
 ## 进行中
 
-- [P3-10 真实测试 Endpoint 验证计划](p3-10-real-test-endpoint-validation.md) — 仅计划与本地配置约束；尚未发送任何外部请求。
+- [P3-10 真实测试 Endpoint 验证计划](p3-10-real-test-endpoint-validation.md) — 首个授权探针已在旧版 `200` 专属判断处安全停止；等待修复后的明确重新授权。
 
 ## 已完成任务
 

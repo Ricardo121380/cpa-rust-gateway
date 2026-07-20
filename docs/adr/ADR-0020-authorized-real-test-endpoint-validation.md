@@ -14,9 +14,10 @@ deployed OpenAI-compatible relay. P3-10 must now establish a narrow, reproducibl
 check against two separately authorized test relays without turning an ad-hoc probe into a service
 deployment, a generic production decoder, or a source of committed secrets and raw provider data.
 
-The repository has no configured real-test Endpoint, model, credential, proxy profile, or approved
-request budget. Ambient `OPENAI_API_KEY`, `CODEX_API_KEY`, shell history, and previously supplied
-chat text are not P3-10 configuration and must never be selected implicitly.
+The repository has no tracked real-test Endpoint, model, credential, proxy profile, or approved
+request budget. An operator-controlled ignored local configuration may hold those values only for
+an explicitly authorized run. Ambient `OPENAI_API_KEY`, `CODEX_API_KEY`, shell history, and
+previously supplied chat text are not P3-10 configuration and must never be selected implicitly.
 
 ## Decision
 

@@ -86,7 +86,7 @@ impl Error for LiveConfigError {}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum ProbeError {
-    GatewayResponseNotOk,
+    GatewayResponseNotSuccessful(&'static str),
     ClientBodyTooLarge,
     ClientBodyReadFailed,
     ClientBodyNotUtf8,
@@ -106,7 +106,12 @@ enum ProbeError {
 impl fmt::Display for ProbeError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         let message = match self {
-            Self::GatewayResponseNotOk => "gateway did not return a successful public response",
+            Self::GatewayResponseNotSuccessful(status_class) => {
+                return write!(
+                    formatter,
+                    "gateway returned a non-success public response ({status_class})"
+                );
+            }
             Self::ClientBodyTooLarge => "gateway response exceeded the P3-10 bounded read limit",
             Self::ClientBodyReadFailed => "gateway response body could not be read safely",
             Self::ClientBodyNotUtf8 => "gateway response body was not valid UTF-8",
@@ -387,6 +392,20 @@ fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
             .any(|window| window == needle)
 }
 
+fn safe_status_class(status: StatusCode) -> &'static str {
+    if status.is_informational() {
+        "1xx"
+    } else if status.is_redirection() {
+        "3xx"
+    } else if status.is_client_error() {
+        "4xx"
+    } else if status.is_server_error() {
+        "5xx"
+    } else {
+        "other"
+    }
+}
+
 fn verify_events(
     receiver: &mut EventQueueReceiver,
     streaming: bool,
@@ -584,6 +603,14 @@ fn fixed_probe_payload_caps_the_upstream_output() -> TestResult {
     Ok(())
 }
 
+#[test]
+fn non_success_statuses_are_classified_without_rendering_codes() {
+    assert_eq!(safe_status_class(StatusCode::CONTINUE), "1xx");
+    assert_eq!(safe_status_class(StatusCode::MULTIPLE_CHOICES), "3xx");
+    assert_eq!(safe_status_class(StatusCode::UNAUTHORIZED), "4xx");
+    assert_eq!(safe_status_class(StatusCode::BAD_GATEWAY), "5xx");
+}
+
 #[actix_web::test]
 #[ignore = "requires explicit P3_10_* real-test configuration and user authorization"]
 async fn authorized_real_endpoints_validate_non_streaming_and_sse_paths() -> TestResult {
@@ -615,6 +642,8 @@ async fn authorized_real_endpoints_validate_non_streaming_and_sse_paths() -> Tes
         (true, 0, "a"),
         (true, 1, "b"),
     ] {
+        let mode = if streaming { "sse" } else { "non_streaming" };
+        println!("p3-10 live probe target={endpoint_label} mode={mode} result=started");
         let request = authorized(
             actix_test::TestRequest::post()
                 .uri("/v1/responses")
@@ -623,8 +652,13 @@ async fn authorized_real_endpoints_validate_non_streaming_and_sse_paths() -> Tes
         )
         .to_request();
         let response = actix_test::call_service(&app, request).await;
-        if response.status() != StatusCode::OK {
-            return Err(ProbeError::GatewayResponseNotOk.into());
+        let status = response.status();
+        if !status.is_success() {
+            let status_class = safe_status_class(status);
+            println!(
+                "p3-10 live probe target={endpoint_label} mode={mode} result=stopped status_class={status_class}"
+            );
+            return Err(ProbeError::GatewayResponseNotSuccessful(status_class).into());
         }
         let body = bounded_client_body(response).await?;
         verify_client_visible_boundary(
@@ -634,7 +668,6 @@ async fn authorized_real_endpoints_validate_non_streaming_and_sse_paths() -> Tes
             &presented_key,
         )?;
         verify_events(&mut receiver, streaming, endpoint_label)?;
-        let mode = if streaming { "sse" } else { "non_streaming" };
         println!("p3-10 live probe target={endpoint_label} mode={mode} result=pass");
     }
 
