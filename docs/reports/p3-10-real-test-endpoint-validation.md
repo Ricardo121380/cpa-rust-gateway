@@ -7,7 +7,7 @@
 | Matrix / behavior | `C16`, `G05`, `G12-G15`, `G21`, `K03-K06`, `L20-L31`; Behavior 1/4/5/9/17/20 |
 | Date | `2026-07-20` |
 | Branch | `codex/p3-10-real-endpoint-validation` |
-| Status | IN_PROGRESS — real aggregation now passes Target `A` and Target `B` non-streaming; Target `A` SSE safely stops at the existing 16 KiB single-frame limit, so Target `B` SSE remains uninvoked |
+| Status | IN_PROGRESS — the original mapping now passes both non-streaming probes and Target `A` SSE at the approved 64 KiB frame bound; Target `B` SSE stops with `EgressUnavailable` under the existing finite upstream transport deadlines, while direct diagnostics show the relay can complete an equivalent bounded SSE request |
 
 ## Entry review
 
@@ -40,6 +40,22 @@ CR-ID: CR-P3-G3-001
       有单独的调用数与预算授权。
 ```
 
+## Approved Change Request: CR-P3-G3-002
+
+```text
+CR-ID: CR-P3-G3-002
+原因: 已授权 Target A 的有效 SSE 生命周期帧超过原先 test-only 16 KiB 限制；有界结构诊断
+      已确认事件序列完整且未保留原始帧。
+影响的 Task / Matrix ID / ADR: P3-10、G3、BC-E2E-002、ADR-0020 与共享 test-only
+      aggregation harness；不修改 P3-09 的一秒 Mock deadline、生产 Provider、API、Schema、
+      数据库、部署或代理/TUN 配置。
+兼容性与迁移影响: 单帧上限提升到仍有限的 64 KiB，并与既有上游 JSON / 客户端响应有界读
+      对齐。大于 64 KiB 的帧继续安全拒绝且不追加到缓存；无迁移。
+测试与回滚变化: 增加正好达到上限可接受、超过上限返回安全错误并保持缓存长度不变的测试；
+      回滚只能经新的已批准 CR 恢复旧限制。
+用户批准: APPROVED，2026-07-20
+```
+
 ## Delivered local harness
 
 - Added ignored target `p3_10_real_endpoint_validation` plus the shared test-only
@@ -57,8 +73,8 @@ CR-ID: CR-P3-G3-001
 - The P3-10 harness allocates a distinct opaque Request ID for each of those four probes and checks
   Request/Attempt/Usage equality per probe without rendering any correlation value. P3-09 retains
   its fixed deterministic fixture ID.
-- Upstream JSON reads are capped at 64 KiB, each SSE frame at 16 KiB, and client-body verification
-  at 64 KiB under a finite transport deadline. The P3-10 Route bootstrap deadline is the same 45
+- Upstream JSON reads, each SSE frame, and client-body verification are capped at 64 KiB under a
+  finite transport deadline. The P3-10 Route bootstrap deadline is the same 45
   seconds as its already-bounded total transport deadline; P3-09's controlled Mock calls retain
   their prior one-second deadline. The retained console summary contains only target label, mode,
   pass/fail, and (for a locally generated error envelope) one whitelisted Gateway error category.
@@ -74,13 +90,14 @@ CR-ID: CR-P3-G3-001
 
 | Command / review | Result |
 |---|---|
-| `cargo test --locked -p gateway-http-actix --test p3_10_real_endpoint_validation` | PASS; nine non-live guard/config/privacy/output-cap/error-redaction checks passed and the real target remained ignored. |
+| `cargo test --locked -p gateway-http-actix --test p3_10_real_endpoint_validation` | PASS; eleven non-live guard/config/privacy/output-cap/error-redaction/frame-boundary checks passed and the real target remained ignored. |
 | Ignored private mapping family check | PASS; both nonempty A/B upstream-model mappings matched the authorized ChatGPT-family shape without rendering either value or constructing transport. This is selection evidence only, not a relay capability claim. |
 | Ignored target with every `P3_10_*` variable unset | EXPECTED SAFE STOP; `NotAuthorized` returned in about 0.01 seconds with exit status 101 before Endpoint/harness construction, DNS resolution, or transport. This is guard evidence, not a real-target result. |
-| `cargo test --locked -p gateway-http-actix --test p3_09_aggregation_e2e` | PASS; 3/3 controlled Mock E2E regressions still use the shared test-only harness. |
+| `cargo test --locked -p gateway-http-actix --test p3_09_aggregation_e2e` | PASS; 5/5 checks: three controlled Mock E2E regressions plus the shared finite-frame boundary checks. |
 | `cargo test --locked -p gateway-router credential_scheduler::tests::two_layer_atomic_cursors_preserve_route_and_endpoint_weights_under_concurrency -- --exact` (50 repetitions) | PASS; cursor-distribution assertion is now isolated from temporary lease saturation. |
 | `cargo clippy --locked -p gateway-router -p gateway-http-actix --all-targets --all-features -- -D warnings` and `cargo fmt --all -- --check` | PASS. |
 | `./scripts/check.sh full` | PASS after `CR-P3-G3-001`; complete workspace format, Clippy, tests, source policy, crate boundaries, document links, tracked-secret scan, dependency policy, and RustSec audit passed. The ignored live target remained unexecuted. |
+| `./scripts/check.sh full` after `CR-P3-G3-002` | PASS; format, Clippy, workspace tests, source policy, crate boundaries, document links, tracked-secret scan, dependency policy, and RustSec audit all passed. |
 
 ## Review
 
@@ -196,6 +213,58 @@ limit, not evidence that the decoder should silently accept larger frames. P3-10
 with compliant SSE frame sizes requires an explicit user-approved change request. The direct
 diagnostic material was processed in memory and discarded; no Endpoint, credential, model,
 provider response ID, request body, response body, or raw frame is tracked.
+
+### 2026-07-20 alternate-A selection attempt
+
+The user requested an alternate frame-size-compliant source for opaque Target `A`. The only other
+locally configured, distinct Responses source was assigned to `A` in the invoking process, while
+the former `A` source was assigned to `B`; the ignored private configuration file was not edited.
+This preserves a two-source route and puts the candidate's non-streaming and SSE checks before the
+previously observed frame-cap finding.
+
+| Probe | Safe result |
+|---|---|
+| Alternate Target `A`, non-streaming, through full P3 aggregation | STOPPED with `5xx` and locally generated Gateway category `EgressUnavailable` |
+| Alternate Target `A`, SSE | Not invoked after the non-streaming anomaly |
+| Target `B`, both modes | Not invoked |
+
+The candidate therefore has no current frame-size-compliance result: it did not reach the SSE
+decoder. The earlier successful non-streaming observation for the same source does not establish
+availability or authorize a retry, proxy/TUN change, or protocol relaxation. No Endpoint,
+credential, upstream model, request/response body, SSE frame, or provider diagnostic was retained.
+P3-10 remained `IN_PROGRESS` pending either a new stable, separately authorized Responses relay or
+an explicit change request for a different finite frame bound. The latter was subsequently
+approved as `CR-P3-G3-002`; its verification record follows.
+
+### 2026-07-20 finite-frame-bound correction and current evidence
+
+`CR-P3-G3-002` raises the shared test-only single-frame bound from 16 KiB to 64 KiB. It does not
+relax the bounded decoder into an unbounded reader: data at the cap is accepted, data above it is
+safely rejected before append, and no raw frame is logged, retained, or committed.
+
+The ordinary P3-09/P3-10 integration targets now include those boundary tests. After local
+verification, the original two-target P3-10 mapping was rerun through the full aggregation path:
+
+| Probe / diagnostic | Safe result |
+|---|---|
+| Target `A`, non-streaming, through full P3 aggregation | PASS |
+| Target `B`, non-streaming, through full P3 aggregation | PASS |
+| Target `A`, SSE, through full P3 aggregation | PASS at the approved finite frame bound |
+| Target `B`, SSE, through full P3 aggregation | STOPPED before a public response with `5xx` and Gateway category `EgressUnavailable` |
+| Target `B`, bounded direct SSE diagnostic using gateway-equivalent request shape over HTTP/1.1 | `2xx` event stream completed without retaining response data |
+| Target `B`, bounded direct SSE diagnostic using gateway-equivalent request shape over HTTP/2 | no response before the finite timeout; no response data retained |
+
+The fourth full-path probe establishes a distinct transport compatibility finding: the B relay can
+complete the same bounded SSE request in a direct HTTP/1.1 diagnostic, while a separately requested
+HTTP/2 direct diagnostic did not produce a timely first byte. That contrast is not proof that the
+shared gateway client negotiated HTTP/2. Its current native-TLS/ALPN configuration must be verified
+before any HTTP-version policy is considered. The gateway's existing P3-10 profile separately has
+finite 15-second first-byte and 20-second body-idle bounds, and both transport failures map to the
+same safe `EgressUnavailable` category; the retained public result cannot distinguish them. The
+finding is not a frame-cap, credential, Endpoint, proxy/TUN, or ordinary decoder semantic mismatch.
+P3-10 and P3 remain `IN_PROGRESS` pending an explicit, evidence-backed test-only transport decision.
+No automatic retry, failover, Endpoint substitution, proxy/TUN mutation, or shared-transport change
+was made.
 
 ## GitHub CI
 

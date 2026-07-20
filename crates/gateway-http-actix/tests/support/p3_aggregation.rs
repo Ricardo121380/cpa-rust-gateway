@@ -46,7 +46,9 @@ use serde_json::Value;
 use tokio::sync::Mutex;
 
 const MAX_UPSTREAM_RESPONSE_BYTES: usize = 64 * 1024;
-const MAX_SSE_FRAME_BYTES: usize = 16 * 1024;
+// P3-10 relays can emit valid lifecycle events larger than the former 16 KiB fixture limit.
+// Keep the stream bounded, aligned with the other P3 test-only response limits.
+const MAX_SSE_FRAME_BYTES: usize = MAX_UPSTREAM_RESPONSE_BYTES;
 
 /// One already-admitted test-only Endpoint and its request-scoped Credential input.
 pub(crate) struct AggregationEndpoint {
@@ -627,10 +629,7 @@ impl OpenAiSseEventSource {
             let Some(chunk) = next else {
                 return Err(stream_truncated_error());
             };
-            if self.buffer.len().saturating_add(chunk.len()) > MAX_SSE_FRAME_BYTES {
-                return Err(upstream_protocol_error());
-            }
-            self.buffer.extend_from_slice(&chunk);
+            append_sse_chunk(&mut self.buffer, &chunk)?;
         }
         Ok(())
     }
@@ -770,6 +769,14 @@ impl ResponsesEventSource for OpenAiSseEventSource {
     }
 }
 
+fn append_sse_chunk(buffer: &mut Vec<u8>, chunk: &[u8]) -> Result<(), GatewayError> {
+    if buffer.len().saturating_add(chunk.len()) > MAX_SSE_FRAME_BYTES {
+        return Err(upstream_protocol_error());
+    }
+    buffer.extend_from_slice(chunk);
+    Ok(())
+}
+
 fn required_string(value: &Value, field: &str) -> Result<String, GatewayError> {
     value
         .get(field)
@@ -840,4 +847,30 @@ fn stream_truncated_error() -> GatewayError {
 
 fn internal_error() -> GatewayError {
     GatewayError::new(GatewayErrorCode::InternalError, ErrorScope::Internal)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{MAX_SSE_FRAME_BYTES, append_sse_chunk};
+    use gateway_core::GatewayErrorCode;
+
+    #[test]
+    fn sse_frame_buffer_accepts_the_new_finite_limit() {
+        let mut buffer = vec![b'x'; MAX_SSE_FRAME_BYTES - 1];
+
+        assert!(append_sse_chunk(&mut buffer, b"y").is_ok());
+
+        assert_eq!(buffer.len(), MAX_SSE_FRAME_BYTES);
+    }
+
+    #[test]
+    fn sse_frame_buffer_rejects_data_above_the_new_finite_limit_without_appending_it() {
+        let mut buffer = vec![b'x'; MAX_SSE_FRAME_BYTES];
+
+        assert!(matches!(
+            append_sse_chunk(&mut buffer, b"y"),
+            Err(error) if error.code() == GatewayErrorCode::UpstreamProtocolError
+        ));
+        assert_eq!(buffer.len(), MAX_SSE_FRAME_BYTES);
+    }
 }

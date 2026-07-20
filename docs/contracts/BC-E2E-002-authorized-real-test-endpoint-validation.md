@@ -34,6 +34,7 @@
 | Opt-in guard | Normal `cargo test`, CI, and a missing/invalid live-test switch make zero external requests. A live run needs all explicit P3-10 variables, `P3_10_LIVE_AUTHORIZATION=approved`, and exactly four approved requests. |
 | Isolation | Each target receives one bounded non-streaming and one bounded SSE probe through an explicit Candidate/Endpoint/Credential mapping. The route has `max_attempts=1`; it cannot silently retry, fail over, or substitute an ambient endpoint, credential, proxy, or model. |
 | Bootstrap deadline | P3-10's Route bootstrap deadline is explicitly bounded to the same 45 seconds as its configured total transport deadline. P3-09's controlled Mock target keeps its separate one-second test deadline. |
+| Bounded reads | Upstream JSON, client-visible response verification, and each test-only SSE frame are independently capped at 64 KiB. A frame at the limit is accepted; a larger frame is safely rejected without retaining or rendering its raw bytes. |
 | Protocol proof | A successful non-streaming probe has an admitted HTTP target, a successful `2xx` status/content type, and a bounded canonical `ResponseStart` to `ResponseEnd` sequence. A successful SSE probe has a successful `2xx` status, the expected stream content type, starts before output consumption, and terminates through the same bounded canonical path. |
 | Public boundary | Client input uses the fixed test-only `p3-chatgpt-compat` public model and the Snapshot-authenticated project boundary. Client-visible output must use that alias; upstream model, endpoint identity, and credential never escape the response or retained evidence. |
 | Event correlation | Each successful probe has a distinct opaque test Request ID and proves its Request, terminal Attempt, and Usage observations share that one internal correlation without disclosing any value. |
@@ -55,7 +56,8 @@
 - Ignored target: `cargo test --locked -p gateway-http-actix --test p3_10_real_endpoint_validation -- --ignored --nocapture`.
 - Non-live guard coverage: absent authorization, incorrect request cap, direct/SOCKS5 profile
   isolation, private-CIDR parsing, complete synthetic configuration, and client-boundary redaction
-  all execute without DNS or transport activity.
+  all execute without DNS or transport activity. The shared harness also proves the 64 KiB SSE
+  frame boundary accepts data at the cap and rejects data above it without appending the excess.
 - Existing P3-03 scheduler distribution tests remain the proof for high-volume fairness; P3-10 does
   not generate 1000 paid external requests.
 - Existing P3-09 local E2E remains the deterministic proof for retry/failover/cancellation branches;

@@ -29,7 +29,7 @@
 
 ## 进行中
 
-- [P3-10 真实测试 Endpoint 验证计划](p3-10-real-test-endpoint-validation.md) — 首个授权探针已在旧版 `200` 专属判断处安全停止；等待修复后的明确重新授权。
+- [P3-10 真实测试 Endpoint 验证计划](p3-10-real-test-endpoint-validation.md) — A/B 非流式与 A SSE 已通过；B SSE 暴露独立的首字节传输兼容性问题，等待单独 CR 决策。
 
 ## 已完成任务
 

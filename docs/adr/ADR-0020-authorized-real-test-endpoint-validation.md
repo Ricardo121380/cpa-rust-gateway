@@ -52,6 +52,10 @@ previously supplied chat text are not P3-10 configuration and must never be sele
    second for its controlled Mock peers; P3-10 supplies the same 45-second bound as its configured
    total transport deadline, so the test cannot convert an otherwise in-flight bounded transport
    into a synthetic one-second timeout.
+9. Under `CR-P3-G3-002`, the test-only SSE decoder accepts one complete frame up to 64 KiB. This
+   aligns the finite frame bound with the existing bounded upstream-JSON and client-response reads.
+   A frame above that limit remains a safe rejection, and neither raw frames nor a broader
+   production decoder are introduced.
 
 ## Consequences
 
