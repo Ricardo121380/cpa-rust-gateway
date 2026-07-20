@@ -15,6 +15,9 @@ gateway-control
 gateway-router
   -> core/auth/provider/upstream/catalog/access/continuity + Tokio timeout primitive
 
+gateway-observability
+  -> gateway-core + Tokio bounded-channel primitives
+
 provider-*
   -> core/provider/upstream + matching protocol/continuity/stream
 
@@ -50,4 +53,6 @@ gateway-core
   Snapshot；该边不允许反向的 Router、Store 或 HTTP 依赖进入 `gateway-auth`。
 - `gateway-router` 可以直接使用 Tokio 的受限超时原语来执行 Route 的累计 bootstrap
   deadline；它不得借此创建后台重试任务、无界队列、HTTP client、Provider 或 Stream 依赖。
+- `gateway-observability` 可以直接使用 Tokio 的有界 Channel 原语来接收结构化事件；它不得
+  依赖 Router、HTTP、Store、具体 Provider 或在请求路径内执行 SQLite/网络写入。
 - 当前精确允许边由 `scripts/check-crate-boundaries.rb` 校验。

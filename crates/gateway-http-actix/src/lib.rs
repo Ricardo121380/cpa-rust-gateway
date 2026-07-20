@@ -25,10 +25,11 @@ use actix_web::{
     web,
 };
 use futures_util::{Stream, stream};
-use gateway_auth::ClientKeyAuthenticator;
+use gateway_auth::{AuthenticatedClient, ClientKeyAuthenticator};
 use gateway_core::{
-    CanonicalEvent, CanonicalResponse, ErrorScope, GatewayError, GatewayErrorCode, RequestContext,
-    RequestId, StreamError,
+    AccessGroupId, CanonicalEvent, CanonicalResponse, ClientKeyId, ErrorScope, GatewayError,
+    GatewayErrorCode, GatewayEvent, GatewayEventSink, GatewayProtocol, NoopGatewayEventSink,
+    RequestContext, RequestEvent, RequestId, ResponseId, StreamError, UsageEvent,
 };
 use gateway_router::{
     ResponsesEventSource, ResponsesExecutor, SnapshotAuthenticatedClient,
@@ -122,6 +123,7 @@ pub struct ResponsesHttpState {
     authenticator: ResponsesAuthenticator,
     metadata_factory: Arc<dyn ResponsesMetadataFactory>,
     stream_capacity: StreamCapacity,
+    event_sink: Arc<dyn GatewayEventSink>,
 }
 
 #[derive(Clone)]
@@ -131,8 +133,23 @@ enum ResponsesAuthenticator {
 }
 
 enum AuthenticatedResponsesClient {
-    Generic,
+    Generic(AuthenticatedClient),
     Snapshot(SnapshotAuthenticatedClient),
+}
+
+impl AuthenticatedResponsesClient {
+    fn event_identity(&self) -> (ClientKeyId, Option<AccessGroupId>) {
+        match self {
+            Self::Generic(client) => (
+                client.client_key_id().clone(),
+                client.access_group_id().cloned(),
+            ),
+            Self::Snapshot(client) => (
+                client.client_key_id().clone(),
+                Some(client.access_group_id().clone()),
+            ),
+        }
+    }
 }
 
 impl ResponsesAuthenticator {
@@ -141,10 +158,9 @@ impl ResponsesAuthenticator {
         presented_key: &str,
     ) -> Result<AuthenticatedResponsesClient, GatewayError> {
         match self {
-            Self::Generic(authenticator) => {
-                let _authenticated_client = authenticator.authenticate(presented_key)?;
-                Ok(AuthenticatedResponsesClient::Generic)
-            }
+            Self::Generic(authenticator) => authenticator
+                .authenticate(presented_key)
+                .map(AuthenticatedResponsesClient::Generic),
             Self::Snapshot(authenticator) => authenticator
                 .authenticate_pinned(presented_key)
                 .map(AuthenticatedResponsesClient::Snapshot),
@@ -179,11 +195,30 @@ impl ResponsesHttpState {
         authenticator: Arc<dyn ClientKeyAuthenticator>,
         stream_capacity: StreamCapacity,
     ) -> Self {
+        Self::with_metadata_and_event_sink(
+            executor,
+            metadata_factory,
+            authenticator,
+            Arc::new(NoopGatewayEventSink),
+            stream_capacity,
+        )
+    }
+
+    /// Creates HTTP state with an explicit non-blocking structured event sink.
+    #[must_use]
+    pub fn with_metadata_and_event_sink(
+        executor: Arc<dyn ResponsesExecutor>,
+        metadata_factory: Arc<dyn ResponsesMetadataFactory>,
+        authenticator: Arc<dyn ClientKeyAuthenticator>,
+        event_sink: Arc<dyn GatewayEventSink>,
+        stream_capacity: StreamCapacity,
+    ) -> Self {
         Self {
             executor,
             authenticator: ResponsesAuthenticator::Generic(authenticator),
             metadata_factory,
             stream_capacity,
+            event_sink,
         }
     }
 
@@ -195,11 +230,30 @@ impl ResponsesHttpState {
         authenticator: Arc<SnapshotClientKeyAuthenticator>,
         stream_capacity: StreamCapacity,
     ) -> Self {
+        Self::with_snapshot_metadata_and_event_sink(
+            executor,
+            metadata_factory,
+            authenticator,
+            Arc::new(NoopGatewayEventSink),
+            stream_capacity,
+        )
+    }
+
+    /// Creates Snapshot-authenticated HTTP state with an explicit non-blocking event sink.
+    #[must_use]
+    pub fn with_snapshot_metadata_and_event_sink(
+        executor: Arc<dyn ResponsesExecutor>,
+        metadata_factory: Arc<dyn ResponsesMetadataFactory>,
+        authenticator: Arc<SnapshotClientKeyAuthenticator>,
+        event_sink: Arc<dyn GatewayEventSink>,
+        stream_capacity: StreamCapacity,
+    ) -> Self {
         Self {
             executor,
             authenticator: ResponsesAuthenticator::Snapshot(authenticator),
             metadata_factory,
             stream_capacity,
+            event_sink,
         }
     }
 
@@ -245,7 +299,7 @@ async fn healthz() -> HttpResponse {
 async fn models(request: HttpRequest, state: web::Data<ResponsesHttpState>) -> HttpResponse {
     let authenticated_client = match authenticate_bearer_request(&request, &state.authenticator) {
         Ok(AuthenticatedResponsesClient::Snapshot(authenticated_client)) => authenticated_client,
-        Ok(AuthenticatedResponsesClient::Generic) => return pre_header_error(&route_not_found()),
+        Ok(AuthenticatedResponsesClient::Generic(_)) => return pre_header_error(&route_not_found()),
         Err(error) => return pre_header_error(&error),
     };
     let body = match encode_model_list(
@@ -278,21 +332,38 @@ async fn responses(
         Ok(decoded) => decoded,
         Err(error) => return pre_header_error(&error),
     };
-    let public_model = match &authenticated_client {
-        AuthenticatedResponsesClient::Generic => decoded.request.requested_model.clone(),
+    let requested_model = decoded.request.requested_model.clone();
+    let (public_model, route_alias) = match &authenticated_client {
+        AuthenticatedResponsesClient::Generic(_) => (requested_model.clone(), None),
         AuthenticatedResponsesClient::Snapshot(authenticated_client) => {
             let Some(public_model) =
                 authenticated_client.resolve_public_model(&decoded.request.requested_model)
             else {
                 return pre_header_error(&route_not_found());
             };
-            public_model.model_name().to_owned()
+            let public_model = public_model.model_name().to_owned();
+            let route_alias = (requested_model != public_model).then(|| requested_model.clone());
+            (public_model, route_alias)
         }
     };
     let context = match state.metadata_factory.request_context() {
         Ok(context) => context,
         Err(error) => return pre_header_error(&error),
     };
+    let request_id = context.request_id().clone();
+    let (client_key_id, access_group_id) = authenticated_client.event_identity();
+    let _request_event = state
+        .event_sink
+        .try_emit(GatewayEvent::Request(RequestEvent::new(
+            request_id.clone(),
+            client_key_id,
+            access_group_id,
+            GatewayProtocol::OpenAiResponses,
+            requested_model,
+            public_model.clone(),
+            route_alias,
+            decoded.mode == ResponseMode::Streaming,
+        )));
     let mut source = match state.executor.execute(context, decoded.request).await {
         Ok(source) => source,
         Err(error) => return pre_header_error(&error),
@@ -306,10 +377,15 @@ async fn responses(
         Ok(metadata) => metadata,
         Err(error) => return pre_header_error(&error),
     };
+    let usage_observer = UsageEventObserver::new(request_id, Arc::clone(&state.event_sink));
 
     match decoded.mode {
-        ResponseMode::NonStreaming => non_streaming_response(&state, source, first, metadata).await,
-        ResponseMode::Streaming => streaming_response(&state, source, first, metadata).await,
+        ResponseMode::NonStreaming => {
+            non_streaming_response(&state, source, first, metadata, usage_observer).await
+        }
+        ResponseMode::Streaming => {
+            streaming_response(&state, source, first, metadata, usage_observer).await
+        }
     }
 }
 
@@ -318,11 +394,13 @@ async fn non_streaming_response(
     source: Box<dyn ResponsesEventSource>,
     first: CanonicalEvent,
     metadata: OpenAiResponseMetadata,
+    usage_observer: UsageEventObserver,
 ) -> HttpResponse {
-    let mut stream = match start_bounded_transport(source, first, state.stream_capacity).await {
-        Ok(stream) => stream,
-        Err(error) => return pre_header_error(&error),
-    };
+    let mut stream =
+        match start_bounded_transport(source, first, state.stream_capacity, usage_observer).await {
+            Ok(stream) => stream,
+            Err(error) => return pre_header_error(&error),
+        };
     let tracker = stream.control().first_semantic_event_tracker();
     let response = match collect_completed_response(&mut stream).await {
         Ok(response) => response,
@@ -351,6 +429,7 @@ async fn streaming_response(
     source: Box<dyn ResponsesEventSource>,
     first: CanonicalEvent,
     metadata: OpenAiResponseMetadata,
+    usage_observer: UsageEventObserver,
 ) -> HttpResponse {
     // Commit no headers until the initial event is shown encodable by a fresh protocol encoder.
     // The body owns a separate encoder so the first event still travels through P1-04 transport.
@@ -359,10 +438,11 @@ async fn streaming_response(
         return pre_header_error(&error);
     }
 
-    let stream = match start_bounded_transport(source, first, state.stream_capacity).await {
-        Ok(stream) => stream,
-        Err(error) => return pre_header_error(&error),
-    };
+    let stream =
+        match start_bounded_transport(source, first, state.stream_capacity, usage_observer).await {
+            Ok(stream) => stream,
+            Err(error) => return pre_header_error(&error),
+        };
     let tracker = stream.control().first_semantic_event_tracker();
     let body = ResponsesSseBody::new(stream, metadata, tracker);
 
@@ -380,13 +460,15 @@ async fn start_bounded_transport(
     source: Box<dyn ResponsesEventSource>,
     first: CanonicalEvent,
     capacity: StreamCapacity,
+    mut usage_observer: UsageEventObserver,
 ) -> Result<CanonicalEventStream, GatewayError> {
     let (mut sender, stream) = bounded_canonical_stream(capacity);
-    sender.send(first).await?;
+    sender.send(first.clone()).await?;
+    usage_observer.observe(&first);
     let cancellation = sender.cancellation();
 
     tokio::spawn(async move {
-        pump_source(source, sender, cancellation).await;
+        pump_source(source, sender, cancellation, usage_observer).await;
     });
 
     Ok(stream)
@@ -396,6 +478,7 @@ async fn pump_source(
     mut source: Box<dyn ResponsesEventSource>,
     mut sender: CanonicalEventSender,
     cancellation: StreamCancellation,
+    mut usage_observer: UsageEventObserver,
 ) {
     loop {
         let next = tokio::select! {
@@ -410,13 +493,14 @@ async fn pump_source(
                     event,
                     CanonicalEvent::ResponseEnd(_) | CanonicalEvent::StreamError(_)
                 );
-                if let Err(error) = sender.send(event).await {
+                if let Err(error) = sender.send(event.clone()).await {
                     if cancellation.is_cancelled() {
                         return;
                     }
                     send_terminal_failure(&mut sender, error, &cancellation).await;
                     return;
                 }
+                usage_observer.observe(&event);
                 if terminal {
                     return;
                 }
@@ -461,6 +545,50 @@ async fn collect_completed_response(
     }
 
     CanonicalResponse::try_new(events)
+}
+
+/// Per-request observer that turns a canonical final Usage event into a non-blocking record.
+///
+/// It observes an event only after the bounded canonical stream accepted it, so invalid source
+/// events cannot create a Usage record. This boundary intentionally emits final totals only and
+/// discards canonical raw extensions.
+struct UsageEventObserver {
+    request_id: RequestId,
+    event_sink: Arc<dyn GatewayEventSink>,
+    response_id: Option<ResponseId>,
+    final_usage_emitted: bool,
+}
+
+impl UsageEventObserver {
+    fn new(request_id: RequestId, event_sink: Arc<dyn GatewayEventSink>) -> Self {
+        Self {
+            request_id,
+            event_sink,
+            response_id: None,
+            final_usage_emitted: false,
+        }
+    }
+
+    fn observe(&mut self, event: &CanonicalEvent) {
+        match event {
+            CanonicalEvent::ResponseStart(start) => {
+                self.response_id = Some(start.response_id.clone());
+            }
+            CanonicalEvent::UsageDelta(delta) if delta.is_final && !self.final_usage_emitted => {
+                self.final_usage_emitted = true;
+                if let Some(response_id) = self.response_id.clone() {
+                    let _usage_event =
+                        self.event_sink
+                            .try_emit(GatewayEvent::Usage(UsageEvent::from_usage(
+                                self.request_id.clone(),
+                                response_id,
+                                &delta.usage,
+                            )));
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 struct PendingSseChunk {
@@ -751,10 +879,12 @@ mod tests {
     };
     use gateway_core::{
         AccessGroupId, CanonicalEvent, ClientKeyId, EndpointId, ErrorScope, GatewayError,
-        GatewayErrorCode, MessageEnd, MessageRole, MessageStart, PublicModelId, RawExtensions,
-        RawJson, RequestContext, RequestId, ResponseEnd, ResponseId, ResponseStart,
-        RouteCandidateId, RouteId, StreamError, TextDelta, UpstreamId,
+        GatewayErrorCode, GatewayEvent, GatewayEventSink, MessageEnd, MessageRole, MessageStart,
+        PublicModelId, RawExtensions, RawJson, RequestContext, RequestId, ResponseEnd, ResponseId,
+        ResponseStart, RouteCandidateId, RouteId, StreamError, TextDelta, UpstreamId, Usage,
+        UsageDelta,
     };
+    use gateway_observability::{BoundedEventQueue, EventQueueConfig};
     use gateway_router::{
         CapabilitySet, DeterministicMockEmission, DeterministicMockResponsesExecutor,
         ResponsesEventSource, ResponsesExecutor, ResponsesFuture, RouteSnapshot,
@@ -818,6 +948,24 @@ mod tests {
         ])
     }
 
+    fn text_events_with_final_usage() -> Result<Vec<CanonicalEvent>, Box<dyn Error>> {
+        let mut events = text_events()?;
+        events.insert(
+            3,
+            CanonicalEvent::UsageDelta(UsageDelta {
+                usage: Usage {
+                    input_tokens: Some(3),
+                    output_tokens: Some(5),
+                    reasoning_tokens: Some(2),
+                    ..Usage::default()
+                },
+                is_final: true,
+                extensions: RawExtensions::default(),
+            }),
+        );
+        Ok(events)
+    }
+
     fn test_authenticator() -> Result<Arc<dyn ClientKeyAuthenticator>, Box<dyn Error>> {
         let key = InMemoryClientKey::try_new(
             TEST_CLIENT_KEY,
@@ -868,6 +1016,28 @@ mod tests {
         ))
     }
 
+    fn mock_state_with_event_sink(
+        events: Vec<CanonicalEvent>,
+        event_sink: Arc<dyn GatewayEventSink>,
+    ) -> Result<ResponsesHttpState, Box<dyn Error>> {
+        let emissions = events
+            .into_iter()
+            .map(|event| DeterministicMockEmission::new(Duration::ZERO, event))
+            .collect();
+        let executor = DeterministicMockResponsesExecutor::try_new(
+            gateway_core::ProviderId::try_new("http-observed-provider")?,
+            emissions,
+        )?;
+
+        Ok(ResponsesHttpState::with_metadata_and_event_sink(
+            Arc::new(executor),
+            Arc::new(FixedMetadata),
+            test_authenticator()?,
+            event_sink,
+            StreamCapacity::try_new(2)?,
+        ))
+    }
+
     fn snapshot_auth_state(
         events: Vec<CanonicalEvent>,
     ) -> Result<(ResponsesHttpState, String), Box<dyn Error>> {
@@ -882,8 +1052,33 @@ mod tests {
         snapshot_auth_state_with_executor(Arc::new(executor))
     }
 
+    fn snapshot_auth_state_with_event_sink(
+        events: Vec<CanonicalEvent>,
+        event_sink: Arc<dyn GatewayEventSink>,
+    ) -> Result<(ResponsesHttpState, String), Box<dyn Error>> {
+        let emissions = events
+            .into_iter()
+            .map(|event| DeterministicMockEmission::new(Duration::ZERO, event))
+            .collect();
+        let executor = DeterministicMockResponsesExecutor::try_new(
+            gateway_core::ProviderId::try_new("http-snapshot-observed-provider")?,
+            emissions,
+        )?;
+        snapshot_auth_state_with_executor_and_event_sink(Arc::new(executor), event_sink)
+    }
+
     fn snapshot_auth_state_with_executor(
         executor: Arc<dyn ResponsesExecutor>,
+    ) -> Result<(ResponsesHttpState, String), Box<dyn Error>> {
+        snapshot_auth_state_with_executor_and_event_sink(
+            executor,
+            Arc::new(gateway_core::NoopGatewayEventSink),
+        )
+    }
+
+    fn snapshot_auth_state_with_executor_and_event_sink(
+        executor: Arc<dyn ResponsesExecutor>,
+        event_sink: Arc<dyn GatewayEventSink>,
     ) -> Result<(ResponsesHttpState, String), Box<dyn Error>> {
         let service = ClientKeyService::new(ClientKeyPepper::try_from_bytes([0xA5_u8; 32])?);
         let access_group_id = AccessGroupId::try_new("http-snapshot-access-group")?;
@@ -939,10 +1134,11 @@ mod tests {
             Arc::new(RouteSnapshotRegistry::new(snapshot)),
             service,
         ));
-        let state = ResponsesHttpState::with_snapshot_metadata(
+        let state = ResponsesHttpState::with_snapshot_metadata_and_event_sink(
             executor,
             Arc::new(FixedMetadata),
             authenticator,
+            event_sink,
             StreamCapacity::try_new(2)?,
         );
 
@@ -1072,6 +1268,86 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn non_streaming_responses_emit_correlated_request_and_final_usage_events() -> TestResult
+    {
+        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(2, 1)?)?;
+        let queue = Arc::new(queue);
+        let event_sink: Arc<dyn GatewayEventSink> = queue.clone();
+        let state = mock_state_with_event_sink(text_events_with_final_usage()?, event_sink)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(r#"{"model":"mock-model","input":"must-not-enter-events"}"#),
+        )
+        .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let _body = test::read_body(response).await;
+
+        let Some(GatewayEvent::Request(request_event)) = receiver.try_recv() else {
+            return Err("expected Request event".into());
+        };
+        assert_eq!(request_event.request_id().as_str(), "http-test-request");
+        assert_eq!(
+            request_event.client_key_id().as_str(),
+            "http-test-client-key"
+        );
+        assert_eq!(request_event.requested_model(), "mock-model");
+        assert_eq!(request_event.public_model(), "mock-model");
+        assert!(!request_event.streaming());
+        let Some(GatewayEvent::Usage(usage_event)) = receiver.try_recv() else {
+            return Err("expected final Usage event".into());
+        };
+        assert_eq!(usage_event.request_id(), request_event.request_id());
+        assert_eq!(usage_event.response_id().as_str(), "http-test-response");
+        assert_eq!(usage_event.usage().input_tokens, Some(3));
+        assert_eq!(usage_event.usage().output_tokens, Some(5));
+        assert_eq!(usage_event.usage().reasoning_tokens, Some(2));
+        assert!(receiver.try_recv().is_none());
+        assert_eq!(queue.metrics().required_queue_full, 0);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn saturated_event_queue_cannot_block_a_streaming_response() -> TestResult {
+        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(1, 1)?)?;
+        let queue = Arc::new(queue);
+        let event_sink: Arc<dyn GatewayEventSink> = queue.clone();
+        let state = mock_state_with_event_sink(text_events_with_final_usage()?, event_sink)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(r#"{"model":"mock-model","input":"hello","stream":true}"#),
+        )
+        .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+        assert!(body.contains("response.completed"));
+        assert_eq!(queue.metrics().required_queue_full, 1);
+        assert!(matches!(
+            receiver.try_recv(),
+            Some(GatewayEvent::Request(_))
+        ));
+        assert!(receiver.try_recv().is_none());
+        Ok(())
+    }
+
+    #[actix_web::test]
     async fn snapshot_models_list_uses_only_the_pinned_public_model_view() -> TestResult {
         let calls = Arc::new(AtomicUsize::new(0));
         let (state, presented_key) =
@@ -1157,6 +1433,45 @@ mod tests {
         assert!(body.contains(r#""model":"public-model""#));
         assert!(!body.contains(SNAPSHOT_MODEL_ALIAS));
         assert!(!body.contains("sensitive-upstream-model"));
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn snapshot_request_event_retains_access_group_and_force_mapped_public_model()
+    -> TestResult {
+        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(1, 1)?)?;
+        let event_sink: Arc<dyn GatewayEventSink> = Arc::new(queue);
+        let (state, presented_key) =
+            snapshot_auth_state_with_event_sink(text_events()?, event_sink)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = test::TestRequest::post()
+            .uri("/v1/responses")
+            .insert_header((header::AUTHORIZATION, format!("Bearer {presented_key}")))
+            .set_payload(format!(
+                r#"{{"model":"{SNAPSHOT_MODEL_ALIAS}","input":"hello"}}"#
+            ))
+            .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let _body = test::read_body(response).await;
+
+        let Some(GatewayEvent::Request(event)) = receiver.try_recv() else {
+            return Err("expected Snapshot Request event".into());
+        };
+        assert_eq!(event.client_key_id().as_str(), "http-snapshot-client-key");
+        assert_eq!(
+            event.access_group_id().map(AccessGroupId::as_str),
+            Some("http-snapshot-access-group")
+        );
+        assert_eq!(event.requested_model(), SNAPSHOT_MODEL_ALIAS);
+        assert_eq!(event.public_model(), SNAPSHOT_PUBLIC_MODEL);
+        assert_eq!(event.route_alias(), Some(SNAPSHOT_MODEL_ALIAS));
         Ok(())
     }
 

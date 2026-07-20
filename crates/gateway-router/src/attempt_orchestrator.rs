@@ -7,8 +7,9 @@
 use std::{collections::BTreeSet, fmt, future::Future, pin::Pin, sync::Arc, time::Duration};
 
 use gateway_core::{
-    CredentialId, ErrorScope, GatewayError, GatewayErrorCode, RouteCandidateId, RouteId,
-    TransparentRetryGate,
+    AttemptEvent, AttemptOutcome, AttemptRetryDecision, CredentialId, ErrorScope, GatewayError,
+    GatewayErrorCode, GatewayEvent, GatewayEventSink, NoopGatewayEventSink, RequestId,
+    RouteCandidateId, RouteId, TransparentRetryGate,
 };
 use gateway_upstream::CredentialLease;
 
@@ -389,6 +390,48 @@ impl AttemptOrchestrator {
     where
         D: AttemptDriver,
     {
+        let event_sink = NoopGatewayEventSink;
+        self.start_inner(None, route_id, driver, retry_gate, &event_sink)
+            .await
+    }
+
+    /// Starts one Attempt loop and emits one terminal observation per actual driver invocation.
+    ///
+    /// The supplied sink is called only through its synchronous non-blocking `try_emit` port. A
+    /// queue saturation, disabled sink, or closed receiver cannot delay, retry, or otherwise
+    /// change the request's routing outcome.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same safe routing errors as [`Self::start`]. Event admission does not introduce
+    /// a new public error path.
+    pub async fn start_with_event_sink<D>(
+        &self,
+        request_id: &RequestId,
+        route_id: &RouteId,
+        driver: &D,
+        retry_gate: &dyn TransparentRetryGate,
+        event_sink: &dyn GatewayEventSink,
+    ) -> Result<StartedAttempt<D::Output>, GatewayError>
+    where
+        D: AttemptDriver,
+    {
+        self.start_inner(Some(request_id), route_id, driver, retry_gate, event_sink)
+            .await
+    }
+
+    #[allow(clippy::too_many_lines)] // One retry state machine keeps lease, gate, and event ordering auditable.
+    async fn start_inner<D>(
+        &self,
+        request_id: Option<&RequestId>,
+        route_id: &RouteId,
+        driver: &D,
+        retry_gate: &dyn TransparentRetryGate,
+        event_sink: &dyn GatewayEventSink,
+    ) -> Result<StartedAttempt<D::Output>, GatewayError>
+    where
+        D: AttemptDriver,
+    {
         if retry_gate.is_cancelled() {
             return Err(request_cancelled_error());
         }
@@ -424,13 +467,15 @@ impl AttemptOrchestrator {
                 Err(error) => return Err(last_failure.unwrap_or(error)),
             };
 
-            let now_ms = self.clock.now_ms().map_err(|_| internal_error())?;
-            if !budget.can_start_at(now_ms) {
+            let started_at_ms = self.clock.now_ms().map_err(|_| internal_error())?;
+            if !budget.can_start_at(started_at_ms) {
                 drop(selection);
                 return Err(last_failure.unwrap_or_else(egress_unavailable_error));
             }
-            let remaining_bootstrap = budget.remaining_at(now_ms)?;
+            let remaining_bootstrap = budget.remaining_at(started_at_ms)?;
             budget.record_start();
+            let attempt_number =
+                u64::try_from(budget.attempts_started()).map_err(|_| internal_error())?;
 
             let attempt_result: Result<D::Output, AttemptFailure> = tokio::select! {
                 biased;
@@ -451,8 +496,28 @@ impl AttemptOrchestrator {
             let failure = match attempt_result {
                 Ok(output) => {
                     if retry_gate.is_cancelled() {
+                        self.emit_attempt(
+                            request_id,
+                            route_id,
+                            &selection,
+                            attempt_number,
+                            started_at_ms,
+                            AttemptOutcome::Failed(request_cancelled_error()),
+                            AttemptRetryDecision::Cancelled,
+                            event_sink,
+                        );
                         return Err(request_cancelled_error());
                     }
+                    self.emit_attempt(
+                        request_id,
+                        route_id,
+                        &selection,
+                        attempt_number,
+                        started_at_ms,
+                        AttemptOutcome::Succeeded,
+                        AttemptRetryDecision::Completed,
+                        event_sink,
+                    );
                     return Ok(StartedAttempt {
                         selection,
                         output,
@@ -463,27 +528,136 @@ impl AttemptOrchestrator {
             };
 
             if matches!(failure, AttemptFailure::Cancelled) {
+                self.emit_attempt(
+                    request_id,
+                    route_id,
+                    &selection,
+                    attempt_number,
+                    started_at_ms,
+                    AttemptOutcome::Failed(request_cancelled_error()),
+                    AttemptRetryDecision::Cancelled,
+                    event_sink,
+                );
                 return Err(request_cancelled_error());
             }
             if !failure.is_retryable() {
+                let safe_failure = failure.safe_error();
                 if retry_gate.is_cancelled() {
+                    self.emit_attempt(
+                        request_id,
+                        route_id,
+                        &selection,
+                        attempt_number,
+                        started_at_ms,
+                        AttemptOutcome::Failed(safe_failure),
+                        AttemptRetryDecision::Cancelled,
+                        event_sink,
+                    );
                     return Err(request_cancelled_error());
                 }
-                return Err(failure.safe_error());
+                self.emit_attempt(
+                    request_id,
+                    route_id,
+                    &selection,
+                    attempt_number,
+                    started_at_ms,
+                    AttemptOutcome::Failed(safe_failure.clone()),
+                    AttemptRetryDecision::NonRetryable,
+                    event_sink,
+                );
+                return Err(safe_failure);
             }
 
             exclusions.insert(selection.candidate(), selection.lease().credential_id());
-            self.record_runtime_health(&selection, &failure)?;
             let safe_failure = failure.safe_error();
+            if let Err(error) = self.record_runtime_health(&selection, &failure) {
+                self.emit_attempt(
+                    request_id,
+                    route_id,
+                    &selection,
+                    attempt_number,
+                    started_at_ms,
+                    AttemptOutcome::Failed(error.clone()),
+                    AttemptRetryDecision::InfrastructureFailure,
+                    event_sink,
+                );
+                return Err(error);
+            }
             if retry_gate.is_cancelled() {
+                self.emit_attempt(
+                    request_id,
+                    route_id,
+                    &selection,
+                    attempt_number,
+                    started_at_ms,
+                    AttemptOutcome::Failed(safe_failure),
+                    AttemptRetryDecision::Cancelled,
+                    event_sink,
+                );
                 return Err(request_cancelled_error());
             }
             if !retry_gate.allows_transparent_retry() {
+                self.emit_attempt(
+                    request_id,
+                    route_id,
+                    &selection,
+                    attempt_number,
+                    started_at_ms,
+                    AttemptOutcome::Failed(safe_failure.clone()),
+                    AttemptRetryDecision::RetryClosed,
+                    event_sink,
+                );
                 return Err(safe_failure);
             }
+            self.emit_attempt(
+                request_id,
+                route_id,
+                &selection,
+                attempt_number,
+                started_at_ms,
+                AttemptOutcome::Failed(safe_failure.clone()),
+                AttemptRetryDecision::RetryEligible,
+                event_sink,
+            );
             last_failure = Some(safe_failure);
             drop(selection);
         }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn emit_attempt(
+        &self,
+        request_id: Option<&RequestId>,
+        route_id: &RouteId,
+        selection: &SelectedRouteCredential,
+        attempt_number: u64,
+        started_at_ms: i64,
+        outcome: AttemptOutcome,
+        retry_decision: AttemptRetryDecision,
+        event_sink: &dyn GatewayEventSink,
+    ) {
+        let Some(request_id) = request_id else {
+            return;
+        };
+        let ended_at_ms = match self.clock.now_ms() {
+            Ok(ended_at_ms) => ended_at_ms,
+            Err(_) => started_at_ms,
+        };
+        let event = AttemptEvent::new(
+            request_id.clone(),
+            attempt_number,
+            route_id.clone(),
+            selection.candidate().id().clone(),
+            selection.lease().credential_id().clone(),
+            selection.candidate().endpoint_id().clone(),
+            selection.candidate().upstream_id().clone(),
+            selection.candidate().upstream_model().to_owned(),
+            started_at_ms,
+            ended_at_ms,
+            outcome,
+            retry_decision,
+        );
+        let _emission = event_sink.try_emit(GatewayEvent::Attempt(event));
     }
 
     fn record_runtime_health(
@@ -627,7 +801,8 @@ mod tests {
 
     use gateway_catalog::{CapabilitySet, CatalogModelState};
     use gateway_core::{
-        CredentialId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode, PublicModelId,
+        AttemptOutcome, AttemptRetryDecision, CredentialId, EndpointId, ErrorScope, EventEmission,
+        GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, PublicModelId, RequestId,
         RouteCandidateId, RouteId, TransparentRetryGate, TransparentRetryGateFuture, UpstreamId,
     };
     use gateway_upstream::{
@@ -690,6 +865,54 @@ mod tests {
         );
         assert!(!health.endpoint_is_available(&EndpointId::try_new("endpoint-a")?));
         assert!(health.endpoint_is_available(&EndpointId::try_new("endpoint-b")?));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn observed_attempts_emit_one_terminal_record_per_driver_invocation() -> TestResult {
+        let (orchestrator, route_id, _clock, _health, _pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a"), ("candidate-b", "endpoint-b")],
+            vec![
+                ("endpoint-a", vec!["credential-a"]),
+                ("endpoint-b", vec!["credential-b"]),
+            ],
+            3,
+            100,
+        )?;
+        let driver = ScriptedDriver::new(vec![
+            DriverStep::Failure(AttemptFailure::Connection),
+            DriverStep::Success("connected".to_owned()),
+        ]);
+        let gate = TestRetryGate::default();
+        let events = RecordingEventSink::default();
+        let request_id = RequestId::try_new("request-observed")?;
+
+        let started = orchestrator
+            .start_with_event_sink(&request_id, &route_id, &driver, &gate, &events)
+            .await?;
+
+        assert_eq!(started.attempts_started(), 2);
+        let events = events.events()?;
+        assert_eq!(events.len(), 2);
+        let [GatewayEvent::Attempt(first), GatewayEvent::Attempt(second)] = events.as_slice()
+        else {
+            return Err("expected exactly two Attempt observations".into());
+        };
+        assert_eq!(first.request_id(), &request_id);
+        assert_eq!(first.attempt_number(), 1);
+        assert_eq!(first.route_candidate_id().as_str(), "candidate-a");
+        assert_eq!(first.credential_id().as_str(), "credential-a");
+        assert!(matches!(
+            first.outcome(),
+            AttemptOutcome::Failed(error) if error.code() == GatewayErrorCode::EgressUnavailable
+        ));
+        assert_eq!(first.retry_decision(), AttemptRetryDecision::RetryEligible);
+        assert_eq!(second.request_id(), &request_id);
+        assert_eq!(second.attempt_number(), 2);
+        assert_eq!(second.route_candidate_id().as_str(), "candidate-b");
+        assert!(matches!(second.outcome(), AttemptOutcome::Succeeded));
+        assert_eq!(second.retry_decision(), AttemptRetryDecision::Completed);
+        assert!(!format!("{events:?}").contains("upstream-model"));
         Ok(())
     }
 
@@ -1034,6 +1257,32 @@ mod tests {
         match result {
             Ok(_) => Err(message.into()),
             Err(error) => Ok(error),
+        }
+    }
+
+    #[derive(Default)]
+    struct RecordingEventSink {
+        events: Mutex<Vec<GatewayEvent>>,
+    }
+
+    impl RecordingEventSink {
+        fn events(&self) -> Result<Vec<GatewayEvent>, Box<dyn Error>> {
+            self.events
+                .lock()
+                .map(|events| events.clone())
+                .map_err(|_| "event recorder lock poisoned".into())
+        }
+    }
+
+    impl GatewayEventSink for RecordingEventSink {
+        fn try_emit(&self, event: GatewayEvent) -> EventEmission {
+            match self.events.lock() {
+                Ok(mut events) => {
+                    events.push(event);
+                    EventEmission::Enqueued
+                }
+                Err(_) => EventEmission::SinkClosed,
+            }
         }
     }
 

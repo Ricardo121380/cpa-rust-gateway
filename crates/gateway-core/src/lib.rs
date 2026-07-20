@@ -5,6 +5,7 @@
 mod canonical_event;
 mod canonical_request;
 mod error;
+mod gateway_event;
 mod id;
 mod message;
 mod raw_extension;
@@ -20,6 +21,11 @@ pub use canonical_event::{
 };
 pub use canonical_request::CanonicalRequest;
 pub use error::{ErrorScope, GatewayError, GatewayErrorCode};
+pub use gateway_event::{
+    AttemptEvent, AttemptOutcome, AttemptRetryDecision, DiagnosticEvent, EventEmission,
+    GatewayEvent, GatewayEventPriority, GatewayEventSink, GatewayProtocol, NoopGatewayEventSink,
+    RequestEvent, UsageEvent, UsageSummary,
+};
 pub use id::{
     AccessGroupId, AttemptId, AuthId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId,
     InvalidIdentifier, ProviderId, PublicModelId, RequestId, ResponseId, RouteCandidateId, RouteId,

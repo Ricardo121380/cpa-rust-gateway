@@ -110,6 +110,21 @@ opaque_identifier!(
     AttemptId,
     "Stable identifier for one concrete upstream attempt within a request."
 );
+
+impl AttemptId {
+    /// Derives a collision-free opaque Attempt identity from one Request and one-based sequence.
+    ///
+    /// The length prefix keeps two arbitrary opaque Request identifiers from becoming ambiguous
+    /// when their sequence is rendered into a durable event identifier.
+    #[must_use]
+    pub fn from_request_sequence(request_id: &RequestId, attempt_number: u64) -> Self {
+        Self(format!(
+            "attempt:{}:{}:{attempt_number}",
+            request_id.as_str().len(),
+            request_id.as_str()
+        ))
+    }
+}
 opaque_identifier!(
     ClientKeyId,
     "Stable identifier for a client API key without exposing its secret material."

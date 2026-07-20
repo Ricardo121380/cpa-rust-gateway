@@ -631,6 +631,7 @@ name = "gateway-observability"
 version = "0.1.0"
 dependencies = [
  "gateway-core",
+ "tokio",
 ]
 
 [[package]]

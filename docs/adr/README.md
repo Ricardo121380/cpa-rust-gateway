@@ -44,3 +44,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0015 Sharded runtime health state](ADR-0015-sharded-runtime-health.md) — `P3-05`。
 - [ADR-0016 Request-scoped Attempt orchestration and transparent-retry gate](ADR-0016-request-scoped-attempt-orchestration.md) — `P3-06`。
 - [ADR-0017 RouteSnapshot-derived public model view and Responses force mapping](ADR-0017-routesnapshot-public-model-view.md) — `P3-07`。
+- [ADR-0018 Bounded non-blocking Request, Attempt, and Usage event port](ADR-0018-bounded-request-attempt-usage-events.md) — `P3-08`。
