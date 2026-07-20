@@ -31,9 +31,9 @@ chat text are not P3-10 configuration and must never be selected implicitly.
    scheduler/orchestrator, Snapshot-authenticated Actix boundary, and event sink. The target is a
    test-only composition path, not an application listener or a new production Provider adapter.
 4. The harness accepts exactly four live calls: one minimal non-streaming and one minimal SSE request
-   per target. Its two-Candidate Route has `max_attempts=1`, so a failed Candidate cannot fail over
-   or spend an unapproved retry. It performs no account mutations, model discovery, quota probes,
-   or bulk traffic.
+   per target. Every request has the fixed non-sensitive input and `max_output_tokens=32`. Its
+   two-Candidate Route has `max_attempts=1`, so a failed Candidate cannot fail over or spend an
+   unapproved retry. It performs no account mutations, model discovery, quota probes, or bulk traffic.
 5. Tracked evidence records only opaque target labels, protocol mode, status/content-type category,
    bounded latency bucket, event-shape result, and boolean correlation/redaction checks. It never
    records a URL, Authorization header, credential, Client Key, request body, response body, SSE

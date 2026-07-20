@@ -19,8 +19,9 @@
   if approved, is explicit local-DNS `socks5://host:port`; an optional narrow per-target CIDR is
   required for a private/local relay. Proxy auto-discovery and TUN-rule mutation are outside this
   contract.
-- The request input is a fixed, non-sensitive probe. No user prompt, production body, account data,
-  tool call, file upload, or side-effecting upstream operation is allowed.
+- The request input is a fixed, non-sensitive probe with `max_output_tokens=32`. No user prompt,
+  production body, account data, tool call, file upload, or side-effecting upstream operation is
+  allowed.
 
 ## Required behavior
 

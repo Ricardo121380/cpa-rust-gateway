@@ -30,8 +30,9 @@ P3-09 value is eligible to fill those fields. This plan deliberately makes zero 
   `P3_10_MAX_EXTERNAL_REQUESTS=4`; it never reads `.env`, `OPENAI_API_KEY`, `CODEX_API_KEY`, or
   any other ambient provider variable.
 - The live route has two Candidates, but `max_attempts=1`. It sends one non-streaming and one SSE
-  probe to each Candidate in deterministic A/B/A/B order, so a failed target stops immediately
-  instead of retrying, failing over, or exceeding the four approved calls.
+  probe to each Candidate in deterministic A/B/A/B order, each with the fixed non-sensitive input
+  and `max_output_tokens=32`, so a failed target stops immediately instead of retrying, failing
+  over, or exceeding the four approved calls.
 - The P3-10 harness allocates a distinct opaque Request ID for each of those four probes and checks
   Request/Attempt/Usage equality per probe without rendering any correlation value. P3-09 retains
   its fixed deterministic fixture ID.
@@ -44,7 +45,7 @@ P3-09 value is eligible to fill those fields. This plan deliberately makes zero 
 
 | Command / review | Result |
 |---|---|
-| `cargo test --locked -p gateway-http-actix --test p3_10_real_endpoint_validation` | PASS; six non-live guard/config/privacy checks passed and the real target remained ignored. |
+| `cargo test --locked -p gateway-http-actix --test p3_10_real_endpoint_validation` | PASS; seven non-live guard/config/privacy/output-cap checks passed and the real target remained ignored. |
 | Ignored target with every `P3_10_*` variable unset | EXPECTED SAFE STOP; `NotAuthorized` returned in about 0.01 seconds with exit status 101 before Endpoint/harness construction, DNS resolution, or transport. This is guard evidence, not a real-target result. |
 | `cargo test --locked -p gateway-http-actix --test p3_09_aggregation_e2e` | PASS; 3/3 controlled Mock E2E regressions still use the shared test-only harness. |
 | `cargo test --locked -p gateway-router credential_scheduler::tests::two_layer_atomic_cursors_preserve_route_and_endpoint_weights_under_concurrency -- --exact` (50 repetitions) | PASS; cursor-distribution assertion is now isolated from temporary lease saturation. |
@@ -59,6 +60,10 @@ it. Once explicitly enabled, the fixed four-request loop owns one non-streaming 
 per Candidate, with `max_attempts=1`; a failure returns from the loop before another probe, retry,
 or failover can occur. The response and event assertions operate only on bounded material and do
 not print correlation values or upstream-private inputs.
+
+The probe now explicitly carries `max_output_tokens=32`. The local test decodes the fixed public
+payload and rebuilds the concrete OpenAI-compatible outbound body, proving the cap survives the
+Canonical extension boundary for both non-streaming and SSE modes before any real request is made.
 
 The first complete workspace gate exposed an existing P3-04 test instability: its strict
 cursor-fairness assertion also allowed the test pools to saturate transiently under eight workers.

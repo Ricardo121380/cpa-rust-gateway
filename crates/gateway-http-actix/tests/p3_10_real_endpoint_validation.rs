@@ -33,7 +33,9 @@ use gateway_upstream::{
     EgressCidr, EgressHost, EgressPolicy, EgressPolicyInput, EgressScheme, RedirectPolicy,
     SystemEgressDnsResolver, UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
 };
-use provider_openai_compatible::OpenAiResponsesEndpoint;
+use provider_openai_compatible::{
+    OpenAiResponsesApiKey, OpenAiResponsesEndpoint, OpenAiResponsesRequestBuilder,
+};
 use support::p3_aggregation::{AggregationEndpoint, RequestIdMode, build_aggregation_harness};
 use url::Url;
 use zeroize::Zeroizing;
@@ -43,6 +45,7 @@ type TestResult = Result<(), Box<dyn Error>>;
 const PUBLIC_MODEL: &str = "minimax-m3";
 const MODEL_ALIAS: &str = "minimax-m3-alias";
 const LIVE_REQUEST_CAP: u32 = 4;
+const PROBE_MAX_OUTPUT_TOKENS: u64 = 32;
 const MAX_CLIENT_RESPONSE_BYTES: usize = 64 * 1024;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -306,7 +309,7 @@ fn authorized(request: actix_test::TestRequest, presented_key: &str) -> actix_te
 
 fn probe_payload(streaming: bool) -> String {
     format!(
-        r#"{{"model":"{MODEL_ALIAS}","input":"Reply with exactly: ready","stream":{streaming}}}"#
+        r#"{{"model":"{MODEL_ALIAS}","input":"Reply with exactly: ready","max_output_tokens":{PROBE_MAX_OUTPUT_TOKENS},"stream":{streaming}}}"#
     )
 }
 
@@ -550,6 +553,35 @@ fn client_boundary_rejects_internal_values_without_rendering_them() {
         ),
         Err(ProbeError::SensitiveValueLeaked)
     ));
+}
+
+#[test]
+fn fixed_probe_payload_caps_the_upstream_output() -> TestResult {
+    for streaming in [false, true] {
+        let payload = probe_payload(streaming);
+        let decoded = protocol_openai_responses::decode_request(&payload)?;
+        let endpoint = OpenAiResponsesEndpoint::try_new("https://p3-10.invalid/v1", "/responses")?;
+        let credential = OpenAiResponsesApiKey::try_new("synthetic-p3-10-credential")?;
+        let outbound = OpenAiResponsesRequestBuilder::build(
+            &endpoint,
+            &credential,
+            "synthetic-p3-10-model",
+            &decoded.request,
+            decoded.mode,
+        )?;
+        let payload: serde_json::Value = serde_json::from_slice(outbound.body())?;
+        assert_eq!(
+            payload
+                .get("max_output_tokens")
+                .and_then(serde_json::Value::as_u64),
+            Some(PROBE_MAX_OUTPUT_TOKENS)
+        );
+        assert_eq!(
+            payload.get("stream").and_then(serde_json::Value::as_bool),
+            Some(streaming)
+        );
+    }
+    Ok(())
 }
 
 #[actix_web::test]
