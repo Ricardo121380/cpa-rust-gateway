@@ -70,6 +70,21 @@ cursor-only assertion is deterministic.
 This review accepts only the local harness and its safe guard. It does not accept P3-10, G3, or
 P3 as complete: the four authorized real-target calls and their redacted outcome remain required.
 
+## GitHub CI
+
+GitHub Actions run [29716094066](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29716094066)
+passed for harness implementation commit `691159f`.
+
+| Job | Result |
+|---|---|
+| Fast gate | PASS; completed `2026-07-20T04:09:06Z` |
+| Full supply-chain gate | PASS; completed `2026-07-20T04:20:14Z` |
+
+This remote result accepts the opt-in local harness, its test-boundary refactor, and the
+cursor-fairness fixture isolation. It does not authorize a real Endpoint or alter the task's
+`IN_PROGRESS` status. The verification-record commit below must pass the same workflow before this
+local evidence is considered durable.
+
 ## Execution protocol
 
 1. Review the configuration below and source only the ignored private file into the current shell.
