@@ -1,17 +1,17 @@
 //! P3-09 composition tests for the bounded `OpenAI` Responses aggregation slice.
 //!
-//! The test owns two loopback-only, deterministic HTTP peers. It exercises the same typed
-//! request builder, P2 egress admission/client pool, P3 scheduler/orchestrator, Snapshot HTTP
-//! boundary, bounded stream, and P3-08 event port used by the individual component tests.
+//! The test owns two loopback-only deterministic peers. Shared routing, admitted transport,
+//! decoding, and event composition lives in `tests/support/p3_aggregation.rs` so P3-10 exercises
+//! exactly the same test-only path against its explicitly authorized real targets.
 
 #![deny(unsafe_code)]
 
+mod support;
+
 use std::{
-    collections::{BTreeMap, BTreeSet, VecDeque},
     error::Error,
     io,
     net::{IpAddr, Ipv4Addr},
-    num::NonZeroUsize,
     sync::{
         Arc,
         atomic::{AtomicBool, AtomicUsize, Ordering},
@@ -24,38 +24,19 @@ use actix_web::{
     http::{StatusCode, header},
     test, web,
 };
-use gateway_auth::client_key::{ClientKeyPepper, ClientKeyService};
 use gateway_core::{
-    AccessGroupId, AttemptOutcome, AttemptRetryDecision, CanonicalEvent, CanonicalRequest,
-    ClientKeyId, CredentialId, EgressPolicyId, EndpointId, ErrorScope, GatewayError,
-    GatewayErrorCode, GatewayEvent, GatewayEventSink, MessageEnd, MessageRole, MessageStart,
-    PublicModelId, RawExtensions, RequestContext, ResponseEnd, ResponseId, ResponseStart,
-    RouteCandidateId, RouteId, StreamError, TextDelta, UpstreamId, Usage, UsageDelta,
+    AttemptOutcome, AttemptRetryDecision, EgressPolicyId, GatewayErrorCode, GatewayEvent,
+    GatewayEventSink,
 };
-use gateway_http_actix::{
-    ResponsesHttpState, ResponsesMetadataFactory, configure, default_stream_capacity,
-};
+use gateway_http_actix::configure;
 use gateway_observability::{BoundedEventQueue, EventQueueConfig};
-use gateway_router::{
-    AttemptDriver, AttemptFailure, AttemptFuture, AttemptOrchestrator, CapabilitySet,
-    ResponsesEventSource, ResponsesExecution, ResponsesExecutor, ResponsesFuture,
-    ResponsesResponseMode, RouteCredentialScheduler, RouteSnapshot, RouteSnapshotInput,
-    RouteSnapshotRegistry, SelectedRouteCredential, SnapshotAccessGroup, SnapshotCatalogAdmission,
-    SnapshotClientKeyAuthenticator, SnapshotClientKeyView, SnapshotPublicModel, SnapshotRoute,
-    SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
-    SnapshotTransformMode, SnapshotVersion,
-};
 use gateway_upstream::{
-    CredentialLease, CredentialSecret, EgressCidr, EgressDnsError, EgressDnsResolver, EgressHost,
-    EgressPolicy, EgressPolicyInput, EgressScheme, EndpointCredentialInput, EndpointCredentialPool,
-    EndpointCredentialPools, RedirectPolicy, UpstreamClientPool, UpstreamHttpResponse,
-    UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
+    EgressCidr, EgressDnsError, EgressDnsResolver, EgressHost, EgressPolicy, EgressPolicyInput,
+    EgressScheme, RedirectPolicy, UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
 };
-use protocol_openai_responses::{OpenAiResponseMetadata, ResponseMode};
-use provider_openai_compatible::{
-    OpenAiResponsesApiKey, OpenAiResponsesEndpoint, OpenAiResponsesRequestBuilder,
-};
+use provider_openai_compatible::OpenAiResponsesEndpoint;
 use serde_json::Value;
+use support::p3_aggregation::{AggregationEndpoint, RequestIdMode, build_aggregation_harness};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
@@ -65,7 +46,6 @@ use tokio::{
 };
 
 type TestResult = Result<(), Box<dyn Error>>;
-type BuiltState = (ResponsesHttpState, String, Arc<Mutex<Vec<String>>>);
 
 const LOOPBACK_ADDRESS: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 const PUBLIC_MODEL: &str = "minimax-m3";
@@ -73,26 +53,6 @@ const MODEL_ALIAS: &str = "minimax-m3-alias";
 const ROUTE_ID: &str = "p3-09-route";
 const REQUEST_ID: &str = "p3-09-request";
 const MAX_HTTP_REQUEST_BYTES: usize = 64 * 1024;
-const MAX_UPSTREAM_RESPONSE_BYTES: usize = 64 * 1024;
-const MAX_SSE_FRAME_BYTES: usize = 16 * 1024;
-
-#[derive(Debug)]
-struct FixedMetadata;
-
-impl ResponsesMetadataFactory for FixedMetadata {
-    fn request_context(&self) -> Result<RequestContext, GatewayError> {
-        let request_id =
-            gateway_core::RequestId::try_new(REQUEST_ID).map_err(|_| internal_error())?;
-        Ok(RequestContext::new(request_id))
-    }
-
-    fn response_metadata(
-        &self,
-        public_model: &str,
-    ) -> Result<OpenAiResponseMetadata, GatewayError> {
-        OpenAiResponseMetadata::try_new(public_model, 1)
-    }
-}
 
 #[derive(Clone, Copy)]
 struct StaticLoopbackResolver;
@@ -415,579 +375,21 @@ async fn write_stream_start_and_wait_for_close(
     }
 }
 
-struct EndpointRuntime {
-    endpoint: OpenAiResponsesEndpoint,
-    policy: EgressPolicy,
-    transport: UpstreamTransportProfile,
-}
-
-struct GatewayE2eExecutor {
-    orchestrator: Arc<AttemptOrchestrator>,
-    endpoints: Arc<BTreeMap<EndpointId, EndpointRuntime>>,
-    client_pool: Arc<UpstreamClientPool>,
-    event_sink: Arc<dyn GatewayEventSink>,
-    observed_routes: Arc<Mutex<Vec<String>>>,
-}
-
-impl ResponsesExecutor for GatewayE2eExecutor {
-    fn execute(
-        &self,
-        _context: RequestContext,
-        _request: CanonicalRequest,
-    ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
-        Box::pin(async { Err(route_not_found_error()) })
-    }
-
-    fn execute_routed(
-        &self,
-        execution: ResponsesExecution,
-    ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
-        let orchestrator = Arc::clone(&self.orchestrator);
-        let endpoints = Arc::clone(&self.endpoints);
-        let client_pool = Arc::clone(&self.client_pool);
-        let event_sink = Arc::clone(&self.event_sink);
-        let observed_routes = Arc::clone(&self.observed_routes);
-        let context = execution.context().clone();
-        let request = execution.request().clone();
-        let route_id = execution.route_id().cloned();
-        let mode = execution.mode();
-        let retry_gate = Arc::clone(execution.retry_gate());
-
-        Box::pin(async move {
-            let route_id = route_id.ok_or_else(route_not_found_error)?;
-            observed_routes
-                .lock()
-                .await
-                .push(route_id.as_str().to_owned());
-            let driver = MockHttpAttemptDriver {
-                request,
-                mode,
-                endpoints,
-                client_pool,
-            };
-            let started = orchestrator
-                .start_with_event_sink(
-                    context.request_id(),
-                    &route_id,
-                    &driver,
-                    retry_gate.as_ref(),
-                    event_sink.as_ref(),
-                )
-                .await?;
-            let (source, selection) = started.into_parts();
-            Ok(Box::new(LeaseHoldingEventSource {
-                source,
-                _selection: selection,
-            }) as Box<dyn ResponsesEventSource>)
-        })
-    }
-}
-
-struct LeaseHoldingEventSource {
-    source: Box<dyn ResponsesEventSource>,
-    _selection: SelectedRouteCredential,
-}
-
-impl ResponsesEventSource for LeaseHoldingEventSource {
-    fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
-        self.source.next_event()
-    }
-}
-
-struct MockHttpAttemptDriver {
-    request: CanonicalRequest,
-    mode: ResponsesResponseMode,
-    endpoints: Arc<BTreeMap<EndpointId, EndpointRuntime>>,
-    client_pool: Arc<UpstreamClientPool>,
-}
-
-impl AttemptDriver for MockHttpAttemptDriver {
-    type Output = Box<dyn ResponsesEventSource>;
-
-    fn start<'a>(
-        &'a self,
-        candidate: &'a SnapshotRouteCandidate,
-        credential: &'a CredentialLease,
-        _bootstrap_timeout: Duration,
-    ) -> AttemptFuture<'a, Result<Self::Output, AttemptFailure>> {
-        Box::pin(async move {
-            let Some(runtime) = self.endpoints.get(candidate.endpoint_id()) else {
-                return Err(AttemptFailure::NonRetryable(internal_error()));
-            };
-            let credential = std::str::from_utf8(credential.secret_bytes())
-                .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
-            let request_credential = OpenAiResponsesApiKey::try_new(credential.to_owned())
-                .map_err(AttemptFailure::NonRetryable)?;
-            let response_mode = upstream_response_mode(self.mode);
-            let outbound = OpenAiResponsesRequestBuilder::build(
-                &runtime.endpoint,
-                &request_credential,
-                candidate.upstream_model(),
-                &self.request,
-                response_mode,
-            )
-            .map_err(AttemptFailure::NonRetryable)?;
-            let admitted = runtime
-                .policy
-                .admit_url(outbound.url(), &StaticLoopbackResolver)
-                .map_err(|_| AttemptFailure::NonRetryable(egress_rejected_error()))?;
-            let request = outbound
-                .into_transport_request(admitted)
-                .map_err(AttemptFailure::NonRetryable)?;
-            let mut response = self
-                .client_pool
-                .send(request, &runtime.transport)
-                .await
-                .map_err(|_| AttemptFailure::Connection)?;
-
-            match response.status() {
-                200..=299 => {}
-                429 => return Err(AttemptFailure::RateLimited { retry_after: None }),
-                500..=599 => return Err(AttemptFailure::ServerError),
-                _ => return Err(AttemptFailure::NonRetryable(provider_permanent_error())),
-            }
-            if !has_expected_content_type(&response, self.mode) {
-                return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
-            }
-
-            match self.mode {
-                ResponsesResponseMode::NonStreaming => {
-                    let events = decode_json_response(&mut response).await?;
-                    Ok(Box::new(FiniteEventSource::new(events)) as Box<dyn ResponsesEventSource>)
-                }
-                ResponsesResponseMode::Streaming => {
-                    let source = OpenAiSseEventSource::begin(response).await?;
-                    Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
-                }
-            }
-        })
-    }
-}
-
-fn upstream_response_mode(mode: ResponsesResponseMode) -> ResponseMode {
-    match mode {
-        ResponsesResponseMode::NonStreaming => ResponseMode::NonStreaming,
-        ResponsesResponseMode::Streaming => ResponseMode::Streaming,
-    }
-}
-
-fn has_expected_content_type(response: &UpstreamHttpResponse, mode: ResponsesResponseMode) -> bool {
-    let expected = match mode {
-        ResponsesResponseMode::NonStreaming => "application/json",
-        ResponsesResponseMode::Streaming => "text/event-stream",
-    };
-    response
-        .header("content-type")
-        .and_then(|value| value.to_str().ok())
-        .is_some_and(|content_type| content_type.starts_with(expected))
-}
-
-struct FiniteEventSource {
-    events: VecDeque<CanonicalEvent>,
-}
-
-impl FiniteEventSource {
-    fn new(events: Vec<CanonicalEvent>) -> Self {
-        Self {
-            events: events.into(),
-        }
-    }
-}
-
-impl ResponsesEventSource for FiniteEventSource {
-    fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
-        Box::pin(async move { Ok(self.events.pop_front()) })
-    }
-}
-
-async fn decode_json_response(
-    response: &mut UpstreamHttpResponse,
-) -> Result<Vec<CanonicalEvent>, AttemptFailure> {
-    let mut body = Vec::new();
-    loop {
-        let next = response
-            .next_chunk()
-            .await
-            .map_err(|_| AttemptFailure::Connection)?;
-        let Some(chunk) = next else {
-            break;
-        };
-        if body.len().saturating_add(chunk.len()) > MAX_UPSTREAM_RESPONSE_BYTES {
-            return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
-        }
-        body.extend_from_slice(&chunk);
-    }
-    decode_json_events(&body).map_err(|_| AttemptFailure::BootstrapTruncated)
-}
-
-fn decode_json_events(body: &[u8]) -> Result<Vec<CanonicalEvent>, GatewayError> {
-    let value: Value = serde_json::from_slice(body).map_err(|_| upstream_protocol_error())?;
-    let response_id = required_string(&value, "id")?;
-    if value.get("status").and_then(Value::as_str) != Some("completed") {
-        return Err(upstream_protocol_error());
-    }
-    let output = value
-        .get("output")
-        .and_then(Value::as_array)
-        .ok_or_else(upstream_protocol_error)?;
-    let message = output.iter().find(|item| {
-        item.get("type").and_then(Value::as_str) == Some("message")
-            && item.get("role").and_then(Value::as_str) == Some("assistant")
-    });
-    let Some(message) = message else {
-        return Err(upstream_protocol_error());
-    };
-    let content = message
-        .get("content")
-        .and_then(Value::as_array)
-        .ok_or_else(upstream_protocol_error)?;
-    let text = content.iter().find_map(|part| {
-        (part.get("type").and_then(Value::as_str) == Some("output_text"))
-            .then(|| part.get("text").and_then(Value::as_str))
-            .flatten()
-    });
-    let Some(text) = text.filter(|text| !text.is_empty()) else {
-        return Err(upstream_protocol_error());
-    };
-
-    let mut events = vec![
-        CanonicalEvent::ResponseStart(ResponseStart {
-            response_id: ResponseId::try_new(response_id).map_err(|_| upstream_protocol_error())?,
-            extensions: RawExtensions::default(),
-        }),
-        CanonicalEvent::MessageStart(MessageStart {
-            role: MessageRole("assistant".to_owned()),
-            extensions: RawExtensions::default(),
-        }),
-        CanonicalEvent::TextDelta(TextDelta {
-            text: text.to_owned(),
-            extensions: RawExtensions::default(),
-        }),
-    ];
-    if let Some(usage) = decode_usage(value.get("usage"))? {
-        events.push(CanonicalEvent::UsageDelta(UsageDelta {
-            usage,
-            is_final: true,
-            extensions: RawExtensions::default(),
-        }));
-    }
-    events.push(CanonicalEvent::MessageEnd(MessageEnd::default()));
-    events.push(CanonicalEvent::ResponseEnd(ResponseEnd::default()));
-    Ok(events)
-}
-
-struct OpenAiSseEventSource {
-    response: UpstreamHttpResponse,
-    buffer: Vec<u8>,
-    pending: VecDeque<CanonicalEvent>,
-    response_started: bool,
-    message_open: bool,
-    finished: bool,
-}
-
-impl OpenAiSseEventSource {
-    async fn begin(response: UpstreamHttpResponse) -> Result<Self, AttemptFailure> {
-        let mut source = Self {
-            response,
-            buffer: Vec::new(),
-            pending: VecDeque::new(),
-            response_started: false,
-            message_open: false,
-            finished: false,
-        };
-        source
-            .read_until_event()
-            .await
-            .map_err(|_| AttemptFailure::BootstrapTruncated)?;
-        if !matches!(
-            source.pending.front(),
-            Some(CanonicalEvent::ResponseStart(_))
-        ) {
-            return Err(AttemptFailure::BootstrapTruncated);
-        }
-        Ok(source)
-    }
-
-    async fn read_until_event(&mut self) -> Result<(), GatewayError> {
-        while self.pending.is_empty() && !self.finished {
-            if let Some(frame) = self.take_frame() {
-                self.consume_frame(&frame)?;
-                continue;
-            }
-            let next = self.response.next_chunk().await?;
-            let Some(chunk) = next else {
-                return Err(stream_truncated_error());
-            };
-            if self.buffer.len().saturating_add(chunk.len()) > MAX_SSE_FRAME_BYTES {
-                return Err(upstream_protocol_error());
-            }
-            self.buffer.extend_from_slice(&chunk);
-        }
-        Ok(())
-    }
-
-    fn take_frame(&mut self) -> Option<Vec<u8>> {
-        let position = self
-            .buffer
-            .windows(2)
-            .position(|window| window == b"\n\n")?;
-        let mut frame: Vec<_> = self.buffer.drain(..position + 2).collect();
-        frame.truncate(position);
-        Some(frame)
-    }
-
-    fn consume_frame(&mut self, frame: &[u8]) -> Result<(), GatewayError> {
-        let frame = std::str::from_utf8(frame).map_err(|_| upstream_protocol_error())?;
-        let data = frame
-            .lines()
-            .find_map(|line| line.strip_prefix("data:").map(str::trim))
-            .ok_or_else(upstream_protocol_error)?;
-        let value: Value = serde_json::from_str(data).map_err(|_| upstream_protocol_error())?;
-        let kind = required_string(&value, "type")?;
-
-        match kind.as_str() {
-            "response.created" => {
-                if self.response_started {
-                    return Err(upstream_protocol_error());
-                }
-                let response = value.get("response").ok_or_else(upstream_protocol_error)?;
-                let response_id = required_string(response, "id")?;
-                self.response_started = true;
-                self.pending
-                    .push_back(CanonicalEvent::ResponseStart(ResponseStart {
-                        response_id: ResponseId::try_new(response_id)
-                            .map_err(|_| upstream_protocol_error())?,
-                        extensions: RawExtensions::default(),
-                    }));
-            }
-            "response.in_progress" => {}
-            "response.output_item.added" => {
-                let item = value.get("item").ok_or_else(upstream_protocol_error)?;
-                let is_assistant_message = item.get("type").and_then(Value::as_str)
-                    == Some("message")
-                    && item.get("role").and_then(Value::as_str) == Some("assistant");
-                if !self.response_started || self.message_open || !is_assistant_message {
-                    return Err(upstream_protocol_error());
-                }
-                self.message_open = true;
-                self.pending
-                    .push_back(CanonicalEvent::MessageStart(MessageStart {
-                        role: MessageRole("assistant".to_owned()),
-                        extensions: RawExtensions::default(),
-                    }));
-            }
-            "response.output_text.delta" => {
-                let delta = required_string(&value, "delta")?;
-                if !self.message_open || delta.is_empty() {
-                    return Err(upstream_protocol_error());
-                }
-                self.pending.push_back(CanonicalEvent::TextDelta(TextDelta {
-                    text: delta,
-                    extensions: RawExtensions::default(),
-                }));
-            }
-            "response.completed" => {
-                if !self.response_started || !self.message_open {
-                    return Err(upstream_protocol_error());
-                }
-                let response = value.get("response").ok_or_else(upstream_protocol_error)?;
-                if let Some(usage) = decode_usage(response.get("usage"))? {
-                    self.pending
-                        .push_back(CanonicalEvent::UsageDelta(UsageDelta {
-                            usage,
-                            is_final: true,
-                            extensions: RawExtensions::default(),
-                        }));
-                }
-                self.pending
-                    .push_back(CanonicalEvent::MessageEnd(MessageEnd::default()));
-                self.pending
-                    .push_back(CanonicalEvent::ResponseEnd(ResponseEnd::default()));
-                self.message_open = false;
-                self.finished = true;
-            }
-            "response.failed" => {
-                if !self.response_started {
-                    return Err(upstream_protocol_error());
-                }
-                self.pending
-                    .push_back(CanonicalEvent::StreamError(StreamError {
-                        error: provider_transient_error(),
-                    }));
-                self.finished = true;
-            }
-            _ => return Err(upstream_protocol_error()),
-        }
-        Ok(())
-    }
-}
-
-impl ResponsesEventSource for OpenAiSseEventSource {
-    fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
-        Box::pin(async move {
-            if self.pending.is_empty() && !self.finished {
-                self.read_until_event().await?;
-            }
-            Ok(self.pending.pop_front())
-        })
-    }
-}
-
-fn required_string(value: &Value, field: &str) -> Result<String, GatewayError> {
-    value
-        .get(field)
-        .and_then(Value::as_str)
-        .filter(|value| !value.is_empty())
-        .map(str::to_owned)
-        .ok_or_else(upstream_protocol_error)
-}
-
-fn decode_usage(value: Option<&Value>) -> Result<Option<Usage>, GatewayError> {
-    let Some(value) = value else {
-        return Ok(None);
-    };
-    if value.is_null() {
-        return Ok(None);
-    }
-    let object = value.as_object().ok_or_else(upstream_protocol_error)?;
-    let reasoning_tokens = object
-        .get("output_tokens_details")
-        .and_then(Value::as_object)
-        .and_then(|details| details.get("reasoning_tokens"))
-        .map(required_u64)
-        .transpose()?;
-    Ok(Some(Usage {
-        input_tokens: object.get("input_tokens").map(required_u64).transpose()?,
-        output_tokens: object.get("output_tokens").map(required_u64).transpose()?,
-        reasoning_tokens,
-        ..Usage::default()
-    }))
-}
-
-fn required_u64(value: &Value) -> Result<u64, GatewayError> {
-    value.as_u64().ok_or_else(upstream_protocol_error)
-}
-
-fn build_state(
-    endpoints: &[MockEndpoint],
-    event_sink: Arc<dyn GatewayEventSink>,
-) -> Result<BuiltState, Box<dyn Error>> {
-    let route_id = RouteId::try_new(ROUTE_ID)?;
-    let public_model_id = PublicModelId::try_new("p3-09-public-model")?;
-    let mut candidates = Vec::new();
-    let mut endpoint_pools = Vec::new();
-    let mut runtimes = BTreeMap::new();
-
-    for (index, endpoint) in endpoints.iter().enumerate() {
-        let endpoint_id = EndpointId::try_new(format!("p3-09-endpoint-{}", endpoint.label))?;
-        let upstream_model = format!("minimax-m3-upstream-{}", endpoint.label);
-        candidates.push(SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
-            id: RouteCandidateId::try_new(format!("p3-09-candidate-{}", endpoint.label))?,
-            endpoint_id: endpoint_id.clone(),
-            upstream_id: UpstreamId::try_new(format!("p3-09-upstream-{}", endpoint.label))?,
-            upstream_model,
-            transform_mode: SnapshotTransformMode::Canonical,
-            priority: 0,
-            weight: 1,
-            effective_capabilities: CapabilitySet::empty(),
-            catalog_admission: SnapshotCatalogAdmission::AllowedUnlisted,
-            active_binding_count: 1,
-        }));
-        endpoint_pools.push(EndpointCredentialPool::try_new(
-            endpoint_id.clone(),
-            [EndpointCredentialInput {
-                credential_id: CredentialId::try_new(format!("p3-09-credential-{index}"))?,
-                credential_kind: "api_key".to_owned(),
-                credential_revision: 0,
-                priority: 0,
-                weight: 1,
-                concurrency: 1,
-                secret: CredentialSecret::try_new(
-                    format!("p3-09-synthetic-credential-{index}").into_bytes(),
-                )?,
-            }],
-        )?);
-        runtimes.insert(endpoint_id, endpoint_runtime(endpoint, index)?);
-    }
-
-    let access_group_id = AccessGroupId::try_new("p3-09-access-group")?;
-    let client_key_service = ClientKeyService::new(ClientKeyPepper::try_from_bytes([0x5A_u8; 32])?);
-    let issued = client_key_service.issue(
-        ClientKeyId::try_new("p3-09-client-key")?,
-        access_group_id.clone(),
-        None,
-    )?;
-    let (client_key_record, presented_key) = issued.into_parts();
-    let snapshot = Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
-        SnapshotVersion::try_new("p3-09-snapshot")?,
-        vec![SnapshotPublicModel::new(
-            public_model_id.clone(),
-            PUBLIC_MODEL.to_owned(),
-            "P3-09 public model".to_owned(),
-            CapabilitySet::empty(),
-            route_id.clone(),
-        )],
-        vec![(MODEL_ALIAS.to_owned(), public_model_id.clone())],
-        vec![SnapshotRoute::new(
-            route_id.clone(),
-            public_model_id,
-            SnapshotRoutePolicy::RoundRobin,
-            2,
-            1_000,
-            candidates,
-        )],
-        vec![SnapshotAccessGroup::new(
-            access_group_id,
-            "P3-09 Access Group".to_owned(),
-            BTreeSet::from([route_id.clone()]),
-        )],
-        vec![SnapshotClientKeyView::new(
-            client_key_record,
-            BTreeSet::from([route_id.clone()]),
-        )],
-    ))?);
-    let scheduler = Arc::new(RouteCredentialScheduler::new(
-        Arc::clone(&snapshot),
-        Arc::new(EndpointCredentialPools::try_new(endpoint_pools)?),
-    ));
-    let executor = GatewayE2eExecutor {
-        orchestrator: Arc::new(AttemptOrchestrator::new(
-            scheduler,
-            Arc::new(gateway_router::RuntimeHealthRegistry::new()),
-        )),
-        endpoints: Arc::new(runtimes),
-        client_pool: Arc::new(UpstreamClientPool::new(non_zero(4)?)),
-        event_sink: Arc::clone(&event_sink),
-        observed_routes: Arc::new(Mutex::new(Vec::new())),
-    };
-    let observed_routes = Arc::clone(&executor.observed_routes);
-    let authenticator = Arc::new(SnapshotClientKeyAuthenticator::new(
-        Arc::new(RouteSnapshotRegistry::new(snapshot)),
-        client_key_service,
-    ));
-    let state = ResponsesHttpState::with_snapshot_metadata_and_event_sink(
-        Arc::new(executor),
-        Arc::new(FixedMetadata),
-        authenticator,
-        event_sink,
-        default_stream_capacity()?,
-    );
-
-    Ok((state, presented_key.as_str().to_owned(), observed_routes))
-}
-
-fn endpoint_runtime(
+fn loopback_endpoint(
     endpoint: &MockEndpoint,
     index: usize,
-) -> Result<EndpointRuntime, Box<dyn Error>> {
+) -> Result<AggregationEndpoint, Box<dyn Error>> {
     let base_url = format!("http://{}:{}/v1", endpoint.host, endpoint.port);
     let policy = EgressPolicy::try_new(EgressPolicyInput {
         id: EgressPolicyId::try_new(format!("p3-09-egress-{index}"))?,
         name: "P3-09 loopback test policy".to_owned(),
-        allowed_schemes: BTreeSet::from([EgressScheme::Http]),
-        allowed_hosts: BTreeSet::from([EgressHost::try_new(&endpoint.host)?]),
-        allowed_ports: BTreeSet::from([endpoint.port]),
-        allowed_cidrs: BTreeSet::from([EgressCidr::try_new(LOOPBACK_ADDRESS, 32)?]),
+        allowed_schemes: std::collections::BTreeSet::from([EgressScheme::Http]),
+        allowed_hosts: std::collections::BTreeSet::from([EgressHost::try_new(&endpoint.host)?]),
+        allowed_ports: std::collections::BTreeSet::from([endpoint.port]),
+        allowed_cidrs: std::collections::BTreeSet::from([EgressCidr::try_new(
+            LOOPBACK_ADDRESS,
+            32,
+        )?]),
         redirect_policy: RedirectPolicy::Deny,
     })?;
     let timeouts = UpstreamTimeouts::try_new(
@@ -996,48 +398,22 @@ fn endpoint_runtime(
         Duration::from_millis(250),
         Duration::from_secs(1),
     )?;
-    Ok(EndpointRuntime {
-        endpoint: OpenAiResponsesEndpoint::try_new(&base_url, "/responses")?,
+    let maximum_idle_connections = std::num::NonZeroUsize::new(1).ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidInput, "test value must be non-zero")
+    })?;
+    Ok(AggregationEndpoint::new(
+        endpoint.label.clone(),
+        OpenAiResponsesEndpoint::try_new(&base_url, "/responses")?,
+        format!("minimax-m3-upstream-{}", endpoint.label),
+        format!("p3-09-synthetic-credential-{index}").into_bytes(),
         policy,
-        transport: UpstreamTransportProfile::new(timeouts, UpstreamProxy::Direct, non_zero(1)?),
-    })
-}
-
-fn non_zero(value: usize) -> Result<NonZeroUsize, io::Error> {
-    NonZeroUsize::new(value)
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "test value must be non-zero"))
+        Arc::new(StaticLoopbackResolver),
+        UpstreamTransportProfile::new(timeouts, UpstreamProxy::Direct, maximum_idle_connections),
+    ))
 }
 
 fn authorized(request: test::TestRequest, presented_key: &str) -> test::TestRequest {
     request.insert_header((header::AUTHORIZATION, format!("Bearer {presented_key}")))
-}
-
-fn route_not_found_error() -> GatewayError {
-    GatewayError::new(GatewayErrorCode::RouteNotFound, ErrorScope::Model)
-}
-
-fn egress_rejected_error() -> GatewayError {
-    GatewayError::new(GatewayErrorCode::EgressRejected, ErrorScope::Egress)
-}
-
-fn provider_permanent_error() -> GatewayError {
-    GatewayError::new(GatewayErrorCode::ProviderPermanent, ErrorScope::Provider)
-}
-
-fn provider_transient_error() -> GatewayError {
-    GatewayError::new(GatewayErrorCode::ProviderTransient, ErrorScope::Provider)
-}
-
-fn upstream_protocol_error() -> GatewayError {
-    GatewayError::new(GatewayErrorCode::UpstreamProtocolError, ErrorScope::Stream)
-}
-
-fn stream_truncated_error() -> GatewayError {
-    GatewayError::new(GatewayErrorCode::StreamTruncated, ErrorScope::Stream)
-}
-
-fn internal_error() -> GatewayError {
-    GatewayError::new(GatewayErrorCode::InternalError, ErrorScope::Internal)
 }
 
 #[actix_web::test]
@@ -1045,11 +421,23 @@ async fn round_robin_reaches_each_controlled_http_upstream() -> TestResult {
     let upstream_a = MockUpstream::json_success("a", "reply from A").await?;
     let upstream_b = MockUpstream::json_success("b", "reply from B").await?;
     let event_sink: Arc<dyn GatewayEventSink> = Arc::new(gateway_core::NoopGatewayEventSink);
-    let (state, presented_key, observed_routes) =
-        build_state(&[upstream_a.endpoint(), upstream_b.endpoint()], event_sink)?;
+    let harness = build_aggregation_harness(
+        "p3-09",
+        PUBLIC_MODEL,
+        MODEL_ALIAS,
+        RequestIdMode::Fixed,
+        2,
+        vec![
+            loopback_endpoint(&upstream_a.endpoint(), 0)?,
+            loopback_endpoint(&upstream_b.endpoint(), 1)?,
+        ],
+        event_sink,
+    )?;
+    let presented_key = harness.presented_key().to_owned();
+    let observed_routes = harness.observed_routes();
     let app = test::init_service(
         App::new()
-            .app_data(web::Data::new(state))
+            .app_data(web::Data::new(harness.state()))
             .configure(configure),
     )
     .await;
@@ -1094,11 +482,22 @@ async fn pre_semantic_http_5xx_fails_over_to_the_second_upstream() -> TestResult
     let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(8, 1)?)?;
     let queue = Arc::new(queue);
     let event_sink: Arc<dyn GatewayEventSink> = queue.clone();
-    let (state, presented_key, _observed_routes) =
-        build_state(&[failing.endpoint(), healthy.endpoint()], event_sink)?;
+    let harness = build_aggregation_harness(
+        "p3-09",
+        PUBLIC_MODEL,
+        MODEL_ALIAS,
+        RequestIdMode::Fixed,
+        2,
+        vec![
+            loopback_endpoint(&failing.endpoint(), 0)?,
+            loopback_endpoint(&healthy.endpoint(), 1)?,
+        ],
+        event_sink,
+    )?;
+    let presented_key = harness.presented_key().to_owned();
     let app = test::init_service(
         App::new()
-            .app_data(web::Data::new(state))
+            .app_data(web::Data::new(harness.state()))
             .configure(configure),
     )
     .await;
@@ -1178,13 +577,22 @@ async fn dropping_the_gateway_sse_body_closes_the_live_mock_upstream_attempt() -
     let streaming = MockUpstream::streaming_stall("a").await?;
     let unused_fallback = MockUpstream::json_success("b", "must not run").await?;
     let event_sink: Arc<dyn GatewayEventSink> = Arc::new(gateway_core::NoopGatewayEventSink);
-    let (state, presented_key, _observed_routes) = build_state(
-        &[streaming.endpoint(), unused_fallback.endpoint()],
+    let harness = build_aggregation_harness(
+        "p3-09",
+        PUBLIC_MODEL,
+        MODEL_ALIAS,
+        RequestIdMode::Fixed,
+        2,
+        vec![
+            loopback_endpoint(&streaming.endpoint(), 0)?,
+            loopback_endpoint(&unused_fallback.endpoint(), 1)?,
+        ],
         event_sink,
     )?;
+    let presented_key = harness.presented_key().to_owned();
     let app = test::init_service(
         App::new()
-            .app_data(web::Data::new(state))
+            .app_data(web::Data::new(harness.state()))
             .configure(configure),
     )
     .await;

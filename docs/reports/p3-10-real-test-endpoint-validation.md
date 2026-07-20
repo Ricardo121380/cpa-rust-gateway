@@ -7,7 +7,7 @@
 | Matrix / behavior | `C16`, `G05`, `G12-G15`, `G21`, `K03-K06`, `L20-L31`; Behavior 1/4/5/9/17/20 |
 | Date | `2026-07-20` |
 | Branch | `codex/p3-10-real-endpoint-validation` |
-| Status | IN_PROGRESS — planning complete; no external request has been sent |
+| Status | IN_PROGRESS — harness implementation and local review complete; no external request has been sent |
 
 ## Entry review
 
@@ -19,23 +19,66 @@ The current workspace contains no approved real-test Base URL, credential, model
 or request budget. No ambient API-key variable, prior chat text, local shell history, or test-only
 P3-09 value is eligible to fill those fields. This plan deliberately makes zero external requests.
 
-## Planned execution
+## Delivered local harness
 
-1. Add a dedicated ignored manual integration target,
-   `p3_10_real_endpoint_validation`, which composes the existing P3 path rather than changing the
-   production library boundary or treating P3-09's fixture decoder as a production decoder.
-2. Require an explicit opt-in switch and one complete set of local variables for each opaque target
-   label. The harness will reject partial configuration before DNS/transport construction and will
-   never read generic provider variables.
-3. Run at most the approved count of fixed, non-sensitive `minimax-m3` public-model probes: one
-   non-streaming and one SSE probe for target A, then the same for target B. Any optional two-target
-   confirmation is separately counted and requires explicit approval.
-4. Emit only a redacted local summary: target label, mode, status/content-type category, latency
-   bucket, canonical event-shape result, public-model rewrite result, and boolean event-correlation
-   result. Keep any raw troubleshooting data only under ignored `docs/reports/private/` and delete
-   it after review.
-5. Review the harness before a live call, run the requested local checks, then review the redacted
-   evidence. A compatibility mismatch is recorded as a stopped finding, not repaired by scope creep.
+- Added ignored target `p3_10_real_endpoint_validation` plus the shared test-only
+  `tests/support/p3_aggregation.rs` composition harness. P3-09 now uses the same Router, admitted
+  transport, bounded decoder, Snapshot HTTP boundary, and event path; no production library target
+  gained a concrete Provider dependency.
+- Ordinary tests execute six synthetic guard/config/privacy checks. The real test is `#[ignore]` and
+  first requires `P3_10_LIVE_AUTHORIZATION=approved`, all A/B-specific variables, and exactly
+  `P3_10_MAX_EXTERNAL_REQUESTS=4`; it never reads `.env`, `OPENAI_API_KEY`, `CODEX_API_KEY`, or
+  any other ambient provider variable.
+- The live route has two Candidates, but `max_attempts=1`. It sends one non-streaming and one SSE
+  probe to each Candidate in deterministic A/B/A/B order, so a failed target stops immediately
+  instead of retrying, failing over, or exceeding the four approved calls.
+- The P3-10 harness allocates a distinct opaque Request ID for each of those four probes and checks
+  Request/Attempt/Usage equality per probe without rendering any correlation value. P3-09 retains
+  its fixed deterministic fixture ID.
+- Upstream JSON reads are capped at 64 KiB, each SSE frame at 16 KiB, and client-body verification
+  at 64 KiB under a finite transport deadline. The retained console summary contains only target
+  label, mode, and pass/fail; runtime checks reject a client-visible Base URL, upstream model,
+  upstream credential, or project Client Key.
+
+## Local verification evidence
+
+| Command / review | Result |
+|---|---|
+| `cargo test --locked -p gateway-http-actix --test p3_10_real_endpoint_validation` | PASS; six non-live guard/config/privacy checks passed and the real target remained ignored. |
+| Ignored target with every `P3_10_*` variable unset | EXPECTED SAFE STOP; `NotAuthorized` returned in about 0.01 seconds with exit status 101 before Endpoint/harness construction, DNS resolution, or transport. This is guard evidence, not a real-target result. |
+| `cargo test --locked -p gateway-http-actix --test p3_09_aggregation_e2e` | PASS; 3/3 controlled Mock E2E regressions still use the shared test-only harness. |
+| `cargo test --locked -p gateway-router credential_scheduler::tests::two_layer_atomic_cursors_preserve_route_and_endpoint_weights_under_concurrency -- --exact` (50 repetitions) | PASS; cursor-distribution assertion is now isolated from temporary lease saturation. |
+| `cargo clippy --locked -p gateway-router -p gateway-http-actix --all-targets --all-features -- -D warnings` and `cargo fmt --all -- --check` | PASS. |
+| `./scripts/check.sh full` | PASS; complete workspace format, Clippy, tests, source policy, crate boundaries, document links, tracked-secret scan, dependency policy, and RustSec audit passed. |
+
+## Review
+
+Implementation review passed. The live test reaches no configuration or URL parsing before its
+exact authorization check, and its ignored status prevents ordinary local/CI checks from invoking
+it. Once explicitly enabled, the fixed four-request loop owns one non-streaming and one SSE probe
+per Candidate, with `max_attempts=1`; a failure returns from the loop before another probe, retry,
+or failover can occur. The response and event assertions operate only on bounded material and do
+not print correlation values or upstream-private inputs.
+
+The first complete workspace gate exposed an existing P3-04 test instability: its strict
+cursor-fairness assertion also allowed the test pools to saturate transiently under eight workers.
+That is a different availability behavior, already covered by saturation tests, so the regression
+fixture now gives every test pool capacity for all active workers. No production scheduling,
+Credential, transport, or P3-10 behavior changed; 50 repeated executions prove the intended
+cursor-only assertion is deterministic.
+
+This review accepts only the local harness and its safe guard. It does not accept P3-10, G3, or
+P3 as complete: the four authorized real-target calls and their redacted outcome remain required.
+
+## Execution protocol
+
+1. Review the configuration below and source only the ignored private file into the current shell.
+2. Explicitly authorize the four fixed external calls and a maximum spend before running the exact
+   ignored target command below.
+3. On the first non-2xx, 429, 5xx, timeout, protocol mismatch, missing Usage event, or redaction
+   violation, stop. Do not modify a proxy/TUN rule, retry, or broaden a decoder during the run.
+4. Record only the target label, mode, safe outcome category, and boolean invariants in this report;
+   any raw material remains ignored under `docs/reports/private/` and is deleted after review.
 
 ## Required operator inputs and authorization
 
@@ -54,6 +97,21 @@ export P3_10_ENDPOINT_B_UPSTREAM_MODEL='provider-model-b'
 export P3_10_NETWORK_PROFILE=direct
 ```
 
+For an already configured local-DNS SOCKS5 profile, replace the final line with the following. The
+proxy URL must be credential-free `socks5://host:port`; HTTP, HTTPS, and `socks5h` are rejected.
+
+```bash
+export P3_10_NETWORK_PROFILE=socks5
+export P3_10_SOCKS5_PROXY_URL='socks5://127.0.0.1:7891'
+```
+
+If and only if an authorized test relay resolves to a private/local address, add one explicit
+narrow CIDR for that target (for example `127.0.0.1/32`). Public targets need no CIDR override:
+
+```bash
+export P3_10_ENDPOINT_A_ALLOWED_CIDR='127.0.0.1/32'
+```
+
 Before execution, the operator must also explicitly confirm:
 
 - both targets are authorized test relays using the OpenAI-compatible Responses endpoint;
@@ -64,6 +122,12 @@ Before execution, the operator must also explicitly confirm:
 
 The placeholders above are documentation only. They are not usable configuration, and the harness
 will not contact them.
+
+After sourcing the private file, the only live command is:
+
+```bash
+cargo test --locked -p gateway-http-actix --test p3_10_real_endpoint_validation -- --ignored --nocapture
+```
 
 ## Acceptance criteria
 

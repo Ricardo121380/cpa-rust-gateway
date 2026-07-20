@@ -25,6 +25,8 @@ tokio.workspace = true
 gateway-upstream = { path = "../gateway-upstream" }
 provider-openai-compatible = { path = "../provider-openai-compatible" }
 serde_json.workspace = true
+url.workspace = true
+zeroize.workspace = true
 
 [lints]
 workspace = true

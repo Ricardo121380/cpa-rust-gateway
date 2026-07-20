@@ -288,6 +288,9 @@ mod tests {
     #[test]
     fn two_layer_atomic_cursors_preserve_route_and_endpoint_weights_under_concurrency() -> TestResult
     {
+        let worker_count = 8_usize;
+        let selections_per_worker = 50_usize;
+        let per_credential_concurrency = i64::try_from(worker_count)?;
         let (scheduler, route_id) = scheduler(
             vec![
                 ("candidate-a", "endpoint-a", 0, 3),
@@ -296,14 +299,20 @@ mod tests {
             vec![
                 (
                     "endpoint-a",
-                    vec![("credential-a-one", 0, 1, 4), ("credential-a-two", 0, 1, 4)],
+                    // This test isolates cursor distribution. Every pool can serve every active
+                    // worker, so a transient saturation cannot change the selected slot.
+                    vec![
+                        ("credential-a-one", 0, 1, per_credential_concurrency),
+                        ("credential-a-two", 0, 1, per_credential_concurrency),
+                    ],
                 ),
-                ("endpoint-b", vec![("credential-b", 0, 1, 4)]),
+                (
+                    "endpoint-b",
+                    vec![("credential-b", 0, 1, per_credential_concurrency)],
+                ),
             ],
         )?;
         let scheduler = Arc::new(scheduler);
-        let worker_count = 8_usize;
-        let selections_per_worker = 50_usize;
         let barrier = Arc::new(Barrier::new(worker_count));
         let mut workers = Vec::new();
 

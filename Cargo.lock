@@ -627,6 +627,8 @@ dependencies = [
  "provider-openai-compatible",
  "serde_json",
  "tokio",
+ "url",
+ "zeroize",
 ]
 
 [[package]]

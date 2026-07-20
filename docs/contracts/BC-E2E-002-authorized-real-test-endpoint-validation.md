@@ -16,7 +16,9 @@
 - Credentials are present only in operator-controlled local state and supplied through explicit
   `P3_10_*` variables. The process does not infer values from ambient provider variables.
 - Each URL passes the configured P2 egress admission immediately before transport. A SOCKS5 profile,
-  if approved, is explicit; proxy auto-discovery and TUN-rule mutation are outside this contract.
+  if approved, is explicit local-DNS `socks5://host:port`; an optional narrow per-target CIDR is
+  required for a private/local relay. Proxy auto-discovery and TUN-rule mutation are outside this
+  contract.
 - The request input is a fixed, non-sensitive probe. No user prompt, production body, account data,
   tool call, file upload, or side-effecting upstream operation is allowed.
 
@@ -24,11 +26,11 @@
 
 | Concern | Required behavior |
 |---|---|
-| Opt-in guard | Normal `cargo test`, CI, and a missing/invalid live-test switch make zero external requests. A live run needs all explicit P3-10 variables and a user-approved budget. |
-| Isolation | Each target receives one bounded non-streaming and one bounded SSE probe through an explicit Candidate/Endpoint/Credential mapping. The harness does not silently substitute an ambient endpoint, credential, proxy, model, or fallback target. |
+| Opt-in guard | Normal `cargo test`, CI, and a missing/invalid live-test switch make zero external requests. A live run needs all explicit P3-10 variables, `P3_10_LIVE_AUTHORIZATION=approved`, and exactly four approved requests. |
+| Isolation | Each target receives one bounded non-streaming and one bounded SSE probe through an explicit Candidate/Endpoint/Credential mapping. The route has `max_attempts=1`; it cannot silently retry, fail over, or substitute an ambient endpoint, credential, proxy, or model. |
 | Protocol proof | A successful non-streaming probe has an admitted HTTP target, successful status/content type, and a bounded canonical `ResponseStart` to `ResponseEnd` sequence. A successful SSE probe has the expected stream content type, starts before output consumption, and terminates through the same bounded canonical path. |
 | Public boundary | Client input uses the configured stable public model and the Snapshot-authenticated project boundary. Client-visible output must use the public model; upstream model, endpoint identity, and credential never escape the response or retained evidence. |
-| Event correlation | Each successful probe proves Request, terminal Attempt, and Usage observations share one internal request correlation without disclosing the correlation value. |
+| Event correlation | Each successful probe has a distinct opaque test Request ID and proves its Request, terminal Attempt, and Usage observations share that one internal correlation without disclosing any value. |
 | Privacy | Console and tracked reports retain only opaque labels and safe summaries. URL, headers, key material, request/response/SSE payloads, provider response IDs, raw trace, and upstream model are forbidden from tracked artifacts. |
 | Stop conditions | An authorization, billing, protocol, timeout, network, safety, or redaction anomaly stops further external probes. No automatic retry or decoder broadening is allowed. |
 
@@ -44,7 +46,10 @@
 
 ## Corresponding tests
 
-- Planned ignored target: `cargo test --locked -p gateway-http-actix --test p3_10_real_endpoint_validation -- --ignored`.
+- Ignored target: `cargo test --locked -p gateway-http-actix --test p3_10_real_endpoint_validation -- --ignored --nocapture`.
+- Non-live guard coverage: absent authorization, incorrect request cap, direct/SOCKS5 profile
+  isolation, private-CIDR parsing, complete synthetic configuration, and client-boundary redaction
+  all execute without DNS or transport activity.
 - Existing P3-03 scheduler distribution tests remain the proof for high-volume fairness; P3-10 does
   not generate 1000 paid external requests.
 - Existing P3-09 local E2E remains the deterministic proof for retry/failover/cancellation branches;

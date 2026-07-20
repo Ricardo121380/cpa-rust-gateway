@@ -20,9 +20,9 @@ chat text are not P3-10 configuration and must never be selected implicitly.
 
 ## Decision
 
-1. P3-10 will add a dedicated manual validation harness under an ignored-test target. It must be
-   compiled by ordinary local/CI checks but never contact a network unless its explicit live-test
-   switch and all endpoint-specific variables are supplied by the operator.
+1. P3-10 adds a dedicated manual validation harness under an ignored-test target. It is compiled by
+   ordinary local/CI checks but never contacts a network unless its explicit live-test switch and
+   all endpoint-specific variables are supplied by the operator.
 2. The harness will use only explicit `P3_10_*` environment variables sourced from an ignored local
    file or another operator-controlled secret mechanism. It will not read `.env` automatically,
    inspect ambient API-key variables, write credentials to SQLite, or persist them in a tracked
@@ -30,9 +30,10 @@ chat text are not P3-10 configuration and must never be selected implicitly.
 3. Each target is tested through the existing P3 request builder, egress admission, client pool,
    scheduler/orchestrator, Snapshot-authenticated Actix boundary, and event sink. The target is a
    test-only composition path, not an application listener or a new production Provider adapter.
-4. The initial budget is bounded before execution: at most one minimal non-streaming and one minimal
-   SSE request per target, plus only the explicitly approved two-candidate confirmation requests.
-   It performs no blind retries, account mutations, model discovery, quota probes, or bulk traffic.
+4. The harness accepts exactly four live calls: one minimal non-streaming and one minimal SSE request
+   per target. Its two-Candidate Route has `max_attempts=1`, so a failed Candidate cannot fail over
+   or spend an unapproved retry. It performs no account mutations, model discovery, quota probes,
+   or bulk traffic.
 5. Tracked evidence records only opaque target labels, protocol mode, status/content-type category,
    bounded latency bucket, event-shape result, and boolean correlation/redaction checks. It never
    records a URL, Authorization header, credential, Client Key, request body, response body, SSE
@@ -47,6 +48,12 @@ chat text are not P3-10 configuration and must never be selected implicitly.
 The live check is opt-in, bounded, reproducible, and does not make CI or ordinary developer tests
 depend on external accounts. P3-10 can distinguish a real relay compatibility result from P3-09's
 synthetic proof while preserving the crate boundaries and secret rules established by P2/P3.
+
+The implemented target shares P3-09's test-only composition harness, so a later real-target result
+uses the same Snapshot, Client Key, egress, transport, attempt, decoder, event, and public-model
+boundaries that the deterministic Mock E2E already exercises. `direct` and explicit local-DNS
+SOCKS5 profiles are isolated by the existing P3-02 transport; optional private-network CIDRs remain
+per-target P2 egress allowlists rather than a TUN or system-proxy mutation.
 
 P3-10 does not make the application deployable, validate a production service Base URL, introduce a
 generic OpenAI Responses decoder, persist events, or replace P4/P5 work. The ADR becomes
