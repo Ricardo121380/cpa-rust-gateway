@@ -4,7 +4,7 @@
 |---|---|
 | Plan version | `v1.7` |
 | Task | `P4-08` |
-| Status | `LOCAL_PASS_PENDING_CI`; implementation, review, targeted tests, and local complete Gate passed; GitHub Code Gate is pending for the code delivery commit. |
+| Status | `DONE` after this docs-only closeout Gate; implementation, review, targeted tests, local complete Gate, and GitHub Code Gate passed. |
 | Scope level / execution budget | `L`; cross-crate observability boundary, 45-minute scoped code-delivery target excluding external Gates |
 | Task Card | `gateway-observability` secret-safe JSON/Prometheus/OpenTelemetry projections plus `gateway-store` single-consumer writer fan-out only; no HTTP/Router export, second queue receiver, OTLP network client, management endpoint, body sampling, real Provider request, or P5 work |
 | References | `G19`, `G20`, `G21`; [ADR-0030](../adr/ADR-0030-single-consumer-telemetry-fanout.md); [BC-OBS-003](../contracts/BC-OBS-003-single-consumer-telemetry-fanout.md) |
@@ -50,6 +50,14 @@ policy and further log-redaction controls.
 
 No ignored real-test harness ran and no Provider request was sent.
 
+## Accepted GitHub Code Gate
+
+GitHub Actions [run 29829466241](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29829466241)
+passed for code commit `570f069`. The fail-closed classifier selected the code path: Fast passed in
+2 minutes 53 seconds, supplemental supply-chain Full passed in 36 seconds with its version-checked
+quality-tool cache restored, and Required delivery passed in 4 seconds. The docs-only job was
+correctly skipped. No manual rerun was issued.
+
 ## Review and execution measurement
 
 Focused architecture review rejected the initial two-worker design because the P4-07 SQLite writer
@@ -62,11 +70,11 @@ forbidden values.
 The first focused Clippy run found one `doc_markdown` issue (`SQLite` needed backticks); it was
 corrected directly before the passing rerun. Three earlier complete Gates also passed during the
 architecture/document review; the final 29-second Gate reran after adding direct Diagnostic and
-Attempt-field privacy coverage. No product-behavior rework followed the first complete Gate. GitHub
-evidence is added only after its immutable Code Gate finishes.
+Attempt-field privacy coverage. No product-behavior rework followed the first complete Gate. The
+accepted GitHub Code Gate is recorded above; no manual rerun was needed.
 
 ## Closeout boundary
 
-This code-delivery commit creates the P4-08 ADR, contract, report, and index entries. After the
-GitHub Code Gate passes, exactly one docs-only closeout records that immutable evidence and changes
-P4-08 to `DONE`. P4-09 remains `PENDING` until that docs-only Gate passes.
+This is the unique docs-only closeout that records immutable Code Gate evidence and marks P4-08
+`DONE`. Its docs-only Gate is the remaining acceptance record. P4-09 remains `PENDING` until that
+Gate passes; no second status-only commit will follow.
