@@ -15,10 +15,11 @@ use gateway_upstream::CredentialLease;
 
 use crate::{
     RouteCredentialScheduler, RuntimeHealthClock, RuntimeHealthKey, RuntimeHealthRegistry,
-    SelectedRouteCredential, SnapshotRouteCandidate, SystemRuntimeHealthClock,
+    RuntimeQuotaRegistry, RuntimeQuotaTarget, SelectedRouteCredential, SnapshotRouteCandidate,
+    SystemRuntimeHealthClock,
 };
 
-/// The finite fallback Cooldown used for a 429 that does not declare retry-after information.
+/// The finite estimated reset used for a 429 that does not declare retry-after information.
 pub const DEFAULT_RATE_LIMIT_COOLDOWN: Duration = Duration::from_secs(30);
 
 /// The finite Endpoint Cooldown used for connection, 5xx, and pre-semantic truncation failures.
@@ -30,7 +31,7 @@ pub type AttemptFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 /// Safe construction failures for [`AttemptOrchestratorConfig`].
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AttemptOrchestratorConfigError {
-    /// The fallback Cooldown for a 429 must be strictly positive.
+    /// The fallback reset estimate for a 429 must be strictly positive.
     ZeroRateLimitCooldown,
     /// The Endpoint Cooldown for a transient failure must be strictly positive.
     ZeroTransientCooldown,
@@ -40,7 +41,7 @@ impl fmt::Display for AttemptOrchestratorConfigError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ZeroRateLimitCooldown => {
-                formatter.write_str("rate-limit fallback cooldown must be positive")
+                formatter.write_str("rate-limit fallback reset estimate must be positive")
             }
             Self::ZeroTransientCooldown => {
                 formatter.write_str("transient cooldown must be positive")
@@ -59,12 +60,12 @@ pub struct AttemptOrchestratorConfig {
 }
 
 impl AttemptOrchestratorConfig {
-    /// Validates finite positive fallback Cooldowns.
+    /// Validates finite positive 429 fallback and transient Cooldown values.
     ///
     /// # Errors
     ///
     /// Returns [`AttemptOrchestratorConfigError`] before a retry loop can issue an invalid
-    /// runtime-health deadline.
+    /// runtime-state deadline.
     pub fn try_new(
         rate_limit_fallback_cooldown: Duration,
         transient_cooldown: Duration,
@@ -82,7 +83,7 @@ impl AttemptOrchestratorConfig {
         })
     }
 
-    /// Returns the fallback Cooldown for a 429 without retry-after information.
+    /// Returns the fallback reset estimate for a 429 without retry-after information.
     #[must_use]
     pub const fn rate_limit_fallback_cooldown(self) -> Duration {
         self.rate_limit_fallback_cooldown
@@ -152,15 +153,10 @@ impl AttemptFailure {
 
     fn cooldown(&self, config: AttemptOrchestratorConfig) -> Option<CooldownScope> {
         match self {
-            Self::RateLimited { retry_after } => Some(CooldownScope::EndpointCredential(
-                retry_after
-                    .filter(|duration| !duration.is_zero())
-                    .unwrap_or(config.rate_limit_fallback_cooldown()),
-            )),
             Self::Connection | Self::ServerError | Self::BootstrapTruncated => {
                 Some(CooldownScope::Endpoint(config.transient_cooldown()))
             }
-            Self::Cancelled | Self::NonRetryable(_) => None,
+            Self::RateLimited { .. } | Self::Cancelled | Self::NonRetryable(_) => None,
         }
     }
 }
@@ -331,6 +327,7 @@ impl<T> fmt::Debug for StartedAttempt<T> {
 pub struct AttemptOrchestrator {
     scheduler: Arc<RouteCredentialScheduler>,
     runtime_health: Arc<RuntimeHealthRegistry>,
+    runtime_quota: Arc<RuntimeQuotaRegistry>,
     clock: Arc<dyn RuntimeHealthClock>,
     config: AttemptOrchestratorConfig,
 }
@@ -361,9 +358,33 @@ impl AttemptOrchestrator {
         clock: Arc<dyn RuntimeHealthClock>,
         config: AttemptOrchestratorConfig,
     ) -> Self {
+        let runtime_quota = Arc::new(RuntimeQuotaRegistry::with_clock(Arc::clone(&clock)));
+        Self::with_runtime_quota_and_clock_config(
+            scheduler,
+            runtime_health,
+            runtime_quota,
+            clock,
+            config,
+        )
+    }
+
+    /// Creates an orchestrator with an injected exact-target quota registry and runtime clock.
+    ///
+    /// Production callers normally use [`Self::new`] or [`Self::with_clock_and_config`]. This
+    /// constructor makes synthetic 429/reset fixtures share deterministic Health, Quota, and
+    /// retry-budget time without giving the request path a persistence or network dependency.
+    #[must_use]
+    pub fn with_runtime_quota_and_clock_config(
+        scheduler: Arc<RouteCredentialScheduler>,
+        runtime_health: Arc<RuntimeHealthRegistry>,
+        runtime_quota: Arc<RuntimeQuotaRegistry>,
+        clock: Arc<dyn RuntimeHealthClock>,
+        config: AttemptOrchestratorConfig,
+    ) -> Self {
         Self {
             scheduler,
             runtime_health,
+            runtime_quota,
             clock,
             config,
         }
@@ -457,9 +478,10 @@ impl AttemptOrchestrator {
 
             let selection = match self
                 .scheduler
-                .select_eligible_and_lease_with_runtime_health_and_binding(
+                .select_eligible_and_lease_with_runtime_health_quota_and_binding(
                     route_id,
                     &self.runtime_health,
+                    &self.runtime_quota,
                     |_| true,
                     |candidate, credential_id| !exclusions.contains(candidate, credential_id),
                 ) {
@@ -570,7 +592,7 @@ impl AttemptOrchestrator {
 
             exclusions.insert(selection.candidate(), selection.lease().credential_id());
             let safe_failure = failure.safe_error();
-            if let Err(error) = self.record_runtime_health(&selection, &failure) {
+            if let Err(error) = self.record_runtime_state(&selection, &failure) {
                 self.emit_attempt(
                     request_id,
                     route_id,
@@ -660,11 +682,26 @@ impl AttemptOrchestrator {
         let _emission = event_sink.try_emit(GatewayEvent::Attempt(event));
     }
 
-    fn record_runtime_health(
+    fn record_runtime_state(
         &self,
         selection: &SelectedRouteCredential,
         failure: &AttemptFailure,
     ) -> Result<(), GatewayError> {
+        if let AttemptFailure::RateLimited { retry_after } = failure {
+            let now_ms = self.clock.now_ms().map_err(|_| internal_error())?;
+            self.runtime_quota
+                .record_rate_limited(
+                    RuntimeQuotaTarget::endpoint_credential(
+                        selection.candidate().endpoint_id().clone(),
+                        selection.lease().credential_id().clone(),
+                    ),
+                    now_ms,
+                    *retry_after,
+                    self.config.rate_limit_fallback_cooldown(),
+                )
+                .map_err(|_| internal_error())?;
+            return Ok(());
+        }
         let Some(cooldown) = failure.cooldown(self.config) else {
             return Ok(());
         };
@@ -674,10 +711,6 @@ impl AttemptOrchestrator {
             CooldownScope::Endpoint(_) => {
                 RuntimeHealthKey::endpoint(selection.candidate().endpoint_id().clone())
             }
-            CooldownScope::EndpointCredential(_) => RuntimeHealthKey::endpoint_credential(
-                selection.candidate().endpoint_id().clone(),
-                selection.lease().credential_id().clone(),
-            ),
         };
         self.runtime_health
             .cool_down_until(key, until_ms)
@@ -697,13 +730,12 @@ impl fmt::Debug for AttemptOrchestrator {
 #[derive(Clone, Copy)]
 enum CooldownScope {
     Endpoint(Duration),
-    EndpointCredential(Duration),
 }
 
 impl CooldownScope {
     const fn duration(self) -> Duration {
         match self {
-            Self::Endpoint(duration) | Self::EndpointCredential(duration) => duration,
+            Self::Endpoint(duration) => duration,
         }
     }
 }
@@ -917,8 +949,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn rate_limit_cools_only_the_failed_binding_and_preserves_a_healthy_sibling() -> TestResult
-    {
+    async fn rate_limit_records_exact_quota_and_preserves_a_healthy_sibling() -> TestResult {
         let (orchestrator, route_id, _clock, health, _pools) = orchestrator(
             vec![("candidate-a", "endpoint-a")],
             vec![("endpoint-a", vec!["credential-a", "credential-b"])],
@@ -948,8 +979,25 @@ mod tests {
         let credential_a = CredentialId::try_new("credential-a")?;
         let credential_b = CredentialId::try_new("credential-b")?;
         assert!(health.endpoint_is_available(&endpoint));
-        assert!(!health.endpoint_credential_is_available(&endpoint, &credential_a));
-        assert!(health.endpoint_credential_is_available(&endpoint, &credential_b));
+        assert!(health.endpoint_credential_is_available(&endpoint, &credential_a));
+        let quota_target =
+            crate::RuntimeQuotaTarget::endpoint_credential(endpoint.clone(), credential_a.clone());
+        let quota = orchestrator
+            .runtime_quota
+            .snapshot(&quota_target)?
+            .ok_or("429 did not record a quota snapshot")?;
+        assert_eq!(quota.source(), crate::QuotaSource::Header);
+        assert_eq!(quota.blocking_reset_at_ms(), Some(120));
+        assert!(
+            !orchestrator
+                .runtime_quota
+                .endpoint_credential_is_available(&endpoint, &credential_a)
+        );
+        assert!(
+            orchestrator
+                .runtime_quota
+                .endpoint_credential_is_available(&endpoint, &credential_b)
+        );
         Ok(())
     }
 

@@ -12,7 +12,8 @@ use gateway_core::{CredentialId, ErrorScope, GatewayError, GatewayErrorCode, Rou
 use gateway_upstream::{CredentialLease, EndpointCredentialPools};
 
 use crate::{
-    RouteCandidateScheduler, RouteSnapshot, RuntimeHealthRegistry, SnapshotRouteCandidate,
+    RouteCandidateScheduler, RouteSnapshot, RuntimeHealthRegistry, RuntimeQuotaRegistry,
+    SnapshotRouteCandidate,
 };
 
 /// A process-local two-stage scheduler for one immutable Route Snapshot and matching pools.
@@ -197,6 +198,72 @@ impl RouteCredentialScheduler {
         }
     }
 
+    /// Selects an externally eligible Candidate/Credential binding while applying Health and Quota.
+    ///
+    /// Quota checks remain target-local and execute before the pool reserves a Credential lease.
+    /// A binding-wide quota blocks every model on that binding; a model-scoped quota blocks only
+    /// the Candidate's exact upstream-model label. Reset expiry alone remains unavailable until
+    /// `RuntimeQuotaRegistry` receives a controlled recovery result.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same secret-free `CredentialUnavailable/Credential` result when no Candidate
+    /// can pass caller eligibility, Health, Quota, and bounded lease acquisition.
+    pub fn select_eligible_and_lease_with_runtime_health_quota_and_binding<FCandidate, FBinding>(
+        &self,
+        route_id: &RouteId,
+        runtime_health: &RuntimeHealthRegistry,
+        runtime_quota: &RuntimeQuotaRegistry,
+        mut is_candidate_eligible: FCandidate,
+        mut is_binding_eligible: FBinding,
+    ) -> Result<SelectedRouteCredential, GatewayError>
+    where
+        FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
+        FBinding: FnMut(&SnapshotRouteCandidate, &CredentialId) -> bool,
+    {
+        let mut lease = None;
+        let candidate = self.candidates.select_eligible(route_id, |candidate| {
+            if !is_candidate_eligible(candidate)
+                || !runtime_health.endpoint_is_available(candidate.endpoint_id())
+            {
+                return false;
+            }
+            let Some(acquired) = self.credential_pools.try_lease_eligible(
+                candidate.endpoint_id(),
+                |credential_id| {
+                    is_binding_eligible(candidate, credential_id)
+                        && runtime_health.endpoint_credential_is_available(
+                            candidate.endpoint_id(),
+                            credential_id,
+                        )
+                        && runtime_health.endpoint_credential_model_is_available(
+                            candidate.endpoint_id(),
+                            credential_id,
+                            candidate.upstream_model(),
+                        )
+                        && runtime_quota.endpoint_credential_is_available(
+                            candidate.endpoint_id(),
+                            credential_id,
+                        )
+                        && runtime_quota.endpoint_credential_model_is_available(
+                            candidate.endpoint_id(),
+                            credential_id,
+                            candidate.upstream_model(),
+                        )
+                },
+            ) else {
+                return false;
+            };
+            lease = Some(acquired);
+            true
+        });
+
+        match (candidate, lease) {
+            (Some(candidate), Some(lease)) => Ok(SelectedRouteCredential { candidate, lease }),
+            _ => Err(credential_unavailable_error()),
+        }
+    }
+
     /// Returns a copy of one Route from the exact immutable Snapshot used for scheduling.
     ///
     /// Attempt orchestration uses the copied Route only for its validated retry budget. The result
@@ -277,10 +344,11 @@ mod tests {
 
     use super::RouteCredentialScheduler;
     use crate::{
-        RouteSnapshot, RouteSnapshotInput, RuntimeHealthClock, RuntimeHealthClockError,
-        RuntimeHealthKey, RuntimeHealthRegistry, SnapshotCatalogAdmission, SnapshotPublicModel,
-        SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
-        SnapshotTransformMode, SnapshotVersion,
+        QuotaConfidence, QuotaSnapshot, QuotaSource, QuotaWindow, RouteSnapshot,
+        RouteSnapshotInput, RuntimeHealthClock, RuntimeHealthClockError, RuntimeHealthKey,
+        RuntimeHealthRegistry, RuntimeQuotaRegistry, RuntimeQuotaTarget, SnapshotCatalogAdmission,
+        SnapshotPublicModel, SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput,
+        SnapshotRoutePolicy, SnapshotTransformMode, SnapshotVersion,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -507,6 +575,104 @@ mod tests {
     }
 
     #[test]
+    fn model_quota_filters_before_lease_and_reset_needs_controlled_recovery() -> TestResult {
+        let (scheduler, route_id) = scheduler(
+            vec![
+                ("candidate-a", "endpoint-a", 0, 1),
+                ("candidate-b", "endpoint-b", 1, 1),
+            ],
+            vec![
+                ("endpoint-a", vec![("credential-a", 0, 1, 1)]),
+                ("endpoint-b", vec![("credential-b", 0, 1, 1)]),
+            ],
+        )?;
+        let clock = Arc::new(FixedRuntimeHealthClock::new(100));
+        let runtime_health = RuntimeHealthRegistry::with_clock(clock.clone());
+        let runtime_quota = RuntimeQuotaRegistry::with_clock(clock.clone());
+        let quota_target = RuntimeQuotaTarget::endpoint_credential_model(
+            EndpointId::try_new("endpoint-a")?,
+            CredentialId::try_new("credential-a")?,
+            "upstream-model",
+        )?;
+        runtime_quota.record_snapshot(QuotaSnapshot::try_new(
+            quota_target.clone(),
+            vec![QuotaWindow::try_new(
+                "requests",
+                Some(10),
+                Some(0),
+                Some(200),
+            )?],
+            QuotaSource::Header,
+            QuotaConfidence::Observed,
+            100,
+        )?)?;
+
+        let while_exhausted = scheduler
+            .select_eligible_and_lease_with_runtime_health_quota_and_binding(
+                &route_id,
+                &runtime_health,
+                &runtime_quota,
+                |_| true,
+                |_, _| true,
+            )?;
+        assert_eq!(while_exhausted.candidate().id().as_str(), "candidate-b");
+        drop(while_exhausted);
+
+        clock.set_now_ms(200);
+        let after_reset_without_ticket = scheduler
+            .select_eligible_and_lease_with_runtime_health_quota_and_binding(
+                &route_id,
+                &runtime_health,
+                &runtime_quota,
+                |_| true,
+                |_, _| true,
+            )?;
+        assert_eq!(
+            after_reset_without_ticket.candidate().id().as_str(),
+            "candidate-b"
+        );
+        drop(after_reset_without_ticket);
+
+        let ticket = runtime_quota
+            .begin_recovery_probe(&quota_target, 250)?
+            .ok_or("due quota did not issue a controlled recovery ticket")?;
+        let while_probe_in_flight = scheduler
+            .select_eligible_and_lease_with_runtime_health_quota_and_binding(
+                &route_id,
+                &runtime_health,
+                &runtime_quota,
+                |_| true,
+                |_, _| true,
+            )?;
+        assert_eq!(
+            while_probe_in_flight.candidate().id().as_str(),
+            "candidate-b"
+        );
+        drop(while_probe_in_flight);
+
+        runtime_quota.complete_recovery_probe(
+            ticket,
+            QuotaSnapshot::try_new(
+                quota_target,
+                vec![QuotaWindow::try_new("requests", Some(10), Some(10), None)?],
+                QuotaSource::Rest,
+                QuotaConfidence::Observed,
+                200,
+            )?,
+        )?;
+        let recovered = scheduler.select_eligible_and_lease_with_runtime_health_quota_and_binding(
+            &route_id,
+            &runtime_health,
+            &runtime_quota,
+            |_| true,
+            |_, _| true,
+        )?;
+        assert_eq!(recovered.candidate().id().as_str(), "candidate-a");
+        assert_eq!(recovered.lease().credential_id().as_str(), "credential-a");
+        Ok(())
+    }
+
+    #[test]
     fn unavailable_runtime_health_clock_fails_closed_before_pool_lease() -> TestResult {
         let (scheduler, route_id) = scheduler(
             vec![("candidate-a", "endpoint-a", 0, 1)],
@@ -627,6 +793,10 @@ mod tests {
             Self {
                 now_ms: AtomicI64::new(now_ms),
             }
+        }
+
+        fn set_now_ms(&self, now_ms: i64) {
+            self.now_ms.store(now_ms, Ordering::Release);
         }
     }
 

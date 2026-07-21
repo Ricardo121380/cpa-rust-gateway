@@ -11,6 +11,7 @@ mod route_scheduler;
 mod route_snapshot;
 mod runtime_health;
 mod runtime_probe;
+mod runtime_quota;
 
 use std::{fmt, future::Future, pin::Pin, sync::Arc, time::Duration};
 
@@ -55,6 +56,14 @@ pub use runtime_probe::{
     RuntimeHealthProbeOutcome, RuntimeHealthProbePolicy, RuntimeHealthProbePolicyError,
     RuntimeHealthProbeRegistry, RuntimeHealthProbeSnapshot, RuntimeHealthProbeTarget,
     RuntimeHealthProbeTargetError,
+};
+pub use runtime_quota::{
+    DEFAULT_RUNTIME_QUOTA_SHARD_COUNT, MAX_QUOTA_WINDOW_LABEL_BYTES,
+    MAX_QUOTA_WINDOWS_PER_SNAPSHOT, MAX_RUNTIME_QUOTA_ENTRIES_PER_SHARD,
+    MAX_RUNTIME_QUOTA_SHARD_COUNT, QuotaConfidence, QuotaSnapshot, QuotaSnapshotError, QuotaSource,
+    QuotaWindow, QuotaWindowError, RuntimeQuotaAvailability, RuntimeQuotaError,
+    RuntimeQuotaRecoveryProbe, RuntimeQuotaRegistry, RuntimeQuotaRegistryBuildError,
+    RuntimeQuotaTarget, RuntimeQuotaTargetError,
 };
 
 /// Stable component identifier used by architecture smoke tests.
