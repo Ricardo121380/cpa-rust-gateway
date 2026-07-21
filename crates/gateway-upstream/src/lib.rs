@@ -12,8 +12,8 @@ pub mod endpoint_url;
 pub mod upstream_client;
 
 pub use credential_pool::{
-    CredentialLease, CredentialPoolBuildError, CredentialSecret, EndpointCredentialInput,
-    EndpointCredentialPool, EndpointCredentialPools,
+    CredentialLease, CredentialPoolBuildError, CredentialPoolEntrySnapshot, CredentialSecret,
+    EndpointCredentialInput, EndpointCredentialPool, EndpointCredentialPools,
     MAX_CREDENTIAL_SCHEDULE_SLOTS_PER_PRIORITY_TIER,
 };
 pub use egress_policy::{

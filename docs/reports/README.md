@@ -65,4 +65,5 @@
 - [P4-03 Catalog diff Preview/Apply and removal isolation report](p4-03-catalog-diff-preview-apply.md)
 - [P4-04 Target-local Probe, EWMA, and Circuit recovery report](p4-04-probe-ewma-circuit-recovery.md)
 - [P4-05 Exact-target Runtime Quota and controlled Reset recovery report](p4-05-runtime-quota-recovery.md)
+- [P4-06 Fixed-input Route Explain and Candidate exclusion reasons report](p4-06-route-explain.md)
 - [P4-07 Append-only SQLite Request/Attempt/Usage/Health event writer report](p4-07-append-only-sqlite-event-writer.md)

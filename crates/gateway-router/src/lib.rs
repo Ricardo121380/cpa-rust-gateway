@@ -7,6 +7,7 @@
 
 mod attempt_orchestrator;
 mod credential_scheduler;
+mod route_explain;
 mod route_scheduler;
 mod route_snapshot;
 mod runtime_health;
@@ -32,6 +33,11 @@ pub use attempt_orchestrator::{
 pub use credential_scheduler::{RouteCredentialScheduler, SelectedRouteCredential};
 pub use gateway_catalog::CapabilitySet;
 pub use gateway_core::TransparentRetryGate as AttemptRetryGate;
+pub use route_explain::{
+    RouteExplainCandidate, RouteExplainCandidateReason, RouteExplainCredential,
+    RouteExplainCredentialReason, RouteExplainError, RouteExplainInput,
+    RouteExplainProjectedSelection, RouteExplainSnapshot,
+};
 pub use route_scheduler::RouteCandidateScheduler;
 pub use route_snapshot::{
     MAX_SCHEDULE_SLOTS_PER_PRIORITY_TIER, PreparedSnapshotPublication, RouteSnapshot,

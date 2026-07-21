@@ -58,6 +58,13 @@ impl RouteCandidateScheduler {
         self.snapshot.route(route_id)
     }
 
+    /// Returns the exact immutable Snapshot used by this scheduler.
+    ///
+    /// This crate-private diagnostic seam does not expose cursors or mutable scheduling state.
+    pub(crate) fn snapshot(&self) -> &RouteSnapshot {
+        &self.snapshot
+    }
+
     /// Selects the next hard-eligible Candidate from the lowest available priority tier.
     #[must_use]
     pub fn select(&self, route_id: &RouteId) -> Option<SnapshotRouteCandidate> {

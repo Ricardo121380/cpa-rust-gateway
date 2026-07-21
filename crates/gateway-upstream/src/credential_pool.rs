@@ -112,6 +112,57 @@ pub struct EndpointCredentialPool {
     cursors: Vec<AtomicUsize>,
 }
 
+/// One bounded, secret-free observation of a Credential pool entry.
+///
+/// This is a point-in-time diagnostic view only. It never reserves capacity, exposes Secret
+/// material, or promises that a later lease acquisition will observe the same active count.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CredentialPoolEntrySnapshot {
+    credential_id: CredentialId,
+    priority: i64,
+    weight: usize,
+    maximum_concurrency: usize,
+    active_leases: usize,
+}
+
+impl CredentialPoolEntrySnapshot {
+    /// Returns the stable non-secret Credential identity.
+    #[must_use]
+    pub fn credential_id(&self) -> &CredentialId {
+        &self.credential_id
+    }
+
+    /// Returns the immutable lower-is-better pool priority.
+    #[must_use]
+    pub const fn priority(&self) -> i64 {
+        self.priority
+    }
+
+    /// Returns the immutable positive pool scheduling weight.
+    #[must_use]
+    pub const fn weight(&self) -> usize {
+        self.weight
+    }
+
+    /// Returns the immutable maximum number of concurrently held leases.
+    #[must_use]
+    pub const fn maximum_concurrency(&self) -> usize {
+        self.maximum_concurrency
+    }
+
+    /// Returns the point-in-time active lease count.
+    #[must_use]
+    pub const fn active_leases(&self) -> usize {
+        self.active_leases
+    }
+
+    /// Returns whether this point-in-time observation is at its concurrency limit.
+    #[must_use]
+    pub const fn is_saturated(&self) -> bool {
+        self.active_leases >= self.maximum_concurrency
+    }
+}
+
 impl EndpointCredentialPool {
     /// Validates and constructs one Endpoint-local Credential pool.
     ///
@@ -149,6 +200,7 @@ impl EndpointCredentialPool {
                 credential_kind: entry.credential_kind,
                 credential_revision: u64::try_from(entry.credential_revision)
                     .map_err(|_| CredentialPoolBuildError::InvalidCredentialRevision)?,
+                priority,
                 weight: usize::try_from(entry.weight)
                     .map_err(|_| CredentialPoolBuildError::InvalidCredentialWeight)?,
                 maximum_concurrency: usize::try_from(entry.concurrency)
@@ -242,6 +294,44 @@ impl EndpointCredentialPool {
             .iter()
             .find(|credential| &credential.credential_id == credential_id)
             .map(|credential| credential.active_leases.load(Ordering::Acquire))
+    }
+
+    /// Returns stable secret-free entry observations in Credential-ID order.
+    ///
+    /// This bounded diagnostic helper does not move any pool cursor or reserve a lease.
+    #[must_use]
+    pub fn diagnostic_entries(&self) -> Vec<CredentialPoolEntrySnapshot> {
+        self.credentials
+            .iter()
+            .map(|credential| credential.snapshot())
+            .collect()
+    }
+
+    /// Peeks one currently eligible Credential using an explicit diagnostic schedule start.
+    ///
+    /// Unlike [`Self::try_lease_eligible`], this never advances a cursor or reserves capacity.
+    /// The result is an instantaneous, bounded diagnostic projection only: another request may
+    /// acquire capacity before a subsequent real selection.
+    #[must_use]
+    pub fn peek_eligible_from<F>(
+        &self,
+        start: usize,
+        mut is_eligible: F,
+    ) -> Option<CredentialPoolEntrySnapshot>
+    where
+        F: FnMut(&CredentialId) -> bool,
+    {
+        for priority_tier in &self.priority_tiers {
+            let slot_indexes = &priority_tier.slot_indexes;
+            for offset in 0..slot_indexes.len() {
+                let slot_index = start.wrapping_add(offset) % slot_indexes.len();
+                let credential = self.credentials.get(slot_indexes[slot_index])?;
+                if is_eligible(&credential.credential_id) && credential.has_capacity() {
+                    return Some(credential.snapshot());
+                }
+            }
+        }
+        None
     }
 }
 
@@ -380,6 +470,7 @@ struct CredentialSlot {
     credential_id: CredentialId,
     credential_kind: String,
     credential_revision: u64,
+    priority: i64,
     weight: usize,
     maximum_concurrency: usize,
     secret: CredentialSecret,
@@ -387,6 +478,20 @@ struct CredentialSlot {
 }
 
 impl CredentialSlot {
+    fn snapshot(&self) -> CredentialPoolEntrySnapshot {
+        CredentialPoolEntrySnapshot {
+            credential_id: self.credential_id.clone(),
+            priority: self.priority,
+            weight: self.weight,
+            maximum_concurrency: self.maximum_concurrency,
+            active_leases: self.active_leases.load(Ordering::Acquire),
+        }
+    }
+
+    fn has_capacity(&self) -> bool {
+        self.active_leases.load(Ordering::Acquire) < self.maximum_concurrency
+    }
+
     fn try_acquire(&self) -> bool {
         let mut active_leases = self.active_leases.load(Ordering::Acquire);
         loop {

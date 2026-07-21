@@ -12,7 +12,8 @@ use gateway_core::{CredentialId, ErrorScope, GatewayError, GatewayErrorCode, Rou
 use gateway_upstream::{CredentialLease, EndpointCredentialPools};
 
 use crate::{
-    RouteCandidateScheduler, RouteSnapshot, RuntimeHealthRegistry, RuntimeQuotaRegistry,
+    AttemptExclusionSet, RouteCandidateScheduler, RouteExplainError, RouteExplainInput,
+    RouteExplainSnapshot, RouteSnapshot, RuntimeHealthRegistry, RuntimeQuotaRegistry,
     SnapshotRouteCandidate,
 };
 
@@ -262,6 +263,34 @@ impl RouteCredentialScheduler {
             (Some(candidate), Some(lease)) => Ok(SelectedRouteCredential { candidate, lease }),
             _ => Err(credential_unavailable_error()),
         }
+    }
+
+    /// Explains Candidate and Credential eligibility without acquiring a lease or advancing a cursor.
+    ///
+    /// The caller supplies one explicit observation time and deterministic schedule starts through
+    /// [`RouteExplainInput`]. The returned projection is therefore suitable for a fixed diagnostic
+    /// snapshot, not a promise of a later concurrent request outcome.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RouteExplainError`] only when the exact immutable Snapshot lacks the requested
+    /// Route or its precompiled schedule. Runtime Health/Quota read failures are represented as
+    /// secret-free fail-closed exclusion reasons instead.
+    pub fn explain(
+        &self,
+        input: &RouteExplainInput,
+        runtime_health: &RuntimeHealthRegistry,
+        runtime_quota: &RuntimeQuotaRegistry,
+        exclusions: &AttemptExclusionSet,
+    ) -> Result<RouteExplainSnapshot, RouteExplainError> {
+        crate::route_explain::explain(
+            self.candidates.snapshot(),
+            &self.credential_pools,
+            runtime_health,
+            runtime_quota,
+            input,
+            exclusions,
+        )
     }
 
     /// Returns a copy of one Route from the exact immutable Snapshot used for scheduling.

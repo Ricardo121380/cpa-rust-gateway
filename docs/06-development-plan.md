@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-21` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot` 与 `P3 - OpenAI Responses 聚合 MVP` 已完成；`P4 - Catalog、Health、Quota、Explain、观测` 已开始其工程效率前置项 |
-| 当前任务 | `P4-00` 至 `P4-05` 与 `P4-07` 已完成验收；P4-06、P4-08 与 P4-09 保持 `PENDING`。 |
+| 当前任务 | `P4-00` 至 `P4-05` 与 `P4-07` 已完成验收；`P4-06` 已本地通过并等待其唯一 Code Gate，P4-08 与 P4-09 保持 `PENDING`。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -521,7 +521,7 @@ deploy/
 | P4-03 | 实现 added/suspected_removed/removed Diff、Preview/Apply 和移除隔离 | P4-02 | 3 次缺失 + 24h Fixture | DONE |
 | P4-04 | 实现 Endpoint/Model/Credential Probe、EWMA 和 Circuit 恢复 | P3-05 | 健康时间线和半开测试 | DONE |
 | P4-05 | 实现 QuotaSnapshot、来源/置信度、Reset 与受控恢复探测 | P4-04 | 429/Quota/Reset Fixture | DONE |
-| P4-06 | 实现 Route Explain 和 Candidate 排除原因查询 | P3-06,P4-04,P4-05 | 固定输入决策快照 | PENDING |
+| P4-06 | 实现 Route Explain 和 Candidate 排除原因查询 | P3-06,P4-04,P4-05 | 固定输入决策快照 | LOCAL_PASS_PENDING_CI |
 | P4-07 | 实现 SQLite 异步 Request/Attempt/Usage/Health Event Writer | P3-08 | 队列、批写、崩溃恢复、quick_check | DONE |
 | P4-08 | 实现 tracing JSON、Prometheus 和 OpenTelemetry 导出 | P4-07 | 指标/Trace 关联测试 | PENDING |
 | P4-09 | 实现日志脱敏、Body 采样开关和 Secret 泄漏测试 | P4-07,P4-08 | 自动 Secret 扫描报告 | PENDING |
