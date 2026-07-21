@@ -7,7 +7,7 @@
 | 计划版本 | `v1.9` |
 | 生效日期 | `2026-07-21` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP` 与 `P4 - Catalog、Health、Quota、Explain、观测` 已完成；`P5 - Anthropic/Claude Code 兼容` 已开始。 |
+| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP` 与 `P4 - Catalog、Health、Quota、Explain、观测` 已完成；`P5 - Anthropic/Claude Code 兼容` 已完成本地收口，等待 G5 的唯一远端 Delivery Gate。 |
 | 当前任务 | `G5`：执行 P5 本地收口 review 与唯一远端 Fast + Full Delivery Gate。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
@@ -592,7 +592,7 @@ deploy/
 | P2 | 聚合控制面、Secret、RouteSnapshot | G1 | G2 | DONE |
 | P3 | OpenAI Responses 聚合 MVP | G2 | G3 | DONE |
 | P4 | Catalog、Health、Quota、Explain、观测 | G3 | G4 | DONE |
-| P5 | Anthropic/Claude Code 兼容 | G4 | G5 | PENDING |
+| P5 | Anthropic/Claude Code 兼容 | G4 | G5 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P6 | Grok Build | G5 | G6 | PENDING |
 | P7 | Kiro IDE/CLI | G6 | G7 | PENDING |
 | P8 | Grok Official | G7 | G8 | PENDING |
@@ -778,6 +778,9 @@ operator 授权后才可发送一条真实请求，不能回溯或重跑 P3-10�
 required-status 与 tag cache 行为，之后 P5-01 至 P5-08 恢复“Task 本地验收、P5 一次正式远端验收”。
 
 ### G5 门禁
+
+状态：`LOCAL_PASS_PENDING_PHASE_GATE`；P5-01 至 P5-08 已完成本地 review/验收，尚未通过
+`phase-p5-complete` 的唯一远端 Fast + Full Delivery Gate。
 
 - Claude Code 普通对话、普通 Tool、并行 Tool、Plan Mode 全部通过。
 - 无参数 Tool 补 `{}`；非空未闭合 JSON 必须明确失败。
