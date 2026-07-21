@@ -4,7 +4,7 @@
 |---|---|
 | Plan version | `v1.8` |
 | Task | `P4-10` |
-| Status | `LOCAL_PASS_PENDING_CI`; implementation, review, Secret scan, and final local Full Gate passed; GitHub Code Gate remains pending. |
+| Status | `DONE` after this docs-only closeout Gate; implementation, review, Secret scan, final local Full Gate, and GitHub Code Gate passed. |
 | Scope level / execution budget | `M`; `<=25min` from Task Card to code commit, excluding external Gates |
 | Task Card | `gateway-router` in-process read-only runtime status projection plus exact 403 account state/controlled recovery only; no HTTP management route, authentication, UI, SQLite, Event/exporter change, Provider request, raw provider parsing, persistent read model, or P5 work |
 | References | `CR-P4-G4-001`; `G20`, `G21`, `G26`, `H19`, `H20`; [ADR-0032](../adr/ADR-0032-read-only-runtime-management-status.md); [BC-MGMT-001](../contracts/BC-MGMT-001-read-only-runtime-management-status.md) |
@@ -48,8 +48,16 @@ ticket fails closed; and the new API does not expose a Provider payload, model l
 Credential bytes, or management HTTP surface. No ignored real-test harness ran and no Provider
 request was sent.
 
-## Delivery state
+## Accepted GitHub Code Gate
 
-The implementation commit now records `LOCAL_PASS_PENDING_CI` and is awaiting its normal GitHub
-Code Gate. After that Gate passes, one docs-only closeout may mark P4-10 `DONE`; its docs-only Gate
-then becomes the final Task evidence. G4 remains blocked until both P4-10 delivery Gates pass.
+GitHub Actions [run 29837196375](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29837196375)
+passed for implementation commit `b04de43`. The classifier selected the code path: Fast passed in
+2 minutes 30 seconds, supplemental supply-chain Full passed in 1 minute 6 seconds, and Required
+delivery passed in 5 seconds. The Docs-only job was correctly skipped. The run was created at
+`2026-07-21T14:02:00Z` and completed at `2026-07-21T14:06:04Z`; no manual rerun was issued.
+
+## Closeout boundary
+
+This is the unique docs-only closeout that records immutable Code Gate evidence and marks P4-10
+`DONE`. Its own Docs Gate is external acceptance evidence and will not cause a second P4-10 status
+commit. G4 remains blocked until this Docs Gate passes.
