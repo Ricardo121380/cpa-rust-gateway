@@ -243,6 +243,8 @@ fn build_events(
             extensions: RawExtensions::default(),
         }),
         CanonicalEvent::ResponseEnd(ResponseEnd {
+            stop_reason: None,
+            stop_sequence: None,
             extensions: RawExtensions::default(),
         }),
     ]);

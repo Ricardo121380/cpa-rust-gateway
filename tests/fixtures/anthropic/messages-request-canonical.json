@@ -106,6 +106,13 @@
       }
     }
   ],
+  "thinking": {
+    "effort": "enabled",
+    "extensions": {
+      "anthropic.thinking.budget_tokens": 1024
+    }
+  },
+  "prompt_cache_retention": "ephemeral",
   "extensions": {
     "anthropic.messages.max_tokens": 128,
     "anthropic.messages.metadata": {

@@ -11,5 +11,5 @@
   {"tool_call_end":{"call_id":"tool-enter-plan","arguments":{},"extensions":{}}},
   {"message_end":{"extensions":{}}},
   {"usage_delta":{"usage":{"input_tokens":17,"output_tokens":23,"extensions":{}},"is_final":true,"extensions":{}}},
-  {"response_end":{"extensions":{}}}
+  {"response_end":{"stop_reason":"tool_use","stop_sequence":null,"extensions":{}}}
 ]

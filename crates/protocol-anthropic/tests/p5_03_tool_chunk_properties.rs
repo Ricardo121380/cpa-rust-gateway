@@ -208,6 +208,8 @@ fn non_object_tool_arguments_fail_closed() -> TestResult {
         }),
         usage_delta(true),
         CanonicalEvent::ResponseEnd(ResponseEnd {
+            stop_reason: Some("tool_use".to_owned()),
+            stop_sequence: None,
             extensions: RawExtensions::default(),
         }),
     ];
@@ -229,6 +231,8 @@ fn whitespace_wrapped_empty_object_normalizes_without_an_input_delta() -> TestRe
         }),
         usage_delta(true),
         CanonicalEvent::ResponseEnd(ResponseEnd {
+            stop_reason: Some("tool_use".to_owned()),
+            stop_sequence: None,
             extensions: RawExtensions::default(),
         }),
     ];
@@ -282,6 +286,8 @@ fn empty_argument_delta_does_not_create_a_false_final_input_mismatch() -> TestRe
         }),
         usage_delta(true),
         CanonicalEvent::ResponseEnd(ResponseEnd {
+            stop_reason: Some("tool_use".to_owned()),
+            stop_sequence: None,
             extensions: RawExtensions::default(),
         }),
     ];
@@ -393,6 +399,8 @@ fn build_events(
         }),
         usage_delta(true),
         CanonicalEvent::ResponseEnd(ResponseEnd {
+            stop_reason: Some("tool_use".to_owned()),
+            stop_sequence: None,
             extensions: RawExtensions::default(),
         }),
     ]);

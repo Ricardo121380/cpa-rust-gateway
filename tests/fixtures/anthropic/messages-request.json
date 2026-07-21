@@ -48,6 +48,10 @@
       "cache_control": {"type": "ephemeral"}
     }
   ],
+  "thinking": {
+    "type": "enabled",
+    "budget_tokens": 1024
+  },
   "stream": true,
   "metadata": {"user_id": "test-user"},
   "temperature": 0

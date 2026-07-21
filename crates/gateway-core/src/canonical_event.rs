@@ -323,6 +323,16 @@ impl fmt::Debug for MessageEnd {
 #[derive(Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ResponseEnd {
+    /// Explicit upstream completion reason when the protocol exposes one.
+    ///
+    /// The open string preserves protocol-owned labels such as `end_turn`, `tool_use`, or
+    /// `max_tokens` without making the Canonical core depend on one vendor's closed enum. `None`
+    /// remains valid for protocol surfaces that do not expose a stop reason.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stop_reason: Option<String>,
+    /// Client-visible stop sequence when the explicit completion reason carries one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stop_sequence: Option<String>,
     /// Provider- or protocol-specific fields retained without core interpretation.
     #[serde(default)]
     pub extensions: RawExtensions,
@@ -332,6 +342,8 @@ impl fmt::Debug for ResponseEnd {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("ResponseEnd")
+            .field("stop_reason_reported", &self.stop_reason.is_some())
+            .field("stop_sequence_reported", &self.stop_sequence.is_some())
             .field("extensions", &self.extensions)
             .finish()
     }
@@ -404,12 +416,23 @@ impl CanonicalEventState {
             return Ok(());
         }
 
-        if let CanonicalEvent::ResponseEnd(_) = event {
+        if let CanonicalEvent::ResponseEnd(response_end) = event {
             let ResponseLifecycle::Open(open) = &self.lifecycle else {
                 return Err(stream_protocol_error());
             };
             if !open.is_ready_to_end() {
                 return Err(stream_truncated_error());
+            }
+            if response_end
+                .stop_reason
+                .as_deref()
+                .is_some_and(str::is_empty)
+                || response_end
+                    .stop_sequence
+                    .as_deref()
+                    .is_some_and(str::is_empty)
+            {
+                return Err(stream_protocol_error());
             }
 
             self.lifecycle = ResponseLifecycle::Completed;
@@ -679,7 +702,7 @@ const fn stream_truncated_error() -> GatewayError {
 #[cfg(test)]
 mod tests {
     use super::{CanonicalEvent, CanonicalEventState, CanonicalResponse};
-    use crate::{ErrorScope, GatewayErrorCode};
+    use crate::{ErrorScope, GatewayErrorCode, RawExtensions, ResponseEnd};
 
     fn parse_event(value: &str) -> Result<CanonicalEvent, serde_json::Error> {
         serde_json::from_str(value)
@@ -961,6 +984,30 @@ mod tests {
 
         assert!(empty_response_id.is_err());
         assert!(unknown_payload_field.is_err());
+    }
+
+    #[test]
+    fn response_end_validates_non_empty_reported_semantics_and_redacts_them()
+    -> Result<(), serde_json::Error> {
+        let response_start =
+            parse_event(r#"{"response_start":{"response_id":"response-01","extensions":{}}}"#)?;
+        let invalid_end = parse_event(
+            r#"{"response_end":{"stop_reason":"","stop_sequence":"","extensions":{}}}"#,
+        )?;
+        let mut state = CanonicalEventState::default();
+        assert!(state.apply(&response_start).is_ok());
+        assert_protocol_error(state.apply(&invalid_end));
+
+        let end = ResponseEnd {
+            stop_reason: Some("private-stop-reason".to_owned()),
+            stop_sequence: Some("private-stop-sequence".to_owned()),
+            extensions: RawExtensions::default(),
+        };
+        let diagnostic = format!("{end:?}");
+        assert!(!diagnostic.contains("private-stop-reason"));
+        assert!(!diagnostic.contains("private-stop-sequence"));
+        assert!(diagnostic.contains("stop_reason_reported: true"));
+        Ok(())
     }
 
     #[test]

@@ -4,7 +4,7 @@ use gateway_core::{
     CanonicalEvent, CanonicalEventState, CanonicalResponse, ExactInputTokenCount, GatewayError,
     GatewayErrorCode, Usage,
 };
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 
 use crate::json::{internal_error, stream_protocol_error};
 
@@ -193,17 +193,25 @@ struct Assembly {
     response_id: Option<String>,
     message: MessagePhase,
     content: Vec<ContentBlock>,
-    active_text_index: Option<usize>,
+    active_content_index: Option<usize>,
     next_sse_index: usize,
     active_sse_index: Option<usize>,
     tools: BTreeMap<String, ToolState>,
     usage: Option<Usage>,
+    stop_reason: Option<String>,
+    stop_sequence: Option<String>,
     terminal: TerminalPhase,
 }
 
 enum ContentBlock {
     Text {
         text: String,
+        deltas: Vec<String>,
+        emitted_deltas: usize,
+        closed: bool,
+    },
+    Thinking {
+        thinking: String,
         deltas: Vec<String>,
         emitted_deltas: usize,
         closed: bool,
@@ -215,10 +223,27 @@ enum ContentBlock {
     },
 }
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum ContentKind {
+    Text,
+    Thinking,
+}
+
+fn content_block_kind(content: Option<&ContentBlock>) -> Option<ContentKind> {
+    match content {
+        Some(ContentBlock::Text { .. }) => Some(ContentKind::Text),
+        Some(ContentBlock::Thinking { .. }) => Some(ContentKind::Thinking),
+        Some(ContentBlock::Tool { .. }) | None => None,
+    }
+}
+
 impl ContentBlock {
     fn completed_value(&self) -> Result<Value, GatewayError> {
         match self {
             Self::Text { text, .. } => Ok(json!({"type": "text", "text": text})),
+            Self::Thinking { thinking, .. } => {
+                Ok(json!({"type": "thinking", "thinking": thinking}))
+            }
             Self::Tool {
                 call_id,
                 name,
@@ -273,23 +298,23 @@ impl Assembly {
                 Ok(Vec::new())
             }
             CanonicalEvent::UsageDelta(delta) => {
-                self.usage = Some(delta.usage.clone());
+                self.usage = Some(merge_usage(self.usage.as_ref(), &delta.usage));
                 Ok(Vec::new())
             }
             CanonicalEvent::MessageStart(start) => self.start_message(&start.role.0, metadata),
             CanonicalEvent::TextDelta(delta) => self.append_text(&delta.text),
+            CanonicalEvent::ReasoningDelta(delta) => self.append_thinking(&delta.text),
             CanonicalEvent::ToolCallStart(start) => self.start_tool(&start.call_id, &start.name),
             CanonicalEvent::ToolCallArgumentsDelta(delta) => {
                 self.append_tool_arguments(&delta.call_id, &delta.delta)
             }
             CanonicalEvent::ToolCallEnd(end) => self.finish_tool(&end.call_id, end.arguments.get()),
             CanonicalEvent::MessageEnd(_) => self.end_message(),
-            CanonicalEvent::ResponseEnd(_) => self.end_response(),
+            CanonicalEvent::ResponseEnd(end) => self.end_response(end),
             CanonicalEvent::StreamError(error) => {
                 self.terminal = TerminalPhase::Failed;
                 Ok(vec![frame("error", encode_error(&error.error))])
             }
-            CanonicalEvent::ReasoningDelta(_) => Err(stream_protocol_error()),
         }
     }
 
@@ -305,11 +330,8 @@ impl Assembly {
             .response_id
             .as_deref()
             .ok_or_else(stream_protocol_error)?;
-        let input_tokens = self
-            .usage
-            .as_ref()
-            .and_then(|usage| usage.input_tokens)
-            .ok_or_else(stream_protocol_error)?;
+        let usage = self.usage.as_ref().ok_or_else(stream_protocol_error)?;
+        let input_usage = initial_usage_value(usage)?;
         self.message = MessagePhase::Started;
         Ok(vec![frame(
             "message_start",
@@ -323,42 +345,79 @@ impl Assembly {
                     "model": metadata.model(),
                     "stop_reason": null,
                     "stop_sequence": null,
-                    "usage": {"input_tokens": input_tokens, "output_tokens": 0}
+                    "usage": input_usage
                 }
             }),
         )])
     }
 
     fn append_text(&mut self, text: &str) -> Result<Vec<SseFrame>, GatewayError> {
+        self.append_content_delta(text, ContentKind::Text)
+    }
+
+    fn append_thinking(&mut self, thinking: &str) -> Result<Vec<SseFrame>, GatewayError> {
+        self.append_content_delta(thinking, ContentKind::Thinking)
+    }
+
+    fn append_content_delta(
+        &mut self,
+        value: &str,
+        kind: ContentKind,
+    ) -> Result<Vec<SseFrame>, GatewayError> {
         if !matches!(self.message, MessagePhase::Started | MessagePhase::Content) {
             return Err(stream_protocol_error());
         }
-        let index = if let Some(index) = self.active_text_index {
-            index
-        } else {
-            let index = self.content.len();
-            self.content.push(ContentBlock::Text {
+        let index = self.open_content_block(kind)?;
+        match (kind, self.content.get_mut(index)) {
+            (
+                ContentKind::Text,
+                Some(ContentBlock::Text {
+                    text: accumulated,
+                    deltas,
+                    ..
+                }),
+            )
+            | (
+                ContentKind::Thinking,
+                Some(ContentBlock::Thinking {
+                    thinking: accumulated,
+                    deltas,
+                    ..
+                }),
+            ) => {
+                accumulated.push_str(value);
+                deltas.push(value.to_owned());
+            }
+            _ => return Err(stream_protocol_error()),
+        }
+        self.flush_serialized_blocks()
+    }
+
+    fn open_content_block(&mut self, kind: ContentKind) -> Result<usize, GatewayError> {
+        if let Some(index) = self.active_content_index
+            && content_block_kind(self.content.get(index)) == Some(kind)
+        {
+            return Ok(index);
+        }
+        self.close_active_content_block()?;
+        let index = self.content.len();
+        self.content.push(match kind {
+            ContentKind::Text => ContentBlock::Text {
                 text: String::new(),
                 deltas: Vec::new(),
                 emitted_deltas: 0,
                 closed: false,
-            });
-            self.active_text_index = Some(index);
-            self.message = MessagePhase::Content;
-            index
-        };
-        match self.content.get_mut(index) {
-            Some(ContentBlock::Text {
-                text: accumulated,
-                deltas,
-                ..
-            }) => {
-                accumulated.push_str(text);
-                deltas.push(text.to_owned());
-            }
-            Some(ContentBlock::Tool { .. }) | None => return Err(stream_protocol_error()),
-        }
-        self.flush_serialized_blocks()
+            },
+            ContentKind::Thinking => ContentBlock::Thinking {
+                thinking: String::new(),
+                deltas: Vec::new(),
+                emitted_deltas: 0,
+                closed: false,
+            },
+        });
+        self.active_content_index = Some(index);
+        self.message = MessagePhase::Content;
+        Ok(index)
     }
 
     fn start_tool(&mut self, call_id: &str, name: &str) -> Result<Vec<SseFrame>, GatewayError> {
@@ -367,7 +426,7 @@ impl Assembly {
         {
             return Err(stream_protocol_error());
         }
-        self.close_active_text_block()?;
+        self.close_active_content_block()?;
         let index = self.content.len();
         self.content.push(ContentBlock::Tool {
             call_id: call_id.to_owned(),
@@ -437,7 +496,12 @@ impl Assembly {
                 input: stored_input,
                 ..
             }) if mapped_call_id == call_id => *stored_input = Some(input),
-            Some(ContentBlock::Text { .. } | ContentBlock::Tool { .. }) | None => {
+            Some(
+                ContentBlock::Text { .. }
+                | ContentBlock::Thinking { .. }
+                | ContentBlock::Tool { .. },
+            )
+            | None => {
                 return Err(stream_protocol_error());
             }
         }
@@ -452,12 +516,14 @@ impl Assembly {
         self.flush_serialized_blocks()
     }
 
-    fn close_active_text_block(&mut self) -> Result<(), GatewayError> {
-        let Some(index) = self.active_text_index.take() else {
+    fn close_active_content_block(&mut self) -> Result<(), GatewayError> {
+        let Some(index) = self.active_content_index.take() else {
             return Ok(());
         };
         match self.content.get_mut(index) {
-            Some(ContentBlock::Text { closed, .. }) => *closed = true,
+            Some(ContentBlock::Text { closed, .. } | ContentBlock::Thinking { closed, .. }) => {
+                *closed = true;
+            }
             Some(ContentBlock::Tool { .. }) | None => return Err(stream_protocol_error()),
         }
         Ok(())
@@ -470,7 +536,7 @@ impl Assembly {
         if self.tools.values().any(|tool| !tool.completed) {
             return Err(stream_protocol_error());
         }
-        self.close_active_text_block()?;
+        self.close_active_content_block()?;
         let frames = self.flush_serialized_blocks()?;
         if self.active_sse_index.is_some() || self.next_sse_index != self.content.len() {
             return Err(stream_protocol_error());
@@ -505,6 +571,9 @@ impl Assembly {
                 Some(ContentBlock::Text { .. }) => {
                     self.flush_active_text_block(index, &mut frames)?
                 }
+                Some(ContentBlock::Thinking { .. }) => {
+                    self.flush_active_thinking_block(index, &mut frames)?
+                }
                 Some(ContentBlock::Tool { .. }) => {
                     self.flush_active_tool_block(index, &mut frames)?
                 }
@@ -528,6 +597,14 @@ impl Assembly {
                     "type": "content_block_start",
                     "index": index,
                     "content_block": {"type": "text", "text": ""}
+                }),
+            )),
+            Some(ContentBlock::Thinking { .. }) => frames.push(frame(
+                "content_block_start",
+                json!({
+                    "type": "content_block_start",
+                    "index": index,
+                    "content_block": {"type": "thinking", "thinking": ""}
                 }),
             )),
             Some(ContentBlock::Tool { call_id, name, .. }) => frames.push(frame(
@@ -561,7 +638,9 @@ impl Assembly {
                 closed,
                 ..
             }) => (deltas[*emitted_deltas..].to_vec(), *closed),
-            Some(ContentBlock::Tool { .. }) | None => return Err(stream_protocol_error()),
+            Some(ContentBlock::Thinking { .. } | ContentBlock::Tool { .. }) | None => {
+                return Err(stream_protocol_error());
+            }
         };
         for delta in &pending {
             frames.push(frame(
@@ -580,7 +659,50 @@ impl Assembly {
                         .checked_add(pending.len())
                         .ok_or_else(stream_protocol_error)?;
                 }
-                Some(ContentBlock::Tool { .. }) | None => return Err(stream_protocol_error()),
+                Some(ContentBlock::Thinking { .. } | ContentBlock::Tool { .. }) | None => {
+                    return Err(stream_protocol_error());
+                }
+            }
+        }
+        Ok(closed)
+    }
+
+    fn flush_active_thinking_block(
+        &mut self,
+        index: usize,
+        frames: &mut Vec<SseFrame>,
+    ) -> Result<bool, GatewayError> {
+        let (pending, closed) = match self.content.get(index) {
+            Some(ContentBlock::Thinking {
+                deltas,
+                emitted_deltas,
+                closed,
+                ..
+            }) => (deltas[*emitted_deltas..].to_vec(), *closed),
+            Some(ContentBlock::Text { .. } | ContentBlock::Tool { .. }) | None => {
+                return Err(stream_protocol_error());
+            }
+        };
+        for delta in &pending {
+            frames.push(frame(
+                "content_block_delta",
+                json!({
+                    "type": "content_block_delta",
+                    "index": index,
+                    "delta": {"type": "thinking_delta", "thinking": delta}
+                }),
+            ));
+        }
+        if !pending.is_empty() {
+            match self.content.get_mut(index) {
+                Some(ContentBlock::Thinking { emitted_deltas, .. }) => {
+                    *emitted_deltas = emitted_deltas
+                        .checked_add(pending.len())
+                        .ok_or_else(stream_protocol_error)?;
+                }
+                Some(ContentBlock::Text { .. } | ContentBlock::Tool { .. }) | None => {
+                    return Err(stream_protocol_error());
+                }
             }
         }
         Ok(closed)
@@ -593,7 +715,9 @@ impl Assembly {
     ) -> Result<bool, GatewayError> {
         let call_id = match self.content.get(index) {
             Some(ContentBlock::Tool { call_id, .. }) => call_id.clone(),
-            Some(ContentBlock::Text { .. }) | None => return Err(stream_protocol_error()),
+            Some(ContentBlock::Text { .. } | ContentBlock::Thinking { .. }) | None => {
+                return Err(stream_protocol_error());
+            }
         };
         let (pending, completed) = {
             let tool = self.tools.get(&call_id).ok_or_else(stream_protocol_error)?;
@@ -650,28 +774,29 @@ impl Assembly {
         Ok(())
     }
 
-    fn end_response(&mut self) -> Result<Vec<SseFrame>, GatewayError> {
+    fn end_response(
+        &mut self,
+        end: &gateway_core::ResponseEnd,
+    ) -> Result<Vec<SseFrame>, GatewayError> {
         if self.message != MessagePhase::Ended || self.terminal != TerminalPhase::Open {
             return Err(stream_protocol_error());
         }
-        let output_tokens = self
-            .usage
-            .as_ref()
-            .and_then(|usage| usage.output_tokens)
+        let usage = self.usage.as_ref().ok_or_else(stream_protocol_error)?;
+        let output_usage = output_usage_value(usage)?;
+        let stop_reason = end
+            .stop_reason
+            .as_deref()
             .ok_or_else(stream_protocol_error)?;
-        let stop_reason = if self.tools.is_empty() {
-            "end_turn"
-        } else {
-            "tool_use"
-        };
+        self.stop_reason = Some(stop_reason.to_owned());
+        self.stop_sequence.clone_from(&end.stop_sequence);
         self.terminal = TerminalPhase::Completed;
         Ok(vec![
             frame(
                 "message_delta",
                 json!({
                     "type": "message_delta",
-                    "delta": {"stop_reason": stop_reason, "stop_sequence": null},
-                    "usage": {"output_tokens": output_tokens}
+                    "delta": {"stop_reason": stop_reason, "stop_sequence": end.stop_sequence},
+                    "usage": output_usage
                 }),
             ),
             frame("message_stop", json!({"type": "message_stop"})),
@@ -684,18 +809,15 @@ impl Assembly {
             .as_deref()
             .ok_or_else(stream_protocol_error)?;
         let usage = self.usage.as_ref().ok_or_else(stream_protocol_error)?;
-        let input_tokens = usage.input_tokens.ok_or_else(stream_protocol_error)?;
-        let output_tokens = usage.output_tokens.ok_or_else(stream_protocol_error)?;
         let content = self
             .content
             .iter()
             .map(ContentBlock::completed_value)
             .collect::<Result<Vec<_>, _>>()?;
-        let stop_reason = if self.tools.is_empty() {
-            "end_turn"
-        } else {
-            "tool_use"
-        };
+        let stop_reason = self
+            .stop_reason
+            .as_deref()
+            .ok_or_else(stream_protocol_error)?;
         Ok(json!({
             "id": id,
             "type": "message",
@@ -703,12 +825,74 @@ impl Assembly {
             "content": content,
             "model": metadata.model(),
             "stop_reason": stop_reason,
-            "stop_sequence": null,
-            "usage": {
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens,
-            }
+            "stop_sequence": self.stop_sequence,
+            "usage": completed_usage_value(usage)?
         }))
+    }
+}
+
+fn merge_usage(previous: Option<&Usage>, update: &Usage) -> Usage {
+    let mut merged = previous.cloned().unwrap_or_default();
+    if update.input_tokens.is_some() {
+        merged.input_tokens = update.input_tokens;
+    }
+    if update.output_tokens.is_some() {
+        merged.output_tokens = update.output_tokens;
+    }
+    if update.reasoning_tokens.is_some() {
+        merged.reasoning_tokens = update.reasoning_tokens;
+    }
+    if update.cache_read_tokens.is_some() {
+        merged.cache_read_tokens = update.cache_read_tokens;
+    }
+    if update.cache_creation_tokens.is_some() {
+        merged.cache_creation_tokens = update.cache_creation_tokens;
+    }
+    if update.cached_tokens.is_some() {
+        merged.cached_tokens = update.cached_tokens;
+    }
+    if !update.extensions.is_empty() {
+        merged.extensions = update.extensions.clone();
+    }
+    merged
+}
+
+fn initial_usage_value(usage: &Usage) -> Result<Value, GatewayError> {
+    let input_tokens = usage.input_tokens.ok_or_else(stream_protocol_error)?;
+    let mut encoded = Map::new();
+    encoded.insert("input_tokens".to_owned(), Value::from(input_tokens));
+    encoded.insert("output_tokens".to_owned(), Value::from(0_u64));
+    insert_anthropic_cache_usage(&mut encoded, usage);
+    Ok(Value::Object(encoded))
+}
+
+fn output_usage_value(usage: &Usage) -> Result<Value, GatewayError> {
+    let output_tokens = usage.output_tokens.ok_or_else(stream_protocol_error)?;
+    Ok(json!({"output_tokens": output_tokens}))
+}
+
+fn completed_usage_value(usage: &Usage) -> Result<Value, GatewayError> {
+    let input_tokens = usage.input_tokens.ok_or_else(stream_protocol_error)?;
+    let output_tokens = usage.output_tokens.ok_or_else(stream_protocol_error)?;
+    let mut encoded = Map::new();
+    encoded.insert("input_tokens".to_owned(), Value::from(input_tokens));
+    encoded.insert("output_tokens".to_owned(), Value::from(output_tokens));
+    insert_anthropic_cache_usage(&mut encoded, usage);
+    Ok(Value::Object(encoded))
+}
+
+fn insert_anthropic_cache_usage(encoded: &mut Map<String, Value>, usage: &Usage) {
+    if let Some(cache_read_tokens) = usage.cache_read_tokens {
+        encoded.insert(
+            "cache_read_input_tokens".to_owned(),
+            Value::from(cache_read_tokens),
+        );
+    }
+    if let Some(cache_creation_tokens) = usage.cache_creation_tokens {
+        encoded.insert(
+            "cache_creation_input_tokens".to_owned(),
+            Value::from(cache_creation_tokens),
+        );
     }
 }
 
@@ -735,12 +919,20 @@ fn ensure_representable(event: &CanonicalEvent) -> Result<(), GatewayError> {
             value.extensions.is_empty()
                 && value.usage.extensions.is_empty()
                 && value.usage.reasoning_tokens.is_none()
-                && value.usage.cache_read_tokens.is_none()
-                && value.usage.cache_creation_tokens.is_none()
                 && value.usage.cached_tokens.is_none()
         }
         CanonicalEvent::MessageEnd(value) => value.extensions.is_empty(),
-        CanonicalEvent::ResponseEnd(value) => value.extensions.is_empty(),
+        CanonicalEvent::ResponseEnd(value) => {
+            value.extensions.is_empty()
+                && value
+                    .stop_reason
+                    .as_deref()
+                    .is_some_and(|reason| !reason.is_empty())
+                && value
+                    .stop_sequence
+                    .as_deref()
+                    .is_none_or(|sequence| !sequence.is_empty())
+        }
         CanonicalEvent::StreamError(_) => true,
     };
     if extensions_empty {
@@ -799,6 +991,12 @@ mod tests {
         ))
     }
 
+    fn p5_06_events() -> Result<Vec<CanonicalEvent>, serde_json::Error> {
+        serde_json::from_str(include_str!(
+            "../../../tests/fixtures/anthropic/p5-06-canonical-events.json"
+        ))
+    }
+
     #[test]
     fn non_streaming_fixture_matches_snapshot() -> Result<(), Box<dyn std::error::Error>> {
         let response = CanonicalResponse::try_new(events()?)?;
@@ -831,6 +1029,32 @@ mod tests {
     }
 
     #[test]
+    fn p5_06_thinking_cache_and_explicit_stop_fixture_matches_snapshots()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let response = CanonicalResponse::try_new(p5_06_events()?)?;
+        let metadata = AnthropicResponseMetadata::try_new("gateway-claude")?;
+        let response_json = encode_response(&response, metadata.clone())?;
+        assert_eq!(
+            serde_json::to_string_pretty(&response_json)?,
+            include_str!("../../../tests/fixtures/anthropic/p5-06-non-streaming-response.json")
+                .trim()
+        );
+
+        let mut encoder = AnthropicMessagesSseEncoder::new(metadata);
+        let mut wire = String::new();
+        for event in p5_06_events()? {
+            for frame in encoder.encode_event(&event)? {
+                wire.push_str(&frame.to_wire()?);
+            }
+        }
+        assert_eq!(
+            wire.trim_end(),
+            include_str!("../../../tests/fixtures/anthropic/p5-06-stream.sse").trim_end()
+        );
+        Ok(())
+    }
+
+    #[test]
     fn safe_error_envelope_contains_no_diagnostics() {
         let error = GatewayError::new(GatewayErrorCode::ClientUnauthorized, ErrorScope::Request);
         assert_eq!(
@@ -854,7 +1078,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_missing_initial_usage_and_unrepresentable_events()
+    fn requires_initial_usage_and_rejects_unrepresentable_usage_or_missing_stop_reason()
     -> Result<(), Box<dyn std::error::Error>> {
         let metadata = AnthropicResponseMetadata::try_new("gateway-claude")?;
         let mut encoder = AnthropicMessagesSseEncoder::new(metadata);
@@ -872,15 +1096,31 @@ mod tests {
         let events: Vec<CanonicalEvent> = serde_json::from_str(
             r#"[
                 {"response_start":{"response_id":"r","extensions":{}}},
-                {"usage_delta":{"usage":{"input_tokens":1,"extensions":{}},"is_final":false,"extensions":{}}},
+                {"usage_delta":{"usage":{"input_tokens":1,"reasoning_tokens":1,"extensions":{}},"is_final":false,"extensions":{}}},
                 {"message_start":{"role":"assistant","extensions":{}}},
                 {"reasoning_delta":{"text":"hidden","extensions":{}}}
             ]"#,
         )?;
-        for event in &events[..3] {
+        assert!(encoder.encode_event(&events[0]).is_ok());
+        assert!(encoder.encode_event(&events[1]).is_err());
+
+        let events: Vec<CanonicalEvent> = serde_json::from_str(
+            r#"[
+                {"response_start":{"response_id":"r","extensions":{}}},
+                {"usage_delta":{"usage":{"input_tokens":1,"extensions":{}},"is_final":false,"extensions":{}}},
+                {"message_start":{"role":"assistant","extensions":{}}},
+                {"text_delta":{"text":"visible","extensions":{}}},
+                {"message_end":{"extensions":{}}},
+                {"usage_delta":{"usage":{"output_tokens":1,"extensions":{}},"is_final":true,"extensions":{}}},
+                {"response_end":{"extensions":{}}}
+            ]"#,
+        )?;
+        let metadata = AnthropicResponseMetadata::try_new("gateway-claude")?;
+        let mut encoder = AnthropicMessagesSseEncoder::new(metadata);
+        for event in &events[..6] {
             assert!(encoder.encode_event(event).is_ok());
         }
-        assert!(encoder.encode_event(&events[3]).is_err());
+        assert!(encoder.encode_event(&events[6]).is_err());
         Ok(())
     }
 

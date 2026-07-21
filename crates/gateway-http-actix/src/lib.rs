@@ -42,11 +42,14 @@ use gateway_stream::{
     StreamCapacity, StreamCapacityError, bounded_canonical_stream,
 };
 use protocol_anthropic::{
-    decode_count_tokens_request, encode_count_tokens, encode_error as encode_anthropic_error,
+    AnthropicMessagesSseEncoder, AnthropicResponseMetadata, ResponseMode as AnthropicResponseMode,
+    SseFrame as AnthropicSseFrame, decode_count_tokens_request,
+    decode_request as decode_anthropic_request, encode_count_tokens,
+    encode_error as encode_anthropic_error, encode_response as encode_anthropic_response,
 };
 use protocol_openai_responses::{
-    OpenAiResponseMetadata, OpenAiResponsesSseEncoder, ResponseMode, SseFrame, decode_request,
-    encode_error, encode_model_list, encode_response,
+    OpenAiResponseMetadata, OpenAiResponsesSseEncoder, ResponseMode, SseFrame as OpenAiSseFrame,
+    decode_request, encode_error, encode_model_list, encode_response,
 };
 
 /// Stable component identifier used by architecture smoke tests.
@@ -309,6 +312,7 @@ pub fn configure(config: &mut web::ServiceConfig) {
         .route("/healthz", web::get().to(healthz))
         .route("/v1/models", web::get().to(models))
         .route("/v1/responses", web::post().to(responses))
+        .route("/v1/messages", web::post().to(messages))
         .route("/v1/messages/count_tokens", web::post().to(count_tokens));
 }
 
@@ -416,6 +420,93 @@ async fn responses(
     }
 }
 
+async fn messages(
+    request: HttpRequest,
+    state: web::Data<ResponsesHttpState>,
+    body: web::Bytes,
+) -> HttpResponse {
+    let authenticated_client = match authenticate_bearer_request(&request, &state.authenticator) {
+        Ok(authenticated_client) => authenticated_client,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let Ok(body) = std::str::from_utf8(&body) else {
+        return pre_header_anthropic_error(&client_request_error());
+    };
+    let decoded = match decode_anthropic_request(body) {
+        Ok(decoded) => decoded,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let requested_model = decoded.request.requested_model.clone();
+    let (public_model, route_alias, route_id) =
+        match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
+            Ok(resolved) => resolved,
+            Err(error) => return pre_header_anthropic_error(&error),
+        };
+    let context = match state.metadata_factory.request_context() {
+        Ok(context) => context,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let request_id = context.request_id().clone();
+    let (client_key_id, access_group_id) = authenticated_client.event_identity();
+    let _request_event = state
+        .event_sink
+        .try_emit(GatewayEvent::Request(RequestEvent::new(
+            request_id.clone(),
+            client_key_id,
+            access_group_id,
+            GatewayProtocol::AnthropicMessages,
+            requested_model,
+            public_model.clone(),
+            route_alias,
+            decoded.mode == AnthropicResponseMode::Streaming,
+        )));
+    let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
+    let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
+    let response_mode = match decoded.mode {
+        AnthropicResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
+        AnthropicResponseMode::Streaming => ResponsesResponseMode::Streaming,
+    };
+    let execution = ResponsesExecution::new(
+        context,
+        decoded.request,
+        route_id,
+        response_mode,
+        retry_gate,
+    );
+    let mut source = match state.executor.execute_routed(execution).await {
+        Ok(source) => source,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let first = match source.next_event().await {
+        Ok(Some(event @ CanonicalEvent::ResponseStart(_))) => event,
+        Ok(Some(_) | None) => return pre_header_anthropic_error(&stream_protocol_error()),
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let metadata = match AnthropicResponseMetadata::try_new(public_model) {
+        Ok(metadata) => metadata,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let usage_observer = UsageEventObserver::new(request_id, Arc::clone(&state.event_sink));
+
+    match decoded.mode {
+        AnthropicResponseMode::NonStreaming => {
+            anthropic_non_streaming_response(
+                source,
+                first,
+                metadata,
+                usage_observer,
+                sender,
+                stream,
+            )
+            .await
+        }
+        AnthropicResponseMode::Streaming => {
+            anthropic_streaming_response(source, first, metadata, usage_observer, sender, stream)
+                .await
+        }
+    }
+}
+
 async fn count_tokens(
     request: HttpRequest,
     state: web::Data<ResponsesHttpState>,
@@ -514,6 +605,42 @@ async fn non_streaming_response(
     }
 }
 
+async fn anthropic_non_streaming_response(
+    source: Box<dyn ResponsesEventSource>,
+    first: CanonicalEvent,
+    metadata: AnthropicResponseMetadata,
+    usage_observer: UsageEventObserver,
+    sender: CanonicalEventSender,
+    stream: CanonicalEventStream,
+) -> HttpResponse {
+    let mut stream =
+        match start_bounded_transport(source, first, sender, stream, usage_observer).await {
+            Ok(stream) => stream,
+            Err(error) => return pre_header_anthropic_error(&error),
+        };
+    let tracker = stream.control().first_semantic_event_tracker();
+    let response = match collect_completed_response(&mut stream).await {
+        Ok(response) => response,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let Some(delivery_event) = response.events().first().cloned() else {
+        return pre_header_anthropic_error(&internal_error());
+    };
+    let body = match encode_anthropic_response(&response, metadata) {
+        Ok(body) => body,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let body = JsonDeliveryBody::new(web::Bytes::from(body.to_string()), tracker, delivery_event);
+
+    match HttpResponse::Ok()
+        .content_type("application/json")
+        .message_body(body)
+    {
+        Ok(response) => response.map_into_boxed_body(),
+        Err(_) => pre_header_anthropic_error(&internal_error()),
+    }
+}
+
 async fn streaming_response(
     source: Box<dyn ResponsesEventSource>,
     first: CanonicalEvent,
@@ -535,7 +662,7 @@ async fn streaming_response(
         Err(error) => return pre_header_error(&error),
     };
     let tracker = stream.control().first_semantic_event_tracker();
-    let body = ResponsesSseBody::new(stream, metadata, tracker);
+    let body = ProtocolSseBody::new(stream, OpenAiResponsesSseEncoder::new(metadata), tracker);
 
     match HttpResponse::Ok()
         .insert_header((header::CACHE_CONTROL, "no-cache"))
@@ -544,6 +671,39 @@ async fn streaming_response(
     {
         Ok(response) => response.map_into_boxed_body(),
         Err(_) => pre_header_error(&internal_error()),
+    }
+}
+
+async fn anthropic_streaming_response(
+    source: Box<dyn ResponsesEventSource>,
+    first: CanonicalEvent,
+    metadata: AnthropicResponseMetadata,
+    usage_observer: UsageEventObserver,
+    sender: CanonicalEventSender,
+    stream: CanonicalEventStream,
+) -> HttpResponse {
+    // Mirror the Responses boundary: no success header is committed before the first canonical
+    // event is proven encodable by the protocol-specific SSE encoder.
+    let mut initial_encoder = AnthropicMessagesSseEncoder::new(metadata.clone());
+    if let Err(error) = initial_encoder.encode_event(&first) {
+        return pre_header_anthropic_error(&error);
+    }
+
+    let stream = match start_bounded_transport(source, first, sender, stream, usage_observer).await
+    {
+        Ok(stream) => stream,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let tracker = stream.control().first_semantic_event_tracker();
+    let body = ProtocolSseBody::new(stream, AnthropicMessagesSseEncoder::new(metadata), tracker);
+
+    match HttpResponse::Ok()
+        .insert_header((header::CACHE_CONTROL, "no-cache"))
+        .content_type("text/event-stream")
+        .message_body(body)
+    {
+        Ok(response) => response.map_into_boxed_body(),
+        Err(_) => pre_header_anthropic_error(&internal_error()),
     }
 }
 
@@ -687,39 +847,94 @@ struct PendingSseChunk {
     delivery_event: Option<CanonicalEvent>,
 }
 
-struct SseEncodingState {
+trait EncodedSseFrame {
+    fn is_semantic(&self) -> bool;
+
+    fn to_wire(&self) -> Result<String, GatewayError>;
+}
+
+impl EncodedSseFrame for OpenAiSseFrame {
+    fn is_semantic(&self) -> bool {
+        self.is_semantic()
+    }
+
+    fn to_wire(&self) -> Result<String, GatewayError> {
+        self.to_wire()
+    }
+}
+
+impl EncodedSseFrame for AnthropicSseFrame {
+    fn is_semantic(&self) -> bool {
+        self.is_semantic()
+    }
+
+    fn to_wire(&self) -> Result<String, GatewayError> {
+        self.to_wire()
+    }
+}
+
+trait CanonicalSseEncoder {
+    type Frame: EncodedSseFrame;
+
+    fn encode_event(&mut self, event: &CanonicalEvent) -> Result<Vec<Self::Frame>, GatewayError>;
+}
+
+impl CanonicalSseEncoder for OpenAiResponsesSseEncoder {
+    type Frame = OpenAiSseFrame;
+
+    fn encode_event(&mut self, event: &CanonicalEvent) -> Result<Vec<Self::Frame>, GatewayError> {
+        OpenAiResponsesSseEncoder::encode_event(self, event)
+    }
+}
+
+impl CanonicalSseEncoder for AnthropicMessagesSseEncoder {
+    type Frame = AnthropicSseFrame;
+
+    fn encode_event(&mut self, event: &CanonicalEvent) -> Result<Vec<Self::Frame>, GatewayError> {
+        AnthropicMessagesSseEncoder::encode_event(self, event)
+    }
+}
+
+struct SseEncodingState<E> {
     stream: CanonicalEventStream,
-    encoder: OpenAiResponsesSseEncoder,
+    encoder: E,
     pending: VecDeque<PendingSseChunk>,
     finished: bool,
 }
 
 /// A streaming HTTP body that commits `FirstSemanticEvent` only when it gives Actix a semantic
 /// bytes chunk, not when the chunk is queued, received, or encoded.
-struct ResponsesSseBody {
+struct ProtocolSseBody<E> {
     chunks: Pin<Box<dyn Stream<Item = PendingSseChunk>>>,
     tracker: FirstSemanticEventTracker,
+    _encoder: std::marker::PhantomData<E>,
 }
 
-impl ResponsesSseBody {
-    fn new(
-        stream: CanonicalEventStream,
-        metadata: OpenAiResponseMetadata,
-        tracker: FirstSemanticEventTracker,
-    ) -> Self {
+impl<E> ProtocolSseBody<E>
+where
+    E: CanonicalSseEncoder + Unpin + 'static,
+{
+    fn new(stream: CanonicalEventStream, encoder: E, tracker: FirstSemanticEventTracker) -> Self {
         let state = SseEncodingState {
             stream,
-            encoder: OpenAiResponsesSseEncoder::new(metadata),
+            encoder,
             pending: VecDeque::new(),
             finished: false,
         };
         let chunks = Box::pin(stream::unfold(state, next_sse_chunk));
 
-        Self { chunks, tracker }
+        Self {
+            chunks,
+            tracker,
+            _encoder: std::marker::PhantomData,
+        }
     }
 }
 
-impl MessageBody for ResponsesSseBody {
+impl<E> MessageBody for ProtocolSseBody<E>
+where
+    E: CanonicalSseEncoder + Unpin + 'static,
+{
     type Error = Infallible;
 
     fn size(&self) -> BodySize {
@@ -744,9 +959,12 @@ impl MessageBody for ResponsesSseBody {
     }
 }
 
-async fn next_sse_chunk(
-    mut state: SseEncodingState,
-) -> Option<(PendingSseChunk, SseEncodingState)> {
+async fn next_sse_chunk<E>(
+    mut state: SseEncodingState<E>,
+) -> Option<(PendingSseChunk, SseEncodingState<E>)>
+where
+    E: CanonicalSseEncoder,
+{
     loop {
         if let Some(chunk) = state.pending.pop_front() {
             return Some((chunk, state));
@@ -786,11 +1004,14 @@ async fn next_sse_chunk(
     }
 }
 
-fn queue_sse_frames(
-    state: &mut SseEncodingState,
+fn queue_sse_frames<E>(
+    state: &mut SseEncodingState<E>,
     event: &CanonicalEvent,
-    frames: Vec<SseFrame>,
-) -> Result<(), GatewayError> {
+    frames: Vec<E::Frame>,
+) -> Result<(), GatewayError>
+where
+    E: CanonicalSseEncoder,
+{
     let mut delivery_event = Some(event.clone());
     let chunks = frames
         .into_iter()
@@ -811,7 +1032,10 @@ fn queue_sse_frames(
     Ok(())
 }
 
-fn terminate_sse_with_failure(state: &mut SseEncodingState, error: GatewayError) {
+fn terminate_sse_with_failure<E>(state: &mut SseEncodingState<E>, error: GatewayError)
+where
+    E: CanonicalSseEncoder,
+{
     let failure = CanonicalEvent::StreamError(StreamError { error });
     if let Ok(frames) = state.encoder.encode_event(&failure) {
         let _queue_result = queue_sse_frames(state, &failure, frames);
@@ -981,10 +1205,10 @@ mod tests {
     };
     use gateway_core::{
         AccessGroupId, CanonicalEvent, ClientKeyId, EndpointId, ErrorScope, ExactInputTokenCount,
-        GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, MessageEnd, MessageRole,
-        MessageStart, PublicModelId, RawExtensions, RawJson, RequestContext, RequestId,
-        ResponseEnd, ResponseId, ResponseStart, RouteCandidateId, RouteId, StreamError, TextDelta,
-        UpstreamId, Usage, UsageDelta,
+        GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, GatewayProtocol,
+        MessageEnd, MessageRole, MessageStart, PublicModelId, RawExtensions, RawJson,
+        ReasoningDelta, RequestContext, RequestId, ResponseEnd, ResponseId, ResponseStart,
+        RouteCandidateId, RouteId, StreamError, TextDelta, UpstreamId, Usage, UsageDelta,
     };
     use gateway_observability::{BoundedEventQueue, EventQueueConfig};
     use gateway_router::{
@@ -997,7 +1221,7 @@ mod tests {
         SnapshotTransformMode, SnapshotVersion,
     };
     use gateway_stream::{FirstSemanticEventTracker, StreamCapacity, bounded_canonical_stream};
-    use protocol_openai_responses::OpenAiResponseMetadata;
+    use protocol_openai_responses::{OpenAiResponseMetadata, OpenAiResponsesSseEncoder};
 
     use super::{
         JsonDeliveryBody, ResponsesHttpState, ResponsesMetadataFactory, client_request_error,
@@ -1067,6 +1291,48 @@ mod tests {
             }),
         );
         Ok(events)
+    }
+
+    fn anthropic_events() -> Result<Vec<CanonicalEvent>, Box<dyn Error>> {
+        Ok(vec![
+            response_start()?,
+            CanonicalEvent::UsageDelta(UsageDelta {
+                usage: Usage {
+                    input_tokens: Some(3),
+                    cache_read_tokens: Some(2),
+                    cache_creation_tokens: Some(1),
+                    ..Usage::default()
+                },
+                is_final: false,
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::MessageStart(MessageStart {
+                role: MessageRole("assistant".to_owned()),
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::ReasoningDelta(ReasoningDelta {
+                text: "deterministic thinking".to_owned(),
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::TextDelta(TextDelta {
+                text: "deterministic hello".to_owned(),
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::MessageEnd(MessageEnd::default()),
+            CanonicalEvent::UsageDelta(UsageDelta {
+                usage: Usage {
+                    output_tokens: Some(5),
+                    ..Usage::default()
+                },
+                is_final: true,
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::ResponseEnd(ResponseEnd {
+                stop_reason: Some("max_tokens".to_owned()),
+                stop_sequence: Some("test-stop-sequence".to_owned()),
+                extensions: RawExtensions::default(),
+            }),
+        ])
     }
 
     fn test_authenticator() -> Result<Arc<dyn ClientKeyAuthenticator>, Box<dyn Error>> {
@@ -1368,6 +1634,150 @@ mod tests {
         assert!(body.contains(r#""status":"completed""#));
         assert!(body.contains(r#""text":"deterministic hello""#));
         assert!(body.contains(r#""created_at":1"#));
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn non_streaming_messages_preserves_thinking_cache_usage_and_explicit_stop_semantics()
+    -> TestResult {
+        let state = mock_state(anthropic_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = authorized(test::TestRequest::post().uri("/v1/messages").set_payload(
+            r#"{
+                    "model":"mock-model",
+                    "max_tokens":1,
+                    "thinking":{"type":"enabled","budget_tokens":1},
+                    "system":[{"type":"text","text":"system","cache_control":{"type":"ephemeral"}}],
+                    "messages":[{"role":"user","content":"hello"}]
+                }"#,
+        ))
+        .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response
+                .headers()
+                .get("content-type")
+                .and_then(|value| value.to_str().ok()),
+            Some("application/json")
+        );
+        let body: serde_json::Value = serde_json::from_slice(&test::read_body(response).await)?;
+        assert_eq!(
+            body.pointer("/model"),
+            Some(&serde_json::json!("mock-model"))
+        );
+        assert_eq!(
+            body.pointer("/content/0/type"),
+            Some(&serde_json::json!("thinking"))
+        );
+        assert_eq!(
+            body.pointer("/content/0/thinking"),
+            Some(&serde_json::json!("deterministic thinking"))
+        );
+        assert_eq!(
+            body.pointer("/content/1/text"),
+            Some(&serde_json::json!("deterministic hello"))
+        );
+        assert_eq!(
+            body.pointer("/stop_reason"),
+            Some(&serde_json::json!("max_tokens"))
+        );
+        assert_eq!(
+            body.pointer("/stop_sequence"),
+            Some(&serde_json::json!("test-stop-sequence"))
+        );
+        assert_eq!(
+            body.pointer("/usage/cache_read_input_tokens"),
+            Some(&serde_json::json!(2))
+        );
+        assert_eq!(
+            body.pointer("/usage/cache_creation_input_tokens"),
+            Some(&serde_json::json!(1))
+        );
+        assert_eq!(
+            body.pointer("/usage/output_tokens"),
+            Some(&serde_json::json!(5))
+        );
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn streaming_messages_emits_anthropic_thinking_cache_and_explicit_stop_frames()
+    -> TestResult {
+        let state = mock_state(anthropic_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = authorized(
+            test::TestRequest::post().uri("/v1/messages").set_payload(
+                r#"{"model":"mock-model","max_tokens":1,"messages":[{"role":"user","content":"hello"}],"stream":true}"#,
+            ),
+        )
+        .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response
+                .headers()
+                .get("content-type")
+                .and_then(|value| value.to_str().ok()),
+            Some("text/event-stream")
+        );
+        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+        assert!(body.contains("event: message_start"));
+        assert!(body.contains(r#""cache_read_input_tokens":2"#));
+        assert!(body.contains(r#""type":"thinking""#));
+        assert!(body.contains(r#""type":"thinking_delta""#));
+        assert!(body.contains(r#""stop_reason":"max_tokens""#));
+        assert!(body.contains(r#""stop_sequence":"test-stop-sequence""#));
+        assert!(body.contains("event: message_stop"));
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn snapshot_messages_force_map_alias_and_emit_anthropic_request_protocol() -> TestResult {
+        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(2, 1)?)?;
+        let event_sink: Arc<dyn GatewayEventSink> = Arc::new(queue);
+        let (state, presented_key) =
+            snapshot_auth_state_with_event_sink(anthropic_events()?, event_sink)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = test::TestRequest::post()
+            .uri("/v1/messages")
+            .insert_header((header::AUTHORIZATION, format!("Bearer {presented_key}")))
+            .set_payload(format!(
+                r#"{{"model":"{SNAPSHOT_MODEL_ALIAS}","max_tokens":1,"messages":[{{"role":"user","content":"hello"}}]}}"#
+            ))
+            .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+        assert!(body.contains(r#""model":"public-model""#));
+        assert!(!body.contains(SNAPSHOT_MODEL_ALIAS));
+        assert!(!body.contains("sensitive-upstream-model"));
+
+        let Some(GatewayEvent::Request(event)) = receiver.try_recv() else {
+            return Err("expected Anthropic Request event".into());
+        };
+        assert_eq!(event.protocol(), GatewayProtocol::AnthropicMessages);
+        assert_eq!(event.requested_model(), SNAPSHOT_MODEL_ALIAS);
+        assert_eq!(event.public_model(), SNAPSHOT_PUBLIC_MODEL);
+        assert!(!event.streaming());
         Ok(())
     }
 
@@ -1928,9 +2338,9 @@ mod tests {
         let (mut sender, stream) = bounded_canonical_stream(StreamCapacity::try_new(1)?);
         let tracker = stream.control().first_semantic_event_tracker();
         sender.send(response_start()?).await?;
-        let mut body = Box::pin(super::ResponsesSseBody::new(
+        let mut body = Box::pin(super::ProtocolSseBody::new(
             stream,
-            OpenAiResponseMetadata::try_new("mock-model", 1)?,
+            OpenAiResponsesSseEncoder::new(OpenAiResponseMetadata::try_new("mock-model", 1)?),
             tracker.clone(),
         ));
         assert!(!tracker.is_committed());
