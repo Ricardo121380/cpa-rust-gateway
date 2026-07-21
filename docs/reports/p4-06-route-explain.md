@@ -4,7 +4,7 @@
 |---|---|
 | Plan version | `v1.4` |
 | Task | `P4-06` |
-| Status | `LOCAL_PASS_PENDING_CI`; local implementation, review, and complete Gate passed; GitHub Code Gate pending |
+| Status | `DONE` after this docs-only closeout; local implementation, review, complete Gate, and GitHub Code Gate passed |
 | Scope level / execution budget | `M`; `<=25min` from Task Card to code commit |
 | Task Card | `gateway-router` fixed-input Route Explain plus secret-free `gateway-upstream` pool diagnostics only; no management HTTP, SQLite, event write, exporter, body logging, real Provider request, affinity/continuity behavior, P4-08/P4-09, or P5 work |
 | References | `E15`, `E16`, `E23`, `G20`, `G21`, `L20-L26`; [ADR-0029](../adr/ADR-0029-fixed-input-route-explain.md); [BC-ROUTE-003](../contracts/BC-ROUTE-003-fixed-input-route-explain.md) |
@@ -52,14 +52,18 @@ hiding a healthy fallback.
 | Local complete Gate | `2026-07-21T18:27:05+08:00` to `2026-07-21T18:27:31+08:00` (26s); all 18 required steps passed. |
 | Repeated complete Gates | `1` necessary repeat: the first completed Gate passed in 39s, then review strengthened the test to prove both Candidate and Credential cursors remain untouched. |
 | Rework | Two direct review-correction batches: concurrent non-mutating peek fallback and Clippy's single-pattern control-flow simplification; then explicit live Candidate-cursor proof. |
-| Code commit / Code Gate / docs closeout / docs Gate | Pending immutable evidence after this code delivery and its normal GitHub workflow. |
+| Code commit | `54479b7` (`P4-06: add fixed route explain`). |
+| Code Gate | GitHub Actions [run 29822486737](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29822486737) passed: Fast, supplemental supply-chain Full, and Required delivery gate all succeeded. |
+| docs closeout / docs Gate | This is the unique docs-only closeout. Its docs Gate is the remaining acceptance record for P4-06; P4-08 stays `PENDING` until it passes. |
 
-## Remote Code Gate
+## Accepted GitHub Code Gate
 
-The normal cache-visible Code Gate will be started from this code delivery. No manual rerun will be
-issued.
+GitHub Actions [run 29822486737](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29822486737)
+accepted code commit `54479b7`. The delivery classifier selected the code path, Fast completed in
+roughly 175 seconds, supplemental supply-chain Full completed in roughly 40 seconds, and the
+Required delivery gate succeeded. Docs-only was correctly skipped. No manual rerun was issued.
 
 ## Closeout boundary
 
-After Code Gate success, one docs-only closeout will record immutable evidence and mark P4-06
-`DONE`. P4-08 remains `PENDING` until that closeout completes.
+This commit is the unique docs-only closeout recording the immutable Code Gate evidence and marking
+P4-06 `DONE`. P4-08 remains `PENDING` until this docs-only Gate succeeds.
