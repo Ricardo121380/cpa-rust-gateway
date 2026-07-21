@@ -4,15 +4,15 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.4` |
+| 计划版本 | `v1.5` |
 | 生效日期 | `2026-07-21` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot` 与 `P3 - OpenAI Responses 聚合 MVP` 已完成；`P4 - Catalog、Health、Quota、Explain、观测` 已开始其工程效率前置项 |
-| 当前任务 | `P4-00` 至 `P4-05` 与 `P4-07` 已完成验收；`P4-06` 已本地通过并等待其唯一 Code Gate，P4-08 与 P4-09 保持 `PENDING`。 |
+| 当前任务 | `P4-00` 至 `P4-05` 与 `P4-07` 已完成验收；`P4-06` 已通过 Code Gate，等待其唯一 docs-only 收口；P4-08 与 P4-09 保持 `PENDING`。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
-| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：保留质量与单 Task 开发纪律的前提下，采用缓存化 Full CI、显式 docs-only Gate、`LOCAL_PASS_PENDING_CI` 状态与单探针诊断 harness。 `CR-EXEC-002`：按缓存可见交付引用、Fast 后补充供应链 Full、单次 docs-only 收口、缓存可观测性和明确的暖态时延目标进一步缩短交付等待。 `CR-EXEC-003`：以任务卡、集中补丁、非重复验证、Gate 等待重叠、模板化证据和全程时延度量减少代理执行时间。 |
+| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：保留质量与单 Task 开发纪律的前提下，采用缓存化 Full CI、显式 docs-only Gate、`LOCAL_PASS_PENDING_CI` 状态与单探针诊断 harness。 `CR-EXEC-002`：按缓存可见交付引用、Fast 后补充供应链 Full、单次 docs-only 收口、缓存可观测性和明确的暖态时延目标进一步缩短交付等待。 `CR-EXEC-003`：以任务卡、集中补丁、非重复验证、Gate 等待重叠、模板化证据和全程时延度量减少代理执行时间。 `CR-EXEC-004`：按任务风险和不确定性路由 Luna/默认/高级模型及最低足够思考强度，避免简单任务默认占用高级模型和深度思考。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -228,6 +228,55 @@ CR-ID: CR-EXEC-003
 8. **统一时延报告。** 每个 Task 报告记录 `Task Card`、`代码提交`、`Code Gate 通过`、`docs 提交`
    和 `docs Gate 通过`五个时间点，以及范围等级、重复验证次数、返工次数和超预算原因。此数据
    用于下一 Task 纠正流程；连续两次同类超预算必须先优化执行方法，再考虑扩大并行度。
+
+### 已批准 Change Request：CR-EXEC-004
+
+```text
+CR-ID: CR-EXEC-004
+原因: 简单、确定且低风险的执行（例如已知命令的只读检查、固定格式的 docs-only 收口、明确状态
+      查询）不需要默认占用高级模型与深度思考。一次短 GitHub TLS 验证曾与后续 P4 开发混入同一
+      高强度执行回合，导致用户等待时间和实际探针耗时无法清楚区分。需要在不降低质量门禁的前提
+      下，按风险和不确定性自动选择 Luna 与最低足够的思考强度，并保持短任务的独立交付边界。
+影响的 Task / Matrix ID / ADR: 后续所有代理执行、Task Card、状态查询、docs-only 收口与报告。
+      不改变 Matrix、公开 API、Canonical 类型、Provider 协议、Schema、数据库、部署、GitHub
+      required Gate、真实 Provider 授权或既有功能验收。无需新增 ADR，因为模型路由是执行层策略。
+兼容性与迁移影响: 无客户端、数据、部署或安全迁移。Luna 的可用性由执行平台决定，仓库不伪造
+      已切换状态；平台不能提供 Luna 时，使用当前可用模型的等价低强度通道并明确记录 fallback。
+测试与回滚变化: 本次计划变更走 docs-only Gate。后续抽样检查 Task Card/状态更新是否包含执行通道、
+      思考强度和 fallback（如有）；发现简单任务被无理由提升时先纠正路由。回滚仅移除本节的模型
+      路由规则，不移除 review、Secret scan、测试、Gate、单 Task 或真实调用授权约束。
+用户批准: APPROVED，2026-07-21（要求简单任务自动切换 Luna 并按需选择思考强度）
+计划版本变更: v1.5
+```
+
+### 1.8 模型与思考强度路由（CR-EXEC-004）
+
+1. **先选执行通道，再开始工具调用。** 每个请求先按风险、不确定性、可逆性和影响面路由；既有
+   `S/M/L` 仍只表示代码范围和时延预算，不能被误当成模型等级。用户显式指定的模型或思考强度
+   始终优先于本节默认值。
+2. **简单任务默认走 Luna-fast。** 具备模型切换能力时，下列任务必须优先切至 `luna`：已知命令
+   的只读状态/版本/连通性检查、单目标且不改状态的重复采样、固定证据驱动的 docs-only 收口、
+   已确认文件中的机械索引或格式修正、以及单一 GitHub/Git 状态查询。单命令或单事实任务使用
+   `minimal`；需要合并少量固定输出、但无需架构判断时使用 `low`。不得因为任务来自既有大 Task
+   就自动升级为高级模型或深度思考。
+3. **用最低足够强度逐级升级。** 范围明确的代码改动、有限测试失败定位或需要语义判断的文档变更
+   使用当前默认模型的 `medium`。只有架构设计、跨 Crate 公开边界、并发/内存安全、安全审查、未知
+   根因排查、非可逆配置变更、真实 Provider/凭据操作，或用户明确要求深度分析时，才可使用高级
+   模型和 `high`/`xhigh`。每次升级必须在 Task Card 或首个状态更新中写明触发条件；`high`/`xhigh`
+   不是默认模式。
+4. **Luna 不可用时 fail-transparent。** 执行平台未暴露 `luna`、切换失败或任务在执行中越过
+   Luna-fast 边界时，不得悄悄以高级模型继续。应在下一条可见状态中记录 `fallback: luna unavailable`
+   或升级原因，并使用当前可用模型的 `minimal`/`low`（或在风险升级后相应强度）。任何安全、真实
+   调用或代码质量 Gate 都不能因 fallback 被跳过。
+5. **短任务独立交付。** Luna-fast 请求应先给出其自身结果；除非用户在同一条请求明确要求继续，
+   不把后续高强度开发、Gate 等待或无关排查折叠进该短任务。若外部命令超过 60 秒，先报告正在等候
+   的具体对象和已知结果；不得用未归因的墙钟时间冒充简单检查成本。
+6. **质量边界不因模型降级而变化。** 低强度通道可以减少推理和范围读取，不能省略已适用的 review、
+   Secret scan、定向测试、Full/Code/docs Gate、授权检查或最终状态核对。任务一旦需要这些边界之外
+   的判断，必须先升级通道而不是在 Luna-fast 中猜测。
+7. **记录并复盘路由效果。** 每个代码 Task 的 Task Card 记录 `执行通道`、`思考强度`、选择理由和
+   fallback（如有）；简单任务至少在首条状态更新中声明通道。每五个简单任务抽样比较“收到请求至
+   首个结果”的墙钟时长；若两次因错误路由而超过 5 分钟，先修正规则或任务切分，再增加模型强度。
 
 ## 2. Release 1 范围
 
@@ -874,3 +923,4 @@ Next task:
 | v1.2 | 2026-07-21 | `CR-EXEC-001`：缓存化受版本约束的质量工具、code/docs/tag Gate 分类、`LOCAL_PASS_PENDING_CI` 流水线、文档证据批处理、单探针诊断与真实 Provider readiness 纪律；新增 P4-00 前置项 | APPROVED；当前执行基线 |
 | v1.3 | 2026-07-21 | `CR-EXEC-002`：缓存可见 delivery ref、Fast 后补充供应链 Full、单次 docs-only 收口、cache summary 与暖态时延目标；P4-02 开始 | APPROVED；当前执行基线 |
 | v1.4 | 2026-07-21 | `CR-EXEC-003`：Task Card、S/M/L 执行预算、集中补丁、去重验证、Gate 等待重叠、证据模板与全程时延报告 | APPROVED；当前执行基线 |
+| v1.5 | 2026-07-21 | `CR-EXEC-004`：按任务风险与不确定性路由 Luna/默认/高级模型及最低足够思考强度；简单任务独立交付并透明记录 fallback | APPROVED；当前执行基线 |
