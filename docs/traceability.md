@@ -73,7 +73,7 @@
 
 | Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
 |---|---|---|---|---|---|
-| P4-00 | Plan 10；`CR-EXEC-001` | [ADR-0021](adr/ADR-0021-delivery-gate-classification-and-single-probe-diagnostic.md)、[BC-DELIVERY-001](contracts/BC-DELIVERY-001-delivery-gates-and-single-probe-diagnostic.md) | Fail-closed docs/code/tag CI classification, version-verified quality-tool cache, task-state guard, and isolated ignored one-probe diagnostic | [P4-00 报告](reports/p4-00-execution-acceleration.md) | LOCAL_PASS_PENDING_CI |
+| P4-00 | Plan 10；`CR-EXEC-001` | [ADR-0021](adr/ADR-0021-delivery-gate-classification-and-single-probe-diagnostic.md)、[BC-DELIVERY-001](contracts/BC-DELIVERY-001-delivery-gates-and-single-probe-diagnostic.md) | Fail-closed docs/code/tag CI classification, version-verified quality-tool cache, task-state guard, and isolated ignored one-probe diagnostic | [P4-00 报告](reports/p4-00-execution-acceleration.md) | DONE |
 
 ## 后续 Phase 映射
 

@@ -28,10 +28,6 @@
 - [G2 阶段门禁报告](g2-gate-report.md)
 - [G3 阶段门禁报告](g3-gate-report.md)
 
-## 待 GitHub 验收任务
-
-- [P4-00 execution acceleration report](p4-00-execution-acceleration.md)
-
 ## 已完成任务
 
 - [P1-01 Request context and errors report](p1-01-request-context-errors.md)
@@ -63,3 +59,4 @@
 - [P3-08 bounded Request, Attempt, and Usage events report](p3-08-bounded-request-attempt-usage-events.md)
 - [P3-09 controlled Mock HTTP aggregation E2E report](p3-09-controlled-mock-http-aggregation-e2e.md)
 - [P3-10 authorized real-test Endpoint validation report](p3-10-real-test-endpoint-validation.md)
+- [P4-00 execution acceleration report](p4-00-execution-acceleration.md)

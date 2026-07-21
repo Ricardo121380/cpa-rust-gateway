@@ -3,9 +3,8 @@
 - Plan version: `v1.2`
 - Task: `P4-00`
 - Date: 2026-07-21
-- Status: `LOCAL_PASS_PENDING_CI`; the corrected local review passed after the first GitHub
-  code-gate failure recorded below. GitHub acceptance plus a docs-only follow-up are required
-  before `DONE`.
+- Status: `DONE` after the corrected code Gate passed. This pure-document closeout is itself
+  submitted to prove the docs-only route; P4-01 remains unstarted until that gate passes.
 - Change Request: `CR-EXEC-001`
 - ADR / Contract: [ADR-0021](../adr/ADR-0021-delivery-gate-classification-and-single-probe-diagnostic.md),
   [BC-DELIVERY-001](../contracts/BC-DELIVERY-001-delivery-gates-and-single-probe-diagnostic.md)
@@ -60,8 +59,30 @@ an empty stdout result while the production classifier correctly wrote its outpu
 
 The correction clears only `GITHUB_OUTPUT` for the test subprocess; production classification still
 uses the GitHub output file. The corrected classifier passed with `GITHUB_OUTPUT` explicitly set,
-then Fast and Full local review passed again. P4-00 is back in `LOCAL_PASS_PENDING_CI`; a
-replacement GitHub code-gate run is required before acceptance.
+then Fast and Full local review passed again. Its replacement GitHub code-gate result is recorded
+below.
+
+## Accepted GitHub code-gate evidence
+
+GitHub Actions run [29798236173](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29798236173)
+passed for correction commit `cd22b66`.
+
+| Job / step | Result and duration |
+|---|---|
+| Classify delivery gate | PASS; selected `code` in about 4 seconds. |
+| Docs-only gate | Correctly skipped for this code change. |
+| Fast gate | PASS; job about 175 seconds, `Run fast gate` about 148 seconds. |
+| Full supply-chain gate | PASS; job about 655 seconds. |
+| Restore pinned quality-tool cache | Explicit cache miss on the new versioned key; completed in under one second. |
+| Install pinned quality tools | PASS; cold installation about 482 seconds (8m02s). |
+| Run full gate | PASS; about 142 seconds. |
+| Cache save | PASS; versioned cache saved after successful Full gate. |
+| Required delivery gate | PASS; verified the `code` path's Fast + Full results. |
+
+The cold result is consistent with the prior 463–497 second installation baseline and does not yet
+test the warm target. P4-01's later code run will restore this saved cache and is the first valid
+warm-install measurement. This closeout commit changes only Markdown, so its GitHub run must select
+and pass `Docs-only gate`; only then may P4-01 start.
 
 ## Efficiency baseline and measurement criteria
 
@@ -70,9 +91,9 @@ Recent P3 Full jobs took roughly 624–670 seconds, with pinned quality-tool ins
 cache improvement. Its measurable acceptance target is a warm Full `Install pinned quality tools`
 step of at most 90 seconds, while docs-only commits should skip Fast and Full entirely.
 
-The first P4-00 code run seeds or restores the cache; the subsequent P4-01 code run is the first
-meaningful warm-Full measurement. A status-only docs commit after P4-00 remote acceptance will
-measure the docs-only branch. Both remote results are added before final task completion.
+The first P4-00 code run seeded the cache; the subsequent P4-01 code run is the first meaningful
+warm-Full measurement. This status-only docs commit measures the docs-only branch before P4-01
+begins.
 
 ## Boundaries, rollback, and next step
 
@@ -81,6 +102,5 @@ measure the docs-only branch. Both remote results are added before final task co
 - If classification or cache verification fails, the required job fails closed and code scope stays
   on Fast + Full. The rollback is to remove the new cache/classifier/diagnostic path and restore
   the previous all-code CI sequence.
-- The implementation remains `LOCAL_PASS_PENDING_CI` until the corrected code-gate run passes.
-  Only after GitHub acceptance and the docs-only status verification can P4-00 become `DONE` and
-  unlock P4-01.
+- The code-gate portion is accepted. The docs-only status verification is the final P4-00 delivery-
+  efficiency proof; P4-01 remains blocked until it is green.
