@@ -51,3 +51,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0022 Endpoint-Credential Model Catalog discovery singleflight](ADR-0022-endpoint-credential-catalog-singleflight.md) — `P4-01`（Accepted）。
 - [ADR-0023 Cache-visible delivery and supplemental supply-chain split](ADR-0023-cache-visible-delivery-and-supply-chain-split.md) — `CR-EXEC-002` / `P4-02` delivery-flow validation（Accepted）。
 - [ADR-0024 Catalog snapshot freshness and last-success fallback](ADR-0024-catalog-snapshot-freshness-and-last-success-fallback.md) — `P4-02`（Accepted）。
+- [ADR-0025 Catalog diff Preview/Apply and removal isolation](ADR-0025-catalog-diff-preview-apply-removal-isolation.md) — `P4-03`（Accepted）。

@@ -653,6 +653,387 @@ fn checked_deadline(observed_at_ms: i64, duration_ms: i64) -> Result<i64, Catalo
         .ok_or(CatalogSnapshotError::TimestampOverflow)
 }
 
+/// Minimum number of consecutive successful discovery absences before a model may be removed.
+pub const MIN_CATALOG_SUCCESSFUL_MISSES_FOR_REMOVAL: u64 = 3;
+/// Minimum time a model must remain missing before removal is eligible.
+pub const MIN_CATALOG_REMOVAL_ISOLATION_MS: i64 = 24 * 60 * 60 * 1_000;
+
+/// One externally visible, target-local result of comparing a successful Catalog snapshot.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CatalogDiffEvent {
+    /// A source model has not appeared in the accepted target-local Catalog before.
+    Added {
+        /// Exact source-provided model identity, retaining its original case.
+        model: DiscoveredModel,
+    },
+    /// A previously accepted model was absent from a successful discovery but remains retained.
+    SuspectedRemoved {
+        /// Exact source-provided model identity.
+        model: DiscoveredModel,
+        /// Number of consecutive successful snapshots that omitted this model.
+        consecutive_successful_misses: u64,
+        /// Unix-millisecond time of the first successful absence in this sequence.
+        first_missing_at_ms: i64,
+        /// Unix-millisecond time at which time isolation for removal is satisfied.
+        removal_eligible_at_ms: i64,
+    },
+    /// A model has reached both the successful-miss and isolation requirements for removal.
+    Removed {
+        /// Exact source-provided model identity.
+        model: DiscoveredModel,
+        /// Number of consecutive successful snapshots that omitted this model.
+        consecutive_successful_misses: u64,
+        /// Unix-millisecond time of the first successful absence in this sequence.
+        first_missing_at_ms: i64,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum CatalogDiffModelState {
+    Present,
+    SuspectedRemoved {
+        consecutive_successful_misses: u64,
+        first_missing_at_ms: i64,
+        removal_eligible_at_ms: i64,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct CatalogDiffTargetState {
+    generation: u64,
+    last_snapshot_version: u64,
+    last_observed_at_ms: i64,
+    models: BTreeMap<DiscoveredModel, CatalogDiffModelState>,
+}
+
+/// Immutable, non-mutating removal plan for one exact successful Catalog snapshot.
+///
+/// A preview contains the target-local generation on which it was based. It can be inspected or
+/// discarded freely, but [`CatalogDiffRegistry::apply`] accepts it only while that generation is
+/// still current. This prevents an older preview from overwriting a later applied discovery.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CatalogDiffPreview {
+    target: ModelCatalogTarget,
+    snapshot_version: u64,
+    base_generation: u64,
+    events: Vec<CatalogDiffEvent>,
+    next_state: CatalogDiffTargetState,
+}
+
+impl CatalogDiffPreview {
+    /// Returns the exact Endpoint/Credential target represented by this plan.
+    #[must_use]
+    pub fn target(&self) -> &ModelCatalogTarget {
+        &self.target
+    }
+
+    /// Returns the successful Catalog snapshot version compared by this plan.
+    #[must_use]
+    pub const fn snapshot_version(&self) -> u64 {
+        self.snapshot_version
+    }
+
+    /// Returns stable, target-local diff events in deterministic model order.
+    #[must_use]
+    pub fn events(&self) -> &[CatalogDiffEvent] {
+        &self.events
+    }
+}
+
+/// Immutable result of applying one target-local Catalog diff preview.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CatalogDiffApplyResult {
+    target: ModelCatalogTarget,
+    snapshot_version: u64,
+    generation: u64,
+    events: Vec<CatalogDiffEvent>,
+}
+
+impl CatalogDiffApplyResult {
+    /// Returns the exact target whose diff state was atomically updated.
+    #[must_use]
+    pub fn target(&self) -> &ModelCatalogTarget {
+        &self.target
+    }
+
+    /// Returns the successful Catalog snapshot version now reflected by this registry.
+    #[must_use]
+    pub const fn snapshot_version(&self) -> u64 {
+        self.snapshot_version
+    }
+
+    /// Returns the target-local generation after this apply operation.
+    #[must_use]
+    pub const fn generation(&self) -> u64 {
+        self.generation
+    }
+
+    /// Returns the events actually applied in deterministic model order.
+    #[must_use]
+    pub fn events(&self) -> &[CatalogDiffEvent] {
+        &self.events
+    }
+}
+
+/// Process-local Preview/Apply registry for target-local Catalog removal evidence.
+///
+/// Every state key is the exact [`ModelCatalogTarget`] from P4-01/P4-02. Only callers that present
+/// a successful [`CatalogSnapshot`] may produce a preview, so a discovery failure cannot increment
+/// a missing counter or clear a retained model. Static/manual Catalog records are outside this
+/// discovery-only registry and therefore cannot be removed by it.
+pub struct CatalogDiffRegistry {
+    targets: StdMutex<BTreeMap<ModelCatalogTarget, CatalogDiffTargetState>>,
+}
+
+impl Default for CatalogDiffRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl CatalogDiffRegistry {
+    /// Creates an empty, process-local target-isolated Catalog diff registry.
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            targets: StdMutex::new(BTreeMap::new()),
+        }
+    }
+
+    /// Compares a successful snapshot without mutating retained diff state.
+    ///
+    /// The first accepted snapshot emits `Added` for each source model. Later successful snapshots
+    /// emit `SuspectedRemoved` for every consecutive absence and `Removed` only after at least
+    /// [`MIN_CATALOG_SUCCESSFUL_MISSES_FOR_REMOVAL`] successful absences plus
+    /// [`MIN_CATALOG_REMOVAL_ISOLATION_MS`] of isolation.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CatalogDiffError`] when the registry is unavailable, the supplied snapshot is not
+    /// newer than the target-local applied snapshot, its observation time regresses, or a finite
+    /// counter/deadline cannot advance safely.
+    pub fn preview(
+        &self,
+        snapshot: &CatalogSnapshot,
+    ) -> Result<CatalogDiffPreview, CatalogDiffError> {
+        let previous = self.lock_targets()?.get(snapshot.target()).cloned();
+        validate_diff_snapshot(previous.as_ref(), snapshot)?;
+        let base_generation = previous.as_ref().map_or(0, |state| state.generation);
+        let (models, events) = build_catalog_diff(previous.as_ref(), snapshot)?;
+
+        Ok(CatalogDiffPreview {
+            target: snapshot.target().clone(),
+            snapshot_version: snapshot.version(),
+            base_generation,
+            events,
+            next_state: CatalogDiffTargetState {
+                generation: base_generation,
+                last_snapshot_version: snapshot.version(),
+                last_observed_at_ms: snapshot.observed_at_ms(),
+                models,
+            },
+        })
+    }
+
+    /// Atomically applies one current preview for its exact target.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CatalogDiffError::StalePreview`] when another preview for the target has already
+    /// changed its generation. The stale plan is not partially applied.
+    pub fn apply(
+        &self,
+        preview: CatalogDiffPreview,
+    ) -> Result<CatalogDiffApplyResult, CatalogDiffError> {
+        let CatalogDiffPreview {
+            target,
+            snapshot_version,
+            base_generation,
+            events,
+            mut next_state,
+        } = preview;
+        let mut targets = self.lock_targets()?;
+        let current_generation = targets.get(&target).map_or(0, |state| state.generation);
+        if current_generation != base_generation {
+            return Err(CatalogDiffError::StalePreview);
+        }
+        let generation = current_generation
+            .checked_add(1)
+            .ok_or(CatalogDiffError::GenerationOverflow)?;
+        next_state.generation = generation;
+        targets.insert(target.clone(), next_state);
+
+        Ok(CatalogDiffApplyResult {
+            target,
+            snapshot_version,
+            generation,
+            events,
+        })
+    }
+
+    fn lock_targets(
+        &self,
+    ) -> Result<
+        MutexGuard<'_, BTreeMap<ModelCatalogTarget, CatalogDiffTargetState>>,
+        CatalogDiffError,
+    > {
+        self.targets
+            .lock()
+            .map_err(|_| CatalogDiffError::RegistryLockPoisoned)
+    }
+}
+
+/// Safe Preview/Apply failures for discovery-backed Catalog diffs.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CatalogDiffError {
+    /// The incoming successful snapshot version was not strictly newer than the applied version.
+    SnapshotVersionNotNewer,
+    /// The incoming successful snapshot observation time regressed for this exact target.
+    SnapshotObservedAtNotMonotonic,
+    /// Another preview was applied after this preview was created.
+    StalePreview,
+    /// The finite target-local apply generation cannot advance safely.
+    GenerationOverflow,
+    /// A finite missing-count counter cannot advance safely.
+    ConsecutiveMissingOverflow,
+    /// The 24-hour removal-isolation deadline cannot be represented safely.
+    RemovalDeadlineOverflow,
+    /// The process-local diff registry was poisoned by a prior panic and fails closed.
+    RegistryLockPoisoned,
+}
+
+impl fmt::Display for CatalogDiffError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let message = match self {
+            Self::SnapshotVersionNotNewer => {
+                "Catalog diff snapshot version is not newer than the applied snapshot"
+            }
+            Self::SnapshotObservedAtNotMonotonic => {
+                "Catalog diff snapshot observation time regressed"
+            }
+            Self::StalePreview => "Catalog diff preview is stale",
+            Self::GenerationOverflow => "Catalog diff generation cannot advance safely",
+            Self::ConsecutiveMissingOverflow => {
+                "Catalog diff consecutive-missing counter cannot advance safely"
+            }
+            Self::RemovalDeadlineOverflow => {
+                "Catalog diff removal-isolation deadline cannot be represented safely"
+            }
+            Self::RegistryLockPoisoned => "Catalog diff registry is unavailable",
+        };
+        formatter.write_str(message)
+    }
+}
+
+impl Error for CatalogDiffError {}
+
+fn validate_diff_snapshot(
+    previous: Option<&CatalogDiffTargetState>,
+    snapshot: &CatalogSnapshot,
+) -> Result<(), CatalogDiffError> {
+    if let Some(previous) = previous {
+        if snapshot.version() <= previous.last_snapshot_version {
+            return Err(CatalogDiffError::SnapshotVersionNotNewer);
+        }
+        if snapshot.observed_at_ms() < previous.last_observed_at_ms {
+            return Err(CatalogDiffError::SnapshotObservedAtNotMonotonic);
+        }
+    }
+    Ok(())
+}
+
+fn build_catalog_diff(
+    previous: Option<&CatalogDiffTargetState>,
+    snapshot: &CatalogSnapshot,
+) -> Result<
+    (
+        BTreeMap<DiscoveredModel, CatalogDiffModelState>,
+        Vec<CatalogDiffEvent>,
+    ),
+    CatalogDiffError,
+> {
+    let source_models = snapshot.models().iter().cloned().collect::<BTreeSet<_>>();
+    let mut models = previous.map_or_else(BTreeMap::new, |state| state.models.clone());
+    let mut events = Vec::new();
+
+    for model in &source_models {
+        if models
+            .insert(model.clone(), CatalogDiffModelState::Present)
+            .is_none()
+        {
+            events.push(CatalogDiffEvent::Added {
+                model: model.clone(),
+            });
+        }
+    }
+
+    if let Some(previous) = previous {
+        for (model, state) in &previous.models {
+            if source_models.contains(model) {
+                continue;
+            }
+            match state {
+                CatalogDiffModelState::Present => {
+                    let first_missing_at_ms = snapshot.observed_at_ms();
+                    let removal_eligible_at_ms = first_missing_at_ms
+                        .checked_add(MIN_CATALOG_REMOVAL_ISOLATION_MS)
+                        .ok_or(CatalogDiffError::RemovalDeadlineOverflow)?;
+                    models.insert(
+                        model.clone(),
+                        CatalogDiffModelState::SuspectedRemoved {
+                            consecutive_successful_misses: 1,
+                            first_missing_at_ms,
+                            removal_eligible_at_ms,
+                        },
+                    );
+                    events.push(CatalogDiffEvent::SuspectedRemoved {
+                        model: model.clone(),
+                        consecutive_successful_misses: 1,
+                        first_missing_at_ms,
+                        removal_eligible_at_ms,
+                    });
+                }
+                CatalogDiffModelState::SuspectedRemoved {
+                    consecutive_successful_misses,
+                    first_missing_at_ms,
+                    removal_eligible_at_ms,
+                } => {
+                    let next_misses = consecutive_successful_misses
+                        .checked_add(1)
+                        .ok_or(CatalogDiffError::ConsecutiveMissingOverflow)?;
+                    if next_misses >= MIN_CATALOG_SUCCESSFUL_MISSES_FOR_REMOVAL
+                        && snapshot.observed_at_ms() >= *removal_eligible_at_ms
+                    {
+                        models.remove(model);
+                        events.push(CatalogDiffEvent::Removed {
+                            model: model.clone(),
+                            consecutive_successful_misses: next_misses,
+                            first_missing_at_ms: *first_missing_at_ms,
+                        });
+                    } else {
+                        models.insert(
+                            model.clone(),
+                            CatalogDiffModelState::SuspectedRemoved {
+                                consecutive_successful_misses: next_misses,
+                                first_missing_at_ms: *first_missing_at_ms,
+                                removal_eligible_at_ms: *removal_eligible_at_ms,
+                            },
+                        );
+                        events.push(CatalogDiffEvent::SuspectedRemoved {
+                            model: model.clone(),
+                            consecutive_successful_misses: next_misses,
+                            first_missing_at_ms: *first_missing_at_ms,
+                            removal_eligible_at_ms: *removal_eligible_at_ms,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    Ok((models, events))
+}
+
 /// One semantic capability relevant to public-model Route compilation.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum SemanticCapability {
@@ -964,12 +1345,13 @@ mod tests {
     };
 
     use super::{
-        CapabilitySet, CatalogFreshnessPolicy, CatalogModelEntry, CatalogModelState,
+        CapabilitySet, CatalogDiffError, CatalogDiffEvent, CatalogDiffRegistry,
+        CatalogFreshnessPolicy, CatalogModelEntry, CatalogModelState, CatalogSnapshot,
         CatalogSnapshotError, CatalogSnapshotFreshness, CatalogSnapshotStore, CatalogView,
         CatalogViewError, DEFAULT_CATALOG_EXPIRES_AFTER_MS, DEFAULT_CATALOG_FRESH_FOR_MS,
         DEFAULT_CATALOG_REFRESH_DUE_AFTER_MS, DiscoveredModel, EndpointCapabilityEntry,
-        EndpointCapabilityView, ModelCatalogScheduler, ModelCatalogSource, ModelCatalogTarget,
-        SemanticCapability,
+        EndpointCapabilityView, MIN_CATALOG_REMOVAL_ISOLATION_MS, ModelCatalogScheduler,
+        ModelCatalogSource, ModelCatalogTarget, SemanticCapability,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -1088,6 +1470,19 @@ mod tests {
             .iter()
             .map(|name| DiscoveredModel::try_new(*name).map_err(Into::into))
             .collect()
+    }
+
+    fn successful_snapshot(
+        store: &CatalogSnapshotStore,
+        catalog_target: &ModelCatalogTarget,
+        names: &[&str],
+        observed_at_ms: i64,
+    ) -> Result<CatalogSnapshot, Box<dyn Error>> {
+        Ok(store.record_success(
+            catalog_target.clone(),
+            discovered_models(names)?,
+            observed_at_ms,
+        )?)
     }
 
     async fn wait_for_receiver_count(
@@ -1523,6 +1918,164 @@ mod tests {
             Err(CatalogSnapshotError::TimestampNotMonotonic)
         );
         assert_eq!(store.last_success(&catalog_target)?, Some(retained));
+        Ok(())
+    }
+
+    #[test]
+    fn catalog_diff_preview_is_non_mutating_and_apply_rejects_a_stale_plan() -> TestResult {
+        let snapshots = CatalogSnapshotStore::default();
+        let diffs = CatalogDiffRegistry::new();
+        let catalog_target = target("credential-a")?;
+        let snapshot =
+            successful_snapshot(&snapshots, &catalog_target, &["model-b", "model-a"], 100)?;
+
+        let preview = diffs.preview(&snapshot)?;
+        assert_eq!(preview.target(), &catalog_target);
+        assert_eq!(preview.snapshot_version(), 1);
+        assert_eq!(
+            preview.events(),
+            &[
+                CatalogDiffEvent::Added {
+                    model: DiscoveredModel::try_new("model-a")?,
+                },
+                CatalogDiffEvent::Added {
+                    model: DiscoveredModel::try_new("model-b")?,
+                },
+            ]
+        );
+
+        let equivalent_preview = diffs.preview(&snapshot)?;
+        assert_eq!(equivalent_preview, preview);
+        let stale_preview = preview.clone();
+        let applied = diffs.apply(preview)?;
+        assert_eq!(applied.generation(), 1);
+        assert_eq!(applied.snapshot_version(), 1);
+        assert_eq!(applied.events(), stale_preview.events());
+        assert_eq!(
+            diffs.apply(stale_preview),
+            Err(CatalogDiffError::StalePreview)
+        );
+        assert_eq!(
+            diffs.preview(&snapshot),
+            Err(CatalogDiffError::SnapshotVersionNotNewer)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn catalog_diff_removes_only_after_three_successful_misses_and_24h() -> TestResult {
+        let snapshots = CatalogSnapshotStore::default();
+        let diffs = CatalogDiffRegistry::new();
+        let catalog_target = target("credential-a")?;
+        let initial = successful_snapshot(&snapshots, &catalog_target, &["model-a"], 100)?;
+        diffs.apply(diffs.preview(&initial)?)?;
+
+        let first_missing_at_ms = 1_000;
+        let first = successful_snapshot(&snapshots, &catalog_target, &[], first_missing_at_ms)?;
+        let first_preview = diffs.preview(&first)?;
+        assert_eq!(
+            first_preview.events(),
+            &[CatalogDiffEvent::SuspectedRemoved {
+                model: DiscoveredModel::try_new("model-a")?,
+                consecutive_successful_misses: 1,
+                first_missing_at_ms,
+                removal_eligible_at_ms: first_missing_at_ms + MIN_CATALOG_REMOVAL_ISOLATION_MS,
+            }]
+        );
+        diffs.apply(first_preview)?;
+
+        let second =
+            successful_snapshot(&snapshots, &catalog_target, &[], first_missing_at_ms + 1)?;
+        let second_preview = diffs.preview(&second)?;
+        assert!(matches!(
+            second_preview.events(),
+            [CatalogDiffEvent::SuspectedRemoved {
+                consecutive_successful_misses: 2,
+                ..
+            }]
+        ));
+        diffs.apply(second_preview)?;
+
+        let removal_at_ms = first_missing_at_ms + MIN_CATALOG_REMOVAL_ISOLATION_MS;
+        let third = successful_snapshot(&snapshots, &catalog_target, &[], removal_at_ms)?;
+        let third_preview = diffs.preview(&third)?;
+        assert_eq!(
+            third_preview.events(),
+            &[CatalogDiffEvent::Removed {
+                model: DiscoveredModel::try_new("model-a")?,
+                consecutive_successful_misses: 3,
+                first_missing_at_ms,
+            }]
+        );
+        diffs.apply(third_preview)?;
+
+        let reappeared =
+            successful_snapshot(&snapshots, &catalog_target, &["model-a"], removal_at_ms + 1)?;
+        let reappeared_preview = diffs.preview(&reappeared)?;
+        assert_eq!(
+            reappeared_preview.events(),
+            &[CatalogDiffEvent::Added {
+                model: DiscoveredModel::try_new("model-a")?,
+            }]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn catalog_diff_reappearance_resets_a_suspected_removal_sequence() -> TestResult {
+        let snapshots = CatalogSnapshotStore::default();
+        let diffs = CatalogDiffRegistry::new();
+        let catalog_target = target("credential-a")?;
+        let initial = successful_snapshot(&snapshots, &catalog_target, &["model-a"], 100)?;
+        diffs.apply(diffs.preview(&initial)?)?;
+
+        let first_missing = successful_snapshot(&snapshots, &catalog_target, &[], 1_000)?;
+        diffs.apply(diffs.preview(&first_missing)?)?;
+
+        let reappeared = successful_snapshot(&snapshots, &catalog_target, &["model-a"], 1_001)?;
+        let reappeared_preview = diffs.preview(&reappeared)?;
+        assert!(reappeared_preview.events().is_empty());
+        diffs.apply(reappeared_preview)?;
+
+        let missing_again = successful_snapshot(&snapshots, &catalog_target, &[], 1_002)?;
+        let missing_again_preview = diffs.preview(&missing_again)?;
+        assert!(matches!(
+            missing_again_preview.events(),
+            [CatalogDiffEvent::SuspectedRemoved {
+                consecutive_successful_misses: 1,
+                ..
+            }]
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn catalog_diff_never_mixes_same_endpoint_credential_targets() -> TestResult {
+        let snapshots = CatalogSnapshotStore::default();
+        let diffs = CatalogDiffRegistry::new();
+        let first_target = target("credential-a")?;
+        let second_target = target("credential-b")?;
+
+        let first_initial = successful_snapshot(&snapshots, &first_target, &["model-a"], 100)?;
+        let second_initial = successful_snapshot(&snapshots, &second_target, &["model-b"], 100)?;
+        diffs.apply(diffs.preview(&first_initial)?)?;
+        diffs.apply(diffs.preview(&second_initial)?)?;
+
+        let first_missing = successful_snapshot(&snapshots, &first_target, &[], 1_000)?;
+        let first_preview = diffs.preview(&first_missing)?;
+        assert!(matches!(
+            first_preview.events(),
+            [CatalogDiffEvent::SuspectedRemoved {
+                model,
+                consecutive_successful_misses: 1,
+                ..
+            }] if model.upstream_model() == "model-a"
+        ));
+
+        let second_unchanged =
+            successful_snapshot(&snapshots, &second_target, &["model-b"], 1_000)?;
+        let second_preview = diffs.preview(&second_unchanged)?;
+        assert!(second_preview.events().is_empty());
         Ok(())
     }
 }
