@@ -67,4 +67,5 @@ P5-00 已建立 [BC-DELIVERY-003 Phase-level delivery and default-ref cache](BC-
 P5-01 已建立 [BC-PROTOCOL-002 Anthropic Messages adapter](BC-PROTOCOL-002-anthropic-messages-adapter.md)。
 P5-02 已建立 [BC-PROTOCOL-003 Exact token-count capability](BC-PROTOCOL-003-exact-token-count-capability.md)。
 P5-03 已建立 [BC-PROTOCOL-004 Anthropic Tool stream state](BC-PROTOCOL-004-anthropic-tool-stream-state.md)。
+P5-04 已建立 [BC-ROUTER-004 Protocol transform admission](BC-ROUTER-004-protocol-transform-admission.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。
