@@ -1,0 +1,54 @@
+{
+  "model": "gateway-claude",
+  "max_tokens": 128,
+  "system": [
+    {
+      "type": "text",
+      "text": "Follow the tool policy.",
+      "cache_control": {"type": "ephemeral"}
+    }
+  ],
+  "messages": [
+    {"role": "user", "content": "secret prompt"},
+    {
+      "role": "assistant",
+      "content": [
+        {"type": "text", "text": "Checking."},
+        {
+          "type": "tool_use",
+          "id": "call-01",
+          "name": "lookup",
+          "input": {"query": "weather"},
+          "vendor": {"safe": true}
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "call-01",
+          "content": {"forecast": "clear"},
+          "is_error": false
+        },
+        {"type": "text", "text": "Continue."}
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "name": "lookup",
+      "description": "Look up a value.",
+      "input_schema": {
+        "type": "object",
+        "properties": {"query": {"type": "string"}},
+        "required": ["query"]
+      },
+      "cache_control": {"type": "ephemeral"}
+    }
+  ],
+  "stream": true,
+  "metadata": {"user_id": "test-user"},
+  "temperature": 0
+}

@@ -60,3 +60,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0031 Default-deny log redaction and bounded body sampling](ADR-0031-default-deny-log-redaction-and-body-sampling.md) — `P4-09`（Accepted）。
 - [ADR-0032 Read-only runtime management status and Credential-account recovery](ADR-0032-read-only-runtime-management-status.md) — `P4-10`（Accepted）。
 - [ADR-0033 Phase-level delivery and default-ref quality-tool cache](ADR-0033-phase-level-delivery-and-default-ref-cache.md) — `P5-00`（Accepted）。
+- [ADR-0034 Anthropic Messages pure codec boundary](ADR-0034-anthropic-messages-pure-codec.md) — `P5-01`（Accepted）。

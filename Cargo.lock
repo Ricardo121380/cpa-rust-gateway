@@ -1393,6 +1393,8 @@ version = "0.1.0"
 dependencies = [
  "gateway-core",
  "gateway-protocol",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

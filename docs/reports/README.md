@@ -72,3 +72,4 @@
 - [P4-09 Default-deny log redaction and bounded Body sampling report](p4-09-log-redaction-body-sampling.md)
 - [P4-10 Read-only runtime management status and controlled Credential-account recovery report](p4-10-read-only-runtime-management-status.md)
 - [P5-00 Phase-level delivery and default-ref cache report](p5-00-phase-level-delivery.md)
+- [P5-01 Anthropic Messages adapter report](p5-01-anthropic-messages-adapter.md)
