@@ -42,12 +42,15 @@ is valid.
 | `ruby scripts/check-crate-boundaries.rb` | PASS; `proptest` is test-only and explicitly allowlisted for `protocol-anthropic` |
 | `git diff --check` | PASS |
 | `CHECK_REPORT_PATH=tmp/p5-03-fast-check.md ./scripts/check.sh fast` | PASS; workspace format/Clippy/tests, plan and CI guards, source/crate policies, links, Secret scans, and whitespace passed |
+| `CHECK_REPORT_PATH=tmp/p5-03-serial-full-check.md ./scripts/check.sh full` | PASS after the SSE serialization review correction; workspace tests, format/Clippy, source/crate policy, links, tracked Secret scan, pinned-tool checks, `cargo deny`, and RustSec audit all passed. |
 
-Review found and corrected three narrow issues before this evidence: the Tool encoder now rejects
+Review found and corrected four narrow issues before this evidence: the Tool encoder now rejects
 non-object JSON input, whitespace-wrapped empty objects normalize to `{}` without a redundant
-input delta, and an empty decoded fragment is ignored rather than creating a false final mismatch.
-The final review found no global Tool accumulator, no ID remapping, no implicit JSON completion,
-no request-schema fabrication, and no HTTP/Provider dependency.
+input delta, an empty decoded fragment is ignored rather than creating a false final mismatch, and
+interleaved Canonical Tool states are buffered into non-overlapping Anthropic wire block lifecycles.
+The fixed-seed property suite now also proves that every SSE delta/stop targets the one active
+content block. The final review found no global Tool accumulator, no ID remapping, no implicit JSON
+completion, no request-schema fabrication, and no HTTP/Provider dependency.
 
 ## Known limits, rollback, and next Task
 

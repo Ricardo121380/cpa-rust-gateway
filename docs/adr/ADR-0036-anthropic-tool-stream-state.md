@@ -25,9 +25,11 @@ the response's JSON-object boundary but cannot decide whether a named required p
    by Canonical `call_id`. Each state owns its stable Anthropic block index, accumulated decoded
    `partial_json`, and completion flag. Empty decoded delta fragments are no semantic input and
    are ignored. The `call_id` becomes the public `tool_use.id` unchanged.
-2. A Tool start closes an active text block, emits one `content_block_start` with `input: {}`, and
-   reserves its index. Multiple Tool states may subsequently receive deltas in arbitrary
-   interleaving while retaining their own index and accumulator.
+2. A Tool start closes an active text block in the logical content projection and reserves its
+   index. Multiple Tool states may subsequently receive deltas in arbitrary interleaving while
+   retaining their own index and accumulator. The Anthropic wire layer emits one active
+   `content_block_start` at a time; later logical blocks buffer until every earlier block has
+   emitted its matching stop, then replay their preserved per-Tool decoded fragment sequence.
 3. A Tool end normalizes an empty or whitespace-wrapped empty JSON object to `{}`, requires the
    non-empty accumulated fragments (when present) to match that normalized complete input, parses it, and
    accepts only a JSON object. Non-empty complete input that had no delta is emitted as one final
@@ -48,6 +50,8 @@ the response's JSON-object boundary but cannot decide whether a named required p
 
 - Parallel Tool argument fragments remain isolated and their public IDs remain stable across both
   non-streaming and SSE responses.
+- Canonical interleaving never produces overlapping Anthropic wire block lifecycles; buffering
+  changes only frame timing, not per-Tool final inputs, IDs, names, order, or stop reason.
 - Explicit no-argument Tool Calls such as `EnterPlanMode` and `ExitPlanMode` result in exactly
   `{}` without a fabricated argument-delta frame.
 - The protocol boundary detects an upstream reconstruction disagreement before it emits a terminal

@@ -13,9 +13,6 @@ data: {"index":0,"type":"content_block_stop"}
 event: content_block_start
 data: {"content_block":{"id":"tool-weather","input":{},"name":"lookup_weather","type":"tool_use"},"index":1,"type":"content_block_start"}
 
-event: content_block_start
-data: {"content_block":{"id":"tool-enter-plan","input":{},"name":"EnterPlanMode","type":"tool_use"},"index":2,"type":"content_block_start"}
-
 event: content_block_delta
 data: {"delta":{"partial_json":"{\"city\":","type":"input_json_delta"},"index":1,"type":"content_block_delta"}
 
@@ -24,6 +21,9 @@ data: {"delta":{"partial_json":"\"Jakarta\"}","type":"input_json_delta"},"index"
 
 event: content_block_stop
 data: {"index":1,"type":"content_block_stop"}
+
+event: content_block_start
+data: {"content_block":{"id":"tool-enter-plan","input":{},"name":"EnterPlanMode","type":"tool_use"},"index":2,"type":"content_block_start"}
 
 event: content_block_stop
 data: {"index":2,"type":"content_block_stop"}

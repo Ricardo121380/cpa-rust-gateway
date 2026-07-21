@@ -194,6 +194,8 @@ struct Assembly {
     message: MessagePhase,
     content: Vec<ContentBlock>,
     active_text_index: Option<usize>,
+    next_sse_index: usize,
+    active_sse_index: Option<usize>,
     tools: BTreeMap<String, ToolState>,
     usage: Option<Usage>,
     terminal: TerminalPhase,
@@ -202,6 +204,9 @@ struct Assembly {
 enum ContentBlock {
     Text {
         text: String,
+        deltas: Vec<String>,
+        emitted_deltas: usize,
+        closed: bool,
     },
     Tool {
         call_id: String,
@@ -213,7 +218,7 @@ enum ContentBlock {
 impl ContentBlock {
     fn completed_value(&self) -> Result<Value, GatewayError> {
         match self {
-            Self::Text { text } => Ok(json!({"type": "text", "text": text})),
+            Self::Text { text, .. } => Ok(json!({"type": "text", "text": text})),
             Self::Tool {
                 call_id,
                 name,
@@ -233,6 +238,8 @@ impl ContentBlock {
 struct ToolState {
     content_index: usize,
     partial_json: String,
+    argument_deltas: Vec<String>,
+    emitted_deltas: usize,
     saw_arguments_delta: bool,
     completed: bool,
 }
@@ -326,39 +333,32 @@ impl Assembly {
         if !matches!(self.message, MessagePhase::Started | MessagePhase::Content) {
             return Err(stream_protocol_error());
         }
-        let mut frames = Vec::new();
         let index = if let Some(index) = self.active_text_index {
             index
         } else {
             let index = self.content.len();
             self.content.push(ContentBlock::Text {
                 text: String::new(),
+                deltas: Vec::new(),
+                emitted_deltas: 0,
+                closed: false,
             });
             self.active_text_index = Some(index);
             self.message = MessagePhase::Content;
-            frames.push(frame(
-                "content_block_start",
-                json!({
-                    "type": "content_block_start",
-                    "index": index,
-                    "content_block": {"type": "text", "text": ""}
-                }),
-            ));
             index
         };
         match self.content.get_mut(index) {
-            Some(ContentBlock::Text { text: accumulated }) => accumulated.push_str(text),
+            Some(ContentBlock::Text {
+                text: accumulated,
+                deltas,
+                ..
+            }) => {
+                accumulated.push_str(text);
+                deltas.push(text.to_owned());
+            }
             Some(ContentBlock::Tool { .. }) | None => return Err(stream_protocol_error()),
         }
-        frames.push(frame(
-            "content_block_delta",
-            json!({
-                "type": "content_block_delta",
-                "index": index,
-                "delta": {"type": "text_delta", "text": text}
-            }),
-        ));
-        Ok(frames)
+        self.flush_serialized_blocks()
     }
 
     fn start_tool(&mut self, call_id: &str, name: &str) -> Result<Vec<SseFrame>, GatewayError> {
@@ -367,7 +367,7 @@ impl Assembly {
         {
             return Err(stream_protocol_error());
         }
-        let mut frames = self.close_active_text_block()?;
+        self.close_active_text_block()?;
         let index = self.content.len();
         self.content.push(ContentBlock::Tool {
             call_id: call_id.to_owned(),
@@ -379,25 +379,14 @@ impl Assembly {
             ToolState {
                 content_index: index,
                 partial_json: String::new(),
+                argument_deltas: Vec::new(),
+                emitted_deltas: 0,
                 saw_arguments_delta: false,
                 completed: false,
             },
         );
         self.message = MessagePhase::Content;
-        frames.push(frame(
-            "content_block_start",
-            json!({
-                "type": "content_block_start",
-                "index": index,
-                "content_block": {
-                    "type": "tool_use",
-                    "id": call_id,
-                    "name": name,
-                    "input": {}
-                }
-            }),
-        ));
-        Ok(frames)
+        self.flush_serialized_blocks()
     }
 
     fn append_tool_arguments(
@@ -417,14 +406,8 @@ impl Assembly {
         }
         tool.saw_arguments_delta = true;
         tool.partial_json.push_str(delta);
-        Ok(vec![frame(
-            "content_block_delta",
-            json!({
-                "type": "content_block_delta",
-                "index": tool.content_index,
-                "delta": {"type": "input_json_delta", "partial_json": delta}
-            }),
-        )])
+        tool.argument_deltas.push(delta.to_owned());
+        self.flush_serialized_blocks()
     }
 
     fn finish_tool(
@@ -463,36 +446,21 @@ impl Assembly {
             .get_mut(call_id)
             .ok_or_else(stream_protocol_error)?;
         completed.completed = true;
-
-        let mut frames = Vec::new();
         if !tool.saw_arguments_delta && arguments != "{}" {
-            frames.push(frame(
-                "content_block_delta",
-                json!({
-                    "type": "content_block_delta",
-                    "index": tool.content_index,
-                    "delta": {"type": "input_json_delta", "partial_json": arguments}
-                }),
-            ));
+            completed.argument_deltas.push(arguments);
         }
-        frames.push(frame(
-            "content_block_stop",
-            json!({"type": "content_block_stop", "index": tool.content_index}),
-        ));
-        Ok(frames)
+        self.flush_serialized_blocks()
     }
 
-    fn close_active_text_block(&mut self) -> Result<Vec<SseFrame>, GatewayError> {
+    fn close_active_text_block(&mut self) -> Result<(), GatewayError> {
         let Some(index) = self.active_text_index.take() else {
-            return Ok(Vec::new());
+            return Ok(());
         };
-        if !matches!(self.content.get(index), Some(ContentBlock::Text { .. })) {
-            return Err(stream_protocol_error());
+        match self.content.get_mut(index) {
+            Some(ContentBlock::Text { closed, .. }) => *closed = true,
+            Some(ContentBlock::Tool { .. }) | None => return Err(stream_protocol_error()),
         }
-        Ok(vec![frame(
-            "content_block_stop",
-            json!({"type": "content_block_stop", "index": index}),
-        )])
+        Ok(())
     }
 
     fn end_message(&mut self) -> Result<Vec<SseFrame>, GatewayError> {
@@ -502,9 +470,184 @@ impl Assembly {
         if self.tools.values().any(|tool| !tool.completed) {
             return Err(stream_protocol_error());
         }
-        let frames = self.close_active_text_block()?;
+        self.close_active_text_block()?;
+        let frames = self.flush_serialized_blocks()?;
+        if self.active_sse_index.is_some() || self.next_sse_index != self.content.len() {
+            return Err(stream_protocol_error());
+        }
         self.message = MessagePhase::Ended;
         Ok(frames)
+    }
+
+    /// Serializes logical Canonical content blocks in Anthropic's non-overlapping wire order.
+    ///
+    /// Canonical Tool argument events may be interleaved, while Anthropic requires one started
+    /// content block to stop before the following block starts. The encoder therefore retains
+    /// later Tool/Text fragments until every earlier logical block has closed, then flushes their
+    /// original per-Tool fragment sequence under the preallocated stable index.
+    fn flush_serialized_blocks(&mut self) -> Result<Vec<SseFrame>, GatewayError> {
+        let mut frames = Vec::new();
+
+        loop {
+            let Some(index) = self.active_sse_index else {
+                if self.next_sse_index == self.content.len() {
+                    break;
+                }
+                self.start_next_sse_block(&mut frames)?;
+                continue;
+            };
+
+            if index != self.next_sse_index {
+                return Err(stream_protocol_error());
+            }
+
+            let ready_to_close = match self.content.get(index) {
+                Some(ContentBlock::Text { .. }) => {
+                    self.flush_active_text_block(index, &mut frames)?
+                }
+                Some(ContentBlock::Tool { .. }) => {
+                    self.flush_active_tool_block(index, &mut frames)?
+                }
+                None => return Err(stream_protocol_error()),
+            };
+            if !ready_to_close {
+                break;
+            }
+            self.stop_active_sse_block(index, &mut frames)?;
+        }
+
+        Ok(frames)
+    }
+
+    fn start_next_sse_block(&mut self, frames: &mut Vec<SseFrame>) -> Result<(), GatewayError> {
+        let index = self.next_sse_index;
+        match self.content.get(index) {
+            Some(ContentBlock::Text { .. }) => frames.push(frame(
+                "content_block_start",
+                json!({
+                    "type": "content_block_start",
+                    "index": index,
+                    "content_block": {"type": "text", "text": ""}
+                }),
+            )),
+            Some(ContentBlock::Tool { call_id, name, .. }) => frames.push(frame(
+                "content_block_start",
+                json!({
+                    "type": "content_block_start",
+                    "index": index,
+                    "content_block": {
+                        "type": "tool_use",
+                        "id": call_id,
+                        "name": name,
+                        "input": {}
+                    }
+                }),
+            )),
+            None => return Err(stream_protocol_error()),
+        }
+        self.active_sse_index = Some(index);
+        Ok(())
+    }
+
+    fn flush_active_text_block(
+        &mut self,
+        index: usize,
+        frames: &mut Vec<SseFrame>,
+    ) -> Result<bool, GatewayError> {
+        let (pending, closed) = match self.content.get(index) {
+            Some(ContentBlock::Text {
+                deltas,
+                emitted_deltas,
+                closed,
+                ..
+            }) => (deltas[*emitted_deltas..].to_vec(), *closed),
+            Some(ContentBlock::Tool { .. }) | None => return Err(stream_protocol_error()),
+        };
+        for delta in &pending {
+            frames.push(frame(
+                "content_block_delta",
+                json!({
+                    "type": "content_block_delta",
+                    "index": index,
+                    "delta": {"type": "text_delta", "text": delta}
+                }),
+            ));
+        }
+        if !pending.is_empty() {
+            match self.content.get_mut(index) {
+                Some(ContentBlock::Text { emitted_deltas, .. }) => {
+                    *emitted_deltas = emitted_deltas
+                        .checked_add(pending.len())
+                        .ok_or_else(stream_protocol_error)?;
+                }
+                Some(ContentBlock::Tool { .. }) | None => return Err(stream_protocol_error()),
+            }
+        }
+        Ok(closed)
+    }
+
+    fn flush_active_tool_block(
+        &mut self,
+        index: usize,
+        frames: &mut Vec<SseFrame>,
+    ) -> Result<bool, GatewayError> {
+        let call_id = match self.content.get(index) {
+            Some(ContentBlock::Tool { call_id, .. }) => call_id.clone(),
+            Some(ContentBlock::Text { .. }) | None => return Err(stream_protocol_error()),
+        };
+        let (pending, completed) = {
+            let tool = self.tools.get(&call_id).ok_or_else(stream_protocol_error)?;
+            (
+                tool.argument_deltas[tool.emitted_deltas..].to_vec(),
+                tool.completed,
+            )
+        };
+        for delta in &pending {
+            frames.push(frame(
+                "content_block_delta",
+                json!({
+                    "type": "content_block_delta",
+                    "index": index,
+                    "delta": {"type": "input_json_delta", "partial_json": delta}
+                }),
+            ));
+        }
+        if !pending.is_empty() {
+            let tool = self
+                .tools
+                .get_mut(&call_id)
+                .ok_or_else(stream_protocol_error)?;
+            tool.emitted_deltas = tool
+                .emitted_deltas
+                .checked_add(pending.len())
+                .ok_or_else(stream_protocol_error)?;
+        }
+        if completed
+            && !matches!(
+                self.content.get(index),
+                Some(ContentBlock::Tool { input: Some(_), .. })
+            )
+        {
+            return Err(stream_protocol_error());
+        }
+        Ok(completed)
+    }
+
+    fn stop_active_sse_block(
+        &mut self,
+        index: usize,
+        frames: &mut Vec<SseFrame>,
+    ) -> Result<(), GatewayError> {
+        frames.push(frame(
+            "content_block_stop",
+            json!({"type": "content_block_stop", "index": index}),
+        ));
+        self.active_sse_index = None;
+        self.next_sse_index = self
+            .next_sse_index
+            .checked_add(1)
+            .ok_or_else(stream_protocol_error)?;
+        Ok(())
     }
 
     fn end_response(&mut self) -> Result<Vec<SseFrame>, GatewayError> {

@@ -531,6 +531,7 @@ fn verify_projection(
 
     let output = output_projection(&non_streaming)?;
     let sse = sse_projection(&frames)?;
+    assert_non_overlapping_content_blocks(&frames)?;
     ensure(
         output.len() == EXPECTED_TOOLS.len(),
         "unexpected non-streaming Tool output count",
@@ -613,6 +614,43 @@ fn verify_projection(
     }
 
     Ok(())
+}
+
+fn assert_non_overlapping_content_blocks(frames: &[SseFrame]) -> TestResult {
+    let mut active_index = None;
+
+    for frame in frames {
+        match frame.event() {
+            "content_block_start" => {
+                ensure(
+                    active_index.is_none(),
+                    "Anthropic SSE started a content block before stopping the previous block",
+                )?;
+                active_index = Some(index_field(frame.data())?);
+            }
+            "content_block_delta" => {
+                let index = index_field(frame.data())?;
+                ensure(
+                    active_index == Some(index),
+                    "Anthropic SSE delta targeted a non-active content block",
+                )?;
+            }
+            "content_block_stop" => {
+                let index = index_field(frame.data())?;
+                ensure(
+                    active_index == Some(index),
+                    "Anthropic SSE stopped a non-active content block",
+                )?;
+                active_index = None;
+            }
+            _ => {}
+        }
+    }
+
+    ensure(
+        active_index.is_none(),
+        "Anthropic SSE ended with an open content block",
+    )
 }
 
 fn output_projection(response: &Value) -> Result<BTreeMap<String, ToolProjection>, Box<dyn Error>> {
