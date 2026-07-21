@@ -70,4 +70,5 @@ P5-03 已建立 [BC-PROTOCOL-004 Anthropic Tool stream state](BC-PROTOCOL-004-an
 P5-04 已建立 [BC-ROUTER-004 Protocol transform admission](BC-ROUTER-004-protocol-transform-admission.md)。
 P5-05 已建立 [BC-ROUTER-005 Endpoint-format-isolated protocol routing](BC-ROUTER-005-endpoint-format-isolated-protocol-routing.md)。
 P5-06 已建立 [BC-PROTOCOL-005 Anthropic semantic and HTTP boundary](BC-PROTOCOL-005-anthropic-semantic-http-boundary.md)。
+P5-07 已建立 [BC-E2E-003 Claude Code loopback `--bare` compatibility](BC-E2E-003-claude-code-loopback-bare-compatibility.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。

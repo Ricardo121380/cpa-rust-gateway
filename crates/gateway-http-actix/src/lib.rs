@@ -306,14 +306,23 @@ pub fn default_stream_capacity() -> Result<StreamCapacity, StreamCapacityError> 
     StreamCapacity::try_new(DEFAULT_STREAM_CAPACITY)
 }
 
-/// Registers the health, public Models, and `OpenAI` Responses routes on an Actix application.
+/// Registers the loopback readiness, health, public Models, `OpenAI` Responses, and Anthropic
+/// Messages routes on an Actix application.
 pub fn configure(config: &mut web::ServiceConfig) {
     config
+        // Claude Code probes the configured Anthropic base URL with `HEAD /` before its first
+        // Messages request. This says only that the local HTTP boundary is reachable; it reveals
+        // no route, model, or authentication state.
+        .route("/", web::head().to(base_url_probe))
         .route("/healthz", web::get().to(healthz))
         .route("/v1/models", web::get().to(models))
         .route("/v1/responses", web::post().to(responses))
         .route("/v1/messages", web::post().to(messages))
         .route("/v1/messages/count_tokens", web::post().to(count_tokens));
+}
+
+async fn base_url_probe() -> HttpResponse {
+    HttpResponse::Ok().finish()
 }
 
 async fn healthz() -> HttpResponse {
@@ -323,7 +332,8 @@ async fn healthz() -> HttpResponse {
 }
 
 async fn models(request: HttpRequest, state: web::Data<ResponsesHttpState>) -> HttpResponse {
-    let authenticated_client = match authenticate_bearer_request(&request, &state.authenticator) {
+    let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
+    {
         Ok(AuthenticatedResponsesClient::Snapshot(authenticated_client)) => authenticated_client,
         Ok(AuthenticatedResponsesClient::Generic(_)) => return pre_header_error(&route_not_found()),
         Err(error) => return pre_header_error(&error),
@@ -347,7 +357,8 @@ async fn responses(
     state: web::Data<ResponsesHttpState>,
     body: web::Bytes,
 ) -> HttpResponse {
-    let authenticated_client = match authenticate_bearer_request(&request, &state.authenticator) {
+    let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
+    {
         Ok(authenticated_client) => authenticated_client,
         Err(error) => return pre_header_error(&error),
     };
@@ -425,7 +436,8 @@ async fn messages(
     state: web::Data<ResponsesHttpState>,
     body: web::Bytes,
 ) -> HttpResponse {
-    let authenticated_client = match authenticate_bearer_request(&request, &state.authenticator) {
+    let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
+    {
         Ok(authenticated_client) => authenticated_client,
         Err(error) => return pre_header_anthropic_error(&error),
     };
@@ -512,7 +524,8 @@ async fn count_tokens(
     state: web::Data<ResponsesHttpState>,
     body: web::Bytes,
 ) -> HttpResponse {
-    let authenticated_client = match authenticate_bearer_request(&request, &state.authenticator) {
+    let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
+    {
         Ok(authenticated_client) => authenticated_client,
         Err(error) => return pre_header_anthropic_error(&error),
     };
@@ -1109,26 +1122,50 @@ fn pre_header_anthropic_error(error: &GatewayError) -> HttpResponse {
         .body(encode_anthropic_error(error).to_string())
 }
 
-fn authenticate_bearer_request(
+fn authenticate_client_key_request(
     request: &HttpRequest,
     authenticator: &ResponsesAuthenticator,
 ) -> Result<AuthenticatedResponsesClient, GatewayError> {
-    let presented_key = presented_bearer_key(request)?;
+    let presented_key = presented_client_key(request)?;
     authenticator.authenticate(presented_key)
 }
 
-fn presented_bearer_key(request: &HttpRequest) -> Result<&str, GatewayError> {
-    let mut values = request.headers().get_all(header::AUTHORIZATION);
-    let Some(value) = values.next() else {
-        return Err(client_unauthorized_error());
-    };
+fn presented_client_key(request: &HttpRequest) -> Result<&str, GatewayError> {
+    let authorization = single_header(request, header::AUTHORIZATION)?;
+    let api_key = single_header(request, header::HeaderName::from_static("x-api-key"))?;
+    match (authorization, api_key) {
+        (Some(authorization), None) => presented_bearer_value(authorization),
+        (None, Some(api_key)) => presented_x_api_key_value(api_key),
+        (None, None) | (Some(_), Some(_)) => Err(client_unauthorized_error()),
+    }
+}
+
+fn single_header(
+    request: &HttpRequest,
+    name: header::HeaderName,
+) -> Result<Option<&header::HeaderValue>, GatewayError> {
+    let mut values = request.headers().get_all(name);
+    let value = values.next();
     if values.next().is_some() {
         return Err(client_unauthorized_error());
     }
+    Ok(value)
+}
+
+fn presented_bearer_value(value: &header::HeaderValue) -> Result<&str, GatewayError> {
     let value = value.to_str().map_err(|_| client_unauthorized_error())?;
     let Some(presented_key) = value.strip_prefix("Bearer ") else {
         return Err(client_unauthorized_error());
     };
+    valid_presented_key(presented_key)
+}
+
+fn presented_x_api_key_value(value: &header::HeaderValue) -> Result<&str, GatewayError> {
+    let presented_key = value.to_str().map_err(|_| client_unauthorized_error())?;
+    valid_presented_key(presented_key)
+}
+
+fn valid_presented_key(presented_key: &str) -> Result<&str, GatewayError> {
     if presented_key.is_empty() || presented_key.bytes().any(|byte| byte.is_ascii_whitespace()) {
         return Err(client_unauthorized_error());
     }
@@ -1534,7 +1571,30 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn responses_rejects_invalid_bearer_inputs_before_decode_or_provider_execution()
+    async fn base_url_head_probe_is_public_and_empty() -> TestResult {
+        let state = mock_state(text_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+
+        let response = test::call_service(
+            &app,
+            test::TestRequest::default()
+                .method(actix_web::http::Method::HEAD)
+                .uri("/")
+                .to_request(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(test::read_body(response).await.is_empty());
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn responses_rejects_ambiguous_or_invalid_client_key_inputs_before_decode_or_provider_execution()
     -> TestResult {
         let calls = Arc::new(AtomicUsize::new(0));
         let state = ResponsesHttpState::with_metadata(
@@ -1577,6 +1637,23 @@ mod tests {
                 .insert_header((header::AUTHORIZATION, "Bearer p1-disabled-client-key"))
                 .set_payload("not-json")
                 .to_request(),
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .append_header(("x-api-key", TEST_CLIENT_KEY))
+                .append_header(("x-api-key", "another-test-key"))
+                .set_payload("not-json")
+                .to_request(),
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .insert_header((header::AUTHORIZATION, format!("Bearer {TEST_CLIENT_KEY}")))
+                .insert_header(("x-api-key", TEST_CLIENT_KEY))
+                .set_payload("not-json")
+                .to_request(),
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .insert_header(("x-api-key", "unknown-test-key"))
+                .set_payload("not-json")
+                .to_request(),
         ];
 
         let mut expected_envelope = None;
@@ -1601,6 +1678,31 @@ mod tests {
         }
 
         assert_eq!(calls.load(Ordering::Acquire), 0);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn messages_accepts_anthropic_x_api_key_without_bearer() -> TestResult {
+        let state = mock_state(anthropic_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = test::TestRequest::post()
+            .uri("/v1/messages")
+            .insert_header(("x-api-key", TEST_CLIENT_KEY))
+            .set_payload(r#"{"model":"mock-model","max_tokens":1,"messages":[{"role":"user","content":"hello"}]}"#)
+            .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: serde_json::Value = serde_json::from_slice(&test::read_body(response).await)?;
+        assert_eq!(
+            body.pointer("/content/1/text"),
+            Some(&serde_json::json!("deterministic hello"))
+        );
         Ok(())
     }
 
