@@ -699,6 +699,7 @@ version = "0.1.0"
 dependencies = [
  "gateway-core",
  "gateway-protocol",
+ "proptest",
  "tokio",
  "tokio-util",
 ]

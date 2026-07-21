@@ -45,7 +45,8 @@ gateway-core
 - `gateway-core` 不依赖 Actix、SQLite 或任何具体 Provider。
 - Actix Web 只能出现在 `gateway-http-actix` 的依赖闭包入口。
 - `gateway-stream` 只承载有界 Canonical Event 交付、背压、取消和语义事件提交边界；不得
-  依赖 HTTP、SSE 编码、具体 Provider、路由或持久化类型。
+  依赖 HTTP、SSE 编码、具体 Provider、路由或持久化类型。P5-08 的 `proptest` 是该 crate 的
+  `dev-dependency`，仅用于固定种子取消性质测试；它不进入库目标、运行时依赖或公共 API。
 - `gateway-http-actix` 可以直接使用 Tokio 和 `futures-util`，但仅用于 Actix handler 内的
   producer task、取消选择和 body polling；它不得直接依赖或暴露任何 Provider trait/type。P3-09
   与 P3-10 的 `dev-dependencies` 仅用于独立集成测试中组装两个受控 loopback 或显式授权的

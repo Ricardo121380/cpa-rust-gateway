@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-21` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP` 与 `P4 - Catalog、Health、Quota、Explain、观测` 已完成；`P5 - Anthropic/Claude Code 兼容` 已开始。 |
-| 当前任务 | `P5-08`：加入未知字段、畸形流、截断 Tool 和取消 Fuzz/Property Test。 |
+| 当前任务 | `G5`：执行 P5 本地收口 review 与唯一远端 Fast + Full Delivery Gate。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -771,7 +771,7 @@ operator 授权后才可发送一条真实请求，不能回溯或重跑 P3-10�
 | P5-05 | 支持同一 Upstream 的 Responses 与 Anthropic 独立 Endpoint/健康/熔断 | P5-04 | 单协议故障隔离 E2E | LOCAL_PASS_PENDING_PHASE_GATE |
 | P5-06 | 实现 Thinking、Stop Reason、Usage、Cache 字段和响应模型回写 | P5-01 | 协议对照 Fixture | LOCAL_PASS_PENDING_PHASE_GATE |
 | P5-07 | 建立 Claude Code `--bare` 最小 E2E 和 Plan Mode 回归 | P5-03-P5-06 | 真实客户端脱敏日志 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P5-08 | 加入未知字段、畸形流、截断 Tool 和取消 Fuzz/Property Test | P5-03 | 固定 Corpus 和无 Panic 报告 | IN_PROGRESS |
+| P5-08 | 加入未知字段、畸形流、截断 Tool 和取消 Fuzz/Property Test | P5-03 | 固定 Corpus 和无 Panic 报告 | LOCAL_PASS_PENDING_PHASE_GATE |
 
 `P5-00` 是 P5 的交付流程前置项，不交付 Anthropic 功能，也不因本计划更新自动开始 P5。它是
 `CR-EXEC-007` 的窄提前远端例外：必须先在 `codex/p5-anthropic` 上证明 GitHub 的实际 trigger、
