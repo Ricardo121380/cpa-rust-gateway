@@ -6,12 +6,22 @@
 
 #![deny(unsafe_code)]
 
+mod telemetry;
+
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use gateway_core::{
     DiagnosticEvent, EventEmission, GatewayEvent, GatewayEventPriority, GatewayEventSink,
 };
 use tokio::sync::mpsc::{self, error::TrySendError};
+
+pub use telemetry::{
+    JsonTracingInitError, NoopOpenTelemetryExporter, NoopStructuredJsonExporter,
+    OpenTelemetryExportOutcome, OpenTelemetryExporter, OpenTelemetrySpan, OpenTelemetrySpanKind,
+    PrometheusMetrics, PrometheusMetricsSnapshot, StructuredJsonExporter, StructuredJsonRecord,
+    TelemetryDispatch, TelemetryEventKind, TelemetryPipeline, TracingJsonExporter,
+    try_init_json_tracing,
+};
 
 /// Stable component identifier used by architecture smoke tests.
 pub const COMPONENT: &str = "gateway-observability";

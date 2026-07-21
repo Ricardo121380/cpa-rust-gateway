@@ -67,3 +67,4 @@
 - [P4-05 Exact-target Runtime Quota and controlled Reset recovery report](p4-05-runtime-quota-recovery.md)
 - [P4-06 Fixed-input Route Explain and Candidate exclusion reasons report](p4-06-route-explain.md)
 - [P4-07 Append-only SQLite Request/Attempt/Usage/Health event writer report](p4-07-append-only-sqlite-event-writer.md)
+- [P4-08 Structured JSON, Prometheus, and OpenTelemetry telemetry fan-out report](p4-08-single-consumer-telemetry-fanout.md)

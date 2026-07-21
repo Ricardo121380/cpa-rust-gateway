@@ -60,4 +60,5 @@ P4-04 已建立 [BC-HEALTH-002 Target-local probe EWMA and controlled Circuit re
 P4-05 已建立 [BC-CRED-002 Exact-target runtime Quota and controlled Reset recovery](BC-CRED-002-exact-target-runtime-quota-and-controlled-reset-recovery.md)。
 P4-06 已建立 [BC-ROUTE-003 Fixed-input Route Explain and Candidate exclusion reasons](BC-ROUTE-003-fixed-input-route-explain.md)。
 P4-07 已建立 [BC-OBS-002 Append-only SQLite Request/Attempt/Usage/Health event writer](BC-OBS-002-append-only-sqlite-event-writer.md)。
+P4-08 已建立 [BC-OBS-003 Single-consumer structured telemetry fan-out](BC-OBS-003-single-consumer-telemetry-fanout.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。

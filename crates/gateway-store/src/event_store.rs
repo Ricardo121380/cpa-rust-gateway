@@ -15,7 +15,7 @@ use std::{
 };
 
 use gateway_core::{GatewayEvent, GatewayEventPriority, RequestId};
-use gateway_observability::EventQueueReceiver;
+use gateway_observability::{EventQueueReceiver, TelemetryPipeline};
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 
 use crate::{StoreError, StoreResult, migrate, open, open_in_memory};
@@ -536,6 +536,7 @@ pub struct AsyncSqliteEventWriter {
     store: Option<SqliteEventStore>,
     pending: Vec<GatewayEvent>,
     metrics: EventWriterMetricsHandle,
+    telemetry: Option<Arc<TelemetryPipeline>>,
 }
 
 impl AsyncSqliteEventWriter {
@@ -553,7 +554,19 @@ impl AsyncSqliteEventWriter {
             store: None,
             pending: Vec::with_capacity(config.batch_size()),
             metrics: EventWriterMetricsHandle::default(),
+            telemetry: None,
         }
+    }
+
+    /// Adds one non-blocking telemetry fan-out to this writer's existing single-consumer path.
+    ///
+    /// The pipeline observes every admitted event exactly once before durable batching. It is not
+    /// invoked again when a pending `SQLite` batch retries, and it does not create another receiver
+    /// that could compete for Required or Diagnostic events.
+    #[must_use]
+    pub fn with_telemetry_pipeline(mut self, telemetry: Arc<TelemetryPipeline>) -> Self {
+        self.telemetry = Some(telemetry);
+        self
     }
 
     /// Returns a cloneable non-blocking metrics handle for the writer lifecycle.
@@ -610,6 +623,9 @@ impl AsyncSqliteEventWriter {
     }
 
     fn accept_event(&mut self, event: GatewayEvent) {
+        if let Some(telemetry) = &self.telemetry {
+            let _ = telemetry.observe_event(&event);
+        }
         match event.priority() {
             GatewayEventPriority::Required => {
                 self.pending.push(event);
@@ -681,7 +697,10 @@ mod tests {
     use std::{
         fs,
         path::PathBuf,
-        sync::atomic::{AtomicU64, Ordering},
+        sync::{
+            Arc, Mutex,
+            atomic::{AtomicU64, Ordering},
+        },
         time::{Duration, Instant},
     };
 
@@ -692,11 +711,40 @@ mod tests {
         RequestEvent, RequestId, ResponseId, RouteCandidateId, RouteId, UpstreamId, Usage,
         UsageEvent,
     };
-    use gateway_observability::{BoundedEventQueue, EventQueueConfig};
+    use gateway_observability::{
+        BoundedEventQueue, EventQueueConfig, NoopOpenTelemetryExporter, OpenTelemetryExportOutcome,
+        PrometheusMetrics, StructuredJsonExporter, StructuredJsonRecord, TelemetryPipeline,
+    };
 
     use super::{AsyncSqliteEventWriter, EventWriterConfig, GatewayEventLogKind, SqliteEventStore};
 
     type TestResult = Result<(), Box<dyn std::error::Error>>;
+
+    #[derive(Default)]
+    struct CollectingJsonExporter {
+        records: Mutex<Vec<StructuredJsonRecord>>,
+    }
+
+    impl StructuredJsonExporter for CollectingJsonExporter {
+        fn try_export(&self, record: &StructuredJsonRecord) -> OpenTelemetryExportOutcome {
+            match self.records.lock() {
+                Ok(mut records) => {
+                    records.push(record.clone());
+                    OpenTelemetryExportOutcome::Emitted
+                }
+                Err(_) => OpenTelemetryExportOutcome::Rejected,
+            }
+        }
+    }
+
+    impl CollectingJsonExporter {
+        fn len(&self) -> Result<usize, std::io::Error> {
+            self.records
+                .lock()
+                .map(|records| records.len())
+                .map_err(|_| std::io::Error::other("collecting JSON exporter mutex poisoned"))
+        }
+    }
 
     fn sample_events() -> Result<(RequestId, Vec<GatewayEvent>), Box<dyn std::error::Error>> {
         let request_id = RequestId::try_new("request-01")?;
@@ -861,11 +909,19 @@ mod tests {
         let database_path = parent.join("events.sqlite");
         let _ = fs::remove_dir_all(&parent);
         let (queue, receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(2, 1)?)?;
+        let telemetry_metrics = Arc::new(PrometheusMetrics::default());
+        let json = Arc::new(CollectingJsonExporter::default());
+        let telemetry = Arc::new(TelemetryPipeline::new(
+            telemetry_metrics.clone(),
+            json.clone(),
+            Arc::new(NoopOpenTelemetryExporter),
+        ));
         let writer = AsyncSqliteEventWriter::new(
             &database_path,
             receiver,
             EventWriterConfig::try_new(1, Duration::from_millis(5))?,
-        );
+        )
+        .with_telemetry_pipeline(telemetry);
         let metrics = writer.metrics_handle();
         assert_eq!(
             queue.try_emit(events[0].clone()),
@@ -889,6 +945,8 @@ mod tests {
         assert_eq!(reported.required_events_committed, 1);
         assert_eq!(reported.rows_inserted, 1);
         assert_eq!(reported.pending_required, 0);
+        assert_eq!(telemetry_metrics.snapshot().request_events, 1);
+        assert_eq!(json.len()?, 1);
         let store = SqliteEventStore::open(&database_path)?;
         assert_eq!(store.list_events()?.len(), 1);
         drop(store);
@@ -897,14 +955,61 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn writer_counts_diagnostics_without_persisting_them() -> TestResult {
-        let database_path = temporary_path("diagnostic.sqlite");
+    async fn writer_fans_out_one_admitted_event_to_store_and_telemetry_without_a_second_receiver()
+    -> TestResult {
+        let (_request_id, events) = sample_events()?;
+        let database_path = temporary_path("telemetry-fanout.sqlite");
         let (queue, receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(1, 1)?)?;
+        let telemetry_metrics = Arc::new(PrometheusMetrics::default());
+        let json = Arc::new(CollectingJsonExporter::default());
+        let telemetry = Arc::new(TelemetryPipeline::new(
+            telemetry_metrics.clone(),
+            json.clone(),
+            Arc::new(NoopOpenTelemetryExporter),
+        ));
         let writer = AsyncSqliteEventWriter::new(
             &database_path,
             receiver,
             EventWriterConfig::try_new(1, Duration::from_millis(1))?,
+        )
+        .with_telemetry_pipeline(telemetry);
+
+        assert_eq!(
+            queue.try_emit(events[0].clone()),
+            gateway_core::EventEmission::Enqueued
         );
+        drop(queue);
+
+        let reported = writer.run().await;
+        assert_eq!(reported.required_events_committed, 1);
+        assert_eq!(reported.rows_inserted, 1);
+        assert_eq!(telemetry_metrics.snapshot().request_events, 1);
+        assert_eq!(json.len()?, 1);
+
+        let store = SqliteEventStore::open(&database_path)?;
+        assert_eq!(store.list_events()?.len(), 1);
+        drop(store);
+        fs::remove_file(database_path)?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn writer_counts_diagnostics_without_persisting_them() -> TestResult {
+        let database_path = temporary_path("diagnostic.sqlite");
+        let (queue, receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(1, 1)?)?;
+        let telemetry_metrics = Arc::new(PrometheusMetrics::default());
+        let json = Arc::new(CollectingJsonExporter::default());
+        let telemetry = Arc::new(TelemetryPipeline::new(
+            telemetry_metrics.clone(),
+            json.clone(),
+            Arc::new(NoopOpenTelemetryExporter),
+        ));
+        let writer = AsyncSqliteEventWriter::new(
+            &database_path,
+            receiver,
+            EventWriterConfig::try_new(1, Duration::from_millis(1))?,
+        )
+        .with_telemetry_pipeline(telemetry);
         assert_eq!(
             queue.try_emit(GatewayEvent::Diagnostic(DiagnosticEvent::new(
                 GatewayError::new(
@@ -918,6 +1023,8 @@ mod tests {
         let reported = writer.run().await;
         assert_eq!(reported.diagnostics_not_persisted, 1);
         assert_eq!(reported.required_events_committed, 0);
+        assert_eq!(telemetry_metrics.snapshot().diagnostic_events, 1);
+        assert_eq!(json.len()?, 1);
         let store = SqliteEventStore::open(&database_path)?;
         assert!(store.list_events()?.is_empty());
         drop(store);

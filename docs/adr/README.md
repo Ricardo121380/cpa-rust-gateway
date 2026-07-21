@@ -56,3 +56,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0027 Append-only bounded SQLite event writer](ADR-0027-append-only-bounded-sqlite-event-writer.md) — `P4-07`（Accepted）。
 - [ADR-0028 Exact-target runtime Quota and controlled Reset recovery](ADR-0028-exact-target-runtime-quota-and-controlled-reset-recovery.md) — `P4-05`（Accepted）。
 - [ADR-0029 Fixed-input Route Explain without scheduling side effects](ADR-0029-fixed-input-route-explain.md) — `P4-06`（Accepted）。
+- [ADR-0030 Single-consumer structured telemetry fan-out](ADR-0030-single-consumer-telemetry-fanout.md) — `P4-08`（Accepted）。
