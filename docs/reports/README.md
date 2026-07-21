@@ -28,6 +28,10 @@
 - [G2 阶段门禁报告](g2-gate-report.md)
 - [G3 阶段门禁报告](g3-gate-report.md)
 
+## 进行中任务
+
+- [P4-04 Target-local Probe, EWMA, and Circuit recovery report](p4-04-probe-ewma-circuit-recovery.md)
+
 ## 已完成任务
 
 - [P1-01 Request context and errors report](p1-01-request-context-errors.md)

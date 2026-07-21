@@ -10,6 +10,7 @@ mod credential_scheduler;
 mod route_scheduler;
 mod route_snapshot;
 mod runtime_health;
+mod runtime_probe;
 
 use std::{fmt, future::Future, pin::Pin, sync::Arc, time::Duration};
 
@@ -43,9 +44,17 @@ pub use route_snapshot::{
 };
 pub use runtime_health::{
     DEFAULT_RUNTIME_HEALTH_SHARD_COUNT, MAX_RUNTIME_HEALTH_ENTRIES_PER_SHARD,
-    MAX_RUNTIME_HEALTH_SHARD_COUNT, RuntimeHealthAvailability, RuntimeHealthClock,
-    RuntimeHealthClockError, RuntimeHealthError, RuntimeHealthKey, RuntimeHealthRegistry,
-    RuntimeHealthRegistryBuildError, SystemRuntimeHealthClock,
+    MAX_RUNTIME_HEALTH_SHARD_COUNT, RuntimeHealthAvailability, RuntimeHealthCircuitProbe,
+    RuntimeHealthCircuitProbeResult, RuntimeHealthClock, RuntimeHealthClockError,
+    RuntimeHealthError, RuntimeHealthKey, RuntimeHealthRegistry, RuntimeHealthRegistryBuildError,
+    SystemRuntimeHealthClock,
+};
+pub use runtime_probe::{
+    DEFAULT_RUNTIME_HEALTH_PROBE_EWMA_ALPHA_PER_MILLE, RUNTIME_HEALTH_PROBE_EWMA_SCALE_PER_MILLE,
+    RuntimeHealthCircuitProbeOutcome, RuntimeHealthProbeCompletionError, RuntimeHealthProbeError,
+    RuntimeHealthProbeOutcome, RuntimeHealthProbePolicy, RuntimeHealthProbePolicyError,
+    RuntimeHealthProbeRegistry, RuntimeHealthProbeSnapshot, RuntimeHealthProbeTarget,
+    RuntimeHealthProbeTargetError,
 };
 
 /// Stable component identifier used by architecture smoke tests.

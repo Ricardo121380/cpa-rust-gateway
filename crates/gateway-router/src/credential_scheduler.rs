@@ -178,6 +178,11 @@ impl RouteCredentialScheduler {
                             candidate.endpoint_id(),
                             credential_id,
                         )
+                        && runtime_health.endpoint_credential_model_is_available(
+                            candidate.endpoint_id(),
+                            credential_id,
+                            candidate.upstream_model(),
+                        )
                 },
             ) else {
                 return false;
@@ -472,6 +477,32 @@ mod tests {
         let fallback = scheduler.select_runtime_eligible_and_lease(&route_id, &runtime_health)?;
         assert_eq!(fallback.candidate().id().as_str(), "candidate-b");
         assert_eq!(fallback.lease().credential_id().as_str(), "credential-b");
+        Ok(())
+    }
+
+    #[test]
+    fn model_scoped_circuit_skips_only_the_failed_endpoint_credential_binding() -> TestResult {
+        let (scheduler, route_id) = scheduler(
+            vec![("candidate-a", "endpoint-a", 0, 1)],
+            vec![(
+                "endpoint-a",
+                vec![("credential-a", 0, 1, 1), ("credential-b", 0, 1, 1)],
+            )],
+        )?;
+        let clock = Arc::new(FixedRuntimeHealthClock::new(100));
+        let runtime_health = RuntimeHealthRegistry::with_clock(clock);
+        runtime_health.open_circuit_until(
+            RuntimeHealthKey::endpoint_credential_model(
+                EndpointId::try_new("endpoint-a")?,
+                CredentialId::try_new("credential-a")?,
+                "upstream-model",
+            ),
+            200,
+        )?;
+
+        let selected = scheduler.select_runtime_eligible_and_lease(&route_id, &runtime_health)?;
+        assert_eq!(selected.candidate().id().as_str(), "candidate-a");
+        assert_eq!(selected.lease().credential_id().as_str(), "credential-b");
         Ok(())
     }
 

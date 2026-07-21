@@ -10,7 +10,10 @@ use std::{
     error::Error,
     fmt,
     hash::{Hash, Hasher},
-    sync::{Arc, RwLock},
+    sync::{
+        Arc, RwLock,
+        atomic::{AtomicU64, Ordering},
+    },
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -39,6 +42,19 @@ pub enum RuntimeHealthKey {
         /// The non-secret stable Credential identity within the Endpoint scope.
         credential_id: CredentialId,
     },
+    /// State affecting one exact upstream model through one Endpoint/Credential binding.
+    ///
+    /// The model label is the non-secret exact value selected by a compiler-approved Candidate.
+    /// It is deliberately not a global model key: another Endpoint, Credential, or differently
+    /// cased upstream label remains isolated.
+    EndpointCredentialModel {
+        /// The protocol-specific Endpoint that owns this transient state.
+        endpoint_id: EndpointId,
+        /// The non-secret stable Credential identity within the Endpoint scope.
+        credential_id: CredentialId,
+        /// The exact non-secret upstream model label.
+        upstream_model: String,
+    },
 }
 
 impl RuntimeHealthKey {
@@ -57,13 +73,27 @@ impl RuntimeHealthKey {
         }
     }
 
+    /// Creates state for one exact Endpoint/Credential/upstream-model binding.
+    #[must_use]
+    pub fn endpoint_credential_model(
+        endpoint_id: EndpointId,
+        credential_id: CredentialId,
+        upstream_model: impl Into<String>,
+    ) -> Self {
+        Self::EndpointCredentialModel {
+            endpoint_id,
+            credential_id,
+            upstream_model: upstream_model.into(),
+        }
+    }
+
     /// Returns the Endpoint owning this runtime state.
     #[must_use]
     pub fn endpoint_id(&self) -> &EndpointId {
         match self {
-            Self::Endpoint(endpoint_id) | Self::EndpointCredential { endpoint_id, .. } => {
-                endpoint_id
-            }
+            Self::Endpoint(endpoint_id)
+            | Self::EndpointCredential { endpoint_id, .. }
+            | Self::EndpointCredentialModel { endpoint_id, .. } => endpoint_id,
         }
     }
 
@@ -72,7 +102,17 @@ impl RuntimeHealthKey {
     pub fn credential_id(&self) -> Option<&CredentialId> {
         match self {
             Self::Endpoint(_) => None,
-            Self::EndpointCredential { credential_id, .. } => Some(credential_id),
+            Self::EndpointCredential { credential_id, .. }
+            | Self::EndpointCredentialModel { credential_id, .. } => Some(credential_id),
+        }
+    }
+
+    /// Returns the exact upstream model only for an Endpoint/Credential/model key.
+    #[must_use]
+    pub fn upstream_model(&self) -> Option<&str> {
+        match self {
+            Self::Endpoint(_) | Self::EndpointCredential { .. } => None,
+            Self::EndpointCredentialModel { upstream_model, .. } => Some(upstream_model),
         }
     }
 }
@@ -90,6 +130,43 @@ pub enum RuntimeHealthAvailability {
     /// A Circuit is open and requires an explicit later recovery/probe decision.
     CircuitOpen {
         /// Earliest Unix-millisecond instant at which a later component may consider recovery.
+        retry_after_ms: i64,
+    },
+}
+
+/// One exclusive, bounded half-open recovery probe acquired from an open Circuit.
+///
+/// The ticket has no Credential material and is intentionally non-cloneable. Its private
+/// generation prevents a late result from one abandoned probe from closing a newer Circuit.
+#[derive(Debug, Eq, PartialEq)]
+pub struct RuntimeHealthCircuitProbe {
+    key: RuntimeHealthKey,
+    probe_id: u64,
+    expires_at_ms: i64,
+}
+
+impl RuntimeHealthCircuitProbe {
+    /// Returns the exact non-secret runtime key being recovered.
+    #[must_use]
+    pub fn key(&self) -> &RuntimeHealthKey {
+        &self.key
+    }
+
+    /// Returns the inclusive-failure-exclusive-success deadline for the probe ticket.
+    #[must_use]
+    pub const fn expires_at_ms(&self) -> i64 {
+        self.expires_at_ms
+    }
+}
+
+/// Sanitized outcome used to finish one controlled Circuit recovery probe.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RuntimeHealthCircuitProbeResult {
+    /// The controlled probe completed successfully and may close the Circuit.
+    Healthy,
+    /// The controlled probe failed; the Circuit remains open until this future retry instant.
+    Unhealthy {
+        /// Future Unix-millisecond earliest time at which another recovery probe may start.
         retry_after_ms: i64,
     },
 }
@@ -178,6 +255,10 @@ pub enum RuntimeHealthError {
     ShardLockPoisoned,
     /// A shard could not retain a new state without exceeding its bounded entry limit.
     ShardCapacityExceeded,
+    /// The finite non-zero Circuit probe generation sequence cannot advance safely.
+    CircuitProbeIdOverflow,
+    /// A recovery ticket is no longer the current, unexpired half-open probe for its key.
+    StaleCircuitProbe,
 }
 
 impl fmt::Display for RuntimeHealthError {
@@ -187,6 +268,10 @@ impl fmt::Display for RuntimeHealthError {
             Self::DeadlineNotInFuture => "runtime health deadline is not in the future",
             Self::ShardLockPoisoned => "runtime health shard is unavailable",
             Self::ShardCapacityExceeded => "runtime health shard is at capacity",
+            Self::CircuitProbeIdOverflow => {
+                "runtime health circuit probe identifier cannot advance safely"
+            }
+            Self::StaleCircuitProbe => "runtime health circuit probe is stale",
         };
         formatter.write_str(message)
     }
@@ -215,6 +300,7 @@ impl From<RuntimeHealthClockError> for RuntimeHealthError {
 pub struct RuntimeHealthRegistry {
     clock: Arc<dyn RuntimeHealthClock>,
     shards: Box<[RwLock<BTreeMap<RuntimeHealthKey, RuntimeHealthState>>]>,
+    next_circuit_probe_id: AtomicU64,
 }
 
 impl RuntimeHealthRegistry {
@@ -230,6 +316,7 @@ impl RuntimeHealthRegistry {
         Self {
             clock,
             shards: build_shards(DEFAULT_RUNTIME_HEALTH_SHARD_COUNT),
+            next_circuit_probe_id: AtomicU64::new(1),
         }
     }
 
@@ -247,6 +334,7 @@ impl RuntimeHealthRegistry {
         Ok(Self {
             clock,
             shards: build_shards(shard_count),
+            next_circuit_probe_id: AtomicU64::new(1),
         })
     }
 
@@ -318,6 +406,26 @@ impl RuntimeHealthRegistry {
         .is_ok_and(RuntimeHealthAvailability::is_available)
     }
 
+    /// Returns whether an exact Endpoint/Credential/upstream-model binding is schedulable.
+    ///
+    /// Clock and shard failures are fail-closed and therefore return `false`. This precise scope
+    /// lets a model-specific probe exclude only the failed binding while preserving another model,
+    /// Credential, or Endpoint.
+    #[must_use]
+    pub fn endpoint_credential_model_is_available(
+        &self,
+        endpoint_id: &EndpointId,
+        credential_id: &CredentialId,
+        upstream_model: &str,
+    ) -> bool {
+        self.availability(&RuntimeHealthKey::endpoint_credential_model(
+            endpoint_id.clone(),
+            credential_id.clone(),
+            upstream_model,
+        ))
+        .is_ok_and(RuntimeHealthAvailability::is_available)
+    }
+
     /// Records a short transient Cooldown until a future Unix-millisecond deadline.
     ///
     /// An existing longer Cooldown is never shortened. An existing Circuit remains open, because a
@@ -336,7 +444,9 @@ impl RuntimeHealthRegistry {
         validate_deadline(until_ms, now_ms)?;
         let mut states = self.write_shard(&key)?;
         match states.get(&key).copied() {
-            Some(RuntimeHealthState::CircuitOpen { .. }) => Ok(()),
+            Some(
+                RuntimeHealthState::CircuitOpen { .. } | RuntimeHealthState::CircuitHalfOpen { .. },
+            ) => Ok(()),
             Some(RuntimeHealthState::CoolingDown {
                 until_ms: existing_until_ms,
             }) => {
@@ -373,9 +483,15 @@ impl RuntimeHealthRegistry {
         validate_deadline(retry_after_ms, now_ms)?;
         let mut states = self.write_shard(&key)?;
         match states.get(&key).copied() {
-            Some(RuntimeHealthState::CircuitOpen {
-                retry_after_ms: existing_retry_after_ms,
-            }) => {
+            Some(
+                RuntimeHealthState::CircuitOpen {
+                    retry_after_ms: existing_retry_after_ms,
+                }
+                | RuntimeHealthState::CircuitHalfOpen {
+                    retry_after_ms: existing_retry_after_ms,
+                    ..
+                },
+            ) => {
                 states.insert(
                     key,
                     RuntimeHealthState::CircuitOpen {
@@ -407,6 +523,107 @@ impl RuntimeHealthRegistry {
     /// unavailable.
     pub fn mark_healthy(&self, key: &RuntimeHealthKey) -> Result<(), RuntimeHealthError> {
         self.write_shard(key)?.remove(key);
+        Ok(())
+    }
+
+    /// Starts at most one bounded half-open recovery probe once an open Circuit reaches its
+    /// earliest retry instant.
+    ///
+    /// Ordinary scheduling remains unavailable while the returned ticket exists. A later caller
+    /// can replace an abandoned ticket only at or after `probe_expires_at_ms`; a late ticket then
+    /// cannot overwrite the replacement because completion checks its private generation.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe [`RuntimeHealthError`] for an unavailable clock, non-future ticket deadline,
+    /// poisoned shard, or finite ticket-generation exhaustion. `Ok(None)` means the key has no
+    /// due Circuit or another unexpired half-open probe already owns recovery.
+    pub fn begin_circuit_probe(
+        &self,
+        key: &RuntimeHealthKey,
+        probe_expires_at_ms: i64,
+    ) -> Result<Option<RuntimeHealthCircuitProbe>, RuntimeHealthError> {
+        let now_ms = self.clock.now_ms()?;
+        validate_deadline(probe_expires_at_ms, now_ms)?;
+        let mut states = self.write_shard(key)?;
+        let Some(state) = states.get(key).copied() else {
+            return Ok(None);
+        };
+        let due_for_probe = match state {
+            RuntimeHealthState::CircuitOpen { retry_after_ms } => now_ms >= retry_after_ms,
+            RuntimeHealthState::CircuitHalfOpen {
+                probe_expires_at_ms,
+                ..
+            } => now_ms >= probe_expires_at_ms,
+            RuntimeHealthState::CoolingDown { .. } => false,
+        };
+        if !due_for_probe {
+            return Ok(None);
+        }
+        let probe_id = self
+            .next_circuit_probe_id
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
+                current.checked_add(1)
+            })
+            .map_err(|_| RuntimeHealthError::CircuitProbeIdOverflow)?;
+        states.insert(
+            key.clone(),
+            RuntimeHealthState::CircuitHalfOpen {
+                retry_after_ms: state.retry_after_ms(),
+                probe_id,
+                probe_expires_at_ms,
+            },
+        );
+        Ok(Some(RuntimeHealthCircuitProbe {
+            key: key.clone(),
+            probe_id,
+            expires_at_ms: probe_expires_at_ms,
+        }))
+    }
+
+    /// Finishes the current half-open probe and either closes or reopens its Circuit.
+    ///
+    /// The ticket is consumed, so a caller cannot accidentally reuse a successful result. An
+    /// unexpired matching ticket is the only outcome allowed to change the Circuit. A stale or
+    /// timed-out ticket fails closed and leaves the current state untouched.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe [`RuntimeHealthError`] for unavailable time, a stale ticket, a non-future
+    /// retry deadline, or a poisoned shard.
+    pub fn complete_circuit_probe(
+        &self,
+        probe: RuntimeHealthCircuitProbe,
+        result: RuntimeHealthCircuitProbeResult,
+    ) -> Result<(), RuntimeHealthError> {
+        let now_ms = self.clock.now_ms()?;
+        let mut states = self.write_shard(&probe.key)?;
+        let Some(RuntimeHealthState::CircuitHalfOpen {
+            probe_id,
+            probe_expires_at_ms,
+            ..
+        }) = states.get(&probe.key).copied()
+        else {
+            return Err(RuntimeHealthError::StaleCircuitProbe);
+        };
+        if probe_id != probe.probe_id
+            || probe_expires_at_ms != probe.expires_at_ms
+            || now_ms >= probe_expires_at_ms
+        {
+            return Err(RuntimeHealthError::StaleCircuitProbe);
+        }
+        match result {
+            RuntimeHealthCircuitProbeResult::Healthy => {
+                states.remove(&probe.key);
+            }
+            RuntimeHealthCircuitProbeResult::Unhealthy { retry_after_ms } => {
+                validate_deadline(retry_after_ms, now_ms)?;
+                states.insert(
+                    probe.key,
+                    RuntimeHealthState::CircuitOpen { retry_after_ms },
+                );
+            }
+        }
         Ok(())
     }
 
@@ -484,8 +701,17 @@ impl fmt::Debug for RuntimeHealthRegistry {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum RuntimeHealthState {
-    CoolingDown { until_ms: i64 },
-    CircuitOpen { retry_after_ms: i64 },
+    CoolingDown {
+        until_ms: i64,
+    },
+    CircuitOpen {
+        retry_after_ms: i64,
+    },
+    CircuitHalfOpen {
+        retry_after_ms: i64,
+        probe_id: u64,
+        probe_expires_at_ms: i64,
+    },
 }
 
 impl RuntimeHealthState {
@@ -495,7 +721,7 @@ impl RuntimeHealthState {
                 RuntimeHealthAvailability::CoolingDown { until_ms }
             }
             Self::CoolingDown { .. } => RuntimeHealthAvailability::Available,
-            Self::CircuitOpen { retry_after_ms } => {
+            Self::CircuitOpen { retry_after_ms } | Self::CircuitHalfOpen { retry_after_ms, .. } => {
                 RuntimeHealthAvailability::CircuitOpen { retry_after_ms }
             }
         }
@@ -503,6 +729,15 @@ impl RuntimeHealthState {
 
     const fn is_expired_cooldown(self, now_ms: i64) -> bool {
         matches!(self, Self::CoolingDown { until_ms } if until_ms <= now_ms)
+    }
+
+    const fn retry_after_ms(self) -> i64 {
+        match self {
+            Self::CircuitOpen { retry_after_ms } | Self::CircuitHalfOpen { retry_after_ms, .. } => {
+                retry_after_ms
+            }
+            Self::CoolingDown { until_ms } => until_ms,
+        }
     }
 }
 
@@ -562,8 +797,9 @@ mod tests {
     use gateway_core::{CredentialId, EndpointId};
 
     use super::{
-        MAX_RUNTIME_HEALTH_ENTRIES_PER_SHARD, RuntimeHealthAvailability, RuntimeHealthClock,
-        RuntimeHealthClockError, RuntimeHealthError, RuntimeHealthKey, RuntimeHealthRegistry,
+        MAX_RUNTIME_HEALTH_ENTRIES_PER_SHARD, RuntimeHealthAvailability,
+        RuntimeHealthCircuitProbeResult, RuntimeHealthClock, RuntimeHealthClockError,
+        RuntimeHealthError, RuntimeHealthKey, RuntimeHealthRegistry,
         RuntimeHealthRegistryBuildError,
     };
 
@@ -619,6 +855,81 @@ mod tests {
         assert!(!registry.endpoint_credential_is_available(&endpoint_a, &credential_a));
         registry.mark_healthy(&circuit_key)?;
         assert!(registry.endpoint_credential_is_available(&endpoint_a, &credential_a));
+        Ok(())
+    }
+
+    #[test]
+    fn model_circuit_isolated_and_half_open_recovery_is_single_ticket() -> TestResult {
+        let (clock, registry) = registry(100);
+        let endpoint = endpoint("endpoint-a")?;
+        let credential = credential("credential-a")?;
+        let model_a = RuntimeHealthKey::endpoint_credential_model(
+            endpoint.clone(),
+            credential.clone(),
+            "model-a",
+        );
+        registry.open_circuit_until(model_a.clone(), 200)?;
+        assert!(!registry.endpoint_credential_model_is_available(
+            &endpoint,
+            &credential,
+            "model-a"
+        ));
+        assert!(registry.endpoint_credential_model_is_available(&endpoint, &credential, "model-b"));
+        assert_eq!(registry.begin_circuit_probe(&model_a, 250)?, None);
+
+        clock.set_now_ms(200);
+        let ticket = registry
+            .begin_circuit_probe(&model_a, 250)?
+            .ok_or("due Circuit did not create a recovery ticket")?;
+        assert_eq!(ticket.key(), &model_a);
+        assert_eq!(ticket.expires_at_ms(), 250);
+        assert_eq!(registry.begin_circuit_probe(&model_a, 250)?, None);
+        assert_eq!(
+            registry.availability(&model_a)?,
+            RuntimeHealthAvailability::CircuitOpen {
+                retry_after_ms: 200
+            }
+        );
+
+        clock.set_now_ms(201);
+        registry.complete_circuit_probe(ticket, RuntimeHealthCircuitProbeResult::Healthy)?;
+        assert!(registry.endpoint_credential_model_is_available(&endpoint, &credential, "model-a"));
+        assert!(registry.endpoint_credential_model_is_available(&endpoint, &credential, "model-b"));
+        Ok(())
+    }
+
+    #[test]
+    fn expired_half_open_ticket_cannot_overwrite_a_reopened_circuit() -> TestResult {
+        let (clock, registry) = registry(100);
+        let key = RuntimeHealthKey::endpoint(endpoint("endpoint-a")?);
+        registry.open_circuit_until(key.clone(), 200)?;
+        clock.set_now_ms(200);
+        let expired_ticket = registry
+            .begin_circuit_probe(&key, 250)?
+            .ok_or("due Circuit did not create a recovery ticket")?;
+
+        clock.set_now_ms(250);
+        assert_eq!(
+            registry
+                .complete_circuit_probe(expired_ticket, RuntimeHealthCircuitProbeResult::Healthy),
+            Err(RuntimeHealthError::StaleCircuitProbe)
+        );
+        let active_ticket = registry
+            .begin_circuit_probe(&key, 300)?
+            .ok_or("expired recovery ticket was not reclaimed")?;
+        clock.set_now_ms(251);
+        registry.complete_circuit_probe(
+            active_ticket,
+            RuntimeHealthCircuitProbeResult::Unhealthy {
+                retry_after_ms: 400,
+            },
+        )?;
+        assert_eq!(
+            registry.availability(&key)?,
+            RuntimeHealthAvailability::CircuitOpen {
+                retry_after_ms: 400
+            }
+        );
         Ok(())
     }
 
