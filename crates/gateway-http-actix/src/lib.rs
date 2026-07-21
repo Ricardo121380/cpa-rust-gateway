@@ -33,12 +33,16 @@ use gateway_core::{
     UsageEvent,
 };
 use gateway_router::{
-    ResponsesEventSource, ResponsesExecution, ResponsesExecutor, ResponsesResponseMode,
-    SnapshotAuthenticatedClient, SnapshotClientKeyAuthenticator,
+    CountTokensExecution, CountTokensExecutor, ResponsesEventSource, ResponsesExecution,
+    ResponsesExecutor, ResponsesResponseMode, SnapshotAuthenticatedClient,
+    SnapshotClientKeyAuthenticator, UnsupportedCountTokensExecutor,
 };
 use gateway_stream::{
     CanonicalEventSender, CanonicalEventStream, FirstSemanticEventTracker, StreamCancellation,
     StreamCapacity, StreamCapacityError, bounded_canonical_stream,
+};
+use protocol_anthropic::{
+    decode_count_tokens_request, encode_count_tokens, encode_error as encode_anthropic_error,
 };
 use protocol_openai_responses::{
     OpenAiResponseMetadata, OpenAiResponsesSseEncoder, ResponseMode, SseFrame, decode_request,
@@ -121,6 +125,7 @@ impl ResponsesMetadataFactory for SystemResponsesMetadataFactory {
 #[derive(Clone)]
 pub struct ResponsesHttpState {
     executor: Arc<dyn ResponsesExecutor>,
+    count_tokens_executor: Arc<dyn CountTokensExecutor>,
     authenticator: ResponsesAuthenticator,
     metadata_factory: Arc<dyn ResponsesMetadataFactory>,
     stream_capacity: StreamCapacity,
@@ -216,6 +221,7 @@ impl ResponsesHttpState {
     ) -> Self {
         Self {
             executor,
+            count_tokens_executor: Arc::new(UnsupportedCountTokensExecutor),
             authenticator: ResponsesAuthenticator::Generic(authenticator),
             metadata_factory,
             stream_capacity,
@@ -251,6 +257,7 @@ impl ResponsesHttpState {
     ) -> Self {
         Self {
             executor,
+            count_tokens_executor: Arc::new(UnsupportedCountTokensExecutor),
             authenticator: ResponsesAuthenticator::Snapshot(authenticator),
             metadata_factory,
             stream_capacity,
@@ -272,6 +279,19 @@ impl ResponsesHttpState {
             stream_capacity,
         )
     }
+
+    /// Replaces the default explicit rejection with a route-aware exact token-count executor.
+    ///
+    /// The supplied executor must return an exact value or the stable unsupported-capability error;
+    /// this state offers no local estimation fallback.
+    #[must_use]
+    pub fn with_count_tokens_executor(
+        mut self,
+        count_tokens_executor: Arc<dyn CountTokensExecutor>,
+    ) -> Self {
+        self.count_tokens_executor = count_tokens_executor;
+        self
+    }
 }
 
 /// Creates a validated P1 default bounded-stream capacity.
@@ -288,7 +308,8 @@ pub fn configure(config: &mut web::ServiceConfig) {
     config
         .route("/healthz", web::get().to(healthz))
         .route("/v1/models", web::get().to(models))
-        .route("/v1/responses", web::post().to(responses));
+        .route("/v1/responses", web::post().to(responses))
+        .route("/v1/messages/count_tokens", web::post().to(count_tokens));
 }
 
 async fn healthz() -> HttpResponse {
@@ -334,20 +355,11 @@ async fn responses(
         Err(error) => return pre_header_error(&error),
     };
     let requested_model = decoded.request.requested_model.clone();
-    let (public_model, route_alias, route_id) = match &authenticated_client {
-        AuthenticatedResponsesClient::Generic(_) => (requested_model.clone(), None, None),
-        AuthenticatedResponsesClient::Snapshot(authenticated_client) => {
-            let Some(public_model) =
-                authenticated_client.resolve_public_model(&decoded.request.requested_model)
-            else {
-                return pre_header_error(&route_not_found());
-            };
-            let route_id = public_model.route_id().clone();
-            let public_model = public_model.model_name().to_owned();
-            let route_alias = (requested_model != public_model).then(|| requested_model.clone());
-            (public_model, route_alias, Some(route_id))
-        }
-    };
+    let (public_model, route_alias, route_id) =
+        match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
+            Ok(resolved) => resolved,
+            Err(error) => return pre_header_error(&error),
+        };
     let context = match state.metadata_factory.request_context() {
         Ok(context) => context,
         Err(error) => return pre_header_error(&error),
@@ -400,6 +412,68 @@ async fn responses(
         }
         ResponseMode::Streaming => {
             streaming_response(source, first, metadata, usage_observer, sender, stream).await
+        }
+    }
+}
+
+async fn count_tokens(
+    request: HttpRequest,
+    state: web::Data<ResponsesHttpState>,
+    body: web::Bytes,
+) -> HttpResponse {
+    let authenticated_client = match authenticate_bearer_request(&request, &state.authenticator) {
+        Ok(authenticated_client) => authenticated_client,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let Ok(body) = std::str::from_utf8(&body) else {
+        return pre_header_anthropic_error(&client_request_error());
+    };
+    let decoded = match decode_count_tokens_request(body) {
+        Ok(decoded) => decoded,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let (_public_model, _route_alias, route_id) =
+        match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
+            Ok(resolved) => resolved,
+            Err(error) => return pre_header_anthropic_error(&error),
+        };
+    let context = match state.metadata_factory.request_context() {
+        Ok(context) => context,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let execution = CountTokensExecution::new(context, decoded.request, route_id);
+    let count = match state.count_tokens_executor.count_tokens(execution).await {
+        Ok(count) => count,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+
+    // Model resolution happens before capability execution so a Snapshot executor receives the
+    // approved route identity. The canonical request deliberately retains the client alias for
+    // Provider encoding and observability; the route identity proves resolved routing.
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .body(encode_count_tokens(count).to_string())
+}
+
+fn resolve_public_model(
+    authenticated_client: &AuthenticatedResponsesClient,
+    requested_model: &str,
+) -> Result<(String, Option<String>, Option<gateway_core::RouteId>), GatewayError> {
+    match authenticated_client {
+        AuthenticatedResponsesClient::Generic(_) => Ok((requested_model.to_owned(), None, None)),
+        AuthenticatedResponsesClient::Snapshot(authenticated_client) => {
+            let Some(public_model) = authenticated_client.resolve_public_model(requested_model)
+            else {
+                return Err(route_not_found());
+            };
+            let public_model_name = public_model.model_name().to_owned();
+            let route_alias =
+                (requested_model != public_model_name).then(|| requested_model.to_owned());
+            Ok((
+                public_model_name,
+                route_alias,
+                Some(public_model.route_id().clone()),
+            ))
         }
     }
 }
@@ -801,6 +875,16 @@ fn pre_header_error(error: &GatewayError) -> HttpResponse {
         .body(encode_error(error).to_string())
 }
 
+fn pre_header_anthropic_error(error: &GatewayError) -> HttpResponse {
+    let mut response = HttpResponse::build(error_status(error));
+    if error.code() == GatewayErrorCode::ClientUnauthorized {
+        response.insert_header((header::WWW_AUTHENTICATE, "Bearer"));
+    }
+    response
+        .content_type("application/json")
+        .body(encode_anthropic_error(error).to_string())
+}
+
 fn authenticate_bearer_request(
     request: &HttpRequest,
     authenticator: &ResponsesAuthenticator,
@@ -831,6 +915,7 @@ fn presented_bearer_key(request: &HttpRequest) -> Result<&str, GatewayError> {
 const fn error_status(error: &GatewayError) -> StatusCode {
     match error.code() {
         GatewayErrorCode::ClientRequestError => StatusCode::BAD_REQUEST,
+        GatewayErrorCode::TokenCountUnsupported => StatusCode::UNPROCESSABLE_ENTITY,
         GatewayErrorCode::ClientUnauthorized => StatusCode::UNAUTHORIZED,
         GatewayErrorCode::RouteNotFound => StatusCode::NOT_FOUND,
         GatewayErrorCode::ProviderRateLimited | GatewayErrorCode::CredentialQuotaExceeded => {
@@ -878,7 +963,7 @@ mod tests {
         error::Error,
         future::poll_fn,
         sync::{
-            Arc,
+            Arc, Mutex,
             atomic::{AtomicBool, AtomicUsize, Ordering},
         },
         time::Duration,
@@ -895,17 +980,18 @@ mod tests {
         client_key::{ClientKeyPepper, ClientKeyService},
     };
     use gateway_core::{
-        AccessGroupId, CanonicalEvent, ClientKeyId, EndpointId, ErrorScope, GatewayError,
-        GatewayErrorCode, GatewayEvent, GatewayEventSink, MessageEnd, MessageRole, MessageStart,
-        PublicModelId, RawExtensions, RawJson, RequestContext, RequestId, ResponseEnd, ResponseId,
-        ResponseStart, RouteCandidateId, RouteId, StreamError, TextDelta, UpstreamId, Usage,
-        UsageDelta,
+        AccessGroupId, CanonicalEvent, ClientKeyId, EndpointId, ErrorScope, ExactInputTokenCount,
+        GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, MessageEnd, MessageRole,
+        MessageStart, PublicModelId, RawExtensions, RawJson, RequestContext, RequestId,
+        ResponseEnd, ResponseId, ResponseStart, RouteCandidateId, RouteId, StreamError, TextDelta,
+        UpstreamId, Usage, UsageDelta,
     };
     use gateway_observability::{BoundedEventQueue, EventQueueConfig};
     use gateway_router::{
-        CapabilitySet, DeterministicMockEmission, DeterministicMockResponsesExecutor,
-        ResponsesEventSource, ResponsesExecutor, ResponsesFuture, RouteSnapshot,
-        RouteSnapshotInput, RouteSnapshotRegistry, SnapshotAccessGroup, SnapshotCatalogAdmission,
+        CapabilitySet, CountTokensExecution, CountTokensExecutor, CountTokensFuture,
+        DeterministicMockEmission, DeterministicMockResponsesExecutor, ResponsesEventSource,
+        ResponsesExecutor, ResponsesFuture, RouteSnapshot, RouteSnapshotInput,
+        RouteSnapshotRegistry, SnapshotAccessGroup, SnapshotCatalogAdmission,
         SnapshotClientKeyAuthenticator, SnapshotClientKeyView, SnapshotPublicModel, SnapshotRoute,
         SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
         SnapshotTransformMode, SnapshotVersion,
@@ -1546,6 +1632,102 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn count_tokens_returns_only_an_exact_value_and_passes_snapshot_route_identity()
+    -> TestResult {
+        let response_calls = Arc::new(AtomicUsize::new(0));
+        let (state, presented_key) =
+            snapshot_auth_state_with_executor(Arc::new(CountingExecutor {
+                calls: response_calls.clone(),
+            }))?;
+        let observed = Arc::new(Mutex::new(Vec::new()));
+        let state = state.with_count_tokens_executor(Arc::new(RecordingExactCounter {
+            observed: observed.clone(),
+        }));
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = test::TestRequest::post()
+            .uri("/v1/messages/count_tokens")
+            .insert_header((header::AUTHORIZATION, format!("Bearer {presented_key}")))
+            .set_payload(format!(
+                r#"{{"model":"{SNAPSHOT_MODEL_ALIAS}","messages":[{{"role":"user","content":"count this"}}]}}"#
+            ))
+            .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response
+                .headers()
+                .get("content-type")
+                .and_then(|value| value.to_str().ok()),
+            Some("application/json")
+        );
+        let body = test::read_body(response).await;
+        assert_eq!(body.as_ref(), br#"{"input_tokens":17}"#);
+        assert_eq!(response_calls.load(Ordering::Acquire), 0);
+        assert_eq!(
+            observed
+                .lock()
+                .map_err(|_| "count-token audit lock poisoned")?
+                .as_slice(),
+            [CountTokensObservation {
+                requested_model: SNAPSHOT_MODEL_ALIAS.to_owned(),
+                route_id: Some("http-snapshot-route".to_owned()),
+            }]
+        );
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn count_tokens_rejects_default_unsupported_capability_without_an_estimate() -> TestResult
+    {
+        let state = mock_state(text_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/messages/count_tokens")
+                .set_payload(
+                    r#"{"model":"mock-model","messages":[{"role":"user","content":"count this"}]}"#,
+                ),
+        )
+        .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(
+            response
+                .headers()
+                .get("content-type")
+                .and_then(|value| value.to_str().ok()),
+            Some("application/json")
+        );
+        let body = test::read_body(response).await;
+        let body: serde_json::Value = serde_json::from_slice(&body)?;
+        assert_eq!(
+            body,
+            serde_json::json!({
+                "type": "error",
+                "error": {
+                    "type": "invalid_request_error",
+                    "message": "the selected route cannot accurately count tokens"
+                }
+            })
+        );
+        assert!(body.get("input_tokens").is_none());
+        assert!(body.pointer("/error/code").is_none());
+        Ok(())
+    }
+
+    #[actix_web::test]
     async fn streaming_responses_emits_openai_sse_through_actix_body() -> TestResult {
         let state = mock_state(text_events()?)?;
         let app = test::init_service(
@@ -1795,6 +1977,43 @@ mod tests {
 
     struct CountingExecutor {
         calls: Arc<AtomicUsize>,
+    }
+
+    #[derive(Debug, Eq, PartialEq)]
+    struct CountTokensObservation {
+        requested_model: String,
+        route_id: Option<String>,
+    }
+
+    struct RecordingExactCounter {
+        observed: Arc<Mutex<Vec<CountTokensObservation>>>,
+    }
+
+    impl CountTokensExecutor for RecordingExactCounter {
+        fn count_tokens(
+            &self,
+            execution: CountTokensExecution,
+        ) -> CountTokensFuture<'_, Result<ExactInputTokenCount, GatewayError>> {
+            let observation = CountTokensObservation {
+                requested_model: execution.request().requested_model.clone(),
+                route_id: execution
+                    .route_id()
+                    .map(|route_id| route_id.as_str().to_owned()),
+            };
+            let result = self.observed.lock().map_or_else(
+                |_| {
+                    Err(GatewayError::new(
+                        GatewayErrorCode::InternalError,
+                        ErrorScope::Internal,
+                    ))
+                },
+                |mut observed| {
+                    observed.push(observation);
+                    Ok(ExactInputTokenCount::new(17))
+                },
+            );
+            Box::pin(async move { result })
+        }
     }
 
     impl ResponsesExecutor for CountingExecutor {

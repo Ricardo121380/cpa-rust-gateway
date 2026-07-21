@@ -9,9 +9,13 @@ mod json;
 mod request;
 mod response;
 
-pub use request::{DecodedMessagesRequest, ResponseMode, decode_request};
+pub use request::{
+    DecodedCountTokensRequest, DecodedMessagesRequest, ResponseMode, decode_count_tokens_request,
+    decode_request,
+};
 pub use response::{
-    AnthropicMessagesSseEncoder, AnthropicResponseMetadata, SseFrame, encode_error, encode_response,
+    AnthropicMessagesSseEncoder, AnthropicResponseMetadata, SseFrame, encode_count_tokens,
+    encode_error, encode_response,
 };
 
 /// Stable component identifier used by architecture smoke tests.

@@ -73,3 +73,4 @@
 - [P4-10 Read-only runtime management status and controlled Credential-account recovery report](p4-10-read-only-runtime-management-status.md)
 - [P5-00 Phase-level delivery and default-ref cache report](p5-00-phase-level-delivery.md)
 - [P5-01 Anthropic Messages adapter report](p5-01-anthropic-messages-adapter.md)
+- [P5-02 Exact token-count capability report](p5-02-exact-token-count-capability.md)

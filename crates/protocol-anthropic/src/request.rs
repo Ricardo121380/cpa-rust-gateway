@@ -41,6 +41,22 @@ impl fmt::Debug for DecodedMessagesRequest {
     }
 }
 
+/// One decoded Anthropic `count_tokens` request without HTTP or Provider concerns.
+#[derive(Clone, Eq, PartialEq)]
+pub struct DecodedCountTokensRequest {
+    /// Protocol-neutral request data whose input-token count is requested.
+    pub request: CanonicalRequest,
+}
+
+impl fmt::Debug for DecodedCountTokensRequest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("DecodedCountTokensRequest")
+            .field("request", &self.request)
+            .finish()
+    }
+}
+
 /// Decodes one complete Anthropic Messages JSON request.
 ///
 /// Unknown fields are retained in explicit `anthropic.*` extension namespaces. This codec does
@@ -50,6 +66,37 @@ impl fmt::Debug for DecodedMessagesRequest {
 ///
 /// Returns `ClientRequestError/Request` for malformed, ambiguous, or structurally invalid input.
 pub fn decode_request(input: &str) -> Result<DecodedMessagesRequest, gateway_core::GatewayError> {
+    let (request, mode) = decode_canonical_request(input, true)?;
+
+    Ok(DecodedMessagesRequest { request, mode })
+}
+
+/// Decodes an Anthropic `count_tokens` request into the same canonical input representation.
+///
+/// Unlike the Messages inference endpoint, this endpoint does not require `max_tokens`: no output
+/// is generated. A supplied `stream: true` is rejected because a token-count result has no SSE
+/// representation. Unknown fields continue to be retained as raw extensions for later capability
+/// analysis rather than being silently discarded.
+///
+/// # Errors
+///
+/// Returns `ClientRequestError/Request` for malformed, ambiguous, streaming, or structurally
+/// invalid input.
+pub fn decode_count_tokens_request(
+    input: &str,
+) -> Result<DecodedCountTokensRequest, gateway_core::GatewayError> {
+    let (request, mode) = decode_canonical_request(input, false)?;
+    if mode == ResponseMode::Streaming {
+        return Err(client_request_error());
+    }
+
+    Ok(DecodedCountTokensRequest { request })
+}
+
+fn decode_canonical_request(
+    input: &str,
+    requires_max_tokens: bool,
+) -> Result<(CanonicalRequest, ResponseMode), gateway_core::GatewayError> {
     reject_duplicate_names(input)?;
     let value: Value = serde_json::from_str(input).map_err(|_| client_request_error())?;
     let root = object(&value)?;
@@ -57,7 +104,9 @@ pub fn decode_request(input: &str) -> Result<DecodedMessagesRequest, gateway_cor
     if requested_model.is_empty() {
         return Err(client_request_error());
     }
-    validate_max_tokens(root)?;
+    if requires_max_tokens {
+        validate_max_tokens(root)?;
+    }
 
     let mode = match root.get("stream") {
         None | Some(Value::Bool(false)) => ResponseMode::NonStreaming,
@@ -79,8 +128,8 @@ pub fn decode_request(input: &str) -> Result<DecodedMessagesRequest, gateway_cor
         .map_or_else(|| Ok(Vec::new()), decode_tools)?;
     let extensions = extensions_except(root, ROOT_FIELDS, "anthropic.messages.")?;
 
-    Ok(DecodedMessagesRequest {
-        request: CanonicalRequest {
+    Ok((
+        CanonicalRequest {
             requested_model,
             messages,
             tools,
@@ -90,7 +139,7 @@ pub fn decode_request(input: &str) -> Result<DecodedMessagesRequest, gateway_cor
             extensions,
         },
         mode,
-    })
+    ))
 }
 
 fn validate_max_tokens(root: &Map<String, Value>) -> Result<(), gateway_core::GatewayError> {
@@ -326,7 +375,7 @@ fn decode_tool(value: &Value) -> Result<ToolDefinition, gateway_core::GatewayErr
 mod tests {
     use gateway_core::MessageContent;
 
-    use super::{ResponseMode, decode_request};
+    use super::{ResponseMode, decode_count_tokens_request, decode_request};
 
     #[test]
     fn request_fixture_maps_to_canonical_snapshot() -> Result<(), Box<dyn std::error::Error>> {
@@ -399,6 +448,36 @@ mod tests {
         for value in ["gateway-claude", "lookup", "call-01", "secret prompt"] {
             assert!(!diagnostic.contains(value));
         }
+        Ok(())
+    }
+
+    #[test]
+    fn count_tokens_uses_the_same_canonical_input_without_an_output_limit()
+    -> Result<(), gateway_core::GatewayError> {
+        let decoded = decode_count_tokens_request(
+            r#"{
+                "model":"gateway-claude",
+                "system":"Follow the policy.",
+                "messages":[{"role":"user","content":"count this"}],
+                "metadata":{"request":"kept"}
+            }"#,
+        )?;
+
+        assert_eq!(decoded.request.requested_model, "gateway-claude");
+        assert_eq!(decoded.request.messages.len(), 2);
+        assert!(
+            decoded
+                .request
+                .extensions
+                .get("anthropic.messages.metadata")
+                .is_some()
+        );
+        assert!(
+            decode_count_tokens_request(
+                r#"{"model":"m","messages":[{"role":"user","content":"x"}],"stream":true}"#
+            )
+            .is_err()
+        );
         Ok(())
     }
 }

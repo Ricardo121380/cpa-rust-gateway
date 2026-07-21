@@ -14,6 +14,7 @@ mod runtime_health;
 mod runtime_management_status;
 mod runtime_probe;
 mod runtime_quota;
+mod token_count;
 
 use std::{fmt, future::Future, pin::Pin, sync::Arc, time::Duration};
 
@@ -77,6 +78,10 @@ pub use runtime_quota::{
     QuotaWindow, QuotaWindowError, RuntimeQuotaAvailability, RuntimeQuotaError,
     RuntimeQuotaRecoveryProbe, RuntimeQuotaRegistry, RuntimeQuotaRegistryBuildError,
     RuntimeQuotaStatusSnapshot, RuntimeQuotaTarget, RuntimeQuotaTargetError,
+};
+pub use token_count::{
+    CountTokensExecution, CountTokensExecutor, CountTokensFuture, ProviderCountTokensExecutor,
+    UnsupportedCountTokensExecutor,
 };
 
 /// Stable component identifier used by architecture smoke tests.

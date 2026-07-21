@@ -1,7 +1,8 @@
 use std::fmt;
 
 use gateway_core::{
-    CanonicalEvent, CanonicalEventState, CanonicalResponse, GatewayError, GatewayErrorCode, Usage,
+    CanonicalEvent, CanonicalEventState, CanonicalResponse, ExactInputTokenCount, GatewayError,
+    GatewayErrorCode, Usage,
 };
 use serde_json::{Value, json};
 
@@ -102,6 +103,12 @@ pub fn encode_error(error: &GatewayError) -> Value {
             "message": error.safe_message(),
         }
     })
+}
+
+/// Encodes one exact Anthropic `count_tokens` response.
+#[must_use]
+pub fn encode_count_tokens(count: ExactInputTokenCount) -> Value {
+    json!({"input_tokens": count.input_tokens()})
 }
 
 /// Encodes a validated canonical response as one Anthropic Message object.
@@ -396,7 +403,9 @@ const fn frame(event: &'static str, data: Value) -> SseFrame {
 
 const fn anthropic_error_type(error: &GatewayError) -> &'static str {
     match error.code() {
-        GatewayErrorCode::ClientRequestError => "invalid_request_error",
+        GatewayErrorCode::ClientRequestError | GatewayErrorCode::TokenCountUnsupported => {
+            "invalid_request_error"
+        }
         GatewayErrorCode::ClientUnauthorized
         | GatewayErrorCode::CredentialUnauthorized
         | GatewayErrorCode::CredentialForbidden => "authentication_error",
@@ -423,7 +432,8 @@ mod tests {
     };
 
     use super::{
-        AnthropicMessagesSseEncoder, AnthropicResponseMetadata, encode_error, encode_response,
+        AnthropicMessagesSseEncoder, AnthropicResponseMetadata, encode_count_tokens, encode_error,
+        encode_response,
     };
 
     fn events() -> Result<Vec<CanonicalEvent>, serde_json::Error> {
@@ -475,6 +485,14 @@ mod tests {
                     "message": "the client is not authorized"
                 }
             })
+        );
+    }
+
+    #[test]
+    fn exact_count_tokens_response_has_no_estimate_or_extra_fields() {
+        assert_eq!(
+            encode_count_tokens(gateway_core::ExactInputTokenCount::new(17)),
+            serde_json::json!({"input_tokens": 17})
         );
     }
 
