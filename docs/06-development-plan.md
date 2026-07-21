@@ -4,15 +4,15 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.3` |
+| 计划版本 | `v1.4` |
 | 生效日期 | `2026-07-21` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot` 与 `P3 - OpenAI Responses 聚合 MVP` 已完成；`P4 - Catalog、Health、Quota、Explain、观测` 已开始其工程效率前置项 |
-| 当前任务 | `P4-00`、`P4-01` 与 `P4-02` 已完成 Code Gate；本次 docs-only 收口通过后 P4-02 验收完成。P4-03 至 P4-09 保持 `PENDING`。 |
+| 当前任务 | `P4-00`、`P4-01` 与 `P4-02` 已完成验收；P4-03 至 P4-09 保持 `PENDING`，当前没有启动新的功能 Task。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
-| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：保留质量与单 Task 开发纪律的前提下，采用缓存化 Full CI、显式 docs-only Gate、`LOCAL_PASS_PENDING_CI` 状态与单探针诊断 harness。 `CR-EXEC-002`：按缓存可见交付引用、Fast 后补充供应链 Full、单次 docs-only 收口、缓存可观测性和明确的暖态时延目标进一步缩短交付等待。 |
+| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：保留质量与单 Task 开发纪律的前提下，采用缓存化 Full CI、显式 docs-only Gate、`LOCAL_PASS_PENDING_CI` 状态与单探针诊断 harness。 `CR-EXEC-002`：按缓存可见交付引用、Fast 后补充供应链 Full、单次 docs-only 收口、缓存可观测性和明确的暖态时延目标进一步缩短交付等待。 `CR-EXEC-003`：以任务卡、集中补丁、非重复验证、Gate 等待重叠、模板化证据和全程时延度量减少代理执行时间。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -180,6 +180,54 @@ CR-ID: CR-EXEC-002
    Gate 的正确性结论，但报告必须记录原因。暖态质量工具安装运行目标 `<=10s`、计划硬门槛 `<=90s`；
    暖态 code workflow 目标 `<=4min`（不含 GitHub queue），docs-only workflow 目标 `<=45s`。P4-02
    不额外触发手工暖态重跑，正常 Code Gate 的 summary 即为测量证据。
+
+### 已批准 Change Request：CR-EXEC-003
+
+```text
+CR-ID: CR-EXEC-003
+原因: P4-02 的总 wall-clock 约 43 分钟，但已验证的 GitHub Code Gate 仅约 4 分 05 秒、docs-only
+      Gate 仅约 40 秒。本地完整门禁约 43 秒；剩余时间主要来自重复范围读取、分散补丁、一次
+      Clippy 返工、重叠验证、Gate 通过后才整理 closeout，以及手工证据汇总。需要压缩代理执行
+      时间而不降低 review、Full Gate、Secret 扫描、文档或单 Task 纪律。
+影响的 Task / Matrix ID / ADR: 后续所有顺序 Task 的执行循环、汇报与测量；不改变 Matrix、公开
+      API、Canonical 类型、Provider 协议、Schema、数据库、部署、GitHub required Gate 或任何已
+      完成 Task 的验收。无需新增 ADR，因为这是代理工作流而非系统架构决策。
+兼容性与迁移影响: 无客户端、数据、部署或安全迁移。仍最多一个 IN_PROGRESS Task；仍使用既有
+      Code Gate、LOCAL_PASS_PENDING_CI 和单次 docs-only 收口。
+测试与回滚变化: 本次计划变更走 docs-only Gate。后续每个 Task 必须在报告中记录范围等级、局部
+      执行、Code Gate、closeout 和总时长；若时间预算连续两次超标，先记录具体阻塞并调整执行
+      方法。回滚只移除本节的代理效率纪律，不移除任何测试、review、Gate 或功能产物。
+用户批准: APPROVED，2026-07-21（要求将代理执行提速方案写入开发计划）
+计划版本变更: v1.4
+```
+
+### 1.7 代理执行提速纪律（CR-EXEC-003）
+
+1. **先建 Task Card，再读代码。** 每个 Task 开始时，在本轮可见的执行说明中固定：范围等级
+   `S/M/L`、依赖、最多需要修改的文件、必须成立的不变量、定向测试、最终 Gate 和禁止项。首次
+   读取只限计划行、直接依赖、最近相似实现及对应行为契约；只有出现具体编译/测试/设计冲突时
+   才扩展调查范围，不能为了“可能有用”重复浏览已确认文件。
+2. **显式的本地执行预算。** `S`（单 Crate、无 Schema/公开边界）目标为从 Task Card 到代码提交
+   `<=15min`；`M`（最多三 Crate 或一个契约边界）目标 `<=25min`；`L` 必须先给出细化子计划与
+   预算，不能隐式按小 Task 推进。预算是过程度量而非降低质量的 deadline；超出时必须记录原因。
+3. **集中补丁而非微补丁。** 范围已明确后，代码、定向测试、ADR/Contract/报告骨架和索引应按
+   一个一致的改动集完成。格式化或由失败测试直接要求的修复可以追加；不为尚未验证的猜想拆分
+   多轮文件编辑。写操作保持串行以避免冲突，互不依赖的只读检查并行执行。
+4. **开发验证去重。** 开发中仅运行当前边界的定向 test/Clippy 以获得快速反馈。最终需要完整
+   门禁时只运行一次 `./scripts/check.sh full`，它已覆盖 Fast 与 supply-chain；不得在其前后机械
+   追加独立 `fast`、`supply-chain` 或相同范围 Clippy。staged Secret/whitespace review 仍必须在
+   提交前执行，且不被 Full 替代。
+5. **Gate 等待与 closeout 重叠。** Code Gate 运行期间可以预写不含 run ID、状态结论或 `DONE`
+   标记的 closeout 草稿、报告表格和索引 diff。Gate 通过后仅填入不可变证据并创建唯一 docs-only
+   收口；Gate 失败时丢弃或修正草稿，绝不借草稿提前推进状态或下一依赖。
+6. **证据模板化而不删证据。** 后续 P4 Task 复用固定 ADR、Contract、报告、追踪行和 closeout
+   模板，只填写本 Task 的决策、行为、测试和时延差异。没有新增架构决定或可观察行为时，不凭
+   习惯额外创建文档；现有要求的证据、链接、Secret 约束仍完整保留。
+7. **远端查询最小化。** workflow 运行时使用低频状态轮询；完成后先读取一次完整 job 摘要，仅在
+   cache、失败或安全证据缺失时读取相关 job log。不得为复制同一状态或刷新无变化页面重复查询。
+8. **统一时延报告。** 每个 Task 报告记录 `Task Card`、`代码提交`、`Code Gate 通过`、`docs 提交`
+   和 `docs Gate 通过`五个时间点，以及范围等级、重复验证次数、返工次数和超预算原因。此数据
+   用于下一 Task 纠正流程；连续两次同类超预算必须先优化执行方法，再考虑扩大并行度。
 
 ## 2. Release 1 范围
 
@@ -808,6 +856,9 @@ Current task:
 Completed in this turn:
 Verification evidence:
 Files changed:
+Execution timing (Task Card / code commit / Code Gate / docs commit / docs Gate):
+Scope level and execution budget:
+Repeated validations / rework count:
 Risks or deviations:
 Next task:
 ```
@@ -822,3 +873,4 @@ Next task:
 | v1.1 | 2026-07-19 至 2026-07-21 | 记录 P1/G1 的 Tool 语义投影澄清，以及 P3/G3 的公开别名、有限 SSE 帧与 idle 边界 Change Request | 已批准的历史执行基线 |
 | v1.2 | 2026-07-21 | `CR-EXEC-001`：缓存化受版本约束的质量工具、code/docs/tag Gate 分类、`LOCAL_PASS_PENDING_CI` 流水线、文档证据批处理、单探针诊断与真实 Provider readiness 纪律；新增 P4-00 前置项 | APPROVED；当前执行基线 |
 | v1.3 | 2026-07-21 | `CR-EXEC-002`：缓存可见 delivery ref、Fast 后补充供应链 Full、单次 docs-only 收口、cache summary 与暖态时延目标；P4-02 开始 | APPROVED；当前执行基线 |
+| v1.4 | 2026-07-21 | `CR-EXEC-003`：Task Card、S/M/L 执行预算、集中补丁、去重验证、Gate 等待重叠、证据模板与全程时延报告 | APPROVED；当前执行基线 |
