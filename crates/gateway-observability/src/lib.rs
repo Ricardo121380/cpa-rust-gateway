@@ -16,7 +16,7 @@ use tokio::sync::mpsc::{self, error::TrySendError};
 /// Stable component identifier used by architecture smoke tests.
 pub const COMPONENT: &str = "gateway-observability";
 
-/// Default bounded capacity for Request, Attempt, and Usage records.
+/// Default bounded capacity for Request, Attempt, Usage, and Health records.
 pub const DEFAULT_REQUIRED_EVENT_CAPACITY: usize = 1_024;
 /// Default bounded capacity for low-priority diagnostics.
 pub const DEFAULT_DIAGNOSTIC_EVENT_CAPACITY: usize = 128;
@@ -59,7 +59,7 @@ impl EventQueueConfig {
         })
     }
 
-    /// Returns the bounded Request/Attempt/Usage capacity.
+    /// Returns the bounded Request/Attempt/Usage/Health capacity.
     #[must_use]
     pub const fn required_capacity(self) -> usize {
         self.required_capacity

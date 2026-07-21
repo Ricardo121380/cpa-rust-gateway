@@ -4,6 +4,8 @@
 
 /// AEAD Secret storage, external Master Key loading, and key-rotation primitives.
 pub mod control_plane;
+/// Append-only durable lifecycle event storage and its asynchronous bounded-queue consumer.
+pub mod event_store;
 pub mod secret_store;
 
 use std::{error::Error, fmt, path::Path};
@@ -17,9 +19,10 @@ const VERSIONED_CONTROL_PLANE_SCHEMA_VERSION: i64 = 1;
 const VERSIONED_ROUTE_ACCESS_SCHEMA_VERSION: i64 = 2;
 const VERSIONED_EGRESS_POLICY_SCHEMA_VERSION: i64 = 3;
 const MANAGEMENT_AUDIT_SCHEMA_VERSION: i64 = 4;
+const GATEWAY_EVENT_LOG_SCHEMA_VERSION: i64 = 5;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = MANAGEMENT_AUDIT_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = GATEWAY_EVENT_LOG_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -48,6 +51,11 @@ const MIGRATIONS: &[Migration] = &[
         version: MANAGEMENT_AUDIT_SCHEMA_VERSION,
         up: include_str!("../migrations/0004_management_audit.up.sql"),
         down: include_str!("../migrations/0004_management_audit.down.sql"),
+    },
+    Migration {
+        version: GATEWAY_EVENT_LOG_SCHEMA_VERSION,
+        up: include_str!("../migrations/0005_gateway_event_log.up.sql"),
+        down: include_str!("../migrations/0005_gateway_event_log.down.sql"),
     },
 ];
 
@@ -94,6 +102,16 @@ pub enum StoreError {
     /// Event values are deliberately not included because caller-provided actor labels must not
     /// be echoed through storage errors.
     InvalidManagementAuditEvent,
+    /// A serialized durable gateway event could not be encoded, decoded, or structurally matched.
+    ///
+    /// Event contents are deliberately omitted because internal model labels are access-controlled.
+    InvalidPersistedGatewayEvent,
+    /// A replay reused one stable `(event_type, event_id)` with different event contents.
+    ConflictingGatewayEventReplay,
+    /// A low-priority diagnostic was offered to the durable Required-event store.
+    DiagnosticEventNotPersistable,
+    /// `PRAGMA quick_check` returned a non-`ok` integrity result.
+    GatewayEventLogIntegrityCheckFailed,
 }
 
 impl fmt::Display for StoreError {
@@ -130,6 +148,18 @@ impl fmt::Display for StoreError {
             Self::InvalidManagementAuditEvent => {
                 formatter.write_str("management audit event is invalid for this operation")
             }
+            Self::InvalidPersistedGatewayEvent => {
+                formatter.write_str("persisted gateway event is malformed")
+            }
+            Self::ConflictingGatewayEventReplay => {
+                formatter.write_str("gateway event replay conflicts with an existing durable event")
+            }
+            Self::DiagnosticEventNotPersistable => {
+                formatter.write_str("diagnostic events are not persisted in the required event log")
+            }
+            Self::GatewayEventLogIntegrityCheckFailed => {
+                formatter.write_str("gateway event log integrity check failed")
+            }
         }
     }
 }
@@ -145,7 +175,11 @@ impl Error for StoreError {
             | Self::ControlPlaneMutationRequiresDraft
             | Self::ConfigVersionNotFound
             | Self::ConfigVersionAlreadyActive
-            | Self::InvalidManagementAuditEvent => None,
+            | Self::InvalidManagementAuditEvent
+            | Self::InvalidPersistedGatewayEvent
+            | Self::ConflictingGatewayEventReplay
+            | Self::DiagnosticEventNotPersistable
+            | Self::GatewayEventLogIntegrityCheckFailed => None,
         }
     }
 }
@@ -322,7 +356,7 @@ mod tests {
     const TEST_CLIENT_KEY_DIGEST_B: [u8; 32] = [0x5A; 32];
 
     #[test]
-    fn migrations_are_idempotent_and_create_all_p2_schema_tables() -> TestResult {
+    fn migrations_are_idempotent_and_create_all_known_schema_tables() -> TestResult {
         let mut connection = Connection::open_in_memory()?;
 
         migrate(&mut connection)?;
@@ -339,6 +373,7 @@ mod tests {
                 "config_versions",
                 "egress_policies",
                 "endpoint_credential_bindings",
+                "gateway_event_log",
                 "management_audit_events",
                 "model_aliases",
                 "model_routes",

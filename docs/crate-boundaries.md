@@ -18,6 +18,9 @@ gateway-router
 gateway-observability
   -> gateway-core + Tokio bounded-channel primitives
 
+gateway-store
+  -> gateway-core + gateway-observability receiver + SQLite/Tokio writer primitives
+
 provider-*
   -> core/provider/upstream + matching protocol/continuity/stream
 
@@ -58,4 +61,7 @@ gateway-core
   deadline；它不得借此创建后台重试任务、无界队列、HTTP client、Provider 或 Stream 依赖。
 - `gateway-observability` 可以直接使用 Tokio 的有界 Channel 原语来接收结构化事件；它不得
   依赖 Router、HTTP、Store、具体 Provider 或在请求路径内执行 SQLite/网络写入。
+- `gateway-store` 可以消费 `gateway-observability::EventQueueReceiver`，以异步批写将已入队的
+  事件落入 SQLite；这条边严格单向，`gateway-observability` 不得反向依赖 Store，且 Router/HTTP
+  热路径不得等待 writer、SQLite 或其失败重试。
 - 当前精确允许边由 `scripts/check-crate-boundaries.rb` 校验。

@@ -23,13 +23,13 @@ pub use canonical_request::CanonicalRequest;
 pub use error::{ErrorScope, GatewayError, GatewayErrorCode};
 pub use gateway_event::{
     AttemptEvent, AttemptOutcome, AttemptRetryDecision, DiagnosticEvent, EventEmission,
-    GatewayEvent, GatewayEventPriority, GatewayEventSink, GatewayProtocol, NoopGatewayEventSink,
-    RequestEvent, UsageEvent, UsageSummary,
+    GatewayEvent, GatewayEventPriority, GatewayEventSink, GatewayProtocol, HealthEvent,
+    HealthEventKind, NoopGatewayEventSink, RequestEvent, UsageEvent, UsageSummary,
 };
 pub use id::{
     AccessGroupId, AttemptId, AuthId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId,
-    InvalidIdentifier, ProviderId, PublicModelId, RequestId, ResponseId, RouteCandidateId, RouteId,
-    UpstreamId,
+    HealthEventId, InvalidIdentifier, ProviderId, PublicModelId, RequestId, ResponseId,
+    RouteCandidateId, RouteId, UpstreamId,
 };
 pub use message::{
     CanonicalMessage, MessageContent, MessageRole, OpaqueContent, TextContent, ToolCall, ToolResult,

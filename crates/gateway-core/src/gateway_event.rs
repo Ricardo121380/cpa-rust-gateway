@@ -10,8 +10,8 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AccessGroupId, AttemptId, ClientKeyId, CredentialId, EndpointId, GatewayError, RequestId,
-    ResponseId, RouteCandidateId, RouteId, UpstreamId, Usage,
+    AccessGroupId, AttemptId, ClientKeyId, CredentialId, EndpointId, GatewayError, HealthEventId,
+    RequestId, ResponseId, RouteCandidateId, RouteId, UpstreamId, Usage,
 };
 
 /// The public protocol that accepted a request observation.
@@ -25,7 +25,7 @@ pub enum GatewayProtocol {
 /// Importance class used by a bounded event implementation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GatewayEventPriority {
-    /// Request, Attempt, and Usage records must be kept separate from diagnostics.
+    /// Request, Attempt, Usage, and Health records must be kept separate from diagnostics.
     Required,
     /// A safe diagnostic may be discarded under bounded queue pressure.
     Diagnostic,
@@ -72,6 +72,8 @@ pub enum GatewayEvent {
     Attempt(AttemptEvent),
     /// One final token-usage snapshot reached the canonical response path.
     Usage(UsageEvent),
+    /// One sanitized runtime-health transition supplied by a background/control component.
+    Health(HealthEvent),
     /// A safe, low-priority internal diagnostic.
     Diagnostic(DiagnosticEvent),
 }
@@ -81,7 +83,9 @@ impl GatewayEvent {
     #[must_use]
     pub const fn priority(&self) -> GatewayEventPriority {
         match self {
-            Self::Request(_) | Self::Attempt(_) | Self::Usage(_) => GatewayEventPriority::Required,
+            Self::Request(_) | Self::Attempt(_) | Self::Usage(_) | Self::Health(_) => {
+                GatewayEventPriority::Required
+            }
             Self::Diagnostic(_) => GatewayEventPriority::Diagnostic,
         }
     }
@@ -100,6 +104,10 @@ impl fmt::Debug for GatewayEvent {
                 .finish(),
             Self::Usage(event) => formatter
                 .debug_tuple("GatewayEvent::Usage")
+                .field(event)
+                .finish(),
+            Self::Health(event) => formatter
+                .debug_tuple("GatewayEvent::Health")
                 .field(event)
                 .finish(),
             Self::Diagnostic(event) => formatter
@@ -469,6 +477,105 @@ impl UsageEvent {
     }
 }
 
+/// One bounded non-secret runtime-health transition retained for durable operational correlation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HealthEventKind {
+    /// A controlled Endpoint/Credential/model probe reached its success condition.
+    ProbeSucceeded,
+    /// A controlled Endpoint/Credential/model probe did not reach its success condition.
+    ProbeFailed,
+    /// A runtime Circuit opened for a bounded exact target.
+    CircuitOpened,
+    /// A validated half-open probe closed the exact Circuit.
+    CircuitRecovered,
+}
+
+/// One runtime-health transition with no URL, Header, body, status text, or Secret material.
+#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::struct_field_names)] // The serialized field is the stable Health-event identifier.
+pub struct HealthEvent {
+    health_event_id: HealthEventId,
+    endpoint_id: EndpointId,
+    credential_id: Option<CredentialId>,
+    upstream_model: Option<String>,
+    occurred_at_ms: i64,
+    kind: HealthEventKind,
+}
+
+impl HealthEvent {
+    /// Creates one pre-classified exact-target health transition.
+    #[must_use]
+    pub fn new(
+        health_event_id: HealthEventId,
+        endpoint_id: EndpointId,
+        credential_id: Option<CredentialId>,
+        upstream_model: Option<String>,
+        occurred_at_ms: i64,
+        kind: HealthEventKind,
+    ) -> Self {
+        Self {
+            health_event_id,
+            endpoint_id,
+            credential_id,
+            upstream_model,
+            occurred_at_ms,
+            kind,
+        }
+    }
+
+    /// Returns the stable idempotence key for this health transition.
+    #[must_use]
+    pub const fn health_event_id(&self) -> &HealthEventId {
+        &self.health_event_id
+    }
+
+    /// Returns the exact protocol-specific Endpoint that observed the transition.
+    #[must_use]
+    pub const fn endpoint_id(&self) -> &EndpointId {
+        &self.endpoint_id
+    }
+
+    /// Returns the optional non-secret Credential scope.
+    #[must_use]
+    pub fn credential_id(&self) -> Option<&CredentialId> {
+        self.credential_id.as_ref()
+    }
+
+    /// Returns the optional exact upstream-model scope for access-controlled durable consumers.
+    #[must_use]
+    pub fn upstream_model(&self) -> Option<&str> {
+        self.upstream_model.as_deref()
+    }
+
+    /// Returns the explicitly supplied runtime-health transition timestamp.
+    #[must_use]
+    pub const fn occurred_at_ms(&self) -> i64 {
+        self.occurred_at_ms
+    }
+
+    /// Returns the sanitized transition category.
+    #[must_use]
+    pub const fn kind(&self) -> HealthEventKind {
+        self.kind
+    }
+}
+
+impl fmt::Debug for HealthEvent {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("HealthEvent")
+            .field("health_event_id", &self.health_event_id)
+            .field("endpoint_id", &self.endpoint_id)
+            .field("credential_id", &self.credential_id)
+            .field("upstream_model_present", &self.upstream_model.is_some())
+            .field("occurred_at_ms", &self.occurred_at_ms)
+            .field("kind", &self.kind)
+            .finish()
+    }
+}
+
 /// A safe low-priority diagnostic that contains no free-form text.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -494,11 +601,11 @@ impl DiagnosticEvent {
 mod tests {
     use super::{
         AttemptEvent, AttemptOutcome, AttemptRetryDecision, GatewayEvent, GatewayEventPriority,
-        GatewayProtocol, RequestEvent, UsageEvent,
+        GatewayProtocol, HealthEvent, HealthEventKind, RequestEvent, UsageEvent,
     };
     use crate::{
-        AccessGroupId, ClientKeyId, CredentialId, EndpointId, RawExtensions, RawJson, RequestId,
-        ResponseId, RouteCandidateId, RouteId, UpstreamId, Usage,
+        AccessGroupId, ClientKeyId, CredentialId, EndpointId, HealthEventId, RawExtensions,
+        RawJson, RequestId, ResponseId, RouteCandidateId, RouteId, UpstreamId, Usage,
     };
 
     type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -566,6 +673,25 @@ mod tests {
         assert_eq!(event.priority(), GatewayEventPriority::Required);
         let serialized = serde_json::to_string(&event)?;
         assert!(!serialized.contains("must-not-persist"));
+        Ok(())
+    }
+
+    #[test]
+    fn health_events_are_required_and_redact_internal_model_values() -> TestResult {
+        let event = HealthEvent::new(
+            HealthEventId::try_new("health-01")?,
+            EndpointId::try_new("endpoint-01")?,
+            Some(CredentialId::try_new("credential-01")?),
+            Some("private-upstream-model".to_owned()),
+            100,
+            HealthEventKind::CircuitRecovered,
+        );
+        let diagnostic = format!("{event:?}");
+        assert!(!diagnostic.contains("private-upstream-model"));
+        assert_eq!(
+            GatewayEvent::Health(event).priority(),
+            GatewayEventPriority::Required
+        );
         Ok(())
     }
 }

@@ -53,3 +53,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0024 Catalog snapshot freshness and last-success fallback](ADR-0024-catalog-snapshot-freshness-and-last-success-fallback.md) — `P4-02`（Accepted）。
 - [ADR-0025 Catalog diff Preview/Apply and removal isolation](ADR-0025-catalog-diff-preview-apply-removal-isolation.md) — `P4-03`（Accepted）。
 - [ADR-0026 Target-local probe EWMA and controlled Circuit recovery](ADR-0026-target-local-probe-ewma-and-circuit-recovery.md) — `P4-04`（Accepted）。
+- [ADR-0027 Append-only bounded SQLite event writer](ADR-0027-append-only-bounded-sqlite-event-writer.md) — `P4-07`（Accepted）。

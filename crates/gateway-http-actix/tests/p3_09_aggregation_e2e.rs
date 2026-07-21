@@ -542,6 +542,12 @@ async fn pre_semantic_http_5xx_fails_over_to_the_second_upstream() -> TestResult
                 assert_eq!(event.usage().input_tokens, Some(2));
                 assert_eq!(event.usage().output_tokens, Some(3));
             }
+            GatewayEvent::Health(_) => {
+                return Err(std::io::Error::other(
+                    "P3-09 mock aggregation must not emit a Health event",
+                )
+                .into());
+            }
             GatewayEvent::Diagnostic(_) => {}
         }
     }

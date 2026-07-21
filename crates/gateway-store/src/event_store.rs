@@ -1,0 +1,927 @@
+//! Append-only durable storage for bounded gateway lifecycle observations.
+//!
+//! The request path only calls the synchronous, non-blocking event sink in `gateway-core`.
+//! This module consumes already-admitted observations after that boundary. It never gives the
+//! queue, `SQLite`, or its retry loop back to Router or HTTP callers.
+
+use std::{
+    fmt,
+    path::{Path, PathBuf},
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
+    time::Duration,
+};
+
+use gateway_core::{GatewayEvent, GatewayEventPriority, RequestId};
+use gateway_observability::EventQueueReceiver;
+use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
+
+use crate::{StoreError, StoreResult, migrate, open, open_in_memory};
+
+/// The largest finite event batch accepted by the asynchronous writer.
+pub const MAX_EVENT_WRITER_BATCH_SIZE: usize = 1_024;
+/// Default number of Required observations included in one durable transaction when ready.
+pub const DEFAULT_EVENT_WRITER_BATCH_SIZE: usize = 64;
+/// Default bounded delay before a failed `SQLite` batch is retried.
+pub const DEFAULT_EVENT_WRITER_RETRY_DELAY: Duration = Duration::from_millis(25);
+
+/// Durable category for one [`GatewayEvent`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum GatewayEventLogKind {
+    /// One accepted request observation.
+    Request,
+    /// One terminal upstream attempt observation.
+    Attempt,
+    /// One final canonical usage observation.
+    Usage,
+    /// One sanitized runtime-health transition.
+    Health,
+}
+
+impl GatewayEventLogKind {
+    const fn as_sql(self) -> &'static str {
+        match self {
+            Self::Request => "request",
+            Self::Attempt => "attempt",
+            Self::Usage => "usage",
+            Self::Health => "health",
+        }
+    }
+
+    fn from_sql(value: &str) -> StoreResult<Self> {
+        match value {
+            "request" => Ok(Self::Request),
+            "attempt" => Ok(Self::Attempt),
+            "usage" => Ok(Self::Usage),
+            "health" => Ok(Self::Health),
+            _ => Err(StoreError::InvalidPersistedGatewayEvent),
+        }
+    }
+}
+
+/// One validated append-only event row loaded from `gateway_event_log`.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StoredGatewayEvent {
+    ordinal: i64,
+    kind: GatewayEventLogKind,
+    event_id: String,
+    request_id: Option<RequestId>,
+    occurred_at_ms: Option<i64>,
+    event: GatewayEvent,
+}
+
+impl StoredGatewayEvent {
+    /// Returns the append order allocated by `SQLite` after a successful transaction.
+    #[must_use]
+    pub const fn ordinal(&self) -> i64 {
+        self.ordinal
+    }
+
+    /// Returns the stable durable event category.
+    #[must_use]
+    pub const fn kind(&self) -> GatewayEventLogKind {
+        self.kind
+    }
+
+    /// Returns the stable `(event_type, event_id)` idempotence component.
+    #[must_use]
+    pub fn event_id(&self) -> &str {
+        &self.event_id
+    }
+
+    /// Returns the Request correlation when this event belongs to a client request.
+    #[must_use]
+    pub fn request_id(&self) -> Option<&RequestId> {
+        self.request_id.as_ref()
+    }
+
+    /// Returns the explicit event time when the event category carries one.
+    #[must_use]
+    pub const fn occurred_at_ms(&self) -> Option<i64> {
+        self.occurred_at_ms
+    }
+
+    /// Returns the fully typed, access-controlled durable event.
+    #[must_use]
+    pub const fn event(&self) -> &GatewayEvent {
+        &self.event
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct EventRecord {
+    kind: GatewayEventLogKind,
+    event_id: String,
+    request_id: Option<String>,
+    occurred_at_ms: Option<i64>,
+    payload_json: String,
+}
+
+impl EventRecord {
+    fn from_event(event: &GatewayEvent) -> StoreResult<Self> {
+        let (kind, event_id, request_id, occurred_at_ms) = match event {
+            GatewayEvent::Request(value) => (
+                GatewayEventLogKind::Request,
+                value.request_id().as_str().to_owned(),
+                Some(value.request_id().as_str().to_owned()),
+                None,
+            ),
+            GatewayEvent::Attempt(value) => (
+                GatewayEventLogKind::Attempt,
+                value.attempt_id().as_str().to_owned(),
+                Some(value.request_id().as_str().to_owned()),
+                Some(value.ended_at_ms()),
+            ),
+            GatewayEvent::Usage(value) => (
+                GatewayEventLogKind::Usage,
+                value.response_id().as_str().to_owned(),
+                Some(value.request_id().as_str().to_owned()),
+                None,
+            ),
+            GatewayEvent::Health(value) => (
+                GatewayEventLogKind::Health,
+                value.health_event_id().as_str().to_owned(),
+                None,
+                Some(value.occurred_at_ms()),
+            ),
+            GatewayEvent::Diagnostic(_) => return Err(StoreError::DiagnosticEventNotPersistable),
+        };
+        let payload_json =
+            serde_json::to_string(event).map_err(|_| StoreError::InvalidPersistedGatewayEvent)?;
+
+        Ok(Self {
+            kind,
+            event_id,
+            request_id,
+            occurred_at_ms,
+            payload_json,
+        })
+    }
+}
+
+/// File- or memory-backed append-only event store.
+pub struct SqliteEventStore {
+    connection: Connection,
+}
+
+impl SqliteEventStore {
+    /// Opens and migrates one file-backed event store.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the database cannot open or migrate.
+    pub fn open(path: impl AsRef<Path>) -> StoreResult<Self> {
+        Self::from_connection(open(path)?)
+    }
+
+    /// Opens and migrates one isolated in-memory event store.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the in-memory database cannot migrate.
+    pub fn open_in_memory() -> StoreResult<Self> {
+        Self::from_connection(open_in_memory()?)
+    }
+
+    /// Takes an already-open connection, applies migrations, and owns it.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when migration cannot complete.
+    pub fn from_connection(mut connection: Connection) -> StoreResult<Self> {
+        migrate(&mut connection)?;
+        Ok(Self { connection })
+    }
+
+    /// Atomically appends a bounded batch of Required events.
+    ///
+    /// Replaying an identical `(event_type, event_id, payload)` is a no-op. Reusing the same
+    /// durable identity with different contents fails the whole transaction rather than hiding a
+    /// correlation collision. Diagnostic events remain explicitly non-persistable.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] and leaves no partial rows when any record is invalid, conflicts,
+    /// or `SQLite` rejects the transaction.
+    pub fn append_batch(&mut self, events: &[GatewayEvent]) -> StoreResult<usize> {
+        let records = events
+            .iter()
+            .map(EventRecord::from_event)
+            .collect::<StoreResult<Vec<_>>>()?;
+        if records.is_empty() {
+            return Ok(0);
+        }
+
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let mut inserted = 0;
+        for record in &records {
+            let existing: Option<String> = transaction
+                .query_row(
+                    "SELECT payload_json FROM gateway_event_log \
+                     WHERE event_type = ?1 AND event_id = ?2",
+                    params![record.kind.as_sql(), record.event_id],
+                    |row| row.get(0),
+                )
+                .optional()?;
+            if let Some(existing) = existing {
+                if existing != record.payload_json {
+                    return Err(StoreError::ConflictingGatewayEventReplay);
+                }
+                continue;
+            }
+
+            transaction.execute(
+                "INSERT INTO gateway_event_log \
+                 (event_type, event_id, request_id, occurred_at_ms, payload_json) \
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    record.kind.as_sql(),
+                    record.event_id,
+                    record.request_id,
+                    record.occurred_at_ms,
+                    record.payload_json,
+                ],
+            )?;
+            inserted += 1;
+        }
+        transaction.commit()?;
+        Ok(inserted)
+    }
+
+    /// Returns one request-correlated Request/Attempt/Usage timeline in durable append order.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidPersistedGatewayEvent`] if a row cannot be safely decoded or
+    /// does not structurally match its indexed metadata.
+    pub fn events_for_request(
+        &self,
+        request_id: &RequestId,
+    ) -> StoreResult<Vec<StoredGatewayEvent>> {
+        self.load_events(
+            "SELECT event_ordinal, event_type, event_id, request_id, occurred_at_ms, payload_json \
+             FROM gateway_event_log WHERE request_id = ?1 ORDER BY event_ordinal",
+            [request_id.as_str()],
+        )
+    }
+
+    /// Returns all durable Health events in append order.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidPersistedGatewayEvent`] if a stored row is malformed.
+    pub fn health_events(&self) -> StoreResult<Vec<StoredGatewayEvent>> {
+        self.load_events(
+            "SELECT event_ordinal, event_type, event_id, request_id, occurred_at_ms, payload_json \
+             FROM gateway_event_log WHERE event_type = 'health' ORDER BY event_ordinal",
+            [],
+        )
+    }
+
+    /// Returns every event in append order for operator-only recovery and verification.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidPersistedGatewayEvent`] if a stored row is malformed.
+    pub fn list_events(&self) -> StoreResult<Vec<StoredGatewayEvent>> {
+        self.load_events(
+            "SELECT event_ordinal, event_type, event_id, request_id, occurred_at_ms, payload_json \
+             FROM gateway_event_log ORDER BY event_ordinal",
+            [],
+        )
+    }
+
+    /// Runs `PRAGMA quick_check` and accepts only `SQLite`'s exact `ok` result.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::GatewayEventLogIntegrityCheckFailed`] for any non-`ok` result.
+    pub fn quick_check(&self) -> StoreResult<()> {
+        let result: String = self
+            .connection
+            .query_row("PRAGMA quick_check", [], |row| row.get(0))?;
+        if result == "ok" {
+            Ok(())
+        } else {
+            Err(StoreError::GatewayEventLogIntegrityCheckFailed)
+        }
+    }
+
+    fn load_events<P>(&self, sql: &str, parameters: P) -> StoreResult<Vec<StoredGatewayEvent>>
+    where
+        P: rusqlite::Params,
+    {
+        let mut statement = self.connection.prepare(sql)?;
+        let mut rows = statement.query(parameters)?;
+        let mut events = Vec::new();
+        while let Some(row) = rows.next()? {
+            let ordinal = row.get(0)?;
+            let event_type: String = row.get(1)?;
+            let event_id: String = row.get(2)?;
+            let request_id: Option<String> = row.get(3)?;
+            let occurred_at_ms = row.get(4)?;
+            let payload_json: String = row.get(5)?;
+            events.push(decode_stored_event(
+                ordinal,
+                &event_type,
+                event_id,
+                request_id,
+                occurred_at_ms,
+                &payload_json,
+            )?);
+        }
+        Ok(events)
+    }
+}
+
+impl fmt::Debug for SqliteEventStore {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("SqliteEventStore(<connection redacted>)")
+    }
+}
+
+fn decode_stored_event(
+    ordinal: i64,
+    event_type: &str,
+    event_id: String,
+    request_id: Option<String>,
+    occurred_at_ms: Option<i64>,
+    payload_json: &str,
+) -> StoreResult<StoredGatewayEvent> {
+    let kind = GatewayEventLogKind::from_sql(event_type)?;
+    let event: GatewayEvent =
+        serde_json::from_str(payload_json).map_err(|_| StoreError::InvalidPersistedGatewayEvent)?;
+    let expected = EventRecord::from_event(&event)?;
+    if expected.kind != kind
+        || expected.event_id != event_id
+        || expected.request_id != request_id
+        || expected.occurred_at_ms != occurred_at_ms
+        || expected.payload_json != payload_json
+    {
+        return Err(StoreError::InvalidPersistedGatewayEvent);
+    }
+    let request_id = request_id
+        .map(RequestId::try_new)
+        .transpose()
+        .map_err(|_| StoreError::InvalidPersistedGatewayEvent)?;
+
+    Ok(StoredGatewayEvent {
+        ordinal,
+        kind,
+        event_id,
+        request_id,
+        occurred_at_ms,
+        event,
+    })
+}
+
+/// Validated bounded configuration for [`AsyncSqliteEventWriter`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EventWriterConfig {
+    batch_size: usize,
+    retry_delay: Duration,
+}
+
+impl EventWriterConfig {
+    /// Validates bounded batch and retry values before a writer is started.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EventWriterConfigError`] when a value could cause a busy loop or unbounded batch.
+    pub const fn try_new(
+        batch_size: usize,
+        retry_delay: Duration,
+    ) -> Result<Self, EventWriterConfigError> {
+        if batch_size == 0 {
+            return Err(EventWriterConfigError::ZeroBatchSize);
+        }
+        if batch_size > MAX_EVENT_WRITER_BATCH_SIZE {
+            return Err(EventWriterConfigError::BatchSizeTooLarge);
+        }
+        if retry_delay.is_zero() {
+            return Err(EventWriterConfigError::ZeroRetryDelay);
+        }
+        Ok(Self {
+            batch_size,
+            retry_delay,
+        })
+    }
+
+    /// Returns the maximum Required events retained in one pending transaction.
+    #[must_use]
+    pub const fn batch_size(self) -> usize {
+        self.batch_size
+    }
+
+    /// Returns the delay after a visible durable-write failure.
+    #[must_use]
+    pub const fn retry_delay(self) -> Duration {
+        self.retry_delay
+    }
+}
+
+impl Default for EventWriterConfig {
+    fn default() -> Self {
+        Self {
+            batch_size: DEFAULT_EVENT_WRITER_BATCH_SIZE,
+            retry_delay: DEFAULT_EVENT_WRITER_RETRY_DELAY,
+        }
+    }
+}
+
+/// Configuration error for [`EventWriterConfig`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EventWriterConfigError {
+    /// A writer must retain at least one Required event per transaction.
+    ZeroBatchSize,
+    /// A writer batch exceeded the frozen finite upper bound.
+    BatchSizeTooLarge,
+    /// A zero retry delay would busy-loop while `SQLite` is unavailable.
+    ZeroRetryDelay,
+}
+
+impl fmt::Display for EventWriterConfigError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ZeroBatchSize => formatter.write_str("event writer batch size must be positive"),
+            Self::BatchSizeTooLarge => {
+                formatter.write_str("event writer batch size exceeds the finite maximum")
+            }
+            Self::ZeroRetryDelay => {
+                formatter.write_str("event writer retry delay must be positive")
+            }
+        }
+    }
+}
+
+impl std::error::Error for EventWriterConfigError {}
+
+/// Snapshot of durable-writer outcomes that never claims Diagnostics were persisted.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct EventWriterMetrics {
+    /// Required events whose transaction completed, including idempotent replays.
+    pub required_events_committed: u64,
+    /// New durable rows inserted by successful Required-event transactions.
+    pub rows_inserted: u64,
+    /// Low-priority diagnostics intentionally consumed without a durable Required-event row.
+    pub diagnostics_not_persisted: u64,
+    /// Failed `SQLite` open, migration, transaction, or blocking-worker attempts.
+    pub sqlite_write_failures: u64,
+    /// Required events retained in the writer's one bounded pending transaction.
+    pub pending_required: u64,
+}
+
+#[derive(Default)]
+struct EventWriterMetricsState {
+    required_events_committed: AtomicU64,
+    rows_inserted: AtomicU64,
+    diagnostics_not_persisted: AtomicU64,
+    sqlite_write_failures: AtomicU64,
+    pending_required: AtomicU64,
+}
+
+/// Cloneable observation handle for one running [`AsyncSqliteEventWriter`].
+#[derive(Clone, Default)]
+pub struct EventWriterMetricsHandle {
+    state: Arc<EventWriterMetricsState>,
+}
+
+impl EventWriterMetricsHandle {
+    /// Returns one non-blocking counter snapshot.
+    #[must_use]
+    pub fn snapshot(&self) -> EventWriterMetrics {
+        EventWriterMetrics {
+            required_events_committed: self.required_events_committed(),
+            rows_inserted: self.rows_inserted(),
+            diagnostics_not_persisted: self.diagnostics_not_persisted(),
+            sqlite_write_failures: self.sqlite_write_failures(),
+            pending_required: self.pending_required(),
+        }
+    }
+
+    fn required_events_committed(&self) -> u64 {
+        self.state.required_events_committed.load(Ordering::Relaxed)
+    }
+
+    fn rows_inserted(&self) -> u64 {
+        self.state.rows_inserted.load(Ordering::Relaxed)
+    }
+
+    fn diagnostics_not_persisted(&self) -> u64 {
+        self.state.diagnostics_not_persisted.load(Ordering::Relaxed)
+    }
+
+    fn sqlite_write_failures(&self) -> u64 {
+        self.state.sqlite_write_failures.load(Ordering::Relaxed)
+    }
+
+    fn pending_required(&self) -> u64 {
+        self.state.pending_required.load(Ordering::Relaxed)
+    }
+}
+
+/// Asynchronous consumer that batches already-admitted events onto a blocking `SQLite` worker.
+///
+/// `SQLite` failures retain the one finite pending Required batch and retry it after the configured
+/// delay. They do not create an unbounded overflow queue, block the event producer, or increment
+/// a persistence-success counter. Diagnostics are explicitly counted as non-persisted.
+pub struct AsyncSqliteEventWriter {
+    database_path: PathBuf,
+    receiver: EventQueueReceiver,
+    config: EventWriterConfig,
+    store: Option<SqliteEventStore>,
+    pending: Vec<GatewayEvent>,
+    metrics: EventWriterMetricsHandle,
+}
+
+impl AsyncSqliteEventWriter {
+    /// Creates one asynchronous consumer for a file-backed durable event log.
+    #[must_use]
+    pub fn new(
+        database_path: impl AsRef<Path>,
+        receiver: EventQueueReceiver,
+        config: EventWriterConfig,
+    ) -> Self {
+        Self {
+            database_path: database_path.as_ref().to_path_buf(),
+            receiver,
+            config,
+            store: None,
+            pending: Vec::with_capacity(config.batch_size()),
+            metrics: EventWriterMetricsHandle::default(),
+        }
+    }
+
+    /// Returns a cloneable non-blocking metrics handle for the writer lifecycle.
+    #[must_use]
+    pub fn metrics_handle(&self) -> EventWriterMetricsHandle {
+        self.metrics.clone()
+    }
+
+    /// Consumes the queue until all senders close and the final Required batch is durable.
+    ///
+    /// A persistent store failure intentionally keeps this future alive with the bounded pending
+    /// batch. Shutdown code must therefore observe the metrics or cancel the task explicitly;
+    /// the writer never fabricates a successful flush.
+    pub async fn run(mut self) -> EventWriterMetrics {
+        loop {
+            self.drain_ready_events();
+            if self.pending.is_empty() {
+                let Some(event) = self.receiver.recv().await else {
+                    return self.metrics.snapshot();
+                };
+                self.accept_event(event);
+                continue;
+            }
+
+            if let Ok(inserted) = self.write_pending().await {
+                let committed = u64::try_from(self.pending.len()).unwrap_or(u64::MAX);
+                self.metrics
+                    .state
+                    .required_events_committed
+                    .fetch_add(committed, Ordering::Relaxed);
+                self.metrics
+                    .state
+                    .rows_inserted
+                    .fetch_add(inserted, Ordering::Relaxed);
+                self.pending.clear();
+                self.update_pending_metric();
+            } else {
+                self.metrics
+                    .state
+                    .sqlite_write_failures
+                    .fetch_add(1, Ordering::Relaxed);
+                tokio::time::sleep(self.config.retry_delay()).await;
+            }
+        }
+    }
+
+    fn drain_ready_events(&mut self) {
+        while self.pending.len() < self.config.batch_size() {
+            let Some(event) = self.receiver.try_recv() else {
+                break;
+            };
+            self.accept_event(event);
+        }
+    }
+
+    fn accept_event(&mut self, event: GatewayEvent) {
+        match event.priority() {
+            GatewayEventPriority::Required => {
+                self.pending.push(event);
+                self.update_pending_metric();
+            }
+            GatewayEventPriority::Diagnostic => {
+                self.metrics
+                    .state
+                    .diagnostics_not_persisted
+                    .fetch_add(1, Ordering::Relaxed);
+            }
+        }
+    }
+
+    fn update_pending_metric(&self) {
+        let pending = u64::try_from(self.pending.len()).unwrap_or(u64::MAX);
+        self.metrics
+            .state
+            .pending_required
+            .store(pending, Ordering::Relaxed);
+    }
+
+    async fn write_pending(&mut self) -> Result<u64, ()> {
+        let pending = self.pending.clone();
+        let database_path = self.database_path.clone();
+        let store = self.store.take();
+        let result = tokio::task::spawn_blocking(move || {
+            let mut store = match store {
+                Some(store) => store,
+                None => match SqliteEventStore::open(database_path) {
+                    Ok(store) => store,
+                    Err(error) => return (None, Err(error)),
+                },
+            };
+            let result = store.append_batch(&pending);
+            (Some(store), result)
+        })
+        .await;
+        match result {
+            Ok((store, Ok(inserted))) => {
+                self.store = store;
+                Ok(u64::try_from(inserted).unwrap_or(u64::MAX))
+            }
+            Ok((store, Err(_))) => {
+                self.store = store;
+                Err(())
+            }
+            Err(_) => {
+                self.store = None;
+                Err(())
+            }
+        }
+    }
+}
+
+impl fmt::Debug for AsyncSqliteEventWriter {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("AsyncSqliteEventWriter")
+            .field("database_path", &"<redacted>")
+            .field("config", &self.config)
+            .field("pending_required", &self.pending.len())
+            .finish_non_exhaustive()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        fs,
+        path::PathBuf,
+        sync::atomic::{AtomicU64, Ordering},
+        time::{Duration, Instant},
+    };
+
+    use gateway_core::{
+        AttemptEvent, AttemptOutcome, AttemptRetryDecision, ClientKeyId, CredentialId,
+        DiagnosticEvent, EndpointId, GatewayError, GatewayErrorCode, GatewayEvent,
+        GatewayEventSink, GatewayProtocol, HealthEvent, HealthEventId, HealthEventKind,
+        RequestEvent, RequestId, ResponseId, RouteCandidateId, RouteId, UpstreamId, Usage,
+        UsageEvent,
+    };
+    use gateway_observability::{BoundedEventQueue, EventQueueConfig};
+
+    use super::{AsyncSqliteEventWriter, EventWriterConfig, GatewayEventLogKind, SqliteEventStore};
+
+    type TestResult = Result<(), Box<dyn std::error::Error>>;
+
+    fn sample_events() -> Result<(RequestId, Vec<GatewayEvent>), Box<dyn std::error::Error>> {
+        let request_id = RequestId::try_new("request-01")?;
+        let request = GatewayEvent::Request(RequestEvent::new(
+            request_id.clone(),
+            ClientKeyId::try_new("client-key-01")?,
+            None,
+            GatewayProtocol::OpenAiResponses,
+            "requested-model".to_owned(),
+            "public-model".to_owned(),
+            Some("alias-model".to_owned()),
+            true,
+        ));
+        let attempt = GatewayEvent::Attempt(AttemptEvent::new(
+            request_id.clone(),
+            1,
+            RouteId::try_new("route-01")?,
+            RouteCandidateId::try_new("candidate-01")?,
+            CredentialId::try_new("credential-01")?,
+            EndpointId::try_new("endpoint-01")?,
+            UpstreamId::try_new("upstream-01")?,
+            "internal-model".to_owned(),
+            10,
+            25,
+            AttemptOutcome::Succeeded,
+            AttemptRetryDecision::Completed,
+        ));
+        let usage = GatewayEvent::Usage(UsageEvent::from_usage(
+            request_id.clone(),
+            ResponseId::try_new("response-01")?,
+            &Usage {
+                input_tokens: Some(3),
+                output_tokens: Some(5),
+                ..Usage::default()
+            },
+        ));
+        let health = GatewayEvent::Health(HealthEvent::new(
+            HealthEventId::try_new("health-01")?,
+            EndpointId::try_new("endpoint-01")?,
+            Some(CredentialId::try_new("credential-01")?),
+            Some("internal-model".to_owned()),
+            30,
+            HealthEventKind::CircuitRecovered,
+        ));
+        Ok((request_id, vec![request, attempt, usage, health]))
+    }
+
+    fn temporary_path(suffix: &str) -> PathBuf {
+        static NEXT: AtomicU64 = AtomicU64::new(0);
+        let sequence = NEXT.fetch_add(1, Ordering::Relaxed);
+        std::env::temp_dir().join(format!(
+            "cpa-rust-gateway-p4-07-{}-{}-{suffix}",
+            std::process::id(),
+            sequence
+        ))
+    }
+
+    #[test]
+    fn batches_are_atomic_and_identical_replays_are_idempotent() -> TestResult {
+        let (_request_id, events) = sample_events()?;
+        let mut store = SqliteEventStore::open_in_memory()?;
+        store.connection.execute_batch(
+            "CREATE TRIGGER gateway_event_log_test_reject_attempt \
+             BEFORE INSERT ON gateway_event_log WHEN NEW.event_type = 'attempt' \
+             BEGIN SELECT RAISE(ABORT, 'test forced rollback'); END;",
+        )?;
+
+        assert!(store.append_batch(&events[..2]).is_err());
+        assert!(store.list_events()?.is_empty());
+        store
+            .connection
+            .execute_batch("DROP TRIGGER gateway_event_log_test_reject_attempt;")?;
+
+        assert_eq!(store.append_batch(&events[..2])?, 2);
+        assert_eq!(store.append_batch(&events[..2])?, 0);
+        assert_eq!(store.list_events()?.len(), 2);
+
+        let conflicting_request = GatewayEvent::Request(RequestEvent::new(
+            RequestId::try_new("request-01")?,
+            ClientKeyId::try_new("client-key-01")?,
+            None,
+            GatewayProtocol::OpenAiResponses,
+            "different-requested-model".to_owned(),
+            "public-model".to_owned(),
+            Some("alias-model".to_owned()),
+            true,
+        ));
+        assert!(matches!(
+            store.append_batch(&[conflicting_request]),
+            Err(crate::StoreError::ConflictingGatewayEventReplay)
+        ));
+        assert_eq!(store.list_events()?.len(), 2);
+        Ok(())
+    }
+
+    #[test]
+    fn file_reopen_restores_request_attempt_usage_and_health_and_quick_check() -> TestResult {
+        let (request_id, events) = sample_events()?;
+        let database_path = temporary_path("events.sqlite");
+        {
+            let mut store = SqliteEventStore::open(&database_path)?;
+            assert_eq!(store.append_batch(&events)?, 4);
+            store.quick_check()?;
+        }
+
+        let store = SqliteEventStore::open(&database_path)?;
+        let request_events = store.events_for_request(&request_id)?;
+        assert_eq!(request_events.len(), 3);
+        assert_eq!(request_events[0].kind(), GatewayEventLogKind::Request);
+        assert_eq!(request_events[1].kind(), GatewayEventLogKind::Attempt);
+        assert_eq!(request_events[2].kind(), GatewayEventLogKind::Usage);
+        let health_events = store.health_events()?;
+        assert_eq!(health_events.len(), 1);
+        assert_eq!(health_events[0].kind(), GatewayEventLogKind::Health);
+        store.quick_check()?;
+        drop(store);
+        fs::remove_file(database_path)?;
+        Ok(())
+    }
+
+    #[test]
+    fn diagnostics_cannot_be_mistaken_for_durable_required_events() -> TestResult {
+        let mut store = SqliteEventStore::open_in_memory()?;
+        let diagnostic = GatewayEvent::Diagnostic(DiagnosticEvent::new(GatewayError::new(
+            GatewayErrorCode::InternalError,
+            gateway_core::ErrorScope::Internal,
+        )));
+        assert!(matches!(
+            store.append_batch(&[diagnostic]),
+            Err(crate::StoreError::DiagnosticEventNotPersistable)
+        ));
+        assert!(store.list_events()?.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn full_required_queue_stays_non_blocking_before_writer_consumption() -> TestResult {
+        let (_request_id, events) = sample_events()?;
+        let (queue, receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(1, 1)?)?;
+        let _writer = AsyncSqliteEventWriter::new(
+            temporary_path("unused.sqlite"),
+            receiver,
+            EventWriterConfig::default(),
+        );
+        assert_eq!(
+            queue.try_emit(events[0].clone()),
+            gateway_core::EventEmission::Enqueued
+        );
+        assert_eq!(
+            queue.try_emit(events[1].clone()),
+            gateway_core::EventEmission::RequiredQueueFull
+        );
+        assert_eq!(queue.metrics().required_queue_full, 1);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn writer_retains_failed_pending_batch_then_recovers_when_database_becomes_available()
+    -> TestResult {
+        let (_request_id, events) = sample_events()?;
+        let parent = temporary_path("recovery");
+        let database_path = parent.join("events.sqlite");
+        let _ = fs::remove_dir_all(&parent);
+        let (queue, receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(2, 1)?)?;
+        let writer = AsyncSqliteEventWriter::new(
+            &database_path,
+            receiver,
+            EventWriterConfig::try_new(1, Duration::from_millis(5))?,
+        );
+        let metrics = writer.metrics_handle();
+        assert_eq!(
+            queue.try_emit(events[0].clone()),
+            gateway_core::EventEmission::Enqueued
+        );
+        drop(queue);
+
+        let writer = tokio::spawn(writer.run());
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while metrics.snapshot().sqlite_write_failures == 0 {
+            assert!(
+                Instant::now() < deadline,
+                "writer did not observe the unavailable database"
+            );
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        assert_eq!(metrics.snapshot().pending_required, 1);
+
+        fs::create_dir_all(&parent)?;
+        let reported = tokio::time::timeout(Duration::from_secs(2), writer).await??;
+        assert_eq!(reported.required_events_committed, 1);
+        assert_eq!(reported.rows_inserted, 1);
+        assert_eq!(reported.pending_required, 0);
+        let store = SqliteEventStore::open(&database_path)?;
+        assert_eq!(store.list_events()?.len(), 1);
+        drop(store);
+        fs::remove_dir_all(parent)?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn writer_counts_diagnostics_without_persisting_them() -> TestResult {
+        let database_path = temporary_path("diagnostic.sqlite");
+        let (queue, receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(1, 1)?)?;
+        let writer = AsyncSqliteEventWriter::new(
+            &database_path,
+            receiver,
+            EventWriterConfig::try_new(1, Duration::from_millis(1))?,
+        );
+        assert_eq!(
+            queue.try_emit(GatewayEvent::Diagnostic(DiagnosticEvent::new(
+                GatewayError::new(
+                    GatewayErrorCode::InternalError,
+                    gateway_core::ErrorScope::Internal,
+                )
+            ))),
+            gateway_core::EventEmission::Enqueued
+        );
+        drop(queue);
+        let reported = writer.run().await;
+        assert_eq!(reported.diagnostics_not_persisted, 1);
+        assert_eq!(reported.required_events_committed, 0);
+        let store = SqliteEventStore::open(&database_path)?;
+        assert!(store.list_events()?.is_empty());
+        drop(store);
+        fs::remove_file(database_path)?;
+        Ok(())
+    }
+}

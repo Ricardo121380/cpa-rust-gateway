@@ -111,6 +111,11 @@ opaque_identifier!(
     "Stable identifier for one concrete upstream attempt within a request."
 );
 
+opaque_identifier!(
+    HealthEventId,
+    "Stable identifier for one durable runtime-health transition observation."
+);
+
 impl AttemptId {
     /// Derives a collision-free opaque Attempt identity from one Request and one-based sequence.
     ///
