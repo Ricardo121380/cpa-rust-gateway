@@ -22,6 +22,8 @@ use gateway_core::{
     InvalidIdentifier, PublicModelId, RouteCandidateId, RouteId, UpstreamId,
 };
 
+use crate::ProtocolFormat;
+
 /// Opaque Config Version identity carried by an immutable runtime Snapshot.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct SnapshotVersion(String);
@@ -156,6 +158,7 @@ pub struct SnapshotRouteCandidate {
     id: RouteCandidateId,
     endpoint_id: EndpointId,
     upstream_id: UpstreamId,
+    endpoint_api_format: String,
     upstream_model: String,
     transform_mode: SnapshotTransformMode,
     priority: i64,
@@ -174,6 +177,8 @@ pub struct SnapshotRouteCandidateInput {
     pub endpoint_id: EndpointId,
     /// Selected Upstream identity.
     pub upstream_id: UpstreamId,
+    /// Exact API format declared by the selected Endpoint.
+    pub endpoint_api_format: String,
     /// Exact non-secret model label sent to the upstream.
     pub upstream_model: String,
     /// Later request conversion mode.
@@ -198,6 +203,7 @@ impl SnapshotRouteCandidate {
             id: input.id,
             endpoint_id: input.endpoint_id,
             upstream_id: input.upstream_id,
+            endpoint_api_format: input.endpoint_api_format,
             upstream_model: input.upstream_model,
             transform_mode: input.transform_mode,
             priority: input.priority,
@@ -224,6 +230,24 @@ impl SnapshotRouteCandidate {
     #[must_use]
     pub fn upstream_id(&self) -> &UpstreamId {
         &self.upstream_id
+    }
+
+    /// Returns the exact configured API format for the selected Endpoint.
+    ///
+    /// This remains available in the router-safe Candidate view so an execution path cannot
+    /// select a same-Upstream endpoint that speaks a different protocol.
+    #[must_use]
+    pub fn endpoint_api_format(&self) -> &str {
+        &self.endpoint_api_format
+    }
+
+    /// Returns this Candidate's P5 protocol when its declared Endpoint format is known.
+    ///
+    /// Unknown or future API formats are deliberately not coerced to a P5 protocol; callers must
+    /// reject them until their owning protocol boundary supplies an explicit mapping.
+    #[must_use]
+    pub fn protocol_format(&self) -> Option<ProtocolFormat> {
+        ProtocolFormat::from_api_format(&self.endpoint_api_format)
     }
 
     /// Returns the exact non-secret upstream model label.
@@ -1828,6 +1852,7 @@ mod tests {
             id: RouteCandidateId::try_new("candidate-a")?,
             endpoint_id: EndpointId::try_new("endpoint-a")?,
             upstream_id: UpstreamId::try_new("upstream-a")?,
+            endpoint_api_format: "openai/responses".to_owned(),
             upstream_model: "upstream-model".to_owned(),
             transform_mode: SnapshotTransformMode::Canonical,
             priority: 0,
@@ -2003,6 +2028,7 @@ mod tests {
             id: RouteCandidateId::try_new(candidate_id)?,
             endpoint_id: EndpointId::try_new(endpoint_id)?,
             upstream_id: UpstreamId::try_new(format!("upstream-{endpoint_id}"))?,
+            endpoint_api_format: "openai/responses".to_owned(),
             upstream_model: format!("upstream-{candidate_id}"),
             transform_mode: SnapshotTransformMode::Canonical,
             priority: 0,
@@ -2023,6 +2049,7 @@ mod tests {
             id: RouteCandidateId::try_new("candidate-a")?,
             endpoint_id: EndpointId::try_new("endpoint-a")?,
             upstream_id: UpstreamId::try_new("upstream-a")?,
+            endpoint_api_format: "openai/responses".to_owned(),
             upstream_model: "upstream-model".to_owned(),
             transform_mode: SnapshotTransformMode::Canonical,
             priority,

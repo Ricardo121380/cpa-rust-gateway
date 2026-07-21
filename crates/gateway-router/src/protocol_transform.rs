@@ -21,6 +21,31 @@ pub enum ProtocolFormat {
     AnthropicMessages,
 }
 
+impl ProtocolFormat {
+    /// Returns the exact control-plane `api_format` value for this protocol boundary.
+    #[must_use]
+    pub const fn api_format(self) -> &'static str {
+        match self {
+            Self::OpenAiResponses => "openai/responses",
+            Self::AnthropicMessages => "anthropic/messages",
+        }
+    }
+
+    /// Parses an Endpoint's exact declared API format when it belongs to the P5 boundary.
+    ///
+    /// Other formats intentionally remain unknown here. They can be retained in the shared
+    /// Snapshot for their owning future Provider without becoming eligible for either P5 client
+    /// protocol by string similarity or model-name inference.
+    #[must_use]
+    pub fn from_api_format(api_format: &str) -> Option<Self> {
+        match api_format {
+            "openai/responses" => Some(Self::OpenAiResponses),
+            "anthropic/messages" => Some(Self::AnthropicMessages),
+            _ => None,
+        }
+    }
+}
+
 /// Whether the Router still holds an exact native payload for a pass-through candidate.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NativePayloadAvailability {
@@ -339,6 +364,31 @@ mod tests {
         expected: ProtocolTransformRejection,
     ) {
         assert_eq!(admission, ProtocolTransformAdmission::Rejected(expected));
+    }
+
+    #[test]
+    fn endpoint_api_formats_are_exact_and_do_not_infer_unknown_protocols() {
+        assert_eq!(
+            ProtocolFormat::OpenAiResponses.api_format(),
+            "openai/responses"
+        );
+        assert_eq!(
+            ProtocolFormat::AnthropicMessages.api_format(),
+            "anthropic/messages"
+        );
+        assert_eq!(
+            ProtocolFormat::from_api_format("openai/responses"),
+            Some(ProtocolFormat::OpenAiResponses)
+        );
+        assert_eq!(
+            ProtocolFormat::from_api_format("anthropic/messages"),
+            Some(ProtocolFormat::AnthropicMessages)
+        );
+        assert_eq!(ProtocolFormat::from_api_format("openai_responses"), None);
+        assert_eq!(
+            ProtocolFormat::from_api_format("openai/chat_completions"),
+            None
+        );
     }
 
     #[test]

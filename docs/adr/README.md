@@ -64,3 +64,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0035 Exact token-count capability and Anthropic route](ADR-0035-exact-token-count-capability.md) — `P5-02`（Accepted）。
 - [ADR-0036 Anthropic Tool stream state and normalized object input](ADR-0036-anthropic-tool-stream-state.md) — `P5-03`（Accepted）。
 - [ADR-0037 Fail-closed protocol transform admission](ADR-0037-protocol-transform-admission.md) — `P5-04`（Accepted）。
+- [ADR-0038 Endpoint-format-isolated protocol routing](ADR-0038-endpoint-format-isolated-protocol-routing.md) — `P5-05`（Accepted）。

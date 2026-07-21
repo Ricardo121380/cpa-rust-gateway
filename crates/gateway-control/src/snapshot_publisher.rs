@@ -569,6 +569,7 @@ fn snapshot_route_candidate(candidate: &CompiledRouteCandidate) -> SnapshotRoute
         id: candidate.id().clone(),
         endpoint_id: candidate.endpoint_id().clone(),
         upstream_id: candidate.upstream_id().clone(),
+        endpoint_api_format: candidate.endpoint_api_format().to_owned(),
         upstream_model: candidate.upstream_model().to_owned(),
         transform_mode: snapshot_transform_mode(candidate.transform_mode()),
         priority: candidate.priority(),

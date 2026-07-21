@@ -76,3 +76,4 @@
 - [P5-02 Exact token-count capability report](p5-02-exact-token-count-capability.md)
 - [P5-03 Anthropic Tool stream state report](p5-03-anthropic-tool-stream-state.md)
 - [P5-04 Protocol transform admission report](p5-04-protocol-transform-admission.md)
+- [P5-05 Endpoint protocol isolation report](p5-05-endpoint-protocol-isolation.md)

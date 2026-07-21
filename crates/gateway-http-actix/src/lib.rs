@@ -1197,6 +1197,7 @@ mod tests {
             id: RouteCandidateId::try_new("http-snapshot-candidate")?,
             endpoint_id: EndpointId::try_new("http-snapshot-endpoint")?,
             upstream_id: UpstreamId::try_new("http-snapshot-upstream")?,
+            endpoint_api_format: "openai/responses".to_owned(),
             upstream_model: "sensitive-upstream-model".to_owned(),
             transform_mode: SnapshotTransformMode::Canonical,
             priority: 0,

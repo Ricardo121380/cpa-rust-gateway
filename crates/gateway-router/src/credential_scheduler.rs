@@ -770,6 +770,7 @@ mod tests {
             id: RouteCandidateId::try_new(candidate_id)?,
             endpoint_id: EndpointId::try_new(endpoint_id)?,
             upstream_id: UpstreamId::try_new(format!("upstream-{endpoint_id}"))?,
+            endpoint_api_format: "openai/responses".to_owned(),
             upstream_model: "upstream-model".to_owned(),
             transform_mode: SnapshotTransformMode::Canonical,
             priority,
