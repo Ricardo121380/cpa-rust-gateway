@@ -68,3 +68,4 @@
 - [P4-06 Fixed-input Route Explain and Candidate exclusion reasons report](p4-06-route-explain.md)
 - [P4-07 Append-only SQLite Request/Attempt/Usage/Health event writer report](p4-07-append-only-sqlite-event-writer.md)
 - [P4-08 Structured JSON, Prometheus, and OpenTelemetry telemetry fan-out report](p4-08-single-consumer-telemetry-fanout.md)
+- [P4-09 Default-deny log redaction and bounded Body sampling report](p4-09-log-redaction-body-sampling.md)

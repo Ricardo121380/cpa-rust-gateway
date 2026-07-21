@@ -6,6 +6,7 @@
 
 #![deny(unsafe_code)]
 
+mod log_safety;
 mod telemetry;
 
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -15,6 +16,12 @@ use gateway_core::{
 };
 use tokio::sync::mpsc::{self, error::TrySendError};
 
+pub use log_safety::{
+    BodyOmissionReason, BodySamplingPolicy, BodySamplingPolicyError, HTTP_LOG_SCHEMA_VERSION,
+    HttpLogDirection, LogRedactionPolicy, LoggedContentType, MAX_BODY_SAMPLE_BYTES,
+    REDACTED_LOG_VALUE, SanitizedBodySample, SanitizedHeaderSummary, SanitizedHttpLogRecord,
+    try_emit_sanitized_http_log,
+};
 pub use telemetry::{
     JsonTracingInitError, NoopOpenTelemetryExporter, NoopStructuredJsonExporter,
     OpenTelemetryExportOutcome, OpenTelemetryExporter, OpenTelemetrySpan, OpenTelemetrySpanKind,
