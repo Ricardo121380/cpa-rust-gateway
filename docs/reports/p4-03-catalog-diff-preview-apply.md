@@ -4,7 +4,7 @@
 |---|---|
 | Plan version | `v1.4` |
 | Task | `P4-03` |
-| Status | `LOCAL_PASS_PENDING_CI`; local implementation, review, and complete Gate passed; GitHub Code Gate pending |
+| Status | `DONE` after this docs-only closeout Gate; Code Gate passed |
 | Scope level / execution budget | `M`; `<=25min` from Task Card to code commit |
 | Task Card | Exact target-local successful-snapshot diff; no network, persistence, routes, health, quota, or P4-04 work |
 | References | `E20`, `G28`, `L09`, `L10`, `L33`; [ADR-0025](../adr/ADR-0025-catalog-diff-preview-apply-removal-isolation.md); [BC-CATALOG-003](../contracts/BC-CATALOG-003-catalog-diff-preview-apply-removal-isolation.md) |
@@ -45,14 +45,34 @@ Catalog state, routes, health/quota, HTTP, SQLite, and public-model publication 
 | Local complete Gate | `2026-07-21T15:21:59+08:00` to `2026-07-21T15:22:53+08:00` (54s). |
 | Repeated complete Gates | `0`; the one required complete Gate was not mechanically replayed. |
 | Rework | `0`; focused review required no implementation correction after the successful targeted test and Clippy runs. |
-| Code commit / Code Gate / docs closeout / docs Gate | Pending immutable evidence after this code delivery and its normal GitHub workflow. |
+| Code commit | `ecaee4f`, `2026-07-21T15:28:42+08:00`; about 10 minutes after the conservative local timing anchor, within the `M` budget. |
+| Code Gate passed | `2026-07-21T16:00:00+08:00`; [run 29812271739](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29812271739). |
+| Docs closeout / docs Gate | This one docs-only closeout records the immutable Code Gate evidence. Its required docs-only Gate is external evidence and will not cause a second status commit. |
 
-## Remote Code Gate
+## Accepted GitHub Code Gate and delivery-flow measurement
 
-The normal Code Gate on the cache-visible delivery ref will provide the only workflow measurement.
-No manual rerun will be issued.
+GitHub Actions [run 29812271739](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29812271739)
+passed for implementation commit `ecaee4f` on the cache-visible
+`codex/p4-01-catalog-singleflight` delivery ref. It was the normal push Gate, not a manual rerun.
+
+| Job / step | Result and duration |
+|---|---|
+| Classify delivery gate | PASS; selected `code`; Docs-only Gate correctly skipped. |
+| Fast gate | PASS; job about 189 seconds, complete `Run fast gate` about 162 seconds. |
+| Full supply-chain gate | PASS; job about 56 seconds after Fast. |
+| Cache | PASS; primary key hit; restore took about 7 seconds. |
+| Install pinned quality tools | PASS; `cargo-deny 0.20.2` and `cargo-audit 0.22.2` were version-verified in about 1 second, within the `<=10s` operational target and `<=90s` hard ceiling. |
+| Supplemental supply-chain | PASS; version verification, `cargo deny check`, and RustSec audit completed in about 9 seconds without replaying Workspace Fast checks. |
+| Required delivery gate | PASS; fail-closed verification of the code path's Fast + Full results. |
+
+The workflow was created at `2026-07-21T15:55:31+08:00`, first started about 3 seconds later, and
+completed at `2026-07-21T16:00:00+08:00` (about 4 minutes 29 seconds end-to-end). The warm
+`<=4min` operational target missed by about 29 seconds, following P4-02's one-second miss. This is
+a delivery-performance observation, not a correctness or supply-chain failure: the cache hit and
+all required Gates passed. No manual rerun is issued. Any further CI acceleration needs an explicit
+approved Change Request; this closeout does not alter the locked delivery workflow.
 
 ## Closeout boundary
 
-After Code Gate success, one docs-only closeout will record immutable evidence and mark P4-03
-`DONE`. P4-04 remains `PENDING` until its own Task Card is started.
+This is the single docs-only closeout that records the immutable Code Gate evidence and marks P4-03
+`DONE`. Its own GitHub status is external evidence and will not cause another status-only commit.

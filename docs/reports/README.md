@@ -28,10 +28,6 @@
 - [G2 阶段门禁报告](g2-gate-report.md)
 - [G3 阶段门禁报告](g3-gate-report.md)
 
-## 进行中任务
-
-- [P4-03 Catalog diff Preview/Apply and removal isolation report](p4-03-catalog-diff-preview-apply.md)
-
 ## 已完成任务
 
 - [P1-01 Request context and errors report](p1-01-request-context-errors.md)
@@ -66,3 +62,4 @@
 - [P4-00 execution acceleration report](p4-00-execution-acceleration.md)
 - [P4-01 Endpoint-Credential Model Catalog singleflight report](p4-01-catalog-singleflight.md)
 - [P4-02 CatalogSnapshot freshness and last-success fallback report](p4-02-catalog-snapshot-freshness.md)
+- [P4-03 Catalog diff Preview/Apply and removal isolation report](p4-03-catalog-diff-preview-apply.md)
