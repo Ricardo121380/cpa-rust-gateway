@@ -21,6 +21,7 @@ CATALOG    模型发现、Fresh/Stale/Expired 与移除
 CONT       Cache/Response/Replay/Conversation 连续性
 SEC        Secret、SSRF、租户隔离和审计
 CORE       框架无关的 Canonical Core
+DELIVERY   CI 分层、任务状态与受控交付诊断
 ```
 
 P1 已创建 [BC-CORE-001 Request context and errors](BC-CORE-001-request-context-and-errors.md)、
@@ -51,4 +52,5 @@ P3-07 已建立 [BC-ROUTE-002 RouteSnapshot public model view and Responses forc
 P3-08 已建立 [BC-OBS-001 Bounded Request, Attempt, and Usage events](BC-OBS-001-bounded-request-attempt-usage-events.md)。
 P3-09 已建立 [BC-E2E-001 Controlled Mock HTTP aggregation E2E](BC-E2E-001-controlled-mock-http-aggregation-e2e.md)。
 P3-10 已建立 [BC-E2E-002 Authorized real-test Endpoint validation](BC-E2E-002-authorized-real-test-endpoint-validation.md)。
+P4-00 已建立 [BC-DELIVERY-001 Delivery gates and authorized single-probe diagnostic](BC-DELIVERY-001-delivery-gates-and-single-probe-diagnostic.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。

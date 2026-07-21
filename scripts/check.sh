@@ -3,8 +3,8 @@
 set -euo pipefail
 
 mode="${1:-fast}"
-if [[ "$mode" != "fast" && "$mode" != "full" ]]; then
-  printf 'usage: %s [fast|full]\n' "$0" >&2
+if [[ "$mode" != "docs" && "$mode" != "fast" && "$mode" != "full" ]]; then
+  printf 'usage: %s [docs|fast|full]\n' "$0" >&2
   exit 2
 fi
 
@@ -67,8 +67,32 @@ check_quality_tool_versions() {
   cargo audit --version | rg -q "$CARGO_AUDIT_VERSION"
 }
 
+check_tracked_whitespace() {
+  local empty_tree
+  empty_tree="$(git hash-object -t tree /dev/null)"
+  git diff --check "$empty_tree" HEAD
+}
+
+if [[ "$mode" == "docs" ]]; then
+  run_step "Document links" "$repo_root/scripts/check-doc-links.rb"
+  run_step "Plan state" "$repo_root/scripts/check-plan-state.rb"
+  run_step "Tracked secret scan" "$repo_root/scripts/secret-scan.sh" --all
+  run_step "Git whitespace" check_tracked_whitespace
+
+  if [[ -n "$report_path" ]]; then
+    printf '\nCompleted: `%s`\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$report_path"
+  fi
+
+  printf '\ncheck: docs passed\n'
+  exit 0
+fi
+
 run_step "Shell syntax" "$repo_root/scripts/check-shell-syntax.sh"
 run_step "CI workflow" "$repo_root/scripts/check-ci-workflow.rb"
+run_step "CI change classifier" "$repo_root/scripts/test-ci-change-classifier.sh"
+run_step "Plan state" "$repo_root/scripts/check-plan-state.rb"
+run_step "Plan state guard" "$repo_root/scripts/test-plan-state-check.sh"
+run_step "Quality installer cache behavior" "$repo_root/scripts/test-install-quality-tools.sh"
 run_step "Rust format" cargo fmt --all -- --check
 run_step "Clippy" cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 run_step "Rust tests" cargo test --locked --workspace --all-features
@@ -77,7 +101,7 @@ run_step "Secret scanner test" "$repo_root/scripts/test-secret-scan.sh"
 run_step "Crate boundaries" "$repo_root/scripts/check-crate-boundaries.rb"
 run_step "Document links" "$repo_root/scripts/check-doc-links.rb"
 run_step "Tracked secret scan" "$repo_root/scripts/secret-scan.sh" --all
-run_step "Git whitespace" git diff --check
+run_step "Git whitespace" check_tracked_whitespace
 
 if [[ "$mode" == "full" ]]; then
   run_step "Quality tool versions" check_quality_tool_versions

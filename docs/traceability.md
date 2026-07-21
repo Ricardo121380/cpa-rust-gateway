@@ -69,6 +69,12 @@
 | P3-10 | Plan 9；Matrix `C16`、`G05`、`G12-G15`、`G21`、`K03-K06`、`L20-L31`；Behavior 1/4/5/9/17/20 | [ADR-0020](adr/ADR-0020-authorized-real-test-endpoint-validation.md)、[BC-E2E-002](contracts/BC-E2E-002-authorized-real-test-endpoint-validation.md) | Shared P3-09/P3-10 test-only aggregation harness plus ignored, explicitly authorized two-target real Endpoint validation; fixed four-call cap, one Attempt per request, bounded reads, and redaction assertions | [P3-10 report](reports/p3-10-real-test-endpoint-validation.md) | DONE |
 | G3 | Plan G3；P3 Matrix `C/D/E/G/K/L` | P3 ADR/Contract 集合 | P3-01 至 P3-10 的独立上游聚合、调度、凭据、健康、Attempt、事件与受控真实验证条件核验 | [G3 报告](reports/g3-gate-report.md) | DONE |
 
+## P4 追踪
+
+| Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
+|---|---|---|---|---|---|
+| P4-00 | Plan 10；`CR-EXEC-001` | [ADR-0021](adr/ADR-0021-delivery-gate-classification-and-single-probe-diagnostic.md)、[BC-DELIVERY-001](contracts/BC-DELIVERY-001-delivery-gates-and-single-probe-diagnostic.md) | Fail-closed docs/code/tag CI classification, version-verified quality-tool cache, task-state guard, and isolated ignored one-probe diagnostic | [P4-00 报告](reports/p4-00-execution-acceleration.md) | LOCAL_PASS_PENDING_CI |
+
 ## 后续 Phase 映射
 
 | 矩阵模块 | 主要 Phase |

@@ -15,12 +15,21 @@ end
 
 required_fragments = [
   "jobs:",
+  "classify:",
+  "docs:",
   "fast:",
   "full:",
-  "needs: fast",
+  "required:",
+  "Required delivery gate",
+  "needs: [classify, fast]",
+  "needs: classify",
+  "./scripts/classify-ci-change.sh",
+  "./scripts/check.sh docs",
   "./scripts/check.sh fast",
   "./scripts/check.sh full",
   "./scripts/install-quality-tools.sh",
+  "actions/cache@5a3ec84eff668545956fd18022155c47e93e2684",
+  "tools/quality-tool-versions.env",
   "rustup toolchain install 1.97.1",
 ]
 

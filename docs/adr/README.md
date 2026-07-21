@@ -47,3 +47,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0018 Bounded non-blocking Request, Attempt, and Usage event port](ADR-0018-bounded-request-attempt-usage-events.md) — `P3-08`。
 - [ADR-0019 Controlled Mock HTTP aggregation E2E](ADR-0019-controlled-mock-http-aggregation-e2e.md) — `P3-09`。
 - [ADR-0020 Authorized real-test Endpoint validation](ADR-0020-authorized-real-test-endpoint-validation.md) — `P3-10`（Accepted）。
+- [ADR-0021 Delivery gate classification and controlled single-probe diagnostic](ADR-0021-delivery-gate-classification-and-single-probe-diagnostic.md) — `P4-00`（Accepted）。

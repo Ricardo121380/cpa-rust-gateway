@@ -17,8 +17,44 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  classify:
+    name: Classify delivery gate
+    runs-on: ubuntu-24.04
+    outputs:
+      scope: ${{ steps.scope.outputs.scope }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Classify changed paths fail-closed
+        id: scope
+        env:
+          CI_EVENT_NAME: ${{ github.event_name }}
+          CI_REF_TYPE: ${{ github.ref_type }}
+          CI_BEFORE_SHA: ${{ github.event.before }}
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CI_HEAD_SHA: ${{ github.sha }}
+        run: ./scripts/classify-ci-change.sh
+
+  docs:
+    name: Docs-only gate
+    needs: classify
+    if: needs.classify.outputs.scope == 'docs'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install docs prerequisites
+        run: sudo apt-get update && sudo apt-get install --yes ripgrep
+      - name: Run docs-only gate
+        run: ./scripts/check.sh docs
+
   fast:
     name: Fast gate
+    needs: classify
+    if: needs.classify.outputs.scope == 'code'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -33,7 +69,8 @@ jobs:
 
   full:
     name: Full supply-chain gate
-    needs: fast
+    needs: [classify, fast]
+    if: needs.classify.outputs.scope == 'code' && needs.fast.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -45,7 +82,49 @@ jobs:
           sudo apt-get install --yes clang cmake ripgrep
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
+      - name: Restore pinned quality-tool cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            ~/.cargo/bin/cargo-deny
+            ~/.cargo/bin/cargo-audit
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: quality-tools-${{ runner.os }}-rust-1.97.1-${{ hashFiles('tools/quality-tool-versions.env') }}
       - name: Install pinned quality tools
         run: ./scripts/install-quality-tools.sh
       - name: Run full gate
         run: ./scripts/check.sh full
+
+  required:
+    name: Required delivery gate
+    needs: [classify, docs, fast, full]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Verify selected gate
+        env:
+          SCOPE: ${{ needs.classify.outputs.scope }}
+          CLASSIFY_RESULT: ${{ needs.classify.result }}
+          DOCS_RESULT: ${{ needs.docs.result }}
+          FAST_RESULT: ${{ needs.fast.result }}
+          FULL_RESULT: ${{ needs.full.result }}
+        run: |
+          set -euo pipefail
+          test "$CLASSIFY_RESULT" = "success"
+          case "$SCOPE" in
+            docs)
+              test "$DOCS_RESULT" = "success"
+              test "$FAST_RESULT" = "skipped"
+              test "$FULL_RESULT" = "skipped"
+              ;;
+            code)
+              test "$DOCS_RESULT" = "skipped"
+              test "$FAST_RESULT" = "success"
+              test "$FULL_RESULT" = "success"
+              ;;
+            *)
+              printf 'unknown delivery scope: %s\n' "$SCOPE" >&2
+              exit 1
+              ;;
+          esac

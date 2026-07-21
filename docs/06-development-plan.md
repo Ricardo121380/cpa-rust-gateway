@@ -7,8 +7,8 @@
 | 计划版本 | `v1.2` |
 | 生效日期 | `2026-07-21` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot` 与 `P3 - OpenAI Responses 聚合 MVP` 已完成；`P4 - Catalog、Health、Quota、Explain、观测` 保持 `PENDING`，尚未开始 |
-| 当前任务 | 无；`P3-01` 至 `P3-10` 与 `G3` 均为 `DONE`。P4-00 是 P4 的工程效率前置项，P4-00 与 P4-01 均保持 `PENDING`，不会由本 Gate 自动启动。 |
+| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot` 与 `P3 - OpenAI Responses 聚合 MVP` 已完成；`P4 - Catalog、Health、Quota、Explain、观测` 已开始其工程效率前置项 |
+| 当前任务 | `P4-00` 已 `LOCAL_PASS_PENDING_CI`，等待规定的 GitHub Gate；P4-01 至 P4-09 保持 `PENDING`。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -426,8 +426,8 @@ deploy/
 
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
-| P4-00 | 落实 `CR-EXEC-001`：受版本校验的质量工具缓存、code/docs/tag Gate 分类、`LOCAL_PASS_PENDING_CI` 状态守卫和独立单探针诊断 harness | G3 | cache miss/hit、Gate 分类、状态阻断、零授权/单请求/脱敏诊断测试；不发送未经单独授权的真实流量 | PENDING |
-| P4-01 | 实现每 Endpoint+Credential 的 ModelCatalogSource 调度与 Singleflight | G3 | 并发同步和凭据差异测试 | PENDING |
+| P4-00 | 落实 `CR-EXEC-001`：受版本校验的质量工具缓存、code/docs/tag Gate 分类、`LOCAL_PASS_PENDING_CI` 状态守卫和独立单探针诊断 harness | G3 | cache miss/hit、Gate 分类、状态阻断、零授权/单请求/脱敏诊断测试；不发送未经单独授权的真实流量 | LOCAL_PASS_PENDING_CI |
+| P4-01 | 实现每 Endpoint+Credential 的 ModelCatalogSource 调度与 Singleflight | P4-00 | 并发同步和凭据差异测试 | PENDING |
 | P4-02 | 实现 CatalogSnapshot、Fresh/Stale/Expired 与最后成功回退 | P4-01 | 时间推进和失败保留测试 | PENDING |
 | P4-03 | 实现 added/suspected_removed/removed Diff、Preview/Apply 和移除隔离 | P4-02 | 3 次缺失 + 24h Fixture | PENDING |
 | P4-04 | 实现 Endpoint/Model/Credential Probe、EWMA 和 Circuit 恢复 | P3-05 | 健康时间线和半开测试 | PENDING |
