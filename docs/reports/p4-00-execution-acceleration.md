@@ -3,8 +3,9 @@
 - Plan version: `v1.2`
 - Task: `P4-00`
 - Date: 2026-07-21
-- Status at this implementation commit: `LOCAL_PASS_PENDING_CI`; local evidence is recorded here,
-  and GitHub acceptance plus a docs-only follow-up are required before `DONE`.
+- Status: `LOCAL_PASS_PENDING_CI`; the corrected local review passed after the first GitHub
+  code-gate failure recorded below. GitHub acceptance plus a docs-only follow-up are required
+  before `DONE`.
 - Change Request: `CR-EXEC-001`
 - ADR / Contract: [ADR-0021](../adr/ADR-0021-delivery-gate-classification-and-single-probe-diagnostic.md),
   [BC-DELIVERY-001](../contracts/BC-DELIVERY-001-delivery-gates-and-single-probe-diagnostic.md)
@@ -49,6 +50,19 @@ command exited `0` after completing its advisory scan. The required GitHub Full 
 acceptance evidence for this implementation. No real Provider traffic is part of any local evidence
 in this report.
 
+## First GitHub code-gate result and correction
+
+GitHub Actions run [29797956689](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29797956689)
+correctly classified the implementation as `code`, skipped Docs-only, and stopped Full after Fast
+failed. The stable required job then failed as designed. The cause was limited to the classifier's
+black-box test: GitHub supplies `GITHUB_OUTPUT` to every step, so a command-substitution test read
+an empty stdout result while the production classifier correctly wrote its output file.
+
+The correction clears only `GITHUB_OUTPUT` for the test subprocess; production classification still
+uses the GitHub output file. The corrected classifier passed with `GITHUB_OUTPUT` explicitly set,
+then Fast and Full local review passed again. P4-00 is back in `LOCAL_PASS_PENDING_CI`; a
+replacement GitHub code-gate run is required before acceptance.
+
 ## Efficiency baseline and measurement criteria
 
 Recent P3 Full jobs took roughly 624–670 seconds, with pinned quality-tool installation about
@@ -67,5 +81,6 @@ measure the docs-only branch. Both remote results are added before final task co
 - If classification or cache verification fails, the required job fails closed and code scope stays
   on Fast + Full. The rollback is to remove the new cache/classifier/diagnostic path and restore
   the previous all-code CI sequence.
-- This implementation passed local review and is now `LOCAL_PASS_PENDING_CI`. Only after GitHub
-  acceptance and the docs-only status verification can P4-00 become `DONE` and unlock P4-01.
+- The implementation remains `LOCAL_PASS_PENDING_CI` until the corrected code-gate run passes.
+  Only after GitHub acceptance and the docs-only status verification can P4-00 become `DONE` and
+  unlock P4-01.

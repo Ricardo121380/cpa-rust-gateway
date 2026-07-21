@@ -9,7 +9,9 @@ assert_scope() {
   local expected="$1"
   shift
   local observed
-  observed="$($classifier "$@")"
+  # GitHub always supplies GITHUB_OUTPUT to a job step. The classifier correctly writes to that
+  # file in production, but this black-box test needs its CLI result on stdout.
+  observed="$(env -u GITHUB_OUTPUT "$classifier" "$@")"
   if [[ "$observed" != "$expected" ]]; then
     printf 'ci-change-classifier: expected %s, got %s\n' "$expected" "$observed" >&2
     exit 1
