@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-21` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP` 与 `P4 - Catalog、Health、Quota、Explain、观测` 已完成；`P5 - Anthropic/Claude Code 兼容` 已开始。 |
-| 当前任务 | `P5-00`：落实 P 级 delivery trigger、default-ref cache seed、tag restore 与提前远端例外验证。 |
+| 当前任务 | `P5-01`：实现 Anthropic Messages 入站、非流式和 SSE 出站 Adapter。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -763,8 +763,8 @@ operator 授权后才可发送一条真实请求，不能回溯或重跑 P3-10�
 
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
-| P5-00 | 落实 `CR-EXEC-007`：P 级 delivery trigger/default-ref cache seed/tag restore 与提前远端例外验证 | G4 | workflow/计划守卫、本地 full、一次提前 GitHub Gate、tag cache hit/miss 与 fail-closed 证据 | LOCAL_PASS_PENDING_CI |
-| P5-01 | 实现 Anthropic Messages 入站、非流式和 SSE 出站 Adapter | P5-00 | Anthropic Fixture 与事件快照 | PENDING |
+| P5-00 | 落实 `CR-EXEC-007`：P 级 delivery trigger/default-ref cache seed/tag restore 与提前远端例外验证 | G4 | workflow/计划守卫、本地 full、一次提前 GitHub Gate、tag cache hit/miss 与 fail-closed 证据 | DONE |
+| P5-01 | 实现 Anthropic Messages 入站、非流式和 SSE 出站 Adapter | P5-00 | Anthropic Fixture 与事件快照 | IN_PROGRESS |
 | P5-02 | 实现 `count_tokens` Canonical 路由和 Provider Capability；无准确能力时明确拒绝 | P5-01 | 准确路径和 Unsupported 测试 | PENDING |
 | P5-03 | 完成 Tool 增量 JSON、并行 Tool、空参数、必填参数和 ID 映射状态机 | P5-01 | 1-byte Chunk 属性测试 | PENDING |
 | P5-04 | 实现 Pass-through/Canonical/Lossless Bridge 能力分析器 | P5-01,P3-01 | 字段/Tool/Reasoning 不可损转换矩阵 | PENDING |

@@ -6,15 +6,15 @@
 | Task | `P5-00` |
 | Date | `2026-07-21` |
 | Branch | `codex/p5-anthropic` |
-| Status | `LOCAL_PASS_PENDING_CI` |
+| Status | `DONE` |
 | Change Request | `CR-EXEC-007` |
 | ADR / Contract | [ADR-0033](../adr/ADR-0033-phase-level-delivery-and-default-ref-cache.md) / [BC-DELIVERY-003](../contracts/BC-DELIVERY-003-phase-level-delivery-and-default-ref-cache.md) |
 
 ## Scope
 
 P5-00 implements only delivery infrastructure. It adds no Anthropic request/response behavior,
-Provider traffic, database change, public API, or production configuration. P5-01 remains blocked
-until the one explicit early GitHub Gate accepts this Task.
+Provider traffic, database change, public API, or production configuration. P5-01 remained blocked
+until the one explicit early GitHub Gate accepted this Task.
 
 ## Delivered controls
 
@@ -41,12 +41,24 @@ until the one explicit early GitHub Gate accepts this Task.
 | `./scripts/check.sh full` | PASS; Workspace Fast, pinned dependency policy, and RustSec audit completed once. |
 | `git diff --check` | PASS. |
 
-## Cache and remote evidence boundary
+## Cache and remote evidence
 
 Before this Task, the exact quality-tool cache key existed only under P4 branch/tag refs; no
-`refs/heads/main` entry existed. The P5-00 early main Gate must therefore be treated as a cold seed,
-not as a warm-hit benchmark. After it passes, the closeout report will record the immutable run and
-the resulting default-ref cache entry. G5, not P5-00, records the final P5 tag restore result.
+`refs/heads/main` entry existed. The explicit early Gate was therefore a cold seed, not a warm-hit
+benchmark.
+
+| Evidence | Result |
+|---|---|
+| Workflow | [run 29844498976](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29844498976), immutable SHA `be1eeadc9e08399bc3d0532639496d63725b5724` |
+| Fast | PASS in `2m50s` |
+| Full | PASS in `8m40s`; cold quality-tool install `8m02s`, supplemental supply-chain check `8s` |
+| Required | PASS in `3s`; Docs-only correctly skipped |
+| Cache restore | MISS for `quality-tools-Linux-rust-1.97.1-6c77927386864b14a70fbd4b3993fbca77817a4e79756de7e1630982c2584144` |
+| Default-ref seed | Cache ID `5928795681`, `refs/heads/main`, `152435049` bytes |
+
+The miss was expected and failed safe by installing and version-checking `cargo-deny 0.20.2` and
+`cargo-audit 0.22.2`. G5, not P5-00, records whether the final P5 tag restores this default-ref
+entry within the warm-install target.
 
 ## Review
 
@@ -54,7 +66,7 @@ The change removes repeated automatic branch runs without adding a user-selectab
 Manual dispatch still selects code. The plan guard keeps one IN_PROGRESS Task and prevents a local
 P5 result from satisfying P6. No real Provider request was sent and no credential was read.
 
-## Pending closeout
+## Closeout
 
-Fast-forward this reviewed implementation to `main`, wait for its Fast + Full + Required Gate, and
-confirm a default-ref cache entry. Only then may P5-00 become DONE and P5-01 start.
+The reviewed implementation was fast-forwarded to `main`; Fast, Full, and Required passed and the
+default-ref seed exists. P5-00 is complete and P5-01 may start as the sole `IN_PROGRESS` Task.
