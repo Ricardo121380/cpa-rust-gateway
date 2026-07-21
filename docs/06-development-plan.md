@@ -4,15 +4,15 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.1` |
-| 生效日期 | `2026-07-19` |
+| 计划版本 | `v1.2` |
+| 生效日期 | `2026-07-21` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot` 与 `P3 - OpenAI Responses 聚合 MVP` 已完成；`P4 - Catalog、Health、Quota、Explain、观测` 保持 `PENDING`，尚未开始 |
-| 当前任务 | 无；`P3-01` 至 `P3-10` 与 `G3` 均为 `DONE`。P4-01 保持 `PENDING`，不会由本 Gate 自动启动。 |
+| 当前任务 | 无；`P3-01` 至 `P3-10` 与 `G3` 均为 `DONE`。P4-00 是 P4 的工程效率前置项，P4-00 与 P4-01 均保持 `PENDING`，不会由本 Gate 自动启动。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
-| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 |
+| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：保留质量与单 Task 开发纪律的前提下，采用缓存化 Full CI、显式 docs-only Gate、`LOCAL_PASS_PENDING_CI` 状态与单探针诊断 harness。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -37,6 +37,7 @@
 |---|---|
 | `PENDING` | 前置条件未满足或尚未开始 |
 | `IN_PROGRESS` | 当前正在执行；全计划同时最多一个 |
+| `LOCAL_PASS_PENDING_CI` | 实现、review、所需本地测试和本地快速门禁已通过，等待规定的 GitHub Gate；不是 `DONE`，也不计为 `IN_PROGRESS` |
 | `DONE` | 代码、测试、文档和证据均完成 |
 | `BLOCKED` | 已明确记录阻塞条件，无法继续 |
 | `DEFERRED` | 经用户批准移出当前发布范围 |
@@ -46,11 +47,13 @@
 1. 读取本文，确认当前 Phase、Task 和前置依赖。
 2. 将且仅将一个 Task 标记为 `IN_PROGRESS`。
 3. 实现该 Task 的最小完整改动，不夹带下一 Task 功能。
-4. 运行该 Task 指定的测试和全局快速门禁。
-5. 保存可复查证据：测试输出、基准、Fixture、日志或报告。
-6. 同步代码文档、行为契约和必要的矩阵状态。
-7. 满足 Definition of Done 后标记 `DONE`。
-8. Phase 内全部任务完成后执行 Phase Gate；Gate 未通过不得进入下一 Phase。
+4. 运行该 Task 指定的测试、review 与全局本地快速门禁；安全、Schema、迁移、重试或 CI 变更额外运行本地完整门禁。
+5. 保存可复查证据：测试输出、基准、Fixture、日志或报告，并将实现、测试与该 Task 的证据尽量合并为同一提交。
+6. 同步代码文档、行为契约和必要的矩阵状态，启动本计划规定的 GitHub Gate。
+7. 本地条件已满足但远端 Gate 未完成时标记 `LOCAL_PASS_PENDING_CI`；远端通过前不得标记 `DONE`。
+8. 在保持全计划仅一个 `IN_PROGRESS` 代码 Task 的前提下，可开始与 `LOCAL_PASS_PENDING_CI` Task 无共享公开接口、Schema、迁移、行为契约或发布依赖的下一 Task；若远端 Gate 失败，立即停止受影响的后续推进并修复失败 Task。
+9. 远端 Gate 成功后满足 Definition of Done，标记 `DONE`；Phase Gate 开始前不得遗留任何 `LOCAL_PASS_PENDING_CI` Task。
+10. Phase 内全部任务完成后执行 Phase Gate；Gate 未通过不得进入下一 Phase。
 
 ### 1.3 禁止事项
 
@@ -71,6 +74,7 @@
 - 修改 Canonical Request/Event、错误分类、重试边界或 Secret 方案。
 - 把 `Later/Drop/PENDING` 功能提前加入当前发布。
 - 放宽安全、性能、测试或部署门槛。
+- 改变 Task 状态语义、GitHub required Gate 分类或 Phase Gate 触发条件。
 
 Change Request 格式：
 
@@ -85,6 +89,56 @@ CR-ID:
 ```
 
 仅修正文案、补充测试或不改变对外行为的内部重构，可以在原 Task 内完成，但仍需记录在完成证据中。
+
+### 已批准 Change Request：CR-EXEC-001
+
+```text
+CR-ID: CR-EXEC-001
+原因: P0-P3 回顾显示，P3 的 39 次 GitHub workflow 累计约 516 分钟；近期 Full gate 的
+      cargo-deny/cargo-audit 固定安装约占单次 Full 运行时长的 74%。P3-10 的真实 Endpoint
+      验收还暴露出固定四探针 harness 不适合定位单个 Target/Mode 传输问题。
+影响的 Task / Matrix ID / ADR: 执行规则、CI、P4-00 与未来所有需要真实 Endpoint 验证的
+      Provider Task；不改变任何功能矩阵、公开 API、Canonical 类型、Provider 协议、Schema、
+      数据库、部署或既有 P0-P3 验收结果。
+兼容性与迁移影响: 无客户端兼容性、数据或部署迁移。只新增受控交付状态、CI 分类和 test-only
+      诊断能力；正式四探针验收 harness 与其既有隐私/调用上限保持独立。
+测试与回滚变化: P4-00 必须证明 cache miss/hit 的版本校验、code/docs/phase-tag Gate 分类、
+      docs-only Secret/链接检查、状态转换阻断规则和单探针零授权/一探针上限。回滚为禁用缓存、
+      恢复所有提交 Full Gate、停止使用 LOCAL_PASS_PENDING_CI 并移除未使用诊断 harness；
+      不影响已完成 Phase。
+用户批准: APPROVED，2026-07-21（要求将全部提速方案写入开发计划）
+计划版本变更: v1.2
+```
+
+### 1.5 交付提速纪律（CR-EXEC-001）
+
+1. **CI 分层而不降门槛。** Rust、`Cargo.toml`/`Cargo.lock`、工具链、workflow、脚本、
+   迁移、Fixture、契约或安全策略变更必须运行 GitHub Fast + Full supply-chain Gate。纯报告、
+   索引或计划状态变更运行显式 `docs-only` Gate：Markdown/格式、文档链接、Secret scan 和
+   计划一致性检查；它不得伪装为 Full 成功。每个 Phase Tag 始终强制运行 Fast + Full。
+2. **缓存只加速受版本约束的工具，不替代验证。** CI 可缓存 `cargo-deny`、`cargo-audit` 的
+   二进制及其 Cargo registry/git 下载；缓存 key 必须包含 runner OS、固定 Rust 版本和
+   `tools/quality-tool-versions.env` 摘要。每次恢复后仍执行版本检查；缺失或不匹配时仍以
+   `cargo install --locked` 重新安装。不得缓存 Credential、环境文件、真实测试配置或把 cache hit
+   当作供应链通过证明。预装镜像只有在来源固定、版本可复查且另有供应链审查后才可替代缓存。
+3. **状态流水线保持一个代码 Task。** `LOCAL_PASS_PENDING_CI` 只表达远端证据等待；它不允许
+   合并、发布、跨 Phase 依赖、Phase Gate 或把风险隐去。下一 Task 只能在没有共享关键边界时
+   使用该流水线，且同一时刻仍只有一个 `IN_PROGRESS`。有任何 Fast/Full 失败时，相关后续工作
+   立即冻结，先恢复失败 Task 的绿色状态。
+4. **文档证据合并与批处理。** Task 实现、测试和 Task 报告应同提交；GitHub 通过后才更新为
+   `DONE`。纯状态索引与 Gate 收口可在 Phase Gate 批处理，避免为不改变代码的多次状态提交重复
+   消耗 Full Gate。该合并不得遗漏可审计的 Task 证据。
+5. **真实 Endpoint 先诊断、后验收。** 未来需要真实 Endpoint 的 Phase 必须使用与正式验收
+   harness 分离的 ignored 单探针诊断路径。它必须要求单独的显式授权、Target、Mode 和精确
+   `max_external_requests=1`，保持 `max_attempts=1`、无自动重试/failover、脱敏输出和有界
+   timeout/read；普通 CI、缺失授权或错误配置必须零网络。它只能定位一个已授权 Target/Mode，
+   不能替代正式多 Target 验收，也不能重用或扩大既有 P3-10 授权。
+6. **先收集 readiness，再消费真实调用。** 在每个真实 Provider 验收前，先完成不触网的
+   Base URL/egress/profile/model-alias/调用预算预检；用户批准的调用预算、网络 profile 和
+   停止条件必须在第一次真实请求前写入私有 operator-controlled 配置与公开脱敏计划。
+7. **度量目标。** P4-00 完成后，warm Full Gate 中“安装固定质量工具”目标不高于 90 秒；每轮
+   Phase Gate 记录 Fast、Full、docs-only 的次数与 step 时长。若连续两轮未达到目标，先调查
+   cache key、安装源和 runner，而不是削弱 Full Gate。
 
 ## 2. Release 1 范围
 
@@ -224,6 +278,8 @@ deploy/
 - 没有新增未解释的 `TODO/FIXME`、明文 Secret 或宽泛 `unwrap/expect`。
 - 对外行为、配置或 Schema 变化已更新文档和迁移说明。
 - 保存完成证据，并更新本文状态。
+- 已满足对应 GitHub Gate：代码相关变更为 Fast + Full；纯文档/状态变更为显式 docs-only；
+  Phase Tag 为 Fast + Full。`LOCAL_PASS_PENDING_CI` 不满足本条件。
 
 ## 5. Phase 总览
 
@@ -370,6 +426,7 @@ deploy/
 
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
+| P4-00 | 落实 `CR-EXEC-001`：受版本校验的质量工具缓存、code/docs/tag Gate 分类、`LOCAL_PASS_PENDING_CI` 状态守卫和独立单探针诊断 harness | G3 | cache miss/hit、Gate 分类、状态阻断、零授权/单请求/脱敏诊断测试；不发送未经单独授权的真实流量 | PENDING |
 | P4-01 | 实现每 Endpoint+Credential 的 ModelCatalogSource 调度与 Singleflight | G3 | 并发同步和凭据差异测试 | PENDING |
 | P4-02 | 实现 CatalogSnapshot、Fresh/Stale/Expired 与最后成功回退 | P4-01 | 时间推进和失败保留测试 | PENDING |
 | P4-03 | 实现 added/suspected_removed/removed Diff、Preview/Apply 和移除隔离 | P4-02 | 3 次缺失 + 24h Fixture | PENDING |
@@ -379,6 +436,10 @@ deploy/
 | P4-07 | 实现 SQLite 异步 Request/Attempt/Usage/Health Event Writer | P3-08 | 队列、批写、崩溃恢复、quick_check | PENDING |
 | P4-08 | 实现 tracing JSON、Prometheus 和 OpenTelemetry 导出 | P4-07 | 指标/Trace 关联测试 | PENDING |
 | P4-09 | 实现日志脱敏、Body 采样开关和 Secret 泄漏测试 | P4-07,P4-08 | 自动 Secret 扫描报告 | PENDING |
+
+`P4-00` 是 P4 的工程效率与验证前置项，不交付 Catalog、Health、Quota 或公开 API；它完成前，
+不得将任一 P4-01 至 P4-09 标记为 `IN_PROGRESS`。该 Task 的单探针路径只在未来获得新的明确
+operator 授权后才可发送一条真实请求，不能回溯或重跑 P3-10。
 
 ### G4 门禁
 
@@ -624,7 +685,9 @@ deploy/
 | Load/Soak | 延迟、吞吐、RSS、连接、背压 | P3 基线、P11 完整 |
 | Security | Secret、SSRF、Auth、权限、依赖 | P2、P10、P11 |
 
-### 20.2 每次提交快速门禁
+### 20.2 提交分类与快速门禁
+
+代码、工具链、workflow、脚本、迁移、Fixture、契约或安全策略变更必须运行：
 
 ```text
 cargo fmt --check
@@ -633,6 +696,10 @@ cargo test --workspace
 secret scan
 changed-doc link check
 ```
+
+纯报告、索引或计划状态变更使用 `docs-only` Gate：Markdown/格式、文档链接、Secret scan 和
+计划一致性检查。它不能以未执行的 Rust/供应链检查冒充代码 Full Gate；具体 workflow 分类和
+required-status 由 P4-00 实现并验证。
 
 ### 20.3 Phase 完整门禁
 
@@ -711,3 +778,5 @@ Next task:
 | 版本 | 日期 | 变化 | 批准状态 |
 |---|---|---|---|
 | v1.0 | 2026-07-18 | 建立 Release 1 全阶段、任务、Gate、测试、安全、Git、灰度和变更控制基线 | 当前执行基线 |
+| v1.1 | 2026-07-19 至 2026-07-21 | 记录 P1/G1 的 Tool 语义投影澄清，以及 P3/G3 的公开别名、有限 SSE 帧与 idle 边界 Change Request | 已批准的历史执行基线 |
+| v1.2 | 2026-07-21 | `CR-EXEC-001`：缓存化受版本约束的质量工具、code/docs/tag Gate 分类、`LOCAL_PASS_PENDING_CI` 流水线、文档证据批处理、单探针诊断与真实 Provider readiness 纪律；新增 P4-00 前置项 | APPROVED；当前执行基线 |
