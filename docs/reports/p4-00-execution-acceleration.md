@@ -84,6 +84,21 @@ test the warm target. P4-01's later code run will restore this saved cache and i
 warm-install measurement. This closeout commit changes only Markdown, so its GitHub run must select
 and pass `Docs-only gate`; only then may P4-01 start.
 
+## Accepted docs-only evidence
+
+GitHub Actions run [29799100794](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29799100794)
+passed for closeout commit `530f07f`.
+
+| Job / step | Result and duration |
+|---|---|
+| Classify delivery gate | PASS; selected `docs` in about 7 seconds. |
+| Docs-only gate | PASS; job about 20 seconds, including prerequisite installation; `Run docs-only gate` about 2 seconds. |
+| Fast and Full supply-chain gates | Correctly skipped. |
+| Required delivery gate | PASS; verified the docs selection and skipped code gates. |
+
+The entire run completed in about 41 seconds. This proves the status/report path avoids the roughly
+11-minute code-run cost while retaining links, plan-state, tracked Secret, and whitespace checks.
+
 ## Efficiency baseline and measurement criteria
 
 Recent P3 Full jobs took roughly 624–670 seconds, with pinned quality-tool installation about
@@ -102,5 +117,6 @@ begins.
 - If classification or cache verification fails, the required job fails closed and code scope stays
   on Fast + Full. The rollback is to remove the new cache/classifier/diagnostic path and restore
   the previous all-code CI sequence.
-- The code-gate portion is accepted. The docs-only status verification is the final P4-00 delivery-
-  efficiency proof; P4-01 remains blocked until it is green.
+- P4-00 is accepted. P4-01 may now begin and must use the saved quality-tool cache as its first
+  warm-Full measurement; any real Provider diagnostic remains independently authorized and ignored
+  by default.
