@@ -4,15 +4,15 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.8` |
+| 计划版本 | `v1.9` |
 | 生效日期 | `2026-07-21` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP` 与 `P4 - Catalog、Health、Quota、Explain、观测` 已完成；`P5 - Anthropic/Claude Code 兼容` 保持 PENDING。 |
-| 当前任务 | `G4` 已通过本地证据复核；创建并交付 `phase-p4-complete` 注释 tag 后等待其 Gate。`P5` 不自动开始。 |
+| 当前任务 | `G4` 与 `phase-p4-complete` 注释 tag Delivery Gate 已通过；`P5` 保持 PENDING，且不因本计划变更自动开始。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
-| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：保留质量与单 Task 开发纪律的前提下，采用缓存化 Full CI、显式 docs-only Gate、`LOCAL_PASS_PENDING_CI` 状态与单探针诊断 harness。 `CR-EXEC-002`：按缓存可见交付引用、Fast 后补充供应链 Full、单次 docs-only 收口、缓存可观测性和明确的暖态时延目标进一步缩短交付等待。 `CR-EXEC-003`：以任务卡、集中补丁、非重复验证、Gate 等待重叠、模板化证据和全程时延度量减少代理执行时间。 `CR-EXEC-004`：按任务风险和不确定性路由 Luna/默认/高级模型及最低足够思考强度，避免简单任务默认占用高级模型和深度思考。 `CR-EXEC-005`：当前会话不能切换 Luna 时，允许一个受限、低成本子代理处理明确的低风险工作；主会话保留 review、提交与验收责任。 `CR-EXEC-006`：将普通简单执行的 Luna 思考下限提升为 `low`，多步或写入任务提升为 `medium`，避免为了提速而不当压低判断质量。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 |
+| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -37,7 +37,8 @@
 |---|---|
 | `PENDING` | 前置条件未满足或尚未开始 |
 | `IN_PROGRESS` | 当前正在执行；全计划同时最多一个 |
-| `LOCAL_PASS_PENDING_CI` | 实现、review、所需本地测试和本地快速门禁已通过，等待规定的 GitHub Gate；不是 `DONE`，也不计为 `IN_PROGRESS` |
+| `LOCAL_PASS_PENDING_PHASE_GATE` | 正常 Task 的实现、review、指定本地测试、格式与 Secret 检查已通过，证据已提交；等待本 Phase 唯一的远端正式 Delivery Gate。不是 `DONE`，也不计为 `IN_PROGRESS`。 |
+| `LOCAL_PASS_PENDING_CI` | 仅用于 CI/workflow/cache/required-status 等必须提前在 GitHub 验证的例外 Task；本地条件已通过，等待该一次明确记录的提前远端 Gate。不是 `DONE`，也不计为 `IN_PROGRESS`。 |
 | `DONE` | 代码、测试、文档和证据均完成 |
 | `BLOCKED` | 已明确记录阻塞条件，无法继续 |
 | `DEFERRED` | 经用户批准移出当前发布范围 |
@@ -47,13 +48,15 @@
 1. 读取本文，确认当前 Phase、Task 和前置依赖。
 2. 将且仅将一个 Task 标记为 `IN_PROGRESS`。
 3. 实现该 Task 的最小完整改动，不夹带下一 Task 功能。
-4. 运行该 Task 指定的测试、review 与全局本地快速门禁；安全、Schema、迁移、重试或 CI 变更额外运行本地完整门禁。
+4. 运行该 Task 指定的定向测试、review、格式与 Secret 检查；安全、Schema、迁移、重试、依赖、
+   公开边界或 CI 变更额外运行本地完整门禁。整合全局快速/完整门禁属于 Phase preflight，不对普通
+   Task 机械重复。
 5. 保存可复查证据：测试输出、基准、Fixture、日志或报告，并将实现、测试与该 Task 的证据尽量合并为同一提交。
-6. 同步代码文档、行为契约和必要的矩阵状态，启动本计划规定的 GitHub Gate。
-7. 本地条件已满足但远端 Gate 未完成时标记 `LOCAL_PASS_PENDING_CI`；远端通过前不得标记 `DONE`。
-8. 在保持全计划仅一个 `IN_PROGRESS` 代码 Task 的前提下，可开始与 `LOCAL_PASS_PENDING_CI` Task 无共享公开接口、Schema、迁移、行为契约或发布依赖的下一 Task；若远端 Gate 失败，立即停止受影响的后续推进并修复失败 Task。
-9. 远端 Gate 成功后满足 Definition of Done，标记 `DONE`；Phase Gate 开始前不得遗留任何 `LOCAL_PASS_PENDING_CI` Task。
-10. Phase 内全部任务完成后执行 Phase Gate；Gate 未通过不得进入下一 Phase。
+6. 同步代码文档、行为契约和必要的矩阵状态，并将正常 Task 标记为 `LOCAL_PASS_PENDING_PHASE_GATE`；不得为普通 Task 单独启动远端 Code/docs Gate。
+7. 在保持全计划仅一个 `IN_PROGRESS` 代码 Task 的前提下，`LOCAL_PASS_PENDING_PHASE_GATE` Task 是同一 Phase 后续依赖的有效本地证据。下一 Task 只能在前置本地证据充分时开始；发现回归时冻结受影响的后续 Task，先修复最早受影响提交。
+8. 只有 CI/workflow/cache/required-status、部署控制面，或其它明确写入计划且无法由本地证明的变更，才可使用 `LOCAL_PASS_PENDING_CI` 并启动一次提前远端 Gate；该例外必须写明原因、范围和不通过时的冻结边界。
+9. Phase 内全部 Task 均为 `LOCAL_PASS_PENDING_PHASE_GATE` 或已完成例外 Gate 后，运行整合本地完整门禁、Phase review 和 Phase-specific 验收。随后以 Phase closeout target 创建注释 tag，触发该 Phase 唯一的远端正式 Fast + Full Delivery Gate；不得先对同一 target 运行 Code Gate 再重复运行 tag Gate。
+10. 该远端 Delivery Gate 通过后，Phase 内正常 Task 满足 Definition of Done 并一并标记 `DONE`；失败时不得进入下一 Phase，须从最早受影响提交修复并重建同一 Phase closeout target。
 
 ### 1.3 禁止事项
 
@@ -113,21 +116,22 @@ CR-ID: CR-EXEC-001
 ### 1.5 交付提速纪律（CR-EXEC-001）
 
 1. **CI 分层而不降门槛。** Rust、`Cargo.toml`/`Cargo.lock`、工具链、workflow、脚本、
-   迁移、Fixture、契约或安全策略变更必须运行 GitHub Fast + Full supply-chain Gate。纯报告、
-   索引或计划状态变更运行显式 `docs-only` Gate：Markdown/格式、文档链接、Secret scan 和
-   计划一致性检查；它不得伪装为 Full 成功。每个 Phase Tag 始终强制运行 Fast + Full。
+   迁移、Fixture、契约或安全策略变更必须在所属 Phase 的远端正式 Delivery Gate 运行 GitHub
+   Fast + Full supply-chain Gate；普通 Task 不逐个触发远端 Gate。纯报告、索引或计划状态变更在
+   不属于 Phase closeout 时运行显式 `docs-only` Gate：Markdown/格式、文档链接、Secret scan 和
+   计划一致性检查；它不得伪装为 Full 成功。每个 Phase closeout tag 始终强制运行 Fast + Full。
 2. **缓存只加速受版本约束的工具，不替代验证。** CI 可缓存 `cargo-deny`、`cargo-audit` 的
    二进制及其 Cargo registry/git 下载；缓存 key 必须包含 runner OS、固定 Rust 版本和
    `tools/quality-tool-versions.env` 摘要。每次恢复后仍执行版本检查；缺失或不匹配时仍以
    `cargo install --locked` 重新安装。不得缓存 Credential、环境文件、真实测试配置或把 cache hit
    当作供应链通过证明。预装镜像只有在来源固定、版本可复查且另有供应链审查后才可替代缓存。
-3. **状态流水线保持一个代码 Task。** `LOCAL_PASS_PENDING_CI` 只表达远端证据等待；它不允许
-   合并、发布、跨 Phase 依赖、Phase Gate 或把风险隐去。下一 Task 只能在没有共享关键边界时
-   使用该流水线，且同一时刻仍只有一个 `IN_PROGRESS`。有任何 Fast/Full 失败时，相关后续工作
-   立即冻结，先恢复失败 Task 的绿色状态。
-4. **文档证据只做一次收口。** Task 实现、测试、ADR/Contract 和报告骨架应在代码提交中；GitHub
-   Code Gate 通过后，以一个 docs-only 提交记录该不可变 Gate 证据并标记 `DONE`。不得再为复制该
-   docs-only run ID 产生第二个状态提交；Phase 报告可批量引用既有外部证据。
+3. **状态流水线保持一个代码 Task。** 正常 Task 使用 `LOCAL_PASS_PENDING_PHASE_GATE`；它可作为
+   同一 Phase 后续 Task 的前置证据，但不允许跨 Phase、合并、发布或提前宣称 `DONE`。
+   `LOCAL_PASS_PENDING_CI` 仅表示不可本地证明的提前远端例外。任何 Fast/Full 失败都会冻结
+   受影响的后续工作，先恢复最早失败 Task 的绿色状态；同一时刻仍只有一个 `IN_PROGRESS`。
+4. **文档证据随 Task 写入，Phase 一次收口。** 每个 Task 的实现、测试、ADR/Contract 和报告
+   骨架都在其提交中完成。Phase closeout target 在 tag 前聚合不可变本地证据与报告，不为每个
+   Task 或 tag 结果再创建 docs-only 状态提交；GitHub run、tag 和 job summary 是远端最终证据。
 5. **真实 Endpoint 先诊断、后验收。** 未来需要真实 Endpoint 的 Phase 必须使用与正式验收
    harness 分离的 ignored 单探针诊断路径。它必须要求单独的显式授权、Target、Mode 和精确
    `max_external_requests=1`，保持 `max_attempts=1`、无自动重试/failover、脱敏输出和有界
@@ -163,23 +167,27 @@ CR-ID: CR-EXEC-002
 计划版本变更: v1.3
 ```
 
-### 1.6 缓存可见交付与补充供应链 Gate（CR-EXEC-002）
+### 1.6 缓存可见 Phase 交付与补充供应链 Gate（CR-EXEC-002、CR-EXEC-007）
 
-1. **缓存可见交付引用。** 顺序 P4 代码 Task 留在可见质量工具缓存的 delivery ref。P4-02 使用
-   当前 `codex/p4-01-catalog-singleflight`；新 Task 分支只有先 seed 同 ref cache 或使用经批准的
-   shared/default ref 后才可作为交付引用。该规则不允许并行代码 Task，始终最多一个 `IN_PROGRESS`。
+1. **共享缓存优先于短生命周期分支缓存。** P4 的 `codex/p4-01-catalog-singleflight` 曾证明同 ref
+   的暖态缓存有效，但最终 tag 不能读取该分支缓存而发生冷安装。自 `P5-00` 通过后，固定质量工具
+   缓存必须以 runner OS、固定 Rust 版本和 `tools/quality-tool-versions.env` 摘要为 key，并先在
+   `main`/default ref 创建可供 Phase tag 读取的受版本约束 seed。一个 Phase 只在末尾交付时，单靠
+   Phase 分支并不能产生可复用缓存；缓存 miss 仍 fail-safe 地重新安装，不得跳过版本校验。
 2. **Fast 完整、Full 补充。** GitHub Fast 是完整 Workspace fast check。GitHub Full 依赖同一
    workflow/SHA 的 Fast，仅执行固定质量工具版本检查、`cargo deny check` 与 `cargo audit`；Required
    Gate 对两个结果均 fail-closed。本地 `./scripts/check.sh full` 继续执行完整 Fast 加供应链检查，
    因此本地需要完整门禁的变更只运行一次 `full` 即覆盖 Fast，不机械地紧接着重复 `fast`；Phase
    Tag 仍逻辑要求 Fast + Full。
-3. **单次 docs-only 收口。** 代码提交包含实现、测试、ADR、契约、报告骨架和 `IN_PROGRESS` 状态。
-   Code Gate 通过后只创建一个 docs-only 收口提交，写入 Code Gate 证据并改为 `DONE`；不为该收口
-   的 run ID 再创建提交。
+3. **Phase 一次收口。** 代码提交包含实现、测试、ADR、契约和报告骨架；Phase closeout target 在
+   tag 前汇总本地证据。普通 Task 与 tag Gate 通过后均不得再为 run ID 创建 docs-only 状态提交；
+   tag、GitHub job summary 和下一 Phase 开始时的计划状态共同构成外部收口。独立于任何 Phase 的
+   纯计划/报告变更仍走一次 docs-only Gate。
 4. **缓存可观测性与目标。** Full job 必须把 cache hit/miss 写入 GitHub job summary。miss 不会降低
    Gate 的正确性结论，但报告必须记录原因。暖态质量工具安装运行目标 `<=10s`、计划硬门槛 `<=90s`；
-   暖态 code workflow 目标 `<=4min`（不含 GitHub queue），docs-only workflow 目标 `<=45s`。P4-02
-   不额外触发手工暖态重跑，正常 Code Gate 的 summary 即为测量证据。
+   暖态 Phase Delivery workflow 目标 `<=4min`（不含 GitHub queue），独立 docs-only workflow 目标
+   `<=45s`。P5-00 必须以提前远端例外证明 default-ref seed、tag restore、cache hit/miss summary 和
+   fail-closed fallback；之后不额外为普通 Task 手工暖态重跑。
 
 ### 已批准 Change Request：CR-EXEC-003
 
@@ -217,17 +225,19 @@ CR-ID: CR-EXEC-003
    门禁时只运行一次 `./scripts/check.sh full`，它已覆盖 Fast 与 supply-chain；不得在其前后机械
    追加独立 `fast`、`supply-chain` 或相同范围 Clippy。staged Secret/whitespace review 仍必须在
    提交前执行，且不被 Full 替代。
-5. **Gate 等待与 closeout 重叠。** Code Gate 运行期间可以预写不含 run ID、状态结论或 `DONE`
-   标记的 closeout 草稿、报告表格和索引 diff。Gate 通过后仅填入不可变证据并创建唯一 docs-only
-   收口；Gate 失败时丢弃或修正草稿，绝不借草稿提前推进状态或下一依赖。
+5. **Phase Gate 等待与 closeout 重叠。** Phase tag 推送前完成 closeout target、报告表格和索引
+   diff；远端 Gate 运行时只读取一次必要的 job 摘要。Gate 通过后以 tag/run/job summary 作为不可变
+   证据，不创建额外 docs-only 收口；Gate 失败时修正最早受影响提交并重建 Phase closeout target，
+   绝不借草稿进入下一 Phase。
 6. **证据模板化而不删证据。** 后续 P4 Task 复用固定 ADR、Contract、报告、追踪行和 closeout
    模板，只填写本 Task 的决策、行为、测试和时延差异。没有新增架构决定或可观察行为时，不凭
    习惯额外创建文档；现有要求的证据、链接、Secret 约束仍完整保留。
 7. **远端查询最小化。** workflow 运行时使用低频状态轮询；完成后先读取一次完整 job 摘要，仅在
    cache、失败或安全证据缺失时读取相关 job log。不得为复制同一状态或刷新无变化页面重复查询。
-8. **统一时延报告。** 每个 Task 报告记录 `Task Card`、`代码提交`、`Code Gate 通过`、`docs 提交`
-   和 `docs Gate 通过`五个时间点，以及范围等级、重复验证次数、返工次数和超预算原因。此数据
-   用于下一 Task 纠正流程；连续两次同类超预算必须先优化执行方法，再考虑扩大并行度。
+8. **统一时延报告。** 每个 Task 报告记录 `Task Card`、`代码提交`、`本地 review/测试通过`、范围
+   等级、重复验证次数、返工次数和超预算原因；每个 Phase report 额外记录 `closeout target/tag`
+   与 `Phase Delivery Gate 通过`。此数据用于下一 Task 纠正流程；连续两次同类超预算必须先优化
+   执行方法，再考虑扩大并行度。
 
 ### 已批准 Change Request：CR-EXEC-004
 
@@ -347,6 +357,55 @@ CR-ID: CR-EXEC-006
 3. **minimal 的窄例外。** 仅限不写入、不诊断、不作 Gate 结论的单一事实或单命令查询；不能因
    “任务很小”自动选择它。
 
+### 已批准 Change Request：CR-EXEC-007
+
+```text
+CR-ID: CR-EXEC-007
+原因: 用户要求将远端上传与正式测试从“每个 Task 一次”改为“每个 Phase 一次”，并将开发分支
+      从“每个 Task 一个”改为“每个 Phase 一个”。P4 的实测也表明，同一开发分支的质量工具缓存
+      暖态有效，但最终 tag 因 GitHub ref 缓存作用域未能读取该分支缓存，重新安装工具约 8 分 10 秒。
+      需要减少重复远端 Gate，同时保留每个 Task 的本地 review 和定向测试。
+影响的 Task / Matrix ID / ADR: 执行状态、Task 循环、Git 规则、Definition of Done、CI/cache
+      交付流程、P5-00 及所有尚未开始的 Phase；仅取代 CR-EXEC-001 至 CR-EXEC-003 中“普通 Task
+      必须逐个远端 Gate/逐个分支/docs-only 收口”的部分。不改变 P0-P4 已完成的验收、功能矩阵、
+      公开 API、Canonical 类型、Provider 协议、Schema、数据库、部署、Secret 规则或真实调用授权。
+兼容性与迁移影响: 无客户端、数据或部署迁移。每个 Task 保持独立提交、review、定向自动化测试、
+      格式与 Secret 检查；远端 Fast + Full 仍 fail-closed，只改为 Phase closeout 的唯一正式运行。
+      CI/workflow/cache/required-status 等无法本地证明的改动保留一次提前远端例外。
+测试与回滚变化: P5-00 必须证明 Phase branch/tag 只产生一次普通正式 Delivery Gate、default-ref
+      质量工具 cache seed 可被 tag 恢复、缓存 miss 安全回退、Fast + Full required 状态与例外 Gate
+      冻结规则。每个普通 Task 必须保留本地定向测试/review；Phase 必须保留整合本地 full、跨 Crate
+      /契约/Phase-specific 验收和一次远端 Fast + Full。回滚为恢复每 Task 分支和远端 Gate；不回溯
+      或重跑已完成 Phase。
+用户批准: APPROVED，2026-07-21（要求按 P 级分支与 P 级远端验收方案修改开发计划）
+计划版本变更: v1.9
+```
+
+### 1.11 P 级分支与单次远端正式验收（CR-EXEC-007）
+
+1. **一个 Phase，一个开发分支。** 未开始的 Phase 使用 `codex/p<phase>-<short-name>` 分支，
+   例如 `codex/p5-anthropic`。该分支只承载该 Phase 的顺序 Task 和其修复，不跨 Phase、不并行
+   功能开发；每个 Task 仍使用自己的 `P5-01:` 等提交前缀，保持可 review、可 bisect 和可回滚。
+2. **Task 本地验收不延后。** 每个普通 Task 必须完成范围内的定向测试/Clippy、`cargo fmt --check`、
+   staged Secret/whitespace review、行为契约/文档更新和独立代码 review 后才可进入
+   `LOCAL_PASS_PENDING_PHASE_GATE`。安全、Schema、迁移、重试、依赖或公开边界改动额外运行一次
+   本地 `./scripts/check.sh full`；不得把所有测试积压到 Phase 末尾。
+3. **一次普通远端交付。** 全部 Task 本地验收后，执行整合本地 full、跨 Crate/契约/Phase-specific
+   测试和 Phase review，将结果写入 closeout target，创建注释 `phase-p<phase>-complete` tag，并以
+   Phase 分支和 tag 的单次交付事件运行 Fast + Full。tag 通过前，不得开始下一 Phase、合并或发布。
+4. **不重复状态提交。** 正常 Task 不逐个 push、不逐个跑 Code/docs Gate，也不在 tag 通过后为 run ID
+   另建 docs-only 提交。需要记录的远端证据放在 tag、GitHub run/job summary 和下一 Phase 开始时的
+   计划状态中；独立计划文档变更仍可走 docs-only Gate。
+5. **提前远端例外是窄边界。** CI workflow、cache、required-status、分支/发布控制或其它只能在
+   GitHub/目标环境证明的改动，必须在该 Task 后跑一次提前远端 Gate，并在 Task Card 和报告中写明。
+   该 Gate 不是普通 Task 的模板；真实 Provider 请求仍只按单独授权和既有调用边界执行。
+6. **缓存与单次交付配套。** 因为最后才 push 的 Phase 分支没有自己的暖态 cache，P5-00 必须先建立
+   default-ref 的受版本约束 cache seed，并验证 tag 能恢复它。缓存仅缩短安装；每次仍做版本验证、
+   `cargo deny` 和 `cargo audit`，cache miss 必须安全重新安装并记录为性能调查项。
+7. **完成语义。** `LOCAL_PASS_PENDING_PHASE_GATE` 是本地通过而非 `DONE`；Phase 唯一正式 Gate
+   成功才把其中 Task 一并转为 `DONE`。任何本地或远端失败都回到最早受影响提交修复，不能用后续
+   Task、Feature Flag 或报告文字掩盖。
+
 ### 已批准 Change Request：CR-P4-G4-001
 
 ```text
@@ -367,7 +426,7 @@ CR-ID: CR-P4-G4-001
 计划版本变更: v1.8
 ```
 
-### 1.11 G4 只读管理状态边界（CR-P4-G4-001）
+### 1.12 G4 只读管理状态边界（CR-P4-G4-001）
 
 1. `P4-10` 的管理 API 是供受控管理进程调用的 in-process Rust 查询边界，不注册 HTTP route，
    不处理认证、不会读/写 SQLite、不会发送 Provider 请求，也不进入 HTTP/Router 响应热路径。
@@ -498,10 +557,12 @@ deploy/
 
 - `cpa-rust-gateway` 使用独立 Git 仓库，不依赖父目录的未跟踪状态。
 - 主分支：`main`。
-- 开发分支：`codex/<task-id>-<short-name>`。
-- 一个分支只承载一个 Task 或同一 Task 的测试修复。
+- 开发分支：`codex/p<phase>-<short-name>`。
+- 一个分支只承载一个未完成 Phase 的顺序 Task 与其测试修复；每个 Task 保持独立提交，不因共用分支
+  而合并范围、跳过 review 或跨 Phase 混入功能。
 - Commit 标题以 Task ID 开头，例如 `P1-03: add canonical event state machine`。
-- Phase Gate 通过后创建带说明的阶段 Tag，例如 `phase-p3-complete`。
+- 普通 Phase 只在 closeout 时上传 Phase 分支并创建带说明的阶段 Tag，例如 `phase-p3-complete`；该
+  单次交付触发 Fast + Full。提前远端例外只能按 `CR-EXEC-007` 记录并运行。
 - Release 使用 SemVer，首个服务器候选版本从 `v0.1.0-alpha.1` 开始。
 - 不提交 `.env`、真实数据库、Token、Cookie、OAuth JSON 或生产日志。
 
@@ -512,13 +573,15 @@ deploy/
 - 实现满足本 Task 和对应行为契约。
 - 正常、边界、错误和取消路径有自动化测试。
 - `cargo fmt --check` 通过。
-- `cargo clippy --workspace --all-targets --all-features -- -D warnings` 通过。
-- 受影响测试和 `cargo test --workspace` 通过。
+- 受影响 Crate 的 Clippy 与测试通过；整合 Phase preflight 再运行
+  `cargo clippy --workspace --all-targets --all-features -- -D warnings` 与 `cargo test --workspace`。
 - 没有新增未解释的 `TODO/FIXME`、明文 Secret 或宽泛 `unwrap/expect`。
 - 对外行为、配置或 Schema 变化已更新文档和迁移说明。
 - 保存完成证据，并更新本文状态。
-- 已满足对应 GitHub Gate：代码相关变更为 Fast + Full；纯文档/状态变更为显式 docs-only；
-  Phase Tag 为 Fast + Full。`LOCAL_PASS_PENDING_CI` 不满足本条件。
+- 普通代码 Task 已达到本地验收条件，并由所属 Phase 唯一的远端 Fast + Full Delivery Gate 覆盖；
+  CI/workflow/cache 等例外 Task 另有明确的提前远端 Gate。纯文档/状态变更为显式 docs-only；
+  Phase Tag 为 Fast + Full。`LOCAL_PASS_PENDING_PHASE_GATE` 与 `LOCAL_PASS_PENDING_CI` 都不满足
+  本条件。
 
 ## 5. Phase 总览
 
@@ -700,7 +763,8 @@ operator 授权后才可发送一条真实请求，不能回溯或重跑 P3-10�
 
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
-| P5-01 | 实现 Anthropic Messages 入站、非流式和 SSE 出站 Adapter | G4 | Anthropic Fixture 与事件快照 | PENDING |
+| P5-00 | 落实 `CR-EXEC-007`：P 级 delivery trigger/default-ref cache seed/tag restore 与提前远端例外验证 | G4 | workflow/计划守卫、本地 full、一次提前 GitHub Gate、tag cache hit/miss 与 fail-closed 证据 | PENDING |
+| P5-01 | 实现 Anthropic Messages 入站、非流式和 SSE 出站 Adapter | P5-00 | Anthropic Fixture 与事件快照 | PENDING |
 | P5-02 | 实现 `count_tokens` Canonical 路由和 Provider Capability；无准确能力时明确拒绝 | P5-01 | 准确路径和 Unsupported 测试 | PENDING |
 | P5-03 | 完成 Tool 增量 JSON、并行 Tool、空参数、必填参数和 ID 映射状态机 | P5-01 | 1-byte Chunk 属性测试 | PENDING |
 | P5-04 | 实现 Pass-through/Canonical/Lossless Bridge 能力分析器 | P5-01,P3-01 | 字段/Tool/Reasoning 不可损转换矩阵 | PENDING |
@@ -708,6 +772,10 @@ operator 授权后才可发送一条真实请求，不能回溯或重跑 P3-10�
 | P5-06 | 实现 Thinking、Stop Reason、Usage、Cache 字段和响应模型回写 | P5-01 | 协议对照 Fixture | PENDING |
 | P5-07 | 建立 Claude Code `--bare` 最小 E2E 和 Plan Mode 回归 | P5-03-P5-06 | 真实客户端脱敏日志 | PENDING |
 | P5-08 | 加入未知字段、畸形流、截断 Tool 和取消 Fuzz/Property Test | P5-03 | 固定 Corpus 和无 Panic 报告 | PENDING |
+
+`P5-00` 是 P5 的交付流程前置项，不交付 Anthropic 功能，也不因本计划更新自动开始 P5。它是
+`CR-EXEC-007` 的窄提前远端例外：必须先在 `codex/p5-anthropic` 上证明 GitHub 的实际 trigger、
+required-status 与 tag cache 行为，之后 P5-01 至 P5-08 恢复“Task 本地验收、P5 一次正式远端验收”。
 
 ### G5 门禁
 
@@ -929,7 +997,9 @@ operator 授权后才可发送一条真实请求，不能回溯或重跑 P3-10�
 
 ### 20.2 提交分类与快速门禁
 
-代码、工具链、workflow、脚本、迁移、Fixture、契约或安全策略变更必须运行：
+每个代码、工具链、workflow、脚本、迁移、Fixture、契约或安全策略 Task 都必须在本地运行适用的
+定向格式/Clippy/测试、Secret scan 与 changed-doc link check；整合本地 Phase preflight 和该 Phase 的
+唯一远端 Delivery Gate 至少各运行一次以下完整集合：
 
 ```text
 cargo fmt --check
@@ -939,9 +1009,10 @@ secret scan
 changed-doc link check
 ```
 
-纯报告、索引或计划状态变更使用 `docs-only` Gate：Markdown/格式、文档链接、Secret scan 和
-计划一致性检查。它不能以未执行的 Rust/供应链检查冒充代码 Full Gate；具体 workflow 分类和
-required-status 由 P4-00 实现并验证。
+普通代码 Task 不逐个触发 GitHub Gate；CI/workflow/cache/required-status 的窄例外按 `CR-EXEC-007`
+提前验证。纯报告、索引或计划状态变更使用 `docs-only` Gate：Markdown/格式、文档链接、Secret
+scan 和计划一致性检查。它不能以未执行的 Rust/供应链检查冒充代码 Full Gate；具体 workflow 分类、
+required-status 与 P 级 trigger/cache 行为由 P4-00 的既有基础和 P5-00 共同验证。
 
 ### 20.3 Phase 完整门禁
 
@@ -1009,7 +1080,7 @@ Current task:
 Completed in this turn:
 Verification evidence:
 Files changed:
-Execution timing (Task Card / code commit / Code Gate / docs commit / docs Gate):
+Execution timing (Task Card / code commit / local review-test pass / Phase closeout tag / Phase Delivery Gate):
 Scope level and execution budget:
 Repeated validations / rework count:
 Risks or deviations:
@@ -1031,3 +1102,4 @@ Next task:
 | v1.6 | 2026-07-21 | `CR-EXEC-005`：原位无法切换 Luna 时的受限低成本子代理 fallback；最多一个活跃代理、禁止嵌套，主会话保留 review 与验收 | APPROVED；当前执行基线 |
 | v1.7 | 2026-07-21 | `CR-EXEC-006`：普通简单执行默认 Luna `low`，多步检查或机械写入使用 `medium`；`minimal` 收窄至零判断查询 | APPROVED；当前执行基线 |
 | v1.8 | 2026-07-21 | `CR-P4-G4-001`：新增 P4-10 的只读管理状态查询、403 账户状态与受控恢复，闭合 G4 而不提前实现 P10 HTTP/UI | APPROVED；当前执行基线 |
+| v1.9 | 2026-07-21 | `CR-EXEC-007`：未开始 Phase 改用一条 P 级分支、每 Task 本地 review/test、每 Phase 一次正式远端 Fast + Full；新增 P5-00 以验证 GitHub trigger/default-ref cache/tag restore，并保留 CI/cache 等提前远端例外 | APPROVED；当前执行基线 |
