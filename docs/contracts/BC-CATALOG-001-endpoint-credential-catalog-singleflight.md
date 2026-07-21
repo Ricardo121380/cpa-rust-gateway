@@ -4,7 +4,7 @@
 |---|---|
 | Contract | `BC-CATALOG-001` |
 | Task | `P4-01` |
-| Status | `LOCAL_PASS_PENDING_CI` after local verification; GitHub code Gate remains required for `DONE` |
+| Status | `DONE` after local Fast/Full, GitHub code Gate, and the current docs-only closeout Gate |
 | Domain | Provider-owned Model discovery coordination before Catalog snapshot persistence |
 
 ## Entry and boundary

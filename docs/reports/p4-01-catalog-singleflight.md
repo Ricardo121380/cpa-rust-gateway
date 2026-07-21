@@ -8,7 +8,7 @@
 | Date | `2026-07-21` |
 | Branch | `codex/p4-01-catalog-singleflight` |
 | Rust | `1.97.1` |
-| Result | `LOCAL_PASS_PENDING_CI`: implementation, review, local tests, Fast, and Full passed; `DONE` remains prohibited until the GitHub code Gate passes. |
+| Result | GitHub code Gate and same-ref warm-cache measurement passed; this docs-only closeout must pass before the Task is finally accepted as `DONE`. |
 
 ## Delivered scope
 
@@ -64,7 +64,50 @@ observability. No real Provider request was authorized or sent.
 
 ## GitHub CI
 
-The implementation commit will require the P4-00 `code` path: Fast followed by Full. Its Full job
-is the first meaningful warm-cache measurement for `CR-EXEC-001`; the accepted run ID, job timing,
-and comparison against the 90-second quality-tool installation target are added only after remote
-evidence exists. A separate docs-only closeout must then pass before this Task is marked `DONE`.
+GitHub Actions [run 29800492406](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29800492406)
+passed for implementation commit `7689c92`. It correctly classified the change as `code`, skipped
+Docs-only, passed Fast, passed Full, and passed the required delivery gate.
+
+| Job / step | Result and duration |
+|---|---|
+| Fast gate | PASS; job about 164 seconds; `Run fast gate` about 141 seconds. |
+| Full supply-chain gate | PASS; job about 677 seconds. |
+| Restore pinned quality-tool cache | PASS as a cache miss; the same key had been saved only on the prior P4-00 branch. |
+| Install pinned quality tools | PASS; cold installation about 495 seconds. |
+| Run full gate | PASS; about 151 seconds. |
+| Required delivery gate | PASS; verified the selected code path. |
+
+The code Gate is valid P4-01 acceptance evidence, but it is not the warm-cache result predicted by
+P4-00. GitHub recorded the P4-00 cache on
+`refs/heads/codex/p4-00-execution-acceleration`, while this run used
+`refs/heads/codex/p4-01-catalog-singleflight`; its log explicitly reported `Cache not found`.
+The successful P4-01 Full then saved a cache on its own ref.
+
+To measure the cache rather than infer it, an explicit `workflow_dispatch` code-path rerun on the
+same immutable P4-01 commit passed as [run 29801218989](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29801218989).
+It also selected code, skipped Docs-only, and passed Fast, Full, and the required gate.
+
+| Full measurement | Cross-ref push run | Same-ref warm rerun | Change |
+|---|---:|---:|---:|
+| Full job | 677 s | 168 s | 509 s faster (about 75%) |
+| Quality-tool installation | 495 s | 1 s | 494 s faster |
+| Full checks after installation | 151 s | 117 s | normal runner variance; still fully executed |
+
+The warm rerun restored the exact versioned cache, verified `cargo-deny 0.20.2` and
+`cargo-audit 0.22.2` without reinstalling, and met the `<=90s` installation target by a wide
+margin. P4-00's docs-only run had already shown the independent documentation path completing in
+about 41 seconds with Fast and Full skipped.
+
+## Efficiency conclusion and follow-up boundary
+
+`CR-EXEC-001` produces a material improvement on a cache-visible ref and preserves every Fast,
+Full, version, supply-chain, Secret, and plan-state check. It also eliminates the code-gate cost
+for a true documentation-only commit. It does **not** automatically accelerate a push on a new
+task branch: the observed P4-00 and P4-01 cache entries are branch-scoped, so the first code Gate
+on P4-01 was cold.
+
+Before treating this as a cross-task acceleration guarantee, a separately approved execution-plan
+change must choose one explicit operational rule: keep sequential code Tasks on a cache-visible
+delivery branch, or seed/consume the cache from an approved shared ref such as the default branch.
+This P4-01 Task records the evidence but does not alter branch policy, merge policy, GitHub cache
+scope, branch protection, or the locked `CR-EXEC-001` rule without that approval.
