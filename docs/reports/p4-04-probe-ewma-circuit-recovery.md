@@ -4,7 +4,7 @@
 |---|---|
 | Plan version | `v1.4` |
 | Task | `P4-04` |
-| Status | `LOCAL_PASS_PENDING_CI`; local implementation, review, and complete Gate passed; GitHub Code Gate pending |
+| Status | `DONE` after this docs-only closeout Gate; Code Gate passed |
 | Scope level / execution budget | `M`; `<=25min` from Task Card to code commit |
 | Task Card | `gateway-router` runtime health/probe boundary only; no real Provider request, Quota, Route Explain, SQLite, public API, P4-05+ behavior |
 | References | `E08`, `E09`, `E11`, `E12`, `D20`, `D24`, `G20`, `H19`, `L30`; [ADR-0026](../adr/ADR-0026-target-local-probe-ewma-and-circuit-recovery.md); [BC-HEALTH-002](../contracts/BC-HEALTH-002-target-local-probe-ewma-and-circuit-recovery.md) |
@@ -48,14 +48,32 @@ management endpoint, persistent event, telemetry, body, Header, URL, or Secret e
 | Repeated complete Gates | `0`; the one required complete Gate was not mechanically replayed. |
 | Rework | `1` direct correction batch: focused Clippy feedback merged equivalent match arms, removed an unused test local, and simplified private helper shape without changing behavior. |
 | Budget observation | The code-commit target will exceed the `M` budget by a small margin because the new model key, ticket generation, atomic completion boundary, scheduler integration, and required no-network contract were reviewed together; the next Task should reuse this health-report template rather than rediscover the boundary. |
-| Code commit / Code Gate / docs closeout / docs Gate | Pending immutable evidence after this code delivery and its normal GitHub workflow. |
+| Code commit | `0cee513`, `2026-07-21T16:07:23+08:00`; the local complete Gate preceded the code delivery. |
+| Code Gate passed | `2026-07-21T16:12:33+08:00`; [run 29813113764](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29813113764). |
+| Docs closeout / docs Gate | This one docs-only closeout records immutable Code Gate evidence. Its required docs-only Gate is external evidence and will not cause a second status commit. |
 
-## Remote Code Gate
+## Accepted GitHub Code Gate and delivery-flow measurement
 
-The normal cache-visible Code Gate will be started from this code delivery. No manual rerun will be
-issued.
+GitHub Actions [run 29813113764](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29813113764)
+passed for implementation commit `0cee513` on the cache-visible
+`codex/p4-01-catalog-singleflight` delivery ref. It was the normal push Gate, not a manual rerun.
+
+| Job / step | Result and duration |
+|---|---|
+| Classify delivery gate | PASS; selected `code`; Docs-only Gate correctly skipped. |
+| Fast gate | PASS; job about 170 seconds, complete `Run fast gate` about 143 seconds. |
+| Full supply-chain gate | PASS; job about 57 seconds after Fast. |
+| Cache | PASS; primary key hit; restore took about 6 seconds. |
+| Install pinned quality tools | PASS; version-verified `cargo-deny` and `cargo-audit` completed in about 1 second, within the `<=10s` operational target and `<=90s` hard ceiling. |
+| Supplemental supply-chain | PASS; version verification, `cargo deny check`, and RustSec audit completed in about 8 seconds without replaying Workspace Fast checks. |
+| Required delivery gate | PASS; fail-closed verification of the code path's Fast + Full results. |
+
+The workflow first started at `2026-07-21T16:08:24+08:00` and completed at
+`2026-07-21T16:12:33+08:00` (about 4 minutes 9 seconds). The warm `<=4min` target missed by about
+9 seconds, but the cache hit and all required Gates passed. This is a delivery-performance
+observation rather than a correctness or supply-chain failure; no manual rerun is issued.
 
 ## Closeout boundary
 
-After Code Gate success, one docs-only closeout will record immutable evidence and mark P4-04
-`DONE`. P4-05 remains `PENDING` until its own Task Card is started.
+This is the single docs-only closeout that records the immutable Code Gate evidence and marks P4-04
+`DONE`. Its own GitHub status is external evidence and will not cause another status-only commit.
