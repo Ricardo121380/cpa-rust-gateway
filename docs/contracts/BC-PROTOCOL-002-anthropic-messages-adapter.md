@@ -56,13 +56,14 @@ this contract.
 ## Explicit exclusions until dependent P5 Tasks
 
 - P5-02 owns `count_tokens` execution and accurate Provider capability.
-- P5-03 owns output Tool start/delta/end, parallel Tool indexing, `{}` normalization, and arbitrary
-  chunk state.
-- P5-06 owns Thinking, stop-reason mapping, cache Usage fields, cache controls, and response-model
-  rewrite semantics.
+- P5-03 adds output Tool start/delta/end, parallel Tool indexing, `{}` normalization, and
+  arbitrary decoded chunk state under
+  [BC-PROTOCOL-004](BC-PROTOCOL-004-anthropic-tool-stream-state.md).
+- P5-06 owns Thinking, broader stop-reason mapping, cache Usage fields, cache controls, and
+  response-model rewrite semantics.
 - P5-04 owns lossless bridge admission. Until those additions, unrepresentable canonical event
-  extensions, Tool, Thinking, cache-detail, and non-text output fail closed as stream-protocol
-  errors.
+  extensions, Thinking, cache-detail, and other non-text/non-Tool output fail closed as
+  stream-protocol errors.
 
 ## Error and privacy behavior
 

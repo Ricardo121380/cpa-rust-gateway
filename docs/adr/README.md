@@ -62,3 +62,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0033 Phase-level delivery and default-ref quality-tool cache](ADR-0033-phase-level-delivery-and-default-ref-cache.md) — `P5-00`（Accepted）。
 - [ADR-0034 Anthropic Messages pure codec boundary](ADR-0034-anthropic-messages-pure-codec.md) — `P5-01`（Accepted）。
 - [ADR-0035 Exact token-count capability and Anthropic route](ADR-0035-exact-token-count-capability.md) — `P5-02`（Accepted）。
+- [ADR-0036 Anthropic Tool stream state and normalized object input](ADR-0036-anthropic-tool-stream-state.md) — `P5-03`（Accepted）。

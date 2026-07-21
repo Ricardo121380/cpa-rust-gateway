@@ -13,5 +13,8 @@ gateway-protocol = { path = "../gateway-protocol" }
 serde.workspace = true
 serde_json.workspace = true
 
+[dev-dependencies]
+proptest.workspace = true
+
 [lints]
 workspace = true

@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{collections::BTreeMap, fmt};
 
 use gateway_core::{
     CanonicalEvent, CanonicalEventState, CanonicalResponse, ExactInputTokenCount, GatewayError,
@@ -65,7 +65,7 @@ impl SseFrame {
         &self.data
     }
 
-    /// Every P5-01 frame is client-visible semantic data.
+    /// Every P5 frame is client-visible semantic data.
     #[must_use]
     pub const fn is_semantic(&self) -> bool {
         self.semantic
@@ -116,7 +116,7 @@ pub fn encode_count_tokens(count: ExactInputTokenCount) -> Value {
 /// # Errors
 ///
 /// Returns `UpstreamProtocolError/Stream` when the canonical response uses semantics outside the
-/// P5-01 text/usage slice or cannot be represented without loss.
+/// supported P5 text/Tool/Usage slice or cannot be represented without loss.
 pub fn encode_response(
     response: &CanonicalResponse,
     metadata: AnthropicResponseMetadata,
@@ -182,7 +182,8 @@ impl fmt::Debug for AnthropicMessagesSseEncoder {
             .debug_struct("AnthropicMessagesSseEncoder")
             .field("metadata", &self.metadata)
             .field("lifecycle", &self.lifecycle)
-            .field("text_len", &self.assembly.text.len())
+            .field("content_block_count", &self.assembly.content.len())
+            .field("tool_count", &self.assembly.tools.len())
             .finish_non_exhaustive()
     }
 }
@@ -191,9 +192,49 @@ impl fmt::Debug for AnthropicMessagesSseEncoder {
 struct Assembly {
     response_id: Option<String>,
     message: MessagePhase,
-    text: String,
+    content: Vec<ContentBlock>,
+    active_text_index: Option<usize>,
+    tools: BTreeMap<String, ToolState>,
     usage: Option<Usage>,
     terminal: TerminalPhase,
+}
+
+enum ContentBlock {
+    Text {
+        text: String,
+    },
+    Tool {
+        call_id: String,
+        name: String,
+        input: Option<Value>,
+    },
+}
+
+impl ContentBlock {
+    fn completed_value(&self) -> Result<Value, GatewayError> {
+        match self {
+            Self::Text { text } => Ok(json!({"type": "text", "text": text})),
+            Self::Tool {
+                call_id,
+                name,
+                input: Some(input),
+            } => Ok(json!({
+                "type": "tool_use",
+                "id": call_id,
+                "name": name,
+                "input": input,
+            })),
+            Self::Tool { input: None, .. } => Err(stream_protocol_error()),
+        }
+    }
+}
+
+#[derive(Clone)]
+struct ToolState {
+    content_index: usize,
+    partial_json: String,
+    saw_arguments_delta: bool,
+    completed: bool,
 }
 
 #[derive(Clone, Copy, Default, Eq, PartialEq)]
@@ -230,16 +271,18 @@ impl Assembly {
             }
             CanonicalEvent::MessageStart(start) => self.start_message(&start.role.0, metadata),
             CanonicalEvent::TextDelta(delta) => self.append_text(&delta.text),
+            CanonicalEvent::ToolCallStart(start) => self.start_tool(&start.call_id, &start.name),
+            CanonicalEvent::ToolCallArgumentsDelta(delta) => {
+                self.append_tool_arguments(&delta.call_id, &delta.delta)
+            }
+            CanonicalEvent::ToolCallEnd(end) => self.finish_tool(&end.call_id, end.arguments.get()),
             CanonicalEvent::MessageEnd(_) => self.end_message(),
             CanonicalEvent::ResponseEnd(_) => self.end_response(),
             CanonicalEvent::StreamError(error) => {
                 self.terminal = TerminalPhase::Failed;
                 Ok(vec![frame("error", encode_error(&error.error))])
             }
-            CanonicalEvent::ReasoningDelta(_)
-            | CanonicalEvent::ToolCallStart(_)
-            | CanonicalEvent::ToolCallArgumentsDelta(_)
-            | CanonicalEvent::ToolCallEnd(_) => Err(stream_protocol_error()),
+            CanonicalEvent::ReasoningDelta(_) => Err(stream_protocol_error()),
         }
     }
 
@@ -284,38 +327,184 @@ impl Assembly {
             return Err(stream_protocol_error());
         }
         let mut frames = Vec::new();
-        if self.message == MessagePhase::Started {
+        let index = if let Some(index) = self.active_text_index {
+            index
+        } else {
+            let index = self.content.len();
+            self.content.push(ContentBlock::Text {
+                text: String::new(),
+            });
+            self.active_text_index = Some(index);
             self.message = MessagePhase::Content;
             frames.push(frame(
                 "content_block_start",
                 json!({
                     "type": "content_block_start",
-                    "index": 0,
+                    "index": index,
                     "content_block": {"type": "text", "text": ""}
                 }),
             ));
+            index
+        };
+        match self.content.get_mut(index) {
+            Some(ContentBlock::Text { text: accumulated }) => accumulated.push_str(text),
+            Some(ContentBlock::Tool { .. }) | None => return Err(stream_protocol_error()),
         }
-        self.text.push_str(text);
         frames.push(frame(
             "content_block_delta",
             json!({
                 "type": "content_block_delta",
-                "index": 0,
+                "index": index,
                 "delta": {"type": "text_delta", "text": text}
             }),
         ));
         Ok(frames)
     }
 
+    fn start_tool(&mut self, call_id: &str, name: &str) -> Result<Vec<SseFrame>, GatewayError> {
+        if !matches!(self.message, MessagePhase::Started | MessagePhase::Content)
+            || self.tools.contains_key(call_id)
+        {
+            return Err(stream_protocol_error());
+        }
+        let mut frames = self.close_active_text_block()?;
+        let index = self.content.len();
+        self.content.push(ContentBlock::Tool {
+            call_id: call_id.to_owned(),
+            name: name.to_owned(),
+            input: None,
+        });
+        self.tools.insert(
+            call_id.to_owned(),
+            ToolState {
+                content_index: index,
+                partial_json: String::new(),
+                saw_arguments_delta: false,
+                completed: false,
+            },
+        );
+        self.message = MessagePhase::Content;
+        frames.push(frame(
+            "content_block_start",
+            json!({
+                "type": "content_block_start",
+                "index": index,
+                "content_block": {
+                    "type": "tool_use",
+                    "id": call_id,
+                    "name": name,
+                    "input": {}
+                }
+            }),
+        ));
+        Ok(frames)
+    }
+
+    fn append_tool_arguments(
+        &mut self,
+        call_id: &str,
+        delta: &str,
+    ) -> Result<Vec<SseFrame>, GatewayError> {
+        if delta.is_empty() {
+            return Ok(Vec::new());
+        }
+        let tool = self
+            .tools
+            .get_mut(call_id)
+            .ok_or_else(stream_protocol_error)?;
+        if tool.completed {
+            return Err(stream_protocol_error());
+        }
+        tool.saw_arguments_delta = true;
+        tool.partial_json.push_str(delta);
+        Ok(vec![frame(
+            "content_block_delta",
+            json!({
+                "type": "content_block_delta",
+                "index": tool.content_index,
+                "delta": {"type": "input_json_delta", "partial_json": delta}
+            }),
+        )])
+    }
+
+    fn finish_tool(
+        &mut self,
+        call_id: &str,
+        arguments: &str,
+    ) -> Result<Vec<SseFrame>, GatewayError> {
+        let tool = self
+            .tools
+            .get(call_id)
+            .cloned()
+            .ok_or_else(stream_protocol_error)?;
+        if tool.completed {
+            return Err(stream_protocol_error());
+        }
+        let arguments = normalize_tool_arguments(arguments);
+        if tool.saw_arguments_delta && normalize_tool_arguments(&tool.partial_json) != arguments {
+            return Err(stream_protocol_error());
+        }
+        let input: Value = serde_json::from_str(&arguments).map_err(|_| stream_protocol_error())?;
+        if !input.is_object() {
+            return Err(stream_protocol_error());
+        }
+        match self.content.get_mut(tool.content_index) {
+            Some(ContentBlock::Tool {
+                call_id: mapped_call_id,
+                input: stored_input,
+                ..
+            }) if mapped_call_id == call_id => *stored_input = Some(input),
+            Some(ContentBlock::Text { .. } | ContentBlock::Tool { .. }) | None => {
+                return Err(stream_protocol_error());
+            }
+        }
+        let completed = self
+            .tools
+            .get_mut(call_id)
+            .ok_or_else(stream_protocol_error)?;
+        completed.completed = true;
+
+        let mut frames = Vec::new();
+        if !tool.saw_arguments_delta && arguments != "{}" {
+            frames.push(frame(
+                "content_block_delta",
+                json!({
+                    "type": "content_block_delta",
+                    "index": tool.content_index,
+                    "delta": {"type": "input_json_delta", "partial_json": arguments}
+                }),
+            ));
+        }
+        frames.push(frame(
+            "content_block_stop",
+            json!({"type": "content_block_stop", "index": tool.content_index}),
+        ));
+        Ok(frames)
+    }
+
+    fn close_active_text_block(&mut self) -> Result<Vec<SseFrame>, GatewayError> {
+        let Some(index) = self.active_text_index.take() else {
+            return Ok(Vec::new());
+        };
+        if !matches!(self.content.get(index), Some(ContentBlock::Text { .. })) {
+            return Err(stream_protocol_error());
+        }
+        Ok(vec![frame(
+            "content_block_stop",
+            json!({"type": "content_block_stop", "index": index}),
+        )])
+    }
+
     fn end_message(&mut self) -> Result<Vec<SseFrame>, GatewayError> {
         if self.message != MessagePhase::Content {
             return Err(stream_protocol_error());
         }
+        if self.tools.values().any(|tool| !tool.completed) {
+            return Err(stream_protocol_error());
+        }
+        let frames = self.close_active_text_block()?;
         self.message = MessagePhase::Ended;
-        Ok(vec![frame(
-            "content_block_stop",
-            json!({"type": "content_block_stop", "index": 0}),
-        )])
+        Ok(frames)
     }
 
     fn end_response(&mut self) -> Result<Vec<SseFrame>, GatewayError> {
@@ -327,13 +516,18 @@ impl Assembly {
             .as_ref()
             .and_then(|usage| usage.output_tokens)
             .ok_or_else(stream_protocol_error)?;
+        let stop_reason = if self.tools.is_empty() {
+            "end_turn"
+        } else {
+            "tool_use"
+        };
         self.terminal = TerminalPhase::Completed;
         Ok(vec![
             frame(
                 "message_delta",
                 json!({
                     "type": "message_delta",
-                    "delta": {"stop_reason": "end_turn", "stop_sequence": null},
+                    "delta": {"stop_reason": stop_reason, "stop_sequence": null},
                     "usage": {"output_tokens": output_tokens}
                 }),
             ),
@@ -349,19 +543,39 @@ impl Assembly {
         let usage = self.usage.as_ref().ok_or_else(stream_protocol_error)?;
         let input_tokens = usage.input_tokens.ok_or_else(stream_protocol_error)?;
         let output_tokens = usage.output_tokens.ok_or_else(stream_protocol_error)?;
+        let content = self
+            .content
+            .iter()
+            .map(ContentBlock::completed_value)
+            .collect::<Result<Vec<_>, _>>()?;
+        let stop_reason = if self.tools.is_empty() {
+            "end_turn"
+        } else {
+            "tool_use"
+        };
         Ok(json!({
             "id": id,
             "type": "message",
             "role": "assistant",
-            "content": [{"type": "text", "text": self.text}],
+            "content": content,
             "model": metadata.model(),
-            "stop_reason": "end_turn",
+            "stop_reason": stop_reason,
             "stop_sequence": null,
             "usage": {
                 "input_tokens": input_tokens,
                 "output_tokens": output_tokens,
             }
         }))
+    }
+}
+
+fn normalize_tool_arguments(arguments: &str) -> String {
+    if arguments.trim().is_empty() {
+        return "{}".to_owned();
+    }
+    match serde_json::from_str::<Value>(arguments) {
+        Ok(Value::Object(object)) if object.is_empty() => "{}".to_owned(),
+        Ok(_) | Err(_) => arguments.to_owned(),
     }
 }
 
