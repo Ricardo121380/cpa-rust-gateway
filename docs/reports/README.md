@@ -27,6 +27,7 @@
 - [G1 阶段门禁报告](g1-gate-report.md)
 - [G2 阶段门禁报告](g2-gate-report.md)
 - [G3 阶段门禁报告](g3-gate-report.md)
+- [G4 阶段门禁报告](g4-gate-report.md)
 
 ## 已完成任务
 

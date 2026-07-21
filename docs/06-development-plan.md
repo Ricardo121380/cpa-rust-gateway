@@ -7,8 +7,8 @@
 | 计划版本 | `v1.8` |
 | 生效日期 | `2026-07-21` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot` 与 `P3 - OpenAI Responses 聚合 MVP` 已完成；`P4 - Catalog、Health、Quota、Explain、观测` 进行中 |
-| 当前任务 | `P4-00` 至 `P4-10` 已完成 Code Gate；本次 P4-10 docs-only 收口等待 Docs Gate，随后执行 G4；不进入 P5。 |
+| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP` 与 `P4 - Catalog、Health、Quota、Explain、观测` 已完成；`P5 - Anthropic/Claude Code 兼容` 保持 PENDING。 |
+| 当前任务 | `G4` 已通过本地证据复核；创建并交付 `phase-p4-complete` 注释 tag 后等待其 Gate。`P5` 不自动开始。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -528,7 +528,7 @@ deploy/
 | P1 | Canonical Core + Mock 垂直链路 | G0 | G1 | DONE |
 | P2 | 聚合控制面、Secret、RouteSnapshot | G1 | G2 | DONE |
 | P3 | OpenAI Responses 聚合 MVP | G2 | G3 | DONE |
-| P4 | Catalog、Health、Quota、Explain、观测 | G3 | G4 | PENDING |
+| P4 | Catalog、Health、Quota、Explain、观测 | G3 | G4 | DONE |
 | P5 | Anthropic/Claude Code 兼容 | G4 | G5 | PENDING |
 | P6 | Grok Build | G5 | G6 | PENDING |
 | P7 | Kiro IDE/CLI | G6 | G7 | PENDING |
