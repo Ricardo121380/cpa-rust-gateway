@@ -28,6 +28,10 @@
 - [G2 阶段门禁报告](g2-gate-report.md)
 - [G3 阶段门禁报告](g3-gate-report.md)
 
+## 待 Code Gate 任务
+
+- [P4-10 Read-only runtime management status and controlled Credential-account recovery report](p4-10-read-only-runtime-management-status.md)
+
 ## 已完成任务
 
 - [P1-01 Request context and errors report](p1-01-request-context-errors.md)

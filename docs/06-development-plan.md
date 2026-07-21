@@ -4,15 +4,15 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.7` |
+| 计划版本 | `v1.8` |
 | 生效日期 | `2026-07-21` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot` 与 `P3 - OpenAI Responses 聚合 MVP` 已完成；`P4 - Catalog、Health、Quota、Explain、观测` 进行中 |
-| 当前任务 | `P4-00` 至 `P4-09` 已完成 Code Gate；本次 P4-09 docs-only 收口通过后执行 G4。 |
+| 当前任务 | `P4-00` 至 `P4-09` 已完成。经用户批准的 `P4-10` 已通过本地 Full Gate，等待 Code Gate；不进入 P5。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
-| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：保留质量与单 Task 开发纪律的前提下，采用缓存化 Full CI、显式 docs-only Gate、`LOCAL_PASS_PENDING_CI` 状态与单探针诊断 harness。 `CR-EXEC-002`：按缓存可见交付引用、Fast 后补充供应链 Full、单次 docs-only 收口、缓存可观测性和明确的暖态时延目标进一步缩短交付等待。 `CR-EXEC-003`：以任务卡、集中补丁、非重复验证、Gate 等待重叠、模板化证据和全程时延度量减少代理执行时间。 `CR-EXEC-004`：按任务风险和不确定性路由 Luna/默认/高级模型及最低足够思考强度，避免简单任务默认占用高级模型和深度思考。 `CR-EXEC-005`：当前会话不能切换 Luna 时，允许一个受限、低成本子代理处理明确的低风险工作；主会话保留 review、提交与验收责任。 `CR-EXEC-006`：将普通简单执行的 Luna 思考下限提升为 `low`，多步或写入任务提升为 `medium`，避免为了提速而不当压低判断质量。 |
+| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：保留质量与单 Task 开发纪律的前提下，采用缓存化 Full CI、显式 docs-only Gate、`LOCAL_PASS_PENDING_CI` 状态与单探针诊断 harness。 `CR-EXEC-002`：按缓存可见交付引用、Fast 后补充供应链 Full、单次 docs-only 收口、缓存可观测性和明确的暖态时延目标进一步缩短交付等待。 `CR-EXEC-003`：以任务卡、集中补丁、非重复验证、Gate 等待重叠、模板化证据和全程时延度量减少代理执行时间。 `CR-EXEC-004`：按任务风险和不确定性路由 Luna/默认/高级模型及最低足够思考强度，避免简单任务默认占用高级模型和深度思考。 `CR-EXEC-005`：当前会话不能切换 Luna 时，允许一个受限、低成本子代理处理明确的低风险工作；主会话保留 review、提交与验收责任。 `CR-EXEC-006`：将普通简单执行的 Luna 思考下限提升为 `low`，多步或写入任务提升为 `medium`，避免为了提速而不当压低判断质量。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -347,6 +347,38 @@ CR-ID: CR-EXEC-006
 3. **minimal 的窄例外。** 仅限不写入、不诊断、不作 Gate 结论的单一事实或单命令查询；不能因
    “任务很小”自动选择它。
 
+### 已批准 Change Request：CR-P4-G4-001
+
+```text
+CR-ID: CR-P4-G4-001
+原因: G4 复核发现 P4 已有 Health、Quota、Circuit、Route Explain 与事件能力，但没有可供管理
+      进程只读查询的统一状态投影；`CredentialForbidden` 也不会转换为可恢复的精确账户状态。
+      因而不能证明 G4 的“403 账号状态、429、Quota、Circuit 和恢复可见”条件。
+影响的 Task / Matrix ID / ADR: 新增 P4-10；Matrix G20、G21、G26、H19、H20；新增 ADR-0032
+      与 BC-MGMT-001。P4-04/P4-05/P4-06 的既有运行时状态与 Explain 被只读组合，不改其
+      已验收的目标范围。
+兼容性与迁移影响: 新增 `gateway-router` 的 in-process 只读管理查询和绑定级 403 账户状态/受控
+      恢复 API；无 HTTP 路由、认证机制、Provider 请求、SQLite schema、Canonical Event、数据或
+      部署迁移。P10 仍独占认证 HTTP 管理 API、Web UI 与持久化管理读模型。
+测试与回滚变化: P4-10 必须证明 403 精确绑定隔离、恢复票据、429/Quota source-confidence、
+      Circuit/Recovery、Route Explain 可见性、读取无副作用、调度 fail-closed 与 Secret-safe Debug。
+      回滚移除新状态查询与账户恢复状态；既有 Health/Quota/Explain/SQLite/Event 行为不变。
+用户批准: APPROVED，2026-07-21（用户选择“新增一个只读、非 HTTP 的管理状态查询边界”）
+计划版本变更: v1.8
+```
+
+### 1.11 G4 只读管理状态边界（CR-P4-G4-001）
+
+1. `P4-10` 的管理 API 是供受控管理进程调用的 in-process Rust 查询边界，不注册 HTTP route，
+   不处理认证、不会读/写 SQLite、不会发送 Provider 请求，也不进入 HTTP/Router 响应热路径。
+2. 查询固定在调用方提供的观察时间，返回精确 Endpoint/Credential（可选 model）上的结构化
+   Health、403 账户、Quota/429 source-confidence、Circuit 与受控恢复状态；错误必须是无目标、
+   无 URL、无 Header、无 Body、无 Secret 的 fail-closed 类别。
+3. 已验证的 Provider/driver 只有在给出既有 `CredentialForbidden` 安全错误时才记录 403 账户状态；
+   它不透明重试。恢复必须经非克隆票据完成，普通流量在恢复完成前保持不可调度。
+4. P10 才能将该边界暴露为认证 HTTP 管理接口、UI、持久化查询或远程控制面；P4-10 不提前实现
+   其中任何一项。
+
 ## 2. Release 1 范围
 
 ### 2.1 必须交付
@@ -643,6 +675,7 @@ deploy/
 | P4-07 | 实现 SQLite 异步 Request/Attempt/Usage/Health Event Writer | P3-08 | 队列、批写、崩溃恢复、quick_check | DONE |
 | P4-08 | 实现 tracing JSON、Prometheus 和 OpenTelemetry 导出 | P4-07 | 指标/Trace 关联测试 | DONE |
 | P4-09 | 实现日志脱敏、Body 采样开关和 Secret 泄漏测试 | P4-07,P4-08 | 自动 Secret 扫描报告 | DONE |
+| P4-10 | 落实 `CR-P4-G4-001`：只读管理状态查询、403 账户状态与受控恢复 | P4-04,P4-05,P4-06 | 精确状态/恢复、调度隔离、无副作用与 Secret-safe 查询测试 | LOCAL_PASS_PENDING_CI |
 
 `P4-00` 是 P4 的工程效率与验证前置项，不交付 Catalog、Health、Quota 或公开 API；它完成前，
 不得将任一 P4-01 至 P4-09 标记为 `IN_PROGRESS`。该 Task 的单探针路径只在未来获得新的明确
@@ -656,6 +689,8 @@ operator 授权后才可发送一条真实请求，不能回溯或重跑 P3-10�
 - 403 账号状态、429、Quota、Circuit 和恢复在管理 API 中可见。
 - Event Queue 满时不阻塞推理；关键失败事件不得静默丢失。
 - SQLite `quick_check`、重启恢复和事件关联通过。
+
+`CR-P4-G4-001` 中“管理 API”仅指 P4-10 的只读 in-process 查询边界；认证 HTTP 管理面仍在 P10。
 
 ## 11. P5 - Anthropic 与 Claude Code 兼容
 
@@ -995,3 +1030,4 @@ Next task:
 | v1.5 | 2026-07-21 | `CR-EXEC-004`：按任务风险与不确定性路由 Luna/默认/高级模型及最低足够思考强度；简单任务独立交付并透明记录 fallback | APPROVED；当前执行基线 |
 | v1.6 | 2026-07-21 | `CR-EXEC-005`：原位无法切换 Luna 时的受限低成本子代理 fallback；最多一个活跃代理、禁止嵌套，主会话保留 review 与验收 | APPROVED；当前执行基线 |
 | v1.7 | 2026-07-21 | `CR-EXEC-006`：普通简单执行默认 Luna `low`，多步检查或机械写入使用 `medium`；`minimal` 收窄至零判断查询 | APPROVED；当前执行基线 |
+| v1.8 | 2026-07-21 | `CR-P4-G4-001`：新增 P4-10 的只读管理状态查询、403 账户状态与受控恢复，闭合 G4 而不提前实现 P10 HTTP/UI | APPROVED；当前执行基线 |

@@ -678,6 +678,10 @@ mod tests {
             RuntimeHealthKey::endpoint(EndpointId::try_new("endpoint-a")?),
             200,
         )?;
+        health.mark_credential_forbidden(
+            EndpointId::try_new("endpoint-b")?,
+            CredentialId::try_new("credential-b")?,
+        )?;
         let quota_target = RuntimeQuotaTarget::endpoint_credential_model(
             EndpointId::try_new("endpoint-b")?,
             CredentialId::try_new("credential-b")?,
@@ -720,9 +724,14 @@ mod tests {
             .ok_or("candidate-b was not explained")?;
         assert_eq!(
             candidate_b.credentials()[0].reasons(),
-            &[RouteExplainCredentialReason::ModelQuota(
-                RuntimeQuotaAvailability::Exhausted { reset_at_ms: 200 }
-            )]
+            &[
+                RouteExplainCredentialReason::CredentialHealth(
+                    RuntimeHealthAvailability::AccountForbidden
+                ),
+                RouteExplainCredentialReason::ModelQuota(RuntimeQuotaAvailability::Exhausted {
+                    reset_at_ms: 200
+                })
+            ]
         );
         assert_eq!(
             candidate_b.reasons(),

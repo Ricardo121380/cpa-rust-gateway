@@ -562,8 +562,21 @@ impl AttemptOrchestrator {
                 );
                 return Err(request_cancelled_error());
             }
+            let safe_failure = failure.safe_error();
+            if let Err(error) = self.record_runtime_state(&selection, &failure) {
+                self.emit_attempt(
+                    request_id,
+                    route_id,
+                    &selection,
+                    attempt_number,
+                    started_at_ms,
+                    AttemptOutcome::Failed(error.clone()),
+                    AttemptRetryDecision::InfrastructureFailure,
+                    event_sink,
+                );
+                return Err(error);
+            }
             if !failure.is_retryable() {
-                let safe_failure = failure.safe_error();
                 if retry_gate.is_cancelled() {
                     self.emit_attempt(
                         request_id,
@@ -591,20 +604,6 @@ impl AttemptOrchestrator {
             }
 
             exclusions.insert(selection.candidate(), selection.lease().credential_id());
-            let safe_failure = failure.safe_error();
-            if let Err(error) = self.record_runtime_state(&selection, &failure) {
-                self.emit_attempt(
-                    request_id,
-                    route_id,
-                    &selection,
-                    attempt_number,
-                    started_at_ms,
-                    AttemptOutcome::Failed(error.clone()),
-                    AttemptRetryDecision::InfrastructureFailure,
-                    event_sink,
-                );
-                return Err(error);
-            }
             if retry_gate.is_cancelled() {
                 self.emit_attempt(
                     request_id,
@@ -687,6 +686,19 @@ impl AttemptOrchestrator {
         selection: &SelectedRouteCredential,
         failure: &AttemptFailure,
     ) -> Result<(), GatewayError> {
+        if matches!(
+            failure,
+            AttemptFailure::NonRetryable(error)
+                if error.code() == GatewayErrorCode::CredentialForbidden
+        ) {
+            self.runtime_health
+                .mark_credential_forbidden(
+                    selection.candidate().endpoint_id().clone(),
+                    selection.lease().credential_id().clone(),
+                )
+                .map_err(|_| internal_error())?;
+            return Ok(());
+        }
         if let AttemptFailure::RateLimited { retry_after } = failure {
             let now_ms = self.clock.now_ms().map_err(|_| internal_error())?;
             self.runtime_quota
@@ -847,7 +859,8 @@ mod tests {
         AttemptOrchestratorConfig,
     };
     use crate::{
-        RouteCredentialScheduler, RouteSnapshot, RouteSnapshotInput, RuntimeHealthClock,
+        RouteCredentialScheduler, RouteSnapshot, RouteSnapshotInput,
+        RuntimeCredentialAccountStatus, RuntimeHealthAccountRecoveryResult, RuntimeHealthClock,
         RuntimeHealthClockError, RuntimeHealthRegistry, SnapshotCatalogAdmission,
         SnapshotPublicModel, SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput,
         SnapshotRoutePolicy, SnapshotTransformMode, SnapshotVersion,
@@ -998,6 +1011,63 @@ mod tests {
                 .runtime_quota
                 .endpoint_credential_is_available(&endpoint, &credential_b)
         );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn credential_forbidden_blocks_only_its_binding_until_controlled_recovery() -> TestResult
+    {
+        let (orchestrator, route_id, _clock, health, _pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a")],
+            vec![("endpoint-a", vec!["credential-a", "credential-b"])],
+            3,
+            100,
+        )?;
+        let driver = ScriptedDriver::new(vec![DriverStep::Failure(AttemptFailure::NonRetryable(
+            GatewayError::new(
+                GatewayErrorCode::CredentialForbidden,
+                ErrorScope::Credential,
+            ),
+        ))]);
+        let gate = TestRetryGate::default();
+
+        let error = expected_error(
+            orchestrator.start(&route_id, &driver, &gate).await,
+            "a provider-classified 403 must remain non-retryable",
+        )?;
+        assert_eq!(error.code(), GatewayErrorCode::CredentialForbidden);
+        assert_eq!(driver.attempts()?.len(), 1);
+
+        let endpoint = EndpointId::try_new("endpoint-a")?;
+        let credential_a = CredentialId::try_new("credential-a")?;
+        let credential_b = CredentialId::try_new("credential-b")?;
+        assert_eq!(
+            health.credential_account_status_at(&endpoint, &credential_a, 100)?,
+            RuntimeCredentialAccountStatus::Forbidden
+        );
+        assert!(!health.endpoint_credential_is_available(&endpoint, &credential_a));
+        assert!(health.endpoint_credential_is_available(&endpoint, &credential_b));
+
+        let sibling_driver = ScriptedDriver::new(vec![DriverStep::Success("sibling".to_owned())]);
+        let sibling = orchestrator
+            .start(&route_id, &sibling_driver, &TestRetryGate::default())
+            .await?;
+        assert_eq!(sibling.lease().credential_id().as_str(), "credential-b");
+        drop(sibling);
+
+        let recovery = health
+            .begin_account_recovery(&endpoint, &credential_a, 200)?
+            .ok_or("forbidden Credential did not issue a controlled recovery ticket")?;
+        assert_eq!(
+            health.credential_account_status_at(&endpoint, &credential_a, 100)?,
+            RuntimeCredentialAccountStatus::RecoveryInFlight { expires_at_ms: 200 }
+        );
+        health.complete_account_recovery(recovery, RuntimeHealthAccountRecoveryResult::Allowed)?;
+        assert_eq!(
+            health.credential_account_status_at(&endpoint, &credential_a, 100)?,
+            RuntimeCredentialAccountStatus::Available
+        );
+        assert!(health.endpoint_credential_is_available(&endpoint, &credential_a));
         Ok(())
     }
 

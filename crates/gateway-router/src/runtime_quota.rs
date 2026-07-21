@@ -399,6 +399,30 @@ pub enum RuntimeQuotaAvailability {
     },
 }
 
+/// One coherent read-only quota observation for an exact target and explicit observation time.
+///
+/// The availability and optional retained snapshot are copied under the same isolated shard read
+/// lock so a management caller cannot combine a newer snapshot with an older availability result.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RuntimeQuotaStatusSnapshot {
+    availability: RuntimeQuotaAvailability,
+    snapshot: Option<QuotaSnapshot>,
+}
+
+impl RuntimeQuotaStatusSnapshot {
+    /// Returns the effective ordinary-scheduling availability at the supplied observation time.
+    #[must_use]
+    pub const fn availability(&self) -> RuntimeQuotaAvailability {
+        self.availability
+    }
+
+    /// Returns the latest safe quota snapshot, if this exact target has one.
+    #[must_use]
+    pub fn snapshot(&self) -> Option<&QuotaSnapshot> {
+        self.snapshot.as_ref()
+    }
+}
+
 impl RuntimeQuotaAvailability {
     /// Returns whether ordinary request scheduling may use the target now.
     #[must_use]
@@ -691,6 +715,32 @@ impl RuntimeQuotaRegistry {
             .map_or(RuntimeQuotaAvailability::Available, |state| {
                 state.availability_at(now_ms)
             }))
+    }
+
+    /// Returns a coherent safe quota snapshot and availability using one explicit observation time.
+    ///
+    /// This read-only management helper takes one isolated shard lock and never starts a recovery,
+    /// writes persistence, or sends a Provider request.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RuntimeQuotaError::ShardLockPoisoned`] when the target shard is unavailable.
+    pub fn status_at(
+        &self,
+        target: &RuntimeQuotaTarget,
+        now_ms: i64,
+    ) -> Result<RuntimeQuotaStatusSnapshot, RuntimeQuotaError> {
+        let states = self.read_shard(target)?;
+        let Some(state) = states.get(target) else {
+            return Ok(RuntimeQuotaStatusSnapshot {
+                availability: RuntimeQuotaAvailability::Available,
+                snapshot: None,
+            });
+        };
+        Ok(RuntimeQuotaStatusSnapshot {
+            availability: state.availability_at(now_ms),
+            snapshot: Some(state.snapshot.clone()),
+        })
     }
 
     /// Returns whether a binding-wide quota permits ordinary scheduling now.

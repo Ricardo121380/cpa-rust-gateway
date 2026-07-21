@@ -11,6 +11,7 @@ mod route_explain;
 mod route_scheduler;
 mod route_snapshot;
 mod runtime_health;
+mod runtime_management_status;
 mod runtime_probe;
 mod runtime_quota;
 
@@ -51,10 +52,16 @@ pub use route_snapshot::{
 };
 pub use runtime_health::{
     DEFAULT_RUNTIME_HEALTH_SHARD_COUNT, MAX_RUNTIME_HEALTH_ENTRIES_PER_SHARD,
-    MAX_RUNTIME_HEALTH_SHARD_COUNT, RuntimeHealthAvailability, RuntimeHealthCircuitProbe,
-    RuntimeHealthCircuitProbeResult, RuntimeHealthClock, RuntimeHealthClockError,
-    RuntimeHealthError, RuntimeHealthKey, RuntimeHealthRegistry, RuntimeHealthRegistryBuildError,
-    SystemRuntimeHealthClock,
+    MAX_RUNTIME_HEALTH_SHARD_COUNT, RuntimeCredentialAccountStatus,
+    RuntimeHealthAccountRecoveryProbe, RuntimeHealthAccountRecoveryResult,
+    RuntimeHealthAvailability, RuntimeHealthCircuitProbe, RuntimeHealthCircuitProbeResult,
+    RuntimeHealthClock, RuntimeHealthClockError, RuntimeHealthError, RuntimeHealthKey,
+    RuntimeHealthRegistry, RuntimeHealthRegistryBuildError, SystemRuntimeHealthClock,
+};
+pub use runtime_management_status::{
+    RuntimeManagementQuotaStatus, RuntimeManagementStatusQuery, RuntimeManagementStatusQueryError,
+    RuntimeManagementStatusSnapshot, RuntimeManagementStatusTarget,
+    RuntimeManagementStatusTargetError,
 };
 pub use runtime_probe::{
     DEFAULT_RUNTIME_HEALTH_PROBE_EWMA_ALPHA_PER_MILLE, RUNTIME_HEALTH_PROBE_EWMA_SCALE_PER_MILLE,
@@ -69,7 +76,7 @@ pub use runtime_quota::{
     MAX_RUNTIME_QUOTA_SHARD_COUNT, QuotaConfidence, QuotaSnapshot, QuotaSnapshotError, QuotaSource,
     QuotaWindow, QuotaWindowError, RuntimeQuotaAvailability, RuntimeQuotaError,
     RuntimeQuotaRecoveryProbe, RuntimeQuotaRegistry, RuntimeQuotaRegistryBuildError,
-    RuntimeQuotaTarget, RuntimeQuotaTargetError,
+    RuntimeQuotaStatusSnapshot, RuntimeQuotaTarget, RuntimeQuotaTargetError,
 };
 
 /// Stable component identifier used by architecture smoke tests.

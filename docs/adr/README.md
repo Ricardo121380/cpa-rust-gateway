@@ -58,3 +58,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0029 Fixed-input Route Explain without scheduling side effects](ADR-0029-fixed-input-route-explain.md) — `P4-06`（Accepted）。
 - [ADR-0030 Single-consumer structured telemetry fan-out](ADR-0030-single-consumer-telemetry-fanout.md) — `P4-08`（Accepted）。
 - [ADR-0031 Default-deny log redaction and bounded body sampling](ADR-0031-default-deny-log-redaction-and-body-sampling.md) — `P4-09`（Accepted）。
+- [ADR-0032 Read-only runtime management status and Credential-account recovery](ADR-0032-read-only-runtime-management-status.md) — `P4-10`（Accepted）。
