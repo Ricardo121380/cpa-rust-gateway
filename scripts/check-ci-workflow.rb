@@ -14,6 +14,10 @@ rescue Psych::SyntaxError => error
 end
 
 required_fragments = [
+  "branches:",
+  "- main",
+  "tags:",
+  '- "phase-p*-complete"',
   "jobs:",
   "classify:",
   "docs:",
@@ -37,6 +41,20 @@ required_fragments = [
 
 required_fragments.each do |fragment|
   errors << "missing required workflow fragment: #{fragment}" unless text.include?(fragment)
+end
+
+expected_push_trigger = <<~YAML
+  on:
+    push:
+      branches:
+        - main
+      tags:
+        - "phase-p*-complete"
+    pull_request:
+    workflow_dispatch:
+YAML
+unless text.include?(expected_push_trigger)
+  errors << "push trigger must be limited to main and phase completion tags"
 end
 
 text.scan(/^\s*-\s+uses:\s*([^\s#]+)/).flatten.each do |action|

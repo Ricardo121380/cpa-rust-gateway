@@ -63,4 +63,5 @@ P4-07 已建立 [BC-OBS-002 Append-only SQLite Request/Attempt/Usage/Health even
 P4-08 已建立 [BC-OBS-003 Single-consumer structured telemetry fan-out](BC-OBS-003-single-consumer-telemetry-fanout.md)。
 P4-09 已建立 [BC-OBS-004 Default-deny log redaction and body sampling](BC-OBS-004-default-deny-log-redaction-and-body-sampling.md)。
 P4-10 已建立 [BC-MGMT-001 Read-only runtime management status and Credential-account recovery](BC-MGMT-001-read-only-runtime-management-status.md)。
+P5-00 已建立 [BC-DELIVERY-003 Phase-level delivery and default-ref cache](BC-DELIVERY-003-phase-level-delivery-and-default-ref-cache.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。

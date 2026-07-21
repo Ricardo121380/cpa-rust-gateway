@@ -42,4 +42,29 @@ cat > "$work_dir/pending-dependency.md" <<'EOF'
 EOF
 expect_fail "$work_dir/pending-dependency.md"
 
+cat > "$work_dir/same-phase-local-pass.md" <<'EOF'
+| ID | Task | 依赖 | 完成证据 | 状态 |
+|---|---|---|---|---|
+| P5-00 | delivery | G4 | evidence | DONE |
+| P5-01 | messages | P5-00 | evidence | LOCAL_PASS_PENDING_PHASE_GATE |
+| P5-02 | count tokens | P5-01 | evidence | IN_PROGRESS |
+EOF
+expect_pass "$work_dir/same-phase-local-pass.md"
+
+cat > "$work_dir/cross-phase-local-pass.md" <<'EOF'
+| ID | Task | 依赖 | 完成证据 | 状态 |
+|---|---|---|---|---|
+| P5-08 | fuzz | P5-03 | evidence | LOCAL_PASS_PENDING_PHASE_GATE |
+| P6-01 | grok auth | P5-08 | evidence | IN_PROGRESS |
+EOF
+expect_fail "$work_dir/cross-phase-local-pass.md"
+
+cat > "$work_dir/done-before-local-dependency.md" <<'EOF'
+| ID | Task | 依赖 | 完成证据 | 状态 |
+|---|---|---|---|---|
+| P5-01 | messages | P5-00 | evidence | LOCAL_PASS_PENDING_PHASE_GATE |
+| P5-02 | count tokens | P5-01 | evidence | DONE |
+EOF
+expect_fail "$work_dir/done-before-local-dependency.md"
+
 printf 'plan-state-test: ok\n'

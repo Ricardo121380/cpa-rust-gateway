@@ -11,7 +11,17 @@ if ARGV.first == "--plan"
 end
 abort("plan-state: unexpected arguments") unless ARGV.empty?
 
-statuses = Set.new(%w[PENDING IN_PROGRESS LOCAL_PASS_PENDING_CI DONE BLOCKED DEFERRED])
+statuses = Set.new(
+  %w[
+    PENDING
+    IN_PROGRESS
+    LOCAL_PASS_PENDING_PHASE_GATE
+    LOCAL_PASS_PENDING_CI
+    DONE
+    BLOCKED
+    DEFERRED
+  ]
+)
 tasks = {}
 
 File.foreach(path, encoding: "UTF-8") do |line|
@@ -34,13 +44,17 @@ if in_progress.length > 1
   errors << "more than one IN_PROGRESS task: #{in_progress.join(', ')}"
 end
 
-active_statuses = Set.new(%w[IN_PROGRESS LOCAL_PASS_PENDING_CI DONE])
+active_statuses = Set.new(%w[IN_PROGRESS LOCAL_PASS_PENDING_PHASE_GATE LOCAL_PASS_PENDING_CI DONE])
 tasks.each do |task_id, task|
   next unless active_statuses.include?(task[:status])
 
   task[:dependencies].scan(/\bP\d{1,2}-\d{2}\b/).each do |dependency|
     next unless tasks.key?(dependency)
-    next if tasks.fetch(dependency).fetch(:status) == "DONE"
+    dependency_status = tasks.fetch(dependency).fetch(:status)
+    next if dependency_status == "DONE"
+    if task[:status] != "DONE" && dependency_status == "LOCAL_PASS_PENDING_PHASE_GATE"
+      next if task_id.split("-", 2).first == dependency.split("-", 2).first
+    end
 
     errors << "#{task_id} is #{task[:status]} before dependency #{dependency} is DONE"
   end
