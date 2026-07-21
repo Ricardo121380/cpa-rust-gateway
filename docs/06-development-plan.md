@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-21` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot` 与 `P3 - OpenAI Responses 聚合 MVP` 已完成；`P4 - Catalog、Health、Quota、Explain、观测` 已开始其工程效率前置项 |
-| 当前任务 | `P4-00` 已完成 code 与 docs-only Gate 验收；`P4-01` 已通过 GitHub code Gate 与同分支 warm-cache 度量，正在进行 docs-only 收口；P4-02 至 P4-09 保持 `PENDING`。 |
+| 当前任务 | `P4-00` 与 `P4-01` 已完成验收；P4-02 至 P4-09 保持 `PENDING`，当前没有启动新的功能 Task。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |

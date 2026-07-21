@@ -8,7 +8,7 @@
 | Date | `2026-07-21` |
 | Branch | `codex/p4-01-catalog-singleflight` |
 | Rust | `1.97.1` |
-| Result | GitHub code Gate and same-ref warm-cache measurement passed; this docs-only closeout must pass before the Task is finally accepted as `DONE`. |
+| Result | Accepted after local verification, GitHub code Gate, same-ref warm-cache measurement, and docs-only closeout; this final evidence-only record must also pass docs-only Gate. |
 
 ## Delivered scope
 
@@ -97,6 +97,23 @@ The warm rerun restored the exact versioned cache, verified `cargo-deny 0.20.2` 
 `cargo-audit 0.22.2` without reinstalling, and met the `<=90s` installation target by a wide
 margin. P4-00's docs-only run had already shown the independent documentation path completing in
 about 41 seconds with Fast and Full skipped.
+
+## Accepted docs-only closeout
+
+GitHub Actions [run 29801650393](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29801650393)
+passed for the P4-01 code-gate/cache-evidence closeout commit `2fb5aca`.
+
+| Job / step | Result and duration |
+|---|---|
+| Classify delivery gate | PASS; selected `docs` in about 5 seconds. |
+| Docs-only gate | PASS; job about 18 seconds, including prerequisites; `Run docs-only gate` about 2 seconds. |
+| Fast and Full supply-chain gates | Correctly skipped. |
+| Required delivery gate | PASS; verified the docs selection and skipped code gates. |
+
+The entire run completed in about 37 seconds. It proves that P4-01's plan/report/contract/index
+closeout did not repeat the roughly 11-minute cold code Gate or the roughly 3-minute same-ref warm
+code Gate, while retaining document links, plan-state validation, tracked Secret scanning, and
+whole-tree whitespace checks.
 
 ## Efficiency conclusion and follow-up boundary
 

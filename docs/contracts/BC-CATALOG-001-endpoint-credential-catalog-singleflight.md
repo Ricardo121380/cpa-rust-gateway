@@ -4,7 +4,7 @@
 |---|---|
 | Contract | `BC-CATALOG-001` |
 | Task | `P4-01` |
-| Status | `DONE` after local Fast/Full, GitHub code Gate, and the current docs-only closeout Gate |
+| Status | `DONE` after local Fast/Full, GitHub code Gate, and accepted docs-only closeout `29801650393` |
 | Domain | Provider-owned Model discovery coordination before Catalog snapshot persistence |
 
 ## Entry and boundary
