@@ -4,7 +4,7 @@
 |---|---|
 | Plan version | `v1.7` |
 | Task | `P4-09` |
-| Status | `LOCAL_PASS_PENDING_CI`; implementation, review, targeted tests, Secret scan, and local complete Gate passed; GitHub Code Gate is pending for the code delivery commit. |
+| Status | `DONE` after this docs-only closeout Gate; implementation, review, targeted tests, Secret scan, local complete Gate, and GitHub Code Gate passed. |
 | Scope level / execution budget | `L`; security-sensitive observability boundary, 45-minute scoped code-delivery target excluding external Gates |
 | Task Card | `gateway-observability` default-deny HTTP log projection and bounded explicit JSON Body sampling only; no raw Body/header/URL logging, HTTP/Router hot-path export, Store migration, second receiver, external log transport, real Provider request, or P5 work |
 | References | `G01`, `G03`, `G15`, `G22`, `K08`; [ADR-0031](../adr/ADR-0031-default-deny-log-redaction-and-body-sampling.md); [BC-OBS-004](../contracts/BC-OBS-004-default-deny-log-redaction-and-body-sampling.md) |
@@ -45,6 +45,14 @@ or add P5 behavior.
 
 No ignored real-test harness ran and no Provider request was sent.
 
+## Accepted GitHub Code Gate
+
+GitHub Actions [run 29831581876](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29831581876)
+passed for code commit `90e3f40`. The fail-closed classifier selected the code path: Fast passed in
+3 minutes 05 seconds, supplemental supply-chain Full passed in 39 seconds with its version-checked
+quality-tool cache hit, and Required delivery passed in 3 seconds. The docs-only job was correctly
+skipped. No manual rerun was issued.
+
 ## Review and execution measurement
 
 Focused security review verified that sampling cannot be enabled implicitly, no body parser runs for
@@ -52,11 +60,11 @@ a nonselected or non-JSON input, no raw body prefix survives any rejected path, 
 `Content-Type` fails closed, and recursive redaction applies before every serializable/Debug form.
 It added direct coverage for broad key names and for `not_selected`, invalid UTF-8, and malformed
 JSON omission paths. The first focused Clippy run found two direct idiomatic control-flow/allocation
-corrections; after those and the review coverage additions, one final complete Gate passed. GitHub
-evidence is added only after its immutable Code Gate finishes.
+corrections; after those and the review coverage additions, one final complete Gate passed. The
+accepted GitHub Code Gate is recorded above; no manual rerun was needed.
 
 ## Closeout boundary
 
-This code-delivery commit creates the P4-09 ADR, contract, report, and index entries. After the
-GitHub Code Gate passes, exactly one docs-only closeout records that immutable evidence and changes
-P4-09 to `DONE`. G4 remains blocked until that docs-only Gate passes.
+This is the unique docs-only closeout that records immutable Code Gate evidence and marks P4-09
+`DONE`. Its docs-only Gate is the remaining Task acceptance record. G4 remains blocked until that
+Gate passes; no second status-only commit will follow.
