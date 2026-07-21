@@ -60,3 +60,4 @@
 - [P3-09 controlled Mock HTTP aggregation E2E report](p3-09-controlled-mock-http-aggregation-e2e.md)
 - [P3-10 authorized real-test Endpoint validation report](p3-10-real-test-endpoint-validation.md)
 - [P4-00 execution acceleration report](p4-00-execution-acceleration.md)
+- [P4-01 Endpoint-Credential Model Catalog singleflight report](p4-01-catalog-singleflight.md)
