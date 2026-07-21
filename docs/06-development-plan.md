@@ -4,15 +4,15 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.2` |
+| 计划版本 | `v1.3` |
 | 生效日期 | `2026-07-21` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot` 与 `P3 - OpenAI Responses 聚合 MVP` 已完成；`P4 - Catalog、Health、Quota、Explain、观测` 已开始其工程效率前置项 |
-| 当前任务 | `P4-00` 与 `P4-01` 已完成验收；P4-02 至 P4-09 保持 `PENDING`，当前没有启动新的功能 Task。 |
+| 当前任务 | `P4-00` 与 `P4-01` 已完成验收；`P4-02` 已完成本地 review，处于 `LOCAL_PASS_PENDING_CI`，P4-03 至 P4-09 保持 `PENDING`。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
-| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：保留质量与单 Task 开发纪律的前提下，采用缓存化 Full CI、显式 docs-only Gate、`LOCAL_PASS_PENDING_CI` 状态与单探针诊断 harness。 |
+| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：保留质量与单 Task 开发纪律的前提下，采用缓存化 Full CI、显式 docs-only Gate、`LOCAL_PASS_PENDING_CI` 状态与单探针诊断 harness。 `CR-EXEC-002`：按缓存可见交付引用、Fast 后补充供应链 Full、单次 docs-only 收口、缓存可观测性和明确的暖态时延目标进一步缩短交付等待。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -125,9 +125,9 @@ CR-ID: CR-EXEC-001
    合并、发布、跨 Phase 依赖、Phase Gate 或把风险隐去。下一 Task 只能在没有共享关键边界时
    使用该流水线，且同一时刻仍只有一个 `IN_PROGRESS`。有任何 Fast/Full 失败时，相关后续工作
    立即冻结，先恢复失败 Task 的绿色状态。
-4. **文档证据合并与批处理。** Task 实现、测试和 Task 报告应同提交；GitHub 通过后才更新为
-   `DONE`。纯状态索引与 Gate 收口可在 Phase Gate 批处理，避免为不改变代码的多次状态提交重复
-   消耗 Full Gate。该合并不得遗漏可审计的 Task 证据。
+4. **文档证据只做一次收口。** Task 实现、测试、ADR/Contract 和报告骨架应在代码提交中；GitHub
+   Code Gate 通过后，以一个 docs-only 提交记录该不可变 Gate 证据并标记 `DONE`。不得再为复制该
+   docs-only run ID 产生第二个状态提交；Phase 报告可批量引用既有外部证据。
 5. **真实 Endpoint 先诊断、后验收。** 未来需要真实 Endpoint 的 Phase 必须使用与正式验收
    harness 分离的 ignored 单探针诊断路径。它必须要求单独的显式授权、Target、Mode 和精确
    `max_external_requests=1`，保持 `max_attempts=1`、无自动重试/failover、脱敏输出和有界
@@ -136,9 +136,50 @@ CR-ID: CR-EXEC-001
 6. **先收集 readiness，再消费真实调用。** 在每个真实 Provider 验收前，先完成不触网的
    Base URL/egress/profile/model-alias/调用预算预检；用户批准的调用预算、网络 profile 和
    停止条件必须在第一次真实请求前写入私有 operator-controlled 配置与公开脱敏计划。
-7. **度量目标。** P4-00 完成后，warm Full Gate 中“安装固定质量工具”目标不高于 90 秒；每轮
-   Phase Gate 记录 Fast、Full、docs-only 的次数与 step 时长。若连续两轮未达到目标，先调查
-   cache key、安装源和 runner，而不是削弱 Full Gate。
+7. **度量目标。** P4-00 完成后，warm Full Gate 中“安装固定质量工具”硬性目标不高于 90 秒，
+   运行目标不高于 10 秒；每轮 Phase Gate 记录 Fast、Full、docs-only 的次数与 step 时长。若
+   连续两轮未达到目标，先调查 cache key、安装源和 runner，而不是削弱 Full Gate。
+
+### 已批准 Change Request：CR-EXEC-002
+
+```text
+CR-ID: CR-EXEC-002
+原因: P4-00/P4-01 的实测表明，质量工具缓存对 GitHub ref 可见：P4-01 在新分支首次 Code Gate
+      仍发生约 495 秒冷安装，而同一 ref 的暖态测量将安装降为约 1 秒；同时现有 Full job 在独立
+      runner 重复了 Fast 已执行的 Workspace 检查。P4-00/P4-01 的两次 docs 状态提交也产生了
+      无新的功能证据的额外等待。
+影响的 Task / Matrix ID / ADR: 执行规则、CI、P4-02 及后续顺序代码 Task；新增 ADR-0023 与
+      BC-DELIVERY-002。它不改变功能矩阵、公开 API、Canonical 类型、Provider 协议、Schema、
+      数据库、部署、P0-P3 结果或“全计划最多一个 IN_PROGRESS Task”规则。
+兼容性与迁移影响: 无客户端、数据或部署迁移。顺序代码 Task 使用 cache-visible delivery ref；新
+      ref 必须先有同 ref cache seed 或使用经批准的共享/default ref。GitHub Fast 仍是完整 Workspace
+      快速检查，GitHub Full 改为依赖同 SHA Fast 的版本校验、cargo-deny 和 cargo-audit 补充检查；
+      本地 ./scripts/check.sh full 保持完整检查。代码 Gate 后只做一次 docs-only 收口。
+测试与回滚变化: P4-02 必须验证 supply-chain mode、workflow 结构、cache hit/miss summary、Fast
+      + Full fail-closed required gate、local full 以及单次 docs closeout。缓存 miss 不是正确性失败，
+      但必须在报告中记录并触发性能调查。回滚为将 GitHub Full 恢复为 ./scripts/check.sh full、停止
+      使用 cache-visible ref 规则和单次收口；不影响已有 Task 产物。
+用户批准: APPROVED，2026-07-21（要求按该方案优化开发计划并以 P4-02 测试效果）
+计划版本变更: v1.3
+```
+
+### 1.6 缓存可见交付与补充供应链 Gate（CR-EXEC-002）
+
+1. **缓存可见交付引用。** 顺序 P4 代码 Task 留在可见质量工具缓存的 delivery ref。P4-02 使用
+   当前 `codex/p4-01-catalog-singleflight`；新 Task 分支只有先 seed 同 ref cache 或使用经批准的
+   shared/default ref 后才可作为交付引用。该规则不允许并行代码 Task，始终最多一个 `IN_PROGRESS`。
+2. **Fast 完整、Full 补充。** GitHub Fast 是完整 Workspace fast check。GitHub Full 依赖同一
+   workflow/SHA 的 Fast，仅执行固定质量工具版本检查、`cargo deny check` 与 `cargo audit`；Required
+   Gate 对两个结果均 fail-closed。本地 `./scripts/check.sh full` 继续执行完整 Fast 加供应链检查，
+   因此本地需要完整门禁的变更只运行一次 `full` 即覆盖 Fast，不机械地紧接着重复 `fast`；Phase
+   Tag 仍逻辑要求 Fast + Full。
+3. **单次 docs-only 收口。** 代码提交包含实现、测试、ADR、契约、报告骨架和 `IN_PROGRESS` 状态。
+   Code Gate 通过后只创建一个 docs-only 收口提交，写入 Code Gate 证据并改为 `DONE`；不为该收口
+   的 run ID 再创建提交。
+4. **缓存可观测性与目标。** Full job 必须把 cache hit/miss 写入 GitHub job summary。miss 不会降低
+   Gate 的正确性结论，但报告必须记录原因。暖态质量工具安装运行目标 `<=10s`、计划硬门槛 `<=90s`；
+   暖态 code workflow 目标 `<=4min`（不含 GitHub queue），docs-only workflow 目标 `<=45s`。P4-02
+   不额外触发手工暖态重跑，正常 Code Gate 的 summary 即为测量证据。
 
 ## 2. Release 1 范围
 
@@ -428,7 +469,7 @@ deploy/
 |---|---|---|---|---|
 | P4-00 | 落实 `CR-EXEC-001`：受版本校验的质量工具缓存、code/docs/tag Gate 分类、`LOCAL_PASS_PENDING_CI` 状态守卫和独立单探针诊断 harness | G3 | cache miss/hit、Gate 分类、状态阻断、零授权/单请求/脱敏诊断测试；不发送未经单独授权的真实流量 | DONE |
 | P4-01 | 实现每 Endpoint+Credential 的 ModelCatalogSource 调度与 Singleflight | P4-00 | 并发同步和凭据差异测试 | DONE |
-| P4-02 | 实现 CatalogSnapshot、Fresh/Stale/Expired 与最后成功回退 | P4-01 | 时间推进和失败保留测试 | PENDING |
+| P4-02 | 实现 CatalogSnapshot、Fresh/Stale/Expired 与最后成功回退 | P4-01 | 时间推进和失败保留测试 | LOCAL_PASS_PENDING_CI |
 | P4-03 | 实现 added/suspected_removed/removed Diff、Preview/Apply 和移除隔离 | P4-02 | 3 次缺失 + 24h Fixture | PENDING |
 | P4-04 | 实现 Endpoint/Model/Credential Probe、EWMA 和 Circuit 恢复 | P3-05 | 健康时间线和半开测试 | PENDING |
 | P4-05 | 实现 QuotaSnapshot、来源/置信度、Reset 与受控恢复探测 | P4-04 | 429/Quota/Reset Fixture | PENDING |
@@ -780,3 +821,4 @@ Next task:
 | v1.0 | 2026-07-18 | 建立 Release 1 全阶段、任务、Gate、测试、安全、Git、灰度和变更控制基线 | 当前执行基线 |
 | v1.1 | 2026-07-19 至 2026-07-21 | 记录 P1/G1 的 Tool 语义投影澄清，以及 P3/G3 的公开别名、有限 SSE 帧与 idle 边界 Change Request | 已批准的历史执行基线 |
 | v1.2 | 2026-07-21 | `CR-EXEC-001`：缓存化受版本约束的质量工具、code/docs/tag Gate 分类、`LOCAL_PASS_PENDING_CI` 流水线、文档证据批处理、单探针诊断与真实 Provider readiness 纪律；新增 P4-00 前置项 | APPROVED；当前执行基线 |
+| v1.3 | 2026-07-21 | `CR-EXEC-002`：缓存可见 delivery ref、Fast 后补充供应链 Full、单次 docs-only 收口、cache summary 与暖态时延目标；P4-02 开始 | APPROVED；当前执行基线 |

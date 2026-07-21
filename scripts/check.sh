@@ -3,8 +3,8 @@
 set -euo pipefail
 
 mode="${1:-fast}"
-if [[ "$mode" != "docs" && "$mode" != "fast" && "$mode" != "full" ]]; then
-  printf 'usage: %s [docs|fast|full]\n' "$0" >&2
+if [[ "$mode" != "docs" && "$mode" != "fast" && "$mode" != "full" && "$mode" != "supply-chain" ]]; then
+  printf 'usage: %s [docs|fast|full|supply-chain]\n' "$0" >&2
   exit 2
 fi
 
@@ -84,6 +84,19 @@ if [[ "$mode" == "docs" ]]; then
   fi
 
   printf '\ncheck: docs passed\n'
+  exit 0
+fi
+
+if [[ "$mode" == "supply-chain" ]]; then
+  run_step "Quality tool versions" check_quality_tool_versions
+  run_step "Dependency policy" cargo deny check
+  run_step "RustSec audit" cargo audit
+
+  if [[ -n "$report_path" ]]; then
+    printf '\nCompleted: `%s`\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$report_path"
+  fi
+
+  printf '\ncheck: %s passed\n' "$mode"
   exit 0
 fi
 

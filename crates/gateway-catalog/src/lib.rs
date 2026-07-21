@@ -10,7 +10,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     error::Error,
     fmt,
-    sync::Arc,
+    sync::{Arc, Mutex as StdMutex, MutexGuard},
 };
 
 use gateway_core::{CredentialId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode};
@@ -204,6 +204,453 @@ fn normalize_models(mut models: Vec<DiscoveredModel>) -> Vec<DiscoveredModel> {
 
 const fn internal_error() -> GatewayError {
     GatewayError::new(GatewayErrorCode::InternalError, ErrorScope::Internal)
+}
+
+/// Default period for which a successfully discovered Catalog is current.
+pub const DEFAULT_CATALOG_FRESH_FOR_MS: i64 = 6 * 60 * 60 * 1_000;
+/// Default interval after a success at which a background refresh is due.
+pub const DEFAULT_CATALOG_REFRESH_DUE_AFTER_MS: i64 = 24 * 60 * 60 * 1_000;
+/// Default maximum retention period for a last-success Catalog.
+pub const DEFAULT_CATALOG_EXPIRES_AFTER_MS: i64 = 72 * 60 * 60 * 1_000;
+
+/// Validated timing boundaries for discovery-backed Catalog snapshots.
+///
+/// `fresh_for_ms` is the `Fresh` period. `refresh_due_after_ms` is a background scheduling
+/// deadline, not an additional visible state: a snapshot remains `Stale` after its Fresh period
+/// until it expires. This makes the architecture's default `Fresh 6h / Stale 24h / Expired 72h`
+/// explicit without silently treating the 24-hour refresh target as early expiry.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CatalogFreshnessPolicy {
+    fresh_for: i64,
+    refresh_due_after: i64,
+    expires_after: i64,
+}
+
+impl Default for CatalogFreshnessPolicy {
+    fn default() -> Self {
+        Self {
+            fresh_for: DEFAULT_CATALOG_FRESH_FOR_MS,
+            refresh_due_after: DEFAULT_CATALOG_REFRESH_DUE_AFTER_MS,
+            expires_after: DEFAULT_CATALOG_EXPIRES_AFTER_MS,
+        }
+    }
+}
+
+impl CatalogFreshnessPolicy {
+    /// Creates one ordered, positive snapshot-timing policy.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CatalogSnapshotError`] when any duration is non-positive or its ordering would
+    /// make a snapshot deadline ambiguous.
+    pub fn try_new(
+        fresh_for_ms: i64,
+        refresh_due_after_ms: i64,
+        expires_after_ms: i64,
+    ) -> Result<Self, CatalogSnapshotError> {
+        if fresh_for_ms <= 0 {
+            return Err(CatalogSnapshotError::FreshDurationNotPositive);
+        }
+        if refresh_due_after_ms < fresh_for_ms {
+            return Err(CatalogSnapshotError::RefreshDueBeforeFresh);
+        }
+        if expires_after_ms <= refresh_due_after_ms {
+            return Err(CatalogSnapshotError::ExpiryNotAfterRefreshDue);
+        }
+        Ok(Self {
+            fresh_for: fresh_for_ms,
+            refresh_due_after: refresh_due_after_ms,
+            expires_after: expires_after_ms,
+        })
+    }
+
+    /// Returns the duration for which a success is `Fresh`.
+    #[must_use]
+    pub const fn fresh_for_ms(self) -> i64 {
+        self.fresh_for
+    }
+
+    /// Returns the deadline after which background refresh work is due.
+    #[must_use]
+    pub const fn refresh_due_after_ms(self) -> i64 {
+        self.refresh_due_after
+    }
+
+    /// Returns the maximum retention duration for a last-success snapshot.
+    #[must_use]
+    pub const fn expires_after_ms(self) -> i64 {
+        self.expires_after
+    }
+}
+
+/// Visible freshness of a discovery-backed Catalog snapshot.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CatalogSnapshotFreshness {
+    /// The last successful discovery is within its Fresh window.
+    Fresh,
+    /// The last successful discovery is retained after its Fresh window.
+    Stale,
+    /// The retained discovery is beyond its hard expiry and must not be treated as eligible.
+    Expired,
+}
+
+impl CatalogSnapshotFreshness {
+    /// Returns whether this snapshot can remain eligible without a later explicit exception.
+    #[must_use]
+    pub const fn is_hard_eligible(self) -> bool {
+        matches!(self, Self::Fresh | Self::Stale)
+    }
+}
+
+/// Immutable successful discovery result for one exact Endpoint/Credential target.
+///
+/// The snapshot stores only stable identifiers, normalized discovered Model names, monotonically
+/// increasing version data, and explicit Unix-millisecond deadlines. It deliberately does not
+/// contain Endpoint URLs, Credential material, failure diagnostics, static allowlists, or a diff.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CatalogSnapshot {
+    target: ModelCatalogTarget,
+    models: Vec<DiscoveredModel>,
+    version: u64,
+    observed_at_ms: i64,
+    stale_at_ms: i64,
+    refresh_due_at_ms: i64,
+    expires_at_ms: i64,
+}
+
+impl CatalogSnapshot {
+    /// Creates one immutable, normalized successful discovery snapshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CatalogSnapshotError`] for a zero version, a pre-epoch timestamp, or a timestamp
+    /// whose freshness deadlines cannot be represented safely. An empty model list is valid: it is
+    /// a successful source result and P4-03 owns its later removal semantics.
+    pub fn try_new(
+        target: ModelCatalogTarget,
+        models: impl IntoIterator<Item = DiscoveredModel>,
+        version: u64,
+        observed_at_ms: i64,
+        policy: CatalogFreshnessPolicy,
+    ) -> Result<Self, CatalogSnapshotError> {
+        if version == 0 {
+            return Err(CatalogSnapshotError::SnapshotVersionZero);
+        }
+        if observed_at_ms < 0 {
+            return Err(CatalogSnapshotError::TimestampBeforeUnixEpoch);
+        }
+        let stale_at_ms = checked_deadline(observed_at_ms, policy.fresh_for)?;
+        let refresh_due_at_ms = checked_deadline(observed_at_ms, policy.refresh_due_after)?;
+        let expires_at_ms = checked_deadline(observed_at_ms, policy.expires_after)?;
+        let models = normalize_models(models.into_iter().collect());
+
+        Ok(Self {
+            target,
+            models,
+            version,
+            observed_at_ms,
+            stale_at_ms,
+            refresh_due_at_ms,
+            expires_at_ms,
+        })
+    }
+
+    /// Returns the exact Endpoint/Credential identity that owns this success.
+    #[must_use]
+    pub fn target(&self) -> &ModelCatalogTarget {
+        &self.target
+    }
+
+    /// Returns source Model names in deterministic sorted, deduplicated order.
+    #[must_use]
+    pub fn models(&self) -> &[DiscoveredModel] {
+        &self.models
+    }
+
+    /// Returns the target-local, monotonically increasing successful snapshot version.
+    #[must_use]
+    pub const fn version(&self) -> u64 {
+        self.version
+    }
+
+    /// Returns the Unix-millisecond instant at which this success was observed.
+    #[must_use]
+    pub const fn observed_at_ms(&self) -> i64 {
+        self.observed_at_ms
+    }
+
+    /// Returns the first Unix-millisecond instant at which this snapshot is `Stale`.
+    #[must_use]
+    pub const fn stale_at_ms(&self) -> i64 {
+        self.stale_at_ms
+    }
+
+    /// Returns the first Unix-millisecond instant at which refresh work is due.
+    #[must_use]
+    pub const fn refresh_due_at_ms(&self) -> i64 {
+        self.refresh_due_at_ms
+    }
+
+    /// Returns the first Unix-millisecond instant at which this snapshot is `Expired`.
+    #[must_use]
+    pub const fn expires_at_ms(&self) -> i64 {
+        self.expires_at_ms
+    }
+
+    /// Computes freshness using an explicit Unix-millisecond timestamp.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CatalogSnapshotError::ClockBeforeSnapshot`] when the caller gives a timestamp
+    /// before this success. This rejects a non-monotonic observation instead of making a future
+    /// snapshot look Fresh retroactively.
+    pub fn freshness_at(
+        &self,
+        now_ms: i64,
+    ) -> Result<CatalogSnapshotFreshness, CatalogSnapshotError> {
+        self.validate_now_ms(now_ms)?;
+        if now_ms < self.stale_at_ms {
+            Ok(CatalogSnapshotFreshness::Fresh)
+        } else if now_ms < self.expires_at_ms {
+            Ok(CatalogSnapshotFreshness::Stale)
+        } else {
+            Ok(CatalogSnapshotFreshness::Expired)
+        }
+    }
+
+    /// Returns whether background refresh work is due at an explicit timestamp.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same non-monotonic-clock error as [`Self::freshness_at`].
+    pub fn is_refresh_due_at(&self, now_ms: i64) -> Result<bool, CatalogSnapshotError> {
+        self.validate_now_ms(now_ms)?;
+        Ok(now_ms >= self.refresh_due_at_ms)
+    }
+
+    fn validate_now_ms(&self, now_ms: i64) -> Result<(), CatalogSnapshotError> {
+        if now_ms < self.observed_at_ms {
+            return Err(CatalogSnapshotError::ClockBeforeSnapshot);
+        }
+        Ok(())
+    }
+}
+
+/// A snapshot plus its freshness at one explicit observation time.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CatalogSnapshotStatus {
+    snapshot: CatalogSnapshot,
+    freshness: CatalogSnapshotFreshness,
+    refresh_due: bool,
+}
+
+impl CatalogSnapshotStatus {
+    fn at(snapshot: CatalogSnapshot, now_ms: i64) -> Result<Self, CatalogSnapshotError> {
+        let freshness = snapshot.freshness_at(now_ms)?;
+        let refresh_due = snapshot.is_refresh_due_at(now_ms)?;
+        Ok(Self {
+            snapshot,
+            freshness,
+            refresh_due,
+        })
+    }
+
+    /// Returns the immutable last-success snapshot.
+    #[must_use]
+    pub fn snapshot(&self) -> &CatalogSnapshot {
+        &self.snapshot
+    }
+
+    /// Returns the visible Fresh/Stale/Expired state at the requested timestamp.
+    #[must_use]
+    pub const fn freshness(&self) -> CatalogSnapshotFreshness {
+        self.freshness
+    }
+
+    /// Returns whether the independent 24-hour background refresh deadline has elapsed.
+    #[must_use]
+    pub const fn is_refresh_due(&self) -> bool {
+        self.refresh_due
+    }
+}
+
+/// Process-local last-success snapshot registry keyed by exact Catalog target.
+///
+/// A short control-plane mutex makes successful replacement atomic. It never joins Models across
+/// Credentials: a successful discovery can replace exactly its own `(EndpointId, CredentialId)`
+/// key, while failure retrieval leaves every retained snapshot unchanged.
+pub struct CatalogSnapshotStore {
+    policy: CatalogFreshnessPolicy,
+    snapshots: StdMutex<BTreeMap<ModelCatalogTarget, CatalogSnapshot>>,
+}
+
+impl Default for CatalogSnapshotStore {
+    fn default() -> Self {
+        Self::new(CatalogFreshnessPolicy::default())
+    }
+}
+
+impl CatalogSnapshotStore {
+    /// Creates an empty process-local registry with one already validated timing policy.
+    #[must_use]
+    pub fn new(policy: CatalogFreshnessPolicy) -> Self {
+        Self {
+            policy,
+            snapshots: StdMutex::new(BTreeMap::new()),
+        }
+    }
+
+    /// Returns this registry's immutable freshness policy.
+    #[must_use]
+    pub const fn policy(&self) -> CatalogFreshnessPolicy {
+        self.policy
+    }
+
+    /// Atomically accepts one successful discovery for its exact target.
+    ///
+    /// The target's version starts at one and increases only after a later non-decreasing success.
+    /// Any construction error leaves the prior snapshot untouched.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CatalogSnapshotError`] for an unavailable registry, unsafe timestamp, timestamp
+    /// overflow, version exhaustion, or a success whose observation time is earlier than the
+    /// target's current last success.
+    pub fn record_success(
+        &self,
+        target: ModelCatalogTarget,
+        models: impl IntoIterator<Item = DiscoveredModel>,
+        observed_at_ms: i64,
+    ) -> Result<CatalogSnapshot, CatalogSnapshotError> {
+        // Consume caller-provided iteration before taking the registry lock. This prevents an
+        // arbitrary iterator from extending the snapshot replacement critical section.
+        let models: Vec<_> = models.into_iter().collect();
+        let mut snapshots = self.lock_snapshots()?;
+        let version = match snapshots.get(&target) {
+            Some(previous) => {
+                if observed_at_ms < previous.observed_at_ms {
+                    return Err(CatalogSnapshotError::TimestampNotMonotonic);
+                }
+                previous
+                    .version
+                    .checked_add(1)
+                    .ok_or(CatalogSnapshotError::SnapshotVersionOverflow)?
+            }
+            None => 1,
+        };
+        let snapshot =
+            CatalogSnapshot::try_new(target.clone(), models, version, observed_at_ms, self.policy)?;
+        snapshots.insert(target, snapshot.clone());
+        Ok(snapshot)
+    }
+
+    /// Returns the retained last success after a discovery failure without mutating the registry.
+    ///
+    /// The caller may record a failure Run in a later observability/persistence component, but this
+    /// P4-02 boundary deliberately stores no failure payload or diagnostic and cannot overwrite
+    /// source success evidence with a failed attempt.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CatalogSnapshotError::StoreLockPoisoned`] if the process-local registry cannot
+    /// be read safely.
+    pub fn retain_last_success_on_failure(
+        &self,
+        target: &ModelCatalogTarget,
+    ) -> Result<Option<CatalogSnapshot>, CatalogSnapshotError> {
+        Ok(self.lock_snapshots()?.get(target).cloned())
+    }
+
+    /// Returns the unclassified last success for one exact target.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CatalogSnapshotError::StoreLockPoisoned`] if the registry cannot be read safely.
+    pub fn last_success(
+        &self,
+        target: &ModelCatalogTarget,
+    ) -> Result<Option<CatalogSnapshot>, CatalogSnapshotError> {
+        Ok(self.lock_snapshots()?.get(target).cloned())
+    }
+
+    /// Returns the retained snapshot together with Fresh/Stale/Expired at an explicit timestamp.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe registry or timestamp error. An absent exact target is not an error.
+    pub fn status_at(
+        &self,
+        target: &ModelCatalogTarget,
+        now_ms: i64,
+    ) -> Result<Option<CatalogSnapshotStatus>, CatalogSnapshotError> {
+        self.last_success(target)?
+            .map(|snapshot| CatalogSnapshotStatus::at(snapshot, now_ms))
+            .transpose()
+    }
+
+    fn lock_snapshots(
+        &self,
+    ) -> Result<MutexGuard<'_, BTreeMap<ModelCatalogTarget, CatalogSnapshot>>, CatalogSnapshotError>
+    {
+        self.snapshots
+            .lock()
+            .map_err(|_| CatalogSnapshotError::StoreLockPoisoned)
+    }
+}
+
+/// Safe construction, timestamp, and process-local registry failures for Catalog snapshots.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CatalogSnapshotError {
+    /// The Fresh duration was zero or negative.
+    FreshDurationNotPositive,
+    /// The refresh deadline was before the Fresh window ended.
+    RefreshDueBeforeFresh,
+    /// The hard expiry was not strictly after the refresh deadline.
+    ExpiryNotAfterRefreshDue,
+    /// A snapshot version must begin at one.
+    SnapshotVersionZero,
+    /// A later successful snapshot could not advance the finite version counter.
+    SnapshotVersionOverflow,
+    /// A timestamp was before the Unix epoch and outside this snapshot domain.
+    TimestampBeforeUnixEpoch,
+    /// Adding a validated duration to an observation time overflowed Unix milliseconds.
+    TimestampOverflow,
+    /// A caller evaluated a snapshot before it was observed.
+    ClockBeforeSnapshot,
+    /// A later success was older than the target's retained last success.
+    TimestampNotMonotonic,
+    /// The process-local registry was poisoned by a prior panic and therefore fails closed.
+    StoreLockPoisoned,
+}
+
+impl fmt::Display for CatalogSnapshotError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let message = match self {
+            Self::FreshDurationNotPositive => "Catalog Fresh duration must be positive",
+            Self::RefreshDueBeforeFresh => "Catalog refresh deadline must not precede Fresh expiry",
+            Self::ExpiryNotAfterRefreshDue => {
+                "Catalog hard expiry must be after the refresh deadline"
+            }
+            Self::SnapshotVersionZero => "Catalog snapshot version must start at one",
+            Self::SnapshotVersionOverflow => "Catalog snapshot version cannot advance safely",
+            Self::TimestampBeforeUnixEpoch => "Catalog timestamp is before the Unix epoch",
+            Self::TimestampOverflow => "Catalog timestamp deadline cannot be represented safely",
+            Self::ClockBeforeSnapshot => "Catalog clock precedes the retained snapshot",
+            Self::TimestampNotMonotonic => {
+                "Catalog success timestamp precedes the retained last success"
+            }
+            Self::StoreLockPoisoned => "Catalog snapshot registry is unavailable",
+        };
+        formatter.write_str(message)
+    }
+}
+
+impl Error for CatalogSnapshotError {}
+
+fn checked_deadline(observed_at_ms: i64, duration_ms: i64) -> Result<i64, CatalogSnapshotError> {
+    observed_at_ms
+        .checked_add(duration_ms)
+        .ok_or(CatalogSnapshotError::TimestampOverflow)
 }
 
 /// One semantic capability relevant to public-model Route compilation.
@@ -517,9 +964,12 @@ mod tests {
     };
 
     use super::{
-        CapabilitySet, CatalogModelEntry, CatalogModelState, CatalogView, CatalogViewError,
-        DiscoveredModel, EndpointCapabilityEntry, EndpointCapabilityView, ModelCatalogScheduler,
-        ModelCatalogSource, ModelCatalogTarget, SemanticCapability,
+        CapabilitySet, CatalogFreshnessPolicy, CatalogModelEntry, CatalogModelState,
+        CatalogSnapshotError, CatalogSnapshotFreshness, CatalogSnapshotStore, CatalogView,
+        CatalogViewError, DEFAULT_CATALOG_EXPIRES_AFTER_MS, DEFAULT_CATALOG_FRESH_FOR_MS,
+        DEFAULT_CATALOG_REFRESH_DUE_AFTER_MS, DiscoveredModel, EndpointCapabilityEntry,
+        EndpointCapabilityView, ModelCatalogScheduler, ModelCatalogSource, ModelCatalogTarget,
+        SemanticCapability,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -631,6 +1081,13 @@ mod tests {
 
     fn model_names(models: &[DiscoveredModel]) -> Vec<&str> {
         models.iter().map(DiscoveredModel::upstream_model).collect()
+    }
+
+    fn discovered_models(names: &[&str]) -> Result<Vec<DiscoveredModel>, Box<dyn Error>> {
+        names
+            .iter()
+            .map(|name| DiscoveredModel::try_new(*name).map_err(Into::into))
+            .collect()
     }
 
     async fn wait_for_receiver_count(
@@ -894,6 +1351,178 @@ mod tests {
             ]),
             Err(CatalogViewError::DuplicateEndpointCapabilityProfile)
         );
+        Ok(())
+    }
+
+    #[test]
+    fn catalog_snapshot_uses_explicit_fresh_stale_refresh_and_expiry_boundaries() -> TestResult {
+        let store = CatalogSnapshotStore::default();
+        let catalog_target = target("credential-a")?;
+        let observed_at_ms = 1_000;
+        let snapshot = store.record_success(
+            catalog_target.clone(),
+            discovered_models(&["Model-Z", "Model-A", "Model-Z"])?,
+            observed_at_ms,
+        )?;
+
+        assert_eq!(snapshot.version(), 1);
+        assert_eq!(model_names(snapshot.models()), vec!["Model-A", "Model-Z"]);
+        assert_eq!(snapshot.observed_at_ms(), observed_at_ms);
+        assert_eq!(
+            snapshot.stale_at_ms(),
+            observed_at_ms + DEFAULT_CATALOG_FRESH_FOR_MS
+        );
+        assert_eq!(
+            snapshot.refresh_due_at_ms(),
+            observed_at_ms + DEFAULT_CATALOG_REFRESH_DUE_AFTER_MS
+        );
+        assert_eq!(
+            snapshot.expires_at_ms(),
+            observed_at_ms + DEFAULT_CATALOG_EXPIRES_AFTER_MS
+        );
+        assert_eq!(
+            snapshot.freshness_at(snapshot.stale_at_ms() - 1)?,
+            CatalogSnapshotFreshness::Fresh
+        );
+        assert_eq!(
+            snapshot.freshness_at(snapshot.stale_at_ms())?,
+            CatalogSnapshotFreshness::Stale
+        );
+        assert_eq!(
+            snapshot.freshness_at(snapshot.refresh_due_at_ms())?,
+            CatalogSnapshotFreshness::Stale
+        );
+        assert!(snapshot.is_refresh_due_at(snapshot.refresh_due_at_ms())?);
+        assert_eq!(
+            snapshot.freshness_at(snapshot.expires_at_ms() - 1)?,
+            CatalogSnapshotFreshness::Stale
+        );
+        assert_eq!(
+            snapshot.freshness_at(snapshot.expires_at_ms())?,
+            CatalogSnapshotFreshness::Expired
+        );
+
+        let status = store
+            .status_at(&catalog_target, snapshot.refresh_due_at_ms())?
+            .ok_or_else(|| std::io::Error::other("snapshot unexpectedly absent"))?;
+        assert_eq!(status.snapshot(), &snapshot);
+        assert_eq!(status.freshness(), CatalogSnapshotFreshness::Stale);
+        assert!(status.is_refresh_due());
+        assert!(CatalogSnapshotFreshness::Stale.is_hard_eligible());
+        assert!(!CatalogSnapshotFreshness::Expired.is_hard_eligible());
+        Ok(())
+    }
+
+    #[test]
+    fn discovery_failure_retains_only_its_target_last_success() -> TestResult {
+        let store = CatalogSnapshotStore::default();
+        let first_target = target("credential-a")?;
+        let second_target = target("credential-b")?;
+        let first_snapshot = store.record_success(
+            first_target.clone(),
+            discovered_models(&["credential-a-model"])?,
+            10_000,
+        )?;
+        let second_snapshot = store.record_success(
+            second_target.clone(),
+            discovered_models(&["credential-b-model"])?,
+            10_000,
+        )?;
+
+        assert_eq!(
+            store.retain_last_success_on_failure(&first_target)?,
+            Some(first_snapshot.clone())
+        );
+        assert_eq!(store.last_success(&second_target)?, Some(second_snapshot));
+
+        let replacement = store.record_success(
+            first_target.clone(),
+            discovered_models(&["credential-a-next-model"])?,
+            10_001,
+        )?;
+        assert_eq!(replacement.version(), 2);
+        assert_eq!(
+            model_names(replacement.models()),
+            vec!["credential-a-next-model"]
+        );
+        assert_eq!(
+            model_names(
+                store
+                    .last_success(&second_target)?
+                    .ok_or_else(|| std::io::Error::other("second target unexpectedly absent"))?
+                    .models(),
+            ),
+            vec!["credential-b-model"]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn successful_empty_catalog_is_retained_without_inventing_removal_semantics() -> TestResult {
+        let store = CatalogSnapshotStore::default();
+        let catalog_target = target("credential-a")?;
+        let snapshot = store.record_success(catalog_target.clone(), Vec::new(), 10_000)?;
+
+        assert!(snapshot.models().is_empty());
+        assert_eq!(snapshot.version(), 1);
+        assert_eq!(
+            store
+                .status_at(&catalog_target, 10_000)?
+                .map(|status| status.freshness()),
+            Some(CatalogSnapshotFreshness::Fresh)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn catalog_snapshot_rejects_invalid_or_non_monotonic_times_without_replacing_success()
+    -> TestResult {
+        assert_eq!(
+            CatalogFreshnessPolicy::try_new(0, 1, 2),
+            Err(CatalogSnapshotError::FreshDurationNotPositive)
+        );
+        assert_eq!(
+            CatalogFreshnessPolicy::try_new(2, 1, 3),
+            Err(CatalogSnapshotError::RefreshDueBeforeFresh)
+        );
+        assert_eq!(
+            CatalogFreshnessPolicy::try_new(1, 2, 2),
+            Err(CatalogSnapshotError::ExpiryNotAfterRefreshDue)
+        );
+
+        let store = CatalogSnapshotStore::default();
+        let catalog_target = target("credential-a")?;
+        assert_eq!(
+            store.record_success(catalog_target.clone(), discovered_models(&["model"])?, -1,),
+            Err(CatalogSnapshotError::TimestampBeforeUnixEpoch)
+        );
+        assert_eq!(
+            store.record_success(
+                catalog_target.clone(),
+                discovered_models(&["model"])?,
+                i64::MAX,
+            ),
+            Err(CatalogSnapshotError::TimestampOverflow)
+        );
+
+        let retained = store.record_success(
+            catalog_target.clone(),
+            discovered_models(&["first-model"])?,
+            10_000,
+        )?;
+        assert_eq!(
+            retained.freshness_at(9_999),
+            Err(CatalogSnapshotError::ClockBeforeSnapshot)
+        );
+        assert_eq!(
+            store.record_success(
+                catalog_target.clone(),
+                discovered_models(&["older-model"])?,
+                9_999,
+            ),
+            Err(CatalogSnapshotError::TimestampNotMonotonic)
+        );
+        assert_eq!(store.last_success(&catalog_target)?, Some(retained));
         Ok(())
     }
 }

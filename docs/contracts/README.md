@@ -54,4 +54,5 @@ P3-09 已建立 [BC-E2E-001 Controlled Mock HTTP aggregation E2E](BC-E2E-001-con
 P3-10 已建立 [BC-E2E-002 Authorized real-test Endpoint validation](BC-E2E-002-authorized-real-test-endpoint-validation.md)。
 P4-00 已建立 [BC-DELIVERY-001 Delivery gates and authorized single-probe diagnostic](BC-DELIVERY-001-delivery-gates-and-single-probe-diagnostic.md)。
 P4-01 已建立 [BC-CATALOG-001 Endpoint-Credential Model Catalog discovery singleflight](BC-CATALOG-001-endpoint-credential-catalog-singleflight.md)。
+P4-02 已建立 [BC-DELIVERY-002 Cache-visible delivery and supplemental supply-chain split](BC-DELIVERY-002-cache-visible-delivery-and-supply-chain-split.md) 与 [BC-CATALOG-002 CatalogSnapshot freshness and last-success fallback](BC-CATALOG-002-catalog-snapshot-freshness-and-last-success-fallback.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。

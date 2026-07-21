@@ -28,6 +28,10 @@
 - [G2 阶段门禁报告](g2-gate-report.md)
 - [G3 阶段门禁报告](g3-gate-report.md)
 
+## 进行中任务
+
+- [P4-02 CatalogSnapshot freshness and last-success fallback report](p4-02-catalog-snapshot-freshness.md)
+
 ## 已完成任务
 
 - [P1-01 Request context and errors report](p1-01-request-context-errors.md)

@@ -26,9 +26,11 @@ required_fragments = [
   "./scripts/classify-ci-change.sh",
   "./scripts/check.sh docs",
   "./scripts/check.sh fast",
-  "./scripts/check.sh full",
+  "./scripts/check.sh supply-chain",
   "./scripts/install-quality-tools.sh",
   "actions/cache@5a3ec84eff668545956fd18022155c47e93e2684",
+  "id: quality-tool-cache",
+  "GITHUB_STEP_SUMMARY",
   "tools/quality-tool-versions.env",
   "rustup toolchain install 1.97.1",
 ]

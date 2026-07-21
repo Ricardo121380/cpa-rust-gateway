@@ -81,8 +81,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes clang cmake ripgrep
       - name: Install pinned Rust toolchain
-        run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
+        run: rustup toolchain install 1.97.1 --profile minimal
       - name: Restore pinned quality-tool cache
+        id: quality-tool-cache
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: |
@@ -93,8 +94,18 @@ jobs:
           key: quality-tools-${{ runner.os }}-rust-1.97.1-${{ hashFiles('tools/quality-tool-versions.env') }}
       - name: Install pinned quality tools
         run: ./scripts/install-quality-tools.sh
-      - name: Run full gate
-        run: ./scripts/check.sh full
+      - name: Summarize quality-tool cache
+        env:
+          CACHE_HIT: ${{ steps.quality-tool-cache.outputs.cache-hit }}
+        run: |
+          {
+            printf '%s\n' '## Pinned quality-tool cache'
+            printf '\n'
+            printf '%s\n' "- Cache hit: \`${CACHE_HIT:-false}\`"
+            printf '%s\n' '- Warm-install operational target: `<= 10 seconds` (hard ceiling: `<= 90 seconds`).'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Run supplemental supply-chain gate
+        run: ./scripts/check.sh supply-chain
 
   required:
     name: Required delivery gate
