@@ -6,24 +6,25 @@
 | Gate | `G5` |
 | Date | `2026-07-22` |
 | Verification branch | `codex/p5-anthropic` |
-| Local closeout target | This report's reviewed commit; `phase-p5-complete` is pending creation |
+| Local closeout target | `33a946a65708ad792f787467f94bf08658b4af81`; annotated tag `phase-p5-complete` |
 | Local result | `PASS` |
-| Remote delivery status | `PENDING`; no P5 Task is `DONE` and P6 remains out of scope until the tag's Fast, Full, and Required jobs pass |
+| Remote delivery status | `PASS`; [GitHub Actions 29864915127](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29864915127) accepted the tag SHA with Fast, Full supply-chain, and Required |
 
 ## Conclusion
 
-P5-01 through P5-08 have independently committed local evidence and are accepted only as
-`LOCAL_PASS_PENDING_PHASE_GATE`. The Phase review confirms the intended P5 boundary: Anthropic
+P5-01 through P5-08 have independently committed local evidence and are now `DONE`: the
+`phase-p5-complete` tag Gate accepted closeout SHA `33a946a65708ad792f787467f94bf08658b4af81`.
+The Phase review confirms the intended P5 boundary: Anthropic
 Messages decoding/encoding, exact count capability, Tool terminality, transform admission,
 Endpoint-format isolation, explicit semantic projection, and Claude Code client compatibility all
 remain bounded by synthetic fixtures or a loopback-only client. No P5 task implements Provider
 transport, reads real Provider credentials, sends real Provider traffic, changes a database, or
 starts P6.
 
-The remaining acceptance action is deliberately singular: push the Phase branch, create and push
-annotated tag `phase-p5-complete` at this reviewed closeout target, then accept only the tag SHA's
-GitHub Fast, Full supply-chain, and Required delivery results. The ordinary branch push has no
-automatic CI trigger and is not delivery evidence.
+The acceptance action was deliberately singular. The Phase branch was pushed for reachability,
+then annotated tag `phase-p5-complete` triggered exactly one classified code delivery run. GitHub
+accepted the tag SHA: Fast passed in 3m01s, Full supply-chain passed in 43s, and Required passed in
+4s. The ordinary branch push had no automatic CI trigger and is not counted as delivery evidence.
 
 ## G5 conditions and local evidence
 
@@ -39,8 +40,8 @@ automatic CI trigger and is not delivery evidence.
 ## Phase review
 
 - Reviewed P5-01 through P5-08 reports, their indexed ADR/Contract entries, the P5 plan matrix,
-  and the traceability links. Every normal P5 task is independently committed and remains
-  `LOCAL_PASS_PENDING_PHASE_GATE`; P5-00 is the already accepted delivery-infrastructure
+  and the traceability links. Every normal P5 task is independently committed and is `DONE` after
+  the tag Gate; P5-00 is the already accepted delivery-infrastructure
   exception and does not claim Anthropic feature behavior.
 - Reviewed the Phase diff and crate boundaries. `protocol-anthropic` remains protocol-pure;
   `gateway-stream`'s new `proptest` edge is a documented development dependency only; no HTTP,
@@ -55,15 +56,15 @@ automatic CI trigger and is not delivery evidence.
   tracked Secret scan, pinned dependency policy, and RustSec audit. Its intentional ignored
   real-provider/diagnostic targets remained ignored.
 
-## Delivery procedure and boundary
+## Delivery record and boundary
 
-The P5-00 delivery contract requires exactly one normal remote event. The Phase branch will be
-pushed for reachability only, then the annotated tag will be pushed to trigger classified code
-delivery. The tag run must restore the default-ref quality-tool cache or record a safe miss,
-version-check pinned tools, and pass Fast, Full supply-chain, and Required. A pull request is not
-opened for this closeout because it would add an extra CI event contrary to the Phase-level delivery
-contract.
+The P5-00 delivery contract requires exactly one normal remote event. Its tag run restored the
+default-ref key `quality-tools-Linux-rust-1.97.1-6c77927386864b14a70fbd4b3993fbca77817a4e79756de7e1630982c2584144`
+as a cache hit, verified `cargo-deny 0.20.2` and `cargo-audit 0.22.2` without reinstalling them,
+and passed Fast, Full supply-chain, and Required. The cache hit accelerated tool setup but did not
+replace any quality or supply-chain check.
 
-If the tag gate fails, P5 remains frozen; the earliest failing P5 commit must be repaired and a new
-reviewed closeout tag target produced. This report does not authorize P6, a merge, a deployment, a
-server change, or a real Provider request.
+No pull request was opened for this closeout because it would add an extra CI event contrary to the
+Phase-level delivery contract. P6 is eligible to start only on a later explicit instruction; this
+report does not itself start P6, merge the Phase branch, deploy, change a server, or send a real
+Provider request.

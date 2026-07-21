@@ -5,7 +5,7 @@
 | Contract | `BC-PROTOCOL-003` |
 | Task | `P5-02` |
 | ADR | [ADR-0035](../adr/ADR-0035-exact-token-count-capability.md) |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Domain | Anthropic `count_tokens` admission and exact Provider capability |
 
 ## Boundary

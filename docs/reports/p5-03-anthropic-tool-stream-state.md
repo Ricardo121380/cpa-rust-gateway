@@ -6,7 +6,7 @@
 | Task | `P5-03` |
 | Date | `2026-07-22` |
 | Branch | `codex/p5-anthropic` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Scope / budget | `M`; pure response state, fixtures, property coverage, and documentation only |
 | References | Matrix `B12`, `B14-B16`; [ADR-0036](../adr/ADR-0036-anthropic-tool-stream-state.md); [BC-PROTOCOL-004](../contracts/BC-PROTOCOL-004-anthropic-tool-stream-state.md) |
 

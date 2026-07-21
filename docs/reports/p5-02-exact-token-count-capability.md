@@ -6,7 +6,7 @@
 | Task | `P5-02` |
 | Date | `2026-07-22` |
 | Branch | `codex/p5-anthropic` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Scope / budget | `M`; Canonical count contract, explicit Provider capability, Router seam, and one Anthropic HTTP route only |
 | References | Matrix `A08`, `B22`, `B25`; [ADR-0035](../adr/ADR-0035-exact-token-count-capability.md); [BC-PROTOCOL-003](../contracts/BC-PROTOCOL-003-exact-token-count-capability.md) |
 

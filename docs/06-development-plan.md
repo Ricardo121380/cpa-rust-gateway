@@ -7,8 +7,8 @@
 | 计划版本 | `v1.9` |
 | 生效日期 | `2026-07-21` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP` 与 `P4 - Catalog、Health、Quota、Explain、观测` 已完成；`P5 - Anthropic/Claude Code 兼容` 已完成本地收口，等待 G5 的唯一远端 Delivery Gate。 |
-| 当前任务 | `G5`：执行 P5 本地收口 review 与唯一远端 Fast + Full Delivery Gate。 |
+| 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP`、`P4 - Catalog、Health、Quota、Explain、观测` 与 `P5 - Anthropic/Claude Code 兼容` 已完成；`P6 - Grok Build` 保持未开始。 |
+| 当前任务 | P5 已完成；`P6-01` 保持 `PENDING`，等待用户明确启动。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -592,7 +592,7 @@ deploy/
 | P2 | 聚合控制面、Secret、RouteSnapshot | G1 | G2 | DONE |
 | P3 | OpenAI Responses 聚合 MVP | G2 | G3 | DONE |
 | P4 | Catalog、Health、Quota、Explain、观测 | G3 | G4 | DONE |
-| P5 | Anthropic/Claude Code 兼容 | G4 | G5 | LOCAL_PASS_PENDING_PHASE_GATE |
+| P5 | Anthropic/Claude Code 兼容 | G4 | G5 | DONE |
 | P6 | Grok Build | G5 | G6 | PENDING |
 | P7 | Kiro IDE/CLI | G6 | G7 | PENDING |
 | P8 | Grok Official | G7 | G8 | PENDING |
@@ -764,14 +764,14 @@ operator 授权后才可发送一条真实请求，不能回溯或重跑 P3-10�
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
 | P5-00 | 落实 `CR-EXEC-007`：P 级 delivery trigger/default-ref cache seed/tag restore 与提前远端例外验证 | G4 | workflow/计划守卫、本地 full、一次提前 GitHub Gate、tag cache hit/miss 与 fail-closed 证据 | DONE |
-| P5-01 | 实现 Anthropic Messages 入站、非流式和 SSE 出站 Adapter | P5-00 | Anthropic Fixture 与事件快照 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P5-02 | 实现 `count_tokens` Canonical 路由和 Provider Capability；无准确能力时明确拒绝 | P5-01 | 准确路径和 Unsupported 测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P5-03 | 完成 Tool 增量 JSON、并行 Tool、空参数、必填参数和 ID 映射状态机 | P5-01 | 1-byte Chunk 属性测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P5-04 | 实现 Pass-through/Canonical/Lossless Bridge 能力分析器 | P5-01,P3-01 | 字段/Tool/Reasoning 不可损转换矩阵 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P5-05 | 支持同一 Upstream 的 Responses 与 Anthropic 独立 Endpoint/健康/熔断 | P5-04 | 单协议故障隔离 E2E | LOCAL_PASS_PENDING_PHASE_GATE |
-| P5-06 | 实现 Thinking、Stop Reason、Usage、Cache 字段和响应模型回写 | P5-01 | 协议对照 Fixture | LOCAL_PASS_PENDING_PHASE_GATE |
-| P5-07 | 建立 Claude Code `--bare` 最小 E2E 和 Plan Mode 回归 | P5-03-P5-06 | 真实客户端脱敏日志 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P5-08 | 加入未知字段、畸形流、截断 Tool 和取消 Fuzz/Property Test | P5-03 | 固定 Corpus 和无 Panic 报告 | LOCAL_PASS_PENDING_PHASE_GATE |
+| P5-01 | 实现 Anthropic Messages 入站、非流式和 SSE 出站 Adapter | P5-00 | Anthropic Fixture 与事件快照 | DONE |
+| P5-02 | 实现 `count_tokens` Canonical 路由和 Provider Capability；无准确能力时明确拒绝 | P5-01 | 准确路径和 Unsupported 测试 | DONE |
+| P5-03 | 完成 Tool 增量 JSON、并行 Tool、空参数、必填参数和 ID 映射状态机 | P5-01 | 1-byte Chunk 属性测试 | DONE |
+| P5-04 | 实现 Pass-through/Canonical/Lossless Bridge 能力分析器 | P5-01,P3-01 | 字段/Tool/Reasoning 不可损转换矩阵 | DONE |
+| P5-05 | 支持同一 Upstream 的 Responses 与 Anthropic 独立 Endpoint/健康/熔断 | P5-04 | 单协议故障隔离 E2E | DONE |
+| P5-06 | 实现 Thinking、Stop Reason、Usage、Cache 字段和响应模型回写 | P5-01 | 协议对照 Fixture | DONE |
+| P5-07 | 建立 Claude Code `--bare` 最小 E2E 和 Plan Mode 回归 | P5-03-P5-06 | 真实客户端脱敏日志 | DONE |
+| P5-08 | 加入未知字段、畸形流、截断 Tool 和取消 Fuzz/Property Test | P5-03 | 固定 Corpus 和无 Panic 报告 | DONE |
 
 `P5-00` 是 P5 的交付流程前置项，不交付 Anthropic 功能，也不因本计划更新自动开始 P5。它是
 `CR-EXEC-007` 的窄提前远端例外：必须先在 `codex/p5-anthropic` 上证明 GitHub 的实际 trigger、
@@ -779,8 +779,8 @@ required-status 与 tag cache 行为，之后 P5-01 至 P5-08 恢复“Task 本�
 
 ### G5 门禁
 
-状态：`LOCAL_PASS_PENDING_PHASE_GATE`；P5-01 至 P5-08 已完成本地 review/验收，尚未通过
-`phase-p5-complete` 的唯一远端 Fast + Full Delivery Gate。
+状态：`DONE`；P5-01 至 P5-08 的本地 review/验收和 `phase-p5-complete` 的唯一远端
+Fast、Full supply-chain、Required Delivery Gate 均已通过。
 
 - Claude Code 普通对话、普通 Tool、并行 Tool、Plan Mode 全部通过。
 - 无参数 Tool 补 `{}`；非空未闭合 JSON 必须明确失败。

@@ -6,7 +6,7 @@
 | Task | `P5-05` |
 | Date | `2026-07-22` |
 | Branch | `codex/p5-anthropic` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Scope / budget | `M`; compiler-to-Snapshot Endpoint format propagation and native routing isolation |
 | References | Matrix `L08`, `L21`, `L22`, `L40`; [ADR-0038](../adr/ADR-0038-endpoint-format-isolated-protocol-routing.md); [BC-ROUTER-005](../contracts/BC-ROUTER-005-endpoint-format-isolated-protocol-routing.md) |
 

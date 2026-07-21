@@ -6,7 +6,7 @@
 | Task | `P5-06` |
 | Date | `2026-07-22` |
 | Branch | `codex/p5-anthropic` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Scope / budget | `M`; explicit Thinking/stop/Usage-cache semantics and one authenticated Messages HTTP route; no Provider network implementation |
 | References | Matrix `A07`, `B09`, `B23-B26`, `F01-F04`, `F09-F11`; [ADR-0039](../adr/ADR-0039-anthropic-semantic-http-boundary.md); [BC-PROTOCOL-005](../contracts/BC-PROTOCOL-005-anthropic-semantic-http-boundary.md) |
 

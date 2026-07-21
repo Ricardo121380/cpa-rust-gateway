@@ -5,7 +5,7 @@
 | Contract | `BC-PROTOCOL-002` |
 | Task | `P5-01` |
 | ADR | [ADR-0034](../adr/ADR-0034-anthropic-messages-pure-codec.md) |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Domain | Anthropic Messages protocol codec |
 
 ## Boundary

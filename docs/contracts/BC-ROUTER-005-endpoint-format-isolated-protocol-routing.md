@@ -5,7 +5,7 @@
 | Contract | `BC-ROUTER-005` |
 | Task | `P5-05` |
 | ADR | [ADR-0038](../adr/ADR-0038-endpoint-format-isolated-protocol-routing.md) |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Domain | Immutable Endpoint protocol identity and native Attempt selection |
 
 ## Boundary

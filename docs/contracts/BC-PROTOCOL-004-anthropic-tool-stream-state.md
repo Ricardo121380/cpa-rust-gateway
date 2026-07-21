@@ -5,7 +5,7 @@
 | Contract | `BC-PROTOCOL-004` |
 | Task | `P5-03` |
 | ADR | [ADR-0036](../adr/ADR-0036-anthropic-tool-stream-state.md) |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Domain | Canonical Tool events to Anthropic Message and SSE output |
 
 ## Boundary

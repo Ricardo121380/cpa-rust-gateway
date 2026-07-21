@@ -6,7 +6,7 @@
 | Task | `P5-08` |
 | Date | `2026-07-22` |
 | Branch | `codex/p5-anthropic` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Scope / budget | `M`; deterministic adversarial test evidence only; no production protocol or Provider behavior change |
 | Execution channel | Current default model, `medium`; fallback: Luna is unavailable in this execution surface. No subagent was used because test assertions span protocol terminality and shared cancellation semantics. |
 | References | Matrix `B09`, `B12-B16`, `B25`, `B27-B28`; [ADR-0041](../adr/ADR-0041-deterministic-anthropic-adversarial-evidence.md); [BC-PROTOCOL-006](../contracts/BC-PROTOCOL-006-anthropic-adversarial-stream-safety.md) |

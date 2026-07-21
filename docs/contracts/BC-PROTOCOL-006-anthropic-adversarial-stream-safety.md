@@ -5,7 +5,7 @@
 | Contract | `BC-PROTOCOL-006` |
 | Task | `P5-08` |
 | ADR | [ADR-0041](../adr/ADR-0041-deterministic-anthropic-adversarial-evidence.md) |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Domain | Deterministic adversarial evidence for retained Anthropic input, Tool terminality, and cancellation |
 
 ## Preconditions and bounds

@@ -6,7 +6,7 @@
 | Task | `P5-04` |
 | Date | `2026-07-22` |
 | Branch | `codex/p5-anthropic` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Scope / budget | `S`; pure Router admission analyzer, unit matrix, and documentation only |
 | References | Matrix `A07`, `B24-B28`, `F01-F04`, `L08`, `L21-L22`, `L40`; [ADR-0037](../adr/ADR-0037-protocol-transform-admission.md); [BC-ROUTER-004](../contracts/BC-ROUTER-004-protocol-transform-admission.md) |
 

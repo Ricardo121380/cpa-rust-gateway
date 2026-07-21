@@ -5,7 +5,7 @@
 | Contract | `BC-E2E-003` |
 | Task | `P5-07` |
 | ADR | [ADR-0040](../adr/ADR-0040-claude-code-loopback-client-boundary.md) |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Domain | Explicit local Claude Code client compatibility at the Anthropic HTTP boundary |
 
 ## Preconditions and containment

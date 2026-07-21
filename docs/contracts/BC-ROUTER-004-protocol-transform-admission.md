@@ -5,7 +5,7 @@
 | Contract | `BC-ROUTER-004` |
 | Task | `P5-04` |
 | ADR | [ADR-0037](../adr/ADR-0037-protocol-transform-admission.md) |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Domain | Router-local admission of OpenAI Responses / Anthropic Messages transform Candidates |
 
 ## Boundary

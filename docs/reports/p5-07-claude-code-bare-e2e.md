@@ -6,7 +6,7 @@
 | Task | `P5-07` |
 | Date | `2026-07-22` |
 | Branch | `codex/p5-anthropic` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Scope / budget | `M`; Claude Code compatibility admission and isolated local E2E only |
 | Execution channel | Current default model, `medium`; fallback: Luna is unavailable in this execution surface. No subagent was used because the change affects the public authentication boundary and requires one accountable review. |
 | References | Matrix `A07`, `B09-B16`, `B25-B28`; [ADR-0040](../adr/ADR-0040-claude-code-loopback-client-boundary.md); [BC-E2E-003](../contracts/BC-E2E-003-claude-code-loopback-bare-compatibility.md) |

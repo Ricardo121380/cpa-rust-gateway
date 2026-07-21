@@ -5,7 +5,7 @@
 | Contract | `BC-PROTOCOL-005` |
 | Task | `P5-06` |
 | ADR | [ADR-0039](../adr/ADR-0039-anthropic-semantic-http-boundary.md) |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Domain | Anthropic Messages semantic codec and HTTP boundary |
 
 ## Boundary

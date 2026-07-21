@@ -6,7 +6,7 @@
 | Task | `P5-01` |
 | Date | `2026-07-22` |
 | Branch | `codex/p5-anthropic` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Scope / budget | `M`; pure codec, fixtures, and documentation only |
 | References | Matrix `A07`, `B04`, `B09`, `B11`, `B13`, `B25`, `B27`; [ADR-0034](../adr/ADR-0034-anthropic-messages-pure-codec.md); [BC-PROTOCOL-002](../contracts/BC-PROTOCOL-002-anthropic-messages-adapter.md) |
 
