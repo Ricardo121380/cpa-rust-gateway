@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.10` |
+| Plan version | `v1.11` |
 | Task | `P6-03` |
 | Date | `2026-07-22` |
 | Branch | `codex/p6-grok-build` |
@@ -41,7 +41,7 @@ allowlist.
 | Command / review | Result |
 |---|---|
 | `cargo test --locked -p provider-grok --test p6_03_build_responses` | PASS; 6 synthetic request, egress, chunk-equivalence, bounded-error, duplicate/truncation/atomicity, Tool-normalization/metadata, and terminal-item-set tests passed. |
-| `cargo test --locked -p provider-grok --test p6_03_authorized_build_probe` | PASS; 5 no-network authorization/configuration/redaction tests passed; the sole live test remains ignored without explicit authorization. |
+| `cargo test --locked -p provider-grok --test p6_03_authorized_build_probe` | PASS; 6 no-network authorization/configuration/redaction tests passed, including safe body-taxonomy redaction; the sole live test remains ignored without explicit authorization. |
 | `cargo clippy --locked -p provider-grok --all-targets --all-features -- -D warnings` | PASS. |
 | `cargo fmt --all -- --check` and `git diff --check` | PASS. |
 | `ruby scripts/check-crate-boundaries.rb` | PASS; 21-package dependency direction remains valid; no Provider-to-Provider import exists. |
@@ -56,11 +56,11 @@ record followed by malformed duplicate JSON cannot advance the retained decoder 
 
 ## Authorized validation matrix and stop boundary
 
-`CR-P6-03-001` records the user's 2026-07-22 approval to replace the former one-probe operational
-budget with a finite, documented matrix. No real Build request had been sent when this checkpoint
-was written. Before each request, the report will name a candidate label, mode, network profile,
-and safe result; the raw credential/model mapping remains in an ignored operator-controlled source
-and is neither pasted into chat nor committed.
+`CR-P6-03-001` was recorded before any real Build request and replaces the former one-probe
+operational budget with a finite, documented matrix. T1-T8's redacted outcomes appear below.
+Before each further request, the report names a candidate label, mode, network profile, and safe
+result; the raw credential/model mapping remains in an ignored operator-controlled source and is
+neither pasted into chat nor committed.
 
 | Matrix dimension | Fixed boundary |
 |---|---|
@@ -80,16 +80,22 @@ identified from a read-only static CPA model catalog; `build-code-fast-01` is th
 Build-model candidate. `direct` means no explicit proxy in the harness; `socks5` means the already
 configured local SOCKS profile, without changing any proxy or TUN setting.
 
-| Tuple | Candidate label | Mode | Network profile | Pre-send status |
+| Tuple | Candidate label | Mode | Network profile | Outcome |
 |---|---|---|---|---|
-| `T1` | `build-static-01` | `non_streaming` | `direct` | pending |
-| `T2` | `build-static-01` | `sse` | `direct` | pending |
-| `T3` | `build-static-01` | `non_streaming` | `socks5` | pending |
-| `T4` | `build-static-01` | `sse` | `socks5` | pending |
-| `T5` | `build-code-fast-01` | `non_streaming` | `direct` | pending |
-| `T6` | `build-code-fast-01` | `sse` | `direct` | pending |
-| `T7` | `build-code-fast-01` | `non_streaming` | `socks5` | pending |
-| `T8` | `build-code-fast-01` | `sse` | `socks5` | pending |
+| `T1` | `build-static-01` | `non_streaming` | `direct` | stopped: `response_protocol_failed` (6s) |
+| `T2` | `build-static-01` | `sse` | `direct` | stopped: `response_protocol_failed` (4s) |
+| `T3` | `build-static-01` | `non_streaming` | `socks5` | stopped: `response_protocol_failed` (4s) |
+| `T4` | `build-static-01` | `sse` | `socks5` | stopped: `response_protocol_failed` (3s) |
+| `T5` | `build-code-fast-01` | `non_streaming` | `direct` | stopped: `response_protocol_failed` (5s) |
+| `T6` | `build-code-fast-01` | `sse` | `direct` | stopped: `response_protocol_failed` (3s) |
+| `T7` | `build-code-fast-01` | `non_streaming` | `socks5` | stopped: `response_protocol_failed` (4s) |
+| `T8` | `build-code-fast-01` | `sse` | `socks5` | stopped: `response_protocol_failed` (3s) |
+| `T9-DIAG` | `build-static-01` | `non_streaming` | `socks5` | pending; `CR-P6-03-002` one-time safe response taxonomy only |
+
+T1-T8's same quick response category across both direct and SOCKS5 profiles rules out a timeout or
+egress-admission failure for this matrix, but intentionally does not yet attribute the cause. The
+single T9-DIAG request is the only planned re-observation of an otherwise identical candidate/mode/
+network combination; it is a protocol classification, not a functional retry.
 
 On any non-2xx, timeout, malformed response, redaction failure, or unexpected semantic terminal
 shape, that tuple ends without automatic retry/failover. The next distinct documented tuple may be
@@ -110,5 +116,5 @@ otherwise P6-04 remains pending.
 
 Rollback removes only the P6-03 module, synthetic fixtures/tests, and documentation. It requires
 no database migration, credential revocation, server restart, proxy/TUN cleanup, or external
-Provider action. The next allowed operation is the explicitly authorized P6-03 test-account
-validation; P6-04 remains pending.
+Provider action. The next allowed operation is the explicitly registered T9-DIAG classification;
+P6-04 remains pending.

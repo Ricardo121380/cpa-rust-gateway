@@ -149,6 +149,30 @@ enum ProbeError {
     InternalInvariant,
 }
 
+/// A response-body output category that carries no upstream field values.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SafeBodyShape {
+    ErrorLikeObject,
+    ResponseLikeObject,
+    OtherObject,
+    Array,
+    Scalar,
+    InvalidJson,
+}
+
+impl SafeBodyShape {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::ErrorLikeObject => "error_like_object",
+            Self::ResponseLikeObject => "response_like_object",
+            Self::OtherObject => "other_object",
+            Self::Array => "array",
+            Self::Scalar => "scalar",
+            Self::InvalidJson => "invalid_json",
+        }
+    }
+}
+
 impl ProbeError {
     const fn safe_outcome(self) -> &'static str {
         match self {
@@ -383,7 +407,7 @@ impl ProbeResponseShape {
 
 async fn execute_one_probe(probe: PreparedProbe) -> Result<(), ProbeError> {
     let PreparedProbe {
-        target_label: _,
+        target_label,
         mode,
         policy,
         profile,
@@ -404,9 +428,18 @@ async fn execute_one_probe(probe: PreparedProbe) -> Result<(), ProbeError> {
         .send(request, &profile)
         .await
         .map_err(|_| ProbeError::TransportFailed)?;
+    let status_class = safe_status_class(response.status());
+    let content_type = safe_content_type_class(&response, mode);
+    println!(
+        "p6-03 build probe response target={target_label} status_class={status_class} content_type={content_type}"
+    );
     if !(200..=299).contains(&response.status()) {
         let status = response.status();
         let body = read_bounded(&mut response, MAX_GROK_BUILD_ERROR_BODY_BYTES).await?;
+        println!(
+            "p6-03 build probe response target={target_label} body_shape={}",
+            safe_body_shape(&body).as_str()
+        );
         let envelope = GrokBuildResponsesHttpError::parse(status, &body)
             .map_err(|_| ProbeError::ResponseProtocolFailed)?;
         if envelope.status() != status {
@@ -426,6 +459,10 @@ async fn execute_one_probe(probe: PreparedProbe) -> Result<(), ProbeError> {
         ProbeMode::NonStreaming => {
             let body =
                 read_bounded(&mut response, MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES).await?;
+            println!(
+                "p6-03 build probe response target={target_label} body_shape={}",
+                safe_body_shape(&body).as_str()
+            );
             let decoded = GrokBuildResponsesDecoder::decode_non_streaming(&body)
                 .map_err(|_| ProbeError::ResponseProtocolFailed)?;
             let mut shape = ProbeResponseShape::default();
@@ -526,6 +563,37 @@ const fn safe_status_class(status: u16) -> &'static str {
     }
 }
 
+fn safe_content_type_class(response: &UpstreamHttpResponse, mode: ProbeMode) -> &'static str {
+    match response
+        .header("content-type")
+        .and_then(|value| value.to_str().ok())
+    {
+        Some(value) if value.starts_with(mode.expected_content_type()) => "expected",
+        Some(_) => "other",
+        None => "missing_or_invalid",
+    }
+}
+
+fn safe_body_shape(body: &[u8]) -> SafeBodyShape {
+    match serde_json::from_slice::<serde_json::Value>(body) {
+        Ok(serde_json::Value::Object(object)) if object.contains_key("error") => {
+            SafeBodyShape::ErrorLikeObject
+        }
+        Ok(serde_json::Value::Object(object)) if object.contains_key("output") => {
+            SafeBodyShape::ResponseLikeObject
+        }
+        Ok(serde_json::Value::Object(_)) => SafeBodyShape::OtherObject,
+        Ok(serde_json::Value::Array(_)) => SafeBodyShape::Array,
+        Ok(
+            serde_json::Value::Null
+            | serde_json::Value::Bool(_)
+            | serde_json::Value::Number(_)
+            | serde_json::Value::String(_),
+        ) => SafeBodyShape::Scalar,
+        Err(_) => SafeBodyShape::InvalidJson,
+    }
+}
+
 #[test]
 fn missing_authorization_stops_before_any_other_value_is_read() {
     let mut reads = Vec::new();
@@ -613,6 +681,29 @@ fn fixed_probe_payload_is_mode_specific_and_secret_safe() -> TestResult {
         }
     }
     Ok(())
+}
+
+#[test]
+fn safe_body_shape_retains_no_upstream_values() {
+    let private_body = br#"{
+        "error":{"message":"private upstream text","code":"private-code"},
+        "id":"private-response-id"
+    }"#;
+    let shape = safe_body_shape(private_body);
+    assert_eq!(shape, SafeBodyShape::ErrorLikeObject);
+    assert_eq!(shape.as_str(), "error_like_object");
+    for private_value in [
+        "private upstream text",
+        "private-code",
+        "private-response-id",
+    ] {
+        assert!(!shape.as_str().contains(private_value));
+    }
+    assert_eq!(
+        safe_body_shape(br#"{"output":[]}"#),
+        SafeBodyShape::ResponseLikeObject
+    );
+    assert_eq!(safe_body_shape(b"not-json"), SafeBodyShape::InvalidJson);
 }
 
 #[tokio::test]
