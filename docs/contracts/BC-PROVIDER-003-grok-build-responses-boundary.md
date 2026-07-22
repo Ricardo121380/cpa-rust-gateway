@@ -5,7 +5,7 @@
 | Contract | `BC-PROVIDER-003` |
 | Task | `P6-03` |
 | ADR | [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md) |
-| Status | `IN_PROGRESS` — local fixed-fixture evidence passed; authorized test-account validation is pending |
+| Status | `IN_PROGRESS` — local fixed-fixture evidence passed; finite authorized test-account validation is pending under `CR-P6-03-001` |
 | Domain | Fixed OAuth Build request, exact egress handoff, non-streaming/SSE decoding, and safe error syntax |
 
 ## Preconditions and bounds
@@ -20,9 +20,11 @@
 3. Non-streaming responses are at most 1 MiB; one error body and one complete SSE record are at
    most 64 KiB. A limit failure is an `UpstreamProtocolError`, not an unbounded buffering attempt.
 4. All fixtures and unit tests are synthetic. The ignored real-account boundary, when separately
-   approved, must receive an explicit opaque target label, one mode, a fixed request cap, explicit
-   network profile, exact egress policy, and operator-controlled credential source. It must not
-   infer any value from generic environment variables or `.env`.
+   approved, must receive an explicit opaque target label, one mode, a fixed one-request cap,
+   explicit network profile, exact egress policy, and operator-controlled credential source. A
+   broader authorization may schedule a finite, documented set of distinct model × mode tuples,
+   but each harness invocation remains one request and cannot automatically retry a tuple. It must
+   not infer any value from generic environment variables or `.env`.
 
 ## Required behavior
 

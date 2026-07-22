@@ -4,15 +4,15 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.9` |
-| 生效日期 | `2026-07-21` |
+| 计划版本 | `v1.10` |
+| 生效日期 | `2026-07-22` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP`、`P4 - Catalog、Health、Quota、Explain、观测` 与 `P5 - Anthropic/Claude Code 兼容` 已完成；`P6 - Grok Build` 已开始。 |
 | 当前任务 | `P6-03`：实现 Build Responses HTTP 请求、流和错误解析。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
-| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 |
+| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -405,6 +405,45 @@ CR-ID: CR-EXEC-007
 7. **完成语义。** `LOCAL_PASS_PENDING_PHASE_GATE` 是本地通过而非 `DONE`；Phase 唯一正式 Gate
    成功才把其中 Task 一并转为 `DONE`。任何本地或远端失败都回到最早受影响提交修复，不能用后续
    Task、Feature Flag 或报告文字掩盖。
+
+### 已批准 Change Request：CR-P6-03-001
+
+```text
+CR-ID: CR-P6-03-001
+原因: 用户于 2026-07-22 明确授权 P6-03 对指定 CPA OAuth 测试账号进行不受既有请求数/预算限制的
+      综合验证。为避免把该授权误解为无限重试或扩大操作面，需要把它收敛为有限、预先记录且可复核
+      的模型 × 模式验证矩阵。
+影响的 Task / Matrix ID / ADR: 仅 P6-03 的真实验证操作政策、报告和 BC-PROVIDER-003；覆盖 Matrix
+      `C28` 的固定 Build Responses 非流式与 SSE 兼容性。不改变公开 API、固定端点、Canonical 类型、
+      Provider 代码、OAuth 账户状态、P6-04+ 行为、服务器配置或代理/TUN 配置。
+兼容性与迁移影响: 无客户端、数据、数据库、部署或账号迁移。只使用一个由用户指定的 CPA OAuth
+      账号；凭据在内存中投影为严格 OAuth JSON，不写入磁盘、日志或 Git。
+测试与回滚变化: 在发送前记录有限的不同 `(模型候选, 模式, 网络配置)` 元组。每次 ignored harness
+      调用仍必须固定 `P6_03_MAX_EXTERNAL_REQUESTS=1`，只会调用一次 send；同一元组不得自动重试、
+      failover、刷新或循环。每个模型只测试 `non_streaming` 和 `sse`；遇到非 2xx、超时、协议/语义
+      错误或凭据不可用时，只记录脱敏类别并继续下一个不同元组。回滚为停止未执行元组并恢复此前的
+      单探针授权文案；不需要撤销 Provider、服务器或网络状态。
+用户批准: APPROVED，2026-07-22（“你自己决定，不限制次数方案，可以都测试”）
+计划版本变更: v1.10
+```
+
+### 1.12 P6-03 有限真实验证矩阵（CR-P6-03-001）
+
+1. **有限性优先。** “不限制次数”只取消历史的预算计数，不允许无界探测。开始前必须在 P6-03 报告中
+   列出候选模型、`non_streaming`/`sse` 两种模式、网络配置及停止条件；没有记录的元组不得发送。
+2. **一进程一请求。** 现有 ignored harness 的 `P6_03_MAX_EXTERNAL_REQUESTS=1` 不得放宽。不同元组
+   必须通过独立进程调用；同一 `(模型, 模式, 网络配置)` 元组最多一次，且不含自动重试、刷新、
+   candidate 选择、failover 或续接。
+3. **单账号、固定边界。** 仅使用用户指定的一个 CPA OAuth 账号，且仅访问 P6-03 固定
+   `https://cli-chat-proxy.grok.com/v1/responses` 端点。不得枚举其它认证文件、改变账号、服务器、
+   代理规则或 TUN 排除地址。
+4. **最小语义与安全记录。** 每请求固定 `Reply with exactly: ready`、32 token 上限和已验证的精确
+   Egress policy；报告只可记录候选标签、模式、网络配置、墙钟时间和脱敏的成功/失败类别，绝不记录
+   Token、OAuth JSON、私有模型映射、请求体或响应内容。
+5. **通过与停止。** 至少一个候选模型的固定端点非流式与 SSE 都得到有效 Canonical
+   `ResponseStart`、文本和 `ResponseEnd`（无 `StreamError`）才可让 P6-03 进入
+   `LOCAL_PASS_PENDING_PHASE_GATE`。所有候选均失败时保持 `IN_PROGRESS`/`BLOCKED` 并提交证据；
+   P6-04 在此之前不得开始。
 
 ### 已批准 Change Request：CR-P4-G4-001
 

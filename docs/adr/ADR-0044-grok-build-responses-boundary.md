@@ -50,8 +50,10 @@ Provider evolution.
   Tool completion cannot reach a downstream protocol adapter.
 - The response layer exposes safe error signals only. It does not claim that `401`, `403`, `429`,
   Billing, quota, or transient failures have an account-level meaning.
-- P6-03's real test-account validation remains separately authorized. No tracked file carries a
-  real credential, target-private model mapping, proxy profile, request body, or response data.
+- P6-03's real test-account validation remains separately authorized. Under `CR-P6-03-001`, it
+  may use a finite documented matrix, but each ignored-harness process still has exactly one send
+  and no tracked file carries a real credential, target-private model mapping, proxy profile,
+  request body, or response data.
 
 ## Alternatives considered
 

@@ -2,13 +2,13 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.9` |
+| Plan version | `v1.10` |
 | Task | `P6-03` |
 | Date | `2026-07-22` |
 | Branch | `codex/p6-grok-build` |
-| Status | `IN_PROGRESS` — local implementation/review pass; dedicated authorized test-account validation remains required |
-| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract; no account-state, quota, cache, continuity, server, or real-traffic scope |
-| Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, and redacted error signals only. Prohibited: cross-Provider imports, socket/proxy/TUN mutation, status remediation, persistent state, or P6-04+ behavior. |
+| Status | `IN_PROGRESS` — local implementation/review pass; finite authorized test-account validation under `CR-P6-03-001` remains required |
+| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-001` authorizes a finite live model × mode matrix using one named CPA OAuth account; no account-state, quota, cache, continuity, server, or P6-04+ scope. |
+| Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, and a finite one-send-per-process live matrix. Prohibited: cross-Provider imports, socket/proxy/TUN mutation, status remediation, persistent state, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |
 | References | Matrix `C28`; Behavior 4/5/12; [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md); [BC-PROVIDER-003](../contracts/BC-PROVIDER-003-grok-build-responses-boundary.md) |
 
@@ -54,18 +54,30 @@ declared Tool name, and a terminal response cannot omit an already completed ite
 item `in_progress`. The review also strengthened the atomicity test: a chunk containing a valid
 record followed by malformed duplicate JSON cannot advance the retained decoder state.
 
-## Pending authorized validation and stop boundary
+## Authorized validation matrix and stop boundary
 
-No real Build request has been sent. P6-03 cannot become
-`LOCAL_PASS_PENDING_PHASE_GATE`, and P6-04 must not start, until an operator explicitly authorizes
-a dedicated test-account probe. The authorization must state the opaque target label, chosen mode
-(`non_streaming` or `sse`), exact maximum external-request count, network profile, and stop
-condition. The credential/model mapping must stay in an ignored operator-controlled location; it
-must not be pasted into chat, committed, or recovered from prior P3 authorization.
+`CR-P6-03-001` records the user's 2026-07-22 approval to replace the former one-probe operational
+budget with a finite, documented matrix. No real Build request had been sent when this checkpoint
+was written. Before each request, the report will name a candidate label, mode, network profile,
+and safe result; the raw credential/model mapping remains in an ignored operator-controlled source
+and is neither pasted into chat nor committed.
+
+| Matrix dimension | Fixed boundary |
+|---|---|
+| Account | One user-specified CPA OAuth account only |
+| Endpoint | Fixed `https://cli-chat-proxy.grok.com/v1/responses` only |
+| Candidate modes | `non_streaming`, then `sse` for each static candidate |
+| Per-invocation cap | `P6_03_MAX_EXTERNAL_REQUESTS=1`; the ignored harness has exactly one send |
+| Duplicate behavior | No automatic retry, refresh, failover, candidate selection, or repeat of an identical tuple |
+| Request / limit | Fixed `Reply with exactly: ready`; `max_output_tokens=32` |
+| Forbidden operations | Account/server mutation, auth-directory enumeration, proxy/TUN configuration change, P6-04/P6-07 policy change |
+| Evidence | Candidate label/category, mode, network profile, elapsed time, and redacted outcome only |
 
 On any non-2xx, timeout, malformed response, redaction failure, or unexpected semantic terminal
-shape, the probe stops without automatic retry/failover and without modifying proxy/TUN settings or
-P6-04/P6-07 policy. Only a safe outcome category may be recorded in this report.
+shape, that tuple ends without automatic retry/failover. The next distinct documented tuple may be
+tested. P6-03 can enter `LOCAL_PASS_PENDING_PHASE_GATE` only after one candidate completes both
+fixed-endpoint modes with the required Canonical start/text/end semantic shape and no stream error;
+otherwise P6-04 remains pending.
 
 ## Timing and next task
 
