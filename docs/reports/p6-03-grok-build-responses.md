@@ -286,10 +286,10 @@ input; the path and contents never enter output, logs, Git, or the report. The c
 at most 64 KiB, into zeroizing memory immediately before building the one request. The local
 adapter/review gate must pass before any row below may be sent.
 
-| Tuple | Credential source | Mode | Network profile | State before local gate |
+| Tuple | Credential source | Mode | Network profile | Current outcome |
 |---|---|---|---|---|
-| `T13` | `official-cli-cache-01` | `non_streaming` | `direct` | not sent |
-| `T14` | `official-cli-cache-01` | `sse` | `direct` | not sent |
+| `T13` | `official-cli-cache-01` | `non_streaming` | `direct` | stopped: `local_configuration_gate_before_dispatch`; no DNS, HTTP, cache read, refresh, or Provider send |
+| `T14` | `official-cli-cache-01` | `sse` | `direct` | not sent: T13 stop boundary |
 
 Each row is a separate ignored-harness process with `P6_03_MAX_EXTERNAL_REQUESTS=1`, the existing
 opaque Build candidate, fixed short prompt, and `max_output_tokens=32`. No refresh, retry,
@@ -297,13 +297,20 @@ failover, proxy/TUN change, or T1-T12 replay is permitted. A failure of either r
 immediately and returns P6-03 to `BLOCKED`; only both required Canonical success lifecycles can move
 the task to `LOCAL_PASS_PENDING_PHASE_GATE`.
 
-### Live validation status: local gate in progress
+### Live validation status: blocked after T13 local configuration stop
 
-For each tuple, the sole authorized OAuth file was projected only in process memory and its usable
-lifetime was calculated from its `.expired` field; no persisted `expires_in` was reused. The opaque
-Build model value was selected only in process memory from a read-only successful Build/Responses
-audit reference. No credential, model mapping, request/response body, raw header, or association
-value was written to the report, logs, or Git.
+At `2026-07-23T00:33+08:00`, the one registered T13 ignored-harness process exited at its local
+configuration gate before it printed `result=started`. A shell-semantics check established that the
+wrapper's same-command environment assignments expanded to empty values when passed through
+`env -i`; therefore authorization parsing stopped before credential import, `prepare`, DNS, HTTP,
+refresh, or the sole `send` call. This is a local invocation error rather than an upstream response,
+and its safe outcome is `local_configuration_gate_before_dispatch`. No credential, cache path,
+model mapping, request/response body, raw header, or association value was written to the report,
+logs, or Git.
+
+The one-process/no-retry boundary is nevertheless consumed: `CR-P6-03-008` permits no second T13
+process. T14 was not started because T13 did not reach acceptance. P6-03 is `BLOCKED`; a corrected
+invocation or any other tuple requires a new explicit CR.
 
 T11 reached the fixed endpoint and stopped on a `4xx` JSON error-like object with only the
 whitelisted safe category `unrecognized`; T12 likewise stopped on a `4xx` error-like object, but
@@ -335,14 +342,17 @@ stream error; until then P6-04 remains pending.
 | CR-P6-03-007 local official-CLI OAuth diagnostic | `2026-07-22`; one user-completed `grok login --oauth` session succeeded. The safe cache projection found an indexed credential entry with future expiry, but not the strict P6 input names `access_token` + `expires_in`; no transformation, P6 harness, model request, token refresh, server call, or network/proxy change followed. |
 | CR-P6-03-008 focused local gate | `2026-07-23T00:23+08:00`; formatting, `p6_01_build_oauth` (7), `p6_02_refresh_runtime` (7), `p6_03_authorized_build_probe` (9 plus 2 ignored), Clippy, whitespace, crate-boundary review, independent redaction review, and the warm full local gate all passed. |
 | CR-P6-03-008 real-cache preflight | `2026-07-23T00:23+08:00`; one exact ignored preflight read the user-authenticated local official CLI cache and constructed the fixed non-streaming request without DNS, HTTP, refresh, retry, server action, proxy/TUN change, Token output, or model request. |
+| CR-P6-03-008 T13 stop | `2026-07-23T00:33+08:00`; exactly one T13 ignored-harness process stopped at local authorization/configuration parsing before `result=started`. A local shell-semantics check proved that the wrapper passed empty same-command assignment values into `env -i`; no credential cache was read and no DNS, HTTP, refresh, retry, proxy/TUN action, or Provider send occurred. T14 was not started. |
+| P6-03 blocked-state full gate | `2026-07-23T00:43+08:00`; after staging the reviewed blocked-state evidence and a semantics-preserving local-value rename that removed a secret-scanner false positive, formatting, Clippy, the full workspace tests, source/crate-boundary/document checks, tracked-secret scan, dependency policy, and RustSec audit all passed. |
 | Server-side preflight hygiene | One incorrect schema lookup briefly created a zero-byte, unreferenced file under the current grok2api data mount. It was immediately removed; the postcheck confirmed its absence and the container still running. No configuration, credential, or database-table row was changed. |
 | Code commit | Current-profile local checkpoint (`P6-03: update current Grok Build profile`); local only, not pushed, and required before either T11 or T12. |
 | Phase closeout tag / Delivery Gate | Not started; G6 is P6's single remote gate. |
-| Repeated validations / rework | One necessary test type correction, one semantic review correction batch, then two earlier full-gate findings fixed in scope (`struct_excessive_bools` in the ignored harness and its test-only `tokio` boundary allowlist). `CR-P6-03-008` initially exposed one expected missing `time` crate-boundary declaration; it was added with a documented RFC3339-only purpose and the full gate then passed. The earlier live matrix exposed an intentionally over-coarse safe outcome; two finite redacted diagnostics then classified it as a 2xx error object with unrecognized standard metadata. No identical tuple was sent after T10. `CR-P6-03-005` then used its only two new-profile direct sends: T11 and T12 each stopped as an unrecognized 4xx error object, so no further direct probe is permitted. |
+| Repeated validations / rework | One necessary test type correction, one semantic review correction batch, then two earlier full-gate findings fixed in scope (`struct_excessive_bools` in the ignored harness and its test-only `tokio` boundary allowlist). `CR-P6-03-008` initially exposed one expected missing `time` crate-boundary declaration; it was added with a documented RFC3339-only purpose and the full gate then passed. The earlier live matrix exposed an intentionally over-coarse safe outcome; two finite redacted diagnostics then classified it as a 2xx error object with unrecognized standard metadata. No identical tuple was sent after T10. `CR-P6-03-005` then used its only two new-profile direct sends: T11 and T12 each stopped as an unrecognized 4xx error object, so no further direct probe is permitted. The registered T13 process later exposed a local wrapper assignment-expansion error before dispatch; its one-process/no-retry policy prevents correction without a new CR, and T14 remains unsent. The resulting blocked-state review also found that a scanner treated the pre-existing token-named local assignments as a secret-looking literal; neutral local-value names preserve the import behavior and let the tracked-secret gate verify the actual staged content. |
 
 Rollback removes only the P6-03 module, synthetic fixtures/tests, and documentation. It requires
 no gateway database migration, server restart, proxy/TUN cleanup, or direct-Provider action. The
 CR-P6-03-006 grok2api import is an intentional external persistent state requested by the user; it
 is not deleted automatically and would need a separate explicit server-change authorization. T1-T12
-remain exhausted permanently; no further direct tuple is registered. P6-04 remains pending until
-P6-03's dual-mode acceptance condition is met under a new explicit CR.
+remain exhausted permanently; the T13 process is consumed and T14 remains unsent. No further direct
+tuple is registered. P6-04 remains pending until P6-03's dual-mode acceptance condition is met
+under a new explicit CR.

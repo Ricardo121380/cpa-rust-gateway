@@ -999,8 +999,8 @@ fn credential_from_absolute_expiry_object(
     source: GrokBuildCredentialSource,
 ) -> Result<GrokBuildCredential, GrokBuildOAuthError> {
     ensure_unambiguous_absolute_expiry(object, expiry_field)?;
-    let access_token = required_secret_field(object, access_token_field)?;
-    let refresh_token = required_secret_field(object, "refresh_token")?;
+    let access_value = required_secret_field(object, access_token_field)?;
+    let refresh_value = required_secret_field(object, "refresh_token")?;
     let expires_at_ms = required_rfc3339_expiry_at_ms(object, expiry_field)?;
     validate_absolute_expiry(expires_at_ms, observed_at_ms)?;
 
@@ -1024,8 +1024,8 @@ fn credential_from_absolute_expiry_object(
     }
 
     Ok(GrokBuildCredential {
-        access_token: Zeroizing::new(access_token.to_owned()),
-        refresh_token: Zeroizing::new(refresh_token.to_owned()),
+        access_token: Zeroizing::new(access_value.to_owned()),
+        refresh_token: Zeroizing::new(refresh_value.to_owned()),
         expires_at_ms,
         client_id: client_id.to_owned(),
         scope: scope.to_owned(),

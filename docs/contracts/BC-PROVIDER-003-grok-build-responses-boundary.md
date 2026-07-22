@@ -5,7 +5,7 @@
 | Contract | `BC-PROVIDER-003` |
 | Task | `P6-03` |
 | ADR | [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md) |
-| Status | `IN_PROGRESS` — `CR-P6-03-008` adds reviewed known OAuth credential-source adaptation before its separately registered T13/T14 local-CLI-cache matrix; T1-T12 remain permanently closed |
+| Status | `BLOCKED` — `CR-P6-03-008` source adaptation and local gate passed, but its only T13 process stopped at a local configuration gate before dispatch; T14 is unsent, T1-T12 remain permanently closed, and any further tuple requires a new CR |
 | Domain | Fixed OAuth Build request, exact egress handoff, non-streaming/SSE decoding, and safe error syntax |
 
 ## Preconditions and bounds
