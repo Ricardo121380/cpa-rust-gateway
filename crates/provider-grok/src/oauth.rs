@@ -29,6 +29,7 @@ const MAX_OAUTH_FIELD_BYTES: usize = 16 * 1024;
 const MAX_TOKEN_LIFETIME_SECONDS: u64 = 366 * 24 * 60 * 60;
 const DEFAULT_DEVICE_POLL_INTERVAL_SECONDS: u64 = 5;
 const DEVICE_SLOW_DOWN_SECONDS: u64 = 5;
+const PERSISTED_CREDENTIAL_FORMAT_VERSION: u8 = 1;
 
 /// Non-secret origin for one Grok Build OAuth credential.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -46,6 +47,7 @@ pub enum GrokBuildCredentialSource {
 /// Access and refresh tokens are redacted from diagnostics and zeroized when dropped. Callers may
 /// borrow them only while constructing one request or refresh grant; they must never log or persist
 /// the returned strings outside the dedicated P6-02 persistence boundary.
+#[derive(Clone)]
 pub struct GrokBuildCredential {
     access_token: Zeroizing<String>,
     refresh_token: Zeroizing<String>,
@@ -116,6 +118,69 @@ impl GrokBuildCredential {
     #[must_use]
     pub const fn source(&self) -> GrokBuildCredentialSource {
         self.source
+    }
+
+    pub(crate) fn persisted_bytes(&self) -> Result<Zeroizing<Vec<u8>>, GrokBuildOAuthError> {
+        validate_secret_field(self.access_token())?;
+        validate_secret_field(self.refresh_token())?;
+        validate_nonsecret_field(&self.client_id)?;
+        validate_scope(&self.scope)?;
+
+        let mut output = Zeroizing::new(Vec::new());
+        output.push(PERSISTED_CREDENTIAL_FORMAT_VERSION);
+        output.push(match self.source {
+            GrokBuildCredentialSource::ImportedJson => 0,
+            GrokBuildCredentialSource::DeviceCode => 1,
+            GrokBuildCredentialSource::Refresh => 2,
+        });
+        output.extend_from_slice(&self.expires_at_ms.to_be_bytes());
+        write_persisted_segment(&mut output, self.access_token())?;
+        write_persisted_segment(&mut output, self.refresh_token())?;
+        write_persisted_segment(&mut output, &self.client_id)?;
+        write_persisted_segment(&mut output, &self.scope)?;
+        Ok(output)
+    }
+
+    pub(crate) fn from_persisted_bytes(input: &[u8]) -> Result<Self, GrokBuildOAuthError> {
+        if input.len() > MAX_OAUTH_JSON_BYTES {
+            return Err(GrokBuildOAuthError::InvalidPersistedCredential);
+        }
+        let mut cursor = 0;
+        let format_version = read_persisted_byte(input, &mut cursor)?;
+        if format_version != PERSISTED_CREDENTIAL_FORMAT_VERSION {
+            return Err(GrokBuildOAuthError::InvalidPersistedCredential);
+        }
+        let source = match read_persisted_byte(input, &mut cursor)? {
+            0 => GrokBuildCredentialSource::ImportedJson,
+            1 => GrokBuildCredentialSource::DeviceCode,
+            2 => GrokBuildCredentialSource::Refresh,
+            _ => return Err(GrokBuildOAuthError::InvalidPersistedCredential),
+        };
+        let expires_at_ms = i64::from_be_bytes(
+            read_persisted_bytes(input, &mut cursor, std::mem::size_of::<i64>())?
+                .try_into()
+                .map_err(|_| GrokBuildOAuthError::InvalidPersistedCredential)?,
+        );
+        let access = read_persisted_segment(input, &mut cursor)?;
+        let refresh = read_persisted_segment(input, &mut cursor)?;
+        let client_id = read_persisted_segment(input, &mut cursor)?;
+        let scope = read_persisted_segment(input, &mut cursor)?;
+        if cursor != input.len() {
+            return Err(GrokBuildOAuthError::InvalidPersistedCredential);
+        }
+        validate_secret_field(access)?;
+        validate_secret_field(refresh)?;
+        validate_nonsecret_field(client_id)?;
+        validate_scope(scope)?;
+
+        Ok(Self {
+            access_token: Zeroizing::new(access.to_owned()),
+            refresh_token: Zeroizing::new(refresh.to_owned()),
+            expires_at_ms,
+            client_id: client_id.to_owned(),
+            scope: scope.to_owned(),
+            source,
+        })
     }
 }
 
@@ -679,6 +744,8 @@ pub enum GrokBuildOAuthError {
     UnsupportedTokenType,
     /// A timestamp or duration cannot be represented safely as Unix milliseconds.
     InvalidTimestamp,
+    /// An authenticated persisted credential did not match the bounded binary format.
+    InvalidPersistedCredential,
     /// The transport response had an invalid HTTP status or exceeded its body bound.
     InvalidHttpResponse,
     /// A non-success Device Authorization response had no supported OAuth failure shape.
@@ -706,6 +773,7 @@ impl fmt::Display for GrokBuildOAuthError {
             Self::AmbiguousExpiration => "Grok Build OAuth expiry is ambiguous",
             Self::UnsupportedTokenType => "Grok Build OAuth token type is unsupported",
             Self::InvalidTimestamp => "Grok Build OAuth timestamp is invalid",
+            Self::InvalidPersistedCredential => "Grok Build persisted credential is invalid",
             Self::InvalidHttpResponse => "Grok Build OAuth HTTP response is invalid",
             Self::InvalidDeviceAuthorizationResponse => {
                 "Grok Build Device Authorization response is invalid"
@@ -1032,6 +1100,57 @@ fn seconds_to_millis_checked(seconds: u64) -> Result<i64, GrokBuildOAuthError> {
         .checked_mul(1_000)
         .ok_or(GrokBuildOAuthError::InvalidTimestamp)?;
     i64::try_from(milliseconds).map_err(|_| GrokBuildOAuthError::InvalidTimestamp)
+}
+
+fn write_persisted_segment(output: &mut Vec<u8>, value: &str) -> Result<(), GrokBuildOAuthError> {
+    let length =
+        u32::try_from(value.len()).map_err(|_| GrokBuildOAuthError::InvalidPersistedCredential)?;
+    output.extend_from_slice(&length.to_be_bytes());
+    output.extend_from_slice(value.as_bytes());
+    Ok(())
+}
+
+fn read_persisted_byte(input: &[u8], cursor: &mut usize) -> Result<u8, GrokBuildOAuthError> {
+    let byte = *input
+        .get(*cursor)
+        .ok_or(GrokBuildOAuthError::InvalidPersistedCredential)?;
+    *cursor = cursor
+        .checked_add(1)
+        .ok_or(GrokBuildOAuthError::InvalidPersistedCredential)?;
+    Ok(byte)
+}
+
+fn read_persisted_segment<'a>(
+    input: &'a [u8],
+    cursor: &mut usize,
+) -> Result<&'a str, GrokBuildOAuthError> {
+    let length = u32::from_be_bytes(
+        read_persisted_bytes(input, cursor, std::mem::size_of::<u32>())?
+            .try_into()
+            .map_err(|_| GrokBuildOAuthError::InvalidPersistedCredential)?,
+    );
+    let length =
+        usize::try_from(length).map_err(|_| GrokBuildOAuthError::InvalidPersistedCredential)?;
+    if length > MAX_OAUTH_FIELD_BYTES {
+        return Err(GrokBuildOAuthError::InvalidPersistedCredential);
+    }
+    let value = read_persisted_bytes(input, cursor, length)?;
+    std::str::from_utf8(value).map_err(|_| GrokBuildOAuthError::InvalidPersistedCredential)
+}
+
+fn read_persisted_bytes<'a>(
+    input: &'a [u8],
+    cursor: &mut usize,
+    length: usize,
+) -> Result<&'a [u8], GrokBuildOAuthError> {
+    let end = cursor
+        .checked_add(length)
+        .ok_or(GrokBuildOAuthError::InvalidPersistedCredential)?;
+    let value = input
+        .get(*cursor..end)
+        .ok_or(GrokBuildOAuthError::InvalidPersistedCredential)?;
+    *cursor = end;
+    Ok(value)
 }
 
 fn parse_strict_json_object(

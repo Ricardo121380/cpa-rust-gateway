@@ -82,3 +82,4 @@
 - [P5-08 Anthropic adversarial stream properties report](p5-08-adversarial-stream-properties.md)
 - [G5 Anthropic/Claude Code phase gate report](g5-gate-report.md)
 - [P6-01 Grok Build OAuth credential and Device Code report](p6-01-grok-build-oauth.md) — local evidence pending G6
+- [P6-02 Grok Build refresh singleflight and durable revision runtime report](p6-02-grok-build-refresh-runtime.md) — local evidence pending G6

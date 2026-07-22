@@ -20,9 +20,10 @@ const VERSIONED_ROUTE_ACCESS_SCHEMA_VERSION: i64 = 2;
 const VERSIONED_EGRESS_POLICY_SCHEMA_VERSION: i64 = 3;
 const MANAGEMENT_AUDIT_SCHEMA_VERSION: i64 = 4;
 const GATEWAY_EVENT_LOG_SCHEMA_VERSION: i64 = 5;
+const GROK_BUILD_CREDENTIAL_RUNTIME_SCHEMA_VERSION: i64 = 6;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = GATEWAY_EVENT_LOG_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = GROK_BUILD_CREDENTIAL_RUNTIME_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -56,6 +57,11 @@ const MIGRATIONS: &[Migration] = &[
         version: GATEWAY_EVENT_LOG_SCHEMA_VERSION,
         up: include_str!("../migrations/0005_gateway_event_log.up.sql"),
         down: include_str!("../migrations/0005_gateway_event_log.down.sql"),
+    },
+    Migration {
+        version: GROK_BUILD_CREDENTIAL_RUNTIME_SCHEMA_VERSION,
+        up: include_str!("../migrations/0006_grok_build_credential_runtime.up.sql"),
+        down: include_str!("../migrations/0006_grok_build_credential_runtime.down.sql"),
     },
 ];
 
@@ -374,6 +380,7 @@ mod tests {
                 "egress_policies",
                 "endpoint_credential_bindings",
                 "gateway_event_log",
+                "grok_build_credential_runtime",
                 "management_audit_events",
                 "model_aliases",
                 "model_routes",

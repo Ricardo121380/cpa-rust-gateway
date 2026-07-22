@@ -11,8 +11,10 @@ publish.workspace = true
 gateway-continuity = { path = "../gateway-continuity" }
 gateway-core = { path = "../gateway-core" }
 gateway-provider = { path = "../gateway-provider" }
+gateway-store = { path = "../gateway-store" }
 gateway-upstream = { path = "../gateway-upstream" }
 protocol-openai-responses = { path = "../protocol-openai-responses" }
+rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 url.workspace = true
