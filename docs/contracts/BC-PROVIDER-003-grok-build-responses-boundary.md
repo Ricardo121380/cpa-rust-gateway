@@ -5,7 +5,7 @@
 | Contract | `BC-PROVIDER-003` |
 | Task | `P6-03` |
 | ADR | [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md) |
-| Status | `BLOCKED` — `CR-P6-03-009` T15 reached the fixed endpoint once and stopped as a 4xx error-like response with the safe category `unrecognized`; T14 remains unsent and prohibited. T1-T13 and T15 are closed, and P6-04 stays pending |
+| Status | `IN_PROGRESS` — `CR-P6-03-010` authorizes one distinct workspace-User-Agent T16 non-streaming direct tuple after its no-network preflight; T17 SSE is conditional on T16's complete Canonical success. T1-T15 remain closed and P6-04 stays pending |
 | Domain | Fixed OAuth Build request, exact egress handoff, non-streaming/SSE decoding, and safe error syntax |
 
 ## Preconditions and bounds
@@ -35,7 +35,7 @@
 
 | Concern | Required behavior |
 |---|---|
-| Request profile | Use POST, JSON, OAuth `Bearer`, current `grok-shell` version/User-Agent, client identifier/mode, protocol confirmation, selected-model override, mode-specific `Accept`/content coding, and in-memory process/request/trace associations. Do not copy hop-by-hop `Connection`, invent a user/session/cache/turn identity, or render correlation values. |
+| Request profile | Use POST, JSON, OAuth `Bearer`, the current official CLI version and evidence-supported versioned workspace User-Agent, client identifier/mode, protocol confirmation, selected-model override, mode-specific `Accept`/content coding, and in-memory process/request/trace associations. Do not copy hop-by-hop `Connection`, invent a user/session/cache/turn identity, or render correlation values. |
 | Model and request fidelity | Serialize the selected upstream model in the body and fixed model metadata. Preserve the supported Responses request subset and reject foreign or colliding extensions rather than silently dropping semantics. Exactly one extension-free plain user Text may use scalar easy-input encoding only when it decodes to the same Canonical request; every other input remains explicit array form. |
 | Egress | `into_transport_request` accepts only an admitted target equal to the fixed Build URL; a mismatch is `EgressRejected/Egress`. |
 | Credential source | Standard strict JSON, Device Code, and Refresh behavior remains unchanged. CPA xAI files, account credentials, and the official CLI indexed cache are bytes-only import adapters with a fixed issuer/client identity, strict RFC3339 absolute expiry, conflict rejection, and redacted diagnostics. |

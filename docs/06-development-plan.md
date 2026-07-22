@@ -4,16 +4,16 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.19` |
+| 计划版本 | `v1.20` |
 | 生效日期 | `2026-07-22` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP`、`P4 - Catalog、Health、Quota、Explain、观测` 与 `P5 - Anthropic/Claude Code 兼容` 已完成；`P6 - Grok Build` 已开始。 |
-| 当前任务 | 无；`P6-03`：`BLOCKED`。`CR-P6-03-009` 的唯一 T15 已到达固定端点并停止为 `4xx`、期望内容类型、error-like object、`unrecognized`；T14 未发送且不得发送。T1-T13 与 T15 均关闭，任何后续动作须新的显式 CR；P6-04 仍不得开始。 |
+| 当前任务 | `P6-03`：`IN_PROGRESS`。`CR-P6-03-010` 仅登记一次更正 workspace User-Agent 后的 T16 直连非流式验证；仅 T16 出现完整 Canonical 成功生命周期时，才条件允许一次 T17 SSE。T1-T15 均保持关闭，任何失败均停止且 P6-04 不得开始。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
 | 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 `CR-P6-03-003`：在确认 2xx JSON 错误对象后，增加最终一次仅从标准错误元数据映射安全类别的诊断调用。 `CR-P6-03-004`：新增一个与固定直连验收隔离的、服务器本地 grok2api Build 路由代理参考探针。 `CR-P6-03-005`：采用服务器参考的当前 Build 请求轮廓，并只登记新的固定端点 T11 非流式与 T12 SSE 验证。 `CR-P6-03-006`：通过 grok2api 支持的管理 API 导入指定 OAuth 文件并做账号专属额度刷新诊断；不重放固定直连元组，也不把共享路由调用误归因到该账号。 `CR-P6-03-007`：仅以本机官方 Grok CLI 做一次交互式 OAuth 重新认证并记录安全状态投影；不发送 P6 请求或改变服务器/路由。 |
-| 已批准变更（续） | `CR-P6-03-008`：以 CPA、grok2api 和 Sub2API 的 clean-room 行为参考扩展 Grok Build 的已知 OAuth 凭据来源；保留标准 JSON/Device Code/Refresh，新增 CPA xAI 文件和官方 Grok CLI indexed cache 的内存导入，不纳入 Cookie/SSO Web 转换。 |
+| 已批准变更（续） | `CR-P6-03-008`：以 CPA、grok2api 和 Sub2API 的 clean-room 行为参考扩展 Grok Build 的已知 OAuth 凭据来源；保留标准 JSON/Device Code/Refresh，新增 CPA xAI 文件和官方 Grok CLI indexed cache 的内存导入，不纳入 Cookie/SSO Web 转换。 `CR-P6-03-009`：仅修正 T13 零发送 wrapper 的一次替代 T15 验证；T15 的 4xx 已停止矩阵。 `CR-P6-03-010`：基于官方 CLI 静态证据更正 workspace User-Agent，仅登记新的 T16 非流式直连验证，并在 T16 完整成功时条件允许一次 T17 SSE。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -635,6 +635,34 @@ CR-ID: CR-P6-03-009
 计划版本变更: v1.19
 ```
 
+### 已批准 Change Request：CR-P6-03-010
+
+```text
+CR-ID: CR-P6-03-010
+原因: T15 的安全 `4xx` 不能归因，但其后的只读官方 CLI 静态审计已证明本地 Builder 当时硬编码的
+      Linux shell User-Agent 与本机 `0.2.106` 官方 CLI 的 workspace 请求轮廓不一致。该常量已在
+      已审查的本地提交中更正为版本化 workspace 值；需要一个不同的、有限的直连元组验证该修正，
+      不能重放 T15 或把未发送的 T14 自动视为可发送。
+影响的 Task / Matrix ID / ADR: 仅重新打开 P6-03 的 C28 live evidence、BC-PROVIDER-003、报告与
+      traceability；不改变固定 URL、Canonical 类型、OAuth source adapter、Provider 生产接口、
+      P6-04+、服务器、路由、账号、代理或 TUN。T1-T15 的历史结果保持关闭。
+兼容性与迁移影响: 无。只使用已登录本机官方 CLI cache 和既有不记录值的 Build candidate；wrapper
+      仅向受控 `env -i` 子进程传递非秘密授权、cap、标签、模式、cache path 和既有 candidate，
+      不打印、写入 Git 或持久化 cache 内容、Token、模型、响应、请求体或原始头。generic credential
+      JSON、P6 SOCKS5 和环境 proxy 变量均不得传入。
+测试与回滚变化: 先恰好一次 ignored no-network preflight，以 T16 的相同配置读取最多 64 KiB cache
+      并只构造请求；它不得 DNS/HTTP/refresh/send，失败则停止且不发送 T16。预检通过后仅登记
+      `T16=(official-cli-cache-workspace-ua-01, non_streaming, direct)`：独立进程、
+      `P6_03_MAX_EXTERNAL_REQUESTS=1`、固定短提示、32 token、恰好一次 send。任一非 Canonical
+      success、超时、内容类型、协议、语义或安全失败均停止并使 P6-03 `BLOCKED`，T17 不得发送。
+      仅 T16 出现 Canonical `ResponseStart`、文本、无 `StreamError` 的 `ResponseEnd` 时，才条件
+      允许 `T17=(official-cli-cache-workspace-ua-01, sse, direct)` 一次；T17 亦为独立进程且恰好
+      一 send，任一失败同样 `BLOCKED`。不得 refresh、retry、failover、candidate selection、
+      proxy/TUN change、T1-T15 replay 或新增 tuple。
+用户批准: APPROVED，2026-07-23（“批准”）
+计划版本变更: v1.20
+```
+
 ### 已批准 Change Request：CR-P4-G4-001
 
 ```text
@@ -1027,7 +1055,7 @@ Fast、Full supply-chain、Required Delivery Gate 均已通过。
 |---|---|---|---|---|
 | P6-01 | 实现 Grok Build Credential、OAuth JSON 导入和 Device Code | G5 | OAuth Mock + 脱敏导入测试 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P6-02 | 实现每 Credential Refresh Singleflight、Revision/CAS 和持久化 | P6-01 | 刷新风暴与旧 Token 覆盖测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析；兼容已知 OAuth 凭据来源 | P6-02 | 固定 Fixture + 测试账号验证 | BLOCKED |
+| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析；兼容已知 OAuth 凭据来源 | P6-02 | 固定 Fixture + 测试账号验证 | IN_PROGRESS |
 | P6-04 | 实现模型、Billing、Quota Window 和 Reset 同步 | P6-03 | 来源/置信度和窗口测试 | PENDING |
 | P6-05 | 实现租户隔离 Cache Identity 与 Cache Affinity | P6-03 | 稳定性、隔离和断裂事件测试 | PENDING |
 | P6-06 | 实现 ResponseOwnership 与 ReasoningReplay | P6-03,P6-05 | previous_response 与多轮 Tool 测试 | PENDING |

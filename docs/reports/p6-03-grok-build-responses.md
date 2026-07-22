@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.19` |
+| Plan version | `v1.20` |
 | Task | `P6-03` |
 | Date | `2026-07-23` |
 | Branch | `codex/p6-grok-build` |
-| Status | `BLOCKED` — T15 reached the fixed endpoint exactly once and stopped as a `4xx` error-like response with safe category `unrecognized`; T14 remains unsent and prohibited. T1-T13 and T15 are closed; P6-04 remains pending. |
-| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` exhausted T11/T12, `CR-P6-03-008` closed after the pre-dispatch T13 stop, and `CR-P6-03-009` closed after T15's non-success stop. The post-T15 local request-profile correction adds no external tuple, retry, server action, cache read, or P6-04+ behavior. |
+| Status | `IN_PROGRESS` — `CR-P6-03-010` authorizes exactly one distinct workspace-User-Agent T16 non-streaming direct tuple after its no-network preflight. T17 is conditional on T16's complete Canonical success; T1-T15 remain closed and P6-04 remains pending. |
+| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` exhausted T11/T12, `CR-P6-03-008` closed after the pre-dispatch T13 stop, and `CR-P6-03-009` closed after T15's non-success stop. `CR-P6-03-010` adds only the distinct T16/T17 conditional matrix; it does not permit retry, server action, cache persistence, or P6-04+ behavior. |
 | Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, known OAuth source adapters, and a finite one-send-per-process live matrix. Prohibited: direct-tuple replay, route/key/scheduler mutation, socket/proxy/TUN mutation, status remediation, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |
 | References | Matrix `C28`; Behavior 4/5/12; [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md); [BC-PROVIDER-003](../contracts/BC-PROVIDER-003-grok-build-responses-boundary.md) |
@@ -366,6 +366,21 @@ The frozen Builder is consequently corrected to the evidence-supported versioned
 profile discrepancy but does **not** attribute T15's safe `4xx` to that discrepancy or alter any
 closed tuple. It creates no permission to replay T15 or send T14: P6-03 remains `BLOCKED` until a
 new explicit CR separately specifies a distinct direct tuple and stop condition.
+
+### Predeclared workspace-User-Agent direct validation (`CR-P6-03-010`)
+
+The user approved one distinct post-correction validation. It is not a T15 replay: its frozen
+workspace User-Agent differs from T15's contradicted Linux shell value. The existing opaque Build
+candidate stays operator-memory-only, and the official cache remains a bounded bytes-only source.
+
+| Tuple | Credential source | Mode | Network profile | Current authorization |
+|---|---|---|---|---|
+| `T16` | `official-cli-cache-workspace-ua-01` | `non_streaming` | `direct` | one no-network preflight, then one independent process with exactly one send |
+| `T17` | `official-cli-cache-workspace-ua-01` | `sse` | `direct` | only if T16 emits Canonical Start, Text, and End with no `StreamError` |
+
+Both rows use the fixed short prompt and `max_output_tokens=32`, without refresh, retry, failover,
+candidate selection, proxy/TUN change, or any replay of T1-T15. Any T16 failure blocks P6-03 and
+prohibits T17; any T17 failure also blocks P6-03. Neither row starts P6-04.
 
 ## Timing and next task
 
