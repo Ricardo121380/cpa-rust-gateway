@@ -10,7 +10,11 @@ use std::{
     env,
     error::Error,
     fmt,
+    fs::File,
+    io::Read,
     num::NonZeroUsize,
+    path::PathBuf,
+    sync::atomic::{AtomicU64, Ordering},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -22,10 +26,11 @@ use gateway_upstream::{
 };
 use protocol_openai_responses::{ResponseMode, decode_request};
 use provider_grok::{
-    GROK_BUILD_RESPONSES_URL, GrokBuildCredential, GrokBuildResponsesDecoder,
-    GrokBuildResponsesHttpError, GrokBuildResponsesOutboundRequest,
-    GrokBuildResponsesRequestBuilder, GrokBuildResponsesStreamDecoder,
-    MAX_GROK_BUILD_ERROR_BODY_BYTES, MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES,
+    GROK_BUILD_OAUTH_ISSUER, GROK_BUILD_PUBLIC_CLIENT_ID, GROK_BUILD_RESPONSES_URL,
+    GrokBuildCredential, GrokBuildResponsesDecoder, GrokBuildResponsesHttpError,
+    GrokBuildResponsesOutboundRequest, GrokBuildResponsesRequestBuilder,
+    GrokBuildResponsesStreamDecoder, MAX_GROK_BUILD_ERROR_BODY_BYTES,
+    MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES,
 };
 use url::Url;
 use zeroize::Zeroizing;
@@ -34,22 +39,29 @@ type TestResult = Result<(), Box<dyn Error>>;
 
 const AUTHORIZATION_ENV: &str = "P6_03_LIVE_AUTHORIZATION";
 const AUTHORIZATION_VALUE: &str = "single-probe-approved";
+const LOCAL_CACHE_PREFLIGHT_ENV: &str = "P6_03_LOCAL_CACHE_PREFLIGHT";
+const LOCAL_CACHE_PREFLIGHT_VALUE: &str = "cache-preflight-approved";
 const REQUEST_CAP_ENV: &str = "P6_03_MAX_EXTERNAL_REQUESTS";
 const TARGET_LABEL_ENV: &str = "P6_03_TARGET_LABEL";
 const MODE_ENV: &str = "P6_03_MODE";
 const OAUTH_CREDENTIAL_JSON_ENV: &str = "P6_03_OAUTH_CREDENTIAL_JSON";
+const OFFICIAL_CLI_AUTH_CACHE_PATH_ENV: &str = "P6_03_OFFICIAL_CLI_AUTH_CACHE_PATH";
 const UPSTREAM_MODEL_ENV: &str = "P6_03_UPSTREAM_MODEL";
 const NETWORK_PROFILE_ENV: &str = "P6_03_NETWORK_PROFILE";
 const SOCKS5_PROXY_ENV: &str = "P6_03_SOCKS5_PROXY_URL";
 const ALLOWED_CIDR_ENV: &str = "P6_03_ALLOWED_CIDR";
 
 const EXTERNAL_REQUEST_CAP: u8 = 1;
+const MAX_OFFICIAL_CLI_AUTH_CACHE_BYTES: usize = 64 * 1024;
+const MAX_OFFICIAL_CLI_AUTH_CACHE_READ_BYTES: u64 = 64 * 1024 + 1;
 const PROBE_MAX_OUTPUT_TOKENS: u64 = 32;
 const MAX_GROK_BUILD_PROBE_STREAM_BYTES: usize = 1024 * 1024;
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const TTFB_TIMEOUT: Duration = Duration::from_secs(15);
 const IDLE_TIMEOUT: Duration = Duration::from_secs(20);
 const TOTAL_TIMEOUT: Duration = Duration::from_secs(45);
+
+static TEST_CACHE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum ProbeMode {
@@ -98,6 +110,9 @@ enum ProbeConfigError {
     InvalidNetworkProfile,
     UnexpectedProxyValue,
     InvalidProxy,
+    ConflictingCredentialSources,
+    InvalidCredentialCachePath,
+    CredentialCacheReadFailed,
     InvalidCredential,
     InvalidUpstreamModel,
     InvalidAllowedCidr,
@@ -121,6 +136,15 @@ impl fmt::Display for ProbeConfigError {
                 "P6-03 Build probe direct profile cannot retain a proxy value"
             }
             Self::InvalidProxy => "P6-03 Build probe SOCKS5 proxy is invalid",
+            Self::ConflictingCredentialSources => {
+                "P6-03 Build probe must select exactly one credential source"
+            }
+            Self::InvalidCredentialCachePath => {
+                "P6-03 Build probe official CLI cache path is invalid"
+            }
+            Self::CredentialCacheReadFailed => {
+                "P6-03 Build probe official CLI cache cannot be read safely"
+            }
             Self::InvalidCredential => "P6-03 Build probe OAuth credential is invalid or expired",
             Self::InvalidUpstreamModel => "P6-03 Build probe upstream model is invalid",
             Self::InvalidAllowedCidr => "P6-03 Build probe CIDR is invalid",
@@ -226,15 +250,66 @@ impl Error for ProbeError {}
 struct AuthorizedProbeConfig {
     target_label: String,
     mode: ProbeMode,
-    credential_json: Zeroizing<String>,
+    credential_input: ProbeCredentialInput,
     upstream_model: String,
     allowed_cidr: Option<EgressCidr>,
     proxy: UpstreamProxy,
 }
 
+enum ProbeCredentialInput {
+    Json(Zeroizing<String>),
+    OfficialCliAuthCachePath(PathBuf),
+}
+
+impl ProbeCredentialInput {
+    fn import(&self, now_ms: i64) -> Result<GrokBuildCredential, ProbeConfigError> {
+        match self {
+            Self::Json(credential_json) => {
+                GrokBuildCredential::import_json(credential_json.as_bytes(), now_ms)
+                    .map_err(|_| ProbeConfigError::InvalidCredential)
+            }
+            Self::OfficialCliAuthCachePath(path) => {
+                let mut reader = File::open(path)
+                    .map_err(|_| ProbeConfigError::CredentialCacheReadFailed)?
+                    .take(MAX_OFFICIAL_CLI_AUTH_CACHE_READ_BYTES);
+                let mut cache = Zeroizing::new(Vec::new());
+                reader
+                    .read_to_end(&mut cache)
+                    .map_err(|_| ProbeConfigError::CredentialCacheReadFailed)?;
+                if cache.len() > MAX_OFFICIAL_CLI_AUTH_CACHE_BYTES {
+                    return Err(ProbeConfigError::InvalidCredential);
+                }
+                GrokBuildCredential::import_official_cli_auth_cache(cache.as_slice(), now_ms)
+                    .map_err(|_| ProbeConfigError::InvalidCredential)
+            }
+        }
+    }
+}
+
 impl AuthorizedProbeConfig {
     fn from_environment() -> Result<Self, ProbeConfigError> {
         Self::from_values(&mut |name| env::var(name).ok())
+    }
+
+    fn from_local_cache_preflight_environment() -> Result<Self, ProbeConfigError> {
+        if env::var(LOCAL_CACHE_PREFLIGHT_ENV).ok().as_deref() != Some(LOCAL_CACHE_PREFLIGHT_VALUE)
+        {
+            return Err(ProbeConfigError::NotAuthorized);
+        }
+        let config = Self::from_values(&mut |name| {
+            if name == AUTHORIZATION_ENV {
+                Some(AUTHORIZATION_VALUE.to_owned())
+            } else {
+                env::var(name).ok()
+            }
+        })?;
+        if !matches!(
+            &config.credential_input,
+            ProbeCredentialInput::OfficialCliAuthCachePath(_)
+        ) {
+            return Err(ProbeConfigError::InvalidCredential);
+        }
+        Ok(config)
     }
 
     fn from_values<F>(read: &mut F) -> Result<Self, ProbeConfigError>
@@ -266,7 +341,23 @@ impl AuthorizedProbeConfig {
                 .map_err(|_| ProbeConfigError::InvalidProxy)?,
             _ => return Err(ProbeConfigError::InvalidNetworkProfile),
         };
-        let credential_json = Zeroizing::new(required_value(read, OAUTH_CREDENTIAL_JSON_ENV)?);
+        let credential_input = match (
+            read(OAUTH_CREDENTIAL_JSON_ENV),
+            read(OFFICIAL_CLI_AUTH_CACHE_PATH_ENV),
+        ) {
+            (Some(_), Some(_)) => return Err(ProbeConfigError::ConflictingCredentialSources),
+            (Some(credential_json), None) => {
+                ProbeCredentialInput::Json(Zeroizing::new(credential_json))
+            }
+            (None, Some(path)) => {
+                let path = PathBuf::from(path);
+                if !path.is_absolute() {
+                    return Err(ProbeConfigError::InvalidCredentialCachePath);
+                }
+                ProbeCredentialInput::OfficialCliAuthCachePath(path)
+            }
+            (None, None) => return Err(ProbeConfigError::MissingRequiredValue),
+        };
         let upstream_model = required_value(read, UPSTREAM_MODEL_ENV)?;
         if upstream_model.is_empty() || !upstream_model.bytes().all(|byte| byte.is_ascii_graphic())
         {
@@ -285,7 +376,7 @@ impl AuthorizedProbeConfig {
         Ok(Self {
             target_label,
             mode,
-            credential_json,
+            credential_input,
             upstream_model,
             allowed_cidr,
             proxy,
@@ -294,8 +385,7 @@ impl AuthorizedProbeConfig {
 
     fn prepare(self) -> Result<PreparedProbe, ProbeConfigError> {
         let now_ms = now_ms()?;
-        let credential = GrokBuildCredential::import_json(self.credential_json.as_bytes(), now_ms)
-            .map_err(|_| ProbeConfigError::InvalidCredential)?;
+        let credential = self.credential_input.import(now_ms)?;
         if credential.is_expired_at(now_ms) {
             return Err(ProbeConfigError::InvalidCredential);
         }
@@ -722,6 +812,67 @@ fn direct_profile_rejects_a_leftover_proxy_value() {
 }
 
 #[test]
+fn official_cli_cache_source_is_file_only_bounded_and_exclusive() -> TestResult {
+    const OBSERVED_AT_MS: i64 = 1_735_689_600_000;
+
+    let cache = SyntheticCliCacheFile::new()?;
+    let mut cache_values = synthetic_values();
+    cache_values.remove(OAUTH_CREDENTIAL_JSON_ENV);
+    cache_values.insert(
+        OFFICIAL_CLI_AUTH_CACHE_PATH_ENV.to_owned(),
+        cache.path().to_string_lossy().into_owned(),
+    );
+    let config = config_from_map(&cache_values)?;
+    let credential = config.credential_input.import(OBSERVED_AT_MS)?;
+    assert_eq!(
+        credential.source(),
+        provider_grok::GrokBuildCredentialSource::OfficialCliAuthCache
+    );
+    let diagnostic = format!("{credential:?}");
+    for private_value in [
+        "synthetic_cli_cache_access_012345",
+        "synthetic_cli_cache_refresh_012345",
+    ] {
+        assert!(!diagnostic.contains(private_value));
+    }
+
+    let mut conflicting = cache_values.clone();
+    conflicting.insert(
+        OAUTH_CREDENTIAL_JSON_ENV.to_owned(),
+        r#"{"access_token":"synthetic_build_access_token_012345","refresh_token":"synthetic_build_refresh_token_012345","expires_in":3600}"#.to_owned(),
+    );
+    assert!(matches!(
+        config_from_map(&conflicting),
+        Err(ProbeConfigError::ConflictingCredentialSources)
+    ));
+
+    let mut relative_path = synthetic_values();
+    relative_path.remove(OAUTH_CREDENTIAL_JSON_ENV);
+    relative_path.insert(
+        OFFICIAL_CLI_AUTH_CACHE_PATH_ENV.to_owned(),
+        "relative-cache.json".to_owned(),
+    );
+    assert!(matches!(
+        config_from_map(&relative_path),
+        Err(ProbeConfigError::InvalidCredentialCachePath)
+    ));
+
+    let oversized_cache = SyntheticCliCacheFile::oversized()?;
+    let mut oversized_values = synthetic_values();
+    oversized_values.remove(OAUTH_CREDENTIAL_JSON_ENV);
+    oversized_values.insert(
+        OFFICIAL_CLI_AUTH_CACHE_PATH_ENV.to_owned(),
+        oversized_cache.path().to_string_lossy().into_owned(),
+    );
+    let oversized = config_from_map(&oversized_values)?;
+    assert!(matches!(
+        oversized.credential_input.import(OBSERVED_AT_MS),
+        Err(ProbeConfigError::InvalidCredential)
+    ));
+    Ok(())
+}
+
+#[test]
 fn complete_synthetic_configuration_prepares_without_dns_or_transport() -> TestResult {
     let prepared = config_from_map(&synthetic_values())?.prepare()?;
     assert_eq!(prepared.target_label(), "build_test");
@@ -851,6 +1002,16 @@ async fn authorized_build_probe_uses_one_target_one_mode_and_one_send() -> TestR
     }
 }
 
+#[test]
+#[ignore = "requires explicit P6_03_LOCAL_CACHE_PREFLIGHT and one official-CLI cache path; no network"]
+fn official_cli_cache_preflight_builds_without_network() -> TestResult {
+    let prepared = AuthorizedProbeConfig::from_local_cache_preflight_environment()?.prepare()?;
+    let target_label = prepared.target_label();
+    let mode = prepared.mode().as_str();
+    println!("p6-03 local cache preflight target={target_label} mode={mode} result=pass");
+    Ok(())
+}
+
 fn config_from_map(
     values: &BTreeMap<String, String>,
 ) -> Result<AuthorizedProbeConfig, ProbeConfigError> {
@@ -873,4 +1034,47 @@ fn synthetic_values() -> BTreeMap<String, String> {
         ),
         (NETWORK_PROFILE_ENV.to_owned(), "direct".to_owned()),
     ])
+}
+
+struct SyntheticCliCacheFile {
+    path: PathBuf,
+}
+
+impl SyntheticCliCacheFile {
+    fn new() -> Result<Self, std::io::Error> {
+        let cache = format!(
+            r#"{{
+                "{GROK_BUILD_OAUTH_ISSUER}::{GROK_BUILD_PUBLIC_CLIENT_ID}":{{
+                    "key":"synthetic_cli_cache_access_012345",
+                    "refresh_token":"synthetic_cli_cache_refresh_012345",
+                    "expires_at":"2025-01-01T00:00:10Z"
+                }}
+            }}"#
+        );
+        Self::write(cache.as_bytes())
+    }
+
+    fn oversized() -> Result<Self, std::io::Error> {
+        Self::write(&vec![b' '; MAX_OFFICIAL_CLI_AUTH_CACHE_BYTES + 1])
+    }
+
+    fn write(contents: &[u8]) -> Result<Self, std::io::Error> {
+        let sequence = TEST_CACHE_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let path = env::temp_dir().join(format!(
+            "provider-grok-p6-03-synthetic-cache-{}-{sequence}.json",
+            std::process::id()
+        ));
+        std::fs::write(&path, contents)?;
+        Ok(Self { path })
+    }
+
+    fn path(&self) -> &PathBuf {
+        &self.path
+    }
+}
+
+impl Drop for SyntheticCliCacheFile {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.path);
+    }
 }

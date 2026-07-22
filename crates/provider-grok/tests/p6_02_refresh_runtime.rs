@@ -18,11 +18,12 @@ use gateway_store::{
     secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore},
 };
 use provider_grok::{
-    GrokBuildCredential, GrokBuildCredentialCasOutcome, GrokBuildCredentialInsertOutcome,
-    GrokBuildCredentialKey, GrokBuildCredentialKeyError, GrokBuildCredentialPersistence,
+    GROK_BUILD_OAUTH_ISSUER, GROK_BUILD_PUBLIC_CLIENT_ID, GrokBuildCredential,
+    GrokBuildCredentialCasOutcome, GrokBuildCredentialInsertOutcome, GrokBuildCredentialKey,
+    GrokBuildCredentialKeyError, GrokBuildCredentialPersistence,
     GrokBuildCredentialRefreshCoordinator, GrokBuildCredentialRefreshError,
-    GrokBuildCredentialRefreshOutcome, GrokBuildCredentialSqliteStore, GrokBuildOAuthEndpoint,
-    GrokBuildOAuthFlow, GrokBuildOAuthHttpResponse, GrokBuildOAuthRequest,
+    GrokBuildCredentialRefreshOutcome, GrokBuildCredentialSource, GrokBuildCredentialSqliteStore,
+    GrokBuildOAuthEndpoint, GrokBuildOAuthFlow, GrokBuildOAuthHttpResponse, GrokBuildOAuthRequest,
     GrokBuildOAuthRequestKind, GrokBuildOAuthTransport, GrokBuildOAuthTransportError,
 };
 use rusqlite::{Connection, params};
@@ -90,6 +91,52 @@ fn sqlite_runtime_state_is_aead_sealed_revisioned_and_recovers_after_reopen() ->
     assert_eq!(
         recovered.credential().refresh_token(),
         "refreshed_refresh_012345"
+    );
+    Ok(())
+}
+
+#[test]
+fn indexed_cli_source_round_trips_through_aead_without_plaintext() -> TestResult {
+    const OBSERVED_AT_MS: i64 = 1_735_689_600_000;
+    let database = TestDatabase::new();
+    let key = credential_key()?;
+    let cache = format!(
+        r#"{{
+            "{GROK_BUILD_OAUTH_ISSUER}::{GROK_BUILD_PUBLIC_CLIENT_ID}":{{
+                "key":"persisted_cli_access_012345",
+                "refresh_token":"persisted_cli_refresh_012345",
+                "expires_at":"2025-01-01T00:00:10Z"
+            }}
+        }}"#
+    );
+    let credential =
+        GrokBuildCredential::import_official_cli_auth_cache(cache.as_bytes(), OBSERVED_AT_MS)?;
+    let store = GrokBuildCredentialSqliteStore::open(database.path(), secret_store()?)?;
+    store.insert_if_absent(&key, &credential, OBSERVED_AT_MS)?;
+
+    let ciphertext = persisted_ciphertext(database.path(), &key)?;
+    for plaintext in [
+        b"persisted_cli_access_012345".as_slice(),
+        b"persisted_cli_refresh_012345",
+    ] {
+        assert!(
+            !ciphertext
+                .windows(plaintext.len())
+                .any(|window| window == plaintext),
+            "AEAD ciphertext retained synthetic indexed-cache plaintext"
+        );
+    }
+
+    let recovered = store
+        .load(&key)?
+        .ok_or("persisted indexed-cache credential was absent")?;
+    assert_eq!(
+        recovered.credential().source(),
+        GrokBuildCredentialSource::OfficialCliAuthCache
+    );
+    assert_eq!(
+        recovered.credential().access_token(),
+        "persisted_cli_access_012345"
     );
     Ok(())
 }

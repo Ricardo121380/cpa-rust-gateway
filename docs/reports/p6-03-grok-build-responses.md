@@ -2,13 +2,13 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.17` |
+| Plan version | `v1.18` |
 | Task | `P6-03` |
 | Date | `2026-07-22` |
 | Branch | `codex/p6-grok-build` |
-| Status | `BLOCKED` — `CR-P6-03-005` T11/T12 each sent exactly once with the reviewed current profile, but neither yielded the required Canonical `ResponseStart`/text/`ResponseEnd` lifecycle. `CR-P6-03-007` established a fresh official local CLI session, but it is not P6 strict-import input as stored and creates no direct tuple. |
-| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` has exhausted its two direct tuples. `CR-P6-03-006` separately authorizes one grok2api account import and one account-specific quota refresh solely to diagnose account/allowance state. `CR-P6-03-007` separately authorizes one local official-CLI OAuth sign-in and safe cache projection only; neither CR permits direct replay, cache/continuity behavior, server configuration, or P6-04+ scope. |
-| Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, and a finite one-send-per-process live matrix. `CR-P6-03-006` is an isolated external account diagnostic; `CR-P6-03-007` is an isolated local-auth diagnostic. Prohibited: direct-tuple replay, route/key/scheduler mutation, socket/proxy/TUN mutation, status remediation, retry/failover, or P6-04+ behavior. |
+| Status | `IN_PROGRESS` — `CR-P6-03-008` adds local known-OAuth-source adaptation and synthetic review before its only two new direct tuples. T1-T12 remain permanently closed; P6-04 remains pending. |
+| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` has exhausted its two direct tuples. `CR-P6-03-006` separately authorized one grok2api account import and one account-specific quota refresh solely to diagnose account/allowance state. `CR-P6-03-007` established one fresh local official-CLI session. `CR-P6-03-008` adds bytes-only adapters for known OAuth source shapes and exactly T13/T14 after local gates; it does not permit T1-T12 replay, cache continuity behavior, server configuration, or P6-04+ scope. |
+| Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, known OAuth source adapters, and a finite one-send-per-process live matrix. Prohibited: direct-tuple replay, route/key/scheduler mutation, socket/proxy/TUN mutation, status remediation, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |
 | References | Matrix `C28`; Behavior 4/5/12; [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md); [BC-PROVIDER-003](../contracts/BC-PROVIDER-003-grok-build-responses-boundary.md) |
 
@@ -39,6 +39,16 @@ The implementation intentionally does not import `provider-openai-compatible`; d
 violate the Provider-private crate boundary. It carries an equivalent restricted Responses subset
 inside `provider-grok`, so Grok Build remains independently evolvable.
 
+Under `CR-P6-03-008`, the credential boundary also accepts three strictly validated in-memory
+representations in addition to the existing standard JSON, Device Code, and Refresh paths: CPA xAI
+OAuth data with authoritative absolute `expired`, grok2api/`Sub2API` account data with authoritative
+absolute `expires_at`, and one exact official-Grok-CLI issuer/client indexed-cache entry whose `key`
+is the access token. The adapters reject duplicate names, conflicting absolute expiries, expired or
+overlong lifetimes, wrong issuer/client identity, missing cache entry, and unsafe fields. Production
+code remains path-free; only the ignored live harness can read a separately specified local cache
+file (bounded to 64 KiB in zeroizing memory), and it rejects simultaneous JSON and cache sources.
+See the [OAuth source analysis](p6-03-oauth-source-analysis.md).
+
 The current-profile correction adds bounded runtime `flate2` gzip decoding and `getrandom` for
 ephemeral non-secret associations; both are explicit `provider-grok` allowlist edges and neither
 creates network I/O, state, or a diagnostic value surface. `tokio` remains test-only for the
@@ -50,11 +60,15 @@ ignored authorization harness and does not enter the library target or public AP
 |---|---|
 | `cargo test --locked -p provider-grok --test p6_03_build_responses` | Current-profile PASS; 8 synthetic request/profile-redaction, scalar-semantic-equivalence, bounded-gzip, egress, chunk-equivalence, bounded-error, duplicate/truncation/atomicity, Tool-normalization/metadata, and terminal-item-set tests passed. |
 | `cargo test --locked -p provider-grok --test p6_03_authorized_build_probe` | PASS; 8 no-network authorization/configuration/redaction tests passed, including safe body-taxonomy, standard-error-category, and 2xx-status redaction; the sole live test remains ignored without explicit authorization. |
-| `cargo clippy --locked -p provider-grok --all-targets --all-features -- -D warnings` | Current-profile PASS. |
-| `cargo fmt --all -- --check` and `git diff --check` | Current-profile PASS. |
-| `ruby scripts/check-crate-boundaries.rb` | Current-profile PASS; the explicit `flate2`/`getrandom` allowlist update admits all 21 workspace packages. |
-| `./scripts/check.sh full` | Current-profile PASS; format, Clippy, workspace tests, source policy, secret scanner, crate boundaries, document links, whitespace, `cargo deny`, and RustSec audit all passed against the staged current-profile diff. |
-| Independent diff / secret / redaction review | Current-profile PASS for synthetic fixed values, model/correlation `Debug` redaction, bounded gzip input/output, raw request/response non-retention, and the shared direct transport's explicit no-environment-proxy path. |
+| `cargo test --locked -p provider-grok --test p6_01_build_oauth` | `CR-P6-03-008` PASS; 7 strict synthetic source-import/redaction tests cover standard JSON, CPA, account, indexed cache, RFC3339 milliseconds, wrong identity, duplicate entries, expiry conflict, unknown source shape, absence, and bounded expiry. |
+| `cargo test --locked -p provider-grok --test p6_02_refresh_runtime` | `CR-P6-03-008` PASS; 7 synthetic persistence/refresh tests include indexed-cache provenance round-trip through AEAD without plaintext in SQLite ciphertext. |
+| `cargo test --locked -p provider-grok --test p6_03_authorized_build_probe` | `CR-P6-03-008` PASS; 9 no-network tests plus two ignored tests cover the mutually exclusive absolute cache-path source, 64 KiB bound, synthetic cache redaction, and no DNS/transport before configuration is complete. |
+| Exact local cache preflight | PASS; one explicitly selected official-CLI-cache source was read only into zeroizing memory, validated by the new importer, and used to construct a non-network request. It did not refresh credentials or send a Provider request. |
+| `cargo clippy --locked -p provider-grok --all-targets --all-features -- -D warnings` | `CR-P6-03-008` PASS. |
+| `cargo fmt --all -- --check` and `git diff --check` | `CR-P6-03-008` PASS. |
+| `ruby scripts/check-crate-boundaries.rb` | `CR-P6-03-008` PASS; the explicit `time` edge is limited to strict RFC3339 absolute-expiry parsing and admits all 21 workspace packages. |
+| `./scripts/check.sh full` | `CR-P6-03-008` PASS; format, Clippy, workspace tests, source policy, secret scanner, crate boundaries, document links, whitespace, `cargo deny`, and RustSec audit passed. |
+| Independent diff / secret / redaction review | `CR-P6-03-008` PASS for synthetic fixed values, source discriminator persistence, model/correlation `Debug` redaction, bounded cache input, raw cache non-retention, and the shared direct transport's explicit no-environment-proxy path. |
 
 Review corrected three concrete semantic defects before this checkpoint: blank/empty-object Tool
 input now consistently becomes `{}`, a completed function-call item must retain the originally
@@ -247,18 +261,43 @@ route change, or proxy/TUN operation occurred in this CR.
 
 The subsequent local read-only projection of the known CLI auth cache found one indexed credential
 entry with a future expiry class. Its credential representation contains a snake-case refresh field
-and an absolute-expiry field, but lacks P6's required `access_token` and `expires_in` input names.
-The P6 importer deliberately rejects absolute-expiry aliases and requires an unambiguous strict JSON
-object containing `access_token`, `refresh_token`, and `expires_in`. Therefore the official CLI
-cache is **not a valid P6 strict-import input as stored**. No cache field was renamed, copied,
-converted, exported, or supplied to the P6 harness.
+and an absolute-expiry field, but lacked P6's then-supported `access_token` and `expires_in` input
+names. At the time, the strict P6 importer correctly rejected it and no cache field was renamed,
+copied, converted, exported, or supplied to the P6 harness.
 
 This proves the local official CLI session is fresh and currently valid at the cache level, but it
 does not prove that the fixed P6 direct request profile is accepted or that the earlier T11/T12
-`4xx` outcomes were caused by an expired credential. It creates no new tuple and leaves P6-03
-`BLOCKED`; any direct validation requires a separate CR with newly registered tuples.
+`4xx` outcomes were caused by an expired credential. It created no new tuple. `CR-P6-03-008`
+subsequently authorizes a source-specific adapter and two newly registered tuples; it does not alter
+the outcome or replay prohibition for any earlier tuple.
 
-### Live validation status: BLOCKED
+### Known OAuth source adaptation and T13/T14 boundary (`CR-P6-03-008`)
+
+The read-only source comparison recorded in the [OAuth source analysis](p6-03-oauth-source-analysis.md)
+established interoperable storage shapes, not a request-profile workaround. The local implementation
+keeps standard JSON/Device Code/Refresh intact and adds strict bytes-only importers for CPA xAI,
+grok2api/`Sub2API` account credentials, and the official CLI indexed cache. It intentionally does
+not add `Sub2API` Web SSO/Cookie conversion, browser callbacks, file access to production code, or
+any server/route/proxy/TUN mutation.
+
+The ignored harness preserves its existing JSON environment entry for historical evidence. For this
+new matrix only, it also accepts one explicit absolute local CLI-cache path as a mutually exclusive
+input; the path and contents never enter output, logs, Git, or the report. The cache is read once,
+at most 64 KiB, into zeroizing memory immediately before building the one request. The local
+adapter/review gate must pass before any row below may be sent.
+
+| Tuple | Credential source | Mode | Network profile | State before local gate |
+|---|---|---|---|---|
+| `T13` | `official-cli-cache-01` | `non_streaming` | `direct` | not sent |
+| `T14` | `official-cli-cache-01` | `sse` | `direct` | not sent |
+
+Each row is a separate ignored-harness process with `P6_03_MAX_EXTERNAL_REQUESTS=1`, the existing
+opaque Build candidate, fixed short prompt, and `max_output_tokens=32`. No refresh, retry,
+failover, proxy/TUN change, or T1-T12 replay is permitted. A failure of either row ends this matrix
+immediately and returns P6-03 to `BLOCKED`; only both required Canonical success lifecycles can move
+the task to `LOCAL_PASS_PENDING_PHASE_GATE`.
+
+### Live validation status: local gate in progress
 
 For each tuple, the sole authorized OAuth file was projected only in process memory and its usable
 lifetime was calculated from its `.expired` field; no persisted `expires_in` was reused. The opaque
@@ -275,12 +314,12 @@ request-profile detail.
 
 `CR-P6-03-001` through `CR-P6-03-003` permanently prohibit any further same-tuple request.
 `CR-P6-03-005` registered only the distinct updated-profile tuples above, and both are now
-exhausted. P6-04 must not start while P6-03 is `BLOCKED`.
+exhausted. `CR-P6-03-008` is the only currently registered alternative matrix, and P6-04 must not
+start while P6-03 is `IN_PROGRESS` or `BLOCKED`.
 
-No further direct tuple is registered. P6-03 can enter `LOCAL_PASS_PENDING_PHASE_GATE` only after
-a newly authorized, newly documented validation plan obtains both fixed-endpoint modes with the
-required Canonical start/text/end semantic shape and no stream error; until then P6-04 remains
-pending.
+No direct row beyond T13/T14 is registered. P6-03 can enter `LOCAL_PASS_PENDING_PHASE_GATE` only
+after both fixed-endpoint modes obtain the required Canonical start/text/end semantic shape and no
+stream error; until then P6-04 remains pending.
 
 ## Timing and next task
 
@@ -294,10 +333,12 @@ pending.
 | CR-P6-03-005 direct matrix | `2026-07-22`, after the current-profile local checkpoint; T11 and T12 each ran in an independent process with a one-request cap, direct no-environment-proxy transport, fresh in-memory expiry projection, and no retry/refresh/failover. Both stopped in under one harness second with the safe outcomes recorded above. |
 | CR-P6-03-006 account/allowance diagnostic | `2026-07-22`; selected only the current CPA copy after a read-only duplicate check, imported it once through grok2api's supported admin API (`2xx`), then sent exactly one account-bound quota refresh (`502`, under 5s). No shared-pool generation was sent because 126 enabled Build accounts prevent account attribution without a new route/key/scheduling change. Safe post-state: enabled + active, auto mode, no persisted failure marker, `buildSuperEntitled=false`; no safe quota/rate/credential/transport/root-cause class was available. |
 | CR-P6-03-007 local official-CLI OAuth diagnostic | `2026-07-22`; one user-completed `grok login --oauth` session succeeded. The safe cache projection found an indexed credential entry with future expiry, but not the strict P6 input names `access_token` + `expires_in`; no transformation, P6 harness, model request, token refresh, server call, or network/proxy change followed. |
+| CR-P6-03-008 focused local gate | `2026-07-23T00:23+08:00`; formatting, `p6_01_build_oauth` (7), `p6_02_refresh_runtime` (7), `p6_03_authorized_build_probe` (9 plus 2 ignored), Clippy, whitespace, crate-boundary review, independent redaction review, and the warm full local gate all passed. |
+| CR-P6-03-008 real-cache preflight | `2026-07-23T00:23+08:00`; one exact ignored preflight read the user-authenticated local official CLI cache and constructed the fixed non-streaming request without DNS, HTTP, refresh, retry, server action, proxy/TUN change, Token output, or model request. |
 | Server-side preflight hygiene | One incorrect schema lookup briefly created a zero-byte, unreferenced file under the current grok2api data mount. It was immediately removed; the postcheck confirmed its absence and the container still running. No configuration, credential, or database-table row was changed. |
 | Code commit | Current-profile local checkpoint (`P6-03: update current Grok Build profile`); local only, not pushed, and required before either T11 or T12. |
 | Phase closeout tag / Delivery Gate | Not started; G6 is P6's single remote gate. |
-| Repeated validations / rework | One necessary test type correction, one semantic review correction batch, then two full-gate findings fixed in scope (`struct_excessive_bools` in the ignored harness and its test-only `tokio` boundary allowlist). The earlier live matrix exposed an intentionally over-coarse safe outcome; two finite redacted diagnostics then classified it as a 2xx error object with unrecognized standard metadata. No identical tuple was sent after T10. `CR-P6-03-005` then used its only two new-profile direct sends: T11 and T12 each stopped as an unrecognized 4xx error object, so no further direct probe is permitted. |
+| Repeated validations / rework | One necessary test type correction, one semantic review correction batch, then two earlier full-gate findings fixed in scope (`struct_excessive_bools` in the ignored harness and its test-only `tokio` boundary allowlist). `CR-P6-03-008` initially exposed one expected missing `time` crate-boundary declaration; it was added with a documented RFC3339-only purpose and the full gate then passed. The earlier live matrix exposed an intentionally over-coarse safe outcome; two finite redacted diagnostics then classified it as a 2xx error object with unrecognized standard metadata. No identical tuple was sent after T10. `CR-P6-03-005` then used its only two new-profile direct sends: T11 and T12 each stopped as an unrecognized 4xx error object, so no further direct probe is permitted. |
 
 Rollback removes only the P6-03 module, synthetic fixtures/tests, and documentation. It requires
 no gateway database migration, server restart, proxy/TUN cleanup, or direct-Provider action. The

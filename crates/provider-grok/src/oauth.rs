@@ -11,9 +11,12 @@ use serde::{
     de::{self, MapAccess, SeqAccess, Visitor},
 };
 use serde_json::Number;
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use url::{Url, form_urlencoded};
 use zeroize::Zeroizing;
 
+/// Fixed issuer for Grok Build's public OAuth client.
+pub const GROK_BUILD_OAUTH_ISSUER: &str = "https://auth.x.ai";
 /// Public OAuth client identifier used by Grok Build's Device Authorization Grant.
 pub const GROK_BUILD_PUBLIC_CLIENT_ID: &str = "b1a00492-073a-47ea-816f-4c329264a828";
 /// Fixed least-privilege scope set requested by the Grok Build OAuth flow.
@@ -27,6 +30,13 @@ pub const GROK_BUILD_TOKEN_URL: &str = "https://auth.x.ai/oauth2/token";
 const MAX_OAUTH_JSON_BYTES: usize = 64 * 1024;
 const MAX_OAUTH_FIELD_BYTES: usize = 16 * 1024;
 const MAX_TOKEN_LIFETIME_SECONDS: u64 = 366 * 24 * 60 * 60;
+const ABSOLUTE_EXPIRY_FIELD_ALIASES: &[&str] = &[
+    "expired",
+    "expires_at",
+    "expires_at_ms",
+    "expiration",
+    "expires",
+];
 const DEFAULT_DEVICE_POLL_INTERVAL_SECONDS: u64 = 5;
 const DEVICE_SLOW_DOWN_SECONDS: u64 = 5;
 const PERSISTED_CREDENTIAL_FORMAT_VERSION: u8 = 1;
@@ -40,6 +50,12 @@ pub enum GrokBuildCredentialSource {
     DeviceCode,
     /// The credential was granted by a later refresh grant.
     Refresh,
+    /// The credential was decoded from a CPA xAI OAuth auth file.
+    CpaXaiAuthFile,
+    /// The credential was decoded from a Grok account credential object.
+    GrokAccountJson,
+    /// The credential was decoded from the official Grok CLI's indexed auth cache.
+    OfficialCliAuthCache,
 }
 
 /// One validated, short-lived Grok Build OAuth credential.
@@ -75,6 +91,96 @@ impl GrokBuildCredential {
             GrokBuildCredentialSource::ImportedJson,
             None,
             None,
+        )
+    }
+
+    /// Imports one CPA xAI OAuth auth file without writing, renaming, or exporting it.
+    ///
+    /// CPA stores the absolute expiry as `expired`, while retaining the original relative
+    /// `expires_in` value as non-authoritative metadata. This importer derives the P6 credential's
+    /// exact absolute expiry from the former and only accepts the known `type=xai` OAuth shape.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GrokBuildOAuthError`] when the source is not a known CPA xAI OAuth shape, is
+    /// expired, or contains malformed/unsafe credential fields.
+    pub fn import_cpa_xai_auth_file(
+        input: &[u8],
+        observed_at_ms: i64,
+    ) -> Result<Self, GrokBuildOAuthError> {
+        let object = parse_strict_json_object(input)?;
+        if required_nonsecret_field(&object, "type")? != "xai" {
+            return Err(GrokBuildOAuthError::InvalidField);
+        }
+        if let Some(auth_kind) = optional_nonsecret_field(&object, "auth_kind")?
+            && auth_kind != "oauth"
+        {
+            return Err(GrokBuildOAuthError::InvalidField);
+        }
+        validate_optional_issuer(&object)?;
+        credential_from_absolute_expiry_object(
+            &object,
+            "access_token",
+            "expired",
+            observed_at_ms,
+            GrokBuildCredentialSource::CpaXaiAuthFile,
+        )
+    }
+
+    /// Imports a Grok account OAuth credential object with an absolute `expires_at` timestamp.
+    ///
+    /// This covers the clean-room-compatible account credential shape used by grok2api and
+    /// `Sub2API`. The input is data only: callers retain ownership of any file or database access.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GrokBuildOAuthError`] when the source is malformed, expired, has another public
+    /// client identity, or contains unsafe credential fields.
+    pub fn import_grok_account_json(
+        input: &[u8],
+        observed_at_ms: i64,
+    ) -> Result<Self, GrokBuildOAuthError> {
+        let object = parse_strict_json_object(input)?;
+        validate_optional_issuer(&object)?;
+        credential_from_absolute_expiry_object(
+            &object,
+            "access_token",
+            "expires_at",
+            observed_at_ms,
+            GrokBuildCredentialSource::GrokAccountJson,
+        )
+    }
+
+    /// Imports the one expected official Grok CLI OAuth cache entry in memory.
+    ///
+    /// The official CLI stores its Bearer access token as `key` under an indexed
+    /// `issuer::client_id` object. This method accepts only the fixed Grok Build issuer and public
+    /// client identity; it never opens a path, writes the cache, or exposes its values.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GrokBuildOAuthError`] when the expected indexed entry is absent, malformed,
+    /// expired, or belongs to a different issuer/client identity.
+    pub fn import_official_cli_auth_cache(
+        input: &[u8],
+        observed_at_ms: i64,
+    ) -> Result<Self, GrokBuildOAuthError> {
+        let cache = parse_strict_json_object(input)?;
+        let cache_key = format!("{GROK_BUILD_OAUTH_ISSUER}::{GROK_BUILD_PUBLIC_CLIENT_ID}");
+        let entry = match cache.get(&cache_key) {
+            Some(entry) => entry.as_object().ok_or(GrokBuildOAuthError::InvalidField)?,
+            None => match cache_identity_mismatch(&cache) {
+                Some(error) => return Err(error),
+                None => return Err(GrokBuildOAuthError::MissingField),
+            },
+        };
+        validate_optional_issuer(entry)?;
+        credential_from_absolute_expiry_object(
+            entry,
+            "key",
+            "expires_at",
+            observed_at_ms,
+            GrokBuildCredentialSource::OfficialCliAuthCache,
         )
     }
 
@@ -132,6 +238,9 @@ impl GrokBuildCredential {
             GrokBuildCredentialSource::ImportedJson => 0,
             GrokBuildCredentialSource::DeviceCode => 1,
             GrokBuildCredentialSource::Refresh => 2,
+            GrokBuildCredentialSource::CpaXaiAuthFile => 3,
+            GrokBuildCredentialSource::GrokAccountJson => 4,
+            GrokBuildCredentialSource::OfficialCliAuthCache => 5,
         });
         output.extend_from_slice(&self.expires_at_ms.to_be_bytes());
         write_persisted_segment(&mut output, self.access_token())?;
@@ -154,6 +263,9 @@ impl GrokBuildCredential {
             0 => GrokBuildCredentialSource::ImportedJson,
             1 => GrokBuildCredentialSource::DeviceCode,
             2 => GrokBuildCredentialSource::Refresh,
+            3 => GrokBuildCredentialSource::CpaXaiAuthFile,
+            4 => GrokBuildCredentialSource::GrokAccountJson,
+            5 => GrokBuildCredentialSource::OfficialCliAuthCache,
             _ => return Err(GrokBuildOAuthError::InvalidPersistedCredential),
         };
         let expires_at_ms = i64::from_be_bytes(
@@ -758,6 +870,8 @@ pub enum GrokBuildOAuthError {
     DeviceFlowCompleted,
     /// A credential belongs to a different public OAuth client id than this flow.
     CredentialClientMismatch,
+    /// A credential cache entry belongs to a different OAuth issuer than this flow.
+    CredentialIssuerMismatch,
     /// The injected local OAuth transport was unavailable.
     TransportUnavailable,
 }
@@ -783,6 +897,9 @@ impl fmt::Display for GrokBuildOAuthError {
             Self::DeviceFlowCompleted => "Grok Build Device Authorization is already terminal",
             Self::CredentialClientMismatch => {
                 "Grok Build credential belongs to another OAuth client"
+            }
+            Self::CredentialIssuerMismatch => {
+                "Grok Build credential belongs to another OAuth issuer"
             }
             Self::TransportUnavailable => "Grok Build OAuth transport is unavailable",
         };
@@ -872,6 +989,126 @@ fn parse_token_result(
         "expired_token" => Ok(TokenResult::Expired),
         _ => Err(GrokBuildOAuthError::InvalidTokenResponse),
     }
+}
+
+fn credential_from_absolute_expiry_object(
+    object: &BTreeMap<String, StrictJsonValue>,
+    access_token_field: &str,
+    expiry_field: &str,
+    observed_at_ms: i64,
+    source: GrokBuildCredentialSource,
+) -> Result<GrokBuildCredential, GrokBuildOAuthError> {
+    ensure_unambiguous_absolute_expiry(object, expiry_field)?;
+    let access_token = required_secret_field(object, access_token_field)?;
+    let refresh_token = required_secret_field(object, "refresh_token")?;
+    let expires_at_ms = required_rfc3339_expiry_at_ms(object, expiry_field)?;
+    validate_absolute_expiry(expires_at_ms, observed_at_ms)?;
+
+    if let Some(token_type) = optional_nonsecret_field(object, "token_type")?
+        && !token_type.eq_ignore_ascii_case("bearer")
+    {
+        return Err(GrokBuildOAuthError::UnsupportedTokenType);
+    }
+    if let Some(id_token) = optional_secret_field(object, "id_token")? {
+        let _discarded_id_token = Zeroizing::new(id_token.to_owned());
+    }
+
+    let client_id =
+        optional_nonsecret_field(object, "client_id")?.unwrap_or(GROK_BUILD_PUBLIC_CLIENT_ID);
+    if client_id != GROK_BUILD_PUBLIC_CLIENT_ID {
+        return Err(GrokBuildOAuthError::CredentialClientMismatch);
+    }
+    let scope = optional_scope_field(object, "scope")?.unwrap_or(GROK_BUILD_OAUTH_SCOPE);
+    if scope != GROK_BUILD_OAUTH_SCOPE {
+        return Err(GrokBuildOAuthError::InvalidTokenResponse);
+    }
+
+    Ok(GrokBuildCredential {
+        access_token: Zeroizing::new(access_token.to_owned()),
+        refresh_token: Zeroizing::new(refresh_token.to_owned()),
+        expires_at_ms,
+        client_id: client_id.to_owned(),
+        scope: scope.to_owned(),
+        source,
+    })
+}
+
+fn cache_identity_mismatch(
+    cache: &BTreeMap<String, StrictJsonValue>,
+) -> Option<GrokBuildOAuthError> {
+    if cache.keys().any(|key| {
+        key.rsplit_once("::").is_some_and(|(issuer, client_id)| {
+            issuer == GROK_BUILD_OAUTH_ISSUER && client_id != GROK_BUILD_PUBLIC_CLIENT_ID
+        })
+    }) {
+        return Some(GrokBuildOAuthError::CredentialClientMismatch);
+    }
+    if cache.keys().any(|key| {
+        key.rsplit_once("::").is_some_and(|(issuer, client_id)| {
+            client_id == GROK_BUILD_PUBLIC_CLIENT_ID && issuer != GROK_BUILD_OAUTH_ISSUER
+        })
+    }) {
+        return Some(GrokBuildOAuthError::CredentialIssuerMismatch);
+    }
+    None
+}
+
+fn ensure_unambiguous_absolute_expiry(
+    object: &BTreeMap<String, StrictJsonValue>,
+    expected_field: &str,
+) -> Result<(), GrokBuildOAuthError> {
+    if ABSOLUTE_EXPIRY_FIELD_ALIASES
+        .iter()
+        .any(|field| *field != expected_field && object.contains_key(*field))
+    {
+        return Err(GrokBuildOAuthError::AmbiguousExpiration);
+    }
+    Ok(())
+}
+
+fn validate_optional_issuer(
+    object: &BTreeMap<String, StrictJsonValue>,
+) -> Result<(), GrokBuildOAuthError> {
+    if let Some(issuer) = optional_nonsecret_field(object, "issuer")?
+        && issuer != GROK_BUILD_OAUTH_ISSUER
+    {
+        return Err(GrokBuildOAuthError::CredentialIssuerMismatch);
+    }
+    Ok(())
+}
+
+fn required_rfc3339_expiry_at_ms(
+    object: &BTreeMap<String, StrictJsonValue>,
+    field: &str,
+) -> Result<i64, GrokBuildOAuthError> {
+    let value = required_nonsecret_field(object, field)?;
+    let parsed = OffsetDateTime::parse(value, &Rfc3339)
+        .map_err(|_| GrokBuildOAuthError::AmbiguousExpiration)?;
+    let seconds = parsed.unix_timestamp();
+    if seconds < 0 {
+        return Err(GrokBuildOAuthError::InvalidTimestamp);
+    }
+    let milliseconds = seconds
+        .checked_mul(1_000)
+        .and_then(|milliseconds| {
+            milliseconds.checked_add(i64::from(parsed.nanosecond() / 1_000_000))
+        })
+        .ok_or(GrokBuildOAuthError::InvalidTimestamp)?;
+    Ok(milliseconds)
+}
+
+fn validate_absolute_expiry(
+    expires_at_ms: i64,
+    observed_at_ms: i64,
+) -> Result<(), GrokBuildOAuthError> {
+    let remaining_ms = expires_at_ms
+        .checked_sub(observed_at_ms)
+        .ok_or(GrokBuildOAuthError::InvalidTimestamp)?;
+    let maximum_ms = seconds_to_millis_checked(MAX_TOKEN_LIFETIME_SECONDS)?;
+    if remaining_ms <= 0 || remaining_ms > maximum_ms {
+        return Err(GrokBuildOAuthError::AmbiguousExpiration);
+    }
+    Ok(())
 }
 
 fn credential_from_object(
@@ -1181,6 +1418,13 @@ enum StrictJsonValue {
 }
 
 impl StrictJsonValue {
+    fn as_object(&self) -> Option<&BTreeMap<String, StrictJsonValue>> {
+        match self {
+            Self::Object(value) => Some(value),
+            Self::Null | Self::Bool | Self::Number(_) | Self::String(_) | Self::Array => None,
+        }
+    }
+
     fn as_str(&self) -> Option<&str> {
         match self {
             Self::String(value) => Some(value),

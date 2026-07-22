@@ -3,10 +3,11 @@
 use std::{collections::VecDeque, error::Error, sync::Mutex};
 
 use provider_grok::{
-    GROK_BUILD_PUBLIC_CLIENT_ID, GrokBuildCredential, GrokBuildCredentialSource,
-    GrokBuildDevicePollOutcome, GrokBuildOAuthEndpoint, GrokBuildOAuthError, GrokBuildOAuthFlow,
-    GrokBuildOAuthHttpResponse, GrokBuildOAuthRequest, GrokBuildOAuthRequestKind,
-    GrokBuildOAuthTransport, GrokBuildOAuthTransportError,
+    GROK_BUILD_OAUTH_ISSUER, GROK_BUILD_OAUTH_SCOPE, GROK_BUILD_PUBLIC_CLIENT_ID,
+    GrokBuildCredential, GrokBuildCredentialSource, GrokBuildDevicePollOutcome,
+    GrokBuildOAuthEndpoint, GrokBuildOAuthError, GrokBuildOAuthFlow, GrokBuildOAuthHttpResponse,
+    GrokBuildOAuthRequest, GrokBuildOAuthRequestKind, GrokBuildOAuthTransport,
+    GrokBuildOAuthTransportError,
 };
 
 #[test]
@@ -39,6 +40,253 @@ fn strict_import_retains_only_validated_fields_and_redacts_tokens() -> Result<()
         assert!(!debug.contains(synthetic_secret));
     }
     assert!(debug.contains("<redacted>"));
+    Ok(())
+}
+
+#[test]
+fn known_absolute_expiry_sources_import_in_memory_and_redact_tokens() -> Result<(), Box<dyn Error>>
+{
+    const OBSERVED_AT_MS: i64 = 1_735_689_600_000;
+    const EXPIRES_AT_MS: i64 = 1_735_689_610_250;
+
+    let cpa = GrokBuildCredential::import_cpa_xai_auth_file(
+        br#"{
+            "type":"xai",
+            "auth_kind":"oauth",
+            "access_token":"synthetic_cpa_access_012345",
+            "refresh_token":"synthetic_cpa_refresh_012345",
+            "expires_in":3600,
+            "expired":"2025-01-01T00:00:10.250Z",
+            "issuer":"https://auth.x.ai",
+            "email":"ignored@example.test",
+            "base_url":"https://api.x.ai/v1"
+        }"#,
+        OBSERVED_AT_MS,
+    )?;
+
+    let account = format!(
+        r#"{{
+            "access_token":"synthetic_account_access_012345",
+            "refresh_token":"synthetic_account_refresh_012345",
+            "expires_at":"2025-01-01T00:00:10.250Z",
+            "client_id":"{GROK_BUILD_PUBLIC_CLIENT_ID}",
+            "issuer":"{GROK_BUILD_OAUTH_ISSUER}",
+            "scope":"{GROK_BUILD_OAUTH_SCOPE}",
+            "token_type":"Bearer",
+            "metadata":{{"ignored":true}}
+        }}"#
+    );
+    let grok_account =
+        GrokBuildCredential::import_grok_account_json(account.as_bytes(), OBSERVED_AT_MS)?;
+
+    let cli_cache = format!(
+        r#"{{
+            "{GROK_BUILD_OAUTH_ISSUER}::{GROK_BUILD_PUBLIC_CLIENT_ID}":{{
+                "key":"synthetic_cli_access_012345",
+                "refresh_token":"synthetic_cli_refresh_012345",
+                "expires_at":"2025-01-01T00:00:10.250Z",
+                "issuer":"{GROK_BUILD_OAUTH_ISSUER}",
+                "metadata":{{"ignored":true}}
+            }},
+            "https://other.example.test::other-client":{{"ignored":"entry"}}
+        }}"#
+    );
+    let official_cli =
+        GrokBuildCredential::import_official_cli_auth_cache(cli_cache.as_bytes(), OBSERVED_AT_MS)?;
+
+    for (credential, source, access_token, refresh_token) in [
+        (
+            &cpa,
+            GrokBuildCredentialSource::CpaXaiAuthFile,
+            "synthetic_cpa_access_012345",
+            "synthetic_cpa_refresh_012345",
+        ),
+        (
+            &grok_account,
+            GrokBuildCredentialSource::GrokAccountJson,
+            "synthetic_account_access_012345",
+            "synthetic_account_refresh_012345",
+        ),
+        (
+            &official_cli,
+            GrokBuildCredentialSource::OfficialCliAuthCache,
+            "synthetic_cli_access_012345",
+            "synthetic_cli_refresh_012345",
+        ),
+    ] {
+        assert_eq!(credential.source(), source);
+        assert_eq!(credential.access_token(), access_token);
+        assert_eq!(credential.refresh_token(), refresh_token);
+        assert_eq!(credential.expires_at_ms(), EXPIRES_AT_MS);
+        assert_eq!(credential.client_id(), GROK_BUILD_PUBLIC_CLIENT_ID);
+        assert_eq!(credential.scope(), GROK_BUILD_OAUTH_SCOPE);
+        let debug = format!("{credential:?}");
+        assert!(!debug.contains(access_token));
+        assert!(!debug.contains(refresh_token));
+        assert!(debug.contains("<redacted>"));
+    }
+    Ok(())
+}
+
+#[test]
+fn known_absolute_expiry_sources_reject_wrong_identity_and_unsafe_expiry()
+-> Result<(), Box<dyn Error>> {
+    const OBSERVED_AT_MS: i64 = 1_735_689_600_000;
+
+    let wrong_client = GrokBuildCredential::import_grok_account_json(
+        br#"{
+            "access_token":"synthetic_account_access_012345",
+            "refresh_token":"synthetic_account_refresh_012345",
+            "expires_at":"2025-01-01T00:00:10Z",
+            "client_id":"different-client"
+        }"#,
+        OBSERVED_AT_MS,
+    )
+    .err()
+    .ok_or("wrong client unexpectedly imported")?;
+    assert_eq!(wrong_client, GrokBuildOAuthError::CredentialClientMismatch);
+
+    let wrong_issuer = GrokBuildCredential::import_grok_account_json(
+        br#"{
+            "access_token":"synthetic_account_access_012345",
+            "refresh_token":"synthetic_account_refresh_012345",
+            "expires_at":"2025-01-01T00:00:10Z",
+            "issuer":"https://other.example.test"
+        }"#,
+        OBSERVED_AT_MS,
+    )
+    .err()
+    .ok_or("wrong issuer unexpectedly imported")?;
+    assert_eq!(wrong_issuer, GrokBuildOAuthError::CredentialIssuerMismatch);
+
+    let expired = GrokBuildCredential::import_cpa_xai_auth_file(
+        br#"{
+            "type":"xai",
+            "access_token":"synthetic_cpa_access_012345",
+            "refresh_token":"synthetic_cpa_refresh_012345",
+            "expired":"2025-01-01T00:00:00Z"
+        }"#,
+        OBSERVED_AT_MS,
+    )
+    .err()
+    .ok_or("expired CPA source unexpectedly imported")?;
+    assert_eq!(expired, GrokBuildOAuthError::AmbiguousExpiration);
+
+    let duplicate_cli_entry = format!(
+        r#"{{
+            "{GROK_BUILD_OAUTH_ISSUER}::{GROK_BUILD_PUBLIC_CLIENT_ID}":{{
+                "key":"synthetic_cli_access_012345",
+                "refresh_token":"synthetic_cli_refresh_012345",
+                "expires_at":"2025-01-01T00:00:10Z"
+            }},
+            "{GROK_BUILD_OAUTH_ISSUER}::{GROK_BUILD_PUBLIC_CLIENT_ID}":{{
+                "key":"different_cli_access_012345",
+                "refresh_token":"different_cli_refresh_012345",
+                "expires_at":"2025-01-01T00:00:10Z"
+            }}
+        }}"#
+    );
+    let duplicate = GrokBuildCredential::import_official_cli_auth_cache(
+        duplicate_cli_entry.as_bytes(),
+        OBSERVED_AT_MS,
+    )
+    .err()
+    .ok_or("duplicate official CLI cache entry unexpectedly imported")?;
+    assert_eq!(duplicate, GrokBuildOAuthError::InvalidJson);
+
+    let wrong_issuer_cache = format!(
+        r#"{{
+            "https://other.example.test::{GROK_BUILD_PUBLIC_CLIENT_ID}":{{
+                "key":"synthetic_cli_access_012345",
+                "refresh_token":"synthetic_cli_refresh_012345",
+                "expires_at":"2025-01-01T00:00:10Z"
+            }}
+        }}"#
+    );
+    let wrong_cache_issuer = GrokBuildCredential::import_official_cli_auth_cache(
+        wrong_issuer_cache.as_bytes(),
+        OBSERVED_AT_MS,
+    )
+    .err()
+    .ok_or("wrong official CLI cache issuer unexpectedly imported")?;
+    assert_eq!(
+        wrong_cache_issuer,
+        GrokBuildOAuthError::CredentialIssuerMismatch
+    );
+
+    let wrong_client_cache = format!(
+        r#"{{
+            "{GROK_BUILD_OAUTH_ISSUER}::different-client":{{
+                "key":"synthetic_cli_access_012345",
+                "refresh_token":"synthetic_cli_refresh_012345",
+                "expires_at":"2025-01-01T00:00:10Z"
+            }}
+        }}"#
+    );
+    let wrong_cache_client = GrokBuildCredential::import_official_cli_auth_cache(
+        wrong_client_cache.as_bytes(),
+        OBSERVED_AT_MS,
+    )
+    .err()
+    .ok_or("wrong official CLI cache client unexpectedly imported")?;
+    assert_eq!(
+        wrong_cache_client,
+        GrokBuildOAuthError::CredentialClientMismatch
+    );
+    Ok(())
+}
+
+#[test]
+fn absolute_expiry_sources_reject_conflicts_and_out_of_range_expiries() -> Result<(), Box<dyn Error>>
+{
+    const OBSERVED_AT_MS: i64 = 1_735_689_600_000;
+
+    let conflicting_expiry = GrokBuildCredential::import_cpa_xai_auth_file(
+        br#"{
+            "type":"xai",
+            "access_token":"synthetic_cpa_access_012345",
+            "refresh_token":"synthetic_cpa_refresh_012345",
+            "expired":"2025-01-01T00:00:10Z",
+            "expires_at":"2025-01-01T00:00:20Z"
+        }"#,
+        OBSERVED_AT_MS,
+    )
+    .err()
+    .ok_or("conflicting absolute expiry unexpectedly imported")?;
+    assert_eq!(conflicting_expiry, GrokBuildOAuthError::AmbiguousExpiration);
+
+    let unknown_cpa_shape = GrokBuildCredential::import_cpa_xai_auth_file(
+        br#"{
+            "type":"unsupported-provider",
+            "access_token":"synthetic_cpa_access_012345",
+            "refresh_token":"synthetic_cpa_refresh_012345",
+            "expired":"2025-01-01T00:00:10Z"
+        }"#,
+        OBSERVED_AT_MS,
+    )
+    .err()
+    .ok_or("unknown CPA OAuth shape unexpectedly imported")?;
+    assert_eq!(unknown_cpa_shape, GrokBuildOAuthError::InvalidField);
+
+    let too_far_future = GrokBuildCredential::import_grok_account_json(
+        br#"{
+            "access_token":"synthetic_account_access_012345",
+            "refresh_token":"synthetic_account_refresh_012345",
+            "expires_at":"2027-01-02T00:00:00Z"
+        }"#,
+        OBSERVED_AT_MS,
+    )
+    .err()
+    .ok_or("overlong absolute expiry unexpectedly imported")?;
+    assert_eq!(too_far_future, GrokBuildOAuthError::AmbiguousExpiration);
+
+    let absent_cli_entry = GrokBuildCredential::import_official_cli_auth_cache(
+        br#"{"https://auth.example.test::other-client":{"ignored":true}}"#,
+        OBSERVED_AT_MS,
+    )
+    .err()
+    .ok_or("missing official CLI cache entry unexpectedly imported")?;
+    assert_eq!(absent_cli_entry, GrokBuildOAuthError::MissingField);
     Ok(())
 }
 

@@ -64,6 +64,8 @@ gateway-core
   JSON/SSE，并在非流式响应上做有界 gzip 解码；它通过既有 `gateway-upstream` 类型交出 P2 已准入
   的精确 Target，但不创建 Client、socket、TLS、代理或真实请求。它可以依赖
   `protocol-openai-responses` 的 Canonical 请求类型，但绝不引用其它 Provider 私有 crate；
+  `time` 仅在 `CR-P6-03-008` 的 bytes-only OAuth 来源适配中严格解析 RFC3339 绝对过期时间，
+  不读取时钟、不创建网络 I/O，也不改变 P6-01 相对 `expires_in` 行为。
   `flate2` 仅用于 1 MiB 上限内的 gzip 解码，`getrandom` 仅生成不持久化、不诊断的进程/请求关联值；
   `tokio` 仅为 ignored 的授权单探针测试目标提供受限异步驱动，不进入库目标或公共 API；状态/Quota/
   Cache/Continuity 策略仍由后续 P6 Task 所有。
