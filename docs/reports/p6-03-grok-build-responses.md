@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.11` |
+| Plan version | `v1.12` |
 | Task | `P6-03` |
 | Date | `2026-07-22` |
 | Branch | `codex/p6-grok-build` |
@@ -41,7 +41,7 @@ allowlist.
 | Command / review | Result |
 |---|---|
 | `cargo test --locked -p provider-grok --test p6_03_build_responses` | PASS; 6 synthetic request, egress, chunk-equivalence, bounded-error, duplicate/truncation/atomicity, Tool-normalization/metadata, and terminal-item-set tests passed. |
-| `cargo test --locked -p provider-grok --test p6_03_authorized_build_probe` | PASS; 6 no-network authorization/configuration/redaction tests passed, including safe body-taxonomy redaction; the sole live test remains ignored without explicit authorization. |
+| `cargo test --locked -p provider-grok --test p6_03_authorized_build_probe` | PASS; 7 no-network authorization/configuration/redaction tests passed, including safe body-taxonomy and standard-error-category redaction; the sole live test remains ignored without explicit authorization. |
 | `cargo clippy --locked -p provider-grok --all-targets --all-features -- -D warnings` | PASS. |
 | `cargo fmt --all -- --check` and `git diff --check` | PASS. |
 | `ruby scripts/check-crate-boundaries.rb` | PASS; 21-package dependency direction remains valid; no Provider-to-Provider import exists. |
@@ -90,12 +90,14 @@ configured local SOCKS profile, without changing any proxy or TUN setting.
 | `T6` | `build-code-fast-01` | `sse` | `direct` | stopped: `response_protocol_failed` (3s) |
 | `T7` | `build-code-fast-01` | `non_streaming` | `socks5` | stopped: `response_protocol_failed` (4s) |
 | `T8` | `build-code-fast-01` | `sse` | `socks5` | stopped: `response_protocol_failed` (3s) |
-| `T9-DIAG` | `build-static-01` | `non_streaming` | `socks5` | pending; `CR-P6-03-002` one-time safe response taxonomy only |
+| `T9-DIAG` | `build-static-01` | `non_streaming` | `socks5` | stopped: `response_protocol_failed`; `2xx`, expected content type, `error_like_object` (4s) |
+| `T10-DIAG` | `build-static-01` | `non_streaming` | `socks5` | pending; `CR-P6-03-003` final standard-error-category classification only |
 
 T1-T8's same quick response category across both direct and SOCKS5 profiles rules out a timeout or
 egress-admission failure for this matrix, but intentionally does not yet attribute the cause. The
-single T9-DIAG request is the only planned re-observation of an otherwise identical candidate/mode/
-network combination; it is a protocol classification, not a functional retry.
+T9-DIAG narrows this to an application-level 2xx error object. T10-DIAG is the second and final
+pre-registered re-observation of that candidate/mode/network combination; it is an error-category
+classification, not a functional retry.
 
 On any non-2xx, timeout, malformed response, redaction failure, or unexpected semantic terminal
 shape, that tuple ends without automatic retry/failover. The next distinct documented tuple may be
@@ -116,5 +118,5 @@ otherwise P6-04 remains pending.
 
 Rollback removes only the P6-03 module, synthetic fixtures/tests, and documentation. It requires
 no database migration, credential revocation, server restart, proxy/TUN cleanup, or external
-Provider action. The next allowed operation is the explicitly registered T9-DIAG classification;
+Provider action. The next allowed operation is the explicitly registered T10-DIAG classification;
 P6-04 remains pending.

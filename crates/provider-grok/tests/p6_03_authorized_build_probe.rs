@@ -173,6 +173,28 @@ impl SafeBodyShape {
     }
 }
 
+/// A whitelisted application-error output category that carries no upstream value.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SafeErrorCategory {
+    Model,
+    Credential,
+    Request,
+    Quota,
+    Unrecognized,
+}
+
+impl SafeErrorCategory {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Model => "model",
+            Self::Credential => "credential",
+            Self::Request => "request",
+            Self::Quota => "quota",
+            Self::Unrecognized => "unrecognized",
+        }
+    }
+}
+
 impl ProbeError {
     const fn safe_outcome(self) -> &'static str {
         match self {
@@ -440,6 +462,12 @@ async fn execute_one_probe(probe: PreparedProbe) -> Result<(), ProbeError> {
             "p6-03 build probe response target={target_label} body_shape={}",
             safe_body_shape(&body).as_str()
         );
+        if let Some(category) = safe_error_category(&body) {
+            println!(
+                "p6-03 build probe response target={target_label} error_category={}",
+                category.as_str()
+            );
+        }
         let envelope = GrokBuildResponsesHttpError::parse(status, &body)
             .map_err(|_| ProbeError::ResponseProtocolFailed)?;
         if envelope.status() != status {
@@ -463,6 +491,12 @@ async fn execute_one_probe(probe: PreparedProbe) -> Result<(), ProbeError> {
                 "p6-03 build probe response target={target_label} body_shape={}",
                 safe_body_shape(&body).as_str()
             );
+            if let Some(category) = safe_error_category(&body) {
+                println!(
+                    "p6-03 build probe response target={target_label} error_category={}",
+                    category.as_str()
+                );
+            }
             let decoded = GrokBuildResponsesDecoder::decode_non_streaming(&body)
                 .map_err(|_| ProbeError::ResponseProtocolFailed)?;
             let mut shape = ProbeResponseShape::default();
@@ -594,6 +628,53 @@ fn safe_body_shape(body: &[u8]) -> SafeBodyShape {
     }
 }
 
+fn safe_error_category(body: &[u8]) -> Option<SafeErrorCategory> {
+    let root = serde_json::from_slice::<serde_json::Value>(body).ok()?;
+    let root = root.as_object()?;
+    let error = root.get("error")?;
+    let Some(error) = error.as_object() else {
+        return Some(SafeErrorCategory::Unrecognized);
+    };
+    if error.get("param").and_then(serde_json::Value::as_str) == Some("model") {
+        return Some(SafeErrorCategory::Model);
+    }
+    for field in ["code", "type"] {
+        if let Some(value) = error.get(field).and_then(serde_json::Value::as_str)
+            && let Some(category) = classify_standard_error_value(value)
+        {
+            return Some(category);
+        }
+    }
+    Some(SafeErrorCategory::Unrecognized)
+}
+
+fn classify_standard_error_value(value: &str) -> Option<SafeErrorCategory> {
+    match value {
+        "model_not_found" | "invalid_model" | "model_not_supported" | "unsupported_model" => {
+            Some(SafeErrorCategory::Model)
+        }
+        "invalid_token"
+        | "invalid_api_key"
+        | "authentication_error"
+        | "unauthorized"
+        | "invalid_grant"
+        | "invalid_client"
+        | "forbidden" => Some(SafeErrorCategory::Credential),
+        "invalid_request"
+        | "invalid_request_error"
+        | "bad_request"
+        | "validation_error"
+        | "unsupported_parameter"
+        | "invalid_input" => Some(SafeErrorCategory::Request),
+        "rate_limit_error"
+        | "rate_limit_exceeded"
+        | "insufficient_quota"
+        | "quota_exceeded"
+        | "billing_hard_limit_reached" => Some(SafeErrorCategory::Quota),
+        _ => None,
+    }
+}
+
 #[test]
 fn missing_authorization_stops_before_any_other_value_is_read() {
     let mut reads = Vec::new();
@@ -704,6 +785,39 @@ fn safe_body_shape_retains_no_upstream_values() {
         SafeBodyShape::ResponseLikeObject
     );
     assert_eq!(safe_body_shape(b"not-json"), SafeBodyShape::InvalidJson);
+}
+
+#[test]
+fn safe_error_category_uses_only_a_fixed_whitelist() {
+    let model = br#"{"error":{"code":"model_not_found","message":"private model detail"}}"#;
+    let credential = br#"{"error":{"type":"invalid_token","message":"private token detail"}}"#;
+    let request =
+        br#"{"error":{"type":"invalid_request_error","message":"private request detail"}}"#;
+    let quota = br#"{"error":{"code":"quota_exceeded","message":"private quota detail"}}"#;
+    let unknown = br#"{"error":{"code":"private-unknown-code","message":"private error detail"}}"#;
+
+    assert_eq!(safe_error_category(model), Some(SafeErrorCategory::Model));
+    assert_eq!(
+        safe_error_category(credential),
+        Some(SafeErrorCategory::Credential)
+    );
+    assert_eq!(
+        safe_error_category(request),
+        Some(SafeErrorCategory::Request)
+    );
+    assert_eq!(safe_error_category(quota), Some(SafeErrorCategory::Quota));
+    assert_eq!(
+        safe_error_category(unknown),
+        Some(SafeErrorCategory::Unrecognized)
+    );
+    assert_eq!(SafeErrorCategory::Unrecognized.as_str(), "unrecognized");
+    for private_value in ["private-unknown-code", "private error detail"] {
+        assert!(
+            !SafeErrorCategory::Unrecognized
+                .as_str()
+                .contains(private_value)
+        );
+    }
 }
 
 #[tokio::test]

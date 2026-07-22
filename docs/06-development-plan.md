@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.11` |
+| 计划版本 | `v1.12` |
 | 生效日期 | `2026-07-22` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP`、`P4 - Catalog、Health、Quota、Explain、观测` 与 `P5 - Anthropic/Claude Code 兼容` 已完成；`P6 - Grok Build` 已开始。 |
@@ -12,7 +12,7 @@
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
-| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 |
+| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 `CR-P6-03-003`：在确认 2xx JSON 错误对象后，增加最终一次仅从标准错误元数据映射安全类别的诊断调用。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -434,8 +434,9 @@ CR-ID: CR-P6-03-001
 2. **一进程一请求。** 现有 ignored harness 的 `P6_03_MAX_EXTERNAL_REQUESTS=1` 不得放宽。不同元组
    必须通过独立进程调用；同一 `(模型, 模式, 网络配置)` 元组最多一次，且不含自动重试、刷新、
    candidate 选择、failover 或续接。只有前一有限矩阵全部得到无法区分的安全类别、另有 Change
-   Request 明确登记诊断目标、并且该诊断只输出状态/内容类型/无值结构分类时，才可增加一次同元组的
-   非自动诊断调用；它不能作为成功重试或替代功能验收。
+   Request 明确登记诊断目标、并且该诊断只输出状态/内容类型/无值结构分类时，才可增加同元组的
+   非自动诊断调用；每项诊断仍一进程一 send，必须比前一项增加更窄的新安全事实。原矩阵之外最多
+   两项此类诊断，且第二项后绝不继续同元组调用；它们不能作为成功重试或替代功能验收。
 3. **单账号、固定边界。** 仅使用用户指定的一个 CPA OAuth 账号，且仅访问 P6-03 固定
    `https://cli-chat-proxy.grok.com/v1/responses` 端点。不得枚举其它认证文件、改变账号、服务器、
    代理规则或 TUN 排除地址。
@@ -463,6 +464,24 @@ CR-ID: CR-P6-03-002
       回滚移除安全诊断输出并停止 T9；T1-T8 的事实证据保留。
 用户批准: APPROVED，2026-07-22（“你自己决定，不限制次数方案，可以都测试”）
 计划版本变更: v1.11
+```
+
+### 已批准 Change Request：CR-P6-03-003
+
+```text
+CR-ID: CR-P6-03-003
+原因: T9-DIAG 已证明指定 OAuth token 取得 `2xx`、期望 JSON 内容类型和 error-like object，排除了
+      网络/内容类型层，但还不能区分模型、凭据、请求或额度类的应用层错误。需要最终一次只检查错误
+      对象标准 `code`/`type`/`param` 元数据的白名单映射；不读取或输出 message 等自由文本。
+影响的 Task / Matrix ID / ADR: 仅 P6-03 ignored harness、报告和 `C28` live diagnosis；不改变生产
+      Provider、请求、固定端点、Canonical 行为、账号状态、P6-04+、服务器或代理/TUN。
+兼容性与迁移影响: 无客户端、数据、部署或账号迁移。输出只可能是 `model`、`credential`、`request`、
+      `quota` 或 `unrecognized` 类别；任何未知 code/type/param 值均不输出原值。
+测试与回滚变化: 增加合成白名单/未知值脱敏测试，并登记最终 T10-DIAG：只重观察 `build-static-01`、
+      `non_streaming`、`socks5` 一次。它是第二且最后一次同元组诊断，仍为一 send、无重试、不能通过
+      P6-03；若结果仍不足以支持修复，Task 保持阻塞而非继续探测。
+用户批准: APPROVED，2026-07-22（“你自己决定，不限制次数方案，可以都测试”）
+计划版本变更: v1.12
 ```
 
 ### 已批准 Change Request：CR-P4-G4-001
