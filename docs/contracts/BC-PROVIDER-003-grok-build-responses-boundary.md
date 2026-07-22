@@ -5,7 +5,7 @@
 | Contract | `BC-PROVIDER-003` |
 | Task | `P6-03` |
 | ADR | [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md) |
-| Status | `IN_PROGRESS` — `CR-P6-03-009` authorizes one corrected-wrapper T15 after a no-network preflight; only T15 Canonical success can reauthorize the unspent T14 SSE process. T1-T13 remain permanently closed and P6-04 stays pending |
+| Status | `BLOCKED` — `CR-P6-03-009` T15 reached the fixed endpoint once and stopped as a 4xx error-like response with the safe category `unrecognized`; T14 remains unsent and prohibited. T1-T13 and T15 are closed, and P6-04 stays pending |
 | Domain | Fixed OAuth Build request, exact egress handoff, non-streaming/SSE decoding, and safe error syntax |
 
 ## Preconditions and bounds

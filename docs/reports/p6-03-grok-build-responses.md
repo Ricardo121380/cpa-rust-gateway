@@ -335,15 +335,22 @@ resolve DNS, make HTTP, refresh, retry, or call `send`.
 
 | Tuple | Credential source | Mode | Network profile | Current authorization |
 |---|---|---|---|---|
-| `T15` | `official-cli-cache-corrected-01` | `non_streaming` | `direct` | corrected no-network preflight passed; authorized, not sent |
-| `T14` | `official-cli-cache-01` | `sse` | `direct` | conditionally reauthorized; not sent and may run only after T15 produces Canonical start/text/end with no StreamError |
+| `T15` | `official-cli-cache-corrected-01` | `non_streaming` | `direct` | stopped: `4xx`, expected content type, `error_like_object`, `unrecognized` (harness 1.83s) |
+| `T14` | `official-cli-cache-01` | `sse` | `direct` | not sent: T15 stop boundary |
 
 Both processes must retain the fixed short prompt, `max_output_tokens=32`, one isolated harness
 process and `P6_03_MAX_EXTERNAL_REQUESTS=1`. No refresh, retry, failover, candidate selection,
 proxy/TUN change, T1-T13 replay, or additional tuple is permitted. A preflight or T15 failure stops
-the boundary and leaves T14 unsent; a T14 failure also stops the boundary. P6-03 can enter
-`LOCAL_PASS_PENDING_PHASE_GATE` only after both T15 and T14 obtain the required Canonical
-start/text/end semantic shape with no stream error; until then P6-04 remains pending.
+the boundary and leaves T14 unsent; a T14 failure also stops the boundary.
+
+At `2026-07-23T00:52+08:00`, T15 ran once after its corrected no-network preflight. It reached the
+fixed endpoint and stopped as a `4xx` error-like response with the expected non-streaming content
+type and only the whitelist-safe category `unrecognized`; it emitted no Canonical success event.
+This rules out the former wrapper configuration failure and a local egress-admission failure for
+T15, but does not safely attribute the response to credential, model, quota, or another upstream
+policy. T14 was not started. P6-03 is `BLOCKED`; a new explicit CR would be required for any further
+direct action. P6-03 can enter `LOCAL_PASS_PENDING_PHASE_GATE` only after both modes obtain the
+required Canonical start/text/end semantic shape with no stream error; P6-04 remains pending.
 
 ## Timing and next task
 
@@ -362,15 +369,16 @@ start/text/end semantic shape with no stream error; until then P6-04 remains pen
 | CR-P6-03-008 T13 stop | `2026-07-23T00:33+08:00`; exactly one T13 ignored-harness process stopped at local authorization/configuration parsing before `result=started`. A local shell-semantics check proved that the wrapper passed empty same-command assignment values into `env -i`; no credential cache was read and no DNS, HTTP, refresh, retry, proxy/TUN action, or Provider send occurred. T14 was not started. |
 | P6-03 blocked-state full gate | `2026-07-23T00:43+08:00`; after staging the reviewed blocked-state evidence and a semantics-preserving local-value rename that removed a secret-scanner false positive, formatting, Clippy, the full workspace tests, source/crate-boundary/document checks, tracked-secret scan, dependency policy, and RustSec audit all passed. |
 | CR-P6-03-009 corrected no-network preflight | `2026-07-23T00:51+08:00`; one exact ignored preflight with the corrected `env -i` wrapper passed for T15's label/mode. It read the bounded local cache and constructed the fixed request without DNS, HTTP, refresh, retry, proxy/TUN action, Token output, or Provider send. |
+| CR-P6-03-009 T15 direct matrix | `2026-07-23T00:52+08:00`; one isolated direct non-streaming T15 process reached the fixed endpoint after the preflight and stopped as `4xx`, expected content type, `error_like_object`, `unrecognized` in 1.83s. It produced no Canonical success lifecycle; T14 was not sent. |
 | Server-side preflight hygiene | One incorrect schema lookup briefly created a zero-byte, unreferenced file under the current grok2api data mount. It was immediately removed; the postcheck confirmed its absence and the container still running. No configuration, credential, or database-table row was changed. |
 | Code commit | Current-profile local checkpoint (`P6-03: update current Grok Build profile`); local only, not pushed, and required before either T11 or T12. |
 | Phase closeout tag / Delivery Gate | Not started; G6 is P6's single remote gate. |
-| Repeated validations / rework | One necessary test type correction, one semantic review correction batch, then two earlier full-gate findings fixed in scope (`struct_excessive_bools` in the ignored harness and its test-only `tokio` boundary allowlist). `CR-P6-03-008` initially exposed one expected missing `time` crate-boundary declaration; it was added with a documented RFC3339-only purpose and the full gate then passed. The earlier live matrix exposed an intentionally over-coarse safe outcome; two finite redacted diagnostics then classified it as a 2xx error object with unrecognized standard metadata. No identical tuple was sent after T10. `CR-P6-03-005` then used its only two new-profile direct sends: T11 and T12 each stopped as an unrecognized 4xx error object, so no further direct probe is permitted. The registered T13 process later exposed a local wrapper assignment-expansion error before dispatch; its one-process/no-retry policy prevents correction without a new CR, and T14 remains unsent. The resulting blocked-state review also found that a scanner treated the pre-existing token-named local assignments as a secret-looking literal; neutral local-value names preserve the import behavior and let the tracked-secret gate verify the actual staged content. |
+| Repeated validations / rework | One necessary test type correction, one semantic review correction batch, then two earlier full-gate findings fixed in scope (`struct_excessive_bools` in the ignored harness and its test-only `tokio` boundary allowlist). `CR-P6-03-008` initially exposed one expected missing `time` crate-boundary declaration; it was added with a documented RFC3339-only purpose and the full gate then passed. The earlier live matrix exposed an intentionally over-coarse safe outcome; two finite redacted diagnostics then classified it as a 2xx error object with unrecognized standard metadata. No identical tuple was sent after T10. `CR-P6-03-005` then used its only two new-profile direct sends: T11 and T12 each stopped as an unrecognized 4xx error object, so no further direct probe is permitted. The registered T13 process later exposed a local wrapper assignment-expansion error before dispatch; its one-process/no-retry policy prevents correction without a new CR. `CR-P6-03-009` then validated the corrected wrapper without network and consumed its sole T15 send, which reached the endpoint but stopped as a safe unrecognized 4xx error-like response; T14 remains unsent. The resulting blocked-state review also found that a scanner treated the pre-existing token-named local assignments as a secret-looking literal; neutral local-value names preserve the import behavior and let the tracked-secret gate verify the actual staged content. |
 
 Rollback removes only the P6-03 module, synthetic fixtures/tests, and documentation. It requires
 no gateway database migration, server restart, proxy/TUN cleanup, or direct-Provider action. The
 CR-P6-03-006 grok2api import is an intentional external persistent state requested by the user; it
-is not deleted automatically and would need a separate explicit server-change authorization. T1-T12
-remain exhausted permanently; the T13 process is consumed and T14 remains unsent. No further direct
-tuple is registered. P6-04 remains pending until P6-03's dual-mode acceptance condition is met
-under a new explicit CR.
+is not deleted automatically and would need a separate explicit server-change authorization. T1-T13
+remain exhausted permanently; T15 is consumed and T14 remains unsent. No further direct tuple is
+registered. P6-04 remains pending until P6-03's dual-mode acceptance condition is met under a new
+explicit CR.
