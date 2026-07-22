@@ -4,15 +4,15 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.16` |
+| 计划版本 | `v1.17` |
 | 生效日期 | `2026-07-22` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP`、`P4 - Catalog、Health、Quota、Explain、观测` 与 `P5 - Anthropic/Claude Code 兼容` 已完成；`P6 - Grok Build` 已开始。 |
-| 当前任务 | `P6-03`：`BLOCKED`；`CR-P6-03-005` 的 T11 非流式与 T12 SSE 各已按固定边界发送一次，但均未得到所需 Canonical 成功语义。`CR-P6-03-006` 仅登记一个隔离的 grok2api 账号/额度诊断，不解除该阻塞。 |
+| 当前任务 | `P6-03`：`BLOCKED`；`CR-P6-03-005` 的 T11 非流式与 T12 SSE 各已按固定边界发送一次，但均未得到所需 Canonical 成功语义。`CR-P6-03-006` 仅登记一个隔离的 grok2api 账号/额度诊断；`CR-P6-03-007` 仅登记一次本机官方 CLI OAuth 重新认证与安全状态投影，二者均不解除该阻塞。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
-| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 `CR-P6-03-003`：在确认 2xx JSON 错误对象后，增加最终一次仅从标准错误元数据映射安全类别的诊断调用。 `CR-P6-03-004`：新增一个与固定直连验收隔离的、服务器本地 grok2api Build 路由代理参考探针。 `CR-P6-03-005`：采用服务器参考的当前 Build 请求轮廓，并只登记新的固定端点 T11 非流式与 T12 SSE 验证。 `CR-P6-03-006`：通过 grok2api 支持的管理 API 导入指定 OAuth 文件并做账号专属额度刷新诊断；不重放固定直连元组，也不把共享路由调用误归因到该账号。 |
+| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 `CR-P6-03-003`：在确认 2xx JSON 错误对象后，增加最终一次仅从标准错误元数据映射安全类别的诊断调用。 `CR-P6-03-004`：新增一个与固定直连验收隔离的、服务器本地 grok2api Build 路由代理参考探针。 `CR-P6-03-005`：采用服务器参考的当前 Build 请求轮廓，并只登记新的固定端点 T11 非流式与 T12 SSE 验证。 `CR-P6-03-006`：通过 grok2api 支持的管理 API 导入指定 OAuth 文件并做账号专属额度刷新诊断；不重放固定直连元组，也不把共享路由调用误归因到该账号。 `CR-P6-03-007`：仅以本机官方 Grok CLI 做一次交互式 OAuth 重新认证并记录安全状态投影；不发送 P6 请求或改变服务器/路由。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -553,6 +553,28 @@ CR-ID: CR-P6-03-006
       结果如何都不重放 T1-T12，也不解除 P6-03 `BLOCKED` 或启动 P6-04。
 用户批准: APPROVED，2026-07-22（“4xx可能是账号的额度的问题，你可以把这个账号…导入grok2api然后调用测试”）
 计划版本变更: v1.16
+```
+
+### 已批准 Change Request：CR-P6-03-007
+
+```text
+CR-ID: CR-P6-03-007
+原因: 本机已发现的 Grok Build OAuth 缓存均为过期副本，且与刚导入服务器诊断的账号不同；用户在得知
+      需要重新认证后明确回复“可以”。需要以官方本机 CLI 重新获得可验证的本地 OAuth 会话，才可判断
+      该会话是否能安全、正确地形成 P6 所需的标准 OAuth 输入。
+影响的 Task / Matrix ID / ADR: 仅补充 P6-03 的本机认证诊断证据；不改变 C28、T1-T12、P6-03
+      生产代码、固定端点、Canonical 语义、BC-PROVIDER-003、P6-04+、服务器、路由、代理或 TUN。
+兼容性与迁移影响: 允许恰好一次本机官方 `grok login --oauth` 交互式认证。用户只在该正式认证页面中自行
+      输入账号、密码、MFA/验证码；不得由代理读取、代填、输出、复制、提交或记录任何凭据、完整邮箱、
+      JWT、Token、Refresh Token、Cookie 或会话标识。CLI 自身按其既有安全存储写入的本地会话是该
+      用户操作的预期副作用；不得修改、重命名或手工转换缓存文件。
+测试与回滚变化: 认证前后仅允许对已知本机 CLI 会话做安全投影：登录是否成功、缓存的字段命名类别、
+      有效期类别，以及能否在不伪造字段的条件下取得 P6 严格导入所需的标准 OAuth 输入。不得调用模型、
+      不得发送 `/v1/responses` 或任何 P6 harness、不得重放 T1-T12、不得刷新/测试服务器账号，也不得
+      启动 P6-04。若认证未完成或安全投影仍不能形成正确输入，P6-03 保持 `BLOCKED`；任何新的直连验证
+      均须另行登记 CR 和新 tuple。
+用户批准: APPROVED，2026-07-22（“可以”）
+计划版本变更: v1.17
 ```
 
 ### 已批准 Change Request：CR-P4-G4-001

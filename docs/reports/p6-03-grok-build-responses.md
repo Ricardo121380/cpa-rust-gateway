@@ -2,13 +2,13 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.16` |
+| Plan version | `v1.17` |
 | Task | `P6-03` |
 | Date | `2026-07-22` |
 | Branch | `codex/p6-grok-build` |
-| Status | `BLOCKED` — `CR-P6-03-005` T11/T12 each sent exactly once with the reviewed current profile, but neither yielded the required Canonical `ResponseStart`/text/`ResponseEnd` lifecycle. |
-| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` has exhausted its two direct tuples. `CR-P6-03-006` separately authorizes one grok2api account import and one account-specific quota refresh solely to diagnose account/allowance state; no direct replay, cache, continuity, server configuration, or P6-04+ scope. |
-| Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, and a finite one-send-per-process live matrix. `CR-P6-03-006` is an isolated external account diagnostic. Prohibited: direct-tuple replay, route/key/scheduler mutation, socket/proxy/TUN mutation, status remediation, retry/failover, or P6-04+ behavior. |
+| Status | `BLOCKED` — `CR-P6-03-005` T11/T12 each sent exactly once with the reviewed current profile, but neither yielded the required Canonical `ResponseStart`/text/`ResponseEnd` lifecycle. `CR-P6-03-007` established a fresh official local CLI session, but it is not P6 strict-import input as stored and creates no direct tuple. |
+| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` has exhausted its two direct tuples. `CR-P6-03-006` separately authorizes one grok2api account import and one account-specific quota refresh solely to diagnose account/allowance state. `CR-P6-03-007` separately authorizes one local official-CLI OAuth sign-in and safe cache projection only; neither CR permits direct replay, cache/continuity behavior, server configuration, or P6-04+ scope. |
+| Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, and a finite one-send-per-process live matrix. `CR-P6-03-006` is an isolated external account diagnostic; `CR-P6-03-007` is an isolated local-auth diagnostic. Prohibited: direct-tuple replay, route/key/scheduler mutation, socket/proxy/TUN mutation, status remediation, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |
 | References | Matrix `C28`; Behavior 4/5/12; [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md); [BC-PROVIDER-003](../contracts/BC-PROVIDER-003-grok-build-responses-boundary.md) |
 
@@ -237,6 +237,27 @@ route/key/scheduling isolation, which CR-P6-03-006 intentionally forbids. This d
 no new P6 direct tuple and cannot distinguish the direct T11/T12 `4xx` between account entitlement,
 remaining request-profile detail, or another upstream policy.
 
+### Local official-CLI OAuth reauthentication (`CR-P6-03-007`)
+
+On `2026-07-22`, the user completed one interactive `grok login --oauth` flow through the official
+local Grok CLI. The CLI reported sign-in success; the account identity, authorization URL, callback
+data, tokens, refresh token, cookies, and all other credential values were neither retained nor
+printed. No model command, `/v1/responses` request, P6 ignored harness, token refresh, server call,
+route change, or proxy/TUN operation occurred in this CR.
+
+The subsequent local read-only projection of the known CLI auth cache found one indexed credential
+entry with a future expiry class. Its credential representation contains a snake-case refresh field
+and an absolute-expiry field, but lacks P6's required `access_token` and `expires_in` input names.
+The P6 importer deliberately rejects absolute-expiry aliases and requires an unambiguous strict JSON
+object containing `access_token`, `refresh_token`, and `expires_in`. Therefore the official CLI
+cache is **not a valid P6 strict-import input as stored**. No cache field was renamed, copied,
+converted, exported, or supplied to the P6 harness.
+
+This proves the local official CLI session is fresh and currently valid at the cache level, but it
+does not prove that the fixed P6 direct request profile is accepted or that the earlier T11/T12
+`4xx` outcomes were caused by an expired credential. It creates no new tuple and leaves P6-03
+`BLOCKED`; any direct validation requires a separate CR with newly registered tuples.
+
 ### Live validation status: BLOCKED
 
 For each tuple, the sole authorized OAuth file was projected only in process memory and its usable
@@ -272,6 +293,7 @@ pending.
 | Live-matrix / diagnostic review | `2026-07-22T11:54–12:24+08:00`; T1-T8 plus T9/T10 sent exactly once each (10 total); three subsequent diagnostic-review local full gates all passed, with the final warm run 19s. |
 | CR-P6-03-005 direct matrix | `2026-07-22`, after the current-profile local checkpoint; T11 and T12 each ran in an independent process with a one-request cap, direct no-environment-proxy transport, fresh in-memory expiry projection, and no retry/refresh/failover. Both stopped in under one harness second with the safe outcomes recorded above. |
 | CR-P6-03-006 account/allowance diagnostic | `2026-07-22`; selected only the current CPA copy after a read-only duplicate check, imported it once through grok2api's supported admin API (`2xx`), then sent exactly one account-bound quota refresh (`502`, under 5s). No shared-pool generation was sent because 126 enabled Build accounts prevent account attribution without a new route/key/scheduling change. Safe post-state: enabled + active, auto mode, no persisted failure marker, `buildSuperEntitled=false`; no safe quota/rate/credential/transport/root-cause class was available. |
+| CR-P6-03-007 local official-CLI OAuth diagnostic | `2026-07-22`; one user-completed `grok login --oauth` session succeeded. The safe cache projection found an indexed credential entry with future expiry, but not the strict P6 input names `access_token` + `expires_in`; no transformation, P6 harness, model request, token refresh, server call, or network/proxy change followed. |
 | Server-side preflight hygiene | One incorrect schema lookup briefly created a zero-byte, unreferenced file under the current grok2api data mount. It was immediately removed; the postcheck confirmed its absence and the container still running. No configuration, credential, or database-table row was changed. |
 | Code commit | Current-profile local checkpoint (`P6-03: update current Grok Build profile`); local only, not pushed, and required before either T11 or T12. |
 | Phase closeout tag / Delivery Gate | Not started; G6 is P6's single remote gate. |
