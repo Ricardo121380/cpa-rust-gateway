@@ -83,3 +83,4 @@
 - [G5 Anthropic/Claude Code phase gate report](g5-gate-report.md)
 - [P6-01 Grok Build OAuth credential and Device Code report](p6-01-grok-build-oauth.md) — local evidence pending G6
 - [P6-02 Grok Build refresh singleflight and durable revision runtime report](p6-02-grok-build-refresh-runtime.md) — local evidence pending G6
+- [P6-03 Grok Build Responses request, stream, and error report](p6-03-grok-build-responses.md) — local fixture evidence passed; authorized test-account validation pending

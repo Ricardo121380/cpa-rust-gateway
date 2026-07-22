@@ -60,6 +60,11 @@ gateway-core
   access/refresh/device/user code。P6-02 新增受限的 `gateway-store`/`rusqlite` 边，仅持久化
   Config Version + Credential 精确身份绑定的 AEAD 密文、key version 和 CAS revision；它不读取
   或修改控制面配置图、不进入 Router 热路径，也不创建 socket、TLS、代理或 Build 推理请求。
+- `provider-grok` 的 P6-03 Build Responses 边仅在本 crate 内编码固定 CLI OAuth 请求并解析有界
+  JSON/SSE；它通过既有 `gateway-upstream` 类型交出 P2 已准入的精确 Target，但不创建 Client、
+  socket、TLS、代理或真实请求。它可以依赖 `protocol-openai-responses` 的 Canonical 请求类型，
+  但绝不引用其它 Provider 私有 crate；`tokio` 仅为 ignored 的授权单探针测试目标提供受限异步
+  驱动，不进入库目标或公共 API；状态/Quota/Cache/Continuity 策略仍由后续 P6 Task 所有。
 - `gateway-store` 不进入 Router 的请求选择路径；持久数据通过控制面编译为不可变 Snapshot。
 - `gateway-router` 可以使用 `gateway-auth` 的无存储 Client Key HMAC 原语来认证其已编译
   Snapshot；该边不允许反向的 Router、Store 或 HTTP 依赖进入 `gateway-auth`。

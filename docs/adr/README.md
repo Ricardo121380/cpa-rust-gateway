@@ -70,3 +70,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0041 Deterministic Anthropic adversarial protocol evidence](ADR-0041-deterministic-anthropic-adversarial-evidence.md) — `P5-08`（Accepted）。
 - [ADR-0042 Grok Build OAuth credential and Device Code boundary](ADR-0042-grok-build-oauth-credential-boundary.md) — `P6-01`（Accepted）。
 - [ADR-0043 Revision-guarded Grok Build OAuth refresh runtime](ADR-0043-grok-build-refresh-runtime.md) — `P6-02`（Accepted）。
+- [ADR-0044 Fixed Grok Build Responses boundary](ADR-0044-grok-build-responses-boundary.md) — `P6-03`（Accepted）。

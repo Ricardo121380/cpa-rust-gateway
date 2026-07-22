@@ -2,9 +2,19 @@
 
 #![deny(unsafe_code)]
 
+mod build_responses;
 mod credential_runtime;
 mod oauth;
 
+pub use build_responses::{
+    GROK_BUILD_CLIENT_VERSION, GROK_BUILD_CLIENT_VERSION_HEADER, GROK_BUILD_RESPONSES_BASE_URL,
+    GROK_BUILD_RESPONSES_PATH, GROK_BUILD_RESPONSES_URL, GROK_BUILD_TOKEN_AUTH_HEADER,
+    GROK_BUILD_TOKEN_AUTH_VALUE, GROK_BUILD_USER_AGENT, GrokBuildResponsesDecoder,
+    GrokBuildResponsesEndpoint, GrokBuildResponsesErrorSignal, GrokBuildResponsesHttpError,
+    GrokBuildResponsesOutboundRequest, GrokBuildResponsesRequestBuilder,
+    GrokBuildResponsesStreamDecoder, MAX_GROK_BUILD_ERROR_BODY_BYTES,
+    MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES, MAX_GROK_BUILD_SSE_FRAME_BYTES,
+};
 pub use credential_runtime::{
     DEFAULT_GROK_BUILD_REFRESH_WAIT_TIMEOUT, GrokBuildCredentialCasOutcome,
     GrokBuildCredentialInsertOutcome, GrokBuildCredentialKey, GrokBuildCredentialKeyError,
