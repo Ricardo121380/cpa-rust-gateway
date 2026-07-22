@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.13` |
+| Plan version | `v1.15` |
 | Task | `P6-03` |
 | Date | `2026-07-22` |
 | Branch | `codex/p6-grok-build` |
-| Status | `BLOCKED` — local implementation/review pass, but the finite authorized live matrix returned a fixed-endpoint 2xx error object with no safe semantic attribution |
-| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-001` authorizes a finite live model × mode matrix using one named CPA OAuth account; no account-state, quota, cache, continuity, server, or P6-04+ scope. |
+| Status | `IN_PROGRESS` — `CR-P6-03-005` is approved; the current Build profile is being implemented and locally reviewed before the two newly registered fixed-endpoint probes. |
+| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` authorizes exactly two new fixed-profile direct tuples after local implementation/review; no account-state, quota, cache, continuity, server, or P6-04+ scope. |
 | Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, and a finite one-send-per-process live matrix. Prohibited: cross-Provider imports, socket/proxy/TUN mutation, status remediation, persistent state, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |
 | References | Matrix `C28`; Behavior 4/5/12; [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md); [BC-PROVIDER-003](../contracts/BC-PROVIDER-003-grok-build-responses-boundary.md) |
@@ -15,38 +15,46 @@
 ## Delivered local behavior
 
 P6-03 adds a self-contained `provider-grok` Responses boundary for the fixed OAuth Build CLI
-profile. It builds `POST https://cli-chat-proxy.grok.com/v1/responses` with the frozen CLI identity
-headers and a zeroizing Bearer value, then hands it to the existing P2-admitted shared transport
-only when the admitted target is exactly the fixed URL. It deliberately omits the reference
-client's hop-by-hop `Connection` header because connection pooling belongs to `gateway-upstream`.
+profile. Under `CR-P6-03-005`, it updates that profile to the verified current `grok-shell`
+identity/version and adds client identifier/mode, protocol confirmation, selected-model override,
+mode-specific content coding, and ephemeral process/request/trace associations. It builds
+`POST https://cli-chat-proxy.grok.com/v1/responses` with a zeroizing Bearer value, then hands it to
+the existing P2-admitted shared transport only when the admitted target is exactly the fixed URL.
+The association values are generated only in memory and redacted from `Debug`; P6-03 does not
+invent user, session, cache, or turn identity. It deliberately omits the reference client's
+hop-by-hop `Connection` header because connection pooling belongs to `gateway-upstream`.
 
 The response layer has separate bounded non-streaming and incremental SSE decoders. It rejects
 duplicate JSON fields, malformed framing, unmatched response/item identity, truncated streams, and
 ambiguous Tool completion. Tool arguments normalize blank and empty-object values to `{}`; nonempty
 arguments must be a complete JSON object. The final Tool name, call id, and arguments must match
 their earlier forms; each done item must actually be completed and the terminal output-item set must
-exactly match the completed declared set. HTTP error parsing retains only a safe status/signal pair
-and never raw body text.
+exactly match the completed declared set. A single extension-free user Text has an explicitly
+tested scalar easy-input encoding whose decode round-trips to the same Canonical request; all
+other message shapes retain array input. Non-streaming identity/gzip bodies have independent 1 MiB
+bounds before strict decoding. HTTP error parsing retains only a safe status/signal pair and never
+raw body text.
 
 The implementation intentionally does not import `provider-openai-compatible`; doing so would
 violate the Provider-private crate boundary. It carries an equivalent restricted Responses subset
 inside `provider-grok`, so Grok Build remains independently evolvable.
 
-The only new dependency edge is test-only `tokio` for the ignored authorization harness. It does
-not enter the `provider-grok` library target or public API and is covered by the crate-boundary
-allowlist.
+The current-profile correction adds bounded runtime `flate2` gzip decoding and `getrandom` for
+ephemeral non-secret associations; both are explicit `provider-grok` allowlist edges and neither
+creates network I/O, state, or a diagnostic value surface. `tokio` remains test-only for the
+ignored authorization harness and does not enter the library target or public API.
 
 ## Local verification and review
 
 | Command / review | Result |
 |---|---|
-| `cargo test --locked -p provider-grok --test p6_03_build_responses` | PASS; 6 synthetic request, egress, chunk-equivalence, bounded-error, duplicate/truncation/atomicity, Tool-normalization/metadata, and terminal-item-set tests passed. |
+| `cargo test --locked -p provider-grok --test p6_03_build_responses` | Current-profile PASS; 8 synthetic request/profile-redaction, scalar-semantic-equivalence, bounded-gzip, egress, chunk-equivalence, bounded-error, duplicate/truncation/atomicity, Tool-normalization/metadata, and terminal-item-set tests passed. |
 | `cargo test --locked -p provider-grok --test p6_03_authorized_build_probe` | PASS; 8 no-network authorization/configuration/redaction tests passed, including safe body-taxonomy, standard-error-category, and 2xx-status redaction; the sole live test remains ignored without explicit authorization. |
-| `cargo clippy --locked -p provider-grok --all-targets --all-features -- -D warnings` | PASS. |
-| `cargo fmt --all -- --check` and `git diff --check` | PASS. |
-| `ruby scripts/check-crate-boundaries.rb` | PASS; 21-package dependency direction remains valid; no Provider-to-Provider import exists. |
-| `./scripts/check.sh full` | PASS; workspace format/Clippy/tests, source policy, secret scanner, crate boundaries, doc links, whitespace, `cargo deny`, and `cargo audit` all passed. |
-| Focused secret review | PASS; committed values are synthetic; redacted `Debug` paths and bounded error envelopes do not retain request/response secrets or text. |
+| `cargo clippy --locked -p provider-grok --all-targets --all-features -- -D warnings` | Current-profile PASS. |
+| `cargo fmt --all -- --check` and `git diff --check` | Current-profile PASS. |
+| `ruby scripts/check-crate-boundaries.rb` | Current-profile PASS; the explicit `flate2`/`getrandom` allowlist update admits all 21 workspace packages. |
+| `./scripts/check.sh full` | Current-profile PASS; format, Clippy, workspace tests, source policy, secret scanner, crate boundaries, document links, whitespace, `cargo deny`, and RustSec audit all passed against the staged current-profile diff. |
+| Independent diff / secret / redaction review | Current-profile PASS for synthetic fixed values, model/correlation `Debug` redaction, bounded gzip input/output, raw request/response non-retention, and the shared direct transport's explicit no-environment-proxy path. |
 
 Review corrected three concrete semantic defects before this checkpoint: blank/empty-object Tool
 input now consistently becomes `{}`, a completed function-call item must retain the originally
@@ -154,10 +162,34 @@ frozen profile and registers new distinct tuples rather than repeating T1-T10.
 The call is useful only if it shows whether the deployed Build route can produce a completed
 Responses-shaped result through its own proxy. Normal proxy last-used/usage accounting is an
 expected request side effect, but no operator-initiated state change is allowed. Regardless of
-outcome, P6-03 remains `BLOCKED`
-until its separate fixed-endpoint non-streaming and SSE conditions are met.
+outcome, P6-03 remained `BLOCKED` at that time until its separate fixed-endpoint non-streaming and
+SSE conditions could be met.
 
-### Live validation conclusion: BLOCKED
+### Predeclared current-profile direct validation (`CR-P6-03-005`)
+
+Before any new direct request, the approved CR changes the local Builder to the current Build
+profile established by the server reference: current static client identity/version, client
+identifier/mode, model override, and safe request-correlation metadata. For exactly one plain
+user-text message, the Builder may use the reference profile's scalar input encoding only after
+synthetic semantic-equivalence tests pass. The profile update is not a retry of the old profile.
+
+| Boundary | Fixed value |
+|---|---|
+| Account / endpoint | The same user-specified CPA OAuth account; fixed `https://cli-chat-proxy.grok.com/v1/responses` only |
+| Candidate | Opaque `build-profile-02`; its value is obtained only in operator memory from the known-good Build reference |
+| Network profile | `direct` only; no SOCKS5, proxy, TUN, server, or account configuration change |
+| Request cap | Two independently invoked ignored-harness processes, each with `P6_03_MAX_EXTERNAL_REQUESTS=1`; no retries, refresh, failover, or candidate selection |
+| Request / limit | Fixed `Reply with exactly: ready`; `max_output_tokens=32` |
+| Local prerequisite | Updated synthetic profile/semantic/redaction tests, Clippy, formatting, secret scan, full local gate, independent review, and local commit |
+| Acceptance | Both modes must yield Canonical `ResponseStart`, text, and `ResponseEnd` with no `StreamError` |
+| Prohibited replay | `T1` through `T10-DIAG` are permanently closed and must not be sent again |
+
+| Tuple | Candidate label | Mode | Network profile | Outcome |
+|---|---|---|---|---|
+| `T11` | `build-profile-02` | `non_streaming` | `direct` | pending local profile implementation/review |
+| `T12` | `build-profile-02` | `sse` | `direct` | pending local profile implementation/review |
+
+### Live validation status: IN_PROGRESS
 
 The supplied credential is structurally suitable for the intended Build profile: its access token
 is a three-segment JWT whose safe non-PII claims identify the expected public OAuth client and
@@ -171,11 +203,9 @@ Responses object or SSE lifecycle. The final safe diagnostic found no whiteliste
 `code`/`type`/`param` classification. The request body, raw error text, response identifier,
 private model mapping, token, and headers were neither written nor recorded.
 
-`CR-P6-03-001` through `CR-P6-03-003` now prohibit any further same-tuple request. P6-03 therefore
-cannot meet its non-streaming plus SSE semantic acceptance condition, remains `BLOCKED`, and P6-04
-must not start. To unblock it, provide either a verified current Grok Build model/request-profile
-reference, or explicit approval for a new, narrowly specified redaction policy that can classify
-the upstream error without retaining its free-form text.
+`CR-P6-03-001` through `CR-P6-03-003` permanently prohibit any further same-tuple request.
+`CR-P6-03-005` instead registers only the distinct updated-profile tuples above. P6-04 must not
+start while either remains pending, and a failure in either tuple returns P6-03 to `BLOCKED`.
 
 On any non-2xx, timeout, malformed response, redaction failure, or unexpected semantic terminal
 shape, that tuple ends without automatic retry/failover. The next distinct documented tuple may be
@@ -189,13 +219,14 @@ otherwise P6-04 remains pending.
 |---|---|
 | Task Card / resumed local work | `2026-07-22`; resumed from the existing P6-03 implementation checkpoint. The original pre-handoff start time is not claimed. |
 | Local review/test pass | `2026-07-22T10:07+08:00` after one Clippy-directed test-type correction and one review-correction batch. |
-| Final local full gate | `2026-07-22T10:34:09+08:00`; warm wall clock 19s. The durable local check log recorded Rust tests 9s, dependency policy 2s, RustSec audit 2s, and zero seconds for cached fixed-tool install/verification. |
+| Earlier local full gate | `2026-07-22T10:34:09+08:00`; warm wall clock 19s. The durable local check log recorded Rust tests 9s, dependency policy 2s, RustSec audit 2s, and zero seconds for cached fixed-tool install/verification. |
+| Current-profile review / full gate | `2026-07-22T15:35:55+08:00`; PASS after staging the reviewed current-profile diff. It reran the full local quality, workspace-test, documentation, boundary, secret, dependency-policy, and RustSec set. |
 | Live-matrix / diagnostic review | `2026-07-22T11:54–12:24+08:00`; T1-T8 plus T9/T10 sent exactly once each (10 total); three subsequent diagnostic-review local full gates all passed, with the final warm run 19s. |
-| Code commit | This Task's local checkpoint commit (`P6-03: add Grok Build Responses boundary`); local only, not pushed. |
+| Code commit | Current-profile local checkpoint (`P6-03: update current Grok Build profile`); local only, not pushed, and required before either T11 or T12. |
 | Phase closeout tag / Delivery Gate | Not started; G6 is P6's single remote gate. |
-| Repeated validations / rework | One necessary test type correction, one semantic review correction batch, then two full-gate findings fixed in scope (`struct_excessive_bools` in the ignored harness and its test-only `tokio` boundary allowlist). The live matrix exposed an intentionally over-coarse safe outcome; two finite redacted diagnostics then classified it as a 2xx error object with unrecognized standard metadata. No identical tuple was sent after T10. |
+| Repeated validations / rework | One necessary test type correction, one semantic review correction batch, then two full-gate findings fixed in scope (`struct_excessive_bools` in the ignored harness and its test-only `tokio` boundary allowlist). The live matrix exposed an intentionally over-coarse safe outcome; two finite redacted diagnostics then classified it as a 2xx error object with unrecognized standard metadata. No identical tuple was sent after T10. `CR-P6-03-005` subsequently approved only a new-profile T11/T12 pair, pending local implementation/review. |
 
 Rollback removes only the P6-03 module, synthetic fixtures/tests, and documentation. It requires
 no database migration, credential revocation, server restart, proxy/TUN cleanup, or external
-Provider action. The live matrix is exhausted under its approved policy. P6-03 is `BLOCKED` and
-P6-04 remains pending until a new explicit unblocking decision is recorded.
+Provider action. T1-T10 remain exhausted permanently; only T11/T12 are pending under the approved
+new profile. P6-04 remains pending until P6-03's dual-mode acceptance condition is met.

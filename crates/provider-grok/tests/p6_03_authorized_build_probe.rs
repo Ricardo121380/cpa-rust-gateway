@@ -487,18 +487,18 @@ async fn execute_one_probe(probe: PreparedProbe) -> Result<(), ProbeError> {
         ProbeMode::NonStreaming => {
             let body =
                 read_bounded(&mut response, MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES).await?;
+            let content_encoding = response
+                .header("content-encoding")
+                .and_then(|value| value.to_str().ok())
+                .map(str::to_owned);
+            let decoded = GrokBuildResponsesDecoder::decode_non_streaming_with_content_encoding(
+                content_encoding.as_deref(),
+                &body,
+            )
+            .map_err(|_| ProbeError::ResponseProtocolFailed)?;
             println!(
-                "p6-03 build probe response target={target_label} body_shape={}",
-                safe_body_shape(&body).as_str()
+                "p6-03 build probe response target={target_label} body_shape=completed_responses_shape"
             );
-            if let Some(category) = safe_error_category(&body) {
-                println!(
-                    "p6-03 build probe response target={target_label} error_category={}",
-                    category.as_str()
-                );
-            }
-            let decoded = GrokBuildResponsesDecoder::decode_non_streaming(&body)
-                .map_err(|_| ProbeError::ResponseProtocolFailed)?;
             let mut shape = ProbeResponseShape::default();
             shape.observe(decoded.events());
             shape.verify()

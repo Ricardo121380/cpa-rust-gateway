@@ -26,15 +26,20 @@ Provider evolution.
 1. Keep the Grok Build request encoder and decoder entirely in `provider-grok`. It encodes the
    frozen, lossless Responses subset locally and never imports another Provider crate.
 2. Fix Build inference to `https://cli-chat-proxy.grok.com/v1/responses`, with OAuth `Bearer`,
-   `x-xai-token-auth: xai-grok-cli`, the frozen CLI version, and the frozen User-Agent. The
-   selected upstream model is the only serialized model identity. The historical `Connection`
-   header is deliberately omitted because it is hop-by-hop and the shared transport owns pooling.
+   the current `grok-shell` CLI identity/version, client identifier/mode, protocol confirmation,
+   model override, and mode-specific `Accept`/content coding. The selected upstream model is
+   serialized in the body and fixed-profile model metadata. One random process-scoped agent
+   association plus random request/trace associations are generated in memory for each request
+   profile, but their values are never persisted or rendered. User, session, cache, and turn
+   association are deliberately not invented in P6-03. The historical `Connection` header is
+   deliberately omitted because it is hop-by-hop and the shared transport owns pooling.
 3. Require `AdmittedEgressTarget` to equal that exact fixed URL before constructing the shared
    `UpstreamHttpRequest`. The outbound wrapper stores Authorization in zeroizing memory and
    redacts target, header values, and body content from `Debug`.
-4. Decode non-streaming JSON up to 1 MiB and SSE records up to 64 KiB. Every object is parsed with
-   duplicate-name rejection, SSE input is committed atomically per supplied byte chunk, and HTTP
-   error bodies are reduced to a bounded status/signal envelope without retaining their text.
+4. Decode identity or gzip non-streaming JSON with independent 1 MiB compressed and decompressed
+   bounds, and SSE records up to 64 KiB. Every object is parsed with duplicate-name rejection,
+   SSE input is committed atomically per supplied byte chunk, and HTTP error bodies are reduced to
+   a bounded status/signal envelope without retaining their text.
 5. Preserve only representable Canonical output. Response and output-item identities must agree;
    Tool call id/name/final arguments must agree with the declared and incremental forms; blank or
    empty-object Tool arguments normalize to `{}`; non-object or incomplete arguments fail closed.
@@ -50,6 +55,9 @@ Provider evolution.
   Tool completion cannot reach a downstream protocol adapter.
 - The response layer exposes safe error signals only. It does not claim that `401`, `403`, `429`,
   Billing, quota, or transient failures have an account-level meaning.
+- `flate2` is confined to bounded non-streaming gzip decoding and `getrandom` is confined to
+  ephemeral request-profile associations; neither adds a socket, Provider dependency, durable
+  state, or diagnostic value surface.
 - P6-03's real test-account validation remains separately authorized. Under `CR-P6-03-001`, it
   may use a finite documented matrix, but each ignored-harness process still has exactly one send
   and no tracked file carries a real credential, target-private model mapping, proxy profile,
@@ -69,11 +77,12 @@ Provider evolution.
 ## Validation and rollback
 
 The committed corpus contains only synthetic endpoint-independent fixtures. It proves exact fixed
-request construction and egress handoff, redacted diagnostics, arbitrary 1/2/7/31/257/4096-byte
-SSE segmentation equivalence, strict duplicate-name rejection, truncation, atomic state recovery,
-empty Tool normalization, Tool-name consistency, bounded error signals, and non-streaming/SSE
-semantic projection equivalence. Targeted Clippy, format, crate-boundary, diff, and secret checks
-run locally without a socket.
+request construction and egress handoff, redacted correlation diagnostics, scalar easy-input
+semantic equivalence, bounded gzip decoding, arbitrary 1/2/7/31/257/4096-byte SSE segmentation
+equivalence, strict duplicate-name rejection, truncation, atomic state recovery, empty Tool
+normalization, Tool-name consistency, bounded error signals, and non-streaming/SSE semantic
+projection equivalence. Targeted Clippy, format, crate-boundary, diff, and secret checks run
+locally without a socket.
 
 Rollback removes only the Build Responses module, synthetic fixtures/tests, and its P6-03
 documentation. It changes no schema, persisted OAuth runtime state, router policy, proxy/TUN rule,

@@ -4,15 +4,15 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.14` |
+| 计划版本 | `v1.15` |
 | 生效日期 | `2026-07-22` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP`、`P4 - Catalog、Health、Quota、Explain、观测` 与 `P5 - Anthropic/Claude Code 兼容` 已完成；`P6 - Grok Build` 已开始。 |
-| 当前任务 | `P6-03`：`BLOCKED`；本地实现已通过，指定 CPA OAuth 账号的有限真实验证得到固定端点 2xx error object，缺少可安全归因的上游语义。 |
+| 当前任务 | `P6-03`：`IN_PROGRESS`；`CR-P6-03-005` 已获批准，正在以已验证的当前 Build 请求轮廓进行两项新的、不可重放的固定端点验证。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
-| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 `CR-P6-03-003`：在确认 2xx JSON 错误对象后，增加最终一次仅从标准错误元数据映射安全类别的诊断调用。 `CR-P6-03-004`：新增一个与固定直连验收隔离的、服务器本地 grok2api Build 路由代理参考探针。 |
+| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 `CR-P6-03-003`：在确认 2xx JSON 错误对象后，增加最终一次仅从标准错误元数据映射安全类别的诊断调用。 `CR-P6-03-004`：新增一个与固定直连验收隔离的、服务器本地 grok2api Build 路由代理参考探针。 `CR-P6-03-005`：采用服务器参考的当前 Build 请求轮廓，并只登记新的固定端点 T11 非流式与 T12 SSE 验证。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -505,6 +505,33 @@ CR-ID: CR-P6-03-004
 计划版本变更: v1.14
 ```
 
+### 已批准 Change Request：CR-P6-03-005
+
+```text
+CR-ID: CR-P6-03-005
+原因: CR-P6-03-004 的受控服务器参考表明，本地 P6-03 所冻结的 Build 客户端身份和请求元数据已
+      过时且不完整。用户已明确批准以该参考的当前、非秘密协议轮廓更新本地 Builder，并对固定
+      `cli-chat-proxy.grok.com` 边界做新的双模式验收。
+影响的 Task / Matrix ID / ADR: 仅 P6-03 的 Build 请求轮廓、合成测试、BC-PROVIDER-003、报告与
+      C28 固定端点证据。更新静态客户端身份/版本、客户端标识与模式、模型覆盖和安全关联元数据，
+      并在语义等价受测后允许恰好一个纯文本 user 输入采用标量编码。不改变固定 URL、OAuth
+      账户、Canonical 请求/响应语义、P6-04+、服务器、代理或 TUN 配置。
+兼容性与迁移影响: 无客户端、数据库、部署或账号迁移。关联值每次请求生成、仅存在于请求内存，
+      `Debug`、报告、日志与 Git 不得输出其值；已知可用的 Build 模型值仅在忽略的操作员调用内存
+      中获得和使用，不记录或提交。
+测试与回滚变化: 先完成静态轮廓、标量输入语义等价、零泄露 Debug、精确 egress 和原有解码
+      测试，再运行本地 full gate 与独立 review 并提交。之后仅由两个独立 harness 进程发送：
+      `T11=(build-profile-02, non_streaming, direct)` 与
+      `T12=(build-profile-02, sse, direct)`；每进程仍固定
+      `P6_03_MAX_EXTERNAL_REQUESTS=1`、固定短提示和 32 token 上限。T1-T10（含诊断）绝不
+      重放，也不进行 retry、refresh、failover、候选选择或网络配置变更。任一非 2xx、超时、
+      非预期内容类型、协议/语义错误或泄露防护失败均结束该元组；只有 T11 和 T12 均产生
+      Canonical `ResponseStart`、文本及无 `StreamError` 的 `ResponseEnd` 才可使 P6-03 进入
+      `LOCAL_PASS_PENDING_PHASE_GATE`，否则恢复 `BLOCKED`，P6-04 仍不得开始。
+用户批准: APPROVED，2026-07-22（“批准”）
+计划版本变更: v1.15
+```
+
 ### 已批准 Change Request：CR-P4-G4-001
 
 ```text
@@ -897,7 +924,7 @@ Fast、Full supply-chain、Required Delivery Gate 均已通过。
 |---|---|---|---|---|
 | P6-01 | 实现 Grok Build Credential、OAuth JSON 导入和 Device Code | G5 | OAuth Mock + 脱敏导入测试 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P6-02 | 实现每 Credential Refresh Singleflight、Revision/CAS 和持久化 | P6-01 | 刷新风暴与旧 Token 覆盖测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析 | P6-02 | 固定 Fixture + 测试账号验证 | BLOCKED |
+| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析 | P6-02 | 固定 Fixture + 测试账号验证 | IN_PROGRESS |
 | P6-04 | 实现模型、Billing、Quota Window 和 Reset 同步 | P6-03 | 来源/置信度和窗口测试 | PENDING |
 | P6-05 | 实现租户隔离 Cache Identity 与 Cache Affinity | P6-03 | 稳定性、隔离和断裂事件测试 | PENDING |
 | P6-06 | 实现 ResponseOwnership 与 ReasoningReplay | P6-03,P6-05 | previous_response 与多轮 Tool 测试 | PENDING |

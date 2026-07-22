@@ -8,8 +8,11 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt,
+    io::Read,
+    sync::OnceLock,
 };
 
+use flate2::read::MultiGzDecoder;
 use gateway_core::{
     CanonicalEvent, CanonicalEventState, CanonicalMessage, CanonicalRequest, CanonicalResponse,
     ErrorScope, GatewayError, GatewayErrorCode, MessageContent, MessageEnd, MessageRole,
@@ -43,9 +46,29 @@ pub const GROK_BUILD_TOKEN_AUTH_VALUE: &str = "xai-grok-cli";
 /// Header that carries the frozen Grok CLI client version.
 pub const GROK_BUILD_CLIENT_VERSION_HEADER: &str = "x-grok-client-version";
 /// Frozen Grok CLI client version used for the Build profile.
-pub const GROK_BUILD_CLIENT_VERSION: &str = "0.2.93";
+pub const GROK_BUILD_CLIENT_VERSION: &str = "0.2.106";
+/// Header that identifies the current Grok CLI shell client.
+pub const GROK_BUILD_CLIENT_IDENTIFIER_HEADER: &str = "x-grok-client-identifier";
+/// Fixed current Grok CLI shell client identifier.
+pub const GROK_BUILD_CLIENT_IDENTIFIER: &str = "grok-shell";
+/// Header that selects the non-interactive Grok CLI request mode.
+pub const GROK_BUILD_CLIENT_MODE_HEADER: &str = "x-grok-client-mode";
+/// Fixed non-interactive Grok CLI request mode.
+pub const GROK_BUILD_CLIENT_MODE: &str = "headless";
+/// Header that confirms the OAuth client request profile.
+pub const GROK_BUILD_AUTHENTICATE_RESPONSE_HEADER: &str = "x-authenticateresponse";
+/// Fixed confirmation value for [`GROK_BUILD_AUTHENTICATE_RESPONSE_HEADER`].
+pub const GROK_BUILD_AUTHENTICATE_RESPONSE_VALUE: &str = "authenticate-response";
+/// Header that carries a process-scoped Grok CLI agent association.
+pub const GROK_BUILD_AGENT_ID_HEADER: &str = "x-grok-agent-id";
+/// Header that carries a request-scoped Grok CLI request association.
+pub const GROK_BUILD_REQUEST_ID_HEADER: &str = "x-grok-req-id";
+/// Header that carries a request-scoped W3C trace association.
+pub const GROK_BUILD_TRACEPARENT_HEADER: &str = "traceparent";
+/// Header that makes the selected upstream Build model explicit to the CLI proxy.
+pub const GROK_BUILD_MODEL_OVERRIDE_HEADER: &str = "x-grok-model-override";
 /// Fixed Grok CLI user agent for the Build profile.
-pub const GROK_BUILD_USER_AGENT: &str = "xai-grok-workspace/0.2.93";
+pub const GROK_BUILD_USER_AGENT: &str = "grok-shell/0.2.106 (linux; x86_64)";
 /// Maximum JSON body accepted for one non-streaming Build response.
 pub const MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES: usize = 1024 * 1024;
 /// Maximum retained bytes for one upstream HTTP error body.
@@ -71,6 +94,8 @@ const TOOL_CALL_RESERVED_FIELDS: &[&str] = &["type", "call_id", "name", "argumen
 const TOOL_RESULT_RESERVED_FIELDS: &[&str] = &["type", "call_id", "output"];
 const TOOL_RESERVED_FIELDS: &[&str] = &["type", "name", "description", "parameters"];
 const REASONING_RESERVED_FIELDS: &[&str] = &["effort"];
+
+static GROK_BUILD_PROCESS_AGENT_ID: OnceLock<Option<String>> = OnceLock::new();
 
 /// The fixed, production Grok Build Responses endpoint.
 #[derive(Clone, Eq, PartialEq)]
@@ -112,6 +137,11 @@ pub struct GrokBuildResponsesOutboundRequest {
     target: EndpointUrl,
     authorization: Zeroizing<String>,
     accept: &'static str,
+    accept_encoding: &'static str,
+    agent_id: String,
+    request_id: String,
+    traceparent: String,
+    model_override: String,
     body: Vec<u8>,
 }
 
@@ -131,10 +161,26 @@ impl GrokBuildResponsesOutboundRequest {
             Some(GROK_BUILD_TOKEN_AUTH_VALUE)
         } else if name.eq_ignore_ascii_case(GROK_BUILD_CLIENT_VERSION_HEADER) {
             Some(GROK_BUILD_CLIENT_VERSION)
+        } else if name.eq_ignore_ascii_case(GROK_BUILD_CLIENT_IDENTIFIER_HEADER) {
+            Some(GROK_BUILD_CLIENT_IDENTIFIER)
+        } else if name.eq_ignore_ascii_case(GROK_BUILD_CLIENT_MODE_HEADER) {
+            Some(GROK_BUILD_CLIENT_MODE)
+        } else if name.eq_ignore_ascii_case(GROK_BUILD_AUTHENTICATE_RESPONSE_HEADER) {
+            Some(GROK_BUILD_AUTHENTICATE_RESPONSE_VALUE)
+        } else if name.eq_ignore_ascii_case(GROK_BUILD_AGENT_ID_HEADER) {
+            Some(&self.agent_id)
+        } else if name.eq_ignore_ascii_case(GROK_BUILD_REQUEST_ID_HEADER) {
+            Some(&self.request_id)
+        } else if name.eq_ignore_ascii_case(GROK_BUILD_TRACEPARENT_HEADER) {
+            Some(&self.traceparent)
+        } else if name.eq_ignore_ascii_case(GROK_BUILD_MODEL_OVERRIDE_HEADER) {
+            Some(&self.model_override)
         } else if name.eq_ignore_ascii_case("user-agent") {
             Some(GROK_BUILD_USER_AGENT)
         } else if name.eq_ignore_ascii_case("accept") {
             Some(self.accept)
+        } else if name.eq_ignore_ascii_case("accept-encoding") {
+            Some(self.accept_encoding)
         } else if name.eq_ignore_ascii_case("authorization") {
             Some(self.authorization.as_str())
         } else if name.eq_ignore_ascii_case("content-type") {
@@ -146,14 +192,28 @@ impl GrokBuildResponsesOutboundRequest {
 
     /// Returns the complete deterministic header set in transport order.
     #[must_use]
-    pub fn headers(&self) -> [(&'static str, &str); 6] {
+    pub fn headers(&self) -> [(&'static str, &str); 14] {
         [
             ("accept", self.accept),
+            ("accept-encoding", self.accept_encoding),
             ("authorization", self.authorization.as_str()),
             ("content-type", "application/json"),
             (GROK_BUILD_TOKEN_AUTH_HEADER, GROK_BUILD_TOKEN_AUTH_VALUE),
             (GROK_BUILD_CLIENT_VERSION_HEADER, GROK_BUILD_CLIENT_VERSION),
+            (
+                GROK_BUILD_CLIENT_IDENTIFIER_HEADER,
+                GROK_BUILD_CLIENT_IDENTIFIER,
+            ),
+            (GROK_BUILD_CLIENT_MODE_HEADER, GROK_BUILD_CLIENT_MODE),
+            (
+                GROK_BUILD_AUTHENTICATE_RESPONSE_HEADER,
+                GROK_BUILD_AUTHENTICATE_RESPONSE_VALUE,
+            ),
+            (GROK_BUILD_AGENT_ID_HEADER, &self.agent_id),
+            (GROK_BUILD_REQUEST_ID_HEADER, &self.request_id),
+            (GROK_BUILD_TRACEPARENT_HEADER, &self.traceparent),
             ("user-agent", GROK_BUILD_USER_AGENT),
+            (GROK_BUILD_MODEL_OVERRIDE_HEADER, &self.model_override),
         ]
     }
 
@@ -209,7 +269,14 @@ impl fmt::Debug for GrokBuildResponsesOutboundRequest {
                     "content-type",
                     GROK_BUILD_TOKEN_AUTH_HEADER,
                     GROK_BUILD_CLIENT_VERSION_HEADER,
+                    GROK_BUILD_CLIENT_IDENTIFIER_HEADER,
+                    GROK_BUILD_CLIENT_MODE_HEADER,
+                    GROK_BUILD_AUTHENTICATE_RESPONSE_HEADER,
+                    GROK_BUILD_AGENT_ID_HEADER,
+                    GROK_BUILD_REQUEST_ID_HEADER,
+                    GROK_BUILD_TRACEPARENT_HEADER,
                     "user-agent",
+                    GROK_BUILD_MODEL_OVERRIDE_HEADER,
                 ],
             )
             .field("body_len", &self.body.len())
@@ -255,10 +322,19 @@ impl GrokBuildResponsesRequestBuilder {
             ResponseMode::NonStreaming => "application/json",
             ResponseMode::Streaming => "text/event-stream",
         };
+        let accept_encoding = match mode {
+            ResponseMode::NonStreaming => "gzip",
+            ResponseMode::Streaming => "identity",
+        };
         Ok(GrokBuildResponsesOutboundRequest {
             target: endpoint.target,
             authorization: Zeroizing::new(format!("Bearer {}", credential.access_token())),
             accept,
+            accept_encoding,
+            agent_id: process_agent_id()?.to_owned(),
+            request_id: random_uuid_v4()?,
+            traceparent: random_traceparent()?,
+            model_override: upstream_model.to_owned(),
             body: encode_body(upstream_model, request, mode)?,
         })
     }
@@ -278,7 +354,11 @@ fn encode_body(
 
     let input = encode_input(&request.messages)?;
     if !input.is_empty() {
-        root.insert("input".to_owned(), Value::Array(input));
+        let input = plain_user_text_input(&request.messages).map_or_else(
+            || Value::Array(input),
+            |text| Value::String(text.to_owned()),
+        );
+        root.insert("input".to_owned(), input);
     }
     if !request.tools.is_empty() {
         root.insert(
@@ -303,6 +383,68 @@ fn encode_body(
     }
     insert_root_extensions(&mut root, &request.extensions)?;
     serde_json::to_vec(&Value::Object(root)).map_err(|_| internal_error())
+}
+
+fn plain_user_text_input(messages: &[CanonicalMessage]) -> Option<&str> {
+    let [message] = messages else {
+        return None;
+    };
+    if message.role.0 != "user" || !message.extensions.is_empty() {
+        return None;
+    }
+    let [MessageContent::Text(text)] = message.content.as_slice() else {
+        return None;
+    };
+    if !text.extensions.is_empty() {
+        return None;
+    }
+    Some(&text.text)
+}
+
+fn process_agent_id() -> Result<&'static str, GatewayError> {
+    GROK_BUILD_PROCESS_AGENT_ID
+        .get_or_init(|| random_uuid_v4().ok())
+        .as_deref()
+        .ok_or_else(internal_error)
+}
+
+fn random_uuid_v4() -> Result<String, GatewayError> {
+    let mut bytes = [0_u8; 16];
+    getrandom::fill(&mut bytes).map_err(|_| internal_error())?;
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    let mut value = String::with_capacity(36);
+    for (index, byte) in bytes.into_iter().enumerate() {
+        if matches!(index, 4 | 6 | 8 | 10) {
+            value.push('-');
+        }
+        append_hex_byte(&mut value, byte);
+    }
+    Ok(value)
+}
+
+fn random_traceparent() -> Result<String, GatewayError> {
+    let mut bytes = [0_u8; 24];
+    getrandom::fill(&mut bytes).map_err(|_| internal_error())?;
+
+    let mut value = String::with_capacity(55);
+    value.push_str("00-");
+    for byte in &bytes[..16] {
+        append_hex_byte(&mut value, *byte);
+    }
+    value.push('-');
+    for byte in &bytes[16..] {
+        append_hex_byte(&mut value, *byte);
+    }
+    value.push_str("-01");
+    Ok(value)
+}
+
+fn append_hex_byte(output: &mut String, byte: u8) {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    output.push(char::from(HEX[usize::from(byte >> 4)]));
+    output.push(char::from(HEX[usize::from(byte & 0x0f)]));
 }
 
 fn encode_input(messages: &[CanonicalMessage]) -> Result<Vec<Value>, GatewayError> {
@@ -653,6 +795,55 @@ impl GrokBuildResponsesDecoder {
         }
         state.handle_response_completed(response, &mut events)?;
         CanonicalResponse::try_new(events)
+    }
+
+    /// Decodes one bounded non-streaming response after accepting only identity or gzip coding.
+    ///
+    /// The caller supplies the upstream `Content-Encoding` value without rendering it. A missing
+    /// coding is treated as identity. Gzip is decompressed into an independently bounded 1 MiB
+    /// buffer before strict JSON parsing; stacked, unknown, malformed, or oversized codings fail
+    /// closed as a Provider protocol error.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe provider protocol error for unsupported coding, malformed gzip, an
+    /// over-limit compressed/decompressed body, or an unrepresentable Responses object.
+    pub fn decode_non_streaming_with_content_encoding(
+        content_encoding: Option<&str>,
+        input: &[u8],
+    ) -> Result<CanonicalResponse, GatewayError> {
+        let decoded = decode_non_streaming_content_encoding(content_encoding, input)?;
+        Self::decode_non_streaming(&decoded)
+    }
+}
+
+fn decode_non_streaming_content_encoding(
+    content_encoding: Option<&str>,
+    input: &[u8],
+) -> Result<Vec<u8>, GatewayError> {
+    if input.len() > MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES {
+        return Err(provider_protocol_error());
+    }
+    match content_encoding.map(str::trim) {
+        None => Ok(input.to_vec()),
+        Some(value) if value.eq_ignore_ascii_case("identity") => Ok(input.to_vec()),
+        Some(value) if value.eq_ignore_ascii_case("gzip") => {
+            let decoder = MultiGzDecoder::new(input);
+            let limit = u64::try_from(MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES)
+                .map_err(|_| internal_error())?
+                .checked_add(1)
+                .ok_or_else(internal_error)?;
+            let mut output = Vec::new();
+            decoder
+                .take(limit)
+                .read_to_end(&mut output)
+                .map_err(|_| provider_protocol_error())?;
+            if output.len() > MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES {
+                return Err(provider_protocol_error());
+            }
+            Ok(output)
+        }
+        Some(_) => Err(provider_protocol_error()),
     }
 }
 

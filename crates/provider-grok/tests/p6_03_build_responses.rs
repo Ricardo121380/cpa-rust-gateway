@@ -3,11 +3,14 @@
 use std::{
     collections::BTreeSet,
     error::Error,
+    io::Write,
     net::{IpAddr, Ipv4Addr},
 };
 
+use flate2::{Compression, write::GzEncoder};
 use gateway_core::{
-    CanonicalEvent, CanonicalResponse, EgressPolicyId, GatewayErrorCode, ResponseId,
+    CanonicalEvent, CanonicalResponse, EgressPolicyId, GatewayErrorCode, MessageContent, RawJson,
+    ResponseId,
 };
 use gateway_upstream::{
     EgressDnsError, EgressDnsResolver, EgressHost, EgressPolicy, EgressPolicyInput, EgressScheme,
@@ -15,17 +18,28 @@ use gateway_upstream::{
 };
 use protocol_openai_responses::decode_request;
 use provider_grok::{
-    GROK_BUILD_CLIENT_VERSION, GROK_BUILD_CLIENT_VERSION_HEADER, GROK_BUILD_RESPONSES_URL,
-    GROK_BUILD_TOKEN_AUTH_HEADER, GROK_BUILD_TOKEN_AUTH_VALUE, GROK_BUILD_USER_AGENT,
+    GROK_BUILD_AGENT_ID_HEADER, GROK_BUILD_AUTHENTICATE_RESPONSE_HEADER,
+    GROK_BUILD_AUTHENTICATE_RESPONSE_VALUE, GROK_BUILD_CLIENT_IDENTIFIER,
+    GROK_BUILD_CLIENT_IDENTIFIER_HEADER, GROK_BUILD_CLIENT_MODE, GROK_BUILD_CLIENT_MODE_HEADER,
+    GROK_BUILD_CLIENT_VERSION, GROK_BUILD_CLIENT_VERSION_HEADER, GROK_BUILD_MODEL_OVERRIDE_HEADER,
+    GROK_BUILD_REQUEST_ID_HEADER, GROK_BUILD_RESPONSES_URL, GROK_BUILD_TOKEN_AUTH_HEADER,
+    GROK_BUILD_TOKEN_AUTH_VALUE, GROK_BUILD_TRACEPARENT_HEADER, GROK_BUILD_USER_AGENT,
     GrokBuildCredential, GrokBuildResponsesDecoder, GrokBuildResponsesErrorSignal,
     GrokBuildResponsesHttpError, GrokBuildResponsesRequestBuilder, GrokBuildResponsesStreamDecoder,
+    MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES,
 };
 
 type TestResult = Result<(), Box<dyn Error>>;
 type SemanticProjection = (String, String, String, String, Option<u64>);
 
+struct CorrelationSnapshot {
+    agent_id: String,
+    request_id: String,
+    traceparent: String,
+}
+
 #[test]
-fn build_request_uses_the_frozen_cli_profile_and_exact_admitted_target() -> TestResult {
+fn build_request_uses_the_current_cli_profile_and_exact_admitted_target() -> TestResult {
     let decoded = decode_request(include_str!(
         "../../../tests/fixtures/openai-responses/request-canonical.json"
     ))?;
@@ -36,6 +50,40 @@ fn build_request_uses_the_frozen_cli_profile_and_exact_admitted_target() -> Test
         decoded.mode,
     )?;
 
+    let correlations = assert_current_profile(&outbound)?;
+
+    let next = GrokBuildResponsesRequestBuilder::build(
+        &credential()?,
+        "grok-build-upstream",
+        &decoded.request,
+        decoded.mode,
+    )?;
+    assert!(
+        next.header(GROK_BUILD_AGENT_ID_HEADER)
+            .is_some_and(|value| value == correlations.agent_id)
+    );
+    assert!(
+        next.header(GROK_BUILD_REQUEST_ID_HEADER)
+            .is_some_and(|value| value != correlations.request_id)
+    );
+
+    let body = std::str::from_utf8(outbound.body())?;
+    let rebuilt = decode_request(body)?;
+    let mut expected = decoded.request.clone();
+    expected.requested_model = "grok-build-upstream".to_owned();
+    assert_eq!(rebuilt.request.requested_model, "grok-build-upstream");
+    assert_eq!(rebuilt.request, expected);
+    assert_eq!(rebuilt.mode, decoded.mode);
+    assert!(!body.contains("gateway-model"));
+
+    assert_debug_is_redacted(&outbound, &correlations, &credential()?);
+    assert_transport_handoff(outbound)?;
+    Ok(())
+}
+
+fn assert_current_profile(
+    outbound: &provider_grok::GrokBuildResponsesOutboundRequest,
+) -> Result<CorrelationSnapshot, Box<dyn Error>> {
     assert_eq!(outbound.url(), GROK_BUILD_RESPONSES_URL);
     assert_eq!(outbound.header("accept"), Some("text/event-stream"));
     assert_eq!(outbound.header("content-type"), Some("application/json"));
@@ -47,28 +95,69 @@ fn build_request_uses_the_frozen_cli_profile_and_exact_admitted_target() -> Test
         outbound.header(GROK_BUILD_CLIENT_VERSION_HEADER),
         Some(GROK_BUILD_CLIENT_VERSION)
     );
+    assert_eq!(
+        outbound.header(GROK_BUILD_CLIENT_IDENTIFIER_HEADER),
+        Some(GROK_BUILD_CLIENT_IDENTIFIER)
+    );
+    assert_eq!(
+        outbound.header(GROK_BUILD_CLIENT_MODE_HEADER),
+        Some(GROK_BUILD_CLIENT_MODE)
+    );
+    assert_eq!(
+        outbound.header(GROK_BUILD_AUTHENTICATE_RESPONSE_HEADER),
+        Some(GROK_BUILD_AUTHENTICATE_RESPONSE_VALUE)
+    );
+    assert_eq!(
+        outbound.header(GROK_BUILD_MODEL_OVERRIDE_HEADER),
+        Some("grok-build-upstream")
+    );
+    assert_eq!(outbound.header("accept-encoding"), Some("identity"));
     assert_eq!(outbound.header("user-agent"), Some(GROK_BUILD_USER_AGENT));
     assert_eq!(outbound.header("connection"), None);
 
-    let body = std::str::from_utf8(outbound.body())?;
-    let rebuilt = decode_request(body)?;
-    let mut expected = decoded.request.clone();
-    expected.requested_model = "grok-build-upstream".to_owned();
-    assert_eq!(rebuilt.request.requested_model, "grok-build-upstream");
-    assert_eq!(rebuilt.request, expected);
-    assert_eq!(rebuilt.mode, decoded.mode);
-    assert!(!body.contains("gateway-model"));
+    let correlations = CorrelationSnapshot {
+        agent_id: outbound
+            .header(GROK_BUILD_AGENT_ID_HEADER)
+            .ok_or("agent id missing")?
+            .to_owned(),
+        request_id: outbound
+            .header(GROK_BUILD_REQUEST_ID_HEADER)
+            .ok_or("request id missing")?
+            .to_owned(),
+        traceparent: outbound
+            .header(GROK_BUILD_TRACEPARENT_HEADER)
+            .ok_or("traceparent missing")?
+            .to_owned(),
+    };
+    assert!(is_uuid_v4(&correlations.agent_id));
+    assert!(is_uuid_v4(&correlations.request_id));
+    assert!(is_traceparent(&correlations.traceparent));
+    Ok(correlations)
+}
 
-    let debug = format!("{outbound:?}{:?}", credential()?);
+fn assert_debug_is_redacted(
+    outbound: &provider_grok::GrokBuildResponsesOutboundRequest,
+    correlations: &CorrelationSnapshot,
+    credential: &GrokBuildCredential,
+) {
+    let debug = format!("{outbound:?}{credential:?}");
     for secret_or_target in [
         "synthetic_grok_build_access_012345",
         "synthetic_grok_build_refresh_012345",
         "cli-chat-proxy.grok.com",
         "What is the weather?",
+        "grok-build-upstream",
+        &correlations.agent_id,
+        &correlations.request_id,
+        &correlations.traceparent,
     ] {
         assert!(!debug.contains(secret_or_target));
     }
+}
 
+fn assert_transport_handoff(
+    outbound: provider_grok::GrokBuildResponsesOutboundRequest,
+) -> TestResult {
     let admitted = policy()?.admit_url(outbound.url(), &StaticPublicResolver)?;
     let transport = outbound.into_transport_request(admitted)?;
     assert_eq!(transport.method(), UpstreamHttpMethod::Post);
@@ -85,7 +174,126 @@ fn build_request_uses_the_frozen_cli_profile_and_exact_admitted_target() -> Test
         Some(GROK_BUILD_TOKEN_AUTH_VALUE)
     );
     assert_eq!(transport.header("connection"), None);
+    assert!(
+        transport
+            .header(GROK_BUILD_AGENT_ID_HEADER)
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(is_uuid_v4)
+    );
+    assert!(
+        transport
+            .header(GROK_BUILD_REQUEST_ID_HEADER)
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(is_uuid_v4)
+    );
+    assert!(
+        transport
+            .header(GROK_BUILD_TRACEPARENT_HEADER)
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(is_traceparent)
+    );
     assert!(!format!("{transport:?}").contains("synthetic_grok_build_access_012345"));
+    Ok(())
+}
+
+#[test]
+fn one_plain_user_text_uses_scalar_easy_input_without_losing_semantics() -> TestResult {
+    let decoded = decode_request(
+        r#"{
+            "model":"gateway-model",
+            "input":"Reply with exactly: ready",
+            "max_output_tokens":32,
+            "stream":false
+        }"#,
+    )?;
+    let outbound = GrokBuildResponsesRequestBuilder::build(
+        &credential()?,
+        "grok-build-upstream",
+        &decoded.request,
+        decoded.mode,
+    )?;
+    assert_eq!(outbound.header("accept-encoding"), Some("gzip"));
+    let body = std::str::from_utf8(outbound.body())?;
+    let value: serde_json::Value = serde_json::from_str(body)?;
+    assert!(value.get("input").is_some_and(serde_json::Value::is_string));
+    let rebuilt = decode_request(body)?;
+    let mut expected = decoded.request.clone();
+    expected.requested_model = "grok-build-upstream".to_owned();
+    assert_eq!(rebuilt.request, expected);
+    assert_eq!(rebuilt.mode, decoded.mode);
+
+    let mut extended = decoded.request.clone();
+    let [message] = extended.messages.as_mut_slice() else {
+        return Err("simple request did not contain one message".into());
+    };
+    let [MessageContent::Text(text)] = message.content.as_mut_slice() else {
+        return Err("simple request did not contain one text part".into());
+    };
+    text.extensions
+        .try_insert("vendor_text", RawJson::from_json_string("true".to_owned())?)?;
+    let extended_outbound = GrokBuildResponsesRequestBuilder::build(
+        &credential()?,
+        "grok-build-upstream",
+        &extended,
+        decoded.mode,
+    )?;
+    let extended_body: serde_json::Value = serde_json::from_slice(extended_outbound.body())?;
+    assert!(
+        extended_body
+            .get("input")
+            .is_some_and(serde_json::Value::is_array)
+    );
+    let rebuilt_extended = decode_request(std::str::from_utf8(extended_outbound.body())?)?;
+    extended.requested_model = "grok-build-upstream".to_owned();
+    assert_eq!(rebuilt_extended.request, extended);
+    Ok(())
+}
+
+#[test]
+fn non_streaming_gzip_is_bounded_and_semantically_equivalent() -> TestResult {
+    let plain = include_bytes!("../../../tests/fixtures/grok-build/p6-03-non-streaming.json");
+    let expected = GrokBuildResponsesDecoder::decode_non_streaming(plain)?;
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    encoder.write_all(plain)?;
+    let compressed = encoder.finish()?;
+
+    let actual = GrokBuildResponsesDecoder::decode_non_streaming_with_content_encoding(
+        Some("gzip"),
+        &compressed,
+    )?;
+    assert_eq!(actual, expected);
+    assert!(
+        GrokBuildResponsesDecoder::decode_non_streaming_with_content_encoding(Some("br"), plain,)
+            .is_err()
+    );
+    assert!(
+        GrokBuildResponsesDecoder::decode_non_streaming_with_content_encoding(
+            Some("gzip"),
+            b"not-gzip",
+        )
+        .is_err()
+    );
+    let mut trailing = compressed.clone();
+    trailing.push(0);
+    assert!(
+        GrokBuildResponsesDecoder::decode_non_streaming_with_content_encoding(
+            Some("gzip"),
+            &trailing,
+        )
+        .is_err()
+    );
+
+    let oversized = vec![b'x'; MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES + 1];
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::best());
+    encoder.write_all(&oversized)?;
+    let compressed_oversized = encoder.finish()?;
+    assert!(
+        GrokBuildResponsesDecoder::decode_non_streaming_with_content_encoding(
+            Some("gzip"),
+            &compressed_oversized,
+        )
+        .is_err()
+    );
     Ok(())
 }
 
@@ -282,6 +490,29 @@ fn projection(events: &[CanonicalEvent]) -> Result<SemanticProjection, Box<dyn E
         tool_arguments.ok_or("tool arguments missing")?.to_owned(),
         cached_tokens,
     ))
+}
+
+fn is_uuid_v4(value: &str) -> bool {
+    value.len() == 36
+        && value.bytes().enumerate().all(|(index, byte)| match index {
+            8 | 13 | 18 | 23 => byte == b'-',
+            14 => byte == b'4',
+            19 => matches!(byte, b'8' | b'9' | b'a' | b'b'),
+            _ => byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase(),
+        })
+}
+
+fn is_traceparent(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    bytes.len() == 55
+        && bytes[2] == b'-'
+        && bytes[35] == b'-'
+        && bytes[52] == b'-'
+        && bytes.iter().enumerate().all(|(index, byte)| {
+            matches!(index, 2 | 35 | 52) || (byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+        })
+        && &value[..2] == "00"
+        && &value[53..] == "01"
 }
 
 struct StaticPublicResolver;
