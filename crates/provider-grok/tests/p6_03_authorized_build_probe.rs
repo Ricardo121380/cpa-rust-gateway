@@ -590,6 +590,7 @@ fn probe_payload(mode: ProbeMode) -> String {
 const fn safe_status_class(status: u16) -> &'static str {
     match status / 100 {
         1 => "1xx",
+        2 => "2xx",
         3 => "3xx",
         4 => "4xx",
         5 => "5xx",
@@ -785,6 +786,13 @@ fn safe_body_shape_retains_no_upstream_values() {
         SafeBodyShape::ResponseLikeObject
     );
     assert_eq!(safe_body_shape(b"not-json"), SafeBodyShape::InvalidJson);
+}
+
+#[test]
+fn safe_status_class_includes_success_without_rendering_status_values() {
+    assert_eq!(safe_status_class(200), "2xx");
+    assert_eq!(safe_status_class(429), "4xx");
+    assert_eq!(safe_status_class(503), "5xx");
 }
 
 #[test]

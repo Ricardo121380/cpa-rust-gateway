@@ -2,11 +2,11 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.12` |
+| Plan version | `v1.13` |
 | Task | `P6-03` |
 | Date | `2026-07-22` |
 | Branch | `codex/p6-grok-build` |
-| Status | `IN_PROGRESS` — local implementation/review pass; finite authorized test-account validation under `CR-P6-03-001` remains required |
+| Status | `BLOCKED` — local implementation/review pass, but the finite authorized live matrix returned a fixed-endpoint 2xx error object with no safe semantic attribution |
 | Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-001` authorizes a finite live model × mode matrix using one named CPA OAuth account; no account-state, quota, cache, continuity, server, or P6-04+ scope. |
 | Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, and a finite one-send-per-process live matrix. Prohibited: cross-Provider imports, socket/proxy/TUN mutation, status remediation, persistent state, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |
@@ -41,7 +41,7 @@ allowlist.
 | Command / review | Result |
 |---|---|
 | `cargo test --locked -p provider-grok --test p6_03_build_responses` | PASS; 6 synthetic request, egress, chunk-equivalence, bounded-error, duplicate/truncation/atomicity, Tool-normalization/metadata, and terminal-item-set tests passed. |
-| `cargo test --locked -p provider-grok --test p6_03_authorized_build_probe` | PASS; 7 no-network authorization/configuration/redaction tests passed, including safe body-taxonomy and standard-error-category redaction; the sole live test remains ignored without explicit authorization. |
+| `cargo test --locked -p provider-grok --test p6_03_authorized_build_probe` | PASS; 8 no-network authorization/configuration/redaction tests passed, including safe body-taxonomy, standard-error-category, and 2xx-status redaction; the sole live test remains ignored without explicit authorization. |
 | `cargo clippy --locked -p provider-grok --all-targets --all-features -- -D warnings` | PASS. |
 | `cargo fmt --all -- --check` and `git diff --check` | PASS. |
 | `ruby scripts/check-crate-boundaries.rb` | PASS; 21-package dependency direction remains valid; no Provider-to-Provider import exists. |
@@ -91,13 +91,33 @@ configured local SOCKS profile, without changing any proxy or TUN setting.
 | `T7` | `build-code-fast-01` | `non_streaming` | `socks5` | stopped: `response_protocol_failed` (4s) |
 | `T8` | `build-code-fast-01` | `sse` | `socks5` | stopped: `response_protocol_failed` (3s) |
 | `T9-DIAG` | `build-static-01` | `non_streaming` | `socks5` | stopped: `response_protocol_failed`; `2xx`, expected content type, `error_like_object` (4s) |
-| `T10-DIAG` | `build-static-01` | `non_streaming` | `socks5` | pending; `CR-P6-03-003` final standard-error-category classification only |
+| `T10-DIAG` | `build-static-01` | `non_streaming` | `socks5` | stopped: `response_protocol_failed`; `2xx`, expected content type, `error_like_object`, `unrecognized` (2s) |
 
 T1-T8's same quick response category across both direct and SOCKS5 profiles rules out a timeout or
 egress-admission failure for this matrix, but intentionally does not yet attribute the cause. The
 T9-DIAG narrows this to an application-level 2xx error object. T10-DIAG is the second and final
 pre-registered re-observation of that candidate/mode/network combination; it is an error-category
 classification, not a functional retry.
+
+### Live validation conclusion: BLOCKED
+
+The supplied credential is structurally suitable for the intended Build profile: its access token
+is a three-segment JWT whose safe non-PII claims identify the expected public OAuth client and
+include `grok-cli:access`; it was also current when each probe projection was made. Both direct and
+the already configured SOCKS5 profile received a response promptly, so this evidence does not
+support a Clash/TUN routing or TLS timeout explanation.
+
+The unresolved incompatibility is at the fixed endpoint's application layer: it returns an HTTP
+2xx response with the expected JSON content type but an error-like object, rather than a completed
+Responses object or SSE lifecycle. The final safe diagnostic found no whitelisted standard
+`code`/`type`/`param` classification. The request body, raw error text, response identifier,
+private model mapping, token, and headers were neither written nor recorded.
+
+`CR-P6-03-001` through `CR-P6-03-003` now prohibit any further same-tuple request. P6-03 therefore
+cannot meet its non-streaming plus SSE semantic acceptance condition, remains `BLOCKED`, and P6-04
+must not start. To unblock it, provide either a verified current Grok Build model/request-profile
+reference, or explicit approval for a new, narrowly specified redaction policy that can classify
+the upstream error without retaining its free-form text.
 
 On any non-2xx, timeout, malformed response, redaction failure, or unexpected semantic terminal
 shape, that tuple ends without automatic retry/failover. The next distinct documented tuple may be
@@ -112,11 +132,12 @@ otherwise P6-04 remains pending.
 | Task Card / resumed local work | `2026-07-22`; resumed from the existing P6-03 implementation checkpoint. The original pre-handoff start time is not claimed. |
 | Local review/test pass | `2026-07-22T10:07+08:00` after one Clippy-directed test-type correction and one review-correction batch. |
 | Final local full gate | `2026-07-22T10:34:09+08:00`; warm wall clock 19s. The durable local check log recorded Rust tests 9s, dependency policy 2s, RustSec audit 2s, and zero seconds for cached fixed-tool install/verification. |
+| Live-matrix / diagnostic review | `2026-07-22T11:54–12:24+08:00`; T1-T8 plus T9/T10 sent exactly once each (10 total); three subsequent diagnostic-review local full gates all passed, with the final warm run 19s. |
 | Code commit | This Task's local checkpoint commit (`P6-03: add Grok Build Responses boundary`); local only, not pushed. |
 | Phase closeout tag / Delivery Gate | Not started; G6 is P6's single remote gate. |
-| Repeated validations / rework | One necessary test type correction, one semantic review correction batch, then two full-gate findings fixed in scope (`struct_excessive_bools` in the ignored harness and its test-only `tokio` boundary allowlist). The final full gate was re-run only after those fixes. |
+| Repeated validations / rework | One necessary test type correction, one semantic review correction batch, then two full-gate findings fixed in scope (`struct_excessive_bools` in the ignored harness and its test-only `tokio` boundary allowlist). The live matrix exposed an intentionally over-coarse safe outcome; two finite redacted diagnostics then classified it as a 2xx error object with unrecognized standard metadata. No identical tuple was sent after T10. |
 
 Rollback removes only the P6-03 module, synthetic fixtures/tests, and documentation. It requires
 no database migration, credential revocation, server restart, proxy/TUN cleanup, or external
-Provider action. The next allowed operation is the explicitly registered T10-DIAG classification;
-P6-04 remains pending.
+Provider action. The live matrix is exhausted under its approved policy. P6-03 is `BLOCKED` and
+P6-04 remains pending until a new explicit unblocking decision is recorded.

@@ -5,7 +5,7 @@
 | Contract | `BC-PROVIDER-003` |
 | Task | `P6-03` |
 | ADR | [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md) |
-| Status | `IN_PROGRESS` — local fixed-fixture evidence passed; finite authorized test-account validation is pending under `CR-P6-03-001` |
+| Status | `BLOCKED` — local fixed-fixture evidence passed, but finite authorized test-account validation returned an unrecognized 2xx error object; see the P6-03 report before changing the fixed profile |
 | Domain | Fixed OAuth Build request, exact egress handoff, non-streaming/SSE decoding, and safe error syntax |
 
 ## Preconditions and bounds
