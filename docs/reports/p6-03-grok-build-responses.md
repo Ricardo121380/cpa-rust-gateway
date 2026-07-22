@@ -6,8 +6,8 @@
 | Task | `P6-03` |
 | Date | `2026-07-23` |
 | Branch | `codex/p6-grok-build` |
-| Status | `IN_PROGRESS` — `CR-P6-03-010` authorizes exactly one distinct workspace-User-Agent T16 non-streaming direct tuple after its no-network preflight. T17 is conditional on T16's complete Canonical success; T1-T15 remain closed and P6-04 remains pending. |
-| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` exhausted T11/T12, `CR-P6-03-008` closed after the pre-dispatch T13 stop, and `CR-P6-03-009` closed after T15's non-success stop. `CR-P6-03-010` adds only the distinct T16/T17 conditional matrix; it does not permit retry, server action, cache persistence, or P6-04+ behavior. |
+| Status | `BLOCKED` — `CR-P6-03-010`'s sole no-network T16 preflight stopped as `InvalidTargetLabel` before credential/cache import, DNS, HTTP, or send. T16/T17 remain unsent; T1-T15 are closed and P6-04 remains pending. |
+| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` exhausted T11/T12, `CR-P6-03-008` closed after the pre-dispatch T13 stop, `CR-P6-03-009` closed after T15's non-success stop, and `CR-P6-03-010` closed at its pre-dispatch local configuration gate. It permits no retry, server action, cache persistence, or P6-04+ behavior. |
 | Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, known OAuth source adapters, and a finite one-send-per-process live matrix. Prohibited: direct-tuple replay, route/key/scheduler mutation, socket/proxy/TUN mutation, status remediation, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |
 | References | Matrix `C28`; Behavior 4/5/12; [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md); [BC-PROVIDER-003](../contracts/BC-PROVIDER-003-grok-build-responses-boundary.md) |
@@ -375,12 +375,20 @@ candidate stays operator-memory-only, and the official cache remains a bounded b
 
 | Tuple | Credential source | Mode | Network profile | Current authorization |
 |---|---|---|---|---|
-| `T16` | `official-cli-cache-workspace-ua-01` | `non_streaming` | `direct` | one no-network preflight, then one independent process with exactly one send |
-| `T17` | `official-cli-cache-workspace-ua-01` | `sse` | `direct` | only if T16 emits Canonical Start, Text, and End with no `StreamError` |
+| `T16` | `official-cli-cache-workspace-ua-01` | `non_streaming` | `direct` | stopped: `InvalidTargetLabel` at the sole no-network preflight; no credential/cache import, DNS, HTTP, or send |
+| `T17` | `official-cli-cache-workspace-ua-01` | `sse` | `direct` | not sent: T16 preflight stop boundary |
 
 Both rows use the fixed short prompt and `max_output_tokens=32`, without refresh, retry, failover,
 candidate selection, proxy/TUN change, or any replay of T1-T15. Any T16 failure blocks P6-03 and
 prohibits T17; any T17 failure also blocks P6-03. Neither row starts P6-04.
+
+At `2026-07-23`, the one registered T16 no-network preflight invoked the ignored harness once and
+stopped with `InvalidTargetLabel`. The registered opaque label exceeded the harness's fixed 32-byte
+boundary, so configuration parsing stopped before the credential input is selected or imported;
+therefore no official cache content was read and no DNS, HTTP, refresh, retry, server action,
+proxy/TUN action, or Provider `send` occurred. The preflight is consumed under CR-P6-03-010: T16
+and T17 are not eligible for a corrected-label replay, and P6-03 is `BLOCKED` until a new explicit
+CR supplies a distinct validation boundary.
 
 ## Timing and next task
 
@@ -401,6 +409,7 @@ prohibits T17; any T17 failure also blocks P6-03. Neither row starts P6-04.
 | CR-P6-03-009 corrected no-network preflight | `2026-07-23T00:51+08:00`; one exact ignored preflight with the corrected `env -i` wrapper passed for T15's label/mode. It read the bounded local cache and constructed the fixed request without DNS, HTTP, refresh, retry, proxy/TUN action, Token output, or Provider send. |
 | CR-P6-03-009 T15 direct matrix | `2026-07-23T00:52+08:00`; one isolated direct non-streaming T15 process reached the fixed endpoint after the preflight and stopped as `4xx`, expected content type, `error_like_object`, `unrecognized` in 1.83s. It produced no Canonical success lifecycle; T14 was not sent. |
 | Post-T15 profile correction | `2026-07-23`; static official-CLI audit corrected only the frozen User-Agent from the contradicted Linux shell value to `xai-grok-workspace/0.2.106`. No OAuth cache was opened and no network action occurred. `cargo test --locked -p provider-grok` passed 31 executed tests with 2 explicitly unauthorized tests ignored; focused Clippy, formatting, whitespace, and the warm full local gate passed. |
+| CR-P6-03-010 T16 no-network preflight | `2026-07-23`; exactly one ignored preflight stopped as `InvalidTargetLabel` because its registered label exceeded the fixed opaque-label cap. It exited before credential/cache import, DNS, HTTP, refresh, retry, or send; T16/T17 were not sent. |
 | Server-side preflight hygiene | One incorrect schema lookup briefly created a zero-byte, unreferenced file under the current grok2api data mount. It was immediately removed; the postcheck confirmed its absence and the container still running. No configuration, credential, or database-table row was changed. |
 | Code commit | Current-profile local checkpoint (`P6-03: update current Grok Build profile`); local only, not pushed, and required before either T11 or T12. |
 | Phase closeout tag / Delivery Gate | Not started; G6 is P6's single remote gate. |

@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-22` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP`、`P4 - Catalog、Health、Quota、Explain、观测` 与 `P5 - Anthropic/Claude Code 兼容` 已完成；`P6 - Grok Build` 已开始。 |
-| 当前任务 | `P6-03`：`IN_PROGRESS`。`CR-P6-03-010` 仅登记一次更正 workspace User-Agent 后的 T16 直连非流式验证；仅 T16 出现完整 Canonical 成功生命周期时，才条件允许一次 T17 SSE。T1-T15 均保持关闭，任何失败均停止且 P6-04 不得开始。 |
+| 当前任务 | 无；`P6-03`：`BLOCKED`。`CR-P6-03-010` 的唯一 T16 无网络预检因本地标签长度门槛停止，且在 credential/cache 读取、DNS、HTTP 和 `send` 之前退出；T16/T17 均未发送。T1-T15 均保持关闭，任何后续动作须新的显式 CR；P6-04 仍不得开始。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -663,6 +663,10 @@ CR-ID: CR-P6-03-010
 计划版本变更: v1.20
 ```
 
+执行结果（2026-07-23）: 唯一 T16 无网络预检以 `InvalidTargetLabel` 停止。登记的标签超过既有
+      harness 32 字符不透明标签上限，因此 `from_values` 在 credential/cache 导入、DNS、HTTP、refresh
+      或 `send` 之前失败。不得修正标签后重跑该预检；T16 和条件 T17 均未发送，P6-03 恢复 `BLOCKED`。
+
 ### 已批准 Change Request：CR-P4-G4-001
 
 ```text
@@ -1055,7 +1059,7 @@ Fast、Full supply-chain、Required Delivery Gate 均已通过。
 |---|---|---|---|---|
 | P6-01 | 实现 Grok Build Credential、OAuth JSON 导入和 Device Code | G5 | OAuth Mock + 脱敏导入测试 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P6-02 | 实现每 Credential Refresh Singleflight、Revision/CAS 和持久化 | P6-01 | 刷新风暴与旧 Token 覆盖测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析；兼容已知 OAuth 凭据来源 | P6-02 | 固定 Fixture + 测试账号验证 | IN_PROGRESS |
+| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析；兼容已知 OAuth 凭据来源 | P6-02 | 固定 Fixture + 测试账号验证 | BLOCKED |
 | P6-04 | 实现模型、Billing、Quota Window 和 Reset 同步 | P6-03 | 来源/置信度和窗口测试 | PENDING |
 | P6-05 | 实现租户隔离 Cache Identity 与 Cache Affinity | P6-03 | 稳定性、隔离和断裂事件测试 | PENDING |
 | P6-06 | 实现 ResponseOwnership 与 ReasoningReplay | P6-03,P6-05 | previous_response 与多轮 Tool 测试 | PENDING |

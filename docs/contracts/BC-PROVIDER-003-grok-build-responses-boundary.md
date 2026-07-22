@@ -5,7 +5,7 @@
 | Contract | `BC-PROVIDER-003` |
 | Task | `P6-03` |
 | ADR | [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md) |
-| Status | `IN_PROGRESS` — `CR-P6-03-010` authorizes one distinct workspace-User-Agent T16 non-streaming direct tuple after its no-network preflight; T17 SSE is conditional on T16's complete Canonical success. T1-T15 remain closed and P6-04 stays pending |
+| Status | `BLOCKED` — `CR-P6-03-010`'s only T16 no-network preflight stopped at `InvalidTargetLabel` before credential/cache import, DNS, HTTP, or send. T16/T17 remain unsent; T1-T15 are closed and P6-04 stays pending |
 | Domain | Fixed OAuth Build request, exact egress handoff, non-streaming/SSE decoding, and safe error syntax |
 
 ## Preconditions and bounds
