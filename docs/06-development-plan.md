@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.18` |
+| 计划版本 | `v1.19` |
 | 生效日期 | `2026-07-22` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP`、`P4 - Catalog、Health、Quota、Explain、观测` 与 `P5 - Anthropic/Claude Code 兼容` 已完成；`P6 - Grok Build` 已开始。 |
-| 当前任务 | 无；`P6-03`：`BLOCKED`。`CR-P6-03-008` 的唯一 T13 harness 进程在本地配置门槛、`result=started` 与任何 egress 之前停止；T14 未发送。该 CR 的独立进程/无重试规则不允许重跑，任何后续动作均须新的显式 CR；P6-04 仍不得开始。 |
+| 当前任务 | `P6-03`：`IN_PROGRESS`。`CR-P6-03-009` 已获用户批准：先做一次无网络的修正环境预检，再只发送一次替代非流式 T15；仅 T15 完整通过后，才可发送原本未消费的 T14 SSE。T1-T13 永久关闭，P6-04 仍不得开始。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -609,6 +609,32 @@ CR-ID: CR-P6-03-008
 计划版本变更: v1.18
 ```
 
+### 已批准 Change Request：CR-P6-03-009
+
+```text
+CR-ID: CR-P6-03-009
+原因: CR-P6-03-008 的 T13 唯一 harness 进程已在本地 wrapper 的环境变量展开错误处停止，且在
+      `result=started`、credential import、DNS、HTTP 和 `send` 之前退出。用户明确批准登记一次
+      修正 wrapper 后的替代验证；不能把零发送自动当作原 tuple 可重试。
+影响的 Task / Matrix ID / ADR: 仅重新打开 P6-03 的 C28 live evidence、BC-PROVIDER-003、报告与
+      traceability；不改变生产 Provider、固定 Responses URL、Canonical 类型、OAuth source adapter、
+      P6-04+、服务器、路由、账号、代理或 TUN。T1-T13 及其历史结果保持关闭。
+兼容性与迁移影响: 无。wrapper 只在单一子进程内以已赋值的本地 shell 变量向受控 `env -i` 传递
+      非秘密的授权开关、cap、标签、模式、cache path 和既有不记录值的 model candidate；不把 Token、
+      cache 内容、path、model 或响应值打印、写入 Git 或持久化。generic credential JSON、P6 SOCKS
+      变量及环境 proxy 均不传入。
+测试与回滚变化: 先恰好一次 ignored no-network preflight，以 T15 的同一配置读取最多 64 KiB cache 并
+      只构造请求；它不得 DNS/HTTP/refresh/send，失败则停止且不发送 T15。预检通过后只登记
+      `T15=(official-cli-cache-corrected-01, non_streaming, direct)`，独立进程、
+      `P6_03_MAX_EXTERNAL_REQUESTS=1`、固定短提示与 32 token，恰好一次 send。T15 的任一非
+      Canonical success、超时、内容类型、协议、语义或安全失败均停止，T14 不得发送并使 P6-03
+      `BLOCKED`。仅 T15 出现 Canonical `ResponseStart`、文本、无 `StreamError` 的 `ResponseEnd`
+      时，才重新授权原本未发送的 `T14=(official-cli-cache-01, sse, direct)` 一次；T14 失败同样
+      `BLOCKED`。不得 refresh、retry、failover、candidate selection、proxy/TUN change 或新增 tuple。
+用户批准: APPROVED，2026-07-23（“批准”）
+计划版本变更: v1.19
+```
+
 ### 已批准 Change Request：CR-P4-G4-001
 
 ```text
@@ -796,7 +822,7 @@ deploy/
 | P3 | OpenAI Responses 聚合 MVP | G2 | G3 | DONE |
 | P4 | Catalog、Health、Quota、Explain、观测 | G3 | G4 | DONE |
 | P5 | Anthropic/Claude Code 兼容 | G4 | G5 | DONE |
-| P6 | Grok Build | G5 | G6 | BLOCKED |
+| P6 | Grok Build | G5 | G6 | IN_PROGRESS |
 | P7 | Kiro IDE/CLI | G6 | G7 | PENDING |
 | P8 | Grok Official | G7 | G8 | PENDING |
 | P9 | Grok Web | G8 | G9 | PENDING |
@@ -1001,7 +1027,7 @@ Fast、Full supply-chain、Required Delivery Gate 均已通过。
 |---|---|---|---|---|
 | P6-01 | 实现 Grok Build Credential、OAuth JSON 导入和 Device Code | G5 | OAuth Mock + 脱敏导入测试 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P6-02 | 实现每 Credential Refresh Singleflight、Revision/CAS 和持久化 | P6-01 | 刷新风暴与旧 Token 覆盖测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析；兼容已知 OAuth 凭据来源 | P6-02 | 固定 Fixture + 测试账号验证 | BLOCKED |
+| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析；兼容已知 OAuth 凭据来源 | P6-02 | 固定 Fixture + 测试账号验证 | IN_PROGRESS |
 | P6-04 | 实现模型、Billing、Quota Window 和 Reset 同步 | P6-03 | 来源/置信度和窗口测试 | PENDING |
 | P6-05 | 实现租户隔离 Cache Identity 与 Cache Affinity | P6-03 | 稳定性、隔离和断裂事件测试 | PENDING |
 | P6-06 | 实现 ResponseOwnership 与 ReasoningReplay | P6-03,P6-05 | previous_response 与多轮 Tool 测试 | PENDING |

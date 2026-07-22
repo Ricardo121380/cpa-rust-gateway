@@ -289,7 +289,7 @@ adapter/review gate must pass before any row below may be sent.
 | Tuple | Credential source | Mode | Network profile | Current outcome |
 |---|---|---|---|---|
 | `T13` | `official-cli-cache-01` | `non_streaming` | `direct` | stopped: `local_configuration_gate_before_dispatch`; no DNS, HTTP, cache read, refresh, or Provider send |
-| `T14` | `official-cli-cache-01` | `sse` | `direct` | not sent: T13 stop boundary |
+| `T14` | `official-cli-cache-01` | `sse` | `direct` | not sent under CR-P6-03-008: T13 stop boundary |
 
 Each row is a separate ignored-harness process with `P6_03_MAX_EXTERNAL_REQUESTS=1`, the existing
 opaque Build candidate, fixed short prompt, and `max_output_tokens=32`. No refresh, retry,
@@ -297,7 +297,7 @@ failover, proxy/TUN change, or T1-T12 replay is permitted. A failure of either r
 immediately and returns P6-03 to `BLOCKED`; only both required Canonical success lifecycles can move
 the task to `LOCAL_PASS_PENDING_PHASE_GATE`.
 
-### Live validation status: blocked after T13 local configuration stop
+### Historical CR-P6-03-008 T13 local configuration stop
 
 At `2026-07-23T00:33+08:00`, the one registered T13 ignored-harness process exited at its local
 configuration gate before it printed `result=started`. A shell-semantics check established that the
@@ -309,8 +309,9 @@ model mapping, request/response body, raw header, or association value was writt
 logs, or Git.
 
 The one-process/no-retry boundary is nevertheless consumed: `CR-P6-03-008` permits no second T13
-process. T14 was not started because T13 did not reach acceptance. P6-03 is `BLOCKED`; a corrected
-invocation or any other tuple requires a new explicit CR.
+process. T14 was not started because T13 did not reach acceptance. P6-03 was consequently
+`BLOCKED` until the separately approved `CR-P6-03-009`; that CR does not alter this historical
+outcome.
 
 T11 reached the fixed endpoint and stopped on a `4xx` JSON error-like object with only the
 whitelisted safe category `unrecognized`; T12 likewise stopped on a `4xx` error-like object, but
@@ -321,12 +322,28 @@ request-profile detail.
 
 `CR-P6-03-001` through `CR-P6-03-003` permanently prohibit any further same-tuple request.
 `CR-P6-03-005` registered only the distinct updated-profile tuples above, and both are now
-exhausted. `CR-P6-03-008` is the only currently registered alternative matrix, and P6-04 must not
-start while P6-03 is `IN_PROGRESS` or `BLOCKED`.
+exhausted. `CR-P6-03-008` is closed after T13's local stop; `CR-P6-03-009` is its only separately
+registered replacement boundary. P6-04 must not start while P6-03 is `IN_PROGRESS` or `BLOCKED`.
 
-No direct row beyond T13/T14 is registered. P6-03 can enter `LOCAL_PASS_PENDING_PHASE_GATE` only
-after both fixed-endpoint modes obtain the required Canonical start/text/end semantic shape and no
-stream error; until then P6-04 remains pending.
+### Corrected-wrapper live boundary in progress (`CR-P6-03-009`)
+
+The user approved exactly one replacement non-streaming process because T13 stopped before any
+egress. It is not an automatic retry: it is a newly registered T15 process with separately reviewed
+wrapper construction. Before it, exactly one ignored no-network preflight must use the same
+T15 configuration. That preflight may read the bounded cache and prepare the request, but may not
+resolve DNS, make HTTP, refresh, retry, or call `send`.
+
+| Tuple | Credential source | Mode | Network profile | Current authorization |
+|---|---|---|---|---|
+| `T15` | `official-cli-cache-corrected-01` | `non_streaming` | `direct` | authorized, not sent; only after corrected no-network preflight passes |
+| `T14` | `official-cli-cache-01` | `sse` | `direct` | conditionally reauthorized; not sent and may run only after T15 produces Canonical start/text/end with no StreamError |
+
+Both processes must retain the fixed short prompt, `max_output_tokens=32`, one isolated harness
+process and `P6_03_MAX_EXTERNAL_REQUESTS=1`. No refresh, retry, failover, candidate selection,
+proxy/TUN change, T1-T13 replay, or additional tuple is permitted. A preflight or T15 failure stops
+the boundary and leaves T14 unsent; a T14 failure also stops the boundary. P6-03 can enter
+`LOCAL_PASS_PENDING_PHASE_GATE` only after both T15 and T14 obtain the required Canonical
+start/text/end semantic shape with no stream error; until then P6-04 remains pending.
 
 ## Timing and next task
 

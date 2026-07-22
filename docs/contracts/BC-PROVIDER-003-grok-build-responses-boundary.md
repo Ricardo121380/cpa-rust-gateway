@@ -5,7 +5,7 @@
 | Contract | `BC-PROVIDER-003` |
 | Task | `P6-03` |
 | ADR | [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md) |
-| Status | `BLOCKED` — `CR-P6-03-008` source adaptation and local gate passed, but its only T13 process stopped at a local configuration gate before dispatch; T14 is unsent, T1-T12 remain permanently closed, and any further tuple requires a new CR |
+| Status | `IN_PROGRESS` — `CR-P6-03-009` authorizes one corrected-wrapper T15 after a no-network preflight; only T15 Canonical success can reauthorize the unspent T14 SSE process. T1-T13 remain permanently closed and P6-04 stays pending |
 | Domain | Fixed OAuth Build request, exact egress handoff, non-streaming/SSE decoding, and safe error syntax |
 
 ## Preconditions and bounds
