@@ -31,7 +31,7 @@ allowed = {
   "protocol-anthropic" => %w[gateway-core gateway-protocol proptest serde serde_json],
   "protocol-openai-responses" => %w[gateway-core gateway-protocol proptest serde serde_json],
   "provider-anthropic-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-anthropic],
-  "provider-grok" => %w[gateway-continuity gateway-core gateway-provider gateway-upstream protocol-openai-responses],
+  "provider-grok" => %w[gateway-continuity gateway-core gateway-provider gateway-upstream protocol-openai-responses serde serde_json url zeroize],
   "provider-kiro" => %w[gateway-core gateway-provider gateway-stream gateway-upstream protocol-anthropic],
   "provider-openai-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-openai-responses serde_json zeroize],
 }

@@ -68,3 +68,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0039 Anthropic semantic and HTTP boundary](ADR-0039-anthropic-semantic-http-boundary.md) — `P5-06`（Accepted）。
 - [ADR-0040 Claude Code loopback readiness and client-key boundary](ADR-0040-claude-code-loopback-client-boundary.md) — `P5-07`（Accepted）。
 - [ADR-0041 Deterministic Anthropic adversarial protocol evidence](ADR-0041-deterministic-anthropic-adversarial-evidence.md) — `P5-08`（Accepted）。
+- [ADR-0042 Grok Build OAuth credential and Device Code boundary](ADR-0042-grok-build-oauth-credential-boundary.md) — `P6-01`（Accepted）。

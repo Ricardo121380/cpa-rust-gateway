@@ -1429,6 +1429,10 @@ dependencies = [
  "gateway-provider",
  "gateway-upstream",
  "protocol-openai-responses",
+ "serde",
+ "serde_json",
+ "url",
+ "zeroize",
 ]
 
 [[package]]

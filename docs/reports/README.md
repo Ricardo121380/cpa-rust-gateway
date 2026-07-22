@@ -81,3 +81,4 @@
 - [P5-07 Claude Code `--bare` loopback E2E report](p5-07-claude-code-bare-e2e.md)
 - [P5-08 Anthropic adversarial stream properties report](p5-08-adversarial-stream-properties.md)
 - [G5 Anthropic/Claude Code phase gate report](g5-gate-report.md)
+- [P6-01 Grok Build OAuth credential and Device Code report](p6-01-grok-build-oauth.md) — local evidence pending G6

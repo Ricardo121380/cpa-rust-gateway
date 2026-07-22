@@ -55,6 +55,10 @@ gateway-core
 - `gateway-provider` 的 P1 Mock 只能拉取 Canonical Event；它可以使用 Tokio 的等待原语来
   表达确定性 fixture 延迟，但不得依赖 `gateway-stream`、HTTP、SSE、路由、Endpoint 或凭据。
 - Provider 私有 Crate 不被 `gateway-core`、协议公共层或其它 Provider 引用。
+- `provider-grok` 的 P6-01 OAuth 边界仅依赖 `serde`/`serde_json` 做有界且拒绝重复字段的
+  本地 JSON 解析，`url` 仅验证固定 Device Code 验证 URI，`zeroize` 仅持有短生命周期 OAuth
+  access/refresh/device/user code。它通过可注入的同步 mock transport 表达 OAuth form 交换，
+  不在本 Task 创建 socket、TLS、代理、持久化、刷新并发或 Build 推理请求。
 - `gateway-store` 不进入 Router 的请求选择路径；持久数据通过控制面编译为不可变 Snapshot。
 - `gateway-router` 可以使用 `gateway-auth` 的无存储 Client Key HMAC 原语来认证其已编译
   Snapshot；该边不允许反向的 Router、Store 或 HTTP 依赖进入 `gateway-auth`。
