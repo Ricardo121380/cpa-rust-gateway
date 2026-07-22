@@ -6,7 +6,7 @@
 | Task | `P6-03` |
 | Date | `2026-07-22` |
 | Branch | `codex/p6-grok-build` |
-| Status | `IN_PROGRESS` — `CR-P6-03-005` is approved; the current Build profile is being implemented and locally reviewed before the two newly registered fixed-endpoint probes. |
+| Status | `BLOCKED` — `CR-P6-03-005` T11/T12 each sent exactly once with the reviewed current profile, but neither yielded the required Canonical `ResponseStart`/text/`ResponseEnd` lifecycle. |
 | Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` authorizes exactly two new fixed-profile direct tuples after local implementation/review; no account-state, quota, cache, continuity, server, or P6-04+ scope. |
 | Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, and a finite one-send-per-process live matrix. Prohibited: cross-Provider imports, socket/proxy/TUN mutation, status remediation, persistent state, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |
@@ -186,32 +186,32 @@ synthetic semantic-equivalence tests pass. The profile update is not a retry of 
 
 | Tuple | Candidate label | Mode | Network profile | Outcome |
 |---|---|---|---|---|
-| `T11` | `build-profile-02` | `non_streaming` | `direct` | pending local profile implementation/review |
-| `T12` | `build-profile-02` | `sse` | `direct` | pending local profile implementation/review |
+| `T11` | `build-profile-02` | `non_streaming` | `direct` | stopped: `4xx`, expected content type, `error_like_object`, `unrecognized` (harness 0.99s) |
+| `T12` | `build-profile-02` | `sse` | `direct` | stopped: `4xx`, other content type, `error_like_object`, `unrecognized` (harness 0.98s) |
 
-### Live validation status: IN_PROGRESS
+### Live validation status: BLOCKED
 
-The supplied credential is structurally suitable for the intended Build profile: its access token
-is a three-segment JWT whose safe non-PII claims identify the expected public OAuth client and
-include `grok-cli:access`; it was also current when each probe projection was made. Both direct and
-the already configured SOCKS5 profile received a response promptly, so this evidence does not
-support a Clash/TUN routing or TLS timeout explanation.
+For each tuple, the sole authorized OAuth file was projected only in process memory and its usable
+lifetime was calculated from its `.expired` field; no persisted `expires_in` was reused. The opaque
+Build model value was selected only in process memory from a read-only successful Build/Responses
+audit reference. No credential, model mapping, request/response body, raw header, or association
+value was written to the report, logs, or Git.
 
-The unresolved incompatibility is at the fixed endpoint's application layer: it returns an HTTP
-2xx response with the expected JSON content type but an error-like object, rather than a completed
-Responses object or SSE lifecycle. The final safe diagnostic found no whitelisted standard
-`code`/`type`/`param` classification. The request body, raw error text, response identifier,
-private model mapping, token, and headers were neither written nor recorded.
+T11 reached the fixed endpoint and stopped on a `4xx` JSON error-like object with only the
+whitelisted safe category `unrecognized`; T12 likewise stopped on a `4xx` error-like object, but
+without the requested SSE content-type class. Neither response produced any Canonical success
+event. These outcomes rule out a timeout or local egress-admission failure for the two current
+direct sends, but do not safely attribute the `4xx` to credentials, model access, or a remaining
+request-profile detail.
 
 `CR-P6-03-001` through `CR-P6-03-003` permanently prohibit any further same-tuple request.
-`CR-P6-03-005` instead registers only the distinct updated-profile tuples above. P6-04 must not
-start while either remains pending, and a failure in either tuple returns P6-03 to `BLOCKED`.
+`CR-P6-03-005` registered only the distinct updated-profile tuples above, and both are now
+exhausted. P6-04 must not start while P6-03 is `BLOCKED`.
 
-On any non-2xx, timeout, malformed response, redaction failure, or unexpected semantic terminal
-shape, that tuple ends without automatic retry/failover. The next distinct documented tuple may be
-tested. P6-03 can enter `LOCAL_PASS_PENDING_PHASE_GATE` only after one candidate completes both
-fixed-endpoint modes with the required Canonical start/text/end semantic shape and no stream error;
-otherwise P6-04 remains pending.
+No further direct tuple is registered. P6-03 can enter `LOCAL_PASS_PENDING_PHASE_GATE` only after
+a newly authorized, newly documented validation plan obtains both fixed-endpoint modes with the
+required Canonical start/text/end semantic shape and no stream error; until then P6-04 remains
+pending.
 
 ## Timing and next task
 
@@ -222,11 +222,13 @@ otherwise P6-04 remains pending.
 | Earlier local full gate | `2026-07-22T10:34:09+08:00`; warm wall clock 19s. The durable local check log recorded Rust tests 9s, dependency policy 2s, RustSec audit 2s, and zero seconds for cached fixed-tool install/verification. |
 | Current-profile review / full gate | `2026-07-22T15:35:55+08:00`; PASS after staging the reviewed current-profile diff. It reran the full local quality, workspace-test, documentation, boundary, secret, dependency-policy, and RustSec set. |
 | Live-matrix / diagnostic review | `2026-07-22T11:54–12:24+08:00`; T1-T8 plus T9/T10 sent exactly once each (10 total); three subsequent diagnostic-review local full gates all passed, with the final warm run 19s. |
+| CR-P6-03-005 direct matrix | `2026-07-22`, after the current-profile local checkpoint; T11 and T12 each ran in an independent process with a one-request cap, direct no-environment-proxy transport, fresh in-memory expiry projection, and no retry/refresh/failover. Both stopped in under one harness second with the safe outcomes recorded above. |
+| Server-side preflight hygiene | One incorrect schema lookup briefly created a zero-byte, unreferenced file under the current grok2api data mount. It was immediately removed; the postcheck confirmed its absence and the container still running. No configuration, credential, or database-table row was changed. |
 | Code commit | Current-profile local checkpoint (`P6-03: update current Grok Build profile`); local only, not pushed, and required before either T11 or T12. |
 | Phase closeout tag / Delivery Gate | Not started; G6 is P6's single remote gate. |
-| Repeated validations / rework | One necessary test type correction, one semantic review correction batch, then two full-gate findings fixed in scope (`struct_excessive_bools` in the ignored harness and its test-only `tokio` boundary allowlist). The live matrix exposed an intentionally over-coarse safe outcome; two finite redacted diagnostics then classified it as a 2xx error object with unrecognized standard metadata. No identical tuple was sent after T10. `CR-P6-03-005` subsequently approved only a new-profile T11/T12 pair, pending local implementation/review. |
+| Repeated validations / rework | One necessary test type correction, one semantic review correction batch, then two full-gate findings fixed in scope (`struct_excessive_bools` in the ignored harness and its test-only `tokio` boundary allowlist). The earlier live matrix exposed an intentionally over-coarse safe outcome; two finite redacted diagnostics then classified it as a 2xx error object with unrecognized standard metadata. No identical tuple was sent after T10. `CR-P6-03-005` then used its only two new-profile direct sends: T11 and T12 each stopped as an unrecognized 4xx error object, so no further direct probe is permitted. |
 
 Rollback removes only the P6-03 module, synthetic fixtures/tests, and documentation. It requires
 no database migration, credential revocation, server restart, proxy/TUN cleanup, or external
-Provider action. T1-T10 remain exhausted permanently; only T11/T12 are pending under the approved
-new profile. P6-04 remains pending until P6-03's dual-mode acceptance condition is met.
+Provider action. T1-T12 remain exhausted permanently; no further direct tuple is registered. P6-04
+remains pending until P6-03's dual-mode acceptance condition is met under a new explicit CR.

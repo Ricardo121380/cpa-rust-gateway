@@ -5,7 +5,7 @@
 | Contract | `BC-PROVIDER-003` |
 | Task | `P6-03` |
 | ADR | [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md) |
-| Status | `IN_PROGRESS` — `CR-P6-03-005` authorizes a current-profile update and exactly two new fixed-endpoint validation tuples; see the P6-03 report before any live send |
+| Status | `BLOCKED` — `CR-P6-03-005` T11/T12 current-profile tuples each sent once, but neither produced the required Canonical success lifecycle; see the P6-03 report before any further live proposal |
 | Domain | Fixed OAuth Build request, exact egress handoff, non-streaming/SSE decoding, and safe error syntax |
 
 ## Preconditions and bounds
