@@ -335,7 +335,7 @@ resolve DNS, make HTTP, refresh, retry, or call `send`.
 
 | Tuple | Credential source | Mode | Network profile | Current authorization |
 |---|---|---|---|---|
-| `T15` | `official-cli-cache-corrected-01` | `non_streaming` | `direct` | authorized, not sent; only after corrected no-network preflight passes |
+| `T15` | `official-cli-cache-corrected-01` | `non_streaming` | `direct` | corrected no-network preflight passed; authorized, not sent |
 | `T14` | `official-cli-cache-01` | `sse` | `direct` | conditionally reauthorized; not sent and may run only after T15 produces Canonical start/text/end with no StreamError |
 
 Both processes must retain the fixed short prompt, `max_output_tokens=32`, one isolated harness
@@ -361,6 +361,7 @@ start/text/end semantic shape with no stream error; until then P6-04 remains pen
 | CR-P6-03-008 real-cache preflight | `2026-07-23T00:23+08:00`; one exact ignored preflight read the user-authenticated local official CLI cache and constructed the fixed non-streaming request without DNS, HTTP, refresh, retry, server action, proxy/TUN change, Token output, or model request. |
 | CR-P6-03-008 T13 stop | `2026-07-23T00:33+08:00`; exactly one T13 ignored-harness process stopped at local authorization/configuration parsing before `result=started`. A local shell-semantics check proved that the wrapper passed empty same-command assignment values into `env -i`; no credential cache was read and no DNS, HTTP, refresh, retry, proxy/TUN action, or Provider send occurred. T14 was not started. |
 | P6-03 blocked-state full gate | `2026-07-23T00:43+08:00`; after staging the reviewed blocked-state evidence and a semantics-preserving local-value rename that removed a secret-scanner false positive, formatting, Clippy, the full workspace tests, source/crate-boundary/document checks, tracked-secret scan, dependency policy, and RustSec audit all passed. |
+| CR-P6-03-009 corrected no-network preflight | `2026-07-23T00:51+08:00`; one exact ignored preflight with the corrected `env -i` wrapper passed for T15's label/mode. It read the bounded local cache and constructed the fixed request without DNS, HTTP, refresh, retry, proxy/TUN action, Token output, or Provider send. |
 | Server-side preflight hygiene | One incorrect schema lookup briefly created a zero-byte, unreferenced file under the current grok2api data mount. It was immediately removed; the postcheck confirmed its absence and the container still running. No configuration, credential, or database-table row was changed. |
 | Code commit | Current-profile local checkpoint (`P6-03: update current Grok Build profile`); local only, not pushed, and required before either T11 or T12. |
 | Phase closeout tag / Delivery Gate | Not started; G6 is P6's single remote gate. |
