@@ -73,6 +73,24 @@ and is neither pasted into chat nor committed.
 | Forbidden operations | Account/server mutation, auth-directory enumeration, proxy/TUN configuration change, P6-04/P6-07 policy change |
 | Evidence | Candidate label/category, mode, network profile, elapsed time, and redacted outcome only |
 
+### Predeclared tuples (before any live send)
+
+The selected input values are held only in the ignored operator invocation. `build-static-01` was
+identified from a read-only static CPA model catalog; `build-code-fast-01` is the second plausible
+Build-model candidate. `direct` means no explicit proxy in the harness; `socks5` means the already
+configured local SOCKS profile, without changing any proxy or TUN setting.
+
+| Tuple | Candidate label | Mode | Network profile | Pre-send status |
+|---|---|---|---|---|
+| `T1` | `build-static-01` | `non_streaming` | `direct` | pending |
+| `T2` | `build-static-01` | `sse` | `direct` | pending |
+| `T3` | `build-static-01` | `non_streaming` | `socks5` | pending |
+| `T4` | `build-static-01` | `sse` | `socks5` | pending |
+| `T5` | `build-code-fast-01` | `non_streaming` | `direct` | pending |
+| `T6` | `build-code-fast-01` | `sse` | `direct` | pending |
+| `T7` | `build-code-fast-01` | `non_streaming` | `socks5` | pending |
+| `T8` | `build-code-fast-01` | `sse` | `socks5` | pending |
+
 On any non-2xx, timeout, malformed response, redaction failure, or unexpected semantic terminal
 shape, that tuple ends without automatic retry/failover. The next distinct documented tuple may be
 tested. P6-03 can enter `LOCAL_PASS_PENDING_PHASE_GATE` only after one candidate completes both
