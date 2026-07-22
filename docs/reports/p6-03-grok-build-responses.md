@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.18` |
+| Plan version | `v1.19` |
 | Task | `P6-03` |
-| Date | `2026-07-22` |
+| Date | `2026-07-23` |
 | Branch | `codex/p6-grok-build` |
-| Status | `IN_PROGRESS` — `CR-P6-03-008` adds local known-OAuth-source adaptation and synthetic review before its only two new direct tuples. T1-T12 remain permanently closed; P6-04 remains pending. |
-| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` has exhausted its two direct tuples. `CR-P6-03-006` separately authorized one grok2api account import and one account-specific quota refresh solely to diagnose account/allowance state. `CR-P6-03-007` established one fresh local official-CLI session. `CR-P6-03-008` adds bytes-only adapters for known OAuth source shapes and exactly T13/T14 after local gates; it does not permit T1-T12 replay, cache continuity behavior, server configuration, or P6-04+ scope. |
+| Status | `BLOCKED` — T15 reached the fixed endpoint exactly once and stopped as a `4xx` error-like response with safe category `unrecognized`; T14 remains unsent and prohibited. T1-T13 and T15 are closed; P6-04 remains pending. |
+| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` exhausted T11/T12, `CR-P6-03-008` closed after the pre-dispatch T13 stop, and `CR-P6-03-009` closed after T15's non-success stop. The post-T15 local request-profile correction adds no external tuple, retry, server action, cache read, or P6-04+ behavior. |
 | Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, known OAuth source adapters, and a finite one-send-per-process live matrix. Prohibited: direct-tuple replay, route/key/scheduler mutation, socket/proxy/TUN mutation, status remediation, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |
 | References | Matrix `C28`; Behavior 4/5/12; [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md); [BC-PROVIDER-003](../contracts/BC-PROVIDER-003-grok-build-responses-boundary.md) |
@@ -352,6 +352,21 @@ policy. T14 was not started. P6-03 is `BLOCKED`; a new explicit CR would be requ
 direct action. P6-03 can enter `LOCAL_PASS_PENDING_PHASE_GATE` only after both modes obtain the
 required Canonical start/text/end semantic shape with no stream error; P6-04 remains pending.
 
+### Post-T15 read-only official-CLI request-profile correction
+
+On `2026-07-23`, a static-only audit of the locally authenticated official Grok CLI distribution
+reported version `0.2.106` and a macOS arm64 executable. It did not open the OAuth cache, invoke a
+model command, resolve DNS, or make an HTTP request. Its immutable string table contains the Build
+profile token sequence `user-agent` then `xai-grok-workspace/`, together with the current
+`x-grok-client-version` value `0.2.106`, and contains neither the gateway's previous
+`grok-shell/0.2.106 (linux; x86_64)` value nor a platform-specific equivalent.
+
+The frozen Builder is consequently corrected to the evidence-supported versioned workspace value
+`xai-grok-workspace/0.2.106`, with a synthetic regression assertion. This removes a demonstrated
+profile discrepancy but does **not** attribute T15's safe `4xx` to that discrepancy or alter any
+closed tuple. It creates no permission to replay T15 or send T14: P6-03 remains `BLOCKED` until a
+new explicit CR separately specifies a distinct direct tuple and stop condition.
+
 ## Timing and next task
 
 | Measurement | Evidence / value |
@@ -370,6 +385,7 @@ required Canonical start/text/end semantic shape with no stream error; P6-04 rem
 | P6-03 blocked-state full gate | `2026-07-23T00:43+08:00`; after staging the reviewed blocked-state evidence and a semantics-preserving local-value rename that removed a secret-scanner false positive, formatting, Clippy, the full workspace tests, source/crate-boundary/document checks, tracked-secret scan, dependency policy, and RustSec audit all passed. |
 | CR-P6-03-009 corrected no-network preflight | `2026-07-23T00:51+08:00`; one exact ignored preflight with the corrected `env -i` wrapper passed for T15's label/mode. It read the bounded local cache and constructed the fixed request without DNS, HTTP, refresh, retry, proxy/TUN action, Token output, or Provider send. |
 | CR-P6-03-009 T15 direct matrix | `2026-07-23T00:52+08:00`; one isolated direct non-streaming T15 process reached the fixed endpoint after the preflight and stopped as `4xx`, expected content type, `error_like_object`, `unrecognized` in 1.83s. It produced no Canonical success lifecycle; T14 was not sent. |
+| Post-T15 profile correction | `2026-07-23`; static official-CLI audit corrected only the frozen User-Agent from the contradicted Linux shell value to `xai-grok-workspace/0.2.106`. No OAuth cache was opened and no network action occurred. `cargo test --locked -p provider-grok` passed 31 executed tests with 2 explicitly unauthorized tests ignored; focused Clippy, formatting, whitespace, and the warm full local gate passed. |
 | Server-side preflight hygiene | One incorrect schema lookup briefly created a zero-byte, unreferenced file under the current grok2api data mount. It was immediately removed; the postcheck confirmed its absence and the container still running. No configuration, credential, or database-table row was changed. |
 | Code commit | Current-profile local checkpoint (`P6-03: update current Grok Build profile`); local only, not pushed, and required before either T11 or T12. |
 | Phase closeout tag / Delivery Gate | Not started; G6 is P6's single remote gate. |

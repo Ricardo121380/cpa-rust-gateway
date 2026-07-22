@@ -67,8 +67,8 @@ pub const GROK_BUILD_REQUEST_ID_HEADER: &str = "x-grok-req-id";
 pub const GROK_BUILD_TRACEPARENT_HEADER: &str = "traceparent";
 /// Header that makes the selected upstream Build model explicit to the CLI proxy.
 pub const GROK_BUILD_MODEL_OVERRIDE_HEADER: &str = "x-grok-model-override";
-/// Fixed Grok CLI user agent for the Build profile.
-pub const GROK_BUILD_USER_AGENT: &str = "grok-shell/0.2.106 (linux; x86_64)";
+/// Fixed evidence-supported Grok CLI workspace user agent for the Build profile.
+pub const GROK_BUILD_USER_AGENT: &str = "xai-grok-workspace/0.2.106";
 /// Maximum JSON body accepted for one non-streaming Build response.
 pub const MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES: usize = 1024 * 1024;
 /// Maximum retained bytes for one upstream HTTP error body.

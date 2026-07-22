@@ -112,6 +112,7 @@ fn assert_current_profile(
         Some("grok-build-upstream")
     );
     assert_eq!(outbound.header("accept-encoding"), Some("identity"));
+    assert_eq!(GROK_BUILD_USER_AGENT, "xai-grok-workspace/0.2.106");
     assert_eq!(outbound.header("user-agent"), Some(GROK_BUILD_USER_AGENT));
     assert_eq!(outbound.header("connection"), None);
 
