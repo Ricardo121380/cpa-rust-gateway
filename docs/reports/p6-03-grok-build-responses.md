@@ -99,6 +99,49 @@ T9-DIAG narrows this to an application-level 2xx error object. T10-DIAG is the s
 pre-registered re-observation of that candidate/mode/network combination; it is an error-category
 classification, not a functional retry.
 
+### Predeclared isolated grok2api Build-route proxy reference (`CR-P6-03-004`)
+
+This is deliberately **not** `T11`, a direct-Build retry, or P6-03 acceptance evidence. The user
+authorized one server-local proxy reference call through the already deployed grok2api service.
+Before sending, the operator selects exactly one existing enabled client key whose persisted model
+grant is Build-routed, decrypts it only in server memory, obtains its current `/v1/models` catalog
+once, and uses one model permitted by that same key for one non-streaming `/v1/responses` request.
+
+| Boundary | Fixed value |
+|---|---|
+| Target | Existing server-local grok2api OpenAI-compatible interface only |
+| Discovery cap | One authenticated `GET /v1/models` |
+| Generation cap | One authenticated non-streaming `POST /v1/responses`; no retry/fallback/SSE |
+| Prompt / limit | `Reply with exactly: ready`; `max_output_tokens=32` |
+| Evidence | Status/content-type classes, bounded response-shape projection, elapsed time, and a post-call safe log projection only |
+| Prohibited | API key/config/database export, raw model mapping/body/header output, operator-initiated account/server mutation, and any claim that this closes direct Build validation |
+
+#### Proxy reference outcome
+
+The predeclared reference was executed once on `2026-07-22` with the existing enabled Build-routed
+client key selected only in server memory. The authenticated model catalog was a `2xx` JSON
+`data` array with three permitted public entries; the selected entry is recorded only as the safe
+class `grok_named`. The single non-streaming Responses call returned `2xx`, JSON, and the bounded
+`completed_responses_shape` projection in 1,383 ms. Normal proxy usage accounting advanced, as
+expected for an actual generation request.
+
+The post-call grok2api access-log projection contained exactly one `/v1/models` record and one
+`POST /v1/responses` record, both `2xx`, with no error marker. No plaintext key, encryption
+material, model value/mapping, headers, request body, response body, or generated text was
+retained in this report. The documentation review `./scripts/check.sh docs` then passed document
+links, plan state (`114` tasks, `0 IN_PROGRESS`), tracked-secret scan, and Git whitespace.
+
+This proves that the deployed grok2api Build route can currently perform one Responses-shaped
+generation through its own OpenAI-compatible proxy boundary. It does **not** prove that the
+separate direct `cli-chat-proxy.grok.com` request profile used by P6-03 is accepted, and it does
+not create a new direct tuple or change the P6-03 stop boundary.
+
+The call is useful only if it shows whether the deployed Build route can produce a completed
+Responses-shaped result through its own proxy. Normal proxy last-used/usage accounting is an
+expected request side effect, but no operator-initiated state change is allowed. Regardless of
+outcome, P6-03 remains `BLOCKED`
+until its separate fixed-endpoint non-streaming and SSE conditions are met.
+
 ### Live validation conclusion: BLOCKED
 
 The supplied credential is structurally suitable for the intended Build profile: its access token
