@@ -136,6 +136,21 @@ generation through its own OpenAI-compatible proxy boundary. It does **not** pro
 separate direct `cli-chat-proxy.grok.com` request profile used by P6-03 is accepted, and it does
 not create a new direct tuple or change the P6-03 stop boundary.
 
+#### Safe profile comparison and remaining boundary
+
+The deployed image tag's immutable source shows that its Build adapter sends a newer client
+identity/version and additional client-identifier, mode, request-association, and model-override
+metadata classes than the P6-03 frozen builder. The local P6 profile is therefore stale/incomplete
+relative to this successful proxy reference. This is a concrete next-profile candidate, not a
+causal conclusion: the successful route may use a different Build account, and no raw credential,
+model value, or header was read into the evidence.
+
+The latest server-side audit safely records `Build` + `Responses`, non-streaming, `2xx`, and an
+under-five-second duration for the reference. It retains no attempt row for this successful call,
+so the audit database cannot prove which upstream plane the proxy selected. P6-03 consequently
+remains `BLOCKED`; a later direct validation would require a new explicit CR that changes the
+frozen profile and registers new distinct tuples rather than repeating T1-T10.
+
 The call is useful only if it shows whether the deployed Build route can produce a completed
 Responses-shaped result through its own proxy. Normal proxy last-used/usage accounting is an
 expected request side effect, but no operator-initiated state change is allowed. Regardless of
