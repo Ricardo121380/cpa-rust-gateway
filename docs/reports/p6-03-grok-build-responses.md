@@ -2,13 +2,13 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.15` |
+| Plan version | `v1.16` |
 | Task | `P6-03` |
 | Date | `2026-07-22` |
 | Branch | `codex/p6-grok-build` |
 | Status | `BLOCKED` — `CR-P6-03-005` T11/T12 each sent exactly once with the reviewed current profile, but neither yielded the required Canonical `ResponseStart`/text/`ResponseEnd` lifecycle. |
-| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` authorizes exactly two new fixed-profile direct tuples after local implementation/review; no account-state, quota, cache, continuity, server, or P6-04+ scope. |
-| Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, and a finite one-send-per-process live matrix. Prohibited: cross-Provider imports, socket/proxy/TUN mutation, status remediation, persistent state, retry/failover, or P6-04+ behavior. |
+| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` has exhausted its two direct tuples. `CR-P6-03-006` separately authorizes one grok2api account import and one account-specific quota refresh solely to diagnose account/allowance state; no direct replay, cache, continuity, server configuration, or P6-04+ scope. |
+| Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, and a finite one-send-per-process live matrix. `CR-P6-03-006` is an isolated external account diagnostic. Prohibited: direct-tuple replay, route/key/scheduler mutation, socket/proxy/TUN mutation, status remediation, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |
 | References | Matrix `C28`; Behavior 4/5/12; [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md); [BC-PROVIDER-003](../contracts/BC-PROVIDER-003-grok-build-responses-boundary.md) |
 
@@ -189,6 +189,54 @@ synthetic semantic-equivalence tests pass. The profile update is not a retry of 
 | `T11` | `build-profile-02` | `non_streaming` | `direct` | stopped: `4xx`, expected content type, `error_like_object`, `unrecognized` (harness 0.99s) |
 | `T12` | `build-profile-02` | `sse` | `direct` | stopped: `4xx`, other content type, `error_like_object`, `unrecognized` (harness 0.98s) |
 
+### Predeclared isolated grok2api account/allowance diagnostic (`CR-P6-03-006`)
+
+This is neither `T13` nor a direct-Build retry. It diagnoses only whether the user-specified OAuth
+account can be accepted and queried through the existing server-local grok2api management boundary.
+The server currently has a multi-account Build pool, so a normal shared OpenAI-compatible generation
+request cannot be attributed to this imported account and is explicitly excluded unless the existing
+service exposes account binding without a route, key, scheduling, or enablement mutation.
+
+| Boundary | Fixed value |
+|---|---|
+| Target | Existing server-local grok2api admin API and one exact current-server CPA OAuth JSON only |
+| Server write | One multipart `POST /api/admin/v1/accounts/import`; no direct SQLite/configuration writes |
+| Account proof | Internal association stays in server memory; only a safe import class and quota/result class may be recorded |
+| Provider test | Exactly one `POST /api/admin/v1/accounts/{id}/refresh-quota` for the imported account |
+| Generation | Prohibited unless the unmodified service can prove the call binds to this account; a shared `/v1/responses` result is not evidence |
+| Prohibited | Direct T1-T12 replay, model-route/client-key/priority/enablement changes, proxy/TUN changes, credential export, raw response retention, and P6-04 start |
+
+A successful account-specific quota refresh means grok2api can presently authenticate/query this
+account's allowance plane; it does not prove the fixed direct P6 request profile is accepted. A
+quota/rate-limit result supports the allowance hypothesis, while an authentication or import failure
+instead narrows the account-state hypothesis. Neither outcome changes the P6-03 acceptance boundary.
+
+#### Account/allowance diagnostic outcome
+
+On `2026-07-22`, the source selection found two different same-named OAuth files. The only file
+under the current (non-backup) CPA path was selected; the non-primary copy was neither read into
+grok2api nor modified. The supported import endpoint returned `2xx`, and a read-only account-pool
+projection changed from 125 to 126 enabled Build accounts. The source's in-memory account identity
+then matched exactly one imported Build account; no OAuth content, account identity, internal ID,
+JWT, model mapping, or body was retained in this report, Git, or command output.
+
+The one account-specific `refresh-quota` call returned `502` in under five seconds. A pre-send
+integer-ID string-construction error was caught before any HTTP request and the relevant access-log
+projection was zero; the recorded `502` is therefore the first and only actual quota-refresh call.
+Afterwards the safe stored-state projection was enabled + `active`, automatic Build route mode,
+no persisted failure marker, and `buildSuperEntitled=false`; no quota window or whitelisted upstream
+error class was available in the safe projection. The corresponding safe service-log projection contained only `502`, with
+no `429`/quota-or-rate, credential, transport, or request-or-route marker.
+
+This **does not establish that the account has exhausted quota**. It proves that grok2api accepted
+and persisted the OAuth import, but its account-bound allowance query failed at its own `502`
+boundary before a usable quota state was available. Because the deployment has a multi-account Build
+pool, a normal shared `/v1/responses` generation cannot be attributed to this account; none was
+sent. Proving an account-specific generation would require a separately authorized, reversible
+route/key/scheduling isolation, which CR-P6-03-006 intentionally forbids. This diagnostic creates
+no new P6 direct tuple and cannot distinguish the direct T11/T12 `4xx` between account entitlement,
+remaining request-profile detail, or another upstream policy.
+
 ### Live validation status: BLOCKED
 
 For each tuple, the sole authorized OAuth file was projected only in process memory and its usable
@@ -223,12 +271,15 @@ pending.
 | Current-profile review / full gate | `2026-07-22T15:35:55+08:00`; PASS after staging the reviewed current-profile diff. It reran the full local quality, workspace-test, documentation, boundary, secret, dependency-policy, and RustSec set. |
 | Live-matrix / diagnostic review | `2026-07-22T11:54–12:24+08:00`; T1-T8 plus T9/T10 sent exactly once each (10 total); three subsequent diagnostic-review local full gates all passed, with the final warm run 19s. |
 | CR-P6-03-005 direct matrix | `2026-07-22`, after the current-profile local checkpoint; T11 and T12 each ran in an independent process with a one-request cap, direct no-environment-proxy transport, fresh in-memory expiry projection, and no retry/refresh/failover. Both stopped in under one harness second with the safe outcomes recorded above. |
+| CR-P6-03-006 account/allowance diagnostic | `2026-07-22`; selected only the current CPA copy after a read-only duplicate check, imported it once through grok2api's supported admin API (`2xx`), then sent exactly one account-bound quota refresh (`502`, under 5s). No shared-pool generation was sent because 126 enabled Build accounts prevent account attribution without a new route/key/scheduling change. Safe post-state: enabled + active, auto mode, no persisted failure marker, `buildSuperEntitled=false`; no safe quota/rate/credential/transport/root-cause class was available. |
 | Server-side preflight hygiene | One incorrect schema lookup briefly created a zero-byte, unreferenced file under the current grok2api data mount. It was immediately removed; the postcheck confirmed its absence and the container still running. No configuration, credential, or database-table row was changed. |
 | Code commit | Current-profile local checkpoint (`P6-03: update current Grok Build profile`); local only, not pushed, and required before either T11 or T12. |
 | Phase closeout tag / Delivery Gate | Not started; G6 is P6's single remote gate. |
 | Repeated validations / rework | One necessary test type correction, one semantic review correction batch, then two full-gate findings fixed in scope (`struct_excessive_bools` in the ignored harness and its test-only `tokio` boundary allowlist). The earlier live matrix exposed an intentionally over-coarse safe outcome; two finite redacted diagnostics then classified it as a 2xx error object with unrecognized standard metadata. No identical tuple was sent after T10. `CR-P6-03-005` then used its only two new-profile direct sends: T11 and T12 each stopped as an unrecognized 4xx error object, so no further direct probe is permitted. |
 
 Rollback removes only the P6-03 module, synthetic fixtures/tests, and documentation. It requires
-no database migration, credential revocation, server restart, proxy/TUN cleanup, or external
-Provider action. T1-T12 remain exhausted permanently; no further direct tuple is registered. P6-04
-remains pending until P6-03's dual-mode acceptance condition is met under a new explicit CR.
+no gateway database migration, server restart, proxy/TUN cleanup, or direct-Provider action. The
+CR-P6-03-006 grok2api import is an intentional external persistent state requested by the user; it
+is not deleted automatically and would need a separate explicit server-change authorization. T1-T12
+remain exhausted permanently; no further direct tuple is registered. P6-04 remains pending until
+P6-03's dual-mode acceptance condition is met under a new explicit CR.
