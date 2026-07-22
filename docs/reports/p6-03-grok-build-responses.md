@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.21` |
+| Plan version | `v1.22` |
 | Task | `P6-03` |
 | Date | `2026-07-23` |
 | Branch | `codex/p6-grok-build` |
-| Status | `IN_PROGRESS` — `CR-P6-03-011` registers a distinct short-label T18 preflight and exactly one conditional non-streaming direct validation; only a full Canonical T18 lifecycle permits T19 SSE. T1-T16 are closed and P6-04 remains pending. |
-| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` exhausted T11/T12, `CR-P6-03-008` closed after the pre-dispatch T13 stop, `CR-P6-03-009` closed after T15's non-success stop, and `CR-P6-03-010` closed at its pre-dispatch local configuration gate. `CR-P6-03-011` permits only the registered short-label preflight, T18, and conditional T19; it permits no retry, server action, cache persistence, or P6-04+ behavior until both modes succeed. |
+| Status | `BLOCKED` — `CR-P6-03-011`'s no-network preflight passed, but its only T18 non-streaming direct request stopped safely as `4xx / error_like_object / unrecognized`. It did not produce a complete Canonical lifecycle, so T19 was not sent; T1-T18 are closed and P6-04 remains pending. |
+| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` exhausted T11/T12, `CR-P6-03-008` closed after the pre-dispatch T13 stop, `CR-P6-03-009` closed after T15's non-success stop, `CR-P6-03-010` closed at its pre-dispatch local configuration gate, and `CR-P6-03-011` closed after T18's safe non-success. It permits no retry, server action, cache persistence, T19, or P6-04+ behavior. |
 | Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, known OAuth source adapters, and a finite one-send-per-process live matrix. Prohibited: direct-tuple replay, route/key/scheduler mutation, socket/proxy/TUN mutation, status remediation, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |
 | References | Matrix `C28`; Behavior 4/5/12; [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md); [BC-PROVIDER-003](../contracts/BC-PROVIDER-003-grok-build-responses-boundary.md) |
@@ -399,8 +399,8 @@ operator-memory-only and the official CLI cache remains a bounded bytes-only sou
 
 | Tuple | Credential source | Mode | Network profile | Current authorization |
 |---|---|---|---|---|
-| `T18` | `official-cli-cache-workspace-ua-02` | `non_streaming` | `direct` | registered; first complete the sole no-network preflight with `cli-cache-ua-01`, then one send only |
-| `T19` | `official-cli-cache-workspace-ua-02` | `sse` | `direct` | registered conditionally; not eligible unless T18 emits a complete Canonical success lifecycle |
+| `T18` | `official-cli-cache-workspace-ua-02` | `non_streaming` | `direct` | sent once after the successful preflight; reached fixed endpoint and stopped `4xx / error_like_object / unrecognized` in 2.66s, without Canonical success |
+| `T19` | `official-cli-cache-workspace-ua-02` | `sse` | `direct` | not sent: T18 did not emit a complete Canonical success lifecycle |
 
 The preflight, T18, and conditional T19 use the fixed short prompt and `max_output_tokens=32`, a
 fresh controlled `env -i` process, one-request cap, direct no-environment-proxy transport, no
@@ -408,6 +408,14 @@ refresh/retry/failover/candidate selection, and no proxy/TUN change. A preflight
 nothing; any T18/T19 non-success, timeout, content-type, protocol, semantic, or safety failure
 immediately blocks P6-03 and prohibits the next action. P6-04 remains forbidden until both sends
 produce Canonical `ResponseStart`, text, and a `ResponseEnd` without `StreamError`.
+
+At `2026-07-23`, the sole CR-P6-03-011 preflight passed with the declared short label. It read the
+bounded official CLI cache and built the fixed non-streaming request without DNS, HTTP, refresh,
+retry, proxy/TUN action, or Provider `send`. Its distinct T18 process then reached the fixed
+endpoint and stopped after 2.66 seconds at `4xx / error_like_object / unrecognized`. No raw
+response, header, credential, cache path, model value, or body was retained. As the required
+Canonical `ResponseStart`/text/`ResponseEnd` lifecycle was absent, T19 was not eligible or sent,
+and P6-03 is `BLOCKED`.
 
 ## Timing and next task
 
@@ -429,6 +437,7 @@ produce Canonical `ResponseStart`, text, and a `ResponseEnd` without `StreamErro
 | CR-P6-03-009 T15 direct matrix | `2026-07-23T00:52+08:00`; one isolated direct non-streaming T15 process reached the fixed endpoint after the preflight and stopped as `4xx`, expected content type, `error_like_object`, `unrecognized` in 1.83s. It produced no Canonical success lifecycle; T14 was not sent. |
 | Post-T15 profile correction | `2026-07-23`; static official-CLI audit corrected only the frozen User-Agent from the contradicted Linux shell value to `xai-grok-workspace/0.2.106`. No OAuth cache was opened and no network action occurred. `cargo test --locked -p provider-grok` passed 31 executed tests with 2 explicitly unauthorized tests ignored; focused Clippy, formatting, whitespace, and the warm full local gate passed. |
 | CR-P6-03-010 T16 no-network preflight | `2026-07-23`; exactly one ignored preflight stopped as `InvalidTargetLabel` because its registered label exceeded the fixed opaque-label cap. It exited before credential/cache import, DNS, HTTP, refresh, retry, or send; T16/T17 were not sent. |
+| CR-P6-03-011 short-label validation | `2026-07-23`; one ignored preflight passed with the legal short label and without DNS/HTTP/refresh/send. One independent T18 process then reached the fixed endpoint and stopped in 2.66s as `4xx / error_like_object / unrecognized`; T19 was not sent because Canonical success was absent. |
 | Server-side preflight hygiene | One incorrect schema lookup briefly created a zero-byte, unreferenced file under the current grok2api data mount. It was immediately removed; the postcheck confirmed its absence and the container still running. No configuration, credential, or database-table row was changed. |
 | Code commit | Current-profile local checkpoint (`P6-03: update current Grok Build profile`); local only, not pushed, and required before either T11 or T12. |
 | Phase closeout tag / Delivery Gate | Not started; G6 is P6's single remote gate. |
@@ -438,6 +447,6 @@ Rollback removes only the P6-03 module, synthetic fixtures/tests, and documentat
 no gateway database migration, server restart, proxy/TUN cleanup, or direct-Provider action. The
 CR-P6-03-006 grok2api import is an intentional external persistent state requested by the user; it
 is not deleted automatically and would need a separate explicit server-change authorization. T1-T13
-remain exhausted permanently; T15 is consumed and T14 remains unsent. No further direct tuple is
-registered. P6-04 remains pending until P6-03's dual-mode acceptance condition is met under a new
-explicit CR.
+remain exhausted permanently; T15 and T18 are consumed, while T14, T17, and T19 remain unsent. No
+further direct tuple is registered. P6-04 remains pending until P6-03's dual-mode acceptance
+condition is met under a new explicit CR.

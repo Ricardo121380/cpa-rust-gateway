@@ -5,7 +5,7 @@
 | Contract | `BC-PROVIDER-003` |
 | Task | `P6-03` |
 | ADR | [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md) |
-| Status | `IN_PROGRESS` — under `CR-P6-03-011`, one distinct short-label T18 no-network preflight precedes a sole non-streaming direct send; only full Canonical T18 success permits conditional T19 SSE. T1-T16 are closed and P6-04 stays pending until both modes succeed |
+| Status | `BLOCKED` — `CR-P6-03-011`'s sole short-label preflight passed, but T18 reached the fixed endpoint and safely stopped as `4xx / error_like_object / unrecognized`; it did not produce the required Canonical lifecycle, T19 was not sent, T1-T18 are closed, and P6-04 stays pending |
 | Domain | Fixed OAuth Build request, exact egress handoff, non-streaming/SSE decoding, and safe error syntax |
 
 ## Preconditions and bounds
