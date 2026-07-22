@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.20` |
+| Plan version | `v1.21` |
 | Task | `P6-03` |
 | Date | `2026-07-23` |
 | Branch | `codex/p6-grok-build` |
-| Status | `BLOCKED` — `CR-P6-03-010`'s sole no-network T16 preflight stopped as `InvalidTargetLabel` before credential/cache import, DNS, HTTP, or send. T16/T17 remain unsent; T1-T15 are closed and P6-04 remains pending. |
-| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` exhausted T11/T12, `CR-P6-03-008` closed after the pre-dispatch T13 stop, `CR-P6-03-009` closed after T15's non-success stop, and `CR-P6-03-010` closed at its pre-dispatch local configuration gate. It permits no retry, server action, cache persistence, or P6-04+ behavior. |
+| Status | `IN_PROGRESS` — `CR-P6-03-011` registers a distinct short-label T18 preflight and exactly one conditional non-streaming direct validation; only a full Canonical T18 lifecycle permits T19 SSE. T1-T16 are closed and P6-04 remains pending. |
+| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` exhausted T11/T12, `CR-P6-03-008` closed after the pre-dispatch T13 stop, `CR-P6-03-009` closed after T15's non-success stop, and `CR-P6-03-010` closed at its pre-dispatch local configuration gate. `CR-P6-03-011` permits only the registered short-label preflight, T18, and conditional T19; it permits no retry, server action, cache persistence, or P6-04+ behavior until both modes succeed. |
 | Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, known OAuth source adapters, and a finite one-send-per-process live matrix. Prohibited: direct-tuple replay, route/key/scheduler mutation, socket/proxy/TUN mutation, status remediation, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |
 | References | Matrix `C28`; Behavior 4/5/12; [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md); [BC-PROVIDER-003](../contracts/BC-PROVIDER-003-grok-build-responses-boundary.md) |
@@ -389,6 +389,25 @@ therefore no official cache content was read and no DNS, HTTP, refresh, retry, s
 proxy/TUN action, or Provider `send` occurred. The preflight is consumed under CR-P6-03-010: T16
 and T17 are not eligible for a corrected-label replay, and P6-03 is `BLOCKED` until a new explicit
 CR supplies a distinct validation boundary.
+
+### Predeclared short-label workspace-User-Agent validation (`CR-P6-03-011`)
+
+The user approved a distinct validation boundary because T16 stopped before any credential/cache
+import or network-capable operation. It does not replay T16, T15, or any earlier tuple. Its only
+label is the opaque, valid short label `cli-cache-ua-01`; the existing Build candidate remains
+operator-memory-only and the official CLI cache remains a bounded bytes-only source.
+
+| Tuple | Credential source | Mode | Network profile | Current authorization |
+|---|---|---|---|---|
+| `T18` | `official-cli-cache-workspace-ua-02` | `non_streaming` | `direct` | registered; first complete the sole no-network preflight with `cli-cache-ua-01`, then one send only |
+| `T19` | `official-cli-cache-workspace-ua-02` | `sse` | `direct` | registered conditionally; not eligible unless T18 emits a complete Canonical success lifecycle |
+
+The preflight, T18, and conditional T19 use the fixed short prompt and `max_output_tokens=32`, a
+fresh controlled `env -i` process, one-request cap, direct no-environment-proxy transport, no
+refresh/retry/failover/candidate selection, and no proxy/TUN change. A preflight failure sends
+nothing; any T18/T19 non-success, timeout, content-type, protocol, semantic, or safety failure
+immediately blocks P6-03 and prohibits the next action. P6-04 remains forbidden until both sends
+produce Canonical `ResponseStart`, text, and a `ResponseEnd` without `StreamError`.
 
 ## Timing and next task
 

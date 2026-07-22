@@ -5,7 +5,7 @@
 | Contract | `BC-PROVIDER-003` |
 | Task | `P6-03` |
 | ADR | [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md) |
-| Status | `BLOCKED` — `CR-P6-03-010`'s only T16 no-network preflight stopped at `InvalidTargetLabel` before credential/cache import, DNS, HTTP, or send. T16/T17 remain unsent; T1-T15 are closed and P6-04 stays pending |
+| Status | `IN_PROGRESS` — under `CR-P6-03-011`, one distinct short-label T18 no-network preflight precedes a sole non-streaming direct send; only full Canonical T18 success permits conditional T19 SSE. T1-T16 are closed and P6-04 stays pending until both modes succeed |
 | Domain | Fixed OAuth Build request, exact egress handoff, non-streaming/SSE decoding, and safe error syntax |
 
 ## Preconditions and bounds
