@@ -117,7 +117,7 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
                 .uri("/admin/egress-policies")
                 .set_json(json!({
                     "id":"policy-routing", "name":"routing egress", "allowed_schemes":["https"],
-                    "allowed_hosts":["api.example.test"], "allowed_ports":[443], "allowed_cidrs":[],
+                    "allowed_hosts":["api.example.test", "api-two.example.test"], "allowed_ports":[443], "allowed_cidrs":[],
                     "redirect_mode":"deny", "max_redirects":0
                 })),
             Some("rev-0"),
@@ -301,6 +301,100 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
     assert_eq!(candidate.status(), StatusCode::CREATED);
     assert_revision(&candidate, 11);
 
+    // G10 requires a genuine aggregate configuration rather than a single endpoint that merely
+    // happens to use the public model name. Configure a second independently owned station
+    // through the same protected API and attach both stations to the one `minimax-m3` route.
+    let second_upstream = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/upstreams")
+                .set_json(json!({
+                    "id":"upstream-routing-two", "name":"routing fixture two", "kind":"openai-compatible",
+                    "enabled":true, "tags":[], "egress_policy_id":"policy-routing"
+                })),
+            Some("rev-11"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(second_upstream.status(), StatusCode::CREATED);
+    assert_revision(&second_upstream, 12);
+
+    let second_endpoint = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/upstreams/upstream-routing-two/endpoints")
+                .set_json(json!({
+                    "id":"endpoint-routing-two", "adapter_id":"openai-compatible.responses",
+                    "api_format":"openai/responses", "base_url":"https://api-two.example.test/v1",
+                    "inference_path":"/responses", "models_path":null, "transport":"https", "enabled":true
+                })),
+            Some("rev-12"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(second_endpoint.status(), StatusCode::CREATED);
+    assert_revision(&second_endpoint, 13);
+
+    let second_credential = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/upstreams/upstream-routing-two/credentials")
+                .set_json(json!({
+                    "id":"credential-routing-two", "kind":"api_key", "secret":"synthetic-routing-value-two", "status":"active"
+                })),
+            Some("rev-13"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(second_credential.status(), StatusCode::CREATED);
+    assert_revision(&second_credential, 14);
+    let second_credential_body = test::read_body(second_credential).await;
+    assert!(
+        !second_credential_body
+            .windows(b"synthetic-routing-value-two".len())
+            .any(|window| window == b"synthetic-routing-value-two")
+    );
+
+    let second_binding = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/endpoints/endpoint-routing-two/credential-bindings")
+                .set_json(json!({
+                    "credential_id":"credential-routing-two", "enabled":true, "priority":0, "weight":100, "concurrency":1
+                })),
+            Some("rev-14"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(second_binding.status(), StatusCode::CREATED);
+    assert_revision(&second_binding, 15);
+
+    let second_candidate = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/routes/route-minimax-m3/candidates")
+                .set_json(json!({
+                    "id":"candidate-minimax-m3-two", "endpoint_id":"endpoint-routing-two", "upstream_model":"minimax-m3-upstream",
+                    "credential_scope":"all_active", "transform_mode":"canonical", "enabled":true,
+                    "priority":0, "weight":100, "capability_override":{}
+                })),
+            Some("rev-15"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(second_candidate.status(), StatusCode::CREATED);
+    assert_revision(&second_candidate, 16);
+
     let validation = test::call_service(
         &app,
         authorized(
@@ -324,13 +418,13 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
                 .set_json(json!({
                     "id":"group-minimax", "name":"MiniMax group", "status":"active", "limits":{}
                 })),
-            Some("rev-11"),
+            Some("rev-16"),
         )
         .to_request(),
     )
     .await;
     assert_eq!(access_group.status(), StatusCode::CREATED);
-    assert_revision(&access_group, 12);
+    assert_revision(&access_group, 17);
 
     let updated_group = test::call_service(
         &app,
@@ -340,13 +434,13 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
                 .set_json(json!({
                     "id":"group-minimax", "name":"MiniMax group current", "status":"active", "limits":{"rpm":100}
                 })),
-            Some("rev-12"),
+            Some("rev-17"),
         )
         .to_request(),
     )
     .await;
     assert_eq!(updated_group.status(), StatusCode::OK);
-    assert_revision(&updated_group, 13);
+    assert_revision(&updated_group, 18);
 
     let grant = test::call_service(
         &app,
@@ -354,13 +448,13 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
             test::TestRequest::post()
                 .uri("/admin/access-groups/group-minimax/routes")
                 .set_json(json!({"route_id":"route-minimax-m3", "enabled":true})),
-            Some("rev-13"),
+            Some("rev-18"),
         )
         .to_request(),
     )
     .await;
     assert_eq!(grant.status(), StatusCode::CREATED);
-    assert_revision(&grant, 14);
+    assert_revision(&grant, 19);
 
     let issued_key = test::call_service(
         &app,
@@ -370,13 +464,13 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
                 .set_json(json!({
                     "id":"client-minimax", "access_group_id":"group-minimax", "status":"active", "expires_at_ms":10000
                 })),
-            Some("rev-14"),
+            Some("rev-19"),
         )
         .to_request(),
     )
     .await;
     assert_eq!(issued_key.status(), StatusCode::CREATED);
-    assert_revision(&issued_key, 15);
+    assert_revision(&issued_key, 20);
     let issued_json = test::read_body_json::<Value, _>(issued_key).await;
     let presented_key = issued_json["key"]
         .as_str()
@@ -392,7 +486,7 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
                 .set_json(json!({
                     "id":"client-minimax", "access_group_id":"group-minimax", "status":"disabled", "expires_at_ms":20000
                 })),
-            Some("rev-14"),
+            Some("rev-19"),
         )
         .to_request(),
     )
@@ -409,7 +503,7 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
     )
     .await;
     assert_eq!(key_read.status(), StatusCode::OK);
-    assert_revision(&key_read, 15);
+    assert_revision(&key_read, 20);
     let key_read_body = test::read_body(key_read).await;
     assert!(
         !key_read_body
@@ -425,13 +519,13 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
                 .set_json(json!({
                     "id":"client-minimax", "access_group_id":"group-minimax", "status":"disabled", "expires_at_ms":20000
                 })),
-            Some("rev-15"),
+            Some("rev-20"),
         )
         .to_request(),
     )
     .await;
     assert_eq!(updated_key.status(), StatusCode::OK);
-    assert_revision(&updated_key, 16);
+    assert_revision(&updated_key, 21);
     let updated_key_body = test::read_body(updated_key).await;
     assert!(
         !updated_key_body
@@ -443,25 +537,25 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
         &app,
         authorized(
             test::TestRequest::delete().uri("/admin/client-keys/client-minimax"),
-            Some("rev-16"),
+            Some("rev-21"),
         )
         .to_request(),
     )
     .await;
     assert_eq!(revoked_key.status(), StatusCode::NO_CONTENT);
-    assert_revision(&revoked_key, 17);
+    assert_revision(&revoked_key, 22);
 
     let deleted_route = test::call_service(
         &app,
         authorized(
             test::TestRequest::delete().uri("/admin/routes/route-minimax-m3"),
-            Some("rev-17"),
+            Some("rev-22"),
         )
         .to_request(),
     )
     .await;
     assert_eq!(deleted_route.status(), StatusCode::NO_CONTENT);
-    assert_revision(&deleted_route, 18);
+    assert_revision(&deleted_route, 23);
 
     let grants = test::call_service(
         &app,
@@ -473,20 +567,20 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
     )
     .await;
     assert_eq!(grants.status(), StatusCode::OK);
-    assert_revision(&grants, 18);
+    assert_revision(&grants, 23);
     assert_eq!(test::read_body_json::<Value, _>(grants).await, json!([]));
 
     let deleted_group = test::call_service(
         &app,
         authorized(
             test::TestRequest::delete().uri("/admin/access-groups/group-minimax"),
-            Some("rev-18"),
+            Some("rev-23"),
         )
         .to_request(),
     )
     .await;
     assert_eq!(deleted_group.status(), StatusCode::NO_CONTENT);
-    assert_revision(&deleted_group, 19);
+    assert_revision(&deleted_group, 24);
 
     let keys = test::call_service(
         &app,
@@ -494,7 +588,7 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
     )
     .await;
     assert_eq!(keys.status(), StatusCode::OK);
-    assert_revision(&keys, 19);
+    assert_revision(&keys, 24);
     let keys_body = test::read_body(keys).await;
     assert!(
         !keys_body
@@ -506,13 +600,13 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
         &app,
         authorized(
             test::TestRequest::delete().uri("/admin/public-models/model-minimax-m3"),
-            Some("rev-19"),
+            Some("rev-24"),
         )
         .to_request(),
     )
     .await;
     assert_eq!(deleted_public_model.status(), StatusCode::NO_CONTENT);
-    assert_revision(&deleted_public_model, 20);
+    assert_revision(&deleted_public_model, 25);
 
     let missing_public_model = test::call_service(
         &app,

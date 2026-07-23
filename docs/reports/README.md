@@ -128,3 +128,6 @@
 - [P10-06 Runtime observability management workflows](p10-06-runtime-management.md) — local phase-gate pass; loopback browser E2E and value-free runtime projections only
 - [P10-07 Configuration lifecycle workflow plan](p10-07-execution-plan.md) — scoped protected lifecycle transitions and lifecycle audit only
 - [P10-07 Configuration lifecycle](p10-07-configuration-lifecycle.md) — local phase-gate pass; protected lifecycle E2E and no-persistence browser evidence
+- [P10-08 Encrypted backup and empty-target restore](p10-08-encrypted-backup-restore.md) — local phase-gate pass; encrypted SQLite recovery rehearsal, protected binary HTTP and no-persistence browser evidence
+- [P10-09 Embedded management UI and inference isolation](p10-09-embedded-management-ui.md) — local phase-gate pass; embedded closed asset map, hardened static HTTP and data-plane route isolation evidence
+- [G10 management-control-plane gate report](g10-gate-report.md) — local Phase Gate passed; awaiting P10's only GitHub Delivery Gate

@@ -647,6 +647,7 @@ dependencies = [
  "gateway-observability",
  "gateway-protocol",
  "gateway-router",
+ "gateway-store",
  "gateway-stream",
  "gateway-upstream",
  "protocol-anthropic",

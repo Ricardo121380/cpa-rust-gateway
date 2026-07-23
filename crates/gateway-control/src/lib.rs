@@ -8,6 +8,8 @@ pub mod control_plane_service;
 pub mod credential_pool_compiler;
 /// Management-time EgressPolicy compilation and endpoint static admission.
 pub mod egress_policy_compiler;
+/// Encrypted control-plane backup and empty-target restore facade for the P10 management surface.
+pub mod management_backup_service;
 /// Versioned draft-resource mutations used by the protected P10 management HTTP surface.
 pub mod management_mutation_service;
 /// Local transport-neutral lifecycle API for configuration validation and publication.

@@ -6,12 +6,16 @@
 
 #![deny(unsafe_code)]
 
+/// Protected P10 encrypted-backup preflight and empty-target restore handlers.
+pub mod management_backup_resources;
 /// Protected P10 Config Version lifecycle and lifecycle-audit handlers.
 pub mod management_lifecycle_resources;
 /// Protected P10 draft-resource handlers for Upstreams, Endpoints, Credentials, and Egress.
 pub mod management_resources;
 /// Independent management HTTP authentication, network, audit-identity, and browser boundary.
 pub mod management_security;
+/// Embedded static management SPA resources, configured separately from public inference routes.
+pub mod management_ui_resources;
 
 use std::{
     collections::VecDeque,

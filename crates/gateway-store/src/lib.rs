@@ -2,6 +2,8 @@
 
 #![deny(unsafe_code)]
 
+/// Encrypted control-plane backup artifacts and empty-target restoration primitives.
+pub mod backup;
 /// AEAD Secret storage, external Master Key loading, and key-rotation primitives.
 pub mod control_plane;
 /// Append-only durable lifecycle event storage and its asynchronous bounded-queue consumer.

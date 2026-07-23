@@ -13,9 +13,12 @@
 
 P10-05 extends the P10-02-protected management Scope with draft-only routing and access-resource
 operations. Every mutation uses the existing exact `If-Match` Version transaction and resource
-audit append. The protected HTTP integration creates the complete synthetic `minimax-m3` graph,
-checks ETag progression and stale-write rejection, then proves Client Key responses are redacted
-after issuance and that schema-owned delete cascades remove grants, candidates and keys.
+audit append. The protected HTTP integration creates the complete synthetic two-station
+`minimax-m3` graph: each independent Upstream has its own Endpoint, Credential and active
+binding, and both become active Candidates of the same Route. Route validation therefore checks
+both stations rather than treating a single Candidate as aggregation evidence. The integration
+also checks ETag progression and stale-write rejection, then proves Client Key responses are
+redacted after issuance and that schema-owned delete cascades remove grants, candidates and keys.
 
 Client Key issuance receives an explicit `ClientKeyService` dependency. It writes only Prefix and
 HMAC digest storage and returns a complete Key after commit in the one issue result. All normal
@@ -50,7 +53,7 @@ paths and verifies the same OpenAPI-generated client owns every P10-05 operation
 | `cargo fmt --all -- --check` and targeted three-crate Clippy | PASS with `-D warnings`; public error docs, typed Key issue/update input and route registration were also reviewed. |
 | `cargo test --locked -p gateway-store control_plane --lib` | PASS; 7 tests. |
 | `cargo test --locked -p gateway-control management_mutation_service --lib` | PASS; 2 tests. |
-| `cargo test --locked -p gateway-http-actix --test p10_05_management_routing` | PASS; protected graph, redaction and cascade E2E. |
+| `cargo test --locked -p gateway-http-actix --test p10_05_management_routing` | PASS; protected two-station `minimax-m3` graph, per-station Credential redaction, aggregate-route validation, Client Key lifecycle and cascade E2E. |
 | `cd web/admin-ui && npm run check` | PASS; 65 generated operations and reproducible static build. |
 | Local browser fixture + Playwright | PASS; seven synthetic mutations advanced `rev-0` to `rev-7`, immediate-only Key display was cleared by GET/reload, browser storage was empty and reload disconnected. No console error remained after the fixture supplied a CSP response header with `frame-ancestors 'none'`. |
 | `git diff --check`, tracked Secret scan and `./scripts/check.sh docs` | PASS; 284 Markdown files and the plan-state check accepted zero `IN_PROGRESS` tasks at closeout. |

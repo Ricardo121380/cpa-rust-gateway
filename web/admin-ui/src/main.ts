@@ -27,6 +27,7 @@ type ResourceKind =
   | "clientKey";
 type ResourceAction = "list" | "get" | "create" | "update" | "delete" | "issue" | "revoke" | "validate";
 type LifecycleAction = "list" | "get" | "create" | "validate" | "publish" | "rollback" | "audit";
+type BackupAction = "sourcePreflight" | "restorePreflight" | "restore";
 
 type InMemorySession = Readonly<{
   managementKey: string;
@@ -178,12 +179,13 @@ function applicationMarkup(): string {
           <a aria-current="page" href="#routing">Routing and access</a>
           <a href="#runtime">Runtime</a>
           <a href="#configuration">Configuration</a>
+          <a href="#backup">Backup and restore</a>
         </nav>
-        <p class="sidebar-note">P10-07 adds Config Version lifecycle controls and a safe P2 audit view. Backup and restore remain unavailable.</p>
+        <p class="sidebar-note">P10-08 adds encrypted backup preflight and one-time, empty-target restore controls. Artifact creation and both Backup/Master Keys stay outside this page.</p>
       </aside>
       <main class="content">
         <header>
-          <p class="eyebrow">P10-07 · protected management workspace</p>
+          <p class="eyebrow">P10-08 · protected management workspace</p>
           <h1>Upstreams, routing and access</h1>
           <p class="lead">Manage draft resources, publish only a validated draft, and inspect safe runtime projections. No view can expose a Secret, select a Provider, send an inference request or complete recovery.</p>
         </header>
@@ -286,6 +288,20 @@ function applicationMarkup(): string {
             <div class="form-actions"><button type="submit">Run lifecycle operation</button></div>
           </form>
           <p class="muted">Validation changes no state. Publish requires the displayed revision and can activate only a draft; rollback can restore only P2's retained predecessor. Audit contains bounded metadata, never compiler diagnostics, Secrets, keys, URLs or request material.</p>
+        </section>
+
+        <section class="panel" id="backup" aria-labelledby="backup-heading">
+          <div class="panel-heading"><div><p class="eyebrow">Encrypted recovery</p><h2 id="backup-heading">Preflight and empty-target restore</h2></div></div>
+          <form id="backup-form" class="form-grid" novalidate>
+            <label>Backup action<select id="backup-action" name="backup-action">
+              <option value="sourcePreflight">Read configured backup preflight</option>
+              <option value="restorePreflight">Preflight selected encrypted artifact</option>
+              <option value="restore">Restore selected artifact into configured empty target</option>
+            </select></label>
+            <label id="backup-artifact-field">Encrypted artifact<input id="backup-artifact" name="backup-artifact" type="file" accept="application/octet-stream,.cpa-backup" autocomplete="off"></label>
+            <div class="form-actions"><button type="submit">Run backup operation</button></div>
+          </form>
+          <p class="muted">The selected artifact is passed once directly to the generated client, then immediately cleared. This page neither reads nor renders artifact bytes, accepts a Backup Key, stores a Master Key, creates a download, chooses a restore path, or replaces an existing database.</p>
         </section>
 
         <section class="panel" aria-labelledby="result-heading">
@@ -511,6 +527,40 @@ function lifecycleAction(): LifecycleAction {
   return element<HTMLSelectElement>("configuration-lifecycle-action").value as LifecycleAction;
 }
 
+function backupAction(): BackupAction {
+  return element<HTMLSelectElement>("backup-action").value as BackupAction;
+}
+
+function clearBackupArtifactSelection(): void {
+  element<HTMLInputElement>("backup-artifact").value = "";
+}
+
+function selectedBackupArtifact(): File {
+  const artifact = element<HTMLInputElement>("backup-artifact").files?.item(0);
+  if (artifact === null || artifact === undefined || artifact.size === 0) {
+    throw new Error("select one non-empty encrypted backup artifact");
+  }
+  return artifact;
+}
+
+function updateBackupFields(): void {
+  const needsArtifact = backupAction() !== "sourcePreflight";
+  element<HTMLElement>("backup-artifact-field").hidden = !needsArtifact;
+  element<HTMLInputElement>("backup-artifact").required = needsArtifact;
+  if (!needsArtifact) clearBackupArtifactSelection();
+}
+
+function backupRequest(action: BackupAction): { operation: ManagementOperationName; request: ManagementRequest } {
+  switch (action) {
+    case "sourcePreflight":
+      return { operation: "previewBackup", request: {} };
+    case "restorePreflight":
+      return { operation: "previewRestore", request: { body: selectedBackupArtifact() } };
+    case "restore":
+      return { operation: "restoreBackup", request: { body: selectedBackupArtifact() } };
+  }
+}
+
 function updateLifecycleFields(): void {
   const action = lifecycleAction();
   const versionRequired = action === "get" || action === "create" || action === "validate" || action === "publish";
@@ -638,6 +688,8 @@ function installHandlers(): void {
   updateResourceFields();
   element<HTMLSelectElement>("configuration-lifecycle-action").addEventListener("change", updateLifecycleFields);
   updateLifecycleFields();
+  element<HTMLSelectElement>("backup-action").addEventListener("change", updateBackupFields);
+  updateBackupFields();
 
   element<HTMLFormElement>("session-form").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -773,6 +825,18 @@ function installHandlers(): void {
       await showResponse(await api().request(operation, request));
     } catch (error) {
       setFailure(error instanceof Error ? error.message : "configuration lifecycle operation failed");
+    }
+  });
+
+  element<HTMLFormElement>("backup-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      const { operation, request } = backupRequest(backupAction());
+      await showResponse(await api().request(operation, request));
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "backup operation failed");
+    } finally {
+      clearBackupArtifactSelection();
     }
   });
 

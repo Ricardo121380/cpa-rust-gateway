@@ -27,6 +27,7 @@ serde.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
+gateway-store = { path = "../gateway-store" }
 gateway-upstream = { path = "../gateway-upstream" }
 provider-openai-compatible = { path = "../provider-openai-compatible" }
 serde_json.workspace = true
