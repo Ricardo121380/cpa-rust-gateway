@@ -5,7 +5,7 @@
 | Contract | `BC-PROVIDER-003` |
 | Task | `P6-03` |
 | ADR | [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md) |
-| Status | `IN_PROGRESS` — `CR-P6-03-012` permits only a bounded read-only attribution review of existing local official-CLI and server evidence for T18's safe `4xx / error_like_object / unrecognized`; T19 remains unsent, T1-T18 are closed, and P6-04 stays pending |
+| Status | `BLOCKED` — `CR-P6-03-012` found only a strictly importable, unexpired local official-CLI cache and no uniquely matchable configured server grok2api status/log source; T18's safe `4xx / error_like_object / unrecognized` remains `unattributed`, T19 is unsent, T1-T18 are closed, and P6-04 stays pending |
 | Domain | Fixed OAuth Build request, exact egress handoff, non-streaming/SSE decoding, and safe error syntax |
 
 ## Preconditions and bounds

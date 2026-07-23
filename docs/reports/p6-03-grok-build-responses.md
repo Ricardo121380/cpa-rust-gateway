@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.23` |
+| Plan version | `v1.24` |
 | Task | `P6-03` |
 | Date | `2026-07-23` |
 | Branch | `codex/p6-grok-build` |
-| Status | `IN_PROGRESS` — `CR-P6-03-012` permits only a bounded read-only attribution review of existing official-CLI and server evidence for T18's safe `4xx / error_like_object / unrecognized`. T19 is not eligible, T1-T18 are closed, and P6-04 remains pending. |
-| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` exhausted T11/T12, `CR-P6-03-008` closed after the pre-dispatch T13 stop, `CR-P6-03-009` closed after T15's non-success stop, `CR-P6-03-010` closed at its pre-dispatch local configuration gate, and `CR-P6-03-011` closed after T18's safe non-success. `CR-P6-03-012` permits only the registered read-only attribution review; it permits no retry, server action, cache persistence, T19, or P6-04+ behavior. |
+| Status | `BLOCKED` — `CR-P6-03-012` confirmed only a strictly importable, unexpired local official-CLI cache. The configured server container status source had no unique grok2api match, so no correlatable log evidence exists for T18; its `4xx / error_like_object / unrecognized` remains `unattributed`. T19 is not eligible, T1-T18 are closed, and P6-04 remains pending. |
+| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` exhausted T11/T12, `CR-P6-03-008` closed after the pre-dispatch T13 stop, `CR-P6-03-009` closed after T15's non-success stop, `CR-P6-03-010` closed at its pre-dispatch local configuration gate, `CR-P6-03-011` closed after T18's safe non-success, and `CR-P6-03-012` closed as `unattributed`. It permits no retry, server action, cache persistence, T19, or P6-04+ behavior. |
 | Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, known OAuth source adapters, and a finite one-send-per-process live matrix. Prohibited: direct-tuple replay, route/key/scheduler mutation, socket/proxy/TUN mutation, status remediation, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |
 | References | Matrix `C28`; Behavior 4/5/12; [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md); [BC-PROVIDER-003](../contracts/BC-PROVIDER-003-grok-build-responses-boundary.md) |
@@ -430,6 +430,15 @@ If the existing evidence cannot distinguish a category, the result remains `unat
 T18 safe stop stands, T19 remains unsent, and P6-03 returns to `BLOCKED`. Any new direct tuple or
 repair requires a new explicit CR.
 
+At `2026-07-23`, the previously completed no-network preflight supplies the one permitted local
+official-CLI state result: the bounded indexed cache imports strictly and is not expired. That is
+only a local credential-shape/lifetime fact, not upstream acceptance evidence. The configured
+server was accessed read-only over its literal-IP SSH configuration; its existing container-status
+source had no unique grok2api name match, so no log was read and no server evidence can be
+correlated to the local direct T18 request. No DNS, HTTP, Provider `send`, OAuth refresh, CLI
+interaction, server/route/account mutation, or proxy/TUN action occurred. The only safe conclusion
+is `unattributed`; T19 remains unsent and P6-03 is `BLOCKED`.
+
 ## Timing and next task
 
 | Measurement | Evidence / value |
@@ -451,6 +460,7 @@ repair requires a new explicit CR.
 | Post-T15 profile correction | `2026-07-23`; static official-CLI audit corrected only the frozen User-Agent from the contradicted Linux shell value to `xai-grok-workspace/0.2.106`. No OAuth cache was opened and no network action occurred. `cargo test --locked -p provider-grok` passed 31 executed tests with 2 explicitly unauthorized tests ignored; focused Clippy, formatting, whitespace, and the warm full local gate passed. |
 | CR-P6-03-010 T16 no-network preflight | `2026-07-23`; exactly one ignored preflight stopped as `InvalidTargetLabel` because its registered label exceeded the fixed opaque-label cap. It exited before credential/cache import, DNS, HTTP, refresh, retry, or send; T16/T17 were not sent. |
 | CR-P6-03-011 short-label validation | `2026-07-23`; one ignored preflight passed with the legal short label and without DNS/HTTP/refresh/send. One independent T18 process then reached the fixed endpoint and stopped in 2.66s as `4xx / error_like_object / unrecognized`; T19 was not sent because Canonical success was absent. |
+| CR-P6-03-012 read-only attribution review | `2026-07-23`; existing local official-CLI state confirms strict indexed-cache import with non-expired lifetime only. The configured server container-status source had no unique grok2api match, so no log was read or correlated. The T18 4xx remains `unattributed`; no DNS/HTTP/Provider send/refresh/CLI interaction/server mutation occurred. |
 | Server-side preflight hygiene | One incorrect schema lookup briefly created a zero-byte, unreferenced file under the current grok2api data mount. It was immediately removed; the postcheck confirmed its absence and the container still running. No configuration, credential, or database-table row was changed. |
 | Code commit | Current-profile local checkpoint (`P6-03: update current Grok Build profile`); local only, not pushed, and required before either T11 or T12. |
 | Phase closeout tag / Delivery Gate | Not started; G6 is P6's single remote gate. |

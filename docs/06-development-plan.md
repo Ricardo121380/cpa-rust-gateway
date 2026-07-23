@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.23` |
+| 计划版本 | `v1.24` |
 | 生效日期 | `2026-07-22` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP`、`P4 - Catalog、Health、Quota、Explain、观测` 与 `P5 - Anthropic/Claude Code 兼容` 已完成；`P6 - Grok Build` 已开始。 |
-| 当前任务 | `P6-03`：`IN_PROGRESS`，限于 `CR-P6-03-012` 的只读错误归因诊断。它不发送 P6 请求或重试 T18，只读取现有本机官方 CLI 与既有服务器日志/标准安全投影，判断 T18 的 4xx 是否可归入认证、权益/额度、模型可用性或仍未知的请求轮廓类别。T1-T18 均保持关闭，P6-04 仍不得开始。 |
+| 当前任务 | 无；`P6-03`：`BLOCKED`。`CR-P6-03-012` 只读诊断确认本机官方 CLI indexed cache 可严格、未过期地导入，但配置的服务器容器状态来源没有唯一 grok2api 匹配项，不能提供与本机直连 T18 关联的日志证据。T18 的安全 4xx 结论为 `unattributed`；T19 未发送，T1-T18 均保持关闭，P6-04 仍不得开始。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -722,6 +722,12 @@ CR-ID: CR-P6-03-012
 计划版本变更: v1.23
 ```
 
+执行结果（2026-07-23）: 本机已有的官方 CLI 状态证据仅证明 indexed cache 通过严格导入并且未过期；
+      它不能证明上游已接受该次请求。经配置的字面 IP SSH 做只读容器状态检查，grok2api 名称匹配
+      不是唯一实例，因此没有读取日志、也没有可与本机直连 T18 关联的服务器证据。未执行 DNS、HTTP、
+      Provider send、OAuth refresh、CLI 交互、服务/账号/代理变更。结论为 `unattributed`；P6-03
+      恢复 `BLOCKED`，T19 及 P6-04 仍不得开始。
+
 ### 已批准 Change Request：CR-P4-G4-001
 
 ```text
@@ -1114,7 +1120,7 @@ Fast、Full supply-chain、Required Delivery Gate 均已通过。
 |---|---|---|---|---|
 | P6-01 | 实现 Grok Build Credential、OAuth JSON 导入和 Device Code | G5 | OAuth Mock + 脱敏导入测试 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P6-02 | 实现每 Credential Refresh Singleflight、Revision/CAS 和持久化 | P6-01 | 刷新风暴与旧 Token 覆盖测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析；兼容已知 OAuth 凭据来源 | P6-02 | 固定 Fixture + 测试账号验证 | IN_PROGRESS |
+| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析；兼容已知 OAuth 凭据来源 | P6-02 | 固定 Fixture + 测试账号验证 | BLOCKED |
 | P6-04 | 实现模型、Billing、Quota Window 和 Reset 同步 | P6-03 | 来源/置信度和窗口测试 | PENDING |
 | P6-05 | 实现租户隔离 Cache Identity 与 Cache Affinity | P6-03 | 稳定性、隔离和断裂事件测试 | PENDING |
 | P6-06 | 实现 ResponseOwnership 与 ReasoningReplay | P6-03,P6-05 | previous_response 与多轮 Tool 测试 | PENDING |
