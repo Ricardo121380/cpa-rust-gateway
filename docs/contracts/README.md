@@ -75,4 +75,5 @@ P5-08 已建立 [BC-PROTOCOL-006 Anthropic adversarial stream safety](BC-PROTOCO
 P6-01 已建立 [BC-CRED-003 Grok Build OAuth credential and Device Code](BC-CRED-003-grok-build-oauth-device-code.md)。
 P6-02 已建立 [BC-CRED-004 Grok Build refresh singleflight and durable revision runtime](BC-CRED-004-grok-build-refresh-runtime.md)。
 P6-03 已建立 [BC-PROVIDER-003 Grok Build Responses request and bounded decode boundary](BC-PROVIDER-003-grok-build-responses-boundary.md)。
+P6-04 至 P6-07 已建立 [BC-PROVIDER-004 Grok Build runtime state and continuity boundary](BC-PROVIDER-004-grok-build-runtime-continuity.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。

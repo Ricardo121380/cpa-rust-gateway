@@ -9,8 +9,8 @@ use std::{
 
 use flate2::{Compression, write::GzEncoder};
 use gateway_core::{
-    CanonicalEvent, CanonicalResponse, EgressPolicyId, GatewayErrorCode, MessageContent, RawJson,
-    ResponseId,
+    CanonicalEvent, CanonicalResponse, ClientKeyId, EgressPolicyId, GatewayErrorCode,
+    MessageContent, RawJson, ResponseId,
 };
 use gateway_upstream::{
     EgressDnsError, EgressDnsResolver, EgressHost, EgressPolicy, EgressPolicyInput, EgressScheme,
@@ -24,9 +24,9 @@ use provider_grok::{
     GROK_BUILD_CLIENT_VERSION, GROK_BUILD_CLIENT_VERSION_HEADER, GROK_BUILD_MODEL_OVERRIDE_HEADER,
     GROK_BUILD_REQUEST_ID_HEADER, GROK_BUILD_RESPONSES_URL, GROK_BUILD_TOKEN_AUTH_HEADER,
     GROK_BUILD_TOKEN_AUTH_VALUE, GROK_BUILD_TRACEPARENT_HEADER, GROK_BUILD_USER_AGENT,
-    GrokBuildCredential, GrokBuildResponsesDecoder, GrokBuildResponsesErrorSignal,
-    GrokBuildResponsesHttpError, GrokBuildResponsesRequestBuilder, GrokBuildResponsesStreamDecoder,
-    MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES,
+    GrokBuildCacheIdentityDeriver, GrokBuildCredential, GrokBuildResponsesDecoder,
+    GrokBuildResponsesErrorSignal, GrokBuildResponsesHttpError, GrokBuildResponsesRequestBuilder,
+    GrokBuildResponsesStreamDecoder, MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES,
 };
 
 type TestResult = Result<(), Box<dyn Error>>;
@@ -43,20 +43,35 @@ fn build_request_uses_the_current_cli_profile_and_exact_admitted_target() -> Tes
     let decoded = decode_request(include_str!(
         "../../../tests/fixtures/openai-responses/request-canonical.json"
     ))?;
-    let outbound = GrokBuildResponsesRequestBuilder::build(
+    assert_eq!(
+        GrokBuildResponsesRequestBuilder::build(
+            &credential()?,
+            "grok-build-upstream",
+            &decoded.request,
+            decoded.mode,
+        )
+        .err()
+        .ok_or("raw cache key unexpectedly reached Build")?
+        .code(),
+        GatewayErrorCode::UpstreamProtocolError
+    );
+    let cache_identity = cache_identity(&decoded.request)?;
+    let outbound = GrokBuildResponsesRequestBuilder::build_with_cache_identity(
         &credential()?,
         "grok-build-upstream",
         &decoded.request,
         decoded.mode,
+        Some(&cache_identity),
     )?;
 
     let correlations = assert_current_profile(&outbound)?;
 
-    let next = GrokBuildResponsesRequestBuilder::build(
+    let next = GrokBuildResponsesRequestBuilder::build_with_cache_identity(
         &credential()?,
         "grok-build-upstream",
         &decoded.request,
         decoded.mode,
+        Some(&cache_identity),
     )?;
     assert!(
         next.header(GROK_BUILD_AGENT_ID_HEADER)
@@ -71,14 +86,30 @@ fn build_request_uses_the_current_cli_profile_and_exact_admitted_target() -> Tes
     let rebuilt = decode_request(body)?;
     let mut expected = decoded.request.clone();
     expected.requested_model = "grok-build-upstream".to_owned();
+    expected.prompt_cache_key = Some(cache_identity.as_str().to_owned());
     assert_eq!(rebuilt.request.requested_model, "grok-build-upstream");
     assert_eq!(rebuilt.request, expected);
     assert_eq!(rebuilt.mode, decoded.mode);
     assert!(!body.contains("gateway-model"));
+    assert!(!body.contains("cache-key-01"));
 
     assert_debug_is_redacted(&outbound, &correlations, &credential()?);
     assert_transport_handoff(outbound)?;
     Ok(())
+}
+
+fn cache_identity(
+    request: &gateway_core::CanonicalRequest,
+) -> Result<provider_grok::GrokBuildCacheIdentity, Box<dyn Error>> {
+    let prompt_cache_key = request
+        .prompt_cache_key
+        .as_deref()
+        .ok_or("fixture does not contain a prompt cache key")?;
+    Ok(GrokBuildCacheIdentityDeriver::new([0x19; 32]).derive(
+        &ClientKeyId::try_new("p6-03-fixture-client")?,
+        "grok-build-upstream",
+        prompt_cache_key,
+    )?)
 }
 
 fn assert_current_profile(

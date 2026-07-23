@@ -212,6 +212,58 @@ fn concurrent_expiry_starts_one_refresh_and_all_callers_observe_the_new_revision
 }
 
 #[test]
+fn distinct_credentials_refresh_independently_under_concurrent_expiry() -> TestResult {
+    let key_a = credential_key()?;
+    let key_b = credential_key_b()?;
+    let persistence = Arc::new(GrokBuildCredentialSqliteStore::open_in_memory(
+        secret_store()?,
+    )?);
+    let coordinator = Arc::new(GrokBuildCredentialRefreshCoordinator::new(Arc::clone(
+        &persistence,
+    )));
+    coordinator.initialize(&key_a, &expired_credential()?, 0)?;
+    coordinator.initialize(&key_b, &expired_credential()?, 0)?;
+    let transport = Arc::new(BlockingRefreshTransport::new(
+        "shared_refresh_access_012345",
+        "shared_refresh_token_012345",
+    ));
+
+    let workers = [key_a.clone(), key_b.clone()].map(|key| {
+        let coordinator = Arc::clone(&coordinator);
+        let transport = Arc::clone(&transport);
+        thread::spawn(move || {
+            coordinator.refresh_if_expired(
+                &key,
+                &GrokBuildOAuthFlow::default(),
+                transport.as_ref(),
+                NOW_MS,
+            )
+        })
+    });
+    transport.wait_until_started()?;
+    transport.release()?;
+
+    for worker in workers {
+        assert!(matches!(
+            worker.join().map_err(|_| "refresh worker panicked")??,
+            GrokBuildCredentialRefreshOutcome::Refreshed(_)
+        ));
+    }
+    assert_eq!(transport.calls(), 2);
+    for key in [&key_a, &key_b] {
+        let version = persistence
+            .load(key)?
+            .ok_or("distinct credential disappeared after refresh")?;
+        assert_eq!(version.revision(), 1);
+        assert_eq!(
+            version.credential().access_token(),
+            "shared_refresh_access_012345"
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn stale_refresh_result_cannot_overwrite_an_external_newer_revision() -> TestResult {
     let key = credential_key()?;
     let persistence = Arc::new(GrokBuildCredentialSqliteStore::open_in_memory(
@@ -414,6 +466,13 @@ fn credential_key() -> Result<GrokBuildCredentialKey, Box<dyn Error>> {
     Ok(GrokBuildCredentialKey::try_new(
         ConfigVersionId::try_new("config-version-p6-02")?,
         CredentialId::try_new("credential-p6-02")?,
+    )?)
+}
+
+fn credential_key_b() -> Result<GrokBuildCredentialKey, Box<dyn Error>> {
+    Ok(GrokBuildCredentialKey::try_new(
+        ConfigVersionId::try_new("config-version-p6-02")?,
+        CredentialId::try_new("credential-p6-02-b")?,
     )?)
 }
 

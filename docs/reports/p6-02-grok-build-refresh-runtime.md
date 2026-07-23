@@ -32,7 +32,7 @@ Credential.
 
 | Command / review | Result |
 |---|---|
-| `cargo test --locked -p provider-grok --test p6_02_refresh_runtime` | PASS; 6 synthetic persistence, CAS, concurrent-refresh, stale-winner, timeout, and identity-bound tests passed. |
+| `cargo test --locked -p provider-grok --test p6_02_refresh_runtime` | PASS; 8 synthetic persistence, CAS, same-key singleflight, distinct-Credential concurrent refresh, stale-winner, timeout, and identity-bound tests passed. |
 | `cargo clippy --locked -p provider-grok --all-targets --all-features -- -D warnings` | PASS after correcting strict documentation and API-shape findings. |
 | `cargo fmt --all -- --check` and `git diff --check` | PASS. |
 | `ruby scripts/check-crate-boundaries.rb` | PASS; narrow P6-02 `gateway-store`/`rusqlite` edge only. |

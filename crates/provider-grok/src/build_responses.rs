@@ -31,7 +31,7 @@ use serde::{
 use serde_json::{Map, Number, Value};
 use zeroize::Zeroizing;
 
-use crate::GrokBuildCredential;
+use crate::{GrokBuildCacheIdentity, GrokBuildCredential};
 
 /// Frozen Grok CLI chat-proxy base URL used by OAuth Build credentials.
 pub const GROK_BUILD_RESPONSES_BASE_URL: &str = "https://cli-chat-proxy.grok.com/v1";
@@ -306,6 +306,26 @@ impl GrokBuildResponsesRequestBuilder {
         request: &CanonicalRequest,
         mode: ResponseMode,
     ) -> Result<GrokBuildResponsesOutboundRequest, GatewayError> {
+        Self::build_with_cache_identity(credential, upstream_model, request, mode, None)
+    }
+
+    /// Builds one OAuth-authenticated Build request with an explicitly derived upstream cache ID.
+    ///
+    /// The raw Canonical `prompt_cache_key` is never eligible for upstream serialization. When
+    /// cache affinity is requested, the caller must first derive a tenant/model-scoped opaque
+    /// identity through the P6 continuity boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns the generic safe request-construction error for invalid request semantics, an
+    /// unavailable Credential, or a cache-key/derived-identity mismatch.
+    pub fn build_with_cache_identity(
+        credential: &GrokBuildCredential,
+        upstream_model: &str,
+        request: &CanonicalRequest,
+        mode: ResponseMode,
+        cache_identity: Option<&GrokBuildCacheIdentity>,
+    ) -> Result<GrokBuildResponsesOutboundRequest, GatewayError> {
         if credential.access_token().is_empty()
             || !credential
                 .access_token()
@@ -335,7 +355,7 @@ impl GrokBuildResponsesRequestBuilder {
             request_id: random_uuid_v4()?,
             traceparent: random_traceparent()?,
             model_override: upstream_model.to_owned(),
-            body: encode_body(upstream_model, request, mode)?,
+            body: encode_body(upstream_model, request, mode, cache_identity)?,
         })
     }
 }
@@ -344,6 +364,7 @@ fn encode_body(
     upstream_model: &str,
     request: &CanonicalRequest,
     mode: ResponseMode,
+    cache_identity: Option<&GrokBuildCacheIdentity>,
 ) -> Result<Vec<u8>, GatewayError> {
     let mut root = Map::new();
     root.insert("model".to_owned(), Value::String(upstream_model.to_owned()));
@@ -369,11 +390,15 @@ fn encode_body(
     if let Some(thinking) = &request.thinking {
         root.insert("reasoning".to_owned(), encode_reasoning(thinking)?);
     }
-    if let Some(prompt_cache_key) = &request.prompt_cache_key {
-        root.insert(
-            "prompt_cache_key".to_owned(),
-            Value::String(prompt_cache_key.clone()),
-        );
+    match (&request.prompt_cache_key, cache_identity) {
+        (Some(_), Some(cache_identity)) => {
+            root.insert(
+                "prompt_cache_key".to_owned(),
+                Value::String(cache_identity.as_str().to_owned()),
+            );
+        }
+        (Some(_), None) | (None, Some(_)) => return Err(provider_protocol_error()),
+        (None, None) => {}
     }
     if let Some(prompt_cache_retention) = &request.prompt_cache_retention {
         root.insert(

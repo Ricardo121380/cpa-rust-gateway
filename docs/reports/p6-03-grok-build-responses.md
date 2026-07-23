@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.24` |
+| Plan version | `v1.25` |
 | Task | `P6-03` |
 | Date | `2026-07-23` |
 | Branch | `codex/p6-grok-build` |
-| Status | `BLOCKED` — `CR-P6-03-012` confirmed only a strictly importable, unexpired local official-CLI cache. The configured server container status source had no unique grok2api match, so no correlatable log evidence exists for T18; its `4xx / error_like_object / unrecognized` remains `unattributed`. T19 is not eligible, T1-T18 are closed, and P6-04 remains pending. |
-| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` exhausted T11/T12, `CR-P6-03-008` closed after the pre-dispatch T13 stop, `CR-P6-03-009` closed after T15's non-success stop, `CR-P6-03-010` closed at its pre-dispatch local configuration gate, `CR-P6-03-011` closed after T18's safe non-success, and `CR-P6-03-012` closed as `unattributed`. It permits no retry, server action, cache persistence, T19, or P6-04+ behavior. |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` — `CR-P6-03-013` approved P6 continuation without replaying a direct tuple. T18 remains `4xx / error_like_object / unrecognized` and `unattributed`; T19 is unsent and T1-T18 stay closed. |
+| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-013` permits the later local P6-04 to P6-08 work only; it does not allow retry, server action, T19, or a direct-success claim. |
 | Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, known OAuth source adapters, and a finite one-send-per-process live matrix. Prohibited: direct-tuple replay, route/key/scheduler mutation, socket/proxy/TUN mutation, status remediation, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |
 | References | Matrix `C28`; Behavior 4/5/12; [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md); [BC-PROVIDER-003](../contracts/BC-PROVIDER-003-grok-build-responses-boundary.md) |
@@ -471,5 +471,5 @@ no gateway database migration, server restart, proxy/TUN cleanup, or direct-Prov
 CR-P6-03-006 grok2api import is an intentional external persistent state requested by the user; it
 is not deleted automatically and would need a separate explicit server-change authorization. T1-T13
 remain exhausted permanently; T15 and T18 are consumed, while T14, T17, and T19 remain unsent. No
-further direct tuple is registered. P6-04 remains pending until P6-03's dual-mode acceptance
-condition is met under a new explicit CR.
+further direct tuple is registered. `CR-P6-03-013` later approved P6-04 to P6-08 local work and
+the one P6 Phase gate without changing this direct-test record or sending T19.

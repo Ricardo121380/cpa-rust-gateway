@@ -21,9 +21,10 @@ const VERSIONED_EGRESS_POLICY_SCHEMA_VERSION: i64 = 3;
 const MANAGEMENT_AUDIT_SCHEMA_VERSION: i64 = 4;
 const GATEWAY_EVENT_LOG_SCHEMA_VERSION: i64 = 5;
 const GROK_BUILD_CREDENTIAL_RUNTIME_SCHEMA_VERSION: i64 = 6;
+const GROK_BUILD_RUNTIME_STATE_SCHEMA_VERSION: i64 = 7;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = GROK_BUILD_CREDENTIAL_RUNTIME_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = GROK_BUILD_RUNTIME_STATE_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -62,6 +63,11 @@ const MIGRATIONS: &[Migration] = &[
         version: GROK_BUILD_CREDENTIAL_RUNTIME_SCHEMA_VERSION,
         up: include_str!("../migrations/0006_grok_build_credential_runtime.up.sql"),
         down: include_str!("../migrations/0006_grok_build_credential_runtime.down.sql"),
+    },
+    Migration {
+        version: GROK_BUILD_RUNTIME_STATE_SCHEMA_VERSION,
+        up: include_str!("../migrations/0007_grok_build_runtime_state.up.sql"),
+        down: include_str!("../migrations/0007_grok_build_runtime_state.down.sql"),
     },
 ];
 
@@ -380,7 +386,14 @@ mod tests {
                 "egress_policies",
                 "endpoint_credential_bindings",
                 "gateway_event_log",
+                "grok_build_affinity_breaks",
+                "grok_build_billing_profiles",
+                "grok_build_cache_affinities",
                 "grok_build_credential_runtime",
+                "grok_build_model_catalog",
+                "grok_build_quota_windows",
+                "grok_build_reasoning_replay",
+                "grok_build_response_ownership",
                 "management_audit_events",
                 "model_aliases",
                 "model_routes",

@@ -83,4 +83,10 @@
 - [G5 Anthropic/Claude Code phase gate report](g5-gate-report.md)
 - [P6-01 Grok Build OAuth credential and Device Code report](p6-01-grok-build-oauth.md) — local evidence pending G6
 - [P6-02 Grok Build refresh singleflight and durable revision runtime report](p6-02-grok-build-refresh-runtime.md) — local evidence pending G6
-- [P6-03 Grok Build Responses request, stream, and error report](p6-03-grok-build-responses.md) — `BLOCKED`; local fixture evidence passed, but the finite authorized live matrix returned an unrecognized 2xx error object
+- [P6-03 Grok Build Responses request, stream, and error report](p6-03-grok-build-responses.md) — local evidence pending G6; direct T18 remains `unattributed` and closed
+- [P6-04 Build catalog, Billing, Quota Window, and Reset state](p6-04-build-runtime-catalog-quota.md) — local evidence pending G6
+- [P6-05 Tenant-isolated Build cache identity and affinity](p6-05-build-cache-affinity.md) — local evidence pending G6
+- [P6-06 Build Response Ownership and Reasoning Replay](p6-06-build-response-ownership-replay.md) — local evidence pending G6
+- [P6-07 Build-specific failure classification](p6-07-build-failure-classification.md) — local evidence pending G6
+- [P6-08 Grok Build clean-room differential report](p6-08-grok-build-clean-room-differential.md) — local evidence pending G6
+- [G6 Grok Build phase gate report](g6-gate-report.md) — local acceptance complete; remote Delivery Gate pending

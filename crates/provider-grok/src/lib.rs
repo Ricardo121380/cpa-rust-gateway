@@ -3,8 +3,10 @@
 #![deny(unsafe_code)]
 
 mod build_responses;
+mod continuity_state;
 mod credential_runtime;
 mod oauth;
+mod runtime_state;
 
 pub use build_responses::{
     GROK_BUILD_AGENT_ID_HEADER, GROK_BUILD_AUTHENTICATE_RESPONSE_HEADER,
@@ -18,6 +20,14 @@ pub use build_responses::{
     GrokBuildResponsesOutboundRequest, GrokBuildResponsesRequestBuilder,
     GrokBuildResponsesStreamDecoder, MAX_GROK_BUILD_ERROR_BODY_BYTES,
     MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES, MAX_GROK_BUILD_SSE_FRAME_BYTES,
+};
+pub use continuity_state::{
+    GrokBuildAffinityBindOutcome, GrokBuildAffinityBreak, GrokBuildAffinityBreakInput,
+    GrokBuildAffinityBreakReason, GrokBuildAffinityReason, GrokBuildCacheAffinity,
+    GrokBuildCacheAffinityKey, GrokBuildCacheIdentity, GrokBuildCacheIdentityDeriver,
+    GrokBuildContinuityError, GrokBuildContinuityStore, GrokBuildReasoningReplay,
+    GrokBuildReplayKey, GrokBuildReplayWriteOutcome, GrokBuildResponseOwnership,
+    GrokBuildUpstreamResponseId,
 };
 pub use credential_runtime::{
     DEFAULT_GROK_BUILD_REFRESH_WAIT_TIMEOUT, GrokBuildCredentialCasOutcome,
@@ -34,6 +44,14 @@ pub use oauth::{
     GrokBuildDevicePoller, GrokBuildOAuthEndpoint, GrokBuildOAuthError, GrokBuildOAuthFlow,
     GrokBuildOAuthHttpResponse, GrokBuildOAuthRequest, GrokBuildOAuthRequestKind,
     GrokBuildOAuthTransport, GrokBuildOAuthTransportError,
+};
+pub use runtime_state::{
+    GrokBuildAccountEvidence, GrokBuildBillingPlan, GrokBuildCatalogSyncOutcome,
+    GrokBuildFailureAction, GrokBuildFailureDisposition, GrokBuildModelCapability,
+    GrokBuildModelSource, GrokBuildQuotaConfidence, GrokBuildQuotaSource,
+    GrokBuildQuotaSyncOutcome, GrokBuildQuotaWindow, GrokBuildQuotaWindowKind,
+    GrokBuildRateLimitEvidence, GrokBuildRuntimeStateError, GrokBuildRuntimeStateStore,
+    classify_grok_build_failure,
 };
 
 /// Stable component identifier used by architecture smoke tests.

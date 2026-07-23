@@ -70,6 +70,7 @@ transition. This contract sends no real Provider traffic and changes no server.
 
 - `sqlite_runtime_state_is_aead_sealed_revisioned_and_recovers_after_reopen`
 - `concurrent_expiry_starts_one_refresh_and_all_callers_observe_the_new_revision`
+- `distinct_credentials_refresh_independently_under_concurrent_expiry`
 - `stale_refresh_result_cannot_overwrite_an_external_newer_revision`
 - `expired_external_cas_winner_is_a_safe_retry_state_not_a_transport_failure`
 - `waiter_times_out_without_starting_a_second_refresh`
