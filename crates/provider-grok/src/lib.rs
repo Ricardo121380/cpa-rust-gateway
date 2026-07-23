@@ -15,6 +15,7 @@ mod official_runtime;
 mod runtime_state;
 mod strict_json;
 mod web_credential;
+mod web_egress_session;
 
 pub use build_responses::{
     GROK_BUILD_AGENT_ID_HEADER, GROK_BUILD_AUTHENTICATE_RESPONSE_HEADER,
@@ -96,6 +97,10 @@ pub use web_credential::{
     GROK_WEB_PROVIDER_ID, GrokWebCredential, GrokWebCredentialCasOutcome,
     GrokWebCredentialEnvelope, GrokWebCredentialError, GrokWebCredentialLineage,
     GrokWebCredentialSlot, GrokWebCredentialSource, GrokWebSessionCookie,
+};
+pub use web_egress_session::{
+    GrokWebBrowserEgressSession, GrokWebBrowserEgressSessionError, GrokWebBrowserUserAgent,
+    GrokWebEgressSessionId, GrokWebTlsProfile,
 };
 
 /// Stable component identifier used by architecture smoke tests.

@@ -87,4 +87,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0059 Grok Official local differential, concurrent load, and error matrix](ADR-0059-grok-official-local-differential-and-error-matrix.md) — `P8-06`（Accepted）。
 - [ADR-0060 Grok Official authorized one-probe boundary](ADR-0060-grok-official-authorized-one-probe.md) — `P8-07`（Accepted）。
 - [ADR-0061 Grok Web SSO credential lineage and revisioned lifecycle](ADR-0061-grok-web-sso-credential-lineage-lifecycle.md) — `P9-01`（Accepted；local-only）。
+- [ADR-0062 Grok Web browser egress-session fingerprint binding](ADR-0062-grok-web-browser-egress-session-fingerprint.md) — `P9-02`（Accepted；local-only）。
 - [ADR-0045 Grok Build runtime state and continuity isolation](ADR-0045-grok-build-runtime-continuity.md) — `P6-04` 至 `P6-07`（Accepted）。

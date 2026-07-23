@@ -72,6 +72,10 @@ gateway-core
   写入 Router-owned 状态；它不选择 Route/Public Model/凭据、不开 HTTP、不读取 Build/Web 状态，且
   不形成 Router→具体 Provider 的反向依赖。P6 的 Build 状态/Quota/Cache/Continuity 仍由其专属
   模块所有，`p6_09_inference_adapter` 仍提供额外的 Provider-to-Router fixture 纵向测试。
+- `provider-grok` 的 P9-01/P9-02 Web 边只接收调用方显式传入的受限 Cookie export、`SecretStore`、
+  User-Agent、TLS-profile label、时间与 `UpstreamProxy` 值；它们仅构建零化/AEAD 凭据和不可变
+  browser-egress-session 指纹，既不读取浏览器/Profile/Cookie jar/环境代理，也不创建 DNS、socket、
+  TLS、HTTP 或代理/TUN 动作。P9-03 才可在独立的固定 Web 请求边界使用这些值。
 - `provider-kiro` 的 P7-01 凭据边界仅依赖 `serde`/`serde_json` 对显式传入的有界 JSON 做严格
   解析，`zeroize` 只持有 Social/Enterprise OAuth 或 `ksk_` Secret，`gateway-store` 只为由精确
   Credential ID 关联数据绑定的 AEAD envelope 提供加解密。P7-02 新增 `url`，只验证由严格 API
