@@ -96,3 +96,6 @@
 - [P7-04 Kiro Canonical conversation request](p7-04-kiro-conversation-request.md) — local phase-gate pass
 - [P7-05 Kiro AWS EventStream framing](p7-05-kiro-eventstream-framing.md) — local phase-gate pass
 - [P7-06 Kiro dynamic capability snapshots](p7-06-kiro-dynamic-capability-snapshots.md) — local phase-gate pass
+- [P7-07 Kiro Tool, Thinking, and Claude Code compatibility](p7-07-kiro-tool-thinking-compatibility.md) — local phase-gate pass
+- [P7-08 Kiro failure-owner classification](p7-08-kiro-failure-classification.md) — local phase-gate pass
+- [P7-09 Kiro-RS differential and `--bare` E2E](p7-09-kiro-rs-differential-bare-e2e.md) — blocked awaiting Kiro account reauthentication

@@ -192,27 +192,37 @@ fn unsupported_canonical_semantics_fail_closed_until_their_own_kiro_task() -> Te
         Err(KiroConversationRequestError::UnsupportedMessageRole)
     );
 
-    let historical_tool_call = decode_request(json!({
+    let malformed_historical_tool_call = decode_request(json!({
         "requested_model": "m",
         "messages": [
-            {"role": "assistant", "content": [{"tool_call": {"id": "call-1", "name": "lookup", "arguments": {}, "extensions": {}}}], "extensions": {}},
+            {"role": "assistant", "content": [{"tool_call": {"id": "call-1", "name": "lookup", "arguments": [], "extensions": {}}}], "extensions": {}},
             {"role": "user", "content": [{"text": {"text": "x", "extensions": {}}}], "extensions": {}}
         ],
         "extensions": {}
     }))?;
     assert_eq!(
-        KiroConversationRequestBuilder::build(&policy, &context, "m", &historical_tool_call),
-        Err(KiroConversationRequestError::UnsupportedMessageContent)
+        KiroConversationRequestBuilder::build(
+            &policy,
+            &context,
+            "m",
+            &malformed_historical_tool_call
+        ),
+        Err(KiroConversationRequestError::InvalidHistoricalTool)
     );
 
-    let thinking = decode_request(json!({
+    let unsupported_thinking_extension = decode_request(json!({
         "requested_model": "m",
         "messages": [{"role": "user", "content": [{"text": {"text": "x", "extensions": {}}}], "extensions": {}}],
-        "thinking": {"effort": "high", "extensions": {}},
+        "thinking": {"effort": "high", "extensions": {"unscoped": true}},
         "extensions": {}
     }))?;
     assert_eq!(
-        KiroConversationRequestBuilder::build(&policy, &context, "m", &thinking),
+        KiroConversationRequestBuilder::build(
+            &policy,
+            &context,
+            "m",
+            &unsupported_thinking_extension
+        ),
         Err(KiroConversationRequestError::UnsupportedCanonicalField)
     );
     Ok(())

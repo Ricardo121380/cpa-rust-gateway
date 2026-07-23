@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-22` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6` 已完成；`P7 - Kiro IDE/CLI` 进行中，P7-01 至 P7-06 已本地验收。 |
-| 当前任务 | P7-01 至 P7-06 已完成本地 Full Gate，等待 P7 的统一 G7 Delivery Gate；P7-07 正在进行。 |
+| 当前任务 | P7-01 至 P7-08 和 P7-09 的本地原生 Adapter/差分任务已验收；P7-09 的服务器 `--bare` 真实验证因上游账号 `auth_failed` 等待用户重新认证，G7 尚未达成。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1401,9 +1401,9 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 | P7-04 | 实现 CanonicalRequest 到 Kiro Conversation Request | P7-02 | 多轮消息/Tool Fixture passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P7-05 | 实现 AWS EventStream 增量解析、CRC、边界和错误恢复 | P7-04 | 任意 Chunk + 损坏帧测试 passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P7-06 | 实现每 Credential 动态模型与订阅能力、最后成功快照 | P7-01,P4-02 | 部分失败和 stale 测试 passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P7-07 | 实现 Kiro Tool、AskUserQuestion、Plan Mode 和 Thinking 映射 | P7-04,P7-05 | Claude Code 回归套件 | IN_PROGRESS |
-| P7-08 | 实现 Kiro 网络、账号、模型、额度和普通 429 分类 | P7-06 | 错误与恢复矩阵 | PENDING |
-| P7-09 | 与服务器定制 Kiro-RS 做差分和真实 `--bare` E2E | P7-03-P7-08 | 差分报告、日志、模型列表 | PENDING |
+| P7-07 | 实现 Kiro Tool、AskUserQuestion、Plan Mode 和 Thinking 映射 | P7-04,P7-05 | Claude Code 回归套件 passed | LOCAL_PASS_PENDING_PHASE_GATE |
+| P7-08 | 实现 Kiro 网络、账号、模型、额度和普通 429 分类 | P7-06 | 错误与恢复矩阵 passed | LOCAL_PASS_PENDING_PHASE_GATE |
+| P7-09 | 与服务器定制 Kiro-RS 做差分、原生 `InferenceAdapter` 垂直链路和真实 `--bare` E2E | P7-03-P7-08 | 原生 IDE/CLI Adapter Fixture、差分报告、日志、模型列表；当前上游账号 `auth_failed` | BLOCKED |
 
 ### G7 门禁
 

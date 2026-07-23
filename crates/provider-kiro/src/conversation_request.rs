@@ -5,9 +5,12 @@
 //! wire.  Profile-ARN injection remains the narrow P7-03 responsibility, while EventStream,
 //! historical Tool execution, Thinking, and transport remain later P7 work.
 
-use std::{error::Error, fmt};
+use std::{collections::BTreeSet, error::Error, fmt};
 
-use gateway_core::{CanonicalMessage, CanonicalRequest, MessageContent, ToolDefinition};
+use gateway_core::{
+    CanonicalMessage, CanonicalRequest, MessageContent, RawJson, ToolCall, ToolDefinition,
+    ToolResult,
+};
 use serde_json::{Map, Value};
 
 use crate::endpoint_policy::KiroEndpointPolicy;
@@ -16,6 +19,8 @@ const MAX_CONVERSATION_ID_BYTES: usize = 512;
 const MAX_MODEL_ID_BYTES: usize = 512;
 const MAX_OPERATING_SYSTEM_BYTES: usize = 128;
 const MAX_WORKING_DIRECTORY_BYTES: usize = 4_096;
+const MAX_TOOL_CALL_ID_BYTES: usize = 512;
+const MAX_TOOL_NAME_BYTES: usize = 256;
 
 /// A caller-owned Kiro conversation identifier, retained only for request construction.
 #[derive(Clone, Eq, PartialEq)]
@@ -145,10 +150,10 @@ pub struct KiroConversationRequestBuilder;
 impl KiroConversationRequestBuilder {
     /// Converts one narrow Canonical text conversation into Kiro's request envelope.
     ///
-    /// The final Canonical message must be a user text message. Earlier user/assistant text
-    /// messages become ordered Kiro history. Declared Tools are placed only on the current user
-    /// context. Historical Tool calls/results, opaque content, Thinking, cache controls, and all
-    /// unscoped Canonical extensions remain rejected until their dedicated P7 work exists.
+    /// The final Canonical message must be a user message. Earlier user/assistant messages become
+    /// ordered Kiro history, including paired historical Tool calls and results. Declared Tools
+    /// are placed only on the current user context. Thinking follows the explicit IDE/CLI policy.
+    /// Opaque content, cache controls, and unscoped Canonical extensions still fail closed.
     ///
     /// # Errors
     ///
@@ -166,12 +171,15 @@ impl KiroConversationRequestBuilder {
         reject_unsupported_request_fields(request)?;
 
         let (current, history) = split_current_message(&request.messages)?;
-        let current_content = encode_text_message(current)?;
+        let mut historical_tools = HistoricalToolState::default();
         let history = history
             .iter()
-            .map(|message| encode_history_message(message, selected_model, policy))
+            .map(|message| {
+                encode_history_message(message, selected_model, policy, &mut historical_tools)
+            })
             .collect::<Result<Vec<_>, _>>()?;
         let tools = encode_tools(&request.tools)?;
+        let current = encode_user_message(current, &mut historical_tools)?;
 
         let mut user_input_context = Map::new();
         user_input_context.insert(
@@ -190,9 +198,42 @@ impl KiroConversationRequestBuilder {
         if !tools.is_empty() {
             user_input_context.insert("tools".to_owned(), Value::Array(tools));
         }
+        if !current.tool_results.is_empty() {
+            user_input_context.insert("toolResults".to_owned(), Value::Array(current.tool_results));
+        }
+        if let Some(thinking) = &request.thinking {
+            if !thinking.extensions.is_empty() {
+                return Err(KiroConversationRequestError::UnsupportedCanonicalField);
+            }
+            match policy.thinking_placement() {
+                crate::endpoint_policy::KiroThinkingPlacement::IdeThinkingWrapper => {
+                    user_input_context.insert(
+                        "additionalModelRequestFields".to_owned(),
+                        Value::Object(map_from([(
+                            "thinking".to_owned(),
+                            Value::Object(map_from([(
+                                "effort".to_owned(),
+                                Value::String(thinking.effort.as_str().to_owned()),
+                            )])),
+                        )])),
+                    );
+                }
+                crate::endpoint_policy::KiroThinkingPlacement::CliOutputConfigEffort => {
+                    user_input_context.insert(
+                        "outputConfig".to_owned(),
+                        Value::Object(map_from([(
+                            "effort".to_owned(),
+                            Value::String(thinking.effort.as_str().to_owned()),
+                        )])),
+                    );
+                }
+            }
+        }
 
         let mut current_user = Map::new();
-        current_user.insert("content".to_owned(), Value::String(current_content));
+        if let Some(content) = current.content {
+            current_user.insert("content".to_owned(), Value::String(content));
+        }
         current_user.insert(
             "modelId".to_owned(),
             Value::String(selected_model.to_owned()),
@@ -235,7 +276,6 @@ fn reject_unsupported_request_fields(
     request: &CanonicalRequest,
 ) -> Result<(), KiroConversationRequestError> {
     if !request.extensions.is_empty()
-        || request.thinking.is_some()
         || request.prompt_cache_key.is_some()
         || request.prompt_cache_retention.is_some()
     {
@@ -260,54 +300,191 @@ fn encode_history_message(
     message: &CanonicalMessage,
     selected_model: &str,
     policy: &KiroEndpointPolicy,
+    historical_tools: &mut HistoricalToolState,
 ) -> Result<Value, KiroConversationRequestError> {
-    let content = encode_text_message(message)?;
     match message.role.0.as_str() {
-        "user" => Ok(Value::Object(map_from([(
-            "userInputMessage".to_owned(),
-            Value::Object(map_from([
-                ("content".to_owned(), Value::String(content)),
-                (
-                    "modelId".to_owned(),
-                    Value::String(selected_model.to_owned()),
-                ),
-                (
-                    "origin".to_owned(),
-                    Value::String(policy.origin().as_header_value().to_owned()),
-                ),
-            ])),
-        )]))),
-        "assistant" => Ok(Value::Object(map_from([(
-            "assistantResponseMessage".to_owned(),
-            Value::Object(map_from([("content".to_owned(), Value::String(content))])),
-        )]))),
+        "user" => {
+            let user = encode_user_message(message, historical_tools)?;
+            let mut user_input = Map::new();
+            if let Some(content) = user.content {
+                user_input.insert("content".to_owned(), Value::String(content));
+            }
+            user_input.insert(
+                "modelId".to_owned(),
+                Value::String(selected_model.to_owned()),
+            );
+            user_input.insert(
+                "origin".to_owned(),
+                Value::String(policy.origin().as_header_value().to_owned()),
+            );
+            if !user.tool_results.is_empty() {
+                user_input.insert(
+                    "userInputMessageContext".to_owned(),
+                    Value::Object(map_from([(
+                        "toolResults".to_owned(),
+                        Value::Array(user.tool_results),
+                    )])),
+                );
+            }
+            Ok(Value::Object(map_from([(
+                "userInputMessage".to_owned(),
+                Value::Object(user_input),
+            )])))
+        }
+        "assistant" => {
+            let assistant = encode_assistant_message(message, historical_tools)?;
+            let mut response = Map::new();
+            if let Some(content) = assistant.content {
+                response.insert("content".to_owned(), Value::String(content));
+            }
+            if !assistant.tool_uses.is_empty() {
+                response.insert("toolUses".to_owned(), Value::Array(assistant.tool_uses));
+            }
+            Ok(Value::Object(map_from([(
+                "assistantResponseMessage".to_owned(),
+                Value::Object(response),
+            )])))
+        }
         _ => Err(KiroConversationRequestError::UnsupportedMessageRole),
     }
 }
 
-fn encode_text_message(message: &CanonicalMessage) -> Result<String, KiroConversationRequestError> {
+struct EncodedUserMessage {
+    content: Option<String>,
+    tool_results: Vec<Value>,
+}
+
+struct EncodedAssistantMessage {
+    content: Option<String>,
+    tool_uses: Vec<Value>,
+}
+
+#[derive(Default)]
+struct HistoricalToolState {
+    declared_ids: BTreeSet<String>,
+    resolved_ids: BTreeSet<String>,
+}
+
+fn encode_user_message(
+    message: &CanonicalMessage,
+    historical_tools: &mut HistoricalToolState,
+) -> Result<EncodedUserMessage, KiroConversationRequestError> {
     if !message.extensions.is_empty() || message.content.is_empty() {
         return Err(KiroConversationRequestError::UnsupportedMessageContent);
     }
 
     let mut content = String::new();
+    let mut tool_results = Vec::new();
     for part in &message.content {
         match part {
             MessageContent::Text(text) if text.extensions.is_empty() => {
                 content.push_str(&text.text);
             }
-            MessageContent::Text(_)
-            | MessageContent::Opaque(_)
-            | MessageContent::ToolCall(_)
-            | MessageContent::ToolResult(_) => {
+            MessageContent::ToolResult(result) => {
+                tool_results.push(encode_tool_result(result, historical_tools)?);
+            }
+            MessageContent::Text(_) | MessageContent::Opaque(_) | MessageContent::ToolCall(_) => {
                 return Err(KiroConversationRequestError::UnsupportedMessageContent);
             }
         }
     }
-    if content.is_empty() {
+    if content.is_empty() && tool_results.is_empty() {
         return Err(KiroConversationRequestError::UnsupportedMessageContent);
     }
-    Ok(content)
+    Ok(EncodedUserMessage {
+        content: (!content.is_empty()).then_some(content),
+        tool_results,
+    })
+}
+
+fn encode_assistant_message(
+    message: &CanonicalMessage,
+    historical_tools: &mut HistoricalToolState,
+) -> Result<EncodedAssistantMessage, KiroConversationRequestError> {
+    if !message.extensions.is_empty() || message.content.is_empty() {
+        return Err(KiroConversationRequestError::UnsupportedMessageContent);
+    }
+
+    let mut content = String::new();
+    let mut tool_uses = Vec::new();
+    for part in &message.content {
+        match part {
+            MessageContent::Text(text) if text.extensions.is_empty() => {
+                content.push_str(&text.text);
+            }
+            MessageContent::ToolCall(call) => {
+                tool_uses.push(encode_tool_call(call, historical_tools)?);
+            }
+            MessageContent::Text(_) | MessageContent::Opaque(_) | MessageContent::ToolResult(_) => {
+                return Err(KiroConversationRequestError::UnsupportedMessageContent);
+            }
+        }
+    }
+    if content.is_empty() && tool_uses.is_empty() {
+        return Err(KiroConversationRequestError::UnsupportedMessageContent);
+    }
+    Ok(EncodedAssistantMessage {
+        content: (!content.is_empty()).then_some(content),
+        tool_uses,
+    })
+}
+
+fn encode_tool_call(
+    call: &ToolCall,
+    historical_tools: &mut HistoricalToolState,
+) -> Result<Value, KiroConversationRequestError> {
+    if call.extensions.is_empty()
+        && is_valid_tool_identifier(&call.id, MAX_TOOL_CALL_ID_BYTES)
+        && is_valid_tool_identifier(&call.name, MAX_TOOL_NAME_BYTES)
+        && historical_tools.declared_ids.insert(call.id.clone())
+    {
+        let input = parse_json_object(&call.arguments)?;
+        return Ok(Value::Object(map_from([
+            ("name".to_owned(), Value::String(call.name.clone())),
+            ("toolUseId".to_owned(), Value::String(call.id.clone())),
+            ("input".to_owned(), input),
+        ])));
+    }
+    Err(KiroConversationRequestError::InvalidHistoricalTool)
+}
+
+fn encode_tool_result(
+    result: &ToolResult,
+    historical_tools: &mut HistoricalToolState,
+) -> Result<Value, KiroConversationRequestError> {
+    if !result.extensions.is_empty()
+        || !is_valid_tool_identifier(&result.call_id, MAX_TOOL_CALL_ID_BYTES)
+        || !historical_tools.declared_ids.contains(&result.call_id)
+        || !historical_tools.resolved_ids.insert(result.call_id.clone())
+    {
+        return Err(KiroConversationRequestError::InvalidHistoricalTool);
+    }
+    let content = serde_json::from_str(result.output.get())
+        .map_err(|_| KiroConversationRequestError::InvalidHistoricalTool)?;
+    Ok(Value::Object(map_from([
+        (
+            "toolUseId".to_owned(),
+            Value::String(result.call_id.clone()),
+        ),
+        ("content".to_owned(), content),
+        (
+            "status".to_owned(),
+            Value::String(if result.is_error { "error" } else { "success" }.to_owned()),
+        ),
+    ])))
+}
+
+fn parse_json_object(value: &RawJson) -> Result<Value, KiroConversationRequestError> {
+    let value: Value = serde_json::from_str(value.get())
+        .map_err(|_| KiroConversationRequestError::InvalidHistoricalTool)?;
+    value
+        .is_object()
+        .then_some(value)
+        .ok_or(KiroConversationRequestError::InvalidHistoricalTool)
+}
+
+fn is_valid_tool_identifier(value: &str, max_bytes: usize) -> bool {
+    !value.is_empty() && value.len() <= max_bytes && !value.chars().any(char::is_control)
 }
 
 fn encode_tools(tools: &[ToolDefinition]) -> Result<Vec<Value>, KiroConversationRequestError> {
@@ -365,6 +542,8 @@ pub enum KiroConversationRequestError {
     UnsupportedCanonicalField,
     /// A declared Tool could not map to Kiro's required Tool specification envelope.
     InvalidToolDefinition,
+    /// Historical Tool calls/results were malformed, unpaired, or unsafe to map.
+    InvalidHistoricalTool,
 }
 
 impl fmt::Display for KiroConversationRequestError {
@@ -379,6 +558,7 @@ impl fmt::Display for KiroConversationRequestError {
             Self::UnsupportedMessageContent => "Kiro message content is unsupported",
             Self::UnsupportedCanonicalField => "Kiro Canonical field is unsupported",
             Self::InvalidToolDefinition => "Kiro Tool definition is invalid",
+            Self::InvalidHistoricalTool => "Kiro historical Tool state is invalid",
         })
     }
 }

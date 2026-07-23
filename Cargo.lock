@@ -1492,6 +1492,7 @@ dependencies = [
  "protocol-anthropic",
  "serde",
  "serde_json",
+ "tokio",
  "url",
  "zeroize",
 ]

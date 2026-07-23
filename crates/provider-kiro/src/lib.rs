@@ -14,6 +14,15 @@ pub mod conversation_request;
 /// Bounded incremental AWS EventStream framing and checksum validation.
 pub mod event_stream;
 
+/// Semantic EventStream mapping for Kiro text, reasoning, and Claude Code Tools.
+pub mod event_semantics;
+
+/// Value-free Kiro network, account, model, quota, and rate-limit classification.
+pub mod failure_classification;
+
+/// Executable native Kiro request, EventStream, and injected transport boundary.
+pub mod inference;
+
 /// Fixed Kiro IDE/CLI host, header, origin, and thinking-placement policy.
 pub mod endpoint_policy;
 

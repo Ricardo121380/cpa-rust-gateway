@@ -81,5 +81,7 @@ P7-03 已建立 [BC-PROVIDER-006 Kiro profile ARN lifecycle](BC-PROVIDER-006-kir
 P7-04 已建立 [BC-PROVIDER-007 Kiro Canonical conversation request conversion](BC-PROVIDER-007-kiro-canonical-conversation-request.md)。
 P7-05 已建立 [BC-PROVIDER-008 Kiro AWS EventStream framing](BC-PROVIDER-008-kiro-eventstream-framing.md)。
 P7-06 已建立 [BC-PROVIDER-009 Kiro dynamic capability and last-success snapshots](BC-PROVIDER-009-kiro-dynamic-capability-snapshots.md)。
+P7-07 已建立 [BC-PROVIDER-010 Kiro semantic Tool, Thinking, and Claude Code mapping](BC-PROVIDER-010-kiro-semantic-tool-thinking-mapping.md)。
+P7-08 已建立 [BC-PROVIDER-011 Kiro network, account, model, quota, and rate-limit classification](BC-PROVIDER-011-kiro-failure-owner-classification.md)。
 P6-04 至 P6-07 已建立 [BC-PROVIDER-004 Grok Build runtime state and continuity boundary](BC-PROVIDER-004-grok-build-runtime-continuity.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。

@@ -74,11 +74,13 @@ gateway-core
 - `provider-kiro` 的 P7-01 凭据边界仅依赖 `serde`/`serde_json` 对显式传入的有界 JSON 做严格
   解析，`zeroize` 只持有 Social/Enterprise OAuth 或 `ksk_` Secret，`gateway-store` 只为由精确
   Credential ID 关联数据绑定的 AEAD envelope 提供加解密。P7-02 新增 `url`，只验证由严格 API
-  Region 派生的两条固定 HTTPS URL（IDE/CLI）；它不读取缓存、环境或数据库，不创建网络 I/O，不
-  接受任意 endpoint 覆盖，也不构建含 Secret 的认证 Header。`profileArn` 与推理请求仍属于后续 P7 Task。
-  P7-06 新增只读 `gateway-catalog` 边，唯一用途是复用 P4-02 已验证的显式
-  Fresh/Stale/Expired timing policy；Kiro 的模型/订阅快照仍存于 `provider-kiro`，不向 Catalog
-  写入、不开启网络/SQLite/Route 依赖，也不把 Provider 反向暴露给 Control、Router 或其它 Provider。
+  Region 派生的两条固定 HTTPS URL（IDE/CLI）；纯 Policy/Request/Profile/EventStream/Semantic 模块
+  不读取缓存、环境或数据库，不创建网络 I/O，也不接受任意 endpoint 覆盖。P7-06 新增只读
+  `gateway-catalog` 边，唯一用途是复用 P4-02 已验证的显式 Fresh/Stale/Expired timing policy；Kiro 的
+  模型/订阅快照仍存于 `provider-kiro`，不向 Catalog 写入、不开启 SQLite/Route 依赖，也不把 Provider
+  反向暴露给 Control、Router 或其它 Provider。P7-09 的 `KiroInferenceAdapter` 只经显式注入的
+  `gateway-upstream` DNS-pinned transport 发送已构造的一次请求；它不读取 Kiro-RS、代理环境、凭据缓存，
+  也不隐式 refresh/retry/failover。
 - `gateway-store` 不进入 Router 的请求选择路径；持久数据通过控制面编译为不可变 Snapshot。
 - `gateway-router` 可以使用 `gateway-auth` 的无存储 Client Key HMAC 原语来认证其已编译
   Snapshot；该边不允许反向的 Router、Store 或 HTTP 依赖进入 `gateway-auth`。

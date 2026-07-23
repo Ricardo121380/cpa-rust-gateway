@@ -77,4 +77,6 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0049 Kiro Canonical conversation request conversion](ADR-0049-kiro-canonical-conversation-request.md) — `P7-04`（Accepted）。
 - [ADR-0050 Kiro AWS EventStream framing](ADR-0050-kiro-eventstream-framing.md) — `P7-05`（Accepted）。
 - [ADR-0051 Kiro per-Credential dynamic capability snapshots](ADR-0051-kiro-dynamic-capability-snapshots.md) — `P7-06`（Accepted）。
+- [ADR-0052 Kiro semantic Tool and Thinking mapping](ADR-0052-kiro-semantic-tool-thinking-mapping.md) — `P7-07`（Accepted）。
+- [ADR-0053 Kiro failure-owner classification](ADR-0053-kiro-failure-owner-classification.md) — `P7-08`（Accepted）。
 - [ADR-0045 Grok Build runtime state and continuity isolation](ADR-0045-grok-build-runtime-continuity.md) — `P6-04` 至 `P6-07`（Accepted）。
