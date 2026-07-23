@@ -108,3 +108,4 @@
 - [P8-07 Grok Official authorized one-probe](p8-07-authorized-official-probe.md) — local safety harness pass; deferred to the final external-authentication package with P7-09
 - [P9-01 Grok Web SSO credential, lineage, and lifecycle](p9-01-grok-web-sso-credentials.md) — local phase-gate pass; no SSO source or Web request used
 - [P9-02 Grok Web browser egress-session fingerprint](p9-02-grok-web-browser-egress-session.md) — local phase-gate pass; no browser or Web request used
+- [P9-03 Grok Web fixture Chat request and stream](p9-03-grok-web-fixture-chat-stream.md) — local phase-gate pass; no Web endpoint or request used

@@ -69,6 +69,7 @@ P8-06 已建立 [BC-PROVIDER-017 Grok Official local differential, concurrent lo
 P8-07 已建立 [BC-E2E-004 Grok Official authorized one-probe](BC-E2E-004-grok-official-authorized-one-probe.md)。
 P9-01 已建立 [BC-CRED-006 Grok Web SSO credential lineage and revisioned lifecycle](BC-CRED-006-grok-web-sso-credential-lineage-lifecycle.md)。
 P9-02 已建立 [BC-PROVIDER-018 Grok Web browser egress-session fingerprint](BC-PROVIDER-018-grok-web-browser-egress-session.md)。
+P9-03 已建立 [BC-PROVIDER-019 Grok Web fixture Chat request and stream](BC-PROVIDER-019-grok-web-fixture-chat-stream.md)。
 P5-00 已建立 [BC-DELIVERY-003 Phase-level delivery and default-ref cache](BC-DELIVERY-003-phase-level-delivery-and-default-ref-cache.md)。
 P5-01 已建立 [BC-PROTOCOL-002 Anthropic Messages adapter](BC-PROTOCOL-002-anthropic-messages-adapter.md)。
 P5-02 已建立 [BC-PROTOCOL-003 Exact token-count capability](BC-PROTOCOL-003-exact-token-count-capability.md)。
