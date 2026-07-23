@@ -125,20 +125,39 @@ await nodeAssert.rejects(noCsrfApi.createConfigVersion({ body: { name: "syntheti
 assert(observedRequests.length === rejectedRequests, "invalid generated calls reached fetch");
 
 const application = await readFile(applicationPath, "utf8");
-assert(!/localStorage|sessionStorage|indexedDB|document\.cookie/u.test(application), "P10-04 workspace persists management material");
-assert(!/\bfetch\s*\(/u.test(application), "P10-04 workspace bypasses the generated management client");
+assert(!/localStorage|sessionStorage|indexedDB|document\.cookie/u.test(application), "P10-05 workspace persists management or Client Key material");
+assert(!/\bfetch\s*\(/u.test(application), "P10-05 workspace bypasses the generated management client");
 const sessionListener = application.indexOf('"session-form").addEventListener');
 const clientConstruction = application.indexOf("managementApi = new ManagementApi");
-assert(sessionListener >= 0 && clientConstruction > sessionListener, "P10-04 workspace constructs a client before explicit in-memory session input");
-assert(application.includes("managementKey: () => session?.managementKey"), "P10-04 workspace does not keep the management key page-local");
-assert(application.includes("csrfToken: () => session?.csrfToken"), "P10-04 workspace does not keep the CSRF token page-local");
+assert(sessionListener >= 0 && clientConstruction > sessionListener, "P10-05 workspace constructs a client before explicit in-memory session input");
+assert(application.includes("managementKey: () => session?.managementKey"), "P10-05 workspace does not keep the management key page-local");
+assert(application.includes("csrfToken: () => session?.csrfToken"), "P10-05 workspace does not keep the CSRF token page-local");
 for (const operationId of ["testEndpoint", "previewCatalogDiscovery", "applyCatalogDiscovery", "startCredentialOAuth", "getCredentialOAuthStatus", "cancelCredentialOAuth"]) {
-  assert(application.includes(`"${operationId}"`), `P10-04 workspace does not expose ${operationId}`);
+  assert(application.includes(`"${operationId}"`), `P10-05 workspace does not expose ${operationId}`);
 }
 const bindingTemplateStart = application.indexOf("binding: JSON.stringify(");
-const bindingTemplate = application.slice(bindingTemplateStart, application.indexOf("  ),\n};", bindingTemplateStart));
+const bindingTemplate = application.slice(bindingTemplateStart, application.indexOf("  publicModel:", bindingTemplateStart));
 assert(bindingTemplate.includes('credential_id: "provider-a-key-1"'), "P10-04 binding template omits the contract Credential input");
 assert(!bindingTemplate.includes("endpoint_id") && !bindingTemplate.includes("upstream_id"), "P10-04 binding template duplicates path-owned resource identities");
+for (const operationId of [
+  "listPublicModels", "getPublicModel", "createPublicModel", "updatePublicModel", "deletePublicModel",
+  "createModelAlias", "getRoute", "createRoute", "updateRoute", "deleteRoute", "validateRoute",
+  "createRouteCandidate", "listAccessGroups", "getAccessGroup", "createAccessGroup", "updateAccessGroup",
+  "deleteAccessGroup", "listAccessGroupRoutes", "grantAccessGroupRoute", "listClientKeys", "getClientKey",
+  "issueClientKey", "updateClientKey", "revokeClientKey",
+]) {
+  assert(application.includes(`"${operationId}"`), `P10-05 workspace does not expose ${operationId}`);
+}
+assert(!application.includes('"explainRoute"'), "P10-05 workspace exposes P10-06 Route Explain");
+assert(application.includes('model_name: "minimax-m3"'), "P10-05 workspace lacks the minimax-m3 Public Model template");
+assert(application.includes('id: "route-minimax-m3"'), "P10-05 workspace lacks the minimax-m3 Route template");
+assert(application.includes('id: "group-minimax-m3"'), "P10-05 workspace lacks the minimax-m3 Access Group template");
+assert(application.includes("function clearIssuedClientKey"), "P10-05 workspace has no one-time Client Key clearing boundary");
+assert(application.includes("function displayIssuedClientKey"), "P10-05 workspace has no isolated one-time Client Key display");
+assert(application.includes('kind === "clientKey" && action === "issue"'), "P10-05 workspace does not isolate Client Key issue results");
+assert(application.includes('"issued-client-key-panel"'), "P10-05 workspace lacks the transient Client Key pane");
+assert(application.includes("function clearResourceIdentifiers"), "P10-05 workspace retains a prior resource identity when its resource type changes");
+assert(!/clipboard|writeText/u.test(application), "P10-05 workspace copies Client Keys into browser clipboard state");
 const html = await readFile(path.join(distRoot, "index.html"), "utf8");
 assert(html.includes("Content-Security-Policy"), "static document has no CSP");
 assert(!/<script(?![^>]*\bsrc=)/u.test(html), "static document contains inline script");

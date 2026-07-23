@@ -8,17 +8,26 @@
 
 use std::{error::Error, fmt, sync::Arc};
 
-use gateway_core::{CredentialId, EgressPolicyId, EndpointId, UpstreamId};
+use gateway_auth::client_key::{
+    ClientKeyError, ClientKeyService, ClientKeyStatus as IssuedClientKeyStatus, PresentedClientKey,
+};
+use gateway_core::{
+    AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, PublicModelId, RouteId,
+    UpstreamId,
+};
 use gateway_store::secret_store::SecretStoreError;
 pub use gateway_store::secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore};
 pub use gateway_store::{
     StoreError,
     control_plane::{
+        AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus,
         ConfigVersion, ConfigVersionId, ConfigVersionStatus, ControlPlaneConfiguration,
-        CredentialConfiguration, CredentialStatus, EgressPolicyConfiguration,
+        CredentialConfiguration, CredentialScope, CredentialStatus, EgressPolicyConfiguration,
         EndpointConfiguration, EndpointCredentialBindingConfiguration, EndpointTransport,
-        ManagementResourceAuditEvent, ManagementResourceAuditEventDraft,
-        SqliteControlPlaneRepository, StoredEgressRedirectMode, UpstreamConfiguration,
+        ManagementResourceAuditEvent, ManagementResourceAuditEventDraft, ModelAliasConfiguration,
+        ModelRouteConfiguration, PublicModelConfiguration, RouteCandidateConfiguration,
+        RoutePolicy, SqliteControlPlaneRepository, StoredClientKey, StoredClientKeyStatus,
+        StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
     },
 };
 
@@ -151,6 +160,85 @@ pub struct CredentialUpsert<'secret> {
     pub status: CredentialStatus,
 }
 
+/// Secret-free Client Key metadata eligible for management reads and lifecycle writes.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClientKeyView {
+    /// Stable Client Key identifier.
+    pub id: ClientKeyId,
+    /// The Access Group authorized by this Key.
+    pub access_group_id: AccessGroupId,
+    /// Public indexed Prefix; never the complete Key.
+    pub prefix: String,
+    /// Persisted lifecycle state.
+    pub status: StoredClientKeyStatus,
+    /// Optional absolute expiry timestamp.
+    pub expires_at_ms: Option<i64>,
+}
+
+/// Typed input for issuing one Client Key from the management boundary.
+///
+/// This value contains neither a complete Key nor a digest. The service generates those values
+/// only after an explicit issuer has been supplied by its embedding application.
+pub struct ClientKeyIssue {
+    /// Stable Client Key identity to create.
+    pub id: ClientKeyId,
+    /// Access Group authorized by the issued Key.
+    pub access_group_id: AccessGroupId,
+    /// Requested durable lifecycle status.
+    pub status: StoredClientKeyStatus,
+    /// Optional absolute expiry timestamp.
+    pub expires_at_ms: Option<i64>,
+}
+
+/// Typed non-secret lifecycle update for one existing Client Key.
+pub struct ClientKeyUpdate {
+    /// Access Group authorized by the Key after this update.
+    pub access_group_id: AccessGroupId,
+    /// Durable lifecycle status after this update.
+    pub status: StoredClientKeyStatus,
+    /// Optional absolute expiry timestamp after this update.
+    pub expires_at_ms: Option<i64>,
+}
+
+/// Successful Client Key issuance with an immediate-only complete Key presentation.
+pub struct IssuedClientKeyView {
+    metadata: ClientKeyView,
+    presented_key: PresentedClientKey,
+}
+
+/// Value-free structural validation result for one draft Route.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementRouteValidation {
+    /// Whether the draft Route has the minimum static topology for a future publication check.
+    pub valid: bool,
+    /// Stable value-free rejection labels. This is not a runtime selection or Explain result.
+    pub error_codes: Vec<&'static str>,
+}
+
+impl IssuedClientKeyView {
+    /// Returns the durable metadata safe for a management response.
+    #[must_use]
+    pub fn metadata(&self) -> &ClientKeyView {
+        &self.metadata
+    }
+
+    /// Returns the complete Key only to the immediate successful HTTP response assembler.
+    #[must_use]
+    pub fn presented_key(&self) -> &str {
+        self.presented_key.as_str()
+    }
+}
+
+impl fmt::Debug for IssuedClientKeyView {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("IssuedClientKeyView")
+            .field("metadata", &self.metadata)
+            .field("presented_key", &"<redacted>")
+            .finish()
+    }
+}
+
 #[derive(Clone, Copy)]
 struct ResourceAction<'action> {
     action: &'action str,
@@ -163,6 +251,7 @@ pub struct ManagementMutationService {
     repository: SqliteControlPlaneRepository,
     secret_store: SecretStore,
     clock: Arc<dyn ManagementClock>,
+    client_key_service: Option<ClientKeyService>,
 }
 
 impl ManagementMutationService {
@@ -179,10 +268,40 @@ impl ManagementMutationService {
         secret_store: SecretStore,
         clock: Arc<dyn ManagementClock>,
     ) -> Self {
+        Self::with_clock_and_client_key_service(repository, secret_store, clock, None)
+    }
+
+    /// Creates the service with one explicit management-time Client Key issuer.
+    ///
+    /// The issuer is supplied by the embedding application; this service never loads Pepper
+    /// material from an environment variable, an HTTP request, or persistent configuration.
+    #[must_use]
+    pub fn with_client_key_service(
+        repository: SqliteControlPlaneRepository,
+        secret_store: SecretStore,
+        client_key_service: ClientKeyService,
+    ) -> Self {
+        Self::with_clock_and_client_key_service(
+            repository,
+            secret_store,
+            Arc::new(SystemManagementClock),
+            Some(client_key_service),
+        )
+    }
+
+    /// Creates the service with deterministic time and an optional explicit Client Key issuer.
+    #[must_use]
+    pub fn with_clock_and_client_key_service(
+        repository: SqliteControlPlaneRepository,
+        secret_store: SecretStore,
+        clock: Arc<dyn ManagementClock>,
+        client_key_service: Option<ClientKeyService>,
+    ) -> Self {
         Self {
             repository,
             secret_store,
             clock,
+            client_key_service,
         }
     }
 
@@ -757,6 +876,754 @@ impl ManagementMutationService {
         ))
     }
 
+    /// Lists all Public Models in one Version together with its current revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the selected Version is absent or has an invalid persisted revision.
+    pub fn list_public_models(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+    ) -> Result<Revisioned<Vec<PublicModelConfiguration>>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        Ok(Revisioned::new(
+            configuration.public_models,
+            ConfigRevision::try_new(configuration.version.revision)?,
+        ))
+    }
+
+    /// Returns one Public Model in one Version together with its current revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version or Public Model is absent, or its persisted revision is
+    /// invalid.
+    pub fn get_public_model(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        public_model_id: &PublicModelId,
+    ) -> Result<Revisioned<PublicModelConfiguration>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let revision = ConfigRevision::try_new(configuration.version.revision)?;
+        let public_model = configuration
+            .public_models
+            .into_iter()
+            .find(|candidate| &candidate.id == public_model_id)
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        Ok(Revisioned::new(public_model, revision))
+    }
+
+    /// Creates one Public Model using an exact draft revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version is not an admitted draft at `expected_revision`, the
+    /// Public Model is invalid or already present, or the resource/audit transaction cannot commit.
+    pub fn create_public_model(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        public_model: PublicModelConfiguration,
+    ) -> Result<Revisioned<PublicModelConfiguration>, ManagementResourceError> {
+        let audit = self.audit(
+            "public_model_created",
+            actor,
+            config_version_id,
+            "public_model",
+            public_model.id.as_str(),
+        )?;
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.insert_public_model(config_version_id, &public_model)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            public_model,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Updates one Public Model using an exact draft revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version is not an admitted draft at `expected_revision`, the
+    /// Public Model is absent or invalid, or the resource/audit transaction cannot commit.
+    pub fn update_public_model(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        public_model: PublicModelConfiguration,
+    ) -> Result<Revisioned<PublicModelConfiguration>, ManagementResourceError> {
+        let audit = self.audit(
+            "public_model_updated",
+            actor,
+            config_version_id,
+            "public_model",
+            public_model.id.as_str(),
+        )?;
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.update_public_model(config_version_id, &public_model)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            public_model,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Deletes one Public Model with schema-owned Alias and Route descendants.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version is not an admitted draft at `expected_revision`, the
+    /// Public Model is absent, or the resource/audit transaction cannot commit.
+    pub fn delete_public_model(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        public_model_id: &PublicModelId,
+    ) -> Result<ConfigRevision, ManagementResourceError> {
+        self.delete_resource(
+            actor,
+            config_version_id,
+            expected_revision,
+            ResourceAction {
+                action: "public_model_deleted",
+                resource_kind: "public_model",
+                resource_id: public_model_id.as_str(),
+            },
+            |transaction| transaction.delete_public_model(config_version_id, public_model_id),
+        )
+    }
+
+    /// Creates one exact Alias-to-Public-Model relation using an exact draft revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version is not an admitted draft at `expected_revision`, the
+    /// Alias or Public Model is invalid or absent, or the resource/audit transaction cannot commit.
+    pub fn create_model_alias(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        alias: ModelAliasConfiguration,
+    ) -> Result<Revisioned<ModelAliasConfiguration>, ManagementResourceError> {
+        let audit = self.audit(
+            "model_alias_created",
+            actor,
+            config_version_id,
+            "model_alias",
+            &alias.alias,
+        )?;
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.insert_model_alias(config_version_id, &alias)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            alias,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Returns one Route in one Version together with its current revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version or Route is absent, or its persisted revision is invalid.
+    pub fn get_model_route(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        route_id: &RouteId,
+    ) -> Result<Revisioned<ModelRouteConfiguration>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let revision = ConfigRevision::try_new(configuration.version.revision)?;
+        let route = configuration
+            .model_routes
+            .into_iter()
+            .find(|candidate| &candidate.id == route_id)
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        Ok(Revisioned::new(route, revision))
+    }
+
+    /// Creates one Route under an existing Public Model using an exact draft revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version is not an admitted draft at `expected_revision`, the Route
+    /// or its Public Model is invalid or absent, or the resource/audit transaction cannot commit.
+    pub fn create_model_route(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        route: ModelRouteConfiguration,
+    ) -> Result<Revisioned<ModelRouteConfiguration>, ManagementResourceError> {
+        let audit = self.audit(
+            "route_created",
+            actor,
+            config_version_id,
+            "route",
+            route.id.as_str(),
+        )?;
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.insert_model_route(config_version_id, &route)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            route,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Updates one Route without allowing it to move between Public Models.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version is not an admitted draft at `expected_revision`, the Route
+    /// is absent or invalid, or the resource/audit transaction cannot commit.
+    pub fn update_model_route(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        route: ModelRouteConfiguration,
+    ) -> Result<Revisioned<ModelRouteConfiguration>, ManagementResourceError> {
+        let audit = self.audit(
+            "route_updated",
+            actor,
+            config_version_id,
+            "route",
+            route.id.as_str(),
+        )?;
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.update_model_route(config_version_id, &route)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            route,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Deletes one Route with schema-owned Candidate and Access Group grant descendants.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version is not an admitted draft at `expected_revision`, the Route
+    /// is absent, or the resource/audit transaction cannot commit.
+    pub fn delete_model_route(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        route_id: &RouteId,
+    ) -> Result<ConfigRevision, ManagementResourceError> {
+        self.delete_resource(
+            actor,
+            config_version_id,
+            expected_revision,
+            ResourceAction {
+                action: "route_deleted",
+                resource_kind: "route",
+                resource_id: route_id.as_str(),
+            },
+            |transaction| transaction.delete_model_route(config_version_id, route_id),
+        )
+    }
+
+    /// Creates one Candidate under an existing Route using an exact draft revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version is not an admitted draft at `expected_revision`, the
+    /// Candidate, Route, or Endpoint is invalid or absent, or the resource/audit transaction fails.
+    pub fn create_route_candidate(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        candidate: RouteCandidateConfiguration,
+    ) -> Result<Revisioned<RouteCandidateConfiguration>, ManagementResourceError> {
+        let audit = self.audit(
+            "route_candidate_created",
+            actor,
+            config_version_id,
+            "route_candidate",
+            candidate.id.as_str(),
+        )?;
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.insert_route_candidate(config_version_id, &candidate)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            candidate,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Validates only draft Route topology without publishing, selecting, or contacting an
+    /// upstream. Full compiler/capability admission remains the later publication boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version or Route is absent, or persisted graph data is invalid.
+    pub fn validate_model_route(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        route_id: &RouteId,
+    ) -> Result<ManagementRouteValidation, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let route_exists = configuration
+            .model_routes
+            .iter()
+            .any(|candidate| &candidate.id == route_id);
+        if !route_exists {
+            return Err(ManagementResourceError::ResourceNotFound);
+        }
+
+        let mut error_codes = Vec::new();
+        let active_candidates = configuration
+            .route_candidates
+            .iter()
+            .filter(|candidate| &candidate.route_id == route_id && candidate.enabled)
+            .collect::<Vec<_>>();
+        if active_candidates.is_empty() {
+            error_codes.push("route_missing_active_candidate");
+        }
+        for candidate in active_candidates {
+            let Some(endpoint) = configuration
+                .endpoints
+                .iter()
+                .find(|endpoint| endpoint.id == candidate.endpoint_id)
+            else {
+                error_codes.push("route_candidate_endpoint_missing");
+                continue;
+            };
+            if !endpoint.enabled {
+                error_codes.push("route_candidate_endpoint_disabled");
+            }
+            let has_active_binding = configuration
+                .endpoint_credential_bindings
+                .iter()
+                .filter(|binding| binding.endpoint_id == candidate.endpoint_id && binding.enabled)
+                .any(|binding| {
+                    configuration.credentials.iter().any(|credential| {
+                        credential.id == binding.credential_id
+                            && credential.status == CredentialStatus::Active
+                    })
+                });
+            if !has_active_binding {
+                error_codes.push("route_candidate_missing_active_credential");
+            }
+        }
+        error_codes.sort_unstable();
+        error_codes.dedup();
+        Ok(ManagementRouteValidation {
+            valid: error_codes.is_empty(),
+            error_codes,
+        })
+    }
+
+    /// Lists all Access Groups in one Version together with its current revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version is absent or has an invalid persisted revision.
+    pub fn list_access_groups(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+    ) -> Result<Revisioned<Vec<AccessGroupConfiguration>>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        Ok(Revisioned::new(
+            configuration.access_groups,
+            ConfigRevision::try_new(configuration.version.revision)?,
+        ))
+    }
+
+    /// Returns one Access Group in one Version together with its current revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version or Access Group is absent, or its persisted revision is
+    /// invalid.
+    pub fn get_access_group(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        access_group_id: &AccessGroupId,
+    ) -> Result<Revisioned<AccessGroupConfiguration>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let revision = ConfigRevision::try_new(configuration.version.revision)?;
+        let access_group = configuration
+            .access_groups
+            .into_iter()
+            .find(|candidate| &candidate.id == access_group_id)
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        Ok(Revisioned::new(access_group, revision))
+    }
+
+    /// Creates one Access Group using an exact draft revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version is not an admitted draft at `expected_revision`, the
+    /// Access Group is invalid or already present, or the resource/audit transaction cannot commit.
+    pub fn create_access_group(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        access_group: AccessGroupConfiguration,
+    ) -> Result<Revisioned<AccessGroupConfiguration>, ManagementResourceError> {
+        let audit = self.audit(
+            "access_group_created",
+            actor,
+            config_version_id,
+            "access_group",
+            access_group.id.as_str(),
+        )?;
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.insert_access_group(config_version_id, &access_group)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            access_group,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Updates one Access Group using an exact draft revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version is not an admitted draft at `expected_revision`, the
+    /// Access Group is absent or invalid, or the resource/audit transaction cannot commit.
+    pub fn update_access_group(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        access_group: AccessGroupConfiguration,
+    ) -> Result<Revisioned<AccessGroupConfiguration>, ManagementResourceError> {
+        let audit = self.audit(
+            "access_group_updated",
+            actor,
+            config_version_id,
+            "access_group",
+            access_group.id.as_str(),
+        )?;
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.update_access_group(config_version_id, &access_group)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            access_group,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Deletes one Access Group with schema-owned grants and Client Keys.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version is not an admitted draft at `expected_revision`, the
+    /// Access Group is absent, or the resource/audit transaction cannot commit.
+    pub fn delete_access_group(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        access_group_id: &AccessGroupId,
+    ) -> Result<ConfigRevision, ManagementResourceError> {
+        self.delete_resource(
+            actor,
+            config_version_id,
+            expected_revision,
+            ResourceAction {
+                action: "access_group_deleted",
+                resource_kind: "access_group",
+                resource_id: access_group_id.as_str(),
+            },
+            |transaction| transaction.delete_access_group(config_version_id, access_group_id),
+        )
+    }
+
+    /// Lists exact Route grants for one existing Access Group and its current revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version or Access Group is absent, or its persisted revision is
+    /// invalid.
+    pub fn list_access_group_routes(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        access_group_id: &AccessGroupId,
+    ) -> Result<Revisioned<Vec<AccessGroupRouteConfiguration>>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        if !configuration
+            .access_groups
+            .iter()
+            .any(|candidate| &candidate.id == access_group_id)
+        {
+            return Err(ManagementResourceError::ResourceNotFound);
+        }
+        let grants = configuration
+            .access_group_routes
+            .into_iter()
+            .filter(|candidate| &candidate.access_group_id == access_group_id)
+            .collect();
+        Ok(Revisioned::new(
+            grants,
+            ConfigRevision::try_new(configuration.version.revision)?,
+        ))
+    }
+
+    /// Creates one exact Access Group-to-Route grant using an exact draft revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version is not an admitted draft at `expected_revision`, the
+    /// Access Group or Route is absent, or the resource/audit transaction cannot commit.
+    pub fn create_access_group_route(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        grant: AccessGroupRouteConfiguration,
+    ) -> Result<Revisioned<AccessGroupRouteConfiguration>, ManagementResourceError> {
+        let audit = self.audit(
+            "access_group_route_granted",
+            actor,
+            config_version_id,
+            "access_group_route",
+            grant.route_id.as_str(),
+        )?;
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.insert_access_group_route(config_version_id, &grant)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            grant,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Lists only redacted Client Key metadata in one Version with its current revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version is absent or has an invalid persisted revision.
+    pub fn list_client_keys(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+    ) -> Result<Revisioned<Vec<ClientKeyView>>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let values = configuration
+            .client_keys
+            .iter()
+            .map(ClientKeyView::from)
+            .collect();
+        Ok(Revisioned::new(
+            values,
+            ConfigRevision::try_new(configuration.version.revision)?,
+        ))
+    }
+
+    /// Returns only redacted metadata for one Client Key in one Version.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version or Client Key is absent, or its persisted revision is
+    /// invalid.
+    pub fn get_client_key(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        client_key_id: &ClientKeyId,
+    ) -> Result<Revisioned<ClientKeyView>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let revision = ConfigRevision::try_new(configuration.version.revision)?;
+        let client_key = configuration
+            .client_keys
+            .iter()
+            .find(|candidate| candidate.id() == client_key_id)
+            .map(ClientKeyView::from)
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        Ok(Revisioned::new(client_key, revision))
+    }
+
+    /// Issues and durably records one Client Key using an exact draft revision.
+    ///
+    /// The complete Key is retained only in the returned immediate presentation. If generation,
+    /// persistence, audit append, or the revision transaction fails, the presentation is dropped
+    /// and no complete Key is exposed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no explicit issuer is configured, the input is invalid, the Version is
+    /// not an admitted draft at `expected_revision`, or the resource/audit transaction fails.
+    pub fn issue_client_key(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        input: ClientKeyIssue,
+    ) -> Result<Revisioned<IssuedClientKeyView>, ManagementResourceError> {
+        let key_issuer = self
+            .client_key_service
+            .as_ref()
+            .ok_or(ManagementResourceError::ClientKeyIssuerUnavailable)?;
+        let issuance = key_issuer.issue(input.id, input.access_group_id, input.expires_at_ms)?;
+        let (mut record, presented_key) = issuance.into_parts();
+        record.set_status(issued_client_key_status(input.status));
+        let stored = StoredClientKey::try_new(
+            record.client_key_id().clone(),
+            record.access_group_id().clone(),
+            record.prefix().as_str(),
+            record.secret_digest().as_bytes(),
+            input.status,
+            record.expires_at_ms(),
+        )?;
+        let metadata = ClientKeyView::from(&stored);
+        let audit = self.audit(
+            "client_key_issued",
+            actor,
+            config_version_id,
+            "client_key",
+            metadata.id.as_str(),
+        )?;
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.insert_client_key(config_version_id, &stored)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            IssuedClientKeyView {
+                metadata,
+                presented_key,
+            },
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Updates non-secret Client Key lifecycle metadata without changing its Prefix or digest.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Client Key is absent, the Version is not an admitted draft at
+    /// `expected_revision`, the input is invalid, or the resource/audit transaction cannot commit.
+    pub fn update_client_key(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        client_key_id: &ClientKeyId,
+        input: ClientKeyUpdate,
+    ) -> Result<Revisioned<ClientKeyView>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let current = configuration
+            .client_keys
+            .iter()
+            .find(|candidate| candidate.id() == client_key_id)
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        let mut view = ClientKeyView::from(current);
+        view.access_group_id = input.access_group_id;
+        view.status = input.status;
+        view.expires_at_ms = input.expires_at_ms;
+        let audit = self.audit(
+            "client_key_updated",
+            actor,
+            config_version_id,
+            "client_key",
+            client_key_id.as_str(),
+        )?;
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.update_client_key_metadata(
+                    config_version_id,
+                    client_key_id,
+                    &view.access_group_id,
+                    view.status,
+                    view.expires_at_ms,
+                )?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            view,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Revokes one Client Key using an exact draft revision while retaining its redacted record.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Version is not an admitted draft at `expected_revision`, the Client
+    /// Key is absent, or the resource/audit transaction cannot commit.
+    pub fn revoke_client_key(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        client_key_id: &ClientKeyId,
+    ) -> Result<ConfigRevision, ManagementResourceError> {
+        self.delete_resource(
+            actor,
+            config_version_id,
+            expected_revision,
+            ResourceAction {
+                action: "client_key_revoked",
+                resource_kind: "client_key",
+                resource_id: client_key_id.as_str(),
+            },
+            |transaction| transaction.revoke_client_key(config_version_id, client_key_id),
+        )
+    }
+
     /// Returns the owned Repository only to an explicitly management-time caller.
     #[must_use]
     pub fn repository_mut(&mut self) -> &mut SqliteControlPlaneRepository {
@@ -932,6 +1799,26 @@ impl From<CredentialConfiguration> for CredentialView {
     }
 }
 
+impl From<&StoredClientKey> for ClientKeyView {
+    fn from(value: &StoredClientKey) -> Self {
+        Self {
+            id: value.id().clone(),
+            access_group_id: value.access_group_id().clone(),
+            prefix: value.prefix().to_owned(),
+            status: value.status(),
+            expires_at_ms: value.expires_at_ms(),
+        }
+    }
+}
+
+const fn issued_client_key_status(value: StoredClientKeyStatus) -> IssuedClientKeyStatus {
+    match value {
+        StoredClientKeyStatus::Active => IssuedClientKeyStatus::Active,
+        StoredClientKeyStatus::Disabled => IssuedClientKeyStatus::Disabled,
+        StoredClientKeyStatus::Revoked => IssuedClientKeyStatus::Revoked,
+    }
+}
+
 impl fmt::Debug for ManagementMutationService {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
@@ -953,6 +1840,10 @@ pub enum ManagementResourceError {
     ControlPlane(ControlPlaneServiceError),
     /// The management clock could not safely provide an audit timestamp.
     Clock(ManagementClockError),
+    /// The injected Client Key issuer could not safely create a Key.
+    ClientKey(ClientKeyError),
+    /// This embedding did not explicitly provide a management-time Client Key issuer.
+    ClientKeyIssuerUnavailable,
     /// The selected Config Version was absent.
     ConfigVersionNotFound,
     /// The selected Version-scoped resource was absent.
@@ -974,6 +1865,12 @@ impl fmt::Display for ManagementResourceError {
                 write!(formatter, "management credential boundary failed: {error}")
             }
             Self::Clock(error) => write!(formatter, "management clock failed: {error}"),
+            Self::ClientKey(error) => {
+                write!(formatter, "management client key issuance failed: {error}")
+            }
+            Self::ClientKeyIssuerUnavailable => {
+                formatter.write_str("management client key issuer is unavailable")
+            }
             Self::ConfigVersionNotFound => {
                 formatter.write_str("management Config Version was not found")
             }
@@ -995,10 +1892,12 @@ impl Error for ManagementResourceError {
             Self::SecretStore(error) => Some(error),
             Self::ControlPlane(error) => Some(error),
             Self::Clock(error) => Some(error),
+            Self::ClientKey(error) => Some(error),
             Self::ConfigVersionNotFound
             | Self::ResourceNotFound
             | Self::InvalidRevision
-            | Self::InvalidCredentialInput => None,
+            | Self::InvalidCredentialInput
+            | Self::ClientKeyIssuerUnavailable => None,
         }
     }
 }
@@ -1027,18 +1926,31 @@ impl From<ManagementClockError> for ManagementResourceError {
     }
 }
 
+impl From<ClientKeyError> for ManagementResourceError {
+    fn from(value: ClientKeyError) -> Self {
+        Self::ClientKey(value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{error::Error, sync::Arc};
 
-    use gateway_core::{CredentialId, EgressPolicyId, EndpointId, UpstreamId};
+    use gateway_auth::client_key::{ClientKeyPepper, ClientKeyService};
+    use gateway_core::{
+        AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, PublicModelId,
+        RouteCandidateId, RouteId, UpstreamId,
+    };
     use gateway_store::{
         StoreError,
         control_plane::{
+            AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus,
             ConfigVersion, ConfigVersionId, ConfigVersionStatus, ControlPlaneConfiguration,
-            CredentialStatus, EgressPolicyConfiguration, EndpointConfiguration,
-            EndpointCredentialBindingConfiguration, EndpointTransport,
-            SqliteControlPlaneRepository, StoredEgressRedirectMode, UpstreamConfiguration,
+            CredentialScope, CredentialStatus, EgressPolicyConfiguration, EndpointConfiguration,
+            EndpointCredentialBindingConfiguration, EndpointTransport, ModelAliasConfiguration,
+            ModelRouteConfiguration, PublicModelConfiguration, RouteCandidateConfiguration,
+            RoutePolicy, SqliteControlPlaneRepository, StoredClientKeyStatus,
+            StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
         },
         secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore},
     };
@@ -1046,8 +1958,8 @@ mod tests {
     use crate::management_service::{ManagementActor, ManagementClock, ManagementClockError};
 
     use super::{
-        ConfigRevision, CredentialUpsert, CredentialView, ManagementMutationService,
-        ManagementResourceError, Revisioned,
+        ClientKeyIssue, ClientKeyUpdate, ConfigRevision, CredentialUpsert, CredentialView,
+        ManagementMutationService, ManagementResourceError, Revisioned,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -1112,6 +2024,210 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn routing_graph_and_client_key_lifecycle_are_atomic_and_redacted() -> TestResult {
+        let (mut service, version_id, actor) = test_service_with_client_key_issuer()?;
+        let revision = create_minimax_routing_graph(&mut service, &actor, &version_id)?;
+        let revision =
+            issue_and_assert_redacted_client_key(&mut service, &actor, &version_id, revision)?;
+        update_revoke_and_assert_graph_cascade(&mut service, &actor, &version_id, revision)
+    }
+
+    fn create_minimax_routing_graph(
+        service: &mut ManagementMutationService,
+        actor: &ManagementActor,
+        version_id: &ConfigVersionId,
+    ) -> Result<ConfigRevision, Box<dyn Error>> {
+        let policy = create_egress_policy(service, actor, version_id)?;
+        let upstream = create_upstream(service, actor, version_id, policy.revision())?;
+        let endpoint = create_endpoint(service, actor, version_id, upstream.revision())?;
+        let credential = create_credential(service, actor, version_id, endpoint.revision())?;
+        let binding = create_binding(service, actor, version_id, credential.revision())?;
+
+        let public_model = service.create_public_model(
+            actor,
+            version_id,
+            binding.revision(),
+            PublicModelConfiguration {
+                id: PublicModelId::try_new("model-minimax-m3")?,
+                model_name: "minimax-m3".to_owned(),
+                status: AdministrativeStatus::Active,
+                display_name: "MiniMax M3".to_owned(),
+                capabilities_json: "{}".to_owned(),
+            },
+        )?;
+        let alias = service.create_model_alias(
+            actor,
+            version_id,
+            public_model.revision(),
+            ModelAliasConfiguration {
+                alias: "minimax-m3-latest".to_owned(),
+                public_model_id: PublicModelId::try_new("model-minimax-m3")?,
+            },
+        )?;
+        let route = service.create_model_route(
+            actor,
+            version_id,
+            alias.revision(),
+            ModelRouteConfiguration {
+                id: RouteId::try_new("route-minimax-m3")?,
+                public_model_id: PublicModelId::try_new("model-minimax-m3")?,
+                policy: RoutePolicy::SmoothWeightedRoundRobin,
+                max_attempts: 2,
+                bootstrap_timeout_ms: 2_000,
+            },
+        )?;
+        let candidate = service.create_route_candidate(
+            actor,
+            version_id,
+            route.revision(),
+            RouteCandidateConfiguration {
+                id: RouteCandidateId::try_new("candidate-minimax-m3")?,
+                route_id: RouteId::try_new("route-minimax-m3")?,
+                endpoint_id: EndpointId::try_new("endpoint-a")?,
+                upstream_model: "minimax-m3-upstream".to_owned(),
+                credential_scope: CredentialScope::EndpointBindings,
+                transform_mode: TransformMode::Canonical,
+                enabled: true,
+                priority: 0,
+                weight: 100,
+                capability_override_json: "{}".to_owned(),
+            },
+        )?;
+        let access_group = service.create_access_group(
+            actor,
+            version_id,
+            candidate.revision(),
+            AccessGroupConfiguration {
+                id: AccessGroupId::try_new("group-minimax")?,
+                name: "MiniMax users".to_owned(),
+                status: AdministrativeStatus::Active,
+                limits_json: "{}".to_owned(),
+            },
+        )?;
+        let grant = service.create_access_group_route(
+            actor,
+            version_id,
+            access_group.revision(),
+            AccessGroupRouteConfiguration {
+                access_group_id: AccessGroupId::try_new("group-minimax")?,
+                route_id: RouteId::try_new("route-minimax-m3")?,
+                enabled: true,
+            },
+        )?;
+        Ok(grant.revision())
+    }
+
+    fn issue_and_assert_redacted_client_key(
+        service: &mut ManagementMutationService,
+        actor: &ManagementActor,
+        version_id: &ConfigVersionId,
+        revision: ConfigRevision,
+    ) -> Result<ConfigRevision, Box<dyn Error>> {
+        let issued = service.issue_client_key(
+            actor,
+            version_id,
+            revision,
+            ClientKeyIssue {
+                id: ClientKeyId::try_new("client-minimax")?,
+                access_group_id: AccessGroupId::try_new("group-minimax")?,
+                status: StoredClientKeyStatus::Active,
+                expires_at_ms: Some(10_000),
+            },
+        )?;
+        let presented_key = issued.value().presented_key().to_owned();
+        assert!(presented_key.starts_with("rgw_"));
+        assert!(!format!("{:?}", issued.value()).contains(&presented_key));
+        assert_eq!(issued.revision().as_i64(), 12);
+
+        let listed = service.list_client_keys(version_id)?;
+        assert_eq!(listed.revision(), issued.revision());
+        assert_eq!(listed.value().len(), 1);
+        assert!(!format!("{:?}", listed.value()).contains(&presented_key));
+        let stored = service
+            .repository_mut()
+            .load_configuration(version_id)?
+            .ok_or("missing configuration")?;
+        assert_eq!(stored.client_keys.len(), 1);
+        assert_eq!(stored.client_keys[0].secret_digest().len(), 32);
+        assert!(!format!("{:?}", stored.client_keys[0]).contains(&presented_key));
+
+        let duplicate = service.issue_client_key(
+            actor,
+            version_id,
+            issued.revision(),
+            ClientKeyIssue {
+                id: ClientKeyId::try_new("client-minimax")?,
+                access_group_id: AccessGroupId::try_new("group-minimax")?,
+                status: StoredClientKeyStatus::Active,
+                expires_at_ms: None,
+            },
+        );
+        assert!(matches!(duplicate, Err(ManagementResourceError::Store(_))));
+        assert_eq!(
+            service.list_client_keys(version_id)?.revision(),
+            issued.revision()
+        );
+        Ok(issued.revision())
+    }
+
+    fn update_revoke_and_assert_graph_cascade(
+        service: &mut ManagementMutationService,
+        actor: &ManagementActor,
+        version_id: &ConfigVersionId,
+        revision: ConfigRevision,
+    ) -> TestResult {
+        let updated = service.update_client_key(
+            actor,
+            version_id,
+            revision,
+            &ClientKeyId::try_new("client-minimax")?,
+            ClientKeyUpdate {
+                access_group_id: AccessGroupId::try_new("group-minimax")?,
+                status: StoredClientKeyStatus::Disabled,
+                expires_at_ms: Some(20_000),
+            },
+        )?;
+        assert_eq!(updated.value().status, StoredClientKeyStatus::Disabled);
+        assert_eq!(updated.value().expires_at_ms, Some(20_000));
+        let revoked = service.revoke_client_key(
+            actor,
+            version_id,
+            updated.revision(),
+            &ClientKeyId::try_new("client-minimax")?,
+        )?;
+        assert_eq!(revoked.as_i64(), 14);
+        assert_eq!(
+            service
+                .get_client_key(version_id, &ClientKeyId::try_new("client-minimax")?)?
+                .value()
+                .status,
+            StoredClientKeyStatus::Revoked
+        );
+
+        let deleted_route = service.delete_model_route(
+            actor,
+            version_id,
+            revoked,
+            &RouteId::try_new("route-minimax-m3")?,
+        )?;
+        assert!(
+            service
+                .list_access_group_routes(version_id, &AccessGroupId::try_new("group-minimax")?)?
+                .value()
+                .is_empty()
+        );
+        let deleted_group = service.delete_access_group(
+            actor,
+            version_id,
+            deleted_route,
+            &AccessGroupId::try_new("group-minimax")?,
+        )?;
+        assert_eq!(deleted_group.as_i64(), 16);
+        assert!(service.list_client_keys(version_id)?.value().is_empty());
+        Ok(())
+    }
+
     fn test_service()
     -> Result<(ManagementMutationService, ConfigVersionId, ManagementActor), Box<dyn Error>> {
         let version_id = ConfigVersionId::try_new("draft-a")?;
@@ -1133,6 +2249,34 @@ mod tests {
             repository,
             SecretStore::new(key_ring),
             Arc::new(FixedClock),
+        );
+        let actor = ManagementActor::try_new("management-key")?;
+        Ok((service, version_id, actor))
+    }
+
+    fn test_service_with_client_key_issuer()
+    -> Result<(ManagementMutationService, ConfigVersionId, ManagementActor), Box<dyn Error>> {
+        let version_id = ConfigVersionId::try_new("draft-routing")?;
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        repository.write_configuration(&ControlPlaneConfiguration::new(ConfigVersion {
+            id: version_id.clone(),
+            parent_id: None,
+            status: ConfigVersionStatus::Draft,
+            revision: 0,
+            created_at_ms: 1,
+            description: "routing mutation test".to_owned(),
+        }))?;
+        let key_version = KeyVersion::try_new(1)?;
+        let key_ring = MasterKeyRing::try_new(
+            key_version,
+            [(key_version, MasterKey::try_from_bytes([0x72_u8; 32])?)],
+        )?;
+        let issuer = ClientKeyService::new(ClientKeyPepper::try_from_bytes([0x51_u8; 32])?);
+        let service = ManagementMutationService::with_clock_and_client_key_service(
+            repository,
+            SecretStore::new(key_ring),
+            Arc::new(FixedClock),
+            Some(issuer),
         );
         let actor = ManagementActor::try_new("management-key")?;
         Ok((service, version_id, actor))

@@ -1,4 +1,4 @@
-//! Protected versioned management resource handlers for P10-04.
+//! Protected versioned management resource handlers for P10-04 and P10-05.
 //!
 //! These handlers decode only bounded explicit resource shapes and delegate every durable graph
 //! mutation to `gateway-control`. They never publish a Snapshot, invoke a Provider, expose a
@@ -12,12 +12,19 @@ use actix_web::{
     web,
 };
 use gateway_control::management_mutation_service::{
-    ConfigRevision, ConfigVersionId, CredentialStatus, CredentialUpsert, CredentialView,
-    EgressPolicyConfiguration, EndpointConfiguration, EndpointCredentialBindingConfiguration,
-    EndpointTransport, ManagementMutationService, ManagementResourceError, Revisioned, StoreError,
-    StoredEgressRedirectMode, UpstreamConfiguration,
+    AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus, ClientKeyIssue,
+    ClientKeyUpdate, ClientKeyView, ConfigRevision, ConfigVersionId, CredentialScope,
+    CredentialStatus, CredentialUpsert, CredentialView, EgressPolicyConfiguration,
+    EndpointConfiguration, EndpointCredentialBindingConfiguration, EndpointTransport,
+    ManagementMutationService, ManagementResourceError, ManagementRouteValidation,
+    ModelAliasConfiguration, ModelRouteConfiguration, PublicModelConfiguration, Revisioned,
+    RouteCandidateConfiguration, RoutePolicy, StoreError, StoredClientKeyStatus,
+    StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
 };
-use gateway_core::{CredentialId, EgressPolicyId, EndpointId, UpstreamId};
+use gateway_core::{
+    AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, PublicModelId,
+    RouteCandidateId, RouteId, UpstreamId,
+};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use zeroize::Zeroizing;
 
@@ -250,6 +257,11 @@ pub fn configure_management_resources(config: &mut web::ServiceConfig) {
 }
 
 fn resource_routes(config: &mut web::ServiceConfig) {
+    configure_upstream_resource_routes(config);
+    configure_routing_resource_routes(config);
+}
+
+fn configure_upstream_resource_routes(config: &mut web::ServiceConfig) {
     config
         .route("/egress-policies", web::get().to(list_egress_policies))
         .route("/egress-policies", web::post().to(create_egress_policy))
@@ -333,6 +345,79 @@ fn resource_routes(config: &mut web::ServiceConfig) {
         );
 }
 
+fn configure_routing_resource_routes(config: &mut web::ServiceConfig) {
+    config
+        .route("/public-models", web::get().to(list_public_models))
+        .route("/public-models", web::post().to(create_public_model))
+        .route(
+            "/public-models/{public_model_id}",
+            web::get().to(get_public_model),
+        )
+        .route(
+            "/public-models/{public_model_id}",
+            web::patch().to(update_public_model),
+        )
+        .route(
+            "/public-models/{public_model_id}",
+            web::delete().to(delete_public_model),
+        )
+        .route(
+            "/public-models/{public_model_id}/aliases",
+            web::post().to(create_model_alias),
+        )
+        .route(
+            "/public-models/{public_model_id}/routes",
+            web::post().to(create_model_route),
+        )
+        .route("/routes/{route_id}", web::get().to(get_model_route))
+        .route("/routes/{route_id}", web::patch().to(update_model_route))
+        .route("/routes/{route_id}", web::delete().to(delete_model_route))
+        .route(
+            "/routes/{route_id}/candidates",
+            web::post().to(create_route_candidate),
+        )
+        .route(
+            "/routes/{route_id}/validate",
+            web::post().to(validate_model_route),
+        )
+        .route("/access-groups", web::get().to(list_access_groups))
+        .route("/access-groups", web::post().to(create_access_group))
+        .route(
+            "/access-groups/{access_group_id}",
+            web::get().to(get_access_group),
+        )
+        .route(
+            "/access-groups/{access_group_id}",
+            web::patch().to(update_access_group),
+        )
+        .route(
+            "/access-groups/{access_group_id}",
+            web::delete().to(delete_access_group),
+        )
+        .route(
+            "/access-groups/{access_group_id}/routes",
+            web::get().to(list_access_group_routes),
+        )
+        .route(
+            "/access-groups/{access_group_id}/routes",
+            web::post().to(create_access_group_route),
+        )
+        .route("/client-keys", web::get().to(list_client_keys))
+        .route("/client-keys", web::post().to(issue_client_key))
+        .route(
+            "/client-keys/{client_key_id}",
+            web::get().to(get_client_key),
+        )
+        .route(
+            "/client-keys/{client_key_id}",
+            web::patch().to(update_client_key),
+        )
+        .route(
+            "/client-keys/{client_key_id}",
+            web::delete().to(revoke_client_key),
+        );
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct EgressPolicyInput {
@@ -393,6 +478,70 @@ struct BindingInput {
 #[serde(deny_unknown_fields)]
 struct EndpointTestInput {
     mode: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PublicModelInput {
+    id: String,
+    model_name: String,
+    status: String,
+    display_name: String,
+    capabilities: BTreeMap<String, bool>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AliasInput {
+    alias: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RouteInput {
+    id: String,
+    policy: String,
+    max_attempts: i64,
+    bootstrap_timeout_ms: i64,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CandidateInput {
+    id: String,
+    endpoint_id: String,
+    upstream_model: String,
+    credential_scope: String,
+    transform_mode: String,
+    enabled: bool,
+    priority: i64,
+    weight: i64,
+    capability_override: BTreeMap<String, bool>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AccessGroupInput {
+    id: String,
+    name: String,
+    status: String,
+    limits: BTreeMap<String, i64>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AccessGroupRouteInput {
+    route_id: String,
+    enabled: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ClientKeyInput {
+    id: String,
+    access_group_id: String,
+    status: String,
+    expires_at_ms: Option<i64>,
 }
 
 #[derive(Serialize)]
@@ -470,6 +619,84 @@ struct CredentialOAuthResponse {
     credential_id: String,
     state: &'static str,
     expires_at_ms: Option<i64>,
+}
+
+#[derive(Serialize)]
+struct PublicModelResponse {
+    id: String,
+    model_name: String,
+    status: &'static str,
+    display_name: String,
+    capabilities: BTreeMap<String, bool>,
+}
+
+#[derive(Serialize)]
+struct AliasResponse {
+    alias: String,
+    public_model_id: String,
+}
+
+#[derive(Serialize)]
+struct RouteResponse {
+    id: String,
+    public_model_id: String,
+    policy: &'static str,
+    max_attempts: i64,
+    bootstrap_timeout_ms: i64,
+}
+
+#[derive(Serialize)]
+struct CandidateResponse {
+    id: String,
+    route_id: String,
+    endpoint_id: String,
+    upstream_model: String,
+    credential_scope: &'static str,
+    transform_mode: &'static str,
+    enabled: bool,
+    priority: i64,
+    weight: i64,
+    capability_override: BTreeMap<String, bool>,
+}
+
+#[derive(Serialize)]
+struct AccessGroupResponse {
+    id: String,
+    name: String,
+    status: &'static str,
+    limits: BTreeMap<String, i64>,
+}
+
+#[derive(Serialize)]
+struct AccessGroupRouteResponse {
+    access_group_id: String,
+    route_id: String,
+    enabled: bool,
+}
+
+#[derive(Serialize)]
+struct ClientKeyResponse {
+    id: String,
+    access_group_id: String,
+    prefix: String,
+    status: &'static str,
+    expires_at_ms: Option<i64>,
+}
+
+#[derive(Serialize)]
+struct IssuedClientKeyResponse {
+    id: String,
+    access_group_id: String,
+    prefix: String,
+    status: &'static str,
+    expires_at_ms: Option<i64>,
+    key: String,
+}
+
+#[derive(Serialize)]
+struct ValidationResponse {
+    valid: bool,
+    error_codes: Vec<&'static str>,
 }
 
 async fn list_egress_policies(
@@ -1306,6 +1533,695 @@ async fn create_endpoint_credential_binding(
     }
 }
 
+async fn list_public_models(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_public_models(&context.version) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |models| {
+            models
+                .into_iter()
+                .map(PublicModelResponse::from)
+                .collect::<Vec<_>>()
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_public_model(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let public_model = match parse_json::<PublicModelInput>(&body).and_then(public_model) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_public_model(&actor, &context.version, context.revision, public_model) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, PublicModelResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_public_model(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = PublicModelId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.get_public_model(&context.version, &id) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, PublicModelResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn update_public_model(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let path_id = path.into_inner();
+    let input = match parse_json::<PublicModelInput>(&body) {
+        Ok(input) if input.id == path_id => input,
+        Ok(_) | Err(_) => return invalid_input(),
+    };
+    let public_model = match public_model(input) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.update_public_model(&actor, &context.version, context.revision, public_model) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, PublicModelResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn delete_public_model(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = PublicModelId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.delete_public_model(&actor, &context.version, context.revision, &id) {
+        Ok(revision) => empty_with_revision(revision),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_model_alias(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(public_model_id) = PublicModelId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let input = match parse_json::<AliasInput>(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let alias = match model_alias(input, public_model_id) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_model_alias(&actor, &context.version, context.revision, alias) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, AliasResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_model_route(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(public_model_id) = PublicModelId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let input = match parse_json::<RouteInput>(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let route = match model_route(input, public_model_id) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_model_route(&actor, &context.version, context.revision, route) {
+        Ok(value) => revisioned_route_json(StatusCode::CREATED, value),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_model_route(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = RouteId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.get_model_route(&context.version, &id) {
+        Ok(value) => revisioned_route_json(StatusCode::OK, value),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn update_model_route(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(route_id) = RouteId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let input = match parse_json::<RouteInput>(&body) {
+        Ok(input) if input.id == route_id.as_str() => input,
+        Ok(_) | Err(_) => return invalid_input(),
+    };
+    let existing = {
+        let mut service = match service(&state) {
+            Ok(service) => service,
+            Err(response) => return response,
+        };
+        match service.get_model_route(&context.version, &route_id) {
+            Ok(value) => value,
+            Err(error) => return management_error(error),
+        }
+    };
+    let route = match model_route(input, existing.value().public_model_id.clone()) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.update_model_route(&actor, &context.version, context.revision, route) {
+        Ok(value) => revisioned_route_json(StatusCode::OK, value),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn delete_model_route(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(route_id) = RouteId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.delete_model_route(&actor, &context.version, context.revision, &route_id) {
+        Ok(revision) => empty_with_revision(revision),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_route_candidate(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(route_id) = RouteId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let input = match parse_json::<CandidateInput>(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let candidate = match route_candidate(input, route_id) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_route_candidate(&actor, &context.version, context.revision, candidate) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, CandidateResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn validate_model_route(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(route_id) = RouteId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.validate_model_route(&context.version, &route_id) {
+        Ok(value) => HttpResponse::Ok().json(ValidationResponse::from(value)),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn list_access_groups(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_access_groups(&context.version) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |groups| {
+            groups
+                .into_iter()
+                .map(AccessGroupResponse::from)
+                .collect::<Vec<_>>()
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_access_group(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let access_group = match parse_json::<AccessGroupInput>(&body).and_then(access_group) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_access_group(&actor, &context.version, context.revision, access_group) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, AccessGroupResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_access_group(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = AccessGroupId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.get_access_group(&context.version, &id) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, AccessGroupResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn update_access_group(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let path_id = path.into_inner();
+    let input = match parse_json::<AccessGroupInput>(&body) {
+        Ok(input) if input.id == path_id => input,
+        Ok(_) | Err(_) => return invalid_input(),
+    };
+    let access_group = match access_group(input) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.update_access_group(&actor, &context.version, context.revision, access_group) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, AccessGroupResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn delete_access_group(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = AccessGroupId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.delete_access_group(&actor, &context.version, context.revision, &id) {
+        Ok(revision) => empty_with_revision(revision),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn list_access_group_routes(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(access_group_id) = AccessGroupId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_access_group_routes(&context.version, &access_group_id) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |grants| {
+            grants
+                .into_iter()
+                .map(AccessGroupRouteResponse::from)
+                .collect::<Vec<_>>()
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_access_group_route(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(access_group_id) = AccessGroupId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let input = match parse_json::<AccessGroupRouteInput>(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let grant = match access_group_route(input, access_group_id) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_access_group_route(&actor, &context.version, context.revision, grant) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, AccessGroupRouteResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn list_client_keys(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_client_keys(&context.version) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |keys| {
+            keys.into_iter()
+                .map(ClientKeyResponse::from)
+                .collect::<Vec<_>>()
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn issue_client_key(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let input = match parse_json::<ClientKeyInput>(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let input = match client_key_issue(input) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.issue_client_key(&actor, &context.version, context.revision, input) {
+        Ok(value) => {
+            let (issued, revision) = value.into_parts();
+            let response =
+                IssuedClientKeyResponse::new(issued.metadata(), issued.presented_key().to_owned());
+            response_with_revision(StatusCode::CREATED, revision, response)
+        }
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_client_key(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(client_key_id) = ClientKeyId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.get_client_key(&context.version, &client_key_id) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, ClientKeyResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn update_client_key(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let path_id = path.into_inner();
+    let input = match parse_json::<ClientKeyInput>(&body) {
+        Ok(input) if input.id == path_id => input,
+        Ok(_) | Err(_) => return invalid_input(),
+    };
+    let (client_key_id, input) = match client_key_update(input) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.update_client_key(
+        &actor,
+        &context.version,
+        context.revision,
+        &client_key_id,
+        input,
+    ) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, ClientKeyResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn revoke_client_key(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(client_key_id) = ClientKeyId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.revoke_client_key(&actor, &context.version, context.revision, &client_key_id) {
+        Ok(revision) => empty_with_revision(revision),
+        Err(error) => management_error(error),
+    }
+}
+
 struct ReadContext {
     version: ConfigVersionId,
 }
@@ -1536,6 +2452,182 @@ fn binding(
     })
 }
 
+fn public_model(input: PublicModelInput) -> Result<PublicModelConfiguration, HttpResponse> {
+    bounded_boolean_map(&input.capabilities, 32)?;
+    Ok(PublicModelConfiguration {
+        id: PublicModelId::try_new(input.id).map_err(|_| invalid_input())?,
+        model_name: bounded_text(input.model_name, 256)?,
+        status: administrative_status(&input.status)?,
+        display_name: bounded_text(input.display_name, 256)?,
+        capabilities_json: json_string(input.capabilities)?,
+    })
+}
+
+fn model_alias(
+    input: AliasInput,
+    public_model_id: PublicModelId,
+) -> Result<ModelAliasConfiguration, HttpResponse> {
+    Ok(ModelAliasConfiguration {
+        alias: bounded_text(input.alias, 256)?,
+        public_model_id,
+    })
+}
+
+fn model_route(
+    input: RouteInput,
+    public_model_id: PublicModelId,
+) -> Result<ModelRouteConfiguration, HttpResponse> {
+    if input.max_attempts <= 0
+        || input.max_attempts > 16
+        || input.bootstrap_timeout_ms <= 0
+        || input.bootstrap_timeout_ms > 120_000
+        || input.policy != "smooth_weighted_round_robin"
+    {
+        return Err(invalid_input());
+    }
+    Ok(ModelRouteConfiguration {
+        id: RouteId::try_new(input.id).map_err(|_| invalid_input())?,
+        public_model_id,
+        policy: RoutePolicy::SmoothWeightedRoundRobin,
+        max_attempts: input.max_attempts,
+        bootstrap_timeout_ms: input.bootstrap_timeout_ms,
+    })
+}
+
+fn route_candidate(
+    input: CandidateInput,
+    route_id: RouteId,
+) -> Result<RouteCandidateConfiguration, HttpResponse> {
+    if input.priority < 0 || !(1..=10_000).contains(&input.weight) {
+        return Err(invalid_input());
+    }
+    bounded_boolean_map(&input.capability_override, 32)?;
+    let transform_mode = match input.transform_mode.as_str() {
+        "passthrough" => TransformMode::Passthrough,
+        "canonical" => TransformMode::Canonical,
+        "lossless_bridge" => TransformMode::LosslessBridge,
+        _ => return Err(invalid_input()),
+    };
+    if input.credential_scope != "all_active" {
+        return Err(invalid_input());
+    }
+    Ok(RouteCandidateConfiguration {
+        id: RouteCandidateId::try_new(input.id).map_err(|_| invalid_input())?,
+        route_id,
+        endpoint_id: EndpointId::try_new(input.endpoint_id).map_err(|_| invalid_input())?,
+        upstream_model: bounded_text(input.upstream_model, 256)?,
+        credential_scope: CredentialScope::EndpointBindings,
+        transform_mode,
+        enabled: input.enabled,
+        priority: input.priority,
+        weight: input.weight,
+        capability_override_json: json_string(input.capability_override)?,
+    })
+}
+
+fn access_group(input: AccessGroupInput) -> Result<AccessGroupConfiguration, HttpResponse> {
+    if input.limits.len() > 16
+        || input
+            .limits
+            .iter()
+            .any(|(key, value)| key.trim().is_empty() || key.chars().count() > 128 || *value < 0)
+    {
+        return Err(invalid_input());
+    }
+    Ok(AccessGroupConfiguration {
+        id: AccessGroupId::try_new(input.id).map_err(|_| invalid_input())?,
+        name: bounded_text(input.name, 256)?,
+        status: administrative_status(&input.status)?,
+        limits_json: json_string(input.limits)?,
+    })
+}
+
+fn access_group_route(
+    input: AccessGroupRouteInput,
+    access_group_id: AccessGroupId,
+) -> Result<AccessGroupRouteConfiguration, HttpResponse> {
+    Ok(AccessGroupRouteConfiguration {
+        access_group_id,
+        route_id: RouteId::try_new(input.route_id).map_err(|_| invalid_input())?,
+        enabled: input.enabled,
+    })
+}
+
+fn client_key_parts(
+    input: ClientKeyInput,
+) -> Result<
+    (
+        ClientKeyId,
+        AccessGroupId,
+        StoredClientKeyStatus,
+        Option<i64>,
+    ),
+    HttpResponse,
+> {
+    if input.expires_at_ms.is_some_and(|value| value < 0) {
+        return Err(invalid_input());
+    }
+    let status = match input.status.as_str() {
+        "active" => StoredClientKeyStatus::Active,
+        "disabled" => StoredClientKeyStatus::Disabled,
+        "revoked" => StoredClientKeyStatus::Revoked,
+        _ => return Err(invalid_input()),
+    };
+    Ok((
+        ClientKeyId::try_new(input.id).map_err(|_| invalid_input())?,
+        AccessGroupId::try_new(input.access_group_id).map_err(|_| invalid_input())?,
+        status,
+        input.expires_at_ms,
+    ))
+}
+
+fn client_key_issue(input: ClientKeyInput) -> Result<ClientKeyIssue, HttpResponse> {
+    let (id, access_group_id, status, expires_at_ms) = client_key_parts(input)?;
+    Ok(ClientKeyIssue {
+        id,
+        access_group_id,
+        status,
+        expires_at_ms,
+    })
+}
+
+fn client_key_update(
+    input: ClientKeyInput,
+) -> Result<(ClientKeyId, ClientKeyUpdate), HttpResponse> {
+    let (id, access_group_id, status, expires_at_ms) = client_key_parts(input)?;
+    Ok((
+        id,
+        ClientKeyUpdate {
+            access_group_id,
+            status,
+            expires_at_ms,
+        },
+    ))
+}
+
+fn administrative_status(value: &str) -> Result<AdministrativeStatus, HttpResponse> {
+    match value {
+        "active" => Ok(AdministrativeStatus::Active),
+        "disabled" => Ok(AdministrativeStatus::Disabled),
+        _ => Err(invalid_input()),
+    }
+}
+
+fn bounded_boolean_map(
+    values: &BTreeMap<String, bool>,
+    maximum_entries: usize,
+) -> Result<(), HttpResponse> {
+    if values.len() > maximum_entries
+        || values
+            .keys()
+            .any(|key| key.trim().is_empty() || key.chars().count() > 128)
+    {
+        Err(invalid_input())
+    } else {
+        Ok(())
+    }
+}
+
 fn endpoint_test_mode(value: &str) -> Result<ManagementEndpointTestMode, HttpResponse> {
     match value {
         "non_streaming" => Ok(ManagementEndpointTestMode::NonStreaming),
@@ -1565,6 +2657,19 @@ fn revisioned_json<T, U: Serialize>(
     HttpResponse::build(status)
         .insert_header((header::ETAG, format!("\"{}\"", revision.as_token())))
         .json(convert(resource))
+}
+
+/// Serializes the P10-05 Route contract only when the stored policy is representable by its
+/// frozen single-policy `OpenAPI` enum. Older stored policies must not be silently reclassified.
+fn revisioned_route_json(
+    status: StatusCode,
+    value: Revisioned<ModelRouteConfiguration>,
+) -> HttpResponse {
+    let (route, revision) = value.into_parts();
+    match RouteResponse::try_from(route) {
+        Ok(response) => response_with_revision(status, revision, response),
+        Err(UnsupportedRoutePolicy) => internal_error(),
+    }
 }
 
 fn response_with_revision<T: Serialize>(
@@ -1613,7 +2718,9 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
         ManagementResourceError::Store(_)
         | ManagementResourceError::SecretStore(_)
         | ManagementResourceError::ControlPlane(_)
-        | ManagementResourceError::Clock(_) => internal_error(),
+        | ManagementResourceError::Clock(_)
+        | ManagementResourceError::ClientKey(_)
+        | ManagementResourceError::ClientKeyIssuerUnavailable => internal_error(),
     };
     drop(error);
     response
@@ -1637,6 +2744,135 @@ fn error_response(status: StatusCode, code: &'static str, message: &'static str)
     HttpResponse::build(status)
         .insert_header((header::CACHE_CONTROL, "no-store"))
         .json(serde_json::json!({"error":{"code":code,"message":message}}))
+}
+
+impl From<PublicModelConfiguration> for PublicModelResponse {
+    fn from(value: PublicModelConfiguration) -> Self {
+        Self {
+            id: value.id.as_str().to_owned(),
+            model_name: value.model_name,
+            status: administrative_status_response(value.status),
+            display_name: value.display_name,
+            capabilities: json_array(&value.capabilities_json),
+        }
+    }
+}
+impl From<ModelAliasConfiguration> for AliasResponse {
+    fn from(value: ModelAliasConfiguration) -> Self {
+        Self {
+            alias: value.alias,
+            public_model_id: value.public_model_id.as_str().to_owned(),
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct UnsupportedRoutePolicy;
+
+impl TryFrom<ModelRouteConfiguration> for RouteResponse {
+    type Error = UnsupportedRoutePolicy;
+
+    fn try_from(value: ModelRouteConfiguration) -> Result<Self, Self::Error> {
+        let policy = match value.policy {
+            RoutePolicy::SmoothWeightedRoundRobin => "smooth_weighted_round_robin",
+            RoutePolicy::RoundRobin | RoutePolicy::PriorityFailover => {
+                return Err(UnsupportedRoutePolicy);
+            }
+        };
+        Ok(Self {
+            id: value.id.as_str().to_owned(),
+            public_model_id: value.public_model_id.as_str().to_owned(),
+            policy,
+            max_attempts: value.max_attempts,
+            bootstrap_timeout_ms: value.bootstrap_timeout_ms,
+        })
+    }
+}
+impl From<RouteCandidateConfiguration> for CandidateResponse {
+    fn from(value: RouteCandidateConfiguration) -> Self {
+        Self {
+            id: value.id.as_str().to_owned(),
+            route_id: value.route_id.as_str().to_owned(),
+            endpoint_id: value.endpoint_id.as_str().to_owned(),
+            upstream_model: value.upstream_model,
+            credential_scope: match value.credential_scope {
+                CredentialScope::EndpointBindings => "all_active",
+            },
+            transform_mode: match value.transform_mode {
+                TransformMode::Passthrough => "passthrough",
+                TransformMode::Canonical => "canonical",
+                TransformMode::LosslessBridge => "lossless_bridge",
+            },
+            enabled: value.enabled,
+            priority: value.priority,
+            weight: value.weight,
+            capability_override: json_array(&value.capability_override_json),
+        }
+    }
+}
+impl From<AccessGroupConfiguration> for AccessGroupResponse {
+    fn from(value: AccessGroupConfiguration) -> Self {
+        Self {
+            id: value.id.as_str().to_owned(),
+            name: value.name,
+            status: administrative_status_response(value.status),
+            limits: json_array(&value.limits_json),
+        }
+    }
+}
+impl From<AccessGroupRouteConfiguration> for AccessGroupRouteResponse {
+    fn from(value: AccessGroupRouteConfiguration) -> Self {
+        Self {
+            access_group_id: value.access_group_id.as_str().to_owned(),
+            route_id: value.route_id.as_str().to_owned(),
+            enabled: value.enabled,
+        }
+    }
+}
+impl From<ClientKeyView> for ClientKeyResponse {
+    fn from(value: ClientKeyView) -> Self {
+        Self {
+            id: value.id.as_str().to_owned(),
+            access_group_id: value.access_group_id.as_str().to_owned(),
+            prefix: value.prefix,
+            status: client_key_status_response(value.status),
+            expires_at_ms: value.expires_at_ms,
+        }
+    }
+}
+impl IssuedClientKeyResponse {
+    fn new(metadata: &ClientKeyView, key: String) -> Self {
+        Self {
+            id: metadata.id.as_str().to_owned(),
+            access_group_id: metadata.access_group_id.as_str().to_owned(),
+            prefix: metadata.prefix.clone(),
+            status: client_key_status_response(metadata.status),
+            expires_at_ms: metadata.expires_at_ms,
+            key,
+        }
+    }
+}
+impl From<ManagementRouteValidation> for ValidationResponse {
+    fn from(value: ManagementRouteValidation) -> Self {
+        Self {
+            valid: value.valid,
+            error_codes: value.error_codes,
+        }
+    }
+}
+
+const fn administrative_status_response(value: AdministrativeStatus) -> &'static str {
+    match value {
+        AdministrativeStatus::Active => "active",
+        AdministrativeStatus::Disabled => "disabled",
+    }
+}
+
+const fn client_key_status_response(value: StoredClientKeyStatus) -> &'static str {
+    match value {
+        StoredClientKeyStatus::Active => "active",
+        StoredClientKeyStatus::Disabled => "disabled",
+        StoredClientKeyStatus::Revoked => "revoked",
+    }
 }
 
 impl From<EgressPolicyConfiguration> for EgressPolicyResponse {
@@ -1761,4 +2997,36 @@ impl CredentialOAuthResponse {
 fn json_array<T: DeserializeOwned>(value: &str) -> T {
     serde_json::from_str(value)
         .unwrap_or_else(|_| unreachable!("validated storage JSON must decode"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    type TestResult = Result<(), Box<dyn std::error::Error>>;
+
+    fn route_with_policy(
+        policy: RoutePolicy,
+    ) -> Result<ModelRouteConfiguration, gateway_core::InvalidIdentifier> {
+        Ok(ModelRouteConfiguration {
+            id: RouteId::try_new("route-policy")?,
+            public_model_id: PublicModelId::try_new("model-policy")?,
+            policy,
+            max_attempts: 1,
+            bootstrap_timeout_ms: 1_000,
+        })
+    }
+
+    #[test]
+    fn route_response_rejects_legacy_policy_instead_of_relabelling_it() -> TestResult {
+        let supported =
+            RouteResponse::try_from(route_with_policy(RoutePolicy::SmoothWeightedRoundRobin)?)
+                .map_err(|_| std::io::Error::other("frozen P10-05 policy is not representable"))?;
+        assert_eq!(supported.policy, "smooth_weighted_round_robin");
+        assert!(RouteResponse::try_from(route_with_policy(RoutePolicy::RoundRobin)?).is_err());
+        assert!(
+            RouteResponse::try_from(route_with_policy(RoutePolicy::PriorityFailover)?).is_err()
+        );
+        Ok(())
+    }
 }

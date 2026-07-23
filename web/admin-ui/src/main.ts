@@ -1,5 +1,5 @@
 /**
- * P10-04 protected Upstream workspace.
+ * P10-05 protected draft-management workspace.
  *
  * Management authentication values exist only in this module's live closure. The SPA never uses
  * browser storage, URL parameters, request-body previews, or response rendering that exposes a
@@ -12,8 +12,20 @@ import {
   type ManagementRequest,
 } from "./generated/management-client.js";
 
-type ResourceKind = "egress" | "upstream" | "endpoint" | "credential" | "binding";
-type ResourceAction = "list" | "get" | "create" | "update" | "delete";
+type ResourceKind =
+  | "egress"
+  | "upstream"
+  | "endpoint"
+  | "credential"
+  | "binding"
+  | "publicModel"
+  | "modelAlias"
+  | "route"
+  | "candidate"
+  | "accessGroup"
+  | "accessGroupRoute"
+  | "clientKey";
+type ResourceAction = "list" | "get" | "create" | "update" | "delete" | "issue" | "revoke" | "validate";
 
 type InMemorySession = Readonly<{
   managementKey: string;
@@ -29,6 +41,13 @@ const resourceActions: Readonly<Record<ResourceKind, readonly ResourceAction[]>>
   endpoint: ["get", "create", "update", "delete"],
   credential: ["get", "create", "update", "delete"],
   binding: ["list", "create"],
+  publicModel: ["list", "get", "create", "update", "delete"],
+  modelAlias: ["create"],
+  route: ["get", "create", "update", "delete", "validate"],
+  candidate: ["create"],
+  accessGroup: ["list", "get", "create", "update", "delete"],
+  accessGroupRoute: ["list", "create"],
+  clientKey: ["list", "get", "issue", "update", "revoke"],
 };
 
 const resourceTemplates: Readonly<Record<ResourceKind, string>> = {
@@ -93,6 +112,59 @@ const resourceTemplates: Readonly<Record<ResourceKind, string>> = {
     null,
     2,
   ),
+  publicModel: JSON.stringify(
+    {
+      id: "model-minimax-m3",
+      model_name: "minimax-m3",
+      status: "active",
+      display_name: "MiniMax M3",
+      capabilities: { streaming: true },
+    },
+    null,
+    2,
+  ),
+  modelAlias: JSON.stringify({ alias: "minimax-m3-latest" }, null, 2),
+  route: JSON.stringify(
+    {
+      id: "route-minimax-m3",
+      policy: "smooth_weighted_round_robin",
+      max_attempts: 2,
+      bootstrap_timeout_ms: 2000,
+    },
+    null,
+    2,
+  ),
+  candidate: JSON.stringify(
+    {
+      id: "candidate-minimax-m3",
+      endpoint_id: "provider-a-responses",
+      upstream_model: "minimax-m3",
+      credential_scope: "all_active",
+      transform_mode: "canonical",
+      enabled: true,
+      priority: 0,
+      weight: 100,
+      capability_override: {},
+    },
+    null,
+    2,
+  ),
+  accessGroup: JSON.stringify(
+    { id: "group-minimax-m3", name: "MiniMax M3", status: "active", limits: { rpm: 60 } },
+    null,
+    2,
+  ),
+  accessGroupRoute: JSON.stringify({ route_id: "route-minimax-m3", enabled: true }, null, 2),
+  clientKey: JSON.stringify(
+    {
+      id: "client-minimax-m3",
+      access_group_id: "group-minimax-m3",
+      status: "active",
+      expires_at_ms: null,
+    },
+    null,
+    2,
+  ),
 };
 
 function applicationMarkup(): string {
@@ -101,18 +173,18 @@ function applicationMarkup(): string {
       <aside class="sidebar">
         <p class="brand">CPA Rust Gateway<span>Management plane</span></p>
         <nav class="navigation" aria-label="Management sections">
-          <a aria-current="page" href="#upstreams">Upstreams</a>
-          <a aria-disabled="true" href="#routing">Routing</a>
+          <a href="#upstreams">Upstreams</a>
+          <a aria-current="page" href="#routing">Routing and access</a>
           <a aria-disabled="true" href="#runtime">Runtime</a>
           <a aria-disabled="true" href="#configuration">Configuration</a>
         </nav>
-        <p class="sidebar-note">P10-04 only. Later workspaces remain unavailable.</p>
+        <p class="sidebar-note">P10-05 draft controls only. Runtime, publication and recovery workspaces remain unavailable.</p>
       </aside>
-      <main class="content" id="upstreams">
+      <main class="content">
         <header>
-          <p class="eyebrow">P10-04 · protected workspace</p>
-          <h1>Upstreams and credentials</h1>
-          <p class="lead">Manage draft egress policies, upstreams, endpoints, credentials and bindings. Endpoint tests and OAuth actions use only the server-side admitted workflow.</p>
+          <p class="eyebrow">P10-05 · protected draft workspace</p>
+          <h1>Upstreams, routing and access</h1>
+          <p class="lead">Manage draft resources only. Route validation is structural; it does not publish, select a Provider, inspect runtime status or send an inference request.</p>
         </header>
 
         <section class="panel" aria-labelledby="session-heading">
@@ -130,21 +202,25 @@ function applicationMarkup(): string {
           <p class="notice">Keys and CSRF tokens are never written to browser storage, URLs, the result pane or request previews. Refreshing this page clears them.</p>
         </section>
 
-        <section class="panel" aria-labelledby="resource-heading">
-          <div class="panel-heading"><div><p class="eyebrow">Draft resources</p><h2 id="resource-heading">CRUD and binding controls</h2></div></div>
+        <section class="panel" id="upstreams" aria-labelledby="resource-heading">
+          <div class="panel-heading"><div><p class="eyebrow">Draft resources</p><h2 id="resource-heading">CRUD, routing and access controls</h2></div></div>
           <form id="resource-form" class="form-grid" novalidate>
             <label>Resource<select id="resource-kind" name="resource-kind">
               <option value="egress">Egress policy</option><option value="upstream">Upstream</option>
               <option value="endpoint">Endpoint</option><option value="credential">Credential</option>
               <option value="binding">Endpoint credential binding</option>
+              <option value="publicModel">Public model</option><option value="modelAlias">Model alias</option>
+              <option value="route">Route</option><option value="candidate">Route candidate</option>
+              <option value="accessGroup">Access group</option><option value="accessGroupRoute">Access-group route grant</option>
+              <option value="clientKey">Client Key</option>
             </select></label>
             <label>Action<select id="resource-action" name="resource-action"></select></label>
-            <label>Resource ID<input id="resource-id" name="resource-id" autocomplete="off"></label>
-            <label>Owning Upstream ID<input id="upstream-id" name="upstream-id" autocomplete="off"></label>
+            <label id="resource-id-field"><span id="resource-id-label">Resource ID</span><input id="resource-id" name="resource-id" autocomplete="off"></label>
+            <label id="resource-scope-field"><span id="resource-scope-label">Parent resource ID</span><input id="resource-scope-id" name="resource-scope-id" autocomplete="off"></label>
             <label class="wide">Resource JSON<textarea id="resource-json" name="resource-json" rows="13" spellcheck="false"></textarea></label>
             <div class="form-actions"><button type="submit">Run protected operation</button></div>
           </form>
-          <p class="muted">Create or update Credential JSON accepts a Secret once for immediate server-side sealing. Successful responses contain metadata only.</p>
+          <p class="muted" id="routing">Credential Secrets remain write-only. Client Keys are displayed only after a successful issue operation, in a separate transient pane; every other result is metadata only.</p>
         </section>
 
         <section class="panel" aria-labelledby="workflow-heading">
@@ -168,6 +244,12 @@ function applicationMarkup(): string {
         <section class="panel" aria-labelledby="result-heading">
           <div class="panel-heading"><div><p class="eyebrow">Safe result</p><h2 id="result-heading">Operation response</h2></div></div>
           <pre id="operation-result" class="result" aria-live="polite">No operation has run.</pre>
+        </section>
+
+        <section id="issued-client-key-panel" class="panel" aria-labelledby="issued-client-key-heading" hidden>
+          <div class="panel-heading"><div><p class="eyebrow">Display once</p><h2 id="issued-client-key-heading">New Client Key</h2></div><button id="clear-issued-client-key" type="button">Clear now</button></div>
+          <p class="notice">Copy this Client Key now. It is never available from a later read, list, update or revoke result, and the page clears it before every subsequent operation or reload.</p>
+          <pre id="issued-client-key" class="result" aria-live="assertive"></pre>
         </section>
       </main>
     </div>`;
@@ -193,7 +275,13 @@ function setResult(value: unknown): void {
   element<HTMLElement>("operation-result").textContent = JSON.stringify(value, null, 2);
 }
 
+function clearIssuedClientKey(): void {
+  element<HTMLElement>("issued-client-key").textContent = "";
+  element<HTMLElement>("issued-client-key-panel").hidden = true;
+}
+
 function setFailure(message: string): void {
+  clearIssuedClientKey();
   setResult({ ok: false, message });
 }
 
@@ -228,6 +316,13 @@ function operationForResource(kind: ResourceKind, action: ResourceAction): Manag
     endpoint: { get: "getEndpoint", create: "createEndpoint", update: "updateEndpoint", delete: "deleteEndpoint" },
     credential: { get: "getCredential", create: "createCredential", update: "updateCredential", delete: "deleteCredential" },
     binding: { list: "listEndpointCredentialBindings", create: "createEndpointCredentialBinding" },
+    publicModel: { list: "listPublicModels", get: "getPublicModel", create: "createPublicModel", update: "updatePublicModel", delete: "deletePublicModel" },
+    modelAlias: { create: "createModelAlias" },
+    route: { get: "getRoute", create: "createRoute", update: "updateRoute", delete: "deleteRoute", validate: "validateRoute" },
+    candidate: { create: "createRouteCandidate" },
+    accessGroup: { list: "listAccessGroups", get: "getAccessGroup", create: "createAccessGroup", update: "updateAccessGroup", delete: "deleteAccessGroup" },
+    accessGroupRoute: { list: "listAccessGroupRoutes", create: "grantAccessGroupRoute" },
+    clientKey: { list: "listClientKeys", get: "getClientKey", issue: "issueClientKey", update: "updateClientKey", revoke: "revokeClientKey" },
   };
   const operation = operations[kind][action];
   if (operation === undefined) {
@@ -237,8 +332,8 @@ function operationForResource(kind: ResourceKind, action: ResourceAction): Manag
 }
 
 function resourceRequest(kind: ResourceKind, action: ResourceAction): ManagementRequest {
-  const upstreamId = element<HTMLInputElement>("upstream-id").value.trim();
-  const mutates = action === "create" || action === "update" || action === "delete";
+  const scopeId = element<HTMLInputElement>("resource-scope-id").value.trim();
+  const mutates = action === "create" || action === "update" || action === "delete" || action === "issue" || action === "revoke";
   const request: { path: Record<string, string>; headers: Record<string, string>; body?: unknown } = {
     path: {},
     headers: headers(mutates),
@@ -251,20 +346,20 @@ function resourceRequest(kind: ResourceKind, action: ResourceAction): Management
   }
   if (kind === "endpoint") {
     if (action === "create") {
-      if (upstreamId.length === 0) {
+      if (scopeId.length === 0) {
         throw new Error("an owning Upstream ID is required to create an Endpoint");
       }
-      request.path.upstream_id = upstreamId;
+      request.path.upstream_id = scopeId;
     } else {
       request.path.endpoint_id = requiredValue("resource-id");
     }
   }
   if (kind === "credential") {
     if (action === "create") {
-      if (upstreamId.length === 0) {
+      if (scopeId.length === 0) {
         throw new Error("an owning Upstream ID is required to create a Credential");
       }
-      request.path.upstream_id = upstreamId;
+      request.path.upstream_id = scopeId;
     } else {
       request.path.credential_id = requiredValue("resource-id");
     }
@@ -272,10 +367,42 @@ function resourceRequest(kind: ResourceKind, action: ResourceAction): Management
   if (kind === "binding") {
     request.path.endpoint_id = requiredValue("resource-id");
   }
-  if (action === "create" || action === "update") {
+  if (kind === "publicModel" && action !== "list" && action !== "create") {
+    request.path.public_model_id = requiredValue("resource-id");
+  }
+  if (kind === "modelAlias") {
+    request.path.public_model_id = requiredScopeId("Public Model ID", scopeId);
+  }
+  if (kind === "route") {
+    if (action === "create") {
+      request.path.public_model_id = requiredScopeId("Public Model ID", scopeId);
+    } else {
+      request.path.route_id = requiredValue("resource-id");
+    }
+  }
+  if (kind === "candidate") {
+    request.path.route_id = requiredScopeId("Route ID", scopeId);
+  }
+  if (kind === "accessGroup" && action !== "list" && action !== "create") {
+    request.path.access_group_id = requiredValue("resource-id");
+  }
+  if (kind === "accessGroupRoute") {
+    request.path.access_group_id = requiredScopeId("Access Group ID", scopeId);
+  }
+  if (kind === "clientKey" && action !== "list" && action !== "issue") {
+    request.path.client_key_id = requiredValue("resource-id");
+  }
+  if (action === "create" || action === "update" || action === "issue") {
     request.body = parseResourceBody();
   }
   return request;
+}
+
+function requiredScopeId(label: string, value: string): string {
+  if (value.length === 0) {
+    throw new Error(`${label} is required for this operation`);
+  }
+  return value;
 }
 
 function advanceRevision(response: Response): void {
@@ -286,7 +413,30 @@ function advanceRevision(response: Response): void {
   }
 }
 
-async function showResponse(response: Response): Promise<void> {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function displayIssuedClientKey(value: unknown): unknown {
+  if (!isRecord(value) || typeof value.key !== "string" || value.key.length === 0) {
+    throw new Error("the management server did not return a valid one-time Client Key");
+  }
+  const { key, ...metadata } = value;
+  element<HTMLElement>("issued-client-key").textContent = key;
+  element<HTMLElement>("issued-client-key-panel").hidden = false;
+  return metadata;
+}
+
+function redactUnexpectedClientKey(value: unknown): unknown {
+  if (!isRecord(value) || !("key" in value)) {
+    return value;
+  }
+  const { key: _key, ...metadata } = value;
+  return { ...metadata, key: "[redacted]" };
+}
+
+async function showResponse(response: Response, issuedClientKey = false): Promise<void> {
+  clearIssuedClientKey();
   advanceRevision(response);
   const body = await response.text();
   let parsed: unknown = null;
@@ -297,7 +447,8 @@ async function showResponse(response: Response): Promise<void> {
       parsed = { response: "Management server returned a non-JSON response" };
     }
   }
-  setResult({ ok: response.ok, status: response.status, etag: response.headers.get("ETag"), body: parsed });
+  const safeBody = issuedClientKey && response.ok ? displayIssuedClientKey(parsed) : redactUnexpectedClientKey(parsed);
+  setResult({ ok: response.ok, status: response.status, etag: response.headers.get("ETag"), body: safeBody });
 }
 
 function api(): ManagementApi {
@@ -324,18 +475,65 @@ function populateResourceTemplate(): void {
   element<HTMLTextAreaElement>("resource-json").value = resourceTemplates[currentResourceKind()];
 }
 
+function updateResourceFields(): void {
+  const kind = currentResourceKind();
+  const action = currentResourceAction();
+  const resourceIdNeeded = (
+    (kind === "egress" || kind === "upstream" || kind === "publicModel" || kind === "accessGroup")
+      && action !== "list" && action !== "create"
+  ) || (kind === "endpoint" || kind === "credential") && action !== "create"
+    || kind === "binding"
+    || kind === "route" && action !== "create"
+    || kind === "clientKey" && action !== "list" && action !== "issue";
+  const scopeLabel: Partial<Record<ResourceKind, string>> = {
+    endpoint: "Owning Upstream ID",
+    credential: "Owning Upstream ID",
+    modelAlias: "Public Model ID",
+    route: "Public Model ID",
+    candidate: "Route ID",
+    accessGroupRoute: "Access Group ID",
+  };
+  const scopeNeeded = (kind === "endpoint" || kind === "credential" || kind === "route") && action === "create"
+    || kind === "modelAlias" || kind === "candidate" || kind === "accessGroupRoute";
+  const resourceLabels: Readonly<Record<ResourceKind, string>> = {
+    egress: "Egress policy ID", upstream: "Upstream ID", endpoint: "Endpoint ID", credential: "Credential ID",
+    binding: "Endpoint ID", publicModel: "Public Model ID", modelAlias: "Alias ID", route: "Route ID",
+    candidate: "Candidate ID", accessGroup: "Access Group ID", accessGroupRoute: "Grant ID", clientKey: "Client Key ID",
+  };
+  const resourceInput = element<HTMLInputElement>("resource-id");
+  const scopeInput = element<HTMLInputElement>("resource-scope-id");
+  element<HTMLElement>("resource-id-label").textContent = resourceLabels[kind];
+  element<HTMLElement>("resource-scope-label").textContent = scopeLabel[kind] ?? "Parent resource ID";
+  element<HTMLElement>("resource-id-field").hidden = !resourceIdNeeded;
+  element<HTMLElement>("resource-scope-field").hidden = !scopeNeeded;
+  resourceInput.required = resourceIdNeeded;
+  scopeInput.required = scopeNeeded;
+  if (!resourceIdNeeded) resourceInput.value = "";
+  if (!scopeNeeded) scopeInput.value = "";
+}
+
+function clearResourceIdentifiers(): void {
+  element<HTMLInputElement>("resource-id").value = "";
+  element<HTMLInputElement>("resource-scope-id").value = "";
+}
+
 function installHandlers(): void {
   const resourceKind = element<HTMLSelectElement>("resource-kind");
   resourceKind.addEventListener("change", () => {
+    clearResourceIdentifiers();
     populateResourceActions();
     populateResourceTemplate();
+    updateResourceFields();
   });
+  element<HTMLSelectElement>("resource-action").addEventListener("change", updateResourceFields);
   populateResourceActions();
   populateResourceTemplate();
+  updateResourceFields();
 
   element<HTMLFormElement>("session-form").addEventListener("submit", (event) => {
     event.preventDefault();
     try {
+      clearIssuedClientKey();
       const managementKey = requiredValue("management-key");
       const csrfToken = requiredValue("csrf-token");
       session = { managementKey, csrfToken };
@@ -355,7 +553,10 @@ function installHandlers(): void {
     try {
       const kind = currentResourceKind();
       const action = currentResourceAction();
-      await showResponse(await api().request(operationForResource(kind, action), resourceRequest(kind, action)));
+      await showResponse(
+        await api().request(operationForResource(kind, action), resourceRequest(kind, action)),
+        kind === "clientKey" && action === "issue",
+      );
     } catch (error) {
       setFailure(error instanceof Error ? error.message : "management resource operation failed");
     }
@@ -395,6 +596,11 @@ function installHandlers(): void {
     } catch (error) {
       setFailure(error instanceof Error ? error.message : "OAuth workflow failed");
     }
+  });
+
+  element<HTMLButtonElement>("clear-issued-client-key").addEventListener("click", () => {
+    clearIssuedClientKey();
+    setResult({ ok: true, message: "One-time Client Key cleared from this page" });
   });
 }
 

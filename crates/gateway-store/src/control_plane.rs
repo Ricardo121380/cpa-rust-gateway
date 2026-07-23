@@ -2000,11 +2000,18 @@ impl ControlPlaneTransaction<'_> {
         Ok(())
     }
 
-    fn insert_public_model(
+    /// Inserts one Public Model into an existing draft configuration graph.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not a writable draft or the database rejects the graph
+    /// mutation.
+    pub fn insert_public_model(
         &mut self,
         config_version_id: &ConfigVersionId,
         public_model: &PublicModelConfiguration,
     ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
         self.transaction.execute(
             "INSERT INTO public_models (\
                 config_version_id, id, model_name, status, display_name, capabilities_json\
@@ -2021,11 +2028,64 @@ impl ControlPlaneTransaction<'_> {
         Ok(())
     }
 
-    fn insert_model_alias(
+    /// Replaces one existing Public Model without changing its stable identity.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not a writable draft, the Public Model is absent,
+    /// or the database rejects the mutation.
+    pub fn update_public_model(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        public_model: &PublicModelConfiguration,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let updated = self.transaction.execute(
+            "UPDATE public_models SET model_name = ?3, status = ?4, display_name = ?5, \
+             capabilities_json = ?6 WHERE config_version_id = ?1 AND id = ?2",
+            params![
+                config_version_id.as_str(),
+                public_model.id.as_str(),
+                &public_model.model_name,
+                public_model.status.as_sql(),
+                &public_model.display_name,
+                &public_model.capabilities_json,
+            ],
+        )?;
+        resource_updated(updated)
+    }
+
+    /// Deletes one Public Model and its schema-owned Alias/Route descendants.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not a writable draft, the Public Model is absent,
+    /// or the database rejects the deletion.
+    pub fn delete_public_model(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        public_model_id: &PublicModelId,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let deleted = self.transaction.execute(
+            "DELETE FROM public_models WHERE config_version_id = ?1 AND id = ?2",
+            params![config_version_id.as_str(), public_model_id.as_str()],
+        )?;
+        resource_updated(deleted)
+    }
+
+    /// Inserts one exact Alias-to-Public-Model relation into an existing draft graph.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not a writable draft, the Public Model relation
+    /// is invalid or duplicated, or the database rejects the mutation.
+    pub fn insert_model_alias(
         &mut self,
         config_version_id: &ConfigVersionId,
         alias: &ModelAliasConfiguration,
     ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
         self.transaction.execute(
             "INSERT INTO model_aliases (config_version_id, alias, public_model_id) \
              VALUES (?1, ?2, ?3)",
@@ -2038,11 +2098,18 @@ impl ControlPlaneTransaction<'_> {
         Ok(())
     }
 
-    fn insert_model_route(
+    /// Inserts one Route under an existing Public Model into an existing draft graph.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not a writable draft, the owning Public Model is
+    /// absent, the Route conflicts, or the database rejects the mutation.
+    pub fn insert_model_route(
         &mut self,
         config_version_id: &ConfigVersionId,
         route: &ModelRouteConfiguration,
     ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
         self.transaction.execute(
             "INSERT INTO model_routes (\
                 config_version_id, id, public_model_id, policy, max_attempts, bootstrap_timeout_ms\
@@ -2059,11 +2126,64 @@ impl ControlPlaneTransaction<'_> {
         Ok(())
     }
 
-    fn insert_route_candidate(
+    /// Replaces one Route while preserving its owning Public Model identity.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not a writable draft, the Route/owner does not
+    /// exist, or the database rejects the mutation.
+    pub fn update_model_route(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        route: &ModelRouteConfiguration,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let updated = self.transaction.execute(
+            "UPDATE model_routes SET policy = ?3, max_attempts = ?4, bootstrap_timeout_ms = ?5 \
+             WHERE config_version_id = ?1 AND id = ?2 AND public_model_id = ?6",
+            params![
+                config_version_id.as_str(),
+                route.id.as_str(),
+                route.policy.as_sql(),
+                route.max_attempts,
+                route.bootstrap_timeout_ms,
+                route.public_model_id.as_str(),
+            ],
+        )?;
+        resource_updated(updated)
+    }
+
+    /// Deletes one Route and its schema-owned Candidate and Access Group grant descendants.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not a writable draft, the Route is absent, or
+    /// the database rejects the deletion.
+    pub fn delete_model_route(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        route_id: &RouteId,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let deleted = self.transaction.execute(
+            "DELETE FROM model_routes WHERE config_version_id = ?1 AND id = ?2",
+            params![config_version_id.as_str(), route_id.as_str()],
+        )?;
+        resource_updated(deleted)
+    }
+
+    /// Inserts one Candidate under an existing Route into an existing draft graph.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not a writable draft, Route/Endpoint references
+    /// are invalid, the Candidate conflicts, or the database rejects the mutation.
+    pub fn insert_route_candidate(
         &mut self,
         config_version_id: &ConfigVersionId,
         candidate: &RouteCandidateConfiguration,
     ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
         self.transaction.execute(
             "INSERT INTO route_candidates (\
                 config_version_id, id, route_id, endpoint_id, upstream_model, credential_scope, \
@@ -2086,11 +2206,18 @@ impl ControlPlaneTransaction<'_> {
         Ok(())
     }
 
-    fn insert_access_group(
+    /// Inserts one Access Group into an existing draft configuration graph.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not a writable draft or the database rejects the graph
+    /// mutation.
+    pub fn insert_access_group(
         &mut self,
         config_version_id: &ConfigVersionId,
         access_group: &AccessGroupConfiguration,
     ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
         self.transaction.execute(
             "INSERT INTO access_groups (config_version_id, id, name, status, limits_json) \
              VALUES (?1, ?2, ?3, ?4, ?5)",
@@ -2105,11 +2232,63 @@ impl ControlPlaneTransaction<'_> {
         Ok(())
     }
 
-    fn insert_access_group_route(
+    /// Replaces one Access Group without changing its stable identity.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not a writable draft, the Access Group is absent,
+    /// or the database rejects the mutation.
+    pub fn update_access_group(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        access_group: &AccessGroupConfiguration,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let updated = self.transaction.execute(
+            "UPDATE access_groups SET name = ?3, status = ?4, limits_json = ?5 \
+             WHERE config_version_id = ?1 AND id = ?2",
+            params![
+                config_version_id.as_str(),
+                access_group.id.as_str(),
+                &access_group.name,
+                access_group.status.as_sql(),
+                &access_group.limits_json,
+            ],
+        )?;
+        resource_updated(updated)
+    }
+
+    /// Deletes one Access Group and its schema-owned grants and Client Keys.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not a writable draft, the Access Group is absent,
+    /// or the database rejects the deletion.
+    pub fn delete_access_group(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        access_group_id: &AccessGroupId,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let deleted = self.transaction.execute(
+            "DELETE FROM access_groups WHERE config_version_id = ?1 AND id = ?2",
+            params![config_version_id.as_str(), access_group_id.as_str()],
+        )?;
+        resource_updated(deleted)
+    }
+
+    /// Inserts one Access Group-to-Route permission relation into an existing draft graph.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not a writable draft, the Access Group/Route
+    /// references are invalid or duplicated, or the database rejects the mutation.
+    pub fn insert_access_group_route(
         &mut self,
         config_version_id: &ConfigVersionId,
         access_group_route: &AccessGroupRouteConfiguration,
     ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
         self.transaction.execute(
             "INSERT INTO access_group_routes (config_version_id, access_group_id, route_id, enabled) \
              VALUES (?1, ?2, ?3, ?4)",
@@ -2121,6 +2300,54 @@ impl ControlPlaneTransaction<'_> {
             ],
         )?;
         Ok(())
+    }
+
+    /// Replaces non-secret Client Key lifecycle metadata without changing its Prefix or digest.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not a writable draft, the Client Key or Access
+    /// Group is absent, or the database rejects the mutation.
+    pub fn update_client_key_metadata(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        client_key_id: &ClientKeyId,
+        access_group_id: &AccessGroupId,
+        status: StoredClientKeyStatus,
+        expires_at_ms: Option<i64>,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let updated = self.transaction.execute(
+            "UPDATE client_keys SET access_group_id = ?3, status = ?4, expires_at_ms = ?5 \
+             WHERE config_version_id = ?1 AND id = ?2",
+            params![
+                config_version_id.as_str(),
+                client_key_id.as_str(),
+                access_group_id.as_str(),
+                status.as_sql(),
+                expires_at_ms,
+            ],
+        )?;
+        resource_updated(updated)
+    }
+
+    /// Permanently revokes one Client Key while retaining its Prefix and digest record.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not a writable draft, the Client Key is absent,
+    /// or the database rejects the mutation.
+    pub fn revoke_client_key(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        client_key_id: &ClientKeyId,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let updated = self.transaction.execute(
+            "UPDATE client_keys SET status = 'revoked' WHERE config_version_id = ?1 AND id = ?2",
+            params![config_version_id.as_str(), client_key_id.as_str()],
+        )?;
+        resource_updated(updated)
     }
 }
 

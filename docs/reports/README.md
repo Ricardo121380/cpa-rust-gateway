@@ -121,3 +121,6 @@
 - [P10-01 Versioned management OpenAPI contract](p10-01-management-openapi.md) — local phase-gate pass; contract-only, no administrative listener
 - [P10-02 Management HTTP admission boundary](p10-02-management-http-admission.md) — guarded Scope, no CRUD/UI route or listener bind
 - [P10-03 Management SPA and generated client](p10-03-management-spa-generated-client.md) — independent static shell and reproducible OpenAPI-generated client build
+- [P10-04 Protected management resource workflows](p10-04-management-resource-workflows.md) — local phase-gate pass; no deployment or Provider default path
+- [P10-05 Protected routing and Client Key workflow plan](p10-05-execution-plan.md) — local phase-gate pass; draft configuration only
+- [P10-05 Protected routing and Client Key workflows](p10-05-protected-routing-client-key-workflows.md) — local phase-gate pass; browser E2E and Key redaction evidence, no runtime or deployment

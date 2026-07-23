@@ -103,4 +103,5 @@ P10-01 已建立 [BC-MGMT-002 Versioned management OpenAPI contract](BC-MGMT-002
 P10-02 已建立 [BC-MGMT-003 Management HTTP admission](BC-MGMT-003-management-http-admission.md)。
 P10-03 已建立 [BC-MGMT-004 Management SPA generated client](BC-MGMT-004-management-spa-generated-client.md)。
 P10-04 已建立 [BC-MGMT-005 Protected management resource workflows](BC-MGMT-005-protected-management-resource-workflows.md)。
+P10-05 已建立 [BC-MGMT-006 Protected routing and Client Key workflows](BC-MGMT-006-protected-routing-client-key-workflows.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。
