@@ -7,8 +7,8 @@
 | 计划版本 | `v1.44` |
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P6`、P9 与 P10 已完成；P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。`phase-p10-complete` 的唯一 GitHub Delivery Gate 已通过 Fast、Full supply-chain 与 Required。P11-01 已完成离线、脱敏的差分 Fixture Harness、分类报告、定向验证与 review。 |
-| 当前任务 | P11-01 closeout 已完成；尚无功能 Task 为 `IN_PROGRESS`。下一项为 P11-02 的 Task Card、故障注入矩阵和定向实现/验证。 |
+| 当前阶段 | `P1` 至 `P6`、P9 与 P10 已完成；P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。`phase-p10-complete` 的唯一 GitHub Delivery Gate 已通过 Fast、Full supply-chain 与 Required。P11-01 已完成离线、脱敏的差分 Fixture Harness；P11-02 已完成 loopback-only 网络、DNS、TLS、状态、截断流、慢客户端和取消故障注入矩阵与 review。 |
+| 当前任务 | P11-02 closeout 已完成；尚无功能 Task 为 `IN_PROGRESS`。下一项为 P11-03 的 Task Card、Mock Provider 基准与回归阈值。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1672,7 +1672,7 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
 | P11-01 | 建立 CPA v7.2.80、grok2api、Kiro-RS 的脱敏差分 Fixture Harness | G10 | [差异分类报告](reports/p11-01-differential-fixture-harness.md)：离线、脱敏、默认拒绝的六条 source-labelled Fixture 与 review/定向验证 passed | DONE |
-| P11-02 | 完成网络、DNS、TLS、429、5xx、截断流、慢客户端和取消故障注入 | P11-01 | Fault Matrix | PENDING |
+| P11-02 | 完成网络、DNS、TLS、429、5xx、截断流、慢客户端和取消故障注入 | P11-01 | [Fault Matrix](reports/p11-02-fault-matrix.md)：loopback-only injection、Router ownership regressions、定向验证与 review passed | DONE |
 | P11-03 | 建立 Mock Provider Criterion/HTTP 基准和回归阈值 | P11-01 | `benchmarks/baseline.json` | PENDING |
 | P11-04 | 执行并发、长流、连接池、内存、背压和 24h Soak | P11-02,P11-03 | 性能与 Soak 报告 | PENDING |
 | P11-05 | 执行 SSRF、Secret、Auth、权限、依赖和供应链安全审计 | P11-01 | Security Report + SBOM | PENDING |
