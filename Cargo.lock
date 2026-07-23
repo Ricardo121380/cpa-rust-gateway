@@ -1485,9 +1485,13 @@ version = "0.1.0"
 dependencies = [
  "gateway-core",
  "gateway-provider",
+ "gateway-store",
  "gateway-stream",
  "gateway-upstream",
  "protocol-anthropic",
+ "serde",
+ "serde_json",
+ "zeroize",
 ]
 
 [[package]]
