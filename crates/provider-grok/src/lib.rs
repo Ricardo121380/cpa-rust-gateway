@@ -18,6 +18,7 @@ mod web_chat;
 mod web_conversation;
 mod web_credential;
 mod web_egress_session;
+mod web_statsig;
 
 pub use build_responses::{
     GROK_BUILD_AGENT_ID_HEADER, GROK_BUILD_AUTHENTICATE_RESPONSE_HEADER,
@@ -112,6 +113,10 @@ pub use web_credential::{
 pub use web_egress_session::{
     GrokWebBrowserEgressSession, GrokWebBrowserEgressSessionError, GrokWebBrowserUserAgent,
     GrokWebEgressSessionId, GrokWebTlsProfile,
+};
+pub use web_statsig::{
+    GrokWebStatsigError, GrokWebStatsigSignature, GrokWebStatsigSignatureCache,
+    GrokWebStatsigSignatureKey, GrokWebStatsigSignerBoundary, GrokWebStatsigSignerTarget,
 };
 
 /// Stable component identifier used by architecture smoke tests.
