@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-22` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6` 已完成；`P7 - Kiro IDE/CLI` 进行中，P7-01 已本地验收。 |
-| 当前任务 | P7-01/P7-02 已完成本地 Full Gate，等待 P7 的统一 G7 Delivery Gate；P7-03 可按依赖顺序开始。 |
+| 当前任务 | P7-01 至 P7-03 已完成本地 Full Gate，等待 P7 的统一 G7 Delivery Gate；P7-04 可按依赖顺序开始。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1397,7 +1397,7 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 |---|---|---|---|---|
 | P7-01 | 实现 Social、IdC/Enterprise、`ksk_` 三类 Credential | G6 | 各类解析、加密和刷新 Fixture；singleflight/CAS/AEAD revalidation passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P7-02 | 实现 IDE/CLI Endpoint Policy、Region、Header、Origin 和 URL | P7-01 | 请求快照对照测试 passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P7-03 | 实现 `profileArn` 查询、回退、注入、来源和审计 | P7-01,P7-02 | Builder/Enterprise 场景测试 | PENDING |
+| P7-03 | 实现 `profileArn` 查询、回退、注入、来源和审计 | P7-01,P7-02 | Builder/Enterprise 场景测试 passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P7-04 | 实现 CanonicalRequest 到 Kiro Conversation Request | P7-02 | 多轮消息/Tool Fixture | PENDING |
 | P7-05 | 实现 AWS EventStream 增量解析、CRC、边界和错误恢复 | P7-04 | 任意 Chunk + 损坏帧测试 | PENDING |
 | P7-06 | 实现每 Credential 动态模型与订阅能力、最后成功快照 | P7-01,P4-02 | 部分失败和 stale 测试 | PENDING |

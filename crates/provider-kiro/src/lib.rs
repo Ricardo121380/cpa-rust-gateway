@@ -8,5 +8,8 @@ pub mod credential;
 /// Fixed Kiro IDE/CLI host, header, origin, and thinking-placement policy.
 pub mod endpoint_policy;
 
+/// Kiro `profileArn` lookup, region-aware fallback, body injection, and safe provenance.
+pub mod profile_arn;
+
 /// Stable component identifier used by architecture smoke tests.
 pub const COMPONENT: &str = "provider-kiro";

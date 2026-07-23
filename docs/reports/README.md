@@ -92,3 +92,4 @@
 - [G6 Grok Build phase gate report](g6-gate-report.md) — complete
 - [P7-01 Kiro Credential runtime](p7-01-kiro-credential-runtime.md) — local phase-gate pass
 - [P7-02 Kiro IDE/CLI endpoint policy](p7-02-kiro-endpoint-policy.md) — local phase-gate pass
+- [P7-03 Kiro profile ARN lifecycle](p7-03-kiro-profile-arn.md) — local phase-gate pass
