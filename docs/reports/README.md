@@ -120,3 +120,4 @@
 - [P9 local Full gate log](p9-09-local-full-check.md) — PASS
 - [P10-01 Versioned management OpenAPI contract](p10-01-management-openapi.md) — local phase-gate pass; contract-only, no administrative listener
 - [P10-02 Management HTTP admission boundary](p10-02-management-http-admission.md) — guarded Scope, no CRUD/UI route or listener bind
+- [P10-03 Management SPA and generated client](p10-03-management-spa-generated-client.md) — independent static shell and reproducible OpenAPI-generated client build

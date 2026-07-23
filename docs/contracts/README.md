@@ -101,4 +101,5 @@ P8-02 已建立 [BC-PROVIDER-013 Grok Official text-only Responses boundary](BC-
 P8-03 已建立 [BC-PROVIDER-014 Grok Official rate-limit and billing metadata boundary](BC-PROVIDER-014-grok-official-rate-limit-billing-metadata.md)。
 P10-01 已建立 [BC-MGMT-002 Versioned management OpenAPI contract](BC-MGMT-002-versioned-management-openapi.md)。
 P10-02 已建立 [BC-MGMT-003 Management HTTP admission](BC-MGMT-003-management-http-admission.md)。
+P10-03 已建立 [BC-MGMT-004 Management SPA generated client](BC-MGMT-004-management-spa-generated-client.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。

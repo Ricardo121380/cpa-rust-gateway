@@ -73,6 +73,15 @@ check_tracked_whitespace() {
   git diff --check "$empty_tree" HEAD
 }
 
+install_management_spa_dependencies() {
+  command -v node >/dev/null
+  command -v npm >/dev/null
+  (
+    cd "$repo_root/web/admin-ui"
+    npm ci --ignore-scripts --no-audit --no-fund
+  )
+}
+
 if [[ "$mode" == "docs" ]]; then
   run_step "Document links" "$repo_root/scripts/check-doc-links.rb"
   run_step "Plan state" "$repo_root/scripts/check-plan-state.rb"
@@ -106,6 +115,8 @@ run_step "CI change classifier" "$repo_root/scripts/test-ci-change-classifier.sh
 run_step "Plan state" "$repo_root/scripts/check-plan-state.rb"
 run_step "Plan state guard" "$repo_root/scripts/test-plan-state-check.sh"
 run_step "Quality installer cache behavior" "$repo_root/scripts/test-install-quality-tools.sh"
+run_step "Management SPA dependencies" install_management_spa_dependencies
+run_step "Management SPA" node "$repo_root/scripts/check-management-spa.mjs"
 run_step "Rust format" cargo fmt --all -- --check
 run_step "Clippy" cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 run_step "Rust tests" cargo test --locked --workspace --all-features
