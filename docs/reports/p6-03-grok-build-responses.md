@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.22` |
+| Plan version | `v1.23` |
 | Task | `P6-03` |
 | Date | `2026-07-23` |
 | Branch | `codex/p6-grok-build` |
-| Status | `BLOCKED` — `CR-P6-03-011`'s no-network preflight passed, but its only T18 non-streaming direct request stopped safely as `4xx / error_like_object / unrecognized`. It did not produce a complete Canonical lifecycle, so T19 was not sent; T1-T18 are closed and P6-04 remains pending. |
-| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` exhausted T11/T12, `CR-P6-03-008` closed after the pre-dispatch T13 stop, `CR-P6-03-009` closed after T15's non-success stop, `CR-P6-03-010` closed at its pre-dispatch local configuration gate, and `CR-P6-03-011` closed after T18's safe non-success. It permits no retry, server action, cache persistence, T19, or P6-04+ behavior. |
+| Status | `IN_PROGRESS` — `CR-P6-03-012` permits only a bounded read-only attribution review of existing official-CLI and server evidence for T18's safe `4xx / error_like_object / unrecognized`. T19 is not eligible, T1-T18 are closed, and P6-04 remains pending. |
+| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-005` exhausted T11/T12, `CR-P6-03-008` closed after the pre-dispatch T13 stop, `CR-P6-03-009` closed after T15's non-success stop, `CR-P6-03-010` closed at its pre-dispatch local configuration gate, and `CR-P6-03-011` closed after T18's safe non-success. `CR-P6-03-012` permits only the registered read-only attribution review; it permits no retry, server action, cache persistence, T19, or P6-04+ behavior. |
 | Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, known OAuth source adapters, and a finite one-send-per-process live matrix. Prohibited: direct-tuple replay, route/key/scheduler mutation, socket/proxy/TUN mutation, status remediation, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |
 | References | Matrix `C28`; Behavior 4/5/12; [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md); [BC-PROVIDER-003](../contracts/BC-PROVIDER-003-grok-build-responses-boundary.md) |
@@ -416,6 +416,19 @@ endpoint and stopped after 2.66 seconds at `4xx / error_like_object / unrecogniz
 response, header, credential, cache path, model value, or body was retained. As the required
 Canonical `ResponseStart`/text/`ResponseEnd` lifecycle was absent, T19 was not eligible or sent,
 and P6-03 is `BLOCKED`.
+
+### Read-only T18 attribution review (`CR-P6-03-012`)
+
+The user approved a narrow diagnosis before any further development. It may inspect at most one
+existing local official-CLI state/log source and one existing server log or safe status source.
+It performs no network request, OAuth refresh, CLI interaction, server action, retry, model
+selection, configuration change, or P6 request. It reports only a value-free category:
+`authentication`, `entitlement_or_quota`, `model_availability`, `request_profile`, or
+`unattributed`. It never emits cache paths, tokens, model values, bodies, raw headers, or logs.
+
+If the existing evidence cannot distinguish a category, the result remains `unattributed`; the
+T18 safe stop stands, T19 remains unsent, and P6-03 returns to `BLOCKED`. Any new direct tuple or
+repair requires a new explicit CR.
 
 ## Timing and next task
 

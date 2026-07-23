@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.22` |
+| 计划版本 | `v1.23` |
 | 生效日期 | `2026-07-22` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1 - Canonical Core + Mock 垂直链路`、`P2 - 聚合控制面、安全与 RouteSnapshot`、`P3 - OpenAI Responses 聚合 MVP`、`P4 - Catalog、Health、Quota、Explain、观测` 与 `P5 - Anthropic/Claude Code 兼容` 已完成；`P6 - Grok Build` 已开始。 |
-| 当前任务 | 无；`P6-03`：`BLOCKED`。`CR-P6-03-011` 的唯一离线预检成功，但唯一 T18 非流式直连到达固定端点后安全停止为 `4xx / error_like_object / unrecognized`；没有 Canonical 成功生命周期，T19 未发送。T1-T18 均保持关闭，P6-04 仍不得开始；任何新直连 tuple 须新的显式 CR。 |
+| 当前任务 | `P6-03`：`IN_PROGRESS`，限于 `CR-P6-03-012` 的只读错误归因诊断。它不发送 P6 请求或重试 T18，只读取现有本机官方 CLI 与既有服务器日志/标准安全投影，判断 T18 的 4xx 是否可归入认证、权益/额度、模型可用性或仍未知的请求轮廓类别。T1-T18 均保持关闭，P6-04 仍不得开始。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -701,6 +701,27 @@ CR-ID: CR-P6-03-011
       `StreamError` 的 `ResponseEnd` 生命周期。T19 未发送；不得重试 T18、发送 T19 或开始 P6-04，
       P6-03 恢复 `BLOCKED`。
 
+### 已批准 Change Request：CR-P6-03-012
+
+```text
+CR-ID: CR-P6-03-012
+原因: T18 已到达固定端点，但脱敏 `4xx / error_like_object / unrecognized` 不能单独归因到 OAuth
+      权限、账号权益/额度、模型可用性或请求轮廓。用户批准先做有限的只读诊断，再决定是否需要新的
+      修复或验证 CR。
+影响的 Task / Matrix ID / ADR: 仅重新打开 P6-03 的故障归因证据、BC-PROVIDER-003、报告与
+      traceability；不改变生产 Provider、固定 URL、Canonical 类型、OAuth source adapter、
+      P6-04+、服务器、路由、账号、代理或 TUN。T1-T18 保持关闭，T19 仍不具备发送条件。
+兼容性与迁移影响: 无。只读检查已有的本机官方 CLI 状态/日志和已有服务器日志或其安全状态投影；
+      不打开新的 debug 日志、不读取或输出 Token、cache path、模型、请求/响应体或原始 headers，
+      不写入账户、数据库、日志、Git、服务器或网络配置。
+测试与回滚变化: 最多检查一个本机官方 CLI 的既有状态来源与一个既有服务器日志/状态来源；只输出
+      可审计的无值类别。禁止 DNS、HTTP、Provider send、OAuth refresh、官方 CLI 交互、server action、
+      retry、failover、candidate selection、proxy/TUN change、T18 replay 或 T19。若没有足够的既有
+      证据，结论必须为 `unattributed` 并使 P6-03 恢复 `BLOCKED`；不得以诊断为由新增请求。
+用户批准: APPROVED，2026-07-23（“批准”）
+计划版本变更: v1.23
+```
+
 ### 已批准 Change Request：CR-P4-G4-001
 
 ```text
@@ -1093,7 +1114,7 @@ Fast、Full supply-chain、Required Delivery Gate 均已通过。
 |---|---|---|---|---|
 | P6-01 | 实现 Grok Build Credential、OAuth JSON 导入和 Device Code | G5 | OAuth Mock + 脱敏导入测试 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P6-02 | 实现每 Credential Refresh Singleflight、Revision/CAS 和持久化 | P6-01 | 刷新风暴与旧 Token 覆盖测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析；兼容已知 OAuth 凭据来源 | P6-02 | 固定 Fixture + 测试账号验证 | BLOCKED |
+| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析；兼容已知 OAuth 凭据来源 | P6-02 | 固定 Fixture + 测试账号验证 | IN_PROGRESS |
 | P6-04 | 实现模型、Billing、Quota Window 和 Reset 同步 | P6-03 | 来源/置信度和窗口测试 | PENDING |
 | P6-05 | 实现租户隔离 Cache Identity 与 Cache Affinity | P6-03 | 稳定性、隔离和断裂事件测试 | PENDING |
 | P6-06 | 实现 ResponseOwnership 与 ReasoningReplay | P6-03,P6-05 | previous_response 与多轮 Tool 测试 | PENDING |
