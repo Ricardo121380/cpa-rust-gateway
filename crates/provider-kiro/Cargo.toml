@@ -8,6 +8,7 @@ authors.workspace = true
 publish.workspace = true
 
 [dependencies]
+gateway-catalog = { path = "../gateway-catalog" }
 gateway-core = { path = "../gateway-core" }
 gateway-provider = { path = "../gateway-provider" }
 gateway-store = { path = "../gateway-store" }

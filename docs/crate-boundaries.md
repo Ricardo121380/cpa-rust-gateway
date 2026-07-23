@@ -76,6 +76,9 @@ gateway-core
   Credential ID 关联数据绑定的 AEAD envelope 提供加解密。P7-02 新增 `url`，只验证由严格 API
   Region 派生的两条固定 HTTPS URL（IDE/CLI）；它不读取缓存、环境或数据库，不创建网络 I/O，不
   接受任意 endpoint 覆盖，也不构建含 Secret 的认证 Header。`profileArn` 与推理请求仍属于后续 P7 Task。
+  P7-06 新增只读 `gateway-catalog` 边，唯一用途是复用 P4-02 已验证的显式
+  Fresh/Stale/Expired timing policy；Kiro 的模型/订阅快照仍存于 `provider-kiro`，不向 Catalog
+  写入、不开启网络/SQLite/Route 依赖，也不把 Provider 反向暴露给 Control、Router 或其它 Provider。
 - `gateway-store` 不进入 Router 的请求选择路径；持久数据通过控制面编译为不可变 Snapshot。
 - `gateway-router` 可以使用 `gateway-auth` 的无存储 Client Key HMAC 原语来认证其已编译
   Snapshot；该边不允许反向的 Router、Store 或 HTTP 依赖进入 `gateway-auth`。

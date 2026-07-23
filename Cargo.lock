@@ -1483,6 +1483,7 @@ dependencies = [
 name = "provider-kiro"
 version = "0.1.0"
 dependencies = [
+ "gateway-catalog",
  "gateway-core",
  "gateway-provider",
  "gateway-store",
