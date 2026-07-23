@@ -7,8 +7,8 @@
 | 计划版本 | `v1.42` |
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P6` 已完成；P7 Kiro OAuth 和 P8 Official API-key E2E 延后至最终外部认证验收包。按 `CR-P9-LOCAL-001`，P9 的本地实现开始，但 P9 真实 Web E2E、G9 与 Delivery Gate 仍保持 fail-closed。 |
-| 当前任务 | P9 本地审计：P9-01 至 P9-08 已完成本地证据复核；P9-09/G9 与 P7-09/P8-07 均保持 `DEFERRED`，不创建 Delivery tag 或发送真实 Web 请求。 |
+| 当前阶段 | `P1` 至 `P6` 已完成；P7 Kiro OAuth、P8 Official API-key E2E 与 P9 Web Canary 分别延后。P9-01 至 P9-08 已完成本地审计，但 P9-09/G9 与 Delivery Gate 仍保持 fail-closed。 |
+| 当前任务 | 无进行中 Task。等待各自明确的外部认证/Canary 条件：P7-09 Kiro OAuth、P8-07 Official API Key 和 P9-09 Web 测试账号；不创建 Delivery tag、不发送真实 Provider 请求，P10 仍等待 G9。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1287,7 +1287,7 @@ deploy/
 | P6 | Grok Build | G5 | G6 | DONE |
 | P7 | Kiro IDE/CLI | G6 | G7 | DEFERRED_EXTERNAL_AUTH |
 | P8 | Grok Official | G6（`CR-P7-DEFER-002`） | G8 | DEFERRED_EXTERNAL_E2E |
-| P9 | Grok Web | P8 local isolation evidence（`CR-P9-LOCAL-001`） | G9 | IN_PROGRESS |
+| P9 | Grok Web | P8 local isolation evidence（`CR-P9-LOCAL-001`） | G9 | DEFERRED_EXTERNAL_CANARY |
 | P10 | 完整管理 API、Web UI、备份恢复 | G9 | G10 | PENDING |
 | P11 | 差分、性能、安全与发布加固 | G10 | G11 | PENDING |
 | P12 | 服务器部署、灰度、切换与回滚 | G11 | G12 | PENDING |

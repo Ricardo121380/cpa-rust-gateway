@@ -114,3 +114,4 @@
 - [P9-06 Grok Web source-labelled quota](p9-06-grok-web-source-labelled-quota.md) — local phase-gate pass; no Web/REST/gRPC-Web request used
 - [P9-07 Grok Web 403 egress/account attribution](p9-07-grok-web-403-egress-account-attribution.md) — local phase-gate pass; no Web request or error body used
 - [P9-08 Grok Web explicit Tool emulation](p9-08-grok-web-explicit-tool-emulation.md) — local phase-gate pass; default off and no Web request/Tool execution used
+- [P9 local audit and G9 deferral](p9-local-audit-g9-deferred.md) — P9-01 to P9-08 local evidence complete; P9-09/G9 remain deferred pending a P9-owned Canary
