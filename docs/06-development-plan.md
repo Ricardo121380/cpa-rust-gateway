@@ -4,17 +4,17 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.40` |
+| 计划版本 | `v1.41` |
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P6` 已完成；`P7 - Kiro IDE/CLI` 的外部 OAuth 验证延后。按 `CR-P7-DEFER-002`，`P8 - Grok Official` 独立执行 G8 和自身 Delivery Gate，随后按依赖继续 P9-P12。 |
-| 当前任务 | P8-07：已完成零网络安全 harness 与本地 review；等待 P8 自身 Official API Key、模型和一次明确授权，才能执行 G8 所需的一次真实 E2E。P7-09 保持 `BLOCKED_AUTH_REAUTH_REQUIRED`，不阻塞非 Kiro Phase。 |
+| 当前阶段 | `P1` 至 `P6` 已完成；P7 Kiro OAuth 和 P8 Official API-key E2E 均延后至其他本地开发完成后的同一外部认证验收包。P8/G8 尚未完成，P9 继续等待 G8。 |
+| 当前任务 | 无活动代码 Task。P8-07 与 P7-09 均为 `DEFERRED` 外部认证工作；未持有 Official API Key 时不得发送 P8 真实请求，且 P9-P12 的既有 Gate 依赖不变。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
 | 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 `CR-P6-03-003`：在确认 2xx JSON 错误对象后，增加最终一次仅从标准错误元数据映射安全类别的诊断调用。 `CR-P6-03-004`：新增一个与固定直连验收隔离的、服务器本地 grok2api Build 路由代理参考探针。 `CR-P6-03-005`：采用服务器参考的当前 Build 请求轮廓，并只登记新的固定端点 T11 非流式与 T12 SSE 验证。 `CR-P6-03-006`：通过 grok2api 支持的管理 API 导入指定 OAuth 文件并做账号专属额度刷新诊断；不重放固定直连元组，也不把共享路由调用误归因到该账号。 `CR-P6-03-007`：仅以本机官方 Grok CLI 做一次交互式 OAuth 重新认证并记录安全状态投影；不发送 P6 请求或改变服务器/路由。 |
 | 已批准变更（续） | `CR-P6-03-008`：以 CPA、grok2api 和 Sub2API 的 clean-room 行为参考扩展 Grok Build 的已知 OAuth 凭据来源；保留标准 JSON/Device Code/Refresh，新增 CPA xAI 文件和官方 Grok CLI indexed cache 的内存导入，不纳入 Cookie/SSO Web 转换。 `CR-P6-03-009`：仅修正 T13 零发送 wrapper 的一次替代 T15 验证；T15 的 4xx 已停止矩阵。 `CR-P6-03-010`：基于官方 CLI 静态证据更正 workspace User-Agent，仅登记新的 T16 非流式直连验证，并在 T16 完整成功时条件允许一次 T17 SSE。 `CR-P6-03-011`：T16 在无网络预检的本地标签门槛前停止后，以不同的合法短标签重新登记 T18 非流式直连；仅其完整 Canonical 成功时允许条件 T19 SSE。 `CR-P6-03-013`：用户批准完成 P6 全部要求，解除 P6-03 对后续本地安全/连续性实现的流程阻塞；不声称 T18 成功、不发送 T19 或重放任何闭合 tuple。 `CR-P6-03-014`：以当前官方 CLI 的成功模型/会话和新完成的可注入执行链路登记 T20/T21，不重放任何已关闭 tuple。 `CR-P6-03-015`：T20 的新的 2xx JSON 协议失败后，只输出固定的无值结构类别诊断 T22。 `CR-P6-03-016`：T22 发现投影在合法压缩前运行，登记一次解压后无值结构诊断 T23。 `CR-P6-03-017`：T23 仍失败后，仅投影第一个固定 decoder requirement gate 的 T24。 |
-| 已批准变更（续 2） | `CR-P7-G7-001`：P7 因 Kiro 外部账号重新认证而阻塞时，允许 P8 按自身顺序进行本地实现与审查；其与 `CR-P7-DEFER-002` 冲突的 P8/G8/P9-P12 顺序约束已由后者替代。 `CR-P7-DEFER-002`：Kiro OAuth 延后；P8-G12 按自身非 Kiro 依赖推进，P8 可执行自身 Phase Gate 与 Delivery Gate；真实 xAI 验证仍仅按 P8 自身明确授权进行。 |
+| 已批准变更（续 2） | `CR-P7-G7-001`：P7 因 Kiro 外部账号重新认证而阻塞时，允许 P8 按自身顺序进行本地实现与审查；其与 `CR-P7-DEFER-002` 冲突的 P8/G8/P9-P12 顺序约束已由后者替代。 `CR-P7-DEFER-002`：Kiro OAuth 延后；P8-G12 按自身非 Kiro 依赖推进，P8 可执行自身 Phase Gate 与 Delivery Gate；真实 xAI 验证仍仅按 P8 自身明确授权进行。 `CR-P8-DEFER-001`：无 Official API Key 时，P8-07/G8 与 P7-09 一并延后至最终外部认证验收包；P9-P12 Gate 依赖不变。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -1070,6 +1070,34 @@ CR-ID: CR-P7-DEFER-002
    `DONE`；P9-P12 各自仍必须等前一**非 Kiro** Phase Gate 成功。
 3. 本 CR 只解除 Kiro 对顺序的阻塞，不授予 xAI 请求、API-key、配额、服务器、路由或发布以外的
    权限。Official live E2E 的证据若被 P8 Gate 要求，仍必须先以独立授权登记。
+
+### 已批准 Change Request：CR-P8-DEFER-001
+
+```text
+CR-ID: CR-P8-DEFER-001
+原因: 用户当前没有 xAI Official API Key，明确要求先跳过 P8 Official 的真实 E2E，并在其余开发
+      完成后与 P7 Kiro OAuth 认证一并回补。P8-07 的本地安全 harness 已完成，但不得以 Fixture
+      或未持有的 Credential 代替 Provider Gate 的真实证据。
+影响的 Task / Matrix ID / ADR: 仅将 P8-07 与 G8 从 BLOCKED 改为 DEFERRED 外部认证工作；
+      关联 ADR-0060、BC-E2E-004、§20.1 的真实 E2E 要求和已提交的零网络 harness 均不改变。
+      P7-09 同样保持 DEFERRED。P9-P12 的既有 Gate 依赖、公开 API、Provider 协议、Schema、
+      数据库、服务器、路由与生产流量均不改变。
+兼容性与迁移影响: 无。不会搜索、导入、生成或替代 Official API Key，不发 xAI 请求，也不改变
+      Kiro/OAuth、代理/TUN、服务器、账号或部署。
+测试与回滚变化: 已有本地默认零网络测试和 Full gate 仍有效。恢复时先将 P8-07 复位为 BLOCKED，
+      再登记 Official key/model/单请求授权；不得因延期而开始 P9 或声称 P8/G8 完成。回滚只恢复
+      P8-07/G8 的 BLOCKED 等待状态，不执行外部请求。
+用户批准: APPROVED，2026-07-23（“我也没有这个official的api key，可以先跳过，等后面跟kiro一起再测试”）
+计划版本变更: v1.41
+```
+
+### 1.16 P8 Official E2E 延后边界（CR-P8-DEFER-001）
+
+1. P8-07 与 G8 是 `DEFERRED`，不是 `DONE`、本地通过替代品或对 xAI 行为的断言。P8-01 至
+   P8-06 的本地证据保持有效，但不能越过 §20.1。
+2. P8-07 与 P7-09 在其他本地 Phase 全部完成后进入同一外部认证验收包；两者仍使用各自的
+   Credential、授权与验收标准，不互相替代。
+3. P9 仍依赖 G8，P10-P12 仍依赖各自的前序非 Kiro Gate。本 CR 不授权提前执行或合并这些 Phase。
 4. P12/G12 之后、任何包含 Kiro 的发布前，必须回到 P7-09，完成 OAuth、G7 及 P7 Delivery Gate。
    不得以延后状态永久遗漏 Kiro Provider 验收。
 
@@ -1229,8 +1257,8 @@ deploy/
 | P4 | Catalog、Health、Quota、Explain、观测 | G3 | G4 | DONE |
 | P5 | Anthropic/Claude Code 兼容 | G4 | G5 | DONE |
 | P6 | Grok Build | G5 | G6 | DONE |
-| P7 | Kiro IDE/CLI | G6 | G7 | BLOCKED_AUTH_REAUTH_REQUIRED |
-| P8 | Grok Official | G6（`CR-P7-DEFER-002`） | G8 | IN_PROGRESS |
+| P7 | Kiro IDE/CLI | G6 | G7 | DEFERRED_EXTERNAL_AUTH |
+| P8 | Grok Official | G6（`CR-P7-DEFER-002`） | G8 | DEFERRED_EXTERNAL_E2E |
 | P9 | Grok Web | G8 | G9 | PENDING |
 | P10 | 完整管理 API、Web UI、备份恢复 | G9 | G10 | PENDING |
 | P11 | 差分、性能、安全与发布加固 | G10 | G11 | PENDING |
@@ -1471,7 +1499,7 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 | P7-06 | 实现每 Credential 动态模型与订阅能力、最后成功快照 | P7-01,P4-02 | 部分失败和 stale 测试 passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P7-07 | 实现 Kiro Tool、AskUserQuestion、Plan Mode 和 Thinking 映射 | P7-04,P7-05 | Claude Code 回归套件 passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P7-08 | 实现 Kiro 网络、账号、模型、额度和普通 429 分类 | P7-06 | 错误与恢复矩阵 passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P7-09 | 与服务器定制 Kiro-RS 做差分、原生 `InferenceAdapter` 垂直链路和真实 `--bare` E2E | P7-03-P7-08 | 原生 IDE/CLI Adapter Fixture、差分报告、日志、模型列表；当前上游账号 `auth_failed` | BLOCKED |
+| P7-09 | 与服务器定制 Kiro-RS 做差分、原生 `InferenceAdapter` 垂直链路和真实 `--bare` E2E | P7-03-P7-08 | 原生 IDE/CLI Adapter Fixture、差分报告、日志、模型列表；外部 OAuth 验证延后至最终认证验收包 | DEFERRED |
 
 ### G7 门禁
 
@@ -1495,7 +1523,7 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 | P8-04 | 实现 Official Tool、Reasoning、Search 能力声明与转换 | P8-02 | Capability/Tool/Reasoning Fixture、Search 显式非能力与本地 Full Gate passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P8-05 | 验证 Official/Build 状态、Affinity、Quota 和故障完全隔离 | P8-02-P8-04 | Exact Header-to-quota、Build state/affinity、401/403/429/transient 隔离 Fixture 与本地 Full Gate passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P8-06 | 完成官方路径差分、负载和错误矩阵 | P8-05 | JSON/SSE Tool/Reasoning 差分、12 OS 线程 × 8 解码器的 96 实例隔离、精确错误/Quota 矩阵、本地 Full Gate 与 review passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P8-07 | Official API Key 一次真实 E2E | P8-06、§20.1 Provider Gate E2E | 已忽略的零网络 harness、精确一 send、DNS-pinned direct egress、脱敏 lifecycle 结果；等待 P8 自身 API Key/模型/授权 | BLOCKED |
+| P8-07 | Official API Key 一次真实 E2E | P8-06、§20.1 Provider Gate E2E | 已忽略的零网络 harness、精确一 send、DNS-pinned direct egress、脱敏 lifecycle 结果；无 Official API Key，延后至与 P7-09 的最终外部认证验收包 | DEFERRED |
 
 ### G8 门禁
 
@@ -1503,6 +1531,8 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 - 一个来源的 401/403/429 不改变另一个来源状态。
 - 官方 Tool/Reasoning 能力与公开元数据一致。
 - 使用 P8 测试 API Key 的一次已授权真实 E2E，必须产生 `ResponseStart`、文本和无 `StreamError` 的 `ResponseEnd`；该授权与 P7 Kiro OAuth 无关。
+
+当前状态：`DEFERRED_EXTERNAL_E2E`；仅缺少 Official API Key/授权，和 P7-09 一起在最终外部认证验收包回补。
 
 ## 15. P9 - Grok Web
 
@@ -1754,3 +1784,4 @@ Next task:
 | v1.38 | 2026-07-23 | `CR-P7-G7-001`：P7 的外部 Kiro 账号认证阻塞期间，允许 P8 仅进行顺序本地开发；保留 G7、两阶段 Delivery Gate、完成语义、真实 E2E 与发布的 fail-closed 边界 | 已由 v1.39 的冲突顺序部分替代 |
 | v1.39 | 2026-07-23 | `CR-P7-DEFER-002`：P7 Kiro OAuth 延后；P8-G12 按自身非 Kiro 依赖推进，P8 可进行自身 Gate/Delivery，Kiro 仍必须在 P12/G12 后、含 Kiro 发布前回补 | APPROVED；当前执行基线 |
 | v1.40 | 2026-07-23 | 新增 P8-07：为既有 §20.1 的每 Provider Gate 真实 E2E 要求登记一个默认零网络、单目标/单模式/单发送的 Official API-key harness；不改变公开 API 或 Kiro 的延后状态 | APPROVED；当前执行基线 |
+| v1.41 | 2026-07-23 | `CR-P8-DEFER-001`：因无 Official API Key，将 P8-07/G8 延后至与 P7-09 的最终外部认证验收包；不改变 P9-P12 的 Gate 依赖或提前开发权限 | APPROVED；当前执行基线 |

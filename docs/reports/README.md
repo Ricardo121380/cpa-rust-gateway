@@ -98,11 +98,11 @@
 - [P7-06 Kiro dynamic capability snapshots](p7-06-kiro-dynamic-capability-snapshots.md) — local phase-gate pass
 - [P7-07 Kiro Tool, Thinking, and Claude Code compatibility](p7-07-kiro-tool-thinking-compatibility.md) — local phase-gate pass
 - [P7-08 Kiro failure-owner classification](p7-08-kiro-failure-classification.md) — local phase-gate pass
-- [P7-09 Kiro-RS differential and `--bare` E2E](p7-09-kiro-rs-differential-bare-e2e.md) — blocked awaiting Kiro account reauthentication
+- [P7-09 Kiro-RS differential and `--bare` E2E](p7-09-kiro-rs-differential-bare-e2e.md) — deferred to the final external-authentication package
 - [P8-01 Grok Official API-key catalog](p8-01-grok-official-catalog.md) — local phase-gate pass
 - [P8-02 Grok Official Responses HTTP/SSE](p8-02-grok-official-responses.md) — local phase-gate pass
 - [P8-03 Grok Official rate-limit and billing metadata](p8-03-grok-official-metadata.md) — local phase-gate pass
 - [P8-04 Grok Official Tool, Reasoning, and Search capability](p8-04-grok-official-capabilities.md) — local phase-gate pass
 - [P8-05 Grok Official / Build state isolation](p8-05-grok-official-build-isolation.md) — local phase-gate pass
 - [P8-06 Grok Official local differential, concurrent load, and error matrix](p8-06-grok-official-local-differential.md) — local phase-gate pass ([Full Gate evidence](p8-06-local-full-check.md))
-- [P8-07 Grok Official authorized one-probe](p8-07-authorized-official-probe.md) — local safety harness pass; blocked only on P8 Official API-key E2E authorization
+- [P8-07 Grok Official authorized one-probe](p8-07-authorized-official-probe.md) — local safety harness pass; deferred to the final external-authentication package with P7-09

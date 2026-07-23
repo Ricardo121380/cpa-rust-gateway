@@ -6,7 +6,7 @@
 | Task | `P8-07` |
 | ADR | [ADR-0060](../adr/ADR-0060-grok-official-authorized-one-probe.md) |
 | Matrix | `C01`、`C03`、`C31`、`G24-G27` |
-| Status | `BLOCKED`; local harness safety is verified, but no Official request is authorized or sent |
+| Status | `DEFERRED` under `CR-P8-DEFER-001`; local harness safety is verified, but no Official request is authorized or sent |
 | Domain | One explicitly authorized Grok Official API-key Provider-Gate E2E |
 
 ## Preconditions and bounds

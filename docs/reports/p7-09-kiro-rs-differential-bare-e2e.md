@@ -58,12 +58,12 @@ read or recorded. The public client API had already accepted `/v1/models`, so th
 the server Kiro upstream credential state, not a claim that the new native converter succeeded or
 failed against Kiro.
 
-**Status: `BLOCKED_AUTH_REAUTH_REQUIRED`.** P7-09 and G7 cannot pass until the service's Kiro
-account is interactively reauthenticated or replaced by the user. Do not retry the same live
-request before that change. After the user completes it, one new explicitly recorded short
-`--bare` tuple may verify normal response semantics, then G7 may run. The original P8 ordering
-sentence is superseded by `CR-P7-DEFER-002`: P8-G12 may progress on their non-Kiro dependencies,
-but Kiro remains blocked and must be completed before any Kiro-inclusive release.
+**Status: `DEFERRED_EXTERNAL_AUTH`.** The observed upstream `auth_failed` still requires the
+service's Kiro account to be interactively reauthenticated or replaced by the user, but
+`CR-P8-DEFER-001` defers that work to the final external-authentication package with P8-07. Do not
+retry the same live request before that change. When resumed, one new explicitly recorded short
+`--bare` tuple may verify normal response semantics, then G7 may run. P7 and P8 remain separate
+proofs even though their external validation is scheduled together.
 
 ## Local verification and review
 
@@ -73,7 +73,7 @@ but Kiro remains blocked and must be completed before any Kiro-inclusive release
 | `cargo clippy --offline -p provider-kiro --all-targets -- -D warnings` | PASS after the native adapter addition. |
 | `./scripts/check.sh full` | PASS after the native adapter addition: plan-state, format, workspace Clippy/tests, source/crate boundaries, document links, Secret scan, dependency policy, and RustSec audit. |
 | Kiro-RS `/v1/models` safe projection | PASS; `200`, 15 models. |
-| Kiro-RS `--bare` inference tuple | BLOCKED; upstream `auth_failed`, no Canonical/Claude success evidence. |
+| Kiro-RS `--bare` inference tuple | DEFERRED; upstream `auth_failed`, no Canonical/Claude success evidence. |
 
 Review conclusion: the native path now has local executable evidence, while the remaining failure
 is contained to the external Kiro-RS account state. No server configuration, credential, route,

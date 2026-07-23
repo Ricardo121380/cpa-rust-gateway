@@ -151,7 +151,7 @@ impl Error for ProbeFailure {}
 struct AuthorizedProbeConfig {
     target_label: String,
     mode: ProbeMode,
-    api_key: GrokOfficialApiKey,
+    credential: GrokOfficialApiKey,
     upstream_model: String,
 }
 
@@ -178,7 +178,7 @@ impl AuthorizedProbeConfig {
             return Err(ProbeConfigError::InvalidTargetLabel);
         }
         let mode = ProbeMode::parse(&required_value(read, MODE_ENV)?)?;
-        let api_key = GrokOfficialApiKey::try_new(required_value(read, API_KEY_ENV)?)
+        let credential = GrokOfficialApiKey::try_new(required_value(read, API_KEY_ENV)?)
             .map_err(|_| ProbeConfigError::InvalidApiKey)?;
         let upstream_model = required_value(read, UPSTREAM_MODEL_ENV)?;
         if upstream_model.is_empty() || !upstream_model.bytes().all(|byte| byte.is_ascii_graphic())
@@ -188,7 +188,7 @@ impl AuthorizedProbeConfig {
         Ok(Self {
             target_label,
             mode,
-            api_key,
+            credential,
             upstream_model,
         })
     }
@@ -197,7 +197,7 @@ impl AuthorizedProbeConfig {
         let Self {
             target_label,
             mode,
-            api_key,
+            credential,
             upstream_model,
         } = self;
         let endpoint = Url::parse(GROK_OFFICIAL_RESPONSES_URL)
@@ -244,7 +244,7 @@ impl AuthorizedProbeConfig {
             profile,
         ));
         let adapter = GrokOfficialInferenceAdapter::try_new(
-            api_key,
+            credential,
             upstream_model,
             mode.execution_mode(),
             transport,
