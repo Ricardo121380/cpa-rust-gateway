@@ -7,8 +7,8 @@
 | 计划版本 | `v1.38` |
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P6` 已完成；`P7 - Kiro IDE/CLI` 因外部账号认证阻塞，按 `CR-P7-G7-001` 开始 `P8 - Grok Official` 的本地顺序开发。 |
-| 当前任务 | `P8-06`：完成 Official 路径的 synthetic 差分、负载和错误矩阵；P8-01 至 P8-05 已本地验收，P7-09 保持 `BLOCKED_AUTH_REAUTH_REQUIRED`，G7 尚未达成。 |
+| 当前阶段 | `P1` 至 `P6` 已完成；`P7 - Kiro IDE/CLI` 因外部账号认证阻塞。按 `CR-P7-G7-001` 完成的 `P8 - Grok Official` 本地顺序开发正等待 G7，尚未进入 P9。 |
+| 当前任务 | 无 `IN_PROGRESS` 代码 Task：P7-09 保持 `BLOCKED_AUTH_REAUTH_REQUIRED`；P8-01 至 P8-06 均为 `LOCAL_PASS_PENDING_PHASE_GATE`，G7 与 P7 Delivery Gate 未达成。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1029,8 +1029,8 @@ CR-ID: CR-P7-G7-001
 
 ### 1.14 P7 阻塞期间的 P8 本地开发边界（CR-P7-G7-001）
 
-1. 全计划仍然最多一个 `IN_PROGRESS` 代码 Task；P7-09 是 `BLOCKED`，当前唯一进行中的 Task 为
-   P8-02。P8 内部保持原有顺序依赖，不能并行跳过。
+1. 全计划仍然最多一个 `IN_PROGRESS` 代码 Task；P7-09 是 `BLOCKED`，P8-01 至 P8-06 的本地
+   序列已完成，因此当前没有 `IN_PROGRESS` 代码 Task。不得由此开启 P9 或跳过 P7/G7。
 2. P7 的 G7 和其 Phase Delivery Gate 保持 fail-closed。P8 的每项本地证据仅为后续 P8 本地 Task
    的前置条件，不能跨越 G7 作为下一 Phase、合并、发布或完成的证据。
 3. P8 的真实 Official E2E 与 P8 closeout 均不得早于 G7；本 CR 不新增 Endpoint、Credential、
@@ -1459,7 +1459,7 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 | P8-03 | 实现 Quota/Rate Header、Reset 和 Billing 元数据 | P8-02 | 严格 Header/Reset/Usage Fixture、Redaction 和本地 Full Gate passed；真实 Header 行为按 `CR-P7-G7-001` 延后 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P8-04 | 实现 Official Tool、Reasoning、Search 能力声明与转换 | P8-02 | Capability/Tool/Reasoning Fixture、Search 显式非能力与本地 Full Gate passed；真实 Official E2E 按 `CR-P7-G7-001` 延后 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P8-05 | 验证 Official/Build 状态、Affinity、Quota 和故障完全隔离 | P8-02-P8-04 | Exact Header-to-quota、Build state/affinity、401/403/429/transient 隔离 Fixture 与本地 Full Gate passed；Official E2E 按 `CR-P7-G7-001` 延后 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P8-06 | 完成官方路径差分、负载和错误矩阵 | P8-05 | Phase 报告 | IN_PROGRESS |
+| P8-06 | 完成官方路径差分、负载和错误矩阵 | P8-05 | JSON/SSE Tool/Reasoning 差分、12 OS 线程 × 8 解码器的 96 实例隔离、精确错误/Quota 矩阵、本地 Full Gate 与 review passed；G8/Official E2E 按 `CR-P7-G7-001` 延后 | LOCAL_PASS_PENDING_PHASE_GATE |
 
 ### G8 门禁
 
