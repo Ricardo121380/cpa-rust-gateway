@@ -106,3 +106,4 @@
 - [P8-05 Grok Official / Build state isolation](p8-05-grok-official-build-isolation.md) — local phase-gate pass
 - [P8-06 Grok Official local differential, concurrent load, and error matrix](p8-06-grok-official-local-differential.md) — local phase-gate pass ([Full Gate evidence](p8-06-local-full-check.md))
 - [P8-07 Grok Official authorized one-probe](p8-07-authorized-official-probe.md) — local safety harness pass; deferred to the final external-authentication package with P7-09
+- [P9-01 Grok Web SSO credential, lineage, and lifecycle](p9-01-grok-web-sso-credentials.md) — local phase-gate pass; no SSO source or Web request used

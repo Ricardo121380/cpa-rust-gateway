@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6` 已完成；P7 Kiro OAuth 和 P8 Official API-key E2E 延后至最终外部认证验收包。按 `CR-P9-LOCAL-001`，P9 的本地实现开始，但 P9 真实 Web E2E、G9 与 Delivery Gate 仍保持 fail-closed。 |
-| 当前任务 | P9-01：实现 Web/SSO Credential、血缘和独立生命周期。P8-07、P7-09 均为 `DEFERRED`；P9 不读取或使用它们的 Credential，也不发送真实 Web 请求。 |
+| 当前任务 | P9-02：实现 BrowserEgressSession 的 Cookie、UA、TLS Profile、Proxy 显式绑定。P8-07、P7-09 均为 `DEFERRED`；P9 不读取或使用它们的 Credential，也不发送真实 Web 请求。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1570,8 +1570,8 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
-| P9-01 | 实现 SSO/Cookie Credential、血缘和独立生命周期 | P8 local isolation evidence（`CR-P9-LOCAL-001`） | 导入、加密、失效测试 | IN_PROGRESS |
-| P9-02 | 实现 BrowserEgressSession：Cookie、UA、TLS Profile、Proxy 绑定 | P9-01 | 指纹一致性和隔离测试 | PENDING |
+| P9-01 | 实现 SSO/Cookie Credential、血缘和独立生命周期 | P8 local isolation evidence（`CR-P9-LOCAL-001`） | 导入、加密、失效测试 | LOCAL_PASS_PENDING_PHASE_GATE |
+| P9-02 | 实现 BrowserEgressSession：Cookie、UA、TLS Profile、Proxy 绑定 | P9-01 | 指纹一致性和隔离测试 | IN_PROGRESS |
 | P9-03 | 实现 Grok Web Chat 请求和流响应解析 | P9-02 | 脱敏网页 Fixture | PENDING |
 | P9-04 | 实现 WebConversationState 与账号/出口强绑定 | P9-03 | 多轮、过期和账号不可用测试 | PENDING |
 | P9-05 | 实现 Statsig 签名缓存、受限失效和 SSRF 防护 | P9-02 | 403、Redirect、域名测试 | PENDING |
