@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.41` |
+| 计划版本 | `v1.42` |
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P6` 已完成；P7 Kiro OAuth 和 P8 Official API-key E2E 均延后至其他本地开发完成后的同一外部认证验收包。P8/G8 尚未完成，P9 继续等待 G8。 |
-| 当前任务 | 无活动代码 Task。P8-07 与 P7-09 均为 `DEFERRED` 外部认证工作；未持有 Official API Key 时不得发送 P8 真实请求，且 P9-P12 的既有 Gate 依赖不变。 |
+| 当前阶段 | `P1` 至 `P6` 已完成；P7 Kiro OAuth 和 P8 Official API-key E2E 延后至最终外部认证验收包。按 `CR-P9-LOCAL-001`，P9 的本地实现开始，但 P9 真实 Web E2E、G9 与 Delivery Gate 仍保持 fail-closed。 |
+| 当前任务 | P9-01：实现 Web/SSO Credential、血缘和独立生命周期。P8-07、P7-09 均为 `DEFERRED`；P9 不读取或使用它们的 Credential，也不发送真实 Web 请求。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1097,9 +1097,37 @@ CR-ID: CR-P8-DEFER-001
    P8-06 的本地证据保持有效，但不能越过 §20.1。
 2. P8-07 与 P7-09 在其他本地 Phase 全部完成后进入同一外部认证验收包；两者仍使用各自的
    Credential、授权与验收标准，不互相替代。
-3. P9 仍依赖 G8，P10-P12 仍依赖各自的前序非 Kiro Gate。本 CR 不授权提前执行或合并这些 Phase。
+3. 本项原 P9 顺序约束已由 §1.17 的 `CR-P9-LOCAL-001` 替代；P10-P12 仍依赖各自的前序非 Kiro Gate。
 4. P12/G12 之后、任何包含 Kiro 的发布前，必须回到 P7-09，完成 OAuth、G7 及 P7 Delivery Gate。
    不得以延后状态永久遗漏 Kiro Provider 验收。
+
+### 已批准 Change Request：CR-P9-LOCAL-001
+
+```text
+CR-ID: CR-P9-LOCAL-001
+原因: 用户要求继续按照最新开发计划完成 P9，而 P8-07/G8 的唯一缺口是没有 Official API Key 的
+      外部 E2E，已明确延后。P9 的独立 Web Provider 本地实现不读取、不改变、也不依赖该 Credential。
+影响的 Task / Matrix ID / ADR: 允许 P9-01 至 P9-08 按自身依赖顺序进行实现、review、定向测试和
+      本地 Full gate；P9-09、G9、P9 Delivery Gate、合并、发布及 `DONE` 仍需 P9 自身的真实 Web
+      账号/Canary 授权。P10-P12 的 Gate 依赖不变。既有 P8/P7 状态、公开 API、Canonical 类型、
+      Provider 协议、Schema、数据库、服务器、路由、Secret 规则和生产流量均不改变。
+兼容性与迁移影响: 无。P9 开发不搜索 Cookie/SSO/浏览器 Profile/代理/TUN/服务器文件，不发送 Web
+      请求，不改变账号、出口、Feature Flag 或生产配置。
+测试与回滚变化: 每个 P9 本地 Task 仍执行适用的格式、Clippy、定向测试、Secret scan 和 review；
+      P9-09 保持 DEFERRED，只有显式测试账号/Canary 授权才可恢复。若发现对 P8 或 P7 的实际代码
+      依赖，冻结 P9 并修复最早受影响项。回滚为恢复 P9-01 至 P9-08 为 PENDING，不发送外部请求。
+用户批准: APPROVED，2026-07-23（“继续按照最新的开发计划完成P9”）
+计划版本变更: v1.42
+```
+
+### 1.17 P9 本地开发边界（CR-P9-LOCAL-001）
+
+1. P9-01 至 P9-08 可以以 P8 的已验证本地隔离证据为前置，不能将 P8/G8 的延期状态误写成通过。
+2. P9-09 是 `DEFERRED`：无真实 Web 测试账号、明确 Canary、单独流量授权时，不进行 Cookie/SSO
+   导入、浏览器自动化、Web API/Statsig/gRPC-Web 请求或出口变更。
+3. P9 的任何本地 fixture、差分或安全 harness 不证明远程 Web 协议、额度、WAF、Cookie 或账户状态。
+4. P9-01 至 P9-08 通过后只可进入 `LOCAL_PASS_PENDING_PHASE_GATE`；不得创建 P9 Delivery tag、
+   推送远端 Gate、合并、发布或宣称 P9/G9 `DONE`，直到 P9-09 与 G9 的真实证据补齐。
 
 ## 2. Release 1 范围
 
@@ -1259,7 +1287,7 @@ deploy/
 | P6 | Grok Build | G5 | G6 | DONE |
 | P7 | Kiro IDE/CLI | G6 | G7 | DEFERRED_EXTERNAL_AUTH |
 | P8 | Grok Official | G6（`CR-P7-DEFER-002`） | G8 | DEFERRED_EXTERNAL_E2E |
-| P9 | Grok Web | G8 | G9 | PENDING |
+| P9 | Grok Web | P8 local isolation evidence（`CR-P9-LOCAL-001`） | G9 | IN_PROGRESS |
 | P10 | 完整管理 API、Web UI、备份恢复 | G9 | G10 | PENDING |
 | P11 | 差分、性能、安全与发布加固 | G10 | G11 | PENDING |
 | P12 | 服务器部署、灰度、切换与回滚 | G11 | G12 | PENDING |
@@ -1542,7 +1570,7 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
-| P9-01 | 实现 SSO/Cookie Credential、血缘和独立生命周期 | G8 | 导入、加密、失效测试 | PENDING |
+| P9-01 | 实现 SSO/Cookie Credential、血缘和独立生命周期 | P8 local isolation evidence（`CR-P9-LOCAL-001`） | 导入、加密、失效测试 | IN_PROGRESS |
 | P9-02 | 实现 BrowserEgressSession：Cookie、UA、TLS Profile、Proxy 绑定 | P9-01 | 指纹一致性和隔离测试 | PENDING |
 | P9-03 | 实现 Grok Web Chat 请求和流响应解析 | P9-02 | 脱敏网页 Fixture | PENDING |
 | P9-04 | 实现 WebConversationState 与账号/出口强绑定 | P9-03 | 多轮、过期和账号不可用测试 | PENDING |
@@ -1550,7 +1578,7 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 | P9-06 | 实现 REST/gRPC-Web Quota、Tier、Window、Source/Confidence | P9-03 | Quota Fixture | PENDING |
 | P9-07 | 实现 WAF/EgressRejected 与账号 Forbidden 分离 | P9-02,P9-03 | 403 分类矩阵 | PENDING |
 | P9-08 | 实现 Tool Emulation Feature Flag，默认关闭并标记 `emulated` | P9-03 | 开关与能力元数据测试 | PENDING |
-| P9-09 | 完成 Feature Flag 下真实账号 E2E、协议漂移和熔断演练 | P9-04-P9-08 | Canary 报告 | PENDING |
+| P9-09 | 完成 Feature Flag 下真实账号 E2E、协议漂移和熔断演练 | P9-04-P9-08 | Canary 报告；等待 P9 自身测试账号/Canary 授权 | DEFERRED |
 
 ### G9 门禁
 
@@ -1785,3 +1813,4 @@ Next task:
 | v1.39 | 2026-07-23 | `CR-P7-DEFER-002`：P7 Kiro OAuth 延后；P8-G12 按自身非 Kiro 依赖推进，P8 可进行自身 Gate/Delivery，Kiro 仍必须在 P12/G12 后、含 Kiro 发布前回补 | APPROVED；当前执行基线 |
 | v1.40 | 2026-07-23 | 新增 P8-07：为既有 §20.1 的每 Provider Gate 真实 E2E 要求登记一个默认零网络、单目标/单模式/单发送的 Official API-key harness；不改变公开 API 或 Kiro 的延后状态 | APPROVED；当前执行基线 |
 | v1.41 | 2026-07-23 | `CR-P8-DEFER-001`：因无 Official API Key，将 P8-07/G8 延后至与 P7-09 的最终外部认证验收包；不改变 P9-P12 的 Gate 依赖或提前开发权限 | APPROVED；当前执行基线 |
+| v1.42 | 2026-07-23 | `CR-P9-LOCAL-001`：允许 P9-01 至 P9-08 在 P8/G8 外部 E2E 延后时完成本地实现；P9-09/G9/Delivery Gate 仍需 P9 自身真实 Web Canary 证据 | APPROVED；当前执行基线 |
