@@ -144,11 +144,10 @@ async fn sse_text_fixture_is_chunk_invariant_and_runs_through_adapter() -> TestR
 }
 
 #[test]
-fn tools_thinking_opaque_and_unsupported_roles_are_rejected_before_transport() -> TestResult {
+fn cache_opaque_and_unsupported_roles_are_rejected_before_transport() -> TestResult {
     let key = GrokOfficialApiKey::try_new(SYNTHETIC_KEY)?;
     for input in [
-        r#"{"requested_model":"grok","messages":[{"role":"user","content":[{"text":{"text":"x","extensions":{}}}],"extensions":{}}],"tools":[{"name":"lookup","input_schema":{},"extensions":{}}],"extensions":{}}"#,
-        r#"{"requested_model":"grok","messages":[{"role":"user","content":[{"text":{"text":"x","extensions":{}}}],"extensions":{}}],"thinking":{"effort":"medium","extensions":{}},"extensions":{}}"#,
+        r#"{"requested_model":"grok","messages":[{"role":"user","content":[{"text":{"text":"x","extensions":{}}}],"extensions":{}}],"prompt_cache_key":"not-official-yet","extensions":{}}"#,
         r#"{"requested_model":"grok","messages":[{"role":"tool","content":[{"text":{"text":"x","extensions":{}}}],"extensions":{}}],"extensions":{}}"#,
         r#"{"requested_model":"grok","messages":[{"role":"user","content":[{"opaque":{"raw":{"type":"input_image","image_url":"https://example.invalid/x"},"extensions":{}}}],"extensions":{}}],"extensions":{}}"#,
     ] {
@@ -209,7 +208,7 @@ async fn pre_start_error_is_generic_and_post_start_failure_is_one_stream_error()
 }
 
 #[test]
-fn response_failed_is_terminal_and_deferred_output_semantics_fail_closed() -> TestResult {
+fn response_failed_is_terminal_and_opaque_search_output_fails_closed() -> TestResult {
     let failed = concat!(
         "event: response.created\n",
         "data: {\"type\":\"response.created\",\"response\":{\"id\":\"resp-p8-failed\"}}\n\n",
@@ -234,10 +233,10 @@ fn response_failed_is_terminal_and_deferred_output_semantics_fail_closed() -> Te
     decoder.push_bytes(&response_created_record())?;
     let error = decoder
         .push_bytes(
-            b"event: response.output_item.added\ndata: {\"type\":\"response.output_item.added\",\"item\":{\"id\":\"reason-p8\",\"type\":\"reasoning\"}}\n\n",
+            b"event: response.output_item.added\ndata: {\"type\":\"response.output_item.added\",\"item\":{\"id\":\"search-p8\",\"type\":\"web_search_call\"}}\n\n",
         )
         .err()
-        .ok_or("P8-02 decoder accepted a P8-04 Reasoning output item")?;
+        .ok_or("Official decoder accepted an opaque native Search output item")?;
     assert_eq!(error.code(), GatewayErrorCode::UpstreamProtocolError);
     assert_eq!(error.scope(), ErrorScope::Stream);
     Ok(())

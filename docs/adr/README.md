@@ -82,4 +82,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0054 Grok Official API-key catalog boundary](ADR-0054-grok-official-api-key-catalog-boundary.md) — `P8-01`（Accepted）。
 - [ADR-0055 Grok Official text-only Responses boundary](ADR-0055-grok-official-responses-boundary.md) — `P8-02`（Accepted）。
 - [ADR-0056 Grok Official rate-limit and billing metadata boundary](ADR-0056-grok-official-rate-limit-billing-metadata.md) — `P8-03`（Accepted）。
+- [ADR-0057 Grok Official Tool, Reasoning, and Search capability boundary](ADR-0057-grok-official-tool-reasoning-capability-boundary.md) — `P8-04`（Accepted）。
 - [ADR-0045 Grok Build runtime state and continuity isolation](ADR-0045-grok-build-runtime-continuity.md) — `P6-04` 至 `P6-07`（Accepted）。

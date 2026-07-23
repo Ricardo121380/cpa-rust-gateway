@@ -102,3 +102,4 @@
 - [P8-01 Grok Official API-key catalog](p8-01-grok-official-catalog.md) — local phase-gate pass
 - [P8-02 Grok Official Responses HTTP/SSE](p8-02-grok-official-responses.md) — local phase-gate pass
 - [P8-03 Grok Official rate-limit and billing metadata](p8-03-grok-official-metadata.md) — local phase-gate pass
+- [P8-04 Grok Official Tool, Reasoning, and Search capability](p8-04-grok-official-capabilities.md) — local phase-gate pass

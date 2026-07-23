@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6` 已完成；`P7 - Kiro IDE/CLI` 因外部账号认证阻塞，按 `CR-P7-G7-001` 开始 `P8 - Grok Official` 的本地顺序开发。 |
-| 当前任务 | `P8-04`：实现 Official Tool、Reasoning、Search 能力声明与转换；P8-01 至 P8-03 已本地验收，P7-09 保持 `BLOCKED_AUTH_REAUTH_REQUIRED`，G7 尚未达成。 |
+| 当前任务 | `P8-05`：验证 Official/Build 状态、Affinity、Quota 和故障完全隔离；P8-01 至 P8-04 已本地验收，P7-09 保持 `BLOCKED_AUTH_REAUTH_REQUIRED`，G7 尚未达成。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1457,8 +1457,8 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 | P8-01 | 实现 Official API Key、Endpoint、Header 和模型发现 | `CR-P7-G7-001` 本地启动边界 | 请求/目录 Fixture passed；见 P8-01 report | LOCAL_PASS_PENDING_PHASE_GATE |
 | P8-02 | 实现 Official Responses HTTP 非流式与 SSE | P8-01 | 本地 HTTP/SSE Fixture、严格分块/错误/Redaction 验收 passed；Official E2E 按 `CR-P7-G7-001` 延后 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P8-03 | 实现 Quota/Rate Header、Reset 和 Billing 元数据 | P8-02 | 严格 Header/Reset/Usage Fixture、Redaction 和本地 Full Gate passed；真实 Header 行为按 `CR-P7-G7-001` 延后 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P8-04 | 实现 Official Tool、Reasoning、Search 能力声明与转换 | P8-02 | Capability 测试 | IN_PROGRESS |
-| P8-05 | 验证 Official/Build 状态、Affinity、Quota 和故障完全隔离 | P8-02-P8-04 | 隔离 E2E | PENDING |
+| P8-04 | 实现 Official Tool、Reasoning、Search 能力声明与转换 | P8-02 | Capability/Tool/Reasoning Fixture、Search 显式非能力与本地 Full Gate passed；真实 Official E2E 按 `CR-P7-G7-001` 延后 | LOCAL_PASS_PENDING_PHASE_GATE |
+| P8-05 | 验证 Official/Build 状态、Affinity、Quota 和故障完全隔离 | P8-02-P8-04 | 隔离 E2E | IN_PROGRESS |
 | P8-06 | 完成官方路径差分、负载和错误矩阵 | P8-05 | Phase 报告 | PENDING |
 
 ### G8 门禁

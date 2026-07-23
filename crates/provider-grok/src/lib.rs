@@ -8,6 +8,7 @@ mod credential_runtime;
 mod inference;
 mod oauth;
 mod official;
+mod official_capabilities;
 mod official_metadata;
 mod official_responses;
 mod runtime_state;
@@ -62,6 +63,7 @@ pub use official::{
     GrokOfficialModelsEndpoint, GrokOfficialUpstreamCatalogTransport,
     MAX_GROK_OFFICIAL_CATALOG_RESPONSE_BYTES,
 };
+pub use official_capabilities::{GrokOfficialCapabilities, GrokOfficialSearchCapability};
 pub use official_metadata::{
     GrokOfficialBillingMetadata, GrokOfficialRateLimitKind, GrokOfficialRateLimitMetadata,
     GrokOfficialRateLimitWindow, MAX_GROK_OFFICIAL_RATE_LIMIT_RESET,

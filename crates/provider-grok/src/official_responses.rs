@@ -14,8 +14,9 @@ use std::{
 use gateway_core::{
     CanonicalEvent, CanonicalEventState, CanonicalMessage, CanonicalRequest, CanonicalResponse,
     ErrorScope, GatewayError, GatewayErrorCode, MessageContent, MessageEnd, MessageRole,
-    MessageStart, RawExtensions, RequestContext, ResponseEnd, ResponseId, ResponseStart,
-    StreamError, TextDelta, Usage, UsageDelta,
+    MessageStart, RawExtensions, RawJson, ReasoningDelta, RequestContext, ResponseEnd, ResponseId,
+    ResponseStart, StreamError, TextDelta, ToolCallArgumentsDelta, ToolCallEnd, ToolCallStart,
+    ToolDefinition, Usage, UsageDelta,
 };
 use gateway_provider::{CanonicalEventSource, InferenceAdapter, ProviderAdapter, ProviderFuture};
 use gateway_upstream::{
@@ -43,6 +44,8 @@ pub const MAX_GROK_OFFICIAL_ERROR_BODY_BYTES: usize = 64 * 1024;
 pub const MAX_GROK_OFFICIAL_SSE_FRAME_BYTES: usize = 64 * 1024;
 
 const MAX_GROK_OFFICIAL_MODEL_BYTES: usize = 512;
+const MAX_GROK_OFFICIAL_TOOL_ARGUMENT_BYTES: usize = 64 * 1024;
+const OFFICIAL_REASONING_EFFORTS: &[&str] = &["low", "medium", "high"];
 
 /// The fixed production xAI Official Responses endpoint.
 #[derive(Clone, Eq, PartialEq)]
@@ -169,16 +172,16 @@ impl fmt::Debug for GrokOfficialResponsesOutboundRequest {
     }
 }
 
-/// Stateless builder for the supported Official text-only Responses subset.
+/// Stateless builder for the supported Official Responses subset.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct GrokOfficialResponsesRequestBuilder;
 
 impl GrokOfficialResponsesRequestBuilder {
     /// Builds one API-key-authenticated Official Responses request.
     ///
-    /// P8-02 accepts only extension-free text messages in the normal Responses roles. Tools,
-    /// Thinking, cache semantics, opaque input, historical Tool messages, and provider extensions
-    /// are rejected rather than silently erased; P8-04 owns their explicit conversion.
+    /// P8-04 accepts extension-free text, Function Tools, historical Function Calls/Results, and
+    /// bounded named Reasoning effort. Cache, opaque content, native Search, and raw provider
+    /// extensions remain rejected until they have their own lossless Canonical contracts.
     ///
     /// # Errors
     ///
@@ -214,9 +217,7 @@ fn encode_body(
     request: &CanonicalRequest,
     mode: ResponseMode,
 ) -> Result<Vec<u8>, GatewayError> {
-    if !request.tools.is_empty()
-        || request.thinking.is_some()
-        || request.prompt_cache_key.is_some()
+    if request.prompt_cache_key.is_some()
         || request.prompt_cache_retention.is_some()
         || !request.extensions.is_empty()
     {
@@ -233,56 +234,181 @@ fn encode_body(
         "input".to_owned(),
         Value::Array(encode_input(&request.messages)?),
     );
+    if !request.tools.is_empty() {
+        root.insert(
+            "tools".to_owned(),
+            Value::Array(encode_tools(&request.tools)?),
+        );
+    }
+    if let Some(thinking) = &request.thinking {
+        root.insert("reasoning".to_owned(), encode_reasoning(thinking)?);
+    }
     serde_json::to_vec(&Value::Object(root)).map_err(|_| internal_error())
 }
 
 fn encode_input(messages: &[CanonicalMessage]) -> Result<Vec<Value>, GatewayError> {
     let mut input = Vec::with_capacity(messages.len());
     for message in messages {
-        if !matches!(
-            message.role.0.as_str(),
-            "assistant" | "developer" | "system" | "user"
-        ) || message.content.is_empty()
+        let role = message.role.0.as_str();
+        if !matches!(role, "assistant" | "developer" | "system" | "tool" | "user")
+            || message.content.is_empty()
             || !message.extensions.is_empty()
         {
             return Err(client_request_error());
         }
-        let content_type = if message.role.0 == "assistant" {
-            "output_text"
-        } else {
-            "input_text"
-        };
         let mut content = Vec::with_capacity(message.content.len());
         for part in &message.content {
-            let MessageContent::Text(text) = part else {
-                return Err(client_request_error());
-            };
-            if !text.extensions.is_empty() {
-                return Err(client_request_error());
+            match part {
+                MessageContent::Text(text) => content.push(encode_text_part(role, text)?),
+                MessageContent::ToolCall(call) => {
+                    flush_message_content(&mut input, role, &mut content)?;
+                    if role != "assistant" {
+                        return Err(client_request_error());
+                    }
+                    input.push(encode_tool_call(call)?);
+                }
+                MessageContent::ToolResult(result) => {
+                    flush_message_content(&mut input, role, &mut content)?;
+                    if role != "tool" || result.is_error {
+                        return Err(client_request_error());
+                    }
+                    input.push(encode_tool_result(result)?);
+                }
+                MessageContent::Opaque(_) => return Err(client_request_error()),
             }
-            content.push(Value::Object(Map::from_iter([
-                ("type".to_owned(), Value::String(content_type.to_owned())),
-                ("text".to_owned(), Value::String(text.text.clone())),
-            ])));
         }
-        input.push(Value::Object(Map::from_iter([
-            ("type".to_owned(), Value::String("message".to_owned())),
-            ("role".to_owned(), Value::String(message.role.0.clone())),
-            ("content".to_owned(), Value::Array(content)),
-        ])));
+        flush_message_content(&mut input, role, &mut content)?;
     }
     Ok(input)
 }
 
-/// Decodes one bounded completed Official text-only Responses object.
+fn flush_message_content(
+    input: &mut Vec<Value>,
+    role: &str,
+    content: &mut Vec<Value>,
+) -> Result<(), GatewayError> {
+    if content.is_empty() {
+        return Ok(());
+    }
+    if role == "tool" {
+        return Err(client_request_error());
+    }
+    input.push(Value::Object(Map::from_iter([
+        ("type".to_owned(), Value::String("message".to_owned())),
+        ("role".to_owned(), Value::String(role.to_owned())),
+        ("content".to_owned(), Value::Array(std::mem::take(content))),
+    ])));
+    Ok(())
+}
+
+fn encode_text_part(role: &str, text: &gateway_core::TextContent) -> Result<Value, GatewayError> {
+    if !text.extensions.is_empty() {
+        return Err(client_request_error());
+    }
+    let content_type = match role {
+        "assistant" => "output_text",
+        "developer" | "system" | "user" => "input_text",
+        _ => return Err(client_request_error()),
+    };
+    Ok(Value::Object(Map::from_iter([
+        ("type".to_owned(), Value::String(content_type.to_owned())),
+        ("text".to_owned(), Value::String(text.text.clone())),
+    ])))
+}
+
+fn encode_tool_call(call: &gateway_core::ToolCall) -> Result<Value, GatewayError> {
+    if call.id.is_empty() || call.name.is_empty() || !call.extensions.is_empty() {
+        return Err(client_request_error());
+    }
+    let arguments = normalize_outbound_tool_arguments(call.arguments.get())?;
+    Ok(Value::Object(Map::from_iter([
+        ("type".to_owned(), Value::String("function_call".to_owned())),
+        ("call_id".to_owned(), Value::String(call.id.clone())),
+        ("name".to_owned(), Value::String(call.name.clone())),
+        ("arguments".to_owned(), Value::String(arguments)),
+    ])))
+}
+
+fn encode_tool_result(result: &gateway_core::ToolResult) -> Result<Value, GatewayError> {
+    if result.call_id.is_empty() || !result.extensions.is_empty() {
+        return Err(client_request_error());
+    }
+    let output = raw_value(&result.output)?;
+    if !output.is_string() {
+        return Err(client_request_error());
+    }
+    Ok(Value::Object(Map::from_iter([
+        (
+            "type".to_owned(),
+            Value::String("function_call_output".to_owned()),
+        ),
+        ("call_id".to_owned(), Value::String(result.call_id.clone())),
+        ("output".to_owned(), output),
+    ])))
+}
+
+fn encode_tools(tools: &[ToolDefinition]) -> Result<Vec<Value>, GatewayError> {
+    tools.iter().map(encode_tool).collect()
+}
+
+fn encode_tool(tool: &ToolDefinition) -> Result<Value, GatewayError> {
+    if tool.name.is_empty() || !tool.extensions.is_empty() {
+        return Err(client_request_error());
+    }
+    let parameters = raw_value(&tool.input_schema)?;
+    if !parameters.is_object() {
+        return Err(client_request_error());
+    }
+    let mut encoded = Map::new();
+    encoded.insert("type".to_owned(), Value::String("function".to_owned()));
+    encoded.insert("name".to_owned(), Value::String(tool.name.clone()));
+    if let Some(description) = &tool.description {
+        encoded.insert("description".to_owned(), Value::String(description.clone()));
+    }
+    encoded.insert("parameters".to_owned(), parameters);
+    Ok(Value::Object(encoded))
+}
+
+fn encode_reasoning(thinking: &gateway_core::Thinking) -> Result<Value, GatewayError> {
+    if !thinking.extensions.is_empty()
+        || !OFFICIAL_REASONING_EFFORTS.contains(&thinking.effort.as_str())
+    {
+        return Err(client_request_error());
+    }
+    Ok(Value::Object(Map::from_iter([(
+        "effort".to_owned(),
+        Value::String(thinking.effort.as_str().to_owned()),
+    )])))
+}
+
+fn raw_value(raw: &RawJson) -> Result<Value, GatewayError> {
+    parse_strict_json(raw.get().as_bytes(), MAX_GROK_OFFICIAL_TOOL_ARGUMENT_BYTES)
+        .map_err(|()| client_request_error())
+}
+
+fn normalize_outbound_tool_arguments(arguments: &str) -> Result<String, GatewayError> {
+    if arguments.len() > MAX_GROK_OFFICIAL_TOOL_ARGUMENT_BYTES {
+        return Err(client_request_error());
+    }
+    let value = parse_strict_json(arguments.as_bytes(), MAX_GROK_OFFICIAL_TOOL_ARGUMENT_BYTES)
+        .map_err(|()| client_request_error())?;
+    if value.is_object() {
+        Ok(arguments.to_owned())
+    } else {
+        Err(client_request_error())
+    }
+}
+
+/// Decodes one bounded completed Official Responses object.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct GrokOfficialResponsesDecoder;
 
 impl GrokOfficialResponsesDecoder {
     /// Converts one completed Official Responses JSON object into a validated Canonical response.
     ///
-    /// Function calls, Reasoning items, Search results, opaque output, duplicate JSON fields, and
-    /// malformed or incomplete response objects fail closed. P8-04 will add those semantics.
+    /// Function calls and exported Reasoning map to their explicit Canonical semantics. Search
+    /// results and opaque output still fail closed because no current Canonical contract represents
+    /// their provider-owned payloads.
     ///
     /// # Errors
     ///
@@ -309,7 +435,7 @@ impl GrokOfficialResponsesDecoder {
     }
 }
 
-/// Incremental parser for one Official text-only Responses SSE byte stream.
+/// Incremental parser for one Official Responses SSE byte stream.
 #[derive(Clone, Default)]
 pub struct GrokOfficialResponsesStreamDecoder {
     pending: Vec<u8>,
@@ -390,10 +516,22 @@ struct GrokOfficialResponsesDecodeState {
     canonical: CanonicalEventState,
     response_id: Option<String>,
     message_open: bool,
-    text_item_ids: BTreeSet<String>,
+    item_kinds: BTreeMap<String, OutputItemKind>,
     completed_item_ids: BTreeSet<String>,
     active_content_part_ids: BTreeSet<String>,
+    function_call_ids: BTreeMap<String, String>,
+    function_call_names: BTreeMap<String, String>,
+    function_arguments: BTreeMap<String, String>,
+    completed_function_calls: BTreeSet<String>,
     text_by_item_id: BTreeMap<String, String>,
+    reasoning_by_item_id: BTreeMap<String, String>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum OutputItemKind {
+    Message,
+    Reasoning,
+    FunctionCall,
 }
 
 impl fmt::Debug for GrokOfficialResponsesDecodeState {
@@ -403,13 +541,19 @@ impl fmt::Debug for GrokOfficialResponsesDecodeState {
             .field("canonical", &self.canonical)
             .field("response_started", &self.response_id.is_some())
             .field("message_open", &self.message_open)
-            .field("text_item_count", &self.text_item_ids.len())
+            .field("output_item_count", &self.item_kinds.len())
             .field("completed_item_count", &self.completed_item_ids.len())
             .field(
                 "active_content_part_count",
                 &self.active_content_part_ids.len(),
             )
+            .field("function_call_count", &self.function_call_ids.len())
+            .field("function_argument_count", &self.function_arguments.len())
             .field("text_item_value_count", &self.text_by_item_id.len())
+            .field(
+                "reasoning_item_value_count",
+                &self.reasoning_by_item_id.len(),
+            )
             .finish_non_exhaustive()
     }
 }
@@ -485,6 +629,23 @@ impl GrokOfficialResponsesDecodeState {
             "response.output_text.delta" => self.handle_text_delta(object, events),
             "response.output_text.done" => self.handle_text_done(object, events),
             "response.content_part.done" => self.handle_content_part_done(object, events),
+            "response.reasoning.delta"
+            | "response.reasoning_text.delta"
+            | "response.reasoning_summary_text.delta" => {
+                self.handle_reasoning_delta(object, events)
+            }
+            "response.reasoning.done" | "response.reasoning_summary_text.done" => {
+                self.handle_reasoning_done(object, events)
+            }
+            "response.reasoning_summary_part.added" | "response.reasoning_summary_part.done" => {
+                self.handle_reasoning_summary_part(object)
+            }
+            "response.function_call_arguments.delta" => {
+                self.handle_function_arguments_delta(object, events)
+            }
+            "response.function_call_arguments.done" => {
+                self.handle_function_arguments_done(object, events)
+            }
             "response.output_item.done" => self.handle_output_item_done(
                 required_object(object, "item", stream_protocol_error())?,
                 events,
@@ -534,16 +695,42 @@ impl GrokOfficialResponsesDecodeState {
     ) -> Result<(), GatewayError> {
         self.require_response_started()?;
         let item_id = required_identifier(item, "id", stream_protocol_error())?;
-        if self.text_item_ids.contains(item_id) {
+        if self.item_kinds.contains_key(item_id) {
             return Err(stream_protocol_error());
         }
-        if required_string(item, "type", stream_protocol_error())? != "message"
-            || required_string(item, "role", stream_protocol_error())? != "assistant"
-        {
-            return Err(stream_protocol_error());
-        }
+        let kind = match required_string(item, "type", stream_protocol_error())? {
+            "message" if required_string(item, "role", stream_protocol_error())? == "assistant" => {
+                OutputItemKind::Message
+            }
+            "reasoning" => OutputItemKind::Reasoning,
+            "function_call" => OutputItemKind::FunctionCall,
+            _ => return Err(stream_protocol_error()),
+        };
         self.ensure_message(events)?;
-        self.text_item_ids.insert(item_id.to_owned());
+        if kind == OutputItemKind::FunctionCall {
+            let call_id = required_identifier(item, "call_id", stream_protocol_error())?;
+            let name = required_identifier(item, "name", stream_protocol_error())?;
+            if self
+                .function_call_ids
+                .values()
+                .any(|known_call_id| known_call_id == call_id)
+            {
+                return Err(stream_protocol_error());
+            }
+            self.emit(
+                events,
+                CanonicalEvent::ToolCallStart(ToolCallStart {
+                    call_id: call_id.to_owned(),
+                    name: name.to_owned(),
+                    extensions: RawExtensions::default(),
+                }),
+            )?;
+            self.function_call_ids
+                .insert(item_id.to_owned(), call_id.to_owned());
+            self.function_call_names
+                .insert(item_id.to_owned(), name.to_owned());
+        }
+        self.item_kinds.insert(item_id.to_owned(), kind);
         Ok(())
     }
 
@@ -552,7 +739,7 @@ impl GrokOfficialResponsesDecodeState {
         event: &Map<String, Value>,
     ) -> Result<(), GatewayError> {
         let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
-        if !self.text_item_ids.contains(item_id)
+        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Message)
             || self.completed_item_ids.contains(item_id)
             || !self.active_content_part_ids.insert(item_id.to_owned())
         {
@@ -573,7 +760,9 @@ impl GrokOfficialResponsesDecodeState {
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
         let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
-        if !self.text_item_ids.contains(item_id) || self.completed_item_ids.contains(item_id) {
+        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Message)
+            || self.completed_item_ids.contains(item_id)
+        {
             return Err(stream_protocol_error());
         }
         let delta = required_string(event, "delta", stream_protocol_error())?;
@@ -603,13 +792,132 @@ impl GrokOfficialResponsesDecodeState {
         self.finish_text_item(item_id, text, events)
     }
 
+    fn handle_reasoning_delta(
+        &mut self,
+        event: &Map<String, Value>,
+        events: &mut Vec<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
+        let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
+        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Reasoning)
+            || self.completed_item_ids.contains(item_id)
+        {
+            return Err(stream_protocol_error());
+        }
+        let delta = required_string(event, "delta", stream_protocol_error())?;
+        if delta.is_empty() {
+            return Ok(());
+        }
+        self.ensure_message(events)?;
+        self.emit(
+            events,
+            CanonicalEvent::ReasoningDelta(ReasoningDelta {
+                text: delta.to_owned(),
+                extensions: RawExtensions::default(),
+            }),
+        )?;
+        self.reasoning_by_item_id
+            .entry(item_id.to_owned())
+            .or_default()
+            .push_str(delta);
+        Ok(())
+    }
+
+    fn handle_reasoning_done(
+        &mut self,
+        event: &Map<String, Value>,
+        events: &mut Vec<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
+        let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
+        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Reasoning) {
+            return Err(stream_protocol_error());
+        }
+        self.finish_reasoning_item(
+            item_id,
+            required_string(event, "text", stream_protocol_error())?.to_owned(),
+            events,
+        )
+    }
+
+    fn handle_reasoning_summary_part(
+        &self,
+        event: &Map<String, Value>,
+    ) -> Result<(), GatewayError> {
+        let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
+        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Reasoning) {
+            return Err(stream_protocol_error());
+        }
+        let _part = required_object(event, "part", stream_protocol_error())?;
+        Ok(())
+    }
+
+    fn handle_function_arguments_delta(
+        &mut self,
+        event: &Map<String, Value>,
+        events: &mut Vec<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
+        let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
+        let call_id = required_identifier(event, "call_id", stream_protocol_error())?;
+        if self.function_call_ids.get(item_id).map(String::as_str) != Some(call_id)
+            || self.completed_function_calls.contains(call_id)
+        {
+            return Err(stream_protocol_error());
+        }
+        let delta = required_string(event, "delta", stream_protocol_error())?;
+        if delta.is_empty() {
+            return Ok(());
+        }
+        let next_length = self
+            .function_arguments
+            .get(call_id)
+            .map_or(0, String::len)
+            .checked_add(delta.len())
+            .ok_or_else(stream_protocol_error)?;
+        if next_length > MAX_GROK_OFFICIAL_TOOL_ARGUMENT_BYTES {
+            return Err(stream_protocol_error());
+        }
+        self.emit(
+            events,
+            CanonicalEvent::ToolCallArgumentsDelta(ToolCallArgumentsDelta {
+                call_id: call_id.to_owned(),
+                delta: delta.to_owned(),
+                extensions: RawExtensions::default(),
+            }),
+        )?;
+        self.function_arguments
+            .entry(call_id.to_owned())
+            .or_default()
+            .push_str(delta);
+        Ok(())
+    }
+
+    fn handle_function_arguments_done(
+        &mut self,
+        event: &Map<String, Value>,
+        events: &mut Vec<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
+        let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
+        let call_id = required_identifier(event, "call_id", stream_protocol_error())?;
+        if self.function_call_ids.get(item_id).map(String::as_str) != Some(call_id)
+            || self.completed_item_ids.contains(item_id)
+        {
+            return Err(stream_protocol_error());
+        }
+        self.finish_function_call(
+            call_id,
+            required_string(event, "arguments", stream_protocol_error())?,
+            events,
+        )
+    }
+
     fn handle_content_part_done(
         &mut self,
         event: &Map<String, Value>,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
         let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
-        if !self.active_content_part_ids.remove(item_id) {
+        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Message)
+            || !self.active_content_part_ids.remove(item_id)
+        {
             return Err(stream_protocol_error());
         }
         let part = required_object(event, "part", stream_protocol_error())?;
@@ -629,16 +937,50 @@ impl GrokOfficialResponsesDecodeState {
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
         let item_id = required_identifier(item, "id", stream_protocol_error())?;
-        if !self.text_item_ids.contains(item_id)
-            || self.completed_item_ids.contains(item_id)
+        let Some(kind) = self.item_kinds.get(item_id).copied() else {
+            return Err(stream_protocol_error());
+        };
+        if self.completed_item_ids.contains(item_id)
             || self.active_content_part_ids.contains(item_id)
-            || required_string(item, "type", stream_protocol_error())? != "message"
-            || required_string(item, "role", stream_protocol_error())? != "assistant"
             || required_string(item, "status", stream_protocol_error())? != "completed"
         {
             return Err(stream_protocol_error());
         }
-        self.finish_text_item(item_id, output_text(item)?, events)?;
+        match kind {
+            OutputItemKind::Message => {
+                if required_string(item, "type", stream_protocol_error())? != "message"
+                    || required_string(item, "role", stream_protocol_error())? != "assistant"
+                {
+                    return Err(stream_protocol_error());
+                }
+                self.finish_text_item(item_id, output_text(item, "output_text")?, events)?;
+            }
+            OutputItemKind::Reasoning => {
+                if required_string(item, "type", stream_protocol_error())? != "reasoning" {
+                    return Err(stream_protocol_error());
+                }
+                if let Some(text) = optional_reasoning_text(item)? {
+                    self.finish_reasoning_item(item_id, text, events)?;
+                }
+            }
+            OutputItemKind::FunctionCall => {
+                if required_string(item, "type", stream_protocol_error())? != "function_call" {
+                    return Err(stream_protocol_error());
+                }
+                let call_id = required_identifier(item, "call_id", stream_protocol_error())?;
+                let name = required_identifier(item, "name", stream_protocol_error())?;
+                if self.function_call_ids.get(item_id).map(String::as_str) != Some(call_id)
+                    || self.function_call_names.get(item_id).map(String::as_str) != Some(name)
+                {
+                    return Err(stream_protocol_error());
+                }
+                self.finish_function_call(
+                    call_id,
+                    required_string(item, "arguments", stream_protocol_error())?,
+                    events,
+                )?;
+            }
+        }
         self.completed_item_ids.insert(item_id.to_owned());
         Ok(())
     }
@@ -709,7 +1051,9 @@ impl GrokOfficialResponsesDecodeState {
         final_text: String,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
-        if !self.text_item_ids.contains(item_id) || self.completed_item_ids.contains(item_id) {
+        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Message)
+            || self.completed_item_ids.contains(item_id)
+        {
             return Err(stream_protocol_error());
         }
         let emitted = self.text_by_item_id.get(item_id).map_or("", String::as_str);
@@ -726,6 +1070,80 @@ impl GrokOfficialResponsesDecodeState {
             )?;
             self.text_by_item_id.insert(item_id.to_owned(), final_text);
         }
+        Ok(())
+    }
+
+    fn finish_reasoning_item(
+        &mut self,
+        item_id: &str,
+        final_text: String,
+        events: &mut Vec<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
+        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Reasoning)
+            || self.completed_item_ids.contains(item_id)
+        {
+            return Err(stream_protocol_error());
+        }
+        let emitted = self
+            .reasoning_by_item_id
+            .get(item_id)
+            .map_or("", String::as_str);
+        if !emitted.is_empty() && emitted != final_text {
+            return Err(stream_protocol_error());
+        }
+        if emitted.is_empty() && !final_text.is_empty() {
+            self.ensure_message(events)?;
+            self.emit(
+                events,
+                CanonicalEvent::ReasoningDelta(ReasoningDelta {
+                    text: final_text.clone(),
+                    extensions: RawExtensions::default(),
+                }),
+            )?;
+            self.reasoning_by_item_id
+                .insert(item_id.to_owned(), final_text);
+        }
+        Ok(())
+    }
+
+    fn finish_function_call(
+        &mut self,
+        call_id: &str,
+        arguments: &str,
+        events: &mut Vec<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
+        let arguments = normalize_tool_arguments(arguments)?;
+        let emitted = self
+            .function_arguments
+            .get(call_id)
+            .map(String::as_str)
+            .map(normalize_tool_arguments)
+            .transpose()?;
+        if emitted
+            .as_ref()
+            .is_some_and(|emitted| emitted != &arguments)
+        {
+            return Err(stream_protocol_error());
+        }
+        if self.completed_function_calls.contains(call_id) {
+            return if emitted.as_deref() == Some(arguments.as_str()) {
+                Ok(())
+            } else {
+                Err(stream_protocol_error())
+            };
+        }
+        self.emit(
+            events,
+            CanonicalEvent::ToolCallEnd(ToolCallEnd {
+                call_id: call_id.to_owned(),
+                arguments: RawJson::from_json_string(arguments.clone())
+                    .map_err(|_| stream_protocol_error())?,
+                extensions: RawExtensions::default(),
+            }),
+        )?;
+        self.function_arguments
+            .insert(call_id.to_owned(), arguments);
+        self.completed_function_calls.insert(call_id.to_owned());
         Ok(())
     }
 
@@ -772,17 +1190,54 @@ impl GrokOfficialResponsesDecodeState {
     }
 }
 
-fn output_text(item: &Map<String, Value>) -> Result<String, GatewayError> {
+fn normalize_tool_arguments(arguments: &str) -> Result<String, GatewayError> {
+    if arguments.len() > MAX_GROK_OFFICIAL_TOOL_ARGUMENT_BYTES {
+        return Err(stream_protocol_error());
+    }
+    if arguments.trim().is_empty() {
+        return Ok("{}".to_owned());
+    }
+    let value = parse_strict_json(arguments.as_bytes(), MAX_GROK_OFFICIAL_TOOL_ARGUMENT_BYTES)
+        .map_err(|()| stream_protocol_error())?;
+    match value {
+        Value::Object(object) if object.is_empty() => Ok("{}".to_owned()),
+        Value::Object(_) => Ok(arguments.to_owned()),
+        Value::Null | Value::Bool(_) | Value::Number(_) | Value::String(_) | Value::Array(_) => {
+            Err(stream_protocol_error())
+        }
+    }
+}
+
+fn output_text(item: &Map<String, Value>, expected_type: &str) -> Result<String, GatewayError> {
     let content = required_array(item, "content", stream_protocol_error())?;
     let mut text = String::new();
     for part in content {
         let part = part.as_object().ok_or_else(stream_protocol_error)?;
-        if required_string(part, "type", stream_protocol_error())? != "output_text" {
+        if required_string(part, "type", stream_protocol_error())? != expected_type {
             return Err(stream_protocol_error());
         }
         text.push_str(required_string(part, "text", stream_protocol_error())?);
     }
     Ok(text)
+}
+
+fn optional_reasoning_text(item: &Map<String, Value>) -> Result<Option<String>, GatewayError> {
+    let Some(content) = item.get("content") else {
+        return Ok(None);
+    };
+    let content = content.as_array().ok_or_else(stream_protocol_error)?;
+    let mut text = String::new();
+    for part in content {
+        let part = part.as_object().ok_or_else(stream_protocol_error)?;
+        if !matches!(
+            required_string(part, "type", stream_protocol_error())?,
+            "reasoning_text" | "summary_text"
+        ) {
+            return Err(stream_protocol_error());
+        }
+        text.push_str(required_string(part, "text", stream_protocol_error())?);
+    }
+    Ok(Some(text))
 }
 
 fn parse_usage(
@@ -798,6 +1253,15 @@ fn parse_usage(
     let object = value.as_object().ok_or_else(|| error.clone())?;
     let input_tokens = optional_u64(object, "input_tokens", error)?;
     let output_tokens = optional_u64(object, "output_tokens", error)?;
+    let reasoning_tokens = object
+        .get("output_tokens_details")
+        .filter(|value| !value.is_null())
+        .map(|value| {
+            let details = value.as_object().ok_or_else(|| error.clone())?;
+            optional_u64(details, "reasoning_tokens", error)
+        })
+        .transpose()?
+        .flatten();
     let cached_tokens = object
         .get("input_tokens_details")
         .filter(|value| !value.is_null())
@@ -807,12 +1271,17 @@ fn parse_usage(
         })
         .transpose()?
         .flatten();
-    if input_tokens.is_none() && output_tokens.is_none() && cached_tokens.is_none() {
+    if input_tokens.is_none()
+        && output_tokens.is_none()
+        && reasoning_tokens.is_none()
+        && cached_tokens.is_none()
+    {
         return Ok(None);
     }
     Ok(Some(Usage {
         input_tokens,
         output_tokens,
+        reasoning_tokens,
         cached_tokens,
         ..Usage::default()
     }))
