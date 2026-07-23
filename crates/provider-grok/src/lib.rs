@@ -8,6 +8,7 @@ mod credential_runtime;
 mod inference;
 mod oauth;
 mod official;
+mod official_metadata;
 mod official_responses;
 mod runtime_state;
 mod strict_json;
@@ -60,6 +61,11 @@ pub use official::{
     GrokOfficialCatalogRequest, GrokOfficialCatalogTransport, GrokOfficialCatalogTransportResponse,
     GrokOfficialModelsEndpoint, GrokOfficialUpstreamCatalogTransport,
     MAX_GROK_OFFICIAL_CATALOG_RESPONSE_BYTES,
+};
+pub use official_metadata::{
+    GrokOfficialBillingMetadata, GrokOfficialRateLimitKind, GrokOfficialRateLimitMetadata,
+    GrokOfficialRateLimitWindow, MAX_GROK_OFFICIAL_RATE_LIMIT_RESET,
+    MAX_GROK_OFFICIAL_RATE_LIMIT_VALUE_BYTES,
 };
 pub use official_responses::{
     GROK_OFFICIAL_RESPONSES_PATH, GROK_OFFICIAL_RESPONSES_URL, GrokOfficialExecutionMode,

@@ -28,7 +28,7 @@ use zeroize::Zeroizing;
 
 use crate::{
     GROK_OFFICIAL_API_BASE_URL, GROK_OFFICIAL_PROVIDER_ID, GrokOfficialApiKey,
-    strict_json::parse_strict_json,
+    GrokOfficialRateLimitMetadata, strict_json::parse_strict_json,
 };
 
 /// Fixed Official Responses path.
@@ -184,7 +184,7 @@ impl GrokOfficialResponsesRequestBuilder {
     ///
     /// Returns a safe client request error before an unrepresentable request reaches a transport.
     pub fn build(
-        api_key: &GrokOfficialApiKey,
+        credential: &GrokOfficialApiKey,
         upstream_model: &str,
         request: &CanonicalRequest,
         mode: ResponseMode,
@@ -202,7 +202,7 @@ impl GrokOfficialResponsesRequestBuilder {
         };
         Ok(GrokOfficialResponsesOutboundRequest {
             target: endpoint.target,
-            authorization: Zeroizing::new(format!("Bearer {}", api_key.as_str())),
+            authorization: Zeroizing::new(format!("Bearer {}", credential.as_str())),
             accept,
             body: encode_body(upstream_model, request, mode)?,
         })
@@ -914,6 +914,7 @@ pub trait GrokOfficialResponseBody: Send {
 pub struct GrokOfficialTransportResponse {
     status: u16,
     content_type: GrokOfficialResponseContentType,
+    rate_limit: GrokOfficialRateLimitMetadata,
     body: Box<dyn GrokOfficialResponseBody>,
 }
 
@@ -928,8 +929,22 @@ impl GrokOfficialTransportResponse {
         Self {
             status,
             content_type,
+            rate_limit: GrokOfficialRateLimitMetadata::default(),
             body,
         }
+    }
+
+    /// Attaches the separately parsed fixed-header rate-limit observation.
+    #[must_use]
+    pub fn with_rate_limit_metadata(mut self, rate_limit: GrokOfficialRateLimitMetadata) -> Self {
+        self.rate_limit = rate_limit;
+        self
+    }
+
+    /// Returns the safe fixed-header observation without retaining raw Header material.
+    #[must_use]
+    pub fn rate_limit_metadata(&self) -> &GrokOfficialRateLimitMetadata {
+        &self.rate_limit
     }
 
     fn into_parts(
@@ -937,9 +952,10 @@ impl GrokOfficialTransportResponse {
     ) -> (
         u16,
         GrokOfficialResponseContentType,
+        GrokOfficialRateLimitMetadata,
         Box<dyn GrokOfficialResponseBody>,
     ) {
-        (self.status, self.content_type, self.body)
+        (self.status, self.content_type, self.rate_limit, self.body)
     }
 }
 
@@ -949,6 +965,7 @@ impl fmt::Debug for GrokOfficialTransportResponse {
             .debug_struct("GrokOfficialTransportResponse")
             .field("status", &self.status)
             .field("content_type", &self.content_type)
+            .field("rate_limit", &self.rate_limit)
             .field("body", &"<streaming>")
             .finish()
     }
@@ -1016,11 +1033,13 @@ impl GrokOfficialTransport for GrokOfficialUpstreamTransport {
 
         Box::pin(async move {
             let response = pool.send(request?, &profile).await?;
+            let rate_limit = rate_limit_metadata(&response)?;
             Ok(GrokOfficialTransportResponse::new(
                 response.status(),
                 content_type(&response),
                 Box::new(UpstreamResponseBody { response }),
-            ))
+            )
+            .with_rate_limit_metadata(rate_limit))
         })
     }
 }
@@ -1029,7 +1048,7 @@ impl GrokOfficialTransport for GrokOfficialUpstreamTransport {
 #[derive(Clone)]
 pub struct GrokOfficialInferenceAdapter {
     provider_id: gateway_core::ProviderId,
-    api_key: GrokOfficialApiKey,
+    credential: GrokOfficialApiKey,
     upstream_model: String,
     mode: GrokOfficialExecutionMode,
     transport: Arc<dyn GrokOfficialTransport>,
@@ -1046,7 +1065,7 @@ impl GrokOfficialInferenceAdapter {
     /// Returns `ClientRequestError/Request` for a blank, overlong, or header-unsafe selected model,
     /// and `InternalError/Internal` only if the compiled stable Provider ID becomes invalid.
     pub fn try_new(
-        api_key: GrokOfficialApiKey,
+        credential: GrokOfficialApiKey,
         upstream_model: impl Into<String>,
         mode: GrokOfficialExecutionMode,
         transport: Arc<dyn GrokOfficialTransport>,
@@ -1062,7 +1081,7 @@ impl GrokOfficialInferenceAdapter {
             .map_err(|_| internal_error())?;
         Ok(Self {
             provider_id,
-            api_key,
+            credential,
             upstream_model,
             mode,
             transport,
@@ -1075,7 +1094,7 @@ impl fmt::Debug for GrokOfficialInferenceAdapter {
         formatter
             .debug_struct("GrokOfficialInferenceAdapter")
             .field("provider_id", &self.provider_id)
-            .field("api_key", &self.api_key)
+            .field("credential", &self.credential)
             .field("upstream_model", &"<redacted>")
             .field("mode", &self.mode)
             .field("transport", &"<injected>")
@@ -1095,20 +1114,20 @@ impl InferenceAdapter for GrokOfficialInferenceAdapter {
         _context: RequestContext,
         request: CanonicalRequest,
     ) -> ProviderFuture<'_, Result<Box<dyn CanonicalEventSource>, GatewayError>> {
-        let api_key = self.api_key.clone();
+        let credential = self.credential.clone();
         let upstream_model = self.upstream_model.clone();
         let mode = self.mode;
         let transport = Arc::clone(&self.transport);
 
         Box::pin(async move {
             let outbound = GrokOfficialResponsesRequestBuilder::build(
-                &api_key,
+                &credential,
                 &upstream_model,
                 &request,
                 mode.response_mode(),
             )?;
             let response = transport.send(outbound).await?;
-            let (status, content_type, mut body) = response.into_parts();
+            let (status, content_type, _rate_limit, mut body) = response.into_parts();
             if !(200..=299).contains(&status) {
                 // P8-03 owns status/header/quota classification. Consume only a bounded amount so
                 // malformed or unexpectedly large error responses cannot become an unbounded
@@ -1283,6 +1302,28 @@ fn content_type(response: &UpstreamHttpResponse) -> GrokOfficialResponseContentT
         }
         _ => GrokOfficialResponseContentType::OtherOrMissing,
     }
+}
+
+fn rate_limit_metadata(
+    response: &UpstreamHttpResponse,
+) -> Result<GrokOfficialRateLimitMetadata, GatewayError> {
+    const NAMES: [&str; 7] = [
+        "x-ratelimit-limit-requests",
+        "x-ratelimit-remaining-requests",
+        "x-ratelimit-reset-requests",
+        "x-ratelimit-limit-tokens",
+        "x-ratelimit-remaining-tokens",
+        "x-ratelimit-reset-tokens",
+        "retry-after",
+    ];
+    let mut headers = Vec::new();
+    for name in NAMES {
+        for value in response.header_values(name) {
+            let value = value.to_str().map_err(|_| provider_protocol_error())?;
+            headers.push((name, value));
+        }
+    }
+    GrokOfficialRateLimitMetadata::parse(headers)
 }
 
 const fn egress_rejected_error() -> GatewayError {
