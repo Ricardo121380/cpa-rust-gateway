@@ -111,3 +111,4 @@
 - [P9-03 Grok Web fixture Chat request and stream](p9-03-grok-web-fixture-chat-stream.md) — local phase-gate pass; no Web endpoint or request used
 - [P9-04 Grok Web Conversation account and egress binding](p9-04-grok-web-conversation-binding.md) — local phase-gate pass; no Web request used
 - [P9-05 Grok Web Statsig cache and signer SSRF boundary](p9-05-grok-web-statsig-cache-ssrf.md) — local phase-gate pass; no Statsig/Web request used
+- [P9-06 Grok Web source-labelled quota](p9-06-grok-web-source-labelled-quota.md) — local phase-gate pass; no Web/REST/gRPC-Web request used

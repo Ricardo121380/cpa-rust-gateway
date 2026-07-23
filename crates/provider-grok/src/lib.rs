@@ -18,6 +18,7 @@ mod web_chat;
 mod web_conversation;
 mod web_credential;
 mod web_egress_session;
+mod web_quota;
 mod web_statsig;
 
 pub use build_responses::{
@@ -113,6 +114,11 @@ pub use web_credential::{
 pub use web_egress_session::{
     GrokWebBrowserEgressSession, GrokWebBrowserEgressSessionError, GrokWebBrowserUserAgent,
     GrokWebEgressSessionId, GrokWebTlsProfile,
+};
+pub use web_quota::{
+    GrokWebQuotaConfidence, GrokWebQuotaError, GrokWebQuotaFixtureDecoder, GrokWebQuotaSource,
+    GrokWebQuotaState, GrokWebQuotaSyncOutcome, GrokWebQuotaTier, GrokWebQuotaWindow,
+    GrokWebQuotaWindowKind, MAX_GROK_WEB_QUOTA_FIXTURE_BYTES,
 };
 pub use web_statsig::{
     GrokWebStatsigError, GrokWebStatsigSignature, GrokWebStatsigSignatureCache,

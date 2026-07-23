@@ -72,6 +72,7 @@ P9-02 已建立 [BC-PROVIDER-018 Grok Web browser egress-session fingerprint](BC
 P9-03 已建立 [BC-PROVIDER-019 Grok Web fixture Chat request and stream](BC-PROVIDER-019-grok-web-fixture-chat-stream.md)。
 P9-04 已建立 [BC-CONT-003 Grok Web Conversation account and egress binding](BC-CONT-003-grok-web-conversation-egress-binding.md)。
 P9-05 已建立 [BC-SEC-003 Grok Web Statsig cache and signer SSRF boundary](BC-SEC-003-grok-web-statsig-cache-ssrf-boundary.md)。
+P9-06 已建立 [BC-PROVIDER-020 Grok Web source-labelled quota observations](BC-PROVIDER-020-grok-web-source-labelled-quota.md)。
 P5-00 已建立 [BC-DELIVERY-003 Phase-level delivery and default-ref cache](BC-DELIVERY-003-phase-level-delivery-and-default-ref-cache.md)。
 P5-01 已建立 [BC-PROTOCOL-002 Anthropic Messages adapter](BC-PROTOCOL-002-anthropic-messages-adapter.md)。
 P5-02 已建立 [BC-PROTOCOL-003 Exact token-count capability](BC-PROTOCOL-003-exact-token-count-capability.md)。
