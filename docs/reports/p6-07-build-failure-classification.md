@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Scope | Bounded HTTP status/signal to Gateway error and permitted state-action mapping |
 | References | `E06-E12`; [BC-PROVIDER-004](../contracts/BC-PROVIDER-004-grok-build-runtime-continuity.md) |
 

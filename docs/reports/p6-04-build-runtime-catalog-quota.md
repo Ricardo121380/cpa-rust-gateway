@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Scope | Exact-Credential catalog/Billing/Quota persistence and migration 0007; no discovery HTTP or scheduler mutation |
 | References | `C33`, `G26`, `G28`; [ADR-0045](../adr/ADR-0045-grok-build-runtime-continuity.md) |
 

@@ -5,7 +5,7 @@
 | Contract | `BC-PROVIDER-004` |
 | Task | `P6-04` to `P6-07` |
 | ADR | [ADR-0045](../adr/ADR-0045-grok-build-runtime-continuity.md) |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Domain | Build capability/billing/quota snapshots, cache identity/affinity, response continuity, replay, and bounded failure actions |
 
 ## Required behavior

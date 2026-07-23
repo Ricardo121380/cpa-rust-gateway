@@ -5,7 +5,7 @@
 | Contract | `BC-CRED-004` |
 | Task | `P6-02` |
 | ADR | [ADR-0043](../adr/ADR-0043-grok-build-refresh-runtime.md) |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Domain | Per-Credential OAuth refresh, AEAD persistence, and stale-write prevention |
 
 ## Entry and retained state

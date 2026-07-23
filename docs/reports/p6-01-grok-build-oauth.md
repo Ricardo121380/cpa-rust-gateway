@@ -6,7 +6,7 @@
 | Task | `P6-01` |
 | Date | `2026-07-22` |
 | Branch | `codex/p6-grok-build` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Scope / budget | `M`; local OAuth credential import/Device Code state only; no real Provider traffic or server change |
 | Execution channel | Current default model, `medium`; this task needs state-machine and secret-boundary review. Luna is unavailable in this execution surface; no subagent was used. |
 | References | Matrix `C02`、`C28`、`E06-E10`; [ADR-0042](../adr/ADR-0042-grok-build-oauth-credential-boundary.md); [BC-CRED-003](../contracts/BC-CRED-003-grok-build-oauth-device-code.md) |

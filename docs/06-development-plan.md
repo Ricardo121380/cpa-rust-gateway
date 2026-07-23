@@ -7,8 +7,8 @@
 | 计划版本 | `v1.25` |
 | 生效日期 | `2026-07-22` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P5` 已完成；`P6 - Grok Build` 已完成本地实现、review 与差分证据，等待唯一的 G6 Phase Delivery Gate。 |
-| 当前任务 | 无。`CR-P6-03-013` 已按用户“完成 P6 所有要求”的批准解除 P6-03 对 P6-04 至 P6-08 的流程阻塞，但不重写 T18：官方直连仍为 `unattributed` 安全 4xx，T19 未发送，T1-T18 保持关闭。 |
+| 当前阶段 | `P1` 至 `P6` 已完成；`P7 - Kiro IDE/CLI` 尚未开始。 |
+| 当前任务 | P6 已完成。`P7-01` 保持 `PENDING`，等待用户明确启动；`CR-P6-03-013` 不重写 T18，官方直连仍为 `unattributed` 安全 4xx，T19 未发送，T1-T18 保持关闭。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -934,7 +934,7 @@ deploy/
 | P3 | OpenAI Responses 聚合 MVP | G2 | G3 | DONE |
 | P4 | Catalog、Health、Quota、Explain、观测 | G3 | G4 | DONE |
 | P5 | Anthropic/Claude Code 兼容 | G4 | G5 | DONE |
-| P6 | Grok Build | G5 | G6 | LOCAL_PASS_PENDING_PHASE_GATE |
+| P6 | Grok Build | G5 | G6 | DONE |
 | P7 | Kiro IDE/CLI | G6 | G7 | PENDING |
 | P8 | Grok Official | G7 | G8 | PENDING |
 | P9 | Grok Web | G8 | G9 | PENDING |
@@ -1137,16 +1137,19 @@ Fast、Full supply-chain、Required Delivery Gate 均已通过。
 
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
-| P6-01 | 实现 Grok Build Credential、OAuth JSON 导入和 Device Code | G5 | OAuth Mock + 脱敏导入测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-02 | 实现每 Credential Refresh Singleflight、Revision/CAS 和持久化 | P6-01 | 刷新风暴与旧 Token 覆盖测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析；兼容已知 OAuth 凭据来源 | P6-02 | 固定 Fixture + 测试账号验证；direct T18 stays `unattributed` and CR-P6-03-013 documents the approved non-replay continuation | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-04 | 实现模型、Billing、Quota Window 和 Reset 同步 | P6-03 | 来源/置信度和窗口测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-05 | 实现租户隔离 Cache Identity 与 Cache Affinity | P6-03 | 稳定性、隔离和断裂事件测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-06 | 实现 ResponseOwnership 与 ReasoningReplay | P6-03,P6-05 | previous_response 与多轮 Tool 测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-07 | 实现 Build 专用 401/403/429/Quota/Transient 分类 | P6-04 | 错误 Fixture 矩阵 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-08 | 与 CPA/grok2api Build 行为做 clean-room 差分 | P6-03-P6-07 | 差分报告和 intentional diff 清单 | LOCAL_PASS_PENDING_PHASE_GATE |
+| P6-01 | 实现 Grok Build Credential、OAuth JSON 导入和 Device Code | G5 | OAuth Mock + 脱敏导入测试 | DONE |
+| P6-02 | 实现每 Credential Refresh Singleflight、Revision/CAS 和持久化 | P6-01 | 刷新风暴与旧 Token 覆盖测试 | DONE |
+| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析；兼容已知 OAuth 凭据来源 | P6-02 | 固定 Fixture + 测试账号验证；direct T18 stays `unattributed` and CR-P6-03-013 documents the approved non-replay continuation | DONE |
+| P6-04 | 实现模型、Billing、Quota Window 和 Reset 同步 | P6-03 | 来源/置信度和窗口测试 | DONE |
+| P6-05 | 实现租户隔离 Cache Identity 与 Cache Affinity | P6-03 | 稳定性、隔离和断裂事件测试 | DONE |
+| P6-06 | 实现 ResponseOwnership 与 ReasoningReplay | P6-03,P6-05 | previous_response 与多轮 Tool 测试 | DONE |
+| P6-07 | 实现 Build 专用 401/403/429/Quota/Transient 分类 | P6-04 | 错误 Fixture 矩阵 | DONE |
+| P6-08 | 与 CPA/grok2api Build 行为做 clean-room 差分 | P6-03-P6-07 | 差分报告和 intentional diff 清单 | DONE |
 
 ### G6 门禁
+
+状态：`DONE`；P6-01 至 P6-08 的本地 review/验收和 `phase-p6-complete` 的唯一远端
+Fast、Full supply-chain、Required Delivery Gate 均已通过。
 
 - 两个 Build Credential 的并发、轮询、刷新、Quota 和 Failover 通过。
 - Cache Identity 和 Affinity 均稳定，跨 Client Key 不串缓存。

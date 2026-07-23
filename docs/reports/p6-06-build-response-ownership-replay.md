@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Scope | Exact continuation ownership plus encrypted tenant/model/session replay state |
 | References | `D27`, `F07`, `F17`; [BC-PROVIDER-004](../contracts/BC-PROVIDER-004-grok-build-runtime-continuity.md) |
 

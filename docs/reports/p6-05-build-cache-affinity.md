@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Scope | Versioned HMAC cache identity, exact affinity, and durable break evidence |
 | References | `F10`, `F16-F18`, `G25`; [BC-PROVIDER-004](../contracts/BC-PROVIDER-004-grok-build-runtime-continuity.md) |
 

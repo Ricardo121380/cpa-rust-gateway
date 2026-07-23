@@ -5,7 +5,7 @@
 | Contract | `BC-PROVIDER-003` |
 | Task | `P6-03` |
 | ADR | [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md) |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` — `CR-P6-03-013` permits P6 continuation without replaying T18 or sending T19. The direct result remains `unattributed` safe 4xx; this contract does not claim direct acceptance. |
+| Status | `DONE` — `CR-P6-03-013` permits P6 continuation without replaying T18 or sending T19. The direct result remains `unattributed` safe 4xx; this contract does not claim direct acceptance. |
 | Domain | Fixed OAuth Build request, exact egress handoff, non-streaming/SSE decoding, and safe error syntax |
 
 ## Preconditions and bounds

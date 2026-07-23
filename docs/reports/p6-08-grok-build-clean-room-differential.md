@@ -4,7 +4,7 @@
 |---|---|
 | Method | Read-only schema/behavior comparison; no source copy, credential export, API key, request body, response text, or server mutation |
 | Reference | Deployed `grok2api` image `ghcr.io/chenyme/grok2api:v3.0.6`; frozen CPA/grok2api/Sub2API behavior references already recorded by P6-03 |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 
 ## Structural correspondence
 

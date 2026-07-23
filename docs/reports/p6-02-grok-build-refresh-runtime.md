@@ -6,7 +6,7 @@
 | Task | `P6-02` |
 | Date | `2026-07-22` |
 | Branch | `codex/p6-grok-build` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Scope / budget | `M`; local sealed OAuth runtime only; no real Provider traffic, test account, or server change |
 | Execution channel | Current default model, `medium`; this task needs persistence and concurrency review. Luna is unavailable in this execution surface; no subagent was used. |
 | References | Matrix `E25`、`E26`、`E29`; [ADR-0043](../adr/ADR-0043-grok-build-refresh-runtime.md); [BC-CRED-004](../contracts/BC-CRED-004-grok-build-refresh-runtime.md) |

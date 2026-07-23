@@ -5,7 +5,7 @@
 | Contract | `BC-CRED-003` |
 | Task | `P6-01` |
 | ADR | [ADR-0042](../adr/ADR-0042-grok-build-oauth-credential-boundary.md) |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` |
 | Domain | Bounded OAuth import, Device Authorization, and mock transport safety |
 
 ## Preconditions and bounds
