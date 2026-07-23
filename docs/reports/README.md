@@ -99,3 +99,5 @@
 - [P7-07 Kiro Tool, Thinking, and Claude Code compatibility](p7-07-kiro-tool-thinking-compatibility.md) — local phase-gate pass
 - [P7-08 Kiro failure-owner classification](p7-08-kiro-failure-classification.md) — local phase-gate pass
 - [P7-09 Kiro-RS differential and `--bare` E2E](p7-09-kiro-rs-differential-bare-e2e.md) — blocked awaiting Kiro account reauthentication
+- [P8-01 Grok Official API-key catalog](p8-01-grok-official-catalog.md) — local phase-gate pass
+- [P8-02 Grok Official Responses HTTP/SSE](p8-02-grok-official-responses.md) — local phase-gate pass

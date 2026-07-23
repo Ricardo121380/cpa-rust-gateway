@@ -8,6 +8,7 @@ mod credential_runtime;
 mod inference;
 mod oauth;
 mod official;
+mod official_responses;
 mod runtime_state;
 mod strict_json;
 
@@ -59,6 +60,15 @@ pub use official::{
     GrokOfficialCatalogRequest, GrokOfficialCatalogTransport, GrokOfficialCatalogTransportResponse,
     GrokOfficialModelsEndpoint, GrokOfficialUpstreamCatalogTransport,
     MAX_GROK_OFFICIAL_CATALOG_RESPONSE_BYTES,
+};
+pub use official_responses::{
+    GROK_OFFICIAL_RESPONSES_PATH, GROK_OFFICIAL_RESPONSES_URL, GrokOfficialExecutionMode,
+    GrokOfficialInferenceAdapter, GrokOfficialResponseBody, GrokOfficialResponseContentType,
+    GrokOfficialResponsesDecoder, GrokOfficialResponsesEndpoint,
+    GrokOfficialResponsesOutboundRequest, GrokOfficialResponsesRequestBuilder,
+    GrokOfficialResponsesStreamDecoder, GrokOfficialTransport, GrokOfficialTransportResponse,
+    GrokOfficialUpstreamTransport, MAX_GROK_OFFICIAL_ERROR_BODY_BYTES,
+    MAX_GROK_OFFICIAL_NON_STREAMING_RESPONSE_BYTES, MAX_GROK_OFFICIAL_SSE_FRAME_BYTES,
 };
 pub use runtime_state::{
     GrokBuildAccountEvidence, GrokBuildBillingPlan, GrokBuildCatalogSyncOutcome,
