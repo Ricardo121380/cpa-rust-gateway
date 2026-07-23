@@ -7,7 +7,7 @@
 | Date | `2026-07-24` |
 | Verification branch | `codex/p10-control-plane` |
 | Local result | `PASS` — P10-01 through P10-09 and the integrated local Full Gate meet the local G10 acceptance conditions. |
-| Delivery state | `PENDING` — the annotated P10 closeout tag is the one remaining Delivery Gate and has not yet been created. |
+| Delivery state | `PASS` — the annotated [`phase-p10-complete`](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/30047169917) Delivery Gate completed with Classify, Fast, Full supply-chain, and Required successful. |
 
 ## Gate-condition evidence
 
@@ -32,6 +32,6 @@
 ## Delivery boundary
 
 No Provider request, deployment, management listener bind, server configuration change, production
-Feature Flag, or external account state was introduced for G10. P11 may start only after the P10
-closeout target's one GitHub Fast + Full Delivery Gate passes; a failure freezes P11 and requires
-repair of the earliest affected P10 change.
+Feature Flag, or external account state was introduced for G10. The P10 closeout target's one
+GitHub Fast + Full Delivery Gate passed, so P10 is `DONE` and P11 may begin on a fresh P-level
+branch. This P11-first-task reconciliation does not create another P10 tag or CI event.
