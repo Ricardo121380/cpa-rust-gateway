@@ -21,6 +21,7 @@ mod web_egress_session;
 mod web_failure;
 mod web_quota;
 mod web_statsig;
+mod web_tool_emulation;
 
 pub use build_responses::{
     GROK_BUILD_AGENT_ID_HEADER, GROK_BUILD_AUTHENTICATE_RESPONSE_HEADER,
@@ -130,6 +131,10 @@ pub use web_quota::{
 pub use web_statsig::{
     GrokWebStatsigError, GrokWebStatsigSignature, GrokWebStatsigSignatureCache,
     GrokWebStatsigSignatureKey, GrokWebStatsigSignerBoundary, GrokWebStatsigSignerTarget,
+};
+pub use web_tool_emulation::{
+    GrokWebToolCapability, GrokWebToolEmulation, GrokWebToolEmulationError,
+    GrokWebToolEmulationPrompt,
 };
 
 /// Stable component identifier used by architecture smoke tests.

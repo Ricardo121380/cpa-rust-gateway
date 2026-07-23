@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6` 已完成；P7 Kiro OAuth 和 P8 Official API-key E2E 延后至最终外部认证验收包。按 `CR-P9-LOCAL-001`，P9 的本地实现开始，但 P9 真实 Web E2E、G9 与 Delivery Gate 仍保持 fail-closed。 |
-| 当前任务 | P9-08：实现默认关闭且标记 `emulated` 的 Tool Emulation Feature Flag。P8-07、P7-09 和 P9-09 均为 `DEFERRED`；P9 不读取或使用它们的 Credential，也不发送真实 Web 请求。 |
+| 当前任务 | P9 本地审计：P9-01 至 P9-08 已完成本地证据复核；P9-09/G9 与 P7-09/P8-07 均保持 `DEFERRED`，不创建 Delivery tag 或发送真实 Web 请求。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1577,7 +1577,7 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 | P9-05 | 实现 Statsig 签名缓存、受限失效和 SSRF 防护 | P9-02 | 403、Redirect、域名测试 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P9-06 | 实现 REST/gRPC-Web Quota、Tier、Window、Source/Confidence | P9-03 | Quota Fixture | LOCAL_PASS_PENDING_PHASE_GATE |
 | P9-07 | 实现 WAF/EgressRejected 与账号 Forbidden 分离 | P9-02,P9-03 | 403 分类矩阵 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P9-08 | 实现 Tool Emulation Feature Flag，默认关闭并标记 `emulated` | P9-03 | 开关与能力元数据测试 | IN_PROGRESS |
+| P9-08 | 实现 Tool Emulation Feature Flag，默认关闭并标记 `emulated` | P9-03 | 开关与能力元数据测试 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P9-09 | 完成 Feature Flag 下真实账号 E2E、协议漂移和熔断演练 | P9-04-P9-08 | Canary 报告；等待 P9 自身测试账号/Canary 授权 | DEFERRED |
 
 ### G9 门禁

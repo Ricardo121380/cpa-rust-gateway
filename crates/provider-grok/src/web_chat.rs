@@ -16,7 +16,8 @@ use serde_json::{Map, Value};
 use zeroize::Zeroizing;
 
 use crate::{
-    GrokWebBrowserEgressSession, GrokWebBrowserEgressSessionError, strict_json::parse_strict_json,
+    GrokWebBrowserEgressSession, GrokWebBrowserEgressSessionError, GrokWebToolEmulation,
+    strict_json::parse_strict_json,
 };
 
 /// Non-routable fixture host used only by the P9-03 local grammar contract.
@@ -119,6 +120,8 @@ pub enum GrokWebChatRequestError {
     UnsupportedCanonicalRequest,
     /// The immutable browser egress session cannot safely start this fixture request.
     BrowserSessionUnavailable,
+    /// An enabled Tool-emulation declaration could not be safely represented.
+    InvalidToolEmulation,
     /// The bounded fixture body could not be encoded.
     InternalEncodingFailure,
 }
@@ -129,6 +132,7 @@ impl fmt::Display for GrokWebChatRequestError {
             Self::InvalidModel => "Grok Web Chat model is invalid",
             Self::UnsupportedCanonicalRequest => "Grok Web Chat request is not supported",
             Self::BrowserSessionUnavailable => "Grok Web browser session is unavailable",
+            Self::InvalidToolEmulation => "Grok Web Tool emulation is invalid",
             Self::InternalEncodingFailure => "Grok Web Chat request could not be encoded",
         })
     }
@@ -160,13 +164,50 @@ impl GrokWebChatRequestBuilder {
         request: &CanonicalRequest,
         now_ms: i64,
     ) -> Result<GrokWebChatOutboundRequest, GrokWebChatRequestError> {
+        let message = extract_user_text(request, false)?;
+        Self::build_from_message(session, upstream_model, message, now_ms)
+    }
+
+    /// Builds a fixture request with an explicitly enabled, visibly emulated Tool addendum.
+    ///
+    /// The default [`GrokWebToolEmulation`] setting is disabled: this method then behaves like
+    /// [`Self::build`] for a tool-free request and still rejects Tool declarations without adding
+    /// any prompt bytes. When enabled, it injects a bounded `mode=emulated` convention only for
+    /// validated Tool declarations; it never reports native Tool capability.
+    ///
+    /// This method does not create a URL, DNS lookup, client, socket, TLS handshake, proxy action,
+    /// HTTP request, browser action, Tool execution, or account mutation.
+    ///
+    /// # Errors
+    ///
+    /// Returns a value-free error for unsupported Canonical semantics or unsafe emulation input.
+    pub fn build_with_tool_emulation(
+        session: &GrokWebBrowserEgressSession,
+        upstream_model: &str,
+        request: &CanonicalRequest,
+        emulation: GrokWebToolEmulation,
+        now_ms: i64,
+    ) -> Result<GrokWebChatOutboundRequest, GrokWebChatRequestError> {
+        let prepared = emulation
+            .prepare(&request.tools)
+            .map_err(|_| GrokWebChatRequestError::InvalidToolEmulation)?;
+        let message = extract_user_text(request, emulation.is_enabled())?;
+        let message = prepared.compose_message(message);
+        Self::build_from_message(session, upstream_model, message.as_str(), now_ms)
+    }
+
+    fn build_from_message(
+        session: &GrokWebBrowserEgressSession,
+        upstream_model: &str,
+        message: &str,
+        now_ms: i64,
+    ) -> Result<GrokWebChatOutboundRequest, GrokWebChatRequestError> {
         if upstream_model.is_empty()
             || upstream_model.len() > MAX_GROK_WEB_MODEL_BYTES
             || !upstream_model.bytes().all(|byte| byte.is_ascii_graphic())
         {
             return Err(GrokWebChatRequestError::InvalidModel);
         }
-        let message = extract_user_text(request)?;
         let cookie = session
             .cookie_header_for_https(
                 GrokWebChatFixtureTarget::host(),
@@ -192,9 +233,12 @@ fn map_browser_session_error(_: GrokWebBrowserEgressSessionError) -> GrokWebChat
     GrokWebChatRequestError::BrowserSessionUnavailable
 }
 
-fn extract_user_text(request: &CanonicalRequest) -> Result<&str, GrokWebChatRequestError> {
+fn extract_user_text(
+    request: &CanonicalRequest,
+    permits_emulated_tools: bool,
+) -> Result<&str, GrokWebChatRequestError> {
     if request.messages.len() != 1
-        || !request.tools.is_empty()
+        || (!permits_emulated_tools && !request.tools.is_empty())
         || request.thinking.is_some()
         || request.prompt_cache_key.is_some()
         || request.prompt_cache_retention.is_some()
