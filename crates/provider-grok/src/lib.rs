@@ -15,6 +15,7 @@ mod official_runtime;
 mod runtime_state;
 mod strict_json;
 mod web_chat;
+mod web_conversation;
 mod web_credential;
 mod web_egress_session;
 
@@ -98,6 +99,10 @@ pub use web_chat::{
     GROK_WEB_CHAT_FIXTURE_HOST, GROK_WEB_CHAT_FIXTURE_PATH, GrokWebChatFixtureTarget,
     GrokWebChatOutboundRequest, GrokWebChatRequestBuilder, GrokWebChatRequestError,
     GrokWebChatStreamDecoder, MAX_GROK_WEB_SSE_FRAME_BYTES,
+};
+pub use web_conversation::{
+    GrokWebConversationAvailability, GrokWebConversationError, GrokWebConversationId,
+    GrokWebConversationState, GrokWebConversationTurn, GrokWebParentMessageId,
 };
 pub use web_credential::{
     GROK_WEB_PROVIDER_ID, GrokWebCredential, GrokWebCredentialCasOutcome,
