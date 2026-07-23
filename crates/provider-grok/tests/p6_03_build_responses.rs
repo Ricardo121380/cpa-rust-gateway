@@ -471,6 +471,153 @@ fn completed_response_requires_completed_and_exactly_accounted_output_items() ->
     Ok(())
 }
 
+#[test]
+fn completed_reasoning_without_content_is_a_zero_delta_canonical_item() -> TestResult {
+    let response = br#"{
+        "id":"resp-hidden-reasoning",
+        "status":"completed",
+        "output":[
+            {"id":"reasoning-hidden","type":"reasoning","status":"completed"},
+            {"id":"message-visible","type":"message","status":"completed","content":[{"type":"output_text","text":"ready"}]}
+        ]
+    }"#;
+
+    let decoded = GrokBuildResponsesDecoder::decode_non_streaming(response)?;
+    assert!(
+        decoded.events().iter().any(
+            |event| matches!(event, CanonicalEvent::TextDelta(delta) if delta.text == "ready")
+        )
+    );
+    assert!(
+        !decoded
+            .events()
+            .iter()
+            .any(|event| matches!(event, CanonicalEvent::ReasoningDelta(_)))
+    );
+    assert!(matches!(
+        decoded.events().last(),
+        Some(CanonicalEvent::ResponseEnd(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn reasoning_summary_sse_events_map_to_reasoning_delta_and_validate_part_identity() -> TestResult {
+    let stream = concat!(
+        "event: response.created\n",
+        "data: {\"type\":\"response.created\",\"response\":{\"id\":\"resp-summary\"}}\n\n",
+        "event: response.output_item.added\n",
+        "data: {\"type\":\"response.output_item.added\",\"item\":{\"id\":\"reasoning-summary\",\"type\":\"reasoning\"}}\n\n",
+        "event: response.reasoning_summary_part.added\n",
+        "data: {\"type\":\"response.reasoning_summary_part.added\",\"item_id\":\"reasoning-summary\",\"part\":{}}\n\n",
+        "event: response.reasoning_summary_text.delta\n",
+        "data: {\"type\":\"response.reasoning_summary_text.delta\",\"item_id\":\"reasoning-summary\",\"delta\":\"summary\"}\n\n",
+        "event: response.reasoning_summary_text.done\n",
+        "data: {\"type\":\"response.reasoning_summary_text.done\",\"item_id\":\"reasoning-summary\",\"text\":\"summary\"}\n\n",
+        "event: response.reasoning_summary_part.done\n",
+        "data: {\"type\":\"response.reasoning_summary_part.done\",\"item_id\":\"reasoning-summary\",\"part\":{}}\n\n",
+        "event: response.reasoning.done\n",
+        "data: {\"type\":\"response.reasoning.done\",\"item_id\":\"reasoning-summary\",\"text\":\"summary\"}\n\n",
+        "event: response.output_item.done\n",
+        "data: {\"type\":\"response.output_item.done\",\"item\":{\"id\":\"reasoning-summary\",\"type\":\"reasoning\",\"status\":\"completed\"}}\n\n",
+        "event: response.completed\n",
+        "data: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp-summary\",\"status\":\"completed\",\"output\":[{\"id\":\"reasoning-summary\"}]}}\n\n"
+    );
+    let mut decoder = GrokBuildResponsesStreamDecoder::new();
+    let events = decoder.push_bytes(stream.as_bytes())?;
+    decoder.finish()?;
+    assert!(events.iter().any(
+        |event| matches!(event, CanonicalEvent::ReasoningDelta(delta) if delta.text == "summary")
+    ));
+    assert_eq!(
+        events
+            .iter()
+            .filter(|event| matches!(event, CanonicalEvent::ReasoningDelta(_)))
+            .count(),
+        1
+    );
+    assert!(matches!(
+        events.last(),
+        Some(CanonicalEvent::ResponseEnd(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn reasoning_summary_text_done_must_confirm_the_accumulated_delta() -> TestResult {
+    let stream = concat!(
+        "event: response.created\n",
+        "data: {\"type\":\"response.created\",\"response\":{\"id\":\"resp-summary-mismatch\"}}\n\n",
+        "event: response.output_item.added\n",
+        "data: {\"type\":\"response.output_item.added\",\"item\":{\"id\":\"reasoning-summary-mismatch\",\"type\":\"reasoning\"}}\n\n",
+        "event: response.reasoning_summary_text.delta\n",
+        "data: {\"type\":\"response.reasoning_summary_text.delta\",\"item_id\":\"reasoning-summary-mismatch\",\"delta\":\"first\"}\n\n",
+        "event: response.reasoning_summary_text.done\n",
+        "data: {\"type\":\"response.reasoning_summary_text.done\",\"item_id\":\"reasoning-summary-mismatch\",\"text\":\"different\"}\n\n"
+    );
+
+    let error = GrokBuildResponsesStreamDecoder::new()
+        .push_bytes(stream.as_bytes())
+        .err()
+        .ok_or("mismatched reasoning summary text unexpectedly decoded")?;
+    assert_eq!(error.code(), GatewayErrorCode::UpstreamProtocolError);
+    Ok(())
+}
+
+#[test]
+fn output_text_content_part_events_are_strict_and_chunk_safe() -> TestResult {
+    let stream = concat!(
+        "event: response.created\n",
+        "data: {\"type\":\"response.created\",\"response\":{\"id\":\"resp-content-part\"}}\n\n",
+        "event: response.output_item.added\n",
+        "data: {\"type\":\"response.output_item.added\",\"item\":{\"id\":\"message-content-part\",\"type\":\"message\"}}\n\n",
+        "event: response.content_part.added\n",
+        "data: {\"type\":\"response.content_part.added\",\"item_id\":\"message-content-part\",\"part\":{\"type\":\"output_text\",\"text\":\"\"}}\n\n",
+        "event: response.output_text.delta\n",
+        "data: {\"type\":\"response.output_text.delta\",\"item_id\":\"message-content-part\",\"delta\":\"ready\"}\n\n",
+        "event: response.output_text.done\n",
+        "data: {\"type\":\"response.output_text.done\",\"item_id\":\"message-content-part\",\"text\":\"ready\"}\n\n",
+        "event: response.content_part.done\n",
+        "data: {\"type\":\"response.content_part.done\",\"item_id\":\"message-content-part\",\"part\":{\"type\":\"output_text\",\"text\":\"ready\"}}\n\n",
+        "event: response.output_item.done\n",
+        "data: {\"type\":\"response.output_item.done\",\"item\":{\"id\":\"message-content-part\",\"type\":\"message\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"ready\"}]}}\n\n",
+        "event: response.completed\n",
+        "data: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp-content-part\",\"status\":\"completed\",\"output\":[{\"id\":\"message-content-part\"}]}}\n\n"
+    );
+    let mut decoder = GrokBuildResponsesStreamDecoder::new();
+    let mut events = Vec::new();
+    for &byte in stream.as_bytes() {
+        events.extend(decoder.push_bytes(&[byte])?);
+    }
+    decoder.finish()?;
+    assert_eq!(
+        events
+            .iter()
+            .filter(|event| matches!(event, CanonicalEvent::TextDelta(_)))
+            .count(),
+        1
+    );
+    assert!(matches!(
+        events.last(),
+        Some(CanonicalEvent::ResponseEnd(_))
+    ));
+
+    let malformed = concat!(
+        "event: response.created\n",
+        "data: {\"type\":\"response.created\",\"response\":{\"id\":\"resp-content-part-invalid\"}}\n\n",
+        "event: response.output_item.added\n",
+        "data: {\"type\":\"response.output_item.added\",\"item\":{\"id\":\"message-content-part-invalid\",\"type\":\"message\"}}\n\n",
+        "event: response.content_part.added\n",
+        "data: {\"type\":\"response.content_part.added\",\"item_id\":\"message-content-part-invalid\",\"part\":{\"type\":\"output_text\",\"text\":\"unexpected\"}}\n\n"
+    );
+    let error = GrokBuildResponsesStreamDecoder::new()
+        .push_bytes(malformed.as_bytes())
+        .err()
+        .ok_or("non-empty content-part start unexpectedly decoded")?;
+    assert_eq!(error.code(), GatewayErrorCode::UpstreamProtocolError);
+    Ok(())
+}
+
 fn credential() -> Result<GrokBuildCredential, provider_grok::GrokBuildOAuthError> {
     GrokBuildCredential::import_json(
         br#"{

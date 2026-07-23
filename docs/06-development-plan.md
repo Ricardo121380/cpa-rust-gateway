@@ -4,16 +4,16 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.25` |
+| 计划版本 | `v1.37` |
 | 生效日期 | `2026-07-22` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P6` 已完成；`P7 - Kiro IDE/CLI` 尚未开始。 |
-| 当前任务 | P6 已完成。`P7-01` 保持 `PENDING`，等待用户明确启动；`CR-P6-03-013` 不重写 T18，官方直连仍为 `unattributed` 安全 4xx，T19 未发送，T1-T18 保持关闭。 |
+| 当前阶段 | `P1` 至 `P5` 已完成；`P6 - Grok Build` 已重新打开；`P7 - Kiro IDE/CLI` 尚未开始。 |
+| 当前任务 | `G6` Phase closeout/review：P6-03 至 P6-08 均已重新达到 `LOCAL_PASS_PENDING_PHASE_GATE`；现在运行一次完整本地 Gate、独立 diff/Secret review 和新的 P6 Delivery Gate。P7 仍未开始。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
 | 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 `CR-P6-03-003`：在确认 2xx JSON 错误对象后，增加最终一次仅从标准错误元数据映射安全类别的诊断调用。 `CR-P6-03-004`：新增一个与固定直连验收隔离的、服务器本地 grok2api Build 路由代理参考探针。 `CR-P6-03-005`：采用服务器参考的当前 Build 请求轮廓，并只登记新的固定端点 T11 非流式与 T12 SSE 验证。 `CR-P6-03-006`：通过 grok2api 支持的管理 API 导入指定 OAuth 文件并做账号专属额度刷新诊断；不重放固定直连元组，也不把共享路由调用误归因到该账号。 `CR-P6-03-007`：仅以本机官方 Grok CLI 做一次交互式 OAuth 重新认证并记录安全状态投影；不发送 P6 请求或改变服务器/路由。 |
-| 已批准变更（续） | `CR-P6-03-008`：以 CPA、grok2api 和 Sub2API 的 clean-room 行为参考扩展 Grok Build 的已知 OAuth 凭据来源；保留标准 JSON/Device Code/Refresh，新增 CPA xAI 文件和官方 Grok CLI indexed cache 的内存导入，不纳入 Cookie/SSO Web 转换。 `CR-P6-03-009`：仅修正 T13 零发送 wrapper 的一次替代 T15 验证；T15 的 4xx 已停止矩阵。 `CR-P6-03-010`：基于官方 CLI 静态证据更正 workspace User-Agent，仅登记新的 T16 非流式直连验证，并在 T16 完整成功时条件允许一次 T17 SSE。 `CR-P6-03-011`：T16 在无网络预检的本地标签门槛前停止后，以不同的合法短标签重新登记 T18 非流式直连；仅其完整 Canonical 成功时允许条件 T19 SSE。 `CR-P6-03-013`：用户批准完成 P6 全部要求，解除 P6-03 对后续本地安全/连续性实现的流程阻塞；不声称 T18 成功、不发送 T19 或重放任何闭合 tuple。 |
+| 已批准变更（续） | `CR-P6-03-008`：以 CPA、grok2api 和 Sub2API 的 clean-room 行为参考扩展 Grok Build 的已知 OAuth 凭据来源；保留标准 JSON/Device Code/Refresh，新增 CPA xAI 文件和官方 Grok CLI indexed cache 的内存导入，不纳入 Cookie/SSO Web 转换。 `CR-P6-03-009`：仅修正 T13 零发送 wrapper 的一次替代 T15 验证；T15 的 4xx 已停止矩阵。 `CR-P6-03-010`：基于官方 CLI 静态证据更正 workspace User-Agent，仅登记新的 T16 非流式直连验证，并在 T16 完整成功时条件允许一次 T17 SSE。 `CR-P6-03-011`：T16 在无网络预检的本地标签门槛前停止后，以不同的合法短标签重新登记 T18 非流式直连；仅其完整 Canonical 成功时允许条件 T19 SSE。 `CR-P6-03-013`：用户批准完成 P6 全部要求，解除 P6-03 对后续本地安全/连续性实现的流程阻塞；不声称 T18 成功、不发送 T19 或重放任何闭合 tuple。 `CR-P6-03-014`：以当前官方 CLI 的成功模型/会话和新完成的可注入执行链路登记 T20/T21，不重放任何已关闭 tuple。 `CR-P6-03-015`：T20 的新的 2xx JSON 协议失败后，只输出固定的无值结构类别诊断 T22。 `CR-P6-03-016`：T22 发现投影在合法压缩前运行，登记一次解压后无值结构诊断 T23。 `CR-P6-03-017`：T23 仍失败后，仅投影第一个固定 decoder requirement gate 的 T24。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -747,6 +747,232 @@ CR-ID: CR-P6-03-013
 计划版本变更: v1.25
 ```
 
+### 已批准 Change Request：CR-P6-03-014
+
+```text
+CR-ID: CR-P6-03-014
+原因: 重新审计发现 P6-03 原有的 Builder/Decoder 与运行时状态没有实现可由网关执行的
+      `InferenceAdapter`，且 T18 未满足 C28 的真实双模式通过条件。随后，本机官方 Grok CLI
+      `0.2.106` 使用当前 OAuth 会话实际完成了一个最小请求；其安全会话投影表明调用模型为
+      `grok-4.5`，完成模型为 `grok-4.5-build`。需要补齐可注入执行链路，并以此当前、已验证
+      的模型选择登记新的验收 tuple；这不是对 T18 的重放。
+影响的 Task / Matrix ID / ADR: 重新打开 P6-03 的 `C28`；新增 Provider-private
+      `InferenceAdapter`、DNS-pinned transport 注入和 Router mode bridge，以及 loopback/fixture
+      E2E。固定 URL、OAuth 来源、Canonical 类型、P6-04 至 P6-08 的私有状态模型不变。
+兼容性与迁移影响: 无公开 API、数据库、服务器、账号、代理或 TUN 变更。应用入口不读取 OAuth
+      文件；credential、transport、egress policy 和 resolver 都由运行时显式注入。不会记录 token、
+      cache path、模型映射、请求/响应正文或 header 值。
+测试与回滚变化: 在真实发送前必须通过 adapter 非流式/SSE 分块、Router 选择和失败分类 E2E，
+      然后仅登记 `T20=(official-cli-current-01, non_streaming, direct)`；它由独立进程、
+      `P6_03_MAX_EXTERNAL_REQUESTS=1`、本机官方 cache、`grok-4.5`、固定短提示和 32 token
+      构成，恰好一 send、无 refresh/retry/failover。只有 T20 得到 Canonical `ResponseStart`、
+      文本和无 `StreamError` 的 `ResponseEnd` 时，才允许 `T21=(official-cli-current-01, sse,
+      direct)` 一次；T21 使用相同限制。任一失败则 P6-03 保持 `BLOCKED`，并且不得启动 P7。
+用户批准: APPROVED，2026-07-23（“批准”）
+计划版本变更: v1.26
+```
+
+### 已批准 Change Request：CR-P6-03-015
+
+```text
+CR-ID: CR-P6-03-015
+原因: T20 已确认当前官方 CLI OAuth cache 与 `grok-4.5` 模型选择到达固定端点并取得 `2xx` 和
+      预期 JSON Content-Type，但严格 Responses 解码在任何 Canonical 事件前停止。保留的安全输出
+      没有 2xx JSON 的对象类别，无法区分成功对象格式漂移、包装对象或 2xx 错误对象。
+影响的 Task / Matrix ID / ADR: 仅 P6-03 C28 诊断 harness 和报告；不改变生产 Builder、Adapter、
+      URL、OAuth、Canonical 类型、状态表、服务器、账号、代理/TUN 或 T1-T20 历史。
+兼容性与迁移影响: 无。新增投影只可能输出 `responses_object`、`wrapped_response_object`、
+      `error_like_object`、`chat_choices_object`、`other_object`、`non_object` 或 `invalid_json`；它不
+      输出 key 全集、值、请求/响应文本、ID、token、模型映射或 headers。
+测试与回滚变化: 先以合成私有值证明投影无值；随后仅登记
+      `T22=(official-cli-current-shape-01, non_streaming, direct)`，仍为独立进程、32 token、
+      一 send、无 refresh/retry/failover。T22 只缩小归因，不能通过 C28，且 T21 仍不得发送。
+      若无法形成明确修复，P6-03 为 `BLOCKED`；回滚仅移除该 ignored-harness 投影。
+用户批准: APPROVED，2026-07-23（“批准”；此前已授权完成 P6 的真实测试）
+计划版本变更: v1.27
+```
+
+### 已批准 Change Request：CR-P6-03-016
+
+```text
+CR-ID: CR-P6-03-016
+原因: T22 的 `invalid_json` 是在应用当前已允许的 non-streaming Content-Encoding 之前对原始
+      bytes 做的安全投影；它不能区分 gzip 压缩的成功 JSON 与实际无效响应。需要在与生产 decoder
+      相同的 1 MiB 有界 gzip/identity 步骤之后，才投影固定对象类别。
+影响的 Task / Matrix ID / ADR: 仅 P6-03 ignored diagnostic harness 和报告；不改变 Builder、
+      Adapter、固定 URL、OAuth、Canonical、状态、服务器、账号、代理/TUN 或历史 tuple。
+兼容性与迁移影响: 无。投影仅增加 `content_encoding` 的 `identity`/`gzip`/`other_or_missing` 类别，
+      以及 `decode_failed`；不输出 header 值、压缩/解压 bytes、JSON key/value、文本、token 或模型。
+测试与回滚变化: 合成测试覆盖 private JSON 与安全无值类别；仅登记
+      `T23=(official-cli-current-decoded-shape-01, non_streaming, direct)`，独立进程、一 send、
+      无 refresh/retry/failover。它不能通过 C28，T21 仍不得发送；若诊断不足，P6-03 `BLOCKED`。
+用户批准: APPROVED，2026-07-23（“批准”；此前已授权完成 P6 的真实测试）
+计划版本变更: v1.28
+```
+
+### 已批准 Change Request：CR-P6-03-017
+
+```text
+CR-ID: CR-P6-03-017
+原因: T23 已确认响应在 gzip 解压后是 `responses_object`，但严格 decoder 仍在产生任何
+      Canonical Event 前停止。需要一次镜像 decoder 核心固定前置条件的无值 projection，避免将
+      未知 output 类型、未完成状态或无效 item 误判为 OAuth/transport 故障。
+影响的 Task / Matrix ID / ADR: 仅 P6-03 ignored diagnostic harness；不变更生产 Builder、
+      Adapter、URL、OAuth、Canonical、状态、服务器、账号、代理/TUN 或任何关闭的 tuple。
+兼容性与迁移影响: 无。结果仅为预定义 requirement label，不输出 response/item ID、文本、字段值、
+      token、model、arguments、header 或 JSON key 集合。
+测试与回滚变化: 合成 fixture/私有值测试后，只登记
+      `T24=(official-cli-current-core-shape-01, non_streaming, direct)`，独立进程、一 send、
+      无 refresh/retry/failover。它不能通过 C28，T21 仍不得发送；无法修复即 P6-03 `BLOCKED`。
+用户批准: APPROVED，2026-07-23（“批准”；此前已授权完成 P6 的真实测试）
+计划版本变更: v1.29
+```
+
+### 已批准 Change Request：CR-P6-03-018
+
+```text
+CR-ID: CR-P6-03-018
+原因: T24 将 current Build 的 2xx Responses JSON 失败缩小为 `reasoning_content_invalid`。
+      需要只观察 reasoning item 的固定 content 类别，确定是否应安全忽略空 reasoning，或映射一个
+      已知的非敏感 text 变体；不读取 reasoning 内容本身。
+影响的 Task / Matrix ID / ADR: 仅 P6-03 ignored diagnostic harness/报告；生产 API、URL、OAuth、
+      Canonical、状态、服务器、账号、代理/TUN 和关闭 tuple 均不变。
+兼容性与迁移影响: 无。唯一输出是 `missing_content`、`empty_content`、`reasoning_text`、
+      `summary_text`、`text`、`missing_text` 或 `other_or_missing` 等固定类别。
+测试与回滚变化: 合成投影检查后，仅 T25 一次直连 non-streaming send；它不能通过 C28，T21 未授权。
+用户批准: APPROVED，2026-07-23（“批准”；此前已授权完成 P6 的真实测试）
+计划版本变更: v1.30
+```
+
+### 已批准 Change Request：CR-P6-03-019
+
+```text
+CR-ID: CR-P6-03-019
+原因: T25 将差异精确定位为 completed reasoning item 可合法缺少 `content`。该 item 没有可投影的
+      reasoning 文本；将其映射为零 `ReasoningDelta` 保留 response lifecycle，且不伪造内容。
+影响的 Task / Matrix ID / ADR: P6-03 decoder 兼容性、合成 fixture、C28 live evidence；不变更 URL、
+      OAuth、请求 profile、Canonical 公共类型、运行时状态、服务器、账号、代理/TUN 或历史 tuple。
+兼容性与迁移影响: 无。缺失 `content` 仅对 `reasoning` completed item 接受；message 和 Tool 仍 fail-closed。
+测试与回滚变化: 必须通过零 Delta fixture、既有 arbitrary-chunk/non-streaming equivalence、adapter
+      E2E 和 Clippy；随后仅 T26 non-streaming 一 send。只有它得到完整 Canonical 成功时才允许 T27 SSE。
+用户批准: APPROVED，2026-07-23（“批准”；此前已授权完成 P6 的真实测试）
+计划版本变更: v1.31
+```
+
+### 已批准 Change Request：CR-P6-03-020
+
+```text
+CR-ID: CR-P6-03-020
+原因: T27 的固定端点 SSE 取得 2xx/预期 Content-Type，但严格 decoder 在任何可验收生命周期完成前
+      停止。需要只输出最后一个完整 SSE record 的预定义事件类别，判断是未知事件还是已知事件 payload
+      差异；不读取 data 值。
+影响的 Task / Matrix ID / ADR: 仅 P6-03 ignored SSE diagnostic harness/报告；生产接口、URL、OAuth、
+      Canonical、状态、服务器、账号、代理/TUN 和历史 tuple 均不变。
+兼容性与迁移影响: 无。投影仅输出预定义 record 类别，未知值合并为 `unknown_or_malformed`。
+测试与回滚变化: 仅 T28 SSE 一 send；不通过 C28，未有具体修复前不再发送新的成功验收 SSE tuple。
+用户批准: APPROVED，2026-07-23（“批准”；此前已授权完成 P6 的真实测试）
+计划版本变更: v1.32
+```
+
+### 已批准 Change Request：CR-P6-03-021
+
+```text
+CR-ID: CR-P6-03-021
+原因: T28 的 `unknown_or_malformed` 类别不足以区分已知标准 Responses 的 content-part、output-text
+      completion 和 reasoning-summary event families。仅扩展固定白名单类别后，才可决定精确兼容修复。
+影响的 Task / Matrix ID / ADR: 仅 ignored SSE diagnostic harness/报告；其它行为和历史 tuple 不变。
+兼容性与迁移影响: 无。未知名称继续合并，无原始 event/data 输出。
+测试与回滚变化: 仅 T29 SSE 一 send；不能通过 C28，具体修复前不再发送验收 tuple。
+用户批准: APPROVED，2026-07-23（“批准”；此前已授权完成 P6 的真实测试）
+计划版本变更: v1.33
+```
+
+### 已批准 Change Request：CR-P6-03-022
+
+```text
+CR-ID: CR-P6-03-022
+原因: T29 识别了 standard `response.reasoning_summary_text.delta`，其为现有 `ReasoningDelta` 的
+      明确语义同类。配套 summary-part 只携带结构边界，受限验证后不产生合成文本。
+影响的 Task / Matrix ID / ADR: P6-03 SSE decoder/fixture 和 C28；不改变 OAuth、请求、URL、状态、
+      服务器、账号、代理/TUN 或关闭的 tuple。
+兼容性与迁移影响: summary text delta 映射为 Canonical ReasoningDelta；summary part 仅验证
+      reasoning item identity 和 object 结构。其它未知 SSE event 仍 fail-closed。
+测试与回滚变化: 定向 decoder/adapter tests 后，T30 为唯一修复后 SSE send；通过才闭合 C28。
+用户批准: APPROVED，2026-07-23（“批准”；此前已授权完成 P6 的真实测试）
+计划版本变更: v1.34
+```
+
+### 已批准 Change Request：CR-P6-03-023
+
+```text
+CR-ID: CR-P6-03-023
+原因: T30 在已验证的 summary 兼容修复后仍以 SSE protocol failure 停止；原 diagnostic observer 在把
+      一整个上游 transport chunk 交给 decoder 后才记录 record，因此其“最后事件”可能晚于真正失败的
+      record，不能据此修改 strict decoder。需要把观察和 decoder 都按单字节推进，并只投影该精确
+      完成 record 的固定 event 类别及 output-item 安全形状。
+影响的 Task / Matrix ID / ADR: 仅 P6-03 C28 的 ignored SSE diagnostic harness、合成观察测试和
+      报告；不改变生产 Builder/Adapter/decoder、OAuth、请求 profile、URL、Canonical、状态、服务器、
+      账号、代理/TUN 或关闭的 T1-T30。
+兼容性与迁移影响: 无。输出仅能为既有有限 SSE event 类别和 `message_valid_id`、
+      `reasoning_valid_id`、`function_call_valid_id`、`other_or_invalid`、`not_output_item`；不得输出
+      record/body/header、ID、字段值、文本、token、模型或 cache path。observer 的逐字节合成测试
+      证明 transport 分块不影响此诊断归因。
+测试与回滚变化: 定向 harness test/Clippy/docs check 通过后，仅登记
+      `T31=(official-cli-current-sse-byte-shape-01, sse, direct)`；独立进程、官方 CLI cache、
+      `grok-4.5`、32 token、一 send、无 refresh/retry/failover。T31 仅定位，不能通过 C28；若它
+      显示明确兼容差异，必须先写 strict synthetic fixture/test，再以新的 CR 登记替代 SSE 验收。
+      无明确差异则 P6-03 保持 IN_PROGRESS/BLOCKED，不启动 P7。回滚只移除该 ignored observer。
+用户批准: APPROVED，2026-07-23（“批准”）
+计划版本变更: v1.35
+```
+
+### 已批准 Change Request：CR-P6-03-024
+
+```text
+CR-ID: CR-P6-03-024
+原因: T31 以逐字节归因确认 strict decoder 停在 standard `response.reasoning_summary_text.done`，而非
+      output-item 形状。clean-room 本地 Responses 行为参考及其合成 fixture 表明这是 summary text 的
+      终态确认事件：它携带与已累积 delta 相同的完整 text。此前 decoder 只接受 delta，因而错误地将
+      该已知终态当作未知事件。
+影响的 Task / Matrix ID / ADR: P6-03 C28 的 SSE decoder/fixture 和替代验收 tuple；不改变 OAuth、
+      请求、URL、Adapter/Router、Canonical 公共类型、状态、服务器、账号、代理/TUN 或关闭 T1-T31。
+兼容性与迁移影响: 只对已登记 reasoning item 接受此 event，要求 string `text`。若已有 delta，
+      `text` 必须与按顺序累积值完全一致且不重复 Canonical delta；若上游只给该终态 text，则仅映射
+      一次 `ReasoningDelta`。错 item、缺失 text、冲突 text 仍 fail-closed。message/tool 终态不放宽。
+测试与回滚变化: 合成成功 fixture 覆盖 matching delta/done 且断言不重复事件；mismatch fixture 必须
+      是 UpstreamProtocolError；既有 arbitrary-chunk、adapter/Router 与 Clippy 必须通过。随后仅登记
+      `T32=(official-cli-current-sse-summary-done-01, sse, direct)`，独立进程、官方 CLI cache、
+      `grok-4.5`、32 token、一 send、无 refresh/retry/failover。仅 T32 的 ResponseStart/text/
+      无 StreamError ResponseEnd 可闭合 C28；失败时 P6-03 保持 IN_PROGRESS/BLOCKED，不启动 P7。
+      回滚只移除该 event 分支和 fixtures。
+用户批准: APPROVED，2026-07-23（此前无次数上限的真实测试授权及本轮“批准”）
+计划版本变更: v1.36
+```
+
+### 已批准 Change Request：CR-P6-03-025
+
+```text
+CR-ID: CR-P6-03-025
+原因: T32 在 summary terminal 兼容后继续到 `response.content_part.added` 才停止，证明上次修复已生效。
+      当前 decoder 只消费 text delta/最终 output item，遗漏标准 Responses 的 text content-part 边界和
+      adjacent `output_text.done`/`reasoning.done` 完整文本确认。已从 clean-room 本地行为参考和合成
+      byte-chunk fixture 确认该序列的严格结构。
+影响的 Task / Matrix ID / ADR: 仅 P6-03 C28 SSE decoder/fixtures 和替代验收 tuple；不改变 OAuth、
+      请求、URL、Adapter/Router、Canonical 公共类型、状态、服务器、账号、代理/TUN 或关闭 T1-T32。
+兼容性与迁移影响: 只接受已登记 message item 的 `output_text` part；added 必须为空 text，done 必须
+      匹配已累积 text（无 delta 时才映射一次 TextDelta），且 part 未关闭时 output item 不得完成。
+      `output_text.done` 使用相同完整文本确认；`reasoning.done` 复用已验证的 reasoning terminal rule。
+      refusal/未知 part、错误身份、非空 added、重复/未关闭 part、缺失/冲突 text 全部 fail-closed。
+测试与回滚变化: byte-by-byte 完整 lifecycle fixture 必须证明一次 TextDelta/ResponseEnd；非空 part
+      start fixture 必须是 UpstreamProtocolError；summary matching/mismatch、adapter/Router、Clippy 和
+      docs check 必须通过。随后仅登记 `T33=(official-cli-current-sse-content-part-01, sse, direct)`，
+      独立进程、官方 CLI cache、`grok-4.5`、32 token、一 send、无 refresh/retry/failover。仅 T33 的
+      ResponseStart/text/无 StreamError ResponseEnd 可闭合 C28；失败则 P6-03 保持 IN_PROGRESS/BLOCKED，
+      不启动 P7。回滚只移除该标准 text-content event 处理和 fixture。
+用户批准: APPROVED，2026-07-23（此前无次数上限的真实测试授权及本轮“批准”）
+计划版本变更: v1.37
+```
+
 ### 已批准 Change Request：CR-P4-G4-001
 
 ```text
@@ -1139,19 +1365,23 @@ Fast、Full supply-chain、Required Delivery Gate 均已通过。
 |---|---|---|---|---|
 | P6-01 | 实现 Grok Build Credential、OAuth JSON 导入和 Device Code | G5 | OAuth Mock + 脱敏导入测试 | DONE |
 | P6-02 | 实现每 Credential Refresh Singleflight、Revision/CAS 和持久化 | P6-01 | 刷新风暴与旧 Token 覆盖测试 | DONE |
-| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析；兼容已知 OAuth 凭据来源 | P6-02 | 固定 Fixture + 测试账号验证；direct T18 stays `unattributed` and CR-P6-03-013 documents the approved non-replay continuation | DONE |
-| P6-04 | 实现模型、Billing、Quota Window 和 Reset 同步 | P6-03 | 来源/置信度和窗口测试 | DONE |
-| P6-05 | 实现租户隔离 Cache Identity 与 Cache Affinity | P6-03 | 稳定性、隔离和断裂事件测试 | DONE |
-| P6-06 | 实现 ResponseOwnership 与 ReasoningReplay | P6-03,P6-05 | previous_response 与多轮 Tool 测试 | DONE |
-| P6-07 | 实现 Build 专用 401/403/429/Quota/Transient 分类 | P6-04 | 错误 Fixture 矩阵 | DONE |
-| P6-08 | 与 CPA/grok2api Build 行为做 clean-room 差分 | P6-03-P6-07 | 差分报告和 intentional diff 清单 | DONE |
+| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析；兼容已知 OAuth 凭据来源 | P6-02 | `InferenceAdapter`/Router vertical link plus real T26 non-streaming and T33 SSE Canonical ResponseStart/text/clean ResponseEnd; T1-T33 are closed | LOCAL_PASS_PENDING_PHASE_GATE |
+| P6-04 | 实现模型、Billing、Quota Window 和 Reset 同步 | P6-03 | 来源/置信度和窗口测试；Credential-scope Catalog/Quota、version-7 migration up/down revalidation passed | LOCAL_PASS_PENDING_PHASE_GATE |
+| P6-05 | 实现租户隔离 Cache Identity 与 Cache Affinity | P6-03 | 稳定性、隔离和断裂事件测试；tenant isolation/rebind durable-break revalidation passed | LOCAL_PASS_PENDING_PHASE_GATE |
+| P6-06 | 实现 ResponseOwnership 与 ReasoningReplay | P6-03,P6-05 | previous_response 与多轮 Tool 测试；ownership/replay encrypted-clear revalidation passed | LOCAL_PASS_PENDING_PHASE_GATE |
+| P6-07 | 实现 Build 专用 401/403/429/Quota/Transient 分类 | P6-04 | 错误 Fixture 矩阵；failure action matrix revalidation passed | LOCAL_PASS_PENDING_PHASE_GATE |
+| P6-08 | 与 CPA/grok2api Build 行为做 clean-room 差分 | P6-03-P6-07 | 差分报告和 intentional diff 清单；clean-room source-boundary/report revalidation passed | LOCAL_PASS_PENDING_PHASE_GATE |
 
 ### G6 门禁
 
-状态：`DONE`；P6-01 至 P6-08 的本地 review/验收和 `phase-p6-complete` 的唯一远端
-Fast、Full supply-chain、Required Delivery Gate 均已通过。
+状态：`LOCAL_PASS_PENDING_PHASE_GATE`；旧 `phase-p6-complete` Delivery Gate 只证明其旧
+closeout target，不能替代 C28 的真实双模式生命周期或可执行 Provider 垂直链路。P6-03 至 P6-08
+已经重新本地通过；只有新的 `phase-p6-remediated` tag Delivery Gate 的 Fast、Full supply-chain、
+Required 全部通过后，才可恢复 `DONE`。
 
 - 两个 Build Credential 的并发、轮询、刷新、Quota 和 Failover 通过。
+- 固定直连 Build 的非流式与 SSE 都产生 Canonical `ResponseStart`、文本和无 `StreamError` 的
+  `ResponseEnd`。
 - Cache Identity 和 Affinity 均稳定，跨 Client Key 不串缓存。
 - Response Ownership 不允许静默换账号续接。
 - 旧请求不能覆盖新 Token 或错误封禁已刷新 Credential。

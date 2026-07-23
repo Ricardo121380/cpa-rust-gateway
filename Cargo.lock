@@ -1463,6 +1463,7 @@ dependencies = [
  "gateway-continuity",
  "gateway-core",
  "gateway-provider",
+ "gateway-router",
  "gateway-store",
  "gateway-upstream",
  "getrandom 0.3.4",

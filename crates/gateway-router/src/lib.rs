@@ -263,6 +263,75 @@ pub struct DeterministicMockResponsesExecutor {
     provider: DeterministicMockProvider,
 }
 
+/// Router-facing bridge for two real Provider execution modes.
+///
+/// The ingress protocol decides whether the downstream response is streaming.  This bridge
+/// selects the matching already-configured Provider adapter while preserving the Router rule that
+/// HTTP crates never import a concrete Provider type.  The two adapters may share credentials and
+/// a transport, but their wire modes are explicit and cannot be silently substituted.
+#[derive(Clone)]
+pub struct RoutedProviderResponsesExecutor {
+    non_streaming: Arc<dyn InferenceAdapter>,
+    streaming: Arc<dyn InferenceAdapter>,
+}
+
+impl RoutedProviderResponsesExecutor {
+    /// Creates an executor from explicit non-streaming and streaming Provider adapters.
+    #[must_use]
+    pub fn new(
+        non_streaming: Arc<dyn InferenceAdapter>,
+        streaming: Arc<dyn InferenceAdapter>,
+    ) -> Self {
+        Self {
+            non_streaming,
+            streaming,
+        }
+    }
+
+    fn provider_for_mode(&self, mode: ResponsesResponseMode) -> Arc<dyn InferenceAdapter> {
+        match mode {
+            ResponsesResponseMode::NonStreaming => Arc::clone(&self.non_streaming),
+            ResponsesResponseMode::Streaming => Arc::clone(&self.streaming),
+        }
+    }
+}
+
+impl fmt::Debug for RoutedProviderResponsesExecutor {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("RoutedProviderResponsesExecutor")
+            .field("non_streaming", &"<injected>")
+            .field("streaming", &"<injected>")
+            .finish()
+    }
+}
+
+impl ResponsesExecutor for RoutedProviderResponsesExecutor {
+    fn execute(
+        &self,
+        context: RequestContext,
+        request: CanonicalRequest,
+    ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
+        let provider = Arc::clone(&self.non_streaming);
+        Box::pin(async move {
+            let source = provider.execute(context, request).await?;
+            Ok(Box::new(ProviderResponsesEventSource { source }) as Box<dyn ResponsesEventSource>)
+        })
+    }
+
+    fn execute_routed(
+        &self,
+        execution: ResponsesExecution,
+    ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
+        let provider = self.provider_for_mode(execution.mode());
+        let (context, request) = execution.into_legacy_parts();
+        Box::pin(async move {
+            let source = provider.execute(context, request).await?;
+            Ok(Box::new(ProviderResponsesEventSource { source }) as Box<dyn ResponsesEventSource>)
+        })
+    }
+}
+
 impl DeterministicMockResponsesExecutor {
     /// Validates a canonical mock script and creates a reusable P1 executor.
     ///

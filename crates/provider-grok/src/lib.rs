@@ -5,6 +5,7 @@
 mod build_responses;
 mod continuity_state;
 mod credential_runtime;
+mod inference;
 mod oauth;
 mod runtime_state;
 
@@ -36,6 +37,11 @@ pub use credential_runtime::{
     GrokBuildCredentialRefreshCoordinator, GrokBuildCredentialRefreshCoordinatorConfigError,
     GrokBuildCredentialRefreshError, GrokBuildCredentialRefreshOutcome,
     GrokBuildCredentialSqliteStore, GrokBuildCredentialVersion,
+};
+pub use inference::{
+    GrokBuildExecutionMode, GrokBuildInferenceAdapter, GrokBuildResponseBody,
+    GrokBuildResponseContentEncoding, GrokBuildResponseContentType, GrokBuildTransport,
+    GrokBuildTransportResponse, GrokBuildUpstreamTransport,
 };
 pub use oauth::{
     GROK_BUILD_DEVICE_AUTHORIZATION_URL, GROK_BUILD_OAUTH_ISSUER, GROK_BUILD_OAUTH_SCOPE,

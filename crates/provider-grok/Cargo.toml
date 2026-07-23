@@ -26,6 +26,7 @@ url.workspace = true
 zeroize.workspace = true
 
 [dev-dependencies]
+gateway-router = { path = "../gateway-router" }
 tokio.workspace = true
 
 [lints]

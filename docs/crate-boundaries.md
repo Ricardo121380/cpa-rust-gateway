@@ -67,8 +67,10 @@ gateway-core
   `time` 仅在 `CR-P6-03-008` 的 bytes-only OAuth 来源适配中严格解析 RFC3339 绝对过期时间，
   不读取时钟、不创建网络 I/O，也不改变 P6-01 相对 `expires_in` 行为。
   `flate2` 仅用于 1 MiB 上限内的 gzip 解码，`getrandom` 仅生成不持久化、不诊断的进程/请求关联值；
-  `tokio` 仅为 ignored 的授权单探针测试目标提供受限异步驱动，不进入库目标或公共 API；状态/Quota/
-  Cache/Continuity 策略仍由后续 P6 Task 所有。
+  `tokio` 仅为 ignored 的授权单探针测试目标提供受限异步驱动，`gateway-router` 仅为
+  `p6_09_inference_adapter` 的 Provider-to-Router fixture 纵向测试提供 dev-dependency；两者都不进入
+  `provider-grok` 库目标或公共 API，也不形成运行时的 Provider→Router 依赖。状态/Quota/Cache/
+  Continuity 策略仍由后续 P6 Task 所有。
 - `gateway-store` 不进入 Router 的请求选择路径；持久数据通过控制面编译为不可变 Snapshot。
 - `gateway-router` 可以使用 `gateway-auth` 的无存储 Client Key HMAC 原语来认证其已编译
   Snapshot；该边不允许反向的 Router、Store 或 HTTP 依赖进入 `gateway-auth`。

@@ -963,6 +963,7 @@ struct GrokBuildResponsesDecodeState {
     completed_function_calls: BTreeSet<String>,
     text_by_item_id: BTreeMap<String, String>,
     reasoning_by_item_id: BTreeMap<String, String>,
+    active_text_content_item_ids: BTreeSet<String>,
 }
 
 impl fmt::Debug for GrokBuildResponsesDecodeState {
@@ -983,6 +984,10 @@ impl fmt::Debug for GrokBuildResponsesDecodeState {
             )
             .field("text_item_count", &self.text_by_item_id.len())
             .field("reasoning_item_count", &self.reasoning_by_item_id.len())
+            .field(
+                "active_text_content_item_count",
+                &self.active_text_content_item_ids.len(),
+            )
             .finish()
     }
 }
@@ -1068,9 +1073,20 @@ impl GrokBuildResponsesDecodeState {
                 required_object(object, "item", stream_protocol_error())?,
                 events,
             ),
+            "response.content_part.added" => self.handle_text_content_part_added(object),
+            "response.content_part.done" => self.handle_text_content_part_done(object, events),
             "response.output_text.delta" => self.handle_text_delta(object, events),
-            "response.reasoning.delta" | "response.reasoning_text.delta" => {
+            "response.output_text.done" => self.handle_text_done(object, events),
+            "response.reasoning.delta"
+            | "response.reasoning_text.delta"
+            | "response.reasoning_summary_text.delta" => {
                 self.handle_reasoning_delta(object, events)
+            }
+            "response.reasoning_summary_text.done" | "response.reasoning.done" => {
+                self.handle_reasoning_terminal_text(object, events)
+            }
+            "response.reasoning_summary_part.added" | "response.reasoning_summary_part.done" => {
+                self.handle_reasoning_summary_part(object)
             }
             "response.function_call_arguments.delta" => {
                 self.handle_function_arguments_delta(object, events)
@@ -1174,6 +1190,9 @@ impl GrokBuildResponsesDecodeState {
         if self.done_item_ids.contains(item_id) {
             return Err(stream_protocol_error());
         }
+        if self.active_text_content_item_ids.contains(item_id) {
+            return Err(stream_protocol_error());
+        }
         let expected_kind = match kind {
             OutputItemKind::Message => "message",
             OutputItemKind::Reasoning => "reasoning",
@@ -1192,8 +1211,12 @@ impl GrokBuildResponsesDecodeState {
                 self.finish_text_item(item_id, text, events)?;
             }
             OutputItemKind::Reasoning => {
-                let text = output_text(item, "reasoning_text")?;
-                self.finish_reasoning_item(item_id, text, events)?;
+                // Current Build can return a completed reasoning item with no `content`. It
+                // represents non-exported internal reasoning, not an empty visible text item;
+                // retain lifecycle/usage while emitting no synthetic `ReasoningDelta`.
+                if let Some(text) = optional_reasoning_text(item)? {
+                    self.finish_reasoning_item(item_id, text, events)?;
+                }
             }
             OutputItemKind::FunctionCall => {
                 let call_id = required_identifier(item, "call_id", stream_protocol_error())?;
@@ -1240,6 +1263,58 @@ impl GrokBuildResponsesDecodeState {
         Ok(())
     }
 
+    fn handle_text_content_part_added(
+        &mut self,
+        event: &Map<String, Value>,
+    ) -> Result<(), GatewayError> {
+        let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
+        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Message) {
+            return Err(stream_protocol_error());
+        }
+        let part = required_object(event, "part", stream_protocol_error())?;
+        if required_string(part, "type", stream_protocol_error())? != "output_text"
+            || !required_string(part, "text", stream_protocol_error())?.is_empty()
+            || !self.active_text_content_item_ids.insert(item_id.to_owned())
+        {
+            return Err(stream_protocol_error());
+        }
+        Ok(())
+    }
+
+    fn handle_text_content_part_done(
+        &mut self,
+        event: &Map<String, Value>,
+        events: &mut Vec<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
+        let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
+        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Message)
+            || !self.active_text_content_item_ids.contains(item_id)
+        {
+            return Err(stream_protocol_error());
+        }
+        let part = required_object(event, "part", stream_protocol_error())?;
+        if required_string(part, "type", stream_protocol_error())? != "output_text" {
+            return Err(stream_protocol_error());
+        }
+        let text = required_string(part, "text", stream_protocol_error())?.to_owned();
+        self.finish_text_item(item_id, text, events)?;
+        self.active_text_content_item_ids.remove(item_id);
+        Ok(())
+    }
+
+    fn handle_text_done(
+        &mut self,
+        event: &Map<String, Value>,
+        events: &mut Vec<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
+        let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
+        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Message) {
+            return Err(stream_protocol_error());
+        }
+        let text = required_string(event, "text", stream_protocol_error())?.to_owned();
+        self.finish_text_item(item_id, text, events)
+    }
+
     fn handle_reasoning_delta(
         &mut self,
         event: &Map<String, Value>,
@@ -1265,6 +1340,52 @@ impl GrokBuildResponsesDecodeState {
             .entry(item_id.to_owned())
             .or_default()
             .push_str(delta);
+        Ok(())
+    }
+
+    fn handle_reasoning_summary_part(
+        &self,
+        event: &Map<String, Value>,
+    ) -> Result<(), GatewayError> {
+        let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
+        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Reasoning) {
+            return Err(stream_protocol_error());
+        }
+        let _part = required_object(event, "part", stream_protocol_error())?;
+        Ok(())
+    }
+
+    fn handle_reasoning_terminal_text(
+        &mut self,
+        event: &Map<String, Value>,
+        events: &mut Vec<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
+        let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
+        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Reasoning) {
+            return Err(stream_protocol_error());
+        }
+        let text = required_string(event, "text", stream_protocol_error())?;
+        let accumulated = self
+            .reasoning_by_item_id
+            .get(item_id)
+            .map(String::as_str)
+            .unwrap_or_default();
+        if accumulated.is_empty() && !text.is_empty() {
+            self.ensure_message(events)?;
+            self.emit(
+                events,
+                CanonicalEvent::ReasoningDelta(ReasoningDelta {
+                    text: text.to_owned(),
+                    extensions: RawExtensions::default(),
+                }),
+            )?;
+            self.reasoning_by_item_id
+                .insert(item_id.to_owned(), text.to_owned());
+            return Ok(());
+        }
+        if accumulated != text {
+            return Err(stream_protocol_error());
+        }
         Ok(())
     }
 
@@ -1549,6 +1670,22 @@ fn output_text(item: &Map<String, Value>, expected_type: &str) -> Result<String,
         text.push_str(required_string(part, "text", stream_protocol_error())?);
     }
     Ok(text)
+}
+
+fn optional_reasoning_text(item: &Map<String, Value>) -> Result<Option<String>, GatewayError> {
+    let Some(content) = item.get("content") else {
+        return Ok(None);
+    };
+    let content = content.as_array().ok_or_else(stream_protocol_error)?;
+    let mut text = String::new();
+    for part in content {
+        let part = part.as_object().ok_or_else(stream_protocol_error)?;
+        if required_string(part, "type", stream_protocol_error())? != "reasoning_text" {
+            return Err(stream_protocol_error());
+        }
+        text.push_str(required_string(part, "text", stream_protocol_error())?);
+    }
+    Ok(Some(text))
 }
 
 fn parse_usage(

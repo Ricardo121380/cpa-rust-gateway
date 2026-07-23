@@ -18,6 +18,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
+use flate2::read::MultiGzDecoder;
 use gateway_core::{CanonicalEvent, EgressPolicyId};
 use gateway_upstream::{
     EgressCidr, EgressHost, EgressPolicy, EgressPolicyInput, EgressScheme, RedirectPolicy,
@@ -182,6 +183,193 @@ enum SafeBodyShape {
     Array,
     Scalar,
     InvalidJson,
+}
+
+/// A no-value structural projection for a successful-status JSON response.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SafeSuccessBodyShape {
+    ResponsesObject,
+    WrappedResponseObject,
+    ErrorLikeObject,
+    ChatChoicesObject,
+    OtherObject,
+    NonObject,
+    InvalidJson,
+    DecodeFailed,
+}
+
+impl SafeSuccessBodyShape {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::ResponsesObject => "responses_object",
+            Self::WrappedResponseObject => "wrapped_response_object",
+            Self::ErrorLikeObject => "error_like_object",
+            Self::ChatChoicesObject => "chat_choices_object",
+            Self::OtherObject => "other_object",
+            Self::NonObject => "non_object",
+            Self::InvalidJson => "invalid_json",
+            Self::DecodeFailed => "decode_failed",
+        }
+    }
+}
+
+/// A no-value projection of the only content encodings accepted by the Build decoder.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SafeContentEncoding {
+    Identity,
+    Gzip,
+    OtherOrMissing,
+}
+
+impl SafeContentEncoding {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Identity => "identity",
+            Self::Gzip => "gzip",
+            Self::OtherOrMissing => "other_or_missing",
+        }
+    }
+}
+
+/// The first secret-free core requirement that prevents the Responses decoder from accepting a
+/// completed response-shaped object.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SafeResponsesDecoderGate {
+    CompatibleCoreShape,
+    DecodeFailed,
+    RootNotObject,
+    MissingOrInvalidResponseId,
+    ResponseNotCompleted,
+    OutputNotArray,
+    OutputItemNotObject,
+    OutputItemInvalidId,
+    OutputItemUnsupportedType,
+    OutputItemNotCompleted,
+    MessageContentInvalid,
+    ReasoningContentInvalid,
+    FunctionCallInvalid,
+}
+
+/// A no-value classification of the current Build reasoning item's content representation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SafeReasoningContentShape {
+    NotPresent,
+    MissingContent,
+    EmptyContent,
+    ReasoningText,
+    SummaryText,
+    PlainText,
+    MissingText,
+    OtherOrMissing,
+}
+
+/// A fixed, no-value category for the most recent complete upstream SSE record.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SafeSseEventCategory {
+    ResponseCreated,
+    ResponseInProgress,
+    OutputItemAdded,
+    OutputItemDone,
+    ContentPartAdded,
+    ContentPartDone,
+    OutputTextDelta,
+    OutputTextDone,
+    ReasoningDelta,
+    ReasoningSummaryPartAdded,
+    ReasoningSummaryPartDone,
+    ReasoningSummaryTextDelta,
+    ReasoningSummaryTextDone,
+    FunctionArgumentsDelta,
+    FunctionArgumentsDone,
+    ResponseCompleted,
+    ResponseFailed,
+    Keepalive,
+    Done,
+    UnknownOrMalformed,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+enum SafeSseOutputItemShape {
+    #[default]
+    NotOutputItem,
+    MessageValidId,
+    ReasoningValidId,
+    FunctionCallValidId,
+    OtherOrInvalid,
+}
+
+impl SafeSseOutputItemShape {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::NotOutputItem => "not_output_item",
+            Self::MessageValidId => "message_valid_id",
+            Self::ReasoningValidId => "reasoning_valid_id",
+            Self::FunctionCallValidId => "function_call_valid_id",
+            Self::OtherOrInvalid => "other_or_invalid",
+        }
+    }
+}
+
+impl SafeSseEventCategory {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::ResponseCreated => "response_created",
+            Self::ResponseInProgress => "response_in_progress",
+            Self::OutputItemAdded => "output_item_added",
+            Self::OutputItemDone => "output_item_done",
+            Self::ContentPartAdded => "content_part_added",
+            Self::ContentPartDone => "content_part_done",
+            Self::OutputTextDelta => "output_text_delta",
+            Self::OutputTextDone => "output_text_done",
+            Self::ReasoningDelta => "reasoning_delta",
+            Self::ReasoningSummaryPartAdded => "reasoning_summary_part_added",
+            Self::ReasoningSummaryPartDone => "reasoning_summary_part_done",
+            Self::ReasoningSummaryTextDelta => "reasoning_summary_text_delta",
+            Self::ReasoningSummaryTextDone => "reasoning_summary_text_done",
+            Self::FunctionArgumentsDelta => "function_arguments_delta",
+            Self::FunctionArgumentsDone => "function_arguments_done",
+            Self::ResponseCompleted => "response_completed",
+            Self::ResponseFailed => "response_failed",
+            Self::Keepalive => "keepalive",
+            Self::Done => "done",
+            Self::UnknownOrMalformed => "unknown_or_malformed",
+        }
+    }
+}
+
+impl SafeReasoningContentShape {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::NotPresent => "not_present",
+            Self::MissingContent => "missing_content",
+            Self::EmptyContent => "empty_content",
+            Self::ReasoningText => "reasoning_text",
+            Self::SummaryText => "summary_text",
+            Self::PlainText => "text",
+            Self::MissingText => "missing_text",
+            Self::OtherOrMissing => "other_or_missing",
+        }
+    }
+}
+
+impl SafeResponsesDecoderGate {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::CompatibleCoreShape => "compatible_core_shape",
+            Self::DecodeFailed => "decode_failed",
+            Self::RootNotObject => "root_not_object",
+            Self::MissingOrInvalidResponseId => "missing_or_invalid_response_id",
+            Self::ResponseNotCompleted => "response_not_completed",
+            Self::OutputNotArray => "output_not_array",
+            Self::OutputItemNotObject => "output_item_not_object",
+            Self::OutputItemInvalidId => "output_item_invalid_id",
+            Self::OutputItemUnsupportedType => "output_item_unsupported_type",
+            Self::OutputItemNotCompleted => "output_item_not_completed",
+            Self::MessageContentInvalid => "message_content_invalid",
+            Self::ReasoningContentInvalid => "reasoning_content_invalid",
+            Self::FunctionCallInvalid => "function_call_invalid",
+        }
+    }
 }
 
 impl SafeBodyShape {
@@ -581,6 +769,14 @@ async fn execute_one_probe(probe: PreparedProbe) -> Result<(), ProbeError> {
                 .header("content-encoding")
                 .and_then(|value| value.to_str().ok())
                 .map(str::to_owned);
+            let safe_content_encoding = safe_content_encoding(content_encoding.as_deref());
+            println!(
+                "p6-03 build probe response target={target_label} content_encoding={} body_shape={} decoder_gate={} reasoning_content={}",
+                safe_content_encoding.as_str(),
+                safe_success_body_shape(&body, safe_content_encoding).as_str(),
+                safe_responses_decoder_gate(&body, safe_content_encoding).as_str(),
+                safe_reasoning_content_shape(&body, safe_content_encoding).as_str()
+            );
             let decoded = GrokBuildResponsesDecoder::decode_non_streaming_with_content_encoding(
                 content_encoding.as_deref(),
                 &body,
@@ -600,6 +796,7 @@ async fn execute_one_probe(probe: PreparedProbe) -> Result<(), ProbeError> {
 async fn decode_sse_response(response: &mut UpstreamHttpResponse) -> Result<(), ProbeError> {
     let mut decoder = GrokBuildResponsesStreamDecoder::new();
     let mut shape = ProbeResponseShape::default();
+    let mut safe_observer = SafeSseObserver::default();
     let mut response_bytes = 0_usize;
     while let Some(chunk) = response
         .next_chunk()
@@ -612,15 +809,127 @@ async fn decode_sse_response(response: &mut UpstreamHttpResponse) -> Result<(), 
         if response_bytes > MAX_GROK_BUILD_PROBE_STREAM_BYTES {
             return Err(ProbeError::ResponseTooLarge);
         }
-        let events = decoder
-            .push_bytes(&chunk)
-            .map_err(|_| ProbeError::ResponseProtocolFailed)?;
-        shape.observe(&events);
+        for byte in chunk {
+            safe_observer.observe_byte(byte);
+            let Ok(events) = decoder.push_bytes(std::slice::from_ref(&byte)) else {
+                println!(
+                    "p6-03 build probe response last_sse_event={} output_item_shape={}",
+                    safe_observer.last().as_str(),
+                    safe_observer.last_output_item_shape().as_str()
+                );
+                return Err(ProbeError::ResponseProtocolFailed);
+            };
+            shape.observe(&events);
+        }
     }
     decoder
         .finish()
         .map_err(|_| ProbeError::ResponseProtocolFailed)?;
     shape.verify()
+}
+
+#[derive(Default)]
+struct SafeSseObserver {
+    pending: Vec<u8>,
+    last: Option<SafeSseEventCategory>,
+    last_output_item_shape: SafeSseOutputItemShape,
+}
+
+impl SafeSseObserver {
+    fn observe_byte(&mut self, byte: u8) {
+        self.pending.push(byte);
+        if self.pending.ends_with(b"\n\n") || self.pending.ends_with(b"\r\n\r\n") {
+            let record = std::mem::take(&mut self.pending);
+            self.last = Some(safe_sse_event_category(&record));
+            self.last_output_item_shape = safe_sse_output_item_shape(&record);
+        }
+    }
+
+    fn last(&self) -> SafeSseEventCategory {
+        self.last
+            .unwrap_or(SafeSseEventCategory::UnknownOrMalformed)
+    }
+
+    const fn last_output_item_shape(&self) -> SafeSseOutputItemShape {
+        self.last_output_item_shape
+    }
+}
+
+fn safe_sse_event_category(record: &[u8]) -> SafeSseEventCategory {
+    let Ok(record) = std::str::from_utf8(record) else {
+        return SafeSseEventCategory::UnknownOrMalformed;
+    };
+    let event = record
+        .lines()
+        .find_map(|line| line.strip_prefix("event:"))
+        .map(str::trim);
+    match event {
+        Some("response.created") => SafeSseEventCategory::ResponseCreated,
+        Some("response.in_progress") => SafeSseEventCategory::ResponseInProgress,
+        Some("response.output_item.added") => SafeSseEventCategory::OutputItemAdded,
+        Some("response.output_item.done") => SafeSseEventCategory::OutputItemDone,
+        Some("response.content_part.added") => SafeSseEventCategory::ContentPartAdded,
+        Some("response.content_part.done") => SafeSseEventCategory::ContentPartDone,
+        Some("response.output_text.delta") => SafeSseEventCategory::OutputTextDelta,
+        Some("response.output_text.done") => SafeSseEventCategory::OutputTextDone,
+        Some("response.reasoning.delta" | "response.reasoning_text.delta") => {
+            SafeSseEventCategory::ReasoningDelta
+        }
+        Some("response.reasoning_summary_part.added") => {
+            SafeSseEventCategory::ReasoningSummaryPartAdded
+        }
+        Some("response.reasoning_summary_part.done") => {
+            SafeSseEventCategory::ReasoningSummaryPartDone
+        }
+        Some("response.reasoning_summary_text.delta") => {
+            SafeSseEventCategory::ReasoningSummaryTextDelta
+        }
+        Some("response.reasoning_summary_text.done") => {
+            SafeSseEventCategory::ReasoningSummaryTextDone
+        }
+        Some("response.function_call_arguments.delta") => {
+            SafeSseEventCategory::FunctionArgumentsDelta
+        }
+        Some("response.function_call_arguments.done") => {
+            SafeSseEventCategory::FunctionArgumentsDone
+        }
+        Some("response.completed") => SafeSseEventCategory::ResponseCompleted,
+        Some("response.failed") => SafeSseEventCategory::ResponseFailed,
+        Some("keepalive") => SafeSseEventCategory::Keepalive,
+        None if record.contains("[DONE]") => SafeSseEventCategory::Done,
+        Some(_) | None => SafeSseEventCategory::UnknownOrMalformed,
+    }
+}
+
+fn safe_sse_output_item_shape(record: &[u8]) -> SafeSseOutputItemShape {
+    let Ok(record) = std::str::from_utf8(record) else {
+        return SafeSseOutputItemShape::OtherOrInvalid;
+    };
+    if !record
+        .lines()
+        .any(|line| line.trim() == "event: response.output_item.added")
+    {
+        return SafeSseOutputItemShape::NotOutputItem;
+    }
+    let Some(data) = record.lines().find_map(|line| line.strip_prefix("data:")) else {
+        return SafeSseOutputItemShape::OtherOrInvalid;
+    };
+    let Some(item) = serde_json::from_str::<serde_json::Value>(data.trim())
+        .ok()
+        .and_then(|value| value.get("item").cloned())
+        .and_then(|value| value.as_object().cloned())
+    else {
+        return SafeSseOutputItemShape::OtherOrInvalid;
+    };
+    if !safe_identifier(item.get("id")) {
+        return SafeSseOutputItemShape::OtherOrInvalid;
+    }
+    match item.get("type").and_then(serde_json::Value::as_str) {
+        Some("message") => SafeSseOutputItemShape::MessageValidId,
+        Some("reasoning") => SafeSseOutputItemShape::ReasoningValidId,
+        Some("function_call") => SafeSseOutputItemShape::FunctionCallValidId,
+        _ => SafeSseOutputItemShape::OtherOrInvalid,
+    }
 }
 
 async fn read_bounded(
@@ -716,6 +1025,221 @@ fn safe_body_shape(body: &[u8]) -> SafeBodyShape {
             | serde_json::Value::String(_),
         ) => SafeBodyShape::Scalar,
         Err(_) => SafeBodyShape::InvalidJson,
+    }
+}
+
+fn safe_success_body_shape(
+    body: &[u8],
+    content_encoding: SafeContentEncoding,
+) -> SafeSuccessBodyShape {
+    let decoded = match content_encoding {
+        SafeContentEncoding::Identity => body.to_vec(),
+        SafeContentEncoding::Gzip => {
+            let Some(limit) = u64::try_from(MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES)
+                .ok()
+                .and_then(|value| value.checked_add(1))
+            else {
+                return SafeSuccessBodyShape::DecodeFailed;
+            };
+            let mut decoded = Vec::new();
+            if MultiGzDecoder::new(body)
+                .take(limit)
+                .read_to_end(&mut decoded)
+                .is_err()
+                || decoded.len() > MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES
+            {
+                return SafeSuccessBodyShape::DecodeFailed;
+            }
+            decoded
+        }
+        SafeContentEncoding::OtherOrMissing => return SafeSuccessBodyShape::DecodeFailed,
+    };
+    match serde_json::from_slice::<serde_json::Value>(&decoded) {
+        Ok(serde_json::Value::Object(object)) if object.contains_key("output") => {
+            SafeSuccessBodyShape::ResponsesObject
+        }
+        Ok(serde_json::Value::Object(object)) if object.contains_key("response") => {
+            SafeSuccessBodyShape::WrappedResponseObject
+        }
+        Ok(serde_json::Value::Object(object)) if object.contains_key("error") => {
+            SafeSuccessBodyShape::ErrorLikeObject
+        }
+        Ok(serde_json::Value::Object(object)) if object.contains_key("choices") => {
+            SafeSuccessBodyShape::ChatChoicesObject
+        }
+        Ok(serde_json::Value::Object(_)) => SafeSuccessBodyShape::OtherObject,
+        Ok(_) => SafeSuccessBodyShape::NonObject,
+        Err(_) => SafeSuccessBodyShape::InvalidJson,
+    }
+}
+
+fn safe_responses_decoder_gate(
+    body: &[u8],
+    content_encoding: SafeContentEncoding,
+) -> SafeResponsesDecoderGate {
+    let decoded = match content_encoding {
+        SafeContentEncoding::Identity => body.to_vec(),
+        SafeContentEncoding::Gzip => {
+            let Some(limit) = u64::try_from(MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES)
+                .ok()
+                .and_then(|value| value.checked_add(1))
+            else {
+                return SafeResponsesDecoderGate::DecodeFailed;
+            };
+            let mut decoded = Vec::new();
+            if MultiGzDecoder::new(body)
+                .take(limit)
+                .read_to_end(&mut decoded)
+                .is_err()
+                || decoded.len() > MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES
+            {
+                return SafeResponsesDecoderGate::DecodeFailed;
+            }
+            decoded
+        }
+        SafeContentEncoding::OtherOrMissing => return SafeResponsesDecoderGate::DecodeFailed,
+    };
+    let Ok(serde_json::Value::Object(response)) =
+        serde_json::from_slice::<serde_json::Value>(&decoded)
+    else {
+        return SafeResponsesDecoderGate::RootNotObject;
+    };
+    if !safe_identifier(response.get("id")) {
+        return SafeResponsesDecoderGate::MissingOrInvalidResponseId;
+    }
+    if response.get("status").and_then(serde_json::Value::as_str) != Some("completed") {
+        return SafeResponsesDecoderGate::ResponseNotCompleted;
+    }
+    let Some(output) = response.get("output").and_then(serde_json::Value::as_array) else {
+        return SafeResponsesDecoderGate::OutputNotArray;
+    };
+    for item in output {
+        let Some(item) = item.as_object() else {
+            return SafeResponsesDecoderGate::OutputItemNotObject;
+        };
+        if !safe_identifier(item.get("id")) {
+            return SafeResponsesDecoderGate::OutputItemInvalidId;
+        }
+        if item.get("status").and_then(serde_json::Value::as_str) != Some("completed") {
+            return SafeResponsesDecoderGate::OutputItemNotCompleted;
+        }
+        match item.get("type").and_then(serde_json::Value::as_str) {
+            Some("message") if safe_output_text_content(item, "output_text") => {}
+            Some("message") => return SafeResponsesDecoderGate::MessageContentInvalid,
+            Some("reasoning") if safe_output_text_content(item, "reasoning_text") => {}
+            Some("reasoning") => return SafeResponsesDecoderGate::ReasoningContentInvalid,
+            Some("function_call") if safe_function_call(item) => {}
+            Some("function_call") => return SafeResponsesDecoderGate::FunctionCallInvalid,
+            _ => return SafeResponsesDecoderGate::OutputItemUnsupportedType,
+        }
+    }
+    SafeResponsesDecoderGate::CompatibleCoreShape
+}
+
+fn safe_identifier(value: Option<&serde_json::Value>) -> bool {
+    value
+        .and_then(serde_json::Value::as_str)
+        .is_some_and(|value| !value.is_empty() && value.len() <= 512)
+}
+
+fn safe_output_text_content(
+    object: &serde_json::Map<String, serde_json::Value>,
+    kind: &str,
+) -> bool {
+    object
+        .get("content")
+        .and_then(serde_json::Value::as_array)
+        .is_some_and(|content| {
+            content.iter().all(|part| {
+                part.as_object().is_some_and(|part| {
+                    part.get("type").and_then(serde_json::Value::as_str) == Some(kind)
+                        && part
+                            .get("text")
+                            .and_then(serde_json::Value::as_str)
+                            .is_some()
+                })
+            })
+        })
+}
+
+fn safe_function_call(object: &serde_json::Map<String, serde_json::Value>) -> bool {
+    safe_identifier(object.get("call_id"))
+        && safe_identifier(object.get("name"))
+        && object
+            .get("arguments")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|arguments| {
+                arguments.trim().is_empty()
+                    || serde_json::from_str::<serde_json::Value>(arguments)
+                        .is_ok_and(|value| value.is_object())
+            })
+}
+
+fn safe_reasoning_content_shape(
+    body: &[u8],
+    content_encoding: SafeContentEncoding,
+) -> SafeReasoningContentShape {
+    let decoded = match content_encoding {
+        SafeContentEncoding::Identity => body.to_vec(),
+        SafeContentEncoding::Gzip => {
+            let Some(limit) = u64::try_from(MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES)
+                .ok()
+                .and_then(|value| value.checked_add(1))
+            else {
+                return SafeReasoningContentShape::OtherOrMissing;
+            };
+            let mut decoded = Vec::new();
+            if MultiGzDecoder::new(body)
+                .take(limit)
+                .read_to_end(&mut decoded)
+                .is_err()
+                || decoded.len() > MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES
+            {
+                return SafeReasoningContentShape::OtherOrMissing;
+            }
+            decoded
+        }
+        SafeContentEncoding::OtherOrMissing => return SafeReasoningContentShape::OtherOrMissing,
+    };
+    let Some(output) = serde_json::from_slice::<serde_json::Value>(&decoded)
+        .ok()
+        .and_then(|value| value.get("output").cloned())
+        .and_then(|value| value.as_array().cloned())
+    else {
+        return SafeReasoningContentShape::OtherOrMissing;
+    };
+    let Some(item) = output
+        .into_iter()
+        .find(|item| item.get("type").and_then(serde_json::Value::as_str) == Some("reasoning"))
+    else {
+        return SafeReasoningContentShape::NotPresent;
+    };
+    let Some(content) = item.get("content").and_then(serde_json::Value::as_array) else {
+        return SafeReasoningContentShape::MissingContent;
+    };
+    let Some(part) = content.first().and_then(serde_json::Value::as_object) else {
+        return SafeReasoningContentShape::EmptyContent;
+    };
+    if part
+        .get("text")
+        .and_then(serde_json::Value::as_str)
+        .is_none()
+    {
+        return SafeReasoningContentShape::MissingText;
+    }
+    match part.get("type").and_then(serde_json::Value::as_str) {
+        Some("reasoning_text") => SafeReasoningContentShape::ReasoningText,
+        Some("summary_text") => SafeReasoningContentShape::SummaryText,
+        Some("text") => SafeReasoningContentShape::PlainText,
+        _ => SafeReasoningContentShape::OtherOrMissing,
+    }
+}
+
+fn safe_content_encoding(value: Option<&str>) -> SafeContentEncoding {
+    match value.map(str::trim) {
+        None | Some("identity") => SafeContentEncoding::Identity,
+        Some("gzip") => SafeContentEncoding::Gzip,
+        Some(_) => SafeContentEncoding::OtherOrMissing,
     }
 }
 
@@ -940,10 +1464,90 @@ fn safe_body_shape_retains_no_upstream_values() {
 }
 
 #[test]
+fn safe_success_body_shape_retains_no_upstream_values() {
+    assert_eq!(
+        safe_success_body_shape(
+            br#"{"output":[],"private":"never rendered"}"#,
+            SafeContentEncoding::Identity
+        ),
+        SafeSuccessBodyShape::ResponsesObject
+    );
+    assert_eq!(
+        safe_success_body_shape(
+            br#"{"response":{},"private":"never rendered"}"#,
+            SafeContentEncoding::Identity
+        ),
+        SafeSuccessBodyShape::WrappedResponseObject
+    );
+    assert_eq!(
+        safe_success_body_shape(
+            br#"{"error":{"message":"private"}}"#,
+            SafeContentEncoding::Identity
+        ),
+        SafeSuccessBodyShape::ErrorLikeObject
+    );
+    assert_eq!(
+        safe_success_body_shape(
+            br#"{"choices":[],"private":"never rendered"}"#,
+            SafeContentEncoding::Identity
+        ),
+        SafeSuccessBodyShape::ChatChoicesObject
+    );
+    assert_eq!(
+        safe_success_body_shape(
+            br#"{"private":"never rendered"}"#,
+            SafeContentEncoding::Identity
+        ),
+        SafeSuccessBodyShape::OtherObject
+    );
+}
+
+#[test]
+fn safe_responses_decoder_gate_projects_only_fixed_requirement_labels() {
+    assert_eq!(
+        safe_responses_decoder_gate(
+            include_bytes!("../../../tests/fixtures/grok-build/p6-03-non-streaming.json"),
+            SafeContentEncoding::Identity,
+        ),
+        SafeResponsesDecoderGate::CompatibleCoreShape
+    );
+    assert_eq!(
+        safe_responses_decoder_gate(
+            br#"{"id":"private-id","status":"in_progress","output":[]}"#,
+            SafeContentEncoding::Identity,
+        ),
+        SafeResponsesDecoderGate::ResponseNotCompleted
+    );
+    assert_eq!(
+        safe_responses_decoder_gate(
+            br#"{"id":"private-id","status":"completed","output":[{"id":"item-private","status":"completed","type":"unknown-private-kind"}]}"#,
+            SafeContentEncoding::Identity,
+        ),
+        SafeResponsesDecoderGate::OutputItemUnsupportedType
+    );
+}
+
+#[test]
 fn safe_status_class_includes_success_without_rendering_status_values() {
     assert_eq!(safe_status_class(200), "2xx");
     assert_eq!(safe_status_class(429), "4xx");
     assert_eq!(safe_status_class(503), "5xx");
+}
+
+#[test]
+fn safe_sse_observer_tracks_complete_record_at_byte_boundaries() {
+    let record = b"event: response.output_item.added\ndata: {\"item\":{\"id\":\"synthetic-item-01\",\"type\":\"reasoning\"}}\n\n";
+    let mut observer = SafeSseObserver::default();
+
+    for &byte in record {
+        observer.observe_byte(byte);
+    }
+
+    assert_eq!(observer.last(), SafeSseEventCategory::OutputItemAdded);
+    assert_eq!(
+        observer.last_output_item_shape(),
+        SafeSseOutputItemShape::ReasoningValidId
+    );
 }
 
 #[test]

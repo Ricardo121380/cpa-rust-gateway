@@ -4,7 +4,7 @@
 |---|---|
 | Method | Read-only schema/behavior comparison; no source copy, credential export, API key, request body, response text, or server mutation |
 | Reference | Deployed `grok2api` image `ghcr.io/chenyme/grok2api:v3.0.6`; frozen CPA/grok2api/Sub2API behavior references already recorded by P6-03 |
-| Status | `DONE` |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
 
 ## Structural correspondence
 
@@ -24,3 +24,7 @@ A privileged server-local SQLite inspection emitted only the container image, re
 The existing P6-03 isolated server proxy reference remains a separate fact: its single Build-routed OpenAI-compatible Responses generation completed through grok2api. It does not convert the direct official CLI request's earlier `unattributed` 4xx into a direct success. Under the user-approved P6 continuation CR, that uncertainty is retained as a documented operational limitation rather than a reason to omit durable isolation and error safeguards.
 
 No reference implementation source was copied. The differential uses observable structure and the documented behavior above, while this repository's types, migrations, HMAC derivation, AEAD replay, and fail-closed ownership rules are independently implemented.
+
+Reopened review passed: the crate-boundary policy declares the Adapter-to-Router fixture link as a
+test-only edge, and no `include_str!`, path/git dependency, or source import references the
+clean-room projects. This report remains locally passed until the single new P6 Delivery Gate.

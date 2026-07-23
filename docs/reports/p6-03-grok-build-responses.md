@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.25` |
+| Plan version | `v1.37` |
 | Task | `P6-03` |
 | Date | `2026-07-23` |
 | Branch | `codex/p6-grok-build` |
-| Status | `DONE` — `CR-P6-03-013` approved P6 continuation without replaying a direct tuple. T18 remains `4xx / error_like_object / unrecognized` and `unattributed`; T19 is unsent and T1-T18 stay closed. |
-| Scope / budget | `M`; one Provider-private fixed HTTP/decoder boundary and one behavior contract. `CR-P6-03-013` permits the later local P6-04 to P6-08 work only; it does not allow retry, server action, T19, or a direct-success claim. |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` — the former P6 closeout was reopened after C28's true dual-mode lifecycle and executable Provider-to-Router chain were found unproven. T26 non-streaming and T33 SSE now each have Canonical ResponseStart, text, and clean ResponseEnd; P6's remaining reopened evidence is being revalidated before one new Phase Gate. |
+| Scope / budget | `L`; the original Provider-private fixed HTTP/decoder boundary now includes an injectable production execution bridge, strict current-profile compatibility, and finite one-send-per-process live validation. No historical tuple is retried, and no P7 work may begin. |
 | Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, known OAuth source adapters, and a finite one-send-per-process live matrix. Prohibited: direct-tuple replay, route/key/scheduler mutation, socket/proxy/TUN mutation, status remediation, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |
 | References | Matrix `C28`; Behavior 4/5/12; [ADR-0044](../adr/ADR-0044-grok-build-responses-boundary.md); [BC-PROVIDER-003](../contracts/BC-PROVIDER-003-grok-build-responses-boundary.md) |
@@ -438,6 +438,44 @@ source had no unique grok2api name match, so no log was read and no server evide
 correlated to the local direct T18 request. No DNS, HTTP, Provider `send`, OAuth refresh, CLI
 interaction, server/route/account mutation, or proxy/TUN action occurred. The only safe conclusion
 is `unattributed`; T19 remains unsent and P6-03 is `BLOCKED`.
+
+## Reopened C28 remediation and current stop boundary
+
+The former closeout was reopened because the original code had request builders, decoders, and
+state logic but no production `InferenceAdapter`, while its recorded direct validation had not
+produced both required Canonical lifecycles. The remediation adds an injectable Grok Build
+inference adapter, explicit egress/transport injection, and a Router mode bridge. Fixture E2E
+proves non-streaming, arbitrary SSE chunking, classified 429, and Provider-to-Router mode
+selection without any live credential or network input.
+
+The replacement direct validation intentionally uses a current official-CLI authenticated profile
+only in the ignored harness. T20 reached `2xx`/expected JSON but stopped before a Canonical event;
+T22/T23 narrowed the difference to a gzip-decoded Responses object, T24/T25 to a completed
+reasoning item without `content`, and the strict zero-delta compatibility plus synthetic tests led
+to T26's complete non-streaming Canonical lifecycle pass. The conditional SSE path then reached
+`2xx`/expected event-stream at T27 but stopped before acceptance. T28/T29 isolated a standard
+reasoning-summary event, which was mapped strictly with identity validation. T30 still stopped as
+an SSE protocol failure. These entries record only fixed status/content-type/structure categories;
+they retain no credential, header, cache path, request/response body, ID, text, model value, or
+token.
+
+`CR-P6-03-023` registered T31: an independent, direct SSE process with the same fixed
+official-CLI profile and a one-send cap. It returned `2xx` and the expected SSE content type, then
+stopped at `reasoning_summary_text_done` with no output-item mismatch. Its observer and decoder
+progressed byte-by-byte, so this fixed category belongs to the exact failing record. No upstream
+value was retained.
+
+`CR-P6-03-024` adds only the strict terminal confirmation rule demonstrated by T31: a known
+reasoning item must provide a string terminal text that exactly equals accumulated deltas, or, if
+no delta was supplied, produces one Canonical reasoning delta. Matching and mismatch fixtures
+are covered locally. T32 then reached `2xx`/expected SSE and stopped at the next standard
+`content_part_added` boundary, without retaining any upstream value.
+
+`CR-P6-03-025` strictly handles the associated output-text content-part lifecycle, its terminal
+text confirmations, and the adjacent `reasoning.done` confirmation. The synthetic byte-by-byte
+fixture proves a single Canonical TextDelta and clean ResponseEnd; a non-empty content-part start
+is rejected. T33 completed in 2.09 seconds with a pass. It retains no response value and is the
+SSE counterpart to T26's prior non-streaming pass, so C28 is locally satisfied.
 
 ## Timing and next task
 
