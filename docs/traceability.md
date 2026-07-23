@@ -108,6 +108,7 @@
 | P7-02 | Plan 13；Matrix `C39-C40` | [ADR-0047](adr/ADR-0047-kiro-endpoint-policy.md)、[BC-PROVIDER-005](contracts/BC-PROVIDER-005-kiro-endpoint-policy.md) | Strict API Region and fixed IDE/CLI URL, Header, Origin, API-key marker, and Thinking-placement policy | [P7-02 报告](reports/p7-02-kiro-endpoint-policy.md) | LOCAL_PASS_PENDING_PHASE_GATE |
 | P7-03 | Plan 13；Matrix `C43` | [ADR-0048](adr/ADR-0048-kiro-profile-arn-lifecycle.md)、[BC-PROVIDER-006](contracts/BC-PROVIDER-006-kiro-profile-arn-lifecycle.md) | Validated Builder/Enterprise/API-key profile lifecycle, injected lookup/fallback, body injection, and redacted provenance audit | [P7-03 报告](reports/p7-03-kiro-profile-arn.md) | LOCAL_PASS_PENDING_PHASE_GATE |
 | P7-04 | Plan 13；Kiro Conversation Request | [ADR-0049](adr/ADR-0049-kiro-canonical-conversation-request.md)、[BC-PROVIDER-007](contracts/BC-PROVIDER-007-kiro-canonical-conversation-request.md) | Pure selected-model Canonical text conversation conversion, explicit environment context, IDE/CLI origin, and declared Tool envelope | [P7-04 报告](reports/p7-04-kiro-conversation-request.md) | LOCAL_PASS_PENDING_PHASE_GATE |
+| P7-05 | Plan 13；Kiro AWS EventStream | [ADR-0050](adr/ADR-0050-kiro-eventstream-framing.md)、[BC-PROVIDER-008](contracts/BC-PROVIDER-008-kiro-eventstream-framing.md) | Bounded incremental frame/header parsing, CRC validation, chunk-invariant recovery, and terminal corruption limit | [P7-05 报告](reports/p7-05-kiro-eventstream-framing.md) | LOCAL_PASS_PENDING_PHASE_GATE |
 
 ## 后续 Phase 映射
 

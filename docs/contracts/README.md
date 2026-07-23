@@ -79,5 +79,6 @@ P7-01 已建立 [BC-CRED-005 Kiro credential and refresh runtime](BC-CRED-005-ki
 P7-02 已建立 [BC-PROVIDER-005 Kiro IDE/CLI endpoint policy](BC-PROVIDER-005-kiro-endpoint-policy.md)。
 P7-03 已建立 [BC-PROVIDER-006 Kiro profile ARN lifecycle](BC-PROVIDER-006-kiro-profile-arn-lifecycle.md)。
 P7-04 已建立 [BC-PROVIDER-007 Kiro Canonical conversation request conversion](BC-PROVIDER-007-kiro-canonical-conversation-request.md)。
+P7-05 已建立 [BC-PROVIDER-008 Kiro AWS EventStream framing](BC-PROVIDER-008-kiro-eventstream-framing.md)。
 P6-04 至 P6-07 已建立 [BC-PROVIDER-004 Grok Build runtime state and continuity boundary](BC-PROVIDER-004-grok-build-runtime-continuity.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。

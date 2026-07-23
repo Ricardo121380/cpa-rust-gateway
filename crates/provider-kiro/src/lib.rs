@@ -8,6 +8,9 @@ pub mod credential;
 /// Pure Canonical-request conversion to the Kiro conversation envelope.
 pub mod conversation_request;
 
+/// Bounded incremental AWS EventStream framing and checksum validation.
+pub mod event_stream;
+
 /// Fixed Kiro IDE/CLI host, header, origin, and thinking-placement policy.
 pub mod endpoint_policy;
 
