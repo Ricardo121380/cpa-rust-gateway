@@ -346,6 +346,8 @@ pub struct ConfigVersion {
     pub parent_id: Option<ConfigVersionId>,
     /// Persisted configuration state; P2-05 does not publish it.
     pub status: ConfigVersionStatus,
+    /// Monotonic draft-graph revision used for fail-closed management writes.
+    pub revision: i64,
     /// Creation timestamp in Unix milliseconds.
     pub created_at_ms: i64,
     /// Non-secret operator description.
@@ -804,6 +806,141 @@ pub struct ManagementAuditEvent {
     replaced_config_version_id: Option<ConfigVersionId>,
 }
 
+/// Bounded, non-secret identity metadata for one versioned resource mutation.
+///
+/// This audit stream is separate from the P2 Config Version lifecycle stream so a later audit
+/// page can distinguish a graph publication from a protected draft-resource edit.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementResourceAuditEventDraft {
+    action: String,
+    actor: String,
+    occurred_at_ms: i64,
+    resource_kind: String,
+    resource_id: String,
+}
+
+/// One durable append-only record of a protected resource mutation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementResourceAuditEvent {
+    id: i64,
+    action: String,
+    actor: String,
+    occurred_at_ms: i64,
+    config_version_id: ConfigVersionId,
+    resource_kind: String,
+    resource_id: String,
+}
+
+impl ManagementResourceAuditEvent {
+    /// Returns the monotonic durable event identifier.
+    #[must_use]
+    pub const fn id(&self) -> i64 {
+        self.id
+    }
+
+    /// Returns the bounded mutation operation label.
+    #[must_use]
+    pub fn action(&self) -> &str {
+        &self.action
+    }
+
+    /// Returns the protected request actor identity.
+    #[must_use]
+    pub fn actor(&self) -> &str {
+        &self.actor
+    }
+
+    /// Returns the event time in Unix milliseconds.
+    #[must_use]
+    pub const fn occurred_at_ms(&self) -> i64 {
+        self.occurred_at_ms
+    }
+
+    /// Returns the Version whose draft graph changed.
+    #[must_use]
+    pub fn config_version_id(&self) -> &ConfigVersionId {
+        &self.config_version_id
+    }
+
+    /// Returns the audited resource category.
+    #[must_use]
+    pub fn resource_kind(&self) -> &str {
+        &self.resource_kind
+    }
+
+    /// Returns the opaque audited resource ID.
+    #[must_use]
+    pub fn resource_id(&self) -> &str {
+        &self.resource_id
+    }
+}
+
+impl ManagementResourceAuditEventDraft {
+    /// Creates bounded resource mutation audit metadata without accepting any Secret or payload.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidManagementAuditEvent`] when a supplied field is empty,
+    /// oversized, or the timestamp is negative.
+    pub fn try_new(
+        action: impl Into<String>,
+        actor: impl Into<String>,
+        occurred_at_ms: i64,
+        resource_kind: impl Into<String>,
+        resource_id: impl Into<String>,
+    ) -> StoreResult<Self> {
+        let action = action.into();
+        let actor = actor.into();
+        let resource_kind = resource_kind.into();
+        let resource_id = resource_id.into();
+        if !bounded_non_empty(&action, 64)
+            || !bounded_non_empty(&actor, 128)
+            || occurred_at_ms < 0
+            || !bounded_non_empty(&resource_kind, 64)
+            || !bounded_non_empty(&resource_id, 128)
+        {
+            return Err(StoreError::InvalidManagementAuditEvent);
+        }
+        Ok(Self {
+            action,
+            actor,
+            occurred_at_ms,
+            resource_kind,
+            resource_id,
+        })
+    }
+
+    /// Returns the bounded non-secret operation label.
+    #[must_use]
+    pub fn action(&self) -> &str {
+        &self.action
+    }
+
+    /// Returns the request-principal actor label.
+    #[must_use]
+    pub fn actor(&self) -> &str {
+        &self.actor
+    }
+
+    /// Returns the associated timestamp.
+    #[must_use]
+    pub const fn occurred_at_ms(&self) -> i64 {
+        self.occurred_at_ms
+    }
+
+    /// Returns the audited resource category.
+    #[must_use]
+    pub fn resource_kind(&self) -> &str {
+        &self.resource_kind
+    }
+
+    /// Returns the audited opaque resource identifier.
+    #[must_use]
+    pub fn resource_id(&self) -> &str {
+        &self.resource_id
+    }
+}
+
 impl ManagementAuditEvent {
     fn from_draft(
         id: i64,
@@ -1040,6 +1177,21 @@ impl SqliteControlPlaneRepository {
         Ok(audit_events)
     }
 
+    /// Returns resource mutation audit events in durable append order.
+    ///
+    /// # Errors
+    ///
+    /// Returns a fail-closed [`StoreError`] if an audit row is malformed or `SQLite` cannot read
+    /// the append-only event sequence.
+    pub fn list_management_resource_audit_events(
+        &mut self,
+    ) -> StoreResult<Vec<ManagementResourceAuditEvent>> {
+        let transaction = self.connection.transaction()?;
+        let audit_events = load_management_resource_audit_events(&transaction)?;
+        transaction.commit()?;
+        Ok(audit_events)
+    }
+
     /// Loads the durable predecessor recorded for the active Config Version, if one exists.
     ///
     /// This reconstructs the one-step rollback slot after a process restart from the latest
@@ -1120,6 +1272,63 @@ impl SqliteControlPlaneRepository {
         transaction.commit()?;
         Ok((activation, audit_event))
     }
+
+    /// Runs one draft-only graph mutation with an exact expected revision.
+    ///
+    /// The revision compare-and-increment and every callback write share one immediate `SQLite`
+    /// transaction. A stale caller cannot leave a partial graph mutation behind.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::ConfigVersionRevisionConflict`] when the Version is still a draft
+    /// but its stored revision differs from `expected_revision`; the rejected token is never
+    /// included in the error.
+    pub fn mutate_draft_configuration<T, F>(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        expected_revision: i64,
+        mutate: F,
+    ) -> StoreResult<(T, i64)>
+    where
+        F: FnOnce(&mut ControlPlaneTransaction<'_>) -> StoreResult<T>,
+    {
+        let mut transaction = self.begin_transaction()?;
+        let next_revision =
+            transaction.require_and_bump_draft_revision(config_version_id, expected_revision)?;
+        let result = mutate(&mut transaction)?;
+        transaction.commit()?;
+        Ok((result, next_revision))
+    }
+
+    /// Appends a resource audit event without changing a graph row.
+    ///
+    /// OAuth operation state is deliberately outside the immutable configuration graph, so its
+    /// cancellation can be auditable without pretending it is a draft resource edit.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the Config Version does not exist, the event is invalid, or
+    /// the append-only write cannot commit.
+    pub fn record_management_resource_audit_event(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        audit_draft: &ManagementResourceAuditEventDraft,
+    ) -> StoreResult<()> {
+        let mut transaction = self.begin_transaction()?;
+        let exists: Option<i64> = transaction
+            .transaction
+            .query_row(
+                "SELECT 1 FROM config_versions WHERE id = ?1",
+                [config_version_id.as_str()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if exists.is_none() {
+            return Err(StoreError::ConfigVersionNotFound);
+        }
+        transaction.record_management_resource_audit_event(audit_draft, config_version_id)?;
+        transaction.commit()
+    }
 }
 
 impl fmt::Debug for SqliteControlPlaneRepository {
@@ -1134,6 +1343,51 @@ pub struct ControlPlaneTransaction<'connection> {
 }
 
 impl ControlPlaneTransaction<'_> {
+    /// Verifies a draft graph's exact revision and advances it once for the current transaction.
+    ///
+    /// The method is public only so management-time services can compose one bounded resource
+    /// mutation with this transaction. It does not expose the raw `SQLite` transaction.
+    ///
+    /// # Errors
+    ///
+    /// Returns a typed not-found, non-draft, or revision-conflict error without mutating rows.
+    pub fn require_and_bump_draft_revision(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        expected_revision: i64,
+    ) -> StoreResult<i64> {
+        if expected_revision < 0 {
+            return Err(StoreError::ConfigVersionRevisionConflict);
+        }
+
+        let updated = self.transaction.execute(
+            "UPDATE config_versions SET revision = revision + 1 \
+             WHERE id = ?1 AND status = ?2 AND revision = ?3",
+            params![
+                config_version_id.as_str(),
+                ConfigVersionStatus::Draft.as_sql(),
+                expected_revision,
+            ],
+        )?;
+        if updated == 1 {
+            return Ok(expected_revision + 1);
+        }
+
+        let status: Option<String> = self
+            .transaction
+            .query_row(
+                "SELECT status FROM config_versions WHERE id = ?1",
+                [config_version_id.as_str()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        match status.as_deref() {
+            None => Err(StoreError::ConfigVersionNotFound),
+            Some("draft") => Err(StoreError::ConfigVersionRevisionConflict),
+            Some("active" | "archived") => Err(StoreError::ControlPlaneMutationRequiresDraft),
+            Some(_) => Err(malformed("config_versions")),
+        }
+    }
     /// Inserts every row from `configuration` in foreign-key order.
     ///
     /// The call does not publish or semantically validate the graph. A later error leaves the
@@ -1221,6 +1475,209 @@ impl ControlPlaneTransaction<'_> {
             ],
         )?;
         Ok(())
+    }
+
+    /// Replaces one existing Egress Policy's non-identity fields.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not draft, the policy is absent, or the update
+    /// cannot commit.
+    pub fn update_egress_policy(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        egress_policy: &EgressPolicyConfiguration,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let updated = self.transaction.execute(
+            "UPDATE egress_policies SET name = ?3, allowed_schemes_json = ?4, \
+             allowed_hosts_json = ?5, allowed_ports_json = ?6, allowed_cidrs_json = ?7, \
+             redirect_mode = ?8, max_redirects = ?9 \
+             WHERE config_version_id = ?1 AND id = ?2",
+            params![
+                config_version_id.as_str(),
+                egress_policy.id.as_str(),
+                &egress_policy.name,
+                &egress_policy.allowed_schemes_json,
+                &egress_policy.allowed_hosts_json,
+                &egress_policy.allowed_ports_json,
+                &egress_policy.allowed_cidrs_json,
+                egress_policy.redirect_mode.as_sql(),
+                egress_policy.max_redirects,
+            ],
+        )?;
+        resource_updated(updated)
+    }
+
+    /// Deletes one Egress Policy. The existing schema explicitly clears dependent Upstream
+    /// policy references before the delete, preserving a structurally valid draft graph.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not draft, the policy is absent, or the delete
+    /// cannot commit.
+    pub fn delete_egress_policy(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        egress_policy_id: &EgressPolicyId,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let deleted = self.transaction.execute(
+            "DELETE FROM egress_policies WHERE config_version_id = ?1 AND id = ?2",
+            params![config_version_id.as_str(), egress_policy_id.as_str()],
+        )?;
+        resource_updated(deleted)
+    }
+
+    /// Replaces one existing Upstream's non-identity fields.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not draft, the Upstream is absent, or the update
+    /// cannot commit.
+    pub fn update_upstream(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        upstream: &UpstreamConfiguration,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let updated = self.transaction.execute(
+            "UPDATE upstreams SET name = ?3, kind = ?4, enabled = ?5, tags_json = ?6, \
+             egress_policy_id = ?7 WHERE config_version_id = ?1 AND id = ?2",
+            params![
+                config_version_id.as_str(),
+                upstream.id.as_str(),
+                &upstream.name,
+                &upstream.kind,
+                boolean_to_sql(upstream.enabled),
+                &upstream.tags_json,
+                upstream
+                    .egress_policy_id
+                    .as_ref()
+                    .map(EgressPolicyId::as_str),
+            ],
+        )?;
+        resource_updated(updated)
+    }
+
+    /// Deletes one Upstream and the schema-owned Endpoint/Credential/Binding descendants.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not draft, the Upstream is absent, or the delete
+    /// cannot commit.
+    pub fn delete_upstream(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        upstream_id: &UpstreamId,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let deleted = self.transaction.execute(
+            "DELETE FROM upstreams WHERE config_version_id = ?1 AND id = ?2",
+            params![config_version_id.as_str(), upstream_id.as_str()],
+        )?;
+        resource_updated(deleted)
+    }
+
+    /// Replaces one existing Endpoint's non-identity fields without moving it to another
+    /// Upstream. The caller must preserve the stored owning Upstream identity.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not draft, the Endpoint is absent, or the update
+    /// cannot commit.
+    pub fn update_endpoint(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        endpoint: &EndpointConfiguration,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let updated = self.transaction.execute(
+            "UPDATE upstream_endpoints SET adapter_id = ?3, api_format = ?4, base_url = ?5, \
+             inference_path = ?6, models_path = ?7, transport = ?8, enabled = ?9 \
+             WHERE config_version_id = ?1 AND id = ?2 AND upstream_id = ?10",
+            params![
+                config_version_id.as_str(),
+                endpoint.id.as_str(),
+                &endpoint.adapter_id,
+                &endpoint.api_format,
+                &endpoint.base_url,
+                &endpoint.inference_path,
+                &endpoint.models_path,
+                endpoint.transport.as_sql(),
+                boolean_to_sql(endpoint.enabled),
+                endpoint.upstream_id.as_str(),
+            ],
+        )?;
+        resource_updated(updated)
+    }
+
+    /// Deletes one Endpoint and schema-owned Bindings and Route Candidates.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not draft, the Endpoint is absent, or the delete
+    /// cannot commit.
+    pub fn delete_endpoint(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        endpoint_id: &EndpointId,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let deleted = self.transaction.execute(
+            "DELETE FROM upstream_endpoints WHERE config_version_id = ?1 AND id = ?2",
+            params![config_version_id.as_str(), endpoint_id.as_str()],
+        )?;
+        resource_updated(deleted)
+    }
+
+    /// Replaces one existing opaque Credential without exposing plaintext to the Repository.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not draft, the Credential is absent, or the
+    /// update cannot commit.
+    pub fn update_credential(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        credential: &CredentialConfiguration,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let updated = self.transaction.execute(
+            "UPDATE upstream_credentials SET kind = ?3, ciphertext = ?4, key_version = ?5, \
+             status = ?6, revision = ?7 WHERE config_version_id = ?1 AND id = ?2 \
+             AND upstream_id = ?8",
+            params![
+                config_version_id.as_str(),
+                credential.id.as_str(),
+                &credential.kind,
+                credential.encrypted_secret.ciphertext(),
+                credential.encrypted_secret.key_version().as_sqlite_i64(),
+                credential.status.as_sql(),
+                credential.revision,
+                credential.upstream_id.as_str(),
+            ],
+        )?;
+        resource_updated(updated)
+    }
+
+    /// Deletes one Credential and its schema-owned Endpoint Bindings.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the Version is not draft, the Credential is absent, or the
+    /// delete cannot commit.
+    pub fn delete_credential(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        credential_id: &CredentialId,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let deleted = self.transaction.execute(
+            "DELETE FROM upstream_credentials WHERE config_version_id = ?1 AND id = ?2",
+            params![config_version_id.as_str(), credential_id.as_str()],
+        )?;
+        resource_updated(deleted)
     }
 
     /// Inserts one storage-safe Client Key record into an existing Config Version.
@@ -1351,6 +1808,36 @@ impl ControlPlaneTransaction<'_> {
         )
     }
 
+    /// Appends one non-secret resource-mutation audit record inside the caller's transaction.
+    ///
+    /// The row contains only the bounded action, protected request actor, Version, resource kind
+    /// and opaque resource ID. It cannot carry a request body, credential plaintext, ciphertext,
+    /// Header, or response value.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the bounded audit event cannot be appended to this transaction.
+    pub fn record_management_resource_audit_event(
+        &mut self,
+        audit_draft: &ManagementResourceAuditEventDraft,
+        config_version_id: &ConfigVersionId,
+    ) -> StoreResult<()> {
+        self.transaction.execute(
+            "INSERT INTO management_resource_audit_events (\
+                action, actor, occurred_at_ms, config_version_id, resource_kind, resource_id\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                audit_draft.action(),
+                audit_draft.actor(),
+                audit_draft.occurred_at_ms(),
+                config_version_id.as_str(),
+                audit_draft.resource_kind(),
+                audit_draft.resource_id(),
+            ],
+        )?;
+        Ok(())
+    }
+
     /// Commits every prior write in this transaction.
     ///
     /// # Errors
@@ -1363,12 +1850,13 @@ impl ControlPlaneTransaction<'_> {
 
     fn insert_config_version(&mut self, version: &ConfigVersion) -> StoreResult<()> {
         self.transaction.execute(
-            "INSERT INTO config_versions (id, parent_id, status, created_at_ms, description) \
-             VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO config_versions (id, parent_id, status, revision, created_at_ms, description) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             params![
                 version.id.as_str(),
                 version.parent_id.as_ref().map(ConfigVersionId::as_str),
                 version.status.as_sql(),
+                version.revision,
                 version.created_at_ms,
                 &version.description,
             ],
@@ -1391,7 +1879,12 @@ impl ControlPlaneTransaction<'_> {
         }
     }
 
-    fn insert_upstream(
+    /// Inserts one Upstream into a Version that was admitted for the current transaction.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if an owning reference or a database constraint rejects the row.
+    pub fn insert_upstream(
         &mut self,
         config_version_id: &ConfigVersionId,
         upstream: &UpstreamConfiguration,
@@ -1416,7 +1909,12 @@ impl ControlPlaneTransaction<'_> {
         Ok(())
     }
 
-    fn insert_egress_policy(
+    /// Inserts one Egress Policy into a Version that was admitted for the current transaction.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if a database constraint rejects the row.
+    pub fn insert_egress_policy(
         &mut self,
         config_version_id: &ConfigVersionId,
         egress_policy: &EgressPolicyConfiguration,
@@ -1441,7 +1939,13 @@ impl ControlPlaneTransaction<'_> {
         Ok(())
     }
 
-    fn insert_endpoint(
+    /// Inserts one Endpoint into a Version that was admitted for the current transaction.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if the owning Upstream reference or a database constraint rejects
+    /// the row.
+    pub fn insert_endpoint(
         &mut self,
         config_version_id: &ConfigVersionId,
         endpoint: &EndpointConfiguration,
@@ -1467,7 +1971,13 @@ impl ControlPlaneTransaction<'_> {
         Ok(())
     }
 
-    fn insert_endpoint_credential_binding(
+    /// Inserts one Endpoint Credential binding into an admitted Version transaction.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] if an Endpoint/Credential/Upstream reference or a database
+    /// constraint rejects the row.
+    pub fn insert_endpoint_credential_binding(
         &mut self,
         config_version_id: &ConfigVersionId,
         binding: &EndpointCredentialBindingConfiguration,
@@ -1618,6 +2128,18 @@ fn boolean_to_sql(value: bool) -> i64 {
     i64::from(value)
 }
 
+fn resource_updated(affected_rows: usize) -> StoreResult<()> {
+    if affected_rows == 1 {
+        Ok(())
+    } else {
+        Err(StoreError::ControlPlaneResourceNotFound)
+    }
+}
+
+fn bounded_non_empty(value: &str, maximum_characters: usize) -> bool {
+    !value.trim().is_empty() && value.chars().count() <= maximum_characters
+}
+
 fn load_configuration(
     transaction: &Transaction<'_>,
     config_version_id: &ConfigVersionId,
@@ -1681,6 +2203,50 @@ fn load_management_audit_events(
     Ok(audit_events)
 }
 
+fn load_management_resource_audit_events(
+    transaction: &Transaction<'_>,
+) -> StoreResult<Vec<ManagementResourceAuditEvent>> {
+    let mut statement = transaction.prepare(
+        "SELECT id, action, actor, occurred_at_ms, config_version_id, resource_kind, resource_id \
+         FROM management_resource_audit_events ORDER BY id",
+    )?;
+    let mut rows = statement.query([])?;
+    let mut audit_events = Vec::new();
+    while let Some(row) = rows.next()? {
+        let id: i64 = row.get(0)?;
+        let action: String = row.get(1)?;
+        let actor: String = row.get(2)?;
+        let occurred_at_ms: i64 = row.get(3)?;
+        let config_version_id = read_identifier(
+            row,
+            4,
+            ConfigVersionId::try_new,
+            "management_resource_audit_events",
+        )?;
+        let resource_kind: String = row.get(5)?;
+        let resource_id: String = row.get(6)?;
+        if id <= 0
+            || occurred_at_ms < 0
+            || !bounded_non_empty(&action, 64)
+            || !bounded_non_empty(&actor, 128)
+            || !bounded_non_empty(&resource_kind, 64)
+            || !bounded_non_empty(&resource_id, 128)
+        {
+            return Err(malformed("management_resource_audit_events"));
+        }
+        audit_events.push(ManagementResourceAuditEvent {
+            id,
+            action,
+            actor,
+            occurred_at_ms,
+            config_version_id,
+            resource_kind,
+            resource_id,
+        });
+    }
+    Ok(audit_events)
+}
+
 fn latest_rollback_predecessor_id(
     transaction: &Transaction<'_>,
     active_config_version_id: &ConfigVersionId,
@@ -1707,7 +2273,7 @@ fn load_config_version(
     config_version_id: &ConfigVersionId,
 ) -> StoreResult<Option<ConfigVersion>> {
     let mut statement = transaction.prepare(
-        "SELECT id, parent_id, status, created_at_ms, description \
+        "SELECT id, parent_id, status, revision, created_at_ms, description \
          FROM config_versions WHERE id = ?1",
     )?;
     let mut rows = statement.query([config_version_id.as_str()])?;
@@ -1720,15 +2286,20 @@ fn load_config_version(
     let status_value: String = row.get(2)?;
     let status =
         ConfigVersionStatus::from_sql(&status_value).ok_or_else(|| malformed("config_versions"))?;
-    let created_at_ms: i64 = row.get(3)?;
+    let revision: i64 = row.get(3)?;
+    if revision < 0 {
+        return Err(malformed("config_versions"));
+    }
+    let created_at_ms: i64 = row.get(4)?;
     if created_at_ms < 0 {
         return Err(malformed("config_versions"));
     }
-    let description: String = row.get(4)?;
+    let description: String = row.get(5)?;
     Ok(Some(ConfigVersion {
         id,
         parent_id,
         status,
+        revision,
         created_at_ms,
         description,
     }))
@@ -2150,6 +2721,7 @@ mod tests {
             id: version_id.clone(),
             parent_id: None,
             status: ConfigVersionStatus::Draft,
+            revision: 0,
             created_at_ms: 1,
             description: "test graph".to_owned(),
         });
@@ -2224,6 +2796,7 @@ mod tests {
             id: version_id.clone(),
             parent_id: None,
             status: ConfigVersionStatus::Draft,
+            revision: 0,
             created_at_ms: 1,
             description: "test graph".to_owned(),
         });
@@ -2262,6 +2835,7 @@ mod tests {
             id: version_id.clone(),
             parent_id: None,
             status: ConfigVersionStatus::Active,
+            revision: 0,
             created_at_ms: 1,
             description: "must not publish from P2-05".to_owned(),
         });
@@ -2500,6 +3074,7 @@ mod tests {
             id,
             parent_id,
             status: ConfigVersionStatus::Draft,
+            revision: 0,
             created_at_ms: 1,
             description: "P2-07 activation fixture".to_owned(),
         })

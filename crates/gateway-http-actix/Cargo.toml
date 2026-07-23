@@ -23,6 +23,8 @@ subtle.workspace = true
 tokio.workspace = true
 url.workspace = true
 zeroize.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 
 [dev-dependencies]
 gateway-upstream = { path = "../gateway-upstream" }

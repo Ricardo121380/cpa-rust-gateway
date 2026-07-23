@@ -1294,7 +1294,7 @@ export class ManagementApi {
   constructor(options: ManagementClientOptions) {
     this.#managementKey = options.managementKey;
     this.#csrfToken = options.csrfToken;
-    this.#fetch = options.fetch ?? fetch;
+    this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
   }
 
   async request(

@@ -216,6 +216,7 @@ impl ManagementService {
             id: config_version_id,
             parent_id,
             status: ConfigVersionStatus::Draft,
+            revision: 0,
             created_at_ms: occurred_at_ms,
             description,
         });

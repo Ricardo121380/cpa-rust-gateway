@@ -1792,6 +1792,7 @@ mod tests {
             id: version_id,
             parent_id: None,
             status: ConfigVersionStatus::Draft,
+            revision: 0,
             created_at_ms: 1,
             description: "compiler fixture".to_owned(),
         });

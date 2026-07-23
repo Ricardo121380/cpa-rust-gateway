@@ -131,6 +131,137 @@ h1 {
   margin-top: 0.9rem;
 }
 
+.sidebar-note {
+  color: #8092b4;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  margin-top: 1.6rem;
+}
+
+.navigation a[aria-disabled="true"] {
+  color: #71809e;
+  cursor: not-allowed;
+}
+
+.panel {
+  border: 1px solid #344665;
+  border-radius: 0.75rem;
+  background: rgb(20 30 48 / 82%);
+  padding: clamp(1rem, 2vw, 1.35rem);
+}
+
+.panel-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.panel-heading h2 {
+  font-size: 1.2rem;
+  margin: 0.35rem 0 0;
+}
+
+.panel-heading .status {
+  margin: 0.35rem 0 0;
+  white-space: nowrap;
+}
+
+.form-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-grid label {
+  color: #cbd7ed;
+  display: grid;
+  font-size: 0.85rem;
+  font-weight: 650;
+  gap: 0.4rem;
+}
+
+.form-grid input,
+.form-grid select,
+.form-grid textarea {
+  background: #0d1421;
+  border: 1px solid #445878;
+  border-radius: 0.45rem;
+  color: #f1f5ff;
+  font: inherit;
+  min-width: 0;
+  padding: 0.6rem 0.65rem;
+}
+
+.form-grid textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.form-grid input:focus,
+.form-grid select:focus,
+.form-grid textarea:focus {
+  border-color: #7ba8f6;
+  box-shadow: 0 0 0 0.18rem rgb(88 144 238 / 22%);
+  outline: 0;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.form-actions {
+  align-items: end;
+  display: flex;
+}
+
+button {
+  background: #3868ae;
+  border: 1px solid #6d9fea;
+  border-radius: 0.45rem;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.62rem 0.85rem;
+}
+
+button:hover {
+  background: #467bc9;
+}
+
+.muted {
+  color: #aab9d3;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  margin: 1rem 0 0;
+}
+
+.workflow-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.workflow-grid .form-grid {
+  grid-template-columns: 1fr;
+}
+
+.result {
+  background: #0b111d;
+  border: 1px solid #344665;
+  border-radius: 0.45rem;
+  color: #dce8fc;
+  margin: 0;
+  min-height: 5rem;
+  overflow: auto;
+  padding: 0.85rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 @media (max-width: 42rem) {
   .shell {
     grid-template-columns: 1fr;
@@ -144,5 +275,14 @@ h1 {
 
   .navigation {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .form-grid,
+  .workflow-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-heading {
+    display: block;
   }
 }

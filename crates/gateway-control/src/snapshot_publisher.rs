@@ -889,6 +889,7 @@ mod tests {
             id: version_id,
             parent_id: None,
             status: ConfigVersionStatus::Draft,
+            revision: 0,
             created_at_ms: 1,
             description: "P2-07 publication fixture".to_owned(),
         });

@@ -7,8 +7,8 @@
 | 计划版本 | `v1.44` |
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P6` 与 P9 已完成；P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。P10-01 至 P10-03 已在 `codex/p10-control-plane` 分支完成本地合同、准入边界、静态 SPA/生成客户端、review 和 Full gate；P9 的 `phase-p9-complete` Delivery Gate 已通过 GitHub Fast、Full supply-chain 与 Required。 |
-| 当前任务 | P10-04：通过既有受保护管理 Scope 实现 Upstream/Endpoint/Credential 管理与测试工作流，并为每个已冻结 OpenAPI 操作提供浏览器 E2E；不得提前实现路由图、运行时、发布/回滚或备份恢复。 |
+| 当前阶段 | `P1` 至 `P6` 与 P9 已完成；P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。P10-01 至 P10-04 已在 `codex/p10-control-plane` 分支完成本地合同、准入边界、静态 SPA/生成客户端、受保护资源工作流、review 和 Full gate；P9 的 `phase-p9-complete` Delivery Gate 已通过 GitHub Fast、Full supply-chain 与 Required。 |
+| 当前任务 | P10-04 已完成本地验收并处于 `LOCAL_PASS_PENDING_PHASE_GATE`；P10-05 仍为 `PENDING`，不得提前实现 P10-06 的运行时状态、P10-07 的发布/回滚或 P10-08 的备份恢复。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1650,7 +1650,7 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 | P10-01 | 完整管理 OpenAPI：Upstream、Endpoint、Credential、Catalog、Route、Group、Key | G9 | OpenAPI Contract Test、独立 review 与本地 Full gate passed；P10 的唯一 Delivery Gate 仍须等待 G10 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P10-02 | 实现管理鉴权、仅本机/私网策略、审计和 CSRF/CORS 边界 | P10-01 | 未授权和跨站测试、独立 review 与本地 Full gate passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P10-03 | 建立 TypeScript SPA、生成 API Client 和静态资源构建 | P10-01,P10-02 | 65-operation generated client、可重复前端构建、独立 review 与本地 Full gate passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P10-04 | 实现 Upstream/Endpoint/Credential 管理与测试工作流 | P10-03 | 浏览器 E2E | IN_PROGRESS |
+| P10-04 | 实现 Upstream/Endpoint/Credential 管理与测试工作流 | P10-03 | 浏览器 E2E、独立 review 与本地 Full gate passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P10-05 | 实现 PublicModel/Route/Candidate/AccessGroup/ClientKey 工作流 | P10-03 | 创建 `minimax-m3` E2E | PENDING |
 | P10-06 | 实现 Catalog Diff、Health、Quota、403、Route Explain 和请求追踪页面 | P10-03,P4-06 | 浏览器 E2E | PENDING |
 | P10-07 | 实现 Config Version、发布、回滚和操作审计页面 | P10-03,P2-10 | 发布失败/回滚 E2E | PENDING |

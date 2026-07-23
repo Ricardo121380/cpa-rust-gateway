@@ -2,6 +2,7 @@
   "name": "cpa-rust-gateway-admin-ui",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Static management SPA build boundary for CPA Rust Gateway.",
   "scripts": {
     "generate": "node ../../scripts/generate-management-client.mjs",

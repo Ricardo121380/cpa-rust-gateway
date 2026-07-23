@@ -6,7 +6,9 @@ mode="${1:---all}"
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
-secret_regex="(?i)(authorization:\\s*bearer\\s+[A-Za-z0-9._~+/=-]{16,}|(api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|management[_-]?key)\\s*[:=]\\s*['\"]?[A-Za-z0-9._~+/=-]{16,}|-----BEGIN[[:space:]][A-Z0-9[:space:]]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|sk-[A-Za-z0-9_-]{16,}|ksk_[A-Za-z0-9_-]{16,})"
+# A field assigned from a named in-process configuration object is a reference, not a literal.
+# Keep scanning literal/dynamic-looking values, but do not mistake `options.managementKey` for one.
+secret_regex="(?i)(authorization:\\s*bearer\\s+[A-Za-z0-9._~+/=-]{16,}|(api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|management[_-]?key)\\s*[:=]\\s*['\"]?(?!(?:options|config|process\\.env|env)\\.)[A-Za-z0-9._~+/=-]{16,}|-----BEGIN[[:space:]][A-Z0-9[:space:]]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|sk-[A-Za-z0-9_-]{16,}|ksk_[A-Za-z0-9_-]{16,})"
 
 is_forbidden_path() {
   local path="$1"

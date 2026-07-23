@@ -22,9 +22,11 @@ const MANAGEMENT_AUDIT_SCHEMA_VERSION: i64 = 4;
 const GATEWAY_EVENT_LOG_SCHEMA_VERSION: i64 = 5;
 const GROK_BUILD_CREDENTIAL_RUNTIME_SCHEMA_VERSION: i64 = 6;
 const GROK_BUILD_RUNTIME_STATE_SCHEMA_VERSION: i64 = 7;
+const CONFIG_VERSION_REVISION_SCHEMA_VERSION: i64 = 8;
+const MANAGEMENT_RESOURCE_AUDIT_SCHEMA_VERSION: i64 = 9;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = GROK_BUILD_RUNTIME_STATE_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = MANAGEMENT_RESOURCE_AUDIT_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -69,6 +71,16 @@ const MIGRATIONS: &[Migration] = &[
         up: include_str!("../migrations/0007_grok_build_runtime_state.up.sql"),
         down: include_str!("../migrations/0007_grok_build_runtime_state.down.sql"),
     },
+    Migration {
+        version: CONFIG_VERSION_REVISION_SCHEMA_VERSION,
+        up: include_str!("../migrations/0008_config_version_revision.up.sql"),
+        down: include_str!("../migrations/0008_config_version_revision.down.sql"),
+    },
+    Migration {
+        version: MANAGEMENT_RESOURCE_AUDIT_SCHEMA_VERSION,
+        up: include_str!("../migrations/0009_management_resource_audit.up.sql"),
+        down: include_str!("../migrations/0009_management_resource_audit.down.sql"),
+    },
 ];
 
 struct Migration {
@@ -109,6 +121,10 @@ pub enum StoreError {
     ConfigVersionNotFound,
     /// A requested Config Version is already the sole active Version.
     ConfigVersionAlreadyActive,
+    /// A management write supplied a stale opaque Config Version revision.
+    ConfigVersionRevisionConflict,
+    /// A Version-scoped management resource did not exist for a requested mutation.
+    ControlPlaneResourceNotFound,
     /// A management audit event did not match its bounded transaction context.
     ///
     /// Event values are deliberately not included because caller-provided actor labels must not
@@ -157,6 +173,12 @@ impl fmt::Display for StoreError {
             Self::ConfigVersionAlreadyActive => {
                 formatter.write_str("requested Config Version is already active")
             }
+            Self::ConfigVersionRevisionConflict => {
+                formatter.write_str("management Config Version revision does not match")
+            }
+            Self::ControlPlaneResourceNotFound => {
+                formatter.write_str("requested control-plane resource does not exist")
+            }
             Self::InvalidManagementAuditEvent => {
                 formatter.write_str("management audit event is invalid for this operation")
             }
@@ -187,6 +209,8 @@ impl Error for StoreError {
             | Self::ControlPlaneMutationRequiresDraft
             | Self::ConfigVersionNotFound
             | Self::ConfigVersionAlreadyActive
+            | Self::ConfigVersionRevisionConflict
+            | Self::ControlPlaneResourceNotFound
             | Self::InvalidManagementAuditEvent
             | Self::InvalidPersistedGatewayEvent
             | Self::ConflictingGatewayEventReplay
@@ -395,6 +419,7 @@ mod tests {
                 "grok_build_reasoning_replay",
                 "grok_build_response_ownership",
                 "management_audit_events",
+                "management_resource_audit_events",
                 "model_aliases",
                 "model_routes",
                 "public_models",

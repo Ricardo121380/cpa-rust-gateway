@@ -6,6 +6,8 @@
 
 #![deny(unsafe_code)]
 
+/// Protected P10 draft-resource handlers for Upstreams, Endpoints, Credentials, and Egress.
+pub mod management_resources;
 /// Independent management HTTP authentication, network, audit-identity, and browser boundary.
 pub mod management_security;
 
@@ -321,7 +323,8 @@ pub fn configure(config: &mut web::ServiceConfig) {
         .route("/v1/models", web::get().to(models))
         .route("/v1/responses", web::post().to(responses))
         .route("/v1/messages", web::post().to(messages))
-        .route("/v1/messages/count_tokens", web::post().to(count_tokens));
+        .route("/v1/messages/count_tokens", web::post().to(count_tokens))
+        .configure(management_resources::configure_management_resources);
 }
 
 async fn base_url_probe() -> HttpResponse {

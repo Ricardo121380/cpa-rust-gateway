@@ -102,6 +102,7 @@ fn full_configuration(
         id: version_id.clone(),
         parent_id: None,
         status: ConfigVersionStatus::Draft,
+        revision: 0,
         created_at_ms: 1,
         description: format!("repository fixture for {public_model_name}"),
     });
@@ -176,6 +177,14 @@ fn full_configuration(
             weight: 100,
             capability_override_json: "{}".to_owned(),
         });
+    add_access_graph(&mut configuration, digest_byte)?;
+    Ok(configuration)
+}
+
+fn add_access_graph(
+    configuration: &mut ControlPlaneConfiguration,
+    digest_byte: u8,
+) -> Result<(), Box<dyn Error>> {
     configuration.access_groups.push(AccessGroupConfiguration {
         id: AccessGroupId::try_new("access-group-a")?,
         name: "default".to_owned(),
@@ -197,7 +206,7 @@ fn full_configuration(
         StoredClientKeyStatus::Active,
         None,
     )?);
-    Ok(configuration)
+    Ok(())
 }
 
 fn default_egress_policy() -> Result<EgressPolicyConfiguration, Box<dyn Error>> {

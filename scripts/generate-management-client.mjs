@@ -165,6 +165,10 @@ source = source
       }
     } else if (request.body !== undefined) {`,
   );
+source = source.replace(
+  "this.#fetch = options.fetch ?? fetch;",
+  "this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis);",
+);
 if (checkOnly) {
   const existing = await readFile(outputPath, "utf8").catch(() => "");
   if (existing !== source) {

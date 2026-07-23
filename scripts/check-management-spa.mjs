@@ -65,6 +65,7 @@ for (const operationId of operationIds) {
   assert(generatedClient.includes(`  ${operationId}(request: ManagementRequest = {})`), `missing generated wrapper ${operationId}`);
 }
 assert(!/localStorage|sessionStorage|indexedDB|document\.cookie/u.test(generatedClient), "generated client persists credential material");
+assert(generatedClient.includes("globalThis.fetch.bind(globalThis)"), "generated client does not bind the browser fetch receiver");
 assert(generatedClient.includes('credentials: "same-origin"'), "generated client does not keep management traffic same-origin");
 assert(generatedClient.includes("redirect: \"error\""), "generated client permits redirect following");
 
@@ -124,7 +125,20 @@ await nodeAssert.rejects(noCsrfApi.createConfigVersion({ body: { name: "syntheti
 assert(observedRequests.length === rejectedRequests, "invalid generated calls reached fetch");
 
 const application = await readFile(applicationPath, "utf8");
-assert(!/\bfetch\s*\(|new ManagementApi/u.test(application), "P10-03 shell sends a management request");
+assert(!/localStorage|sessionStorage|indexedDB|document\.cookie/u.test(application), "P10-04 workspace persists management material");
+assert(!/\bfetch\s*\(/u.test(application), "P10-04 workspace bypasses the generated management client");
+const sessionListener = application.indexOf('"session-form").addEventListener');
+const clientConstruction = application.indexOf("managementApi = new ManagementApi");
+assert(sessionListener >= 0 && clientConstruction > sessionListener, "P10-04 workspace constructs a client before explicit in-memory session input");
+assert(application.includes("managementKey: () => session?.managementKey"), "P10-04 workspace does not keep the management key page-local");
+assert(application.includes("csrfToken: () => session?.csrfToken"), "P10-04 workspace does not keep the CSRF token page-local");
+for (const operationId of ["testEndpoint", "previewCatalogDiscovery", "applyCatalogDiscovery", "startCredentialOAuth", "getCredentialOAuthStatus", "cancelCredentialOAuth"]) {
+  assert(application.includes(`"${operationId}"`), `P10-04 workspace does not expose ${operationId}`);
+}
+const bindingTemplateStart = application.indexOf("binding: JSON.stringify(");
+const bindingTemplate = application.slice(bindingTemplateStart, application.indexOf("  ),\n};", bindingTemplateStart));
+assert(bindingTemplate.includes('credential_id: "provider-a-key-1"'), "P10-04 binding template omits the contract Credential input");
+assert(!bindingTemplate.includes("endpoint_id") && !bindingTemplate.includes("upstream_id"), "P10-04 binding template duplicates path-owned resource identities");
 const html = await readFile(path.join(distRoot, "index.html"), "utf8");
 assert(html.includes("Content-Security-Policy"), "static document has no CSP");
 assert(!/<script(?![^>]*\bsrc=)/u.test(html), "static document contains inline script");
