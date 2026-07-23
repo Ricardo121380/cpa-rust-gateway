@@ -124,3 +124,5 @@
 - [P10-04 Protected management resource workflows](p10-04-management-resource-workflows.md) — local phase-gate pass; no deployment or Provider default path
 - [P10-05 Protected routing and Client Key workflow plan](p10-05-execution-plan.md) — local phase-gate pass; draft configuration only
 - [P10-05 Protected routing and Client Key workflows](p10-05-protected-routing-client-key-workflows.md) — local phase-gate pass; browser E2E and Key redaction evidence, no runtime or deployment
+- [P10-06 Runtime observability management workflow plan](p10-06-execution-plan.md) — scoped implementation boundary
+- [P10-06 Runtime observability management workflows](p10-06-runtime-management.md) — local phase-gate pass; loopback browser E2E and value-free runtime projections only

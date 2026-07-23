@@ -125,15 +125,15 @@ await nodeAssert.rejects(noCsrfApi.createConfigVersion({ body: { name: "syntheti
 assert(observedRequests.length === rejectedRequests, "invalid generated calls reached fetch");
 
 const application = await readFile(applicationPath, "utf8");
-assert(!/localStorage|sessionStorage|indexedDB|document\.cookie/u.test(application), "P10-05 workspace persists management or Client Key material");
-assert(!/\bfetch\s*\(/u.test(application), "P10-05 workspace bypasses the generated management client");
+assert(!/localStorage|sessionStorage|indexedDB|document\.cookie/u.test(application), "P10-06 workspace persists management, Client Key, or runtime material");
+assert(!/\bfetch\s*\(/u.test(application), "P10-06 workspace bypasses the generated management client");
 const sessionListener = application.indexOf('"session-form").addEventListener');
 const clientConstruction = application.indexOf("managementApi = new ManagementApi");
-assert(sessionListener >= 0 && clientConstruction > sessionListener, "P10-05 workspace constructs a client before explicit in-memory session input");
-assert(application.includes("managementKey: () => session?.managementKey"), "P10-05 workspace does not keep the management key page-local");
-assert(application.includes("csrfToken: () => session?.csrfToken"), "P10-05 workspace does not keep the CSRF token page-local");
+assert(sessionListener >= 0 && clientConstruction > sessionListener, "P10-06 workspace constructs a client before explicit in-memory session input");
+assert(application.includes("managementKey: () => session?.managementKey"), "P10-06 workspace does not keep the management key page-local");
+assert(application.includes("csrfToken: () => session?.csrfToken"), "P10-06 workspace does not keep the CSRF token page-local");
 for (const operationId of ["testEndpoint", "previewCatalogDiscovery", "applyCatalogDiscovery", "startCredentialOAuth", "getCredentialOAuthStatus", "cancelCredentialOAuth"]) {
-  assert(application.includes(`"${operationId}"`), `P10-05 workspace does not expose ${operationId}`);
+  assert(application.includes(`"${operationId}"`), `P10-06 workspace does not retain ${operationId}`);
 }
 const bindingTemplateStart = application.indexOf("binding: JSON.stringify(");
 const bindingTemplate = application.slice(bindingTemplateStart, application.indexOf("  publicModel:", bindingTemplateStart));
@@ -148,16 +148,23 @@ for (const operationId of [
 ]) {
   assert(application.includes(`"${operationId}"`), `P10-05 workspace does not expose ${operationId}`);
 }
-assert(!application.includes('"explainRoute"'), "P10-05 workspace exposes P10-06 Route Explain");
-assert(application.includes('model_name: "minimax-m3"'), "P10-05 workspace lacks the minimax-m3 Public Model template");
-assert(application.includes('id: "route-minimax-m3"'), "P10-05 workspace lacks the minimax-m3 Route template");
-assert(application.includes('id: "group-minimax-m3"'), "P10-05 workspace lacks the minimax-m3 Access Group template");
-assert(application.includes("function clearIssuedClientKey"), "P10-05 workspace has no one-time Client Key clearing boundary");
-assert(application.includes("function displayIssuedClientKey"), "P10-05 workspace has no isolated one-time Client Key display");
-assert(application.includes('kind === "clientKey" && action === "issue"'), "P10-05 workspace does not isolate Client Key issue results");
-assert(application.includes('"issued-client-key-panel"'), "P10-05 workspace lacks the transient Client Key pane");
-assert(application.includes("function clearResourceIdentifiers"), "P10-05 workspace retains a prior resource identity when its resource type changes");
-assert(!/clipboard|writeText/u.test(application), "P10-05 workspace copies Client Keys into browser clipboard state");
+for (const operationId of ["getCatalogStatus", "getRuntimeAvailability", "requestQuotaRecovery", "explainRoute", "listRequestAttempts"]) {
+  assert(application.includes(`"${operationId}"`), `P10-06 workspace does not expose ${operationId}`);
+}
+for (const operationId of ["publishConfigVersion", "rollbackConfigVersion", "listManagementAuditEvents", "previewBackup", "previewRestore", "restoreBackup"]) {
+  assert(!application.includes(`"${operationId}"`), `P10-06 workspace exposes a deferred ${operationId} operation`);
+}
+assert(application.includes('model_name: "minimax-m3"'), "P10-06 workspace lacks the minimax-m3 Public Model template");
+assert(application.includes('id: "route-minimax-m3"'), "P10-06 workspace lacks the minimax-m3 Route template");
+assert(application.includes('id: "group-minimax-m3"'), "P10-06 workspace lacks the minimax-m3 Access Group template");
+assert(application.includes("function clearIssuedClientKey"), "P10-06 workspace has no one-time Client Key clearing boundary");
+assert(application.includes("function displayIssuedClientKey"), "P10-06 workspace has no isolated one-time Client Key display");
+assert(application.includes('kind === "clientKey" && action === "issue"'), "P10-06 workspace does not isolate Client Key issue results");
+assert(application.includes('"issued-client-key-panel"'), "P10-06 workspace lacks the transient Client Key pane");
+assert(application.includes("function clearResourceIdentifiers"), "P10-06 workspace retains a prior resource identity when its resource type changes");
+assert(application.includes("function optionalValue"), "P10-06 workspace does not encode an optional model scope safely");
+assert(application.includes("Request controlled quota recovery"), "P10-06 workspace does not label quota recovery as a request");
+assert(!/clipboard|writeText/u.test(application), "P10-06 workspace copies Client Keys into browser clipboard state");
 const html = await readFile(path.join(distRoot, "index.html"), "utf8");
 assert(html.includes("Content-Security-Policy"), "static document has no CSP");
 assert(!/<script(?![^>]*\bsrc=)/u.test(html), "static document contains inline script");

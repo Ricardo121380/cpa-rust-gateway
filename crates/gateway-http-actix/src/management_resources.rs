@@ -4,7 +4,11 @@
 //! mutation to `gateway-control`. They never publish a Snapshot, invoke a Provider, expose a
 //! credential Secret/ciphertext, or bypass the P10-02 `/admin` security scope.
 
-use std::{collections::BTreeMap, sync::Mutex};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Mutex,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use actix_web::{
     HttpMessage, HttpRequest, HttpResponse,
@@ -22,7 +26,7 @@ use gateway_control::management_mutation_service::{
     StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
 };
 use gateway_core::{
-    AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, PublicModelId,
+    AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, PublicModelId, RequestId,
     RouteCandidateId, RouteId, UpstreamId,
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
@@ -33,6 +37,8 @@ use crate::management_security::{ManagementRequestPrincipal, configure_managemen
 const CONFIG_VERSION_HEADER: &str = "x-config-version";
 const IF_MATCH_HEADER: &str = "if-match";
 const MAX_MANAGEMENT_JSON_BYTES: usize = 70 * 1024;
+const MAX_RUNTIME_ROWS: usize = 256;
+const MAX_REQUEST_ATTEMPTS: usize = 128;
 
 /// Management-time application state for P10-04 resource handlers.
 ///
@@ -42,6 +48,8 @@ const MAX_MANAGEMENT_JSON_BYTES: usize = 70 * 1024;
 pub struct ManagementResourceHttpState {
     service: Mutex<ManagementMutationService>,
     workflow: Mutex<Box<dyn ManagementEndpointWorkflow>>,
+    runtime: Mutex<Box<dyn ManagementRuntimeFacade>>,
+    runtime_clock: Box<dyn ManagementRuntimeClock>,
 }
 
 impl ManagementResourceHttpState {
@@ -60,10 +68,617 @@ impl ManagementResourceHttpState {
         service: ManagementMutationService,
         workflow: Box<dyn ManagementEndpointWorkflow>,
     ) -> Self {
+        Self::with_workflow_and_runtime(
+            service,
+            workflow,
+            Box::new(RejectingManagementRuntimeFacade::new()),
+            Box::new(SystemManagementRuntimeClock),
+        )
+    }
+
+    /// Creates the state with explicit bounded Endpoint and runtime-management seams.
+    ///
+    /// The runtime facade is intentionally distinct from the P10-04 Endpoint workflow: it has no
+    /// Provider request surface and can expose only the value-free P10-06 projections below.
+    #[must_use]
+    pub fn with_workflow_and_runtime(
+        service: ManagementMutationService,
+        workflow: Box<dyn ManagementEndpointWorkflow>,
+        runtime: Box<dyn ManagementRuntimeFacade>,
+        runtime_clock: Box<dyn ManagementRuntimeClock>,
+    ) -> Self {
         Self {
             service: Mutex::new(service),
             workflow: Mutex::new(workflow),
+            runtime: Mutex::new(runtime),
+            runtime_clock,
         }
+    }
+}
+
+/// One explicit clock for P10-06's fixed-time runtime projections.
+///
+/// Runtime facades receive the sampled instant instead of sampling independently, which keeps a
+/// status/explain result reproducible and prevents a handler from borrowing a dataplane clock.
+pub trait ManagementRuntimeClock: Send + Sync {
+    /// Returns the current Unix-millisecond observation time.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when a safe observation time cannot be
+    /// produced.
+    fn now_ms(&self) -> Result<i64, ManagementRuntimeError>;
+}
+
+/// The normal process-local observation clock for an injected production facade.
+pub struct SystemManagementRuntimeClock;
+
+impl ManagementRuntimeClock for SystemManagementRuntimeClock {
+    fn now_ms(&self) -> Result<i64, ManagementRuntimeError> {
+        let elapsed = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|_| ManagementRuntimeError::Unavailable)?;
+        i64::try_from(elapsed.as_millis()).map_err(|_| ManagementRuntimeError::Unavailable)
+    }
+}
+
+/// Exact non-secret binding target accepted by the runtime-management facade.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementRuntimeTarget {
+    endpoint_id: EndpointId,
+    credential_id: CredentialId,
+    upstream_model: Option<String>,
+}
+
+impl ManagementRuntimeTarget {
+    /// Builds an exact binding target with an optional bounded model scope.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::InvalidInput`] for an empty or oversized model scope.
+    pub fn try_new(
+        endpoint_id: EndpointId,
+        credential_id: CredentialId,
+        upstream_model: Option<String>,
+    ) -> Result<Self, ManagementRuntimeError> {
+        if upstream_model
+            .as_deref()
+            .is_some_and(|model| model.is_empty() || model.chars().count() > 256)
+        {
+            return Err(ManagementRuntimeError::InvalidInput);
+        }
+        Ok(Self {
+            endpoint_id,
+            credential_id,
+            upstream_model,
+        })
+    }
+
+    /// Returns the exact Endpoint identity.
+    #[must_use]
+    pub const fn endpoint_id(&self) -> &EndpointId {
+        &self.endpoint_id
+    }
+
+    /// Returns the exact Credential identity.
+    #[must_use]
+    pub const fn credential_id(&self) -> &CredentialId {
+        &self.credential_id
+    }
+
+    /// Returns whether the caller supplied an upstream-model scope without exposing it to logs.
+    #[must_use]
+    pub const fn has_upstream_model_scope(&self) -> bool {
+        self.upstream_model.is_some()
+    }
+
+    /// Returns the exact model scope to the injected runtime facade only.
+    #[must_use]
+    pub fn upstream_model(&self) -> Option<&str> {
+        self.upstream_model.as_deref()
+    }
+}
+
+/// Source-labelled freshness category for one safe Catalog observation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementCatalogFreshness {
+    /// The observed Catalog remains current.
+    Fresh,
+    /// The observed Catalog is older than the current freshness target.
+    Stale,
+    /// The observed Catalog has expired.
+    Expired,
+    /// No Catalog observation exists for the exact binding.
+    Missing,
+}
+
+/// Value-free Catalog status for one exact Endpoint/Credential binding.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementCatalogStatus {
+    endpoint_id: EndpointId,
+    credential_id: CredentialId,
+    freshness: ManagementCatalogFreshness,
+    observed_at_ms: i64,
+}
+
+impl ManagementCatalogStatus {
+    /// Creates one bounded Catalog observation.
+    #[must_use]
+    pub const fn new(
+        endpoint_id: EndpointId,
+        credential_id: CredentialId,
+        freshness: ManagementCatalogFreshness,
+        observed_at_ms: i64,
+    ) -> Self {
+        Self {
+            endpoint_id,
+            credential_id,
+            freshness,
+            observed_at_ms,
+        }
+    }
+
+    /// Returns the Endpoint identity.
+    #[must_use]
+    pub const fn endpoint_id(&self) -> &EndpointId {
+        &self.endpoint_id
+    }
+
+    /// Returns the Credential identity.
+    #[must_use]
+    pub const fn credential_id(&self) -> &CredentialId {
+        &self.credential_id
+    }
+
+    /// Returns only the safe freshness category.
+    #[must_use]
+    pub const fn freshness(&self) -> ManagementCatalogFreshness {
+        self.freshness
+    }
+
+    /// Returns the source observation time.
+    #[must_use]
+    pub const fn observed_at_ms(&self) -> i64 {
+        self.observed_at_ms
+    }
+}
+
+/// Safe scheduling availability for one exact Endpoint/Credential binding.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementRuntimeAvailability {
+    /// The binding is currently eligible for ordinary scheduling.
+    Available,
+    /// A transient Health cooldown blocks the binding.
+    Cooldown,
+    /// A Health circuit blocks the binding.
+    CircuitOpen,
+    /// Quota blocks ordinary scheduling.
+    QuotaBlocked,
+    /// A provider-classified 403 blocks the exact account binding.
+    CredentialForbidden,
+    /// A controlled recovery remains required or in flight.
+    RecoveryRequired,
+}
+
+/// Value-free runtime availability for one exact Endpoint/Credential binding.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementRuntimeAvailabilityStatus {
+    endpoint_id: EndpointId,
+    credential_id: CredentialId,
+    availability: ManagementRuntimeAvailability,
+}
+
+impl ManagementRuntimeAvailabilityStatus {
+    /// Creates one exact value-free availability projection.
+    #[must_use]
+    pub const fn new(
+        endpoint_id: EndpointId,
+        credential_id: CredentialId,
+        availability: ManagementRuntimeAvailability,
+    ) -> Self {
+        Self {
+            endpoint_id,
+            credential_id,
+            availability,
+        }
+    }
+
+    /// Returns the Endpoint identity.
+    #[must_use]
+    pub const fn endpoint_id(&self) -> &EndpointId {
+        &self.endpoint_id
+    }
+
+    /// Returns the Credential identity.
+    #[must_use]
+    pub const fn credential_id(&self) -> &CredentialId {
+        &self.credential_id
+    }
+
+    /// Returns the safe availability category.
+    #[must_use]
+    pub const fn availability(&self) -> ManagementRuntimeAvailability {
+        self.availability
+    }
+}
+
+/// The only responses to an operator's controlled quota-recovery request.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementQuotaRecoveryState {
+    /// A recovery is still required before a probe can be scheduled.
+    RecoveryRequired,
+    /// The runtime controller accepted a bounded recovery request for later handling.
+    ProbeScheduled,
+    /// The controller rejected the request without sending or completing a probe.
+    Rejected,
+}
+
+/// One bounded, safe Route Explain request.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementRouteExplainRequest {
+    config_version_id: ConfigVersionId,
+    route_id: RouteId,
+    requested_model: String,
+    protocol: ManagementRequestProtocol,
+    observed_at_ms: i64,
+}
+
+impl ManagementRouteExplainRequest {
+    /// Creates a fixed-input Explain request.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::InvalidInput`] for an empty or oversized requested
+    /// model before a runtime facade is called.
+    pub fn try_new(
+        config_version_id: ConfigVersionId,
+        route_id: RouteId,
+        requested_model: String,
+        protocol: ManagementRequestProtocol,
+        observed_at_ms: i64,
+    ) -> Result<Self, ManagementRuntimeError> {
+        if requested_model.is_empty() || requested_model.chars().count() > 256 {
+            return Err(ManagementRuntimeError::InvalidInput);
+        }
+        Ok(Self {
+            config_version_id,
+            route_id,
+            requested_model,
+            protocol,
+            observed_at_ms,
+        })
+    }
+
+    /// Returns the exact configuration identity whose immutable Route view is requested.
+    #[must_use]
+    pub const fn config_version_id(&self) -> &ConfigVersionId {
+        &self.config_version_id
+    }
+
+    /// Returns the exact Route identity.
+    #[must_use]
+    pub const fn route_id(&self) -> &RouteId {
+        &self.route_id
+    }
+
+    /// Returns the requested public model to the injected immutable Route Explain facade only.
+    #[must_use]
+    pub fn requested_model(&self) -> &str {
+        &self.requested_model
+    }
+
+    /// Returns the selected protocol without exposing a wire request.
+    #[must_use]
+    pub const fn protocol(&self) -> ManagementRequestProtocol {
+        self.protocol
+    }
+
+    /// Returns the fixed runtime observation time.
+    #[must_use]
+    pub const fn observed_at_ms(&self) -> i64 {
+        self.observed_at_ms
+    }
+}
+
+/// Closed management protocol enum used only for a Route Explain projection.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementRequestProtocol {
+    /// `OpenAI` Responses request semantics.
+    OpenAiResponses,
+    /// Anthropic Messages request semantics.
+    AnthropicMessages,
+}
+
+/// One safe candidate decision returned by a Route Explain facade.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementRouteExplainCandidate {
+    candidate_id: RouteCandidateId,
+    selected: bool,
+    reason: Option<&'static str>,
+}
+
+impl ManagementRouteExplainCandidate {
+    /// Creates an exact selected candidate decision.
+    #[must_use]
+    pub const fn selected(candidate_id: RouteCandidateId) -> Self {
+        Self {
+            candidate_id,
+            selected: true,
+            reason: None,
+        }
+    }
+
+    /// Creates an excluded candidate with one closed, value-free reason code.
+    #[must_use]
+    pub const fn excluded(candidate_id: RouteCandidateId, reason: &'static str) -> Self {
+        Self {
+            candidate_id,
+            selected: false,
+            reason: Some(reason),
+        }
+    }
+
+    /// Returns the stable Candidate identity.
+    #[must_use]
+    pub const fn candidate_id(&self) -> &RouteCandidateId {
+        &self.candidate_id
+    }
+
+    /// Returns whether the fixed projection selected this candidate.
+    #[must_use]
+    pub const fn selected_by_projection(&self) -> bool {
+        self.selected
+    }
+
+    /// Returns a fixed diagnostic category, never a Provider diagnostic.
+    #[must_use]
+    pub const fn reason(&self) -> Option<&'static str> {
+        self.reason
+    }
+}
+
+/// One complete bounded Route Explain projection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementRouteExplain {
+    route_id: RouteId,
+    candidates: Vec<ManagementRouteExplainCandidate>,
+}
+
+impl ManagementRouteExplain {
+    /// Creates a bounded Explain result.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when the injected facade exceeds the
+    /// response bound, declares more than one selected Candidate, or supplies an invalid reason.
+    pub fn try_new(
+        route_id: RouteId,
+        candidates: Vec<ManagementRouteExplainCandidate>,
+    ) -> Result<Self, ManagementRuntimeError> {
+        if candidates.len() > MAX_RUNTIME_ROWS
+            || candidates
+                .iter()
+                .filter(|candidate| candidate.selected)
+                .count()
+                > 1
+            || candidates.iter().any(|candidate| {
+                candidate
+                    .reason
+                    .is_some_and(|reason| reason.is_empty() || reason.len() > 128)
+            })
+        {
+            return Err(ManagementRuntimeError::Unavailable);
+        }
+        Ok(Self {
+            route_id,
+            candidates,
+        })
+    }
+
+    /// Returns the explained Route identity.
+    #[must_use]
+    pub const fn route_id(&self) -> &RouteId {
+        &self.route_id
+    }
+
+    /// Returns the bounded candidate decision list.
+    #[must_use]
+    pub fn candidates(&self) -> &[ManagementRouteExplainCandidate] {
+        &self.candidates
+    }
+}
+
+/// Value-free durable Attempt view for the protected management API.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementRequestAttempt {
+    attempt_id: String,
+    outcome: &'static str,
+    endpoint_id: Option<EndpointId>,
+    credential_id: Option<CredentialId>,
+}
+
+impl ManagementRequestAttempt {
+    /// Creates a bounded Attempt view without model, route, timing, or Provider diagnostics.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when a supplied safe projection cannot be
+    /// represented within the frozen management bounds.
+    pub fn try_new(
+        attempt_id: String,
+        outcome: &'static str,
+        endpoint_id: Option<EndpointId>,
+        credential_id: Option<CredentialId>,
+    ) -> Result<Self, ManagementRuntimeError> {
+        if attempt_id.is_empty()
+            || attempt_id.chars().count() > 128
+            || outcome.is_empty()
+            || outcome.len() > 64
+        {
+            return Err(ManagementRuntimeError::Unavailable);
+        }
+        Ok(Self {
+            attempt_id,
+            outcome,
+            endpoint_id,
+            credential_id,
+        })
+    }
+
+    /// Returns the deterministic Attempt identity.
+    #[must_use]
+    pub fn attempt_id(&self) -> &str {
+        &self.attempt_id
+    }
+
+    /// Returns the closed terminal outcome category.
+    #[must_use]
+    pub const fn outcome(&self) -> &'static str {
+        self.outcome
+    }
+
+    /// Returns the exact Endpoint identity when persisted for this Attempt.
+    #[must_use]
+    pub const fn endpoint_id(&self) -> Option<&EndpointId> {
+        self.endpoint_id.as_ref()
+    }
+
+    /// Returns the exact Credential identity when persisted for this Attempt.
+    #[must_use]
+    pub const fn credential_id(&self) -> Option<&CredentialId> {
+        self.credential_id.as_ref()
+    }
+}
+
+/// Safe, target-free failures from the P10-06 runtime facade.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementRuntimeError {
+    /// A request shape is invalid before the facade is called.
+    InvalidInput,
+    /// Runtime dependencies or an isolated state shard are unavailable.
+    Unavailable,
+}
+
+/// Explicit P10-06 runtime seam.
+///
+/// Implementations may read only pre-admitted runtime-management projections, immutable Route
+/// Explain state, and value-free stored Attempts. They must not receive a Provider, URL, Header,
+/// Body, Secret, lease, scheduling cursor, network client, or configuration-publishing handle.
+pub trait ManagementRuntimeFacade: Send {
+    /// Returns bounded source-labelled Catalog observations for an exact configuration graph.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when the required isolated runtime state
+    /// cannot be read safely.
+    fn catalog_status(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        observed_at_ms: i64,
+    ) -> Result<Vec<ManagementCatalogStatus>, ManagementRuntimeError>;
+
+    /// Returns bounded Health/Quota/403 availability projections for an exact configuration graph.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when the required isolated runtime state
+    /// cannot be read safely.
+    fn runtime_availability(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        observed_at_ms: i64,
+    ) -> Result<Vec<ManagementRuntimeAvailabilityStatus>, ManagementRuntimeError>;
+
+    /// Records only a controller-owned recovery request; it never sends or completes a probe.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when no controller is safely available.
+    fn request_quota_recovery(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        target: &ManagementRuntimeTarget,
+        observed_at_ms: i64,
+    ) -> Result<ManagementQuotaRecoveryState, ManagementRuntimeError>;
+
+    /// Returns a fixed-input, side-effect-free Route Explain projection.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when the immutable Route/runtime state
+    /// cannot be read safely.
+    fn explain_route(
+        &mut self,
+        request: &ManagementRouteExplainRequest,
+    ) -> Result<ManagementRouteExplain, ManagementRuntimeError>;
+
+    /// Returns bounded value-free attempts for one Request correlation.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when the attempt store cannot safely
+    /// provide a bounded projection.
+    fn list_request_attempts(
+        &mut self,
+        request_id: &RequestId,
+    ) -> Result<Vec<ManagementRequestAttempt>, ManagementRuntimeError>;
+}
+
+/// Fail-closed P10-06 facade used until an embedding injects the runtime dependencies.
+pub struct RejectingManagementRuntimeFacade;
+
+impl RejectingManagementRuntimeFacade {
+    /// Creates a no-op, no-send runtime facade.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for RejectingManagementRuntimeFacade {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ManagementRuntimeFacade for RejectingManagementRuntimeFacade {
+    fn catalog_status(
+        &mut self,
+        _config_version_id: &ConfigVersionId,
+        _observed_at_ms: i64,
+    ) -> Result<Vec<ManagementCatalogStatus>, ManagementRuntimeError> {
+        Err(ManagementRuntimeError::Unavailable)
+    }
+
+    fn runtime_availability(
+        &mut self,
+        _config_version_id: &ConfigVersionId,
+        _observed_at_ms: i64,
+    ) -> Result<Vec<ManagementRuntimeAvailabilityStatus>, ManagementRuntimeError> {
+        Err(ManagementRuntimeError::Unavailable)
+    }
+
+    fn request_quota_recovery(
+        &mut self,
+        _config_version_id: &ConfigVersionId,
+        _target: &ManagementRuntimeTarget,
+        _observed_at_ms: i64,
+    ) -> Result<ManagementQuotaRecoveryState, ManagementRuntimeError> {
+        Err(ManagementRuntimeError::Unavailable)
+    }
+
+    fn explain_route(
+        &mut self,
+        _request: &ManagementRouteExplainRequest,
+    ) -> Result<ManagementRouteExplain, ManagementRuntimeError> {
+        Err(ManagementRuntimeError::Unavailable)
+    }
+
+    fn list_request_attempts(
+        &mut self,
+        _request_id: &RequestId,
+    ) -> Result<Vec<ManagementRequestAttempt>, ManagementRuntimeError> {
+        Err(ManagementRuntimeError::Unavailable)
     }
 }
 
@@ -259,6 +874,7 @@ pub fn configure_management_resources(config: &mut web::ServiceConfig) {
 fn resource_routes(config: &mut web::ServiceConfig) {
     configure_upstream_resource_routes(config);
     configure_routing_resource_routes(config);
+    configure_runtime_resource_routes(config);
 }
 
 fn configure_upstream_resource_routes(config: &mut web::ServiceConfig) {
@@ -418,6 +1034,24 @@ fn configure_routing_resource_routes(config: &mut web::ServiceConfig) {
         );
 }
 
+fn configure_runtime_resource_routes(config: &mut web::ServiceConfig) {
+    config
+        .route("/catalog/status", web::get().to(get_catalog_status))
+        .route(
+            "/runtime/availability",
+            web::get().to(get_runtime_availability),
+        )
+        .route(
+            "/runtime/quota/reset",
+            web::post().to(request_quota_recovery),
+        )
+        .route("/routes/{route_id}/explain", web::get().to(explain_route))
+        .route(
+            "/requests/{request_id}/attempts",
+            web::get().to(list_request_attempts),
+        );
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct EgressPolicyInput {
@@ -542,6 +1176,21 @@ struct ClientKeyInput {
     access_group_id: String,
     status: String,
     expires_at_ms: Option<i64>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RuntimeTargetInput {
+    endpoint_id: String,
+    credential_id: String,
+    upstream_model: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RouteExplainQuery {
+    requested_model: String,
+    protocol: String,
 }
 
 #[derive(Serialize)]
@@ -697,6 +1346,51 @@ struct IssuedClientKeyResponse {
 struct ValidationResponse {
     valid: bool,
     error_codes: Vec<&'static str>,
+}
+
+#[derive(Serialize)]
+struct CatalogStatusResponse {
+    endpoint_id: String,
+    credential_id: String,
+    freshness: &'static str,
+    observed_at_ms: i64,
+}
+
+#[derive(Serialize)]
+struct RuntimeAvailabilityResponse {
+    endpoint_id: String,
+    credential_id: String,
+    availability: &'static str,
+}
+
+#[derive(Serialize)]
+struct RuntimeActionResponse {
+    state: &'static str,
+}
+
+#[derive(Serialize)]
+struct RouteExplainResponse {
+    route_id: String,
+    candidates: Vec<RouteExplainCandidateResponse>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+struct RouteExplainCandidateResponse {
+    candidate_id: String,
+    decision: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reason: Option<&'static str>,
+}
+
+#[derive(Serialize)]
+struct RequestAttemptResponse {
+    attempt_id: String,
+    outcome: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    endpoint_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    credential_id: Option<String>,
 }
 
 async fn list_egress_policies(
@@ -1884,6 +2578,176 @@ async fn validate_model_route(
     }
 }
 
+async fn get_catalog_status(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let observed_at_ms = match runtime_observed_at(&state) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let statuses = match runtime(&state).and_then(|mut facade| {
+        facade
+            .catalog_status(&context.version, observed_at_ms)
+            .map_err(runtime_error)
+    }) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    match catalog_status_response(statuses) {
+        Ok(value) => HttpResponse::Ok().json(value),
+        Err(error) => runtime_error(error),
+    }
+}
+
+async fn get_runtime_availability(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let observed_at_ms = match runtime_observed_at(&state) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let statuses = match runtime(&state).and_then(|mut facade| {
+        facade
+            .runtime_availability(&context.version, observed_at_ms)
+            .map_err(runtime_error)
+    }) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    match runtime_availability_response(statuses) {
+        Ok(value) => HttpResponse::Ok().json(value),
+        Err(error) => runtime_error(error),
+    }
+}
+
+async fn request_quota_recovery(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let input = match parse_json::<RuntimeTargetInput>(&body) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let target = match runtime_target(input) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    if let Err(response) = require_runtime_target(&state, &context.version, &target) {
+        return response;
+    }
+    let observed_at_ms = match runtime_observed_at(&state) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let recovery = match runtime(&state).and_then(|mut facade| {
+        facade
+            .request_quota_recovery(&context.version, &target, observed_at_ms)
+            .map_err(runtime_error)
+    }) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut management_service = match service(&state) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    if let Err(error) = management_service.record_resource_action(
+        &actor,
+        &context.version,
+        "quota_recovery_requested",
+        "runtime_credential",
+        target.credential_id().as_str(),
+    ) {
+        return management_error(error);
+    }
+    HttpResponse::Accepted().json(RuntimeActionResponse::from(recovery))
+}
+
+async fn explain_route(
+    request: HttpRequest,
+    path: web::Path<String>,
+    query: web::Query<RouteExplainQuery>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(route_id) = RouteId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let protocol = match management_request_protocol(&query.protocol) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let observed_at_ms = match runtime_observed_at(&state) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let explain_request = match ManagementRouteExplainRequest::try_new(
+        context.version,
+        route_id,
+        query.requested_model.clone(),
+        protocol,
+        observed_at_ms,
+    ) {
+        Ok(value) => value,
+        Err(error) => return runtime_error(error),
+    };
+    let explain = match runtime(&state).and_then(|mut facade| {
+        facade
+            .explain_route(&explain_request)
+            .map_err(runtime_error)
+    }) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    match RouteExplainResponse::try_from(explain) {
+        Ok(value) => HttpResponse::Ok().json(value),
+        Err(error) => runtime_error(error),
+    }
+}
+
+async fn list_request_attempts(
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let Ok(request_id) = RequestId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let attempts = match runtime(&state).and_then(|mut facade| {
+        facade
+            .list_request_attempts(&request_id)
+            .map_err(runtime_error)
+    }) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    match request_attempt_response(attempts) {
+        Ok(value) => HttpResponse::Ok().json(value),
+        Err(error) => runtime_error(error),
+    }
+}
+
 async fn list_access_groups(
     request: HttpRequest,
     state: web::Data<ManagementResourceHttpState>,
@@ -2220,6 +3084,178 @@ async fn revoke_client_key(
         Ok(revision) => empty_with_revision(revision),
         Err(error) => management_error(error),
     }
+}
+
+fn runtime_target(input: RuntimeTargetInput) -> Result<ManagementRuntimeTarget, HttpResponse> {
+    let endpoint_id = EndpointId::try_new(input.endpoint_id).map_err(|_| invalid_input())?;
+    let credential_id = CredentialId::try_new(input.credential_id).map_err(|_| invalid_input())?;
+    ManagementRuntimeTarget::try_new(endpoint_id, credential_id, input.upstream_model)
+        .map_err(runtime_error)
+}
+
+fn management_request_protocol(value: &str) -> Result<ManagementRequestProtocol, HttpResponse> {
+    match value {
+        "openai_responses" => Ok(ManagementRequestProtocol::OpenAiResponses),
+        "anthropic_messages" => Ok(ManagementRequestProtocol::AnthropicMessages),
+        _ => Err(invalid_input()),
+    }
+}
+
+fn runtime_observed_at(
+    state: &web::Data<ManagementResourceHttpState>,
+) -> Result<i64, HttpResponse> {
+    state
+        .runtime_clock
+        .now_ms()
+        .and_then(|value| {
+            if value < 0 {
+                Err(ManagementRuntimeError::Unavailable)
+            } else {
+                Ok(value)
+            }
+        })
+        .map_err(runtime_error)
+}
+
+fn runtime(
+    state: &web::Data<ManagementResourceHttpState>,
+) -> Result<std::sync::MutexGuard<'_, Box<dyn ManagementRuntimeFacade>>, HttpResponse> {
+    state.runtime.lock().map_err(|_| internal_error())
+}
+
+fn require_runtime_target(
+    state: &web::Data<ManagementResourceHttpState>,
+    config_version_id: &ConfigVersionId,
+    target: &ManagementRuntimeTarget,
+) -> Result<(), HttpResponse> {
+    let mut management_service = service(state)?;
+    let endpoint = management_service
+        .get_endpoint(config_version_id, target.endpoint_id())
+        .map_err(management_error)?
+        .into_parts()
+        .0;
+    let credential = management_service
+        .get_credential(config_version_id, target.credential_id())
+        .map_err(management_error)?
+        .into_parts()
+        .0;
+    if endpoint.upstream_id != credential.upstream_id {
+        return Err(invalid_input());
+    }
+    let bindings = management_service
+        .list_endpoint_credential_bindings(config_version_id, target.endpoint_id())
+        .map_err(management_error)?
+        .into_parts()
+        .0;
+    if !bindings.iter().any(|binding| {
+        binding.credential_id == *target.credential_id()
+            && binding.upstream_id == endpoint.upstream_id
+    }) {
+        return Err(invalid_input());
+    }
+    Ok(())
+}
+
+fn catalog_status_response(
+    statuses: Vec<ManagementCatalogStatus>,
+) -> Result<Vec<CatalogStatusResponse>, ManagementRuntimeError> {
+    if statuses.len() > MAX_RUNTIME_ROWS {
+        return Err(ManagementRuntimeError::Unavailable);
+    }
+    let mut targets = BTreeSet::new();
+    statuses
+        .into_iter()
+        .map(|status| {
+            if status.observed_at_ms() < 0
+                || !targets.insert((
+                    status.endpoint_id().as_str().to_owned(),
+                    status.credential_id().as_str().to_owned(),
+                ))
+            {
+                return Err(ManagementRuntimeError::Unavailable);
+            }
+            Ok(CatalogStatusResponse {
+                endpoint_id: status.endpoint_id().as_str().to_owned(),
+                credential_id: status.credential_id().as_str().to_owned(),
+                freshness: catalog_freshness_response(status.freshness()),
+                observed_at_ms: status.observed_at_ms(),
+            })
+        })
+        .collect()
+}
+
+fn runtime_availability_response(
+    statuses: Vec<ManagementRuntimeAvailabilityStatus>,
+) -> Result<Vec<RuntimeAvailabilityResponse>, ManagementRuntimeError> {
+    if statuses.len() > MAX_RUNTIME_ROWS {
+        return Err(ManagementRuntimeError::Unavailable);
+    }
+    let mut targets = BTreeSet::new();
+    statuses
+        .into_iter()
+        .map(|status| {
+            if !targets.insert((
+                status.endpoint_id().as_str().to_owned(),
+                status.credential_id().as_str().to_owned(),
+            )) {
+                return Err(ManagementRuntimeError::Unavailable);
+            }
+            Ok(RuntimeAvailabilityResponse {
+                endpoint_id: status.endpoint_id().as_str().to_owned(),
+                credential_id: status.credential_id().as_str().to_owned(),
+                availability: runtime_availability_category(status.availability()),
+            })
+        })
+        .collect()
+}
+
+fn request_attempt_response(
+    attempts: Vec<ManagementRequestAttempt>,
+) -> Result<Vec<RequestAttemptResponse>, ManagementRuntimeError> {
+    if attempts.len() > MAX_REQUEST_ATTEMPTS {
+        return Err(ManagementRuntimeError::Unavailable);
+    }
+    let mut ids = BTreeSet::new();
+    attempts
+        .into_iter()
+        .map(|attempt| {
+            if !ids.insert(attempt.attempt_id().to_owned())
+                || !safe_attempt_outcome(attempt.outcome())
+            {
+                return Err(ManagementRuntimeError::Unavailable);
+            }
+            Ok(RequestAttemptResponse {
+                attempt_id: attempt.attempt_id().to_owned(),
+                outcome: attempt.outcome(),
+                endpoint_id: attempt.endpoint_id().map(|id| id.as_str().to_owned()),
+                credential_id: attempt.credential_id().map(|id| id.as_str().to_owned()),
+            })
+        })
+        .collect()
+}
+
+fn catalog_freshness_response(value: ManagementCatalogFreshness) -> &'static str {
+    match value {
+        ManagementCatalogFreshness::Fresh => "fresh",
+        ManagementCatalogFreshness::Stale => "stale",
+        ManagementCatalogFreshness::Expired => "expired",
+        ManagementCatalogFreshness::Missing => "missing",
+    }
+}
+
+fn runtime_availability_category(value: ManagementRuntimeAvailability) -> &'static str {
+    match value {
+        ManagementRuntimeAvailability::Available => "available",
+        ManagementRuntimeAvailability::Cooldown => "cooldown",
+        ManagementRuntimeAvailability::CircuitOpen => "circuit_open",
+        ManagementRuntimeAvailability::QuotaBlocked => "quota_blocked",
+        ManagementRuntimeAvailability::CredentialForbidden => "credential_forbidden",
+        ManagementRuntimeAvailability::RecoveryRequired => "recovery_required",
+    }
+}
+
+fn safe_attempt_outcome(value: &str) -> bool {
+    matches!(value, "succeeded" | "failed")
 }
 
 struct ReadContext {
@@ -2740,10 +3776,79 @@ fn internal_error() -> HttpResponse {
         "Management operation failed",
     )
 }
+
+fn runtime_error(error: ManagementRuntimeError) -> HttpResponse {
+    match error {
+        ManagementRuntimeError::InvalidInput => invalid_input(),
+        ManagementRuntimeError::Unavailable => error_response(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "management_runtime_unavailable",
+            "Management runtime observation is unavailable",
+        ),
+    }
+}
+
 fn error_response(status: StatusCode, code: &'static str, message: &'static str) -> HttpResponse {
     HttpResponse::build(status)
         .insert_header((header::CACHE_CONTROL, "no-store"))
         .json(serde_json::json!({"error":{"code":code,"message":message}}))
+}
+
+impl From<ManagementQuotaRecoveryState> for RuntimeActionResponse {
+    fn from(value: ManagementQuotaRecoveryState) -> Self {
+        let state = match value {
+            ManagementQuotaRecoveryState::RecoveryRequired => "recovery_required",
+            ManagementQuotaRecoveryState::ProbeScheduled => "probe_scheduled",
+            ManagementQuotaRecoveryState::Rejected => "rejected",
+        };
+        Self { state }
+    }
+}
+
+impl TryFrom<ManagementRouteExplain> for RouteExplainResponse {
+    type Error = ManagementRuntimeError;
+
+    fn try_from(value: ManagementRouteExplain) -> Result<Self, Self::Error> {
+        let mut ids = BTreeSet::new();
+        let candidates = value
+            .candidates()
+            .iter()
+            .map(|candidate| {
+                let reason = candidate.reason();
+                if !ids.insert(candidate.candidate_id().as_str().to_owned())
+                    || candidate.selected_by_projection() != reason.is_none()
+                    || reason.is_some_and(|value| !safe_route_explain_reason(value))
+                {
+                    return Err(ManagementRuntimeError::Unavailable);
+                }
+                Ok(RouteExplainCandidateResponse {
+                    candidate_id: candidate.candidate_id().as_str().to_owned(),
+                    decision: if candidate.selected_by_projection() {
+                        "selected"
+                    } else {
+                        "excluded"
+                    },
+                    reason,
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(Self {
+            route_id: value.route_id().as_str().to_owned(),
+            candidates,
+        })
+    }
+}
+
+fn safe_route_explain_reason(value: &str) -> bool {
+    matches!(
+        value,
+        "not_hard_eligible"
+            | "endpoint_cooldown"
+            | "endpoint_circuit_open"
+            | "endpoint_unavailable"
+            | "missing_credential_pool"
+            | "no_eligible_credential"
+    )
 }
 
 impl From<PublicModelConfiguration> for PublicModelResponse {

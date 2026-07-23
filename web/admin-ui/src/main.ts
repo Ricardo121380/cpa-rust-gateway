@@ -175,16 +175,16 @@ function applicationMarkup(): string {
         <nav class="navigation" aria-label="Management sections">
           <a href="#upstreams">Upstreams</a>
           <a aria-current="page" href="#routing">Routing and access</a>
-          <a aria-disabled="true" href="#runtime">Runtime</a>
+          <a href="#runtime">Runtime</a>
           <a aria-disabled="true" href="#configuration">Configuration</a>
         </nav>
-        <p class="sidebar-note">P10-05 draft controls only. Runtime, publication and recovery workspaces remain unavailable.</p>
+        <p class="sidebar-note">P10-06 adds secret-free runtime observations and a recovery request. Publication, rollback and backup remain unavailable.</p>
       </aside>
       <main class="content">
         <header>
-          <p class="eyebrow">P10-05 · protected draft workspace</p>
+          <p class="eyebrow">P10-06 · protected management workspace</p>
           <h1>Upstreams, routing and access</h1>
-          <p class="lead">Manage draft resources only. Route validation is structural; it does not publish, select a Provider, inspect runtime status or send an inference request.</p>
+          <p class="lead">Manage draft resources and inspect safe runtime projections. No view can expose a Secret, select a Provider, send an inference request, publish a Snapshot or complete recovery.</p>
         </header>
 
         <section class="panel" aria-labelledby="session-heading">
@@ -241,6 +241,35 @@ function applicationMarkup(): string {
           <p class="muted">Test results expose only safe outcome/status classes. Catalog apply uses the displayed revision; stale revisions fail before an injected workflow is called.</p>
         </section>
 
+        <section class="panel" id="runtime" aria-labelledby="runtime-heading">
+          <div class="panel-heading"><div><p class="eyebrow">Runtime observations</p><h2 id="runtime-heading">Catalog, availability and controlled recovery</h2></div></div>
+          <div class="workflow-grid">
+            <form id="runtime-observation-form" class="form-grid" novalidate>
+              <fieldset class="form-actions"><legend>Safe observations</legend><button id="read-catalog-status" type="button">Read Catalog status</button><button id="read-runtime-availability" type="button">Read runtime availability</button></fieldset>
+              <p class="muted">Catalog and availability show only binding IDs and closed freshness/Health/Quota/403 categories. They do not send a Provider request.</p>
+            </form>
+            <form id="quota-recovery-form" class="form-grid" novalidate>
+              <label>Endpoint ID<input id="runtime-endpoint-id" autocomplete="off" required></label>
+              <label>Credential ID<input id="runtime-credential-id" autocomplete="off" required></label>
+              <label>Optional upstream model<input id="runtime-upstream-model" autocomplete="off" maxlength="256"></label>
+              <div class="form-actions"><button type="submit">Request controlled quota recovery</button></div>
+              <p class="muted">This records a bounded controller request only. It does not probe a Provider, clear a 403 state, change a Credential or declare recovery complete.</p>
+            </form>
+            <form id="route-explain-form" class="form-grid" novalidate>
+              <label>Route ID<input id="runtime-route-id" autocomplete="off" required></label>
+              <label>Requested model<input id="runtime-requested-model" autocomplete="off" maxlength="256" required></label>
+              <label>Protocol<select id="runtime-protocol"><option value="openai_responses">OpenAI Responses</option><option value="anthropic_messages">Anthropic Messages</option></select></label>
+              <div class="form-actions"><button type="submit">Explain Route</button></div>
+              <p class="muted">Explain is a fixed-time projection. It does not acquire a Credential lease or advance a scheduling cursor.</p>
+            </form>
+            <form id="request-attempts-form" class="form-grid" novalidate>
+              <label>Request ID<input id="runtime-request-id" autocomplete="off" required></label>
+              <div class="form-actions"><button type="submit">Read value-free attempts</button></div>
+              <p class="muted">Attempts omit Provider URLs, headers, bodies, model values, timing and raw diagnostics.</p>
+            </form>
+          </div>
+        </section>
+
         <section class="panel" aria-labelledby="result-heading">
           <div class="panel-heading"><div><p class="eyebrow">Safe result</p><h2 id="result-heading">Operation response</h2></div></div>
           <pre id="operation-result" class="result" aria-live="polite">No operation has run.</pre>
@@ -291,6 +320,11 @@ function requiredValue(id: string): string {
     throw new Error("a required management input is missing");
   }
   return value;
+}
+
+function optionalValue(id: string): string | null {
+  const value = element<HTMLInputElement>(id).value.trim();
+  return value.length === 0 ? null : value;
 }
 
 function headers(includeRevision: boolean): Record<string, string> {
@@ -595,6 +629,65 @@ function installHandlers(): void {
       await showResponse(await api().request(operation, { path: { credential_id: credentialId }, headers: headers(false) }));
     } catch (error) {
       setFailure(error instanceof Error ? error.message : "OAuth workflow failed");
+    }
+  });
+
+  element<HTMLButtonElement>("read-catalog-status").addEventListener("click", async () => {
+    try {
+      await showResponse(await api().request("getCatalogStatus", { headers: headers(false) }));
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "Catalog status request failed");
+    }
+  });
+
+  element<HTMLButtonElement>("read-runtime-availability").addEventListener("click", async () => {
+    try {
+      await showResponse(await api().request("getRuntimeAvailability", { headers: headers(false) }));
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "runtime availability request failed");
+    }
+  });
+
+  element<HTMLFormElement>("quota-recovery-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      await showResponse(await api().request("requestQuotaRecovery", {
+        headers: headers(false),
+        body: {
+          endpoint_id: requiredValue("runtime-endpoint-id"),
+          credential_id: requiredValue("runtime-credential-id"),
+          upstream_model: optionalValue("runtime-upstream-model"),
+        },
+      }));
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "quota recovery request failed");
+    }
+  });
+
+  element<HTMLFormElement>("route-explain-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      await showResponse(await api().request("explainRoute", {
+        path: { route_id: requiredValue("runtime-route-id") },
+        query: {
+          requested_model: requiredValue("runtime-requested-model"),
+          protocol: element<HTMLSelectElement>("runtime-protocol").value,
+        },
+        headers: headers(false),
+      }));
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "Route Explain request failed");
+    }
+  });
+
+  element<HTMLFormElement>("request-attempts-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      await showResponse(await api().request("listRequestAttempts", {
+        path: { request_id: requiredValue("runtime-request-id") },
+      }));
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "request attempt lookup failed");
     }
   });
 
