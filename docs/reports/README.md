@@ -118,3 +118,4 @@
 - [P9 local audit and G9 deferral](p9-local-audit-g9-deferred.md) — historical pre-Canary audit, superseded by P9-09/G9 closeout
 - [P9-09 Grok Web authorized Canary](p9-09-authorized-web-canary.md) — complete; three bounded Canary observations and the P9 Delivery Gate passed
 - [P9 local Full gate log](p9-09-local-full-check.md) — PASS
+- [P10-01 Versioned management OpenAPI contract](p10-01-management-openapi.md) — local phase-gate pass; contract-only, no administrative listener
