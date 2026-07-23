@@ -93,3 +93,4 @@
 - [P7-01 Kiro Credential runtime](p7-01-kiro-credential-runtime.md) — local phase-gate pass
 - [P7-02 Kiro IDE/CLI endpoint policy](p7-02-kiro-endpoint-policy.md) — local phase-gate pass
 - [P7-03 Kiro profile ARN lifecycle](p7-03-kiro-profile-arn.md) — local phase-gate pass
+- [P7-04 Kiro Canonical conversation request](p7-04-kiro-conversation-request.md) — local phase-gate pass

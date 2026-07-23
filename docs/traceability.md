@@ -107,6 +107,7 @@
 | P7-01 | Plan 13；Matrix `C36-C38`、`E25-E26` | [ADR-0046](adr/ADR-0046-kiro-credential-runtime-boundary.md)、[BC-CRED-005](contracts/BC-CRED-005-kiro-credential-runtime.md) | Strict separate Social/Enterprise/API-key model, exact-Credential AEAD, injected refresh, bounded same-ID singleflight and revision CAS | [P7-01 报告](reports/p7-01-kiro-credential-runtime.md) | LOCAL_PASS_PENDING_PHASE_GATE |
 | P7-02 | Plan 13；Matrix `C39-C40` | [ADR-0047](adr/ADR-0047-kiro-endpoint-policy.md)、[BC-PROVIDER-005](contracts/BC-PROVIDER-005-kiro-endpoint-policy.md) | Strict API Region and fixed IDE/CLI URL, Header, Origin, API-key marker, and Thinking-placement policy | [P7-02 报告](reports/p7-02-kiro-endpoint-policy.md) | LOCAL_PASS_PENDING_PHASE_GATE |
 | P7-03 | Plan 13；Matrix `C43` | [ADR-0048](adr/ADR-0048-kiro-profile-arn-lifecycle.md)、[BC-PROVIDER-006](contracts/BC-PROVIDER-006-kiro-profile-arn-lifecycle.md) | Validated Builder/Enterprise/API-key profile lifecycle, injected lookup/fallback, body injection, and redacted provenance audit | [P7-03 报告](reports/p7-03-kiro-profile-arn.md) | LOCAL_PASS_PENDING_PHASE_GATE |
+| P7-04 | Plan 13；Kiro Conversation Request | [ADR-0049](adr/ADR-0049-kiro-canonical-conversation-request.md)、[BC-PROVIDER-007](contracts/BC-PROVIDER-007-kiro-canonical-conversation-request.md) | Pure selected-model Canonical text conversation conversion, explicit environment context, IDE/CLI origin, and declared Tool envelope | [P7-04 报告](reports/p7-04-kiro-conversation-request.md) | LOCAL_PASS_PENDING_PHASE_GATE |
 
 ## 后续 Phase 映射
 
