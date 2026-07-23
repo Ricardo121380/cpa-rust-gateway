@@ -6,9 +6,9 @@
 | Gate | `G6` reopened closeout |
 | Date | `2026-07-23` |
 | Verification branch | `codex/p6-grok-build` |
-| Local closeout target | Pending the reviewed closeout commit and annotated `phase-p6-remediated-complete` tag |
-| Local result | `PASS` — all P6 Tasks are `LOCAL_PASS_PENDING_PHASE_GATE` |
-| Remote Delivery Gate | `PENDING` — exactly one new tag-triggered Fast + Full supply-chain + Required run remains |
+| Local closeout target | `75a8198` and annotated `phase-p6-remediated-complete` tag |
+| Local result | `PASS` — all P6 Tasks met local acceptance and independent review |
+| Remote Delivery Gate | `PASS` — [GitHub Actions 29974725810](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29974725810): Classify, Fast, Full supply-chain, and Required all succeeded; Docs-only correctly skipped |
 
 ## Reopened acceptance conclusion
 
@@ -19,9 +19,9 @@ Router-facing mode bridge. Its real direct validation has one non-streaming pass
 SSE pass (T33); both produced Canonical `ResponseStart`, text, and a clean `ResponseEnd` without a
 `StreamError`. The intervening diagnostics and compatibility work remain structurally redacted.
 
-P6-04 through P6-08 were then revalidated in dependency order. They are local passes pending the
-same single P6 Delivery Gate. No P7 work, server/account/route/proxy/TUN mutation, or extra live
-Provider tuple is part of this closeout.
+P6-04 through P6-08 were then revalidated in dependency order. The one P6 Delivery Gate has now
+passed, so they and P6-03 are `DONE`. No P7 work, server/account/route/proxy/TUN mutation, or
+extra live Provider tuple is part of this closeout.
 
 ## G6 conditions and evidence
 
@@ -49,9 +49,10 @@ and final-text consistency, and unknown/refusal/contradictory event shapes remai
 new `gateway-router` relation is a documented `provider-grok` dev-dependency used only by the
 fixture vertical test, not a runtime Provider-to-Router edge.
 
-## Delivery boundary
+## Delivery outcome
 
-After the reviewed closeout commit is pushed, the annotated `phase-p6-remediated-complete` tag will trigger
-the only new formal P6 delivery run. Fast, Full supply-chain, and Required must all pass before G6
-or any P6 Task becomes `DONE`. No pull request or docs-only closeout run will be created. P7
-remains out of scope until the user explicitly starts it.
+The annotated `phase-p6-remediated-complete` tag triggered the only formal P6 code Delivery Gate.
+The run selected the `code` scope, skipped Docs-only, and passed Fast, Full supply-chain, and
+Required. Consequently G6 and P6-01 through P6-08 are `DONE`. This status-reconciliation commit
+does not create another P6 code closeout target or tag; P7 remains out of scope until the user
+explicitly starts it.

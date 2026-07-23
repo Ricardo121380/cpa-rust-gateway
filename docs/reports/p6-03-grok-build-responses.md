@@ -6,7 +6,7 @@
 | Task | `P6-03` |
 | Date | `2026-07-23` |
 | Branch | `codex/p6-grok-build` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` — the former P6 closeout was reopened after C28's true dual-mode lifecycle and executable Provider-to-Router chain were found unproven. T26 non-streaming and T33 SSE now each have Canonical ResponseStart, text, and clean ResponseEnd; P6's remaining reopened evidence is being revalidated before one new Phase Gate. |
+| Status | `DONE` — the former P6 closeout was reopened after C28's true dual-mode lifecycle and executable Provider-to-Router chain were found unproven. T26 non-streaming and T33 SSE each have Canonical ResponseStart, text, and clean ResponseEnd; the remediated P6 Delivery Gate then passed. |
 | Scope / budget | `L`; the original Provider-private fixed HTTP/decoder boundary now includes an injectable production execution bridge, strict current-profile compatibility, and finite one-send-per-process live validation. No historical tuple is retried, and no P7 work may begin. |
 | Task Card | Fixed CLI request profile, exact P2 egress handoff, bounded non-streaming/SSE decode, Tool consistency, redacted error signals, known OAuth source adapters, and a finite one-send-per-process live matrix. Prohibited: direct-tuple replay, route/key/scheduler mutation, socket/proxy/TUN mutation, status remediation, retry/failover, or P6-04+ behavior. |
 | Execution channel | Current default model, `medium`; Luna is unavailable in this execution surface. No subagent was used because Provider protocol, Tool state, and secret-redaction review need one coherent final review. |

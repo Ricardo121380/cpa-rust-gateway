@@ -54,6 +54,6 @@ embedding refresh, persistent state, Build HTTP, quota, cache, or provider-error
 
 Reverting P6-01 removes only `provider-grok` OAuth code, synthetic tests, documents, and the direct
 locked dependency edges. It requires no migration, credential revocation, service restart, server
-cleanup, or real Provider action. After the completed local full gate, P6-01 remains
-`LOCAL_PASS_PENDING_PHASE_GATE`; P6-02 becomes the sole `IN_PROGRESS` Task and owns refresh
-singleflight, revision/CAS, and persistence. G6 remains the Phase's only remote Delivery Gate.
+cleanup, or real Provider action. At this Task's original local closeout, P6-01 entered
+`LOCAL_PASS_PENDING_PHASE_GATE` and P6-02 became the sole `IN_PROGRESS` Task. The remediated P6
+Delivery Gate subsequently passed, so P6-01 is `DONE`.

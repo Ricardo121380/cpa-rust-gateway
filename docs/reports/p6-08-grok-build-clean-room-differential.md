@@ -4,7 +4,7 @@
 |---|---|
 | Method | Read-only schema/behavior comparison; no source copy, credential export, API key, request body, response text, or server mutation |
 | Reference | Deployed `grok2api` image `ghcr.io/chenyme/grok2api:v3.0.6`; frozen CPA/grok2api/Sub2API behavior references already recorded by P6-03 |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE` — the remediated P6 Delivery Gate passed |
 
 ## Structural correspondence
 
@@ -27,4 +27,4 @@ No reference implementation source was copied. The differential uses observable 
 
 Reopened review passed: the crate-boundary policy declares the Adapter-to-Router fixture link as a
 test-only edge, and no `include_str!`, path/git dependency, or source import references the
-clean-room projects. This report remains locally passed until the single new P6 Delivery Gate.
+clean-room projects. The remediated P6 Delivery Gate subsequently passed, completing this Task.

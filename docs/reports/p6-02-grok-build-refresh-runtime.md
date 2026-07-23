@@ -49,6 +49,7 @@ The test suite proves the operational outcomes, restart recovery, identity admis
 stored ciphertext does not contain the synthetic plaintext token.
 
 P6-02 does not construct Build inference HTTP, does not classify Provider errors, and does not
-write quota, cache, response-continuity, health, or authorization state. It is now
-`LOCAL_PASS_PENDING_PHASE_GATE`; P6-03 is the sole `IN_PROGRESS` task for fixed-fixture Build
-Responses request/stream/error implementation. G6 remains P6's only remote Delivery Gate.
+write quota, cache, response-continuity, health, or authorization state. At this Task's original
+local closeout it entered `LOCAL_PASS_PENDING_PHASE_GATE` and P6-03 became the sole
+`IN_PROGRESS` task for fixed-fixture Build Responses request/stream/error implementation. The
+remediated P6 Delivery Gate subsequently passed, so P6-02 is `DONE`.

@@ -7,8 +7,8 @@
 | 计划版本 | `v1.37` |
 | 生效日期 | `2026-07-22` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P5` 已完成；`P6 - Grok Build` 已重新打开；`P7 - Kiro IDE/CLI` 尚未开始。 |
-| 当前任务 | `G6` Phase closeout/review：P6-03 至 P6-08 均已重新达到 `LOCAL_PASS_PENDING_PHASE_GATE`；现在运行一次完整本地 Gate、独立 diff/Secret review 和新的 P6 Delivery Gate。P7 仍未开始。 |
+| 当前阶段 | `P1` 至 `P6` 已完成；`P7 - Kiro IDE/CLI` 尚未开始。 |
+| 当前任务 | P6 的修复版 closeout 已由 `phase-p6-remediated-complete` Delivery Gate 完成验收；P7 仍未开始，等待用户明确启动。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1365,19 +1365,20 @@ Fast、Full supply-chain、Required Delivery Gate 均已通过。
 |---|---|---|---|---|
 | P6-01 | 实现 Grok Build Credential、OAuth JSON 导入和 Device Code | G5 | OAuth Mock + 脱敏导入测试 | DONE |
 | P6-02 | 实现每 Credential Refresh Singleflight、Revision/CAS 和持久化 | P6-01 | 刷新风暴与旧 Token 覆盖测试 | DONE |
-| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析；兼容已知 OAuth 凭据来源 | P6-02 | `InferenceAdapter`/Router vertical link plus real T26 non-streaming and T33 SSE Canonical ResponseStart/text/clean ResponseEnd; T1-T33 are closed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-04 | 实现模型、Billing、Quota Window 和 Reset 同步 | P6-03 | 来源/置信度和窗口测试；Credential-scope Catalog/Quota、version-7 migration up/down revalidation passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-05 | 实现租户隔离 Cache Identity 与 Cache Affinity | P6-03 | 稳定性、隔离和断裂事件测试；tenant isolation/rebind durable-break revalidation passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-06 | 实现 ResponseOwnership 与 ReasoningReplay | P6-03,P6-05 | previous_response 与多轮 Tool 测试；ownership/replay encrypted-clear revalidation passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-07 | 实现 Build 专用 401/403/429/Quota/Transient 分类 | P6-04 | 错误 Fixture 矩阵；failure action matrix revalidation passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P6-08 | 与 CPA/grok2api Build 行为做 clean-room 差分 | P6-03-P6-07 | 差分报告和 intentional diff 清单；clean-room source-boundary/report revalidation passed | LOCAL_PASS_PENDING_PHASE_GATE |
+| P6-03 | 实现 Build Responses HTTP 请求、流和错误解析；兼容已知 OAuth 凭据来源 | P6-02 | `InferenceAdapter`/Router vertical link plus real T26 non-streaming and T33 SSE Canonical ResponseStart/text/clean ResponseEnd; T1-T33 are closed; remediated Delivery Gate passed | DONE |
+| P6-04 | 实现模型、Billing、Quota Window 和 Reset 同步 | P6-03 | 来源/置信度和窗口测试；Credential-scope Catalog/Quota、version-7 migration up/down revalidation passed; remediated Delivery Gate passed | DONE |
+| P6-05 | 实现租户隔离 Cache Identity 与 Cache Affinity | P6-03 | 稳定性、隔离和断裂事件测试；tenant isolation/rebind durable-break revalidation passed; remediated Delivery Gate passed | DONE |
+| P6-06 | 实现 ResponseOwnership 与 ReasoningReplay | P6-03,P6-05 | previous_response 与多轮 Tool 测试；ownership/replay encrypted-clear revalidation passed; remediated Delivery Gate passed | DONE |
+| P6-07 | 实现 Build 专用 401/403/429/Quota/Transient 分类 | P6-04 | 错误 Fixture 矩阵；failure action matrix revalidation passed; remediated Delivery Gate passed | DONE |
+| P6-08 | 与 CPA/grok2api Build 行为做 clean-room 差分 | P6-03-P6-07 | 差分报告和 intentional diff 清单；clean-room source-boundary/report revalidation passed; remediated Delivery Gate passed | DONE |
 
 ### G6 门禁
 
-状态：`LOCAL_PASS_PENDING_PHASE_GATE`；旧 `phase-p6-complete` Delivery Gate 只证明其旧
-closeout target，不能替代 C28 的真实双模式生命周期或可执行 Provider 垂直链路。P6-03 至 P6-08
-已经重新本地通过；只有新的 `phase-p6-remediated-complete` tag Delivery Gate 的 Fast、Full supply-chain、
-Required 全部通过后，才可恢复 `DONE`。
+状态：`DONE`。旧 `phase-p6-complete` Delivery Gate 只证明其旧 closeout target，不能替代 C28 的
+真实双模式生命周期或可执行 Provider 垂直链路。修复后的 `phase-p6-remediated-complete` tag 已在
+[GitHub Actions 29974725810](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/29974725810)
+完成：Classify、Fast、Full supply-chain 和 Required 均成功（Docs-only 正确跳过），所以 P6-03 至
+P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 
 - 两个 Build Credential 的并发、轮询、刷新、Quota 和 Failover 通过。
 - 固定直连 Build 的非流式与 SSE 都产生 Canonical `ResponseStart`、文本和无 `StreamError` 的
