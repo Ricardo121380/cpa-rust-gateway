@@ -1491,6 +1491,7 @@ dependencies = [
  "protocol-anthropic",
  "serde",
  "serde_json",
+ "url",
  "zeroize",
 ]
 

@@ -16,6 +16,7 @@ gateway-upstream = { path = "../gateway-upstream" }
 protocol-anthropic = { path = "../protocol-anthropic" }
 serde.workspace = true
 serde_json.workspace = true
+url.workspace = true
 zeroize.workspace = true
 
 [lints]

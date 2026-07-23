@@ -73,8 +73,9 @@ gateway-core
   Continuity 策略仍由后续 P6 Task 所有。
 - `provider-kiro` 的 P7-01 凭据边界仅依赖 `serde`/`serde_json` 对显式传入的有界 JSON 做严格
   解析，`zeroize` 只持有 Social/Enterprise OAuth 或 `ksk_` Secret，`gateway-store` 只为由精确
-  Credential ID 关联数据绑定的 AEAD envelope 提供加解密。它不读取缓存、环境或数据库，不创建
-  网络 I/O，也不决定 IDE/CLI Endpoint、API Region 或推理 Header；这些属于后续 P7 Task。
+  Credential ID 关联数据绑定的 AEAD envelope 提供加解密。P7-02 新增 `url`，只验证由严格 API
+  Region 派生的两条固定 HTTPS URL（IDE/CLI）；它不读取缓存、环境或数据库，不创建网络 I/O，不
+  接受任意 endpoint 覆盖，也不构建含 Secret 的认证 Header。`profileArn` 与推理请求仍属于后续 P7 Task。
 - `gateway-store` 不进入 Router 的请求选择路径；持久数据通过控制面编译为不可变 Snapshot。
 - `gateway-router` 可以使用 `gateway-auth` 的无存储 Client Key HMAC 原语来认证其已编译
   Snapshot；该边不允许反向的 Router、Store 或 HTTP 依赖进入 `gateway-auth`。
