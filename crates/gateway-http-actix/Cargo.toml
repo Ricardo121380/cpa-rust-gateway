@@ -19,14 +19,15 @@ gateway-router = { path = "../gateway-router" }
 gateway-stream = { path = "../gateway-stream" }
 protocol-anthropic = { path = "../protocol-anthropic" }
 protocol-openai-responses = { path = "../protocol-openai-responses" }
+subtle.workspace = true
 tokio.workspace = true
+url.workspace = true
+zeroize.workspace = true
 
 [dev-dependencies]
 gateway-upstream = { path = "../gateway-upstream" }
 provider-openai-compatible = { path = "../provider-openai-compatible" }
 serde_json.workspace = true
-url.workspace = true
-zeroize.workspace = true
 
 [lints]
 workspace = true

@@ -6,6 +6,9 @@
 
 #![deny(unsafe_code)]
 
+/// Independent management HTTP authentication, network, audit-identity, and browser boundary.
+pub mod management_security;
+
 use std::{
     collections::VecDeque,
     convert::Infallible,

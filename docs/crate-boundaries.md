@@ -50,8 +50,10 @@ gateway-core
 - `gateway-http-actix` 可以直接使用 Tokio 和 `futures-util`，但仅用于 Actix handler 内的
   producer task、取消选择和 body polling；它不得直接依赖或暴露任何 Provider trait/type。P3-09
   与 P3-10 的 `dev-dependencies` 仅用于独立集成测试中组装两个受控 loopback 或显式授权的
-  OpenAI-compatible Upstream。P3-10 的 `url` 仅解析精确测试 Endpoint，`zeroize` 仅保存
-  短暂测试 Credential；它们以及具体 Provider/transport 依赖均不进入该 crate 的库目标或公共 API。
+  OpenAI-compatible Upstream。P10-02 在 HTTP 管理 Scope 内以 `url` 规范化一个精确 Origin、以
+  `zeroize` 保存短暂 Management Key/CSRF token，并以 `subtle` 做常量时间比较；这三项不接触
+  数据面路由、Provider/transport 依赖或公共推理 API。具体 Provider/transport 依赖仍仅存在于
+  相应的独立测试目标，不能进入该 crate 的库 API。
 - `gateway-provider` 的 P1 Mock 只能拉取 Canonical Event；它可以使用 Tokio 的等待原语来
   表达确定性 fixture 延迟，但不得依赖 `gateway-stream`、HTTP、SSE、路由、Endpoint 或凭据。
 - Provider 私有 Crate 不被 `gateway-core`、协议公共层或其它 Provider 引用。

@@ -95,4 +95,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0067 Grok Web 403 egress/account attribution](ADR-0067-grok-web-403-egress-account-attribution.md) — `P9-07`（Accepted；local-only）。
 - [ADR-0068 Grok Web explicit Tool emulation](ADR-0068-grok-web-explicit-tool-emulation.md) — `P9-08`（Accepted；local-only）。
 - [ADR-0069 Versioned management OpenAPI contract](ADR-0069-versioned-management-openapi-contract.md) — `P10-01`（Accepted；contract-only）。
+- [ADR-0070 Management HTTP admission boundary](ADR-0070-management-http-admission-boundary.md) — `P10-02`（Accepted）。
 - [ADR-0045 Grok Build runtime state and continuity isolation](ADR-0045-grok-build-runtime-continuity.md) — `P6-04` 至 `P6-07`（Accepted）。
