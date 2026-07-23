@@ -139,6 +139,12 @@
 | P10-08 | Plan 16；Matrix `H01-H22`、`J11-J15`、`J18-J20` | [ADR-0074](adr/ADR-0074-encrypted-backup-empty-target-restore.md)、[BC-MGMT-007](contracts/BC-MGMT-007-encrypted-control-plane-backup.md) | Independent XChaCha20-Poly1305 Backup Key, authenticated bounded SQLite artifact, safe preflight, same-directory validation/migration and empty-target-only recovery; protected binary API and one-time browser file handling. | [P10-08 report](reports/p10-08-encrypted-backup-restore.md) | LOCAL_PASS_PENDING_PHASE_GATE |
 | P10-09 | Plan 16；Matrix `H01-H22`、`J02`、`J08-J09`、`J11-J15`、`J18-J20` | [ADR-0075](adr/ADR-0075-embedded-management-ui-inference-isolation.md)、[BC-MGMT-008](contracts/BC-MGMT-008-embedded-management-ui-inference-isolation.md) | Build-time embedded closed management asset map with HTTP-delivered browser hardening and a dedicated UI configuration that public inference routing never registers. | [P10-09 report](reports/p10-09-embedded-management-ui.md) | LOCAL_PASS_PENDING_PHASE_GATE |
 
+## P11 追踪
+
+| Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
+|---|---|---|---|---|---|
+| P11-03 | Plan 17、21；Matrix `K01-K12`、`G05`、`G12-G15`；Behavior 1/4/5/9/17/20 | P1/P3 existing performance boundaries; no new runtime contract | Offline deterministic Mock Provider and in-process Actix Responses Criterion baselines, explicit P99/throughput/RSS thresholds and fail-closed comparison | [P11-03 benchmark report](reports/p11-03-benchmark-baseline.md) | LOCAL_PASS_PENDING_PHASE_GATE |
+
 ## 后续 Phase 映射
 
 | 矩阵模块 | 主要 Phase |

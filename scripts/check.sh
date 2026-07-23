@@ -114,6 +114,7 @@ run_step "CI workflow" "$repo_root/scripts/check-ci-workflow.rb"
 run_step "CI change classifier" "$repo_root/scripts/test-ci-change-classifier.sh"
 run_step "Plan state" "$repo_root/scripts/check-plan-state.rb"
 run_step "Plan state guard" "$repo_root/scripts/test-plan-state-check.sh"
+run_step "Benchmark baseline comparator" "$repo_root/scripts/test-p11-03-benchmark-baseline.sh"
 run_step "Quality installer cache behavior" "$repo_root/scripts/test-install-quality-tools.sh"
 run_step "Management SPA dependencies" install_management_spa_dependencies
 run_step "Management SPA" node "$repo_root/scripts/check-management-spa.mjs"

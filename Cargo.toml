@@ -37,6 +37,7 @@ actix-web = { version = "4.11.0", default-features = false, features = ["macros"
 arc-swap = { version = "1.9.2", default-features = false }
 bytes = { version = "1.12.1", default-features = false }
 chacha20poly1305 = { version = "0.10.1", default-features = false, features = ["std"] }
+criterion = { version = "0.7.0", default-features = false, features = ["async_tokio"] }
 futures-util = { version = "0.3.32", default-features = false }
 flate2 = { version = "1.1.9", default-features = false, features = ["rust_backend"] }
 getrandom = { version = "0.3.4", default-features = false }
