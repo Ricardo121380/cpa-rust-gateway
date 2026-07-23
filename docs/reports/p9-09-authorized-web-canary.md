@@ -6,7 +6,7 @@
 | Task | `P9-09` |
 | Date | `2026-07-23` |
 | Branch | `codex/p8-official` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE`; G9 local review and Full gate passed, with the single Phase Delivery Gate still pending. |
+| Status | `DONE`; the annotated `phase-p9-complete` tag passed the [P9 Delivery Gate](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/30009735294): Classify, Fast, Full supply-chain, and Required. |
 | Authorization | `CR-P9-CANARY-001/002`; a temporary `grok_web/sso` export from the current grok2api service, with the user's expanded testing approval. |
 | Scope / budget | Exactly three fixed Conversation `POST` requests; two server-local, response-bounded signing assists. No further live Web request is permitted for P9. |
 | References | P9 Matrix `C29-C34`、`D28-D30`、`E27-E29`、`F17`、`G24-G28`; [P9-01](p9-01-grok-web-sso-credentials.md) through [P9-08](p9-08-grok-web-explicit-tool-emulation.md); `CR-P9-CANARY-001/002`. |
@@ -68,6 +68,6 @@ does not turn the local direct rejection into an account verdict, prove any quot
 enable Tool emulation, copy grok2api runtime code, enable a production Web route, or substitute for
 the deferred P7 Kiro OAuth or P8 Official API-key validation.
 
-All three permitted Conversation requests are consumed. The next P9 action is not another live
-probe: it is the one annotated P9 closeout tag and GitHub Delivery Gate. P10 remains blocked until
-that gate reports Fast, Full supply-chain, and Required success.
+All three permitted Conversation requests are consumed. The one annotated P9 closeout tag has
+passed its GitHub Delivery Gate, so P9/G9 are complete. P10 is now eligible but remains unstarted;
+no additional P9 live probe is authorized or necessary.

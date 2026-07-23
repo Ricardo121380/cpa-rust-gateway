@@ -1,13 +1,13 @@
-# G9 Grok Web local phase-gate report
+# G9 Grok Web phase-gate report
 
 | Field | Value |
 |---|---|
 | Plan | `v1.44` |
-| Gate | `G9` local closeout |
+| Gate | `G9` |
 | Date | `2026-07-23` |
 | Verification branch | `codex/p8-official` |
 | Local result | `PASS` — P9-01 through P9-09 met local acceptance and the authorized Canary supplied the required live Web evidence. |
-| Remote Delivery Gate | `PENDING` — the next and only P9 delivery event is the annotated `phase-p9-complete` tag. |
+| Remote Delivery Gate | `PASS` — [GitHub Actions 30009735294](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/30009735294): Classify, Fast, Full supply-chain, and Required succeeded. |
 
 ## Conclusion
 
@@ -18,9 +18,10 @@ three controlled observations: a direct local 4xx classified only as egress/WAF-
 accepted server-egress Conversation response, and an accepted server-egress full Canonical text
 lifecycle.
 
-This is a local conclusion, not yet P9 `DONE`. The phase branch must receive one code closeout
-commit and only the annotated `phase-p9-complete` tag may trigger GitHub Fast, Full supply-chain,
-and Required. P10 must not start, merge, deploy, or release before that run passes.
+The P9 closeout commit and annotated `phase-p9-complete` tag completed the only P9 delivery event.
+GitHub accepted the tagged SHA with Classify, Fast, Full supply-chain, and Required all successful.
+P9/G9 are therefore `DONE`; P10 is eligible but has not been started, merged, deployed, or
+released by this closeout.
 
 ## G9 conditions and evidence
 
@@ -46,10 +47,9 @@ the P9 fail-closed text-rewind contract. It now accepts only equal final text or
 extension; the focused suite covers the shortened-final regression, Conversation identity change,
 and duplicate final envelope. No other release-blocking finding remains.
 
-## Delivery boundary
+## Delivery outcome and remaining boundary
 
-The phase closeout must not issue a fourth Conversation request, re-run a live Canary, import a
-credential into storage, change a server, change proxy/TUN routing, enable a production flag, or
-begin P10. It may commit the reviewed artifacts, push the existing Phase branch, and create the
-single annotated P9 tag. On remote success, reconcile P9-01 through P9-09 and G9 to `DONE`; on a
-remote failure, stop P10 and repair only the failed closeout target.
+The branch was pushed for reachability and the one annotated tag triggered the Delivery Gate. No
+fourth Conversation request, live-Canary rerun, credential persistence, server change, proxy/TUN
+routing change, production-flag change, merge, deployment, release, or P10 work occurred. The
+following docs-only state-reconciliation commit does not create a second P9 tag or CI event.

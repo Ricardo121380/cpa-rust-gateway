@@ -28,6 +28,7 @@
 - [G2 阶段门禁报告](g2-gate-report.md)
 - [G3 阶段门禁报告](g3-gate-report.md)
 - [G4 阶段门禁报告](g4-gate-report.md)
+- [G9 Grok Web 阶段门禁报告](g9-gate-report.md)
 
 ## 已完成任务
 
@@ -114,10 +115,6 @@
 - [P9-06 Grok Web source-labelled quota](p9-06-grok-web-source-labelled-quota.md) — local phase-gate pass; no Web/REST/gRPC-Web request used
 - [P9-07 Grok Web 403 egress/account attribution](p9-07-grok-web-403-egress-account-attribution.md) — local phase-gate pass; no Web request or error body used
 - [P9-08 Grok Web explicit Tool emulation](p9-08-grok-web-explicit-tool-emulation.md) — local phase-gate pass; default off and no Web request/Tool execution used
-- [P9 local audit and G9 deferral](p9-local-audit-g9-deferred.md) — P9-01 to P9-08 local evidence complete; P9-09/G9 remain deferred pending a P9-owned Canary
-
-## 已完成本地验收，等待唯一的 Phase Delivery Gate
-
-- [P9-09 Grok Web authorized Canary](p9-09-authorized-web-canary.md) — three bounded Canary observations passed; no additional live Web request is permitted for this Phase
+- [P9 local audit and G9 deferral](p9-local-audit-g9-deferred.md) — historical pre-Canary audit, superseded by P9-09/G9 closeout
+- [P9-09 Grok Web authorized Canary](p9-09-authorized-web-canary.md) — complete; three bounded Canary observations and the P9 Delivery Gate passed
 - [P9 local Full gate log](p9-09-local-full-check.md) — PASS
-- [G9 Grok Web local phase-gate report](g9-gate-report.md) — local PASS; GitHub Fast + Full + Required are pending

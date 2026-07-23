@@ -7,8 +7,8 @@
 | 计划版本 | `v1.44` |
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P6` 已完成；P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。P9-09 的三次受限 Canary、P9 本地 Full gate 与 G9 本地审查均已通过，正在等待本 Phase 唯一的 GitHub Delivery Gate。 |
-| 当前任务 | P9 Phase Delivery Gate：提交并推送 `codex/p8-official` 的 P9 closeout target，创建注释 `phase-p9-complete` tag；仅当 GitHub Fast + Full + Required 通过后，P9/G9 才能标记为 `DONE`。P10 仍等待该 Gate。 |
+| 当前阶段 | `P1` 至 `P6` 与 P9 已完成；P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。P9 的 `phase-p9-complete` Delivery Gate 已通过 GitHub Fast、Full supply-chain 与 Required。 |
+| 当前任务 | 无进行中 Task。P10 已满足 G9 前置但尚未开始；P7-09/G7 和 P8-07/G8 的外部认证延期不因 P9 完成而改变。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1338,7 +1338,7 @@ deploy/
 | P6 | Grok Build | G5 | G6 | DONE |
 | P7 | Kiro IDE/CLI | G6 | G7 | DEFERRED_EXTERNAL_AUTH |
 | P8 | Grok Official | G6（`CR-P7-DEFER-002`） | G8 | DEFERRED_EXTERNAL_E2E |
-| P9 | Grok Web | P8 local isolation evidence（`CR-P9-LOCAL-001`） | G9 | LOCAL_PASS_PENDING_PHASE_GATE |
+| P9 | Grok Web | P8 local isolation evidence（`CR-P9-LOCAL-001`） | G9 | DONE |
 | P10 | 完整管理 API、Web UI、备份恢复 | G9 | G10 | PENDING |
 | P11 | 差分、性能、安全与发布加固 | G10 | G11 | PENDING |
 | P12 | 服务器部署、灰度、切换与回滚 | G11 | G12 | PENDING |
@@ -1621,15 +1621,15 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
-| P9-01 | 实现 SSO/Cookie Credential、血缘和独立生命周期 | P8 local isolation evidence（`CR-P9-LOCAL-001`） | 导入、加密、失效测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P9-02 | 实现 BrowserEgressSession：Cookie、UA、TLS Profile、Proxy 绑定 | P9-01 | 指纹一致性和隔离测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P9-03 | 实现 Grok Web Chat 请求和流响应解析 | P9-02 | 脱敏网页 Fixture | LOCAL_PASS_PENDING_PHASE_GATE |
-| P9-04 | 实现 WebConversationState 与账号/出口强绑定 | P9-03 | 多轮、过期和账号不可用测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P9-05 | 实现 Statsig 签名缓存、受限失效和 SSRF 防护 | P9-02 | 403、Redirect、域名测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P9-06 | 实现 REST/gRPC-Web Quota、Tier、Window、Source/Confidence | P9-03 | Quota Fixture | LOCAL_PASS_PENDING_PHASE_GATE |
-| P9-07 | 实现 WAF/EgressRejected 与账号 Forbidden 分离 | P9-02,P9-03 | 403 分类矩阵 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P9-08 | 实现 Tool Emulation Feature Flag，默认关闭并标记 `emulated` | P9-03 | 开关与能力元数据测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P9-09 | 完成 Feature Flag 下真实账号 E2E、协议漂移和熔断演练 | P9-04-P9-08 | [Canary 报告](reports/p9-09-authorized-web-canary.md)：`CR-P9-CANARY-001/002` 下临时 grok2api Web SSO 账号的三次固定请求；仅当前 Phase Delivery Gate 待执行 | LOCAL_PASS_PENDING_PHASE_GATE |
+| P9-01 | 实现 SSO/Cookie Credential、血缘和独立生命周期 | P8 local isolation evidence（`CR-P9-LOCAL-001`） | 导入、加密、失效测试 | DONE |
+| P9-02 | 实现 BrowserEgressSession：Cookie、UA、TLS Profile、Proxy 绑定 | P9-01 | 指纹一致性和隔离测试 | DONE |
+| P9-03 | 实现 Grok Web Chat 请求和流响应解析 | P9-02 | 脱敏网页 Fixture | DONE |
+| P9-04 | 实现 WebConversationState 与账号/出口强绑定 | P9-03 | 多轮、过期和账号不可用测试 | DONE |
+| P9-05 | 实现 Statsig 签名缓存、受限失效和 SSRF 防护 | P9-02 | 403、Redirect、域名测试 | DONE |
+| P9-06 | 实现 REST/gRPC-Web Quota、Tier、Window、Source/Confidence | P9-03 | Quota Fixture | DONE |
+| P9-07 | 实现 WAF/EgressRejected 与账号 Forbidden 分离 | P9-02,P9-03 | 403 分类矩阵 | DONE |
+| P9-08 | 实现 Tool Emulation Feature Flag，默认关闭并标记 `emulated` | P9-03 | 开关与能力元数据测试 | DONE |
+| P9-09 | 完成 Feature Flag 下真实账号 E2E、协议漂移和熔断演练 | P9-04-P9-08 | [Canary 报告](reports/p9-09-authorized-web-canary.md)：`CR-P9-CANARY-001/002` 下临时 grok2api Web SSO 账号的三次固定请求与 [G9 Delivery Gate](reports/g9-gate-report.md) | DONE |
 
 ### G9 门禁
 
