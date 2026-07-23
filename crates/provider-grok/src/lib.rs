@@ -14,11 +14,13 @@ mod official_responses;
 mod official_runtime;
 mod runtime_state;
 mod strict_json;
+mod web_canary;
 mod web_chat;
 mod web_conversation;
 mod web_credential;
 mod web_egress_session;
 mod web_failure;
+mod web_live;
 mod web_quota;
 mod web_statsig;
 mod web_tool_emulation;
@@ -99,6 +101,10 @@ pub use runtime_state::{
     GrokBuildRateLimitEvidence, GrokBuildRuntimeStateError, GrokBuildRuntimeStateStore,
     classify_grok_build_failure,
 };
+pub use web_canary::{
+    GROK_WEB_CANARY_HOST, GROK_WEB_CANARY_PATH, GROK_WEB_CANARY_URL, GrokWebCanaryOutboundRequest,
+    GrokWebCanaryRequestBuilder, GrokWebCanaryRequestError, MAX_GROK_WEB_CANARY_REQUEST_BYTES,
+};
 pub use web_chat::{
     GROK_WEB_CHAT_FIXTURE_HOST, GROK_WEB_CHAT_FIXTURE_PATH, GrokWebChatFixtureTarget,
     GrokWebChatOutboundRequest, GrokWebChatRequestBuilder, GrokWebChatRequestError,
@@ -123,6 +129,7 @@ pub use web_failure::{
     GrokWebFailureDisposition, GrokWebFailureError, GrokWebFailureStateError,
     classify_grok_web_http_failure,
 };
+pub use web_live::{GrokWebLiveStreamDecoder, MAX_GROK_WEB_LIVE_FRAME_BYTES};
 pub use web_quota::{
     GrokWebQuotaConfidence, GrokWebQuotaError, GrokWebQuotaFixtureDecoder, GrokWebQuotaSource,
     GrokWebQuotaState, GrokWebQuotaSyncOutcome, GrokWebQuotaTier, GrokWebQuotaWindow,

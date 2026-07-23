@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.42` |
+| 计划版本 | `v1.44` |
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P6` 已完成；P7 Kiro OAuth、P8 Official API-key E2E 与 P9 Web Canary 分别延后。P9-01 至 P9-08 已完成本地审计，但 P9-09/G9 与 Delivery Gate 仍保持 fail-closed。 |
-| 当前任务 | 无进行中 Task。等待各自明确的外部认证/Canary 条件：P7-09 Kiro OAuth、P8-07 Official API Key 和 P9-09 Web 测试账号；不创建 Delivery tag、不发送真实 Provider 请求，P10 仍等待 G9。 |
+| 当前阶段 | `P1` 至 `P6` 已完成；P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。P9-09 的三次受限 Canary、P9 本地 Full gate 与 G9 本地审查均已通过，正在等待本 Phase 唯一的 GitHub Delivery Gate。 |
+| 当前任务 | P9 Phase Delivery Gate：提交并推送 `codex/p8-official` 的 P9 closeout target，创建注释 `phase-p9-complete` tag；仅当 GitHub Fast + Full + Required 通过后，P9/G9 才能标记为 `DONE`。P10 仍等待该 Gate。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1129,6 +1129,57 @@ CR-ID: CR-P9-LOCAL-001
 4. P9-01 至 P9-08 通过后只可进入 `LOCAL_PASS_PENDING_PHASE_GATE`；不得创建 P9 Delivery tag、
    推送远端 Gate、合并、发布或宣称 P9/G9 `DONE`，直到 P9-09 与 G9 的真实证据补齐。
 
+### 已批准 Change Request：CR-P9-CANARY-001
+
+```text
+CR-ID: CR-P9-CANARY-001
+原因: 用户指定“账号去grok2api里面拿web账号就行”，以当前服务器 grok2api 的 active `grok_web/sso`
+      账号补齐 P9-09 所需的独立 Web 测试来源。只读元数据和受控导出已确认其为 Web SSO，而不是
+      Build OAuth、Official API Key 或 Kiro 凭据。
+影响的 Task / Matrix ID / ADR: 仅恢复 P9-09 与 G9 的 Canary 实施；覆盖 P9 Matrix
+      `C29-C34`、`D28-D30`、`E27-E29`、`F17`、`G24-G28` 及 ADR-0061 至 ADR-0068。
+      不解除 P7-09/G7、P8-07/G8 的外部认证延期，也不提前开始 P10。
+Canary 边界: 至多三次真实 `POST`，固定为一个临时 grok2api `grok_web/sso` 导出的独立 SSO
+      生命周期、固定 `https://grok.com` Web Chat 目标、短文本、无附件、默认关闭 Tool emulation。
+      第一次只发现受限协议形状；后续仅在前次结果支持时用于本仓库的非流式/SSE Canonical
+      验证。熔断/403/协议漂移演练优先复用本地 P9-06/P9-07 确定性状态，不为了制造失败额外发送
+      请求。任何凭据、Cookie、Authorization、email、账号 ID、完整 URL Query、上游 Body 和原始
+      响应均不得输出、持久化或提交。
+兼容性与迁移影响: 导出只存在于受控临时内存/进程生命周期；不导入数据库、不创建路由、Client Key、
+      Server 配置、浏览器 Profile、代理/TUN 变更或生产开关。真实观察只能更新 P9-09 的脱敏报告，
+      不能改变 Build/Official/Kiro 的状态。
+测试与回滚变化: 新增默认 ignored、显式授权、严格最多三次的 P9-09 harness；每次请求前必须通过
+      精确目标、HTTPS/DNS-pinned Egress、固定超时、零值日志和一条请求计数审查。失败时停止，不重试
+      同一元组，并将分类限定到 P9 egress/account/protocol。回滚为恢复 P9-09/G9 的 `DEFERRED`，
+      清除临时进程环境并不发送后续请求。
+用户批准: APPROVED，2026-07-23（“账号去grok2api里面拿web账号就行”）
+计划版本变更: v1.43
+```
+
+### 已批准 Change Request：CR-P9-CANARY-002
+
+```text
+CR-ID: CR-P9-CANARY-002
+原因: 第一针以本机直连且未携带当前 Statsig 签名得到 WAF 类 403，不能归因到 grok2api Web
+      账号。用户明确授权“你想怎么测试都可以”，允许以同一服务器现有 Web 运行轮廓进行受控复测。
+影响的 Task / Matrix ID / ADR: 仅扩展 P9-09/G9 的受控 Canary；不改变 P7/P8 延期、P10 前置、
+      公开 API、Provider 路由、Credential 存储或生产 Feature Flag。
+Canary 边界: 保留 CR-P9-CANARY-001 的最多三次固定 Conversation `POST`，已消耗一次；每个后续
+      固定目标 POST 最多配套一次服务器直连的 `GET /index` 与一次已知 Statsig 签名端点 POST，以取得
+      同一 `POST /rest/app-chat/conversations/new` 的当期签名。允许本机仅绑定 loopback 的临时 SSH
+      SOCKS5 转发到同一服务器出口；不修改服务器路由、代理/TUN、账号、配置、数据库或生产开关。
+      所有辅助请求拒绝重定向、固定超时与响应上限；签名只在单进程内存中存在。
+兼容性与迁移影响: 受控复测必须仍由本仓库的 DNS-pinned Rust transport 发送固定 Conversation
+      POST；服务器只提供已存在的 Web 账号、同源出口和当期签名材料，不能把 grok2api 的代理响应当作
+      本仓库 E2E 成功。
+测试与回滚变化: 对新增的 Statsig Header 与 loopback SOCKS5 输入补充零网络合成测试；每次真实
+      Conversation POST 前执行任务级 review。若结果仍非接受的 Conversation frame，停止该 tuple，
+      仅记录脱敏类别并保持 G9 fail-closed。回滚为关闭临时 SSH 转发、清除进程环境与恢复
+      `DEFERRED_EXTERNAL_CANARY`。
+用户批准: APPROVED，2026-07-23（“允许，你想怎么测试都可以”）
+计划版本变更: v1.44
+```
+
 ## 2. Release 1 范围
 
 ### 2.1 必须交付
@@ -1287,7 +1338,7 @@ deploy/
 | P6 | Grok Build | G5 | G6 | DONE |
 | P7 | Kiro IDE/CLI | G6 | G7 | DEFERRED_EXTERNAL_AUTH |
 | P8 | Grok Official | G6（`CR-P7-DEFER-002`） | G8 | DEFERRED_EXTERNAL_E2E |
-| P9 | Grok Web | P8 local isolation evidence（`CR-P9-LOCAL-001`） | G9 | DEFERRED_EXTERNAL_CANARY |
+| P9 | Grok Web | P8 local isolation evidence（`CR-P9-LOCAL-001`） | G9 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P10 | 完整管理 API、Web UI、备份恢复 | G9 | G10 | PENDING |
 | P11 | 差分、性能、安全与发布加固 | G10 | G11 | PENDING |
 | P12 | 服务器部署、灰度、切换与回滚 | G11 | G12 | PENDING |
@@ -1578,7 +1629,7 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 | P9-06 | 实现 REST/gRPC-Web Quota、Tier、Window、Source/Confidence | P9-03 | Quota Fixture | LOCAL_PASS_PENDING_PHASE_GATE |
 | P9-07 | 实现 WAF/EgressRejected 与账号 Forbidden 分离 | P9-02,P9-03 | 403 分类矩阵 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P9-08 | 实现 Tool Emulation Feature Flag，默认关闭并标记 `emulated` | P9-03 | 开关与能力元数据测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P9-09 | 完成 Feature Flag 下真实账号 E2E、协议漂移和熔断演练 | P9-04-P9-08 | Canary 报告；等待 P9 自身测试账号/Canary 授权 | DEFERRED |
+| P9-09 | 完成 Feature Flag 下真实账号 E2E、协议漂移和熔断演练 | P9-04-P9-08 | [Canary 报告](reports/p9-09-authorized-web-canary.md)：`CR-P9-CANARY-001/002` 下临时 grok2api Web SSO 账号的三次固定请求；仅当前 Phase Delivery Gate 待执行 | LOCAL_PASS_PENDING_PHASE_GATE |
 
 ### G9 门禁
 
@@ -1814,3 +1865,5 @@ Next task:
 | v1.40 | 2026-07-23 | 新增 P8-07：为既有 §20.1 的每 Provider Gate 真实 E2E 要求登记一个默认零网络、单目标/单模式/单发送的 Official API-key harness；不改变公开 API 或 Kiro 的延后状态 | APPROVED；当前执行基线 |
 | v1.41 | 2026-07-23 | `CR-P8-DEFER-001`：因无 Official API Key，将 P8-07/G8 延后至与 P7-09 的最终外部认证验收包；不改变 P9-P12 的 Gate 依赖或提前开发权限 | APPROVED；当前执行基线 |
 | v1.42 | 2026-07-23 | `CR-P9-LOCAL-001`：允许 P9-01 至 P9-08 在 P8/G8 外部 E2E 延后时完成本地实现；P9-09/G9/Delivery Gate 仍需 P9 自身真实 Web Canary 证据 | APPROVED；当前执行基线 |
+| v1.43 | 2026-07-23 | `CR-P9-CANARY-001`：用户指定当前 grok2api `grok_web/sso` 账号作为 P9-09 的独立测试来源；恢复单目标、最多三次、无值日志的 Web Canary，P7/P8 延期与 P10 前置不变 | APPROVED；当前执行基线 |
+| v1.44 | 2026-07-23 | `CR-P9-CANARY-002`：在用户扩大测试授权后，允许 P9-09 按现有服务器 Web 运行轮廓使用受限 Statsig 辅助请求与临时 loopback SSH SOCKS5 出口复测；固定目标 POST 预算与 G9 fail-closed 不变 | APPROVED；当前执行基线 |
