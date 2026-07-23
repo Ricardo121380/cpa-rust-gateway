@@ -1460,6 +1460,7 @@ name = "provider-grok"
 version = "0.1.0"
 dependencies = [
  "flate2",
+ "gateway-catalog",
  "gateway-continuity",
  "gateway-core",
  "gateway-provider",

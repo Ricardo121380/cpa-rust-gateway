@@ -7,7 +7,9 @@ mod continuity_state;
 mod credential_runtime;
 mod inference;
 mod oauth;
+mod official;
 mod runtime_state;
+mod strict_json;
 
 pub use build_responses::{
     GROK_BUILD_AGENT_ID_HEADER, GROK_BUILD_AUTHENTICATE_RESPONSE_HEADER,
@@ -50,6 +52,13 @@ pub use oauth::{
     GrokBuildDevicePoller, GrokBuildOAuthEndpoint, GrokBuildOAuthError, GrokBuildOAuthFlow,
     GrokBuildOAuthHttpResponse, GrokBuildOAuthRequest, GrokBuildOAuthRequestKind,
     GrokBuildOAuthTransport, GrokBuildOAuthTransportError,
+};
+pub use official::{
+    GROK_OFFICIAL_API_BASE_URL, GROK_OFFICIAL_MODELS_PATH, GROK_OFFICIAL_MODELS_URL,
+    GROK_OFFICIAL_PROVIDER_ID, GrokOfficialApiKey, GrokOfficialCatalogAdapter,
+    GrokOfficialCatalogRequest, GrokOfficialCatalogTransport, GrokOfficialCatalogTransportResponse,
+    GrokOfficialModelsEndpoint, GrokOfficialUpstreamCatalogTransport,
+    MAX_GROK_OFFICIAL_CATALOG_RESPONSE_BYTES,
 };
 pub use runtime_state::{
     GrokBuildAccountEvidence, GrokBuildBillingPlan, GrokBuildCatalogSyncOutcome,
