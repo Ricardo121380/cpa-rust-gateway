@@ -44,6 +44,6 @@ G8, P8 phase closeout, remote Delivery Gate, merge, release, or `DONE`.
 
 ## Deferred phase acceptance
 
-P8 local implementation is now complete, but `CR-P7-G7-001` keeps G8, phase closeout, the P8
-Delivery Gate, merge, release, real Official E2E, and `DONE` blocked. When Kiro OAuth is repaired,
-complete P7-09/G7/P7 Delivery first; then acquire explicit Official E2E authorization before G8.
+P8 local implementation is complete. `CR-P7-DEFER-002` supersedes the former G7 ordering block:
+P8 may now perform its own G8 review and Delivery Gate. This does not imply a real Official E2E;
+such a test remains separately authorized against a P8 test Credential if the Gate requires it.

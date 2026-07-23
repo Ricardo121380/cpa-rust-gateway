@@ -61,7 +61,9 @@ failed against Kiro.
 **Status: `BLOCKED_AUTH_REAUTH_REQUIRED`.** P7-09 and G7 cannot pass until the service's Kiro
 account is interactively reauthenticated or replaced by the user. Do not retry the same live
 request before that change. After the user completes it, one new explicitly recorded short
-`--bare` tuple may verify normal response semantics, then G7 may run. P8 must not begin first.
+`--bare` tuple may verify normal response semantics, then G7 may run. The original P8 ordering
+sentence is superseded by `CR-P7-DEFER-002`: P8-G12 may progress on their non-Kiro dependencies,
+but Kiro remains blocked and must be completed before any Kiro-inclusive release.
 
 ## Local verification and review
 
