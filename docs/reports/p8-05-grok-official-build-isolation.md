@@ -6,7 +6,7 @@
 | Task | `P8-05` |
 | Date | `2026-07-23` |
 | Branch | `codex/p8-official` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-G7-001` |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-DEFER-002` |
 | Scope / budget | `M`; synthetic state handoff/isolation only; no Official request, account, server, route, or persisted-state change |
 | References | Matrix `C01`、`C03`、`C31`、`C33`、`F07`、`G24-G27`; [ADR-0058](../adr/ADR-0058-grok-official-runtime-isolation.md); [BC-PROVIDER-016](../contracts/BC-PROVIDER-016-grok-official-runtime-isolation.md) |
 
@@ -34,8 +34,8 @@ state action.
 
 No xAI endpoint, credential source, OAuth cache, server process, account, route, proxy/TUN rule,
 or production configuration was read or changed. No Official E2E was sent. G7 remains blocked on
-Kiro reauthentication; P8 cannot close, merge, release, or claim `DONE` before the CR
-prerequisites pass.
+Kiro reauthentication, but P8 closeout now waits only for P8-07's separately authorized Official
+E2E.
 
 ## Verification and review
 

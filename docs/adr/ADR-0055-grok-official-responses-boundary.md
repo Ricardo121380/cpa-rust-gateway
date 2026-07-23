@@ -58,7 +58,9 @@ rejects deferred semantics, rather than serializing a partial request and silent
   state reuse is prohibited by crate boundaries and would hide Official-specific egress/state.
 - Permit Tool/Reasoning/Search fields but drop them: rejected because it changes user semantics.
 - Infer 401/403/429 or quota mutation now: rejected because P8-03 owns that classification.
-- Run a real Official test request: rejected by `CR-P7-G7-001` until G7 and P7 Delivery Gate pass.
+- Run a real Official test request as part of P8-02: rejected. The later separate P8-07 probe is
+  governed by `CR-P7-DEFER-002` and [ADR-0060](ADR-0060-grok-official-authorized-one-probe.md),
+  not by P7/G7.
 
 ## Validation and rollback
 

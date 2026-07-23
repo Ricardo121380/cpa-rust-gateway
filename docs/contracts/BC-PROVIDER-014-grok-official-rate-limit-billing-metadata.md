@@ -6,7 +6,7 @@
 | Task | `P8-03` |
 | ADR | [ADR-0056](../adr/ADR-0056-grok-official-rate-limit-billing-metadata.md) |
 | Matrix | `C01`、`C31`、`C33`、`E11`、`G16`、`G26` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-G7-001`; no Official E2E has run |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-DEFER-002`; no Official E2E has run |
 | Domain | Strict fixed-header rate-limit/reset evidence and non-financial usage metadata |
 
 ## Preconditions and bounds
@@ -20,8 +20,8 @@
    bounded non-negative delta-seconds value, not an HTTP date.
 3. The parser retains only typed counters/durations and header-presence structure. It retains no
    raw Header text, model, endpoint, credential, account, pricing, or body value.
-4. `CR-P7-G7-001` permits local evidence only and prohibits a real xAI request, P8 closeout,
-   Delivery Gate, merge, release, or `DONE` claim before G7 and P7 Delivery Gate pass.
+4. This local task does not authorize a real xAI request. `P8-07` / `BC-E2E-004` own the separately
+   authorized Official E2E; `CR-P7-DEFER-002` makes that P8 prerequisite independent of P7/G7.
 
 ## Required behavior
 

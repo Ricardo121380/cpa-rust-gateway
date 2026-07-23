@@ -51,8 +51,9 @@ catalog path or embedding an HTTP client in application code.
   fixed endpoint, state partition, and future quota/error behavior must remain explicit.
 - Accept ordinary `serde_json::Value`: rejected because duplicate fields would overwrite earlier
   values and turn an ambiguous catalog into an entitlement claim.
-- Introduce a real account probe now: rejected by `CR-P7-G7-001`; P8 may only collect local
-  evidence until G7 and P7's Delivery Gate are complete.
+- Introduce a real account probe as part of P8-01: rejected. The later separate P8-07 probe is
+  governed by `CR-P7-DEFER-002` and [ADR-0060](ADR-0060-grok-official-authorized-one-probe.md),
+  not by P7/G7.
 
 ## Validation and rollback
 

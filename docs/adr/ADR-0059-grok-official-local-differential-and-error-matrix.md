@@ -11,9 +11,9 @@
 
 P8-01 through P8-05 now implement the local Official API-key catalog, Responses codec,
 rate-limit metadata, Tool/Reasoning capability, and exact state-isolation boundary. The remaining
-task must prove these local surfaces compose without changing P7/G7's fail-closed boundary.
-`CR-P7-G7-001` still prohibits a real Official request, P8 phase closeout, Delivery Gate, merge,
-release, or `DONE` before Kiro reauthentication and the P7 Delivery Gate complete.
+task must prove these local surfaces compose without changing any Kiro state. This recorded
+local-only decision is superseded in execution order by `CR-P7-DEFER-002`: P8/G8 does not depend
+on P7/G7. A real Official request remains forbidden here and is separately owned by P8-07.
 
 The only safe current differential is therefore deterministic and synthetic: equivalent completed
 and SSE payloads through the actual adapter/decoder, arbitrary byte chunking, bounded concurrent
@@ -46,12 +46,12 @@ cost measurement.
 - Official failures remain target-local and source/confidence-labelled. Build/Web scheduling or
   state cannot be affected by the matrix.
 - Real Official compatibility, capacity, latency, pricing, and Header behavior remain unknown until
-  G7 passes and a separate explicit E2E authorization is recorded.
+  a separate explicit P8 E2E authorization is recorded.
 
 ## Alternatives considered
 
-- Real load testing against xAI: rejected by `CR-P7-G7-001` and because it would consume quota
-  without proving the local correctness properties above.
+- Real load testing against xAI: rejected because it would consume quota without proving the local
+  correctness properties above; P8-07 admits only one non-load E2E send.
 - Treat synthetic fixture success as upstream differential proof: rejected; only a live, explicitly
   approved reference can prove current remote behavior.
 - Test just one SSE chunk size: rejected because decoder framing must not depend on transport
@@ -64,5 +64,5 @@ instances across twelve simultaneously released OS threads, and the complete bou
 Formatting, Clippy, full workspace tests,
 source/crate boundaries, document links, Secret checks, dependency policy, and RustSec audit must
 pass locally. Rollback removes P8-06's test/ADR/contract/report/index links only. It changes no
-endpoint, API key, account, server, proxy/TUN rule, production traffic, external quota, or P7/G7
+endpoint, API key, account, server, proxy/TUN rule, production traffic, external quota, or Kiro
 state.

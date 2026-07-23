@@ -6,7 +6,7 @@
 | Task | `P8-06` |
 | ADR | [ADR-0059](../adr/ADR-0059-grok-official-local-differential-and-error-matrix.md) |
 | Matrix | `C01`、`C03`、`C04`、`C31`、`C33`、`F07`、`G24-G27` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-G7-001`; no Official E2E or external load has run |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-DEFER-002`; no Official E2E or external load has run |
 | Domain | Deterministic local mode differential, bounded concurrent parser safety, and exact failure state matrix |
 
 ## Preconditions and bounds
@@ -16,8 +16,8 @@
    OAuth cache, server, browser, proxy, route, account, or database is read or changed.
 2. The valid fixture carries only P8-04's admitted Tool/Reasoning semantics. Native Search and
    opaque provider output remain fail-closed; their absence is not an emulation claim.
-3. `CR-P7-G7-001` remains controlling: this local task cannot perform an Official E2E, P8 phase
-   closeout, Delivery Gate, merge, release, or `DONE` declaration before G7/P7 Delivery pass.
+3. This local task cannot perform an Official E2E. `P8-07` / `BC-E2E-004` own its separate
+   authorization; `CR-P7-DEFER-002` makes P8 phase closeout and Delivery Gate independent of P7/G7.
 
 ## Required behavior
 

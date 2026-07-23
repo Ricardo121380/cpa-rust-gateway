@@ -6,7 +6,7 @@
 | Task | `P8-03` |
 | Date | `2026-07-23` |
 | Branch | `codex/p8-official` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-G7-001` |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-DEFER-002` |
 | Scope / budget | `S`; fixed Header/usage metadata only; no Official request, persisted state, server, route, or account change |
 | References | Matrix `C01`、`C31`、`C33`、`E11`、`G16`、`G26`; [ADR-0056](../adr/ADR-0056-grok-official-rate-limit-billing-metadata.md); [BC-PROVIDER-014](../contracts/BC-PROVIDER-014-grok-official-rate-limit-billing-metadata.md) |
 
@@ -24,8 +24,8 @@ modify runtime quota, credential, account, health, retry, scheduler, persistence
 state in P8-03. Those transitions wait for P8-05's exact source-isolated state boundary.
 
 No xAI endpoint, credential source, OAuth cache, server process, route, proxy/TUN rule, or
-production configuration was read or changed. No Official E2E was sent. G7 remains blocked on
-Kiro account reauthentication; P8 cannot close or release before the CR prerequisites pass.
+production configuration was read or changed. No Official E2E was sent. G7 remains blocked on Kiro
+reauthentication, but P8 closeout now waits only for P8-07's separately authorized Official E2E.
 
 ## Verification and review
 

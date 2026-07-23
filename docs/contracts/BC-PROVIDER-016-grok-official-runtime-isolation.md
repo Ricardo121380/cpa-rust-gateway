@@ -6,7 +6,7 @@
 | Task | `P8-05` |
 | ADR | [ADR-0058](../adr/ADR-0058-grok-official-runtime-isolation.md) |
 | Matrix | `C01`、`C03`、`C31`、`C33`、`F07`、`G24-G27` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-G7-001`; no Official E2E has run |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-DEFER-002`; no Official E2E has run |
 | Domain | Exact Official runtime quota handoff, stateless continuity, and failure remediation ownership |
 
 ## Preconditions and bounds
@@ -19,8 +19,8 @@
 2. It accepts only P8-03's complete bounded Requests/Tokens windows and `Retry-After` metadata.
    Reset addition must be representable and observation time strictly positive. Raw Header names
    and values remain unavailable after P8-03 parsing.
-3. `CR-P7-G7-001` permits local evidence only. Official E2E, P8 closeout, Delivery Gate, merge,
-   release, and `DONE` remain blocked pending G7 and the P7 Delivery Gate.
+3. This local task does not authorize a real Official E2E. `P8-07` / `BC-E2E-004` own the separate
+   authorization; `CR-P7-DEFER-002` makes P8 closeout and Delivery Gate independent of P7/G7.
 
 ## Required behavior
 

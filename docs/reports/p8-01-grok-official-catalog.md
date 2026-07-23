@@ -6,7 +6,7 @@
 | Task | `P8-01` |
 | Date | `2026-07-23` |
 | Branch | `codex/p8-official` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-G7-001` |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-DEFER-002` |
 | Scope / budget | `M`; API-key/catalog boundary only; no Official inference, real Provider traffic, or server change |
 | References | Matrix `C01`、`C31`、`C33`、`G24`、`G28`; [ADR-0054](../adr/ADR-0054-grok-official-api-key-catalog-boundary.md); [BC-PROVIDER-012](../contracts/BC-PROVIDER-012-grok-official-api-key-catalog.md) |
 
@@ -29,8 +29,8 @@ This keeps Official code from taking a module dependency on Build while retainin
 duplicate-field rule for both isolated paths.
 
 No xAI endpoint, credential, OAuth cache, server process, route, proxy/TUN rule, or production
-configuration was read or changed. `CR-P7-G7-001` permits this local evidence only; G7 remains
-blocked on Kiro account reauthentication and P8 cannot close or release before it passes.
+configuration was read or changed. This is local evidence only. Under `CR-P7-DEFER-002`, P8 is
+independent of G7; a separately authorized P8 Official E2E is still required before P8 closeout.
 
 ## Verification and review
 
@@ -47,4 +47,4 @@ blocked on Kiro account reauthentication and P8 cannot close or release before i
 Rollback removes the P8-01 Official catalog module, test, narrow local dependency, ADR, contract,
 and report. It has no external effect. P8-02 is the next local task: it will add the separate
 Official Responses HTTP/SSE boundary and its synthetic Fixture tests. It must not run a real
-Official E2E before G7 and P7's Delivery Gate satisfy `CR-P7-G7-001`.
+Official E2E before P8-07's separate API-key authorization is recorded.

@@ -6,7 +6,7 @@
 | Task | `P8-02` |
 | ADR | [ADR-0055](../adr/ADR-0055-grok-official-responses-boundary.md) |
 | Matrix | `C01`、`C03`、`C31`、`G24`、`G27` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-G7-001`; no Official E2E has run |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-DEFER-002`; no Official E2E has run |
 | Domain | Isolated API-key Responses request, bounded text-only JSON/SSE semantics, and safe adapter vertical slice |
 
 ## Preconditions and bounds
@@ -20,8 +20,8 @@
 3. A completed JSON body is at most 1 MiB. An error body is drained only up to 64 KiB; each complete
    SSE record is at most 64 KiB. Strict parsing rejects duplicate JSON names recursively, trailing
    bytes, malformed UTF-8/framing, ambiguous records, and unrepresentable protocol objects.
-4. `CR-P7-G7-001` permits local P8 evidence only. It does not authorize a real xAI API call, P8
-   closeout, phase Delivery Gate, merge, release, or `DONE` claim before G7 and P7 Delivery Gate.
+4. This local task does not authorize a real xAI API call. `P8-07` / `BC-E2E-004` own the separately
+   authorized Official E2E; `CR-P7-DEFER-002` makes that P8 prerequisite independent of P7/G7.
 
 ## Required behavior
 
@@ -40,7 +40,8 @@
 
 P8-03 owns Rate/Quota/Reset/Billing data. P8-04 owns Tool, Reasoning, Search declaration and
 conversion. P8-05 owns Official/Build state and fault isolation. P8-06 owns differential, load,
-and error matrix closure. Real Official E2E and P8 release remain blocked by G7.
+and error matrix closure. Real Official E2E remains separately authorized through P8-07 and is not
+blocked by P7/G7.
 
 ## Corresponding tests
 

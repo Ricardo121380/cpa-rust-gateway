@@ -6,7 +6,7 @@
 | Task | `P8-04` |
 | ADR | [ADR-0057](../adr/ADR-0057-grok-official-tool-reasoning-capability-boundary.md) |
 | Matrix | `B11`、`B12`、`B16`、`C01`、`C03`、`C18`、`C31`、`F02` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-G7-001`; no Official E2E has run |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-DEFER-002`; no Official E2E has run |
 | Domain | Explicit Official Function Tool/Reasoning conversion and truthful Search non-capability |
 
 ## Preconditions and bounds
@@ -18,8 +18,8 @@
    schema and arguments must be bounded JSON objects; Tool Result is an exact non-error JSON string.
 3. The native Search state is exactly `UnavailablePendingCanonicalContract`: `B21` has no admitted
    Canonical/ingress mapping, so no Endpoint/Candidate may advertise Search through this contract.
-4. `CR-P7-G7-001` permits local evidence only. Real Official E2E, P8 closeout, Delivery Gate,
-   merge, release, and `DONE` remain blocked pending G7 and the P7 Delivery Gate.
+4. This local task does not authorize a real Official E2E. `P8-07` / `BC-E2E-004` own the separate
+   authorization; `CR-P7-DEFER-002` makes P8 closeout and Delivery Gate independent of P7/G7.
 
 ## Required behavior
 

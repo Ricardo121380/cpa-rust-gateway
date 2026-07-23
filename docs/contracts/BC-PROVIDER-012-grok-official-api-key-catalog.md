@@ -6,7 +6,7 @@
 | Task | `P8-01` |
 | ADR | [ADR-0054](../adr/ADR-0054-grok-official-api-key-catalog-boundary.md) |
 | Matrix | `C01`、`C31`、`C33`、`G24`、`G28` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-G7-001`; no Official E2E has run |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-DEFER-002`; no Official E2E has run |
 | Domain | API-key isolation, fixed model discovery, exact egress handoff, and strict catalog syntax |
 
 ## Preconditions and bounds
@@ -19,8 +19,8 @@
 3. A successful catalog body is at most 1 MiB. Parsing rejects duplicate names recursively,
    trailing bytes, non-object roots, a missing/non-array `data`, non-object entries, absent/blank/
    non-printable/overlong IDs, and duplicate IDs.
-4. `CR-P7-G7-001` permits only local P8 work before G7. It does not authorize a real xAI API call,
-   Phase closeout, Delivery Gate, merge, release, or a `DONE` claim.
+4. This local task does not authorize a real xAI API call. `P8-07` / `BC-E2E-004` own the separately
+   authorized Official E2E; `CR-P7-DEFER-002` makes that P8 prerequisite independent of P7/G7.
 
 ## Required behavior
 

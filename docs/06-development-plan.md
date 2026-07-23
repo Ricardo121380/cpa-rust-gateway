@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.39` |
+| 计划版本 | `v1.40` |
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6` 已完成；`P7 - Kiro IDE/CLI` 的外部 OAuth 验证延后。按 `CR-P7-DEFER-002`，`P8 - Grok Official` 独立执行 G8 和自身 Delivery Gate，随后按依赖继续 P9-P12。 |
-| 当前任务 | P8 Phase Gate：P8-01 至 P8-06 均为 `LOCAL_PASS_PENDING_PHASE_GATE`；进行 G8 本地验收、Phase review 与 P8 的唯一远端 Delivery Gate。P7-09 保持 `BLOCKED_AUTH_REAUTH_REQUIRED`，不阻塞非 Kiro Phase。 |
+| 当前任务 | P8-07：已完成零网络安全 harness 与本地 review；等待 P8 自身 Official API Key、模型和一次明确授权，才能执行 G8 所需的一次真实 E2E。P7-09 保持 `BLOCKED_AUTH_REAUTH_REQUIRED`，不阻塞非 Kiro Phase。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1029,6 +1029,9 @@ CR-ID: CR-P7-G7-001
 
 ### 1.14 P7 阻塞期间的 P8 本地开发边界（CR-P7-G7-001）
 
+> 历史记录：本节中将 P8/G8 与 G7 绑定的顺序约束，已由 §1.15 的
+> `CR-P7-DEFER-002` 完整替代；当前执行仅以 §1.15 为准。
+
 1. 全计划仍然最多一个 `IN_PROGRESS` 代码 Task；P7-09 是 `BLOCKED`，P8-01 至 P8-06 的本地
    序列已完成，因此当前没有 `IN_PROGRESS` 代码 Task。不得由此开启 P9 或跳过 P7/G7。
 2. P7 的 G7 和其 Phase Delivery Gate 保持 fail-closed。P8 的每项本地证据仅为后续 P8 本地 Task
@@ -1486,18 +1489,20 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
-| P8-01 | 实现 Official API Key、Endpoint、Header 和模型发现 | `CR-P7-G7-001` 本地启动边界 | 请求/目录 Fixture passed；见 P8-01 report | LOCAL_PASS_PENDING_PHASE_GATE |
-| P8-02 | 实现 Official Responses HTTP 非流式与 SSE | P8-01 | 本地 HTTP/SSE Fixture、严格分块/错误/Redaction 验收 passed；Official E2E 按 `CR-P7-G7-001` 延后 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P8-03 | 实现 Quota/Rate Header、Reset 和 Billing 元数据 | P8-02 | 严格 Header/Reset/Usage Fixture、Redaction 和本地 Full Gate passed；真实 Header 行为按 `CR-P7-G7-001` 延后 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P8-04 | 实现 Official Tool、Reasoning、Search 能力声明与转换 | P8-02 | Capability/Tool/Reasoning Fixture、Search 显式非能力与本地 Full Gate passed；真实 Official E2E 按 `CR-P7-G7-001` 延后 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P8-05 | 验证 Official/Build 状态、Affinity、Quota 和故障完全隔离 | P8-02-P8-04 | Exact Header-to-quota、Build state/affinity、401/403/429/transient 隔离 Fixture 与本地 Full Gate passed；Official E2E 按 `CR-P7-G7-001` 延后 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P8-06 | 完成官方路径差分、负载和错误矩阵 | P8-05 | JSON/SSE Tool/Reasoning 差分、12 OS 线程 × 8 解码器的 96 实例隔离、精确错误/Quota 矩阵、本地 Full Gate 与 review passed；G8/Official E2E 按 `CR-P7-G7-001` 延后 | LOCAL_PASS_PENDING_PHASE_GATE |
+| P8-01 | 实现 Official API Key、Endpoint、Header 和模型发现 | G6（`CR-P7-DEFER-002`） | 请求/目录 Fixture passed；见 P8-01 report | LOCAL_PASS_PENDING_PHASE_GATE |
+| P8-02 | 实现 Official Responses HTTP 非流式与 SSE | P8-01 | 本地 HTTP/SSE Fixture、严格分块/错误/Redaction 验收 passed | LOCAL_PASS_PENDING_PHASE_GATE |
+| P8-03 | 实现 Quota/Rate Header、Reset 和 Billing 元数据 | P8-02 | 严格 Header/Reset/Usage Fixture、Redaction 和本地 Full Gate passed | LOCAL_PASS_PENDING_PHASE_GATE |
+| P8-04 | 实现 Official Tool、Reasoning、Search 能力声明与转换 | P8-02 | Capability/Tool/Reasoning Fixture、Search 显式非能力与本地 Full Gate passed | LOCAL_PASS_PENDING_PHASE_GATE |
+| P8-05 | 验证 Official/Build 状态、Affinity、Quota 和故障完全隔离 | P8-02-P8-04 | Exact Header-to-quota、Build state/affinity、401/403/429/transient 隔离 Fixture 与本地 Full Gate passed | LOCAL_PASS_PENDING_PHASE_GATE |
+| P8-06 | 完成官方路径差分、负载和错误矩阵 | P8-05 | JSON/SSE Tool/Reasoning 差分、12 OS 线程 × 8 解码器的 96 实例隔离、精确错误/Quota 矩阵、本地 Full Gate 与 review passed | LOCAL_PASS_PENDING_PHASE_GATE |
+| P8-07 | Official API Key 一次真实 E2E | P8-06、§20.1 Provider Gate E2E | 已忽略的零网络 harness、精确一 send、DNS-pinned direct egress、脱敏 lifecycle 结果；等待 P8 自身 API Key/模型/授权 | BLOCKED |
 
 ### G8 门禁
 
 - Official 与 Build 同名 Public Model 只有显式 Route 才能共同候选。
 - 一个来源的 401/403/429 不改变另一个来源状态。
 - 官方 Tool/Reasoning 能力与公开元数据一致。
+- 使用 P8 测试 API Key 的一次已授权真实 E2E，必须产生 `ResponseStart`、文本和无 `StreamError` 的 `ResponseEnd`；该授权与 P7 Kiro OAuth 无关。
 
 ## 15. P9 - Grok Web
 
@@ -1748,3 +1753,4 @@ Next task:
 | v1.9 | 2026-07-21 | `CR-EXEC-007`：未开始 Phase 改用一条 P 级分支、每 Task 本地 review/test、每 Phase 一次正式远端 Fast + Full；新增 P5-00 以验证 GitHub trigger/default-ref cache/tag restore，并保留 CI/cache 等提前远端例外 | APPROVED；当前执行基线 |
 | v1.38 | 2026-07-23 | `CR-P7-G7-001`：P7 的外部 Kiro 账号认证阻塞期间，允许 P8 仅进行顺序本地开发；保留 G7、两阶段 Delivery Gate、完成语义、真实 E2E 与发布的 fail-closed 边界 | 已由 v1.39 的冲突顺序部分替代 |
 | v1.39 | 2026-07-23 | `CR-P7-DEFER-002`：P7 Kiro OAuth 延后；P8-G12 按自身非 Kiro 依赖推进，P8 可进行自身 Gate/Delivery，Kiro 仍必须在 P12/G12 后、含 Kiro 发布前回补 | APPROVED；当前执行基线 |
+| v1.40 | 2026-07-23 | 新增 P8-07：为既有 §20.1 的每 Provider Gate 真实 E2E 要求登记一个默认零网络、单目标/单模式/单发送的 Official API-key harness；不改变公开 API 或 Kiro 的延后状态 | APPROVED；当前执行基线 |

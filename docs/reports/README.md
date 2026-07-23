@@ -104,4 +104,5 @@
 - [P8-03 Grok Official rate-limit and billing metadata](p8-03-grok-official-metadata.md) — local phase-gate pass
 - [P8-04 Grok Official Tool, Reasoning, and Search capability](p8-04-grok-official-capabilities.md) — local phase-gate pass
 - [P8-05 Grok Official / Build state isolation](p8-05-grok-official-build-isolation.md) — local phase-gate pass
-- [P8-06 Grok Official local differential, concurrent load, and error matrix](p8-06-grok-official-local-differential.md) — local phase-gate pass ([Full Gate evidence](p8-06-local-full-check.md)); P8 closeout remains blocked on G7
+- [P8-06 Grok Official local differential, concurrent load, and error matrix](p8-06-grok-official-local-differential.md) — local phase-gate pass ([Full Gate evidence](p8-06-local-full-check.md))
+- [P8-07 Grok Official authorized one-probe](p8-07-authorized-official-probe.md) — local safety harness pass; blocked only on P8 Official API-key E2E authorization

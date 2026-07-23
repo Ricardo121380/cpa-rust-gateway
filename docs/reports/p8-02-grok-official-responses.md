@@ -6,7 +6,7 @@
 | Task | `P8-02` |
 | Date | `2026-07-23` |
 | Branch | `codex/p8-official` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-G7-001` |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-DEFER-002` |
 | Scope / budget | `M`; synthetic text-only Official HTTP/SSE boundary; no real Provider traffic, server, route, or state change |
 | References | Matrix `C01`、`C03`、`C31`、`G24`、`G27`; [ADR-0055](../adr/ADR-0055-grok-official-responses-boundary.md); [BC-PROVIDER-013](../contracts/BC-PROVIDER-013-grok-official-responses-boundary.md) |
 
@@ -31,9 +31,9 @@ after it, malformed/truncated transport and decoder failures produce exactly one
 No P8-03 status/quota/billing behavior is inferred.
 
 No xAI endpoint, credential source, OAuth cache, server process, route, proxy/TUN rule, or
-production configuration was read or changed. No Official E2E was sent. P7's G7 remains blocked
-on Kiro account reauthentication, so P8 cannot close, push a Phase Delivery Gate, merge, release,
-or claim `DONE` before the CR's prerequisites pass.
+production configuration was read or changed. No Official E2E was sent. P7's G7 remains blocked on
+Kiro reauthentication, but `CR-P7-DEFER-002` makes P8 independent; P8-07 owns the remaining
+separate Official API-key E2E authorization.
 
 ## Verification and review
 
@@ -50,4 +50,4 @@ or claim `DONE` before the CR's prerequisites pass.
 Rollback removes the P8-02 Official Responses module, fixtures/tests, ADR, contract, report, and
 traceability/index links. It has no external effect. P8-03 is the next local task after final P8-02
 review: it will add explicit Rate/Quota/Reset/Billing metadata, without sending a real request or
-changing the G7/P8 closeout boundary.
+changing P8's separate Official E2E authorization boundary.

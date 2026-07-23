@@ -57,7 +57,8 @@ Official state application/isolation, while P8-06 and live E2E can confirm real 
 - Parse HTTP-date Retry-After with local clock: rejected because this pure parser has no trusted
   observed-time input.
 - Call an xAI billing endpoint: rejected because no fixed Official billing endpoint/account
-  authorization is established and `CR-P7-G7-001` forbids real Official E2E at this stage.
+  authorization is established. P8-07 later permits only one fixed Responses E2E and remains
+  distinct from any billing query.
 
 ## Validation and rollback
 

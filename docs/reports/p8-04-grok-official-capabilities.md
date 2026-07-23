@@ -6,7 +6,7 @@
 | Task | `P8-04` |
 | Date | `2026-07-23` |
 | Branch | `codex/p8-official` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-G7-001` |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-DEFER-002` |
 | Scope / budget | `M`; local codec/capability work only; no Official request, state, server, route, or account change |
 | References | Matrix `B11`、`B12`、`B16`、`C01`、`C03`、`C18`、`C31`、`F02`; [ADR-0057](../adr/ADR-0057-grok-official-tool-reasoning-capability-boundary.md); [BC-PROVIDER-015](../contracts/BC-PROVIDER-015-grok-official-tool-reasoning-capability.md) |
 
@@ -26,8 +26,8 @@ being relabelled or dropped.
 
 No xAI endpoint, credential source, OAuth cache, server process, account, route, proxy/TUN rule,
 or production configuration was read or changed. No Official E2E was sent. G7 remains blocked on
-Kiro reauthentication; P8 cannot close, merge, release, or claim `DONE` before the CR prerequisites
-pass.
+Kiro reauthentication, but `CR-P7-DEFER-002` makes P8 independent; P8-07 owns the remaining
+separate Official API-key E2E authorization.
 
 ## Verification and review
 

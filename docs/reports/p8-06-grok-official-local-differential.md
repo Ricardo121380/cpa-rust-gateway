@@ -6,7 +6,7 @@
 | Task | `P8-06` |
 | Date | `2026-07-23` |
 | Branch | `codex/p8-official` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-G7-001` |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-DEFER-002` |
 | Scope / budget | `M`; deterministic local fixture and state-matrix evidence only; no xAI request/load, account, server, route, or persisted-state change |
 | References | Matrix `C01`、`C03`、`C04`、`C31`、`C33`、`F07`、`G24-G27`; [ADR-0059](../adr/ADR-0059-grok-official-local-differential-and-error-matrix.md); [BC-PROVIDER-017](../contracts/BC-PROVIDER-017-grok-official-local-differential-and-error-matrix.md) |
 
@@ -30,8 +30,8 @@ replaces it as `Header/Observed`. The Build comparison target stays absent throu
 
 No xAI endpoint, API key, OAuth source/cache, server process, account, route, proxy/TUN rule, or
 production configuration was read or changed. No Official E2E or external load was sent. P7/G7
-remain blocked on Kiro account reauthentication, so this closes only P8's local task sequence—not
-G8, P8 phase closeout, remote Delivery Gate, merge, release, or `DONE`.
+remain blocked on Kiro account reauthentication, but that does not block P8. P8-07's separately
+authorized Official E2E remains required before G8, P8 phase closeout, or the remote Delivery Gate.
 
 ## Verification and review
 
