@@ -14,6 +14,7 @@ gateway-continuity = { path = "../gateway-continuity" }
 gateway-catalog = { path = "../gateway-catalog" }
 gateway-core = { path = "../gateway-core" }
 gateway-provider = { path = "../gateway-provider" }
+gateway-router = { path = "../gateway-router" }
 gateway-store = { path = "../gateway-store" }
 gateway-upstream = { path = "../gateway-upstream" }
 hmac.workspace = true
@@ -27,7 +28,6 @@ url.workspace = true
 zeroize.workspace = true
 
 [dev-dependencies]
-gateway-router = { path = "../gateway-router" }
 tokio.workspace = true
 
 [lints]

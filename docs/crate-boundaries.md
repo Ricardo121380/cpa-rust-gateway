@@ -67,10 +67,11 @@ gateway-core
   `time` 仅在 `CR-P6-03-008` 的 bytes-only OAuth 来源适配中严格解析 RFC3339 绝对过期时间，
   不读取时钟、不创建网络 I/O，也不改变 P6-01 相对 `expires_in` 行为。
   `flate2` 仅用于 1 MiB 上限内的 gzip 解码，`getrandom` 仅生成不持久化、不诊断的进程/请求关联值；
-  `tokio` 仅为 ignored 的授权单探针测试目标提供受限异步驱动，`gateway-router` 仅为
-  `p6_09_inference_adapter` 的 Provider-to-Router fixture 纵向测试提供 dev-dependency；两者都不进入
-  `provider-grok` 库目标或公共 API，也不形成运行时的 Provider→Router 依赖。状态/Quota/Cache/
-  Continuity 策略仍由后续 P6 Task 所有。
+  `tokio` 仅为 ignored 的授权单探针测试目标提供受限异步驱动。P8-05 的 `gateway-router` 运行时
+  依赖仅接收已脱敏的 `RuntimeQuotaRegistry` 和 exact-target quota 类型，以将 Official Header 观察
+  写入 Router-owned 状态；它不选择 Route/Public Model/凭据、不开 HTTP、不读取 Build/Web 状态，且
+  不形成 Router→具体 Provider 的反向依赖。P6 的 Build 状态/Quota/Cache/Continuity 仍由其专属
+  模块所有，`p6_09_inference_adapter` 仍提供额外的 Provider-to-Router fixture 纵向测试。
 - `provider-kiro` 的 P7-01 凭据边界仅依赖 `serde`/`serde_json` 对显式传入的有界 JSON 做严格
   解析，`zeroize` 只持有 Social/Enterprise OAuth 或 `ksk_` Secret，`gateway-store` 只为由精确
   Credential ID 关联数据绑定的 AEAD envelope 提供加解密。P7-02 新增 `url`，只验证由严格 API

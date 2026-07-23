@@ -29,7 +29,7 @@ use zeroize::Zeroizing;
 
 use crate::{
     GROK_OFFICIAL_API_BASE_URL, GROK_OFFICIAL_PROVIDER_ID, GrokOfficialApiKey,
-    GrokOfficialRateLimitMetadata, strict_json::parse_strict_json,
+    GrokOfficialRateLimitMetadata, GrokOfficialRuntimeState, strict_json::parse_strict_json,
 };
 
 /// Fixed Official Responses path.
@@ -1521,6 +1521,7 @@ pub struct GrokOfficialInferenceAdapter {
     upstream_model: String,
     mode: GrokOfficialExecutionMode,
     transport: Arc<dyn GrokOfficialTransport>,
+    runtime_state: Option<GrokOfficialRuntimeState>,
 }
 
 impl GrokOfficialInferenceAdapter {
@@ -1539,6 +1540,40 @@ impl GrokOfficialInferenceAdapter {
         mode: GrokOfficialExecutionMode,
         transport: Arc<dyn GrokOfficialTransport>,
     ) -> Result<Self, GatewayError> {
+        Self::try_new_inner(credential, upstream_model, mode, transport, None)
+    }
+
+    /// Builds one Official adapter that applies safe runtime observations to its explicit state.
+    ///
+    /// The state object fixes the Official Endpoint/Credential quota target and cannot carry
+    /// Build/Web state. A response is observed exactly once after transport headers are available.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same selected-model/provider-identity errors as [`Self::try_new`].
+    pub fn try_new_with_runtime_state(
+        credential: GrokOfficialApiKey,
+        upstream_model: impl Into<String>,
+        mode: GrokOfficialExecutionMode,
+        transport: Arc<dyn GrokOfficialTransport>,
+        runtime_state: GrokOfficialRuntimeState,
+    ) -> Result<Self, GatewayError> {
+        Self::try_new_inner(
+            credential,
+            upstream_model,
+            mode,
+            transport,
+            Some(runtime_state),
+        )
+    }
+
+    fn try_new_inner(
+        credential: GrokOfficialApiKey,
+        upstream_model: impl Into<String>,
+        mode: GrokOfficialExecutionMode,
+        transport: Arc<dyn GrokOfficialTransport>,
+        runtime_state: Option<GrokOfficialRuntimeState>,
+    ) -> Result<Self, GatewayError> {
         let upstream_model = upstream_model.into();
         if upstream_model.is_empty()
             || upstream_model.len() > MAX_GROK_OFFICIAL_MODEL_BYTES
@@ -1554,6 +1589,7 @@ impl GrokOfficialInferenceAdapter {
             upstream_model,
             mode,
             transport,
+            runtime_state,
         })
     }
 }
@@ -1567,6 +1603,7 @@ impl fmt::Debug for GrokOfficialInferenceAdapter {
             .field("upstream_model", &"<redacted>")
             .field("mode", &self.mode)
             .field("transport", &"<injected>")
+            .field("runtime_state", &self.runtime_state.is_some())
             .finish()
     }
 }
@@ -1587,6 +1624,7 @@ impl InferenceAdapter for GrokOfficialInferenceAdapter {
         let upstream_model = self.upstream_model.clone();
         let mode = self.mode;
         let transport = Arc::clone(&self.transport);
+        let runtime_state = self.runtime_state.clone();
 
         Box::pin(async move {
             let outbound = GrokOfficialResponsesRequestBuilder::build(
@@ -1596,7 +1634,15 @@ impl InferenceAdapter for GrokOfficialInferenceAdapter {
                 mode.response_mode(),
             )?;
             let response = transport.send(outbound).await?;
-            let (status, content_type, _rate_limit, mut body) = response.into_parts();
+            let (status, content_type, rate_limit, mut body) = response.into_parts();
+            if let Some(runtime_state) = runtime_state
+                && let Some(disposition) = runtime_state
+                    .observe_transport_response(status, &rate_limit)
+                    .map_err(|_| internal_error())?
+            {
+                let _ = read_bounded_body(&mut *body, MAX_GROK_OFFICIAL_ERROR_BODY_BYTES).await?;
+                return Err(disposition.error().clone());
+            }
             if !(200..=299).contains(&status) {
                 // P8-03 owns status/header/quota classification. Consume only a bounded amount so
                 // malformed or unexpectedly large error responses cannot become an unbounded

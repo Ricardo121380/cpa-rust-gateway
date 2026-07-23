@@ -11,6 +11,7 @@ mod official;
 mod official_capabilities;
 mod official_metadata;
 mod official_responses;
+mod official_runtime;
 mod runtime_state;
 mod strict_json;
 
@@ -77,6 +78,10 @@ pub use official_responses::{
     GrokOfficialResponsesStreamDecoder, GrokOfficialTransport, GrokOfficialTransportResponse,
     GrokOfficialUpstreamTransport, MAX_GROK_OFFICIAL_ERROR_BODY_BYTES,
     MAX_GROK_OFFICIAL_NON_STREAMING_RESPONSE_BYTES, MAX_GROK_OFFICIAL_SSE_FRAME_BYTES,
+};
+pub use official_runtime::{
+    GrokOfficialContinuityPolicy, GrokOfficialFailureAction, GrokOfficialFailureDisposition,
+    GrokOfficialRuntimeState, GrokOfficialRuntimeStateError, classify_grok_official_http_failure,
 };
 pub use runtime_state::{
     GrokBuildAccountEvidence, GrokBuildBillingPlan, GrokBuildCatalogSyncOutcome,

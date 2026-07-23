@@ -13,10 +13,11 @@ use std::{
 };
 
 use gateway_core::{
-    CanonicalEvent, CanonicalRequest, EgressPolicyId, ErrorScope, GatewayError, GatewayErrorCode,
-    RequestContext, RequestId,
+    CanonicalEvent, CanonicalRequest, CredentialId, EgressPolicyId, EndpointId, ErrorScope,
+    GatewayError, GatewayErrorCode, RequestContext, RequestId,
 };
 use gateway_provider::{CanonicalEventSource, InferenceAdapter, ProviderAdapter, ProviderFuture};
+use gateway_router::{QuotaConfidence, QuotaSource, RuntimeQuotaRegistry, RuntimeQuotaTarget};
 use gateway_upstream::{
     EgressCidr, EgressDnsError, EgressDnsResolver, EgressHost, EgressPolicy, EgressPolicyInput,
     EgressScheme, RedirectPolicy, UpstreamHttpMethod,
@@ -24,9 +25,10 @@ use gateway_upstream::{
 use protocol_openai_responses::decode_request;
 use provider_grok::{
     GROK_OFFICIAL_RESPONSES_URL, GrokOfficialApiKey, GrokOfficialExecutionMode,
-    GrokOfficialInferenceAdapter, GrokOfficialResponseBody, GrokOfficialResponseContentType,
-    GrokOfficialResponsesEndpoint, GrokOfficialResponsesOutboundRequest,
-    GrokOfficialResponsesRequestBuilder, GrokOfficialResponsesStreamDecoder, GrokOfficialTransport,
+    GrokOfficialInferenceAdapter, GrokOfficialRateLimitMetadata, GrokOfficialResponseBody,
+    GrokOfficialResponseContentType, GrokOfficialResponsesEndpoint,
+    GrokOfficialResponsesOutboundRequest, GrokOfficialResponsesRequestBuilder,
+    GrokOfficialResponsesStreamDecoder, GrokOfficialRuntimeState, GrokOfficialTransport,
     GrokOfficialTransportResponse,
 };
 
@@ -143,6 +145,70 @@ async fn sse_text_fixture_is_chunk_invariant_and_runs_through_adapter() -> TestR
     Ok(())
 }
 
+#[tokio::test]
+async fn runtime_state_receives_only_the_explicit_official_transport_observation() -> TestResult {
+    let runtime_quota = Arc::new(RuntimeQuotaRegistry::new());
+    let endpoint_id = EndpointId::try_new("official-runtime-endpoint")?;
+    let credential_id = CredentialId::try_new("official-runtime-credential")?;
+    let runtime_state = GrokOfficialRuntimeState::try_new(
+        endpoint_id.clone(),
+        credential_id.clone(),
+        Arc::clone(&runtime_quota),
+    )?;
+    let metadata = GrokOfficialRateLimitMetadata::parse([
+        ("x-ratelimit-limit-requests", "10"),
+        ("x-ratelimit-remaining-requests", "0"),
+        ("x-ratelimit-reset-requests", "1s"),
+    ])?;
+    let transport = Arc::new(ScriptedTransport::new([FixtureResponse::json(
+        br#"{
+            "id":"resp-p8-runtime",
+            "status":"completed",
+            "output":[{
+                "id":"msg-p8-runtime",
+                "type":"message",
+                "role":"assistant",
+                "status":"completed",
+                "content":[{"type":"output_text","text":"ready"}]
+            }]
+        }"#,
+    )
+    .with_rate_limit_metadata(metadata)]));
+    let adapter = adapter_with_runtime(
+        GrokOfficialExecutionMode::NonStreaming,
+        transport,
+        runtime_state.clone(),
+    )?;
+
+    collect(adapter.execute(context()?, request()?).await?).await?;
+    let target = RuntimeQuotaTarget::endpoint_credential(endpoint_id, credential_id);
+    let snapshot = runtime_quota
+        .snapshot(&target)?
+        .ok_or("adapter dropped its explicit Official rate-limit handoff")?;
+    assert_eq!(snapshot.source(), QuotaSource::Header);
+    assert_eq!(snapshot.confidence(), QuotaConfidence::Observed);
+
+    let retry_after = GrokOfficialRateLimitMetadata::parse([("retry-after", "5")])?;
+    let error = adapter_with_runtime(
+        GrokOfficialExecutionMode::NonStreaming,
+        Arc::new(ScriptedTransport::new([FixtureResponse::new(
+            429,
+            GrokOfficialResponseContentType::Json,
+            Vec::new(),
+        )
+        .with_rate_limit_metadata(retry_after)])),
+        runtime_state,
+    )?
+    .execute(context()?, request()?)
+    .await
+    .err()
+    .ok_or("Official 429 unexpectedly started a response")?;
+    assert_eq!(error.code(), GatewayErrorCode::ProviderRateLimited);
+    assert_eq!(error.scope(), ErrorScope::QuotaWindow);
+    assert!(runtime_quota.snapshot(&target)?.is_some());
+    Ok(())
+}
+
 #[test]
 fn cache_opaque_and_unsupported_roles_are_rejected_before_transport() -> TestResult {
     let key = GrokOfficialApiKey::try_new(SYNTHETIC_KEY)?;
@@ -254,6 +320,20 @@ fn adapter(
     )
 }
 
+fn adapter_with_runtime(
+    mode: GrokOfficialExecutionMode,
+    transport: Arc<dyn GrokOfficialTransport>,
+    runtime_state: GrokOfficialRuntimeState,
+) -> Result<GrokOfficialInferenceAdapter, GatewayError> {
+    GrokOfficialInferenceAdapter::try_new_with_runtime_state(
+        GrokOfficialApiKey::try_new(SYNTHETIC_KEY)?,
+        "grok-test-text",
+        mode,
+        transport,
+        runtime_state,
+    )
+}
+
 fn request() -> Result<CanonicalRequest, Box<dyn Error>> {
     Ok(
         decode_request(r#"{"model":"gateway-official","input":"Reply with exactly: ready"}"#)?
@@ -343,6 +423,7 @@ struct FixtureResponse {
     status: u16,
     content_type: GrokOfficialResponseContentType,
     chunks: Vec<Vec<u8>>,
+    rate_limit: GrokOfficialRateLimitMetadata,
 }
 
 impl FixtureResponse {
@@ -355,6 +436,7 @@ impl FixtureResponse {
             status,
             content_type,
             chunks,
+            rate_limit: GrokOfficialRateLimitMetadata::default(),
         }
     }
 
@@ -370,6 +452,11 @@ impl FixtureResponse {
         Self::new(200, GrokOfficialResponseContentType::EventStream, chunks)
     }
 
+    fn with_rate_limit_metadata(mut self, rate_limit: GrokOfficialRateLimitMetadata) -> Self {
+        self.rate_limit = rate_limit;
+        self
+    }
+
     fn into_transport_response(self) -> GrokOfficialTransportResponse {
         GrokOfficialTransportResponse::new(
             self.status,
@@ -378,6 +465,7 @@ impl FixtureResponse {
                 chunks: self.chunks.into(),
             }),
         )
+        .with_rate_limit_metadata(self.rate_limit)
     }
 }
 
