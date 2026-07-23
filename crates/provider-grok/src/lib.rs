@@ -18,6 +18,7 @@ mod web_chat;
 mod web_conversation;
 mod web_credential;
 mod web_egress_session;
+mod web_failure;
 mod web_quota;
 mod web_statsig;
 
@@ -114,6 +115,12 @@ pub use web_credential::{
 pub use web_egress_session::{
     GrokWebBrowserEgressSession, GrokWebBrowserEgressSessionError, GrokWebBrowserUserAgent,
     GrokWebEgressSessionId, GrokWebTlsProfile,
+};
+pub use web_failure::{
+    GrokWebAccountAvailability, GrokWebAccountEvidence, GrokWebAccountFailureState,
+    GrokWebEgressAvailability, GrokWebEgressFailureState, GrokWebFailureAction,
+    GrokWebFailureDisposition, GrokWebFailureError, GrokWebFailureStateError,
+    classify_grok_web_http_failure,
 };
 pub use web_quota::{
     GrokWebQuotaConfidence, GrokWebQuotaError, GrokWebQuotaFixtureDecoder, GrokWebQuotaSource,

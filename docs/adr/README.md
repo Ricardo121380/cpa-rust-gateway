@@ -92,4 +92,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0064 Grok Web Conversation exact account and egress binding](ADR-0064-grok-web-conversation-egress-binding.md) — `P9-04`（Accepted；local-only）。
 - [ADR-0065 Grok Web Statsig signature cache and signer SSRF boundary](ADR-0065-grok-web-statsig-cache-ssrf-boundary.md) — `P9-05`（Accepted；local-only）。
 - [ADR-0066 Grok Web source-labelled quota observations](ADR-0066-grok-web-source-labelled-quota-observations.md) — `P9-06`（Accepted；local-only）。
+- [ADR-0067 Grok Web 403 egress/account attribution](ADR-0067-grok-web-403-egress-account-attribution.md) — `P9-07`（Accepted；local-only）。
 - [ADR-0045 Grok Build runtime state and continuity isolation](ADR-0045-grok-build-runtime-continuity.md) — `P6-04` 至 `P6-07`（Accepted）。
