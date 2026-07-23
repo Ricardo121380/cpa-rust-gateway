@@ -126,3 +126,5 @@
 - [P10-05 Protected routing and Client Key workflows](p10-05-protected-routing-client-key-workflows.md) — local phase-gate pass; browser E2E and Key redaction evidence, no runtime or deployment
 - [P10-06 Runtime observability management workflow plan](p10-06-execution-plan.md) — scoped implementation boundary
 - [P10-06 Runtime observability management workflows](p10-06-runtime-management.md) — local phase-gate pass; loopback browser E2E and value-free runtime projections only
+- [P10-07 Configuration lifecycle workflow plan](p10-07-execution-plan.md) — scoped protected lifecycle transitions and lifecycle audit only
+- [P10-07 Configuration lifecycle](p10-07-configuration-lifecycle.md) — local phase-gate pass; protected lifecycle E2E and no-persistence browser evidence

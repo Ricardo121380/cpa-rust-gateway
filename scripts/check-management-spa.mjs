@@ -151,9 +151,17 @@ for (const operationId of [
 for (const operationId of ["getCatalogStatus", "getRuntimeAvailability", "requestQuotaRecovery", "explainRoute", "listRequestAttempts"]) {
   assert(application.includes(`"${operationId}"`), `P10-06 workspace does not expose ${operationId}`);
 }
-for (const operationId of ["publishConfigVersion", "rollbackConfigVersion", "listManagementAuditEvents", "previewBackup", "previewRestore", "restoreBackup"]) {
-  assert(!application.includes(`"${operationId}"`), `P10-06 workspace exposes a deferred ${operationId} operation`);
+for (const operationId of [
+  "listConfigVersions", "getConfigVersion", "createConfigVersion", "validateConfigVersion",
+  "publishConfigVersion", "rollbackConfigVersion", "listManagementAuditEvents",
+]) {
+  assert(application.includes(`"${operationId}"`), `P10-07 workspace does not expose ${operationId}`);
 }
+for (const operationId of ["previewBackup", "previewRestore", "restoreBackup"]) {
+  assert(!application.includes(`"${operationId}"`), `P10-07 workspace exposes a deferred ${operationId} operation`);
+}
+assert(application.includes('id="configuration-lifecycle-form"'), "P10-07 workspace lacks the Config Version lifecycle form");
+assert(application.includes("function lifecycleRequest"), "P10-07 workspace lacks the generated-client lifecycle request boundary");
 assert(application.includes('model_name: "minimax-m3"'), "P10-06 workspace lacks the minimax-m3 Public Model template");
 assert(application.includes('id: "route-minimax-m3"'), "P10-06 workspace lacks the minimax-m3 Route template");
 assert(application.includes('id: "group-minimax-m3"'), "P10-06 workspace lacks the minimax-m3 Access Group template");

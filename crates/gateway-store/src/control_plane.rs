@@ -1132,6 +1132,43 @@ impl SqliteControlPlaneRepository {
         Ok(configuration)
     }
 
+    /// Lists safe Config Version root metadata in deterministic identifier order.
+    ///
+    /// This projection deliberately excludes every graph resource, Credential envelope, Client
+    /// Key digest, and audit payload. It is the safe metadata view needed by a management UI;
+    /// callers that require a complete graph must continue to use [`Self::load_configuration`].
+    ///
+    /// # Errors
+    ///
+    /// Returns a fail-closed error if any persisted Config Version row is malformed or cannot be
+    /// read consistently.
+    pub fn list_config_versions(&mut self) -> StoreResult<Vec<ConfigVersion>> {
+        let transaction = self.connection.transaction()?;
+        let versions = load_config_versions(&transaction)?;
+        transaction.commit()?;
+        Ok(versions)
+    }
+
+    /// Loads exactly one safe Config Version root metadata record.
+    ///
+    /// Unlike [`Self::load_configuration`], this projection reads no graph rows, Credential
+    /// envelope, Client Key digest, or resource definition. It is suitable for control-plane
+    /// read views that need only a Version identity, status, revision, timestamp, and
+    /// description.
+    ///
+    /// # Errors
+    ///
+    /// Returns a fail-closed error if the persisted Config Version root cannot be decoded.
+    pub fn load_config_version(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+    ) -> StoreResult<Option<ConfigVersion>> {
+        let transaction = self.connection.transaction()?;
+        let version = load_config_version(&transaction, config_version_id)?;
+        transaction.commit()?;
+        Ok(version)
+    }
+
     /// Loads the one currently active Config Version, if a publication has occurred.
     ///
     /// # Errors
@@ -2508,6 +2545,23 @@ fn load_config_version(
         return Ok(None);
     };
 
+    Ok(Some(config_version_from_row(row)?))
+}
+
+fn load_config_versions(transaction: &Transaction<'_>) -> StoreResult<Vec<ConfigVersion>> {
+    let mut statement = transaction.prepare(
+        "SELECT id, parent_id, status, revision, created_at_ms, description \
+         FROM config_versions ORDER BY id",
+    )?;
+    let mut rows = statement.query([])?;
+    let mut versions = Vec::new();
+    while let Some(row) = rows.next()? {
+        versions.push(config_version_from_row(row)?);
+    }
+    Ok(versions)
+}
+
+fn config_version_from_row(row: &rusqlite::Row<'_>) -> StoreResult<ConfigVersion> {
     let id = read_identifier(row, 0, ConfigVersionId::try_new, "config_versions")?;
     let parent_id = read_optional_identifier(row, 1, ConfigVersionId::try_new, "config_versions")?;
     let status_value: String = row.get(2)?;
@@ -2522,14 +2576,14 @@ fn load_config_version(
         return Err(malformed("config_versions"));
     }
     let description: String = row.get(5)?;
-    Ok(Some(ConfigVersion {
+    Ok(ConfigVersion {
         id,
         parent_id,
         status,
         revision,
         created_at_ms,
         description,
-    }))
+    })
 }
 
 fn load_egress_policies(
@@ -2991,6 +3045,13 @@ mod tests {
                 table: "upstream_credentials"
             })
         ));
+        let metadata = repository
+            .load_config_version(&version_id)?
+            .ok_or("safe Config Version metadata was not found")?;
+        assert_eq!(metadata.id, version_id);
+        assert_eq!(metadata.status, ConfigVersionStatus::Draft);
+        assert_eq!(metadata.description, "test graph");
+        assert_eq!(repository.list_config_versions()?.len(), 1);
         Ok(())
     }
 

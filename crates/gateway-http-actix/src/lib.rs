@@ -6,6 +6,8 @@
 
 #![deny(unsafe_code)]
 
+/// Protected P10 Config Version lifecycle and lifecycle-audit handlers.
+pub mod management_lifecycle_resources;
 /// Protected P10 draft-resource handlers for Upstreams, Endpoints, Credentials, and Egress.
 pub mod management_resources;
 /// Independent management HTTP authentication, network, audit-identity, and browser boundary.

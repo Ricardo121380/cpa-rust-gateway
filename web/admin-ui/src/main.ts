@@ -26,6 +26,7 @@ type ResourceKind =
   | "accessGroupRoute"
   | "clientKey";
 type ResourceAction = "list" | "get" | "create" | "update" | "delete" | "issue" | "revoke" | "validate";
+type LifecycleAction = "list" | "get" | "create" | "validate" | "publish" | "rollback" | "audit";
 
 type InMemorySession = Readonly<{
   managementKey: string;
@@ -176,15 +177,15 @@ function applicationMarkup(): string {
           <a href="#upstreams">Upstreams</a>
           <a aria-current="page" href="#routing">Routing and access</a>
           <a href="#runtime">Runtime</a>
-          <a aria-disabled="true" href="#configuration">Configuration</a>
+          <a href="#configuration">Configuration</a>
         </nav>
-        <p class="sidebar-note">P10-06 adds secret-free runtime observations and a recovery request. Publication, rollback and backup remain unavailable.</p>
+        <p class="sidebar-note">P10-07 adds Config Version lifecycle controls and a safe P2 audit view. Backup and restore remain unavailable.</p>
       </aside>
       <main class="content">
         <header>
-          <p class="eyebrow">P10-06 · protected management workspace</p>
+          <p class="eyebrow">P10-07 · protected management workspace</p>
           <h1>Upstreams, routing and access</h1>
-          <p class="lead">Manage draft resources and inspect safe runtime projections. No view can expose a Secret, select a Provider, send an inference request, publish a Snapshot or complete recovery.</p>
+          <p class="lead">Manage draft resources, publish only a validated draft, and inspect safe runtime projections. No view can expose a Secret, select a Provider, send an inference request or complete recovery.</p>
         </header>
 
         <section class="panel" aria-labelledby="session-heading">
@@ -270,6 +271,23 @@ function applicationMarkup(): string {
           </div>
         </section>
 
+        <section class="panel" id="configuration" aria-labelledby="configuration-heading">
+          <div class="panel-heading"><div><p class="eyebrow">Configuration lifecycle</p><h2 id="configuration-heading">Validate, publish and recover one predecessor</h2></div></div>
+          <form id="configuration-lifecycle-form" class="form-grid" novalidate>
+            <label>Lifecycle action<select id="configuration-lifecycle-action" name="configuration-lifecycle-action">
+              <option value="list">List Config Versions</option><option value="get">Read Config Version</option>
+              <option value="create">Create draft</option><option value="validate">Validate draft</option>
+              <option value="publish">Publish draft</option><option value="rollback">Rollback retained predecessor</option>
+              <option value="audit">Read lifecycle audit</option>
+            </select></label>
+            <label id="configuration-version-field">Config Version ID<input id="configuration-version-id" autocomplete="off" value="draft-p10"></label>
+            <label id="configuration-parent-field">Optional parent Version ID<input id="configuration-parent-id" autocomplete="off"></label>
+            <label class="wide" id="configuration-description-field">Draft description<textarea id="configuration-description" rows="4" maxlength="1024" spellcheck="false">P10 management draft</textarea></label>
+            <div class="form-actions"><button type="submit">Run lifecycle operation</button></div>
+          </form>
+          <p class="muted">Validation changes no state. Publish requires the displayed revision and can activate only a draft; rollback can restore only P2's retained predecessor. Audit contains bounded metadata, never compiler diagnostics, Secrets, keys, URLs or request material.</p>
+        </section>
+
         <section class="panel" aria-labelledby="result-heading">
           <div class="panel-heading"><div><p class="eyebrow">Safe result</p><h2 id="result-heading">Operation response</h2></div></div>
           <pre id="operation-result" class="result" aria-live="polite">No operation has run.</pre>
@@ -333,6 +351,10 @@ function headers(includeRevision: boolean): Record<string, string> {
     values["If-Match"] = requiredValue("config-revision");
   }
   return values;
+}
+
+function lifecycleHeaders(includeRevision: boolean): Record<string, string> {
+  return includeRevision ? { "If-Match": requiredValue("config-revision") } : {};
 }
 
 function parseResourceBody(): unknown {
@@ -485,6 +507,57 @@ async function showResponse(response: Response, issuedClientKey = false): Promis
   setResult({ ok: response.ok, status: response.status, etag: response.headers.get("ETag"), body: safeBody });
 }
 
+function lifecycleAction(): LifecycleAction {
+  return element<HTMLSelectElement>("configuration-lifecycle-action").value as LifecycleAction;
+}
+
+function updateLifecycleFields(): void {
+  const action = lifecycleAction();
+  const versionRequired = action === "get" || action === "create" || action === "validate" || action === "publish";
+  const create = action === "create";
+  element<HTMLElement>("configuration-version-field").hidden = !versionRequired;
+  element<HTMLElement>("configuration-parent-field").hidden = !create;
+  element<HTMLElement>("configuration-description-field").hidden = !create;
+  element<HTMLInputElement>("configuration-version-id").required = versionRequired;
+  element<HTMLTextAreaElement>("configuration-description").required = create;
+}
+
+function lifecycleRequest(action: LifecycleAction): { operation: ManagementOperationName; request: ManagementRequest } {
+  const versionId = action === "get" || action === "create" || action === "validate" || action === "publish"
+    ? requiredValue("configuration-version-id")
+    : "";
+  switch (action) {
+    case "list":
+      return { operation: "listConfigVersions", request: {} };
+    case "get":
+      return { operation: "getConfigVersion", request: { path: { config_version_id: versionId } } };
+    case "create": {
+      const parentId = optionalValue("configuration-parent-id");
+      return {
+        operation: "createConfigVersion",
+        request: {
+          body: {
+            id: versionId,
+            parent_id: parentId,
+            description: requiredValue("configuration-description"),
+          },
+        },
+      };
+    }
+    case "validate":
+      return { operation: "validateConfigVersion", request: { path: { config_version_id: versionId } } };
+    case "publish":
+      return {
+        operation: "publishConfigVersion",
+        request: { path: { config_version_id: versionId }, headers: lifecycleHeaders(true) },
+      };
+    case "rollback":
+      return { operation: "rollbackConfigVersion", request: { headers: lifecycleHeaders(true) } };
+    case "audit":
+      return { operation: "listManagementAuditEvents", request: {} };
+  }
+}
+
 function api(): ManagementApi {
   if (managementApi === undefined || session === undefined) {
     throw new Error("connect the management client before running an operation");
@@ -563,6 +636,8 @@ function installHandlers(): void {
   populateResourceActions();
   populateResourceTemplate();
   updateResourceFields();
+  element<HTMLSelectElement>("configuration-lifecycle-action").addEventListener("change", updateLifecycleFields);
+  updateLifecycleFields();
 
   element<HTMLFormElement>("session-form").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -688,6 +763,16 @@ function installHandlers(): void {
       }));
     } catch (error) {
       setFailure(error instanceof Error ? error.message : "request attempt lookup failed");
+    }
+  });
+
+  element<HTMLFormElement>("configuration-lifecycle-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      const { operation, request } = lifecycleRequest(lifecycleAction());
+      await showResponse(await api().request(operation, request));
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "configuration lifecycle operation failed");
     }
   });
 

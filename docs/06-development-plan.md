@@ -7,8 +7,8 @@
 | 计划版本 | `v1.44` |
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P6` 与 P9 已完成；P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。P10-01 至 P10-06 已在 `codex/p10-control-plane` 分支完成本地合同、准入边界、静态 SPA/生成客户端、受保护资源工作流和 review，均等待本 Phase 的唯一 Gate；P10-06 的 loopback browser E2E、定向测试和安全 review 已通过。P9 的 `phase-p9-complete` Delivery Gate 已通过 GitHub Fast、Full supply-chain 与 Required。 |
-| 当前任务 | 当前没有 `IN_PROGRESS` Task；下一项为 P10-07 的 Config Version 发布/回滚与操作审计页面。P10-08 的备份恢复仍不得提前实现。 |
+| 当前阶段 | `P1` 至 `P6` 与 P9 已完成；P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。P10-01 至 P10-07 已在 `codex/p10-control-plane` 分支完成本地合同、准入边界、静态 SPA/生成客户端、受保护资源/运行态/生命周期工作流和 review，均等待本 Phase 的唯一 Gate；P10-07 的发布失败、双发布、前驱回滚、审计与无持久浏览器会话 E2E 已通过。P9 的 `phase-p9-complete` Delivery Gate 已通过 GitHub Fast、Full supply-chain 与 Required。 |
+| 当前任务 | 当前没有 `IN_PROGRESS` Task；P10-07 正在提交本地验收证据。提交完成后才可开始 P10-08 的加密备份、恢复预检、Schema Version 和 Secret Key 说明。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1653,7 +1653,7 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 | P10-04 | 实现 Upstream/Endpoint/Credential 管理与测试工作流 | P10-03 | 浏览器 E2E、独立 review 与本地 Full gate passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P10-05 | 实现 PublicModel/Route/Candidate/AccessGroup/ClientKey 工作流 | P10-03 | 创建 `minimax-m3` E2E、一次性 Key redaction/reload 与独立 review passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P10-06 | 实现 Catalog Diff、Health、Quota、403、Route Explain 和请求追踪页面 | P10-03,P4-06 | [Runtime 管理工作流报告](reports/p10-06-runtime-management.md)：loopback browser E2E、定向 HTTP/SPA checks、Secret scan、docs check 与独立 review passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P10-07 | 实现 Config Version、发布、回滚和操作审计页面 | P10-03,P2-10 | 发布失败/回滚 E2E | PENDING |
+| P10-07 | 实现 Config Version、发布、回滚和操作审计页面 | P10-03,P2-10 | [Configuration 生命周期报告](reports/p10-07-configuration-lifecycle.md)：受保护 HTTP、loopback browser E2E、定向 checks、Secret scan、docs check 与独立 review passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P10-08 | 实现加密备份、恢复预检、Schema Version 和 Secret Key 说明 | P10-01 | 空机恢复演练 | PENDING |
 | P10-09 | 嵌入静态资源并验证 UI 不进入推理热路径 | P10-03-P10-08 | 性能对比与资源隔离报告 | PENDING |
 
