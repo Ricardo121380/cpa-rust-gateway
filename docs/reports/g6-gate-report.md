@@ -6,7 +6,7 @@
 | Gate | `G6` reopened closeout |
 | Date | `2026-07-23` |
 | Verification branch | `codex/p6-grok-build` |
-| Local closeout target | Pending the reviewed closeout commit and annotated `phase-p6-remediated` tag |
+| Local closeout target | Pending the reviewed closeout commit and annotated `phase-p6-remediated-complete` tag |
 | Local result | `PASS` — all P6 Tasks are `LOCAL_PASS_PENDING_PHASE_GATE` |
 | Remote Delivery Gate | `PENDING` — exactly one new tag-triggered Fast + Full supply-chain + Required run remains |
 
@@ -51,7 +51,7 @@ fixture vertical test, not a runtime Provider-to-Router edge.
 
 ## Delivery boundary
 
-After the reviewed closeout commit is pushed, the annotated `phase-p6-remediated` tag will trigger
+After the reviewed closeout commit is pushed, the annotated `phase-p6-remediated-complete` tag will trigger
 the only new formal P6 delivery run. Fast, Full supply-chain, and Required must all pass before G6
 or any P6 Task becomes `DONE`. No pull request or docs-only closeout run will be created. P7
 remains out of scope until the user explicitly starts it.

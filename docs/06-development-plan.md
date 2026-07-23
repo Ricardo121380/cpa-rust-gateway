@@ -1376,7 +1376,7 @@ Fast、Full supply-chain、Required Delivery Gate 均已通过。
 
 状态：`LOCAL_PASS_PENDING_PHASE_GATE`；旧 `phase-p6-complete` Delivery Gate 只证明其旧
 closeout target，不能替代 C28 的真实双模式生命周期或可执行 Provider 垂直链路。P6-03 至 P6-08
-已经重新本地通过；只有新的 `phase-p6-remediated` tag Delivery Gate 的 Fast、Full supply-chain、
+已经重新本地通过；只有新的 `phase-p6-remediated-complete` tag Delivery Gate 的 Fast、Full supply-chain、
 Required 全部通过后，才可恢复 `DONE`。
 
 - 两个 Build Credential 的并发、轮询、刷新、Quota 和 Failover 通过。
