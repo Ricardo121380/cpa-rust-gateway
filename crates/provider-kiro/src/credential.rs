@@ -4,7 +4,13 @@
 //! diagnostic-safe, and exposes refresh only through an injected transport. It never discovers a
 //! cache, reads environment variables, opens a socket, or selects an IDE/CLI endpoint.
 
-use std::{collections::BTreeMap, error::Error, fmt};
+use std::{
+    collections::BTreeMap,
+    error::Error,
+    fmt,
+    sync::{Condvar, Mutex},
+    time::Duration,
+};
 
 use gateway_core::CredentialId;
 use gateway_store::secret_store::{EncryptedSecret, SecretStore};
@@ -22,6 +28,9 @@ const MAX_REGION_BYTES: usize = 128;
 const MAX_LIFETIME_MS: i64 = 366 * 24 * 60 * 60 * 1_000;
 const PERSISTED_FORMAT_VERSION: u8 = 1;
 const AAD_DOMAIN: &[u8] = b"cpa-rust-gateway/kiro/credential/v1";
+
+/// Default bounded wait for an already-running refresh of the same Credential.
+pub const DEFAULT_KIRO_REFRESH_WAIT_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// The three mutually exclusive Kiro authentication families.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -499,6 +508,256 @@ impl fmt::Debug for KiroSealedCredential {
     }
 }
 
+/// A revisioned in-memory Kiro Credential view.
+#[derive(Clone)]
+pub struct KiroCredentialVersion {
+    credential: KiroCredential,
+    revision: u64,
+}
+
+impl KiroCredentialVersion {
+    /// Returns the secret-redacted credential view for immediate use.
+    #[must_use]
+    pub const fn credential(&self) -> &KiroCredential {
+        &self.credential
+    }
+
+    /// Returns the monotonic revision associated with this exact credential value.
+    #[must_use]
+    pub const fn revision(&self) -> u64 {
+        self.revision
+    }
+}
+
+impl fmt::Debug for KiroCredentialVersion {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("KiroCredentialVersion")
+            .field("credential", &self.credential)
+            .field("revision", &self.revision)
+            .finish()
+    }
+}
+
+/// Result of an exact expected-revision runtime replacement.
+#[derive(Clone, Debug)]
+pub enum KiroCredentialCasOutcome {
+    /// The replacement committed at the next revision.
+    Committed(KiroCredentialVersion),
+    /// The requested Credential was not configured.
+    Missing,
+    /// Another writer already changed the Credential revision.
+    Conflict,
+}
+
+/// Per-Credential refresh coordinator with bounded same-key singleflight.
+pub struct KiroCredentialRefreshCoordinator {
+    state: Mutex<BTreeMap<CredentialId, KiroCredentialRuntimeState>>,
+    changed: Condvar,
+    wait_timeout: Duration,
+}
+
+struct KiroCredentialRuntimeState {
+    version: KiroCredentialVersion,
+    refresh_in_flight: bool,
+}
+
+impl KiroCredentialRefreshCoordinator {
+    /// Creates a coordinator with initial revision-zero Credential values.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the same Credential ID appears more than once.
+    pub fn try_new(
+        credentials: impl IntoIterator<Item = (CredentialId, KiroCredential)>,
+    ) -> Result<Self, KiroCredentialError> {
+        Self::try_new_with_timeout(credentials, DEFAULT_KIRO_REFRESH_WAIT_TIMEOUT)
+    }
+
+    /// Creates a coordinator with a caller-selected positive same-key wait limit.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a zero wait timeout or duplicate Credential ID.
+    pub fn try_new_with_timeout(
+        credentials: impl IntoIterator<Item = (CredentialId, KiroCredential)>,
+        wait_timeout: Duration,
+    ) -> Result<Self, KiroCredentialError> {
+        if wait_timeout.is_zero() {
+            return Err(KiroCredentialError::InvalidRefreshWaitTimeout);
+        }
+        let mut state = BTreeMap::new();
+        for (credential_id, credential) in credentials {
+            let entry = KiroCredentialRuntimeState {
+                version: KiroCredentialVersion {
+                    credential,
+                    revision: 0,
+                },
+                refresh_in_flight: false,
+            };
+            if state.insert(credential_id, entry).is_some() {
+                return Err(KiroCredentialError::DuplicateCredentialId);
+            }
+        }
+        Ok(Self {
+            state: Mutex::new(state),
+            changed: Condvar::new(),
+            wait_timeout,
+        })
+    }
+
+    /// Loads one exact revisioned Credential without changing refresh state.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe error when the Credential is absent or the runtime lock is unavailable.
+    pub fn load(
+        &self,
+        credential_id: &CredentialId,
+    ) -> Result<KiroCredentialVersion, KiroCredentialError> {
+        let state = self
+            .state
+            .lock()
+            .map_err(|_| KiroCredentialError::RuntimeUnavailable)?;
+        state
+            .get(credential_id)
+            .map(|entry| entry.version.clone())
+            .ok_or(KiroCredentialError::RuntimeCredentialMissing)
+    }
+
+    /// Replaces a Credential only if the exact prior revision is still current.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe lock or revision-overflow failure; ordinary CAS states are explicit.
+    pub fn compare_and_swap(
+        &self,
+        credential_id: &CredentialId,
+        expected_revision: u64,
+        credential: KiroCredential,
+    ) -> Result<KiroCredentialCasOutcome, KiroCredentialError> {
+        let mut state = self
+            .state
+            .lock()
+            .map_err(|_| KiroCredentialError::RuntimeUnavailable)?;
+        let Some(entry) = state.get_mut(credential_id) else {
+            return Ok(KiroCredentialCasOutcome::Missing);
+        };
+        if entry.version.revision != expected_revision {
+            return Ok(KiroCredentialCasOutcome::Conflict);
+        }
+        let revision = expected_revision
+            .checked_add(1)
+            .ok_or(KiroCredentialError::RevisionOverflow)?;
+        entry.version = KiroCredentialVersion {
+            credential,
+            revision,
+        };
+        self.changed.notify_all();
+        Ok(KiroCredentialCasOutcome::Committed(entry.version.clone()))
+    }
+
+    /// Refreshes an expired OAuth Credential once per exact Credential ID.
+    ///
+    /// Followers wait only for the same Credential. They then return the new revision or an
+    /// explicit reload state, never a second refresh and never a stale leader result.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe error for a missing runtime value, bounded wait expiry, refresh failure, or
+    /// a stale leader whose source revision changed during the transport call.
+    pub fn refresh_if_expired<T: KiroRefreshTransport>(
+        &self,
+        credential_id: &CredentialId,
+        transport: &T,
+        observed_at_ms: i64,
+    ) -> Result<KiroCredentialVersion, KiroCredentialError> {
+        let (credential, revision) = {
+            let mut state = self
+                .state
+                .lock()
+                .map_err(|_| KiroCredentialError::RuntimeUnavailable)?;
+            let (refresh_in_flight, current_revision) = {
+                let entry = state
+                    .get(credential_id)
+                    .ok_or(KiroCredentialError::RuntimeCredentialMissing)?;
+                if !entry.version.credential.is_expired_at(observed_at_ms) {
+                    return Ok(entry.version.clone());
+                }
+                (entry.refresh_in_flight, entry.version.revision)
+            };
+            if refresh_in_flight {
+                let (state, wait) = self
+                    .changed
+                    .wait_timeout_while(state, self.wait_timeout, |state| {
+                        state.get(credential_id).is_some_and(|entry| {
+                            entry.refresh_in_flight && entry.version.revision == current_revision
+                        })
+                    })
+                    .map_err(|_| KiroCredentialError::RuntimeUnavailable)?;
+                let entry = state
+                    .get(credential_id)
+                    .ok_or(KiroCredentialError::RuntimeCredentialMissing)?;
+                if entry.version.revision != current_revision {
+                    return Ok(entry.version.clone());
+                }
+                if entry.refresh_in_flight {
+                    debug_assert!(wait.timed_out());
+                    return Err(KiroCredentialError::RefreshWaitTimedOut);
+                }
+                return if entry.version.credential.is_expired_at(observed_at_ms) {
+                    Err(KiroCredentialError::RefreshCompletedByPeer)
+                } else {
+                    Ok(entry.version.clone())
+                };
+            }
+            let entry = state
+                .get_mut(credential_id)
+                .ok_or(KiroCredentialError::RuntimeCredentialMissing)?;
+            entry.refresh_in_flight = true;
+            (entry.version.credential.clone(), entry.version.revision)
+        };
+
+        let refreshed = credential.refresh(transport, observed_at_ms);
+        let mut state = self
+            .state
+            .lock()
+            .map_err(|_| KiroCredentialError::RuntimeUnavailable)?;
+        let entry = state
+            .get_mut(credential_id)
+            .ok_or(KiroCredentialError::RuntimeCredentialMissing)?;
+        entry.refresh_in_flight = false;
+        self.changed.notify_all();
+        let refreshed = refreshed?;
+        if entry.version.revision != revision {
+            return Err(KiroCredentialError::ConcurrentCredentialStateChanged);
+        }
+        let revision = revision
+            .checked_add(1)
+            .ok_or(KiroCredentialError::RevisionOverflow)?;
+        entry.version = KiroCredentialVersion {
+            credential: refreshed,
+            revision,
+        };
+        Ok(entry.version.clone())
+    }
+}
+
+impl fmt::Debug for KiroCredentialRefreshCoordinator {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let count = self
+            .state
+            .lock()
+            .map(|state| state.len())
+            .unwrap_or_default();
+        formatter
+            .debug_struct("KiroCredentialRefreshCoordinator")
+            .field("credential_count", &count)
+            .field("wait_timeout", &self.wait_timeout)
+            .finish_non_exhaustive()
+    }
+}
+
 /// One secret-free refresh-operation category visible to an injected transport.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum KiroRefreshKind {
@@ -642,6 +901,22 @@ pub enum KiroCredentialError {
     EncryptionFailed,
     /// An authenticated persisted payload has an invalid format.
     InvalidPersistedCredential,
+    /// The same Credential ID was supplied more than once to a runtime coordinator.
+    DuplicateCredentialId,
+    /// A requested runtime Credential does not exist.
+    RuntimeCredentialMissing,
+    /// The in-process runtime lock is unavailable.
+    RuntimeUnavailable,
+    /// The caller selected a zero same-key refresh wait bound.
+    InvalidRefreshWaitTimeout,
+    /// A follower waited too long for an in-flight same-Credential refresh.
+    RefreshWaitTimedOut,
+    /// A peer completed or failed an in-flight refresh and the caller must reload state.
+    RefreshCompletedByPeer,
+    /// A leader's source revision changed while its refresh transport call was in flight.
+    ConcurrentCredentialStateChanged,
+    /// A revision cannot advance without overflowing its durable numeric domain.
+    RevisionOverflow,
 }
 
 impl fmt::Display for KiroCredentialError {
@@ -662,6 +937,14 @@ impl fmt::Display for KiroCredentialError {
             Self::TransportUnavailable => "Kiro refresh transport is unavailable",
             Self::EncryptionFailed => "Kiro credential encryption failed",
             Self::InvalidPersistedCredential => "persisted Kiro credential is invalid",
+            Self::DuplicateCredentialId => "Kiro runtime Credential ID is duplicated",
+            Self::RuntimeCredentialMissing => "Kiro runtime Credential is missing",
+            Self::RuntimeUnavailable => "Kiro credential runtime is unavailable",
+            Self::InvalidRefreshWaitTimeout => "Kiro refresh wait timeout is invalid",
+            Self::RefreshWaitTimedOut => "Kiro Credential refresh wait timed out",
+            Self::RefreshCompletedByPeer => "Kiro Credential refresh completed by another request",
+            Self::ConcurrentCredentialStateChanged => "Kiro Credential changed during refresh",
+            Self::RevisionOverflow => "Kiro Credential revision is invalid",
         })
     }
 }

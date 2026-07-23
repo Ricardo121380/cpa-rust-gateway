@@ -71,4 +71,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0042 Grok Build OAuth credential and Device Code boundary](ADR-0042-grok-build-oauth-credential-boundary.md) — `P6-01`（Accepted）。
 - [ADR-0043 Revision-guarded Grok Build OAuth refresh runtime](ADR-0043-grok-build-refresh-runtime.md) — `P6-02`（Accepted）。
 - [ADR-0044 Fixed Grok Build Responses boundary](ADR-0044-grok-build-responses-boundary.md) — `P6-03`（Accepted）。
+- [ADR-0046 Kiro Credential runtime boundary](ADR-0046-kiro-credential-runtime-boundary.md) — `P7-01`（Accepted）。
 - [ADR-0045 Grok Build runtime state and continuity isolation](ADR-0045-grok-build-runtime-continuity.md) — `P6-04` 至 `P6-07`（Accepted）。
