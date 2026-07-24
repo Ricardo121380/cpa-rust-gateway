@@ -271,6 +271,11 @@ fn backup_routes(config: &mut web::ServiceConfig) {
         .route("/restores", web::post().to(restore_backup));
 }
 
+/// Registers only P10 backup paths inside an already protected management scope.
+pub(crate) fn configure_protected_backup_routes(config: &mut web::ServiceConfig) {
+    backup_routes(config);
+}
+
 async fn preview_backup(state: web::Data<ManagementBackupHttpState>) -> HttpResponse {
     let Ok(mut facade) = state.facade.lock() else {
         return unavailable();

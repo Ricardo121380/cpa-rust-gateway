@@ -142,3 +142,5 @@
 - [G11 release-hardening gate report](g11-gate-report.md) — complete; GitHub Delivery Gate passed
 - [P12-01 release artifact execution plan](p12-01-execution-plan.md) — pinned Linux artifact, private OCI archive, redacted SBOM, checksum and approved keyless-signing boundary
 - [P12-01 release artifact](p12-01-release-artifact.md) — accepted revision-bound Linux binary/OCI/SBOM/manifest, GitHub OIDC keyless signature, Rekor inclusion and private workflow artifact
+- [P12-02 deployment envelope execution plan](p12-02-execution-plan.md) — approved minimal `serve`, isolated loopback listeners, `LoadCredential`, state/log directories, systemd hardening and Linux verification plan
+- [P12-02 deployment envelope acceptance](p12-02-deployment-envelope.md) — local Full gate and independent review accepted; no host was changed and Linux `systemd-analyze verify` remains a P12 delivery requirement

@@ -3,8 +3,9 @@
 本文件定义 P0 Workspace 的编译期依赖方向。业务实现只能沿箭头方向依赖，禁止为方便而反向引用 HTTP、Provider 或 Store 类型。
 
 ```text
-apps/gateway
-  -> gateway-http-actix + gateway-control + gateway-observability
+apps/gateway (binary-only deployment composition root)
+  -> gateway-http-actix + gateway-control + gateway-observability + gateway-auth/store
+     + Actix-local HTTP/Future primitives + libc credential-file guard + zeroize
 
 gateway-http-actix
   -> protocol adapters + gateway-control/router/stream/auth/observability + Actix-local Tokio/Future primitives
@@ -43,6 +44,12 @@ gateway-core
 ## 不变量
 
 - `gateway-core` 不依赖 Actix、SQLite 或任何具体 Provider。
+- `apps/gateway` 是唯一的二进制部署装配根，不是可被其它 crate 引用的库。P12-02 的
+  `gateway serve` 在此处显式绑定两个 loopback listener，并从 systemd `LoadCredential` 目录
+  读取严格校验、短暂零化的 Management/CSRF/Master/Backup/Client-Key Pepper。故该二进制可以
+  直接依赖 Actix、`futures-util`、`gateway-auth`、`gateway-store`、`libc` 和 `zeroize`；它不
+  装配推理数据面，不得向任一 library crate 下推 HTTP、SQLite、credential-file 或部署依赖，且
+  其它 workspace member 不得依赖 `gateway`。
 - Actix Web 只能出现在 `gateway-http-actix` 的依赖闭包入口。
 - `gateway-stream` 只承载有界 Canonical Event 交付、背压、取消和语义事件提交边界；不得
   依赖 HTTP、SSE 编码、具体 Provider、路由或持久化类型。P5-08 的 `proptest` 是该 crate 的

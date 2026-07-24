@@ -10,8 +10,8 @@
 
 ## 当前状态
 
-- 阶段：P1-P6、P9、P10、P11 与 P12-01 已完成；P12-02 正在编写 systemd、只读 Secret、数据目录、日志与资源限制边界。已验收的 Linux 二进制、OCI、SBOM、checksum 与 keyless 签名仅保留为私有 CI artifact，详情见 [P12-01 release artifact](docs/reports/p12-01-release-artifact.md)。P7 Kiro OAuth 与 P8 Official API-key 的真实外部验证按批准延后。
-- 执行计划：`v1.46`，状态 `Locked for execution`；最新唯一任务和已批准 Change Request 见[详细开发计划](docs/06-development-plan.md)
+- 阶段：P1-P6、P9、P10、P11 与 P12-01 已完成；P12-02 的最小 `serve`、systemd、只读 Secret、数据目录、日志与资源限制边界已通过本地验收，下一项 P12-03 是服务器备份清单。已验收的 Linux 二进制、OCI、SBOM、checksum 与 keyless 签名仅保留为私有 CI artifact，详情见 [P12-01 release artifact](docs/reports/p12-01-release-artifact.md)。P7 Kiro OAuth 与 P8 Official API-key 的真实外部验证按批准延后。
+- 执行计划：`v1.47`，状态 `Locked for execution`；最新唯一任务和已批准 Change Request 见[详细开发计划](docs/06-development-plan.md)
 - CPA 参考版本：`router-for-me/CLIProxyAPI v7.2.80`
 - Release Candidate：P12-01 已生成并独立验收 revision-bound 私有发布产物和公开 Sigstore 透明日志记录；尚未创建 GitHub Release/tag、推送镜像、登录服务器或部署。P12-02 至 P12-10 继续负责服务配置、备份、Staging、灰度、回滚与 72h Canary
 - Rust Workspace：21-package 骨架已创建并通过 P0-03 验证

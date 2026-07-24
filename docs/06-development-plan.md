@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.46` |
+| 计划版本 | `v1.47` |
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -1712,7 +1712,7 @@ CR-ID: CR-P11-04-001
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
 | P12-01 | 构建固定版本二进制、Docker 镜像、SBOM、Checksum 和签名 | G11 | [可验证私有发布产物](reports/p12-01-release-artifact.md) | DONE |
-| P12-02 | 编写 systemd Unit、只读 Secret、数据目录、日志和资源限制 | P12-01 | `systemd-analyze verify` | IN_PROGRESS |
+| P12-02 | 编写 systemd Unit、只读 Secret、数据目录、日志和资源限制 | P12-01 | [deployment-envelope acceptance](reports/p12-02-deployment-envelope.md)：本地 Full gate、独立 review 与静态 Unit 校验通过；Linux `systemd-analyze verify` 留待 P12 Delivery Gate | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | 带时间戳备份清单 | PENDING |
 | P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | Health、日志、资源状态 | PENDING |
 | P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | 端到端报告 | PENDING |
@@ -1739,6 +1739,29 @@ CR-ID: CR-P12-01-001
       Sigstore 公共透明日志的历史签名。
 用户批准: APPROVED，2026-07-24（“可以”）
 计划版本变更: v1.46
+```
+
+### 已批准 Change Request：CR-P12-02-001
+
+```text
+CR-ID: CR-P12-02-001
+原因: P12-02 的 systemd Unit 必须指向可验证的长期运行入口，但 P12-01 的制品只有 transport-free
+`gateway admin` CLI，没有 bind/listen 入口。用户确认在 P12-02 的部署装配范围内补齐最小 `gateway
+serve`，而不是提交一个无法启动的 Unit。
+影响的 Task / Matrix ID / ADR: 仅 P12-02 以及 P12-04 的未来 loopback Staging health 前置。新增两个
+明确、不同的 loopback listener：数据 listener 仅 `HEAD /` 与 `GET /healthz`；管理 listener 仅装配
+既有 P10 管理 API/UI、P10 admission state、SQLite lifecycle/resource state 与 backup facade。公开
+Inference/Responses/Messages/Tools、RouteSnapshot、Client-Key data-plane auth、Provider transport、
+模型路由、Caddy/Cloudflare、服务器配置和生产流量不在本 CR 范围；P12-05 仍须单独装配并验证真实
+data-plane runtime。
+兼容性与迁移影响: 现有 `gateway admin` 命令语义保持不变。新的 `serve` 仅接受显式的 loopback 地址、
+systemd StateDirectory 和 LoadCredential 目录；不得读取环境中的 Secret、浏览器/Profile/代理、服务器
+文件或隐式配置。管理网络仍由 P10 的 loopback-only policy 和独立 Management Key 保护。
+测试与回滚变化: 为 `serve` 的参数、listener 隔离、凭据文件、P10 composition 以及 Unit 的
+`systemd-analyze verify` 增加验证。macOS 本地保留相同的静态 invariant 校验，Linux P12 Delivery
+Gate 强制执行 `systemd-analyze verify`。回滚删除 serve/deployment assets，不改变任何服务器或数据。
+用户批准: APPROVED，2026-07-25（“确认”）
+计划版本变更: v1.47
 ```
 
 ### Canary 推进与回滚规则

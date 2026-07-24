@@ -610,6 +610,11 @@ fn lifecycle_routes(config: &mut web::ServiceConfig) {
         .route("/audit-events", web::get().to(list_audit_events));
 }
 
+/// Registers only P10 lifecycle paths inside an already protected management scope.
+pub(crate) fn configure_protected_lifecycle_routes(config: &mut web::ServiceConfig) {
+    lifecycle_routes(config);
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ConfigVersionInput {

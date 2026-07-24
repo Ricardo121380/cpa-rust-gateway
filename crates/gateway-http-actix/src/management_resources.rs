@@ -877,6 +877,14 @@ fn resource_routes(config: &mut web::ServiceConfig) {
     configure_runtime_resource_routes(config);
 }
 
+/// Registers only the P10 resource paths inside an already protected management scope.
+///
+/// The P12 listener composition uses this with lifecycle and backup paths under one `/admin`
+/// scope, so Actix cannot stop route resolution at the first sibling scope.
+pub(crate) fn configure_protected_resource_routes(config: &mut web::ServiceConfig) {
+    resource_routes(config);
+}
+
 fn configure_upstream_resource_routes(config: &mut web::ServiceConfig) {
     config
         .route("/egress-policies", web::get().to(list_egress_policies))

@@ -21,6 +21,15 @@ git -C "$tmp_dir" add safe.txt
   scripts/secret-scan.sh --staged >/dev/null
 )
 
+# A systemd LoadCredential source is a file path, not an embedded credential. Its precise syntax
+# must remain accepted without weakening detection of management-key values in other assignments.
+printf '%s\n' 'LoadCredential=management-key:/etc/gateway/credentials/management-key' > "$tmp_dir/unit.service"
+git -C "$tmp_dir" add unit.service
+(
+  cd "$tmp_dir"
+  scripts/secret-scan.sh --staged >/dev/null
+)
+
 canary='CANARY_SECRET_1234567890'
 printf 'api_key = "%s"\n' "$canary" > "$tmp_dir/canary.txt"
 git -C "$tmp_dir" add canary.txt
@@ -42,6 +51,19 @@ fi
 
 if [[ "$output" != *"canary.txt"* ]]; then
   printf 'secret-scan-test: scanner did not identify the rejected file\n' >&2
+  exit 1
+fi
+
+printf 'Environment=management-key=%s\n' "$canary" > "$tmp_dir/unsafe-unit.service"
+git -C "$tmp_dir" add unsafe-unit.service
+
+set +e
+output="$(cd "$tmp_dir" && scripts/secret-scan.sh --staged 2>&1)"
+status=$?
+set -e
+
+if (( status == 0 )) || [[ "$output" != *"unsafe-unit.service"* ]]; then
+  printf 'secret-scan-test: scanner accepted an ambient management key\n' >&2
   exit 1
 fi
 

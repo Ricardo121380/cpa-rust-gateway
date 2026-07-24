@@ -122,10 +122,12 @@ run_step "Soak runner argument guard" "$repo_root/scripts/test-p11-04-soak-runne
 run_step "Soak receipt checker" "$repo_root/scripts/test-p11-04-soak-receipt.sh"
 run_step "Quality installer cache behavior" "$repo_root/scripts/test-install-quality-tools.sh"
 run_step "Release artifact verifier" "$repo_root/scripts/test-p12-release-artifact.rb"
+run_step "P12 systemd unit" "$repo_root/scripts/test-p12-02-systemd-unit.sh"
 run_step "Management SPA" node "$repo_root/scripts/check-management-spa.mjs"
 run_step "Rust format" cargo fmt --all -- --check
 run_step "Clippy" cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 run_step "Rust tests" cargo test --locked --workspace --all-features
+run_step "P12 serve envelope" "$repo_root/scripts/test-p12-02-serve.sh"
 run_step "Source policy" "$repo_root/scripts/check-source-policy.rb"
 run_step "Secret scanner test" "$repo_root/scripts/test-secret-scan.sh"
 run_step "Crate boundaries" "$repo_root/scripts/check-crate-boundaries.rb"

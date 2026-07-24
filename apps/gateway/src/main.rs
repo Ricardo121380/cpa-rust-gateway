@@ -5,6 +5,8 @@
 
 #![deny(unsafe_code)]
 
+mod deployment;
+
 use std::{collections::BTreeMap, env, error::Error, fmt, process::ExitCode};
 
 use gateway_control::management_service::{
@@ -38,7 +40,7 @@ fn main() -> ExitCode {
     match run(env::args().skip(1).collect()) {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
-            eprintln!("gateway admin: {error}");
+            eprintln!("gateway: {error}");
             ExitCode::FAILURE
         }
     }
@@ -49,7 +51,7 @@ fn run(arguments: Vec<String>) -> Result<(), CliError> {
         || arguments
             .first()
             .is_some_and(|argument| argument == "--help")
-        || matches!(arguments.as_slice(), [top_level, action] if top_level == "admin" && action == "--help")
+        || matches!(arguments.as_slice(), [top_level, action] if matches!(top_level.as_str(), "admin" | "serve") && action == "--help")
     {
         print_usage();
         return Ok(());
@@ -58,7 +60,14 @@ fn run(arguments: Vec<String>) -> Result<(), CliError> {
     execute(command)
 }
 
-fn execute(command: AdminCommand) -> Result<(), CliError> {
+fn execute(command: GatewayCommand) -> Result<(), CliError> {
+    match command {
+        GatewayCommand::Admin(command) => execute_admin(command),
+        GatewayCommand::Serve(command) => deployment::run(command).map_err(CliError::Deployment),
+    }
+}
+
+fn execute_admin(command: AdminCommand) -> Result<(), CliError> {
     let actor = ManagementActor::try_new(command.actor().to_owned())
         .map_err(|_| CliError::InvalidValue("--actor"))?;
     let mut service = ManagementService::open_local(command.database(), actor)?;
@@ -130,6 +139,11 @@ fn execute(command: AdminCommand) -> Result<(), CliError> {
     Ok(())
 }
 
+enum GatewayCommand {
+    Admin(AdminCommand),
+    Serve(deployment::ServeCommand),
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum AdminCommand {
     Create {
@@ -181,12 +195,20 @@ impl AdminCommand {
     }
 }
 
-fn parse_command(arguments: Vec<String>) -> Result<AdminCommand, CliError> {
+fn parse_command(arguments: Vec<String>) -> Result<GatewayCommand, CliError> {
     let mut arguments = arguments.into_iter();
     let top_level = arguments.next().ok_or(CliError::Usage)?;
-    if top_level != "admin" {
-        return Err(CliError::Usage);
+    match top_level.as_str() {
+        "admin" => parse_admin_command(arguments.collect()).map(GatewayCommand::Admin),
+        "serve" => deployment::parse(arguments.collect())
+            .map(GatewayCommand::Serve)
+            .map_err(CliError::Deployment),
+        _ => Err(CliError::Usage),
     }
+}
+
+fn parse_admin_command(arguments: Vec<String>) -> Result<AdminCommand, CliError> {
+    let mut arguments = arguments.into_iter();
     let action = arguments.next().ok_or(CliError::Usage)?;
     let mut options = parse_options(arguments.collect())?;
     let database = required_option(&mut options, "--db")?;
@@ -263,7 +285,7 @@ fn config_version_id(value: String, option: &'static str) -> Result<ConfigVersio
 
 fn print_usage() {
     println!(
-        "Usage:\n  gateway admin create --db <path> --version <id> --description <text> [--parent <id>] [--actor <label>]\n  gateway admin validate --db <path> --version <id> [--actor <label>]\n  gateway admin publish --db <path> --version <id> [--actor <label>]\n  gateway admin rollback --db <path> [--actor <label>]\n  gateway admin audit --db <path> [--actor <label>]"
+        "Usage:\n  gateway serve --data-listen <loopback-host:port> --management-listen <loopback-host:port> --state-dir <absolute-dir> --credential-dir <absolute-dir>\n  gateway admin create --db <path> --version <id> --description <text> [--parent <id>] [--actor <label>]\n  gateway admin validate --db <path> --version <id> [--actor <label>]\n  gateway admin publish --db <path> --version <id> [--actor <label>]\n  gateway admin rollback --db <path> [--actor <label>]\n  gateway admin audit --db <path> [--actor <label>]"
     );
 }
 
@@ -276,6 +298,7 @@ enum CliError {
     UnexpectedOption,
     InvalidValue(&'static str),
     MissingAuditEvent,
+    Deployment(deployment::DeploymentError),
     Management(ManagementServiceError),
 }
 
@@ -295,6 +318,7 @@ impl fmt::Display for CliError {
             Self::MissingAuditEvent => {
                 formatter.write_str("management mutation did not record an audit event")
             }
+            Self::Deployment(error) => write!(formatter, "{error}"),
             Self::Management(error) => write!(formatter, "{error}"),
         }
     }
@@ -303,6 +327,7 @@ impl fmt::Display for CliError {
 impl Error for CliError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
+            Self::Deployment(error) => Some(error),
             Self::Management(error) => Some(error),
             Self::Usage
             | Self::MissingOption(_)
@@ -323,7 +348,7 @@ impl From<ManagementServiceError> for CliError {
 
 #[cfg(test)]
 mod tests {
-    use super::{AdminCommand, CliError, RELEASE_BUILD_METADATA, parse_command};
+    use super::{AdminCommand, CliError, GatewayCommand, RELEASE_BUILD_METADATA, parse_command};
 
     #[test]
     fn development_build_embeds_a_non_secret_release_identity() {
@@ -349,13 +374,13 @@ mod tests {
 
         assert!(matches!(
             command,
-            Ok(AdminCommand::Create {
+            Ok(GatewayCommand::Admin(AdminCommand::Create {
                 database,
                 actor,
                 version,
                 parent: None,
                 description,
-            }) if database == "control.sqlite"
+            })) if database == "control.sqlite"
                 && actor == "operator-a"
                 && version.as_str() == "version-one"
                 && description == "first draft"

@@ -317,20 +317,45 @@ pub fn default_stream_capacity() -> Result<StreamCapacity, StreamCapacityError> 
     StreamCapacity::try_new(DEFAULT_STREAM_CAPACITY)
 }
 
-/// Registers the loopback readiness, health, public Models, `OpenAI` Responses, and Anthropic
-/// Messages routes on an Actix application.
+/// Registers public data-plane routes on an Actix application.
+///
+/// Management routes are intentionally absent: deployments must mount them only on the separate
+/// management listener. [`configure_readiness`] is available for P12 staging before a later task
+/// composes an authenticated inference runtime.
 pub fn configure(config: &mut web::ServiceConfig) {
+    configure_readiness(config);
+    config
+        .route("/v1/models", web::get().to(models))
+        .route("/v1/responses", web::post().to(responses))
+        .route("/v1/messages", web::post().to(messages))
+        .route("/v1/messages/count_tokens", web::post().to(count_tokens));
+}
+
+/// Registers only the public reachability and health routes.
+///
+/// This is the intentionally limited P12-02 staging surface. It has no application data,
+/// authentication, management route, route snapshot, Provider, or credential dependency.
+pub fn configure_readiness(config: &mut web::ServiceConfig) {
     config
         // Claude Code probes the configured Anthropic base URL with `HEAD /` before its first
         // Messages request. This says only that the local HTTP boundary is reachable; it reveals
         // no route, model, or authentication state.
         .route("/", web::head().to(base_url_probe))
-        .route("/healthz", web::get().to(healthz))
-        .route("/v1/models", web::get().to(models))
-        .route("/v1/responses", web::post().to(responses))
-        .route("/v1/messages", web::post().to(messages))
-        .route("/v1/messages/count_tokens", web::post().to(count_tokens))
-        .configure(management_resources::configure_management_resources);
+        .route("/healthz", web::get().to(healthz));
+}
+
+/// Registers the complete P10 management listener under one protected `/admin` scope.
+///
+/// The embedded UI remains a separate closed static route set on this listener. The function has
+/// no data-plane routes and requires the caller to supply every corresponding P10 state object;
+/// missing state continues to fail closed in the existing handlers and middleware.
+pub fn configure_management_listener(config: &mut web::ServiceConfig) {
+    management_security::configure_management(config, |protected| {
+        management_resources::configure_protected_resource_routes(protected);
+        management_lifecycle_resources::configure_protected_lifecycle_routes(protected);
+        management_backup_resources::configure_protected_backup_routes(protected);
+    });
+    management_ui_resources::configure_embedded_management_ui(config);
 }
 
 async fn base_url_probe() -> HttpResponse {

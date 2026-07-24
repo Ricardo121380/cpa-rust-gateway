@@ -693,9 +693,15 @@ dependencies = [
 name = "gateway"
 version = "0.1.0"
 dependencies = [
+ "actix-web",
+ "futures-util",
+ "gateway-auth",
  "gateway-control",
  "gateway-http-actix",
  "gateway-observability",
+ "gateway-store",
+ "libc",
+ "zeroize",
 ]
 
 [[package]]

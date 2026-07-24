@@ -13,7 +13,10 @@ packages = metadata.fetch("packages").select { |package| workspace_ids.include?(
 workspace_names = packages.map { |package| package.fetch("name") }.sort
 
 allowed = {
-  "gateway" => %w[gateway-control gateway-http-actix gateway-observability],
+  # The binary is the sole deployment-composition root. Its direct Actix, credential and SQLite
+  # dependencies only assemble the P12 loopback listeners; lower-layer boundary rules remain
+  # unchanged and prevent these dependencies from flowing back into library crates.
+  "gateway" => %w[actix-web futures-util gateway-auth gateway-control gateway-http-actix gateway-observability gateway-store libc zeroize],
   "gateway-access" => %w[gateway-core],
   "gateway-auth" => %w[gateway-core getrandom hmac libc sha2 subtle zeroize],
   "gateway-catalog" => %w[gateway-core gateway-provider tokio],
