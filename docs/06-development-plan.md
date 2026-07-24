@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-01 的 revision-bound Linux 二进制、私有 OCI、CycloneDX SBOM、manifest、GitHub OIDC keyless 签名、Rekor 记录和 receipt 已通过独立验收；P12-02 是全计划唯一 `IN_PROGRESS` Task。 |
+| 当前任务 | P12-01 的 revision-bound Linux 二进制、私有 OCI、CycloneDX SBOM、manifest、GitHub OIDC keyless 签名、Rekor 记录和 receipt 已通过独立验收；P12-02 与 P12-03 均已获得本地验收，P12-04 尚未开始。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1713,7 +1713,7 @@ CR-ID: CR-P11-04-001
 |---|---|---|---|---|
 | P12-01 | 构建固定版本二进制、Docker 镜像、SBOM、Checksum 和签名 | G11 | [可验证私有发布产物](reports/p12-01-release-artifact.md) | DONE |
 | P12-02 | 编写 systemd Unit、只读 Secret、数据目录、日志和资源限制 | P12-01 | [deployment-envelope acceptance](reports/p12-02-deployment-envelope.md)：本地 Full gate、独立 review 与静态 Unit 校验通过；Linux `systemd-analyze verify` 留待 P12 Delivery Gate | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | 带时间戳备份清单 | PENDING |
+| P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | [带时间戳、无值备份与回滚清单](reports/p12-03-server-backup-rollback.md)：现有 CPA 数据根静止快照、镜像身份、关联 unit 片段、权限、哈希和精确回滚步骤已独立复核；未安装或启动新服务 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | Health、日志、资源状态 | PENDING |
 | P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | 端到端报告 | PENDING |
 | P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | 差异与性能报告 | PENDING |
