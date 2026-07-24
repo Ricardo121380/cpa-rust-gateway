@@ -5,7 +5,7 @@
 | Plan version | `v1.45` |
 | Gate | `G11` — P11 release hardening |
 | Local result | `PASS` — all required P11 task evidence, focused reviews and local verification are complete. |
-| Delivery result | `PENDING` — the original [`phase-p11-complete` run](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/30087223968) failed Fast before the soak smoke test had reached `RUNNING`; reviewed remediation `7bb3318` passed local Fast. The `phase-p11-remediated-complete` tag must pass Fast, Full supply-chain and Required before P11 is `DONE` or P12 begins. |
+| Delivery result | `PENDING` — the original [`phase-p11-complete` run](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/30087223968) and first [`phase-p11-remediated-complete` run](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/30094003307) each failed Fast before the smoke receipt reached `RUNNING`, with wrapper/Cargo status `101`; reviewed local Fast passed. `68768fc` now retains the terminal Cargo-log window, and the `phase-p11-remediated-2-complete` tag must pass Fast, Full supply-chain and Required before P11 is `DONE` or P12 begins. |
 | Scope | P11-01 through P11-08 on `codex/p11-release-hardening`; loopback, offline, local artifact and source-review evidence only unless a task report expressly says otherwise. |
 
 ## Gate conditions
@@ -27,7 +27,7 @@
 | P11-06 Full local gate | PASS — 214 seconds; all workspace quality/security checks pass after recovery drills. |
 | P11-07 Full local gate | PASS — 213 seconds; all workspace quality/security checks pass after upgrade/rollback rehearsal. |
 | P11-08 docs-only closeout | PASS — plan state/guard, 315 Markdown files, tracked Secret scan and whitespace checks. |
-| P11 Delivery remediation Fast gate | PASS — `7bb3318` replaces the fixed one-second smoke wait with a bounded receipt-`RUNNING` poll, explicit early-exit/timeout diagnostics and cleanup; focused regression and `./scripts/check.sh fast` passed. |
+| P11 Delivery remediation Fast gate | PASS — `7bb3318` replaces the fixed one-second smoke wait with a bounded receipt-`RUNNING` poll, explicit early-exit/timeout diagnostics and cleanup; `68768fc` retains the final 120 Cargo-log lines for a pre-receipt `101`. Focused regression, a cold-cache local smoke, and `./scripts/check.sh fast` passed. |
 | Focused phase review | PASS — reports distinguish local source/loopback evidence from deployment proof, retain P7/P8 external deferrals, do not reinterpret the stopped soak as complete, and do not turn candidate notes into a published release. |
 
 ## Accepted limits and P12 handoff
@@ -42,9 +42,11 @@
 ## Decision
 
 G11 is locally accepted. The historical `phase-p11-complete` run remains failure evidence and
-cannot close P11: its fixed one-second smoke interruption raced cold GitHub compilation, causing
-the wrapper to exit `101` before a receipt existed. The reviewed remediation waits for an observed
-`RUNNING` receipt, then preserves the existing `TERM`/`130`/`INCOMPLETE` assertion. P11 remains
-`LOCAL_PASS_PENDING_DELIVERY_GATE` until `phase-p11-remediated-complete` completes Fast, Full
-supply-chain and Required GitHub checks. A failure is a P11 blocker: stop before P12, repair the
-failing phase evidence/code, and run the appropriate local review before another delivery attempt.
+cannot close P11: its fixed one-second interruption could race cold GitHub compilation. The first
+receipt-`RUNNING` poll remediation still observed a pre-receipt `101`, so it does not establish a
+single root cause and cannot close the phase either. The reviewed diagnostic follow-up preserves
+the terminal Cargo-log window while retaining the existing `TERM`/`130`/`INCOMPLETE` assertion.
+P11 remains `LOCAL_PASS_PENDING_DELIVERY_GATE` until `phase-p11-remediated-2-complete` completes
+Fast, Full supply-chain and Required GitHub checks. A failure is a P11 blocker: stop before P12,
+repair the failing phase evidence/code, and run the appropriate local review before another
+delivery attempt.

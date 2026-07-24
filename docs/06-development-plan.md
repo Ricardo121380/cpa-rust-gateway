@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9 与 P10 已完成；P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。`phase-p10-complete` 的唯一 GitHub Delivery Gate 已通过 Fast、Full supply-chain 与 Required。P11-01 已完成离线、脱敏的差分 Fixture Harness；P11-02 已完成 loopback-only 网络、DNS、TLS、状态、截断流、慢客户端和取消故障注入矩阵与 review。 |
-| 当前任务 | P11-01 至 P11-08 已完成本地实现、review 和证据；G11 已本地接受。历史 `phase-p11-complete` Fast run 因 P11-04 smoke receipt 冷编译竞态失败，修复已通过本地 Fast；正在等待唯一的 `phase-p11-remediated-complete` GitHub Delivery Gate。P11-08 保持唯一 `IN_PROGRESS` Task，直到该阶段交付门通过。 |
+| 当前任务 | P11-01 至 P11-08 已完成本地实现、review 和证据；G11 已本地接受。历史 `phase-p11-complete` 与首次 `phase-p11-remediated-complete` Fast run 都在 P11-04 smoke receipt 前以 `101` 失败；本地 Fast 与冷缓存 smoke 通过，下一次 `phase-p11-remediated-2-complete` 将保留 Cargo 末尾错误窗口。P11-08 保持唯一 `IN_PROGRESS` Task，直到该阶段交付门通过。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1678,7 +1678,7 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 | P11-05 | 执行 SSRF、Secret、Auth、权限、依赖和供应链安全审计 | P11-01 | [Security Report + SBOM](reports/p11-05-security-audit.md)：SSRF/Secret/Auth/权限/依赖审计、路径脱敏 CycloneDX 与 Full gate/review passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P11-06 | 验证优雅停机、流 Drain、崩溃重启、磁盘满和事件队列降级 | P11-02 | [Recovery Report](reports/p11-06-recovery-report.md)：loopback stream drain、crash/replay、deterministic `SQLITE_FULL` recovery、queue degradation、Full gate 与 review passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P11-07 | 完成升级/降级 Migration、备份恢复和旧版本回滚演练 | P10-08 | [Upgrade/rollback report](reports/p11-07-upgrade-rollback.md)：in-place schema drill、loss-aware downgrade、empty-target backup recovery、Full gate 与 review passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P11-08 | 生成 Release Candidate 清单、已知差异和生产默认配置 | P11-01-P11-07 | [`v0.1.0-alpha.1` candidate ledger](reports/p11-08-release-candidate.md)：inventory、safe defaults、known differences、P12 handoff 与 docs review passed；原 `phase-p11-complete` Fast run 的 P11-04 receipt 冷编译竞态已由本地 Fast 通过的 receipt-`RUNNING` poll 修复，`phase-p11-remediated-complete` Delivery Gate 仍在进行 | IN_PROGRESS |
+| P11-08 | 生成 Release Candidate 清单、已知差异和生产默认配置 | P11-01-P11-07 | [`v0.1.0-alpha.1` candidate ledger](reports/p11-08-release-candidate.md)：inventory、safe defaults、known differences、P12 handoff 与 docs review passed；原 `phase-p11-complete` 和首次 `phase-p11-remediated-complete` Fast 均在 P11-04 receipt 前以 `101` 失败，本地 Fast/冷缓存 smoke 通过，`phase-p11-remediated-2-complete` 将获取 Cargo 末尾错误窗口 | IN_PROGRESS |
 
 ### G11 门禁
 
