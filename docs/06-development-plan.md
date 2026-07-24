@@ -1722,6 +1722,25 @@ CR-ID: CR-P11-04-001
 | P12-09 | 在 Canary 中实际执行一次回滚并再次恢复 | P12-08 | 回滚时长和一致性报告 | PENDING |
 | P12-10 | 完成生产切换、72h 观察、发布 Tag 和运维手册 | P12-09 | G12 报告 | PENDING |
 
+### 已批准 Change Request：CR-P12-01-001
+
+```text
+CR-ID: CR-P12-01-001
+原因: P12-01 的签名信任边界需要一个明确的 operator 决定；用户已选择 GitHub Actions OIDC 的
+      keyless Sigstore 签名，并明确允许该 manifest 签名进入公开透明日志。
+影响的 Task / Matrix ID / ADR: 仅 P12-01 的私有 CI 发布制品、manifest、signature bundle、
+      独立 identity verification 与 receipt。P12-02 至 P12-10 的服务器、Staging、Canary、
+      Cloudflare/Caddy 和发布权限不改变。
+兼容性与迁移影响: 无公开 API、Canonical、Provider、Schema、客户端或生产服务改变。OCI 仅作为
+      私有 GitHub artifact 上传；不得创建 GitHub Release/tag、推送 registry、登录服务器或部署。
+测试与回滚变化: 新 workflow 必须固定 action/base image/toolchain，分别构建、SBOM 脱敏、manifest、
+      `cosign sign-blob`、`cosign verify-blob` 和结构化 receipt；任一 identity/digest/SBOM/
+      architecture/non-root 检查失败即冻结 P12。撤销为禁用该 manual workflow，不撤销已经写入
+      Sigstore 公共透明日志的历史签名。
+用户批准: APPROVED，2026-07-24（“可以”）
+计划版本变更: v1.46
+```
+
 ### Canary 推进与回滚规则
 
 - 每个流量阶段至少持续 2 小时并包含至少 100 个成功请求；低流量时使用固定合成请求补足。
@@ -1883,3 +1902,5 @@ Next task:
 | v1.42 | 2026-07-23 | `CR-P9-LOCAL-001`：允许 P9-01 至 P9-08 在 P8/G8 外部 E2E 延后时完成本地实现；P9-09/G9/Delivery Gate 仍需 P9 自身真实 Web Canary 证据 | APPROVED；当前执行基线 |
 | v1.43 | 2026-07-23 | `CR-P9-CANARY-001`：用户指定当前 grok2api `grok_web/sso` 账号作为 P9-09 的独立测试来源；恢复单目标、最多三次、无值日志的 Web Canary，P7/P8 延期与 P10 前置不变 | APPROVED；当前执行基线 |
 | v1.44 | 2026-07-23 | `CR-P9-CANARY-002`：在用户扩大测试授权后，允许 P9-09 按现有服务器 Web 运行轮廓使用受限 Statsig 辅助请求与临时 loopback SSH SOCKS5 出口复测；固定目标 POST 预算与 G9 fail-closed 不变 | APPROVED；当前执行基线 |
+| v1.45 | 2026-07-24 | `CR-P11-04-001`：将 P11 loopback Soak 的最低本地观察固定为 10 小时；P12-10 的真实 72 小时 Canary 保持不变 | APPROVED；历史执行基线 |
+| v1.46 | 2026-07-24 | `CR-P12-01-001`：批准 GitHub OIDC keyless Sigstore manifest 签名和透明日志；OCI 仅为私有 CI artifact，不得推送/部署 | APPROVED；当前执行基线 |

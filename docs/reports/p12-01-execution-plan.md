@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.45` |
+| Plan version | `v1.46` |
 | Task | `P12-01` |
-| Status | `IN_PROGRESS` — build/verification design is fixed; a signing-authority checkpoint is required before a signed artifact can be produced or this task can close. |
+| Status | `IN_PROGRESS` — build/verification design is fixed and the signing-authority checkpoint is approved; a signed CI artifact still must pass independent verification before this task can close. |
 | Branch | `codex/p11-release-hardening` |
 | Task Card | Produce a fresh, revision-bound Linux `x86_64` gateway binary and OCI image archive, a redacted CycloneDX SBOM, SHA-256 manifest, detached signature and machine-verifiable receipt. Artifacts remain private CI outputs until a later P12 task authorizes a server deployment. |
 | References | [P12 plan](../06-development-plan.md#18-p12---服务器部署与灰度), [P11 candidate ledger](p11-08-release-candidate.md), [G11](g11-gate-report.md), [environment baseline](environment-baseline.md), [quality gates](../quality-gates.md) |
@@ -38,24 +38,17 @@
    steps. An unsigned, locally fabricated, wrong-architecture or changed post-signing artifact
    cannot be presented as release-ready.
 
-## Signing-authority checkpoint
+## Approved signing authority
 
-The repository contains no signing key, public verification identity, OCI registry, or approved
-public-transparency policy. Selecting one changes the release trust boundary, so this plan does not
-invent it.
+The user approved GitHub Actions OIDC keyless Sigstore signing for this task on 2026-07-24. The
+detached signature covers the immutable SHA-256 manifest; its identity is restricted to this
+repository's pinned `release-artifact.yml` workflow/ref, and Sigstore's public transparency log is
+explicitly authorized. No signing private key is created, stored, logged or copied to the server.
 
-Recommended option: GitHub Actions OIDC keyless Sigstore signing of the manifest and an uploaded
-OCI archive, with the resulting bundle retained beside the artifact. This avoids storing a private
-signing key, but writes an identity-bound record to Sigstore's public transparency service.
-
-Alternative: user-managed Cosign key signing, with the public key and a GitHub Actions secret name
-provided by the user. The private key must never enter this repository, a report, terminal output,
-or a server command.
-
-The user must choose one option and state whether the P12-01 OCI image remains a private GitHub
-artifact (recommended until P12-04) or may be pushed to a named registry. Until then the task may
-implement unsigned build/SBOM/checksum plumbing, but cannot claim P12-01 acceptance, create a
-release tag, publish an image, or deploy anything.
+The OCI archive remains a private GitHub Actions artifact. This authorization does **not** allow a
+GitHub Release, release tag, registry push, server login or deployment. A separately run
+`cosign verify-blob` with the recorded GitHub OIDC issuer and workflow identity must pass before
+the artifact receipt may claim `verified`.
 
 ## Implementation and validation sequence
 
@@ -67,7 +60,7 @@ release tag, publish an image, or deploy anything.
    labels. Build the OCI archive in Linux CI and inspect its architecture, entrypoint, user and
    digest without starting a service.
 3. Run unit/negative tests for manifest and SBOM sanitization, the applicable local gate and an
-   independent review. Run the new workflow only after the signing checkpoint is approved.
+   independent review. The approved workflow may then mint one private signed artifact.
 4. After the chosen signing flow emits a detached manifest signature, verify it in a separate job,
    record a value-free receipt, update the P12-01 report and move on to P12-02. Any failed
    signature, digest, architecture, SBOM-redaction or image-policy check freezes P12.

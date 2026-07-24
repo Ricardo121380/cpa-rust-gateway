@@ -112,6 +112,7 @@ fi
 
 run_step "Shell syntax" "$repo_root/scripts/check-shell-syntax.sh"
 run_step "CI workflow" "$repo_root/scripts/check-ci-workflow.rb"
+run_step "Release artifact workflow" "$repo_root/scripts/check-release-artifact-workflow.rb"
 run_step "CI change classifier" "$repo_root/scripts/test-ci-change-classifier.sh"
 run_step "Plan state" "$repo_root/scripts/check-plan-state.rb"
 run_step "Plan state guard" "$repo_root/scripts/test-plan-state-check.sh"
@@ -120,6 +121,7 @@ run_step "Benchmark baseline comparator" "$repo_root/scripts/test-p11-03-benchma
 run_step "Soak runner argument guard" "$repo_root/scripts/test-p11-04-soak-runner.sh"
 run_step "Soak receipt checker" "$repo_root/scripts/test-p11-04-soak-receipt.sh"
 run_step "Quality installer cache behavior" "$repo_root/scripts/test-install-quality-tools.sh"
+run_step "Release artifact verifier" "$repo_root/scripts/test-p12-release-artifact.rb"
 run_step "Management SPA" node "$repo_root/scripts/check-management-spa.mjs"
 run_step "Rust format" cargo fmt --all -- --check
 run_step "Clippy" cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
