@@ -31,7 +31,8 @@ required_fragments = [
   "docker buildx build",
   '--builder "$builder_name"',
   "type=oci,dest=release-artifact/gateway-image.oci.tar",
-  "docker load --input release-artifact/gateway-image.oci.tar",
+  'type=docker,dest=$DOCKER_ARCHIVE',
+  'docker load --input "$DOCKER_ARCHIVE"',
   "--network none --read-only --user 65532:65532",
   "cosign sign-blob --yes",
   "cosign verify-blob",
@@ -43,6 +44,10 @@ required_fragments = [
 ]
 required_fragments.each do |fragment|
   errors << "missing required release-artifact workflow fragment: #{fragment}" unless text.include?(fragment)
+end
+
+if text.include?("docker load --input release-artifact/gateway-image.oci.tar")
+  errors << "release-artifact must not pass an OCI layout archive to docker load"
 end
 
 expected_trigger = <<~YAML
