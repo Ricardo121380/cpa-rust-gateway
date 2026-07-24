@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9 与 P10 已完成；P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。`phase-p10-complete` 的唯一 GitHub Delivery Gate 已通过 Fast、Full supply-chain 与 Required。P11-01 已完成离线、脱敏的差分 Fixture Harness；P11-02 已完成 loopback-only 网络、DNS、TLS、状态、截断流、慢客户端和取消故障注入矩阵与 review。 |
-| 当前任务 | P11-03 至 P11-07 已完成本地实现、review 和证据，等待 P11 Phase Gate；P11-08 正在生成 Release Candidate 清单、已知差异和生产默认配置，它是唯一 `IN_PROGRESS` Task。 |
+| 当前任务 | P11-01 至 P11-08 已完成本地实现、review 和证据；G11 已本地接受，正在等待 P11 的唯一 GitHub Delivery Gate。P11-08 保持唯一 `IN_PROGRESS` Task，直到该阶段交付门通过。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
