@@ -93,6 +93,7 @@ jobs:
           path: |
             ~/.cargo/bin/cargo-deny
             ~/.cargo/bin/cargo-audit
+            ~/.cargo/bin/cargo-cyclonedx
             ~/.cargo/registry
             ~/.cargo/git
           key: quality-tools-${{ runner.os }}-rust-1.97.1-${{ hashFiles('tools/quality-tool-versions.env') }}

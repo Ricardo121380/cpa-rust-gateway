@@ -65,6 +65,7 @@ check_quality_tool_versions() {
   source "$repo_root/tools/quality-tool-versions.env"
   cargo deny --version | rg -q "$CARGO_DENY_VERSION"
   cargo audit --version | rg -q "$CARGO_AUDIT_VERSION"
+  cargo cyclonedx --version | rg -q "$CARGO_CYCLONEDX_VERSION"
 }
 
 check_tracked_whitespace() {

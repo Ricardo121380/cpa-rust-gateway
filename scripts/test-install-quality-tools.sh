@@ -22,11 +22,16 @@ case "${1:-}:${2:-}" in
     test -f "$state_dir/audit" || exit 1
     printf 'cargo-audit 0.22.2\n'
     ;;
+  cyclonedx:--version)
+    test -f "$state_dir/cyclonedx" || exit 1
+    printf 'cargo-cyclonedx-cyclonedx 0.5.9\n'
+    ;;
   install:*)
     crate="${!#}"
     case "$crate" in
       cargo-deny) touch "$state_dir/deny" ;;
       cargo-audit) touch "$state_dir/audit" ;;
+      cargo-cyclonedx) touch "$state_dir/cyclonedx" ;;
       *) exit 2 ;;
     esac
     printf '%s\n' "$crate" >> "$state_dir/installs"
@@ -41,7 +46,8 @@ chmod +x "$work_dir/bin/cargo"
 PATH="$work_dir/bin:$PATH" FAKE_CARGO_STATE="$work_dir/state" "$installer" >/dev/null
 test -f "$work_dir/state/deny"
 test -f "$work_dir/state/audit"
-test "$(wc -l < "$work_dir/state/installs")" -eq 2
+test -f "$work_dir/state/cyclonedx"
+test "$(wc -l < "$work_dir/state/installs")" -eq 3
 
 rm -f "$work_dir/state/installs"
 PATH="$work_dir/bin:$PATH" FAKE_CARGO_STATE="$work_dir/state" "$installer" >/dev/null
