@@ -29,7 +29,7 @@ def write_tar_entry(writer, name, bytes)
   writer.add_file_simple(name, 0o644, bytes.bytesize) { |io| io.write(bytes) }
 end
 
-def write_oci(path, root_user: "65532:65532", unsafe_path: false)
+def write_oci(path, root_user: "65532:65532", unsafe_path: false, unsafe_symlink: false)
   layer = "p12 test layer"
   config = JSON.generate(
     "architecture" => "amd64",
@@ -56,12 +56,15 @@ def write_oci(path, root_user: "65532:65532", unsafe_path: false)
   )
   File.open(path, "wb") do |file|
     Gem::Package::TarWriter.new(file) do |writer|
+      writer.mkdir("blobs/", 0o755)
+      writer.mkdir("blobs/sha256/", 0o755)
       write_tar_entry(writer, "oci-layout", JSON.generate("imageLayoutVersion" => "1.0.0"))
       write_tar_entry(writer, "index.json", index)
       write_tar_entry(writer, "blobs/sha256/#{Digest::SHA256.hexdigest(config)}", config)
       write_tar_entry(writer, "blobs/sha256/#{Digest::SHA256.hexdigest(manifest)}", manifest)
       write_tar_entry(writer, "blobs/sha256/#{Digest::SHA256.hexdigest(layer)}", layer)
       write_tar_entry(writer, "../outside", "unsafe") if unsafe_path
+      writer.add_symlink("blobs/sha256/link", "../outside", 0o777) if unsafe_symlink
     end
   end
 end
@@ -157,6 +160,12 @@ Dir.mktmpdir("p12-artifact-test") do |temporary|
   run_tool("verify", *arguments)
 
   write_oci(File.join(artifact_dir, "gateway-image.oci.tar"), unsafe_path: true)
+  reject_tool("verify", *arguments)
+  write_oci(File.join(artifact_dir, "gateway-image.oci.tar"))
+  run_tool("manifest", *arguments, "--output", manifest_path)
+  run_tool("verify", *arguments)
+
+  write_oci(File.join(artifact_dir, "gateway-image.oci.tar"), unsafe_symlink: true)
   reject_tool("verify", *arguments)
   write_oci(File.join(artifact_dir, "gateway-image.oci.tar"))
   run_tool("manifest", *arguments, "--output", manifest_path)
