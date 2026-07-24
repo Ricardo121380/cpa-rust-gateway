@@ -198,14 +198,24 @@ module P12ReleaseArtifact
 
   def tar_entries(path)
     entries = {}
+    seen_names = {}
     File.open(path, "rb") do |file|
       Gem::Package::TarReader.new(file) do |reader|
         reader.each do |entry|
           name = entry.full_name
-          safe_name = name.match?(%r{\A(?:[A-Za-z0-9._-]+/)*[A-Za-z0-9._-]+\z}) && !name.split("/").include?("..")
+          canonical_name = entry.directory? ? name.delete_suffix("/") : name
+          components = canonical_name.split("/")
+          safe_name = canonical_name.match?(%r{\A[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*\z}) &&
+                      components.none? { |component| [".", ".."].include?(component) }
           fail!("OCI archive contains an unsafe entry #{name.inspect}") unless safe_name
-          fail!("OCI archive contains duplicate entry #{name}") if entries.key?(name)
-          entries[name] = entry.read if entry.file?
+          fail!("OCI archive contains duplicate entry #{canonical_name}") if seen_names.key?(canonical_name)
+          seen_names[canonical_name] = true
+
+          if entry.file?
+            entries[canonical_name] = entry.read
+          elsif !entry.directory?
+            fail!("OCI archive contains an unsupported entry type for #{name.inspect}")
+          end
         end
       end
     end
