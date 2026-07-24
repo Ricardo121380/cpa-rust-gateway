@@ -28,6 +28,7 @@
 - [G2 阶段门禁报告](g2-gate-report.md)
 - [G3 阶段门禁报告](g3-gate-report.md)
 - [G4 阶段门禁报告](g4-gate-report.md)
+- [G9 Grok Web 阶段门禁报告](g9-gate-report.md)
 
 ## 已完成任务
 
@@ -71,3 +72,72 @@
 - [P4-08 Structured JSON, Prometheus, and OpenTelemetry telemetry fan-out report](p4-08-single-consumer-telemetry-fanout.md)
 - [P4-09 Default-deny log redaction and bounded Body sampling report](p4-09-log-redaction-body-sampling.md)
 - [P4-10 Read-only runtime management status and controlled Credential-account recovery report](p4-10-read-only-runtime-management-status.md)
+- [P5-00 Phase-level delivery and default-ref cache report](p5-00-phase-level-delivery.md)
+- [P5-01 Anthropic Messages adapter report](p5-01-anthropic-messages-adapter.md)
+- [P5-02 Exact token-count capability report](p5-02-exact-token-count-capability.md)
+- [P5-03 Anthropic Tool stream state report](p5-03-anthropic-tool-stream-state.md)
+- [P5-04 Protocol transform admission report](p5-04-protocol-transform-admission.md)
+- [P5-05 Endpoint protocol isolation report](p5-05-endpoint-protocol-isolation.md)
+- [P5-06 Anthropic semantic and HTTP boundary report](p5-06-anthropic-semantic-http-boundary.md)
+- [P5-07 Claude Code `--bare` loopback E2E report](p5-07-claude-code-bare-e2e.md)
+- [P5-08 Anthropic adversarial stream properties report](p5-08-adversarial-stream-properties.md)
+- [G5 Anthropic/Claude Code phase gate report](g5-gate-report.md)
+- [P6-01 Grok Build OAuth credential and Device Code report](p6-01-grok-build-oauth.md) — complete
+- [P6-02 Grok Build refresh singleflight and durable revision runtime report](p6-02-grok-build-refresh-runtime.md) — complete
+- [P6-03 Grok Build Responses request, stream, and error report](p6-03-grok-build-responses.md) — complete under CR-P6-03-013; direct T18 remains `unattributed` and closed
+- [P6-04 Build catalog, Billing, Quota Window, and Reset state](p6-04-build-runtime-catalog-quota.md) — complete
+- [P6-05 Tenant-isolated Build cache identity and affinity](p6-05-build-cache-affinity.md) — complete
+- [P6-06 Build Response Ownership and Reasoning Replay](p6-06-build-response-ownership-replay.md) — complete
+- [P6-07 Build-specific failure classification](p6-07-build-failure-classification.md) — complete
+- [P6-08 Grok Build clean-room differential report](p6-08-grok-build-clean-room-differential.md) — complete
+- [G6 Grok Build phase gate report](g6-gate-report.md) — complete
+- [P7-01 Kiro Credential runtime](p7-01-kiro-credential-runtime.md) — local phase-gate pass
+- [P7-02 Kiro IDE/CLI endpoint policy](p7-02-kiro-endpoint-policy.md) — local phase-gate pass
+- [P7-03 Kiro profile ARN lifecycle](p7-03-kiro-profile-arn.md) — local phase-gate pass
+- [P7-04 Kiro Canonical conversation request](p7-04-kiro-conversation-request.md) — local phase-gate pass
+- [P7-05 Kiro AWS EventStream framing](p7-05-kiro-eventstream-framing.md) — local phase-gate pass
+- [P7-06 Kiro dynamic capability snapshots](p7-06-kiro-dynamic-capability-snapshots.md) — local phase-gate pass
+- [P7-07 Kiro Tool, Thinking, and Claude Code compatibility](p7-07-kiro-tool-thinking-compatibility.md) — local phase-gate pass
+- [P7-08 Kiro failure-owner classification](p7-08-kiro-failure-classification.md) — local phase-gate pass
+- [P7-09 Kiro-RS differential and `--bare` E2E](p7-09-kiro-rs-differential-bare-e2e.md) — deferred to the final external-authentication package
+- [P8-01 Grok Official API-key catalog](p8-01-grok-official-catalog.md) — local phase-gate pass
+- [P8-02 Grok Official Responses HTTP/SSE](p8-02-grok-official-responses.md) — local phase-gate pass
+- [P8-03 Grok Official rate-limit and billing metadata](p8-03-grok-official-metadata.md) — local phase-gate pass
+- [P8-04 Grok Official Tool, Reasoning, and Search capability](p8-04-grok-official-capabilities.md) — local phase-gate pass
+- [P8-05 Grok Official / Build state isolation](p8-05-grok-official-build-isolation.md) — local phase-gate pass
+- [P8-06 Grok Official local differential, concurrent load, and error matrix](p8-06-grok-official-local-differential.md) — local phase-gate pass ([Full Gate evidence](p8-06-local-full-check.md))
+- [P8-07 Grok Official authorized one-probe](p8-07-authorized-official-probe.md) — local safety harness pass; deferred to the final external-authentication package with P7-09
+- [P9-01 Grok Web SSO credential, lineage, and lifecycle](p9-01-grok-web-sso-credentials.md) — local phase-gate pass; no SSO source or Web request used
+- [P9-02 Grok Web browser egress-session fingerprint](p9-02-grok-web-browser-egress-session.md) — local phase-gate pass; no browser or Web request used
+- [P9-03 Grok Web fixture Chat request and stream](p9-03-grok-web-fixture-chat-stream.md) — local phase-gate pass; no Web endpoint or request used
+- [P9-04 Grok Web Conversation account and egress binding](p9-04-grok-web-conversation-binding.md) — local phase-gate pass; no Web request used
+- [P9-05 Grok Web Statsig cache and signer SSRF boundary](p9-05-grok-web-statsig-cache-ssrf.md) — local phase-gate pass; no Statsig/Web request used
+- [P9-06 Grok Web source-labelled quota](p9-06-grok-web-source-labelled-quota.md) — local phase-gate pass; no Web/REST/gRPC-Web request used
+- [P9-07 Grok Web 403 egress/account attribution](p9-07-grok-web-403-egress-account-attribution.md) — local phase-gate pass; no Web request or error body used
+- [P9-08 Grok Web explicit Tool emulation](p9-08-grok-web-explicit-tool-emulation.md) — local phase-gate pass; default off and no Web request/Tool execution used
+- [P9 local audit and G9 deferral](p9-local-audit-g9-deferred.md) — historical pre-Canary audit, superseded by P9-09/G9 closeout
+- [P9-09 Grok Web authorized Canary](p9-09-authorized-web-canary.md) — complete; three bounded Canary observations and the P9 Delivery Gate passed
+- [P9 local Full gate log](p9-09-local-full-check.md) — PASS
+- [P10-01 Versioned management OpenAPI contract](p10-01-management-openapi.md) — local phase-gate pass; contract-only, no administrative listener
+- [P10-02 Management HTTP admission boundary](p10-02-management-http-admission.md) — guarded Scope, no CRUD/UI route or listener bind
+- [P10-03 Management SPA and generated client](p10-03-management-spa-generated-client.md) — independent static shell and reproducible OpenAPI-generated client build
+- [P10-04 Protected management resource workflows](p10-04-management-resource-workflows.md) — local phase-gate pass; no deployment or Provider default path
+- [P10-05 Protected routing and Client Key workflow plan](p10-05-execution-plan.md) — local phase-gate pass; draft configuration only
+- [P10-05 Protected routing and Client Key workflows](p10-05-protected-routing-client-key-workflows.md) — local phase-gate pass; browser E2E and Key redaction evidence, no runtime or deployment
+- [P10-06 Runtime observability management workflow plan](p10-06-execution-plan.md) — scoped implementation boundary
+- [P10-06 Runtime observability management workflows](p10-06-runtime-management.md) — local phase-gate pass; loopback browser E2E and value-free runtime projections only
+- [P10-07 Configuration lifecycle workflow plan](p10-07-execution-plan.md) — scoped protected lifecycle transitions and lifecycle audit only
+- [P10-07 Configuration lifecycle](p10-07-configuration-lifecycle.md) — local phase-gate pass; protected lifecycle E2E and no-persistence browser evidence
+- [P10-08 Encrypted backup and empty-target restore](p10-08-encrypted-backup-restore.md) — local phase-gate pass; encrypted SQLite recovery rehearsal, protected binary HTTP and no-persistence browser evidence
+- [P10-09 Embedded management UI and inference isolation](p10-09-embedded-management-ui.md) — local phase-gate pass; embedded closed asset map, hardened static HTTP and data-plane route isolation evidence
+- [G10 management-control-plane gate report](g10-gate-report.md) — local Phase Gate passed; awaiting P10's only GitHub Delivery Gate
+- [P11-01 Differential Fixture Harness](p11-01-differential-fixture-harness.md) — local phase evidence
+- [P11-02 Fault Matrix](p11-02-fault-matrix.md) — local phase evidence
+- [P11-03 benchmark baseline](p11-03-benchmark-baseline.md) — local phase evidence
+- [P11-04 load and soak](p11-04-load-soak.md) — accepted local synthetic evidence; P12 Canary remains required
+- [P11-05 security audit](p11-05-security-audit.md) — local phase evidence
+- [P11-06 recovery report](p11-06-recovery-report.md) — local phase evidence
+- [P11-07 upgrade and rollback report](p11-07-upgrade-rollback.md) — local phase evidence
+- [P11-08 `v0.1.0-alpha.1` Release Candidate ledger](p11-08-release-candidate.md) — local candidate inventory; no published artifact
+- [G11 release-hardening gate report](g11-gate-report.md) — complete; GitHub Delivery Gate passed
+- [P12-01 release artifact execution plan](p12-01-execution-plan.md) — pinned Linux artifact, private OCI archive, redacted SBOM, checksum and approved keyless-signing boundary

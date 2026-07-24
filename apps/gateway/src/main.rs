@@ -12,6 +12,23 @@ use gateway_control::management_service::{
     ManagementServiceError,
 };
 
+const RELEASE_BUILD_METADATA: &str = concat!(
+    "gateway-release-revision=",
+    env!("GATEWAY_RELEASE_REVISION"),
+    "\n",
+    "gateway-release-rust-version=",
+    env!("GATEWAY_RELEASE_RUST_VERSION"),
+    "\n",
+    "gateway-release-target=",
+    env!("GATEWAY_RELEASE_TARGET"),
+    "\n"
+);
+
+// Keep the revision-bound release identity in the stripped executable. P12 verifies this value
+// before packaging; the CLI intentionally does not expose a remote version endpoint.
+#[used]
+static EMBEDDED_RELEASE_BUILD_METADATA: &str = RELEASE_BUILD_METADATA;
+
 fn main() -> ExitCode {
     let _ = [
         gateway_control::COMPONENT,
@@ -306,7 +323,14 @@ impl From<ManagementServiceError> for CliError {
 
 #[cfg(test)]
 mod tests {
-    use super::{AdminCommand, CliError, parse_command};
+    use super::{AdminCommand, CliError, RELEASE_BUILD_METADATA, parse_command};
+
+    #[test]
+    fn development_build_embeds_a_non_secret_release_identity() {
+        assert!(RELEASE_BUILD_METADATA.contains("gateway-release-revision=development"));
+        assert!(RELEASE_BUILD_METADATA.contains("gateway-release-rust-version=development"));
+        assert!(RELEASE_BUILD_METADATA.contains("gateway-release-target=development"));
+    }
 
     #[test]
     fn create_command_parses_only_explicit_structured_options() {

@@ -1,0 +1,44 @@
+event: response.created
+data: {"type":"response.created","response":{"id":"resp-grok-build-01","status":"in_progress","output":[],"usage":null}}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","item":{"id":"rsn-grok-build-01","type":"reasoning","status":"in_progress","content":[{"type":"reasoning_text","text":""}]}}
+
+event: response.reasoning_text.delta
+data: {"type":"response.reasoning_text.delta","item_id":"rsn-grok-build-01","delta":"Check "}
+
+event: response.reasoning_text.delta
+data: {"type":"response.reasoning_text.delta","item_id":"rsn-grok-build-01","delta":"weather."}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","item":{"id":"msg-grok-build-01","type":"message","role":"assistant","status":"in_progress","content":[{"type":"output_text","text":""}]}}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","item_id":"msg-grok-build-01","delta":"It is "}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","item_id":"msg-grok-build-01","delta":"sunny."}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","item":{"id":"fc-grok-build-01","type":"function_call","call_id":"call-grok-build-01","name":"lookup_weather","arguments":"","status":"in_progress"}}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","item_id":"fc-grok-build-01","call_id":"call-grok-build-01","delta":"{\"city\":\"Sh"}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","item_id":"fc-grok-build-01","call_id":"call-grok-build-01","delta":"anghai\"}"}
+
+event: response.function_call_arguments.done
+data: {"type":"response.function_call_arguments.done","item_id":"fc-grok-build-01","call_id":"call-grok-build-01","arguments":"{\"city\":\"Shanghai\"}"}
+
+event: response.output_item.done
+data: {"type":"response.output_item.done","item":{"id":"rsn-grok-build-01","type":"reasoning","status":"completed","content":[{"type":"reasoning_text","text":"Check weather."}]}}
+
+event: response.output_item.done
+data: {"type":"response.output_item.done","item":{"id":"msg-grok-build-01","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"It is sunny."}]}}
+
+event: response.output_item.done
+data: {"type":"response.output_item.done","item":{"id":"fc-grok-build-01","type":"function_call","call_id":"call-grok-build-01","name":"lookup_weather","arguments":"{\"city\":\"Shanghai\"}","status":"completed"}}
+
+event: response.completed
+data: {"type":"response.completed","response":{"id":"resp-grok-build-01","status":"completed","output":[{"id":"rsn-grok-build-01","type":"reasoning","status":"completed","content":[{"type":"reasoning_text","text":"Check weather."}]},{"id":"msg-grok-build-01","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"It is sunny."}]},{"id":"fc-grok-build-01","type":"function_call","call_id":"call-grok-build-01","name":"lookup_weather","arguments":"{\"city\":\"Shanghai\"}","status":"completed"}],"usage":{"input_tokens":12,"input_tokens_details":{"cached_tokens":2},"output_tokens":8,"output_tokens_details":{"reasoning_tokens":3},"total_tokens":20}}}

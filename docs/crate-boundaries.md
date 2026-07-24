@@ -45,15 +45,49 @@ gateway-core
 - `gateway-core` 不依赖 Actix、SQLite 或任何具体 Provider。
 - Actix Web 只能出现在 `gateway-http-actix` 的依赖闭包入口。
 - `gateway-stream` 只承载有界 Canonical Event 交付、背压、取消和语义事件提交边界；不得
-  依赖 HTTP、SSE 编码、具体 Provider、路由或持久化类型。
+  依赖 HTTP、SSE 编码、具体 Provider、路由或持久化类型。P5-08 的 `proptest` 是该 crate 的
+  `dev-dependency`，仅用于固定种子取消性质测试；它不进入库目标、运行时依赖或公共 API。
 - `gateway-http-actix` 可以直接使用 Tokio 和 `futures-util`，但仅用于 Actix handler 内的
   producer task、取消选择和 body polling；它不得直接依赖或暴露任何 Provider trait/type。P3-09
   与 P3-10 的 `dev-dependencies` 仅用于独立集成测试中组装两个受控 loopback 或显式授权的
-  OpenAI-compatible Upstream。P3-10 的 `url` 仅解析精确测试 Endpoint，`zeroize` 仅保存
-  短暂测试 Credential；它们以及具体 Provider/transport 依赖均不进入该 crate 的库目标或公共 API。
+  OpenAI-compatible Upstream。P10-02 在 HTTP 管理 Scope 内以 `url` 规范化一个精确 Origin、以
+  `zeroize` 保存短暂 Management Key/CSRF token，并以 `subtle` 做常量时间比较；这三项不接触
+  数据面路由、Provider/transport 依赖或公共推理 API。具体 Provider/transport 依赖仍仅存在于
+  相应的独立测试目标，不能进入该 crate 的库 API。
 - `gateway-provider` 的 P1 Mock 只能拉取 Canonical Event；它可以使用 Tokio 的等待原语来
   表达确定性 fixture 延迟，但不得依赖 `gateway-stream`、HTTP、SSE、路由、Endpoint 或凭据。
 - Provider 私有 Crate 不被 `gateway-core`、协议公共层或其它 Provider 引用。
+- `provider-grok` 的 P6-01 OAuth 边界仅依赖 `serde`/`serde_json` 做有界且拒绝重复字段的
+  本地 JSON 解析，`url` 仅验证固定 Device Code 验证 URI，`zeroize` 仅持有短生命周期 OAuth
+  access/refresh/device/user code。P6-02 新增受限的 `gateway-store`/`rusqlite` 边，仅持久化
+  Config Version + Credential 精确身份绑定的 AEAD 密文、key version 和 CAS revision；它不读取
+  或修改控制面配置图、不进入 Router 热路径，也不创建 socket、TLS、代理或 Build 推理请求。
+- `provider-grok` 的 P6-03 Build Responses 边仅在本 crate 内编码固定 CLI OAuth 请求、解析有界
+  JSON/SSE，并在非流式响应上做有界 gzip 解码；它通过既有 `gateway-upstream` 类型交出 P2 已准入
+  的精确 Target，但不创建 Client、socket、TLS、代理或真实请求。它可以依赖
+  `protocol-openai-responses` 的 Canonical 请求类型，但绝不引用其它 Provider 私有 crate；
+  `time` 仅在 `CR-P6-03-008` 的 bytes-only OAuth 来源适配中严格解析 RFC3339 绝对过期时间，
+  不读取时钟、不创建网络 I/O，也不改变 P6-01 相对 `expires_in` 行为。
+  `flate2` 仅用于 1 MiB 上限内的 gzip 解码，`getrandom` 仅生成不持久化、不诊断的进程/请求关联值；
+  `tokio` 仅为 ignored 的授权单探针测试目标提供受限异步驱动。P8-05 的 `gateway-router` 运行时
+  依赖仅接收已脱敏的 `RuntimeQuotaRegistry` 和 exact-target quota 类型，以将 Official Header 观察
+  写入 Router-owned 状态；它不选择 Route/Public Model/凭据、不开 HTTP、不读取 Build/Web 状态，且
+  不形成 Router→具体 Provider 的反向依赖。P6 的 Build 状态/Quota/Cache/Continuity 仍由其专属
+  模块所有，`p6_09_inference_adapter` 仍提供额外的 Provider-to-Router fixture 纵向测试。
+- `provider-grok` 的 P9-01/P9-02 Web 边只接收调用方显式传入的受限 Cookie export、`SecretStore`、
+  User-Agent、TLS-profile label、时间与 `UpstreamProxy` 值；它们仅构建零化/AEAD 凭据和不可变
+  browser-egress-session 指纹，既不读取浏览器/Profile/Cookie jar/环境代理，也不创建 DNS、socket、
+  TLS、HTTP 或代理/TUN 动作。P9-03 才可在独立的固定 Web 请求边界使用这些值。
+- `provider-kiro` 的 P7-01 凭据边界仅依赖 `serde`/`serde_json` 对显式传入的有界 JSON 做严格
+  解析，`zeroize` 只持有 Social/Enterprise OAuth 或 `ksk_` Secret，`gateway-store` 只为由精确
+  Credential ID 关联数据绑定的 AEAD envelope 提供加解密。P7-02 新增 `url`，只验证由严格 API
+  Region 派生的两条固定 HTTPS URL（IDE/CLI）；纯 Policy/Request/Profile/EventStream/Semantic 模块
+  不读取缓存、环境或数据库，不创建网络 I/O，也不接受任意 endpoint 覆盖。P7-06 新增只读
+  `gateway-catalog` 边，唯一用途是复用 P4-02 已验证的显式 Fresh/Stale/Expired timing policy；Kiro 的
+  模型/订阅快照仍存于 `provider-kiro`，不向 Catalog 写入、不开启 SQLite/Route 依赖，也不把 Provider
+  反向暴露给 Control、Router 或其它 Provider。P7-09 的 `KiroInferenceAdapter` 只经显式注入的
+  `gateway-upstream` DNS-pinned transport 发送已构造的一次请求；它不读取 Kiro-RS、代理环境、凭据缓存，
+  也不隐式 refresh/retry/failover。
 - `gateway-store` 不进入 Router 的请求选择路径；持久数据通过控制面编译为不可变 Snapshot。
 - `gateway-router` 可以使用 `gateway-auth` 的无存储 Client Key HMAC 原语来认证其已编译
   Snapshot；该边不允许反向的 Router、Store 或 HTTP 依赖进入 `gateway-auth`。

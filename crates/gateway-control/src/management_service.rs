@@ -17,14 +17,16 @@ use gateway_router::RouteSnapshotRegistry;
 use gateway_store::{
     StoreError,
     control_plane::{
-        ConfigVersion, ConfigVersionStatus, ControlPlaneConfiguration, ManagementAuditAction,
-        ManagementAuditEventDraft, SqliteControlPlaneRepository,
+        ControlPlaneConfiguration, ManagementAuditEventDraft, SqliteControlPlaneRepository,
     },
 };
 
 /// Management-facing Config Version identifier re-exported without making the application depend
 /// directly on the persistence crate.
-pub use gateway_store::control_plane::{ConfigVersionId, ManagementAuditEvent};
+pub use gateway_store::control_plane::{
+    ConfigVersion, ConfigVersionId, ConfigVersionStatus, ManagementAuditAction,
+    ManagementAuditEvent,
+};
 
 use crate::{
     route_compiler::RouteCompiler,
@@ -216,6 +218,7 @@ impl ManagementService {
             id: config_version_id,
             parent_id,
             status: ConfigVersionStatus::Draft,
+            revision: 0,
             created_at_ms: occurred_at_ms,
             description,
         });
@@ -252,6 +255,27 @@ impl ManagementService {
         Ok(self
             .publisher
             .validate_version(&mut self.repository, config_version_id)?)
+    }
+
+    /// Lists Config Version root metadata without reading a Credential envelope or complete graph.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe storage error when a persisted Version cannot be read or represented.
+    pub fn config_versions(&mut self) -> Result<Vec<ConfigVersion>, ManagementServiceError> {
+        Ok(self.repository.list_config_versions()?)
+    }
+
+    /// Returns one Config Version root metadata record without exposing its resource graph.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe storage error when an existing Version cannot be read or represented.
+    pub fn config_version(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+    ) -> Result<Option<ConfigVersion>, ManagementServiceError> {
+        Ok(self.repository.load_config_version(config_version_id)?)
     }
 
     /// Atomically publishes one validated Config Version and records `config_published`.
@@ -383,6 +407,47 @@ pub enum ManagementServiceError {
     Publication(SnapshotPublicationError),
     /// The local clock was unavailable before the mutation transaction began.
     Clock(ManagementClockError),
+}
+
+/// Closed error class usable by transport adapters without exposing persistence or compiler
+/// internals.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementLifecycleFailure {
+    /// The requested state transition is not valid for the current durable Config Version state.
+    Conflict,
+    /// The lifecycle service cannot safely continue or disclose more detail.
+    Unavailable,
+}
+
+impl ManagementServiceError {
+    /// Classifies this error for a management lifecycle transport boundary.
+    ///
+    /// This intentionally exposes no database, compiler, or credential detail. A transport can
+    /// use it to decide whether to return a safe conflict or a fail-closed unavailable response.
+    #[must_use]
+    pub fn lifecycle_failure(&self) -> ManagementLifecycleFailure {
+        match self {
+            Self::Store(
+                StoreError::ConfigVersionNotFound
+                | StoreError::ConfigVersionAlreadyActive
+                | StoreError::ConfigVersionRevisionConflict
+                | StoreError::ControlPlaneMutationRequiresDraft,
+            )
+            | Self::Publication(
+                SnapshotPublicationError::ConfigVersionNotFound
+                | SnapshotPublicationError::Compile(_)
+                | SnapshotPublicationError::EgressPolicy(_)
+                | SnapshotPublicationError::SnapshotBuild(_)
+                | SnapshotPublicationError::InvalidSnapshotVersion
+                | SnapshotPublicationError::NoPersistedRollbackTarget
+                | SnapshotPublicationError::ClientKeyMaterial(_)
+                | SnapshotPublicationError::ClientKeyAccessGroupMissing,
+            ) => ManagementLifecycleFailure::Conflict,
+            Self::Store(_) | Self::Publication(_) | Self::Clock(_) => {
+                ManagementLifecycleFailure::Unavailable
+            }
+        }
+    }
 }
 
 impl fmt::Display for ManagementServiceError {

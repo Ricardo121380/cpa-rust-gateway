@@ -1,0 +1,10 @@
+DROP INDEX grok_build_response_ownership_expiry_idx;
+DROP INDEX grok_build_cache_affinities_expiry_idx;
+DROP INDEX grok_build_quota_windows_reset_idx;
+DROP TABLE grok_build_reasoning_replay;
+DROP TABLE grok_build_response_ownership;
+DROP TABLE grok_build_affinity_breaks;
+DROP TABLE grok_build_cache_affinities;
+DROP TABLE grok_build_quota_windows;
+DROP TABLE grok_build_model_catalog;
+DROP TABLE grok_build_billing_profiles;

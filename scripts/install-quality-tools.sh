@@ -53,5 +53,6 @@ install_tool() {
 
 install_tool cargo-deny "cargo deny" "$CARGO_DENY_VERSION"
 install_tool cargo-audit "cargo audit" "$CARGO_AUDIT_VERSION"
+install_tool cargo-cyclonedx "cargo cyclonedx" "$CARGO_CYCLONEDX_VERSION"
 
 printf 'quality-tools: ok\n'

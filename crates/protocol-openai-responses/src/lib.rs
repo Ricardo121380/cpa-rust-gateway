@@ -1607,7 +1607,9 @@ fn ensure_representable_event_extensions(event: &CanonicalEvent) -> Result<(), G
 
 fn openai_error_type(error: &GatewayError) -> &'static str {
     match error.code() {
-        GatewayErrorCode::ClientRequestError => "invalid_request_error",
+        GatewayErrorCode::ClientRequestError | GatewayErrorCode::TokenCountUnsupported => {
+            "invalid_request_error"
+        }
         GatewayErrorCode::ClientUnauthorized => "authentication_error",
         GatewayErrorCode::RouteNotFound => "not_found_error",
         GatewayErrorCode::ProviderRateLimited | GatewayErrorCode::CredentialQuotaExceeded => {

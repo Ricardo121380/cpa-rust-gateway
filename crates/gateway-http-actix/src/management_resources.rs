@@ -1,0 +1,4137 @@
+//! Protected versioned management resource handlers for P10-04 and P10-05.
+//!
+//! These handlers decode only bounded explicit resource shapes and delegate every durable graph
+//! mutation to `gateway-control`. They never publish a Snapshot, invoke a Provider, expose a
+//! credential Secret/ciphertext, or bypass the P10-02 `/admin` security scope.
+
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Mutex,
+    time::{SystemTime, UNIX_EPOCH},
+};
+
+use actix_web::{
+    HttpMessage, HttpRequest, HttpResponse,
+    http::{StatusCode, header},
+    web,
+};
+use gateway_control::management_mutation_service::{
+    AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus, ClientKeyIssue,
+    ClientKeyUpdate, ClientKeyView, ConfigRevision, ConfigVersionId, CredentialScope,
+    CredentialStatus, CredentialUpsert, CredentialView, EgressPolicyConfiguration,
+    EndpointConfiguration, EndpointCredentialBindingConfiguration, EndpointTransport,
+    ManagementMutationService, ManagementResourceError, ManagementRouteValidation,
+    ModelAliasConfiguration, ModelRouteConfiguration, PublicModelConfiguration, Revisioned,
+    RouteCandidateConfiguration, RoutePolicy, StoreError, StoredClientKeyStatus,
+    StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
+};
+use gateway_core::{
+    AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, PublicModelId, RequestId,
+    RouteCandidateId, RouteId, UpstreamId,
+};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use zeroize::Zeroizing;
+
+use crate::management_security::{ManagementRequestPrincipal, configure_management};
+
+const CONFIG_VERSION_HEADER: &str = "x-config-version";
+const IF_MATCH_HEADER: &str = "if-match";
+const MAX_MANAGEMENT_JSON_BYTES: usize = 70 * 1024;
+const MAX_RUNTIME_ROWS: usize = 256;
+const MAX_REQUEST_ATTEMPTS: usize = 128;
+
+/// Management-time application state for P10-04 resource handlers.
+///
+/// The owned `SQLite` service stays behind a synchronous mutex because its mutations are short,
+/// serialized transactions. Provider and OAuth workflows remain separately injected in later
+/// P10-04 code and never run while this lock is held.
+pub struct ManagementResourceHttpState {
+    service: Mutex<ManagementMutationService>,
+    workflow: Mutex<Box<dyn ManagementEndpointWorkflow>>,
+    runtime: Mutex<Box<dyn ManagementRuntimeFacade>>,
+    runtime_clock: Box<dyn ManagementRuntimeClock>,
+}
+
+impl ManagementResourceHttpState {
+    /// Creates protected resource-handler state from the management-only service.
+    #[must_use]
+    pub fn new(service: ManagementMutationService) -> Self {
+        Self::with_workflow(
+            service,
+            Box::new(RejectingManagementEndpointWorkflow::new()),
+        )
+    }
+
+    /// Creates the state with an explicit bounded Endpoint workflow implementation.
+    #[must_use]
+    pub fn with_workflow(
+        service: ManagementMutationService,
+        workflow: Box<dyn ManagementEndpointWorkflow>,
+    ) -> Self {
+        Self::with_workflow_and_runtime(
+            service,
+            workflow,
+            Box::new(RejectingManagementRuntimeFacade::new()),
+            Box::new(SystemManagementRuntimeClock),
+        )
+    }
+
+    /// Creates the state with explicit bounded Endpoint and runtime-management seams.
+    ///
+    /// The runtime facade is intentionally distinct from the P10-04 Endpoint workflow: it has no
+    /// Provider request surface and can expose only the value-free P10-06 projections below.
+    #[must_use]
+    pub fn with_workflow_and_runtime(
+        service: ManagementMutationService,
+        workflow: Box<dyn ManagementEndpointWorkflow>,
+        runtime: Box<dyn ManagementRuntimeFacade>,
+        runtime_clock: Box<dyn ManagementRuntimeClock>,
+    ) -> Self {
+        Self {
+            service: Mutex::new(service),
+            workflow: Mutex::new(workflow),
+            runtime: Mutex::new(runtime),
+            runtime_clock,
+        }
+    }
+}
+
+/// One explicit clock for P10-06's fixed-time runtime projections.
+///
+/// Runtime facades receive the sampled instant instead of sampling independently, which keeps a
+/// status/explain result reproducible and prevents a handler from borrowing a dataplane clock.
+pub trait ManagementRuntimeClock: Send + Sync {
+    /// Returns the current Unix-millisecond observation time.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when a safe observation time cannot be
+    /// produced.
+    fn now_ms(&self) -> Result<i64, ManagementRuntimeError>;
+}
+
+/// The normal process-local observation clock for an injected production facade.
+pub struct SystemManagementRuntimeClock;
+
+impl ManagementRuntimeClock for SystemManagementRuntimeClock {
+    fn now_ms(&self) -> Result<i64, ManagementRuntimeError> {
+        let elapsed = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|_| ManagementRuntimeError::Unavailable)?;
+        i64::try_from(elapsed.as_millis()).map_err(|_| ManagementRuntimeError::Unavailable)
+    }
+}
+
+/// Exact non-secret binding target accepted by the runtime-management facade.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementRuntimeTarget {
+    endpoint_id: EndpointId,
+    credential_id: CredentialId,
+    upstream_model: Option<String>,
+}
+
+impl ManagementRuntimeTarget {
+    /// Builds an exact binding target with an optional bounded model scope.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::InvalidInput`] for an empty or oversized model scope.
+    pub fn try_new(
+        endpoint_id: EndpointId,
+        credential_id: CredentialId,
+        upstream_model: Option<String>,
+    ) -> Result<Self, ManagementRuntimeError> {
+        if upstream_model
+            .as_deref()
+            .is_some_and(|model| model.is_empty() || model.chars().count() > 256)
+        {
+            return Err(ManagementRuntimeError::InvalidInput);
+        }
+        Ok(Self {
+            endpoint_id,
+            credential_id,
+            upstream_model,
+        })
+    }
+
+    /// Returns the exact Endpoint identity.
+    #[must_use]
+    pub const fn endpoint_id(&self) -> &EndpointId {
+        &self.endpoint_id
+    }
+
+    /// Returns the exact Credential identity.
+    #[must_use]
+    pub const fn credential_id(&self) -> &CredentialId {
+        &self.credential_id
+    }
+
+    /// Returns whether the caller supplied an upstream-model scope without exposing it to logs.
+    #[must_use]
+    pub const fn has_upstream_model_scope(&self) -> bool {
+        self.upstream_model.is_some()
+    }
+
+    /// Returns the exact model scope to the injected runtime facade only.
+    #[must_use]
+    pub fn upstream_model(&self) -> Option<&str> {
+        self.upstream_model.as_deref()
+    }
+}
+
+/// Source-labelled freshness category for one safe Catalog observation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementCatalogFreshness {
+    /// The observed Catalog remains current.
+    Fresh,
+    /// The observed Catalog is older than the current freshness target.
+    Stale,
+    /// The observed Catalog has expired.
+    Expired,
+    /// No Catalog observation exists for the exact binding.
+    Missing,
+}
+
+/// Value-free Catalog status for one exact Endpoint/Credential binding.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementCatalogStatus {
+    endpoint_id: EndpointId,
+    credential_id: CredentialId,
+    freshness: ManagementCatalogFreshness,
+    observed_at_ms: i64,
+}
+
+impl ManagementCatalogStatus {
+    /// Creates one bounded Catalog observation.
+    #[must_use]
+    pub const fn new(
+        endpoint_id: EndpointId,
+        credential_id: CredentialId,
+        freshness: ManagementCatalogFreshness,
+        observed_at_ms: i64,
+    ) -> Self {
+        Self {
+            endpoint_id,
+            credential_id,
+            freshness,
+            observed_at_ms,
+        }
+    }
+
+    /// Returns the Endpoint identity.
+    #[must_use]
+    pub const fn endpoint_id(&self) -> &EndpointId {
+        &self.endpoint_id
+    }
+
+    /// Returns the Credential identity.
+    #[must_use]
+    pub const fn credential_id(&self) -> &CredentialId {
+        &self.credential_id
+    }
+
+    /// Returns only the safe freshness category.
+    #[must_use]
+    pub const fn freshness(&self) -> ManagementCatalogFreshness {
+        self.freshness
+    }
+
+    /// Returns the source observation time.
+    #[must_use]
+    pub const fn observed_at_ms(&self) -> i64 {
+        self.observed_at_ms
+    }
+}
+
+/// Safe scheduling availability for one exact Endpoint/Credential binding.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementRuntimeAvailability {
+    /// The binding is currently eligible for ordinary scheduling.
+    Available,
+    /// A transient Health cooldown blocks the binding.
+    Cooldown,
+    /// A Health circuit blocks the binding.
+    CircuitOpen,
+    /// Quota blocks ordinary scheduling.
+    QuotaBlocked,
+    /// A provider-classified 403 blocks the exact account binding.
+    CredentialForbidden,
+    /// A controlled recovery remains required or in flight.
+    RecoveryRequired,
+}
+
+/// Value-free runtime availability for one exact Endpoint/Credential binding.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementRuntimeAvailabilityStatus {
+    endpoint_id: EndpointId,
+    credential_id: CredentialId,
+    availability: ManagementRuntimeAvailability,
+}
+
+impl ManagementRuntimeAvailabilityStatus {
+    /// Creates one exact value-free availability projection.
+    #[must_use]
+    pub const fn new(
+        endpoint_id: EndpointId,
+        credential_id: CredentialId,
+        availability: ManagementRuntimeAvailability,
+    ) -> Self {
+        Self {
+            endpoint_id,
+            credential_id,
+            availability,
+        }
+    }
+
+    /// Returns the Endpoint identity.
+    #[must_use]
+    pub const fn endpoint_id(&self) -> &EndpointId {
+        &self.endpoint_id
+    }
+
+    /// Returns the Credential identity.
+    #[must_use]
+    pub const fn credential_id(&self) -> &CredentialId {
+        &self.credential_id
+    }
+
+    /// Returns the safe availability category.
+    #[must_use]
+    pub const fn availability(&self) -> ManagementRuntimeAvailability {
+        self.availability
+    }
+}
+
+/// The only responses to an operator's controlled quota-recovery request.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementQuotaRecoveryState {
+    /// A recovery is still required before a probe can be scheduled.
+    RecoveryRequired,
+    /// The runtime controller accepted a bounded recovery request for later handling.
+    ProbeScheduled,
+    /// The controller rejected the request without sending or completing a probe.
+    Rejected,
+}
+
+/// One bounded, safe Route Explain request.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementRouteExplainRequest {
+    config_version_id: ConfigVersionId,
+    route_id: RouteId,
+    requested_model: String,
+    protocol: ManagementRequestProtocol,
+    observed_at_ms: i64,
+}
+
+impl ManagementRouteExplainRequest {
+    /// Creates a fixed-input Explain request.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::InvalidInput`] for an empty or oversized requested
+    /// model before a runtime facade is called.
+    pub fn try_new(
+        config_version_id: ConfigVersionId,
+        route_id: RouteId,
+        requested_model: String,
+        protocol: ManagementRequestProtocol,
+        observed_at_ms: i64,
+    ) -> Result<Self, ManagementRuntimeError> {
+        if requested_model.is_empty() || requested_model.chars().count() > 256 {
+            return Err(ManagementRuntimeError::InvalidInput);
+        }
+        Ok(Self {
+            config_version_id,
+            route_id,
+            requested_model,
+            protocol,
+            observed_at_ms,
+        })
+    }
+
+    /// Returns the exact configuration identity whose immutable Route view is requested.
+    #[must_use]
+    pub const fn config_version_id(&self) -> &ConfigVersionId {
+        &self.config_version_id
+    }
+
+    /// Returns the exact Route identity.
+    #[must_use]
+    pub const fn route_id(&self) -> &RouteId {
+        &self.route_id
+    }
+
+    /// Returns the requested public model to the injected immutable Route Explain facade only.
+    #[must_use]
+    pub fn requested_model(&self) -> &str {
+        &self.requested_model
+    }
+
+    /// Returns the selected protocol without exposing a wire request.
+    #[must_use]
+    pub const fn protocol(&self) -> ManagementRequestProtocol {
+        self.protocol
+    }
+
+    /// Returns the fixed runtime observation time.
+    #[must_use]
+    pub const fn observed_at_ms(&self) -> i64 {
+        self.observed_at_ms
+    }
+}
+
+/// Closed management protocol enum used only for a Route Explain projection.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementRequestProtocol {
+    /// `OpenAI` Responses request semantics.
+    OpenAiResponses,
+    /// Anthropic Messages request semantics.
+    AnthropicMessages,
+}
+
+/// One safe candidate decision returned by a Route Explain facade.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementRouteExplainCandidate {
+    candidate_id: RouteCandidateId,
+    selected: bool,
+    reason: Option<&'static str>,
+}
+
+impl ManagementRouteExplainCandidate {
+    /// Creates an exact selected candidate decision.
+    #[must_use]
+    pub const fn selected(candidate_id: RouteCandidateId) -> Self {
+        Self {
+            candidate_id,
+            selected: true,
+            reason: None,
+        }
+    }
+
+    /// Creates an excluded candidate with one closed, value-free reason code.
+    #[must_use]
+    pub const fn excluded(candidate_id: RouteCandidateId, reason: &'static str) -> Self {
+        Self {
+            candidate_id,
+            selected: false,
+            reason: Some(reason),
+        }
+    }
+
+    /// Returns the stable Candidate identity.
+    #[must_use]
+    pub const fn candidate_id(&self) -> &RouteCandidateId {
+        &self.candidate_id
+    }
+
+    /// Returns whether the fixed projection selected this candidate.
+    #[must_use]
+    pub const fn selected_by_projection(&self) -> bool {
+        self.selected
+    }
+
+    /// Returns a fixed diagnostic category, never a Provider diagnostic.
+    #[must_use]
+    pub const fn reason(&self) -> Option<&'static str> {
+        self.reason
+    }
+}
+
+/// One complete bounded Route Explain projection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementRouteExplain {
+    route_id: RouteId,
+    candidates: Vec<ManagementRouteExplainCandidate>,
+}
+
+impl ManagementRouteExplain {
+    /// Creates a bounded Explain result.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when the injected facade exceeds the
+    /// response bound, declares more than one selected Candidate, or supplies an invalid reason.
+    pub fn try_new(
+        route_id: RouteId,
+        candidates: Vec<ManagementRouteExplainCandidate>,
+    ) -> Result<Self, ManagementRuntimeError> {
+        if candidates.len() > MAX_RUNTIME_ROWS
+            || candidates
+                .iter()
+                .filter(|candidate| candidate.selected)
+                .count()
+                > 1
+            || candidates.iter().any(|candidate| {
+                candidate
+                    .reason
+                    .is_some_and(|reason| reason.is_empty() || reason.len() > 128)
+            })
+        {
+            return Err(ManagementRuntimeError::Unavailable);
+        }
+        Ok(Self {
+            route_id,
+            candidates,
+        })
+    }
+
+    /// Returns the explained Route identity.
+    #[must_use]
+    pub const fn route_id(&self) -> &RouteId {
+        &self.route_id
+    }
+
+    /// Returns the bounded candidate decision list.
+    #[must_use]
+    pub fn candidates(&self) -> &[ManagementRouteExplainCandidate] {
+        &self.candidates
+    }
+}
+
+/// Value-free durable Attempt view for the protected management API.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementRequestAttempt {
+    attempt_id: String,
+    outcome: &'static str,
+    endpoint_id: Option<EndpointId>,
+    credential_id: Option<CredentialId>,
+}
+
+impl ManagementRequestAttempt {
+    /// Creates a bounded Attempt view without model, route, timing, or Provider diagnostics.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when a supplied safe projection cannot be
+    /// represented within the frozen management bounds.
+    pub fn try_new(
+        attempt_id: String,
+        outcome: &'static str,
+        endpoint_id: Option<EndpointId>,
+        credential_id: Option<CredentialId>,
+    ) -> Result<Self, ManagementRuntimeError> {
+        if attempt_id.is_empty()
+            || attempt_id.chars().count() > 128
+            || outcome.is_empty()
+            || outcome.len() > 64
+        {
+            return Err(ManagementRuntimeError::Unavailable);
+        }
+        Ok(Self {
+            attempt_id,
+            outcome,
+            endpoint_id,
+            credential_id,
+        })
+    }
+
+    /// Returns the deterministic Attempt identity.
+    #[must_use]
+    pub fn attempt_id(&self) -> &str {
+        &self.attempt_id
+    }
+
+    /// Returns the closed terminal outcome category.
+    #[must_use]
+    pub const fn outcome(&self) -> &'static str {
+        self.outcome
+    }
+
+    /// Returns the exact Endpoint identity when persisted for this Attempt.
+    #[must_use]
+    pub const fn endpoint_id(&self) -> Option<&EndpointId> {
+        self.endpoint_id.as_ref()
+    }
+
+    /// Returns the exact Credential identity when persisted for this Attempt.
+    #[must_use]
+    pub const fn credential_id(&self) -> Option<&CredentialId> {
+        self.credential_id.as_ref()
+    }
+}
+
+/// Safe, target-free failures from the P10-06 runtime facade.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementRuntimeError {
+    /// A request shape is invalid before the facade is called.
+    InvalidInput,
+    /// Runtime dependencies or an isolated state shard are unavailable.
+    Unavailable,
+}
+
+/// Explicit P10-06 runtime seam.
+///
+/// Implementations may read only pre-admitted runtime-management projections, immutable Route
+/// Explain state, and value-free stored Attempts. They must not receive a Provider, URL, Header,
+/// Body, Secret, lease, scheduling cursor, network client, or configuration-publishing handle.
+pub trait ManagementRuntimeFacade: Send {
+    /// Returns bounded source-labelled Catalog observations for an exact configuration graph.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when the required isolated runtime state
+    /// cannot be read safely.
+    fn catalog_status(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        observed_at_ms: i64,
+    ) -> Result<Vec<ManagementCatalogStatus>, ManagementRuntimeError>;
+
+    /// Returns bounded Health/Quota/403 availability projections for an exact configuration graph.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when the required isolated runtime state
+    /// cannot be read safely.
+    fn runtime_availability(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        observed_at_ms: i64,
+    ) -> Result<Vec<ManagementRuntimeAvailabilityStatus>, ManagementRuntimeError>;
+
+    /// Records only a controller-owned recovery request; it never sends or completes a probe.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when no controller is safely available.
+    fn request_quota_recovery(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        target: &ManagementRuntimeTarget,
+        observed_at_ms: i64,
+    ) -> Result<ManagementQuotaRecoveryState, ManagementRuntimeError>;
+
+    /// Returns a fixed-input, side-effect-free Route Explain projection.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when the immutable Route/runtime state
+    /// cannot be read safely.
+    fn explain_route(
+        &mut self,
+        request: &ManagementRouteExplainRequest,
+    ) -> Result<ManagementRouteExplain, ManagementRuntimeError>;
+
+    /// Returns bounded value-free attempts for one Request correlation.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when the attempt store cannot safely
+    /// provide a bounded projection.
+    fn list_request_attempts(
+        &mut self,
+        request_id: &RequestId,
+    ) -> Result<Vec<ManagementRequestAttempt>, ManagementRuntimeError>;
+}
+
+/// Fail-closed P10-06 facade used until an embedding injects the runtime dependencies.
+pub struct RejectingManagementRuntimeFacade;
+
+impl RejectingManagementRuntimeFacade {
+    /// Creates a no-op, no-send runtime facade.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for RejectingManagementRuntimeFacade {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ManagementRuntimeFacade for RejectingManagementRuntimeFacade {
+    fn catalog_status(
+        &mut self,
+        _config_version_id: &ConfigVersionId,
+        _observed_at_ms: i64,
+    ) -> Result<Vec<ManagementCatalogStatus>, ManagementRuntimeError> {
+        Err(ManagementRuntimeError::Unavailable)
+    }
+
+    fn runtime_availability(
+        &mut self,
+        _config_version_id: &ConfigVersionId,
+        _observed_at_ms: i64,
+    ) -> Result<Vec<ManagementRuntimeAvailabilityStatus>, ManagementRuntimeError> {
+        Err(ManagementRuntimeError::Unavailable)
+    }
+
+    fn request_quota_recovery(
+        &mut self,
+        _config_version_id: &ConfigVersionId,
+        _target: &ManagementRuntimeTarget,
+        _observed_at_ms: i64,
+    ) -> Result<ManagementQuotaRecoveryState, ManagementRuntimeError> {
+        Err(ManagementRuntimeError::Unavailable)
+    }
+
+    fn explain_route(
+        &mut self,
+        _request: &ManagementRouteExplainRequest,
+    ) -> Result<ManagementRouteExplain, ManagementRuntimeError> {
+        Err(ManagementRuntimeError::Unavailable)
+    }
+
+    fn list_request_attempts(
+        &mut self,
+        _request_id: &RequestId,
+    ) -> Result<Vec<ManagementRequestAttempt>, ManagementRuntimeError> {
+        Err(ManagementRuntimeError::Unavailable)
+    }
+}
+
+/// The only modes accepted by a bounded Endpoint test request.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementEndpointTestMode {
+    /// One finite non-streaming probe.
+    NonStreaming,
+    /// One finite SSE probe.
+    Sse,
+}
+
+/// Safe classification returned by an injected Endpoint test workflow.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementEndpointTestOutcome {
+    /// The bounded workflow observed a complete valid Canonical lifecycle.
+    Pass,
+    /// No sendable runtime was configured for the selected Endpoint.
+    Rejected,
+    /// A transport boundary failed before a valid Provider response.
+    TransportFailed,
+    /// A response failed protocol or Canonical lifecycle validation.
+    ProtocolFailed,
+}
+
+/// Safe status bucket for a bounded Endpoint test workflow.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementEndpointStatusClass {
+    /// A success-class HTTP response.
+    TwoXx,
+    /// A client-failure HTTP response.
+    FourXx,
+    /// A server-failure HTTP response.
+    FiveXx,
+    /// No usable HTTP status class was observed.
+    Other,
+}
+
+/// Value-free result of one bounded Endpoint test.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ManagementEndpointTestResult {
+    /// Test conclusion.
+    pub outcome: ManagementEndpointTestOutcome,
+    /// Observed safe status class.
+    pub status_class: ManagementEndpointStatusClass,
+    /// Whether a complete Canonical response lifecycle was observed.
+    pub canonical_lifecycle: bool,
+}
+
+/// Non-secret summary of a Catalog discovery operation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ManagementCatalogDiff {
+    /// Number of models added to the exact Endpoint discovery target.
+    pub added: u64,
+    /// Number of models removed from the exact Endpoint discovery target.
+    pub removed: u64,
+    /// Number of unchanged models.
+    pub unchanged: u64,
+}
+
+/// Current state of a bounded Credential OAuth operation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementCredentialOAuthState {
+    /// An explicit OAuth workflow is pending completion.
+    Pending,
+    /// The injected workflow completed successfully.
+    Complete,
+    /// The workflow was explicitly cancelled.
+    Cancelled,
+    /// The workflow ended with a safe failure classification.
+    Failed,
+}
+
+/// Value-free OAuth operation view.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ManagementCredentialOAuthOperation {
+    /// Current OAuth workflow state.
+    pub state: ManagementCredentialOAuthState,
+    /// Optional finite expiry time; no token, URL, or verification material is included.
+    pub expires_at_ms: Option<i64>,
+}
+
+/// Explicit seam for P10-04's bounded test, Catalog, and OAuth operations.
+///
+/// The seam receives only stable resource identifiers. A production implementation must own its
+/// own admitted Endpoint/Credential runtime handles; it must not derive a URL, Secret, Cookie or
+/// arbitrary outbound request from the management HTTP body.
+pub trait ManagementEndpointWorkflow: Send {
+    /// Performs at most the implementation's declared bounded Endpoint test.
+    fn test_endpoint(
+        &mut self,
+        endpoint_id: &EndpointId,
+        mode: ManagementEndpointTestMode,
+    ) -> ManagementEndpointTestResult;
+
+    /// Returns a value-free Catalog preview for one exact Endpoint.
+    fn preview_catalog(&mut self, endpoint_id: &EndpointId) -> ManagementCatalogDiff;
+
+    /// Applies a previously supported Catalog action for one exact Endpoint.
+    fn apply_catalog(&mut self, endpoint_id: &EndpointId) -> ManagementCatalogDiff;
+
+    /// Starts an explicit Credential-local OAuth workflow.
+    fn start_oauth(&mut self, credential_id: &CredentialId) -> ManagementCredentialOAuthOperation;
+
+    /// Returns a Credential-local OAuth state without exposing protocol material.
+    fn oauth_status(&mut self, credential_id: &CredentialId) -> ManagementCredentialOAuthOperation;
+
+    /// Cancels a Credential-local OAuth workflow.
+    fn cancel_oauth(&mut self, credential_id: &CredentialId);
+}
+
+/// Default fail-closed P10-04 workflow. It never contacts a Provider or creates OAuth material.
+pub struct RejectingManagementEndpointWorkflow {
+    oauth: BTreeMap<CredentialId, ManagementCredentialOAuthOperation>,
+}
+
+impl RejectingManagementEndpointWorkflow {
+    /// Creates an empty no-send workflow.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            oauth: BTreeMap::new(),
+        }
+    }
+}
+
+impl Default for RejectingManagementEndpointWorkflow {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ManagementEndpointWorkflow for RejectingManagementEndpointWorkflow {
+    fn test_endpoint(
+        &mut self,
+        _endpoint_id: &EndpointId,
+        _mode: ManagementEndpointTestMode,
+    ) -> ManagementEndpointTestResult {
+        ManagementEndpointTestResult {
+            outcome: ManagementEndpointTestOutcome::Rejected,
+            status_class: ManagementEndpointStatusClass::Other,
+            canonical_lifecycle: false,
+        }
+    }
+
+    fn preview_catalog(&mut self, _endpoint_id: &EndpointId) -> ManagementCatalogDiff {
+        ManagementCatalogDiff {
+            added: 0,
+            removed: 0,
+            unchanged: 0,
+        }
+    }
+
+    fn apply_catalog(&mut self, endpoint_id: &EndpointId) -> ManagementCatalogDiff {
+        self.preview_catalog(endpoint_id)
+    }
+
+    fn start_oauth(&mut self, credential_id: &CredentialId) -> ManagementCredentialOAuthOperation {
+        let operation = ManagementCredentialOAuthOperation {
+            state: ManagementCredentialOAuthState::Pending,
+            expires_at_ms: None,
+        };
+        self.oauth.insert(credential_id.clone(), operation);
+        operation
+    }
+
+    fn oauth_status(&mut self, credential_id: &CredentialId) -> ManagementCredentialOAuthOperation {
+        self.oauth
+            .get(credential_id)
+            .copied()
+            .unwrap_or(ManagementCredentialOAuthOperation {
+                state: ManagementCredentialOAuthState::Failed,
+                expires_at_ms: None,
+            })
+    }
+
+    fn cancel_oauth(&mut self, credential_id: &CredentialId) {
+        self.oauth.insert(
+            credential_id.clone(),
+            ManagementCredentialOAuthOperation {
+                state: ManagementCredentialOAuthState::Cancelled,
+                expires_at_ms: None,
+            },
+        );
+    }
+}
+
+/// Mounts P10-04 resource routes inside the P10-02 protected `/admin` scope.
+pub fn configure_management_resources(config: &mut web::ServiceConfig) {
+    configure_management(config, resource_routes);
+}
+
+fn resource_routes(config: &mut web::ServiceConfig) {
+    configure_upstream_resource_routes(config);
+    configure_routing_resource_routes(config);
+    configure_runtime_resource_routes(config);
+}
+
+fn configure_upstream_resource_routes(config: &mut web::ServiceConfig) {
+    config
+        .route("/egress-policies", web::get().to(list_egress_policies))
+        .route("/egress-policies", web::post().to(create_egress_policy))
+        .route(
+            "/egress-policies/{egress_policy_id}",
+            web::get().to(get_egress_policy),
+        )
+        .route(
+            "/egress-policies/{egress_policy_id}",
+            web::patch().to(update_egress_policy),
+        )
+        .route(
+            "/egress-policies/{egress_policy_id}",
+            web::delete().to(delete_egress_policy),
+        )
+        .route("/upstreams", web::get().to(list_upstreams))
+        .route("/upstreams", web::post().to(create_upstream))
+        .route("/upstreams/{upstream_id}", web::get().to(get_upstream))
+        .route("/upstreams/{upstream_id}", web::patch().to(update_upstream))
+        .route(
+            "/upstreams/{upstream_id}",
+            web::delete().to(delete_upstream),
+        )
+        .route(
+            "/upstreams/{upstream_id}/endpoints",
+            web::post().to(create_endpoint),
+        )
+        .route("/endpoints/{endpoint_id}", web::get().to(get_endpoint))
+        .route("/endpoints/{endpoint_id}", web::patch().to(update_endpoint))
+        .route(
+            "/endpoints/{endpoint_id}",
+            web::delete().to(delete_endpoint),
+        )
+        .route(
+            "/endpoints/{endpoint_id}/test",
+            web::post().to(test_endpoint),
+        )
+        .route(
+            "/endpoints/{endpoint_id}/models/discover-preview",
+            web::post().to(preview_catalog_discovery),
+        )
+        .route(
+            "/endpoints/{endpoint_id}/models/discover-apply",
+            web::post().to(apply_catalog_discovery),
+        )
+        .route(
+            "/upstreams/{upstream_id}/credentials",
+            web::post().to(create_credential),
+        )
+        .route(
+            "/credentials/{credential_id}",
+            web::get().to(get_credential),
+        )
+        .route(
+            "/credentials/{credential_id}",
+            web::patch().to(update_credential),
+        )
+        .route(
+            "/credentials/{credential_id}",
+            web::delete().to(delete_credential),
+        )
+        .route(
+            "/credentials/{credential_id}/oauth/start",
+            web::post().to(start_credential_oauth),
+        )
+        .route(
+            "/credentials/{credential_id}/oauth/status",
+            web::get().to(get_credential_oauth_status),
+        )
+        .route(
+            "/credentials/{credential_id}/oauth/cancel",
+            web::post().to(cancel_credential_oauth),
+        )
+        .route(
+            "/endpoints/{endpoint_id}/credential-bindings",
+            web::get().to(list_endpoint_credential_bindings),
+        )
+        .route(
+            "/endpoints/{endpoint_id}/credential-bindings",
+            web::post().to(create_endpoint_credential_binding),
+        );
+}
+
+fn configure_routing_resource_routes(config: &mut web::ServiceConfig) {
+    config
+        .route("/public-models", web::get().to(list_public_models))
+        .route("/public-models", web::post().to(create_public_model))
+        .route(
+            "/public-models/{public_model_id}",
+            web::get().to(get_public_model),
+        )
+        .route(
+            "/public-models/{public_model_id}",
+            web::patch().to(update_public_model),
+        )
+        .route(
+            "/public-models/{public_model_id}",
+            web::delete().to(delete_public_model),
+        )
+        .route(
+            "/public-models/{public_model_id}/aliases",
+            web::post().to(create_model_alias),
+        )
+        .route(
+            "/public-models/{public_model_id}/routes",
+            web::post().to(create_model_route),
+        )
+        .route("/routes/{route_id}", web::get().to(get_model_route))
+        .route("/routes/{route_id}", web::patch().to(update_model_route))
+        .route("/routes/{route_id}", web::delete().to(delete_model_route))
+        .route(
+            "/routes/{route_id}/candidates",
+            web::post().to(create_route_candidate),
+        )
+        .route(
+            "/routes/{route_id}/validate",
+            web::post().to(validate_model_route),
+        )
+        .route("/access-groups", web::get().to(list_access_groups))
+        .route("/access-groups", web::post().to(create_access_group))
+        .route(
+            "/access-groups/{access_group_id}",
+            web::get().to(get_access_group),
+        )
+        .route(
+            "/access-groups/{access_group_id}",
+            web::patch().to(update_access_group),
+        )
+        .route(
+            "/access-groups/{access_group_id}",
+            web::delete().to(delete_access_group),
+        )
+        .route(
+            "/access-groups/{access_group_id}/routes",
+            web::get().to(list_access_group_routes),
+        )
+        .route(
+            "/access-groups/{access_group_id}/routes",
+            web::post().to(create_access_group_route),
+        )
+        .route("/client-keys", web::get().to(list_client_keys))
+        .route("/client-keys", web::post().to(issue_client_key))
+        .route(
+            "/client-keys/{client_key_id}",
+            web::get().to(get_client_key),
+        )
+        .route(
+            "/client-keys/{client_key_id}",
+            web::patch().to(update_client_key),
+        )
+        .route(
+            "/client-keys/{client_key_id}",
+            web::delete().to(revoke_client_key),
+        );
+}
+
+fn configure_runtime_resource_routes(config: &mut web::ServiceConfig) {
+    config
+        .route("/catalog/status", web::get().to(get_catalog_status))
+        .route(
+            "/runtime/availability",
+            web::get().to(get_runtime_availability),
+        )
+        .route(
+            "/runtime/quota/reset",
+            web::post().to(request_quota_recovery),
+        )
+        .route("/routes/{route_id}/explain", web::get().to(explain_route))
+        .route(
+            "/requests/{request_id}/attempts",
+            web::get().to(list_request_attempts),
+        );
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EgressPolicyInput {
+    id: String,
+    name: String,
+    allowed_schemes: Vec<String>,
+    allowed_hosts: Vec<String>,
+    allowed_ports: Vec<i64>,
+    allowed_cidrs: Vec<String>,
+    redirect_mode: String,
+    max_redirects: i64,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct UpstreamInput {
+    id: String,
+    name: String,
+    kind: String,
+    enabled: bool,
+    tags: Vec<String>,
+    egress_policy_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EndpointInput {
+    id: String,
+    adapter_id: String,
+    api_format: String,
+    base_url: String,
+    inference_path: String,
+    models_path: Option<String>,
+    transport: String,
+    enabled: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CredentialInput {
+    id: String,
+    kind: String,
+    secret: String,
+    status: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BindingInput {
+    credential_id: String,
+    enabled: bool,
+    priority: i64,
+    weight: i64,
+    concurrency: i64,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EndpointTestInput {
+    mode: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PublicModelInput {
+    id: String,
+    model_name: String,
+    status: String,
+    display_name: String,
+    capabilities: BTreeMap<String, bool>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AliasInput {
+    alias: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RouteInput {
+    id: String,
+    policy: String,
+    max_attempts: i64,
+    bootstrap_timeout_ms: i64,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CandidateInput {
+    id: String,
+    endpoint_id: String,
+    upstream_model: String,
+    credential_scope: String,
+    transform_mode: String,
+    enabled: bool,
+    priority: i64,
+    weight: i64,
+    capability_override: BTreeMap<String, bool>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AccessGroupInput {
+    id: String,
+    name: String,
+    status: String,
+    limits: BTreeMap<String, i64>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AccessGroupRouteInput {
+    route_id: String,
+    enabled: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ClientKeyInput {
+    id: String,
+    access_group_id: String,
+    status: String,
+    expires_at_ms: Option<i64>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RuntimeTargetInput {
+    endpoint_id: String,
+    credential_id: String,
+    upstream_model: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RouteExplainQuery {
+    requested_model: String,
+    protocol: String,
+}
+
+#[derive(Serialize)]
+struct EgressPolicyResponse {
+    id: String,
+    name: String,
+    allowed_schemes: Vec<String>,
+    allowed_hosts: Vec<String>,
+    allowed_ports: Vec<i64>,
+    allowed_cidrs: Vec<String>,
+    redirect_mode: &'static str,
+    max_redirects: i64,
+}
+
+#[derive(Serialize)]
+struct UpstreamResponse {
+    id: String,
+    name: String,
+    kind: String,
+    enabled: bool,
+    tags: Vec<String>,
+    egress_policy_id: Option<String>,
+}
+
+#[derive(Serialize)]
+struct EndpointResponse {
+    id: String,
+    upstream_id: String,
+    adapter_id: String,
+    api_format: String,
+    base_url: String,
+    inference_path: String,
+    models_path: Option<String>,
+    transport: &'static str,
+    enabled: bool,
+}
+
+#[derive(Serialize)]
+struct CredentialResponse {
+    id: String,
+    upstream_id: String,
+    kind: String,
+    status: &'static str,
+    revision: i64,
+    secret_present: bool,
+}
+
+#[derive(Serialize)]
+struct BindingResponse {
+    endpoint_id: String,
+    upstream_id: String,
+    credential_id: String,
+    enabled: bool,
+    priority: i64,
+    weight: i64,
+    concurrency: i64,
+}
+
+#[derive(Serialize)]
+struct EndpointTestResponse {
+    outcome: &'static str,
+    status_class: &'static str,
+    canonical_lifecycle: bool,
+}
+
+#[derive(Serialize)]
+struct CatalogDiffResponse {
+    added: u64,
+    removed: u64,
+    unchanged: u64,
+}
+
+#[derive(Serialize)]
+struct CredentialOAuthResponse {
+    credential_id: String,
+    state: &'static str,
+    expires_at_ms: Option<i64>,
+}
+
+#[derive(Serialize)]
+struct PublicModelResponse {
+    id: String,
+    model_name: String,
+    status: &'static str,
+    display_name: String,
+    capabilities: BTreeMap<String, bool>,
+}
+
+#[derive(Serialize)]
+struct AliasResponse {
+    alias: String,
+    public_model_id: String,
+}
+
+#[derive(Serialize)]
+struct RouteResponse {
+    id: String,
+    public_model_id: String,
+    policy: &'static str,
+    max_attempts: i64,
+    bootstrap_timeout_ms: i64,
+}
+
+#[derive(Serialize)]
+struct CandidateResponse {
+    id: String,
+    route_id: String,
+    endpoint_id: String,
+    upstream_model: String,
+    credential_scope: &'static str,
+    transform_mode: &'static str,
+    enabled: bool,
+    priority: i64,
+    weight: i64,
+    capability_override: BTreeMap<String, bool>,
+}
+
+#[derive(Serialize)]
+struct AccessGroupResponse {
+    id: String,
+    name: String,
+    status: &'static str,
+    limits: BTreeMap<String, i64>,
+}
+
+#[derive(Serialize)]
+struct AccessGroupRouteResponse {
+    access_group_id: String,
+    route_id: String,
+    enabled: bool,
+}
+
+#[derive(Serialize)]
+struct ClientKeyResponse {
+    id: String,
+    access_group_id: String,
+    prefix: String,
+    status: &'static str,
+    expires_at_ms: Option<i64>,
+}
+
+#[derive(Serialize)]
+struct IssuedClientKeyResponse {
+    id: String,
+    access_group_id: String,
+    prefix: String,
+    status: &'static str,
+    expires_at_ms: Option<i64>,
+    key: String,
+}
+
+#[derive(Serialize)]
+struct ValidationResponse {
+    valid: bool,
+    error_codes: Vec<&'static str>,
+}
+
+#[derive(Serialize)]
+struct CatalogStatusResponse {
+    endpoint_id: String,
+    credential_id: String,
+    freshness: &'static str,
+    observed_at_ms: i64,
+}
+
+#[derive(Serialize)]
+struct RuntimeAvailabilityResponse {
+    endpoint_id: String,
+    credential_id: String,
+    availability: &'static str,
+}
+
+#[derive(Serialize)]
+struct RuntimeActionResponse {
+    state: &'static str,
+}
+
+#[derive(Serialize)]
+struct RouteExplainResponse {
+    route_id: String,
+    candidates: Vec<RouteExplainCandidateResponse>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+struct RouteExplainCandidateResponse {
+    candidate_id: String,
+    decision: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reason: Option<&'static str>,
+}
+
+#[derive(Serialize)]
+struct RequestAttemptResponse {
+    attempt_id: String,
+    outcome: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    endpoint_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    credential_id: Option<String>,
+}
+
+async fn list_egress_policies(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_egress_policies(&context.version) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |policies| {
+            policies
+                .into_iter()
+                .map(EgressPolicyResponse::from)
+                .collect::<Vec<_>>()
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_egress_policy(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let input: EgressPolicyInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let policy = match egress_policy(input) {
+        Ok(policy) => policy,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_egress_policy(&actor, &context.version, context.revision, policy) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, |policy| {
+            EgressPolicyResponse::from(policy)
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_egress_policy(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = EgressPolicyId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.get_egress_policy(&context.version, &id) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |policy| {
+            EgressPolicyResponse::from(policy)
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn update_egress_policy(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let path_id = path.into_inner();
+    let input: EgressPolicyInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    if input.id != path_id {
+        return invalid_input();
+    }
+    let policy = match egress_policy(input) {
+        Ok(policy) => policy,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.update_egress_policy(&actor, &context.version, context.revision, policy) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |policy| {
+            EgressPolicyResponse::from(policy)
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn delete_egress_policy(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = EgressPolicyId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.delete_egress_policy(&actor, &context.version, context.revision, &id) {
+        Ok(revision) => empty_with_revision(revision),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn list_upstreams(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_upstreams(&context.version) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |upstreams| {
+            upstreams
+                .into_iter()
+                .map(UpstreamResponse::from)
+                .collect::<Vec<_>>()
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_upstream(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let input: UpstreamInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let upstream = match upstream(input) {
+        Ok(upstream) => upstream,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_upstream(&actor, &context.version, context.revision, upstream) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, |upstream| {
+            UpstreamResponse::from(upstream)
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_upstream(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = UpstreamId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.get_upstream(&context.version, &id) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |upstream| {
+            UpstreamResponse::from(upstream)
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn update_upstream(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let path_id = path.into_inner();
+    let input: UpstreamInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    if input.id != path_id {
+        return invalid_input();
+    }
+    let upstream = match upstream(input) {
+        Ok(upstream) => upstream,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.update_upstream(&actor, &context.version, context.revision, upstream) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |upstream| {
+            UpstreamResponse::from(upstream)
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn delete_upstream(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = UpstreamId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.delete_upstream(&actor, &context.version, context.revision, &id) {
+        Ok(revision) => empty_with_revision(revision),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_endpoint(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(upstream_id) = UpstreamId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let input: EndpointInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let endpoint = match endpoint(input, upstream_id) {
+        Ok(endpoint) => endpoint,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_endpoint(&actor, &context.version, context.revision, endpoint) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, |endpoint| {
+            EndpointResponse::from(endpoint)
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_endpoint(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = EndpointId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.get_endpoint(&context.version, &id) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |endpoint| {
+            EndpointResponse::from(endpoint)
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn update_endpoint(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(endpoint_id) = EndpointId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let input: EndpointInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    if input.id != endpoint_id.as_str() {
+        return invalid_input();
+    }
+    let existing = {
+        let mut service = match service(&state) {
+            Ok(service) => service,
+            Err(response) => return response,
+        };
+        match service.get_endpoint(&context.version, &endpoint_id) {
+            Ok(value) => value,
+            Err(error) => return management_error(error),
+        }
+    };
+    let endpoint = match endpoint(input, existing.value().upstream_id.clone()) {
+        Ok(endpoint) => endpoint,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.update_endpoint(&actor, &context.version, context.revision, endpoint) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |endpoint| {
+            EndpointResponse::from(endpoint)
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn delete_endpoint(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = EndpointId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.delete_endpoint(&actor, &context.version, context.revision, &id) {
+        Ok(revision) => empty_with_revision(revision),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn test_endpoint(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(endpoint_id) = EndpointId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let input: EndpointTestInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let mode = match endpoint_test_mode(&input.mode) {
+        Ok(mode) => mode,
+        Err(response) => return response,
+    };
+    if let Err(response) = require_endpoint(&state, &context.version, &endpoint_id) {
+        return response;
+    }
+    let result = match workflow(&state) {
+        Ok(mut workflow) => workflow.test_endpoint(&endpoint_id, mode),
+        Err(response) => return response,
+    };
+    HttpResponse::Ok().json(EndpointTestResponse::from(result))
+}
+
+async fn preview_catalog_discovery(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(endpoint_id) = EndpointId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    if let Err(response) = require_endpoint(&state, &context.version, &endpoint_id) {
+        return response;
+    }
+    let result = match workflow(&state) {
+        Ok(mut workflow) => workflow.preview_catalog(&endpoint_id),
+        Err(response) => return response,
+    };
+    HttpResponse::Ok().json(CatalogDiffResponse::from(result))
+}
+
+async fn apply_catalog_discovery(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(endpoint_id) = EndpointId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    if let Err(response) =
+        require_endpoint_at_revision(&state, &context.version, context.revision, &endpoint_id)
+    {
+        return response;
+    }
+    let result = match workflow(&state) {
+        Ok(mut workflow) => workflow.apply_catalog(&endpoint_id),
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.record_draft_resource_action(
+        &actor,
+        &context.version,
+        context.revision,
+        "catalog_discovery_applied",
+        "endpoint",
+        endpoint_id.as_str(),
+    ) {
+        Ok(revision) => {
+            response_with_revision(StatusCode::OK, revision, CatalogDiffResponse::from(result))
+        }
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_credential(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(upstream_id) = UpstreamId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let input: CredentialInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let (credential_id, kind, secret, status) = match credential_input(input) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_credential(
+        &actor,
+        &context.version,
+        context.revision,
+        upstream_id,
+        CredentialUpsert {
+            id: credential_id,
+            kind,
+            plaintext_secret: secret.as_bytes(),
+            status,
+        },
+    ) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, |credential| {
+            CredentialResponse::from(credential)
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_credential(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = CredentialId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.get_credential(&context.version, &id) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |credential| {
+            CredentialResponse::from(credential)
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn update_credential(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let path_id = path.into_inner();
+    let input: CredentialInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    if input.id != path_id {
+        return invalid_input();
+    }
+    let (credential_id, kind, secret, status) = match credential_input(input) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.update_credential(
+        &actor,
+        &context.version,
+        context.revision,
+        CredentialUpsert {
+            id: credential_id,
+            kind,
+            plaintext_secret: secret.as_bytes(),
+            status,
+        },
+    ) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |credential| {
+            CredentialResponse::from(credential)
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn delete_credential(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = CredentialId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.delete_credential(&actor, &context.version, context.revision, &id) {
+        Ok(revision) => empty_with_revision(revision),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn start_credential_oauth(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(credential_id) = CredentialId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    if let Err(response) = require_credential(&state, &context.version, &credential_id) {
+        return response;
+    }
+    let operation = match workflow(&state) {
+        Ok(mut workflow) => workflow.start_oauth(&credential_id),
+        Err(response) => return response,
+    };
+    HttpResponse::Accepted().json(CredentialOAuthResponse::new(&credential_id, operation))
+}
+
+async fn get_credential_oauth_status(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(credential_id) = CredentialId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    if let Err(response) = require_credential(&state, &context.version, &credential_id) {
+        return response;
+    }
+    let operation = match workflow(&state) {
+        Ok(mut workflow) => workflow.oauth_status(&credential_id),
+        Err(response) => return response,
+    };
+    HttpResponse::Ok().json(CredentialOAuthResponse::new(&credential_id, operation))
+}
+
+async fn cancel_credential_oauth(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(credential_id) = CredentialId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    if let Err(response) = require_credential(&state, &context.version, &credential_id) {
+        return response;
+    }
+    match workflow(&state) {
+        Ok(mut workflow) => workflow.cancel_oauth(&credential_id),
+        Err(response) => return response,
+    }
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.record_resource_action(
+        &actor,
+        &context.version,
+        "credential_oauth_cancelled",
+        "credential",
+        credential_id.as_str(),
+    ) {
+        Ok(()) => HttpResponse::NoContent().finish(),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn list_endpoint_credential_bindings(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(endpoint_id) = EndpointId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_endpoint_credential_bindings(&context.version, &endpoint_id) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |bindings| {
+            bindings
+                .into_iter()
+                .map(BindingResponse::from)
+                .collect::<Vec<_>>()
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_endpoint_credential_binding(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(endpoint_id) = EndpointId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let input: BindingInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    let endpoint = match service.get_endpoint(&context.version, &endpoint_id) {
+        Ok(endpoint) => endpoint.into_parts().0,
+        Err(error) => return management_error(error),
+    };
+    let Ok(credential_id) = CredentialId::try_new(input.credential_id.clone()) else {
+        return invalid_input();
+    };
+    let credential = match service.get_credential(&context.version, &credential_id) {
+        Ok(credential) => credential.into_parts().0,
+        Err(error) => return management_error(error),
+    };
+    if endpoint.upstream_id != credential.upstream_id {
+        return invalid_input();
+    }
+    let binding = match binding(input, endpoint_id, endpoint.upstream_id) {
+        Ok(binding) => binding,
+        Err(response) => return response,
+    };
+    match service.create_endpoint_credential_binding(
+        &actor,
+        &context.version,
+        context.revision,
+        binding,
+    ) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, |binding| {
+            BindingResponse::from(binding)
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn list_public_models(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_public_models(&context.version) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |models| {
+            models
+                .into_iter()
+                .map(PublicModelResponse::from)
+                .collect::<Vec<_>>()
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_public_model(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let public_model = match parse_json::<PublicModelInput>(&body).and_then(public_model) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_public_model(&actor, &context.version, context.revision, public_model) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, PublicModelResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_public_model(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = PublicModelId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.get_public_model(&context.version, &id) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, PublicModelResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn update_public_model(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let path_id = path.into_inner();
+    let input = match parse_json::<PublicModelInput>(&body) {
+        Ok(input) if input.id == path_id => input,
+        Ok(_) | Err(_) => return invalid_input(),
+    };
+    let public_model = match public_model(input) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.update_public_model(&actor, &context.version, context.revision, public_model) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, PublicModelResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn delete_public_model(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = PublicModelId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.delete_public_model(&actor, &context.version, context.revision, &id) {
+        Ok(revision) => empty_with_revision(revision),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_model_alias(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(public_model_id) = PublicModelId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let input = match parse_json::<AliasInput>(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let alias = match model_alias(input, public_model_id) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_model_alias(&actor, &context.version, context.revision, alias) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, AliasResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_model_route(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(public_model_id) = PublicModelId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let input = match parse_json::<RouteInput>(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let route = match model_route(input, public_model_id) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_model_route(&actor, &context.version, context.revision, route) {
+        Ok(value) => revisioned_route_json(StatusCode::CREATED, value),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_model_route(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = RouteId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.get_model_route(&context.version, &id) {
+        Ok(value) => revisioned_route_json(StatusCode::OK, value),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn update_model_route(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(route_id) = RouteId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let input = match parse_json::<RouteInput>(&body) {
+        Ok(input) if input.id == route_id.as_str() => input,
+        Ok(_) | Err(_) => return invalid_input(),
+    };
+    let existing = {
+        let mut service = match service(&state) {
+            Ok(service) => service,
+            Err(response) => return response,
+        };
+        match service.get_model_route(&context.version, &route_id) {
+            Ok(value) => value,
+            Err(error) => return management_error(error),
+        }
+    };
+    let route = match model_route(input, existing.value().public_model_id.clone()) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.update_model_route(&actor, &context.version, context.revision, route) {
+        Ok(value) => revisioned_route_json(StatusCode::OK, value),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn delete_model_route(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(route_id) = RouteId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.delete_model_route(&actor, &context.version, context.revision, &route_id) {
+        Ok(revision) => empty_with_revision(revision),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_route_candidate(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(route_id) = RouteId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let input = match parse_json::<CandidateInput>(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let candidate = match route_candidate(input, route_id) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_route_candidate(&actor, &context.version, context.revision, candidate) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, CandidateResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn validate_model_route(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(route_id) = RouteId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.validate_model_route(&context.version, &route_id) {
+        Ok(value) => HttpResponse::Ok().json(ValidationResponse::from(value)),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_catalog_status(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let observed_at_ms = match runtime_observed_at(&state) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let statuses = match runtime(&state).and_then(|mut facade| {
+        facade
+            .catalog_status(&context.version, observed_at_ms)
+            .map_err(runtime_error)
+    }) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    match catalog_status_response(statuses) {
+        Ok(value) => HttpResponse::Ok().json(value),
+        Err(error) => runtime_error(error),
+    }
+}
+
+async fn get_runtime_availability(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let observed_at_ms = match runtime_observed_at(&state) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let statuses = match runtime(&state).and_then(|mut facade| {
+        facade
+            .runtime_availability(&context.version, observed_at_ms)
+            .map_err(runtime_error)
+    }) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    match runtime_availability_response(statuses) {
+        Ok(value) => HttpResponse::Ok().json(value),
+        Err(error) => runtime_error(error),
+    }
+}
+
+async fn request_quota_recovery(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let input = match parse_json::<RuntimeTargetInput>(&body) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let target = match runtime_target(input) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    if let Err(response) = require_runtime_target(&state, &context.version, &target) {
+        return response;
+    }
+    let observed_at_ms = match runtime_observed_at(&state) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let recovery = match runtime(&state).and_then(|mut facade| {
+        facade
+            .request_quota_recovery(&context.version, &target, observed_at_ms)
+            .map_err(runtime_error)
+    }) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut management_service = match service(&state) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    if let Err(error) = management_service.record_resource_action(
+        &actor,
+        &context.version,
+        "quota_recovery_requested",
+        "runtime_credential",
+        target.credential_id().as_str(),
+    ) {
+        return management_error(error);
+    }
+    HttpResponse::Accepted().json(RuntimeActionResponse::from(recovery))
+}
+
+async fn explain_route(
+    request: HttpRequest,
+    path: web::Path<String>,
+    query: web::Query<RouteExplainQuery>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(route_id) = RouteId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let protocol = match management_request_protocol(&query.protocol) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let observed_at_ms = match runtime_observed_at(&state) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let explain_request = match ManagementRouteExplainRequest::try_new(
+        context.version,
+        route_id,
+        query.requested_model.clone(),
+        protocol,
+        observed_at_ms,
+    ) {
+        Ok(value) => value,
+        Err(error) => return runtime_error(error),
+    };
+    let explain = match runtime(&state).and_then(|mut facade| {
+        facade
+            .explain_route(&explain_request)
+            .map_err(runtime_error)
+    }) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    match RouteExplainResponse::try_from(explain) {
+        Ok(value) => HttpResponse::Ok().json(value),
+        Err(error) => runtime_error(error),
+    }
+}
+
+async fn list_request_attempts(
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let Ok(request_id) = RequestId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let attempts = match runtime(&state).and_then(|mut facade| {
+        facade
+            .list_request_attempts(&request_id)
+            .map_err(runtime_error)
+    }) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    match request_attempt_response(attempts) {
+        Ok(value) => HttpResponse::Ok().json(value),
+        Err(error) => runtime_error(error),
+    }
+}
+
+async fn list_access_groups(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_access_groups(&context.version) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |groups| {
+            groups
+                .into_iter()
+                .map(AccessGroupResponse::from)
+                .collect::<Vec<_>>()
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_access_group(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let access_group = match parse_json::<AccessGroupInput>(&body).and_then(access_group) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_access_group(&actor, &context.version, context.revision, access_group) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, AccessGroupResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_access_group(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = AccessGroupId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.get_access_group(&context.version, &id) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, AccessGroupResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn update_access_group(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let path_id = path.into_inner();
+    let input = match parse_json::<AccessGroupInput>(&body) {
+        Ok(input) if input.id == path_id => input,
+        Ok(_) | Err(_) => return invalid_input(),
+    };
+    let access_group = match access_group(input) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.update_access_group(&actor, &context.version, context.revision, access_group) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, AccessGroupResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn delete_access_group(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(id) = AccessGroupId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.delete_access_group(&actor, &context.version, context.revision, &id) {
+        Ok(revision) => empty_with_revision(revision),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn list_access_group_routes(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(access_group_id) = AccessGroupId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_access_group_routes(&context.version, &access_group_id) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |grants| {
+            grants
+                .into_iter()
+                .map(AccessGroupRouteResponse::from)
+                .collect::<Vec<_>>()
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_access_group_route(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(access_group_id) = AccessGroupId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let input = match parse_json::<AccessGroupRouteInput>(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let grant = match access_group_route(input, access_group_id) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_access_group_route(&actor, &context.version, context.revision, grant) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, AccessGroupRouteResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn list_client_keys(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_client_keys(&context.version) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |keys| {
+            keys.into_iter()
+                .map(ClientKeyResponse::from)
+                .collect::<Vec<_>>()
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn issue_client_key(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let input = match parse_json::<ClientKeyInput>(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let input = match client_key_issue(input) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.issue_client_key(&actor, &context.version, context.revision, input) {
+        Ok(value) => {
+            let (issued, revision) = value.into_parts();
+            let response =
+                IssuedClientKeyResponse::new(issued.metadata(), issued.presented_key().to_owned());
+            response_with_revision(StatusCode::CREATED, revision, response)
+        }
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_client_key(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(client_key_id) = ClientKeyId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.get_client_key(&context.version, &client_key_id) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, ClientKeyResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn update_client_key(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let path_id = path.into_inner();
+    let input = match parse_json::<ClientKeyInput>(&body) {
+        Ok(input) if input.id == path_id => input,
+        Ok(_) | Err(_) => return invalid_input(),
+    };
+    let (client_key_id, input) = match client_key_update(input) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.update_client_key(
+        &actor,
+        &context.version,
+        context.revision,
+        &client_key_id,
+        input,
+    ) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, ClientKeyResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn revoke_client_key(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(client_key_id) = ClientKeyId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.revoke_client_key(&actor, &context.version, context.revision, &client_key_id) {
+        Ok(revision) => empty_with_revision(revision),
+        Err(error) => management_error(error),
+    }
+}
+
+fn runtime_target(input: RuntimeTargetInput) -> Result<ManagementRuntimeTarget, HttpResponse> {
+    let endpoint_id = EndpointId::try_new(input.endpoint_id).map_err(|_| invalid_input())?;
+    let credential_id = CredentialId::try_new(input.credential_id).map_err(|_| invalid_input())?;
+    ManagementRuntimeTarget::try_new(endpoint_id, credential_id, input.upstream_model)
+        .map_err(runtime_error)
+}
+
+fn management_request_protocol(value: &str) -> Result<ManagementRequestProtocol, HttpResponse> {
+    match value {
+        "openai_responses" => Ok(ManagementRequestProtocol::OpenAiResponses),
+        "anthropic_messages" => Ok(ManagementRequestProtocol::AnthropicMessages),
+        _ => Err(invalid_input()),
+    }
+}
+
+fn runtime_observed_at(
+    state: &web::Data<ManagementResourceHttpState>,
+) -> Result<i64, HttpResponse> {
+    state
+        .runtime_clock
+        .now_ms()
+        .and_then(|value| {
+            if value < 0 {
+                Err(ManagementRuntimeError::Unavailable)
+            } else {
+                Ok(value)
+            }
+        })
+        .map_err(runtime_error)
+}
+
+fn runtime(
+    state: &web::Data<ManagementResourceHttpState>,
+) -> Result<std::sync::MutexGuard<'_, Box<dyn ManagementRuntimeFacade>>, HttpResponse> {
+    state.runtime.lock().map_err(|_| internal_error())
+}
+
+fn require_runtime_target(
+    state: &web::Data<ManagementResourceHttpState>,
+    config_version_id: &ConfigVersionId,
+    target: &ManagementRuntimeTarget,
+) -> Result<(), HttpResponse> {
+    let mut management_service = service(state)?;
+    let endpoint = management_service
+        .get_endpoint(config_version_id, target.endpoint_id())
+        .map_err(management_error)?
+        .into_parts()
+        .0;
+    let credential = management_service
+        .get_credential(config_version_id, target.credential_id())
+        .map_err(management_error)?
+        .into_parts()
+        .0;
+    if endpoint.upstream_id != credential.upstream_id {
+        return Err(invalid_input());
+    }
+    let bindings = management_service
+        .list_endpoint_credential_bindings(config_version_id, target.endpoint_id())
+        .map_err(management_error)?
+        .into_parts()
+        .0;
+    if !bindings.iter().any(|binding| {
+        binding.credential_id == *target.credential_id()
+            && binding.upstream_id == endpoint.upstream_id
+    }) {
+        return Err(invalid_input());
+    }
+    Ok(())
+}
+
+fn catalog_status_response(
+    statuses: Vec<ManagementCatalogStatus>,
+) -> Result<Vec<CatalogStatusResponse>, ManagementRuntimeError> {
+    if statuses.len() > MAX_RUNTIME_ROWS {
+        return Err(ManagementRuntimeError::Unavailable);
+    }
+    let mut targets = BTreeSet::new();
+    statuses
+        .into_iter()
+        .map(|status| {
+            if status.observed_at_ms() < 0
+                || !targets.insert((
+                    status.endpoint_id().as_str().to_owned(),
+                    status.credential_id().as_str().to_owned(),
+                ))
+            {
+                return Err(ManagementRuntimeError::Unavailable);
+            }
+            Ok(CatalogStatusResponse {
+                endpoint_id: status.endpoint_id().as_str().to_owned(),
+                credential_id: status.credential_id().as_str().to_owned(),
+                freshness: catalog_freshness_response(status.freshness()),
+                observed_at_ms: status.observed_at_ms(),
+            })
+        })
+        .collect()
+}
+
+fn runtime_availability_response(
+    statuses: Vec<ManagementRuntimeAvailabilityStatus>,
+) -> Result<Vec<RuntimeAvailabilityResponse>, ManagementRuntimeError> {
+    if statuses.len() > MAX_RUNTIME_ROWS {
+        return Err(ManagementRuntimeError::Unavailable);
+    }
+    let mut targets = BTreeSet::new();
+    statuses
+        .into_iter()
+        .map(|status| {
+            if !targets.insert((
+                status.endpoint_id().as_str().to_owned(),
+                status.credential_id().as_str().to_owned(),
+            )) {
+                return Err(ManagementRuntimeError::Unavailable);
+            }
+            Ok(RuntimeAvailabilityResponse {
+                endpoint_id: status.endpoint_id().as_str().to_owned(),
+                credential_id: status.credential_id().as_str().to_owned(),
+                availability: runtime_availability_category(status.availability()),
+            })
+        })
+        .collect()
+}
+
+fn request_attempt_response(
+    attempts: Vec<ManagementRequestAttempt>,
+) -> Result<Vec<RequestAttemptResponse>, ManagementRuntimeError> {
+    if attempts.len() > MAX_REQUEST_ATTEMPTS {
+        return Err(ManagementRuntimeError::Unavailable);
+    }
+    let mut ids = BTreeSet::new();
+    attempts
+        .into_iter()
+        .map(|attempt| {
+            if !ids.insert(attempt.attempt_id().to_owned())
+                || !safe_attempt_outcome(attempt.outcome())
+            {
+                return Err(ManagementRuntimeError::Unavailable);
+            }
+            Ok(RequestAttemptResponse {
+                attempt_id: attempt.attempt_id().to_owned(),
+                outcome: attempt.outcome(),
+                endpoint_id: attempt.endpoint_id().map(|id| id.as_str().to_owned()),
+                credential_id: attempt.credential_id().map(|id| id.as_str().to_owned()),
+            })
+        })
+        .collect()
+}
+
+fn catalog_freshness_response(value: ManagementCatalogFreshness) -> &'static str {
+    match value {
+        ManagementCatalogFreshness::Fresh => "fresh",
+        ManagementCatalogFreshness::Stale => "stale",
+        ManagementCatalogFreshness::Expired => "expired",
+        ManagementCatalogFreshness::Missing => "missing",
+    }
+}
+
+fn runtime_availability_category(value: ManagementRuntimeAvailability) -> &'static str {
+    match value {
+        ManagementRuntimeAvailability::Available => "available",
+        ManagementRuntimeAvailability::Cooldown => "cooldown",
+        ManagementRuntimeAvailability::CircuitOpen => "circuit_open",
+        ManagementRuntimeAvailability::QuotaBlocked => "quota_blocked",
+        ManagementRuntimeAvailability::CredentialForbidden => "credential_forbidden",
+        ManagementRuntimeAvailability::RecoveryRequired => "recovery_required",
+    }
+}
+
+fn safe_attempt_outcome(value: &str) -> bool {
+    matches!(value, "succeeded" | "failed")
+}
+
+struct ReadContext {
+    version: ConfigVersionId,
+}
+struct WriteContext {
+    version: ConfigVersionId,
+    revision: ConfigRevision,
+}
+
+fn read_context(request: &HttpRequest) -> Result<ReadContext, HttpResponse> {
+    let value = required_header(request, CONFIG_VERSION_HEADER)?;
+    let version = ConfigVersionId::try_new(value.to_owned()).map_err(|_| invalid_input())?;
+    Ok(ReadContext { version })
+}
+
+fn write_context(request: &HttpRequest) -> Result<WriteContext, HttpResponse> {
+    let ReadContext { version } = read_context(request)?;
+    let revision =
+        ConfigRevision::from_token(required_header(request, IF_MATCH_HEADER)?.trim_matches('"'))
+            .map_err(|_| invalid_input())?;
+    Ok(WriteContext { version, revision })
+}
+
+fn required_header<'request>(
+    request: &'request HttpRequest,
+    name: &str,
+) -> Result<&'request str, HttpResponse> {
+    let mut values = request.headers().get_all(name);
+    let value = values.next().ok_or_else(invalid_input)?;
+    if values.next().is_some() {
+        return Err(invalid_input());
+    }
+    value
+        .to_str()
+        .ok()
+        .filter(|value| !value.is_empty())
+        .ok_or_else(invalid_input)
+}
+
+fn principal(
+    request: &HttpRequest,
+) -> Result<gateway_control::management_service::ManagementActor, HttpResponse> {
+    request
+        .extensions()
+        .get::<ManagementRequestPrincipal>()
+        .map(|principal| principal.actor().clone())
+        .ok_or_else(internal_error)
+}
+
+fn service(
+    state: &web::Data<ManagementResourceHttpState>,
+) -> Result<std::sync::MutexGuard<'_, ManagementMutationService>, HttpResponse> {
+    state.service.lock().map_err(|_| internal_error())
+}
+
+fn workflow(
+    state: &web::Data<ManagementResourceHttpState>,
+) -> Result<std::sync::MutexGuard<'_, Box<dyn ManagementEndpointWorkflow>>, HttpResponse> {
+    state.workflow.lock().map_err(|_| internal_error())
+}
+
+fn require_endpoint(
+    state: &web::Data<ManagementResourceHttpState>,
+    config_version_id: &ConfigVersionId,
+    endpoint_id: &EndpointId,
+) -> Result<(), HttpResponse> {
+    let mut service = service(state)?;
+    service
+        .get_endpoint(config_version_id, endpoint_id)
+        .map(|_| ())
+        .map_err(management_error)
+}
+
+fn require_endpoint_at_revision(
+    state: &web::Data<ManagementResourceHttpState>,
+    config_version_id: &ConfigVersionId,
+    expected_revision: ConfigRevision,
+    endpoint_id: &EndpointId,
+) -> Result<(), HttpResponse> {
+    let mut service = service(state)?;
+    let (_, current_revision) = service
+        .get_endpoint(config_version_id, endpoint_id)
+        .map_err(management_error)?
+        .into_parts();
+    if current_revision == expected_revision {
+        Ok(())
+    } else {
+        Err(management_error(ManagementResourceError::Store(
+            StoreError::ConfigVersionRevisionConflict,
+        )))
+    }
+}
+
+fn require_credential(
+    state: &web::Data<ManagementResourceHttpState>,
+    config_version_id: &ConfigVersionId,
+    credential_id: &CredentialId,
+) -> Result<(), HttpResponse> {
+    let mut service = service(state)?;
+    service
+        .get_credential(config_version_id, credential_id)
+        .map(|_| ())
+        .map_err(management_error)
+}
+
+fn parse_json<T: DeserializeOwned>(body: &[u8]) -> Result<T, HttpResponse> {
+    if body.is_empty() || body.len() > MAX_MANAGEMENT_JSON_BYTES {
+        return Err(invalid_input());
+    }
+    serde_json::from_slice(body).map_err(|_| invalid_input())
+}
+
+fn egress_policy(input: EgressPolicyInput) -> Result<EgressPolicyConfiguration, HttpResponse> {
+    if input.allowed_schemes.iter().any(|scheme| scheme != "https")
+        || input.allowed_schemes.len() > 8
+        || input.allowed_hosts.len() > 128
+        || input.allowed_ports.len() > 128
+        || input.allowed_cidrs.len() > 128
+        || input.max_redirects < 0
+        || input.max_redirects > 5
+        || input
+            .allowed_ports
+            .iter()
+            .any(|port| !(1..=65_535).contains(port))
+    {
+        return Err(invalid_input());
+    }
+    let redirect_mode = match input.redirect_mode.as_str() {
+        "deny" if input.max_redirects == 0 => StoredEgressRedirectMode::Deny,
+        "revalidate" if input.max_redirects > 0 => StoredEgressRedirectMode::Revalidate,
+        _ => return Err(invalid_input()),
+    };
+    Ok(EgressPolicyConfiguration {
+        id: EgressPolicyId::try_new(input.id).map_err(|_| invalid_input())?,
+        name: bounded_text(input.name, 256)?,
+        allowed_schemes_json: json_string(input.allowed_schemes)?,
+        allowed_hosts_json: json_string(input.allowed_hosts)?,
+        allowed_ports_json: json_string(input.allowed_ports)?,
+        allowed_cidrs_json: json_string(input.allowed_cidrs)?,
+        redirect_mode,
+        max_redirects: input.max_redirects,
+    })
+}
+
+fn upstream(input: UpstreamInput) -> Result<UpstreamConfiguration, HttpResponse> {
+    if input.tags.len() > 32
+        || input
+            .tags
+            .iter()
+            .any(|tag| tag.is_empty() || tag.chars().count() > 64)
+    {
+        return Err(invalid_input());
+    }
+    Ok(UpstreamConfiguration {
+        id: UpstreamId::try_new(input.id).map_err(|_| invalid_input())?,
+        name: bounded_text(input.name, 256)?,
+        kind: bounded_text(input.kind, 128)?,
+        enabled: input.enabled,
+        tags_json: json_string(input.tags)?,
+        egress_policy_id: input
+            .egress_policy_id
+            .map(EgressPolicyId::try_new)
+            .transpose()
+            .map_err(|_| invalid_input())?,
+    })
+}
+
+fn endpoint(
+    input: EndpointInput,
+    upstream_id: UpstreamId,
+) -> Result<EndpointConfiguration, HttpResponse> {
+    if input.transport != "https" || !input.base_url.starts_with("https://") {
+        return Err(invalid_input());
+    }
+    Ok(EndpointConfiguration {
+        id: EndpointId::try_new(input.id).map_err(|_| invalid_input())?,
+        upstream_id,
+        adapter_id: bounded_text(input.adapter_id, 128)?,
+        api_format: bounded_text(input.api_format, 128)?,
+        base_url: bounded_text(input.base_url, 2048)?,
+        inference_path: bounded_text(input.inference_path, 1024)?,
+        models_path: input
+            .models_path
+            .map(|value| bounded_text(value, 1024))
+            .transpose()?,
+        transport: EndpointTransport::Http,
+        enabled: input.enabled,
+    })
+}
+
+fn credential_input(
+    input: CredentialInput,
+) -> Result<(CredentialId, String, Zeroizing<String>, CredentialStatus), HttpResponse> {
+    let status = match input.status.as_str() {
+        "active" => CredentialStatus::Active,
+        "disabled" | "revoked" => CredentialStatus::Disabled,
+        _ => return Err(invalid_input()),
+    };
+    if input.secret.is_empty() || input.secret.len() > 65_536 {
+        return Err(invalid_input());
+    }
+    Ok((
+        CredentialId::try_new(input.id).map_err(|_| invalid_input())?,
+        bounded_text(input.kind, 128)?,
+        Zeroizing::new(input.secret),
+        status,
+    ))
+}
+
+fn binding(
+    input: BindingInput,
+    endpoint_id: EndpointId,
+    upstream_id: UpstreamId,
+) -> Result<EndpointCredentialBindingConfiguration, HttpResponse> {
+    if input.priority < 0
+        || !(1..=10_000).contains(&input.weight)
+        || !(1..=100_000).contains(&input.concurrency)
+    {
+        return Err(invalid_input());
+    }
+    Ok(EndpointCredentialBindingConfiguration {
+        endpoint_id,
+        upstream_id,
+        credential_id: CredentialId::try_new(input.credential_id).map_err(|_| invalid_input())?,
+        enabled: input.enabled,
+        priority: input.priority,
+        weight: input.weight,
+        concurrency: input.concurrency,
+    })
+}
+
+fn public_model(input: PublicModelInput) -> Result<PublicModelConfiguration, HttpResponse> {
+    bounded_boolean_map(&input.capabilities, 32)?;
+    Ok(PublicModelConfiguration {
+        id: PublicModelId::try_new(input.id).map_err(|_| invalid_input())?,
+        model_name: bounded_text(input.model_name, 256)?,
+        status: administrative_status(&input.status)?,
+        display_name: bounded_text(input.display_name, 256)?,
+        capabilities_json: json_string(input.capabilities)?,
+    })
+}
+
+fn model_alias(
+    input: AliasInput,
+    public_model_id: PublicModelId,
+) -> Result<ModelAliasConfiguration, HttpResponse> {
+    Ok(ModelAliasConfiguration {
+        alias: bounded_text(input.alias, 256)?,
+        public_model_id,
+    })
+}
+
+fn model_route(
+    input: RouteInput,
+    public_model_id: PublicModelId,
+) -> Result<ModelRouteConfiguration, HttpResponse> {
+    if input.max_attempts <= 0
+        || input.max_attempts > 16
+        || input.bootstrap_timeout_ms <= 0
+        || input.bootstrap_timeout_ms > 120_000
+        || input.policy != "smooth_weighted_round_robin"
+    {
+        return Err(invalid_input());
+    }
+    Ok(ModelRouteConfiguration {
+        id: RouteId::try_new(input.id).map_err(|_| invalid_input())?,
+        public_model_id,
+        policy: RoutePolicy::SmoothWeightedRoundRobin,
+        max_attempts: input.max_attempts,
+        bootstrap_timeout_ms: input.bootstrap_timeout_ms,
+    })
+}
+
+fn route_candidate(
+    input: CandidateInput,
+    route_id: RouteId,
+) -> Result<RouteCandidateConfiguration, HttpResponse> {
+    if input.priority < 0 || !(1..=10_000).contains(&input.weight) {
+        return Err(invalid_input());
+    }
+    bounded_boolean_map(&input.capability_override, 32)?;
+    let transform_mode = match input.transform_mode.as_str() {
+        "passthrough" => TransformMode::Passthrough,
+        "canonical" => TransformMode::Canonical,
+        "lossless_bridge" => TransformMode::LosslessBridge,
+        _ => return Err(invalid_input()),
+    };
+    if input.credential_scope != "all_active" {
+        return Err(invalid_input());
+    }
+    Ok(RouteCandidateConfiguration {
+        id: RouteCandidateId::try_new(input.id).map_err(|_| invalid_input())?,
+        route_id,
+        endpoint_id: EndpointId::try_new(input.endpoint_id).map_err(|_| invalid_input())?,
+        upstream_model: bounded_text(input.upstream_model, 256)?,
+        credential_scope: CredentialScope::EndpointBindings,
+        transform_mode,
+        enabled: input.enabled,
+        priority: input.priority,
+        weight: input.weight,
+        capability_override_json: json_string(input.capability_override)?,
+    })
+}
+
+fn access_group(input: AccessGroupInput) -> Result<AccessGroupConfiguration, HttpResponse> {
+    if input.limits.len() > 16
+        || input
+            .limits
+            .iter()
+            .any(|(key, value)| key.trim().is_empty() || key.chars().count() > 128 || *value < 0)
+    {
+        return Err(invalid_input());
+    }
+    Ok(AccessGroupConfiguration {
+        id: AccessGroupId::try_new(input.id).map_err(|_| invalid_input())?,
+        name: bounded_text(input.name, 256)?,
+        status: administrative_status(&input.status)?,
+        limits_json: json_string(input.limits)?,
+    })
+}
+
+fn access_group_route(
+    input: AccessGroupRouteInput,
+    access_group_id: AccessGroupId,
+) -> Result<AccessGroupRouteConfiguration, HttpResponse> {
+    Ok(AccessGroupRouteConfiguration {
+        access_group_id,
+        route_id: RouteId::try_new(input.route_id).map_err(|_| invalid_input())?,
+        enabled: input.enabled,
+    })
+}
+
+fn client_key_parts(
+    input: ClientKeyInput,
+) -> Result<
+    (
+        ClientKeyId,
+        AccessGroupId,
+        StoredClientKeyStatus,
+        Option<i64>,
+    ),
+    HttpResponse,
+> {
+    if input.expires_at_ms.is_some_and(|value| value < 0) {
+        return Err(invalid_input());
+    }
+    let status = match input.status.as_str() {
+        "active" => StoredClientKeyStatus::Active,
+        "disabled" => StoredClientKeyStatus::Disabled,
+        "revoked" => StoredClientKeyStatus::Revoked,
+        _ => return Err(invalid_input()),
+    };
+    Ok((
+        ClientKeyId::try_new(input.id).map_err(|_| invalid_input())?,
+        AccessGroupId::try_new(input.access_group_id).map_err(|_| invalid_input())?,
+        status,
+        input.expires_at_ms,
+    ))
+}
+
+fn client_key_issue(input: ClientKeyInput) -> Result<ClientKeyIssue, HttpResponse> {
+    let (id, access_group_id, status, expires_at_ms) = client_key_parts(input)?;
+    Ok(ClientKeyIssue {
+        id,
+        access_group_id,
+        status,
+        expires_at_ms,
+    })
+}
+
+fn client_key_update(
+    input: ClientKeyInput,
+) -> Result<(ClientKeyId, ClientKeyUpdate), HttpResponse> {
+    let (id, access_group_id, status, expires_at_ms) = client_key_parts(input)?;
+    Ok((
+        id,
+        ClientKeyUpdate {
+            access_group_id,
+            status,
+            expires_at_ms,
+        },
+    ))
+}
+
+fn administrative_status(value: &str) -> Result<AdministrativeStatus, HttpResponse> {
+    match value {
+        "active" => Ok(AdministrativeStatus::Active),
+        "disabled" => Ok(AdministrativeStatus::Disabled),
+        _ => Err(invalid_input()),
+    }
+}
+
+fn bounded_boolean_map(
+    values: &BTreeMap<String, bool>,
+    maximum_entries: usize,
+) -> Result<(), HttpResponse> {
+    if values.len() > maximum_entries
+        || values
+            .keys()
+            .any(|key| key.trim().is_empty() || key.chars().count() > 128)
+    {
+        Err(invalid_input())
+    } else {
+        Ok(())
+    }
+}
+
+fn endpoint_test_mode(value: &str) -> Result<ManagementEndpointTestMode, HttpResponse> {
+    match value {
+        "non_streaming" => Ok(ManagementEndpointTestMode::NonStreaming),
+        "sse" => Ok(ManagementEndpointTestMode::Sse),
+        _ => Err(invalid_input()),
+    }
+}
+
+fn bounded_text(value: String, maximum: usize) -> Result<String, HttpResponse> {
+    if value.trim().is_empty() || value.chars().count() > maximum {
+        Err(invalid_input())
+    } else {
+        Ok(value)
+    }
+}
+
+fn json_string<T: Serialize>(value: T) -> Result<String, HttpResponse> {
+    serde_json::to_string(&value).map_err(|_| internal_error())
+}
+
+fn revisioned_json<T, U: Serialize>(
+    status: StatusCode,
+    value: Revisioned<T>,
+    convert: impl FnOnce(T) -> U,
+) -> HttpResponse {
+    let (resource, revision) = value.into_parts();
+    HttpResponse::build(status)
+        .insert_header((header::ETAG, format!("\"{}\"", revision.as_token())))
+        .json(convert(resource))
+}
+
+/// Serializes the P10-05 Route contract only when the stored policy is representable by its
+/// frozen single-policy `OpenAPI` enum. Older stored policies must not be silently reclassified.
+fn revisioned_route_json(
+    status: StatusCode,
+    value: Revisioned<ModelRouteConfiguration>,
+) -> HttpResponse {
+    let (route, revision) = value.into_parts();
+    match RouteResponse::try_from(route) {
+        Ok(response) => response_with_revision(status, revision, response),
+        Err(UnsupportedRoutePolicy) => internal_error(),
+    }
+}
+
+fn response_with_revision<T: Serialize>(
+    status: StatusCode,
+    revision: ConfigRevision,
+    value: T,
+) -> HttpResponse {
+    HttpResponse::build(status)
+        .insert_header((header::ETAG, format!("\"{}\"", revision.as_token())))
+        .json(value)
+}
+
+fn empty_with_revision(revision: ConfigRevision) -> HttpResponse {
+    HttpResponse::NoContent()
+        .insert_header((header::ETAG, format!("\"{}\"", revision.as_token())))
+        .finish()
+}
+
+fn management_error(error: ManagementResourceError) -> HttpResponse {
+    let response = match &error {
+        ManagementResourceError::ConfigVersionNotFound
+        | ManagementResourceError::ResourceNotFound
+        | ManagementResourceError::Store(
+            StoreError::ConfigVersionNotFound | StoreError::ControlPlaneResourceNotFound,
+        ) => error_response(
+            StatusCode::NOT_FOUND,
+            "management_resource_not_found",
+            "Management resource was not found",
+        ),
+        ManagementResourceError::Store(StoreError::ConfigVersionRevisionConflict) => {
+            error_response(
+                StatusCode::CONFLICT,
+                "management_revision_conflict",
+                "Management configuration changed",
+            )
+        }
+        ManagementResourceError::Store(StoreError::ControlPlaneMutationRequiresDraft) => {
+            error_response(
+                StatusCode::CONFLICT,
+                "management_version_not_writable",
+                "Management configuration is not writable",
+            )
+        }
+        ManagementResourceError::InvalidRevision
+        | ManagementResourceError::InvalidCredentialInput => invalid_input(),
+        ManagementResourceError::Store(_)
+        | ManagementResourceError::SecretStore(_)
+        | ManagementResourceError::ControlPlane(_)
+        | ManagementResourceError::Clock(_)
+        | ManagementResourceError::ClientKey(_)
+        | ManagementResourceError::ClientKeyIssuerUnavailable => internal_error(),
+    };
+    drop(error);
+    response
+}
+
+fn invalid_input() -> HttpResponse {
+    error_response(
+        StatusCode::BAD_REQUEST,
+        "invalid_management_request",
+        "Management request is invalid",
+    )
+}
+fn internal_error() -> HttpResponse {
+    error_response(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "management_internal_error",
+        "Management operation failed",
+    )
+}
+
+fn runtime_error(error: ManagementRuntimeError) -> HttpResponse {
+    match error {
+        ManagementRuntimeError::InvalidInput => invalid_input(),
+        ManagementRuntimeError::Unavailable => error_response(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "management_runtime_unavailable",
+            "Management runtime observation is unavailable",
+        ),
+    }
+}
+
+fn error_response(status: StatusCode, code: &'static str, message: &'static str) -> HttpResponse {
+    HttpResponse::build(status)
+        .insert_header((header::CACHE_CONTROL, "no-store"))
+        .json(serde_json::json!({"error":{"code":code,"message":message}}))
+}
+
+impl From<ManagementQuotaRecoveryState> for RuntimeActionResponse {
+    fn from(value: ManagementQuotaRecoveryState) -> Self {
+        let state = match value {
+            ManagementQuotaRecoveryState::RecoveryRequired => "recovery_required",
+            ManagementQuotaRecoveryState::ProbeScheduled => "probe_scheduled",
+            ManagementQuotaRecoveryState::Rejected => "rejected",
+        };
+        Self { state }
+    }
+}
+
+impl TryFrom<ManagementRouteExplain> for RouteExplainResponse {
+    type Error = ManagementRuntimeError;
+
+    fn try_from(value: ManagementRouteExplain) -> Result<Self, Self::Error> {
+        let mut ids = BTreeSet::new();
+        let candidates = value
+            .candidates()
+            .iter()
+            .map(|candidate| {
+                let reason = candidate.reason();
+                if !ids.insert(candidate.candidate_id().as_str().to_owned())
+                    || candidate.selected_by_projection() != reason.is_none()
+                    || reason.is_some_and(|value| !safe_route_explain_reason(value))
+                {
+                    return Err(ManagementRuntimeError::Unavailable);
+                }
+                Ok(RouteExplainCandidateResponse {
+                    candidate_id: candidate.candidate_id().as_str().to_owned(),
+                    decision: if candidate.selected_by_projection() {
+                        "selected"
+                    } else {
+                        "excluded"
+                    },
+                    reason,
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(Self {
+            route_id: value.route_id().as_str().to_owned(),
+            candidates,
+        })
+    }
+}
+
+fn safe_route_explain_reason(value: &str) -> bool {
+    matches!(
+        value,
+        "not_hard_eligible"
+            | "endpoint_cooldown"
+            | "endpoint_circuit_open"
+            | "endpoint_unavailable"
+            | "missing_credential_pool"
+            | "no_eligible_credential"
+    )
+}
+
+impl From<PublicModelConfiguration> for PublicModelResponse {
+    fn from(value: PublicModelConfiguration) -> Self {
+        Self {
+            id: value.id.as_str().to_owned(),
+            model_name: value.model_name,
+            status: administrative_status_response(value.status),
+            display_name: value.display_name,
+            capabilities: json_array(&value.capabilities_json),
+        }
+    }
+}
+impl From<ModelAliasConfiguration> for AliasResponse {
+    fn from(value: ModelAliasConfiguration) -> Self {
+        Self {
+            alias: value.alias,
+            public_model_id: value.public_model_id.as_str().to_owned(),
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct UnsupportedRoutePolicy;
+
+impl TryFrom<ModelRouteConfiguration> for RouteResponse {
+    type Error = UnsupportedRoutePolicy;
+
+    fn try_from(value: ModelRouteConfiguration) -> Result<Self, Self::Error> {
+        let policy = match value.policy {
+            RoutePolicy::SmoothWeightedRoundRobin => "smooth_weighted_round_robin",
+            RoutePolicy::RoundRobin | RoutePolicy::PriorityFailover => {
+                return Err(UnsupportedRoutePolicy);
+            }
+        };
+        Ok(Self {
+            id: value.id.as_str().to_owned(),
+            public_model_id: value.public_model_id.as_str().to_owned(),
+            policy,
+            max_attempts: value.max_attempts,
+            bootstrap_timeout_ms: value.bootstrap_timeout_ms,
+        })
+    }
+}
+impl From<RouteCandidateConfiguration> for CandidateResponse {
+    fn from(value: RouteCandidateConfiguration) -> Self {
+        Self {
+            id: value.id.as_str().to_owned(),
+            route_id: value.route_id.as_str().to_owned(),
+            endpoint_id: value.endpoint_id.as_str().to_owned(),
+            upstream_model: value.upstream_model,
+            credential_scope: match value.credential_scope {
+                CredentialScope::EndpointBindings => "all_active",
+            },
+            transform_mode: match value.transform_mode {
+                TransformMode::Passthrough => "passthrough",
+                TransformMode::Canonical => "canonical",
+                TransformMode::LosslessBridge => "lossless_bridge",
+            },
+            enabled: value.enabled,
+            priority: value.priority,
+            weight: value.weight,
+            capability_override: json_array(&value.capability_override_json),
+        }
+    }
+}
+impl From<AccessGroupConfiguration> for AccessGroupResponse {
+    fn from(value: AccessGroupConfiguration) -> Self {
+        Self {
+            id: value.id.as_str().to_owned(),
+            name: value.name,
+            status: administrative_status_response(value.status),
+            limits: json_array(&value.limits_json),
+        }
+    }
+}
+impl From<AccessGroupRouteConfiguration> for AccessGroupRouteResponse {
+    fn from(value: AccessGroupRouteConfiguration) -> Self {
+        Self {
+            access_group_id: value.access_group_id.as_str().to_owned(),
+            route_id: value.route_id.as_str().to_owned(),
+            enabled: value.enabled,
+        }
+    }
+}
+impl From<ClientKeyView> for ClientKeyResponse {
+    fn from(value: ClientKeyView) -> Self {
+        Self {
+            id: value.id.as_str().to_owned(),
+            access_group_id: value.access_group_id.as_str().to_owned(),
+            prefix: value.prefix,
+            status: client_key_status_response(value.status),
+            expires_at_ms: value.expires_at_ms,
+        }
+    }
+}
+impl IssuedClientKeyResponse {
+    fn new(metadata: &ClientKeyView, key: String) -> Self {
+        Self {
+            id: metadata.id.as_str().to_owned(),
+            access_group_id: metadata.access_group_id.as_str().to_owned(),
+            prefix: metadata.prefix.clone(),
+            status: client_key_status_response(metadata.status),
+            expires_at_ms: metadata.expires_at_ms,
+            key,
+        }
+    }
+}
+impl From<ManagementRouteValidation> for ValidationResponse {
+    fn from(value: ManagementRouteValidation) -> Self {
+        Self {
+            valid: value.valid,
+            error_codes: value.error_codes,
+        }
+    }
+}
+
+const fn administrative_status_response(value: AdministrativeStatus) -> &'static str {
+    match value {
+        AdministrativeStatus::Active => "active",
+        AdministrativeStatus::Disabled => "disabled",
+    }
+}
+
+const fn client_key_status_response(value: StoredClientKeyStatus) -> &'static str {
+    match value {
+        StoredClientKeyStatus::Active => "active",
+        StoredClientKeyStatus::Disabled => "disabled",
+        StoredClientKeyStatus::Revoked => "revoked",
+    }
+}
+
+impl From<EgressPolicyConfiguration> for EgressPolicyResponse {
+    fn from(value: EgressPolicyConfiguration) -> Self {
+        Self {
+            id: value.id.as_str().to_owned(),
+            name: value.name,
+            allowed_schemes: json_array(&value.allowed_schemes_json),
+            allowed_hosts: json_array(&value.allowed_hosts_json),
+            allowed_ports: json_array(&value.allowed_ports_json),
+            allowed_cidrs: json_array(&value.allowed_cidrs_json),
+            redirect_mode: match value.redirect_mode {
+                StoredEgressRedirectMode::Deny => "deny",
+                StoredEgressRedirectMode::SameOrigin | StoredEgressRedirectMode::Revalidate => {
+                    "revalidate"
+                }
+            },
+            max_redirects: value.max_redirects,
+        }
+    }
+}
+impl From<UpstreamConfiguration> for UpstreamResponse {
+    fn from(value: UpstreamConfiguration) -> Self {
+        Self {
+            id: value.id.as_str().to_owned(),
+            name: value.name,
+            kind: value.kind,
+            enabled: value.enabled,
+            tags: json_array(&value.tags_json),
+            egress_policy_id: value.egress_policy_id.map(|id| id.as_str().to_owned()),
+        }
+    }
+}
+impl From<EndpointConfiguration> for EndpointResponse {
+    fn from(value: EndpointConfiguration) -> Self {
+        Self {
+            id: value.id.as_str().to_owned(),
+            upstream_id: value.upstream_id.as_str().to_owned(),
+            adapter_id: value.adapter_id,
+            api_format: value.api_format,
+            base_url: value.base_url,
+            inference_path: value.inference_path,
+            models_path: value.models_path,
+            transport: "https",
+            enabled: value.enabled,
+        }
+    }
+}
+impl From<CredentialView> for CredentialResponse {
+    fn from(value: CredentialView) -> Self {
+        Self {
+            id: value.id.as_str().to_owned(),
+            upstream_id: value.upstream_id.as_str().to_owned(),
+            kind: value.kind,
+            status: match value.status {
+                CredentialStatus::Active => "active",
+                CredentialStatus::Cooling
+                | CredentialStatus::Unauthorized
+                | CredentialStatus::Disabled => "disabled",
+            },
+            revision: value.revision,
+            secret_present: value.secret_present,
+        }
+    }
+}
+impl From<EndpointCredentialBindingConfiguration> for BindingResponse {
+    fn from(value: EndpointCredentialBindingConfiguration) -> Self {
+        Self {
+            endpoint_id: value.endpoint_id.as_str().to_owned(),
+            upstream_id: value.upstream_id.as_str().to_owned(),
+            credential_id: value.credential_id.as_str().to_owned(),
+            enabled: value.enabled,
+            priority: value.priority,
+            weight: value.weight,
+            concurrency: value.concurrency,
+        }
+    }
+}
+impl From<ManagementEndpointTestResult> for EndpointTestResponse {
+    fn from(value: ManagementEndpointTestResult) -> Self {
+        Self {
+            outcome: match value.outcome {
+                ManagementEndpointTestOutcome::Pass => "pass",
+                ManagementEndpointTestOutcome::Rejected => "rejected",
+                ManagementEndpointTestOutcome::TransportFailed => "transport_failed",
+                ManagementEndpointTestOutcome::ProtocolFailed => "protocol_failed",
+            },
+            status_class: match value.status_class {
+                ManagementEndpointStatusClass::TwoXx => "2xx",
+                ManagementEndpointStatusClass::FourXx => "4xx",
+                ManagementEndpointStatusClass::FiveXx => "5xx",
+                ManagementEndpointStatusClass::Other => "other",
+            },
+            canonical_lifecycle: value.canonical_lifecycle,
+        }
+    }
+}
+impl From<ManagementCatalogDiff> for CatalogDiffResponse {
+    fn from(value: ManagementCatalogDiff) -> Self {
+        Self {
+            added: value.added,
+            removed: value.removed,
+            unchanged: value.unchanged,
+        }
+    }
+}
+impl CredentialOAuthResponse {
+    fn new(credential_id: &CredentialId, value: ManagementCredentialOAuthOperation) -> Self {
+        Self {
+            credential_id: credential_id.as_str().to_owned(),
+            state: match value.state {
+                ManagementCredentialOAuthState::Pending => "pending",
+                ManagementCredentialOAuthState::Complete => "complete",
+                ManagementCredentialOAuthState::Cancelled => "cancelled",
+                ManagementCredentialOAuthState::Failed => "failed",
+            },
+            expires_at_ms: value.expires_at_ms,
+        }
+    }
+}
+
+fn json_array<T: DeserializeOwned>(value: &str) -> T {
+    serde_json::from_str(value)
+        .unwrap_or_else(|_| unreachable!("validated storage JSON must decode"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    type TestResult = Result<(), Box<dyn std::error::Error>>;
+
+    fn route_with_policy(
+        policy: RoutePolicy,
+    ) -> Result<ModelRouteConfiguration, gateway_core::InvalidIdentifier> {
+        Ok(ModelRouteConfiguration {
+            id: RouteId::try_new("route-policy")?,
+            public_model_id: PublicModelId::try_new("model-policy")?,
+            policy,
+            max_attempts: 1,
+            bootstrap_timeout_ms: 1_000,
+        })
+    }
+
+    #[test]
+    fn route_response_rejects_legacy_policy_instead_of_relabelling_it() -> TestResult {
+        let supported =
+            RouteResponse::try_from(route_with_policy(RoutePolicy::SmoothWeightedRoundRobin)?)
+                .map_err(|_| std::io::Error::other("frozen P10-05 policy is not representable"))?;
+        assert_eq!(supported.policy, "smooth_weighted_round_robin");
+        assert!(RouteResponse::try_from(route_with_policy(RoutePolicy::RoundRobin)?).is_err());
+        assert!(
+            RouteResponse::try_from(route_with_policy(RoutePolicy::PriorityFailover)?).is_err()
+        );
+        Ok(())
+    }
+}

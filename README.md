@@ -2,7 +2,7 @@
 
 本目录用于规划一个基于 CPA 功能经验、但从零实现的高性能 AI 网关。
 
-规划阶段已经完成并锁定开发计划 `v1.0`，P0 工程基线与 21-package Rust Workspace 已建立，但尚未实现推理业务。HTTP 技术路线确定为 `Rust + Actix Web`；框架只负责接入层，协议、路由、凭据和 Provider 核心不依赖 Actix 类型。
+规划阶段已经完成并锁定开发计划；P0 工程基线与 21-package Rust Workspace 已建立，P1-P11 的本地实现和验证正在收尾。HTTP 技术路线确定为 `Rust + Actix Web`；框架只负责接入层，协议、路由、凭据和 Provider 核心不依赖 Actix 类型。
 
 第一阶段渠道方向已经锁定为 `Grok Provider Family + Kiro + OpenAI-compatible`。Grok 不作为单一 Provider：官方 API、Build OAuth 与 Web/Console 使用独立 Adapter、凭据池、Quota 和连续性状态；Kiro 同时支持 CLI/IDE 端点，行为以服务器定制 Kiro-RS 为参考。
 
@@ -10,10 +10,10 @@
 
 ## 当前状态
 
-- 阶段：`P1 - Canonical Core + Mock 垂直链路` 与 `P2 - 聚合控制面、安全与 RouteSnapshot` 已完成（G0、G1、G2 已通过）；`P3` 正在执行（P3-01 至 P3-09 已完成 GitHub 验收；P3-10 是唯一 `IN_PROGRESS` Task，首个授权探针因旧版仅接受 `200` 的判断停止，等待修复后的明确重新授权）
-- 执行计划：`v1.1`，状态 `Locked for execution`；`CR-P1-G1-001` 已批准
+- 阶段：P1-P6、P9、P10、P11 已完成；P12-01 正在实现 Linux 发布产物、SBOM、checksum 与 keyless 签名验证，OCI 仅保留为私有 CI artifact。P7 Kiro OAuth 与 P8 Official API-key 的真实外部验证按批准延后，详情见 [Release Candidate ledger](docs/reports/p11-08-release-candidate.md)。
+- 执行计划：`v1.46`，状态 `Locked for execution`；最新唯一任务和已批准 Change Request 见[详细开发计划](docs/06-development-plan.md)
 - CPA 参考版本：`router-for-me/CLIProxyAPI v7.2.80`
-- Release 1：核心范围、技术基线、阶段顺序和门禁已冻结
+- Release Candidate：P11 已通过唯一 GitHub Delivery Gate；尚未创建发布产物、签名、镜像推送或服务器部署。P12 依次拥有构建、签名、部署和 72h Canary
 - Rust Workspace：21-package 骨架已创建并通过 P0-03 验证
 - 服务器部署：尚未开始
 
@@ -59,7 +59,7 @@
 2. 全计划同时最多一个 Task 处于 `IN_PROGRESS`，未通过当前 Gate 不进入下一 Phase。
 3. 功能矩阵中仍为 `待定` 的项目不属于当前 Release 1，不得顺手实现。
 4. 任何范围、顺序、公开行为或门槛变化都必须创建 Change Request，并取得用户明确批准。
-5. P1 的全部 Task 与 G1 阶段门禁均已完成；后续 Task 必须按锁定计划和依赖顺序执行，未经新指令不得提前实现其功能，也不修改服务器。
+5. 已完成任务与当前唯一 Task 均以详细计划为准；后续 Task 必须按锁定计划和依赖顺序执行，未经新指令不得提前实现其功能，也不修改服务器。
 
 ## 实施原则
 

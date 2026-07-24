@@ -10,6 +10,7 @@ EgressUnavailable
 ProviderRateLimited
 ProviderTransient
 ProviderPermanent
+TokenCountUnsupported
 UpstreamProtocolError
 StreamTruncated
 InternalError

@@ -1,0 +1,9 @@
+{
+  "fixture_version": 1,
+  "id": "kiro-rs-event-stream-integrity",
+  "reference": "kiro-rs-c49c75e",
+  "subject": "event-stream-integrity",
+  "reference_projection": ["event-stream-crc-validation", "chunk-invariant-canonical-events"],
+  "gateway_projection": ["event-stream-crc-validation", "chunk-invariant-canonical-events"],
+  "classification": "compatible"
+}

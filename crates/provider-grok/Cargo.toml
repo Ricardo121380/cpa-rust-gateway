@@ -8,11 +8,27 @@ authors.workspace = true
 publish.workspace = true
 
 [dependencies]
+flate2.workspace = true
+getrandom.workspace = true
 gateway-continuity = { path = "../gateway-continuity" }
+gateway-catalog = { path = "../gateway-catalog" }
 gateway-core = { path = "../gateway-core" }
 gateway-provider = { path = "../gateway-provider" }
+gateway-router = { path = "../gateway-router" }
+gateway-store = { path = "../gateway-store" }
 gateway-upstream = { path = "../gateway-upstream" }
+hmac.workspace = true
 protocol-openai-responses = { path = "../protocol-openai-responses" }
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+time.workspace = true
+url.workspace = true
+zeroize.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
 
 [lints]
 workspace = true

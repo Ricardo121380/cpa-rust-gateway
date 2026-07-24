@@ -722,6 +722,14 @@ impl UpstreamHttpResponse {
         self.headers.get(name)
     }
 
+    /// Returns every raw value for one response Header name without rendering it.
+    ///
+    /// Callers must validate and redact the values themselves. This preserves duplicate-header
+    /// visibility for Provider parsers that need to reject ambiguous security or quota evidence.
+    pub fn header_values(&self, name: &str) -> impl Iterator<Item = &HeaderValue> {
+        self.headers.get_all(name).iter()
+    }
+
     /// Pulls one raw response-body chunk, enforcing both response-idle and total deadlines.
     ///
     /// A timeout or lower-level read error becomes terminal for this response and maps to

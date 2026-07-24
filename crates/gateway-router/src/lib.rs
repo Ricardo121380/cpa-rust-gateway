@@ -7,6 +7,7 @@
 
 mod attempt_orchestrator;
 mod credential_scheduler;
+mod protocol_transform;
 mod route_explain;
 mod route_scheduler;
 mod route_snapshot;
@@ -14,6 +15,7 @@ mod runtime_health;
 mod runtime_management_status;
 mod runtime_probe;
 mod runtime_quota;
+mod token_count;
 
 use std::{fmt, future::Future, pin::Pin, sync::Arc, time::Duration};
 
@@ -34,6 +36,10 @@ pub use attempt_orchestrator::{
 pub use credential_scheduler::{RouteCredentialScheduler, SelectedRouteCredential};
 pub use gateway_catalog::CapabilitySet;
 pub use gateway_core::TransparentRetryGate as AttemptRetryGate;
+pub use protocol_transform::{
+    NativePayloadAvailability, ProtocolFormat, ProtocolTransformAdmission, ProtocolTransformInput,
+    ProtocolTransformRejection, analyze_protocol_transform,
+};
 pub use route_explain::{
     RouteExplainCandidate, RouteExplainCandidateReason, RouteExplainCredential,
     RouteExplainCredentialReason, RouteExplainError, RouteExplainInput,
@@ -77,6 +83,10 @@ pub use runtime_quota::{
     QuotaWindow, QuotaWindowError, RuntimeQuotaAvailability, RuntimeQuotaError,
     RuntimeQuotaRecoveryProbe, RuntimeQuotaRegistry, RuntimeQuotaRegistryBuildError,
     RuntimeQuotaStatusSnapshot, RuntimeQuotaTarget, RuntimeQuotaTargetError,
+};
+pub use token_count::{
+    CountTokensExecution, CountTokensExecutor, CountTokensFuture, ProviderCountTokensExecutor,
+    UnsupportedCountTokensExecutor,
 };
 
 /// Stable component identifier used by architecture smoke tests.
@@ -251,6 +261,75 @@ impl DeterministicMockEmission {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeterministicMockResponsesExecutor {
     provider: DeterministicMockProvider,
+}
+
+/// Router-facing bridge for two real Provider execution modes.
+///
+/// The ingress protocol decides whether the downstream response is streaming.  This bridge
+/// selects the matching already-configured Provider adapter while preserving the Router rule that
+/// HTTP crates never import a concrete Provider type.  The two adapters may share credentials and
+/// a transport, but their wire modes are explicit and cannot be silently substituted.
+#[derive(Clone)]
+pub struct RoutedProviderResponsesExecutor {
+    non_streaming: Arc<dyn InferenceAdapter>,
+    streaming: Arc<dyn InferenceAdapter>,
+}
+
+impl RoutedProviderResponsesExecutor {
+    /// Creates an executor from explicit non-streaming and streaming Provider adapters.
+    #[must_use]
+    pub fn new(
+        non_streaming: Arc<dyn InferenceAdapter>,
+        streaming: Arc<dyn InferenceAdapter>,
+    ) -> Self {
+        Self {
+            non_streaming,
+            streaming,
+        }
+    }
+
+    fn provider_for_mode(&self, mode: ResponsesResponseMode) -> Arc<dyn InferenceAdapter> {
+        match mode {
+            ResponsesResponseMode::NonStreaming => Arc::clone(&self.non_streaming),
+            ResponsesResponseMode::Streaming => Arc::clone(&self.streaming),
+        }
+    }
+}
+
+impl fmt::Debug for RoutedProviderResponsesExecutor {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("RoutedProviderResponsesExecutor")
+            .field("non_streaming", &"<injected>")
+            .field("streaming", &"<injected>")
+            .finish()
+    }
+}
+
+impl ResponsesExecutor for RoutedProviderResponsesExecutor {
+    fn execute(
+        &self,
+        context: RequestContext,
+        request: CanonicalRequest,
+    ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
+        let provider = Arc::clone(&self.non_streaming);
+        Box::pin(async move {
+            let source = provider.execute(context, request).await?;
+            Ok(Box::new(ProviderResponsesEventSource { source }) as Box<dyn ResponsesEventSource>)
+        })
+    }
+
+    fn execute_routed(
+        &self,
+        execution: ResponsesExecution,
+    ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
+        let provider = self.provider_for_mode(execution.mode());
+        let (context, request) = execution.into_legacy_parts();
+        Box::pin(async move {
+            let source = provider.execute(context, request).await?;
+            Ok(Box::new(ProviderResponsesEventSource { source }) as Box<dyn ResponsesEventSource>)
+        })
+    }
 }
 
 impl DeterministicMockResponsesExecutor {

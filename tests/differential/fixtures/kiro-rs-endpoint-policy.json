@@ -1,0 +1,9 @@
+{
+  "fixture_version": 1,
+  "id": "kiro-rs-endpoint-policy",
+  "reference": "kiro-rs-c49c75e",
+  "subject": "endpoint-policy",
+  "reference_projection": ["cli-ide-endpoint-policy"],
+  "gateway_projection": ["cli-ide-endpoint-policy"],
+  "classification": "compatible"
+}

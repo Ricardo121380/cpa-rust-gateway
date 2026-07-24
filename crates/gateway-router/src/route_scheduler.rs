@@ -299,6 +299,7 @@ mod tests {
             id: RouteCandidateId::try_new(id)?,
             endpoint_id: EndpointId::try_new(format!("endpoint-{id}"))?,
             upstream_id: UpstreamId::try_new(format!("upstream-{id}"))?,
+            endpoint_api_format: "openai/responses".to_owned(),
             upstream_model: "upstream-model".to_owned(),
             transform_mode: SnapshotTransformMode::Canonical,
             priority,

@@ -399,6 +399,7 @@ mod tests {
             id: ConfigVersionId::try_new("version-a")?,
             parent_id: None,
             status: ConfigVersionStatus::Draft,
+            revision: 0,
             created_at_ms: 0,
             description: "P3-04 Credential pool fixture".to_owned(),
         };

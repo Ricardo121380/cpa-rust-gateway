@@ -569,6 +569,7 @@ fn snapshot_route_candidate(candidate: &CompiledRouteCandidate) -> SnapshotRoute
         id: candidate.id().clone(),
         endpoint_id: candidate.endpoint_id().clone(),
         upstream_id: candidate.upstream_id().clone(),
+        endpoint_api_format: candidate.endpoint_api_format().to_owned(),
         upstream_model: candidate.upstream_model().to_owned(),
         transform_mode: snapshot_transform_mode(candidate.transform_mode()),
         priority: candidate.priority(),
@@ -888,6 +889,7 @@ mod tests {
             id: version_id,
             parent_id: None,
             status: ConfigVersionStatus::Draft,
+            revision: 0,
             created_at_ms: 1,
             description: "P2-07 publication fixture".to_owned(),
         });

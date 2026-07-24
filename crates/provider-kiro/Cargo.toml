@@ -8,11 +8,20 @@ authors.workspace = true
 publish.workspace = true
 
 [dependencies]
+gateway-catalog = { path = "../gateway-catalog" }
 gateway-core = { path = "../gateway-core" }
 gateway-provider = { path = "../gateway-provider" }
+gateway-store = { path = "../gateway-store" }
 gateway-stream = { path = "../gateway-stream" }
 gateway-upstream = { path = "../gateway-upstream" }
 protocol-anthropic = { path = "../protocol-anthropic" }
+serde.workspace = true
+serde_json.workspace = true
+url.workspace = true
+zeroize.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
 
 [lints]
 workspace = true

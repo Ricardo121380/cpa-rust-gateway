@@ -6,6 +6,17 @@
 
 #![deny(unsafe_code)]
 
+/// Protected P10 encrypted-backup preflight and empty-target restore handlers.
+pub mod management_backup_resources;
+/// Protected P10 Config Version lifecycle and lifecycle-audit handlers.
+pub mod management_lifecycle_resources;
+/// Protected P10 draft-resource handlers for Upstreams, Endpoints, Credentials, and Egress.
+pub mod management_resources;
+/// Independent management HTTP authentication, network, audit-identity, and browser boundary.
+pub mod management_security;
+/// Embedded static management SPA resources, configured separately from public inference routes.
+pub mod management_ui_resources;
+
 use std::{
     collections::VecDeque,
     convert::Infallible,
@@ -33,16 +44,23 @@ use gateway_core::{
     UsageEvent,
 };
 use gateway_router::{
-    ResponsesEventSource, ResponsesExecution, ResponsesExecutor, ResponsesResponseMode,
-    SnapshotAuthenticatedClient, SnapshotClientKeyAuthenticator,
+    CountTokensExecution, CountTokensExecutor, ResponsesEventSource, ResponsesExecution,
+    ResponsesExecutor, ResponsesResponseMode, SnapshotAuthenticatedClient,
+    SnapshotClientKeyAuthenticator, UnsupportedCountTokensExecutor,
 };
 use gateway_stream::{
     CanonicalEventSender, CanonicalEventStream, FirstSemanticEventTracker, StreamCancellation,
     StreamCapacity, StreamCapacityError, bounded_canonical_stream,
 };
+use protocol_anthropic::{
+    AnthropicMessagesSseEncoder, AnthropicResponseMetadata, ResponseMode as AnthropicResponseMode,
+    SseFrame as AnthropicSseFrame, decode_count_tokens_request,
+    decode_request as decode_anthropic_request, encode_count_tokens,
+    encode_error as encode_anthropic_error, encode_response as encode_anthropic_response,
+};
 use protocol_openai_responses::{
-    OpenAiResponseMetadata, OpenAiResponsesSseEncoder, ResponseMode, SseFrame, decode_request,
-    encode_error, encode_model_list, encode_response,
+    OpenAiResponseMetadata, OpenAiResponsesSseEncoder, ResponseMode, SseFrame as OpenAiSseFrame,
+    decode_request, encode_error, encode_model_list, encode_response,
 };
 
 /// Stable component identifier used by architecture smoke tests.
@@ -121,6 +139,7 @@ impl ResponsesMetadataFactory for SystemResponsesMetadataFactory {
 #[derive(Clone)]
 pub struct ResponsesHttpState {
     executor: Arc<dyn ResponsesExecutor>,
+    count_tokens_executor: Arc<dyn CountTokensExecutor>,
     authenticator: ResponsesAuthenticator,
     metadata_factory: Arc<dyn ResponsesMetadataFactory>,
     stream_capacity: StreamCapacity,
@@ -216,6 +235,7 @@ impl ResponsesHttpState {
     ) -> Self {
         Self {
             executor,
+            count_tokens_executor: Arc::new(UnsupportedCountTokensExecutor),
             authenticator: ResponsesAuthenticator::Generic(authenticator),
             metadata_factory,
             stream_capacity,
@@ -251,6 +271,7 @@ impl ResponsesHttpState {
     ) -> Self {
         Self {
             executor,
+            count_tokens_executor: Arc::new(UnsupportedCountTokensExecutor),
             authenticator: ResponsesAuthenticator::Snapshot(authenticator),
             metadata_factory,
             stream_capacity,
@@ -272,6 +293,19 @@ impl ResponsesHttpState {
             stream_capacity,
         )
     }
+
+    /// Replaces the default explicit rejection with a route-aware exact token-count executor.
+    ///
+    /// The supplied executor must return an exact value or the stable unsupported-capability error;
+    /// this state offers no local estimation fallback.
+    #[must_use]
+    pub fn with_count_tokens_executor(
+        mut self,
+        count_tokens_executor: Arc<dyn CountTokensExecutor>,
+    ) -> Self {
+        self.count_tokens_executor = count_tokens_executor;
+        self
+    }
 }
 
 /// Creates a validated P1 default bounded-stream capacity.
@@ -283,12 +317,24 @@ pub fn default_stream_capacity() -> Result<StreamCapacity, StreamCapacityError> 
     StreamCapacity::try_new(DEFAULT_STREAM_CAPACITY)
 }
 
-/// Registers the health, public Models, and `OpenAI` Responses routes on an Actix application.
+/// Registers the loopback readiness, health, public Models, `OpenAI` Responses, and Anthropic
+/// Messages routes on an Actix application.
 pub fn configure(config: &mut web::ServiceConfig) {
     config
+        // Claude Code probes the configured Anthropic base URL with `HEAD /` before its first
+        // Messages request. This says only that the local HTTP boundary is reachable; it reveals
+        // no route, model, or authentication state.
+        .route("/", web::head().to(base_url_probe))
         .route("/healthz", web::get().to(healthz))
         .route("/v1/models", web::get().to(models))
-        .route("/v1/responses", web::post().to(responses));
+        .route("/v1/responses", web::post().to(responses))
+        .route("/v1/messages", web::post().to(messages))
+        .route("/v1/messages/count_tokens", web::post().to(count_tokens))
+        .configure(management_resources::configure_management_resources);
+}
+
+async fn base_url_probe() -> HttpResponse {
+    HttpResponse::Ok().finish()
 }
 
 async fn healthz() -> HttpResponse {
@@ -298,7 +344,8 @@ async fn healthz() -> HttpResponse {
 }
 
 async fn models(request: HttpRequest, state: web::Data<ResponsesHttpState>) -> HttpResponse {
-    let authenticated_client = match authenticate_bearer_request(&request, &state.authenticator) {
+    let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
+    {
         Ok(AuthenticatedResponsesClient::Snapshot(authenticated_client)) => authenticated_client,
         Ok(AuthenticatedResponsesClient::Generic(_)) => return pre_header_error(&route_not_found()),
         Err(error) => return pre_header_error(&error),
@@ -322,7 +369,8 @@ async fn responses(
     state: web::Data<ResponsesHttpState>,
     body: web::Bytes,
 ) -> HttpResponse {
-    let authenticated_client = match authenticate_bearer_request(&request, &state.authenticator) {
+    let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
+    {
         Ok(authenticated_client) => authenticated_client,
         Err(error) => return pre_header_error(&error),
     };
@@ -334,20 +382,11 @@ async fn responses(
         Err(error) => return pre_header_error(&error),
     };
     let requested_model = decoded.request.requested_model.clone();
-    let (public_model, route_alias, route_id) = match &authenticated_client {
-        AuthenticatedResponsesClient::Generic(_) => (requested_model.clone(), None, None),
-        AuthenticatedResponsesClient::Snapshot(authenticated_client) => {
-            let Some(public_model) =
-                authenticated_client.resolve_public_model(&decoded.request.requested_model)
-            else {
-                return pre_header_error(&route_not_found());
-            };
-            let route_id = public_model.route_id().clone();
-            let public_model = public_model.model_name().to_owned();
-            let route_alias = (requested_model != public_model).then(|| requested_model.clone());
-            (public_model, route_alias, Some(route_id))
-        }
-    };
+    let (public_model, route_alias, route_id) =
+        match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
+            Ok(resolved) => resolved,
+            Err(error) => return pre_header_error(&error),
+        };
     let context = match state.metadata_factory.request_context() {
         Ok(context) => context,
         Err(error) => return pre_header_error(&error),
@@ -404,6 +443,157 @@ async fn responses(
     }
 }
 
+async fn messages(
+    request: HttpRequest,
+    state: web::Data<ResponsesHttpState>,
+    body: web::Bytes,
+) -> HttpResponse {
+    let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
+    {
+        Ok(authenticated_client) => authenticated_client,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let Ok(body) = std::str::from_utf8(&body) else {
+        return pre_header_anthropic_error(&client_request_error());
+    };
+    let decoded = match decode_anthropic_request(body) {
+        Ok(decoded) => decoded,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let requested_model = decoded.request.requested_model.clone();
+    let (public_model, route_alias, route_id) =
+        match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
+            Ok(resolved) => resolved,
+            Err(error) => return pre_header_anthropic_error(&error),
+        };
+    let context = match state.metadata_factory.request_context() {
+        Ok(context) => context,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let request_id = context.request_id().clone();
+    let (client_key_id, access_group_id) = authenticated_client.event_identity();
+    let _request_event = state
+        .event_sink
+        .try_emit(GatewayEvent::Request(RequestEvent::new(
+            request_id.clone(),
+            client_key_id,
+            access_group_id,
+            GatewayProtocol::AnthropicMessages,
+            requested_model,
+            public_model.clone(),
+            route_alias,
+            decoded.mode == AnthropicResponseMode::Streaming,
+        )));
+    let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
+    let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
+    let response_mode = match decoded.mode {
+        AnthropicResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
+        AnthropicResponseMode::Streaming => ResponsesResponseMode::Streaming,
+    };
+    let execution = ResponsesExecution::new(
+        context,
+        decoded.request,
+        route_id,
+        response_mode,
+        retry_gate,
+    );
+    let mut source = match state.executor.execute_routed(execution).await {
+        Ok(source) => source,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let first = match source.next_event().await {
+        Ok(Some(event @ CanonicalEvent::ResponseStart(_))) => event,
+        Ok(Some(_) | None) => return pre_header_anthropic_error(&stream_protocol_error()),
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let metadata = match AnthropicResponseMetadata::try_new(public_model) {
+        Ok(metadata) => metadata,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let usage_observer = UsageEventObserver::new(request_id, Arc::clone(&state.event_sink));
+
+    match decoded.mode {
+        AnthropicResponseMode::NonStreaming => {
+            anthropic_non_streaming_response(
+                source,
+                first,
+                metadata,
+                usage_observer,
+                sender,
+                stream,
+            )
+            .await
+        }
+        AnthropicResponseMode::Streaming => {
+            anthropic_streaming_response(source, first, metadata, usage_observer, sender, stream)
+                .await
+        }
+    }
+}
+
+async fn count_tokens(
+    request: HttpRequest,
+    state: web::Data<ResponsesHttpState>,
+    body: web::Bytes,
+) -> HttpResponse {
+    let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
+    {
+        Ok(authenticated_client) => authenticated_client,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let Ok(body) = std::str::from_utf8(&body) else {
+        return pre_header_anthropic_error(&client_request_error());
+    };
+    let decoded = match decode_count_tokens_request(body) {
+        Ok(decoded) => decoded,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let (_public_model, _route_alias, route_id) =
+        match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
+            Ok(resolved) => resolved,
+            Err(error) => return pre_header_anthropic_error(&error),
+        };
+    let context = match state.metadata_factory.request_context() {
+        Ok(context) => context,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let execution = CountTokensExecution::new(context, decoded.request, route_id);
+    let count = match state.count_tokens_executor.count_tokens(execution).await {
+        Ok(count) => count,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+
+    // Model resolution happens before capability execution so a Snapshot executor receives the
+    // approved route identity. The canonical request deliberately retains the client alias for
+    // Provider encoding and observability; the route identity proves resolved routing.
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .body(encode_count_tokens(count).to_string())
+}
+
+fn resolve_public_model(
+    authenticated_client: &AuthenticatedResponsesClient,
+    requested_model: &str,
+) -> Result<(String, Option<String>, Option<gateway_core::RouteId>), GatewayError> {
+    match authenticated_client {
+        AuthenticatedResponsesClient::Generic(_) => Ok((requested_model.to_owned(), None, None)),
+        AuthenticatedResponsesClient::Snapshot(authenticated_client) => {
+            let Some(public_model) = authenticated_client.resolve_public_model(requested_model)
+            else {
+                return Err(route_not_found());
+            };
+            let public_model_name = public_model.model_name().to_owned();
+            let route_alias =
+                (requested_model != public_model_name).then(|| requested_model.to_owned());
+            Ok((
+                public_model_name,
+                route_alias,
+                Some(public_model.route_id().clone()),
+            ))
+        }
+    }
+}
+
 async fn non_streaming_response(
     source: Box<dyn ResponsesEventSource>,
     first: CanonicalEvent,
@@ -440,6 +630,42 @@ async fn non_streaming_response(
     }
 }
 
+async fn anthropic_non_streaming_response(
+    source: Box<dyn ResponsesEventSource>,
+    first: CanonicalEvent,
+    metadata: AnthropicResponseMetadata,
+    usage_observer: UsageEventObserver,
+    sender: CanonicalEventSender,
+    stream: CanonicalEventStream,
+) -> HttpResponse {
+    let mut stream =
+        match start_bounded_transport(source, first, sender, stream, usage_observer).await {
+            Ok(stream) => stream,
+            Err(error) => return pre_header_anthropic_error(&error),
+        };
+    let tracker = stream.control().first_semantic_event_tracker();
+    let response = match collect_completed_response(&mut stream).await {
+        Ok(response) => response,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let Some(delivery_event) = response.events().first().cloned() else {
+        return pre_header_anthropic_error(&internal_error());
+    };
+    let body = match encode_anthropic_response(&response, metadata) {
+        Ok(body) => body,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let body = JsonDeliveryBody::new(web::Bytes::from(body.to_string()), tracker, delivery_event);
+
+    match HttpResponse::Ok()
+        .content_type("application/json")
+        .message_body(body)
+    {
+        Ok(response) => response.map_into_boxed_body(),
+        Err(_) => pre_header_anthropic_error(&internal_error()),
+    }
+}
+
 async fn streaming_response(
     source: Box<dyn ResponsesEventSource>,
     first: CanonicalEvent,
@@ -461,7 +687,7 @@ async fn streaming_response(
         Err(error) => return pre_header_error(&error),
     };
     let tracker = stream.control().first_semantic_event_tracker();
-    let body = ResponsesSseBody::new(stream, metadata, tracker);
+    let body = ProtocolSseBody::new(stream, OpenAiResponsesSseEncoder::new(metadata), tracker);
 
     match HttpResponse::Ok()
         .insert_header((header::CACHE_CONTROL, "no-cache"))
@@ -470,6 +696,39 @@ async fn streaming_response(
     {
         Ok(response) => response.map_into_boxed_body(),
         Err(_) => pre_header_error(&internal_error()),
+    }
+}
+
+async fn anthropic_streaming_response(
+    source: Box<dyn ResponsesEventSource>,
+    first: CanonicalEvent,
+    metadata: AnthropicResponseMetadata,
+    usage_observer: UsageEventObserver,
+    sender: CanonicalEventSender,
+    stream: CanonicalEventStream,
+) -> HttpResponse {
+    // Mirror the Responses boundary: no success header is committed before the first canonical
+    // event is proven encodable by the protocol-specific SSE encoder.
+    let mut initial_encoder = AnthropicMessagesSseEncoder::new(metadata.clone());
+    if let Err(error) = initial_encoder.encode_event(&first) {
+        return pre_header_anthropic_error(&error);
+    }
+
+    let stream = match start_bounded_transport(source, first, sender, stream, usage_observer).await
+    {
+        Ok(stream) => stream,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let tracker = stream.control().first_semantic_event_tracker();
+    let body = ProtocolSseBody::new(stream, AnthropicMessagesSseEncoder::new(metadata), tracker);
+
+    match HttpResponse::Ok()
+        .insert_header((header::CACHE_CONTROL, "no-cache"))
+        .content_type("text/event-stream")
+        .message_body(body)
+    {
+        Ok(response) => response.map_into_boxed_body(),
+        Err(_) => pre_header_anthropic_error(&internal_error()),
     }
 }
 
@@ -613,39 +872,94 @@ struct PendingSseChunk {
     delivery_event: Option<CanonicalEvent>,
 }
 
-struct SseEncodingState {
+trait EncodedSseFrame {
+    fn is_semantic(&self) -> bool;
+
+    fn to_wire(&self) -> Result<String, GatewayError>;
+}
+
+impl EncodedSseFrame for OpenAiSseFrame {
+    fn is_semantic(&self) -> bool {
+        self.is_semantic()
+    }
+
+    fn to_wire(&self) -> Result<String, GatewayError> {
+        self.to_wire()
+    }
+}
+
+impl EncodedSseFrame for AnthropicSseFrame {
+    fn is_semantic(&self) -> bool {
+        self.is_semantic()
+    }
+
+    fn to_wire(&self) -> Result<String, GatewayError> {
+        self.to_wire()
+    }
+}
+
+trait CanonicalSseEncoder {
+    type Frame: EncodedSseFrame;
+
+    fn encode_event(&mut self, event: &CanonicalEvent) -> Result<Vec<Self::Frame>, GatewayError>;
+}
+
+impl CanonicalSseEncoder for OpenAiResponsesSseEncoder {
+    type Frame = OpenAiSseFrame;
+
+    fn encode_event(&mut self, event: &CanonicalEvent) -> Result<Vec<Self::Frame>, GatewayError> {
+        OpenAiResponsesSseEncoder::encode_event(self, event)
+    }
+}
+
+impl CanonicalSseEncoder for AnthropicMessagesSseEncoder {
+    type Frame = AnthropicSseFrame;
+
+    fn encode_event(&mut self, event: &CanonicalEvent) -> Result<Vec<Self::Frame>, GatewayError> {
+        AnthropicMessagesSseEncoder::encode_event(self, event)
+    }
+}
+
+struct SseEncodingState<E> {
     stream: CanonicalEventStream,
-    encoder: OpenAiResponsesSseEncoder,
+    encoder: E,
     pending: VecDeque<PendingSseChunk>,
     finished: bool,
 }
 
 /// A streaming HTTP body that commits `FirstSemanticEvent` only when it gives Actix a semantic
 /// bytes chunk, not when the chunk is queued, received, or encoded.
-struct ResponsesSseBody {
+struct ProtocolSseBody<E> {
     chunks: Pin<Box<dyn Stream<Item = PendingSseChunk>>>,
     tracker: FirstSemanticEventTracker,
+    _encoder: std::marker::PhantomData<E>,
 }
 
-impl ResponsesSseBody {
-    fn new(
-        stream: CanonicalEventStream,
-        metadata: OpenAiResponseMetadata,
-        tracker: FirstSemanticEventTracker,
-    ) -> Self {
+impl<E> ProtocolSseBody<E>
+where
+    E: CanonicalSseEncoder + Unpin + 'static,
+{
+    fn new(stream: CanonicalEventStream, encoder: E, tracker: FirstSemanticEventTracker) -> Self {
         let state = SseEncodingState {
             stream,
-            encoder: OpenAiResponsesSseEncoder::new(metadata),
+            encoder,
             pending: VecDeque::new(),
             finished: false,
         };
         let chunks = Box::pin(stream::unfold(state, next_sse_chunk));
 
-        Self { chunks, tracker }
+        Self {
+            chunks,
+            tracker,
+            _encoder: std::marker::PhantomData,
+        }
     }
 }
 
-impl MessageBody for ResponsesSseBody {
+impl<E> MessageBody for ProtocolSseBody<E>
+where
+    E: CanonicalSseEncoder + Unpin + 'static,
+{
     type Error = Infallible;
 
     fn size(&self) -> BodySize {
@@ -670,9 +984,12 @@ impl MessageBody for ResponsesSseBody {
     }
 }
 
-async fn next_sse_chunk(
-    mut state: SseEncodingState,
-) -> Option<(PendingSseChunk, SseEncodingState)> {
+async fn next_sse_chunk<E>(
+    mut state: SseEncodingState<E>,
+) -> Option<(PendingSseChunk, SseEncodingState<E>)>
+where
+    E: CanonicalSseEncoder,
+{
     loop {
         if let Some(chunk) = state.pending.pop_front() {
             return Some((chunk, state));
@@ -712,11 +1029,14 @@ async fn next_sse_chunk(
     }
 }
 
-fn queue_sse_frames(
-    state: &mut SseEncodingState,
+fn queue_sse_frames<E>(
+    state: &mut SseEncodingState<E>,
     event: &CanonicalEvent,
-    frames: Vec<SseFrame>,
-) -> Result<(), GatewayError> {
+    frames: Vec<E::Frame>,
+) -> Result<(), GatewayError>
+where
+    E: CanonicalSseEncoder,
+{
     let mut delivery_event = Some(event.clone());
     let chunks = frames
         .into_iter()
@@ -737,7 +1057,10 @@ fn queue_sse_frames(
     Ok(())
 }
 
-fn terminate_sse_with_failure(state: &mut SseEncodingState, error: GatewayError) {
+fn terminate_sse_with_failure<E>(state: &mut SseEncodingState<E>, error: GatewayError)
+where
+    E: CanonicalSseEncoder,
+{
     let failure = CanonicalEvent::StreamError(StreamError { error });
     if let Ok(frames) = state.encoder.encode_event(&failure) {
         let _queue_result = queue_sse_frames(state, &failure, frames);
@@ -801,26 +1124,60 @@ fn pre_header_error(error: &GatewayError) -> HttpResponse {
         .body(encode_error(error).to_string())
 }
 
-fn authenticate_bearer_request(
+fn pre_header_anthropic_error(error: &GatewayError) -> HttpResponse {
+    let mut response = HttpResponse::build(error_status(error));
+    if error.code() == GatewayErrorCode::ClientUnauthorized {
+        response.insert_header((header::WWW_AUTHENTICATE, "Bearer"));
+    }
+    response
+        .content_type("application/json")
+        .body(encode_anthropic_error(error).to_string())
+}
+
+fn authenticate_client_key_request(
     request: &HttpRequest,
     authenticator: &ResponsesAuthenticator,
 ) -> Result<AuthenticatedResponsesClient, GatewayError> {
-    let presented_key = presented_bearer_key(request)?;
+    let presented_key = presented_client_key(request)?;
     authenticator.authenticate(presented_key)
 }
 
-fn presented_bearer_key(request: &HttpRequest) -> Result<&str, GatewayError> {
-    let mut values = request.headers().get_all(header::AUTHORIZATION);
-    let Some(value) = values.next() else {
-        return Err(client_unauthorized_error());
-    };
+fn presented_client_key(request: &HttpRequest) -> Result<&str, GatewayError> {
+    let authorization = single_header(request, header::AUTHORIZATION)?;
+    let api_key = single_header(request, header::HeaderName::from_static("x-api-key"))?;
+    match (authorization, api_key) {
+        (Some(authorization), None) => presented_bearer_value(authorization),
+        (None, Some(api_key)) => presented_x_api_key_value(api_key),
+        (None, None) | (Some(_), Some(_)) => Err(client_unauthorized_error()),
+    }
+}
+
+fn single_header(
+    request: &HttpRequest,
+    name: header::HeaderName,
+) -> Result<Option<&header::HeaderValue>, GatewayError> {
+    let mut values = request.headers().get_all(name);
+    let value = values.next();
     if values.next().is_some() {
         return Err(client_unauthorized_error());
     }
+    Ok(value)
+}
+
+fn presented_bearer_value(value: &header::HeaderValue) -> Result<&str, GatewayError> {
     let value = value.to_str().map_err(|_| client_unauthorized_error())?;
     let Some(presented_key) = value.strip_prefix("Bearer ") else {
         return Err(client_unauthorized_error());
     };
+    valid_presented_key(presented_key)
+}
+
+fn presented_x_api_key_value(value: &header::HeaderValue) -> Result<&str, GatewayError> {
+    let presented_key = value.to_str().map_err(|_| client_unauthorized_error())?;
+    valid_presented_key(presented_key)
+}
+
+fn valid_presented_key(presented_key: &str) -> Result<&str, GatewayError> {
     if presented_key.is_empty() || presented_key.bytes().any(|byte| byte.is_ascii_whitespace()) {
         return Err(client_unauthorized_error());
     }
@@ -831,6 +1188,7 @@ fn presented_bearer_key(request: &HttpRequest) -> Result<&str, GatewayError> {
 const fn error_status(error: &GatewayError) -> StatusCode {
     match error.code() {
         GatewayErrorCode::ClientRequestError => StatusCode::BAD_REQUEST,
+        GatewayErrorCode::TokenCountUnsupported => StatusCode::UNPROCESSABLE_ENTITY,
         GatewayErrorCode::ClientUnauthorized => StatusCode::UNAUTHORIZED,
         GatewayErrorCode::RouteNotFound => StatusCode::NOT_FOUND,
         GatewayErrorCode::ProviderRateLimited | GatewayErrorCode::CredentialQuotaExceeded => {
@@ -878,7 +1236,7 @@ mod tests {
         error::Error,
         future::poll_fn,
         sync::{
-            Arc,
+            Arc, Mutex,
             atomic::{AtomicBool, AtomicUsize, Ordering},
         },
         time::Duration,
@@ -895,23 +1253,24 @@ mod tests {
         client_key::{ClientKeyPepper, ClientKeyService},
     };
     use gateway_core::{
-        AccessGroupId, CanonicalEvent, ClientKeyId, EndpointId, ErrorScope, GatewayError,
-        GatewayErrorCode, GatewayEvent, GatewayEventSink, MessageEnd, MessageRole, MessageStart,
-        PublicModelId, RawExtensions, RawJson, RequestContext, RequestId, ResponseEnd, ResponseId,
-        ResponseStart, RouteCandidateId, RouteId, StreamError, TextDelta, UpstreamId, Usage,
-        UsageDelta,
+        AccessGroupId, CanonicalEvent, ClientKeyId, EndpointId, ErrorScope, ExactInputTokenCount,
+        GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, GatewayProtocol,
+        MessageEnd, MessageRole, MessageStart, PublicModelId, RawExtensions, RawJson,
+        ReasoningDelta, RequestContext, RequestId, ResponseEnd, ResponseId, ResponseStart,
+        RouteCandidateId, RouteId, StreamError, TextDelta, UpstreamId, Usage, UsageDelta,
     };
     use gateway_observability::{BoundedEventQueue, EventQueueConfig};
     use gateway_router::{
-        CapabilitySet, DeterministicMockEmission, DeterministicMockResponsesExecutor,
-        ResponsesEventSource, ResponsesExecutor, ResponsesFuture, RouteSnapshot,
-        RouteSnapshotInput, RouteSnapshotRegistry, SnapshotAccessGroup, SnapshotCatalogAdmission,
+        CapabilitySet, CountTokensExecution, CountTokensExecutor, CountTokensFuture,
+        DeterministicMockEmission, DeterministicMockResponsesExecutor, ResponsesEventSource,
+        ResponsesExecutor, ResponsesFuture, RouteSnapshot, RouteSnapshotInput,
+        RouteSnapshotRegistry, SnapshotAccessGroup, SnapshotCatalogAdmission,
         SnapshotClientKeyAuthenticator, SnapshotClientKeyView, SnapshotPublicModel, SnapshotRoute,
         SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
         SnapshotTransformMode, SnapshotVersion,
     };
     use gateway_stream::{FirstSemanticEventTracker, StreamCapacity, bounded_canonical_stream};
-    use protocol_openai_responses::OpenAiResponseMetadata;
+    use protocol_openai_responses::{OpenAiResponseMetadata, OpenAiResponsesSseEncoder};
 
     use super::{
         JsonDeliveryBody, ResponsesHttpState, ResponsesMetadataFactory, client_request_error,
@@ -981,6 +1340,48 @@ mod tests {
             }),
         );
         Ok(events)
+    }
+
+    fn anthropic_events() -> Result<Vec<CanonicalEvent>, Box<dyn Error>> {
+        Ok(vec![
+            response_start()?,
+            CanonicalEvent::UsageDelta(UsageDelta {
+                usage: Usage {
+                    input_tokens: Some(3),
+                    cache_read_tokens: Some(2),
+                    cache_creation_tokens: Some(1),
+                    ..Usage::default()
+                },
+                is_final: false,
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::MessageStart(MessageStart {
+                role: MessageRole("assistant".to_owned()),
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::ReasoningDelta(ReasoningDelta {
+                text: "deterministic thinking".to_owned(),
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::TextDelta(TextDelta {
+                text: "deterministic hello".to_owned(),
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::MessageEnd(MessageEnd::default()),
+            CanonicalEvent::UsageDelta(UsageDelta {
+                usage: Usage {
+                    output_tokens: Some(5),
+                    ..Usage::default()
+                },
+                is_final: true,
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::ResponseEnd(ResponseEnd {
+                stop_reason: Some("max_tokens".to_owned()),
+                stop_sequence: Some("test-stop-sequence".to_owned()),
+                extensions: RawExtensions::default(),
+            }),
+        ])
     }
 
     fn test_authenticator() -> Result<Arc<dyn ClientKeyAuthenticator>, Box<dyn Error>> {
@@ -1111,6 +1512,7 @@ mod tests {
             id: RouteCandidateId::try_new("http-snapshot-candidate")?,
             endpoint_id: EndpointId::try_new("http-snapshot-endpoint")?,
             upstream_id: UpstreamId::try_new("http-snapshot-upstream")?,
+            endpoint_api_format: "openai/responses".to_owned(),
             upstream_model: "sensitive-upstream-model".to_owned(),
             transform_mode: SnapshotTransformMode::Canonical,
             priority: 0,
@@ -1181,7 +1583,30 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn responses_rejects_invalid_bearer_inputs_before_decode_or_provider_execution()
+    async fn base_url_head_probe_is_public_and_empty() -> TestResult {
+        let state = mock_state(text_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+
+        let response = test::call_service(
+            &app,
+            test::TestRequest::default()
+                .method(actix_web::http::Method::HEAD)
+                .uri("/")
+                .to_request(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(test::read_body(response).await.is_empty());
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn responses_rejects_ambiguous_or_invalid_client_key_inputs_before_decode_or_provider_execution()
     -> TestResult {
         let calls = Arc::new(AtomicUsize::new(0));
         let state = ResponsesHttpState::with_metadata(
@@ -1224,6 +1649,23 @@ mod tests {
                 .insert_header((header::AUTHORIZATION, "Bearer p1-disabled-client-key"))
                 .set_payload("not-json")
                 .to_request(),
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .append_header(("x-api-key", TEST_CLIENT_KEY))
+                .append_header(("x-api-key", "another-test-key"))
+                .set_payload("not-json")
+                .to_request(),
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .insert_header((header::AUTHORIZATION, format!("Bearer {TEST_CLIENT_KEY}")))
+                .insert_header(("x-api-key", TEST_CLIENT_KEY))
+                .set_payload("not-json")
+                .to_request(),
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .insert_header(("x-api-key", "unknown-test-key"))
+                .set_payload("not-json")
+                .to_request(),
         ];
 
         let mut expected_envelope = None;
@@ -1248,6 +1690,31 @@ mod tests {
         }
 
         assert_eq!(calls.load(Ordering::Acquire), 0);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn messages_accepts_anthropic_x_api_key_without_bearer() -> TestResult {
+        let state = mock_state(anthropic_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = test::TestRequest::post()
+            .uri("/v1/messages")
+            .insert_header(("x-api-key", TEST_CLIENT_KEY))
+            .set_payload(r#"{"model":"mock-model","max_tokens":1,"messages":[{"role":"user","content":"hello"}]}"#)
+            .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: serde_json::Value = serde_json::from_slice(&test::read_body(response).await)?;
+        assert_eq!(
+            body.pointer("/content/1/text"),
+            Some(&serde_json::json!("deterministic hello"))
+        );
         Ok(())
     }
 
@@ -1281,6 +1748,150 @@ mod tests {
         assert!(body.contains(r#""status":"completed""#));
         assert!(body.contains(r#""text":"deterministic hello""#));
         assert!(body.contains(r#""created_at":1"#));
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn non_streaming_messages_preserves_thinking_cache_usage_and_explicit_stop_semantics()
+    -> TestResult {
+        let state = mock_state(anthropic_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = authorized(test::TestRequest::post().uri("/v1/messages").set_payload(
+            r#"{
+                    "model":"mock-model",
+                    "max_tokens":1,
+                    "thinking":{"type":"enabled","budget_tokens":1},
+                    "system":[{"type":"text","text":"system","cache_control":{"type":"ephemeral"}}],
+                    "messages":[{"role":"user","content":"hello"}]
+                }"#,
+        ))
+        .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response
+                .headers()
+                .get("content-type")
+                .and_then(|value| value.to_str().ok()),
+            Some("application/json")
+        );
+        let body: serde_json::Value = serde_json::from_slice(&test::read_body(response).await)?;
+        assert_eq!(
+            body.pointer("/model"),
+            Some(&serde_json::json!("mock-model"))
+        );
+        assert_eq!(
+            body.pointer("/content/0/type"),
+            Some(&serde_json::json!("thinking"))
+        );
+        assert_eq!(
+            body.pointer("/content/0/thinking"),
+            Some(&serde_json::json!("deterministic thinking"))
+        );
+        assert_eq!(
+            body.pointer("/content/1/text"),
+            Some(&serde_json::json!("deterministic hello"))
+        );
+        assert_eq!(
+            body.pointer("/stop_reason"),
+            Some(&serde_json::json!("max_tokens"))
+        );
+        assert_eq!(
+            body.pointer("/stop_sequence"),
+            Some(&serde_json::json!("test-stop-sequence"))
+        );
+        assert_eq!(
+            body.pointer("/usage/cache_read_input_tokens"),
+            Some(&serde_json::json!(2))
+        );
+        assert_eq!(
+            body.pointer("/usage/cache_creation_input_tokens"),
+            Some(&serde_json::json!(1))
+        );
+        assert_eq!(
+            body.pointer("/usage/output_tokens"),
+            Some(&serde_json::json!(5))
+        );
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn streaming_messages_emits_anthropic_thinking_cache_and_explicit_stop_frames()
+    -> TestResult {
+        let state = mock_state(anthropic_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = authorized(
+            test::TestRequest::post().uri("/v1/messages").set_payload(
+                r#"{"model":"mock-model","max_tokens":1,"messages":[{"role":"user","content":"hello"}],"stream":true}"#,
+            ),
+        )
+        .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response
+                .headers()
+                .get("content-type")
+                .and_then(|value| value.to_str().ok()),
+            Some("text/event-stream")
+        );
+        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+        assert!(body.contains("event: message_start"));
+        assert!(body.contains(r#""cache_read_input_tokens":2"#));
+        assert!(body.contains(r#""type":"thinking""#));
+        assert!(body.contains(r#""type":"thinking_delta""#));
+        assert!(body.contains(r#""stop_reason":"max_tokens""#));
+        assert!(body.contains(r#""stop_sequence":"test-stop-sequence""#));
+        assert!(body.contains("event: message_stop"));
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn snapshot_messages_force_map_alias_and_emit_anthropic_request_protocol() -> TestResult {
+        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(2, 1)?)?;
+        let event_sink: Arc<dyn GatewayEventSink> = Arc::new(queue);
+        let (state, presented_key) =
+            snapshot_auth_state_with_event_sink(anthropic_events()?, event_sink)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = test::TestRequest::post()
+            .uri("/v1/messages")
+            .insert_header((header::AUTHORIZATION, format!("Bearer {presented_key}")))
+            .set_payload(format!(
+                r#"{{"model":"{SNAPSHOT_MODEL_ALIAS}","max_tokens":1,"messages":[{{"role":"user","content":"hello"}}]}}"#
+            ))
+            .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+        assert!(body.contains(r#""model":"public-model""#));
+        assert!(!body.contains(SNAPSHOT_MODEL_ALIAS));
+        assert!(!body.contains("sensitive-upstream-model"));
+
+        let Some(GatewayEvent::Request(event)) = receiver.try_recv() else {
+            return Err("expected Anthropic Request event".into());
+        };
+        assert_eq!(event.protocol(), GatewayProtocol::AnthropicMessages);
+        assert_eq!(event.requested_model(), SNAPSHOT_MODEL_ALIAS);
+        assert_eq!(event.public_model(), SNAPSHOT_PUBLIC_MODEL);
+        assert!(!event.streaming());
         Ok(())
     }
 
@@ -1546,6 +2157,102 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn count_tokens_returns_only_an_exact_value_and_passes_snapshot_route_identity()
+    -> TestResult {
+        let response_calls = Arc::new(AtomicUsize::new(0));
+        let (state, presented_key) =
+            snapshot_auth_state_with_executor(Arc::new(CountingExecutor {
+                calls: response_calls.clone(),
+            }))?;
+        let observed = Arc::new(Mutex::new(Vec::new()));
+        let state = state.with_count_tokens_executor(Arc::new(RecordingExactCounter {
+            observed: observed.clone(),
+        }));
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = test::TestRequest::post()
+            .uri("/v1/messages/count_tokens")
+            .insert_header((header::AUTHORIZATION, format!("Bearer {presented_key}")))
+            .set_payload(format!(
+                r#"{{"model":"{SNAPSHOT_MODEL_ALIAS}","messages":[{{"role":"user","content":"count this"}}]}}"#
+            ))
+            .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response
+                .headers()
+                .get("content-type")
+                .and_then(|value| value.to_str().ok()),
+            Some("application/json")
+        );
+        let body = test::read_body(response).await;
+        assert_eq!(body.as_ref(), br#"{"input_tokens":17}"#);
+        assert_eq!(response_calls.load(Ordering::Acquire), 0);
+        assert_eq!(
+            observed
+                .lock()
+                .map_err(|_| "count-token audit lock poisoned")?
+                .as_slice(),
+            [CountTokensObservation {
+                requested_model: SNAPSHOT_MODEL_ALIAS.to_owned(),
+                route_id: Some("http-snapshot-route".to_owned()),
+            }]
+        );
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn count_tokens_rejects_default_unsupported_capability_without_an_estimate() -> TestResult
+    {
+        let state = mock_state(text_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/messages/count_tokens")
+                .set_payload(
+                    r#"{"model":"mock-model","messages":[{"role":"user","content":"count this"}]}"#,
+                ),
+        )
+        .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(
+            response
+                .headers()
+                .get("content-type")
+                .and_then(|value| value.to_str().ok()),
+            Some("application/json")
+        );
+        let body = test::read_body(response).await;
+        let body: serde_json::Value = serde_json::from_slice(&body)?;
+        assert_eq!(
+            body,
+            serde_json::json!({
+                "type": "error",
+                "error": {
+                    "type": "invalid_request_error",
+                    "message": "the selected route cannot accurately count tokens"
+                }
+            })
+        );
+        assert!(body.get("input_tokens").is_none());
+        assert!(body.pointer("/error/code").is_none());
+        Ok(())
+    }
+
+    #[actix_web::test]
     async fn streaming_responses_emits_openai_sse_through_actix_body() -> TestResult {
         let state = mock_state(text_events()?)?;
         let app = test::init_service(
@@ -1745,9 +2452,9 @@ mod tests {
         let (mut sender, stream) = bounded_canonical_stream(StreamCapacity::try_new(1)?);
         let tracker = stream.control().first_semantic_event_tracker();
         sender.send(response_start()?).await?;
-        let mut body = Box::pin(super::ResponsesSseBody::new(
+        let mut body = Box::pin(super::ProtocolSseBody::new(
             stream,
-            OpenAiResponseMetadata::try_new("mock-model", 1)?,
+            OpenAiResponsesSseEncoder::new(OpenAiResponseMetadata::try_new("mock-model", 1)?),
             tracker.clone(),
         ));
         assert!(!tracker.is_committed());
@@ -1795,6 +2502,43 @@ mod tests {
 
     struct CountingExecutor {
         calls: Arc<AtomicUsize>,
+    }
+
+    #[derive(Debug, Eq, PartialEq)]
+    struct CountTokensObservation {
+        requested_model: String,
+        route_id: Option<String>,
+    }
+
+    struct RecordingExactCounter {
+        observed: Arc<Mutex<Vec<CountTokensObservation>>>,
+    }
+
+    impl CountTokensExecutor for RecordingExactCounter {
+        fn count_tokens(
+            &self,
+            execution: CountTokensExecution,
+        ) -> CountTokensFuture<'_, Result<ExactInputTokenCount, GatewayError>> {
+            let observation = CountTokensObservation {
+                requested_model: execution.request().requested_model.clone(),
+                route_id: execution
+                    .route_id()
+                    .map(|route_id| route_id.as_str().to_owned()),
+            };
+            let result = self.observed.lock().map_or_else(
+                |_| {
+                    Err(GatewayError::new(
+                        GatewayErrorCode::InternalError,
+                        ErrorScope::Internal,
+                    ))
+                },
+                |mut observed| {
+                    observed.push(observation);
+                    Ok(ExactInputTokenCount::new(17))
+                },
+            );
+            Box::pin(async move { result })
+        }
     }
 
     impl ResponsesExecutor for CountingExecutor {

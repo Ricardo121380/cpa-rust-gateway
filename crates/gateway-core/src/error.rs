@@ -32,6 +32,8 @@ pub enum GatewayErrorCode {
     ProviderTransient,
     /// A provider returned a non-retryable failure.
     ProviderPermanent,
+    /// The selected route has no Provider or local capability that can return an exact token count.
+    TokenCountUnsupported,
     /// An upstream response violated its declared protocol.
     UpstreamProtocolError,
     /// A stream ended before its required semantic sequence completed.
@@ -44,7 +46,7 @@ pub enum GatewayErrorCode {
 
 impl GatewayErrorCode {
     /// All frozen gateway error categories in stable snapshot order.
-    pub const ALL: [Self; 16] = [
+    pub const ALL: [Self; 17] = [
         Self::ClientRequestError,
         Self::ClientUnauthorized,
         Self::RouteNotFound,
@@ -57,6 +59,7 @@ impl GatewayErrorCode {
         Self::ProviderRateLimited,
         Self::ProviderTransient,
         Self::ProviderPermanent,
+        Self::TokenCountUnsupported,
         Self::UpstreamProtocolError,
         Self::StreamTruncated,
         Self::InternalError,
@@ -79,6 +82,7 @@ impl GatewayErrorCode {
             Self::ProviderRateLimited => "ProviderRateLimited",
             Self::ProviderTransient => "ProviderTransient",
             Self::ProviderPermanent => "ProviderPermanent",
+            Self::TokenCountUnsupported => "TokenCountUnsupported",
             Self::UpstreamProtocolError => "UpstreamProtocolError",
             Self::StreamTruncated => "StreamTruncated",
             Self::InternalError => "InternalError",
@@ -193,6 +197,9 @@ impl GatewayError {
             GatewayErrorCode::ProviderRateLimited => "the provider rate limited the request",
             GatewayErrorCode::ProviderTransient => "the provider failed transiently",
             GatewayErrorCode::ProviderPermanent => "the provider returned a permanent failure",
+            GatewayErrorCode::TokenCountUnsupported => {
+                "the selected route cannot accurately count tokens"
+            }
             GatewayErrorCode::UpstreamProtocolError => "the upstream protocol was invalid",
             GatewayErrorCode::StreamTruncated => "the stream ended before completion",
             GatewayErrorCode::InternalError => "the gateway encountered an internal error",

@@ -1,0 +1,38 @@
+{
+  "id": "resp-grok-build-01",
+  "status": "completed",
+  "output": [
+    {
+      "id": "rsn-grok-build-01",
+      "type": "reasoning",
+      "status": "completed",
+      "content": [
+        {"type": "reasoning_text", "text": "Check weather."}
+      ]
+    },
+    {
+      "id": "msg-grok-build-01",
+      "type": "message",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+        {"type": "output_text", "text": "It is sunny."}
+      ]
+    },
+    {
+      "id": "fc-grok-build-01",
+      "type": "function_call",
+      "call_id": "call-grok-build-01",
+      "name": "lookup_weather",
+      "arguments": "{\"city\":\"Shanghai\"}",
+      "status": "completed"
+    }
+  ],
+  "usage": {
+    "input_tokens": 12,
+    "input_tokens_details": {"cached_tokens": 2},
+    "output_tokens": 8,
+    "output_tokens_details": {"reasoning_tokens": 3},
+    "total_tokens": 20
+  }
+}

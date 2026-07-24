@@ -63,5 +63,47 @@ P4-07 已建立 [BC-OBS-002 Append-only SQLite Request/Attempt/Usage/Health even
 P4-08 已建立 [BC-OBS-003 Single-consumer structured telemetry fan-out](BC-OBS-003-single-consumer-telemetry-fanout.md)。
 P4-09 已建立 [BC-OBS-004 Default-deny log redaction and body sampling](BC-OBS-004-default-deny-log-redaction-and-body-sampling.md)。
 P4-10 已建立 [BC-MGMT-001 Read-only runtime management status and Credential-account recovery](BC-MGMT-001-read-only-runtime-management-status.md)。
+P8-04 已建立 [BC-PROVIDER-015 Grok Official Tool, Reasoning, and Search capability boundary](BC-PROVIDER-015-grok-official-tool-reasoning-capability.md)。
+P8-05 已建立 [BC-PROVIDER-016 Grok Official runtime quota and failure isolation](BC-PROVIDER-016-grok-official-runtime-isolation.md)。
+P8-06 已建立 [BC-PROVIDER-017 Grok Official local differential, concurrent load, and error matrix](BC-PROVIDER-017-grok-official-local-differential-and-error-matrix.md)。
+P8-07 已建立 [BC-E2E-004 Grok Official authorized one-probe](BC-E2E-004-grok-official-authorized-one-probe.md)。
+P9-01 已建立 [BC-CRED-006 Grok Web SSO credential lineage and revisioned lifecycle](BC-CRED-006-grok-web-sso-credential-lineage-lifecycle.md)。
+P9-02 已建立 [BC-PROVIDER-018 Grok Web browser egress-session fingerprint](BC-PROVIDER-018-grok-web-browser-egress-session.md)。
+P9-03 已建立 [BC-PROVIDER-019 Grok Web fixture Chat request and stream](BC-PROVIDER-019-grok-web-fixture-chat-stream.md)。
+P9-04 已建立 [BC-CONT-003 Grok Web Conversation account and egress binding](BC-CONT-003-grok-web-conversation-egress-binding.md)。
+P9-05 已建立 [BC-SEC-003 Grok Web Statsig cache and signer SSRF boundary](BC-SEC-003-grok-web-statsig-cache-ssrf-boundary.md)。
+P9-06 已建立 [BC-PROVIDER-020 Grok Web source-labelled quota observations](BC-PROVIDER-020-grok-web-source-labelled-quota.md)。
+P9-07 已建立 [BC-SEC-004 Grok Web 403 egress/account attribution](BC-SEC-004-grok-web-403-egress-account-attribution.md)。
+P9-08 已建立 [BC-PROVIDER-021 Grok Web explicit Tool emulation](BC-PROVIDER-021-grok-web-explicit-tool-emulation.md)。
 P5-00 已建立 [BC-DELIVERY-003 Phase-level delivery and default-ref cache](BC-DELIVERY-003-phase-level-delivery-and-default-ref-cache.md)。
+P5-01 已建立 [BC-PROTOCOL-002 Anthropic Messages adapter](BC-PROTOCOL-002-anthropic-messages-adapter.md)。
+P5-02 已建立 [BC-PROTOCOL-003 Exact token-count capability](BC-PROTOCOL-003-exact-token-count-capability.md)。
+P5-03 已建立 [BC-PROTOCOL-004 Anthropic Tool stream state](BC-PROTOCOL-004-anthropic-tool-stream-state.md)。
+P5-04 已建立 [BC-ROUTER-004 Protocol transform admission](BC-ROUTER-004-protocol-transform-admission.md)。
+P5-05 已建立 [BC-ROUTER-005 Endpoint-format-isolated protocol routing](BC-ROUTER-005-endpoint-format-isolated-protocol-routing.md)。
+P5-06 已建立 [BC-PROTOCOL-005 Anthropic semantic and HTTP boundary](BC-PROTOCOL-005-anthropic-semantic-http-boundary.md)。
+P5-07 已建立 [BC-E2E-003 Claude Code loopback `--bare` compatibility](BC-E2E-003-claude-code-loopback-bare-compatibility.md)。
+P5-08 已建立 [BC-PROTOCOL-006 Anthropic adversarial stream safety](BC-PROTOCOL-006-anthropic-adversarial-stream-safety.md)。
+P6-01 已建立 [BC-CRED-003 Grok Build OAuth credential and Device Code](BC-CRED-003-grok-build-oauth-device-code.md)。
+P6-02 已建立 [BC-CRED-004 Grok Build refresh singleflight and durable revision runtime](BC-CRED-004-grok-build-refresh-runtime.md)。
+P6-03 已建立 [BC-PROVIDER-003 Grok Build Responses request and bounded decode boundary](BC-PROVIDER-003-grok-build-responses-boundary.md)。
+P7-01 已建立 [BC-CRED-005 Kiro credential and refresh runtime](BC-CRED-005-kiro-credential-runtime.md)。
+P7-02 已建立 [BC-PROVIDER-005 Kiro IDE/CLI endpoint policy](BC-PROVIDER-005-kiro-endpoint-policy.md)。
+P7-03 已建立 [BC-PROVIDER-006 Kiro profile ARN lifecycle](BC-PROVIDER-006-kiro-profile-arn-lifecycle.md)。
+P7-04 已建立 [BC-PROVIDER-007 Kiro Canonical conversation request conversion](BC-PROVIDER-007-kiro-canonical-conversation-request.md)。
+P7-05 已建立 [BC-PROVIDER-008 Kiro AWS EventStream framing](BC-PROVIDER-008-kiro-eventstream-framing.md)。
+P7-06 已建立 [BC-PROVIDER-009 Kiro dynamic capability and last-success snapshots](BC-PROVIDER-009-kiro-dynamic-capability-snapshots.md)。
+P7-07 已建立 [BC-PROVIDER-010 Kiro semantic Tool, Thinking, and Claude Code mapping](BC-PROVIDER-010-kiro-semantic-tool-thinking-mapping.md)。
+P7-08 已建立 [BC-PROVIDER-011 Kiro network, account, model, quota, and rate-limit classification](BC-PROVIDER-011-kiro-failure-owner-classification.md)。
+P6-04 至 P6-07 已建立 [BC-PROVIDER-004 Grok Build runtime state and continuity boundary](BC-PROVIDER-004-grok-build-runtime-continuity.md)。
+P8-01 已建立 [BC-PROVIDER-012 Grok Official API-key model catalog boundary](BC-PROVIDER-012-grok-official-api-key-catalog.md)。
+P8-02 已建立 [BC-PROVIDER-013 Grok Official text-only Responses boundary](BC-PROVIDER-013-grok-official-responses-boundary.md)。
+P8-03 已建立 [BC-PROVIDER-014 Grok Official rate-limit and billing metadata boundary](BC-PROVIDER-014-grok-official-rate-limit-billing-metadata.md)。
+P10-01 已建立 [BC-MGMT-002 Versioned management OpenAPI contract](BC-MGMT-002-versioned-management-openapi.md)。
+P10-02 已建立 [BC-MGMT-003 Management HTTP admission](BC-MGMT-003-management-http-admission.md)。
+P10-03 已建立 [BC-MGMT-004 Management SPA generated client](BC-MGMT-004-management-spa-generated-client.md)。
+P10-04 已建立 [BC-MGMT-005 Protected management resource workflows](BC-MGMT-005-protected-management-resource-workflows.md)。
+P10-05 已建立 [BC-MGMT-006 Protected routing and Client Key workflows](BC-MGMT-006-protected-routing-client-key-workflows.md)。
+P10-08 已建立 [BC-MGMT-007 Encrypted control-plane backup and empty-target restore](BC-MGMT-007-encrypted-control-plane-backup.md)。
+P10-09 已建立 [BC-MGMT-008 Embedded management UI and inference-route isolation](BC-MGMT-008-embedded-management-ui-inference-isolation.md)。
 后续契约随对应 Task 创建并在需求追踪索引中登记。

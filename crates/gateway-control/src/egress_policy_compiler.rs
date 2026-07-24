@@ -463,6 +463,7 @@ mod tests {
             id: ConfigVersionId::try_new("egress-version")?,
             parent_id: None,
             status: ConfigVersionStatus::Draft,
+            revision: 0,
             created_at_ms: 1,
             description: "egress compiler test".to_owned(),
         });

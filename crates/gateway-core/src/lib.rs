@@ -12,6 +12,7 @@ mod raw_extension;
 mod request_context;
 mod retry_gate;
 mod thinking;
+mod token_count;
 mod tool;
 
 pub use canonical_event::{
@@ -38,6 +39,7 @@ pub use raw_extension::{RawExtensionError, RawExtensions, RawJson};
 pub use request_context::RequestContext;
 pub use retry_gate::{TransparentRetryGate, TransparentRetryGateFuture};
 pub use thinking::{InvalidThinkingEffort, Thinking, ThinkingEffort};
+pub use token_count::ExactInputTokenCount;
 pub use tool::ToolDefinition;
 
 /// Stable component identifier used by architecture smoke tests.

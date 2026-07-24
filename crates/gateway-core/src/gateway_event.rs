@@ -20,6 +20,9 @@ pub enum GatewayProtocol {
     /// The `OpenAI`-compatible Responses entrypoint.
     #[serde(rename = "openai_responses")]
     OpenAiResponses,
+    /// The Anthropic-compatible Messages entrypoint.
+    #[serde(rename = "anthropic_messages")]
+    AnthropicMessages,
 }
 
 /// Importance class used by a bounded event implementation.

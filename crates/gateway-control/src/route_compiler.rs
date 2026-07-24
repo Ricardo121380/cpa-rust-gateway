@@ -191,6 +191,7 @@ impl RouteCompiler {
             id: candidate.id.clone(),
             endpoint_id: endpoint.id.clone(),
             upstream_id: upstream.id.clone(),
+            endpoint_api_format: endpoint.api_format.clone(),
             upstream_model: candidate.upstream_model.clone(),
             transform_mode: candidate.transform_mode,
             priority: candidate.priority,
@@ -389,6 +390,7 @@ pub struct CompiledRouteCandidate {
     id: RouteCandidateId,
     endpoint_id: EndpointId,
     upstream_id: UpstreamId,
+    endpoint_api_format: String,
     upstream_model: String,
     transform_mode: TransformMode,
     priority: i64,
@@ -415,6 +417,12 @@ impl CompiledRouteCandidate {
     #[must_use]
     pub fn upstream_id(&self) -> &UpstreamId {
         &self.upstream_id
+    }
+
+    /// Returns the exact API format declared by the selected Endpoint.
+    #[must_use]
+    pub fn endpoint_api_format(&self) -> &str {
+        &self.endpoint_api_format
     }
 
     /// Returns the exact model string sent to the upstream.
@@ -1394,6 +1402,97 @@ mod tests {
     }
 
     #[test]
+    fn same_upstream_distinct_endpoint_formats_are_retained_by_candidates() -> TestResult {
+        let mut fixture = fixture()?;
+        fixture.configuration.endpoints.push(EndpointConfiguration {
+            id: EndpointId::try_new("endpoint-anthropic")?,
+            upstream_id: UpstreamId::try_new("upstream-a")?,
+            adapter_id: "anthropic-compatible.messages".to_owned(),
+            api_format: "anthropic/messages".to_owned(),
+            base_url: "https://station.example/v1".to_owned(),
+            inference_path: "/messages".to_owned(),
+            models_path: Some("/models".to_owned()),
+            transport: EndpointTransport::Http,
+            enabled: true,
+        });
+        fixture.configuration.endpoint_credential_bindings.push(
+            EndpointCredentialBindingConfiguration {
+                endpoint_id: EndpointId::try_new("endpoint-anthropic")?,
+                credential_id: CredentialId::try_new("credential-a")?,
+                upstream_id: UpstreamId::try_new("upstream-a")?,
+                enabled: true,
+                priority: 0,
+                weight: 1,
+                concurrency: 2,
+            },
+        );
+        fixture
+            .configuration
+            .route_candidates
+            .push(RouteCandidateConfiguration {
+                id: RouteCandidateId::try_new("candidate-anthropic")?,
+                route_id: RouteId::try_new("route-a")?,
+                endpoint_id: EndpointId::try_new("endpoint-anthropic")?,
+                upstream_model: "upstream-model-anthropic".to_owned(),
+                credential_scope: CredentialScope::EndpointBindings,
+                transform_mode: TransformMode::Canonical,
+                enabled: true,
+                priority: 1,
+                weight: 1,
+                capability_override_json: "{}".to_owned(),
+            });
+        fixture.catalog = CatalogView::try_new([
+            CatalogModelEntry::try_new(
+                EndpointId::try_new("endpoint-a")?,
+                "upstream-model-a",
+                CatalogModelState::Fresh,
+            )?,
+            CatalogModelEntry::try_new(
+                EndpointId::try_new("endpoint-anthropic")?,
+                "upstream-model-anthropic",
+                CatalogModelState::Fresh,
+            )?,
+        ])?;
+        fixture.endpoint_capabilities = EndpointCapabilityView::try_new([
+            EndpointCapabilityEntry {
+                endpoint_id: EndpointId::try_new("endpoint-a")?,
+                capabilities: CapabilitySet::try_new([
+                    SemanticCapability::Tools,
+                    SemanticCapability::ParallelTools,
+                    SemanticCapability::Reasoning,
+                    SemanticCapability::Streaming,
+                ])?,
+            },
+            EndpointCapabilityEntry {
+                endpoint_id: EndpointId::try_new("endpoint-anthropic")?,
+                capabilities: CapabilitySet::try_new([
+                    SemanticCapability::Tools,
+                    SemanticCapability::Streaming,
+                ])?,
+            },
+        ])?;
+
+        let compiled = fixture.compiler().compile(&fixture.configuration)?;
+        let route = compiled
+            .route(&RouteId::try_new("route-a")?)
+            .ok_or("compiled Route is missing")?;
+        let responses = route
+            .candidates()
+            .iter()
+            .find(|candidate| candidate.id().as_str() == "candidate-a")
+            .ok_or("Responses Candidate is missing")?;
+        let anthropic = route
+            .candidates()
+            .iter()
+            .find(|candidate| candidate.id().as_str() == "candidate-anthropic")
+            .ok_or("Anthropic Candidate is missing")?;
+        assert_eq!(responses.upstream_id(), anthropic.upstream_id());
+        assert_eq!(responses.endpoint_api_format(), "openai/responses");
+        assert_eq!(anthropic.endpoint_api_format(), "anthropic/messages");
+        Ok(())
+    }
+
+    #[test]
     fn conflict_matrix_returns_stable_codes() -> TestResult {
         let snapshot = [
             (
@@ -1693,6 +1792,7 @@ mod tests {
             id: version_id,
             parent_id: None,
             status: ConfigVersionStatus::Draft,
+            revision: 0,
             created_at_ms: 1,
             description: "compiler fixture".to_owned(),
         });

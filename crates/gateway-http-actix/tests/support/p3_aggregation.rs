@@ -160,6 +160,7 @@ pub(crate) fn build_aggregation_harness(
             id: RouteCandidateId::try_new(format!("{namespace}-candidate-{}", endpoint.label))?,
             endpoint_id: endpoint_id.clone(),
             upstream_id: UpstreamId::try_new(format!("{namespace}-upstream-{}", endpoint.label))?,
+            endpoint_api_format: "openai/responses".to_owned(),
             upstream_model: endpoint.upstream_model,
             transform_mode: SnapshotTransformMode::Canonical,
             priority: 0,

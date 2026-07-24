@@ -2,6 +2,8 @@
 
 #![deny(unsafe_code)]
 
+/// Encrypted control-plane backup artifacts and empty-target restoration primitives.
+pub mod backup;
 /// AEAD Secret storage, external Master Key loading, and key-rotation primitives.
 pub mod control_plane;
 /// Append-only durable lifecycle event storage and its asynchronous bounded-queue consumer.
@@ -20,9 +22,13 @@ const VERSIONED_ROUTE_ACCESS_SCHEMA_VERSION: i64 = 2;
 const VERSIONED_EGRESS_POLICY_SCHEMA_VERSION: i64 = 3;
 const MANAGEMENT_AUDIT_SCHEMA_VERSION: i64 = 4;
 const GATEWAY_EVENT_LOG_SCHEMA_VERSION: i64 = 5;
+const GROK_BUILD_CREDENTIAL_RUNTIME_SCHEMA_VERSION: i64 = 6;
+const GROK_BUILD_RUNTIME_STATE_SCHEMA_VERSION: i64 = 7;
+const CONFIG_VERSION_REVISION_SCHEMA_VERSION: i64 = 8;
+const MANAGEMENT_RESOURCE_AUDIT_SCHEMA_VERSION: i64 = 9;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = GATEWAY_EVENT_LOG_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = MANAGEMENT_RESOURCE_AUDIT_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -57,6 +63,26 @@ const MIGRATIONS: &[Migration] = &[
         up: include_str!("../migrations/0005_gateway_event_log.up.sql"),
         down: include_str!("../migrations/0005_gateway_event_log.down.sql"),
     },
+    Migration {
+        version: GROK_BUILD_CREDENTIAL_RUNTIME_SCHEMA_VERSION,
+        up: include_str!("../migrations/0006_grok_build_credential_runtime.up.sql"),
+        down: include_str!("../migrations/0006_grok_build_credential_runtime.down.sql"),
+    },
+    Migration {
+        version: GROK_BUILD_RUNTIME_STATE_SCHEMA_VERSION,
+        up: include_str!("../migrations/0007_grok_build_runtime_state.up.sql"),
+        down: include_str!("../migrations/0007_grok_build_runtime_state.down.sql"),
+    },
+    Migration {
+        version: CONFIG_VERSION_REVISION_SCHEMA_VERSION,
+        up: include_str!("../migrations/0008_config_version_revision.up.sql"),
+        down: include_str!("../migrations/0008_config_version_revision.down.sql"),
+    },
+    Migration {
+        version: MANAGEMENT_RESOURCE_AUDIT_SCHEMA_VERSION,
+        up: include_str!("../migrations/0009_management_resource_audit.up.sql"),
+        down: include_str!("../migrations/0009_management_resource_audit.down.sql"),
+    },
 ];
 
 struct Migration {
@@ -74,6 +100,13 @@ pub enum StoreError {
     ForeignKeysDisabled,
     /// The database migration history is not a supported prefix of this build's migrations.
     UnsupportedMigrationHistory {
+        /// Ordered migration versions found in the database.
+        applied: Vec<i64>,
+    },
+    /// A requested downgrade target is not a known applied schema prefix.
+    UnsupportedRollbackTarget {
+        /// Requested schema version, with zero representing the unmigrated base state.
+        target: i64,
         /// Ordered migration versions found in the database.
         applied: Vec<i64>,
     },
@@ -97,6 +130,10 @@ pub enum StoreError {
     ConfigVersionNotFound,
     /// A requested Config Version is already the sole active Version.
     ConfigVersionAlreadyActive,
+    /// A management write supplied a stale opaque Config Version revision.
+    ConfigVersionRevisionConflict,
+    /// A Version-scoped management resource did not exist for a requested mutation.
+    ControlPlaneResourceNotFound,
     /// A management audit event did not match its bounded transaction context.
     ///
     /// Event values are deliberately not included because caller-provided actor labels must not
@@ -124,6 +161,9 @@ impl fmt::Display for StoreError {
             Self::UnsupportedMigrationHistory { .. } => {
                 formatter.write_str("database migration history is not supported by this build")
             }
+            Self::UnsupportedRollbackTarget { .. } => {
+                formatter.write_str("database rollback target is not a supported applied schema")
+            }
             Self::InvalidPersistedControlPlaneRecord { table } => {
                 write!(
                     formatter,
@@ -144,6 +184,12 @@ impl fmt::Display for StoreError {
             }
             Self::ConfigVersionAlreadyActive => {
                 formatter.write_str("requested Config Version is already active")
+            }
+            Self::ConfigVersionRevisionConflict => {
+                formatter.write_str("management Config Version revision does not match")
+            }
+            Self::ControlPlaneResourceNotFound => {
+                formatter.write_str("requested control-plane resource does not exist")
             }
             Self::InvalidManagementAuditEvent => {
                 formatter.write_str("management audit event is invalid for this operation")
@@ -170,11 +216,14 @@ impl Error for StoreError {
             Self::Sqlite(error) => Some(error),
             Self::ForeignKeysDisabled
             | Self::UnsupportedMigrationHistory { .. }
+            | Self::UnsupportedRollbackTarget { .. }
             | Self::InvalidPersistedControlPlaneRecord { .. }
             | Self::InvalidClientKeyDigestLength { .. }
             | Self::ControlPlaneMutationRequiresDraft
             | Self::ConfigVersionNotFound
             | Self::ConfigVersionAlreadyActive
+            | Self::ConfigVersionRevisionConflict
+            | Self::ControlPlaneResourceNotFound
             | Self::InvalidManagementAuditEvent
             | Self::InvalidPersistedGatewayEvent
             | Self::ConflictingGatewayEventReplay
@@ -256,11 +305,42 @@ pub fn migrate(connection: &mut Connection) -> StoreResult<()> {
 /// Returns [`StoreError::UnsupportedMigrationHistory`] instead of applying a partial or guessed
 /// rollback when the stored migration sequence is not supported by this build.
 pub fn rollback_all(connection: &mut Connection) -> StoreResult<()> {
+    rollback_to_version(connection, 0)
+}
+
+/// Downgrades one supported migration prefix to an explicitly named earlier schema version.
+///
+/// A target of zero represents the unmigrated user-table base state. The target must be an exact
+/// schema version known to this build and may not be newer than the database's currently applied
+/// prefix. Every down migration and its bookkeeping deletion commits in its own transaction, so
+/// an unsupported history or rejected down step cannot be silently skipped.
+///
+/// # Errors
+///
+/// Returns [`StoreError::UnsupportedRollbackTarget`] if `target_version` is unknown, negative, or
+/// above the current applied prefix. Returns [`StoreError::UnsupportedMigrationHistory`] rather
+/// than guessing when the stored history is not a supported prefix.
+pub fn rollback_to_version(connection: &mut Connection, target_version: i64) -> StoreResult<()> {
     enable_foreign_keys(connection)?;
     let applied = applied_migration_versions(connection)?;
     ensure_supported_prefix(&applied)?;
 
+    let target_is_known = target_version == 0
+        || MIGRATIONS
+            .iter()
+            .any(|migration| migration.version == target_version);
+    let current_version = applied.last().copied().unwrap_or(0);
+    if !target_is_known || target_version < 0 || target_version > current_version {
+        return Err(StoreError::UnsupportedRollbackTarget {
+            target: target_version,
+            applied,
+        });
+    }
+
     for migration in MIGRATIONS.iter().take(applied.len()).rev() {
+        if migration.version <= target_version {
+            break;
+        }
         let transaction = connection.transaction()?;
         transaction.execute_batch(migration.down)?;
         transaction.execute(
@@ -270,7 +350,8 @@ pub fn rollback_all(connection: &mut Connection) -> StoreResult<()> {
         transaction.commit()?;
     }
 
-    if table_exists(connection, "schema_migrations")?
+    if target_version == 0
+        && table_exists(connection, "schema_migrations")?
         && applied_migration_versions(connection)?.is_empty()
     {
         connection.execute_batch("DROP TABLE schema_migrations;")?;
@@ -374,7 +455,16 @@ mod tests {
                 "egress_policies",
                 "endpoint_credential_bindings",
                 "gateway_event_log",
+                "grok_build_affinity_breaks",
+                "grok_build_billing_profiles",
+                "grok_build_cache_affinities",
+                "grok_build_credential_runtime",
+                "grok_build_model_catalog",
+                "grok_build_quota_windows",
+                "grok_build_reasoning_replay",
+                "grok_build_response_ownership",
                 "management_audit_events",
+                "management_resource_audit_events",
                 "model_aliases",
                 "model_routes",
                 "public_models",

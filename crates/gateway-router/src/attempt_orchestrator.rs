@@ -14,9 +14,9 @@ use gateway_core::{
 use gateway_upstream::CredentialLease;
 
 use crate::{
-    RouteCredentialScheduler, RuntimeHealthClock, RuntimeHealthKey, RuntimeHealthRegistry,
-    RuntimeQuotaRegistry, RuntimeQuotaTarget, SelectedRouteCredential, SnapshotRouteCandidate,
-    SystemRuntimeHealthClock,
+    ProtocolFormat, RouteCredentialScheduler, RuntimeHealthClock, RuntimeHealthKey,
+    RuntimeHealthRegistry, RuntimeQuotaRegistry, RuntimeQuotaTarget, SelectedRouteCredential,
+    SnapshotRouteCandidate, SystemRuntimeHealthClock,
 };
 
 /// The finite estimated reset used for a 429 that does not declare retry-after information.
@@ -412,8 +412,42 @@ impl AttemptOrchestrator {
         D: AttemptDriver,
     {
         let event_sink = NoopGatewayEventSink;
-        self.start_inner(None, route_id, driver, retry_gate, &event_sink)
+        self.start_inner(None, route_id, None, driver, retry_gate, &event_sink)
             .await
+    }
+
+    /// Starts one Attempt loop for a client protocol using only matching Endpoint formats.
+    ///
+    /// The filter is applied before Health, Quota, or Credential-pool access. A same-Upstream
+    /// Endpoint that declares another protocol therefore cannot be selected, and a circuit on
+    /// one protocol's Endpoint cannot make a different Endpoint ineligible by association. This
+    /// narrow entrypoint admits only same-protocol Canonical Candidates; pass-through and
+    /// cross-protocol bridge callers must first apply P5-04's request-local admission analysis.
+    ///
+    /// # Errors
+    ///
+    /// Returns the existing secret-free routing errors when the matching protocol has no healthy
+    /// candidate or when all eligible attempts fail.
+    pub async fn start_for_protocol<D>(
+        &self,
+        route_id: &RouteId,
+        protocol: ProtocolFormat,
+        driver: &D,
+        retry_gate: &dyn TransparentRetryGate,
+    ) -> Result<StartedAttempt<D::Output>, GatewayError>
+    where
+        D: AttemptDriver,
+    {
+        let event_sink = NoopGatewayEventSink;
+        self.start_inner(
+            None,
+            route_id,
+            Some(protocol),
+            driver,
+            retry_gate,
+            &event_sink,
+        )
+        .await
     }
 
     /// Starts one Attempt loop and emits one terminal observation per actual driver invocation.
@@ -437,8 +471,45 @@ impl AttemptOrchestrator {
     where
         D: AttemptDriver,
     {
-        self.start_inner(Some(request_id), route_id, driver, retry_gate, event_sink)
-            .await
+        self.start_inner(
+            Some(request_id),
+            route_id,
+            None,
+            driver,
+            retry_gate,
+            event_sink,
+        )
+        .await
+    }
+
+    /// Starts one protocol-filtered Attempt loop and records the same safe Attempt events as
+    /// [`Self::start_with_event_sink`].
+    ///
+    /// # Errors
+    ///
+    /// Returns the existing secret-free routing errors when the matching protocol has no healthy
+    /// candidate or when all eligible attempts fail.
+    pub async fn start_with_event_sink_for_protocol<D>(
+        &self,
+        request_id: &RequestId,
+        route_id: &RouteId,
+        protocol: ProtocolFormat,
+        driver: &D,
+        retry_gate: &dyn TransparentRetryGate,
+        event_sink: &dyn GatewayEventSink,
+    ) -> Result<StartedAttempt<D::Output>, GatewayError>
+    where
+        D: AttemptDriver,
+    {
+        self.start_inner(
+            Some(request_id),
+            route_id,
+            Some(protocol),
+            driver,
+            retry_gate,
+            event_sink,
+        )
+        .await
     }
 
     #[allow(clippy::too_many_lines)] // One retry state machine keeps lease, gate, and event ordering auditable.
@@ -446,6 +517,7 @@ impl AttemptOrchestrator {
         &self,
         request_id: Option<&RequestId>,
         route_id: &RouteId,
+        protocol: Option<ProtocolFormat>,
         driver: &D,
         retry_gate: &dyn TransparentRetryGate,
         event_sink: &dyn GatewayEventSink,
@@ -482,7 +554,13 @@ impl AttemptOrchestrator {
                     route_id,
                     &self.runtime_health,
                     &self.runtime_quota,
-                    |_| true,
+                    |candidate| {
+                        protocol.is_none_or(|protocol| {
+                            candidate.protocol_format() == Some(protocol)
+                                && candidate.transform_mode()
+                                    == crate::SnapshotTransformMode::Canonical
+                        })
+                    },
                     |candidate, credential_id| !exclusions.contains(candidate, credential_id),
                 ) {
                 Ok(selection) => selection,
@@ -859,7 +937,7 @@ mod tests {
         AttemptOrchestratorConfig,
     };
     use crate::{
-        RouteCredentialScheduler, RouteSnapshot, RouteSnapshotInput,
+        ProtocolFormat, RouteCredentialScheduler, RouteSnapshot, RouteSnapshotInput,
         RuntimeCredentialAccountStatus, RuntimeHealthAccountRecoveryResult, RuntimeHealthClock,
         RuntimeHealthClockError, RuntimeHealthRegistry, SnapshotCatalogAdmission,
         SnapshotPublicModel, SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput,
@@ -873,6 +951,12 @@ mod tests {
         AttemptOrchestrator,
         RouteId,
         Arc<FixedRuntimeHealthClock>,
+        Arc<RuntimeHealthRegistry>,
+        Arc<EndpointCredentialPools>,
+    );
+    type ProtocolIsolationFixture = (
+        AttemptOrchestrator,
+        RouteId,
         Arc<RuntimeHealthRegistry>,
         Arc<EndpointCredentialPools>,
     );
@@ -910,6 +994,97 @@ mod tests {
         );
         assert!(!health.endpoint_is_available(&EndpointId::try_new("endpoint-a")?));
         assert!(health.endpoint_is_available(&EndpointId::try_new("endpoint-b")?));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn same_upstream_protocol_failure_is_isolated_to_its_declared_endpoint() -> TestResult {
+        let (orchestrator, route_id, health, _pools) = protocol_isolation_orchestrator()?;
+        let responses_driver =
+            ScriptedDriver::new(vec![DriverStep::Failure(AttemptFailure::Connection)]);
+
+        let responses_error = expected_error(
+            orchestrator
+                .start_for_protocol(
+                    &route_id,
+                    ProtocolFormat::OpenAiResponses,
+                    &responses_driver,
+                    &TestRetryGate::default(),
+                )
+                .await,
+            "Responses-only endpoint failure must remain an explicit safe failure",
+        )?;
+        assert_eq!(responses_error.code(), GatewayErrorCode::EgressUnavailable);
+        assert_eq!(
+            responses_driver.attempts()?,
+            vec![(
+                "candidate-responses".to_owned(),
+                "credential-responses".to_owned()
+            )]
+        );
+
+        let responses_endpoint = EndpointId::try_new("endpoint-responses")?;
+        let anthropic_endpoint = EndpointId::try_new("endpoint-anthropic")?;
+        assert!(!health.endpoint_is_available(&responses_endpoint));
+        assert!(health.endpoint_is_available(&anthropic_endpoint));
+
+        let anthropic_driver = ScriptedDriver::new(vec![DriverStep::Success(
+            "anthropic-still-healthy".to_owned(),
+        )]);
+        let started = orchestrator
+            .start_for_protocol(
+                &route_id,
+                ProtocolFormat::AnthropicMessages,
+                &anthropic_driver,
+                &TestRetryGate::default(),
+            )
+            .await?;
+        assert_eq!(started.candidate().id().as_str(), "candidate-anthropic");
+        assert_eq!(
+            started.candidate().upstream_id().as_str(),
+            "upstream-shared"
+        );
+        assert_eq!(
+            started.candidate().endpoint_api_format(),
+            "anthropic/messages"
+        );
+        assert_eq!(started.output(), "anthropic-still-healthy");
+        assert_eq!(
+            anthropic_driver.attempts()?,
+            vec![(
+                "candidate-anthropic".to_owned(),
+                "credential-anthropic".to_owned()
+            )]
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn protocol_filtered_start_rejects_noncanonical_candidates_before_a_lease() -> TestResult
+    {
+        let (orchestrator, route_id, _health, pools) =
+            single_protocol_orchestrator(SnapshotTransformMode::LosslessBridge)?;
+        let driver = ScriptedDriver::new(vec![DriverStep::Success("must-not-start".to_owned())]);
+
+        let error = expected_error(
+            orchestrator
+                .start_for_protocol(
+                    &route_id,
+                    ProtocolFormat::OpenAiResponses,
+                    &driver,
+                    &TestRetryGate::default(),
+                )
+                .await,
+            "same-protocol lossless bridge must not bypass P5-04 admission",
+        )?;
+        assert_eq!(error.code(), GatewayErrorCode::CredentialUnavailable);
+        assert!(driver.attempts()?.is_empty());
+        let endpoint = EndpointId::try_new("endpoint-noncanonical")?;
+        let credential = CredentialId::try_new("credential-noncanonical")?;
+        let pool = pools
+            .pool(&endpoint)
+            .ok_or("missing non-Canonical test pool")?;
+        assert_eq!(pool.active_lease_count(&credential), Some(0));
         Ok(())
     }
 
@@ -1324,6 +1499,127 @@ mod tests {
         ))
     }
 
+    fn protocol_isolation_orchestrator() -> Result<ProtocolIsolationFixture, Box<dyn Error>> {
+        let route_id = RouteId::try_new("route-shared-upstream")?;
+        let public_model_id = PublicModelId::try_new("public-model-shared-upstream")?;
+        let candidates = vec![
+            candidate_with_endpoint_format(
+                "candidate-responses",
+                "endpoint-responses",
+                "upstream-shared",
+                "openai/responses",
+                SnapshotTransformMode::Canonical,
+            )?,
+            candidate_with_endpoint_format(
+                "candidate-anthropic",
+                "endpoint-anthropic",
+                "upstream-shared",
+                "anthropic/messages",
+                SnapshotTransformMode::Canonical,
+            )?,
+        ];
+        let snapshot = Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
+            SnapshotVersion::try_new("version-shared-upstream")?,
+            vec![SnapshotPublicModel::new(
+                public_model_id.clone(),
+                "public-model-shared-upstream".to_owned(),
+                "Shared Upstream Public Model".to_owned(),
+                CapabilitySet::empty(),
+                route_id.clone(),
+            )],
+            Vec::new(),
+            vec![SnapshotRoute::new(
+                route_id.clone(),
+                public_model_id,
+                SnapshotRoutePolicy::RoundRobin,
+                2,
+                100,
+                candidates,
+            )],
+            Vec::new(),
+            Vec::new(),
+        ))?);
+        let pools = Arc::new(EndpointCredentialPools::try_new(vec![
+            endpoint_pool("endpoint-responses", vec!["credential-responses"])?,
+            endpoint_pool("endpoint-anthropic", vec!["credential-anthropic"])?,
+        ])?);
+        let scheduler = Arc::new(RouteCredentialScheduler::new(snapshot, Arc::clone(&pools)));
+        let clock: Arc<dyn RuntimeHealthClock> = Arc::new(FixedRuntimeHealthClock::new(100));
+        let health = Arc::new(RuntimeHealthRegistry::with_clock(Arc::clone(&clock)));
+        let config = AttemptOrchestratorConfig::try_new(
+            Duration::from_millis(20),
+            Duration::from_millis(10),
+        )?;
+        Ok((
+            AttemptOrchestrator::with_clock_and_config(
+                scheduler,
+                Arc::clone(&health),
+                clock,
+                config,
+            ),
+            route_id,
+            health,
+            pools,
+        ))
+    }
+
+    fn single_protocol_orchestrator(
+        transform_mode: SnapshotTransformMode,
+    ) -> Result<ProtocolIsolationFixture, Box<dyn Error>> {
+        let route_id = RouteId::try_new("route-noncanonical")?;
+        let public_model_id = PublicModelId::try_new("public-model-noncanonical")?;
+        let candidate = candidate_with_endpoint_format(
+            "candidate-noncanonical",
+            "endpoint-noncanonical",
+            "upstream-noncanonical",
+            "openai/responses",
+            transform_mode,
+        )?;
+        let snapshot = Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
+            SnapshotVersion::try_new("version-noncanonical")?,
+            vec![SnapshotPublicModel::new(
+                public_model_id.clone(),
+                "public-model-noncanonical".to_owned(),
+                "Non-Canonical Public Model".to_owned(),
+                CapabilitySet::empty(),
+                route_id.clone(),
+            )],
+            Vec::new(),
+            vec![SnapshotRoute::new(
+                route_id.clone(),
+                public_model_id,
+                SnapshotRoutePolicy::RoundRobin,
+                1,
+                100,
+                vec![candidate],
+            )],
+            Vec::new(),
+            Vec::new(),
+        ))?);
+        let pools = Arc::new(EndpointCredentialPools::try_new(vec![endpoint_pool(
+            "endpoint-noncanonical",
+            vec!["credential-noncanonical"],
+        )?])?);
+        let scheduler = Arc::new(RouteCredentialScheduler::new(snapshot, Arc::clone(&pools)));
+        let clock: Arc<dyn RuntimeHealthClock> = Arc::new(FixedRuntimeHealthClock::new(100));
+        let health = Arc::new(RuntimeHealthRegistry::with_clock(Arc::clone(&clock)));
+        let config = AttemptOrchestratorConfig::try_new(
+            Duration::from_millis(20),
+            Duration::from_millis(10),
+        )?;
+        Ok((
+            AttemptOrchestrator::with_clock_and_config(
+                scheduler,
+                Arc::clone(&health),
+                clock,
+                config,
+            ),
+            route_id,
+            health,
+            pools,
+        ))
+    }
+
     fn candidate(
         candidate_id: &str,
         endpoint_id: &str,
@@ -1332,8 +1628,31 @@ mod tests {
             id: RouteCandidateId::try_new(candidate_id)?,
             endpoint_id: EndpointId::try_new(endpoint_id)?,
             upstream_id: UpstreamId::try_new(format!("upstream-{endpoint_id}"))?,
+            endpoint_api_format: "openai/responses".to_owned(),
             upstream_model: "upstream-model".to_owned(),
             transform_mode: SnapshotTransformMode::Canonical,
+            priority: 0,
+            weight: 1,
+            effective_capabilities: CapabilitySet::empty(),
+            catalog_admission: SnapshotCatalogAdmission::Listed(CatalogModelState::Fresh),
+            active_binding_count: 1,
+        }))
+    }
+
+    fn candidate_with_endpoint_format(
+        candidate_id: &str,
+        endpoint_id: &str,
+        upstream_id: &str,
+        endpoint_api_format: &str,
+        transform_mode: SnapshotTransformMode,
+    ) -> Result<SnapshotRouteCandidate, Box<dyn Error>> {
+        Ok(SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
+            id: RouteCandidateId::try_new(candidate_id)?,
+            endpoint_id: EndpointId::try_new(endpoint_id)?,
+            upstream_id: UpstreamId::try_new(upstream_id)?,
+            endpoint_api_format: endpoint_api_format.to_owned(),
+            upstream_model: "upstream-model".to_owned(),
+            transform_mode,
             priority: 0,
             weight: 1,
             effective_capabilities: CapabilitySet::empty(),
