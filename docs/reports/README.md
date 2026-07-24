@@ -141,3 +141,4 @@
 - [P11-08 `v0.1.0-alpha.1` Release Candidate ledger](p11-08-release-candidate.md) — local candidate inventory; no published artifact
 - [G11 release-hardening gate report](g11-gate-report.md) — complete; GitHub Delivery Gate passed
 - [P12-01 release artifact execution plan](p12-01-execution-plan.md) — pinned Linux artifact, private OCI archive, redacted SBOM, checksum and approved keyless-signing boundary
+- [P12-01 release artifact](p12-01-release-artifact.md) — accepted revision-bound Linux binary/OCI/SBOM/manifest, GitHub OIDC keyless signature, Rekor inclusion and private workflow artifact

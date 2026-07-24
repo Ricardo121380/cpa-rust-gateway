@@ -4,10 +4,11 @@
 |---|---|
 | Plan version | `v1.46` |
 | Task | `P12-01` |
-| Status | `IN_PROGRESS` — build/verification design is fixed and the signing-authority checkpoint is approved; a signed CI artifact still must pass independent verification before this task can close. |
-| Branch | `codex/p11-release-hardening` |
+| Status | `DONE` — the signed private artifact from workflow run `30112894068` passed independent downloaded-artifact, signature, Rekor, manifest, SBOM, ELF and OCI verification. |
+| Branch | `codex/p12-deployment` |
 | Task Card | Produce a fresh, revision-bound Linux `x86_64` gateway binary and OCI image archive, a redacted CycloneDX SBOM, SHA-256 manifest, detached signature and machine-verifiable receipt. Artifacts remain private CI outputs until a later P12 task authorizes a server deployment. |
 | References | [P12 plan](../06-development-plan.md#18-p12---服务器部署与灰度), [P11 candidate ledger](p11-08-release-candidate.md), [G11](g11-gate-report.md), [environment baseline](environment-baseline.md), [quality gates](../quality-gates.md) |
+| Acceptance | [P12-01 release artifact report](p12-01-release-artifact.md) |
 
 ## Observed starting boundary
 
@@ -22,10 +23,11 @@
 
 ## Required acceptance
 
-1. A pinned Linux CI build produces only an `x86_64-unknown-linux-gnu` release binary and a
-   loadable OCI image archive. Each carries the exact Git revision, locked Rust version and
-   architecture; the image runs as a non-root user and exposes no configured listener, Secret,
-   Provider route, credential or server path.
+1. A pinned Linux CI build produces an `x86_64-unknown-linux-gnu` release binary, the formal OCI
+   image archive and an ephemeral Docker-compatible export used only for runtime smoke. The formal
+   payload carries the exact Git revision, locked Rust version and architecture; the image runs as
+   a non-root user and exposes no configured listener, Secret, Provider route, credential or server
+   path.
 2. A deterministic artifact manifest names every released file by filename, byte size and SHA-256.
    A verification script rejects duplicate names, unexpected files, malformed digests and any
    mismatch before a later server task may consume it.
@@ -61,9 +63,10 @@ the artifact receipt may claim `verified`.
    digest without starting a service.
 3. Run unit/negative tests for manifest and SBOM sanitization, the applicable local gate and an
    independent review. The approved workflow may then mint one private signed artifact.
-4. After the chosen signing flow emits a detached manifest signature, verify it in a separate job,
-   record a value-free receipt, update the P12-01 report and move on to P12-02. Any failed
-   signature, digest, architecture, SBOM-redaction or image-policy check freezes P12.
+4. After the chosen signing flow emits a detached manifest signature, verify it in a separate
+   fail-closed step before writing the value-free receipt, then independently verify the downloaded
+   artifact before moving on to P12-02. Any failed signature, digest, architecture, SBOM-redaction
+   or image-policy check freezes P12.
 
 ## Explicitly out of scope
 
