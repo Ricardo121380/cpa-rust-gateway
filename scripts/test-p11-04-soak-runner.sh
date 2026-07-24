@@ -5,7 +5,18 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 runner="$repo_root/scripts/run-p11-04-soak.sh"
 work_dir="$(mktemp -d)"
-trap 'rm -rf "$work_dir"' EXIT
+runner_pid=""
+
+cleanup() {
+  if [[ -n "$runner_pid" ]] && kill -0 "$runner_pid" 2>/dev/null; then
+    kill -TERM "$runner_pid" 2>/dev/null || true
+    set +e
+    wait "$runner_pid"
+    set -e
+  fi
+  rm -rf "$work_dir"
+}
+trap cleanup EXIT
 
 expect_fail() {
   if "$runner" "$@" >/dev/null 2>&1; then
@@ -23,14 +34,39 @@ touch "$existing_receipt"
 expect_fail --smoke --status "$existing_receipt"
 
 interrupted_receipt="$work_dir/interrupted-receipt.log"
-"$runner" --smoke --status "$interrupted_receipt" >/dev/null 2>&1 &
+runner_output="$work_dir/interrupted-runner.log"
+"$runner" --smoke --status "$interrupted_receipt" >"$runner_output" 2>&1 &
 runner_pid=$!
-sleep 1
+readiness_timeout_seconds=180
+readiness_deadline=$((SECONDS + readiness_timeout_seconds))
+while true; do
+  if [[ -f "$interrupted_receipt" ]] && rg -q '(^|[[:space:]])state=RUNNING([[:space:]]|$)' "$interrupted_receipt"; then
+    break
+  fi
+  if ! kill -0 "$runner_pid" 2>/dev/null; then
+    set +e
+    wait "$runner_pid"
+    status=$?
+    set -e
+    runner_pid=""
+    printf 'p11-04 soak runner test: smoke exited with %d before receipt readiness\n' "$status" >&2
+    sed -n '1,120p' "$runner_output" >&2
+    exit 1
+  fi
+  if (( SECONDS >= readiness_deadline )); then
+    printf 'p11-04 soak runner test: receipt did not reach RUNNING within %d seconds\n' \
+      "$readiness_timeout_seconds" >&2
+    sed -n '1,120p' "$runner_output" >&2
+    exit 1
+  fi
+  sleep 0.2
+done
 kill -TERM "$runner_pid"
 set +e
 wait "$runner_pid"
 status=$?
 set -e
+runner_pid=""
 if (( status != 130 )); then
   printf 'p11-04 soak runner test: interrupted smoke exited with %d, expected 130\n' "$status" >&2
   exit 1
