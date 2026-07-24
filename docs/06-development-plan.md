@@ -4,17 +4,17 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.44` |
+| 计划版本 | `v1.45` |
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9 与 P10 已完成；P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。`phase-p10-complete` 的唯一 GitHub Delivery Gate 已通过 Fast、Full supply-chain 与 Required。P11-01 已完成离线、脱敏的差分 Fixture Harness；P11-02 已完成 loopback-only 网络、DNS、TLS、状态、截断流、慢客户端和取消故障注入矩阵与 review。 |
-| 当前任务 | P11-03 已完成本地实现、基线、完整门禁和 review，等待 P11 Phase Gate；尚无功能 Task 为 `IN_PROGRESS`，下一项为 P11-04 的并发、长流、连接池、内存、背压与 Soak 计划。 |
+| 当前任务 | P11-03 与 P11-04 已完成本地实现、review 和证据；P11-04 的 10 小时以上 loopback soak 已由 `CR-P11-04-001` 接受，等待 P11 Phase Gate。P11-05 可作为唯一下一项 `IN_PROGRESS` Task 开始。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
 | 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 `CR-P6-03-003`：在确认 2xx JSON 错误对象后，增加最终一次仅从标准错误元数据映射安全类别的诊断调用。 `CR-P6-03-004`：新增一个与固定直连验收隔离的、服务器本地 grok2api Build 路由代理参考探针。 `CR-P6-03-005`：采用服务器参考的当前 Build 请求轮廓，并只登记新的固定端点 T11 非流式与 T12 SSE 验证。 `CR-P6-03-006`：通过 grok2api 支持的管理 API 导入指定 OAuth 文件并做账号专属额度刷新诊断；不重放固定直连元组，也不把共享路由调用误归因到该账号。 `CR-P6-03-007`：仅以本机官方 Grok CLI 做一次交互式 OAuth 重新认证并记录安全状态投影；不发送 P6 请求或改变服务器/路由。 |
 | 已批准变更（续） | `CR-P6-03-008`：以 CPA、grok2api 和 Sub2API 的 clean-room 行为参考扩展 Grok Build 的已知 OAuth 凭据来源；保留标准 JSON/Device Code/Refresh，新增 CPA xAI 文件和官方 Grok CLI indexed cache 的内存导入，不纳入 Cookie/SSO Web 转换。 `CR-P6-03-009`：仅修正 T13 零发送 wrapper 的一次替代 T15 验证；T15 的 4xx 已停止矩阵。 `CR-P6-03-010`：基于官方 CLI 静态证据更正 workspace User-Agent，仅登记新的 T16 非流式直连验证，并在 T16 完整成功时条件允许一次 T17 SSE。 `CR-P6-03-011`：T16 在无网络预检的本地标签门槛前停止后，以不同的合法短标签重新登记 T18 非流式直连；仅其完整 Canonical 成功时允许条件 T19 SSE。 `CR-P6-03-013`：用户批准完成 P6 全部要求，解除 P6-03 对后续本地安全/连续性实现的流程阻塞；不声称 T18 成功、不发送 T19 或重放任何闭合 tuple。 `CR-P6-03-014`：以当前官方 CLI 的成功模型/会话和新完成的可注入执行链路登记 T20/T21，不重放任何已关闭 tuple。 `CR-P6-03-015`：T20 的新的 2xx JSON 协议失败后，只输出固定的无值结构类别诊断 T22。 `CR-P6-03-016`：T22 发现投影在合法压缩前运行，登记一次解压后无值结构诊断 T23。 `CR-P6-03-017`：T23 仍失败后，仅投影第一个固定 decoder requirement gate 的 T24。 |
-| 已批准变更（续 2） | `CR-P7-G7-001`：P7 因 Kiro 外部账号重新认证而阻塞时，允许 P8 按自身顺序进行本地实现与审查；其与 `CR-P7-DEFER-002` 冲突的 P8/G8/P9-P12 顺序约束已由后者替代。 `CR-P7-DEFER-002`：Kiro OAuth 延后；P8-G12 按自身非 Kiro 依赖推进，P8 可执行自身 Phase Gate 与 Delivery Gate；真实 xAI 验证仍仅按 P8 自身明确授权进行。 `CR-P8-DEFER-001`：无 Official API Key 时，P8-07/G8 与 P7-09 一并延后至最终外部认证验收包；P9-P12 Gate 依赖不变。 |
+| 已批准变更（续 2） | `CR-P7-G7-001`：P7 因 Kiro 外部账号重新认证而阻塞时，允许 P8 按自身顺序进行本地实现与审查；其与 `CR-P7-DEFER-002` 冲突的 P8/G8/P9-P12 顺序约束已由后者替代。 `CR-P7-DEFER-002`：Kiro OAuth 延后；P8-G12 按自身非 Kiro 依赖推进，P8 可执行自身 Phase Gate 与 Delivery Gate；真实 xAI 验证仍仅按 P8 自身明确授权进行。 `CR-P8-DEFER-001`：无 Official API Key 时，P8-07/G8 与 P7-09 一并延后至最终外部认证验收包；P9-P12 Gate 依赖不变。 `CR-P11-04-001`：用户批准把纯 loopback 合成 Soak 的最低门槛由 24 小时改为 10 小时；已完成的 10h13m 用户停止 receipt 仍如实标为 `INCOMPLETE`，P12 的真实 Canary 72h 观察不变。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -1674,7 +1674,7 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 | P11-01 | 建立 CPA v7.2.80、grok2api、Kiro-RS 的脱敏差分 Fixture Harness | G10 | [差异分类报告](reports/p11-01-differential-fixture-harness.md)：离线、脱敏、默认拒绝的六条 source-labelled Fixture 与 review/定向验证 passed | DONE |
 | P11-02 | 完成网络、DNS、TLS、429、5xx、截断流、慢客户端和取消故障注入 | P11-01 | [Fault Matrix](reports/p11-02-fault-matrix.md)：loopback-only injection、Router ownership regressions、定向验证与 review passed | DONE |
 | P11-03 | 建立 Mock Provider Criterion/HTTP 基准和回归阈值 | P11-01 | [基准报告](reports/p11-03-benchmark-baseline.md)：受控 offline Criterion、`baseline.json`、P99/吞吐/RSS fail-closed comparator、完整本地门禁与 review passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P11-04 | 执行并发、长流、连接池、内存、背压和 24h Soak | P11-02,P11-03 | 性能与 Soak 报告 | PENDING |
+| P11-04 | 执行并发、长流、连接池、内存、背压和 ≥10h 本地 Soak | P11-02,P11-03 | [性能与 Soak 报告](reports/p11-04-load-soak.md)：`CR-P11-04-001` 下的 10h13m loopback receipt、回归、Full gate 与 review | LOCAL_PASS_PENDING_PHASE_GATE |
 | P11-05 | 执行 SSRF、Secret、Auth、权限、依赖和供应链安全审计 | P11-01 | Security Report + SBOM | PENDING |
 | P11-06 | 验证优雅停机、流 Drain、崩溃重启、磁盘满和事件队列降级 | P11-02 | Recovery Report | PENDING |
 | P11-07 | 完成升级/降级 Migration、备份恢复和旧版本回滚演练 | P10-08 | Upgrade/rollback report | PENDING |
@@ -1686,8 +1686,24 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 - 无未分类 Panic、数据竞争、流截断或 Secret 泄漏。
 - 性能基准相对已批准 Baseline：吞吐下降不超过 10%，P99/RSS 恶化不超过 15%。
 - Mock 上游网关附加延迟目标：本地 warm-path P99 不超过 5ms；服务器不超过 10ms。
-- 24h Soak 无内存持续增长、连接泄漏或 SQLite 损坏。
+- ≥10h loopback Soak 无内存持续增长、连接泄漏或 SQLite 损坏；真实部署后的 72h 观察仍由 P12-10 完成。
 - 回滚包和恢复步骤已经实际演练，不是只写文档。
+
+### 已批准 Change Request：CR-P11-04-001
+
+```text
+CR-ID: CR-P11-04-001
+原因: 用户确认纯 loopback 合成 Soak 已运行足够久，可以视为完成；其重复有限流负载能证明
+      本地任务/内存/连接稳定，但不能替代真实上游或服务器长期行为。
+影响的 Task / Matrix ID / ADR: P11-04 与 G11 的本地 Soak 门槛；P12-10 的 72h Canary 保持不变。
+兼容性与迁移影响: 无公开 API、Canonical、Provider、Schema、客户端或部署迁移。现有 receipt 保持
+      `INCOMPLETE`，不将用户停止的 10h13m 运行伪造成 24h `COMPLETED`。
+测试与回滚变化: 保留所有定向/Full/receipt 回归和 15% RSS fail-closed 条件；最低本地观察改为
+      10h，真实长期运行由 P12-10 的 72h Canary 承担。回滚为恢复 P11 的 24h 本地门槛并新开 receipt，
+      不重写本次证据。
+用户批准: APPROVED，2026-07-24（“已经测试很久了，可以视作完成”）
+计划版本变更: v1.45
+```
 
 ## 18. P12 - 服务器部署与灰度
 

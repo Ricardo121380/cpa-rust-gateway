@@ -6,6 +6,7 @@ use std::{
     error::Error,
     fs,
     path::{Path, PathBuf},
+    sync::atomic::{AtomicU64, Ordering},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -20,17 +21,26 @@ use gateway_store::{
 
 type TestResult = Result<(), Box<dyn Error>>;
 
+static TEMPORARY_DIRECTORY_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
 struct TemporaryDirectory(PathBuf);
 
 impl TemporaryDirectory {
     fn new() -> Result<Self, Box<dyn Error>> {
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "cpa-rust-gateway-p10-08-{timestamp}-{}",
-            std::process::id()
-        ));
-        fs::create_dir(&path)?;
-        Ok(Self(path))
+        for _ in 0..64 {
+            let sequence = TEMPORARY_DIRECTORY_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+            let path = std::env::temp_dir().join(format!(
+                "cpa-rust-gateway-p10-08-{timestamp}-{}-{sequence}",
+                std::process::id()
+            ));
+            match fs::create_dir(&path) {
+                Ok(()) => return Ok(Self(path)),
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+                Err(error) => return Err(error.into()),
+            }
+        }
+        Err("could not allocate an isolated temporary backup directory".into())
     }
 
     fn join(&self, leaf: &str) -> PathBuf {
