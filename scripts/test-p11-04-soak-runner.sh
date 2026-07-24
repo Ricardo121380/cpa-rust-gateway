@@ -50,13 +50,13 @@ while true; do
     set -e
     runner_pid=""
     printf 'p11-04 soak runner test: smoke exited with %d before receipt readiness\n' "$status" >&2
-    sed -n '1,120p' "$runner_output" >&2
+    tail -n 120 "$runner_output" >&2
     exit 1
   fi
   if (( SECONDS >= readiness_deadline )); then
     printf 'p11-04 soak runner test: receipt did not reach RUNNING within %d seconds\n' \
       "$readiness_timeout_seconds" >&2
-    sed -n '1,120p' "$runner_output" >&2
+    tail -n 120 "$runner_output" >&2
     exit 1
   fi
   sleep 0.2
