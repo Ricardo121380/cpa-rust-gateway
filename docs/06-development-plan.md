@@ -7,8 +7,8 @@
 | 计划版本 | `v1.45` |
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P6`、P9 与 P10 已完成；P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。`phase-p10-complete` 的唯一 GitHub Delivery Gate 已通过 Fast、Full supply-chain 与 Required。P11-01 已完成离线、脱敏的差分 Fixture Harness；P11-02 已完成 loopback-only 网络、DNS、TLS、状态、截断流、慢客户端和取消故障注入矩阵与 review。 |
-| 当前任务 | P11-01 至 P11-08 已完成本地实现、review 和证据；G11 已本地接受。历史 `phase-p11-complete` 与首次 `phase-p11-remediated-complete` Fast run 都在 P11-04 smoke receipt 前以 `101` 失败；第二次 remediated tag 识别出 Fast 在首个 Cargo 前未安装管理 SPA 依赖。该顺序已修复并在无 `node_modules` worktree Fast 通过，正在等待 `phase-p11-remediated-3-complete` Delivery Gate。P11-08 保持唯一 `IN_PROGRESS` Task，直到该阶段交付门通过。 |
+| 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。`phase-p11-remediated-3-complete` 的唯一 P11 GitHub Delivery Gate 已通过 Fast、Full supply-chain 与 Required。 |
+| 当前任务 | P11-01 至 P11-08 与 G11 已完成；历史 P11 Delivery Gate 的 pre-receipt `101` 已追溯为管理 SPA `npm ci` 在首个 Cargo 调用之后，修复经无 `node_modules` worktree 与最终 GitHub Delivery Gate 验证。P12-01 是全计划唯一 `IN_PROGRESS` Task。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1340,8 +1340,8 @@ deploy/
 | P8 | Grok Official | G6（`CR-P7-DEFER-002`） | G8 | DEFERRED_EXTERNAL_E2E |
 | P9 | Grok Web | P8 local isolation evidence（`CR-P9-LOCAL-001`） | G9 | DONE |
 | P10 | 完整管理 API、Web UI、备份恢复 | G9 | G10 | DONE |
-| P11 | 差分、性能、安全与发布加固 | G10 | G11 | IN_PROGRESS |
-| P12 | 服务器部署、灰度、切换与回滚 | G11 | G12 | PENDING |
+| P11 | 差分、性能、安全与发布加固 | G10 | G11 | DONE |
+| P12 | 服务器部署、灰度、切换与回滚 | G11 | G12 | IN_PROGRESS |
 | P13 | Release 1.1 候选功能 | G12 + 新 CR | 独立计划 | DEFERRED |
 
 ## 6. P0 - 仓库与工程基线
@@ -1673,12 +1673,12 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 |---|---|---|---|---|
 | P11-01 | 建立 CPA v7.2.80、grok2api、Kiro-RS 的脱敏差分 Fixture Harness | G10 | [差异分类报告](reports/p11-01-differential-fixture-harness.md)：离线、脱敏、默认拒绝的六条 source-labelled Fixture 与 review/定向验证 passed | DONE |
 | P11-02 | 完成网络、DNS、TLS、429、5xx、截断流、慢客户端和取消故障注入 | P11-01 | [Fault Matrix](reports/p11-02-fault-matrix.md)：loopback-only injection、Router ownership regressions、定向验证与 review passed | DONE |
-| P11-03 | 建立 Mock Provider Criterion/HTTP 基准和回归阈值 | P11-01 | [基准报告](reports/p11-03-benchmark-baseline.md)：受控 offline Criterion、`baseline.json`、P99/吞吐/RSS fail-closed comparator、完整本地门禁与 review passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P11-04 | 执行并发、长流、连接池、内存、背压和 ≥10h 本地 Soak | P11-02,P11-03 | [性能与 Soak 报告](reports/p11-04-load-soak.md)：`CR-P11-04-001` 下的 10h13m loopback receipt、回归、Full gate 与 review | LOCAL_PASS_PENDING_PHASE_GATE |
-| P11-05 | 执行 SSRF、Secret、Auth、权限、依赖和供应链安全审计 | P11-01 | [Security Report + SBOM](reports/p11-05-security-audit.md)：SSRF/Secret/Auth/权限/依赖审计、路径脱敏 CycloneDX 与 Full gate/review passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P11-06 | 验证优雅停机、流 Drain、崩溃重启、磁盘满和事件队列降级 | P11-02 | [Recovery Report](reports/p11-06-recovery-report.md)：loopback stream drain、crash/replay、deterministic `SQLITE_FULL` recovery、queue degradation、Full gate 与 review passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P11-07 | 完成升级/降级 Migration、备份恢复和旧版本回滚演练 | P10-08 | [Upgrade/rollback report](reports/p11-07-upgrade-rollback.md)：in-place schema drill、loss-aware downgrade、empty-target backup recovery、Full gate 与 review passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P11-08 | 生成 Release Candidate 清单、已知差异和生产默认配置 | P11-01-P11-07 | [`v0.1.0-alpha.1` candidate ledger](reports/p11-08-release-candidate.md)：inventory、safe defaults、known differences、P12 handoff 与 docs review passed；前两次 Fast 的 pre-receipt `101` 已定位为管理 SPA `npm ci` 位于首个 Cargo 调用之后，修复顺序已在无 `node_modules` worktree Fast 验证，`phase-p11-remediated-3-complete` Delivery Gate 仍在进行 | IN_PROGRESS |
+| P11-03 | 建立 Mock Provider Criterion/HTTP 基准和回归阈值 | P11-01 | [基准报告](reports/p11-03-benchmark-baseline.md)：受控 offline Criterion、`baseline.json`、P99/吞吐/RSS fail-closed comparator、完整本地门禁与 review passed | DONE |
+| P11-04 | 执行并发、长流、连接池、内存、背压和 ≥10h 本地 Soak | P11-02,P11-03 | [性能与 Soak 报告](reports/p11-04-load-soak.md)：`CR-P11-04-001` 下的 10h13m loopback receipt、回归、Full gate 与 review | DONE |
+| P11-05 | 执行 SSRF、Secret、Auth、权限、依赖和供应链安全审计 | P11-01 | [Security Report + SBOM](reports/p11-05-security-audit.md)：SSRF/Secret/Auth/权限/依赖审计、路径脱敏 CycloneDX 与 Full gate/review passed | DONE |
+| P11-06 | 验证优雅停机、流 Drain、崩溃重启、磁盘满和事件队列降级 | P11-02 | [Recovery Report](reports/p11-06-recovery-report.md)：loopback stream drain、crash/replay、deterministic `SQLITE_FULL` recovery、queue degradation、Full gate 与 review passed | DONE |
+| P11-07 | 完成升级/降级 Migration、备份恢复和旧版本回滚演练 | P10-08 | [Upgrade/rollback report](reports/p11-07-upgrade-rollback.md)：in-place schema drill、loss-aware downgrade、empty-target backup recovery、Full gate 与 review passed | DONE |
+| P11-08 | 生成 Release Candidate 清单、已知差异和生产默认配置 | P11-01-P11-07 | [`v0.1.0-alpha.1` candidate ledger](reports/p11-08-release-candidate.md)：inventory、safe defaults、known differences、P12 handoff 与 docs review passed；P11 最终 Delivery Gate 的 Fast、Full supply-chain 与 Required 已通过 | DONE |
 
 ### G11 门禁
 
@@ -1711,7 +1711,7 @@ CR-ID: CR-P11-04-001
 
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
-| P12-01 | 构建固定版本二进制、Docker 镜像、SBOM、Checksum 和签名 | G11 | 可验证发布产物 | PENDING |
+| P12-01 | 构建固定版本二进制、Docker 镜像、SBOM、Checksum 和签名 | G11 | 可验证发布产物 | IN_PROGRESS |
 | P12-02 | 编写 systemd Unit、只读 Secret、数据目录、日志和资源限制 | P12-01 | `systemd-analyze verify` | PENDING |
 | P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | 带时间戳备份清单 | PENDING |
 | P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | Health、日志、资源状态 | PENDING |

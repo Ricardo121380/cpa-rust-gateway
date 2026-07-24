@@ -5,7 +5,7 @@
 | Plan version | `v1.45` |
 | Gate | `G11` — P11 release hardening |
 | Local result | `PASS` — all required P11 task evidence, focused reviews and local verification are complete. |
-| Delivery result | `PENDING` — the original [`phase-p11-complete` run](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/30087223968) and first [`phase-p11-remediated-complete` run](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/30094003307) each failed Fast before the smoke receipt reached `RUNNING`, with wrapper/Cargo status `101`. The second [`phase-p11-remediated-2-complete` run](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/30094684285) exposed the cause: Fast installed management SPA dependencies after its first Cargo invocation. `c5cf847` moves that installation before every Cargo gate and passed Fast in a no-`node_modules` worktree; `phase-p11-remediated-3-complete` must pass Fast, Full supply-chain and Required before P11 is `DONE` or P12 begins. |
+| Delivery result | `PASS` — [`phase-p11-remediated-3-complete`](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/30095341123) accepted closeout target `074beb9`: Classify, Fast, Full supply-chain and Required all passed; Docs-only correctly skipped for the code scope. |
 | Scope | P11-01 through P11-08 on `codex/p11-release-hardening`; loopback, offline, local artifact and source-review evidence only unless a task report expressly says otherwise. |
 
 ## Gate conditions
@@ -27,7 +27,7 @@
 | P11-06 Full local gate | PASS — 214 seconds; all workspace quality/security checks pass after recovery drills. |
 | P11-07 Full local gate | PASS — 213 seconds; all workspace quality/security checks pass after upgrade/rollback rehearsal. |
 | P11-08 docs-only closeout | PASS — plan state/guard, 315 Markdown files, tracked Secret scan and whitespace checks. |
-| P11 Delivery remediation Fast gate | PASS — `7bb3318` replaces the fixed one-second smoke wait with a bounded receipt-`RUNNING` poll, explicit early-exit/timeout diagnostics and cleanup; `68768fc` retains the final 120 Cargo-log lines, which exposed the distinct CI dependency-order defect. `c5cf847` installs SPA dependencies before every Cargo gate. Focused regression, cold-cache local smoke, ordinary Fast, and a fresh no-`node_modules` worktree Fast all passed. |
+| P11 Delivery remediation | PASS — `7bb3318` replaces the fixed one-second smoke wait with a bounded receipt-`RUNNING` poll, explicit early-exit/timeout diagnostics and cleanup; `68768fc` retains the final 120 Cargo-log lines, which exposed the distinct CI dependency-order defect. `c5cf847` installs SPA dependencies before every Cargo gate. Focused regression, cold-cache local smoke, ordinary Fast, and a fresh no-`node_modules` worktree Fast passed; the final remote Fast, Full supply-chain and Required checks passed on `074beb9`. |
 | Focused phase review | PASS — reports distinguish local source/loopback evidence from deployment proof, retain P7/P8 external deferrals, do not reinterpret the stopped soak as complete, and do not turn candidate notes into a published release. |
 
 ## Accepted limits and P12 handoff
@@ -41,13 +41,12 @@
 
 ## Decision
 
-G11 is locally accepted. The historical `phase-p11-complete` and first remediated runs remain
-failure evidence and cannot close P11. Their pre-receipt `101` was ultimately traced to a distinct
-CI ordering defect: `gateway-http-actix`'s build script embeds the management SPA, but Fast ran the
-soak Cargo invocation before `npm ci` created `web/admin-ui/node_modules`. The reviewed correction
-runs dependency installation before every Cargo gate; its fresh no-`node_modules` worktree proves
-the cold path locally, while retaining the existing `TERM`/`130`/`INCOMPLETE` assertion. P11
-remains `LOCAL_PASS_PENDING_DELIVERY_GATE` until `phase-p11-remediated-3-complete` completes Fast,
-Full supply-chain and Required GitHub checks. A failure is a P11 blocker: stop before P12, repair
-the failing phase evidence/code, and run the appropriate local review before another delivery
-attempt.
+G11 is accepted. The historical `phase-p11-complete` and first two remediation runs remain
+failure evidence. Their pre-receipt `101` was ultimately traced to a CI ordering defect:
+`gateway-http-actix`'s build script embeds the management SPA, but Fast ran the soak Cargo
+invocation before `npm ci` created `web/admin-ui/node_modules`. The reviewed correction runs
+dependency installation before every Cargo gate; its fresh no-`node_modules` worktree proves the
+cold path locally while retaining the existing `TERM`/`130`/`INCOMPLETE` assertion. The final
+remote Fast, Full supply-chain and Required checks passed, so P11-01 through P11-08 are `DONE` and
+P12-01 may begin. The Full gate's fixed-tool install took 603 seconds, a cache-miss performance
+fact rather than a quality exception; supply-chain policy and RustSec audit still passed.
