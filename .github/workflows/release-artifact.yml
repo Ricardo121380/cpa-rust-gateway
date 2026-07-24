@@ -81,7 +81,11 @@ jobs:
           IMAGE_REF: cpa-rust-gateway:${{ github.sha }}
         run: |
           set -euo pipefail
+          builder_name="p12-release-$GITHUB_RUN_ID"
+          docker buildx create --name "$builder_name" --driver docker-container --use
+          docker buildx inspect --bootstrap
           docker buildx build \
+            --builder "$builder_name" \
             --platform linux/amd64 \
             --file Dockerfile \
             --build-arg RELEASE_REVISION="$GITHUB_SHA" \
