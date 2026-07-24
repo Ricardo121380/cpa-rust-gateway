@@ -10,10 +10,10 @@
 
 ## 当前状态
 
-- 阶段：P1-P6、P9、P10 已完成；P11 正在完成 `v0.1.0-alpha.1` 的本地 Release Candidate 清单与 G11 闭环。P7 Kiro OAuth 与 P8 Official API-key 的真实外部验证按批准延后，详情见 [Release Candidate ledger](docs/reports/p11-08-release-candidate.md)。
+- 阶段：P1-P6、P9、P10、P11 已完成；P12-01 正在规划 Linux 发布产物、SBOM、checksum 与签名边界。P7 Kiro OAuth 与 P8 Official API-key 的真实外部验证按批准延后，详情见 [Release Candidate ledger](docs/reports/p11-08-release-candidate.md)。
 - 执行计划：`v1.45`，状态 `Locked for execution`；最新唯一任务和已批准 Change Request 见[详细开发计划](docs/06-development-plan.md)
 - CPA 参考版本：`router-for-me/CLIProxyAPI v7.2.80`
-- Release Candidate：本地证据已汇总，但尚未创建 Git tag、发布产物或服务器部署；P12 才拥有构建、签名、部署和 72h Canary
+- Release Candidate：P11 已通过唯一 GitHub Delivery Gate；尚未创建发布产物、签名、镜像推送或服务器部署。P12 依次拥有构建、签名、部署和 72h Canary
 - Rust Workspace：21-package 骨架已创建并通过 P0-03 验证
 - 服务器部署：尚未开始
 

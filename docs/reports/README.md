@@ -139,4 +139,5 @@
 - [P11-06 recovery report](p11-06-recovery-report.md) — local phase evidence
 - [P11-07 upgrade and rollback report](p11-07-upgrade-rollback.md) — local phase evidence
 - [P11-08 `v0.1.0-alpha.1` Release Candidate ledger](p11-08-release-candidate.md) — local candidate inventory; no published artifact
-- [G11 release-hardening gate report](g11-gate-report.md) — locally accepted; GitHub Delivery Gate pending
+- [G11 release-hardening gate report](g11-gate-report.md) — complete; GitHub Delivery Gate passed
+- [P12-01 release artifact execution plan](p12-01-execution-plan.md) — pinned Linux artifact, OCI archive, SBOM, checksum and signing-authority boundary
