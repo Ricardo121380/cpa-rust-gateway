@@ -537,6 +537,8 @@ pub struct AsyncSqliteEventWriter {
     pending: Vec<GatewayEvent>,
     metrics: EventWriterMetricsHandle,
     telemetry: Option<Arc<TelemetryPipeline>>,
+    #[cfg(test)]
+    test_max_page_count: Option<Arc<std::sync::atomic::AtomicI64>>,
 }
 
 impl AsyncSqliteEventWriter {
@@ -555,6 +557,8 @@ impl AsyncSqliteEventWriter {
             pending: Vec::with_capacity(config.batch_size()),
             metrics: EventWriterMetricsHandle::default(),
             telemetry: None,
+            #[cfg(test)]
+            test_max_page_count: None,
         }
     }
 
@@ -566,6 +570,16 @@ impl AsyncSqliteEventWriter {
     #[must_use]
     pub fn with_telemetry_pipeline(mut self, telemetry: Arc<TelemetryPipeline>) -> Self {
         self.telemetry = Some(telemetry);
+        self
+    }
+
+    /// Constrains the database page count at each test-only write attempt.
+    #[cfg(test)]
+    fn with_test_max_page_count(
+        mut self,
+        max_page_count: Arc<std::sync::atomic::AtomicI64>,
+    ) -> Self {
+        self.test_max_page_count = Some(max_page_count);
         self
     }
 
@@ -652,6 +666,8 @@ impl AsyncSqliteEventWriter {
         let pending = self.pending.clone();
         let database_path = self.database_path.clone();
         let store = self.store.take();
+        #[cfg(test)]
+        let test_max_page_count = self.test_max_page_count.clone();
         let result = tokio::task::spawn_blocking(move || {
             let mut store = match store {
                 Some(store) => store,
@@ -660,6 +676,16 @@ impl AsyncSqliteEventWriter {
                     Err(error) => return (None, Err(error)),
                 },
             };
+            #[cfg(test)]
+            if let Some(max_page_count) = test_max_page_count {
+                let limit = max_page_count.load(Ordering::Relaxed);
+                if let Err(error) = store
+                    .connection
+                    .pragma_update(None, "max_page_count", limit)
+                {
+                    return (Some(store), Err(StoreError::from(error)));
+                }
+            }
             let result = store.append_batch(&pending);
             (Some(store), result)
         })
@@ -790,6 +816,19 @@ mod tests {
             HealthEventKind::CircuitRecovered,
         ));
         Ok((request_id, vec![request, attempt, usage, health]))
+    }
+
+    fn request_event(sequence: usize) -> Result<GatewayEvent, Box<dyn std::error::Error>> {
+        Ok(GatewayEvent::Request(RequestEvent::new(
+            RequestId::try_new(format!("p11-06-request-{sequence:04}"))?,
+            ClientKeyId::try_new("p11-06-client-key")?,
+            None,
+            GatewayProtocol::OpenAiResponses,
+            "p11-06-requested-model".to_owned(),
+            "p11-06-public-model".to_owned(),
+            None,
+            false,
+        )))
     }
 
     fn temporary_path(suffix: &str) -> PathBuf {
@@ -951,6 +990,138 @@ mod tests {
         assert_eq!(store.list_events()?.len(), 1);
         drop(store);
         fs::remove_dir_all(parent)?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn crashed_pending_batch_requires_source_replay_then_restarts_cleanly() -> TestResult {
+        let parent = temporary_path("p11-06-restart");
+        let database_path = parent.join("events.sqlite");
+        let _ = fs::remove_dir_all(&parent);
+        let event = request_event(1)?;
+        let (queue, receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(1, 1)?)?;
+        let writer = AsyncSqliteEventWriter::new(
+            &database_path,
+            receiver,
+            EventWriterConfig::try_new(1, Duration::from_millis(25))?,
+        );
+        let metrics = writer.metrics_handle();
+        assert_eq!(
+            queue.try_emit(event.clone()),
+            gateway_core::EventEmission::Enqueued
+        );
+        drop(queue);
+
+        let writer = tokio::spawn(writer.run());
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while metrics.snapshot().sqlite_write_failures == 0 {
+            assert!(
+                Instant::now() < deadline,
+                "writer did not observe the unavailable database before the injected crash"
+            );
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        assert_eq!(metrics.snapshot().required_events_committed, 0);
+        assert_eq!(metrics.snapshot().pending_required, 1);
+        writer.abort();
+        assert!(
+            writer.await.is_err(),
+            "aborted writer unexpectedly joined cleanly"
+        );
+
+        fs::create_dir_all(&parent)?;
+        let (replay_queue, replay_receiver) =
+            BoundedEventQueue::try_new(EventQueueConfig::try_new(1, 1)?)?;
+        let replay_writer = AsyncSqliteEventWriter::new(
+            &database_path,
+            replay_receiver,
+            EventWriterConfig::try_new(1, Duration::from_millis(5))?,
+        );
+        assert_eq!(
+            replay_queue.try_emit(event),
+            gateway_core::EventEmission::Enqueued
+        );
+        drop(replay_queue);
+        let reported = tokio::time::timeout(Duration::from_secs(2), replay_writer.run()).await?;
+        assert_eq!(reported.required_events_committed, 1);
+        assert_eq!(reported.rows_inserted, 1);
+        let store = SqliteEventStore::open(&database_path)?;
+        assert_eq!(store.list_events()?.len(), 1);
+        store.quick_check()?;
+        drop(store);
+        fs::remove_dir_all(parent)?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn sqlite_full_retains_one_finite_batch_until_capacity_returns() -> TestResult {
+        const EVENT_COUNT: usize = 1_024;
+
+        let database_path = temporary_path("p11-06-sqlite-full.sqlite");
+        let committed_events = (0..EVENT_COUNT)
+            .map(request_event)
+            .collect::<Result<Vec<_>, _>>()?;
+        let events = (EVENT_COUNT..EVENT_COUNT.saturating_mul(2))
+            .map(request_event)
+            .collect::<Result<Vec<_>, _>>()?;
+        let page_count = {
+            let mut store = SqliteEventStore::open(&database_path)?;
+            assert_eq!(store.append_batch(&committed_events)?, EVENT_COUNT);
+            store
+                .connection
+                .execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")?;
+            let page_count: i64 = store
+                .connection
+                .query_row("PRAGMA page_count", [], |row| row.get(0))?;
+            store
+                .connection
+                .execute_batch(&format!("PRAGMA max_page_count = {page_count};"))?;
+            assert!(matches!(
+                store.append_batch(&events),
+                Err(crate::StoreError::Sqlite(rusqlite::Error::SqliteFailure(code, _)))
+                    if code.extended_code == rusqlite::ffi::SQLITE_FULL
+            ));
+            page_count
+        };
+
+        let page_limit = Arc::new(std::sync::atomic::AtomicI64::new(page_count));
+        let (queue, receiver) =
+            BoundedEventQueue::try_new(EventQueueConfig::try_new(EVENT_COUNT, 1)?)?;
+        let writer = AsyncSqliteEventWriter::new(
+            &database_path,
+            receiver,
+            EventWriterConfig::try_new(EVENT_COUNT, Duration::from_millis(25))?,
+        )
+        .with_test_max_page_count(Arc::clone(&page_limit));
+        let metrics = writer.metrics_handle();
+        for event in events {
+            assert_eq!(queue.try_emit(event), gateway_core::EventEmission::Enqueued);
+        }
+        drop(queue);
+
+        let writer = tokio::spawn(writer.run());
+        let deadline = Instant::now() + Duration::from_secs(3);
+        while metrics.snapshot().sqlite_write_failures == 0 {
+            assert!(
+                Instant::now() < deadline,
+                "max_page_count did not produce a SQLite full-write failure"
+            );
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        assert_eq!(metrics.snapshot().required_events_committed, 0);
+        assert_eq!(metrics.snapshot().pending_required, EVENT_COUNT as u64);
+
+        page_limit.store(page_count.saturating_add(1_024), Ordering::Relaxed);
+
+        let reported = tokio::time::timeout(Duration::from_secs(5), writer).await??;
+        assert_eq!(reported.required_events_committed, EVENT_COUNT as u64);
+        assert_eq!(reported.rows_inserted, EVENT_COUNT as u64);
+        assert_eq!(reported.pending_required, 0);
+        let store = SqliteEventStore::open(&database_path)?;
+        assert_eq!(store.list_events()?.len(), EVENT_COUNT.saturating_mul(2));
+        store.quick_check()?;
+        drop(store);
+        fs::remove_file(database_path)?;
         Ok(())
     }
 
