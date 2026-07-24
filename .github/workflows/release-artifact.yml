@@ -76,9 +76,10 @@ jobs:
           ./scripts/generate-p12-01-sbom.rb \
             --target "$RELEASE_TARGET" \
             --output release-artifact/gateway-sbom.cdx.json
-      - name: Build loadable non-root OCI archive
+      - name: Build non-root OCI archive and Docker smoke image
         env:
           IMAGE_REF: cpa-rust-gateway:${{ github.sha }}
+          DOCKER_ARCHIVE: ${{ runner.temp }}/gateway-image.docker.tar
         run: |
           set -euo pipefail
           builder_name="p12-release-$GITHUB_RUN_ID"
@@ -93,6 +94,7 @@ jobs:
             --build-arg RELEASE_RUST_VERSION="$RELEASE_RUST_VERSION" \
             --build-arg RELEASE_TARGET="$RELEASE_TARGET" \
             --output "type=oci,dest=release-artifact/gateway-image.oci.tar,name=$IMAGE_REF" \
+            --output "type=docker,dest=$DOCKER_ARCHIVE,name=$IMAGE_REF" \
             release-image-context
       - name: Verify unsigned artifact structure before signing
         run: |
@@ -109,12 +111,13 @@ jobs:
             --rust-toolchain "$RELEASE_RUST_VERSION" \
             --target "$RELEASE_TARGET" \
             --version "$RELEASE_VERSION"
-      - name: Load and smoke the OCI archive without a network
+      - name: Load and smoke the temporary Docker archive without a network
         env:
           IMAGE_REF: cpa-rust-gateway:${{ github.sha }}
+          DOCKER_ARCHIVE: ${{ runner.temp }}/gateway-image.docker.tar
         run: |
           set -euo pipefail
-          docker load --input release-artifact/gateway-image.oci.tar
+          docker load --input "$DOCKER_ARCHIVE"
           docker image inspect "$IMAGE_REF" --format '{{.Config.User}} {{json .Config.Entrypoint}}' \
             | rg -Fx '65532:65532 ["/usr/local/bin/gateway"]'
           docker run --rm --network none --read-only --user 65532:65532 "$IMAGE_REF" --help
