@@ -1678,7 +1678,7 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 | P11-05 | 执行 SSRF、Secret、Auth、权限、依赖和供应链安全审计 | P11-01 | [Security Report + SBOM](reports/p11-05-security-audit.md)：SSRF/Secret/Auth/权限/依赖审计、路径脱敏 CycloneDX 与 Full gate/review passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P11-06 | 验证优雅停机、流 Drain、崩溃重启、磁盘满和事件队列降级 | P11-02 | [Recovery Report](reports/p11-06-recovery-report.md)：loopback stream drain、crash/replay、deterministic `SQLITE_FULL` recovery、queue degradation、Full gate 与 review passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P11-07 | 完成升级/降级 Migration、备份恢复和旧版本回滚演练 | P10-08 | [Upgrade/rollback report](reports/p11-07-upgrade-rollback.md)：in-place schema drill、loss-aware downgrade、empty-target backup recovery、Full gate 与 review passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P11-08 | 生成 Release Candidate 清单、已知差异和生产默认配置 | P11-01-P11-07 | `v0.1.0-alpha.1` 候选说明 | IN_PROGRESS |
+| P11-08 | 生成 Release Candidate 清单、已知差异和生产默认配置 | P11-01-P11-07 | [`v0.1.0-alpha.1` candidate ledger](reports/p11-08-release-candidate.md)：inventory、safe defaults、known differences、P12 handoff 与 docs review passed；P11 Phase Gate 仍在进行 | IN_PROGRESS |
 
 ### G11 门禁
 

@@ -131,3 +131,11 @@
 - [P10-08 Encrypted backup and empty-target restore](p10-08-encrypted-backup-restore.md) — local phase-gate pass; encrypted SQLite recovery rehearsal, protected binary HTTP and no-persistence browser evidence
 - [P10-09 Embedded management UI and inference isolation](p10-09-embedded-management-ui.md) — local phase-gate pass; embedded closed asset map, hardened static HTTP and data-plane route isolation evidence
 - [G10 management-control-plane gate report](g10-gate-report.md) — local Phase Gate passed; awaiting P10's only GitHub Delivery Gate
+- [P11-01 Differential Fixture Harness](p11-01-differential-fixture-harness.md) — local phase evidence
+- [P11-02 Fault Matrix](p11-02-fault-matrix.md) — local phase evidence
+- [P11-03 benchmark baseline](p11-03-benchmark-baseline.md) — local phase evidence
+- [P11-04 load and soak](p11-04-load-soak.md) — accepted local synthetic evidence; P12 Canary remains required
+- [P11-05 security audit](p11-05-security-audit.md) — local phase evidence
+- [P11-06 recovery report](p11-06-recovery-report.md) — local phase evidence
+- [P11-07 upgrade and rollback report](p11-07-upgrade-rollback.md) — local phase evidence
+- [P11-08 `v0.1.0-alpha.1` Release Candidate ledger](p11-08-release-candidate.md) — local candidate inventory; no published artifact
