@@ -8,7 +8,7 @@
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9 与 P10 已完成；P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。`phase-p10-complete` 的唯一 GitHub Delivery Gate 已通过 Fast、Full supply-chain 与 Required。P11-01 已完成离线、脱敏的差分 Fixture Harness；P11-02 已完成 loopback-only 网络、DNS、TLS、状态、截断流、慢客户端和取消故障注入矩阵与 review。 |
-| 当前任务 | P11-03 至 P11-06 已完成本地实现、review 和证据，等待 P11 Phase Gate；P11-07 正在执行升级、降级与回滚演练，它是唯一 `IN_PROGRESS` Task。 |
+| 当前任务 | P11-03 至 P11-07 已完成本地实现、review 和证据，等待 P11 Phase Gate；P11-08 正在生成 Release Candidate 清单、已知差异和生产默认配置，它是唯一 `IN_PROGRESS` Task。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1677,8 +1677,8 @@ P6-08 已按本计划的 Definition of Done 一并恢复为 `DONE`。
 | P11-04 | 执行并发、长流、连接池、内存、背压和 ≥10h 本地 Soak | P11-02,P11-03 | [性能与 Soak 报告](reports/p11-04-load-soak.md)：`CR-P11-04-001` 下的 10h13m loopback receipt、回归、Full gate 与 review | LOCAL_PASS_PENDING_PHASE_GATE |
 | P11-05 | 执行 SSRF、Secret、Auth、权限、依赖和供应链安全审计 | P11-01 | [Security Report + SBOM](reports/p11-05-security-audit.md)：SSRF/Secret/Auth/权限/依赖审计、路径脱敏 CycloneDX 与 Full gate/review passed | LOCAL_PASS_PENDING_PHASE_GATE |
 | P11-06 | 验证优雅停机、流 Drain、崩溃重启、磁盘满和事件队列降级 | P11-02 | [Recovery Report](reports/p11-06-recovery-report.md)：loopback stream drain、crash/replay、deterministic `SQLITE_FULL` recovery、queue degradation、Full gate 与 review passed | LOCAL_PASS_PENDING_PHASE_GATE |
-| P11-07 | 完成升级/降级 Migration、备份恢复和旧版本回滚演练 | P10-08 | Upgrade/rollback report | IN_PROGRESS |
-| P11-08 | 生成 Release Candidate 清单、已知差异和生产默认配置 | P11-01-P11-07 | `v0.1.0-alpha.1` 候选说明 | PENDING |
+| P11-07 | 完成升级/降级 Migration、备份恢复和旧版本回滚演练 | P10-08 | [Upgrade/rollback report](reports/p11-07-upgrade-rollback.md)：in-place schema drill、loss-aware downgrade、empty-target backup recovery、Full gate 与 review passed | LOCAL_PASS_PENDING_PHASE_GATE |
+| P11-08 | 生成 Release Candidate 清单、已知差异和生产默认配置 | P11-01-P11-07 | `v0.1.0-alpha.1` 候选说明 | IN_PROGRESS |
 
 ### G11 门禁
 

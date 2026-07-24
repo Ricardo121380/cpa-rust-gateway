@@ -103,6 +103,13 @@ pub enum StoreError {
         /// Ordered migration versions found in the database.
         applied: Vec<i64>,
     },
+    /// A requested downgrade target is not a known applied schema prefix.
+    UnsupportedRollbackTarget {
+        /// Requested schema version, with zero representing the unmigrated base state.
+        target: i64,
+        /// Ordered migration versions found in the database.
+        applied: Vec<i64>,
+    },
     /// A persisted control-plane row violates the Repository's fail-closed decoding rules.
     ///
     /// The table name is structural metadata only; no row contents are included.
@@ -153,6 +160,9 @@ impl fmt::Display for StoreError {
             }
             Self::UnsupportedMigrationHistory { .. } => {
                 formatter.write_str("database migration history is not supported by this build")
+            }
+            Self::UnsupportedRollbackTarget { .. } => {
+                formatter.write_str("database rollback target is not a supported applied schema")
             }
             Self::InvalidPersistedControlPlaneRecord { table } => {
                 write!(
@@ -206,6 +216,7 @@ impl Error for StoreError {
             Self::Sqlite(error) => Some(error),
             Self::ForeignKeysDisabled
             | Self::UnsupportedMigrationHistory { .. }
+            | Self::UnsupportedRollbackTarget { .. }
             | Self::InvalidPersistedControlPlaneRecord { .. }
             | Self::InvalidClientKeyDigestLength { .. }
             | Self::ControlPlaneMutationRequiresDraft
@@ -294,11 +305,42 @@ pub fn migrate(connection: &mut Connection) -> StoreResult<()> {
 /// Returns [`StoreError::UnsupportedMigrationHistory`] instead of applying a partial or guessed
 /// rollback when the stored migration sequence is not supported by this build.
 pub fn rollback_all(connection: &mut Connection) -> StoreResult<()> {
+    rollback_to_version(connection, 0)
+}
+
+/// Downgrades one supported migration prefix to an explicitly named earlier schema version.
+///
+/// A target of zero represents the unmigrated user-table base state. The target must be an exact
+/// schema version known to this build and may not be newer than the database's currently applied
+/// prefix. Every down migration and its bookkeeping deletion commits in its own transaction, so
+/// an unsupported history or rejected down step cannot be silently skipped.
+///
+/// # Errors
+///
+/// Returns [`StoreError::UnsupportedRollbackTarget`] if `target_version` is unknown, negative, or
+/// above the current applied prefix. Returns [`StoreError::UnsupportedMigrationHistory`] rather
+/// than guessing when the stored history is not a supported prefix.
+pub fn rollback_to_version(connection: &mut Connection, target_version: i64) -> StoreResult<()> {
     enable_foreign_keys(connection)?;
     let applied = applied_migration_versions(connection)?;
     ensure_supported_prefix(&applied)?;
 
+    let target_is_known = target_version == 0
+        || MIGRATIONS
+            .iter()
+            .any(|migration| migration.version == target_version);
+    let current_version = applied.last().copied().unwrap_or(0);
+    if !target_is_known || target_version < 0 || target_version > current_version {
+        return Err(StoreError::UnsupportedRollbackTarget {
+            target: target_version,
+            applied,
+        });
+    }
+
     for migration in MIGRATIONS.iter().take(applied.len()).rev() {
+        if migration.version <= target_version {
+            break;
+        }
         let transaction = connection.transaction()?;
         transaction.execute_batch(migration.down)?;
         transaction.execute(
@@ -308,7 +350,8 @@ pub fn rollback_all(connection: &mut Connection) -> StoreResult<()> {
         transaction.commit()?;
     }
 
-    if table_exists(connection, "schema_migrations")?
+    if target_version == 0
+        && table_exists(connection, "schema_migrations")?
         && applied_migration_versions(connection)?.is_empty()
     {
         connection.execute_batch("DROP TABLE schema_migrations;")?;
