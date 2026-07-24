@@ -36,7 +36,7 @@ interrupted foreground process cannot look successful.
 | Receipt checker | Exact-field, timing, terminal-state, batch/stream, and full-history RSS checks accept a completed fixture and reject RSS-growth, incomplete, and malformed fixtures. The final shortened receipt is intentionally reviewed against the CR criteria rather than passed through its 24-hour checker. | PASS |
 | Focused code checks | `cargo fmt --all -- --check`; `cargo test --locked -p gateway-http-actix --test p11_04_load_soak`; focused Clippy; `git diff --check`. | PASS |
 | [Local Full gate](p11-04-local-full-check.md) | The first run exposed a pre-existing P10-08 temporary-directory collision under parallel test execution. The test now adds an atomic per-process suffix and retries a name collision; 10 focused repetitions and the rerun `./scripts/check.sh full` passed. | PASS |
-| Documentation boundary | `./scripts/check.sh docs` checked 306 Markdown files, plan state (115 Tasks / one `IN_PROGRESS`), tracked Secret scan, and whitespace. | PASS |
+| Documentation boundary | `./scripts/check.sh docs` checked 307 Markdown files, plan state (115 Tasks / one `IN_PROGRESS`), tracked Secret scan, and whitespace. | PASS |
 
 ## CR-P11-04-001 shortened local-soak acceptance
 
