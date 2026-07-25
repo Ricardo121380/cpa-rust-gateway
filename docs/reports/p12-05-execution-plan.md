@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.50` |
+| Plan version | `v1.51` |
 | Task | `P12-05` |
-| Status | `IN_PROGRESS` — a late management-to-runtime policy mismatch was repaired after the first revision-bound artifact had been independently verified but before it was activated. The accepted P12-04 loopback Staging instance still has no P12-05 configuration row; the repair's Full gate passed and `CR-P12-05-002` directly approves its exact-SHA artifact before any graph write. |
+| Status | `IN_PROGRESS` — a late management-to-runtime policy mismatch was repaired after the first revision-bound artifact had been independently verified but before it was activated. The accepted P12-04 loopback Staging instance still has no P12-05 configuration row; the repair's Full gate passed and `CR-P12-05-002` directly approves its exact-SHA artifact before any graph write. `CR-P12-05-003` quarantines one removed local `0600` credential-selection spool: it is not accepted as memory-only evidence, and continuation requires a fresh pure-memory preflight before any graph write. |
 | Preconditions | P12-04 remains active but disabled at boot, has its own state directory and its two loopback listeners. The incumbent `cli-proxy-api` remains out of scope. |
 | Approved remote exception | `CR-P12-05-001` is consumed by the rejected, never-activated `9d62339` artifact. `CR-P12-05-002` directly approves one replacement private GitHub OIDC/Sigstore artifact for the reviewed policy-alignment SHA and the same isolated Staging-only sequence. |
 | Credential authority | The operator authorized a read-only use of this Mac's CC Switch `krill` Codex configuration. It contains a current ChatGPT OAuth token set, a separately selected effective Bearer credential, and two configured HTTPS endpoints. Values, endpoint text, account identity, models, request/response bodies, and token fingerprints are never written to Git, reports, command lines, or chat. |
@@ -89,6 +89,19 @@ No prompt, model name, endpoint text, credential value, response body, proxy set
 identity was retained.  The helper did not follow redirects and did not write to Staging; the
 temporary Staging graph, Client Key, encrypted Credential envelope, and Provider validation
 sequence remain pending the revision-bound artifact.
+
+## Credential-handling deviation and corrective control
+
+During a post-artifact local re-check, a helper briefly used a new local `0600` temporary
+selection spool to pass the selected Bearer between processes. It was removed within that helper
+and an absence check found no remaining matching file. No value was rendered, committed,
+transferred, sent to the server, written to the Staging database, or used for a server-side
+Provider request. Nevertheless, that invocation is **not** evidence for P12-05's memory-only
+credential boundary. Under the operator's approved direct-approval convention,
+`CR-P12-05-003` permits the unchanged isolated scope to continue only after a fresh pure-memory
+preflight has replaced this evidence. The corrected helper must not create a plaintext file or
+place the Bearer in a shell argument, environment, log, report, or repository; the only later
+server persistence remains the encrypted Staging Credential envelope.
 
 ## Local composition evidence
 
