@@ -6,6 +6,7 @@
 | Task | `P12-05` |
 | Status | `IN_PROGRESS` — the local production composition, focused regression suite, source review, Full gate, and one direct protocol preflight are complete; the accepted P12-04 loopback Staging instance still has no P12-05 configuration row. |
 | Preconditions | P12-04 remains active but disabled at boot, has its own state directory and its two loopback listeners. The incumbent `cli-proxy-api` remains out of scope. |
+| Approved remote exception | `CR-P12-05-001`: one exact-SHA, private GitHub OIDC/Sigstore artifact and the subsequent isolated Staging-only execution sequence. |
 | Credential authority | The operator authorized a read-only use of this Mac's CC Switch `krill` Codex configuration. It contains a current ChatGPT OAuth token set, a separately selected effective Bearer credential, and two configured HTTPS endpoints. Values, endpoint text, account identity, models, request/response bodies, and token fingerprints are never written to Git, reports, command lines, or chat. |
 
 ## Boundary
@@ -51,9 +52,9 @@ evidence and a design reference only; it must not be linked into the production 
    capability escalation.  A runtime may not start with a populated route if its data-plane
    composition, egress policy, Catalog/capability evidence, or credential pool is unavailable.
 3. Run the focused tests, local Full gate, documentation gate, tracked-secret scan, and an
-   independent review.  If source changes require a replacement Linux artifact, obtain a
-   separately approved revision-bound signing/deployment exception before any server write; do
-   not upload a local build or reuse an artifact whose signed revision predates the source.
+   independent review.  `CR-P12-05-001` authorizes one replacement, revision-bound signing/
+   deployment sequence before any server write; do not upload a local build or reuse an artifact
+   whose signed revision predates the source.
 4. Before the first P12-05 write, stop the isolated Staging unit and make a root-only timestamped
    snapshot of its `control.sqlite3` plus a value-free manifest.  Restart it and inject the
    current effective **Bearer credential only** through stdin into the protected loopback

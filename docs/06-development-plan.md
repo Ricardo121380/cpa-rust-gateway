@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.48` |
+| 计划版本 | `v1.49` |
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -15,6 +15,7 @@
 | 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 `CR-P6-03-003`：在确认 2xx JSON 错误对象后，增加最终一次仅从标准错误元数据映射安全类别的诊断调用。 `CR-P6-03-004`：新增一个与固定直连验收隔离的、服务器本地 grok2api Build 路由代理参考探针。 `CR-P6-03-005`：采用服务器参考的当前 Build 请求轮廓，并只登记新的固定端点 T11 非流式与 T12 SSE 验证。 `CR-P6-03-006`：通过 grok2api 支持的管理 API 导入指定 OAuth 文件并做账号专属额度刷新诊断；不重放固定直连元组，也不把共享路由调用误归因到该账号。 `CR-P6-03-007`：仅以本机官方 Grok CLI 做一次交互式 OAuth 重新认证并记录安全状态投影；不发送 P6 请求或改变服务器/路由。 |
 | 已批准变更（续） | `CR-P6-03-008`：以 CPA、grok2api 和 Sub2API 的 clean-room 行为参考扩展 Grok Build 的已知 OAuth 凭据来源；保留标准 JSON/Device Code/Refresh，新增 CPA xAI 文件和官方 Grok CLI indexed cache 的内存导入，不纳入 Cookie/SSO Web 转换。 `CR-P6-03-009`：仅修正 T13 零发送 wrapper 的一次替代 T15 验证；T15 的 4xx 已停止矩阵。 `CR-P6-03-010`：基于官方 CLI 静态证据更正 workspace User-Agent，仅登记新的 T16 非流式直连验证，并在 T16 完整成功时条件允许一次 T17 SSE。 `CR-P6-03-011`：T16 在无网络预检的本地标签门槛前停止后，以不同的合法短标签重新登记 T18 非流式直连；仅其完整 Canonical 成功时允许条件 T19 SSE。 `CR-P6-03-013`：用户批准完成 P6 全部要求，解除 P6-03 对后续本地安全/连续性实现的流程阻塞；不声称 T18 成功、不发送 T19 或重放任何闭合 tuple。 `CR-P6-03-014`：以当前官方 CLI 的成功模型/会话和新完成的可注入执行链路登记 T20/T21，不重放任何已关闭 tuple。 `CR-P6-03-015`：T20 的新的 2xx JSON 协议失败后，只输出固定的无值结构类别诊断 T22。 `CR-P6-03-016`：T22 发现投影在合法压缩前运行，登记一次解压后无值结构诊断 T23。 `CR-P6-03-017`：T23 仍失败后，仅投影第一个固定 decoder requirement gate 的 T24。 |
 | 已批准变更（续 2） | `CR-P7-G7-001`：P7 因 Kiro 外部账号重新认证而阻塞时，允许 P8 按自身顺序进行本地实现与审查；其与 `CR-P7-DEFER-002` 冲突的 P8/G8/P9-P12 顺序约束已由后者替代。 `CR-P7-DEFER-002`：Kiro OAuth 延后；P8-G12 按自身非 Kiro 依赖推进，P8 可执行自身 Phase Gate 与 Delivery Gate；真实 xAI 验证仍仅按 P8 自身明确授权进行。 `CR-P8-DEFER-001`：无 Official API Key 时，P8-07/G8 与 P7-09 一并延后至最终外部认证验收包；P9-P12 Gate 依赖不变。 `CR-P11-04-001`：用户批准把纯 loopback 合成 Soak 的最低门槛由 24 小时改为 10 小时；已完成的 10h13m 用户停止 receipt 仍如实标为 `INCOMPLETE`，P12 的真实 Canary 72h 观察不变。 |
+| 已批准变更（续 3） | `CR-P12-05-001`：为 P12-05 的生产数据面组成创建一次新的、精确 SHA 绑定的私有 GitHub OIDC/Sigstore 制品，并仅在独立 loopback Staging 上执行受控临时图写入与最小验收；既有 CPA、公开流量和后续 P12 Task 均不改变。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -1788,6 +1789,32 @@ CR-ID: CR-P12-04-001
 计划版本变更: v1.48
 ```
 
+### 已批准 Change Request：CR-P12-05-001
+
+```text
+CR-ID: CR-P12-05-001
+原因: P12-05 的已审阅生产数据面组成改变了 Linux `gateway` 二进制；P12-04 已验收的
+      Staging artifact 早于该来源，不能复用。用户批准从包含本 CR、运行时和证据的精确
+      `codex/p12-deployment` SHA 重新生成私有 artifact，并在独立 Staging 执行受控验证。
+影响的 Task / Matrix ID / ADR: 仅 P12-05 的一次 revision-bound artifact/deployment 例外。
+      推送精确已审阅 SHA 后，手动运行既有 `release-artifact` workflow；二进制、OCI、SBOM、
+      manifest、signature bundle 和 receipt 仍为私有 workflow artifact。独立验证签名 identity、
+      revision、digest、SBOM、ELF、OCI 和 `gateway serve --help` 通过后，才可将同一 digest
+      安装到既有 isolated loopback Staging。随后仅可备份其 `control.sqlite3`、通过 stdin 注入
+      选定 Bearer、建立一个临时单例图，并执行 P12-05 的 Models/Responses/SSE/Messages/Tool/
+      Explain 顺序验收。P12-06 至 P12-10、P12 Delivery Gate、P7/P8 延期均不改变。
+兼容性与迁移影响: 不创建 PR、tag、GitHub Release 或 registry image；新增 Sigstore manifest
+      签名会写入公开 Rekor 透明日志，artifact payload 保持私有。不得读取、复制或使用 CC Switch
+      OAuth token；仅可通过受保护的 loopback 管理 API stdin 边界使用选定 Bearer。不得改动
+      incumbent CPA/AxonHub/New API/Kiro-RS、Caddy、Cloudflare、DNS、任何公开 listener 或公开流量。
+测试与回滚变化: workflow 必须通过其固定 build/SBOM/manifest/Cosign 验证；本地必须再次独立
+      验证 artifact。任一 GitHub、provenance、listener、credential-envelope、protocol/lifecycle
+      或 incumbent-continuity 检查失败即停止，不向后续 Task 推进。验收后默认在 Staging 停止时
+      恢复其 P12-05 preimage，除非用户另行要求保留图供 P12-06 使用。
+用户批准: APPROVED，2026-07-25（“批准”）
+计划版本变更: v1.49
+```
+
 ### Canary 推进与回滚规则
 
 - 每个流量阶段至少持续 2 小时并包含至少 100 个成功请求；低流量时使用固定合成请求补足。
@@ -1951,3 +1978,4 @@ Next task:
 | v1.44 | 2026-07-23 | `CR-P9-CANARY-002`：在用户扩大测试授权后，允许 P9-09 按现有服务器 Web 运行轮廓使用受限 Statsig 辅助请求与临时 loopback SSH SOCKS5 出口复测；固定目标 POST 预算与 G9 fail-closed 不变 | APPROVED；当前执行基线 |
 | v1.45 | 2026-07-24 | `CR-P11-04-001`：将 P11 loopback Soak 的最低本地观察固定为 10 小时；P12-10 的真实 72 小时 Canary 保持不变 | APPROVED；历史执行基线 |
 | v1.46 | 2026-07-24 | `CR-P12-01-001`：批准 GitHub OIDC keyless Sigstore manifest 签名和透明日志；OCI 仅为私有 CI artifact，不得推送/部署 | APPROVED；当前执行基线 |
+| v1.49 | 2026-07-25 | `CR-P12-05-001`：批准一份精确 SHA 绑定的私有 OIDC/Sigstore artifact，并在验证后仅对 isolated loopback Staging 执行临时图与最小验收 | APPROVED；当前执行基线 |
