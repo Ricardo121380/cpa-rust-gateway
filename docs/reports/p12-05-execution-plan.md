@@ -158,6 +158,19 @@ explicit revision-bound artifact approval remain mandatory; the old artifact is 
 P12-05. The new complete gate receipt is
 [p12-05-policy-alignment-full-gate-20260725.md](evidence/p12-05-policy-alignment-full-gate-20260725.md).
 
+## CR-004 replacement artifact acceptance
+
+The exact private replacement artifact for revision
+`7a5dead43b257f487e526051acf544578841e6ae` completed the required independent checks before
+any Staging write.  Its successful workflow run, private artifact identifier, manifest/ELF/SBOM/
+OCI digests, nine-file extraction check, repository verifier, OCI inspection, and keyless
+Cosign `verify-blob` result are recorded in the value-free
+[CR-004 artifact acceptance](p12-05-cr-004-artifact-acceptance-20260725.md).  The signing
+identity is the repository's pinned `release-artifact.yml` workflow on the current deployment
+branch and the GitHub Actions OIDC issuer.  This document does not make a server-installation or
+Provider-validation claim: the P12-05 preimage, encrypted temporary graph, and ordered loopback
+acceptance remain next.
+
 ## Stop conditions and rollback
 
 - A missing selected Bearer credential, a preflight result outside `2xx`, an endpoint that cannot
