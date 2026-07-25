@@ -3,7 +3,7 @@ Description=CPA Rust Gateway (loopback staging envelope)
 Documentation=https://github.com/Ricardo121380/cpa-rust-gateway
 Wants=network-online.target
 After=network-online.target
-ConditionPathIsExecutable=/opt/cpa-rust-gateway/current/gateway
+ConditionPathExists=/opt/cpa-rust-gateway/current/gateway
 
 [Service]
 Type=simple

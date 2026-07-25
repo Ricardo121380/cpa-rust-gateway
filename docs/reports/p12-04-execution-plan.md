@@ -4,8 +4,8 @@
 |---|---|
 | Plan version | `v1.48` |
 | Task | `P12-04` |
-| Status | `IN_PROGRESS` |
-| Preconditions | P12-02 deployment envelope and P12-03 incumbent backup are `LOCAL_PASS_PENDING_PHASE_GATE`. The previously accepted artifact is rejected for this task because it pre-dates `gateway serve`. |
+| Status | `IN_PROGRESS` — P12-02's repaired Unit is again `LOCAL_PASS_PENDING_PHASE_GATE`; no P12-04 server write or Unit start has occurred. |
+| Preconditions | P12-02 and P12-03 are `LOCAL_PASS_PENDING_PHASE_GATE`. The pre-`serve` P12-01 artifact remains rejected. The independently verified replacement is GitHub run `30142690538`, revision `111f60a416fd0a6b4a6314bac8ff32b0074cdca7`, private artifact ID `8615022248`. |
 | Approved remote exception | `CR-P12-04-001`: one current-revision private GitHub artifact, OIDC keyless manifest signature, and public Rekor inclusion before any server write. |
 
 ## Staging boundary
@@ -27,15 +27,20 @@ mirroring. Those remain P12-05/P12-06 work.
    and dispatch the pinned `release-artifact` workflow at that exact remote SHA. Do not create a
    PR, tag, GitHub Release, registry image, or server-side change.
 2. Download the resulting private artifact to a disposable local verification directory. Check
-   signature identity/issuer/revision, manifest and receipt digests, SBOM redaction, Linux amd64
-   non-root OCI structure, and `gateway serve --help`. Stop if the artifact differs from the
-   pushed SHA or any check fails.
+   signature identity/issuer/revision, manifest and receipt digests, SBOM redaction, and Linux
+   amd64 non-root OCI structure. The local macOS host cannot execute the Linux binary and its
+   Docker daemon is unavailable; do not start or change Docker. The Linux `gateway serve --help`
+   check is therefore deliberately deferred to the isolated server staging path.
 3. Read-only inspect the server's Linux architecture, systemd version, unused loopback ports, and
-   proposed staging paths. Verify `systemd-analyze verify` against the exact candidate Unit before
-   installation. Stop on a path, port, account, ownership, capacity, or Unit-hardening conflict.
-4. Only then create the dedicated unprivileged account, root-only credentials, release directory,
-   systemd Unit, and systemd-owned state/runtime/log directories. Install the verified binary by
-   digest, reload systemd, and start only the new loopback Staging Unit.
+   proposed staging paths. The preflight has passed. Stage only the verified binary by digest in
+   the new release path, run `gateway serve --help`, and run `systemd-analyze verify` against the
+   exact repaired Unit (SHA-256 `f40cf0e55116360fe8372240131f4fa69aea5e6692f0ec64a21a9d859397063d`)
+   while it is still uninstalled. Stop on a digest, path, port, ownership, capacity, help, or
+   Unit-hardening failure.
+4. Only then create the dedicated unprivileged account, five root-only credential files, systemd
+   Unit, and systemd-owned state/runtime/log directories. Reload systemd and start only the new
+   loopback Staging Unit. The signed binary remains eligible because the P12-02 repair changes
+   only the Unit, checker, regression harness, and documentation—not the signed binary inputs.
 5. Verify the two listener boundaries, readiness, protected management admission, service owner,
    unit hardening, resource state, and value-free journal summary. Preserve an independent
    receipt, review, local/remote verification evidence, and exact staging rollback procedure.

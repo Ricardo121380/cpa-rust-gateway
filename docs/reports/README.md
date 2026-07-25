@@ -143,7 +143,7 @@
 - [P12-01 release artifact execution plan](p12-01-execution-plan.md) — pinned Linux artifact, private OCI archive, redacted SBOM, checksum and approved keyless-signing boundary
 - [P12-01 release artifact](p12-01-release-artifact.md) — accepted revision-bound Linux binary/OCI/SBOM/manifest, GitHub OIDC keyless signature, Rekor inclusion and private workflow artifact
 - [P12-02 deployment envelope execution plan](p12-02-execution-plan.md) — approved minimal `serve`, isolated loopback listeners, `LoadCredential`, state/log directories, systemd hardening and Linux verification plan
-- [P12-02 deployment envelope acceptance](p12-02-deployment-envelope.md) — local Full gate and independent review accepted; no host was changed and Linux `systemd-analyze verify` remains a P12 delivery requirement
+- [P12-02 deployment envelope acceptance](p12-02-deployment-envelope.md) — local Full gate, independent review, and repaired real-Linux systemd 255 syntax verification accepted; no Unit was installed or started
 - [P12-03 server backup and rollback inventory plan](p12-03-execution-plan.md) — constrained server-local snapshot plan; no configuration, database, or credential material may enter the repository
 - [P12-03 server backup and rollback receipt](p12-03-server-backup-rollback.md) — value-free incumbent CPA snapshot, version identity, integrity review, and exact non-log rollback procedure
 - [P12-04 Staging execution plan](p12-04-execution-plan.md) — revision-bound private signed-artifact precondition, isolated loopback deployment boundary, and fail-closed Staging sequence

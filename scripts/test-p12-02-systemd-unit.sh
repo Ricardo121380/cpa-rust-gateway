@@ -26,4 +26,12 @@ if ruby "$checker" --unit "$ambient_secret" >/dev/null 2>&1; then
   exit 1
 fi
 
+unsupported_condition="$work_dir/unsupported-condition.service"
+cp "$unit" "$unsupported_condition"
+ruby -e 'path = ARGV.fetch(0); text = File.read(path).sub("ConditionPathExists=", "ConditionPathIsExecutable="); File.write(path, text)' "$unsupported_condition"
+if ruby "$checker" --unit "$unsupported_condition" >/dev/null 2>&1; then
+  printf 'p12-02 systemd unit test: unsupported condition was accepted\n' >&2
+  exit 1
+fi
+
 printf 'p12-02 systemd unit test: ok\n'

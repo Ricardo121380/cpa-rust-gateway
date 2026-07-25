@@ -18,7 +18,8 @@ end
 
 lines = File.readlines(options[:unit], chomp: true)
 required = [
-  "[Unit]", "[Service]", "[Install]", "User=cpa-gateway", "Group=cpa-gateway",
+  "[Unit]", "[Service]", "[Install]", "ConditionPathExists=/opt/cpa-rust-gateway/current/gateway",
+  "User=cpa-gateway", "Group=cpa-gateway",
   "UMask=0077", "WorkingDirectory=/var/lib/cpa-rust-gateway",
   "ExecStart=/opt/cpa-rust-gateway/current/gateway serve --data-listen 127.0.0.1:18180 --management-listen 127.0.0.1:18181 --state-dir /var/lib/cpa-rust-gateway --credential-dir %d",
   "Restart=on-failure", "RestartSec=5s", "TimeoutStartSec=30s", "TimeoutStopSec=45s",
@@ -57,6 +58,7 @@ forbidden = lines.grep(/^(Environment|EnvironmentFile)=/i)
 errors << "unit must not use environment credential configuration" unless forbidden.empty?
 errors << "unit must not use a root service account" if lines.include?("User=root") || lines.include?("Group=root")
 errors << "unit must use all five direct LoadCredential entries" unless lines.grep(/^LoadCredential=/).length == 5
+errors << "unit must not use unsupported ConditionPathIsExecutable" if lines.any? { |line| line.start_with?("ConditionPathIsExecutable=") }
 
 if errors.any?
   errors.each { |error| warn "p12-02 systemd unit: #{error}" }

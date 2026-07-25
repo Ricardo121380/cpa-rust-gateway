@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.47` |
+| Plan version | `v1.48` |
 | Task | `P12-02` |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` — implementation, local Full gate, and independent review are complete; the Linux-only `systemd-analyze verify` branch remains mandatory at the P12 Delivery Gate. |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` — implementation, local Full gate, independent review, and real-Linux `systemd-analyze verify` repair validation are complete. P12-04 repeats it against the exact Unit after staging the verified binary, before installing the Unit. |
 | Scope | Explicit Linux service envelope: systemd unit, credential hand-off, state/log directories, resource limits, and the minimum process composition needed for those assets to start safely. |
 | Preconditions | P12-01's accepted private revision-bound artifact; no server state, provider credential, route, Caddy, Cloudflare, or production traffic is in scope. |
 | Approved change | `CR-P12-02-001`: add a minimal `gateway serve` composition entry because the prior artifact exposed only the transport-free `gateway admin` CLI. |
@@ -62,12 +62,14 @@ claim is made.
 - Focused Rust tests cover command parsing, listener/data-plane separation, secret-file rejection,
   typed management composition, and no start on an invalid configuration.
 - The unit verifier covers systemd syntax (when available) and every locked deployment invariant.
-  macOS cannot provide `systemd-analyze`; the same verifier will run its Linux branch in the
-  P12 Delivery Gate before P12 may complete.
+  The real-Linux systemd `255` run caught and repaired an unsupported
+  `ConditionPathIsExecutable=` directive; the corrected exact Unit SHA-256
+  `f40cf0e55116360fe8372240131f4fa69aea5e6692f0ec64a21a9d859397063d` passed. P12-04 will repeat
+  the check after creating only the verified binary path and before Unit installation.
 - Run formatting, focused Clippy/tests, the Fast and Full local gates, docs/plan/secret scans, and
   an independent diff review.  Preserve the single active-task rule: P12-02 may become
-  `LOCAL_PASS_PENDING_PHASE_GATE`, but P12-03 remains the only subsequent task and no server is
-  contacted before its prerequisite backup task.
+  `LOCAL_PASS_PENDING_PHASE_GATE`; P12-03 must complete its prerequisite backup before P12-04
+  becomes the only subsequent task. No staging installation can precede that backup.
 
 ## Exclusions and rollback
 
