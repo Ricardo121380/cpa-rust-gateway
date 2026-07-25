@@ -13,10 +13,11 @@ packages = metadata.fetch("packages").select { |package| workspace_ids.include?(
 workspace_names = packages.map { |package| package.fetch("name") }.sort
 
 allowed = {
-  # The binary is the sole deployment-composition root. Its direct Actix, credential and SQLite
-  # dependencies only assemble the P12 loopback listeners; lower-layer boundary rules remain
-  # unchanged and prevent these dependencies from flowing back into library crates.
-  "gateway" => %w[actix-web futures-util gateway-auth gateway-control gateway-http-actix gateway-observability gateway-store libc zeroize],
+  # The binary is the sole deployment-composition root. P12-05 adds the explicitly bounded
+  # data-plane adapter and its immutable RouteSnapshot, encrypted Credential-pool, direct egress,
+  # protocol, and JSON dependencies here only; lower-layer rules still prevent them from flowing
+  # back into library crates.
+  "gateway" => %w[actix-web futures-util gateway-auth gateway-catalog gateway-control gateway-core gateway-http-actix gateway-observability gateway-router gateway-store gateway-upstream libc protocol-openai-responses provider-openai-compatible serde_json zeroize],
   "gateway-access" => %w[gateway-core],
   "gateway-auth" => %w[gateway-core getrandom hmac libc sha2 subtle zeroize],
   "gateway-catalog" => %w[gateway-core gateway-provider tokio],

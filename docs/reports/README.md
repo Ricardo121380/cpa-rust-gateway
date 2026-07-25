@@ -148,3 +148,4 @@
 - [P12-03 server backup and rollback receipt](p12-03-server-backup-rollback.md) — value-free incumbent CPA snapshot, version identity, integrity review, and exact non-log rollback procedure
 - [P12-04 Staging execution plan](p12-04-execution-plan.md) — revision-bound private signed-artifact precondition, isolated loopback deployment boundary, and fail-closed Staging sequence
 - [P12-04 isolated Staging receipt](p12-04-staging-receipt.md) — signed-artifact/digest provenance, loopback runtime acceptance, root-only credential metadata, new-instance-only rollback, and no incumbent change
+- [P12-05 controlled Krill Staging execution plan](p12-05-execution-plan.md) — ephemeral CC Switch selected-Bearer boundary, production data-plane composition, minimum real validation sequence, and Staging-only rollback

@@ -11,11 +11,18 @@ publish.workspace = true
 actix-web.workspace = true
 futures-util.workspace = true
 gateway-auth = { path = "../../crates/gateway-auth" }
+gateway-catalog = { path = "../../crates/gateway-catalog" }
 gateway-control = { path = "../../crates/gateway-control" }
+gateway-core = { path = "../../crates/gateway-core" }
 gateway-http-actix = { path = "../../crates/gateway-http-actix" }
 gateway-observability = { path = "../../crates/gateway-observability" }
+gateway-router = { path = "../../crates/gateway-router" }
 gateway-store = { path = "../../crates/gateway-store" }
+gateway-upstream = { path = "../../crates/gateway-upstream" }
 libc.workspace = true
+protocol-openai-responses = { path = "../../crates/protocol-openai-responses" }
+provider-openai-compatible = { path = "../../crates/provider-openai-compatible" }
+serde_json.workspace = true
 zeroize.workspace = true
 
 [lints]

@@ -696,11 +696,18 @@ dependencies = [
  "actix-web",
  "futures-util",
  "gateway-auth",
+ "gateway-catalog",
  "gateway-control",
+ "gateway-core",
  "gateway-http-actix",
  "gateway-observability",
+ "gateway-router",
  "gateway-store",
+ "gateway-upstream",
  "libc",
+ "protocol-openai-responses",
+ "provider-openai-compatible",
+ "serde_json",
  "zeroize",
 ]
 

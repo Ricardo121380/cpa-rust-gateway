@@ -6,6 +6,7 @@
 #![deny(unsafe_code)]
 
 mod deployment;
+mod runtime;
 
 use std::{collections::BTreeMap, env, error::Error, fmt, process::ExitCode};
 
