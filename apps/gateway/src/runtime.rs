@@ -420,7 +420,7 @@ fn validate_p12_route_access_shape(
         .first()
         .filter(|route| {
             route.public_model_id == public_model.id
-                && route.policy == RoutePolicy::PriorityFailover
+                && route.policy == RoutePolicy::SmoothWeightedRoundRobin
                 && route.max_attempts == 1
                 && route.bootstrap_timeout_ms > 0
                 && route.bootstrap_timeout_ms <= P12_BOOTSTRAP_TIMEOUT_MILLISECONDS
@@ -1435,7 +1435,7 @@ mod tests {
         configuration.model_routes.push(ModelRouteConfiguration {
             id: ids.route.clone(),
             public_model_id: ids.public_model.clone(),
-            policy: RoutePolicy::PriorityFailover,
+            policy: RoutePolicy::SmoothWeightedRoundRobin,
             max_attempts: 1,
             bootstrap_timeout_ms: 15_000,
         });

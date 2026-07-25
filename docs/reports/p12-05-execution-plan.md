@@ -4,7 +4,7 @@
 |---|---|
 | Plan version | `v1.49` |
 | Task | `P12-05` |
-| Status | `IN_PROGRESS` — the local production composition, focused regression suite, source review, Full gate, and one direct protocol preflight are complete; the accepted P12-04 loopback Staging instance still has no P12-05 configuration row. |
+| Status | `IN_PROGRESS` — a late management-to-runtime policy mismatch was repaired after the first revision-bound artifact had been independently verified but before it was activated. The accepted P12-04 loopback Staging instance still has no P12-05 configuration row; the repair's Full gate passed, and a newly approved exact-SHA artifact is required before any graph write. |
 | Preconditions | P12-04 remains active but disabled at boot, has its own state directory and its two loopback listeners. The incumbent `cli-proxy-api` remains out of scope. |
 | Approved remote exception | `CR-P12-05-001`: one exact-SHA, private GitHub OIDC/Sigstore artifact and the subsequent isolated Staging-only execution sequence. |
 | Credential authority | The operator authorized a read-only use of this Mac's CC Switch `krill` Codex configuration. It contains a current ChatGPT OAuth token set, a separately selected effective Bearer credential, and two configured HTTPS endpoints. Values, endpoint text, account identity, models, request/response bodies, and token fingerprints are never written to Git, reports, command lines, or chat. |
@@ -114,6 +114,21 @@ sole request-time egress path is the DNS-pinned direct transport.  The routing g
 exactly one active Bearer binding and `max_attempts=1`, so this task cannot silently fan out or
 retry a real validation request.  The remaining blocker is procedural: a newly signed,
 revision-bound Linux artifact must be obtained before Staging configuration or Provider testing.
+
+## Integration-review correction
+
+The staging preparation review found that the P12 runtime admitted only
+`PriorityFailover`, while the protected management contract deliberately accepts and persists only
+`SmoothWeightedRoundRobin`. A temporary singleton graph therefore could not be constructed
+through the sole approved management path, even though either policy has the same one-candidate,
+one-attempt behavior for this task. The runtime guard and its positive encrypted-runtime fixture
+now use `SmoothWeightedRoundRobin`; the focused `gateway` regression, complete `gateway` package
+test suite, Clippy check, and the protected management-routing contract test pass. The previously
+verified `9d62339` artifact was staged only long enough to run `serve --help`, was never linked as
+`current` or started, and was removed after the mismatch was discovered. A Full gate and a new
+explicit revision-bound artifact approval remain mandatory; the old artifact is not eligible for
+P12-05. The new complete gate receipt is
+[p12-05-policy-alignment-full-gate-20260725.md](evidence/p12-05-policy-alignment-full-gate-20260725.md).
 
 ## Stop conditions and rollback
 
