@@ -2,11 +2,11 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.49` |
+| Plan version | `v1.50` |
 | Task | `P12-05` |
-| Status | `IN_PROGRESS` — a late management-to-runtime policy mismatch was repaired after the first revision-bound artifact had been independently verified but before it was activated. The accepted P12-04 loopback Staging instance still has no P12-05 configuration row; the repair's Full gate passed, and a newly approved exact-SHA artifact is required before any graph write. |
+| Status | `IN_PROGRESS` — a late management-to-runtime policy mismatch was repaired after the first revision-bound artifact had been independently verified but before it was activated. The accepted P12-04 loopback Staging instance still has no P12-05 configuration row; the repair's Full gate passed and `CR-P12-05-002` directly approves its exact-SHA artifact before any graph write. |
 | Preconditions | P12-04 remains active but disabled at boot, has its own state directory and its two loopback listeners. The incumbent `cli-proxy-api` remains out of scope. |
-| Approved remote exception | `CR-P12-05-001`: one exact-SHA, private GitHub OIDC/Sigstore artifact and the subsequent isolated Staging-only execution sequence. |
+| Approved remote exception | `CR-P12-05-001` is consumed by the rejected, never-activated `9d62339` artifact. `CR-P12-05-002` directly approves one replacement private GitHub OIDC/Sigstore artifact for the reviewed policy-alignment SHA and the same isolated Staging-only sequence. |
 | Credential authority | The operator authorized a read-only use of this Mac's CC Switch `krill` Codex configuration. It contains a current ChatGPT OAuth token set, a separately selected effective Bearer credential, and two configured HTTPS endpoints. Values, endpoint text, account identity, models, request/response bodies, and token fingerprints are never written to Git, reports, command lines, or chat. |
 
 ## Boundary
