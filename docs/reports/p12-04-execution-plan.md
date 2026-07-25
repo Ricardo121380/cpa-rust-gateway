@@ -4,7 +4,7 @@
 |---|---|
 | Plan version | `v1.48` |
 | Task | `P12-04` |
-| Status | `IN_PROGRESS` — P12-02's repaired Unit is again `LOCAL_PASS_PENDING_PHASE_GATE`; no P12-04 server write or Unit start has occurred. |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` — the isolated loopback Staging instance is active but deliberately disabled at boot; its acceptance receipt is [P12-04 Staging receipt](p12-04-staging-receipt.md). |
 | Preconditions | P12-02 and P12-03 are `LOCAL_PASS_PENDING_PHASE_GATE`. The pre-`serve` P12-01 artifact remains rejected. The independently verified replacement is GitHub run `30142690538`, revision `111f60a416fd0a6b4a6314bac8ff32b0074cdca7`, private artifact ID `8615022248`. |
 | Approved remote exception | `CR-P12-04-001`: one current-revision private GitHub artifact, OIDC keyless manifest signature, and public Rekor inclusion before any server write. |
 
@@ -44,6 +44,15 @@ mirroring. Those remain P12-05/P12-06 work.
 5. Verify the two listener boundaries, readiness, protected management admission, service owner,
    unit hardening, resource state, and value-free journal summary. Preserve an independent
    receipt, review, local/remote verification evidence, and exact staging rollback procedure.
+
+## Completed outcome
+
+The replacement private artifact was independently reverified and staged by its manifest digest.
+The Linux binary's `serve --help` and the exact repaired Unit's systemd `255` verification passed
+before installation.  The new service has only the two declared loopback listeners and has not
+been enabled at boot.  See the receipt for runtime metadata, endpoint admission, credential
+metadata, the two harmless procedure corrections that were fail-closed and rolled back, and the
+exact new-instance-only rollback procedure.
 
 ## Stop conditions and rollback
 
