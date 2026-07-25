@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.47` |
+| 计划版本 | `v1.48` |
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-01 的 revision-bound Linux 二进制、私有 OCI、CycloneDX SBOM、manifest、GitHub OIDC keyless 签名、Rekor 记录和 receipt 已通过独立验收；P12-02 与 P12-03 均已获得本地验收，P12-04 尚未开始。 |
+| 当前任务 | P12-01 的已验收制品早于 P12-02 的 `gateway serve`；P12-02 与 P12-03 均已获得本地验收，P12-04 是全计划唯一 `IN_PROGRESS` Task，先以已批准的提前远端制品例外生成当前 revision 的私有签名制品，再进行任何 Staging 服务器写入。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1714,7 +1714,7 @@ CR-ID: CR-P11-04-001
 | P12-01 | 构建固定版本二进制、Docker 镜像、SBOM、Checksum 和签名 | G11 | [可验证私有发布产物](reports/p12-01-release-artifact.md) | DONE |
 | P12-02 | 编写 systemd Unit、只读 Secret、数据目录、日志和资源限制 | P12-01 | [deployment-envelope acceptance](reports/p12-02-deployment-envelope.md)：本地 Full gate、独立 review 与静态 Unit 校验通过；Linux `systemd-analyze verify` 留待 P12 Delivery Gate | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | [带时间戳、无值备份与回滚清单](reports/p12-03-server-backup-rollback.md)：现有 CPA 数据根静止快照、镜像身份、关联 unit 片段、权限、哈希和精确回滚步骤已独立复核；未安装或启动新服务 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | Health、日志、资源状态 | PENDING |
+| P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | [Staging execution plan](reports/p12-04-execution-plan.md)：先生成并独立验证当前 revision 的私有签名制品，随后才允许 loopback-only Health、日志和资源状态验收 | IN_PROGRESS |
 | P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | 端到端报告 | PENDING |
 | P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | 差异与性能报告 | PENDING |
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | DNS/TLS/Auth 验证 | PENDING |
@@ -1762,6 +1762,30 @@ systemd StateDirectory 和 LoadCredential 目录；不得读取环境中的 Secr
 Gate 强制执行 `systemd-analyze verify`。回滚删除 serve/deployment assets，不改变任何服务器或数据。
 用户批准: APPROVED，2026-07-25（“确认”）
 计划版本变更: v1.47
+```
+
+### 已批准 Change Request：CR-P12-04-001
+
+```text
+CR-ID: CR-P12-04-001
+原因: 已验收的 P12-01 私有制品绑定 revision ecabe04e，早于 P12-02 新增的 `gateway serve`；该制品
+      只能执行 transport-free `gateway admin`，不能诚实地满足 P12-04 的 systemd Staging 入口。用户
+      明确批准为当前 P12 revision 重建私有 artifact 并新增一次 GitHub OIDC keyless Sigstore/Rekor 记录。
+影响的 Task / Matrix ID / ADR: 仅 P12-04 的制品前置和一次 `LOCAL_PASS_PENDING_CI` 例外。先推送现有
+      `codex/p12-deployment` 分支的已复核提交，再从该精确 GitHub SHA 运行既有 `release-artifact` workflow；
+      生成的二进制、OCI、SBOM、manifest、签名 bundle 和 receipt 仍是私有 workflow artifact。P12-01 的
+      既有验收历史不重写；P12-05-P12-10、P12 Delivery Gate、P7/P8 外部认证延期均不改变。
+兼容性与迁移影响: 此例外本身不连接服务器、不安装/启动 Unit、不创建 PR/tag/GitHub Release、不推送 registry，
+      也不改变 CPA/AxonHub/New API/Kiro-RS、Caddy、Cloudflare、DNS、Credential、Provider 或生产流量。
+      新增的 Sigstore 签名写入公开 Rekor 透明日志；制品 payload 仍不公开。只有独立验证 identity、revision、
+      digest、SBOM、架构、非 root OCI 和 `gateway serve --help` 全部通过后，才可将相同 digest 用于 P12-04
+      的后续 loopback Staging；任一失败即冻结 P12-04 并不得写服务器。
+测试与回滚变化: workflow 保持固定 action/base image/toolchain、manifest 签名和内部 verify；本地另行下载
+      私有 artifact，运行 `p12-release-artifact.rb verify --require-signature --require-receipt`、OCI 结构检查
+      及 `gateway serve --help`。远端例外失败时保留失败 run、停止任务；不得通过本地未签名二进制绕过。撤销为
+      不下载/不部署新 artifact，不撤销已写入 Rekor 的历史透明记录。
+用户批准: APPROVED，2026-07-25（“批准”）
+计划版本变更: v1.48
 ```
 
 ### Canary 推进与回滚规则
