@@ -78,6 +78,8 @@ const P12_TTFB_TIMEOUT: Duration = Duration::from_secs(15);
 const P12_IDLE_TIMEOUT: Duration = Duration::from_secs(45);
 const P12_TOTAL_TIMEOUT: Duration = Duration::from_secs(45);
 const P12_BOOTSTRAP_TIMEOUT_MILLISECONDS: i64 = 15_000;
+const P12_ANTHROPIC_MAX_TOKENS_EXTENSION: &str = "anthropic.messages.max_tokens";
+const P12_OPENAI_MAX_OUTPUT_TOKENS_EXTENSION: &str = "openai.responses.max_output_tokens";
 /// The one verified, non-secret Krill/Codex compatibility header for P12's isolated endpoint.
 ///
 /// This stays in the P12 runtime instead of changing the generic OpenAI-compatible provider:
@@ -552,6 +554,8 @@ impl AttemptDriver for OpenAiAttemptDriver {
             let Some(runtime) = self.endpoints.get(candidate.endpoint_id()) else {
                 return Err(AttemptFailure::NonRetryable(internal_error()));
             };
+            let request = p12_openai_compatible_request(&self.request)
+                .map_err(AttemptFailure::NonRetryable)?;
             let credential = std::str::from_utf8(credential.secret_bytes())
                 .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
             let request_credential = OpenAiResponsesApiKey::try_new(credential.to_owned())
@@ -560,7 +564,7 @@ impl AttemptDriver for OpenAiAttemptDriver {
                 &runtime.endpoint,
                 &request_credential,
                 candidate.upstream_model(),
-                &self.request,
+                &request,
                 upstream_response_mode(self.mode),
             )
             .map_err(AttemptFailure::NonRetryable)?;
@@ -644,6 +648,48 @@ fn p12_transport_headers(
             P12_KRILL_COMPATIBILITY_USER_AGENT.to_owned(),
         ),
     ]
+}
+
+/// Translates the one P12-admitted Anthropic output limit before generic Responses encoding.
+///
+/// Anthropic Messages requires `max_tokens`, while the isolated P12 upstream accepts the
+/// `OpenAI` Responses `max_output_tokens` spelling. The pure Anthropic decoder preserves the
+/// source field as a namespaced extension because the Canonical core has no shared output-limit
+/// field. This boundary consumes only that positive-integer extension and deliberately leaves
+/// every other foreign extension for the generic provider to reject.
+fn p12_openai_compatible_request(
+    request: &CanonicalRequest,
+) -> Result<CanonicalRequest, GatewayError> {
+    let Some(max_tokens) = request.extensions.get(P12_ANTHROPIC_MAX_TOKENS_EXTENSION) else {
+        return Ok(request.clone());
+    };
+    if request
+        .extensions
+        .get(P12_OPENAI_MAX_OUTPUT_TOKENS_EXTENSION)
+        .is_some()
+        || !matches!(
+            serde_json::from_str::<Value>(max_tokens.get()),
+            Ok(Value::Number(value)) if value.as_u64().is_some_and(|value| value > 0)
+        )
+    {
+        return Err(upstream_protocol_error());
+    }
+
+    let mut extensions = RawExtensions::default();
+    for (name, value) in request.extensions.iter() {
+        if name != P12_ANTHROPIC_MAX_TOKENS_EXTENSION {
+            extensions
+                .try_insert(name, value.clone())
+                .map_err(|_| internal_error())?;
+        }
+    }
+    extensions
+        .try_insert(P12_OPENAI_MAX_OUTPUT_TOKENS_EXTENSION, max_tokens.clone())
+        .map_err(|_| internal_error())?;
+
+    let mut translated = request.clone();
+    translated.extensions = extensions;
+    Ok(translated)
 }
 
 fn upstream_response_mode(mode: ResponsesResponseMode) -> ResponseMode {
@@ -1224,16 +1270,17 @@ mod tests {
         EgressDnsError, EgressDnsResolver, EgressHost, EgressPolicy, EgressPolicyInput,
         EgressScheme, RedirectPolicy, UpstreamHttpMethod,
     };
-    use protocol_openai_responses::decode_request;
+    use protocol_openai_responses::{ResponseMode, decode_request};
     use provider_openai_compatible::{
         OpenAiResponsesApiKey, OpenAiResponsesEndpoint, OpenAiResponsesRequestBuilder,
     };
+    use serde_json::Value;
 
     use super::{
         MAX_SSE_FRAME_BYTES, P12_KRILL_COMPATIBILITY_USER_AGENT, P12_STAGING_ENDPOINT_ID,
         append_sse_chunk, build_data_plane_composition, decode_json_events,
-        has_exact_p12_egress_shape, has_p12_unlisted_model_override, p12_transport_headers,
-        p12_transport_request, staging_route_compiler,
+        has_exact_p12_egress_shape, has_p12_unlisted_model_override, p12_openai_compatible_request,
+        p12_transport_headers, p12_transport_request, staging_route_compiler,
     };
 
     struct TemporaryDirectory(PathBuf);
@@ -1360,6 +1407,83 @@ mod tests {
                 .err()
                 .map(|error| error.code()),
             Some(GatewayErrorCode::EgressRejected)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn p12_maps_anthropic_canonical_max_tokens_to_bounded_openai_output_without_relaxing_foreign_extensions()
+    -> Result<(), Box<dyn Error>> {
+        let openai = decode_request(include_str!(
+            "../../../tests/fixtures/openai-responses/request-canonical.json"
+        ))?;
+        assert_eq!(
+            p12_openai_compatible_request(&openai.request)?,
+            openai.request
+        );
+
+        // `protocol-anthropic`'s valid Messages fixture preserves its required `max_tokens`
+        // under this exact source namespace. The binary cannot directly depend on that codec, so
+        // this P12 composition test starts from the already-approved Canonical representation.
+        let mut anthropic = openai.request.clone();
+        anthropic.extensions.try_insert(
+            "anthropic.messages.max_tokens",
+            gateway_core::RawJson::from_json_string("19".to_owned())?,
+        )?;
+        assert_eq!(
+            anthropic
+                .extensions
+                .get("anthropic.messages.max_tokens")
+                .map(gateway_core::RawJson::get),
+            Some("19")
+        );
+
+        let translated = p12_openai_compatible_request(&anthropic)?;
+        assert!(
+            translated
+                .extensions
+                .get("anthropic.messages.max_tokens")
+                .is_none()
+        );
+        assert_eq!(
+            translated
+                .extensions
+                .get("openai.responses.max_output_tokens")
+                .map(gateway_core::RawJson::get),
+            Some("19")
+        );
+
+        let endpoint =
+            OpenAiResponsesEndpoint::try_new("https://gateway.example.test/v1", "/responses")?;
+        let credential = OpenAiResponsesApiKey::try_new("p12-test-bearer")?;
+        let outbound = OpenAiResponsesRequestBuilder::build(
+            &endpoint,
+            &credential,
+            "p12-test-upstream-model",
+            &translated,
+            ResponseMode::NonStreaming,
+        )?;
+        let body: Value = serde_json::from_slice(outbound.body())?;
+        assert_eq!(body.get("max_output_tokens"), Some(&Value::from(19)));
+        assert!(body.get("max_tokens").is_none());
+
+        let mut foreign = anthropic;
+        foreign.extensions.try_insert(
+            "anthropic.messages.metadata",
+            gateway_core::RawJson::from_json_string(r#"{"unmapped":true}"#.to_owned())?,
+        )?;
+        let foreign = p12_openai_compatible_request(&foreign)?;
+        assert_eq!(
+            OpenAiResponsesRequestBuilder::build(
+                &endpoint,
+                &credential,
+                "p12-test-upstream-model",
+                &foreign,
+                ResponseMode::NonStreaming,
+            )
+            .err()
+            .map(|error| error.code()),
+            Some(GatewayErrorCode::UpstreamProtocolError)
         );
         Ok(())
     }

@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.52` |
+| Plan version | `v1.53` |
 | Task | `P12-05` |
-| Status | `IN_PROGRESS` — the accepted P12-04 loopback Staging instance has no P12-05 configuration row. `CR-P12-05-003` quarantined a removed local `0600` credential-selection spool; the replacement pure-memory preflight proved the selected Krill/Codex endpoint needs one non-secret compatibility User-Agent. `CR-P12-05-004` directly approves a new exact-SHA private artifact for that P12-only repair before any graph write. |
+| Status | `IN_PROGRESS` — the accepted P12-04 loopback Staging instance is healthy, disabled at boot, and restored to the P12-05 preimage. The corrected `CR-P12-05-004` artifact passed Models plus OpenAI Responses non-streaming/SSE, then the controlled sequence stopped at Anthropic Messages before Tool or Explain. `CR-P12-05-005` directly approves the resulting P12-only output-limit compatibility repair and one new exact-SHA private artifact before a fresh temporary graph. |
 | Preconditions | P12-04 remains active but disabled at boot, has its own state directory and its two loopback listeners. The incumbent `cli-proxy-api` remains out of scope. |
-| Approved remote exception | `CR-P12-05-001` is consumed by the rejected, never-activated `9d62339` artifact; `CR-P12-05-002` is consumed by the installed policy-alignment artifact. `CR-P12-05-004` directly approves one replacement private GitHub OIDC/Sigstore artifact for the reviewed P12-only compatibility SHA and the same isolated Staging-only sequence. |
-| Credential authority | The operator authorized a read-only use of this Mac's CC Switch `krill` Codex configuration. It contains a current ChatGPT OAuth token set, a separately selected effective Bearer credential, and two configured HTTPS endpoints. Values, endpoint text, account identity, models, request/response bodies, and token fingerprints are never written to Git, reports, command lines, or chat. |
+| Approved remote exception | `CR-P12-05-001` is consumed by the rejected, never-activated `9d62339` artifact; `CR-P12-05-002` is consumed by the installed policy-alignment artifact; `CR-P12-05-004` is consumed by the validated-and-rolled-back attempt. `CR-P12-05-005` directly approves one new private GitHub OIDC/Sigstore artifact for the reviewed P12-only Messages repair and the same isolated Staging-only sequence. |
+| Credential authority | The operator authorized a read-only use of this Mac's CC Switch `krill` Codex configuration. It contains a current ChatGPT OAuth token set, a separately selected effective Bearer credential, and two configured HTTPS endpoints. The operator confirms the selected key and base URL are currently usable; this task must not refresh or re-login. Values, endpoint text, account identity, models, request/response bodies, and token fingerprints are never written to Git, reports, command lines, or chat. |
 
 ## Boundary
 
@@ -54,7 +54,7 @@ evidence and a design reference only; it must not be linked into the production 
    capability escalation.  A runtime may not start with a populated route if its data-plane
    composition, egress policy, Catalog/capability evidence, or credential pool is unavailable.
 3. Run the focused tests, local Full gate, documentation gate, tracked-secret scan, and an
-   independent review.  `CR-P12-05-001` authorizes one replacement, revision-bound signing/
+   independent review.  The current approved CR authorizes one replacement, revision-bound signing/
    deployment sequence before any server write; do not upload a local build or reuse an artifact
    whose signed revision predates the source.
 4. Before the first P12-05 write, stop the isolated Staging unit and make a root-only timestamped
@@ -104,6 +104,37 @@ regressions assert the exact four headers, POST/body preservation, and mismatch 
 intentionally P12-scoped: `provider-openai-compatible` retains its three-header contract, and the
 repair adds no credential source, endpoint, redirect behavior, proxy behavior, egress allowlist,
 public listener, or request retry.
+
+## Messages output-limit compatibility repair
+
+The corrected `CR-P12-05-004` binary created, validated, and published the singleton graph,
+then passed `GET /v1/models`, one OpenAI Responses non-streaming request, and one OpenAI Responses
+SSE request. Its first unexpected result was the following Anthropic `POST /v1/messages`, which
+returned a gateway `5xx`; the harness stopped before Tool or Explain and restored the preimage.
+The controlled run did not show an upstream credential or base-URL failure: the Messages request
+failed while P12 built its outbound OpenAI Responses representation.
+
+The pure Anthropic decoder correctly validates required positive `max_tokens`, but retains it as
+`anthropic.messages.max_tokens` because the Canonical core has no shared output-limit field. The
+generic OpenAI Responses builder correctly rejects foreign root extensions, so P12 must not
+forward that source namespace unchanged. `CR-P12-05-005` permits one narrow P12-only translation:
+before a Credential is opened or any outbound request is constructed, a positive-integer
+`anthropic.messages.max_tokens` becomes `openai.responses.max_output_tokens`. An existing target
+extension, a malformed/non-positive source value, or every other foreign extension remains a
+fail-closed error. The generic provider and the Anthropic decoder retain their existing contracts.
+
+After the new exact-SHA artifact passes its local and independent provenance checks, a fresh
+temporary graph may re-run only the necessary ordered evidence: readiness/listener checks,
+`GET /v1/models`, Anthropic Messages, then the previously unreached no-side-effect Tool and
+protected Explain. The previous OpenAI Responses non-streaming/SSE evidence remains scoped to the
+identical code path: the translation is a tested no-op when the Anthropic source extension is
+absent. Any unexpected result still stops immediately and restores the preimage.
+
+The [CR-005 local review](evidence/p12-05-cr-005-local-review-20260725.md) passed its focused
+cross-crate source/target checks, package checks, and a complete local gate. It also records the
+corrected test-boundary attempt: a test-only direct Anthropic-codec dependency was rejected by the
+crate-boundary gate and removed before the passing rerun. The remaining blocker is procedural: a
+new exact-SHA artifact must be independently verified before any fresh graph is written.
 
 ## Credential-handling deviation and corrective control
 
