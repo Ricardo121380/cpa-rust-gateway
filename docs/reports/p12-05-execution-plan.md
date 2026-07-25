@@ -4,9 +4,9 @@
 |---|---|
 | Plan version | `v1.53` |
 | Task | `P12-05` |
-| Status | `IN_PROGRESS` — the accepted P12-04 loopback Staging instance is healthy, disabled at boot, and restored to the P12-05 preimage. The corrected `CR-P12-05-004` artifact passed Models plus OpenAI Responses non-streaming/SSE, then the controlled sequence stopped at Anthropic Messages before Tool or Explain. `CR-P12-05-005` directly approves the resulting P12-only output-limit compatibility repair and one new exact-SHA private artifact before a fresh temporary graph. |
+| Status | `IN_PROGRESS` — the accepted P12-04 loopback Staging instance is healthy, disabled at boot, and restored to the P12-05 preimage. The corrected `CR-P12-05-004` artifact passed Models plus OpenAI Responses non-streaming/SSE, then the controlled sequence stopped at Anthropic Messages before Tool or Explain. The independently accepted `CR-P12-05-005` artifact now permits only the fresh, ordered isolated-Staging evidence sequence; no Staging write has yet occurred for this revision. |
 | Preconditions | P12-04 remains active but disabled at boot, has its own state directory and its two loopback listeners. The incumbent `cli-proxy-api` remains out of scope. |
-| Approved remote exception | `CR-P12-05-001` is consumed by the rejected, never-activated `9d62339` artifact; `CR-P12-05-002` is consumed by the installed policy-alignment artifact; `CR-P12-05-004` is consumed by the validated-and-rolled-back attempt. `CR-P12-05-005` directly approves one new private GitHub OIDC/Sigstore artifact for the reviewed P12-only Messages repair and the same isolated Staging-only sequence. |
+| Approved remote exception | `CR-P12-05-001` is consumed by the rejected, never-activated `9d62339` artifact; `CR-P12-05-002` is consumed by the installed policy-alignment artifact; `CR-P12-05-004` is consumed by the validated-and-rolled-back attempt. `CR-P12-05-005`'s new private GitHub OIDC/Sigstore artifact has independently passed acceptance; only its same isolated Staging-only sequence remains. |
 | Credential authority | The operator authorized a read-only use of this Mac's CC Switch `krill` Codex configuration. It contains a current ChatGPT OAuth token set, a separately selected effective Bearer credential, and two configured HTTPS endpoints. The operator confirms the selected key and base URL are currently usable; this task must not refresh or re-login. Values, endpoint text, account identity, models, request/response bodies, and token fingerprints are never written to Git, reports, command lines, or chat. |
 
 ## Boundary
@@ -201,6 +201,20 @@ identity is the repository's pinned `release-artifact.yml` workflow on the curre
 branch and the GitHub Actions OIDC issuer.  This document does not make a server-installation or
 Provider-validation claim: the P12-05 preimage, encrypted temporary graph, and ordered loopback
 acceptance remain next.
+
+## CR-005 replacement artifact acceptance
+
+The exact private replacement artifact for revision
+`2aef274e624c9bb35547623b5383f14731fae515` completed the required independent checks before
+any Staging write.  Its GitHub `release-artifact` run `30166446304` completed successfully for
+the same revision.  The private artifact `8621799024` extracted to exactly nine regular files;
+the repository verifier, OCI inspection, and independent keyless Cosign `verify-blob` all
+passed.  The value-free digests, signing identity, workflow receipt, and Linux x86-64 ELF result
+are recorded in the [CR-005 artifact acceptance](p12-05-cr-005-artifact-acceptance-20260725.md).
+
+This acceptance authorizes no implicit deployment or provider activity.  The next permitted step
+is the existing root-only P12-05 preimage procedure, followed by the narrow listener/readiness,
+Models, Messages, no-side-effect Tool, and Explain sequence.  P12-06 remains pending.
 
 ## Stop conditions and rollback
 
