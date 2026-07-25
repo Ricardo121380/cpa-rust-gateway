@@ -2,11 +2,11 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.53` |
+| Plan version | `v1.60` |
 | Task | `P12-05` |
-| Status | `IN_PROGRESS` — the accepted P12-04 loopback Staging instance is healthy, disabled at boot, and restored to the P12-05 preimage. The corrected `CR-P12-05-004` artifact passed Models plus OpenAI Responses non-streaming/SSE, then the controlled sequence stopped at Anthropic Messages before Tool or Explain. The independently accepted `CR-P12-05-005` artifact now permits only the fresh, ordered isolated-Staging evidence sequence; no Staging write has yet occurred for this revision. |
+| Status | `IN_PROGRESS` — the accepted P12-04 loopback Staging instance is healthy, disabled at boot, and restored to the P12-05 preimage. The corrected `CR-P12-05-004` artifact passed Models plus OpenAI Responses non-streaming/SSE, then the controlled sequence stopped at Anthropic Messages before Tool or Explain. The later CR-005 artifact's ordered Staging Messages retry also stopped and rolled back. The CR-012 attempt-stage source diagnostic is now locally reviewed and gated; its new exact-SHA artifact has not yet been built or independently verified, so no further Staging write is permitted. A server-only, no-body `/models` discriminator passed, proving the selected Bearer and active HTTPS base URL work from the server; it does not replace the required loopback-Staging Models check. |
 | Preconditions | P12-04 remains active but disabled at boot, has its own state directory and its two loopback listeners. The incumbent `cli-proxy-api` remains out of scope. |
-| Approved remote exception | `CR-P12-05-001` is consumed by the rejected, never-activated `9d62339` artifact; `CR-P12-05-002` is consumed by the installed policy-alignment artifact; `CR-P12-05-004` is consumed by the validated-and-rolled-back attempt. `CR-P12-05-005`'s new private GitHub OIDC/Sigstore artifact has independently passed acceptance; only its same isolated Staging-only sequence remains. |
+| Approved remote exception | `CR-P12-05-001` is consumed by the rejected, never-activated `9d62339` artifact; `CR-P12-05-002` is consumed by the installed policy-alignment artifact; `CR-P12-05-004` is consumed by the validated-and-rolled-back attempt; and `CR-P12-05-005` is consumed by its halted-and-rolled-back isolated sequence. `CR-P12-05-012` requires a new private GitHub OIDC/Sigstore artifact from this reviewed exact SHA and independent verification before one receipt-enhanced Messages diagnostic. |
 | Credential authority | The operator authorized a read-only use of this Mac's CC Switch `krill` Codex configuration. It contains a current ChatGPT OAuth token set, a separately selected effective Bearer credential, and two configured HTTPS endpoints. The operator confirms the selected key and base URL are currently usable; this task must not refresh or re-login. Values, endpoint text, account identity, models, request/response bodies, and token fingerprints are never written to Git, reports, command lines, or chat. |
 
 ## Boundary
@@ -93,6 +93,152 @@ profile returned status class `2xx`, content-type class `json`, and bounded mode
 account identity was retained.  No Staging write occurred; the temporary Staging graph, Client
 Key, encrypted Credential envelope, and Provider validation sequence remain pending the new
 revision-bound artifact.
+
+## Server-only `/models` discriminator
+
+After the first corrected CR-005 Staging attempt returned a gateway `5xx` for Messages, a
+separate server-local, no-request-body `GET /models` was run solely to distinguish a possible
+server egress/credential failure from a request/decoder failure.  It received the selected
+Bearer only through stdin, forced direct HTTPS with no proxy or redirect, used the already
+verified fixed User-Agent, and retained no URL, Bearer, model name, response body, account
+identity, or token fingerprint.  Its value-free result is recorded in
+[the server Models preflight receipt](evidence/p12-05-server-models-preflight-20260725.md):
+`2xx`, JSON, and a bounded `data` list of nine entries.
+
+This is evidence that the current selected CC Switch Krill base URL and Bearer are usable from
+the server; no refresh or re-login is appropriate.  It did not write the Staging database,
+change its service/listeners, create a temporary Client Key, or replace the required authenticated
+loopback `GET /v1/models` assertion.  It is a one-request diagnostic record, not P12-05
+acceptance evidence and not authorization to begin P12-06.
+
+## One-request Responses structural classifier
+
+`CR-P12-05-006` authorizes one next, server-local direct `POST /responses` solely to classify the
+same short, non-streaming request shape that the P12 Messages path would construct.  The selected
+base URL, Bearer, and configured upstream model remain in process memory and enter through stdin;
+the fixed prompt is non-sensitive and has no Tool, side effect, or account mutation.  The response
+must stay in a bounded in-memory pipe.  Its receipt may contain only HTTP status class,
+content-type class, JSON-shape class, and the first safe structural gate accepted or rejected by
+the current `decode_json_events` contract (for example: completed status, output array, allowed
+item type, assistant message/content type, or text field).  It must never record values, output
+text, IDs, endpoint text, model name, header values, or a body digest.
+
+The first CR-006 launcher had a local result-capture defect: its selected input passed, and its
+remote ephemeral classifier exited and removed itself, but the local zsh wrapper assigned the
+captured safe output to a reserved variable before emitting it.  The result is absent and cannot
+be reconstructed without risking a duplicate request.  The value-free
+[CR-006 capture-failure record](evidence/p12-05-cr-006-capture-failure-20260725.md) therefore
+treats that request as consumed even though it cannot prove whether remote validation stopped
+before or after the HTTP send.
+
+`CR-P12-05-007` separately permits one replacement classifier.  It sends at most one request,
+does not retry either request, and persists its safe receipt root-only on the server before it
+returns over SSH.  It neither writes nor starts the Staging graph and cannot count as its
+Models/Messages/Tool/Explain acceptance.  A rejected gate means stop and review the minimal
+decoder repair before any later Staging write; an accepted gate means review why the previous
+gateway boundary still failed before reusing the already accepted CR-005 artifact sequence.  In
+either case, P12-06 remains pending.
+
+The replacement completed with `2xx`/JSON and its visible structure classifier reached
+`accepted_structural_subset`; its root-owned `0600` receipt is recorded in
+[the replacement classifier evidence](evidence/p12-05-server-responses-classifier-20260725.md).
+This confirms direct server egress and the response's top-level/status/output/message subset,
+but it deliberately does not retain the response and therefore is not a claim that every Rust
+`decode_json_events` or `CanonicalResponse` detail passed.  In particular, it cannot recover the
+prior Staging HTTP status or gateway error-envelope category.
+
+`CR-P12-05-008` authorizes one receipt-enhanced repeat of the existing isolated Staging procedure
+with the already accepted CR-005 artifact.  Its harness must classify only the exact HTTP status
+and a closed set of Anthropic error-envelope types when Messages fails.  It must not print a
+message, unknown error string, request/response body, or any credential/configuration value.  If
+Messages succeeds, the already ordered Tool and Explain checks may run; otherwise it rolls back
+and the safe status/type evidence determines whether a source repair is necessary.
+
+That repeat stopped at Messages with `HTTP 502` and the closed Anthropic `overloaded_error` type,
+then restored the preimage, listener boundary, encrypted-metadata boundary, and incumbent
+continuity.  In the bounded one-attempt runtime, that result is compatible with a pre-first-event
+protocol/truncation failure, but it does not reveal whether it occurred in the P12 conversion,
+egress admission, or the full non-streaming decoder.  `CR-P12-05-009` therefore permits one
+receipt-first direct classifier that mirrors the full safe Rust `decode_json_events` contract,
+including non-empty text, Function-call JSON, Usage and reasoning-token constraints, and Canonical
+lifecycle preconditions.  It remains a no-body diagnostic; its result decides whether a source
+repair is justified and never substitutes for Staging acceptance.
+
+The CR-009 classifier completed `2xx`/JSON with
+`accepted_exact_nonstreaming_contract`; its root-only receipt is recorded in
+[the full-decoder classifier evidence](evidence/p12-05-server-responses-full-decoder-20260725.md).
+That classifier mirrored output validation but its handwritten input omitted the builder's fixed
+`type:"message"` member.  It is therefore a near-shape result, not exact P12 outbound-body
+evidence.  Under `CR-P12-05-010`, the same-artifact Staging retry again stopped at Messages with
+the same `502/overloaded_error` result and rolled back; it did not reach Tool/Explain.
+
+`CR-P12-05-011` permits one receipt-first direct full decoder classifier whose `input` message
+exactly includes the P12 builder's type/role/content shape.  It is the only remaining direct
+request needed to distinguish a Krill compatibility difference from a runtime attempt-stage
+defect.  If it passes, no more external retry is permitted before source-level instrumentation;
+if it fails, only its fixed gate may justify a minimal repair.
+
+The exact-shape classifier completed with `2xx`/JSON and
+`accepted_exact_nonstreaming_contract`; its root-only, value-free receipt is recorded in
+[the exact-shape classifier evidence](evidence/p12-05-server-responses-exact-shape-20260725.md).
+It used the same selected configuration, P12 input `type`/role/content construction, output
+limit, and visible decoder constraints.  This excludes an external credential/base-URL failure
+and a known outbound-body/decoder incompatibility as an explanation for the repeated Staging
+`502/overloaded_error`.  It does not grant another external request or count as Staging
+acceptance.
+
+## Attempt-stage diagnostic plan
+
+`CR-P12-05-012` records the next permitted source-level action. P12 will replace its local
+no-op attempt observation with a bounded, process-local, non-persistent projection for the
+existing protected loopback management `GET /admin/requests/{request_id}/attempts` path. The
+projection reports only the requested opaque correlation, terminal `succeeded|failed`, and one
+closed stage label: `request_conversion`, `egress_admission`, `http_transport`, `http_status`,
+`content_type`, `body_read`, `decoder`, or `sse_bootstrap`. It reports no endpoint, credential,
+model, URL, header, body, error string, status code, timestamp, token, or digest.
+
+The store is bounded and non-blocking from the data-plane path. Lock contention, malformed
+state, or capacity loss must make the management projection unavailable rather than changing a
+request result or returning stale evidence. The existing attempt endpoint remains protected on
+the separate loopback listener; no data-plane route, listener, proxy, provider configuration,
+credential boundary, direct probe, or public exposure is added.
+
+After focused regressions, the applicable local Full gate, secret scan, and an independent review,
+this source change requires a new exact-SHA private OIDC/Sigstore artifact and independent
+verification. Only then may the original isolated Staging procedure make one receipt-enhanced
+Messages diagnostic request. It will restore the preimage regardless of outcome; Tool, Explain,
+P12-06, and public exposure remain prohibited unless the P12-05 evidence sequence first completes.
+
+For that one isolated diagnostic, the harness restarts the Staging process before its first
+data-plane call. `GET /v1/models` does not allocate a request context, so the ensuing single
+Messages request has the existing deterministic process-local correlation `p1-request-0`. The
+harness may query only that opaque correlation over the protected management listener and must
+require exactly one terminal row with no Endpoint/Credential field before writing its value-free
+receipt. An absent, multiple, incomplete, or unavailable projection is a hard stop and rollback;
+the harness must not invent a response header, query another identifier, or retry the request.
+
+## CR-012 local review acceptance
+
+The independent CR-012 review found no source-level blocker. The stage ledger has a fixed
+eight-record cap, uses only non-blocking `try_lock` access on the data path, and fails the
+management projection closed on contention, capacity loss, or terminal-correlation inconsistency.
+It holds only opaque request/attempt correlation, one fixed terminal outcome, and the final
+closed stage category; it neither retains nor serializes endpoint, credential, upstream, model,
+URL, header, body, HTTP status, error text, timestamp, token, or digest.
+
+The review verified that `AttemptOrchestrator` ignores event-admission outcomes for routing, so a
+ledger failure cannot change a request result, retry policy, transport, or public error surface.
+The optional `stage` member is confined to the existing authenticated, loopback-only Attempt
+management route; it creates no data-plane route, listener, Provider request, or persistence.
+Focused stage, OpenAPI, management-runtime, SPA, and lint regressions passed, and the complete
+local Full gate passed in 130 seconds. See the [CR-012 local review]
+(evidence/p12-05-cr-012-local-review-20260725.md) and [Full-gate receipt]
+(evidence/p12-05-cr-012-local-full-gate-20260725.md).
+
+The required next boundary is procedural, not a source change: commit the exact reviewed SHA,
+produce and independently verify its private GitHub OIDC/Sigstore artifact, then make the one
+receipt-enhanced isolated Staging Messages diagnostic and restore the P12-05 preimage regardless
+of outcome. P12-06, Tool, Explain, direct classifiers, and public exposure remain prohibited.
 
 ## Krill compatibility repair
 

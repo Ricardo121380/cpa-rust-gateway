@@ -78,6 +78,20 @@ resolution, response serialization, UI, audit records, durable status, and remot
 Provider/transport phases own raw 403 or Header/body interpretation and any explicitly authorized
 recovery request. This contract creates no real Provider request.
 
+## Optional closed Attempt-stage projection
+
+P12-05 may populate an optional `stage` member on an already-authorized value-free Attempt row.
+It is not an arbitrary diagnostic string: its only permitted values are `request_conversion`,
+`egress_admission`, `http_transport`, `http_status`, `content_type`, `body_read`, `decoder`, and
+`sse_bootstrap`. The existing terminal `succeeded|failed` outcome remains mandatory, while an
+embedding without stage instrumentation omits the member for wire compatibility.
+
+The projection is process-local and bounded. It must contain no URL, Header, Body, endpoint,
+credential, model, status number, error string, timestamp, token, digest, or Provider result.
+If its bounded non-blocking store loses a record or cannot be read safely, the management caller
+receives the existing unavailable result rather than a partial or stale row. This refinement adds
+no Provider request, data-plane route, listener, persistence, or recovery authority.
+
 ## Corresponding tests
 
 - `gateway-router::runtime_management_status::tests::exact_read_only_projection_shows_403_quota_circuit_and_controlled_recovery`
@@ -86,6 +100,9 @@ recovery request. This contract creates no real Provider request.
 - `gateway-router::runtime_health::tests::forbidden_account_is_binding_scoped_and_needs_its_own_recovery_ticket`
 - `gateway-router::runtime_health::tests::rejected_or_stale_account_recovery_ticket_cannot_reopen_a_forbidden_binding`
 - `gateway-router::route_explain::tests::fixed_explain_reports_exact_health_and_quota_reasons_without_a_lease`
+- `gateway::runtime::tests::p12_attempt_stage_projection_is_terminal_bounded_and_value_free`
+- `gateway::runtime::tests::p12_attempt_stage_contention_fails_the_management_projection_closed`
+- `gateway::runtime::tests::p12_attempt_stage_capacity_fails_the_management_projection_closed`
 - `cargo test --locked -p gateway-router`
 - `cargo clippy --locked -p gateway-router --all-targets --all-features -- -D warnings`
 - `./scripts/check.sh full`

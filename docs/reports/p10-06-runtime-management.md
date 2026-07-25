@@ -24,7 +24,7 @@ The protected P10-02 `/admin` scope exposes exactly these P10-06 operations:
 | `GET /admin/runtime/availability` | Bounded binding-scoped availability category for Health, Quota, 403 and recovery state. |
 | `POST /admin/runtime/quota/reset` | Validates the configured Endpoint/Credential binding, then requests controller-owned recovery only. It neither probes nor completes recovery. |
 | `GET /admin/routes/{route_id}/explain` | Explicit-time, fixed-input Candidate decision projection; it never acquires a lease or advances a scheduler cursor. |
-| `GET /admin/requests/{request_id}/attempts` | At most 128 value-free attempt rows, with fixed outcome categories. |
+| `GET /admin/requests/{request_id}/attempts` | At most 128 value-free attempt rows, with fixed outcome categories and an optional closed execution-stage category. |
 
 The recovery action does not take `If-Match`, does not publish a Snapshot, and does not advance
 the configuration revision. It records the existing non-graph `quota_recovery_requested` audit
@@ -34,6 +34,11 @@ No handler or facade input has a Provider URL, Header, Body, Secret, credential 
 network client, Cookie, lease, scheduler cursor, or publication/backup handle. Output rows reject
 duplicate binding/attempt identities, invalid categories, negative observation times, and excess
 rows rather than serializing an ambiguous or unbounded view.
+
+P12-05 may use the existing protected attempt route to supply an optional fixed stage category:
+request conversion, egress admission, HTTP transport/status/content-type, body read, decoder, or
+SSE bootstrap. It remains a process-local, value-free observation; its non-blocking bounded store
+fails closed as unavailable on loss or contention and never changes the data-plane result.
 
 ## SPA and browser evidence
 

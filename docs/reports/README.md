@@ -149,3 +149,9 @@
 - [P12-04 Staging execution plan](p12-04-execution-plan.md) — revision-bound private signed-artifact precondition, isolated loopback deployment boundary, and fail-closed Staging sequence
 - [P12-04 isolated Staging receipt](p12-04-staging-receipt.md) — signed-artifact/digest provenance, loopback runtime acceptance, root-only credential metadata, new-instance-only rollback, and no incumbent change
 - [P12-05 controlled Krill Staging execution plan](p12-05-execution-plan.md) — ephemeral CC Switch selected-Bearer boundary, production data-plane composition, minimum real validation sequence, and Staging-only rollback
+- [P12-05 server-only Krill Models preflight](evidence/p12-05-server-models-preflight-20260725.md) — value-free direct-egress discriminator: selected base URL/Bearer passed with `2xx` JSON, without any Staging or incumbent change
+- [P12-05 CR-006 Responses classifier capture failure](evidence/p12-05-cr-006-capture-failure-20260725.md) — conservative closure of the lost classifier output; no retry under CR-006
+- [P12-05 server-only Krill Responses replacement classifier](evidence/p12-05-server-responses-classifier-20260725.md) — root-only value-free receipt: direct Responses returned `2xx` JSON and passed the visible decoder structure subset
+- [P12-05 server-only Krill Responses full-decoder classifier](evidence/p12-05-server-responses-full-decoder-20260725.md) — root-only value-free receipt: direct Responses passed the full safe non-streaming decoder-contract mirror
+- [P12-05 server-only Krill Responses exact-shape classifier](evidence/p12-05-server-responses-exact-shape-20260725.md) — root-only value-free receipt: the exact P12 outbound body passed the full non-streaming decoder-contract mirror
+- [P12-05 CR-012 attempt-stage review](evidence/p12-05-cr-012-local-review-20260725.md) — bounded, value-free protected management projection reviewed and locally gated; exact-SHA artifact verification remains required before Staging

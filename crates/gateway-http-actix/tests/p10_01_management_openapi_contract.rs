@@ -140,6 +140,54 @@ fn management_contract_exposes_secrets_only_at_their_explicit_write_or_once_boun
 }
 
 #[test]
+fn attempt_stage_contract_is_optional_closed_and_value_free() -> TestResult {
+    let document = document()?;
+    let schemas = object(&document["components"], "schemas")?;
+    let attempt = schemas.get("Attempt").ok_or("missing Attempt")?;
+    let properties = object(attempt, "properties")?;
+    let stage = properties.get("stage").ok_or("missing Attempt stage")?;
+    let values = stage
+        .get("enum")
+        .and_then(Value::as_array)
+        .ok_or("Attempt stage must be a closed enum")?;
+    assert_eq!(
+        values,
+        &vec![
+            Value::String("request_conversion".to_owned()),
+            Value::String("egress_admission".to_owned()),
+            Value::String("http_transport".to_owned()),
+            Value::String("http_status".to_owned()),
+            Value::String("content_type".to_owned()),
+            Value::String("body_read".to_owned()),
+            Value::String("decoder".to_owned()),
+            Value::String("sse_bootstrap".to_owned()),
+        ]
+    );
+    let required = attempt
+        .get("required")
+        .and_then(Value::as_array)
+        .ok_or("Attempt must declare required fields")?;
+    assert!(!required.iter().any(|value| value == "stage"));
+    for forbidden in [
+        "url",
+        "header",
+        "body",
+        "model",
+        "status_code",
+        "error",
+        "timestamp",
+        "token",
+        "digest",
+    ] {
+        assert!(
+            !properties.contains_key(forbidden),
+            "Attempt exposes {forbidden}"
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn output_schemas_are_closed_and_admit_their_declared_relationship_fields() -> TestResult {
     let document = document()?;
     let schemas = object(&document["components"], "schemas")?;

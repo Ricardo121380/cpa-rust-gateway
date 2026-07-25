@@ -14,7 +14,10 @@ use std::{
     fmt,
     num::NonZeroUsize,
     path::Path,
-    sync::Arc,
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
     time::Duration,
 };
 
@@ -27,19 +30,19 @@ use gateway_control::{
     route_compiler::RouteCompiler,
 };
 use gateway_core::{
-    CanonicalEvent, CanonicalRequest, CanonicalResponse, EndpointId, ErrorScope, GatewayError,
-    GatewayErrorCode, GatewayEventSink, MessageEnd, MessageRole, MessageStart,
-    NoopGatewayEventSink, RawExtensions, RawJson, RequestContext, ResponseEnd, ResponseId,
-    ResponseStart, StreamError, TextDelta, ToolCallArgumentsDelta, ToolCallEnd, ToolCallStart,
-    Usage, UsageDelta,
+    AttemptEvent, AttemptOutcome, CanonicalEvent, CanonicalRequest, CanonicalResponse, EndpointId,
+    ErrorScope, EventEmission, GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink,
+    MessageEnd, MessageRole, MessageStart, RawExtensions, RawJson, RequestContext, RequestId,
+    ResponseEnd, ResponseId, ResponseStart, StreamError, TextDelta, ToolCallArgumentsDelta,
+    ToolCallEnd, ToolCallStart, Usage, UsageDelta,
 };
 use gateway_http_actix::{
-    ResponsesHttpState, default_stream_capacity,
+    ResponsesHttpState, SystemResponsesMetadataFactory, default_stream_capacity,
     management_resources::{
         ManagementCatalogStatus, ManagementQuotaRecoveryState, ManagementRequestAttempt,
-        ManagementRouteExplain, ManagementRouteExplainCandidate, ManagementRouteExplainRequest,
-        ManagementRuntimeAvailabilityStatus, ManagementRuntimeError, ManagementRuntimeFacade,
-        ManagementRuntimeTarget,
+        ManagementRequestAttemptStage, ManagementRouteExplain, ManagementRouteExplainCandidate,
+        ManagementRouteExplainRequest, ManagementRuntimeAvailabilityStatus, ManagementRuntimeError,
+        ManagementRuntimeFacade, ManagementRuntimeTarget,
     },
 };
 use gateway_router::{
@@ -124,6 +127,9 @@ pub(crate) fn build_data_plane_composition(
 ) -> Result<DataPlaneComposition, RuntimeCompositionError> {
     let mut repository = SqliteControlPlaneRepository::open(database)
         .map_err(|_| RuntimeCompositionError::Unavailable)?;
+    let attempt_stages = Arc::new(P12AttemptStageStore::new());
+    let event_sink: Arc<dyn GatewayEventSink> =
+        Arc::new(P12AttemptEventSink::new(Arc::clone(&attempt_stages)));
     let executor: Arc<dyn ResponsesExecutor> = match repository
         .load_active_configuration()
         .map_err(|_| RuntimeCompositionError::Unavailable)?
@@ -132,6 +138,8 @@ pub(crate) fn build_data_plane_composition(
             &configuration,
             secret_store,
             Arc::clone(&registry),
+            Arc::clone(&attempt_stages),
+            Arc::clone(&event_sink),
         )?),
         None => Arc::new(NoActiveConfigurationExecutor),
     };
@@ -139,15 +147,20 @@ pub(crate) fn build_data_plane_composition(
         Arc::clone(&registry),
         client_key_service,
     ));
-    let data = ResponsesHttpState::new_with_snapshot_authentication(
+    let data = ResponsesHttpState::with_snapshot_metadata_and_event_sink(
         executor,
+        Arc::new(SystemResponsesMetadataFactory::new()),
         authenticator,
+        event_sink,
         default_stream_capacity().map_err(|_| RuntimeCompositionError::Unavailable)?,
     );
 
     Ok(DataPlaneComposition {
         data,
-        management_runtime: Box::new(SnapshotManagementRuntimeFacade { registry }),
+        management_runtime: Box::new(SnapshotManagementRuntimeFacade {
+            registry,
+            attempt_stages,
+        }),
     })
 }
 
@@ -178,12 +191,149 @@ impl ResponsesExecutor for NoActiveConfigurationExecutor {
     }
 }
 
+/// P12's deliberately tiny in-memory Attempt-stage ledger.
+///
+/// The ledger is process-local and contains only an opaque request/attempt correlation, one closed
+/// stage enum, and terminal success/failure. It never receives an endpoint, credential, URL,
+/// header, body, status, error detail, model, token, or timestamp. Its request-path methods use
+/// `try_lock`: loss or contention is remembered and later fails the management read closed instead
+/// of delaying or changing an upstream request.
+struct P12AttemptStageStore {
+    records: Mutex<BTreeMap<RequestId, P12AttemptStageRecord>>,
+    unavailable: AtomicBool,
+}
+
+struct P12AttemptStageRecord {
+    stage: ManagementRequestAttemptStage,
+    attempt_id: Option<String>,
+    outcome: Option<&'static str>,
+}
+
+impl P12AttemptStageStore {
+    const MAX_RECORDS: usize = 8;
+
+    fn new() -> Self {
+        Self {
+            records: Mutex::new(BTreeMap::new()),
+            unavailable: AtomicBool::new(false),
+        }
+    }
+
+    fn record_stage(&self, request_id: &RequestId, stage: ManagementRequestAttemptStage) {
+        if self.unavailable.load(Ordering::Acquire) {
+            return;
+        }
+        let Ok(mut records) = self.records.try_lock() else {
+            self.mark_unavailable();
+            return;
+        };
+        if records.contains_key(request_id) {
+            if let Some(record) = records.get_mut(request_id) {
+                record.stage = stage;
+            }
+            return;
+        }
+        if records.len() >= Self::MAX_RECORDS {
+            self.mark_unavailable();
+            return;
+        }
+        records.insert(
+            request_id.clone(),
+            P12AttemptStageRecord {
+                stage,
+                attempt_id: None,
+                outcome: None,
+            },
+        );
+    }
+
+    fn record_terminal(&self, event: &AttemptEvent) -> EventEmission {
+        if self.unavailable.load(Ordering::Acquire) {
+            return EventEmission::RequiredQueueFull;
+        }
+        let Ok(mut records) = self.records.try_lock() else {
+            self.mark_unavailable();
+            return EventEmission::RequiredQueueFull;
+        };
+        let Some(record) = records.get_mut(event.request_id()) else {
+            self.mark_unavailable();
+            return EventEmission::RequiredQueueFull;
+        };
+        if record.attempt_id.is_some() || record.outcome.is_some() {
+            self.mark_unavailable();
+            return EventEmission::RequiredQueueFull;
+        }
+        record.attempt_id = Some(event.attempt_id().as_str().to_owned());
+        record.outcome = Some(match event.outcome() {
+            AttemptOutcome::Succeeded => "succeeded",
+            AttemptOutcome::Failed(_) => "failed",
+        });
+        EventEmission::Enqueued
+    }
+
+    fn list_request_attempts(
+        &self,
+        request_id: &RequestId,
+    ) -> Result<Vec<ManagementRequestAttempt>, ManagementRuntimeError> {
+        if self.unavailable.load(Ordering::Acquire) {
+            return Err(ManagementRuntimeError::Unavailable);
+        }
+        let records = self
+            .records
+            .try_lock()
+            .map_err(|_| ManagementRuntimeError::Unavailable)?;
+        if self.unavailable.load(Ordering::Acquire) {
+            return Err(ManagementRuntimeError::Unavailable);
+        }
+        let Some(record) = records.get(request_id) else {
+            return Ok(Vec::new());
+        };
+        let (Some(attempt_id), Some(outcome)) = (&record.attempt_id, record.outcome) else {
+            return Err(ManagementRuntimeError::Unavailable);
+        };
+        let attempt = ManagementRequestAttempt::try_new(attempt_id.clone(), outcome, None, None)?
+            .with_stage(record.stage);
+        Ok(vec![attempt])
+    }
+
+    fn mark_unavailable(&self) {
+        self.unavailable.store(true, Ordering::Release);
+    }
+}
+
+/// Bridges the existing non-blocking Attempt event port into P12's value-free stage ledger.
+///
+/// Request and Usage events are deliberately ignored because they carry no terminal stage and the
+/// P12 management projection must remain an Attempt-only surface.
+struct P12AttemptEventSink {
+    attempts: Arc<P12AttemptStageStore>,
+}
+
+impl P12AttemptEventSink {
+    fn new(attempts: Arc<P12AttemptStageStore>) -> Self {
+        Self { attempts }
+    }
+}
+
+impl GatewayEventSink for P12AttemptEventSink {
+    fn try_emit(&self, event: GatewayEvent) -> EventEmission {
+        match event {
+            GatewayEvent::Attempt(attempt) => self.attempts.record_terminal(&attempt),
+            GatewayEvent::Request(_)
+            | GatewayEvent::Usage(_)
+            | GatewayEvent::Health(_)
+            | GatewayEvent::Diagnostic(_) => EventEmission::Disabled,
+        }
+    }
+}
+
 struct P12OpenAiResponsesExecutor {
     registry: Arc<RouteSnapshotRegistry>,
     snapshot_version: SnapshotVersion,
     orchestrator: Arc<AttemptOrchestrator>,
     endpoints: Arc<BTreeMap<EndpointId, EndpointRuntime>>,
     client_pool: Arc<UpstreamClientPool>,
+    attempt_stages: Arc<P12AttemptStageStore>,
     event_sink: Arc<dyn GatewayEventSink>,
 }
 
@@ -192,6 +342,8 @@ impl P12OpenAiResponsesExecutor {
         configuration: &ControlPlaneConfiguration,
         secret_store: &SecretStore,
         registry: Arc<RouteSnapshotRegistry>,
+        attempt_stages: Arc<P12AttemptStageStore>,
+        event_sink: Arc<dyn GatewayEventSink>,
     ) -> Result<Self, RuntimeCompositionError> {
         validate_p12_configuration_shape(configuration)?;
         let snapshot = registry.load();
@@ -222,7 +374,8 @@ impl P12OpenAiResponsesExecutor {
             orchestrator,
             endpoints: Arc::new(endpoints),
             client_pool,
-            event_sink: Arc::new(NoopGatewayEventSink),
+            attempt_stages,
+            event_sink,
         })
     }
 
@@ -250,6 +403,7 @@ impl ResponsesExecutor for P12OpenAiResponsesExecutor {
         let orchestrator = Arc::clone(&self.orchestrator);
         let endpoints = Arc::clone(&self.endpoints);
         let client_pool = Arc::clone(&self.client_pool);
+        let attempt_stages = Arc::clone(&self.attempt_stages);
         let event_sink = Arc::clone(&self.event_sink);
         let context = execution.context().clone();
         let request = execution.request().clone();
@@ -260,10 +414,12 @@ impl ResponsesExecutor for P12OpenAiResponsesExecutor {
         Box::pin(async move {
             let route_id = route_id.ok_or_else(route_not_found_error)?;
             let driver = OpenAiAttemptDriver {
+                request_id: context.request_id().clone(),
                 request,
                 mode,
                 endpoints,
                 client_pool,
+                attempt_stages,
             };
             let started = orchestrator
                 .start_with_event_sink(
@@ -535,10 +691,12 @@ impl ResponsesEventSource for LeaseHoldingEventSource {
 }
 
 struct OpenAiAttemptDriver {
+    request_id: RequestId,
     request: CanonicalRequest,
     mode: ResponsesResponseMode,
     endpoints: Arc<BTreeMap<EndpointId, EndpointRuntime>>,
     client_pool: Arc<UpstreamClientPool>,
+    attempt_stages: Arc<P12AttemptStageStore>,
 }
 
 impl AttemptDriver for OpenAiAttemptDriver {
@@ -551,6 +709,10 @@ impl AttemptDriver for OpenAiAttemptDriver {
         _bootstrap_timeout: Duration,
     ) -> AttemptFuture<'a, Result<Self::Output, AttemptFailure>> {
         Box::pin(async move {
+            self.attempt_stages.record_stage(
+                &self.request_id,
+                ManagementRequestAttemptStage::RequestConversion,
+            );
             let Some(runtime) = self.endpoints.get(candidate.endpoint_id()) else {
                 return Err(AttemptFailure::NonRetryable(internal_error()));
             };
@@ -568,34 +730,55 @@ impl AttemptDriver for OpenAiAttemptDriver {
                 upstream_response_mode(self.mode),
             )
             .map_err(AttemptFailure::NonRetryable)?;
+            self.attempt_stages.record_stage(
+                &self.request_id,
+                ManagementRequestAttemptStage::EgressAdmission,
+            );
             let admitted = runtime
                 .policy
                 .admit_url(outbound.url(), runtime.resolver.as_ref())
                 .map_err(|_| AttemptFailure::NonRetryable(egress_rejected_error()))?;
             let request =
                 p12_transport_request(&outbound, admitted).map_err(AttemptFailure::NonRetryable)?;
+            self.attempt_stages.record_stage(
+                &self.request_id,
+                ManagementRequestAttemptStage::HttpTransport,
+            );
             let mut response = self
                 .client_pool
                 .send(request, &runtime.transport)
                 .await
                 .map_err(|_| AttemptFailure::Connection)?;
 
+            self.attempt_stages
+                .record_stage(&self.request_id, ManagementRequestAttemptStage::HttpStatus);
             match response.status() {
                 200..=299 => {}
                 429 => return Err(AttemptFailure::RateLimited { retry_after: None }),
                 500..=599 => return Err(AttemptFailure::ServerError),
                 _ => return Err(AttemptFailure::NonRetryable(provider_permanent_error())),
             }
+            self.attempt_stages
+                .record_stage(&self.request_id, ManagementRequestAttemptStage::ContentType);
             if !has_expected_content_type(&response, self.mode) {
                 return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
             }
 
             match self.mode {
                 ResponsesResponseMode::NonStreaming => {
-                    let events = decode_json_response(&mut response).await?;
+                    let events = decode_json_response(
+                        &mut response,
+                        self.attempt_stages.as_ref(),
+                        &self.request_id,
+                    )
+                    .await?;
                     Ok(Box::new(FiniteEventSource::new(events)) as Box<dyn ResponsesEventSource>)
                 }
                 ResponsesResponseMode::Streaming => {
+                    self.attempt_stages.record_stage(
+                        &self.request_id,
+                        ManagementRequestAttemptStage::SseBootstrap,
+                    );
                     let source = OpenAiSseEventSource::begin(response).await?;
                     Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
                 }
@@ -730,7 +913,10 @@ impl ResponsesEventSource for FiniteEventSource {
 
 async fn decode_json_response(
     response: &mut UpstreamHttpResponse,
+    attempt_stages: &P12AttemptStageStore,
+    request_id: &RequestId,
 ) -> Result<Vec<CanonicalEvent>, AttemptFailure> {
+    attempt_stages.record_stage(request_id, ManagementRequestAttemptStage::BodyRead);
     let mut body = Vec::new();
     loop {
         let next = response
@@ -745,6 +931,7 @@ async fn decode_json_response(
         }
         body.extend_from_slice(&chunk);
     }
+    attempt_stages.record_stage(request_id, ManagementRequestAttemptStage::Decoder);
     decode_json_events(&body).map_err(|_| AttemptFailure::BootstrapTruncated)
 }
 
@@ -1128,6 +1315,7 @@ fn required_u64(value: &Value) -> Result<u64, GatewayError> {
 
 struct SnapshotManagementRuntimeFacade {
     registry: Arc<RouteSnapshotRegistry>,
+    attempt_stages: Arc<P12AttemptStageStore>,
 }
 
 impl SnapshotManagementRuntimeFacade {
@@ -1195,9 +1383,9 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
 
     fn list_request_attempts(
         &mut self,
-        _request_id: &gateway_core::RequestId,
+        request_id: &gateway_core::RequestId,
     ) -> Result<Vec<ManagementRequestAttempt>, ManagementRuntimeError> {
-        Ok(Vec::new())
+        self.attempt_stages.list_request_attempts(request_id)
     }
 }
 
@@ -1251,8 +1439,13 @@ mod tests {
         management_service::{ManagementActor, ManagementService},
     };
     use gateway_core::{
-        AccessGroupId, CanonicalEvent, ClientKeyId, CredentialId, EgressPolicyId, EndpointId,
-        GatewayErrorCode, PublicModelId, RouteCandidateId, RouteId, UpstreamId,
+        AccessGroupId, AttemptEvent, AttemptOutcome, AttemptRetryDecision, CanonicalEvent,
+        ClientKeyId, CredentialId, EgressPolicyId, EndpointId, EventEmission, GatewayError,
+        GatewayErrorCode, GatewayEvent, GatewayEventSink, PublicModelId, RequestId,
+        RouteCandidateId, RouteId, UpstreamId,
+    };
+    use gateway_http_actix::management_resources::{
+        ManagementRequestAttemptStage, ManagementRuntimeError,
     };
     use gateway_store::{
         control_plane::{
@@ -1278,9 +1471,10 @@ mod tests {
 
     use super::{
         MAX_SSE_FRAME_BYTES, P12_KRILL_COMPATIBILITY_USER_AGENT, P12_STAGING_ENDPOINT_ID,
-        append_sse_chunk, build_data_plane_composition, decode_json_events,
-        has_exact_p12_egress_shape, has_p12_unlisted_model_override, p12_openai_compatible_request,
-        p12_transport_headers, p12_transport_request, staging_route_compiler,
+        P12AttemptEventSink, P12AttemptStageStore, append_sse_chunk, build_data_plane_composition,
+        decode_json_events, has_exact_p12_egress_shape, has_p12_unlisted_model_override,
+        p12_openai_compatible_request, p12_transport_headers, p12_transport_request,
+        staging_route_compiler,
     };
 
     struct TemporaryDirectory(PathBuf);
@@ -1340,6 +1534,98 @@ mod tests {
         let compiler = staging_route_compiler()?;
         assert!(format!("{compiler:?}").contains("RouteCompiler"));
         assert_eq!(P12_STAGING_ENDPOINT_ID, "p12-krill-endpoint");
+        Ok(())
+    }
+
+    #[test]
+    fn p12_attempt_stage_projection_is_terminal_bounded_and_value_free()
+    -> Result<(), Box<dyn Error>> {
+        let attempts = std::sync::Arc::new(P12AttemptStageStore::new());
+        let request_id = RequestId::try_new("p12-stage-request")?;
+        attempts.record_stage(&request_id, ManagementRequestAttemptStage::Decoder);
+        let sink = P12AttemptEventSink::new(std::sync::Arc::clone(&attempts));
+        let event = AttemptEvent::new(
+            request_id.clone(),
+            1,
+            RouteId::try_new("p12-stage-route")?,
+            RouteCandidateId::try_new("p12-stage-candidate")?,
+            CredentialId::try_new("credential-must-not-appear")?,
+            EndpointId::try_new("endpoint-must-not-appear")?,
+            UpstreamId::try_new("upstream-must-not-appear")?,
+            "model-must-not-appear".to_owned(),
+            1,
+            2,
+            AttemptOutcome::Failed(GatewayError::new(
+                GatewayErrorCode::UpstreamProtocolError,
+                gateway_core::ErrorScope::Stream,
+            )),
+            AttemptRetryDecision::NonRetryable,
+        );
+
+        assert_eq!(
+            sink.try_emit(GatewayEvent::Attempt(event)),
+            EventEmission::Enqueued
+        );
+        let rows = attempts
+            .list_request_attempts(&request_id)
+            .map_err(|_| std::io::Error::other("attempt stage projection unavailable"))?;
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].outcome(), "failed");
+        assert_eq!(
+            rows[0].stage(),
+            Some(ManagementRequestAttemptStage::Decoder)
+        );
+        assert!(rows[0].endpoint_id().is_none());
+        assert!(rows[0].credential_id().is_none());
+        let rendered = format!("{rows:?}");
+        for forbidden in [
+            "credential-must-not-appear",
+            "endpoint-must-not-appear",
+            "upstream-must-not-appear",
+            "model-must-not-appear",
+        ] {
+            assert!(!rendered.contains(forbidden));
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn p12_attempt_stage_contention_fails_the_management_projection_closed()
+    -> Result<(), Box<dyn Error>> {
+        let attempts = P12AttemptStageStore::new();
+        let request_id = RequestId::try_new("p12-stage-contention")?;
+        let guard = attempts
+            .records
+            .lock()
+            .map_err(|_| std::io::Error::other("attempt stage lock poisoned"))?;
+        attempts.record_stage(
+            &request_id,
+            ManagementRequestAttemptStage::RequestConversion,
+        );
+        drop(guard);
+
+        assert_eq!(
+            attempts.list_request_attempts(&request_id),
+            Err(ManagementRuntimeError::Unavailable)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn p12_attempt_stage_capacity_fails_the_management_projection_closed()
+    -> Result<(), Box<dyn Error>> {
+        let attempts = P12AttemptStageStore::new();
+        for index in 0..P12AttemptStageStore::MAX_RECORDS {
+            let request_id = RequestId::try_new(format!("p12-stage-capacity-{index}"))?;
+            attempts.record_stage(&request_id, ManagementRequestAttemptStage::HttpTransport);
+        }
+        let overflow = RequestId::try_new("p12-stage-capacity-overflow")?;
+        attempts.record_stage(&overflow, ManagementRequestAttemptStage::HttpTransport);
+
+        assert_eq!(
+            attempts.list_request_attempts(&overflow),
+            Err(ManagementRuntimeError::Unavailable)
+        );
         Ok(())
     }
 

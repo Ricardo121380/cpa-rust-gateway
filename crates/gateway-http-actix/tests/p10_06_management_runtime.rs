@@ -23,11 +23,12 @@ use gateway_core::{CredentialId, EndpointId, RequestId, RouteCandidateId};
 use gateway_http_actix::{
     management_resources::{
         ManagementCatalogFreshness, ManagementCatalogStatus, ManagementQuotaRecoveryState,
-        ManagementRequestAttempt, ManagementRequestProtocol, ManagementResourceHttpState,
-        ManagementRouteExplain, ManagementRouteExplainCandidate, ManagementRouteExplainRequest,
-        ManagementRuntimeAvailability, ManagementRuntimeAvailabilityStatus, ManagementRuntimeClock,
-        ManagementRuntimeError, ManagementRuntimeFacade, ManagementRuntimeTarget,
-        RejectingManagementEndpointWorkflow, configure_management_resources,
+        ManagementRequestAttempt, ManagementRequestAttemptStage, ManagementRequestProtocol,
+        ManagementResourceHttpState, ManagementRouteExplain, ManagementRouteExplainCandidate,
+        ManagementRouteExplainRequest, ManagementRuntimeAvailability,
+        ManagementRuntimeAvailabilityStatus, ManagementRuntimeClock, ManagementRuntimeError,
+        ManagementRuntimeFacade, ManagementRuntimeTarget, RejectingManagementEndpointWorkflow,
+        configure_management_resources,
     },
     management_security::{
         MANAGEMENT_KEY_HEADER, ManagementBrowserPolicy, ManagementHttpState, ManagementKey,
@@ -236,12 +237,15 @@ impl ManagementRuntimeFacade for FixtureRuntimeFacade {
             return Err(ManagementRuntimeError::Unavailable);
         }
         self.calls()?.attempt_reads += 1;
-        Ok(vec![ManagementRequestAttempt::try_new(
-            "attempt-runtime-1".to_owned(),
-            "succeeded",
-            Some(Self::endpoint()?),
-            Some(Self::credential()?),
-        )?])
+        Ok(vec![
+            ManagementRequestAttempt::try_new(
+                "attempt-runtime-1".to_owned(),
+                "succeeded",
+                Some(Self::endpoint()?),
+                Some(Self::credential()?),
+            )?
+            .with_stage(ManagementRequestAttemptStage::Decoder),
+        ])
     }
 }
 
@@ -357,7 +361,7 @@ async fn protected_runtime_views_are_value_free_and_recovery_only_requests_contr
     assert_eq!(
         attempts_body,
         json!([{
-            "attempt_id":"attempt-runtime-1", "outcome":"succeeded",
+            "attempt_id":"attempt-runtime-1", "outcome":"succeeded", "stage":"decoder",
             "endpoint_id": ENDPOINT, "credential_id": CREDENTIAL
         }])
     );

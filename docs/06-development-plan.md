@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.53` |
+| 计划版本 | `v1.60` |
 | 生效日期 | `2026-07-23` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -15,7 +15,9 @@
 | 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 `CR-P6-03-003`：在确认 2xx JSON 错误对象后，增加最终一次仅从标准错误元数据映射安全类别的诊断调用。 `CR-P6-03-004`：新增一个与固定直连验收隔离的、服务器本地 grok2api Build 路由代理参考探针。 `CR-P6-03-005`：采用服务器参考的当前 Build 请求轮廓，并只登记新的固定端点 T11 非流式与 T12 SSE 验证。 `CR-P6-03-006`：通过 grok2api 支持的管理 API 导入指定 OAuth 文件并做账号专属额度刷新诊断；不重放固定直连元组，也不把共享路由调用误归因到该账号。 `CR-P6-03-007`：仅以本机官方 Grok CLI 做一次交互式 OAuth 重新认证并记录安全状态投影；不发送 P6 请求或改变服务器/路由。 |
 | 已批准变更（续） | `CR-P6-03-008`：以 CPA、grok2api 和 Sub2API 的 clean-room 行为参考扩展 Grok Build 的已知 OAuth 凭据来源；保留标准 JSON/Device Code/Refresh，新增 CPA xAI 文件和官方 Grok CLI indexed cache 的内存导入，不纳入 Cookie/SSO Web 转换。 `CR-P6-03-009`：仅修正 T13 零发送 wrapper 的一次替代 T15 验证；T15 的 4xx 已停止矩阵。 `CR-P6-03-010`：基于官方 CLI 静态证据更正 workspace User-Agent，仅登记新的 T16 非流式直连验证，并在 T16 完整成功时条件允许一次 T17 SSE。 `CR-P6-03-011`：T16 在无网络预检的本地标签门槛前停止后，以不同的合法短标签重新登记 T18 非流式直连；仅其完整 Canonical 成功时允许条件 T19 SSE。 `CR-P6-03-013`：用户批准完成 P6 全部要求，解除 P6-03 对后续本地安全/连续性实现的流程阻塞；不声称 T18 成功、不发送 T19 或重放任何闭合 tuple。 `CR-P6-03-014`：以当前官方 CLI 的成功模型/会话和新完成的可注入执行链路登记 T20/T21，不重放任何已关闭 tuple。 `CR-P6-03-015`：T20 的新的 2xx JSON 协议失败后，只输出固定的无值结构类别诊断 T22。 `CR-P6-03-016`：T22 发现投影在合法压缩前运行，登记一次解压后无值结构诊断 T23。 `CR-P6-03-017`：T23 仍失败后，仅投影第一个固定 decoder requirement gate 的 T24。 |
 | 已批准变更（续 2） | `CR-P7-G7-001`：P7 因 Kiro 外部账号重新认证而阻塞时，允许 P8 按自身顺序进行本地实现与审查；其与 `CR-P7-DEFER-002` 冲突的 P8/G8/P9-P12 顺序约束已由后者替代。 `CR-P7-DEFER-002`：Kiro OAuth 延后；P8-G12 按自身非 Kiro 依赖推进，P8 可执行自身 Phase Gate 与 Delivery Gate；真实 xAI 验证仍仅按 P8 自身明确授权进行。 `CR-P8-DEFER-001`：无 Official API Key 时，P8-07/G8 与 P7-09 一并延后至最终外部认证验收包；P9-P12 Gate 依赖不变。 `CR-P11-04-001`：用户批准把纯 loopback 合成 Soak 的最低门槛由 24 小时改为 10 小时；已完成的 10h13m 用户停止 receipt 仍如实标为 `INCOMPLETE`，P12 的真实 Canary 72h 观察不变。 |
-| 已批准变更（续 3） | `CR-P12-05-001`：为 P12-05 的生产数据面组成创建一次新的、精确 SHA 绑定的私有 GitHub OIDC/Sigstore 制品，并仅在独立 loopback Staging 上执行受控临时图写入与最小验收；既有 CPA、公开流量和后续 P12 Task 均不改变。 `CR-P12-05-002`：对 P12-05 已 review/Full-gate 修复的精确 SHA 续签同一私有 OIDC/Sigstore 制品；同一隔离 Staging、Credential、Provider 与公开边界不扩张。用户要求此类同范围续签直接批准，但每次仍须记录精确 SHA 并独立验证。 `CR-P12-05-003`：一次已删除的本机 `0600` Bearer 选择临时文件不计为 memory-only 证据；按用户的直接批准约定，保持同一 P12-05 范围继续，但须在任何图写入前用纯内存 helper 重新预检，后续不得再创建明文 Secret 文件。 `CR-P12-05-004`：为同一临时 Staging 图的 P12 Krill 请求补入已验证、非机密的 Codex-compatible `User-Agent`；仍须以该精确 SHA 重新生成并独立验签私有 artifact，且不扩展 Credential、Provider、公开监听或流量边界。 `CR-P12-05-005`：将 P12 的唯一 Anthropic `max_tokens` Canonical 扩展映射为 OpenAI Responses 输出上限，其他外来扩展仍拒绝；不刷新 CC Switch 凭证，并以新精确 SHA artifact 仅重跑未覆盖的隔离 Staging 验收。 |
+| 已批准变更（续 3） | `CR-P12-05-001`：为 P12-05 的生产数据面组成创建一次新的、精确 SHA 绑定的私有 GitHub OIDC/Sigstore 制品，并仅在独立 loopback Staging 上执行受控临时图写入与最小验收；既有 CPA、公开流量和后续 P12 Task 均不改变。 `CR-P12-05-002`：对 P12-05 已 review/Full-gate 修复的精确 SHA 续签同一私有 OIDC/Sigstore 制品；同一隔离 Staging、Credential、Provider 与公开边界不扩张。用户要求此类同范围续签直接批准，但每次仍须记录精确 SHA 并独立验证。 `CR-P12-05-003`：一次已删除的本机 `0600` Bearer 选择临时文件不计为 memory-only 证据；按用户的直接批准约定，保持同一 P12-05 范围继续，但须在任何图写入前用纯内存 helper 重新预检，后续不得再创建明文 Secret 文件。 `CR-P12-05-004`：为同一临时 Staging 图的 P12 Krill 请求补入已验证、非机密的 Codex-compatible `User-Agent`；仍须以该精确 SHA 重新生成并独立验签私有 artifact，且不扩展 Credential、Provider、公开监听或流量边界。 `CR-P12-05-005`：将 P12 的唯一 Anthropic `max_tokens` Canonical 扩展映射为 OpenAI Responses 输出上限，其他外来扩展仍拒绝；不刷新 CC Switch 凭证，并以新精确 SHA artifact 仅重跑未覆盖的隔离 Staging 验收。 `CR-P12-05-006`：在服务器侧 `/models` 已证明当前 endpoint/Bearer 可用后，允许一次不保留正文的同请求轮廓 `/responses` 结构分类；只用于决定是否需要 P12 decoder 兼容修复，不替代 Staging 验收。 `CR-P12-05-007`：CR-006 的本地结果收集失败，保守视为其唯一请求已消耗；允许一项由服务器 root-only 无值 receipt 先持久化的独立替代分类请求，不重试 CR-006。 `CR-P12-05-008`：在 replacement classifier 仅确认 Responses 结构子集后，允许用同一已验收 artifact 进行一次 receipt-enhanced isolated Staging 重跑，安全记录精确 HTTP/error-envelope 类别；不改二进制或公开边界。 `CR-P12-05-009`：Staging 的 502 表示首事件前协议截断；允许一次完整 decoder-contract 的无正文 `/responses` 分类，区分响应字段不兼容与请求构造前失败。 `CR-P12-05-010`：完整 classifier 通过后，允许同一 signed artifact 的一次最终 isolated Staging retry；成功才继续 Tool/Explain，重复 502 即停止而不猜测修复。 `CR-P12-05-011`：源代码复核发现前置 classifier 遗漏 builder 固定的 input message type；允许一次完整同形 `/responses` 分类，避免基于近似请求作结论。 |
+
+| 已批准变更（续 4） | `CR-P12-05-012`：精确 P12 request classifier 已通过而 isolated Staging 仍重复 `502` 后，增加仅受保护 loopback 管理面可读、固定阶段枚举的有界 attempt 投影；不刷新 CC Switch、无新的外部请求，新的 Staging 诊断仍须在 exact-SHA artifact 独立验签后执行。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -1920,6 +1922,202 @@ CR-ID: CR-P12-05-005
 计划版本变更: v1.53
 ```
 
+### 已批准 Change Request：CR-P12-05-006
+
+```text
+CR-ID: CR-P12-05-006
+原因: CR-P12-05-005 的修复后二进制尚未写入新的 Staging 图，但上一轮 Messages 已在
+      服务器侧返回 gateway 5xx。随后相同 selected Bearer/base URL 的 server-only `/models`
+      诊断为 2xx JSON，排除了服务器直连、base URL 与选定 Bearer 的可用性。为避免在
+      Staging 反复写入/回滚，需先用一次最小、无正文留存的 `/responses` 请求确定响应是否
+      满足现有严格 JSON decoder 的结构门槛。
+影响的 Task / Matrix ID / ADR: 仅 P12-05。允许恰好一次服务器本地、非流式、直连 HTTPS
+      `POST /responses` 分类请求，使用当前 CC Switch Codex 配置的同一 selected Bearer、
+      base URL、模型和已验证 User-Agent，短固定无副作用提示以及现有 P12 Responses request
+      轮廓。响应只能在内存 pipe 中被分类为状态、content-type、JSON/严格 decoder gate 和
+      安全白名单结构类别；不得写入或输出 endpoint、Bearer、OAuth、模型、ID、正文或 token
+      fingerprint。该请求不是 Staging 验收、不能替代任何 P12-05 required request，且不允许
+      Tool、Explain、P12-06 或公开暴露。
+兼容性与迁移影响: 不刷新/重新登录、不复制或传输 OAuth 值，不新增 Provider、Credential、
+      egress host、proxy、redirect、Caddy、Cloudflare、DNS、listener 或公开流量。不会写
+      Staging SQLite、systemd unit、Client Key 或 incumbent CPA。若分类证明需要 source repair，
+      必须先独立 review、适用 local gate、精确 SHA 私有 OIDC/Sigstore artifact 与独立验签，
+      才可再次写入 Staging。
+测试与回滚变化: 诊断进程最多发送一次，不重试；临时脚本与 header 文件在同一进程退出时删除。
+      任一 transport/HTTP/JSON/structure 异常仅形成无值 receipt 并停止，之后根据分类决定
+      repair 或已有 CR-005 Staging 序列，绝不直接进入 P12-06。沿用既有同范围、无新增
+      Credential/Provider/公开暴露的直接批准约定。
+用户批准: APPROVED，2026-07-25（既有“批准，这种批准直接过就可以”的同范围直接批准约定；
+      当前 CC Switch Krill key 与 base URL 可用、无需刷新）
+计划版本变更: v1.54
+```
+
+### 已批准 Change Request：CR-P12-05-007
+
+```text
+CR-ID: CR-P12-05-007
+原因: CR-P12-05-006 的 selector 已通过，远程 ephemeral classifier 也已退出并自删除，但本机
+      zsh 结果包装器使用了保留变量名，导致其已接收的无值分类输出未被打印或持久化。无法证明
+      当次远程分类在输入校验前停止还是已经发送了请求，因此按最严格边界把 CR-006 视为其一次
+      request 已消耗，绝不重放它。需要一项独立、可审计的替代请求，避免在又一次结果收集失败时
+      丢失诊断证据。
+影响的 Task / Matrix ID / ADR: 仅 P12-05。允许恰好一次新的 server-local、非流式、直连 HTTPS
+      `/responses` 结构分类，输入/轮廓/无副作用提示与 CR-006 相同。新 classifier 必须在返回
+      SSH 前先将仅含状态类别、content-type 类别、JSON/decoder gate 类别和 request count 的
+      receipt 写入既有 root-only P12-05 receipt 根；不得写入任何 endpoint、Bearer、OAuth、
+      模型、ID、正文、header 值或 digest。CR-006 不再允许任何重试。
+兼容性与迁移影响: 不刷新/重新登录、不复制 OAuth/Bearer 值，不写 Staging SQLite、Client Key、
+      systemd、listener、Provider/Credential/egress 配置、Caddy、Cloudflare、DNS、公开流量或
+      incumbent CPA。该替代诊断仍不是 Staging 验收，不授权 Tool、Explain、P12-06 或任何公开暴露。
+测试与回滚变化: 新的 local launcher 禁止使用 zsh 保留变量，直接流式输出远程 safe receipt；
+      server classifier 在 stdout 前完成 root-only receipt 持久化。若 receipt persistence 或
+      transport/shape 失败，停止并仅依据 receipt 处理；若需要 source repair，仍须 review、适用
+      local gate、精确 SHA 私有 artifact 与独立验签后才可写 Staging。沿用同范围直接批准约定。
+用户批准: APPROVED，2026-07-25（既有“批准，这种批准直接过就可以”的同范围直接批准约定；
+      当前 CC Switch Krill key 与 base URL 可用、无需刷新）
+计划版本变更: v1.55
+```
+
+### 已批准 Change Request：CR-P12-05-008
+
+```text
+CR-ID: CR-P12-05-008
+原因: CR-P12-05-007 的 root-only receipt 证明当前服务器对同一 selected Bearer/base URL/model
+      的短 Responses 请求得到 2xx JSON，并通过了安全的可见 decoder 结构子集。然而该分类
+      有意不保留正文，不能替代 Rust 的完整 decode/Canonical 验证，也不能解释此前 Staging
+      Anthropic Messages 的 5xx。原 Staging harness 仅记录 5xx 类别，遗漏了安全的精确 HTTP
+      状态和 gateway Anthropic error envelope 类型，无法区分 local/internal、upstream-protocol
+      或 transient path。
+影响的 Task / Matrix ID / ADR: 仅 P12-05。允许在已经独立验收的 CR-005 exact-SHA artifact 上
+      一次新的 root-only preimage、temporary singleton graph、loopback Models 和 Messages 重跑。
+      临时 harness 可将 gateway 的精确 HTTP status 及白名单 Anthropic error envelope type
+      （或成功 lifecycle）加入无值 receipt；不得保留 error message、request/response body、
+      endpoint、Bearer、OAuth、模型、ID 或 header 值。若 Messages 通过，原定同一次临时图的
+      no-side-effect Tool 与 Explain 顺序可继续；任一失败立刻回滚，不盲目重试。
+兼容性与迁移影响: 不改 Rust source、artifact、Credential、Provider、egress、proxy、redirect、
+      Staging listener/systemd、Caddy、Cloudflare、DNS、公开流量或 incumbent CPA。已验收的
+      CR-005 artifact 是唯一允许使用的二进制；无需刷新或重新登录 CC Switch。
+测试与回滚变化: harness 先以静态、白名单 parser 复核 error-envelope 分类，不将未知字符串
+      输出；运行前仍验证 artifact SHA、incumbent、loopback 和 preimage，运行后强制 restore
+      及 receipt/listener/incumbent 复核。根据 result 决定最小 source repair 或完成剩余
+      P12-05，不得进入 P12-06。
+用户批准: APPROVED，2026-07-25（既有“批准，这种批准直接过就可以”的同范围直接批准约定；
+      当前 CC Switch Krill key 与 base URL 可用、无需刷新）
+计划版本变更: v1.56
+```
+
+### 已批准 Change Request：CR-P12-05-009
+
+```text
+CR-ID: CR-P12-05-009
+原因: CR-P12-05-008 Staging receipt 的精确结果为 HTTP `502` 和白名单
+      `overloaded_error`。在该 one-candidate/one-attempt runtime 中，结合路由 failure 映射，
+      这表示首个 Canonical 事件前出现了 protocol/truncation 级 failure，而不是 Credentials
+      的 4xx/429。CR-007 的 classifier 仅验证可见结构子集，遗漏 `decode_json_events` 的
+      空文本、Usage/Reasoning-token 与 Canonical lifecycle 细节，不能判断 failure 是上游响应
+      字段不兼容还是发送前 P12 request conversion/admission。
+影响的 Task / Matrix ID / ADR: 仅 P12-05。允许一次新的 server-local direct HTTPS
+      non-streaming `/responses` classifier，复用相同 selected base URL/Bearer/model、固定
+      prompt、User-Agent 和 request shape。它必须镜像现有 non-streaming Rust decoder 的每个
+      可安全分类 gate，且先写 root-only 无值 receipt；只输出第一个固定 gate 名称、HTTP/
+      content-type/JSON 类别和 request count。不得输出或保留正文、ID、文本、模型、URL、
+      header 值、Credential、OAuth 或 digest。
+兼容性与迁移影响: 不刷新/重新登录，不写 Staging 图、artifact、source、Provider/Credential、
+      egress、listener、Caddy、Cloudflare、DNS、公开流量或 incumbent CPA。该 request 不是
+      Staging acceptance，不授权 Tool/Explain/P12-06；CR-008 failed run 已完整 rollback。
+测试与回滚变化: exactly one request/no retry；如果 full classifier 命中 gate，才按最小范围修复
+      并走 source review/local gate/exact-SHA artifact；如果通过，则不假设 decoder 修复，改为
+      审查 pre-send runtime branch。沿用同范围直接批准约定。
+用户批准: APPROVED，2026-07-25（既有“批准，这种批准直接过就可以”的同范围直接批准约定；
+      当前 CC Switch Krill key 与 base URL 可用、无需刷新）
+计划版本变更: v1.57
+```
+
+### 已批准 Change Request：CR-P12-05-010
+
+```text
+CR-ID: CR-P12-05-010
+原因: CR-P12-05-009 的 receipt-first full decoder classifier 对同一 direct Responses request
+      返回 `2xx`/JSON，并通过 `accepted_exact_nonstreaming_contract`。这与 CR-008 的
+      Staging `502/overloaded_error` 相冲突，但不构成 source repair 的充分证据：classifier
+      不保留正文且不能证明 P12 request-time branch。此前 CR-004 的同一路径已通过 Responses
+      non-streaming/SSE，CR-005 的窄 max-token translation 也有 local regression；因此一次
+      完整、receipt-enhanced Staging retry 比推测性代码改动更能区分 transient/request-context
+      差异与真实重复 runtime failure。
+影响的 Task / Matrix ID / ADR: 仅 P12-05。允许使用当前已验收 CR-005 exact-SHA artifact 进行
+      一次新的 isolated Staging preimage/singleton graph/restart/Models/Messages sequence，保留
+      CR-008 的精确 HTTP/closed error-type receipt。如果 Messages 通过，同一次临时图可继续
+      无副作用 Tool 和 Explain；任一错误立即 rollback。重复的 Messages 502 视为足够的
+      source-attribution blocker，停止而不再用外部重试猜测。
+兼容性与迁移影响: 不修改 Rust source、artifact、Credential/Provider/egress、proxy、listener、
+      systemd、Caddy、Cloudflare、DNS、公开流量或 incumbent CPA；不刷新/重新登录。该 retry
+      不是 P12-06，验收后继续恢复 Staging preimage。
+测试与回滚变化: 运行前 SHA/loopback/incumbent/preimage checks 和运行后 receipt/root-only
+      encrypted metadata/listener/incumbent/empty baseline checks均为硬门槛。成功后进入
+      P12-05 review；失败后只进行本地 source diagnosis/review，再由新的 exact-SHA artifact
+      路径处理。
+用户批准: APPROVED，2026-07-25（既有“批准，这种批准直接过就可以”的同范围直接批准约定；
+      当前 CC Switch Krill key 与 base URL 可用、无需刷新）
+计划版本变更: v1.58
+```
+
+### 已批准 Change Request：CR-P12-05-011
+
+```text
+CR-ID: CR-P12-05-011
+原因: CR-P12-05-010 的 Staging retry 重复了 `502/overloaded_error`。随后 source review 发现
+      CR-007/009 direct classifier 手写的 `input` item 缺少
+      `OpenAiResponsesRequestBuilder::flush_message_parts` 固定写入的 `"type":"message"`。
+      因此先前的 2xx classifiers 是相近 request 的证据，不能证明真实 P12 outbound body；该
+      形状差异可能令 Krill 选择不同的 compatibility path 或 response form。
+影响的 Task / Matrix ID / ADR: 仅 P12-05。允许一次新的 server-local direct HTTPS non-streaming
+      `/responses` full-decoder classifier，使用同一 selected configuration、max output limit、
+      User-Agent 和固定 prompt，但 `input` item 必须包含 P12 builder 的 `type:"message"`、
+      role 和 content 三字段。仍先写 root-only 无值 receipt，最多一次、无重试，只输出固定
+      HTTP/content/JSON/decoder-gate 类别。
+兼容性与迁移影响: 不刷新/重新登录；不写 Staging、artifact、source、Provider/Credential、
+      egress、listener、Caddy、Cloudflare、DNS、公开流量或 incumbent CPA。该诊断不是 P12-05
+      acceptance，不进入 Tool/Explain/P12-06。
+测试与回滚变化: prior near-shape results保持事实但不得作为 exact-body decoder evidence。若新
+      classifier 命中 gate，按该 gate 做最小 source repair；若通过，则 Staging retry 的
+      repeat 502 需要 source-level attempt-stage instrumentation，不能再做外部推测性重试。
+      沿用同范围直接批准约定。
+用户批准: APPROVED，2026-07-25（既有“批准，这种批准直接过就可以”的同范围直接批准约定；
+      当前 CC Switch Krill key 与 base URL 可用、无需刷新）
+计划版本变更: v1.59
+```
+
+### 已批准 Change Request：CR-P12-05-012
+
+```text
+CR-ID: CR-P12-05-012
+原因: CR-P12-05-011 的精确 P12 outbound-body classifier 已完成 `2xx` JSON 和完整
+      non-streaming decoder-contract 验收，但 CR-P12-05-008/010 的 isolated Staging
+      Messages 均在首个 Canonical 事件前返回相同 `502/overloaded_error` 并完整回滚。
+      当前 P12 executor 使用 Noop event sink，且 runtime facade 对 request attempts
+      总是返回空，`decode_json_response` 又把 body-read/decoder 异常折叠为同一
+      `BootstrapTruncated`，因此无法以事实区分 request conversion、egress admission、
+      transport、HTTP/content-type、body-read 与 decoder 阶段。
+影响的 Task / Matrix ID / ADR: 仅 P12-05 的 Staging 可观测性修复。允许在 P12 runtime
+      增加有界、进程内、非持久化的 attempt-stage 投影，并经既有受保护、loopback-only
+      `/admin/requests/{request_id}/attempts` 读取。每项只能暴露既有 opaque request/
+      attempt correlation、`succeeded|failed` 和固定 stage 枚举；不得暴露或保留 URL、
+      Header、Body、Bearer/OAuth、模型、Endpoint、Credential、错误字符串、状态码、
+      token、时序或 digest。该投影不是新公开数据面或新的管理 listener。
+兼容性与迁移影响: 不刷新或重新登录 CC Switch，不改 selected Bearer/base URL、Provider、
+      Credential、egress policy、proxy、redirect、Caddy、Cloudflare、DNS、listener、
+      incumbent CPA 或公开流量。不得发送新的 direct classifier、重放已关闭的 request，
+      或启动 P12-06。阶段记录不可用/饱和时必须 fail closed 为管理面 unavailable，且不得
+      阻塞、重试或改变 data-plane request 结果。
+测试与回滚变化: 此 source change 必须先完成 focused regressions、适用 local Full gate、
+      secret scan 与独立 review；随后仅可对精确 SHA 生成私有 GitHub OIDC/Sigstore artifact
+      并独立验签。只有该 artifact 在原有 isolated Staging 复核通过后，才允许一次有 receipt
+      的 Messages 诊断；无论结果均立即恢复 preimage，并停止在 P12-05 处理结论。
+用户批准: APPROVED，2026-07-25（既有“批准，这种批准直接过就可以”的同范围直接批准约定；
+      当前 CC Switch Krill key 与 base URL 可用、无需刷新）
+计划版本变更: v1.60
+```
+
 ### Canary 推进与回滚规则
 
 - 每个流量阶段至少持续 2 小时并包含至少 100 个成功请求；低流量时使用固定合成请求补足。
@@ -2088,3 +2286,10 @@ Next task:
 | v1.51 | 2026-07-25 | `CR-P12-05-003`：已删除的本机 `0600` Bearer 选择临时文件不计为 memory-only 证据；同范围直接批准下必须以纯内存 helper 重做预检后才能继续 | APPROVED；当前执行基线 |
 | v1.52 | 2026-07-25 | `CR-P12-05-004`：P12-only Krill/Codex compatibility User-Agent 修复，重新生成并验签同范围私有 artifact；不刷新凭证、不扩展 Staging 或公开边界 | APPROVED；当前执行基线 |
 | v1.53 | 2026-07-25 | `CR-P12-05-005`：P12-only Anthropic `max_tokens` 到 Responses 输出上限的窄映射，保留其余 foreign-extension 拒绝；新 artifact 后只重跑未覆盖的隔离 Staging 验收 | APPROVED；当前执行基线 |
+| v1.54 | 2026-07-25 | `CR-P12-05-006`：服务器端 `/models` 预检通过后，允许一次无正文留存的 `/responses` 严格结构分类，以定位 decoder 兼容性边界 | APPROVED；当前执行基线 |
+| v1.55 | 2026-07-25 | `CR-P12-05-007`：CR-006 结果捕获失败后，保守关闭其 request，并以 root-only 无值 receipt 允许一次独立替代分类 | APPROVED；当前执行基线 |
+| v1.56 | 2026-07-25 | `CR-P12-05-008`：Responses 子集分类通过后，以同一已验收 artifact 允许一次错误类别增强的 isolated Staging 重跑 | APPROVED；当前执行基线 |
+| v1.57 | 2026-07-25 | `CR-P12-05-009`：Staging 502 首事件前失败后，允许一次完整 decoder-contract 的无正文 Responses 分类 | APPROVED；当前执行基线 |
+| v1.58 | 2026-07-25 | `CR-P12-05-010`：完整 decoder classifier 通过后，以同一 signed artifact 允许一次最终 isolated Staging retry | APPROVED；当前执行基线 |
+| v1.59 | 2026-07-25 | `CR-P12-05-011`：发现 prior classifier 缺少 builder 固定 input message type 后，允许一次精确同形无正文分类 | APPROVED；当前执行基线 |
+| v1.60 | 2026-07-25 | `CR-P12-05-012`：精确同形 classifier 通过而 Staging 仍 502 后，增加仅 loopback 管理面可读的固定阶段 attempt 投影；无新外部请求 | APPROVED；当前执行基线 |

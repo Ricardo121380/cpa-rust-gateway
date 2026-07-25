@@ -488,11 +488,53 @@ impl ManagementRouteExplain {
     }
 }
 
+/// Closed, value-free execution stage for a protected Attempt projection.
+///
+/// The stage says only where the gateway stopped. It intentionally carries no target, HTTP
+/// status, error detail, request value, or response value.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementRequestAttemptStage {
+    /// The Canonical request was being converted for the selected upstream format.
+    RequestConversion,
+    /// The already-built outbound target was being admitted by egress policy.
+    EgressAdmission,
+    /// The admitted request was being sent through the upstream transport.
+    HttpTransport,
+    /// A transport response was being classified by its HTTP status class.
+    HttpStatus,
+    /// A success-class response was being checked for its expected content type.
+    ContentType,
+    /// A finite JSON response body was being read under the existing transport deadlines.
+    BodyRead,
+    /// A finite JSON response body was being decoded into Canonical events.
+    Decoder,
+    /// An SSE response was being bootstrapped into its first Canonical event source.
+    SseBootstrap,
+}
+
+impl ManagementRequestAttemptStage {
+    /// Returns the frozen wire category for this safe stage.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::RequestConversion => "request_conversion",
+            Self::EgressAdmission => "egress_admission",
+            Self::HttpTransport => "http_transport",
+            Self::HttpStatus => "http_status",
+            Self::ContentType => "content_type",
+            Self::BodyRead => "body_read",
+            Self::Decoder => "decoder",
+            Self::SseBootstrap => "sse_bootstrap",
+        }
+    }
+}
+
 /// Value-free durable Attempt view for the protected management API.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ManagementRequestAttempt {
     attempt_id: String,
     outcome: &'static str,
+    stage: Option<ManagementRequestAttemptStage>,
     endpoint_id: Option<EndpointId>,
     credential_id: Option<CredentialId>,
 }
@@ -520,9 +562,21 @@ impl ManagementRequestAttempt {
         Ok(Self {
             attempt_id,
             outcome,
+            stage: None,
             endpoint_id,
             credential_id,
         })
+    }
+
+    /// Adds the optional closed execution-stage projection.
+    ///
+    /// Existing embeddings that have only terminal Attempt outcomes can omit this field. A stage
+    /// is an enum rather than a caller-provided string so the management response cannot gain an
+    /// arbitrary diagnostic channel.
+    #[must_use]
+    pub const fn with_stage(mut self, stage: ManagementRequestAttemptStage) -> Self {
+        self.stage = Some(stage);
+        self
     }
 
     /// Returns the deterministic Attempt identity.
@@ -535,6 +589,12 @@ impl ManagementRequestAttempt {
     #[must_use]
     pub const fn outcome(&self) -> &'static str {
         self.outcome
+    }
+
+    /// Returns the optional closed stage at which this Attempt reached its terminal outcome.
+    #[must_use]
+    pub const fn stage(&self) -> Option<ManagementRequestAttemptStage> {
+        self.stage
     }
 
     /// Returns the exact Endpoint identity when persisted for this Attempt.
@@ -1395,6 +1455,8 @@ struct RouteExplainCandidateResponse {
 struct RequestAttemptResponse {
     attempt_id: String,
     outcome: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stage: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     endpoint_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -3235,6 +3297,7 @@ fn request_attempt_response(
             Ok(RequestAttemptResponse {
                 attempt_id: attempt.attempt_id().to_owned(),
                 outcome: attempt.outcome(),
+                stage: attempt.stage().map(ManagementRequestAttemptStage::as_str),
                 endpoint_id: attempt.endpoint_id().map(|id| id.as_str().to_owned()),
                 credential_id: attempt.credential_id().map(|id| id.as_str().to_owned()),
             })

@@ -34,8 +34,9 @@ not supplied the runtime dependencies.
 3. Route Explain is read-only and uses an explicit observation time plus frozen protocol/model
    inputs. It never selects a live Candidate or acquires a Credential lease.
 4. Request tracing exposes a bounded value-free list of recorded attempts for the requested
-   `RequestId`; absent/unavailable storage maps to the fixed safe management error instead of an
-   internal diagnostic.
+   `RequestId`; an embedding may add only an optional closed execution-stage category. Absent,
+   lost, or unavailable storage maps to the fixed safe management error instead of an internal
+   diagnostic.
 5. The SPA has a dedicated runtime panel. It uses the generated client, persists no session or
    observation data, renders only safe categories, clears results on session reset, and labels a
    quota action as a request rather than a network recovery.
