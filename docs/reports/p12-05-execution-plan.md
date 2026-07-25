@@ -2,11 +2,11 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.51` |
+| Plan version | `v1.52` |
 | Task | `P12-05` |
-| Status | `IN_PROGRESS` — a late management-to-runtime policy mismatch was repaired after the first revision-bound artifact had been independently verified but before it was activated. The accepted P12-04 loopback Staging instance still has no P12-05 configuration row; the repair's Full gate passed and `CR-P12-05-002` directly approves its exact-SHA artifact before any graph write. `CR-P12-05-003` quarantines one removed local `0600` credential-selection spool: it is not accepted as memory-only evidence, and continuation requires a fresh pure-memory preflight before any graph write. |
+| Status | `IN_PROGRESS` — the accepted P12-04 loopback Staging instance has no P12-05 configuration row. `CR-P12-05-003` quarantined a removed local `0600` credential-selection spool; the replacement pure-memory preflight proved the selected Krill/Codex endpoint needs one non-secret compatibility User-Agent. `CR-P12-05-004` directly approves a new exact-SHA private artifact for that P12-only repair before any graph write. |
 | Preconditions | P12-04 remains active but disabled at boot, has its own state directory and its two loopback listeners. The incumbent `cli-proxy-api` remains out of scope. |
-| Approved remote exception | `CR-P12-05-001` is consumed by the rejected, never-activated `9d62339` artifact. `CR-P12-05-002` directly approves one replacement private GitHub OIDC/Sigstore artifact for the reviewed policy-alignment SHA and the same isolated Staging-only sequence. |
+| Approved remote exception | `CR-P12-05-001` is consumed by the rejected, never-activated `9d62339` artifact; `CR-P12-05-002` is consumed by the installed policy-alignment artifact. `CR-P12-05-004` directly approves one replacement private GitHub OIDC/Sigstore artifact for the reviewed P12-only compatibility SHA and the same isolated Staging-only sequence. |
 | Credential authority | The operator authorized a read-only use of this Mac's CC Switch `krill` Codex configuration. It contains a current ChatGPT OAuth token set, a separately selected effective Bearer credential, and two configured HTTPS endpoints. Values, endpoint text, account identity, models, request/response bodies, and token fingerprints are never written to Git, reports, command lines, or chat. |
 
 ## Boundary
@@ -34,13 +34,15 @@ evidence and a design reference only; it must not be linked into the production 
 
 ## Ordered execution
 
-1. Read the CC Switch `krill` Codex entry only in a local `0600`/memory-only helper.  Verify that
+1. Read the CC Switch `krill` Codex entry only in a local memory-only helper.  Verify that
    the ChatGPT OAuth access, refresh, and ID token fields are present, then identify the distinct
    effective Bearer value and the active Responses endpoint selected by the provider configuration,
    without rendering any value or endpoint text.  First perform a bounded, direct, no-value
    protocol preflight against that active endpoint.  It may retain only endpoint ordinal, status
-   class, content-type class, and a bounded model-count/capability outcome.  A non-2xx result
-   stops before any Staging mutation.
+   class, content-type class, the non-secret header-profile result, and a bounded model-count/
+   capability outcome.  The P12-only fixed `User-Agent` is permitted only after a generic-header
+   profile fails and its minimal delta proves it necessary; a non-2xx result for that corrected
+   profile stops before any Staging mutation.
 2. Write and independently review the production runtime composition and its focused regression
    tests.  Bootstrap the Snapshot registry from the same isolated control database, compile only
    encrypted active Credential bindings, preserve the P12-04 management listener, and mount the
@@ -82,13 +84,26 @@ evidence and a design reference only; it must not be linked into the production 
 
 ## Credential and protocol-preflight receipt
 
-The local memory-only helper selected the second configured HTTPS endpoint and sent exactly one
-direct, no-request-body `GET /models` preflight using only the selected effective Bearer.  It
-returned status class `2xx`, content-type class `json`, and a bounded model-count outcome of `9`.
-No prompt, model name, endpoint text, credential value, response body, proxy setting, or account
-identity was retained.  The helper did not follow redirects and did not write to Staging; the
-temporary Staging graph, Client Key, encrypted Credential envelope, and Provider validation
-sequence remain pending the revision-bound artifact.
+The replacement memory-only helper selected endpoint ordinal `2/2` and used direct HTTPS with no
+proxy or redirects.  Its generic-header, no-request-body `GET /models` control returned `4xx`.
+The minimal header delta proved that the fixed, non-secret
+`User-Agent: codex_cli_rs/0.139.0` is sufficient; `OpenAI-Beta` is not required.  The corrected
+profile returned status class `2xx`, content-type class `json`, and bounded model-count outcome
+`9`.  No prompt, model name, endpoint text, credential value, response body, proxy setting, or
+account identity was retained.  No Staging write occurred; the temporary Staging graph, Client
+Key, encrypted Credential envelope, and Provider validation sequence remain pending the new
+revision-bound artifact.
+
+## Krill compatibility repair
+
+The P12 runtime now constructs its isolated transport request from the existing OpenAI Responses
+outbound request, preserves its `accept`, `authorization`, and `content-type` values, and adds
+only the fixed compatibility User-Agent.  It also rejects an admitted target that is not exactly
+the parsed outbound URL, preserving the generic conversion's credential-to-target binding.  Its
+regressions assert the exact four headers, POST/body preservation, and mismatch rejection.  It is
+intentionally P12-scoped: `provider-openai-compatible` retains its three-header contract, and the
+repair adds no credential source, endpoint, redirect behavior, proxy behavior, egress allowlist,
+public listener, or request retry.
 
 ## Credential-handling deviation and corrective control
 

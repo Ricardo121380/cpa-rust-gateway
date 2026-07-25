@@ -57,12 +57,14 @@ use gateway_store::{
     secret_store::SecretStore,
 };
 use gateway_upstream::{
-    CredentialLease, EgressDnsResolver, EgressPolicy, SystemEgressDnsResolver, UpstreamClientPool,
+    AdmittedEgressTarget, CredentialLease, EgressDnsResolver, EgressPolicy,
+    SystemEgressDnsResolver, UpstreamClientPool, UpstreamHttpMethod, UpstreamHttpRequest,
     UpstreamHttpResponse, UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
 };
 use protocol_openai_responses::ResponseMode;
 use provider_openai_compatible::{
-    OpenAiResponsesApiKey, OpenAiResponsesEndpoint, OpenAiResponsesRequestBuilder,
+    OpenAiResponsesApiKey, OpenAiResponsesEndpoint, OpenAiResponsesOutboundRequest,
+    OpenAiResponsesRequestBuilder,
 };
 use serde_json::Value;
 
@@ -76,6 +78,11 @@ const P12_TTFB_TIMEOUT: Duration = Duration::from_secs(15);
 const P12_IDLE_TIMEOUT: Duration = Duration::from_secs(45);
 const P12_TOTAL_TIMEOUT: Duration = Duration::from_secs(45);
 const P12_BOOTSTRAP_TIMEOUT_MILLISECONDS: i64 = 15_000;
+/// The one verified, non-secret Krill/Codex compatibility header for P12's isolated endpoint.
+///
+/// This stays in the P12 runtime instead of changing the generic OpenAI-compatible provider:
+/// other Providers retain their existing three-header contract.
+const P12_KRILL_COMPATIBILITY_USER_AGENT: &str = "codex_cli_rs/0.139.0";
 
 /// Production pieces that must be attached to the separate P12 listeners together.
 pub(crate) struct DataPlaneComposition {
@@ -561,9 +568,8 @@ impl AttemptDriver for OpenAiAttemptDriver {
                 .policy
                 .admit_url(outbound.url(), runtime.resolver.as_ref())
                 .map_err(|_| AttemptFailure::NonRetryable(egress_rejected_error()))?;
-            let request = outbound
-                .into_transport_request(admitted)
-                .map_err(AttemptFailure::NonRetryable)?;
+            let request =
+                p12_transport_request(&outbound, admitted).map_err(AttemptFailure::NonRetryable)?;
             let mut response = self
                 .client_pool
                 .send(request, &runtime.transport)
@@ -592,6 +598,52 @@ impl AttemptDriver for OpenAiAttemptDriver {
             }
         })
     }
+}
+
+fn p12_transport_request(
+    outbound: &OpenAiResponsesOutboundRequest,
+    admitted: AdmittedEgressTarget,
+) -> Result<UpstreamHttpRequest, GatewayError> {
+    if admitted.request_url() != outbound.target().as_url() {
+        return Err(egress_rejected_error());
+    }
+
+    let accept = outbound
+        .header("accept")
+        .ok_or_else(internal_error)?
+        .to_owned();
+    let authorization = outbound
+        .header("authorization")
+        .ok_or_else(internal_error)?
+        .to_owned();
+    let content_type = outbound
+        .header("content-type")
+        .ok_or_else(internal_error)?
+        .to_owned();
+
+    UpstreamHttpRequest::try_new(
+        admitted,
+        UpstreamHttpMethod::Post,
+        p12_transport_headers(&accept, &authorization, &content_type),
+        outbound.body().to_vec(),
+    )
+    .map_err(|_| internal_error())
+}
+
+fn p12_transport_headers(
+    accept: &str,
+    authorization: &str,
+    content_type: &str,
+) -> [(String, String); 4] {
+    [
+        ("accept".to_owned(), accept.to_owned()),
+        ("authorization".to_owned(), authorization.to_owned()),
+        ("content-type".to_owned(), content_type.to_owned()),
+        (
+            "user-agent".to_owned(),
+            P12_KRILL_COMPATIBILITY_USER_AGENT.to_owned(),
+        ),
+    ]
 }
 
 fn upstream_response_mode(mode: ResponsesResponseMode) -> ResponseMode {
@@ -1138,8 +1190,10 @@ fn internal_error() -> GatewayError {
 #[cfg(test)]
 mod tests {
     use std::{
+        collections::BTreeSet,
         error::Error,
         fs,
+        net::{IpAddr, Ipv4Addr},
         path::{Path, PathBuf},
         sync::atomic::{AtomicU64, Ordering},
         time::{SystemTime, UNIX_EPOCH},
@@ -1152,7 +1206,7 @@ mod tests {
     };
     use gateway_core::{
         AccessGroupId, CanonicalEvent, ClientKeyId, CredentialId, EgressPolicyId, EndpointId,
-        PublicModelId, RouteCandidateId, RouteId, UpstreamId,
+        GatewayErrorCode, PublicModelId, RouteCandidateId, RouteId, UpstreamId,
     };
     use gateway_store::{
         control_plane::{
@@ -1166,14 +1220,43 @@ mod tests {
         },
         secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore},
     };
+    use gateway_upstream::{
+        EgressDnsError, EgressDnsResolver, EgressHost, EgressPolicy, EgressPolicyInput,
+        EgressScheme, RedirectPolicy, UpstreamHttpMethod,
+    };
+    use protocol_openai_responses::decode_request;
+    use provider_openai_compatible::{
+        OpenAiResponsesApiKey, OpenAiResponsesEndpoint, OpenAiResponsesRequestBuilder,
+    };
 
     use super::{
-        MAX_SSE_FRAME_BYTES, P12_STAGING_ENDPOINT_ID, append_sse_chunk,
-        build_data_plane_composition, decode_json_events, has_exact_p12_egress_shape,
-        has_p12_unlisted_model_override, staging_route_compiler,
+        MAX_SSE_FRAME_BYTES, P12_KRILL_COMPATIBILITY_USER_AGENT, P12_STAGING_ENDPOINT_ID,
+        append_sse_chunk, build_data_plane_composition, decode_json_events,
+        has_exact_p12_egress_shape, has_p12_unlisted_model_override, p12_transport_headers,
+        p12_transport_request, staging_route_compiler,
     };
 
     struct TemporaryDirectory(PathBuf);
+
+    struct StaticPublicResolver;
+
+    impl EgressDnsResolver for StaticPublicResolver {
+        fn resolve(&self, _host: &EgressHost) -> Result<Vec<IpAddr>, EgressDnsError> {
+            Ok(vec![IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8))])
+        }
+    }
+
+    fn p12_transport_test_policy() -> Result<EgressPolicy, Box<dyn Error>> {
+        Ok(EgressPolicy::try_new(EgressPolicyInput {
+            id: EgressPolicyId::try_new("p12-transport-test-policy")?,
+            name: "P12 transport test policy".to_owned(),
+            allowed_schemes: BTreeSet::from([EgressScheme::Https]),
+            allowed_hosts: BTreeSet::from([EgressHost::try_new("gateway.example.test")?]),
+            allowed_ports: BTreeSet::from([443]),
+            allowed_cidrs: BTreeSet::new(),
+            redirect_policy: RedirectPolicy::Deny,
+        })?)
+    }
 
     static TEMPORARY_DIRECTORY_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
@@ -1210,6 +1293,74 @@ mod tests {
         let compiler = staging_route_compiler()?;
         assert!(format!("{compiler:?}").contains("RouteCompiler"));
         assert_eq!(P12_STAGING_ENDPOINT_ID, "p12-krill-endpoint");
+        Ok(())
+    }
+
+    #[test]
+    fn p12_transport_headers_preserve_standard_headers_and_add_only_the_verified_compatibility_header()
+     {
+        let headers = p12_transport_headers(
+            "application/json",
+            "Bearer fixture-credential",
+            "application/json",
+        );
+
+        assert_eq!(
+            headers,
+            [
+                ("accept".to_owned(), "application/json".to_owned()),
+                (
+                    "authorization".to_owned(),
+                    "Bearer fixture-credential".to_owned(),
+                ),
+                ("content-type".to_owned(), "application/json".to_owned()),
+                (
+                    "user-agent".to_owned(),
+                    P12_KRILL_COMPATIBILITY_USER_AGENT.to_owned(),
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn p12_transport_request_preserves_the_admitted_target_body_and_method()
+    -> Result<(), Box<dyn Error>> {
+        let decoded = decode_request(include_str!(
+            "../../../tests/fixtures/openai-responses/request-canonical.json"
+        ))?;
+        let endpoint =
+            OpenAiResponsesEndpoint::try_new("https://gateway.example.test/v1", "/responses")?;
+        let credential = OpenAiResponsesApiKey::try_new("p12-test-bearer")?;
+        let outbound = OpenAiResponsesRequestBuilder::build(
+            &endpoint,
+            &credential,
+            "p12-test-upstream-model",
+            &decoded.request,
+            decoded.mode,
+        )?;
+        let policy = p12_transport_test_policy()?;
+        let admitted = policy.admit_url(outbound.url(), &StaticPublicResolver)?;
+
+        let request = p12_transport_request(&outbound, admitted)?;
+        assert_eq!(request.method(), UpstreamHttpMethod::Post);
+        assert_eq!(request.body(), outbound.body());
+        assert_eq!(
+            request
+                .header("user-agent")
+                .and_then(|value| value.to_str().ok()),
+            Some(P12_KRILL_COMPATIBILITY_USER_AGENT)
+        );
+
+        let mismatched = policy.admit_url(
+            "https://gateway.example.test/v1/not-responses",
+            &StaticPublicResolver,
+        )?;
+        assert_eq!(
+            p12_transport_request(&outbound, mismatched)
+                .err()
+                .map(|error| error.code()),
+            Some(GatewayErrorCode::EgressRejected)
+        );
         Ok(())
     }
 
