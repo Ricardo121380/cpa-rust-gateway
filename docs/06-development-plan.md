@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.65` |
+| 计划版本 | `v1.66` |
 | 生效日期 | `2026-07-26` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -2287,6 +2287,43 @@ CR-ID: CR-P12-05-016
 计划版本变更: v1.65
 ```
 
+### 已批准 Change Request：CR-P12-05-017
+
+```text
+CR-ID: CR-P12-05-017
+原因: CR-P12-05-016 的独立 review 留下三项已确认的遗留缺陷，均会在 P12-06 至 P12-08 的真实
+      流量下触发。(1) 非流式 600s 传输上限不可达：orchestrator 把整个 driver.start() 包在
+      路由 bootstrap deadline（准入上限 15s）内，而缓冲型上游生成完才回 header，整段生成
+      等待都在 start() 里，超过 ~15s 的非流式回答必然被截断。(2) 卡死上游可占用唯一凭据租约
+      直到 1 小时绝对上限：传输 byte-idle 只测字节静默，`response.in_progress` 等 no-op 帧
+      会无限重置它，而本网关自身的 15s 客户端 keepalive 使客户端无从察觉。(3) `take_frame`
+      每 chunk 从 0 全缓冲区双重扫描，帧上限提至 8 MiB 后为 O(n²)，单 worker 数据面可被拖停；
+      流式工具标识符仅受帧上限约束，最坏 ~256 MiB 驻留状态。
+影响的 Task / Matrix ID / ADR: P12-05 的 serve 组合与 gateway-router 的 Attempt 编排。
+      gateway-router 新增带默认实现的 `AttemptDriver::start_timeout(remaining_bootstrap)`
+      trait 端口：orchestrator 仅用它约束单次 in-flight start()，`RetryBudget` 与"何时允许
+      开始下一次 attempt"完全不变，既有三个 driver 实现字节不变；BC-ROUTER-003 增补该条款。
+      P12 驱动仅对非流式返回 bootstrap 余额加传输总额，流式保持原边界。P12 运行时新增双层
+      语义活性：解码器内 4096 连续无进展帧预算（按帧计数，与分块无关），传输层 15 分钟
+      进展预算——仅累计真正等待上游 next_chunk 的时间，下游客户端停读产生的背压不消耗
+      预算，避免把健康完成误判为卡死；到期为终止性 StreamError，唯一凭据租约随之释放，
+      最坏占用窗口由 1 小时降至约 17 分钟。解码器改为 consumed/scanned 双游标加摊销压缩，
+      每字节至多扫描一次，缓冲上限 2 倍帧上限、活跃残留 1 倍；工具 item/call 标识符超过
+      256 字节 fail closed。不改 Provider、Credential、egress、公开流量或 incumbent CPA。
+兼容性与迁移影响: 客户端可见变化两项：超过 ~15s 的非流式回答不再被截断（上限为传输 600s）；
+      连续 15 分钟无生成进展证据（或连续 4096 个 keepalive 帧）的流式响应以 StreamError
+      终止而非空耗至 1 小时。推理模型思考停顿不受影响：reasoning-summary/reasoning-text、
+      content-part、refusal 等帧即使被丢弃也计为进展。无 Schema、契约帧格式或管理面变化。
+测试与回滚变化: 新增 16 项本地测试：orchestrator 的扩展上限/默认上限/首字节前重试保持/安全
+      截断错误四项；活性的纯 keepalive 切断、注释帧同预算、进展重置、真实回环对端的切断与
+      思考存活、下游停读不消耗预算六项；游标的混合分隔符跨块不变性、仅计活跃残留的帧预算、
+      压缩后 1 MiB 帧、标识符边界通过/超界拒绝五项；以及常量关系断言。cursor 修改另经
+      4300+ 例随机差分模糊对照旧实现验证输出与接受/拒绝完全一致。回滚为 revert 本 CR 的
+      提交；无服务器、制品或数据变更。
+用户批准: APPROVED，2026-07-26（"继续修这三个遗留项吧"）
+计划版本变更: v1.66
+```
+
 ### Canary 推进与回滚规则
 
 - 每个流量阶段至少持续 2 小时并包含至少 100 个成功请求；低流量时使用固定合成请求补足。
@@ -2467,3 +2504,4 @@ Next task:
 | v1.63 | 2026-07-26 | `CR-P12-05-015`：CR-014 的 Tool `2xx` 未通过无值 Function Call 门槛后，以不同、明确的无外部效应声明执行一次新 tuple，并把回执细化为封闭结构类别 | APPROVED；Tool `2xx`/`valid`、条件性 Explain 与完整回滚均通过 |
 | v1.64 | 2026-07-26 | 记录 CR-015 成功 Tool/Explain 回执、独立回滚复核及 P12-05 的本地验收收口 | P12-05 为 LOCAL_PASS_PENDING_PHASE_GATE；P12-06 仍 PENDING |
 | v1.65 | 2026-07-26 | `CR-P12-05-016`：修复 serve 二进制上的 Anthropic 流式 usage 时序、流式 Tool 生命周期、256 KiB 入站正文上限与缺失的 SSE keepalive/45s 绝对超时；放宽 `message_start` 的精确 input Usage 要求为终止 `message_delta` 强制交付 | APPROVED；27 项新本地测试与 `check.sh fast` 全通过，未改服务器或公开边界 |
+| v1.66 | 2026-07-26 | `CR-P12-05-017`：以 driver 声明式 in-flight 上限使非流式 600s 传输上限可达；双层语义活性把卡死上游的租约占用从 1 小时降至约 17 分钟且不误杀思考停顿与停读客户端；解码器双游标消除 O(n²) 扫描并约束工具标识符 | APPROVED；16 项新本地测试、4300+ 例差分模糊与全工作区门禁通过 |
