@@ -1267,9 +1267,7 @@ crates/
   gateway-provider/
   gateway-upstream/
   gateway-catalog/
-  gateway-access/
   gateway-router/
-  gateway-continuity/
   gateway-auth/
   gateway-stream/
   gateway-observability/

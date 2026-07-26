@@ -48,7 +48,6 @@ crates/
   gateway-provider/
   gateway-upstream/
   gateway-catalog/
-  gateway-access/
   provider-grok/
     official/
     build/
@@ -60,7 +59,6 @@ crates/
   provider-openai-compatible/
   provider-anthropic-compatible/
   gateway-router/
-  gateway-continuity/
   gateway-auth/
   gateway-stream/
   gateway-observability/
@@ -221,7 +219,7 @@ gateway-protocol      gateway-provider      gateway-upstream
   ↑                         ↑                      ↑
 protocol-*             provider-*          gateway-catalog
           \                |                    /
-       gateway-router + gateway-continuity + gateway-access
+       gateway-router
                          ↑
                   gateway-http-actix
 ```
@@ -412,11 +410,16 @@ gateway-catalog/
   diff.rs
   freshness.rs
 
-gateway-access/
-  client_key.rs
-  access_group.rs
-  public_model.rs
-  route_compiler.rs
 ```
+
+> 实现说明（2026-07-27）：草案里的 `gateway-access/` 与 `gateway-continuity/` 两个预留 crate 从未
+> 承载代码。它们的职责在实现中落到了别处，且已在那里完整交付，因此这两个空壳连同三条指向它们的
+> 依赖边一并移除（`CR-P12-06-003`）：
+>
+> - Client Key、Access Group、Public Model 与 Route 编译：`gateway-control`（编译与发布）与
+>   `gateway-router`（不可变 Snapshot 中的只读视图）。
+> - Cache Affinity、Response Ownership、Reasoning Replay 与 Web Conversation State：
+>   `provider-grok`（`continuity_state.rs`、`official_runtime.rs`、`build_responses.rs`），因为
+>   BL-12/BL-14 要求这些状态按 Provider 家族隔离，而不是集中在一个共享 crate 里。
 
 详细实体、冲突规则和 `minimax-m3` 轮询示例见 [上游聚合、统一模型与自有 API 设计](05-upstream-aggregation-design.md)。

@@ -10,7 +10,6 @@ publish.workspace = true
 [dependencies]
 flate2.workspace = true
 getrandom.workspace = true
-gateway-continuity = { path = "../gateway-continuity" }
 gateway-catalog = { path = "../gateway-catalog" }
 gateway-core = { path = "../gateway-core" }
 gateway-provider = { path = "../gateway-provider" }

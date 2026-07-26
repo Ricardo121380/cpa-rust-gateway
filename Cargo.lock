@@ -714,13 +714,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gateway-access"
-version = "0.1.0"
-dependencies = [
- "gateway-core",
-]
-
-[[package]]
 name = "gateway-auth"
 version = "0.1.0"
 dependencies = [
@@ -743,17 +736,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "gateway-continuity"
-version = "0.1.0"
-dependencies = [
- "gateway-core",
-]
-
-[[package]]
 name = "gateway-control"
 version = "0.1.0"
 dependencies = [
- "gateway-access",
  "gateway-auth",
  "gateway-catalog",
  "gateway-core",
@@ -838,10 +823,8 @@ name = "gateway-router"
 version = "0.1.0"
 dependencies = [
  "arc-swap",
- "gateway-access",
  "gateway-auth",
  "gateway-catalog",
- "gateway-continuity",
  "gateway-core",
  "gateway-protocol",
  "gateway-provider",
@@ -1634,7 +1617,6 @@ version = "0.1.0"
 dependencies = [
  "flate2",
  "gateway-catalog",
- "gateway-continuity",
  "gateway-core",
  "gateway-provider",
  "gateway-router",

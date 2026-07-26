@@ -2,10 +2,8 @@
 resolver = "2"
 members = [
     "apps/gateway",
-    "crates/gateway-access",
     "crates/gateway-auth",
     "crates/gateway-catalog",
-    "crates/gateway-continuity",
     "crates/gateway-control",
     "crates/gateway-core",
     "crates/gateway-http-actix",

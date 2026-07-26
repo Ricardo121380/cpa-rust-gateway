@@ -1,0 +1,205 @@
+- main [ref=f2e2]:
+  - generic [ref=f2e3]:
+    - complementary [ref=f2e4]:
+      - paragraph [ref=f2e5]:
+        - text: CPA Rust Gateway
+        - generic [ref=f2e6]: Management plane
+      - navigation "Management sections" [ref=f2e7]:
+        - link "Upstreams" [ref=f2e8] [cursor=pointer]:
+          - /url: "#upstreams"
+        - link "Routing and access" [ref=f2e9] [cursor=pointer]:
+          - /url: "#routing"
+        - link "Runtime" [ref=f2e10] [cursor=pointer]:
+          - /url: "#runtime"
+        - link "Configuration" [ref=f2e11] [cursor=pointer]:
+          - /url: "#configuration"
+        - link "Backup and restore" [ref=f2e12] [cursor=pointer]:
+          - /url: "#backup"
+      - paragraph [ref=f2e13]: P10-08 adds encrypted backup preflight and one-time, empty-target restore controls. Artifact creation and both Backup/Master Keys stay outside this page.
+    - main [ref=f2e14]:
+      - generic [ref=f2e15]:
+        - paragraph [ref=f2e16]: P10-08 · protected management workspace
+        - heading "Upstreams, routing and access" [level=1] [ref=f2e17]
+        - paragraph [ref=f2e18]: Manage draft resources, publish only a validated draft, and inspect safe runtime projections. No view can expose a Secret, select a Provider, send an inference request or complete recovery.
+      - region [ref=f2e19]:
+        - generic [ref=f2e20]:
+          - generic [ref=f2e21]:
+            - paragraph [ref=f2e22]: Page-local session
+            - heading "Connect management client" [level=2] [ref=f2e23]
+          - status [ref=f2e24]: Not connected
+        - generic [ref=f2e25]:
+          - generic [ref=f2e26]:
+            - text: Management Key
+            - textbox "Management Key" [ref=f2e27]
+          - generic [ref=f2e28]:
+            - text: CSRF Token
+            - textbox "CSRF Token" [ref=f2e29]
+          - generic [ref=f2e30]:
+            - text: Config Version
+            - textbox "Config Version" [ref=f2e31]: draft-p10
+          - generic [ref=f2e32]:
+            - text: Current revision
+            - textbox "Current revision" [ref=f2e33]: rev-0
+          - button "Connect in memory" [ref=f2e35] [cursor=pointer]
+        - paragraph [ref=f2e36]: Keys and CSRF tokens are never written to browser storage, URLs, the result pane or request previews. Refreshing this page clears them.
+      - region [ref=f2e37]:
+        - generic [ref=f2e39]:
+          - paragraph [ref=f2e40]: Draft resources
+          - heading "CRUD, routing and access controls" [level=2] [ref=f2e41]
+        - generic [ref=f2e42]:
+          - generic [ref=f2e43]:
+            - text: Resource
+            - combobox "Resource" [ref=f2e44]:
+              - option "Egress policy" [selected]
+              - option "Upstream"
+              - option "Endpoint"
+              - option "Credential"
+              - option "Endpoint credential binding"
+              - option "Public model"
+              - option "Model alias"
+              - option "Route"
+              - option "Route candidate"
+              - option "Access group"
+              - option "Access-group route grant"
+              - option "Client Key"
+          - generic [ref=f2e45]:
+            - text: Action
+            - combobox "Action" [ref=f2e46]:
+              - option "list" [selected]
+              - option "get"
+              - option "create"
+              - option "update"
+              - option "delete"
+          - generic [ref=f2e47]:
+            - generic [ref=f2e48]: Egress policy ID
+            - textbox "Egress policy ID" [ref=f2e49]
+          - generic [ref=f2e50]:
+            - generic [ref=f2e51]: Parent resource ID
+            - textbox "Parent resource ID" [ref=f2e52]
+          - generic [ref=f2e53]:
+            - text: Resource JSON
+            - textbox "Resource JSON" [ref=f2e54]: "{ \"id\": \"provider-egress\", \"name\": \"Provider egress\", \"allowed_schemes\": [ \"https\" ], \"allowed_hosts\": [ \"api.example.test\" ], \"allowed_ports\": [ 443 ], \"allowed_cidrs\": [], \"redirect_mode\": \"deny\", \"max_redirects\": 0 }"
+          - button "Run protected operation" [ref=f2e56] [cursor=pointer]
+        - paragraph [ref=f2e57]: Credential Secrets remain write-only. Client Keys are displayed only after a successful issue operation, in a separate transient pane; every other result is metadata only.
+      - region [ref=f2e58]:
+        - generic [ref=f2e60]:
+          - paragraph [ref=f2e61]: Bounded workflows
+          - heading "Endpoint and OAuth controls" [level=2] [ref=f2e62]
+        - generic [ref=f2e63]:
+          - generic [ref=f2e64]:
+            - generic [ref=f2e65]:
+              - text: Endpoint ID
+              - textbox "Endpoint ID" [ref=f2e66]
+            - generic [ref=f2e67]:
+              - text: Test mode
+              - combobox "Test mode" [ref=f2e68]:
+                - option "Non-streaming" [selected]
+                - option "SSE"
+            - generic [ref=f2e69]:
+              - text: Endpoint action
+              - combobox "Endpoint action" [ref=f2e70]:
+                - option "Test endpoint" [selected]
+                - option "Preview Catalog diff"
+                - option "Apply Catalog diff"
+            - button "Run endpoint workflow" [ref=f2e72] [cursor=pointer]
+          - generic [ref=f2e73]:
+            - generic [ref=f2e74]:
+              - text: Credential ID
+              - textbox "Credential ID" [ref=f2e75]
+            - generic [ref=f2e76]:
+              - text: OAuth action
+              - combobox "OAuth action" [ref=f2e77]:
+                - option "Start" [selected]
+                - option "Check status"
+                - option "Cancel"
+            - button "Run OAuth workflow" [ref=f2e79] [cursor=pointer]
+        - paragraph [ref=f2e80]: Test results expose only safe outcome/status classes. Catalog apply uses the displayed revision; stale revisions fail before an injected workflow is called.
+      - region [ref=f2e81]:
+        - generic [ref=f2e83]:
+          - paragraph [ref=f2e84]: Runtime observations
+          - heading "Catalog, availability and controlled recovery" [level=2] [ref=f2e85]
+        - generic [ref=f2e86]:
+          - generic [ref=f2e87]:
+            - group "Safe observations" [ref=f2e88]:
+              - button "Read Catalog status" [ref=f2e90] [cursor=pointer]
+              - button "Read runtime availability" [ref=f2e91] [cursor=pointer]
+            - paragraph [ref=f2e92]: Catalog and availability show only binding IDs and closed freshness/Health/Quota/403 categories. They do not send a Provider request.
+          - generic [ref=f2e93]:
+            - generic [ref=f2e94]:
+              - text: Endpoint ID
+              - textbox "Endpoint ID" [ref=f2e95]
+            - generic [ref=f2e96]:
+              - text: Credential ID
+              - textbox "Credential ID" [ref=f2e97]
+            - generic [ref=f2e98]:
+              - text: Optional upstream model
+              - textbox "Optional upstream model" [ref=f2e99]
+            - button "Request controlled quota recovery" [ref=f2e101] [cursor=pointer]
+            - paragraph [ref=f2e102]: This records a bounded controller request only. It does not probe a Provider, clear a 403 state, change a Credential or declare recovery complete.
+          - generic [ref=f2e103]:
+            - generic [ref=f2e104]:
+              - text: Route ID
+              - textbox "Route ID" [ref=f2e105]
+            - generic [ref=f2e106]:
+              - text: Requested model
+              - textbox "Requested model" [ref=f2e107]
+            - generic [ref=f2e108]:
+              - text: Protocol
+              - combobox "Protocol" [ref=f2e109]:
+                - option "OpenAI Responses" [selected]
+                - option "Anthropic Messages"
+            - button "Explain Route" [ref=f2e111] [cursor=pointer]
+            - paragraph [ref=f2e112]: Explain is a fixed-time projection. It does not acquire a Credential lease or advance a scheduling cursor.
+          - generic [ref=f2e113]:
+            - generic [ref=f2e114]:
+              - text: Request ID
+              - textbox "Request ID" [ref=f2e115]
+            - button "Read value-free attempts" [ref=f2e117] [cursor=pointer]
+            - paragraph [ref=f2e118]: Attempts omit Provider URLs, headers, bodies, model values, timing and raw diagnostics.
+      - region [ref=f2e119]:
+        - generic [ref=f2e121]:
+          - paragraph [ref=f2e122]: Configuration lifecycle
+          - heading "Validate, publish and recover one predecessor" [level=2] [ref=f2e123]
+        - generic [ref=f2e124]:
+          - generic [ref=f2e125]:
+            - text: Lifecycle action
+            - combobox "Lifecycle action" [ref=f2e126]:
+              - option "List Config Versions" [selected]
+              - option "Read Config Version"
+              - option "Create draft"
+              - option "Validate draft"
+              - option "Publish draft"
+              - option "Rollback retained predecessor"
+              - option "Read lifecycle audit"
+          - generic [ref=f2e127]:
+            - text: Config Version ID
+            - textbox "Config Version ID" [ref=f2e128]: draft-p10
+          - generic [ref=f2e129]:
+            - text: Optional parent Version ID
+            - textbox "Optional parent Version ID" [ref=f2e130]
+          - generic [ref=f2e131]:
+            - text: Draft description
+            - textbox "Draft description" [ref=f2e132]: P10 management draft
+          - button "Run lifecycle operation" [ref=f2e134] [cursor=pointer]
+        - paragraph [ref=f2e135]: Validation changes no state. Publish requires the displayed revision and can activate only a draft; rollback can restore only P2's retained predecessor. Audit contains bounded metadata, never compiler diagnostics, Secrets, keys, URLs or request material.
+      - region [ref=f2e136]:
+        - generic [ref=f2e138]:
+          - paragraph [ref=f2e139]: Encrypted recovery
+          - heading "Preflight and empty-target restore" [level=2] [ref=f2e140]
+        - generic [ref=f2e141]:
+          - generic [ref=f2e142]:
+            - text: Backup action
+            - combobox "Backup action" [ref=f2e143]:
+              - option "Read configured backup preflight" [selected]
+              - option "Preflight selected encrypted artifact"
+              - option "Restore selected artifact into configured empty target"
+          - generic [ref=f2e144]:
+            - text: Encrypted artifact
+            - button "Encrypted artifact" [ref=f2e145]
+          - button "Run backup operation" [ref=f2e147] [cursor=pointer]
+        - paragraph [ref=f2e148]: The selected artifact is passed once directly to the generated client, then immediately cleared. This page neither reads nor renders artifact bytes, accepts a Backup Key, stores a Master Key, creates a download, chooses a restore path, or replaces an existing database.
+      - region [ref=f2e149]:
+        - generic [ref=f2e151]:
+          - paragraph [ref=f2e152]: Safe result
+          - heading "Operation response" [level=2] [ref=f2e153]
+        - generic [ref=f2e154]: No operation has run.

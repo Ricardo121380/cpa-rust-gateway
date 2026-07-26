@@ -9,10 +9,8 @@ publish.workspace = true
 
 [dependencies]
 arc-swap.workspace = true
-gateway-access = { path = "../gateway-access" }
 gateway-auth = { path = "../gateway-auth" }
 gateway-catalog = { path = "../gateway-catalog" }
-gateway-continuity = { path = "../gateway-continuity" }
 gateway-core = { path = "../gateway-core" }
 gateway-protocol = { path = "../gateway-protocol" }
 gateway-provider = { path = "../gateway-provider" }
