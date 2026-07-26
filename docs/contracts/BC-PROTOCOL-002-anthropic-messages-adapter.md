@@ -46,8 +46,14 @@ this contract.
   `end_turn`. It never estimates usage, expands a Model alias, exposes Provider diagnostics, or
   emits credentials.
 - SSE uses standard `event:`/JSON `data:` frames: `message_start`, text content-block start/delta/
-  stop, `message_delta`, then `message_stop`. `message_start` requires exact canonical input Usage;
-  a later final Usage snapshot supplies exact output Usage.
+  stop, `message_delta`, then `message_stop`. `message_start` carries exact canonical input Usage
+  when it was reported before the message opened and omits `input_tokens` when it was not; a later
+  final Usage snapshot supplies exact output Usage, plus every exact input-side count — including
+  the cache counts — when `message_start` could not carry them. Omission is a deliberate wire
+  deviation from Anthropic's own `message_start`, which always carries `input_tokens`: a client
+  must therefore read the exact input count from `message_delta.usage` and must not treat a missing
+  `message_start.usage.input_tokens` as a measured zero. Emitting `0` there is rejected by
+  ADR-0034 because it would falsely claim a measured value.
 - `StreamError` emits an Anthropic `error` event and no normal terminal event. Before headers, the
   caller can encode the same core error as a safe `{type:error,error:{type,message}}` payload.
 - All P5-01 frames are semantic protocol data only. The HTTP writer, introduced later, owns the

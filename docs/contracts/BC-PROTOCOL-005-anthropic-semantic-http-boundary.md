@@ -43,9 +43,12 @@ bridge, read credentials, or make network traffic.
 | `ResponseEnd.stop_sequence` | exact `message_delta.delta.stop_sequence` and completed `stop_sequence` |
 | resolved Snapshot public model | every Messages JSON/SSE model field |
 
-- The encoder requires exact input Usage before `message_start` and output Usage before a normal
-  completion. Later partial snapshots retain earlier reported input/cache values when they only add
-  output values.
+- The encoder emits `message_start` with whatever exact input/cache Usage the canonical stream has
+  already reported. When no input count was reported yet, `input_tokens` is omitted from the
+  `message_start` usage object rather than estimated, and the exact reported count is then required
+  in the terminal `message_delta` usage, so a stream that never reports one still fails closed.
+  Output Usage is still required before a normal completion. Later partial snapshots retain earlier
+  reported input/cache values when they only add output values.
 - `ResponseEnd` requires a non-empty explicit stop reason at the Anthropic boundary. It never
   infers a value from Tool count or content shape.
 - `reasoning_tokens`, `cached_tokens`, or raw Usage extensions have no proven Anthropic wire field

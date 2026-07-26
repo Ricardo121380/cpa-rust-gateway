@@ -149,7 +149,9 @@ impl AnthropicMessagesSseEncoder {
     /// Validates and maps one canonical event to zero or more Anthropic SSE frames.
     ///
     /// `ResponseStart` and Usage snapshots may produce no frame. Anthropic's first `message_start`
-    /// is emitted only once the canonical stream has supplied exact input Usage and `MessageStart`.
+    /// is emitted once `MessageStart` arrives, carrying whatever exact input Usage the canonical
+    /// stream has already supplied; an input count that is still unreported is omitted there and
+    /// becomes mandatory in the terminal `message_delta`.
     ///
     /// # Errors
     ///
@@ -198,6 +200,7 @@ struct Assembly {
     active_sse_index: Option<usize>,
     tools: BTreeMap<String, ToolState>,
     usage: Option<Usage>,
+    deferred_input_usage: bool,
     stop_reason: Option<String>,
     stop_sequence: Option<String>,
     terminal: TerminalPhase,
@@ -330,8 +333,13 @@ impl Assembly {
             .response_id
             .as_deref()
             .ok_or_else(stream_protocol_error)?;
-        let usage = self.usage.as_ref().ok_or_else(stream_protocol_error)?;
-        let input_usage = initial_usage_value(usage)?;
+        // Anthropic's wire `message_start` carries an input Usage object, but an upstream whose
+        // protocol reports Usage only at the end of a stream cannot supply one yet. Emit the
+        // placeholder shape in that case and remember that the exact count is still owed, so the
+        // terminal `message_delta` must carry it instead of silently losing it.
+        let usage = self.usage.as_ref();
+        self.deferred_input_usage = usage.and_then(|usage| usage.input_tokens).is_none();
+        let input_usage = initial_usage_value(usage);
         self.message = MessagePhase::Started;
         Ok(vec![frame(
             "message_start",
@@ -782,7 +790,7 @@ impl Assembly {
             return Err(stream_protocol_error());
         }
         let usage = self.usage.as_ref().ok_or_else(stream_protocol_error)?;
-        let output_usage = output_usage_value(usage)?;
+        let output_usage = output_usage_value(usage, self.deferred_input_usage)?;
         let stop_reason = end
             .stop_reason
             .as_deref()
@@ -857,18 +865,41 @@ fn merge_usage(previous: Option<&Usage>, update: &Usage) -> Usage {
     merged
 }
 
-fn initial_usage_value(usage: &Usage) -> Result<Value, GatewayError> {
+/// Encodes the `message_start` input Usage from whatever the canonical stream has reported.
+///
+/// An upstream whose protocol reports Usage only in its terminal event leaves the input count
+/// genuinely unknown here. The field is then omitted rather than estimated — `0` would falsely
+/// claim a measured value — and the exact count is required in the terminal `message_delta`.
+fn initial_usage_value(usage: Option<&Usage>) -> Value {
+    let mut encoded = Map::new();
+    if let Some(input_tokens) = usage.and_then(|usage| usage.input_tokens) {
+        encoded.insert("input_tokens".to_owned(), Value::from(input_tokens));
+    }
+    encoded.insert("output_tokens".to_owned(), Value::from(0_u64));
+    if let Some(usage) = usage {
+        insert_anthropic_cache_usage(&mut encoded, usage);
+    }
+    Value::Object(encoded)
+}
+
+/// Encodes the terminal `message_delta` Usage.
+///
+/// `deferred_input` repays the placeholder written by [`initial_usage_value`]: the exact input
+/// count becomes mandatory here, so a stream that never reports one fails closed instead of
+/// leaving the client with the placeholder.
+fn output_usage_value(usage: &Usage, deferred_input: bool) -> Result<Value, GatewayError> {
+    let output_tokens = usage.output_tokens.ok_or_else(stream_protocol_error)?;
+    if !deferred_input {
+        return Ok(json!({"output_tokens": output_tokens}));
+    }
+    // `message_start` carried no input-side Usage at all in the deferred case, so this frame repays
+    // every exact input-side count, not only `input_tokens`.
     let input_tokens = usage.input_tokens.ok_or_else(stream_protocol_error)?;
     let mut encoded = Map::new();
     encoded.insert("input_tokens".to_owned(), Value::from(input_tokens));
-    encoded.insert("output_tokens".to_owned(), Value::from(0_u64));
+    encoded.insert("output_tokens".to_owned(), Value::from(output_tokens));
     insert_anthropic_cache_usage(&mut encoded, usage);
     Ok(Value::Object(encoded))
-}
-
-fn output_usage_value(usage: &Usage) -> Result<Value, GatewayError> {
-    let output_tokens = usage.output_tokens.ok_or_else(stream_protocol_error)?;
-    Ok(json!({"output_tokens": output_tokens}))
 }
 
 fn completed_usage_value(usage: &Usage) -> Result<Value, GatewayError> {
@@ -1078,19 +1109,104 @@ mod tests {
     }
 
     #[test]
-    fn requires_initial_usage_and_rejects_unrepresentable_usage_or_missing_stop_reason()
+    fn defers_unreported_initial_usage_and_repays_it_in_the_terminal_delta()
     -> Result<(), Box<dyn std::error::Error>> {
         let metadata = AnthropicResponseMetadata::try_new("gateway-claude")?;
         let mut encoder = AnthropicMessagesSseEncoder::new(metadata);
         let events: Vec<CanonicalEvent> = serde_json::from_str(
             r#"[
                 {"response_start":{"response_id":"r","extensions":{}}},
-                {"message_start":{"role":"assistant","extensions":{}}}
+                {"message_start":{"role":"assistant","extensions":{}}},
+                {"text_delta":{"text":"visible","extensions":{}}},
+                {"message_end":{"extensions":{}}},
+                {"usage_delta":{"usage":{"input_tokens":7,"output_tokens":3,"extensions":{}},"is_final":true,"extensions":{}}},
+                {"response_end":{"stop_reason":"end_turn","extensions":{}}}
             ]"#,
         )?;
-        assert!(encoder.encode_event(&events[0]).is_ok());
-        assert!(encoder.encode_event(&events[1]).is_err());
+        let mut frames = Vec::new();
+        for event in &events {
+            frames.extend(encoder.encode_event(event)?);
+        }
+        let started = frames
+            .iter()
+            .find(|frame| frame.event() == "message_start")
+            .ok_or("missing message_start")?;
+        assert_eq!(
+            started.data()["message"]["usage"],
+            serde_json::json!({"output_tokens": 0})
+        );
+        let delta = frames
+            .iter()
+            .find(|frame| frame.event() == "message_delta")
+            .ok_or("missing message_delta")?;
+        assert_eq!(
+            delta.data()["usage"],
+            serde_json::json!({"input_tokens": 7, "output_tokens": 3})
+        );
+        Ok(())
+    }
 
+    #[test]
+    fn deferred_repayment_carries_every_exact_input_side_count()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let metadata = AnthropicResponseMetadata::try_new("gateway-claude")?;
+        let mut encoder = AnthropicMessagesSseEncoder::new(metadata);
+        let events: Vec<CanonicalEvent> = serde_json::from_str(
+            r#"[
+                {"response_start":{"response_id":"r","extensions":{}}},
+                {"message_start":{"role":"assistant","extensions":{}}},
+                {"text_delta":{"text":"visible","extensions":{}}},
+                {"message_end":{"extensions":{}}},
+                {"usage_delta":{"usage":{"input_tokens":1000,"output_tokens":20,"cache_read_tokens":900,"cache_creation_tokens":40,"extensions":{}},"is_final":true,"extensions":{}}},
+                {"response_end":{"stop_reason":"end_turn","extensions":{}}}
+            ]"#,
+        )?;
+        let mut frames = Vec::new();
+        for event in &events {
+            frames.extend(encoder.encode_event(event)?);
+        }
+        let delta = frames
+            .iter()
+            .find(|frame| frame.event() == "message_delta")
+            .ok_or("missing message_delta")?;
+        // `message_start` carried no input-side Usage at all, so no exact count may be dropped.
+        assert_eq!(
+            delta.data()["usage"],
+            serde_json::json!({
+                "input_tokens": 1000,
+                "output_tokens": 20,
+                "cache_read_input_tokens": 900,
+                "cache_creation_input_tokens": 40
+            })
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn deferred_initial_usage_that_is_never_reported_fails_closed()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let metadata = AnthropicResponseMetadata::try_new("gateway-claude")?;
+        let mut encoder = AnthropicMessagesSseEncoder::new(metadata);
+        let events: Vec<CanonicalEvent> = serde_json::from_str(
+            r#"[
+                {"response_start":{"response_id":"r","extensions":{}}},
+                {"message_start":{"role":"assistant","extensions":{}}},
+                {"text_delta":{"text":"visible","extensions":{}}},
+                {"message_end":{"extensions":{}}},
+                {"usage_delta":{"usage":{"output_tokens":3,"extensions":{}},"is_final":true,"extensions":{}}},
+                {"response_end":{"stop_reason":"end_turn","extensions":{}}}
+            ]"#,
+        )?;
+        for event in &events[..5] {
+            assert!(encoder.encode_event(event).is_ok());
+        }
+        assert!(encoder.encode_event(&events[5]).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_unrepresentable_usage_or_missing_stop_reason()
+    -> Result<(), Box<dyn std::error::Error>> {
         let metadata = AnthropicResponseMetadata::try_new("gateway-claude")?;
         let mut encoder = AnthropicMessagesSseEncoder::new(metadata);
         let events: Vec<CanonicalEvent> = serde_json::from_str(

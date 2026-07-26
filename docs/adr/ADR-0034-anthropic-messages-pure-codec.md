@@ -32,8 +32,9 @@ streaming, Thinking, cache/stop semantics, and Provider token counting have late
    original Message extensions are attached exactly once to the first resulting record, preserving
    data without duplicating a protocol claim.
 4. The first outbound response slice encodes a single assistant text block and exact reported
-   input/output Usage. It emits typed Anthropic SSE frames only after canonical input Usage and
-   `MessageStart` exist; it never invents input Usage or commits client delivery.
+   input/output Usage. It emits typed Anthropic SSE frames once `MessageStart` exists, carrying
+   canonical input Usage when it was reported and omitting the field when it was not; it never
+   invents input Usage or commits client delivery.
 5. Canonical Tool, Thinking, cache-detail, arbitrary event-extension, and stop-reason semantics
    are rejected as unrepresentable at this boundary until P5-03/P5-06 extend the codec with
    dedicated state and fixtures.
