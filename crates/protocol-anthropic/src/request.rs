@@ -61,12 +61,12 @@ impl fmt::Debug for DecodedCountTokensRequest {
 /// cache controls. The original per-block controls remain attached to their content/tool raw
 /// extension so a later bridge cannot mistake this summary for a placement-preserving conversion.
 #[derive(Default)]
-struct CacheControlCollector {
+pub(crate) struct CacheControlCollector {
     retention: Option<String>,
 }
 
 impl CacheControlCollector {
-    fn observe(&mut self, value: &Value) -> Result<(), gateway_core::GatewayError> {
+    pub(crate) fn observe(&mut self, value: &Value) -> Result<(), gateway_core::GatewayError> {
         let control = object(value)?;
         if required_string(control, "type")? != "ephemeral" {
             return Err(client_request_error());
@@ -84,7 +84,7 @@ impl CacheControlCollector {
         Ok(())
     }
 
-    fn into_retention(self) -> Option<String> {
+    pub(crate) fn into_retention(self) -> Option<String> {
         self.retention
     }
 }

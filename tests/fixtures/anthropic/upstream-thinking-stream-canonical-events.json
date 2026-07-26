@@ -1,0 +1,10 @@
+[
+  {"response_start":{"response_id":"msg_upstream_think","extensions":{}}},
+  {"usage_delta":{"usage":{"input_tokens":13,"cache_read_tokens":5,"cache_creation_tokens":2,"extensions":{}},"is_final":false,"extensions":{}}},
+  {"message_start":{"role":"assistant","extensions":{}}},
+  {"reasoning_delta":{"text":"Inspecting.","extensions":{}}},
+  {"text_delta":{"text":"Answer.","extensions":{}}},
+  {"message_end":{"extensions":{}}},
+  {"usage_delta":{"usage":{"input_tokens":13,"output_tokens":7,"cache_read_tokens":5,"cache_creation_tokens":2,"extensions":{}},"is_final":true,"extensions":{}}},
+  {"response_end":{"stop_reason":"stop_sequence","stop_sequence":"<END>","extensions":{}}}
+]

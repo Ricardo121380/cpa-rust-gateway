@@ -68,6 +68,13 @@ pub(crate) const fn stream_protocol_error() -> GatewayError {
     GatewayError::new(GatewayErrorCode::UpstreamProtocolError, ErrorScope::Stream)
 }
 
+pub(crate) const fn provider_protocol_error() -> GatewayError {
+    GatewayError::new(
+        GatewayErrorCode::UpstreamProtocolError,
+        ErrorScope::Provider,
+    )
+}
+
 struct DuplicateFreeJson;
 
 impl<'de> Deserialize<'de> for DuplicateFreeJson {

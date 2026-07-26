@@ -839,7 +839,7 @@ impl Assembly {
     }
 }
 
-fn merge_usage(previous: Option<&Usage>, update: &Usage) -> Usage {
+pub(crate) fn merge_usage(previous: Option<&Usage>, update: &Usage) -> Usage {
     let mut merged = previous.cloned().unwrap_or_default();
     if update.input_tokens.is_some() {
         merged.input_tokens = update.input_tokens;
