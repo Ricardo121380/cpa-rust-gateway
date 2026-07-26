@@ -10,6 +10,8 @@
 pub mod management_backup_resources;
 /// Protected P10 Config Version lifecycle and lifecycle-audit handlers.
 pub mod management_lifecycle_resources;
+/// Protected P12 read-only bounded Prometheus exposition for the management listener.
+pub mod management_observability_resources;
 /// Protected P10 draft-resource handlers for Upstreams, Endpoints, Credentials, and Egress.
 pub mod management_resources;
 /// Independent management HTTP authentication, network, audit-identity, and browser boundary.
@@ -390,6 +392,7 @@ pub fn configure_management_listener(config: &mut web::ServiceConfig) {
         management_resources::configure_protected_resource_routes(protected);
         management_lifecycle_resources::configure_protected_lifecycle_routes(protected);
         management_backup_resources::configure_protected_backup_routes(protected);
+        management_observability_resources::configure_protected_observability_routes(protected);
     });
     management_ui_resources::configure_embedded_management_ui(config);
 }

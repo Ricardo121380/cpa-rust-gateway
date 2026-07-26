@@ -649,7 +649,10 @@ pub trait ManagementRuntimeFacade: Send {
         observed_at_ms: i64,
     ) -> Result<Vec<ManagementRuntimeAvailabilityStatus>, ManagementRuntimeError>;
 
-    /// Records only a controller-owned recovery request; it never sends or completes a probe.
+    /// Requests one controller-owned recovery decision for an exact binding target.
+    ///
+    /// An implementation may begin and complete a controlled local recovery transition in its
+    /// injected runtime registries; it must never send a Provider request or read a Secret.
     ///
     /// # Errors
     ///

@@ -600,6 +600,13 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "getObservabilityMetrics": {
+    "method": "GET",
+    "path": "/admin/observability/metrics",
+    "parameters": [],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "getPublicModel": {
     "method": "GET",
     "path": "/admin/public-models/{public_model_id}",
@@ -1473,6 +1480,10 @@ export class ManagementApi {
 
   getEndpoint(request: ManagementRequest = {}): Promise<Response> {
     return this.request("getEndpoint", request);
+  }
+
+  getObservabilityMetrics(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("getObservabilityMetrics", request);
   }
 
   getPublicModel(request: ManagementRequest = {}): Promise<Response> {

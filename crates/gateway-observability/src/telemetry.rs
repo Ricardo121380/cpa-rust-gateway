@@ -492,6 +492,9 @@ pub struct PrometheusMetrics {
     otel_disabled: AtomicU64,
     otel_rejected: AtomicU64,
     required_queue_full: AtomicU64,
+    required_events_quarantined: AtomicU64,
+    durable_write_failures: AtomicU64,
+    pending_required: AtomicU64,
     diagnostics_dropped: AtomicU64,
     sink_closed: AtomicU64,
 }
@@ -519,6 +522,9 @@ impl Default for PrometheusMetrics {
             otel_disabled: AtomicU64::new(0),
             otel_rejected: AtomicU64::new(0),
             required_queue_full: AtomicU64::new(0),
+            required_events_quarantined: AtomicU64::new(0),
+            durable_write_failures: AtomicU64::new(0),
+            pending_required: AtomicU64::new(0),
             diagnostics_dropped: AtomicU64::new(0),
             sink_closed: AtomicU64::new(0),
         }
@@ -568,6 +574,12 @@ pub struct PrometheusMetricsSnapshot {
     pub otel_rejected: u64,
     /// Latest explicit required queue-full counter from the producer.
     pub required_queue_full: u64,
+    /// Required events the durable writer dropped because their identity can never append.
+    pub required_events_quarantined: u64,
+    /// Retryable durable-writer failures observed since start.
+    pub durable_write_failures: u64,
+    /// Required events currently retained in the durable writer's pending batch.
+    pub pending_required: u64,
     /// Latest explicit diagnostic-drop counter from the producer.
     pub diagnostics_dropped: u64,
     /// Latest explicit closed-sink counter from the producer.
@@ -609,6 +621,24 @@ impl PrometheusMetrics {
             .store(metrics.diagnostics_dropped, Ordering::Relaxed);
         self.sink_closed
             .store(metrics.sink_closed, Ordering::Relaxed);
+    }
+
+    /// Mirrors the durable writer's counters into the scraped snapshot.
+    ///
+    /// The writer owns these atomics; this only copies them, so a scrape still never touches
+    /// `SQLite` or blocks on the writer.
+    pub fn observe_durability(
+        &self,
+        required_events_quarantined: u64,
+        durable_write_failures: u64,
+        pending_required: u64,
+    ) {
+        self.required_events_quarantined
+            .store(required_events_quarantined, Ordering::Relaxed);
+        self.durable_write_failures
+            .store(durable_write_failures, Ordering::Relaxed);
+        self.pending_required
+            .store(pending_required, Ordering::Relaxed);
     }
 
     fn observe_export(&self, sink: TelemetrySink, outcome: OpenTelemetryExportOutcome) {
@@ -653,6 +683,9 @@ impl PrometheusMetrics {
             otel_disabled: self.otel_disabled.load(Ordering::Relaxed),
             otel_rejected: self.otel_rejected.load(Ordering::Relaxed),
             required_queue_full: self.required_queue_full.load(Ordering::Relaxed),
+            required_events_quarantined: self.required_events_quarantined.load(Ordering::Relaxed),
+            durable_write_failures: self.durable_write_failures.load(Ordering::Relaxed),
+            pending_required: self.pending_required.load(Ordering::Relaxed),
             diagnostics_dropped: self.diagnostics_dropped.load(Ordering::Relaxed),
             sink_closed: self.sink_closed.load(Ordering::Relaxed),
         }
@@ -861,6 +894,32 @@ impl PrometheusMetrics {
             snapshot.sink_closed,
         );
 
+        push_counter_header(
+            &mut output,
+            "gateway_observability_durable_events_total",
+            "Durable event-writer outcomes observed after events left the request path.",
+        );
+        push_labeled_counter(
+            &mut output,
+            "gateway_observability_durable_events_total",
+            "outcome",
+            "required_quarantined",
+            snapshot.required_events_quarantined,
+        );
+        push_labeled_counter(
+            &mut output,
+            "gateway_observability_durable_events_total",
+            "outcome",
+            "write_failed",
+            snapshot.durable_write_failures,
+        );
+        push_gauge(
+            &mut output,
+            "gateway_observability_durable_pending_required",
+            "Required events retained in the durable writer's one bounded pending batch.",
+            snapshot.pending_required,
+        );
+
         output
     }
 }
@@ -1065,6 +1124,21 @@ fn push_counter_header(output: &mut String, name: &str, help: &str) {
     output.push_str("# TYPE ");
     output.push_str(name);
     output.push_str(" counter\n");
+}
+
+fn push_gauge(output: &mut String, name: &str, help: &str, value: u64) {
+    output.push_str("# HELP ");
+    output.push_str(name);
+    output.push(' ');
+    output.push_str(help);
+    output.push('\n');
+    output.push_str("# TYPE ");
+    output.push_str(name);
+    output.push_str(" gauge\n");
+    output.push_str(name);
+    output.push(' ');
+    output.push_str(&value.to_string());
+    output.push('\n');
 }
 
 fn push_labeled_counter(output: &mut String, name: &str, label: &str, value: &str, count: u64) {
