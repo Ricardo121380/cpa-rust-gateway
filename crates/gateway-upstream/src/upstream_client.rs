@@ -859,6 +859,123 @@ mod tests {
         )?)
     }
 
+    fn spawn_slow_body_peer(
+        listener: TcpListener,
+        body: &'static [u8],
+        gap: Duration,
+    ) -> tokio::task::JoinHandle<io::Result<()>> {
+        tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await?;
+            read_headers(&mut socket).await?;
+            let head = format!(
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                body.len()
+            );
+            socket.write_all(head.as_bytes()).await?;
+            socket.flush().await?;
+            for byte in body {
+                socket.write_all(&[*byte]).await?;
+                socket.flush().await?;
+                time::sleep(gap).await;
+            }
+            Ok(())
+        })
+    }
+
+    #[tokio::test]
+    async fn only_a_short_total_deadline_truncates_the_same_live_slow_stream()
+    -> Result<(), Box<dyn Error>> {
+        const CHUNK_GAP: Duration = Duration::from_millis(220);
+        const SHORT_TOTAL: Duration = Duration::from_millis(600);
+        const GENEROUS_TOTAL: Duration = Duration::from_secs(5);
+        const STAGE: Duration = Duration::from_millis(500);
+
+        let truncating_listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let truncating_port = truncating_listener.local_addr()?.port();
+        let truncating_peer = spawn_slow_body_peer(truncating_listener, b"abcdef", CHUNK_GAP);
+        let surviving_listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let surviving_port = surviving_listener.local_addr()?.port();
+        let surviving_peer = spawn_slow_body_peer(surviving_listener, b"abcdef", CHUNK_GAP);
+        let pool = pool()?;
+
+        let truncating_profile = profile(
+            UpstreamTimeouts::try_new(STAGE, STAGE, STAGE, SHORT_TOTAL)?,
+            UpstreamProxy::Direct,
+        )?;
+        let mut truncated = pool
+            .send(
+                request(admitted_target(truncating_port)?)?,
+                &truncating_profile,
+            )
+            .await?;
+        let truncation = body_bytes(&mut truncated)
+            .await
+            .err()
+            .ok_or_else(|| io::Error::other("short total unexpectedly delivered a slow body"))?;
+        assert_egress_unavailable(&truncation);
+
+        let surviving_profile = profile(
+            UpstreamTimeouts::try_new(STAGE, STAGE, STAGE, GENEROUS_TOTAL)?,
+            UpstreamProxy::Direct,
+        )?;
+        let started = time::Instant::now();
+        let mut survived = pool
+            .send(
+                request(admitted_target(surviving_port)?)?,
+                &surviving_profile,
+            )
+            .await?;
+        assert_eq!(body_bytes(&mut survived).await?, b"abcdef");
+        assert!(started.elapsed() > SHORT_TOTAL);
+
+        let _joined_truncating = truncating_peer.await;
+        let _joined_surviving = surviving_peer.await;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn idle_timeout_cuts_a_stalled_stream_long_before_a_generous_total_deadline()
+    -> Result<(), Box<dyn Error>> {
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let port = listener.local_addr()?.port();
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await?;
+            read_headers(&mut socket).await?;
+            socket
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\na")
+                .await?;
+            socket.flush().await?;
+            time::sleep(Duration::from_millis(1_500)).await;
+            let _ignored = socket.write_all(b"b").await;
+            Ok::<(), io::Error>(())
+        });
+        let stalled_profile = profile(
+            UpstreamTimeouts::try_new(
+                Duration::from_millis(500),
+                Duration::from_millis(500),
+                Duration::from_millis(200),
+                Duration::from_secs(30),
+            )?,
+            UpstreamProxy::Direct,
+        )?;
+
+        let started = time::Instant::now();
+        let mut response = pool()?
+            .send(request(admitted_target(port)?)?, &stalled_profile)
+            .await?;
+        assert!(response.next_chunk().await?.is_some());
+        let idle_error = response
+            .next_chunk()
+            .await
+            .err()
+            .ok_or_else(|| io::Error::other("idle timeout unexpectedly succeeded"))?;
+        assert_egress_unavailable(&idle_error);
+        assert!(started.elapsed() < Duration::from_secs(1));
+        assert!(response.next_chunk().await.is_err());
+        let _joined = server.await;
+        Ok(())
+    }
+
     fn profile(
         timeouts: UpstreamTimeouts,
         proxy: UpstreamProxy,
