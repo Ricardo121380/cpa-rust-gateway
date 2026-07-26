@@ -14,6 +14,7 @@ use std::{
     net::SocketAddr,
     path::{Component, Path, PathBuf},
     sync::Arc,
+    time::Duration,
 };
 
 #[cfg(unix)]
@@ -33,6 +34,7 @@ use gateway_http_actix::{
     configure, configure_management_listener,
     management_backup_resources::ManagementBackupHttpState,
     management_lifecycle_resources::ManagementLifecycleHttpState,
+    management_observability_resources::ManagementObservabilityHttpState,
     management_resources::{
         ManagementResourceHttpState, RejectingManagementEndpointWorkflow,
         SystemManagementRuntimeClock,
@@ -42,7 +44,11 @@ use gateway_http_actix::{
         ManagementNetworkPolicy, ManagementOrigin,
     },
 };
-use gateway_store::{backup::BackupKey, control_plane::SqliteControlPlaneRepository};
+use gateway_observability::try_init_json_tracing;
+use gateway_store::{
+    backup::BackupKey, control_plane::SqliteControlPlaneRepository,
+    event_store::AsyncSqliteEventWriter,
+};
 use zeroize::{Zeroize, Zeroizing};
 
 use crate::runtime;
@@ -53,6 +59,12 @@ use crate::runtime;
 /// resident request memory to this count times `MAX_INFERENCE_REQUEST_BODY_BYTES` (256 MiB), which
 /// stays inside the deployment unit's `MemoryMax` alongside the runtime's own state.
 const P12_DATA_PLANE_MAX_CONNECTIONS: usize = 64;
+
+/// The bounded wait for the final Required-event batch after both listeners stop.
+///
+/// The writer never fabricates a flush, so a wedged database would otherwise hang a clean
+/// systemd stop; expiry is surfaced as an explicit deployment failure instead.
+const P12_EVENT_FLUSH_TIMEOUT: Duration = Duration::from_secs(5);
 
 const MANAGEMENT_KEY_CREDENTIAL: &str = "management-key";
 const MANAGEMENT_CSRF_CREDENTIAL: &str = "management-csrf";
@@ -110,6 +122,9 @@ pub(crate) fn parse(arguments: Vec<String>) -> Result<ServeCommand, DeploymentEr
 
 /// Starts the P12 loopback deployment envelope until systemd requests a clean stop.
 pub(crate) fn run(command: ServeCommand) -> Result<(), DeploymentError> {
+    // Structured JSON telemetry lines flow through `tracing` to stdout/journald. A process that
+    // already installed a global subscriber keeps it; the exporter still renders through it.
+    let _already_initialized = try_init_json_tracing();
     let application = build_application_state(&command)?;
     actix_web::rt::System::new().block_on(run_servers(command, application))
 }
@@ -118,7 +133,16 @@ async fn run_servers(
     command: ServeCommand,
     application: ApplicationState,
 ) -> Result<(), DeploymentError> {
-    let data = web::Data::new(application.data);
+    let ApplicationState {
+        data,
+        security,
+        resources,
+        lifecycle,
+        backup,
+        observability,
+        event_writer,
+    } = application;
+    let data = web::Data::new(data);
     let data_server = HttpServer::new(move || App::new().app_data(data.clone()).configure(configure))
             .workers(1)
             // Each in-flight request may buffer up to MAX_INFERENCE_REQUEST_BODY_BYTES, so the
@@ -130,16 +154,18 @@ async fn run_servers(
             .map_err(|_| DeploymentError::DataListenerUnavailable)?
             .run();
 
-    let management_security = web::Data::new(application.security);
-    let management_resources = web::Data::new(application.resources);
-    let management_lifecycle = web::Data::new(application.lifecycle);
-    let management_backup = web::Data::new(application.backup);
+    let management_security = web::Data::new(security);
+    let management_resources = web::Data::new(resources);
+    let management_lifecycle = web::Data::new(lifecycle);
+    let management_backup = web::Data::new(backup);
+    let management_observability = web::Data::new(observability);
     let management_server = HttpServer::new(move || {
         App::new()
             .app_data(management_security.clone())
             .app_data(management_resources.clone())
             .app_data(management_lifecycle.clone())
             .app_data(management_backup.clone())
+            .app_data(management_observability.clone())
             .configure(configure_management_listener)
     })
     .workers(1)
@@ -148,10 +174,34 @@ async fn run_servers(
     .map_err(|_| DeploymentError::ManagementListenerUnavailable)?
     .run();
 
+    // The durable event consumer lives on this System's runtime; its SQLite work stays on the
+    // blocking pool, never on a listener worker. It is spawned only after both listeners bound.
+    let durability = event_writer.metrics_handle();
+    let mut event_writer = actix_web::rt::spawn(event_writer.run());
     try_join(data_server, management_server)
         .await
         .map(|_| ())
-        .map_err(|_| DeploymentError::RuntimeUnavailable)
+        .map_err(|_| DeploymentError::RuntimeUnavailable)?;
+    // Both listeners have stopped and dropped every bounded-queue sender, so the writer drains
+    // the remaining Required events and exits on its own; the bounded wait keeps a wedged
+    // database from hanging the stop while still making an unflushed Required loss visible.
+    let flush = actix_web::rt::time::timeout(P12_EVENT_FLUSH_TIMEOUT, &mut event_writer).await;
+    match flush {
+        Ok(Ok(metrics)) if metrics.pending_required == 0 => Ok(()),
+        Ok(Ok(_) | Err(_)) => Err(DeploymentError::EventLogFlushIncomplete),
+        Err(_) => {
+            // A wedged database must not hold the stop open past this bound. Aborting detaches the
+            // in-flight blocking write; the counters below are what tells an operator how much
+            // Required evidence never reached the log.
+            event_writer.abort();
+            let outstanding = durability.snapshot();
+            if outstanding.pending_required == 0 && outstanding.required_events_quarantined == 0 {
+                Ok(())
+            } else {
+                Err(DeploymentError::EventLogFlushIncomplete)
+            }
+        }
+    }
 }
 
 struct ApplicationState {
@@ -160,6 +210,8 @@ struct ApplicationState {
     resources: ManagementResourceHttpState,
     lifecycle: ManagementLifecycleHttpState,
     backup: ManagementBackupHttpState,
+    observability: ManagementObservabilityHttpState,
+    event_writer: AsyncSqliteEventWriter,
 }
 
 fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, DeploymentError> {
@@ -203,7 +255,8 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
     let lifecycle_service = ManagementService::bootstrap(
         SqliteControlPlaneRepository::open(&database)
             .map_err(|_| DeploymentError::ControlPlaneUnavailable)?,
-        runtime::staging_route_compiler().map_err(|_| DeploymentError::RuntimeUnavailable)?,
+        runtime::deployment_route_compiler(&database)
+            .map_err(|_| DeploymentError::RuntimeUnavailable)?,
         actor,
     )
     .map_err(|_| DeploymentError::ControlPlaneUnavailable)?;
@@ -216,10 +269,16 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         runtime_client_key_service,
     )
     .map_err(|_| DeploymentError::RuntimeUnavailable)?;
+    let runtime::DataPlaneComposition {
+        data,
+        management_runtime,
+        observability,
+        event_writer,
+    } = data_plane;
     let resources = ManagementResourceHttpState::with_workflow_and_runtime(
         mutation_service,
         Box::new(RejectingManagementEndpointWorkflow::new()),
-        data_plane.management_runtime,
+        management_runtime,
         Box::new(SystemManagementRuntimeClock),
     );
     let lifecycle = ManagementLifecycleHttpState::new(lifecycle_service);
@@ -244,11 +303,13 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
     .map_err(|_| DeploymentError::RuntimeUnavailable)?;
 
     Ok(ApplicationState {
-        data: data_plane.data,
+        data,
         security,
         resources,
         lifecycle,
         backup,
+        observability,
+        event_writer,
     })
 }
 
@@ -452,6 +513,8 @@ pub(crate) enum DeploymentError {
     DataListenerUnavailable,
     /// The management loopback listener could not bind.
     ManagementListenerUnavailable,
+    /// The durable event log did not confirm its final flush inside the bounded stop window.
+    EventLogFlushIncomplete,
 }
 
 impl fmt::Display for DeploymentError {
@@ -490,6 +553,9 @@ impl fmt::Display for DeploymentError {
             Self::DataListenerUnavailable => formatter.write_str("data listener is unavailable"),
             Self::ManagementListenerUnavailable => {
                 formatter.write_str("management listener is unavailable")
+            }
+            Self::EventLogFlushIncomplete => {
+                formatter.write_str("gateway event log flush did not complete")
             }
         }
     }
@@ -622,6 +688,30 @@ mod tests {
         assert!(state.join("control.sqlite3").is_file());
         assert!(state.join(BACKUP_DIRECTORY).is_dir());
         assert!(!state.join("restore-target.sqlite3").exists());
+        Ok(())
+    }
+
+    #[test]
+    fn serve_event_writer_flushes_and_exits_when_the_composition_drops()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let state = TemporaryDirectory::new()?;
+        let credentials = TemporaryDirectory::new()?;
+        write_required_credentials(&credentials)?;
+        let application = build_application_state(&command(state.path(), credentials.path())?)?;
+        let super::ApplicationState {
+            data,
+            security,
+            resources,
+            lifecycle,
+            backup,
+            observability,
+            event_writer,
+        } = application;
+        drop((data, security, resources, lifecycle, backup, observability));
+
+        let metrics = actix_web::rt::System::new().block_on(event_writer.run());
+        assert_eq!(metrics.pending_required, 0);
+        assert_eq!(metrics.required_events_committed, 0);
         Ok(())
     }
 
