@@ -12,6 +12,8 @@ type GlassSurfaceProps = Readonly<{
   children: ReactNode;
   /** modal-layer panes (sheet/popover/toast) are exempt from the 3-pane budget */
   layer?: "chrome" | "modal";
+  /** identifies the pane for its dedicated SVG lens filter (see PrismLens) */
+  pane?: "topbar" | "rail" | "dock";
 }>;
 
 export function GlassSurface({
@@ -21,6 +23,7 @@ export function GlassSurface({
   style,
   children,
   layer = "chrome",
+  pane,
 }: GlassSurfaceProps) {
   useEffect(() => {
     if (layer !== "chrome") {
@@ -41,6 +44,7 @@ export function GlassSurface({
     <Tag
       className={className === undefined ? "glass" : `glass ${className}`}
       data-material={material}
+      data-pane={pane}
       style={style}
     >
       {children}

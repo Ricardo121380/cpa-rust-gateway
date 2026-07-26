@@ -1,0 +1,132 @@
+/* ===========================================================================
+   PORT 3/3 — merge into src/app/app.css
+   (a) the ambient background recipe   (b) the TWO-SIDED scroll edge effect
+   =========================================================================== */
+
+/* ---- (a) ambient background ----------------------------------------------
+   Two fixed layers behind everything. No images, no CDN, CSP-clean.
+   Replaces the current single `--canvas-ambient` linear-gradient on .shell,
+   which is too low-frequency for a lens to bite on: refraction of a smooth
+   pastel wash is invisible, which is why the rail read as a flat card.
+   -------------------------------------------------------------------------- */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--canvas);
+  background-image:
+    /* 1. the prism streak — a narrow spectral fan crossing the rail column.
+          The highest-value layer: the only one with HUE variation at a SMALL
+          spatial scale, which is exactly what refraction reveals. */
+    linear-gradient(107deg,
+      transparent 0%,
+      color-mix(in oklab, #ff5f6d calc(var(--amb-streak) * 26%), transparent) 12%,
+      color-mix(in oklab, #ffc371 calc(var(--amb-streak) * 22%), transparent) 17%,
+      color-mix(in oklab, #6ee7b7 calc(var(--amb-streak) * 24%), transparent) 22%,
+      color-mix(in oklab, #60a5fa calc(var(--amb-streak) * 30%), transparent) 27%,
+      color-mix(in oklab, #a78bfa calc(var(--amb-streak) * 26%), transparent) 32%,
+      transparent 44%),
+    /* 2. four coloured light sources at the corners */
+    radial-gradient(64% 52% at 4% -6%,
+      color-mix(in oklab, var(--amb-1) calc(var(--amb-strength-1) * 100%), transparent) 0%,
+      transparent 70%),
+    radial-gradient(56% 50% at 98% 2%,
+      color-mix(in oklab, var(--amb-2) calc(var(--amb-strength-2) * 100%), transparent) 0%,
+      transparent 68%),
+    radial-gradient(70% 62% at 36% 108%,
+      color-mix(in oklab, var(--amb-3) calc(var(--amb-strength-3) * 100%), transparent) 0%,
+      transparent 66%),
+    radial-gradient(34% 40% at 90% 62%,
+      color-mix(in oklab, var(--amb-4) calc(var(--amb-strength-4) * 100%), transparent) 0%,
+      transparent 72%),
+    /* 3. a mid-scale sheen so the field is never locally flat */
+    conic-gradient(from 205deg at 24% 22%,
+      color-mix(in oklab, var(--amb-2) 22%, transparent) 0deg,
+      transparent 84deg,
+      color-mix(in oklab, var(--amb-1) 20%, transparent) 186deg,
+      transparent 300deg);
+}
+
+/* Grain gives blur AND refraction high-frequency detail to bite on. The SVG
+   lives in the DOM (inline <svg> in JSX is allowed); this rule only positions
+   it, so no style attribute is involved. */
+.ambient-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: var(--amb-grain);
+  mix-blend-mode: overlay;
+}
+.ambient-grain > svg { width: 100%; height: 100%; display: block; }
+:root[data-theme="dark"] .ambient-grain { mix-blend-mode: soft-light; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .ambient-grain { mix-blend-mode: soft-light; }
+}
+/* the grain is decoration: drop it when the user has asked for less */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .ambient-grain { display: none; }
+}
+
+/* ---- (b) scroll edge effect, TOP AND BOTTOM ------------------------------
+   The gradients are anchored to the BORDER BOX (= the viewport), not to the
+   scrolled content, so they stay put while content travels through them.
+
+   THE BOTTOM RAMP IS NOT DECORATION — it is the only fix for the draft dock.
+   Measured: backdrop-filter blur is weak within ~15px of a pane's own edge,
+   because the backdrop is clipped to the pane and the kernel is one-sided
+   there. A 51px dock is almost entirely "edge", so NO blur radius and no SVG
+   lens can veil a table row sliding under its bottom lip — confirmed
+   identically with the full lens chain, with a bare feGaussianBlur(20), and
+   with native `backdrop-filter: blur(20px)`. Fading the content out before it
+   arrives is what works, and it is the mechanism the topbar already uses.
+   Costs zero extra backdrop-filter panes.
+   -------------------------------------------------------------------------- */
+.shell {
+  /* the dock's footprint as tokens, so the bottom edge is DERIVED from the
+     pane it protects instead of being a magic number */
+  --dock-h: 58px;
+  --dock-inset: 18px;
+}
+.canvas {
+  --edge-top: linear-gradient(to bottom,
+    transparent 0, transparent calc(var(--shell-pad) + 2px),
+    rgba(0, 0, 0, 0.5) calc(var(--chrome-bottom) - 14px),
+    #000 var(--canvas-top));
+  --edge-bottom: linear-gradient(to top,
+    transparent 0, transparent calc(var(--dock-inset) - 4px),
+    rgba(0, 0, 0, 0.45) calc(var(--dock-inset) + var(--dock-h) - 18px),
+    #000 calc(var(--dock-inset) + var(--dock-h) + 10px));
+  -webkit-mask-image: var(--edge-top), var(--edge-bottom);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--edge-top), var(--edge-bottom);
+  mask-composite: intersect;
+}
+/* only fade the bottom while the dock is actually mounted */
+.shell:not([data-dock="true"]) .canvas {
+  --edge-bottom: linear-gradient(#000 0 0);
+}
+/* Two bars in the top deck (conflict alert on desktop, rail strip on mobile):
+   confine the ghost window to the topbar so nothing shows through the gutter. */
+.shell[data-conflict="true"] .canvas {
+  --edge-top: linear-gradient(to bottom,
+    transparent 0, transparent calc(var(--shell-pad) + 2px),
+    rgba(0, 0, 0, 0.45) calc(var(--topbar-bottom) - 14px),
+    transparent var(--topbar-bottom),
+    transparent var(--chrome-bottom),
+    #000 var(--canvas-top));
+}
+
+/* Once the panes go opaque there is nothing to see through, so the soft edges
+   become hard ones. BOTH ramps degrade, not just the top one. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .canvas,
+  .shell[data-conflict="true"] .canvas {
+    --edge-top: linear-gradient(to bottom,
+      transparent 0 var(--chrome-bottom), #000 var(--chrome-bottom));
+    --edge-bottom: linear-gradient(to top,
+      transparent 0 calc(var(--dock-inset) + var(--dock-h)),
+      #000 calc(var(--dock-inset) + var(--dock-h)));
+  }
+}

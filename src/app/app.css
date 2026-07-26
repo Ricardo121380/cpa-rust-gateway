@@ -1,31 +1,135 @@
 /* Shell layout + FE-0 scaffold styles. Content canvas is solid; only rail,
-   topbar and (later) dock are glass. */
+   topbar and dock are glass.
+
+   ---------------------------------------------------------------------------
+   Liquid Glass shell (docs/07 §8.1 "滚动边缘效果"): the functional layer FLOATS
+   and the content layer SCROLLS UNDERNEATH IT. The shell is a viewport-locked
+   box holding three siblings:
+
+     .topdeck  fixed top chrome  — glass topbar (+ solid conflict alert)
+     .rail     fixed side chrome — glass, never scrolls away
+     .canvas   the only scroll container — full-bleed, solid, masked at the
+               edge where it slides beneath the topbar
+
+   All geometry hangs off one token chain so chrome and canvas cannot drift:
+
+     --deck-bottom   y where the fixed top deck ends
+     --rail-top      y where the rail starts
+     --chrome-bottom y where the lowest fixed top chrome ends (rail on mobile)
+     --canvas-top    first row of never-occluded content
+     --canvas-left   first column of never-occluded content
+     --card-shift    how far a content SURFACE travels left (across the gutter
+                     and --rail-underlap under the rail). Text-level blocks
+                     give all of it back as padding; card-like surfaces give
+                     back everything except --rail-underlap, so their VISIBLE
+                     inset is unchanged and no text, cell or control ever sits
+                     under the glass.
+
+   Chrome glass panes stay at exactly three: topbar, rail, draft dock. The
+   scroll edge effect is a mask-image gradient — zero extra backdrop-filter.
+   --------------------------------------------------------------------------- */
 
 .shell {
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  grid-template-rows: auto auto 1fr;
-  grid-template-areas:
-    "topbar topbar"
-    "conflict conflict"
-    "rail canvas";
-  gap: 12px;
-  min-height: 100vh;
-  padding: 12px;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+
+  --shell-pad: 12px;
+  --shell-gap: 12px;
+  --topbar-h: 52px;
+  --conflict-h: 38px;
+  --conflict-block: 0px; /* -> conflict-h + gap while a 409 conflict is shown */
+  --rail-w: 200px;
+  --rail-underlap: 12px;
+  --card-shift: calc(var(--shell-gap) + var(--rail-underlap));
+  --dock-h: 58px; /* one-line dock; .dock keeps itself to one line */
+  --dock-inset: 18px; /* == .dock bottom */
+  --dock-clearance: 0px; /* -> derived below while drafting */
+
+  --topbar-bottom: calc(var(--shell-pad) + var(--topbar-h));
+  --deck-bottom: calc(var(--topbar-bottom) + var(--conflict-block));
+  --rail-top: calc(var(--deck-bottom) + var(--shell-gap));
+  --rail-right: calc(var(--shell-pad) + var(--rail-w));
+  --chrome-bottom: var(--deck-bottom);
+  --canvas-top: calc(var(--chrome-bottom) + var(--shell-gap));
+  /* left edge of TEXT-level content; surfaces then travel --card-shift left of
+     it, landing --rail-underlap under --rail-right */
+  --canvas-left: calc(var(--rail-right) + var(--shell-gap));
+
+  /* Scroll edge effect, as tokens so every variant (and the a11y degradation)
+     swaps one value instead of restating the gradient — and so no override can
+     out-specify the degradation rule.
+
+     --edge         ONE glass bar in the stack: a single ramp. Content ghosts
+                    through the bar (the glass has something to refract) and is
+                    gone by its top lip.
+     --edge-stacked TWO bars (conflict alert on desktop, rail strip on mobile):
+                    the ghost window is confined to the topbar, then the mask
+                    returns to transparent so content cannot peek through the
+                    12px gutter BETWEEN the bars, where there is no glass. */
+  --edge: linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--shell-pad) + 2px),
+    rgba(0, 0, 0, 0.5) calc(var(--chrome-bottom) - 14px),
+    #000 var(--canvas-top)
+  );
+  --edge-stacked: linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--shell-pad) + 2px),
+    rgba(0, 0, 0, 0.45) calc(var(--topbar-bottom) - 14px),
+    transparent var(--topbar-bottom),
+    transparent var(--chrome-bottom),
+    #000 var(--canvas-top)
+  );
+
+  /* ambient, never scrolls: this is what the glass refracts wherever content
+     is not passing beneath it */
   background:
-    radial-gradient(1100px 480px at 15% -10%, color-mix(in srgb, var(--tint) 8%, transparent), transparent 60%),
-    var(--canvas);
+    radial-gradient(1200px 560px at 10% -10%, color-mix(in srgb, var(--tint) 12%, transparent), transparent 60%),
+    var(--canvas-ambient);
+}
+.shell[data-conflict="true"] {
+  --conflict-block: calc(var(--conflict-h) + var(--shell-gap));
+}
+/* Derived, not guessed: the dock is a fixed one-line pill, so the canvas can
+   reserve exactly its footprint plus a gutter. (Was a magic 96px, which left
+   1px of slack once the dock wrapped to two lines under 720px.) */
+.shell[data-dock="true"] {
+  --dock-clearance: calc(
+    var(--dock-h) + var(--dock-inset) + var(--shell-gap) + 8px
+  );
+}
+
+/* ---- fixed top deck --------------------------------------------------- */
+
+.topdeck {
+  position: absolute;
+  z-index: 40;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--shell-gap);
+  padding: var(--shell-pad) var(--shell-pad) 0;
+  pointer-events: none;
+}
+.topdeck > * {
+  pointer-events: auto;
 }
 
 .topbar {
-  grid-area: topbar;
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 10px 18px;
+  height: var(--topbar-h);
+  padding: 0 18px;
   border-radius: 16px;
 }
 .brand {
+  flex: none;
   font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -39,11 +143,11 @@
 }
 
 .conflict-bar {
-  grid-area: conflict;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 16px;
+  height: var(--conflict-h);
+  padding: 0 16px;
   border-radius: 12px;
   background: color-mix(in srgb, var(--status-warn) 12%, var(--surface));
   border: 1px solid color-mix(in srgb, var(--status-warn) 35%, transparent);
@@ -54,11 +158,16 @@
   display: none;
 }
 
+/* ---- floating rail ---------------------------------------------------- */
+
 .rail {
-  grid-area: rail;
-  align-self: start;
-  position: sticky;
-  top: 12px;
+  position: absolute;
+  z-index: 30;
+  top: var(--rail-top);
+  left: var(--shell-pad);
+  width: var(--rail-w);
+  max-height: calc(100% - var(--rail-top) - var(--shell-pad));
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   padding: 12px 8px;
@@ -89,14 +198,79 @@
   font-weight: 600;
 }
 
+/* ---- content canvas: the one scroll container ------------------------- */
+
 .canvas {
-  grid-area: canvas;
+  position: absolute;
+  z-index: 1;
+  inset: 0;
   min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: var(--canvas-top) var(--shell-pad)
+    calc(var(--shell-pad) + var(--dock-clearance)) var(--canvas-left);
+
+  /* The scrollport starts at the VIEWPORT's top edge, i.e. underneath the glass
+     deck, so every browser-driven scroll (Tab focus, scrollIntoView, find-in-
+     page, :target) parks its element under the topbar and the user never sees
+     what they just focused. scroll-padding moves the "optimal viewing region"
+     down to the first un-occluded row — and up off the dock. */
+  scroll-padding: var(--canvas-top) var(--shell-pad)
+    calc(var(--shell-pad) + var(--dock-clearance)) var(--canvas-left);
+  /* no-op under overlay scrollbars; stops the classic-scrollbar platforms from
+     reflowing the content column when a page grows past one screen */
+  scrollbar-gutter: stable;
+
+  /* Scroll edge effect. The gradient is anchored to the border box (= the
+     viewport), not to the scrolled content, so it stays put while content
+     travels through it. See --edge / --edge-stacked on .shell. */
+  -webkit-mask-image: var(--edge);
+  mask-image: var(--edge);
+}
+
+/* Second bar in the deck => confine the ghost window to the topbar so nothing
+   shows through the gutter above the (solid) conflict alert. */
+.shell[data-conflict="true"] .canvas {
+  -webkit-mask-image: var(--edge-stacked);
+  mask-image: var(--edge-stacked);
 }
 .canvas h2 {
   font-family: var(--font-display);
   letter-spacing: -0.02em;
   margin: 4px 0 14px;
+}
+
+/* Content surfaces slide --card-shift to the left — across the gutter and
+   --rail-underlap under the rail's inner edge — so the rail refracts real
+   content instead of flat background. Pages either put their blocks straight
+   into the canvas (Overview) or wrap them in a <section>; both levels are
+   addressed and sections themselves are skipped, so the shift never applies
+   twice. Text-level blocks hand the whole shift back as padding (their glyphs
+   do not move). Grid wrappers hand back nothing, so their FIRST COLUMN
+   underlaps exactly like a full-width card — that is what keeps the canvas's
+   left edge straight instead of ragged. */
+.shell :is(.canvas, .canvas > section) > :not(section) {
+  margin-left: calc(-1 * var(--card-shift));
+  padding-left: var(--card-shift);
+}
+.shell :is(.canvas, .canvas > section) > :is(.overview-grid, .stat-row) {
+  padding-left: 0;
+}
+
+/* Surfaces (any depth: full-width, grid cell, stat tile) hand back everything
+   except the underlap, so measured from the VISIBLE left edge their padding is
+   exactly what it always was. */
+.shell .canvas .card {
+  padding-left: calc(20px + var(--rail-underlap));
+}
+.shell .canvas .stat-tile,
+.shell .canvas .filter-bar {
+  padding-left: calc(16px + var(--rail-underlap));
+}
+/* tables own their horizontal padding via th/td:first-child */
+.shell .canvas .card.tablewrap {
+  padding-left: var(--rail-underlap);
 }
 
 .card {
@@ -208,26 +382,80 @@
   margin: 4px 0 0;
 }
 
+/* Under 720px the rail collapses into a horizontal strip pinned below the
+   topbar: it stays visible while the canvas scrolls under BOTH bars, so
+   --chrome-bottom (which drives the canvas inset and the scroll edge) grows
+   by the strip. No side gutter left, so no underlap either. */
 @media (max-width: 720px) {
   .shell {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "topbar"
-      "conflict"
-      "rail"
-      "canvas";
+    --rail-h: 44px;
+    --rail-underlap: 0px;
+    --card-shift: 0px;
+    --canvas-left: var(--shell-pad);
+    --chrome-bottom: calc(var(--rail-top) + var(--rail-h));
+  }
+  .topbar {
+    gap: 10px;
+  }
+  .readonly-note {
+    display: none;
+  }
+  .version-picker select {
+    max-width: 190px;
   }
   .rail {
-    position: static;
+    top: var(--rail-top);
+    left: var(--shell-pad);
+    right: var(--shell-pad);
+    width: auto;
+    height: var(--rail-h);
+    max-height: none;
     flex-direction: row;
+    align-items: center;
     overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    padding: 0 8px;
   }
+  .rail::-webkit-scrollbar {
+    display: none; /* a 15px classic bar would eat a third of a 44px strip */
+  }
+  /* Without these the flex items SHRINK instead of overflowing: every label
+     wrapped to one glyph per line (5-6 lines tall in a 44px strip, clipped)
+     and the strip never became scrollable. Verified at 700/560/420px. */
   .rail-group {
     flex-direction: row;
+    padding: 0;
+    flex: none;
+  }
+  .rail a {
+    flex: none;
+    white-space: nowrap;
   }
   .rail-group + .rail-group {
     border-top: none;
     border-left: 1px solid var(--separator);
+  }
+  /* Two bars in the stack: ghost only inside the topbar, so the nav labels on
+     the glass strip stay legible and the gutter between them stays clean. */
+  .canvas {
+    -webkit-mask-image: var(--edge-stacked);
+    mask-image: var(--edge-stacked);
+  }
+}
+
+/* Degradation: when the bars go opaque there is nothing to see through, so
+   the soft scroll edge becomes a hard one — content is clipped exactly at the
+   bar's bottom edge instead of ghosting behind it. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .shell {
+    --edge: linear-gradient(
+      to bottom,
+      transparent 0 var(--chrome-bottom),
+      #000 var(--chrome-bottom)
+    );
+    --edge-stacked: var(--edge);
   }
 }
 
@@ -517,7 +745,7 @@ tr[data-selected="true"] {
 
 .dock {
   position: fixed;
-  bottom: 18px;
+  bottom: var(--dock-inset);
   left: 50%;
   transform: translateX(-50%);
   z-index: 60;
@@ -529,10 +757,21 @@ tr[data-selected="true"] {
   font-size: 13px;
   max-width: min(720px, calc(100vw - 32px));
 }
+/* The canvas reserves --dock-clearance from --dock-h, so the dock must not be
+   free to grow: its label ellipsises instead of wrapping to a second line
+   (which is what made it 77px tall — and 1px from covering the last card — at
+   700px). Height is now 58px at every width. */
+.dock > :first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .dock .idchip {
   margin-left: 6px;
 }
 .dock-actions {
+  flex: none;
   display: flex;
   gap: 8px;
 }
@@ -871,4 +1110,146 @@ tr[data-selected="true"] {
 }
 .unlock-error:empty {
   display: none;
+}
+
+/* ===========================================================================
+   PORT 3/3 — merge into src/app/app.css
+   (a) the ambient background recipe   (b) the TWO-SIDED scroll edge effect
+   =========================================================================== */
+
+/* ---- (a) ambient background ----------------------------------------------
+   Two fixed layers behind everything. No images, no CDN, CSP-clean.
+   Replaces the current single `--canvas-ambient` linear-gradient on .shell,
+   which is too low-frequency for a lens to bite on: refraction of a smooth
+   pastel wash is invisible, which is why the rail read as a flat card.
+   -------------------------------------------------------------------------- */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--canvas);
+  background-image:
+    /* 1. the prism streak — a narrow spectral fan crossing the rail column.
+          The highest-value layer: the only one with HUE variation at a SMALL
+          spatial scale, which is exactly what refraction reveals. */
+    linear-gradient(107deg,
+      transparent 0%,
+      color-mix(in oklab, #ff5f6d calc(var(--amb-streak) * 26%), transparent) 12%,
+      color-mix(in oklab, #ffc371 calc(var(--amb-streak) * 22%), transparent) 17%,
+      color-mix(in oklab, #6ee7b7 calc(var(--amb-streak) * 24%), transparent) 22%,
+      color-mix(in oklab, #60a5fa calc(var(--amb-streak) * 30%), transparent) 27%,
+      color-mix(in oklab, #a78bfa calc(var(--amb-streak) * 26%), transparent) 32%,
+      transparent 44%),
+    /* 2. four coloured light sources at the corners */
+    radial-gradient(64% 52% at 4% -6%,
+      color-mix(in oklab, var(--amb-1) calc(var(--amb-strength-1) * 100%), transparent) 0%,
+      transparent 70%),
+    radial-gradient(56% 50% at 98% 2%,
+      color-mix(in oklab, var(--amb-2) calc(var(--amb-strength-2) * 100%), transparent) 0%,
+      transparent 68%),
+    radial-gradient(70% 62% at 36% 108%,
+      color-mix(in oklab, var(--amb-3) calc(var(--amb-strength-3) * 100%), transparent) 0%,
+      transparent 66%),
+    radial-gradient(34% 40% at 90% 62%,
+      color-mix(in oklab, var(--amb-4) calc(var(--amb-strength-4) * 100%), transparent) 0%,
+      transparent 72%),
+    /* 3. a mid-scale sheen so the field is never locally flat */
+    conic-gradient(from 205deg at 24% 22%,
+      color-mix(in oklab, var(--amb-2) 22%, transparent) 0deg,
+      transparent 84deg,
+      color-mix(in oklab, var(--amb-1) 20%, transparent) 186deg,
+      transparent 300deg);
+}
+
+/* Grain gives blur AND refraction high-frequency detail to bite on. The SVG
+   lives in the DOM (inline <svg> in JSX is allowed); this rule only positions
+   it, so no style attribute is involved. */
+.ambient-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: var(--amb-grain);
+  mix-blend-mode: overlay;
+}
+.ambient-grain > svg { width: 100%; height: 100%; display: block; }
+:root[data-theme="dark"] .ambient-grain { mix-blend-mode: soft-light; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .ambient-grain { mix-blend-mode: soft-light; }
+}
+/* the grain is decoration: drop it when the user has asked for less */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .ambient-grain { display: none; }
+}
+
+/* ---- (b) scroll edge effect, TOP AND BOTTOM ------------------------------
+   The gradients are anchored to the BORDER BOX (= the viewport), not to the
+   scrolled content, so they stay put while content travels through them.
+
+   THE BOTTOM RAMP IS NOT DECORATION — it is the only fix for the draft dock.
+   Measured: backdrop-filter blur is weak within ~15px of a pane's own edge,
+   because the backdrop is clipped to the pane and the kernel is one-sided
+   there. A 51px dock is almost entirely "edge", so NO blur radius and no SVG
+   lens can veil a table row sliding under its bottom lip — confirmed
+   identically with the full lens chain, with a bare feGaussianBlur(20), and
+   with native `backdrop-filter: blur(20px)`. Fading the content out before it
+   arrives is what works, and it is the mechanism the topbar already uses.
+   Costs zero extra backdrop-filter panes.
+   -------------------------------------------------------------------------- */
+.shell {
+  /* the dock's footprint as tokens, so the bottom edge is DERIVED from the
+     pane it protects instead of being a magic number */
+  --dock-h: 58px;
+  --dock-inset: 18px;
+}
+.canvas {
+  --edge-top: linear-gradient(to bottom,
+    transparent 0, transparent calc(var(--shell-pad) + 2px),
+    rgba(0, 0, 0, 0.5) calc(var(--chrome-bottom) - 14px),
+    #000 var(--canvas-top));
+  --edge-bottom: linear-gradient(to top,
+    transparent 0, transparent calc(var(--dock-inset) - 4px),
+    rgba(0, 0, 0, 0.45) calc(var(--dock-inset) + var(--dock-h) - 18px),
+    #000 calc(var(--dock-inset) + var(--dock-h) + 10px));
+  -webkit-mask-image: var(--edge-top), var(--edge-bottom);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--edge-top), var(--edge-bottom);
+  mask-composite: intersect;
+}
+/* only fade the bottom while the dock is actually mounted */
+.shell:not([data-dock="true"]) .canvas {
+  --edge-bottom: linear-gradient(#000 0 0);
+}
+/* Two bars in the top deck (conflict alert on desktop, rail strip on mobile):
+   confine the ghost window to the topbar so nothing shows through the gutter. */
+.shell[data-conflict="true"] .canvas {
+  --edge-top: linear-gradient(to bottom,
+    transparent 0, transparent calc(var(--shell-pad) + 2px),
+    rgba(0, 0, 0, 0.45) calc(var(--topbar-bottom) - 14px),
+    transparent var(--topbar-bottom),
+    transparent var(--chrome-bottom),
+    #000 var(--canvas-top));
+}
+
+/* Once the panes go opaque there is nothing to see through, so the soft edges
+   become hard ones. BOTH ramps degrade, not just the top one. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .canvas,
+  .shell[data-conflict="true"] .canvas {
+    --edge-top: linear-gradient(to bottom,
+      transparent 0 var(--chrome-bottom), #000 var(--chrome-bottom));
+    --edge-bottom: linear-gradient(to top,
+      transparent 0 calc(var(--dock-inset) + var(--dock-h)),
+      #000 calc(var(--dock-inset) + var(--dock-h)));
+  }
+}
+
+/* PrismLens keeps its filter definitions out of layout entirely. */
+.lens-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
 }

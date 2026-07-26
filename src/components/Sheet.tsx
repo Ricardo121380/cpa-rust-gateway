@@ -3,6 +3,7 @@
 // explicit, understood action. Focus moves into the sheet on open; Escape
 // closes only when `onEscape` is provided.
 import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { GlassSurface } from "./glass/GlassSurface";
 
 export function Sheet({
@@ -30,7 +31,10 @@ export function Sheet({
     return () => window.removeEventListener("keydown", handler);
   }, [onEscape]);
 
-  return (
+  // Portalled to <body>: pages render their sheets inside the canvas, and the
+  // canvas now carries the scroll-edge mask + its own scroll container — both
+  // would clip a fixed modal painted inside its subtree.
+  return createPortal(
     <div className="sheet-backdrop" role="presentation">
       <div role="dialog" aria-modal="true" aria-label={title} ref={panelRef}>
         <GlassSurface className="sheet-panel" layer="modal">
@@ -38,6 +42,7 @@ export function Sheet({
           {children}
         </GlassSurface>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

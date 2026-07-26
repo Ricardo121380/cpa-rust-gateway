@@ -63,7 +63,7 @@ export function DraftDock() {
   return (
     <>
       {isDraft && context !== undefined ? (
-      <GlassSurface as="footer" className="dock" material="draft">
+      <GlassSurface as="footer" className="dock" material="draft" pane="dock">
         <span>
           草稿 <span className="idchip mono">{context.configVersionId}</span>
           <span className="idchip mono">{context.revision}</span>
