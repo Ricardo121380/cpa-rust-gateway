@@ -57,6 +57,16 @@ for (const file of walk(SRC)) {
   if (/\bstyle=\{\{/u.test(text)) {
     failures.push(`${rel}: inline style attribute is blocked by the production CSP`);
   }
+  // Password-typed fields summon Safari's strong-password popover and
+  // password-manager widgets, which cover the input and swallow paste. The
+  // unlock secrets are machine keys: they use masked text inputs instead.
+  const codeLines = text
+    .split("\n")
+    .filter((line) => !/^\s*(?:\/\/|\*|\/\*)/u.test(line))
+    .join("\n");
+  if (rel.startsWith("src/features/unlock/") && /type="password"/u.test(codeLines)) {
+    failures.push(`${rel}: type="password" breaks paste on the unlock screen (use SecretField)`);
+  }
 }
 
 function distFileList() {

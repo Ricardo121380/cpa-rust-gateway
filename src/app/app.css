@@ -181,7 +181,8 @@
   color: var(--ink);
   font-size: 13px;
 }
-.unlock-card button {
+.unlock-card .unlock-submit,
+.unlock-card form > button.secondary {
   margin-top: 4px;
   padding: 10px 16px;
   border: none;
@@ -192,7 +193,7 @@
   font-size: 14px;
   cursor: pointer;
 }
-.unlock-card button:disabled {
+.unlock-card .unlock-submit:disabled {
   opacity: 0.6;
   cursor: default;
 }
@@ -819,3 +820,55 @@ tr[data-selected="true"] {
 .legend-dot-cache_read { background: var(--chart-4); }
 
 .token-mix { width: 100%; height: 26px; margin-top: 8px; display: block; }
+
+/* ---------- secret field (paste-friendly, password-manager-proof) ---------- */
+
+.secret-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.secret-field > label {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.secret-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.secret-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: var(--r-inner);
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+}
+.secret-input.is-masked {
+  -webkit-text-security: disc;
+  text-security: disc;
+}
+.secret-input[aria-invalid="true"] {
+  border-color: var(--status-critical);
+}
+.secret-toggle {
+  flex: 0 0 auto;
+  width: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--separator);
+  border-radius: var(--r-inner);
+  background: var(--surface);
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.secret-toggle[aria-pressed="true"] {
+  color: var(--tint);
+}
+.unlock-error:empty {
+  display: none;
+}

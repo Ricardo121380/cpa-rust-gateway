@@ -1,6 +1,10 @@
 // Unlock = the only scene where glass carries content (over ambient gradient,
 // not data). "Login" is a probe: listConfigVersions succeeds or we show the
 // single non-probeable failure message (backend returns uniform 404).
+//
+// Secrets go through SecretField, which never uses type="password" — see the
+// note there: password-typed fields summon Safari's strong-password popover
+// and password-manager widgets, which cover the input and swallow paste.
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { call } from "../../api/client";
@@ -13,6 +17,13 @@ import {
   useSessionStore,
 } from "../../session/sessionStore";
 import type { ConfigVersionSummary } from "../config-versions/versionStore";
+import { SecretField } from "./SecretField";
+
+const ERROR_ID = "unlock-error";
+
+function fixturesEnabled(): boolean {
+  return import.meta.env.DEV && import.meta.env["VITE_PRISM_FIXTURES"] === "1";
+}
 
 export function UnlockPage() {
   const navigate = useNavigate();
@@ -58,36 +69,42 @@ export function UnlockPage() {
     <div className="unlock-scene">
       <GlassSurface className="unlock-card" layer="modal">
         <h1>{messages.unlock.title}</h1>
-        <form onSubmit={(event) => void onSubmit(event)}>
-          <label>
-            {messages.unlock.managementKey}
-            <input
-              className="mono"
-              type="password"
-              autoComplete="off"
-              value={key}
-              onChange={(event) => setKey(event.target.value)}
-              required
-            />
-          </label>
-          <label>
-            {messages.unlock.csrfToken}
-            <input
-              className="mono"
-              type="password"
-              autoComplete="off"
-              value={csrf}
-              onChange={(event) => setCsrf(event.target.value)}
-            />
-          </label>
-          {error !== undefined ? (
-            <p role="alert" className="unlock-error">
-              {error}
-            </p>
-          ) : null}
-          <button type="submit" disabled={busy}>
+        <form onSubmit={(event) => void onSubmit(event)} noValidate>
+          <SecretField
+            label={messages.unlock.managementKey}
+            hint={messages.unlock.managementKeyHint}
+            value={key}
+            onChange={setKey}
+            invalid={error !== undefined}
+            errorId={ERROR_ID}
+            required
+          />
+          <SecretField
+            label={messages.unlock.csrfToken}
+            hint={messages.unlock.csrfTokenHint}
+            value={csrf}
+            onChange={setCsrf}
+            invalid={error !== undefined}
+            errorId={ERROR_ID}
+          />
+          <p id={ERROR_ID} role="alert" aria-live="assertive" className="unlock-error">
+            {error ?? ""}
+          </p>
+          <button type="submit" className="unlock-submit" disabled={busy}>
             {messages.unlock.submit}
           </button>
+          {fixturesEnabled() ? (
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => {
+                setKey(`mgmt_${"a".repeat(40)}`);
+                setCsrf(`csrf_${"b".repeat(40)}`);
+              }}
+            >
+              {messages.unlock.fillDemo}
+            </button>
+          ) : null}
           <p className="unlock-hint">{messages.unlock.hint}</p>
         </form>
       </GlassSurface>

@@ -4,8 +4,12 @@ export const messages = {
   unlock: {
     title: "解锁管理面板",
     managementKey: "Management Key",
-    csrfToken: "CSRF Token(浏览器部署必填)",
+    managementKeyHint: "mgmt_ 前缀,32-512 位字母数字或 _ -;可直接从服务器日志粘贴,换行与引号会自动清理。",
+    csrfToken: "CSRF Token",
+    csrfTokenHint: "csrf_ 前缀;浏览器部署必填,本机 CLI 访问可留空。",
+    revealToggle: "显示密钥",
     submit: "解锁",
+    fillDemo: "填入演示密钥(fixture 模式)",
     hint: "密钥仅存于本页内存,刷新后需要重新输入。",
     failed: "管理访问不可用 —— 请检查密钥、网络位置与部署配置。",
     invalidShape: "格式不符:Management Key 需为 mgmt_ 前缀,32-512 位字母数字或 _ -。",
