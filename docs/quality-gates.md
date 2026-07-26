@@ -12,7 +12,13 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 scripts/check-source-policy.rb
 scripts/test-secret-scan.sh
+scripts/check-contract-tests.rb
 ```
+
+`check-contract-tests.rb` 解析每份行为契约的 `Corresponding tests` 小节，要求其中列出的每个测试
+函数名在源码中确实存在。契约的这一节就是从"要求的行为"到"证明它的测试"的证据链；此前无人校验
+这些名字，因此重命名或删除一个测试会让契约继续声称一份已不存在的证据——恰好在审计或阶段 Gate
+要依赖它的地方悄悄烂掉。
 
 ## 供应链门禁
 

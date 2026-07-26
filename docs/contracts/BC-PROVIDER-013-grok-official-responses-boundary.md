@@ -48,6 +48,6 @@ blocked by P7/G7.
 - `request_is_fixed_authenticated_post_text_only_and_redacted`
 - `non_streaming_text_fixture_runs_through_official_adapter`
 - `sse_text_fixture_is_chunk_invariant_and_runs_through_adapter`
-- `tools_thinking_opaque_and_unsupported_roles_are_rejected_before_transport`
+- `cache_opaque_and_unsupported_roles_are_rejected_before_transport`
 - `pre_start_error_is_generic_and_post_start_failure_is_one_stream_error`
-- `response_failed_is_terminal_and_deferred_output_semantics_fail_closed`
+- `response_failed_is_terminal_and_opaque_search_output_fails_closed`

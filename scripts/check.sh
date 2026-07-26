@@ -85,6 +85,7 @@ install_management_spa_dependencies() {
 
 if [[ "$mode" == "docs" ]]; then
   run_step "Document links" "$repo_root/scripts/check-doc-links.rb"
+  run_step "Contract tests" "$repo_root/scripts/check-contract-tests.rb"
   run_step "Plan state" "$repo_root/scripts/check-plan-state.rb"
   run_step "Tracked secret scan" "$repo_root/scripts/secret-scan.sh" --all
   run_step "Git whitespace" check_tracked_whitespace
@@ -132,6 +133,7 @@ run_step "Source policy" "$repo_root/scripts/check-source-policy.rb"
 run_step "Secret scanner test" "$repo_root/scripts/test-secret-scan.sh"
 run_step "Crate boundaries" "$repo_root/scripts/check-crate-boundaries.rb"
 run_step "Document links" "$repo_root/scripts/check-doc-links.rb"
+run_step "Contract tests" "$repo_root/scripts/check-contract-tests.rb"
 run_step "Tracked secret scan" "$repo_root/scripts/secret-scan.sh" --all
 run_step "Git whitespace" check_tracked_whitespace
 
