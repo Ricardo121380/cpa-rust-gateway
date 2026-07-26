@@ -18,7 +18,7 @@ use std::{
         Arc, Mutex,
         atomic::{AtomicBool, Ordering},
     },
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use gateway_auth::client_key::ClientKeyService;
@@ -92,16 +92,34 @@ const MAX_SSE_FRAME_BYTES: usize = MAX_UPSTREAM_RESPONSE_BYTES;
 const P12_CONNECT_TIMEOUT: Duration = Duration::from_secs(8);
 /// The streaming first-byte bound: an SSE upstream emits `response.created` immediately.
 const P12_STREAMING_TTFB_TIMEOUT: Duration = Duration::from_secs(30);
-/// The streaming liveness bound: the quiet period allowed between two upstream body reads.
+/// The streaming byte-liveness bound: the quiet period allowed between two upstream body reads.
 ///
-/// This, not the absolute ceiling, is what detects an upstream that stopped producing.
+/// This detects a dead transport. It cannot detect a wedged upstream that keeps the socket warm
+/// with periodic keepalive frames; that is [`P12_STREAMING_PROGRESS_TIMEOUT`]'s job.
 const P12_STREAMING_IDLE_TIMEOUT: Duration = Duration::from_mins(2);
+/// The streaming semantic-liveness bound: the longest wall-clock gap tolerated between two frames
+/// that prove generation is advancing.
+///
+/// A reasoning model that was not asked for summaries may legitimately emit nothing but
+/// keepalives for minutes while it thinks, so this deadline sits several multiples past the
+/// plausible tail of one uninterrupted thinking stretch (single-digit minutes at the highest
+/// reasoning efforts served through this relay). Frames the decoder drops without any canonical
+/// projection still count as progress when the upstream only produces them while generating --
+/// reasoning traffic, content-part lifecycle, refusals -- while `response.in_progress` and SSE
+/// comments never do. Expiry is a terminal stream failure: the lease-holding source drops and
+/// this runtime's one Credential frees after at most this deadline plus one idle window, instead
+/// of after the full absolute ceiling.
+const P12_STREAMING_PROGRESS_TIMEOUT: Duration = Duration::from_mins(15);
 /// The streaming absolute ceiling, deliberately far past any plausible single completion.
 ///
 /// A streaming attempt is unretryable once its first semantic event has reached the client, so an
-/// absolute deadline can only truncate a healthy answer, never fail it over. This ceiling exists
-/// solely so an upstream wedged in a keep-alive loop cannot hold this runtime's one Credential
-/// lease forever; a healthy completion must never reach it.
+/// absolute deadline can only truncate a healthy answer, never fail it over. Byte liveness is the
+/// idle bound's job and semantic liveness is the progress deadline's, which leaves this ceiling
+/// as the last resort against an upstream that fabricates progress evidence forever. It stays at
+/// one hour because a maximal healthy completion -- a long thinking stretch followed by a
+/// six-figure-token answer at ordinary streaming rates -- genuinely approaches this order of
+/// magnitude, and truncating one such answer past the unretryable boundary is strictly worse
+/// than one bounded stale-lease window.
 const P12_STREAMING_TOTAL_TIMEOUT: Duration = Duration::from_hours(1);
 /// The one bounded wait for a complete non-streaming body.
 ///
@@ -109,11 +127,11 @@ const P12_STREAMING_TOTAL_TIMEOUT: Duration = Duration::from_hours(1);
 /// so first-byte, response-idle, and total collapse into a single deadline for this mode. Every
 /// byte is still pre-first-byte for the client, so expiry remains a safely retryable failure.
 ///
-/// This is the transport ceiling, not the effective one. The whole non-streaming body is read
-/// inside `AttemptDriver::start`, which the orchestrator wraps in the route's bootstrap deadline,
-/// so a non-streaming attempt is still cut at `bootstrap_timeout_ms` (admitted at no more than
-/// [`P12_BOOTSTRAP_TIMEOUT_MILLISECONDS`]). Reaching this ceiling requires first moving the body
-/// read out of the bootstrap-bounded phase.
+/// The whole non-streaming exchange still runs inside `AttemptDriver::start`, so the driver
+/// declares this ceiling to the orchestrator through its `start_timeout` port: the Route's
+/// bootstrap deadline (admitted at no more than [`P12_BOOTSTRAP_TIMEOUT_MILLISECONDS`]) keeps
+/// governing when an attempt may begin, while the one in-flight non-streaming attempt is bounded
+/// by this transport total instead of being cut at the bootstrap deadline.
 const P12_NON_STREAMING_TOTAL_TIMEOUT: Duration = Duration::from_mins(10);
 /// The isolated P12 streaming decoder retains at most this many Tool argument bytes per response.
 ///
@@ -124,6 +142,24 @@ const P12_NON_STREAMING_TOTAL_TIMEOUT: Duration = Duration::from_mins(10);
 const MAX_SSE_TOOL_ARGUMENT_BYTES: usize = MAX_UPSTREAM_RESPONSE_BYTES;
 /// The isolated P12 streaming decoder admits at most this many Tool calls in one response.
 const MAX_SSE_TOOL_CALLS: usize = 32;
+/// The longest output-item or call identifier the streaming decoder retains per Tool call.
+///
+/// Real Responses implementations emit `fc_`-prefixed item identifiers and `call_`-prefixed
+/// call identifiers of roughly 30-70 bytes with no documented upper bound, so 256 bytes is
+/// safely generous. Without this bound each retained identifier is limited only by the frame
+/// bound, letting one response pin [`MAX_SSE_TOOL_CALLS`] identifiers of up to
+/// [`MAX_SSE_FRAME_BYTES`] each -- hundreds of mebibytes of state the bounded-buffer baseline
+/// forbids.
+const MAX_SSE_IDENTIFIER_BYTES: usize = 256;
+/// The longest run of consecutive progress-free SSE frames the streaming decoder tolerates.
+///
+/// This is the clock-free complement of [`P12_STREAMING_PROGRESS_TIMEOUT`], enforced inside the
+/// decoder where chunk boundaries cannot influence it: the run advances only per decoded frame,
+/// never per transport read. It is sized so no plausible keepalive cadence reaches it before the
+/// wall-clock deadline -- even one keepalive per second sustained for the whole absolute ceiling
+/// stays under it -- while a keepalive spam loop is stopped after a bounded amount of decode
+/// work instead of burning CPU until a timer expires.
+const MAX_SSE_PROGRESS_FREE_FRAMES: usize = 4096;
 /// The four JSON insignificant whitespace characters used to frame assembled Tool arguments.
 const JSON_WHITESPACE: [char; 4] = [' ', '\t', '\n', '\r'];
 const P12_BOOTSTRAP_TIMEOUT_MILLISECONDS: i64 = 15_000;
@@ -882,6 +918,10 @@ impl AttemptDriver for OpenAiAttemptDriver {
             }
         })
     }
+
+    fn start_timeout(&self, remaining_bootstrap: Duration) -> Duration {
+        p12_attempt_start_timeout(self.mode, remaining_bootstrap)
+    }
 }
 
 fn p12_transport_request(
@@ -995,6 +1035,27 @@ fn upstream_response_mode(mode: ResponsesResponseMode) -> ResponseMode {
     match mode {
         ResponsesResponseMode::NonStreaming => ResponseMode::NonStreaming,
         ResponsesResponseMode::Streaming => ResponseMode::Streaming,
+    }
+}
+
+/// Returns the per-attempt ceiling the orchestrator applies to one P12 `start` invocation.
+///
+/// Streaming keeps the Route's remaining bootstrap budget: a healthy SSE upstream emits
+/// `response.created` immediately, so a cut here is an ordinary retryable pre-first-byte failure.
+/// A buffered non-streaming upstream returns its response headers only after generation finishes,
+/// so that one attempt must be allowed the transport's bounded total on top of the remaining
+/// bootstrap budget. Every byte of it is still pre-first-byte for the client, which keeps an
+/// expiry a safe pre-header failure, and the window for beginning another attempt stays governed
+/// by the Route's bootstrap deadline.
+const fn p12_attempt_start_timeout(
+    mode: ResponsesResponseMode,
+    remaining_bootstrap: Duration,
+) -> Duration {
+    match mode {
+        ResponsesResponseMode::Streaming => remaining_bootstrap,
+        ResponsesResponseMode::NonStreaming => {
+            remaining_bootstrap.saturating_add(P12_NON_STREAMING_TOTAL_TIMEOUT)
+        }
     }
 }
 
@@ -1284,6 +1345,18 @@ fn ensure_message(events: &mut Vec<CanonicalEvent>, message_open: &mut bool) {
 struct OpenAiSseEventSource {
     response: UpstreamHttpResponse,
     decoder: OpenAiSseDecoder,
+    /// Upstream-wait budget between two decoder progress marks before the stream is declared
+    /// wedged.
+    progress_deadline: Duration,
+    /// The decoder progress-mark count already accounted for by `progress_wait_spent`.
+    observed_progress_marks: u64,
+    /// Time spent awaiting upstream chunks since the last progress frame.
+    ///
+    /// Only the `next_chunk` awaits accrue here, never wall-clock time between `next_event`
+    /// polls: a downstream client that stops reading backpressures the bounded event channel and
+    /// freezes this source without the upstream being at fault, so counting that stall would
+    /// misclassify a healthy completion as a wedged upstream.
+    progress_wait_spent: Duration,
 }
 
 /// Transport-free `OpenAI` Responses SSE decoder for one streamed upstream response.
@@ -1293,9 +1366,17 @@ struct OpenAiSseEventSource {
 /// segmentation, may change the emitted Canonical sequence.
 struct OpenAiSseDecoder {
     buffer: Vec<u8>,
+    /// Bytes of `buffer` before this offset belong to frames already extracted by `take_frame`.
+    consumed: usize,
+    /// Scan resume point: no frame delimiter starts inside `buffer[self.consumed..self.scanned]`.
+    scanned: usize,
     pending: VecDeque<CanonicalEvent>,
     lifecycle: SseLifecycle,
     usage_projection: P12ResponseUsageProjection,
+    /// Consecutive frames that proved only socket liveness, reset by any progress frame.
+    progress_free_frames: usize,
+    /// Monotone count of consumed frames that proved generation is advancing.
+    progress_marks: u64,
 }
 
 /// The bounded lifecycle of one streamed Responses body.
@@ -1358,6 +1439,10 @@ impl SseStreamingState {
     }
 
     /// Declares one streamed Tool call from a `function_call` output item.
+    ///
+    /// Identifiers longer than [`MAX_SSE_IDENTIFIER_BYTES`] fail closed: both are retained for
+    /// the rest of the response, so the retained total must stay bounded by a small constant
+    /// rather than by the frame bound.
     fn start_tool_call(
         &mut self,
         item: &Value,
@@ -1366,7 +1451,9 @@ impl SseStreamingState {
         let item_id = required_string(item, "id")?;
         let call_id = required_string(item, "call_id")?;
         let name = required_string(item, "name")?;
-        if self.tool_calls.len() >= MAX_SSE_TOOL_CALLS
+        if item_id.len() > MAX_SSE_IDENTIFIER_BYTES
+            || call_id.len() > MAX_SSE_IDENTIFIER_BYTES
+            || self.tool_calls.len() >= MAX_SSE_TOOL_CALLS
             || self.tool_calls.contains_key(&item_id)
             || !self.call_ids.insert(call_id.clone())
         {
@@ -1549,15 +1636,33 @@ impl OpenAiSseDecoder {
     fn new(usage_projection: P12ResponseUsageProjection) -> Self {
         Self {
             buffer: Vec::new(),
+            consumed: 0,
+            scanned: 0,
             pending: VecDeque::new(),
             lifecycle: SseLifecycle::AwaitingResponseStart,
             usage_projection,
+            progress_free_frames: 0,
+            progress_marks: 0,
         }
     }
 
     /// Appends one bounded transport chunk without interpreting it.
+    ///
+    /// The frame bound applies to the undecoded residue only. Decoded bytes are compacted away
+    /// once they outweigh that residue, so the bytes ever moved stay linear in the bytes
+    /// streamed and the buffer itself never holds more than twice [`MAX_SSE_FRAME_BYTES`].
     fn push_chunk(&mut self, chunk: &[u8]) -> Result<(), GatewayError> {
-        append_sse_chunk(&mut self.buffer, chunk)
+        if self.consumed >= self.buffer.len().saturating_sub(self.consumed) {
+            self.buffer.drain(..self.consumed);
+            self.scanned = self.scanned.saturating_sub(self.consumed);
+            self.consumed = 0;
+        }
+        let live = self.buffer.len().saturating_sub(self.consumed);
+        if live.saturating_add(chunk.len()) > MAX_SSE_FRAME_BYTES {
+            return Err(upstream_protocol_error());
+        }
+        self.buffer.extend_from_slice(chunk);
+        Ok(())
     }
 
     /// Decodes buffered frames until one event is queued or no complete frame remains.
@@ -1583,31 +1688,64 @@ impl OpenAiSseDecoder {
         self.pending.pop_front()
     }
 
+    /// Extracts the next complete SSE frame, resuming the delimiter scan where it last stopped.
+    ///
+    /// `scanned` marks the delimiter-free prefix of the undecoded region, so every buffered byte
+    /// is examined once no matter how many chunks or frames arrive. When no delimiter is found,
+    /// the resume point holds back the last three bytes: a delimiter is at most four bytes, so
+    /// one completed by a later chunk can begin no earlier than three bytes before the current
+    /// end of the buffer.
     fn take_frame(&mut self) -> Option<Vec<u8>> {
-        let lf_position = self
-            .buffer
-            .windows(2)
-            .position(|window| window == b"\n\n")
-            .map(|position| (position, 2));
-        let crlf_position = self
-            .buffer
-            .windows(4)
-            .position(|window| window == b"\r\n\r\n")
-            .map(|position| (position, 4));
-        let (position, delimiter_length) = match (lf_position, crlf_position) {
-            (Some(left), Some(right)) => {
-                if left.0 <= right.0 {
-                    left
-                } else {
-                    right
-                }
+        let start = self.scanned.max(self.consumed);
+        let found = (start..self.buffer.len()).find_map(|position| {
+            let suffix = &self.buffer[position..];
+            if suffix.starts_with(b"\n\n") {
+                Some((position, 2))
+            } else if suffix.starts_with(b"\r\n\r\n") {
+                Some((position, 4))
+            } else {
+                None
             }
-            (Some(position), None) | (None, Some(position)) => position,
-            (None, None) => return None,
+        });
+        let Some((position, delimiter_length)) = found else {
+            self.scanned = self.buffer.len().saturating_sub(3).max(self.consumed);
+            return None;
         };
-        let mut frame: Vec<_> = self.buffer.drain(..position + delimiter_length).collect();
-        frame.truncate(position);
+        let frame = self.buffer[self.consumed..position].to_vec();
+        self.consumed = position + delimiter_length;
+        self.scanned = self.consumed;
         Some(frame)
+    }
+
+    /// Returns the monotone count of consumed frames that proved generation is advancing.
+    ///
+    /// The transport shell compares successive values to reset its wall-clock progress deadline.
+    /// Keeping the counter here keeps the decoder clock-free: the classification of every frame
+    /// is decided by its content alone, never by transport segmentation or elapsed time.
+    const fn progress_marks(&self) -> u64 {
+        self.progress_marks
+    }
+
+    /// Records one consumed frame that proves the upstream is still generating.
+    fn note_progress_frame(&mut self) {
+        self.progress_free_frames = 0;
+        self.progress_marks = self.progress_marks.saturating_add(1);
+    }
+
+    /// Records one keepalive-class frame that proves only that the socket is alive.
+    ///
+    /// A run longer than [`MAX_SSE_PROGRESS_FREE_FRAMES`] is a wedged upstream, not a thinking
+    /// model. It terminates with the same terminal projection as an upstream `response.failed`,
+    /// so the lease-holding source drops and this runtime's one Credential frees.
+    fn note_progress_free_frame(&mut self) {
+        self.progress_free_frames = self.progress_free_frames.saturating_add(1);
+        if self.progress_free_frames > MAX_SSE_PROGRESS_FREE_FRAMES {
+            self.pending
+                .push_back(CanonicalEvent::StreamError(StreamError {
+                    error: provider_transient_error(),
+                }));
+            self.lifecycle = SseLifecycle::Finished;
+        }
     }
 
     fn consume_frame(&mut self, frame: &[u8]) -> Result<(), GatewayError> {
@@ -1618,20 +1756,31 @@ impl OpenAiSseDecoder {
             .collect::<Vec<_>>()
             .join("\n");
         // SSE comments and keep-alive frames carry no event payload.  They must not alter the
-        // Canonical lifecycle or consume the bounded response budget.
+        // Canonical lifecycle or consume the bounded response budget, but each one spends one
+        // unit of the bounded progress-free run: only evidence of generation may refill it.
         if data.is_empty() {
+            self.note_progress_free_frame();
             return Ok(());
         }
         let value: Value = serde_json::from_str(&data).map_err(|_| upstream_protocol_error())?;
         let kind = required_string(&value, "type")?;
+        // `response.in_progress` is the one payload-bearing frame that proves only relay
+        // liveness, never generation progress: a wedged upstream can repeat it forever.  Every
+        // other accepted frame kind is emitted only while the model is actually producing
+        // output, reasoning, or item lifecycle transitions, so it counts as progress even when
+        // its canonical projection below is a no-op.
+        if kind == "response.in_progress" {
+            self.note_progress_free_frame();
+            return Ok(());
+        }
+        self.note_progress_frame();
 
         match kind.as_str() {
             "response.created" => self.consume_response_created(&value),
             // Informational frames carry no canonical semantics. They must be ignored rather than
             // rejected: this dispatch runs past the unretryable boundary, so treating an upstream's
             // extra progress frame as fatal would truncate an otherwise healthy answer.
-            "response.in_progress"
-            | "response.content_part.added"
+            "response.content_part.added"
             | "response.content_part.done"
             | "response.output_text.done"
             | "response.output_text.annotation.added"
@@ -1837,9 +1986,30 @@ impl OpenAiSseEventSource {
         response: UpstreamHttpResponse,
         usage_projection: P12ResponseUsageProjection,
     ) -> Result<Self, AttemptFailure> {
+        Self::begin_with_progress_deadline(
+            response,
+            usage_projection,
+            P12_STREAMING_PROGRESS_TIMEOUT,
+        )
+        .await
+    }
+
+    /// Starts one streamed source under an explicit semantic-progress deadline.
+    ///
+    /// Production always passes [`P12_STREAMING_PROGRESS_TIMEOUT`] through [`Self::begin`]; the
+    /// explicit parameter exists so tests can expire the deadline in milliseconds against a live
+    /// peer instead of waiting out the production value.
+    async fn begin_with_progress_deadline(
+        response: UpstreamHttpResponse,
+        usage_projection: P12ResponseUsageProjection,
+        progress_deadline: Duration,
+    ) -> Result<Self, AttemptFailure> {
         let mut source = Self {
             response,
             decoder: OpenAiSseDecoder::new(usage_projection),
+            progress_deadline,
+            observed_progress_marks: 0,
+            progress_wait_spent: Duration::ZERO,
         };
         source
             .read_until_event()
@@ -1854,13 +2024,35 @@ impl OpenAiSseEventSource {
         Ok(source)
     }
 
+    /// Restarts the upstream-wait progress window whenever the decoder consumed progress evidence.
+    fn observe_decoder_progress(&mut self) {
+        let marks = self.decoder.progress_marks();
+        if marks != self.observed_progress_marks {
+            self.observed_progress_marks = marks;
+            self.progress_wait_spent = Duration::ZERO;
+        }
+    }
+
     async fn read_until_event(&mut self) -> Result<(), GatewayError> {
         loop {
             self.decoder.drain_buffered_frames()?;
+            self.observe_decoder_progress();
             if self.decoder.peek_event().is_some() || self.decoder.is_finished() {
                 return Ok(());
             }
+            // The transport's byte-idle bound wakes the wait below at least once per idle
+            // window, so this check runs even when the upstream sends only keepalives that
+            // reset that byte-idle timer.  A wedged upstream therefore holds this runtime's one
+            // Credential lease for at most the progress deadline plus one idle window, while a
+            // thinking model stays alive through any genuine progress frame.
+            if self.progress_wait_spent >= self.progress_deadline {
+                return Err(provider_transient_error());
+            }
+            let wait_started = Instant::now();
             let next = self.response.next_chunk().await?;
+            self.progress_wait_spent = self
+                .progress_wait_spent
+                .saturating_add(wait_started.elapsed());
             let Some(chunk) = next else {
                 return Err(stream_truncated_error());
             };
@@ -1886,14 +2078,6 @@ fn append_response_chunk(body: &mut Vec<u8>, chunk: &[u8]) -> Result<(), Gateway
         return Err(upstream_protocol_error());
     }
     body.extend_from_slice(chunk);
-    Ok(())
-}
-
-fn append_sse_chunk(buffer: &mut Vec<u8>, chunk: &[u8]) -> Result<(), GatewayError> {
-    if buffer.len().saturating_add(chunk.len()) > MAX_SSE_FRAME_BYTES {
-        return Err(upstream_protocol_error());
-    }
-    buffer.extend_from_slice(chunk);
     Ok(())
 }
 
@@ -2047,12 +2231,13 @@ mod tests {
         error::Error,
         fs,
         net::{IpAddr, Ipv4Addr},
+        num::NonZeroUsize,
         path::{Path, PathBuf},
         sync::{
             Arc,
             atomic::{AtomicU64, Ordering},
         },
-        time::{Duration, SystemTime, UNIX_EPOCH},
+        time::{Duration, Instant, SystemTime, UNIX_EPOCH},
     };
 
     use actix_web::{
@@ -2079,7 +2264,8 @@ mod tests {
         management_resources::{ManagementRequestAttemptStage, ManagementRuntimeError},
     };
     use gateway_router::{
-        DeterministicMockEmission, DeterministicMockResponsesExecutor, ResponsesResponseMode,
+        DeterministicMockEmission, DeterministicMockResponsesExecutor, ResponsesEventSource,
+        ResponsesResponseMode,
     };
     use gateway_store::{
         control_plane::{
@@ -2094,8 +2280,10 @@ mod tests {
         secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore},
     };
     use gateway_upstream::{
-        EgressDnsError, EgressDnsResolver, EgressHost, EgressPolicy, EgressPolicyInput,
-        EgressScheme, RedirectPolicy, UpstreamHttpMethod,
+        AdmittedEgressTarget, EgressCidr, EgressDnsError, EgressDnsResolver, EgressHost,
+        EgressPolicy, EgressPolicyInput, EgressScheme, RedirectPolicy, UpstreamClientPool,
+        UpstreamHttpMethod, UpstreamHttpRequest, UpstreamProxy, UpstreamTimeouts,
+        UpstreamTransportProfile,
     };
     use protocol_openai_responses::{ResponseMode, decode_request};
     use provider_openai_compatible::{
@@ -2104,14 +2292,17 @@ mod tests {
     use serde_json::Value;
 
     use super::{
-        MAX_SSE_FRAME_BYTES, MAX_SSE_TOOL_CALLS, MAX_UPSTREAM_RESPONSE_BYTES, P12_CONNECT_TIMEOUT,
+        MAX_SSE_FRAME_BYTES, MAX_SSE_IDENTIFIER_BYTES, MAX_SSE_PROGRESS_FREE_FRAMES,
+        MAX_SSE_TOOL_CALLS, MAX_UPSTREAM_RESPONSE_BYTES, OpenAiSseDecoder, OpenAiSseEventSource,
+        P12_BOOTSTRAP_TIMEOUT_MILLISECONDS, P12_CONNECT_TIMEOUT,
         P12_KRILL_COMPATIBILITY_USER_AGENT, P12_NON_STREAMING_TOTAL_TIMEOUT,
-        P12_STAGING_ENDPOINT_ID, P12_STREAMING_IDLE_TIMEOUT, P12_STREAMING_TOTAL_TIMEOUT,
-        P12_STREAMING_TTFB_TIMEOUT, P12AttemptEventSink, P12AttemptStageStore,
-        P12ResponseUsageProjection, P12TransportProfiles, append_response_chunk, append_sse_chunk,
-        build_data_plane_composition, decode_json_events, decode_json_events_with_usage_projection,
-        decode_sse_events, decode_sse_events_with_usage_projection, has_exact_p12_egress_shape,
-        has_p12_unlisted_model_override, p12_openai_compatible_request,
+        P12_STAGING_ENDPOINT_ID, P12_STREAMING_IDLE_TIMEOUT, P12_STREAMING_PROGRESS_TIMEOUT,
+        P12_STREAMING_TOTAL_TIMEOUT, P12_STREAMING_TTFB_TIMEOUT, P12AttemptEventSink,
+        P12AttemptStageStore, P12ResponseUsageProjection, P12TransportProfiles,
+        append_response_chunk, build_data_plane_composition, decode_json_events,
+        decode_json_events_with_usage_projection, decode_sse_events,
+        decode_sse_events_with_usage_projection, has_exact_p12_egress_shape,
+        has_p12_unlisted_model_override, p12_attempt_start_timeout, p12_openai_compatible_request,
         p12_response_usage_projection, p12_transport_headers, p12_transport_request,
         staging_route_compiler,
     };
@@ -2313,14 +2504,27 @@ mod tests {
     #[test]
     fn streamed_tool_arguments_are_independent_of_transport_chunk_boundaries()
     -> Result<(), Box<dyn Error>> {
-        let body = sse_stream_body(&[
+        use std::fmt::Write as _;
+
+        // Mixed frame delimiters and interleaved comment frames force every resume path of the
+        // scan cursor: a CRLF delimiter split across appends, several frames inside one chunk,
+        // and no-event frames between event-bearing ones.
+        let frames = [
             r#"{"type":"response.created","response":{"id":"response-p12-stream-chunks"}}"#,
             r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"fc-chunks","type":"function_call","call_id":"call-chunks","name":"echo","arguments":""}}"#,
             r#"{"type":"response.function_call_arguments.delta","item_id":"fc-chunks","delta":"{\"value\":\"caf"}"#,
             r#"{"type":"response.function_call_arguments.delta","item_id":"fc-chunks","delta":"é\"}"}"#,
             r#"{"type":"response.function_call_arguments.done","item_id":"fc-chunks","arguments":"{\"value\":\"café\"}"}"#,
             r#"{"type":"response.completed","response":{"id":"response-p12-stream-chunks","status":"completed","usage":{"input_tokens":3,"output_tokens":5}}}"#,
-        ]);
+        ];
+        let body = frames
+            .iter()
+            .enumerate()
+            .fold(String::new(), |mut body, (index, frame)| {
+                let delimiter = if index % 2 == 0 { "\r\n\r\n" } else { "\n\n" };
+                let _ = write!(body, "data: {frame}{delimiter}: keep-alive{delimiter}");
+                body
+            });
         let reference = decode_sse_events(&body, body.len())?;
 
         for chunk_size in [1, 3, 29] {
@@ -2521,6 +2725,52 @@ mod tests {
         }
     }
 
+    #[test]
+    fn streamed_tool_identifiers_at_the_bound_decode_and_longer_ones_fail_closed()
+    -> Result<(), Box<dyn Error>> {
+        let bounded_item_id = "i".repeat(MAX_SSE_IDENTIFIER_BYTES);
+        let bounded_call_id = "c".repeat(MAX_SSE_IDENTIFIER_BYTES);
+        let accepted = sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-id-bound"}}"#.to_owned(),
+            format!(
+                r#"{{"type":"response.output_item.added","output_index":0,"item":{{"id":"{bounded_item_id}","type":"function_call","call_id":"{bounded_call_id}","name":"echo","arguments":""}}}}"#
+            ),
+            format!(
+                r#"{{"type":"response.function_call_arguments.done","item_id":"{bounded_item_id}","arguments":"{{}}"}}"#
+            ),
+            r#"{"type":"response.completed","response":{"id":"response-p12-id-bound","status":"completed","usage":{"input_tokens":3,"output_tokens":5}}}"#.to_owned(),
+        ]);
+        let events = decode_sse_events(&accepted, 17)?;
+        assert!(events.iter().any(|event| matches!(
+            event,
+            CanonicalEvent::ToolCallEnd(end) if end.call_id == bounded_call_id
+        )));
+
+        let long_item_id = "i".repeat(MAX_SSE_IDENTIFIER_BYTES + 1);
+        let long_call_id = "c".repeat(MAX_SSE_IDENTIFIER_BYTES + 1);
+        let oversized_item = sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-id-guard"}}"#.to_owned(),
+            format!(
+                r#"{{"type":"response.output_item.added","output_index":0,"item":{{"id":"{long_item_id}","type":"function_call","call_id":"call-short","name":"echo","arguments":""}}}}"#
+            ),
+        ]);
+        let oversized_call = sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-id-guard"}}"#.to_owned(),
+            format!(
+                r#"{{"type":"response.output_item.added","output_index":0,"item":{{"id":"fc-short","type":"function_call","call_id":"{long_call_id}","name":"echo","arguments":""}}}}"#
+            ),
+        ]);
+        for body in [oversized_item, oversized_call] {
+            assert_eq!(
+                decode_sse_events(&body, body.len())
+                    .err()
+                    .map(|error| (error.code(), error.scope())),
+                Some((GatewayErrorCode::UpstreamProtocolError, ErrorScope::Stream))
+            );
+        }
+        Ok(())
+    }
+
     #[actix_web::test]
     async fn p12_streamed_tool_lifecycle_is_encodable_by_the_openai_responses_boundary()
     -> Result<(), Box<dyn Error>> {
@@ -2642,6 +2892,18 @@ mod tests {
         // The regression this guards: a 45-second absolute deadline truncated every longer
         // completion after its first bytes had already passed the unretryable client boundary.
         assert!(streaming.total() >= Duration::from_mins(30));
+        // Semantic liveness sits between byte liveness and the absolute ceiling: generous enough
+        // for one long healthy thinking stretch, small enough that a keepalive wedge cannot hold
+        // the single P12 Credential for the whole ceiling.
+        assert!(P12_STREAMING_PROGRESS_TIMEOUT > streaming.idle());
+        assert!(P12_STREAMING_PROGRESS_TIMEOUT >= Duration::from_mins(10));
+        assert!(P12_STREAMING_PROGRESS_TIMEOUT < streaming.total());
+        // Even one keepalive per second sustained for the entire ceiling stays under the frame
+        // budget, so the count-based bound cannot outrun the wall-clock deadline on any healthy
+        // keepalive cadence; it exists to stop high-rate spam after bounded decode work.
+        assert!(
+            MAX_SSE_PROGRESS_FREE_FRAMES >= usize::try_from(P12_STREAMING_TOTAL_TIMEOUT.as_secs())?
+        );
         assert!(streaming.idle() < streaming.total());
 
         assert_eq!(non_streaming.connect(), P12_CONNECT_TIMEOUT);
@@ -2666,9 +2928,10 @@ mod tests {
 
         // `response.output_text.done` and `response.completed` each repeat the entire answer in
         // one frame, so a megabyte of buffered residue must not be a protocol failure.
-        let mut frame_buffer = vec![b'x'; ONE_MEBIBYTE];
-        append_sse_chunk(&mut frame_buffer, b"tail")?;
-        assert_eq!(frame_buffer.len(), ONE_MEBIBYTE + 4);
+        let mut decoder = OpenAiSseDecoder::new(P12ResponseUsageProjection::OpenAiResponses);
+        decoder.push_chunk(&vec![b'x'; ONE_MEBIBYTE])?;
+        decoder.push_chunk(b"tail")?;
+        assert_eq!(decoder.buffer.len(), ONE_MEBIBYTE + 4);
 
         let mut body = vec![b'y'; ONE_MEBIBYTE];
         append_response_chunk(&mut body, b"tail")?;
@@ -2681,6 +2944,425 @@ mod tests {
         let mut body = vec![b'y'; MAX_UPSTREAM_RESPONSE_BYTES];
         assert!(append_response_chunk(&mut body, b"y").is_err());
         assert_eq!(body.len(), MAX_UPSTREAM_RESPONSE_BYTES);
+    }
+
+    #[test]
+    fn non_streaming_attempts_extend_their_start_ceiling_to_the_transport_total()
+    -> Result<(), Box<dyn Error>> {
+        let admitted_bootstrap =
+            Duration::from_millis(u64::try_from(P12_BOOTSTRAP_TIMEOUT_MILLISECONDS)?);
+
+        assert_eq!(
+            p12_attempt_start_timeout(ResponsesResponseMode::Streaming, admitted_bootstrap),
+            admitted_bootstrap
+        );
+        let non_streaming =
+            p12_attempt_start_timeout(ResponsesResponseMode::NonStreaming, admitted_bootstrap);
+        // The regression this guards: the orchestrator cut every non-streaming attempt at the
+        // route bootstrap deadline, so the ten-minute transport total was unreachable.
+        assert_eq!(
+            non_streaming,
+            admitted_bootstrap + P12_NON_STREAMING_TOTAL_TIMEOUT
+        );
+        assert!(non_streaming > admitted_bootstrap);
+        Ok(())
+    }
+
+    struct LoopbackResolver;
+
+    impl EgressDnsResolver for LoopbackResolver {
+        fn resolve(&self, _host: &EgressHost) -> Result<Vec<IpAddr>, EgressDnsError> {
+            Ok(vec![IpAddr::V4(Ipv4Addr::LOCALHOST)])
+        }
+    }
+
+    fn live_admitted_target(port: u16) -> Result<AdmittedEgressTarget, Box<dyn Error>> {
+        let policy = EgressPolicy::try_new(EgressPolicyInput {
+            id: EgressPolicyId::try_new("p12-live-progress-policy")?,
+            name: "P12 live progress test policy".to_owned(),
+            allowed_schemes: BTreeSet::from([EgressScheme::Http]),
+            allowed_hosts: BTreeSet::from([EgressHost::try_new("relay.test")?]),
+            allowed_ports: BTreeSet::from([port]),
+            allowed_cidrs: BTreeSet::from([EgressCidr::try_new(
+                IpAddr::V4(Ipv4Addr::LOCALHOST),
+                32,
+            )?]),
+            redirect_policy: RedirectPolicy::Deny,
+        })?;
+        Ok(policy.admit_url(
+            &format!("http://relay.test:{port}/responses"),
+            &LoopbackResolver,
+        )?)
+    }
+
+    fn live_transport_request(
+        target: AdmittedEgressTarget,
+    ) -> Result<UpstreamHttpRequest, Box<dyn Error>> {
+        Ok(UpstreamHttpRequest::try_new(
+            target,
+            UpstreamHttpMethod::Post,
+            [("accept".to_owned(), "text/event-stream".to_owned())],
+            br"{}".to_vec(),
+        )?)
+    }
+
+    /// A live transport profile whose byte-idle bound is short enough that only frames arriving
+    /// on the wire, never the test's own patience, keep it fresh.
+    fn live_progress_test_profile() -> Result<UpstreamTransportProfile, Box<dyn Error>> {
+        Ok(UpstreamTransportProfile::new(
+            UpstreamTimeouts::try_new(
+                Duration::from_secs(1),
+                Duration::from_secs(1),
+                Duration::from_secs(2),
+                Duration::from_secs(30),
+            )?,
+            UpstreamProxy::Direct,
+            NonZeroUsize::new(1).ok_or("live pool needs one idle connection")?,
+        ))
+    }
+
+    async fn write_all_to_peer(
+        socket: &actix_web::rt::net::TcpStream,
+        mut bytes: &[u8],
+    ) -> std::io::Result<()> {
+        while !bytes.is_empty() {
+            socket.writable().await?;
+            match socket.try_write(bytes) {
+                Ok(0) => return Err(std::io::ErrorKind::WriteZero.into()),
+                Ok(written) => bytes = &bytes[written..],
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {}
+                Err(error) => return Err(error),
+            }
+        }
+        Ok(())
+    }
+
+    async fn read_request_head(socket: &actix_web::rt::net::TcpStream) -> std::io::Result<()> {
+        let mut head = Vec::new();
+        loop {
+            socket.readable().await?;
+            let mut chunk = [0_u8; 1024];
+            match socket.try_read(&mut chunk) {
+                Ok(0) => return Err(std::io::ErrorKind::UnexpectedEof.into()),
+                Ok(read) => {
+                    head.extend_from_slice(&chunk[..read]);
+                    if head.windows(4).any(|window| window == b"\r\n\r\n") {
+                        return Ok(());
+                    }
+                    if head.len() > 65_536 {
+                        return Err(std::io::ErrorKind::InvalidData.into());
+                    }
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {}
+                Err(error) => return Err(error),
+            }
+        }
+    }
+
+    /// Serves one live SSE response over loopback HTTP, then streams follow-up frames.
+    ///
+    /// Written through inherent `TcpStream` methods because this binary crate deliberately has
+    /// no direct tokio dependency; `actix_web::rt` re-exports the runtime it already runs on.
+    fn spawn_live_sse_peer(
+        listener: actix_web::rt::net::TcpListener,
+        prelude: String,
+        follow_up_frame: String,
+        follow_up_count: usize,
+        follow_up_gap: Duration,
+        epilogue: String,
+    ) -> actix_web::rt::task::JoinHandle<std::io::Result<()>> {
+        actix_web::rt::spawn(async move {
+            let (socket, _) = listener.accept().await?;
+            read_request_head(&socket).await?;
+            write_all_to_peer(
+                &socket,
+                b"HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\nconnection: close\r\n\r\n",
+            )
+            .await?;
+            write_all_to_peer(&socket, prelude.as_bytes()).await?;
+            for _ in 0..follow_up_count {
+                actix_web::rt::time::sleep(follow_up_gap).await;
+                write_all_to_peer(&socket, follow_up_frame.as_bytes()).await?;
+            }
+            write_all_to_peer(&socket, epilogue.as_bytes()).await?;
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn a_pure_keepalive_stream_exhausts_the_progress_frame_budget_into_a_stream_error()
+    -> Result<(), Box<dyn Error>> {
+        let mut frames = vec![
+            r#"{"type":"response.created","response":{"id":"response-p12-wedged"}}"#.to_owned(),
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"msg-wedged","type":"message","role":"assistant"}}"#.to_owned(),
+            r#"{"type":"response.output_text.delta","item_id":"msg-wedged","delta":"ok"}"#.to_owned(),
+        ];
+        for _ in 0..=MAX_SSE_PROGRESS_FREE_FRAMES {
+            frames.push(r#"{"type":"response.in_progress"}"#.to_owned());
+        }
+        let body = sse_stream_body(&frames);
+        let reference = decode_sse_events(&body, body.len())?;
+
+        assert_eq!(
+            canonical_event_labels(&reference),
+            vec![
+                "response_start",
+                "message_start",
+                "text_delta",
+                "stream_error"
+            ]
+        );
+        assert!(matches!(
+            reference.last(),
+            Some(CanonicalEvent::StreamError(stream_error))
+                if stream_error.error.code() == GatewayErrorCode::ProviderTransient
+                    && stream_error.error.scope() == ErrorScope::Provider
+        ));
+        // BL-04: transport segmentation must change neither when the budget expires nor what
+        // the terminated stream emitted.
+        for chunk_size in [7, 4096] {
+            assert_eq!(decode_sse_events(&body, chunk_size)?, reference);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn comment_only_keepalive_frames_spend_the_same_progress_budget() -> Result<(), Box<dyn Error>>
+    {
+        let mut body = sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-comment-wedged"}}"#,
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"msg-cw","type":"message","role":"assistant"}}"#,
+            r#"{"type":"response.output_text.delta","item_id":"msg-cw","delta":"ok"}"#,
+        ]);
+        for _ in 0..=MAX_SSE_PROGRESS_FREE_FRAMES {
+            body.push_str(": keepalive\n\n");
+        }
+        let events = decode_sse_events(&body, 23)?;
+
+        assert!(matches!(
+            events.last(),
+            Some(CanonicalEvent::StreamError(stream_error))
+                if stream_error.error.code() == GatewayErrorCode::ProviderTransient
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn reasoning_summary_progress_refills_the_budget_between_keepalive_runs()
+    -> Result<(), Box<dyn Error>> {
+        // Three runs of keepalives, each one frame short of tripping the budget, separated by
+        // reasoning-summary deltas: frames the decoder drops that still prove generation is
+        // advancing.  A cumulative counter would fail this stream; only a consecutive one may.
+        let mut frames = vec![
+            r#"{"type":"response.created","response":{"id":"response-p12-thinking"}}"#.to_owned(),
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"rs-think","type":"reasoning"}}"#.to_owned(),
+        ];
+        for _ in 0..3 {
+            for _ in 0..MAX_SSE_PROGRESS_FREE_FRAMES {
+                frames.push(r#"{"type":"response.in_progress"}"#.to_owned());
+            }
+            frames.push(
+                r#"{"type":"response.reasoning_summary_text.delta","item_id":"rs-think","delta":"…"}"#
+                    .to_owned(),
+            );
+        }
+        frames.extend([
+            r#"{"type":"response.output_item.added","output_index":1,"item":{"id":"msg-think","type":"message","role":"assistant"}}"#.to_owned(),
+            r#"{"type":"response.output_text.delta","item_id":"msg-think","delta":"ok"}"#.to_owned(),
+            r#"{"type":"response.completed","response":{"id":"response-p12-thinking","status":"completed","usage":{"input_tokens":3,"output_tokens":5}}}"#.to_owned(),
+        ]);
+        let body = sse_stream_body(&frames);
+        let events = decode_sse_events(&body, 4096)?;
+
+        assert_eq!(
+            canonical_event_labels(&events),
+            vec![
+                "response_start",
+                "message_start",
+                "text_delta",
+                "message_end",
+                "usage_delta",
+                "response_end",
+            ]
+        );
+        assert!(CanonicalResponse::try_new(events).is_ok());
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn a_live_keepalive_only_stream_is_cut_by_the_progress_deadline_not_the_byte_idle_bound()
+    -> Result<(), Box<dyn Error>> {
+        let listener = actix_web::rt::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let port = listener.local_addr()?.port();
+        let prelude = sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-live-keepalive"}}"#,
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"msg-live","type":"message","role":"assistant"}}"#,
+            r#"{"type":"response.output_text.delta","item_id":"msg-live","delta":"ok"}"#,
+        ]);
+        let keepalive = sse_stream_body(&[r#"{"type":"response.in_progress"}"#]);
+        let server = spawn_live_sse_peer(
+            listener,
+            prelude,
+            keepalive,
+            200,
+            Duration::from_millis(25),
+            String::new(),
+        );
+
+        let response = UpstreamClientPool::new(NonZeroUsize::new(1).ok_or("live pool size")?)
+            .send(
+                live_transport_request(live_admitted_target(port)?)?,
+                &live_progress_test_profile()?,
+            )
+            .await?;
+        let mut source = OpenAiSseEventSource::begin_with_progress_deadline(
+            response,
+            P12ResponseUsageProjection::OpenAiResponses,
+            Duration::from_millis(200),
+        )
+        .await
+        .map_err(|_| std::io::Error::other("live SSE bootstrap failed"))?;
+
+        let started = Instant::now();
+        let error = loop {
+            match source.next_event().await {
+                Ok(Some(_)) => {}
+                Ok(None) => {
+                    return Err("keepalive-only stream ended without the progress failure".into());
+                }
+                Err(error) => break error,
+            }
+        };
+        assert_eq!(
+            (error.code(), error.scope()),
+            (GatewayErrorCode::ProviderTransient, ErrorScope::Provider)
+        );
+        // The keepalives kept every transport deadline fresh, so only the progress deadline can
+        // have fired -- and it must fire well before the transport's two-second byte-idle bound
+        // would have had a first chance to see silence.
+        assert!(started.elapsed() < Duration::from_secs(2));
+        server.abort();
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn a_stalled_downstream_client_does_not_spend_the_upstream_progress_budget()
+    -> Result<(), Box<dyn Error>> {
+        let listener = actix_web::rt::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let port = listener.local_addr()?.port();
+        let prelude = sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-live-stall"}}"#,
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"msg-live","type":"message","role":"assistant"}}"#,
+            r#"{"type":"response.output_text.delta","item_id":"msg-live","delta":"ok"}"#,
+        ]);
+        let epilogue = sse_stream_body(&[
+            r#"{"type":"response.completed","response":{"id":"response-p12-live-stall","status":"completed","usage":{"input_tokens":3,"output_tokens":5}}}"#,
+        ]);
+        let server = spawn_live_sse_peer(
+            listener,
+            prelude,
+            String::new(),
+            0,
+            Duration::ZERO,
+            epilogue,
+        );
+
+        let response = UpstreamClientPool::new(NonZeroUsize::new(1).ok_or("live pool size")?)
+            .send(
+                live_transport_request(live_admitted_target(port)?)?,
+                &live_progress_test_profile()?,
+            )
+            .await?;
+        let mut source = OpenAiSseEventSource::begin_with_progress_deadline(
+            response,
+            P12ResponseUsageProjection::OpenAiResponses,
+            Duration::from_millis(200),
+        )
+        .await
+        .map_err(|_| std::io::Error::other("live SSE bootstrap failed"))?;
+
+        // Consume the first event, then stall far past the progress deadline without polling.
+        // Only upstream-wait time may spend the budget: a client that stops reading freezes this
+        // source through channel backpressure while the upstream stays healthy, so resuming must
+        // find the remaining events instead of a fabricated wedge failure.
+        assert!(source.next_event().await?.is_some());
+        actix_web::rt::time::sleep(Duration::from_millis(600)).await;
+        let mut events = Vec::new();
+        while let Some(event) = source.next_event().await? {
+            events.push(event);
+        }
+        assert!(events.iter().any(|event| matches!(
+            event,
+            CanonicalEvent::ResponseEnd(end) if end.stop_reason.as_deref() == Some("end_turn")
+        )));
+        server.abort();
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn a_live_thinking_stream_survives_progress_deadlines_through_reasoning_summary_frames()
+    -> Result<(), Box<dyn Error>> {
+        let listener = actix_web::rt::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let port = listener.local_addr()?.port();
+        let prelude = sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-live-thinking"}}"#,
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"rs-live","type":"reasoning"}}"#,
+        ]);
+        let summary_delta = sse_stream_body(&[
+            r#"{"type":"response.reasoning_summary_text.delta","item_id":"rs-live","delta":"thinking"}"#,
+        ]);
+        let epilogue = sse_stream_body(&[
+            r#"{"type":"response.output_item.added","output_index":1,"item":{"id":"msg-live","type":"message","role":"assistant"}}"#,
+            r#"{"type":"response.output_text.delta","item_id":"msg-live","delta":"ok"}"#,
+            r#"{"type":"response.completed","response":{"id":"response-p12-live-thinking","status":"completed","usage":{"input_tokens":3,"output_tokens":5}}}"#,
+        ]);
+        // Thirty dropped-but-progress frames 40 ms apart accumulate 1.2 s of upstream wait --
+        // past one deadline -- so each frame must restart the window for the stream to reach its
+        // epilogue. The deadline sits 25x above the cadence so a loaded CI runner cannot fake a
+        // wedge inside one gap.
+        let server = spawn_live_sse_peer(
+            listener,
+            prelude,
+            summary_delta,
+            30,
+            Duration::from_millis(40),
+            epilogue,
+        );
+
+        let response = UpstreamClientPool::new(NonZeroUsize::new(1).ok_or("live pool size")?)
+            .send(
+                live_transport_request(live_admitted_target(port)?)?,
+                &live_progress_test_profile()?,
+            )
+            .await?;
+        let started = Instant::now();
+        let mut source = OpenAiSseEventSource::begin_with_progress_deadline(
+            response,
+            P12ResponseUsageProjection::OpenAiResponses,
+            Duration::from_secs(1),
+        )
+        .await
+        .map_err(|_| std::io::Error::other("live SSE bootstrap failed"))?;
+
+        let mut events = Vec::new();
+        while let Some(event) = source.next_event().await? {
+            events.push(event);
+        }
+        assert!(started.elapsed() >= Duration::from_secs(1));
+        assert_eq!(
+            canonical_event_labels(&events),
+            vec![
+                "response_start",
+                "message_start",
+                "text_delta",
+                "message_end",
+                "usage_delta",
+                "response_end",
+            ]
+        );
+        assert!(CanonicalResponse::try_new(events).is_ok());
+        let _joined = server.await;
+        Ok(())
     }
 
     struct TemporaryDirectory(PathBuf);
@@ -3344,10 +4026,32 @@ mod tests {
     }
 
     #[test]
-    fn oversized_sse_frame_is_rejected_without_buffer_growth() {
-        let mut buffer = vec![b'x'; MAX_SSE_FRAME_BYTES];
-        assert!(append_sse_chunk(&mut buffer, b"y").is_err());
-        assert_eq!(buffer.len(), MAX_SSE_FRAME_BYTES);
+    fn oversized_sse_frame_is_rejected_without_buffer_growth() -> Result<(), Box<dyn Error>> {
+        let mut decoder = OpenAiSseDecoder::new(P12ResponseUsageProjection::OpenAiResponses);
+        decoder.push_chunk(&vec![b'x'; MAX_SSE_FRAME_BYTES])?;
+        assert!(decoder.push_chunk(b"y").is_err());
+        assert_eq!(decoder.buffer.len(), MAX_SSE_FRAME_BYTES);
+        Ok(())
+    }
+
+    #[test]
+    fn sse_frame_budget_counts_only_the_undecoded_residue() -> Result<(), Box<dyn Error>> {
+        const HALF_FRAME: usize = MAX_SSE_FRAME_BYTES / 2;
+
+        let mut decoder = OpenAiSseDecoder::new(P12ResponseUsageProjection::OpenAiResponses);
+        let mut first = b": keep-alive\n\n".to_vec();
+        first.extend_from_slice(&vec![b'x'; HALF_FRAME]);
+        decoder.push_chunk(&first)?;
+        // The comment frame decodes to nothing, leaving dead bytes ahead of a large open frame.
+        decoder.drain_buffered_frames()?;
+        assert!(decoder.consumed > 0);
+
+        // A full frame bound of live bytes must still be admitted despite the decoded prefix...
+        decoder.push_chunk(&vec![b'x'; MAX_SSE_FRAME_BYTES - HALF_FRAME])?;
+        // ...while the first byte past the live bound is rejected and the buffer stays bounded.
+        assert!(decoder.push_chunk(b"y").is_err());
+        assert!(decoder.buffer.len() <= MAX_SSE_FRAME_BYTES * 2);
+        Ok(())
     }
 
     struct P12RuntimeIds {
