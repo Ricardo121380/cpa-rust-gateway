@@ -1,0 +1,72 @@
+/* Prism glass material — docs/07 §8.3.
+   Rules: glass is the functional layer only (rail / topbar / dock / sheet);
+   content canvas is always solid; never glass-on-glass; ≤3 panes per screen. */
+
+.glass {
+  position: relative;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-outer);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+/* bottom rim light */
+.glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset -8px -6px 0 -9px rgba(255, 255, 255, 0.8);
+  opacity: 0.35;
+}
+
+/* material semantics: glass state mirrors config-version state */
+.glass[data-material="draft"] {
+  -webkit-backdrop-filter: blur(var(--mat-draft-blur)) saturate(var(--mat-draft-sat));
+  backdrop-filter: blur(var(--mat-draft-blur)) saturate(var(--mat-draft-sat));
+}
+.glass[data-material="active"] {
+  -webkit-backdrop-filter: blur(var(--mat-active-blur)) saturate(var(--mat-active-sat));
+  backdrop-filter: blur(var(--mat-active-blur)) saturate(var(--mat-active-sat));
+}
+.glass[data-material="archived"] {
+  -webkit-backdrop-filter: blur(var(--mat-archived-blur)) saturate(var(--mat-archived-sat));
+  backdrop-filter: blur(var(--mat-archived-blur)) saturate(var(--mat-archived-sat));
+}
+
+/* publish = one bounded anneal transition (state change, not decoration) */
+.glass[data-material] {
+  transition: backdrop-filter var(--dur-anneal) var(--ease),
+    -webkit-backdrop-filter var(--dur-anneal) var(--ease);
+}
+
+/* degradations — tokens change, components stay unaware */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass {
+    background: var(--surface);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .glass {
+    background: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border: 1px solid var(--ink-2);
+    box-shadow: none;
+  }
+  .glass::after {
+    display: none;
+  }
+}

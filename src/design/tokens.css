@@ -1,0 +1,168 @@
+/* Prism design tokens — docs/07 §8.2. Three-layer theming:
+   :root (light) → @media prefers-color-scheme (dark) → [data-theme] override. */
+
+:root {
+  /* canvas / surface / ink */
+  --canvas: #f2f2f7;
+  --canvas-ambient: linear-gradient(160deg, #c8d8e8 0%, #e8e4f0 45%, #d4e4e0 100%);
+  --surface: #ffffff;
+  --surface-2: #f7f7fa;
+  --ink: #1d1d1f;
+  --ink-2: #6e6e73;
+  --ink-3: #8e8e93;
+  --separator: rgba(0, 0, 0, 0.1);
+  --tint: #0071e3;
+  --tint-ink: #ffffff;
+
+  /* status pool — badges only, never chart series */
+  --status-good: #248a3d;
+  --status-warn: #b7791f;
+  --status-serious: #c93400;
+  --status-critical: #d70015;
+
+  /* categorical chart palette (validated light steps) */
+  --chart-1: #0066d6;
+  --chart-2: #b85f00;
+  --chart-3: #0079ab;
+  --chart-4: #c41e77;
+
+  /* glass material (Regular variant) */
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-blur: 20px;
+  --glass-sat: 180%;
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --glass-shadow: 0 8px 32px rgba(20, 24, 40, 0.16);
+
+  /* material semantics (docs/07 §8.4) */
+  --mat-draft-blur: 28px;
+  --mat-draft-sat: 120%;
+  --mat-active-blur: 14px;
+  --mat-active-sat: 190%;
+  --mat-archived-blur: 20px;
+  --mat-archived-sat: 80%;
+
+  /* geometry: concentric radii — inner = outer − padding */
+  --r-outer: 20px;
+  --pad: 8px;
+  --r-inner: calc(var(--r-outer) - var(--pad));
+
+  /* motion */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur: 200ms;
+  --dur-anneal: 600ms;
+
+  /* type */
+  --font-text: -apple-system, "SF Pro Text", system-ui, "PingFang SC",
+    "Hiragino Sans GB", sans-serif;
+  --font-display: -apple-system, "SF Pro Display", system-ui, "PingFang SC",
+    sans-serif;
+  --font-mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #0b0b10;
+    --canvas-ambient: linear-gradient(160deg, #101826 0%, #181428 45%, #0e1e1e 100%);
+    --surface: #16161d;
+    --surface-2: #1e1e26;
+    --ink: #f5f5f7;
+    --ink-2: #98989d;
+    --ink-3: #6e6e76;
+    --separator: rgba(255, 255, 255, 0.1);
+    --tint: #0a84ff;
+    --status-good: #30d158;
+    --status-warn: #ffd60a;
+    --status-serious: #ff9f0a;
+    --status-critical: #ff453a;
+    --chart-1: #0a84ff;
+    --chart-2: #cc7a00;
+    --chart-3: #2196c9;
+    --chart-4: #db4e92;
+    --glass-bg: rgba(22, 22, 29, 0.52);
+    --glass-border: rgba(255, 255, 255, 0.14);
+    --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  }
+}
+
+:root[data-theme="light"] {
+  --canvas: #f2f2f7;
+  --canvas-ambient: linear-gradient(160deg, #c8d8e8 0%, #e8e4f0 45%, #d4e4e0 100%);
+  --surface: #ffffff;
+  --surface-2: #f7f7fa;
+  --ink: #1d1d1f;
+  --ink-2: #6e6e73;
+  --ink-3: #8e8e93;
+  --separator: rgba(0, 0, 0, 0.1);
+  --tint: #0071e3;
+  --status-good: #248a3d;
+  --status-warn: #b7791f;
+  --status-serious: #c93400;
+  --status-critical: #d70015;
+  --chart-1: #0066d6;
+  --chart-2: #b85f00;
+  --chart-3: #0079ab;
+  --chart-4: #c41e77;
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --glass-shadow: 0 8px 32px rgba(20, 24, 40, 0.16);
+}
+
+:root[data-theme="dark"] {
+  --canvas: #0b0b10;
+  --canvas-ambient: linear-gradient(160deg, #101826 0%, #181428 45%, #0e1e1e 100%);
+  --surface: #16161d;
+  --surface-2: #1e1e26;
+  --ink: #f5f5f7;
+  --ink-2: #98989d;
+  --ink-3: #6e6e76;
+  --separator: rgba(255, 255, 255, 0.1);
+  --tint: #0a84ff;
+  --status-good: #30d158;
+  --status-warn: #ffd60a;
+  --status-serious: #ff9f0a;
+  --status-critical: #ff453a;
+  --chart-1: #0a84ff;
+  --chart-2: #cc7a00;
+  --chart-3: #2196c9;
+  --chart-4: #db4e92;
+  --glass-bg: rgba(22, 22, 29, 0.52);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* base */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--tint);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur: 120ms;
+    --dur-anneal: 0ms;
+  }
+}

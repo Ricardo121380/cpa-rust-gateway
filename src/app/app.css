@@ -1,0 +1,621 @@
+/* Shell layout + FE-0 scaffold styles. Content canvas is solid; only rail,
+   topbar and (later) dock are glass. */
+
+.shell {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  grid-template-rows: auto auto 1fr;
+  grid-template-areas:
+    "topbar topbar"
+    "conflict conflict"
+    "rail canvas";
+  gap: 12px;
+  min-height: 100vh;
+  padding: 12px;
+  background:
+    radial-gradient(1100px 480px at 15% -10%, color-mix(in srgb, var(--tint) 8%, transparent), transparent 60%),
+    var(--canvas);
+}
+
+.topbar {
+  grid-area: topbar;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 18px;
+  border-radius: 16px;
+}
+.brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.brand span {
+  color: var(--tint);
+}
+.readonly-note {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.conflict-bar {
+  grid-area: conflict;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--status-warn) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--status-warn) 35%, transparent);
+  color: var(--ink);
+  font-size: 13px;
+}
+.conflict-bar:empty {
+  display: none;
+}
+
+.rail {
+  grid-area: rail;
+  align-self: start;
+  position: sticky;
+  top: 12px;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px;
+  border-radius: 16px;
+  font-size: 13px;
+}
+.rail-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 0;
+}
+.rail-group + .rail-group {
+  border-top: 1px solid var(--separator);
+}
+.rail a {
+  color: var(--ink-2);
+  text-decoration: none;
+  padding: 7px 12px;
+  border-radius: var(--r-inner);
+}
+.rail a:hover {
+  color: var(--ink);
+}
+.rail a.on {
+  background: color-mix(in srgb, var(--tint) 16%, transparent);
+  color: var(--tint);
+  font-weight: 600;
+}
+
+.canvas {
+  grid-area: canvas;
+  min-width: 0;
+}
+.canvas h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  margin: 4px 0 14px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--separator);
+  border-radius: 16px;
+  padding: 18px 20px;
+}
+.empty-state {
+  color: var(--ink-2);
+  text-align: center;
+  padding: 40px 20px;
+}
+.empty-state[data-kind="unwired"] {
+  border-style: dashed;
+}
+
+.idchip {
+  display: inline-block;
+  font-size: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--separator);
+  padding: 2px 8px;
+  border-radius: 6px;
+  color: var(--ink-2);
+}
+
+.version-picker select {
+  font-size: 12.5px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  color: var(--ink);
+  max-width: 320px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* unlock scene */
+.unlock-scene {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--canvas-ambient);
+}
+.unlock-card {
+  width: min(420px, 100%);
+  padding: 32px 34px;
+}
+.unlock-card h1 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  margin: 0 0 18px;
+}
+.unlock-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.unlock-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.unlock-card input {
+  padding: 9px 12px;
+  border-radius: var(--r-inner);
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+}
+.unlock-card button {
+  margin-top: 4px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 100px;
+  background: var(--tint);
+  color: var(--tint-ink);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.unlock-card button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.unlock-error {
+  color: var(--status-critical);
+  font-size: 13px;
+  margin: 0;
+}
+.unlock-hint {
+  color: var(--ink-3);
+  font-size: 12px;
+  margin: 4px 0 0;
+}
+
+@media (max-width: 720px) {
+  .shell {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "topbar"
+      "conflict"
+      "rail"
+      "canvas";
+  }
+  .rail {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .rail-group {
+    flex-direction: row;
+  }
+  .rail-group + .rail-group {
+    border-top: none;
+    border-left: 1px solid var(--separator);
+  }
+}
+
+/* ---------- FE-1: tables, badges, sheets, page chrome ---------- */
+
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.page-actions {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 100px;
+  background: var(--tint);
+  color: var(--tint-ink);
+  cursor: pointer;
+}
+button.secondary {
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--separator);
+}
+button.danger {
+  background: color-mix(in srgb, var(--status-critical) 12%, var(--surface));
+  color: var(--status-critical);
+  border: 1px solid color-mix(in srgb, var(--status-critical) 35%, transparent);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tablewrap {
+  margin-top: 14px;
+  overflow-x: auto;
+  padding: 12px 0 4px;
+}
+.tablewrap h3 {
+  margin: 0 20px 8px;
+  font-size: 14px;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+th,
+td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--separator);
+  white-space: nowrap;
+}
+th:first-child,
+td:first-child {
+  padding-left: 20px;
+}
+tbody tr:last-child td {
+  border-bottom: none;
+}
+tr[data-selected="true"] {
+  background: color-mix(in srgb, var(--tint) 7%, transparent);
+}
+.row-actions {
+  display: flex;
+  gap: 6px;
+}
+.row-actions button {
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 100px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.badge-good {
+  color: var(--status-good);
+  background: color-mix(in srgb, var(--status-good) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-good) 30%, transparent);
+}
+.badge-warn {
+  color: var(--status-warn);
+  background: color-mix(in srgb, var(--status-warn) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-warn) 30%, transparent);
+}
+.badge-serious {
+  color: var(--status-serious);
+  background: color-mix(in srgb, var(--status-serious) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-serious) 30%, transparent);
+}
+.badge-critical {
+  color: var(--status-critical);
+  background: color-mix(in srgb, var(--status-critical) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-critical) 30%, transparent);
+}
+.badge-tint {
+  color: var(--tint);
+  background: color-mix(in srgb, var(--tint) 12%, transparent);
+  border-color: color-mix(in srgb, var(--tint) 30%, transparent);
+}
+.badge-muted {
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border-color: var(--separator);
+}
+
+.action-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--status-critical);
+  background: color-mix(in srgb, var(--status-critical) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--status-critical) 25%, transparent);
+}
+.action-error button {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: transparent;
+  color: inherit;
+  border: 1px solid currentColor;
+}
+
+.validation-card {
+  margin-top: 14px;
+}
+.validation-card ul {
+  margin: 8px 0;
+  padding-left: 20px;
+  color: var(--status-serious);
+}
+
+/* sheet (glass modal layer) */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--canvas) 55%, transparent);
+}
+.sheet-panel {
+  width: min(440px, 92vw);
+  padding: 24px 26px;
+}
+.sheet-panel h3 {
+  margin: 0 0 14px;
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+.sheet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sheet-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.sheet-form input,
+.sheet-form select {
+  padding: 8px 11px;
+  border-radius: var(--r-inner);
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+}
+.sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.reveal-warning {
+  color: var(--status-serious);
+  font-size: 13px;
+  margin: 0 0 10px;
+}
+.reveal-key {
+  display: block;
+  padding: 12px 14px;
+  border-radius: var(--r-inner);
+  background: var(--surface);
+  border: 1px solid var(--separator);
+  font-size: 12.5px;
+  word-break: break-all;
+  user-select: all;
+}
+
+/* ---------- FE-1 batch 2: chips, dock, toggle ---------- */
+
+.chips {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 8px;
+  border: 1px solid var(--separator);
+  border-radius: var(--r-inner);
+  background: var(--surface);
+}
+.chips-row input {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  padding: 4px 2px;
+}
+.chips-row input:focus {
+  outline: none;
+}
+.chip {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 100px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--separator);
+  cursor: pointer;
+}
+.chip:hover {
+  color: var(--status-critical);
+  border-color: color-mix(in srgb, var(--status-critical) 40%, transparent);
+}
+.chips-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--status-critical);
+}
+
+.toggle-row {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+  color: var(--ink) !important;
+}
+
+.dock {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px 10px 18px;
+  border-radius: 100px;
+  font-size: 13px;
+  max-width: min(720px, calc(100vw - 32px));
+}
+.dock .idchip {
+  margin-left: 6px;
+}
+.dock-actions {
+  display: flex;
+  gap: 8px;
+}
+.dock-error {
+  color: var(--status-critical);
+  font-size: 12px;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- FE-1 batch 3: overview, capability set, notice ---------- */
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+}
+.count-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+.count-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 88px;
+  padding: 12px 14px;
+  border-radius: var(--r-inner);
+  background: var(--surface-2);
+  border: 1px solid var(--separator);
+  text-decoration: none;
+}
+.count-tile:hover {
+  border-color: var(--tint);
+}
+.count-value {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.count-label {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.capability-set {
+  border: 1px solid var(--separator);
+  border-radius: var(--r-inner);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.capability-set legend {
+  font-size: 12px;
+  color: var(--ink-2);
+  padding: 0 6px;
+}
+.capability-set small {
+  color: var(--ink-3);
+}
+
+.action-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--tint) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--tint) 25%, transparent);
+}
+.action-notice button {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: transparent;
+  color: var(--tint);
+  border: 1px solid currentColor;
+}
