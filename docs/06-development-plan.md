@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.66` |
+| 计划版本 | `v1.67` |
 | 生效日期 | `2026-07-26` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -1202,7 +1202,7 @@ Canary 边界: 保留 CR-P9-CANARY-001 的最多三次固定 Conversation `POST`
 - 每 Endpoint+Credential 模型发现和最后成功快照。
 - 结构化 Request、Attempt、Usage、Health、Quota 和 Route Explain。
 - OpenAI-compatible Responses 与 Anthropic-compatible Messages。
-- Grok Build、Kiro、Grok Official、Grok Web 四个专项切片。
+- Grok Build、Kiro、Grok Official、Grok Web 四个专项切片（代码完成并通过本地验证；生产路由启用延后至各自外部认证收口，见 `CR-P12-ROLLOUT-001`）。
 - 管理 API、最小可用管理 Web UI、备份与恢复。
 - systemd 和固定版本 Docker 产物。
 - 与现有服务器链路的差分、灰度和回滚。
@@ -2324,6 +2324,35 @@ CR-ID: CR-P12-05-017
 计划版本变更: v1.66
 ```
 
+### 已批准 Change Request：CR-P12-ROLLOUT-001
+
+```text
+CR-ID: CR-P12-ROLLOUT-001
+原因: P12-06 至 P12-10 启动前有两个未决范围问题。(1) §2.1 把 Grok Build、Kiro、Grok Official、
+      Grok Web 四个专项切片列为必须交付，而 P7/P8 的真实外部认证验证按 CR-P7-DEFER-002 与
+      CR-P8-DEFER-001 延后，G12 的"100% 流量"因此含义不明。用户确认 Kiro 与 Grok 当前没有
+      可用渠道、暂不测试：不存在此类生产流量，切换范围即全部实际流量。(2) P12-08 的
+      10%→25%→50%→100% 分流机制未指定；Canary 规则要求"任一条件触发立即回滚"，而
+      DNS/TTL 类切换在定义上不满足。现有生产链路为 Cloudflare（DNS/边缘）→ 服务器本地
+      Caddy（TLS 终止/反代，见功能矩阵 A17）→ CPA 容器（见 P12-03 回执 Incumbent boundary）。
+影响的 Task / Matrix ID / ADR: P12-06 至 P12-10 的范围与机制定义；§2.1 与 G12 的解释。
+      (1) 范围：Release 1 的四个专项切片按"代码完成并通过本地验证"交付，生产路由不启用；
+      启用延后至各自外部认证收口（P7-09/P8-07）后另行 CR。G12 的"100% 流量"指全部实际
+      生产流量（当前均为 OpenAI-compatible 类）。(2) 分流层：Canary 百分比在服务器本地
+      Caddy 上以加权/按 Client Key 匹配的反代规则执行，生产主机名不变；Cloudflare 配置
+      保持现状不动，P12-07 的独立测试域名仅用于暴露前验证（DNS/TLS/Auth、管理监听器公网
+      不可达、限流）。回滚手段为预置旧配置的 `caddy reload`；P12-09 演练须实测该 reload
+      的生效时延并记为 RTO 证据。P12-07 上服务器核对现行 Caddy 配置时，须确认其读/空闲
+      超时高于数据面 15 秒 SSE keepalive 间隔。
+兼容性与迁移影响: 本 CR 为范围与机制决定，不含代码变更。公开 API、Canonical、Provider、
+      Schema 不变。既有 CPA 在 Canary 期间继续承载未分流部分；Kiro/Grok 切片的既有本地
+      验证证据与延后边界不变。
+测试与回滚变化: P12-06 差分与 P12-08 各阶段证据按本范围采集；P12-08 的分流配置进入服务器
+      前须在 Staging 复核语法；回滚为撤销本 CR 的文档变更，不触及服务器。
+用户批准: APPROVED，2026-07-26（"kiro和grok还是没有渠道，先不测试"；"确认 Caddy 方案，写 CR"）
+计划版本变更: v1.67
+```
+
 ### Canary 推进与回滚规则
 
 - 每个流量阶段至少持续 2 小时并包含至少 100 个成功请求；低流量时使用固定合成请求补足。
@@ -2337,7 +2366,7 @@ CR-ID: CR-P12-05-017
 
 ### G12 门禁
 
-- 100% 流量运行 72h，无 P0/P1 故障。
+- 100% 流量运行 72h，无 P0/P1 故障；该 "100%" 指全部实际生产流量，按 `CR-P12-ROLLOUT-001` 界定。
 - 现有生产路径仍保留固定版本回滚包。
 - 备份、恢复、升级、降级、Secret 轮换和故障排查手册齐全。
 - Release 1 完成后才允许为 P13 创建新计划版本。
@@ -2505,3 +2534,4 @@ Next task:
 | v1.64 | 2026-07-26 | 记录 CR-015 成功 Tool/Explain 回执、独立回滚复核及 P12-05 的本地验收收口 | P12-05 为 LOCAL_PASS_PENDING_PHASE_GATE；P12-06 仍 PENDING |
 | v1.65 | 2026-07-26 | `CR-P12-05-016`：修复 serve 二进制上的 Anthropic 流式 usage 时序、流式 Tool 生命周期、256 KiB 入站正文上限与缺失的 SSE keepalive/45s 绝对超时；放宽 `message_start` 的精确 input Usage 要求为终止 `message_delta` 强制交付 | APPROVED；27 项新本地测试与 `check.sh fast` 全通过，未改服务器或公开边界 |
 | v1.66 | 2026-07-26 | `CR-P12-05-017`：以 driver 声明式 in-flight 上限使非流式 600s 传输上限可达；双层语义活性把卡死上游的租约占用从 1 小时降至约 17 分钟且不误杀思考停顿与停读客户端；解码器双游标消除 O(n²) 扫描并约束工具标识符 | APPROVED；16 项新本地测试、4300+ 例差分模糊与全工作区门禁通过 |
+| v1.67 | 2026-07-26 | `CR-P12-ROLLOUT-001`：切换范围界定为全部实际生产流量（Kiro/Grok 无渠道暂不启用，延后至外部认证收口）；Canary 分流在服务器本地 Caddy 以加权/按 Key 反代执行，Cloudflare 不动，测试域名仅作暴露前验证 | APPROVED；docs-only，无代码或服务器变更 |
