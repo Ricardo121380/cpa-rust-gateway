@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.61` |
+| 计划版本 | `v1.64` |
 | 生效日期 | `2026-07-26` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-04 已完成独立、loopback-only Staging 验收并保持 disabled-at-boot；P12-05 是全计划唯一 `IN_PROGRESS` Task。CR-P12-05-013 已完成一次 Models + Messages 受控复验并完全回滚；Tool/Explain 仍未获本次授权，故不得开始 P12-06 或改变现有 CPA、公开监听与任何公开流量。 |
+| 当前任务 | P12-04 已完成独立、loopback-only Staging 验收并保持 disabled-at-boot；P12-05 的 Models、Responses、SSE、Messages、Tool 与 Explain 已全部通过受控验收并回滚，状态为 `LOCAL_PASS_PENDING_PHASE_GATE`。P12-06 仍是 `PENDING`，尚未获其 Shadow/Differential 流量范围的单独执行授权；现有 CPA、公开监听与任何公开流量没有改变。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1718,7 +1718,7 @@ CR-ID: CR-P11-04-001
 | P12-02 | 编写 systemd Unit、只读 Secret、数据目录、日志和资源限制 | P12-01 | [deployment-envelope acceptance](reports/p12-02-deployment-envelope.md)：受支持条件、可执行 checker、负向回归、真实 Linux systemd 255 语法验证与本地 Full gate 均通过；未安装、启用或启动服务器 Unit | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | [带时间戳、无值备份与回滚清单](reports/p12-03-server-backup-rollback.md)：现有 CPA 数据根静止快照、镜像身份、关联 unit 片段、权限、哈希和精确回滚步骤已独立复核；未安装或启动新服务 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | [Staging receipt](reports/p12-04-staging-receipt.md)：独立签名制品、精确 Unit、root-only 凭证、两个回环 listener、Health/管理面 admission、资源/日志/回滚均验收；服务 active 但 disabled-at-boot | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | [CR-013 Staging 回执](reports/evidence/p12-05-cr-013-staging-receipt-20260726.md)：Models 与一次 Messages 生命周期验证通过并完全回滚；Tool/Explain 仍待显式范围决定 | IN_PROGRESS |
+| P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | [CR-015 Tool/Explain 回执](reports/evidence/p12-05-cr-015-tool-explain-receipt-20260726.md)：一次新的无外部效应 Tool tuple 为 `2xx`/`valid`，唯一 protected attempt 为 `succeeded/decoder`，Explain 选中唯一 Candidate 且无新增 upstream attempt；完整回滚与独立 post-review 均通过 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | 差异与性能报告 | PENDING |
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | DNS/TLS/Auth 验证 | PENDING |
 | P12-08 | 使用单独 Client Key 开始 10%→25%→50%→100% Canary | P12-06,P12-07 | 每阶段成功率、P95/P99、缓存和错误证据 | PENDING |
@@ -2162,6 +2162,91 @@ Staging loopback 服务与 incumbent continuity；临时 harness 已删除，未
 direct probe、P12-06 或任何 public exposure。详见
 [CR-013 Staging 回执](reports/evidence/p12-05-cr-013-staging-receipt-20260726.md)。
 
+### 已批准 Change Request：CR-P12-05-014
+
+```text
+CR-ID: CR-P12-05-014
+原因: CR-P12-05-013 已用独立验签的精确 artifact 成功完成 Models 与一次 Anthropic
+      Messages 生命周期验证并完整回滚。P12-05 仅剩原计划中尚未发送的一次无副作用 Tool
+      请求和本地受保护 Route Explain；用户已明确授权继续。
+影响的 Task / Matrix ID / ADR: 仅 P12-05 的剩余验收。复用已独立验签的
+      `49f8c0f3eb6326d3f2ed6cc612ec8ffd10915938` artifact，建立 fresh root-only
+      preimage/temporary singleton graph。不得重发 Models、Responses、SSE 或 Messages。
+      仅允许恰好一次非流式 OpenAI Responses Tool 请求；它只声明一个 test-only no-op
+      Function，Gateway 不执行该 Function。只有该请求为 2xx、回传一个结构有效的
+      `function_call` 表示、且 protected attempt projection 为唯一 terminal
+      `succeeded/decoder` 时，才允许恰好一次受保护的 Route Explain。Explain 只能投影唯一
+      Candidate，必须证明没有 upstream 请求。
+兼容性与迁移影响: 不刷新、重新登录、输出、复制、持久化或扩大 selected Bearer/OAuth 的使用；
+      不新增 Provider、Credential、endpoint、egress host、DNS、proxy、redirect、Caddy、
+      Cloudflare、systemd、listener、公开流量或 artifact。现有 CPA/AxonHub/New API/Kiro-RS
+      均不改变。P12-06 至 P12-10、Canary、公共暴露及任何 direct probe 不在本 CR 范围。
+测试与回滚变化: root-only harness 必须先检查 artifact、disabled-at-boot、loopback-only
+      listener、无 proxy、empty preimage、encrypted Credential envelope 和 incumbent continuity。
+      Tool 的 request/response body、endpoint、Credential、模型、ID 或 token fingerprint
+      均不得写入 receipt、报告、命令行或 Git；只记录封闭的状态/结构类别。Tool 失败、结构不符、
+      attempt 不符、Explain 非 selected/no-upstream、listener 或 incumbent 异常均立即停止，
+      不运行后续动作。无论结果都恢复数据库 preimage、原 current link、loopback Staging 和
+      incumbent continuity；独立复核后才能更新 P12-05 状态。
+用户批准: APPROVED，2026-07-26（“所有权限都通过”；本 CR 将授权限制为 P12-05 剩余 Tool/Explain，
+      不隐含 P12-06 或公开暴露）
+计划版本变更: v1.62
+```
+
+### CR-P12-05-014 执行结果
+
+CR-014 的唯一 Tool 请求通过 loopback Staging 发送并收到 `2xx`，但内存中的结果没有通过
+Function Call 表示的无值结构门槛。正文已在同一 root-only 进程中丢弃；因此该证据不能归因
+为上游不支持、模型选择或 Gateway 解析错误。按照 fail-closed 顺序，受保护 attempt 投影和
+Explain 都没有执行。事务已恢复数据库 preimage、原 current link、Staging loopback 服务和
+incumbent continuity；独立复核确认空图、disabled-at-boot 和监听器边界均恢复。详见
+[CR-014 Tool 回执](reports/evidence/p12-05-cr-014-tool-explain-receipt-20260726.md)。
+
+### 已批准 Change Request：CR-P12-05-015
+
+```text
+CR-ID: CR-P12-05-015
+原因: CR-P12-05-014 的唯一 Tool 请求已消耗：HTTP 为 `2xx`，但 response body 按规则未保留，
+      只留下 `tool_representation=invalid`，故不能安全地推断它是文本完成、Function Call 名称/
+      参数差异或其他已完成响应形态。其 request wording 中“do not execute”也可能被模型理解为
+      不要声明调用。为避免盲重放同一 tuple，使用新的、明确说明“调用只是一项无外部效应的声明”
+      的 test-only instruction，并把无值分类从二元结果细化为封闭类别。
+影响的 Task / Matrix ID / ADR: 仅 P12-05 剩余验收。复用同一已独立验签 artifact，创建 fresh
+      root-only preimage/temporary singleton graph。不得重发 Models、Messages、SSE、旧 CR-014
+      Tool tuple 或任何 direct probe。仅允许恰好一次新的非流式 OpenAI Responses Tool tuple：
+      同一 test-only no-op Function、不同的明确 instruction；它不执行 Tool，也不产生外部副作用。
+      回执只可记录 `valid`、`no_function_call`、`multiple_function_calls`、`wrong_function_name`、
+      `unexpected_*` 或其他封闭结构类别。只有 `valid` 和唯一 `succeeded/decoder` attempt 后，
+      才允许恰好一次本地 Route Explain；Explain 必须选中唯一 Candidate 且不产生 upstream 请求。
+兼容性与迁移影响: 不刷新、重新登录、输出、复制、持久化或扩大 selected Bearer/OAuth 的使用；
+      不改 artifact、Provider、Credential、endpoint、egress host、DNS、proxy、redirect、Caddy、
+      Cloudflare、systemd、listener、公开流量或 incumbent CPA。P12-06 至 P12-10、Canary、公共
+      暴露以及任何新的直连诊断均不在本 CR 范围。
+测试与回滚变化: 先复核协议 decoder、P12 Function Call lifecycle 与 Responses encoder 的现有本地
+      回归；root-only harness 必须对新的 tuple 执行单发送/无 retry，任何 Tool transport/status/
+      structure/attempt 或 Explain/边界异常均停止。正文、endpoint、Credential、模型、ID、URL、
+      header 和 token fingerprint 不得进入 receipt、报告、命令行或 Git。无论结果都恢复 preimage、
+      原 current link、disabled-at-boot loopback Staging 与 incumbent continuity。
+用户批准: APPROVED，2026-07-26（“所有权限都通过”；本 CR 将该授权收窄为一项新的 P12-05
+      Tool tuple 与条件性 Explain，不隐含 P12-06、直连诊断或公开暴露）
+计划版本变更: v1.63
+```
+
+### CR-P12-05-015 执行结果与 P12-05 本地验收
+
+CR-015 的一个新 Tool tuple 获得 `2xx`/`valid`，其 protected attempt 为唯一
+`succeeded/decoder`。随后唯一允许的 Route Explain 选中唯一 Candidate；同一 attempt 投影保持
+不变，证明 Explain 没有产生 upstream attempt。root-only receipt 与独立复核都确认数据库
+preimage、empty graph、current link、disabled-at-boot loopback Staging、两个 loopback listeners
+和 incumbent continuity 已恢复；临时 harness 已删除。详见
+[CR-015 Tool/Explain 回执](reports/evidence/p12-05-cr-015-tool-explain-receipt-20260726.md)及
+[CR-015 post-review](reports/evidence/p12-05-cr-015-post-review-20260726.md)。
+
+至此 P12-05 的 Models、OpenAI Responses 非流式/SSE、Anthropic Messages、Tool 和 Explain
+证据均已闭合。它成为 `LOCAL_PASS_PENDING_PHASE_GATE`，不是 P12 Phase 或 Release 的 `DONE`；
+P12-06 Shadow/Differential 流量、P12-07 public test domain 以及任何公开暴露仍需各自的计划
+边界与执行决定。
+
 ### Canary 推进与回滚规则
 
 - 每个流量阶段至少持续 2 小时并包含至少 100 个成功请求；低流量时使用固定合成请求补足。
@@ -2338,3 +2423,6 @@ Next task:
 | v1.59 | 2026-07-25 | `CR-P12-05-011`：发现 prior classifier 缺少 builder 固定 input message type 后，允许一次精确同形无正文分类 | APPROVED；当前执行基线 |
 | v1.60 | 2026-07-25 | `CR-P12-05-012`：精确同形 classifier 通过而 Staging 仍 502 后，增加仅 loopback 管理面可读的固定阶段 attempt 投影；无新外部请求 | APPROVED；当前执行基线 |
 | v1.61 | 2026-07-26 | `CR-P12-05-013`：CR-012 证明 decoder 成功后，修复 P12-only 非流式 Responses 至 Anthropic Messages 的 usage 时序与显式终止语义；需新私有签名制品和一次隔离重验 | APPROVED；已完成一次 Messages 受控复验并回滚，P12-05 其余 Tool/Explain 仍待范围决定 |
+| v1.62 | 2026-07-26 | `CR-P12-05-014`：复用已验签 CR-013 artifact，仅完成一次无副作用 Tool 与条件性、无 upstream 的 Route Explain；每种异常都完整回滚 | APPROVED；已发送一次 Tool，`2xx` 未通过无值 Function Call 门槛，Explain 未运行并已回滚 |
+| v1.63 | 2026-07-26 | `CR-P12-05-015`：CR-014 的 Tool `2xx` 未通过无值 Function Call 门槛后，以不同、明确的无外部效应声明执行一次新 tuple，并把回执细化为封闭结构类别 | APPROVED；Tool `2xx`/`valid`、条件性 Explain 与完整回滚均通过 |
+| v1.64 | 2026-07-26 | 记录 CR-015 成功 Tool/Explain 回执、独立回滚复核及 P12-05 的本地验收收口 | P12-05 为 LOCAL_PASS_PENDING_PHASE_GATE；P12-06 仍 PENDING |

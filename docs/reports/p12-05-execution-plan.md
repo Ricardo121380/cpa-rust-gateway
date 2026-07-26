@@ -2,11 +2,11 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.61` |
+| Plan version | `v1.64` |
 | Task | `P12-05` |
-| Status | `IN_PROGRESS` — the accepted P12-04 loopback Staging instance is healthy, disabled at boot, and restored to the P12-05 preimage. The corrected `CR-P12-05-004` artifact passed Models plus OpenAI Responses non-streaming/SSE, then the controlled sequence stopped at Anthropic Messages before Tool or Explain. The later CR-005 artifact's ordered Staging Messages retry also stopped and rolled back. CR-012's one receipt-enhanced Messages diagnostic isolated the output-lifecycle repair. The independently verified CR-013 artifact then passed its fresh loopback Models plus exactly-one Messages validation, including `end_turn`/usage lifecycle checks, and fully rolled back. Tool and Explain remain intentionally unrun; P12-05 therefore remains in progress. A server-only, no-body `/models` discriminator passed, proving the selected Bearer and active HTTPS base URL work from the server; it does not replace the required loopback-Staging Models check. |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` — the accepted P12-04 loopback Staging instance is healthy, disabled at boot, and restored to the P12-05 preimage. The corrected `CR-P12-05-004` artifact passed Models plus OpenAI Responses non-streaming/SSE; the independently verified CR-013 artifact passed fresh loopback Models plus exactly-one Messages validation, including `end_turn`/usage lifecycle checks; and CR-015 passed one semantically distinct no-side-effect Tool tuple plus its conditional protected Route Explain. Each transaction fully restored the preimage. CR-014 remains a truthful stopped `2xx`/invalid Tool receipt, not a success claim. The combined evidence closes P12-05's required Models, Responses, SSE, Messages, Tool, and Explain acceptance without leaving a graph or public exposure. P12-06 remains pending. |
 | Preconditions | P12-04 remains active but disabled at boot, has its own state directory and its two loopback listeners. The incumbent `cli-proxy-api` remains out of scope. |
-| Approved remote exception | `CR-P12-05-001` is consumed by the rejected, never-activated `9d62339` artifact; `CR-P12-05-002` is consumed by the installed policy-alignment artifact; `CR-P12-05-004` is consumed by the validated-and-rolled-back attempt; `CR-P12-05-005` is consumed by its halted-and-rolled-back isolated sequence; `CR-P12-05-012` is consumed by its single receipt-enhanced diagnostic; and `CR-P12-05-013` is consumed by its successful one-request Messages validation and mandatory rollback. No later request is implied. |
+| Approved remote exception | `CR-P12-05-001` is consumed by the rejected, never-activated `9d62339` artifact; `CR-P12-05-002` is consumed by the installed policy-alignment artifact; `CR-P12-05-004` is consumed by the validated-and-rolled-back attempt; `CR-P12-05-005` is consumed by its halted-and-rolled-back isolated sequence; `CR-P12-05-012` is consumed by its single receipt-enhanced diagnostic; `CR-P12-05-013` is consumed by its successful one-request Messages validation and mandatory rollback; `CR-P12-05-014` is consumed by its one `2xx` Tool request that stopped before Explain; and `CR-P12-05-015` is consumed by its one `2xx`/valid Tool tuple and one conditional local Explain. No later request or P12-06 activity is implied. |
 | Credential authority | The operator authorized a read-only use of this Mac's CC Switch `krill` Codex configuration. It contains a current ChatGPT OAuth token set, a separately selected effective Bearer credential, and two configured HTTPS endpoints. The operator confirms the selected key and base URL are currently usable; this task must not refresh or re-login. Values, endpoint text, account identity, models, request/response bodies, and token fingerprints are never written to Git, reports, command lines, or chat. |
 
 ## Boundary
@@ -425,6 +425,82 @@ The value-free evidence is recorded in the [CR-013 isolated Staging receipt]
 This successful result consumes CR-013 and closes its Messages-only scope. It is not an implicit
 authorization for Tool, Explain, direct probing, P12-06, or public exposure; P12-05 itself remains
 in progress pending an explicit scope decision for its remaining evidence.
+
+## CR-014 Tool and Explain authorization
+
+The operator has now approved the last P12-05 evidence boundary. `CR-P12-05-014` reuses the
+already independently verified CR-013 artifact, but starts from a fresh root-only SQLite preimage
+and empty singleton-graph check. It neither repeats Models/Messages/Responses/SSE nor changes the
+artifact, Provider, Credential, endpoint, egress policy, listeners, incumbent, Caddy, Cloudflare,
+DNS, or public traffic.
+
+The harness may send exactly one non-streaming loopback OpenAI Responses request containing a
+declared test-only no-op Function. The request asks for that representation but Gateway never
+executes the declared Function. The response stays in memory and is accepted only when its status
+class is `2xx` and it contains exactly one structurally valid Function Call representation. The
+existing protected attempt projection must then show one terminal `succeeded/decoder` result. If
+and only if those checks pass, the harness may call the protected Route Explain endpoint once with
+the fixed singleton model/protocol and accept only the sole selected Candidate; Explain must make
+no upstream request. No request/response body, endpoint value, Credential/OAuth value, model,
+opaque ID, URL, header, or token fingerprint may be retained in the receipt or report.
+
+Any Tool transport/status/protocol/attempt failure stops before Explain. Any Explain failure, a
+non-loopback listener, a proxy, an unexpected database graph, an envelope failure, or incumbent
+continuity failure is also a hard stop. The root-only transaction always restores the original
+database preimage and `current` release link, restarts the disabled-at-boot loopback Staging unit,
+and confirms the incumbent remains active. P12-06 and public exposure remain prohibited until
+this receipt is independently reviewed and P12-05 is explicitly closed.
+
+## CR-014 controlled Tool outcome
+
+The one CR-014 transaction sent exactly one loopback Tool request. It received `2xx`, but its
+in-memory response did not meet the required Function Call representation gate. The harness
+discarded the body and stopped before the protected attempt projection or Explain, rather than
+classifying or retrying from an unsafe retained body. Its root-only receipt records
+`external_tool_request=one`, `tool_status_class=2xx`, `tool_representation=invalid`,
+`explain_result=not_run`, and a restored preimage/empty database/loopback Staging/incumbent.
+The independent post-review reconfirmed each rollback condition.
+
+This does not prove why the 2xx representation differed: it may be a text completion, a Function
+Call selection/name/argument difference, or another completed shape. The response was correctly
+not retained, so no attribution is made. CR-014 is consumed and cannot retry that tuple.
+
+## CR-015 replacement Tool tuple and conditional Explain
+
+CR-015 authorizes one different Tool tuple, not a retry of CR-014. It keeps the exact same
+artifact, isolated graph, credential boundary, egress admission, loopback listeners and no-op
+Function, but replaces the ambiguous wording with an explicit instruction that declaring the
+Function Call has no external effect. It adds no source or artifact change.
+
+The response body remains in memory only. Its receipt may retain only one closed classifier value:
+`valid`, `no_function_call`, `multiple_function_calls`, `wrong_function_name`,
+`unexpected_response_shape`, `unexpected_completion_status`, `unexpected_output_shape`,
+`unexpected_function_status`, `invalid_function_identifier`, `invalid_call_identifier`,
+`invalid_function_arguments`, `non_object_function_arguments`, or `unclassifiable`. Only `valid`,
+followed by one terminal protected `succeeded/decoder` attempt, permits a single protected Explain
+projection. Explain must show the one configured Candidate as selected; the unchanged attempt
+projection then proves it did not create an upstream attempt. Every other outcome stops and rolls
+back. P12-06, direct diagnostics, and public exposure remain outside this authorization.
+
+## CR-015 controlled Tool and Explain outcome
+
+The one CR-015 Tool tuple returned `2xx` and the root-only in-memory classifier returned `valid`.
+The protected attempt projection then contained exactly one terminal `succeeded/decoder` row. The
+conditional protected Explain call selected the sole configured Candidate, and a second query of
+that same projection remained unchanged; this is the value-free evidence that Explain did not make
+an upstream attempt. The no-op Function was only represented in the response: it was not executed.
+
+The receipt records `external_tool_request=one`, `tool_status_class=2xx`,
+`tool_representation=valid`, `attempt_projection=valid`, `attempt_outcome=succeeded`,
+`attempt_stage=decoder`, `explain_result=selected`, `explain_attempt_projection=unchanged`, and
+`external_explain_upstream_request=no`. It also records a completed transaction and restored
+database/current-link/empty-graph/loopback Staging/incumbent state. The independent post-review
+confirmed the temporary harness is absent and did not find a public listener or residual graph.
+
+This consumes CR-015 and closes P12-05's remaining Tool/Explain scope. Together with the existing
+Models, Responses, SSE and Messages receipts, P12-05 is `LOCAL_PASS_PENDING_PHASE_GATE`. It does
+not authorize P12-06 Shadow/Differential traffic, P12-07 public test exposure, or any other
+deployment action.
 
 ## Stop conditions and rollback
 

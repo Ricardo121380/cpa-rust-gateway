@@ -158,3 +158,6 @@
 - [P12-05 CR-013 Messages lifecycle review](evidence/p12-05-cr-013-local-review-20260726.md) — P12-only usage-order and explicit-stop repair reviewed and locally gated
 - [P12-05 CR-013 artifact acceptance](p12-05-cr-013-artifact-acceptance-20260726.md) — revision-bound private artifact independently verified before its one isolated Messages validation
 - [P12-05 CR-013 isolated Staging receipt](evidence/p12-05-cr-013-staging-receipt-20260726.md) — exactly one Messages request passed its lifecycle check and restored the preimage
+- [P12-05 CR-014 Tool/Explain receipt](evidence/p12-05-cr-014-tool-explain-receipt-20260726.md) — truthful stopped `2xx` Tool result with no retained body, no Explain, and complete rollback
+- [P12-05 CR-015 Tool/Explain receipt](evidence/p12-05-cr-015-tool-explain-receipt-20260726.md) — one valid no-op Tool representation, one selected/no-upstream Explain projection, and complete rollback
+- [P12-05 CR-015 post-review](evidence/p12-05-cr-015-post-review-20260726.md) — local acceptance review, credential/egress boundary, and independent rollback verification
