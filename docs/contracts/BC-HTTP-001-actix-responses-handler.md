@@ -34,9 +34,13 @@ API. `gateway-router` adapts P1-06's deterministic Mock Provider behind that fac
 - Before interpreting or decoding the raw request body, the handler requires exactly one valid
   Bearer Client Key as specified by BC-AUTH-001. Authentication rejection is a safe pre-header
   `401` and does not invoke decoding, context creation, router execution, or Provider execution.
-- After authentication, the handler uses `web::Bytes`, not `web::Json`. It validates UTF-8 and invokes
-  `decode_request` on the untouched complete body, preserving P1-05 duplicate-name rejection at
-  every JSON nesting level.
+- After authentication, the handler reads the body itself from `web::Payload`, not `web::Bytes` and
+  not `web::Json`. The read is bounded by `MAX_INFERENCE_REQUEST_BODY_BYTES` (8 MiB): a declared
+  `Content-Length` above that bound is rejected before the first chunk, and the streamed length is
+  re-checked on every chunk, so no `PayloadConfig` default and no composition-owned app data can
+  change the accepted size. Overflow returns `413` carrying the calling route's own protocol error
+  envelope. It then validates UTF-8 and invokes `decode_request` on the untouched complete body,
+  preserving P1-05 duplicate-name rejection at every JSON nesting level.
 - Before creating an HTTP success response it performs, in order: authentication, decode,
   request-context creation, executor start, first source pull, first-event validation as
   `ResponseStart`, and response-metadata construction. Streaming also validates that a fresh SSE
@@ -79,6 +83,18 @@ that body's `poll_next`, immediately when a semantic byte chunk is returned to A
 called on source pull, enqueue, dequeue, initial encoding, or frame queueing. A completed JSON
 body uses the equivalent custom body boundary: it marks only when its full JSON byte chunk is
 returned to Actix.
+
+A streaming body also owns one transport keepalive. When it has handed Actix no bytes for
+`SSE_KEEPALIVE_INTERVAL` (15 seconds) it returns the SSE comment `: keepalive` followed by a blank
+line, then restarts that idle window. The comment is not a canonical event: it carries no
+`CanonicalEvent`, so `mark_delivered` is never called for it, it cannot commit FirstSemanticEvent,
+and it cannot close a transparent retry. The idle race sits behind the pending-frame queue and the
+terminal check, so a keepalive never splits the frames of one event, never follows the terminal
+event, and never appears once the body has finished. A client disconnect drops the body, which
+drops the timer with the bounded receiver. Both the Responses and Messages streaming paths share
+this one body implementation and therefore emit the identical comment. Non-streaming JSON bodies
+have no keepalive; a deployment behind a reverse proxy must keep its idle read timeout above the
+interval.
 
 ## Post-header failure policy
 

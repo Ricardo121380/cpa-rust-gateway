@@ -47,6 +47,13 @@ use zeroize::{Zeroize, Zeroizing};
 
 use crate::runtime;
 
+/// The concurrent connection ceiling for P12's loopback data listener.
+///
+/// Every accepted connection may hold one inbound inference body, so this bounds the worst-case
+/// resident request memory to this count times `MAX_INFERENCE_REQUEST_BODY_BYTES` (256 MiB), which
+/// stays inside the deployment unit's `MemoryMax` alongside the runtime's own state.
+const P12_DATA_PLANE_MAX_CONNECTIONS: usize = 64;
+
 const MANAGEMENT_KEY_CREDENTIAL: &str = "management-key";
 const MANAGEMENT_CSRF_CREDENTIAL: &str = "management-csrf";
 const MASTER_KEY_CREDENTIAL: &str = "master-key";
@@ -112,9 +119,12 @@ async fn run_servers(
     application: ApplicationState,
 ) -> Result<(), DeploymentError> {
     let data = web::Data::new(application.data);
-    let data_server =
-        HttpServer::new(move || App::new().app_data(data.clone()).configure(configure))
+    let data_server = HttpServer::new(move || App::new().app_data(data.clone()).configure(configure))
             .workers(1)
+            // Each in-flight request may buffer up to MAX_INFERENCE_REQUEST_BODY_BYTES, so the
+            // connection ceiling is what keeps the worst-case resident total inside the unit's
+            // MemoryMax. Actix's 25,600 default would not.
+            .max_connections(P12_DATA_PLANE_MAX_CONNECTIONS)
             .shutdown_timeout(30)
             .bind(command.data_listener)
             .map_err(|_| DeploymentError::DataListenerUnavailable)?

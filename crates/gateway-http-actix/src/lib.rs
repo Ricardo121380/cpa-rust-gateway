@@ -26,7 +26,7 @@ use std::{
         atomic::{AtomicU64, Ordering},
     },
     task::{Context, Poll},
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use actix_web::{
@@ -35,7 +35,7 @@ use actix_web::{
     http::{StatusCode, header},
     web,
 };
-use futures_util::{Stream, stream};
+use futures_util::{Stream, StreamExt, stream};
 use gateway_auth::{AuthenticatedClient, ClientKeyAuthenticator};
 use gateway_core::{
     AccessGroupId, CanonicalEvent, CanonicalResponse, ClientKeyId, ErrorScope, GatewayError,
@@ -68,6 +68,42 @@ pub const COMPONENT: &str = "gateway-http-actix";
 
 /// The P1 default maximum number of canonical events buffered between source and HTTP body.
 pub const DEFAULT_STREAM_CAPACITY: usize = 8;
+
+/// The byte-idle interval after which a streaming SSE body writes one non-semantic keepalive.
+///
+/// A long thinking pause or tool gap can leave a canonical stream silent for a minute or more,
+/// and a byte-silent connection is what intermediaries reap: nginx's default `proxy_read_timeout`
+/// is 60 seconds and Cloudflare closes a silent proxied response at roughly 100 seconds. Fifteen
+/// seconds fits at least three comments inside the tightest of those windows even when one tick
+/// is delayed by a busy runtime, and costs 13 bytes per idle stream per tick.
+pub const SSE_KEEPALIVE_INTERVAL: Duration = Duration::from_secs(15);
+
+/// The exact bytes written when a streaming SSE body has been byte-idle for one interval.
+///
+/// A line starting with `:` is an SSE comment and the blank line after it ends a record whose data
+/// buffer is empty, so a conformant client dispatches no event for it. The comment carries no
+/// [`CanonicalEvent`], which is why it can never commit the `FirstSemanticEvent` boundary.
+const SSE_KEEPALIVE_COMMENT: &[u8] = b": keepalive\n\n";
+
+/// The maximum inbound inference request body the public data plane accepts.
+///
+/// Actix's default `PayloadConfig` limit is 256 KiB, which rejects realistic long-session Claude
+/// Code and Codex bodies before any handler runs. The data-plane handlers therefore read their
+/// body with an explicit bounded loop instead of `web::Bytes`, so this bound is enforced by the
+/// route that was called and its overflow keeps that route's protocol error envelope. The value
+/// is a fixed crate constant rather than composition state: no `App` can silently restore the
+/// 256 KiB default by forgetting to register it.
+///
+/// 4 MiB comfortably exceeds a full 200k-token conversation once JSON escaping and the envelope
+/// are counted, while keeping the product of this bound and a deployment's connection ceiling
+/// inside its memory limit: a composition that raises one must check the other.
+pub const MAX_INFERENCE_REQUEST_BODY_BYTES: usize = 4 * 1024 * 1024;
+
+/// The maximum time the data plane spends receiving one inbound inference body.
+///
+/// Without this, a client that opens a request and then stalls mid-body parks a handler holding
+/// its partial buffer indefinitely; Actix's own client timeout covers only the request head.
+const INFERENCE_REQUEST_BODY_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Creates request context and response metadata without making HTTP handlers depend on a clock
 /// or identifier implementation.
@@ -392,12 +428,16 @@ async fn models(request: HttpRequest, state: web::Data<ResponsesHttpState>) -> H
 async fn responses(
     request: HttpRequest,
     state: web::Data<ResponsesHttpState>,
-    body: web::Bytes,
+    payload: web::Payload,
 ) -> HttpResponse {
     let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
     {
         Ok(authenticated_client) => authenticated_client,
         Err(error) => return pre_header_error(&error),
+    };
+    let body = match read_bounded_request_body(&request, payload).await {
+        Ok(body) => body,
+        Err(error) => return request_body_error(error),
     };
     let Ok(body) = std::str::from_utf8(&body) else {
         return pre_header_error(&client_request_error());
@@ -471,12 +511,16 @@ async fn responses(
 async fn messages(
     request: HttpRequest,
     state: web::Data<ResponsesHttpState>,
-    body: web::Bytes,
+    payload: web::Payload,
 ) -> HttpResponse {
     let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
     {
         Ok(authenticated_client) => authenticated_client,
         Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let body = match read_bounded_request_body(&request, payload).await {
+        Ok(body) => body,
+        Err(error) => return anthropic_request_body_error(error),
     };
     let Ok(body) = std::str::from_utf8(&body) else {
         return pre_header_anthropic_error(&client_request_error());
@@ -559,12 +603,16 @@ async fn messages(
 async fn count_tokens(
     request: HttpRequest,
     state: web::Data<ResponsesHttpState>,
-    body: web::Bytes,
+    payload: web::Payload,
 ) -> HttpResponse {
     let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
     {
         Ok(authenticated_client) => authenticated_client,
         Err(error) => return pre_header_anthropic_error(&error),
+    };
+    let body = match read_bounded_request_body(&request, payload).await {
+        Ok(body) => body,
+        Err(error) => return anthropic_request_body_error(error),
     };
     let Ok(body) = std::str::from_utf8(&body) else {
         return pre_header_anthropic_error(&client_request_error());
@@ -594,6 +642,67 @@ async fn count_tokens(
     HttpResponse::Ok()
         .content_type("application/json")
         .body(encode_count_tokens(count).to_string())
+}
+
+/// Bounded inbound-body failures observed before any handler state exists.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum RequestBodyError {
+    /// The declared or streamed body exceeded [`MAX_INFERENCE_REQUEST_BODY_BYTES`].
+    TooLarge,
+    /// The transport failed before the complete body arrived.
+    Unreadable,
+}
+
+/// Reads one complete request body without buffering more than
+/// [`MAX_INFERENCE_REQUEST_BODY_BYTES`].
+///
+/// The handlers own this read instead of the `web::Bytes` extractor for two reasons: an oversized
+/// body must produce the calling route's protocol error envelope rather than Actix's plain-text
+/// extractor rejection, and no body byte may be buffered before Client Key admission succeeds.
+async fn read_bounded_request_body(
+    request: &HttpRequest,
+    payload: web::Payload,
+) -> Result<Vec<u8>, RequestBodyError> {
+    if declared_length_exceeds_limit(request) {
+        return Err(RequestBodyError::TooLarge);
+    }
+
+    tokio::time::timeout(
+        INFERENCE_REQUEST_BODY_TIMEOUT,
+        receive_bounded_request_body(payload),
+    )
+    .await
+    .map_err(|_| RequestBodyError::Unreadable)?
+}
+
+/// Accumulates the payload under the byte bound, leaving the time bound to the caller.
+async fn receive_bounded_request_body(
+    mut payload: web::Payload,
+) -> Result<Vec<u8>, RequestBodyError> {
+    let mut body = Vec::new();
+    while let Some(chunk) = payload.next().await {
+        let chunk = chunk.map_err(|_| RequestBodyError::Unreadable)?;
+        let new_length = body
+            .len()
+            .checked_add(chunk.len())
+            .ok_or(RequestBodyError::TooLarge)?;
+        if new_length > MAX_INFERENCE_REQUEST_BODY_BYTES {
+            return Err(RequestBodyError::TooLarge);
+        }
+        body.extend_from_slice(&chunk);
+    }
+
+    Ok(body)
+}
+
+/// Rejects an oversized body from its declared length before any chunk is buffered.
+fn declared_length_exceeds_limit(request: &HttpRequest) -> bool {
+    request
+        .headers()
+        .get(header::CONTENT_LENGTH)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse::<usize>().ok())
+        .is_some_and(|length| length > MAX_INFERENCE_REQUEST_BODY_BYTES)
 }
 
 fn resolve_public_model(
@@ -950,10 +1059,16 @@ struct SseEncodingState<E> {
     encoder: E,
     pending: VecDeque<PendingSseChunk>,
     finished: bool,
+    keepalive_deadline: tokio::time::Instant,
 }
 
 /// A streaming HTTP body that commits `FirstSemanticEvent` only when it gives Actix a semantic
 /// bytes chunk, not when the chunk is queued, received, or encoded.
+///
+/// Both the `OpenAI` Responses and Anthropic Messages streaming paths use this one body, so its
+/// byte-idle keepalive comment covers both. A keepalive chunk carries no canonical event, so
+/// [`FirstSemanticEventTracker::mark_delivered`] is never reached for it and a transparent retry
+/// stays permitted for as long as no semantic chunk has been written.
 struct ProtocolSseBody<E> {
     chunks: Pin<Box<dyn Stream<Item = PendingSseChunk>>>,
     tracker: FirstSemanticEventTracker,
@@ -970,6 +1085,7 @@ where
             encoder,
             pending: VecDeque::new(),
             finished: false,
+            keepalive_deadline: next_keepalive_deadline(),
         };
         let chunks = Box::pin(stream::unfold(state, next_sse_chunk));
 
@@ -1017,13 +1133,29 @@ where
 {
     loop {
         if let Some(chunk) = state.pending.pop_front() {
+            state.keepalive_deadline = next_keepalive_deadline();
             return Some((chunk, state));
         }
         if state.finished {
             return None;
         }
 
-        match state.stream.recv().await {
+        // The idle tick races the bounded stream after the terminal check, so a keepalive can
+        // never follow the terminal event or jump ahead of a queued frame. `recv` is cancel-safe,
+        // so a tick that wins the race cannot consume a canonical event, and the biased order
+        // keeps real output ahead of the tick when both are ready.
+        let keepalive_deadline = state.keepalive_deadline;
+        let received = tokio::select! {
+            biased;
+            received = state.stream.recv() => Some(received),
+            () = tokio::time::sleep_until(keepalive_deadline) => None,
+        };
+        let Some(received) = received else {
+            state.keepalive_deadline = next_keepalive_deadline();
+            return Some((keepalive_sse_chunk(), state));
+        };
+
+        match received {
             Ok(Some(event)) => {
                 let terminal = matches!(
                     event,
@@ -1052,6 +1184,19 @@ where
             }
         }
     }
+}
+
+/// Builds the idle chunk whose absent delivery event keeps it outside the semantic boundary.
+fn keepalive_sse_chunk() -> PendingSseChunk {
+    PendingSseChunk {
+        bytes: web::Bytes::from_static(SSE_KEEPALIVE_COMMENT),
+        delivery_event: None,
+    }
+}
+
+/// Returns the instant at which a body that writes nothing further owes its next keepalive.
+fn next_keepalive_deadline() -> tokio::time::Instant {
+    tokio::time::Instant::now() + SSE_KEEPALIVE_INTERVAL
 }
 
 fn queue_sse_frames<E>(
@@ -1157,6 +1302,31 @@ fn pre_header_anthropic_error(error: &GatewayError) -> HttpResponse {
     response
         .content_type("application/json")
         .body(encode_anthropic_error(error).to_string())
+}
+
+/// Reports a bounded-body failure using the `OpenAI` Responses error envelope.
+fn request_body_error(error: RequestBodyError) -> HttpResponse {
+    HttpResponse::build(request_body_error_status(error))
+        .content_type("application/json")
+        .body(encode_error(&client_request_error()).to_string())
+}
+
+/// Reports a bounded-body failure using the Anthropic Messages error envelope.
+fn anthropic_request_body_error(error: RequestBodyError) -> HttpResponse {
+    HttpResponse::build(request_body_error_status(error))
+        .content_type("application/json")
+        .body(encode_anthropic_error(&client_request_error()).to_string())
+}
+
+/// Maps a bounded-body failure to its status without widening the frozen error taxonomy.
+///
+/// The taxonomy has no request-too-large category, so the envelope stays `ClientRequestError`
+/// while the status still tells the client that size, not syntax, was the problem.
+const fn request_body_error_status(error: RequestBodyError) -> StatusCode {
+    match error {
+        RequestBodyError::TooLarge => StatusCode::PAYLOAD_TOO_LARGE,
+        RequestBodyError::Unreadable => StatusCode::BAD_REQUEST,
+    }
 }
 
 fn authenticate_client_key_request(
@@ -1295,11 +1465,13 @@ mod tests {
         SnapshotTransformMode, SnapshotVersion,
     };
     use gateway_stream::{FirstSemanticEventTracker, StreamCapacity, bounded_canonical_stream};
+    use protocol_anthropic::{AnthropicMessagesSseEncoder, AnthropicResponseMetadata};
     use protocol_openai_responses::{OpenAiResponseMetadata, OpenAiResponsesSseEncoder};
 
     use super::{
-        JsonDeliveryBody, ResponsesHttpState, ResponsesMetadataFactory, client_request_error,
-        configure,
+        JsonDeliveryBody, MAX_INFERENCE_REQUEST_BODY_BYTES, ResponsesHttpState,
+        ResponsesMetadataFactory, SSE_KEEPALIVE_COMMENT, SSE_KEEPALIVE_INTERVAL,
+        client_request_error, configure,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -1307,6 +1479,9 @@ mod tests {
     const TEST_CLIENT_KEY: &str = "p1-test-client-key";
     const SNAPSHOT_PUBLIC_MODEL: &str = "public-model";
     const SNAPSHOT_MODEL_ALIAS: &str = "client-model-alias";
+
+    /// Actix's `PayloadConfig` default, which the data-plane handlers must no longer inherit.
+    const ACTIX_DEFAULT_PAYLOAD_LIMIT_BYTES: usize = 262_144;
 
     #[derive(Debug)]
     struct FixedMetadata;
@@ -2490,6 +2665,324 @@ mod tests {
             Some(Ok(bytes)) if String::from_utf8_lossy(&bytes).contains("event: response.created")
         ));
         assert!(tracker.is_committed());
+        Ok(())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn idle_sse_body_writes_a_keepalive_only_after_the_full_interval() -> TestResult {
+        let (mut sender, stream) = bounded_canonical_stream(StreamCapacity::try_new(1)?);
+        let tracker = stream.control().first_semantic_event_tracker();
+        sender.send(response_start()?).await?;
+        let mut body = Box::pin(super::ProtocolSseBody::new(
+            stream,
+            OpenAiResponsesSseEncoder::new(OpenAiResponseMetadata::try_new("mock-model", 1)?),
+            tracker.clone(),
+        ));
+        let first = poll_fn(|context| body.as_mut().poll_next(context)).await;
+        assert!(matches!(first, Some(Ok(_))));
+        // Drain any further frames this one event encoded to, so the body is genuinely byte-idle.
+        // A zero timeout polls once and gives up without advancing the paused clock, so the idle
+        // window measured below is the full one the last delivered chunk started.
+        while tokio::time::timeout(
+            Duration::ZERO,
+            poll_fn(|context| body.as_mut().poll_next(context)),
+        )
+        .await
+        .is_ok()
+        {}
+
+        // Delivering a chunk restarts the idle window, so the next comment is one full interval
+        // away rather than one interval from the body's construction.
+        let idle_since = tokio::time::Instant::now();
+        let idle = poll_fn(|context| body.as_mut().poll_next(context)).await;
+        assert!(matches!(
+            idle,
+            Some(Ok(bytes)) if bytes.as_ref() == SSE_KEEPALIVE_COMMENT
+        ));
+        assert!(tokio::time::Instant::now().duration_since(idle_since) >= SSE_KEEPALIVE_INTERVAL);
+        Ok(())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_keepalive_never_commits_the_first_semantic_event_boundary() -> TestResult {
+        let (mut sender, stream) = bounded_canonical_stream(StreamCapacity::try_new(1)?);
+        let tracker = stream.control().first_semantic_event_tracker();
+        let mut body = Box::pin(super::ProtocolSseBody::new(
+            stream,
+            OpenAiResponsesSseEncoder::new(OpenAiResponseMetadata::try_new("mock-model", 1)?),
+            tracker.clone(),
+        ));
+
+        let idle = tokio::time::timeout(
+            SSE_KEEPALIVE_INTERVAL + Duration::from_secs(1),
+            poll_fn(|context| body.as_mut().poll_next(context)),
+        )
+        .await?;
+        assert!(matches!(
+            idle,
+            Some(Ok(bytes)) if bytes.as_ref() == SSE_KEEPALIVE_COMMENT
+        ));
+        assert!(!tracker.is_committed());
+
+        // A real event after the idle comment still commits the boundary and is delivered intact.
+        sender.send(response_start()?).await?;
+        let semantic = poll_fn(|context| body.as_mut().poll_next(context)).await;
+        assert!(matches!(
+            semantic,
+            Some(Ok(bytes)) if String::from_utf8_lossy(&bytes).contains("event: response.created")
+        ));
+        assert!(tracker.is_committed());
+        Ok(())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn the_anthropic_streaming_body_shares_the_same_keepalive() -> TestResult {
+        let (_sender, stream) = bounded_canonical_stream(StreamCapacity::try_new(1)?);
+        let tracker = stream.control().first_semantic_event_tracker();
+        let mut body = Box::pin(super::ProtocolSseBody::new(
+            stream,
+            AnthropicMessagesSseEncoder::new(AnthropicResponseMetadata::try_new("mock-model")?),
+            tracker.clone(),
+        ));
+
+        let idle = tokio::time::timeout(
+            SSE_KEEPALIVE_INTERVAL + Duration::from_secs(1),
+            poll_fn(|context| body.as_mut().poll_next(context)),
+        )
+        .await?;
+        assert!(matches!(
+            idle,
+            Some(Ok(bytes)) if bytes.as_ref() == SSE_KEEPALIVE_COMMENT
+        ));
+        assert!(!tracker.is_committed());
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn responses_accepts_a_body_larger_than_the_actix_default_payload_limit() -> TestResult {
+        let state = mock_state(text_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let padding = "p".repeat(400 * 1024);
+        let payload = format!(r#"{{"model":"mock-model","input":"{padding}"}}"#);
+        assert!(payload.len() > ACTIX_DEFAULT_PAYLOAD_LIMIT_BYTES);
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(payload),
+        )
+        .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+        assert!(body.contains(r#""status":"completed""#));
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn messages_accepts_a_body_larger_than_the_actix_default_payload_limit() -> TestResult {
+        let state = mock_state(anthropic_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let padding = "p".repeat(400 * 1024);
+        let payload = format!(
+            r#"{{"model":"mock-model","max_tokens":1,"messages":[{{"role":"user","content":"{padding}"}}]}}"#
+        );
+        assert!(payload.len() > ACTIX_DEFAULT_PAYLOAD_LIMIT_BYTES);
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/messages")
+                .set_payload(payload),
+        )
+        .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: serde_json::Value = serde_json::from_slice(&test::read_body(response).await)?;
+        assert_eq!(
+            body.pointer("/content/1/text"),
+            Some(&serde_json::json!("deterministic hello"))
+        );
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn responses_rejects_a_body_over_the_inference_limit_with_an_openai_error_envelope()
+    -> TestResult {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let state = ResponsesHttpState::with_metadata(
+            Arc::new(CountingExecutor {
+                calls: calls.clone(),
+            }),
+            Arc::new(FixedMetadata),
+            test_authenticator()?,
+            StreamCapacity::try_new(2)?,
+        );
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(vec![b'p'; MAX_INFERENCE_REQUEST_BODY_BYTES + 1]),
+        )
+        .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+        assert_eq!(
+            response
+                .headers()
+                .get(header::CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok()),
+            Some("application/json")
+        );
+        let body: serde_json::Value = serde_json::from_slice(&test::read_body(response).await)?;
+        assert_eq!(
+            body.pointer("/error/type"),
+            Some(&serde_json::json!("invalid_request_error"))
+        );
+        assert_eq!(
+            body.pointer("/error/code"),
+            Some(&serde_json::json!("ClientRequestError"))
+        );
+        assert_eq!(body.pointer("/error/param"), Some(&serde_json::Value::Null));
+        assert_eq!(calls.load(Ordering::Acquire), 0);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn messages_rejects_a_body_over_the_inference_limit_with_an_anthropic_error_envelope()
+    -> TestResult {
+        let state = mock_state(anthropic_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/messages")
+                .set_payload(vec![b'p'; MAX_INFERENCE_REQUEST_BODY_BYTES + 1]),
+        )
+        .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+        assert_eq!(
+            response
+                .headers()
+                .get(header::CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok()),
+            Some("application/json")
+        );
+        let body: serde_json::Value = serde_json::from_slice(&test::read_body(response).await)?;
+        assert_eq!(body.pointer("/type"), Some(&serde_json::json!("error")));
+        assert_eq!(
+            body.pointer("/error/type"),
+            Some(&serde_json::json!("invalid_request_error"))
+        );
+        assert_eq!(body.pointer("/error/code"), None);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn count_tokens_rejects_a_body_over_the_inference_limit_with_an_anthropic_error_envelope()
+    -> TestResult {
+        let state = mock_state(anthropic_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/messages/count_tokens")
+                .set_payload(vec![b'p'; MAX_INFERENCE_REQUEST_BODY_BYTES + 1]),
+        )
+        .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+        let body: serde_json::Value = serde_json::from_slice(&test::read_body(response).await)?;
+        assert_eq!(body.pointer("/type"), Some(&serde_json::json!("error")));
+        assert_eq!(
+            body.pointer("/error/type"),
+            Some(&serde_json::json!("invalid_request_error"))
+        );
+        assert_eq!(body.pointer("/input_tokens"), None);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn a_declared_content_length_over_the_inference_limit_is_rejected_before_the_body_streams()
+    -> TestResult {
+        let state = mock_state(text_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let declared = MAX_INFERENCE_REQUEST_BODY_BYTES + 1;
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(r#"{"model":"mock-model","input":"hello"}"#)
+                .insert_header((header::CONTENT_LENGTH, declared.to_string())),
+        )
+        .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn an_unauthenticated_oversized_body_is_rejected_before_it_is_buffered() -> TestResult {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let state = ResponsesHttpState::with_metadata(
+            Arc::new(CountingExecutor {
+                calls: calls.clone(),
+            }),
+            Arc::new(FixedMetadata),
+            test_authenticator()?,
+            StreamCapacity::try_new(2)?,
+        );
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = test::TestRequest::post()
+            .uri("/v1/responses")
+            .insert_header((
+                header::CONTENT_LENGTH,
+                (MAX_INFERENCE_REQUEST_BODY_BYTES + 1).to_string(),
+            ))
+            .set_payload("not-json")
+            .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+        assert!(body.contains(r#""code":"ClientUnauthorized""#));
+        assert_eq!(calls.load(Ordering::Acquire), 0);
         Ok(())
     }
 

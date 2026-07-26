@@ -32,6 +32,7 @@ gateway-store = { path = "../gateway-store" }
 gateway-upstream = { path = "../gateway-upstream" }
 provider-openai-compatible = { path = "../provider-openai-compatible" }
 serde_json.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
 
 [[bench]]
 name = "p11_03_http_warm_path"

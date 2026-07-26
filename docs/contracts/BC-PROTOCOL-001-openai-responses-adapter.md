@@ -90,7 +90,9 @@ client. P1-07 owns the Actix endpoint and the successful-write delivery boundary
   emits exactly one `response.completed`. `StreamError` emits exactly one terminal
   `response.failed` with only the safe core error and never emits completion.
 - An encoder validates canonical lifecycle order and never emits after terminality. Every emitted
-  P1-05 frame is classified `semantic`; no keepalive scheduler exists. The pure codec never commits
+  P1-05 frame is classified `semantic`; this codec has no keepalive scheduler, because the
+  BC-HTTP-001 SSE body owns the transport keepalive comment and that comment is not a codec frame.
+  The pure codec never commits
   FirstSemanticEvent. P1-07's HTTP writer must call the tracker only after the first semantic frame
   is successfully written to the client.
 
