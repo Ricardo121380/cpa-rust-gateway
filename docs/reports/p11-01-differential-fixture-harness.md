@@ -7,7 +7,7 @@
 | Status | `DONE` — P11-01 local implementation, verification, and review are complete; the P11 Phase Gate remains pending later P11 tasks. |
 | Branch | `codex/p11-release-hardening` |
 | Corpus location | [`tests/differential/fixtures/`](../../tests/differential/fixtures/) |
-| Harness location | [`tests/differential/harness.rs`](../../tests/differential/harness.rs) and [`p11_01_differential_fixtures.rs`](../../crates/gateway-core/tests/p11_01_differential_fixtures.rs) |
+| Harness location | Superseded by the executed gate in [`tests/differential/`](../../tests/differential/); see [P12-07](p12-07-executed-differential-gate.md). |
 | Frozen sources | CPA `v7.2.80`; grok2api `v3.0.0` / `ec6cddca7`; Kiro-RS `c49c75e` |
 
 ## Scope and safety boundary

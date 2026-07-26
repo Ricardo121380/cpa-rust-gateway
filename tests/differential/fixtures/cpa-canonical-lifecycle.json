@@ -4,6 +4,6 @@
   "reference": "cpa-v7.2.80",
   "subject": "canonical-lifecycle",
   "reference_projection": ["response-start", "text-delta", "response-end"],
-  "gateway_projection": ["response-start", "text-delta", "response-end"],
+  "expected_gateway_projection": ["response-start", "text-delta", "response-end"],
   "classification": "compatible"
 }

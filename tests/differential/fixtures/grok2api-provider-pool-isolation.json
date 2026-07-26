@@ -4,6 +4,6 @@
   "reference": "grok2api-v3.0.0-ec6cddca7",
   "subject": "provider-pool-isolation",
   "reference_projection": ["build-web-pool-separation", "browser-egress-bound-conversation"],
-  "gateway_projection": ["build-web-pool-separation", "browser-egress-bound-conversation"],
+  "expected_gateway_projection": ["build-web-pool-separation", "browser-egress-bound-conversation"],
   "classification": "compatible"
 }

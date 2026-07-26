@@ -1,0 +1,27 @@
+[package]
+name = "differential-gate"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+gateway-core = { path = "../../crates/gateway-core" }
+gateway-store = { path = "../../crates/gateway-store" }
+gateway-upstream = { path = "../../crates/gateway-upstream" }
+provider-grok = { path = "../../crates/provider-grok" }
+provider-kiro = { path = "../../crates/provider-kiro" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[[test]]
+name = "p11_01_differential_gate"
+path = "tests/p11_01_differential_gate.rs"
+
+[lints]
+workspace = true

@@ -4,7 +4,7 @@
   "reference": "grok2api-v3.0.0-ec6cddca7",
   "subject": "web-tool-default",
   "reference_projection": ["tool-emulation-default-enabled"],
-  "gateway_projection": ["tool-emulation-default-disabled"],
+  "expected_gateway_projection": ["tool-emulation-default-disabled"],
   "classification": "intentional",
   "decision": "bl20-web-tool-default-off"
 }

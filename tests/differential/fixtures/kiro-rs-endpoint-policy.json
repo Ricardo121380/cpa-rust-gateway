@@ -4,6 +4,6 @@
   "reference": "kiro-rs-c49c75e",
   "subject": "endpoint-policy",
   "reference_projection": ["cli-ide-endpoint-policy"],
-  "gateway_projection": ["cli-ide-endpoint-policy"],
+  "expected_gateway_projection": ["cli-ide-endpoint-policy"],
   "classification": "compatible"
 }

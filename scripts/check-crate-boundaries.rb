@@ -22,6 +22,9 @@ allowed = {
   "gateway-catalog" => %w[gateway-core gateway-provider tokio],
   "gateway-control" => %w[gateway-auth gateway-catalog gateway-core gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream serde_json zeroize],
   "gateway-core" => %w[serde serde_json],
+  # P11-01's differential gate is a test-only leaf under tests/differential. It may depend on the
+  # crates whose behavior it projects because nothing depends on it; the direction never reverses.
+  "differential-gate" => %w[gateway-core gateway-store gateway-upstream provider-grok provider-kiro serde serde_json],
   "gateway-http-actix" => %w[actix-web criterion futures-util gateway-auth gateway-control gateway-core gateway-observability gateway-protocol gateway-router gateway-store gateway-stream gateway-upstream protocol-anthropic protocol-openai-responses provider-openai-compatible serde serde_json subtle tokio url zeroize],
   "gateway-observability" => %w[gateway-core opentelemetry serde serde_json sha2 tokio tracing tracing-subscriber],
   "gateway-protocol" => %w[gateway-core],

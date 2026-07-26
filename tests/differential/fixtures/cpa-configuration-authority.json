@@ -4,7 +4,7 @@
   "reference": "cpa-v7.2.80",
   "subject": "configuration-authority",
   "reference_projection": ["file-watcher-authority"],
-  "gateway_projection": ["versioned-sqlite-snapshot"],
+  "expected_gateway_projection": ["versioned-sqlite-snapshot"],
   "classification": "intentional",
   "decision": "bl09-versioned-control-plane"
 }

@@ -20,6 +20,7 @@ members = [
     "crates/provider-grok",
     "crates/provider-kiro",
     "crates/provider-openai-compatible",
+    "tests/differential",
 ]
 
 [workspace.package]

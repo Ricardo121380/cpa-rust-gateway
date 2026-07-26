@@ -1,9 +1,10 @@
 #!/usr/bin/env ruby
 
 root = File.expand_path("..", __dir__)
-source_files = Dir.glob(File.join(root, "{apps,crates}", "**", "*.rs")).sort
+source_files = Dir.glob(File.join(root, "{apps,crates,tests}", "**", "*.rs")).sort
 crate_roots = Dir.glob(File.join(root, "apps", "*", "src", "main.rs")).sort +
-              Dir.glob(File.join(root, "crates", "*", "src", "lib.rs")).sort
+              Dir.glob(File.join(root, "crates", "*", "src", "lib.rs")).sort +
+              Dir.glob(File.join(root, "tests", "*", "src", "lib.rs")).sort
 errors = []
 
 source_files.each do |path|

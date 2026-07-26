@@ -39,6 +39,9 @@ gateway-stream
 leaf foundations
   -> gateway-core
 
+differential-gate (tests/differential, test-only sink; nothing depends on it)
+  -> gateway-core + gateway-store + gateway-upstream + provider-grok + provider-kiro
+
 gateway-core
   -> no internal crate
 ```
@@ -46,6 +49,11 @@ gateway-core
 ## 不变量
 
 - `gateway-core` 不依赖 Actix、SQLite 或任何具体 Provider。
+- `tests/differential` 的 `differential-gate` 是 P11-01 差分门禁的唯一 test-only 汇点。它可以依赖
+  `gateway-core`、`gateway-store`、`gateway-upstream`、`provider-grok` 与 `provider-kiro`，以便
+  用真实代码计算 gateway 侧投影；但任何 workspace member 都不得依赖它，也不得把它引入运行时、
+  部署装配或 SBOM 运行时闭包。它没有 HTTP client、文件系统遍历、环境变量读取、参考实现读取或
+  凭据类型。
 - `apps/gateway` 是唯一的二进制部署装配根，不是可被其它 crate 引用的库。P12-02 的
   `gateway serve` 在此处显式绑定两个 loopback listener，并从 systemd `LoadCredential` 目录
   读取严格校验、短暂零化的 Management/CSRF/Master/Backup/Client-Key Pepper。故该二进制可以
