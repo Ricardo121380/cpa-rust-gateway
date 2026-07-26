@@ -1,13 +1,14 @@
 //! P12's explicitly bounded production data-plane composition.
 //!
 //! The deployment process is deliberately narrower than the test-only P3 harness: it admits the
-//! reviewed production graph shape -- any number of OpenAI-compatible Responses Endpoints,
-//! weighted encrypted Credential bindings, aliases, public models, and Client Keys -- while every
-//! Endpoint stays pinned to the `openai/responses` format and every Candidate to the Canonical
-//! transform (`CR-P12-ROLLOUT-001`).  It pins the encrypted Credential pools to the active
-//! Snapshot and fails closed after a management publication until the isolated process restarts,
-//! so a new `RouteSnapshot` can never use an old runtime pool, and a graph containing any other
-//! provider format fails admission instead of being silently skipped.
+//! reviewed production graph shape -- any number of Endpoints, weighted encrypted Credential
+//! bindings, aliases, public models, and Client Keys -- while every Endpoint must declare an
+//! `api_format` this build binds an adapter for and every Candidate the Canonical transform
+//! (`CR-P12-ROLLOUT-001`).  Each Endpoint is bound to its adapter once, at composition, from the
+//! same Config Version and `RouteSnapshot` the executor pins.  It pins the encrypted Credential
+//! pools to the active Snapshot and fails closed after a management publication until the isolated
+//! process restarts, so a new `RouteSnapshot` can never use an old runtime pool, and a graph
+//! declaring a format this build cannot serve fails admission instead of being silently skipped.
 
 #![deny(unsafe_code)]
 
@@ -55,11 +56,12 @@ use gateway_observability::{
     BoundedEventQueue, EventQueueConfig, NoopOpenTelemetryExporter, PrometheusMetrics,
     TelemetryPipeline, TracingJsonExporter,
 };
+use gateway_protocol::{ApiFormat, ApiFormatAdapterRegistry};
 use gateway_router::{
     AttemptDriver, AttemptFailure, AttemptFuture, AttemptOrchestrator, AttemptOrchestratorConfig,
-    QuotaConfidence, QuotaSnapshot, QuotaSource, ResponsesEventSource, ResponsesExecution,
-    ResponsesExecutor, ResponsesFuture, ResponsesResponseMode, RouteCredentialScheduler,
-    RouteSnapshot, RouteSnapshotRegistry, RuntimeCredentialAccountStatus,
+    ProtocolFormat, QuotaConfidence, QuotaSnapshot, QuotaSource, ResponsesEventSource,
+    ResponsesExecution, ResponsesExecutor, ResponsesFuture, ResponsesResponseMode,
+    RouteCredentialScheduler, RouteSnapshot, RouteSnapshotRegistry, RuntimeCredentialAccountStatus,
     RuntimeHealthAccountRecoveryResult, RuntimeHealthRegistry, RuntimeQuotaAvailability,
     RuntimeQuotaRegistry, RuntimeQuotaTarget, SelectedRouteCredential, SnapshotRouteCandidate,
     SnapshotVersion, SystemRuntimeHealthClock,
@@ -80,7 +82,13 @@ use gateway_upstream::{
     SystemEgressDnsResolver, UpstreamClientPool, UpstreamHttpMethod, UpstreamHttpRequest,
     UpstreamHttpResponse, UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
 };
+
 use protocol_openai_responses::ResponseMode;
+use provider_anthropic_compatible::{
+    AnthropicMessagesApiKey, AnthropicMessagesEndpoint, AnthropicMessagesOutboundRequest,
+    AnthropicMessagesRequestBuilder, AnthropicMessagesSseDecoder, AnthropicResponseMode,
+    decode_upstream_response,
+};
 use provider_openai_compatible::{
     OpenAiResponsesApiKey, OpenAiResponsesEndpoint, OpenAiResponsesOutboundRequest,
     OpenAiResponsesRequestBuilder,
@@ -297,7 +305,7 @@ pub(crate) fn build_data_plane_composition(
         .load_active_configuration()
         .map_err(|_| RuntimeCompositionError::Unavailable)?
     {
-        Some(configuration) => Arc::new(P12OpenAiResponsesExecutor::try_new(
+        Some(configuration) => Arc::new(P12RoutedResponsesExecutor::try_new(
             &configuration,
             secret_store,
             Arc::clone(&registry),
@@ -544,6 +552,17 @@ impl P12AttemptStageStore {
         Ok(attempts)
     }
 
+    /// Returns the newest stage recorded for one Request, regardless of terminal pairing.
+    ///
+    /// [`Self::stage_view`] withholds a stage until a terminal Attempt event pairs with it, which
+    /// is the right management projection but hides which stages an attempt that failed before
+    /// its first terminal did and did not reach. This seam exposes exactly that.
+    #[cfg(test)]
+    fn recorded_stage(&self, request_id: &RequestId) -> Option<ManagementRequestAttemptStage> {
+        let records = self.records.try_lock().ok()?;
+        records.get(request_id).map(|record| record.stage)
+    }
+
     /// Returns the closed terminal stage for one Request, or `None` on any projection loss.
     ///
     /// Contention, capacity exhaustion, a missing record, and a record without any terminal
@@ -594,7 +613,7 @@ impl GatewayEventSink for P12FanoutEventSink {
     }
 }
 
-struct P12OpenAiResponsesExecutor {
+struct P12RoutedResponsesExecutor {
     registry: Arc<RouteSnapshotRegistry>,
     snapshot_version: SnapshotVersion,
     orchestrator: Arc<AttemptOrchestrator>,
@@ -604,7 +623,7 @@ struct P12OpenAiResponsesExecutor {
     event_sink: Arc<dyn GatewayEventSink>,
 }
 
-impl P12OpenAiResponsesExecutor {
+impl P12RoutedResponsesExecutor {
     fn try_new(
         configuration: &ControlPlaneConfiguration,
         secret_store: &SecretStore,
@@ -624,7 +643,8 @@ impl P12OpenAiResponsesExecutor {
         let pools = CredentialPoolCompiler::new(secret_store)
             .compile(configuration)
             .map_err(|_| RuntimeCompositionError::Unavailable)?;
-        let endpoints = endpoint_runtimes(configuration, &snapshot, &policies)?;
+        let adapters = p12_api_format_adapter_registry()?;
+        let endpoints = endpoint_runtimes(configuration, &snapshot, &policies, &adapters)?;
         let scheduler = Arc::new(RouteCredentialScheduler::new(
             Arc::clone(&snapshot),
             Arc::new(pools),
@@ -659,7 +679,7 @@ impl P12OpenAiResponsesExecutor {
     }
 }
 
-impl ResponsesExecutor for P12OpenAiResponsesExecutor {
+impl ResponsesExecutor for P12RoutedResponsesExecutor {
     fn execute(
         &self,
         _context: RequestContext,
@@ -683,13 +703,19 @@ impl ResponsesExecutor for P12OpenAiResponsesExecutor {
         let context = execution.context().clone();
         let request = execution.request().clone();
         let usage_projection = p12_response_usage_projection(&request);
+        // The client protocol is what the inbound handler already decided; the same trusted
+        // ingress marker that selects the Usage projection identifies it.
+        let client_protocol = match usage_projection {
+            P12ResponseUsageProjection::AnthropicMessages => ProtocolFormat::AnthropicMessages,
+            P12ResponseUsageProjection::OpenAiResponses => ProtocolFormat::OpenAiResponses,
+        };
         let route_id = execution.route_id().cloned();
         let mode = execution.mode();
         let retry_gate = Arc::clone(execution.retry_gate());
 
         Box::pin(async move {
             let route_id = route_id.ok_or_else(route_not_found_error)?;
-            let driver = OpenAiAttemptDriver {
+            let driver = EndpointAttemptDriver {
                 request_id: context.request_id().clone(),
                 request,
                 usage_projection,
@@ -698,10 +724,16 @@ impl ResponsesExecutor for P12OpenAiResponsesExecutor {
                 client_pool,
                 attempt_stages,
             };
+            // BC-ROUTER-005: a Candidate may only serve the client protocol it speaks. Once the
+            // graph can hold Endpoints of more than one format, selecting without this filter
+            // hands an OpenAI-Responses request to an Anthropic Candidate, whose request build
+            // then fails non-retryably after the lease was taken — a hard failure where the
+            // filter would simply have chosen a different Candidate before the first byte.
             let started = orchestrator
-                .start_with_event_sink(
+                .start_with_event_sink_for_protocol(
                     context.request_id(),
                     &route_id,
+                    client_protocol,
                     &driver,
                     retry_gate.as_ref(),
                     event_sink.as_ref(),
@@ -716,17 +748,69 @@ impl ResponsesExecutor for P12OpenAiResponsesExecutor {
     }
 }
 
+/// Builds one Endpoint's format-specific execution binding from its stored configuration.
+///
+/// The registry is keyed by format, not by Endpoint: a Base URL and inference path are
+/// per-Endpoint data that the factory reads once, at composition time, from the same Config
+/// Version the executor pins. Keeping the factory a plain `fn` pointer keeps the table
+/// allocation-free and `Copy`.
+type P12EndpointAdapterFactory =
+    fn(&EndpointConfiguration) -> Result<EndpointAdapter, RuntimeCompositionError>;
+
+/// The `api_format`-to-adapter table this deployment build serves.
+type P12ApiFormatAdapterRegistry = ApiFormatAdapterRegistry<P12EndpointAdapterFactory>;
+
+/// Builds the fixed P12 `api_format` adapter table.
+///
+/// A format absent from this table is a format this build cannot serve: `endpoint_runtimes`
+/// turns the missing binding into a composition failure for the whole Version rather than
+/// skipping the Endpoint. Removing a binding here is therefore the exact, reviewable way to
+/// narrow a deployment.
+fn p12_api_format_adapter_registry() -> Result<P12ApiFormatAdapterRegistry, RuntimeCompositionError>
+{
+    ApiFormatAdapterRegistry::try_new([
+        (
+            ApiFormat::OpenAiResponses,
+            build_openai_responses_adapter as P12EndpointAdapterFactory,
+        ),
+        (
+            ApiFormat::AnthropicMessages,
+            build_anthropic_messages_adapter as P12EndpointAdapterFactory,
+        ),
+    ])
+    .map_err(|_| RuntimeCompositionError::Unavailable)
+}
+
+fn build_openai_responses_adapter(
+    endpoint: &EndpointConfiguration,
+) -> Result<EndpointAdapter, RuntimeCompositionError> {
+    OpenAiResponsesEndpoint::try_new(&endpoint.base_url, &endpoint.inference_path)
+        .map(EndpointAdapter::OpenAiResponses)
+        .map_err(|_| RuntimeCompositionError::Unavailable)
+}
+
+fn build_anthropic_messages_adapter(
+    endpoint: &EndpointConfiguration,
+) -> Result<EndpointAdapter, RuntimeCompositionError> {
+    AnthropicMessagesEndpoint::try_new(&endpoint.base_url, &endpoint.inference_path)
+        .map(EndpointAdapter::AnthropicMessages)
+        .map_err(|_| RuntimeCompositionError::Unavailable)
+}
+
 /// Builds one runtime per configured Endpoint, sharing the fixed transports and DNS resolver.
 ///
 /// The transport profiles are configuration-free constants, so every Endpoint shares one
-/// instance; each Endpoint still composes its own base URL and inference path and resolves its
-/// upstream's compiled egress policy. Every Snapshot Candidate must reference a configured
-/// Endpoint, and a configured Endpoint no Candidate references must still conform: admission is
-/// version-level review, not best-effort filtering.
+/// instance; each Endpoint still composes its own base URL and inference path, resolves its
+/// upstream's compiled egress policy, and binds the adapter its declared `api_format` selects.
+/// Every Snapshot Candidate must reference a configured Endpoint, and a configured Endpoint no
+/// Candidate references must still conform: admission is version-level review, not best-effort
+/// filtering. Binding happens here, once, against the same Config Version and Snapshot the
+/// executor pins, so no attempt can later reach an adapter from a different Version.
 fn endpoint_runtimes(
     configuration: &ControlPlaneConfiguration,
     snapshot: &RouteSnapshot,
     policies: &gateway_control::egress_policy_compiler::CompiledEgressPolicies,
+    registry: &P12ApiFormatAdapterRegistry,
 ) -> Result<BTreeMap<EndpointId, EndpointRuntime>, RuntimeCompositionError> {
     let configured_ids = configuration
         .endpoints
@@ -745,19 +829,27 @@ fn endpoint_runtimes(
     let transports = Arc::new(P12TransportProfiles::try_new()?);
     let mut runtimes = BTreeMap::new();
     for configured in &configuration.endpoints {
-        validate_endpoint_shape(configured)?;
+        let format = validate_endpoint_shape(configured)?;
+        let build = registry
+            .adapter(format)
+            .ok_or(RuntimeCompositionError::Unavailable)?;
         let policy = policies
             .policy_for_upstream(&configured.upstream_id)
             .cloned()
             .ok_or(RuntimeCompositionError::Unavailable)?;
-        let endpoint =
-            OpenAiResponsesEndpoint::try_new(&configured.base_url, &configured.inference_path)
-                .map_err(|_| RuntimeCompositionError::Unavailable)?;
+        let adapter = build(configured)?;
+        // The registry is generic over an opaque adapter value, so a mis-ordered table would
+        // compile and bind every Endpoint to the other protocol's adapter, surfacing only as a
+        // per-request internal error. Prove the correspondence here instead, where a wrong
+        // binding fails the whole Version at composition.
+        if adapter.api_format() != format {
+            return Err(RuntimeCompositionError::Unavailable);
+        }
         if runtimes
             .insert(
                 configured.id.clone(),
                 EndpointRuntime {
-                    endpoint,
+                    adapter,
                     policy,
                     resolver: Arc::clone(&resolver),
                     transports: Arc::clone(&transports),
@@ -777,9 +869,10 @@ fn endpoint_runtimes(
 /// The shape is no longer singleton: any number of upstreams, Endpoints, weighted Credential
 /// bindings, aliases, public models, Routes, Candidates, and Client Keys are admitted.  What
 /// stays fixed is fail-closed conformance: HTTPS-only egress policies, Bearer-only active
-/// Credentials, `openai/responses` Endpoints, Canonical Candidates, bounded attempt budgets,
-/// and a bounded total Credential concurrency.  One non-conforming row fails admission for the
-/// whole Version instead of serving a subset.
+/// Credentials, Endpoints whose `adapter_id` and `api_format` form a pair this build binds an
+/// adapter for, Canonical Candidates, bounded attempt budgets, and a bounded total Credential
+/// concurrency.  One non-conforming row fails admission for the whole Version instead of serving
+/// a subset.
 fn validate_p12_configuration_shape(
     configuration: &ControlPlaneConfiguration,
 ) -> Result<(), RuntimeCompositionError> {
@@ -1002,24 +1095,61 @@ fn has_p12_unlisted_model_override(value: &str) -> bool {
     )
 }
 
+/// Returns the exact `adapter_id` this composition requires for one admitted API Format.
+///
+/// `adapter_id` names an implementation while `api_format` names a wire protocol, and the store
+/// keeps both free-form, so this composition pins the one pairing it reviewed. A graph that
+/// declares a serving format under a foreign implementation label fails admission instead of
+/// being served by whichever adapter the format alone would select.
+const fn p12_adapter_id(format: ApiFormat) -> &'static str {
+    // One source of truth with the Route Compiler's publish-time gate, so an Endpoint this
+    // composition would refuse can never be published in the first place.
+    format.adapter_id()
+}
+
 fn validate_endpoint_shape(
     endpoint: &EndpointConfiguration,
-) -> Result<(), RuntimeCompositionError> {
+) -> Result<ApiFormat, RuntimeCompositionError> {
+    let Some(format) = ApiFormat::parse(&endpoint.api_format) else {
+        return Err(RuntimeCompositionError::Unavailable);
+    };
     if !endpoint.enabled
-        || endpoint.adapter_id != "openai-compatible.responses"
-        || endpoint.api_format != "openai/responses"
+        || endpoint.adapter_id != p12_adapter_id(format)
         || endpoint.transport != EndpointTransport::Http
     {
         return Err(RuntimeCompositionError::Unavailable);
     }
-    Ok(())
+    Ok(format)
 }
 
+/// One Endpoint's declared-format adapter plus the egress and transport state it executes on.
 struct EndpointRuntime {
-    endpoint: OpenAiResponsesEndpoint,
+    adapter: EndpointAdapter,
     policy: EgressPolicy,
     resolver: Arc<dyn EgressDnsResolver>,
     transports: Arc<P12TransportProfiles>,
+}
+
+/// The per-Endpoint execution binding selected by that Endpoint's declared `api_format`.
+///
+/// One variant per format this build serves. The enum is exhaustive on purpose: adding an
+/// [`ApiFormat`] without adding an arm here fails to compile rather than falling back to a
+/// neighbouring protocol.
+enum EndpointAdapter {
+    /// The unchanged `OpenAI`-compatible Responses path.
+    OpenAiResponses(OpenAiResponsesEndpoint),
+    /// The Anthropic-compatible Messages path.
+    AnthropicMessages(AnthropicMessagesEndpoint),
+}
+
+impl EndpointAdapter {
+    /// Returns the exact API Format this binding serves.
+    const fn api_format(&self) -> ApiFormat {
+        match self {
+            Self::OpenAiResponses(_) => ApiFormat::OpenAiResponses,
+            Self::AnthropicMessages(_) => ApiFormat::AnthropicMessages,
+        }
+    }
 }
 
 /// The response-mode-specific transport deadlines shared by every admitted Endpoint.
@@ -1090,7 +1220,7 @@ impl ResponsesEventSource for LeaseHoldingEventSource {
     }
 }
 
-struct OpenAiAttemptDriver {
+struct EndpointAttemptDriver {
     request_id: RequestId,
     request: CanonicalRequest,
     usage_projection: P12ResponseUsageProjection,
@@ -1100,7 +1230,7 @@ struct OpenAiAttemptDriver {
     attempt_stages: Arc<P12AttemptStageStore>,
 }
 
-impl AttemptDriver for OpenAiAttemptDriver {
+impl AttemptDriver for EndpointAttemptDriver {
     type Output = Box<dyn ResponsesEventSource>;
 
     fn start<'a>(
@@ -1117,73 +1247,25 @@ impl AttemptDriver for OpenAiAttemptDriver {
             let Some(runtime) = self.endpoints.get(candidate.endpoint_id()) else {
                 return Err(AttemptFailure::NonRetryable(internal_error()));
             };
-            let request = p12_openai_compatible_request(&self.request)
-                .map_err(AttemptFailure::NonRetryable)?;
-            let credential = std::str::from_utf8(credential.secret_bytes())
-                .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
-            let request_credential = OpenAiResponsesApiKey::try_new(credential.to_owned())
-                .map_err(AttemptFailure::NonRetryable)?;
-            let outbound = OpenAiResponsesRequestBuilder::build(
-                &runtime.endpoint,
-                &request_credential,
-                candidate.upstream_model(),
-                &request,
-                upstream_response_mode(self.mode),
-            )
-            .map_err(AttemptFailure::NonRetryable)?;
-            self.attempt_stages.record_stage(
-                &self.request_id,
-                ManagementRequestAttemptStage::EgressAdmission,
-            );
-            let admitted = runtime
-                .policy
-                .admit_url(outbound.url(), runtime.resolver.as_ref())
-                .map_err(|_| AttemptFailure::NonRetryable(egress_rejected_error()))?;
-            let request =
-                p12_transport_request(&outbound, admitted).map_err(AttemptFailure::NonRetryable)?;
-            self.attempt_stages.record_stage(
-                &self.request_id,
-                ManagementRequestAttemptStage::HttpTransport,
-            );
-            let mut response = self
-                .client_pool
-                .send(request, runtime.transports.for_mode(self.mode))
-                .await
-                .map_err(|_| AttemptFailure::Connection)?;
-
-            self.attempt_stages
-                .record_stage(&self.request_id, ManagementRequestAttemptStage::HttpStatus);
-            match response.status() {
-                200..=299 => {}
-                429 => return Err(AttemptFailure::RateLimited { retry_after: None }),
-                500..=599 => return Err(AttemptFailure::ServerError),
-                _ => return Err(AttemptFailure::NonRetryable(provider_permanent_error())),
+            // The endpoint map and the Candidate come from the same pinned Config Version and
+            // Snapshot, so this can only differ when a Snapshot was constructed outside the
+            // compiler. Prove the agreement before a Secret is read or a URL is composed rather
+            // than serving one protocol's request over another protocol's wire.
+            if candidate
+                .protocol_format()
+                .map(ProtocolFormat::as_api_format)
+                != Some(runtime.adapter.api_format())
+            {
+                return Err(AttemptFailure::NonRetryable(internal_error()));
             }
-            self.attempt_stages
-                .record_stage(&self.request_id, ManagementRequestAttemptStage::ContentType);
-            if !has_expected_content_type(&response, self.mode) {
-                return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
-            }
-
-            match self.mode {
-                ResponsesResponseMode::NonStreaming => {
-                    let events = decode_json_response(
-                        &mut response,
-                        self.attempt_stages.as_ref(),
-                        &self.request_id,
-                        self.usage_projection,
-                    )
-                    .await?;
-                    Ok(Box::new(FiniteEventSource::new(events)) as Box<dyn ResponsesEventSource>)
+            match &runtime.adapter {
+                EndpointAdapter::OpenAiResponses(endpoint) => {
+                    self.start_openai_responses(runtime, endpoint, candidate, credential)
+                        .await
                 }
-                ResponsesResponseMode::Streaming => {
-                    self.attempt_stages.record_stage(
-                        &self.request_id,
-                        ManagementRequestAttemptStage::SseBootstrap,
-                    );
-                    let source =
-                        OpenAiSseEventSource::begin(response, self.usage_projection).await?;
-                    Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
+                EndpointAdapter::AnthropicMessages(endpoint) => {
+                    self.start_anthropic_messages(runtime, endpoint, candidate, credential)
+                        .await
                 }
             }
         })
@@ -1194,6 +1276,187 @@ impl AttemptDriver for OpenAiAttemptDriver {
     }
 }
 
+impl EndpointAttemptDriver {
+    /// Runs one attempt against an `OpenAI`-compatible Responses Endpoint.
+    ///
+    /// This is the P12 path unchanged: the same request conversion, credential shape, request
+    /// builder, egress admission, transport headers, response-mode profile, status and
+    /// content-type classification, bounded JSON body, and bounded SSE decoder.
+    async fn start_openai_responses(
+        &self,
+        runtime: &EndpointRuntime,
+        endpoint: &OpenAiResponsesEndpoint,
+        candidate: &SnapshotRouteCandidate,
+        credential: &CredentialLease,
+    ) -> Result<Box<dyn ResponsesEventSource>, AttemptFailure> {
+        let request =
+            p12_openai_compatible_request(&self.request).map_err(AttemptFailure::NonRetryable)?;
+        let credential = std::str::from_utf8(credential.secret_bytes())
+            .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
+        let request_credential = OpenAiResponsesApiKey::try_new(credential.to_owned())
+            .map_err(AttemptFailure::NonRetryable)?;
+        let outbound = OpenAiResponsesRequestBuilder::build(
+            endpoint,
+            &request_credential,
+            candidate.upstream_model(),
+            &request,
+            upstream_response_mode(self.mode),
+        )
+        .map_err(AttemptFailure::NonRetryable)?;
+        self.attempt_stages.record_stage(
+            &self.request_id,
+            ManagementRequestAttemptStage::EgressAdmission,
+        );
+        let admitted = runtime
+            .policy
+            .admit_url(outbound.url(), runtime.resolver.as_ref())
+            .map_err(|_| AttemptFailure::NonRetryable(egress_rejected_error()))?;
+        let request =
+            p12_transport_request(&outbound, admitted).map_err(AttemptFailure::NonRetryable)?;
+        let mut response = self.send_admitted_request(runtime, request).await?;
+
+        match self.mode {
+            ResponsesResponseMode::NonStreaming => {
+                let events = decode_json_response(
+                    &mut response,
+                    self.attempt_stages.as_ref(),
+                    &self.request_id,
+                    self.usage_projection,
+                )
+                .await?;
+                Ok(Box::new(FiniteEventSource::new(events)) as Box<dyn ResponsesEventSource>)
+            }
+            ResponsesResponseMode::Streaming => {
+                self.attempt_stages.record_stage(
+                    &self.request_id,
+                    ManagementRequestAttemptStage::SseBootstrap,
+                );
+                let source = OpenAiSseEventSource::begin(response, self.usage_projection).await?;
+                Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
+            }
+        }
+    }
+
+    /// Runs one attempt against an Anthropic-compatible Messages Endpoint.
+    ///
+    /// It mirrors [`Self::start_openai_responses`] stage for stage -- the same
+    /// `RequestConversion`/`EgressAdmission`/`HttpTransport`/`HttpStatus`/`ContentType` ledger
+    /// order, the same `AttemptFailure` classification, the same response-mode transport profile
+    /// and the same bounded body/frame ceilings -- and differs only in the wire codec it uses. It
+    /// does not delegate to `InferenceAdapter::execute`, whose `GatewayError` return cannot carry
+    /// the upstream status the orchestrator needs to keep a pre-first-byte failure retryable.
+    async fn start_anthropic_messages(
+        &self,
+        runtime: &EndpointRuntime,
+        endpoint: &AnthropicMessagesEndpoint,
+        candidate: &SnapshotRouteCandidate,
+        credential: &CredentialLease,
+    ) -> Result<Box<dyn ResponsesEventSource>, AttemptFailure> {
+        // No `max_tokens` translation happens here: the Anthropic Messages codec reads the
+        // namespaced extension directly and fails closed on a request that carries no lossless
+        // Anthropic representation, rather than inventing one.
+        let credential = std::str::from_utf8(credential.secret_bytes())
+            .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
+        let request_credential = AnthropicMessagesApiKey::try_new(credential.to_owned())
+            .map_err(AttemptFailure::NonRetryable)?;
+        let outbound = AnthropicMessagesRequestBuilder::build(
+            endpoint,
+            &request_credential,
+            candidate.upstream_model(),
+            &self.request,
+            anthropic_upstream_response_mode(self.mode),
+        )
+        .map_err(AttemptFailure::NonRetryable)?;
+        self.attempt_stages.record_stage(
+            &self.request_id,
+            ManagementRequestAttemptStage::EgressAdmission,
+        );
+        let admitted = runtime
+            .policy
+            .admit_url(outbound.url(), runtime.resolver.as_ref())
+            .map_err(|_| AttemptFailure::NonRetryable(egress_rejected_error()))?;
+        let request = p12_anthropic_transport_request(outbound, admitted)
+            .map_err(AttemptFailure::NonRetryable)?;
+        let mut response = self.send_admitted_request(runtime, request).await?;
+
+        match self.mode {
+            ResponsesResponseMode::NonStreaming => {
+                let events = decode_anthropic_json_response(
+                    &mut response,
+                    self.attempt_stages.as_ref(),
+                    &self.request_id,
+                    self.usage_projection,
+                )
+                .await?;
+                Ok(Box::new(FiniteEventSource::new(events)) as Box<dyn ResponsesEventSource>)
+            }
+            ResponsesResponseMode::Streaming => {
+                self.attempt_stages.record_stage(
+                    &self.request_id,
+                    ManagementRequestAttemptStage::SseBootstrap,
+                );
+                let source =
+                    AnthropicSseEventSource::begin(response, self.usage_projection).await?;
+                Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
+            }
+        }
+    }
+
+    /// Sends one already egress-admitted request and classifies its response head.
+    ///
+    /// Both format arms share this exact ledger order and failure classification, so the
+    /// pre-first-byte retryability of a status or content-type failure cannot drift between them.
+    async fn send_admitted_request(
+        &self,
+        runtime: &EndpointRuntime,
+        request: UpstreamHttpRequest,
+    ) -> Result<UpstreamHttpResponse, AttemptFailure> {
+        self.attempt_stages.record_stage(
+            &self.request_id,
+            ManagementRequestAttemptStage::HttpTransport,
+        );
+        let response = self
+            .client_pool
+            .send(request, runtime.transports.for_mode(self.mode))
+            .await
+            .map_err(|_| AttemptFailure::Connection)?;
+
+        self.attempt_stages
+            .record_stage(&self.request_id, ManagementRequestAttemptStage::HttpStatus);
+        match response.status() {
+            200..=299 => {}
+            429 => return Err(AttemptFailure::RateLimited { retry_after: None }),
+            500..=599 => return Err(AttemptFailure::ServerError),
+            _ => return Err(AttemptFailure::NonRetryable(provider_permanent_error())),
+        }
+        self.attempt_stages
+            .record_stage(&self.request_id, ManagementRequestAttemptStage::ContentType);
+        if !has_expected_content_type(&response, self.mode) {
+            return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
+        }
+        Ok(response)
+    }
+}
+
+/// Hands one admitted Anthropic-compatible request to the shared transport.
+///
+/// The header set stays exactly the four the Anthropic-compatible boundary builds --
+/// `accept`, `anthropic-version`, `content-type`, `x-api-key`. [`p12_transport_headers`]'s Krill
+/// compatibility `User-Agent` is specific to the isolated `OpenAI`-compatible endpoint and is
+/// deliberately not added here.
+fn p12_anthropic_transport_request(
+    outbound: AnthropicMessagesOutboundRequest,
+    admitted: AdmittedEgressTarget,
+) -> Result<UpstreamHttpRequest, GatewayError> {
+    outbound.into_transport_request(admitted)
+}
+
+const fn anthropic_upstream_response_mode(mode: ResponsesResponseMode) -> AnthropicResponseMode {
+    match mode {
+        ResponsesResponseMode::NonStreaming => AnthropicResponseMode::NonStreaming,
+        ResponsesResponseMode::Streaming => AnthropicResponseMode::Streaming,
+    }
+}
 fn p12_transport_request(
     outbound: &OpenAiResponsesOutboundRequest,
     admitted: AdmittedEgressTarget,
@@ -1364,6 +1627,194 @@ impl ResponsesEventSource for FiniteEventSource {
     }
 }
 
+/// Buffers one complete Anthropic Messages JSON body under the shared response bound.
+///
+/// The ledger order, the bounded append, and the failure classification are exactly
+/// [`decode_json_response`]'s; only the codec that projects the bytes onto Canonical events
+/// differs. No usage projection applies: the Anthropic decoder already emits exactly the counters
+/// an Anthropic usage object can carry.
+async fn decode_anthropic_json_response(
+    response: &mut UpstreamHttpResponse,
+    attempt_stages: &P12AttemptStageStore,
+    request_id: &RequestId,
+    usage_projection: P12ResponseUsageProjection,
+) -> Result<Vec<CanonicalEvent>, AttemptFailure> {
+    attempt_stages.record_stage(request_id, ManagementRequestAttemptStage::BodyRead);
+    let mut body = Vec::new();
+    loop {
+        let next = response
+            .next_chunk()
+            .await
+            .map_err(|_| AttemptFailure::Connection)?;
+        let Some(chunk) = next else {
+            break;
+        };
+        append_response_chunk(&mut body, &chunk).map_err(AttemptFailure::NonRetryable)?;
+    }
+    attempt_stages.record_stage(request_id, ManagementRequestAttemptStage::Decoder);
+    let body = std::str::from_utf8(&body).map_err(|_| AttemptFailure::BootstrapTruncated)?;
+    let events = decode_upstream_response(body).map_err(|_| AttemptFailure::BootstrapTruncated)?;
+    Ok(project_usage_events(events, usage_projection))
+}
+
+/// Narrows every decoded `UsageDelta` to what the client's protocol can encode.
+///
+/// The upstream format decides which counters exist; the client format decides which may be
+/// emitted. An Anthropic upstream always reports cache-input counters, so a Responses client
+/// would fail its encode without this narrowing.
+fn project_usage_events(
+    events: Vec<CanonicalEvent>,
+    usage_projection: P12ResponseUsageProjection,
+) -> Vec<CanonicalEvent> {
+    events
+        .into_iter()
+        .map(|event| project_usage_event(event, usage_projection))
+        .collect()
+}
+
+/// Narrows one decoded event's Usage to what the client's protocol can encode.
+fn project_usage_event(
+    event: CanonicalEvent,
+    usage_projection: P12ResponseUsageProjection,
+) -> CanonicalEvent {
+    match event {
+        CanonicalEvent::UsageDelta(delta) => {
+            let usage =
+                project_usage_for_response(Some(delta.usage), usage_projection).unwrap_or_default();
+            CanonicalEvent::UsageDelta(UsageDelta { usage, ..delta })
+        }
+        other => other,
+    }
+}
+
+/// Streams one Anthropic-compatible Messages SSE body under the P12 liveness bounds.
+///
+/// It is the Anthropic sibling of [`OpenAiSseEventSource`] and keeps that shell's exact
+/// behaviour: the same semantic-progress deadline, the same rule that only `next_chunk` awaits
+/// accrue against it, the same bootstrap requirement that the first Canonical event be a
+/// `ResponseStart`, and the same truncation failure when the body ends before a terminal event.
+/// The bounded frame, tool-argument, and progress-free-frame ceilings live inside the shared
+/// `protocol-anthropic` decoder rather than being restated here.
+struct AnthropicSseEventSource {
+    response: UpstreamHttpResponse,
+    decoder: AnthropicMessagesSseDecoder,
+    /// Narrows each decoded `UsageDelta` to what the client's protocol can encode.
+    usage_projection: P12ResponseUsageProjection,
+    /// One decoded event held back so bootstrap can prove the stream opened with `ResponseStart`.
+    ///
+    /// The shared decoder exposes no peek, so the shell owns the one-event lookahead instead.
+    lookahead: Option<CanonicalEvent>,
+    /// Upstream-wait budget between two decoder progress marks before the stream is declared
+    /// wedged.
+    progress_deadline: Duration,
+    /// The decoder progress-mark count already accounted for by `progress_wait_spent`.
+    observed_progress_marks: u64,
+    /// Time spent awaiting upstream chunks since the last progress frame.
+    progress_wait_spent: Duration,
+}
+
+impl AnthropicSseEventSource {
+    async fn begin(
+        response: UpstreamHttpResponse,
+        usage_projection: P12ResponseUsageProjection,
+    ) -> Result<Self, AttemptFailure> {
+        Self::begin_with_progress_deadline(
+            response,
+            usage_projection,
+            P12_STREAMING_PROGRESS_TIMEOUT,
+        )
+        .await
+    }
+
+    /// Starts one streamed source under an explicit semantic-progress deadline.
+    ///
+    /// Production always passes [`P12_STREAMING_PROGRESS_TIMEOUT`] through [`Self::begin`]; the
+    /// explicit parameter exists so tests can expire the deadline in milliseconds against a live
+    /// peer instead of waiting out the production value.
+    async fn begin_with_progress_deadline(
+        response: UpstreamHttpResponse,
+        usage_projection: P12ResponseUsageProjection,
+        progress_deadline: Duration,
+    ) -> Result<Self, AttemptFailure> {
+        let mut source = Self {
+            response,
+            decoder: AnthropicMessagesSseDecoder::new(),
+            usage_projection,
+            lookahead: None,
+            progress_deadline,
+            observed_progress_marks: 0,
+            progress_wait_spent: Duration::ZERO,
+        };
+        source
+            .read_until_event()
+            .await
+            .map_err(|_| AttemptFailure::BootstrapTruncated)?;
+        if !matches!(source.lookahead, Some(CanonicalEvent::ResponseStart(_))) {
+            return Err(AttemptFailure::BootstrapTruncated);
+        }
+        Ok(source)
+    }
+
+    /// Restarts the upstream-wait progress window whenever the decoder consumed progress evidence.
+    fn observe_decoder_progress(&mut self) {
+        let marks = self.decoder.progress_marks();
+        if marks != self.observed_progress_marks {
+            self.observed_progress_marks = marks;
+            self.progress_wait_spent = Duration::ZERO;
+        }
+    }
+
+    async fn read_until_event(&mut self) -> Result<(), GatewayError> {
+        loop {
+            self.decoder.drain_buffered_frames()?;
+            self.observe_decoder_progress();
+            if let Some(event) = self.decoder.take_event() {
+                self.lookahead = Some(event);
+                return Ok(());
+            }
+            if self.decoder.is_finished() {
+                return Ok(());
+            }
+            // The transport's byte-idle bound wakes the wait below at least once per idle
+            // window, so this check runs even when the upstream sends only `ping` frames that
+            // reset that byte-idle timer.
+            if self.progress_wait_spent >= self.progress_deadline {
+                return Err(provider_transient_error());
+            }
+            let wait_started = Instant::now();
+            let next = self.response.next_chunk().await?;
+            self.progress_wait_spent = self
+                .progress_wait_spent
+                .saturating_add(wait_started.elapsed());
+            let Some(chunk) = next else {
+                return Err(stream_truncated_error());
+            };
+            self.decoder.push_chunk(&chunk)?;
+        }
+    }
+}
+
+impl ResponsesEventSource for AnthropicSseEventSource {
+    fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
+        Box::pin(async move {
+            if let Some(event) = self.lookahead.take() {
+                return Ok(Some(project_usage_event(event, self.usage_projection)));
+            }
+            if let Some(event) = self.decoder.take_event() {
+                return Ok(Some(project_usage_event(event, self.usage_projection)));
+            }
+            if self.decoder.is_finished() {
+                return Ok(None);
+            }
+            self.read_until_event().await?;
+            Ok(self
+                .lookahead
+                .take()
+                .map(|event| project_usage_event(event, self.usage_projection)))
+        })
+    }
+}
+
 async fn decode_json_response(
     response: &mut UpstreamHttpResponse,
     attempt_stages: &P12AttemptStageStore,
@@ -1516,12 +1967,23 @@ fn project_usage_for_response(
     usage_projection: P12ResponseUsageProjection,
 ) -> Option<Usage> {
     usage.map(|mut usage| {
-        if usage_projection == P12ResponseUsageProjection::AnthropicMessages {
-            // Anthropic reports the aggregate output count but has no representation for the
-            // OpenAI-specific reasoning/cached sub-counters. Keep every representable total and
-            // cache-input field so the Messages boundary does not fail after a successful decode.
-            usage.reasoning_tokens = None;
-            usage.cached_tokens = None;
+        // The projection is CLIENT-scoped: it narrows a decoded upstream Usage to what the
+        // protocol this request arrived on can encode, whatever upstream produced it.
+        match usage_projection {
+            P12ResponseUsageProjection::AnthropicMessages => {
+                // Anthropic reports the aggregate output count but has no representation for the
+                // OpenAI-specific reasoning/cached sub-counters. Keep every representable total
+                // and cache-input field so the Messages boundary does not fail after a decode.
+                usage.reasoning_tokens = None;
+                usage.cached_tokens = None;
+            }
+            P12ResponseUsageProjection::OpenAiResponses => {
+                // The Responses encoder has no field for Anthropic's cache-input counters, which
+                // an Anthropic upstream reports on every response (as `0` when unused, so they
+                // arrive present rather than absent) and would otherwise fail the encode.
+                usage.cache_read_tokens = None;
+                usage.cache_creation_tokens = None;
+            }
         }
         usage
     })
@@ -2732,13 +3194,15 @@ mod tests {
         BoundedEventQueue, EventQueueConfig, NoopOpenTelemetryExporter, NoopStructuredJsonExporter,
         PrometheusMetrics, TelemetryPipeline, diagnostic_event,
     };
+    use gateway_protocol::{ApiFormat, ApiFormatAdapterRegistry};
     use gateway_router::{
-        AttemptOrchestrator, DeterministicMockEmission, DeterministicMockResponsesExecutor,
-        ResponsesEventSource, ResponsesExecution, ResponsesExecutor, ResponsesFuture,
-        ResponsesResponseMode, RouteCredentialScheduler, RouteSnapshot, RouteSnapshotInput,
-        RouteSnapshotRegistry, RuntimeCredentialAccountStatus, RuntimeHealthClock,
-        RuntimeHealthClockError, RuntimeHealthRegistry, RuntimeQuotaRegistry, RuntimeQuotaTarget,
-        SnapshotVersion,
+        AttemptDriver, AttemptFailure, AttemptOrchestrator, DeterministicMockEmission,
+        DeterministicMockResponsesExecutor, ResponsesEventSource, ResponsesExecution,
+        ResponsesExecutor, ResponsesFuture, ResponsesResponseMode, RouteCredentialScheduler,
+        RouteSnapshot, RouteSnapshotInput, RouteSnapshotRegistry, RuntimeCredentialAccountStatus,
+        RuntimeHealthClock, RuntimeHealthClockError, RuntimeHealthRegistry, RuntimeQuotaRegistry,
+        RuntimeQuotaTarget, SnapshotCatalogAdmission, SnapshotRouteCandidate,
+        SnapshotRouteCandidateInput, SnapshotTransformMode, SnapshotVersion,
     };
     use gateway_store::{
         control_plane::{
@@ -2758,10 +3222,10 @@ mod tests {
         secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore},
     };
     use gateway_upstream::{
-        AdmittedEgressTarget, EgressCidr, EgressDnsError, EgressDnsResolver, EgressHost,
-        EgressPolicy, EgressPolicyInput, EgressScheme, RedirectPolicy, UpstreamClientPool,
-        UpstreamHttpMethod, UpstreamHttpRequest, UpstreamProxy, UpstreamTimeouts,
-        UpstreamTransportProfile,
+        AdmittedEgressTarget, CredentialSecret, EgressCidr, EgressDnsError, EgressDnsResolver,
+        EgressHost, EgressPolicy, EgressPolicyInput, EgressScheme, EndpointCredentialInput,
+        EndpointCredentialPool, RedirectPolicy, UpstreamClientPool, UpstreamHttpMethod,
+        UpstreamHttpRequest, UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
     };
     use protocol_openai_responses::{ResponseMode, decode_request};
     use provider_openai_compatible::{
@@ -2770,21 +3234,23 @@ mod tests {
     use serde_json::Value;
 
     use super::{
-        EndpointRuntime, FiniteEventSource, MAX_SSE_FRAME_BYTES, MAX_SSE_IDENTIFIER_BYTES,
+        AnthropicSseEventSource, EndpointAdapter, EndpointAttemptDriver, EndpointRuntime,
+        FiniteEventSource, MAX_SSE_FRAME_BYTES, MAX_SSE_IDENTIFIER_BYTES,
         MAX_SSE_PROGRESS_FREE_FRAMES, MAX_SSE_TOOL_CALLS, MAX_UPSTREAM_RESPONSE_BYTES,
-        OpenAiAttemptDriver, OpenAiSseDecoder, OpenAiSseEventSource,
-        P12_BOOTSTRAP_TIMEOUT_MILLISECONDS, P12_CONNECT_TIMEOUT,
-        P12_KRILL_COMPATIBILITY_USER_AGENT, P12_MAX_ROUTE_ATTEMPTS,
+        OpenAiSseDecoder, OpenAiSseEventSource, P12_BOOTSTRAP_TIMEOUT_MILLISECONDS,
+        P12_CONNECT_TIMEOUT, P12_KRILL_COMPATIBILITY_USER_AGENT, P12_MAX_ROUTE_ATTEMPTS,
         P12_MAX_TOTAL_BINDING_CONCURRENCY, P12_NON_STREAMING_TOTAL_TIMEOUT,
         P12_STREAMING_IDLE_TIMEOUT, P12_STREAMING_PROGRESS_TIMEOUT, P12_STREAMING_TOTAL_TIMEOUT,
-        P12_STREAMING_TTFB_TIMEOUT, P12AttemptStageStore, P12FanoutEventSink,
-        P12ResponseUsageProjection, P12TransportProfiles, RuntimeCompositionError,
-        SnapshotManagementRuntimeFacade, append_response_chunk, build_data_plane_composition,
-        decode_json_events, decode_json_events_with_usage_projection, decode_sse_events,
-        decode_sse_events_with_usage_projection, deployment_route_compiler,
+        P12_STREAMING_TTFB_TIMEOUT, P12AttemptStageStore, P12EndpointAdapterFactory,
+        P12FanoutEventSink, P12ResponseUsageProjection, P12TransportProfiles,
+        RuntimeCompositionError, SnapshotManagementRuntimeFacade, append_response_chunk,
+        build_data_plane_composition, build_openai_responses_adapter, decode_json_events,
+        decode_json_events_with_usage_projection, decode_sse_events,
+        decode_sse_events_with_usage_projection, deployment_route_compiler, endpoint_runtimes,
         has_p12_https_only_egress_shape, has_p12_unlisted_model_override,
-        p12_attempt_start_timeout, p12_openai_compatible_request, p12_response_usage_projection,
-        p12_transport_headers, p12_transport_request,
+        p12_api_format_adapter_registry, p12_attempt_start_timeout, p12_openai_compatible_request,
+        p12_response_usage_projection, p12_transport_headers, p12_transport_request,
+        validate_endpoint_shape,
     };
 
     const P12_SINGLETON_TEST_ENDPOINT_ID: &str = "p12-krill-endpoint";
@@ -3737,10 +4203,10 @@ mod tests {
             endpoints.insert(
                 configured.id.clone(),
                 EndpointRuntime {
-                    endpoint: OpenAiResponsesEndpoint::try_new(
+                    adapter: EndpointAdapter::OpenAiResponses(OpenAiResponsesEndpoint::try_new(
                         &configured.base_url,
                         &configured.inference_path,
-                    )?,
+                    )?),
                     policy: policies
                         .policy_for_upstream(&configured.upstream_id)
                         .cloned()
@@ -3764,7 +4230,7 @@ mod tests {
         let decoded = decode_request(include_str!(
             "../../../tests/fixtures/openai-responses/request-canonical.json"
         ))?;
-        let driver = OpenAiAttemptDriver {
+        let driver = EndpointAttemptDriver {
             request_id: request_id.clone(),
             request: decoded.request,
             usage_projection: P12ResponseUsageProjection::OpenAiResponses,
@@ -3815,6 +4281,105 @@ mod tests {
             Some(ManagementRequestAttemptStage::Decoder)
         );
         peer.await??;
+        Ok(())
+    }
+
+    /// A Candidate whose declared format disagrees with its Endpoint's bound adapter must fail
+    /// the attempt before a Secret is read, a URL is composed, or a socket is opened.
+    ///
+    /// The Snapshot here is built directly rather than compiled, which is the only way the
+    /// disagreement can exist at all: the composition and the compiler both reject it earlier.
+    /// The Endpoint target points at a closed loopback port, so a dial would classify as the
+    /// retryable `AttemptFailure::Connection`; a `NonRetryable` result therefore proves no dial
+    /// was attempted, and the ledger stage stays at `RequestConversion`.
+    #[actix_web::test]
+    async fn a_candidate_format_that_disagrees_with_its_bound_adapter_fails_the_attempt()
+    -> Result<(), Box<dyn Error>> {
+        let dead_listener = std::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?;
+        let dead_port = dead_listener.local_addr()?.port();
+        drop(dead_listener);
+
+        let endpoint_id = EndpointId::try_new("p12-format-guard-endpoint")?;
+        let policy = EgressPolicy::try_new(EgressPolicyInput {
+            id: EgressPolicyId::try_new("p12-format-guard-policy")?,
+            name: "P12 format guard policy".to_owned(),
+            allowed_schemes: BTreeSet::from([EgressScheme::Http]),
+            allowed_hosts: BTreeSet::from([EgressHost::try_new("relay.test")?]),
+            allowed_ports: BTreeSet::from([dead_port]),
+            allowed_cidrs: BTreeSet::from([EgressCidr::try_new(
+                IpAddr::V4(Ipv4Addr::LOCALHOST),
+                32,
+            )?]),
+            redirect_policy: RedirectPolicy::Deny,
+        })?;
+        let mut endpoints = std::collections::BTreeMap::new();
+        endpoints.insert(
+            endpoint_id.clone(),
+            EndpointRuntime {
+                adapter: EndpointAdapter::OpenAiResponses(OpenAiResponsesEndpoint::try_new(
+                    &format!("http://relay.test:{dead_port}/v1"),
+                    "/responses",
+                )?),
+                policy,
+                resolver: Arc::new(LoopbackResolver),
+                transports: Arc::new(P12TransportProfiles::try_new()?),
+            },
+        );
+
+        let candidate = SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
+            id: RouteCandidateId::try_new("p12-format-guard-candidate")?,
+            endpoint_id: endpoint_id.clone(),
+            upstream_id: UpstreamId::try_new("p12-format-guard-upstream")?,
+            endpoint_api_format: "anthropic/messages".to_owned(),
+            upstream_model: "upstream-model-guard".to_owned(),
+            transform_mode: SnapshotTransformMode::Canonical,
+            priority: 0,
+            weight: 1,
+            effective_capabilities: gateway_catalog::CapabilitySet::empty(),
+            catalog_admission: SnapshotCatalogAdmission::AllowedUnlisted,
+            active_binding_count: 1,
+        });
+
+        let pool = EndpointCredentialPool::try_new(
+            endpoint_id,
+            [EndpointCredentialInput {
+                credential_id: CredentialId::try_new("p12-format-guard-credential")?,
+                credential_kind: "bearer".to_owned(),
+                credential_revision: 1,
+                priority: 0,
+                weight: 1,
+                concurrency: 1,
+                secret: CredentialSecret::try_new(b"p12-format-guard-secret".to_vec())?,
+            }],
+        )?;
+        let lease = pool.try_lease().ok_or("credential lease unavailable")?;
+
+        let attempt_stages = Arc::new(P12AttemptStageStore::new());
+        let request_id = RequestId::try_new("p12-format-guard-request")?;
+        let decoded = decode_request(include_str!(
+            "../../../tests/fixtures/openai-responses/request-canonical.json"
+        ))?;
+        let driver = EndpointAttemptDriver {
+            request_id: request_id.clone(),
+            request: decoded.request,
+            usage_projection: P12ResponseUsageProjection::OpenAiResponses,
+            mode: ResponsesResponseMode::NonStreaming,
+            endpoints: Arc::new(endpoints),
+            client_pool: Arc::new(UpstreamClientPool::new(
+                NonZeroUsize::new(4).ok_or("client pool needs capacity")?,
+            )),
+            attempt_stages: Arc::clone(&attempt_stages),
+        };
+
+        let result = driver
+            .start(&candidate, &lease, Duration::from_millis(500))
+            .await;
+
+        assert!(matches!(result, Err(AttemptFailure::NonRetryable(_))));
+        assert_eq!(
+            attempt_stages.recorded_stage(&request_id),
+            Some(ManagementRequestAttemptStage::RequestConversion)
+        );
         Ok(())
     }
 
@@ -3970,6 +4535,96 @@ mod tests {
         // have fired -- and it must fire well before the transport's two-second byte-idle bound
         // would have had a first chance to see silence.
         assert!(started.elapsed() < Duration::from_secs(2));
+        server.abort();
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn a_live_anthropic_ping_only_stream_is_cut_by_the_progress_deadline()
+    -> Result<(), Box<dyn Error>> {
+        // The Anthropic shell claims the OpenAI shell's liveness behaviour; prove it rather than
+        // trusting the doc comment. `ping` is Anthropic's keepalive: it keeps the transport's
+        // byte-idle timer fresh forever while producing no generation.
+        let listener = actix_web::rt::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let port = listener.local_addr()?.port();
+        let prelude = sse_stream_body(&[
+            r#"{"type":"message_start","message":{"id":"msg-live","type":"message","role":"assistant","content":[],"usage":{"input_tokens":3}}}"#,
+            r#"{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}"#,
+            r#"{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"ok"}}"#,
+        ]);
+        let ping = sse_stream_body(&[r#"{"type":"ping"}"#]);
+        let server = spawn_live_sse_peer(
+            listener,
+            prelude,
+            ping,
+            200,
+            Duration::from_millis(25),
+            String::new(),
+        );
+
+        let response = UpstreamClientPool::new(NonZeroUsize::new(1).ok_or("live pool size")?)
+            .send(
+                live_transport_request(live_admitted_target(port)?)?,
+                &live_progress_test_profile()?,
+            )
+            .await?;
+        let mut source = AnthropicSseEventSource::begin_with_progress_deadline(
+            response,
+            P12ResponseUsageProjection::AnthropicMessages,
+            Duration::from_millis(200),
+        )
+        .await
+        .map_err(|_| std::io::Error::other("live Anthropic SSE bootstrap failed"))?;
+
+        let started = Instant::now();
+        let error = loop {
+            match source.next_event().await {
+                Ok(Some(_)) => {}
+                Ok(None) => {
+                    return Err("ping-only stream ended without the progress failure".into());
+                }
+                Err(error) => break error,
+            }
+        };
+        assert_eq!(
+            (error.code(), error.scope()),
+            (GatewayErrorCode::ProviderTransient, ErrorScope::Provider)
+        );
+        assert!(started.elapsed() < Duration::from_secs(2));
+        server.abort();
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn an_anthropic_stream_that_never_opens_with_message_start_fails_bootstrap()
+    -> Result<(), Box<dyn Error>> {
+        let listener = actix_web::rt::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let port = listener.local_addr()?.port();
+        // A body that opens with a content block instead of `message_start` can never produce a
+        // leading ResponseStart, so bootstrap must refuse it before any byte reaches the client.
+        let prelude = sse_stream_body(&[
+            r#"{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}"#,
+        ]);
+        let server = spawn_live_sse_peer(
+            listener,
+            prelude,
+            String::new(),
+            0,
+            Duration::ZERO,
+            String::new(),
+        );
+
+        let response = UpstreamClientPool::new(NonZeroUsize::new(1).ok_or("live pool size")?)
+            .send(
+                live_transport_request(live_admitted_target(port)?)?,
+                &live_progress_test_profile()?,
+            )
+            .await?;
+        assert!(
+            AnthropicSseEventSource::begin(response, P12ResponseUsageProjection::AnthropicMessages)
+                .await
+                .is_err()
+        );
         server.abort();
         Ok(())
     }
@@ -5131,6 +5786,48 @@ mod tests {
     }
 
     #[test]
+    fn endpoint_shape_admission_requires_a_paired_adapter_and_serving_format()
+    -> Result<(), Box<dyn Error>> {
+        let base = EndpointConfiguration {
+            id: EndpointId::try_new("p12-shape-endpoint")?,
+            upstream_id: UpstreamId::try_new("p12-shape-upstream")?,
+            adapter_id: "openai-compatible.responses".to_owned(),
+            api_format: "openai/responses".to_owned(),
+            base_url: "https://gateway.example.test/v1".to_owned(),
+            inference_path: "/responses".to_owned(),
+            models_path: None,
+            transport: EndpointTransport::Http,
+            enabled: true,
+        };
+        assert_eq!(validate_endpoint_shape(&base)?, ApiFormat::OpenAiResponses);
+
+        let mut messages = base.clone();
+        messages.adapter_id = "anthropic-compatible.messages".to_owned();
+        messages.api_format = "anthropic/messages".to_owned();
+        assert_eq!(
+            validate_endpoint_shape(&messages)?,
+            ApiFormat::AnthropicMessages
+        );
+
+        let mut unsupported = base.clone();
+        unsupported.api_format = "openai_responses".to_owned();
+        assert!(validate_endpoint_shape(&unsupported).is_err());
+
+        let mut mismatched = base.clone();
+        mismatched.api_format = "anthropic/messages".to_owned();
+        assert!(validate_endpoint_shape(&mismatched).is_err());
+
+        let mut swapped = messages.clone();
+        swapped.adapter_id = "openai-compatible.responses".to_owned();
+        assert!(validate_endpoint_shape(&swapped).is_err());
+
+        let mut disabled = base.clone();
+        disabled.enabled = false;
+        assert!(validate_endpoint_shape(&disabled).is_err());
+        Ok(())
+    }
+
+    #[test]
     fn active_singleton_graph_builds_an_encrypted_runtime_without_a_send()
     -> Result<(), Box<dyn Error>> {
         let directory = TemporaryDirectory::new()?;
@@ -5189,7 +5886,8 @@ mod tests {
     }
 
     #[test]
-    fn anthropic_format_endpoint_fails_widened_admission_closed() -> Result<(), Box<dyn Error>> {
+    fn two_endpoint_graph_binds_each_endpoint_to_its_declared_format_adapter()
+    -> Result<(), Box<dyn Error>> {
         let directory = TemporaryDirectory::new()?;
         let database = directory.join("control.sqlite3");
         let secret_store = test_secret_store()?;
@@ -5208,14 +5906,114 @@ mod tests {
             deployment_route_compiler(&database)?,
             ManagementActor::try_new("p12-runtime-test")?,
         )?;
+        let snapshot = lifecycle.registry().load();
+        let policies = EgressPolicyCompiler::compile(&configuration)?;
+        let registry = p12_api_format_adapter_registry()?;
+        let runtimes = endpoint_runtimes(&configuration, &snapshot, &policies, &registry)?;
+
+        assert_eq!(runtimes.len(), 2);
+        let endpoint_a = EndpointId::try_new("p12-widened-endpoint-a")?;
+        let endpoint_b = EndpointId::try_new("p12-widened-endpoint-b")?;
+        assert_eq!(
+            runtimes
+                .get(&endpoint_a)
+                .map(|runtime| runtime.adapter.api_format()),
+            Some(ApiFormat::OpenAiResponses)
+        );
+        assert_eq!(
+            runtimes
+                .get(&endpoint_b)
+                .map(|runtime| runtime.adapter.api_format()),
+            Some(ApiFormat::AnthropicMessages)
+        );
+        for route in snapshot.routes() {
+            for candidate in route.candidates() {
+                let bound = runtimes
+                    .get(candidate.endpoint_id())
+                    .ok_or("Candidate Endpoint has no bound adapter")?;
+                assert_eq!(
+                    bound.adapter.api_format().as_str(),
+                    candidate.endpoint_api_format()
+                );
+            }
+        }
+
         let composition = build_data_plane_composition(
             &database,
             &secret_store,
             std::sync::Arc::clone(lifecycle.registry()),
             ClientKeyService::new(ClientKeyPepper::try_from_bytes([0xE1_u8; 32])?),
+        )?;
+        drop(composition);
+        Ok(())
+    }
+
+    #[test]
+    fn single_format_graph_still_composes_and_binds_only_the_openai_adapter()
+    -> Result<(), Box<dyn Error>> {
+        let directory = TemporaryDirectory::new()?;
+        let database = directory.join("control.sqlite3");
+        let secret_store = test_secret_store()?;
+        let configuration = p12_widened_configuration(&secret_store, &p12_production_network())?;
+        let config_version_id = configuration.version.id.clone();
+        let mut repository = SqliteControlPlaneRepository::open(&database)?;
+        repository.write_configuration(&configuration)?;
+        repository.activate_version(&config_version_id)?;
+        drop(repository);
+
+        let lifecycle = ManagementService::bootstrap(
+            SqliteControlPlaneRepository::open(&database)?,
+            deployment_route_compiler(&database)?,
+            ManagementActor::try_new("p12-runtime-test")?,
+        )?;
+        let snapshot = lifecycle.registry().load();
+        let policies = EgressPolicyCompiler::compile(&configuration)?;
+        let runtimes = endpoint_runtimes(
+            &configuration,
+            &snapshot,
+            &policies,
+            &p12_api_format_adapter_registry()?,
+        )?;
+
+        assert_eq!(runtimes.len(), 2);
+        assert!(
+            runtimes
+                .values()
+                .all(|runtime| runtime.adapter.api_format() == ApiFormat::OpenAiResponses)
         );
+        Ok(())
+    }
+
+    #[test]
+    fn an_endpoint_without_a_bound_adapter_fails_composition_closed() -> Result<(), Box<dyn Error>>
+    {
+        let directory = TemporaryDirectory::new()?;
+        let database = directory.join("control.sqlite3");
+        let secret_store = test_secret_store()?;
+        let mut network = p12_production_network();
+        network.endpoint_b_adapter = "anthropic-compatible.messages";
+        network.endpoint_b_api_format = "anthropic/messages";
+        let configuration = p12_widened_configuration(&secret_store, &network)?;
+        let config_version_id = configuration.version.id.clone();
+        let mut repository = SqliteControlPlaneRepository::open(&database)?;
+        repository.write_configuration(&configuration)?;
+        repository.activate_version(&config_version_id)?;
+        drop(repository);
+
+        let lifecycle = ManagementService::bootstrap(
+            SqliteControlPlaneRepository::open(&database)?,
+            deployment_route_compiler(&database)?,
+            ManagementActor::try_new("p12-runtime-test")?,
+        )?;
+        let snapshot = lifecycle.registry().load();
+        let policies = EgressPolicyCompiler::compile(&configuration)?;
+        let openai_only = ApiFormatAdapterRegistry::try_new([(
+            ApiFormat::OpenAiResponses,
+            build_openai_responses_adapter as P12EndpointAdapterFactory,
+        )])?;
+
         assert!(matches!(
-            composition,
+            endpoint_runtimes(&configuration, &snapshot, &policies, &openai_only),
             Err(RuntimeCompositionError::Unavailable)
         ));
         Ok(())
