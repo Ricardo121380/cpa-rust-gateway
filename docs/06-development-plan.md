@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.64` |
+| 计划版本 | `v1.65` |
 | 生效日期 | `2026-07-26` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -2247,6 +2247,46 @@ preimage、empty graph、current link、disabled-at-boot loopback Staging、两�
 P12-06 Shadow/Differential 流量、P12-07 public test domain 以及任何公开暴露仍需各自的计划
 边界与执行决定。
 
+### 已批准 Change Request：CR-P12-05-016
+
+```text
+CR-ID: CR-P12-05-016
+原因: 一次针对全仓的独立 review 在准备切换的 serve 二进制上确认了四项确定性缺陷，全部未被
+      现有测试覆盖，且都会在 P12-06 至 P12-08 的真实流量下必然触发。
+      (1) `/v1/messages` 的 `stream:true` 在 200 header 提交后 100% 失败：`OpenAiSseEventSource`
+      在 `MessageStart` 前不发 `UsageDelta`，而 Anthropic 编码器硬性要求先有精确 input usage；
+      `response.completed` 的 usage 未做投影，`ResponseEnd` 无 stop_reason。CR-013 的生命周期修复
+      只打在非流式 JSON decoder，漏掉同文件的 SSE 源。Claude Code 默认 `stream:true`。
+      (2) 流式 Tool 调用中断流：`tools` 无条件编入出站请求体，但 SSE 状态机拒绝 `function_call`
+      item 与 `response.function_call_arguments.*`，且只允许一个 output item。
+      (3) 三个数据面 handler 用 `web::Bytes`，继承 actix 默认 256 KiB 上限，长会话请求被
+      提取器以非协议化纯文本 413 拒绝。
+      (4) 全仓无 SSE keepalive（BL-05 只定义未实现），叠加 45s 绝对总超时与 64 KiB 正文/帧上限；
+      P12-07 将本网关置于 Cloudflare/Caddy 之后，静默连接会被中间层回收。
+影响的 Task / Matrix ID / ADR: 仅 P12-05 的 serve 组合与其协议边界。放宽一处锁定契约：
+      `message_start` 不再要求已上报精确 input Usage。改为"起始放宽、终止收紧"——未上报时
+      `message_start` 省略 `input_tokens`（不填 0、不估算），并在终止 `message_delta` 中
+      强制要求精确 input 计数，未上报则 fail closed。据此更新 BC-PROTOCOL-002、BC-PROTOCOL-005
+      与 ADR-0034；BC-HTTP-001 记录有界正文读取与 keepalive；BC-PROTOCOL-001 澄清 keepalive
+      归 HTTP 边界所有而非编解码器帧。不改 Provider、Credential、egress、DNS、proxy、Caddy、
+      Cloudflare、systemd、listener、公开流量或 incumbent CPA。P12-06 至 P12-10 范围不变。
+兼容性与迁移影响: 客户端可见变化四项：Anthropic 流式 `message_start` 可能不含 `input_tokens`
+      而由终止 `message_delta` 携带；超过 8 MiB 的请求体返回 `413` 与该路由自身的协议化错误
+      信封；空闲 15 秒的流式响应写入 SSE 注释 `: keepalive`（非语义、不提交 FirstSemanticEvent、
+      不关闭透明重试）；流式与非流式 transport 边界拆分为 8s/30s/120s/1h 与 8s/600s/600s/600s，
+      两处 64 KiB 上限提高到 8 MiB。既有精确 usage 上游的帧字节完全不变，全部冻结 fixture
+      与 snapshot 保持一致。无 Schema、迁移或管理面变化。
+测试与回滚变化: 新增 27 项本地测试：Anthropic usage 延后交付与"从不上报即 fail closed"、
+      流式 Tool 生命周期/并行 Tool/文本后接 Tool/空参数归一化/失败关闭矩阵、BL-04 任意分块
+      不变性、两个协议边界的 E2E 编码、keepalive 的间隔与 BL-05 不提交性与双协议共享、
+      有界正文的接受/拒绝/声明长度/未认证优先四类、以及 transport profile 的选择与上限。
+      本地 `check.sh fast` 的 fmt、clippy `-D warnings`、全量测试、source policy、crate
+      boundaries 与 secret 扫描均通过。回滚为 revert 本 CR 的提交；无服务器、制品或数据变更。
+用户批准: APPROVED，2026-07-26（先批准放宽方案 A"发 0 或省略字段"，实现按 ADR-0034 已否决
+      "发 0 会谎称已测量值"取省略；再明确"批准 CR 然后按照要求 commit"）
+计划版本变更: v1.65
+```
+
 ### Canary 推进与回滚规则
 
 - 每个流量阶段至少持续 2 小时并包含至少 100 个成功请求；低流量时使用固定合成请求补足。
@@ -2426,3 +2466,4 @@ Next task:
 | v1.62 | 2026-07-26 | `CR-P12-05-014`：复用已验签 CR-013 artifact，仅完成一次无副作用 Tool 与条件性、无 upstream 的 Route Explain；每种异常都完整回滚 | APPROVED；已发送一次 Tool，`2xx` 未通过无值 Function Call 门槛，Explain 未运行并已回滚 |
 | v1.63 | 2026-07-26 | `CR-P12-05-015`：CR-014 的 Tool `2xx` 未通过无值 Function Call 门槛后，以不同、明确的无外部效应声明执行一次新 tuple，并把回执细化为封闭结构类别 | APPROVED；Tool `2xx`/`valid`、条件性 Explain 与完整回滚均通过 |
 | v1.64 | 2026-07-26 | 记录 CR-015 成功 Tool/Explain 回执、独立回滚复核及 P12-05 的本地验收收口 | P12-05 为 LOCAL_PASS_PENDING_PHASE_GATE；P12-06 仍 PENDING |
+| v1.65 | 2026-07-26 | `CR-P12-05-016`：修复 serve 二进制上的 Anthropic 流式 usage 时序、流式 Tool 生命周期、256 KiB 入站正文上限与缺失的 SSE keepalive/45s 绝对超时；放宽 `message_start` 的精确 input Usage 要求为终止 `message_delta` 强制交付 | APPROVED；27 项新本地测试与 `check.sh fast` 全通过，未改服务器或公开边界 |
