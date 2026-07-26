@@ -34,11 +34,11 @@ use gateway_control::{
     route_compiler::RouteCompiler,
 };
 use gateway_core::{
-    AttemptEvent, AttemptOutcome, CanonicalEvent, CanonicalRequest, CanonicalResponse, EndpointId,
-    ErrorScope, EventEmission, GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink,
-    MessageEnd, MessageRole, MessageStart, RawExtensions, RawJson, RequestContext, RequestId,
-    ResponseEnd, ResponseId, ResponseStart, StreamError, TextDelta, ToolCallArgumentsDelta,
-    ToolCallEnd, ToolCallStart, Usage, UsageDelta,
+    AttemptEvent, AttemptOutcome, CanonicalEvent, CanonicalEventState, CanonicalRequest,
+    CanonicalResponse, EndpointId, ErrorScope, EventEmission, GatewayError, GatewayErrorCode,
+    GatewayEvent, GatewayEventSink, MessageEnd, MessageRole, MessageStart, RawExtensions, RawJson,
+    RequestContext, RequestId, ResponseEnd, ResponseId, ResponseStart, StreamError, TextDelta,
+    ToolCallArgumentsDelta, ToolCallEnd, ToolCallStart, Usage, UsageDelta,
 };
 use gateway_http_actix::{
     ResponsesHttpState, SystemResponsesMetadataFactory, default_stream_capacity,
@@ -2103,6 +2103,12 @@ struct OpenAiSseDecoder {
     /// Scan resume point: no frame delimiter starts inside `buffer[self.consumed..self.scanned]`.
     scanned: usize,
     pending: VecDeque<CanonicalEvent>,
+    /// Validates every event before it is queued, so the decoder cannot emit an illegal sequence.
+    ///
+    /// The protocol encoders downstream run the same state machine, but they run past the point
+    /// where the client is already committed. Rejecting here turns a would-be mid-stream encoder
+    /// failure into a pre-first-byte decode failure that the orchestrator can still fail over.
+    state: CanonicalEventState,
     lifecycle: SseLifecycle,
     usage_projection: P12ResponseUsageProjection,
     /// Consecutive frames that proved only socket liveness, reset by any progress frame.
@@ -2157,17 +2163,40 @@ impl SseLifecycle {
     }
 }
 
+/// Validates one Canonical event against the response state machine, then queues it.
+///
+/// Every emission in this decoder goes through here: the state machine is what makes an illegal
+/// Canonical sequence unreachable by construction rather than merely untested.
+fn queue_event(
+    state: &mut CanonicalEventState,
+    pending: &mut VecDeque<CanonicalEvent>,
+    event: CanonicalEvent,
+) -> Result<(), GatewayError> {
+    state.apply(&event)?;
+    pending.push_back(event);
+    Ok(())
+}
+
 impl SseStreamingState {
     /// Opens the one Canonical Message that carries every output item of this response.
-    fn ensure_message(&mut self, pending: &mut VecDeque<CanonicalEvent>) {
+    fn ensure_message(
+        &mut self,
+        state: &mut CanonicalEventState,
+        pending: &mut VecDeque<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
         if self.message_open {
-            return;
+            return Ok(());
         }
-        pending.push_back(CanonicalEvent::MessageStart(MessageStart {
-            role: MessageRole("assistant".to_owned()),
-            extensions: RawExtensions::default(),
-        }));
+        queue_event(
+            state,
+            pending,
+            CanonicalEvent::MessageStart(MessageStart {
+                role: MessageRole("assistant".to_owned()),
+                extensions: RawExtensions::default(),
+            }),
+        )?;
         self.message_open = true;
+        Ok(())
     }
 
     /// Declares one streamed Tool call from a `function_call` output item.
@@ -2177,6 +2206,7 @@ impl SseStreamingState {
     /// rather than by the frame bound.
     fn start_tool_call(
         &mut self,
+        state: &mut CanonicalEventState,
         item: &Value,
         pending: &mut VecDeque<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
@@ -2191,12 +2221,16 @@ impl SseStreamingState {
         {
             return Err(upstream_protocol_error());
         }
-        self.ensure_message(pending);
-        pending.push_back(CanonicalEvent::ToolCallStart(ToolCallStart {
-            call_id: call_id.clone(),
-            name,
-            extensions: RawExtensions::default(),
-        }));
+        self.ensure_message(state, pending)?;
+        queue_event(
+            state,
+            pending,
+            CanonicalEvent::ToolCallStart(ToolCallStart {
+                call_id: call_id.clone(),
+                name,
+                extensions: RawExtensions::default(),
+            }),
+        )?;
         self.tool_calls.insert(
             item_id,
             SseToolCall {
@@ -2212,6 +2246,7 @@ impl SseStreamingState {
     /// Appends one reported Tool argument fragment to its open Tool call.
     fn append_tool_arguments(
         &mut self,
+        state: &mut CanonicalEventState,
         value: &Value,
         pending: &mut VecDeque<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
@@ -2233,7 +2268,7 @@ impl SseStreamingState {
             .filter(|call| !call.ended)
             .ok_or_else(upstream_protocol_error)?;
         call.assembled.push_str(delta);
-        call.release_arguments(pending);
+        call.release_arguments(state, pending)?;
         self.retained_argument_bytes = retained;
         Ok(())
     }
@@ -2246,6 +2281,7 @@ impl SseStreamingState {
     /// arguments differ from the delivered fragments.
     fn end_tool_call(
         &mut self,
+        state: &mut CanonicalEventState,
         item_id: &str,
         reported_arguments: Option<&str>,
         authoritative: bool,
@@ -2276,14 +2312,18 @@ impl SseStreamingState {
                 return Err(upstream_protocol_error());
             }
             call.assembled.push_str(reported);
-            call.release_arguments(pending);
+            call.release_arguments(state, pending)?;
             self.retained_argument_bytes = next;
         }
-        pending.push_back(CanonicalEvent::ToolCallEnd(ToolCallEnd {
-            call_id: call.call_id.clone(),
-            arguments: call.completed_arguments()?,
-            extensions: RawExtensions::default(),
-        }));
+        queue_event(
+            state,
+            pending,
+            CanonicalEvent::ToolCallEnd(ToolCallEnd {
+                call_id: call.call_id.clone(),
+                arguments: call.completed_arguments()?,
+                extensions: RawExtensions::default(),
+            }),
+        )?;
         call.ended = true;
         self.emitted_content = true;
         Ok(())
@@ -2310,21 +2350,27 @@ impl SseToolCall {
     /// Whitespace outside the value is held back: `RawJson` retains only the value itself, so
     /// releasing padding would desynchronize the delivered fragments from the completed arguments
     /// that both protocol encoders compare them against.
-    fn release_arguments(&mut self, pending: &mut VecDeque<CanonicalEvent>) {
+    fn release_arguments(
+        &mut self,
+        state: &mut CanonicalEventState,
+        pending: &mut VecDeque<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
         let (start, end) = self.value_bounds();
         let from = self.released.max(start);
         if end <= from {
-            return;
+            return Ok(());
         }
         let delta = self.assembled[from..end].to_owned();
         self.released = end;
-        pending.push_back(CanonicalEvent::ToolCallArgumentsDelta(
-            ToolCallArgumentsDelta {
+        queue_event(
+            state,
+            pending,
+            CanonicalEvent::ToolCallArgumentsDelta(ToolCallArgumentsDelta {
                 call_id: self.call_id.clone(),
                 delta,
                 extensions: RawExtensions::default(),
-            },
-        ));
+            }),
+        )
     }
 
     /// Returns the byte range of the assembled JSON value without its surrounding whitespace.
@@ -2371,6 +2417,7 @@ impl OpenAiSseDecoder {
             consumed: 0,
             scanned: 0,
             pending: VecDeque::new(),
+            state: CanonicalEventState::default(),
             lifecycle: SseLifecycle::AwaitingResponseStart,
             usage_projection,
             progress_free_frames: 0,
@@ -2469,15 +2516,19 @@ impl OpenAiSseDecoder {
     /// A run longer than [`MAX_SSE_PROGRESS_FREE_FRAMES`] is a wedged upstream, not a thinking
     /// model. It terminates with the same terminal projection as an upstream `response.failed`,
     /// so the lease-holding source drops and this runtime's one Credential frees.
-    fn note_progress_free_frame(&mut self) {
+    fn note_progress_free_frame(&mut self) -> Result<(), GatewayError> {
         self.progress_free_frames = self.progress_free_frames.saturating_add(1);
         if self.progress_free_frames > MAX_SSE_PROGRESS_FREE_FRAMES {
-            self.pending
-                .push_back(CanonicalEvent::StreamError(StreamError {
+            queue_event(
+                &mut self.state,
+                &mut self.pending,
+                CanonicalEvent::StreamError(StreamError {
                     error: provider_transient_error(),
-                }));
+                }),
+            )?;
             self.lifecycle = SseLifecycle::Finished;
         }
+        Ok(())
     }
 
     fn consume_frame(&mut self, frame: &[u8]) -> Result<(), GatewayError> {
@@ -2491,7 +2542,7 @@ impl OpenAiSseDecoder {
         // Canonical lifecycle or consume the bounded response budget, but each one spends one
         // unit of the bounded progress-free run: only evidence of generation may refill it.
         if data.is_empty() {
-            self.note_progress_free_frame();
+            self.note_progress_free_frame()?;
             return Ok(());
         }
         let value: Value = serde_json::from_str(&data).map_err(|_| upstream_protocol_error())?;
@@ -2502,7 +2553,7 @@ impl OpenAiSseDecoder {
         // output, reasoning, or item lifecycle transitions, so it counts as progress even when
         // its canonical projection below is a no-op.
         if kind == "response.in_progress" {
-            self.note_progress_free_frame();
+            self.note_progress_free_frame()?;
             return Ok(());
         }
         self.note_progress_frame();
@@ -2548,37 +2599,48 @@ impl OpenAiSseDecoder {
         let usage =
             project_usage_for_response(decode_usage(response.get("usage"))?, self.usage_projection);
         self.lifecycle = SseLifecycle::Streaming(SseStreamingState::default());
-        self.pending
-            .push_back(CanonicalEvent::ResponseStart(ResponseStart {
+        queue_event(
+            &mut self.state,
+            &mut self.pending,
+            CanonicalEvent::ResponseStart(ResponseStart {
                 response_id,
                 extensions: RawExtensions::default(),
-            }));
+            }),
+        )?;
         // Anthropic's Messages representation needs the reported input usage before MessageStart,
         // exactly as the non-streaming decoder supplies it.  Usage the upstream did not report is
         // never invented here.
         if let Some(usage) = usage.as_ref().filter(|usage| usage.input_tokens.is_some()) {
-            self.pending
-                .push_back(CanonicalEvent::UsageDelta(UsageDelta {
+            queue_event(
+                &mut self.state,
+                &mut self.pending,
+                CanonicalEvent::UsageDelta(UsageDelta {
                     usage: initial_usage_snapshot(usage),
                     is_final: false,
                     extensions: RawExtensions::default(),
-                }));
+                }),
+            )?;
         }
         Ok(())
     }
 
     fn consume_output_item_added(&mut self, value: &Value) -> Result<(), GatewayError> {
         let item = value.get("item").ok_or_else(upstream_protocol_error)?;
-        let state = self.lifecycle.streaming_state()?;
+        let Self {
+            lifecycle,
+            state,
+            pending,
+            ..
+        } = self;
+        let streaming = lifecycle.streaming_state()?;
         match item.get("type").and_then(Value::as_str) {
             Some("message") if item.get("role").and_then(Value::as_str) == Some("assistant") => {
-                state.ensure_message(&mut self.pending);
-                Ok(())
+                streaming.ensure_message(state, pending)
             }
             // A Responses model may open an internal reasoning item before its visible output.
             // P12 does not expose it, but it must not fail an otherwise valid response.
             Some("reasoning") => Ok(()),
-            Some("function_call") => state.start_tool_call(item, &mut self.pending),
+            Some("function_call") => streaming.start_tool_call(state, item, pending),
             _ => Err(upstream_protocol_error()),
         }
     }
@@ -2588,8 +2650,14 @@ impl OpenAiSseDecoder {
             .get("delta")
             .and_then(Value::as_str)
             .ok_or_else(upstream_protocol_error)?;
-        let state = self.lifecycle.streaming_state()?;
-        if !state.message_open {
+        let Self {
+            lifecycle,
+            state,
+            pending,
+            ..
+        } = self;
+        let streaming = lifecycle.streaming_state()?;
+        if !streaming.message_open {
             return Err(upstream_protocol_error());
         }
         // An empty fragment carries no client-visible semantics and cannot become a Canonical
@@ -2597,27 +2665,43 @@ impl OpenAiSseDecoder {
         if delta.is_empty() {
             return Ok(());
         }
-        state.emitted_content = true;
-        self.pending.push_back(CanonicalEvent::TextDelta(TextDelta {
-            text: delta.to_owned(),
-            extensions: RawExtensions::default(),
-        }));
-        Ok(())
+        streaming.emitted_content = true;
+        queue_event(
+            state,
+            pending,
+            CanonicalEvent::TextDelta(TextDelta {
+                text: delta.to_owned(),
+                extensions: RawExtensions::default(),
+            }),
+        )
     }
 
     fn consume_function_arguments_delta(&mut self, value: &Value) -> Result<(), GatewayError> {
-        let state = self.lifecycle.streaming_state()?;
-        state.append_tool_arguments(value, &mut self.pending)
+        let Self {
+            lifecycle,
+            state,
+            pending,
+            ..
+        } = self;
+        lifecycle
+            .streaming_state()?
+            .append_tool_arguments(state, value, pending)
     }
 
     fn consume_function_arguments_done(&mut self, value: &Value) -> Result<(), GatewayError> {
         let item_id = required_string(value, "item_id")?;
-        let state = self.lifecycle.streaming_state()?;
-        state.end_tool_call(
+        let Self {
+            lifecycle,
+            state,
+            pending,
+            ..
+        } = self;
+        lifecycle.streaming_state()?.end_tool_call(
+            state,
             &item_id,
             value.get("arguments").and_then(Value::as_str),
             false,
-            &mut self.pending,
+            pending,
         )
     }
 
@@ -2627,14 +2711,20 @@ impl OpenAiSseDecoder {
             return Ok(());
         }
         let item_id = required_string(item, "id")?;
-        let state = self.lifecycle.streaming_state()?;
+        let Self {
+            lifecycle,
+            state,
+            pending,
+            ..
+        } = self;
         // A completed Function Call item is the last chance to close a Tool call whose upstream
         // omitted the dedicated arguments completion frame.
-        state.end_tool_call(
+        lifecycle.streaming_state()?.end_tool_call(
+            state,
             &item_id,
             item.get("arguments").and_then(Value::as_str),
             true,
-            &mut self.pending,
+            pending,
         )
     }
 
@@ -2679,23 +2769,32 @@ impl OpenAiSseDecoder {
             .unwrap_or_else(|| state.stop_reason())
             .to_owned();
         if message_open {
-            self.pending
-                .push_back(CanonicalEvent::MessageEnd(MessageEnd::default()));
+            queue_event(
+                &mut self.state,
+                &mut self.pending,
+                CanonicalEvent::MessageEnd(MessageEnd::default()),
+            )?;
         }
         if let Some(usage) = usage {
-            self.pending
-                .push_back(CanonicalEvent::UsageDelta(UsageDelta {
+            queue_event(
+                &mut self.state,
+                &mut self.pending,
+                CanonicalEvent::UsageDelta(UsageDelta {
                     usage,
                     is_final: true,
                     extensions: RawExtensions::default(),
-                }));
+                }),
+            )?;
         }
-        self.pending
-            .push_back(CanonicalEvent::ResponseEnd(ResponseEnd {
+        queue_event(
+            &mut self.state,
+            &mut self.pending,
+            CanonicalEvent::ResponseEnd(ResponseEnd {
                 stop_reason: Some(stop_reason),
                 stop_sequence: None,
                 extensions: RawExtensions::default(),
-            }));
+            }),
+        )?;
         self.lifecycle = SseLifecycle::Finished;
         Ok(())
     }
@@ -2704,10 +2803,13 @@ impl OpenAiSseDecoder {
         if matches!(self.lifecycle, SseLifecycle::AwaitingResponseStart) {
             return Err(upstream_protocol_error());
         }
-        self.pending
-            .push_back(CanonicalEvent::StreamError(StreamError {
+        queue_event(
+            &mut self.state,
+            &mut self.pending,
+            CanonicalEvent::StreamError(StreamError {
                 error: provider_transient_error(),
-            }));
+            }),
+        )?;
         self.lifecycle = SseLifecycle::Finished;
         Ok(())
     }
@@ -3146,7 +3248,7 @@ fn internal_error() -> GatewayError {
 #[cfg(test)]
 mod tests {
     use std::{
-        collections::BTreeSet,
+        collections::{BTreeSet, VecDeque},
         error::Error,
         fs,
         net::{IpAddr, Ipv4Addr},
@@ -3176,12 +3278,12 @@ mod tests {
     };
     use gateway_core::{
         AccessGroupId, AttemptEvent, AttemptOutcome, AttemptRetryDecision, CanonicalEvent,
-        CanonicalRequest, CanonicalResponse, ClientKeyId, CredentialId, EgressPolicyId, EndpointId,
-        ErrorScope, EventEmission, GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink,
-        MessageEnd, MessageRole, MessageStart, ProviderId, PublicModelId, RawExtensions,
-        RequestContext, RequestId, ResponseEnd, ResponseId, ResponseStart, RouteCandidateId,
-        RouteId, TextDelta, TransparentRetryGate, TransparentRetryGateFuture, UpstreamId, Usage,
-        UsageDelta,
+        CanonicalEventState, CanonicalRequest, CanonicalResponse, ClientKeyId, CredentialId,
+        EgressPolicyId, EndpointId, ErrorScope, EventEmission, GatewayError, GatewayErrorCode,
+        GatewayEvent, GatewayEventSink, MessageEnd, MessageRole, MessageStart, ProviderId,
+        PublicModelId, RawExtensions, RequestContext, RequestId, ResponseEnd, ResponseId,
+        ResponseStart, RouteCandidateId, RouteId, TextDelta, TransparentRetryGate,
+        TransparentRetryGateFuture, UpstreamId, Usage, UsageDelta,
     };
     use gateway_http_actix::{
         ResponsesHttpState, SystemResponsesMetadataFactory, configure, default_stream_capacity,
@@ -3249,7 +3351,7 @@ mod tests {
         decode_sse_events_with_usage_projection, deployment_route_compiler, endpoint_runtimes,
         has_p12_https_only_egress_shape, has_p12_unlisted_model_override,
         p12_api_format_adapter_registry, p12_attempt_start_timeout, p12_openai_compatible_request,
-        p12_response_usage_projection, p12_transport_headers, p12_transport_request,
+        p12_response_usage_projection, p12_transport_headers, p12_transport_request, queue_event,
         validate_endpoint_shape,
     };
 
@@ -3507,6 +3609,42 @@ mod tests {
         )));
         assert!(CanonicalResponse::try_new(events).is_ok());
         Ok(())
+    }
+
+    #[test]
+    fn the_decoder_refuses_to_emit_an_illegal_canonical_sequence() {
+        // A text delta before any output item opened would put a TextDelta ahead of MessageStart.
+        // The frame-level guards already reject this shape, so the value of the state machine is
+        // that it holds even if a future frame handler forgets its own guard: no path can queue an
+        // event the canonical grammar forbids.
+        let body = sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-illegal"}}"#,
+            r#"{"type":"response.output_text.delta","item_id":"msg-1","delta":"early"}"#,
+        ]);
+        assert_eq!(
+            decode_sse_events(&body, body.len())
+                .err()
+                .map(|error| (error.code(), error.scope())),
+            Some((GatewayErrorCode::UpstreamProtocolError, ErrorScope::Stream))
+        );
+
+        // Proving the guard is the state machine and not just the lifecycle check: queueing a
+        // terminal ResponseEnd with no open response is refused by the same validator.
+        let mut state = CanonicalEventState::default();
+        let mut pending = VecDeque::new();
+        assert!(
+            queue_event(
+                &mut state,
+                &mut pending,
+                CanonicalEvent::ResponseEnd(ResponseEnd {
+                    stop_reason: Some("end_turn".to_owned()),
+                    stop_sequence: None,
+                    extensions: RawExtensions::default(),
+                }),
+            )
+            .is_err()
+        );
+        assert!(pending.is_empty());
     }
 
     #[test]
