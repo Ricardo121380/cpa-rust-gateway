@@ -9,6 +9,7 @@ use std::fmt;
 
 use gateway_catalog::{CapabilitySet, SemanticCapability};
 use gateway_core::{CanonicalRequest, MessageContent};
+use gateway_protocol::ApiFormat;
 
 use crate::SnapshotTransformMode;
 
@@ -25,9 +26,19 @@ impl ProtocolFormat {
     /// Returns the exact control-plane `api_format` value for this protocol boundary.
     #[must_use]
     pub const fn api_format(self) -> &'static str {
+        self.as_api_format().as_str()
+    }
+
+    /// Returns the shared [`ApiFormat`] vocabulary value for this protocol boundary.
+    ///
+    /// The spelling table lives once, in `gateway-protocol`, so a Config Version admitted by the
+    /// management-time compiler and a Candidate filtered by this transform boundary can never
+    /// disagree about which stored string means which protocol.
+    #[must_use]
+    pub const fn as_api_format(self) -> ApiFormat {
         match self {
-            Self::OpenAiResponses => "openai/responses",
-            Self::AnthropicMessages => "anthropic/messages",
+            Self::OpenAiResponses => ApiFormat::OpenAiResponses,
+            Self::AnthropicMessages => ApiFormat::AnthropicMessages,
         }
     }
 
@@ -35,13 +46,14 @@ impl ProtocolFormat {
     ///
     /// Other formats intentionally remain unknown here. They can be retained in the shared
     /// Snapshot for their owning future Provider without becoming eligible for either P5 client
-    /// protocol by string similarity or model-name inference.
+    /// protocol by string similarity or model-name inference. The exhaustive match is deliberate:
+    /// a new [`ApiFormat`] variant must be given an explicit P5 decision, never a default one.
     #[must_use]
     pub fn from_api_format(api_format: &str) -> Option<Self> {
-        match api_format {
-            "openai/responses" => Some(Self::OpenAiResponses),
-            "anthropic/messages" => Some(Self::AnthropicMessages),
-            _ => None,
+        match ApiFormat::parse(api_format) {
+            Some(ApiFormat::OpenAiResponses) => Some(Self::OpenAiResponses),
+            Some(ApiFormat::AnthropicMessages) => Some(Self::AnthropicMessages),
+            None => None,
         }
     }
 }
@@ -388,6 +400,28 @@ mod tests {
         assert_eq!(
             ProtocolFormat::from_api_format("openai/chat_completions"),
             None
+        );
+    }
+
+    #[test]
+    fn protocol_formats_agree_with_the_shared_api_format_table() {
+        use gateway_protocol::ApiFormat;
+
+        for format in ApiFormat::ALL {
+            let protocol = ProtocolFormat::from_api_format(format.as_str());
+            assert_eq!(protocol.map(ProtocolFormat::as_api_format), Some(format));
+            assert_eq!(
+                protocol.map(ProtocolFormat::api_format),
+                Some(format.as_str())
+            );
+        }
+        assert_eq!(
+            ProtocolFormat::OpenAiResponses.as_api_format(),
+            ApiFormat::OpenAiResponses
+        );
+        assert_eq!(
+            ProtocolFormat::AnthropicMessages.as_api_format(),
+            ApiFormat::AnthropicMessages
         );
     }
 

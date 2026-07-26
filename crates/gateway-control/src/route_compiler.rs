@@ -15,6 +15,7 @@ use gateway_catalog::{
 use gateway_core::{
     AccessGroupId, EndpointId, PublicModelId, RouteCandidateId, RouteId, UpstreamId,
 };
+use gateway_protocol::ApiFormat;
 use gateway_store::control_plane::{
     AccessGroupConfiguration, AdministrativeStatus, ConfigVersionId, ControlPlaneConfiguration,
     CredentialConfiguration, CredentialStatus, EndpointConfiguration,
@@ -45,8 +46,9 @@ impl RouteCompiler {
     /// # Errors
     ///
     /// Returns [`RouteCompileError`] with a stable structural code when an Alias, reference,
-    /// active Candidate, Catalog state, Endpoint capability profile, or Access Group grant cannot
-    /// be published. No partial compiled configuration is returned on error.
+    /// Endpoint API format, active Candidate, Catalog state, Endpoint capability profile, or
+    /// Access Group grant cannot be published. No partial compiled configuration is returned on
+    /// error.
     pub fn compile(
         &self,
         configuration: &ControlPlaneConfiguration,
@@ -519,6 +521,8 @@ pub enum RouteCompileErrorCode {
     DuplicateEndpoint,
     /// One Upstream declared more than one Endpoint for the same API format.
     DuplicateEndpointApiFormat,
+    /// An Endpoint declared an API format no Provider adapter in this product can serve.
+    UnsupportedEndpointApiFormat,
     /// An Endpoint referenced an absent Upstream.
     MissingEndpointUpstream,
     /// A Credential ID appeared more than once.
@@ -595,6 +599,7 @@ impl RouteCompileErrorCode {
             Self::DuplicateUpstream => "duplicate_upstream",
             Self::DuplicateEndpoint => "duplicate_endpoint",
             Self::DuplicateEndpointApiFormat => "duplicate_endpoint_api_format",
+            Self::UnsupportedEndpointApiFormat => "unsupported_endpoint_api_format",
             Self::MissingEndpointUpstream => "missing_endpoint_upstream",
             Self::DuplicateCredential => "duplicate_credential",
             Self::MissingCredentialUpstream => "missing_credential_upstream",
@@ -873,6 +878,22 @@ fn index_endpoints<'a>(
         if !upstreams.contains_key(&endpoint.upstream_id) {
             return Err(route_error(
                 RouteCompileErrorCode::MissingEndpointUpstream,
+                endpoint.id.as_str(),
+            ));
+        }
+        let Some(format) = ApiFormat::parse(&endpoint.api_format) else {
+            return Err(route_error(
+                RouteCompileErrorCode::UnsupportedEndpointApiFormat,
+                endpoint.id.as_str(),
+            ));
+        };
+        // The serving composition binds an adapter by format and requires the declared
+        // `adapter_id` to match it. Rejecting a mismatched pair here keeps publish-time and
+        // composition-time admission accepting exactly the same Endpoints: otherwise a mispaired
+        // Endpoint publishes successfully and only blocks the next process start.
+        if endpoint.adapter_id != format.adapter_id() {
+            return Err(route_error(
+                RouteCompileErrorCode::UnsupportedEndpointApiFormat,
                 endpoint.id.as_str(),
             ));
         }
@@ -1493,6 +1514,65 @@ mod tests {
     }
 
     #[test]
+    fn mispaired_adapter_id_is_rejected_before_the_version_can_publish() -> TestResult {
+        // The serving composition binds an adapter by api_format and requires the declared
+        // adapter_id to match. Without this gate a mispaired Endpoint publishes successfully and
+        // only blocks the next process start, with no in-band remedy.
+        let mut declared = fixture()?;
+        declared.configuration.endpoints[0].adapter_id = "anthropic-compatible.messages".to_owned();
+        let Err(error) = declared.compiler().compile(&declared.configuration) else {
+            return Err("compiler accepted a mispaired adapter_id".into());
+        };
+        assert_eq!(
+            error.code(),
+            RouteCompileErrorCode::UnsupportedEndpointApiFormat
+        );
+        assert_eq!(error.subject(), "endpoint-a");
+
+        // The matching pair still compiles, so the gate rejects only the contradiction.
+        let paired = fixture()?;
+        assert!(paired.compiler().compile(&paired.configuration).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn unsupported_endpoint_api_format_rejects_the_complete_version() -> TestResult {
+        let mut declared = fixture()?;
+        declared.configuration.endpoints[0].api_format = "openai_responses".to_owned();
+        let Err(error) = declared.compiler().compile(&declared.configuration) else {
+            return Err("compiler unexpectedly succeeded".into());
+        };
+        assert_eq!(
+            error.code(),
+            RouteCompileErrorCode::UnsupportedEndpointApiFormat
+        );
+        assert_eq!(error.code().as_str(), "unsupported_endpoint_api_format");
+        assert_eq!(error.subject(), "endpoint-a");
+
+        // An unreferenced Endpoint is still part of the reviewed Version.
+        let mut unreferenced = fixture()?;
+        unreferenced
+            .configuration
+            .endpoints
+            .push(EndpointConfiguration {
+                id: EndpointId::try_new("endpoint-unreferenced")?,
+                upstream_id: UpstreamId::try_new("upstream-a")?,
+                adapter_id: "future-adapter".to_owned(),
+                api_format: "grok/web".to_owned(),
+                base_url: "https://station.example/v1".to_owned(),
+                inference_path: "/chat".to_owned(),
+                models_path: None,
+                transport: EndpointTransport::Http,
+                enabled: true,
+            });
+        assert_eq!(
+            compile_error_code(&unreferenced)?,
+            RouteCompileErrorCode::UnsupportedEndpointApiFormat
+        );
+        Ok(())
+    }
+
+    #[test]
     fn conflict_matrix_returns_stable_codes() -> TestResult {
         let snapshot = [
             (
@@ -1520,6 +1600,10 @@ mod tests {
             (
                 "duplicate_endpoint_format",
                 duplicate_endpoint_format_error()?.as_str(),
+            ),
+            (
+                "unsupported_endpoint_format",
+                unsupported_endpoint_format_error()?.as_str(),
             ),
             ("catalog_missing", catalog_missing_error()?.as_str()),
             (
@@ -1558,6 +1642,10 @@ mod tests {
                 ("missing_candidate_target", "missing_candidate_endpoint",),
                 ("missing_access_group", "missing_access_group"),
                 ("duplicate_endpoint_format", "duplicate_endpoint_api_format",),
+                (
+                    "unsupported_endpoint_format",
+                    "unsupported_endpoint_api_format",
+                ),
                 ("catalog_missing", "catalog_model_not_eligible"),
                 (
                     "missing_endpoint_capability",
@@ -1984,7 +2072,10 @@ mod tests {
         fixture.configuration.endpoints.push(EndpointConfiguration {
             id: EndpointId::try_new("endpoint-b")?,
             upstream_id: UpstreamId::try_new("upstream-a")?,
-            adapter_id: "other-adapter".to_owned(),
+            // The scenario under test is the duplicate (upstream, api_format) pair, so this
+            // Endpoint must otherwise be admissible: a mismatched adapter_id would be rejected
+            // first and hide the conflict this case exists to prove.
+            adapter_id: "openai-compatible.responses".to_owned(),
             api_format: "openai/responses".to_owned(),
             base_url: "https://station.example/other".to_owned(),
             inference_path: "/responses".to_owned(),
@@ -1992,6 +2083,12 @@ mod tests {
             transport: EndpointTransport::Http,
             enabled: true,
         });
+        compile_error_code(&fixture)
+    }
+
+    fn unsupported_endpoint_format_error() -> Result<RouteCompileErrorCode, Box<dyn Error>> {
+        let mut fixture = fixture()?;
+        fixture.configuration.endpoints[0].api_format = "openai/chat_completions".to_owned();
         compile_error_code(&fixture)
     }
 

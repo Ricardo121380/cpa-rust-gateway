@@ -14,6 +14,7 @@ gateway-auth = { path = "../gateway-auth" }
 gateway-catalog = { path = "../gateway-catalog" }
 gateway-continuity = { path = "../gateway-continuity" }
 gateway-core = { path = "../gateway-core" }
+gateway-protocol = { path = "../gateway-protocol" }
 gateway-provider = { path = "../gateway-provider" }
 gateway-upstream = { path = "../gateway-upstream" }
 tokio.workspace = true
