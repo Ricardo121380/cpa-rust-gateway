@@ -2118,6 +2118,40 @@ CR-ID: CR-P12-05-012
 计划版本变更: v1.60
 ```
 
+### 已批准 Change Request：CR-P12-05-013
+
+```text
+CR-ID: CR-P12-05-013
+原因: CR-P12-05-012 的一次 receipt-enhanced isolated Staging Messages 诊断已通过
+      Models，随后只发送了一次 Messages 请求并完整回滚。受保护 attempt 投影为
+      `succeeded/decoder`，证明精确上游 Responses 响应已完成 P12 decoder；失败发生在其后的
+      Anthropic 输出编码生命周期。源码复核确认非流式 decoder 将已报告 usage 仅作为
+      MessageEnd 之后的 final delta 发出，并使用缺失 stop_reason 的 ResponseEnd，分别不满足
+      Anthropic 的 message_start usage 和终止语义。无需再发送 direct classifier 或猜测
+      Credential、endpoint、egress、proxy 或上游可用性。
+影响的 Task / Matrix ID / ADR: 仅 P12-05。P12 non-streaming Responses decoder 在解析已报告
+      usage 后，只有当真实 `input_tokens` 存在时才在 MessageStart 前发出 input-only 的
+      non-final UsageDelta；绝不估算或伪造缺失 usage。MessageEnd 后 OpenAI Responses 仍保留完整
+      final usage；Anthropic Messages 仅投影其可表示的总量与 cache-input 计数，并省略无对应字段的
+      reasoning/cached 子计数。ResponseEnd 对文本 completion 映射为 `end_turn`、对 Function Call
+      completion 映射为 `tool_use`。不改变泛用 OpenAI-compatible Provider、Anthropic decoder/encoder、
+      路由、retry、数据模型、对外 listener 或任何 P12 以外的运行时。
+兼容性与迁移影响: 不刷新、重新登录、输出、复制、持久化或扩大使用 selected Bearer；不改
+      Provider、Credential、egress host、DNS、proxy、redirect、Caddy、Cloudflare、systemd、
+      Staging listener、incumbent CPA 或公开流量。此前 CR-012 Staging 图已恢复，旧 artifact
+      不得用于此修复后的验证。P12-06、Tool、Explain 和额外 direct probe 仍未获授权。
+测试与回滚变化: 新增 decoded event 通过真实 Actix `/v1/messages` 与 `/v1/responses` 边界的
+      offline regression，覆盖 input usage 顺序、Responses 完整 final usage、Messages 的可表示
+      usage 投影、`end_turn` 与 `tool_use`。
+      focused/package/Clippy/Full/docs/Secret gates 与独立 review 都是硬门槛。随后必须创建并
+      独立验签精确 SHA 的私有 GitHub OIDC/Sigstore artifact；仅该 artifact 可在 fresh isolated
+      Staging 图中重跑 readiness/listener、Models 和恰好一次 Messages，且无论结果都恢复
+      preimage。任何异常即停止，不得进入 P12-06。
+用户批准: APPROVED，2026-07-26（用户明确仅为完成本次 P12-05 受控验证，暂时继续使用该已暴露凭证；
+      沿用既有同范围直接批准约定）
+计划版本变更: v1.61
+```
+
 ### Canary 推进与回滚规则
 
 - 每个流量阶段至少持续 2 小时并包含至少 100 个成功请求；低流量时使用固定合成请求补足。
@@ -2293,3 +2327,4 @@ Next task:
 | v1.58 | 2026-07-25 | `CR-P12-05-010`：完整 decoder classifier 通过后，以同一 signed artifact 允许一次最终 isolated Staging retry | APPROVED；当前执行基线 |
 | v1.59 | 2026-07-25 | `CR-P12-05-011`：发现 prior classifier 缺少 builder 固定 input message type 后，允许一次精确同形无正文分类 | APPROVED；当前执行基线 |
 | v1.60 | 2026-07-25 | `CR-P12-05-012`：精确同形 classifier 通过而 Staging 仍 502 后，增加仅 loopback 管理面可读的固定阶段 attempt 投影；无新外部请求 | APPROVED；当前执行基线 |
+| v1.61 | 2026-07-26 | `CR-P12-05-013`：CR-012 证明 decoder 成功后，修复 P12-only 非流式 Responses 至 Anthropic Messages 的 usage 时序与显式终止语义；需新私有签名制品和一次隔离重验 | APPROVED；当前执行基线 |

@@ -2,11 +2,11 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.60` |
+| Plan version | `v1.61` |
 | Task | `P12-05` |
-| Status | `IN_PROGRESS` — the accepted P12-04 loopback Staging instance is healthy, disabled at boot, and restored to the P12-05 preimage. The corrected `CR-P12-05-004` artifact passed Models plus OpenAI Responses non-streaming/SSE, then the controlled sequence stopped at Anthropic Messages before Tool or Explain. The later CR-005 artifact's ordered Staging Messages retry also stopped and rolled back. The CR-012 attempt-stage source diagnostic is now locally reviewed and gated; its new exact-SHA artifact has not yet been built or independently verified, so no further Staging write is permitted. A server-only, no-body `/models` discriminator passed, proving the selected Bearer and active HTTPS base URL work from the server; it does not replace the required loopback-Staging Models check. |
+| Status | `IN_PROGRESS` — the accepted P12-04 loopback Staging instance is healthy, disabled at boot, and restored to the P12-05 preimage. The corrected `CR-P12-05-004` artifact passed Models plus OpenAI Responses non-streaming/SSE, then the controlled sequence stopped at Anthropic Messages before Tool or Explain. The later CR-005 artifact's ordered Staging Messages retry also stopped and rolled back. CR-012's one receipt-enhanced Messages diagnostic then recorded a successful decoder-stage attempt and complete rollback, isolating a narrow P12-only Messages output-lifecycle repair. Its new exact-SHA artifact has not yet been built or independently verified, so no further Staging write is permitted. A server-only, no-body `/models` discriminator passed, proving the selected Bearer and active HTTPS base URL work from the server; it does not replace the required loopback-Staging Models check. |
 | Preconditions | P12-04 remains active but disabled at boot, has its own state directory and its two loopback listeners. The incumbent `cli-proxy-api` remains out of scope. |
-| Approved remote exception | `CR-P12-05-001` is consumed by the rejected, never-activated `9d62339` artifact; `CR-P12-05-002` is consumed by the installed policy-alignment artifact; `CR-P12-05-004` is consumed by the validated-and-rolled-back attempt; and `CR-P12-05-005` is consumed by its halted-and-rolled-back isolated sequence. `CR-P12-05-012` requires a new private GitHub OIDC/Sigstore artifact from this reviewed exact SHA and independent verification before one receipt-enhanced Messages diagnostic. |
+| Approved remote exception | `CR-P12-05-001` is consumed by the rejected, never-activated `9d62339` artifact; `CR-P12-05-002` is consumed by the installed policy-alignment artifact; `CR-P12-05-004` is consumed by the validated-and-rolled-back attempt; `CR-P12-05-005` is consumed by its halted-and-rolled-back isolated sequence; and `CR-P12-05-012` is consumed by its single receipt-enhanced diagnostic. `CR-P12-05-013` requires a new private GitHub OIDC/Sigstore artifact from the reviewed lifecycle-repair SHA and independent verification before one fresh isolated Messages validation. |
 | Credential authority | The operator authorized a read-only use of this Mac's CC Switch `krill` Codex configuration. It contains a current ChatGPT OAuth token set, a separately selected effective Bearer credential, and two configured HTTPS endpoints. The operator confirms the selected key and base URL are currently usable; this task must not refresh or re-login. Values, endpoint text, account identity, models, request/response bodies, and token fingerprints are never written to Git, reports, command lines, or chat. |
 
 ## Boundary
@@ -239,6 +239,38 @@ The required next boundary is procedural, not a source change: commit the exact 
 produce and independently verify its private GitHub OIDC/Sigstore artifact, then make the one
 receipt-enhanced isolated Staging Messages diagnostic and restore the P12-05 preimage regardless
 of outcome. P12-06, Tool, Explain, direct classifiers, and public exposure remain prohibited.
+
+## CR-012 diagnostic outcome and CR-013 lifecycle repair
+
+The single authorized CR-012 Staging transaction passed its loopback Models check and sent one
+Messages request. The protected, value-free attempt projection recorded a successful decoder-stage
+attempt; the transaction then restored the original P12-05 preimage, retained only loopback
+listeners, and confirmed incumbent continuity. No retry, Tool request, Explain request, direct
+classifier, endpoint value, credential value, model, body, header value, or error text was
+retained in this report.
+
+That result establishes that the exact upstream non-streaming Responses payload passed the P12
+decoder and that the failure was later in the Anthropic output lifecycle. The narrow CR-013 repair
+therefore parses reported usage before visible output, emits an input-only non-final usage snapshot
+only when the upstream actually supplied input tokens, emits final usage after the message closes,
+and supplies an explicit completion reason. Text completions map to
+`end_turn`; completed Function Calls map to `tool_use`. OpenAI Responses retains its complete
+final usage, while Anthropic Messages keeps only the usage totals and cache-input values its
+protocol can represent and omits OpenAI-only reasoning/cached sub-counters. A missing input usage
+remains fail-closed rather than being estimated. The repair does not alter credentials, transport,
+retry, egress, listeners, or generic Provider/codec contracts.
+
+Before another Staging write, the exact reviewed SHA must pass focused HTTP-boundary regressions,
+package tests, Clippy, Full/docs/Secret gates, and independent review, then produce a new private
+OIDC/Sigstore artifact with independent verification. Only that artifact may create a fresh
+temporary graph for readiness/listener checks, Models, and exactly one Messages validation; the
+preimage must be restored irrespective of the result. Tool, Explain, direct probing, P12-06, and
+public exposure remain outside this authorization.
+
+The local source and boundary review is recorded in the
+[CR-013 lifecycle review](evidence/p12-05-cr-013-local-review-20260726.md). Its required next
+boundary is the fresh private artifact and independent verification, not another local or direct
+Provider request.
 
 ## Krill compatibility repair
 

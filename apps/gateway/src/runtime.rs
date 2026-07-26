@@ -407,6 +407,7 @@ impl ResponsesExecutor for P12OpenAiResponsesExecutor {
         let event_sink = Arc::clone(&self.event_sink);
         let context = execution.context().clone();
         let request = execution.request().clone();
+        let usage_projection = p12_response_usage_projection(&request);
         let route_id = execution.route_id().cloned();
         let mode = execution.mode();
         let retry_gate = Arc::clone(execution.retry_gate());
@@ -416,6 +417,7 @@ impl ResponsesExecutor for P12OpenAiResponsesExecutor {
             let driver = OpenAiAttemptDriver {
                 request_id: context.request_id().clone(),
                 request,
+                usage_projection,
                 mode,
                 endpoints,
                 client_pool,
@@ -693,6 +695,7 @@ impl ResponsesEventSource for LeaseHoldingEventSource {
 struct OpenAiAttemptDriver {
     request_id: RequestId,
     request: CanonicalRequest,
+    usage_projection: P12ResponseUsageProjection,
     mode: ResponsesResponseMode,
     endpoints: Arc<BTreeMap<EndpointId, EndpointRuntime>>,
     client_pool: Arc<UpstreamClientPool>,
@@ -770,6 +773,7 @@ impl AttemptDriver for OpenAiAttemptDriver {
                         &mut response,
                         self.attempt_stages.as_ref(),
                         &self.request_id,
+                        self.usage_projection,
                     )
                     .await?;
                     Ok(Box::new(FiniteEventSource::new(events)) as Box<dyn ResponsesEventSource>)
@@ -875,6 +879,25 @@ fn p12_openai_compatible_request(
     Ok(translated)
 }
 
+/// Selects the protocol-scoped usage projection from the trusted ingress namespace.
+///
+/// The only P12 Messages marker is produced by the Anthropic decoder for its required
+/// `max_tokens` field. Its presence lets this isolated runtime keep `OpenAI` Responses' detailed
+/// usage for a Responses caller while omitting only counters that an Anthropic usage object has no
+/// field to carry. It is not a client-selectable transport flag and does not change the outbound
+/// request conversion.
+fn p12_response_usage_projection(request: &CanonicalRequest) -> P12ResponseUsageProjection {
+    if request
+        .extensions
+        .get(P12_ANTHROPIC_MAX_TOKENS_EXTENSION)
+        .is_some()
+    {
+        P12ResponseUsageProjection::AnthropicMessages
+    } else {
+        P12ResponseUsageProjection::OpenAiResponses
+    }
+}
+
 fn upstream_response_mode(mode: ResponsesResponseMode) -> ResponseMode {
     match mode {
         ResponsesResponseMode::NonStreaming => ResponseMode::NonStreaming,
@@ -897,6 +920,12 @@ struct FiniteEventSource {
     events: VecDeque<CanonicalEvent>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum P12ResponseUsageProjection {
+    OpenAiResponses,
+    AnthropicMessages,
+}
+
 impl FiniteEventSource {
     fn new(events: Vec<CanonicalEvent>) -> Self {
         Self {
@@ -915,6 +944,7 @@ async fn decode_json_response(
     response: &mut UpstreamHttpResponse,
     attempt_stages: &P12AttemptStageStore,
     request_id: &RequestId,
+    usage_projection: P12ResponseUsageProjection,
 ) -> Result<Vec<CanonicalEvent>, AttemptFailure> {
     attempt_stages.record_stage(request_id, ManagementRequestAttemptStage::BodyRead);
     let mut body = Vec::new();
@@ -932,15 +962,25 @@ async fn decode_json_response(
         body.extend_from_slice(&chunk);
     }
     attempt_stages.record_stage(request_id, ManagementRequestAttemptStage::Decoder);
-    decode_json_events(&body).map_err(|_| AttemptFailure::BootstrapTruncated)
+    decode_json_events_with_usage_projection(&body, usage_projection)
+        .map_err(|_| AttemptFailure::BootstrapTruncated)
 }
 
+#[cfg(test)]
 fn decode_json_events(body: &[u8]) -> Result<Vec<CanonicalEvent>, GatewayError> {
+    decode_json_events_with_usage_projection(body, P12ResponseUsageProjection::OpenAiResponses)
+}
+
+fn decode_json_events_with_usage_projection(
+    body: &[u8],
+    usage_projection: P12ResponseUsageProjection,
+) -> Result<Vec<CanonicalEvent>, GatewayError> {
     let value: Value = serde_json::from_slice(body).map_err(|_| upstream_protocol_error())?;
     let response_id = required_string(&value, "id")?;
     if value.get("status").and_then(Value::as_str) != Some("completed") {
         return Err(upstream_protocol_error());
     }
+    let usage = project_usage_for_response(decode_usage(value.get("usage"))?, usage_projection);
     let output = value
         .get("output")
         .and_then(Value::as_array)
@@ -949,6 +989,17 @@ fn decode_json_events(body: &[u8]) -> Result<Vec<CanonicalEvent>, GatewayError> 
         response_id: ResponseId::try_new(response_id).map_err(|_| upstream_protocol_error())?,
         extensions: RawExtensions::default(),
     })];
+    // Anthropic's Messages representation needs the reported input usage before MessageStart,
+    // while the OpenAI Responses JSON envelope supplies one completed usage object at the end.
+    // Preserve that fact as an interim input-only snapshot, never inventing usage when the
+    // upstream did not report input tokens; the original complete snapshot remains final below.
+    if let Some(usage) = usage.as_ref().filter(|usage| usage.input_tokens.is_some()) {
+        events.push(CanonicalEvent::UsageDelta(UsageDelta {
+            usage: initial_usage_snapshot(usage),
+            is_final: false,
+            extensions: RawExtensions::default(),
+        }));
+    }
     let mut message_open = false;
     let mut emitted_content = false;
     let mut call_ids = BTreeSet::new();
@@ -981,20 +1032,54 @@ fn decode_json_events(body: &[u8]) -> Result<Vec<CanonicalEvent>, GatewayError> 
     if !emitted_content {
         return Err(upstream_protocol_error());
     }
-    if let Some(usage) = decode_usage(value.get("usage"))? {
+    if message_open {
+        events.push(CanonicalEvent::MessageEnd(MessageEnd::default()));
+    }
+    if let Some(usage) = usage {
         events.push(CanonicalEvent::UsageDelta(UsageDelta {
             usage,
             is_final: true,
             extensions: RawExtensions::default(),
         }));
     }
-    if message_open {
-        events.push(CanonicalEvent::MessageEnd(MessageEnd::default()));
-    }
-    events.push(CanonicalEvent::ResponseEnd(ResponseEnd::default()));
+    events.push(CanonicalEvent::ResponseEnd(ResponseEnd {
+        stop_reason: Some(if call_ids.is_empty() {
+            "end_turn".to_owned()
+        } else {
+            "tool_use".to_owned()
+        }),
+        stop_sequence: None,
+        extensions: RawExtensions::default(),
+    }));
     CanonicalResponse::try_new(events)
         .map(CanonicalResponse::into_events)
         .map_err(|_| upstream_protocol_error())
+}
+
+fn project_usage_for_response(
+    usage: Option<Usage>,
+    usage_projection: P12ResponseUsageProjection,
+) -> Option<Usage> {
+    usage.map(|mut usage| {
+        if usage_projection == P12ResponseUsageProjection::AnthropicMessages {
+            // Anthropic reports the aggregate output count but has no representation for the
+            // OpenAI-specific reasoning/cached sub-counters. Keep every representable total and
+            // cache-input field so the Messages boundary does not fail after a successful decode.
+            usage.reasoning_tokens = None;
+            usage.cached_tokens = None;
+        }
+        usage
+    })
+}
+
+fn initial_usage_snapshot(usage: &Usage) -> Usage {
+    Usage {
+        input_tokens: usage.input_tokens,
+        cache_read_tokens: usage.cache_read_tokens,
+        cache_creation_tokens: usage.cache_creation_tokens,
+        cached_tokens: usage.cached_tokens,
+        ..Usage::default()
+    }
 }
 
 fn decode_completed_message(
@@ -1429,11 +1514,22 @@ mod tests {
         fs,
         net::{IpAddr, Ipv4Addr},
         path::{Path, PathBuf},
-        sync::atomic::{AtomicU64, Ordering},
-        time::{SystemTime, UNIX_EPOCH},
+        sync::{
+            Arc,
+            atomic::{AtomicU64, Ordering},
+        },
+        time::{Duration, SystemTime, UNIX_EPOCH},
     };
 
-    use gateway_auth::client_key::{ClientKeyPepper, ClientKeyService};
+    use actix_web::{
+        App,
+        http::{StatusCode, header},
+        test as actix_test, web,
+    };
+    use gateway_auth::{
+        ClientKeyAuthenticator, InMemoryClientKey, InMemoryClientKeyAuthenticator,
+        client_key::{ClientKeyPepper, ClientKeyService},
+    };
     use gateway_control::{
         control_plane_service::credential_associated_data,
         management_service::{ManagementActor, ManagementService},
@@ -1441,12 +1537,14 @@ mod tests {
     use gateway_core::{
         AccessGroupId, AttemptEvent, AttemptOutcome, AttemptRetryDecision, CanonicalEvent,
         ClientKeyId, CredentialId, EgressPolicyId, EndpointId, EventEmission, GatewayError,
-        GatewayErrorCode, GatewayEvent, GatewayEventSink, PublicModelId, RequestId,
+        GatewayErrorCode, GatewayEvent, GatewayEventSink, ProviderId, PublicModelId, RequestId,
         RouteCandidateId, RouteId, UpstreamId,
     };
-    use gateway_http_actix::management_resources::{
-        ManagementRequestAttemptStage, ManagementRuntimeError,
+    use gateway_http_actix::{
+        ResponsesHttpState, configure, default_stream_capacity,
+        management_resources::{ManagementRequestAttemptStage, ManagementRuntimeError},
     };
+    use gateway_router::{DeterministicMockEmission, DeterministicMockResponsesExecutor};
     use gateway_store::{
         control_plane::{
             AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus,
@@ -1471,9 +1569,10 @@ mod tests {
 
     use super::{
         MAX_SSE_FRAME_BYTES, P12_KRILL_COMPATIBILITY_USER_AGENT, P12_STAGING_ENDPOINT_ID,
-        P12AttemptEventSink, P12AttemptStageStore, append_sse_chunk, build_data_plane_composition,
-        decode_json_events, has_exact_p12_egress_shape, has_p12_unlisted_model_override,
-        p12_openai_compatible_request, p12_transport_headers, p12_transport_request,
+        P12AttemptEventSink, P12AttemptStageStore, P12ResponseUsageProjection, append_sse_chunk,
+        build_data_plane_composition, decode_json_events, decode_json_events_with_usage_projection,
+        has_exact_p12_egress_shape, has_p12_unlisted_model_override, p12_openai_compatible_request,
+        p12_response_usage_projection, p12_transport_headers, p12_transport_request,
         staging_route_compiler,
     };
 
@@ -1497,6 +1596,32 @@ mod tests {
             allowed_cidrs: BTreeSet::new(),
             redirect_policy: RedirectPolicy::Deny,
         })?)
+    }
+
+    fn p12_decoded_messages_http_state(
+        events: Vec<CanonicalEvent>,
+    ) -> Result<ResponsesHttpState, Box<dyn Error>> {
+        let emissions = events
+            .into_iter()
+            .map(|event| DeterministicMockEmission::new(Duration::ZERO, event))
+            .collect();
+        let executor = DeterministicMockResponsesExecutor::try_new(
+            ProviderId::try_new("p12-decoder-http-test-provider")?,
+            emissions,
+        )?;
+        let client_key = InMemoryClientKey::try_new(
+            "p12-decoder-http-test-key",
+            ClientKeyId::try_new("p12-decoder-http-test-client")?,
+            true,
+        )?;
+        let authenticator: Arc<dyn ClientKeyAuthenticator> =
+            Arc::new(InMemoryClientKeyAuthenticator::try_new([client_key])?);
+
+        Ok(ResponsesHttpState::new(
+            Arc::new(executor),
+            authenticator,
+            default_stream_capacity()?,
+        ))
     }
 
     static TEMPORARY_DIRECTORY_SEQUENCE: AtomicU64 = AtomicU64::new(0);
@@ -1707,6 +1832,10 @@ mod tests {
             p12_openai_compatible_request(&openai.request)?,
             openai.request
         );
+        assert_eq!(
+            p12_response_usage_projection(&openai.request),
+            P12ResponseUsageProjection::OpenAiResponses
+        );
 
         // `protocol-anthropic`'s valid Messages fixture preserves its required `max_tokens`
         // under this exact source namespace. The binary cannot directly depend on that codec, so
@@ -1722,6 +1851,10 @@ mod tests {
                 .get("anthropic.messages.max_tokens")
                 .map(gateway_core::RawJson::get),
             Some("19")
+        );
+        assert_eq!(
+            p12_response_usage_projection(&anthropic),
+            P12ResponseUsageProjection::AnthropicMessages
         );
 
         let translated = p12_openai_compatible_request(&anthropic)?;
@@ -1794,6 +1927,232 @@ mod tests {
             CanonicalEvent::ToolCallEnd(end)
                 if end.call_id == "call-p12-tool" && end.arguments.get() == r#"{"value":"ok"}"#
         )));
+        assert!(matches!(
+            events.last(),
+            Some(CanonicalEvent::ResponseEnd(end)) if end.stop_reason.as_deref() == Some("tool_use")
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn completed_non_streaming_response_seeds_anthropic_initial_usage_and_end_turn()
+    -> Result<(), Box<dyn Error>> {
+        let events = decode_json_events(
+            br#"{
+              "id":"response-p12-anthropic-lifecycle",
+              "status":"completed",
+              "output":[{
+                "type":"message",
+                "role":"assistant",
+                "content":[{"type":"output_text","text":"ok"}]
+              }],
+              "usage":{
+                "input_tokens":3,
+                "output_tokens":5,
+                "output_tokens_details":{"reasoning_tokens":2}
+              }
+            }"#,
+        )?;
+        let initial_usage_index = events
+            .iter()
+            .position(|event| {
+                matches!(
+                    event,
+                    CanonicalEvent::UsageDelta(delta)
+                        if !delta.is_final
+                            && delta.usage.input_tokens == Some(3)
+                            && delta.usage.output_tokens.is_none()
+                            && delta.usage.reasoning_tokens.is_none()
+                )
+            })
+            .ok_or("missing input-only initial usage")?;
+        let message_start_index = events
+            .iter()
+            .position(|event| matches!(event, CanonicalEvent::MessageStart(_)))
+            .ok_or("missing message start")?;
+        let message_end_index = events
+            .iter()
+            .position(|event| matches!(event, CanonicalEvent::MessageEnd(_)))
+            .ok_or("missing message end")?;
+        let final_usage_index = events
+            .iter()
+            .position(|event| {
+                matches!(
+                    event,
+                    CanonicalEvent::UsageDelta(delta)
+                        if delta.is_final
+                            && delta.usage.input_tokens == Some(3)
+                            && delta.usage.output_tokens == Some(5)
+                            && delta.usage.reasoning_tokens == Some(2)
+                )
+            })
+            .ok_or("missing final usage")?;
+        assert!(initial_usage_index < message_start_index);
+        assert!(message_end_index < final_usage_index);
+        assert!(matches!(
+            events.last(),
+            Some(CanonicalEvent::ResponseEnd(end)) if end.stop_reason.as_deref() == Some("end_turn")
+        ));
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn p12_decoded_completed_response_is_encodable_by_the_anthropic_messages_boundary()
+    -> Result<(), Box<dyn Error>> {
+        let events = decode_json_events_with_usage_projection(
+            br#"{
+              "id":"response-p12-anthropic-http",
+              "status":"completed",
+              "output":[{
+                "type":"message",
+                "role":"assistant",
+                "content":[{"type":"output_text","text":"ok"}]
+              }],
+              "usage":{
+                "input_tokens":3,
+                "output_tokens":5,
+                "output_tokens_details":{"reasoning_tokens":2}
+              }
+            }"#,
+            P12ResponseUsageProjection::AnthropicMessages,
+        )?;
+        let app = actix_test::init_service(
+            App::new()
+                .app_data(web::Data::new(p12_decoded_messages_http_state(events)?))
+                .configure(configure),
+        )
+        .await;
+        let request = actix_test::TestRequest::post()
+            .uri("/v1/messages")
+            .insert_header((header::AUTHORIZATION, "Bearer p12-decoder-http-test-key"))
+            .set_payload(
+                r#"{"model":"p12-decoder-http-model","max_tokens":1,"messages":[{"role":"user","content":"ok"}]}"#,
+            )
+            .to_request();
+
+        let response = actix_test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: Value = serde_json::from_slice(&actix_test::read_body(response).await)?;
+        assert_eq!(
+            body.pointer("/stop_reason").and_then(Value::as_str),
+            Some("end_turn")
+        );
+        assert_eq!(
+            body.pointer("/usage/input_tokens").and_then(Value::as_u64),
+            Some(3)
+        );
+        assert_eq!(
+            body.pointer("/usage/output_tokens").and_then(Value::as_u64),
+            Some(5)
+        );
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn p12_decoded_completed_response_remains_encodable_by_the_openai_responses_boundary()
+    -> Result<(), Box<dyn Error>> {
+        let events = decode_json_events(
+            br#"{
+              "id":"response-p12-openai-http",
+              "status":"completed",
+              "output":[{
+                "type":"message",
+                "role":"assistant",
+                "content":[{"type":"output_text","text":"ok"}]
+              }],
+              "usage":{
+                "input_tokens":3,
+                "output_tokens":5,
+                "output_tokens_details":{"reasoning_tokens":2}
+              }
+            }"#,
+        )?;
+        let app = actix_test::init_service(
+            App::new()
+                .app_data(web::Data::new(p12_decoded_messages_http_state(events)?))
+                .configure(configure),
+        )
+        .await;
+        let request = actix_test::TestRequest::post()
+            .uri("/v1/responses")
+            .insert_header((header::AUTHORIZATION, "Bearer p12-decoder-http-test-key"))
+            .set_payload(r#"{"model":"p12-decoder-http-model","input":"ok"}"#)
+            .to_request();
+
+        let response = actix_test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: Value = serde_json::from_slice(&actix_test::read_body(response).await)?;
+        assert_eq!(
+            body.pointer("/status").and_then(Value::as_str),
+            Some("completed")
+        );
+        assert_eq!(
+            body.pointer("/usage/input_tokens").and_then(Value::as_u64),
+            Some(3)
+        );
+        assert_eq!(
+            body.pointer("/usage/output_tokens").and_then(Value::as_u64),
+            Some(5)
+        );
+        assert_eq!(
+            body.pointer("/usage/output_tokens_details/reasoning_tokens")
+                .and_then(Value::as_u64),
+            Some(2)
+        );
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn p12_decoded_tool_completion_is_encodable_by_the_anthropic_messages_boundary()
+    -> Result<(), Box<dyn Error>> {
+        let events = decode_json_events_with_usage_projection(
+            br#"{
+              "id":"response-p12-tool-http",
+              "status":"completed",
+              "output":[{
+                "type":"function_call",
+                "call_id":"call-p12-tool-http",
+                "name":"echo",
+                "arguments":"{\"value\":\"ok\"}"
+              }],
+              "usage":{
+                "input_tokens":3,
+                "output_tokens":5,
+                "output_tokens_details":{"reasoning_tokens":2}
+              }
+            }"#,
+            P12ResponseUsageProjection::AnthropicMessages,
+        )?;
+        let app = actix_test::init_service(
+            App::new()
+                .app_data(web::Data::new(p12_decoded_messages_http_state(events)?))
+                .configure(configure),
+        )
+        .await;
+        let request = actix_test::TestRequest::post()
+            .uri("/v1/messages")
+            .insert_header((header::AUTHORIZATION, "Bearer p12-decoder-http-test-key"))
+            .set_payload(
+                r#"{
+                  "model":"p12-decoder-http-model",
+                  "max_tokens":1,
+                  "messages":[{"role":"user","content":"ok"}],
+                  "tools":[{"name":"echo","input_schema":{"type":"object"}}]
+                }"#,
+            )
+            .to_request();
+
+        let response = actix_test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: Value = serde_json::from_slice(&actix_test::read_body(response).await)?;
+        assert_eq!(
+            body.pointer("/stop_reason").and_then(Value::as_str),
+            Some("tool_use")
+        );
+        assert_eq!(
+            body.pointer("/content/0/type").and_then(Value::as_str),
+            Some("tool_use")
+        );
         Ok(())
     }
 
