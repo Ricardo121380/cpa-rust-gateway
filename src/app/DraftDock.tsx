@@ -50,12 +50,19 @@ export function DraftDock() {
     onError: (cause) => setError(asAppError(cause).message),
   });
 
-  if (context === undefined || context.status !== "draft") {
+  const isDraft = context !== undefined && context.status === "draft";
+  // The publication sheet must outlive the dock: publishing flips the selected
+  // version draft -> active, which unmounts the dock itself. Rendering the
+  // sheet outside that condition keeps the confirmation on screen (the browser
+  // smoke suite caught this — the sheet used to vanish at the moment of
+  // success).
+  if (!isDraft && publication === undefined) {
     return null;
   }
 
   return (
     <>
+      {isDraft && context !== undefined ? (
       <GlassSurface as="footer" className="dock" material="draft">
         <span>
           草稿 <span className="idchip mono">{context.configVersionId}</span>
@@ -86,6 +93,7 @@ export function DraftDock() {
           </button>
         </span>
       </GlassSurface>
+      ) : null}
 
       {validation !== undefined ? (
         <Sheet title="验证结果" onEscape={() => setValidation(undefined)}>

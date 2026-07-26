@@ -98,20 +98,20 @@ export function AuditBackupPage() {
         ) : null}
       </div>
 
-      <div className="card" style={{ marginTop: 14 }}>
+      <div className="card" data-gap="top">
         <h3>备份</h3>
-        <p style={{ color: "var(--ink-2)", fontSize: 13 }}>
+        <p className="muted small">
           备份工件由运维侧 CLI 生成(设计如此,面板无下载端点);此处仅做源库预检。
           恢复只能进入<strong>空目标库</strong>,须由部署侧执行 —— 详见
           <span className="mono"> docs/07 §7.6</span>。
         </p>
-        <div className="page-actions" style={{ marginTop: 8 }}>
+        <div className="page-actions" data-gap="sm">
           <button type="button" disabled={runPreflight.isPending} onClick={() => runPreflight.mutate()}>
             源库备份预检
           </button>
         </div>
         {preflight !== undefined ? (
-          <p style={{ marginTop: 12, fontSize: 13 }}>
+          <p className="small" data-gap="top">
             schema 版本:<span className="mono">{preflight.schema_version}</span> ·
             {preflight.secret_key_required
               ? " 恢复时需要独立备份密钥(与凭据 Master Key 分离)"

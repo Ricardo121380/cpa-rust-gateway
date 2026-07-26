@@ -13,7 +13,8 @@
     "generate": "node scripts/generate-client.mjs",
     "sync-contract": "node scripts/sync-contract.mjs",
     "check": "node scripts/check.mjs",
-    "check:full": "node scripts/check.mjs --double-build"
+    "check:full": "node scripts/check.mjs --double-build",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.0",
@@ -23,6 +24,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.0",

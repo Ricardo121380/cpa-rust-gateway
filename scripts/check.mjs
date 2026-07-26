@@ -51,6 +51,12 @@ for (const file of walk(SRC)) {
   if (!isGenerated && FETCH_PATTERN.test(text)) {
     failures.push(`${rel}: raw fetch() outside the generated client is banned (C5)`);
   }
+  // Inline style attributes are blocked by the shipped CSP (style-src 'self'
+  // with no inline exemption) — use classes, or SVG presentation attributes
+  // for dynamic geometry.
+  if (/\bstyle=\{\{/u.test(text)) {
+    failures.push(`${rel}: inline style attribute is blocked by the production CSP`);
+  }
 }
 
 function distFileList() {
@@ -105,6 +111,9 @@ if (/<script(?![^>]*\bsrc=)/u.test(html)) {
 }
 if (/<style/u.test(html) || /style="/u.test(html)) {
   failures.push("dist/index.html: inline style detected (C4)");
+}
+if (!html.includes("style-src 'self';")) {
+  failures.push("dist/index.html: production CSP must keep style-src 'self' without inline exemption");
 }
 
 if (process.argv.includes("--double-build")) {

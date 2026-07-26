@@ -211,7 +211,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
                     OAuth 授权
                   </button>
                 ) : (
-                  <span style={{ color: "var(--ink-3)" }}>write-only</span>
+                  <span className="muted-3">write-only</span>
                 )}
               </td>
             </tr>

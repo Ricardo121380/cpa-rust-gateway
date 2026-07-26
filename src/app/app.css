@@ -803,3 +803,19 @@ tr[data-selected="true"] {
   justify-content: center;
   padding: 10px 0 6px;
 }
+
+/* ---------- utility classes (replaces inline styles: CSP style-src 'self'
+     blocks style attributes, proven by the browser smoke suite) ---------- */
+
+[data-gap="top"] { margin-top: 14px; }
+[data-gap="sm"] { margin-top: 8px; }
+.muted { color: var(--ink-2); }
+.muted-3 { color: var(--ink-3); }
+.small { font-size: 13px; }
+
+.legend-dot-input { background: var(--chart-1); }
+.legend-dot-output { background: var(--chart-2); }
+.legend-dot-reasoning { background: var(--chart-3); }
+.legend-dot-cache_read { background: var(--chart-4); }
+
+.token-mix { width: 100%; height: 26px; margin-top: 8px; display: block; }

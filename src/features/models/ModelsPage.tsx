@@ -275,7 +275,7 @@ export function ModelsPage() {
         ) : null}
       </div>
 
-      <div className="card empty-state" data-kind="unwired" style={{ marginTop: 14 }}>
+      <div className="card empty-state" data-kind="unwired" data-gap="top">
         <p>
           别名清单、路由参数与候选(Candidate)的枚举视图,以及 Route Prism 光路图,
           依赖 G1 全图契约(后端会话)—— 创建操作今天可用,列表在 G1 后解锁。

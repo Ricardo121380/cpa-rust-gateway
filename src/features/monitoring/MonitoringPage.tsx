@@ -15,6 +15,7 @@ import {
   resolvePreset,
   type RangePreset,
 } from "../../utils/timerange";
+import { useNowTick } from "../../utils/useNowTick";
 
 const PRESETS: ReadonlyArray<{ key: Exclude<RangePreset, "custom">; label: string }> = [
   { key: "today", label: "今天" },
@@ -29,7 +30,7 @@ function outcomeBadge(row: RequestEventView): string {
 
 export function MonitoringPage() {
   const [params, setParams] = useSearchParams();
-  const nowMs = Date.now();
+  const nowMs = useNowTick();
   const range = paramsToRange(params, nowMs);
   const status = (params.get("status") ?? "all") as "all" | "success" | "failed";
   const model = params.get("model");

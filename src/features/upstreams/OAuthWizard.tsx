@@ -82,7 +82,7 @@ export function OAuthWizard({
           <p>
             启动后网关将发起设备授权流并轮询其状态。
             <br />
-            <small style={{ color: "var(--ink-3)" }}>
+            <small className="muted-3">
               设备码(user_code / verification_uri)的展示需要契约扩展 —— 已记录在形状提案中;
               当前按契约仅呈现操作生命周期。
             </small>
@@ -106,13 +106,13 @@ export function OAuthWizard({
               "查询中…"
             )}
             {operation?.state === "pending" && expiresIn !== undefined ? (
-              <span className="mono" style={{ marginLeft: 8, color: "var(--ink-2)" }}>
+              <span className="mono muted">
                 {expiresIn}s 后过期
               </span>
             ) : null}
           </p>
           {operation?.state === "pending" ? (
-            <p style={{ color: "var(--ink-2)", fontSize: 13 }}>每 2 秒轮询一次(页签隐藏时暂停)。</p>
+            <p className="muted small">每 2 秒轮询一次(页签隐藏时暂停)。</p>
           ) : null}
           <div className="sheet-actions">
             {operation?.state === "pending" ? (

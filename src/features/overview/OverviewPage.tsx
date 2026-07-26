@@ -57,11 +57,11 @@ function ObservabilitySection() {
 
   if (!analyticsAvailable()) {
     return (
-      <div className="card empty-state" data-kind="unwired" style={{ marginTop: 14 }}>
+      <div className="card empty-state" data-kind="unwired" data-gap="top">
         <p>
           {messages.state.unwired}
           <br />
-          <small style={{ color: "var(--ink-3)" }}>
+          <small className="muted-3">
             今日 KPI、流量趋势、健康条带与 Token 构成将在 G2(事件管道接线)与
             G3(分析端点)交付后点亮 —— 归后端会话。
           </small>
@@ -72,7 +72,7 @@ function ObservabilitySection() {
   const summary = dashboard.data;
   if (summary === undefined) {
     return (
-      <div className="card empty-state" data-kind="empty" style={{ marginTop: 14 }}>
+      <div className="card empty-state" data-kind="empty" data-gap="top">
         <p>加载今日观测…</p>
       </div>
     );
@@ -96,7 +96,7 @@ function ObservabilitySection() {
         <StatTile label="P95 延迟" value={formatLatency(summary.kpi.latency_p95_ms)} sub="来源:尝试时间戳" />
       </div>
 
-      <div className="overview-grid" style={{ marginTop: 14 }}>
+      <div className="overview-grid" data-gap="top">
         <div className="card">
           <h3>流量趋势(今日,按小时)</h3>
           {trend.data?.timeline !== undefined ? (
@@ -111,12 +111,12 @@ function ObservabilitySection() {
         </div>
       </div>
 
-      <div className="card" style={{ marginTop: 14 }}>
+      <div className="card" data-gap="top">
         <h3>请求健康条带(10 分钟桶)</h3>
         <HealthStrip buckets={summary.health_strip} />
       </div>
 
-      <div className="overview-grid" style={{ marginTop: 14 }}>
+      <div className="overview-grid" data-gap="top">
         <div className="card">
           <h3>模型用量排行(今日)</h3>
           <table>
@@ -196,10 +196,10 @@ export function OverviewPage() {
               <span className="mono">{active.id}</span> <StatusBadge status="active" />
               <br />
               <span className="idchip mono">{active.revision}</span>{" "}
-              <span style={{ color: "var(--ink-2)", fontSize: 13 }}>{active.description}</span>
+              <span className="muted small">{active.description}</span>
             </p>
           ) : (
-            <p style={{ color: "var(--ink-2)" }}>尚无活动版本 —— 发布一个草稿后出现。</p>
+            <p className="muted">尚无活动版本 —— 发布一个草稿后出现。</p>
           )}
           <Link to="/versions">前往配置版本 →</Link>
         </div>
@@ -207,7 +207,7 @@ export function OverviewPage() {
         <div className="card">
           <h3>布线规模{scope === undefined ? "(未选择版本)" : ""}</h3>
           {scope === undefined ? (
-            <p style={{ color: "var(--ink-2)" }}>在顶栏选择一个配置版本后显示。</p>
+            <p className="muted">在顶栏选择一个配置版本后显示。</p>
           ) : (
             <div className="count-row">
               {counts.map((item) => (
