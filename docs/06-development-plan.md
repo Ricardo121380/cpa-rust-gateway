@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.70` |
+| 计划版本 | `v1.71` |
 | 生效日期 | `2026-07-26` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -2439,6 +2439,40 @@ CR-ID: CR-P12-06-001
 计划版本变更: v1.70
 ```
 
+### 已批准 Change Request：CR-P12-06-002
+
+```text
+CR-ID: CR-P12-06-002
+原因: §2.1 把聚合控制面列为必须交付，docs/05 §M0-D 要求 Anthropic-compatible Messages
+      Endpoint 作为上游端点类型，docs/05:540 记录 Kiro-RS 迁移期正走该路径。但独立 review
+      以证据确证三处后端缺口：(1) protocol-anthropic 只有入站方向，Canonical→Anthropic 请求
+      与 Anthropic 响应/SSE→Canonical 全仓不存在；(2) provider-anthropic-compatible 是 6 行
+      空壳；(3) BL-06 只做了数据建模——ProtocolFormat::from_api_format 已认得两种格式，但
+      endpoint_api_format() 零生产消费者，没有任何代码按格式选择适配器，且 api_format 在
+      store 中是自由 String，route_compiler 只查唯一性、从不校验取值可服务。
+影响的 Task / Matrix ID / ADR: protocol-anthropic 新增出站方向（encode_upstream_request、
+      decode_upstream_response、AnthropicMessagesSseDecoder），以入站解码器的同一
+      CacheControlCollector 证明 prompt_cache_retention 可反导，并由自有 CanonicalEventState
+      逐事件校验，使解码器结构上无法产出非法 canonical 序列。provider-anthropic-compatible
+      填充为该格式的 provider 边界（x-api-key + anthropic-version 四固定 Header），并再导出
+      响应方向，使装配根只经这一个边界进出该格式。gateway-protocol 空壳填充为封闭 ApiFormat
+      词表 + ApiFormatAdapterRegistry，并成为 adapter_id↔api_format 配对的唯一真源：
+      route_compiler 在 validate/publish 即以 unsupported_endpoint_api_format 拒绝不可服务的
+      格式与错配的 adapter_id，装配期再校验工厂产出的适配器格式与声明一致。P12 执行器改用
+      BC-ROUTER-005 的协议过滤入口 start_with_event_sink_for_protocol，使多格式图下的候选选择
+      按客户端协议进行。Kiro/Grok 切片的延后边界不变（CR-P12-ROLLOUT-001）。
+兼容性与迁移影响: 既有单格式配置图行为不变，OpenAI 路径的解码器、活性边界与传输 profile
+      逐字节未改。新增客户端可见能力：可录入 anthropic/messages Endpoint 并由该格式的适配器
+      服务。新增拒绝：未收录的 api_format、或 adapter_id 与 api_format 不配对的 Endpoint，在
+      发布前整版拒绝而非运行时才失败。Usage 投影改为按客户端协议双向收窄——Anthropic 上游
+      恒报的 cache-input 计数不再泄漏给 Responses 客户端编码器。
+测试与回滚变化: 新增 22 项本地测试（出站编码器往返一致性含 cache_control 再导、SSE 解码器
+      1/3/29/单发分块不变性、工具与思考流、fail-closed 矩阵、格式与 adapter_id 准入拒绝、
+      工厂绑定校验、Anthropic SSE 活性与 bootstrap 拒绝）。回滚为 revert 本 CR 的提交。
+用户批准: APPROVED，2026-07-27（"按照后端开发方案完成整个后端开发，批准你所有权限"）
+计划版本变更: v1.71
+```
+
 ### Canary 推进与回滚规则
 
 - 每个流量阶段至少持续 2 小时并包含至少 100 个成功请求；低流量时使用固定合成请求补足。
@@ -2624,3 +2658,4 @@ Next task:
 | v1.68 | 2026-07-26 | `CR-P12-05-018`：交付受控配额恢复探测与管理面受控恢复：live 选择路径在普通选择失败后可将一个到期 `RecoveryRequired` binding 作为单张 CAS ticket、lease-first 的受控探测 Attempt（成功以 Estimated 空窗口快照完成，再次 429 由新快照取代 ticket，Health 谓词先行，403 账户永不被当作配额探测）；P12 管理 facade 注入与请求路径相同的 Health/Quota 运行时句柄，403 账户凭操作者证据本地 begin+complete(Allowed)，到期（Reset 后）配额可操作者覆盖，Reset 前拒绝，不发送 Provider 流量 | APPROVED；7 项新本地测试与受影响包 `cargo test`/`clippy` 全通过 |
 | v1.69 | 2026-07-26 | `CR-P12-05-019`：serve 组合接通 P4 可观测性：数据面 sink 改为 stage-ledger-first 的 fanout 进有界队列（BL-10 损失显式）；生产 writer + telemetry fan-out 在监听器 bind 后 spawn、停机 5s 有界 flush join；管理监听器新增受保护只读 Prometheus 暴露；管理 Attempt listing 改为 durable 日志支撑（含 endpoint/credential 身份），stage ledger 降级为 enrichment | APPROVED；5 项新本地测试、3 项 ledger 测试改写，受影响包 `cargo test` 全通过 |
 | v1.70 | 2026-07-26 | `CR-P12-06-001`：P12 serve 准入从 singleton 图扩至生产图形状（多 Endpoint/Credential/别名/多 Key，max_attempts 1..=5，总并发 <=16，OpenAI-compatible fail-closed）；随附生产配置图录入与客户端 Key 迁移 Runbook（docs/p12-rollout-runbook.md，双接受窗口 + Caddy `rgw_` 前缀分流） | APPROVED；6 项新本地测试与受影响包 `cargo test`/`clippy` 全通过 |
+| v1.71 | 2026-07-27 | `CR-P12-06-002`：交付 Anthropic 出站编解码器与 provider 边界、填充 gateway-protocol 为封闭 ApiFormat 词表与适配器注册表、api_format 与 adapter_id 在发布期即校验、执行器改用 BC-ROUTER-005 协议过滤选择候选 | APPROVED；22 项新本地测试与全量门禁通过 |

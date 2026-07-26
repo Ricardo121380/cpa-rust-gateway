@@ -54,6 +54,7 @@ or validating it as publishable traffic.
 | Alias collides with a Public Model name | reject the complete graph |
 | Alias/Route/Candidate/Access Group reference missing logical target | reject the complete graph |
 | Duplicate `(upstream_id, api_format)` Endpoint | reject the complete graph |
+| Endpoint declares an `api_format` no adapter can serve | reject the complete graph |
 | Active Candidate uses a disabled Upstream/Endpoint or has no active binding | reject the Route |
 | Active Candidate is absent/expired in Catalog without exception | reject the Route |
 | Endpoint profile is missing or cannot meet requirements | reject the Route |
@@ -70,6 +71,8 @@ P2-06 does not publish/activate/rollback a Version, create weighted schedules, a
 
 - A valid multi-Candidate graph compiles into deterministic secret-free Public Model, Alias, Route, Candidate, and Access Group views.
 - Each conflict-matrix row returns a stable error code; invalid input returns no partial output.
+- An Endpoint whose `api_format` is outside the product's closed vocabulary rejects the complete
+  graph with `unsupported_endpoint_api_format`, whether or not an active Candidate references it.
 - Fresh/stale/manual Catalog entries succeed; expired/missing entries require the explicit Candidate exception.
 - Capability narrowing succeeds; malformed, unknown, escalating, and incompatible declarations fail.
 - Source/boundary tests prove Router, Provider, and HTTP receive no Repository or control-plane graph types.

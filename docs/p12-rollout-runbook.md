@@ -25,7 +25,7 @@
 1. `POST /admin/config-versions` `{id, description}` → 201，得初始 revision
 2. `POST /admin/egress-policies`——schemes 仅 `["https"]`、逐一列出上游主机与端口、`redirect_mode:"deny"`、`max_redirects:0`
 3. `POST /admin/upstreams`（每个中转站一条，引用出口策略）
-4. `POST /admin/upstreams/{id}/endpoints`——`adapter_id:"openai-compatible.responses"`、`api_format:"openai/responses"`（组合准入只接受此格式；其他格式 fail closed）、`base_url`、`inference_path`
+4. `POST /admin/upstreams/{id}/endpoints`——`adapter_id` 必须与 `api_format` 配对（`openai-compatible.responses`↔`openai/responses`，`anthropic-compatible.messages`↔`anthropic/messages`）；词表之外的 `api_format` 在 validate/publish 阶段即以 `unsupported_endpoint_api_format` 整版拒绝，本 build 未绑定适配器的格式在装配阶段 fail closed、`base_url`、`inference_path`
 5. `POST /admin/upstreams/{id}/credentials`——`kind:"bearer"`、`secret` 为一次性写入明文（服务端 XChaCha20-Poly1305 加密后落库；GET 只回元数据）
 6. `POST /admin/endpoints/{id}/credential-bindings`——priority/weight/concurrency 按容量规划
 7. `POST /admin/public-models`（每个公开模型一条）

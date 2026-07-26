@@ -701,11 +701,13 @@ dependencies = [
  "gateway-core",
  "gateway-http-actix",
  "gateway-observability",
+ "gateway-protocol",
  "gateway-router",
  "gateway-store",
  "gateway-upstream",
  "libc",
  "protocol-openai-responses",
+ "provider-anthropic-compatible",
  "provider-openai-compatible",
  "serde_json",
  "zeroize",
@@ -756,6 +758,7 @@ dependencies = [
  "gateway-catalog",
  "gateway-core",
  "gateway-observability",
+ "gateway-protocol",
  "gateway-router",
  "gateway-store",
  "gateway-upstream",
@@ -840,6 +843,7 @@ dependencies = [
  "gateway-catalog",
  "gateway-continuity",
  "gateway-core",
+ "gateway-protocol",
  "gateway-provider",
  "gateway-upstream",
  "tokio",
@@ -1621,6 +1625,7 @@ dependencies = [
  "gateway-provider",
  "gateway-upstream",
  "protocol-anthropic",
+ "zeroize",
 ]
 
 [[package]]

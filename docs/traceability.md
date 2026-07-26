@@ -145,6 +145,12 @@
 |---|---|---|---|---|---|
 | P11-03 | Plan 17、21；Matrix `K01-K12`、`G05`、`G12-G15`；Behavior 1/4/5/9/17/20 | P1/P3 existing performance boundaries; no new runtime contract | Offline deterministic Mock Provider and in-process Actix Responses Criterion baselines, explicit P99/throughput/RSS thresholds and fail-closed comparison | [P11-03 benchmark report](reports/p11-03-benchmark-baseline.md) | LOCAL_PASS_PENDING_PHASE_GATE |
 
+## P12 追踪
+
+| Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
+|---|---|---|---|---|---|
+| P12-05 | Plan 2.1；docs/05 §M0-D、§15 | [BC-PROTOCOL-007](contracts/BC-PROTOCOL-007-api-format-adapter-registry.md)、[BC-ROUTER-001](contracts/BC-ROUTER-001-validated-route-compiler.md) | `gateway-protocol` `ApiFormat` + `ApiFormatAdapterRegistry`、Route Compiler `unsupported_endpoint_api_format`、P12 per-Endpoint adapter composition | — | LOCAL_PASS_PENDING_PHASE_GATE |
+
 ## 后续 Phase 映射
 
 | 矩阵模块 | 主要 Phase |
