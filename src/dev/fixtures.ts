@@ -60,6 +60,39 @@ type ModelRow = {
   capabilities: Record<string, boolean>;
 };
 
+type EndpointRow = {
+  id: string;
+  upstream_id: string;
+  adapter_id: string;
+  api_format: string;
+  base_url: string;
+  inference_path: string;
+  models_path: string | null;
+  transport: "https";
+  enabled: boolean;
+};
+
+type CredentialRow = {
+  id: string;
+  upstream_id: string;
+  kind: string;
+  status: "active" | "disabled" | "revoked";
+  revision: number;
+  secret_present: true;
+};
+
+type BindingRow = {
+  endpoint_id: string;
+  upstream_id: string;
+  credential_id: string;
+  enabled: boolean;
+  priority: number;
+  weight: number;
+  concurrency: number;
+};
+
+type OAuthOp = { state: "pending" | "complete" | "cancelled" | "failed"; polls: number; expires_at_ms: number };
+
 type AuditRow = {
   id: number;
   action: string;
@@ -152,6 +185,61 @@ const state = {
       ],
     ],
   ]),
+  endpoints: new Map<string, EndpointRow[]>([
+    [
+      "draft-2026-08",
+      [
+        {
+          id: "ep-relay-a-responses",
+          upstream_id: "relay-a",
+          adapter_id: "openai-compatible",
+          api_format: "openai/responses",
+          base_url: "https://relay-a.example.com/v1",
+          inference_path: "/responses",
+          models_path: "/models",
+          transport: "https",
+          enabled: true,
+        },
+        {
+          id: "ep-grok-build",
+          upstream_id: "grok-build-pool",
+          adapter_id: "grok.build",
+          api_format: "openai/responses",
+          base_url: "https://cli-chat-proxy.grok.com/v1",
+          inference_path: "/responses",
+          models_path: null,
+          transport: "https",
+          enabled: false,
+        },
+      ],
+    ],
+  ]),
+  credentials: new Map<string, CredentialRow[]>([
+    [
+      "draft-2026-08",
+      [
+        { id: "cred-relay-key", upstream_id: "relay-a", kind: "api_key", status: "active", revision: 2, secret_present: true },
+        { id: "cred-grok-oauth", upstream_id: "grok-build-pool", kind: "oauth", status: "disabled", revision: 0, secret_present: true },
+      ],
+    ],
+  ]),
+  bindings: new Map<string, BindingRow[]>([
+    [
+      "draft-2026-08",
+      [
+        {
+          endpoint_id: "ep-relay-a-responses",
+          upstream_id: "relay-a",
+          credential_id: "cred-relay-key",
+          enabled: true,
+          priority: 0,
+          weight: 1,
+          concurrency: 4,
+        },
+      ],
+    ],
+  ]),
+  oauthOps: new Map<string, OAuthOp>(),
   models: new Map<string, ModelRow[]>([
     [
       "draft-2026-08",
@@ -533,6 +621,95 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       routes.push({ id: body.id, public_model_id: modelId });
       version.revision += 1;
       return json(201, { ...JSON.parse(bodyText ?? "{}"), public_model_id: modelId }, revisionToken(version));
+    }
+
+    // ---- PROPOSED G1: full graph (shape per CR-FE-001-shapes doc) ----
+    const graph = /^GET \/admin\/config-versions\/([^/]+)\/graph$/u.exec(route);
+    if (graph !== null) {
+      const version = state.versions.find((row) => row.id === decodeURIComponent(graph[1] ?? ""));
+      if (version === undefined) {
+        return errorResponse(409, "management_lifecycle_conflict", "unknown config version");
+      }
+      return json(
+        200,
+        {
+          config_version: { ...version, revision: revisionToken(version) },
+          egress_policies: state.egress.get(version.id) ?? [],
+          upstreams: state.upstreams.get(version.id) ?? [],
+          endpoints: state.endpoints.get(version.id) ?? [],
+          credentials: state.credentials.get(version.id) ?? [],
+          bindings: state.bindings.get(version.id) ?? [],
+          public_models: state.models.get(version.id) ?? [],
+          aliases: state.aliases.get(version.id) ?? [],
+          routes: state.routes.get(version.id) ?? [],
+          candidates: [],
+          access_groups: state.groups.get(version.id) ?? [],
+          access_group_routes: [],
+          client_keys: state.keys.get(version.id) ?? [],
+        },
+        revisionToken(version),
+      );
+    }
+
+    // ---- credential OAuth (real contract ops; device-flow state machine) ----
+    const oauthStart = /^POST \/admin\/credentials\/([^/]+)\/oauth\/start$/u.exec(route);
+    if (oauthStart !== null) {
+      const id = decodeURIComponent(oauthStart[1] ?? "");
+      state.oauthOps.set(id, { state: "pending", polls: 0, expires_at_ms: Date.now() + 300_000 });
+      const op = state.oauthOps.get(id) as OAuthOp;
+      return json(202, { credential_id: id, state: op.state, expires_at_ms: op.expires_at_ms });
+    }
+    const oauthStatus = /^GET \/admin\/credentials\/([^/]+)\/oauth\/status$/u.exec(route);
+    if (oauthStatus !== null) {
+      const id = decodeURIComponent(oauthStatus[1] ?? "");
+      const op = state.oauthOps.get(id);
+      if (op === undefined) {
+        return errorResponse(409, "management_lifecycle_conflict", "no oauth operation for credential");
+      }
+      if (op.state === "pending") {
+        op.polls += 1;
+        if (op.polls >= 3) {
+          op.state = "complete"; // third poll succeeds — exercises the full pending path
+        }
+      }
+      return json(200, { credential_id: id, state: op.state, expires_at_ms: op.expires_at_ms });
+    }
+    const oauthCancel = /^POST \/admin\/credentials\/([^/]+)\/oauth\/cancel$/u.exec(route);
+    if (oauthCancel !== null) {
+      const id = decodeURIComponent(oauthCancel[1] ?? "");
+      const op = state.oauthOps.get(id);
+      if (op !== undefined && op.state === "pending") {
+        op.state = "cancelled";
+      }
+      return new Response(null, { status: 204 });
+    }
+
+    // ---- endpoint test + catalog discovery (real contract ops) ----
+    const epTest = /^POST \/admin\/endpoints\/([^/]+)\/test$/u.exec(route);
+    if (epTest !== null) {
+      const id = decodeURIComponent(epTest[1] ?? "");
+      const body = JSON.parse(bodyText ?? "{}") as { mode?: string };
+      if (id === "ep-grok-build") {
+        return json(200, { outcome: "transport_failed" });
+      }
+      return json(200, {
+        outcome: "pass",
+        status_class: "2xx",
+        canonical_lifecycle: body.mode === "sse",
+      });
+    }
+    const discoverPreview = /^POST \/admin\/endpoints\/([^/]+)\/models\/discover-preview$/u.exec(route);
+    if (discoverPreview !== null) {
+      return json(200, { added: 2, removed: 0, unchanged: 3 });
+    }
+    const discoverApply = /^POST \/admin\/endpoints\/([^/]+)\/models\/discover-apply$/u.exec(route);
+    if (discoverApply !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const rejected = requireDraftAndMatch(version, headers);
+      if (rejected !== undefined) return rejected;
+      version.revision += 1;
+      return json(200, { added: 2, removed: 0, unchanged: 3 }, revisionToken(version));
     }
 
     // ---- audit + backup ----

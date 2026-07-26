@@ -619,3 +619,36 @@ tr[data-selected="true"] {
   color: var(--tint);
   border: 1px solid currentColor;
 }
+
+/* ---------- FE-3 build-ahead: subresource panel, oauth, diff ---------- */
+
+.subresource-panel {
+  margin-top: 14px;
+  overflow-x: auto;
+}
+.subresource-panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  margin: 14px 0 6px;
+}
+.subresource-panel h3:first-of-type {
+  margin-top: 0;
+}
+.subresource-panel table {
+  margin-bottom: 4px;
+}
+
+.oauth-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.diff-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 6px 0 10px;
+}

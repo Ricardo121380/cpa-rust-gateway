@@ -11,6 +11,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { messages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
 import type { EgressPolicy } from "../egress/model";
+import { SubresourcePanel } from "./SubresourcePanel";
 
 type Upstream = Readonly<{
   id: string;
@@ -229,15 +230,7 @@ export function UpstreamsPage() {
         ) : null}
       </div>
 
-      {expanded !== undefined ? (
-        <div className="card empty-state" data-kind="unwired">
-          <p>
-            <span className="mono">{expanded}</span> 的端点 / 凭据 / 绑定枚举依赖 G1
-            全图契约(后端会话交付后自动解锁)。届时此处将展示三层子资源与 OAuth /
-            端点测试 / 目录发现入口。
-          </p>
-        </div>
-      ) : null}
+      {expanded !== undefined ? <SubresourcePanel upstreamId={expanded} /> : null}
 
       {draft !== undefined ? (
         <Sheet title={draft.isNew ? "新建上游" : `编辑 ${draft.id}`} onEscape={() => setDraft(undefined)}>
