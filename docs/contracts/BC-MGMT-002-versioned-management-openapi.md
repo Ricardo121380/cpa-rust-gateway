@@ -42,6 +42,10 @@ authentication and has no administrative operation or response field.
 6. Endpoint test, Catalog discovery, Route Explain, runtime status, quota recovery, request
    attempts, audit, OAuth and backup/restore names are frozen in the contract but explicitly tag
    their owning later P10 Task. Naming them does not authorize their execution.
+7. `GET /admin/observability/metrics` (P12) returns only the bounded Prometheus text exposition
+   (`text/plain; version=0.0.4`) aggregated by the background telemetry consumer. It carries no
+   request-scoped or target-scoped label, no request identifier, and no model value; it stays
+   behind the same `X-Management-Key` admission as every other `/admin/` route.
 
 ## Deferred behavior
 

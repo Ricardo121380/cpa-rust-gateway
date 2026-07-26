@@ -76,3 +76,12 @@ Rollback removes the pipeline, `AsyncSqliteEventWriter` builder hook, telemetry 
 P4-08 documentation. It restores P4-07's durable-only receiver consumer without changing the
 bounded event admission port, event schema, `SQLite` migration, Router/HTTP behavior, Provider
 traffic, or Secret storage.
+
+## Amendment (2026-07-26, P12 serve composition)
+
+The P12 serve composition attaches the pipeline to its production writer unchanged, with the
+`TracingJsonExporter` rendering structured JSON lines through the process-global `tracing`
+subscriber installed at serve start (stdout/journald) and the no-op OpenTelemetry exporter. The
+shared `PrometheusMetrics` registry becomes the source of the protected management exposition
+`GET /admin/observability/metrics`, which mirrors the queue admission counters at scrape time and
+renders only the frozen bounded label set.

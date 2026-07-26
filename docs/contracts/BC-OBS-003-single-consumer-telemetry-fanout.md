@@ -19,6 +19,12 @@ For every event delivered to the writer, the pipeline runs once at admission bef
 handling. The same event is not re-exported because its `SQLite` transaction retries. Diagnostics
 are observed but retain their BC-OBS-002 status as non-persisted records.
 
+The P12 serve composition attaches this pipeline unchanged: the shared `PrometheusMetrics`
+registry it aggregates is also the source of the protected management exposition
+`GET /admin/observability/metrics`, which renders only the frozen bounded counters plus the
+scrape-time-mirrored queue admission counters and never reads the durable log or blocks a scrape
+on `SQLite`. Structured JSON records render through the process-global `tracing` subscriber.
+
 ```text
 HTTP / Router: GatewayEventSink::try_emit (never awaits)
         |

@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.67` |
+| 计划版本 | `v1.70` |
 | 生效日期 | `2026-07-26` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -2353,6 +2353,92 @@ CR-ID: CR-P12-ROLLOUT-001
 计划版本变更: v1.67
 ```
 
+### 已批准 Change Request：CR-P12-05-018
+
+```text
+CR-ID: CR-P12-05-018
+原因: 独立 review 确认 429/403 的 fail-closed 状态在生产路径不可恢复：runtime_quota 的
+      begin/complete_recovery_probe 与 runtime_health 的 begin/complete_account_recovery
+      在 workspace 内零生产调用者，P12 管理 facade 对配额恢复恒返回 Rejected。单一凭据
+      部署下一次 429/403 即永久退出调度直至进程重启，违反 BL-17 的"Reset 后受控探测"。
+影响的 Task / Matrix ID / ADR: gateway-router 与 P12 serve facade。live 选择路径在普通
+      选择失败后，可把一个到期 `RecoveryRequired` binding 作为单张 CAS ticket、lease-first
+      的受控探测 Attempt：成功以 Estimated 空窗口快照完成恢复；再次 429 以新快照取代
+      ticket 回到 cooldown；Health 谓词先行；403 账户永不被当作配额探测（BL-16 要求账户级
+      证据）。P12 管理 facade 注入与请求路径相同的 Health/Quota 运行时句柄：403 账户凭
+      操作者证据本地 begin+complete(Allowed)；到期配额可操作者覆盖、Reset 前拒绝；均不
+      发送 Provider 流量。BC-CRED-002、BC-ROUTER-003、BC-MGMT-001、ADR-0028、ADR-0032
+      同步增补。
+兼容性与迁移影响: 公开 API 不变。行为变化一项：一次 429 不再永久移除凭据——Reset 到期后
+      的下一次选路自动发起恰一次受控探测（并发选路至多一张 ticket，无雷群）。
+测试与回滚变化: 7 项新本地测试（单次受控探测自恢复、并发至多一张 ticket、失败探测回
+      cooldown 不抖动、403 永不作为配额探测、仅到期 binding 可选、操作者配额覆盖、操作者
+      403 恢复）。回滚为 revert 对应提交。
+用户批准: APPROVED，2026-07-26（"完成前瞻三件事"）
+计划版本变更: v1.68
+```
+
+### 已批准 Change Request：CR-P12-05-019
+
+```text
+CR-ID: CR-P12-05-019
+原因: P4 的有界事件队列、append-only SQLite 事件 writer 与单消费者 telemetry fan-out
+      （BC-OBS-001/002/003）此前从未被 serve 二进制实际组合：P12 数据面 sink 只喂内存
+      stage ledger，durable 事件日志无生产写入者，Prometheus 计数器无生产暴露面，管理面
+      Attempt listing 依赖 8 槽内存 ledger 并在其失效时整体 fail closed，隐藏了 durable
+      证据本可回答的查询。
+影响的 Task / Matrix ID / ADR: P12 serve 组合与管理监听器。(1) 数据面 sink 改为 fanout：
+      先记 stage ledger（饱和队列不能隐藏 stage），再进有界队列，队列准入结果为权威
+      （BL-10：Required 丢失显式为 RequiredQueueFull，仅低优先诊断可丢）。(2) serve 组合
+      构建 BoundedEventQueue + AsyncSqliteEventWriter（挂 TelemetryPipeline：共享
+      PrometheusMetrics、TracingJsonExporter 经进程级 tracing JSON subscriber、Noop OTel），
+      部署 envelope 在两个监听器 bind 后 spawn writer，停机以 5s 有界等待 join，超时为显式
+      EventLogFlushIncomplete 失败而非伪造 flush。(3) 管理监听器新增受保护
+      GET /admin/observability/metrics（text/plain; version=0.0.4），仅渲染冻结有界计数器并
+      在 scrape 时镜像队列准入计数，不读 durable 日志、不阻塞于 SQLite。(4) 管理 facade 持有
+      SqliteEventStore 只读连接，Attempt listing 改为 durable 时间线（含事件已有的非秘密
+      endpoint_id/credential_id），stage ledger 降级为仅对无歧义单 Attempt 时间线的 stage
+      enrichment，任何 ledger 损失退化为无 stage 列表而非隐藏 durable 证据。BC-MGMT-001、
+      BC-MGMT-002（OpenAPI 增补该只读暴露）、BC-OBS-002/003（组合引用）、ADR-0027/0030/0032
+      相应增补。gateway_event_log 由迁移 0005 触发器保持 append-only，serve 期无保留策略，
+      有界增长风险显式接受（每完成请求 3 行 Required），修剪需新迁移加 ADR-0027 修订。
+兼容性与迁移影响: 公开数据面 API、Canonical、Provider、Schema 不变。管理面 Attempt 行为
+      变化：listing 由内存投影改为 durable 日志支撑，新增 endpoint_id/credential_id 可选
+      字段（契约 Schema 已声明），ledger 失效不再使 listing 整体不可用。新增管理只读
+      metrics 路由在既有 X-Management-Key 准入之后，无请求级标签。
+测试与回滚变化: 新增 5 项本地测试：serve 组合端到端持久化（HTTP 200 → writer flush 3 行
+      Required → Prometheus 快照 → durable 读回 → facade listing 含 stage/endpoint/credential）；
+      fanout 溢出保持 Required 损失显式且 stage 投影完好；ledger 耗尽后 durable listing 存活；
+      管理 metrics 暴露的认证/内容类型/无值泄漏回归；组合 drop 后 writer 自行 flush 退出。
+      3 项既有 ledger 测试改写为新读端口语义。回滚为 revert 本 CR 提交；无服务器或数据变更。
+用户批准: APPROVED，2026-07-26（"完成前瞻三件事"）
+计划版本变更: v1.69
+```
+
+### 已批准 Change Request：CR-P12-06-001
+
+```text
+CR-ID: CR-P12-06-001
+原因: P12-06 影子流量与 P12-08 Canary 需要生产图形状（多 Upstream/Endpoint/Credential/Candidate、
+      预首字节重试 max_attempts>1、别名、多公开模型与多 Client Key），而 P12-05 的 serve 组合
+      仅放行经评审的 singleton 图（单 Endpoint/Credential/Key，max_attempts==1）。
+影响的 Task / Matrix ID / ADR: apps/gateway serve 组合的准入与组装（runtime.rs）；
+      ADR-0029 固定输入 Route Explain 的 P12 投影随之从单 Candidate 扩为全 Candidate 序。
+      范围仍按 CR-P12-ROLLOUT-001 钉死 OpenAI-compatible：任一 Endpoint 的 api_format 非
+      `openai/responses` 或 Candidate 非 Canonical 即整版拒绝（fail-closed，不静默跳过）。
+      新增边界：max_attempts 1..=5（全部预首字节，BL-05）；绑定总并发 <=16（守住有界驻留
+      内存）；egress 仍 HTTPS-only/Deny 重定向/无 CIDR 例外；bootstrap 上限 15s 不变。
+      RouteCompiler 能力档案改为从控制库全部版本的 Endpoint 并集派生（能力集仍为空，
+      Candidate 仍需 allow_unlisted_model）；新增全新 Endpoint 的草稿需一次隔离重启后才能
+      validate，沿用既有 restart-after-publication 生命周期。
+兼容性与迁移影响: 既有 singleton 图仍可组装（向后兼容测试保留）。公开 API、Canonical、
+      Schema 不变；BL-05/07/08/09/10/17 基线不变。
+测试与回滚变化: 新增组装/准入/失败切换（loopback 预首字节 failover）/越界拒绝测试；回滚为
+      还原本 CR 涉及的 apps/gateway 变更。
+用户批准: APPROVED，2026-07-26（"完成前瞻三件事"；范围与分流机制承接 CR-P12-ROLLOUT-001）
+计划版本变更: v1.70
+```
+
 ### Canary 推进与回滚规则
 
 - 每个流量阶段至少持续 2 小时并包含至少 100 个成功请求；低流量时使用固定合成请求补足。
@@ -2535,3 +2621,6 @@ Next task:
 | v1.65 | 2026-07-26 | `CR-P12-05-016`：修复 serve 二进制上的 Anthropic 流式 usage 时序、流式 Tool 生命周期、256 KiB 入站正文上限与缺失的 SSE keepalive/45s 绝对超时；放宽 `message_start` 的精确 input Usage 要求为终止 `message_delta` 强制交付 | APPROVED；27 项新本地测试与 `check.sh fast` 全通过，未改服务器或公开边界 |
 | v1.66 | 2026-07-26 | `CR-P12-05-017`：以 driver 声明式 in-flight 上限使非流式 600s 传输上限可达；双层语义活性把卡死上游的租约占用从 1 小时降至约 17 分钟且不误杀思考停顿与停读客户端；解码器双游标消除 O(n²) 扫描并约束工具标识符 | APPROVED；16 项新本地测试、4300+ 例差分模糊与全工作区门禁通过 |
 | v1.67 | 2026-07-26 | `CR-P12-ROLLOUT-001`：切换范围界定为全部实际生产流量（Kiro/Grok 无渠道暂不启用，延后至外部认证收口）；Canary 分流在服务器本地 Caddy 以加权/按 Key 反代执行，Cloudflare 不动，测试域名仅作暴露前验证 | APPROVED；docs-only，无代码或服务器变更 |
+| v1.68 | 2026-07-26 | `CR-P12-05-018`：交付受控配额恢复探测与管理面受控恢复：live 选择路径在普通选择失败后可将一个到期 `RecoveryRequired` binding 作为单张 CAS ticket、lease-first 的受控探测 Attempt（成功以 Estimated 空窗口快照完成，再次 429 由新快照取代 ticket，Health 谓词先行，403 账户永不被当作配额探测）；P12 管理 facade 注入与请求路径相同的 Health/Quota 运行时句柄，403 账户凭操作者证据本地 begin+complete(Allowed)，到期（Reset 后）配额可操作者覆盖，Reset 前拒绝，不发送 Provider 流量 | APPROVED；7 项新本地测试与受影响包 `cargo test`/`clippy` 全通过 |
+| v1.69 | 2026-07-26 | `CR-P12-05-019`：serve 组合接通 P4 可观测性：数据面 sink 改为 stage-ledger-first 的 fanout 进有界队列（BL-10 损失显式）；生产 writer + telemetry fan-out 在监听器 bind 后 spawn、停机 5s 有界 flush join；管理监听器新增受保护只读 Prometheus 暴露；管理 Attempt listing 改为 durable 日志支撑（含 endpoint/credential 身份），stage ledger 降级为 enrichment | APPROVED；5 项新本地测试、3 项 ledger 测试改写，受影响包 `cargo test` 全通过 |
+| v1.70 | 2026-07-26 | `CR-P12-06-001`：P12 serve 准入从 singleton 图扩至生产图形状（多 Endpoint/Credential/别名/多 Key，max_attempts 1..=5，总并发 <=16，OpenAI-compatible fail-closed）；随附生产配置图录入与客户端 Key 迁移 Runbook（docs/p12-rollout-runbook.md，双接受窗口 + Caddy `rgw_` 前缀分流） | APPROVED；6 项新本地测试与受影响包 `cargo test`/`clippy` 全通过 |

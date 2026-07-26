@@ -43,6 +43,7 @@ or merely queued.
 | Retry budget | Start no more than the Route's `max_attempts`; never begin an attempt once the cumulative bootstrap deadline has expired. One in-flight `start` is bounded by the driver-declared `start_timeout(remaining_bootstrap)` (default: the remaining cumulative bootstrap budget); a driver may extend only its own in-flight attempt, never the window in which a subsequent attempt may begin. No retry waits for cooldown expiry. |
 | Binding exclusion | After any retryable failure, exclude exactly the attempted Candidate/Credential binding before the next selection. The predicate runs before pool capacity reservation, so an excluded binding never leaks a lease. |
 | Selection | Reuse P3-05 Endpoint and Endpoint/Credential availability checks plus P3-04 bounded two-stage scheduling. A healthy sibling Credential remains eligible after a 429. |
+| Quota-recovery probe admission | Only after ordinary selection fails may the loop admit exactly one controlled quota-recovery probe: Health predicates run unchanged and first, the binding-wide quota must be due (`RecoveryRequired`), the Credential lease is acquired before the single non-cloneable CAS registry ticket is begun (a lost ticket race releases the lease, never leaks a ticket), and the ticket expiry is derived from the driver-declared start ceiling plus a bounded grace. A successful probe completes the ticket with an Estimated empty-window snapshot; a failed probe's fresh 429 snapshot supersedes the ticket; a cancelled or abandoned probe leaves the target blocked until the ticket deadline. |
 | 429 | Record a Cooldown only for the failed `(EndpointId, CredentialId)` pair. Prefer the classified retry-after duration; otherwise use the orchestrator's configured finite fallback. |
 | Connection, 5xx, pre-FSE truncation | Record an Endpoint Cooldown and make a next eligible Candidate available only if budget and retry gate both permit it. P3-06 does not open or automatically close a Circuit. |
 | Non-retryable failure | Return the safe supplied `GatewayError` immediately. Do not exclude/retry a client/request/permanent error. |
@@ -84,8 +85,17 @@ or merely queued.
   and redacted diagnostics using synthetic identities only. It additionally proves a
   driver-declared `start_timeout` lets one healthy attempt outlive the bootstrap deadline, that
   the default ceiling still cuts an attempt at the remaining budget, and that an extended ceiling
-  preserves pre-first-byte transparent retry and safe truncation errors.
+  preserves pre-first-byte transparent retry and safe truncation errors. Its controlled
+  quota-recovery tests prove one due binding self-recovers through exactly one probe attempt,
+  concurrent selections admit at most one probe, a failed probe returns to cooldown instead of
+  flapping, and a forbidden account is never admitted as a quota probe
+  (`a_due_quota_reset_self_recovers_through_one_controlled_probe_attempt`,
+  `concurrent_selection_admits_at_most_one_quota_recovery_probe`,
+  `a_failed_quota_probe_returns_to_cooldown_instead_of_flapping`,
+  `a_forbidden_account_is_never_admitted_as_a_quota_probe`).
 - `gateway-router::credential_scheduler::tests` proves Candidate-plus-Credential predicates run
-  before a CAS lease reservation while a sibling binding remains selectable.
+  before a CAS lease reservation while a sibling binding remains selectable, and that
+  `quota_recovery_selection_admits_only_a_due_binding` admits only a due `RecoveryRequired`
+  binding whose exact model target is quota-available.
 - `gateway-stream::tests` proves the downstream control can wait for first semantic delivery or
   cancellation without treating queued/encoded events or SSE keepalives as FSE.

@@ -78,3 +78,21 @@ no Provider request.
 Rollback removes the management projection and account-recovery additions. It leaves existing
 Health/Circuit, Quota/Reset, Route Explain, SQLite/Event, transport, configuration, and public HTTP
 behavior unchanged.
+
+## Amendment (2026-07-26, P12)
+
+The P12 management facade now receives the same runtime Health/Quota registries the request path
+consults and may begin and complete one controlled local recovery transition per authorized reset
+request (BC-MGMT-001): an operator-confirmed forbidden account (403) is completed with `Allowed`
+account-level evidence, and a due (post-Reset) quota target may be operator-overridden with an
+`Estimated` empty-window snapshot. Pre-Reset exhausted windows are refused, no Provider request
+is sent, and the read-only status query itself remains observational.
+
+The facade additionally owns a read connection to the append-only `SQLite` event log (ADR-0027).
+Its Attempt listing is now backed by the durable Request-correlated timeline instead of the
+in-memory stage ledger: each row reports the persisted terminal outcome and the exact non-secret
+Endpoint/Credential identities the durable Attempt event already carries. The bounded stage
+ledger only enriches an unambiguous single-Attempt timeline with the closed stage enum; ordinary
+ledger loss degrades to a stage-free listing rather than failing the durable read closed, while a
+ledger holding more terminals than the durable log does fail closed, because that divergence is
+evidence of an Attempt whose durable record never landed.

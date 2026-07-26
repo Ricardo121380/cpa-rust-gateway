@@ -21,6 +21,12 @@ model label, explicit timestamp, and one sanitized kind. It excludes URL, header
 text, credential bytes, and arbitrary diagnostics. Its upstream model label is redacted from
 `Debug` but can be serialized only for access-controlled durable consumers.
 
+The P12 serve composition (`gateway::runtime::build_data_plane_composition`) instantiates this
+contract unchanged: one `BoundedEventQueue` fans out from the data-plane sink, one
+`AsyncSqliteEventWriter` consumes its receiver against the control database, the deployment
+envelope spawns the writer only after both listeners bind, and stop joins it with a bounded flush
+wait whose expiry is an explicit deployment failure rather than a fabricated flush.
+
 ## Durable record rules
 
 | Event | Event type / stable id | Request correlation | Explicit event time |
@@ -48,7 +54,9 @@ AsyncSqliteEventWriter finite pending batch
         |
         +-- SQLite transaction succeeds --> committed/inserted counters, batch cleared
         |
-        +-- SQLite failure --> pending batch retained, failure counter, positive-delay retry
+        +-- transient SQLite failure --> pending batch retained, failure counter, positive-delay retry
+        |
+        +-- deterministic record failure --> one-event transactions: healthy events commit, poisoned events counted and dropped
 ```
 
 The pending batch is capped by `EventWriterConfig::batch_size` (maximum `1024`). The writer opens
@@ -56,6 +64,14 @@ or migrates a file connection and executes SQLite work only on Tokio's blocking 
 does not block the producer, fabricate a durable success, create an unbounded fallback, or pull
 additional Required events into the pending batch. It does leave the finite producer queue to exert
 its existing explicit backpressure.
+
+A deterministic record-level failure (`ConflictingGatewayEventReplay`,
+`InvalidPersistedGatewayEvent`, or `DiagnosticEventNotPersistable`) cannot be repaired by retrying
+the same batch. The writer then replays that batch one event per transaction in original order:
+every healthy event commits durably, each poisoned event is dropped exactly once and counted in
+`required_events_quarantined`, and a transient failure during the replay stops the pass with the
+interrupted event and unprocessed suffix retained as the pending batch. This is the only path on
+which a Required event may be consumed without a durable row, and it is always visible in metrics.
 
 Diagnostics are drained from their lower-priority queue but not written to the Required event log.
 Each such event increments `diagnostics_not_persisted`; it is not included in
@@ -66,7 +82,8 @@ Each such event increments `diagnostics_not_persisted`; it is not included in
 | Condition | Required result |
 |---|---|
 | Empty or over-limit batch configuration | `EventWriterConfigError`; writer is not created. |
-| Database open/migration/transaction/blocking worker failure | Current finite Required batch remains pending; `sqlite_write_failures` increments and retry uses a positive delay. |
+| Transient database open/migration/transaction/blocking worker failure | Current finite Required batch remains pending; `sqlite_write_failures` increments and retry uses a positive delay. |
+| Deterministic record failure inside a pending writer batch | Per-event replay: healthy events commit, each poisoned event increments `required_events_quarantined` and is dropped; a transient interruption keeps unprocessed events pending. |
 | Identical replay after retry/restart | No duplicate row; batch transaction succeeds. |
 | Same durable key, different payload | `StoreError::ConflictingGatewayEventReplay`; no partial batch write. |
 | Diagnostic passed to synchronous Store API | `StoreError::DiagnosticEventNotPersistable`; no row. |
@@ -81,6 +98,8 @@ Each such event increments `diagnostics_not_persisted`; it is not included in
 - A transaction either appends all new valid rows or none; idempotent replay does not duplicate.
 - Request query order is durable append order, not application wall-clock inference.
 - Diagnostics never masquerade as durable Required events.
+- One unappendable record never blocks later Required events; only that record is dropped, and
+  every such drop increments `required_events_quarantined`.
 - Bodies, message content, Tool arguments, headers, cookies, presented keys, credential bytes,
   URLs, status text, raw extensions, and Provider diagnostic text do not enter this event schema.
 
@@ -92,6 +111,9 @@ Each such event increments `diagnostics_not_persisted`; it is not included in
 - `gateway-store::event_store::tests::full_required_queue_stays_non_blocking_before_writer_consumption`
 - `gateway-store::event_store::tests::writer_retains_failed_pending_batch_then_recovers_when_database_becomes_available`
 - `gateway-store::event_store::tests::writer_counts_diagnostics_without_persisting_them`
+- `gateway-store::event_store::tests::writer_quarantines_conflicting_replay_and_commits_healthy_batch_events`
+- `gateway-store::event_store::tests::writer_quarantines_poisoned_singleton_batch_and_keeps_consuming`
+- `gateway-store::event_store::tests::transient_failure_during_quarantine_fallback_preserves_healthy_events`
 - `cargo test --locked -p gateway-core -p gateway-observability -p gateway-store`
 - `cargo clippy --locked -p gateway-core -p gateway-observability -p gateway-store --all-targets --all-features -- -D warnings`
 - `./scripts/check.sh full`

@@ -81,3 +81,16 @@ rejection, and safe bounded-shard reclamation. They send no Provider traffic.
 Rollback removes the registry, pre-lease quota predicate, and 429 snapshot handoff, reverting 429
 to the prior bounded cooldown behavior. It changes no SQLite schema, RouteSnapshot, public model
 view, Endpoint configuration, Credential Secret, Provider request, or external API.
+
+## Amendment (2026-07-26, P12)
+
+Explicitly authorized real probe execution is now delivered for the live selection path
+(BC-ROUTER-003) and, as an operator override, through the P12 management facade (BC-MGMT-001).
+After ordinary selection fails, the orchestrator may admit exactly one due (`RecoveryRequired`)
+binding as a controlled probe attempt: Health predicates run unchanged and first, the Credential
+lease is acquired before the single non-cloneable registry ticket is begun (a lost race releases
+capacity instead of leaking a ticket), and the ticket expiry derives from the driver-declared
+start ceiling plus a bounded grace. A successful probe completes its ticket with an
+`Estimated/Estimated` empty-window snapshot; a probe that hits another 429 is superseded by the
+fresh exhausted snapshot. The Reset-never-auto-opens rule and the registry's fail-closed ticket
+semantics are unchanged.

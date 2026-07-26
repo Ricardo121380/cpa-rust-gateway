@@ -69,6 +69,11 @@ A new equal-or-newer snapshot invalidates any older ticket. The registry uses 64
 shards with a finite 1,024-entry limit each. On capacity pressure it may reclaim an already
 available snapshot, but it must retain exhausted, recovery-required, and probe-in-flight state.
 
+A completed live-selection probe records its evidence as an `Estimated/Estimated` snapshot with
+an empty window list: the upstream accepted one real request, which proves availability without
+claiming an observed quota window. A probe attempt that fails with another 429 needs no explicit
+ticket handling; the fresh exhausted snapshot supersedes the outstanding ticket.
+
 ## Error semantics
 
 | Condition | Required result |
@@ -83,8 +88,11 @@ available snapshot, but it must retain exhausted, recovery-required, and probe-i
 
 Provider adapters own raw Header/Billing/REST/gRPC interpretation. P4-06 owns Route Explain,
 P4-07 does not gain a quota persistence path in this Task, P4-08 owns telemetry, P4-09 owns log
-redaction/body policy, and later Provider phases own durable provider-specific quota restoration
-and explicitly authorized real probe execution.
+redaction/body policy, and later Provider phases own durable provider-specific quota restoration.
+Explicitly authorized real probe execution is delivered for the live selection path (P12):
+`RouteCredentialScheduler::select_eligible_and_lease_for_quota_recovery` admits one due
+`RecoveryRequired` binding after ordinary selection fails, and `AttemptOrchestrator` runs it as
+one ticketed controlled probe attempt per BC-ROUTER-003.
 
 ## Corresponding tests
 
@@ -94,7 +102,11 @@ and explicitly authorized real probe execution.
 - `gateway-router::runtime_quota::tests::stale_probe_cannot_overwrite_newer_quota_observation`
 - `gateway-router::runtime_quota::tests::a_full_shard_reclaims_available_snapshots_but_never_blocking_quota`
 - `gateway-router::credential_scheduler::tests::model_quota_filters_before_lease_and_reset_needs_controlled_recovery`
+- `gateway-router::credential_scheduler::tests::quota_recovery_selection_admits_only_a_due_binding`
 - `gateway-router::attempt_orchestrator::tests::rate_limit_records_exact_quota_and_preserves_a_healthy_sibling`
+- `gateway-router::attempt_orchestrator::tests::a_due_quota_reset_self_recovers_through_one_controlled_probe_attempt`
+- `gateway-router::attempt_orchestrator::tests::concurrent_selection_admits_at_most_one_quota_recovery_probe`
+- `gateway-router::attempt_orchestrator::tests::a_failed_quota_probe_returns_to_cooldown_instead_of_flapping`
 - `cargo test --locked -p gateway-router`
 - `cargo clippy --locked -p gateway-router --all-targets --all-features -- -D warnings`
 - `./scripts/check.sh full`

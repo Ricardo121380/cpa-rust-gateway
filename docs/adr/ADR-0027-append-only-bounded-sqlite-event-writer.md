@@ -80,3 +80,29 @@ commits its pending batch after recovery. No test performs a network request.
 Rollback removes migration `0005` through the normal migration rollback path and removes the P4-07
 writer/Health event contract. It does not change RouteSnapshot, HTTP behavior, Provider traffic,
 Secret storage, quota, runtime Circuit behavior, or the P3 bounded queue admission semantics.
+
+## Amendment (2026-07-26, P12)
+
+Retrying an unchanged batch cannot repair `ConflictingGatewayEventReplay`,
+`InvalidPersistedGatewayEvent`, or `DiagnosticEventNotPersistable`; one poisoned record (for
+example a Usage event whose upstream-controlled response id replays an existing durable identity
+with a different payload) previously wedged the writer and, through the bounded Required queue,
+rejected every later Required event, violating `BL-10`. `AsyncSqliteEventWriter` now classifies
+write failures: transient store failures keep the retained-batch, positive-delay retry unchanged,
+while deterministic record-level failures replay the batch one event per transaction, commit every
+healthy event, and drop only the poisoned records into a dedicated `required_events_quarantined`
+counter. A transient failure during the replay retains the interrupted event and the unprocessed
+suffix as the pending batch. Persisting conflicting replays under a synthetic suffixed identity
+was rejected because it would fabricate durable identities and hide upstream response-id
+collisions.
+
+## Amendment (2026-07-26, P12 serve composition)
+
+The P12 deployment envelope now instantiates this decision in production: the serve composition
+builds one `BoundedEventQueue` behind the data-plane sink and one `AsyncSqliteEventWriter` on the
+control database, spawns the writer on the serve System only after both listeners bind, and joins
+it on stop with a bounded flush wait whose expiry surfaces as an explicit deployment failure.
+The management facade additionally opens a read-only `SqliteEventStore` connection for the durable
+Attempt listing (ADR-0032). The append-only triggers from migration `0005` remain unchanged, so
+serve-time retention is impossible today; that bounded-growth risk is accepted explicitly and any
+trimming requires a new migration plus a revision of this ADR.

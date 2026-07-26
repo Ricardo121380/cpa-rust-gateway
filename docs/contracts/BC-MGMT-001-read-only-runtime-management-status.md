@@ -57,7 +57,7 @@ dedicated account status and binding Health values.
 | Safe provider classification | Only an existing `GatewayErrorCode::CredentialForbidden` from an `AttemptFailure::NonRetryable` may mark the exact Endpoint/Credential account forbidden. The attempt remains non-retryable. |
 | Exact isolation | The forbidden state blocks every model using that exact Endpoint/Credential account. A sibling Credential or another Endpoint remains independently evaluated. |
 | Generic runtime mutations | `mark_healthy`, cooldown, and Circuit operations cannot clear or overwrite an active forbidden/account-recovery state. |
-| Begin recovery | Only a separate controller call may obtain a non-cloneable, exact-binding ticket with a strictly future expiry. Ordinary traffic remains blocked and the query reports `RecoveryInFlight`. |
+| Begin recovery | The P12 facade may begin and complete one controlled local recovery transition in its injected registries: an operator-confirmed forbidden account (403) is the account-level evidence required by BL-16; a due (post-Reset) quota target may be operator-overridden. Pre-Reset exhausted windows are refused. No Provider request is sent. |
 | Complete recovery | A current unexpired `Allowed` result removes only the exact account block; `Forbidden` retains the block. Expired, superseded, or mismatched tickets fail closed and cannot reopen a newer state. |
 | Query behavior | The query is observational only. It never obtains or completes a ticket and cannot cause recovery traffic. |
 
@@ -86,11 +86,19 @@ It is not an arbitrary diagnostic string: its only permitted values are `request
 `sse_bootstrap`. The existing terminal `succeeded|failed` outcome remains mandatory, while an
 embedding without stage instrumentation omits the member for wire compatibility.
 
-The projection is process-local and bounded. It must contain no URL, Header, Body, endpoint,
-credential, model, status number, error string, timestamp, token, digest, or Provider result.
-If its bounded non-blocking store loses a record or cannot be read safely, the management caller
-receives the existing unavailable result rather than a partial or stale row. This refinement adds
-no Provider request, data-plane route, listener, persistence, or recovery authority.
+The stage projection is process-local and bounded. It must contain no URL, Header, Body, status
+number, error string, timestamp, token, digest, or Provider result. In the P12 serve composition
+the durable append-only event log (BC-OBS-002) is the authoritative Attempt listing: each listed
+row carries the persisted terminal outcome plus the exact non-secret `endpoint_id` and
+`credential_id` identities that the durable Attempt event already contains. The in-memory
+bounded stage ledger is an enrichment only; it retains the newest requests up to twice the
+admitted total Credential concurrency and evicts the oldest rather than latching itself off.
+Ledger contention, a missing record, an unpaired terminal, or a multi-Attempt timeline degrades to
+a stage-free listing — durable evidence is never hidden behind the bounded stage store. A ledger
+that holds more terminals than the durable log returns is the one case that fails the read closed:
+it proves this process observed an Attempt whose durable evidence is missing, which must never be
+served as a shorter successful listing. This refinement adds no Provider
+request, data-plane route, or recovery authority.
 
 ## Corresponding tests
 
@@ -100,9 +108,13 @@ no Provider request, data-plane route, listener, persistence, or recovery author
 - `gateway-router::runtime_health::tests::forbidden_account_is_binding_scoped_and_needs_its_own_recovery_ticket`
 - `gateway-router::runtime_health::tests::rejected_or_stale_account_recovery_ticket_cannot_reopen_a_forbidden_binding`
 - `gateway-router::route_explain::tests::fixed_explain_reports_exact_health_and_quota_reasons_without_a_lease`
-- `gateway::runtime::tests::p12_attempt_stage_projection_is_terminal_bounded_and_value_free`
-- `gateway::runtime::tests::p12_attempt_stage_contention_fails_the_management_projection_closed`
-- `gateway::runtime::tests::p12_attempt_stage_capacity_fails_the_management_projection_closed`
+- `gateway::runtime::tests::p12_attempt_stage_projection_is_terminal_and_value_free`
+- `gateway::runtime::tests::p12_attempt_stage_contention_withholds_the_stage_projection`
+- `gateway::runtime::tests::p12_attempt_stage_capacity_withholds_new_stage_projections`
+- `gateway::runtime::tests::p12_management_listing_survives_stage_ledger_exhaustion`
+- `gateway::runtime::tests::p12_serve_composition_persists_request_attempt_usage_for_management_reads`
+- `gateway::runtime::tests::operator_quota_reset_recovers_a_due_binding_through_the_real_handle`
+- `gateway::runtime::tests::operator_endpoint_recovers_a_forbidden_account_with_explicit_evidence`
 - `cargo test --locked -p gateway-router`
 - `cargo clippy --locked -p gateway-router --all-targets --all-features -- -D warnings`
 - `./scripts/check.sh full`
