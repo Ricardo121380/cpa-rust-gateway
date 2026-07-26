@@ -74,12 +74,58 @@ use serde_json::Value;
 /// The only Endpoint identity admitted by P12's temporary isolated runtime.
 pub(crate) const P12_STAGING_ENDPOINT_ID: &str = "p12-krill-endpoint";
 
-const MAX_UPSTREAM_RESPONSE_BYTES: usize = 64 * 1024;
-const MAX_SSE_FRAME_BYTES: usize = 64 * 1024;
+/// The largest complete non-streaming Responses body this runtime will buffer.
+///
+/// A completed Responses envelope carries the entire output text, every tool-call argument string,
+/// and any reasoning item in one JSON document. Current models emit up to 128k output tokens, which
+/// is roughly 0.5-2 MiB of UTF-8 once JSON escaping and the envelope are counted, so the previous
+/// 64 KiB bound (about 16k tokens of ASCII) rejected ordinary long answers. P12 leases one
+/// Credential at concurrency 1, so the worst-case resident body stays exactly one buffer.
+const MAX_UPSTREAM_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
+/// The largest undelivered SSE residue this runtime will buffer between two canonical events.
+///
+/// `response.output_text.done`, `response.output_item.done`, and `response.completed` each repeat
+/// the whole accumulated output inside a single frame, so this bound must match the complete-body
+/// bound rather than the size of one delta.
+const MAX_SSE_FRAME_BYTES: usize = MAX_UPSTREAM_RESPONSE_BYTES;
+/// The TCP/TLS connect bound shared by both response modes; expiry is always pre-first-byte.
 const P12_CONNECT_TIMEOUT: Duration = Duration::from_secs(8);
-const P12_TTFB_TIMEOUT: Duration = Duration::from_secs(15);
-const P12_IDLE_TIMEOUT: Duration = Duration::from_secs(45);
-const P12_TOTAL_TIMEOUT: Duration = Duration::from_secs(45);
+/// The streaming first-byte bound: an SSE upstream emits `response.created` immediately.
+const P12_STREAMING_TTFB_TIMEOUT: Duration = Duration::from_secs(30);
+/// The streaming liveness bound: the quiet period allowed between two upstream body reads.
+///
+/// This, not the absolute ceiling, is what detects an upstream that stopped producing.
+const P12_STREAMING_IDLE_TIMEOUT: Duration = Duration::from_mins(2);
+/// The streaming absolute ceiling, deliberately far past any plausible single completion.
+///
+/// A streaming attempt is unretryable once its first semantic event has reached the client, so an
+/// absolute deadline can only truncate a healthy answer, never fail it over. This ceiling exists
+/// solely so an upstream wedged in a keep-alive loop cannot hold this runtime's one Credential
+/// lease forever; a healthy completion must never reach it.
+const P12_STREAMING_TOTAL_TIMEOUT: Duration = Duration::from_hours(1);
+/// The one bounded wait for a complete non-streaming body.
+///
+/// A buffered `OpenAI`-compatible upstream sends response headers only after generation finishes,
+/// so first-byte, response-idle, and total collapse into a single deadline for this mode. Every
+/// byte is still pre-first-byte for the client, so expiry remains a safely retryable failure.
+///
+/// This is the transport ceiling, not the effective one. The whole non-streaming body is read
+/// inside `AttemptDriver::start`, which the orchestrator wraps in the route's bootstrap deadline,
+/// so a non-streaming attempt is still cut at `bootstrap_timeout_ms` (admitted at no more than
+/// [`P12_BOOTSTRAP_TIMEOUT_MILLISECONDS`]). Reaching this ceiling requires first moving the body
+/// read out of the bootstrap-bounded phase.
+const P12_NON_STREAMING_TOTAL_TIMEOUT: Duration = Duration::from_mins(10);
+/// The isolated P12 streaming decoder retains at most this many Tool argument bytes per response.
+///
+/// This must admit exactly what the non-streaming decoder admits: there, every Tool argument
+/// string arrives inside the one complete body, so the effective bound is the complete-body bound.
+/// A smaller streaming bound would reject a response the same upstream serves successfully in the
+/// other mode, and would do so after `ToolCallStart` already crossed the unretryable boundary.
+const MAX_SSE_TOOL_ARGUMENT_BYTES: usize = MAX_UPSTREAM_RESPONSE_BYTES;
+/// The isolated P12 streaming decoder admits at most this many Tool calls in one response.
+const MAX_SSE_TOOL_CALLS: usize = 32;
+/// The four JSON insignificant whitespace characters used to frame assembled Tool arguments.
+const JSON_WHITESPACE: [char; 4] = [' ', '\t', '\n', '\r'];
 const P12_BOOTSTRAP_TIMEOUT_MILLISECONDS: i64 = 15_000;
 const P12_ANTHROPIC_MAX_TOKENS_EXTENSION: &str = "anthropic.messages.max_tokens";
 const P12_OPENAI_MAX_OUTPUT_TOKENS_EXTENSION: &str = "openai.responses.max_output_tokens";
@@ -472,24 +518,13 @@ fn endpoint_runtimes(
     let endpoint =
         OpenAiResponsesEndpoint::try_new(&configured.base_url, &configured.inference_path)
             .map_err(|_| RuntimeCompositionError::Unavailable)?;
-    let transport = UpstreamTransportProfile::new(
-        UpstreamTimeouts::try_new(
-            P12_CONNECT_TIMEOUT,
-            P12_TTFB_TIMEOUT,
-            P12_IDLE_TIMEOUT,
-            P12_TOTAL_TIMEOUT,
-        )
-        .map_err(|_| RuntimeCompositionError::Unavailable)?,
-        UpstreamProxy::Direct,
-        NonZeroUsize::new(1).ok_or(RuntimeCompositionError::Unavailable)?,
-    );
     Ok(BTreeMap::from([(
         expected_endpoint,
         EndpointRuntime {
             endpoint,
             policy,
             resolver: Arc::new(SystemEgressDnsResolver),
-            transport,
+            transports: P12TransportProfiles::try_new()?,
         },
     )]))
 }
@@ -678,7 +713,64 @@ struct EndpointRuntime {
     endpoint: OpenAiResponsesEndpoint,
     policy: EgressPolicy,
     resolver: Arc<dyn EgressDnsResolver>,
-    transport: UpstreamTransportProfile,
+    transports: P12TransportProfiles,
+}
+
+/// The response-mode-specific transport deadlines for P12's one admitted Endpoint.
+///
+/// Streaming and non-streaming cannot share one profile. A streaming attempt must survive a long
+/// completion whose first bytes already crossed the `FirstSemanticEvent` boundary and can no longer
+/// be retried, so its absolute ceiling is a last-resort bound and its liveness is enforced by the
+/// idle deadline. A non-streaming attempt is still entirely pre-first-byte for the client, so it
+/// keeps one short bounded total that a failed attempt could legally be retried against.
+struct P12TransportProfiles {
+    streaming: UpstreamTransportProfile,
+    non_streaming: UpstreamTransportProfile,
+}
+
+impl P12TransportProfiles {
+    /// Builds both profiles from the fixed P12 deadlines, failing closed on an unsafe shape.
+    fn try_new() -> Result<Self, RuntimeCompositionError> {
+        let maximum_idle_connections_per_host =
+            NonZeroUsize::new(1).ok_or(RuntimeCompositionError::Unavailable)?;
+        let streaming = UpstreamTransportProfile::new(
+            UpstreamTimeouts::try_new(
+                P12_CONNECT_TIMEOUT,
+                P12_STREAMING_TTFB_TIMEOUT,
+                P12_STREAMING_IDLE_TIMEOUT,
+                P12_STREAMING_TOTAL_TIMEOUT,
+            )
+            .map_err(|_| RuntimeCompositionError::Unavailable)?,
+            UpstreamProxy::Direct,
+            maximum_idle_connections_per_host,
+        );
+        // The transport bounds the wait for response headers by first-byte and, through reqwest's
+        // read timeout, by response-idle as well. A buffered upstream returns nothing until it has
+        // finished, so both must equal this mode's total instead of a shorter streaming value.
+        let non_streaming = UpstreamTransportProfile::new(
+            UpstreamTimeouts::try_new(
+                P12_CONNECT_TIMEOUT,
+                P12_NON_STREAMING_TOTAL_TIMEOUT,
+                P12_NON_STREAMING_TOTAL_TIMEOUT,
+                P12_NON_STREAMING_TOTAL_TIMEOUT,
+            )
+            .map_err(|_| RuntimeCompositionError::Unavailable)?,
+            UpstreamProxy::Direct,
+            maximum_idle_connections_per_host,
+        );
+        Ok(Self {
+            streaming,
+            non_streaming,
+        })
+    }
+
+    /// Returns the profile whose deadlines match this attempt's response mode.
+    const fn for_mode(&self, mode: ResponsesResponseMode) -> &UpstreamTransportProfile {
+        match mode {
+            ResponsesResponseMode::Streaming => &self.streaming,
+            ResponsesResponseMode::NonStreaming => &self.non_streaming,
+        }
+    }
 }
 
 struct LeaseHoldingEventSource {
@@ -749,7 +841,7 @@ impl AttemptDriver for OpenAiAttemptDriver {
             );
             let mut response = self
                 .client_pool
-                .send(request, &runtime.transport)
+                .send(request, runtime.transports.for_mode(self.mode))
                 .await
                 .map_err(|_| AttemptFailure::Connection)?;
 
@@ -783,7 +875,8 @@ impl AttemptDriver for OpenAiAttemptDriver {
                         &self.request_id,
                         ManagementRequestAttemptStage::SseBootstrap,
                     );
-                    let source = OpenAiSseEventSource::begin(response).await?;
+                    let source =
+                        OpenAiSseEventSource::begin(response, self.usage_projection).await?;
                     Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
                 }
             }
@@ -956,10 +1049,7 @@ async fn decode_json_response(
         let Some(chunk) = next else {
             break;
         };
-        if body.len().saturating_add(chunk.len()) > MAX_UPSTREAM_RESPONSE_BYTES {
-            return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
-        }
-        body.extend_from_slice(&chunk);
+        append_response_chunk(&mut body, &chunk).map_err(AttemptFailure::NonRetryable)?;
     }
     attempt_stages.record_stage(request_id, ManagementRequestAttemptStage::Decoder);
     decode_json_events_with_usage_projection(&body, usage_projection)
@@ -1054,6 +1144,40 @@ fn decode_json_events_with_usage_projection(
     CanonicalResponse::try_new(events)
         .map(CanonicalResponse::into_events)
         .map_err(|_| upstream_protocol_error())
+}
+
+#[cfg(test)]
+fn decode_sse_events(body: &str, chunk_size: usize) -> Result<Vec<CanonicalEvent>, GatewayError> {
+    decode_sse_events_with_usage_projection(
+        body,
+        chunk_size,
+        P12ResponseUsageProjection::OpenAiResponses,
+    )
+}
+
+#[cfg(test)]
+fn decode_sse_events_with_usage_projection(
+    body: &str,
+    chunk_size: usize,
+    usage_projection: P12ResponseUsageProjection,
+) -> Result<Vec<CanonicalEvent>, GatewayError> {
+    let mut decoder = OpenAiSseDecoder::new(usage_projection);
+    let mut events = Vec::new();
+    for chunk in body.as_bytes().chunks(chunk_size.max(1)) {
+        decoder.push_chunk(chunk)?;
+        loop {
+            decoder.drain_buffered_frames()?;
+            let Some(event) = decoder.take_event() else {
+                break;
+            };
+            events.push(event);
+        }
+    }
+    if decoder.is_finished() {
+        Ok(events)
+    } else {
+        Err(stream_truncated_error())
+    }
 }
 
 fn project_usage_for_response(
@@ -1159,59 +1283,304 @@ fn ensure_message(events: &mut Vec<CanonicalEvent>, message_open: &mut bool) {
 
 struct OpenAiSseEventSource {
     response: UpstreamHttpResponse,
+    decoder: OpenAiSseDecoder,
+}
+
+/// Transport-free `OpenAI` Responses SSE decoder for one streamed upstream response.
+///
+/// Frame reassembly and Canonical projection stay outside the transport type so the same state
+/// machine can be driven from arbitrary chunk boundaries: only frame contents, never network
+/// segmentation, may change the emitted Canonical sequence.
+struct OpenAiSseDecoder {
     buffer: Vec<u8>,
     pending: VecDeque<CanonicalEvent>,
     lifecycle: SseLifecycle,
+    usage_projection: P12ResponseUsageProjection,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+/// The bounded lifecycle of one streamed Responses body.
 enum SseLifecycle {
+    /// No `response.created` frame has been accepted yet.
     AwaitingResponseStart,
-    AwaitingMessageStart,
-    Streaming { saw_text: bool },
+    /// `ResponseStart` was emitted; output items may open, stream, and close.
+    Streaming(SseStreamingState),
+    /// A terminal `ResponseEnd` or `StreamError` is already queued.
     Finished,
 }
 
+/// Output-item state retained between the frames of one open streamed response.
+///
+/// Every visible output item of one Responses response is projected into the single Canonical
+/// Message that the non-streaming decoder also produces, so a text item followed by one or more
+/// Function Call items remains exactly one Message.
+#[derive(Default)]
+struct SseStreamingState {
+    message_open: bool,
+    emitted_content: bool,
+    tool_calls: BTreeMap<String, SseToolCall>,
+    call_ids: BTreeSet<String>,
+    retained_argument_bytes: usize,
+}
+
+/// One streamed Tool call correlated to its upstream output item identifier.
+struct SseToolCall {
+    call_id: String,
+    assembled: String,
+    released: usize,
+    ended: bool,
+}
+
 impl SseLifecycle {
-    const fn is_finished(self) -> bool {
+    const fn is_finished(&self) -> bool {
         matches!(self, Self::Finished)
+    }
+
+    /// Returns the open streaming state, rejecting a frame that arrives outside it.
+    fn streaming_state(&mut self) -> Result<&mut SseStreamingState, GatewayError> {
+        match self {
+            Self::Streaming(state) => Ok(state),
+            Self::AwaitingResponseStart | Self::Finished => Err(upstream_protocol_error()),
+        }
     }
 }
 
-impl OpenAiSseEventSource {
-    async fn begin(response: UpstreamHttpResponse) -> Result<Self, AttemptFailure> {
-        let mut source = Self {
-            response,
+impl SseStreamingState {
+    /// Opens the one Canonical Message that carries every output item of this response.
+    fn ensure_message(&mut self, pending: &mut VecDeque<CanonicalEvent>) {
+        if self.message_open {
+            return;
+        }
+        pending.push_back(CanonicalEvent::MessageStart(MessageStart {
+            role: MessageRole("assistant".to_owned()),
+            extensions: RawExtensions::default(),
+        }));
+        self.message_open = true;
+    }
+
+    /// Declares one streamed Tool call from a `function_call` output item.
+    fn start_tool_call(
+        &mut self,
+        item: &Value,
+        pending: &mut VecDeque<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
+        let item_id = required_string(item, "id")?;
+        let call_id = required_string(item, "call_id")?;
+        let name = required_string(item, "name")?;
+        if self.tool_calls.len() >= MAX_SSE_TOOL_CALLS
+            || self.tool_calls.contains_key(&item_id)
+            || !self.call_ids.insert(call_id.clone())
+        {
+            return Err(upstream_protocol_error());
+        }
+        self.ensure_message(pending);
+        pending.push_back(CanonicalEvent::ToolCallStart(ToolCallStart {
+            call_id: call_id.clone(),
+            name,
+            extensions: RawExtensions::default(),
+        }));
+        self.tool_calls.insert(
+            item_id,
+            SseToolCall {
+                call_id,
+                assembled: String::new(),
+                released: 0,
+                ended: false,
+            },
+        );
+        Ok(())
+    }
+
+    /// Appends one reported Tool argument fragment to its open Tool call.
+    fn append_tool_arguments(
+        &mut self,
+        value: &Value,
+        pending: &mut VecDeque<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
+        let item_id = required_string(value, "item_id")?;
+        let delta = value
+            .get("delta")
+            .and_then(Value::as_str)
+            .ok_or_else(upstream_protocol_error)?;
+        let retained = self
+            .retained_argument_bytes
+            .checked_add(delta.len())
+            .ok_or_else(upstream_protocol_error)?;
+        if retained > MAX_SSE_TOOL_ARGUMENT_BYTES {
+            return Err(upstream_protocol_error());
+        }
+        let call = self
+            .tool_calls
+            .get_mut(&item_id)
+            .filter(|call| !call.ended)
+            .ok_or_else(upstream_protocol_error)?;
+        call.assembled.push_str(delta);
+        call.release_arguments(pending);
+        self.retained_argument_bytes = retained;
+        Ok(())
+    }
+
+    /// Completes one open Tool call with its fully assembled JSON arguments.
+    ///
+    /// A completion frame supplies the arguments only when no fragment was streamed: the
+    /// fragments the client already received stay authoritative, because both the `OpenAI`
+    /// Responses and the Anthropic Messages encoders reject a completed Tool call whose final
+    /// arguments differ from the delivered fragments.
+    fn end_tool_call(
+        &mut self,
+        item_id: &str,
+        reported_arguments: Option<&str>,
+        authoritative: bool,
+        pending: &mut VecDeque<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
+        let retained = self.retained_argument_bytes;
+        let Some(call) = self.tool_calls.get_mut(item_id) else {
+            return Err(upstream_protocol_error());
+        };
+        // A repeated completion frame carries no new semantics for an already delivered call.
+        if call.ended {
+            return Ok(());
+        }
+        // An arguments completion frame that reports nothing for a call that assembled nothing is
+        // not evidence of an empty input: the item's own completion frame still carries the real
+        // string. Leave the call open so that frame can supply it; a call still open at
+        // `response.completed` fails closed rather than delivering a fabricated input.
+        if !authoritative && call.has_no_value() && reported_arguments.is_none_or(str::is_empty) {
+            return Ok(());
+        }
+        if call.has_no_value()
+            && let Some(reported) = reported_arguments
+        {
+            let next = retained
+                .checked_add(reported.len())
+                .ok_or_else(upstream_protocol_error)?;
+            if next > MAX_SSE_TOOL_ARGUMENT_BYTES {
+                return Err(upstream_protocol_error());
+            }
+            call.assembled.push_str(reported);
+            call.release_arguments(pending);
+            self.retained_argument_bytes = next;
+        }
+        pending.push_back(CanonicalEvent::ToolCallEnd(ToolCallEnd {
+            call_id: call.call_id.clone(),
+            arguments: call.completed_arguments()?,
+            extensions: RawExtensions::default(),
+        }));
+        call.ended = true;
+        self.emitted_content = true;
+        Ok(())
+    }
+
+    /// Reports whether any declared Tool call has not yet ended.
+    fn has_open_tool_call(&self) -> bool {
+        self.tool_calls.values().any(|call| !call.ended)
+    }
+
+    /// Mirrors the non-streaming completion projection for this response.
+    fn stop_reason(&self) -> &'static str {
+        if self.call_ids.is_empty() {
+            "end_turn"
+        } else {
+            "tool_use"
+        }
+    }
+}
+
+impl SseToolCall {
+    /// Delivers every assembled argument byte that the JSON value already frames.
+    ///
+    /// Whitespace outside the value is held back: `RawJson` retains only the value itself, so
+    /// releasing padding would desynchronize the delivered fragments from the completed arguments
+    /// that both protocol encoders compare them against.
+    fn release_arguments(&mut self, pending: &mut VecDeque<CanonicalEvent>) {
+        let (start, end) = self.value_bounds();
+        let from = self.released.max(start);
+        if end <= from {
+            return;
+        }
+        let delta = self.assembled[from..end].to_owned();
+        self.released = end;
+        pending.push_back(CanonicalEvent::ToolCallArgumentsDelta(
+            ToolCallArgumentsDelta {
+                call_id: self.call_id.clone(),
+                delta,
+                extensions: RawExtensions::default(),
+            },
+        ));
+    }
+
+    /// Returns the byte range of the assembled JSON value without its surrounding whitespace.
+    fn value_bounds(&self) -> (usize, usize) {
+        let start = self
+            .assembled
+            .len()
+            .saturating_sub(self.assembled.trim_start_matches(JSON_WHITESPACE).len());
+        let end = self.assembled.trim_end_matches(JSON_WHITESPACE).len();
+        (start, end)
+    }
+
+    /// Returns whether no JSON value has been assembled yet.
+    fn has_no_value(&self) -> bool {
+        let (start, end) = self.value_bounds();
+        end <= start
+    }
+
+    /// Returns the complete assembled arguments, normalizing an absent value to `{}`.
+    fn completed_arguments(&self) -> Result<RawJson, GatewayError> {
+        let (start, end) = self.value_bounds();
+        // A Tool without required fields may report no arguments at all.  Normalizing that empty
+        // input to one empty JSON object keeps the Tool call representable instead of failing an
+        // otherwise complete stream.
+        let arguments = if end <= start {
+            "{}".to_owned()
+        } else {
+            self.assembled[start..end].to_owned()
+        };
+        let retained =
+            RawJson::from_json_string(arguments.clone()).map_err(|_| upstream_protocol_error())?;
+        if retained.get() == arguments {
+            Ok(retained)
+        } else {
+            Err(upstream_protocol_error())
+        }
+    }
+}
+
+impl OpenAiSseDecoder {
+    fn new(usage_projection: P12ResponseUsageProjection) -> Self {
+        Self {
             buffer: Vec::new(),
             pending: VecDeque::new(),
             lifecycle: SseLifecycle::AwaitingResponseStart,
-        };
-        source
-            .read_until_event()
-            .await
-            .map_err(|_| AttemptFailure::BootstrapTruncated)?;
-        if !matches!(
-            source.pending.front(),
-            Some(CanonicalEvent::ResponseStart(_))
-        ) {
-            return Err(AttemptFailure::BootstrapTruncated);
+            usage_projection,
         }
-        Ok(source)
     }
 
-    async fn read_until_event(&mut self) -> Result<(), GatewayError> {
+    /// Appends one bounded transport chunk without interpreting it.
+    fn push_chunk(&mut self, chunk: &[u8]) -> Result<(), GatewayError> {
+        append_sse_chunk(&mut self.buffer, chunk)
+    }
+
+    /// Decodes buffered frames until one event is queued or no complete frame remains.
+    fn drain_buffered_frames(&mut self) -> Result<(), GatewayError> {
         while self.pending.is_empty() && !self.lifecycle.is_finished() {
-            if let Some(frame) = self.take_frame() {
-                self.consume_frame(&frame)?;
-                continue;
-            }
-            let next = self.response.next_chunk().await?;
-            let Some(chunk) = next else {
-                return Err(stream_truncated_error());
+            let Some(frame) = self.take_frame() else {
+                return Ok(());
             };
-            append_sse_chunk(&mut self.buffer, &chunk)?;
+            self.consume_frame(&frame)?;
         }
         Ok(())
+    }
+
+    fn is_finished(&self) -> bool {
+        self.lifecycle.is_finished()
+    }
+
+    fn peek_event(&self) -> Option<&CanonicalEvent> {
+        self.pending.front()
+    }
+
+    fn take_event(&mut self) -> Option<CanonicalEvent> {
+        self.pending.pop_front()
     }
 
     fn take_frame(&mut self) -> Option<Vec<u8>> {
@@ -1257,102 +1626,267 @@ impl OpenAiSseEventSource {
         let kind = required_string(&value, "type")?;
 
         match kind.as_str() {
-            "response.created" => {
-                if self.lifecycle != SseLifecycle::AwaitingResponseStart {
-                    return Err(upstream_protocol_error());
-                }
-                let response = value.get("response").ok_or_else(upstream_protocol_error)?;
-                let response_id = required_string(response, "id")?;
-                self.lifecycle = SseLifecycle::AwaitingMessageStart;
-                self.pending
-                    .push_back(CanonicalEvent::ResponseStart(ResponseStart {
-                        response_id: ResponseId::try_new(response_id)
-                            .map_err(|_| upstream_protocol_error())?,
-                        extensions: RawExtensions::default(),
-                    }));
-            }
+            "response.created" => self.consume_response_created(&value),
+            // Informational frames carry no canonical semantics. They must be ignored rather than
+            // rejected: this dispatch runs past the unretryable boundary, so treating an upstream's
+            // extra progress frame as fatal would truncate an otherwise healthy answer.
             "response.in_progress"
             | "response.content_part.added"
             | "response.content_part.done"
             | "response.output_text.done"
-            | "response.output_item.done" => {}
-            "response.output_item.added" => {
-                let item = value.get("item").ok_or_else(upstream_protocol_error)?;
-                let is_assistant_message = item.get("type").and_then(Value::as_str)
-                    == Some("message")
-                    && item.get("role").and_then(Value::as_str) == Some("assistant");
-                if self.lifecycle != SseLifecycle::AwaitingMessageStart {
-                    return Err(upstream_protocol_error());
-                }
-                if is_assistant_message {
-                    self.lifecycle = SseLifecycle::Streaming { saw_text: false };
-                    self.pending
-                        .push_back(CanonicalEvent::MessageStart(MessageStart {
-                            role: MessageRole("assistant".to_owned()),
-                            extensions: RawExtensions::default(),
-                        }));
-                } else if item.get("type").and_then(Value::as_str) != Some("reasoning") {
-                    return Err(upstream_protocol_error());
-                }
+            | "response.output_text.annotation.added"
+            | "response.reasoning_summary_part.added"
+            | "response.reasoning_summary_part.done"
+            | "response.reasoning_summary_text.delta"
+            | "response.reasoning_summary_text.done"
+            | "response.reasoning_text.delta"
+            | "response.reasoning_text.done"
+            | "response.refusal.delta"
+            | "response.refusal.done" => Ok(()),
+            "response.output_item.added" => self.consume_output_item_added(&value),
+            "response.output_text.delta" => self.consume_output_text_delta(&value),
+            "response.function_call_arguments.delta" => {
+                self.consume_function_arguments_delta(&value)
             }
-            "response.output_text.delta" => {
-                let delta = required_string(&value, "delta")?;
-                let SseLifecycle::Streaming { .. } = self.lifecycle else {
-                    return Err(upstream_protocol_error());
-                };
-                if delta.is_empty() {
-                    return Ok(());
-                }
-                self.lifecycle = SseLifecycle::Streaming { saw_text: true };
-                self.pending.push_back(CanonicalEvent::TextDelta(TextDelta {
-                    text: delta,
+            "response.function_call_arguments.done" => self.consume_function_arguments_done(&value),
+            "response.output_item.done" => self.consume_output_item_done(&value),
+            "response.completed" => self.consume_response_completed(&value),
+            "response.incomplete" => self.consume_response_incomplete(&value),
+            "response.failed" => self.consume_response_failed(),
+            _ => Err(upstream_protocol_error()),
+        }
+    }
+
+    fn consume_response_created(&mut self, value: &Value) -> Result<(), GatewayError> {
+        if !matches!(self.lifecycle, SseLifecycle::AwaitingResponseStart) {
+            return Err(upstream_protocol_error());
+        }
+        let response = value.get("response").ok_or_else(upstream_protocol_error)?;
+        let response_id = ResponseId::try_new(required_string(response, "id")?)
+            .map_err(|_| upstream_protocol_error())?;
+        let usage =
+            project_usage_for_response(decode_usage(response.get("usage"))?, self.usage_projection);
+        self.lifecycle = SseLifecycle::Streaming(SseStreamingState::default());
+        self.pending
+            .push_back(CanonicalEvent::ResponseStart(ResponseStart {
+                response_id,
+                extensions: RawExtensions::default(),
+            }));
+        // Anthropic's Messages representation needs the reported input usage before MessageStart,
+        // exactly as the non-streaming decoder supplies it.  Usage the upstream did not report is
+        // never invented here.
+        if let Some(usage) = usage.as_ref().filter(|usage| usage.input_tokens.is_some()) {
+            self.pending
+                .push_back(CanonicalEvent::UsageDelta(UsageDelta {
+                    usage: initial_usage_snapshot(usage),
+                    is_final: false,
                     extensions: RawExtensions::default(),
                 }));
-            }
-            "response.completed" => {
-                if self.lifecycle != (SseLifecycle::Streaming { saw_text: true }) {
-                    return Err(upstream_protocol_error());
-                }
-                let response = value.get("response").ok_or_else(upstream_protocol_error)?;
-                if let Some(usage) = decode_usage(response.get("usage"))? {
-                    self.pending
-                        .push_back(CanonicalEvent::UsageDelta(UsageDelta {
-                            usage,
-                            is_final: true,
-                            extensions: RawExtensions::default(),
-                        }));
-                }
-                self.pending
-                    .push_back(CanonicalEvent::MessageEnd(MessageEnd::default()));
-                self.pending
-                    .push_back(CanonicalEvent::ResponseEnd(ResponseEnd::default()));
-                self.lifecycle = SseLifecycle::Finished;
-            }
-            "response.failed" => {
-                if self.lifecycle == SseLifecycle::AwaitingResponseStart {
-                    return Err(upstream_protocol_error());
-                }
-                self.pending
-                    .push_back(CanonicalEvent::StreamError(StreamError {
-                        error: provider_transient_error(),
-                    }));
-                self.lifecycle = SseLifecycle::Finished;
-            }
-            _ => return Err(upstream_protocol_error()),
         }
         Ok(())
+    }
+
+    fn consume_output_item_added(&mut self, value: &Value) -> Result<(), GatewayError> {
+        let item = value.get("item").ok_or_else(upstream_protocol_error)?;
+        let state = self.lifecycle.streaming_state()?;
+        match item.get("type").and_then(Value::as_str) {
+            Some("message") if item.get("role").and_then(Value::as_str) == Some("assistant") => {
+                state.ensure_message(&mut self.pending);
+                Ok(())
+            }
+            // A Responses model may open an internal reasoning item before its visible output.
+            // P12 does not expose it, but it must not fail an otherwise valid response.
+            Some("reasoning") => Ok(()),
+            Some("function_call") => state.start_tool_call(item, &mut self.pending),
+            _ => Err(upstream_protocol_error()),
+        }
+    }
+
+    fn consume_output_text_delta(&mut self, value: &Value) -> Result<(), GatewayError> {
+        let delta = value
+            .get("delta")
+            .and_then(Value::as_str)
+            .ok_or_else(upstream_protocol_error)?;
+        let state = self.lifecycle.streaming_state()?;
+        if !state.message_open {
+            return Err(upstream_protocol_error());
+        }
+        // An empty fragment carries no client-visible semantics and cannot become a Canonical
+        // TextDelta, so it is dropped instead of failing the stream.
+        if delta.is_empty() {
+            return Ok(());
+        }
+        state.emitted_content = true;
+        self.pending.push_back(CanonicalEvent::TextDelta(TextDelta {
+            text: delta.to_owned(),
+            extensions: RawExtensions::default(),
+        }));
+        Ok(())
+    }
+
+    fn consume_function_arguments_delta(&mut self, value: &Value) -> Result<(), GatewayError> {
+        let state = self.lifecycle.streaming_state()?;
+        state.append_tool_arguments(value, &mut self.pending)
+    }
+
+    fn consume_function_arguments_done(&mut self, value: &Value) -> Result<(), GatewayError> {
+        let item_id = required_string(value, "item_id")?;
+        let state = self.lifecycle.streaming_state()?;
+        state.end_tool_call(
+            &item_id,
+            value.get("arguments").and_then(Value::as_str),
+            false,
+            &mut self.pending,
+        )
+    }
+
+    fn consume_output_item_done(&mut self, value: &Value) -> Result<(), GatewayError> {
+        let item = value.get("item").ok_or_else(upstream_protocol_error)?;
+        if item.get("type").and_then(Value::as_str) != Some("function_call") {
+            return Ok(());
+        }
+        let item_id = required_string(item, "id")?;
+        let state = self.lifecycle.streaming_state()?;
+        // A completed Function Call item is the last chance to close a Tool call whose upstream
+        // omitted the dedicated arguments completion frame.
+        state.end_tool_call(
+            &item_id,
+            item.get("arguments").and_then(Value::as_str),
+            true,
+            &mut self.pending,
+        )
+    }
+
+    fn consume_response_completed(&mut self, value: &Value) -> Result<(), GatewayError> {
+        self.finish_response(value, None)
+    }
+
+    /// Terminates a response the upstream stopped before it finished generating.
+    ///
+    /// The Responses API reports a `max_output_tokens` cutoff with this frame instead of
+    /// `response.completed`, and every `/v1/messages` request carries an output limit, so this is
+    /// an ordinary terminal frame. Rejecting it would truncate the stream past the unretryable
+    /// boundary and hide the real reason the answer stopped.
+    fn consume_response_incomplete(&mut self, value: &Value) -> Result<(), GatewayError> {
+        let stop_reason = value
+            .get("response")
+            .and_then(|response| response.get("incomplete_details"))
+            .and_then(|details| details.get("reason"))
+            .and_then(Value::as_str)
+            .map_or("max_tokens", |reason| match reason {
+                "content_filter" => "refusal",
+                _ => "max_tokens",
+            });
+        self.finish_response(value, Some(stop_reason))
+    }
+
+    /// Emits the shared terminal projection, overriding the stop reason when the upstream gave one.
+    fn finish_response(
+        &mut self,
+        value: &Value,
+        reported_stop_reason: Option<&str>,
+    ) -> Result<(), GatewayError> {
+        let response = value.get("response").ok_or_else(upstream_protocol_error)?;
+        let usage =
+            project_usage_for_response(decode_usage(response.get("usage"))?, self.usage_projection);
+        let state = self.lifecycle.streaming_state()?;
+        if !state.emitted_content || state.has_open_tool_call() {
+            return Err(upstream_protocol_error());
+        }
+        let message_open = state.message_open;
+        let stop_reason = reported_stop_reason
+            .unwrap_or_else(|| state.stop_reason())
+            .to_owned();
+        if message_open {
+            self.pending
+                .push_back(CanonicalEvent::MessageEnd(MessageEnd::default()));
+        }
+        if let Some(usage) = usage {
+            self.pending
+                .push_back(CanonicalEvent::UsageDelta(UsageDelta {
+                    usage,
+                    is_final: true,
+                    extensions: RawExtensions::default(),
+                }));
+        }
+        self.pending
+            .push_back(CanonicalEvent::ResponseEnd(ResponseEnd {
+                stop_reason: Some(stop_reason),
+                stop_sequence: None,
+                extensions: RawExtensions::default(),
+            }));
+        self.lifecycle = SseLifecycle::Finished;
+        Ok(())
+    }
+
+    fn consume_response_failed(&mut self) -> Result<(), GatewayError> {
+        if matches!(self.lifecycle, SseLifecycle::AwaitingResponseStart) {
+            return Err(upstream_protocol_error());
+        }
+        self.pending
+            .push_back(CanonicalEvent::StreamError(StreamError {
+                error: provider_transient_error(),
+            }));
+        self.lifecycle = SseLifecycle::Finished;
+        Ok(())
+    }
+}
+
+impl OpenAiSseEventSource {
+    async fn begin(
+        response: UpstreamHttpResponse,
+        usage_projection: P12ResponseUsageProjection,
+    ) -> Result<Self, AttemptFailure> {
+        let mut source = Self {
+            response,
+            decoder: OpenAiSseDecoder::new(usage_projection),
+        };
+        source
+            .read_until_event()
+            .await
+            .map_err(|_| AttemptFailure::BootstrapTruncated)?;
+        if !matches!(
+            source.decoder.peek_event(),
+            Some(CanonicalEvent::ResponseStart(_))
+        ) {
+            return Err(AttemptFailure::BootstrapTruncated);
+        }
+        Ok(source)
+    }
+
+    async fn read_until_event(&mut self) -> Result<(), GatewayError> {
+        loop {
+            self.decoder.drain_buffered_frames()?;
+            if self.decoder.peek_event().is_some() || self.decoder.is_finished() {
+                return Ok(());
+            }
+            let next = self.response.next_chunk().await?;
+            let Some(chunk) = next else {
+                return Err(stream_truncated_error());
+            };
+            self.decoder.push_chunk(&chunk)?;
+        }
     }
 }
 
 impl ResponsesEventSource for OpenAiSseEventSource {
     fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
         Box::pin(async move {
-            if self.pending.is_empty() && !self.lifecycle.is_finished() {
+            if self.decoder.peek_event().is_none() && !self.decoder.is_finished() {
                 self.read_until_event().await?;
             }
-            Ok(self.pending.pop_front())
+            Ok(self.decoder.take_event())
         })
     }
+}
+
+/// Appends one raw non-streaming body chunk under the bounded complete-response limit.
+fn append_response_chunk(body: &mut Vec<u8>, chunk: &[u8]) -> Result<(), GatewayError> {
+    if body.len().saturating_add(chunk.len()) > MAX_UPSTREAM_RESPONSE_BYTES {
+        return Err(upstream_protocol_error());
+    }
+    body.extend_from_slice(chunk);
+    Ok(())
 }
 
 fn append_sse_chunk(buffer: &mut Vec<u8>, chunk: &[u8]) -> Result<(), GatewayError> {
@@ -1536,15 +2070,17 @@ mod tests {
     };
     use gateway_core::{
         AccessGroupId, AttemptEvent, AttemptOutcome, AttemptRetryDecision, CanonicalEvent,
-        ClientKeyId, CredentialId, EgressPolicyId, EndpointId, EventEmission, GatewayError,
-        GatewayErrorCode, GatewayEvent, GatewayEventSink, ProviderId, PublicModelId, RequestId,
-        RouteCandidateId, RouteId, UpstreamId,
+        CanonicalResponse, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, ErrorScope,
+        EventEmission, GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, ProviderId,
+        PublicModelId, RequestId, RouteCandidateId, RouteId, UpstreamId,
     };
     use gateway_http_actix::{
         ResponsesHttpState, configure, default_stream_capacity,
         management_resources::{ManagementRequestAttemptStage, ManagementRuntimeError},
     };
-    use gateway_router::{DeterministicMockEmission, DeterministicMockResponsesExecutor};
+    use gateway_router::{
+        DeterministicMockEmission, DeterministicMockResponsesExecutor, ResponsesResponseMode,
+    };
     use gateway_store::{
         control_plane::{
             AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus,
@@ -1568,13 +2104,584 @@ mod tests {
     use serde_json::Value;
 
     use super::{
-        MAX_SSE_FRAME_BYTES, P12_KRILL_COMPATIBILITY_USER_AGENT, P12_STAGING_ENDPOINT_ID,
-        P12AttemptEventSink, P12AttemptStageStore, P12ResponseUsageProjection, append_sse_chunk,
+        MAX_SSE_FRAME_BYTES, MAX_SSE_TOOL_CALLS, MAX_UPSTREAM_RESPONSE_BYTES, P12_CONNECT_TIMEOUT,
+        P12_KRILL_COMPATIBILITY_USER_AGENT, P12_NON_STREAMING_TOTAL_TIMEOUT,
+        P12_STAGING_ENDPOINT_ID, P12_STREAMING_IDLE_TIMEOUT, P12_STREAMING_TOTAL_TIMEOUT,
+        P12_STREAMING_TTFB_TIMEOUT, P12AttemptEventSink, P12AttemptStageStore,
+        P12ResponseUsageProjection, P12TransportProfiles, append_response_chunk, append_sse_chunk,
         build_data_plane_composition, decode_json_events, decode_json_events_with_usage_projection,
-        has_exact_p12_egress_shape, has_p12_unlisted_model_override, p12_openai_compatible_request,
+        decode_sse_events, decode_sse_events_with_usage_projection, has_exact_p12_egress_shape,
+        has_p12_unlisted_model_override, p12_openai_compatible_request,
         p12_response_usage_projection, p12_transport_headers, p12_transport_request,
         staging_route_compiler,
     };
+
+    /// Renders one upstream SSE body from ordered `data`-only frames.
+    ///
+    /// The decoder reads only `data:` lines, so building the body here keeps fixtures free of the
+    /// leading indentation that a multi-line raw string literal would inject into every frame.
+    fn sse_stream_body<T: AsRef<str>>(frames: &[T]) -> String {
+        use std::fmt::Write as _;
+
+        frames.iter().fold(String::new(), |mut body, frame| {
+            let _ = writeln!(body, "data: {}\n", frame.as_ref());
+            body
+        })
+    }
+
+    fn canonical_event_labels(events: &[CanonicalEvent]) -> Vec<&'static str> {
+        events
+            .iter()
+            .map(|event| match event {
+                CanonicalEvent::ResponseStart(_) => "response_start",
+                CanonicalEvent::MessageStart(_) => "message_start",
+                CanonicalEvent::TextDelta(_) => "text_delta",
+                CanonicalEvent::ReasoningDelta(_) => "reasoning_delta",
+                CanonicalEvent::ToolCallStart(_) => "tool_call_start",
+                CanonicalEvent::ToolCallArgumentsDelta(_) => "tool_call_arguments_delta",
+                CanonicalEvent::ToolCallEnd(_) => "tool_call_end",
+                CanonicalEvent::UsageDelta(_) => "usage_delta",
+                CanonicalEvent::MessageEnd(_) => "message_end",
+                CanonicalEvent::ResponseEnd(_) => "response_end",
+                CanonicalEvent::StreamError(_) => "stream_error",
+            })
+            .collect()
+    }
+
+    /// One realistic streamed Responses body whose only visible output item is a Function Call.
+    fn p12_streamed_tool_body() -> String {
+        sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-stream-tool","usage":{"input_tokens":3}}}"#,
+            r#"{"type":"response.in_progress","response":{"id":"response-p12-stream-tool"}}"#,
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"fc-p12-stream","type":"function_call","call_id":"call-p12-stream","name":"echo","arguments":""}}"#,
+            r#"{"type":"response.function_call_arguments.delta","item_id":"fc-p12-stream","output_index":0,"delta":"{\"value\":"}"#,
+            r#"{"type":"response.function_call_arguments.delta","item_id":"fc-p12-stream","output_index":0,"delta":"\"ok\"}"}"#,
+            r#"{"type":"response.function_call_arguments.done","item_id":"fc-p12-stream","output_index":0,"arguments":"{\"value\":\"ok\"}"}"#,
+            r#"{"type":"response.output_item.done","output_index":0,"item":{"id":"fc-p12-stream","type":"function_call","call_id":"call-p12-stream","name":"echo","arguments":"{\"value\":\"ok\"}","status":"completed"}}"#,
+            r#"{"type":"response.completed","response":{"id":"response-p12-stream-tool","status":"completed","usage":{"input_tokens":3,"output_tokens":5,"output_tokens_details":{"reasoning_tokens":2}}}}"#,
+        ])
+    }
+
+    #[test]
+    fn streamed_function_call_emits_a_complete_canonical_tool_lifecycle()
+    -> Result<(), Box<dyn Error>> {
+        let body = p12_streamed_tool_body();
+        let events = decode_sse_events(&body, body.len())?;
+
+        assert_eq!(
+            canonical_event_labels(&events),
+            vec![
+                "response_start",
+                "usage_delta",
+                "message_start",
+                "tool_call_start",
+                "tool_call_arguments_delta",
+                "tool_call_arguments_delta",
+                "tool_call_end",
+                "message_end",
+                "usage_delta",
+                "response_end",
+            ]
+        );
+        assert!(events.iter().any(|event| matches!(
+            event,
+            CanonicalEvent::ToolCallStart(start)
+                if start.call_id == "call-p12-stream" && start.name == "echo"
+        )));
+        assert!(events.iter().any(|event| matches!(
+            event,
+            CanonicalEvent::ToolCallEnd(end)
+                if end.call_id == "call-p12-stream" && end.arguments.get() == r#"{"value":"ok"}"#
+        )));
+        assert!(matches!(
+            events.last(),
+            Some(CanonicalEvent::ResponseEnd(end)) if end.stop_reason.as_deref() == Some("tool_use")
+        ));
+        assert!(CanonicalResponse::try_new(events).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn streamed_text_then_function_call_stays_one_message_and_reports_tool_use()
+    -> Result<(), Box<dyn Error>> {
+        let body = sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-stream-mixed"}}"#,
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"msg-p12","type":"message","role":"assistant","content":[]}}"#,
+            r#"{"type":"response.content_part.added","item_id":"msg-p12","output_index":0}"#,
+            r#"{"type":"response.output_text.delta","item_id":"msg-p12","output_index":0,"delta":"ok"}"#,
+            r#"{"type":"response.output_text.done","item_id":"msg-p12","output_index":0}"#,
+            r#"{"type":"response.content_part.done","item_id":"msg-p12","output_index":0}"#,
+            r#"{"type":"response.output_item.done","output_index":0,"item":{"id":"msg-p12","type":"message","role":"assistant","status":"completed"}}"#,
+            r#"{"type":"response.output_item.added","output_index":1,"item":{"id":"fc-p12","type":"function_call","call_id":"call-p12-mixed","name":"echo","arguments":""}}"#,
+            r#"{"type":"response.function_call_arguments.delta","item_id":"fc-p12","output_index":1,"delta":"{\"value\":\"ok\"}"}"#,
+            r#"{"type":"response.function_call_arguments.done","item_id":"fc-p12","output_index":1,"arguments":"{\"value\":\"ok\"}"}"#,
+            r#"{"type":"response.output_item.done","output_index":1,"item":{"id":"fc-p12","type":"function_call","call_id":"call-p12-mixed","name":"echo","arguments":"{\"value\":\"ok\"}","status":"completed"}}"#,
+            r#"{"type":"response.completed","response":{"id":"response-p12-stream-mixed","status":"completed","usage":{"input_tokens":3,"output_tokens":5}}}"#,
+        ]);
+        let events = decode_sse_events(&body, body.len())?;
+        let labels = canonical_event_labels(&events);
+
+        assert_eq!(
+            labels
+                .iter()
+                .filter(|label| **label == "message_start")
+                .count(),
+            1
+        );
+        assert_eq!(
+            labels
+                .iter()
+                .filter(|label| **label == "message_end")
+                .count(),
+            1
+        );
+        let text_index = labels
+            .iter()
+            .position(|label| *label == "text_delta")
+            .ok_or("missing text delta")?;
+        let tool_index = labels
+            .iter()
+            .position(|label| *label == "tool_call_start")
+            .ok_or("missing tool call start")?;
+        let message_end_index = labels
+            .iter()
+            .position(|label| *label == "message_end")
+            .ok_or("missing message end")?;
+        assert!(text_index < tool_index);
+        assert!(tool_index < message_end_index);
+        assert!(matches!(
+            events.last(),
+            Some(CanonicalEvent::ResponseEnd(end)) if end.stop_reason.as_deref() == Some("tool_use")
+        ));
+        assert!(CanonicalResponse::try_new(events).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn streamed_parallel_function_calls_emit_two_independent_tool_lifecycles()
+    -> Result<(), Box<dyn Error>> {
+        let body = sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-stream-parallel"}}"#,
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"fc-alpha","type":"function_call","call_id":"call-alpha","name":"first","arguments":""}}"#,
+            r#"{"type":"response.output_item.added","output_index":1,"item":{"id":"fc-beta","type":"function_call","call_id":"call-beta","name":"second","arguments":""}}"#,
+            r#"{"type":"response.function_call_arguments.delta","item_id":"fc-alpha","delta":"{\"x\":"}"#,
+            r#"{"type":"response.function_call_arguments.delta","item_id":"fc-beta","delta":"{\"y\":"}"#,
+            r#"{"type":"response.function_call_arguments.delta","item_id":"fc-alpha","delta":"1}"}"#,
+            r#"{"type":"response.function_call_arguments.delta","item_id":"fc-beta","delta":"2}"}"#,
+            r#"{"type":"response.function_call_arguments.done","item_id":"fc-alpha","arguments":"{\"x\":1}"}"#,
+            r#"{"type":"response.function_call_arguments.done","item_id":"fc-beta","arguments":"{\"y\":2}"}"#,
+            r#"{"type":"response.completed","response":{"id":"response-p12-stream-parallel","status":"completed","usage":{"input_tokens":3,"output_tokens":5}}}"#,
+        ]);
+        let events = decode_sse_events(&body, body.len())?;
+
+        assert_eq!(
+            events
+                .iter()
+                .filter_map(|event| match event {
+                    CanonicalEvent::ToolCallArgumentsDelta(delta) => Some(delta.call_id.as_str()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>(),
+            vec!["call-alpha", "call-beta", "call-alpha", "call-beta"]
+        );
+        assert_eq!(
+            events
+                .iter()
+                .filter_map(|event| match event {
+                    CanonicalEvent::ToolCallEnd(end) =>
+                        Some((end.call_id.as_str(), end.arguments.get())),
+                    _ => None,
+                })
+                .collect::<Vec<_>>(),
+            vec![("call-alpha", r#"{"x":1}"#), ("call-beta", r#"{"y":2}"#)]
+        );
+        assert_eq!(
+            canonical_event_labels(&events)
+                .iter()
+                .filter(|label| **label == "message_start")
+                .count(),
+            1
+        );
+        assert!(matches!(
+            events.last(),
+            Some(CanonicalEvent::ResponseEnd(end)) if end.stop_reason.as_deref() == Some("tool_use")
+        ));
+        assert!(CanonicalResponse::try_new(events).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn streamed_tool_arguments_are_independent_of_transport_chunk_boundaries()
+    -> Result<(), Box<dyn Error>> {
+        let body = sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-stream-chunks"}}"#,
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"fc-chunks","type":"function_call","call_id":"call-chunks","name":"echo","arguments":""}}"#,
+            r#"{"type":"response.function_call_arguments.delta","item_id":"fc-chunks","delta":"{\"value\":\"caf"}"#,
+            r#"{"type":"response.function_call_arguments.delta","item_id":"fc-chunks","delta":"é\"}"}"#,
+            r#"{"type":"response.function_call_arguments.done","item_id":"fc-chunks","arguments":"{\"value\":\"café\"}"}"#,
+            r#"{"type":"response.completed","response":{"id":"response-p12-stream-chunks","status":"completed","usage":{"input_tokens":3,"output_tokens":5}}}"#,
+        ]);
+        let reference = decode_sse_events(&body, body.len())?;
+
+        for chunk_size in [1, 3, 29] {
+            assert_eq!(decode_sse_events(&body, chunk_size)?, reference);
+        }
+        assert!(reference.iter().any(|event| matches!(
+            event,
+            CanonicalEvent::ToolCallEnd(end) if end.arguments.get() == "{\"value\":\"café\"}"
+        )));
+        assert!(CanonicalResponse::try_new(reference).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn streamed_tool_arguments_reported_only_by_the_item_completion_are_preserved()
+    -> Result<(), Box<dyn Error>> {
+        // The dedicated arguments frame reports nothing; the item's own completion carries the
+        // real string. Closing on the earlier frame would deliver a fabricated empty input.
+        let body = sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-late-args"}}"#,
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"fc-late","type":"function_call","call_id":"call-late","name":"echo","arguments":""}}"#,
+            r#"{"type":"response.function_call_arguments.done","item_id":"fc-late"}"#,
+            r#"{"type":"response.output_item.done","output_index":0,"item":{"id":"fc-late","type":"function_call","call_id":"call-late","name":"echo","arguments":"{\"value\":\"ok\"}","status":"completed"}}"#,
+            r#"{"type":"response.completed","response":{"id":"response-p12-late-args","status":"completed","usage":{"input_tokens":3,"output_tokens":5}}}"#,
+        ]);
+        let events = decode_sse_events(&body, 7)?;
+
+        assert!(events.iter().any(|event| matches!(
+            event,
+            CanonicalEvent::ToolCallEnd(end)
+                if end.call_id == "call-late" && end.arguments.get() == r#"{"value":"ok"}"#
+        )));
+        assert!(CanonicalResponse::try_new(events).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn streamed_response_incomplete_terminates_with_the_reported_stop_reason()
+    -> Result<(), Box<dyn Error>> {
+        // Every /v1/messages request carries an output limit, so a max_output_tokens cutoff is an
+        // ordinary terminal frame rather than a protocol failure.
+        let body = sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-incomplete"}}"#,
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"msg-1","type":"message","role":"assistant"}}"#,
+            r#"{"type":"response.output_text.delta","item_id":"msg-1","delta":"partial"}"#,
+            r#"{"type":"response.incomplete","response":{"id":"response-p12-incomplete","status":"incomplete","incomplete_details":{"reason":"max_output_tokens"},"usage":{"input_tokens":3,"output_tokens":5}}}"#,
+        ]);
+        let events = decode_sse_events(&body, 11)?;
+
+        assert_eq!(
+            canonical_event_labels(&events),
+            vec![
+                "response_start",
+                "message_start",
+                "text_delta",
+                "message_end",
+                "usage_delta",
+                "response_end",
+            ]
+        );
+        assert!(events.iter().any(|event| matches!(
+            event,
+            CanonicalEvent::ResponseEnd(end) if end.stop_reason.as_deref() == Some("max_tokens")
+        )));
+        assert!(CanonicalResponse::try_new(events).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn streamed_informational_reasoning_frames_never_abort_a_healthy_stream()
+    -> Result<(), Box<dyn Error>> {
+        let body = sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-reasoning"}}"#,
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"rs-1","type":"reasoning"}}"#,
+            r#"{"type":"response.reasoning_summary_part.added","item_id":"rs-1","summary_index":0}"#,
+            r#"{"type":"response.reasoning_summary_text.delta","item_id":"rs-1","delta":"thinking"}"#,
+            r#"{"type":"response.reasoning_summary_text.done","item_id":"rs-1","text":"thinking"}"#,
+            r#"{"type":"response.output_item.added","output_index":1,"item":{"id":"msg-1","type":"message","role":"assistant"}}"#,
+            r#"{"type":"response.output_text.delta","item_id":"msg-1","delta":"visible"}"#,
+            r#"{"type":"response.completed","response":{"id":"response-p12-reasoning","status":"completed","usage":{"input_tokens":3,"output_tokens":5}}}"#,
+        ]);
+        let events = decode_sse_events(&body, 13)?;
+
+        assert_eq!(
+            canonical_event_labels(&events),
+            vec![
+                "response_start",
+                "message_start",
+                "text_delta",
+                "message_end",
+                "usage_delta",
+                "response_end",
+            ]
+        );
+        assert!(CanonicalResponse::try_new(events).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn streamed_function_call_without_arguments_normalizes_the_empty_input()
+    -> Result<(), Box<dyn Error>> {
+        let body = sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-stream-empty"}}"#,
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"fc-empty","type":"function_call","call_id":"call-empty","name":"enter_plan_mode","arguments":""}}"#,
+            r#"{"type":"response.function_call_arguments.done","item_id":"fc-empty","arguments":""}"#,
+            r#"{"type":"response.output_item.done","output_index":0,"item":{"id":"fc-empty","type":"function_call","call_id":"call-empty","name":"enter_plan_mode","arguments":"","status":"completed"}}"#,
+            r#"{"type":"response.completed","response":{"id":"response-p12-stream-empty","status":"completed","usage":{"input_tokens":3,"output_tokens":5}}}"#,
+        ]);
+        let events = decode_sse_events(&body, 5)?;
+
+        assert_eq!(
+            canonical_event_labels(&events),
+            vec![
+                "response_start",
+                "message_start",
+                "tool_call_start",
+                "tool_call_end",
+                "message_end",
+                "usage_delta",
+                "response_end",
+            ]
+        );
+        assert!(events.iter().any(|event| matches!(
+            event,
+            CanonicalEvent::ToolCallEnd(end)
+                if end.call_id == "call-empty" && end.arguments.get() == "{}"
+        )));
+        assert!(CanonicalResponse::try_new(events).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn streamed_text_only_response_ignores_reasoning_items_and_reports_end_turn()
+    -> Result<(), Box<dyn Error>> {
+        let body = sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-stream-text"}}"#,
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"rsn-p12","type":"reasoning","summary":[]}}"#,
+            r#"{"type":"response.output_item.added","output_index":1,"item":{"id":"msg-p12","type":"message","role":"assistant","content":[]}}"#,
+            r#"{"type":"response.output_text.delta","item_id":"msg-p12","output_index":1,"delta":"ok"}"#,
+            r#"{"type":"response.completed","response":{"id":"response-p12-stream-text","status":"completed","usage":{"input_tokens":3,"output_tokens":5}}}"#,
+        ]);
+        let events = decode_sse_events(&body, 11)?;
+
+        assert_eq!(
+            canonical_event_labels(&events),
+            vec![
+                "response_start",
+                "message_start",
+                "text_delta",
+                "message_end",
+                "usage_delta",
+                "response_end",
+            ]
+        );
+        assert!(matches!(
+            events.last(),
+            Some(CanonicalEvent::ResponseEnd(end)) if end.stop_reason.as_deref() == Some("end_turn")
+        ));
+        assert!(CanonicalResponse::try_new(events).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn streamed_tool_frames_reject_unknown_items_duplicate_calls_and_open_completion() {
+        let created =
+            r#"{"type":"response.created","response":{"id":"response-p12-stream-guard"}}"#;
+        let added = r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"fc-guard","type":"function_call","call_id":"call-guard","name":"echo","arguments":""}}"#;
+        let unknown_item = sse_stream_body(&[
+            created,
+            added,
+            r#"{"type":"response.function_call_arguments.delta","item_id":"fc-missing","delta":"{}"}"#,
+        ]);
+        let duplicate_call = sse_stream_body(&[
+            created,
+            added,
+            r#"{"type":"response.output_item.added","output_index":1,"item":{"id":"fc-other","type":"function_call","call_id":"call-guard","name":"echo","arguments":""}}"#,
+        ]);
+        let open_completion = sse_stream_body(&[
+            created,
+            added,
+            r#"{"type":"response.completed","response":{"id":"response-p12-stream-guard","status":"completed"}}"#,
+        ]);
+        let mut overflow = vec![created.to_owned()];
+        for index in 0..=MAX_SSE_TOOL_CALLS {
+            overflow.push(format!(
+                r#"{{"type":"response.output_item.added","item":{{"id":"fc-{index}","type":"function_call","call_id":"call-{index}","name":"echo","arguments":""}}}}"#
+            ));
+        }
+        let overflow = sse_stream_body(&overflow);
+
+        for body in [unknown_item, duplicate_call, open_completion, overflow] {
+            assert_eq!(
+                decode_sse_events(&body, body.len())
+                    .err()
+                    .map(|error| (error.code(), error.scope())),
+                Some((GatewayErrorCode::UpstreamProtocolError, ErrorScope::Stream))
+            );
+        }
+    }
+
+    #[actix_web::test]
+    async fn p12_streamed_tool_lifecycle_is_encodable_by_the_openai_responses_boundary()
+    -> Result<(), Box<dyn Error>> {
+        let body = p12_streamed_tool_body();
+        let events = decode_sse_events(&body, 9)?;
+        let app = actix_test::init_service(
+            App::new()
+                .app_data(web::Data::new(p12_decoded_messages_http_state(events)?))
+                .configure(configure),
+        )
+        .await;
+        let request = actix_test::TestRequest::post()
+            .uri("/v1/responses")
+            .insert_header((header::AUTHORIZATION, "Bearer p12-decoder-http-test-key"))
+            .set_payload(r#"{"model":"p12-decoder-http-model","input":"ok"}"#)
+            .to_request();
+
+        let response = actix_test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: Value = serde_json::from_slice(&actix_test::read_body(response).await)?;
+        assert_eq!(
+            body.pointer("/status").and_then(Value::as_str),
+            Some("completed")
+        );
+        assert_eq!(
+            body.pointer("/output/0/type").and_then(Value::as_str),
+            Some("function_call")
+        );
+        assert_eq!(
+            body.pointer("/output/0/call_id").and_then(Value::as_str),
+            Some("call-p12-stream")
+        );
+        assert_eq!(
+            body.pointer("/output/0/arguments").and_then(Value::as_str),
+            Some(r#"{"value":"ok"}"#)
+        );
+        assert_eq!(
+            body.pointer("/usage/output_tokens_details/reasoning_tokens")
+                .and_then(Value::as_u64),
+            Some(2)
+        );
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn p12_streamed_tool_lifecycle_is_encodable_by_the_anthropic_messages_boundary()
+    -> Result<(), Box<dyn Error>> {
+        let body = p12_streamed_tool_body();
+        let events = decode_sse_events_with_usage_projection(
+            &body,
+            9,
+            P12ResponseUsageProjection::AnthropicMessages,
+        )?;
+        let app = actix_test::init_service(
+            App::new()
+                .app_data(web::Data::new(p12_decoded_messages_http_state(events)?))
+                .configure(configure),
+        )
+        .await;
+        let request = actix_test::TestRequest::post()
+            .uri("/v1/messages")
+            .insert_header((header::AUTHORIZATION, "Bearer p12-decoder-http-test-key"))
+            .set_payload(
+                r#"{
+                  "model":"p12-decoder-http-model",
+                  "max_tokens":1,
+                  "messages":[{"role":"user","content":"ok"}],
+                  "tools":[{"name":"echo","input_schema":{"type":"object"}}]
+                }"#,
+            )
+            .to_request();
+
+        let response = actix_test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: Value = serde_json::from_slice(&actix_test::read_body(response).await)?;
+        assert_eq!(
+            body.pointer("/stop_reason").and_then(Value::as_str),
+            Some("tool_use")
+        );
+        assert_eq!(
+            body.pointer("/content/0/type").and_then(Value::as_str),
+            Some("tool_use")
+        );
+        assert_eq!(
+            body.pointer("/content/0/id").and_then(Value::as_str),
+            Some("call-p12-stream")
+        );
+        assert_eq!(
+            body.pointer("/content/0/input/value")
+                .and_then(Value::as_str),
+            Some("ok")
+        );
+        assert_eq!(
+            body.pointer("/usage/input_tokens").and_then(Value::as_u64),
+            Some(3)
+        );
+        assert_eq!(
+            body.pointer("/usage/output_tokens").and_then(Value::as_u64),
+            Some(5)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn streaming_transport_outlives_a_long_completion_while_non_streaming_stays_short()
+    -> Result<(), Box<dyn Error>> {
+        let profiles = P12TransportProfiles::try_new()?;
+        let streaming = profiles
+            .for_mode(ResponsesResponseMode::Streaming)
+            .timeouts();
+        let non_streaming = profiles
+            .for_mode(ResponsesResponseMode::NonStreaming)
+            .timeouts();
+
+        assert_eq!(streaming.connect(), P12_CONNECT_TIMEOUT);
+        assert_eq!(streaming.ttfb(), P12_STREAMING_TTFB_TIMEOUT);
+        assert_eq!(streaming.idle(), P12_STREAMING_IDLE_TIMEOUT);
+        assert_eq!(streaming.total(), P12_STREAMING_TOTAL_TIMEOUT);
+        // The regression this guards: a 45-second absolute deadline truncated every longer
+        // completion after its first bytes had already passed the unretryable client boundary.
+        assert!(streaming.total() >= Duration::from_mins(30));
+        assert!(streaming.idle() < streaming.total());
+
+        assert_eq!(non_streaming.connect(), P12_CONNECT_TIMEOUT);
+        assert_eq!(non_streaming.total(), P12_NON_STREAMING_TOTAL_TIMEOUT);
+        assert!(non_streaming.total() < streaming.total());
+        // A buffered upstream produces nothing until it finishes, so neither the first-byte nor
+        // the response-idle bound may cut a non-streaming answer before its own total deadline.
+        assert_eq!(non_streaming.ttfb(), non_streaming.total());
+        assert_eq!(non_streaming.idle(), non_streaming.total());
+
+        assert_ne!(
+            profiles.for_mode(ResponsesResponseMode::Streaming),
+            profiles.for_mode(ResponsesResponseMode::NonStreaming)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn megabyte_scale_completions_fit_inside_the_streaming_and_non_streaming_bounds()
+    -> Result<(), Box<dyn Error>> {
+        const ONE_MEBIBYTE: usize = 1024 * 1024;
+
+        // `response.output_text.done` and `response.completed` each repeat the entire answer in
+        // one frame, so a megabyte of buffered residue must not be a protocol failure.
+        let mut frame_buffer = vec![b'x'; ONE_MEBIBYTE];
+        append_sse_chunk(&mut frame_buffer, b"tail")?;
+        assert_eq!(frame_buffer.len(), ONE_MEBIBYTE + 4);
+
+        let mut body = vec![b'y'; ONE_MEBIBYTE];
+        append_response_chunk(&mut body, b"tail")?;
+        assert_eq!(body.len(), ONE_MEBIBYTE + 4);
+        Ok(())
+    }
+
+    #[test]
+    fn an_oversized_non_streaming_body_is_rejected_without_buffer_growth() {
+        let mut body = vec![b'y'; MAX_UPSTREAM_RESPONSE_BYTES];
+        assert!(append_response_chunk(&mut body, b"y").is_err());
+        assert_eq!(body.len(), MAX_UPSTREAM_RESPONSE_BYTES);
+    }
 
     struct TemporaryDirectory(PathBuf);
 
