@@ -139,7 +139,8 @@ pub enum QuotaSource {
     Rest,
     /// A provider gRPC status endpoint supplied the observation.
     Grpc,
-    /// The gateway inferred a bounded temporary window from a 429 without reset metadata.
+    /// The gateway inferred the state itself: a bounded temporary window from a 429 without
+    /// reset metadata, or availability evidenced by a completed controlled recovery probe.
     Estimated,
 }
 

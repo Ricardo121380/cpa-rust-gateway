@@ -14,9 +14,10 @@ use gateway_core::{
 use gateway_upstream::CredentialLease;
 
 use crate::{
-    ProtocolFormat, RouteCredentialScheduler, RuntimeHealthClock, RuntimeHealthKey,
-    RuntimeHealthRegistry, RuntimeQuotaRegistry, RuntimeQuotaTarget, SelectedRouteCredential,
-    SnapshotRouteCandidate, SystemRuntimeHealthClock,
+    ProtocolFormat, QuotaConfidence, QuotaSnapshot, QuotaSource, RouteCredentialScheduler,
+    RuntimeHealthClock, RuntimeHealthKey, RuntimeHealthRegistry, RuntimeQuotaRecoveryProbe,
+    RuntimeQuotaRegistry, RuntimeQuotaTarget, SelectedRouteCredential, SnapshotRouteCandidate,
+    SystemRuntimeHealthClock,
 };
 
 /// The finite estimated reset used for a 429 that does not declare retry-after information.
@@ -24,6 +25,13 @@ pub const DEFAULT_RATE_LIMIT_COOLDOWN: Duration = Duration::from_secs(30);
 
 /// The finite Endpoint Cooldown used for connection, 5xx, and pre-semantic truncation failures.
 pub const DEFAULT_TRANSIENT_COOLDOWN: Duration = Duration::from_secs(5);
+
+/// Extra recovery-ticket lifetime granted past one driver-declared start ceiling.
+///
+/// A controlled quota probe is an ordinary admitted Attempt, so its exclusive ticket must outlive
+/// the longest legitimate in-flight start plus completion bookkeeping. Expiry is the bounded
+/// fail-closed path for an abandoned probe: the target simply becomes due again.
+const QUOTA_RECOVERY_PROBE_GRACE: Duration = Duration::from_secs(30);
 
 /// A boxed, sendable async operation used by an [`AttemptDriver`].
 pub type AttemptFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
@@ -383,9 +391,10 @@ impl AttemptOrchestrator {
 
     /// Creates an orchestrator with an injected exact-target quota registry and runtime clock.
     ///
-    /// Production callers normally use [`Self::new`] or [`Self::with_clock_and_config`]. This
-    /// constructor makes synthetic 429/reset fixtures share deterministic Health, Quota, and
-    /// retry-budget time without giving the request path a persistence or network dependency.
+    /// Deterministic tests share one clock across Health, Quota, and the retry budget. The P12
+    /// production composition also uses this constructor so the exact registries the request path
+    /// consults can be handed to the management facade for controlled recovery, without giving
+    /// the request path a persistence or network dependency.
     #[must_use]
     pub fn with_runtime_quota_and_clock_config(
         scheduler: Arc<RouteCredentialScheduler>,
@@ -561,23 +570,31 @@ impl AttemptOrchestrator {
                 return Err(last_failure.unwrap_or_else(egress_unavailable_error));
             }
 
-            let selection = match self
+            let (selection, quota_probe) = match self
                 .scheduler
                 .select_eligible_and_lease_with_runtime_health_quota_and_binding(
                     route_id,
                     &self.runtime_health,
                     &self.runtime_quota,
-                    |candidate| {
-                        protocol.is_none_or(|protocol| {
-                            candidate.protocol_format() == Some(protocol)
-                                && candidate.transform_mode()
-                                    == crate::SnapshotTransformMode::Canonical
-                        })
-                    },
+                    |candidate| candidate_matches_protocol(candidate, protocol),
                     |candidate, credential_id| !exclusions.contains(candidate, credential_id),
                 ) {
-                Ok(selection) => selection,
-                Err(error) => return Err(last_failure.unwrap_or(error)),
+                Ok(selection) => (selection, None),
+                Err(error) => {
+                    let recovery = budget.remaining_at(now_ms).ok().and_then(|remaining| {
+                        self.begin_quota_recovery_probe_selection(
+                            route_id,
+                            protocol,
+                            &exclusions,
+                            now_ms,
+                            driver.start_timeout(remaining),
+                        )
+                    });
+                    match recovery {
+                        Some((selection, probe)) => (selection, Some(probe)),
+                        None => return Err(last_failure.unwrap_or(error)),
+                    }
+                }
             };
 
             let started_at_ms = self.clock.now_ms().map_err(|_| internal_error())?;
@@ -608,6 +625,9 @@ impl AttemptOrchestrator {
 
             let failure = match attempt_result {
                 Ok(output) => {
+                    if let Some(probe) = quota_probe {
+                        self.complete_quota_recovery_probe(probe);
+                    }
                     if retry_gate.is_cancelled() {
                         self.emit_attempt(
                             request_id,
@@ -819,6 +839,66 @@ impl AttemptOrchestrator {
             .cool_down_until(key, until_ms)
             .map_err(|_| internal_error())
     }
+
+    /// Attempts to admit one controlled quota-recovery probe after ordinary selection failed.
+    ///
+    /// The scheduler admits a binding only when Health passes and the binding-wide quota is past
+    /// its Reset (`RecoveryRequired`). Beginning the registry ticket is the final atomic gate:
+    /// exactly one caller can hold it, so concurrent failed selections cannot start a second
+    /// probe. Any clock, scheduling, or registry failure fails closed by admitting nothing.
+    fn begin_quota_recovery_probe_selection(
+        &self,
+        route_id: &RouteId,
+        protocol: Option<ProtocolFormat>,
+        exclusions: &AttemptExclusionSet,
+        now_ms: i64,
+        start_ceiling: Duration,
+    ) -> Option<(SelectedRouteCredential, RuntimeQuotaRecoveryProbe)> {
+        let selection = self
+            .scheduler
+            .select_eligible_and_lease_for_quota_recovery(
+                route_id,
+                &self.runtime_health,
+                &self.runtime_quota,
+                |candidate| candidate_matches_protocol(candidate, protocol),
+                |candidate, credential_id| !exclusions.contains(candidate, credential_id),
+            )
+            .ok()?;
+        let target = RuntimeQuotaTarget::endpoint_credential(
+            selection.candidate().endpoint_id().clone(),
+            selection.lease().credential_id().clone(),
+        );
+        let expires_at_ms = add_duration_to_timestamp(
+            now_ms,
+            start_ceiling.saturating_add(QUOTA_RECOVERY_PROBE_GRACE),
+        )
+        .ok()?;
+        let probe = self
+            .runtime_quota
+            .begin_recovery_probe(&target, expires_at_ms)
+            .ok()??;
+        Some((selection, probe))
+    }
+
+    /// Reopens ordinary scheduling for one successfully probed quota target.
+    ///
+    /// The registry validates the ticket: a stale or superseded probe fails closed and leaves the
+    /// target blocked until its next due probe, which is safer than forcing availability here.
+    fn complete_quota_recovery_probe(&self, probe: RuntimeQuotaRecoveryProbe) {
+        let Ok(observed_at_ms) = self.clock.now_ms() else {
+            return;
+        };
+        let Ok(snapshot) = QuotaSnapshot::try_new(
+            probe.target().clone(),
+            Vec::new(),
+            QuotaSource::Estimated,
+            QuotaConfidence::Estimated,
+            observed_at_ms,
+        ) else {
+            return;
+        };
+        let _completion = self.runtime_quota.complete_recovery_probe(probe, snapshot);
+    }
 }
 
 impl fmt::Debug for AttemptOrchestrator {
@@ -889,6 +969,16 @@ impl RetryBudget {
 fn add_duration_to_timestamp(now_ms: i64, duration: Duration) -> Result<i64, GatewayError> {
     let duration_ms = i64::try_from(duration.as_millis()).map_err(|_| internal_error())?;
     now_ms.checked_add(duration_ms).ok_or_else(internal_error)
+}
+
+fn candidate_matches_protocol(
+    candidate: &SnapshotRouteCandidate,
+    protocol: Option<ProtocolFormat>,
+) -> bool {
+    protocol.is_none_or(|protocol| {
+        candidate.protocol_format() == Some(protocol)
+            && candidate.transform_mode() == crate::SnapshotTransformMode::Canonical
+    })
 }
 
 const fn credential_unavailable_error() -> GatewayError {
@@ -1199,6 +1289,187 @@ mod tests {
                 .runtime_quota
                 .endpoint_credential_is_available(&endpoint, &credential_b)
         );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn a_due_quota_reset_self_recovers_through_one_controlled_probe_attempt() -> TestResult {
+        let (orchestrator, route_id, clock, _health, _pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a")],
+            vec![("endpoint-a", vec!["credential-a"])],
+            3,
+            60_000,
+        )?;
+        let target = crate::RuntimeQuotaTarget::endpoint_credential(
+            EndpointId::try_new("endpoint-a")?,
+            CredentialId::try_new("credential-a")?,
+        );
+        let rate_limited_driver =
+            ScriptedDriver::new(vec![DriverStep::Failure(AttemptFailure::RateLimited {
+                retry_after: Some(Duration::from_millis(20)),
+            })]);
+        let error = expected_error(
+            orchestrator
+                .start(&route_id, &rate_limited_driver, &TestRetryGate::default())
+                .await,
+            "a 429 on the only binding must fail the request",
+        )?;
+        assert_eq!(error.code(), GatewayErrorCode::ProviderRateLimited);
+        assert_eq!(
+            orchestrator.runtime_quota.availability(&target)?,
+            crate::RuntimeQuotaAvailability::Exhausted { reset_at_ms: 120 }
+        );
+
+        clock.advance_ms(20);
+        assert_eq!(
+            orchestrator.runtime_quota.availability(&target)?,
+            crate::RuntimeQuotaAvailability::RecoveryRequired { reset_at_ms: 120 }
+        );
+        let probe_driver = ScriptedDriver::new(vec![DriverStep::Success("recovered".to_owned())]);
+        let started = orchestrator
+            .start(&route_id, &probe_driver, &TestRetryGate::default())
+            .await?;
+        assert_eq!(started.lease().credential_id().as_str(), "credential-a");
+        assert_eq!(started.output(), "recovered");
+        assert_eq!(started.attempts_started(), 1);
+        assert_eq!(probe_driver.attempts()?.len(), 1);
+        assert_eq!(
+            orchestrator.runtime_quota.availability(&target)?,
+            crate::RuntimeQuotaAvailability::Available
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn concurrent_selection_admits_at_most_one_quota_recovery_probe() -> TestResult {
+        let (orchestrator, route_id, clock, _health, _pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a")],
+            vec![("endpoint-a", vec!["credential-a"])],
+            3,
+            60_000,
+        )?;
+        let target = crate::RuntimeQuotaTarget::endpoint_credential(
+            EndpointId::try_new("endpoint-a")?,
+            CredentialId::try_new("credential-a")?,
+        );
+        orchestrator.runtime_quota.record_rate_limited(
+            target.clone(),
+            100,
+            Some(Duration::from_millis(20)),
+            Duration::from_millis(20),
+        )?;
+        clock.advance_ms(20);
+
+        let orchestrator = Arc::new(orchestrator);
+        let probe_driver = Arc::new(PendingDriver::default());
+        let probe_gate = Arc::new(TestRetryGate::default());
+        let task_orchestrator = Arc::clone(&orchestrator);
+        let task_driver = Arc::clone(&probe_driver);
+        let task_gate = Arc::clone(&probe_gate);
+        let task_route_id = route_id.clone();
+        let probe_task = tokio::spawn(async move {
+            task_orchestrator
+                .start(&task_route_id, task_driver.as_ref(), task_gate.as_ref())
+                .await
+        });
+        probe_driver.wait_started().await;
+        assert!(matches!(
+            orchestrator.runtime_quota.availability(&target)?,
+            crate::RuntimeQuotaAvailability::RecoveryProbeInFlight { .. }
+        ));
+
+        let second_driver =
+            ScriptedDriver::new(vec![DriverStep::Success("must-not-start".to_owned())]);
+        let error = expected_error(
+            orchestrator
+                .start(&route_id, &second_driver, &TestRetryGate::default())
+                .await,
+            "a selection during an in-flight probe must not start a second probe",
+        )?;
+        assert_eq!(error.code(), GatewayErrorCode::CredentialUnavailable);
+        assert!(second_driver.attempts()?.is_empty());
+
+        probe_gate.cancel();
+        let result = probe_task.await?;
+        assert!(result.is_err());
+        assert!(matches!(
+            orchestrator.runtime_quota.availability(&target)?,
+            crate::RuntimeQuotaAvailability::RecoveryProbeInFlight { .. }
+        ));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn a_failed_quota_probe_returns_to_cooldown_instead_of_flapping() -> TestResult {
+        let (orchestrator, route_id, clock, _health, _pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a")],
+            vec![("endpoint-a", vec!["credential-a"])],
+            3,
+            60_000,
+        )?;
+        let target = crate::RuntimeQuotaTarget::endpoint_credential(
+            EndpointId::try_new("endpoint-a")?,
+            CredentialId::try_new("credential-a")?,
+        );
+        orchestrator.runtime_quota.record_rate_limited(
+            target.clone(),
+            100,
+            Some(Duration::from_millis(20)),
+            Duration::from_millis(20),
+        )?;
+        clock.advance_ms(20);
+        let driver = ScriptedDriver::new(vec![
+            DriverStep::Failure(AttemptFailure::RateLimited {
+                retry_after: Some(Duration::from_millis(40)),
+            }),
+            DriverStep::Success("must-not-start".to_owned()),
+        ]);
+
+        let error = expected_error(
+            orchestrator
+                .start(&route_id, &driver, &TestRetryGate::default())
+                .await,
+            "a probe that hits another 429 must fail the request instead of flapping",
+        )?;
+
+        assert_eq!(error.code(), GatewayErrorCode::ProviderRateLimited);
+        assert_eq!(driver.attempts()?.len(), 1);
+        assert_eq!(
+            orchestrator.runtime_quota.availability(&target)?,
+            crate::RuntimeQuotaAvailability::Exhausted { reset_at_ms: 160 }
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn a_forbidden_account_is_never_admitted_as_a_quota_probe() -> TestResult {
+        let (orchestrator, route_id, clock, health, _pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a")],
+            vec![("endpoint-a", vec!["credential-a"])],
+            3,
+            60_000,
+        )?;
+        let endpoint = EndpointId::try_new("endpoint-a")?;
+        let credential = CredentialId::try_new("credential-a")?;
+        orchestrator.runtime_quota.record_rate_limited(
+            crate::RuntimeQuotaTarget::endpoint_credential(endpoint.clone(), credential.clone()),
+            100,
+            Some(Duration::from_millis(20)),
+            Duration::from_millis(20),
+        )?;
+        health.mark_credential_forbidden(endpoint, credential)?;
+        clock.advance_ms(20);
+        let driver = ScriptedDriver::new(vec![DriverStep::Success("must-not-start".to_owned())]);
+
+        let error = expected_error(
+            orchestrator
+                .start(&route_id, &driver, &TestRetryGate::default())
+                .await,
+            "a forbidden account must not be admitted as a quota probe",
+        )?;
+
+        assert_eq!(error.code(), GatewayErrorCode::CredentialUnavailable);
+        assert!(driver.attempts()?.is_empty());
         Ok(())
     }
 

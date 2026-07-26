@@ -8,13 +8,13 @@
 
 use std::sync::Arc;
 
-use gateway_core::{CredentialId, ErrorScope, GatewayError, GatewayErrorCode, RouteId};
+use gateway_core::{CredentialId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode, RouteId};
 use gateway_upstream::{CredentialLease, EndpointCredentialPools};
 
 use crate::{
     AttemptExclusionSet, RouteCandidateScheduler, RouteExplainError, RouteExplainInput,
-    RouteExplainSnapshot, RouteSnapshot, RuntimeHealthRegistry, RuntimeQuotaRegistry,
-    SnapshotRouteCandidate,
+    RouteExplainSnapshot, RouteSnapshot, RuntimeHealthRegistry, RuntimeQuotaAvailability,
+    RuntimeQuotaRegistry, RuntimeQuotaTarget, SnapshotRouteCandidate,
 };
 
 /// A process-local two-stage scheduler for one immutable Route Snapshot and matching pools.
@@ -265,6 +265,75 @@ impl RouteCredentialScheduler {
         }
     }
 
+    /// Selects one binding whose only Quota blocker is a due controlled recovery.
+    ///
+    /// Health predicates are unchanged and run first, so a Cooldown, Circuit, or forbidden
+    /// account can never be admitted as a quota probe. The binding-wide quota target must be
+    /// `RecoveryRequired` -- its latest exhausted-window Reset has passed -- and the Candidate's
+    /// exact model target must be quota-available. The caller owns beginning the single
+    /// non-cloneable recovery ticket after this lease, so losing that race releases Credential
+    /// capacity instead of leaking an unused ticket.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same secret-free `CredentialUnavailable/Credential` result when no Candidate
+    /// has a due binding that passes eligibility, Health, and bounded lease acquisition.
+    pub fn select_eligible_and_lease_for_quota_recovery<FCandidate, FBinding>(
+        &self,
+        route_id: &RouteId,
+        runtime_health: &RuntimeHealthRegistry,
+        runtime_quota: &RuntimeQuotaRegistry,
+        mut is_candidate_eligible: FCandidate,
+        mut is_binding_eligible: FBinding,
+    ) -> Result<SelectedRouteCredential, GatewayError>
+    where
+        FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
+        FBinding: FnMut(&SnapshotRouteCandidate, &CredentialId) -> bool,
+    {
+        let mut lease = None;
+        let candidate = self.candidates.select_eligible(route_id, |candidate| {
+            if !is_candidate_eligible(candidate)
+                || !runtime_health.endpoint_is_available(candidate.endpoint_id())
+            {
+                return false;
+            }
+            let Some(acquired) = self.credential_pools.try_lease_eligible(
+                candidate.endpoint_id(),
+                |credential_id| {
+                    is_binding_eligible(candidate, credential_id)
+                        && runtime_health.endpoint_credential_is_available(
+                            candidate.endpoint_id(),
+                            credential_id,
+                        )
+                        && runtime_health.endpoint_credential_model_is_available(
+                            candidate.endpoint_id(),
+                            credential_id,
+                            candidate.upstream_model(),
+                        )
+                        && binding_quota_is_recovery_due(
+                            runtime_quota,
+                            candidate.endpoint_id(),
+                            credential_id,
+                        )
+                        && runtime_quota.endpoint_credential_model_is_available(
+                            candidate.endpoint_id(),
+                            credential_id,
+                            candidate.upstream_model(),
+                        )
+                },
+            ) else {
+                return false;
+            };
+            lease = Some(acquired);
+            true
+        });
+
+        match (candidate, lease) {
+            (Some(candidate), Some(lease)) => Ok(SelectedRouteCredential { candidate, lease }),
+            _ => Err(credential_unavailable_error()),
+        }
+    }
+
     /// Explains Candidate and Credential eligibility without acquiring a lease or advancing a cursor.
     ///
     /// The caller supplies one explicit observation time and deterministic schedule starts through
@@ -349,6 +418,24 @@ const fn credential_unavailable_error() -> GatewayError {
     )
 }
 
+fn binding_quota_is_recovery_due(
+    runtime_quota: &RuntimeQuotaRegistry,
+    endpoint_id: &EndpointId,
+    credential_id: &CredentialId,
+) -> bool {
+    runtime_quota
+        .availability(&RuntimeQuotaTarget::endpoint_credential(
+            endpoint_id.clone(),
+            credential_id.clone(),
+        ))
+        .is_ok_and(|availability| {
+            matches!(
+                availability,
+                RuntimeQuotaAvailability::RecoveryRequired { .. }
+            )
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use std::{
@@ -360,6 +447,7 @@ mod tests {
             atomic::{AtomicI64, Ordering},
         },
         thread,
+        time::Duration,
     };
 
     use gateway_catalog::{CapabilitySet, CatalogModelState};
@@ -698,6 +786,90 @@ mod tests {
         )?;
         assert_eq!(recovered.candidate().id().as_str(), "candidate-a");
         assert_eq!(recovered.lease().credential_id().as_str(), "credential-a");
+        Ok(())
+    }
+
+    #[test]
+    fn quota_recovery_selection_admits_only_a_due_binding() -> TestResult {
+        let (scheduler, route_id) = scheduler(
+            vec![("candidate-a", "endpoint-a", 0, 1)],
+            vec![(
+                "endpoint-a",
+                vec![("credential-a", 0, 1, 1), ("credential-b", 0, 1, 1)],
+            )],
+        )?;
+        let clock = Arc::new(FixedRuntimeHealthClock::new(100));
+        let runtime_health = RuntimeHealthRegistry::with_clock(clock.clone());
+        let runtime_quota = RuntimeQuotaRegistry::with_clock(clock.clone());
+        let exhausted = RuntimeQuotaTarget::endpoint_credential(
+            EndpointId::try_new("endpoint-a")?,
+            CredentialId::try_new("credential-a")?,
+        );
+        runtime_quota.record_rate_limited(
+            exhausted.clone(),
+            100,
+            Some(Duration::from_millis(100)),
+            Duration::from_millis(100),
+        )?;
+
+        let not_due = scheduler.select_eligible_and_lease_for_quota_recovery(
+            &route_id,
+            &runtime_health,
+            &runtime_quota,
+            |_| true,
+            |_, _| true,
+        );
+        assert!(not_due.is_err());
+
+        clock.set_now_ms(200);
+        let due = scheduler.select_eligible_and_lease_for_quota_recovery(
+            &route_id,
+            &runtime_health,
+            &runtime_quota,
+            |_| true,
+            |_, _| true,
+        )?;
+        assert_eq!(due.lease().credential_id().as_str(), "credential-a");
+        drop(due);
+
+        let ticket = runtime_quota
+            .begin_recovery_probe(&exhausted, 260)?
+            .ok_or("due quota did not issue a controlled recovery ticket")?;
+        let in_flight = scheduler.select_eligible_and_lease_for_quota_recovery(
+            &route_id,
+            &runtime_health,
+            &runtime_quota,
+            |_| true,
+            |_, _| true,
+        );
+        assert!(in_flight.is_err());
+        drop(ticket);
+
+        clock.set_now_ms(260);
+        runtime_quota.record_snapshot(QuotaSnapshot::try_new(
+            RuntimeQuotaTarget::endpoint_credential_model(
+                EndpointId::try_new("endpoint-a")?,
+                CredentialId::try_new("credential-a")?,
+                "upstream-model",
+            )?,
+            vec![QuotaWindow::try_new(
+                "requests",
+                Some(10),
+                Some(0),
+                Some(400),
+            )?],
+            QuotaSource::Header,
+            QuotaConfidence::Observed,
+            260,
+        )?)?;
+        let model_blocked = scheduler.select_eligible_and_lease_for_quota_recovery(
+            &route_id,
+            &runtime_health,
+            &runtime_quota,
+            |_| true,
+            |_, _| true,
+        );
+        assert!(model_blocked.is_err());
         Ok(())
     }
 
