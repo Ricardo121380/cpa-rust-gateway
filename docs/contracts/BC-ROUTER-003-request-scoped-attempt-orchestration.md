@@ -40,7 +40,7 @@ or merely queued.
 
 | Concern | Required behavior |
 |---|---|
-| Retry budget | Start no more than the Route's `max_attempts`; never begin an attempt once the cumulative bootstrap deadline has expired. No retry waits for cooldown expiry. |
+| Retry budget | Start no more than the Route's `max_attempts`; never begin an attempt once the cumulative bootstrap deadline has expired. One in-flight `start` is bounded by the driver-declared `start_timeout(remaining_bootstrap)` (default: the remaining cumulative bootstrap budget); a driver may extend only its own in-flight attempt, never the window in which a subsequent attempt may begin. No retry waits for cooldown expiry. |
 | Binding exclusion | After any retryable failure, exclude exactly the attempted Candidate/Credential binding before the next selection. The predicate runs before pool capacity reservation, so an excluded binding never leaks a lease. |
 | Selection | Reuse P3-05 Endpoint and Endpoint/Credential availability checks plus P3-04 bounded two-stage scheduling. A healthy sibling Credential remains eligible after a 429. |
 | 429 | Record a Cooldown only for the failed `(EndpointId, CredentialId)` pair. Prefer the classified retry-after duration; otherwise use the orchestrator's configured finite fallback. |
@@ -81,7 +81,10 @@ or merely queued.
 - `gateway-router::attempt_orchestrator::tests` proves connection fallback, 429 Credential-only
   cooldown with a healthy sibling, 5xx Endpoint fallback, pre-semantic truncation fallback,
   budget exhaustion, exclusion before lease acquisition, cancellation, FSE closure, lease release,
-  and redacted diagnostics using synthetic identities only.
+  and redacted diagnostics using synthetic identities only. It additionally proves a
+  driver-declared `start_timeout` lets one healthy attempt outlive the bootstrap deadline, that
+  the default ceiling still cuts an attempt at the remaining budget, and that an extended ceiling
+  preserves pre-first-byte transparent retry and safe truncation errors.
 - `gateway-router::credential_scheduler::tests` proves Candidate-plus-Credential predicates run
   before a CAS lease reservation while a sibling binding remains selectable.
 - `gateway-stream::tests` proves the downstream control can wait for first semantic delivery or

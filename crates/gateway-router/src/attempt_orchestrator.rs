@@ -189,7 +189,7 @@ pub trait AttemptDriver: Send + Sync {
     /// The live output started by one successful Attempt.
     type Output: Send;
 
-    /// Starts one Attempt under the remaining cumulative bootstrap deadline.
+    /// Starts one Attempt under this driver's per-attempt ceiling from [`Self::start_timeout`].
     ///
     /// The driver must report only a safe [`AttemptFailure`] for failure. It must not encode raw
     /// upstream status bodies, endpoint URLs, headers, or Secret material into that error.
@@ -199,6 +199,19 @@ pub trait AttemptDriver: Send + Sync {
         credential: &'a CredentialLease,
         bootstrap_timeout: Duration,
     ) -> AttemptFuture<'a, Result<Self::Output, AttemptFailure>>;
+
+    /// Returns the wall-clock ceiling applied to one in-flight [`Self::start`] invocation.
+    ///
+    /// The default keeps the historical bound: one Attempt may run only as long as the remaining
+    /// cumulative bootstrap budget. A driver whose healthy start legitimately outlives that
+    /// budget — a non-streaming Attempt against an upstream that buffers response headers until
+    /// generation finishes — may return a longer mode-specific ceiling. The value bounds only the
+    /// in-flight Attempt; whether a subsequent Attempt may begin is still governed exclusively by
+    /// the Route's cumulative bootstrap deadline, so an expiry here remains a retryable
+    /// pre-first-semantic-event failure that cannot extend the retry window.
+    fn start_timeout(&self, remaining_bootstrap: Duration) -> Duration {
+        remaining_bootstrap
+    }
 }
 
 /// A request-local set of bindings that cannot be retried by the same external request.
@@ -581,7 +594,7 @@ impl AttemptOrchestrator {
                 biased;
                 () = retry_gate.cancelled() => Err(AttemptFailure::Cancelled),
                 result = tokio::time::timeout(
-                    remaining_bootstrap,
+                    driver.start_timeout(remaining_bootstrap),
                     driver.start(
                         selection.candidate(),
                         selection.lease(),
@@ -1389,6 +1402,111 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn a_driver_declared_start_timeout_lets_one_attempt_outlive_the_bootstrap_deadline()
+    -> TestResult {
+        let (orchestrator, route_id, _clock, _health, _pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a")],
+            vec![("endpoint-a", vec!["credential-a"])],
+            1,
+            50,
+        )?;
+        let driver = ScriptedDriver::with_start_timeout(
+            vec![DriverStep::SleepAndSucceed {
+                delay: Duration::from_millis(200),
+                output: "slow-but-healthy".to_owned(),
+            }],
+            Duration::from_secs(5),
+        );
+        let gate = TestRetryGate::default();
+
+        let started = orchestrator.start(&route_id, &driver, &gate).await?;
+
+        assert_eq!(started.output(), "slow-but-healthy");
+        assert_eq!(started.attempts_started(), 1);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn the_default_start_timeout_still_cuts_an_attempt_at_the_remaining_bootstrap_budget()
+    -> TestResult {
+        let (orchestrator, route_id, _clock, _health, _pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a")],
+            vec![("endpoint-a", vec!["credential-a"])],
+            1,
+            50,
+        )?;
+        let driver = ScriptedDriver::new(vec![DriverStep::SleepAndSucceed {
+            delay: Duration::from_millis(500),
+            output: "must-not-complete".to_owned(),
+        }]);
+        let gate = TestRetryGate::default();
+
+        let error = expected_error(
+            orchestrator.start(&route_id, &driver, &gate).await,
+            "the default per-attempt ceiling must still be the remaining bootstrap budget",
+        )?;
+
+        assert_eq!(error.code(), GatewayErrorCode::EgressUnavailable);
+        assert_eq!(driver.attempts()?.len(), 1);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn an_extended_start_timeout_preserves_pre_first_byte_transparent_retry() -> TestResult {
+        let (orchestrator, route_id, _clock, health, _pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a"), ("candidate-b", "endpoint-b")],
+            vec![
+                ("endpoint-a", vec!["credential-a"]),
+                ("endpoint-b", vec!["credential-b"]),
+            ],
+            3,
+            100,
+        )?;
+        let driver = ScriptedDriver::with_start_timeout(
+            vec![
+                DriverStep::Failure(AttemptFailure::Connection),
+                DriverStep::Success("failed-over".to_owned()),
+            ],
+            Duration::from_secs(5),
+        );
+        let gate = TestRetryGate::default();
+
+        let started = orchestrator.start(&route_id, &driver, &gate).await?;
+
+        assert_eq!(started.candidate().id().as_str(), "candidate-b");
+        assert_eq!(started.output(), "failed-over");
+        assert_eq!(started.attempts_started(), 2);
+        assert!(!health.endpoint_is_available(&EndpointId::try_new("endpoint-a")?));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn a_mid_body_failure_under_an_extended_start_timeout_returns_the_safe_truncation_error()
+    -> TestResult {
+        let (orchestrator, route_id, _clock, _health, _pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a")],
+            vec![("endpoint-a", vec!["credential-a"])],
+            1,
+            50,
+        )?;
+        let driver = ScriptedDriver::with_start_timeout(
+            vec![DriverStep::Failure(AttemptFailure::BootstrapTruncated)],
+            Duration::from_secs(5),
+        );
+        let gate = TestRetryGate::default();
+
+        let error = expected_error(
+            orchestrator.start(&route_id, &driver, &gate).await,
+            "an unretryable mid-body truncation must surface its safe stream error",
+        )?;
+
+        assert_eq!(error.code(), GatewayErrorCode::StreamTruncated);
+        assert_eq!(error.scope(), ErrorScope::Stream);
+        assert_eq!(driver.attempts()?.len(), 1);
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn cancellation_drops_an_inflight_driver_future_without_a_retry() -> TestResult {
         let (orchestrator, route_id, _clock, _health, _pools) = orchestrator(
             vec![("candidate-a", "endpoint-a")],
@@ -1751,12 +1869,14 @@ mod tests {
         Failure(AttemptFailure),
         AdvanceClockAndFail { by_ms: i64, failure: AttemptFailure },
         Success(String),
+        SleepAndSucceed { delay: Duration, output: String },
     }
 
     struct ScriptedDriver {
         steps: Mutex<VecDeque<DriverStep>>,
         attempts: Mutex<Vec<(String, String)>>,
         clock: Option<Arc<FixedRuntimeHealthClock>>,
+        start_timeout_override: Option<Duration>,
     }
 
     #[derive(Default)]
@@ -1815,6 +1935,7 @@ mod tests {
                 steps: Mutex::new(VecDeque::from(steps)),
                 attempts: Mutex::new(Vec::new()),
                 clock: None,
+                start_timeout_override: None,
             }
         }
 
@@ -1823,6 +1944,16 @@ mod tests {
                 steps: Mutex::new(VecDeque::from(steps)),
                 attempts: Mutex::new(Vec::new()),
                 clock: Some(clock),
+                start_timeout_override: None,
+            }
+        }
+
+        fn with_start_timeout(steps: Vec<DriverStep>, start_timeout: Duration) -> Self {
+            Self {
+                steps: Mutex::new(VecDeque::from(steps)),
+                attempts: Mutex::new(Vec::new()),
+                clock: None,
+                start_timeout_override: Some(start_timeout),
             }
         }
 
@@ -1878,8 +2009,16 @@ mod tests {
                         Err(failure)
                     }
                     DriverStep::Success(output) => Ok(output),
+                    DriverStep::SleepAndSucceed { delay, output } => {
+                        tokio::time::sleep(delay).await;
+                        Ok(output)
+                    }
                 }
             })
+        }
+
+        fn start_timeout(&self, remaining_bootstrap: Duration) -> Duration {
+            self.start_timeout_override.unwrap_or(remaining_bootstrap)
         }
     }
 
