@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.60` |
-| 生效日期 | `2026-07-23` |
+| 计划版本 | `v1.61` |
+| 生效日期 | `2026-07-26` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-04 已完成独立、loopback-only Staging 验收并保持 disabled-at-boot；P12-05 是全计划唯一 `IN_PROGRESS` Task。仅可先登记独立测试 Upstream/Key 并完成 Responses、Messages、Tool、模型和 Explain 的受控验证；不得改变现有 CPA 或任何公开流量。 |
+| 当前任务 | P12-04 已完成独立、loopback-only Staging 验收并保持 disabled-at-boot；P12-05 是全计划唯一 `IN_PROGRESS` Task。CR-P12-05-013 已完成一次 Models + Messages 受控复验并完全回滚；Tool/Explain 仍未获本次授权，故不得开始 P12-06 或改变现有 CPA、公开监听与任何公开流量。 |
 | Rust Workspace | 21-package 骨架已创建并通过 P0-03 验证 |
 | 生产部署 | 尚未开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1718,7 +1718,7 @@ CR-ID: CR-P11-04-001
 | P12-02 | 编写 systemd Unit、只读 Secret、数据目录、日志和资源限制 | P12-01 | [deployment-envelope acceptance](reports/p12-02-deployment-envelope.md)：受支持条件、可执行 checker、负向回归、真实 Linux systemd 255 语法验证与本地 Full gate 均通过；未安装、启用或启动服务器 Unit | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | [带时间戳、无值备份与回滚清单](reports/p12-03-server-backup-rollback.md)：现有 CPA 数据根静止快照、镜像身份、关联 unit 片段、权限、哈希和精确回滚步骤已独立复核；未安装或启动新服务 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | [Staging receipt](reports/p12-04-staging-receipt.md)：独立签名制品、精确 Unit、root-only 凭证、两个回环 listener、Health/管理面 admission、资源/日志/回滚均验收；服务 active 但 disabled-at-boot | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | 受控端到端报告；只允许独立测试资源，任何外部请求和现有 CPA 改动均需记录 | IN_PROGRESS |
+| P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | [CR-013 Staging 回执](reports/evidence/p12-05-cr-013-staging-receipt-20260726.md)：Models 与一次 Messages 生命周期验证通过并完全回滚；Tool/Explain 仍待显式范围决定 | IN_PROGRESS |
 | P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | 差异与性能报告 | PENDING |
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | DNS/TLS/Auth 验证 | PENDING |
 | P12-08 | 使用单独 Client Key 开始 10%→25%→50%→100% Canary | P12-06,P12-07 | 每阶段成功率、P95/P99、缓存和错误证据 | PENDING |
@@ -2152,6 +2152,16 @@ CR-ID: CR-P12-05-013
 计划版本变更: v1.61
 ```
 
+### CR-P12-05-013 执行结果
+
+精确 SHA 私有 OIDC/Sigstore artifact 已在本机独立验签后写入隔离 Staging release 目录，并通过
+Linux `gateway serve --help`。随后唯一允许的临时图事务完成 loopback Models 与恰好一次
+Anthropic Messages：HTTP 为 `2xx`，内存 lifecycle 检查得到 `end_turn` 与数值 usage，受保护
+attempt 投影为 `succeeded/decoder`。事务无失败并完整恢复数据库 preimage、原 current link、
+Staging loopback 服务与 incumbent continuity；临时 harness 已删除，未执行 Tool、Explain、
+direct probe、P12-06 或任何 public exposure。详见
+[CR-013 Staging 回执](reports/evidence/p12-05-cr-013-staging-receipt-20260726.md)。
+
 ### Canary 推进与回滚规则
 
 - 每个流量阶段至少持续 2 小时并包含至少 100 个成功请求；低流量时使用固定合成请求补足。
@@ -2327,4 +2337,4 @@ Next task:
 | v1.58 | 2026-07-25 | `CR-P12-05-010`：完整 decoder classifier 通过后，以同一 signed artifact 允许一次最终 isolated Staging retry | APPROVED；当前执行基线 |
 | v1.59 | 2026-07-25 | `CR-P12-05-011`：发现 prior classifier 缺少 builder 固定 input message type 后，允许一次精确同形无正文分类 | APPROVED；当前执行基线 |
 | v1.60 | 2026-07-25 | `CR-P12-05-012`：精确同形 classifier 通过而 Staging 仍 502 后，增加仅 loopback 管理面可读的固定阶段 attempt 投影；无新外部请求 | APPROVED；当前执行基线 |
-| v1.61 | 2026-07-26 | `CR-P12-05-013`：CR-012 证明 decoder 成功后，修复 P12-only 非流式 Responses 至 Anthropic Messages 的 usage 时序与显式终止语义；需新私有签名制品和一次隔离重验 | APPROVED；当前执行基线 |
+| v1.61 | 2026-07-26 | `CR-P12-05-013`：CR-012 证明 decoder 成功后，修复 P12-only 非流式 Responses 至 Anthropic Messages 的 usage 时序与显式终止语义；需新私有签名制品和一次隔离重验 | APPROVED；已完成一次 Messages 受控复验并回滚，P12-05 其余 Tool/Explain 仍待范围决定 |

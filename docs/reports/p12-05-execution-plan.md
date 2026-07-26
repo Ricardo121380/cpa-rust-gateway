@@ -4,9 +4,9 @@
 |---|---|
 | Plan version | `v1.61` |
 | Task | `P12-05` |
-| Status | `IN_PROGRESS` — the accepted P12-04 loopback Staging instance is healthy, disabled at boot, and restored to the P12-05 preimage. The corrected `CR-P12-05-004` artifact passed Models plus OpenAI Responses non-streaming/SSE, then the controlled sequence stopped at Anthropic Messages before Tool or Explain. The later CR-005 artifact's ordered Staging Messages retry also stopped and rolled back. CR-012's one receipt-enhanced Messages diagnostic then recorded a successful decoder-stage attempt and complete rollback, isolating a narrow P12-only Messages output-lifecycle repair. Its new exact-SHA artifact has not yet been built or independently verified, so no further Staging write is permitted. A server-only, no-body `/models` discriminator passed, proving the selected Bearer and active HTTPS base URL work from the server; it does not replace the required loopback-Staging Models check. |
+| Status | `IN_PROGRESS` — the accepted P12-04 loopback Staging instance is healthy, disabled at boot, and restored to the P12-05 preimage. The corrected `CR-P12-05-004` artifact passed Models plus OpenAI Responses non-streaming/SSE, then the controlled sequence stopped at Anthropic Messages before Tool or Explain. The later CR-005 artifact's ordered Staging Messages retry also stopped and rolled back. CR-012's one receipt-enhanced Messages diagnostic isolated the output-lifecycle repair. The independently verified CR-013 artifact then passed its fresh loopback Models plus exactly-one Messages validation, including `end_turn`/usage lifecycle checks, and fully rolled back. Tool and Explain remain intentionally unrun; P12-05 therefore remains in progress. A server-only, no-body `/models` discriminator passed, proving the selected Bearer and active HTTPS base URL work from the server; it does not replace the required loopback-Staging Models check. |
 | Preconditions | P12-04 remains active but disabled at boot, has its own state directory and its two loopback listeners. The incumbent `cli-proxy-api` remains out of scope. |
-| Approved remote exception | `CR-P12-05-001` is consumed by the rejected, never-activated `9d62339` artifact; `CR-P12-05-002` is consumed by the installed policy-alignment artifact; `CR-P12-05-004` is consumed by the validated-and-rolled-back attempt; `CR-P12-05-005` is consumed by its halted-and-rolled-back isolated sequence; and `CR-P12-05-012` is consumed by its single receipt-enhanced diagnostic. `CR-P12-05-013` requires a new private GitHub OIDC/Sigstore artifact from the reviewed lifecycle-repair SHA and independent verification before one fresh isolated Messages validation. |
+| Approved remote exception | `CR-P12-05-001` is consumed by the rejected, never-activated `9d62339` artifact; `CR-P12-05-002` is consumed by the installed policy-alignment artifact; `CR-P12-05-004` is consumed by the validated-and-rolled-back attempt; `CR-P12-05-005` is consumed by its halted-and-rolled-back isolated sequence; `CR-P12-05-012` is consumed by its single receipt-enhanced diagnostic; and `CR-P12-05-013` is consumed by its successful one-request Messages validation and mandatory rollback. No later request is implied. |
 | Credential authority | The operator authorized a read-only use of this Mac's CC Switch `krill` Codex configuration. It contains a current ChatGPT OAuth token set, a separately selected effective Bearer credential, and two configured HTTPS endpoints. The operator confirms the selected key and base URL are currently usable; this task must not refresh or re-login. Values, endpoint text, account identity, models, request/response bodies, and token fingerprints are never written to Git, reports, command lines, or chat. |
 
 ## Boundary
@@ -393,6 +393,38 @@ are recorded in the [CR-005 artifact acceptance](p12-05-cr-005-artifact-acceptan
 This acceptance authorizes no implicit deployment or provider activity.  The next permitted step
 is the existing root-only P12-05 preimage procedure, followed by the narrow listener/readiness,
 Models, Messages, no-side-effect Tool, and Explain sequence.  P12-06 remains pending.
+
+## CR-013 exact artifact acceptance
+
+The exact private artifact for revision
+`49f8c0f3eb6326d3f2ed6cc612ec8ffd10915938` completed the required independent checks before
+any CR-013 Staging write. Its GitHub `release-artifact` run `30185145888` completed successfully
+for the same revision. The private artifact `8626803209` extracted to exactly nine regular files;
+the repository verifier, OCI inspection, and independent keyless Cosign `verify-blob` all passed.
+The value-free digests, signing identity, and workflow receipt are recorded in the
+[CR-013 artifact acceptance](p12-05-cr-013-artifact-acceptance-20260726.md).
+
+This acceptance authorizes only a fresh root-only P12-05 preimage procedure using that artifact,
+then loopback readiness/listener checks, Models, and exactly one non-streaming Messages response
+that must validate its `end_turn` and numeric usage lifecycle in memory. The transaction must
+restore the preimage irrespective of outcome. Tool, Explain, direct probes, P12-06, and public
+exposure remain prohibited.
+
+## CR-013 controlled Staging outcome
+
+The one allowed transaction completed with Models `pass`, exactly one external Messages request,
+Messages `2xx`, and an in-memory valid `end_turn` plus numeric usage lifecycle. The protected
+management projection recorded one terminal `succeeded/decoder` attempt. Its root-only receipt
+also confirms completed progress, no failure stage, restored database preimage, restarted
+Staging, and uninterrupted incumbent continuity. The independent post-review re-confirmed that
+the temporary harness was removed, the current release link was restored, the Staging unit remains
+active but disabled at boot, both listeners remain loopback-only, and the temporary graph is gone.
+The value-free evidence is recorded in the [CR-013 isolated Staging receipt]
+(evidence/p12-05-cr-013-staging-receipt-20260726.md).
+
+This successful result consumes CR-013 and closes its Messages-only scope. It is not an implicit
+authorization for Tool, Explain, direct probing, P12-06, or public exposure; P12-05 itself remains
+in progress pending an explicit scope decision for its remaining evidence.
 
 ## Stop conditions and rollback
 

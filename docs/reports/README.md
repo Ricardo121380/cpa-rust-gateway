@@ -154,4 +154,7 @@
 - [P12-05 server-only Krill Responses replacement classifier](evidence/p12-05-server-responses-classifier-20260725.md) — root-only value-free receipt: direct Responses returned `2xx` JSON and passed the visible decoder structure subset
 - [P12-05 server-only Krill Responses full-decoder classifier](evidence/p12-05-server-responses-full-decoder-20260725.md) — root-only value-free receipt: direct Responses passed the full safe non-streaming decoder-contract mirror
 - [P12-05 server-only Krill Responses exact-shape classifier](evidence/p12-05-server-responses-exact-shape-20260725.md) — root-only value-free receipt: the exact P12 outbound body passed the full non-streaming decoder-contract mirror
-- [P12-05 CR-012 attempt-stage review](evidence/p12-05-cr-012-local-review-20260725.md) — bounded, value-free protected management projection reviewed and locally gated; exact-SHA artifact verification remains required before Staging
+- [P12-05 CR-012 attempt-stage review](evidence/p12-05-cr-012-local-review-20260725.md) — bounded, value-free protected management projection reviewed and locally gated; it isolated the later CR-013 Messages lifecycle repair
+- [P12-05 CR-013 Messages lifecycle review](evidence/p12-05-cr-013-local-review-20260726.md) — P12-only usage-order and explicit-stop repair reviewed and locally gated
+- [P12-05 CR-013 artifact acceptance](p12-05-cr-013-artifact-acceptance-20260726.md) — revision-bound private artifact independently verified before its one isolated Messages validation
+- [P12-05 CR-013 isolated Staging receipt](evidence/p12-05-cr-013-staging-receipt-20260726.md) — exactly one Messages request passed its lifecycle check and restored the preimage
