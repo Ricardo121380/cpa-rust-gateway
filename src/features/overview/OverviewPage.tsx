@@ -1,12 +1,22 @@
 // Overview. Two truth layers, honestly separated (docs/07 §7.1):
 //  - wiring scale: real counts from the existing list contracts, per version;
-//  - observability: G2/G3 own the KPI tiles — until wired, a dedicated
-//    "pipeline unwired" state, never fake zeros.
+//  - observability: lit from the PROPOSED G3 dashboard/analytics (fixtures)
+//    until G2/G3 land — otherwise the dedicated "pipeline unwired" state.
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { call } from "../../api/client";
+import {
+  analyticsAvailable,
+  fetchProposedAnalytics,
+  fetchProposedDashboard,
+} from "../../api/proposed";
+import { HealthStrip } from "../../components/data/HealthStrip";
+import { MiniTimeline } from "../../components/data/MiniTimeline";
+import { formatCount, formatLatency, StatTile } from "../../components/data/StatTile";
+import { TokenMixBar } from "../../components/data/TokenMixBar";
 import { StatusBadge } from "../../components/StatusBadge";
 import { messages } from "../../i18n/messages";
+import { resolvePreset } from "../../utils/timerange";
 import {
   useVersionStore,
   type ConfigVersionSummary,
@@ -19,6 +29,134 @@ function useCount(queryKey: string, operation: Parameters<typeof call>[0], scope
     enabled: scope !== undefined,
     staleTime: 30_000,
   });
+}
+
+function ObservabilitySection() {
+  const today = resolvePreset("today", Date.now());
+
+  const dashboard = useQuery({
+    queryKey: ["dashboard-summary"],
+    queryFn: () => fetchProposedDashboard(today.from_ms, today.to_ms),
+    enabled: analyticsAvailable(),
+    refetchInterval: 60_000,
+  });
+
+  const trend = useQuery({
+    queryKey: ["overview-trend", today.from_ms],
+    queryFn: () =>
+      fetchProposedAnalytics({
+        from_ms: today.from_ms,
+        to_ms: today.to_ms,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        bucket: "hour",
+        include: { timeline: true },
+      }),
+    enabled: analyticsAvailable(),
+    refetchInterval: 60_000,
+  });
+
+  if (!analyticsAvailable()) {
+    return (
+      <div className="card empty-state" data-kind="unwired" style={{ marginTop: 14 }}>
+        <p>
+          {messages.state.unwired}
+          <br />
+          <small style={{ color: "var(--ink-3)" }}>
+            今日 KPI、流量趋势、健康条带与 Token 构成将在 G2(事件管道接线)与
+            G3(分析端点)交付后点亮 —— 归后端会话。
+          </small>
+        </p>
+      </div>
+    );
+  }
+  const summary = dashboard.data;
+  if (summary === undefined) {
+    return (
+      <div className="card empty-state" data-kind="empty" style={{ marginTop: 14 }}>
+        <p>加载今日观测…</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="stat-row">
+        <StatTile
+          label="今日请求"
+          value={formatCount(summary.kpi.requests)}
+          sub={`失败 ${summary.kpi.failures}`}
+          spark={trend.data?.timeline?.map((bucket) => bucket.requests)}
+        />
+        <StatTile
+          label="成功率"
+          value={`${(summary.kpi.success_rate * 100).toFixed(2)}%`}
+          sub={`${summary.kpi.requests - summary.kpi.failures}/${summary.kpi.requests}`}
+        />
+        <StatTile label="Token" value={formatCount(summary.kpi.tokens_total)} sub="全部类别合计" />
+        <StatTile label="P95 延迟" value={formatLatency(summary.kpi.latency_p95_ms)} sub="来源:尝试时间戳" />
+      </div>
+
+      <div className="overview-grid" style={{ marginTop: 14 }}>
+        <div className="card">
+          <h3>流量趋势(今日,按小时)</h3>
+          {trend.data?.timeline !== undefined ? (
+            <MiniTimeline buckets={trend.data.timeline} />
+          ) : (
+            <p className="stat-sub">加载中…</p>
+          )}
+        </div>
+        <div className="card">
+          <h3>Token 构成(今日)</h3>
+          <TokenMixBar tokens={summary.token_mix} />
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 14 }}>
+        <h3>请求健康条带(10 分钟桶)</h3>
+        <HealthStrip buckets={summary.health_strip} />
+      </div>
+
+      <div className="overview-grid" style={{ marginTop: 14 }}>
+        <div className="card">
+          <h3>模型用量排行(今日)</h3>
+          <table>
+            <tbody>
+              {summary.top_models.map((row) => (
+                <tr key={row.public_model}>
+                  <td className="mono">{row.public_model}</td>
+                  <td className="mono">{formatCount(row.requests)} 请求</td>
+                  <td className="mono">{formatCount(row.tokens_total)} tok</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="card">
+          <h3>最近失败</h3>
+          {summary.recent_failures.length === 0 ? (
+            <p className="stat-sub">今日无失败请求</p>
+          ) : (
+            <table>
+              <tbody>
+                {summary.recent_failures.map((failure) => (
+                  <tr key={failure.request_id}>
+                    <td className="mono">{failure.request_id}</td>
+                    <td>
+                      <StatusBadge status="credential_forbidden">
+                        {failure.error_code} · {failure.error_scope}
+                      </StatusBadge>
+                    </td>
+                    <td className="mono">{failure.stage ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <Link to="/monitoring?range=today&status=failed">在请求监控中查看 →</Link>
+        </div>
+      </div>
+    </>
+  );
 }
 
 export function OverviewPage() {
@@ -83,16 +221,7 @@ export function OverviewPage() {
         </div>
       </div>
 
-      <div className="card empty-state" data-kind="unwired" style={{ marginTop: 14 }}>
-        <p>
-          {messages.state.unwired}
-          <br />
-          <small style={{ color: "var(--ink-3)" }}>
-            今日 KPI、流量趋势、健康条带与 Token 构成将在 G2(事件管道接线)与
-            G3(分析端点)交付后点亮 —— 归后端会话。
-          </small>
-        </p>
-      </div>
+      <ObservabilitySection />
     </section>
   );
 }

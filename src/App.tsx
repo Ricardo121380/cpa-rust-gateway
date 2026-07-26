@@ -6,6 +6,7 @@ import { AuditBackupPage } from "./features/audit/AuditBackupPage";
 import { VersionsPage } from "./features/config-versions/VersionsPage";
 import { EgressPage } from "./features/egress/EgressPage";
 import { ModelsPage } from "./features/models/ModelsPage";
+import { MonitoringPage } from "./features/monitoring/MonitoringPage";
 import { OverviewPage, PlaceholderPage } from "./features/overview/OverviewPage";
 import { UnlockPage } from "./features/unlock/UnlockPage";
 import { UpstreamsPage } from "./features/upstreams/UpstreamsPage";
@@ -25,7 +26,7 @@ const router = createHashRouter([
     children: [
       { index: true, element: <OverviewPage /> },
       { path: "usage", element: <PlaceholderPage title={messages.nav.usage} /> },
-      { path: "monitoring", element: <PlaceholderPage title={messages.nav.monitoring} /> },
+      { path: "monitoring", element: <MonitoringPage /> },
       { path: "versions", element: <VersionsPage /> },
       { path: "upstreams", element: <UpstreamsPage /> },
       { path: "models", element: <ModelsPage /> },

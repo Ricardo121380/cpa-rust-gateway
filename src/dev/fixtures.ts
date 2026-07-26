@@ -312,6 +312,12 @@ function requireDraftAndMatch(version: VersionRow, headers: Headers): Response |
   return undefined;
 }
 
+/** Deterministic pseudo-noise in [0,1) — keeps demo data stable across reloads. */
+function noise(index: number): number {
+  const x = Math.sin(index * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
 function hex(length: number): string {
   let out = "";
   for (let index = 0; index < length; index += 1) {
@@ -710,6 +716,151 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if (rejected !== undefined) return rejected;
       version.revision += 1;
       return json(200, { added: 2, removed: 0, unchanged: 3 }, revisionToken(version));
+    }
+
+    // ---- PROPOSED G3: analytics + dashboard summary (deterministic demo data) ----
+    if (route === "POST /admin/analytics") {
+      const query = JSON.parse(bodyText ?? "{}") as {
+        from_ms: number;
+        to_ms: number;
+        bucket?: string;
+        filters?: { status?: string; public_model?: string[] };
+        include?: {
+          summary?: boolean;
+          timeline?: boolean;
+          ranks?: { by: string; limit: number };
+          heatmap?: { metric: string };
+          options?: boolean;
+          events?: { cursor: string | null; limit: number };
+        };
+      };
+      const span = query.to_ms - query.from_ms;
+      const bucketMs = (query.bucket === "day" || (query.bucket !== "hour" && span > 48 * 3_600_000))
+        ? 86_400_000
+        : 3_600_000;
+      const bucketCount = Math.max(1, Math.min(400, Math.ceil(span / bucketMs)));
+      const buckets = Array.from({ length: bucketCount }, (_, index) => {
+        const requests = Math.round(40 + noise(index) * 180);
+        const failures = Math.round(noise(index * 7 + 3) * 6);
+        return {
+          bucket_start_ms: query.from_ms + index * bucketMs,
+          requests,
+          failures,
+          tokens_total: requests * Math.round(9000 + noise(index + 99) * 6000),
+          latency_p95_ms: Math.round(8000 + noise(index + 7) * 26000),
+        };
+      });
+      const requests = buckets.reduce((sum, bucket) => sum + bucket.requests, 0);
+      const failures = buckets.reduce((sum, bucket) => sum + bucket.failures, 0);
+      const tokensTotal = buckets.reduce((sum, bucket) => sum + bucket.tokens_total, 0);
+      const models = ["minimax-m3", "glm-5-air"];
+      const body: Record<string, unknown> = {
+        range: { from_ms: query.from_ms, to_ms: query.to_ms, bucket: bucketMs === 3_600_000 ? "hour" : "day", bucket_count: bucketCount },
+      };
+      if (query.include?.summary === true) {
+        body["summary"] = {
+          requests,
+          failures,
+          attempts: requests + failures,
+          tokens: {
+            input: Math.round(tokensTotal * 0.12),
+            output: Math.round(tokensTotal * 0.006),
+            reasoning: Math.round(tokensTotal * 0.002),
+            cache_read: Math.round(tokensTotal * 0.87),
+            cache_creation: Math.round(tokensTotal * 0.002),
+          },
+          latency_ms: { avg: 12400, p50: 9800, p95: 21400, p99: 39000 },
+        };
+      }
+      if (query.include?.timeline === true) {
+        body["timeline"] = buckets;
+      }
+      if (query.include?.ranks !== undefined) {
+        body["ranks"] = models.slice(0, query.include.ranks.limit).map((key, index) => ({
+          key,
+          requests: Math.round(requests * (index === 0 ? 0.72 : 0.28)),
+          failures: Math.round(failures * (index === 0 ? 0.6 : 0.4)),
+          tokens_total: Math.round(tokensTotal * (index === 0 ? 0.8 : 0.2)),
+          last_seen_ms: query.to_ms - 60_000,
+        }));
+      }
+      if (query.include?.heatmap !== undefined) {
+        const cells = [];
+        for (let weekday = 0; weekday < 7; weekday += 1) {
+          for (let hour = 0; hour < 24; hour += 1) {
+            cells.push({ weekday, hour, value: Math.round(noise(weekday * 24 + hour) * 200) });
+          }
+        }
+        body["heatmap"] = cells;
+      }
+      if (query.include?.options === true) {
+        body["options"] = {
+          public_model: models,
+          client_key_id: ["key-cli"],
+          credential_id: ["cred-relay-key", "cred-grok-oauth"],
+          endpoint_id: ["ep-relay-a-responses", "ep-grok-build"],
+        };
+      }
+      if (query.include?.events !== undefined) {
+        const TOTAL = 57;
+        const offset = query.include.events.cursor === null ? 0 : Number(query.include.events.cursor);
+        const limit = Math.min(query.include.events.limit, 1000);
+        const statusFilter = query.filters?.status ?? "all";
+        const all = Array.from({ length: TOTAL }, (_, index) => {
+          const failed = index % 7 === 3;
+          return {
+            request_id: `req-${String(1000 + TOTAL - index)}`,
+            occurred_at_ms: query.to_ms - index * 97_000,
+            protocol: index % 3 === 0 ? "anthropic_messages" : "openai_responses",
+            public_model: models[index % 2 === 0 ? 0 : 1],
+            streaming: index % 4 !== 1,
+            outcome: failed ? "failed" : "success",
+            error_code: failed ? "provider_rate_limited" : null,
+            error_scope: failed ? "quota_window" : null,
+            stage: failed ? "http_status" : null,
+            retry_decision: failed ? "RetryClosed" : "Completed",
+            attempt_count: failed ? 2 : 1,
+            latency_ms: Math.round(4000 + noise(index) * 30000),
+            tokens: failed ? null : { input: 8000 + index * 13, output: 450 + index, cache_read: 60000 + index * 31 },
+            client_key_id: "key-cli",
+            credential_id: "cred-relay-key",
+            endpoint_id: "ep-relay-a-responses",
+          };
+        }).filter((row) => statusFilter === "all" || row.outcome === statusFilter);
+        const page = all.slice(offset, offset + limit);
+        body["events"] = {
+          items: page,
+          next_cursor: offset + limit < all.length ? String(offset + limit) : null,
+        };
+      }
+      return json(200, body);
+    }
+
+    if (route === "GET /admin/dashboard/summary") {
+      const todayStart = Number(url.searchParams.get("today_start_ms") ?? Date.now() - 8 * 3_600_000);
+      const now = Number(url.searchParams.get("now_ms") ?? Date.now());
+      const strip = [];
+      for (let start = todayStart; start < now; start += 600_000) {
+        const index = Math.floor((start - todayStart) / 600_000);
+        const roll = noise(index + 42);
+        strip.push({
+          bucket_start_ms: start,
+          state: roll < 0.08 ? "empty" : roll > 0.97 ? "bad" : roll > 0.9 ? "warn" : "ok",
+        });
+      }
+      return json(200, {
+        kpi: { requests: 1877, failures: 24, success_rate: 0.9872, tokens_total: 217_600_000, latency_p95_ms: 21_400 },
+        health_strip: strip,
+        token_mix: { input: 27_100_000, output: 1_000_000, reasoning: 336_100, cache_read: 189_200_000, cache_creation: 400_000 },
+        top_models: [
+          { public_model: "minimax-m3", requests: 1351, tokens_total: 174_000_000 },
+          { public_model: "glm-5-air", requests: 526, tokens_total: 43_600_000 },
+        ],
+        recent_failures: [
+          { request_id: "req-1043", occurred_at_ms: now - 340_000, error_code: "provider_rate_limited", error_scope: "quota_window", stage: "http_status" },
+          { request_id: "req-1029", occurred_at_ms: now - 1_960_000, error_code: "stream_truncated", error_scope: "stream", stage: "sse_bootstrap" },
+        ],
+      });
     }
 
     // ---- audit + backup ----
