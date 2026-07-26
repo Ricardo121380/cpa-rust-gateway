@@ -5,6 +5,7 @@
 //! queue, `SQLite`, or its retry loop back to Router or HTTP callers.
 
 use std::{
+    collections::VecDeque,
     fmt,
     path::{Path, PathBuf},
     sync::{
@@ -150,6 +151,18 @@ impl EventRecord {
         };
         let payload_json =
             serde_json::to_string(event).map_err(|_| StoreError::InvalidPersistedGatewayEvent)?;
+        // The durable schema bounds both identifier columns. Enforcing that bound here, before the
+        // insert, is what makes an over-long identifier a record-level poison instead of a raw
+        // SQLite CHECK violation: the latter is indistinguishable from a transient store failure
+        // and would retry forever. Usage event ids are upstream-supplied response ids, so this is
+        // the one poison class an external party can actually trigger.
+        if !is_persistable_identifier(&event_id)
+            || request_id
+                .as_deref()
+                .is_some_and(|request_id| !is_persistable_identifier(request_id))
+        {
+            return Err(StoreError::InvalidPersistedGatewayEvent);
+        }
 
         Ok(Self {
             kind,
@@ -159,6 +172,14 @@ impl EventRecord {
             payload_json,
         })
     }
+}
+
+/// The durable identifier bound enforced by `gateway_event_log`'s schema CHECK constraints.
+const MAX_EVENT_LOG_IDENTIFIER_BYTES: usize = 512;
+
+/// Reports whether one identifier can satisfy the durable schema's length constraint.
+fn is_persistable_identifier(value: &str) -> bool {
+    !value.is_empty() && value.len() <= MAX_EVENT_LOG_IDENTIFIER_BYTES
 }
 
 /// File- or memory-backed append-only event store.
@@ -469,8 +490,10 @@ pub struct EventWriterMetrics {
     pub rows_inserted: u64,
     /// Low-priority diagnostics intentionally consumed without a durable Required-event row.
     pub diagnostics_not_persisted: u64,
-    /// Failed `SQLite` open, migration, transaction, or blocking-worker attempts.
+    /// Retryable `SQLite` open, migration, transaction, or blocking-worker failures.
     pub sqlite_write_failures: u64,
+    /// Required events dropped because their stable durable identity can never append.
+    pub required_events_quarantined: u64,
     /// Required events retained in the writer's one bounded pending transaction.
     pub pending_required: u64,
 }
@@ -481,6 +504,7 @@ struct EventWriterMetricsState {
     rows_inserted: AtomicU64,
     diagnostics_not_persisted: AtomicU64,
     sqlite_write_failures: AtomicU64,
+    required_events_quarantined: AtomicU64,
     pending_required: AtomicU64,
 }
 
@@ -499,6 +523,7 @@ impl EventWriterMetricsHandle {
             rows_inserted: self.rows_inserted(),
             diagnostics_not_persisted: self.diagnostics_not_persisted(),
             sqlite_write_failures: self.sqlite_write_failures(),
+            required_events_quarantined: self.required_events_quarantined(),
             pending_required: self.pending_required(),
         }
     }
@@ -519,16 +544,43 @@ impl EventWriterMetricsHandle {
         self.state.sqlite_write_failures.load(Ordering::Relaxed)
     }
 
+    fn required_events_quarantined(&self) -> u64 {
+        self.state
+            .required_events_quarantined
+            .load(Ordering::Relaxed)
+    }
+
     fn pending_required(&self) -> u64 {
         self.state.pending_required.load(Ordering::Relaxed)
     }
 }
 
+/// Writer-internal classification of one failed durable write attempt.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum EventWriteFailure {
+    /// The store open, migration, transaction, or blocking worker failed in a retryable way.
+    Transient,
+    /// At least one submitted record can never append under its stable durable identity.
+    PoisonedRecord,
+}
+
+/// Returns whether `error` deterministically rejects a specific record rather than the store.
+fn is_record_poison(error: &StoreError) -> bool {
+    matches!(
+        error,
+        StoreError::ConflictingGatewayEventReplay
+            | StoreError::InvalidPersistedGatewayEvent
+            | StoreError::DiagnosticEventNotPersistable
+    )
+}
+
 /// Asynchronous consumer that batches already-admitted events onto a blocking `SQLite` worker.
 ///
-/// `SQLite` failures retain the one finite pending Required batch and retry it after the configured
-/// delay. They do not create an unbounded overflow queue, block the event producer, or increment
-/// a persistence-success counter. Diagnostics are explicitly counted as non-persisted.
+/// Transient `SQLite` failures retain the one finite pending Required batch and retry it after the
+/// configured delay. Deterministic record-level failures instead replay the batch one event per
+/// transaction, keeping every healthy event durable and quarantining only the poisoned records.
+/// Neither path creates an unbounded overflow queue, blocks the event producer, or increments a
+/// persistence-success counter. Diagnostics are explicitly counted as non-persisted.
 pub struct AsyncSqliteEventWriter {
     database_path: PathBuf,
     receiver: EventQueueReceiver,
@@ -591,9 +643,11 @@ impl AsyncSqliteEventWriter {
 
     /// Consumes the queue until all senders close and the final Required batch is durable.
     ///
-    /// A persistent store failure intentionally keeps this future alive with the bounded pending
-    /// batch. Shutdown code must therefore observe the metrics or cancel the task explicitly;
-    /// the writer never fabricates a successful flush.
+    /// A persistent transient store failure intentionally keeps this future alive with the bounded
+    /// pending batch. A deterministic record-level failure quarantines only the poisoned events,
+    /// so one unappendable record cannot wedge durable persistence for later Required events.
+    /// Shutdown code must therefore observe the metrics or cancel the task explicitly; the writer
+    /// never fabricates a successful flush.
     pub async fn run(mut self) -> EventWriterMetrics {
         loop {
             self.drain_ready_events();
@@ -605,26 +659,81 @@ impl AsyncSqliteEventWriter {
                 continue;
             }
 
-            if let Ok(inserted) = self.write_pending().await {
-                let committed = u64::try_from(self.pending.len()).unwrap_or(u64::MAX);
-                self.metrics
-                    .state
-                    .required_events_committed
-                    .fetch_add(committed, Ordering::Relaxed);
-                self.metrics
-                    .state
-                    .rows_inserted
-                    .fetch_add(inserted, Ordering::Relaxed);
-                self.pending.clear();
-                self.update_pending_metric();
-            } else {
-                self.metrics
-                    .state
-                    .sqlite_write_failures
-                    .fetch_add(1, Ordering::Relaxed);
-                tokio::time::sleep(self.config.retry_delay()).await;
+            match self.write_events(self.pending.clone()).await {
+                Ok(inserted) => {
+                    let committed = u64::try_from(self.pending.len()).unwrap_or(u64::MAX);
+                    self.metrics
+                        .state
+                        .required_events_committed
+                        .fetch_add(committed, Ordering::Relaxed);
+                    self.metrics
+                        .state
+                        .rows_inserted
+                        .fetch_add(inserted, Ordering::Relaxed);
+                    self.pending.clear();
+                    self.update_pending_metric();
+                }
+                Err(EventWriteFailure::Transient) => {
+                    self.metrics
+                        .state
+                        .sqlite_write_failures
+                        .fetch_add(1, Ordering::Relaxed);
+                    tokio::time::sleep(self.config.retry_delay()).await;
+                }
+                Err(EventWriteFailure::PoisonedRecord) => {
+                    self.quarantine_poisoned_pending().await;
+                }
             }
         }
+    }
+
+    /// Replays the pending batch one event per transaction after a deterministic record failure.
+    ///
+    /// Healthy events commit durably and leave the batch; a record that can never append is
+    /// dropped and counted in `required_events_quarantined`. A transient failure stops this pass
+    /// with the interrupted event and the unprocessed suffix retained as the pending batch, so a
+    /// store outage during the replay never drops a healthy event.
+    async fn quarantine_poisoned_pending(&mut self) {
+        let mut remaining = VecDeque::from(std::mem::take(&mut self.pending));
+        while let Some(event) = remaining.pop_front() {
+            // The gauge must track what is still owed while the replay runs: an event already
+            // committed or quarantined below is no longer pending, and leaving the pre-pass value
+            // in place would double-count it as both durable and outstanding.
+            self.metrics
+                .state
+                .pending_required
+                .store(remaining.len() as u64 + 1, Ordering::Relaxed);
+            match self.write_events(vec![event.clone()]).await {
+                Ok(inserted) => {
+                    self.metrics
+                        .state
+                        .required_events_committed
+                        .fetch_add(1, Ordering::Relaxed);
+                    self.metrics
+                        .state
+                        .rows_inserted
+                        .fetch_add(inserted, Ordering::Relaxed);
+                }
+                Err(EventWriteFailure::PoisonedRecord) => {
+                    self.metrics
+                        .state
+                        .required_events_quarantined
+                        .fetch_add(1, Ordering::Relaxed);
+                }
+                Err(EventWriteFailure::Transient) => {
+                    self.pending.push(event);
+                    self.pending.extend(remaining);
+                    self.update_pending_metric();
+                    self.metrics
+                        .state
+                        .sqlite_write_failures
+                        .fetch_add(1, Ordering::Relaxed);
+                    tokio::time::sleep(self.config.retry_delay()).await;
+                    return;
+                }
+            }
+        }
+        self.update_pending_metric();
     }
 
     fn drain_ready_events(&mut self) {
@@ -662,8 +771,7 @@ impl AsyncSqliteEventWriter {
             .store(pending, Ordering::Relaxed);
     }
 
-    async fn write_pending(&mut self) -> Result<u64, ()> {
-        let pending = self.pending.clone();
+    async fn write_events(&mut self, events: Vec<GatewayEvent>) -> Result<u64, EventWriteFailure> {
         let database_path = self.database_path.clone();
         let store = self.store.take();
         #[cfg(test)]
@@ -686,7 +794,7 @@ impl AsyncSqliteEventWriter {
                     return (Some(store), Err(StoreError::from(error)));
                 }
             }
-            let result = store.append_batch(&pending);
+            let result = store.append_batch(&events);
             (Some(store), result)
         })
         .await;
@@ -695,13 +803,17 @@ impl AsyncSqliteEventWriter {
                 self.store = store;
                 Ok(u64::try_from(inserted).unwrap_or(u64::MAX))
             }
-            Ok((store, Err(_))) => {
+            Ok((store, Err(error))) => {
                 self.store = store;
-                Err(())
+                if is_record_poison(&error) {
+                    Err(EventWriteFailure::PoisonedRecord)
+                } else {
+                    Err(EventWriteFailure::Transient)
+                }
             }
             Err(_) => {
                 self.store = None;
-                Err(())
+                Err(EventWriteFailure::Transient)
             }
         }
     }
@@ -742,7 +854,10 @@ mod tests {
         PrometheusMetrics, StructuredJsonExporter, StructuredJsonRecord, TelemetryPipeline,
     };
 
-    use super::{AsyncSqliteEventWriter, EventWriterConfig, GatewayEventLogKind, SqliteEventStore};
+    use super::{
+        AsyncSqliteEventWriter, EventWriterConfig, GatewayEventLogKind,
+        MAX_EVENT_LOG_IDENTIFIER_BYTES, SqliteEventStore,
+    };
 
     type TestResult = Result<(), Box<dyn std::error::Error>>;
 
@@ -828,6 +943,39 @@ mod tests {
             "p11-06-public-model".to_owned(),
             None,
             false,
+        )))
+    }
+
+    fn usage_event(
+        request: &str,
+        response: &str,
+        input_tokens: u64,
+    ) -> Result<GatewayEvent, Box<dyn std::error::Error>> {
+        Ok(GatewayEvent::Usage(UsageEvent::from_usage(
+            RequestId::try_new(request)?,
+            ResponseId::try_new(response)?,
+            &Usage {
+                input_tokens: Some(input_tokens),
+                output_tokens: Some(5),
+                ..Usage::default()
+            },
+        )))
+    }
+
+    fn attempt_event(sequence: usize) -> Result<GatewayEvent, Box<dyn std::error::Error>> {
+        Ok(GatewayEvent::Attempt(AttemptEvent::new(
+            RequestId::try_new(format!("quarantine-request-{sequence:04}"))?,
+            1,
+            RouteId::try_new("route-01")?,
+            RouteCandidateId::try_new("candidate-01")?,
+            CredentialId::try_new("credential-01")?,
+            EndpointId::try_new("endpoint-01")?,
+            UpstreamId::try_new("upstream-01")?,
+            "internal-model".to_owned(),
+            10,
+            25,
+            AttemptOutcome::Succeeded,
+            AttemptRetryDecision::Completed,
         )))
     }
 
@@ -1198,6 +1346,249 @@ mod tests {
         assert_eq!(json.len()?, 1);
         let store = SqliteEventStore::open(&database_path)?;
         assert!(store.list_events()?.is_empty());
+        drop(store);
+        fs::remove_file(database_path)?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn writer_quarantines_conflicting_replay_and_commits_healthy_batch_events() -> TestResult
+    {
+        let database_path = temporary_path("quarantine-batch.sqlite");
+        let committed_usage = usage_event("request-a", "response-shared", 3)?;
+        {
+            let mut store = SqliteEventStore::open(&database_path)?;
+            assert_eq!(
+                store.append_batch(std::slice::from_ref(&committed_usage))?,
+                1
+            );
+        }
+
+        let (queue, receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(4, 1)?)?;
+        let writer = AsyncSqliteEventWriter::new(
+            &database_path,
+            receiver,
+            EventWriterConfig::try_new(4, Duration::from_millis(5))?,
+        );
+        let metrics = writer.metrics_handle();
+        for event in [
+            request_event(1)?,
+            usage_event("request-b", "response-shared", 7)?,
+            attempt_event(1)?,
+        ] {
+            assert_eq!(queue.try_emit(event), gateway_core::EventEmission::Enqueued);
+        }
+
+        let writer = tokio::spawn(writer.run());
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while metrics.snapshot().required_events_quarantined == 0 {
+            assert!(
+                Instant::now() < deadline,
+                "writer did not quarantine the conflicting replay"
+            );
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        assert_eq!(
+            queue.try_emit(request_event(2)?),
+            gateway_core::EventEmission::Enqueued
+        );
+        drop(queue);
+
+        let reported = tokio::time::timeout(Duration::from_secs(2), writer).await??;
+        assert_eq!(reported.required_events_committed, 3);
+        assert_eq!(reported.rows_inserted, 3);
+        assert_eq!(reported.required_events_quarantined, 1);
+        assert_eq!(reported.sqlite_write_failures, 0);
+        assert_eq!(reported.pending_required, 0);
+
+        let store = SqliteEventStore::open(&database_path)?;
+        let events = store.list_events()?;
+        assert_eq!(events.len(), 4);
+        assert_eq!(events[0].event(), &committed_usage);
+        assert_eq!(events[1].kind(), GatewayEventLogKind::Request);
+        assert_eq!(events[2].kind(), GatewayEventLogKind::Attempt);
+        drop(store);
+        fs::remove_file(database_path)?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn writer_quarantines_poisoned_singleton_batch_and_keeps_consuming() -> TestResult {
+        let database_path = temporary_path("quarantine-singleton.sqlite");
+        {
+            let mut store = SqliteEventStore::open(&database_path)?;
+            assert_eq!(
+                store.append_batch(&[usage_event("request-a", "response-shared", 3)?])?,
+                1
+            );
+        }
+
+        let (queue, receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(2, 1)?)?;
+        let writer = AsyncSqliteEventWriter::new(
+            &database_path,
+            receiver,
+            EventWriterConfig::try_new(1, Duration::from_millis(5))?,
+        );
+        let metrics = writer.metrics_handle();
+        assert_eq!(
+            queue.try_emit(usage_event("request-b", "response-shared", 7)?),
+            gateway_core::EventEmission::Enqueued
+        );
+
+        let writer = tokio::spawn(writer.run());
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while metrics.snapshot().required_events_quarantined == 0 {
+            assert!(
+                Instant::now() < deadline,
+                "writer did not quarantine the poisoned singleton batch"
+            );
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        assert_eq!(
+            queue.try_emit(request_event(1)?),
+            gateway_core::EventEmission::Enqueued
+        );
+        drop(queue);
+
+        let reported = tokio::time::timeout(Duration::from_secs(2), writer).await??;
+        assert_eq!(reported.required_events_quarantined, 1);
+        assert_eq!(reported.required_events_committed, 1);
+        assert_eq!(reported.rows_inserted, 1);
+        assert_eq!(reported.sqlite_write_failures, 0);
+        assert_eq!(reported.pending_required, 0);
+        let store = SqliteEventStore::open(&database_path)?;
+        assert_eq!(store.list_events()?.len(), 2);
+        drop(store);
+        fs::remove_file(database_path)?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn an_oversized_upstream_identifier_is_quarantined_instead_of_wedging_the_writer()
+    -> TestResult {
+        // A Usage event id is the upstream-supplied response id, so its length is attacker
+        // controlled. The durable schema bounds it; without the pre-insert check the resulting
+        // CHECK violation is an ordinary SQLite error, which the writer would retry forever.
+        let database_path = temporary_path("quarantine-oversized-identifier.sqlite");
+        let (queue, receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(2, 1)?)?;
+        let writer = AsyncSqliteEventWriter::new(
+            &database_path,
+            receiver,
+            EventWriterConfig::try_new(1, Duration::from_millis(5))?,
+        );
+        let metrics = writer.metrics_handle();
+        let oversized = "r".repeat(MAX_EVENT_LOG_IDENTIFIER_BYTES + 1);
+        assert_eq!(
+            queue.try_emit(usage_event("request-oversized", &oversized, 3)?),
+            gateway_core::EventEmission::Enqueued
+        );
+
+        let writer = tokio::spawn(writer.run());
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while metrics.snapshot().required_events_quarantined == 0 {
+            assert!(
+                Instant::now() < deadline,
+                "writer did not quarantine the oversized identifier"
+            );
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        // The writer must keep consuming: a poisoned record may not block later Required events.
+        assert_eq!(
+            queue.try_emit(request_event(1)?),
+            gateway_core::EventEmission::Enqueued
+        );
+        drop(queue);
+
+        let reported = tokio::time::timeout(Duration::from_secs(2), writer).await??;
+        assert_eq!(reported.required_events_quarantined, 1);
+        assert_eq!(reported.required_events_committed, 1);
+        assert_eq!(reported.sqlite_write_failures, 0);
+        assert_eq!(reported.pending_required, 0);
+        let store = SqliteEventStore::open(&database_path)?;
+        assert_eq!(store.list_events()?.len(), 1);
+        drop(store);
+        fs::remove_file(database_path)?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn transient_failure_during_quarantine_fallback_preserves_healthy_events() -> TestResult {
+        const PRE_FILL: usize = 64;
+
+        let database_path = temporary_path("quarantine-transient.sqlite");
+        let committed_events = (0..PRE_FILL)
+            .map(request_event)
+            .collect::<Result<Vec<_>, _>>()?;
+        let page_count: i64 = {
+            let mut store = SqliteEventStore::open(&database_path)?;
+            assert_eq!(store.append_batch(&committed_events)?, PRE_FILL);
+            assert_eq!(
+                store.append_batch(&[usage_event("request-a", "response-shared", 3)?])?,
+                1
+            );
+            store
+                .connection
+                .execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")?;
+            store
+                .connection
+                .query_row("PRAGMA page_count", [], |row| row.get(0))?
+        };
+
+        let page_limit = Arc::new(std::sync::atomic::AtomicI64::new(page_count));
+        let (queue, receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(4, 1)?)?;
+        let writer = AsyncSqliteEventWriter::new(
+            &database_path,
+            receiver,
+            EventWriterConfig::try_new(4, Duration::from_millis(5))?,
+        )
+        .with_test_max_page_count(Arc::clone(&page_limit));
+        let metrics = writer.metrics_handle();
+        let large_request = GatewayEvent::Request(RequestEvent::new(
+            RequestId::try_new("quarantine-large-request")?,
+            ClientKeyId::try_new("client-key-01")?,
+            None,
+            GatewayProtocol::OpenAiResponses,
+            "m".repeat(65_536),
+            "public-model".to_owned(),
+            None,
+            false,
+        ));
+        for event in [
+            usage_event("request-b", "response-shared", 7)?,
+            large_request,
+            attempt_event(1)?,
+        ] {
+            assert_eq!(queue.try_emit(event), gateway_core::EventEmission::Enqueued);
+        }
+        drop(queue);
+
+        let writer = tokio::spawn(writer.run());
+        let deadline = Instant::now() + Duration::from_secs(3);
+        loop {
+            let snapshot = metrics.snapshot();
+            if snapshot.required_events_quarantined == 1
+                && snapshot.sqlite_write_failures > 0
+                && snapshot.pending_required == 2
+            {
+                break;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "fallback did not observe the injected transient failure"
+            );
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        assert_eq!(metrics.snapshot().required_events_committed, 0);
+
+        page_limit.store(page_count.saturating_add(1_024), Ordering::Relaxed);
+        let reported = tokio::time::timeout(Duration::from_secs(5), writer).await??;
+        assert_eq!(reported.required_events_quarantined, 1);
+        assert_eq!(reported.required_events_committed, 2);
+        assert_eq!(reported.rows_inserted, 2);
+        assert_eq!(reported.pending_required, 0);
+        let store = SqliteEventStore::open(&database_path)?;
+        assert_eq!(store.list_events()?.len(), PRE_FILL + 3);
+        store.quick_check()?;
         drop(store);
         fs::remove_file(database_path)?;
         Ok(())

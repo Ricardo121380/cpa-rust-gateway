@@ -10,7 +10,7 @@ pub mod control_plane;
 pub mod event_store;
 pub mod secret_store;
 
-use std::{error::Error, fmt, path::Path};
+use std::{error::Error, fmt, path::Path, time::Duration};
 
 use rusqlite::{Connection, Error as SqliteError};
 
@@ -251,6 +251,7 @@ pub type StoreResult<T> = Result<T, StoreError>;
 pub fn open(path: impl AsRef<Path>) -> StoreResult<Connection> {
     let connection = Connection::open(path)?;
     enable_foreign_keys(&connection)?;
+    enable_shared_access(&connection)?;
     Ok(connection)
 }
 
@@ -370,6 +371,27 @@ pub fn schema_version(connection: &Connection) -> StoreResult<Option<i64>> {
     let applied = applied_migration_versions(connection)?;
     ensure_supported_prefix(&applied)?;
     Ok(applied.last().copied())
+}
+
+/// The bounded wait a connection spends on a lock held by another connection to this file.
+///
+/// The serve process runs a continuous durable event writer alongside management reads and
+/// control-plane writes against one file. Without a busy handler `SQLite` fails a contended
+/// statement immediately, surfacing as an operator-facing error for work that would have
+/// succeeded milliseconds later.
+const BUSY_TIMEOUT_MILLISECONDS: u32 = 5_000;
+
+/// Enables the journal mode and busy handler that let one writer coexist with concurrent readers.
+///
+/// Write-ahead logging keeps management reads from blocking the event writer's commits and the
+/// reverse; the busy timeout bounds the remaining writer-versus-writer contention. A database that
+/// cannot adopt WAL (an unusual filesystem) keeps its previous journal mode rather than failing
+/// the open: the busy timeout alone still removes the immediate-failure behavior.
+fn enable_shared_access(connection: &Connection) -> StoreResult<()> {
+    connection.busy_timeout(Duration::from_millis(u64::from(BUSY_TIMEOUT_MILLISECONDS)))?;
+    let _journal_mode: String =
+        connection.pragma_update_and_check(None, "journal_mode", "WAL", |row| row.get(0))?;
+    Ok(())
 }
 
 fn enable_foreign_keys(connection: &Connection) -> StoreResult<()> {
