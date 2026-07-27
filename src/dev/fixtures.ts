@@ -863,6 +863,53 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       });
     }
 
+    // ---- runtime projections (real contract ops) ----
+    if (route === "GET /admin/runtime/availability") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const rows = [
+        { endpoint_id: "ep-relay-a-responses", credential_id: "cred-relay-key", availability: "available" },
+        { endpoint_id: "ep-relay-a-responses", credential_id: "cred-grok-oauth", availability: "cooldown" },
+        { endpoint_id: "ep-grok-build", credential_id: "cred-grok-oauth", availability: "credential_forbidden" },
+        { endpoint_id: "ep-grok-build", credential_id: "cred-relay-key", availability: "quota_blocked" },
+      ];
+      return json(200, rows, revisionToken(version));
+    }
+    if (route === "GET /admin/catalog/status") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const now = 1785100000000;
+      return json(
+        200,
+        [
+          { endpoint_id: "ep-relay-a-responses", credential_id: "cred-relay-key", freshness: "fresh", observed_at_ms: now - 900_000 },
+          { endpoint_id: "ep-relay-a-responses", credential_id: "cred-grok-oauth", freshness: "stale", observed_at_ms: now - 30 * 3_600_000 },
+          { endpoint_id: "ep-grok-build", credential_id: "cred-grok-oauth", freshness: "missing", observed_at_ms: 0 },
+        ],
+        revisionToken(version),
+      );
+    }
+    if (route === "POST /admin/runtime/quota/reset") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const body = JSON.parse(bodyText ?? "{}") as { credential_id?: string };
+      return json(202, {
+        state: body.credential_id === "cred-grok-oauth" ? "probe_scheduled" : "rejected",
+      });
+    }
+    const explain = /^GET \/admin\/routes\/([^/]+)\/explain$/u.exec(route);
+    if (explain !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      return json(200, {
+        route_id: decodeURIComponent(explain[1] ?? ""),
+        candidates: [
+          { candidate_id: "cand-relay-primary", decision: "selected" },
+          { candidate_id: "cand-grok-fallback", decision: "excluded", reason: "NoEligibleCredential" },
+        ],
+      });
+    }
+
     // ---- audit + backup ----
     if (route === "GET /admin/audit-events") {
       return json(200, state.audit);
