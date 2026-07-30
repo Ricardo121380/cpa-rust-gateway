@@ -161,6 +161,82 @@ export function formatAxisNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(2);
 }
 
+// ---------- zoom window (docs/07 §7.2: ">12 桶时内置 dataZoom") ----------
+
+/** Below this the whole series fits comfortably and a zoom control would be
+ *  chrome with nothing to do. */
+export const ZOOM_THRESHOLD = 12;
+
+export type ZoomWindow = Readonly<{ start: number; end: number }>;
+
+export function zoomAvailable(bucketCount: number): boolean {
+  return bucketCount > ZOOM_THRESHOLD;
+}
+
+/** Parse `z=start-end` from the URL. Inclusive bucket indices.
+ *
+ *  Clamped and ordered here rather than at the use site: the value comes from a
+ *  URL a user can hand-edit or a stale link whose window has since shrunk, so
+ *  every consumer would otherwise need the same defensive checks. Returns null
+ *  for "no zoom", which renders the full series. */
+export function parseZoom(raw: string | null, bucketCount: number): ZoomWindow | null {
+  if (raw === null || bucketCount === 0) {
+    return null;
+  }
+  const match = /^(\d+)-(\d+)$/u.exec(raw);
+  if (match === null) {
+    return null;
+  }
+  const last = bucketCount - 1;
+  const a = Math.min(Math.max(Number(match[1]), 0), last);
+  const b = Math.min(Math.max(Number(match[2]), 0), last);
+  const start = Math.min(a, b);
+  const end = Math.max(a, b);
+  // A single bucket is not a window: a one-point line has no shape to read.
+  if (end - start < 1) {
+    return null;
+  }
+  // Covering everything is the same as no zoom — keep one representation so the
+  // "reset" affordance and the URL agree.
+  if (start === 0 && end === last) {
+    return null;
+  }
+  return { start, end };
+}
+
+export function zoomParam(window: ZoomWindow | null): string | null {
+  return window === null ? null : `${window.start}-${window.end}`;
+}
+
+export function applyZoom<T>(items: readonly T[], window: ZoomWindow | null): readonly T[] {
+  return window === null ? items : items.slice(window.start, window.end + 1);
+}
+
+// ---------- selected bucket (docs/07 §7.2: "选中桶虚线标记") ----------
+
+/** Index into the VISIBLE (post-zoom) series, or null. Stored in the URL by
+ *  bucket start time rather than by index, because an index means something
+ *  different after a zoom or a bucket-size change and a shared link would land
+ *  on the wrong bar. */
+export function parseSelectedBucket(raw: string | null): number | null {
+  if (raw === null) {
+    return null;
+  }
+  const ms = Number(raw);
+  return Number.isFinite(ms) && ms > 0 ? ms : null;
+}
+
+export function findBucketIndex(
+  buckets: readonly TimelineBucket[],
+  startMs: number | null,
+): number | null {
+  if (startMs === null) {
+    return null;
+  }
+  const index = buckets.findIndex((bucket) => bucket.bucket_start_ms === startMs);
+  return index === -1 ? null : index;
+}
+
 // ---------- scales ----------
 // The axis maths lives with the chart primitives; re-exported here so the page
 // and its tests have one import surface.

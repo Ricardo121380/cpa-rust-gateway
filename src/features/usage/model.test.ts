@@ -23,6 +23,13 @@ import {
   compareColorIndex,
   compareFilters,
   compareKeys,
+  applyZoom,
+  findBucketIndex,
+  parseSelectedBucket,
+  parseZoom,
+  zoomAvailable,
+  zoomParam,
+  ZOOM_THRESHOLD,
   type RankRow,
   type TimelineBucket,
 } from "./model";
@@ -312,5 +319,71 @@ describe("the six tabs each project their own include", () => {
   it("clientKeys is a real tab, not a fallback to overview", () => {
     expect(parseTab("clientKeys")).toBe("clientKeys");
     expect(parseTab("nope")).toBe("overview");
+  });
+});
+
+describe("zoom window", () => {
+  it("only offered above the threshold", () => {
+    expect(zoomAvailable(ZOOM_THRESHOLD)).toBe(false);
+    expect(zoomAvailable(ZOOM_THRESHOLD + 1)).toBe(true);
+    expect(zoomAvailable(0)).toBe(false);
+  });
+
+  it("round-trips through the URL", () => {
+    const window = parseZoom("3-9", 24);
+    expect(window).toEqual({ start: 3, end: 9 });
+    expect(zoomParam(window)).toBe("3-9");
+    expect(zoomParam(null)).toBeNull();
+  });
+
+  it("clamps a stale link whose window has since shrunk", () => {
+    // shared link said 10-40 but the range now holds 12 buckets
+    expect(parseZoom("10-40", 12)).toEqual({ start: 10, end: 11 });
+  });
+
+  it("orders reversed handles rather than producing an inverted window", () => {
+    expect(parseZoom("9-3", 24)).toEqual({ start: 3, end: 9 });
+  });
+
+  it("treats degenerate and full-coverage windows as no zoom", () => {
+    expect(parseZoom("5-5", 24)).toBeNull(); // a single bucket has no shape
+    expect(parseZoom("0-23", 24)).toBeNull(); // same as unzoomed
+    expect(parseZoom("garbage", 24)).toBeNull();
+    expect(parseZoom(null, 24)).toBeNull();
+    expect(parseZoom("0-5", 0)).toBeNull();
+  });
+
+  it("slices inclusively and is a no-op when absent", () => {
+    const items = [0, 1, 2, 3, 4, 5];
+    expect(applyZoom(items, { start: 1, end: 3 })).toEqual([1, 2, 3]);
+    expect(applyZoom(items, null)).toEqual(items);
+  });
+});
+
+describe("selected bucket", () => {
+  const buckets: readonly TimelineBucket[] = [
+    { bucket_start_ms: 1000, requests: 1, failures: 0, tokens_total: 0 },
+    { bucket_start_ms: 2000, requests: 2, failures: 0, tokens_total: 0 },
+    { bucket_start_ms: 3000, requests: 3, failures: 0, tokens_total: 0 },
+  ];
+
+  it("is stored by start time, not by index", () => {
+    // an index would point at a different bucket after a zoom or bucket change
+    expect(parseSelectedBucket("2000")).toBe(2000);
+    expect(findBucketIndex(buckets, 2000)).toBe(1);
+  });
+
+  it("rejects nonsense and reports a bucket that is no longer visible", () => {
+    expect(parseSelectedBucket("nope")).toBeNull();
+    expect(parseSelectedBucket("0")).toBeNull();
+    expect(parseSelectedBucket(null)).toBeNull();
+    expect(findBucketIndex(buckets, 9999)).toBeNull();
+    expect(findBucketIndex(buckets, null)).toBeNull();
+  });
+
+  it("survives a zoom that still contains it, and drops out of one that does not", () => {
+    const zoomed = applyZoom(buckets, { start: 1, end: 2 });
+    expect(findBucketIndex(zoomed, 2000)).toBe(0);
+    expect(findBucketIndex(zoomed, 1000)).toBeNull();
   });
 });

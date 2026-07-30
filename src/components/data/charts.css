@@ -80,6 +80,20 @@
   stroke-width: 1;
   stroke-dasharray: 3 3;
 }
+/* Committed selection, as opposed to the transient crosshair above. It has to
+   stay legible while the crosshair is also on screen, so it is darker, wider
+   dashed, and carries a hollow ring the crosshair does not have — shape, not
+   just colour. */
+.chart-selected {
+  stroke: var(--ink-2);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+.chart-selected-dot {
+  fill: var(--surface);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
 .chart-hit {
   fill: transparent;
 }
@@ -132,6 +146,211 @@
   margin: 8px 0 0;
   font-size: 12px;
   color: var(--ink-2);
+}
+
+/* ---- rank table expansion (docs/07 §7.2 展开对比面板) ---------------------- */
+
+.rank-toggle-cell {
+  width: 1%;
+  white-space: nowrap;
+}
+.rank-toggle {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--separator);
+}
+.rank-toggle:hover {
+  color: var(--ink);
+}
+tr[data-expanded="true"] {
+  background: var(--surface-2);
+}
+.rank-detail-row > td {
+  background: var(--surface-2);
+}
+.rank-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 32px;
+  padding: 4px 0 10px;
+}
+.rank-detail-facts {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 6px 16px;
+  margin: 0;
+  font-size: 12.5px;
+}
+.rank-detail-facts dt {
+  color: var(--ink-2);
+}
+.rank-detail-facts dd {
+  margin: 0;
+  color: var(--ink);
+}
+.rank-detail-chart {
+  flex: 1 1 380px;
+  min-width: 0;
+}
+
+/* A selected bucket is echoed in the paired data table, so the mark is not
+   chart-only. */
+tr[data-selected="true"] {
+  background: color-mix(in srgb, var(--tint) 8%, transparent);
+}
+
+/* ---- selected-bucket detail on the trend tab ---- */
+
+.bucket-detail {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--r-inner);
+  background: var(--surface-2);
+  border: 1px solid var(--separator);
+}
+.bucket-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.bucket-facts {
+  display: grid;
+  /* Fixed pairs rather than auto-fit: with auto-fit a narrow viewport reflowed
+     one dt/dd pair onto its own row and the labels no longer lined up with the
+     values above them. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px 20px;
+  margin: 0;
+  font-size: 12.5px;
+}
+.bucket-facts dt {
+  color: var(--ink-2);
+  /* dt/dd alternate in source order, so an explicit row keeps every label in
+     row 1 and every value in row 2 regardless of column count. */
+  grid-row: 1;
+}
+.bucket-facts dd {
+  margin: 0;
+  color: var(--ink);
+  grid-row: 2;
+}
+
+@media (max-width: 720px) {
+  .bucket-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .bucket-facts dt,
+  .bucket-facts dd {
+    grid-row: auto;
+  }
+  .bucket-facts dd {
+    margin-bottom: 6px;
+  }
+}
+
+/* ---- zoom brush (>12 buckets) ---------------------------------------------
+   Two stacked <input type="range"> over a dimmed overview. The natives are kept
+   for keyboard/AT/touch support; only their appearance is replaced. */
+.zoom-brush {
+  margin-top: 12px;
+}
+.zoom-overview {
+  display: block;
+  width: 100%;
+  height: 30px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--separator);
+}
+.zoom-spark {
+  fill: none;
+  stroke: var(--chart-1);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.7;
+}
+.zoom-outside {
+  fill: var(--surface-2);
+  opacity: 0.72;
+}
+.zoom-window {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Both handles occupy the same row so they read as one control. The row overlays
+   the bottom of the overview rather than sitting below it: the thumbs have to
+   look like they grip the window edges, and a separate row underneath reads as
+   two unrelated sliders. */
+.zoom-handles {
+  position: relative;
+  height: 22px;
+  margin-top: -12px;
+}
+.zoom-handles input[type="range"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  /* Only the thumbs are interactive; the transparent track would otherwise
+     swallow clicks meant for the handle underneath. */
+  pointer-events: none;
+}
+.zoom-handles input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: auto;
+  width: 14px;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--ink-2);
+  cursor: ew-resize;
+}
+.zoom-handles input[type="range"]::-moz-range-thumb {
+  pointer-events: auto;
+  width: 14px;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--ink-2);
+  cursor: ew-resize;
+}
+.zoom-handles input[type="range"]:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--tint);
+  outline-offset: 1px;
+}
+.zoom-handles input[type="range"]:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--tint);
+  outline-offset: 1px;
+}
+
+.zoom-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.zoom-reset {
+  font-size: 12px;
+  padding: 3px 10px;
 }
 
 /* Legend: swatch carries the same dash pattern as its line, so the mapping is
@@ -252,6 +471,12 @@
 }
 .share-track {
   fill: var(--surface-2);
+}
+/* An expanded row's background IS --surface-2, so the track vanished into it and
+   the bar looked shorter than its neighbours (measured identical — only the
+   track was gone). Step it one level away from whichever surface it sits on. */
+tr[data-expanded="true"] .share-track {
+  fill: color-mix(in srgb, var(--ink) 9%, var(--surface-2));
 }
 .share-fill {
   fill: var(--chart-1);

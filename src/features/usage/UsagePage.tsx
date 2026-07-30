@@ -24,6 +24,7 @@ import { MultiLineChart, type Series } from "../../components/data/MultiLineChar
 import { RankTable } from "../../components/data/RankTable";
 import { SeriesLegend } from "../../components/data/SeriesLegend";
 import { formatCount, formatLatency, StatTile } from "../../components/data/StatTile";
+import { ZoomBrush } from "../../components/data/ZoomBrush";
 import { useMessages } from "../../i18n/messages";
 import {
   paramsToRange,
@@ -40,6 +41,13 @@ import {
   COMPARE_LIMIT,
   compareFilters,
   compareKeys,
+  applyZoom,
+  findBucketIndex,
+  parseSelectedBucket,
+  parseZoom,
+  zoomAvailable,
+  zoomParam,
+  type ZoomWindow,
   formatAxisNumber,
   formatMetric,
   hasActiveFilter,
@@ -104,6 +112,12 @@ export function UsagePage() {
   // Compare panel state rides in the URL like every other filter, so a shared
   // link reproduces exactly what the sender was looking at.
   const compareOpen = params.get("compare") === "1";
+  // Zoom is clamped against the actual bucket count, which is only known after
+  // the response arrives; parsed below once `data` exists.
+  // `at`, not `bucket`: ?bucket= is already the time-granularity parameter in
+  // the shared range contract (utils/timerange), and reusing it would make a
+  // selected bucket silently change the axis resolution.
+  const selectedMs = parseSelectedBucket(params.get("at"));
 
   const detailWindow =
     selectedCell === null
@@ -286,7 +300,11 @@ export function UsagePage() {
             bucket={data.range.bucket}
             metric={metric}
             filtered={filtered}
+            zoom={parseZoom(params.get("z"), (data.timeline ?? []).length)}
+            selectedMs={selectedMs}
             onMetric={(next) => updateParams({ metric: next === "requests" ? null : next })}
+            onZoom={(next) => updateParams({ z: zoomParam(next) })}
+            onSelect={(startMs) => updateParams({ at: startMs === null ? null : String(startMs) })}
           />
         ) : tab === "models" || tab === "clientKeys" || tab === "credentials" ? (
           <RankTab
@@ -308,6 +326,15 @@ export function UsagePage() {
                 onMetric={(next) => updateParams({ metric: next === "requests" ? null : next })}
               />
             }
+            detail={(row) => (
+              <RankDetail
+                kind={tab}
+                entityKey={row.key}
+                baseFilters={filters}
+                range={range}
+                metric={metric}
+              />
+            )}
           />
         ) : (
           <HeatmapTab
@@ -420,28 +447,47 @@ function TrendTab({
   bucket,
   metric,
   filtered,
+  zoom,
+  selectedMs,
   onMetric,
+  onZoom,
+  onSelect,
 }: Readonly<{
   data: AnalyticsResponse;
   bucket: "hour" | "day";
   metric: UsageMetric;
   filtered: boolean;
+  zoom: ZoomWindow | null;
+  selectedMs: number | null;
   onMetric: (metric: UsageMetric) => void;
+  onZoom: (next: ZoomWindow | null) => void;
+  onSelect: (startMs: number | null) => void;
 }>) {
   const timeline = data.timeline ?? [];
   if (timeline.length === 0) {
     return <EmptyPanel filtered={filtered} />;
   }
-  const points = timeline.map((point) => ({
+  // The zoom re-derives the visible window from the buckets already fetched; it
+  // never refetches, so the axis is a subset of the same data rather than a
+  // different resolution of it.
+  const visible = applyZoom(timeline, zoom);
+  const points = visible.map((point) => ({
     t: point.bucket_start_ms,
     v: metricValue(point, metric),
   }));
+  const selectedIndex = findBucketIndex(visible, selectedMs);
+  const selectedBucket = selectedIndex === null ? undefined : visible[selectedIndex];
+  const showZoom = zoomAvailable(timeline.length);
 
   return (
     <div className="card" data-gap="top">
       <div className="card-head">
         <h3>
-          {METRIC_LABELS[metric]}(按{bucket === "hour" ? "小时" : "天"},{timeline.length} 个桶)
+          {METRIC_LABELS[metric]}(按{bucket === "hour" ? "小时" : "天"},
+          {zoom === null
+            ? `${timeline.length} 个桶`
+            : `${visible.length} / ${timeline.length} 个桶`}
+          )
         </h3>
         <MetricSwitch metric={metric} onMetric={onMetric} />
       </div>
@@ -451,11 +497,56 @@ function TrendTab({
         formatValue={(value) => formatMetric(value, metric)}
         formatTime={(ms) => axisTime(ms, bucket)}
         ariaLabel={`${METRIC_LABELS[metric]}趋势,按${bucket === "hour" ? "小时" : "天"}`}
+        selected={selectedIndex}
+        onSelect={(index) => onSelect(visible[index]?.bucket_start_ms ?? null)}
       />
-      <p className="card-note">单指标单轴;切换指标即切换整张图的纵轴,不做双轴叠加。</p>
+      <p className="card-note">
+        单指标单轴;切换指标即切换整张图的纵轴,不做双轴叠加。
+        {showZoom ? " 桶数超过 12,可用下方范围条收窄(只重取已加载的窗口,不重新请求)。" : ""}
+      </p>
+
+      {showZoom ? (
+        <ZoomBrush
+          values={timeline.map((point) => metricValue(point, metric))}
+          start={zoom?.start ?? 0}
+          end={zoom?.end ?? timeline.length - 1}
+          formatIndex={(index) =>
+            fullTime(timeline[index]?.bucket_start_ms ?? 0, bucket)
+          }
+          onChange={(next) => onZoom(next)}
+          onReset={() => onZoom(null)}
+        />
+      ) : null}
+
+      {selectedBucket === undefined ? (
+        <p className="usage-hint">点击图上任意一点(或键盘方向键 + Enter)标记一个桶。</p>
+      ) : (
+        <div className="bucket-detail">
+          <div className="bucket-detail-head">
+            <strong className="mono">{fullTime(selectedBucket.bucket_start_ms, bucket)}</strong>
+            <button type="button" className="chip-off" onClick={() => onSelect(null)}>
+              取消选中
+            </button>
+          </div>
+          <dl className="bucket-facts">
+            <dt>{METRIC_LABELS[metric]}</dt>
+            <dd className="mono">{formatMetric(metricValue(selectedBucket, metric), metric)}</dd>
+            <dt>请求 / 失败</dt>
+            <dd className="mono">
+              {formatCount(selectedBucket.requests)} / {formatCount(selectedBucket.failures)}
+            </dd>
+            <dt>Token</dt>
+            <dd className="mono">{formatCount(selectedBucket.tokens_total)}</dd>
+            <dt>P95</dt>
+            <dd className="mono">{formatLatency(selectedBucket.latency_p95_ms ?? null)}</dd>
+          </dl>
+        </div>
+      )}
 
       <details className="chart-table">
-        <summary>数据表({timeline.length} 行)</summary>
+        <summary>
+          数据表({visible.length} 行{zoom === null ? "" : ",已按范围条收窄"})
+        </summary>
         <div className="chart-table-scroll">
           <table>
             <thead>
@@ -468,8 +559,13 @@ function TrendTab({
               </tr>
             </thead>
             <tbody>
-              {timeline.map((point) => (
-                <tr key={point.bucket_start_ms}>
+              {visible.map((point) => (
+                <tr
+                  key={point.bucket_start_ms}
+                  data-selected={
+                    point.bucket_start_ms === selectedMs ? "true" : undefined
+                  }
+                >
                   <td className="mono">{fullTime(point.bucket_start_ms, bucket)}</td>
                   <td className="mono">{formatMetric(metricValue(point, metric), metric)}</td>
                   <td className="mono">{formatCount(point.requests)}</td>
@@ -520,12 +616,14 @@ function RankTab({
   filtered,
   hrefFor,
   compare,
+  detail,
 }: Readonly<{
   data: AnalyticsResponse;
   kind: CompareKind;
   filtered: boolean;
   hrefFor: (key: string) => string;
   compare: ReactNode;
+  detail: (row: Readonly<{ key: string }>) => ReactNode;
 }>) {
   const rows = data.ranks ?? [];
   if (rows.length === 0) {
@@ -540,6 +638,7 @@ function RankTab({
         <RankTable
           rows={rows}
           keyLabel={copy.keyLabel}
+          detail={detail}
           action={
             kind === "models"
               ? (row) => (
@@ -559,6 +658,97 @@ function RankTab({
       </div>
       {compare}
     </>
+  );
+}
+
+// ---------- 展开对比面板(单实体明细) ----------
+
+/** The row's own summary + shape, from the same endpoint with this one entity
+ *  pinned. Mounted only when the row is open, so a closed table issues nothing. */
+function RankDetail({
+  kind,
+  entityKey,
+  baseFilters,
+  range,
+  metric,
+}: Readonly<{
+  kind: CompareKind;
+  entityKey: string;
+  baseFilters: AnalyticsFilters;
+  range: Readonly<{ from_ms: number; to_ms: number; bucket: Bucket }>;
+  metric: UsageMetric;
+}>) {
+  const detail = useQuery({
+    queryKey: [
+      "usage-rank-detail",
+      kind,
+      entityKey,
+      range.from_ms,
+      range.to_ms,
+      range.bucket,
+      JSON.stringify(baseFilters),
+    ],
+    queryFn: () =>
+      fetchProposedAnalytics({
+        from_ms: range.from_ms,
+        to_ms: range.to_ms,
+        timezone: TIMEZONE,
+        bucket: range.bucket,
+        filters: compareFilters(baseFilters, kind, entityKey),
+        include: { summary: true, timeline: true },
+      }),
+    staleTime: 30_000,
+  });
+
+  if (detail.isPending) {
+    return <p className="card-note">加载 {entityKey} 的明细…</p>;
+  }
+  if (detail.isError || detail.data === undefined) {
+    return <p className="card-note">该实体的明细查询失败 —— 上方排行数据仍然有效。</p>;
+  }
+
+  const summary = detail.data.summary;
+  const timeline = detail.data.timeline ?? [];
+  if (summary === undefined || summary.requests === 0) {
+    return <p className="card-note">此窗口内该实体没有可展开的明细。</p>;
+  }
+
+  return (
+    <div className="rank-detail">
+      <dl className="rank-detail-facts">
+        <dt>请求 / 尝试</dt>
+        <dd className="mono">
+          {formatCount(summary.requests)} / {formatCount(summary.attempts)}
+        </dd>
+        <dt>成功率</dt>
+        <dd className="mono">
+          {(((summary.requests - summary.failures) / summary.requests) * 100).toFixed(2)}%
+        </dd>
+        <dt>Token</dt>
+        <dd className="mono">{formatCount(tokensTotal(summary.tokens))}</dd>
+        <dt>缓存读</dt>
+        <dd className="mono">{formatCount(summary.tokens.cache_read ?? 0)}</dd>
+        <dt>P95 / P99</dt>
+        <dd className="mono">
+          {formatLatency(summary.latency_ms.p95)} / {formatLatency(summary.latency_ms.p99)}
+        </dd>
+      </dl>
+      {timeline.length === 0 ? null : (
+        <div className="rank-detail-chart">
+          <LineChart
+            points={timeline.map((point) => ({
+              t: point.bucket_start_ms,
+              v: metricValue(point, metric),
+            }))}
+            valueLabel={METRIC_LABELS[metric]}
+            formatValue={(value) => formatMetric(value, metric)}
+            formatTime={(ms) => axisTime(ms, detail.data.range.bucket)}
+            ariaLabel={`${entityKey} 的${METRIC_LABELS[metric]}趋势`}
+            compact
+          />
+        </div>
+      )}
+    </div>
   );
 }
 

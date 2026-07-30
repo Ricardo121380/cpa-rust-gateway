@@ -27,6 +27,8 @@ export function LineChart({
   formatTime,
   ariaLabel,
   compact = false,
+  selected = null,
+  onSelect,
 }: Readonly<{
   points: readonly LinePoint[];
   valueLabel: string;
@@ -34,6 +36,10 @@ export function LineChart({
   formatTime: (ms: number) => string;
   ariaLabel: string;
   compact?: boolean;
+  /** Index into `points` to mark with a dashed rule (docs/07 §7.2). */
+  selected?: number | null;
+  /** Omit to make the chart read-only; supplying it makes points clickable. */
+  onSelect?: (index: number) => void;
 }>) {
   const [cursor, setCursor] = useState<number | null>(null);
   const [boxRef, width] = useMeasuredWidth(compact ? 460 : 900);
@@ -64,6 +70,8 @@ export function LineChart({
   const activeIndex = cursor === null ? null : clamp(cursor, 0, Math.max(0, lastIndex));
   const active = activeIndex === null ? undefined : points[activeIndex];
   const lastPoint = points[Math.max(0, lastIndex)];
+  const selectedPoint =
+    selected === null || selected < 0 || selected > lastIndex ? undefined : points[selected];
 
   function moveCursor(event: ReactPointerEvent<SVGSVGElement>) {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -85,15 +93,36 @@ export function LineChart({
           height={height}
           role="img"
           tabIndex={0}
-          aria-label={`${ariaLabel};峰值 ${formatValue(max)}`}
+          aria-label={`${ariaLabel};峰值 ${formatValue(max)}${
+            selectedPoint === undefined
+              ? ""
+              : `;已选 ${formatTime(selectedPoint.t)} ${formatValue(selectedPoint.v)}`
+          }`}
           onPointerMove={moveCursor}
           onPointerLeave={() => setCursor(null)}
           onBlur={() => setCursor(null)}
+          onClick={
+            onSelect === undefined
+              ? undefined
+              : (event) => {
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  if (rect.width === 0) return;
+                  const svgX = ((event.clientX - rect.left) / rect.width) * width;
+                  const ratio = lastIndex <= 0 ? 0 : (svgX - PAD_L) / plotW;
+                  onSelect(clamp(Math.round(ratio * lastIndex), 0, lastIndex));
+                }
+          }
           onKeyDown={(event) => {
             if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
               event.preventDefault();
               const step = event.key === "ArrowRight" ? 1 : -1;
               setCursor((previous) => clamp((previous ?? 0) + step, 0, lastIndex));
+            }
+            // Keyboard parity: the cursor can be walked with the arrows, so it
+            // must also be committable without a pointer.
+            if ((event.key === "Enter" || event.key === " ") && onSelect !== undefined) {
+              event.preventDefault();
+              onSelect(clamp(cursor ?? 0, 0, lastIndex));
             }
             if (event.key === "Escape") setCursor(null);
           }}
@@ -126,6 +155,28 @@ export function LineChart({
 
           <polygon className="chart-area" points={area.join(" ")} />
           <polyline className="chart-line" points={line.join(" ")} />
+
+          {/* Selected bucket: a dashed rule plus a hollow ring. Drawn under the
+              hover layer so a pointer never hides the committed selection, and
+              distinguishable from the crosshair (which is transient) by the ring
+              rather than by dash pattern alone. */}
+          {selectedPoint !== undefined && selected !== null ? (
+            <g>
+              <line
+                className="chart-selected"
+                x1={xOf(selected)}
+                x2={xOf(selected)}
+                y1={PAD_T}
+                y2={baseline}
+              />
+              <circle
+                className="chart-selected-dot"
+                cx={xOf(selected)}
+                cy={yOf(selectedPoint.v)}
+                r="5.5"
+              />
+            </g>
+          ) : null}
 
           {/* selective direct label: the endpoint only, never a number per point */}
           {!compact ? (
