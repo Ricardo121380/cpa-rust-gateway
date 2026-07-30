@@ -149,7 +149,7 @@
 
 | Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
 |---|---|---|---|---|---|
-| P12-01 | Plan 18；§22 供应链纪律 | `CR-P12-01-001`（OIDC keyless 签名边界）、`CR-P12-01-002`（双目标原生发布矩阵） | `release-artifact.yml` 双目标 matrix（x86_64/aarch64，各自同架构 runner、无 qemu）；`p12-release-artifact.rb` 封闭目标表推导二进制名/ELF `e_machine`/OCI architecture；`generate-p12-01-sbom.rb` 封闭目标白名单；`Dockerfile` 逐架构钉基础镜像 digest | [P12-01 发布产物验收与双目标修订](reports/p12-01-release-artifact.md) | DONE（x86_64 已远端验收；aarch64 校验器与 SBOM 本地通过，远端双 job 待一次提前 Gate） |
+| P12-01 | Plan 18；§22 供应链纪律 | `CR-P12-01-001`（OIDC keyless 签名边界）、`CR-P12-01-002`（双目标原生发布矩阵） | `release-artifact.yml` 双目标 matrix（x86_64/aarch64，各自同架构 runner、无 qemu）；`p12-release-artifact.rb` 封闭目标表推导二进制名/ELF `e_machine`/OCI architecture/基础镜像 digest；`generate-p12-01-sbom.rb` 封闭目标白名单；`Dockerfile` 逐架构传入基础镜像并由 `base.name` 复核 | [P12-01 发布产物验收与双目标修订](reports/p12-01-release-artifact.md)：[run 30533211028](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/30533211028) 两 job SUCCESS，两份产物本地签名+回执复验通过 | DONE |
 | P12-05 | Plan 2.1；docs/05 §M0-D、§15 | [BC-PROTOCOL-007](contracts/BC-PROTOCOL-007-api-format-adapter-registry.md)、[BC-ROUTER-001](contracts/BC-ROUTER-001-validated-route-compiler.md) | `gateway-protocol` `ApiFormat` + `ApiFormatAdapterRegistry`、Route Compiler `unsupported_endpoint_api_format`、P12 per-Endpoint adapter composition | — | LOCAL_PASS_PENDING_PHASE_GATE |
 
 ## 后续 Phase 映射
