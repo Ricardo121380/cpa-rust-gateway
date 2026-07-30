@@ -28,13 +28,25 @@
 
   /* glass material (Regular variant) */
 
-  /* material semantics (docs/07 §8.4) */
-  --mat-draft-blur: 28px;
+  /* Material semantics: config-version state, as glass (docs/07 §8.4).
+     These are the SHIPPED values, measured on this shell — the earlier set
+     (draft 28px/120%, active 14px/190%, archived 20px/80%) was authored before
+     the ambient layer existed and read as three barely-distinguishable frosts
+     once there was real content to refract. Both render paths consume these:
+     --mat-*-blur/-sat for the layered fallback, --mat-*-frost/-lsat for the
+     SVG lens, so a state can never move on one path and not the other. */
+  --mat-draft-blur: 22px;
   --mat-draft-sat: 120%;
-  --mat-active-blur: 14px;
-  --mat-active-sat: 190%;
-  --mat-archived-blur: 20px;
-  --mat-archived-sat: 80%;
+  --mat-draft-frost: 20;
+  --mat-draft-lsat: 1.2;
+  --mat-active-blur: 11px;
+  --mat-active-sat: 195%;
+  --mat-active-frost: 9;
+  --mat-active-lsat: 1.85;
+  --mat-archived-blur: 16px;
+  --mat-archived-sat: 70%;
+  --mat-archived-frost: 13;
+  --mat-archived-lsat: 0.8;
 
   /* geometry: concentric radii — inner = outer − padding */
   --r-outer: 20px;

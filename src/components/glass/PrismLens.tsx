@@ -124,6 +124,71 @@ function num(el: Element, name: string, fallback: number): number {
   return Number.isFinite(v) ? v : fallback;
 }
 
+/** ms from a CSS duration token ("600ms" / "0.6s" / "0ms"). */
+function durationMs(el: Element, name: string): number {
+  const raw = getComputedStyle(el).getPropertyValue(name).trim();
+  const v = Number.parseFloat(raw);
+  if (!Number.isFinite(v)) return 0;
+  return raw.endsWith("ms") ? v : v * 1000;
+}
+
+/** The four numbers that carry material semantics on the lens path. */
+type Dynamics = { scale: number; frost: number; rim: number; sat: number };
+
+function applyDynamics(f: Element, d: Dynamics): void {
+  // negative scale = sample OUTWARD (physically correct convex lens)
+  f.querySelector("feDisplacementMap")?.setAttribute("scale", (-d.scale).toFixed(2));
+  const blurs = f.querySelectorAll("feGaussianBlur");
+  blurs[0]?.setAttribute("stdDeviation", d.frost.toFixed(2));
+  blurs[1]?.setAttribute("stdDeviation", d.rim.toFixed(2));
+  f.querySelector('feColorMatrix[type="saturate"]')?.setAttribute("values", d.sat.toFixed(3));
+}
+
+/** cubic-bezier(0.32, 0.72, 0, 1) — the shell's --ease, sampled by bisection.
+ *  Hard-coded rather than parsed: this is the one easing the design system
+ *  defines, and the CSS transition on the layered path uses the same curve, so
+ *  both paths anneal on the same clock AND the same shape. */
+function ease(t: number): number {
+  const bx = (u: number): number => 3 * u * (1 - u) ** 2 * 0.32 + u ** 3;
+  const by = (u: number): number => 3 * u * (1 - u) ** 2 * 0.72 + 3 * u ** 2 * (1 - u) + u ** 3;
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 24; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (bx(mid) < t) lo = mid;
+    else hi = mid;
+  }
+  return by((lo + hi) / 2);
+}
+
+/** Live tween per filter id, so a second material change mid-anneal replaces
+ *  the first instead of racing it. */
+const tweens = new Map<string, number>();
+
+/** SVG filter primitives are attributes, not animatable CSS properties, so the
+ *  `transition: backdrop-filter` that anneals the layered path is a no-op here:
+ *  under `backdrop-filter: url(#...)` a draft->active publish snapped between
+ *  two frost levels in a single frame. Tween the primitive values on the same
+ *  duration and easing token instead. */
+function annealTo(f: Element, id: string, from: Dynamics, to: Dynamics, ms: number): void {
+  const running = tweens.get(id);
+  if (running !== undefined) cancelAnimationFrame(running);
+  const t0 = performance.now();
+  const step = (now: number): void => {
+    const p = Math.min(1, (now - t0) / ms);
+    const k = ease(p);
+    applyDynamics(f, {
+      scale: from.scale + (to.scale - from.scale) * k,
+      frost: from.frost + (to.frost - from.frost) * k,
+      rim: from.rim + (to.rim - from.rim) * k,
+      sat: from.sat + (to.sat - from.sat) * k,
+    });
+    if (p < 1) tweens.set(id, requestAnimationFrame(step));
+    else tweens.delete(id);
+  };
+  tweens.set(id, requestAnimationFrame(step));
+}
+
 function updatePane({ sel, id }: { sel: string; id: string }): void {
   const el = document.querySelector(sel);
   const f = document.getElementById(id);
@@ -137,9 +202,6 @@ function updatePane({ sel, id }: { sel: string; id: string }): void {
   const thickness = num(el, "--lens-thickness", 34);
   const ior = num(el, "--lens-ior", 1.5);
   const gain = num(el, "--lens-gain", 1);
-  const frost = num(el, "--lens-frost", 10);
-  const rimBlur = num(el, "--lens-rim-blur", 3);
-  const sat = num(el, "--lens-sat", 1.8);
 
   const key = [
     Math.round(rect.width), Math.round(rect.height),
@@ -156,14 +218,36 @@ function updatePane({ sel, id }: { sel: string; id: string }): void {
     im?.setAttribute("height", String(Math.round(rect.height)));
   }
 
-  // negative scale = sample OUTWARD (physically correct convex lens)
-  const scale = Number.parseFloat(f.dataset.scale ?? "0") * gain;
-  f.querySelector("feDisplacementMap")?.setAttribute("scale", (-scale).toFixed(2));
+  // --lens-frost / --lens-sat are what data-material actually overrides, so they
+  // must be re-read on every call, not only when the map is rebuilt.
+  const target: Dynamics = {
+    scale: Number.parseFloat(f.dataset.scale ?? "0") * gain,
+    frost: num(el, "--lens-frost", 10),
+    rim: num(el, "--lens-rim-blur", 3),
+    sat: num(el, "--lens-sat", 1.8),
+  };
 
-  const blurs = f.querySelectorAll("feGaussianBlur");
-  blurs[0]?.setAttribute("stdDeviation", String(frost));
-  blurs[1]?.setAttribute("stdDeviation", String(rimBlur));
-  f.querySelector('feColorMatrix[type="saturate"]')?.setAttribute("values", String(sat));
+  const prev = f.dataset.dyn;
+  const next = `${target.scale}/${target.frost}/${target.rim}/${target.sat}`;
+  if (prev === next) return;
+  f.dataset.dyn = next;
+
+  const anneal = durationMs(el, "--dur-anneal");
+  const from = prev?.split("/").map(Number);
+  if (
+    from === undefined || from.length !== 4 ||
+    from.some((n) => !Number.isFinite(n)) || anneal <= 0
+  ) {
+    applyDynamics(f, target);
+    return;
+  }
+  annealTo(
+    f,
+    id,
+    { scale: from[0] ?? 0, frost: from[1] ?? 0, rim: from[2] ?? 0, sat: from[3] ?? 0 },
+    target,
+    anneal,
+  );
 }
 
 /** WWDC25 deepens the shadow while real content is behind the pane.
@@ -184,7 +268,7 @@ function updateOver(): void {
 
 const LENS_CHAIN = (
   <>
-    <feImage result="map" preserveAspectRatio="none" x="0" y="0" width="10" height="10" href="" />
+    <feImage result="map" preserveAspectRatio="none" x="0" y="0" width="10" height="10" />
     {/* B channel -> alpha: the bezel band, so the sharp rim is clipped to it */}
     <feColorMatrix
       in="map" result="rimmask" type="matrix"
@@ -233,8 +317,42 @@ export function PrismLens(): React.ReactElement {
     updateAll();
     updateOver();
 
-    const ro = new ResizeObserver(updateAll);
+    // Mutation storms (a table rendering 200 rows) must not run the pane sweep
+    // once per record: collapse to one sweep per frame.
+    let queued = 0;
+    const scheduleAll = (): void => {
+      if (queued !== 0) return;
+      queued = requestAnimationFrame(() => {
+        queued = 0;
+        updateAll();
+      });
+    };
+
+    // The body ResizeObserver alone is not enough. Every pane is position:fixed,
+    // so none of them changes the body's box: the dock (mounted later, when a
+    // draft is selected) never got a map at all, its feImage kept href="" and it
+    // rendered as a clear window instead of glass. A MutationObserver on .shell
+    // catches the mount, and data-material changes on an existing pane, which is
+    // what drives the anneal. The filter is narrow on purpose — the lens <defs>
+    // live inside .shell too, and observing the attributes this code writes
+    // (href/scale/stdDeviation/values) would make it retrigger itself.
+    const mo = new MutationObserver(scheduleAll);
+    const shell = document.querySelector(".shell");
+    if (shell !== null) {
+      mo.observe(shell, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["data-material", "class"],
+      });
+    }
+
+    const ro = new ResizeObserver(scheduleAll);
     ro.observe(document.body);
+    for (const { sel } of PANES) {
+      const el = document.querySelector(sel);
+      if (el !== null) ro.observe(el);
+    }
     window.addEventListener("resize", updateAll);
 
     const canvas = document.querySelector(".canvas");
@@ -242,7 +360,11 @@ export function PrismLens(): React.ReactElement {
     canvas?.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
+      mo.disconnect();
       ro.disconnect();
+      if (queued !== 0) cancelAnimationFrame(queued);
+      for (const id of tweens.values()) cancelAnimationFrame(id);
+      tweens.clear();
       window.removeEventListener("resize", updateAll);
       canvas?.removeEventListener("scroll", onScroll);
     };

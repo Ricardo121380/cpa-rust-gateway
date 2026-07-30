@@ -188,6 +188,13 @@
   text-decoration: none;
   padding: 7px 12px;
   border-radius: var(--r-inner);
+  /* --dur is the design system's interaction duration and is the token
+     prefers-reduced-motion shortens; hover/press states must go through it
+     rather than snapping, or the token is decorative and the reduced-motion
+     override has nothing to shorten. Colour only — no geometry moves. */
+  transition:
+    color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
 }
 .rail a:hover {
   color: var(--ink);
@@ -244,17 +251,28 @@
 /* Content surfaces slide --card-shift to the left — across the gutter and
    --rail-underlap under the rail's inner edge — so the rail refracts real
    content instead of flat background. Pages either put their blocks straight
-   into the canvas (Overview) or wrap them in a <section>; both levels are
-   addressed and sections themselves are skipped, so the shift never applies
-   twice. Text-level blocks hand the whole shift back as padding (their glyphs
-   do not move). Grid wrappers hand back nothing, so their FIRST COLUMN
-   underlaps exactly like a full-width card — that is what keeps the canvas's
-   left edge straight instead of ragged. */
-.shell :is(.canvas, .canvas > section) > :not(section) {
+   into the canvas (Overview) or wrap them in a <section>; tabbed pages add a
+   [role="tabpanel"] inside that section. Those wrappers are LAYOUT-ONLY: they
+   pass the shift through to their children rather than consuming it, and the
+   match is depth-independent so adding a wrapper level cannot silently strand a
+   page's cards 24px right of every other page's (which is exactly what the
+   tabpanel on Usage did). Text-level blocks hand the whole shift back as
+   padding (their glyphs do not move). Grid wrappers hand back nothing, so their
+   FIRST COLUMN underlaps exactly like a full-width card — that is what keeps
+   the canvas's left edge straight instead of ragged.
+
+   The structural half of the match sits in :where() so this rule stays at
+   (0,2,0): high enough to beat .card's own `padding` shorthand, low enough that
+   the hand-back rules below still win. Without that, adding the tabpanel level
+   also silently out-specified every hand-back and halved the visible padding of
+   direct-child surfaces. */
+.shell :where(.canvas, .canvas :is(section, [role="tabpanel"])) > :not(section, [role="tabpanel"]) {
   margin-left: calc(-1 * var(--card-shift));
   padding-left: var(--card-shift);
 }
-.shell :is(.canvas, .canvas > section) > :is(.overview-grid, .stat-row) {
+.shell
+  :where(.canvas, .canvas :is(section, [role="tabpanel"]))
+  > :is(.overview-grid, .stat-row) {
   padding-left: 0;
 }
 
@@ -725,6 +743,9 @@ tr[data-selected="true"] {
   color: var(--ink-2);
   border: 1px solid var(--separator);
   cursor: pointer;
+  transition:
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
 }
 .chip:hover {
   color: var(--status-critical);
@@ -808,6 +829,7 @@ tr[data-selected="true"] {
   background: var(--surface-2);
   border: 1px solid var(--separator);
   text-decoration: none;
+  transition: border-color var(--dur) var(--ease);
 }
 .count-tile:hover {
   border-color: var(--tint);

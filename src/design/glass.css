@@ -60,7 +60,11 @@
   mask-composite: exclude;
 }
 
-/* Wide edge bloom just inside the ring: the glass BODY catching the light. */
+/* Wide edge bloom just inside the ring: the glass BODY catching the light.
+   The two band HEIGHTS are parameterised (defaults unchanged) because a
+   thicker slab has a wider lit rim: the modal layer widens them via
+   --glass-edge-*-h instead of overriding this pseudo-element, which would
+   out-specify the degradations below. */
 .glass::after {
   content: "";
   position: absolute;
@@ -69,8 +73,8 @@
   border-radius: inherit;
   pointer-events: none;
   background:
-    linear-gradient(to bottom, var(--glass-edge-top) 0%, transparent 18px),
-    linear-gradient(to top,    var(--glass-edge-bot) 0%, transparent 14px);
+    linear-gradient(to bottom, var(--glass-edge-top) 0%, transparent var(--glass-edge-top-h, 18px)),
+    linear-gradient(to top,    var(--glass-edge-bot) 0%, transparent var(--glass-edge-bot-h, 14px));
 }
 
 /* ---- C: true lensing -----------------------------------------------------
@@ -110,17 +114,30 @@
 
 /* ---- material semantics (docs/07 §8.4) ----------------------------------
    Material encodes config-version state. In C the same three states also move
-   the lens: a draft is a THICKER, softer piece of glass. */
+   the lens: a draft is a THICKER, softer piece of glass. The numbers live in
+   tokens.css so the two render paths cannot drift apart. */
 .glass[data-material="draft"] {
-  --glass-blur: 22px; --glass-sat: 120%; --lens-frost: 20; --lens-sat: 1.2;
+  --glass-blur: var(--mat-draft-blur);
+  --glass-sat: var(--mat-draft-sat);
+  --lens-frost: var(--mat-draft-frost);
+  --lens-sat: var(--mat-draft-lsat);
 }
 .glass[data-material="active"] {
-  --glass-blur: 11px; --glass-sat: 195%; --lens-frost: 9;  --lens-sat: 1.85;
+  --glass-blur: var(--mat-active-blur);
+  --glass-sat: var(--mat-active-sat);
+  --lens-frost: var(--mat-active-frost);
+  --lens-sat: var(--mat-active-lsat);
 }
 .glass[data-material="archived"] {
-  --glass-blur: 16px; --glass-sat: 70%;  --lens-frost: 13; --lens-sat: 0.8;
+  --glass-blur: var(--mat-archived-blur);
+  --glass-sat: var(--mat-archived-sat);
+  --lens-frost: var(--mat-archived-frost);
+  --lens-sat: var(--mat-archived-lsat);
 }
-/* publish = one bounded anneal transition (state change, not decoration) */
+/* Publish = one bounded anneal (state change, not decoration). This covers the
+   LAYERED path only; under backdrop-filter: url(#...) the primitives are SVG
+   attributes, which no CSS transition can move — PrismLens tweens them on the
+   same --dur-anneal / --ease pair. */
 .glass[data-material] {
   transition: backdrop-filter var(--dur-anneal) var(--ease),
               -webkit-backdrop-filter var(--dur-anneal) var(--ease);

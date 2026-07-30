@@ -98,6 +98,15 @@ try {
 }
 
 // 3 + 4 (+5): build artifacts
+// A pre-existing dist is reused so the plain `check` stays fast. Under
+// --double-build that shortcut is wrong twice over: the artifact assertions
+// below would inspect a stale build, and the reproducibility comparison would
+// pit that stale build against a fresh one and fail on a difference that is not
+// in this tree. So force one fresh build up front and let both halves use it.
+const DOUBLE = process.argv.includes("--double-build");
+if (DOUBLE) {
+  rmSync(DIST, { recursive: true, force: true });
+}
 try {
   statSync(DIST);
 } catch {
@@ -126,7 +135,7 @@ if (!html.includes("style-src 'self';")) {
   failures.push("dist/index.html: production CSP must keep style-src 'self' without inline exemption");
 }
 
-if (process.argv.includes("--double-build")) {
+if (DOUBLE) {
   const first = hashDist();
   rmSync(DIST, { recursive: true });
   build();
