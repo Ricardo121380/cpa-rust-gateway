@@ -67,10 +67,26 @@
 
 ### Caddy 要点
 
+配置模板在仓库内：分流用 [`deploy/caddy/canary.Caddyfile`](../deploy/caddy/canary.Caddyfile)，
+回滚 preimage 用 [`deploy/caddy/rollback.Caddyfile`](../deploy/caddy/rollback.Caddyfile)。
+两者都是**片段**，只替换生产主机名那一个站点块，其余站点（cpam/grok/kiro/sub）不动；片段里的
+全局 `servers` 块必须**合并**进服务器现有全局块（Caddy 只允许一个全局块且必须在最前）。
+
 - 公网 TLS 终止后反代到 `127.0.0.1:18180`（数据面）；**不得存在任何到 18181 的公网路由**
 - 分流规则：`Authorization: Bearer rgw_…` **或** `x-api-key: rgw_…`（数据面二选一互斥，两个头都得匹配前缀）→ 新网关；否则 → CPA。匹配的是**非机密**的固定字面 `rgw_`，配置中不出现任何 key 值
-- 读/空闲超时必须 **> 15 秒**（数据面 SSE keepalive 间隔；`CR-P12-ROLLOUT-001` 硬性核对项）
-- 回滚配置（全量指回 CPA）预先放好；P12-09 演练实测 `caddy reload` 生效时延并记为 RTO
+- 读/空闲超时必须 **> 15 秒**（数据面 SSE keepalive 间隔；`CR-P12-ROLLOUT-001` 硬性核对项）。
+  模板已按网关自身上限设定：`read_body 30s`（对齐入站正文超时）、`read_header 20s`、
+  `write 0s`（**必须为 0**：写截止时间会截断长连接 SSE）、`idle 1h`（对齐流式总上限，且高于
+  15min 进度截止）。`scripts/check-p12-caddy-split.rb` 从 Rust 常量读取这些上限并逐项比对，
+  两侧任一漂移即门禁失败
+- **不要给数据面站点加 `encode`**：压缩会在事件流前重新引入缓冲。Caddy 对
+  `Content-Type: text/event-stream` 本身就立即 flush，无需额外配置
+- 现行服务器配置**没有设置任何超时**，而 Caddy 服务器级超时默认为"无超时"——所以当前默认值
+  恰好不切 SSE，但按常规运维直觉加一个 read/idle 超时就会静默切流。这正是上述校验器存在的原因
+- 回滚配置（全量指回 CPA）预先放好；P12-09 用
+  [`scripts/p12-09-measure-caddy-rto.sh`](../scripts/p12-09-measure-caddy-rto.sh) 实测生效时延并记为 RTO。
+  注意 `caddy reload` 返回零只表示配置被接受，**不**表示下一个请求已走新路由，所以脚本轮询探针
+  直到实际观测到后端改变，分别记录 `reload_returned_ms` 与 `effective_ms`
 
 ### 备份
 

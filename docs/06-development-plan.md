@@ -1718,7 +1718,7 @@ CR-ID: CR-P11-04-001
 | P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | [Staging receipt](reports/p12-04-staging-receipt.md)：独立签名制品、精确 Unit、root-only 凭证、两个回环 listener、Health/管理面 admission、资源/日志/回滚均验收；服务 active 但 disabled-at-boot | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | [CR-015 Tool/Explain 回执](reports/evidence/p12-05-cr-015-tool-explain-receipt-20260726.md)：一次新的无外部效应 Tool tuple 为 `2xx`/`valid`，唯一 protected attempt 为 `succeeded/decoder`，Explain 选中唯一 Candidate 且无新增 upstream attempt；完整回滚与独立 post-review 均通过 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | 差异与性能报告 | PENDING |
-| P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | DNS/TLS/Auth 验证 | PENDING |
+| P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | DNS/TLS/Auth 验证；分流与回滚 Caddyfile 模板、超时一致性校验器与 RTO 测量脚本按 `CR-P12-07-001` 就绪于 `deploy/caddy/` | PENDING |
 | P12-08 | 使用单独 Client Key 开始 10%→25%→50%→100% Canary | P12-06,P12-07 | 每阶段成功率、P95/P99、缓存和错误证据 | PENDING |
 | P12-09 | 在 Canary 中实际执行一次回滚并再次恢复 | P12-08 | 回滚时长和一致性报告 | PENDING |
 | P12-10 | 完成生产切换、72h 观察、发布 Tag 和运维手册 | P12-09 | G12 报告 | PENDING |
@@ -2529,6 +2529,48 @@ CR-ID: CR-P12-06-002
 计划版本变更: v1.71
 ```
 
+### 已批准 Change Request：CR-P12-07-001
+
+```text
+CR-ID: CR-P12-07-001
+原因: CR-P12-ROLLOUT-001 把 Canary 百分比分流定在服务器本地 Caddy，并规定"进入服务器前
+      须在 Staging 复核语法"、"P12-09 演练须实测 caddy reload 的生效时延并记为 RTO 证据"、
+      "须确认读/空闲超时高于数据面 15 秒 SSE keepalive 间隔"。但仓库里没有任何 Caddyfile
+      模板、没有回滚 preimage、也没有 RTO 测量脚本，这三条要求都无可执行载体。现场核对
+      服务器现行 /etc/caddy/Caddyfile 后确认：现有站点块完全没有设置任何超时，而 Caddy 的
+      服务器级超时默认为"无超时"，因此当前默认值恰好不会切断 SSE，但一旦有人按常规运维
+      直觉加上 read/idle 超时就会静默切流，且没有任何检查会发现。
+影响的 Task / Matrix ID / ADR: P12-07 的分流层配置产出、P12-09 的 RTO 证据定义。
+      不改代码、不改公开 API、Canonical、Provider 或 Schema，不改服务器现行配置。
+      (1) 新增 deploy/caddy/canary.Caddyfile：生产主机名不变，按非机密固定字面前缀
+      `rgw_` 在 Authorization 与 X-Api-Key 两个头上分流到 127.0.0.1:18180，其余流量继续
+      到 incumbent CPA 127.0.0.1:8317；不含任何 key 值；刻意不含到 18181 的任何路由；
+      刻意不加 encode（压缩会在事件流前重新引入缓冲）。超时按网关自身上限推导而非自选：
+      read_body 30s 对齐入站正文超时、read_header 20s 高于 15s keepalive、write 0s
+      （写截止时间无法约束长连接 SSE）、idle 1h 对齐流式总上限且高于 15min 进度截止。
+      (2) 新增 deploy/caddy/rollback.Caddyfile：把同一主机名全量指回 incumbent，作为
+      P12-09 的回滚 preimage；回滚是一次文件交换加一次 reload，不动 DNS/TLS/其它站点。
+      (3) 新增 scripts/check-p12-caddy-split.rb：从 Rust 源码读取 SSE_KEEPALIVE_INTERVAL、
+      INFERENCE_REQUEST_BODY_TIMEOUT、P12_STREAMING_TOTAL_TIMEOUT、
+      P12_STREAMING_PROGRESS_TIMEOUT，与 Caddyfile 超时逐项比对；两侧任一漂移即 fail
+      closed。同时断言管理面未暴露、无压缩、前缀匹配未退化、配置内不含 key 值、回滚确实
+      移除网关且主机名一致。接入 check.sh fast 与 docs。
+      (4) 新增 scripts/p12-09-measure-caddy-rto.sh：先 caddy validate 再交换并 reload，
+      随后轮询探针直到实际观测到的后端改变，分别记录 reload 返回耗时与生效耗时。因为
+      `caddy reload` 返回零只表示配置被接受，不表示下一个请求已走新路由，所以 RTO 必须
+      按观测到的路由变化计时。脚本不打印 key、头值或响应正文，可选 0600 无值回执。
+      (5) 新增 scripts/test-p12-caddy-split.sh：对 13 条回归路径逐一实测拒绝。
+兼容性与迁移影响: 无代码、公开 API、Canonical、Schema 或安全迁移。本 CR 只新增仓库内的
+      模板与检查脚本，不安装、不 reload、不改服务器现行 Caddy 配置；服务器仍只运行既有
+      站点。用户正在进行的 CPA/CPAMP 迁移不受影响。分流启用仍属 P12-07/P12-08 的独立授权。
+测试与回滚变化: 两个 fragment 已在服务器上用真实 Caddy v2.11.4 `caddy validate` 通过，并以
+      `caddy adapt` 核对编译后的路由确为两条 rgw_ 匹配指向 18180、缺省指向 8317，且服务器级
+      超时为 read 30s / read_header 20s / idle 1h、无 write_timeout。核对后立即删除临时目录，
+      现行配置与 caddy 服务状态未变。回滚为删除本 CR 新增的四个文件与 check.sh 的两处接线。
+用户批准: APPROVED，2026-07-30（"开始A5"）
+计划版本变更: v1.74
+```
+
 ### 已批准 Change Request：CR-P12-08-001
 
 ```text
@@ -2820,3 +2862,4 @@ Next task:
 | v1.71 | 2026-07-27 | `CR-P12-06-002`：交付 Anthropic 出站编解码器与 provider 边界、填充 gateway-protocol 为封闭 ApiFormat 词表与适配器注册表、api_format 与 adapter_id 在发布期即校验、执行器改用 BC-ROUTER-005 协议过滤选择候选 | APPROVED；22 项新本地测试与全量门禁通过 |
 | v1.72 | 2026-07-30 | `CR-P12-01-002`：发布流水线从单一 `x86_64-unknown-linux-gnu` 扩为 x86_64 与 `aarch64-unknown-linux-gnu` 双目标，各自在同架构标准 runner 上原生构建、独立 SBOM/manifest/keyless 签名/receipt；校验器改为封闭目标白名单并按目标推导 ELF `e_machine`、OCI architecture 与钉死的基础镜像 digest；Dockerfile 基础镜像逐架构传入并由产物侧 `base.name` 重新建立钉死性质。生产主机为 aarch64，此前产物在其上不可执行 | APPROVED；[run 30533211028](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/30533211028) 两个 job 均 SUCCESS，两份私有产物均已本地 `--require-signature --require-receipt` 复验；aarch64 产物为真实 `ARM aarch64` ELF 且在容器内实际执行 |
 | v1.73 | 2026-07-30 | `CR-P12-08-001`：Canary 阶段最低成功请求数由 100 改为 1250（并给出随基线上升的样本量表），合成补足请求单独计数且其失败计入分子，50% 阶段最短观察由 2h 提升为 24h 以补回本地 Soak 让掉的长时覆盖；新增四级故障严重度分级使 G12 的“无 P0/P1 故障”成为可判定谓词；明确 TTFT 与实时 P95/P99 服务端不可观测并改由客户端侧与离线路径取证 | APPROVED；`scripts/check-p12-08-canary-thresholds.rb` 以可执行形式固定该统计结论与分级，接入 check.sh fast/docs |
+| v1.74 | 2026-07-30 | `CR-P12-07-001`：新增 Canary 分流与回滚两个 Caddyfile 模板（生产主机名不变、按非机密 `rgw_` 前缀在两个头上分流、刻意不含 18181 路由与压缩），超时按网关自身上限推导；新增校验器从 Rust 常量读取 keepalive/正文/流式上限并与 Caddyfile 逐项比对，漂移即 fail closed；新增 P12-09 的 RTO 测量脚本，按观测到的路由变化计时而非按 reload 返回 | APPROVED；两 fragment 在服务器真实 Caddy v2.11.4 上 validate 通过并以 adapt 核对编译后路由，13 条回归路径实测拒绝，服务器现行配置未变 |

@@ -1,0 +1,60 @@
+# P12-08 Canary split: production hostname unchanged, traffic selected by client-key prefix.
+#
+# This is a fragment, not a whole Caddyfile. It replaces exactly one existing site block on the
+# server; every other site (cpam, grok, kiro, sub) stays untouched. The global `servers` block
+# below must be merged into the server's existing global block, not appended as a second one —
+# Caddy allows at most one global options block and it must be first.
+#
+# Timeouts are derived from the gateway's own transport ceilings rather than chosen freely:
+#   - SSE keepalive interval is 15s, so any read/idle timeout at or below 15s would cut a healthy
+#     idle stream between keepalives. `CR-P12-ROLLOUT-001` makes ">15s" a hard review item.
+#   - The gateway's streaming total ceiling is 1h and its progress deadline is 15min, so the proxy
+#     must not close a stream the gateway still considers live. `idle 1h` matches that ceiling.
+#   - Inbound body read has a 30s timeout and a 4 MiB cap in the gateway, so `read_body 30s` here
+#     agrees with the origin instead of failing earlier or later for a different reason.
+#
+# Caddy needs no explicit flush configuration for SSE: responses with
+# `Content-Type: text/event-stream` are flushed immediately regardless of flush_interval.
+# Do not add `encode` to this site — compressing an event stream reintroduces buffering.
+
+{
+	servers {
+		timeouts {
+			# Time to read the request body. Matches the gateway's own inbound body timeout.
+			read_body 30s
+			# Time to read request headers. Well above the 15s keepalive floor.
+			read_header 20s
+			# Must stay 0 (no timeout): a write deadline would kill long-lived SSE responses.
+			write 0s
+			# Idle ceiling for a kept-alive connection. Matches the gateway's 1h streaming total.
+			idle 1h
+		}
+	}
+}
+
+cpa.example.invalid {
+	# The split matches a non-secret fixed literal prefix. No key value ever appears in this file.
+	# The data plane accepts either header, mutually exclusively, so both are routed.
+	@canary_bearer {
+		header Authorization "Bearer rgw_*"
+	}
+	@canary_api_key {
+		header X-Api-Key "rgw_*"
+	}
+
+	handle @canary_bearer {
+		reverse_proxy 127.0.0.1:18180
+	}
+
+	handle @canary_api_key {
+		reverse_proxy 127.0.0.1:18180
+	}
+
+	# Everything else keeps reaching the incumbent CPA unchanged.
+	handle {
+		reverse_proxy 127.0.0.1:8317
+	}
+}
+
+# There is deliberately no site block for the management listener. 127.0.0.1:18181 must remain
+# unreachable from the public internet; adding a route here would break that invariant.
