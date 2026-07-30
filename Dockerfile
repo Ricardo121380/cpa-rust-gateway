@@ -1,14 +1,18 @@
 # syntax=docker/dockerfile:1.7
 # P12 supplies the already-built, revision-bound Linux binary as the only build context input.
 # No source checkout, provider configuration, credential, listener or runtime data is copied in.
+#
+# Each release target is built natively on a runner of its own architecture, so the base image is
+# pinned per architecture rather than through a multi-architecture index. An ARG referenced by a
+# FROM must be declared before the first FROM to be global rather than stage-scoped; the release
+# workflow supplies one of the two digests below, both members of the same `debian:bookworm-slim`
+# index (sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818). The amd64 member
+# is a single-architecture manifest, so resolving it on arm64 would fail.
+ARG RELEASE_BASE_IMAGE
+
 FROM scratch AS release-input
 COPY gateway /gateway
 
-# Each release target is built natively on a runner of its own architecture, so the base image is
-# pinned per architecture rather than through a multi-architecture index. Both digests below are
-# members of the same `debian:bookworm-slim` index (sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818);
-# the amd64 member is a single-architecture manifest, so resolving it on arm64 would fail.
-ARG RELEASE_BASE_IMAGE
 FROM ${RELEASE_BASE_IMAGE}
 
 ARG RELEASE_REVISION

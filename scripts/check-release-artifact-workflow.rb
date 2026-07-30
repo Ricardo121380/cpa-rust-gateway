@@ -98,6 +98,41 @@ rescue Psych::SyntaxError, KeyError, TypeError => error
   errors << "unable to inspect release-artifact structure: #{error.message}"
 end
 
+# The base image reaches the Dockerfile as a build argument, and an ARG referenced by a FROM is
+# stage-scoped unless it is declared before the first FROM. Getting this wrong makes the base name
+# resolve to the empty string, which only surfaces as a build failure in CI.
+dockerfile_path = File.join(root, "Dockerfile")
+begin
+  dockerfile_lines = File.read(dockerfile_path, encoding: "UTF-8").lines
+  global_args = []
+  seen_from = false
+  from_args = []
+  dockerfile_lines.each do |line|
+    directive = line.strip
+    next if directive.empty? || directive.start_with?("#")
+
+    if (match = directive.match(/\AARG\s+([A-Za-z_][A-Za-z0-9_]*)/i))
+      global_args << match[1] unless seen_from
+    elsif directive.match?(/\AFROM\s/i)
+      from_args.concat(directive.scan(/\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?/).flatten)
+      seen_from = true
+    end
+  end
+  from_args.uniq.each do |name|
+    unless global_args.include?(name)
+      errors << "Dockerfile ARG #{name} is referenced by FROM but not declared before the first FROM"
+    end
+  end
+  unless from_args.include?("RELEASE_BASE_IMAGE")
+    errors << "Dockerfile must take its base image from the RELEASE_BASE_IMAGE build argument"
+  end
+  unless dockerfile_lines.any? { |line| line.include?('org.opencontainers.image.base.name="${RELEASE_BASE_IMAGE}"') }
+    errors << "Dockerfile must label the image with the base image it was actually built from"
+  end
+rescue Errno::ENOENT
+  errors << "Dockerfile is missing"
+end
+
 directive_lines = text.lines.reject { |line| line.strip.start_with?("#") }.join
 %w[setup-qemu-action qemu binfmt --platform\ linux/amd64,linux/arm64].each do |forbidden|
   if directive_lines.match?(/#{Regexp.escape(forbidden)}/i)

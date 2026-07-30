@@ -1773,7 +1773,9 @@ CR-ID: CR-P12-01-002
       钉死 digest，`base.name` 标签随之逐架构记录。因为基础镜像不再写死在 Dockerfile 里，
       "已钉死"这一性质改由产物侧重新建立：校验器把 `org.opencontainers.image.base.name`
       与目标表中的 digest 逐字比对，workflow 检查器再断言 matrix 的 `base_image` 与校验器
-      表一致，两处任一漂移即 fail closed。
+      表一致，两处任一漂移即 fail closed。该 `base.name` 比对不是冗余检查：本地实测在 arm64
+      上用 amd64 digest 构建**不会**失败，而是产出一个 config 谎称 `architecture=arm64` 的
+      损坏镜像，仅靠 architecture 断言无法识别，只有 `base.name` 比对能拒绝它。
       (5) 不变量：仍是 `workflow_dispatch` 手动触发、仍无任何 push/registry/deploy/tag
       步骤、仍为私有 CI artifact、仍 keyless OIDC 签名并独立 `cosign verify-blob`、
       OCI 仍非 root 且不暴露监听端口。
@@ -1790,7 +1792,9 @@ CR-ID: CR-P12-01-002
       OCI config 必须被拒），以及基础镜像 digest 的负向用例（另一架构的 digest 与未钉 digest
       的 `debian:bookworm-slim` 均必须被拒）。`scripts/check-release-artifact-workflow.rb`
       断言两个 job、两个 runner 标签、两个 platform、逐架构基础镜像 digest 与校验器目标表
-      一致，拒绝任何 qemu/binfmt/多 platform 模拟构建，且继续断言无发布/部署命令。
+      一致，拒绝任何 qemu/binfmt/多 platform 模拟构建，且继续断言无发布/部署命令；并静态
+      校验 Dockerfile 中被 `FROM` 引用的 ARG 必须声明在第一个 `FROM` 之前（首次远端运行
+      即因该作用域错误使两个 job 同时失败，本地无 buildx 时该错误不可见）。
       回滚为恢复本 CR 的文件 preimage（单目标 workflow 与常量），既有 x86_64 产物不受影响。
 用户批准: APPROVED，2026-07-27（"1.做一个arm的"；"可以，开始A1"）
 计划版本变更: v1.72
