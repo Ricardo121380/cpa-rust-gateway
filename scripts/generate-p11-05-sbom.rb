@@ -14,11 +14,11 @@ require "open3"
 REPOSITORY_ROOT = File.expand_path("..", __dir__)
 RAW_OVERRIDE_FILENAME = ".p11-05-cyclonedx-raw"
 RAW_FILENAME = "#{RAW_OVERRIDE_FILENAME}.json"
-RAW_GLOBS = [
-  "{apps,crates}/**/#{RAW_FILENAME}",
+RAW_FILENAMES = [
+  RAW_FILENAME,
   # Clean a failed first-run artifact made before the generator owned the filename.
-  "{apps,crates}/**/p11-05-rust-sbom.json",
-  "{apps,crates}/**/#{RAW_FILENAME}.json"
+  "p11-05-rust-sbom.json",
+  "#{RAW_FILENAME}.json"
 ].freeze
 OUTPUT_PATH = File.join(REPOSITORY_ROOT, "docs/reports/evidence/p11-05-rust-sbom.cdx.json")
 LOCAL_REFERENCE = %r{(?:path\+file:|file://|/Users/|/home/)}i
@@ -76,8 +76,19 @@ def assert_publishable!(bom)
   abort("p11-05-sbom: components are empty") if bom.fetch("components").empty?
 end
 
+# Derive the cleanup set from the workspace itself: cargo-cyclonedx writes one raw file per member,
+# and a hardcoded directory list would silently miss a newly added member.
+def workspace_member_directories
+  metadata = JSON.parse(command_output("cargo", "metadata", "--no-deps", "--format-version", "1"))
+  directories = metadata.fetch("packages").map { |package| File.dirname(package.fetch("manifest_path")) }
+  directories << REPOSITORY_ROOT
+  directories.uniq
+end
+
 def raw_paths
-  RAW_GLOBS.flat_map { |glob| Dir.glob(File.join(REPOSITORY_ROOT, glob)) }.uniq
+  workspace_member_directories.flat_map do |directory|
+    RAW_FILENAMES.map { |name| File.join(directory, name) }
+  end.select { |path| File.file?(path) }
 end
 
 FileUtils.rm_f(raw_paths)

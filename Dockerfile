@@ -4,19 +4,25 @@
 FROM scratch AS release-input
 COPY gateway /gateway
 
-FROM debian:bookworm-slim@sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e
+# Each release target is built natively on a runner of its own architecture, so the base image is
+# pinned per architecture rather than through a multi-architecture index. Both digests below are
+# members of the same `debian:bookworm-slim` index (sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818);
+# the amd64 member is a single-architecture manifest, so resolving it on arm64 would fail.
+ARG RELEASE_BASE_IMAGE
+FROM ${RELEASE_BASE_IMAGE}
 
 ARG RELEASE_REVISION
 ARG RELEASE_VERSION
 ARG RELEASE_RUST_VERSION
 ARG RELEASE_TARGET
+ARG RELEASE_BASE_IMAGE
 
 LABEL org.opencontainers.image.title="cpa-rust-gateway" \
       org.opencontainers.image.revision="${RELEASE_REVISION}" \
       org.opencontainers.image.version="${RELEASE_VERSION}" \
       org.opencontainers.image.rust.toolchain="${RELEASE_RUST_VERSION}" \
       org.opencontainers.image.target="${RELEASE_TARGET}" \
-      org.opencontainers.image.base.name="debian:bookworm-slim@sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e"
+      org.opencontainers.image.base.name="${RELEASE_BASE_IMAGE}"
 
 # The release binary currently uses OpenSSL through the locked native-tls dependency. Install only
 # its runtime library and CA roots, then leave no package-list cache in the image.

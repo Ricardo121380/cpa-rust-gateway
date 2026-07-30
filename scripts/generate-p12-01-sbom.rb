@@ -13,7 +13,8 @@ require "optparse"
 REPOSITORY_ROOT = File.expand_path("..", __dir__)
 RAW_OVERRIDE_FILENAME = ".p12-01-cyclonedx-raw"
 RAW_FILENAME = "#{RAW_OVERRIDE_FILENAME}.json"
-RAW_GLOBS = ["{apps,crates}/**/#{RAW_FILENAME}", "{apps,crates}/**/#{RAW_FILENAME}.json"].freeze
+# cargo-cyclonedx has written both spellings across versions; remove either one.
+RAW_FILENAMES = [RAW_FILENAME, "#{RAW_FILENAME}.json"].freeze
 LOCAL_REFERENCE = %r{(?:path\+file:|file://|https?://|/Users/|/home/|[A-Za-z]:\\\\Users\\)}i
 FORBIDDEN_KEYS = %w[
   authorization cookie credential endpoint password secret token url
@@ -95,6 +96,7 @@ def assert_redacted!(value)
   end
 end
 
+SUPPORTED_TARGETS = %w[x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu].freeze
 options = { target: "x86_64-unknown-linux-gnu" }
 OptionParser.new do |parser|
   parser.banner = "usage: #{$PROGRAM_NAME} --output PATH [--target TARGET]"
@@ -103,12 +105,26 @@ OptionParser.new do |parser|
 end.parse!
 fail_with("unexpected arguments") unless ARGV.empty?
 fail_with("--output is required") if options[:output].to_s.empty?
-fail_with("target must be x86_64-unknown-linux-gnu") unless options[:target] == "x86_64-unknown-linux-gnu"
+unless SUPPORTED_TARGETS.include?(options[:target])
+  fail_with("unsupported target: #{options[:target]}")
+end
 
 output_path = File.expand_path(options[:output], Dir.pwd)
 
+# Derive the cleanup set from the workspace itself: cargo-cyclonedx writes one raw file per member,
+# and a hardcoded directory list would silently miss a newly added member (leaving a raw SBOM full
+# of local paths in the checkout). Globbing the whole tree would instead walk target/.
+def workspace_member_directories
+  metadata = JSON.parse(command_output("cargo", "metadata", "--no-deps", "--format-version", "1"))
+  directories = metadata.fetch("packages").map { |package| File.dirname(package.fetch("manifest_path")) }
+  directories << REPOSITORY_ROOT
+  directories.uniq
+end
+
 def raw_paths
-  RAW_GLOBS.flat_map { |glob| Dir.glob(File.join(REPOSITORY_ROOT, glob)) }.uniq
+  workspace_member_directories.flat_map do |directory|
+    RAW_FILENAMES.map { |name| File.join(directory, name) }
+  end.select { |path| File.file?(path) }
 end
 
 FileUtils.rm_f(raw_paths)

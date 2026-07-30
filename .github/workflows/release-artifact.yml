@@ -14,14 +14,31 @@ concurrency:
 env:
   CARGO_INCREMENTAL: "0"
   RELEASE_RUST_VERSION: "1.97.1"
-  RELEASE_TARGET: x86_64-unknown-linux-gnu
   RELEASE_VERSION: "0.1.0"
 
 jobs:
   build:
-    name: Build and sign private release artifact
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    name: Build and sign ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Each target is built natively on a runner of its own architecture: no cross toolchain
+          # and no qemu, so the pre-signing container smoke test really executes the signed binary.
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-24.04
+            platform: linux/amd64
+            base_image: debian:bookworm-slim@sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+            base_image: debian:bookworm-slim@sha256:9b67294679b30e5d6ab257b40594feeb4a4b81f7fcf4131f4decf0d6a212a9b0
+    env:
+      RELEASE_TARGET: ${{ matrix.target }}
+      RELEASE_BASE_IMAGE: ${{ matrix.base_image }}
+      RELEASE_BINARY: gateway-${{ matrix.target }}
     steps:
       - name: Checkout selected revision
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -43,12 +60,33 @@ jobs:
             ~/.cargo/bin/cargo-cyclonedx
             ~/.cargo/registry
             ~/.cargo/git
-          key: quality-tools-${{ runner.os }}-rust-1.97.1-${{ hashFiles('tools/quality-tool-versions.env') }}
+          key: quality-tools-${{ runner.os }}-${{ runner.arch }}-rust-1.97.1-${{ hashFiles('tools/quality-tool-versions.env') }}
       - name: Install pinned SBOM tool
         run: ./scripts/install-quality-tools.sh
       - name: Install management SPA build inputs
         working-directory: web/admin-ui
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify the runner architecture matches the release target
+        run: |
+          set -euo pipefail
+          # Guards against a target being built on the wrong architecture, which would silently
+          # produce an artifact the production host cannot execute.
+          case "$RELEASE_TARGET" in
+            x86_64-unknown-linux-gnu) expected_machines='x86_64 amd64' ;;
+            aarch64-unknown-linux-gnu) expected_machines='aarch64 arm64' ;;
+            *) echo "unsupported release target: $RELEASE_TARGET" >&2; exit 1 ;;
+          esac
+          actual_machine="$(uname -m)"
+          matched=0
+          for candidate in $expected_machines; do
+            if [[ "$actual_machine" == "$candidate" ]]; then
+              matched=1
+            fi
+          done
+          if [[ "$matched" -ne 1 ]]; then
+            echo "runner is $actual_machine but $RELEASE_TARGET requires one of: $expected_machines" >&2
+            exit 1
+          fi
       - name: Build revision-bound Linux binary
         env:
           GATEWAY_RELEASE_REVISION: ${{ github.sha }}
@@ -58,7 +96,7 @@ jobs:
           set -euo pipefail
           mkdir --parents release-artifact release-image-context
           cargo +1.97.1 build --locked --release --package gateway
-          install -m 0755 target/release/gateway release-artifact/gateway-x86_64-unknown-linux-gnu
+          install -m 0755 target/release/gateway "release-artifact/$RELEASE_BINARY"
           ./scripts/p12-release-artifact.rb build-metadata \
             --revision "$GITHUB_SHA" \
             --rust-toolchain "$RELEASE_RUST_VERSION" \
@@ -70,7 +108,7 @@ jobs:
             --workflow-path .github/workflows/release-artifact.yml \
             --ref "$GITHUB_REF" \
             --output release-artifact/signing-identity.json
-          cp release-artifact/gateway-x86_64-unknown-linux-gnu release-image-context/gateway
+          cp "release-artifact/$RELEASE_BINARY" release-image-context/gateway
       - name: Generate redacted CycloneDX SBOM
         run: |
           ./scripts/generate-p12-01-sbom.rb \
@@ -80,6 +118,7 @@ jobs:
         env:
           IMAGE_REF: cpa-rust-gateway:${{ github.sha }}
           DOCKER_ARCHIVE: ${{ runner.temp }}/gateway-image.docker.tar
+          RELEASE_PLATFORM: ${{ matrix.platform }}
         run: |
           set -euo pipefail
           builder_name="p12-release-$GITHUB_RUN_ID"
@@ -87,12 +126,13 @@ jobs:
           docker buildx inspect --bootstrap
           docker buildx build \
             --builder "$builder_name" \
-            --platform linux/amd64 \
+            --platform "$RELEASE_PLATFORM" \
             --file Dockerfile \
             --build-arg RELEASE_REVISION="$GITHUB_SHA" \
             --build-arg RELEASE_VERSION="$RELEASE_VERSION" \
             --build-arg RELEASE_RUST_VERSION="$RELEASE_RUST_VERSION" \
             --build-arg RELEASE_TARGET="$RELEASE_TARGET" \
+            --build-arg RELEASE_BASE_IMAGE="$RELEASE_BASE_IMAGE" \
             --output "type=oci,dest=release-artifact/gateway-image.oci.tar,name=$IMAGE_REF" \
             --output "type=docker,dest=$DOCKER_ARCHIVE,name=$IMAGE_REF" \
             release-image-context
@@ -164,9 +204,11 @@ jobs:
         run: |
           ruby -rjson -e '
             receipt = JSON.parse(File.read("release-artifact/artifact-receipt.json"))
-            puts "## P12-01 private release artifact"
+            target = ENV.fetch("RELEASE_TARGET")
+            puts "## P12-01 private release artifact (#{target})"
             puts
             puts "- Revision: `#{receipt.fetch("revision")}`"
+            puts "- Target: `#{target}`"
             puts "- Manifest SHA-256: `#{receipt.fetch("manifest_sha256")}`"
             puts "- SBOM SHA-256: `#{receipt.fetch("sbom_sha256")}`"
             puts "- Signature: `#{receipt.fetch("signing").fetch("type")}` / `#{receipt.fetch("signing").fetch("verification")}`"
@@ -175,7 +217,7 @@ jobs:
       - name: Upload private release artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: p12-01-release-artifact-${{ github.sha }}
+          name: p12-01-release-artifact-${{ matrix.target }}-${{ github.sha }}
           path: release-artifact/
           if-no-files-found: error
           retention-days: 14

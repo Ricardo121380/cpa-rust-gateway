@@ -15,18 +15,28 @@ module P12ReleaseArtifact
   SIGNATURE_NAME = "artifact-manifest.json.sig"
   BUNDLE_NAME = "artifact-manifest.sigstore.json"
   RECEIPT_NAME = "artifact-receipt.json"
-  PAYLOAD_NAMES = [
-    "gateway-build-metadata.json",
-    "gateway-image.oci.tar",
-    "gateway-sbom.cdx.json",
-    "gateway-x86_64-unknown-linux-gnu",
-    "signing-identity.json"
-  ].freeze
+  # Each release target is native-built on a runner of its own architecture, so one artifact set
+  # never mixes architectures. The table is the single source of truth for the per-target binary
+  # name, the ELF `e_machine` value, the OCI architecture and the pinned base image; an unlisted
+  # target fails closed. Both base digests are members of the same `debian:bookworm-slim` index
+  # (sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818), and each must stay in
+  # step with the matching matrix entry in .github/workflows/release-artifact.yml.
+  TARGETS = {
+    "x86_64-unknown-linux-gnu" => {
+      elf_machine: 62,
+      oci_architecture: "amd64",
+      base_image: "debian:bookworm-slim@sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e"
+    },
+    "aarch64-unknown-linux-gnu" => {
+      elf_machine: 183,
+      oci_architecture: "arm64",
+      base_image: "debian:bookworm-slim@sha256:9b67294679b30e5d6ab257b40594feeb4a4b81f7fcf4131f4decf0d6a212a9b0"
+    }
+  }.freeze
   MANIFEST_SCHEMA = "cpa-rust-gateway-artifact-manifest-v1"
   BUILD_METADATA_SCHEMA = "cpa-rust-gateway-build-metadata-v1"
   SIGNING_IDENTITY_SCHEMA = "cpa-rust-gateway-signing-identity-v1"
   RECEIPT_SCHEMA = "cpa-rust-gateway-artifact-receipt-v1"
-  TARGET = "x86_64-unknown-linux-gnu"
   OIDC_ISSUER = "https://token.actions.githubusercontent.com"
   LOCAL_REFERENCE = %r{(?:path\+file:|file://|https?://|/Users/|/home/|[A-Za-z]:\\\\Users\\)}i
   FORBIDDEN_SBOM_KEYS = %w[
@@ -36,6 +46,24 @@ module P12ReleaseArtifact
   class Failure < StandardError; end
 
   module_function
+
+  def target_profile(target)
+    TARGETS.fetch(target) { fail!("unsupported release target: #{target}") }
+  end
+
+  def binary_name(target)
+    "gateway-#{target}"
+  end
+
+  def payload_names(target)
+    [
+      "gateway-build-metadata.json",
+      "gateway-image.oci.tar",
+      "gateway-sbom.cdx.json",
+      binary_name(target),
+      "signing-identity.json"
+    ].sort
+  end
 
   def fail!(message)
     raise Failure, message
@@ -129,7 +157,7 @@ module P12ReleaseArtifact
     required!(values, :output, command) if require_output
     fail!("#{command}: revision must be a full lowercase Git SHA") unless valid_revision?(values[:revision])
     fail!("#{command}: invalid Rust toolchain") unless valid_toolchain?(values[:rust_toolchain])
-    fail!("#{command}: target must be #{TARGET}") unless values[:target] == TARGET
+    fail!("#{command}: unsupported release target: #{values[:target]}") unless TARGETS.key?(values[:target])
     fail!("#{command}: invalid release version") unless valid_version?(values[:version])
     values
   end
@@ -139,22 +167,26 @@ module P12ReleaseArtifact
     build = read_json(path, "build metadata")
     require_exact_keys!(build, %w[binary revision rust_toolchain schema_version target version], "build metadata")
     fail!("build metadata schema mismatch") unless build["schema_version"] == BUILD_METADATA_SCHEMA
-    fail!("build metadata binary mismatch") unless build["binary"] == "gateway-x86_64-unknown-linux-gnu"
+    fail!("build metadata binary mismatch") unless build["binary"] == binary_name(values[:target])
     %i[revision rust_toolchain target version].each do |key|
       fail!("build metadata #{key} mismatch") unless build[key.to_s] == values[key]
     end
   end
 
   def validate_binary_metadata!(directory, values)
-    path = File.join(directory, "gateway-x86_64-unknown-linux-gnu")
+    target = values[:target]
+    path = File.join(directory, binary_name(target))
     bytes = File.binread(path)
     elf_identity = "\x7fELF\x02\x01"
     fail!("release binary is not a 64-bit little-endian ELF executable") unless bytes.start_with?(elf_identity)
-    fail!("release binary is not x86_64") unless bytes.byteslice(18, 2) == [62].pack("v")
+    expected_machine = target_profile(target).fetch(:elf_machine)
+    unless bytes.byteslice(18, 2) == [expected_machine].pack("v")
+      fail!("release binary architecture does not match #{target}")
+    end
     {
       "gateway-release-revision" => values[:revision],
       "gateway-release-rust-version" => values[:rust_toolchain],
-      "gateway-release-target" => values[:target]
+      "gateway-release-target" => target
     }.each do |key, value|
       fail!("release binary does not embed #{key}") unless bytes.include?("#{key}=#{value}\n")
     end
@@ -251,7 +283,10 @@ module P12ReleaseArtifact
     fail!("OCI image has no filesystem layer") unless layers.is_a?(Array) && !layers.empty?
     layers.each_with_index { |layer, index_value| blob(entries, layer, "OCI layer #{index_value}") }
     config = JSON.parse(blob(entries, manifest.fetch("config") { fail!("OCI manifest has no config") }, "OCI config"))
-    fail!("OCI architecture mismatch") unless config["architecture"] == "amd64" && config["os"] == "linux"
+    expected_architecture = target_profile(values[:target]).fetch(:oci_architecture)
+    unless config["architecture"] == expected_architecture && config["os"] == "linux"
+      fail!("OCI architecture does not match #{values[:target]}")
+    end
     image_config = config.fetch("config") { fail!("OCI config has no runtime configuration") }
     fail!("OCI image must run as non-root") unless image_config["User"] == "65532:65532"
     fail!("OCI entrypoint mismatch") unless image_config["Entrypoint"] == ["/usr/local/bin/gateway"]
@@ -267,13 +302,19 @@ module P12ReleaseArtifact
     expected_labels.each do |key, value|
       fail!("OCI label #{key} mismatch") unless labels[key] == value
     end
+    # The base image is now supplied per architecture as a build argument, so the pinning guarantee
+    # has to be re-established from the produced image rather than from the Dockerfile text.
+    base_name = labels["org.opencontainers.image.base.name"]
+    expected_base = target_profile(values[:target]).fetch(:base_image)
+    fail!("OCI base image is not the pinned #{values[:target]} digest") unless base_name == expected_base
   rescue JSON::ParserError => error
     fail!("OCI archive has invalid JSON: #{error.message}")
   end
 
   def validate_payloads!(directory, values)
     entries = directory_entries(directory)
-    permitted_entries = [PAYLOAD_NAMES.sort, (PAYLOAD_NAMES + [MANIFEST_NAME]).sort]
+    payloads = payload_names(values[:target])
+    permitted_entries = [payloads, (payloads + [MANIFEST_NAME]).sort]
     fail!("artifact payload set mismatch") unless permitted_entries.include?(entries)
     validate_binary_metadata!(directory, values)
     validate_build_metadata!(directory, values)
@@ -282,8 +323,8 @@ module P12ReleaseArtifact
     validate_oci!(directory, values)
   end
 
-  def manifest_records(directory)
-    PAYLOAD_NAMES.sort.map do |name|
+  def manifest_records(directory, target)
+    payload_names(target).map do |name|
       path = File.join(directory, name)
       { "name" => name, "bytes" => File.size(path), "sha256" => sha256(path) }
     end
@@ -301,7 +342,7 @@ module P12ReleaseArtifact
       "revision" => values[:revision],
       "rust_toolchain" => values[:rust_toolchain],
       "target" => values[:target],
-      "files" => manifest_records(directory)
+      "files" => manifest_records(directory, values[:target])
     }
     write_json(output, manifest)
     puts "p12-artifact: wrote #{output}"
@@ -315,7 +356,8 @@ module P12ReleaseArtifact
       fail!("artifact manifest #{key} mismatch") unless manifest[key.to_s] == values[key]
     end
     records = manifest["files"]
-    fail!("artifact manifest files must be an array") unless records.is_a?(Array) && records.length == PAYLOAD_NAMES.length
+    payloads = payload_names(values[:target])
+    fail!("artifact manifest files must be an array") unless records.is_a?(Array) && records.length == payloads.length
     names = []
     records.each do |record|
       require_exact_keys!(record, %w[bytes name sha256], "artifact manifest file")
@@ -329,11 +371,11 @@ module P12ReleaseArtifact
       fail!("manifested artifact #{name} size mismatch") unless File.size(path) == record["bytes"]
       fail!("manifested artifact #{name} digest mismatch") unless sha256(path) == record["sha256"]
     end
-    fail!("artifact manifest names are not deterministic") unless names == PAYLOAD_NAMES.sort
+    fail!("artifact manifest names are not deterministic") unless names == payloads
   end
 
-  def expected_entries(require_signature, require_receipt)
-    entries = PAYLOAD_NAMES + [MANIFEST_NAME]
+  def expected_entries(target, require_signature, require_receipt)
+    entries = payload_names(target) + [MANIFEST_NAME]
     entries += [SIGNATURE_NAME, BUNDLE_NAME] if require_signature
     entries << RECEIPT_NAME if require_receipt
     entries.sort
@@ -350,7 +392,7 @@ module P12ReleaseArtifact
     fail!("artifact receipt signing type mismatch") unless signing["type"] == "sigstore-keyless" && signing["verification"] == "verified"
     fail!("artifact receipt signing identity mismatch") unless signing["certificate_identity"] == identity["certificate_identity"]
     fail!("artifact receipt signing issuer mismatch") unless signing["certificate_oidc_issuer"] == OIDC_ISSUER
-    expected = (PAYLOAD_NAMES + [MANIFEST_NAME, SIGNATURE_NAME, BUNDLE_NAME]).sort
+    expected = (payload_names(values[:target]) + [MANIFEST_NAME, SIGNATURE_NAME, BUNDLE_NAME]).sort
     fail!("artifact receipt file set mismatch") unless receipt["files"].is_a?(Hash) && receipt["files"].keys.sort == expected
     receipt["files"].each do |name, digest|
       fail!("artifact receipt digest mismatch for #{name}") unless digest == sha256(File.join(directory, name))
@@ -366,7 +408,7 @@ module P12ReleaseArtifact
     end
     fail!("verify: --require-receipt requires --require-signature") if values[:require_receipt] && !values[:require_signature]
     directory = File.expand_path(values[:artifact_dir])
-    expected = expected_entries(values[:require_signature], values[:require_receipt])
+    expected = expected_entries(values[:target], values[:require_signature], values[:require_receipt])
     fail!("artifact directory has missing or unexpected files") unless directory_entries(directory) == expected
     validate_binary_metadata!(directory, values)
     validate_build_metadata!(directory, values)
@@ -408,11 +450,11 @@ module P12ReleaseArtifact
     %i[revision rust_toolchain target version output].each { |key| required!(values, key, "build-metadata") }
     fail!("build-metadata: invalid revision") unless valid_revision?(values[:revision])
     fail!("build-metadata: invalid Rust toolchain") unless valid_toolchain?(values[:rust_toolchain])
-    fail!("build-metadata: target must be #{TARGET}") unless values[:target] == TARGET
+    fail!("build-metadata: unsupported release target: #{values[:target]}") unless TARGETS.key?(values[:target])
     fail!("build-metadata: invalid version") unless valid_version?(values[:version])
     write_json(values[:output], {
       "schema_version" => BUILD_METADATA_SCHEMA,
-      "binary" => "gateway-x86_64-unknown-linux-gnu",
+      "binary" => binary_name(values[:target]),
       "revision" => values[:revision],
       "rust_toolchain" => values[:rust_toolchain],
       "target" => values[:target],
@@ -431,14 +473,14 @@ module P12ReleaseArtifact
     fail!("receipt: output must be inside the artifact directory") unless File.dirname(output) == directory
     fail!("receipt: output filename must be #{RECEIPT_NAME}") unless File.basename(output) == RECEIPT_NAME
     fail!("receipt: workflow run is invalid") unless workflow_run.match?(%r{\Ahttps://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/actions/runs/[0-9]+\z})
-    fail!("receipt: artifact directory has missing or unexpected files") unless directory_entries(directory) == expected_entries(true, false)
+    fail!("receipt: artifact directory has missing or unexpected files") unless directory_entries(directory) == expected_entries(values[:target], true, false)
     validate_binary_metadata!(directory, values)
     validate_build_metadata!(directory, values)
     identity = validate_signing_identity!(directory)
     validate_sbom!(directory, values)
     validate_oci!(directory, values)
     validate_manifest!(directory, values)
-    files = (PAYLOAD_NAMES + [MANIFEST_NAME, SIGNATURE_NAME, BUNDLE_NAME]).sort.to_h do |name|
+    files = (payload_names(values[:target]) + [MANIFEST_NAME, SIGNATURE_NAME, BUNDLE_NAME]).sort.to_h do |name|
       [name, sha256(File.join(directory, name))]
     end
     write_json(output, {

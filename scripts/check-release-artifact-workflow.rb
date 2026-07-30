@@ -19,8 +19,17 @@ required_fragments = [
   "workflow_dispatch:",
   "contents: read",
   "id-token: write",
-  "runs-on: ubuntu-24.04",
-  "x86_64-unknown-linux-gnu",
+  "runs-on: ${{ matrix.runner }}",
+  "runner: ubuntu-24.04",
+  "runner: ubuntu-24.04-arm",
+  "target: x86_64-unknown-linux-gnu",
+  "target: aarch64-unknown-linux-gnu",
+  "platform: linux/amd64",
+  "platform: linux/arm64",
+  "base_image: debian:bookworm-slim@sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e",
+  "base_image: debian:bookworm-slim@sha256:9b67294679b30e5d6ab257b40594feeb4a4b81f7fcf4131f4decf0d6a212a9b0",
+  "Verify the runner architecture matches the release target",
+  'actual_machine="$(uname -m)"',
   "cargo +1.97.1 build --locked --release --package gateway",
   "generate-p12-01-sbom.rb",
   "p12-release-artifact.rb manifest",
@@ -30,6 +39,8 @@ required_fragments = [
   "docker buildx inspect --bootstrap",
   "docker buildx build",
   '--builder "$builder_name"',
+  '--platform "$RELEASE_PLATFORM"',
+  '--build-arg RELEASE_BASE_IMAGE="$RELEASE_BASE_IMAGE"',
   "type=oci,dest=release-artifact/gateway-image.oci.tar",
   'type=docker,dest=$DOCKER_ARCHIVE',
   'docker load --input "$DOCKER_ARCHIVE"',
@@ -44,6 +55,54 @@ required_fragments = [
 ]
 required_fragments.each do |fragment|
   errors << "missing required release-artifact workflow fragment: #{fragment}" unless text.include?(fragment)
+end
+
+# The release targets must be native-built: a target may only run on a runner of its own
+# architecture, and no emulation layer may be introduced. The base image digests must match the
+# verifier's closed target table, since the Dockerfile now receives the base image as an argument.
+verifier_path = File.join(root, "scripts", "p12-release-artifact.rb")
+verifier_text = File.read(verifier_path, encoding: "UTF-8")
+EXPECTED_MATRIX = {
+  "x86_64-unknown-linux-gnu" => { runner: "ubuntu-24.04", platform: "linux/amd64" },
+  "aarch64-unknown-linux-gnu" => { runner: "ubuntu-24.04-arm", platform: "linux/arm64" }
+}.freeze
+
+begin
+  document = Psych.load_file(path)
+  job = document.fetch("jobs").fetch("build")
+  errors << "release-artifact build job must run on the matrix runner" unless job["runs-on"] == "${{ matrix.runner }}"
+  entries = job.dig("strategy", "matrix", "include")
+  if entries.is_a?(Array)
+    observed = entries.to_h do |entry|
+      [entry["target"], { runner: entry["runner"], platform: entry["platform"] }]
+    end
+    unless observed == EXPECTED_MATRIX
+      errors << "release-artifact matrix must natively build exactly #{EXPECTED_MATRIX.keys.join(" and ")}"
+    end
+    entries.each do |entry|
+      base = entry["base_image"].to_s
+      unless base.match?(/\Adebian:bookworm-slim@sha256:[0-9a-f]{64}\z/)
+        errors << "release-artifact base image for #{entry["target"]} must be a digest-pinned debian:bookworm-slim"
+        next
+      end
+      unless verifier_text.include?("base_image: \"#{base}\"")
+        errors << "release-artifact base image for #{entry["target"]} is not the digest the verifier enforces"
+      end
+    end
+    digests = entries.map { |entry| entry["base_image"] }
+    errors << "each release target must pin its own base image digest" unless digests.uniq.length == digests.length
+  else
+    errors << "release-artifact must declare a build matrix with an include list"
+  end
+rescue Psych::SyntaxError, KeyError, TypeError => error
+  errors << "unable to inspect release-artifact structure: #{error.message}"
+end
+
+directive_lines = text.lines.reject { |line| line.strip.start_with?("#") }.join
+%w[setup-qemu-action qemu binfmt --platform\ linux/amd64,linux/arm64].each do |forbidden|
+  if directive_lines.match?(/#{Regexp.escape(forbidden)}/i)
+    errors << "release-artifact must build natively, not under emulation: #{forbidden}"
+  end
 end
 
 if text.include?("docker load --input release-artifact/gateway-image.oci.tar")
@@ -68,7 +127,7 @@ end
 end
 
 if errors.empty?
-  puts "release-artifact-workflow: ok (manual, pinned, private and keyless)"
+  puts "release-artifact-workflow: ok (manual, pinned, native dual-target, private and keyless)"
 else
   warn errors.join("\n")
   exit 1

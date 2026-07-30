@@ -1712,7 +1712,7 @@ CR-ID: CR-P11-04-001
 
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
-| P12-01 | 构建固定版本二进制、Docker 镜像、SBOM、Checksum 和签名 | G11 | [可验证私有发布产物](reports/p12-01-release-artifact.md) | DONE |
+| P12-01 | 构建固定版本二进制、Docker 镜像、SBOM、Checksum 和签名 | G11 | [可验证私有发布产物](reports/p12-01-release-artifact.md)；`CR-P12-01-002` 后按 x86_64 与 aarch64 双目标各自原生构建、独立签名与回执 | DONE |
 | P12-02 | 编写 systemd Unit、只读 Secret、数据目录、日志和资源限制 | P12-01 | [deployment-envelope acceptance](reports/p12-02-deployment-envelope.md)：受支持条件、可执行 checker、负向回归、真实 Linux systemd 255 语法验证与本地 Full gate 均通过；未安装、启用或启动服务器 Unit | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | [带时间戳、无值备份与回滚清单](reports/p12-03-server-backup-rollback.md)：现有 CPA 数据根静止快照、镜像身份、关联 unit 片段、权限、哈希和精确回滚步骤已独立复核；未安装或启动新服务 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | [Staging receipt](reports/p12-04-staging-receipt.md)：独立签名制品、精确 Unit、root-only 凭证、两个回环 listener、Health/管理面 admission、资源/日志/回滚均验收；服务 active 但 disabled-at-boot | LOCAL_PASS_PENDING_PHASE_GATE |
@@ -1740,6 +1740,60 @@ CR-ID: CR-P12-01-001
       Sigstore 公共透明日志的历史签名。
 用户批准: APPROVED，2026-07-24（“可以”）
 计划版本变更: v1.46
+```
+
+### 已批准 Change Request：CR-P12-01-002
+
+```text
+CR-ID: CR-P12-01-002
+原因: P12-01 的发布流水线把 `x86_64-unknown-linux-gnu` 固化成唯一目标（workflow 的
+      `RELEASE_TARGET`、产物名、`--platform linux/amd64`，以及 `p12-release-artifact.rb`
+      的 `TARGET` 常量、ELF `e_machine` 断言、`architecture == "amd64"` 断言、
+      `generate-p12-01-sbom.rb` 的目标白名单）。已确认实际生产主机是 `aarch64`
+      （Ubuntu 24.04.4，4 vCPU/23 GB），既有签名产物在其上不可执行，因此 P12-08 的
+      Canary 无法开始。GitHub 自 2026-01-29 起对私有仓提供标准 `ubuntu-24.04-arm`
+      runner（计入计划免费额度，私有仓 2 vCPU），Arm 合作镜像内置 Docker/Buildx/Ruby/Node，
+      因此可以原生构建而不引入 qemu 模拟。另经实测，`Dockerfile` 现钉的
+      `debian:bookworm-slim@sha256:63a496b5...` 是单架构 amd64 manifest（其 config
+      `architecture=amd64`），不是多架构 index，arm64 侧必须另钉自己的 digest。
+影响的 Task / Matrix ID / ADR: P12-01 的产物矩阵与 §22 供应链纪律；P12-08 的前置条件。
+      (1) 目标集合：发布流水线从单目标改为 `x86_64-unknown-linux-gnu` 与
+      `aarch64-unknown-linux-gnu` 两个目标，各自在与目标架构相同的 GitHub 标准 runner 上
+      原生构建（`ubuntu-24.04` / `ubuntu-24.04-arm`），不使用交叉编译或 qemu；因此
+      "签名前在无网络、只读、非 root 下真实执行过该二进制"这条既有证据在两个目标上等价成立。
+      (2) 产物形状：每个目标产出自己的一整套 payload（二进制、build metadata、SBOM、
+      OCI 归档、signing identity），各自生成 manifest、各自 keyless 签名、各自 receipt；
+      两套产物互不混合，manifest 不跨架构聚合，也不生成多架构 image index。
+      (3) 校验器：`p12-release-artifact.rb` 的目标由常量改为封闭白名单，并按目标推导
+      预期二进制名、ELF `e_machine`（x86_64=62 / aarch64=183）与 OCI `architecture`
+      （amd64 / arm64）；未知目标一律 fail closed。SBOM 生成器同样改为封闭白名单。
+      (4) 基础镜像：`Dockerfile` 的 `FROM` 改为按架构传入的 build arg，x86_64 沿用现有
+      amd64 digest `sha256:63a496b5...`，aarch64 使用 arm64 digest `sha256:9b672946...`；
+      两者都是 `debian:bookworm-slim` 同一 index（`sha256:7b140f37...`）的成员，仍逐架构
+      钉死 digest，`base.name` 标签随之逐架构记录。因为基础镜像不再写死在 Dockerfile 里，
+      "已钉死"这一性质改由产物侧重新建立：校验器把 `org.opencontainers.image.base.name`
+      与目标表中的 digest 逐字比对，workflow 检查器再断言 matrix 的 `base_image` 与校验器
+      表一致，两处任一漂移即 fail closed。
+      (5) 不变量：仍是 `workflow_dispatch` 手动触发、仍无任何 push/registry/deploy/tag
+      步骤、仍为私有 CI artifact、仍 keyless OIDC 签名并独立 `cosign verify-blob`、
+      OCI 仍非 root 且不暴露监听端口。
+兼容性与迁移影响: 无公开 API、Canonical 协议、Provider、Schema 或数据迁移。既有 x86_64
+      产物与 P12-01 至 P12-05 的历史回执不重写、不失效；`docs/reports/p12-01-release-artifact.md`
+      记录的哈希继续对应其原始 x86_64 产物。服务器端 `scripts/p12-05-cr-013-staging-transaction.sh`
+      的 `uname -m` 守卫按其所验证产物的架构判定，不放宽为"任意架构"。附带修复一处独立缺陷：
+      两个 SBOM 生成器原以 `{apps,crates}/**` glob 清理 `cargo-cyclonedx` 原始输出，P12-06
+      新增的 `tests/differential` 工作区成员因此会在 checkout 里留下含本地路径的未跟踪原始
+      SBOM；改为从 `cargo metadata` 推导清理集合，覆盖全部现有与未来成员。P11-05 的冻结
+      SBOM 证据文件不重写。
+测试与回滚变化: `scripts/test-p12-release-artifact.rb` 扩展为对两个目标各跑一遍全部正向与
+      负向路径，并新增跨架构混淆的负向用例（aarch64 目标配 x86_64 ELF、arm64 目标配 amd64
+      OCI config 必须被拒），以及基础镜像 digest 的负向用例（另一架构的 digest 与未钉 digest
+      的 `debian:bookworm-slim` 均必须被拒）。`scripts/check-release-artifact-workflow.rb`
+      断言两个 job、两个 runner 标签、两个 platform、逐架构基础镜像 digest 与校验器目标表
+      一致，拒绝任何 qemu/binfmt/多 platform 模拟构建，且继续断言无发布/部署命令。
+      回滚为恢复本 CR 的文件 preimage（单目标 workflow 与常量），既有 x86_64 产物不受影响。
+用户批准: APPROVED，2026-07-27（"1.做一个arm的"；"可以，开始A1"）
+计划版本变更: v1.72
 ```
 
 ### 已批准 Change Request：CR-P12-02-001
@@ -2657,3 +2711,4 @@ Next task:
 | v1.69 | 2026-07-26 | `CR-P12-05-019`：serve 组合接通 P4 可观测性：数据面 sink 改为 stage-ledger-first 的 fanout 进有界队列（BL-10 损失显式）；生产 writer + telemetry fan-out 在监听器 bind 后 spawn、停机 5s 有界 flush join；管理监听器新增受保护只读 Prometheus 暴露；管理 Attempt listing 改为 durable 日志支撑（含 endpoint/credential 身份），stage ledger 降级为 enrichment | APPROVED；5 项新本地测试、3 项 ledger 测试改写，受影响包 `cargo test` 全通过 |
 | v1.70 | 2026-07-26 | `CR-P12-06-001`：P12 serve 准入从 singleton 图扩至生产图形状（多 Endpoint/Credential/别名/多 Key，max_attempts 1..=5，总并发 <=16，OpenAI-compatible fail-closed）；随附生产配置图录入与客户端 Key 迁移 Runbook（docs/p12-rollout-runbook.md，双接受窗口 + Caddy `rgw_` 前缀分流） | APPROVED；6 项新本地测试与受影响包 `cargo test`/`clippy` 全通过 |
 | v1.71 | 2026-07-27 | `CR-P12-06-002`：交付 Anthropic 出站编解码器与 provider 边界、填充 gateway-protocol 为封闭 ApiFormat 词表与适配器注册表、api_format 与 adapter_id 在发布期即校验、执行器改用 BC-ROUTER-005 协议过滤选择候选 | APPROVED；22 项新本地测试与全量门禁通过 |
+| v1.72 | 2026-07-27 | `CR-P12-01-002`：发布流水线从单一 `x86_64-unknown-linux-gnu` 扩为 x86_64 与 `aarch64-unknown-linux-gnu` 双目标，各自在同架构标准 runner 上原生构建、独立 SBOM/manifest/keyless 签名/receipt；校验器改为封闭目标白名单并按目标推导 ELF `e_machine` 与 OCI architecture；基础镜像逐架构钉 digest。生产主机为 aarch64，此前产物在其上不可执行 | APPROVED；双目标校验器与 workflow 门禁本地通过，远端双 job 待一次提前 Gate |
