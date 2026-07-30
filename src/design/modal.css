@@ -1,0 +1,415 @@
+/* ===========================================================================
+   MODAL LAYER — the scrim and the sheet.   (import AFTER app.css)
+
+   Audit D9: `.sheet-backdrop` used to be a flat color-mix wash with no
+   backdrop-filter, and `.sheet-panel` was plain `.glass` sitting on it — glass
+   over nothing, i.e. the exact mistake the shell fixed. The fix has two halves
+   and they only work together:
+
+     1. THE SCRIM IS A DEPTH PLANE, not a tint. It carries the only
+        full-viewport backdrop-filter in the app: blur + a small desaturation +
+        a brightness drop, plus a vignette that funnels the eye to the middle.
+        The page does not merely dim, it goes OUT OF FOCUS — that is what reads
+        as "moved backwards", and it is what the sheet then has to refract.
+     2. THE SHEET IS A THICKER SLAB. It samples the scrim's own filtered
+        output (the scrim is its backdrop root), so it lands on real, still
+        colour-bearing texture. Being thicker than the chrome, it diffuses more,
+        lifts more, carries a heavier ring and a much longer shadow.
+
+   COST, HONESTLY: a full-viewport backdrop-filter is the most expensive thing
+   in this UI. Exactly ONE may be live — enforced mechanically by the sibling
+   rule at the end of the scrim block, and warned about in dev by Sheet.tsx.
+   (A departing sheet's ghost may overlap the next one for <=190ms; that is the
+   crossfade, and it ends by itself.)
+
+   SPECIFICITY IS PART OF THE CONTRACT (same rule as glass.css):
+     * app.css already ships `.sheet-backdrop` / `.sheet-panel` at (0,1,0), and
+       this file may be imported either side of it, so every scrim rule here is
+       written `.sheet-backdrop[data-modal="scrim"]` (0,2,0) — order-independent.
+     * The PANEL is deliberately expressed as CUSTOM PROPERTIES ONLY. It sets no
+       backdrop-filter, no box-shadow, no background of its own, so the
+       degradation blocks in glass.css (`.glass`, (0,1,0)) still win on the
+       sheet without being restated. The three places where the modal needs MORE
+       than the shared degradation carry `.glass.sheet-panel` (0,2,0).
+   =========================================================================== */
+
+/* ---- modal tokens: same three-layer ladder as tokens.css ------------------
+   :root (light) -> @media prefers-color-scheme (dark) -> [data-theme] override.
+   Light and dark are NOT the same treatment with different numbers:
+     light  the page behind is bright, so the scrim mostly DEFOCUSES and the
+            sheet stays lighter than it — separation comes from blur + shadow.
+     dark   a dark sheet on a dark page disappears, so the scrim drops the page
+            hard (brightness .58) and the sheet LIFTS off it.               */
+:root {
+  /* scrim */
+  --scrim-blur: 16px;
+  --scrim-sat: 112%;
+  --scrim-bright: 0.95;
+  --scrim-wash: rgba(18, 22, 36, 0.2);
+  --scrim-vignette: rgba(16, 20, 34, 0.34);
+  --scrim-flat: color-mix(in srgb, var(--canvas) 88%, transparent);
+
+  /* sheet body — a THICKER slab than the chrome: more diffusion (blur 12 -> 19),
+     more body (tint .62 -> .74 at the top), more lift (bright 1.06 -> 1.10) */
+  --sheet-blur: 19px;
+  --sheet-sat: 200%;
+  --sheet-bright: 1.15;
+  --sheet-contrast: 1.02;
+  --sheet-tint-top: rgba(255, 255, 255, 0.78);
+  --sheet-tint-mid: rgba(255, 255, 255, 0.64);
+  --sheet-tint-bot: rgba(255, 255, 255, 0.72);
+
+  /* thicker glass has a WIDER lit rim: 1px ring -> 1.5px, 18px bloom -> 30px */
+  --sheet-ring-w: 1.5px;
+  --sheet-ring-1: rgba(255, 255, 255, 1);
+  --sheet-ring-2: rgba(255, 255, 255, 0.52);
+  --sheet-ring-3: rgba(255, 255, 255, 0.04);
+  --sheet-ring-4: rgba(255, 255, 255, 0.66);
+  --sheet-ring-5: rgba(255, 255, 255, 0.98);
+  --sheet-edge-top: rgba(255, 255, 255, 0.4);
+  --sheet-edge-bot: rgba(255, 255, 255, 0.22);
+  --sheet-edge-top-h: 30px;
+  --sheet-edge-bot-h: 22px;
+
+  /* the bevel reads as THICKNESS: two hairlines plus two deep interior fades */
+  --sheet-inner:
+    inset 0 1.5px 0.5px rgba(255, 255, 255, 0.95),
+    inset 0 -1.5px 0.5px rgba(255, 255, 255, 0.55),
+    inset 0 26px 34px -30px rgba(255, 255, 255, 1),
+    inset 0 -30px 40px -34px rgba(255, 255, 255, 0.7);
+
+  /* "closer to the viewer" = a LONGER shadow, not a darker one. Four stops
+     again, all pushed further out than --glass-shadow. */
+  --sheet-shadow:
+    0 2px 4px rgba(14, 18, 32, 0.1),
+    0 10px 24px -6px rgba(14, 18, 32, 0.16),
+    0 32px 60px -14px rgba(14, 18, 32, 0.22),
+    0 64px 110px -30px rgba(14, 18, 32, 0.3);
+
+  /* Secondary ink ON THE SHEET MATERIAL. --ink-2 (#6e6e73) is tuned for solid
+     --surface; on the sheet body it measured 4.4:1 for 13px labels — passing
+     but with no margin, and the sheet is where forms live. Measured on the
+     built sheet: label 8.0:1, hint 8.0:1, input text 15.9:1 (light). */
+  --sheet-ink-2: #4f4f55;
+  /* --status-serious (#c93400) measured 3.9:1 for the reveal-once warning on
+     this material — the one string that must never be skimmed. Re-tuned. */
+  --sheet-status-serious: #a82800;
+
+  /* geometry + motion: bigger morphed glass = bigger radius */
+  --sheet-r: 26px;
+  --sheet-in: 320ms;
+  --sheet-out: 190ms;
+  --sheet-ease-out: cubic-bezier(0.4, 0, 0.9, 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --scrim-blur: 18px;
+    --scrim-sat: 104%;
+    --scrim-bright: 0.58;
+    --scrim-wash: rgba(0, 0, 0, 0.34);
+    --scrim-vignette: rgba(0, 0, 0, 0.46);
+    --scrim-flat: color-mix(in srgb, var(--canvas) 90%, transparent);
+
+    /* lifted, not darkened: the slab is brighter than the page it covers */
+    --sheet-blur: 20px;
+    --sheet-sat: 175%;
+    --sheet-bright: 1.12;
+    --sheet-contrast: 1.04;
+    --sheet-tint-top: rgba(52, 54, 70, 0.66);
+    --sheet-tint-mid: rgba(40, 42, 56, 0.56);
+    --sheet-tint-bot: rgba(46, 48, 62, 0.62);
+
+    --sheet-ring-w: 1.5px;
+    --sheet-ring-1: rgba(255, 255, 255, 0.72);
+    --sheet-ring-2: rgba(255, 255, 255, 0.26);
+    --sheet-ring-3: rgba(255, 255, 255, 0.03);
+    --sheet-ring-4: rgba(255, 255, 255, 0.3);
+    --sheet-ring-5: rgba(255, 255, 255, 0.6);
+    --sheet-edge-top: rgba(255, 255, 255, 0.16);
+    --sheet-edge-bot: rgba(255, 255, 255, 0.08);
+
+    --sheet-inner:
+      inset 0 1.5px 0.5px rgba(255, 255, 255, 0.34),
+      inset 0 -1.5px 0.5px rgba(255, 255, 255, 0.18),
+      inset 0 28px 38px -34px rgba(255, 255, 255, 0.6),
+      inset 0 -32px 44px -38px rgba(255, 255, 255, 0.4);
+
+    --sheet-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.4),
+      0 12px 28px -6px rgba(0, 0, 0, 0.5),
+      0 36px 66px -14px rgba(0, 0, 0, 0.58),
+      0 70px 120px -30px rgba(0, 0, 0, 0.7);
+
+    --sheet-ink-2: #b4b4bd;
+    --sheet-status-serious: #ff9f0a;
+  }
+}
+
+:root[data-theme="light"] {
+  --scrim-blur: 16px;
+  --scrim-sat: 112%;
+  --scrim-bright: 0.95;
+  --scrim-wash: rgba(18, 22, 36, 0.2);
+  --scrim-vignette: rgba(16, 20, 34, 0.34);
+  --scrim-flat: color-mix(in srgb, var(--canvas) 88%, transparent);
+
+  --sheet-blur: 19px;
+  --sheet-sat: 200%;
+  --sheet-bright: 1.15;
+  --sheet-contrast: 1.02;
+  --sheet-tint-top: rgba(255, 255, 255, 0.78);
+  --sheet-tint-mid: rgba(255, 255, 255, 0.64);
+  --sheet-tint-bot: rgba(255, 255, 255, 0.72);
+
+  --sheet-ring-w: 1.5px;
+  --sheet-ring-1: rgba(255, 255, 255, 1);
+  --sheet-ring-2: rgba(255, 255, 255, 0.52);
+  --sheet-ring-3: rgba(255, 255, 255, 0.04);
+  --sheet-ring-4: rgba(255, 255, 255, 0.66);
+  --sheet-ring-5: rgba(255, 255, 255, 0.98);
+  --sheet-edge-top: rgba(255, 255, 255, 0.4);
+  --sheet-edge-bot: rgba(255, 255, 255, 0.22);
+
+  --sheet-inner:
+    inset 0 1.5px 0.5px rgba(255, 255, 255, 0.95),
+    inset 0 -1.5px 0.5px rgba(255, 255, 255, 0.55),
+    inset 0 26px 34px -30px rgba(255, 255, 255, 1),
+    inset 0 -30px 40px -34px rgba(255, 255, 255, 0.7);
+
+  --sheet-shadow:
+    0 2px 4px rgba(14, 18, 32, 0.1),
+    0 10px 24px -6px rgba(14, 18, 32, 0.16),
+    0 32px 60px -14px rgba(14, 18, 32, 0.22),
+    0 64px 110px -30px rgba(14, 18, 32, 0.3);
+
+  --sheet-ink-2: #4f4f55;
+  /* --status-serious (#c93400) measured 3.9:1 for the reveal-once warning on
+     this material — the one string that must never be skimmed. Re-tuned. */
+  --sheet-status-serious: #a82800;
+}
+
+:root[data-theme="dark"] {
+  --scrim-blur: 18px;
+  --scrim-sat: 104%;
+  --scrim-bright: 0.58;
+  --scrim-wash: rgba(0, 0, 0, 0.34);
+  --scrim-vignette: rgba(0, 0, 0, 0.46);
+  --scrim-flat: color-mix(in srgb, var(--canvas) 90%, transparent);
+
+  --sheet-blur: 20px;
+  --sheet-sat: 175%;
+  --sheet-bright: 1.12;
+  --sheet-contrast: 1.04;
+  --sheet-tint-top: rgba(52, 54, 70, 0.66);
+  --sheet-tint-mid: rgba(40, 42, 56, 0.56);
+  --sheet-tint-bot: rgba(46, 48, 62, 0.62);
+
+  --sheet-ring-w: 1.5px;
+  --sheet-ring-1: rgba(255, 255, 255, 0.72);
+  --sheet-ring-2: rgba(255, 255, 255, 0.26);
+  --sheet-ring-3: rgba(255, 255, 255, 0.03);
+  --sheet-ring-4: rgba(255, 255, 255, 0.3);
+  --sheet-ring-5: rgba(255, 255, 255, 0.6);
+  --sheet-edge-top: rgba(255, 255, 255, 0.16);
+  --sheet-edge-bot: rgba(255, 255, 255, 0.08);
+
+  --sheet-inner:
+    inset 0 1.5px 0.5px rgba(255, 255, 255, 0.34),
+    inset 0 -1.5px 0.5px rgba(255, 255, 255, 0.18),
+    inset 0 28px 38px -34px rgba(255, 255, 255, 0.6),
+    inset 0 -32px 44px -38px rgba(255, 255, 255, 0.4);
+
+  --sheet-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    0 12px 28px -6px rgba(0, 0, 0, 0.5),
+    0 36px 66px -14px rgba(0, 0, 0, 0.58),
+    0 70px 120px -30px rgba(0, 0, 0, 0.7);
+
+  --sheet-ink-2: #b4b4bd;
+  --sheet-status-serious: #ff9f0a;
+}
+
+/* ---- the scrim ----------------------------------------------------------
+   Geometry is restated here (not inherited from app.css) so the modal layer is
+   readable in one file. The vignette is painted OVER the flat wash: it is what
+   makes the plane feel curved away from the sheet rather than uniformly
+   greyed. */
+.sheet-backdrop[data-modal="scrim"] {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background-color: var(--scrim-wash);
+  background-image: radial-gradient(
+    128% 96% at 50% 44%,
+    transparent 0%,
+    transparent 34%,
+    var(--scrim-vignette) 100%);
+  -webkit-backdrop-filter:
+    blur(var(--scrim-blur)) saturate(var(--scrim-sat))
+    brightness(var(--scrim-bright));
+  backdrop-filter:
+    blur(var(--scrim-blur)) saturate(var(--scrim-sat))
+    brightness(var(--scrim-bright));
+  animation: scrim-in var(--sheet-in) var(--ease) both;
+}
+
+/* ONE scrim. If a second live scrim ever mounts it gets the wash and the
+   vignette but NOT a second full-viewport filter — the budget is mechanical,
+   not a comment. (`.sheet-ghost` is excluded: a departing sheet must keep its
+   filter or it would visibly snap into focus while fading out.) */
+.sheet-backdrop[data-modal="scrim"]:not(.sheet-ghost)
+  ~ .sheet-backdrop[data-modal="scrim"]:not(.sheet-ghost) {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* ---- the sheet ----------------------------------------------------------
+   CUSTOM PROPERTIES ONLY (plus radius and motion). Every visual property is
+   still painted by the .glass recipe, so the sheet cannot drift from the
+   material and the glass.css degradations keep working untouched. */
+.glass.sheet-panel {
+  --glass-blur: var(--sheet-blur);
+  --glass-sat: var(--sheet-sat);
+  --glass-bright: var(--sheet-bright);
+  --glass-contrast: var(--sheet-contrast);
+  --glass-tint-top: var(--sheet-tint-top);
+  --glass-tint-mid: var(--sheet-tint-mid);
+  --glass-tint-bot: var(--sheet-tint-bot);
+  --ring-w: var(--sheet-ring-w);
+  --ring-1: var(--sheet-ring-1);
+  --ring-2: var(--sheet-ring-2);
+  --ring-3: var(--sheet-ring-3);
+  --ring-4: var(--sheet-ring-4);
+  --ring-5: var(--sheet-ring-5);
+  --glass-edge-top: var(--sheet-edge-top);
+  --glass-edge-bot: var(--sheet-edge-bot);
+  --glass-edge-top-h: var(--sheet-edge-top-h);
+  --glass-edge-bot-h: var(--sheet-edge-bot-h);
+  --glass-inner: var(--sheet-inner);
+  --glass-shadow: var(--sheet-shadow);
+  /* ink is re-tuned for THIS material (measured, see token comments) */
+  --ink-2: var(--sheet-ink-2);
+  --status-serious: var(--sheet-status-serious);
+
+  --r-outer: var(--sheet-r);
+  animation: sheet-in var(--sheet-in) var(--ease) both;
+}
+
+/* Controls stay opaque on glass (never a control floating on a filter): the
+   form fields keep --surface, and gain a hairline of depth so they read as
+   wells cut into the slab rather than cards stacked on it. */
+.glass.sheet-panel .sheet-form input,
+.glass.sheet-panel .sheet-form select,
+.glass.sheet-panel .reveal-key,
+.glass.sheet-panel .chips-row {
+  box-shadow: inset 0 1px 2px rgba(14, 18, 32, 0.06);
+}
+
+/* ---- motion: a state change, not decoration -----------------------------
+   In: the plane recedes (scrim fades its whole filtered result in) while the
+   sheet arrives from slightly below and slightly small.
+   Out: shorter and accelerating — the sheet leaves, it does not drift. */
+@keyframes scrim-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes sheet-in {
+  from { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.965); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes scrim-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes sheet-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translate3d(0, 6px, 0) scale(0.985); }
+}
+
+/* Exit is played on the node React has already detached (see Sheet.tsx), so it
+   is inert, non-interactive and one layer below any sheet opening behind it. */
+.sheet-backdrop[data-modal="scrim"].sheet-ghost {
+  z-index: 99;
+  pointer-events: none;
+  animation: scrim-out var(--sheet-out) var(--sheet-ease-out) both;
+}
+.sheet-backdrop[data-modal="scrim"].sheet-ghost .glass.sheet-panel {
+  animation: sheet-out var(--sheet-out) var(--sheet-ease-out) both;
+}
+
+/* ---- degradations -------------------------------------------------------
+   Each block restates BOTH the scrim (0,2,0 / 0,3,0) and the sheet (0,2,0),
+   because this file's own base rules out-specify the shared `.glass` rules in
+   glass.css and would otherwise survive the degradation. */
+
+/* no backdrop-filter at all: the scrim must carry the whole separation */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .sheet-backdrop[data-modal="scrim"] {
+    background-color: var(--scrim-flat);
+  }
+  .glass.sheet-panel {
+    background: var(--surface);
+    background-image: none;
+    border: 1px solid var(--separator);
+    box-shadow: var(--sheet-shadow);
+  }
+  .glass.sheet-panel::before,
+  .glass.sheet-panel::after { display: none; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .sheet-backdrop[data-modal="scrim"] {
+    background-color: var(--scrim-flat);
+    background-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  /* glass.css already flattens `.glass` here, but it leaves it at 94% opacity —
+     over a scrim that is itself translucent that is still two see-through
+     layers under the form. The sheet goes fully opaque. */
+  .glass.sheet-panel {
+    background: var(--surface);
+    background-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: var(--sheet-shadow);
+  }
+  .glass.sheet-panel::before { background: var(--separator); }
+  .glass.sheet-panel::after { display: none; }
+}
+
+@media (prefers-contrast: more) {
+  .sheet-backdrop[data-modal="scrim"] {
+    background-color: color-mix(in srgb, var(--canvas) 94%, transparent);
+    background-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .glass.sheet-panel {
+    background: var(--surface);
+    background-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border: 1px solid var(--ink-2);
+    box-shadow: none;
+  }
+  .glass.sheet-panel::before,
+  .glass.sheet-panel::after { display: none; }
+}
+
+/* Reduced motion: the state change still needs to be perceivable, so the
+   opacity crossfade stays — the travel, the scale and the long duration go. */
+@media (prefers-reduced-motion: reduce) {
+  .sheet-backdrop[data-modal="scrim"],
+  .sheet-backdrop[data-modal="scrim"] .glass.sheet-panel {
+    animation: scrim-in 120ms linear both;
+  }
+  .sheet-backdrop[data-modal="scrim"].sheet-ghost,
+  .sheet-backdrop[data-modal="scrim"].sheet-ghost .glass.sheet-panel {
+    animation: scrim-out 100ms linear both;
+  }
+}

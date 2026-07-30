@@ -7,10 +7,11 @@ import { VersionsPage } from "./features/config-versions/VersionsPage";
 import { EgressPage } from "./features/egress/EgressPage";
 import { ModelsPage } from "./features/models/ModelsPage";
 import { MonitoringPage } from "./features/monitoring/MonitoringPage";
-import { OverviewPage, PlaceholderPage } from "./features/overview/OverviewPage";
+import { OverviewPage } from "./features/overview/OverviewPage";
+import { RuntimePage } from "./features/runtime/RuntimePage";
 import { UnlockPage } from "./features/unlock/UnlockPage";
 import { UpstreamsPage } from "./features/upstreams/UpstreamsPage";
-import { messages } from "./i18n/messages";
+import { UsagePage } from "./features/usage/UsagePage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,14 +26,14 @@ const router = createHashRouter([
     element: <AppShell />,
     children: [
       { index: true, element: <OverviewPage /> },
-      { path: "usage", element: <PlaceholderPage title={messages.nav.usage} /> },
+      { path: "usage", element: <UsagePage /> },
       { path: "monitoring", element: <MonitoringPage /> },
       { path: "versions", element: <VersionsPage /> },
       { path: "upstreams", element: <UpstreamsPage /> },
       { path: "models", element: <ModelsPage /> },
       { path: "access", element: <AccessPage /> },
       { path: "egress", element: <EgressPage /> },
-      { path: "runtime", element: <PlaceholderPage title={messages.nav.runtime} /> },
+      { path: "runtime", element: <RuntimePage /> },
       { path: "audit", element: <AuditBackupPage /> },
     ],
   },

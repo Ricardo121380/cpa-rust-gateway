@@ -1,0 +1,242 @@
+import { describe, expect, it } from "vitest";
+import {
+  axisTicks,
+  buildFilters,
+  cellParam,
+  cellWindow,
+  parseCell,
+  failureRate,
+  formatMetric,
+  hasActiveFilter,
+  heatBins,
+  heatStep,
+  includeForTab,
+  metricValue,
+  monitoringHref,
+  niceCeil,
+  parseMetric,
+  parseStatus,
+  parseTab,
+  rankTotal,
+  shareOf,
+  type RankRow,
+  type TimelineBucket,
+} from "./model";
+
+const HOUR = 3_600_000;
+const NOW = 1785060000000;
+
+describe("url contract", () => {
+  it("tab falls back to overview for unknown / missing values", () => {
+    expect(parseTab("heatmap")).toBe("heatmap");
+    expect(parseTab("credentials")).toBe("credentials");
+    expect(parseTab("cost")).toBe("overview");
+    expect(parseTab(null)).toBe("overview");
+  });
+
+  it("metric and status are closed enums", () => {
+    expect(parseMetric("tokens")).toBe("tokens");
+    expect(parseMetric("dollars")).toBe("requests");
+    expect(parseStatus("failed")).toBe("failed");
+    expect(parseStatus("weird")).toBe("all");
+  });
+
+  it("filters carry only closed enums and returned identifiers", () => {
+    expect(buildFilters("all", null)).toEqual({ status: "all" });
+    expect(buildFilters("failed", "glm-5-air")).toEqual({
+      status: "failed",
+      public_model: ["glm-5-air"],
+    });
+    expect(hasActiveFilter("all", null)).toBe(false);
+    expect(hasActiveFilter("all", "")).toBe(false);
+    expect(hasActiveFilter("all", "glm-5-air")).toBe(true);
+    expect(hasActiveFilter("failed", null)).toBe(true);
+  });
+});
+
+describe("per-tab include projection", () => {
+  it("asks for exactly what the tab renders", () => {
+    expect(includeForTab("overview", "requests")).toEqual({
+      options: true,
+      summary: true,
+      timeline: true,
+      ranks: { by: "public_model", limit: 8 },
+    });
+    expect(includeForTab("trend", "tokens")).toEqual({ options: true, timeline: true });
+    expect(includeForTab("models", "requests")).toEqual({
+      options: true,
+      ranks: { by: "public_model", limit: 20 },
+    });
+    expect(includeForTab("credentials", "requests")).toEqual({
+      options: true,
+      ranks: { by: "credential", limit: 20 },
+    });
+  });
+
+  it("heatmap carries the selected metric", () => {
+    expect(includeForTab("heatmap", "failure_rate")).toEqual({
+      options: true,
+      heatmap: { metric: "failure_rate" },
+    });
+  });
+
+  it("never requests events (that is 请求监控's job)", () => {
+    for (const tab of ["overview", "trend", "models", "credentials", "heatmap"] as const) {
+      expect(includeForTab(tab, "requests")).not.toHaveProperty("events");
+    }
+  });
+});
+
+describe("timeline metrics", () => {
+  const bucket: TimelineBucket = {
+    bucket_start_ms: NOW,
+    requests: 200,
+    failures: 4,
+    tokens_total: 1_800_000,
+  };
+
+  it("reads one measure per metric", () => {
+    expect(metricValue(bucket, "requests")).toBe(200);
+    expect(metricValue(bucket, "tokens")).toBe(1_800_000);
+    expect(metricValue(bucket, "failure_rate")).toBeCloseTo(0.02);
+  });
+
+  it("failure rate of an empty bucket is 0, not NaN", () => {
+    expect(metricValue({ ...bucket, requests: 0, failures: 0 }, "failure_rate")).toBe(0);
+  });
+
+  it("formats per metric", () => {
+    expect(formatMetric(0.02, "failure_rate")).toBe("2.00%");
+    expect(formatMetric(1_800_000, "tokens")).toBe("1.8M");
+    expect(formatMetric(200, "requests")).toBe("200");
+  });
+});
+
+describe("axis scale", () => {
+  it("rounds up to clean tops", () => {
+    expect(niceCeil(0)).toBe(1);
+    expect(niceCeil(7)).toBe(10);
+    expect(niceCeil(180)).toBe(200);
+    expect(niceCeil(1)).toBe(1);
+    expect(niceCeil(2.4)).toBe(2.5);
+  });
+
+  it("ticks span 0..top inclusive", () => {
+    const ticks = axisTicks(180, 4);
+    expect(ticks).toEqual([0, 50, 100, 150, 200]);
+  });
+});
+
+describe("heatmap ramp", () => {
+  it("zero never borrows a colour step", () => {
+    expect(heatStep(0, 200)).toBe(0);
+    expect(heatStep(5, 0)).toBe(0);
+  });
+
+  it("steps rise monotonically and stop at the top step", () => {
+    expect(heatStep(1, 200)).toBe(1);
+    expect(heatStep(200, 200)).toBe(5);
+    let previous = 0;
+    for (let value = 0; value <= 200; value += 10) {
+      const step = heatStep(value, 200);
+      expect(step).toBeGreaterThanOrEqual(previous);
+      previous = step;
+    }
+  });
+
+  it("legend bins cover the range", () => {
+    const bins = heatBins(200);
+    expect(bins).toHaveLength(5);
+    expect(bins[bins.length - 1]).toBe(200);
+  });
+});
+
+describe("selected cell in the url", () => {
+  it("round-trips a valid cell", () => {
+    expect(parseCell(cellParam({ weekday: 3, hour: 14 }))).toEqual({ weekday: 3, hour: 14 });
+    expect(parseCell("0-0")).toEqual({ weekday: 0, hour: 0 });
+    expect(parseCell("6-23")).toEqual({ weekday: 6, hour: 23 });
+  });
+
+  it("rejects out-of-range and malformed values", () => {
+    expect(parseCell(null)).toBeNull();
+    expect(parseCell("7-1")).toBeNull();
+    expect(parseCell("1-24")).toBeNull();
+    expect(parseCell("1")).toBeNull();
+    expect(parseCell("a-b")).toBeNull();
+  });
+});
+
+describe("cell → time window", () => {
+  it("returns the most recent local occurrence inside the range", () => {
+    const to = NOW;
+    const from = to - 7 * 24 * HOUR;
+    const probe = new Date(to - 50 * HOUR);
+    probe.setMinutes(0, 0, 0);
+    const window = cellWindow(probe.getDay(), probe.getHours(), from, to);
+    expect(window).not.toBeNull();
+    const found = new Date(window!.from_ms);
+    expect(found.getDay()).toBe(probe.getDay());
+    expect(found.getHours()).toBe(probe.getHours());
+    expect(window!.from_ms).toBeGreaterThanOrEqual(from);
+    expect(window!.to_ms).toBeLessThanOrEqual(to);
+    // most recent: a later matching hour would be within one week of `to`
+    expect(to - window!.from_ms).toBeLessThan(7 * 24 * HOUR);
+  });
+
+  it("clamps the window's end to the range end", () => {
+    const to = NOW;
+    const cursor = new Date(to);
+    cursor.setMinutes(0, 0, 0);
+    const window = cellWindow(cursor.getDay(), cursor.getHours(), to - 24 * HOUR, to);
+    expect(window).not.toBeNull();
+    expect(window!.to_ms).toBe(to);
+  });
+
+  it("returns null when the range does not cover the cell", () => {
+    const to = NOW;
+    const from = to - 2 * HOUR;
+    const cursor = new Date(to - 40 * HOUR);
+    expect(cellWindow(cursor.getDay(), cursor.getHours(), from, to)).toBeNull();
+  });
+});
+
+describe("deep link", () => {
+  it("encodes the window as a custom range plus the live filters", () => {
+    const href = monitoringHref({ from_ms: 1000, to_ms: 2000 }, "failed", "glm-5-air");
+    const params = new URLSearchParams(href.slice(href.indexOf("?")));
+    expect(href.startsWith("/monitoring?")).toBe(true);
+    expect(params.get("range")).toBe("custom");
+    expect(params.get("from")).toBe("1000");
+    expect(params.get("to")).toBe("2000");
+    expect(params.get("bucket")).toBe("hour");
+    expect(params.get("status")).toBe("failed");
+    expect(params.get("model")).toBe("glm-5-air");
+  });
+
+  it("omits inactive filters", () => {
+    const href = monitoringHref({ from_ms: 1000, to_ms: 2000 }, "all", null);
+    const params = new URLSearchParams(href.slice(href.indexOf("?")));
+    expect(params.get("status")).toBeNull();
+    expect(params.get("model")).toBeNull();
+  });
+});
+
+describe("rank rows", () => {
+  const rows: readonly RankRow[] = [
+    { key: "minimax-m3", requests: 720, failures: 18, tokens_total: 8_000_000, last_seen_ms: NOW },
+    { key: "glm-5-air", requests: 280, failures: 0, tokens_total: 2_000_000, last_seen_ms: NOW },
+  ];
+
+  it("shares are computed against the visible total", () => {
+    const total = rankTotal(rows);
+    expect(total).toBe(1000);
+    expect(shareOf(rows[0]!.requests, total)).toBeCloseTo(0.72);
+    expect(shareOf(1, 0)).toBe(0);
+  });
+
+  it("failure rate of a silent entity is 0", () => {
+    expect(failureRate(rows[0]!)).toBeCloseTo(0.025);
+    expect(failureRate({ ...rows[1]!, requests: 0 })).toBe(0);
+  });
+});
