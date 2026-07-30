@@ -2764,6 +2764,15 @@ phase report
 - Body 日志默认关闭；结构化事件批量异步写入。
 - 每次 Phase Gate 记录 CPU、RSS、分配、连接复用、P50/P95/P99 和吞吐。
 - 基准变化超过 G11 阈值必须创建性能说明或修复，不得直接更新 Baseline 掩盖回归。
+- 本地构建关闭增量编译（`.cargo/config.toml` 的 `build.incremental = false`），与两个 CI
+  workflow 的 `CARGO_INCREMENTAL: "0"` 对齐。原因：Cargo 从不回收 `target/`，增量会话目录
+  只增不减——2026-07-30 本仓库曾积累 2711 个会话目录共 39 GiB，叠加按指纹保留的历史产物
+  （单个 crate 的 `.rlib` 已达 49 份不同哈希），`cargo clean` 一次回收 110 GiB / 88 万文件。
+  该仓库全量构建不足一分钟，因此丢失增量状态的代价小于其磁盘代价；同时消除"只在有增量
+  状态时才可复现"的本地/CI 差异。
+- `target/` 仍会随指纹变化增长且没有内置淘汰机制，需定期 `cargo clean`；Cargo 无 LRU 选项。
+  清理时注意 `web/admin-ui/node_modules` 是 `gateway-http-actix` build script 的构建输入，
+  删除后必须先 `npm ci --ignore-scripts` 才能重新构建。
 
 ## 22. 安全纪律
 

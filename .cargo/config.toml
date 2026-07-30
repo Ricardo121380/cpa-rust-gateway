@@ -1,0 +1,14 @@
+# Incremental compilation is disabled locally to match CI, which sets CARGO_INCREMENTAL=0 in both
+# workflows. Cargo never garbage-collects target/, so incremental session directories accumulate
+# indefinitely: on 2026-07-30 this checkout held 2711 of them totalling 39 GiB, on top of
+# per-fingerprint artifacts that had reached 49 distinct copies of a single crate's rlib.
+#
+# The trade is deliberate. A full `cargo build --package gateway` on this workspace takes well under
+# a minute, so the rebuild cost of losing incremental state is small, while the disk cost of keeping
+# it is not. It also removes a local/CI divergence: a build that only reproduces with incremental
+# state is not a build CI can verify.
+#
+# target/ still grows across fingerprint changes and has no built-in eviction. Run `cargo clean`
+# periodically; there is no LRU option to configure.
+[build]
+incremental = false
