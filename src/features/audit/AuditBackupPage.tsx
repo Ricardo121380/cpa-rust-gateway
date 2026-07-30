@@ -7,7 +7,7 @@ import { useState } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { StatusBadge } from "../../components/StatusBadge";
-import { messages } from "../../i18n/messages";
+import { useMessages } from "../../i18n/messages";
 
 type AuditEvent = Readonly<{
   id: number;
@@ -31,6 +31,7 @@ function formatTime(ms: number): string {
 }
 
 export function AuditBackupPage() {
+  const t = useMessages();
   const [preflight, setPreflight] = useState<BackupPreflight | undefined>();
   const [actionError, setActionError] = useState<string | undefined>();
 
@@ -48,7 +49,7 @@ export function AuditBackupPage() {
 
   return (
     <section>
-      <h2>{messages.nav.audit}</h2>
+      <h2>{t.nav.audit}</h2>
 
       {actionError !== undefined ? (
         <p role="alert" className="action-error">
@@ -93,7 +94,7 @@ export function AuditBackupPage() {
         </table>
         {events.data?.length === 0 ? (
           <div className="empty-state" data-kind="empty">
-            <p>{messages.state.empty}</p>
+            <p>{t.state.empty}</p>
           </div>
         ) : null}
       </div>

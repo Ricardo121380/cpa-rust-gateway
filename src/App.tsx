@@ -9,6 +9,7 @@ import { ModelsPage } from "./features/models/ModelsPage";
 import { MonitoringPage } from "./features/monitoring/MonitoringPage";
 import { OverviewPage } from "./features/overview/OverviewPage";
 import { RuntimePage } from "./features/runtime/RuntimePage";
+import { SettingsPage } from "./features/settings/SettingsPage";
 import { UnlockPage } from "./features/unlock/UnlockPage";
 import { UpstreamsPage } from "./features/upstreams/UpstreamsPage";
 import { UsagePage } from "./features/usage/UsagePage";
@@ -35,6 +36,7 @@ const router = createHashRouter([
       { path: "egress", element: <EgressPage /> },
       { path: "runtime", element: <RuntimePage /> },
       { path: "audit", element: <AuditBackupPage /> },
+      { path: "settings", element: <SettingsPage /> },
     ],
   },
 ]);

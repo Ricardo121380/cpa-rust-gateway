@@ -1,40 +1,35 @@
-// Minimal message module; zh-CN default, en added in FE-5.
-export const messages = {
-  appTitle: "Prism · 网关管理",
-  unlock: {
-    title: "解锁管理面板",
-    managementKey: "Management Key",
-    managementKeyHint: "mgmt_ 前缀,32-512 位字母数字或 _ -;可直接从服务器日志粘贴,换行与引号会自动清理。",
-    csrfToken: "CSRF Token",
-    csrfTokenHint: "csrf_ 前缀;浏览器部署必填,本机 CLI 访问可留空。",
-    revealToggle: "显示密钥",
-    submit: "解锁",
-    fillDemo: "填入演示密钥(fixture 模式)",
-    hint: "密钥仅存于本页内存,刷新后需要重新输入。",
-    failed: "管理访问不可用 —— 请检查密钥、网络位置与部署配置。",
-    invalidShape: "格式不符:Management Key 需为 mgmt_ 前缀,32-512 位字母数字或 _ -。",
-  },
-  nav: {
-    overview: "总览",
-    usage: "用量分析",
-    monitoring: "请求监控",
-    versions: "配置版本",
-    upstreams: "上游",
-    models: "模型与路由",
-    access: "访问控制",
-    egress: "出口策略",
-    runtime: "运行时",
-    audit: "审计与备份",
-  },
-  version: {
-    none: "未选择版本",
-    conflict: "配置已被其他会话修改,已刷新数据 —— 请确认后重试。",
-    readOnly: "当前版本只读(非草稿)。",
-  },
-  state: {
-    empty: "暂无数据",
-    filteredEmpty: "没有符合过滤条件的结果",
-    unavailable: "此部署未启用该运行时投影",
-    unwired: "事件管道尚未接线(G2)—— 观测数据在后端接线后出现",
-  },
-} as const;
+// Two packs, one shape. zh-CN is the source of truth: `Pack` is derived from it,
+// so adding a key without an English translation is a type error rather than a
+// silent fallback to the Chinese text.
+//
+// The active language lives in memory only — C6 bans browser storage, so it
+// resets on refresh, the same contract the session secrets are under. It is
+// selectable on the settings page.
+import { create } from "zustand";
+import { en } from "./en";
+import { zh, type Pack } from "./zh";
+
+export type { Pack };
+export type Lang = "zh" | "en";
+
+const PACKS: Record<Lang, Pack> = { zh, en };
+
+type LangState = {
+  lang: Lang;
+  setLang: (lang: Lang) => void;
+};
+
+export const useLangStore = create<LangState>((set) => ({
+  lang: "zh",
+  setLang: (lang) => set({ lang }),
+}));
+
+/** Reactive accessor: components re-render when the language changes. */
+export function useMessages(): Pack {
+  return PACKS[useLangStore((state) => state.lang)];
+}
+
+/** The pre-i18n import shape. Kept so pages written against it keep compiling;
+ *  it is the zh pack and does NOT react to a language change. New code and any
+ *  page being touched should use useMessages() instead. */
+export const messages = zh;

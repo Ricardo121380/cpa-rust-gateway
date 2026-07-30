@@ -7,7 +7,7 @@ import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { Sheet } from "../../components/Sheet";
 import { StatusBadge } from "../../components/StatusBadge";
-import { messages } from "../../i18n/messages";
+import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
 import {
   displayKeyStatus,
@@ -18,6 +18,7 @@ import {
 } from "./model";
 
 export function AccessPage() {
+  const t = useMessages();
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
   const editable = context?.status === "draft";
@@ -97,7 +98,7 @@ export function AccessPage() {
   if (scope === undefined) {
     return (
       <section>
-        <h2>{messages.nav.access}</h2>
+        <h2>{t.nav.access}</h2>
         <div className="card empty-state" data-kind="empty">
           <p>先在顶栏选择一个配置版本。</p>
         </div>
@@ -110,12 +111,12 @@ export function AccessPage() {
   return (
     <section>
       <header className="page-head">
-        <h2>{messages.nav.access}</h2>
+        <h2>{t.nav.access}</h2>
         <div className="page-actions">
           <button
             type="button"
             disabled={!editable}
-            title={editable ? undefined : messages.version.readOnly}
+            title={editable ? undefined : t.version.readOnly}
             onClick={() => setIssuing(true)}
           >
             签发 Client Key
@@ -162,7 +163,7 @@ export function AccessPage() {
         </table>
         {groups.data?.length === 0 ? (
           <div className="empty-state" data-kind="empty">
-            <p>{messages.state.empty}</p>
+            <p>{t.state.empty}</p>
           </div>
         ) : null}
       </div>
@@ -211,7 +212,7 @@ export function AccessPage() {
         </table>
         {keys.data?.length === 0 ? (
           <div className="empty-state" data-kind="empty">
-            <p>{messages.state.empty}</p>
+            <p>{t.state.empty}</p>
           </div>
         ) : null}
       </div>

@@ -8,7 +8,7 @@ import { asAppError } from "../../api/errors";
 import { ChipsInput } from "../../components/ChipsInput";
 import { Sheet } from "../../components/Sheet";
 import { StatusBadge } from "../../components/StatusBadge";
-import { messages } from "../../i18n/messages";
+import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
 import type { EgressPolicy } from "../egress/model";
 import { SubresourcePanel } from "./SubresourcePanel";
@@ -69,6 +69,7 @@ function toInput(draft: DraftUpstream) {
 }
 
 export function UpstreamsPage() {
+  const t = useMessages();
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
   const editable = context?.status === "draft";
@@ -127,7 +128,7 @@ export function UpstreamsPage() {
   if (scope === undefined) {
     return (
       <section>
-        <h2>{messages.nav.upstreams}</h2>
+        <h2>{t.nav.upstreams}</h2>
         <div className="card empty-state" data-kind="empty">
           <p>先在顶栏选择一个配置版本。</p>
         </div>
@@ -138,12 +139,12 @@ export function UpstreamsPage() {
   return (
     <section>
       <header className="page-head">
-        <h2>{messages.nav.upstreams}</h2>
+        <h2>{t.nav.upstreams}</h2>
         <div className="page-actions">
           <button
             type="button"
             disabled={!editable}
-            title={editable ? undefined : messages.version.readOnly}
+            title={editable ? undefined : t.version.readOnly}
             onClick={() => setDraft(emptyDraft())}
           >
             新建上游
@@ -225,7 +226,7 @@ export function UpstreamsPage() {
         </table>
         {upstreams.data?.length === 0 ? (
           <div className="empty-state" data-kind="empty">
-            <p>{messages.state.empty}</p>
+            <p>{t.state.empty}</p>
           </div>
         ) : null}
       </div>

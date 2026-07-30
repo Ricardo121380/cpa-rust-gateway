@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { call } from "../../api/client";
 import type { AppError } from "../../api/errors";
 import { GlassSurface } from "../../components/glass/GlassSurface";
-import { messages } from "../../i18n/messages";
+import { useMessages } from "../../i18n/messages";
 import {
   isValidCsrfTokenShape,
   isValidManagementKeyShape,
@@ -29,6 +29,7 @@ export function UnlockPage() {
   const navigate = useNavigate();
   const unlock = useSessionStore((s) => s.unlock);
   const lock = useSessionStore((s) => s.lock);
+  const t = useMessages();
   const [key, setKey] = useState("");
   const [csrf, setCsrf] = useState("");
   const [error, setError] = useState<string | undefined>(undefined);
@@ -38,11 +39,11 @@ export function UnlockPage() {
     event.preventDefault();
     setError(undefined);
     if (!isValidManagementKeyShape(key)) {
-      setError(messages.unlock.invalidShape);
+      setError(t.unlock.invalidShape);
       return;
     }
     if (csrf.length > 0 && !isValidCsrfTokenShape(csrf)) {
-      setError(messages.unlock.invalidShape);
+      setError(t.unlock.invalidShape);
       return;
     }
     setBusy(true);
@@ -57,8 +58,8 @@ export function UnlockPage() {
       const appError = cause as AppError;
       setError(
         appError.kind === "network"
-          ? `${messages.unlock.failed}(${appError.message})`
-          : messages.unlock.failed,
+          ? `${t.unlock.failed}(${appError.message})`
+          : t.unlock.failed,
       );
     } finally {
       setBusy(false);
@@ -68,11 +69,11 @@ export function UnlockPage() {
   return (
     <div className="unlock-scene">
       <GlassSurface className="unlock-card" layer="modal">
-        <h1>{messages.unlock.title}</h1>
+        <h1>{t.unlock.title}</h1>
         <form onSubmit={(event) => void onSubmit(event)} noValidate>
           <SecretField
-            label={messages.unlock.managementKey}
-            hint={messages.unlock.managementKeyHint}
+            label={t.unlock.managementKey}
+            hint={t.unlock.managementKeyHint}
             value={key}
             onChange={setKey}
             invalid={error !== undefined}
@@ -80,8 +81,8 @@ export function UnlockPage() {
             required
           />
           <SecretField
-            label={messages.unlock.csrfToken}
-            hint={messages.unlock.csrfTokenHint}
+            label={t.unlock.csrfToken}
+            hint={t.unlock.csrfTokenHint}
             value={csrf}
             onChange={setCsrf}
             invalid={error !== undefined}
@@ -91,7 +92,7 @@ export function UnlockPage() {
             {error ?? ""}
           </p>
           <button type="submit" className="unlock-submit" disabled={busy}>
-            {messages.unlock.submit}
+            {t.unlock.submit}
           </button>
           {fixturesEnabled() ? (
             <button
@@ -102,10 +103,10 @@ export function UnlockPage() {
                 setCsrf(`csrf_${"b".repeat(40)}`);
               }}
             >
-              {messages.unlock.fillDemo}
+              {t.unlock.fillDemo}
             </button>
           ) : null}
-          <p className="unlock-hint">{messages.unlock.hint}</p>
+          <p className="unlock-hint">{t.unlock.hint}</p>
         </form>
       </GlassSurface>
     </div>

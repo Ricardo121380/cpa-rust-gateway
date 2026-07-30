@@ -15,7 +15,7 @@ import { MiniTimeline } from "../../components/data/MiniTimeline";
 import { formatCount, formatLatency, StatTile } from "../../components/data/StatTile";
 import { TokenMixBar } from "../../components/data/TokenMixBar";
 import { StatusBadge } from "../../components/StatusBadge";
-import { messages } from "../../i18n/messages";
+import { useMessages } from "../../i18n/messages";
 import { resolvePreset } from "../../utils/timerange";
 import {
   useVersionStore,
@@ -32,6 +32,7 @@ function useCount(queryKey: string, operation: Parameters<typeof call>[0], scope
 }
 
 function ObservabilitySection() {
+  const t = useMessages();
   const today = resolvePreset("today", Date.now());
 
   const dashboard = useQuery({
@@ -59,7 +60,7 @@ function ObservabilitySection() {
     return (
       <div className="card empty-state" data-kind="unwired" data-gap="top">
         <p>
-          {messages.state.unwired}
+          {t.state.unwired}
           <br />
           <small className="muted-3">
             今日 KPI、流量趋势、健康条带与 Token 构成将在 G2(事件管道接线)与
@@ -160,6 +161,7 @@ function ObservabilitySection() {
 }
 
 export function OverviewPage() {
+  const t = useMessages();
   const context = useVersionStore((s) => s.context);
   const scope = context?.configVersionId;
 
@@ -186,7 +188,7 @@ export function OverviewPage() {
 
   return (
     <section>
-      <h2>{messages.nav.overview}</h2>
+      <h2>{t.nav.overview}</h2>
 
       <div className="overview-grid">
         <div className="card">
@@ -227,11 +229,12 @@ export function OverviewPage() {
 }
 
 export function PlaceholderPage({ title }: Readonly<{ title: string }>) {
+  const t = useMessages();
   return (
     <section>
       <h2>{title}</h2>
       <div className="card empty-state" data-kind="empty">
-        <p>{messages.state.empty}</p>
+        <p>{t.state.empty}</p>
       </div>
     </section>
   );

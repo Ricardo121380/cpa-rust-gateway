@@ -51,15 +51,7 @@
   font-size: 12px;
   padding: 5px 12px;
 }
-.usage-chips .chip-on {
-  background: var(--tint-fill);
-  color: var(--tint-ink);
-}
-.usage-chips .chip-off {
-  background: var(--surface-2);
-  color: var(--ink-2);
-  border: 1px solid var(--separator);
-}
+/* .chip-on / .chip-off come from app.css — sizing only here. */
 
 .card-head {
   display: flex;

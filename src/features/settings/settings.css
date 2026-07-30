@@ -1,0 +1,77 @@
+/* Settings page. Every colour comes from a token; every sentence uses --ink or
+   --ink-2 (never --ink-3 — see tokens.css). No inline styles: the production CSP
+   is style-src 'self'. */
+
+.settings-page .settings-lead {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+.settings-page .settings-help {
+  margin: 0 0 12px;
+  max-width: 68ch;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.settings-page .settings-note {
+  margin: 10px 0 0;
+  max-width: 68ch;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.settings-page .settings-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.settings-page .settings-choice button {
+  font-size: 12.5px;
+  padding: 6px 14px;
+}
+
+/* Definition list as a two-column fact table: label left, value right. Grid
+   rather than float so a long value wraps under itself instead of under the
+   label. */
+.settings-page .settings-facts {
+  display: grid;
+  grid-template-columns: minmax(0, 13em) minmax(0, 1fr);
+  gap: 8px 20px;
+  margin: 0;
+  font-size: 13px;
+}
+.settings-page .settings-facts dt {
+  color: var(--ink-2);
+}
+.settings-page .settings-facts dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.settings-page .settings-lock {
+  margin-top: 14px;
+  /* Destructive-adjacent: it drops the session. Reads as an action, not as the
+     page's primary affordance, so it does not wear --tint-fill. */
+  background: var(--surface-2);
+  color: var(--status-serious);
+  border: 1px solid color-mix(in srgb, var(--status-serious) 40%, transparent);
+}
+.settings-page .settings-lock:hover {
+  background: color-mix(in srgb, var(--status-serious) 10%, var(--surface-2));
+}
+
+@media (max-width: 720px) {
+  .settings-page .settings-facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px 0;
+  }
+  .settings-page .settings-facts dd {
+    margin-bottom: 10px;
+  }
+}

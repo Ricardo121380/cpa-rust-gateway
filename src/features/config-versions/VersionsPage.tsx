@@ -6,7 +6,7 @@ import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { Sheet } from "../../components/Sheet";
 import { StatusBadge } from "../../components/StatusBadge";
-import { messages } from "../../i18n/messages";
+import { useMessages } from "../../i18n/messages";
 import { useVersionStore, type ConfigVersionSummary } from "./versionStore";
 
 type Validation = Readonly<{ valid: boolean; error_codes?: readonly string[] }>;
@@ -20,6 +20,7 @@ function formatTime(ms: number): string {
 }
 
 export function VersionsPage() {
+  const t = useMessages();
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
   const select = useVersionStore((s) => s.select);
@@ -90,7 +91,7 @@ export function VersionsPage() {
   return (
     <section>
       <header className="page-head">
-        <h2>{messages.nav.versions}</h2>
+        <h2>{t.nav.versions}</h2>
         <div className="page-actions">
           <button type="button" onClick={() => setCreating(true)}>
             创建草稿
@@ -171,7 +172,7 @@ export function VersionsPage() {
         </table>
         {versions.data?.length === 0 ? (
           <div className="empty-state" data-kind="empty">
-            <p>{messages.state.empty}</p>
+            <p>{t.state.empty}</p>
           </div>
         ) : null}
       </div>

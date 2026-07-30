@@ -19,7 +19,7 @@ import { Heatmap, HeatLegend } from "../../components/data/Heatmap";
 import { LineChart } from "../../components/data/LineChart";
 import { RankTable } from "../../components/data/RankTable";
 import { formatCount, formatLatency, StatTile } from "../../components/data/StatTile";
-import { messages } from "../../i18n/messages";
+import { useMessages } from "../../i18n/messages";
 import {
   paramsToRange,
   rangeToParams,
@@ -82,6 +82,7 @@ function tokensTotal(tokens: Readonly<Record<string, number | undefined>>): numb
 }
 
 export function UsagePage() {
+  const t = useMessages();
   const [params, setParams] = useSearchParams();
   const nowMs = useNowTick();
   const range = paramsToRange(params, nowMs);
@@ -157,10 +158,10 @@ export function UsagePage() {
   if (!analyticsAvailable()) {
     return (
       <section>
-        <h2>{messages.nav.usage}</h2>
+        <h2>{t.nav.usage}</h2>
         <div className="card empty-state" data-kind="unwired">
           <p>
-            {messages.state.unwired}
+            {t.state.unwired}
             <br />
             <small className="muted-3">
               趋势、排行与热力图全部由单个 POST /admin/analytics(G3)驱动 —— 端点交付后本页整体点亮。
@@ -178,7 +179,7 @@ export function UsagePage() {
   return (
     <section>
       <header className="page-head">
-        <h2>{messages.nav.usage}</h2>
+        <h2>{t.nav.usage}</h2>
       </header>
 
       <div className="usage-tabbar">
@@ -259,7 +260,7 @@ export function UsagePage() {
       <div role="tabpanel" id="usage-panel" aria-labelledby={`usage-tab-${tab}`}>
         {analytics.isError ? (
           <div className="card empty-state" data-kind="unwired" data-gap="top">
-            <p>{messages.state.unwired}</p>
+            <p>{t.state.unwired}</p>
           </div>
         ) : data === undefined ? (
           <div className="card empty-state" data-kind="empty" data-gap="top">
@@ -634,9 +635,10 @@ function HeatmapTab({
 // ---------- empty ----------
 
 function EmptyPanel({ filtered }: Readonly<{ filtered: boolean }>) {
+  const t = useMessages();
   return (
     <div className="card empty-state" data-kind="empty" data-gap="top">
-      <p>{filtered ? messages.state.filteredEmpty : messages.state.empty}</p>
+      <p>{filtered ? t.state.filteredEmpty : t.state.empty}</p>
     </div>
   );
 }

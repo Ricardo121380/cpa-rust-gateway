@@ -10,32 +10,37 @@ import {
   useVersionStore,
   type ConfigVersionSummary,
 } from "../features/config-versions/versionStore";
-import { messages } from "../i18n/messages";
+import { messages, useMessages } from "../i18n/messages";
 import { useSessionStore } from "../session/sessionStore";
 import { DraftDock } from "./DraftDock";
 
-const NAV_GROUPS: ReadonlyArray<ReadonlyArray<{ to: string; label: string }>> = [
+/** Routes are static; labels are looked up per render so a language change
+ *  reaches the rail. Keying by nav key rather than by translated string also
+ *  keeps the E2E rail-scoped locators stable in either language. */
+const NAV_GROUPS: ReadonlyArray<ReadonlyArray<{ to: string; key: keyof typeof messages.nav }>> = [
   [
-    { to: "/", label: messages.nav.overview },
-    { to: "/usage", label: messages.nav.usage },
-    { to: "/monitoring", label: messages.nav.monitoring },
+    { to: "/", key: "overview" },
+    { to: "/usage", key: "usage" },
+    { to: "/monitoring", key: "monitoring" },
   ],
   [
-    { to: "/versions", label: messages.nav.versions },
-    { to: "/upstreams", label: messages.nav.upstreams },
-    { to: "/models", label: messages.nav.models },
-    { to: "/access", label: messages.nav.access },
-    { to: "/egress", label: messages.nav.egress },
+    { to: "/versions", key: "versions" },
+    { to: "/upstreams", key: "upstreams" },
+    { to: "/models", key: "models" },
+    { to: "/access", key: "access" },
+    { to: "/egress", key: "egress" },
   ],
   [
-    { to: "/runtime", label: messages.nav.runtime },
-    { to: "/audit", label: messages.nav.audit },
+    { to: "/runtime", key: "runtime" },
+    { to: "/audit", key: "audit" },
+    { to: "/settings", key: "settings" },
   ],
 ];
 
 function VersionPicker() {
   const context = useVersionStore((s) => s.context);
   const select = useVersionStore((s) => s.select);
+  const t = useMessages();
   const versions = useQuery({
     queryKey: ["config-versions"],
     queryFn: () => call<ConfigVersionSummary[]>("listConfigVersions"),
@@ -44,7 +49,7 @@ function VersionPicker() {
 
   return (
     <label className="version-picker">
-      <span className="visually-hidden">配置版本</span>
+      <span className="visually-hidden">{t.version.pickerLabel}</span>
       <select
         className="mono"
         value={context?.configVersionId ?? ""}
@@ -56,7 +61,7 @@ function VersionPicker() {
         }}
       >
         <option value="" disabled>
-          {messages.version.none}
+          {t.version.none}
         </option>
         {(versions.data ?? []).map((version) => (
           <option key={version.id} value={version.id}>
@@ -73,6 +78,7 @@ export function AppShell() {
   const context = useVersionStore((s) => s.context);
   const conflict = useVersionStore((s) => s.conflict);
   const clearConflict = useVersionStore((s) => s.clearConflict);
+  const t = useMessages();
   const { pathname } = useLocation();
   const canvasRef = useRef<HTMLElement>(null);
 
@@ -117,15 +123,15 @@ export function AppShell() {
             <span className="idchip mono">{context.revision}</span>
           ) : null}
           {context !== undefined && context.status !== "draft" ? (
-            <span className="readonly-note">{messages.version.readOnly}</span>
+            <span className="readonly-note">{t.version.readOnly}</span>
           ) : null}
         </GlassSurface>
 
         {conflict ? (
           <div role="alert" className="conflict-bar">
-            {messages.version.conflict}
+            {t.version.conflict}
             <button type="button" onClick={clearConflict}>
-              知道了
+              {t.version.conflictAck}
             </button>
           </div>
         ) : null}
@@ -141,7 +147,7 @@ export function AppShell() {
                 end={item.to === "/"}
                 className={({ isActive }) => (isActive ? "on" : "")}
               >
-                {item.label}
+                {t.nav[item.key]}
               </NavLink>
             ))}
           </div>

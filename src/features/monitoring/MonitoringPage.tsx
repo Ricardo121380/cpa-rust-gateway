@@ -7,7 +7,7 @@ import { analyticsAvailable, fetchProposedAnalytics } from "../../api/proposed";
 import type { AnalyticsFilters, RequestEventView } from "../../api/proposed-types";
 import { formatCount, formatLatency, StatTile } from "../../components/data/StatTile";
 import { StatusBadge } from "../../components/StatusBadge";
-import { messages } from "../../i18n/messages";
+import { useMessages } from "../../i18n/messages";
 import {
   paramsToRange,
   rangeToParams,
@@ -29,6 +29,7 @@ function outcomeBadge(row: RequestEventView): string {
 }
 
 export function MonitoringPage() {
+  const t = useMessages();
   const [params, setParams] = useSearchParams();
   const nowMs = useNowTick();
   const range = paramsToRange(params, nowMs);
@@ -87,9 +88,9 @@ export function MonitoringPage() {
   if (!analyticsAvailable()) {
     return (
       <section>
-        <h2>{messages.nav.monitoring}</h2>
+        <h2>{t.nav.monitoring}</h2>
         <div className="card empty-state" data-kind="unwired">
-          <p>{messages.state.unwired}</p>
+          <p>{t.state.unwired}</p>
         </div>
       </section>
     );
@@ -102,7 +103,7 @@ export function MonitoringPage() {
   return (
     <section>
       <header className="page-head">
-        <h2>{messages.nav.monitoring}</h2>
+        <h2>{t.nav.monitoring}</h2>
       </header>
 
       <div className="filter-bar card">
@@ -212,7 +213,7 @@ export function MonitoringPage() {
         </table>
         {rows.length === 0 && !events.isLoading ? (
           <div className="empty-state" data-kind="empty">
-            <p>{status !== "all" || model !== null ? messages.state.filteredEmpty : messages.state.empty}</p>
+            <p>{status !== "all" || model !== null ? t.state.filteredEmpty : t.state.empty}</p>
           </div>
         ) : null}
         {events.hasNextPage ? (

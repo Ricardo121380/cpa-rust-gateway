@@ -12,7 +12,7 @@
 // to the accessibility tree, so a screen reader will read it out character by
 // character — accepted deliberately in exchange for paste actually working.
 import { useId, useState } from "react";
-import { messages } from "../../i18n/messages";
+import { useMessages } from "../../i18n/messages";
 
 export function SecretField({
   label,
@@ -33,6 +33,7 @@ export function SecretField({
 }>) {
   const id = useId();
   const hintId = `${id}-hint`;
+  const t = useMessages();
   const [revealed, setRevealed] = useState(false);
 
   return (
@@ -66,7 +67,7 @@ export function SecretField({
           className="secret-toggle"
           aria-pressed={revealed}
           aria-controls={id}
-          aria-label={messages.unlock.revealToggle}
+          aria-label={t.unlock.revealToggle}
           onClick={() => setRevealed((current) => !current)}
         >
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">

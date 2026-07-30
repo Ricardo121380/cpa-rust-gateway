@@ -7,7 +7,7 @@ import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { ChipsInput } from "../../components/ChipsInput";
 import { Sheet } from "../../components/Sheet";
-import { messages } from "../../i18n/messages";
+import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
 import {
   normalizedMaxRedirects,
@@ -70,6 +70,7 @@ function toInput(draft: DraftPolicy) {
 }
 
 export function EgressPage() {
+  const t = useMessages();
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
   const editable = context?.status === "draft";
@@ -134,7 +135,7 @@ export function EgressPage() {
   if (scope === undefined) {
     return (
       <section>
-        <h2>{messages.nav.egress}</h2>
+        <h2>{t.nav.egress}</h2>
         <div className="card empty-state" data-kind="empty">
           <p>先在顶栏选择一个配置版本。</p>
         </div>
@@ -145,12 +146,12 @@ export function EgressPage() {
   return (
     <section>
       <header className="page-head">
-        <h2>{messages.nav.egress}</h2>
+        <h2>{t.nav.egress}</h2>
         <div className="page-actions">
           <button
             type="button"
             disabled={!editable}
-            title={editable ? undefined : messages.version.readOnly}
+            title={editable ? undefined : t.version.readOnly}
             onClick={() => setDraft(emptyDraft())}
           >
             新建出口策略
@@ -219,7 +220,7 @@ export function EgressPage() {
         </table>
         {policies.data?.length === 0 ? (
           <div className="empty-state" data-kind="empty">
-            <p>{messages.state.empty}</p>
+            <p>{t.state.empty}</p>
           </div>
         ) : null}
       </div>

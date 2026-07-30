@@ -1049,6 +1049,19 @@ tr[data-selected="true"] {
   color: var(--ink);
   font-size: 12.5px;
 }
+/* Segmented on/off chips. Defined once, unscoped: every call site (time-range
+   presets, usage metric switch, settings choices) wants the same pair, and
+   scoping them per-feature meant the same two rules were written three times. */
+.chip-on {
+  background: var(--tint-fill);
+  color: var(--tint-ink);
+}
+.chip-off {
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--separator);
+}
+
 .preset-chips {
   display: flex;
   gap: 4px;
@@ -1056,15 +1069,6 @@ tr[data-selected="true"] {
 .preset-chips button {
   font-size: 12px;
   padding: 5px 12px;
-}
-.preset-chips .chip-on {
-  background: var(--tint-fill);
-  color: var(--tint-ink);
-}
-.preset-chips .chip-off {
-  background: var(--surface-2);
-  color: var(--ink-2);
-  border: 1px solid var(--separator);
 }
 
 .load-more {

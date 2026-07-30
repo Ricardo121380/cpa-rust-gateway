@@ -16,7 +16,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
-import { messages } from "../../i18n/messages";
+import { useMessages } from "../../i18n/messages";
 import { useNowTick } from "../../utils/useNowTick";
 import { useVersionStore } from "../config-versions/versionStore";
 import {
@@ -97,10 +97,11 @@ function StateBlock({
 }
 
 function UnavailableBlock({ operation }: Readonly<{ operation: string }>) {
+  const t = useMessages();
   return (
     <StateBlock
       kind="unavailable"
-      text={messages.state.unavailable}
+      text={t.state.unavailable}
       detail={`${operation} 为注入式投影,未接线时按契约失败关闭(503)—— 这不是“没有数据”,而是“这台部署不提供该投影”。`}
     />
   );
@@ -187,6 +188,7 @@ function AvailabilityMatrixCard({
   onlyAbnormal: boolean;
   onToggle: (next: boolean) => void;
 }>) {
+  const t = useMessages();
   const shown = onlyAbnormal ? abnormalRows(rows) : rows;
   const matrix = buildAvailabilityMatrix(shown);
 
@@ -211,13 +213,13 @@ function AvailabilityMatrixCard({
         onlyAbnormal ? (
           <StateBlock
             kind="filtered"
-            text={messages.state.filteredEmpty}
+            text={t.state.filteredEmpty}
             detail="全部组合当前为 available —— 取消过滤可看到完整矩阵。"
           />
         ) : (
           <StateBlock
             kind="empty"
-            text={messages.state.empty}
+            text={t.state.empty}
             detail="投影已启用,但这个配置版本下没有任何 endpoint × credential 绑定。"
           />
         )
@@ -295,6 +297,7 @@ function RecoveryCard({
   rows,
   scope,
 }: Readonly<{ rows: readonly AvailabilityRow[]; scope: string }>) {
+  const t = useMessages();
   const targets = recoverableRows(rows);
   const [outcomes, setOutcomes] = useState<Readonly<Record<string, RecoveryOutcome>>>({});
   const [pendingKey, setPendingKey] = useState<string | undefined>();
@@ -320,7 +323,7 @@ function RecoveryCard({
         [cellKey(target.endpoint_id, target.credential_id)]: {
           ok: false,
           message: isProjectionUnavailable(error)
-            ? messages.state.unavailable
+            ? t.state.unavailable
             : asAppError(error).message || "请求失败",
         },
       })),
@@ -429,6 +432,7 @@ function CatalogCard({
   unavailable: boolean;
   loading: boolean;
 }>) {
+  const t = useMessages();
   return (
     <div className="card tablewrap rt-card" data-gap="top">
       <CardHead
@@ -451,7 +455,7 @@ function CatalogCard({
       ) : rows === undefined || rows.length === 0 ? (
         <StateBlock
           kind="empty"
-          text={messages.state.empty}
+          text={t.state.empty}
           detail="投影已启用,但尚无任何目录观测记录。"
         />
       ) : (
@@ -678,6 +682,7 @@ function ExplainCard({ scope }: Readonly<{ scope: string }>) {
 // ---------------------------------------------------------------------------
 
 export function RuntimePage() {
+  const t = useMessages();
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
   const scope = context?.configVersionId;
@@ -706,7 +711,7 @@ export function RuntimePage() {
   if (scope === undefined) {
     return (
       <section className="runtime-page">
-        <h2>{messages.nav.runtime}</h2>
+        <h2>{t.nav.runtime}</h2>
         <div className="card empty-state" data-kind="empty">
           <p>先在顶栏选择一个配置版本。</p>
         </div>
@@ -722,7 +727,7 @@ export function RuntimePage() {
   return (
     <section className="runtime-page">
       <header className="page-head">
-        <h2>{messages.nav.runtime}</h2>
+        <h2>{t.nav.runtime}</h2>
         <div className="page-actions rt-poll">
           <span className="rt-poll-state" data-live={visible && !availabilityUnavailable}>
             {availabilityUnavailable
