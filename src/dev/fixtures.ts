@@ -318,6 +318,16 @@ function noise(index: number): number {
   return x - Math.floor(x);
 }
 
+/** Stable small integer from an identifier, so a fixture series keyed on
+ *  "cred-relay-key" looks the same on every refresh. */
+function hashString(value: string): number {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) % 100_000;
+  }
+  return hash;
+}
+
 function hex(length: number): string {
   let out = "";
   for (let index = 0; index < length; index += 1) {
@@ -724,7 +734,13 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         from_ms: number;
         to_ms: number;
         bucket?: string;
-        filters?: { status?: string; public_model?: string[] };
+        filters?: {
+          status?: string;
+          public_model?: string[];
+          client_key_id?: string[];
+          credential_id?: string[];
+          endpoint_id?: string[];
+        };
         include?: {
           summary?: boolean;
           timeline?: boolean;
@@ -739,9 +755,27 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         ? 86_400_000
         : 3_600_000;
       const bucketCount = Math.max(1, Math.min(400, Math.ceil(span / bucketMs)));
+
+      // A single-value filter on any entity dimension is what the comparison
+      // chart sends, one query per series. Without segmenting here every series
+      // would come back identical and the chart would look like a bug in the UI
+      // rather than a gap in the fixture. `share` is derived from the pinned
+      // identifier so it is stable across refreshes, and the shares of a
+      // dimension's known values sum to roughly 1.
+      const pinned =
+        query.filters?.public_model?.[0] ??
+        query.filters?.client_key_id?.[0] ??
+        query.filters?.credential_id?.[0] ??
+        query.filters?.endpoint_id?.[0];
+      const share = pinned === undefined ? 1 : 0.22 + noise(hashString(pinned)) * 0.5;
+      const phase = pinned === undefined ? 0 : Math.floor(noise(hashString(pinned) + 5) * 11);
+
       const buckets = Array.from({ length: bucketCount }, (_, index) => {
-        const requests = Math.round(40 + noise(index) * 180);
-        const failures = Math.round(noise(index * 7 + 3) * 6);
+        const requests = Math.max(
+          0,
+          Math.round((40 + noise(index + phase) * 180) * share),
+        );
+        const failures = Math.round(noise(index * 7 + 3 + phase) * 6 * share);
         return {
           bucket_start_ms: query.from_ms + index * bucketMs,
           requests,
@@ -754,6 +788,11 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const failures = buckets.reduce((sum, bucket) => sum + bucket.failures, 0);
       const tokensTotal = buckets.reduce((sum, bucket) => sum + bucket.tokens_total, 0);
       const models = ["minimax-m3", "glm-5-air"];
+      // More than COMPARE_LIMIT entries in the two new dimensions, so the top-N
+      // slice is a real slice rather than "everything there is".
+      const clientKeyIds = ["key-cli", "key-web", "key-ci", "key-mobile", "key-batch"];
+      const credentialIds = ["cred-relay-key", "cred-grok-oauth", "cred-kiro-sub", "cred-grok-build"];
+      const endpointIds = ["ep-relay-a-responses", "ep-grok-build"];
       const body: Record<string, unknown> = {
         range: { from_ms: query.from_ms, to_ms: query.to_ms, bucket: bucketMs === 3_600_000 ? "hour" : "day", bucket_count: bucketCount },
       };
@@ -776,13 +815,33 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         body["timeline"] = buckets;
       }
       if (query.include?.ranks !== undefined) {
-        body["ranks"] = models.slice(0, query.include.ranks.limit).map((key, index) => ({
-          key,
-          requests: Math.round(requests * (index === 0 ? 0.72 : 0.28)),
-          failures: Math.round(failures * (index === 0 ? 0.6 : 0.4)),
-          tokens_total: Math.round(tokensTotal * (index === 0 ? 0.8 : 0.2)),
-          last_seen_ms: query.to_ms - 60_000,
-        }));
+        // Honour `by`: the Client Key and credential tabs ask for their own
+        // dimension, and returning models for all three would make the new tabs
+        // look wired when they are not.
+        const dimension = query.include.ranks.by;
+        const pool =
+          dimension === "client_key"
+            ? clientKeyIds
+            : dimension === "credential"
+              ? credentialIds
+              : dimension === "endpoint"
+                ? endpointIds
+                : models;
+        const weights = pool.map((key) => 0.2 + noise(hashString(key)) * 0.8);
+        const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
+        body["ranks"] = pool
+          .map((key, index) => {
+            const fraction = (weights[index] ?? 0) / weightTotal;
+            return {
+              key,
+              requests: Math.round(requests * fraction),
+              failures: Math.round(failures * fraction),
+              tokens_total: Math.round(tokensTotal * fraction),
+              last_seen_ms: query.to_ms - 60_000 - index * 30_000,
+            };
+          })
+          .sort((a, b) => b.requests - a.requests)
+          .slice(0, query.include.ranks.limit);
       }
       if (query.include?.heatmap !== undefined) {
         const cells = [];
@@ -796,9 +855,9 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if (query.include?.options === true) {
         body["options"] = {
           public_model: models,
-          client_key_id: ["key-cli"],
-          credential_id: ["cred-relay-key", "cred-grok-oauth"],
-          endpoint_id: ["ep-relay-a-responses", "ep-grok-build"],
+          client_key_id: clientKeyIds,
+          credential_id: credentialIds,
+          endpoint_id: endpointIds,
         };
       }
       if (query.include?.events !== undefined) {

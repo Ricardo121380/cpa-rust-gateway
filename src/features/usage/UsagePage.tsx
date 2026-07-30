@@ -1,23 +1,28 @@
-// 用量分析 (docs/07 §7.2). Five tabs over ONE composite analytics query: the
+// 用量分析 (docs/07 §7.2). Six tabs over ONE composite analytics query: the
 // visible tab decides `include`, so a tab that shows no heatmap never asks the
 // backend to compute one.
 //
 // Chart discipline (docs/07 §7.2, dataviz):
 //  - one measure, ONE y axis. Comparing requests against tokens is done with
-//    small multiples on 总览, never with a second y scale;
+//    small multiples on 总览, never with a second y scale. The entity-comparison
+//    chart on the rank tabs also uses one axis — its series are the SAME measure
+//    for different entities, which is exactly what makes them comparable;
 //  - the heatmap is a single-hue lightness ramp; the status pool stays reserved
 //    for state and never becomes "series 5";
 //  - every chart carries a hover layer, an accessible name and a table view.
 //
 // Value-free: only closed enums and identifiers the backend already returned
 // ever reach the query or the URL.
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import { type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { analyticsAvailable, fetchProposedAnalytics } from "../../api/proposed";
-import type { AnalyticsResponse } from "../../api/proposed-types";
+import type { AnalyticsFilters, AnalyticsResponse } from "../../api/proposed-types";
 import { Heatmap, HeatLegend } from "../../components/data/Heatmap";
 import { LineChart } from "../../components/data/LineChart";
+import { MultiLineChart, type Series } from "../../components/data/MultiLineChart";
 import { RankTable } from "../../components/data/RankTable";
+import { SeriesLegend } from "../../components/data/SeriesLegend";
 import { formatCount, formatLatency, StatTile } from "../../components/data/StatTile";
 import { useMessages } from "../../i18n/messages";
 import {
@@ -32,6 +37,9 @@ import {
   buildFilters,
   cellParam,
   cellWindow,
+  COMPARE_LIMIT,
+  compareFilters,
+  compareKeys,
   formatAxisNumber,
   formatMetric,
   hasActiveFilter,
@@ -49,6 +57,7 @@ import {
   USAGE_METRICS,
   USAGE_TABS,
   WEEKDAY_LABELS,
+  type CompareKind,
   type UsageMetric,
 } from "./model";
 import "./usage.css";
@@ -92,6 +101,9 @@ export function UsagePage() {
   const model = params.get("model");
   const selectedCell = parseCell(params.get("cell"));
   const filters = buildFilters(status, model);
+  // Compare panel state rides in the URL like every other filter, so a shared
+  // link reproduces exactly what the sender was looking at.
+  const compareOpen = params.get("compare") === "1";
 
   const detailWindow =
     selectedCell === null
@@ -276,13 +288,25 @@ export function UsagePage() {
             filtered={filtered}
             onMetric={(next) => updateParams({ metric: next === "requests" ? null : next })}
           />
-        ) : tab === "models" || tab === "credentials" ? (
+        ) : tab === "models" || tab === "clientKeys" || tab === "credentials" ? (
           <RankTab
             data={data}
             kind={tab}
             filtered={filtered}
             hrefFor={(key) =>
               monitoringHref({ from_ms: range.from_ms, to_ms: range.to_ms }, status, key)
+            }
+            compare={
+              <CompareCard
+                kind={tab}
+                keys={compareKeys(data.ranks)}
+                baseFilters={filters}
+                range={range}
+                metric={metric}
+                open={compareOpen}
+                onToggle={() => updateParams({ compare: compareOpen ? null : "1" })}
+                onMetric={(next) => updateParams({ metric: next === "requests" ? null : next })}
+              />
             }
           />
         ) : (
@@ -482,45 +506,171 @@ function MetricSwitch({
   );
 }
 
-// ---------- 模型 / 凭据 ----------
+// ---------- 模型 / Client Key / 凭据 ----------
+
+const RANK_COPY: Readonly<Record<CompareKind, Readonly<{ title: string; keyLabel: string }>>> = {
+  models: { title: "模型排行(按请求数)", keyLabel: "公开模型" },
+  clientKeys: { title: "Client Key 排行(按请求数)", keyLabel: "Client Key" },
+  credentials: { title: "凭据排行(按请求数)", keyLabel: "凭据" },
+};
 
 function RankTab({
   data,
   kind,
   filtered,
   hrefFor,
+  compare,
 }: Readonly<{
   data: AnalyticsResponse;
-  kind: "models" | "credentials";
+  kind: CompareKind;
   filtered: boolean;
   hrefFor: (key: string) => string;
+  compare: ReactNode;
 }>) {
   const rows = data.ranks ?? [];
   if (rows.length === 0) {
     return <EmptyPanel filtered={filtered} />;
   }
-  const isModels = kind === "models";
+  const copy = RANK_COPY[kind];
 
   return (
-    <div className="card tablewrap" data-gap="top">
-      <h3>{isModels ? "模型排行(按请求数)" : "凭据排行(按请求数)"}</h3>
-      <RankTable
-        rows={rows}
-        keyLabel={isModels ? "公开模型" : "凭据"}
-        action={
-          isModels
-            ? (row) => (
-                <Link className="usage-link" to={hrefFor(row.key)}>
-                  查看请求 →
-                </Link>
-              )
-            : undefined
-        }
-      />
-      {isModels ? null : (
-        <p className="usage-hint">
-          请求监控当前只接受时间窗与模型两个过滤维度,凭据维度的下钻在 G3 补齐凭据过滤后开放。
+    <>
+      <div className="card tablewrap" data-gap="top">
+        <h3>{copy.title}</h3>
+        <RankTable
+          rows={rows}
+          keyLabel={copy.keyLabel}
+          action={
+            kind === "models"
+              ? (row) => (
+                  <Link className="usage-link" to={hrefFor(row.key)}>
+                    查看请求 →
+                  </Link>
+                )
+              : undefined
+          }
+        />
+        {kind === "models" ? null : (
+          <p className="usage-hint">
+            请求监控当前只接受时间窗与模型两个过滤维度,
+            {kind === "clientKeys" ? "Client Key" : "凭据"}维度的下钻在 G3 补齐对应过滤后开放。
+          </p>
+        )}
+      </div>
+      {compare}
+    </>
+  );
+}
+
+// ---------- 实体对比(top-N 多线,固定色序) ----------
+
+/** One query per entity: the contract's timeline is unsegmented, so N series
+ *  means N filtered windows. Off by default — it is N extra round trips, and the
+ *  rank table above already answers "who is biggest". Opening it is the user
+ *  saying they want the shape over time. */
+function CompareCard({
+  kind,
+  keys,
+  baseFilters,
+  range,
+  metric,
+  open,
+  onToggle,
+  onMetric,
+}: Readonly<{
+  kind: CompareKind;
+  keys: readonly string[];
+  baseFilters: AnalyticsFilters;
+  range: Readonly<{ from_ms: number; to_ms: number; bucket: Bucket }>;
+  metric: UsageMetric;
+  open: boolean;
+  onToggle: () => void;
+  onMetric: (next: UsageMetric) => void;
+}>) {
+  const results = useQueries({
+    queries: keys.map((key) => ({
+      queryKey: [
+        "usage-compare",
+        kind,
+        key,
+        range.from_ms,
+        range.to_ms,
+        range.bucket,
+        JSON.stringify(baseFilters),
+      ],
+      queryFn: () =>
+        fetchProposedAnalytics({
+          from_ms: range.from_ms,
+          to_ms: range.to_ms,
+          timezone: TIMEZONE,
+          bucket: range.bucket,
+          filters: compareFilters(baseFilters, kind, key),
+          include: { timeline: true },
+        }),
+      enabled: open && analyticsAvailable(),
+      staleTime: 30_000,
+    })),
+  });
+
+  const loading = open && results.some((result) => result.isPending);
+  const failed = open && results.some((result) => result.isError);
+  const series: readonly Series[] = keys
+    .map((key, index) => {
+      const timeline = results[index]?.data?.timeline ?? [];
+      return {
+        key,
+        label: key,
+        points: timeline.map((point) => ({
+          t: point.bucket_start_ms,
+          v: metricValue(point, metric),
+        })),
+      };
+    })
+    .filter((one) => one.points.length > 0);
+
+  return (
+    <div className="card" data-gap="top">
+      <div className="card-head">
+        <h3>实体对比(前 {COMPARE_LIMIT})</h3>
+        <button type="button" className={open ? "chip-on" : "chip-off"} onClick={onToggle}>
+          {open ? "收起对比" : "展开对比"}
+        </button>
+      </div>
+      {!open ? (
+        <p className="card-note">
+          按排名取前 {COMPARE_LIMIT} 项,各自单独查询一次(契约的 timeline 不分段),
+          共用一根纵轴直接比较。因为要多发 {COMPARE_LIMIT} 次请求,默认收起。
         </p>
+      ) : failed ? (
+        <p className="card-note">对比查询失败 —— 排行表仍然可用。</p>
+      ) : loading ? (
+        <p className="card-note">加载 {keys.length} 条序列…</p>
+      ) : series.length === 0 ? (
+        <p className="card-note">前 {COMPARE_LIMIT} 项在此窗口内没有可对比的时间序列。</p>
+      ) : (
+        <>
+          <div className="usage-chips" role="group" aria-label="对比指标">
+            {USAGE_METRICS.map((key) => (
+              <button
+                key={key}
+                type="button"
+                className={metric === key ? "chip-on" : "chip-off"}
+                aria-pressed={metric === key}
+                onClick={() => onMetric(key)}
+              >
+                {METRIC_LABELS[key]}
+              </button>
+            ))}
+          </div>
+          <SeriesLegend items={series} />
+          <MultiLineChart
+            series={series}
+            valueLabel={METRIC_LABELS[metric]}
+            formatValue={(value) => formatMetric(value, metric)}
+            formatTime={(ms) => axisTime(ms, range.bucket === "day" ? "day" : "hour")}
+            ariaLabel={`${RANK_COPY[kind].keyLabel}对比,${METRIC_LABELS[metric]}`}
+          />
+        </>
       )}
     </div>
   );

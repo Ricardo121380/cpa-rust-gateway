@@ -19,6 +19,10 @@ import {
   parseTab,
   rankTotal,
   shareOf,
+  COMPARE_LIMIT,
+  compareColorIndex,
+  compareFilters,
+  compareKeys,
   type RankRow,
   type TimelineBucket,
 } from "./model";
@@ -238,5 +242,75 @@ describe("rank rows", () => {
   it("failure rate of a silent entity is 0", () => {
     expect(failureRate(rows[0]!)).toBeCloseTo(0.025);
     expect(failureRate({ ...rows[1]!, requests: 0 })).toBe(0);
+  });
+});
+
+describe("entity comparison", () => {
+  const ranks: readonly RankRow[] = [
+    { key: "a", requests: 500, failures: 5, tokens_total: 9, last_seen_ms: NOW },
+    { key: "b", requests: 400, failures: 4, tokens_total: 8, last_seen_ms: NOW },
+    { key: "c", requests: 300, failures: 3, tokens_total: 7, last_seen_ms: NOW },
+    { key: "d", requests: 200, failures: 2, tokens_total: 6, last_seen_ms: NOW },
+    { key: "e", requests: 100, failures: 1, tokens_total: 5, last_seen_ms: NOW },
+  ];
+
+  it("takes top-N in rank order and never exceeds the palette", () => {
+    const keys = compareKeys(ranks);
+    expect(keys).toEqual(["a", "b", "c", "d"]);
+    expect(keys.length).toBeLessThanOrEqual(COMPARE_LIMIT);
+  });
+
+  it("tolerates a missing or short rank list", () => {
+    expect(compareKeys(undefined)).toEqual([]);
+    expect(compareKeys(ranks.slice(0, 2))).toEqual(["a", "b"]);
+  });
+
+  it("rank order is the colour order, so hues do not reshuffle", () => {
+    const keys = compareKeys(ranks);
+    expect(compareColorIndex(keys, "a")).toBe(0);
+    expect(compareColorIndex(keys, "d")).toBe(3);
+    // dropped out of the top N: the caller must not silently recolour it
+    expect(compareColorIndex(keys, "e")).toBe(-1);
+  });
+
+  it("pins exactly one dimension per series and keeps the shared filters", () => {
+    const base = buildFilters("failed", "glm-5-air");
+    expect(compareFilters(base, "clientKeys", "key-ci")).toEqual({
+      status: "failed",
+      public_model: ["glm-5-air"],
+      client_key_id: ["key-ci"],
+    });
+    expect(compareFilters(base, "credentials", "cred-x")).toEqual({
+      status: "failed",
+      public_model: ["glm-5-air"],
+      credential_id: ["cred-x"],
+    });
+  });
+
+  it("a model series overrides the shared model filter rather than conflicting", () => {
+    const base = buildFilters("all", "glm-5-air");
+    expect(compareFilters(base, "models", "minimax-m3")).toEqual({
+      status: "all",
+      public_model: ["minimax-m3"],
+    });
+  });
+});
+
+describe("the six tabs each project their own include", () => {
+  it("every rank tab asks for its own dimension", () => {
+    expect(includeForTab("models", "requests").ranks?.by).toBe("public_model");
+    expect(includeForTab("clientKeys", "requests").ranks?.by).toBe("client_key");
+    expect(includeForTab("credentials", "requests").ranks?.by).toBe("credential");
+  });
+
+  it("no tab asks for a projection it does not render", () => {
+    expect(includeForTab("clientKeys", "requests").heatmap).toBeUndefined();
+    expect(includeForTab("clientKeys", "requests").timeline).toBeUndefined();
+    expect(includeForTab("trend", "requests").ranks).toBeUndefined();
+  });
+
+  it("clientKeys is a real tab, not a fallback to overview", () => {
+    expect(parseTab("clientKeys")).toBe("clientKeys");
+    expect(parseTab("nope")).toBe("overview");
   });
 });

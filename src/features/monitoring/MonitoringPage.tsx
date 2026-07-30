@@ -9,6 +9,14 @@ import { formatCount, formatLatency, StatTile } from "../../components/data/Stat
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
 import {
+  buildJsonl,
+  downloadText,
+  exportFilename,
+  toExportRow,
+  type ExportMeta,
+} from "./export";
+import "./monitoring.css";
+import {
   paramsToRange,
   rangeToParams,
   resolveBucket,
@@ -163,7 +171,20 @@ export function MonitoringPage() {
       ) : null}
 
       <div className="card tablewrap">
-        <h3>逐请求事件(value-free:标识符与闭集枚举,无请求原文)</h3>
+        <div className="export-head">
+          <h3>逐请求事件(value-free:标识符与闭集枚举,无请求原文)</h3>
+          <ExportBar
+            rows={rows}
+            meta={{
+              from_ms: range.from_ms,
+              to_ms: range.to_ms,
+              status,
+              public_model: model,
+              row_count: rows.length,
+              partial: events.hasNextPage === true,
+            }}
+          />
+        </div>
         <table>
           <thead>
             <tr>
@@ -230,5 +251,40 @@ export function MonitoringPage() {
         ) : null}
       </div>
     </section>
+  );
+}
+
+/** Export is client-side over the rows already loaded; import is not offered at
+ *  all, because it needs the G3 ancillary endpoint that has not been delivered.
+ *  Saying so is the honest option — a disabled button with no explanation, or a
+ *  file picker that silently drops the file, would both be worse. */
+function ExportBar({
+  rows,
+  meta,
+}: Readonly<{ rows: readonly RequestEventView[]; meta: ExportMeta }>) {
+  const empty = rows.length === 0;
+  return (
+    <div className="export-bar">
+      <button
+        type="button"
+        className="secondary"
+        disabled={empty}
+        onClick={() => {
+          const text = buildJsonl(meta, rows.map(toExportRow));
+          downloadText(exportFilename(meta), text);
+        }}
+      >
+        导出 JSONL({rows.length} 行{meta.partial ? ",仅已加载" : ""})
+      </button>
+      <p className="export-note">
+        {meta.partial
+          ? "只导出已加载的行 —— 先「加载更多」到需要的深度,文件头会标记 partial。"
+          : "导出当前窗口与过滤条件下的全部已加载行;脱敏规则与表格一致。"}
+        <br />
+        <span className="muted">
+          分块续传导入需要 G3 附属端点(尚未交付),因此本版不提供导入入口。
+        </span>
+      </p>
+    </div>
   );
 }

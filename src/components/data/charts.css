@@ -102,6 +102,59 @@
   fill: var(--ink-2);
 }
 
+/* ---- entity comparison: four series, hue + dash ---------------------------
+   The categorical palette has exactly four validated steps, which is why
+   COMPARE_LIMIT is 4 — a fifth series would have to reuse a hue or borrow from
+   the status pool, and both make the chart lie.
+
+   Each series also gets its own dash pattern. That is not decoration: it is the
+   redundant channel that keeps the lines tellable apart under forced-colors,
+   under a colour-vision deficiency, and in a greyscale print. Series 1 stays
+   solid so the leader reads as the plain case. */
+.chart-line[data-series="1"] { stroke: var(--chart-1); }
+.chart-line[data-series="2"] { stroke: var(--chart-2); stroke-dasharray: 7 4; }
+.chart-line[data-series="3"] { stroke: var(--chart-3); stroke-dasharray: 2 3; }
+.chart-line[data-series="4"] { stroke: var(--chart-4); stroke-dasharray: 9 3 2 3; }
+
+.chart-dot[data-series="1"] { fill: var(--chart-1); }
+.chart-dot[data-series="2"] { fill: var(--chart-2); }
+.chart-dot[data-series="3"] { fill: var(--chart-3); }
+.chart-dot[data-series="4"] { fill: var(--chart-4); }
+
+/* The tooltip lists every series at the cursor, so each row wears its own hue —
+   that is the only thing tying a number to a line once four of them overlap. */
+.chart-tip-text[data-series="1"] { fill: var(--chart-1); }
+.chart-tip-text[data-series="2"] { fill: var(--chart-2); }
+.chart-tip-text[data-series="3"] { fill: var(--chart-3); }
+.chart-tip-text[data-series="4"] { fill: var(--chart-4); }
+
+.chart-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+/* Legend: swatch carries the same dash pattern as its line, so the mapping is
+   readable without hovering the chart. */
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+}
+.chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink);
+}
+.chart-legend svg {
+  flex: none;
+}
+
 /* ---- heatmap: ONE hue, lightness ramp, step 0 reserved for "no traffic" ----
    The ramp mixes the categorical hue into the SURFACE, so it reads as "more of
    the same thing" in both themes. Dark needs a steeper first step: over
@@ -229,5 +282,22 @@
   }
   .heat-cell {
     stroke: var(--separator);
+  }
+}
+
+/* forced-colors overrides every author colour, so the four comparison hues all
+   collapse to the same system stroke. The dash patterns are what survive, and
+   they are already the redundant channel — pin them here so the collapse is a
+   documented outcome rather than four identical lines. */
+@media (forced-colors: active) {
+  .chart-line[data-series] {
+    stroke: CanvasText;
+  }
+  .chart-line[data-series="1"] { stroke-width: 3; }
+  .chart-line[data-series="2"] { stroke-width: 2; }
+  .chart-line[data-series="3"] { stroke-width: 2; }
+  .chart-line[data-series="4"] { stroke-width: 1.5; }
+  .chart-tip-text[data-series] {
+    fill: CanvasText;
   }
 }

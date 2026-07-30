@@ -9,13 +9,21 @@ import type { AnalyticsFilters, AnalyticsQuery, AnalyticsResponse } from "../../
 
 // ---------- tabs ----------
 
-export const USAGE_TABS = ["overview", "trend", "models", "credentials", "heatmap"] as const;
+export const USAGE_TABS = [
+  "overview",
+  "trend",
+  "models",
+  "clientKeys",
+  "credentials",
+  "heatmap",
+] as const;
 export type UsageTab = (typeof USAGE_TABS)[number];
 
 export const TAB_LABELS: Readonly<Record<UsageTab, string>> = {
   overview: "总览",
   trend: "趋势",
   models: "模型",
+  clientKeys: "Client Key",
   credentials: "凭据",
   heatmap: "热力图",
 };
@@ -52,6 +60,8 @@ export function includeForTab(tab: UsageTab, metric: UsageMetric): AnalyticsQuer
       return { ...base, timeline: true };
     case "models":
       return { ...base, ranks: { by: "public_model", limit: 20 } };
+    case "clientKeys":
+      return { ...base, ranks: { by: "client_key", limit: 20 } };
     case "credentials":
       return { ...base, ranks: { by: "credential", limit: 20 } };
     case "heatmap":
@@ -74,6 +84,51 @@ export function buildFilters(status: UsageStatus, model: string | null): Analyti
 
 export function hasActiveFilter(status: UsageStatus, model: string | null): boolean {
   return status !== "all" || (model !== null && model !== "");
+}
+
+// ---------- entity comparison (docs/07 §7.2: "实体对比多线图, top-N, 固定色序") ----------
+
+/** Four series, because the categorical palette has four validated steps and a
+ *  fifth would have to reuse a hue or borrow from the status pool. */
+export const COMPARE_LIMIT = 4;
+
+export type CompareKind = "models" | "clientKeys" | "credentials";
+
+/** Which filter dimension a rank tab compares along. Keyed by tab so the
+ *  compile fails if a tab is added without deciding this. */
+const COMPARE_DIMENSION: Readonly<Record<CompareKind, keyof AnalyticsFilters>> = {
+  models: "public_model",
+  clientKeys: "client_key_id",
+  credentials: "credential_id",
+};
+
+/** Top-N rank keys, in rank order. Rank order IS the colour order: series 1 gets
+ *  --chart-1 and keeps it as long as the ranking holds, so the legend does not
+ *  reshuffle hues between refreshes. */
+export function compareKeys(
+  ranks: NonNullable<AnalyticsResponse["ranks"]> | undefined,
+  limit: number = COMPARE_LIMIT,
+): readonly string[] {
+  return (ranks ?? []).slice(0, limit).map((row) => row.key);
+}
+
+/** One series = the shared filters plus a single-value pin on this entity. The
+ *  page issues one query per key rather than asking for a cross-tab: the
+ *  contract's timeline is unsegmented, and inventing a segmented shape here
+ *  would be a projection the backend never promised. */
+export function compareFilters(
+  base: AnalyticsFilters,
+  kind: CompareKind,
+  key: string,
+): AnalyticsFilters {
+  return { ...base, [COMPARE_DIMENSION[kind]]: [key] };
+}
+
+/** Stable colour index for a key given the current ranking. -1 when the key has
+ *  dropped out, which the caller renders as "no longer in the top N" rather than
+ *  silently recolouring. */
+export function compareColorIndex(keys: readonly string[], key: string): number {
+  return keys.indexOf(key);
 }
 
 // ---------- timeline metric extraction ----------
