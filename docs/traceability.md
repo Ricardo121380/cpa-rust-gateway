@@ -151,6 +151,7 @@
 |---|---|---|---|---|---|
 | P12-01 | Plan 18；§22 供应链纪律 | `CR-P12-01-001`（OIDC keyless 签名边界）、`CR-P12-01-002`（双目标原生发布矩阵） | `release-artifact.yml` 双目标 matrix（x86_64/aarch64，各自同架构 runner、无 qemu）；`p12-release-artifact.rb` 封闭目标表推导二进制名/ELF `e_machine`/OCI architecture/基础镜像 digest；`generate-p12-01-sbom.rb` 封闭目标白名单；`Dockerfile` 逐架构传入基础镜像并由 `base.name` 复核 | [P12-01 发布产物验收与双目标修订](reports/p12-01-release-artifact.md)：[run 30533211028](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/30533211028) 两 job SUCCESS，两份产物本地签名+回执复验通过 | DONE |
 | P12-05 | Plan 2.1；docs/05 §M0-D、§15 | [BC-PROTOCOL-007](contracts/BC-PROTOCOL-007-api-format-adapter-registry.md)、[BC-ROUTER-001](contracts/BC-ROUTER-001-validated-route-compiler.md) | `gateway-protocol` `ApiFormat` + `ApiFormatAdapterRegistry`、Route Compiler `unsupported_endpoint_api_format`、P12 per-Endpoint adapter composition | — | LOCAL_PASS_PENDING_PHASE_GATE |
+| P12-08 | Plan 18 Canary 规则与 G12 门禁 | `CR-P12-ROLLOUT-001`（分流机制）、`CR-P12-08-001`（样本量、严重度分级、可观测性口径） | 阶段门槛按 1pp 触发阈值反推为 1250 并给出基线样本量表；50% 阶段 24h；四级严重度分级；判据信号来源表明确 TTFT/P95 服务端不可观测；`scripts/check-p12-08-canary-thresholds.rb` 重算统计并断言分级与口径未被静默改动 | [Runbook §7 Canary 阶段判据](p12-rollout-runbook.md)；`check.sh docs` 通过，四类回归注入均被拒 | PENDING（判据已定，执行待 P12-06/P12-07） |
 
 ## 后续 Phase 映射
 

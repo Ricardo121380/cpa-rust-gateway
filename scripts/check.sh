@@ -87,6 +87,7 @@ if [[ "$mode" == "docs" ]]; then
   run_step "Document links" "$repo_root/scripts/check-doc-links.rb"
   run_step "Contract tests" "$repo_root/scripts/check-contract-tests.rb"
   run_step "Plan state" "$repo_root/scripts/check-plan-state.rb"
+  run_step "Canary thresholds" "$repo_root/scripts/check-p12-08-canary-thresholds.rb"
   run_step "Tracked secret scan" "$repo_root/scripts/secret-scan.sh" --all
   run_step "Git whitespace" check_tracked_whitespace
 
@@ -117,6 +118,7 @@ run_step "Release artifact workflow" "$repo_root/scripts/check-release-artifact-
 run_step "CI change classifier" "$repo_root/scripts/test-ci-change-classifier.sh"
 run_step "Plan state" "$repo_root/scripts/check-plan-state.rb"
 run_step "Plan state guard" "$repo_root/scripts/test-plan-state-check.sh"
+run_step "Canary thresholds" "$repo_root/scripts/check-p12-08-canary-thresholds.rb"
 run_step "Management SPA dependencies" install_management_spa_dependencies
 run_step "Benchmark baseline comparator" "$repo_root/scripts/test-p11-03-benchmark-baseline.sh"
 run_step "Soak runner argument guard" "$repo_root/scripts/test-p11-04-soak-runner.sh"

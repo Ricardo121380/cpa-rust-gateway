@@ -2529,20 +2529,123 @@ CR-ID: CR-P12-06-002
 计划版本变更: v1.71
 ```
 
+### 已批准 Change Request：CR-P12-08-001
+
+```text
+CR-ID: CR-P12-08-001
+原因: P12-08/P12-09/G12 的推进与回滚判据当前不可执行，有三个独立缺陷。
+      (1) 样本量与触发阈值不匹配：§18 要求每阶段"至少 100 个成功请求"，而回滚触发是
+      "相对旧网关新增错误率超过 1%"。实测该组合无意义：n=100 且零错误时，95% 单侧上界
+      仍不能排除 2.95% 的真实错误率；在 0.5% 基线上以 alpha=0.05/power=0.80 检出 +1pp
+      需每臂 1222 个请求；n=100 实际只能检出 >=6.64pp 的劣化，比触发阈值大六倍以上。
+      即单次偶发失败即触发回滚，而真实的 1pp 劣化检不出来。
+      (2) G12 的核心条件"无 P0/P1 故障"在全计划无任何定义，72h 观察结束时"算不算 P1"
+      将变成事后争论。
+      (3) 判据引用了不存在的信号。Prometheus 暴露面只有 7 个指标
+      （attempts_total、events_total、usage_tokens_total、exports_total、
+      queue_admission_total、durable_events_total、durable_pending_required），
+      全部为计数器，零 histogram。因此 §18 要求逐阶段检查的 TTFT 与 P95/P99 在运行时
+      不可观测；attempts_total 只有 succeeded/failed 两个标签值，没有 HTTP 状态码分布，
+      也没有错误分类维度；Tool 与 Route 分布没有任何指标。ManagementRequestAttempt 的
+      文档明确写着"without model, route, timing"。
+影响的 Task / Matrix ID / ADR: §18 的 Canary 推进与回滚规则、G12 门禁；P12-08 与 P12-09
+      的证据定义。不改代码、不改公开 API、Canonical、Provider 或 Schema。
+      (1) 样本量：每阶段最低成功请求数由 100 改为 1250，并同时要求该阶段与对照的旧网关
+      在同一时间窗内各自达到该量级；合成补足请求必须与真实流量分开计数，且其失败同样
+      计入分子（否则合成请求会稀释错误率）。低于最低量时该阶段不得推进，只能延长窗口。
+      50% 阶段最短观察时长由 2h 提升为 24h，用以补回 CR-P11-04-001 把本地 Soak 从 24h
+      降到 10h 所让掉的长时覆盖。10%/25%/100% 阶段仍为 2h 起，且都受 1250 门槛约束。
+      (2) 严重度：新增四级封闭分类（P0/P1/P2/P3），P0/P1 逐条列举且与 §18 既有回滚触发
+      条件一一对应，使"无 P0/P1 故障"成为可判定谓词而非主观判断。
+      (3) 可观测性缺口：明确把 TTFT 与实时 P95/P99 标为当前不可观测，并规定 P12-08 的
+      延迟证据改由客户端侧采集（分流层前的合成探针记录端到端时长与首字节时长），
+      Attempt 级时长由事件日志 started_at_ms/ended_at_ms 离线导出统计。错误率分子按
+      Attempt 的 GatewayError 分类与客户端观测状态码共同判定，不假称存在按状态码的
+      服务端指标。Tool 与 Route 分布按 Runbook 台账逐样本核对而非按指标。这些缺口写入
+      Runbook §6 已知缺口表，不在本 CR 内以新增指标解决；是否补 histogram 由 P13 另议。
+兼容性与迁移影响: 无代码、公开 API、Canonical、Schema、部署或安全迁移。既有 P12-01 至
+      P12-05 的验收证据与 P7/P8 外部认证延期边界不变。CR-P12-ROLLOUT-001 界定的分流机制
+      （服务器本地 Caddy 加权/按 Key）与切换范围不变。
+测试与回滚变化: 本 CR 为判据定义，不新增自动化测试。样本量结论由
+      scripts/check-p12-08-canary-thresholds.rb 以可执行形式固定：它重算零错误上界与
+      双比例样本量，断言计划记载的 1250 门槛足以在 0.5% 基线上检出 1pp，并断言 100
+      不足；同时断言计划与 Runbook 中的严重度分级与阶段时长未被静默改动。该脚本接入
+      check.sh 的 fast 与 docs 模式。回滚为恢复本 CR 的文档 preimage 与删除该脚本。
+用户批准: APPROVED，2026-07-30（"先做A4/A3"）
+计划版本变更: v1.73
+```
+
 ### Canary 推进与回滚规则
 
-- 每个流量阶段至少持续 2 小时并包含至少 100 个成功请求；低流量时使用固定合成请求补足。
-- 进入下一阶段前检查：状态码、TTFT、P95/P99、缓存、Tool、Usage、Credential 状态和 Route 分布。
+阶段最低样本量按回滚触发阈值反推，而不是取整数。以 1 个百分点的新增错误率为触发条件时：
+n=100 且零错误，95% 单侧上界仍不能排除 2.95% 的真实错误率；在 0.5% 基线上以
+alpha=0.05、power=0.80 检出 +1pp 需每臂 1222 个请求；n=100 只能检出 ≥6.64pp 的劣化。
+因此 100 这个门槛既会因单次偶发失败误触发回滚，又检不出它本应捕捉的劣化。
+
+所需样本量随旧网关的实测基线错误率上升，不是一个固定常数：
+
+| 旧网关基线错误率 | 检出 +1pp 所需每臂样本 |
+|---|---:|
+| 0.1% | 735 |
+| 0.5% | 1222 |
+| 1.0% | 1825 |
+| 2.0% | 3013 |
+
+- 每个阶段至少 1250 个成功请求，新旧网关在同一时间窗内各自达到该量级。1250 覆盖到
+  0.5% 基线；若旧网关实测基线高于 0.5%，该阶段门槛按上表相应提高（取表中不小于实测基线
+  的那一档）。未达标不得推进，只能延长窗口。低流量时可用固定合成请求补足，但合成请求
+  必须与真实流量分开计数，且其失败同样计入错误率分子——否则合成流量会稀释分母、掩盖
+  真实劣化。
+- 最短观察时长：10%、25%、100% 阶段各 2h 起；50% 阶段 24h 起。50% 的加长用于补回
+  `CR-P11-04-001` 把本地 Soak 从 24h 降为 10h 所让掉的长时覆盖（内存增长、连接泄漏、
+  SQLite 完整性只有在长窗口才暴露）。
+- 进入下一阶段前检查：状态码、TTFT、P95/P99、缓存、Tool、Usage、Credential 状态和
+  Route 分布。其中 TTFT 与 P95/P99 当前服务端不可观测（见下），须由客户端侧证据提供。
 - 任一条件触发立即回滚：
-  - 相对旧网关新增错误率超过 1%。
+  - 相对旧网关新增错误率超过 1%（按下述分子/分母定义，且该阶段样本量已达门槛）。
   - P95 延迟持续增加超过 20%。
   - 出现 Tool/Reasoning/Usage 语义回归。
   - 出现 Secret 泄漏、数据库损坏、流重复或错误跨账号连续性。
   - 无法用 Route Explain 解释实际选路。
 
+#### 判据信号的实际来源
+
+判据不得引用不存在的指标。当前 Prometheus 暴露面只有 7 个计数器
+（`attempts_total`、`events_total`、`usage_tokens_total`、`exports_total`、
+`queue_admission_total`、`durable_events_total`、`durable_pending_required`），没有任何
+histogram；`attempts_total` 仅有 `succeeded`/`failed` 两个标签值，不含 HTTP 状态码或错误
+分类维度；`ManagementRequestAttempt` 按设计不含 model、route 与 timing。
+
+| 判据 | 实际来源 | 状态 |
+|---|---|---|
+| 错误率分子 | 客户端观测状态码 + Attempt 的 `GatewayError` 分类（事件日志载荷） | 可得，非单一指标 |
+| 错误率分母 | 该阶段真实请求数（合成请求单独计数并同样计入分子） | 可得 |
+| TTFT | 分流层之前的客户端侧合成探针记录首字节时长 | 服务端不可观测 |
+| P95/P99 | 同上；Attempt 级时长由事件日志 `started_at_ms`/`ended_at_ms` 离线导出统计 | 服务端无实时 histogram |
+| 缓存 | `usage_tokens_total{kind=cache_read}` 与 `{kind=cache_creation}` | 可得（累计） |
+| Usage | `usage_tokens_total{kind=...}` | 可得（累计） |
+| Credential 状态 | `GET /admin/runtime/availability` | 可得 |
+| Tool / Route 分布 | 无指标；按 Runbook 台账逐样本核对 | 需人工证据 |
+
+是否补充延迟 histogram 与按状态码/错误类别的指标维度，由 P13 另行 CR 决定；Release 1 内
+按上表的客户端侧与离线路径取证，不得假称存在服务端实时分位数。
+
+### 故障严重度分级
+
+G12 的"无 P0/P1 故障"需要可判定的谓词。下表为封闭分类，P0/P1 与 §18 的回滚触发条件
+一一对应；未列入 P0/P1 的即为 P2/P3，不阻塞 G12 但须记录。
+
+| 级别 | 定义 | 判定信号 | 对 G12 的影响 |
+|---|---|---|---|
+| P0 | 数据或隔离边界破坏：Secret 泄漏、数据库损坏、流内容跨请求重复、错误的跨账号连续性、凭据被错误账号使用 | `PRAGMA quick_check` 非 `ok`；secret 扫描命中；同一流内容出现在不同 `request_id`；Attempt 的 `credential_id` 与其 Endpoint 绑定不符 | 立即回滚；G12 不通过 |
+| P1 | 全量或大范围服务降级、语义回归、可观测性失效：相对旧网关新增错误率 >1%、P95 持续劣化 >20%、Tool/Reasoning/Usage 语义回归、无法用 Route Explain 解释实际选路、必需事件被隔离或写失败（`durable_events_total{outcome=required_quarantined}` 或 `{outcome=write_failed}` 增长）、必需队列满或 sink 关闭（`queue_admission_total{outcome=required_queue_full}` 或 `{outcome=sink_closed}` 增长） | 上表判据来源 | 立即回滚；G12 不通过 |
+| P2 | 单凭据或单 Endpoint 范围的故障，且自动降级/重试已吸收，客户端未观测到错误 | `availability` 出现 `RecoveryRequired`，同时该阶段错误率未越线 | 不阻塞 G12；须在报告中列明与根因 |
+| P3 | 仅诊断层面的问题：低优先级诊断事件丢弃（BL-10 允许）、日志噪声、非必需导出被拒 | `exports_total{outcome=rejected}`、诊断队列丢弃计数 | 不阻塞 G12；记录即可 |
+
 ### G12 门禁
 
-- 100% 流量运行 72h，无 P0/P1 故障；该 "100%" 指全部实际生产流量，按 `CR-P12-ROLLOUT-001` 界定。
+- 100% 流量运行 72h，无 P0/P1 故障（按上表分级判定）；该 "100%" 指全部实际生产流量，按 `CR-P12-ROLLOUT-001` 界定。
+- 该 72h 窗口内 100% 阶段的成功请求数不少于 1250（或按基线表提高后的门槛），且延迟证据按上表的客户端侧路径采集。
 - 现有生产路径仍保留固定版本回滚包。
 - 备份、恢复、升级、降级、Secret 轮换和故障排查手册齐全。
 - Release 1 完成后才允许为 P13 创建新计划版本。
@@ -2716,3 +2819,4 @@ Next task:
 | v1.70 | 2026-07-26 | `CR-P12-06-001`：P12 serve 准入从 singleton 图扩至生产图形状（多 Endpoint/Credential/别名/多 Key，max_attempts 1..=5，总并发 <=16，OpenAI-compatible fail-closed）；随附生产配置图录入与客户端 Key 迁移 Runbook（docs/p12-rollout-runbook.md，双接受窗口 + Caddy `rgw_` 前缀分流） | APPROVED；6 项新本地测试与受影响包 `cargo test`/`clippy` 全通过 |
 | v1.71 | 2026-07-27 | `CR-P12-06-002`：交付 Anthropic 出站编解码器与 provider 边界、填充 gateway-protocol 为封闭 ApiFormat 词表与适配器注册表、api_format 与 adapter_id 在发布期即校验、执行器改用 BC-ROUTER-005 协议过滤选择候选 | APPROVED；22 项新本地测试与全量门禁通过 |
 | v1.72 | 2026-07-30 | `CR-P12-01-002`：发布流水线从单一 `x86_64-unknown-linux-gnu` 扩为 x86_64 与 `aarch64-unknown-linux-gnu` 双目标，各自在同架构标准 runner 上原生构建、独立 SBOM/manifest/keyless 签名/receipt；校验器改为封闭目标白名单并按目标推导 ELF `e_machine`、OCI architecture 与钉死的基础镜像 digest；Dockerfile 基础镜像逐架构传入并由产物侧 `base.name` 重新建立钉死性质。生产主机为 aarch64，此前产物在其上不可执行 | APPROVED；[run 30533211028](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/30533211028) 两个 job 均 SUCCESS，两份私有产物均已本地 `--require-signature --require-receipt` 复验；aarch64 产物为真实 `ARM aarch64` ELF 且在容器内实际执行 |
+| v1.73 | 2026-07-30 | `CR-P12-08-001`：Canary 阶段最低成功请求数由 100 改为 1250（并给出随基线上升的样本量表），合成补足请求单独计数且其失败计入分子，50% 阶段最短观察由 2h 提升为 24h 以补回本地 Soak 让掉的长时覆盖；新增四级故障严重度分级使 G12 的“无 P0/P1 故障”成为可判定谓词；明确 TTFT 与实时 P95/P99 服务端不可观测并改由客户端侧与离线路径取证 | APPROVED；`scripts/check-p12-08-canary-thresholds.rb` 以可执行形式固定该统计结论与分级，接入 check.sh fast/docs |

@@ -89,3 +89,21 @@
 | 5 | 无 HTTP 备份创建 | 服务器文件系统级备份（P12-03 流程） |
 | 6 | API 回滚仅单步 | 深回退走文件系统备份 |
 | 7 | 管理面按对端地址放行 | Caddy 审查断言无 18181 公网路由 |
+| 8 | **服务端无延迟分位数**：Prometheus 暴露面 7 个指标全是计数器，零 histogram；`ManagementRequestAttempt` 按设计不含 timing | TTFT 与 P95/P99 由分流层之前的客户端侧探针采集；Attempt 级时长由事件日志 `started_at_ms`/`ended_at_ms` 离线导出统计。**不得**声称服务端提供实时分位数 |
+| 9 | `attempts_total` 只有 `succeeded`/`failed` 两个标签值，无 HTTP 状态码或错误分类维度 | 错误率分子按客户端观测状态码 + Attempt 载荷的 `GatewayError` 分类共同判定 |
+| 10 | Tool 与 Route 分布无指标 | 按 §2 台账逐样本核对，不按指标聚合 |
+
+## 7. Canary 阶段判据（操作口径）
+
+完整定义见计划 §18；此处只给操作时要盯的三件事。
+
+- **样本量**：每阶段至少 **1250** 个成功请求，新旧网关在同一时间窗内各自达标。1250 覆盖到
+  0.5% 的旧网关基线；实测基线更高时按计划 §18 的基线表提高门槛。未达标只延长窗口，不推进。
+  合成补足请求单独计数，其失败同样计入分子——否则会稀释分母、掩盖真实劣化。
+- **时长**：10%、25%、100% 各 2h 起；**50% 阶段 24h 起**（补回本地 Soak 从 24h 降为 10h
+  所让掉的长时覆盖：内存增长、连接泄漏、SQLite 完整性只在长窗口暴露）。
+- **回滚判定**：按计划 §18 的四级严重度表。P0（数据/隔离破坏）与 P1（全量降级、语义回归、
+  必需事件被隔离或必需队列满）立即回滚且 G12 不通过；P2/P3 记录但不阻塞。每阶段结束前
+  至少核对一次 `durable_events_total{outcome=required_quarantined}`、`{outcome=write_failed}` 与
+  `queue_admission_total{outcome=required_queue_full}`、`{outcome=sink_closed}` 是否增长——这四个
+  是 P1 的机械信号（标签拼写与 `crates/gateway-observability/src/telemetry.rs` 一致）。
