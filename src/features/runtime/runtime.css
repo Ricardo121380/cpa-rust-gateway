@@ -56,7 +56,9 @@
 }
 /* the contract operation this panel is a view of — named, not paraphrased */
 .runtime-page .rt-op {
-  font-size: 11.5px;
+  /* 12px, on the ladder (DESIGN.md §6.2). 11.5px was a size this page invented
+     for itself and it sat between two existing steps for no reason. */
+  font-size: 12px;
   font-weight: 400;
   color: var(--ink-2);
 }
@@ -282,14 +284,17 @@
   font-family: var(--font-mono);
   text-transform: none;
   letter-spacing: 0;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--ink-2);
   vertical-align: bottom;
 }
 .runtime-page .rt-matrix .rt-corner {
   font-family: var(--font-text);
   font-size: 11px;
-  color: var(--ink-3);
+  /* This one names the two axes ("endpoint \ credential") — it is the label a
+     reader needs to parse the matrix, not a caption repeating visible data, so
+     it takes --ink-2. See tokens.css on --ink-3. */
+  color: var(--ink-2);
   text-transform: none;
 }
 .runtime-page .rt-matrix .rt-rowhead {

@@ -371,11 +371,14 @@ function OverviewTab({
             ariaLabel={`Token 趋势,按${bucket === "hour" ? "小时" : "天"}`}
             compact
           />
+          {/* Inside the card, not after the grid: out there its only backdrop was
+              the ambient gradient, which measured 2.2:1 — content never sits on
+              ambient (DESIGN.md §9 rule 3). */}
+          <p className="card-note">
+            小倍数:两图各自独立纵轴,量纲不同的指标不叠加到双 Y 轴。
+          </p>
         </div>
       </div>
-      <p className="card-note">
-        小倍数:两图各自独立纵轴,量纲不同的指标不叠加到双 Y 轴。
-      </p>
 
       <div className="card tablewrap" data-gap="top">
         <h3>模型汇总(窗口内)</h3>

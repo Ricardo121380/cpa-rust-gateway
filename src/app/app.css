@@ -200,8 +200,15 @@
   color: var(--ink);
 }
 .rail a.on {
+  /* Chip stays at 16% and the LABEL changes instead. The obvious fix — a denser
+     chip — is arithmetically impossible: the chip is made of --tint, so raising
+     its density pushes the backdrop toward the label's own colour and the ratio
+     drops (measured 3.20 -> 2.93 light, 3.92 -> 3.65 dark at 22%). Sweeping
+     0-100% never reaches 4.5:1; even 0% only gives 3.63.
+     Ink-on-chip measures 10.69:1 (light) / 12.92:1 (dark). The blue is still
+     what marks the active item — it just moved entirely into the chip. */
   background: color-mix(in srgb, var(--tint) 16%, transparent);
-  color: var(--tint);
+  color: var(--ink);
   font-weight: 600;
 }
 
@@ -379,7 +386,7 @@
   padding: 10px 16px;
   border: none;
   border-radius: 100px;
-  background: var(--tint);
+  background: var(--tint-fill);
   color: var(--tint-ink);
   font-weight: 600;
   font-size: 14px;
@@ -395,7 +402,7 @@
   margin: 0;
 }
 .unlock-hint {
-  color: var(--ink-3);
+  color: var(--ink-2);
   font-size: 12px;
   margin: 4px 0 0;
 }
@@ -498,7 +505,7 @@ button {
   padding: 7px 14px;
   border: none;
   border-radius: 100px;
-  background: var(--tint);
+  background: var(--tint-fill);
   color: var(--tint-ink);
   cursor: pointer;
 }
@@ -859,7 +866,7 @@ tr[data-selected="true"] {
   padding: 0 6px;
 }
 .capability-set small {
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .action-notice {
@@ -1051,7 +1058,7 @@ tr[data-selected="true"] {
   padding: 5px 12px;
 }
 .preset-chips .chip-on {
-  background: var(--tint);
+  background: var(--tint-fill);
   color: var(--tint-ink);
 }
 .preset-chips .chip-off {
@@ -1072,7 +1079,11 @@ tr[data-selected="true"] {
 [data-gap="top"] { margin-top: 14px; }
 [data-gap="sm"] { margin-top: 8px; }
 .muted { color: var(--ink-2); }
-.muted-3 { color: var(--ink-3); }
+/* .muted-3 carries real sentences at 4 of its 6 call sites (empty-state
+   explanations, the OAuth hint), so it cannot use --ink-3 — see tokens.css. It
+   stays a distinct class from .muted only to mark "quieter than body", which is
+   now expressed by size and position rather than by a sub-AA colour. */
+.muted-3 { color: var(--ink-2); }
 .small { font-size: 13px; }
 
 .legend-dot-input { background: var(--chart-1); }

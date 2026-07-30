@@ -9,10 +9,25 @@
   --surface-2: #f7f7fa;
   --ink: #1d1d1f;
   --ink-2: #6e6e73;
+  /* --ink-3 is NOT a body-text colour. It measures 3.26:1 on --surface and
+     2.92:1 on --canvas, so any sentence a user has to read must use --ink-2
+     (5.07:1) instead. Keep --ink-3 for non-text and incidental marks where AA
+     does not apply: chart grid lines and axis ticks, the uppercase 11px column
+     labels that repeat the data directly below them, status dots. An
+     explanatory paragraph in --ink-3 is a bug — that is how .card-note shipped
+     at 3.3:1. Raising the token is not the fix: any value clearing 4.5:1 on
+     --surface-2 lands within 0.1 of --ink-2 and collapses the three-step ramp
+     into two. */
   --ink-3: #8e8e93;
   --separator: rgba(0, 0, 0, 0.1);
   --tint: #0071e3;
   --tint-ink: #ffffff;
+  /* Solid FILL behind --tint-ink. Separate from --tint because --tint has to
+     stay bright enough to read as a label on a light surface (and doubles as
+     --chart-1's hue), while a fill carrying 12-13px white text has to clear
+     4.5:1 against white. In light mode the two coincide (#0071e3 measures
+     4.70:1); in dark mode they cannot — see the dark block. */
+  --tint-fill: #0071e3;
 
   /* status pool — badges only, never chart series */
   --status-good: #248a3d;
@@ -153,6 +168,11 @@
     --ink-3: #6e6e76;
     --separator: rgba(255, 255, 255, 0.1);
     --tint: #0a84ff;
+    /* White 12-13px text on #0a84ff measures 3.65:1 — below AA. --tint itself
+       must stay this bright (it is nav/link ink on a near-black surface, and
+       --chart-1's hue), so the FILL darkens instead: white on #0f6fd6 is
+       4.92:1. Same reading, same hue family, AA-clean. */
+    --tint-fill: #0f6fd6;
     --status-good: #30d158;
     --status-warn: #ffd60a;
     --status-serious: #ff9f0a;
@@ -311,6 +331,7 @@
   --ink-3: #6e6e76;
   --separator: rgba(255, 255, 255, 0.1);
   --tint: #0a84ff;
+  --tint-fill: #0f6fd6; /* keep in step with the media-query block above */
   --status-good: #30d158;
   --status-warn: #ffd60a;
   --status-serious: #ff9f0a;

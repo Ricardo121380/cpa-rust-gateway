@@ -67,6 +67,25 @@ for (const file of walk(SRC)) {
   if (rel.startsWith("src/features/unlock/") && /type="password"/u.test(codeLines)) {
     failures.push(`${rel}: type="password" breaks paste on the unlock screen (use SecretField)`);
   }
+  // --ink-3 measures 3.26:1 (light) / 3.56:1 (dark) — below AA. It is reserved
+  // for non-text marks: chart grid lines and axis ticks, the uppercase 11px
+  // labels that repeat the data below them, status dots. A rule that puts it on
+  // a `color:` alongside a font-size in body range is putting a sentence in a
+  // sub-AA colour, which is how .card-note shipped at 3.3:1. Raising the token
+  // is not the fix: any AA-clean value collapses into --ink-2.
+  if (rel.endsWith(".css")) {
+    const blocks = text.split("}");
+    for (const block of blocks) {
+      if (!/color:\s*var\(--ink-3\)/u.test(block)) continue;
+      const size = /font-size:\s*(\d+(?:\.\d+)?)px/u.exec(block);
+      if (size !== null && Number(size[1]) >= 12) {
+        const selector = (block.split("{")[0] ?? "").trim().split("\n").pop() ?? "?";
+        failures.push(
+          `${rel}: ${selector} puts ${size[1]}px body text in --ink-3 (below AA) — use --ink-2`,
+        );
+      }
+    }
+  }
 }
 
 function distFileList() {

@@ -48,25 +48,43 @@ test("config-version state drives the lens, and publishing anneals it", async ({
   await page.waitForTimeout(900);
   const draft = await lens(page, "rail");
 
+  // Record every stdDeviation the tween writes, from inside the page and armed
+  // BEFORE the state change. Polling from the test instead is load-dependent:
+  // the assertions between the click and the first sample can outlast the 600ms
+  // anneal on a busy machine, so the test would see only the endpoint and fail
+  // intermittently under parallel workers.
+  await page.evaluate(() => {
+    const f = document.getElementById("prism-lens-rail");
+    const target = f?.querySelectorAll("feGaussianBlur")[0];
+    const seen: string[] = [];
+    (window as unknown as { __frost: string[] }).__frost = seen;
+    if (target === undefined) return;
+    seen.push(target.getAttribute("stdDeviation") ?? "");
+    new MutationObserver(() => {
+      seen.push(target.getAttribute("stdDeviation") ?? "");
+    }).observe(target, { attributes: true, attributeFilter: ["stdDeviation"] });
+  });
+
   await navigate(page, "配置版本");
   await page.locator(".dock").getByRole("button", { name: "发布" }).click();
   await page.getByRole("button", { name: "完成" }).click();
   await expect(page.locator(".topbar")).toContainText("当前版本只读");
-
-  // Sampled inside the 600ms anneal: SVG filter primitives are attributes, not
-  // animatable CSS properties, so `transition: backdrop-filter` cannot move
-  // them — without the JS tween this snapped in one frame.
-  await page.waitForTimeout(120);
-  const mid = await lens(page, "rail");
   await page.waitForTimeout(900);
   const active = await lens(page, "rail");
+
+  const series = (
+    await page.evaluate(() => (window as unknown as { __frost: string[] }).__frost)
+  ).map(Number);
 
   // draft = frosted and desaturated; active = clear and vivid
   expect(draft?.frost).toBeGreaterThan(active?.frost ?? 0);
   expect(draft?.sat).toBeLessThan(active?.sat ?? 0);
-  // mid-flight value sits strictly between the endpoints
-  expect(mid?.frost).toBeLessThan(draft?.frost ?? 0);
-  expect(mid?.frost).toBeGreaterThan(active?.frost ?? 0);
+  // The tween must pass through values strictly between the endpoints. A snap
+  // would record exactly two: the draft level and the active level.
+  const between = series.filter(
+    (v) => v < (draft?.frost ?? 0) - 0.01 && v > (active?.frost ?? 0) + 0.01,
+  );
+  expect(between.length, `frost series: ${series.join(",")}`).toBeGreaterThan(2);
 });
 
 test("content surfaces share one left edge across pages", async ({ page }) => {
