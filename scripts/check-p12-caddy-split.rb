@@ -11,6 +11,7 @@ require "optparse"
 ROOT = File.expand_path("..", __dir__)
 DEFAULT_SPLIT = File.join(ROOT, "deploy", "caddy", "canary.Caddyfile")
 DEFAULT_ROLLBACK = File.join(ROOT, "deploy", "caddy", "rollback.Caddyfile")
+DEFAULT_STAGING = File.join(ROOT, "deploy", "caddy", "staging-domain.Caddyfile")
 HTTP_SOURCE = File.join(ROOT, "crates", "gateway-http-actix", "src", "lib.rs")
 RUNTIME_SOURCE = File.join(ROOT, "apps", "gateway", "src", "runtime.rs")
 
@@ -18,10 +19,11 @@ DATA_PLANE = "127.0.0.1:18180"
 MANAGEMENT_PLANE = "127.0.0.1:18181"
 INCUMBENT = "127.0.0.1:8317"
 
-options = { split: DEFAULT_SPLIT, rollback: DEFAULT_ROLLBACK }
+options = { split: DEFAULT_SPLIT, rollback: DEFAULT_ROLLBACK, staging: DEFAULT_STAGING }
 OptionParser.new do |parser|
   parser.on("--split PATH", "Validate an alternate split fragment") { |path| options[:split] = path }
   parser.on("--rollback PATH", "Validate an alternate rollback fragment") { |path| options[:rollback] = path }
+  parser.on("--staging PATH", "Validate an alternate staging-domain fragment") { |path| options[:staging] = path }
 end.parse!
 
 errors = []
@@ -35,10 +37,11 @@ end
 
 split = read_source(options[:split], "Canary split fragment", errors)
 rollback = read_source(options[:rollback], "rollback fragment", errors)
+staging = read_source(options[:staging], "staging-domain fragment", errors)
 http_source = read_source(HTTP_SOURCE, "HTTP crate", errors)
 runtime_source = read_source(RUNTIME_SOURCE, "P12 runtime", errors)
 
-if [split, rollback, http_source, runtime_source].any?(&:nil?)
+if [split, rollback, staging, http_source, runtime_source].any?(&:nil?)
   errors.each { |error| warn "p12-caddy-split: #{error}" }
   exit 1
 end
@@ -135,7 +138,7 @@ end
 
 # Exposure invariants from CR-P12-ROLLOUT-001. Comments are excluded: both fragments explain the
 # management-plane rule in prose, and naming the port in a comment is not a route.
-[options[:split], options[:rollback]].zip([split, rollback]).each do |path, text|
+[options[:split], options[:rollback], options[:staging]].zip([split, rollback, staging]).each do |path, text|
   label = File.basename(path)
   directives = text.lines.reject { |line| line.strip.start_with?("#") }.join
   if directives.include?(MANAGEMENT_PLANE)
@@ -145,6 +148,22 @@ end
   if directives.match?(/^\s*encode\s/)
     errors << "#{label} must not compress the data plane; encode reintroduces SSE buffering"
   end
+  # Caddy scopes `servers` by listener address, so any of these fragments could retime every
+  # co-located site.
+  if directives.match?(/^\s*servers\b/)
+    errors << "#{label} must not declare a global servers block; it would apply to every site " \
+              "sharing the :443 listener"
+  end
+end
+
+# The staging domain exists only to verify exposure before the split, so it must reach the data
+# plane and nothing else.
+staging_directives = staging.lines.reject { |line| line.strip.start_with?("#") }.join
+unless staging_directives.include?(DATA_PLANE)
+  errors << "the staging-domain fragment must reverse_proxy to #{DATA_PLANE}"
+end
+if staging_directives.include?(INCUMBENT)
+  errors << "the staging-domain fragment must not route to the incumbent; it is not a split"
 end
 
 unless split.include?(DATA_PLANE)

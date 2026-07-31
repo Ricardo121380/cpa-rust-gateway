@@ -1,0 +1,32 @@
+# P12-07 pre-exposure verification domain.
+#
+# This is the first public route to the new gateway. It exists to verify DNS, TLS, authentication and
+# the management-plane boundary before any production traffic is split, and it is expected to be
+# removed once P12-08 begins: the Canary runs on the production hostname per CR-P12-ROLLOUT-001, not
+# here.
+#
+# Deliberately NO global `servers` block, for the same reason as canary.Caddyfile: Caddy scopes
+# `servers` by listener address, and every site on this host shares one :443 listener, so a global
+# timeouts block would retime cpa, cpam, grok, kiro and sub as well. Server-level timeouts default
+# to none, which is what a long-lived event stream needs.
+#
+# Do not add `encode`: compressing an event stream reintroduces buffering. Caddy already flushes
+# `Content-Type: text/event-stream` immediately.
+
+cpar.example.invalid {
+	# Only the data plane is reachable. The management listener on 127.0.0.1:18181 has no route here
+	# and must not get one: it authorizes by peer address, so a public route would hand the
+	# management surface to the internet.
+	reverse_proxy 127.0.0.1:18180
+}
+
+# Caddy's standard build ships no rate-limiting module (verified with `caddy list-modules` on this
+# host), so the rate limiting CR-P12-ROLLOUT-001 lists for this domain cannot be enforced here.
+# Compensating controls, in order of what actually bounds abuse:
+#   1. Every data-plane route requires a client key; unauthenticated requests are rejected before
+#      any upstream work.
+#   2. Inbound bodies are capped at 4 MiB and their read is bounded at 30s by the gateway.
+#   3. Total in-flight concurrency is bounded at 16 by the P12 composition.
+#   4. This hostname is not published to any client and is removed after P12-07 completes.
+# Introducing a rate limiter would mean a custom Caddy build, which changes the incumbent's TLS
+# terminator and is out of scope for a pre-exposure check. Recorded as a known gap instead.

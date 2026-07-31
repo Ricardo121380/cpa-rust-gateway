@@ -89,6 +89,24 @@
   注意 `caddy reload` 返回零只表示配置被接受，**不**表示下一个请求已走新路由，所以脚本轮询探针
   直到实际观测到后端改变，分别记录 `reload_returned_ms` 与 `effective_ms`
 
+### P12-07 暴露前验证域名
+
+[`deploy/caddy/staging-domain.Caddyfile`](../deploy/caddy/staging-domain.Caddyfile) 是新网关的
+**第一条公网路由**，只用于在分流前验证 DNS/TLS/认证与管理面边界，P12-08 开始后即应移除
+（Canary 按 `CR-P12-ROLLOUT-001` 跑在生产主机名上，不在此域名）。它只反代数据面 18180，
+同样不含全局 `servers` 块、不含 `encode`、不含到 18181 的任何路由。
+
+验证用 [`scripts/p12-07-verify-exposure.sh`](../scripts/p12-07-verify-exposure.sh)，八项断言全部
+fail-closed：权威 NS 解析、非代理（灰云）、证书主机名匹配、数据面可达、**未认证请求被拒**、
+**错误 key 被拒**、管理面四条路径均非 200、以及（给了 key 文件时）**合法 key 被接受**。
+最后一项不可省：否则前两项负向检查在一个"拒绝一切"的坏路由上同样会通过。
+
+**已知缺口——无限流**：`CR-P12-ROLLOUT-001` 为该域名列了限流，但服务器上的 Caddy 是标准版，
+`caddy list-modules` 实测**没有 rate_limit 模块**。补偿控制按实际约束力排序：数据面每条路由
+都要求 client key（未认证在触达上游前即被拒）、入站正文上限 4 MiB 且读取 30s 有界、
+绑定总并发上限 16、该主机名不对任何客户端公布且 P12-07 完成后移除。加限流需要自定义 Caddy
+构建，会改动 incumbent 的 TLS 终止器，不在暴露前检查的范围内。
+
 ### 备份
 
 - **无 HTTP 备份创建/下载端点**（`create_operator_artifact` 刻意未挂载；HTTP 面只有 preflight 与 restore）。发布前备份为服务器文件系统级：静止拷贝或 SQLite 在线备份 `/var/lib/cpa-rust-gateway/control.sqlite3`，沿用 P12-03 的 tar+哈希收据格式
@@ -109,6 +127,7 @@
 | 8 | **服务端无延迟分位数**：Prometheus 暴露面 7 个指标全是计数器，零 histogram；`ManagementRequestAttempt` 按设计不含 timing | TTFT 与 P95/P99 由分流层之前的客户端侧探针采集；Attempt 级时长由事件日志 `started_at_ms`/`ended_at_ms` 离线导出统计。**不得**声称服务端提供实时分位数 |
 | 9 | `attempts_total` 只有 `succeeded`/`failed` 两个标签值，无 HTTP 状态码或错误分类维度 | 错误率分子按客户端观测状态码 + Attempt 载荷的 `GatewayError` 分类共同判定 |
 | 10 | Tool 与 Route 分布无指标 | 按 §2 台账逐样本核对，不按指标聚合 |
+| 11 | **分流层无限流**：服务器 Caddy 标准版无 `rate_limit` 模块 | 依赖 client key 强制、4 MiB 正文上限、30s 正文读取上限、总并发 16、测试域名不公布且用后移除；加限流需自定义 Caddy 构建，另行 CR |
 
 ## 7. Canary 阶段判据（操作口径）
 

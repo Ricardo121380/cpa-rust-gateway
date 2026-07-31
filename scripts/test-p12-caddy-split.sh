@@ -8,10 +8,11 @@ repo_root="$(git rev-parse --show-toplevel)"
 checker="$repo_root/scripts/check-p12-caddy-split.rb"
 split="$repo_root/deploy/caddy/canary.Caddyfile"
 rollback="$repo_root/deploy/caddy/rollback.Caddyfile"
+staging="$repo_root/deploy/caddy/staging-domain.Caddyfile"
 work_dir="$(mktemp -d)"
 trap 'rm -rf "$work_dir"' EXIT
 
-ruby "$checker" --split "$split" --rollback "$rollback" >/dev/null
+ruby "$checker" --split "$split" --rollback "$rollback" --staging "$staging" >/dev/null
 
 # Each case: label, then a Ruby expression mutating the split copy.
 reject_split() {
@@ -78,4 +79,26 @@ reject_rollback 'a rollback that still routes to the gateway' \
 reject_rollback 'a rollback for a different hostname' \
     'text = text.sub("cpa.example.invalid", "other.example.invalid")'
 
-printf 'p12-caddy-split test: ok (11 rejection paths)\n'
+reject_staging() {
+    local label="$1"
+    local mutation="$2"
+    local candidate="$work_dir/staging.Caddyfile"
+    cp "$staging" "$candidate"
+    ruby -e "path = ARGV.fetch(0); text = File.read(path); $mutation; File.write(path, text)" "$candidate"
+    if ruby "$checker" --split "$split" --rollback "$rollback" --staging "$candidate" >/dev/null 2>&1; then
+        printf 'p12-caddy-split test: %s was accepted\n' "$label" >&2
+        exit 1
+    fi
+}
+
+# The staging domain is the gateway's first public route, so its exposure invariants matter most.
+reject_staging 'a staging route to the management listener' \
+    'text = text.sub("reverse_proxy 127.0.0.1:18180", "reverse_proxy 127.0.0.1:18181")'
+reject_staging 'a staging global servers block' \
+    'text = text.sub("cpar.example.invalid {", "{\n\tservers {\n\t\ttimeouts {\n\t\t\tidle 1h\n\t\t}\n\t}\n}\n\ncpar.example.invalid {")'
+reject_staging 'compression on the staging domain' \
+    'text = text.sub("\treverse_proxy 127.0.0.1:18180", "\tencode gzip\n\treverse_proxy 127.0.0.1:18180")'
+reject_staging 'a staging domain that also fronts the incumbent' \
+    'text = text.sub("reverse_proxy 127.0.0.1:18180", "reverse_proxy 127.0.0.1:8317")'
+
+printf 'p12-caddy-split test: ok (15 rejection paths)\n'
