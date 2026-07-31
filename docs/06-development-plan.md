@@ -2545,28 +2545,31 @@ CR-ID: CR-P12-07-001
       (1) 新增 deploy/caddy/canary.Caddyfile：生产主机名不变，按非机密固定字面前缀
       `rgw_` 在 Authorization 与 X-Api-Key 两个头上分流到 127.0.0.1:18180，其余流量继续
       到 incumbent CPA 127.0.0.1:8317；不含任何 key 值；刻意不含到 18181 的任何路由；
-      刻意不加 encode（压缩会在事件流前重新引入缓冲）。超时按网关自身上限推导而非自选：
-      read_body 30s 对齐入站正文超时、read_header 20s 高于 15s keepalive、write 0s
-      （写截止时间无法约束长连接 SSE）、idle 1h 对齐流式总上限且高于 15min 进度截止。
+      刻意不加 encode（压缩会在事件流前重新引入缓冲）；**刻意不含全局 `servers` 超时块**。
+      Caddy 的 `servers` 按监听地址生效而非按站点，服务器五个站点共用同一 `:443` 监听器，
+      加全局块会把超时施加到 cpam/grok/kiro/sub（已用 `caddy adapt` 对真实 live 配置实测
+      确认）；要按站点隔离只能换端口，会改变公开面。省略是安全的：现行配置编译为
+      `timeouts: NONE`，而"无超时"对长连接 SSE 正是所需，也天然满足 CR-P12-ROLLOUT-001 的
+      ">15s" 要求。风险方向与运维直觉相反——危险是有人**加**超时而非缺超时。
       (2) 新增 deploy/caddy/rollback.Caddyfile：把同一主机名全量指回 incumbent，作为
       P12-09 的回滚 preimage；回滚是一次文件交换加一次 reload，不动 DNS/TLS/其它站点。
-      (3) 新增 scripts/check-p12-caddy-split.rb：从 Rust 源码读取 SSE_KEEPALIVE_INTERVAL、
-      INFERENCE_REQUEST_BODY_TIMEOUT、P12_STREAMING_TOTAL_TIMEOUT、
-      P12_STREAMING_PROGRESS_TIMEOUT，与 Caddyfile 超时逐项比对；两侧任一漂移即 fail
-      closed。同时断言管理面未暴露、无压缩、前缀匹配未退化、配置内不含 key 值、回滚确实
+      (3) 新增 scripts/check-p12-caddy-split.rb：拒绝全局 `servers` 块；并在真有超时被
+      引入时，从 Rust 源码读取 SSE_KEEPALIVE_INTERVAL、INFERENCE_REQUEST_BODY_TIMEOUT、
+      P12_STREAMING_TOTAL_TIMEOUT、P12_STREAMING_PROGRESS_TIMEOUT 与之逐项比对，两侧任一
+      漂移即 fail closed。同时断言管理面未暴露、无压缩、前缀匹配未退化、配置内不含 key 值、回滚确实
       移除网关且主机名一致。接入 check.sh fast 与 docs。
       (4) 新增 scripts/p12-09-measure-caddy-rto.sh：先 caddy validate 再交换并 reload，
       随后轮询探针直到实际观测到的后端改变，分别记录 reload 返回耗时与生效耗时。因为
       `caddy reload` 返回零只表示配置被接受，不表示下一个请求已走新路由，所以 RTO 必须
       按观测到的路由变化计时。脚本不打印 key、头值或响应正文，可选 0600 无值回执。
-      (5) 新增 scripts/test-p12-caddy-split.sh：对 13 条回归路径逐一实测拒绝。
+      (5) 新增 scripts/test-p12-caddy-split.sh：对 11 条回归路径逐一实测拒绝。
 兼容性与迁移影响: 无代码、公开 API、Canonical、Schema 或安全迁移。本 CR 只新增仓库内的
       模板与检查脚本，不安装、不 reload、不改服务器现行 Caddy 配置；服务器仍只运行既有
       站点。用户正在进行的 CPA/CPAMP 迁移不受影响。分流启用仍属 P12-07/P12-08 的独立授权。
-测试与回滚变化: 两个 fragment 已在服务器上用真实 Caddy v2.11.4 `caddy validate` 通过，并以
-      `caddy adapt` 核对编译后的路由确为两条 rgw_ 匹配指向 18180、缺省指向 8317，且服务器级
-      超时为 read 30s / read_header 20s / idle 1h、无 write_timeout。核对后立即删除临时目录，
-      现行配置与 caddy 服务状态未变。回滚为删除本 CR 新增的四个文件与 check.sh 的两处接线。
+测试与回滚变化: 分流 fragment 已就地合并进服务器真实 live 配置的副本并用 Caddy v2.11.4
+      `caddy validate` 通过；`caddy adapt` 核对编译结果为 cpa 站点两条 rgw_ 匹配指向 18180、
+      缺省指向 8317，其余四个站点上游与 `timeouts: NONE` 均未改变。核对全程只读，随后删除临时
+      目录，现行配置与 caddy 服务状态未变。回滚为删除本 CR 新增的四个文件与 check.sh 的两处接线。
 用户批准: APPROVED，2026-07-30（"开始A5"）
 计划版本变更: v1.74
 ```

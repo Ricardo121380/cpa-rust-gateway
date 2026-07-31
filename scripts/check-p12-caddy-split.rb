@@ -74,42 +74,60 @@ if keepalive && body_timeout && streaming_total && progress
   total_seconds = streaming_total[1].to_i * 3600
   progress_seconds = progress[1].to_i * 60
 
+  # Caddy scopes a `servers` block by listener address, not by site. The server runs every site on
+  # one :443 listener, so a global block here would silently retime unrelated sites. Omitting it is
+  # safe: server-level timeouts default to none, which is what a long-lived event stream needs and
+  # which satisfies CR-P12-ROLLOUT-001's ">15s" requirement by construction.
+  directives = split.lines.reject { |line| line.strip.start_with?("#") }.join
+  if directives.match?(/^\s*servers\b/)
+    errors << "the split fragment must not declare a global servers block; it would apply to every " \
+              "site sharing the :443 listener, not just this one"
+  end
+
   read_header = caddy_timeout(split, "read_header")
   read_body = caddy_timeout(split, "read_body")
   write_timeout = caddy_timeout(split, "write")
   idle = caddy_timeout(split, "idle")
 
-  if read_header.nil? || read_body.nil? || write_timeout.nil? || idle.nil?
-    errors << "the split fragment must set read_body, read_header, write and idle timeouts"
-  else
+  # No timeout is the correct default. But if one is ever introduced, it must still clear the
+  # gateway's own ceilings rather than cutting streams the gateway considers live.
+  unless read_header.nil?
     header_seconds = parse_duration(read_header)
+    if header_seconds.nil?
+      errors << "read_header must be a plain <n>s/<n>m/<n>h duration"
+    elsif header_seconds <= keepalive_seconds
+      errors << "read_header #{read_header} is not above the #{keepalive_seconds}s SSE keepalive interval"
+    end
+  end
+  unless read_body.nil?
     body_configured = parse_duration(read_body)
+    if body_configured.nil?
+      errors << "read_body must be a plain <n>s/<n>m/<n>h duration"
+    elsif body_configured != body_seconds
+      errors << "read_body #{read_body} does not match the gateway's #{body_seconds}s inbound body timeout"
+    end
+  end
+  unless write_timeout.nil?
     write_seconds = parse_duration(write_timeout)
+    if write_seconds.nil?
+      errors << "write must be a plain <n>s/<n>m/<n>h duration"
+    elsif !write_seconds.zero?
+      errors << "write must stay 0s; a write deadline would truncate long-lived SSE responses"
+    end
+  end
+  unless idle.nil?
     idle_seconds = parse_duration(idle)
-
-    if header_seconds.nil? || body_configured.nil? || write_seconds.nil? || idle_seconds.nil?
-      errors << "every split timeout must be a plain <n>s/<n>m/<n>h duration"
+    if idle_seconds.nil?
+      errors << "idle must be a plain <n>s/<n>m/<n>h duration"
     else
-      # A read or idle deadline at or below the keepalive interval closes healthy idle streams.
-      if header_seconds <= keepalive_seconds
-        errors << "read_header #{read_header} is not above the #{keepalive_seconds}s SSE keepalive interval"
-      end
       if idle_seconds <= keepalive_seconds
         errors << "idle #{idle} is not above the #{keepalive_seconds}s SSE keepalive interval"
       end
-      # A write deadline cannot bound a long-lived event stream at all.
-      unless write_seconds.zero?
-        errors << "write must stay 0s; a write deadline would truncate long-lived SSE responses"
-      end
-      # The proxy must not give up while the gateway still considers the stream live.
       if idle_seconds < progress_seconds
         errors << "idle #{idle} is below the gateway's #{progress_seconds}s streaming progress deadline"
       end
       if idle_seconds != total_seconds
         errors << "idle #{idle} does not match the gateway's #{total_seconds}s streaming total ceiling"
-      end
-      if body_configured != body_seconds
-        errors << "read_body #{read_body} does not match the gateway's #{body_seconds}s inbound body timeout"
       end
     end
   end

@@ -38,19 +38,26 @@ reject_rollback() {
     fi
 }
 
-# A read or idle deadline at or below the SSE keepalive interval cuts healthy idle streams.
-reject_split 'an idle timeout below the keepalive interval' \
-    'text = text.sub(/^\t\t\tidle 1h$/, "\t\t\tidle 10s")'
-reject_split 'a read_header timeout below the keepalive interval' \
-    'text = text.sub(/^\t\t\tread_header 20s$/, "\t\t\tread_header 5s")'
-# A write deadline cannot bound a long-lived event stream.
-reject_split 'a non-zero write deadline' \
-    'text = text.sub(/^\t\t\twrite 0s$/, "\t\t\twrite 60s")'
-# The proxy must not close a stream the gateway still considers live.
-reject_split 'an idle timeout below the gateway streaming ceiling' \
-    'text = text.sub(/^\t\t\tidle 1h$/, "\t\t\tidle 10m")'
-reject_split 'a read_body timeout disagreeing with the gateway' \
-    'text = text.sub(/^\t\t\tread_body 30s$/, "\t\t\tread_body 5s")'
+inject_split() {
+    local label="$1"
+    local mutation="$2"
+    local candidate="$work_dir/split.Caddyfile"
+    cp "$split" "$candidate"
+    ruby -e "path = ARGV.fetch(0); text = File.read(path); $mutation; File.write(path, text)" "$candidate"
+    if ruby "$checker" --split "$candidate" --rollback "$rollback" >/dev/null 2>&1; then
+        printf 'p12-caddy-split test: %s was accepted\n' "$label" >&2
+        exit 1
+    fi
+}
+
+# A global servers block would retime every site sharing the :443 listener, not just this one.
+inject_split 'a global servers block' \
+    'text = text.sub("cpa.example.invalid {", "{\n\tservers {\n\t\ttimeouts {\n\t\t\tidle 1h\n\t\t}\n\t}\n}\n\ncpa.example.invalid {")'
+# If a timeout is ever introduced anyway, it must still clear the gateway's ceilings.
+inject_split 'an idle timeout below the keepalive interval' \
+    'text = text.sub("cpa.example.invalid {", "{\n\tservers {\n\t\ttimeouts {\n\t\t\tidle 10s\n\t\t}\n\t}\n}\n\ncpa.example.invalid {")'
+inject_split 'a non-zero write deadline' \
+    'text = text.sub("cpa.example.invalid {", "{\n\tservers {\n\t\ttimeouts {\n\t\t\twrite 60s\n\t\t}\n\t}\n}\n\ncpa.example.invalid {")'
 # Exposure invariants.
 reject_split 'a route to the management listener' \
     'text = text.sub("reverse_proxy 127.0.0.1:18180", "reverse_proxy 127.0.0.1:18181")'
@@ -71,4 +78,4 @@ reject_rollback 'a rollback that still routes to the gateway' \
 reject_rollback 'a rollback for a different hostname' \
     'text = text.sub("cpa.example.invalid", "other.example.invalid")'
 
-printf 'p12-caddy-split test: ok (13 rejection paths)\n'
+printf 'p12-caddy-split test: ok (11 rejection paths)\n'

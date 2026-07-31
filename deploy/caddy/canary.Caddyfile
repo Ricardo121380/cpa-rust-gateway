@@ -1,36 +1,26 @@
 # P12-08 Canary split: production hostname unchanged, traffic selected by client-key prefix.
 #
 # This is a fragment, not a whole Caddyfile. It replaces exactly one existing site block on the
-# server; every other site (cpam, grok, kiro, sub) stays untouched. The global `servers` block
-# below must be merged into the server's existing global block, not appended as a second one —
-# Caddy allows at most one global options block and it must be first.
+# server; every other site (cpam, grok, kiro, sub) stays untouched.
 #
-# Timeouts are derived from the gateway's own transport ceilings rather than chosen freely:
-#   - SSE keepalive interval is 15s, so any read/idle timeout at or below 15s would cut a healthy
-#     idle stream between keepalives. `CR-P12-ROLLOUT-001` makes ">15s" a hard review item.
-#   - The gateway's streaming total ceiling is 1h and its progress deadline is 15min, so the proxy
-#     must not close a stream the gateway still considers live. `idle 1h` matches that ceiling.
-#   - Inbound body read has a 30s timeout and a 4 MiB cap in the gateway, so `read_body 30s` here
-#     agrees with the origin instead of failing earlier or later for a different reason.
+# Deliberately NO global `servers` block. Caddy scopes `servers` by listener address, not by site,
+# so a global timeouts block on the server's single :443 listener would silently apply to every
+# other site sharing it. Scoping it would require moving this site to another port, which changes
+# the public surface.
+#
+# That is safe to omit because Caddy's server-level timeouts default to none, which is exactly what
+# a long-lived event stream needs. `CR-P12-ROLLOUT-001` requires read/idle timeouts above the data
+# plane's 15s SSE keepalive interval; "no timeout" satisfies that by construction. The live config
+# on the server currently sets no timeouts, verified with `caddy adapt`.
+#
+# The hazard is therefore the opposite of the usual one: adding a routine read or idle timeout here
+# would cut healthy idle streams between keepalives. `scripts/check-p12-caddy-split.rb` enforces
+# that any timeout introduced later still clears the gateway's own ceilings, which it reads from the
+# Rust source (15s keepalive, 30s inbound body, 15min progress deadline, 1h streaming total).
 #
 # Caddy needs no explicit flush configuration for SSE: responses with
 # `Content-Type: text/event-stream` are flushed immediately regardless of flush_interval.
 # Do not add `encode` to this site — compressing an event stream reintroduces buffering.
-
-{
-	servers {
-		timeouts {
-			# Time to read the request body. Matches the gateway's own inbound body timeout.
-			read_body 30s
-			# Time to read request headers. Well above the 15s keepalive floor.
-			read_header 20s
-			# Must stay 0 (no timeout): a write deadline would kill long-lived SSE responses.
-			write 0s
-			# Idle ceiling for a kept-alive connection. Matches the gateway's 1h streaming total.
-			idle 1h
-		}
-	}
-}
 
 cpa.example.invalid {
 	# The split matches a non-secret fixed literal prefix. No key value ever appears in this file.
