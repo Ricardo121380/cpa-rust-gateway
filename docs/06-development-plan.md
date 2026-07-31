@@ -4,8 +4,8 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.74` |
-| 生效日期 | `2026-07-30` |
+| 计划版本 | `v1.75` |
+| 生效日期 | `2026-07-31` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
 | 当前任务 | P12-04 已完成独立、loopback-only Staging 验收并保持 disabled-at-boot；P12-05 的 Models、Responses、SSE、Messages、Tool 与 Explain 已全部通过受控验收并回滚，状态为 `LOCAL_PASS_PENDING_PHASE_GATE`。P12-01 已按 `CR-P12-01-002` 扩为 x86_64 + aarch64 双目标并完成远端双 job 验收（生产主机为 aarch64，此前产物在其上不可执行）。P12-08 的判据已按 `CR-P12-08-001` 定为可判定谓词（阶段门槛 1250、50% 阶段 24h、四级严重度分级、TTFT/P95 服务端不可观测已如实登记），P12-07 的分流/回滚 Caddyfile 模板、超时一致性校验器与 RTO 测量脚本已按 `CR-P12-07-001` 就绪于 `deploy/caddy/`（未安装、未 reload）。P12-06 仍是 `PENDING`，尚未获其 Shadow/Differential 流量范围的单独执行授权；现有 CPA、公开监听与任何公开流量没有改变。 |
@@ -1717,7 +1717,7 @@ CR-ID: CR-P11-04-001
 | P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | [带时间戳、无值备份与回滚清单](reports/p12-03-server-backup-rollback.md)：现有 CPA 数据根静止快照、镜像身份、关联 unit 片段、权限、哈希和精确回滚步骤已独立复核；未安装或启动新服务 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | [Staging receipt](reports/p12-04-staging-receipt.md)：独立签名制品、精确 Unit、root-only 凭证、两个回环 listener、Health/管理面 admission、资源/日志/回滚均验收；服务 active 但 disabled-at-boot | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | [CR-015 Tool/Explain 回执](reports/evidence/p12-05-cr-015-tool-explain-receipt-20260726.md)：一次新的无外部效应 Tool tuple 为 `2xx`/`valid`，唯一 protected attempt 为 `succeeded/decoder`，Explain 选中唯一 Candidate 且无新增 upstream attempt；完整回滚与独立 post-review 均通过 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | 差异与性能报告 | PENDING |
+| P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | 差异与性能报告；按 `CR-P12-06-003` 分为两类互不混淆的证据：OpenAI-compatible 路径的 canonical 逐字段差分，以及 Kiro 渠道的功能验证与性能基线（incumbent 无此渠道，显式非差分）。性能含首字耗时（FirstSemanticEvent）、TTFB、总耗时、token 输出速率与 token 间延迟分位数 | PENDING |
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | [暴露前验证回执](reports/p12-07-exposure-receipt.md)：新主机上从零完成产物验签、账户/目录/五凭据、unit 安装与启动（active、disabled-at-boot）；`cpar` 灰云 A 记录 + Let's Encrypt 证书；七项 fail-closed 暴露断言全通过（未认证与错误 key 均 401、管理面四路径均 404、公网直连 18180/18181 均不可达）；Caddy 变更前备份 preimage 并以 validate/adapt 证明其余五站点未变，reload 后 incumbent 仍正常。未录入任何真实上游凭据，`valid_key_accepted` 为 SKIP；该域名无限流（Caddy 标准版无模块）已记为缺口 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08 | 使用单独 Client Key 开始 10%→25%→50%→100% Canary | P12-06,P12-07 | 每阶段成功率、P95/P99、缓存和错误证据 | PENDING |
 | P12-09 | 在 Canary 中实际执行一次回滚并再次恢复 | P12-08 | 回滚时长和一致性报告 | PENDING |
@@ -2529,6 +2529,64 @@ CR-ID: CR-P12-06-002
 计划版本变更: v1.71
 ```
 
+### 已批准 Change Request：CR-P12-06-003
+
+```text
+CR-ID: CR-P12-06-003
+原因: P12-06 的任务卡是"执行现有网关与新网关 Shadow/Differential 流量"，但其执行范围一直未
+      获授权，且用户提供的新信息改变了该任务的性质。(1) incumbent CPA **没有 Kiro 渠道**，
+      因此 Kiro 不存在"新旧两侧"可比，它是新网关独有的新能力；对它只能做功能验证与性能
+      基线，不能称作差分。真正可差分的是 OpenAI-compatible 那条（CPA 有）。(2) 用户提供了
+      线上 kiro-rs 的凭据用于测试。经只读盘点：四个凭据中三个 `authMethod=api_key`、
+      前缀 `ksk_`、36 字符、`endpoint=cli`，与 cpa-rust `KiroApiKeyCredential` 的
+      `starts_with("ksk_")` 校验吻合；当前仅 id=5（KIRO PRO MAX）启用。api_key 是静态凭据
+      且代码明确"never participates in OAuth refresh"，因此复制给 cpa-rust 使用**不会**与
+      线上 kiro-rs 互相失效 access_token（此前担心的共用 refresh_token 风险不存在）。
+      (3) A3/A4 已查明服务端无延迟分位数（7 个计数器、零 histogram），因此性能证据必须走
+      客户端侧测量，不能假称服务端提供。
+影响的 Task / Matrix ID / ADR: P12-06 的执行范围与证据定义；不改代码、公开 API、Canonical、
+      Provider、Schema，不改 incumbent 配置或 kiro-rs。
+      (1) 范围与性质分离：P12-06 产出两类互不混淆的证据。
+        (a) **差分**（有两侧可比）：仅 OpenAI-compatible 路径，逐字段比对 canonical 投影——
+            事件序列、Tool call 结构、Usage 各字段（input/output/reasoning/cache_read/
+            cache_creation）、错误分类、终止原因。
+        (b) **功能验证 + 性能基线**（只有一侧）：Kiro 渠道，用 api_key 凭据。报告必须显式
+            标注这一类**不是**差分，因为 incumbent 无此渠道。
+      (2) 流量来源：固定合成请求，不做真实生产流量影子复制。理由：P12-06 要发现的是语义与
+      协议层面的差异，合成请求可刻意打到边界条件（超长上下文、特定 tool schema、罕见参数
+      组合），而影子复制会真实消耗上游配额、在上游账号留调用记录并产生费用，且 Caddy 只能
+      路由不能镜像。真实流量的价值在 P12-08 的 Canary 自然获得。
+      (3) 凭据边界：Kiro 用从 kiro-rs 复制的 api_key（静态、无刷新、不影响 kiro-rs）。
+      OpenAI-compatible 侧的凭据边界不在本 CR 内，另行决定。凭据值不得进入对话或仓库，由
+      用户写入服务器文件后按路径读取。
+      (4) 性能指标（用户明确要求"至少包括首字耗时、总耗时和 token 输出速率"）：
+        - **首字耗时**：按 `FirstSemanticEvent`（BL-05 透明重试边界）测量，即首个**语义**
+          事件到达时刻，而非首个字节；这才对应"用户看到第一个字"。
+        - **TTFB**：首个响应字节（含响应头）。并记的理由是它与首字耗时之差正好暴露上游思考
+          停顿时长，对诊断有用。
+        - **总耗时**：到流终止。
+        - **token 输出速率**：输出 token 数 / (总耗时 - 首字耗时)，即首字之后的稳态速率；
+          用总耗时作分母会把思考停顿摊进速率，掩盖真实吞吐。
+        - 附带记录 token 间延迟 P50/P95/P99，用于暴露流式过程中的抖动。
+        每项按 Kiro 与 OpenAI-compatible 分别汇总，且必须记录样本量——单次测量不作结论。
+      (5) 边界不变：本 CR 不解除 `CR-P7-DEFER-002` 与 `CR-P8-DEFER-001` 的外部认证延期；
+      Kiro 的 P7-09/G7 仍是 DEFERRED，本 CR 的证据**不**计为 Kiro 的 Provider Gate 通过。
+      也不改变 `CR-P12-ROLLOUT-001` 的切换范围：Kiro 生产路由仍不启用，本 CR 仅授权在
+      隔离测试域名与本地回环上验证该渠道。不授权任何生产主机名分流。
+兼容性与迁移影响: 无代码、公开 API、Canonical、Schema、部署或安全迁移。线上 kiro-rs 不被
+      修改、不被停止、其凭据文件只读不写。incumbent CPA 与用户的 CPA/CPAMP 迁移不受影响。
+测试与回滚变化: 新增可执行的性能测量与差分采集脚本，其输出为无值证据（不含 prompt 内容、
+      不含凭据、不含响应正文）。回滚为删除本 CR 新增的脚本与报告，并从 cpa-rust 配置图中
+      移除测试用 Kiro Upstream/Endpoint/Credential。
+用户批准: APPROVED，2026-07-31（"现在有kiro的凭据，可以拿线上kiro-rs里的凭据拿来测试"；
+      "性能对比尽量详细"；"至少包括首字耗时，总耗时和token输出速率"；"先做 P12-06"）
+计划版本变更: v1.75
+
+待用户提供后方可执行的前置项（不阻塞本 CR 批准）：
+  - kiro-rs 的 idc/OAuth（buildId 登录）缺陷修复需要源码；服务器 /opt/example-kiro-adapter 只有
+    二进制与备份，无源码、无 .git。用户已同意该修复作为独立任务后置，不阻塞 P12-06。
+```
+
 ### 已批准 Change Request：CR-P12-07-001
 
 ```text
@@ -2875,3 +2933,4 @@ Next task:
 | v1.72 | 2026-07-30 | `CR-P12-01-002`：发布流水线从单一 `x86_64-unknown-linux-gnu` 扩为 x86_64 与 `aarch64-unknown-linux-gnu` 双目标，各自在同架构标准 runner 上原生构建、独立 SBOM/manifest/keyless 签名/receipt；校验器改为封闭目标白名单并按目标推导 ELF `e_machine`、OCI architecture 与钉死的基础镜像 digest；Dockerfile 基础镜像逐架构传入并由产物侧 `base.name` 重新建立钉死性质。生产主机为 aarch64，此前产物在其上不可执行 | APPROVED；[run 30533211028](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/30533211028) 两个 job 均 SUCCESS，两份私有产物均已本地 `--require-signature --require-receipt` 复验；aarch64 产物为真实 `ARM aarch64` ELF 且在容器内实际执行 |
 | v1.73 | 2026-07-30 | `CR-P12-08-001`：Canary 阶段最低成功请求数由 100 改为 1250（并给出随基线上升的样本量表），合成补足请求单独计数且其失败计入分子，50% 阶段最短观察由 2h 提升为 24h 以补回本地 Soak 让掉的长时覆盖；新增四级故障严重度分级使 G12 的“无 P0/P1 故障”成为可判定谓词；明确 TTFT 与实时 P95/P99 服务端不可观测并改由客户端侧与离线路径取证 | APPROVED；`scripts/check-p12-08-canary-thresholds.rb` 以可执行形式固定该统计结论与分级，接入 check.sh fast/docs |
 | v1.74 | 2026-07-30 | `CR-P12-07-001`：新增 Canary 分流与回滚两个 Caddyfile 模板（生产主机名不变、按非机密 `rgw_` 前缀在两个头上分流、刻意不含 18181 路由与压缩），超时按网关自身上限推导；新增校验器从 Rust 常量读取 keepalive/正文/流式上限并与 Caddyfile 逐项比对，漂移即 fail closed；新增 P12-09 的 RTO 测量脚本，按观测到的路由变化计时而非按 reload 返回 | APPROVED；两 fragment 在服务器真实 Caddy v2.11.4 上 validate 通过并以 adapt 核对编译后路由，13 条回归路径实测拒绝，服务器现行配置未变 |
+| v1.75 | 2026-07-31 | `CR-P12-06-003`：界定 P12-06 范围——incumbent 无 Kiro 渠道故 Kiro 只做功能验证与性能基线（显式标注不是差分），可差分的仅 OpenAI-compatible 路径；流量用固定合成请求而非影子复制（避免真实配额消耗，且 Caddy 只能路由不能镜像）；Kiro 用 kiro-rs 的静态 `ksk_` api_key（不参与 OAuth 刷新，不影响线上 kiro-rs）；性能指标定为首字耗时（按 FirstSemanticEvent）、TTFB、总耗时、token 输出速率（分母用首字之后的稳态区间）与 token 间延迟分位数 | APPROVED；不解除 P7-09 外部认证延期，不改 CR-P12-ROLLOUT-001 的切换范围，Kiro 生产路由仍不启用 |
