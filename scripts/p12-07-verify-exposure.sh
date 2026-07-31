@@ -123,12 +123,16 @@ else
     record 'unauthenticated_rejected' 'FAIL' "expected 401 or 403, observed ${unauth_status:-none}"
 fi
 
-# 6. A wrong key must also be rejected, so that check 5 is not merely a missing-header path.
+# 6. A wrong key must also be rejected, so that check 5 is not merely a missing-header path. The
+#    value is generated here rather than written literally: a key-shaped constant in a tracked file
+#    is exactly what the repository's secret scanner is meant to catch, and rightly so.
+invalid_key="rgw_$(openssl rand -hex 16)"
 badkey_status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 10 \
     --request POST --header 'content-type: application/json' \
-    --header 'authorization: Bearer rgw_not_a_real_key' \
+    --header "authorization: Bearer $invalid_key" \
     --data '{"model":"probe","input":"probe"}' \
     "https://$domain/v1/responses" 2>/dev/null || true)"
+unset invalid_key
 if [[ "$badkey_status" == '401' || "$badkey_status" == '403' ]]; then
     record 'invalid_key_rejected' 'PASS' "status $badkey_status"
 else
