@@ -7,6 +7,7 @@ apps/gateway (binary-only deployment composition root)
   -> gateway-http-actix + gateway-control + gateway-observability + gateway-auth/store
      + gateway-protocol api_format adapter registry
      + protocol-anthropic/provider-anthropic-compatible Messages boundary
+     + provider-kiro native Kiro adapter boundary
      + Actix-local HTTP/Future primitives + libc credential-file guard + zeroize
 
 gateway-http-actix
@@ -130,6 +131,14 @@ gateway-core
   用于 Route Compiler 在发布前拒绝不可服务的 `api_format`；`apps/gateway` 的新边仅用于在装配期把每个
   Endpoint 绑定到其声明格式的适配器，并只经 `provider-anthropic-compatible` 这一个边界取得该格式的
   请求装配与响应/SSE 解码。这三条边严格单向，`gateway-protocol` 不得反向依赖它们中的任何一个。
+- 一个 `api_format` 可由多个 `adapter_id` 服务，注册表因此按 `adapter_id` 索引而非按格式固定槽位。
+  Kiro 在线格式上是 `anthropic/messages`，但经自有凭据族、派生 host 与 `profileArn` 注入到达，
+  因此是同一格式的第二个实现（`kiro.messages`），而不是新的格式。`ApiFormat::adapter_ids()` 是
+  格式与其合法适配器集合的唯一来源，发布期与装配期都按它判定成员关系，两侧不会漂移。
+- `apps/gateway` 对 `provider-kiro` 的边仅用于原生 Kiro 适配器：请求转换、`profileArn` 放置、
+  AWS EventStream 解码与 Kiro 失败分类都留在该 crate 内。装配根不因此获得 `gateway-provider`
+  的边——`provider-kiro` 重导出其 `InferenceAdapter` 与 `CanonicalEventSource`，与其它 Provider
+  crate 暴露上游边界的方式一致。该边严格单向。
 - `gateway-store` 不进入 Router 的请求选择路径；持久数据通过控制面编译为不可变 Snapshot。
 - `gateway-router` 可以使用 `gateway-auth` 的无存储 Client Key HMAC 原语来认证其已编译
   Snapshot；该边不允许反向的 Router、Store 或 HTTP 依赖进入 `gateway-auth`。

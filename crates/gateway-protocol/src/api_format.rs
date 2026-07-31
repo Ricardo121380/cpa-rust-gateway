@@ -9,7 +9,7 @@
 //! Nothing in this module encodes a request, opens a socket, reads a Credential, or inspects a
 //! canonical request. It names formats and holds caller-supplied adapter values.
 
-use std::{error::Error, fmt};
+use std::{collections::BTreeMap, error::Error, fmt};
 
 /// One exact control-plane `api_format` value this product can serve.
 ///
@@ -37,17 +37,28 @@ impl ApiFormat {
         }
     }
 
-    /// Returns the one `adapter_id` this format is served by.
+    /// Returns every `adapter_id` allowed to serve this format, in stable declaration order.
     ///
-    /// The pairing lives here so publish-time admission and composition-time binding cannot drift:
-    /// a Config Version that names a mismatched pair must be rejected before it is published,
-    /// not discovered at the next process start when the composition refuses to build.
+    /// One wire format can be served by more than one implementation: Kiro speaks Anthropic's
+    /// Messages format on the wire, but reaches it through its own credential families, endpoint
+    /// hosts and `profileArn` injection rather than a generic Anthropic upstream. So the format
+    /// alone cannot pick an implementation — the Endpoint's `adapter_id` selects one from this set.
+    ///
+    /// The set lives here so publish-time admission and composition-time binding cannot drift: a
+    /// Config Version naming an `adapter_id` outside its format's set must be rejected before it is
+    /// published, not discovered at the next process start when the composition refuses to build.
     #[must_use]
-    pub const fn adapter_id(self) -> &'static str {
+    pub const fn adapter_ids(self) -> &'static [&'static str] {
         match self {
-            Self::OpenAiResponses => "openai-compatible.responses",
-            Self::AnthropicMessages => "anthropic-compatible.messages",
+            Self::OpenAiResponses => &["openai-compatible.responses"],
+            Self::AnthropicMessages => &["anthropic-compatible.messages", "kiro.messages"],
         }
+    }
+
+    /// Returns whether one `adapter_id` may serve this format.
+    #[must_use]
+    pub fn serves(self, adapter_id: &str) -> bool {
+        self.adapter_ids().contains(&adapter_id)
     }
 
     /// Parses one stored `api_format` value, rejecting every unsupported spelling.
@@ -69,85 +80,100 @@ impl fmt::Display for ApiFormat {
     }
 }
 
-/// An immutable map from [`ApiFormat`] to one caller-chosen adapter binding.
+/// An immutable map from one `adapter_id` to its caller-chosen adapter binding.
 ///
 /// The registry is generic because "adapter" means something different at each layer: a
 /// per-Endpoint execution binding in a deployment binary, a stateless codec in a test. Fixing only
 /// the key set keeps this contract free of `gateway-provider`, `gateway-upstream`, and every
-/// protocol codec, so dispatching on a stored `api_format` needs no new dependency edge.
+/// protocol codec, so dispatching on a stored `api_format` plus `adapter_id` needs no new
+/// dependency edge.
 ///
-/// The map is deliberately partial. A product-supported format that *this* build binds no adapter
-/// for resolves to `None`, which its composition root must turn into a fail-closed composition
-/// error rather than a silently skipped Endpoint. Whether a stored string is a product-supported
-/// format at all is a separate, deployment-independent question answered by [`ApiFormat::parse`].
+/// Keys are `adapter_id`, not [`ApiFormat`], because one wire format may be served by several
+/// implementations (see [`ApiFormat::adapter_ids`]). Resolution therefore takes both: the format
+/// says what the product can serve, the `adapter_id` says which implementation serves it here.
+///
+/// The map is deliberately partial. A product-supported format whose `adapter_id` *this* build
+/// binds nothing for resolves to `None`, which its composition root must turn into a fail-closed
+/// composition error rather than a silently skipped Endpoint. Whether a stored string is a
+/// product-supported format at all is a separate, deployment-independent question answered by
+/// [`ApiFormat::parse`].
 #[derive(Clone)]
 pub struct ApiFormatAdapterRegistry<A> {
-    openai_responses: Option<A>,
-    anthropic_messages: Option<A>,
+    bindings: BTreeMap<&'static str, A>,
 }
 
 impl<A> ApiFormatAdapterRegistry<A> {
-    /// Builds a registry from explicit `(format, adapter)` bindings.
+    /// Builds a registry from explicit `(format, adapter_id, adapter)` bindings.
     ///
     /// # Errors
     ///
-    /// Returns [`ApiFormatAdapterRegistryError::DuplicateApiFormat`] when one format is bound more
+    /// Returns [`ApiFormatAdapterRegistryError::UnsupportedAdapterId`] when an `adapter_id` is not
+    /// one its format may be served by, so a composition cannot bind an implementation the Route
+    /// Compiler would reject at publish time. Returns
+    /// [`ApiFormatAdapterRegistryError::DuplicateAdapterId`] when one `adapter_id` is bound more
     /// than once, so an ambiguous composition fails at build time instead of resolving to whichever
     /// binding happened to be supplied last.
     pub fn try_new(
-        bindings: impl IntoIterator<Item = (ApiFormat, A)>,
+        bindings: impl IntoIterator<Item = (ApiFormat, &'static str, A)>,
     ) -> Result<Self, ApiFormatAdapterRegistryError> {
         let mut registry = Self {
-            openai_responses: None,
-            anthropic_messages: None,
+            bindings: BTreeMap::new(),
         };
-        for (format, adapter) in bindings {
-            let slot = match format {
-                ApiFormat::OpenAiResponses => &mut registry.openai_responses,
-                ApiFormat::AnthropicMessages => &mut registry.anthropic_messages,
-            };
-            if slot.is_some() {
-                return Err(ApiFormatAdapterRegistryError::DuplicateApiFormat(format));
+        for (format, adapter_id, adapter) in bindings {
+            if !format.serves(adapter_id) {
+                return Err(ApiFormatAdapterRegistryError::UnsupportedAdapterId(format));
             }
-            *slot = Some(adapter);
+            if registry.bindings.insert(adapter_id, adapter).is_some() {
+                return Err(ApiFormatAdapterRegistryError::DuplicateAdapterId(format));
+            }
         }
         Ok(registry)
     }
 
-    /// Returns the adapter bound to one format, or `None` when this build binds none.
+    /// Returns the adapter bound to one `adapter_id`, or `None` when this build binds none.
     #[must_use]
-    pub fn adapter(&self, format: ApiFormat) -> Option<&A> {
-        match format {
-            ApiFormat::OpenAiResponses => self.openai_responses.as_ref(),
-            ApiFormat::AnthropicMessages => self.anthropic_messages.as_ref(),
-        }
+    pub fn adapter(&self, adapter_id: &str) -> Option<&A> {
+        self.bindings.get(adapter_id)
     }
 
-    /// Resolves one stored `api_format` string to its parsed format and bound adapter.
+    /// Resolves one stored `(api_format, adapter_id)` pair to its parsed format and bound adapter.
     ///
-    /// An unsupported spelling and a supported format without a binding are both `None`; a caller
-    /// that must distinguish them parses with [`ApiFormat::parse`] first.
+    /// Returns `None` for an unsupported format spelling, for an `adapter_id` the format may not be
+    /// served by, and for a legal pair this build binds nothing for. A caller that must distinguish
+    /// them parses with [`ApiFormat::parse`] and checks [`ApiFormat::serves`] first.
     #[must_use]
-    pub fn resolve(&self, api_format: &str) -> Option<(ApiFormat, &A)> {
+    pub fn resolve(&self, api_format: &str, adapter_id: &str) -> Option<(ApiFormat, &A)> {
         let format = ApiFormat::parse(api_format)?;
-        Some((format, self.adapter(format)?))
+        if !format.serves(adapter_id) {
+            return None;
+        }
+        Some((format, self.adapter(adapter_id)?))
     }
 
-    /// Iterates every format this registry actually binds, in stable declaration order.
+    /// Iterates every format this registry actually binds at least one adapter for, in stable
+    /// declaration order.
     pub fn bound_formats(&self) -> impl Iterator<Item = ApiFormat> + '_ {
-        ApiFormat::ALL
-            .into_iter()
-            .filter(|format| self.adapter(*format).is_some())
+        ApiFormat::ALL.into_iter().filter(|format| {
+            format
+                .adapter_ids()
+                .iter()
+                .any(|adapter_id| self.adapter(adapter_id).is_some())
+        })
     }
 }
 
 impl<A> fmt::Debug for ApiFormatAdapterRegistry<A> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("ApiFormatAdapterRegistry")
-            .field("openai_responses", &self.openai_responses.is_some())
-            .field("anthropic_messages", &self.anthropic_messages.is_some())
-            .finish()
+        // Presence flags keyed by adapter_id, never an adapter value (BL-11). An adapter_id is a
+        // fixed non-secret label from the table above, so printing which ones are bound reveals
+        // nothing about an Endpoint, URL, or Credential.
+        let mut debug = formatter.debug_struct("ApiFormatAdapterRegistry");
+        for format in ApiFormat::ALL {
+            for adapter_id in format.adapter_ids() {
+                debug.field(adapter_id, &self.bindings.contains_key(adapter_id));
+            }
+        }
+        debug.finish()
     }
 }
 
@@ -157,15 +183,20 @@ impl<A> fmt::Debug for ApiFormatAdapterRegistry<A> {
 /// adapter value.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ApiFormatAdapterRegistryError {
-    /// The same API Format was bound more than once.
-    DuplicateApiFormat(ApiFormat),
+    /// The same `adapter_id` was bound more than once.
+    DuplicateAdapterId(ApiFormat),
+    /// An `adapter_id` was bound under a format it may not serve.
+    UnsupportedAdapterId(ApiFormat),
 }
 
 impl fmt::Display for ApiFormatAdapterRegistryError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::DuplicateApiFormat(format) => {
-                write!(formatter, "duplicate api_format adapter binding: {format}")
+            Self::DuplicateAdapterId(format) => {
+                write!(formatter, "duplicate adapter_id binding for {format}")
+            }
+            Self::UnsupportedAdapterId(format) => {
+                write!(formatter, "adapter_id may not serve {format}")
             }
         }
     }
@@ -195,41 +226,117 @@ mod tests {
         }
     }
     #[test]
-    fn registry_binds_each_format_once_and_resolves_only_bound_formats()
+    fn adapter_ids_are_per_format_sets_and_reject_foreign_labels() {
+        assert_eq!(
+            ApiFormat::OpenAiResponses.adapter_ids(),
+            &["openai-compatible.responses"]
+        );
+        // One wire format, several implementations: Kiro speaks Anthropic Messages but reaches it
+        // through its own credential families, endpoint hosts and profileArn injection.
+        assert_eq!(
+            ApiFormat::AnthropicMessages.adapter_ids(),
+            &["anthropic-compatible.messages", "kiro.messages"]
+        );
+        assert!(ApiFormat::AnthropicMessages.serves("kiro.messages"));
+        assert!(ApiFormat::AnthropicMessages.serves("anthropic-compatible.messages"));
+        // A label belonging to another format, or to nothing, may not serve this one.
+        assert!(!ApiFormat::AnthropicMessages.serves("openai-compatible.responses"));
+        assert!(!ApiFormat::OpenAiResponses.serves("kiro.messages"));
+        assert!(!ApiFormat::OpenAiResponses.serves("unknown.adapter"));
+        assert!(!ApiFormat::AnthropicMessages.serves(""));
+    }
+
+    #[test]
+    fn registry_binds_each_adapter_once_and_resolves_only_bound_pairs()
     -> Result<(), Box<dyn std::error::Error>> {
         assert_eq!(
             ApiFormatAdapterRegistry::try_new([
-                (ApiFormat::OpenAiResponses, "first"),
-                (ApiFormat::OpenAiResponses, "second"),
+                (
+                    ApiFormat::OpenAiResponses,
+                    "openai-compatible.responses",
+                    "first"
+                ),
+                (
+                    ApiFormat::OpenAiResponses,
+                    "openai-compatible.responses",
+                    "second"
+                ),
             ])
             .err(),
-            Some(ApiFormatAdapterRegistryError::DuplicateApiFormat(
+            Some(ApiFormatAdapterRegistryError::DuplicateAdapterId(
                 ApiFormat::OpenAiResponses
             ))
         );
 
-        let partial =
-            ApiFormatAdapterRegistry::try_new([(ApiFormat::OpenAiResponses, "responses")])?;
+        // Binding an adapter under a format it may not serve fails at build time, so a composition
+        // can never hold a pairing the Route Compiler would reject at publish time.
         assert_eq!(
-            partial.adapter(ApiFormat::OpenAiResponses),
+            ApiFormatAdapterRegistry::try_new([(
+                ApiFormat::OpenAiResponses,
+                "kiro.messages",
+                "wrong"
+            )])
+            .err(),
+            Some(ApiFormatAdapterRegistryError::UnsupportedAdapterId(
+                ApiFormat::OpenAiResponses
+            ))
+        );
+
+        let partial = ApiFormatAdapterRegistry::try_new([(
+            ApiFormat::OpenAiResponses,
+            "openai-compatible.responses",
+            "responses",
+        )])?;
+        assert_eq!(
+            partial.adapter("openai-compatible.responses"),
             Some(&"responses")
         );
-        assert_eq!(partial.adapter(ApiFormat::AnthropicMessages), None);
+        assert_eq!(partial.adapter("anthropic-compatible.messages"), None);
         assert_eq!(
-            partial.resolve("openai/responses"),
+            partial.resolve("openai/responses", "openai-compatible.responses"),
             Some((ApiFormat::OpenAiResponses, &"responses"))
         );
-        assert_eq!(partial.resolve("anthropic/messages"), None);
-        assert_eq!(partial.resolve("openai_responses"), None);
+        assert_eq!(
+            partial.resolve("anthropic/messages", "anthropic-compatible.messages"),
+            None
+        );
+        // A legal format paired with a foreign adapter_id resolves to None even when that
+        // adapter_id is bound, so an Endpoint cannot borrow another format's implementation.
+        assert_eq!(
+            partial.resolve("anthropic/messages", "openai-compatible.responses"),
+            None
+        );
+        assert_eq!(
+            partial.resolve("openai_responses", "openai-compatible.responses"),
+            None
+        );
         assert_eq!(
             partial.bound_formats().collect::<Vec<_>>(),
             vec![ApiFormat::OpenAiResponses]
         );
 
+        // Two adapters under one format both resolve, selected by adapter_id alone.
         let complete = ApiFormatAdapterRegistry::try_new([
-            (ApiFormat::OpenAiResponses, "responses"),
-            (ApiFormat::AnthropicMessages, "messages"),
+            (
+                ApiFormat::OpenAiResponses,
+                "openai-compatible.responses",
+                "responses",
+            ),
+            (
+                ApiFormat::AnthropicMessages,
+                "anthropic-compatible.messages",
+                "messages",
+            ),
+            (ApiFormat::AnthropicMessages, "kiro.messages", "kiro"),
         ])?;
+        assert_eq!(
+            complete.resolve("anthropic/messages", "anthropic-compatible.messages"),
+            Some((ApiFormat::AnthropicMessages, &"messages"))
+        );
+        assert_eq!(
+            complete.resolve("anthropic/messages", "kiro.messages"),
+            Some((ApiFormat::AnthropicMessages, &"kiro"))
+        );
         assert_eq!(
             complete.bound_formats().collect::<Vec<_>>(),
             ApiFormat::ALL.to_vec()
@@ -239,14 +346,18 @@ mod tests {
     #[test]
     fn registry_diagnostics_never_print_an_adapter_value() -> Result<(), Box<dyn std::error::Error>>
     {
-        let registry =
-            ApiFormatAdapterRegistry::try_new([(ApiFormat::OpenAiResponses, "private-adapter")])?;
+        let registry = ApiFormatAdapterRegistry::try_new([(
+            ApiFormat::OpenAiResponses,
+            "openai-compatible.responses",
+            "private-adapter",
+        )])?;
         let diagnostic = format!("{registry:?}");
 
         assert!(!diagnostic.contains("private-adapter"));
         assert!(diagnostic.contains("ApiFormatAdapterRegistry"));
-        assert!(diagnostic.contains("openai_responses: true"));
-        assert!(diagnostic.contains("anthropic_messages: false"));
+        assert!(diagnostic.contains("openai-compatible.responses: true"));
+        assert!(diagnostic.contains("anthropic-compatible.messages: false"));
+        assert!(diagnostic.contains("kiro.messages: false"));
         Ok(())
     }
 }

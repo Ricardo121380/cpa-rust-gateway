@@ -29,5 +29,12 @@ pub mod endpoint_policy;
 /// Kiro `profileArn` lookup, region-aware fallback, body injection, and safe provenance.
 pub mod profile_arn;
 
+/// The Provider-boundary traits this crate's adapter implements and produces.
+///
+/// Re-exported so a composition root can drive the adapter and hold its output without taking its
+/// own dependency edge on `gateway-provider`, matching how the other provider crates expose their
+/// upstream boundary.
+pub use gateway_provider::{CanonicalEventSource, InferenceAdapter};
+
 /// Stable component identifier used by architecture smoke tests.
 pub const COMPONENT: &str = "provider-kiro";

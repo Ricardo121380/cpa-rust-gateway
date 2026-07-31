@@ -887,11 +887,12 @@ fn index_endpoints<'a>(
                 endpoint.id.as_str(),
             ));
         };
-        // The serving composition binds an adapter by format and requires the declared
-        // `adapter_id` to match it. Rejecting a mismatched pair here keeps publish-time and
+        // The serving composition binds adapters by `adapter_id` and one wire format may be served
+        // by several implementations, so the Endpoint's declared `adapter_id` must be one its
+        // format is allowed to be served by. Rejecting a foreign label here keeps publish-time and
         // composition-time admission accepting exactly the same Endpoints: otherwise a mispaired
         // Endpoint publishes successfully and only blocks the next process start.
-        if endpoint.adapter_id != format.adapter_id() {
+        if !format.serves(&endpoint.adapter_id) {
             return Err(route_error(
                 RouteCompileErrorCode::UnsupportedEndpointApiFormat,
                 endpoint.id.as_str(),
@@ -1567,6 +1568,42 @@ mod tests {
             });
         assert_eq!(
             compile_error_code(&unreferenced)?,
+            RouteCompileErrorCode::UnsupportedEndpointApiFormat
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn adapter_id_must_be_one_its_format_may_be_served_by() -> TestResult {
+        // One wire format may be served by several implementations, so admission checks set
+        // membership rather than equality with a single canonical adapter.
+        let mut kiro = fixture()?;
+        kiro.configuration.endpoints[0].api_format = "anthropic/messages".to_owned();
+        kiro.configuration.endpoints[0].adapter_id = "kiro.messages".to_owned();
+        assert!(
+            kiro.compiler().compile(&kiro.configuration).is_ok(),
+            "a second implementation of a served format must be admitted"
+        );
+
+        let mut generic = fixture()?;
+        generic.configuration.endpoints[0].api_format = "anthropic/messages".to_owned();
+        generic.configuration.endpoints[0].adapter_id = "anthropic-compatible.messages".to_owned();
+        assert!(generic.compiler().compile(&generic.configuration).is_ok());
+
+        // An adapter_id belonging to another format must still be rejected: without this an
+        // Endpoint could borrow a foreign protocol's implementation and only fail per-request.
+        let mut foreign = fixture()?;
+        foreign.configuration.endpoints[0].api_format = "anthropic/messages".to_owned();
+        foreign.configuration.endpoints[0].adapter_id = "openai-compatible.responses".to_owned();
+        assert_eq!(
+            compile_error_code(&foreign)?,
+            RouteCompileErrorCode::UnsupportedEndpointApiFormat
+        );
+
+        let mut unknown = fixture()?;
+        unknown.configuration.endpoints[0].adapter_id = "not-an-adapter".to_owned();
+        assert_eq!(
+            compile_error_code(&unknown)?,
             RouteCompileErrorCode::UnsupportedEndpointApiFormat
         );
         Ok(())

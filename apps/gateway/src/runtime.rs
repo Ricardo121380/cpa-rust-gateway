@@ -89,6 +89,14 @@ use provider_anthropic_compatible::{
     AnthropicMessagesRequestBuilder, AnthropicMessagesSseDecoder, AnthropicResponseMode,
     decode_upstream_response,
 };
+use provider_kiro::{
+    CanonicalEventSource, InferenceAdapter,
+    conversation_request::{KiroConversationContext, KiroConversationId, KiroEnvironmentState},
+    credential::KiroCredential,
+    endpoint_policy::{KiroApiRegion, KiroEndpointKind, KiroEndpointPolicy},
+    inference::{KiroInferenceAdapter, KiroUpstreamTransport},
+    profile_arn::{KiroEnterpriseProfileLookup, KiroProfileArnError, resolve_profile_arn},
+};
 use provider_openai_compatible::{
     OpenAiResponsesApiKey, OpenAiResponsesEndpoint, OpenAiResponsesOutboundRequest,
     OpenAiResponsesRequestBuilder,
@@ -771,11 +779,21 @@ fn p12_api_format_adapter_registry() -> Result<P12ApiFormatAdapterRegistry, Runt
     ApiFormatAdapterRegistry::try_new([
         (
             ApiFormat::OpenAiResponses,
+            "openai-compatible.responses",
             build_openai_responses_adapter as P12EndpointAdapterFactory,
         ),
         (
             ApiFormat::AnthropicMessages,
+            "anthropic-compatible.messages",
             build_anthropic_messages_adapter as P12EndpointAdapterFactory,
+        ),
+        // Kiro speaks Anthropic Messages on the wire but reaches it through its own credential
+        // families, endpoint hosts and profileArn injection, so it is a second implementation of
+        // the same format rather than a format of its own.
+        (
+            ApiFormat::AnthropicMessages,
+            "kiro.messages",
+            build_kiro_messages_adapter as P12EndpointAdapterFactory,
         ),
     ])
     .map_err(|_| RuntimeCompositionError::Unavailable)
@@ -795,6 +813,70 @@ fn build_anthropic_messages_adapter(
     AnthropicMessagesEndpoint::try_new(&endpoint.base_url, &endpoint.inference_path)
         .map(EndpointAdapter::AnthropicMessages)
         .map_err(|_| RuntimeCompositionError::Unavailable)
+}
+
+/// Builds the Kiro binding for one Endpoint.
+///
+/// Kiro derives its own host from an endpoint kind and API Region rather than accepting a free-form
+/// `base_url`, so the stored `base_url` and `inference_path` must equal what the policy derives.
+/// Requiring equality keeps one Endpoint row describing exactly one reachable upstream: an operator
+/// cannot point a Kiro Endpoint at an arbitrary host, and cannot silently disagree with the URL the
+/// request builder will actually use.
+fn build_kiro_messages_adapter(
+    endpoint: &EndpointConfiguration,
+) -> Result<EndpointAdapter, RuntimeCompositionError> {
+    let (kind, region) = p12_kiro_endpoint_shape(endpoint)?;
+    let policy = KiroEndpointPolicy::try_new(kind, region)
+        .map_err(|_| RuntimeCompositionError::Unavailable)?;
+    // Kiro's policy derives one complete URL from the endpoint kind and Region — host *and* path.
+    // Require the stored `base_url` + `inference_path` to denote exactly that URL, so one Endpoint
+    // row describes exactly one reachable upstream and cannot disagree with the address the request
+    // builder will actually use. Trailing slashes are normalised because `Url` renders an empty
+    // path as "/"; doing that by hand avoids giving the composition root a `url` dependency edge.
+    let stored = format!(
+        "{}{}",
+        endpoint.base_url.trim_end_matches('/'),
+        endpoint.inference_path
+    );
+    if stored.trim_end_matches('/') != policy.url().as_str().trim_end_matches('/') {
+        return Err(RuntimeCompositionError::Unavailable);
+    }
+    Ok(EndpointAdapter::KiroMessages(policy))
+}
+
+/// Reads the Kiro endpoint kind and API Region out of one Endpoint row.
+///
+/// The kind lives in `inference_path` because that is the only per-Endpoint free-form field this
+/// build has for it, and the Region is parsed from the derived host in `base_url`. Both are
+/// validated here so an unparseable pair fails the whole Version at composition rather than at the
+/// first request.
+fn p12_kiro_endpoint_shape(
+    endpoint: &EndpointConfiguration,
+) -> Result<(KiroEndpointKind, KiroApiRegion), RuntimeCompositionError> {
+    let kind = match endpoint.inference_path.as_str() {
+        "/generateAssistantResponse" => KiroEndpointKind::Ide,
+        "/" => KiroEndpointKind::Cli,
+        _ => return Err(RuntimeCompositionError::Unavailable),
+    };
+    let host = endpoint
+        .base_url
+        .strip_prefix("https://")
+        .ok_or(RuntimeCompositionError::Unavailable)?
+        .split('/')
+        .next()
+        .ok_or(RuntimeCompositionError::Unavailable)?;
+    let region = match kind {
+        KiroEndpointKind::Ide => host
+            .strip_prefix("q.")
+            .and_then(|rest| rest.strip_suffix(".amazonaws.com")),
+        KiroEndpointKind::Cli => host
+            .strip_prefix("runtime.")
+            .and_then(|rest| rest.strip_suffix(".kiro.dev")),
+    }
+    .ok_or(RuntimeCompositionError::Unavailable)?;
+    let region =
+        KiroApiRegion::try_new(region).map_err(|_| RuntimeCompositionError::Unavailable)?;
+    Ok((kind, region))
 }
 
 /// Builds one runtime per configured Endpoint, sharing the fixed transports and DNS resolver.
@@ -831,7 +913,7 @@ fn endpoint_runtimes(
     for configured in &configuration.endpoints {
         let format = validate_endpoint_shape(configured)?;
         let build = registry
-            .adapter(format)
+            .adapter(&configured.adapter_id)
             .ok_or(RuntimeCompositionError::Unavailable)?;
         let policy = policies
             .policy_for_upstream(&configured.upstream_id)
@@ -1095,16 +1177,16 @@ fn has_p12_unlisted_model_override(value: &str) -> bool {
     )
 }
 
-/// Returns the exact `adapter_id` this composition requires for one admitted API Format.
+/// Returns whether one `adapter_id` may serve an admitted API Format in this composition.
 ///
 /// `adapter_id` names an implementation while `api_format` names a wire protocol, and the store
-/// keeps both free-form, so this composition pins the one pairing it reviewed. A graph that
-/// declares a serving format under a foreign implementation label fails admission instead of
-/// being served by whichever adapter the format alone would select.
-const fn p12_adapter_id(format: ApiFormat) -> &'static str {
+/// keeps both free-form, so admission checks the declared pair against the product's own table. A
+/// graph that declares a serving format under a foreign implementation label fails admission
+/// instead of being served by whichever adapter the format alone would select.
+fn p12_adapter_id_serves(format: ApiFormat, adapter_id: &str) -> bool {
     // One source of truth with the Route Compiler's publish-time gate, so an Endpoint this
     // composition would refuse can never be published in the first place.
-    format.adapter_id()
+    format.serves(adapter_id)
 }
 
 fn validate_endpoint_shape(
@@ -1114,7 +1196,7 @@ fn validate_endpoint_shape(
         return Err(RuntimeCompositionError::Unavailable);
     };
     if !endpoint.enabled
-        || endpoint.adapter_id != p12_adapter_id(format)
+        || !p12_adapter_id_serves(format, &endpoint.adapter_id)
         || endpoint.transport != EndpointTransport::Http
     {
         return Err(RuntimeCompositionError::Unavailable);
@@ -1140,6 +1222,8 @@ enum EndpointAdapter {
     OpenAiResponses(OpenAiResponsesEndpoint),
     /// The Anthropic-compatible Messages path.
     AnthropicMessages(AnthropicMessagesEndpoint),
+    /// The Kiro path, which serves Anthropic Messages from a derived Kiro host.
+    KiroMessages(KiroEndpointPolicy),
 }
 
 impl EndpointAdapter {
@@ -1147,7 +1231,7 @@ impl EndpointAdapter {
     const fn api_format(&self) -> ApiFormat {
         match self {
             Self::OpenAiResponses(_) => ApiFormat::OpenAiResponses,
-            Self::AnthropicMessages(_) => ApiFormat::AnthropicMessages,
+            Self::AnthropicMessages(_) | Self::KiroMessages(_) => ApiFormat::AnthropicMessages,
         }
     }
 }
@@ -1265,6 +1349,10 @@ impl AttemptDriver for EndpointAttemptDriver {
                 }
                 EndpointAdapter::AnthropicMessages(endpoint) => {
                     self.start_anthropic_messages(runtime, endpoint, candidate, credential)
+                        .await
+                }
+                EndpointAdapter::KiroMessages(policy) => {
+                    self.start_kiro_messages(runtime, policy, candidate, credential)
                         .await
                 }
             }
@@ -1400,6 +1488,83 @@ impl EndpointAttemptDriver {
                 Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
             }
         }
+    }
+
+    /// Runs one attempt against a Kiro Endpoint.
+    ///
+    /// Kiro serves Anthropic Messages semantics but reaches them through its own request shape, so
+    /// this arm delegates to `provider-kiro`'s adapter rather than the generic Anthropic codec. The
+    /// adapter owns request conversion, `profileArn` placement, the AWS `EventStream` decode and Kiro
+    /// failure classification; this function supplies only the credential, the derived endpoint
+    /// policy, and a transport already bound to this Endpoint's egress policy.
+    async fn start_kiro_messages(
+        &self,
+        runtime: &EndpointRuntime,
+        policy: &KiroEndpointPolicy,
+        candidate: &SnapshotRouteCandidate,
+        credential: &CredentialLease,
+    ) -> Result<Box<dyn ResponsesEventSource>, AttemptFailure> {
+        let secret = std::str::from_utf8(credential.secret_bytes())
+            .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
+        // Only the headless `ksk_` family is composed here. Social and Enterprise credentials need
+        // OAuth refresh and, for Enterprise, an authenticated profile lookup; both are P7-09 work
+        // that this composition deliberately does not perform, so an OAuth credential must fail
+        // closed rather than be sent with a token this build never refreshes.
+        let kiro_credential = KiroCredential::import_json(
+            serde_json::json!({"kind": "api_key", "api_key": secret})
+                .to_string()
+                .as_bytes(),
+            0,
+        )
+        .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
+        let profile = resolve_profile_arn(
+            kiro_credential.kind(),
+            policy.api_region(),
+            &P12KiroNoEnterpriseLookup,
+        );
+        // The conversation identity is the request identity, so one attempt cannot inherit another
+        // request's Kiro conversation. The environment projection is fixed and host-independent:
+        // the converter must never read a real working directory or OS from this server.
+        let conversation = KiroConversationContext::new(
+            KiroConversationId::try_new(self.request_id.as_str().to_owned())
+                .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?,
+            KiroEnvironmentState::try_new(P12_KIRO_OPERATING_SYSTEM, P12_KIRO_WORKING_DIRECTORY)
+                .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?,
+        );
+        let transport = KiroUpstreamTransport::new(
+            runtime.policy.clone(),
+            Arc::clone(&runtime.resolver),
+            self.client_pool.as_ref().clone(),
+            runtime.transports.for_mode(self.mode).clone(),
+        );
+        let adapter = KiroInferenceAdapter::try_new(
+            kiro_credential,
+            policy.clone(),
+            conversation,
+            candidate.upstream_model(),
+            profile,
+            Arc::new(transport),
+        )
+        .map_err(AttemptFailure::NonRetryable)?;
+        self.attempt_stages.record_stage(
+            &self.request_id,
+            ManagementRequestAttemptStage::EgressAdmission,
+        );
+        let context = RequestContext::new(self.request_id.clone());
+        // The adapter performs egress admission and the single send internally, so the shared
+        // `send_admitted_request` ledger does not apply; record the transport stage here so a Kiro
+        // attempt still projects the same stage sequence to the management plane.
+        self.attempt_stages.record_stage(
+            &self.request_id,
+            ManagementRequestAttemptStage::HttpTransport,
+        );
+        let source = adapter
+            .execute(context, self.request.clone())
+            .await
+            .map_err(p12_classify_kiro_start_failure)?;
+        self.attempt_stages
+            .record_stage(&self.request_id, ManagementRequestAttemptStage::HttpStatus);
+        Ok(Box::new(P12KiroEventSource::new(source)) as Box<dyn ResponsesEventSource>)
     }
 
     /// Sends one already egress-admitted request and classifies its response head.
@@ -1836,6 +2001,68 @@ async fn decode_json_response(
     attempt_stages.record_stage(request_id, ManagementRequestAttemptStage::Decoder);
     decode_json_events_with_usage_projection(&body, usage_projection)
         .map_err(|_| AttemptFailure::BootstrapTruncated)
+}
+
+/// Fixed, host-independent Kiro environment projection.
+///
+/// Kiro places this in `userInputMessageContext`. It is a constant rather than a reading of this
+/// server's real OS or working directory: the gateway is not the client, and leaking a real server
+/// path or kernel version into an upstream request would be both wrong and a disclosure.
+const P12_KIRO_OPERATING_SYSTEM: &str = "linux";
+const P12_KIRO_WORKING_DIRECTORY: &str = "/";
+
+/// Refuses every Enterprise profile lookup in this composition.
+///
+/// An Enterprise credential needs an authenticated `ListAvailableProfiles` call, which is P7-09
+/// work. This build composes only the headless `ksk_` family, so the lookup can never be reached;
+/// implementing it as a hard refusal keeps that true by construction instead of by convention.
+struct P12KiroNoEnterpriseLookup;
+
+impl KiroEnterpriseProfileLookup for P12KiroNoEnterpriseLookup {
+    fn lookup(&self, _api_region: &KiroApiRegion) -> Result<String, KiroProfileArnError> {
+        Err(KiroProfileArnError::InvalidProfileArn)
+    }
+}
+
+/// Adapts a Kiro `CanonicalEventSource` to the Responses executor's source trait.
+///
+/// Both traits are the same shape over the same boxed future type; only their names differ, because
+/// one is owned by the Provider boundary and the other by the Router. This wrapper is the single
+/// place that observation is made, so neither crate needs to know about the other.
+struct P12KiroEventSource {
+    inner: Box<dyn CanonicalEventSource>,
+}
+
+impl P12KiroEventSource {
+    const fn new(inner: Box<dyn CanonicalEventSource>) -> Self {
+        Self { inner }
+    }
+}
+
+impl ResponsesEventSource for P12KiroEventSource {
+    fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
+        self.inner.next_event()
+    }
+}
+
+/// Maps a Kiro start failure onto the executor's retryability decision.
+///
+/// Every failure here happens strictly before the first semantic event, so retrying is permitted by
+/// BL-05. The Kiro adapter has already classified the upstream response into a safe `GatewayError`;
+/// this only decides whether the executor may try the next candidate. The mapping is an explicit
+/// allow-list rather than a catch-all: a class this composition has not reasoned about must fail
+/// non-retryably instead of silently burning every candidate on the same defect.
+fn p12_classify_kiro_start_failure(error: GatewayError) -> AttemptFailure {
+    match error.code() {
+        // Transient upstream and egress classes: the next candidate may well succeed.
+        GatewayErrorCode::ProviderTransient | GatewayErrorCode::EgressUnavailable => {
+            AttemptFailure::Connection
+        }
+        // A throttled Kiro account should fail over rather than fail the request. The adapter does
+        // not surface a Retry-After, so none is claimed.
+        GatewayErrorCode::ProviderRateLimited => AttemptFailure::RateLimited { retry_after: None },
+        _ => AttemptFailure::NonRetryable(error),
+    }
 }
 
 #[cfg(test)]
@@ -3330,6 +3557,7 @@ mod tests {
         UpstreamHttpRequest, UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
     };
     use protocol_openai_responses::{ResponseMode, decode_request};
+    use provider_kiro::endpoint_policy::KiroEndpointKind;
     use provider_openai_compatible::{
         OpenAiResponsesApiKey, OpenAiResponsesEndpoint, OpenAiResponsesRequestBuilder,
     };
@@ -3346,13 +3574,13 @@ mod tests {
         P12_STREAMING_TTFB_TIMEOUT, P12AttemptStageStore, P12EndpointAdapterFactory,
         P12FanoutEventSink, P12ResponseUsageProjection, P12TransportProfiles,
         RuntimeCompositionError, SnapshotManagementRuntimeFacade, append_response_chunk,
-        build_data_plane_composition, build_openai_responses_adapter, decode_json_events,
-        decode_json_events_with_usage_projection, decode_sse_events,
+        build_data_plane_composition, build_kiro_messages_adapter, build_openai_responses_adapter,
+        decode_json_events, decode_json_events_with_usage_projection, decode_sse_events,
         decode_sse_events_with_usage_projection, deployment_route_compiler, endpoint_runtimes,
         has_p12_https_only_egress_shape, has_p12_unlisted_model_override,
-        p12_api_format_adapter_registry, p12_attempt_start_timeout, p12_openai_compatible_request,
-        p12_response_usage_projection, p12_transport_headers, p12_transport_request, queue_event,
-        validate_endpoint_shape,
+        p12_api_format_adapter_registry, p12_attempt_start_timeout, p12_kiro_endpoint_shape,
+        p12_openai_compatible_request, p12_response_usage_projection, p12_transport_headers,
+        p12_transport_request, queue_event, validate_endpoint_shape,
     };
 
     const P12_SINGLETON_TEST_ENDPOINT_ID: &str = "p12-krill-endpoint";
@@ -5966,6 +6194,99 @@ mod tests {
     }
 
     #[test]
+    fn kiro_endpoint_shape_derives_its_kind_and_region_and_rejects_foreign_hosts()
+    -> Result<(), Box<dyn Error>> {
+        let base = EndpointConfiguration {
+            id: EndpointId::try_new("p12-kiro-endpoint")?,
+            upstream_id: UpstreamId::try_new("p12-kiro-upstream")?,
+            adapter_id: "kiro.messages".to_owned(),
+            api_format: "anthropic/messages".to_owned(),
+            base_url: "https://runtime.us-east-1.kiro.dev".to_owned(),
+            inference_path: "/".to_owned(),
+            models_path: None,
+            transport: EndpointTransport::Http,
+            enabled: true,
+        };
+        // Kiro is a second implementation of a served format, so shape admission accepts it.
+        assert_eq!(
+            validate_endpoint_shape(&base)?,
+            ApiFormat::AnthropicMessages
+        );
+
+        let (kind, region) = p12_kiro_endpoint_shape(&base)?;
+        assert_eq!(kind, KiroEndpointKind::Cli);
+        assert_eq!(region.as_str(), "us-east-1");
+        assert!(build_kiro_messages_adapter(&base).is_ok());
+
+        let mut ide = base.clone();
+        ide.base_url = "https://q.eu-west-1.amazonaws.com".to_owned();
+        ide.inference_path = "/generateAssistantResponse".to_owned();
+        let (kind, region) = p12_kiro_endpoint_shape(&ide)?;
+        assert_eq!(kind, KiroEndpointKind::Ide);
+        assert_eq!(region.as_str(), "eu-west-1");
+        assert!(build_kiro_messages_adapter(&ide).is_ok());
+
+        // A host Kiro would never derive must be refused: an operator cannot point a Kiro Endpoint
+        // at an arbitrary server and have credentials sent there.
+        let mut foreign_host = base.clone();
+        foreign_host.base_url = "https://attacker.example.test".to_owned();
+        assert!(p12_kiro_endpoint_shape(&foreign_host).is_err());
+        assert!(build_kiro_messages_adapter(&foreign_host).is_err());
+
+        // The CLI host under the IDE path, and vice versa, derive different URLs than the stored
+        // base_url, so the equality check rejects the mismatched pair.
+        // The CLI host under the IDE path derives a different URL than the stored pair, so the
+        // equality check rejects it even though both halves are individually valid.
+        let mut crossed = base.clone();
+        crossed.inference_path = "/generateAssistantResponse".to_owned();
+        assert!(build_kiro_messages_adapter(&crossed).is_err());
+
+        // A Kiro host with an extra path segment appended must not be accepted either.
+        let mut extra_segment = base.clone();
+        extra_segment.base_url = "https://runtime.us-east-1.kiro.dev/v1".to_owned();
+        assert!(build_kiro_messages_adapter(&extra_segment).is_err());
+
+        let mut plaintext = base.clone();
+        plaintext.base_url = "http://runtime.us-east-1.kiro.dev".to_owned();
+        assert!(p12_kiro_endpoint_shape(&plaintext).is_err());
+
+        let mut unknown_path = base.clone();
+        unknown_path.inference_path = "/v1/messages".to_owned();
+        assert!(p12_kiro_endpoint_shape(&unknown_path).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn the_p12_registry_binds_kiro_as_a_second_anthropic_messages_adapter()
+    -> Result<(), Box<dyn Error>> {
+        let registry = p12_api_format_adapter_registry()?;
+        // Both implementations of the same wire format resolve, selected by adapter_id alone.
+        assert!(
+            registry
+                .resolve("anthropic/messages", "anthropic-compatible.messages")
+                .is_some()
+        );
+        assert!(
+            registry
+                .resolve("anthropic/messages", "kiro.messages")
+                .is_some()
+        );
+        assert!(
+            registry
+                .resolve("openai/responses", "openai-compatible.responses")
+                .is_some()
+        );
+        // A format cannot borrow another format's implementation even though it is bound.
+        assert!(
+            registry
+                .resolve("openai/responses", "kiro.messages")
+                .is_none()
+        );
+        assert!(registry.resolve("kiro/messages", "kiro.messages").is_none());
+        Ok(())
+    }
+
+    #[test]
     fn active_singleton_graph_builds_an_encrypted_runtime_without_a_send()
     -> Result<(), Box<dyn Error>> {
         let directory = TemporaryDirectory::new()?;
@@ -6147,6 +6468,7 @@ mod tests {
         let policies = EgressPolicyCompiler::compile(&configuration)?;
         let openai_only = ApiFormatAdapterRegistry::try_new([(
             ApiFormat::OpenAiResponses,
+            "openai-compatible.responses",
             build_openai_responses_adapter as P12EndpointAdapterFactory,
         )])?;
 

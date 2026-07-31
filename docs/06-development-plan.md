@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.75` |
+| 计划版本 | `v1.76` |
 | 生效日期 | `2026-07-31` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -2587,6 +2587,66 @@ CR-ID: CR-P12-06-003
     二进制与备份，无源码、无 .git。用户已同意该修复作为独立任务后置，不阻塞 P12-06。
 ```
 
+### 已批准 Change Request：CR-P12-06-004
+
+```text
+CR-ID: CR-P12-06-004
+原因: 用户要求在 cpa-rust 上测试 Kiro 渠道并明确 `CR-P12-ROLLOUT-001` 的"不启用"是"暂时
+      不使用，现在需要使用"。核查发现 Kiro 渠道的开发确已完成（P7-01 至 P7-08 均
+      `LOCAL_PASS_PENDING_PHASE_GATE`，`KiroInferenceAdapter` 完整实现 `InferenceAdapter`：
+      请求构建、AWS EventStream 解码、失败分类、profileArn 注入齐备），但它**从未接入生产
+      组合根**：`apps/gateway/Cargo.toml` 不依赖 `provider-kiro`，`p12_api_format_adapter_registry()`
+      只注册 OpenAI Responses 与 Anthropic Messages 两个工厂。原因不是缺实现，而是 P12 运行时
+      走的是"编解码器 + 请求构建器"组合方式而非 `InferenceAdapter` trait（对照：
+      `provider-openai-compatible` 反而没有 `InferenceAdapter` 实现），而 Kiro 的垂直接线
+      被归入 P7-09，该 Task 是 `DEFERRED`。
+      关于 `ApiFormat` 的形状，按用户指示参考 kiro-rs 的实现逻辑得出结论：**不新增 ApiFormat
+      词表值**。kiro-rs 中 `endpoint`（`ide`/`cli`）是**凭据级字段**，`KiroProvider` 持 endpoint
+      注册表按凭据的 `endpoint` 选实现，而对外只暴露标准 Anthropic Messages（`/v1/messages`）；
+      Kiro 没有自己的线格式，其特殊性全在上游侧（凭据类型、endpoint host、header、profileArn）。
+      cpa-rust 的分层与之一致：`api_format` 是上游线格式，endpoint kind 已由
+      `KiroEndpointKind` 表达在凭据/Endpoint 侧。
+影响的 Task / Matrix ID / ADR: `BC-PROTOCOL-007` 契约放宽；`CR-P12-ROLLOUT-001` 的切换范围
+      部分解禁；P12-06 的 Kiro 取证得以执行。
+      (1) ApiFormat 不变：Kiro 复用 `anthropic/messages`，`ApiFormat::ALL` 仍为两个值，
+      `api_format` 的存储字符串不变，已发布 Config Version 与 P12-01 至 P12-05 的既有证据
+      不受影响、不重写。
+      (2) BC-PROTOCOL-007 放宽：把"一个 api_format 恰好绑定一个 adapter"改为"一个 api_format
+      可绑定多个 adapter，由 Endpoint 的 `adapter_id` 显式选择其一"。`ApiFormat::adapter_id()`
+      （返回唯一 adapter_id 的方法）改为 `ApiFormat::adapter_ids()` 返回该格式的合法适配器
+      集合；发布期校验从"`adapter_id == format.adapter_id()`"改为"`adapter_id` ∈
+      `format.adapter_ids()`"，词表外一律 `unsupported_endpoint_api_format` fail closed。
+      `ApiFormatAdapterRegistry` 的按格式固定槽位改为按 `adapter_id` 索引，重复绑定仍在
+      build 期报错。契约不变量 1、3、4、5、6 全部保留：仍是单一字符串表、仍整版 fail closed、
+      仍一次性绑定不跨代、仍在任何 Secret/URL/socket 之前做 per-attempt 守卫、诊断仍只印
+      presence flag。
+      (3) 新增 `kiro.messages` 适配器：`apps/gateway` 新增 `provider-kiro` 依赖，
+      `p12_api_format_adapter_registry()` 注册第三个工厂。Kiro 的 endpoint kind（`ide`/`cli`）、
+      API Region、profileArn、机器 ID 按 P7-02/P7-03 既有语义从 Endpoint/Credential 配置读取，
+      不新增线格式、不改 Canonical。
+      (4) `CR-P12-ROLLOUT-001` 部分解禁：该 CR 原文"四个专项切片按代码完成交付、生产路由不
+      启用、启用延后至各自外部认证收口后另行 CR"中，**仅 Kiro 切片**由本 CR 解禁为可接入
+      P12 运行时并可承载配置图中显式建立的路由。Grok 的三个切片（Build/Official/Web）保持
+      原状不动，用户未要求且其外部认证仍缺。
+      (5) 明确不解除的边界：P7-09/G7 仍是 `DEFERRED`。本 CR 解禁的是"使用 Kiro 渠道"，
+      **不等于** Kiro 的 Provider Gate 通过——后者需要 P7-09 自身的 Kiro-RS 差分、原生
+      Adapter 垂直链路与真实 `--bare` E2E。P12-06 由 Kiro 产生的功能验证与性能基线证据
+      不得计入 P7-09/G7，也不得据此宣称 Kiro 已完成 Provider Gate。
+兼容性与迁移影响: `api_format` 存储值不变，因此无 Config Version 数据迁移。公开 API 与
+      Canonical 协议不变。`ApiFormat::adapter_id()` → `adapter_ids()` 是 crate 内公开边界
+      变更，需同步 `route_compiler` 的发布期校验与 `apps/gateway` 的装配；
+      `docs/crate-boundaries.md` 与 `check-crate-boundaries.rb` 的 EXACT 依赖集合需为
+      `apps/gateway` 增加 `provider-kiro` 边。线上 kiro-rs 不被修改。
+测试与回滚变化: 新增测试覆盖：同一 `api_format` 下多适配器的注册与解析、Endpoint 显式选择、
+      `adapter_id` 不属于该格式时发布期整版拒绝、重复 adapter_id 在 build 期报错、Kiro
+      Endpoint 的 ide/cli 分流。既有 `conflict_matrix_returns_stable_codes` 等依赖
+      "格式↔唯一适配器"的测试需按新契约改写。回滚为恢复本 CR 的文件 preimage（含
+      `apps/gateway` 移除 `provider-kiro` 依赖与契约文档）。
+用户批准: APPROVED，2026-07-31（"CR-P12的意思应该是暂时不使用，现在需要使用了；针对
+      Apiformat这个表可以参考kiro-rs的实现逻辑即可"；"确认"）
+计划版本变更: v1.76
+```
+
 ### 已批准 Change Request：CR-P12-07-001
 
 ```text
@@ -2934,3 +2994,4 @@ Next task:
 | v1.73 | 2026-07-30 | `CR-P12-08-001`：Canary 阶段最低成功请求数由 100 改为 1250（并给出随基线上升的样本量表），合成补足请求单独计数且其失败计入分子，50% 阶段最短观察由 2h 提升为 24h 以补回本地 Soak 让掉的长时覆盖；新增四级故障严重度分级使 G12 的“无 P0/P1 故障”成为可判定谓词；明确 TTFT 与实时 P95/P99 服务端不可观测并改由客户端侧与离线路径取证 | APPROVED；`scripts/check-p12-08-canary-thresholds.rb` 以可执行形式固定该统计结论与分级，接入 check.sh fast/docs |
 | v1.74 | 2026-07-30 | `CR-P12-07-001`：新增 Canary 分流与回滚两个 Caddyfile 模板（生产主机名不变、按非机密 `rgw_` 前缀在两个头上分流、刻意不含 18181 路由与压缩），超时按网关自身上限推导；新增校验器从 Rust 常量读取 keepalive/正文/流式上限并与 Caddyfile 逐项比对，漂移即 fail closed；新增 P12-09 的 RTO 测量脚本，按观测到的路由变化计时而非按 reload 返回 | APPROVED；两 fragment 在服务器真实 Caddy v2.11.4 上 validate 通过并以 adapt 核对编译后路由，13 条回归路径实测拒绝，服务器现行配置未变 |
 | v1.75 | 2026-07-31 | `CR-P12-06-003`：界定 P12-06 范围——incumbent 无 Kiro 渠道故 Kiro 只做功能验证与性能基线（显式标注不是差分），可差分的仅 OpenAI-compatible 路径；流量用固定合成请求而非影子复制（避免真实配额消耗，且 Caddy 只能路由不能镜像）；Kiro 用 kiro-rs 的静态 `ksk_` api_key（不参与 OAuth 刷新，不影响线上 kiro-rs）；性能指标定为首字耗时（按 FirstSemanticEvent）、TTFB、总耗时、token 输出速率（分母用首字之后的稳态区间）与 token 间延迟分位数 | APPROVED；不解除 P7-09 外部认证延期，不改 CR-P12-ROLLOUT-001 的切换范围，Kiro 生产路由仍不启用 |
+| v1.76 | 2026-07-31 | `CR-P12-06-004`：把已完成但从未接线的 Kiro 渠道接入 P12 运行时。按 kiro-rs 逻辑确认 endpoint(ide/cli) 是凭据级字段而非线格式，故 `ApiFormat` 词表与存储值不变、Kiro 复用 `anthropic/messages`；放宽 BC-PROTOCOL-007 为「一格式多适配器、Endpoint 显式选择」，`adapter_id()` 改 `adapter_ids()`，发布期校验改为集合成员判定；新增 `kiro.messages` 适配器与 `apps/gateway` 的 provider-kiro 边。仅解禁 Kiro 切片，Grok 三切片不动 | APPROVED；不解除 P7-09/G7 的 DEFERRED，本 CR 证据不计入 Kiro 的 Provider Gate |

@@ -8,11 +8,11 @@
 ## Boundary
 
 ```text
-EndpointConfiguration.api_format
-  | RouteCompiler: ApiFormat::parse -> unsupported_endpoint_api_format
+EndpointConfiguration.api_format + EndpointConfiguration.adapter_id
+  | RouteCompiler: ApiFormat::parse + ApiFormat::serves -> unsupported_endpoint_api_format
   v
 published RouteSnapshot (SnapshotRouteCandidate.endpoint_api_format)
-  | composition: ApiFormatAdapterRegistry<factory> -> EndpointId -> EndpointAdapter
+  | composition: ApiFormatAdapterRegistry<factory> -> adapter_id -> EndpointId -> EndpointAdapter
   v
 AttemptDriver::start: Candidate format == bound adapter format, else NonRetryable
 ```
@@ -31,3 +31,9 @@ AttemptDriver::start: Candidate format == bound adapter format, else NonRetryabl
    read, URL composition, or socket, and fails non-retryably (BL-05, BL-06).
 6. Registry diagnostics print presence flags only; no adapter value, Endpoint, URL, or Credential
    ever reaches `Debug`, a log, or an error (BL-11).
+7. One `api_format` may be served by several implementations, so `ApiFormat::adapter_ids` — not a
+   single canonical `adapter_id` — is the source of truth, and the Endpoint's `adapter_id` selects
+   one member of that set. Both admission layers test set membership against the same table, so a
+   pair one layer accepts cannot be rejected by the other. An `adapter_id` outside its format's set
+   is rejected at publish time, and binding one under a foreign format fails registry construction.
+   BL-06 is unchanged: one Endpoint still binds to exactly one API Format and exactly one adapter.
