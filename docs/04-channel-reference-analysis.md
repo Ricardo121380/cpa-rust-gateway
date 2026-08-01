@@ -203,7 +203,7 @@ Web Function Tool 目前依赖 Prompt 注入和输出解析，不等同于原生
 | 行为 | IDE | CLI |
 |---|---|---|
 | URL | `q.{region}.amazonaws.com/generateAssistantResponse` | `runtime.{region}.kiro.dev/` |
-| Content-Type | JSON | `application/x-amz-json-1.0` |
+| Content-Type | `application/json` | `application/json`（实测：CLI 端点对 `application/x-amz-json-1.0` 返回 403、对 `application/x-amz-json-1.1` 返回 404，其他 Header 全部固定不变时仅此一项决定结果。`x-amz-target` 只选择操作，不蕴含正文 framing；参考实现也仅对非流式 `ListAvailableProfiles` 使用 `x-amz-json-1.0`） |
 | Target Header | 无 | `AmazonCodeWhispererStreamingService.GenerateAssistantResponse` |
 | Origin | `AI_EDITOR` | `KIRO_CLI` |
 | Thinking 包装 | 对支持模型可加入 IDE `thinking` wrapper | 仅保留真实 CLI `output_config.effort` |

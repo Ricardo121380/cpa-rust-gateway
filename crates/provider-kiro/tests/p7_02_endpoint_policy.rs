@@ -44,16 +44,25 @@ fn ide_and_cli_snapshots_have_exact_urls_headers_origins_and_thinking_placement(
     assert_eq!(
         cli.request_headers(KiroCredentialKind::Enterprise),
         BTreeMap::from([
-            (
-                "content-type".to_owned(),
-                "application/x-amz-json-1.0".to_owned(),
-            ),
+            // Plain JSON, not an x-amz-json framing. Measured against the live CLI endpoint with
+            // every other header held fixed: `application/json` -> 200,
+            // `application/x-amz-json-1.0` -> 403, `application/x-amz-json-1.1` -> 404. The
+            // `x-amz-target` label alone selects the operation; it does not imply the body framing.
+            ("content-type".to_owned(), "application/json".to_owned()),
             ("origin".to_owned(), "KIRO_CLI".to_owned()),
             (
                 "x-amz-target".to_owned(),
                 "AmazonCodeWhispererStreamingService.GenerateAssistantResponse".to_owned(),
             ),
         ])
+    );
+    // Both kinds agree on the body framing; only the operation label and origin differ. Asserting
+    // this explicitly stops a future change from re-splitting them on the basis of the target label.
+    assert_eq!(
+        ide.request_headers(KiroCredentialKind::Social)
+            .get("content-type"),
+        cli.request_headers(KiroCredentialKind::Social)
+            .get("content-type")
     );
     Ok(())
 }

@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.77` |
+| 计划版本 | `v1.78` |
 | 生效日期 | `2026-07-31` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -2691,6 +2691,42 @@ CR-ID: CR-P12-06-005
 计划版本变更: v1.77
 ```
 
+### 已批准 Change Request：CR-P12-06-006
+
+```text
+CR-ID: CR-P12-06-006
+原因: CR-005 修复转换层后，第一次到达真实上游的请求被 Kiro 以 `ProviderPermanent` 拒绝。
+      隔离定位：把同一 `ksk_` 凭据、同一主机、同一正文用手工请求打过去返回 `200`，说明故障
+      在网关构造的请求里而非凭据。逐 Header 二分后确认是 **CLI 端点的 Content-Type**：
+      其余 Header 全部固定不变、仅改这一项时，实测
+        application/json            -> 200
+        application/x-amz-json-1.0  -> 403
+        application/x-amz-json-1.1  -> 404
+      `provider-kiro` 的 CLI 分支发送 `application/x-amz-json-1.0`，因此 **每一个** CLI 请求
+      都被拒。参考实现口径一致：kiro-rs 的二进制里 `application/x-amz-json-1.0` 只与
+      `AmazonCodeWhispererService.ListAvailableProfiles` 相邻出现（非流式控制调用），
+      `GenerateAssistantResponse` 不使用它。
+      错误根源可追溯到 `docs/04-channel-reference-analysis.md` §6.2 的渠道分析表把 CLI 的
+      Content-Type 记为 `application/x-amz-json-1.0`，`BC-PROVIDER-005` 与 P7-02 实现、契约
+      测试、差分探针四处都忠实地冻结了这个错误值。四处一致，所以任何本地测试都发现不了——
+      只有真实上游能证伪。教训：`x-amz-target` 只选择操作，不蕴含正文 framing。
+影响的 Task / Matrix ID / ADR: `BC-PROVIDER-005` 的 CLI policy 行；P7-02 的
+      `KiroEndpointPolicy::request_headers`；`docs/04-channel-reference-analysis.md` §6.2；
+      P7-02 契约测试与 P11-01 差分探针的冻结值。不改 URL、origin、`x-amz-target`、
+      `tokentype`、Thinking placement、凭据边界、Canonical、公开 API、Schema 或部署包络。
+      (1) 两种 endpoint kind 统一发送 `application/json`；CLI 仍额外带 `x-amz-target`。
+      (2) 契约测试新增一条断言：两种 kind 的 `content-type` 必须相等，防止未来有人再依据
+      target label 把它们重新拆开。
+兼容性与迁移影响: 无存储、API、凭据或配置迁移。修复前该渠道对 CLI 端点 100% 失败，故不存在
+      依赖旧行为的既有成功流量。IDE 端点行为完全不变。线上 kiro-rs 不受影响。
+测试与回滚变化: P7-02 契约测试更新为实测值并新增跨 kind 一致性断言；P11-01 差分探针的冻结值
+      同步。回滚为恢复本 CR 的四处 preimage。
+用户批准: APPROVED，2026-08-01（沿用 CR-P12-06-003/004 的 P12-06 执行授权；同范围、无新增
+      Credential/Provider/公开暴露的缺陷修复按既有直接批准约定。诊断探针使用已在 kiro-rs
+      中 disabled 的 KIRO FREE 凭据 id=2，与线上服务配额隔离）
+计划版本变更: v1.78
+```
+
 ### 已批准 Change Request：CR-P12-07-001
 
 ```text
@@ -3040,3 +3076,4 @@ Next task:
 | v1.75 | 2026-07-31 | `CR-P12-06-003`：界定 P12-06 范围——incumbent 无 Kiro 渠道故 Kiro 只做功能验证与性能基线（显式标注不是差分），可差分的仅 OpenAI-compatible 路径；流量用固定合成请求而非影子复制（避免真实配额消耗，且 Caddy 只能路由不能镜像）；Kiro 用 kiro-rs 的静态 `ksk_` api_key（不参与 OAuth 刷新，不影响线上 kiro-rs）；性能指标定为首字耗时（按 FirstSemanticEvent）、TTFB、总耗时、token 输出速率（分母用首字之后的稳态区间）与 token 间延迟分位数 | APPROVED；不解除 P7-09 外部认证延期，不改 CR-P12-ROLLOUT-001 的切换范围，Kiro 生产路由仍不启用 |
 | v1.76 | 2026-07-31 | `CR-P12-06-004`：把已完成但从未接线的 Kiro 渠道接入 P12 运行时。按 kiro-rs 逻辑确认 endpoint(ide/cli) 是凭据级字段而非线格式，故 `ApiFormat` 词表与存储值不变、Kiro 复用 `anthropic/messages`；放宽 BC-PROTOCOL-007 为「一格式多适配器、Endpoint 显式选择」，`adapter_id()` 改 `adapter_ids()`，发布期校验改为集合成员判定；新增 `kiro.messages` 适配器与 `apps/gateway` 的 provider-kiro 边。仅解禁 Kiro 切片，Grok 三切片不动 | APPROVED；不解除 P7-09/G7 的 DEFERRED，本 CR 证据不计入 Kiro 的 Provider Gate |
 | v1.77 | 2026-08-01 | `CR-P12-06-005`：修复 CR-004 接线后暴露的组合缺陷——Kiro 渠道曾拒绝 100% 请求。Anthropic Messages 强制 `max_tokens` 而入站解码器按设计将其保留为根扩展，Kiro 的 `conversationState` 无任何输出上限字段故 `BC-PROVIDER-007` 拒绝一切根扩展；两条正确规则相乘使任何合规客户端都无法使用该渠道。在组合根新增仅丢弃该一项扩展的投影（与 kiro-rs 口径一致：接受但不转发），其余扩展全部保留以继续在转换器内 fail closed | APPROVED；修复前 `ClientRequestError`（转换期失败）、修复后 `ProviderPermanent`（已出网并被上游按假凭据拒绝），本地隔离网关全链路验证通过 |
+| v1.78 | 2026-08-01 | `CR-P12-06-006`：修复 Kiro CLI 端点的 Content-Type。实测其余 Header 固定不变时 `application/json`→200、`application/x-amz-json-1.0`→403、`application/x-amz-json-1.1`→404，而 P7-02 发送前者之外的 403 值，故 CLI 请求 100% 被拒；错误值可追溯至 `docs/04-channel-reference-analysis.md` §6.2 的渠道分析表，并被 BC-PROVIDER-005、P7-02 实现、契约测试与 P11-01 差分探针四处一致冻结，因此任何本地测试都无法发现。两种 endpoint kind 统一发 `application/json`，CLI 仍带 `x-amz-target`（该 label 只选操作、不蕴含正文 framing） | APPROVED；参考实现 kiro-rs 亦仅对非流式 `ListAvailableProfiles` 使用 `x-amz-json-1.0`；契约测试新增跨 kind 一致性断言 |

@@ -14,6 +14,9 @@ const MAX_REGION_BYTES: usize = 128;
 const IDE_PATH: &str = "/generateAssistantResponse";
 const CLI_PATH: &str = "/";
 const CLI_TARGET: &str = "AmazonCodeWhispererStreamingService.GenerateAssistantResponse";
+/// Both Kiro endpoints take a plain JSON body; see [`KiroEndpointPolicy::request_headers`] for the
+/// measured evidence that the CLI endpoint rejects an `x-amz-json` content type outright.
+const CONTENT_TYPE: &str = "application/json";
 
 /// The two protocol-distinct Kiro request endpoints.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -164,23 +167,26 @@ impl KiroEndpointPolicy {
     ///
     /// OAuth/API-key values themselves remain in the P7-01 credential boundary and are injected by
     /// a later request builder. This method sets only non-secret endpoint semantics.
+    ///
+    /// Both endpoint kinds send `application/json`. The CLI endpoint additionally carries the
+    /// `x-amz-target` operation label, which is how an AWS JSON-RPC surface selects its operation --
+    /// but the request body is still plain JSON, not an `x-amz-json` framing. Measured against the
+    /// live CLI endpoint, holding every other header fixed and varying only this one:
+    /// `application/json` returns `200`, `application/x-amz-json-1.0` returns `403`, and
+    /// `application/x-amz-json-1.1` returns `404`. The reference implementation agrees -- it sends
+    /// `application/x-amz-json-1.0` only for the non-streaming `ListAvailableProfiles` control call,
+    /// never for `GenerateAssistantResponse`.
     #[must_use]
     pub fn request_headers(&self, credential_kind: KiroCredentialKind) -> BTreeMap<String, String> {
-        let mut headers = BTreeMap::from([(
-            "origin".to_owned(),
-            self.origin().as_header_value().to_owned(),
-        )]);
-        match self.kind {
-            KiroEndpointKind::Ide => {
-                headers.insert("content-type".to_owned(), "application/json".to_owned());
-            }
-            KiroEndpointKind::Cli => {
-                headers.insert(
-                    "content-type".to_owned(),
-                    "application/x-amz-json-1.0".to_owned(),
-                );
-                headers.insert("x-amz-target".to_owned(), CLI_TARGET.to_owned());
-            }
+        let mut headers = BTreeMap::from([
+            (
+                "origin".to_owned(),
+                self.origin().as_header_value().to_owned(),
+            ),
+            ("content-type".to_owned(), CONTENT_TYPE.to_owned()),
+        ]);
+        if self.kind == KiroEndpointKind::Cli {
+            headers.insert("x-amz-target".to_owned(), CLI_TARGET.to_owned());
         }
         if credential_kind == KiroCredentialKind::ApiKey {
             headers.insert("tokentype".to_owned(), "API_KEY".to_owned());

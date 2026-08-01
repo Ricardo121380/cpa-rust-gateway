@@ -12,7 +12,7 @@
 |---|---|
 | API Region | Accept only bounded lowercase AWS-Region-shaped values (two or more non-empty lowercase name segments followed by a numeric segment, for example `us-east-1` or `us-gov-west-1`). It cannot contain a URL delimiter, dot, slash, uppercase letter, or underscore. |
 | IDE policy | Derive exactly `https://q.{region}.amazonaws.com/generateAssistantResponse`; emit `content-type: application/json` and `origin: AI_EDITOR`; emit no CLI target Header. |
-| CLI policy | Derive exactly `https://runtime.{region}.kiro.dev/`; emit `content-type: application/x-amz-json-1.0`, `origin: KIRO_CLI`, and `x-amz-target: AmazonCodeWhispererStreamingService.GenerateAssistantResponse`. |
+| CLI policy | Derive exactly `https://runtime.{region}.kiro.dev/`; emit `content-type: application/json`, `origin: KIRO_CLI`, and `x-amz-target: AmazonCodeWhispererStreamingService.GenerateAssistantResponse`. The body framing is plain JSON: measured against the live endpoint with every other Header held fixed, `application/x-amz-json-1.0` returns `403` and `application/x-amz-json-1.1` returns `404`, so the `x-amz-target` operation label must not be read as implying an `x-amz-json` content type. |
 | API key marker | Add `tokentype: API_KEY` only for the P7-01 `ApiKey` family. Social and Enterprise Header sets must not inherit it. The actual secret authentication value is not part of this policy. |
 | Thinking placement | Expose `IdeThinkingWrapper` or `CliOutputConfigEffort`; do not infer model support or transform a request in P7-02. |
 | Purity | The policy must not discover configuration, contact a host, accept an endpoint override, parse a response, create a TLS client, or expose a Secret. |
