@@ -1559,7 +1559,7 @@ impl EndpointAttemptDriver {
             ManagementRequestAttemptStage::HttpTransport,
         );
         let source = adapter
-            .execute(context, self.request.clone())
+            .execute(context, p12_kiro_request_projection(&self.request))
             .await
             .map_err(p12_classify_kiro_start_failure)?;
         self.attempt_stages
@@ -2010,6 +2010,44 @@ async fn decode_json_response(
 /// path or kernel version into an upstream request would be both wrong and a disclosure.
 const P12_KIRO_OPERATING_SYSTEM: &str = "linux";
 const P12_KIRO_WORKING_DIRECTORY: &str = "/";
+
+/// Kiro's request shape has no output-token limit at all: `conversationState` carries `content`,
+/// `modelId`, `origin`, `envState`, optional `tools` and optional `outputConfig.effort`, and nothing
+/// that expresses a maximum. Anthropic Messages, meanwhile, *requires* `max_tokens`, which the
+/// inbound decoder retains as [`P12_ANTHROPIC_MAX_TOKENS_EXTENSION`] rather than inventing a
+/// canonical field for it. `BC-PROVIDER-007` rejects every root extension, which is correct for a
+/// converter that must not silently discard a client's semantics.
+///
+/// Composing the two as-is makes the channel reject 100% of requests, because a compliant Anthropic
+/// client always sends `max_tokens`. This projection is the deliberate resolution: drop that one
+/// output *ceiling* the upstream protocol cannot express, and only for Kiro. It is the same choice
+/// the reference kiro-rs implementation makes -- it accepts `max_tokens` on its Anthropic surface and
+/// forwards nothing, because Kiro has nowhere to put it.
+///
+/// Dropping a ceiling cannot corrupt a response: the client asked for at most N tokens and receives
+/// a complete answer, which may be shorter or longer. Every *other* extension is retained, so a
+/// semantic a client actually depends on still fails closed inside the converter -- with the
+/// converter's own classification -- rather than being silently ignored here.
+fn p12_kiro_request_projection(request: &CanonicalRequest) -> CanonicalRequest {
+    if request.extensions.is_empty() {
+        return request.clone();
+    }
+    let mut retained = RawExtensions::default();
+    for (name, value) in request.extensions.iter() {
+        if name == P12_ANTHROPIC_MAX_TOKENS_EXTENSION {
+            continue;
+        }
+        // `try_insert` fails only on a duplicate name, and the source is itself a map keyed by
+        // name, so a collision is unreachable. Silently ignoring the result would be a real drop,
+        // so on the impossible branch keep the request whole and let the converter judge it.
+        if retained.try_insert(name.to_owned(), value.clone()).is_err() {
+            return request.clone();
+        }
+    }
+    let mut projected = request.clone();
+    projected.extensions = retained;
+    projected
+}
 
 /// Refuses every Enterprise profile lookup in this composition.
 ///
@@ -3579,8 +3617,8 @@ mod tests {
         decode_sse_events_with_usage_projection, deployment_route_compiler, endpoint_runtimes,
         has_p12_https_only_egress_shape, has_p12_unlisted_model_override,
         p12_api_format_adapter_registry, p12_attempt_start_timeout, p12_kiro_endpoint_shape,
-        p12_openai_compatible_request, p12_response_usage_projection, p12_transport_headers,
-        p12_transport_request, queue_event, validate_endpoint_shape,
+        p12_kiro_request_projection, p12_openai_compatible_request, p12_response_usage_projection,
+        p12_transport_headers, p12_transport_request, queue_event, validate_endpoint_shape,
     };
 
     const P12_SINGLETON_TEST_ENDPOINT_ID: &str = "p12-krill-endpoint";
@@ -6283,6 +6321,68 @@ mod tests {
                 .is_none()
         );
         assert!(registry.resolve("kiro/messages", "kiro.messages").is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn p12_kiro_drops_only_the_inexpressible_output_ceiling_and_keeps_every_other_extension()
+    -> Result<(), Box<dyn Error>> {
+        let openai = decode_request(include_str!(
+            "../../../tests/fixtures/openai-responses/request-canonical.json"
+        ))?;
+
+        // A request with no root extensions is passed through untouched, so the projection cannot
+        // become a silent rewrite of the common case.
+        assert_eq!(p12_kiro_request_projection(&openai.request), openai.request);
+
+        // Every Anthropic Messages client sends the required `max_tokens`, which the decoder retains
+        // under this namespace. Kiro's wire shape cannot express an output ceiling, so this one
+        // extension is dropped -- otherwise `BC-PROVIDER-007` would reject 100% of real requests.
+        let mut anthropic = openai.request.clone();
+        anthropic.extensions.try_insert(
+            "anthropic.messages.max_tokens",
+            gateway_core::RawJson::from_json_string("19".to_owned())?,
+        )?;
+        let projected = p12_kiro_request_projection(&anthropic);
+        assert!(
+            projected
+                .extensions
+                .get("anthropic.messages.max_tokens")
+                .is_none()
+        );
+        // Only the ceiling was removed: every other extension the decoder retained is still here,
+        // and no canonical field moved.
+        let mut expected = anthropic.clone();
+        expected.extensions = RawExtensions::default();
+        for (name, value) in anthropic.extensions.iter() {
+            if name != "anthropic.messages.max_tokens" {
+                expected.extensions.try_insert(name, value.clone())?;
+            }
+        }
+        assert_eq!(projected, expected);
+
+        // A foreign extension is *retained*, so the converter still fails closed on a semantic the
+        // client may actually depend on, with the converter's own classification rather than a
+        // silent drop here.
+        let mut foreign = anthropic.clone();
+        foreign.extensions.try_insert(
+            "vendor.private.beta_feature",
+            gateway_core::RawJson::from_json_string("true".to_owned())?,
+        )?;
+        let projected = p12_kiro_request_projection(&foreign);
+        assert!(
+            projected
+                .extensions
+                .get("anthropic.messages.max_tokens")
+                .is_none()
+        );
+        assert_eq!(
+            projected
+                .extensions
+                .get("vendor.private.beta_feature")
+                .map(gateway_core::RawJson::get),
+            Some("true")
+        );
         Ok(())
     }
 

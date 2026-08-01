@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.76` |
+| 计划版本 | `v1.77` |
 | 生效日期 | `2026-07-31` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -2647,6 +2647,50 @@ CR-ID: CR-P12-06-004
 计划版本变更: v1.76
 ```
 
+### 已批准 Change Request：CR-P12-06-005
+
+```text
+CR-ID: CR-P12-06-005
+原因: CR-P12-06-004 接线完成后，在本地隔离网关上执行 P12-06 的第一次真实取证时发现：Kiro
+      渠道拒绝 **100%** 的请求，错误为 `ClientRequestError`/`invalid_request_error`，且失败
+      发生在任何网络调用之前。两侧组件各自都符合契约，是它们的组合有缺陷：
+      (1) Anthropic Messages **要求** `max_tokens`（`validate_max_tokens` 强制正整数），而
+          `ROOT_FIELDS` 不含该字段，故入站解码器按设计把它保留为根扩展
+          `anthropic.messages.max_tokens`——Canonical 核心没有共享的输出上限字段，发明一个
+          反而会污染核心。
+      (2) Kiro 的 `conversationState` 没有任何输出上限字段：只有 `content`、`modelId`、
+          `origin`、`envState`、可选 `tools` 与可选 `outputConfig.effort`。因此
+          `BC-PROVIDER-007` 的"Canonical 根扩展一律拒绝"对一个不得静默丢弃客户端语义的
+          转换器来说是正确的。
+      两条正确的规则相乘，结果是任何合规 Anthropic 客户端都无法使用该渠道。这不是接线遗漏，
+      而是 CR-P12-06-004 未预见的组合缺陷，只有真实请求才暴露得出来。
+      参考实现口径：kiro-rs 在其 Anthropic 兼容面接受 `max_tokens` 并**不转发**（其上游请求
+      体中不存在该字段），因为 Kiro 无处安放它。
+影响的 Task / Matrix ID / ADR: P12-06 的 Kiro 执行路径；不改 `BC-PROVIDER-007` 本身、不改
+      任何 Provider crate、不改 Canonical、公开 API、Schema、存储或部署包络。
+      (1) 在组合根新增 `p12_kiro_request_projection`：仅当请求带根扩展时，丢弃恰好
+      `P12_ANTHROPIC_MAX_TOKENS_EXTENSION` 一项，其余扩展全部保留后交给转换器。
+      (2) 丢弃的语义边界是刻意选择的：`max_tokens` 是输出**上限**，上游协议无字段可表达；
+      丢弃它不会破坏响应正确性——客户端要求"至多 N 个 token"，收到的是一个可能更短或更长的
+      完整回答。而任何**其他**扩展仍被保留，因此客户端真正依赖的语义仍在转换器内 fail
+      closed，并保留转换器自己的错误分类，不会被本投影静默吞掉。
+      (3) 作用域仅 Kiro 一条 arm。OpenAI-compatible arm 继续用既有
+      `p12_openai_compatible_request` 把该扩展**翻译**为 `max_output_tokens`（该协议有对应
+      字段），Anthropic-compatible arm 继续原样透传由编解码器自行读取。三条 arm 的处理方式
+      因上游协议能力不同而不同，这是正确的，不是不一致。
+兼容性与迁移影响: 无。不改存储值、已发布 Config Version、公开 API 或凭据。incumbent CPA、
+      用户的 CPA/CPAMP 迁移与线上 kiro-rs 均不受影响。
+测试与回滚变化: 新增 `p12_kiro_drops_only_the_inexpressible_output_ceiling_and_keeps_every_other_extension`：
+      无扩展请求原样透传、带 `max_tokens` 时仅该项被删且其余 canonical 字段不变、外来扩展
+      被保留（从而仍由转换器拒绝）。本地隔离验证：修复前错误为 `ClientRequestError`（转换期
+      失败），修复后为 `ProviderPermanent`（已成功转换、已出网到
+      `runtime.us-east-1.kiro.dev`、被上游按假凭据拒绝）——证明整条路径连通。回滚为恢复
+      `apps/gateway/src/runtime.rs` 的本 CR preimage。
+用户批准: APPROVED，2026-07-31（沿用 CR-P12-06-003/004 的 P12-06 执行授权；同范围、无新增
+      Credential/Provider/公开暴露、不改契约文本的缺陷修复按既有直接批准约定）
+计划版本变更: v1.77
+```
+
 ### 已批准 Change Request：CR-P12-07-001
 
 ```text
@@ -2995,3 +3039,4 @@ Next task:
 | v1.74 | 2026-07-30 | `CR-P12-07-001`：新增 Canary 分流与回滚两个 Caddyfile 模板（生产主机名不变、按非机密 `rgw_` 前缀在两个头上分流、刻意不含 18181 路由与压缩），超时按网关自身上限推导；新增校验器从 Rust 常量读取 keepalive/正文/流式上限并与 Caddyfile 逐项比对，漂移即 fail closed；新增 P12-09 的 RTO 测量脚本，按观测到的路由变化计时而非按 reload 返回 | APPROVED；两 fragment 在服务器真实 Caddy v2.11.4 上 validate 通过并以 adapt 核对编译后路由，13 条回归路径实测拒绝，服务器现行配置未变 |
 | v1.75 | 2026-07-31 | `CR-P12-06-003`：界定 P12-06 范围——incumbent 无 Kiro 渠道故 Kiro 只做功能验证与性能基线（显式标注不是差分），可差分的仅 OpenAI-compatible 路径；流量用固定合成请求而非影子复制（避免真实配额消耗，且 Caddy 只能路由不能镜像）；Kiro 用 kiro-rs 的静态 `ksk_` api_key（不参与 OAuth 刷新，不影响线上 kiro-rs）；性能指标定为首字耗时（按 FirstSemanticEvent）、TTFB、总耗时、token 输出速率（分母用首字之后的稳态区间）与 token 间延迟分位数 | APPROVED；不解除 P7-09 外部认证延期，不改 CR-P12-ROLLOUT-001 的切换范围，Kiro 生产路由仍不启用 |
 | v1.76 | 2026-07-31 | `CR-P12-06-004`：把已完成但从未接线的 Kiro 渠道接入 P12 运行时。按 kiro-rs 逻辑确认 endpoint(ide/cli) 是凭据级字段而非线格式，故 `ApiFormat` 词表与存储值不变、Kiro 复用 `anthropic/messages`；放宽 BC-PROTOCOL-007 为「一格式多适配器、Endpoint 显式选择」，`adapter_id()` 改 `adapter_ids()`，发布期校验改为集合成员判定；新增 `kiro.messages` 适配器与 `apps/gateway` 的 provider-kiro 边。仅解禁 Kiro 切片，Grok 三切片不动 | APPROVED；不解除 P7-09/G7 的 DEFERRED，本 CR 证据不计入 Kiro 的 Provider Gate |
+| v1.77 | 2026-08-01 | `CR-P12-06-005`：修复 CR-004 接线后暴露的组合缺陷——Kiro 渠道曾拒绝 100% 请求。Anthropic Messages 强制 `max_tokens` 而入站解码器按设计将其保留为根扩展，Kiro 的 `conversationState` 无任何输出上限字段故 `BC-PROVIDER-007` 拒绝一切根扩展；两条正确规则相乘使任何合规客户端都无法使用该渠道。在组合根新增仅丢弃该一项扩展的投影（与 kiro-rs 口径一致：接受但不转发），其余扩展全部保留以继续在转换器内 fail closed | APPROVED；修复前 `ClientRequestError`（转换期失败）、修复后 `ProviderPermanent`（已出网并被上游按假凭据拒绝），本地隔离网关全链路验证通过 |
