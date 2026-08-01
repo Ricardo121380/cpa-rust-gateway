@@ -65,12 +65,47 @@ if errors.any?
   exit 1
 end
 
-if system("command -v systemd-analyze >/dev/null 2>&1")
-  unless system("systemd-analyze", "verify", options[:unit])
-    warn "p12-02 systemd unit: systemd-analyze verify failed"
-    exit 1
-  end
-  puts "p12-02 systemd unit: static invariants and systemd-analyze verify passed"
-else
+unless system("command -v systemd-analyze >/dev/null 2>&1")
   puts "p12-02 systemd unit: static invariants passed (systemd-analyze unavailable)"
+  exit 0
 end
+
+# `systemd-analyze verify` resolves `ExecStart=` against the *live* filesystem, so verifying the
+# repository unit verbatim can only pass on a host that already has the gateway installed -- it
+# fails on every CI runner and every developer machine. The installed path is not what this step
+# is for: the static table above already asserts the whole `ExecStart=` line byte-exact, so the
+# path is fully covered without systemd. Point the analysed copy at an executable stub instead and
+# let systemd check what only systemd can: that every directive parses and the unit is loadable.
+# `LoadCredential=` sources are *not* resolved by verify (measured on systemd 255), so the five
+# credential paths stay verbatim and keep failing closed at runtime rather than here.
+#
+# Exit status alone is nearly worthless here: verify exits 0 on an unknown key, an unknown section,
+# an unparseable `Restart=` and an unparseable `ProtectSystem=`, and only exits non-zero when the
+# unit is structurally unloadable. What it does do reliably is *print* one diagnostic naming the
+# analysed file. So treat any such line as failure, which is what makes this step load-bearing.
+require "open3"
+require "tmpdir"
+
+analysis_failed = Dir.mktmpdir("p12-02-systemd-unit") do |work_dir|
+  stub = File.join(work_dir, "gateway")
+  File.write(stub, "#!/bin/sh\n")
+  File.chmod(0o755, stub)
+  analysed = File.join(work_dir, File.basename(options[:unit]))
+  File.write(analysed, File.read(options[:unit]).gsub("=/opt/cpa-rust-gateway/current/gateway", "=#{stub}"))
+
+  output, status = Open3.capture2e("systemd-analyze", "verify", analysed)
+  # Every diagnostic about the unit under test names its path; unrelated host units produce their
+  # own lines (Ubuntu ships world-executable unit files, for instance) which must not fail this.
+  diagnostics = output.lines.map(&:chomp).select { |line| line.include?(analysed) || line.include?(File.basename(analysed)) }
+  if !status.success? || diagnostics.any?
+    warn "p12-02 systemd unit: systemd-analyze verify rejected the unit"
+    diagnostics.each { |line| warn "p12-02 systemd unit: #{line}" }
+    warn "p12-02 systemd unit: exited #{status.exitstatus}" unless status.success?
+    true
+  else
+    false
+  end
+end
+exit 1 if analysis_failed
+
+puts "p12-02 systemd unit: static invariants and systemd-analyze verify passed"

@@ -34,4 +34,23 @@ if ruby "$checker" --unit "$unsupported_condition" >/dev/null 2>&1; then
   exit 1
 fi
 
+# The `systemd-analyze` arm is only reachable on a systemd host. Where it is, prove it rejects a
+# directive that parses statically but is semantically invalid -- and which systemd reports while
+# still exiting 0, so a naive exit-status check would pass it. Restart= is checked byte-exact by the
+# static table, so mutate its value via a directive the table does not pin: SyslogLevel=.
+if command -v systemd-analyze >/dev/null 2>&1; then
+  ruby "$checker" --unit "$unit" >/dev/null || {
+    printf 'p12-02 systemd unit test: the pristine unit was rejected on a systemd host\n' >&2
+    exit 1
+  }
+
+  unparseable_directive="$work_dir/unparseable-directive.service"
+  cp "$unit" "$unparseable_directive"
+  ruby -e 'path = ARGV.fetch(0); text = File.read(path).sub("[Service]\n", "[Service]\nSyslogLevel=not-a-level\n"); File.write(path, text)' "$unparseable_directive"
+  if ruby "$checker" --unit "$unparseable_directive" >/dev/null 2>&1; then
+    printf 'p12-02 systemd unit test: an unparseable directive value was accepted\n' >&2
+    exit 1
+  fi
+fi
+
 printf 'p12-02 systemd unit test: ok\n'
