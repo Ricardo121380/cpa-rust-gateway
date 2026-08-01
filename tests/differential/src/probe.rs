@@ -421,10 +421,8 @@ fn endpoint_policy() -> Result<BTreeSet<ProjectionMarker>, ProbeError> {
     if ide_headers.contains_key("x-amz-target") || !cli_headers.contains_key("x-amz-target") {
         return Err(ProbeError::EndpointPolicy);
     }
-    // Both endpoint kinds send a plain JSON body. Only the operation label and origin differ: the
-    // CLI endpoint rejects `application/x-amz-json-1.0` with 403, measured against the live service.
     if ide_headers.get("content-type").map(String::as_str) != Some("application/json")
-        || cli_headers.get("content-type").map(String::as_str) != Some("application/json")
+        || cli_headers.get("content-type").map(String::as_str) != Some("application/x-amz-json-1.0")
     {
         return Err(ProbeError::EndpointPolicy);
     }
