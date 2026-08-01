@@ -21,6 +21,12 @@ const MAX_OPERATING_SYSTEM_BYTES: usize = 128;
 const MAX_WORKING_DIRECTORY_BYTES: usize = 4_096;
 const MAX_TOOL_CALL_ID_BYTES: usize = 512;
 const MAX_TOOL_NAME_BYTES: usize = 256;
+/// Kiro's required conversation trigger.
+///
+/// `MANUAL` is the only correct value for a gateway: every request originates from an explicit
+/// client call, never from an editor's automatic trigger. Omitting the field entirely makes the CLI
+/// endpoint reject the request with `REQUEST_BODY_INVALID`.
+const CHAT_TRIGGER_TYPE: &str = "MANUAL";
 
 /// A caller-owned Kiro conversation identifier, retained only for request construction.
 #[derive(Clone, Eq, PartialEq)]
@@ -247,29 +253,49 @@ impl KiroConversationRequestBuilder {
             Value::Object(user_input_context),
         );
 
-        let mut conversation_state = Map::new();
-        conversation_state.insert(
-            "conversationId".to_owned(),
-            Value::String(context.conversation_id.as_str().to_owned()),
-        );
-        conversation_state.insert(
-            "currentMessage".to_owned(),
-            Value::Object(map_from([(
-                "userInputMessage".to_owned(),
-                Value::Object(current_user),
-            )])),
-        );
-        if !history.is_empty() {
-            conversation_state.insert("history".to_owned(), Value::Array(history));
-        }
-
         Ok(KiroConversationRequest {
             body: Value::Object(map_from([(
                 "conversationState".to_owned(),
-                Value::Object(conversation_state),
+                Value::Object(conversation_state(context, current_user, history)),
             )])),
         })
     }
+}
+
+/// Assembles the `conversationState` envelope around one already-encoded current message.
+///
+/// Split out from the builder so the builder's own length stays within the crate's limit; it is also
+/// the single place the required trigger is emitted.
+fn conversation_state(
+    context: &KiroConversationContext,
+    current_user: Map<String, Value>,
+    history: Vec<Value>,
+) -> Map<String, Value> {
+    let mut conversation_state = Map::new();
+    // Kiro requires `chatTriggerType` on every conversation: without it the CLI endpoint returns
+    // 400 `ValidationException` with `reason: REQUEST_BODY_INVALID`, and adding it is the single
+    // change that makes an otherwise identical request valid (measured against the live endpoint).
+    // `MANUAL` is the correct value for a gateway: every request this product serves originates from
+    // an explicit client call, never from an editor's automatic trigger.
+    conversation_state.insert(
+        "chatTriggerType".to_owned(),
+        Value::String(CHAT_TRIGGER_TYPE.to_owned()),
+    );
+    conversation_state.insert(
+        "conversationId".to_owned(),
+        Value::String(context.conversation_id.as_str().to_owned()),
+    );
+    conversation_state.insert(
+        "currentMessage".to_owned(),
+        Value::Object(map_from([(
+            "userInputMessage".to_owned(),
+            Value::Object(current_user),
+        )])),
+    );
+    if !history.is_empty() {
+        conversation_state.insert("history".to_owned(), Value::Array(history));
+    }
+    conversation_state
 }
 
 fn reject_unsupported_request_fields(

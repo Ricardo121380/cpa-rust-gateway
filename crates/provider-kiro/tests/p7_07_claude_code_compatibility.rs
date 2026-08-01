@@ -39,6 +39,7 @@ fn historical_tools_and_endpoint_specific_thinking_preserve_kiro_semantics() -> 
         ide.body(),
         &json!({
             "conversationState": {
+                "chatTriggerType": "MANUAL",
                 "conversationId": "p7-07-fixture",
                 "history": [
                     {"assistantResponseMessage": {

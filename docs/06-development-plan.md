@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.77` |
+| 计划版本 | `v1.78` |
 | 生效日期 | `2026-07-31` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -2691,6 +2691,41 @@ CR-ID: CR-P12-06-005
 计划版本变更: v1.77
 ```
 
+### 已批准 Change Request：CR-P12-06-006
+
+```text
+CR-ID: CR-P12-06-006
+原因: CR-005 修复转换层后，请求首次真正到达 Kiro，但被拒。逐项隔离后确认根因是
+      **`conversationState.chatTriggerType` 缺失**：其余字节完全相同时，
+        不含 chatTriggerType -> 400 ValidationException / reason=REQUEST_BODY_INVALID
+        含 chatTriggerType   -> 200 且 content-type: application/vnd.amazon.eventstream
+      P7-04 的转换器从未发送该字段，因此每一个 Kiro 请求都被上游判为正文非法。
+      诊断过程中的一次错误结论必须如实记录，因为它改变了本 CR 的内容：中途曾以为根因是 CLI 的
+      Content-Type（`application/x-amz-json-1.0`），依据是"改用 `application/json` 后 HTTP 变为
+      200"。该判断错误——那个 200 的**正文**是
+      `com.amazon.coral.service#UnknownOperationException`，即服务根本没识别该操作。只看状态码
+      不看正文是错误的验证方法。`application/x-amz-json-1.0` 自始就是正确值：它在 400
+      ValidationException 中返回的是 Kiro 自己的服务命名空间
+      `com.amazon.kiro.runtimeservice`，证明请求已抵达正确的操作、只是正文不合规。据此已
+      `git revert` 该错误提交，`BC-PROVIDER-005`、P7-02 实现、契约测试与 P11-01 差分探针的
+      Content-Type 全部恢复原值，`docs/04-channel-reference-analysis.md` §6.2 亦恢复。
+      同时修正另一处早前的错误观察：曾测得 `chatTriggerType` "可省"，同样是因为只看了状态码。
+影响的 Task / Matrix ID / ADR: P7-04 的 `KiroConversationRequestBuilder`；`BC-PROVIDER-007`
+      的 Conversation shape 行。不改 Content-Type、URL、origin、`x-amz-target`、`tokentype`、
+      凭据边界、Canonical、公开 API、Schema 或部署包络。
+      (1) 每个 conversation 一律发送 `chatTriggerType: "MANUAL"`。`MANUAL` 是网关唯一正确的
+      取值：本产品服务的每个请求都源自客户端的显式调用，不存在编辑器自动触发。
+      (2) 该字段是常量而非可配置项：它描述的是"请求如何产生"这一事实，而网关对此没有选择权。
+测试与回滚变化: 新增 `every_conversation_declares_the_required_manual_chat_trigger`，对 IDE 与
+      CLI 两种 kind 单独断言该字段，独立于较大的正文快照，从而在快照被重排时仍能捕获遗漏；
+      已用变异验证（删除该 insert 后该测试失败）。P7-04 与 P7-07 的既有正文快照同步。
+      回滚为恢复 `conversation_request.rs` 与两份测试的 preimage。
+用户批准: APPROVED，2026-08-01（沿用 CR-P12-06-003/004 的 P12-06 执行授权；同范围、无新增
+      Credential/Provider/公开暴露的缺陷修复按既有直接批准约定。功能验证使用 kiro-rs 当前
+      启用的 KIRO PRO MAX 凭据 id=5，单次调用计费 0.0155 credit）
+计划版本变更: v1.78
+```
+
 ### 已批准 Change Request：CR-P12-07-001
 
 ```text
@@ -3040,3 +3075,4 @@ Next task:
 | v1.75 | 2026-07-31 | `CR-P12-06-003`：界定 P12-06 范围——incumbent 无 Kiro 渠道故 Kiro 只做功能验证与性能基线（显式标注不是差分），可差分的仅 OpenAI-compatible 路径；流量用固定合成请求而非影子复制（避免真实配额消耗，且 Caddy 只能路由不能镜像）；Kiro 用 kiro-rs 的静态 `ksk_` api_key（不参与 OAuth 刷新，不影响线上 kiro-rs）；性能指标定为首字耗时（按 FirstSemanticEvent）、TTFB、总耗时、token 输出速率（分母用首字之后的稳态区间）与 token 间延迟分位数 | APPROVED；不解除 P7-09 外部认证延期，不改 CR-P12-ROLLOUT-001 的切换范围，Kiro 生产路由仍不启用 |
 | v1.76 | 2026-07-31 | `CR-P12-06-004`：把已完成但从未接线的 Kiro 渠道接入 P12 运行时。按 kiro-rs 逻辑确认 endpoint(ide/cli) 是凭据级字段而非线格式，故 `ApiFormat` 词表与存储值不变、Kiro 复用 `anthropic/messages`；放宽 BC-PROTOCOL-007 为「一格式多适配器、Endpoint 显式选择」，`adapter_id()` 改 `adapter_ids()`，发布期校验改为集合成员判定；新增 `kiro.messages` 适配器与 `apps/gateway` 的 provider-kiro 边。仅解禁 Kiro 切片，Grok 三切片不动 | APPROVED；不解除 P7-09/G7 的 DEFERRED，本 CR 证据不计入 Kiro 的 Provider Gate |
 | v1.77 | 2026-08-01 | `CR-P12-06-005`：修复 CR-004 接线后暴露的组合缺陷——Kiro 渠道曾拒绝 100% 请求。Anthropic Messages 强制 `max_tokens` 而入站解码器按设计将其保留为根扩展，Kiro 的 `conversationState` 无任何输出上限字段故 `BC-PROVIDER-007` 拒绝一切根扩展；两条正确规则相乘使任何合规客户端都无法使用该渠道。在组合根新增仅丢弃该一项扩展的投影（与 kiro-rs 口径一致：接受但不转发），其余扩展全部保留以继续在转换器内 fail closed | APPROVED；修复前 `ClientRequestError`（转换期失败）、修复后 `ProviderPermanent`（已出网并被上游按假凭据拒绝），本地隔离网关全链路验证通过 |
+| v1.78 | 2026-08-01 | `CR-P12-06-006`：修复 Kiro 请求缺失必需字段 `conversationState.chatTriggerType`。其余字节相同时，不含该字段→400 `ValidationException`/`REQUEST_BODY_INVALID`，含该字段→200 且返回真实 `application/vnd.amazon.eventstream`。一律发送 `MANUAL`（网关的每个请求都源自客户端显式调用）。本 CR 同时如实记录并撤销了一次错误诊断：曾误判根因为 CLI 的 Content-Type，因为只看 HTTP 状态码而未看正文——`application/json` 的 200 正文实为 `UnknownOperationException`。`application/x-amz-json-1.0` 自始正确，已 revert | APPROVED；新增跨 kind 的独立断言并经变异验证；功能验证以 id=5 单次真实调用取得完整响应（`{"content":"OK"}`、`stopReason: END_TURN`、计费 0.0155 credit） |

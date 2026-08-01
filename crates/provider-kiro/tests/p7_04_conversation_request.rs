@@ -75,6 +75,10 @@ fn ide_fixture_preserves_ordered_text_history_and_declared_tools() -> TestResult
         actual.body(),
         &json!({
             "conversationState": {
+                // Required by the service: omitting it makes the CLI endpoint reject an otherwise
+                // identical request with `REQUEST_BODY_INVALID`. `MANUAL` is correct for a gateway,
+                // where every request comes from an explicit client call.
+                "chatTriggerType": "MANUAL",
                 "conversationId": "fixture-conversation-01",
                 "history": [
                     {"userInputMessage": {
@@ -277,6 +281,35 @@ fn invalid_tool_or_ambient_values_are_never_silently_coerced_or_logged() -> Test
         "do-not-log-conversation",
     ] {
         assert!(!diagnostic.contains(value));
+    }
+    Ok(())
+}
+
+/// Kiro rejects a conversation with no `chatTriggerType`, so both endpoint kinds must always emit it.
+///
+/// Measured against the live CLI endpoint: an otherwise identical request without this field returns
+/// `400 ValidationException` with `reason: REQUEST_BODY_INVALID`, and adding it is the single change
+/// that makes the request valid. It is asserted here rather than only inside the larger body
+/// snapshots so that a future edit cannot drop it while still matching a reshaped fixture.
+#[test]
+fn every_conversation_declares_the_required_manual_chat_trigger() -> Result<(), Box<dyn Error>> {
+    let request = decode_request(json!({
+        "requested_model": "public",
+        "messages": [{"role": "user", "content": [{"text": {"text": "hi", "extensions": {}}}], "extensions": {}}],
+        "extensions": {}
+    }))?;
+    for kind in [KiroEndpointKind::Ide, KiroEndpointKind::Cli] {
+        let policy = KiroEndpointPolicy::try_new(kind, KiroApiRegion::try_new("us-east-1")?)?;
+        let built = KiroConversationRequestBuilder::build(
+            &policy,
+            &context()?,
+            "selected-kiro-model",
+            &request,
+        )?;
+        assert_eq!(
+            built.body()["conversationState"]["chatTriggerType"],
+            json!("MANUAL")
+        );
     }
     Ok(())
 }
