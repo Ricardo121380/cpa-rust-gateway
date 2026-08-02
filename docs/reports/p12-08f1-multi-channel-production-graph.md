@@ -20,18 +20,19 @@ migration rehearsal, and G1 owns controlled real-credential evidence.
 
 ## Adapter and capability ledger
 
-`T` = Tools, `PT` = Parallel Tools, `R` = Reasoning/Thinking, `S` = Streaming. JSON Schema and
-Vision remain absent from every production profile in this slice even where a wire format can
-represent them: protocol syntax alone is not Provider evidence.
+`T` = Tools, `PT` = Parallel Tools, `R` = Reasoning/Thinking, `J` = JSON Schema, `S` = Streaming.
+F2 review confirmed that every admitted Tool request necessarily carries a Tool input schema, so
+the E1-E4 typed-builder evidence admits `J` together with `T`. Vision remains absent from every
+production profile: protocol syntax alone is not Provider evidence.
 
 | Channel class | Adapter / wire format | Capability profile | Runtime composition |
 |---|---|---|---|
-| Codex / OpenAI-compatible Chat | `openai-compatible.chat-completions` / Chat | T, PT, S | eligible only with an active encrypted Credential and binding |
-| Codex / OpenAI-compatible Responses | `openai-compatible.responses` / Responses | T, PT, R, S | eligible only with an active encrypted Credential and binding |
-| Claude / Anthropic-compatible | `anthropic-compatible.messages` / Messages | T, PT, R, S | eligible only with an active encrypted Credential and binding |
-| Grok Build | `grok.build.responses` / Responses | T, R, S | eligible only with a valid unexpired Build credential |
-| Grok Official | `grok.official.responses` / Responses | T, PT, R, S | locally composable; no current external credential claim |
-| Kiro | `kiro.messages` / Messages | T, R, S | locally composable; no current external credential claim |
+| Codex / OpenAI-compatible Chat | `openai-compatible.chat-completions` / Chat | T, PT, J, S | eligible only with an active encrypted Credential and binding |
+| Codex / OpenAI-compatible Responses | `openai-compatible.responses` / Responses | T, PT, R, J, S | eligible only with an active encrypted Credential and binding |
+| Claude / Anthropic-compatible | `anthropic-compatible.messages` / Messages | T, PT, R, J, S | eligible only with an active encrypted Credential and binding |
+| Grok Build | `grok.build.responses` / Responses | T, R, J, S | eligible only with a valid unexpired Build credential |
+| Grok Official | `grok.official.responses` / Responses | T, PT, R, J, S | locally composable; no current external credential claim |
+| Kiro | `kiro.messages` / Messages | T, R, J, S | locally composable; no current external credential claim |
 | Grok Web | `grok.web.responses` / Responses | none | known identifier, no production runtime binding, never selectable |
 
 The ledger is deliberately conservative. Candidate overrides may only narrow the Endpoint profile;
@@ -64,7 +65,7 @@ factory is intentionally absent.
 - `production_registry_composes_only_locally_passed_channel_pairs` proves every admitted pair has a
   runtime factory while Grok Web does not.
 - `deployment_compiler_profiles_only_stored_endpoints` proves a stored representative graph carries
-  T/PT/R/S into its compiled Candidates while JSON Schema and Vision remain absent.
+  T/PT/R/J/S into its compiled Candidates while Vision remains absent.
 - The existing widened graph fixture covers two Endpoints, two models, one Alias, one Access Group,
   two Client Keys, four encrypted Credentials and three Candidates without performing a send.
 

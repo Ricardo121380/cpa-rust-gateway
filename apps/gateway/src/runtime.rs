@@ -317,20 +317,21 @@ pub(crate) fn deployment_route_compiler(
 
 /// Returns the conservative semantic capabilities proved by this build for one adapter.
 ///
-/// This table is intentionally narrower than protocol syntax. JSON Schema and Vision stay absent
-/// unless the concrete runtime has provider-level evidence. Grok Web is a recognized product
-/// channel but deliberately has no production adapter binding, so it receives no capability and
-/// an enabled Endpoint still fails later composition. Unknown implementation labels fail here.
+/// This table is intentionally narrower than protocol syntax. JSON Schema accompanies only the
+/// Tool-capable adapters whose typed builders validate Tool input schemas; Vision stays absent
+/// without provider-level evidence. Grok Web is a recognized product channel but deliberately has
+/// no production adapter binding, so it receives no capability and an enabled Endpoint still fails
+/// later composition. Unknown implementation labels fail here.
 fn p12_adapter_capabilities(adapter_id: &str) -> Result<CapabilitySet, RuntimeCompositionError> {
-    use SemanticCapability::{ParallelTools, Reasoning, Streaming, Tools};
+    use SemanticCapability::{JsonSchema, ParallelTools, Reasoning, Streaming, Tools};
 
     let capabilities: &[SemanticCapability] = match adapter_id {
-        "openai-compatible.chat-completions" => &[Tools, ParallelTools, Streaming],
+        "openai-compatible.chat-completions" => &[Tools, ParallelTools, JsonSchema, Streaming],
         "openai-compatible.responses" | "anthropic-compatible.messages" => {
-            &[Tools, ParallelTools, Reasoning, Streaming]
+            &[Tools, ParallelTools, Reasoning, JsonSchema, Streaming]
         }
-        "grok.build.responses" | "kiro.messages" => &[Tools, Reasoning, Streaming],
-        "grok.official.responses" => &[Tools, ParallelTools, Reasoning, Streaming],
+        "grok.build.responses" | "kiro.messages" => &[Tools, Reasoning, JsonSchema, Streaming],
+        "grok.official.responses" => &[Tools, ParallelTools, Reasoning, JsonSchema, Streaming],
         "grok.web.responses" => &[],
         _ => return Err(RuntimeCompositionError::Unavailable),
     };
@@ -4326,13 +4327,14 @@ mod tests {
     use gateway_protocol::{ApiFormat, ApiFormatAdapterRegistry};
     use gateway_router::{
         AttemptDriver, AttemptFailure, AttemptOrchestrator, DeterministicMockEmission,
-        DeterministicMockResponsesExecutor, ProtocolFormat, ResponsesEventSource,
-        ResponsesExecution, ResponsesExecutor, ResponsesFuture, ResponsesResponseMode,
-        RouteCredentialScheduler, RouteSnapshot, RouteSnapshotInput, RouteSnapshotRegistry,
-        RuntimeCredentialAccountStatus, RuntimeHealthClock, RuntimeHealthClockError,
-        RuntimeHealthRegistry, RuntimeQuotaRegistry, RuntimeQuotaTarget, SnapshotCatalogAdmission,
-        SnapshotPublicModel, SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput,
-        SnapshotRoutePolicy, SnapshotTransformMode, SnapshotVersion,
+        DeterministicMockResponsesExecutor, NativePayloadAvailability, ProjectedProtocolRequest,
+        ProtocolFormat, ProtocolTransformInput, ResponsesEventSource, ResponsesExecution,
+        ResponsesExecutor, ResponsesFuture, ResponsesResponseMode, RouteCredentialScheduler,
+        RouteSnapshot, RouteSnapshotInput, RouteSnapshotRegistry, RuntimeCredentialAccountStatus,
+        RuntimeHealthClock, RuntimeHealthClockError, RuntimeHealthRegistry, RuntimeQuotaRegistry,
+        RuntimeQuotaTarget, SnapshotCatalogAdmission, SnapshotPublicModel, SnapshotRoute,
+        SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
+        SnapshotTransformMode, SnapshotVersion, project_registered_protocol_request,
     };
     use gateway_store::{
         control_plane::{
@@ -4435,6 +4437,29 @@ mod tests {
             r#"{"type":"response.function_call_arguments.done","item_id":"fc-p12-stream","output_index":0,"arguments":"{\"value\":\"ok\"}"}"#,
             r#"{"type":"response.output_item.done","output_index":0,"item":{"id":"fc-p12-stream","type":"function_call","call_id":"call-p12-stream","name":"echo","arguments":"{\"value\":\"ok\"}","status":"completed"}}"#,
             r#"{"type":"response.completed","response":{"id":"response-p12-stream-tool","status":"completed","usage":{"input_tokens":3,"output_tokens":5,"output_tokens_details":{"reasoning_tokens":2}}}}"#,
+        ])
+    }
+
+    /// One provider-neutral completion containing Text and final Usage semantics.
+    fn p12_f2_text_body() -> String {
+        sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-f2"}}"#,
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"msg-p12-f2","type":"message","role":"assistant","content":[]}}"#,
+            r#"{"type":"response.output_text.delta","item_id":"msg-p12-f2","output_index":0,"delta":"visible"}"#,
+            r#"{"type":"response.output_item.done","output_index":0,"item":{"id":"msg-p12-f2","type":"message","role":"assistant","status":"completed"}}"#,
+            r#"{"type":"response.completed","response":{"id":"response-p12-f2","status":"completed","usage":{"input_tokens":3,"output_tokens":5}}}"#,
+        ])
+    }
+
+    /// One provider-neutral completion containing Tool and final Usage semantics.
+    fn p12_f2_tool_body() -> String {
+        sse_stream_body(&[
+            r#"{"type":"response.created","response":{"id":"response-p12-f2-tool"}}"#,
+            r#"{"type":"response.output_item.added","output_index":0,"item":{"id":"fc-p12-f2","type":"function_call","call_id":"call-p12-f2","name":"echo","arguments":""}}"#,
+            r#"{"type":"response.function_call_arguments.delta","item_id":"fc-p12-f2","output_index":0,"delta":"{\"value\":\"ok\"}"}"#,
+            r#"{"type":"response.function_call_arguments.done","item_id":"fc-p12-f2","output_index":0,"arguments":"{\"value\":\"ok\"}"}"#,
+            r#"{"type":"response.output_item.done","output_index":0,"item":{"id":"fc-p12-f2","type":"function_call","call_id":"call-p12-f2","name":"echo","arguments":"{\"value\":\"ok\"}","status":"completed"}}"#,
+            r#"{"type":"response.completed","response":{"id":"response-p12-f2-tool","status":"completed","usage":{"input_tokens":3,"output_tokens":5}}}"#,
         ])
     }
 
@@ -6052,6 +6077,277 @@ mod tests {
         ))
     }
 
+    #[derive(Clone, Copy, Debug)]
+    enum P12F2Channel {
+        OpenAi,
+        Claude,
+        Grok,
+        Kiro,
+    }
+
+    impl P12F2Channel {
+        const fn label(self) -> &'static str {
+            match self {
+                Self::OpenAi => "openai",
+                Self::Claude => "claude",
+                Self::Grok => "grok",
+                Self::Kiro => "kiro",
+            }
+        }
+
+        const fn target(self, source: ProtocolFormat) -> (&'static str, ProtocolFormat, bool) {
+            match self {
+                Self::OpenAi if matches!(source, ProtocolFormat::OpenAiChatCompletions) => (
+                    "openai-compatible.chat-completions",
+                    ProtocolFormat::OpenAiChatCompletions,
+                    false,
+                ),
+                Self::OpenAi => (
+                    "openai-compatible.responses",
+                    ProtocolFormat::OpenAiResponses,
+                    false,
+                ),
+                Self::Claude => (
+                    "anthropic-compatible.messages",
+                    ProtocolFormat::AnthropicMessages,
+                    false,
+                ),
+                Self::Grok => (
+                    "grok.build.responses",
+                    ProtocolFormat::OpenAiResponses,
+                    true,
+                ),
+                Self::Kiro => ("kiro.messages", ProtocolFormat::AnthropicMessages, true),
+            }
+        }
+    }
+
+    struct P12F2MatrixExecutor {
+        channel: P12F2Channel,
+        events: Vec<CanonicalEvent>,
+        attempts: Arc<AtomicU64>,
+    }
+
+    impl ResponsesExecutor for P12F2MatrixExecutor {
+        fn execute(
+            &self,
+            _context: RequestContext,
+            _request: CanonicalRequest,
+        ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
+            Box::pin(async {
+                Err(GatewayError::new(
+                    GatewayErrorCode::InternalError,
+                    ErrorScope::Internal,
+                ))
+            })
+        }
+
+        fn execute_routed(
+            &self,
+            execution: ResponsesExecution,
+        ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
+            Box::pin(async move {
+                let source = execution.client_protocol();
+                let (adapter_id, target, canonical_only) = self.channel.target(source);
+                let transform_mode = if source == target {
+                    SnapshotTransformMode::Canonical
+                } else {
+                    SnapshotTransformMode::LosslessBridge
+                };
+                // Grok and Kiro own typed Canonical request builders and deliberately reject the
+                // generic bridge mode before any Credential lease or upstream Attempt.
+                if canonical_only && transform_mode != SnapshotTransformMode::Canonical {
+                    return Err(GatewayError::new(
+                        GatewayErrorCode::UpstreamProtocolError,
+                        ErrorScope::Provider,
+                    ));
+                }
+                let capabilities = p12_adapter_capabilities(adapter_id).map_err(|_| {
+                    GatewayError::new(GatewayErrorCode::InternalError, ErrorScope::Internal)
+                })?;
+                let projected = project_registered_protocol_request(ProtocolTransformInput {
+                    source,
+                    target,
+                    mode: transform_mode,
+                    native_payload: execution
+                        .native_payload()
+                        .map_or(NativePayloadAvailability::Unavailable, |_| {
+                            NativePayloadAvailability::Exact
+                        }),
+                    request: execution.request(),
+                    streaming: execution.mode() == ResponsesResponseMode::Streaming,
+                    requires_json_schema: false,
+                    requires_parallel_tools: false,
+                    target_capabilities: &capabilities,
+                })
+                .map_err(|_| {
+                    GatewayError::new(
+                        GatewayErrorCode::UpstreamProtocolError,
+                        ErrorScope::Provider,
+                    )
+                })?;
+                let ProjectedProtocolRequest::Canonical(projected) = projected else {
+                    return Err(GatewayError::new(
+                        GatewayErrorCode::InternalError,
+                        ErrorScope::Internal,
+                    ));
+                };
+                if projected.messages.is_empty() || projected.tools.is_empty() {
+                    return Err(GatewayError::new(
+                        GatewayErrorCode::InternalError,
+                        ErrorScope::Internal,
+                    ));
+                }
+                self.attempts.fetch_add(1, Ordering::AcqRel);
+                Ok(Box::new(FiniteEventSource::new(self.events.clone()))
+                    as Box<dyn ResponsesEventSource>)
+            })
+        }
+    }
+
+    fn p12_f2_http_state(
+        channel: P12F2Channel,
+        events: Vec<CanonicalEvent>,
+        attempts: Arc<AtomicU64>,
+    ) -> Result<ResponsesHttpState, Box<dyn Error>> {
+        let client_key = InMemoryClientKey::try_new(
+            "p12-f2-http-test-key",
+            ClientKeyId::try_new("p12-f2-http-test-client")?,
+            true,
+        )?;
+        let authenticator: Arc<dyn ClientKeyAuthenticator> =
+            Arc::new(InMemoryClientKeyAuthenticator::try_new([client_key])?);
+        Ok(ResponsesHttpState::new(
+            Arc::new(P12F2MatrixExecutor {
+                channel,
+                events,
+                attempts,
+            }),
+            authenticator,
+            default_stream_capacity()?,
+        ))
+    }
+
+    #[actix_web::test]
+    async fn three_protocols_by_four_channels_obey_the_f2_loopback_matrix()
+    -> Result<(), Box<dyn Error>> {
+        let text_events = decode_sse_events(&p12_f2_text_body(), 7)?;
+        let tool_events = decode_sse_events(&p12_f2_tool_body(), 7)?;
+        CanonicalResponse::try_new(text_events.clone())?;
+        CanonicalResponse::try_new(tool_events.clone())?;
+        let channels = [
+            P12F2Channel::OpenAi,
+            P12F2Channel::Claude,
+            P12F2Channel::Grok,
+            P12F2Channel::Kiro,
+        ];
+        let protocols = [
+            ProtocolFormat::OpenAiChatCompletions,
+            ProtocolFormat::OpenAiResponses,
+            ProtocolFormat::AnthropicMessages,
+        ];
+
+        for channel in channels {
+            for protocol in protocols {
+                let expected_supported = matches!(
+                    (channel, protocol),
+                    (P12F2Channel::OpenAi, _)
+                        | (
+                            P12F2Channel::Claude | P12F2Channel::Grok,
+                            ProtocolFormat::OpenAiResponses
+                        )
+                        | (
+                            P12F2Channel::Claude | P12F2Channel::Kiro,
+                            ProtocolFormat::AnthropicMessages
+                        )
+                );
+                let semantics = if expected_supported {
+                    vec![("text", text_events.clone()), ("tool", tool_events.clone())]
+                } else {
+                    vec![("tool", tool_events.clone())]
+                };
+                for (semantic, events) in semantics {
+                    for streaming in [false, true] {
+                        let attempts = Arc::new(AtomicU64::new(0));
+                        let app = actix_test::init_service(
+                            App::new()
+                                .app_data(web::Data::new(p12_f2_http_state(
+                                    channel,
+                                    events.clone(),
+                                    Arc::clone(&attempts),
+                                )?))
+                                .configure(configure),
+                        )
+                        .await;
+                        let stream = if streaming { "true" } else { "false" };
+                        let chat_stream_options = if streaming {
+                            r#","stream_options":{"include_usage":true}"#
+                        } else {
+                            ""
+                        };
+                        let (uri, payload) = match protocol {
+                            ProtocolFormat::OpenAiChatCompletions => (
+                                "/v1/chat/completions",
+                                format!(
+                                    r#"{{"model":"p12-f2-model","max_tokens":32,"messages":[{{"role":"user","content":"ok"}}],"tools":[{{"type":"function","function":{{"name":"echo","parameters":{{"type":"object"}}}}}}],"stream":{stream}{chat_stream_options}}}"#,
+                                ),
+                            ),
+                            ProtocolFormat::OpenAiResponses => (
+                                "/v1/responses",
+                                format!(
+                                    r#"{{"model":"p12-f2-model","input":"ok","max_output_tokens":32,"tools":[{{"type":"function","name":"echo","parameters":{{"type":"object"}}}}],"stream":{stream}}}"#,
+                                ),
+                            ),
+                            ProtocolFormat::AnthropicMessages => (
+                                "/v1/messages",
+                                format!(
+                                    r#"{{"model":"p12-f2-model","max_tokens":32,"messages":[{{"role":"user","content":"ok"}}],"tools":[{{"name":"echo","input_schema":{{"type":"object"}}}}],"stream":{stream}}}"#,
+                                ),
+                            ),
+                        };
+                        let request = actix_test::TestRequest::post()
+                            .uri(uri)
+                            .insert_header((header::AUTHORIZATION, "Bearer p12-f2-http-test-key"))
+                            .set_payload(payload)
+                            .to_request();
+                        let response = actix_test::call_service(&app, request).await;
+                        let status = response.status();
+                        let body =
+                            String::from_utf8(actix_test::read_body(response).await.to_vec())?;
+
+                        if expected_supported {
+                            assert_eq!(
+                                status,
+                                StatusCode::OK,
+                                "{channel:?}/{protocol:?}/{semantic}: attempts={} {body}",
+                                attempts.load(Ordering::Acquire)
+                            );
+                            assert_eq!(attempts.load(Ordering::Acquire), 1);
+                            if semantic == "text" {
+                                assert!(body.contains("visible"));
+                            } else {
+                                assert!(body.contains("echo"));
+                            }
+                            assert!(body.contains("usage"));
+                            if streaming {
+                                assert!(body.contains("data:"));
+                            }
+                        } else {
+                            assert_ne!(status, StatusCode::OK, "{channel:?}/{protocol:?}");
+                            assert_eq!(attempts.load(Ordering::Acquire), 0);
+                            assert!(
+                                body.contains("upstream protocol was invalid"),
+                                "{channel:?}/{protocol:?}: {body}"
+                            );
+                            assert!(!body.contains(channel.label()));
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
     static TEMPORARY_DIRECTORY_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
     impl TemporaryDirectory {
@@ -6102,8 +6398,8 @@ mod tests {
                 assert!(capabilities.supports(SemanticCapability::Tools));
                 assert!(capabilities.supports(SemanticCapability::ParallelTools));
                 assert!(capabilities.supports(SemanticCapability::Reasoning));
+                assert!(capabilities.supports(SemanticCapability::JsonSchema));
                 assert!(capabilities.supports(SemanticCapability::Streaming));
-                assert!(!capabilities.supports(SemanticCapability::JsonSchema));
                 assert!(!capabilities.supports(SemanticCapability::Vision));
             }
         }
@@ -6118,22 +6414,28 @@ mod tests {
         let cases = [
             (
                 "openai-compatible.chat-completions",
-                vec![Tools, ParallelTools, Streaming],
+                vec![Tools, ParallelTools, JsonSchema, Streaming],
             ),
             (
                 "openai-compatible.responses",
-                vec![Tools, ParallelTools, Reasoning, Streaming],
+                vec![Tools, ParallelTools, Reasoning, JsonSchema, Streaming],
             ),
             (
                 "anthropic-compatible.messages",
-                vec![Tools, ParallelTools, Reasoning, Streaming],
+                vec![Tools, ParallelTools, Reasoning, JsonSchema, Streaming],
             ),
-            ("grok.build.responses", vec![Tools, Reasoning, Streaming]),
+            (
+                "grok.build.responses",
+                vec![Tools, Reasoning, JsonSchema, Streaming],
+            ),
             (
                 "grok.official.responses",
-                vec![Tools, ParallelTools, Reasoning, Streaming],
+                vec![Tools, ParallelTools, Reasoning, JsonSchema, Streaming],
             ),
-            ("kiro.messages", vec![Tools, Reasoning, Streaming]),
+            (
+                "kiro.messages",
+                vec![Tools, Reasoning, JsonSchema, Streaming],
+            ),
         ];
         for (adapter, supported) in cases {
             let capabilities = p12_adapter_capabilities(adapter)?;
