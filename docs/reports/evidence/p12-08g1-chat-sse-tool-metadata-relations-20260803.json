@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "value_free": true,
+  "request_count": 1,
+  "retry_count": 0,
+  "status_class": "2xx",
+  "tool_delta_count": 6,
+  "first_delta_metadata": ["nonempty", "nonempty", "nonempty"],
+  "continuation_metadata_classes": ["empty", "empty", "empty"],
+  "all_continuations_empty_metadata": true,
+  "summary_type_equal_first": true,
+  "summary_name_equal_first": true,
+  "summary_arguments_equal_accumulated": true,
+  "summary_id_equal_first": false,
+  "cc_switch_access": "read_only",
+  "cc_switch_modified": false
+}

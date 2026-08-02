@@ -304,7 +304,7 @@ authorizes a closed compatibility rule at the first proven decoder mismatch.
 
 ## CR-P12-08G1-015 — repeated Tool metadata relation follow-up
 
-The CR-014 classifier observed seven Tool-bearing delta events before one terminal summary. Every
+The CR-014 classifier observed six Tool-bearing delta events before one terminal summary. Every
 Tool delta used the full `index/id/type/function{name,arguments}` key set, while the strict decoder
 permits identity and name only on the first delta. Argument concatenation exactly equalled the
 summary arguments, and the summary index was unsigned, unique and zero-based. The retained receipt
@@ -317,3 +317,18 @@ first declaration. It may also compare the terminal summary identity/name with t
 declarations and retain the already established argument-concatenation equality. All previous
 no-value, read-only CC Switch and no-retry restrictions remain. Only absent, null, empty or exactly
 equal repeated metadata may be ignored; any conflicting value remains a protocol failure.
+
+## CR-P12-08G1-016 — terminal Tool summary identity
+
+The CR-015 classifier proved that all continuation `id`, `type` and function `name` values are
+empty strings, so they carry no declaration and may be treated as absent. The terminal summary's
+type, name and complete arguments exactly match the first declaration and accumulated deltas, but
+its non-empty call ID differs. This mirrors the already proven terminal response-identity rewrite:
+the provider reconstructs a redundant final object after the Canonical Tool lifecycle exists.
+
+Only in that terminal redundant summary, the decoder may retain the original streamed call ID and
+ignore a different summary ID when the summary ID is independently non-empty/bounded, its optional
+index equals the existing Tool position, and type/name/arguments exactly match the completed Tool.
+An ordinary delta with a conflicting non-empty identity/name/type, an empty or invalid summary ID,
+wrong position, count, name, type or arguments remains a protocol failure. This exception emits no
+second Tool event and does not alter non-streaming or cross-protocol behavior.

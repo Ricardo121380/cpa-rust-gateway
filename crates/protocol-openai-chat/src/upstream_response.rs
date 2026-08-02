@@ -558,12 +558,21 @@ impl OpenAiChatSseDecoder {
             state.content_seen = true;
             return Ok(());
         }
-        if call.contains_key("id") || call.contains_key("type") {
+        if call
+            .get("id")
+            .is_some_and(|value| value.as_str() != Some(""))
+            || call
+                .get("type")
+                .is_some_and(|value| value.as_str() != Some(""))
+        {
             return Err(protocol_error());
         }
         let function = object(required(call, "function")?)?;
-        require_only_keys(function, &["arguments"])?;
-        if function.contains_key("name") {
+        require_only_keys(function, &["name", "arguments"])?;
+        if function
+            .get("name")
+            .is_some_and(|value| value.as_str() != Some(""))
+        {
             return Err(protocol_error());
         }
         let fragment = function
@@ -619,14 +628,17 @@ impl OpenAiChatSseDecoder {
         match message.get("tool_calls") {
             None | Some(Value::Null) if state.tools.is_empty() => Ok(()),
             Some(Value::Array(calls)) if calls.len() == state.tools.len() => {
-                for (call, (_, expected)) in calls.iter().zip(&state.tools) {
+                for (call, (index, expected)) in calls.iter().zip(&state.tools) {
                     let call = object(call)?;
-                    require_only_keys(call, &["id", "type", "function"])?;
-                    if call.get("id").and_then(Value::as_str) != Some(expected.id.as_str())
+                    require_only_keys(call, &["index", "id", "type", "function"])?;
+                    if call
+                        .get("index")
+                        .is_some_and(|value| value.as_u64() != Some(*index))
                         || call.get("type").and_then(Value::as_str) != Some("function")
                     {
                         return Err(protocol_error());
                     }
+                    validate_identifier(nonempty(call, "id")?)?;
                     let function = object(required(call, "function")?)?;
                     require_only_keys(function, &["name", "arguments"])?;
                     if function.get("name").and_then(Value::as_str) != Some(expected.name.as_str())
@@ -1039,8 +1051,9 @@ mod tests {
     fn streaming_accepts_redundant_completed_tool_message() -> Result<(), Box<dyn std::error::Error>>
     {
         let wire = concat!(
-            "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"tool_calls\":[{\"index\":0,\"id\":\"call-1\",\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{\\\"q\\\":1}\"}}]},\"finish_reason\":null}]}\n\n",
-            "data: {\"id\":\"chat-final\",\"object\":\"chat.completion\",\"choices\":[{\"index\":0,\"delta\":{\"role\":null,\"reasoning_content\":null,\"tool_calls\":null},\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"call-1\",\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{\\\"q\\\":1}\"}}]},\"finish_reason\":\"tool_calls\"}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
+            "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"tool_calls\":[{\"index\":0,\"id\":\"call-1\",\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{\\\"q\\\":\"}}]},\"finish_reason\":null}]}\n\n",
+            "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"\",\"type\":\"\",\"function\":{\"name\":\"\",\"arguments\":\"1}\"}}]},\"finish_reason\":null}]}\n\n",
+            "data: {\"id\":\"chat-final\",\"object\":\"chat.completion\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"index\":0,\"id\":\"rebuilt-call\",\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{\\\"q\\\":1}\"}}]},\"finish_reason\":\"tool_calls\"}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
             "data: [DONE]\n\n"
         );
         let mut decoder = OpenAiChatSseDecoder::new();
@@ -1056,6 +1069,35 @@ mod tests {
                 .iter()
                 .any(|event| matches!(event, CanonicalEvent::UsageDelta(_)))
         );
+
+        for continuation in [
+            "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"conflict\",\"function\":{\"arguments\":\"}\"}}]},\"finish_reason\":null}]}\n\n",
+            "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"type\":\"function\",\"function\":{\"arguments\":\"}\"}}]},\"finish_reason\":null}]}\n\n",
+            "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"name\":\"conflict\",\"arguments\":\"}\"}}]},\"finish_reason\":null}]}\n\n",
+        ] {
+            let mut decoder = OpenAiChatSseDecoder::new();
+            decoder.push(b"data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call-1\",\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{\"}}]},\"finish_reason\":null}]}\n\n")?;
+            assert!(decoder.push(continuation.as_bytes()).is_err());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn streaming_rejects_conflicting_redundant_tool_summary()
+    -> Result<(), Box<dyn std::error::Error>> {
+        for summary_tool in [
+            "{\"index\":1,\"id\":\"rebuilt-call\",\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{}\"}}",
+            "{\"index\":0,\"id\":\"rebuilt-call\",\"type\":\"function\",\"function\":{\"name\":\"other\",\"arguments\":\"{}\"}}",
+            "{\"index\":0,\"id\":\"rebuilt-call\",\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{\\\"x\\\":1}\"}}",
+            "{\"index\":0,\"id\":\"\",\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{}\"}}",
+        ] {
+            let mut decoder = OpenAiChatSseDecoder::new();
+            decoder.push(b"data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call-1\",\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{}\"}}]},\"finish_reason\":null}]}\n\n")?;
+            let frame = format!(
+                "data: {{\"id\":\"chat-final\",\"object\":\"chat.completion\",\"choices\":[{{\"index\":0,\"message\":{{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{summary_tool}]}},\"finish_reason\":\"tool_calls\"}}]}}\n\n"
+            );
+            assert!(decoder.push(frame.as_bytes()).is_err());
+        }
         Ok(())
     }
 
