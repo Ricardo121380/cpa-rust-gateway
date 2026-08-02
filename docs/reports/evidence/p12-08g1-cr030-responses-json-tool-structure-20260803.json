@@ -1,0 +1,265 @@
+{
+  "cc_switch_access": "read_only",
+  "cc_switch_modified": false,
+  "completed_at_not_before_created_at": true,
+  "content_type_class": "json",
+  "duplicate_json_name_occurrence_count": 0,
+  "duplicate_json_names_absent": true,
+  "duplicate_json_object_count": 0,
+  "error_class": "null",
+  "first_failed_gate": "root_fields",
+  "gate_results": {
+    "emitted_content": false,
+    "error": true,
+    "object": true,
+    "output": true,
+    "output_item": false,
+    "response_id": true,
+    "root_fields": false,
+    "status": true,
+    "usage": false
+  },
+  "json_shape": "object",
+  "message_turn_ids_equal_and_valid": null,
+  "object_class": "response",
+  "output_class": "nonempty_array",
+  "output_count": 1,
+  "output_items": [
+    {
+      "arguments_class": "nonempty_string",
+      "call_id_valid": true,
+      "class": "nonempty_object",
+      "extra_keys": [
+        "internal_chat_message_metadata_passthrough",
+        "metadata"
+      ],
+      "extra_shapes": {
+        "internal_chat_message_metadata_passthrough": {
+          "child_classes": {
+            "turn_id": "nonempty_string"
+          },
+          "children": {
+            "turn_id": {
+              "class": "nonempty_string"
+            }
+          },
+          "class": "nonempty_object",
+          "keys": [
+            "turn_id"
+          ]
+        },
+        "metadata": {
+          "child_classes": {
+            "turn_id": "nonempty_string"
+          },
+          "children": {
+            "turn_id": {
+              "class": "nonempty_string"
+            }
+          },
+          "class": "nonempty_object",
+          "keys": [
+            "turn_id"
+          ]
+        }
+      },
+      "id_valid": true,
+      "keys": [
+        "arguments",
+        "call_id",
+        "id",
+        "internal_chat_message_metadata_passthrough",
+        "metadata",
+        "name",
+        "status",
+        "type"
+      ],
+      "name_valid": true,
+      "status_class": "completed",
+      "type_class": "function_call"
+    }
+  ],
+  "prompt_cache_retention_known": true,
+  "request_count": 1,
+  "request_mode": "tool",
+  "response_id_valid": true,
+  "retry_count": 0,
+  "root_extra_keys": [
+    "completed_at",
+    "frequency_penalty",
+    "moderation",
+    "presence_penalty",
+    "prompt_cache_retention",
+    "tool_usage"
+  ],
+  "root_extra_shapes": {
+    "completed_at": {
+      "class": "nonnegative_integer",
+      "zero": false
+    },
+    "frequency_penalty": {
+      "class": "finite_number",
+      "zero": true
+    },
+    "moderation": {
+      "class": "null"
+    },
+    "presence_penalty": {
+      "class": "finite_number",
+      "zero": true
+    },
+    "prompt_cache_retention": {
+      "class": "nonempty_string"
+    },
+    "tool_usage": {
+      "child_classes": {
+        "image_gen": "nonempty_object",
+        "web_search": "nonempty_object"
+      },
+      "children": {
+        "image_gen": {
+          "child_classes": {
+            "input_tokens": "nonnegative_integer",
+            "input_tokens_details": "nonempty_object",
+            "output_tokens": "nonnegative_integer",
+            "output_tokens_details": "nonempty_object",
+            "total_tokens": "nonnegative_integer"
+          },
+          "children": {
+            "input_tokens": {
+              "class": "nonnegative_integer",
+              "zero": true
+            },
+            "input_tokens_details": {
+              "child_classes": {
+                "image_tokens": "nonnegative_integer",
+                "text_tokens": "nonnegative_integer"
+              },
+              "class": "nonempty_object",
+              "keys": [
+                "image_tokens",
+                "text_tokens"
+              ]
+            },
+            "output_tokens": {
+              "class": "nonnegative_integer",
+              "zero": true
+            },
+            "output_tokens_details": {
+              "child_classes": {
+                "image_tokens": "nonnegative_integer",
+                "text_tokens": "nonnegative_integer"
+              },
+              "class": "nonempty_object",
+              "keys": [
+                "image_tokens",
+                "text_tokens"
+              ]
+            },
+            "total_tokens": {
+              "class": "nonnegative_integer",
+              "zero": true
+            }
+          },
+          "class": "nonempty_object",
+          "keys": [
+            "input_tokens",
+            "input_tokens_details",
+            "output_tokens",
+            "output_tokens_details",
+            "total_tokens"
+          ]
+        },
+        "web_search": {
+          "child_classes": {
+            "num_requests": "nonnegative_integer"
+          },
+          "children": {
+            "num_requests": {
+              "class": "nonnegative_integer",
+              "zero": true
+            }
+          },
+          "class": "nonempty_object",
+          "keys": [
+            "num_requests"
+          ]
+        }
+      },
+      "class": "nonempty_object",
+      "keys": [
+        "image_gen",
+        "web_search"
+      ]
+    }
+  },
+  "root_keys": [
+    "background",
+    "completed_at",
+    "created_at",
+    "error",
+    "frequency_penalty",
+    "id",
+    "incomplete_details",
+    "instructions",
+    "max_output_tokens",
+    "max_tool_calls",
+    "metadata",
+    "model",
+    "moderation",
+    "object",
+    "output",
+    "parallel_tool_calls",
+    "presence_penalty",
+    "previous_response_id",
+    "prompt_cache_key",
+    "prompt_cache_retention",
+    "reasoning",
+    "safety_identifier",
+    "service_tier",
+    "status",
+    "store",
+    "temperature",
+    "text",
+    "tool_choice",
+    "tool_usage",
+    "tools",
+    "top_logprobs",
+    "top_p",
+    "truncation",
+    "usage",
+    "user"
+  ],
+  "schema_version": 1,
+  "status_class": "completed",
+  "strict_decoder_compatible": false,
+  "tool_usage_all_numeric_leaves_zero": true,
+  "usage": {
+    "class": "nonempty_object",
+    "extra_keys": [],
+    "input_detail_keys": [
+      "cache_write_tokens",
+      "cached_tokens"
+    ],
+    "input_extra_shapes": {
+      "cache_write_tokens": {
+        "class": "nonnegative_integer",
+        "zero": true
+      }
+    },
+    "integer_fields_valid": true,
+    "keys": [
+      "input_tokens",
+      "input_tokens_details",
+      "output_tokens",
+      "output_tokens_details",
+      "total_tokens"
+    ],
+    "output_detail_keys": [
+      "reasoning_tokens"
+    ],
+    "output_extra_shapes": {},
+    "total_consistent": true
+  },
+  "value_free": true
+}

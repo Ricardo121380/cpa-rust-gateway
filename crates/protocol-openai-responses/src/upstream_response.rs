@@ -281,7 +281,16 @@ impl CompletedState {
     ) -> Result<(), GatewayError> {
         require_only_keys(
             item,
-            &["arguments", "call_id", "id", "name", "status", "type"],
+            &[
+                "arguments",
+                "call_id",
+                "id",
+                "internal_chat_message_metadata_passthrough",
+                "metadata",
+                "name",
+                "status",
+                "type",
+            ],
         )?;
         let _ = identifier(item, "id")?;
         let call_id = identifier(item, "call_id")?.to_owned();
@@ -292,6 +301,7 @@ impl CompletedState {
         {
             return Err(protocol_error());
         }
+        validate_proven_tool_metadata(item)?;
         let arguments = required_string(item, "arguments")?;
         if arguments.len() > MAX_TOOL_ARGUMENT_BYTES {
             return Err(protocol_error());
@@ -1048,6 +1058,19 @@ fn validate_proven_message_metadata(item: &Map<String, Value>) -> Result<(), Gat
     if item.get("phase").and_then(Value::as_str) != Some("final_answer") {
         return Err(protocol_error());
     }
+    validate_proven_turn_metadata(item)
+}
+
+fn validate_proven_tool_metadata(item: &Map<String, Value>) -> Result<(), GatewayError> {
+    if !item.contains_key("metadata")
+        && !item.contains_key("internal_chat_message_metadata_passthrough")
+    {
+        return Ok(());
+    }
+    validate_proven_turn_metadata(item)
+}
+
+fn validate_proven_turn_metadata(item: &Map<String, Value>) -> Result<(), GatewayError> {
     let public = object(required(item, "metadata")?)?;
     let internal = object(required(
         item,
@@ -1353,6 +1376,51 @@ mod tests {
             .pointer_mut("/completed_at")
             .ok_or_else(|| std::io::Error::other("test pointer missing"))? = serde_json::json!(9);
         assert!(decode_upstream_response(&reversed_time.to_string()).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn buffered_tool_accepts_only_equal_bounded_turn_metadata()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let base = serde_json::json!({
+            "id": "response-tool-metadata",
+            "object": "response",
+            "status": "completed",
+            "output": [{
+                "id": "function-item",
+                "type": "function_call",
+                "status": "completed",
+                "call_id": "call-id",
+                "name": "emit_probe",
+                "arguments": "{}",
+                "metadata": {"turn_id": "turn-id"},
+                "internal_chat_message_metadata_passthrough": {"turn_id": "turn-id"}
+            }]
+        });
+        assert!(decode_upstream_response(&base.to_string()).is_ok());
+
+        let mut unequal = base.clone();
+        *unequal
+            .pointer_mut("/output/0/internal_chat_message_metadata_passthrough/turn_id")
+            .ok_or_else(|| std::io::Error::other("test pointer missing"))? =
+            serde_json::json!("different");
+        assert!(decode_upstream_response(&unequal.to_string()).is_err());
+
+        let mut partial = base.clone();
+        partial
+            .pointer_mut("/output/0")
+            .and_then(|value| value.as_object_mut())
+            .ok_or_else(|| std::io::Error::other("test object missing"))?
+            .remove("internal_chat_message_metadata_passthrough");
+        assert!(decode_upstream_response(&partial.to_string()).is_err());
+
+        let mut extra = base;
+        extra
+            .pointer_mut("/output/0/metadata")
+            .and_then(|value| value.as_object_mut())
+            .ok_or_else(|| std::io::Error::other("test metadata missing"))?
+            .insert("extra".to_owned(), serde_json::json!(null));
+        assert!(decode_upstream_response(&extra.to_string()).is_err());
         Ok(())
     }
 

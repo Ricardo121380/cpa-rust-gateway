@@ -109,7 +109,7 @@ class ClassifierTest(unittest.TestCase):
                         "content": [{"type": "output_text", "text": "secret"}]}],
         })
         self.assertTrue(result["completed_at_not_before_created_at"])
-        self.assertEqual(result["root_extra_shapes"]["moderation"]["class"], "null")
+        self.assertNotIn("moderation", result["root_extra_keys"])
         self.assertTrue(result["output_items"][0]["phase_is_final_answer"])
         self.assertEqual(result["output_items"][0]["extra_shapes"]["metadata"]["keys"], [])
         self.assertNotIn("final_answer", json.dumps(result["output_items"][0]["extra_shapes"]))
@@ -125,11 +125,45 @@ class ClassifierTest(unittest.TestCase):
                         "internal_chat_message_metadata_passthrough": {"turn_id": "private-turn"},
                         "content": [{"type": "output_text", "text": "secret"}]}],
         })
-        self.assertTrue(result["root_extra_shapes"]["frequency_penalty"]["zero"])
+        self.assertNotIn("frequency_penalty", result["root_extra_keys"])
         self.assertTrue(result["prompt_cache_retention_known"])
         self.assertTrue(result["tool_usage_all_numeric_leaves_zero"])
         self.assertTrue(result["message_turn_ids_equal_and_valid"])
         self.assertNotIn("private-turn", json.dumps(result))
+
+    def test_tool_turn_metadata_and_zero_cache_write_are_closed_relations(self):
+        result = MODULE.classify_json({
+            "id": "response-id", "object": "response", "status": "completed",
+            "output": [{
+                "id": "item-id", "type": "function_call", "status": "completed",
+                "call_id": "call-id", "name": "emit_probe", "arguments": "{}",
+                "metadata": {"turn_id": "private-turn"},
+                "internal_chat_message_metadata_passthrough": {"turn_id": "private-turn"},
+            }],
+            "usage": {
+                "input_tokens": 1, "output_tokens": 2, "total_tokens": 3,
+                "input_tokens_details": {"cached_tokens": 0, "cache_write_tokens": 0},
+            },
+        })
+        self.assertTrue(result["strict_decoder_compatible"])
+        self.assertTrue(result["output_items"][0]["turn_ids_equal_and_valid"])
+        self.assertTrue(result["usage"]["cache_write_tokens_zero"])
+        self.assertNotIn("private-turn", json.dumps(result))
+
+    def test_tool_turn_metadata_rejects_partial_or_unequal_pairs(self):
+        base = {
+            "id": "response-id", "object": "response", "status": "completed",
+            "output": [{
+                "id": "item-id", "type": "function_call", "call_id": "call-id",
+                "name": "emit_probe", "arguments": "{}",
+                "metadata": {"turn_id": "left"},
+            }],
+        }
+        partial = MODULE.classify_json(base)
+        self.assertFalse(partial["output_items"][0]["turn_ids_equal_and_valid"])
+        base["output"][0]["internal_chat_message_metadata_passthrough"] = {"turn_id": "right"}
+        unequal = MODULE.classify_json(base)
+        self.assertFalse(unequal["output_items"][0]["turn_ids_equal_and_valid"])
 
 
 if __name__ == "__main__":

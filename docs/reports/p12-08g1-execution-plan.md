@@ -551,3 +551,19 @@ the endpoint, bearer, model, identifiers, Tool arguments, text, timestamps, toke
 fingerprints. This classifier is diagnostic and does not count as a passing G1 tuple. Only its
 first closed decoder mismatch may be repaired; the first six tuples and failed seventh tuple must
 not be resent during classification.
+
+## CR-P12-08G1-031 — Tool metadata equality relation
+
+CR-030 returned a successful JSON envelope with one valid Function Call and valid Usage, but the
+Function Call carries `metadata` and `internal_chat_message_metadata_passthrough`, which the current
+Tool decoder rejects. The first classifier report also used stale pre-CR-021 root and cache-write
+allowlists, so those already-proven zero/closed metadata fields appeared earlier than the actual
+runtime failure.
+
+Synchronize the offline classifier with the exact current response-metadata and zero
+`cache_write_tokens` predicates. Add one Boolean-only relation for the Function Call metadata:
+both objects must contain exactly one bounded, nonempty `turn_id`, and the two IDs must be equal.
+Then send exactly one final direct Tool classifier request using the unchanged read-only CC Switch
+inputs. No value, identifier or fingerprint may be retained. Equality permits a narrow Tool-item
+metadata admission; absence remains accepted, while partial, malformed or unequal pairs must stay
+rejected. This remains diagnostic and sends no G1 tuple.

@@ -19,16 +19,21 @@ MAX_OUTPUT_ITEMS = 64
 MAX_IDENTIFIER_BYTES = 256
 KRILL_COMPATIBILITY_USER_AGENT = "codex_cli_rs/0.139.0"
 ROOT_FIELDS = {
-    "background", "created_at", "error", "id", "incomplete_details", "instructions",
-    "max_output_tokens", "max_tool_calls", "metadata", "model", "object", "output",
-    "parallel_tool_calls", "previous_response_id", "prompt_cache_key", "reasoning",
+    "background", "completed_at", "created_at", "error", "frequency_penalty", "id",
+    "incomplete_details", "instructions", "max_output_tokens", "max_tool_calls", "metadata",
+    "model", "moderation", "object", "output", "parallel_tool_calls", "presence_penalty",
+    "previous_response_id", "prompt_cache_key", "prompt_cache_retention", "reasoning",
     "safety_identifier", "service_tier", "status", "store", "temperature", "text",
-    "tool_choice", "tools", "top_logprobs", "top_p", "truncation", "usage", "user",
+    "tool_choice", "tool_usage", "tools", "top_logprobs", "top_p", "truncation", "usage",
+    "user",
 }
 ITEM_FIELDS = {
     "message": {"content", "id", "role", "status", "type"},
     "reasoning": {"content", "encrypted_content", "id", "status", "summary", "type"},
-    "function_call": {"arguments", "call_id", "id", "name", "status", "type"},
+    "function_call": {
+        "arguments", "call_id", "id", "internal_chat_message_metadata_passthrough",
+        "metadata", "name", "status", "type",
+    },
 }
 USAGE_FIELDS = {
     "input_tokens", "input_tokens_details", "output_tokens", "output_tokens_details",
@@ -137,6 +142,7 @@ def classify_usage(value) -> tuple[dict, bool]:
         "output_detail_keys": [],
         "input_extra_shapes": {},
         "output_extra_shapes": {},
+        "cache_write_tokens_zero": True,
         "integer_fields_valid": True,
         "total_consistent": True,
     }
@@ -168,7 +174,8 @@ def classify_usage(value) -> tuple[dict, bool]:
             valid = False
             continue
         result[result_key] = sorted(details)
-        extras = set(details) - {child}
+        allowed = {child, "cache_write_tokens"} if parent == "input_tokens_details" else {child}
+        extras = set(details) - allowed
         shape_key = "input_extra_shapes" if parent == "input_tokens_details" else "output_extra_shapes"
         result[shape_key] = {key: semantic_class(details[key]) for key in sorted(extras)}
         if extras:
@@ -178,6 +185,14 @@ def classify_usage(value) -> tuple[dict, bool]:
             and details[child] >= 0
         ):
             valid = False
+        if parent == "input_tokens_details" and "cache_write_tokens" in details:
+            cache_write = details["cache_write_tokens"]
+            cache_write_zero = (
+                isinstance(cache_write, int) and not isinstance(cache_write, bool)
+                and cache_write == 0
+            )
+            result["cache_write_tokens_zero"] = cache_write_zero
+            valid = valid and cache_write_zero
     return result, valid
 
 
@@ -285,7 +300,18 @@ def classify_json(value) -> dict:
                     record["call_id_valid"] = identifier_valid(item.get("call_id"))
                     record["name_valid"] = identifier_valid(item.get("name"))
                     record["arguments_class"] = value_class(item.get("arguments"))
-                    item_valid = item_valid and record["call_id_valid"] and record["name_valid"] and isinstance(item.get("arguments"), str)
+                    metadata_present = (
+                        "metadata" in item
+                        or "internal_chat_message_metadata_passthrough" in item
+                    )
+                    record["turn_ids_equal_and_valid"] = (
+                        turn_ids_equal_and_valid(item) if metadata_present else None
+                    )
+                    item_valid = (
+                        item_valid and record["call_id_valid"] and record["name_valid"]
+                        and isinstance(item.get("arguments"), str)
+                        and (not metadata_present or record["turn_ids_equal_and_valid"] is True)
+                    )
                     emitted_content = emitted_content or item_valid
             items.append(record)
             gates.append(("output_item", item_valid))
@@ -332,16 +358,20 @@ def message_turn_ids_equal_and_valid(output) -> bool | None:
     for item in output:
         if not isinstance(item, dict) or item.get("type") != "message":
             continue
-        left = item.get("metadata")
-        right = item.get("internal_chat_message_metadata_passthrough")
-        if left is None and right is None:
-            return None
-        if not isinstance(left, dict) or not isinstance(right, dict):
-            return False
-        if set(left) != {"turn_id"} or set(right) != {"turn_id"}:
-            return False
-        return identifier_valid(left.get("turn_id")) and left.get("turn_id") == right.get("turn_id")
+        return turn_ids_equal_and_valid(item)
     return None
+
+
+def turn_ids_equal_and_valid(item) -> bool | None:
+    left = item.get("metadata")
+    right = item.get("internal_chat_message_metadata_passthrough")
+    if left is None and right is None:
+        return None
+    if not isinstance(left, dict) or not isinstance(right, dict):
+        return False
+    if set(left) != {"turn_id"} or set(right) != {"turn_id"}:
+        return False
+    return identifier_valid(left.get("turn_id")) and left.get("turn_id") == right.get("turn_id")
 
 
 def read_inputs() -> tuple[str, str, str]:
