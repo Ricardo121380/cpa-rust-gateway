@@ -14,6 +14,10 @@ response body, source hash of Secret material, or token fingerprint.
 - The first strict-compatibility correction was revision
   `d738b838419a1186fa692a271e34f216df8cdfab`, run `30756000209`; both architecture jobs and
   independent local verification passed before installation.
+- Later exact corrections were revisions `1470a847ae4eb3c9f03ef8f8b44b8ac47c8aa253` (run
+  `30756738441`), `e45f1a1c91acd725ed07dacd7079b77071785c93` (run `30757155860`) and
+  `6c011cb2e761eefac5ab5bf00da0a1a81abf3d2b` (run `30757648684`). Every dual-architecture
+  job, OCI smoke and independent Sigstore verification passed before its bounded loopback install.
 - Any later compatibility successor must be a new exact revision and private dual-architecture run;
   its SHA/run are recorded before activation, and only its independently verified
   `aarch64-unknown-linux-gnu` artifact may replace the disabled-at-boot CPAR binary.
@@ -176,3 +180,22 @@ Null remains absent; every other string or value type remains rejected. The role
 Canonical event, and this change does not weaken content, Tool, Usage, identity, summary or terminal
 validation. The correction receives a new exact-SHA artifact and again replaces only the failed
 Chat SSE Text tuple.
+
+## CR-P12-08G1-008 — exact terminal delta de-duplication
+
+The CR-007 artifact passed provenance and loopback installation but the same replacement tuple
+still produced one public stream error frame. Rollback again restored the predecessor graph, made
+the G1 key return 401, retained predecessor-key 200, and left the service active,
+disabled-at-boot and loopback-only. A value-free transport classifier excluded non-data SSE fields.
+The production Rust decoder then consumed a private direct response only through an in-memory pipe:
+the normalized response failed at the terminal summary frame; removing Usage, minimizing the
+summary Message, or restoring the baseline object/ID did not change the failure, while clearing
+only the terminal delta made the exact decoder complete.
+
+The decoder may suppress terminal text only when all three values are already proven equal in
+memory: accumulated Canonical text, the terminal delta text, and the terminal summary Message text.
+The accumulated text must be non-empty and no Tool call may be open. This is an idempotent duplicate,
+not a second TextDelta. Any partial, suffix-only, mismatched, empty-state, Tool-bearing or differently
+typed terminal delta follows the ordinary decoder and therefore still fails if it contradicts the
+summary. The diagnostic retained no endpoint, key, model, request/response body, ID, text or token
+value; the next exact-SHA artifact again replaces only Chat SSE Text.

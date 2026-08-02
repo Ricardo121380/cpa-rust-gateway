@@ -40,6 +40,9 @@ class ClassifierTest(unittest.TestCase):
         self.assertEqual(result["delta_role_classes"], [])
         self.assertEqual(result["delta_role_occurrence_count"], 0)
         self.assertEqual(result["unsupported_usage_detail_nonzero"], [])
+        self.assertEqual(result["sse_field_names"], ["data"])
+        self.assertEqual(result["sse_non_data_field_names"], [])
+        self.assertEqual(result["sse_comment_line_count"], 0)
         self.assertEqual(
             result["id_relation_classes"],
             ["finish_same", "nonfinish_first", "nonfinish_same"],
@@ -57,6 +60,18 @@ class ClassifierTest(unittest.TestCase):
         ))
         self.assertFalse(result["strict_decoder_compatible"])
         self.assertEqual(result["finish_classes"], ["null"])
+
+    def test_non_data_sse_fields_are_classified_without_values(self):
+        stream = wire(
+            {"id": "private", "object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {"content": "private"}, "finish_reason": "stop"}]},
+            "[DONE]",
+        )
+        response = io.BytesIO(b"event: private\n: private\n" + stream.read())
+        result = MODULE.classify_stream(response)
+        self.assertEqual(result["sse_field_names"], ["comment", "data", "event"])
+        self.assertEqual(result["sse_non_data_field_names"], ["event"])
+        self.assertEqual(result["sse_comment_line_count"], 1)
+        self.assertNotIn("private", json.dumps(result))
 
     def test_extra_fields_are_reduced_to_value_classes(self):
         result = MODULE.classify_stream(wire(

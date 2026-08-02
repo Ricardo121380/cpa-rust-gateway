@@ -1,0 +1,19 @@
+{
+  "canonical_event_values_retained": false,
+  "candidate_relation": "terminal_delta_semantic_duplicate",
+  "diagnostic_network_send_count": 1,
+  "frame_failure_class": "terminal_summary",
+  "mutations": {
+    "combined_closed_projection": "PASS",
+    "empty_terminal_delta": "PASS",
+    "minimal_terminal_message": "FAIL",
+    "minimal_usage": "FAIL",
+    "normalized_original": "FAIL",
+    "terminal_chunk_with_baseline_id": "FAIL",
+    "without_usage": "FAIL"
+  },
+  "request_body_retained": false,
+  "response_body_retained": false,
+  "schema_version": 1,
+  "value_free": true
+}

@@ -63,6 +63,9 @@ def provider_values(config: dict, provider_id: str) -> tuple[str, str, str, str,
 
 def classify_stream(response: http.client.HTTPResponse) -> dict:
     total = 0
+    sse_field_names: set[str] = set()
+    sse_non_data_field_names: set[str] = set()
+    sse_comment_line_count = 0
     event_count = 0
     done = False
     error_event = False
@@ -122,6 +125,21 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
             raise ClassifierError("stream_bound")
         if not line:
             break
+        if line.startswith(b":"):
+            sse_comment_line_count += 1
+            sse_field_names.add("comment")
+            continue
+        if b":" in line:
+            raw_field = line.split(b":", 1)[0]
+            try:
+                field = raw_field.decode("ascii")
+            except UnicodeDecodeError:
+                field = "non_ascii"
+            if not field or any(character not in "abcdefghijklmnopqrstuvwxyz" for character in field):
+                field = "invalid"
+            sse_field_names.add(field)
+            if field != "data":
+                sse_non_data_field_names.add(field)
         if not line.startswith(b"data:"):
             continue
         payload = line[5:].strip()
@@ -255,6 +273,9 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
     compatible = done and bool({"stop", "length", "tool_calls"} & finish_classes) and not error_event
     return {
         "event_count": event_count,
+        "sse_field_names": sorted(sse_field_names),
+        "sse_non_data_field_names": sorted(sse_non_data_field_names),
+        "sse_comment_line_count": sse_comment_line_count,
         "done_present": done,
         "error_event_present": error_event,
         "choice_event_count": choice_events,

@@ -376,7 +376,11 @@ impl OpenAiChatSseDecoder {
             return Err(protocol_error());
         }
         let delta = object(required(choice, "delta")?)?;
-        self.decode_delta(delta)?;
+        let redundant_final_text = final_summary
+            && choice
+                .get("message")
+                .is_some_and(|message| self.is_redundant_final_text_delta(delta, message));
+        self.decode_delta(delta, redundant_final_text)?;
         let finish_reason = (!choice.get("finish_reason").is_none_or(Value::is_null))
             .then(|| decode_finish_reason(choice).map(str::to_owned))
             .transpose()?;
@@ -398,7 +402,31 @@ impl OpenAiChatSseDecoder {
         Ok(())
     }
 
-    fn decode_delta(&mut self, delta: &Map<String, Value>) -> Result<(), GatewayError> {
+    fn is_redundant_final_text_delta(&self, delta: &Map<String, Value>, message: &Value) -> bool {
+        let StreamLifecycle::Streaming(state) = &self.lifecycle else {
+            return false;
+        };
+        if state.content.is_empty() || !state.tools.is_empty() {
+            return false;
+        }
+        let Some(delta_content) = delta.get("content").and_then(Value::as_str) else {
+            return false;
+        };
+        let Some(message_content) = message
+            .as_object()
+            .and_then(|message| message.get("content"))
+            .and_then(Value::as_str)
+        else {
+            return false;
+        };
+        delta_content == state.content && message_content == state.content
+    }
+
+    fn decode_delta(
+        &mut self,
+        delta: &Map<String, Value>,
+        suppress_redundant_content: bool,
+    ) -> Result<(), GatewayError> {
         require_only_keys(
             delta,
             &[
@@ -428,7 +456,7 @@ impl OpenAiChatSseDecoder {
         }
         let text = match delta.get("content") {
             None | Some(Value::Null) => None,
-            Some(Value::String(text)) if text.is_empty() => None,
+            Some(Value::String(text)) if text.is_empty() || suppress_redundant_content => None,
             Some(Value::String(text)) => Some(text.clone()),
             Some(_) => return Err(protocol_error()),
         };
@@ -923,6 +951,31 @@ mod tests {
                 .iter()
                 .any(|event| matches!(event, CanonicalEvent::ResponseEnd(_)))
         );
+        Ok(())
+    }
+
+    #[test]
+    fn streaming_suppresses_only_an_exact_redundant_final_text_delta()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let wire = concat!(
+            "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"hello\"},\"finish_reason\":null}]}\n\n",
+            "data: {\"id\":\"chat-final\",\"object\":\"chat.completion\",\"choices\":[{\"index\":0,\"delta\":{\"role\":null,\"content\":\"hello\",\"reasoning_content\":\"\"},\"message\":{\"role\":\"assistant\",\"content\":\"hello\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
+            "data: [DONE]\n\n"
+        );
+        let mut decoder = OpenAiChatSseDecoder::new();
+        let events = decoder.push(wire.as_bytes())?;
+        decoder.finish()?;
+        assert_eq!(
+            events
+                .iter()
+                .filter(|event| matches!(event, CanonicalEvent::TextDelta(_)))
+                .count(),
+            1
+        );
+
+        let mut decoder = OpenAiChatSseDecoder::new();
+        decoder.push(b"data: {\"id\":\"x\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"hello\"},\"finish_reason\":null}]}\n\n")?;
+        assert!(decoder.push(b"data: {\"id\":\"summary\",\"object\":\"chat.completion\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"other\"},\"message\":{\"role\":\"assistant\",\"content\":\"hello\"},\"finish_reason\":\"stop\"}]}\n\n").is_err());
         Ok(())
     }
 
