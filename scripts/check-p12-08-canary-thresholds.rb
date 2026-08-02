@@ -1,9 +1,8 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# The Canary sample-size floor is a statistical claim, so it is checked rather than asserted. This
-# recomputes the two bounds that justify it and fails closed if the plan's recorded numbers stop
-# following from them, or if the severity taxonomy G12 depends on is removed.
+# The direct-cutover observation floor is checked rather than asserted. This fails closed if the
+# 72-hour/1250-success rule, no-split topology, or G12 severity taxonomy disappears.
 
 ROOT = File.expand_path("..", __dir__)
 PLAN = File.join(ROOT, "docs", "06-development-plan.md")
@@ -57,9 +56,10 @@ rescue Errno::ENOENT
 end
 
 required_fragments = [
-  "每个阶段至少 1250 个成功请求",
-  "50% 阶段 24h 起",
-  "分开计数",
+  "不执行 10%→25%→50%→100% 百分比或按 Key 分流",
+  "切换后 CPAR 全量观察至少 72h，成功请求不少于 1250",
+  "合成补足请求单独计数",
+  "G12 通过后停止并禁用旧 CPA",
   "### 故障严重度分级",
   "无 P0/P1 故障（按上表分级判定）",
   "#### 判据信号的实际来源"
@@ -73,7 +73,7 @@ end
 # keep saying so, and the exposition must actually still lack a histogram.
 [
   "TTFT 与 P95/P99 当前服务端不可观测",
-  "| TTFT | 分流层之前的客户端侧合成探针记录首字节时长 | 服务端不可观测 |",
+  "| TTFT | 客户端侧合成探针记录首字节时长 | 服务端不可观测 |",
   "| P95/P99 | 同上；Attempt 级时长由事件日志 `started_at_ms`/`ended_at_ms` 离线导出统计 | 服务端无实时 histogram |"
 ].each do |fragment|
   errors << "plan no longer records the latency observability gap: #{fragment}" unless plan.include?(fragment)
@@ -100,19 +100,6 @@ rescue Errno::ENOENT
   errors << "telemetry exposition is missing"
 end
 
-# The published baseline table must keep matching the recomputed sample sizes, so an operator
-# reading it never gets a floor the statistics do not support.
-{ "0.1" => 735, "0.5" => 1222, "1.0" => 1825, "2.0" => 3013 }.each do |percent, published|
-  recomputed = per_arm_sample(percent.to_f / 100, TRIGGER_DELTA)
-  if recomputed != published
-    errors << "the baseline table records #{published} for a #{percent}% baseline but the " \
-              "recomputed value is #{recomputed}"
-  end
-  unless plan.include?("| #{percent}% | #{published} |")
-    errors << "the plan's baseline table is missing the #{percent}% / #{published} row"
-  end
-end
-
 # Each severity level must stay defined, or "no P0/P1" becomes unjudgeable again.
 %w[P0 P1 P2 P3].each do |level|
   unless plan.match?(/^\| #{level} \| /)
@@ -123,13 +110,13 @@ end
 # The floor must not silently revert to a number the statistics reject. The rejected value is still
 # quoted inside the CR that argued against it, so only a live rule counts as a regression.
 live_rules = plan.lines.reject { |line| line.start_with?("      ") }.join
-if live_rules.match?(/每个阶段至少\s*#{REJECTED_FLOOR}\s*个成功请求/)
+if live_rules.match?(/观察窗口.*至少\s*#{REJECTED_FLOOR}\s*个成功请求/)
   errors << "plan still imposes the rejected #{REJECTED_FLOOR}-success floor as a live rule"
 end
 
 if errors.empty?
-  puts "p12-08-canary: ok (#{REQUIRED_SUCCESSES}-success floor detects #{TRIGGER_DELTA * 100}pp; " \
-       "needs #{needed}; severity taxonomy present)"
+  puts "p12-08-canary: ok (direct cutover; 72h/#{REQUIRED_SUCCESSES}-success observation; " \
+       "no production split; severity taxonomy present)"
 else
   warn errors.join("\n")
   exit 1

@@ -2,8 +2,8 @@
 
 | 项 | 值 |
 |---|---|
-| 状态 | v1.0 — 按 `CR-P12-ROLLOUT-001`（范围/分流层）与 `CR-P12-06-001`（组合放宽与可观测性）编写 |
-| 适用 | P12-06 前置：生产配置图定义与录入、客户端 Key 迁移、Caddy 分流与回滚 |
+| 状态 | v1.1 — `CR-P12-ROLLOUT-002` 覆盖百分比分流，采用 CPAR 全量替代 CPA |
+| 适用 | 生产配置图定义与录入、客户端 Key 迁移、Caddy 全量切换与回滚、旧 CPA 下线 |
 | 事实基线 | 全部操作步骤与约束均核对自当前代码与 `docs/openapi/management-v1.json`；服务器侧数值（CPA key 清单等）仓库刻意不存，须在服务器上读取 |
 
 ## 1. 前提与不变量
@@ -48,31 +48,30 @@
 - `GET /admin/routes/{id}/explain` 与 `GET /admin/runtime/availability` 对照选路
 - `GET /admin/requests/{request_id}/attempts` 确认事件管道产出真实 attempt 记录
 
-## 4. 客户端 Key 迁移（含双接受窗口）
+## 4. 客户端 Key 迁移（直接替代）
 
 **事实**：新网关不接受外部提供的 key 值（`ClientKeyInput` 无 secret 字段，key 一律服务端随机生成）；CPA 的 key 无法导入。迁移方向只能是**全体客户端换发 `rgw_` 新 key**。
 
-**双接受窗口**（使即时回滚成立的关键）：
+1. 服务器上冻结并清点 CPA 现行 api-keys 清单（在 `/opt/example-legacy-gateway/cpa` 配置内读取；仓库无值）。
+2. 为每个实际客户端经管理 API 签发独立 `rgw_` key（§3 步骤 12），建立操作者持有的交付台账。
+3. 每个客户端在切换窗口内一次性把 endpoint 与 key 从 CPA 改为生产主机名上的 CPAR 组合；Caddy
+   同时把该生产主机名全量改到 CPAR。不得让 Caddy 按 key 或百分比把生产请求拆到两侧。
+4. 回滚时先把 Caddy 全量恢复到 CPA，再按台账恢复客户端旧 key。因为 CPAR 当前不能导入 CPA key，
+   也不再要求 CPA 接受 `rgw_`，所以回滚不是无感 key 回滚；客户端恢复耗时必须计入 RTO。
+5. CPAR 全量稳定 72h 且 G12 通过后，停止并禁用旧 CPA service/container；保留加密备份和回滚包，
+   但服务器生产入口只保留 CPAR。
 
-1. 服务器上冻结并清点 CPA 现行 api-keys 清单（在 `/opt/example-legacy-gateway/cpa` 配置内读取；仓库无值）
-2. 为每个客户端经管理 API 签发 `rgw_` key（§3 步骤 12）
-3. **把同一批 `rgw_` key 值加入 CPA 配置的 api-keys 列表**——CPA 接受任意字符串 key，这一步让两侧同时接受新 key
-4. 按 Canary 阶段计划把新 key 逐批交付客户端替换旧 key
-5. Caddy 按字面前缀分流（见 §5）：带 `rgw_` key 的请求 → 新网关，其余 → CPA
-6. **阶段百分比 = 已换发客户端的流量占比**（确定性、保缓存亲和、按 key 可归因）
-7. **即时回滚** = Caddy reload 把 `rgw_` 流量也指回 CPA——因第 3 步，CPA 照常接受这些 key，客户端无感知
-8. 100% 切换稳定 72h（G12）后：从 CPA 配置移除 rgw_ 值、废弃 CPA 旧 key，关闭双接受窗口
-
-## 5. Caddy 分流与备份
+## 5. Caddy 全量切换与备份
 
 ### Caddy 要点
 
-配置模板在仓库内：分流用 [`deploy/caddy/canary.Caddyfile`](../deploy/caddy/canary.Caddyfile)，
+配置模板在仓库内：全量切换用 [`deploy/caddy/canary.Caddyfile`](../deploy/caddy/canary.Caddyfile)，
 回滚 preimage 用 [`deploy/caddy/rollback.Caddyfile`](../deploy/caddy/rollback.Caddyfile)。
 两者都是**片段**，只替换生产主机名那一个站点块，其余站点（cpam/grok/kiro/sub）不动。
 
 - 公网 TLS 终止后反代到 `127.0.0.1:18180`（数据面）；**不得存在任何到 18181 的公网路由**
-- 分流规则：`Authorization: Bearer rgw_…` **或** `x-api-key: rgw_…`（数据面二选一互斥，两个头都得匹配前缀）→ 新网关；否则 → CPA。匹配的是**非机密**的固定字面 `rgw_`，配置中不出现任何 key 值
+- 全量切换规则：生产主机名唯一 `reverse_proxy 127.0.0.1:18180`，不得出现按 key、header、权重或
+  百分比的生产分支，也不得保留到 CPA 的 fallback。
 - **不要加全局 `servers` 超时块**。Caddy 的 `servers` 是按**监听地址**生效的，不是按站点；服务器上
   五个站点共用同一个 `:443` 监听器，加全局块会把超时施加到 cpam/grok/kiro/sub 上（已用
   `caddy adapt` 实测确认）。要按站点隔离只能换端口，那会改变公开面
@@ -92,8 +91,8 @@
 ### P12-07 暴露前验证域名
 
 [`deploy/caddy/staging-domain.Caddyfile`](../deploy/caddy/staging-domain.Caddyfile) 是新网关的
-**第一条公网路由**，只用于在分流前验证 DNS/TLS/认证与管理面边界，P12-08 开始后即应移除
-（Canary 按 `CR-P12-ROLLOUT-001` 跑在生产主机名上，不在此域名）。它只反代数据面 18180，
+**第一条公网路由**，只用于全量切换前验证 DNS/TLS/认证与管理面边界，P12-09 切换后即应移除。
+它只反代数据面 18180，
 同样不含全局 `servers` 块、不含 `encode`、不含到 18181 的任何路由。
 
 验证用 [`scripts/p12-07-verify-exposure.sh`](../scripts/p12-07-verify-exposure.sh)，八项断言全部
@@ -117,27 +116,25 @@ fail-closed：权威 NS 解析、非代理（灰云）、证书主机名匹配�
 
 | # | 缺口 | 操作对策 |
 |---|---|---|
-| 1 | 无 key 导入路径 | 全员换发 `rgw_` key + §4 双接受窗口 |
-| 2 | 发布后需重启（无热加载） | 发布排低谷；Canary 窗口内冻结配置变更 |
+| 1 | 无 key 导入路径 | 全员换发 `rgw_` key + §4 客户端交付/回退台账 |
+| 2 | 发布后需重启（无热加载） | 发布排低谷；全量观察窗口内冻结配置变更 |
 | 3 | endpoints/credentials/aliases/routes/candidates 无 list | §2 台账强制 |
 | 4 | `/admin/endpoints/{id}/test` 在生产组合恒 `rejected` | 真实数据面请求 + explain + availability 验证 |
 | 5 | 无 HTTP 备份创建 | 服务器文件系统级备份（P12-03 流程） |
 | 6 | API 回滚仅单步 | 深回退走文件系统备份 |
 | 7 | 管理面按对端地址放行 | Caddy 审查断言无 18181 公网路由 |
-| 8 | **服务端无延迟分位数**：Prometheus 暴露面 7 个指标全是计数器，零 histogram；`ManagementRequestAttempt` 按设计不含 timing | TTFT 与 P95/P99 由分流层之前的客户端侧探针采集；Attempt 级时长由事件日志 `started_at_ms`/`ended_at_ms` 离线导出统计。**不得**声称服务端提供实时分位数 |
+| 8 | **服务端无延迟分位数**：Prometheus 暴露面 7 个指标全是计数器，零 histogram；`ManagementRequestAttempt` 按设计不含 timing | TTFT 与 P95/P99 由客户端侧探针采集；Attempt 级时长由事件日志 `started_at_ms`/`ended_at_ms` 离线导出统计。**不得**声称服务端提供实时分位数 |
 | 9 | `attempts_total` 只有 `succeeded`/`failed` 两个标签值，无 HTTP 状态码或错误分类维度 | 错误率分子按客户端观测状态码 + Attempt 载荷的 `GatewayError` 分类共同判定 |
 | 10 | Tool 与 Route 分布无指标 | 按 §2 台账逐样本核对，不按指标聚合 |
-| 11 | **分流层无限流**：服务器 Caddy 标准版无 `rate_limit` 模块 | 依赖 client key 强制、4 MiB 正文上限、30s 正文读取上限、总并发 16、测试域名不公布且用后移除；加限流需自定义 Caddy 构建，另行 CR |
+| 11 | **入口无限流**：服务器 Caddy 标准版无 `rate_limit` 模块 | 依赖 client key 强制、4 MiB 正文上限、30s 正文读取上限、总并发 16、测试域名不公布且用后移除；加限流需自定义 Caddy 构建，另行 CR |
 
-## 7. Canary 阶段判据（操作口径）
+## 7. 全量替代判据（操作口径）
 
 完整定义见计划 §18；此处只给操作时要盯的三件事。
 
-- **样本量**：每阶段至少 **1250** 个成功请求，新旧网关在同一时间窗内各自达标。1250 覆盖到
-  0.5% 的旧网关基线；实测基线更高时按计划 §18 的基线表提高门槛。未达标只延长窗口，不推进。
-  合成补足请求单独计数，其失败同样计入分子——否则会稀释分母、掩盖真实劣化。
-- **时长**：10%、25%、100% 各 2h 起；**50% 阶段 24h 起**（补回本地 Soak 从 24h 降为 10h
-  所让掉的长时覆盖：内存增长、连接泄漏、SQLite 完整性只在长窗口暴露）。
+- **样本量**：CPAR 全量窗口至少 **1250** 个成功请求；切换前冻结 CPA 基线，不要求两者并行承载
+  生产流量。合成补足请求单独计数，其失败同样计入分子。
+- **时长**：CPAR 全量生产观察至少 **72h**；P12-09 先完成一次全量回滚/恢复演练。
 - **回滚判定**：按计划 §18 的四级严重度表。P0（数据/隔离破坏）与 P1（全量降级、语义回归、
   必需事件被隔离或必需队列满）立即回滚且 G12 不通过；P2/P3 记录但不阻塞。每阶段结束前
   至少核对一次 `durable_events_total{outcome=required_quarantined}`、`{outcome=write_failed}` 与

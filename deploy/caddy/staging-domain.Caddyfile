@@ -2,8 +2,8 @@
 #
 # This is the first public route to the new gateway. It exists to verify DNS, TLS, authentication and
 # the management-plane boundary before any production traffic is split, and it is expected to be
-# removed once P12-08 begins: the Canary runs on the production hostname per CR-P12-ROLLOUT-001, not
-# here.
+# removed once P12-09 performs the direct production cutover; the full replacement runs on the
+# production hostname, not here.
 #
 # Deliberately NO global `servers` block, for the same reason as canary.Caddyfile: Caddy scopes
 # `servers` by listener address, and every site on this host shares one :443 listener, so a global

@@ -1,4 +1,4 @@
-# P12-08 Canary split: production hostname unchanged, traffic selected by client-key prefix.
+# P12-09 direct cutover: production hostname unchanged, all traffic goes to CPAR.
 #
 # This is a fragment, not a whole Caddyfile. It replaces exactly one existing site block on the
 # server; every other site (cpam, grok, kiro, sub) stays untouched.
@@ -23,27 +23,8 @@
 # Do not add `encode` to this site — compressing an event stream reintroduces buffering.
 
 cpa.example.invalid {
-	# The split matches a non-secret fixed literal prefix. No key value ever appears in this file.
-	# The data plane accepts either header, mutually exclusively, so both are routed.
-	@canary_bearer {
-		header Authorization "Bearer rgw_*"
-	}
-	@canary_api_key {
-		header X-Api-Key "rgw_*"
-	}
-
-	handle @canary_bearer {
-		reverse_proxy 127.0.0.1:18180
-	}
-
-	handle @canary_api_key {
-		reverse_proxy 127.0.0.1:18180
-	}
-
-	# Everything else keeps reaching the incumbent CPA unchanged.
-	handle {
-		reverse_proxy 127.0.0.1:8317
-	}
+	# No header, key, weight or percentage split: CPAR replaces CPA for this hostname.
+	reverse_proxy 127.0.0.1:18180
 }
 
 # There is deliberately no site block for the management listener. 127.0.0.1:18181 must remain

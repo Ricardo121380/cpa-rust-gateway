@@ -1,6 +1,6 @@
 # P12-08 Canary readiness report
 
-Status: `BLOCKED`
+Status: `SUPERSEDED_BY_DIRECT_REPLACEMENT`
 
 Date: 2026-08-02
 
@@ -20,13 +20,14 @@ byte-for-byte from the preimage and the service was restarted; the incumbent is 
 key count is restored. No Caddy reload, DNS change, public traffic split, new gateway publish, or upstream
 request was performed by this attempt.
 
-## Gate decision
+## Corrected gate decision
 
-`CR-P12-08-002` remains open but blocked. Do not enter 10% until CPA accepts the same `rgw_` key during a
-fresh, auditable double-acceptance check. The failure is an incumbent key-acceptance/configuration
-compatibility issue, not evidence of a new-gateway protocol failure. The next bounded investigation is
-to determine CPA's supported key-registration path or key format, without weakening the `rgw_` Caddy
-namespace and without changing the incumbent's existing keys.
+The user clarified that CPAR replaces CPA rather than sharing production traffic with it.
+`CR-P12-ROLLOUT-002` therefore supersedes the double-acceptance gate: CPA does not need to accept a
+CPAR `rgw_` key, and the observed 401 is not a blocker. P12-08 now prepares a direct, all-traffic
+cutover plus an explicit per-client key migration and rollback list. P12-09 switches the production
+hostname entirely to CPAR, exercises one complete rollback and recovery, and P12-10 disables the old
+CPA after the 72-hour CPAR observation passes.
 
 Evidence is value-free: no endpoint, credential, model, request/response body, key value, or token
 fingerprint is recorded.

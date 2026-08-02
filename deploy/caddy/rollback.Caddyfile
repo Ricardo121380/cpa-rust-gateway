@@ -1,7 +1,7 @@
-# P12-09 rollback target: send every request on the production hostname back to the incumbent CPA.
+# P12-09 full rollback target: send every request on the production hostname back to CPA.
 #
 # This is the preimage the runbook restores. It is byte-identical in effect to the site block that
-# existed before the Canary split, so `caddy reload` with this file removes the new gateway from the
+# existed before the CPAR cutover, so `caddy reload` with this file removes CPAR from the
 # request path entirely without touching DNS, TLS, or any other site.
 #
 # Rolling back is a file swap plus one reload; P12-09 measures how long that reload takes to take

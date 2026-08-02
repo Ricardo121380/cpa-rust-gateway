@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# The Canary split lives in front of the data plane, so its timeouts are only correct relative to
+# The direct cutover lives in front of the data plane, so its timeouts are only correct relative to
 # the gateway's own transport ceilings. Those live in Rust constants, which drift independently of a
 # Caddyfile. This reads both sides and fails closed when they stop agreeing, and it re-asserts the
 # exposure invariants `CR-P12-ROLLOUT-001` made review items.
@@ -35,7 +35,7 @@ rescue Errno::ENOENT
   nil
 end
 
-split = read_source(options[:split], "Canary split fragment", errors)
+split = read_source(options[:split], "CPAR cutover fragment", errors)
 rollback = read_source(options[:rollback], "rollback fragment", errors)
 staging = read_source(options[:staging], "staging-domain fragment", errors)
 http_source = read_source(HTTP_SOURCE, "HTTP crate", errors)
@@ -156,7 +156,7 @@ end
   end
 end
 
-# The staging domain exists only to verify exposure before the split, so it must reach the data
+# The staging domain exists only to verify exposure before the cutover, so it must reach the data
 # plane and nothing else.
 staging_directives = staging.lines.reject { |line| line.strip.start_with?("#") }.join
 unless staging_directives.include?(DATA_PLANE)
@@ -167,23 +167,16 @@ if staging_directives.include?(INCUMBENT)
 end
 
 unless split.include?(DATA_PLANE)
-  errors << "the split fragment must reverse_proxy the canary to #{DATA_PLANE}"
+  errors << "the cutover fragment must reverse_proxy all production traffic to #{DATA_PLANE}"
 end
-unless split.include?(INCUMBENT)
-  errors << "the split fragment must keep unmatched traffic on the incumbent #{INCUMBENT}"
-end
-
-# The split must key on the non-secret literal prefix, on both accepted headers.
-unless split.include?('header Authorization "Bearer rgw_*"')
-  errors << "the split fragment must match the Authorization bearer prefix rgw_"
-end
-unless split.include?('header X-Api-Key "rgw_*"')
-  errors << "the split fragment must match the x-api-key prefix rgw_"
+if split.include?(INCUMBENT)
+  errors << "the cutover fragment must not retain an incumbent fallback or split to #{INCUMBENT}"
 end
 
-# A key value in a reviewed config file would be a secret leak into version control.
-if split.match?(/rgw_[A-Za-z0-9]/)
-  errors << "the split fragment contains something longer than the bare rgw_ prefix"
+# Direct replacement must not route by header, key, matcher or weighted upstream.
+split_directives = split.lines.reject { |line| line.strip.start_with?("#") }.join
+if split_directives.match?(/^\s*@|^\s*header\s|^\s*handle\s+@|rgw_|lb_policy|lb_try_duration/)
+  errors << "the cutover fragment must not contain a key, header, weight, or matcher-based split"
 end
 
 # Rollback must remove the gateway from the path entirely, or it is not a rollback.
@@ -202,8 +195,8 @@ if split_hosts != rollback_hosts
 end
 
 if errors.empty?
-  puts "p12-caddy-split: ok (timeouts agree with the gateway; management plane unexposed; " \
-       "rollback removes the gateway)"
+  puts "p12-caddy-split: ok (direct CPAR cutover; no production split; management plane unexposed; " \
+       "rollback restores CPA)"
 else
   errors.each { |error| warn "p12-caddy-split: #{error}" }
   exit 1

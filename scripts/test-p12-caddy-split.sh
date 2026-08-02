@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verifies that the Canary split checker actually rejects the regressions it claims to guard. Each
+# Verifies that the direct-cutover checker actually rejects the regressions it claims to guard. Each
 # case is a real edit to a copy of the shipped fragment, not a synthetic fixture.
 
 set -euo pipefail
@@ -63,16 +63,12 @@ inject_split 'a non-zero write deadline' \
 reject_split 'a route to the management listener' \
     'text = text.sub("reverse_proxy 127.0.0.1:18180", "reverse_proxy 127.0.0.1:18181")'
 reject_split 'compression in front of the event stream' \
-    'text = text.sub("handle {\n\t\treverse_proxy", "handle {\n\t\tencode gzip\n\t\treverse_proxy")'
-# The split must keep keying on the bare non-secret prefix, and never carry a key value.
-reject_split 'a dropped bearer prefix matcher' \
-    'text = text.sub(%q{header Authorization "Bearer rgw_*"}, %q{header Authorization "Bearer *"})'
-reject_split 'a dropped x-api-key prefix matcher' \
-    'text = text.sub(%q{header X-Api-Key "rgw_*"}, %q{header X-Api-Key "*"})'
-reject_split 'a literal key value in the reviewed config' \
-    'text = text.sub(%q{header X-Api-Key "rgw_*"}, %q{header X-Api-Key "rgw_abc123*"})'
-reject_split 'losing the incumbent fallback' \
-    'text = text.sub("reverse_proxy 127.0.0.1:8317", "respond 503")'
+    'text = text.sub("\treverse_proxy 127.0.0.1:18180", "\tencode gzip\n\treverse_proxy 127.0.0.1:18180")'
+# Direct replacement must never regress to key/header routing or an incumbent fallback.
+reject_split 'a bearer key matcher' \
+    'text = text.sub("cpa.example.invalid {", "cpa.example.invalid {\n\t@legacy {\n\t\theader Authorization \"Bearer rgw_*\"\n\t}")'
+reject_split 'an incumbent fallback' \
+    'text = text.sub("reverse_proxy 127.0.0.1:18180", "handle { reverse_proxy 127.0.0.1:18180 }\n\thandle { reverse_proxy 127.0.0.1:8317 }")'
 # Rollback must remove the gateway from the path, on the same hostname.
 reject_rollback 'a rollback that still routes to the gateway' \
     'text = text.sub("reverse_proxy 127.0.0.1:8317", "reverse_proxy 127.0.0.1:18180")'
@@ -101,4 +97,4 @@ reject_staging 'compression on the staging domain' \
 reject_staging 'a staging domain that also fronts the incumbent' \
     'text = text.sub("reverse_proxy 127.0.0.1:18180", "reverse_proxy 127.0.0.1:8317")'
 
-printf 'p12-caddy-split test: ok (15 rejection paths)\n'
+printf 'p12-caddy-split test: ok (12 rejection paths)\n'
