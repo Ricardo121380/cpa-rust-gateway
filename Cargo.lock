@@ -795,6 +795,7 @@ dependencies = [
  "gateway-store",
  "gateway-stream",
  "gateway-upstream",
+ "getrandom 0.3.4",
  "protocol-anthropic",
  "protocol-openai-chat",
  "protocol-openai-responses",

@@ -23,9 +23,10 @@ pub mod management_ui_resources;
 use std::{
     collections::VecDeque,
     convert::Infallible,
+    fmt,
     pin::Pin,
     sync::{
-        Arc,
+        Arc, OnceLock,
         atomic::{AtomicU64, Ordering},
     },
     task::{Context, Poll},
@@ -148,26 +149,64 @@ pub trait ResponsesMetadataFactory: Send + Sync {
 }
 
 /// The production-default metadata implementation for P1's local vertical slice.
-#[derive(Debug, Default)]
 pub struct SystemResponsesMetadataFactory {
+    request_namespace: OnceLock<[u8; 16]>,
     next_request_sequence: AtomicU64,
 }
 
 impl SystemResponsesMetadataFactory {
-    /// Creates a metadata factory whose first request identifier has sequence zero.
+    /// Creates a metadata factory whose first request identifier has sequence zero and whose
+    /// random process namespace is allocated lazily on the first accepted request.
     #[must_use]
     pub const fn new() -> Self {
         Self {
+            request_namespace: OnceLock::new(),
             next_request_sequence: AtomicU64::new(0),
         }
+    }
+
+    fn request_namespace(&self) -> Result<&[u8; 16], GatewayError> {
+        if let Some(namespace) = self.request_namespace.get() {
+            return Ok(namespace);
+        }
+        let mut generated = [0_u8; 16];
+        getrandom::fill(&mut generated).map_err(|_| internal_error())?;
+        let _ = self.request_namespace.set(generated);
+        self.request_namespace.get().ok_or_else(internal_error)
+    }
+}
+
+impl Default for SystemResponsesMetadataFactory {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl fmt::Debug for SystemResponsesMetadataFactory {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("SystemResponsesMetadataFactory")
+            .field("request_namespace", &"<redacted>")
+            .field(
+                "next_request_sequence",
+                &self.next_request_sequence.load(Ordering::Relaxed),
+            )
+            .finish()
     }
 }
 
 impl ResponsesMetadataFactory for SystemResponsesMetadataFactory {
     fn request_context(&self) -> Result<RequestContext, GatewayError> {
+        use std::fmt::Write as _;
+
+        let namespace = self.request_namespace()?;
         let sequence = self.next_request_sequence.fetch_add(1, Ordering::Relaxed);
-        let request_id =
-            RequestId::try_new(format!("p1-request-{sequence}")).map_err(|_| internal_error())?;
+        let mut namespace_hex = String::with_capacity(namespace.len() * 2);
+        for byte in namespace {
+            write!(&mut namespace_hex, "{byte:02x}").map_err(|_| internal_error())?;
+        }
+        let request_id = RequestId::try_new(format!("p1-request-{namespace_hex}-{sequence}"))
+            .map_err(|_| internal_error())?;
 
         Ok(RequestContext::new(request_id))
     }
@@ -1701,13 +1740,35 @@ mod tests {
     use super::{
         JsonDeliveryBody, MAX_INFERENCE_REQUEST_BODY_BYTES, ResponsesHttpState,
         ResponsesMetadataFactory, SSE_KEEPALIVE_COMMENT, SSE_KEEPALIVE_INTERVAL,
-        client_request_error, configure,
+        SystemResponsesMetadataFactory, client_request_error, configure,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
 
     const TEST_CLIENT_KEY: &str = "p1-test-client-key";
     const SNAPSHOT_PUBLIC_MODEL: &str = "public-model";
+
+    #[actix_web::test]
+    async fn system_request_ids_are_restart_unique_bounded_and_debug_redacted() -> TestResult {
+        let first_factory = SystemResponsesMetadataFactory::new();
+        let first = first_factory.request_context()?;
+        let second = first_factory.request_context()?;
+        let restarted = SystemResponsesMetadataFactory::new().request_context()?;
+
+        let first_id = first.request_id().as_str();
+        let second_id = second.request_id().as_str();
+        let restarted_id = restarted.request_id().as_str();
+        assert!(first_id.starts_with("p1-request-"));
+        assert!(first_id.ends_with("-0"));
+        assert!(second_id.ends_with("-1"));
+        assert_ne!(first_id, second_id);
+        assert_ne!(first_id, restarted_id);
+        assert!(first_id.len() <= 64);
+        let diagnostic = format!("{first_factory:?}");
+        assert!(!diagnostic.contains(&first_id[11..43]));
+        assert!(diagnostic.contains("<redacted>"));
+        Ok(())
+    }
     const SNAPSHOT_MODEL_ALIAS: &str = "client-model-alias";
 
     /// Actix's `PayloadConfig` default, which the data-plane handlers must no longer inherit.

@@ -496,3 +496,20 @@ bounded `p1-request-0..15` space before rollback and require exactly one nonempt
 Retain only count, outcome and closed stage as in CR-026. The incorrect lookup created no extra
 upstream request, and this correction still forbids resending the first six tuples or retaining any
 request identifier or value.
+
+## CR-P12-08G1-028 — restart-unique request correlation
+
+CR-027 again reproduced only the failed seventh tuple and rolled back safely, but no management
+Attempt could be returned. Source and durable-log review found the independent cause: every
+`SystemResponsesMetadataFactory` restarts its sequence at zero, while durable Attempt event IDs are
+globally unique and derive from that request ID. After a service restart, correlation IDs collide
+with prior durable events; the event store cannot append the terminal and the management facade
+correctly withholds an unmatched in-memory stage. This affects production auditability, not just
+the diagnostic.
+
+Each factory must lazily obtain a 128-bit operating-system-random namespace and combine it with its
+monotone request sequence. Randomness failure fails the request safely; there is no clock, PID or
+deterministic fallback. The namespace is redacted from Debug, IDs remain bounded, and separate
+factory instances must not collide. Add focused restart-uniqueness tests and run the Full gate.
+Then build and independently verify an exact-revision artifact before any further live tuple. The
+failed seventh tuple remains the only tuple eligible for another send.
