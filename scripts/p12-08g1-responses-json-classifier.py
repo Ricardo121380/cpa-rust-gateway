@@ -17,6 +17,7 @@ from urllib.parse import urlsplit
 MAX_BODY = 2 * 1024 * 1024
 MAX_OUTPUT_ITEMS = 64
 MAX_IDENTIFIER_BYTES = 256
+KRILL_COMPATIBILITY_USER_AGENT = "codex_cli_rs/0.139.0"
 ROOT_FIELDS = {
     "background", "created_at", "error", "id", "incomplete_details", "instructions",
     "max_output_tokens", "max_tool_calls", "metadata", "model", "object", "output",
@@ -368,6 +369,15 @@ def write_receipt(path: Path, value: dict) -> None:
         handle.write("\n")
 
 
+def request_headers(bearer: str) -> dict[str, str]:
+    return {
+        "accept": "application/json",
+        "authorization": "Bearer " + bearer,
+        "content-type": "application/json",
+        "user-agent": KRILL_COMPATIBILITY_USER_AGENT,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, type=Path)
@@ -386,10 +396,7 @@ def main() -> int:
             "stream": False,
         }, separators=(",", ":")).encode("utf-8")
         connection = http.client.HTTPSConnection(parsed.hostname, parsed.port or 443, timeout=args.timeout, context=ssl.create_default_context())
-        connection.request("POST", path, body=body, headers={
-            "accept": "application/json", "authorization": "Bearer " + bearer,
-            "content-type": "application/json",
-        })
+        connection.request("POST", path, body=body, headers=request_headers(bearer))
         response = connection.getresponse()
         raw = response.read(MAX_BODY + 1)
         if len(raw) > MAX_BODY:

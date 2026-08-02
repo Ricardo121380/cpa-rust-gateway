@@ -14,6 +14,14 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ClassifierTest(unittest.TestCase):
+    def test_direct_classifier_uses_the_exact_runtime_compatibility_headers(self):
+        headers = MODULE.request_headers("private-token")
+        self.assertEqual(set(headers), {"accept", "authorization", "content-type", "user-agent"})
+        self.assertEqual(headers["accept"], "application/json")
+        self.assertEqual(headers["content-type"], "application/json")
+        self.assertEqual(headers["user-agent"], "codex_cli_rs/0.139.0")
+        self.assertEqual(headers["authorization"], "Bearer private-token")
+
     def test_duplicate_json_names_are_counted_without_retaining_names_or_values(self):
         value, counts = MODULE.decode_json_with_duplicate_counts(
             b'{"private":"first","nested":{"secret":1,"secret":2},"private":"last"}'

@@ -437,3 +437,17 @@ names nor values. After focused tests and the required local gate, one same-shap
 permitted with the unchanged CR-022 network, CC Switch read-only and no-retry constraints. A zero
 result closes this hypothesis and does not authorize decoder relaxation; a nonzero result requires
 a separate semantic ambiguity decision before any source change.
+
+## CR-P12-08G1-024 — exact compatibility-header classification
+
+CR-023 observed zero duplicate objects and zero duplicate-name occurrences, closing the remaining
+pre-parse hypothesis. Continued source review found that the production CPAR request includes the
+fixed non-secret Krill compatibility User-Agent `codex_cli_rs/0.139.0`, while the direct classifier
+sent only Accept, Authorization and Content-Type. A relay may select a different response wrapper
+from that header, so the earlier direct requests were body-equivalent but not full-header-equivalent.
+
+The classifier must use the exact four production header names and fixed User-Agent while retaining
+the existing credential redaction and request shape. After focused tests and the required local
+gate, one direct request is permitted under the same read-only CC Switch, no-retry, no-redirect and
+value-free receipt constraints. This is the final structure classifier for this tuple. Only a
+closed response difference relative to the prior receipt may authorize a decoder repair.
