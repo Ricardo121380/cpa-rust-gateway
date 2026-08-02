@@ -3,10 +3,21 @@
 #![deny(unsafe_code)]
 
 mod anthropic_messages;
+mod runtime_credential;
+mod runtime_failure;
 
 pub use anthropic_messages::{
     ANTHROPIC_MESSAGES_INFERENCE_PATH, ANTHROPIC_VERSION, AnthropicMessagesApiKey,
-    AnthropicMessagesEndpoint, AnthropicMessagesOutboundRequest, AnthropicMessagesRequestBuilder,
+    AnthropicMessagesAuthorization, AnthropicMessagesEndpoint, AnthropicMessagesOutboundRequest,
+    AnthropicMessagesRequestBuilder,
+};
+pub use runtime_credential::{
+    CLAUDE_OAUTH_CLIENT_ID, CLAUDE_OAUTH_TOKEN_URL, ClaudeOAuthRefreshRequest,
+    ClaudeRuntimeCredential, ClaudeRuntimeCredentialError,
+};
+pub use runtime_failure::{
+    AnthropicRuntimeFailureAction, AnthropicRuntimeFailureDisposition,
+    classify_anthropic_runtime_failure,
 };
 // The wire codec itself belongs to the protocol crate, symmetrically with the OpenAI Responses
 // side. This crate is the format's provider boundary, so it re-exports the response direction a

@@ -169,4 +169,5 @@
 - [P12-08D2 three-protocol response and SSE projection](p12-08d2-three-protocol-response-projection.md) — bounded JSON/SSE decode, transactional target projection, nine source/target encoder pairs and fail-closed terminal proof
 - [P12-08D3 runtime transform registry and Route Explain](p12-08d3-runtime-transform-registry.md) — pre-lease pair/capability admission, deterministic native/typed execution, runtime response projection and zero-Attempt Explain proof
 - [P12-08E1 Codex and OpenAI-compatible runtime](p12-08e1-openai-compatible-runtime.md) — strict API-key/OAuth refresh transaction, bounded error ownership, and exact Credential/Quota/Health isolation
+- [P12-08E2 Claude and Anthropic-compatible runtime](p12-08e2-anthropic-compatible-runtime.md) — mutually-exclusive API-key/OAuth presentation, strict refresh transaction, bounded Anthropic failure ownership, and native/bridged runtime proof
 - [P12-08D4 legacy CPA to CPAR protocol differential](p12-08d4-legacy-protocol-differential.md) — value-free three-protocol JSON/SSE corpus, executable CPAR projections and closed parity/hardening/unsupported classification

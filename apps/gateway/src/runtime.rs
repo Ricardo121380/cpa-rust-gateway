@@ -99,9 +99,9 @@ use protocol_openai_responses::{
     decode_upstream_response as decode_responses_upstream_response,
 };
 use provider_anthropic_compatible::{
-    AnthropicMessagesApiKey, AnthropicMessagesEndpoint, AnthropicMessagesOutboundRequest,
-    AnthropicMessagesRequestBuilder, AnthropicMessagesSseDecoder, AnthropicResponseMode,
-    decode_upstream_response,
+    AnthropicMessagesEndpoint, AnthropicMessagesOutboundRequest, AnthropicMessagesRequestBuilder,
+    AnthropicMessagesSseDecoder, AnthropicResponseMode, AnthropicRuntimeFailureAction,
+    ClaudeRuntimeCredential, classify_anthropic_runtime_failure, decode_upstream_response,
 };
 use provider_kiro::{
     CanonicalEventSource, InferenceAdapter,
@@ -128,8 +128,8 @@ use serde_json::Value;
 /// total Credential concurrency at [`P12_MAX_TOTAL_BINDING_CONCURRENCY`], so the worst-case
 /// resident bodies stay at that many buffers.
 const MAX_UPSTREAM_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
-/// Maximum error envelope inspected for structured Codex/OpenAI-compatible ownership signals.
-const MAX_OPENAI_ERROR_BODY_BYTES: usize = 64 * 1024;
+/// Maximum error envelope inspected for structured provider ownership signals.
+const MAX_PROVIDER_ERROR_BODY_BYTES: usize = 64 * 1024;
 /// The largest undelivered SSE residue this runtime will buffer between two canonical events.
 ///
 /// `response.output_text.done`, `response.output_item.done`, and `response.completed` each repeat
@@ -1681,27 +1681,31 @@ impl EndpointAttemptDriver {
         // No `max_tokens` translation happens here: the Anthropic Messages codec reads the
         // namespaced extension directly and fails closed on a request that carries no lossless
         // Anthropic representation, rather than inventing one.
-        let credential = std::str::from_utf8(credential.secret_bytes())
-            .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
-        let request_credential = AnthropicMessagesApiKey::try_new(credential.to_owned())
+        let credential = anthropic_runtime_credential(credential.secret_bytes())?;
+        let authorization = credential
+            .authorization_at(system_now_ms()?)
             .map_err(AttemptFailure::NonRetryable)?;
         let outbound = match projected {
-            ProjectedProtocolRequest::NativeExact => AnthropicMessagesRequestBuilder::build_native(
-                endpoint,
-                &request_credential,
-                candidate.upstream_model(),
-                self.native_payload
-                    .as_deref()
-                    .ok_or_else(|| AttemptFailure::NonRetryable(upstream_protocol_error()))?,
-                anthropic_upstream_response_mode(self.mode),
-            ),
-            ProjectedProtocolRequest::Canonical(request) => AnthropicMessagesRequestBuilder::build(
-                endpoint,
-                &request_credential,
-                candidate.upstream_model(),
-                request,
-                anthropic_upstream_response_mode(self.mode),
-            ),
+            ProjectedProtocolRequest::NativeExact => {
+                AnthropicMessagesRequestBuilder::build_native_with_authorization(
+                    endpoint,
+                    &authorization,
+                    candidate.upstream_model(),
+                    self.native_payload
+                        .as_deref()
+                        .ok_or_else(|| AttemptFailure::NonRetryable(upstream_protocol_error()))?,
+                    anthropic_upstream_response_mode(self.mode),
+                )
+            }
+            ProjectedProtocolRequest::Canonical(request) => {
+                AnthropicMessagesRequestBuilder::build_with_authorization(
+                    endpoint,
+                    &authorization,
+                    candidate.upstream_model(),
+                    request,
+                    anthropic_upstream_response_mode(self.mode),
+                )
+            }
         }
         .map_err(AttemptFailure::NonRetryable)?;
         self.attempt_stages.record_stage(
@@ -1715,7 +1719,7 @@ impl EndpointAttemptDriver {
         let request = p12_anthropic_transport_request(outbound, admitted)
             .map_err(AttemptFailure::NonRetryable)?;
         let mut response = self
-            .send_admitted_request(runtime, request, HttpFailureProfile::StatusOnly)
+            .send_admitted_request(runtime, request, HttpFailureProfile::AnthropicCompatible)
             .await?;
 
         match self.mode {
@@ -1849,6 +1853,9 @@ impl EndpointAttemptDriver {
             status if failure_profile == HttpFailureProfile::OpenAiCompatible => {
                 return Err(classify_openai_response_failure(&mut response, status).await);
             }
+            status if failure_profile == HttpFailureProfile::AnthropicCompatible => {
+                return Err(classify_anthropic_response_failure(&mut response, status).await);
+            }
             429 => return Err(AttemptFailure::RateLimited { retry_after: None }),
             500..=599 => return Err(AttemptFailure::ServerError),
             _ => return Err(AttemptFailure::NonRetryable(provider_permanent_error())),
@@ -1864,14 +1871,23 @@ impl EndpointAttemptDriver {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum HttpFailureProfile {
-    StatusOnly,
     OpenAiCompatible,
+    AnthropicCompatible,
 }
 
 fn openai_runtime_credential(
     input: &[u8],
 ) -> Result<OpenAiCompatibleRuntimeCredential, AttemptFailure> {
     OpenAiCompatibleRuntimeCredential::import(input).map_err(|_| {
+        AttemptFailure::NonRetryable(GatewayError::new(
+            GatewayErrorCode::CredentialUnavailable,
+            ErrorScope::Credential,
+        ))
+    })
+}
+
+fn anthropic_runtime_credential(input: &[u8]) -> Result<ClaudeRuntimeCredential, AttemptFailure> {
+    ClaudeRuntimeCredential::import(input).map_err(|_| {
         AttemptFailure::NonRetryable(GatewayError::new(
             GatewayErrorCode::CredentialUnavailable,
             ErrorScope::Credential,
@@ -1894,29 +1910,15 @@ async fn classify_openai_response_failure(
         .header("retry-after")
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.parse::<u64>().ok());
-    let mut body = Vec::new();
-    let mut inspectable = true;
-    loop {
-        let Ok(next) = response.next_chunk().await else {
-            return AttemptFailure::Connection;
-        };
-        let Some(chunk) = next else { break };
-        if body.len().saturating_add(chunk.len()) > MAX_OPENAI_ERROR_BODY_BYTES {
-            body.clear();
-            inspectable = false;
-            break;
-        }
-        body.extend_from_slice(&chunk);
-    }
+    let body = match read_provider_error_body(response).await {
+        Ok(body) => body,
+        Err(failure) => return failure,
+    };
     let now_epoch_seconds = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |elapsed| elapsed.as_secs());
-    let disposition = classify_openai_runtime_failure(
-        status,
-        if inspectable { &body } else { &[] },
-        retry_after_seconds,
-        now_epoch_seconds,
-    );
+    let disposition =
+        classify_openai_runtime_failure(status, &body, retry_after_seconds, now_epoch_seconds);
     match disposition.action() {
         OpenAiRuntimeFailureAction::RecordExactQuota => AttemptFailure::RateLimited {
             retry_after: disposition.retry_after(),
@@ -1929,12 +1931,55 @@ async fn classify_openai_response_failure(
     }
 }
 
+async fn classify_anthropic_response_failure(
+    response: &mut UpstreamHttpResponse,
+    status: u16,
+) -> AttemptFailure {
+    let retry_after_seconds = response
+        .header("retry-after")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse::<u64>().ok());
+    let body = match read_provider_error_body(response).await {
+        Ok(body) => body,
+        Err(failure) => return failure,
+    };
+    let disposition = classify_anthropic_runtime_failure(status, &body, retry_after_seconds);
+    match disposition.action() {
+        AnthropicRuntimeFailureAction::RecordExactQuota => AttemptFailure::RateLimited {
+            retry_after: disposition.retry_after(),
+        },
+        AnthropicRuntimeFailureAction::CoolEndpoint => AttemptFailure::ServerError,
+        AnthropicRuntimeFailureAction::None
+        | AnthropicRuntimeFailureAction::RequireCredentialReauthorization => {
+            AttemptFailure::NonRetryable(disposition.error().clone())
+        }
+    }
+}
+
+async fn read_provider_error_body(
+    response: &mut UpstreamHttpResponse,
+) -> Result<Vec<u8>, AttemptFailure> {
+    let mut body = Vec::new();
+    loop {
+        let next = response
+            .next_chunk()
+            .await
+            .map_err(|_| AttemptFailure::Connection)?;
+        let Some(chunk) = next else { break };
+        if body.len().saturating_add(chunk.len()) > MAX_PROVIDER_ERROR_BODY_BYTES {
+            return Ok(Vec::new());
+        }
+        body.extend_from_slice(&chunk);
+    }
+    Ok(body)
+}
+
 /// Hands one admitted Anthropic-compatible request to the shared transport.
 ///
 /// The header set stays exactly the four the Anthropic-compatible boundary builds --
-/// `accept`, `anthropic-version`, `content-type`, `x-api-key`. [`p12_transport_headers`]'s Krill
-/// compatibility `User-Agent` is specific to the isolated `OpenAI`-compatible endpoint and is
-/// deliberately not added here.
+/// `accept`, `anthropic-version`, `content-type`, and exactly one of `x-api-key` or
+/// `authorization`. [`p12_transport_headers`]'s Krill compatibility `User-Agent` is specific to
+/// the isolated `OpenAI`-compatible endpoint and is deliberately not added here.
 fn p12_anthropic_transport_request(
     outbound: AnthropicMessagesOutboundRequest,
     admitted: AdmittedEgressTarget,
@@ -4108,7 +4153,7 @@ mod tests {
         P12FanoutEventSink, P12ResponseUsageProjection, P12TransportProfiles,
         RuntimeCompositionError, SnapshotManagementRuntimeFacade, append_response_chunk,
         build_data_plane_composition, build_kiro_messages_adapter, build_openai_responses_adapter,
-        classify_openai_response_failure, decode_json_events,
+        classify_anthropic_response_failure, classify_openai_response_failure, decode_json_events,
         decode_json_events_with_usage_projection, decode_sse_events,
         decode_sse_events_with_usage_projection, deployment_route_compiler, endpoint_runtimes,
         has_p12_https_only_egress_shape, has_p12_unlisted_model_override,
@@ -5022,6 +5067,34 @@ mod tests {
             failure,
             AttemptFailure::RateLimited {
                 retry_after: Some(Duration::from_secs(17))
+            }
+        );
+        peer.await??;
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn anthropic_rate_limit_is_bounded_and_attributed_over_loopback()
+    -> Result<(), Box<dyn Error>> {
+        let listener = actix_web::rt::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let port = listener.local_addr()?.port();
+        let peer = spawn_live_error_peer(
+            listener,
+            429,
+            Some(13),
+            r#"{"type":"error","error":{"type":"rate_limit_error","message":"not retained"}}"#
+                .to_owned(),
+        );
+        let request = live_transport_request(live_admitted_target(port)?)?;
+        let pool =
+            UpstreamClientPool::new(NonZeroUsize::new(1).ok_or("client pool needs one entry")?);
+        let mut response = pool.send(request, &live_progress_test_profile()?).await?;
+        let status = response.status();
+        let failure = classify_anthropic_response_failure(&mut response, status).await;
+        assert_eq!(
+            failure,
+            AttemptFailure::RateLimited {
+                retry_after: Some(Duration::from_secs(13))
             }
         );
         peer.await??;

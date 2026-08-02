@@ -68,6 +68,78 @@ impl fmt::Debug for AnthropicMessagesApiKey {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum AnthropicAuthorizationKind {
+    ApiKey,
+    Bearer,
+}
+
+/// One mutually-exclusive Anthropic-compatible request authorization presentation.
+#[derive(Eq, PartialEq)]
+pub struct AnthropicMessagesAuthorization {
+    kind: AnthropicAuthorizationKind,
+    value: Zeroizing<String>,
+}
+
+impl AnthropicMessagesAuthorization {
+    /// Creates one API-key presentation.
+    ///
+    /// # Errors
+    ///
+    /// Rejects an empty or non-visible-ASCII value as unavailable credential material.
+    pub fn try_api_key(value: impl Into<String>) -> Result<Self, GatewayError> {
+        let api_key = AnthropicMessagesApiKey::try_new(value)?;
+        Ok(Self {
+            kind: AnthropicAuthorizationKind::ApiKey,
+            value: Zeroizing::new(api_key.as_str().to_owned()),
+        })
+    }
+
+    /// Creates one OAuth Bearer presentation.
+    ///
+    /// # Errors
+    ///
+    /// Rejects an empty or non-visible-ASCII token as unavailable credential material.
+    pub fn try_bearer(token: impl Into<String>) -> Result<Self, GatewayError> {
+        let token = Zeroizing::new(token.into());
+        if token.is_empty() || !token.bytes().all(|byte| byte.is_ascii_graphic()) {
+            return Err(credential_unavailable_error());
+        }
+        Ok(Self {
+            kind: AnthropicAuthorizationKind::Bearer,
+            value: Zeroizing::new(format!("Bearer {}", token.as_str())),
+        })
+    }
+
+    pub(crate) const fn header_name(&self) -> &'static str {
+        match self.kind {
+            AnthropicAuthorizationKind::ApiKey => "x-api-key",
+            AnthropicAuthorizationKind::Bearer => "authorization",
+        }
+    }
+
+    pub(crate) fn header_value(&self) -> &str {
+        self.value.as_str()
+    }
+
+    fn cloned(&self) -> Self {
+        Self {
+            kind: self.kind,
+            value: Zeroizing::new(self.value.to_string()),
+        }
+    }
+}
+
+impl fmt::Debug for AnthropicMessagesAuthorization {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("AnthropicMessagesAuthorization")
+            .field("header_name", &self.header_name())
+            .field("value", &"<redacted>")
+            .finish()
+    }
+}
+
 /// One validated Anthropic-compatible Messages endpoint target.
 #[derive(Clone, Eq, PartialEq)]
 pub struct AnthropicMessagesEndpoint {
@@ -117,7 +189,7 @@ impl fmt::Debug for AnthropicMessagesEndpoint {
 #[derive(Eq, PartialEq)]
 pub struct AnthropicMessagesOutboundRequest {
     target: EndpointUrl,
-    x_api_key: Zeroizing<String>,
+    authorization: AnthropicMessagesAuthorization,
     accept: &'static str,
     body: Vec<u8>,
 }
@@ -137,9 +209,8 @@ impl AnthropicMessagesOutboundRequest {
 
     /// Returns one standard request header by case-insensitive name.
     ///
-    /// The `x-api-key` value is request-scoped and must not be logged or persisted by callers.
-    /// `authorization` is deliberately absent: Anthropic authenticates an API key with `x-api-key`,
-    /// and a relay that accepts exactly one presentation scheme rejects a request carrying both.
+    /// The credential value is request-scoped and must not be logged or persisted by callers.
+    /// Exactly one of `x-api-key` or `authorization` is present.
     #[must_use]
     pub fn header(&self, name: &str) -> Option<&str> {
         if name.eq_ignore_ascii_case("accept") {
@@ -148,8 +219,8 @@ impl AnthropicMessagesOutboundRequest {
             Some(ANTHROPIC_VERSION)
         } else if name.eq_ignore_ascii_case("content-type") {
             Some(JSON_MEDIA_TYPE)
-        } else if name.eq_ignore_ascii_case("x-api-key") {
-            Some(self.x_api_key.as_str())
+        } else if name.eq_ignore_ascii_case(self.authorization.header_name()) {
+            Some(self.authorization.header_value())
         } else {
             None
         }
@@ -165,7 +236,10 @@ impl AnthropicMessagesOutboundRequest {
             ("accept", self.accept),
             ("anthropic-version", ANTHROPIC_VERSION),
             ("content-type", JSON_MEDIA_TYPE),
-            ("x-api-key", self.x_api_key.as_str()),
+            (
+                self.authorization.header_name(),
+                self.authorization.header_value(),
+            ),
         ]
     }
 
@@ -192,7 +266,7 @@ impl AnthropicMessagesOutboundRequest {
     ) -> Result<UpstreamHttpRequest, GatewayError> {
         let Self {
             target,
-            x_api_key,
+            authorization,
             accept,
             body,
         } = self;
@@ -207,7 +281,10 @@ impl AnthropicMessagesOutboundRequest {
                 ("accept".to_owned(), accept.to_owned()),
                 ("anthropic-version".to_owned(), ANTHROPIC_VERSION.to_owned()),
                 ("content-type".to_owned(), JSON_MEDIA_TYPE.to_owned()),
-                ("x-api-key".to_owned(), x_api_key.as_str().to_owned()),
+                (
+                    authorization.header_name().to_owned(),
+                    authorization.header_value().to_owned(),
+                ),
             ],
             body,
         )
@@ -222,7 +299,12 @@ impl fmt::Debug for AnthropicMessagesOutboundRequest {
             .field("target", &"<redacted>")
             .field(
                 "header_names",
-                &["accept", "anthropic-version", "content-type", "x-api-key"],
+                &[
+                    "accept",
+                    "anthropic-version",
+                    "content-type",
+                    self.authorization.header_name(),
+                ],
             )
             .field("body_len", &self.body.len())
             .finish_non_exhaustive()
@@ -243,6 +325,29 @@ impl AnthropicMessagesRequestBuilder {
     pub fn build_native(
         endpoint: &AnthropicMessagesEndpoint,
         api_key: &AnthropicMessagesApiKey,
+        upstream_model: &str,
+        native_body: &[u8],
+        mode: ResponseMode,
+    ) -> Result<AnthropicMessagesOutboundRequest, GatewayError> {
+        let authorization = AnthropicMessagesAuthorization::try_api_key(api_key.as_str())?;
+        Self::build_native_with_authorization(
+            endpoint,
+            &authorization,
+            upstream_model,
+            native_body,
+            mode,
+        )
+    }
+
+    /// Preserves a native Messages request with an explicit API-key or OAuth presentation.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe protocol error for malformed input, response-mode disagreement, or an empty
+    /// selected model.
+    pub fn build_native_with_authorization(
+        endpoint: &AnthropicMessagesEndpoint,
+        authorization: &AnthropicMessagesAuthorization,
         upstream_model: &str,
         native_body: &[u8],
         mode: ResponseMode,
@@ -269,7 +374,7 @@ impl AnthropicMessagesRequestBuilder {
         };
         Ok(AnthropicMessagesOutboundRequest {
             target: endpoint.target().clone(),
-            x_api_key: Zeroizing::new(api_key.as_str().to_owned()),
+            authorization: authorization.cloned(),
             accept,
             body,
         })
@@ -292,6 +397,23 @@ impl AnthropicMessagesRequestBuilder {
         request: &CanonicalRequest,
         mode: ResponseMode,
     ) -> Result<AnthropicMessagesOutboundRequest, GatewayError> {
+        let authorization = AnthropicMessagesAuthorization::try_api_key(api_key.as_str())?;
+        Self::build_with_authorization(endpoint, &authorization, upstream_model, request, mode)
+    }
+
+    /// Builds one request using an explicit API-key or OAuth presentation.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe error for an empty model, unsupported Canonical representation, or JSON
+    /// construction invariant failure.
+    pub fn build_with_authorization(
+        endpoint: &AnthropicMessagesEndpoint,
+        authorization: &AnthropicMessagesAuthorization,
+        upstream_model: &str,
+        request: &CanonicalRequest,
+        mode: ResponseMode,
+    ) -> Result<AnthropicMessagesOutboundRequest, GatewayError> {
         if upstream_model.is_empty() {
             return Err(provider_protocol_error());
         }
@@ -304,7 +426,7 @@ impl AnthropicMessagesRequestBuilder {
 
         Ok(AnthropicMessagesOutboundRequest {
             target: endpoint.target().clone(),
-            x_api_key: Zeroizing::new(api_key.as_str().to_owned()),
+            authorization: authorization.cloned(),
             accept,
             body,
         })
@@ -365,7 +487,7 @@ mod tests {
 
     use super::{
         ANTHROPIC_MESSAGES_INFERENCE_PATH, ANTHROPIC_VERSION, AnthropicMessagesApiKey,
-        AnthropicMessagesEndpoint, AnthropicMessagesRequestBuilder,
+        AnthropicMessagesAuthorization, AnthropicMessagesEndpoint, AnthropicMessagesRequestBuilder,
     };
 
     const UPSTREAM_MODEL: &str = "claude-upstream-model";
@@ -502,6 +624,48 @@ mod tests {
         assert_eq!(rebuilt.mode, ResponseMode::NonStreaming);
         assert!(encoded.contains(UPSTREAM_MODEL));
         assert!(!encoded.contains("gateway-claude"));
+        Ok(())
+    }
+
+    #[test]
+    fn oauth_uses_only_authorization_while_api_keys_keep_x_api_key() -> Result<(), Box<dyn Error>> {
+        let decoded = decode_request(TEXT_REQUEST)?;
+        let authorization = AnthropicMessagesAuthorization::try_bearer("oauth-test-token")?;
+        let outbound = AnthropicMessagesRequestBuilder::build_with_authorization(
+            &endpoint()?,
+            &authorization,
+            UPSTREAM_MODEL,
+            &decoded.request,
+            decoded.mode,
+        )?;
+
+        assert_eq!(
+            outbound.header("authorization"),
+            Some("Bearer oauth-test-token")
+        );
+        assert_eq!(outbound.header("x-api-key"), None);
+        assert_eq!(outbound.headers()[3].0, "authorization");
+        let debug = format!("{authorization:?}{outbound:?}");
+        assert!(!debug.contains("oauth-test-token"));
+        let admitted = policy()?.admit_url(outbound.url(), &StaticPublicResolver)?;
+        let transport = outbound.into_transport_request(admitted)?;
+        assert_eq!(
+            transport
+                .header("authorization")
+                .and_then(|header| header.to_str().ok()),
+            Some("Bearer oauth-test-token")
+        );
+        assert!(transport.header("x-api-key").is_none());
+
+        let api_key_outbound = AnthropicMessagesRequestBuilder::build(
+            &endpoint()?,
+            &api_key()?,
+            UPSTREAM_MODEL,
+            &decoded.request,
+            decoded.mode,
+        )?;
+        assert_eq!(api_key_outbound.header("authorization"), None);
+        assert_eq!(api_key_outbound.header("x-api-key"), Some(TEST_CREDENTIAL));
         Ok(())
     }
 

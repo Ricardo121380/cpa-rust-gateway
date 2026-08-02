@@ -1645,6 +1645,7 @@ dependencies = [
  "gateway-provider",
  "gateway-upstream",
  "protocol-anthropic",
+ "serde",
  "serde_json",
  "zeroize",
 ]
