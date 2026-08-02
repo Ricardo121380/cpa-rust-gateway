@@ -38,6 +38,7 @@ use gateway_upstream::{
     EndpointCredentialPool, EndpointCredentialPools, UpstreamClientPool, UpstreamHttpResponse,
     UpstreamTransportProfile,
 };
+use protocol_openai_chat::ChatResponseMetadata;
 use protocol_openai_responses::{OpenAiResponseMetadata, ResponseMode};
 use provider_openai_compatible::{
     OpenAiResponsesApiKey, OpenAiResponsesEndpoint, OpenAiResponsesRequestBuilder,
@@ -307,6 +308,14 @@ impl ResponsesMetadataFactory for HarnessMetadata {
         public_model: &str,
     ) -> Result<OpenAiResponseMetadata, GatewayError> {
         OpenAiResponseMetadata::try_new(public_model, 1)
+    }
+
+    fn chat_metadata(
+        &self,
+        public_model: &str,
+        include_usage: bool,
+    ) -> Result<ChatResponseMetadata, GatewayError> {
+        ChatResponseMetadata::try_new(public_model, 1, include_usage)
     }
 }
 

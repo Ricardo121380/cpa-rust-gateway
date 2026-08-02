@@ -240,7 +240,7 @@ protocol-*             provider-*          gateway-catalog
 
 ```text
 M0 Shared Core
-  POST /v1/responses + POST /v1/messages
+  POST /v1/chat/completions + POST /v1/responses + POST /v1/messages
   -> Client API Key
   -> Inbound decode
   -> CanonicalRequest

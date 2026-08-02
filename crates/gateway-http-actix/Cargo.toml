@@ -18,6 +18,7 @@ gateway-protocol = { path = "../gateway-protocol" }
 gateway-router = { path = "../gateway-router" }
 gateway-stream = { path = "../gateway-stream" }
 protocol-anthropic = { path = "../protocol-anthropic" }
+protocol-openai-chat = { path = "../protocol-openai-chat" }
 protocol-openai-responses = { path = "../protocol-openai-responses" }
 subtle.workspace = true
 tokio.workspace = true

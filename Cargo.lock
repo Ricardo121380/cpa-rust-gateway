@@ -790,6 +790,7 @@ dependencies = [
  "gateway-stream",
  "gateway-upstream",
  "protocol-anthropic",
+ "protocol-openai-chat",
  "protocol-openai-responses",
  "provider-openai-compatible",
  "serde",

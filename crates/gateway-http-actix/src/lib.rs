@@ -1,8 +1,9 @@
 //! `Actix Web` transport shell. Core crates must not depend on this crate.
 //!
-//! P1 exposes a deliberately small vertical slice: public `GET /healthz` and Client Key-protected
-//! `POST /v1/responses`. Request bytes are decoded by the protocol adapter rather than Actix's
-//! JSON extractor so duplicate JSON member names remain observable and rejectable.
+//! The public data plane exposes health/model discovery plus Client Key-protected Chat
+//! Completions, Responses, and Messages boundaries. Request bytes are decoded by protocol adapters
+//! rather than Actix's JSON extractor so duplicate JSON member names remain observable and
+//! rejectable.
 
 #![deny(unsafe_code)]
 
@@ -59,6 +60,11 @@ use protocol_anthropic::{
     SseFrame as AnthropicSseFrame, decode_count_tokens_request,
     decode_request as decode_anthropic_request, encode_count_tokens,
     encode_error as encode_anthropic_error, encode_response as encode_anthropic_response,
+};
+use protocol_openai_chat::{
+    ChatResponseMetadata, ChatSseEncoder, ChatSseFrame, ResponseMode as ChatResponseMode,
+    decode_request as decode_chat_request, encode_error as encode_chat_error,
+    encode_response as encode_chat_response,
 };
 use protocol_openai_responses::{
     OpenAiResponseMetadata, OpenAiResponsesSseEncoder, ResponseMode, SseFrame as OpenAiSseFrame,
@@ -128,6 +134,17 @@ pub trait ResponsesMetadataFactory: Send + Sync {
     /// value.
     fn response_metadata(&self, public_model: &str)
     -> Result<OpenAiResponseMetadata, GatewayError>;
+
+    /// Creates public Chat Completions metadata for the selected client-visible model label.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe error when the implementation cannot supply a valid public model or clock.
+    fn chat_metadata(
+        &self,
+        public_model: &str,
+        include_usage: bool,
+    ) -> Result<ChatResponseMetadata, GatewayError>;
 }
 
 /// The production-default metadata implementation for P1's local vertical slice.
@@ -166,9 +183,22 @@ impl ResponsesMetadataFactory for SystemResponsesMetadataFactory {
 
         OpenAiResponseMetadata::try_new(public_model, created_at)
     }
+
+    fn chat_metadata(
+        &self,
+        public_model: &str,
+        include_usage: bool,
+    ) -> Result<ChatResponseMetadata, GatewayError> {
+        let created_at = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|_| internal_error())?
+            .as_secs();
+
+        ChatResponseMetadata::try_new(public_model, created_at, include_usage)
+    }
 }
 
-/// Shared Actix application state for P1 Responses endpoints.
+/// Shared Actix application state for public inference endpoints.
 ///
 /// An authenticator is mandatory so the public Responses route cannot accidentally retain P1-07's
 /// unauthenticated behavior. P3's Snapshot constructor additionally pins authenticated model
@@ -364,6 +394,7 @@ pub fn configure(config: &mut web::ServiceConfig) {
     configure_readiness(config);
     config
         .route("/v1/models", web::get().to(models))
+        .route("/v1/chat/completions", web::post().to(chat_completions))
         .route("/v1/responses", web::post().to(responses))
         .route("/v1/messages", web::post().to(messages))
         .route("/v1/messages/count_tokens", web::post().to(count_tokens));
@@ -426,6 +457,93 @@ async fn models(request: HttpRequest, state: web::Data<ResponsesHttpState>) -> H
     HttpResponse::Ok()
         .content_type("application/json")
         .body(body.to_string())
+}
+
+async fn chat_completions(
+    request: HttpRequest,
+    state: web::Data<ResponsesHttpState>,
+    payload: web::Payload,
+) -> HttpResponse {
+    let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
+    {
+        Ok(authenticated_client) => authenticated_client,
+        Err(error) => return pre_header_chat_error(&error),
+    };
+    let body = match read_bounded_request_body(&request, payload).await {
+        Ok(body) => body,
+        Err(error) => return chat_request_body_error(error),
+    };
+    let Ok(body) = std::str::from_utf8(&body) else {
+        return pre_header_chat_error(&client_request_error());
+    };
+    let decoded = match decode_chat_request(body) {
+        Ok(decoded) => decoded,
+        Err(error) => return pre_header_chat_error(&error),
+    };
+    let requested_model = decoded.request.requested_model.clone();
+    let (public_model, route_alias, route_id) =
+        match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
+            Ok(resolved) => resolved,
+            Err(error) => return pre_header_chat_error(&error),
+        };
+    let context = match state.metadata_factory.request_context() {
+        Ok(context) => context,
+        Err(error) => return pre_header_chat_error(&error),
+    };
+    let request_id = context.request_id().clone();
+    let (client_key_id, access_group_id) = authenticated_client.event_identity();
+    let _request_event = state
+        .event_sink
+        .try_emit(GatewayEvent::Request(RequestEvent::new(
+            request_id.clone(),
+            client_key_id,
+            access_group_id,
+            GatewayProtocol::OpenAiChatCompletions,
+            requested_model,
+            public_model.clone(),
+            route_alias,
+            decoded.mode == ChatResponseMode::Streaming,
+        )));
+    let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
+    let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
+    let response_mode = match decoded.mode {
+        ChatResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
+        ChatResponseMode::Streaming => ResponsesResponseMode::Streaming,
+    };
+    let execution = ResponsesExecution::new(
+        context,
+        decoded.request,
+        route_id,
+        response_mode,
+        retry_gate,
+    );
+    let mut source = match state.executor.execute_routed(execution).await {
+        Ok(source) => source,
+        Err(error) => return pre_header_chat_error(&error),
+    };
+    let first = match source.next_event().await {
+        Ok(Some(event @ CanonicalEvent::ResponseStart(_))) => event,
+        Ok(Some(_) | None) => return pre_header_chat_error(&stream_protocol_error()),
+        Err(error) => return pre_header_chat_error(&error),
+    };
+    let metadata = match state
+        .metadata_factory
+        .chat_metadata(&public_model, decoded.include_usage)
+    {
+        Ok(metadata) => metadata,
+        Err(error) => return pre_header_chat_error(&error),
+    };
+    let usage_observer = UsageEventObserver::new(request_id, Arc::clone(&state.event_sink));
+
+    match decoded.mode {
+        ChatResponseMode::NonStreaming => {
+            chat_non_streaming_response(source, first, metadata, usage_observer, sender, stream)
+                .await
+        }
+        ChatResponseMode::Streaming => {
+            chat_streaming_response(source, first, metadata, usage_observer, sender, stream).await
+        }
+    }
 }
 
 async fn responses(
@@ -731,6 +849,42 @@ fn resolve_public_model(
     }
 }
 
+async fn chat_non_streaming_response(
+    source: Box<dyn ResponsesEventSource>,
+    first: CanonicalEvent,
+    metadata: ChatResponseMetadata,
+    usage_observer: UsageEventObserver,
+    sender: CanonicalEventSender,
+    stream: CanonicalEventStream,
+) -> HttpResponse {
+    let mut stream =
+        match start_bounded_transport(source, first, sender, stream, usage_observer).await {
+            Ok(stream) => stream,
+            Err(error) => return pre_header_chat_error(&error),
+        };
+    let tracker = stream.control().first_semantic_event_tracker();
+    let response = match collect_completed_response(&mut stream).await {
+        Ok(response) => response,
+        Err(error) => return pre_header_chat_error(&error),
+    };
+    let Some(delivery_event) = response.events().first().cloned() else {
+        return pre_header_chat_error(&internal_error());
+    };
+    let body = match encode_chat_response(&response, metadata) {
+        Ok(body) => body,
+        Err(error) => return pre_header_chat_error(&error),
+    };
+    let body = JsonDeliveryBody::new(web::Bytes::from(body.to_string()), tracker, delivery_event);
+
+    match HttpResponse::Ok()
+        .content_type("application/json")
+        .message_body(body)
+    {
+        Ok(response) => response.map_into_boxed_body(),
+        Err(_) => pre_header_chat_error(&internal_error()),
+    }
+}
+
 async fn non_streaming_response(
     source: Box<dyn ResponsesEventSource>,
     first: CanonicalEvent,
@@ -764,6 +918,37 @@ async fn non_streaming_response(
     {
         Ok(response) => response.map_into_boxed_body(),
         Err(_) => pre_header_error(&internal_error()),
+    }
+}
+
+async fn chat_streaming_response(
+    source: Box<dyn ResponsesEventSource>,
+    first: CanonicalEvent,
+    metadata: ChatResponseMetadata,
+    usage_observer: UsageEventObserver,
+    sender: CanonicalEventSender,
+    stream: CanonicalEventStream,
+) -> HttpResponse {
+    let mut initial_encoder = ChatSseEncoder::new(metadata.clone());
+    if let Err(error) = initial_encoder.encode_event(&first) {
+        return pre_header_chat_error(&error);
+    }
+
+    let stream = match start_bounded_transport(source, first, sender, stream, usage_observer).await
+    {
+        Ok(stream) => stream,
+        Err(error) => return pre_header_chat_error(&error),
+    };
+    let tracker = stream.control().first_semantic_event_tracker();
+    let body = ProtocolSseBody::new(stream, ChatSseEncoder::new(metadata), tracker);
+
+    match HttpResponse::Ok()
+        .insert_header((header::CACHE_CONTROL, "no-cache"))
+        .content_type("text/event-stream")
+        .message_body(body)
+    {
+        Ok(response) => response.map_into_boxed_body(),
+        Err(_) => pre_header_chat_error(&internal_error()),
     }
 }
 
@@ -1035,6 +1220,16 @@ impl EncodedSseFrame for AnthropicSseFrame {
     }
 }
 
+impl EncodedSseFrame for ChatSseFrame {
+    fn is_semantic(&self) -> bool {
+        self.is_semantic()
+    }
+
+    fn to_wire(&self) -> Result<String, GatewayError> {
+        self.to_wire()
+    }
+}
+
 trait CanonicalSseEncoder {
     type Frame: EncodedSseFrame;
 
@@ -1054,6 +1249,14 @@ impl CanonicalSseEncoder for AnthropicMessagesSseEncoder {
 
     fn encode_event(&mut self, event: &CanonicalEvent) -> Result<Vec<Self::Frame>, GatewayError> {
         AnthropicMessagesSseEncoder::encode_event(self, event)
+    }
+}
+
+impl CanonicalSseEncoder for ChatSseEncoder {
+    type Frame = ChatSseFrame;
+
+    fn encode_event(&mut self, event: &CanonicalEvent) -> Result<Vec<Self::Frame>, GatewayError> {
+        ChatSseEncoder::encode_event(self, event)
     }
 }
 
@@ -1297,6 +1500,16 @@ fn pre_header_error(error: &GatewayError) -> HttpResponse {
         .body(encode_error(error).to_string())
 }
 
+fn pre_header_chat_error(error: &GatewayError) -> HttpResponse {
+    let mut response = HttpResponse::build(error_status(error));
+    if error.code() == GatewayErrorCode::ClientUnauthorized {
+        response.insert_header((header::WWW_AUTHENTICATE, "Bearer"));
+    }
+    response
+        .content_type("application/json")
+        .body(encode_chat_error(error).to_string())
+}
+
 fn pre_header_anthropic_error(error: &GatewayError) -> HttpResponse {
     let mut response = HttpResponse::build(error_status(error));
     if error.code() == GatewayErrorCode::ClientUnauthorized {
@@ -1312,6 +1525,13 @@ fn request_body_error(error: RequestBodyError) -> HttpResponse {
     HttpResponse::build(request_body_error_status(error))
         .content_type("application/json")
         .body(encode_error(&client_request_error()).to_string())
+}
+
+/// Reports a bounded-body failure using the OpenAI-compatible Chat error envelope.
+fn chat_request_body_error(error: RequestBodyError) -> HttpResponse {
+    HttpResponse::build(request_body_error_status(error))
+        .content_type("application/json")
+        .body(encode_chat_error(&client_request_error()).to_string())
 }
 
 /// Reports a bounded-body failure using the Anthropic Messages error envelope.
@@ -1469,6 +1689,7 @@ mod tests {
     };
     use gateway_stream::{FirstSemanticEventTracker, StreamCapacity, bounded_canonical_stream};
     use protocol_anthropic::{AnthropicMessagesSseEncoder, AnthropicResponseMetadata};
+    use protocol_openai_chat::ChatResponseMetadata;
     use protocol_openai_responses::{OpenAiResponseMetadata, OpenAiResponsesSseEncoder};
 
     use super::{
@@ -1501,6 +1722,14 @@ mod tests {
             public_model: &str,
         ) -> Result<OpenAiResponseMetadata, GatewayError> {
             OpenAiResponseMetadata::try_new(public_model, 1)
+        }
+
+        fn chat_metadata(
+            &self,
+            public_model: &str,
+            include_usage: bool,
+        ) -> Result<ChatResponseMetadata, GatewayError> {
+            ChatResponseMetadata::try_new(public_model, 1, include_usage)
         }
     }
 
@@ -1892,6 +2121,155 @@ mod tests {
             }
         }
 
+        assert_eq!(calls.load(Ordering::Acquire), 0);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn non_streaming_chat_uses_bounded_transport_and_emits_chat_request_protocol()
+    -> TestResult {
+        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(2, 1)?)?;
+        let event_sink: Arc<dyn GatewayEventSink> = Arc::new(queue);
+        let state = mock_state_with_event_sink(text_events_with_final_usage()?, event_sink)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/chat/completions")
+                .set_payload(
+                    r#"{"model":"mock-model","messages":[{"role":"user","content":"hello"}]}"#,
+                ),
+        )
+        .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: serde_json::Value = serde_json::from_slice(&test::read_body(response).await)?;
+        assert_eq!(body["object"], "chat.completion");
+        assert_eq!(
+            body["choices"][0]["message"]["content"],
+            "deterministic hello"
+        );
+        assert_eq!(body["choices"][0]["finish_reason"], "stop");
+        assert_eq!(body["usage"]["total_tokens"], 8);
+
+        let Some(GatewayEvent::Request(event)) = receiver.try_recv() else {
+            return Err("expected Chat Request event".into());
+        };
+        assert_eq!(event.protocol(), GatewayProtocol::OpenAiChatCompletions);
+        assert!(!event.streaming());
+        assert!(matches!(receiver.try_recv(), Some(GatewayEvent::Usage(_))));
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn streaming_chat_emits_finish_usage_done_in_order() -> TestResult {
+        let state = mock_state(text_events_with_final_usage()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = authorized(
+            test::TestRequest::post()
+                .uri("/v1/chat/completions")
+                .set_payload(r#"{"model":"mock-model","messages":[{"role":"user","content":"hello"}],"stream":true,"stream_options":{"include_usage":true}}"#),
+        )
+        .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response
+                .headers()
+                .get(header::CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok()),
+            Some("text/event-stream")
+        );
+        assert_eq!(
+            response
+                .headers()
+                .get(header::CACHE_CONTROL)
+                .and_then(|value| value.to_str().ok()),
+            Some("no-cache")
+        );
+        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+        let data_lines = body
+            .lines()
+            .filter_map(|line| line.strip_prefix("data: "))
+            .collect::<Vec<_>>();
+        let content = data_lines
+            .iter()
+            .position(|line| line.contains(r#""content":"deterministic hello""#))
+            .ok_or("missing content")?;
+        let finish = data_lines
+            .iter()
+            .position(|line| line.contains(r#""finish_reason":"stop""#))
+            .ok_or("missing finish")?;
+        let usage = data_lines
+            .iter()
+            .position(|line| {
+                serde_json::from_str::<serde_json::Value>(line).is_ok_and(|value| {
+                    value["choices"].as_array().is_some_and(Vec::is_empty)
+                        && value["usage"]["total_tokens"] == 8
+                })
+            })
+            .ok_or("missing usage")?;
+        let done = data_lines
+            .iter()
+            .position(|line| *line == "[DONE]")
+            .ok_or("missing done")?;
+        assert!(content < finish && finish < usage && usage < done);
+        assert_eq!(body.matches("data: [DONE]").count(), 1);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn chat_auth_and_body_limits_fail_before_executor_start() -> TestResult {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let state = ResponsesHttpState::with_metadata(
+            Arc::new(CountingExecutor {
+                calls: calls.clone(),
+            }),
+            Arc::new(FixedMetadata),
+            test_authenticator()?,
+            StreamCapacity::try_new(2)?,
+        );
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+
+        let unauthorized = test::call_service(
+            &app,
+            test::TestRequest::post()
+                .uri("/v1/chat/completions")
+                .set_payload("not-json")
+                .to_request(),
+        )
+        .await;
+        assert_eq!(unauthorized.status(), StatusCode::UNAUTHORIZED);
+
+        let oversized = test::call_service(
+            &app,
+            authorized(
+                test::TestRequest::post()
+                    .uri("/v1/chat/completions")
+                    .set_payload(vec![b'p'; MAX_INFERENCE_REQUEST_BODY_BYTES + 1]),
+            )
+            .to_request(),
+        )
+        .await;
+        assert_eq!(oversized.status(), StatusCode::PAYLOAD_TOO_LARGE);
+        let body: serde_json::Value = serde_json::from_slice(&test::read_body(oversized).await)?;
+        assert_eq!(body["error"]["code"], "ClientRequestError");
         assert_eq!(calls.load(Ordering::Acquire), 0);
         Ok(())
     }

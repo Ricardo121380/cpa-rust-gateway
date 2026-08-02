@@ -26,6 +26,7 @@ use gateway_http_actix::{
     ResponsesHttpState, ResponsesMetadataFactory, configure, default_stream_capacity,
 };
 use gateway_router::{DeterministicMockEmission, DeterministicMockResponsesExecutor};
+use protocol_openai_chat::ChatResponseMetadata;
 use protocol_openai_responses::OpenAiResponseMetadata;
 
 const CLIENT_KEY: &str = "p11-03-benchmark-client-key";
@@ -54,6 +55,14 @@ impl ResponsesMetadataFactory for FixedMetadata {
         public_model: &str,
     ) -> Result<OpenAiResponseMetadata, GatewayError> {
         OpenAiResponseMetadata::try_new(public_model, 1)
+    }
+
+    fn chat_metadata(
+        &self,
+        public_model: &str,
+        include_usage: bool,
+    ) -> Result<ChatResponseMetadata, GatewayError> {
+        ChatResponseMetadata::try_new(public_model, 1, include_usage)
     }
 }
 

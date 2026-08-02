@@ -17,6 +17,9 @@ use crate::{
 /// The public protocol that accepted a request observation.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum GatewayProtocol {
+    /// The `OpenAI`-compatible Chat Completions entrypoint.
+    #[serde(rename = "openai_chat_completions")]
+    OpenAiChatCompletions,
     /// The `OpenAI`-compatible Responses entrypoint.
     #[serde(rename = "openai_responses")]
     OpenAiResponses,
