@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.83` |
+| 计划版本 | `v1.88` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | 无活动 Task。P12-06 按 `CR-P12-06-010` 转为 `DEFERRED`：candidate 预检已通过，但 incumbent 可用的 Grok/xAI OAuth 参考账号已失效，refresh 与重新登录均未产生可用凭据，因此停止该路线的登录、刷新与真实探针。这不计为 P12-06 通过；P12-08 仍为 `PENDING`，须另行批准一条已工作的非 Grok 参考臂，或明确修改 P12-06→P12-08 的发布门禁。Kiro 与 Grok 生产路由均继续禁用。 |
+| 当前任务 | 无活动 Task。P12-06 已完成 Krill 原生 Responses 参考臂的受控差分：两臂均为 10/10 SSE、0 失败，非流式、Tool、Canonical 生命周期、终止语义与 Usage 不变量全部通过；修正后的比较器对原始 value-free receipt 离线重算为 9/9 PASS，未新发网络请求。incumbent 临时 Provider/model selector 已完整回滚，两服务及 loopback 监听正常；Grok/Kiro 仍延期且禁用。P12-06 为 `LOCAL_PASS_PENDING_PHASE_GATE`，下一任务 P12-08 仍 `PENDING`，生产 Canary 未开始。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；尚未录入任何真实上游凭据，尚未在生产主机名上分流任何流量 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1717,7 +1717,7 @@ CR-ID: CR-P11-04-001
 | P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | [带时间戳、无值备份与回滚清单](reports/p12-03-server-backup-rollback.md)：现有 CPA 数据根静止快照、镜像身份、关联 unit 片段、权限、哈希和精确回滚步骤已独立复核；未安装或启动新服务 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | [Staging receipt](reports/p12-04-staging-receipt.md)：独立签名制品、精确 Unit、root-only 凭证、两个回环 listener、Health/管理面 admission、资源/日志/回滚均验收；服务 active 但 disabled-at-boot | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | [CR-015 Tool/Explain 回执](reports/evidence/p12-05-cr-015-tool-explain-receipt-20260726.md)：一次新的无外部效应 Tool tuple 为 `2xx`/`valid`，唯一 protected attempt 为 `succeeded/decoder`，Explain 选中唯一 Candidate 且无新增 upstream attempt；完整回滚与独立 post-review 均通过 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | [OpenAI-compatible live differential](reports/p12-06-openai-differential.md)：candidate 单次非流式结构预检通过；incumbent 实际可用的 Grok/xAI OAuth 池已失效，固定预检无法成功，完整 paired corpus 未运行。用户按 `CR-P12-06-010` 要求先跳过 Grok 路线；另见 [Kiro 渠道证据](reports/p12-06-kiro-channel-evidence.md) | DEFERRED |
+| P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | [OpenAI-compatible live differential](reports/p12-06-openai-differential.md)：临时 Krill 原生 `codex-api-key` 参考臂与新网关 candidate 均通过 10/10 SSE、非流式、Tool、Canonical/Usage 不变量与性能取证；修正过严的可选 Usage 明细比较后，无网络离线 review 为 9/9 PASS，完整回滚通过。Grok/Kiro 切片仍延期 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | [暴露前验证回执](reports/p12-07-exposure-receipt.md)：新主机上从零完成产物验签、账户/目录/五凭据、unit 安装与启动（active、disabled-at-boot）；`cpar` 灰云 A 记录 + Let's Encrypt 证书；七项 fail-closed 暴露断言全通过（未认证与错误 key 均 401、管理面四路径均 404、公网直连 18180/18181 均不可达）；Caddy 变更前备份 preimage 并以 validate/adapt 证明其余五站点未变，reload 后 incumbent 仍正常。未录入任何真实上游凭据，`valid_key_accepted` 为 SKIP；该域名无限流（Caddy 标准版无模块）已记为缺口 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08 | 使用单独 Client Key 开始 10%→25%→50%→100% Canary | P12-06,P12-07 | 每阶段成功率、P95/P99、缓存和错误证据 | PENDING |
 | P12-09 | 在 Canary 中实际执行一次回滚并再次恢复 | P12-08 | 回滚时长和一致性报告 | PENDING |
@@ -2859,6 +2859,143 @@ CR-ID: CR-P12-06-010
 计划版本变更: v1.83
 ```
 
+### 已批准 Change Request：CR-P12-06-011
+
+```text
+CR-ID: CR-P12-06-011
+原因: Grok/xAI 参考臂按 CR-010 延期后，用户明确选择当前 CC Switch 中已可用的
+      Krill Codex 渠道作为 P12-06 的非 Grok 参考臂。incumbent CLIProxyAPI v7.2.101
+      支持独立 `openai-compatibility` Provider，可以用唯一前缀避免旧 xAI 账号池参与选择。
+影响的 Task / Matrix ID / ADR: 仅 P12-06 的 incumbent 参考臂、固定预检与 paired
+      stream/non-stream/Tool/性能 corpus；不解禁 Grok/Kiro 专项切片或生产路由。
+执行边界:
+      (1) 复用 CR-009 的 root-only、完整性校验 preimage，并在写入前再建立当前
+          incumbent config 的独立哈希备份。凭据仅从本机 CC Switch 当前 Krill Codex
+          Provider 内存提取，通过 stdin 传入服务器 root-only 临时交易；不输出、不写入仓库。
+      (2) incumbent 仅新增一个唯一 name/prefix、单 API key、单 model mapping 的
+          `openai-compatibility` 条目；不改 incumbent Client Key、端口、其他 Provider、二进制、
+          systemd unit、公开 Caddy/DNS 或新网关 candidate 图。
+      (3) reload/restart 后先复核 incumbent active、唯一 loopback listener、models/health 连续性和
+          新网关隔离状态；只允许前缀模型的固定无副作用非流式 Responses 预检。
+      (4) 仅当两臂预检均为 2xx 且 Canonical/Usage 结构有效，才运行 CR-003/008 的
+          有界 paired harness。任何失败立即恢复 incumbent config preimage 并重启复核；
+          不得开始 P12-08。
+兼容性与迁移影响: incumbent 可发生一次受控 reload/restart，但新 Provider 只能由测试
+      前缀模型命中；生产主机名流量、Client Key 和原有模型选择不变。
+测试与回滚变化: 预检后的 paired harness 仍只保存无值结构、终止语义、Usage
+      不变量和延迟分布；不保存 endpoint、key、model、请求/响应正文或 token 指纹。
+      回滚为原子恢复 config preimage、restart、哈希/监听/连续性复核。
+用户批准: APPROVED，2026-08-02（“使用krill的吧”）
+计划版本变更: v1.84
+```
+
+### 已批准 Change Request：CR-P12-06-012
+
+```text
+CR-ID: CR-P12-06-012
+原因: CR-011 的两臂非流式预检均通过，但 paired harness 中 incumbent 的 11 次
+      普通 SSE 和 1 次 Tool SSE 均为 `stream did not complete`；candidate 对应项全通过。
+      当前无法区分是 CLIProxyAPI v7.2.101 的 Chat→Responses stream translator 兼容缺口，
+      还是 differential harness 遗漏了合法的 Responses 事件轮廓。
+影响的 Task / Matrix ID / ADR: 仅 P12-06 Krill incumbent 参考臂的一次 SSE 类别诊断。
+执行边界:
+      (1) 以 CR-011 相同的本机内存凭据与独立 Provider 形状重建参考臂；写入前
+          重用 root-only preimage，请求结束或异常时无条件恢复。
+      (2) 只发送 1 次固定、无副作用、普通文本 SSE Responses 请求；不发 Tool、不重跑
+          warmup/性能 corpus、不重试相同 tuple。
+      (3) 持久证据只能包含 HTTP 类别、Content-Type、SSE data 行数、去重的 `type`、
+          `object`、是否存在 choices/delta 与 `[DONE]`；不保存 delta、正文、ID、Usage 值、
+          endpoint、key、model 或 token 指纹。
+      (4) 诊断后先回滚并复核 incumbent/candidate 服务与 loopback 监听，再决定是修正
+          harness、更换参考转换路径，还是保持 P12-06 未通过。
+兼容性与迁移影响: 无持久配置、代码、公开 API、Caddy/DNS、Client Key、新网关图
+      或生产流量变更。
+测试与回滚变化: 新增一份 root-only 无值诊断 receipt；回滚与 CR-011 相同，并须在诊断
+      命令的 EXIT/INT/TERM trap 中执行。
+用户批准: APPROVED，2026-08-02（承接“使用krill的吧”的同一 P12-06 参考臂目标；
+      不新增 Provider、Credential 或公开边界）
+计划版本变更: v1.85
+```
+
+### 已批准 Change Request：CR-P12-06-013
+
+```text
+CR-ID: CR-P12-06-013
+原因: CR-012 的唯一诊断请求返回 2xx `text/event-stream`，且含
+      `response.created`/`in_progress`/`output_item.added`/`content_part.added`/`output_text.delta`，
+      但流结束时没有 `output_item.done`、`response.completed` 或 `[DONE]`。这排除了 harness
+      漏识别合法终止事件，定位为 CLIProxyAPI v7.2.101 通用 OpenAI Chat→Responses
+      stream translator 与当前 Krill Chat SSE 的兼容缺口。同一 incumbent 支持原生
+      `codex-api-key` Responses 执行器，可避开该 Chat 转换。
+影响的 Task / Matrix ID / ADR: 仅 P12-06 Krill incumbent 参考臂的 executor 选择、三项预检
+      与条件性 paired corpus；不改新网关 candidate、Grok/Kiro 切片或 P12-08。
+执行边界:
+      (1) 凭据、endpoint、model、前缀、单凭据/单模型隔离和 root-only 传输与 CR-011
+          相同；唯一变化是 incumbent config 顶层条目由 `openai-compatibility` 改为
+          原生 `codex-api-key`，并保留已验证的非机密 User-Agent。
+      (2) restart 后须先通过 active/loopback/models/candidate-isolation 连续性，再对 incumbent
+          各发 1 次非流式、普通 SSE 和 Tool SSE。三项均须满足 Canonical 投影、
+          终止语义、完整 Tool arguments 与 Usage 守恒。
+      (3) 仅当三项 incumbent 预检全过，才对两臂重跑现有有界 paired harness；
+          不改它的 samples/warmup/超时/正文禁止规则。
+      (4) config 写入、预检、harness 和证据收集全部置于 EXIT/INT/TERM 回滚 trap 内；
+          无论成功或失败都恢复 incumbent preimage，restart 并复核唯一 loopback listener。
+兼容性与迁移影响: 无持久服务器配置、代码、公开 API、Caddy/DNS、Client Key、
+      新网关图或生产流量变更。
+测试与回滚变化: 若预检通过，新建一份 root-only、value-free paired receipt；若失败，
+      只保留无值失败分类。回滚为原子恢复 config/model-selector preimage 和服务/监听复核。
+用户批准: APPROVED，2026-08-02（承接“使用krill的吧”的同一参考臂目标；仅替换
+      incumbent 内部 executor，不新增凭据或外部边界）
+计划版本变更: v1.86
+```
+
+### 已批准 Change Request：CR-P12-06-014
+
+```text
+CR-ID: CR-P12-06-014
+原因: CR-013 的完整 receipt 证明两臂均为 10/10 SSE、0 失败，非流式、Tool、
+      Canonical 生命周期、终止语义、Usage 存在性/非负性/守恒与性能指标均通过。
+      唯一差异是 incumbent 的 `input_tokens_details.cached_tokens` 为整数而 candidate 省略该可选
+      明细。现有 harness 却将整个 Usage “可选字段存在形状”要求两臂完全相等，
+      这超出 `CR-P12-06-008` 批准的可判定不变量，造成 false negative。
+影响的 Task / Matrix ID / ADR: P12-06 differential classifier 与无网络回归；不改请求、
+      解码、Canonical、Usage 取值、性能采集或服务器图。
+执行边界:
+      (1) 保留每臂的可选 cache/reasoning 明细存在性供观测，但跨臂 PASS 只要求每臂
+          Usage 存在、核心 token 为非负整数、`total=input+output`；任一臂违反仍 fail closed。
+      (2) 将 differential 评估提取为纯函数，补“可选 cached_tokens 存在性不同仍通过”
+          和“守恒破坏仍失败”的无网络回归；receipt schema 升为 2。
+      (3) 只对 CR-013 已有的 root-only、value-free schema-1 receipt 离线重算新判词，
+          产生独立 review receipt；不改写原 receipt，不发任何新网络请求。
+兼容性与迁移影响: 无公开 API、Canonical、Provider、Schema、Caddy/DNS、Client Key、
+      服务器配置或生产流量变更。
+测试与回滚变化: 增加 differential 纯评估回归，运行定向测试、docs/fast Gate、
+      tracked Secret scan 与 whitespace review。回滚为恢复旧比较器，但那会恢复已证明的
+      false negative，不得改写 CR-013 原始 receipt。
+用户批准: APPROVED，2026-08-02（承接“使用krill的吧”的 P12-06 完成目标；
+      纠正已批准判据的实现偏差，不扩张网络或生产边界）
+计划版本变更: v1.87
+```
+
+### P12-06 Krill 参考臂最终结果
+
+`CR-P12-06-011` 的通用 OpenAI-compatible Chat 执行器非流式通过，但流式转换遗失
+终止事件；`CR-P12-06-012` 用一次无值诊断确认该失败，并完整回滚。
+`CR-P12-06-013` 改用 incumbent v7.2.101 原生 `codex-api-key` Responses 执行器后，非流式、
+普通 SSE 和 Tool SSE 三项预检均通过；成对 corpus 的两臂均完成 10/10 SSE、0 失败，
+Canonical 投影、终止语义、完整 Tool arguments 与 Usage 存在/非负/守恒均通过。
+
+原 schema-1 receipt 仅因 incumbent 保留合法 `cached_tokens` 可选明细而 candidate 省略它，
+被旧比较器误报为三个 Usage shape 不等。`CR-P12-06-014` 将比较收窄到
+`CR-P12-06-008` 已批准的核心不变量，新增正/负回归；对原 receipt 的无网络离线
+重算为 9/9 PASS，原 receipt 未改写。新网关在 10 个交错样本中的平均 TTFB、首语义事件和
+总时长分别比 incumbent 低约 41%、3% 和 7%，输出速率接近；样本较小，只作基线。
+
+incumbent 的临时 Provider 与 model selector 已从 root-only preimage 原子恢复；incumbent 和
+candidate 均 active，分别仅有原定 1 个与 2 个 loopback listener。Caddy/DNS、Client Key、
+新网关图和生产流量未改。P12-06 转为 `LOCAL_PASS_PENDING_PHASE_GATE`；P12-08 仍 `PENDING`。
+计划版本更新为 v1.88。
+
 ### 已批准 Change Request：CR-P12-07-001
 
 ```text
@@ -3214,3 +3351,8 @@ Next task:
 | v1.81 | 2026-08-02 | 记录 P12-06 OpenAI-compatible live preflight、差分 harness 与停止判据：candidate 通过，incumbent Responses 返回无细分归因的内部 5xx，完整 paired corpus 未启动 | P12-06 `BLOCKED`；须单独批准 incumbent 修复或指定另一条已工作参考臂，P12-08 保持 `PENDING` |
 | v1.82 | 2026-08-02 | `CR-P12-06-009`：批准对 incumbent CPA Responses/account-pool 参考路径执行先备份、最小且可回滚的修复；固定非流式预检成功后才恢复 paired corpus | APPROVED；P12-06 恢复 `IN_PROGRESS`，公开 Caddy/DNS、Client Key、新网关图、Kiro 与 P12-08 边界不变 |
 | v1.83 | 2026-08-02 | `CR-P12-06-010`：incumbent Grok/xAI OAuth 池的 access token 已过期，受控 refresh 样本均为 `invalid_grant`，交互登录未产生可用凭据；按用户要求停止该路线 | APPROVED；P12-06 `DEFERRED`，未运行的 paired corpus 不计为通过，P12-08 仍 `PENDING` |
+| v1.84 | 2026-08-02 | `CR-P12-06-011`：使用 CC Switch 当前 Krill Codex 渠道建立独立前缀、单凭据、单模型的 incumbent OpenAI-compatible 参考臂；预检通过后才运行 paired corpus | APPROVED；P12-06 恢复 `IN_PROGRESS`，Grok/Kiro 仍延期，P12-08 未解禁 |
+| v1.85 | 2026-08-02 | `CR-P12-06-012`：Krill paired corpus 中 candidate 的 SSE/非流式/Tool 均通过，incumbent 非流式通过但所有 SSE 均未形成完整生命周期；只允许一次无值 SSE 类别诊断 | APPROVED；诊断后无条件回滚，不重跑整批，P12-08 未解禁 |
+| v1.86 | 2026-08-02 | `CR-P12-06-013`：CR-012 证明通用 Chat→Responses translator 遗失 SSE 终止事件；改用 incumbent 原生 `codex-api-key` Responses 执行器承载同一 Krill 隔离参考臂，三项预检全过后才重跑 paired corpus | APPROVED；成功或失败均回滚，P12-08 未解禁 |
+| v1.87 | 2026-08-02 | `CR-P12-06-014`：修正 differential harness 对 Usage 可选明细存在性的过严等值比较；跨臂仅比较已批准的存在/非负/守恒不变量，补正反回归并离线重算 CR-013 receipt | APPROVED；不新发网络请求，P12-08 待 P12-06 closeout review |
+| v1.88 | 2026-08-02 | 收口 P12-06 Krill 参考臂：两臂 10/10 SSE、0 失败，非流式/Tool/Canonical/Usage 不变量全通过，9/9 离线复核通过，临时 incumbent 配置完整回滚 | P12-06 `LOCAL_PASS_PENDING_PHASE_GATE`；P12-08 仍 `PENDING`，Grok/Kiro 仍延期 |

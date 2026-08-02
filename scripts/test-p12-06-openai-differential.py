@@ -4,6 +4,7 @@
 import importlib.util
 import io
 import json
+import copy
 from pathlib import Path
 import unittest
 
@@ -97,6 +98,31 @@ class DifferentialTest(unittest.TestCase):
         self.assertFalse(MODULE.usage_valid(MODULE.usage_shape({
             "input_tokens": 0, "output_tokens": 1, "total_tokens": True,
         })))
+
+    def test_differential_allows_optional_usage_detail_presence_to_differ(self):
+        usage = {
+            "present": True, "nonnegative": True, "total_present": True, "conserved": True,
+            "cache_read_present": False, "cache_creation_present": False, "reasoning_present": True,
+        }
+        arm = {
+            "requested_samples": 10, "successful_samples": 10, "projection_consistent": True,
+            "stream_projection": ["response_start", "message_start", "text_delta", "message_end", "response_end"],
+            "stream_terminal": "end_turn", "stream_usage_invariants_valid": True,
+            "stream_usage_shape": copy.deepcopy(usage),
+            "nonstream": {"projection": ["response_start", "message_start", "text_delta", "message_end", "response_end"],
+                          "terminal": "end_turn", "usage": copy.deepcopy(usage)},
+            "tool_stream": {"projection": ["response_start", "tool_start", "tool_delta", "tool_end", "response_end"],
+                            "terminal": "tool_use", "usage": copy.deepcopy(usage)},
+        }
+        incumbent = copy.deepcopy(arm)
+        incumbent["stream_usage_shape"]["cache_read_present"] = True
+        incumbent["nonstream"]["usage"]["cache_read_present"] = True
+        incumbent["tool_stream"]["usage"]["cache_read_present"] = True
+        self.assertTrue(all(MODULE.evaluate_differential(incumbent, arm).values()))
+
+        incumbent["nonstream"]["usage"]["conserved"] = False
+        result = MODULE.evaluate_differential(incumbent, arm)
+        self.assertFalse(result["nonstream_usage_invariants_valid"])
 
 
 if __name__ == "__main__":

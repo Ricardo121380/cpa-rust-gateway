@@ -2,24 +2,63 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.83` |
+| Plan version | `v1.88` |
 | Task | `P12-06` (OpenAI-compatible portion) |
-| Status | `DEFERRED_EXTERNAL_CREDENTIAL` |
+| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
 | Task Card | `M`: operational graph helper, bounded differential harness, live preflight, evidence and review |
 
 ## Outcome first
 
-The new gateway's Krill-backed candidate arm passed a single loopback, non-streaming preflight: it
-returned `2xx`, completed with `end_turn`, exposed a valid Canonical message projection and carried
-Usage. The incumbent CPA arm did not provide a successful reference response. A corrected
-Responses-shaped request reached its existing `/v1/responses` route but returned `5xx` with the
-source-defined safe projection `server_error/internal_server_error`.
+P12-06 passed its approved Krill-backed differential boundary. The incumbent CPA used a temporary,
+uniquely prefixed native `codex-api-key` reference arm; the new gateway used its already accepted
+Krill candidate graph. Both arms passed the non-streaming, ordinary SSE and Tool SSE preflights.
+The paired corpus then produced 10/10 successful SSE samples and zero failures on each arm, with
+equal Canonical lifecycle projections and terminal semantics, complete Tool arguments, and valid
+Usage presence/non-negativity/conservation in every mode.
 
-The paired stream, non-stream, Tool and performance corpus was therefore **not run**. Running ten
-rounds against one functioning arm and one known-failing arm would measure availability failure,
-not gateway compatibility. Under `CR-P12-06-010`, the Grok/xAI-backed reference line is deferred;
-P12-08 remains pending and must not start without a separate gate change or a working non-Grok
-reference arm.
+The first OpenAI-compatibility attempt remains useful negative evidence: its generic Chat-to-
+Responses translator emitted only the initial lifecycle and text-delta events, then ended without
+`output_item.done`, `response.completed` or `[DONE]`. It was rolled back and replaced by the native
+Responses executor rather than weakening the lifecycle requirement.
+
+The original schema-1 receipt returned a false negative only because it compared optional Usage
+detail presence across arms. The incumbent retained a legal cache-read detail while the candidate
+omitted it; both arms still satisfied all approved core Usage invariants. `CR-P12-06-014` corrected
+that over-strict comparison, added positive and negative no-network regressions, and reevaluated the
+unchanged value-free receipt offline. All nine differential predicates passed with zero new network
+requests.
+
+All temporary incumbent Provider configuration and the temporary model selector were restored from
+the root-only preimage. The incumbent and candidate services are active with exactly their original
+loopback listener counts; Caddy, DNS, Client Keys, the candidate graph and production traffic were
+not changed. P12-08 remains pending and was not started.
+
+## Performance baseline
+
+The ten samples were interleaved against the same Krill channel. Values are descriptive baselines,
+not a statistically powered superiority claim.
+
+| Metric | Incumbent mean / p50 / p95 | Candidate mean / p50 / p95 |
+|---|---:|---:|
+| TTFB (ms) | 1140.834 / 811.669 / 2915.372 | 673.545 / 583.286 / 1140.074 |
+| First semantic event (ms) | 2294.622 / 2068.901 / 4080.010 | 2233.129 / 2074.666 / 3483.512 |
+| First text (ms) | 2377.290 / 2163.585 / 4113.608 | 2233.180 / 2074.712 / 3483.559 |
+| Total (ms) | 2568.159 / 2309.469 / 4645.361 | 2386.641 / 2261.084 / 3622.448 |
+| Inter-delta gap (ms) | 12.215 / 2.030 / 41.899 | 9.814 / 0.016 / 70.538 |
+| Output tokens/s | 51.809 / 44.617 / 156.729 | 53.244 / 49.762 / 69.387 |
+
+The candidate's sample mean was about 41% lower for TTFB, 3% lower for first semantic event and 7%
+lower for total time; output rate was similar. Tail values have only ten samples and should not be
+treated as stable production percentiles.
+
+Server-only, root-owned evidence:
+
+- `p12-06-openai-krill-native-differential-20260802T035813Z.json` — original immutable schema-1
+  value-free paired receipt.
+- `p12-06-cr014-offline-review-20260802T040416Z.json` — schema-2 evaluator result; 9/9 predicates
+  passed, source receipt unchanged, zero network requests.
+- `p12-06-cr012-sse-shape-20260802T035424Z.json` — value-free negative diagnosis for the generic
+  Chat-to-Responses stream path.
 
 ## CR-P12-06-009 diagnosis and deferred closeout
 
@@ -110,16 +149,9 @@ the first output item/delta rather than `response.created`, and Usage must be no
 review also replaced short-circuit Tool inspection with complete output traversal: wrong-mode,
 duplicate or structurally incomplete Tool calls now fail closed in both JSON and SSE.
 
-P12-06 is deferred. It can resume only after one of these is separately authorized and demonstrated
-in a new Change Request:
-
-1. provide a newly valid incumbent account pool and make the fixed non-streaming preflight
-   structurally successful; or
-2. nominate another already-working, immutable OpenAI Responses reference arm.
-
-The current Grok/xAI repair authorization is closed rather than left active. Changing the incumbent
-production configuration or weakening the P12-06-to-P12-08 dependency requires its own Change
-Request. Until then, P12-08 remains `PENDING`.
+P12-06 meets its approved OpenAI-compatible differential boundary through the isolated Krill native
+Responses reference arm. Grok/xAI and Kiro remain deferred and disabled; this result does not count
+as either Provider Gate. P12-08 remains `PENDING` until its own controlled Canary execution begins.
 
 ## Local verification
 
@@ -131,3 +163,7 @@ Request. Until then, P12-08 remains `PENDING`.
 - Staged Secret scan and Git whitespace check: passed.
 - Deferred closeout review: `./scripts/check.sh docs` passed with 115 Tasks and zero
   `IN_PROGRESS`; tracked Secret scan and Git whitespace check passed.
+- Krill native reference: incumbent and candidate preflights passed; both arms produced 10/10 SSE
+  samples, zero failures, valid non-streaming/Tool projections and valid Usage invariants.
+- Comparator correction: 7 no-network classifier tests passed; `./scripts/check.sh docs` and
+  `./scripts/check.sh fast` passed; offline review accepted 9/9 predicates without a network send.

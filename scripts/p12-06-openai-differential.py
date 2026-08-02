@@ -302,6 +302,42 @@ def usage_valid(value: dict | None) -> bool:
     )
 
 
+def evaluate_differential(left: dict, right: dict) -> dict:
+    """Compare only cross-arm invariants approved by CR-P12-06-008."""
+    comparable = all(
+        arm["successful_samples"] == arm["requested_samples"]
+        and arm["projection_consistent"]
+        for arm in (left, right)
+    )
+
+    def equal_mode(mode: str, field: str) -> bool:
+        return (
+            "failure" not in left[mode]
+            and "failure" not in right[mode]
+            and left[mode].get(field) == right[mode].get(field)
+        )
+
+    def usage_mode_valid(mode: str) -> bool:
+        return all(
+            "failure" not in arm[mode] and usage_valid(arm[mode].get("usage"))
+            for arm in (left, right)
+        )
+
+    return {
+        "stream_projection_equal": comparable and left["stream_projection"] == right["stream_projection"],
+        "stream_terminal_equal": comparable and left["stream_terminal"] == right["stream_terminal"],
+        "stream_usage_invariants_valid": comparable
+        and left["stream_usage_invariants_valid"]
+        and right["stream_usage_invariants_valid"],
+        "nonstream_projection_equal": equal_mode("nonstream", "projection"),
+        "nonstream_terminal_equal": equal_mode("nonstream", "terminal"),
+        "nonstream_usage_invariants_valid": usage_mode_valid("nonstream"),
+        "tool_projection_equal": equal_mode("tool_stream", "projection"),
+        "tool_terminal_equal": equal_mode("tool_stream", "terminal"),
+        "tool_usage_invariants_valid": usage_mode_valid("tool_stream"),
+    }
+
+
 def main() -> int:
     a = args()
     arms = {}
@@ -345,19 +381,8 @@ def main() -> int:
             "tool_stream": public_observation(arm["tool_stream"]),
         }
     left, right = report_arms["incumbent"], report_arms["candidate"]
-    comparable = all(x["successful_samples"] == a.samples and x["projection_consistent"] for x in (left,right))
-    def equal_mode(mode: str, field: str) -> bool:
-        return "failure" not in left[mode] and "failure" not in right[mode] and left[mode].get(field) == right[mode].get(field)
-    report = {"schema_version": 1, "value_free": True, "arms": report_arms,
-              "differential": {"stream_projection_equal": comparable and left["stream_projection"] == right["stream_projection"],
-                               "stream_terminal_equal": comparable and left["stream_terminal"] == right["stream_terminal"],
-                               "stream_usage_shape_equal": comparable and left["stream_usage_shape"] == right["stream_usage_shape"],
-                               "nonstream_projection_equal": equal_mode("nonstream", "projection"),
-                               "nonstream_terminal_equal": equal_mode("nonstream", "terminal"),
-                               "nonstream_usage_shape_equal": equal_mode("nonstream", "usage"),
-                               "tool_projection_equal": equal_mode("tool_stream", "projection"),
-                               "tool_terminal_equal": equal_mode("tool_stream", "terminal"),
-                               "tool_usage_shape_equal": equal_mode("tool_stream", "usage")}}
+    report = {"schema_version": 2, "value_free": True, "arms": report_arms,
+              "differential": evaluate_differential(left, right)}
     descriptor = os.open(a.out, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
         json.dump(report, handle, indent=2, sort_keys=True); handle.write("\n")
@@ -369,7 +394,7 @@ def main() -> int:
         and usage_valid(arm["tool_stream"].get("usage"))
         for arm in (left, right)
     )
-    return 0 if comparable and modes_valid and all(report["differential"].values()) else 1
+    return 0 if modes_valid and all(report["differential"].values()) else 1
 
 
 if __name__ == "__main__":
