@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.79` |
+| Plan version | `v1.80` |
 | Task | `P12-06` (Kiro portion) |
-| Status | `IN_PROGRESS` |
+| Status | `DEFERRED_EXTERNAL_CREDENTIAL` |
 | Scope | Kiro channel only. Per `CR-P12-06-003` this is **not** the incumbent differential: the incumbent CPA has no Kiro channel, so there is no second side to compare against. The OpenAI-compatible differential is separate and not covered here. |
 
 ## Why this is a comparison and not a one-sided baseline
@@ -137,9 +137,10 @@ then corrected to construct and validate the complete in-memory JSON before the 
 classifications above.
 
 No warm-up or performance round was started, because accumulating latency samples from a channel
-with zero successful functional requests would manufacture a performance conclusion. The Kiro
-portion of P12-06 remains `IN_PROGRESS`, blocked on either a usable `ksk_` credential or a separately
-approved IdC/OAuth composition and refresh scope.
+with zero successful functional requests would manufacture a performance conclusion. Under
+`CR-P12-06-008`, the Kiro portion is `DEFERRED_EXTERNAL_CREDENTIAL` and no longer blocks P12-06;
+it can resume only after a usable `ksk_` credential or a separately approved IdC/OAuth composition
+and refresh scope exists.
 
 ## What this evidence does not claim
 

@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.79` |
+| 计划版本 | `v1.80` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-06 `IN_PROGRESS`。Kiro 运行链路、单候选临时图和测量工具已就绪；原 Pro Max 凭据超额后，`CR-P12-06-007` 受控测试了 kiro-rs 中另外两个 headless Free API-key 凭据，二者均由上游返回 `403`，因此未启动无意义的性能采样。剩余一个 Free 凭据属于已过期的 IdC OAuth，须另行批准刷新与运行时组合，不能冒充本次 API-key 替换成功。OpenAI-compatible canonical differential 尚未执行。P12-04/P12-05/P12-07 仍为 `LOCAL_PASS_PENDING_PHASE_GATE`；现有 CPA、生产主机名流量和公开监听均未改变。 |
+| 当前任务 | P12-06 `IN_PROGRESS`。`CR-P12-06-008` 已把无可用凭据的 Kiro 功能/性能切片转为 `DEFERRED_EXTERNAL_CREDENTIAL`，不再阻塞本 Task；P7-09/G7 仍延期且 Kiro 生产路由仍禁用。当前唯一执行项是 OpenAI-compatible live differential：用固定合成请求比较 incumbent CPA 与新网关的 canonical 结构、不变量、错误所有权和终止语义；两侧不共享同一账号池，因此不得比较随机正文或把 Usage 数值不相等误判为网关缺陷。P12-04/P12-05/P12-07 仍为 `LOCAL_PASS_PENDING_PHASE_GATE`；现有 CPA、生产主机名流量和公开监听均未改变。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；尚未录入任何真实上游凭据，尚未在生产主机名上分流任何流量 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1717,7 +1717,7 @@ CR-ID: CR-P11-04-001
 | P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | [带时间戳、无值备份与回滚清单](reports/p12-03-server-backup-rollback.md)：现有 CPA 数据根静止快照、镜像身份、关联 unit 片段、权限、哈希和精确回滚步骤已独立复核；未安装或启动新服务 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | [Staging receipt](reports/p12-04-staging-receipt.md)：独立签名制品、精确 Unit、root-only 凭证、两个回环 listener、Health/管理面 admission、资源/日志/回滚均验收；服务 active 但 disabled-at-boot | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | [CR-015 Tool/Explain 回执](reports/evidence/p12-05-cr-015-tool-explain-receipt-20260726.md)：一次新的无外部效应 Tool tuple 为 `2xx`/`valid`，唯一 protected attempt 为 `succeeded/decoder`，Explain 选中唯一 Candidate 且无新增 upstream attempt；完整回滚与独立 post-review 均通过 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | [Kiro 渠道证据](reports/p12-06-kiro-channel-evidence.md)已记录两个替代 Free API-key 凭据的上游 `403` 与性能采样未启动原因；仍需可用 Kiro 凭据完成其功能/性能基线，并执行 OpenAI-compatible canonical 逐字段差分。性能含首字耗时（FirstSemanticEvent）、TTFB、总耗时、token 输出速率与 token 间延迟分位数 | IN_PROGRESS |
+| P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | [Kiro 渠道证据](reports/p12-06-kiro-channel-evidence.md)已记录替代 Free API-key 均被上游 `403` 拒绝；该切片按 `CR-P12-06-008` 延期且不阻塞。剩余验收为 OpenAI-compatible canonical live differential：逐字段比较可跨账号池判定的事件/Tool/Usage 结构、错误所有权和终止语义，不比较正文或非确定数值。性能含首字耗时（FirstSemanticEvent）、TTFB、总耗时、token 输出速率与 token 间延迟分位数 | IN_PROGRESS |
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | [暴露前验证回执](reports/p12-07-exposure-receipt.md)：新主机上从零完成产物验签、账户/目录/五凭据、unit 安装与启动（active、disabled-at-boot）；`cpar` 灰云 A 记录 + Let's Encrypt 证书；七项 fail-closed 暴露断言全通过（未认证与错误 key 均 401、管理面四路径均 404、公网直连 18180/18181 均不可达）；Caddy 变更前备份 preimage 并以 validate/adapt 证明其余五站点未变，reload 后 incumbent 仍正常。未录入任何真实上游凭据，`valid_key_accepted` 为 SKIP；该域名无限流（Caddy 标准版无模块）已记为缺口 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08 | 使用单独 Client Key 开始 10%→25%→50%→100% Canary | P12-06,P12-07 | 每阶段成功率、P95/P99、缓存和错误证据 | PENDING |
 | P12-09 | 在 Canary 中实际执行一次回滚并再次恢复 | P12-08 | 回滚时长和一致性报告 | PENDING |
@@ -2761,6 +2761,33 @@ CR-ID: CR-P12-06-007
 计划版本变更: v1.79
 ```
 
+### 已批准 Change Request：CR-P12-06-008
+
+```text
+CR-ID: CR-P12-06-008
+原因: CR-007 已穷尽 kiro-rs 中可直接使用的替代 headless Free API-key：二者均被 Kiro
+      上游 `403` 拒绝，原 Pro Max 已超额，唯一剩余 IdC OAuth 已过期。继续等待或反复测试
+      不可用凭据只会阻塞与 Kiro 无依赖的 OpenAI-compatible differential。用户明确决定
+      “先不管 kiro”。
+影响的 Task / Matrix ID / ADR: P12-06 的完成边界与 Kiro 切片状态。P7-09/G7 继续
+      `DEFERRED`；P12-06 的 Kiro 功能/性能切片变为 `DEFERRED_EXTERNAL_CREDENTIAL`，不再是
+      P12-06 完成的前置。Kiro 生产路由、P12-08 Canary 范围及 P7 Provider Gate 均不解禁。
+执行边界:
+      (1) P12-06 继续且只继续 OpenAI-compatible live differential；不读取、刷新或重试任何
+          Kiro 凭据，不再为 Kiro 创建 Config Version 或发送请求。
+      (2) incumbent CPA 与新网关 Krill 侧不共享同一账号池，且生成本身非确定；因此“逐字段”
+          仅适用于跨账号池仍可判定的 canonical 投影：事件种类/顺序约束、Tool call 结构与 JSON
+          完整性、Usage 字段存在性/非负性/守恒关系、错误所有权类别和终止语义。
+      (3) 随机生成正文、响应 ID、上游模型标签和 Usage 具体数值不进入报告，也不得要求两侧相等；
+          否则会把不同采样结果误报为网关回归。性能数据分侧报告并携带样本量，不宣称同账号 A/B。
+      (4) 固定合成请求、loopback 数据面、Secret 不落库外明文、incumbent 不改配置以及生产主机名
+          不分流的既有边界不变。
+恢复条件: Kiro 仅在出现新的可用 `ksk_`，或另行批准并完成 IdC/OAuth 刷新与运行时组合后恢复；
+      恢复时须新增 CR 和独立证据，不回写本次 OpenAI differential 的结论。
+用户批准: APPROVED，2026-08-02（“可以，那就先不管kiro”）
+计划版本变更: v1.80
+```
+
 ### 已批准 Change Request：CR-P12-07-001
 
 ```text
@@ -3112,3 +3139,4 @@ Next task:
 | v1.77 | 2026-08-01 | `CR-P12-06-005`：修复 CR-004 接线后暴露的组合缺陷——Kiro 渠道曾拒绝 100% 请求。Anthropic Messages 强制 `max_tokens` 而入站解码器按设计将其保留为根扩展，Kiro 的 `conversationState` 无任何输出上限字段故 `BC-PROVIDER-007` 拒绝一切根扩展；两条正确规则相乘使任何合规客户端都无法使用该渠道。在组合根新增仅丢弃该一项扩展的投影（与 kiro-rs 口径一致：接受但不转发），其余扩展全部保留以继续在转换器内 fail closed | APPROVED；修复前 `ClientRequestError`（转换期失败）、修复后 `ProviderPermanent`（已出网并被上游按假凭据拒绝），本地隔离网关全链路验证通过 |
 | v1.78 | 2026-08-01 | `CR-P12-06-006`：修复 Kiro 请求缺失必需字段 `conversationState.chatTriggerType`。其余字节相同时，不含该字段→400 `ValidationException`/`REQUEST_BODY_INVALID`，含该字段→200 且返回真实 `application/vnd.amazon.eventstream`。一律发送 `MANUAL`（网关的每个请求都源自客户端显式调用）。本 CR 同时如实记录并撤销了一次错误诊断：曾误判根因为 CLI 的 Content-Type，因为只看 HTTP 状态码而未看正文——`application/json` 的 200 正文实为 `UnknownOperationException`。`application/x-amz-json-1.0` 自始正确，已 revert | APPROVED；新增跨 kind 的独立断言并经变异验证；功能验证以 id=5 单次真实调用取得完整响应（`{"content":"OK"}`、`stopReason: END_TURN`、计费 0.0155 credit） |
 | v1.79 | 2026-08-02 | `CR-P12-06-007`：Pro Max 凭据超额后，受控测试 kiro-rs 其余两个 headless Free API-key 凭据；使用不可变 successor Config Version、单候选/单 attempt、root-only ledger 和不保存正文的直连分类。修复录图 helper 的 parent lineage 与 ledger 覆盖缺陷 | APPROVED；两个候选的 gateway 功能请求均为 502、修正后的同形直连均由上游返回 403，故未启动性能采样；剩余 IdC OAuth 已过期且不在本 CR，P12-06 保持 IN_PROGRESS |
+| v1.80 | 2026-08-02 | `CR-P12-06-008`：Kiro 切片因无可用凭据转为 `DEFERRED_EXTERNAL_CREDENTIAL` 且不再阻塞 P12-06；后续只执行 OpenAI-compatible live differential。两侧不共享账号池，因此差分只比较可判定的 canonical 结构、不变量、错误所有权与终止语义，正文、ID 和 Usage 具体数值不作相等比较 | APPROVED；Kiro 请求停止，P7-09/G7 与 Kiro 生产路由仍延期/禁用 |
