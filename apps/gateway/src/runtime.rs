@@ -22,7 +22,7 @@ use std::{
         Arc, Mutex,
         atomic::{AtomicBool, AtomicU64, Ordering},
     },
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use gateway_auth::client_key::ClientKeyService;
@@ -113,8 +113,9 @@ use provider_kiro::{
 };
 use provider_openai_compatible::{
     OpenAiChatCompletionsApiKey, OpenAiChatCompletionsEndpoint,
-    OpenAiChatCompletionsRequestBuilder, OpenAiResponsesApiKey, OpenAiResponsesEndpoint,
-    OpenAiResponsesOutboundRequest, OpenAiResponsesRequestBuilder,
+    OpenAiChatCompletionsRequestBuilder, OpenAiCompatibleRuntimeCredential, OpenAiResponsesApiKey,
+    OpenAiResponsesEndpoint, OpenAiResponsesOutboundRequest, OpenAiResponsesRequestBuilder,
+    OpenAiRuntimeFailureAction, classify_openai_runtime_failure,
 };
 use serde_json::Value;
 
@@ -127,6 +128,8 @@ use serde_json::Value;
 /// total Credential concurrency at [`P12_MAX_TOTAL_BINDING_CONCURRENCY`], so the worst-case
 /// resident bodies stay at that many buffers.
 const MAX_UPSTREAM_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
+/// Maximum error envelope inspected for structured Codex/OpenAI-compatible ownership signals.
+const MAX_OPENAI_ERROR_BODY_BYTES: usize = 64 * 1024;
 /// The largest undelivered SSE residue this runtime will buffer between two canonical events.
 ///
 /// `response.output_text.done`, `response.output_item.done`, and `response.completed` each repeat
@@ -1520,9 +1523,11 @@ impl EndpointAttemptDriver {
         credential: &CredentialLease,
         projected: &ProjectedProtocolRequest,
     ) -> Result<Box<dyn ResponsesEventSource>, AttemptFailure> {
-        let credential = std::str::from_utf8(credential.secret_bytes())
-            .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
-        let request_credential = OpenAiChatCompletionsApiKey::try_new(credential.to_owned())
+        let credential = openai_runtime_credential(credential.secret_bytes())?;
+        let bearer = credential
+            .bearer_at(system_now_ms()?)
+            .map_err(AttemptFailure::NonRetryable)?;
+        let request_credential = OpenAiChatCompletionsApiKey::try_new(bearer.to_owned())
             .map_err(AttemptFailure::NonRetryable)?;
         let outbound = match projected {
             ProjectedProtocolRequest::NativeExact => {
@@ -1558,7 +1563,9 @@ impl EndpointAttemptDriver {
         let request = outbound
             .into_transport_request(admitted)
             .map_err(AttemptFailure::NonRetryable)?;
-        let mut response = self.send_admitted_request(runtime, request).await?;
+        let mut response = self
+            .send_admitted_request(runtime, request, HttpFailureProfile::OpenAiCompatible)
+            .await?;
         match self.mode {
             ResponsesResponseMode::NonStreaming => {
                 let events = decode_chat_json_response(
@@ -1594,9 +1601,11 @@ impl EndpointAttemptDriver {
         credential: &CredentialLease,
         projected: &ProjectedProtocolRequest,
     ) -> Result<Box<dyn ResponsesEventSource>, AttemptFailure> {
-        let credential = std::str::from_utf8(credential.secret_bytes())
-            .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
-        let request_credential = OpenAiResponsesApiKey::try_new(credential.to_owned())
+        let credential = openai_runtime_credential(credential.secret_bytes())?;
+        let bearer = credential
+            .bearer_at(system_now_ms()?)
+            .map_err(AttemptFailure::NonRetryable)?;
+        let request_credential = OpenAiResponsesApiKey::try_new(bearer.to_owned())
             .map_err(AttemptFailure::NonRetryable)?;
         let outbound = match projected {
             ProjectedProtocolRequest::NativeExact => OpenAiResponsesRequestBuilder::build_native(
@@ -1627,7 +1636,9 @@ impl EndpointAttemptDriver {
             .map_err(|_| AttemptFailure::NonRetryable(egress_rejected_error()))?;
         let request =
             p12_transport_request(&outbound, admitted).map_err(AttemptFailure::NonRetryable)?;
-        let mut response = self.send_admitted_request(runtime, request).await?;
+        let mut response = self
+            .send_admitted_request(runtime, request, HttpFailureProfile::OpenAiCompatible)
+            .await?;
 
         match self.mode {
             ResponsesResponseMode::NonStreaming => {
@@ -1703,7 +1714,9 @@ impl EndpointAttemptDriver {
             .map_err(|_| AttemptFailure::NonRetryable(egress_rejected_error()))?;
         let request = p12_anthropic_transport_request(outbound, admitted)
             .map_err(AttemptFailure::NonRetryable)?;
-        let mut response = self.send_admitted_request(runtime, request).await?;
+        let mut response = self
+            .send_admitted_request(runtime, request, HttpFailureProfile::StatusOnly)
+            .await?;
 
         match self.mode {
             ResponsesResponseMode::NonStreaming => {
@@ -1817,12 +1830,13 @@ impl EndpointAttemptDriver {
         &self,
         runtime: &EndpointRuntime,
         request: UpstreamHttpRequest,
+        failure_profile: HttpFailureProfile,
     ) -> Result<UpstreamHttpResponse, AttemptFailure> {
         self.attempt_stages.record_stage(
             &self.request_id,
             ManagementRequestAttemptStage::HttpTransport,
         );
-        let response = self
+        let mut response = self
             .client_pool
             .send(request, runtime.transports.for_mode(self.mode))
             .await
@@ -1832,6 +1846,9 @@ impl EndpointAttemptDriver {
             .record_stage(&self.request_id, ManagementRequestAttemptStage::HttpStatus);
         match response.status() {
             200..=299 => {}
+            status if failure_profile == HttpFailureProfile::OpenAiCompatible => {
+                return Err(classify_openai_response_failure(&mut response, status).await);
+            }
             429 => return Err(AttemptFailure::RateLimited { retry_after: None }),
             500..=599 => return Err(AttemptFailure::ServerError),
             _ => return Err(AttemptFailure::NonRetryable(provider_permanent_error())),
@@ -1842,6 +1859,73 @@ impl EndpointAttemptDriver {
             return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
         }
         Ok(response)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum HttpFailureProfile {
+    StatusOnly,
+    OpenAiCompatible,
+}
+
+fn openai_runtime_credential(
+    input: &[u8],
+) -> Result<OpenAiCompatibleRuntimeCredential, AttemptFailure> {
+    OpenAiCompatibleRuntimeCredential::import(input).map_err(|_| {
+        AttemptFailure::NonRetryable(GatewayError::new(
+            GatewayErrorCode::CredentialUnavailable,
+            ErrorScope::Credential,
+        ))
+    })
+}
+
+fn system_now_ms() -> Result<i64, AttemptFailure> {
+    let elapsed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
+    i64::try_from(elapsed.as_millis()).map_err(|_| AttemptFailure::NonRetryable(internal_error()))
+}
+
+async fn classify_openai_response_failure(
+    response: &mut UpstreamHttpResponse,
+    status: u16,
+) -> AttemptFailure {
+    let retry_after_seconds = response
+        .header("retry-after")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse::<u64>().ok());
+    let mut body = Vec::new();
+    let mut inspectable = true;
+    loop {
+        let Ok(next) = response.next_chunk().await else {
+            return AttemptFailure::Connection;
+        };
+        let Some(chunk) = next else { break };
+        if body.len().saturating_add(chunk.len()) > MAX_OPENAI_ERROR_BODY_BYTES {
+            body.clear();
+            inspectable = false;
+            break;
+        }
+        body.extend_from_slice(&chunk);
+    }
+    let now_epoch_seconds = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |elapsed| elapsed.as_secs());
+    let disposition = classify_openai_runtime_failure(
+        status,
+        if inspectable { &body } else { &[] },
+        retry_after_seconds,
+        now_epoch_seconds,
+    );
+    match disposition.action() {
+        OpenAiRuntimeFailureAction::RecordExactQuota => AttemptFailure::RateLimited {
+            retry_after: disposition.retry_after(),
+        },
+        OpenAiRuntimeFailureAction::CoolEndpoint => AttemptFailure::ServerError,
+        OpenAiRuntimeFailureAction::None
+        | OpenAiRuntimeFailureAction::RequireCredentialReauthorization => {
+            AttemptFailure::NonRetryable(disposition.error().clone())
+        }
     }
 }
 
@@ -3738,6 +3822,12 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
             )
             .map_err(|_| ManagementRuntimeError::Unavailable)?;
         match account_status {
+            RuntimeCredentialAccountStatus::Unauthorized => {
+                if target.upstream_model().is_some() {
+                    return Ok(ManagementQuotaRecoveryState::Rejected);
+                }
+                self.recover_forbidden_account(target, observed_at_ms)
+            }
             RuntimeCredentialAccountStatus::Forbidden => {
                 // An account block covers the whole binding, so only a binding-scoped request may
                 // clear it. A model-scoped target expresses quota intent; honouring it here would
@@ -4018,7 +4108,8 @@ mod tests {
         P12FanoutEventSink, P12ResponseUsageProjection, P12TransportProfiles,
         RuntimeCompositionError, SnapshotManagementRuntimeFacade, append_response_chunk,
         build_data_plane_composition, build_kiro_messages_adapter, build_openai_responses_adapter,
-        decode_json_events, decode_json_events_with_usage_projection, decode_sse_events,
+        classify_openai_response_failure, decode_json_events,
+        decode_json_events_with_usage_projection, decode_sse_events,
         decode_sse_events_with_usage_projection, deployment_route_compiler, endpoint_runtimes,
         has_p12_https_only_egress_shape, has_p12_unlisted_model_override,
         p12_api_format_adapter_registry, p12_attempt_start_timeout, p12_kiro_endpoint_shape,
@@ -4886,6 +4977,55 @@ mod tests {
             write_all_to_peer(&socket, body.as_bytes()).await?;
             Ok(())
         })
+    }
+
+    fn spawn_live_error_peer(
+        listener: actix_web::rt::net::TcpListener,
+        status: u16,
+        retry_after: Option<u64>,
+        body: String,
+    ) -> actix_web::rt::task::JoinHandle<std::io::Result<()>> {
+        actix_web::rt::spawn(async move {
+            let (socket, _) = listener.accept().await?;
+            read_full_request(&socket).await?;
+            let retry_after = retry_after
+                .map_or_else(String::new, |seconds| format!("retry-after: {seconds}\r\n"));
+            let head = format!(
+                "HTTP/1.1 {status} Failure\r\ncontent-type: application/json\r\ncontent-length: {}\r\n{retry_after}connection: close\r\n\r\n",
+                body.len()
+            );
+            write_all_to_peer(&socket, head.as_bytes()).await?;
+            write_all_to_peer(&socket, body.as_bytes()).await?;
+            Ok(())
+        })
+    }
+
+    #[actix_web::test]
+    async fn codex_usage_limit_is_bounded_and_attributed_over_loopback()
+    -> Result<(), Box<dyn Error>> {
+        let listener = actix_web::rt::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let port = listener.local_addr()?.port();
+        let peer = spawn_live_error_peer(
+            listener,
+            400,
+            None,
+            r#"{"error":{"type":"usage_limit_reached","resets_in_seconds":17,"message":"never retained"}}"#
+                .to_owned(),
+        );
+        let request = live_transport_request(live_admitted_target(port)?)?;
+        let pool =
+            UpstreamClientPool::new(NonZeroUsize::new(1).ok_or("client pool needs one entry")?);
+        let mut response = pool.send(request, &live_progress_test_profile()?).await?;
+        let status = response.status();
+        let failure = classify_openai_response_failure(&mut response, status).await;
+        assert_eq!(
+            failure,
+            AttemptFailure::RateLimited {
+                retry_after: Some(Duration::from_secs(17))
+            }
+        );
+        peer.await??;
+        Ok(())
     }
 
     async fn read_full_request(socket: &actix_web::rt::net::TcpStream) -> std::io::Result<()> {

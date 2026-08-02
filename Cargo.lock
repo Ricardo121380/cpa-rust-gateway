@@ -1700,6 +1700,7 @@ dependencies = [
  "gateway-upstream",
  "protocol-openai-chat",
  "protocol-openai-responses",
+ "serde",
  "serde_json",
  "zeroize",
 ]

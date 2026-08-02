@@ -8,7 +8,7 @@
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。P12-08A-C、D0-D4 已本地通过；当前下一切片为 P12-08E1 Codex 与通用 OpenAI-compatible runtime。生产主机名尚未切换。 |
+| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。P12-08A-C、D0-D4、E1 已本地通过；当前下一切片为 P12-08E2 Claude/Anthropic-compatible runtime。生产主机名尚未切换。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -1766,7 +1766,7 @@ CR-ID: CR-P11-04-001
 | P12-08D2 | 端口三协议非流式与 SSE 响应转换 | [D2 response projection report](reports/p12-08d2-three-protocol-response-projection.md)：三类上游 JSON/SSE 解码、九种目标 JSON/SSE encoder 组合、任意 Chunk 最终语义投影、Tool/Usage/stop/error 闭合与全量有界限制通过 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08D3 | 接入转换注册表、runtime 与 Route Explain | [D3 runtime registry report](reports/p12-08d3-runtime-transform-registry.md)：九 pair 显式注册，native/Canonical/LosslessBridge 确定性执行；请求级转换与能力谓词在 Credential pool/lease/Attempt 前运行；Responses 生产解码与 D2 响应投影接线；Explain 给出无值原因且零 upstream attempt | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08D4 | 完成旧 CPA ↔ CPAR 离线差分与安全偏差复核 | [D4 legacy protocol differential](reports/p12-08d4-legacy-protocol-differential.md)：10 项脱敏 golden corpus 覆盖三协议 JSON/SSE/Tool/Reasoning/Usage；CPAR 侧驱动真实 codec/router 计算；6 `PARITY`、2 `INTENTIONAL_HARDENING`、2 `UNSUPPORTED_FAIL_CLOSED`，无未分类差异 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-08E1 | 端口 Codex 与通用 OpenAI-compatible runtime | 参考旧 CPA Codex/OpenAI-compatible executor、auth 与测试；Responses/Chat vertical slice、refresh/错误/Usage/Reasoning、Credential/Quota/Health 隔离 | PENDING |
+| P12-08E1 | 端口 Codex 与通用 OpenAI-compatible runtime | [E1 runtime report](reports/p12-08e1-openai-compatible-runtime.md)：Responses/Chat 共用严格 API-key/Codex OAuth 与刷新事务边界；有界 401/403/429/usage-limit/5xx 分类，Usage/Reasoning 生产解码及精确 Credential/Quota/Endpoint Health 隔离通过 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08E2 | 端口 Claude/Anthropic-compatible runtime | 参考旧 CPA Claude executor/auth/translators 与测试；Messages 原生路径和 Chat/Responses 可表达桥接、Tool/Thinking/Usage/SSE vertical slice | PENDING |
 | P12-08E3 | 将既有 Grok Build/Official/Web Provider 接入统一 runtime | 参考旧 CPA xAI executor/auth 并结合现有 `provider-grok` 专项实现；三类 Grok endpoint 能力分别注册、连续性/Quota/错误隔离，未验证能力默认禁用 | PENDING |
 | P12-08E4 | 将既有 Kiro Provider 接入统一 runtime | 以现有 `provider-kiro` 为实现主件，旧 CPA 仅提供通用 registry/runtime 参考；Messages/EventStream vertical slice、CLI/IDE profile 与 Credential/Quota/Health 隔离；不要求当前 live OAuth | PENDING |
@@ -3515,3 +3515,4 @@ Next task:
 | v1.100 | 2026-08-02 | 完成 P12-08D2：新增有界 Responses JSON/SSE 上游解码与事务式目标投影；九种 decoded source/target 均通过真实非流式及 SSE encoder，任意 Chunk 最终语义、Tool/Usage/stop/error/终止闭合；Reasoning→Chat 与未知语义 fail closed | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08D3 runtime/registry/Explain 接线；无服务器、凭据、Config Version 或流量变化 |
 | v1.101 | 2026-08-02 | 完成 P12-08D3：九 pair 注册表接入 runtime 与 Route Explain，请求局部转换/能力检查在 Credential pool、lease 和 Attempt 前 fail closed；native、Canonical、LosslessBridge 路径确定，Responses 生产解码与 D2 响应投影接线，无值拒绝原因与零 Attempt 证据通过 | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08D4 离线差分与安全偏差复核；无服务器、凭据、Config Version 或流量变化 |
 | v1.102 | 2026-08-02 | 完成 P12-08D4：新增固定旧 CPA 参考的 10 项 clean-room 三协议差分语料，覆盖 Chat/Responses/Messages JSON/SSE、Tool、Reasoning、Usage 和终止；CPAR 侧由真实 codec/router 计算，6 parity、2 hardening、2 unsupported/fail-closed，缺项/漂移/误分类/空心覆盖均拒绝 | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08E1 Codex/OpenAI-compatible runtime；无服务器、凭据、Config Version 或流量变化 |
+| v1.103 | 2026-08-02 | 完成 P12-08E1：Chat/Responses runtime 统一使用严格 API-key/Codex OAuth 凭据与刷新事务；OpenAI-compatible 非 2xx 有界分类接入，401 精确隔离当前 Credential、usage-limit/429 精确隔离 Quota、5xx 仅冷却 Endpoint，既有 Usage/Reasoning vertical slice 与真实 loopback 回归通过 | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08E2 Claude/Anthropic-compatible runtime；无服务器、真实凭据、Config Version 或流量变化 |

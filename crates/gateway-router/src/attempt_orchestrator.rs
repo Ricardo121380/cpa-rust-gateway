@@ -849,6 +849,19 @@ impl AttemptOrchestrator {
         if matches!(
             failure,
             AttemptFailure::NonRetryable(error)
+                if error.code() == GatewayErrorCode::CredentialUnauthorized
+        ) {
+            self.runtime_health
+                .mark_credential_unauthorized(
+                    selection.candidate().endpoint_id().clone(),
+                    selection.lease().credential_id().clone(),
+                )
+                .map_err(|_| internal_error())?;
+            return Ok(());
+        }
+        if matches!(
+            failure,
+            AttemptFailure::NonRetryable(error)
                 if error.code() == GatewayErrorCode::CredentialForbidden
         ) {
             self.runtime_health
@@ -1609,6 +1622,46 @@ mod tests {
             RuntimeCredentialAccountStatus::Available
         );
         assert!(health.endpoint_credential_is_available(&endpoint, &credential_a));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn credential_unauthorized_blocks_only_its_binding_until_reauthorization() -> TestResult {
+        let (orchestrator, route_id, _clock, health, _pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a")],
+            vec![("endpoint-a", vec!["credential-a", "credential-b"])],
+            3,
+            100,
+        )?;
+        let driver = ScriptedDriver::new(vec![DriverStep::Failure(AttemptFailure::NonRetryable(
+            GatewayError::new(
+                GatewayErrorCode::CredentialUnauthorized,
+                ErrorScope::Credential,
+            ),
+        ))]);
+        let error = expected_error(
+            orchestrator
+                .start(&route_id, &driver, &TestRetryGate::default())
+                .await,
+            "an unauthorized credential must end the current request",
+        )?;
+        assert_eq!(error.code(), GatewayErrorCode::CredentialUnauthorized);
+
+        let endpoint = EndpointId::try_new("endpoint-a")?;
+        let credential_a = CredentialId::try_new("credential-a")?;
+        let credential_b = CredentialId::try_new("credential-b")?;
+        assert_eq!(
+            health.credential_account_status_at(&endpoint, &credential_a, 100)?,
+            RuntimeCredentialAccountStatus::Unauthorized
+        );
+        assert!(!health.endpoint_credential_is_available(&endpoint, &credential_a));
+        assert!(health.endpoint_credential_is_available(&endpoint, &credential_b));
+
+        let sibling_driver = ScriptedDriver::new(vec![DriverStep::Success("sibling".to_owned())]);
+        let sibling = orchestrator
+            .start(&route_id, &sibling_driver, &TestRetryGate::default())
+            .await?;
+        assert_eq!(sibling.lease().credential_id().as_str(), "credential-b");
         Ok(())
     }
 

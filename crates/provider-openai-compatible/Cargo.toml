@@ -13,6 +13,7 @@ gateway-provider = { path = "../gateway-provider" }
 gateway-upstream = { path = "../gateway-upstream" }
 protocol-openai-chat = { path = "../protocol-openai-chat" }
 protocol-openai-responses = { path = "../protocol-openai-responses" }
+serde.workspace = true
 serde_json.workspace = true
 zeroize.workspace = true
 

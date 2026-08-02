@@ -135,7 +135,9 @@ pub enum RuntimeHealthAvailability {
     /// A provider-classified 403 blocks this exact Endpoint/Credential account until a controlled
     /// background recovery completes.
     AccountForbidden,
-    /// One controlled recovery owns this exact forbidden Endpoint/Credential account.
+    /// This exact Endpoint/Credential requires reauthorization before ordinary scheduling.
+    CredentialUnauthorized,
+    /// One controlled recovery owns this exact blocked Endpoint/Credential account.
     AccountRecoveryInFlight {
         /// Exclusive recovery-ticket deadline.
         expires_at_ms: i64,
@@ -149,6 +151,8 @@ pub enum RuntimeCredentialAccountStatus {
     Available,
     /// A provider-classified 403 blocked this exact binding.
     Forbidden,
+    /// The exact Credential requires explicit reauthorization or replacement.
+    Unauthorized,
     /// A non-cloneable controlled recovery ticket is outstanding for this exact binding.
     RecoveryInFlight {
         /// Exclusive recovery-ticket deadline.
@@ -544,7 +548,33 @@ impl RuntimeHealthRegistry {
         Ok(())
     }
 
-    /// Starts one controlled recovery for an exact forbidden Endpoint/Credential binding.
+    /// Records a provider-classified 401 for one exact Endpoint/Credential binding.
+    ///
+    /// Like a forbidden account, this does not expire through a generic cooldown. Only the
+    /// controlled account-recovery flow may return it to scheduling.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe [`RuntimeHealthError`] without retaining partial state when the clock or
+    /// binding's isolated shard is unavailable or full.
+    pub fn mark_credential_unauthorized(
+        &self,
+        endpoint_id: EndpointId,
+        credential_id: CredentialId,
+    ) -> Result<(), RuntimeHealthError> {
+        let key = RuntimeHealthKey::endpoint_credential(endpoint_id, credential_id);
+        let now_ms = self.clock.now_ms()?;
+        let mut states = self.write_shard(&key)?;
+        if let Some(state) = states.get_mut(&key) {
+            *state = RuntimeHealthState::CredentialUnauthorized;
+            return Ok(());
+        }
+        ensure_insert_capacity(&mut states, now_ms)?;
+        states.insert(key, RuntimeHealthState::CredentialUnauthorized);
+        Ok(())
+    }
+
+    /// Starts one controlled recovery for an exact unauthorized/forbidden binding.
     ///
     /// Ordinary scheduling remains closed while the returned non-cloneable ticket exists. An
     /// expired ticket may be replaced, but a late completion can never overwrite its successor.
@@ -554,8 +584,8 @@ impl RuntimeHealthRegistry {
     /// # Errors
     ///
     /// Returns [`RuntimeHealthError`] for unavailable time, an invalid deadline, a poisoned shard,
-    /// or finite ticket-sequence exhaustion. `Ok(None)` means this exact binding is not forbidden
-    /// or an unexpired recovery already owns it.
+    /// or finite ticket-sequence exhaustion. `Ok(None)` means this exact binding does not require
+    /// account recovery or an unexpired recovery already owns it.
     pub fn begin_account_recovery(
         &self,
         endpoint_id: &EndpointId,
@@ -570,7 +600,9 @@ impl RuntimeHealthRegistry {
             return Ok(None);
         };
         let due_for_recovery = match state {
-            RuntimeHealthState::AccountForbidden => true,
+            RuntimeHealthState::AccountForbidden | RuntimeHealthState::CredentialUnauthorized => {
+                true
+            }
             RuntimeHealthState::AccountRecoveryInFlight {
                 recovery_expires_at_ms: existing_expires_at_ms,
                 ..
@@ -664,6 +696,7 @@ impl RuntimeHealthRegistry {
             Some(
                 RuntimeHealthState::CircuitOpen { .. }
                 | RuntimeHealthState::CircuitHalfOpen { .. }
+                | RuntimeHealthState::CredentialUnauthorized
                 | RuntimeHealthState::AccountForbidden
                 | RuntimeHealthState::AccountRecoveryInFlight { .. },
             ) => Ok(()),
@@ -725,7 +758,8 @@ impl RuntimeHealthRegistry {
                 Ok(())
             }
             Some(
-                RuntimeHealthState::AccountForbidden
+                RuntimeHealthState::CredentialUnauthorized
+                | RuntimeHealthState::AccountForbidden
                 | RuntimeHealthState::AccountRecoveryInFlight { .. },
             ) => Ok(()),
             None => {
@@ -751,6 +785,7 @@ impl RuntimeHealthRegistry {
             states.get(key),
             Some(
                 RuntimeHealthState::AccountForbidden
+                    | RuntimeHealthState::CredentialUnauthorized
                     | RuntimeHealthState::AccountRecoveryInFlight { .. }
             )
         ) {
@@ -790,6 +825,7 @@ impl RuntimeHealthRegistry {
                 ..
             } => now_ms >= probe_expires_at_ms,
             RuntimeHealthState::CoolingDown { .. }
+            | RuntimeHealthState::CredentialUnauthorized
             | RuntimeHealthState::AccountForbidden
             | RuntimeHealthState::AccountRecoveryInFlight { .. } => false,
         };
@@ -949,6 +985,7 @@ enum RuntimeHealthState {
         probe_expires_at_ms: i64,
     },
     AccountForbidden,
+    CredentialUnauthorized,
     AccountRecoveryInFlight {
         probe_id: u64,
         recovery_expires_at_ms: i64,
@@ -973,6 +1010,7 @@ impl RuntimeHealthState {
                     expires_at_ms: recovery_expires_at_ms,
                 }
             }
+            Self::CredentialUnauthorized => RuntimeHealthAvailability::CredentialUnauthorized,
             Self::AccountForbidden | Self::AccountRecoveryInFlight { .. } => {
                 RuntimeHealthAvailability::AccountForbidden
             }
@@ -989,6 +1027,7 @@ impl RuntimeHealthState {
                     expires_at_ms: recovery_expires_at_ms,
                 }
             }
+            Self::CredentialUnauthorized => RuntimeCredentialAccountStatus::Unauthorized,
             Self::AccountForbidden | Self::AccountRecoveryInFlight { .. } => {
                 RuntimeCredentialAccountStatus::Forbidden
             }
@@ -1008,7 +1047,7 @@ impl RuntimeHealthState {
                 retry_after_ms
             }
             Self::CoolingDown { until_ms } => until_ms,
-            Self::AccountForbidden => 0,
+            Self::AccountForbidden | Self::CredentialUnauthorized => 0,
             Self::AccountRecoveryInFlight {
                 recovery_expires_at_ms,
                 ..

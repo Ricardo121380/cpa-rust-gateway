@@ -22,24 +22,27 @@ allowed = {
   "gateway-catalog" => %w[gateway-core gateway-provider tokio],
   "gateway-control" => %w[gateway-auth gateway-catalog gateway-core gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream serde_json zeroize],
   "gateway-core" => %w[serde serde_json],
-  # P11-01's differential gate is a test-only leaf under tests/differential. It may depend on the
-  # crates whose behavior it projects because nothing depends on it; the direction never reverses.
-  "differential-gate" => %w[gateway-core gateway-store gateway-upstream provider-grok provider-kiro serde serde_json],
+  # P11-01/P12-08D4's differential gate is a test-only leaf under tests/differential. It may depend
+  # on the protocol/router crates whose behavior it projects because nothing depends on it; the
+  # direction never reverses.
+  "differential-gate" => %w[gateway-core gateway-router gateway-store gateway-upstream protocol-anthropic protocol-openai-chat protocol-openai-responses provider-grok provider-kiro serde serde_json],
   "gateway-http-actix" => %w[actix-web criterion futures-util gateway-auth gateway-control gateway-core gateway-observability gateway-protocol gateway-router gateway-store gateway-stream gateway-upstream protocol-anthropic protocol-openai-chat protocol-openai-responses provider-openai-compatible serde serde_json subtle tokio url zeroize],
   "gateway-observability" => %w[gateway-core opentelemetry serde serde_json sha2 tokio tracing tracing-subscriber],
   "gateway-protocol" => %w[gateway-core],
   "gateway-provider" => %w[criterion gateway-core serde serde_json tokio],
-  "gateway-router" => %w[arc-swap gateway-auth gateway-catalog gateway-core gateway-protocol gateway-provider gateway-upstream tokio],
+  # Protocol/provider dependencies below are dev-only D1-D3 matrix tests; production routing still
+  # depends only on transport-neutral gateway interfaces.
+  "gateway-router" => %w[arc-swap gateway-auth gateway-catalog gateway-core gateway-protocol gateway-provider gateway-upstream proptest protocol-anthropic protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-openai-compatible serde_json tokio],
   "gateway-store" => %w[chacha20poly1305 gateway-core gateway-observability getrandom libc rusqlite serde_json tokio zeroize],
   "gateway-stream" => %w[gateway-core gateway-protocol proptest tokio tokio-util],
   "gateway-upstream" => %w[bytes gateway-auth gateway-core gateway-provider moka reqwest tokio url zeroize],
   "protocol-anthropic" => %w[gateway-core gateway-protocol proptest serde serde_json],
   "protocol-openai-chat" => %w[gateway-core proptest serde serde_json],
   "protocol-openai-responses" => %w[gateway-core gateway-protocol proptest serde serde_json],
-  "provider-anthropic-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-anthropic zeroize],
+  "provider-anthropic-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-anthropic serde_json zeroize],
   "provider-grok" => %w[flate2 gateway-catalog gateway-core gateway-provider gateway-router gateway-store gateway-upstream getrandom hmac protocol-openai-responses rusqlite serde serde_json sha2 time tokio url zeroize],
   "provider-kiro" => %w[gateway-catalog gateway-core gateway-provider gateway-store gateway-stream gateway-upstream protocol-anthropic serde serde_json tokio url zeroize],
-  "provider-openai-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-openai-chat protocol-openai-responses serde_json zeroize],
+  "provider-openai-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-openai-chat protocol-openai-responses serde serde_json zeroize],
 }
 
 errors = []
