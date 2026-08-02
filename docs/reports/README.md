@@ -168,3 +168,4 @@
 - [P12-08D1 three-protocol typed request projection](p12-08d1-three-protocol-request-projection.md) — nine request pairs, exact native ownership, typed Tool/Reasoning/output-limit mapping and fail-closed builder proof
 - [P12-08D2 three-protocol response and SSE projection](p12-08d2-three-protocol-response-projection.md) — bounded JSON/SSE decode, transactional target projection, nine source/target encoder pairs and fail-closed terminal proof
 - [P12-08D3 runtime transform registry and Route Explain](p12-08d3-runtime-transform-registry.md) — pre-lease pair/capability admission, deterministic native/typed execution, runtime response projection and zero-Attempt Explain proof
+- [P12-08D4 legacy CPA to CPAR protocol differential](p12-08d4-legacy-protocol-differential.md) — value-free three-protocol JSON/SSE corpus, executable CPAR projections and closed parity/hardening/unsupported classification

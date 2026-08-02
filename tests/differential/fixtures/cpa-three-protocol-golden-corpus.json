@@ -1,0 +1,86 @@
+{
+  "corpus_version": 1,
+  "legacy_reference": "cliproxyapi-v7.2.101-42a00a2a6521b867c27f7ad096d08699db8e6d19",
+  "cases": [
+    {
+      "id": "chat-json-tool-usage",
+      "subject": "chat-json-tool-usage",
+      "reference_projection": ["response-start", "message-start", "text-delta", "tool-call-start", "tool-arguments", "tool-call-end", "message-end", "usage-final", "response-end"],
+      "expected_gateway_projection": ["response-start", "message-start", "text-delta", "tool-call-start", "tool-arguments", "tool-call-end", "message-end", "usage-final", "response-end"],
+      "classification": "PARITY",
+      "decision": null
+    },
+    {
+      "id": "chat-sse-tool-usage",
+      "subject": "chat-sse-tool-usage",
+      "reference_projection": ["response-start", "message-start", "tool-call-start", "tool-arguments", "tool-arguments", "tool-call-end", "message-end", "usage-final", "response-end"],
+      "expected_gateway_projection": ["response-start", "message-start", "tool-call-start", "tool-arguments", "tool-arguments", "tool-call-end", "message-end", "usage-final", "response-end"],
+      "classification": "PARITY",
+      "decision": null
+    },
+    {
+      "id": "responses-json-reasoning-tool-usage",
+      "subject": "responses-json-reasoning-tool-usage",
+      "reference_projection": ["response-start", "message-start", "reasoning-delta", "text-delta", "tool-call-start", "tool-arguments", "tool-call-end", "message-end", "usage-final", "response-end"],
+      "expected_gateway_projection": ["response-start", "message-start", "reasoning-delta", "text-delta", "tool-call-start", "tool-arguments", "tool-call-end", "message-end", "usage-final", "response-end"],
+      "classification": "PARITY",
+      "decision": null
+    },
+    {
+      "id": "responses-sse-reasoning-usage",
+      "subject": "responses-sse-reasoning-usage",
+      "reference_projection": ["response-start", "message-start", "reasoning-delta", "text-delta", "message-end", "usage-final", "response-end"],
+      "expected_gateway_projection": ["response-start", "message-start", "reasoning-delta", "text-delta", "message-end", "usage-final", "response-end"],
+      "classification": "PARITY",
+      "decision": null
+    },
+    {
+      "id": "messages-json-reasoning-tool-usage",
+      "subject": "messages-json-reasoning-tool-usage",
+      "reference_projection": ["response-start", "message-start", "reasoning-delta", "text-delta", "tool-call-start", "tool-arguments", "tool-call-end", "message-end", "usage-final", "response-end"],
+      "expected_gateway_projection": ["response-start", "message-start", "reasoning-delta", "text-delta", "tool-call-start", "tool-arguments", "tool-call-end", "message-end", "usage-final", "response-end"],
+      "classification": "PARITY",
+      "decision": null
+    },
+    {
+      "id": "messages-sse-reasoning-usage",
+      "subject": "messages-sse-reasoning-usage",
+      "reference_projection": ["response-start", "message-start", "reasoning-delta", "text-delta", "message-end", "usage-final", "response-end"],
+      "expected_gateway_projection": ["response-start", "message-start", "reasoning-delta", "text-delta", "message-end", "usage-final", "response-end"],
+      "classification": "PARITY",
+      "decision": null
+    },
+    {
+      "id": "duplicate-json-member",
+      "subject": "duplicate-json-member",
+      "reference_projection": ["legacy-permissive-json"],
+      "expected_gateway_projection": ["rejected-duplicate-json"],
+      "classification": "INTENTIONAL_HARDENING",
+      "decision": "strict-duplicate-json"
+    },
+    {
+      "id": "missing-sse-terminal",
+      "subject": "missing-sse-terminal",
+      "reference_projection": ["legacy-synthetic-terminal"],
+      "expected_gateway_projection": ["rejected-truncated-stream"],
+      "classification": "INTENTIONAL_HARDENING",
+      "decision": "explicit-terminal-required"
+    },
+    {
+      "id": "reasoning-to-chat",
+      "subject": "reasoning-to-chat",
+      "reference_projection": ["reasoning-delta"],
+      "expected_gateway_projection": ["rejected-reasoning-to-chat"],
+      "classification": "UNSUPPORTED_FAIL_CLOSED",
+      "decision": "reasoning-has-no-chat-projection"
+    },
+    {
+      "id": "multiple-chat-choices",
+      "subject": "multiple-chat-choices",
+      "reference_projection": ["legacy-multiple-choices"],
+      "expected_gateway_projection": ["rejected-multiple-choices"],
+      "classification": "UNSUPPORTED_FAIL_CLOSED",
+      "decision": "single-generation-canonical"
+    }
+  ]
+}

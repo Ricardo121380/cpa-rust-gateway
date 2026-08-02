@@ -532,8 +532,12 @@ name = "differential-gate"
 version = "0.1.0"
 dependencies = [
  "gateway-core",
+ "gateway-router",
  "gateway-store",
  "gateway-upstream",
+ "protocol-anthropic",
+ "protocol-openai-chat",
+ "protocol-openai-responses",
  "provider-grok",
  "provider-kiro",
  "serde",

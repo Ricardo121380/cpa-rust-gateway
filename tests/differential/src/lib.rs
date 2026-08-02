@@ -13,10 +13,15 @@
 #![deny(unsafe_code)]
 
 mod fixture;
+mod legacy_protocol;
 mod probe;
 mod vocabulary;
 
 pub use fixture::{Classification, FixtureError, FixtureOutcome, validate_fixture};
+pub use legacy_protocol::{
+    LegacyProtocolClassification, LegacyProtocolError, LegacyProtocolOutcome,
+    validate_legacy_protocol_corpus,
+};
 pub use probe::{ProbeError, observe};
 pub use vocabulary::{GatewayObservability, ProjectionMarker, Reference, Subject};
 
