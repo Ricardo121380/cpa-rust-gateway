@@ -513,3 +513,24 @@ deterministic fallback. The namespace is redacted from Debug, IDs remain bounded
 factory instances must not collide. Add focused restart-uniqueness tests and run the Full gate.
 Then build and independently verify an exact-revision artifact before any further live tuple. The
 failed seventh tuple remains the only tuple eligible for another send.
+
+## CR-P12-08G1-029 — terminal-aware diagnostic rollback
+
+The CR-028 exact-revision artifact passed its dual-target build, independent ARM64 Sigstore
+verification and controlled deployment. Its single retry created and durably stored one
+restart-unique Request event, but no matching terminal Attempt existed before rollback. A
+value-free timeline comparison proves the diagnostic transaction restarted the service 5–15
+seconds after that Request entered, while the immutable Route permits a started Attempt to use the
+full 15-second bootstrap ceiling. The restart could therefore terminate an in-flight Attempt
+before the orchestrator emitted its terminal event. Queue-full, closed-sink, quarantined-event,
+write-failure and pending-required counters are all zero after the restored predecessor starts;
+the evidence does not justify another persistence change.
+
+Reactivate the unchanged v2 graph and resume only the retained failed seventh tuple. After the
+client returns, do not publish rollback until either the restart-unique Request has exactly one
+durable terminal Attempt or a 20-second post-response observation ceiling expires. During the same
+process, retain only value-free queue/durability counter classes and the bounded Attempt outcome
+and stage; retain no request identifier, endpoint, credential, model, body, error text, timestamp,
+token value or fingerprint. Roll back and reverify the predecessor key, rejected v2 key, active
+service, disabled-at-boot state and loopback listeners in every outcome. The first six tuples remain
+PASS and must not be resent.
