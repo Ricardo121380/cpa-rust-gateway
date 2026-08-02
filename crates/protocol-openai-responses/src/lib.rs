@@ -88,6 +88,9 @@ pub fn decode_request(input: &str) -> Result<DecodedResponsesRequest, GatewayErr
         None => Vec::new(),
         Some(value) => decode_tools(value)?,
     };
+    if root.get("tool_choice").and_then(Value::as_str) == Some("required") && tools.is_empty() {
+        return Err(client_request_error());
+    }
 
     let thinking = match root.get("reasoning") {
         None => None,
@@ -382,7 +385,7 @@ fn reject_unimplemented_execution_controls(root: &Map<String, Value>) -> Result<
     }
 
     if let Some(tool_choice) = root.get("tool_choice")
-        && tool_choice.as_str() != Some("auto")
+        && !matches!(tool_choice.as_str(), Some("auto" | "required"))
     {
         return Err(client_request_error());
     }
@@ -2030,6 +2033,27 @@ mod tests {
         ] {
             assert!(decode_request(request).is_err());
         }
+    }
+
+    #[test]
+    fn required_tool_choice_is_retained_only_with_function_tools() -> TestResult {
+        let decoded = decode_request(
+            r#"{
+          "model":"gateway-model",
+          "input":[{"type":"message","role":"user","content":"call"}],
+          "tools":[{"type":"function","name":"lookup","parameters":{"type":"object"}}],
+          "tool_choice":"required"
+        }"#,
+        )?;
+        assert_eq!(
+            decoded
+                .request
+                .extensions
+                .get("openai.responses.tool_choice")
+                .map(gateway_core::RawJson::get),
+            Some("\"required\"")
+        );
+        Ok(())
     }
 
     #[test]

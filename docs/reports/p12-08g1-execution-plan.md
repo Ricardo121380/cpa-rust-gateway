@@ -20,6 +20,8 @@ response body, source hash of Secret material, or token fingerprint.
   job, OCI smoke and independent Sigstore verification passed before its bounded loopback install.
 - The terminal-delta correction was revision `85f0d2a90575110c44bf217bd0187190e754e94f`, run
   `30758498095`; both signed targets passed, but the replacement tuple still failed and rolled back.
+- The delta-free-summary correction was revision `e297fa1fe7f3d0f3b200c723c9ecd4d42f9a52e6`, run
+  `30759133160`; Chat SSE Text passed before the matrix stopped at Chat JSON Tool.
 - Any later compatibility successor must be a new exact revision and private dual-architecture run;
   its SHA/run are recorded before activation, and only its independently verified
   `aarch64-unknown-linux-gnu` artifact may replace the disabled-at-boot CPAR binary.
@@ -217,3 +219,17 @@ the accumulated text/Tools, valid Usage when present, and the final `[DONE]`. Or
 retain an object delta, and an explicit null or wrong-type delta remains rejected even on the
 summary. The exact event-sequence receipt stores only ordinal, field names, value classes and
 identity relations; it contains no response values or Secret material.
+
+## CR-P12-08G1-010 — required Tool choice
+
+The CR-009 artifact made the replacement Chat SSE Text tuple pass. The harness then advanced for
+the first time and stopped at Chat JSON Tool with a local 4xx. No second upstream Attempt existed,
+while one direct same-shape `tool_choice:required` request returned 2xx, proving the refusal belonged
+to CPAR request admission rather than the provider or credential.
+
+Chat and Responses may accept only string `auto` or `required`; `required` is valid only when at
+least one typed function Tool is present. Chat retains required under its namespaced raw extension
+so the same-protocol OpenAI-compatible builder emits it without inventing a cross-protocol meaning;
+Responses already retains its namespaced execution control. Object-valued named choices, unknown
+strings, required-without-tools, non-function tools and foreign extension paths remain rejected.
+The next exact artifact resumes at Chat JSON Tool, never resending either passed text tuple.

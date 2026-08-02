@@ -83,12 +83,12 @@ pub fn decode_request(input: &str) -> Result<DecodedChatRequest, GatewayError> {
     {
         return Err(client_error());
     }
-    if root
-        .get("tool_choice")
-        .is_some_and(|value| value.as_str() != Some("auto"))
-    {
-        return Err(client_error());
-    }
+    let required_tool = match root.get("tool_choice") {
+        None => false,
+        Some(Value::String(choice)) if choice == "auto" => false,
+        Some(Value::String(choice)) if choice == "required" => true,
+        Some(_) => return Err(client_error()),
+    };
 
     let include_usage = decode_stream_options(root.get("stream_options"), mode)?;
     let messages = array(required(root, "messages")?)?
@@ -101,7 +101,10 @@ pub fn decode_request(input: &str) -> Result<DecodedChatRequest, GatewayError> {
     let tools = root
         .get("tools")
         .map_or_else(|| Ok(Vec::new()), decode_tools)?;
-    let extensions = extensions_except(
+    if required_tool && tools.is_empty() {
+        return Err(client_error());
+    }
+    let mut extensions = extensions_except(
         root,
         &[
             "model",
@@ -115,6 +118,14 @@ pub fn decode_request(input: &str) -> Result<DecodedChatRequest, GatewayError> {
         ],
         "openai.chat.",
     )?;
+    if required_tool {
+        extensions
+            .try_insert(
+                "openai.chat.tool_choice",
+                raw_json(root.get("tool_choice").ok_or_else(client_error)?)?,
+            )
+            .map_err(|_| client_error())?;
+    }
 
     Ok(DecodedChatRequest {
         request: CanonicalRequest {
@@ -895,7 +906,9 @@ const fn internal_error() -> GatewayError {
 
 #[cfg(test)]
 mod tests {
-    use gateway_core::{CanonicalEvent, CanonicalResponse, GatewayErrorCode, MessageContent};
+    use gateway_core::{
+        CanonicalEvent, CanonicalResponse, GatewayErrorCode, MessageContent, RawJson,
+    };
     use serde_json::{Value, json};
 
     use super::{
@@ -955,6 +968,29 @@ mod tests {
             decoded.request.messages[2].content[0],
             MessageContent::ToolResult(_)
         ));
+        Ok(())
+    }
+
+    #[test]
+    fn required_tool_choice_is_preserved_only_with_tools() -> Result<(), Box<dyn std::error::Error>>
+    {
+        let decoded = decode_request(
+            r#"{
+          "model":"public-model","messages":[{"role":"user","content":"call"}],
+          "tools":[{"type":"function","function":{"name":"lookup","parameters":{"type":"object"}}}],
+          "tool_choice":"required"
+        }"#,
+        )?;
+        assert_eq!(
+            decoded
+                .request
+                .extensions
+                .get("openai.chat.tool_choice")
+                .map(RawJson::get),
+            Some("\"required\"")
+        );
+        assert!(decode_request(r#"{"model":"m","messages":[{"role":"user","content":"x"}],"tool_choice":"required"}"#).is_err());
+        assert!(decode_request(r#"{"model":"m","messages":[{"role":"user","content":"x"}],"tools":[{"type":"function","function":{"name":"lookup","parameters":{}}}],"tool_choice":{"type":"function"}}"#).is_err());
         Ok(())
     }
 

@@ -1,0 +1,10 @@
+{
+  "direct_network_send_count": 1,
+  "direct_status_class": "2xx",
+  "gateway_attempt_present_for_failed_tuple": false,
+  "gateway_status_class": "4xx",
+  "request_body_retained": false,
+  "response_body_retained": false,
+  "schema_version": 1,
+  "value_free": true
+}

@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.116` |
+| 计划版本 | `v1.117` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -21,6 +21,7 @@
 | 已批准变更（续 5） | `CR-P12-PORT-001`：后续实现以旧 CPA 固定版本源码、测试与实际行为为移植基线，先建立可追踪行为清单，再用 CPAR 的 Rust 分层端口；原生同协议优先保真透传，跨协议只接纳可证明的 Canonical 无损映射，旧 CPA 的已知缺陷、无界输入、Secret 暴露、热路径可变配置与隐式降级不得复制。P12-08D-G 拆为可独立 review 的端口批次，缺少 Kiro/Grok Official 账号只延期对应 live receipt，不阻止本地实现与默认禁用的生产组成。 `CR-P12-08G1-001`：首次 G1 在 Chat JSON Text PASS、Chat SSE Text 客户端生命周期合并分类失败后已完整回滚；拆分 DONE/finish/Usage 固定类别，只允许从无值 receipt 精确替代失败 tuple，成功后才执行未发送 tuple，绝不重发已 PASS tuple。 `CR-P12-08G1-002`：替代 tuple 精确为 Chat SSE finish 缺失后，只允许一次 OpenClaw-backed 直连结构分类；仅保留 key set、计数和 finish/DONE/error/Usage 类别，不保留值或正文，不计为 G1 PASS。 `CR-P12-08G1-003`：结构分类发现 choice.message、delta.reasoning_content 及 choices 同帧 Usage 后，仅追加一次同形单发送值类别分类；reasoning 非空时禁止兼容放宽。 `CR-P12-08G1-004`：旧 CPA 原生 Chat 仅透传、不能证明 message 可丢弃，故追加一次仅保留嵌套键/值类别/与既有 delta 相等关系的单发送分类；只准入可逐字段证明为重复的最终 message、空 reasoning 与单次同帧 Usage，其余继续 fail closed。 `CR-P12-08G1-005`：首个修复 artifact 仍产生 stream error 后，分类证明仅最终重复汇总帧改用 `chat.completion` 与另一 ID；只允许该帧在合法 finish、message 与既有 text/Tools 完全相等时复用原 Canonical ID，其它 object/ID 变化仍拒绝。 `CR-P12-08G1-006`：固定旧 CPA fixtures 证明后续 Chat delta 的 `role:null` 与终端 Tool delta 的 `tool_calls:null` 表示无增量；仅将这两个 null 视为 absent，非 null 类型与生命周期仍严格校验。 `CR-P12-08G1-007`：精确谓词分类排除其它门后，确认同一流在非终止 chunk 重复声明相同 assistant role；只把相同字符串声明视为幂等，其它 role/类型仍拒绝。 `CR-P12-08G1-008`：生产解码器内存管道与封闭变异矩阵把失败收敛到终端 summary 同时重复发送的完整 text delta；仅当既有 Canonical text、终端 delta text 与 summary message text 三者完全相同、非空且无 Tool 时抑制第二次 TextDelta，其它形状仍走原严格拒绝。 |
 
 | 已批准变更（续 6） | `CR-P12-08G1-009`：逐帧无值序列确认真实终端 `chat.completion` summary 可含 Message/finish/Usage 而完全省略 delta；仅该终端形状可省略，普通 chunk 与显式 null/错误类型仍拒绝。 |
+| 已批准变更（续 7） | `CR-P12-08G1-010`：Chat SSE Text 已通过后，Chat JSON Tool 在零 upstream Attempt 前本地 4xx，而同形 `tool_choice:required` 直连为 2xx；Chat/Responses 仅增加 string required 且必须存在 typed function Tool，未知/对象 choice 与无 Tool required 仍拒绝。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -3531,3 +3532,4 @@ Next task:
 | v1.114 | 2026-08-02 | `CR-P12-08G1-007`：e45f1a1 artifact 仍在同一替代 tuple 停止并回滚；精确谓词和 count-only 分类确认唯一剩余拒绝门是重复的相同 assistant role，将其作为幂等声明且保留其它严格验证 | IN_PROGRESS；待新 exact-SHA artifact 后再次只替代失败 tuple |
 | v1.115 | 2026-08-03 | `CR-P12-08G1-008`：6c011cb artifact 仍在同一替代 tuple 停止并完整回滚；无值 SSE 外层分类与生产 Rust 解码器内存变异矩阵把失败收敛到终端 summary 重复完整 text delta，只在与既有 Canonical text 及 summary message 三方完全相等时幂等抑制 | IN_PROGRESS；定向测试通过，待新 exact-SHA artifact 后再次只替代失败 tuple |
 | v1.116 | 2026-08-03 | `CR-P12-08G1-009`：85f0d2a artifact 仍在同一替代 tuple 停止并完整回滚；逐帧无值序列纠正先前假设，确认第 3 帧是含 Message/finish/Usage 但完全省略 delta 的终端 `chat.completion` summary，仅准入该严格终端形状 | IN_PROGRESS；定向测试通过，待新 exact-SHA artifact 后再次只替代失败 tuple |
+| v1.117 | 2026-08-03 | `CR-P12-08G1-010`：e297fa1 artifact 使 Chat SSE Text 真实通过，随后 Chat JSON Tool 在零 upstream Attempt 前本地 4xx；同形 required Tool 直连 2xx，新增 Chat/Responses required Tool choice 的严格保留与无 Tool 拒绝 | IN_PROGRESS；2/12 tuple PASS，待新 exact-SHA artifact 从 Chat JSON Tool 续跑 |
