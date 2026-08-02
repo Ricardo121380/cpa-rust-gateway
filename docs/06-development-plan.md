@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.108` |
+| 计划版本 | `v1.109` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。P12-08A-C、D0-D4、E1-E4、F1-F2 已本地通过；当前下一切片为 P12-08F3 Client Key、Alias 与客户端迁移 dry-run。生产主机名尚未切换。 |
+| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。P12-08A-C、D0-D4、E1-E4、F1-F3 已本地通过；下一切片为 P12-08G1 生产切换图受控真实 E2E。CC Switch 按 operator 指令延期且不参与演练；生产主机名尚未切换。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -1772,7 +1772,7 @@ CR-ID: CR-P11-04-001
 | P12-08E4 | 将既有 Kiro Provider 接入统一 runtime | [E4 runtime report](reports/p12-08e4-kiro-unified-runtime.md)：复用既有 native Adapter，统一接纳 raw API-key 与严格未过期 Social/Enterprise JSON；CLI/IDE profile、EventStream、Tool/Thinking 及精确 Credential/Quota/Endpoint Health 隔离通过 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08F1 | 组成多渠道生产图与模型/协议能力台账 | [F1 生产图与能力台账](reports/p12-08f1-multi-channel-production-graph.md)：不可变 adapter 能力表进入 Route Compiler；Alias/Access Group/Client Key/Endpoint/Credential/Candidate 无值台账、缺凭据渠道不入 active Version，Grok Web 无 runtime/不可选 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08F2 | 完成三协议 × 四类渠道的 loopback E2E | [F2 loopback 矩阵](reports/p12-08f2-three-protocol-four-channel-loopback.md)：7 个 `SUPPORTED` cell 完成 28 个 JSON/SSE × Text/Tool/Usage 请求；5 个 `UNSUPPORTED` cell 完成 10 个稳定拒绝且 Attempt=0；F1 Tool/JSON Schema 台账缺口已修正 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-08F3 | 完成 Client Key、Alias 与客户端迁移 dry-run | OpenClaw、CC Switch 及已登记客户端逐项验证新 `rgw_` key、协议、模型 alias、切换与旧 CPA key 回退动作；不改生产主机名 | PENDING |
+| P12-08F3 | 完成 Client Key、Alias 与客户端迁移 dry-run | [F3 客户端迁移演练](reports/p12-08f3-client-migration-dry-run.md)：OpenClaw `0600` 配置只读，独立临时配置/状态中完成 synthetic `rgw_` key、endpoint、active alias、协议保持与字节级回退验证，live source 未变；CC Switch 按 operator 指令 `DEFERRED_BY_OPERATOR`，未读取、复制、修改、重启或测试 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08G1 | 对生产切换图中的可用渠道执行受控真实 E2E | 当前可用 Codex/Claude-compatible 凭据覆盖其实际生产协议组合；每个 tuple 有无值 receipt、停止判据和完整清理，不为未进入生产图的渠道消费请求 | PENDING |
 | P12-08G2 | Kiro 与 Grok Official 外部认证补验包 | 延续 P7-09/P8-07 的延期状态；获得账号后仅补对应 `SUPPORTED` tuple。账号缺失不阻止代码、本地 E2E 或不包含这些渠道的 P12 生产切换图，但禁止宣称其 live 可用 | DEFERRED |
 
@@ -3521,3 +3521,4 @@ Next task:
 | v1.106 | 2026-08-02 | 完成 P12-08E4：既有 Kiro native Adapter 在统一 runtime 中同时接纳 backward-compatible raw API-key 与严格未过期 Social/Enterprise JSON；CLI/IDE 固定 endpoint/profile、AWS EventStream、Tool/Thinking 与精确 Credential/Quota/Endpoint Health handoff 通过 | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08F1 多渠道生产图与能力台账；无服务器、外部 OAuth、真实凭据、Config Version 或流量变化 |
 | v1.107 | 2026-08-02 | 完成 P12-08F1：不可变 adapter 能力台账取代空 Endpoint profile，登记已本地通过的 Tools/Parallel Tools/Reasoning/JSON Schema/Streaming；未知 adapter、跨 Version Endpoint 能力冲突与无 runtime 的 Grok Web 均 fail closed，缺凭据渠道不进入 active 生产图 | LOCAL_PASS_PENDING_PHASE_GATE；F2 review 补齐 Tool 必需的 JSON Schema 能力；下一切片 P12-08F2 三协议 × 四类渠道 loopback E2E；无服务器、网络请求、真实凭据、Config Version 或流量变化 |
 | v1.108 | 2026-08-02 | 完成 P12-08F2：三协议 × 四渠道本地矩阵中 7 个支持 cell 完成 28 个 JSON/SSE × Text/Tool/Usage 请求，5 个不支持 cell 完成 10 个稳定安全拒绝且 Attempt=0；Chat 不降级 Reasoning，Grok/Kiro provider-specific runtime 保持 Canonical-only | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08F3 Client Key/Alias/客户端迁移 dry-run；无服务器、外部网络、真实凭据、Config Version 或流量变化 |
+| v1.109 | 2026-08-02 | 完成 P12-08F3：OpenClaw 在独立临时配置与状态目录中完成 synthetic `rgw_` key、endpoint、active alias、协议保持和字节级回退演练；live 配置未变；CC Switch 按 operator 指令明确延期且完全未触碰 | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08G1 生产切换图受控真实 E2E；无服务重启、外部请求、真实凭据、Config Version、生产主机名或流量变化 |

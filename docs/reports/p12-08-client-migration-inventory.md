@@ -26,9 +26,9 @@ retired. Every configured legacy key must still be classified before replacement
 
 | Client | Evidence | Migration disposition |
 |---|---|---|
-| OpenClaw gateway | Active launchd service; its generated model registry contains one CPA Provider | Issue a dedicated CPAR key, replace the Provider endpoint/key in one maintenance transaction, restart, and run models + non-streaming + SSE smoke checks |
-| CC Switch / Claude | Current database contains one Claude Provider record that references CPA; the generated Claude settings do not currently contain the CPA address | Treat as a retained configuration record, not proof of active traffic. Update or retire it before cutover and restart any session that inherited the old environment |
-| Codex through CC Switch | No current CC Switch Codex Provider references CPA | No migration action currently discovered; recheck immediately before cutover |
+| OpenClaw gateway | Active launchd service; its generated model registry contains one CPA Provider | [Isolated migration rehearsal](p12-08f3-client-migration-dry-run.md) passed with source unchanged. Issue a dedicated real CPAR key, restart, and run non-streaming + SSE smoke checks only in the cutover maintenance window |
+| CC Switch / Claude | Historical inventory found one retained CPA Provider record | `DEFERRED_BY_OPERATOR`: do not read, copy, modify, restart, or test it in P12-08F3; migration or retirement requires a separate operator instruction before cutover |
+| Codex through CC Switch | Historical inventory found no current CPA reference | Covered by the CC Switch exclusion; do not recheck or rehearse it in P12-08F3 |
 
 Any client outside this Mac mini remains undiscovered. The three server key identities are the
 authoritative upper bound until each is classified as migrated, deliberately retired, or owned by a
@@ -57,8 +57,12 @@ automatically.
 - [ ] Create and publish an immutable CPAR production graph with the approved live provider set.
 - [ ] Issue one CPAR key per retained client and record delivery/rollback ownership in a root-only
       operator ledger.
-- [ ] Update OpenClaw and any retained CC Switch client in a bounded maintenance window; restart and
-      smoke-test each client against the pre-exposure CPAR route.
+- [x] Rehearse the OpenClaw endpoint/key/alias transaction and byte-identical rollback in an isolated
+      temporary configuration; confirm the live source remains unchanged.
+- [ ] Issue OpenClaw's real dedicated CPAR key in the bounded cutover window; update, restart, and run
+      non-streaming plus SSE smoke checks against the pre-exposure CPAR route.
+- [ ] Resolve the operator-deferred CC Switch record through a separately approved migration or
+      retirement action before production cutover.
 - [ ] Freeze the incumbent CPA success/error/latency baseline and create byte-identical Caddy,
       client-config and service preimages.
 - [ ] Validate the direct-cutover and rollback Caddy configurations on the live Caddy version.
