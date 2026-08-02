@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.106` |
+| 计划版本 | `v1.107` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。P12-08A-C、D0-D4、E1-E4 已本地通过；当前下一切片为 P12-08F1 多渠道生产图与能力台账。生产主机名尚未切换。 |
+| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。P12-08A-C、D0-D4、E1-E4、F1 已本地通过；当前下一切片为 P12-08F2 三协议 × 四类渠道 loopback E2E。生产主机名尚未切换。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -1770,7 +1770,7 @@ CR-ID: CR-P11-04-001
 | P12-08E2 | 端口 Claude/Anthropic-compatible runtime | [E2 runtime report](reports/p12-08e2-anthropic-compatible-runtime.md)：API key/Claude OAuth 互斥授权、严格刷新事务、有界 Anthropic 错误分类、精确 Credential/Quota/Endpoint Health 隔离及 Messages/Chat/Responses Tool/Thinking/Usage/SSE vertical slice | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08E3 | 将既有 Grok Build/Official/Web Provider 接入统一 runtime | [E3 runtime report](reports/p12-08e3-grok-unified-runtime.md)：Build OAuth 与 Official API-key 接入固定目标 Canonical runtime；JSON/SSE、Tool/Reasoning/Usage、连续性与失败隔离回归通过；Web 仅登记合法 ID，因无通用生产 transport 而保持未绑定、默认禁用 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08E4 | 将既有 Kiro Provider 接入统一 runtime | [E4 runtime report](reports/p12-08e4-kiro-unified-runtime.md)：复用既有 native Adapter，统一接纳 raw API-key 与严格未过期 Social/Enterprise JSON；CLI/IDE profile、EventStream、Tool/Thinking 及精确 Credential/Quota/Endpoint Health 隔离通过 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-08F1 | 组成多渠道生产图与模型/协议能力台账 | Alias、Access Group、Client Key、Endpoint/Credential/Candidate 均为无 Secret 台账；只组成已本地通过的能力 pair，缺凭据渠道保持 disabled-at-boot/不可选 | PENDING |
+| P12-08F1 | 组成多渠道生产图与模型/协议能力台账 | [F1 生产图与能力台账](reports/p12-08f1-multi-channel-production-graph.md)：不可变 adapter 能力表进入 Route Compiler；Alias/Access Group/Client Key/Endpoint/Credential/Candidate 无值台账、缺凭据渠道不入 active Version，Grok Web 无 runtime/不可选 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08F2 | 完成三协议 × 四类渠道的 loopback E2E | 对能力台账中 `SUPPORTED` 组合执行 JSON/SSE/Text/Tool/Usage；`NATIVE_ONLY`/`UNSUPPORTED` 组合验证稳定拒绝和零出网，不强求虚假的 12 格全绿 | PENDING |
 | P12-08F3 | 完成 Client Key、Alias 与客户端迁移 dry-run | OpenClaw、CC Switch 及已登记客户端逐项验证新 `rgw_` key、协议、模型 alias、切换与旧 CPA key 回退动作；不改生产主机名 | PENDING |
 | P12-08G1 | 对生产切换图中的可用渠道执行受控真实 E2E | 当前可用 Codex/Claude-compatible 凭据覆盖其实际生产协议组合；每个 tuple 有无值 receipt、停止判据和完整清理，不为未进入生产图的渠道消费请求 | PENDING |
@@ -3519,3 +3519,4 @@ Next task:
 | v1.104 | 2026-08-02 | 完成 P12-08E2：Anthropic Messages runtime 接入严格 API-key/Claude OAuth 互斥授权与刷新事务；有界 401/auth、429/rate-limit、529/overloaded 分类接入，复用精确 Credential/Quota/Endpoint Health 隔离及既有三协议 Tool/Thinking/Usage/SSE vertical slice | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08E3 Grok unified runtime；无服务器、真实凭据、Config Version 或流量变化 |
 | v1.105 | 2026-08-02 | 完成 P12-08E3：Grok Build OAuth 与 xAI Official API-key 接入固定目标 Canonical runtime；耐久绝对过期凭据导入、JSON/SSE、Tool/Reasoning/Usage、连续性及精确失败隔离通过；Grok Web 因尚无经验证的通用生产 transport 仅登记合法 ID 并保持组合未绑定、默认禁用 | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08E4 Kiro unified runtime；无服务器、网络请求、真实凭据、Config Version 或流量变化 |
 | v1.106 | 2026-08-02 | 完成 P12-08E4：既有 Kiro native Adapter 在统一 runtime 中同时接纳 backward-compatible raw API-key 与严格未过期 Social/Enterprise JSON；CLI/IDE 固定 endpoint/profile、AWS EventStream、Tool/Thinking 与精确 Credential/Quota/Endpoint Health handoff 通过 | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08F1 多渠道生产图与能力台账；无服务器、外部 OAuth、真实凭据、Config Version 或流量变化 |
+| v1.107 | 2026-08-02 | 完成 P12-08F1：不可变 adapter 能力台账取代空 Endpoint profile，仅登记已本地通过的 Tools/Parallel Tools/Reasoning/Streaming；未知 adapter、跨 Version Endpoint 能力冲突与无 runtime 的 Grok Web 均 fail closed，缺凭据渠道不进入 active 生产图 | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08F2 三协议 × 四类渠道 loopback E2E；无服务器、网络请求、真实凭据、Config Version 或流量变化 |

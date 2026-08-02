@@ -27,7 +27,7 @@ use std::{
 
 use gateway_auth::client_key::ClientKeyService;
 use gateway_catalog::{
-    CapabilitySet, CatalogView, EndpointCapabilityEntry, EndpointCapabilityView,
+    CapabilitySet, CatalogView, EndpointCapabilityEntry, EndpointCapabilityView, SemanticCapability,
 };
 use gateway_control::{
     credential_pool_compiler::CredentialPoolCompiler, egress_policy_compiler::EgressPolicyCompiler,
@@ -266,14 +266,14 @@ pub(crate) struct DataPlaneComposition {
 
 /// Returns the fixed compiler evidence for every Endpoint stored in the control database.
 ///
-/// Every capability set is intentionally empty: before a controlled Tool request proves a
-/// capability, the deployment graph cannot advertise that capability, so each Candidate must use
-/// the existing explicit `allow_unlisted_model` admission and P12 still performs no broad
-/// catalog import.  The profiles cover the union of Endpoints across every stored Config
-/// Version so the bootstrap Snapshot, its rollback predecessor, and previously staged drafts
-/// all compile; a draft that introduces a brand-new Endpoint identity after this process
-/// started needs one isolated restart before it can validate, matching the existing
-/// restart-after-publication lifecycle.
+/// Capabilities come only from the reviewed adapter ledger below, never from a credential,
+/// upstream response, model name, or operator-supplied free-form claim. Endpoint and Candidate
+/// administrative state remains a separate scheduling gate: a disabled record cannot become
+/// eligible merely because its implementation has a capability profile. Reusing one Endpoint
+/// identity for two adapters across stored Versions fails closed: a restart must never silently
+/// reinterpret a rollback identity under a different capability set.
+/// The profiles cover the union of Endpoints across every stored Config Version so the bootstrap
+/// Snapshot, its rollback predecessor, and staged drafts compile from one immutable view.
 pub(crate) fn deployment_route_compiler(
     database: &Path,
 ) -> Result<RouteCompiler, RuntimeCompositionError> {
@@ -282,7 +282,7 @@ pub(crate) fn deployment_route_compiler(
     let versions = repository
         .list_config_versions()
         .map_err(|_| RuntimeCompositionError::Unavailable)?;
-    let mut endpoint_ids = BTreeSet::new();
+    let mut endpoint_capabilities = BTreeMap::new();
     for version in versions {
         let Some(configuration) = repository
             .load_configuration(&version.id)
@@ -291,18 +291,51 @@ pub(crate) fn deployment_route_compiler(
             continue;
         };
         for endpoint in configuration.endpoints {
-            endpoint_ids.insert(endpoint.id);
+            let capabilities = p12_adapter_capabilities(&endpoint.adapter_id)?;
+            if let Some((existing_adapter, existing_capabilities)) =
+                endpoint_capabilities.get(&endpoint.id)
+            {
+                if existing_adapter != &endpoint.adapter_id
+                    || existing_capabilities != &capabilities
+                {
+                    return Err(RuntimeCompositionError::Unavailable);
+                }
+            } else {
+                endpoint_capabilities.insert(endpoint.id, (endpoint.adapter_id, capabilities));
+            }
         }
     }
-    let capabilities =
-        EndpointCapabilityView::try_new(endpoint_ids.into_iter().map(|endpoint_id| {
-            EndpointCapabilityEntry {
-                endpoint_id,
-                capabilities: CapabilitySet::empty(),
-            }
-        }))
-        .map_err(|_| RuntimeCompositionError::Unavailable)?;
+    let capabilities = EndpointCapabilityView::try_new(endpoint_capabilities.into_iter().map(
+        |(endpoint_id, (_adapter_id, capabilities))| EndpointCapabilityEntry {
+            endpoint_id,
+            capabilities,
+        },
+    ))
+    .map_err(|_| RuntimeCompositionError::Unavailable)?;
     Ok(RouteCompiler::new(CatalogView::default(), capabilities))
+}
+
+/// Returns the conservative semantic capabilities proved by this build for one adapter.
+///
+/// This table is intentionally narrower than protocol syntax. JSON Schema and Vision stay absent
+/// unless the concrete runtime has provider-level evidence. Grok Web is a recognized product
+/// channel but deliberately has no production adapter binding, so it receives no capability and
+/// an enabled Endpoint still fails later composition. Unknown implementation labels fail here.
+fn p12_adapter_capabilities(adapter_id: &str) -> Result<CapabilitySet, RuntimeCompositionError> {
+    use SemanticCapability::{ParallelTools, Reasoning, Streaming, Tools};
+
+    let capabilities: &[SemanticCapability] = match adapter_id {
+        "openai-compatible.chat-completions" => &[Tools, ParallelTools, Streaming],
+        "openai-compatible.responses" | "anthropic-compatible.messages" => {
+            &[Tools, ParallelTools, Reasoning, Streaming]
+        }
+        "grok.build.responses" | "kiro.messages" => &[Tools, Reasoning, Streaming],
+        "grok.official.responses" => &[Tools, ParallelTools, Reasoning, Streaming],
+        "grok.web.responses" => &[],
+        _ => return Err(RuntimeCompositionError::Unavailable),
+    };
+    CapabilitySet::try_new(capabilities.iter().copied())
+        .map_err(|_| RuntimeCompositionError::Unavailable)
 }
 
 /// Builds the request-time state from exactly the active isolated control-plane configuration.
@@ -4262,7 +4295,7 @@ mod tests {
         ClientKeyAuthenticator, InMemoryClientKey, InMemoryClientKeyAuthenticator,
         client_key::{ClientKeyPepper, ClientKeyService},
     };
-    use gateway_catalog::CapabilitySet;
+    use gateway_catalog::{CapabilitySet, SemanticCapability};
     use gateway_control::{
         control_plane_service::credential_associated_data,
         credential_pool_compiler::CredentialPoolCompiler,
@@ -4350,8 +4383,8 @@ mod tests {
         classify_openai_response_failure, decode_json_events,
         decode_json_events_with_usage_projection, decode_sse_events,
         decode_sse_events_with_usage_projection, deployment_route_compiler, endpoint_runtimes,
-        has_p12_https_only_egress_shape, has_p12_unlisted_model_override,
-        p12_api_format_adapter_registry, p12_attempt_start_timeout,
+        has_p12_https_only_egress_shape, has_p12_unlisted_model_override, p12_adapter_capabilities,
+        p12_adapter_id_serves, p12_api_format_adapter_registry, p12_attempt_start_timeout,
         p12_classify_kiro_start_failure, p12_kiro_endpoint_shape, p12_kiro_request_projection,
         p12_openai_compatible_request, p12_response_usage_projection, p12_transport_headers,
         p12_transport_request, queue_event, validate_endpoint_shape,
@@ -6062,7 +6095,131 @@ mod tests {
         repository.write_configuration(&configuration)?;
         drop(repository);
         let stored = deployment_route_compiler(&database)?;
-        assert!(stored.compile(&configuration).is_ok());
+        let compiled = stored.compile(&configuration)?;
+        for route in compiled.routes() {
+            for candidate in route.candidates() {
+                let capabilities = candidate.effective_capabilities();
+                assert!(capabilities.supports(SemanticCapability::Tools));
+                assert!(capabilities.supports(SemanticCapability::ParallelTools));
+                assert!(capabilities.supports(SemanticCapability::Reasoning));
+                assert!(capabilities.supports(SemanticCapability::Streaming));
+                assert!(!capabilities.supports(SemanticCapability::JsonSchema));
+                assert!(!capabilities.supports(SemanticCapability::Vision));
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn production_adapter_capability_ledger_is_conservative_and_fail_closed()
+    -> Result<(), Box<dyn Error>> {
+        use SemanticCapability::{JsonSchema, ParallelTools, Reasoning, Streaming, Tools, Vision};
+
+        let cases = [
+            (
+                "openai-compatible.chat-completions",
+                vec![Tools, ParallelTools, Streaming],
+            ),
+            (
+                "openai-compatible.responses",
+                vec![Tools, ParallelTools, Reasoning, Streaming],
+            ),
+            (
+                "anthropic-compatible.messages",
+                vec![Tools, ParallelTools, Reasoning, Streaming],
+            ),
+            ("grok.build.responses", vec![Tools, Reasoning, Streaming]),
+            (
+                "grok.official.responses",
+                vec![Tools, ParallelTools, Reasoning, Streaming],
+            ),
+            ("kiro.messages", vec![Tools, Reasoning, Streaming]),
+        ];
+        for (adapter, supported) in cases {
+            let capabilities = p12_adapter_capabilities(adapter)?;
+            for capability in [
+                Tools,
+                ParallelTools,
+                Reasoning,
+                JsonSchema,
+                Vision,
+                Streaming,
+            ] {
+                assert_eq!(
+                    capabilities.supports(capability),
+                    supported.contains(&capability),
+                    "unexpected {capability:?} ledger value for {adapter}"
+                );
+            }
+        }
+
+        let web = p12_adapter_capabilities("grok.web.responses")?;
+        assert_eq!(web, CapabilitySet::empty());
+        assert!(matches!(
+            p12_adapter_capabilities("unknown.responses"),
+            Err(RuntimeCompositionError::Unavailable)
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn production_registry_composes_only_locally_passed_channel_pairs() -> Result<(), Box<dyn Error>>
+    {
+        let registry = p12_api_format_adapter_registry()?;
+        for (format, adapter) in [
+            (
+                ApiFormat::OpenAiChatCompletions,
+                "openai-compatible.chat-completions",
+            ),
+            (ApiFormat::OpenAiResponses, "openai-compatible.responses"),
+            (
+                ApiFormat::AnthropicMessages,
+                "anthropic-compatible.messages",
+            ),
+            (ApiFormat::OpenAiResponses, "grok.build.responses"),
+            (ApiFormat::OpenAiResponses, "grok.official.responses"),
+            (ApiFormat::AnthropicMessages, "kiro.messages"),
+        ] {
+            assert!(p12_adapter_id_serves(format, adapter));
+            assert!(registry.adapter(adapter).is_some());
+            assert!(!p12_adapter_capabilities(adapter)?.eq(&CapabilitySet::empty()));
+        }
+
+        assert!(p12_adapter_id_serves(
+            ApiFormat::OpenAiResponses,
+            "grok.web.responses"
+        ));
+        assert!(registry.adapter("grok.web.responses").is_none());
+        assert_eq!(
+            p12_adapter_capabilities("grok.web.responses")?,
+            CapabilitySet::empty()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn one_endpoint_identity_cannot_change_capability_profile_across_versions()
+    -> Result<(), Box<dyn Error>> {
+        let directory = TemporaryDirectory::new()?;
+        let database = directory.join("control.sqlite3");
+        let secret_store = test_secret_store()?;
+        let first = p12_widened_configuration(&secret_store, &p12_production_network())?;
+        let mut second_network = p12_production_network();
+        second_network.endpoint_b_adapter = "anthropic-compatible.messages";
+        second_network.endpoint_b_api_format = "anthropic/messages";
+        let mut second = p12_widened_configuration(&secret_store, &second_network)?;
+        second.version.id = ConfigVersionId::try_new("p12-widened-config-second")?;
+        second.version.description = "conflicting Endpoint capability profile".to_owned();
+
+        let mut repository = SqliteControlPlaneRepository::open(&database)?;
+        repository.write_configuration(&first)?;
+        repository.write_configuration(&second)?;
+        drop(repository);
+
+        assert!(matches!(
+            deployment_route_compiler(&database),
+            Err(RuntimeCompositionError::Unavailable)
+        ));
         Ok(())
     }
 
