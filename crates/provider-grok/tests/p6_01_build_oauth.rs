@@ -40,6 +40,13 @@ fn strict_import_retains_only_validated_fields_and_redacts_tokens() -> Result<()
         assert!(!debug.contains(synthetic_secret));
     }
     assert!(debug.contains("<redacted>"));
+    assert!(
+        GrokBuildCredential::import_runtime_json(
+            br#"{"access_token":"relative-access","refresh_token":"relative-refresh","expires_in":3600,"token_type":"Bearer"}"#,
+            10_000,
+        )
+        .is_err()
+    );
     Ok(())
 }
 
@@ -63,7 +70,6 @@ fn known_absolute_expiry_sources_import_in_memory_and_redact_tokens() -> Result<
         }"#,
         OBSERVED_AT_MS,
     )?;
-
     let account = format!(
         r#"{{
             "access_token":"synthetic_account_access_012345",
@@ -78,7 +84,6 @@ fn known_absolute_expiry_sources_import_in_memory_and_redact_tokens() -> Result<
     );
     let grok_account =
         GrokBuildCredential::import_grok_account_json(account.as_bytes(), OBSERVED_AT_MS)?;
-
     let cli_cache = format!(
         r#"{{
             "{GROK_BUILD_OAUTH_ISSUER}::{GROK_BUILD_PUBLIC_CLIENT_ID}":{{
@@ -93,7 +98,6 @@ fn known_absolute_expiry_sources_import_in_memory_and_redact_tokens() -> Result<
     );
     let official_cli =
         GrokBuildCredential::import_official_cli_auth_cache(cli_cache.as_bytes(), OBSERVED_AT_MS)?;
-
     for (credential, source, access_token, refresh_token) in [
         (
             &cpa,
@@ -124,6 +128,52 @@ fn known_absolute_expiry_sources_import_in_memory_and_redact_tokens() -> Result<
         assert!(!debug.contains(access_token));
         assert!(!debug.contains(refresh_token));
         assert!(debug.contains("<redacted>"));
+    }
+    Ok(())
+}
+
+#[test]
+fn runtime_import_accepts_only_durable_absolute_expiry_sources() -> Result<(), Box<dyn Error>> {
+    const OBSERVED_AT_MS: i64 = 1_735_689_600_000;
+    let cpa = br#"{
+        "type":"xai","auth_kind":"oauth",
+        "access_token":"runtime_cpa_access","refresh_token":"runtime_cpa_refresh",
+        "expires_in":3600,"expired":"2025-01-01T00:00:10.250Z",
+        "issuer":"https://auth.x.ai","email":"ignored@example.test",
+        "base_url":"https://api.x.ai/v1"
+    }"#;
+    let account = format!(
+        r#"{{
+            "access_token":"runtime_account_access","refresh_token":"runtime_account_refresh",
+            "expires_at":"2025-01-01T00:00:10.250Z",
+            "client_id":"{GROK_BUILD_PUBLIC_CLIENT_ID}",
+            "issuer":"{GROK_BUILD_OAUTH_ISSUER}","scope":"{GROK_BUILD_OAUTH_SCOPE}",
+            "token_type":"Bearer"
+        }}"#
+    );
+    let cli_cache = format!(
+        r#"{{"{GROK_BUILD_OAUTH_ISSUER}::{GROK_BUILD_PUBLIC_CLIENT_ID}":{{
+            "key":"runtime_cli_access","refresh_token":"runtime_cli_refresh",
+            "expires_at":"2025-01-01T00:00:10.250Z",
+            "issuer":"{GROK_BUILD_OAUTH_ISSUER}"
+        }}}}"#
+    );
+
+    for (input, expected_source) in [
+        (cpa.as_slice(), GrokBuildCredentialSource::CpaXaiAuthFile),
+        (
+            account.as_bytes(),
+            GrokBuildCredentialSource::GrokAccountJson,
+        ),
+        (
+            cli_cache.as_bytes(),
+            GrokBuildCredentialSource::OfficialCliAuthCache,
+        ),
+    ] {
+        assert_eq!(
+            GrokBuildCredential::import_runtime_json(input, OBSERVED_AT_MS)?.source(),
+            expected_source
+        );
     }
     Ok(())
 }

@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.104` |
+| 计划版本 | `v1.105` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。P12-08A-C、D0-D4、E1-E2 已本地通过；当前下一切片为 P12-08E3 Grok unified runtime。生产主机名尚未切换。 |
+| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。P12-08A-C、D0-D4、E1-E3 已本地通过；当前下一切片为 P12-08E4 Kiro unified runtime。生产主机名尚未切换。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -1768,7 +1768,7 @@ CR-ID: CR-P11-04-001
 | P12-08D4 | 完成旧 CPA ↔ CPAR 离线差分与安全偏差复核 | [D4 legacy protocol differential](reports/p12-08d4-legacy-protocol-differential.md)：10 项脱敏 golden corpus 覆盖三协议 JSON/SSE/Tool/Reasoning/Usage；CPAR 侧驱动真实 codec/router 计算；6 `PARITY`、2 `INTENTIONAL_HARDENING`、2 `UNSUPPORTED_FAIL_CLOSED`，无未分类差异 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08E1 | 端口 Codex 与通用 OpenAI-compatible runtime | [E1 runtime report](reports/p12-08e1-openai-compatible-runtime.md)：Responses/Chat 共用严格 API-key/Codex OAuth 与刷新事务边界；有界 401/403/429/usage-limit/5xx 分类，Usage/Reasoning 生产解码及精确 Credential/Quota/Endpoint Health 隔离通过 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08E2 | 端口 Claude/Anthropic-compatible runtime | [E2 runtime report](reports/p12-08e2-anthropic-compatible-runtime.md)：API key/Claude OAuth 互斥授权、严格刷新事务、有界 Anthropic 错误分类、精确 Credential/Quota/Endpoint Health 隔离及 Messages/Chat/Responses Tool/Thinking/Usage/SSE vertical slice | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-08E3 | 将既有 Grok Build/Official/Web Provider 接入统一 runtime | 参考旧 CPA xAI executor/auth 并结合现有 `provider-grok` 专项实现；三类 Grok endpoint 能力分别注册、连续性/Quota/错误隔离，未验证能力默认禁用 | PENDING |
+| P12-08E3 | 将既有 Grok Build/Official/Web Provider 接入统一 runtime | [E3 runtime report](reports/p12-08e3-grok-unified-runtime.md)：Build OAuth 与 Official API-key 接入固定目标 Canonical runtime；JSON/SSE、Tool/Reasoning/Usage、连续性与失败隔离回归通过；Web 仅登记合法 ID，因无通用生产 transport 而保持未绑定、默认禁用 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08E4 | 将既有 Kiro Provider 接入统一 runtime | 以现有 `provider-kiro` 为实现主件，旧 CPA 仅提供通用 registry/runtime 参考；Messages/EventStream vertical slice、CLI/IDE profile 与 Credential/Quota/Health 隔离；不要求当前 live OAuth | PENDING |
 | P12-08F1 | 组成多渠道生产图与模型/协议能力台账 | Alias、Access Group、Client Key、Endpoint/Credential/Candidate 均为无 Secret 台账；只组成已本地通过的能力 pair，缺凭据渠道保持 disabled-at-boot/不可选 | PENDING |
 | P12-08F2 | 完成三协议 × 四类渠道的 loopback E2E | 对能力台账中 `SUPPORTED` 组合执行 JSON/SSE/Text/Tool/Usage；`NATIVE_ONLY`/`UNSUPPORTED` 组合验证稳定拒绝和零出网，不强求虚假的 12 格全绿 | PENDING |
@@ -3517,3 +3517,4 @@ Next task:
 | v1.102 | 2026-08-02 | 完成 P12-08D4：新增固定旧 CPA 参考的 10 项 clean-room 三协议差分语料，覆盖 Chat/Responses/Messages JSON/SSE、Tool、Reasoning、Usage 和终止；CPAR 侧由真实 codec/router 计算，6 parity、2 hardening、2 unsupported/fail-closed，缺项/漂移/误分类/空心覆盖均拒绝 | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08E1 Codex/OpenAI-compatible runtime；无服务器、凭据、Config Version 或流量变化 |
 | v1.103 | 2026-08-02 | 完成 P12-08E1：Chat/Responses runtime 统一使用严格 API-key/Codex OAuth 凭据与刷新事务；OpenAI-compatible 非 2xx 有界分类接入，401 精确隔离当前 Credential、usage-limit/429 精确隔离 Quota、5xx 仅冷却 Endpoint，既有 Usage/Reasoning vertical slice 与真实 loopback 回归通过 | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08E2 Claude/Anthropic-compatible runtime；无服务器、真实凭据、Config Version 或流量变化 |
 | v1.104 | 2026-08-02 | 完成 P12-08E2：Anthropic Messages runtime 接入严格 API-key/Claude OAuth 互斥授权与刷新事务；有界 401/auth、429/rate-limit、529/overloaded 分类接入，复用精确 Credential/Quota/Endpoint Health 隔离及既有三协议 Tool/Thinking/Usage/SSE vertical slice | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08E3 Grok unified runtime；无服务器、真实凭据、Config Version 或流量变化 |
+| v1.105 | 2026-08-02 | 完成 P12-08E3：Grok Build OAuth 与 xAI Official API-key 接入固定目标 Canonical runtime；耐久绝对过期凭据导入、JSON/SSE、Tool/Reasoning/Usage、连续性及精确失败隔离通过；Grok Web 因尚无经验证的通用生产 transport 仅登记合法 ID 并保持组合未绑定、默认禁用 | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08E4 Kiro unified runtime；无服务器、网络请求、真实凭据、Config Version 或流量变化 |

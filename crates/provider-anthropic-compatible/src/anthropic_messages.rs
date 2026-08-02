@@ -88,10 +88,10 @@ impl AnthropicMessagesAuthorization {
     ///
     /// Rejects an empty or non-visible-ASCII value as unavailable credential material.
     pub fn try_api_key(value: impl Into<String>) -> Result<Self, GatewayError> {
-        let api_key = AnthropicMessagesApiKey::try_new(value)?;
+        let key = AnthropicMessagesApiKey::try_new(value)?;
         Ok(Self {
             kind: AnthropicAuthorizationKind::ApiKey,
-            value: Zeroizing::new(api_key.as_str().to_owned()),
+            value: Zeroizing::new(key.as_str().to_owned()),
         })
     }
 

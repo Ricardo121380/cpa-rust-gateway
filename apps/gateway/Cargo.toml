@@ -24,6 +24,7 @@ libc.workspace = true
 protocol-openai-chat = { path = "../../crates/protocol-openai-chat" }
 protocol-openai-responses = { path = "../../crates/protocol-openai-responses" }
 provider-anthropic-compatible = { path = "../../crates/provider-anthropic-compatible" }
+provider-grok = { path = "../../crates/provider-grok" }
 provider-kiro = { path = "../../crates/provider-kiro" }
 provider-openai-compatible = { path = "../../crates/provider-openai-compatible" }
 serde_json.workspace = true

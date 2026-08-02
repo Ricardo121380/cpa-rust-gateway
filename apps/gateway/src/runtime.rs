@@ -103,6 +103,13 @@ use provider_anthropic_compatible::{
     AnthropicMessagesSseDecoder, AnthropicResponseMode, AnthropicRuntimeFailureAction,
     ClaudeRuntimeCredential, classify_anthropic_runtime_failure, decode_upstream_response,
 };
+use provider_grok::{
+    GROK_BUILD_RESPONSES_BASE_URL, GROK_BUILD_RESPONSES_PATH, GROK_BUILD_RESPONSES_URL,
+    GROK_OFFICIAL_API_BASE_URL, GROK_OFFICIAL_RESPONSES_PATH, GROK_OFFICIAL_RESPONSES_URL,
+    GrokBuildCredential, GrokBuildExecutionMode, GrokBuildInferenceAdapter,
+    GrokBuildUpstreamTransport, GrokOfficialApiKey, GrokOfficialExecutionMode,
+    GrokOfficialInferenceAdapter, GrokOfficialUpstreamTransport,
+};
 use provider_kiro::{
     CanonicalEventSource, InferenceAdapter,
     conversation_request::{KiroConversationContext, KiroConversationId, KiroEnvironmentState},
@@ -816,6 +823,16 @@ fn p12_api_format_adapter_registry() -> Result<P12ApiFormatAdapterRegistry, Runt
             build_openai_responses_adapter as P12EndpointAdapterFactory,
         ),
         (
+            ApiFormat::OpenAiResponses,
+            "grok.build.responses",
+            build_grok_build_responses_adapter as P12EndpointAdapterFactory,
+        ),
+        (
+            ApiFormat::OpenAiResponses,
+            "grok.official.responses",
+            build_grok_official_responses_adapter as P12EndpointAdapterFactory,
+        ),
+        (
             ApiFormat::AnthropicMessages,
             "anthropic-compatible.messages",
             build_anthropic_messages_adapter as P12EndpointAdapterFactory,
@@ -846,6 +863,38 @@ fn build_openai_responses_adapter(
     OpenAiResponsesEndpoint::try_new(&endpoint.base_url, &endpoint.inference_path)
         .map(EndpointAdapter::OpenAiResponses)
         .map_err(|_| RuntimeCompositionError::Unavailable)
+}
+
+fn build_grok_build_responses_adapter(
+    endpoint: &EndpointConfiguration,
+) -> Result<EndpointAdapter, RuntimeCompositionError> {
+    if composed_endpoint_url(endpoint) != GROK_BUILD_RESPONSES_URL
+        || endpoint.base_url != GROK_BUILD_RESPONSES_BASE_URL
+        || endpoint.inference_path != GROK_BUILD_RESPONSES_PATH
+    {
+        return Err(RuntimeCompositionError::Unavailable);
+    }
+    Ok(EndpointAdapter::GrokBuildResponses)
+}
+
+fn build_grok_official_responses_adapter(
+    endpoint: &EndpointConfiguration,
+) -> Result<EndpointAdapter, RuntimeCompositionError> {
+    if composed_endpoint_url(endpoint) != GROK_OFFICIAL_RESPONSES_URL
+        || endpoint.base_url != GROK_OFFICIAL_API_BASE_URL
+        || endpoint.inference_path != GROK_OFFICIAL_RESPONSES_PATH
+    {
+        return Err(RuntimeCompositionError::Unavailable);
+    }
+    Ok(EndpointAdapter::GrokOfficialResponses)
+}
+
+fn composed_endpoint_url(endpoint: &EndpointConfiguration) -> String {
+    format!(
+        "{}{}",
+        endpoint.base_url.trim_end_matches('/'),
+        endpoint.inference_path
+    )
 }
 
 fn build_anthropic_messages_adapter(
@@ -1273,6 +1322,10 @@ enum EndpointAdapter {
     OpenAiChatCompletions(OpenAiChatCompletionsEndpoint),
     /// The unchanged `OpenAI`-compatible Responses path.
     OpenAiResponses(OpenAiResponsesEndpoint),
+    /// The fixed Grok Build OAuth Responses path.
+    GrokBuildResponses,
+    /// The fixed xAI Official API-key Responses path.
+    GrokOfficialResponses,
     /// The Anthropic-compatible Messages path.
     AnthropicMessages(AnthropicMessagesEndpoint),
     /// The Kiro path, which serves Anthropic Messages from a derived Kiro host.
@@ -1284,7 +1337,9 @@ impl EndpointAdapter {
     const fn api_format(&self) -> ApiFormat {
         match self {
             Self::OpenAiChatCompletions(_) => ApiFormat::OpenAiChatCompletions,
-            Self::OpenAiResponses(_) => ApiFormat::OpenAiResponses,
+            Self::OpenAiResponses(_) | Self::GrokBuildResponses | Self::GrokOfficialResponses => {
+                ApiFormat::OpenAiResponses
+            }
             Self::AnthropicMessages(_) | Self::KiroMessages(_) => ApiFormat::AnthropicMessages,
         }
     }
@@ -1421,10 +1476,14 @@ impl EndpointAttemptDriver {
             .endpoints
             .get(candidate.endpoint_id())
             .ok_or(ProtocolTransformRejection::PairUnregistered)?;
-        // Kiro uses Messages semantics but not the native Anthropic HTTP body. Only its typed
-        // Canonical path is a registered runtime implementation.
-        if matches!(&runtime.adapter, EndpointAdapter::KiroMessages(_))
-            && candidate.transform_mode() != gateway_router::SnapshotTransformMode::Canonical
+        // Provider-specific runtimes use the protocol's Canonical semantics but not a generic
+        // provider's native HTTP body. Only their typed Canonical paths are registered.
+        if matches!(
+            &runtime.adapter,
+            EndpointAdapter::KiroMessages(_)
+                | EndpointAdapter::GrokBuildResponses
+                | EndpointAdapter::GrokOfficialResponses
+        ) && candidate.transform_mode() != gateway_router::SnapshotTransformMode::Canonical
         {
             return Err(ProtocolTransformRejection::PairUnregistered);
         }
@@ -1489,6 +1548,14 @@ impl AttemptDriver for EndpointAttemptDriver {
                         runtime, endpoint, candidate, credential, &projected,
                     )
                     .await
+                }
+                EndpointAdapter::GrokBuildResponses => {
+                    self.start_grok_build(runtime, candidate, credential, &projected)
+                        .await
+                }
+                EndpointAdapter::GrokOfficialResponses => {
+                    self.start_grok_official(runtime, candidate, credential, &projected)
+                        .await
                 }
                 EndpointAdapter::AnthropicMessages(endpoint) => {
                     self.start_anthropic_messages(
@@ -1745,6 +1812,101 @@ impl EndpointAttemptDriver {
         }
     }
 
+    /// Runs one Canonical attempt through the fixed Grok Build OAuth Responses runtime.
+    async fn start_grok_build(
+        &self,
+        runtime: &EndpointRuntime,
+        candidate: &SnapshotRouteCandidate,
+        credential: &CredentialLease,
+        projected: &ProjectedProtocolRequest,
+    ) -> Result<Box<dyn ResponsesEventSource>, AttemptFailure> {
+        let ProjectedProtocolRequest::Canonical(request) = projected else {
+            return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
+        };
+        let credential =
+            GrokBuildCredential::import_runtime_json(credential.secret_bytes(), system_now_ms()?)
+                .map_err(|_| AttemptFailure::NonRetryable(credential_unavailable_error()))?;
+        let transport = GrokBuildUpstreamTransport::new(
+            runtime.policy.clone(),
+            Arc::clone(&runtime.resolver),
+            self.client_pool.as_ref().clone(),
+            runtime.transports.for_mode(self.mode).clone(),
+        );
+        let adapter = GrokBuildInferenceAdapter::try_new(
+            credential,
+            candidate.upstream_model(),
+            grok_build_execution_mode(self.mode),
+            Arc::new(transport),
+        )
+        .map_err(AttemptFailure::NonRetryable)?;
+        self.attempt_stages.record_stage(
+            &self.request_id,
+            ManagementRequestAttemptStage::EgressAdmission,
+        );
+        self.attempt_stages.record_stage(
+            &self.request_id,
+            ManagementRequestAttemptStage::HttpTransport,
+        );
+        let source = adapter
+            .execute(
+                RequestContext::new(self.request_id.clone()),
+                request.clone(),
+            )
+            .await
+            .map_err(p12_classify_grok_start_failure)?;
+        self.attempt_stages
+            .record_stage(&self.request_id, ManagementRequestAttemptStage::HttpStatus);
+        Ok(Box::new(P12ProviderEventSource::new(source)) as Box<dyn ResponsesEventSource>)
+    }
+
+    /// Runs one Canonical attempt through the fixed xAI Official API-key Responses runtime.
+    async fn start_grok_official(
+        &self,
+        runtime: &EndpointRuntime,
+        candidate: &SnapshotRouteCandidate,
+        credential: &CredentialLease,
+        projected: &ProjectedProtocolRequest,
+    ) -> Result<Box<dyn ResponsesEventSource>, AttemptFailure> {
+        let ProjectedProtocolRequest::Canonical(request) = projected else {
+            return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
+        };
+        let secret = std::str::from_utf8(credential.secret_bytes())
+            .map_err(|_| AttemptFailure::NonRetryable(credential_unavailable_error()))?;
+        let credential =
+            GrokOfficialApiKey::try_new(secret.to_owned()).map_err(AttemptFailure::NonRetryable)?;
+        let transport = GrokOfficialUpstreamTransport::new(
+            runtime.policy.clone(),
+            Arc::clone(&runtime.resolver),
+            self.client_pool.as_ref().clone(),
+            runtime.transports.for_mode(self.mode).clone(),
+        );
+        let adapter = GrokOfficialInferenceAdapter::try_new(
+            credential,
+            candidate.upstream_model(),
+            grok_official_execution_mode(self.mode),
+            Arc::new(transport),
+        )
+        .map_err(AttemptFailure::NonRetryable)?;
+        self.attempt_stages.record_stage(
+            &self.request_id,
+            ManagementRequestAttemptStage::EgressAdmission,
+        );
+        self.attempt_stages.record_stage(
+            &self.request_id,
+            ManagementRequestAttemptStage::HttpTransport,
+        );
+        let source = adapter
+            .execute(
+                RequestContext::new(self.request_id.clone()),
+                request.clone(),
+            )
+            .await
+            .map_err(p12_classify_grok_start_failure)?;
+        self.attempt_stages
+            .record_stage(&self.request_id, ManagementRequestAttemptStage::HttpStatus);
+        Ok(Box::new(P12ProviderEventSource::new(source)) as Box<dyn ResponsesEventSource>)
+    }
+
     /// Runs one attempt against a Kiro Endpoint.
     ///
     /// Kiro serves Anthropic Messages semantics but reaches them through its own request shape, so
@@ -1823,7 +1985,7 @@ impl EndpointAttemptDriver {
             .map_err(p12_classify_kiro_start_failure)?;
         self.attempt_stages
             .record_stage(&self.request_id, ManagementRequestAttemptStage::HttpStatus);
-        Ok(Box::new(P12KiroEventSource::new(source)) as Box<dyn ResponsesEventSource>)
+        Ok(Box::new(P12ProviderEventSource::new(source)) as Box<dyn ResponsesEventSource>)
     }
 
     /// Sends one already egress-admitted request and classifies its response head.
@@ -1991,6 +2153,20 @@ const fn anthropic_upstream_response_mode(mode: ResponsesResponseMode) -> Anthro
     match mode {
         ResponsesResponseMode::NonStreaming => AnthropicResponseMode::NonStreaming,
         ResponsesResponseMode::Streaming => AnthropicResponseMode::Streaming,
+    }
+}
+
+const fn grok_build_execution_mode(mode: ResponsesResponseMode) -> GrokBuildExecutionMode {
+    match mode {
+        ResponsesResponseMode::NonStreaming => GrokBuildExecutionMode::NonStreaming,
+        ResponsesResponseMode::Streaming => GrokBuildExecutionMode::Streaming,
+    }
+}
+
+const fn grok_official_execution_mode(mode: ResponsesResponseMode) -> GrokOfficialExecutionMode {
+    match mode {
+        ResponsesResponseMode::NonStreaming => GrokOfficialExecutionMode::NonStreaming,
+        ResponsesResponseMode::Streaming => GrokOfficialExecutionMode::Streaming,
     }
 }
 
@@ -2550,17 +2726,17 @@ impl KiroEnterpriseProfileLookup for P12KiroNoEnterpriseLookup {
 /// Both traits are the same shape over the same boxed future type; only their names differ, because
 /// one is owned by the Provider boundary and the other by the Router. This wrapper is the single
 /// place that observation is made, so neither crate needs to know about the other.
-struct P12KiroEventSource {
+struct P12ProviderEventSource {
     inner: Box<dyn CanonicalEventSource>,
 }
 
-impl P12KiroEventSource {
+impl P12ProviderEventSource {
     const fn new(inner: Box<dyn CanonicalEventSource>) -> Self {
         Self { inner }
     }
 }
 
-impl ResponsesEventSource for P12KiroEventSource {
+impl ResponsesEventSource for P12ProviderEventSource {
     fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
         self.inner.next_event()
     }
@@ -2582,6 +2758,18 @@ fn p12_classify_kiro_start_failure(error: GatewayError) -> AttemptFailure {
         // A throttled Kiro account should fail over rather than fail the request. The adapter does
         // not surface a Retry-After, so none is claimed.
         GatewayErrorCode::ProviderRateLimited => AttemptFailure::RateLimited { retry_after: None },
+        _ => AttemptFailure::NonRetryable(error),
+    }
+}
+
+/// Maps an already-classified Grok pre-first-semantic failure onto Router retry ownership.
+fn p12_classify_grok_start_failure(error: GatewayError) -> AttemptFailure {
+    match error.code() {
+        GatewayErrorCode::ProviderTransient => AttemptFailure::ServerError,
+        GatewayErrorCode::EgressUnavailable => AttemptFailure::Connection,
+        GatewayErrorCode::ProviderRateLimited | GatewayErrorCode::CredentialQuotaExceeded => {
+            AttemptFailure::RateLimited { retry_after: None }
+        }
         _ => AttemptFailure::NonRetryable(error),
     }
 }
@@ -4023,6 +4211,13 @@ fn stale_runtime_error() -> GatewayError {
     GatewayError::new(GatewayErrorCode::InternalError, ErrorScope::Internal)
 }
 
+fn credential_unavailable_error() -> GatewayError {
+    GatewayError::new(
+        GatewayErrorCode::CredentialUnavailable,
+        ErrorScope::Credential,
+    )
+}
+
 fn egress_rejected_error() -> GatewayError {
     GatewayError::new(GatewayErrorCode::EgressRejected, ErrorScope::Egress)
 }
@@ -4143,17 +4338,21 @@ mod tests {
 
     use super::{
         AnthropicSseEventSource, EndpointAdapter, EndpointAttemptDriver, EndpointRuntime,
-        FiniteEventSource, MAX_SSE_FRAME_BYTES, MAX_SSE_IDENTIFIER_BYTES,
-        MAX_SSE_PROGRESS_FREE_FRAMES, MAX_SSE_TOOL_CALLS, MAX_UPSTREAM_RESPONSE_BYTES,
-        OpenAiSseDecoder, OpenAiSseEventSource, P12_BOOTSTRAP_TIMEOUT_MILLISECONDS,
-        P12_CONNECT_TIMEOUT, P12_KRILL_COMPATIBILITY_USER_AGENT, P12_MAX_ROUTE_ATTEMPTS,
+        FiniteEventSource, GROK_BUILD_RESPONSES_BASE_URL, GROK_BUILD_RESPONSES_PATH,
+        GROK_OFFICIAL_API_BASE_URL, GROK_OFFICIAL_RESPONSES_PATH, MAX_SSE_FRAME_BYTES,
+        MAX_SSE_IDENTIFIER_BYTES, MAX_SSE_PROGRESS_FREE_FRAMES, MAX_SSE_TOOL_CALLS,
+        MAX_UPSTREAM_RESPONSE_BYTES, OpenAiSseDecoder, OpenAiSseEventSource,
+        P12_BOOTSTRAP_TIMEOUT_MILLISECONDS, P12_CONNECT_TIMEOUT,
+        P12_KRILL_COMPATIBILITY_USER_AGENT, P12_MAX_ROUTE_ATTEMPTS,
         P12_MAX_TOTAL_BINDING_CONCURRENCY, P12_NON_STREAMING_TOTAL_TIMEOUT,
         P12_STREAMING_IDLE_TIMEOUT, P12_STREAMING_PROGRESS_TIMEOUT, P12_STREAMING_TOTAL_TIMEOUT,
         P12_STREAMING_TTFB_TIMEOUT, P12AttemptStageStore, P12EndpointAdapterFactory,
         P12FanoutEventSink, P12ResponseUsageProjection, P12TransportProfiles,
         RuntimeCompositionError, SnapshotManagementRuntimeFacade, append_response_chunk,
-        build_data_plane_composition, build_kiro_messages_adapter, build_openai_responses_adapter,
-        classify_anthropic_response_failure, classify_openai_response_failure, decode_json_events,
+        build_data_plane_composition, build_grok_build_responses_adapter,
+        build_grok_official_responses_adapter, build_kiro_messages_adapter,
+        build_openai_responses_adapter, classify_anthropic_response_failure,
+        classify_openai_response_failure, decode_json_events,
         decode_json_events_with_usage_projection, decode_sse_events,
         decode_sse_events_with_usage_projection, deployment_route_compiler, endpoint_runtimes,
         has_p12_https_only_egress_shape, has_p12_unlisted_model_override,
@@ -6927,7 +7126,7 @@ mod tests {
     }
 
     #[test]
-    fn the_p12_registry_binds_all_three_formats_and_both_messages_adapters()
+    fn the_p12_registry_binds_verified_provider_adapters_and_leaves_grok_web_unbound()
     -> Result<(), Box<dyn Error>> {
         let registry = p12_api_format_adapter_registry()?;
         // Both implementations of the same wire format resolve, selected by adapter_id alone.
@@ -6945,6 +7144,24 @@ mod tests {
             registry
                 .resolve("openai/responses", "openai-compatible.responses")
                 .is_some()
+        );
+        assert!(
+            registry
+                .resolve("openai/responses", "grok.build.responses")
+                .is_some()
+        );
+        assert!(
+            registry
+                .resolve("openai/responses", "grok.official.responses")
+                .is_some()
+        );
+        // Grok Web is a legal configuration identifier, but this build has no verified general
+        // production transport for it. Leaving it unbound makes any enabled Web Endpoint fail the
+        // whole Version closed during composition instead of borrowing the one-shot Canary path.
+        assert!(
+            registry
+                .resolve("openai/responses", "grok.web.responses")
+                .is_none()
         );
         assert!(
             registry
@@ -6966,6 +7183,53 @@ mod tests {
                 .resolve("openai/responses", "openai-compatible.chat-completions")
                 .is_none()
         );
+        Ok(())
+    }
+
+    #[test]
+    fn grok_endpoint_factories_pin_credentials_to_their_verified_targets()
+    -> Result<(), Box<dyn Error>> {
+        let build = EndpointConfiguration {
+            id: EndpointId::try_new("p12-grok-build-endpoint")?,
+            upstream_id: UpstreamId::try_new("p12-grok-upstream")?,
+            adapter_id: "grok.build.responses".to_owned(),
+            api_format: "openai/responses".to_owned(),
+            base_url: GROK_BUILD_RESPONSES_BASE_URL.to_owned(),
+            inference_path: GROK_BUILD_RESPONSES_PATH.to_owned(),
+            models_path: None,
+            transport: EndpointTransport::Http,
+            enabled: true,
+        };
+        assert!(matches!(
+            build_grok_build_responses_adapter(&build),
+            Ok(EndpointAdapter::GrokBuildResponses)
+        ));
+
+        let mut substituted_build_host = build.clone();
+        substituted_build_host.base_url = "https://attacker.example.test".to_owned();
+        assert!(build_grok_build_responses_adapter(&substituted_build_host).is_err());
+        let mut substituted_build_path = build.clone();
+        substituted_build_path.inference_path = "/v1/chat/completions".to_owned();
+        assert!(build_grok_build_responses_adapter(&substituted_build_path).is_err());
+
+        let official = EndpointConfiguration {
+            id: EndpointId::try_new("p12-grok-official-endpoint")?,
+            adapter_id: "grok.official.responses".to_owned(),
+            base_url: GROK_OFFICIAL_API_BASE_URL.to_owned(),
+            inference_path: GROK_OFFICIAL_RESPONSES_PATH.to_owned(),
+            ..build
+        };
+        assert!(matches!(
+            build_grok_official_responses_adapter(&official),
+            Ok(EndpointAdapter::GrokOfficialResponses)
+        ));
+
+        let mut substituted_official_host = official.clone();
+        substituted_official_host.base_url = "https://attacker.example.test".to_owned();
+        assert!(build_grok_official_responses_adapter(&substituted_official_host).is_err());
+        let mut substituted_official_path = official;
+        substituted_official_path.inference_path = "/v1/chat/completions".to_owned();
+        assert!(build_grok_official_responses_adapter(&substituted_official_path).is_err());
         Ok(())
     }
 

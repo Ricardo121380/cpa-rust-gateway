@@ -29,7 +29,8 @@ use zeroize::Zeroizing;
 
 use crate::{
     GROK_OFFICIAL_API_BASE_URL, GROK_OFFICIAL_PROVIDER_ID, GrokOfficialApiKey,
-    GrokOfficialRateLimitMetadata, GrokOfficialRuntimeState, strict_json::parse_strict_json,
+    GrokOfficialRateLimitMetadata, GrokOfficialRuntimeState, classify_grok_official_http_failure,
+    strict_json::parse_strict_json,
 };
 
 /// Fixed Official Responses path.
@@ -1644,11 +1645,10 @@ impl InferenceAdapter for GrokOfficialInferenceAdapter {
                 return Err(disposition.error().clone());
             }
             if !(200..=299).contains(&status) {
-                // P8-03 owns status/header/quota classification. Consume only a bounded amount so
-                // malformed or unexpectedly large error responses cannot become an unbounded
-                // pre-start buffer, then return the fixed generic safe class.
+                // Consume only a bounded amount, then retain the status-only P8 classification.
+                // Raw body content never changes ownership or reaches a diagnostic.
                 let _ = read_bounded_body(&mut *body, MAX_GROK_OFFICIAL_ERROR_BODY_BYTES).await?;
-                return Err(provider_protocol_error());
+                return Err(classify_grok_official_http_failure(status).error().clone());
             }
             match mode {
                 GrokOfficialExecutionMode::NonStreaming

@@ -245,7 +245,7 @@ async fn pre_start_error_is_generic_and_post_start_failure_is_one_stream_error()
         .await
         .err()
         .ok_or("non-success Official status unexpectedly started")?;
-    assert_eq!(error.code(), GatewayErrorCode::UpstreamProtocolError);
+    assert_eq!(error.code(), GatewayErrorCode::ProviderTransient);
     assert_eq!(error.scope(), ErrorScope::Provider);
     assert_eq!(transport.send_count(), 1);
 

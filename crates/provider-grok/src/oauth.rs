@@ -74,6 +74,33 @@ pub struct GrokBuildCredential {
 }
 
 impl GrokBuildCredential {
+    /// Imports one durable runtime credential from the supported absolute-expiry source shapes.
+    ///
+    /// This deliberately excludes the relative `expires_in` token-response shape: replaying that
+    /// document at request time would incorrectly extend its lifetime. Exactly one of the CPA xAI
+    /// auth file, Grok account JSON, or official CLI cache shapes must validate.
+    ///
+    /// # Errors
+    ///
+    /// Returns a value-free OAuth error when no durable source shape validates or more than one
+    /// importer accepts the same document.
+    pub fn import_runtime_json(
+        input: &[u8],
+        observed_at_ms: i64,
+    ) -> Result<Self, GrokBuildOAuthError> {
+        let candidates = [
+            Self::import_cpa_xai_auth_file(input, observed_at_ms),
+            Self::import_grok_account_json(input, observed_at_ms),
+            Self::import_official_cli_auth_cache(input, observed_at_ms),
+        ];
+        let mut accepted = candidates.into_iter().filter_map(Result::ok);
+        let credential = accepted.next().ok_or(GrokBuildOAuthError::InvalidField)?;
+        if accepted.next().is_some() {
+            return Err(GrokBuildOAuthError::InvalidField);
+        }
+        Ok(credential)
+    }
+
     /// Imports one strict OAuth JSON object at the supplied Unix-millisecond observation time.
     ///
     /// The importer accepts only the documented token fields, rejects duplicate names at every JSON

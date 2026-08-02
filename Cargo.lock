@@ -726,6 +726,7 @@ dependencies = [
  "protocol-openai-chat",
  "protocol-openai-responses",
  "provider-anthropic-compatible",
+ "provider-grok",
  "provider-kiro",
  "provider-openai-compatible",
  "serde_json",

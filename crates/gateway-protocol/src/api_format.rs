@@ -58,7 +58,12 @@ impl ApiFormat {
     pub const fn adapter_ids(self) -> &'static [&'static str] {
         match self {
             Self::OpenAiChatCompletions => &["openai-compatible.chat-completions"],
-            Self::OpenAiResponses => &["openai-compatible.responses"],
+            Self::OpenAiResponses => &[
+                "openai-compatible.responses",
+                "grok.build.responses",
+                "grok.official.responses",
+                "grok.web.responses",
+            ],
             Self::AnthropicMessages => &["anthropic-compatible.messages", "kiro.messages"],
         }
     }
@@ -245,8 +250,16 @@ mod tests {
         );
         assert_eq!(
             ApiFormat::OpenAiResponses.adapter_ids(),
-            &["openai-compatible.responses"]
+            &[
+                "openai-compatible.responses",
+                "grok.build.responses",
+                "grok.official.responses",
+                "grok.web.responses",
+            ]
         );
+        assert!(ApiFormat::OpenAiResponses.serves("grok.build.responses"));
+        assert!(ApiFormat::OpenAiResponses.serves("grok.official.responses"));
+        assert!(ApiFormat::OpenAiResponses.serves("grok.web.responses"));
         // One wire format, several implementations: Kiro speaks Anthropic Messages but reaches it
         // through its own credential families, endpoint hosts and profileArn injection.
         assert_eq!(

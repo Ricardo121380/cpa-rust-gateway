@@ -17,7 +17,7 @@ allowed = {
   # data-plane adapter and its immutable RouteSnapshot, encrypted Credential-pool, direct egress,
   # protocol, and JSON dependencies here only; lower-layer rules still prevent them from flowing
   # back into library crates.
-  "gateway" => %w[actix-web futures-util gateway-auth gateway-catalog gateway-control gateway-core gateway-http-actix gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream libc protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-kiro provider-openai-compatible serde_json zeroize],
+  "gateway" => %w[actix-web futures-util gateway-auth gateway-catalog gateway-control gateway-core gateway-http-actix gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream libc protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-grok provider-kiro provider-openai-compatible serde_json zeroize],
   "gateway-auth" => %w[gateway-core getrandom hmac libc sha2 subtle zeroize],
   "gateway-catalog" => %w[gateway-core gateway-provider tokio],
   "gateway-control" => %w[gateway-auth gateway-catalog gateway-core gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream serde_json zeroize],

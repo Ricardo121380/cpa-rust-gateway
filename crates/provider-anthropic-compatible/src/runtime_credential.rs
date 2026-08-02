@@ -48,10 +48,11 @@ impl ClaudeOAuthRefreshRequest {
     ///
     /// Returns a value-free error only if JSON serialization fails.
     pub fn json_body(&self) -> Result<Zeroizing<Vec<u8>>, ClaudeRuntimeCredentialError> {
+        let rotating_token = self.refresh_token.as_str();
         let body = serde_json::to_vec(&ClaudeRefreshBody {
             client_id: CLAUDE_OAUTH_CLIENT_ID,
             grant_type: "refresh_token",
-            refresh_token: self.refresh_token.as_str(),
+            refresh_token: rotating_token,
         })
         .map_err(|_| ClaudeRuntimeCredentialError::Invalid)?;
         Ok(Zeroizing::new(body))
