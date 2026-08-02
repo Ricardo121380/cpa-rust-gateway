@@ -582,3 +582,19 @@ v2; no earlier PASS is resent. Stop on the first failure, retain only the value-
 closed Attempt stage if needed, and always restore the predecessor graph and key boundary. Passing
 all six remaining tuples completes the current-Krill Codex G1 matrix but does not authorize public
 traffic, Caddy, DNS, CC Switch mutation, old-CPA shutdown, or P12-09.
+
+## CR-P12-08G1-033 — Messages SSE lifecycle classifier
+
+The exact artifact passed tuples seven through nine, advancing G1 v2 to 9/12. Tuple ten,
+Messages SSE Text, failed with the safe `messages_stream_lifecycle` category after its sole upstream
+Attempt had already succeeded at SSE bootstrap. Queue and durability counters remained zero and
+the full predecessor boundary was restored. This proves a post-start Anthropic projection or wire
+lifecycle mismatch; it does not justify another provider or router change.
+
+Add a one-request, loopback-only Messages SSE classifier for the exact failed tuple. It may retain
+only the ordered closed event-type sequence, bounded counts, known delta/stop categories, Boolean
+presence of message start/stop/error, and nonnegative Usage validity. It must never retain model,
+key, IDs, text, reasoning, Tool data, raw JSON, timestamps, token values or fingerprints. Reactivate
+the unchanged v2 graph, send the classifier once, then restore and reverify the predecessor graph.
+The nine passing tuples must not be resent; only the first missing or unexpected lifecycle element
+may justify a repair.

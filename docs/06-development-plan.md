@@ -3574,3 +3574,4 @@ Next task:
 | v1.138 | 2026-08-03 | `CR-P12-08G1-031`：CR-030 将差异收敛到 Function Call 的双份 turn metadata；同步分类器到现有 root/cache-write 准入，并以一次布尔关系分类证明两份 bounded turn ID 是否相等 | IN_PROGRESS；仅相等关系可支持窄修复，分类不发送 G1 tuple |
 | v1.139 | 2026-08-03 | CR-031 最终分类通过：Function Call 两份 turn metadata 均为唯一 bounded ID 且相等；非流式 Tool decoder 仅准入缺失或完整相等 pair，partial/unequal/extra 继续拒绝 | IN_PROGRESS；定向测试与 Full gate 后生成新 exact-SHA artifact，仅续跑第 7 tuple |
 | v1.140 | 2026-08-03 | `CR-P12-08G1-032`：`ba54c68` 双架构签名 artifact 成功且 ARM64 独立验证、部署；从第 7 tuple 续跑，若通过则同一固定 harness 继续首次发送 8–12，首败即停并回滚 | IN_PROGRESS；不重发前 6 个 PASS，不触及公开入口、CC Switch 或旧 CPA |
+| v1.141 | 2026-08-03 | `CR-P12-08G1-033`：`ba54c68` 使 tuple 7–9 PASS，tuple 10 Messages SSE Text 在成功 SSE bootstrap 后以 lifecycle 类别失败；登记一次只保留事件类型/布尔关系的 loopback classifier | IN_PROGRESS；G1 v2 9/12，仅失败 tuple 10 可诊断重发 |

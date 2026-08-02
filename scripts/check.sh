@@ -136,6 +136,7 @@ run_step "P12 G1 production graph" python3 "$repo_root/scripts/test-p12-08g1-pro
 run_step "P12 G1 live harness" python3 "$repo_root/scripts/test-p12-08g1-live-e2e.py"
 run_step "P12 G1 Chat SSE classifier" python3 "$repo_root/scripts/test-p12-08g1-chat-sse-classifier.py"
 run_step "P12 G1 Responses JSON classifier" python3 "$repo_root/scripts/test-p12-08g1-responses-json-classifier.py"
+run_step "P12 G1 Messages SSE classifier" python3 "$repo_root/scripts/test-p12-08g1-messages-sse-classifier.py"
 run_step "Management SPA" node "$repo_root/scripts/check-management-spa.mjs"
 run_step "Rust format" cargo fmt --all -- --check
 run_step "Clippy" cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
