@@ -90,8 +90,8 @@ pub fn decode_upstream_response(input: &str) -> Result<Vec<CanonicalEvent>, Gate
         if calls.is_empty() || calls.len() > MAX_TOOL_CALLS {
             return Err(protocol_error());
         }
-        for call in calls {
-            decode_completed_tool_call(call, &mut events)?;
+        for (position, call) in calls.iter().enumerate() {
+            decode_completed_tool_call(call, position, &mut events)?;
             emitted = true;
         }
     }
@@ -118,10 +118,17 @@ pub fn decode_upstream_response(input: &str) -> Result<Vec<CanonicalEvent>, Gate
 
 fn decode_completed_tool_call(
     value: &Value,
+    position: usize,
     events: &mut Vec<CanonicalEvent>,
 ) -> Result<(), GatewayError> {
     let call = object(value)?;
-    require_only_keys(call, &["id", "type", "function"])?;
+    require_only_keys(call, &["id", "type", "function", "index"])?;
+    if call
+        .get("index")
+        .is_some_and(|index| index.as_u64() != u64::try_from(position).ok())
+    {
+        return Err(protocol_error());
+    }
     if call.get("type").and_then(Value::as_str) != Some("function") {
         return Err(protocol_error());
     }
@@ -899,6 +906,20 @@ mod tests {
                 .any(|event| matches!(event, CanonicalEvent::UsageDelta(_)))
         );
         Ok(())
+    }
+
+    #[test]
+    fn non_streaming_tool_index_must_repeat_its_zero_based_position() {
+        let accepted = r#"{"id":"chat-1","object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","content":"","tool_calls":[{"index":0,"id":"call-1","type":"function","function":{"name":"first","arguments":"{}"}},{"index":1,"id":"call-2","type":"function","function":{"name":"second","arguments":"{}"}}]},"finish_reason":"tool_calls"}]}"#;
+        assert!(decode_upstream_response(accepted).is_ok());
+
+        for rejected in [
+            r#"{"id":"chat-1","object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","tool_calls":[{"index":1,"id":"call-1","type":"function","function":{"name":"lookup","arguments":"{}"}}]},"finish_reason":"tool_calls"}]}"#,
+            r#"{"id":"chat-1","object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","tool_calls":[{"index":null,"id":"call-1","type":"function","function":{"name":"lookup","arguments":"{}"}}]},"finish_reason":"tool_calls"}]}"#,
+            r#"{"id":"chat-1","object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","tool_calls":[{"index":"0","id":"call-1","type":"function","function":{"name":"lookup","arguments":"{}"}}]},"finish_reason":"tool_calls"}]}"#,
+        ] {
+            assert!(decode_upstream_response(rejected).is_err());
+        }
     }
 
     #[test]

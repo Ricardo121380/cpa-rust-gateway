@@ -281,3 +281,8 @@ whether every index is an unsigned integer, whether indices are unique, and whet
 zero-based array positions. It keeps the same read-only CC Switch and no-value boundary and cannot
 retain any other response field. Only a unique zero-based relation permits the decoder to ignore
 the redundant wire index in a non-streaming response; any other result remains fail-closed.
+
+The replacement proved one unsigned, unique index equal to its zero-based array position. The
+non-streaming decoder may therefore accept an absent index or an unsigned index exactly equal to
+the current Tool-call position. Wrong types, null, duplicates and displaced indices remain strict
+protocol failures. The streaming decoder and every other Tool field are unchanged.

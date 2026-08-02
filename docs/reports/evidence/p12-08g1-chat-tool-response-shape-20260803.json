@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "value_free": true,
+  "request_count": 1,
+  "retry_count": 0,
+  "status_class": "2xx",
+  "content_type_class": "json",
+  "root_keys": ["choices", "created", "id", "model", "object", "system_fingerprint", "usage"],
+  "choices_count": 1,
+  "choice_keys": ["finish_reason", "index", "logprobs", "message"],
+  "message_keys": ["content", "role", "tool_calls"],
+  "content_class": "empty_string",
+  "tool_call_count": 1,
+  "tool_call_key_sets": [["function", "id", "index", "type"]],
+  "function_key_sets": [["arguments", "name"]],
+  "tool_value_classes": [["nonempty_string", "nonempty_string", "nonempty_string", "nonempty_string"]],
+  "finish_reason_class": "tool_calls",
+  "usage_keys": ["completion_tokens", "completion_tokens_details", "prompt_tokens", "prompt_tokens_details", "total_tokens"],
+  "first_decoder_gate": "tool_call_keys",
+  "cc_switch_access": "read_only",
+  "cc_switch_modified": false
+}
