@@ -3570,3 +3570,4 @@ Next task:
 | v1.134 | 2026-08-03 | `CR-P12-08G1-027`：CR-026 的一次重试因诊断器使用错误 request ID 前缀而未取得 Attempt；源码确认生产前缀为 `p1-request-` | IN_PROGRESS；6/12 tuple PASS，仅失败 tuple 再发一次完成同进程投影 |
 | v1.135 | 2026-08-03 | `CR-P12-08G1-028`：确认 request/event ID 在进程重启后碰撞，使 Attempt 持久与 stage 投影失效；引入进程随机命名空间 | IN_PROGRESS；6/12 tuple PASS，修复审计相关性后再诊断第 7 tuple |
 | v1.136 | 2026-08-03 | `CR-P12-08G1-029`：CR-028 artifact 已部署且 restart-unique Request 成功持久化；只读时间线证明诊断事务在 Route 15s 上限内重启，可能终止尚未发射终态的 Attempt；改为终态或 20s 观察上限后才回滚 | IN_PROGRESS；6/12 tuple PASS，仅第 7 tuple 可再发一次，前 6 个不重发 |
+| v1.137 | 2026-08-03 | `CR-P12-08G1-030`：终态感知重试得到唯一 `failed/decoder` Attempt，队列与持久化异常计数为零且完整回滚；扩展无值 Responses JSON 分类器，以一次同形 required Tool 直连定位首个封闭差异 | IN_PROGRESS；6/12 tuple PASS，分类不计验收 tuple且不重发任何 G1 tuple |

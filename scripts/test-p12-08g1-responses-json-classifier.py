@@ -14,6 +14,24 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ClassifierTest(unittest.TestCase):
+    def test_tool_request_matches_the_g1_required_function_shape(self):
+        body = json.loads(MODULE.request_body("private-model", True))
+        self.assertEqual(body["model"], "private-model")
+        self.assertFalse(body["stream"])
+        self.assertEqual(body["tool_choice"], "required")
+        self.assertEqual(len(body["tools"]), 1)
+        tool = body["tools"][0]
+        self.assertEqual(tool["type"], "function")
+        self.assertEqual(tool["name"], "emit_probe")
+        self.assertFalse(tool["parameters"]["additionalProperties"])
+
+    def test_text_request_remains_unchanged_and_has_no_tools(self):
+        body = json.loads(MODULE.request_body("private-model", False))
+        self.assertEqual(body["model"], "private-model")
+        self.assertFalse(body["stream"])
+        self.assertNotIn("tools", body)
+        self.assertNotIn("tool_choice", body)
+
     def test_direct_classifier_uses_the_exact_runtime_compatibility_headers(self):
         headers = MODULE.request_headers("private-token")
         self.assertEqual(set(headers), {"accept", "authorization", "content-type", "user-agent"})

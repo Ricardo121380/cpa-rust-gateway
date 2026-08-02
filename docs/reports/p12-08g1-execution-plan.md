@@ -534,3 +534,20 @@ and stage; retain no request identifier, endpoint, credential, model, body, erro
 token value or fingerprint. Roll back and reverify the predecessor key, rejected v2 key, active
 service, disabled-at-boot state and loopback listeners in every outcome. The first six tuples remain
 PASS and must not be resent.
+
+## CR-P12-08G1-030 — Responses JSON Tool structure classifier
+
+CR-029's terminal-aware retry produced exactly one durable Attempt classified `failed/decoder`.
+The bounded queue and durability failure counters remained zero, and rollback restored the full
+predecessor boundary. This closes the infrastructure question and proves that only the current
+Krill Responses non-streaming Tool response shape may justify a compatibility change.
+
+Extend the existing value-free Responses JSON classifier with an explicit `--tool` mode whose
+request is byte-shape-equivalent to G1's required single-function request. Read the current CC
+Switch Krill base, bearer and model without modifying its database, send exactly one direct
+non-streaming request, and retain only status/content-type classes, duplicate-name counts, field
+names, value classes, bounded counts and closed equality/validity relations. Never retain or print
+the endpoint, bearer, model, identifiers, Tool arguments, text, timestamps, token values or
+fingerprints. This classifier is diagnostic and does not count as a passing G1 tuple. Only its
+first closed decoder mismatch may be repaired; the first six tuples and failed seventh tuple must
+not be resent during classification.

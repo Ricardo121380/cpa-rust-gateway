@@ -378,10 +378,39 @@ def request_headers(bearer: str) -> dict[str, str]:
     }
 
 
+def request_body(model: str, tool: bool) -> bytes:
+    instruction = (
+        "Call emit_probe exactly once with value set to ready and return no text."
+        if tool else "Return one short plain text result."
+    )
+    value = {
+        "model": model,
+        "input": [{"type": "message", "role": "user", "content": instruction}],
+        "max_output_tokens": 96,
+        "stream": False,
+    }
+    if tool:
+        value.update({
+            "tools": [{
+                "type": "function", "name": "emit_probe",
+                "description": "Emit the probe result.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"value": {"type": "string"}},
+                    "required": ["value"],
+                    "additionalProperties": False,
+                },
+            }],
+            "tool_choice": "required",
+        })
+    return json.dumps(value, separators=(",", ":")).encode("utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--timeout", type=float, default=120.0)
+    parser.add_argument("--tool", action="store_true")
     args = parser.parse_args()
     try:
         base_url, bearer, model = read_inputs()
@@ -389,12 +418,7 @@ def main() -> int:
         if parsed.scheme != "https" or not parsed.hostname or parsed.query or parsed.fragment or parsed.username or parsed.password:
             raise ClassifierError("endpoint_admission")
         path = parsed.path.rstrip("/") + "/responses"
-        body = json.dumps({
-            "model": model,
-            "input": [{"type": "message", "role": "user", "content": "Return one short plain text result."}],
-            "max_output_tokens": 96,
-            "stream": False,
-        }, separators=(",", ":")).encode("utf-8")
+        body = request_body(model, args.tool)
         connection = http.client.HTTPSConnection(parsed.hostname, parsed.port or 443, timeout=args.timeout, context=ssl.create_default_context())
         connection.request("POST", path, body=body, headers=request_headers(bearer))
         response = connection.getresponse()
@@ -407,6 +431,7 @@ def main() -> int:
             "schema_version": 1, "value_free": True, "request_count": 1, "retry_count": 0,
             "status_class": status_class,
             "content_type_class": "json" if content_type == "application/json" else "other",
+            "request_mode": "tool" if args.tool else "text",
             "cc_switch_access": "read_only", "cc_switch_modified": False,
         }
         if status_class == "2xx" and content_type == "application/json":
