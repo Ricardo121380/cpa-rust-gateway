@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.78` |
-| 生效日期 | `2026-07-31` |
+| 计划版本 | `v1.79` |
+| 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-04 已完成独立、loopback-only Staging 验收并保持 disabled-at-boot；P12-05 的 Models、Responses、SSE、Messages、Tool 与 Explain 已全部通过受控验收并回滚，状态为 `LOCAL_PASS_PENDING_PHASE_GATE`。P12-01 已按 `CR-P12-01-002` 扩为 x86_64 + aarch64 双目标并完成远端双 job 验收（生产主机为 aarch64，此前产物在其上不可执行）。P12-08 的判据已按 `CR-P12-08-001` 定为可判定谓词（阶段门槛 1250、50% 阶段 24h、四级严重度分级、TTFT/P95 服务端不可观测已如实登记），P12-07 的分流/回滚 Caddyfile 模板、超时一致性校验器与 RTO 测量脚本已按 `CR-P12-07-001` 就绪于 `deploy/caddy/`（未安装、未 reload）。P12-06 仍是 `PENDING`，尚未获其 Shadow/Differential 流量范围的单独执行授权；现有 CPA、公开监听与任何公开流量没有改变。 |
+| 当前任务 | P12-06 `IN_PROGRESS`。Kiro 运行链路、单候选临时图和测量工具已就绪；原 Pro Max 凭据超额后，`CR-P12-06-007` 受控测试了 kiro-rs 中另外两个 headless Free API-key 凭据，二者均由上游返回 `403`，因此未启动无意义的性能采样。剩余一个 Free 凭据属于已过期的 IdC OAuth，须另行批准刷新与运行时组合，不能冒充本次 API-key 替换成功。OpenAI-compatible canonical differential 尚未执行。P12-04/P12-05/P12-07 仍为 `LOCAL_PASS_PENDING_PHASE_GATE`；现有 CPA、生产主机名流量和公开监听均未改变。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；尚未录入任何真实上游凭据，尚未在生产主机名上分流任何流量 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1717,7 +1717,7 @@ CR-ID: CR-P11-04-001
 | P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | [带时间戳、无值备份与回滚清单](reports/p12-03-server-backup-rollback.md)：现有 CPA 数据根静止快照、镜像身份、关联 unit 片段、权限、哈希和精确回滚步骤已独立复核；未安装或启动新服务 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | [Staging receipt](reports/p12-04-staging-receipt.md)：独立签名制品、精确 Unit、root-only 凭证、两个回环 listener、Health/管理面 admission、资源/日志/回滚均验收；服务 active 但 disabled-at-boot | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | [CR-015 Tool/Explain 回执](reports/evidence/p12-05-cr-015-tool-explain-receipt-20260726.md)：一次新的无外部效应 Tool tuple 为 `2xx`/`valid`，唯一 protected attempt 为 `succeeded/decoder`，Explain 选中唯一 Candidate 且无新增 upstream attempt；完整回滚与独立 post-review 均通过 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | 差异与性能报告；按 `CR-P12-06-003` 分为两类互不混淆的证据：OpenAI-compatible 路径的 canonical 逐字段差分，以及 Kiro 渠道的功能验证与性能基线（incumbent 无此渠道，显式非差分）。性能含首字耗时（FirstSemanticEvent）、TTFB、总耗时、token 输出速率与 token 间延迟分位数 | PENDING |
+| P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | [Kiro 渠道证据](reports/p12-06-kiro-channel-evidence.md)已记录两个替代 Free API-key 凭据的上游 `403` 与性能采样未启动原因；仍需可用 Kiro 凭据完成其功能/性能基线，并执行 OpenAI-compatible canonical 逐字段差分。性能含首字耗时（FirstSemanticEvent）、TTFB、总耗时、token 输出速率与 token 间延迟分位数 | IN_PROGRESS |
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | [暴露前验证回执](reports/p12-07-exposure-receipt.md)：新主机上从零完成产物验签、账户/目录/五凭据、unit 安装与启动（active、disabled-at-boot）；`cpar` 灰云 A 记录 + Let's Encrypt 证书；七项 fail-closed 暴露断言全通过（未认证与错误 key 均 401、管理面四路径均 404、公网直连 18180/18181 均不可达）；Caddy 变更前备份 preimage 并以 validate/adapt 证明其余五站点未变，reload 后 incumbent 仍正常。未录入任何真实上游凭据，`valid_key_accepted` 为 SKIP；该域名无限流（Caddy 标准版无模块）已记为缺口 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08 | 使用单独 Client Key 开始 10%→25%→50%→100% Canary | P12-06,P12-07 | 每阶段成功率、P95/P99、缓存和错误证据 | PENDING |
 | P12-09 | 在 Canary 中实际执行一次回滚并再次恢复 | P12-08 | 回滚时长和一致性报告 | PENDING |
@@ -2726,6 +2726,41 @@ CR-ID: CR-P12-06-006
 计划版本变更: v1.78
 ```
 
+### 已批准 Change Request：CR-P12-06-007
+
+```text
+CR-ID: CR-P12-06-007
+原因: P12-06 已验证可用的 Kiro Pro Max API-key 凭据额度耗尽。用户明确要求从服务器
+      kiro-rs 凭据库中选择其他 Free 凭据替换并开始验证，因此需要在不泄露 Secret、
+      不影响线上 kiro-rs、也不扩大到 OAuth 刷新的前提下，为每个替代凭据创建不可变的
+      successor Config Version 并做最小功能分类。
+影响的 Task / Matrix ID / ADR: P12-06 的 Kiro 功能验证和性能基线；不改变 P7-09/G7 的
+      DEFERRED 状态，不改变 OpenAI-compatible differential，不启用 Kiro 生产路由，不改
+      incumbent CPA、Caddy、Cloudflare、DNS、公开监听或生产主机名流量。
+执行边界:
+      (1) 仅测试 kiro-rs 中除已超额账号外的 headless `ksk_` Free API-key 凭据；凭据只在
+          服务器内存中进入 root-only 临时图，不输出值、不写入仓库。
+      (2) active Config Version 不可变，因此 id=4 与 id=2 分别进入 `p12-06-kiro-v3` 和
+          `p12-06-kiro-v4` successor；每个版本只有一个 Candidate、`max_attempts=1`、
+          concurrency=1 和独立 version-scoped Client Key。
+      (3) 每个候选只发送一次 gateway 功能请求；失败后各允许一次同形直连分类，不保存正文。
+          两个早期分类命令因 shell quoting 失败而发送空正文并各得 `400`，明确列为无效诊断；
+          修正为先在内存中完整构造并校验 JSON 后，两个候选均由 Kiro 上游返回 `403`。
+      (4) 功能成功数为零时不得启动 warm-up 或性能采样，避免从失败渠道制造性能结论。
+      (5) 凭据库剩余的 Free 账号是已过期的 IdC OAuth；刷新 token、组合 OAuth 运行时或扩大
+          P7-09 范围均不属于本 CR，必须单独批准后才可执行。
+结果: 两个替代 headless Free 凭据均不可用；网关对同一失败返回 `502`，与安全边界把未归类
+      上游 `403` fail closed 为 `EgressRejected` 一致。Kiro 性能基线未执行，P12-06 保持
+      `IN_PROGRESS`；服务器测试域名图停在最后一个可审计 successor，服务仍 loopback-only、
+      disabled-at-boot，incumbent 与生产流量未变。
+测试与回滚变化: 修复录图 helper 的 successor parent 记录和不可覆盖 `0600` ledger；`--finish`
+      现在加载既有 ledger，fresh enter 拒绝复用旧路径。回滚可恢复修复前 helper；服务器 SQLite
+      preimage 已保留，测试图不承载生产流量。
+用户批准: APPROVED，2026-08-02（“之前说的kiro pro max账号已经超额了无法使用，随便在
+      kiro-rs里面取几个其他的free凭证替换吧；开始”）
+计划版本变更: v1.79
+```
+
 ### 已批准 Change Request：CR-P12-07-001
 
 ```text
@@ -3076,3 +3111,4 @@ Next task:
 | v1.76 | 2026-07-31 | `CR-P12-06-004`：把已完成但从未接线的 Kiro 渠道接入 P12 运行时。按 kiro-rs 逻辑确认 endpoint(ide/cli) 是凭据级字段而非线格式，故 `ApiFormat` 词表与存储值不变、Kiro 复用 `anthropic/messages`；放宽 BC-PROTOCOL-007 为「一格式多适配器、Endpoint 显式选择」，`adapter_id()` 改 `adapter_ids()`，发布期校验改为集合成员判定；新增 `kiro.messages` 适配器与 `apps/gateway` 的 provider-kiro 边。仅解禁 Kiro 切片，Grok 三切片不动 | APPROVED；不解除 P7-09/G7 的 DEFERRED，本 CR 证据不计入 Kiro 的 Provider Gate |
 | v1.77 | 2026-08-01 | `CR-P12-06-005`：修复 CR-004 接线后暴露的组合缺陷——Kiro 渠道曾拒绝 100% 请求。Anthropic Messages 强制 `max_tokens` 而入站解码器按设计将其保留为根扩展，Kiro 的 `conversationState` 无任何输出上限字段故 `BC-PROVIDER-007` 拒绝一切根扩展；两条正确规则相乘使任何合规客户端都无法使用该渠道。在组合根新增仅丢弃该一项扩展的投影（与 kiro-rs 口径一致：接受但不转发），其余扩展全部保留以继续在转换器内 fail closed | APPROVED；修复前 `ClientRequestError`（转换期失败）、修复后 `ProviderPermanent`（已出网并被上游按假凭据拒绝），本地隔离网关全链路验证通过 |
 | v1.78 | 2026-08-01 | `CR-P12-06-006`：修复 Kiro 请求缺失必需字段 `conversationState.chatTriggerType`。其余字节相同时，不含该字段→400 `ValidationException`/`REQUEST_BODY_INVALID`，含该字段→200 且返回真实 `application/vnd.amazon.eventstream`。一律发送 `MANUAL`（网关的每个请求都源自客户端显式调用）。本 CR 同时如实记录并撤销了一次错误诊断：曾误判根因为 CLI 的 Content-Type，因为只看 HTTP 状态码而未看正文——`application/json` 的 200 正文实为 `UnknownOperationException`。`application/x-amz-json-1.0` 自始正确，已 revert | APPROVED；新增跨 kind 的独立断言并经变异验证；功能验证以 id=5 单次真实调用取得完整响应（`{"content":"OK"}`、`stopReason: END_TURN`、计费 0.0155 credit） |
+| v1.79 | 2026-08-02 | `CR-P12-06-007`：Pro Max 凭据超额后，受控测试 kiro-rs 其余两个 headless Free API-key 凭据；使用不可变 successor Config Version、单候选/单 attempt、root-only ledger 和不保存正文的直连分类。修复录图 helper 的 parent lineage 与 ledger 覆盖缺陷 | APPROVED；两个候选的 gateway 功能请求均为 502、修正后的同形直连均由上游返回 403，故未启动性能采样；剩余 IdC OAuth 已过期且不在本 CR，P12-06 保持 IN_PROGRESS |

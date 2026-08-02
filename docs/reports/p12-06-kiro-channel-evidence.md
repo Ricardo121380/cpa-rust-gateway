@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.77` |
+| Plan version | `v1.79` |
 | Task | `P12-06` (Kiro portion) |
 | Status | `IN_PROGRESS` |
 | Scope | Kiro channel only. Per `CR-P12-06-003` this is **not** the incumbent differential: the incumbent CPA has no Kiro channel, so there is no second side to compare against. The OpenAI-compatible differential is separate and not covered here. |
@@ -106,7 +106,40 @@ No prompt text, response text, or credential value appears in any output file.
 
 ## Results
 
-_Pending execution._
+### Free-credential replacement attempt (2026-08-02)
+
+The previously selected Kiro Pro Max API-key account exhausted its allowance. Under
+`CR-P12-06-007`, the remaining two headless `ksk_` credentials in the server's kiro-rs credential
+store were tested without rendering or copying either value outside the host. The fourth stored
+credential is IdC OAuth, not a headless API key; its access token was already expired and the P12
+composition deliberately does not refresh or compose that family.
+
+Each headless candidate received its own successor Config Version because an active Version is
+immutable. Every graph used the same single Endpoint/Credential/Candidate shape, concurrency one,
+`max_attempts=1`, a new version-scoped Client Key, and a root-only ledger. Both graphs validated,
+published and selected the sole Kiro Candidate before one functional request was sent.
+
+| Candidate | Config Version | Gateway functional request | Corrected same-shape direct classification | Result |
+|---|---|---|---|---|
+| kiro-rs id `4`, `KIRO FREE`, API key | `p12-06-kiro-v3` | one request, `502`; zero successful samples | one request, upstream `403`, Kiro JSON content type | unusable |
+| kiro-rs id `2`, `KIRO FREE`, API key | `p12-06-kiro-v4` | one request, `502`; zero successful samples | one request, upstream `403`, Kiro JSON content type | unusable |
+
+The gateway's public `502` is consistent with the Kiro boundary's fail-closed mapping of an
+otherwise-unattributed upstream `403` to `EgressRejected`; it is not evidence of a DNS, TLS or local
+Host/CIDR failure. Server DNS returned only public addresses, direct HTTPS reached the Kiro host,
+and the persisted policy remained HTTPS-only with the exact host, port 443, no CIDR exception and
+redirects denied.
+
+Two earlier direct diagnostic commands suffered a shell-quoting defect: request JSON generation
+failed but curl still sent an empty body, producing one `400` for each candidate. Those two requests
+are retained as invalid diagnostics and are not counted as credential evidence. The command was
+then corrected to construct and validate the complete in-memory JSON before the two `403`
+classifications above.
+
+No warm-up or performance round was started, because accumulating latency samples from a channel
+with zero successful functional requests would manufacture a performance conclusion. The Kiro
+portion of P12-06 remains `IN_PROGRESS`, blocked on either a usable `ksk_` credential or a separately
+approved IdC/OAuth composition and refresh scope.
 
 ## What this evidence does not claim
 

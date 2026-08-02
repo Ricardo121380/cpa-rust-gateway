@@ -42,8 +42,28 @@ class ManagementError(Exception):
 class Ledger:
     """Records every created id, since most graph resources have no read endpoint."""
 
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, *, load_existing: bool = False) -> None:
         self.path = path
+        if load_existing:
+            try:
+                with open(path, "r", encoding="utf-8") as handle:
+                    existing = json.load(handle)
+            except (OSError, json.JSONDecodeError) as error:
+                raise ManagementError(f"cannot load existing ledger {path}") from error
+            if not isinstance(existing, dict):
+                raise ManagementError(f"existing ledger {path} is not a JSON object")
+            self.entries = existing
+            return
+
+        # A fresh graph must never merge with or overwrite an earlier partial run. The ledger is
+        # operator evidence and contains the only deletion inventory for resources without list
+        # endpoints, so create it before the first mutation with an exclusive 0600 open.
+        try:
+            descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except OSError as error:
+            raise ManagementError(f"refusing to reuse ledger {path}") from error
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write("{}\n")
         self.entries: dict[str, object] = {}
 
     def record(self, key: str, value: object) -> None:
@@ -119,6 +139,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--public-model", default="claude-sonnet-5")
     parser.add_argument("--ledger", help="Where to write the id ledger")
     parser.add_argument("--client-key-out", help="Where to write the issued key")
+    # Every resource id, including a Client Key id, is namespaced by Config Version. Keeping the
+    # Client Key id configurable still makes successor-version ledgers and operator-owned key files
+    # unambiguous; uniqueness across Versions is not a storage requirement.
+    parser.add_argument(
+        "--client-key-id",
+        default="p12-06-kiro-client-key",
+        help="Client Key id used within this Config Version and its operator ledger",
+    )
+    parser.add_argument(
+        "--parent-version-id",
+        help="Record an earlier Version as this one's parent when superseding it",
+    )
     parser.add_argument("--publish", action="store_true", help="Publish after validating")
     # The management listener is loopback-only by construction, so this override cannot expose
     # anything; it exists so the sequence can be rehearsed against a scratch gateway on another
@@ -137,6 +169,8 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     if args.explain_only and args.finish:
         parser.error("--explain-only and --finish are separate phases")
+    if args.parent_version_id == args.version_id:
+        parser.error("--parent-version-id must differ from --version-id")
     if not (args.explain_only or args.finish):
         missing = [
             name
@@ -171,13 +205,22 @@ def enter_graph(args: argparse.Namespace) -> int:
         "route": "p12-06-kiro-route",
         "candidate": "p12-06-kiro-candidate",
         "access_group": "p12-06-kiro-group",
-        "client_key": "p12-06-kiro-client-key",
+        "client_key": args.client_key_id,
     }
 
+    version_input: dict[str, object] = {
+        "id": ids["config_version"],
+        "description": "P12-06 Kiro channel verification",
+    }
+    # Record lineage when this Version supersedes an earlier one. An active Version is not writable
+    # (`management_version_not_writable`), and `parent_id` is metadata only -- it copies no resources
+    # -- so superseding means re-entering the graph under a new Version id rather than editing.
+    if args.parent_version_id:
+        version_input["parent_id"] = args.parent_version_id
     version = session.call(
         "POST",
         "/admin/config-versions",
-        {"id": ids["config_version"], "description": "P12-06 Kiro channel verification"},
+        version_input,
         send_config_version=False,
     )
     session.config_version = ids["config_version"]
@@ -388,7 +431,7 @@ def finish(args: argparse.Namespace) -> int:
         config_version=args.version_id,
         base=args.management_base,
     )
-    ledger = Ledger(args.ledger) if args.ledger else None
+    ledger = Ledger(args.ledger, load_existing=True) if args.ledger else None
     route_id = "p12-06-kiro-route"
 
     session.call("POST", f"/admin/routes/{route_id}/validate", {}, expect=200)
