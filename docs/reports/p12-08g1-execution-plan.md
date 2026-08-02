@@ -483,3 +483,16 @@ Attempt projection and retain bounded attempt count, terminal outcome and closed
 no request identifier, endpoint, credential, model, body, status, error text, timestamp or token
 value. Then restore and reverify the same predecessor boundary. Only that proven stage may justify
 the next diagnostic or repair; the six passing tuples must not be resent.
+
+## CR-P12-08G1-027 — corrected process-local request lookup
+
+CR-026 sent the failed tuple exactly once and restored every rollback boundary, but the diagnostic
+queried a guessed `p12-request-*` range and found no Attempt. Source inspection proves the
+production [`SystemResponsesMetadataFactory`] emits `p1-request-<sequence>` beginning at zero for
+each process. The failed response therefore remains reproduced but its stage was not classified.
+
+Reactivate the unchanged v2 graph and resume the same failed tuple once more. Query only the
+bounded `p1-request-0..15` space before rollback and require exactly one nonempty Attempt list.
+Retain only count, outcome and closed stage as in CR-026. The incorrect lookup created no extra
+upstream request, and this correction still forbids resending the first six tuples or retaining any
+request identifier or value.

@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.133` |
+| 计划版本 | `v1.134` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -38,6 +38,7 @@
 | 已批准变更（续 21） | `CR-P12-08G1-024`：CR-023 证明当前响应无重复 JSON 名；源码复核发现直连分类器缺少 CPAR 固定 Krill 兼容 User-Agent，因此此前“同形”不包含完整请求头等价；分类器补齐精确四头后仅允许一次无重试分类。 |
 | 已批准变更（续 22） | `CR-P12-08G1-025`：CR-024 完整请求头分类仍与旧收据相同；随后只读比对证明失败的 G1 v1 图与当前 CC Switch Krill 的 endpoint/model 均不同，且本机无 provider 匹配旧图。旧图不再代表生产目标；建立 `p12-08g1-codex-v2` 当前 Krill 图并从 0 重新验证 12 tuple，首个失败即停。 |
 | 已批准变更（续 23） | `CR-P12-08G1-026`：G1 v2 从 0 执行后前 6 tuple PASS，含 Responses JSON/SSE Text；第 7 个 Responses JSON Tool 为 `http_5xx` 并完整回滚。仅重试失败 tuple 一次，回滚前读取同进程 Attempt 数量、outcome 与封闭 stage；不重发前 6 tuple。 |
+| 已批准变更（续 24） | `CR-P12-08G1-027`：CR-026 失败 tuple 仅发送一次并回滚，但诊断器误查 `p12-request-*`，而生产 metadata factory 源码证明实际为 `p1-request-*`，因此 Attempt 投影未被读取。仅允许用正确封闭 ID 空间再重试失败 tuple 一次并立即查询；仍不重发前 6 tuple。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -3565,3 +3566,4 @@ Next task:
 | v1.131 | 2026-08-03 | `CR-P12-08G1-024`：CR-023 排除重复 JSON 名；校正直连分类器漏掉的固定 Krill 兼容 User-Agent | IN_PROGRESS；4/12 tuple PASS，仅一次完整请求头等价分类 |
 | v1.132 | 2026-08-03 | `CR-P12-08G1-025`：只读证明 G1 v1 图 endpoint/model 与当前 Krill 不等且无本机 provider 可重现；改以当前配置建立 G1 v2 | IN_PROGRESS；目标图已改变，旧 4/12 不沿用，v2 从 0/12 首败即停 |
 | v1.133 | 2026-08-03 | `CR-P12-08G1-026`：G1 v2 前 6/12 PASS，第 7 个 Responses JSON Tool 在首败边界停止并回滚；登记单次同进程 Attempt stage 诊断 | IN_PROGRESS；6/12 tuple PASS，仅失败 tuple 可重试 |
+| v1.134 | 2026-08-03 | `CR-P12-08G1-027`：CR-026 的一次重试因诊断器使用错误 request ID 前缀而未取得 Attempt；源码确认生产前缀为 `p1-request-` | IN_PROGRESS；6/12 tuple PASS，仅失败 tuple 再发一次完成同进程投影 |
