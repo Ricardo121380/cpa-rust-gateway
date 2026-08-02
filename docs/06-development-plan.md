@@ -4,13 +4,13 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.88` |
+| 计划版本 | `v1.89` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | 无活动 Task。P12-06 已完成 Krill 原生 Responses 参考臂的受控差分：两臂均为 10/10 SSE、0 失败，非流式、Tool、Canonical 生命周期、终止语义与 Usage 不变量全部通过；修正后的比较器对原始 value-free receipt 离线重算为 9/9 PASS，未新发网络请求。incumbent 临时 Provider/model selector 已完整回滚，两服务及 loopback 监听正常；Grok/Kiro 仍延期且禁用。P12-06 为 `LOCAL_PASS_PENDING_PHASE_GATE`，下一任务 P12-08 仍 `PENDING`，生产 Canary 未开始。 |
+| 当前任务 | P12-08 准入检查 `IN_PROGRESS`。P12-06 已完成 Krill 原生 Responses 参考臂的受控差分：两臂均为 10/10 SSE、0 失败，非流式、Tool、Canonical 生命周期、终止语义与 Usage 不变量全部通过；修正后的比较器对原始 value-free receipt 离线重算为 9/9 PASS，未新发网络请求。P12-07 暴露前验证已通过。当前只允许核对生产图、独立 Client Key、凭据、Caddy preimage 和观测链路；准入不通过不得切生产流量。Grok/Kiro 仍延期且禁用。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
-| 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；尚未录入任何真实上游凭据，尚未在生产主机名上分流任何流量 |
+| 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；P12-08 尚未完成生产双接受和 Caddy 分流，未宣称 Canary 已开始 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
 | 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 `CR-P6-03-003`：在确认 2xx JSON 错误对象后，增加最终一次仅从标准错误元数据映射安全类别的诊断调用。 `CR-P6-03-004`：新增一个与固定直连验收隔离的、服务器本地 grok2api Build 路由代理参考探针。 `CR-P6-03-005`：采用服务器参考的当前 Build 请求轮廓，并只登记新的固定端点 T11 非流式与 T12 SSE 验证。 `CR-P6-03-006`：通过 grok2api 支持的管理 API 导入指定 OAuth 文件并做账号专属额度刷新诊断；不重放固定直连元组，也不把共享路由调用误归因到该账号。 `CR-P6-03-007`：仅以本机官方 Grok CLI 做一次交互式 OAuth 重新认证并记录安全状态投影；不发送 P6 请求或改变服务器/路由。 |
 | 已批准变更（续） | `CR-P6-03-008`：以 CPA、grok2api 和 Sub2API 的 clean-room 行为参考扩展 Grok Build 的已知 OAuth 凭据来源；保留标准 JSON/Device Code/Refresh，新增 CPA xAI 文件和官方 Grok CLI indexed cache 的内存导入，不纳入 Cookie/SSO Web 转换。 `CR-P6-03-009`：仅修正 T13 零发送 wrapper 的一次替代 T15 验证；T15 的 4xx 已停止矩阵。 `CR-P6-03-010`：基于官方 CLI 静态证据更正 workspace User-Agent，仅登记新的 T16 非流式直连验证，并在 T16 完整成功时条件允许一次 T17 SSE。 `CR-P6-03-011`：T16 在无网络预检的本地标签门槛前停止后，以不同的合法短标签重新登记 T18 非流式直连；仅其完整 Canonical 成功时允许条件 T19 SSE。 `CR-P6-03-013`：用户批准完成 P6 全部要求，解除 P6-03 对后续本地安全/连续性实现的流程阻塞；不声称 T18 成功、不发送 T19 或重放任何闭合 tuple。 `CR-P6-03-014`：以当前官方 CLI 的成功模型/会话和新完成的可注入执行链路登记 T20/T21，不重放任何已关闭 tuple。 `CR-P6-03-015`：T20 的新的 2xx JSON 协议失败后，只输出固定的无值结构类别诊断 T22。 `CR-P6-03-016`：T22 发现投影在合法压缩前运行，登记一次解压后无值结构诊断 T23。 `CR-P6-03-017`：T23 仍失败后，仅投影第一个固定 decoder requirement gate 的 T24。 |
@@ -1719,7 +1719,7 @@ CR-ID: CR-P11-04-001
 | P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | [CR-015 Tool/Explain 回执](reports/evidence/p12-05-cr-015-tool-explain-receipt-20260726.md)：一次新的无外部效应 Tool tuple 为 `2xx`/`valid`，唯一 protected attempt 为 `succeeded/decoder`，Explain 选中唯一 Candidate 且无新增 upstream attempt；完整回滚与独立 post-review 均通过 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | [OpenAI-compatible live differential](reports/p12-06-openai-differential.md)：临时 Krill 原生 `codex-api-key` 参考臂与新网关 candidate 均通过 10/10 SSE、非流式、Tool、Canonical/Usage 不变量与性能取证；修正过严的可选 Usage 明细比较后，无网络离线 review 为 9/9 PASS，完整回滚通过。Grok/Kiro 切片仍延期 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | [暴露前验证回执](reports/p12-07-exposure-receipt.md)：新主机上从零完成产物验签、账户/目录/五凭据、unit 安装与启动（active、disabled-at-boot）；`cpar` 灰云 A 记录 + Let's Encrypt 证书；七项 fail-closed 暴露断言全通过（未认证与错误 key 均 401、管理面四路径均 404、公网直连 18180/18181 均不可达）；Caddy 变更前备份 preimage 并以 validate/adapt 证明其余五站点未变，reload 后 incumbent 仍正常。未录入任何真实上游凭据，`valid_key_accepted` 为 SKIP；该域名无限流（Caddy 标准版无模块）已记为缺口 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-08 | 使用单独 Client Key 开始 10%→25%→50%→100% Canary | P12-06,P12-07 | 每阶段成功率、P95/P99、缓存和错误证据 | PENDING |
+| P12-08 | 使用单独 Client Key 开始 10%→25%→50%→100% Canary | P12-06,P12-07 | `CR-P12-08-002` 准入检查与首阶段证据；每阶段成功率、P95/P99、缓存和错误证据 | IN_PROGRESS |
 | P12-09 | 在 Canary 中实际执行一次回滚并再次恢复 | P12-08 | 回滚时长和一致性报告 | PENDING |
 | P12-10 | 完成生产切换、72h 观察、发布 Tag 和运维手册 | P12-09 | G12 报告 | PENDING |
 
@@ -3087,6 +3087,28 @@ CR-ID: CR-P12-08-001
 计划版本变更: v1.73
 ```
 
+### 已批准 Change Request：CR-P12-08-002
+
+```text
+CR-ID: CR-P12-08-002
+原因: 用户批准开始 P12-08。P12-06 Krill differential 与 P12-07 暴露前验证均已完成本地
+      证据，但生产 Canary 仍必须经过独立的无值准入检查，避免把 loopback Staging 图、测试域名
+      或未配置的 Client Key 误当作生产切片。
+影响的 Task / Matrix ID / ADR: P12-08 准入检查及首个 10% Canary 阶段；不改 P12-06/P12-07
+      既有证据，不解禁 Grok/Kiro，不改变 Cloudflare/DNS 或 incumbent 非 rgw_ 流量。
+范围: 只读核对当前 active Config Version、Endpoint/Credential/Route/Access Group 图、独立
+      rgw_ Client Key、Caddy 生产 preimage、回滚片段、管理/数据面监听和客户端侧观测链路；准入
+      通过后才允许在生产主机名建立双接受窗口并切入 10%。本 CR 不自动推进 25%/50%/100%。
+安全边界: 不输出或持久化 Secret、endpoint、模型、正文或 token 指纹；管理面保持 loopback；
+      任何新增配置先备份并可单步回滚；P0/P1 立即回滚。10% 阶段仍须同窗每臂至少 1250 个
+      成功请求、观察至少 2h，延迟由客户端侧取证。
+测试与回滚变化: 先执行只读 readiness receipt；缺少任一条件即停止且不 reload Caddy。若进入
+      10%，先保存 Caddy/CPA preimage，验证合法 rgw_ key 的新旧双接受，再以 rollback fragment
+      和一次 caddy reload 恢复 incumbent；新网关配置发布后按 Runbook 重启。
+用户批准: APPROVED，2026-08-02（“开始吧”）
+计划版本变更: v1.89
+```
+
 ### Canary 推进与回滚规则
 
 阶段最低样本量按回滚触发阈值反推，而不是取整数。以 1 个百分点的新增错误率为触发条件时：
@@ -3356,3 +3378,4 @@ Next task:
 | v1.86 | 2026-08-02 | `CR-P12-06-013`：CR-012 证明通用 Chat→Responses translator 遗失 SSE 终止事件；改用 incumbent 原生 `codex-api-key` Responses 执行器承载同一 Krill 隔离参考臂，三项预检全过后才重跑 paired corpus | APPROVED；成功或失败均回滚，P12-08 未解禁 |
 | v1.87 | 2026-08-02 | `CR-P12-06-014`：修正 differential harness 对 Usage 可选明细存在性的过严等值比较；跨臂仅比较已批准的存在/非负/守恒不变量，补正反回归并离线重算 CR-013 receipt | APPROVED；不新发网络请求，P12-08 待 P12-06 closeout review |
 | v1.88 | 2026-08-02 | 收口 P12-06 Krill 参考臂：两臂 10/10 SSE、0 失败，非流式/Tool/Canonical/Usage 不变量全通过，9/9 离线复核通过，临时 incumbent 配置完整回滚 | P12-06 `LOCAL_PASS_PENDING_PHASE_GATE`；P12-08 仍 `PENDING`，Grok/Kiro 仍延期 |
+| v1.89 | 2026-08-02 | `CR-P12-08-002`：用户批准开始 P12-08；先执行生产 Canary 准入只读检查，只有 active 图、独立 `rgw_` Client Key、凭据、Caddy rollback preimage 与观测链路齐备后才允许首个 10% 双接受/分流，不自动推进后续阶段 | P12-08 `IN_PROGRESS`；生产流量尚未切换 |
