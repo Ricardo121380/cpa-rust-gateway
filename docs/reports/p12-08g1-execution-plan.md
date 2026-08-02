@@ -407,3 +407,19 @@ tree, `final_answer`, matching one-key turn metadata, and zero cache-write token
 optional for standard fixtures. Any nonzero count/penalty/cache-write value, unknown retention,
 unknown nested key, invalid or unequal turn identity, non-null moderation or reversed completion
 time remains a protocol error. No SSE or request decoder behavior changes.
+
+## CR-P12-08G1-022 — current Responses structure reclassification
+
+The independently verified CR-021 exact-revision artifact resumed from the failed fifth tuple and
+sent Responses JSON Text exactly once. It returned the same safe `http_5xx` category, after which
+the transaction restored the predecessor graph, key boundary, active service and disabled-at-boot
+state. The deployed binary matched the independently verified artifact. The retained CR-020
+classifier receipt also confirms that the shape used to design CR-021 was transcribed correctly.
+
+One current same-shape direct Responses JSON Text classification is permitted to determine whether
+the upstream response varied from the CR-020 shape. It sends once with no retry, redirect or proxy,
+reads the selected CC Switch provider configuration without modifying it, and retains only the
+existing bounded field/type/count/status/zero/equality categories. It retains no endpoint,
+credential, model, request/response value, text, identifier, timestamp, token count or fingerprint.
+An ambiguous or non-2xx classification stops; only a newly proved closed mismatch may authorize a
+minimal decoder change.
