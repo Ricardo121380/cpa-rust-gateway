@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.81` |
+| 计划版本 | `v1.83` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-06 `BLOCKED`。OpenAI-compatible candidate 的单次非流式预检已通过，但 incumbent CPA 的修正 Responses 请求返回无更细归因的 `server_error/internal_server_error` 5xx，因此未启动成对 stream/non-stream/Tool/性能 corpus。解除阻塞需要单独批准修复 incumbent Responses/account-pool 路径，或指定另一条已工作的不可变参考臂；P12-08 不得开始。`CR-P12-06-008` 的 Kiro `DEFERRED_EXTERNAL_CREDENTIAL` 边界不变，P7-09/G7 与 Kiro 生产路由仍延期/禁用。P12-04/P12-05/P12-07 仍为 `LOCAL_PASS_PENDING_PHASE_GATE`；生产主机名流量和公开监听均未改变。 |
+| 当前任务 | 无活动 Task。P12-06 按 `CR-P12-06-010` 转为 `DEFERRED`：candidate 预检已通过，但 incumbent 可用的 Grok/xAI OAuth 参考账号已失效，refresh 与重新登录均未产生可用凭据，因此停止该路线的登录、刷新与真实探针。这不计为 P12-06 通过；P12-08 仍为 `PENDING`，须另行批准一条已工作的非 Grok 参考臂，或明确修改 P12-06→P12-08 的发布门禁。Kiro 与 Grok 生产路由均继续禁用。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；尚未录入任何真实上游凭据，尚未在生产主机名上分流任何流量 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1717,7 +1717,7 @@ CR-ID: CR-P11-04-001
 | P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | [带时间戳、无值备份与回滚清单](reports/p12-03-server-backup-rollback.md)：现有 CPA 数据根静止快照、镜像身份、关联 unit 片段、权限、哈希和精确回滚步骤已独立复核；未安装或启动新服务 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | [Staging receipt](reports/p12-04-staging-receipt.md)：独立签名制品、精确 Unit、root-only 凭证、两个回环 listener、Health/管理面 admission、资源/日志/回滚均验收；服务 active 但 disabled-at-boot | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | [CR-015 Tool/Explain 回执](reports/evidence/p12-05-cr-015-tool-explain-receipt-20260726.md)：一次新的无外部效应 Tool tuple 为 `2xx`/`valid`，唯一 protected attempt 为 `succeeded/decoder`，Explain 选中唯一 Candidate 且无新增 upstream attempt；完整回滚与独立 post-review 均通过 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | [OpenAI-compatible live differential](reports/p12-06-openai-differential.md)：candidate 单次非流式结构预检通过；incumbent 修正请求到达 Responses handler 但返回 `server_error/internal_server_error` 5xx，故成对 stream/non-stream/Tool/性能 corpus 按 fail-closed 边界未启动。另见 [Kiro 渠道证据](reports/p12-06-kiro-channel-evidence.md)，该切片按 `CR-P12-06-008` 延期且不阻塞 | BLOCKED |
+| P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | [OpenAI-compatible live differential](reports/p12-06-openai-differential.md)：candidate 单次非流式结构预检通过；incumbent 实际可用的 Grok/xAI OAuth 池已失效，固定预检无法成功，完整 paired corpus 未运行。用户按 `CR-P12-06-010` 要求先跳过 Grok 路线；另见 [Kiro 渠道证据](reports/p12-06-kiro-channel-evidence.md) | DEFERRED |
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | [暴露前验证回执](reports/p12-07-exposure-receipt.md)：新主机上从零完成产物验签、账户/目录/五凭据、unit 安装与启动（active、disabled-at-boot）；`cpar` 灰云 A 记录 + Let's Encrypt 证书；七项 fail-closed 暴露断言全通过（未认证与错误 key 均 401、管理面四路径均 404、公网直连 18180/18181 均不可达）；Caddy 变更前备份 preimage 并以 validate/adapt 证明其余五站点未变，reload 后 incumbent 仍正常。未录入任何真实上游凭据，`valid_key_accepted` 为 SKIP；该域名无限流（Caddy 标准版无模块）已记为缺口 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08 | 使用单独 Client Key 开始 10%→25%→50%→100% Canary | P12-06,P12-07 | 每阶段成功率、P95/P99、缓存和错误证据 | PENDING |
 | P12-09 | 在 Canary 中实际执行一次回滚并再次恢复 | P12-08 | 回滚时长和一致性报告 | PENDING |
@@ -2804,6 +2804,61 @@ harness。新网关 Krill candidate 的单次 loopback 非流式预检为 `2xx`�
 P12-06 转为 `BLOCKED`；只有单独批准修复 incumbent Responses/account-pool 路径，或指定另一条
 已工作且不可变的参考臂后才能恢复。P12-08 保持 `PENDING`。计划版本更新为 v1.81。
 
+### 已批准 Change Request：CR-P12-06-009
+
+```text
+CR-ID: CR-P12-06-009
+原因: P12-06 candidate 已通过固定非流式预检，但 incumbent CPA 的 Responses 参考路径返回
+      `server_error/internal_server_error` 5xx，无法形成有效 paired differential。用户批准开始
+      修复该 incumbent Responses/account-pool 路径。
+影响的 Task / Matrix ID / ADR: 仅 P12-06 的 incumbent OpenAI-compatible 参考臂与其可用性；
+      不改变 Canonical、Provider、公开 API、Schema、P12-08 Canary、Kiro 延期状态或新网关图。
+执行边界:
+      (1) 先只读定位具体失败层，再为 incumbent 配置、认证存储和 service 定义建立服务器本地、
+          root-only、带完整性校验的 preimage；不得把 Secret 或配置正文写入仓库。
+      (2) 只允许最小 account-pool/Responses 配置修复。不得改变 incumbent Client Key、公开
+          Caddy/DNS、生产主机名分流、端口、TLS 或其它站点；不得升级 incumbent 二进制。
+      (3) 每次验证使用固定合成、无副作用 Responses 请求；不保存请求/响应正文、模型、endpoint、
+          OAuth 或 token 值。先通过单次非流式结构预检，才可复用 CR-003/008 的有界 harness
+          执行 paired stream/non-stream/Tool/性能 corpus。
+      (4) 修复或预检失败、服务不健康、公开监听变化、现有非 Responses 健康检查退化时，立即恢复
+          preimage 并保持 P12-06 BLOCKED；不得启动 P12-08。
+兼容性与迁移影响: incumbent 可能发生一次受控配置 reload/restart，但公开入口、Client Key 与其余
+      路由保持不变；成功结论仅表示 P12-06 参考臂可用于差分，不表示生产切换。
+测试与回滚变化: 修复前后核对 incumbent service/监听、固定 Responses 结构、普通 models/health
+      连续性与新网关隔离状态；回滚恢复配置、认证存储和 service preimage 后复核哈希与服务状态。
+用户批准: APPROVED，2026-08-02（“可以 开始吧”）
+计划版本变更: v1.82
+```
+
+### 已批准 Change Request：CR-P12-06-010
+
+```text
+CR-ID: CR-P12-06-010
+原因: CR-P12-06-009 的只读排查确认 incumbent 现有 Grok/xAI OAuth 参考池不可用：
+      已启用账号的 access token 均已过期，受控 refresh 样本被上游以
+      `invalid_grant` 拒绝，本机官方 CLI 的交互登录也未落盘可用凭据。用户
+      判断 Free 账号可能已不可用，明确要求先跳过 Grok 路线。
+影响的 Task / Matrix ID / ADR: P12-06 的 Grok/xAI-backed incumbent 参考臂与
+      OpenAI-compatible paired corpus。不改变已通过的 candidate 预检证据，不将未运行的
+      differential 冒充为通过。
+执行边界:
+      (1) 停止 Grok/xAI OAuth 登录、refresh、账号轮询和真实探针；不再扫描其余
+          凭据，不导入替代 Free 账号。
+      (2) CR-009 已建立的 root-only 服务器 preimage 保留作为审计/回滚证据；因未
+          写入 incumbent 配置或认证存储，无需执行数据回滚。
+      (3) P12-06 转为 `DEFERRED`，Kiro/Grok 生产路由继续禁用。P12-08 依赖不自动
+          解禁；须另行 CR 指定已工作且不可变的非 Grok 参考臂，或明确修改
+          P12-06→P12-08 的发布门禁。
+兼容性与迁移影响: 无代码、公开 API、Canonical、Schema、Caddy/DNS、Client Key、
+      新网关图或生产流量变更。
+测试与回滚变化: 本 CR 仅收口证据与任务状态；保留 candidate 预检、incumbent
+      失败分类和 root-only backup。回滚为在新的有效参考凭据/参考臂到位后，以
+      新 CR 恢复 P12-06，不重写当前失败历史。
+用户批准: APPROVED，2026-08-02（“可能是现在free账号都不行了，先跳过grok这条线吧”）
+计划版本变更: v1.83
+```
+
 ### 已批准 Change Request：CR-P12-07-001
 
 ```text
@@ -3157,3 +3212,5 @@ Next task:
 | v1.79 | 2026-08-02 | `CR-P12-06-007`：Pro Max 凭据超额后，受控测试 kiro-rs 其余两个 headless Free API-key 凭据；使用不可变 successor Config Version、单候选/单 attempt、root-only ledger 和不保存正文的直连分类。修复录图 helper 的 parent lineage 与 ledger 覆盖缺陷 | APPROVED；两个候选的 gateway 功能请求均为 502、修正后的同形直连均由上游返回 403，故未启动性能采样；剩余 IdC OAuth 已过期且不在本 CR，P12-06 保持 IN_PROGRESS |
 | v1.80 | 2026-08-02 | `CR-P12-06-008`：Kiro 切片因无可用凭据转为 `DEFERRED_EXTERNAL_CREDENTIAL` 且不再阻塞 P12-06；后续只执行 OpenAI-compatible live differential。两侧不共享账号池，因此差分只比较可判定的 canonical 结构、不变量、错误所有权与终止语义，正文、ID 和 Usage 具体数值不作相等比较 | APPROVED；Kiro 请求停止，P7-09/G7 与 Kiro 生产路由仍延期/禁用 |
 | v1.81 | 2026-08-02 | 记录 P12-06 OpenAI-compatible live preflight、差分 harness 与停止判据：candidate 通过，incumbent Responses 返回无细分归因的内部 5xx，完整 paired corpus 未启动 | P12-06 `BLOCKED`；须单独批准 incumbent 修复或指定另一条已工作参考臂，P12-08 保持 `PENDING` |
+| v1.82 | 2026-08-02 | `CR-P12-06-009`：批准对 incumbent CPA Responses/account-pool 参考路径执行先备份、最小且可回滚的修复；固定非流式预检成功后才恢复 paired corpus | APPROVED；P12-06 恢复 `IN_PROGRESS`，公开 Caddy/DNS、Client Key、新网关图、Kiro 与 P12-08 边界不变 |
+| v1.83 | 2026-08-02 | `CR-P12-06-010`：incumbent Grok/xAI OAuth 池的 access token 已过期，受控 refresh 样本均为 `invalid_grant`，交互登录未产生可用凭据；按用户要求停止该路线 | APPROVED；P12-06 `DEFERRED`，未运行的 paired corpus 不计为通过，P12-08 仍 `PENDING` |

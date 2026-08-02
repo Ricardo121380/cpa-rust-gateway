@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Plan version | `v1.81` |
+| Plan version | `v1.83` |
 | Task | `P12-06` (OpenAI-compatible portion) |
-| Status | `BLOCKED_REFERENCE_UNAVAILABLE` |
+| Status | `DEFERRED_EXTERNAL_CREDENTIAL` |
 | Task Card | `M`: operational graph helper, bounded differential harness, live preflight, evidence and review |
 
 ## Outcome first
@@ -17,7 +17,27 @@ source-defined safe projection `server_error/internal_server_error`.
 
 The paired stream, non-stream, Tool and performance corpus was therefore **not run**. Running ten
 rounds against one functioning arm and one known-failing arm would measure availability failure,
-not gateway compatibility. P12-06 remains blocked; P12-08 must not start.
+not gateway compatibility. Under `CR-P12-06-010`, the Grok/xAI-backed reference line is deferred;
+P12-08 remains pending and must not start without a separate gate change or a working non-Grok
+reference arm.
+
+## CR-P12-06-009 diagnosis and deferred closeout
+
+Read-only review after the original receipt established a narrower root cause. The live incumbent is
+`v7.2.101`; `v7.2.80` remains the plan's frozen behavior-reference version, not the currently running
+binary. The enabled xAI account pool had expired access tokens and persisted unauthorized cooldown
+state. A bounded refresh sample was rejected by the upstream token endpoint as `invalid_grant`, and
+the official local CLI login did not persist a usable replacement credential. No incumbent config or
+authentication record was written.
+
+Before diagnosis, a root-owned, integrity-checked server preimage was created for the incumbent data,
+unit and container identity. It remains as audit and rollback evidence. Since the attempted repair
+never reached a write, no data rollback was necessary. There is no remaining login process, and no
+additional account scan, refresh or live probe is authorized under this line.
+
+The user explicitly chose to skip the Grok line for now. This records an external-credential deferral,
+not a differential pass: the candidate preflight remains valid, while the paired stream,
+non-streaming, Tool and performance corpus remains unexecuted.
 
 ## Fixed execution boundary
 
@@ -90,14 +110,16 @@ the first output item/delta rather than `response.created`, and Usage must be no
 review also replaced short-circuit Tool inspection with complete output traversal: wrong-mode,
 duplicate or structurally incomplete Tool calls now fail closed in both JSON and SSE.
 
-P12-06 can resume only after one of these is separately authorized and demonstrated:
+P12-06 is deferred. It can resume only after one of these is separately authorized and demonstrated
+in a new Change Request:
 
-1. repair the incumbent CPA Responses/account-pool path until the fixed non-streaming preflight is
+1. provide a newly valid incumbent account pool and make the fixed non-streaming preflight
    structurally successful; or
 2. nominate another already-working, immutable OpenAI Responses reference arm.
 
-Changing the incumbent production configuration is outside the existing no-mutation boundary and
-requires its own Change Request. Until then, P12-08 remains `PENDING`.
+The current Grok/xAI repair authorization is closed rather than left active. Changing the incumbent
+production configuration or weakening the P12-06-to-P12-08 dependency requires its own Change
+Request. Until then, P12-08 remains `PENDING`.
 
 ## Local verification
 
@@ -107,3 +129,5 @@ requires its own Change Request. Until then, P12-08 remains `PENDING`.
 - `./scripts/check.sh docs`: passed.
 - `./scripts/check.sh fast`: passed after the final review fixes.
 - Staged Secret scan and Git whitespace check: passed.
+- Deferred closeout review: `./scripts/check.sh docs` passed with 115 Tasks and zero
+  `IN_PROGRESS`; tracked Secret scan and Git whitespace check passed.
