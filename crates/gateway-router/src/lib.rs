@@ -37,8 +37,9 @@ pub use credential_scheduler::{RouteCredentialScheduler, SelectedRouteCredential
 pub use gateway_catalog::CapabilitySet;
 pub use gateway_core::TransparentRetryGate as AttemptRetryGate;
 pub use protocol_transform::{
-    NativePayloadAvailability, ProtocolFormat, ProtocolTransformAdmission, ProtocolTransformInput,
-    ProtocolTransformRejection, analyze_protocol_transform,
+    NativePayloadAvailability, ProjectedProtocolRequest, ProtocolFormat,
+    ProtocolTransformAdmission, ProtocolTransformInput, ProtocolTransformRejection,
+    analyze_protocol_transform, project_protocol_request,
 };
 pub use route_explain::{
     RouteExplainCandidate, RouteExplainCandidateReason, RouteExplainCredential,

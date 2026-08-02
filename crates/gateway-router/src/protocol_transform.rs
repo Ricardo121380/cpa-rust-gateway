@@ -8,8 +8,11 @@
 use std::fmt;
 
 use gateway_catalog::{CapabilitySet, SemanticCapability};
-use gateway_core::{CanonicalRequest, MessageContent};
+use gateway_core::{
+    CanonicalRequest, MessageContent, MessageRole, RawExtensions, RawJson, Thinking, ThinkingEffort,
+};
 use gateway_protocol::ApiFormat;
+use serde_json::Value;
 
 use crate::SnapshotTransformMode;
 
@@ -157,14 +160,18 @@ pub enum ProtocolTransformRejection {
     UnknownToolDefinitionExtensions,
     /// Opaque content has no proven target-protocol representation.
     OpaqueContent,
-    /// Historical Tool calls are not yet covered by the bridge contract.
-    HistoricalToolCall,
-    /// Historical Tool results are not yet covered by the bridge contract.
-    HistoricalToolResult,
     /// Thinking requires the explicit P5-06 mapping contract.
     ThinkingUnsupported,
     /// Prompt-cache controls require the explicit P5-06 mapping contract.
     CacheControlUnsupported,
+    /// A required output-token limit is absent from the typed source request.
+    OutputLimitMissing,
+    /// An output-token limit is not a positive integer.
+    OutputLimitInvalid,
+    /// More than one output-token limit would compete for the target field.
+    OutputLimitCollision,
+    /// A historical Tool shape cannot be represented by the target protocol.
+    ToolHistoryUnsupported,
     /// A Canonical role cannot be represented by the target protocol slice.
     IncompatibleRole,
     /// The Endpoint cannot provide the requested streaming response.
@@ -175,6 +182,40 @@ pub enum ProtocolTransformRejection {
     JsonSchemaUnsupported,
     /// The Endpoint cannot provide the requested parallel Tool semantics.
     ParallelToolsUnsupported,
+    /// The Endpoint cannot provide explicit Thinking or Reasoning semantics.
+    ReasoningUnsupported,
+}
+
+impl fmt::Display for ProtocolTransformRejection {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{self:?}")
+    }
+}
+
+impl std::error::Error for ProtocolTransformRejection {}
+
+/// Request material prepared for the selected protocol transformation mode.
+///
+/// Native payload bytes remain owned by the caller. A Canonical projection contains only fields
+/// whose target representation is proven by this boundary; diagnostics never print its values.
+#[derive(Clone, Eq, PartialEq)]
+pub enum ProjectedProtocolRequest {
+    /// Forward the caller-owned exact native body after replacing only separately controlled
+    /// transport fields such as the selected model.
+    NativeExact,
+    /// Encode this target-shaped Canonical request with the target protocol's typed builder.
+    Canonical(CanonicalRequest),
+}
+
+impl fmt::Debug for ProjectedProtocolRequest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NativeExact => formatter.write_str("ProjectedProtocolRequest::NativeExact"),
+            Self::Canonical(_) => {
+                formatter.write_str("ProjectedProtocolRequest::Canonical(<redacted>)")
+            }
+        }
+    }
 }
 
 /// Analyzes whether one Route candidate can preserve this request's semantics.
@@ -185,6 +226,25 @@ pub enum ProtocolTransformRejection {
 /// unknown or unsupported semantic rather than guessing a conversion.
 #[must_use]
 pub fn analyze_protocol_transform(input: ProtocolTransformInput<'_>) -> ProtocolTransformAdmission {
+    match project_protocol_request(input) {
+        Ok(_) => ProtocolTransformAdmission::Approved,
+        Err(rejection) => ProtocolTransformAdmission::Rejected(rejection),
+    }
+}
+
+/// Produces the typed request material consumed by the target protocol builder.
+///
+/// Cross-protocol conversion starts from a clean extension namespace and explicitly maps only
+/// output limits, ordered text/Tool history, and the fixed legacy Reasoning levels. Anything else
+/// fails before Provider selection, so no encoder can accidentally receive foreign raw fields.
+///
+/// # Errors
+///
+/// Returns a stable, secret-free rejection when the configured topology, target capabilities, or
+/// request shape cannot preserve the requested semantics.
+pub fn project_protocol_request(
+    input: ProtocolTransformInput<'_>,
+) -> Result<ProjectedProtocolRequest, ProtocolTransformRejection> {
     let mode_rejection = match input.mode {
         SnapshotTransformMode::Passthrough if input.source != input.target => {
             Some(ProtocolTransformRejection::PassthroughProtocolMismatch)
@@ -203,69 +263,428 @@ pub fn analyze_protocol_transform(input: ProtocolTransformInput<'_>) -> Protocol
         _ => None,
     };
     if let Some(rejection) = mode_rejection {
-        return ProtocolTransformAdmission::Rejected(rejection);
+        return Err(rejection);
     }
 
-    if input.mode != SnapshotTransformMode::Passthrough
-        && let Some(rejection) = canonical_rejection(input.request, input.target)
+    if input.mode == SnapshotTransformMode::Passthrough {
+        capability_rejection(input, input.request)?;
+        return Ok(ProjectedProtocolRequest::NativeExact);
+    }
+
+    let projected = if input.source == input.target {
+        input.request.clone()
+    } else {
+        project_cross_protocol(input.request, input.source, input.target)?
+    };
+    canonical_rejection(&projected, input.target)?;
+    capability_rejection(input, &projected)?;
+
+    Ok(ProjectedProtocolRequest::Canonical(projected))
+}
+
+const CHAT_OUTPUT_LIMIT: &str = "openai.chat.max_tokens";
+const RESPONSES_OUTPUT_LIMIT: &str = "openai.responses.max_output_tokens";
+const MESSAGES_OUTPUT_LIMIT: &str = "anthropic.messages.max_tokens";
+const ANTHROPIC_THINKING_BUDGET: &str = "anthropic.thinking.budget_tokens";
+
+fn project_cross_protocol(
+    request: &CanonicalRequest,
+    source: ProtocolFormat,
+    target: ProtocolFormat,
+) -> Result<CanonicalRequest, ProtocolTransformRejection> {
+    reject_nested_extensions_and_opaque(request)?;
+    if request.prompt_cache_key.is_some() || request.prompt_cache_retention.is_some() {
+        return Err(ProtocolTransformRejection::CacheControlUnsupported);
+    }
+
+    let mut projected = request.clone();
+    projected.extensions = project_output_limit(&request.extensions, source, target)?;
+    projected.thinking = project_thinking(request.thinking.as_ref(), source, target)?;
+    if target == ProtocolFormat::AnthropicMessages {
+        project_messages_roles(&mut projected)?;
+    }
+    Ok(projected)
+}
+
+fn reject_nested_extensions_and_opaque(
+    request: &CanonicalRequest,
+) -> Result<(), ProtocolTransformRejection> {
+    for message in &request.messages {
+        if !message.extensions.is_empty() {
+            return Err(ProtocolTransformRejection::UnknownMessageExtensions);
+        }
+        for content in &message.content {
+            match content {
+                MessageContent::Text(text) if !text.extensions.is_empty() => {
+                    return Err(ProtocolTransformRejection::UnknownContentExtensions);
+                }
+                MessageContent::ToolCall(call) if !call.extensions.is_empty() => {
+                    return Err(ProtocolTransformRejection::UnknownContentExtensions);
+                }
+                MessageContent::ToolResult(result) if !result.extensions.is_empty() => {
+                    return Err(ProtocolTransformRejection::UnknownContentExtensions);
+                }
+                MessageContent::Opaque(_) => {
+                    return Err(ProtocolTransformRejection::OpaqueContent);
+                }
+                MessageContent::Text(_)
+                | MessageContent::ToolCall(_)
+                | MessageContent::ToolResult(_) => {}
+            }
+        }
+    }
+    if request.tools.iter().any(|tool| !tool.extensions.is_empty()) {
+        return Err(ProtocolTransformRejection::UnknownToolDefinitionExtensions);
+    }
+    Ok(())
+}
+
+fn project_output_limit(
+    extensions: &RawExtensions,
+    source: ProtocolFormat,
+    target: ProtocolFormat,
+) -> Result<RawExtensions, ProtocolTransformRejection> {
+    let source_name = output_limit_name(source);
+    let mut output_limit = None;
+    for (name, raw) in extensions.iter() {
+        if name != source_name {
+            if matches!(
+                name,
+                CHAT_OUTPUT_LIMIT | RESPONSES_OUTPUT_LIMIT | MESSAGES_OUTPUT_LIMIT
+            ) {
+                return Err(ProtocolTransformRejection::OutputLimitCollision);
+            }
+            return Err(ProtocolTransformRejection::UnknownRequestExtensions);
+        }
+        if output_limit.replace(raw.clone()).is_some() {
+            return Err(ProtocolTransformRejection::OutputLimitCollision);
+        }
+    }
+
+    let mut projected = RawExtensions::default();
+    match output_limit {
+        Some(raw) => {
+            validate_output_limit(&raw)?;
+            projected
+                .try_insert(output_limit_name(target), raw)
+                .map_err(|_| ProtocolTransformRejection::OutputLimitCollision)?;
+        }
+        None if target == ProtocolFormat::AnthropicMessages => {
+            return Err(ProtocolTransformRejection::OutputLimitMissing);
+        }
+        None => {}
+    }
+    Ok(projected)
+}
+
+const fn output_limit_name(protocol: ProtocolFormat) -> &'static str {
+    match protocol {
+        ProtocolFormat::OpenAiChatCompletions => CHAT_OUTPUT_LIMIT,
+        ProtocolFormat::OpenAiResponses => RESPONSES_OUTPUT_LIMIT,
+        ProtocolFormat::AnthropicMessages => MESSAGES_OUTPUT_LIMIT,
+    }
+}
+
+fn validate_output_limit(raw: &RawJson) -> Result<(), ProtocolTransformRejection> {
+    match serde_json::from_str::<Value>(raw.get()) {
+        Ok(Value::Number(value)) if value.as_u64().is_some_and(|value| value > 0) => Ok(()),
+        _ => Err(ProtocolTransformRejection::OutputLimitInvalid),
+    }
+}
+
+fn project_messages_roles(
+    request: &mut CanonicalRequest,
+) -> Result<(), ProtocolTransformRejection> {
+    for (position, message) in request.messages.iter_mut().enumerate() {
+        if message.role.0 == "developer" {
+            if position != 0 {
+                return Err(ProtocolTransformRejection::IncompatibleRole);
+            }
+            message.role = MessageRole("system".to_owned());
+        }
+    }
+    Ok(())
+}
+
+fn project_thinking(
+    thinking: Option<&Thinking>,
+    source: ProtocolFormat,
+    target: ProtocolFormat,
+) -> Result<Option<Thinking>, ProtocolTransformRejection> {
+    let Some(thinking) = thinking else {
+        return Ok(None);
+    };
+    if source == ProtocolFormat::OpenAiChatCompletions
+        || target == ProtocolFormat::OpenAiChatCompletions
     {
-        return ProtocolTransformAdmission::Rejected(rejection);
+        return Err(ProtocolTransformRejection::ThinkingUnsupported);
     }
 
-    if let Some(rejection) = capability_rejection(input) {
-        return ProtocolTransformAdmission::Rejected(rejection);
+    match (source, target) {
+        (ProtocolFormat::OpenAiResponses, ProtocolFormat::AnthropicMessages) => {
+            if !thinking.extensions.is_empty() {
+                return Err(ProtocolTransformRejection::ThinkingUnsupported);
+            }
+            responses_thinking_to_messages(thinking)
+        }
+        (ProtocolFormat::AnthropicMessages, ProtocolFormat::OpenAiResponses) => {
+            messages_thinking_to_responses(thinking)
+        }
+        _ => Err(ProtocolTransformRejection::ThinkingUnsupported),
     }
+    .map(Some)
+}
 
-    ProtocolTransformAdmission::Approved
+fn responses_thinking_to_messages(
+    thinking: &Thinking,
+) -> Result<Thinking, ProtocolTransformRejection> {
+    let (effort, budget) = match thinking.effort.as_str() {
+        "none" => ("disabled", None),
+        "auto" => ("adaptive", None),
+        "minimal" => ("enabled", Some(512)),
+        "low" => ("enabled", Some(1_024)),
+        "medium" => ("enabled", Some(8_192)),
+        "high" => ("enabled", Some(24_576)),
+        "xhigh" => ("enabled", Some(32_768)),
+        "max" => ("enabled", Some(128_000)),
+        _ => return Err(ProtocolTransformRejection::ThinkingUnsupported),
+    };
+    let mut extensions = RawExtensions::default();
+    if let Some(budget) = budget {
+        let raw = RawJson::from_json_string(budget.to_string())
+            .map_err(|_| ProtocolTransformRejection::ThinkingUnsupported)?;
+        extensions
+            .try_insert(ANTHROPIC_THINKING_BUDGET, raw)
+            .map_err(|_| ProtocolTransformRejection::ThinkingUnsupported)?;
+    }
+    Ok(Thinking {
+        effort: ThinkingEffort::try_new(effort)
+            .map_err(|_| ProtocolTransformRejection::ThinkingUnsupported)?,
+        extensions,
+    })
+}
+
+fn messages_thinking_to_responses(
+    thinking: &Thinking,
+) -> Result<Thinking, ProtocolTransformRejection> {
+    let mut budget = None;
+    for (name, raw) in thinking.extensions.iter() {
+        if name != ANTHROPIC_THINKING_BUDGET || budget.is_some() {
+            return Err(ProtocolTransformRejection::ThinkingUnsupported);
+        }
+        budget = match serde_json::from_str::<Value>(raw.get()) {
+            Ok(Value::Number(value)) if value.as_u64().is_some_and(|value| value > 0) => {
+                value.as_u64()
+            }
+            _ => return Err(ProtocolTransformRejection::ThinkingUnsupported),
+        };
+    }
+    let effort = match thinking.effort.as_str() {
+        "disabled" if budget.is_none() => "none",
+        "adaptive" if budget.is_none() => "auto",
+        "enabled" => budget.map_or("auto", budget_to_responses_effort),
+        _ => return Err(ProtocolTransformRejection::ThinkingUnsupported),
+    };
+    Ok(Thinking {
+        effort: ThinkingEffort::try_new(effort)
+            .map_err(|_| ProtocolTransformRejection::ThinkingUnsupported)?,
+        extensions: RawExtensions::default(),
+    })
+}
+
+const fn budget_to_responses_effort(budget: u64) -> &'static str {
+    match budget {
+        1..=512 => "minimal",
+        513..=1_024 => "low",
+        1_025..=8_192 => "medium",
+        8_193..=24_576 => "high",
+        _ => "xhigh",
+    }
 }
 
 fn canonical_rejection(
     request: &CanonicalRequest,
     target: ProtocolFormat,
-) -> Option<ProtocolTransformRejection> {
-    if !request.extensions.is_empty() {
-        return Some(ProtocolTransformRejection::UnknownRequestExtensions);
-    }
-    if request.thinking.is_some() {
-        return Some(ProtocolTransformRejection::ThinkingUnsupported);
-    }
+) -> Result<(), ProtocolTransformRejection> {
+    validate_target_root_extensions(request, target)?;
     if request.prompt_cache_key.is_some() || request.prompt_cache_retention.is_some() {
-        return Some(ProtocolTransformRejection::CacheControlUnsupported);
+        return Err(ProtocolTransformRejection::CacheControlUnsupported);
+    }
+    if request.messages.is_empty() {
+        return Err(ProtocolTransformRejection::IncompatibleRole);
     }
 
-    for message in &request.messages {
+    for (position, message) in request.messages.iter().enumerate() {
         if !message.extensions.is_empty() {
-            return Some(ProtocolTransformRejection::UnknownMessageExtensions);
+            return Err(ProtocolTransformRejection::UnknownMessageExtensions);
         }
         for content in &message.content {
             match content {
                 MessageContent::Text(text) if !text.extensions.is_empty() => {
-                    return Some(ProtocolTransformRejection::UnknownContentExtensions);
+                    return Err(ProtocolTransformRejection::UnknownContentExtensions);
                 }
                 MessageContent::Opaque(_) => {
-                    return Some(ProtocolTransformRejection::OpaqueContent);
+                    return Err(ProtocolTransformRejection::OpaqueContent);
                 }
-                MessageContent::ToolCall(_) => {
-                    return Some(ProtocolTransformRejection::HistoricalToolCall);
+                MessageContent::ToolCall(call) if !call.extensions.is_empty() => {
+                    return Err(ProtocolTransformRejection::UnknownContentExtensions);
                 }
-                MessageContent::ToolResult(_) => {
-                    return Some(ProtocolTransformRejection::HistoricalToolResult);
+                MessageContent::ToolResult(result) if !result.extensions.is_empty() => {
+                    return Err(ProtocolTransformRejection::UnknownContentExtensions);
                 }
-                MessageContent::Text(_) => {}
+                MessageContent::Text(_)
+                | MessageContent::ToolCall(_)
+                | MessageContent::ToolResult(_) => {}
             }
         }
         if !target_supports_role(target, &message.role.0) {
-            return Some(ProtocolTransformRejection::IncompatibleRole);
+            return Err(ProtocolTransformRejection::IncompatibleRole);
         }
+        validate_target_message(message, position, target)?;
     }
 
     for tool in &request.tools {
         if !tool.extensions.is_empty() {
-            return Some(ProtocolTransformRejection::UnknownToolDefinitionExtensions);
+            return Err(ProtocolTransformRejection::UnknownToolDefinitionExtensions);
+        }
+        if tool.name.is_empty()
+            || !serde_json::from_str::<Value>(tool.input_schema.get())
+                .is_ok_and(|value| value.is_object())
+        {
+            return Err(ProtocolTransformRejection::ToolHistoryUnsupported);
         }
     }
 
-    None
+    validate_target_thinking(request.thinking.as_ref(), target)
+}
+
+fn validate_target_root_extensions(
+    request: &CanonicalRequest,
+    target: ProtocolFormat,
+) -> Result<(), ProtocolTransformRejection> {
+    let expected = output_limit_name(target);
+    for (name, raw) in request.extensions.iter() {
+        if name != expected {
+            if matches!(
+                name,
+                CHAT_OUTPUT_LIMIT | RESPONSES_OUTPUT_LIMIT | MESSAGES_OUTPUT_LIMIT
+            ) {
+                return Err(ProtocolTransformRejection::OutputLimitCollision);
+            }
+            return Err(ProtocolTransformRejection::UnknownRequestExtensions);
+        }
+        validate_output_limit(raw)?;
+    }
+    if target == ProtocolFormat::AnthropicMessages && request.extensions.get(expected).is_none() {
+        return Err(ProtocolTransformRejection::OutputLimitMissing);
+    }
+    Ok(())
+}
+
+fn validate_target_thinking(
+    thinking: Option<&Thinking>,
+    target: ProtocolFormat,
+) -> Result<(), ProtocolTransformRejection> {
+    let Some(thinking) = thinking else {
+        return Ok(());
+    };
+    match target {
+        ProtocolFormat::OpenAiChatCompletions => {
+            Err(ProtocolTransformRejection::ThinkingUnsupported)
+        }
+        ProtocolFormat::OpenAiResponses if thinking.extensions.is_empty() => {
+            match thinking.effort.as_str() {
+                "none" | "auto" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max" => Ok(()),
+                _ => Err(ProtocolTransformRejection::ThinkingUnsupported),
+            }
+        }
+        ProtocolFormat::AnthropicMessages => messages_thinking_to_responses(thinking).map(|_| ()),
+        ProtocolFormat::OpenAiResponses => Err(ProtocolTransformRejection::ThinkingUnsupported),
+    }
+}
+
+fn validate_target_message(
+    message: &gateway_core::CanonicalMessage,
+    position: usize,
+    target: ProtocolFormat,
+) -> Result<(), ProtocolTransformRejection> {
+    if message.content.is_empty() {
+        return Err(ProtocolTransformRejection::IncompatibleRole);
+    }
+    let role = message.role.0.as_str();
+    match target {
+        ProtocolFormat::OpenAiChatCompletions => match role {
+            "system" | "developer" | "user"
+                if matches!(message.content.as_slice(), [MessageContent::Text(_)]) => {}
+            "assistant" if valid_assistant_tool_history(&message.content) => {}
+            "tool" if valid_tool_result_message(&message.content, target) => {}
+            _ => return Err(ProtocolTransformRejection::ToolHistoryUnsupported),
+        },
+        ProtocolFormat::OpenAiResponses => {
+            if !valid_responses_content(role, &message.content) {
+                return Err(ProtocolTransformRejection::ToolHistoryUnsupported);
+            }
+        }
+        ProtocolFormat::AnthropicMessages => {
+            if role == "system" && position != 0 {
+                return Err(ProtocolTransformRejection::IncompatibleRole);
+            }
+            if role == "tool" && !valid_tool_result_message(&message.content, target) {
+                return Err(ProtocolTransformRejection::ToolHistoryUnsupported);
+            }
+            if role == "assistant" && !valid_assistant_tool_history(&message.content) {
+                return Err(ProtocolTransformRejection::ToolHistoryUnsupported);
+            }
+            if matches!(role, "system" | "user")
+                && message
+                    .content
+                    .iter()
+                    .any(|part| !matches!(part, MessageContent::Text(_)))
+            {
+                return Err(ProtocolTransformRejection::ToolHistoryUnsupported);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn valid_assistant_tool_history(content: &[MessageContent]) -> bool {
+    let mut saw_text = false;
+    content.iter().enumerate().all(|(index, part)| match part {
+        MessageContent::Text(_) if index == 0 && !saw_text => {
+            saw_text = true;
+            true
+        }
+        MessageContent::ToolCall(call) => !call.id.is_empty() && !call.name.is_empty(),
+        _ => false,
+    })
+}
+
+fn valid_tool_result_message(content: &[MessageContent], target: ProtocolFormat) -> bool {
+    let [MessageContent::ToolResult(result)] = content else {
+        return false;
+    };
+    if result.call_id.is_empty() {
+        return false;
+    }
+    match target {
+        ProtocolFormat::OpenAiChatCompletions | ProtocolFormat::OpenAiResponses => {
+            !result.is_error
+                && serde_json::from_str::<Value>(result.output.get()).is_ok_and(|v| v.is_string())
+        }
+        ProtocolFormat::AnthropicMessages => true,
+    }
+}
+
+fn valid_responses_content(role: &str, content: &[MessageContent]) -> bool {
+    match role {
+        "system" | "developer" | "user" => content
+            .iter()
+            .all(|part| matches!(part, MessageContent::Text(_))),
+        "assistant" => valid_assistant_tool_history(content),
+        "tool" => valid_tool_result_message(content, ProtocolFormat::OpenAiResponses),
+        _ => false,
+    }
 }
 
 fn target_supports_role(target: ProtocolFormat, role: &str) -> bool {
@@ -274,34 +693,50 @@ fn target_supports_role(target: ProtocolFormat, role: &str) -> bool {
             matches!(role, "system" | "developer" | "user" | "assistant" | "tool")
         }
         ProtocolFormat::OpenAiResponses => {
-            matches!(role, "system" | "developer" | "user" | "assistant")
+            matches!(role, "system" | "developer" | "user" | "assistant" | "tool")
         }
-        ProtocolFormat::AnthropicMessages => matches!(role, "system" | "user" | "assistant"),
+        ProtocolFormat::AnthropicMessages => {
+            matches!(role, "system" | "user" | "assistant" | "tool")
+        }
     }
 }
 
-fn capability_rejection(input: ProtocolTransformInput<'_>) -> Option<ProtocolTransformRejection> {
+fn capability_rejection(
+    input: ProtocolTransformInput<'_>,
+    request: &CanonicalRequest,
+) -> Result<(), ProtocolTransformRejection> {
     let capabilities = input.target_capabilities;
     if input.streaming && !capabilities.supports(SemanticCapability::Streaming) {
-        return Some(ProtocolTransformRejection::StreamingUnsupported);
+        return Err(ProtocolTransformRejection::StreamingUnsupported);
     }
 
-    let has_tools = !input.request.tools.is_empty();
+    let has_tools = !request.tools.is_empty()
+        || request.messages.iter().any(|message| {
+            message.content.iter().any(|content| {
+                matches!(
+                    content,
+                    MessageContent::ToolCall(_) | MessageContent::ToolResult(_)
+                )
+            })
+        });
     if (has_tools || input.requires_parallel_tools)
         && !capabilities.supports(SemanticCapability::Tools)
     {
-        return Some(ProtocolTransformRejection::ToolsUnsupported);
+        return Err(ProtocolTransformRejection::ToolsUnsupported);
     }
     if (has_tools || input.requires_json_schema)
         && !capabilities.supports(SemanticCapability::JsonSchema)
     {
-        return Some(ProtocolTransformRejection::JsonSchemaUnsupported);
+        return Err(ProtocolTransformRejection::JsonSchemaUnsupported);
     }
     if input.requires_parallel_tools && !capabilities.supports(SemanticCapability::ParallelTools) {
-        return Some(ProtocolTransformRejection::ParallelToolsUnsupported);
+        return Err(ProtocolTransformRejection::ParallelToolsUnsupported);
+    }
+    if request.thinking.is_some() && !capabilities.supports(SemanticCapability::Reasoning) {
+        return Err(ProtocolTransformRejection::ReasoningUnsupported);
     }
 
-    None
+    Ok(())
 }
 
 #[cfg(test)]
@@ -313,10 +748,23 @@ mod tests {
         ToolResult,
     };
     use gateway_protocol::ApiFormat;
+    use proptest::prelude::*;
+    use protocol_anthropic::ResponseMode as AnthropicResponseMode;
+    use protocol_openai_chat::ResponseMode as ChatResponseMode;
+    use protocol_openai_responses::ResponseMode as ResponsesResponseMode;
+    use provider_anthropic_compatible::{
+        AnthropicMessagesApiKey, AnthropicMessagesEndpoint, AnthropicMessagesRequestBuilder,
+    };
+    use provider_openai_compatible::{
+        OpenAiChatCompletionsApiKey, OpenAiChatCompletionsEndpoint,
+        OpenAiChatCompletionsRequestBuilder, OpenAiResponsesApiKey, OpenAiResponsesEndpoint,
+        OpenAiResponsesRequestBuilder,
+    };
 
     use super::{
-        NativePayloadAvailability, ProtocolFormat, ProtocolTransformAdmission,
-        ProtocolTransformInput, ProtocolTransformRejection, analyze_protocol_transform,
+        NativePayloadAvailability, ProjectedProtocolRequest, ProtocolFormat,
+        ProtocolTransformAdmission, ProtocolTransformInput, ProtocolTransformRejection,
+        analyze_protocol_transform, project_protocol_request,
     };
     use crate::SnapshotTransformMode;
 
@@ -350,6 +798,18 @@ mod tests {
             RawJson::from_json_string(r#"{"private":true}"#.to_owned())?,
         )?;
         Ok(extensions)
+    }
+
+    fn with_output_limit(
+        mut request: CanonicalRequest,
+        protocol: ProtocolFormat,
+        value: u64,
+    ) -> Result<CanonicalRequest, Box<dyn std::error::Error>> {
+        let name = super::output_limit_name(protocol);
+        request
+            .extensions
+            .try_insert(name, RawJson::from_json_string(value.to_string())?)?;
+        Ok(request)
     }
 
     fn capabilities(
@@ -528,7 +988,7 @@ mod tests {
             &with_request_extension,
             &all_capabilities,
             ProtocolTransformRejection::UnknownRequestExtensions,
-        );
+        )?;
 
         let mut with_message_extension = request();
         with_message_extension.messages[0].extensions = extension()?;
@@ -536,7 +996,7 @@ mod tests {
             &with_message_extension,
             &all_capabilities,
             ProtocolTransformRejection::UnknownMessageExtensions,
-        );
+        )?;
 
         let mut with_content_extension = request();
         with_content_extension.messages[0].content = vec![MessageContent::Text(TextContent {
@@ -547,7 +1007,7 @@ mod tests {
             &with_content_extension,
             &all_capabilities,
             ProtocolTransformRejection::UnknownContentExtensions,
-        );
+        )?;
 
         let mut with_opaque_content = request();
         with_opaque_content.messages[0].content = vec![MessageContent::Opaque(OpaqueContent::new(
@@ -557,7 +1017,7 @@ mod tests {
             &with_opaque_content,
             &all_capabilities,
             ProtocolTransformRejection::OpaqueContent,
-        );
+        )?;
 
         let mut with_tool_extension = request();
         with_tool_extension.tools.push(ToolDefinition {
@@ -570,16 +1030,17 @@ mod tests {
             &with_tool_extension,
             &all_capabilities,
             ProtocolTransformRejection::UnknownToolDefinitionExtensions,
-        );
+        )?;
         Ok(())
     }
 
     #[test]
-    fn canonical_and_bridge_reject_historical_and_deferred_semantics()
+    fn bridge_rejects_unrepresentable_tool_cache_thinking_and_roles()
     -> Result<(), Box<dyn std::error::Error>> {
         let all_capabilities = all_capabilities()?;
 
-        let mut with_historical_tool_call = request();
+        let mut with_historical_tool_call =
+            with_output_limit(request(), ProtocolFormat::OpenAiResponses, 64)?;
         with_historical_tool_call.messages[0].content = vec![MessageContent::ToolCall(ToolCall {
             id: "private-call".to_owned(),
             name: "private-tool".to_owned(),
@@ -589,10 +1050,11 @@ mod tests {
         assert_rejection_for_bridge(
             &with_historical_tool_call,
             &all_capabilities,
-            ProtocolTransformRejection::HistoricalToolCall,
-        );
+            ProtocolTransformRejection::ToolHistoryUnsupported,
+        )?;
 
-        let mut with_historical_tool_result = request();
+        let mut with_historical_tool_result =
+            with_output_limit(request(), ProtocolFormat::OpenAiResponses, 64)?;
         with_historical_tool_result.messages[0].content =
             vec![MessageContent::ToolResult(ToolResult {
                 call_id: "private-call".to_owned(),
@@ -603,10 +1065,10 @@ mod tests {
         assert_rejection_for_bridge(
             &with_historical_tool_result,
             &all_capabilities,
-            ProtocolTransformRejection::HistoricalToolResult,
-        );
+            ProtocolTransformRejection::ToolHistoryUnsupported,
+        )?;
 
-        let mut with_thinking = request();
+        let mut with_thinking = with_output_limit(request(), ProtocolFormat::OpenAiResponses, 64)?;
         with_thinking.thinking = Some(Thinking {
             effort: ThinkingEffort::try_new("private-thinking")?,
             extensions: RawExtensions::default(),
@@ -615,23 +1077,28 @@ mod tests {
             &with_thinking,
             &all_capabilities,
             ProtocolTransformRejection::ThinkingUnsupported,
-        );
+        )?;
 
-        let mut with_cache_control = request();
+        let mut with_cache_control =
+            with_output_limit(request(), ProtocolFormat::OpenAiResponses, 64)?;
         with_cache_control.prompt_cache_key = Some("private-cache-key".to_owned());
         assert_rejection_for_bridge(
             &with_cache_control,
             &all_capabilities,
             ProtocolTransformRejection::CacheControlUnsupported,
-        );
+        )?;
 
-        let mut with_incompatible_role = request();
-        with_incompatible_role.messages[0].role = MessageRole("developer".to_owned());
+        let mut with_incompatible_role =
+            with_output_limit(request(), ProtocolFormat::OpenAiResponses, 64)?;
+        with_incompatible_role
+            .messages
+            .insert(0, text_message("user", "first"));
+        with_incompatible_role.messages[1].role = MessageRole("developer".to_owned());
         assert_rejection_for_bridge(
             &with_incompatible_role,
             &all_capabilities,
             ProtocolTransformRejection::IncompatibleRole,
-        );
+        )?;
         Ok(())
     }
 
@@ -732,8 +1199,8 @@ mod tests {
     }
 
     #[test]
-    fn a_clean_cross_protocol_bridge_is_admitted() {
-        let request = request();
+    fn a_clean_cross_protocol_bridge_is_admitted() -> Result<(), Box<dyn std::error::Error>> {
+        let request = with_output_limit(request(), ProtocolFormat::OpenAiResponses, 64)?;
         let no_capabilities = CapabilitySet::empty();
 
         assert_eq!(
@@ -747,6 +1214,7 @@ mod tests {
             )),
             ProtocolTransformAdmission::Approved
         );
+        Ok(())
     }
 
     #[test]
@@ -772,6 +1240,7 @@ mod tests {
         capabilities([
             SemanticCapability::Tools,
             SemanticCapability::JsonSchema,
+            SemanticCapability::Reasoning,
             SemanticCapability::Streaming,
             SemanticCapability::ParallelTools,
         ])
@@ -781,10 +1250,17 @@ mod tests {
         request: &CanonicalRequest,
         capabilities: &CapabilitySet,
         expected: ProtocolTransformRejection,
-    ) {
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let mut request = request.clone();
+        if request.extensions.is_empty() {
+            request.extensions.try_insert(
+                super::RESPONSES_OUTPUT_LIMIT,
+                RawJson::from_json_string("64".to_owned())?,
+            )?;
+        }
         assert_rejected(
             analyze_protocol_transform(input(
-                request,
+                &request,
                 ProtocolFormat::OpenAiResponses,
                 ProtocolFormat::AnthropicMessages,
                 SnapshotTransformMode::LosslessBridge,
@@ -793,5 +1269,343 @@ mod tests {
             )),
             expected,
         );
+        Ok(())
+    }
+
+    fn canonical_projection(
+        projection: Result<ProjectedProtocolRequest, ProtocolTransformRejection>,
+    ) -> Result<CanonicalRequest, Box<dyn std::error::Error>> {
+        match projection? {
+            ProjectedProtocolRequest::Canonical(request) => Ok(request),
+            ProjectedProtocolRequest::NativeExact => {
+                Err(std::io::Error::other("typed mode returned native projection").into())
+            }
+        }
+    }
+
+    #[test]
+    fn all_nine_protocol_pairs_prepare_typed_requests() -> Result<(), Box<dyn std::error::Error>> {
+        let protocols = [
+            ProtocolFormat::OpenAiChatCompletions,
+            ProtocolFormat::OpenAiResponses,
+            ProtocolFormat::AnthropicMessages,
+        ];
+        let no_capabilities = CapabilitySet::empty();
+
+        for source in protocols {
+            let request = with_output_limit(request(), source, 64)?;
+            for target in protocols {
+                let mode = if source == target {
+                    SnapshotTransformMode::Canonical
+                } else {
+                    SnapshotTransformMode::LosslessBridge
+                };
+                let projected = canonical_projection(project_protocol_request(input(
+                    &request,
+                    source,
+                    target,
+                    mode,
+                    NativePayloadAvailability::Unavailable,
+                    &no_capabilities,
+                )))?;
+                assert_eq!(projected.messages, request.messages);
+                assert!(
+                    projected
+                        .extensions
+                        .get(super::output_limit_name(target))
+                        .is_some()
+                );
+                assert_eq!(projected.extensions.iter().len(), 1);
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn all_three_native_pairs_keep_exact_payload_ownership()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let no_capabilities = CapabilitySet::empty();
+        for protocol in [
+            ProtocolFormat::OpenAiChatCompletions,
+            ProtocolFormat::OpenAiResponses,
+            ProtocolFormat::AnthropicMessages,
+        ] {
+            let request = request();
+            assert_eq!(
+                project_protocol_request(input(
+                    &request,
+                    protocol,
+                    protocol,
+                    SnapshotTransformMode::Passthrough,
+                    NativePayloadAvailability::Exact,
+                    &no_capabilities,
+                ))?,
+                ProjectedProtocolRequest::NativeExact
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn ordered_tool_history_is_preserved_when_every_target_can_represent_it()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let all_capabilities = all_capabilities()?;
+        let mut request = request();
+        request.messages = vec![
+            text_message("user", "call the tool"),
+            CanonicalMessage {
+                role: MessageRole("assistant".to_owned()),
+                content: vec![MessageContent::ToolCall(ToolCall {
+                    id: "private-call".to_owned(),
+                    name: "private-tool".to_owned(),
+                    arguments: RawJson::from_json_string(r#"{"value":1}"#.to_owned())?,
+                    extensions: RawExtensions::default(),
+                })],
+                extensions: RawExtensions::default(),
+            },
+            CanonicalMessage {
+                role: MessageRole("tool".to_owned()),
+                content: vec![MessageContent::ToolResult(ToolResult {
+                    call_id: "private-call".to_owned(),
+                    output: RawJson::from_json_string(r#""done""#.to_owned())?,
+                    is_error: false,
+                    extensions: RawExtensions::default(),
+                })],
+                extensions: RawExtensions::default(),
+            },
+        ];
+        request.tools.push(ToolDefinition {
+            name: "private-tool".to_owned(),
+            description: None,
+            input_schema: RawJson::from_json_string(r#"{"type":"object"}"#.to_owned())?,
+            extensions: RawExtensions::default(),
+        });
+        let request = with_output_limit(request, ProtocolFormat::OpenAiResponses, 64)?;
+
+        for target in [
+            ProtocolFormat::OpenAiChatCompletions,
+            ProtocolFormat::OpenAiResponses,
+            ProtocolFormat::AnthropicMessages,
+        ] {
+            let projected = canonical_projection(project_protocol_request(input(
+                &request,
+                ProtocolFormat::OpenAiResponses,
+                target,
+                if target == ProtocolFormat::OpenAiResponses {
+                    SnapshotTransformMode::Canonical
+                } else {
+                    SnapshotTransformMode::LosslessBridge
+                },
+                NativePayloadAvailability::Unavailable,
+                &all_capabilities,
+            )))?;
+            assert_eq!(projected.messages, request.messages);
+            assert_eq!(projected.tools, request.tools);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn reasoning_levels_follow_the_pinned_legacy_budget_table()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let reasoning = capabilities([SemanticCapability::Reasoning])?;
+        let mut responses = with_output_limit(request(), ProtocolFormat::OpenAiResponses, 64)?;
+        responses.thinking = Some(Thinking {
+            effort: ThinkingEffort::try_new("high")?,
+            extensions: RawExtensions::default(),
+        });
+        let messages = canonical_projection(project_protocol_request(input(
+            &responses,
+            ProtocolFormat::OpenAiResponses,
+            ProtocolFormat::AnthropicMessages,
+            SnapshotTransformMode::LosslessBridge,
+            NativePayloadAvailability::Unavailable,
+            &reasoning,
+        )))?;
+        let thinking = messages
+            .thinking
+            .as_ref()
+            .ok_or_else(|| std::io::Error::other("thinking was not projected"))?;
+        assert_eq!(thinking.effort.as_str(), "enabled");
+        assert_eq!(
+            thinking
+                .extensions
+                .get(super::ANTHROPIC_THINKING_BUDGET)
+                .map(RawJson::get),
+            Some("24576")
+        );
+
+        let round_trip = canonical_projection(project_protocol_request(input(
+            &messages,
+            ProtocolFormat::AnthropicMessages,
+            ProtocolFormat::OpenAiResponses,
+            SnapshotTransformMode::LosslessBridge,
+            NativePayloadAvailability::Unavailable,
+            &reasoning,
+        )))?;
+        assert_eq!(
+            round_trip
+                .thinking
+                .as_ref()
+                .map(|thinking| thinking.effort.as_str()),
+            Some("high")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn typed_projection_rejects_missing_invalid_and_colliding_output_limits()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let no_capabilities = CapabilitySet::empty();
+        let plain = request();
+        assert_rejected(
+            analyze_protocol_transform(input(
+                &plain,
+                ProtocolFormat::OpenAiResponses,
+                ProtocolFormat::AnthropicMessages,
+                SnapshotTransformMode::LosslessBridge,
+                NativePayloadAvailability::Unavailable,
+                &no_capabilities,
+            )),
+            ProtocolTransformRejection::OutputLimitMissing,
+        );
+
+        let invalid = with_output_limit(request(), ProtocolFormat::OpenAiResponses, 0)?;
+        assert_rejected(
+            analyze_protocol_transform(input(
+                &invalid,
+                ProtocolFormat::OpenAiResponses,
+                ProtocolFormat::OpenAiChatCompletions,
+                SnapshotTransformMode::LosslessBridge,
+                NativePayloadAvailability::Unavailable,
+                &no_capabilities,
+            )),
+            ProtocolTransformRejection::OutputLimitInvalid,
+        );
+
+        let mut collision = with_output_limit(request(), ProtocolFormat::OpenAiResponses, 64)?;
+        collision.extensions.try_insert(
+            super::MESSAGES_OUTPUT_LIMIT,
+            RawJson::from_json_string("64".to_owned())?,
+        )?;
+        assert_rejected(
+            analyze_protocol_transform(input(
+                &collision,
+                ProtocolFormat::OpenAiResponses,
+                ProtocolFormat::OpenAiChatCompletions,
+                SnapshotTransformMode::LosslessBridge,
+                NativePayloadAvailability::Unavailable,
+                &no_capabilities,
+            )),
+            ProtocolTransformRejection::OutputLimitCollision,
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn every_target_builder_accepts_the_router_approved_tool_projection()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let all_capabilities = all_capabilities()?;
+        let request: CanonicalRequest = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/router/p12-08d1-typed-tool-history.json"
+        ))?;
+
+        for target in [
+            ProtocolFormat::OpenAiChatCompletions,
+            ProtocolFormat::OpenAiResponses,
+            ProtocolFormat::AnthropicMessages,
+        ] {
+            let projected = canonical_projection(project_protocol_request(input(
+                &request,
+                ProtocolFormat::OpenAiResponses,
+                target,
+                if target == ProtocolFormat::OpenAiResponses {
+                    SnapshotTransformMode::Canonical
+                } else {
+                    SnapshotTransformMode::LosslessBridge
+                },
+                NativePayloadAvailability::Unavailable,
+                &all_capabilities,
+            )))?;
+
+            match target {
+                ProtocolFormat::OpenAiChatCompletions => {
+                    OpenAiChatCompletionsRequestBuilder::build(
+                        &OpenAiChatCompletionsEndpoint::try_new(
+                            "https://relay.example",
+                            "/v1/chat/completions",
+                        )?,
+                        &OpenAiChatCompletionsApiKey::try_new("secret")?,
+                        "upstream-model",
+                        &projected,
+                        ChatResponseMode::NonStreaming,
+                    )?;
+                }
+                ProtocolFormat::OpenAiResponses => {
+                    OpenAiResponsesRequestBuilder::build(
+                        &OpenAiResponsesEndpoint::try_new(
+                            "https://relay.example",
+                            "/v1/responses",
+                        )?,
+                        &OpenAiResponsesApiKey::try_new("secret")?,
+                        "upstream-model",
+                        &projected,
+                        ResponsesResponseMode::NonStreaming,
+                    )?;
+                }
+                ProtocolFormat::AnthropicMessages => {
+                    AnthropicMessagesRequestBuilder::build(
+                        &AnthropicMessagesEndpoint::try_new(
+                            "https://relay.example",
+                            "/v1/messages",
+                        )?,
+                        &AnthropicMessagesApiKey::try_new("secret")?,
+                        "upstream-model",
+                        &projected,
+                        AnthropicResponseMode::NonStreaming,
+                    )?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    proptest! {
+        #[test]
+        fn every_positive_output_limit_maps_exactly_across_all_pairs(limit in 1_u64..=u32::MAX.into()) {
+            let protocols = [
+                ProtocolFormat::OpenAiChatCompletions,
+                ProtocolFormat::OpenAiResponses,
+                ProtocolFormat::AnthropicMessages,
+            ];
+            let no_capabilities = CapabilitySet::empty();
+            let expected = limit.to_string();
+            for source in protocols {
+                let request = with_output_limit(request(), source, limit)
+                    .map_err(|error| TestCaseError::fail(error.to_string()))?;
+                for target in protocols {
+                    let mode = if source == target {
+                        SnapshotTransformMode::Canonical
+                    } else {
+                        SnapshotTransformMode::LosslessBridge
+                    };
+                    let projection = project_protocol_request(input(
+                        &request,
+                        source,
+                        target,
+                        mode,
+                        NativePayloadAvailability::Unavailable,
+                        &no_capabilities,
+                    )).map_err(|error| TestCaseError::fail(error.to_string()))?;
+                    let ProjectedProtocolRequest::Canonical(projected) = projection else {
+                        return Err(TestCaseError::fail("typed mode returned native projection"));
+                    };
+                    prop_assert_eq!(
+                        projected.extensions.get(super::output_limit_name(target)).map(RawJson::get),
+                        Some(expected.as_str())
+                    );
+                }
+            }
+        }
     }
 }

@@ -845,6 +845,13 @@ dependencies = [
  "gateway-protocol",
  "gateway-provider",
  "gateway-upstream",
+ "proptest",
+ "protocol-anthropic",
+ "protocol-openai-chat",
+ "protocol-openai-responses",
+ "provider-anthropic-compatible",
+ "provider-openai-compatible",
+ "serde_json",
  "tokio",
 ]
 

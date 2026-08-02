@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.98` |
+| 计划版本 | `v1.99` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。P12-08A-C 与 D0 已本地通过；当前下一切片为 P12-08D1 三协议请求侧 typed port。生产主机名尚未切换。 |
+| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。P12-08A-C、D0 与 D1 已本地通过；当前下一切片为 P12-08D2 三协议非流式/SSE 响应转换。生产主机名尚未切换。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -1762,7 +1762,7 @@ CR-ID: CR-P11-04-001
 | P12-08B | Actix `/v1/chat/completions`、认证、正文上限、keepalive 与生命周期 | [BC-HTTP-002](contracts/BC-HTTP-002-actix-chat-completions-boundary.md) 与 [P12-08B 报告](reports/p12-08b-actix-chat-http.md)：JSON/SSE HTTP E2E、认证优先、4 MiB 上限、finish/Usage/`[DONE]` 顺序 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08C | `openai/chat-completions` Endpoint 格式与 OpenAI-compatible 出站 Adapter | [BC-PROVIDER-023](contracts/BC-PROVIDER-023-openai-compatible-chat-completions.md) 与 [P12-08C 报告](reports/p12-08c-openai-chat-adapter.md)：API Format 注册表、发布期校验、原生载荷、JSON/SSE decode、DNS-pinned transport | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08D0 | 冻结旧 CPA 三协议移植清单与差异分类 | [Legacy Behavior Manifest](reports/p12-08d0-legacy-behavior-manifest.md)：固定 v7.2.101 commit、八个显式 translator/一个 native fallback、197 个 translator tests、九协议 pair、Rust 目标模块与 parity/hardening/fail-closed 分类 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-08D1 | 端口三协议请求侧转换 | 复用旧 CPA request translator 测试意图；原生载荷保真，Chat/Responses/Messages → Canonical/目标协议的有损组合出网前拒绝；fixture 与属性测试覆盖有序 history、Tool、Reasoning 和上限 | PENDING |
+| P12-08D1 | 端口三协议请求侧转换 | [D1 request projection report](reports/p12-08d1-three-protocol-request-projection.md)：九协议 pair、三条原生载荷路径、脱敏 Tool fixture、Reasoning/输出上限 typed mapping、目标 builder 验证与属性测试通过；不可表达语义出网前拒绝 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08D2 | 端口三协议非流式与 SSE 响应转换 | 复用旧 CPA response/stream translator 测试意图；任意 Chunk 切分保持最终语义投影，Tool 参数、Usage、stop reason、错误与终止事件闭合；所有 buffer/计数有界 | PENDING |
 | P12-08D3 | 接入转换注册表、runtime 与 Route Explain | 仅发布已注册且能力可证明的源→目标 pair；native/Canonical 路径确定性选择；被拒候选给出无值原因且零 upstream attempt | PENDING |
 | P12-08D4 | 完成旧 CPA ↔ CPAR 离线差分与安全偏差复核 | 脱敏 golden corpus 覆盖三协议 JSON/SSE/Tool/Reasoning/Usage；每一差异归类为 `PARITY`、`INTENTIONAL_HARDENING` 或 `UNSUPPORTED_FAIL_CLOSED`，无未分类差异 | PENDING |
@@ -3511,3 +3511,4 @@ Next task:
 | v1.96 | 2026-08-02 | 以 CLIProxyAPI v7.2.101 native OpenAI translator 为行为参考完成 P12-08C：第三 ApiFormat、发布/组成注册表、显式入站协议与原生载荷、Chat JSON/SSE 上游解码及 DNS-pinned 交接；既有 CPAR 安全门禁不降级 | LOCAL_PASS_PENDING_PHASE_GATE；P12-08D 为下一切片，生产图与流量未改 |
 | v1.97 | 2026-08-02 | `CR-P12-PORT-001`：确立旧 CPA 行为移植优先原则和 Legacy Behavior Manifest，把 P12-08D-G 拆为协议请求、响应/SSE、注册表、差分、分渠道 runtime、生产图/本地 E2E/迁移 dry-run 与 live receipt 小批次；保留 CPAR 安全 hardening，账号缺失渠道默认禁用并延期 live 补验 | APPROVED；下一切片 P12-08D0，仅优化计划，生产图与流量未改 |
 | v1.98 | 2026-08-02 | 完成 P12-08D0：固定 CLIProxyAPI v7.2.101 精确 commit、八个显式 translator 加一个 Messages native fallback、197 个 translator tests 与 CPAR Rust 边界；请求/响应差异预分类为 parity、intentional hardening 或 unsupported fail-closed | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08D1，请求侧 typed port；无代码、服务器或流量变化 |
+| v1.99 | 2026-08-02 | 完成 P12-08D1：九种 Chat/Responses/Messages 请求 pair 均有显式 native/typed projection；输出上限、Tool history 与固定 Reasoning 档位按目标协议映射，真实三类 request builder、脱敏 fixture 与属性测试通过；未知/不兼容语义稳定拒绝 | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08D2 响应/SSE typed port；无服务器、凭据、Config Version 或流量变化 |

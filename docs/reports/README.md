@@ -165,3 +165,4 @@
 - [P12-07 executed differential gate](p12-07-executed-differential-gate.md) — the differential corpus now computes its gateway projection by driving real gateway, store, Grok, and Kiro code
 - [P12-08C OpenAI-compatible Chat Completions adapter](p12-08c-openai-chat-adapter.md) — native payload preservation, strict JSON/SSE decode, exact format registry and DNS-pinned transport evidence
 - [P12-08D0 legacy CPA three-protocol behavior manifest](p12-08d0-legacy-behavior-manifest.md) — pinned translator/runtime/test inventory, nine-pair mapping and classified Rust porting boundary
+- [P12-08D1 three-protocol typed request projection](p12-08d1-three-protocol-request-projection.md) — nine request pairs, exact native ownership, typed Tool/Reasoning/output-limit mapping and fail-closed builder proof
