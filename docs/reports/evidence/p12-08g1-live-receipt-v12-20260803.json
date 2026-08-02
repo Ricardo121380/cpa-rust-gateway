@@ -1,0 +1,55 @@
+{
+  "attempted_tuple_count": 5,
+  "fixed_tuple_count": 12,
+  "network_send_count": 2,
+  "resumed_from_failed_tuple": true,
+  "schema_version": 1,
+  "stopped_on_first_failure": true,
+  "successful_tuple_count": 4,
+  "tuples": [
+    {
+      "mode": "text",
+      "projection": "text",
+      "protocol": "chat",
+      "result": "PASS",
+      "stream": false,
+      "terminal": "stop",
+      "usage_valid": true
+    },
+    {
+      "mode": "text",
+      "projection": "text",
+      "protocol": "chat",
+      "result": "PASS",
+      "stream": true,
+      "terminal": "stop",
+      "usage_valid": true
+    },
+    {
+      "mode": "tool",
+      "projection": "tool",
+      "protocol": "chat",
+      "result": "PASS",
+      "stream": false,
+      "terminal": "tool_calls",
+      "usage_valid": true
+    },
+    {
+      "mode": "tool",
+      "projection": "tool",
+      "protocol": "chat",
+      "result": "PASS",
+      "stream": true,
+      "terminal": "tool_calls",
+      "usage_valid": true
+    },
+    {
+      "category": "http_5xx",
+      "mode": "text",
+      "protocol": "responses",
+      "result": "FAIL",
+      "stream": false
+    }
+  ],
+  "value_free": true
+}

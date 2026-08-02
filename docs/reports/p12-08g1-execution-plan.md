@@ -332,3 +332,19 @@ index equals the existing Tool position, and type/name/arguments exactly match t
 An ordinary delta with a conflicting non-empty identity/name/type, an empty or invalid summary ID,
 wrong position, count, name, type or arguments remains a protocol failure. This exception emits no
 second Tool event and does not alter non-streaming or cross-protocol behavior.
+
+## CR-P12-08G1-017 — Responses JSON Text attempt-stage classifier
+
+The independently verified `4d16c3a` artifact made Chat SSE Tool pass, advancing the fixed matrix
+to four of twelve. The harness then sent Responses JSON Text once, received one safe 5xx category,
+stopped, and restored the predecessor graph with both key boundaries and service state verified.
+
+One exact same-shape, single-send/no-retry Responses JSON Text classifier may reuse the production
+request builder and full tuple observer. Before any service restart it may read only the matching
+request's protected loopback `GET /admin/requests/{request_id}/attempts` projection and retain the
+bounded attempt count, terminal outcome, retry class and closed stage enum. It must retain no
+endpoint, credential, model, URL, header, body, status number, error text, response value, token,
+timestamp, identifier or fingerprint. The graph must then be rolled back and the G1/predecessor
+key boundary plus active/disabled-at-boot service state reverified. A successful diagnostic does not
+authorize resending any passed tuple; a repeated failure may justify only the smallest repair at
+the proven stage.
