@@ -598,3 +598,21 @@ key, IDs, text, reasoning, Tool data, raw JSON, timestamps, token values or fing
 the unchanged v2 graph, send the classifier once, then restore and reverify the predecessor graph.
 The nine passing tuples must not be resent; only the first missing or unexpected lifecycle element
 may justify a repair.
+
+## CR-P12-08G1-034 — deferred Messages input Usage in the G1 harness
+
+CR-033 observed a complete known Messages SSE sequence: message start and stop were present, the
+terminal reason was `end_turn`, output Usage was valid, and there was no error or unknown
+event/delta. The only failed predicate was input Usage at `message_start`. Source review closes the
+relationship without another request: when a Responses upstream reports Usage only at its terminal
+event, the reviewed Anthropic encoder deliberately omits an unknown initial input count and repays
+the exact input and output counts together in `message_delta`; it cannot emit the later
+`message_stop` if that repayment is missing.
+
+Correct the G1 observer to accept input Usage at either message start or terminal delta. If both
+locations are present they must be nonnegative and equal; null, invalid, absent-from-both or
+conflicting counts remain failures. Add offline tests for ordinary initial Usage, exact terminal
+repayment, and all rejection forms. This changes only the value-free acceptance harness, not CPAR
+runtime or wire behavior, so the already verified `ba54c68` artifact remains the validation
+subject. Resume only tuple ten; on success the fixed harness may first-send tuples eleven and
+twelve under the same stop-on-first-failure rule.

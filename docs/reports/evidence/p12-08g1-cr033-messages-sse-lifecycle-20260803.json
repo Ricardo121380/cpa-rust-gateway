@@ -1,0 +1,33 @@
+{
+  "content_type_class": "sse",
+  "delta_types": [
+    "text_delta",
+    "text_delta",
+    "text_delta"
+  ],
+  "error_frame": false,
+  "event_count": 8,
+  "event_types": [
+    "message_start",
+    "content_block_start",
+    "content_block_delta",
+    "content_block_delta",
+    "content_block_delta",
+    "content_block_stop",
+    "message_delta",
+    "message_stop"
+  ],
+  "input_usage_valid": false,
+  "message_start": true,
+  "message_stop": true,
+  "output_usage_valid": true,
+  "request_count": 1,
+  "retry_count": 0,
+  "schema_version": 1,
+  "status_class": "2xx",
+  "stop_reason_class": "end_turn",
+  "strict_lifecycle": false,
+  "unknown_delta": false,
+  "unknown_event": false,
+  "value_free": true
+}

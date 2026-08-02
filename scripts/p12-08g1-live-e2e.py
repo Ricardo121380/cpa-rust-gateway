@@ -310,6 +310,20 @@ def anthropic_usage(incoming, outgoing) -> bool:
     return all(isinstance(item, int) and not isinstance(item, bool) and item >= 0 for item in (incoming, outgoing))
 
 
+MISSING_USAGE = object()
+
+
+def anthropic_stream_usage(incoming_at_start, incoming_at_end, outgoing) -> bool:
+    if not anthropic_usage(
+        incoming_at_start if incoming_at_start is not MISSING_USAGE else incoming_at_end,
+        outgoing,
+    ):
+        return False
+    if incoming_at_start is MISSING_USAGE or incoming_at_end is MISSING_USAGE:
+        return incoming_at_start is not MISSING_USAGE or incoming_at_end is not MISSING_USAGE
+    return incoming_at_start == incoming_at_end
+
+
 def observe_messages_json(value, tool: bool) -> dict:
     if not isinstance(value, dict):
         raise ProbeFailure("messages_lifecycle")
@@ -334,8 +348,9 @@ def observe_messages_stream(response, tool: bool) -> dict:
     saw_text = False
     tool_name = None
     tool_arguments = ""
-    input_tokens = None
-    output_tokens = None
+    input_tokens_at_start = MISSING_USAGE
+    input_tokens_at_end = MISSING_USAGE
+    output_tokens = MISSING_USAGE
     terminal = None
     for event in sse_values(response):
         if event == "DONE":
@@ -345,7 +360,8 @@ def observe_messages_stream(response, tool: bool) -> dict:
             started = True
             message = event.get("message") or {}
             usage = message.get("usage") or {}
-            input_tokens = usage.get("input_tokens")
+            if "input_tokens" in usage:
+                input_tokens_at_start = usage.get("input_tokens")
         elif kind == "content_block_start":
             block = event.get("content_block") or {}
             if block.get("type") == "tool_use":
@@ -360,12 +376,18 @@ def observe_messages_stream(response, tool: bool) -> dict:
             delta = event.get("delta") or {}
             terminal = delta.get("stop_reason") or terminal
             usage = event.get("usage") or {}
-            output_tokens = usage.get("output_tokens", output_tokens)
+            if "input_tokens" in usage:
+                input_tokens_at_end = usage.get("input_tokens")
+            if "output_tokens" in usage:
+                output_tokens = usage.get("output_tokens")
         elif kind == "message_stop":
             stopped = True
         elif kind == "error":
             raise ProbeFailure("messages_stream_failed")
-    if not started or not stopped or not terminal or not anthropic_usage(input_tokens, output_tokens):
+    if (
+        not started or not stopped or not terminal
+        or not anthropic_stream_usage(input_tokens_at_start, input_tokens_at_end, output_tokens)
+    ):
         raise ProbeFailure("messages_stream_lifecycle")
     if (tool and not valid_tool(tool_name, tool_arguments)) or (not tool and not saw_text):
         raise ProbeFailure("messages_stream_semantics")

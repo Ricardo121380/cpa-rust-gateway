@@ -90,6 +90,31 @@ class LiveHarnessTest(unittest.TestCase):
         ), False)
         self.assertTrue(all(item["usage_valid"] for item in (responses, chat, messages)))
 
+    def test_messages_stream_accepts_exact_terminal_input_usage_repayment(self):
+        result = MODULE.observe_messages_stream(events(
+            {"type": "message_start", "message": {"usage": {"output_tokens": 0}}},
+            {"type": "content_block_delta", "delta": {"type": "text_delta", "text": "private"}},
+            {"type": "message_delta", "delta": {"stop_reason": "end_turn"},
+             "usage": {"input_tokens": 2, "output_tokens": 3}},
+            {"type": "message_stop"},
+        ), False)
+        self.assertTrue(result["usage_valid"])
+        self.assertNotIn("private", json.dumps(result))
+
+    def test_messages_stream_rejects_missing_invalid_or_conflicting_input_usage(self):
+        for start_usage, end_usage in [
+            ({"output_tokens": 0}, {"output_tokens": 3}),
+            ({"input_tokens": None}, {"output_tokens": 3}),
+            ({"input_tokens": 2}, {"input_tokens": 4, "output_tokens": 3}),
+        ]:
+            with self.assertRaises(MODULE.ProbeFailure):
+                MODULE.observe_messages_stream(events(
+                    {"type": "message_start", "message": {"usage": start_usage}},
+                    {"type": "content_block_delta", "delta": {"type": "text_delta", "text": "private"}},
+                    {"type": "message_delta", "delta": {"stop_reason": "end_turn"}, "usage": end_usage},
+                    {"type": "message_stop"},
+                ), False)
+
     def test_fixed_request_shapes_cover_twelve_unique_tuples(self):
         shapes = []
         for protocol in ("chat", "responses", "messages"):
