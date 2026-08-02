@@ -252,3 +252,19 @@ closed. Provider-builder tests prove each admitted same-protocol value reaches t
 wire field. Cross-protocol projection remains unchanged and rejects every Tool choice because no
 reviewed lossless mapping exists. The next exact artifact resumes at Chat JSON Tool and does not
 resend either passed text tuple.
+
+## CR-P12-08G1-012 — one non-streaming Tool response classifier
+
+The CR-011 artifact created one upstream Attempt for Chat JSON Tool, proving Router and provider
+request construction now admit the tuple, but the Attempt ended `failed/StreamTruncated` in the
+decoder and the public result remained 5xx. The harness stopped immediately and rollback restored
+G1-key 401, predecessor-key 200, active/disabled-at-boot and loopback-only service state.
+
+One direct non-streaming Chat Tool structural classifier is authorized using the already selected
+Krill Codex credential read-only from CC Switch. It must neither rewrite nor activate any CC Switch
+configuration. It sends the same bounded `tool_choice:required` shape exactly once, never retries,
+and retains only status/content-type classes; closed root/choice/message/Tool/function/Usage key
+sets; bounded counts; JSON value-type classes; finish-reason class; and the first strict decoder
+gate that rejects. It may not retain or print endpoint, credential, model, request/response body,
+IDs, Tool names, arguments, text, token counts or fingerprints. This diagnostic is not a passing G1
+tuple and cannot authorize a compatibility relaxation without a closed structural proof.

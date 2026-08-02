@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.118` |
+| 计划版本 | `v1.119` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -23,6 +23,7 @@
 | 已批准变更（续 6） | `CR-P12-08G1-009`：逐帧无值序列确认真实终端 `chat.completion` summary 可含 Message/finish/Usage 而完全省略 delta；仅该终端形状可省略，普通 chunk 与显式 null/错误类型仍拒绝。 |
 | 已批准变更（续 7） | `CR-P12-08G1-010`：Chat SSE Text 已通过后，Chat JSON Tool 在零 upstream Attempt 前本地 4xx，而同形 `tool_choice:required` 直连为 2xx；Chat/Responses 仅增加 string required 且必须存在 typed function Tool，未知/对象 choice 与无 Tool required 仍拒绝。 |
 | 已批准变更（续 8） | `CR-P12-08G1-011`：c71351e artifact 将 Chat JSON Tool 从 decoder 4xx 推进为 Router canonical admission 的零 Attempt 5xx；仅准入同协议、目标命名空间且结构严格合法的 Chat/Responses/Messages Tool choice，required/any 必须存在 Tool，跨协议仍因无已审查的无损映射而 fail closed。 |
+| 已批准变更（续 9） | `CR-P12-08G1-012`：f2689b2 artifact 的 Chat JSON Tool 已产生 upstream Attempt，但在 decoder 以 `StreamTruncated` 失败；只允许一次同形非流式 Tool 结构分类，CC Switch 仅只读且不得修改，仅保留封闭 key/type/count/finish/decoder-gate 类别，不保留任何值或正文。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -3535,3 +3536,4 @@ Next task:
 | v1.116 | 2026-08-03 | `CR-P12-08G1-009`：85f0d2a artifact 仍在同一替代 tuple 停止并完整回滚；逐帧无值序列纠正先前假设，确认第 3 帧是含 Message/finish/Usage 但完全省略 delta 的终端 `chat.completion` summary，仅准入该严格终端形状 | IN_PROGRESS；定向测试通过，待新 exact-SHA artifact 后再次只替代失败 tuple |
 | v1.117 | 2026-08-03 | `CR-P12-08G1-010`：e297fa1 artifact 使 Chat SSE Text 真实通过，随后 Chat JSON Tool 在零 upstream Attempt 前本地 4xx；同形 required Tool 直连 2xx，新增 Chat/Responses required Tool choice 的严格保留与无 Tool 拒绝 | IN_PROGRESS；2/12 tuple PASS，待新 exact-SHA artifact 从 Chat JSON Tool 续跑 |
 | v1.118 | 2026-08-03 | `CR-P12-08G1-011`：c71351e artifact 将 Chat JSON Tool 从 decoder 4xx 推进为 Router canonical admission 的零 Attempt 5xx；严格准入三个目标协议各自同协议 Tool choice，并以 provider builder 测试证明 wire 保留，跨协议继续拒绝 | IN_PROGRESS；2/12 tuple PASS，待新 exact-SHA artifact 从 Chat JSON Tool 续跑 |
+| v1.119 | 2026-08-03 | `CR-P12-08G1-012`：f2689b2 artifact 已使 Chat JSON Tool 进入 upstream Attempt，但 decoder 以 `StreamTruncated` 失败并完整回滚；登记一次只读 CC Switch 凭据、同形且不保留值的非流式 Tool 结构分类 | IN_PROGRESS；2/12 tuple PASS，分类不计为验收 tuple，首个封闭 decoder gate 决定后续修复 |
