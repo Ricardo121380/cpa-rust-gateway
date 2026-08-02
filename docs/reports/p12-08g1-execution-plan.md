@@ -286,3 +286,18 @@ The replacement proved one unsigned, unique index equal to its zero-based array 
 non-streaming decoder may therefore accept an absent index or an unsigned index exactly equal to
 the current Tool-call position. Wrong types, null, duplicates and displaced indices remain strict
 protocol failures. The streaming decoder and every other Tool field are unchanged.
+
+## CR-P12-08G1-014 — one streaming Tool structure classifier
+
+The CR-013 artifact made Chat JSON Tool pass, then the harness advanced to Chat SSE Tool and stopped
+on one public stream error frame. Exactly two new sends occurred, so the passed JSON Tool tuple will
+not be resent. Rollback again restored G1-key 401, predecessor-key 200 and active,
+disabled-at-boot, loopback-only service state.
+
+One direct Chat SSE Tool classifier is authorized with the same read-only Krill configuration and
+one-send/no-retry boundary. It may retain only ordered event numbers; root/choice/delta/message/Tool
+and function key sets; bounded Tool counts; null/empty/non-empty type classes; fixed finish/DONE/
+Usage classes; and index unsigned/unique/zero-based relations. It may compare summary Tool fields
+with accumulated deltas only as equality booleans. It must retain no endpoint, credential, model,
+body, frame bytes, ID, Tool name, arguments, text, token count or fingerprint. The result only
+authorizes a closed compatibility rule at the first proven decoder mismatch.
