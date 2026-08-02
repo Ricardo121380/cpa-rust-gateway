@@ -171,4 +171,5 @@
 - [P12-08E1 Codex and OpenAI-compatible runtime](p12-08e1-openai-compatible-runtime.md) — strict API-key/OAuth refresh transaction, bounded error ownership, and exact Credential/Quota/Health isolation
 - [P12-08E2 Claude and Anthropic-compatible runtime](p12-08e2-anthropic-compatible-runtime.md) — mutually-exclusive API-key/OAuth presentation, strict refresh transaction, bounded Anthropic failure ownership, and native/bridged runtime proof
 - [P12-08E3 Grok unified runtime](p12-08e3-grok-unified-runtime.md) — fixed-target Build OAuth and Official API-key runtime composition, isolated failure ownership, and fail-closed Web registration
+- [P12-08E4 Kiro unified runtime](p12-08e4-kiro-unified-runtime.md) — raw API-key and strict OAuth lease composition, CLI/IDE EventStream runtime, and exact Credential/Quota/Health ownership
 - [P12-08D4 legacy CPA to CPAR protocol differential](p12-08d4-legacy-protocol-differential.md) — value-free three-protocol JSON/SSE corpus, executable CPAR projections and closed parity/hardening/unsupported classification

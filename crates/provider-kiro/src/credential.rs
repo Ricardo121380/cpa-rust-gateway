@@ -48,6 +48,8 @@ pub enum KiroCredentialKind {
 pub enum KiroCredentialSource {
     /// The explicit strict JSON import requested by the control plane.
     ImportedJson,
+    /// A backward-compatible raw API key supplied by one encrypted runtime lease.
+    RuntimeLease,
     /// A later injected Social or Enterprise refresh response.
     Refresh,
 }
@@ -89,6 +91,33 @@ pub struct KiroApiKeyCredential {
 }
 
 impl KiroCredential {
+    /// Imports one request-time runtime lease without discovering any ambient credential source.
+    ///
+    /// Existing P12 deployments store headless `ksk_` material directly, while Social and
+    /// Enterprise credentials use the strict control-plane JSON shape documented by
+    /// [`Self::import_json`]. A value that is not an exact raw API key is never coerced into one;
+    /// it must pass the duplicate-free, exact-field JSON importer and its absolute-expiry check.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe credential error for malformed raw keys, invalid JSON, mixed credential
+    /// families, or expired OAuth material.
+    pub fn import_runtime_secret(
+        input: &[u8],
+        observed_at_ms: i64,
+    ) -> Result<Self, KiroCredentialError> {
+        if input.starts_with(b"ksk_") {
+            let key = std::str::from_utf8(input)
+                .map_err(|_| KiroCredentialError::InvalidField)?
+                .to_owned();
+            return Ok(Self::ApiKey(KiroApiKeyCredential::new(
+                key,
+                KiroCredentialSource::RuntimeLease,
+            )?));
+        }
+        Self::import_json(input, observed_at_ms)
+    }
+
     /// Imports one strict, versionless control-plane credential object.
     ///
     /// Social requires `kind`, `access_token`, `refresh_token`, and `expires_at_ms`; Enterprise
@@ -158,6 +187,16 @@ impl KiroCredential {
             Self::Social(_) => KiroCredentialKind::Social,
             Self::Enterprise(_) => KiroCredentialKind::Enterprise,
             Self::ApiKey(_) => KiroCredentialKind::ApiKey,
+        }
+    }
+
+    /// Returns the non-secret provenance of this validated credential value.
+    #[must_use]
+    pub const fn source(&self) -> KiroCredentialSource {
+        match self {
+            Self::Social(value) => value.source,
+            Self::Enterprise(value) => value.oauth.source,
+            Self::ApiKey(value) => value.source,
         }
     }
 
@@ -1114,12 +1153,14 @@ fn source_byte(source: KiroCredentialSource) -> u8 {
     match source {
         KiroCredentialSource::ImportedJson => 0,
         KiroCredentialSource::Refresh => 1,
+        KiroCredentialSource::RuntimeLease => 2,
     }
 }
 fn source_from_byte(value: u8) -> Result<KiroCredentialSource, KiroCredentialError> {
     match value {
         0 => Ok(KiroCredentialSource::ImportedJson),
         1 => Ok(KiroCredentialSource::Refresh),
+        2 => Ok(KiroCredentialSource::RuntimeLease),
         _ => Err(KiroCredentialError::InvalidPersistedCredential),
     }
 }

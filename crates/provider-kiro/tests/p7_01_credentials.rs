@@ -11,8 +11,8 @@ use gateway_core::CredentialId;
 use gateway_store::secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore};
 use provider_kiro::credential::{
     KiroCredential, KiroCredentialCasOutcome, KiroCredentialError, KiroCredentialKind,
-    KiroCredentialRefreshCoordinator, KiroRefreshKind, KiroRefreshRequest, KiroRefreshResponse,
-    KiroRefreshTransport,
+    KiroCredentialRefreshCoordinator, KiroCredentialSource, KiroRefreshKind, KiroRefreshRequest,
+    KiroRefreshResponse, KiroRefreshTransport,
 };
 
 type TestResult = Result<(), Box<dyn Error>>;
@@ -54,6 +54,35 @@ fn three_credential_families_are_strictly_distinct_and_redacted() -> TestResult 
     ] {
         assert!(!debug.contains(value));
     }
+    Ok(())
+}
+
+#[test]
+fn runtime_lease_import_accepts_raw_api_key_or_strict_unexpired_oauth() -> TestResult {
+    let raw = KiroCredential::import_runtime_secret(b"ksk_runtime_fake", 1_000)?;
+    let social = KiroCredential::import_runtime_secret(
+        br#"{"kind":"social","access_token":"runtime-social-access","refresh_token":"runtime-social-refresh","expires_at_ms":3601000}"#,
+        1_000,
+    )?;
+    let enterprise = KiroCredential::import_runtime_secret(
+        br#"{"kind":"enterprise","access_token":"runtime-enterprise-access","refresh_token":"runtime-enterprise-refresh","expires_at_ms":3601000,"client_id":"runtime-client","client_secret":"runtime-client-secret","auth_region":"eu-west-1"}"#,
+        1_000,
+    )?;
+
+    assert_eq!(raw.kind(), KiroCredentialKind::ApiKey);
+    assert_eq!(raw.source(), KiroCredentialSource::RuntimeLease);
+    assert_eq!(social.kind(), KiroCredentialKind::Social);
+    assert_eq!(social.source(), KiroCredentialSource::ImportedJson);
+    assert_eq!(enterprise.kind(), KiroCredentialKind::Enterprise);
+    assert_eq!(enterprise.auth_region(), Some("eu-west-1"));
+    assert!(
+        KiroCredential::import_runtime_secret(
+            br#"{"kind":"social","access_token":"expired-access","refresh_token":"expired-refresh","expires_at_ms":1000}"#,
+            1_000,
+        )
+        .is_err()
+    );
+    assert!(KiroCredential::import_runtime_secret(b"not-a-kiro-key", 1_000).is_err());
     Ok(())
 }
 

@@ -1925,19 +1925,12 @@ impl EndpointAttemptDriver {
         let ProjectedProtocolRequest::Canonical(request) = projected else {
             return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
         };
-        let secret = std::str::from_utf8(credential.secret_bytes())
-            .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
-        // Only the headless `ksk_` family is composed here. Social and Enterprise credentials need
-        // OAuth refresh and, for Enterprise, an authenticated profile lookup; both are P7-09 work
-        // that this composition deliberately does not perform, so an OAuth credential must fail
-        // closed rather than be sent with a token this build never refreshes.
-        let kiro_credential = KiroCredential::import_json(
-            serde_json::json!({"kind": "api_key", "api_key": secret})
-                .to_string()
-                .as_bytes(),
-            0,
-        )
-        .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
+        // The lease may retain the backward-compatible raw `ksk_` form or one strict
+        // Social/Enterprise JSON object. Expired OAuth fails before profile resolution or egress;
+        // refresh remains an explicit F1 worker transaction rather than hidden request-path I/O.
+        let kiro_credential =
+            KiroCredential::import_runtime_secret(credential.secret_bytes(), system_now_ms()?)
+                .map_err(|_| AttemptFailure::NonRetryable(credential_unavailable_error()))?;
         let profile = resolve_profile_arn(
             kiro_credential.kind(),
             policy.api_region(),
@@ -2708,11 +2701,11 @@ fn p12_kiro_request_projection(request: &CanonicalRequest) -> CanonicalRequest {
     projected
 }
 
-/// Refuses every Enterprise profile lookup in this composition.
+/// Refuses hidden Enterprise profile I/O in the request path.
 ///
-/// An Enterprise credential needs an authenticated `ListAvailableProfiles` call, which is P7-09
-/// work. This build composes only the headless `ksk_` family, so the lookup can never be reached;
-/// implementing it as a hard refusal keeps that true by construction instead of by convention.
+/// `resolve_profile_arn` turns this refusal into its reviewed deterministic, Region-aware fallback.
+/// P12-08F1 may later supply a refreshed immutable profile snapshot, but an inference request must
+/// never discover ambient state or perform an authenticated profile lookup on its own.
 struct P12KiroNoEnterpriseLookup;
 
 impl KiroEnterpriseProfileLookup for P12KiroNoEnterpriseLookup {
@@ -2757,7 +2750,9 @@ fn p12_classify_kiro_start_failure(error: GatewayError) -> AttemptFailure {
         }
         // A throttled Kiro account should fail over rather than fail the request. The adapter does
         // not surface a Retry-After, so none is claimed.
-        GatewayErrorCode::ProviderRateLimited => AttemptFailure::RateLimited { retry_after: None },
+        GatewayErrorCode::ProviderRateLimited | GatewayErrorCode::CredentialQuotaExceeded => {
+            AttemptFailure::RateLimited { retry_after: None }
+        }
         _ => AttemptFailure::NonRetryable(error),
     }
 }
@@ -4356,9 +4351,10 @@ mod tests {
         decode_json_events_with_usage_projection, decode_sse_events,
         decode_sse_events_with_usage_projection, deployment_route_compiler, endpoint_runtimes,
         has_p12_https_only_egress_shape, has_p12_unlisted_model_override,
-        p12_api_format_adapter_registry, p12_attempt_start_timeout, p12_kiro_endpoint_shape,
-        p12_kiro_request_projection, p12_openai_compatible_request, p12_response_usage_projection,
-        p12_transport_headers, p12_transport_request, queue_event, validate_endpoint_shape,
+        p12_api_format_adapter_registry, p12_attempt_start_timeout,
+        p12_classify_kiro_start_failure, p12_kiro_endpoint_shape, p12_kiro_request_projection,
+        p12_openai_compatible_request, p12_response_usage_projection, p12_transport_headers,
+        p12_transport_request, queue_event, validate_endpoint_shape,
     };
 
     const P12_SINGLETON_TEST_ENDPOINT_ID: &str = "p12-krill-endpoint";
@@ -7231,6 +7227,47 @@ mod tests {
         substituted_official_path.inference_path = "/v1/chat/completions".to_owned();
         assert!(build_grok_official_responses_adapter(&substituted_official_path).is_err());
         Ok(())
+    }
+
+    #[test]
+    fn kiro_start_failures_preserve_exact_router_state_owners() {
+        let unauthorized = GatewayError::new(
+            GatewayErrorCode::CredentialUnauthorized,
+            ErrorScope::Credential,
+        );
+        assert!(matches!(
+            p12_classify_kiro_start_failure(unauthorized),
+            AttemptFailure::NonRetryable(error)
+                if error.code() == GatewayErrorCode::CredentialUnauthorized
+        ));
+
+        let forbidden =
+            GatewayError::new(GatewayErrorCode::CredentialForbidden, ErrorScope::Account);
+        assert!(matches!(
+            p12_classify_kiro_start_failure(forbidden),
+            AttemptFailure::NonRetryable(error)
+                if error.code() == GatewayErrorCode::CredentialForbidden
+        ));
+
+        for error in [
+            GatewayError::new(
+                GatewayErrorCode::CredentialQuotaExceeded,
+                ErrorScope::QuotaWindow,
+            ),
+            GatewayError::new(GatewayErrorCode::ProviderRateLimited, ErrorScope::Provider),
+        ] {
+            assert!(matches!(
+                p12_classify_kiro_start_failure(error),
+                AttemptFailure::RateLimited { retry_after: None }
+            ));
+        }
+
+        let transient =
+            GatewayError::new(GatewayErrorCode::ProviderTransient, ErrorScope::Provider);
+        assert!(matches!(
+            p12_classify_kiro_start_failure(transient),
+            AttemptFailure::Connection
+        ));
     }
 
     #[test]
