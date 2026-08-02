@@ -6285,23 +6285,34 @@ mod tests {
                         } else {
                             ""
                         };
+                        let chat_tool_choice = if semantic == "tool" {
+                            r#","tool_choice":"required""#
+                        } else {
+                            ""
+                        };
+                        let responses_tool_choice = chat_tool_choice;
+                        let messages_tool_choice = if semantic == "tool" {
+                            r#","tool_choice":{"type":"any"}"#
+                        } else {
+                            ""
+                        };
                         let (uri, payload) = match protocol {
                             ProtocolFormat::OpenAiChatCompletions => (
                                 "/v1/chat/completions",
                                 format!(
-                                    r#"{{"model":"p12-f2-model","max_tokens":32,"messages":[{{"role":"user","content":"ok"}}],"tools":[{{"type":"function","function":{{"name":"echo","parameters":{{"type":"object"}}}}}}],"stream":{stream}{chat_stream_options}}}"#,
+                                    r#"{{"model":"p12-f2-model","max_tokens":32,"messages":[{{"role":"user","content":"ok"}}],"tools":[{{"type":"function","function":{{"name":"echo","parameters":{{"type":"object"}}}}}}],"stream":{stream}{chat_stream_options}{chat_tool_choice}}}"#,
                                 ),
                             ),
                             ProtocolFormat::OpenAiResponses => (
                                 "/v1/responses",
                                 format!(
-                                    r#"{{"model":"p12-f2-model","input":"ok","max_output_tokens":32,"tools":[{{"type":"function","name":"echo","parameters":{{"type":"object"}}}}],"stream":{stream}}}"#,
+                                    r#"{{"model":"p12-f2-model","input":"ok","max_output_tokens":32,"tools":[{{"type":"function","name":"echo","parameters":{{"type":"object"}}}}],"stream":{stream}{responses_tool_choice}}}"#,
                                 ),
                             ),
                             ProtocolFormat::AnthropicMessages => (
                                 "/v1/messages",
                                 format!(
-                                    r#"{{"model":"p12-f2-model","max_tokens":32,"messages":[{{"role":"user","content":"ok"}}],"tools":[{{"name":"echo","input_schema":{{"type":"object"}}}}],"stream":{stream}}}"#,
+                                    r#"{{"model":"p12-f2-model","max_tokens":32,"messages":[{{"role":"user","content":"ok"}}],"tools":[{{"name":"echo","input_schema":{{"type":"object"}}}}],"stream":{stream}{messages_tool_choice}}}"#,
                                 ),
                             ),
                         };

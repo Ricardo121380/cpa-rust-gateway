@@ -616,3 +616,21 @@ repayment, and all rejection forms. This changes only the value-free acceptance 
 runtime or wire behavior, so the already verified `ba54c68` artifact remains the validation
 subject. Resume only tuple ten; on success the fixed harness may first-send tuples eleven and
 twelve under the same stop-on-first-failure rule.
+
+## CR-P12-08G1-035 — reviewed required-Tool choice bridge
+
+The corrected harness made tuple ten pass, then tuple eleven (Messages JSON Tool) failed locally
+with `http_5xx` before any upstream Attempt. The exact live request includes Anthropic
+`tool_choice: {"type":"any"}`. Source review proves that the lossless Messages-to-Responses
+projection currently accepts only the source output limit: the source Tool choice is therefore
+rejected as an unknown root extension before Credential lease and Attempt. The P12-08F2 loopback
+matrix did not include Tool choice, so its Tool cells did not exercise this required-Tool contract.
+
+Add one reviewed semantic mapping for forced Tool selection across protocols: strict Chat or
+Responses `"required"` and strict Messages `{"type":"any"}` project to the target protocol's exact
+forced-Tool representation. The mapping is valid only when at least one Tool is present. Automatic,
+named, malformed, foreign, colliding and duplicate choices remain rejected unless separately
+reviewed. Extend the router tests with all source/target forced-Tool pairs, wire-level target
+assertions and negative cases, and amend the F2 live-shaped Messages fixture to include `any`.
+After focused tests, Full gate, review, commit, push, dual-target signed artifact verification and
+ARM64 deployment, resume only tuple eleven; tuple twelve may be first-sent only if eleven passes.

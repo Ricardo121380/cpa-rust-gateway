@@ -1,0 +1,109 @@
+{
+  "attempted_tuple_count": 11,
+  "fixed_tuple_count": 12,
+  "network_send_count": 2,
+  "resumed_from_failed_tuple": true,
+  "schema_version": 1,
+  "stopped_on_first_failure": true,
+  "successful_tuple_count": 10,
+  "tuples": [
+    {
+      "mode": "text",
+      "projection": "text",
+      "protocol": "chat",
+      "result": "PASS",
+      "stream": false,
+      "terminal": "stop",
+      "usage_valid": true
+    },
+    {
+      "mode": "text",
+      "projection": "text",
+      "protocol": "chat",
+      "result": "PASS",
+      "stream": true,
+      "terminal": "stop",
+      "usage_valid": true
+    },
+    {
+      "mode": "tool",
+      "projection": "tool",
+      "protocol": "chat",
+      "result": "PASS",
+      "stream": false,
+      "terminal": "tool_calls",
+      "usage_valid": true
+    },
+    {
+      "mode": "tool",
+      "projection": "tool",
+      "protocol": "chat",
+      "result": "PASS",
+      "stream": true,
+      "terminal": "tool_calls",
+      "usage_valid": true
+    },
+    {
+      "mode": "text",
+      "projection": "text",
+      "protocol": "responses",
+      "result": "PASS",
+      "stream": false,
+      "terminal": "completed",
+      "usage_valid": true
+    },
+    {
+      "mode": "text",
+      "projection": "text",
+      "protocol": "responses",
+      "result": "PASS",
+      "stream": true,
+      "terminal": "completed",
+      "usage_valid": true
+    },
+    {
+      "mode": "tool",
+      "projection": "tool",
+      "protocol": "responses",
+      "result": "PASS",
+      "stream": false,
+      "terminal": "completed",
+      "usage_valid": true
+    },
+    {
+      "mode": "tool",
+      "projection": "tool",
+      "protocol": "responses",
+      "result": "PASS",
+      "stream": true,
+      "terminal": "completed",
+      "usage_valid": true
+    },
+    {
+      "mode": "text",
+      "projection": "text",
+      "protocol": "messages",
+      "result": "PASS",
+      "stream": false,
+      "terminal": "end_turn",
+      "usage_valid": true
+    },
+    {
+      "mode": "text",
+      "projection": "text",
+      "protocol": "messages",
+      "result": "PASS",
+      "stream": true,
+      "terminal": "end_turn",
+      "usage_valid": true
+    },
+    {
+      "category": "http_5xx",
+      "mode": "tool",
+      "protocol": "messages",
+      "result": "FAIL",
+      "stream": false
+    }
+  ],
+  "value_free": true
+}
