@@ -4,20 +4,21 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.96` |
+| 计划版本 | `v1.97` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。P12-08A-C 已本地通过；当前下一切片为 P12-08D 三协议 Canonical 转换矩阵。生产主机名尚未切换。 |
+| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。P12-08A-C 已本地通过；按 `CR-P12-PORT-001`，当前下一切片为 P12-08D0 旧 CPA 行为清单与 Rust 端口映射，随后按请求、响应/SSE、注册表和差分四个小批次完成三协议转换。生产主机名尚未切换。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
-| 行为参考 | CPA `v7.2.80` 基线；P12-08 起另固定 CPA `v7.2.101` translator/runtime 测试作为迁移参考；加上已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
+| 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
 | 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 `CR-P6-03-003`：在确认 2xx JSON 错误对象后，增加最终一次仅从标准错误元数据映射安全类别的诊断调用。 `CR-P6-03-004`：新增一个与固定直连验收隔离的、服务器本地 grok2api Build 路由代理参考探针。 `CR-P6-03-005`：采用服务器参考的当前 Build 请求轮廓，并只登记新的固定端点 T11 非流式与 T12 SSE 验证。 `CR-P6-03-006`：通过 grok2api 支持的管理 API 导入指定 OAuth 文件并做账号专属额度刷新诊断；不重放固定直连元组，也不把共享路由调用误归因到该账号。 `CR-P6-03-007`：仅以本机官方 Grok CLI 做一次交互式 OAuth 重新认证并记录安全状态投影；不发送 P6 请求或改变服务器/路由。 |
 | 已批准变更（续） | `CR-P6-03-008`：以 CPA、grok2api 和 Sub2API 的 clean-room 行为参考扩展 Grok Build 的已知 OAuth 凭据来源；保留标准 JSON/Device Code/Refresh，新增 CPA xAI 文件和官方 Grok CLI indexed cache 的内存导入，不纳入 Cookie/SSO Web 转换。 `CR-P6-03-009`：仅修正 T13 零发送 wrapper 的一次替代 T15 验证；T15 的 4xx 已停止矩阵。 `CR-P6-03-010`：基于官方 CLI 静态证据更正 workspace User-Agent，仅登记新的 T16 非流式直连验证，并在 T16 完整成功时条件允许一次 T17 SSE。 `CR-P6-03-011`：T16 在无网络预检的本地标签门槛前停止后，以不同的合法短标签重新登记 T18 非流式直连；仅其完整 Canonical 成功时允许条件 T19 SSE。 `CR-P6-03-013`：用户批准完成 P6 全部要求，解除 P6-03 对后续本地安全/连续性实现的流程阻塞；不声称 T18 成功、不发送 T19 或重放任何闭合 tuple。 `CR-P6-03-014`：以当前官方 CLI 的成功模型/会话和新完成的可注入执行链路登记 T20/T21，不重放任何已关闭 tuple。 `CR-P6-03-015`：T20 的新的 2xx JSON 协议失败后，只输出固定的无值结构类别诊断 T22。 `CR-P6-03-016`：T22 发现投影在合法压缩前运行，登记一次解压后无值结构诊断 T23。 `CR-P6-03-017`：T23 仍失败后，仅投影第一个固定 decoder requirement gate 的 T24。 |
 | 已批准变更（续 2） | `CR-P7-G7-001`：P7 因 Kiro 外部账号重新认证而阻塞时，允许 P8 按自身顺序进行本地实现与审查；其与 `CR-P7-DEFER-002` 冲突的 P8/G8/P9-P12 顺序约束已由后者替代。 `CR-P7-DEFER-002`：Kiro OAuth 延后；P8-G12 按自身非 Kiro 依赖推进，P8 可执行自身 Phase Gate 与 Delivery Gate；真实 xAI 验证仍仅按 P8 自身明确授权进行。 `CR-P8-DEFER-001`：无 Official API Key 时，P8-07/G8 与 P7-09 一并延后至最终外部认证验收包；P9-P12 Gate 依赖不变。 `CR-P11-04-001`：用户批准把纯 loopback 合成 Soak 的最低门槛由 24 小时改为 10 小时；已完成的 10h13m 用户停止 receipt 仍如实标为 `INCOMPLETE`，P12 的真实 Canary 72h 观察不变。 |
 | 已批准变更（续 3） | `CR-P12-05-001`：为 P12-05 的生产数据面组成创建一次新的、精确 SHA 绑定的私有 GitHub OIDC/Sigstore 制品，并仅在独立 loopback Staging 上执行受控临时图写入与最小验收；既有 CPA、公开流量和后续 P12 Task 均不改变。 `CR-P12-05-002`：对 P12-05 已 review/Full-gate 修复的精确 SHA 续签同一私有 OIDC/Sigstore 制品；同一隔离 Staging、Credential、Provider 与公开边界不扩张。用户要求此类同范围续签直接批准，但每次仍须记录精确 SHA 并独立验证。 `CR-P12-05-003`：一次已删除的本机 `0600` Bearer 选择临时文件不计为 memory-only 证据；按用户的直接批准约定，保持同一 P12-05 范围继续，但须在任何图写入前用纯内存 helper 重新预检，后续不得再创建明文 Secret 文件。 `CR-P12-05-004`：为同一临时 Staging 图的 P12 Krill 请求补入已验证、非机密的 Codex-compatible `User-Agent`；仍须以该精确 SHA 重新生成并独立验签私有 artifact，且不扩展 Credential、Provider、公开监听或流量边界。 `CR-P12-05-005`：将 P12 的唯一 Anthropic `max_tokens` Canonical 扩展映射为 OpenAI Responses 输出上限，其他外来扩展仍拒绝；不刷新 CC Switch 凭证，并以新精确 SHA artifact 仅重跑未覆盖的隔离 Staging 验收。 `CR-P12-05-006`：在服务器侧 `/models` 已证明当前 endpoint/Bearer 可用后，允许一次不保留正文的同请求轮廓 `/responses` 结构分类；只用于决定是否需要 P12 decoder 兼容修复，不替代 Staging 验收。 `CR-P12-05-007`：CR-006 的本地结果收集失败，保守视为其唯一请求已消耗；允许一项由服务器 root-only 无值 receipt 先持久化的独立替代分类请求，不重试 CR-006。 `CR-P12-05-008`：在 replacement classifier 仅确认 Responses 结构子集后，允许用同一已验收 artifact 进行一次 receipt-enhanced isolated Staging 重跑，安全记录精确 HTTP/error-envelope 类别；不改二进制或公开边界。 `CR-P12-05-009`：Staging 的 502 表示首事件前协议截断；允许一次完整 decoder-contract 的无正文 `/responses` 分类，区分响应字段不兼容与请求构造前失败。 `CR-P12-05-010`：完整 classifier 通过后，允许同一 signed artifact 的一次最终 isolated Staging retry；成功才继续 Tool/Explain，重复 502 即停止而不猜测修复。 `CR-P12-05-011`：源代码复核发现前置 classifier 遗漏 builder 固定的 input message type；允许一次完整同形 `/responses` 分类，避免基于近似请求作结论。 |
 
 | 已批准变更（续 4） | `CR-P12-05-012`：精确 P12 request classifier 已通过而 isolated Staging 仍重复 `502` 后，增加仅受保护 loopback 管理面可读、固定阶段枚举的有界 attempt 投影；不刷新 CC Switch、无新的外部请求，新的 Staging 诊断仍须在 exact-SHA artifact 独立验签后执行。 |
+| 已批准变更（续 5） | `CR-P12-PORT-001`：后续实现以旧 CPA 固定版本源码、测试与实际行为为移植基线，先建立可追踪行为清单，再用 CPAR 的 Rust 分层端口；原生同协议优先保真透传，跨协议只接纳可证明的 Canonical 无损映射，旧 CPA 的已知缺陷、无界输入、Secret 暴露、热路径可变配置与隐式降级不得复制。P12-08D-G 拆为可独立 review 的端口批次，缺少 Kiro/Grok Official 账号只延期对应 live receipt，不阻止本地实现与默认禁用的生产组成。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -31,6 +32,31 @@
   > 功能矩阵的初始建议
   > 参考项目当前实现
 ```
+
+### 0.1 旧 CPA 行为移植原则（`CR-P12-PORT-001`）
+
+后续功能不再默认从空白设计。对旧 CPA 已实现的能力，先固定参考版本、源文件、对应测试和可观察
+行为，再将其端口到 CPAR 的 Rust 边界。旧 CPA 是行为与兼容性的主要来源，不是 CPAR 内部架构、
+安全缺陷或实现语言的复制模板；用户指令、本文和已冻结行为契约仍具有更高优先级。
+
+| 旧 CPA 参考边界 | CPAR 承载边界 | 移植要求 |
+|---|---|---|
+| HTTP handlers、stream bootstrap/error | `gateway-http-actix`、`gateway-stream` | 保持状态码、SSE 生命周期、`[DONE]`/终止顺序；保留正文、帧、idle/total 上限与取消传播 |
+| translator registry 与 Chat/Responses/Claude translators | 三个 `protocol-*` crate、`gateway-router::protocol_transform` | 原生同协议优先只改模型/受控字段；跨协议经 Canonical；不可表达语义在出网前稳定拒绝 |
+| Codex/Claude/OpenAI-compatible/xAI executors | `provider-*` crate、`apps/gateway` runtime | 端点、header、OAuth/API-key、请求修整、response decode 和错误分类逐项端口；网络统一经过 DNS-pinned egress |
+| auth、refresh、credential selection | `gateway-auth`、Provider credential runtime、router scheduler | 保持账号能力与 refresh 行为；使用 SecretRef、CAS/singleflight、隔离 Quota/Health/Circuit，不复制明文或隐式 fallback |
+| model registry、alias 与 provider availability | `gateway-catalog`、`gateway-control`、`gateway-router` | 保持模型可发现与 provider-aware 可用性；发布期组成 fail-closed，Route Explain 可说明选择/拒绝 |
+| watcher/config/runtime reload | `gateway-store`、control-plane snapshot | 仅通过已验证不可变 snapshot 发布；流式热路径不读文件、不查 SQLite、不观察半更新状态 |
+| usage、reasoning/tool/session tests | Canonical、protocol/provider tests、differential harness | 将旧测试意图移植为脱敏 fixture/property/differential 测试，不机械复制测试数据中的敏感值 |
+
+每个移植 Slice 在写实现前必须提交或在报告中冻结一份 `Legacy Behavior Manifest`，至少包含：旧
+CPA tag/commit、参考源文件、参考测试、输入/输出不变量、错误/stream 边界、CPAR 目标模块和有意差异。
+实现后必须给出三类结论：`PARITY`（行为等价）、`INTENTIONAL_HARDENING`（CPAR 更严格）或
+`UNSUPPORTED_FAIL_CLOSED`（当前不可无损表达）。任何未分类差异都阻止该 Slice 本地通过。
+
+移植顺序固定为：行为清单与测试意图 → Rust 类型/边界 → 最小端口实现 → 定向 parity 测试 →
+安全偏差 review → Slice 报告。不得先大规模复制代码再补契约，也不得为了追求旧 CPA 表面兼容而
+降低已有正文限制、Secret、SSRF、重试/FSE、Quota/Circuit 或 snapshot 原子性门禁。
 
 ## 1. 严格执行规则
 
@@ -1321,6 +1347,10 @@ deploy/
   `cargo clippy --workspace --all-targets --all-features -- -D warnings` 与 `cargo test --workspace`。
 - 没有新增未解释的 `TODO/FIXME`、明文 Secret 或宽泛 `unwrap/expect`。
 - 对外行为、配置或 Schema 变化已更新文档和迁移说明。
+- 旧 CPA 已有对应能力的移植 Task 已冻结 `Legacy Behavior Manifest`，且旧参考、CPAR 测试与有意
+  差异可以双向追踪；不得只写“参考旧 CPA”而没有源文件/测试/行为映射。
+- 移植差异已全部归类为 `PARITY`、`INTENTIONAL_HARDENING` 或 `UNSUPPORTED_FAIL_CLOSED`；
+  未分类差异、静默丢字段或靠 live 请求代替离线 parity 测试均不满足完成条件。
 - 保存完成证据，并更新本文状态。
 - 普通代码 Task 已达到本地验收条件，并由所属 Phase 唯一的远端 Fast + Full Delivery Gate 覆盖；
   CI/workflow/cache 等例外 Task 另有明确的提前远端 Gate。纯文档/状态变更为显式 docs-only；
@@ -1731,10 +1761,24 @@ CR-ID: CR-P11-04-001
 | P12-08A | OpenAI Chat Completions 严格请求/响应/SSE Codec 与行为契约 | [BC-PROTOCOL-008](contracts/BC-PROTOCOL-008-openai-chat-completions-codec.md) 与 [P12-08A 报告](reports/p12-08a-openai-chat-codec.md)：非流式、事件/Tool 参数任意分片、Usage、终止与错误回归 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08B | Actix `/v1/chat/completions`、认证、正文上限、keepalive 与生命周期 | [BC-HTTP-002](contracts/BC-HTTP-002-actix-chat-completions-boundary.md) 与 [P12-08B 报告](reports/p12-08b-actix-chat-http.md)：JSON/SSE HTTP E2E、认证优先、4 MiB 上限、finish/Usage/`[DONE]` 顺序 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08C | `openai/chat-completions` Endpoint 格式与 OpenAI-compatible 出站 Adapter | [BC-PROVIDER-023](contracts/BC-PROVIDER-023-openai-compatible-chat-completions.md) 与 [P12-08C 报告](reports/p12-08c-openai-chat-adapter.md)：API Format 注册表、发布期校验、原生载荷、JSON/SSE decode、DNS-pinned transport | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-08D | Chat/Responses/Messages 三协议 Canonical 转换矩阵 | Text/Tool/Reasoning/Usage/History 的无损准入与 fail-closed 矩阵 | PENDING |
-| P12-08E | Kiro、Grok、Codex、Claude 渠道接入 P12 runtime | 每渠道至少一个完整 mock/fixture vertical slice；Credential/Quota/Health 隔离 | PENDING |
-| P12-08F | 多渠道生产图、Alias/Access Group/Client Key 和三协议本地 E2E | 不含 Secret 的图台账；每协议 × 每渠道的能力矩阵 | PENDING |
-| P12-08G | 各渠道真实账号受控 E2E 与客户端迁移复核 | Chat/Responses/Messages 可用组合的真实回执；不可表达组合明确拒绝 | PENDING |
+| P12-08D0 | 冻结旧 CPA 三协议移植清单与差异分类 | `Legacy Behavior Manifest`：固定 v7.2.101 handler/translator/测试路径，列出 Text/Tool/Reasoning/Usage/History/错误/SSE 生命周期及 CPAR 目标模块；每项预先标记 parity 目标或允许的 hardening | PENDING |
+| P12-08D1 | 端口三协议请求侧转换 | 复用旧 CPA request translator 测试意图；原生载荷保真，Chat/Responses/Messages → Canonical/目标协议的有损组合出网前拒绝；fixture 与属性测试覆盖有序 history、Tool、Reasoning 和上限 | PENDING |
+| P12-08D2 | 端口三协议非流式与 SSE 响应转换 | 复用旧 CPA response/stream translator 测试意图；任意 Chunk 切分保持最终语义投影，Tool 参数、Usage、stop reason、错误与终止事件闭合；所有 buffer/计数有界 | PENDING |
+| P12-08D3 | 接入转换注册表、runtime 与 Route Explain | 仅发布已注册且能力可证明的源→目标 pair；native/Canonical 路径确定性选择；被拒候选给出无值原因且零 upstream attempt | PENDING |
+| P12-08D4 | 完成旧 CPA ↔ CPAR 离线差分与安全偏差复核 | 脱敏 golden corpus 覆盖三协议 JSON/SSE/Tool/Reasoning/Usage；每一差异归类为 `PARITY`、`INTENTIONAL_HARDENING` 或 `UNSUPPORTED_FAIL_CLOSED`，无未分类差异 | PENDING |
+| P12-08E1 | 端口 Codex 与通用 OpenAI-compatible runtime | 参考旧 CPA Codex/OpenAI-compatible executor、auth 与测试；Responses/Chat vertical slice、refresh/错误/Usage/Reasoning、Credential/Quota/Health 隔离 | PENDING |
+| P12-08E2 | 端口 Claude/Anthropic-compatible runtime | 参考旧 CPA Claude executor/auth/translators 与测试；Messages 原生路径和 Chat/Responses 可表达桥接、Tool/Thinking/Usage/SSE vertical slice | PENDING |
+| P12-08E3 | 将既有 Grok Build/Official/Web Provider 接入统一 runtime | 参考旧 CPA xAI executor/auth 并结合现有 `provider-grok` 专项实现；三类 Grok endpoint 能力分别注册、连续性/Quota/错误隔离，未验证能力默认禁用 | PENDING |
+| P12-08E4 | 将既有 Kiro Provider 接入统一 runtime | 以现有 `provider-kiro` 为实现主件，旧 CPA 仅提供通用 registry/runtime 参考；Messages/EventStream vertical slice、CLI/IDE profile 与 Credential/Quota/Health 隔离；不要求当前 live OAuth | PENDING |
+| P12-08F1 | 组成多渠道生产图与模型/协议能力台账 | Alias、Access Group、Client Key、Endpoint/Credential/Candidate 均为无 Secret 台账；只组成已本地通过的能力 pair，缺凭据渠道保持 disabled-at-boot/不可选 | PENDING |
+| P12-08F2 | 完成三协议 × 四类渠道的 loopback E2E | 对能力台账中 `SUPPORTED` 组合执行 JSON/SSE/Text/Tool/Usage；`NATIVE_ONLY`/`UNSUPPORTED` 组合验证稳定拒绝和零出网，不强求虚假的 12 格全绿 | PENDING |
+| P12-08F3 | 完成 Client Key、Alias 与客户端迁移 dry-run | OpenClaw、CC Switch 及已登记客户端逐项验证新 `rgw_` key、协议、模型 alias、切换与旧 CPA key 回退动作；不改生产主机名 | PENDING |
+| P12-08G1 | 对生产切换图中的可用渠道执行受控真实 E2E | 当前可用 Codex/Claude-compatible 凭据覆盖其实际生产协议组合；每个 tuple 有无值 receipt、停止判据和完整清理，不为未进入生产图的渠道消费请求 | PENDING |
+| P12-08G2 | Kiro 与 Grok Official 外部认证补验包 | 延续 P7-09/P8-07 的延期状态；获得账号后仅补对应 `SUPPORTED` tuple。账号缺失不阻止代码、本地 E2E 或不包含这些渠道的 P12 生产切换图，但禁止宣称其 live 可用 | DEFERRED |
+
+P12-08D0-D4、E1-E4、F1-F3、G1 均是同一 P12 分支上的顺序 Task：每项独立 commit、定向 test 和
+review，全部只在 P12 closeout 运行一次远端 Delivery Gate。旧 CPA fixture 只能保存脱敏后的最小
+语义样本，不得把其凭据、账号、endpoint、请求/响应正文或运行日志复制进 CPAR 仓库。
 
 ### 已批准 Change Request：CR-P12-01-001
 
@@ -3176,6 +3220,30 @@ CR-ID: CR-P12-COMPAT-001
 计划版本变更: v1.93
 ```
 
+### 已批准 Change Request：CR-P12-PORT-001
+
+```text
+CR-ID: CR-P12-PORT-001
+原因: 用户明确整个 CPAR 项目的源码与实现逻辑均可参考旧 CPA，目标是用 Rust 新框架移植已验证
+      行为，而不是对旧 CPA 已有能力重新设计。现有 P12-08D-G 粒度过粗，没有要求冻结参考文件、
+      测试意图、行为差异和安全偏差，容易导致重复研究、超大提交和兼容性遗漏。
+影响的 Task / Matrix ID / ADR: 新增 §0.1；把 P12-08D-G 细化为 D0-D4、E1-E4、F1-F3、G1-G2；
+      不改变 Chat/Responses/Messages、Kiro/Grok/Codex/Claude 的既定 Release 1 范围，不改已完成
+      P0-P12-08C 的实现或证据，也不开始 P12-09/生产切换。
+兼容性与迁移影响: CLIProxyAPI v7.2.101 的 handler/translator/executor/auth/registry 源码与测试
+      成为首要移植参考；CPA v7.2.80 生产行为继续作为实际基线。原生同协议优先保真透传，跨协议
+      只接纳可证明的 Canonical 无损映射。旧 CPA 的已知缺陷、无界输入、Secret 暴露、隐式 fallback、
+      热路径可变配置或与 CPAR 已批准架构冲突的实现不得复制，须记录为 intentional hardening。
+测试与回滚变化: 每个移植 Slice 先产出 Legacy Behavior Manifest，再端口对应 Rust 边界，并以
+      脱敏 fixture/property/differential 测试将差异归类为 PARITY、INTENTIONAL_HARDENING 或
+      UNSUPPORTED_FAIL_CLOSED。Kiro/Grok Official 缺账号只延期对应 live receipt；本地实现、
+      loopback E2E 和默认禁用组成继续。P12-09 只能切换已通过本地与真实准入且实际进入生产图的
+      渠道。回滚为恢复 v1.96 的粗粒度 D-G 编排，不回滚已经通过的安全边界或功能实现。
+用户批准: APPROVED，2026-08-02（“整个项目的源码及实现逻辑都可以参考旧的CPA的源码，只是用
+      新框架的开发语言实现而已”）
+计划版本变更: v1.97
+```
+
 ### 全量替代与回滚规则
 
 - 不执行 10%→25%→50%→100% 百分比或按 Key 分流。P12-09 只有两个生产路由状态：生产主机名
@@ -3441,3 +3509,4 @@ Next task:
 | v1.94 | 2026-08-02 | 完成 P12-08A OpenAI Chat Completions 严格纯 Codec、行为契约、Tool 参数分片不变性、Usage 溢出与 SSE 终止顺序回归 | LOCAL_PASS_PENDING_PHASE_GATE；P12-08B 为下一切片，P12-08/P12-09/P12-10 边界不变 |
 | v1.95 | 2026-08-02 | 完成 P12-08B：在共享 Actix 数据面加入认证且有界的 `/v1/chat/completions` JSON/SSE 边界，复用 Canonical transport、keepalive、取消与 FSE 交付，并新增独立 Chat 请求观测协议 | LOCAL_PASS_PENDING_PHASE_GATE；P12-08C 为下一切片，尚无 OpenAI Chat 出站 Endpoint |
 | v1.96 | 2026-08-02 | 以 CLIProxyAPI v7.2.101 native OpenAI translator 为行为参考完成 P12-08C：第三 ApiFormat、发布/组成注册表、显式入站协议与原生载荷、Chat JSON/SSE 上游解码及 DNS-pinned 交接；既有 CPAR 安全门禁不降级 | LOCAL_PASS_PENDING_PHASE_GATE；P12-08D 为下一切片，生产图与流量未改 |
+| v1.97 | 2026-08-02 | `CR-P12-PORT-001`：确立旧 CPA 行为移植优先原则和 Legacy Behavior Manifest，把 P12-08D-G 拆为协议请求、响应/SSE、注册表、差分、分渠道 runtime、生产图/本地 E2E/迁移 dry-run 与 live receipt 小批次；保留 CPAR 安全 hardening，账号缺失渠道默认禁用并延期 live 补验 | APPROVED；下一切片 P12-08D0，仅优化计划，生产图与流量未改 |
