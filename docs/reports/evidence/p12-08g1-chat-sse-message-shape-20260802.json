@@ -1,0 +1,59 @@
+{
+  "choice_event_count": 4,
+  "choice_keys": [
+    "delta",
+    "finish_reason",
+    "index",
+    "logprobs",
+    "message"
+  ],
+  "choice_message_classes": [
+    "nonempty_object"
+  ],
+  "choice_message_keys": [
+    "content",
+    "role"
+  ],
+  "delta_keys": [
+    "content",
+    "reasoning_content",
+    "role"
+  ],
+  "done_present": true,
+  "error_event_present": false,
+  "event_count": 4,
+  "finish_classes": [
+    "null",
+    "stop"
+  ],
+  "message_content_classes": [
+    "nonempty_string"
+  ],
+  "message_content_equals_prior_delta": [
+    true
+  ],
+  "message_reasoning_content_classes": [],
+  "message_refusal_classes": [],
+  "message_role_classes": [
+    "assistant"
+  ],
+  "message_tool_calls_classes": [],
+  "reasoning_content_classes": [
+    "empty_string"
+  ],
+  "root_keys": [
+    "choices",
+    "created",
+    "id",
+    "model",
+    "object",
+    "system_fingerprint",
+    "usage"
+  ],
+  "schema_version": 1,
+  "single_send": true,
+  "strict_decoder_compatible": true,
+  "usage_event_count": 0,
+  "usage_with_choices_count": 1,
+  "value_free": true
+}

@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.109` |
+| 计划版本 | `v1.111` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。P12-08A-C、D0-D4、E1-E4、F1-F3 已本地通过；下一切片为 P12-08G1 生产切换图受控真实 E2E。CC Switch 按 operator 指令延期且不参与演练；生产主机名尚未切换。 |
+| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。P12-08A-C、D0-D4、E1-E4、F1-F3 已本地通过；P12-08G1 生产切换图受控真实 E2E 正在执行。CC Switch 按 operator 指令延期且不参与演练；生产主机名尚未切换。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -18,7 +18,7 @@
 | 已批准变更（续 3） | `CR-P12-05-001`：为 P12-05 的生产数据面组成创建一次新的、精确 SHA 绑定的私有 GitHub OIDC/Sigstore 制品，并仅在独立 loopback Staging 上执行受控临时图写入与最小验收；既有 CPA、公开流量和后续 P12 Task 均不改变。 `CR-P12-05-002`：对 P12-05 已 review/Full-gate 修复的精确 SHA 续签同一私有 OIDC/Sigstore 制品；同一隔离 Staging、Credential、Provider 与公开边界不扩张。用户要求此类同范围续签直接批准，但每次仍须记录精确 SHA 并独立验证。 `CR-P12-05-003`：一次已删除的本机 `0600` Bearer 选择临时文件不计为 memory-only 证据；按用户的直接批准约定，保持同一 P12-05 范围继续，但须在任何图写入前用纯内存 helper 重新预检，后续不得再创建明文 Secret 文件。 `CR-P12-05-004`：为同一临时 Staging 图的 P12 Krill 请求补入已验证、非机密的 Codex-compatible `User-Agent`；仍须以该精确 SHA 重新生成并独立验签私有 artifact，且不扩展 Credential、Provider、公开监听或流量边界。 `CR-P12-05-005`：将 P12 的唯一 Anthropic `max_tokens` Canonical 扩展映射为 OpenAI Responses 输出上限，其他外来扩展仍拒绝；不刷新 CC Switch 凭证，并以新精确 SHA artifact 仅重跑未覆盖的隔离 Staging 验收。 `CR-P12-05-006`：在服务器侧 `/models` 已证明当前 endpoint/Bearer 可用后，允许一次不保留正文的同请求轮廓 `/responses` 结构分类；只用于决定是否需要 P12 decoder 兼容修复，不替代 Staging 验收。 `CR-P12-05-007`：CR-006 的本地结果收集失败，保守视为其唯一请求已消耗；允许一项由服务器 root-only 无值 receipt 先持久化的独立替代分类请求，不重试 CR-006。 `CR-P12-05-008`：在 replacement classifier 仅确认 Responses 结构子集后，允许用同一已验收 artifact 进行一次 receipt-enhanced isolated Staging 重跑，安全记录精确 HTTP/error-envelope 类别；不改二进制或公开边界。 `CR-P12-05-009`：Staging 的 502 表示首事件前协议截断；允许一次完整 decoder-contract 的无正文 `/responses` 分类，区分响应字段不兼容与请求构造前失败。 `CR-P12-05-010`：完整 classifier 通过后，允许同一 signed artifact 的一次最终 isolated Staging retry；成功才继续 Tool/Explain，重复 502 即停止而不猜测修复。 `CR-P12-05-011`：源代码复核发现前置 classifier 遗漏 builder 固定的 input message type；允许一次完整同形 `/responses` 分类，避免基于近似请求作结论。 |
 
 | 已批准变更（续 4） | `CR-P12-05-012`：精确 P12 request classifier 已通过而 isolated Staging 仍重复 `502` 后，增加仅受保护 loopback 管理面可读、固定阶段枚举的有界 attempt 投影；不刷新 CC Switch、无新的外部请求，新的 Staging 诊断仍须在 exact-SHA artifact 独立验签后执行。 |
-| 已批准变更（续 5） | `CR-P12-PORT-001`：后续实现以旧 CPA 固定版本源码、测试与实际行为为移植基线，先建立可追踪行为清单，再用 CPAR 的 Rust 分层端口；原生同协议优先保真透传，跨协议只接纳可证明的 Canonical 无损映射，旧 CPA 的已知缺陷、无界输入、Secret 暴露、热路径可变配置与隐式降级不得复制。P12-08D-G 拆为可独立 review 的端口批次，缺少 Kiro/Grok Official 账号只延期对应 live receipt，不阻止本地实现与默认禁用的生产组成。 |
+| 已批准变更（续 5） | `CR-P12-PORT-001`：后续实现以旧 CPA 固定版本源码、测试与实际行为为移植基线，先建立可追踪行为清单，再用 CPAR 的 Rust 分层端口；原生同协议优先保真透传，跨协议只接纳可证明的 Canonical 无损映射，旧 CPA 的已知缺陷、无界输入、Secret 暴露、热路径可变配置与隐式降级不得复制。P12-08D-G 拆为可独立 review 的端口批次，缺少 Kiro/Grok Official 账号只延期对应 live receipt，不阻止本地实现与默认禁用的生产组成。 `CR-P12-08G1-001`：首次 G1 在 Chat JSON Text PASS、Chat SSE Text 客户端生命周期合并分类失败后已完整回滚；拆分 DONE/finish/Usage 固定类别，只允许从无值 receipt 精确替代失败 tuple，成功后才执行未发送 tuple，绝不重发已 PASS tuple。 `CR-P12-08G1-002`：替代 tuple 精确为 Chat SSE finish 缺失后，只允许一次 OpenClaw-backed 直连结构分类；仅保留 key set、计数和 finish/DONE/error/Usage 类别，不保留值或正文，不计为 G1 PASS。 `CR-P12-08G1-003`：结构分类发现 choice.message、delta.reasoning_content 及 choices 同帧 Usage 后，仅追加一次同形单发送值类别分类；reasoning 非空时禁止兼容放宽。 `CR-P12-08G1-004`：旧 CPA 原生 Chat 仅透传、不能证明 message 可丢弃，故追加一次仅保留嵌套键/值类别/与既有 delta 相等关系的单发送分类；只准入可逐字段证明为重复的最终 message、空 reasoning 与单次同帧 Usage，其余继续 fail closed。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -1773,7 +1773,7 @@ CR-ID: CR-P11-04-001
 | P12-08F1 | 组成多渠道生产图与模型/协议能力台账 | [F1 生产图与能力台账](reports/p12-08f1-multi-channel-production-graph.md)：不可变 adapter 能力表进入 Route Compiler；Alias/Access Group/Client Key/Endpoint/Credential/Candidate 无值台账、缺凭据渠道不入 active Version，Grok Web 无 runtime/不可选 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08F2 | 完成三协议 × 四类渠道的 loopback E2E | [F2 loopback 矩阵](reports/p12-08f2-three-protocol-four-channel-loopback.md)：7 个 `SUPPORTED` cell 完成 28 个 JSON/SSE × Text/Tool/Usage 请求；5 个 `UNSUPPORTED` cell 完成 10 个稳定拒绝且 Attempt=0；F1 Tool/JSON Schema 台账缺口已修正 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08F3 | 完成 Client Key、Alias 与客户端迁移 dry-run | [F3 客户端迁移演练](reports/p12-08f3-client-migration-dry-run.md)：OpenClaw `0600` 配置只读，独立临时配置/状态中完成 synthetic `rgw_` key、endpoint、active alias、协议保持与字节级回退验证，live source 未变；CC Switch 按 operator 指令 `DEFERRED_BY_OPERATOR`，未读取、复制、修改、重启或测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-08G1 | 对生产切换图中的可用渠道执行受控真实 E2E | 当前可用 Codex/Claude-compatible 凭据覆盖其实际生产协议组合；每个 tuple 有无值 receipt、停止判据和完整清理，不为未进入生产图的渠道消费请求 | PENDING |
+| P12-08G1 | 对生产切换图中的可用渠道执行受控真实 E2E | [G1 执行边界](reports/p12-08g1-execution-plan.md)：exact-SHA signed aarch64 artifact；当前可用 Codex 覆盖 Chat/Responses/Messages 的 JSON/SSE Text/Tool 十二 tuple；Claude 无 CC Switch 外可导出有效凭据时明确 SKIP；每个 tuple 单发送、首失败停止、无值 receipt、完整回滚 | IN_PROGRESS |
 | P12-08G2 | Kiro 与 Grok Official 外部认证补验包 | 延续 P7-09/P8-07 的延期状态；获得账号后仅补对应 `SUPPORTED` tuple。账号缺失不阻止代码、本地 E2E 或不包含这些渠道的 P12 生产切换图，但禁止宣称其 live 可用 | DEFERRED |
 
 P12-08D0-D4、E1-E4、F1-F3、G1 均是同一 P12 分支上的顺序 Task：每项独立 commit、定向 test 和
@@ -3522,3 +3522,5 @@ Next task:
 | v1.107 | 2026-08-02 | 完成 P12-08F1：不可变 adapter 能力台账取代空 Endpoint profile，登记已本地通过的 Tools/Parallel Tools/Reasoning/JSON Schema/Streaming；未知 adapter、跨 Version Endpoint 能力冲突与无 runtime 的 Grok Web 均 fail closed，缺凭据渠道不进入 active 生产图 | LOCAL_PASS_PENDING_PHASE_GATE；F2 review 补齐 Tool 必需的 JSON Schema 能力；下一切片 P12-08F2 三协议 × 四类渠道 loopback E2E；无服务器、网络请求、真实凭据、Config Version 或流量变化 |
 | v1.108 | 2026-08-02 | 完成 P12-08F2：三协议 × 四渠道本地矩阵中 7 个支持 cell 完成 28 个 JSON/SSE × Text/Tool/Usage 请求，5 个不支持 cell 完成 10 个稳定安全拒绝且 Attempt=0；Chat 不降级 Reasoning，Grok/Kiro provider-specific runtime 保持 Canonical-only | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08F3 Client Key/Alias/客户端迁移 dry-run；无服务器、外部网络、真实凭据、Config Version 或流量变化 |
 | v1.109 | 2026-08-02 | 完成 P12-08F3：OpenClaw 在独立临时配置与状态目录中完成 synthetic `rgw_` key、endpoint、active alias、协议保持和字节级回退演练；live 配置未变；CC Switch 按 operator 指令明确延期且完全未触碰 | LOCAL_PASS_PENDING_PHASE_GATE；下一切片 P12-08G1 生产切换图受控真实 E2E；无服务重启、外部请求、真实凭据、Config Version、生产主机名或流量变化 |
+| v1.110 | 2026-08-02 | 启动 P12-08G1：绑定 exact-SHA dual-target Sigstore run；Codex 固定十二个 Chat/Responses/Messages JSON/SSE Text/Tool 单发送 tuple；Claude 在 CC Switch 外无可导出有效凭据时明确 SKIP；首失败立即回滚 | IN_PROGRESS；不改 CPA、Caddy、DNS、CC Switch、生产主机名或公开流量 |
+| v1.111 | 2026-08-02 | `CR-P12-08G1-001..004`：两次 G1 Chat SSE 失败均完整回滚；逐级无值分类证明上游终止有效，最终 message 是既有 delta 的重复投影、reasoning 为空且 Usage 与 finish 同帧；Rust 解码器仅接纳可验证重复并保留严格拒绝 | IN_PROGRESS；定向测试通过，待新 exact-SHA 签名 artifact 后只替代失败 tuple，再继续未发送 tuple |

@@ -132,6 +132,9 @@ run_step "P12 systemd unit" "$repo_root/scripts/test-p12-02-systemd-unit.sh"
 run_step "P12 OpenAI differential graph" python3 "$repo_root/scripts/test-p12-06-openai-graph.py"
 run_step "P12 OpenAI differential classifier" python3 "$repo_root/scripts/test-p12-06-openai-differential.py"
 run_step "P12 OpenClaw migration dry-run" python3 "$repo_root/scripts/test-p12-08f3-openclaw-migration-dry-run.py"
+run_step "P12 G1 production graph" python3 "$repo_root/scripts/test-p12-08g1-production-graph.py"
+run_step "P12 G1 live harness" python3 "$repo_root/scripts/test-p12-08g1-live-e2e.py"
+run_step "P12 G1 Chat SSE classifier" python3 "$repo_root/scripts/test-p12-08g1-chat-sse-classifier.py"
 run_step "Management SPA" node "$repo_root/scripts/check-management-spa.mjs"
 run_step "Rust format" cargo fmt --all -- --check
 run_step "Clippy" cargo clippy --locked --workspace --all-targets --all-features -- -D warnings

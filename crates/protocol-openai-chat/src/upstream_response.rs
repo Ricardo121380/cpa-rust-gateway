@@ -190,13 +190,23 @@ struct StreamState {
     response_id: Option<String>,
     role_seen: bool,
     content_seen: bool,
+    content: String,
     tools: BTreeMap<u64, OpenTool>,
     finish_reason: Option<String>,
     message_closed: bool,
+    usage: StreamUsageState,
+}
+
+#[derive(Default, Eq, PartialEq)]
+enum StreamUsageState {
+    #[default]
+    NotReported,
+    Final,
 }
 
 struct OpenTool {
     id: String,
+    name: String,
     arguments: String,
 }
 
@@ -339,13 +349,8 @@ impl OpenAiChatSseDecoder {
             .and_then(Value::as_array)
             .ok_or_else(protocol_error)?;
         if choices.is_empty() {
-            if let Some(usage) = root.get("usage") {
-                let usage = decode_usage(usage)?;
-                self.emit(CanonicalEvent::UsageDelta(UsageDelta {
-                    usage,
-                    is_final: true,
-                    extensions: RawExtensions::default(),
-                }))?;
+            if let Some(usage) = root.get("usage").filter(|value| !value.is_null()) {
+                self.emit_final_usage(usage)?;
                 return Ok(());
             }
             return Err(protocol_error());
@@ -354,7 +359,10 @@ impl OpenAiChatSseDecoder {
             return Err(protocol_error());
         }
         let choice = object(&choices[0])?;
-        require_only_keys(choice, &["index", "delta", "finish_reason", "logprobs"])?;
+        require_only_keys(
+            choice,
+            &["index", "delta", "finish_reason", "logprobs", "message"],
+        )?;
         if choice.get("logprobs").is_some_and(|value| !value.is_null()) {
             return Err(protocol_error());
         }
@@ -363,16 +371,42 @@ impl OpenAiChatSseDecoder {
         }
         let delta = object(required(choice, "delta")?)?;
         self.decode_delta(delta)?;
-        if !choice.get("finish_reason").is_none_or(Value::is_null) {
-            let reason = decode_finish_reason(choice)?.to_owned();
+        let finish_reason = (!choice.get("finish_reason").is_none_or(Value::is_null))
+            .then(|| decode_finish_reason(choice).map(str::to_owned))
+            .transpose()?;
+        if let Some(message) = choice.get("message") {
+            if finish_reason.is_none() {
+                return Err(protocol_error());
+            }
+            self.validate_redundant_message(message)?;
+        }
+        if let Some(reason) = finish_reason {
             self.close_message(reason)?;
+        }
+        if let Some(usage) = root.get("usage").filter(|value| !value.is_null()) {
+            self.emit_final_usage(usage)?;
         }
         Ok(())
     }
 
     fn decode_delta(&mut self, delta: &Map<String, Value>) -> Result<(), GatewayError> {
-        require_only_keys(delta, &["role", "content", "tool_calls", "refusal"])?;
+        require_only_keys(
+            delta,
+            &[
+                "role",
+                "content",
+                "tool_calls",
+                "refusal",
+                "reasoning_content",
+            ],
+        )?;
         if delta.get("refusal").is_some_and(|value| !value.is_null()) {
+            return Err(protocol_error());
+        }
+        if delta
+            .get("reasoning_content")
+            .is_some_and(|value| !value.is_null() && value.as_str() != Some(""))
+        {
             return Err(protocol_error());
         }
         let StreamLifecycle::Streaming(state) = &mut self.lifecycle else {
@@ -397,6 +431,7 @@ impl OpenAiChatSseDecoder {
             .cloned();
         if let Some(text) = text {
             state.content_seen = true;
+            state.content.push_str(&text);
             self.emit(CanonicalEvent::TextDelta(TextDelta {
                 text,
                 extensions: RawExtensions::default(),
@@ -454,7 +489,14 @@ impl OpenAiChatSseDecoder {
             let StreamLifecycle::Streaming(state) = &mut self.lifecycle else {
                 return Err(protocol_error());
             };
-            state.tools.insert(index, OpenTool { id, arguments });
+            state.tools.insert(
+                index,
+                OpenTool {
+                    id,
+                    name,
+                    arguments,
+                },
+            );
             state.content_seen = true;
             return Ok(());
         }
@@ -485,6 +527,80 @@ impl OpenAiChatSseDecoder {
                 },
             ))?;
         }
+        Ok(())
+    }
+
+    fn validate_redundant_message(&self, value: &Value) -> Result<(), GatewayError> {
+        let message = object(value)?;
+        require_only_keys(
+            message,
+            &[
+                "role",
+                "content",
+                "tool_calls",
+                "refusal",
+                "reasoning_content",
+            ],
+        )?;
+        if message.get("role").and_then(Value::as_str) != Some("assistant")
+            || message.get("refusal").is_some_and(|value| !value.is_null())
+            || message
+                .get("reasoning_content")
+                .is_some_and(|value| !value.is_null() && value.as_str() != Some(""))
+        {
+            return Err(protocol_error());
+        }
+        let StreamLifecycle::Streaming(state) = &self.lifecycle else {
+            return Err(protocol_error());
+        };
+        match message.get("content") {
+            Some(Value::String(content)) if content == &state.content => {}
+            Some(Value::Null) | None if state.content.is_empty() => {}
+            _ => return Err(protocol_error()),
+        }
+        match message.get("tool_calls") {
+            None | Some(Value::Null) if state.tools.is_empty() => Ok(()),
+            Some(Value::Array(calls)) if calls.len() == state.tools.len() => {
+                for (call, (_, expected)) in calls.iter().zip(&state.tools) {
+                    let call = object(call)?;
+                    require_only_keys(call, &["id", "type", "function"])?;
+                    if call.get("id").and_then(Value::as_str) != Some(expected.id.as_str())
+                        || call.get("type").and_then(Value::as_str) != Some("function")
+                    {
+                        return Err(protocol_error());
+                    }
+                    let function = object(required(call, "function")?)?;
+                    require_only_keys(function, &["name", "arguments"])?;
+                    if function.get("name").and_then(Value::as_str) != Some(expected.name.as_str())
+                        || function.get("arguments").and_then(Value::as_str)
+                            != Some(expected.arguments.as_str())
+                    {
+                        return Err(protocol_error());
+                    }
+                }
+                Ok(())
+            }
+            _ => Err(protocol_error()),
+        }
+    }
+
+    fn emit_final_usage(&mut self, value: &Value) -> Result<(), GatewayError> {
+        let usage = decode_usage(value)?;
+        let StreamLifecycle::Streaming(state) = &self.lifecycle else {
+            return Err(protocol_error());
+        };
+        if !state.message_closed || state.usage == StreamUsageState::Final {
+            return Err(protocol_error());
+        }
+        self.emit(CanonicalEvent::UsageDelta(UsageDelta {
+            usage,
+            is_final: true,
+            extensions: RawExtensions::default(),
+        }))?;
+        let StreamLifecycle::Streaming(state) = &mut self.lifecycle else {
+            return Err(protocol_error());
+        };
+        state.usage = StreamUsageState::Final;
         Ok(())
     }
 
@@ -768,6 +884,78 @@ mod tests {
             Some(GatewayErrorCode::StreamTruncated)
         );
         assert!(decode_upstream_response(r#"{"id":"x","object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","content":"x"},"finish_reason":"content_filter"}]}"#).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn streaming_accepts_proven_redundant_final_message_and_same_frame_usage()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let wire = concat!(
+            "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"hello\",\"reasoning_content\":\"\"},\"finish_reason\":null}]}\n\n",
+            "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"reasoning_content\":\"\"},\"message\":{\"role\":\"assistant\",\"content\":\"hello\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
+            "data: [DONE]\n\n"
+        );
+        let mut decoder = OpenAiChatSseDecoder::new();
+        let events = decoder.push(wire.as_bytes())?;
+        decoder.finish()?;
+        assert!(decoder.is_finished());
+        assert!(
+            events
+                .iter()
+                .any(|event| matches!(event, CanonicalEvent::MessageEnd(_)))
+        );
+        assert!(
+            events
+                .iter()
+                .any(|event| matches!(event, CanonicalEvent::UsageDelta(_)))
+        );
+        assert!(
+            events
+                .iter()
+                .any(|event| matches!(event, CanonicalEvent::ResponseEnd(_)))
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn streaming_accepts_redundant_completed_tool_message() -> Result<(), Box<dyn std::error::Error>>
+    {
+        let wire = concat!(
+            "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"tool_calls\":[{\"index\":0,\"id\":\"call-1\",\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{\\\"q\\\":1}\"}}]},\"finish_reason\":null}]}\n\n",
+            "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"reasoning_content\":null},\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"call-1\",\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{\\\"q\\\":1}\"}}]},\"finish_reason\":\"tool_calls\"}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
+            "data: [DONE]\n\n"
+        );
+        let mut decoder = OpenAiChatSseDecoder::new();
+        let events = decoder.push(wire.as_bytes())?;
+        decoder.finish()?;
+        assert!(
+            events
+                .iter()
+                .any(|event| matches!(event, CanonicalEvent::ToolCallEnd(_)))
+        );
+        assert!(
+            events
+                .iter()
+                .any(|event| matches!(event, CanonicalEvent::UsageDelta(_)))
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn streaming_rejects_unproven_message_reasoning_and_duplicate_usage()
+    -> Result<(), Box<dyn std::error::Error>> {
+        for final_frame in [
+            "data: {\"id\":\"x\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{},\"message\":{\"role\":\"assistant\",\"content\":\"different\"},\"finish_reason\":\"stop\"}]}\n\n",
+            "data: {\"id\":\"x\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"reasoning_content\":\"private\"},\"finish_reason\":\"stop\"}]}\n\n",
+        ] {
+            let mut decoder = OpenAiChatSseDecoder::new();
+            decoder.push(b"data: {\"id\":\"x\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"x\"},\"finish_reason\":null}]}\n\n")?;
+            assert!(decoder.push(final_frame.as_bytes()).is_err());
+        }
+
+        let mut decoder = OpenAiChatSseDecoder::new();
+        decoder.push(b"data: {\"id\":\"x\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"x\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":1,\"completion_tokens\":1,\"total_tokens\":2}}\n\n")?;
+        assert!(decoder.push(b"data: {\"id\":\"x\",\"object\":\"chat.completion.chunk\",\"choices\":[],\"usage\":{\"prompt_tokens\":1,\"completion_tokens\":1,\"total_tokens\":2}}\n\n").is_err());
         Ok(())
     }
 }
