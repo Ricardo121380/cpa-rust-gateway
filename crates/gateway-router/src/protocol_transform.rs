@@ -383,6 +383,9 @@ pub fn project_protocol_request(
 const CHAT_OUTPUT_LIMIT: &str = "openai.chat.max_tokens";
 const RESPONSES_OUTPUT_LIMIT: &str = "openai.responses.max_output_tokens";
 const MESSAGES_OUTPUT_LIMIT: &str = "anthropic.messages.max_tokens";
+const CHAT_TOOL_CHOICE: &str = "openai.chat.tool_choice";
+const RESPONSES_TOOL_CHOICE: &str = "openai.responses.tool_choice";
+const MESSAGES_TOOL_CHOICE: &str = "anthropic.messages.tool_choice";
 const ANTHROPIC_THINKING_BUDGET: &str = "anthropic.thinking.budget_tokens";
 
 fn project_cross_protocol(
@@ -660,9 +663,14 @@ fn validate_target_root_extensions(
     request: &CanonicalRequest,
     target: ProtocolFormat,
 ) -> Result<(), ProtocolTransformRejection> {
-    let expected = output_limit_name(target);
+    let expected_output_limit = output_limit_name(target);
+    let expected_tool_choice = tool_choice_name(target);
     for (name, raw) in request.extensions.iter() {
-        if name != expected {
+        if name == expected_output_limit {
+            validate_output_limit(raw)?;
+        } else if name == expected_tool_choice {
+            validate_tool_choice(raw, target, !request.tools.is_empty())?;
+        } else {
             if matches!(
                 name,
                 CHAT_OUTPUT_LIMIT | RESPONSES_OUTPUT_LIMIT | MESSAGES_OUTPUT_LIMIT
@@ -671,12 +679,51 @@ fn validate_target_root_extensions(
             }
             return Err(ProtocolTransformRejection::UnknownRequestExtensions);
         }
-        validate_output_limit(raw)?;
     }
-    if target == ProtocolFormat::AnthropicMessages && request.extensions.get(expected).is_none() {
+    if target == ProtocolFormat::AnthropicMessages
+        && request.extensions.get(expected_output_limit).is_none()
+    {
         return Err(ProtocolTransformRejection::OutputLimitMissing);
     }
     Ok(())
+}
+
+const fn tool_choice_name(protocol: ProtocolFormat) -> &'static str {
+    match protocol {
+        ProtocolFormat::OpenAiChatCompletions => CHAT_TOOL_CHOICE,
+        ProtocolFormat::OpenAiResponses => RESPONSES_TOOL_CHOICE,
+        ProtocolFormat::AnthropicMessages => MESSAGES_TOOL_CHOICE,
+    }
+}
+
+fn validate_tool_choice(
+    raw: &RawJson,
+    target: ProtocolFormat,
+    has_tools: bool,
+) -> Result<(), ProtocolTransformRejection> {
+    let value = serde_json::from_str::<Value>(raw.get())
+        .map_err(|_| ProtocolTransformRejection::UnknownRequestExtensions)?;
+    let valid = match target {
+        ProtocolFormat::OpenAiChatCompletions => value.as_str() == Some("required") && has_tools,
+        ProtocolFormat::OpenAiResponses => match value.as_str() {
+            Some("auto") => true,
+            Some("required") => has_tools,
+            _ => false,
+        },
+        ProtocolFormat::AnthropicMessages => match value.as_object() {
+            Some(choice) if choice.len() == 1 => match choice.get("type").and_then(Value::as_str) {
+                Some("auto") => true,
+                Some("any") => has_tools,
+                _ => false,
+            },
+            _ => false,
+        },
+    };
+    if valid {
+        Ok(())
+    } else {
+        Err(ProtocolTransformRejection::UnknownRequestExtensions)
+    }
 }
 
 fn validate_target_thinking(
@@ -1131,6 +1178,166 @@ mod tests {
             )),
             ProtocolTransformRejection::LosslessBridgeProtocolMatch,
         );
+    }
+
+    #[test]
+    fn same_protocol_canonical_admits_only_valid_target_tool_choice()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let all_capabilities = all_capabilities()?;
+        for (protocol, raw_choice) in [
+            (ProtocolFormat::OpenAiChatCompletions, r#""required""#),
+            (ProtocolFormat::OpenAiResponses, r#""required""#),
+            (ProtocolFormat::AnthropicMessages, r#"{"type":"any"}"#),
+        ] {
+            let mut request = request();
+            request.tools.push(ToolDefinition {
+                name: "private-tool".to_owned(),
+                description: None,
+                input_schema: RawJson::from_json_string(r#"{"type":"object"}"#.to_owned())?,
+                extensions: RawExtensions::default(),
+            });
+            if protocol == ProtocolFormat::AnthropicMessages {
+                request = with_output_limit(request, protocol, 64)?;
+            }
+            request.extensions.try_insert(
+                super::tool_choice_name(protocol),
+                RawJson::from_json_string(raw_choice.to_owned())?,
+            )?;
+
+            let projected = canonical_projection(project_protocol_request(input(
+                &request,
+                protocol,
+                protocol,
+                SnapshotTransformMode::Canonical,
+                NativePayloadAvailability::Unavailable,
+                &all_capabilities,
+            )))?;
+            assert_eq!(projected, request);
+            let body = match protocol {
+                ProtocolFormat::OpenAiChatCompletions => {
+                    OpenAiChatCompletionsRequestBuilder::build(
+                        &OpenAiChatCompletionsEndpoint::try_new(
+                            "https://relay.example",
+                            "/v1/chat/completions",
+                        )?,
+                        &OpenAiChatCompletionsApiKey::try_new("secret")?,
+                        "upstream-model",
+                        &projected,
+                        ChatResponseMode::NonStreaming,
+                    )?
+                    .body()
+                    .to_vec()
+                }
+                ProtocolFormat::OpenAiResponses => OpenAiResponsesRequestBuilder::build(
+                    &OpenAiResponsesEndpoint::try_new("https://relay.example", "/v1/responses")?,
+                    &OpenAiResponsesApiKey::try_new("secret")?,
+                    "upstream-model",
+                    &projected,
+                    ResponsesResponseMode::NonStreaming,
+                )?
+                .body()
+                .to_vec(),
+                ProtocolFormat::AnthropicMessages => AnthropicMessagesRequestBuilder::build(
+                    &AnthropicMessagesEndpoint::try_new("https://relay.example", "/v1/messages")?,
+                    &AnthropicMessagesApiKey::try_new("secret")?,
+                    "upstream-model",
+                    &projected,
+                    AnthropicResponseMode::NonStreaming,
+                )?
+                .body()
+                .to_vec(),
+            };
+            let wire: serde_json::Value = serde_json::from_slice(&body)?;
+            assert_eq!(
+                wire.get("tool_choice"),
+                Some(&serde_json::from_str(raw_choice)?)
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn target_tool_choice_validation_fails_closed() -> Result<(), Box<dyn std::error::Error>> {
+        let all_capabilities = all_capabilities()?;
+        for (protocol, raw_choice) in [
+            (ProtocolFormat::OpenAiChatCompletions, r#""required""#),
+            (ProtocolFormat::OpenAiResponses, r#""required""#),
+            (ProtocolFormat::AnthropicMessages, r#"{"type":"any"}"#),
+        ] {
+            let mut request = request();
+            if protocol == ProtocolFormat::AnthropicMessages {
+                request = with_output_limit(request, protocol, 64)?;
+            }
+            request.extensions.try_insert(
+                super::tool_choice_name(protocol),
+                RawJson::from_json_string(raw_choice.to_owned())?,
+            )?;
+            assert_eq!(
+                project_protocol_request(input(
+                    &request,
+                    protocol,
+                    protocol,
+                    SnapshotTransformMode::Canonical,
+                    NativePayloadAvailability::Unavailable,
+                    &all_capabilities,
+                )),
+                Err(ProtocolTransformRejection::UnknownRequestExtensions),
+            );
+        }
+
+        let mut malformed_messages =
+            with_output_limit(request(), ProtocolFormat::AnthropicMessages, 64)?;
+        malformed_messages.tools.push(ToolDefinition {
+            name: "private-tool".to_owned(),
+            description: None,
+            input_schema: RawJson::from_json_string("{}".to_owned())?,
+            extensions: RawExtensions::default(),
+        });
+        malformed_messages.extensions.try_insert(
+            super::MESSAGES_TOOL_CHOICE,
+            RawJson::from_json_string(r#"{"type":"any","extra":true}"#.to_owned())?,
+        )?;
+        assert_eq!(
+            project_protocol_request(input(
+                &malformed_messages,
+                ProtocolFormat::AnthropicMessages,
+                ProtocolFormat::AnthropicMessages,
+                SnapshotTransformMode::Canonical,
+                NativePayloadAvailability::Unavailable,
+                &all_capabilities,
+            )),
+            Err(ProtocolTransformRejection::UnknownRequestExtensions),
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn tool_choice_never_crosses_protocols_without_a_reviewed_mapping()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let all_capabilities = all_capabilities()?;
+        let mut request = with_output_limit(request(), ProtocolFormat::OpenAiResponses, 64)?;
+        request.tools.push(ToolDefinition {
+            name: "private-tool".to_owned(),
+            description: None,
+            input_schema: RawJson::from_json_string("{}".to_owned())?,
+            extensions: RawExtensions::default(),
+        });
+        request.extensions.try_insert(
+            super::RESPONSES_TOOL_CHOICE,
+            RawJson::from_json_string(r#""required""#.to_owned())?,
+        )?;
+        assert_eq!(
+            project_protocol_request(input(
+                &request,
+                ProtocolFormat::OpenAiResponses,
+                ProtocolFormat::OpenAiChatCompletions,
+                SnapshotTransformMode::LosslessBridge,
+                NativePayloadAvailability::Unavailable,
+                &all_capabilities,
+            )),
+            Err(ProtocolTransformRejection::UnknownRequestExtensions),
+        );
+        Ok(())
     }
 
     #[test]

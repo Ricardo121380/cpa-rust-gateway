@@ -233,3 +233,22 @@ so the same-protocol OpenAI-compatible builder emits it without inventing a cros
 Responses already retains its namespaced execution control. Object-valued named choices, unknown
 strings, required-without-tools, non-function tools and foreign extension paths remain rejected.
 The next exact artifact resumes at Chat JSON Tool, never resending either passed text tuple.
+
+## CR-P12-08G1-011 — same-protocol Tool choice admission
+
+The CR-010 artifact changed Chat JSON Tool from a decoder-owned local 4xx to a local 5xx, still
+without creating an upstream Attempt. The graph was rolled back immediately; the G1 key again
+returned 401, the predecessor key returned 200, and CPAR remained active, disabled-at-boot and
+loopback-only. Code review located the remaining refusal in Router canonical admission: the
+same-protocol request was cloned with its validated `tool_choice` extension, but the target root
+extension allowlist admitted only the output-token limit and rejected the request before provider
+construction.
+
+Canonical admission may now retain only the target protocol's exact Tool choice namespace. Chat
+admits string `required` only with at least one Tool; Responses admits `auto`, or `required` with a
+Tool; Messages admits the closed object `{type:auto}` or `{type:any}`, with `any` requiring a Tool.
+Wrong value types, unknown members, foreign namespaces and required/any without Tools still fail
+closed. Provider-builder tests prove each admitted same-protocol value reaches the corresponding
+wire field. Cross-protocol projection remains unchanged and rejects every Tool choice because no
+reviewed lossless mapping exists. The next exact artifact resumes at Chat JSON Tool and does not
+resend either passed text tuple.
