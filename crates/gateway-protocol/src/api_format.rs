@@ -18,6 +18,8 @@ use std::{collections::BTreeMap, error::Error, fmt};
 /// rejected while a Config Version is compiled, before it can be published.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum ApiFormat {
+    /// `OpenAI`'s Chat Completions wire format, stored as `openai/chat-completions`.
+    OpenAiChatCompletions,
     /// `OpenAI`'s Responses API wire format, stored as `openai/responses`.
     OpenAiResponses,
     /// Anthropic's Messages API wire format, stored as `anthropic/messages`.
@@ -26,12 +28,17 @@ pub enum ApiFormat {
 
 impl ApiFormat {
     /// Every API Format this product can serve, in stable declaration order.
-    pub const ALL: [Self; 2] = [Self::OpenAiResponses, Self::AnthropicMessages];
+    pub const ALL: [Self; 3] = [
+        Self::OpenAiChatCompletions,
+        Self::OpenAiResponses,
+        Self::AnthropicMessages,
+    ];
 
     /// Returns the exact stored `api_format` string for this format.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::OpenAiChatCompletions => "openai/chat-completions",
             Self::OpenAiResponses => "openai/responses",
             Self::AnthropicMessages => "anthropic/messages",
         }
@@ -50,6 +57,7 @@ impl ApiFormat {
     #[must_use]
     pub const fn adapter_ids(self) -> &'static [&'static str] {
         match self {
+            Self::OpenAiChatCompletions => &["openai-compatible.chat-completions"],
             Self::OpenAiResponses => &["openai-compatible.responses"],
             Self::AnthropicMessages => &["anthropic-compatible.messages", "kiro.messages"],
         }
@@ -209,6 +217,10 @@ mod tests {
 
     #[test]
     fn api_format_strings_are_exact_and_reject_unsupported_spellings() {
+        assert_eq!(
+            ApiFormat::OpenAiChatCompletions.as_str(),
+            "openai/chat-completions"
+        );
         assert_eq!(ApiFormat::OpenAiResponses.as_str(), "openai/responses");
         assert_eq!(ApiFormat::AnthropicMessages.as_str(), "anthropic/messages");
         for format in ApiFormat::ALL {
@@ -228,6 +240,10 @@ mod tests {
     #[test]
     fn adapter_ids_are_per_format_sets_and_reject_foreign_labels() {
         assert_eq!(
+            ApiFormat::OpenAiChatCompletions.adapter_ids(),
+            &["openai-compatible.chat-completions"]
+        );
+        assert_eq!(
             ApiFormat::OpenAiResponses.adapter_ids(),
             &["openai-compatible.responses"]
         );
@@ -241,6 +257,7 @@ mod tests {
         assert!(ApiFormat::AnthropicMessages.serves("anthropic-compatible.messages"));
         // A label belonging to another format, or to nothing, may not serve this one.
         assert!(!ApiFormat::AnthropicMessages.serves("openai-compatible.responses"));
+        assert!(!ApiFormat::OpenAiChatCompletions.serves("openai-compatible.responses"));
         assert!(!ApiFormat::OpenAiResponses.serves("kiro.messages"));
         assert!(!ApiFormat::OpenAiResponses.serves("unknown.adapter"));
         assert!(!ApiFormat::AnthropicMessages.serves(""));
@@ -318,6 +335,11 @@ mod tests {
         // Two adapters under one format both resolve, selected by adapter_id alone.
         let complete = ApiFormatAdapterRegistry::try_new([
             (
+                ApiFormat::OpenAiChatCompletions,
+                "openai-compatible.chat-completions",
+                "chat",
+            ),
+            (
                 ApiFormat::OpenAiResponses,
                 "openai-compatible.responses",
                 "responses",
@@ -329,6 +351,13 @@ mod tests {
             ),
             (ApiFormat::AnthropicMessages, "kiro.messages", "kiro"),
         ])?;
+        assert_eq!(
+            complete.resolve(
+                "openai/chat-completions",
+                "openai-compatible.chat-completions"
+            ),
+            Some((ApiFormat::OpenAiChatCompletions, &"chat"))
+        );
         assert_eq!(
             complete.resolve("anthropic/messages", "anthropic-compatible.messages"),
             Some((ApiFormat::AnthropicMessages, &"messages"))
@@ -355,6 +384,7 @@ mod tests {
 
         assert!(!diagnostic.contains("private-adapter"));
         assert!(diagnostic.contains("ApiFormatAdapterRegistry"));
+        assert!(diagnostic.contains("openai-compatible.chat-completions: false"));
         assert!(diagnostic.contains("openai-compatible.responses: true"));
         assert!(diagnostic.contains("anthropic-compatible.messages: false"));
         assert!(diagnostic.contains("kiro.messages: false"));

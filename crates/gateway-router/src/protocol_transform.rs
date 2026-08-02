@@ -16,6 +16,8 @@ use crate::SnapshotTransformMode;
 /// Client or Endpoint wire format considered by the P5 transformation boundary.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProtocolFormat {
+    /// `OpenAI`'s Chat Completions representation.
+    OpenAiChatCompletions,
     /// `OpenAI`'s Responses API representation.
     OpenAiResponses,
     /// Anthropic's Messages API representation.
@@ -37,6 +39,7 @@ impl ProtocolFormat {
     #[must_use]
     pub const fn as_api_format(self) -> ApiFormat {
         match self {
+            Self::OpenAiChatCompletions => ApiFormat::OpenAiChatCompletions,
             Self::OpenAiResponses => ApiFormat::OpenAiResponses,
             Self::AnthropicMessages => ApiFormat::AnthropicMessages,
         }
@@ -51,6 +54,7 @@ impl ProtocolFormat {
     #[must_use]
     pub fn from_api_format(api_format: &str) -> Option<Self> {
         match ApiFormat::parse(api_format) {
+            Some(ApiFormat::OpenAiChatCompletions) => Some(Self::OpenAiChatCompletions),
             Some(ApiFormat::OpenAiResponses) => Some(Self::OpenAiResponses),
             Some(ApiFormat::AnthropicMessages) => Some(Self::AnthropicMessages),
             None => None,
@@ -266,6 +270,9 @@ fn canonical_rejection(
 
 fn target_supports_role(target: ProtocolFormat, role: &str) -> bool {
     match target {
+        ProtocolFormat::OpenAiChatCompletions => {
+            matches!(role, "system" | "developer" | "user" | "assistant" | "tool")
+        }
         ProtocolFormat::OpenAiResponses => {
             matches!(role, "system" | "developer" | "user" | "assistant")
         }
@@ -305,6 +312,7 @@ mod tests {
         RawExtensions, RawJson, TextContent, Thinking, ThinkingEffort, ToolCall, ToolDefinition,
         ToolResult,
     };
+    use gateway_protocol::ApiFormat;
 
     use super::{
         NativePayloadAvailability, ProtocolFormat, ProtocolTransformAdmission,
@@ -381,8 +389,20 @@ mod tests {
     #[test]
     fn endpoint_api_formats_are_exact_and_do_not_infer_unknown_protocols() {
         assert_eq!(
+            ProtocolFormat::OpenAiChatCompletions.api_format(),
+            "openai/chat-completions"
+        );
+        assert_eq!(
+            ProtocolFormat::from_api_format("openai/chat-completions"),
+            Some(ProtocolFormat::OpenAiChatCompletions)
+        );
+        assert_eq!(
             ProtocolFormat::OpenAiResponses.api_format(),
             "openai/responses"
+        );
+        assert_eq!(
+            ProtocolFormat::OpenAiChatCompletions.as_api_format(),
+            ApiFormat::OpenAiChatCompletions
         );
         assert_eq!(
             ProtocolFormat::AnthropicMessages.api_format(),

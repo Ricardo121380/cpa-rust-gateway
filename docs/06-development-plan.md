@@ -4,14 +4,14 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.93` |
+| 计划版本 | `v1.96` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。用户明确 CPAR 必须同时具备 Kiro、Grok、Codex、Claude 等上游渠道，并向客户端兼容 Chat Completions、Responses、Messages 三种常见协议。原 P13-01/P13-02 已前移为 P12-08 硬前置；当前执行 P12-08A Chat 协议契约与 Codec，生产主机名尚未切换。 |
+| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。P12-08A-C 已本地通过；当前下一切片为 P12-08D 三协议 Canonical 转换矩阵。生产主机名尚未切换。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
-| 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
+| 行为参考 | CPA `v7.2.80` 基线；P12-08 起另固定 CPA `v7.2.101` translator/runtime 测试作为迁移参考；加上已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
 | 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 `CR-P6-03-003`：在确认 2xx JSON 错误对象后，增加最终一次仅从标准错误元数据映射安全类别的诊断调用。 `CR-P6-03-004`：新增一个与固定直连验收隔离的、服务器本地 grok2api Build 路由代理参考探针。 `CR-P6-03-005`：采用服务器参考的当前 Build 请求轮廓，并只登记新的固定端点 T11 非流式与 T12 SSE 验证。 `CR-P6-03-006`：通过 grok2api 支持的管理 API 导入指定 OAuth 文件并做账号专属额度刷新诊断；不重放固定直连元组，也不把共享路由调用误归因到该账号。 `CR-P6-03-007`：仅以本机官方 Grok CLI 做一次交互式 OAuth 重新认证并记录安全状态投影；不发送 P6 请求或改变服务器/路由。 |
 | 已批准变更（续） | `CR-P6-03-008`：以 CPA、grok2api 和 Sub2API 的 clean-room 行为参考扩展 Grok Build 的已知 OAuth 凭据来源；保留标准 JSON/Device Code/Refresh，新增 CPA xAI 文件和官方 Grok CLI indexed cache 的内存导入，不纳入 Cookie/SSO Web 转换。 `CR-P6-03-009`：仅修正 T13 零发送 wrapper 的一次替代 T15 验证；T15 的 4xx 已停止矩阵。 `CR-P6-03-010`：基于官方 CLI 静态证据更正 workspace User-Agent，仅登记新的 T16 非流式直连验证，并在 T16 完整成功时条件允许一次 T17 SSE。 `CR-P6-03-011`：T16 在无网络预检的本地标签门槛前停止后，以不同的合法短标签重新登记 T18 非流式直连；仅其完整 Canonical 成功时允许条件 T19 SSE。 `CR-P6-03-013`：用户批准完成 P6 全部要求，解除 P6-03 对后续本地安全/连续性实现的流程阻塞；不声称 T18 成功、不发送 T19 或重放任何闭合 tuple。 `CR-P6-03-014`：以当前官方 CLI 的成功模型/会话和新完成的可注入执行链路登记 T20/T21，不重放任何已关闭 tuple。 `CR-P6-03-015`：T20 的新的 2xx JSON 协议失败后，只输出固定的无值结构类别诊断 T22。 `CR-P6-03-016`：T22 发现投影在合法压缩前运行，登记一次解压后无值结构诊断 T23。 `CR-P6-03-017`：T23 仍失败后，仅投影第一个固定 decoder requirement gate 的 T24。 |
 | 已批准变更（续 2） | `CR-P7-G7-001`：P7 因 Kiro 外部账号重新认证而阻塞时，允许 P8 按自身顺序进行本地实现与审查；其与 `CR-P7-DEFER-002` 冲突的 P8/G8/P9-P12 顺序约束已由后者替代。 `CR-P7-DEFER-002`：Kiro OAuth 延后；P8-G12 按自身非 Kiro 依赖推进，P8 可执行自身 Phase Gate 与 Delivery Gate；真实 xAI 验证仍仅按 P8 自身明确授权进行。 `CR-P8-DEFER-001`：无 Official API Key 时，P8-07/G8 与 P7-09 一并延后至最终外部认证验收包；P9-P12 Gate 依赖不变。 `CR-P11-04-001`：用户批准把纯 loopback 合成 Soak 的最低门槛由 24 小时改为 10 小时；已完成的 10h13m 用户停止 receipt 仍如实标为 `INCOMPLETE`，P12 的真实 Canary 72h 观察不变。 |
@@ -1730,7 +1730,7 @@ CR-ID: CR-P11-04-001
 |---|---|---|---|
 | P12-08A | OpenAI Chat Completions 严格请求/响应/SSE Codec 与行为契约 | [BC-PROTOCOL-008](contracts/BC-PROTOCOL-008-openai-chat-completions-codec.md) 与 [P12-08A 报告](reports/p12-08a-openai-chat-codec.md)：非流式、事件/Tool 参数任意分片、Usage、终止与错误回归 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08B | Actix `/v1/chat/completions`、认证、正文上限、keepalive 与生命周期 | [BC-HTTP-002](contracts/BC-HTTP-002-actix-chat-completions-boundary.md) 与 [P12-08B 报告](reports/p12-08b-actix-chat-http.md)：JSON/SSE HTTP E2E、认证优先、4 MiB 上限、finish/Usage/`[DONE]` 顺序 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-08C | `openai/chat-completions` Endpoint 格式与 OpenAI-compatible 出站 Adapter | API Format 注册表、发布期校验、DNS-pinned transport 测试 | PENDING |
+| P12-08C | `openai/chat-completions` Endpoint 格式与 OpenAI-compatible 出站 Adapter | [BC-PROVIDER-023](contracts/BC-PROVIDER-023-openai-compatible-chat-completions.md) 与 [P12-08C 报告](reports/p12-08c-openai-chat-adapter.md)：API Format 注册表、发布期校验、原生载荷、JSON/SSE decode、DNS-pinned transport | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08D | Chat/Responses/Messages 三协议 Canonical 转换矩阵 | Text/Tool/Reasoning/Usage/History 的无损准入与 fail-closed 矩阵 | PENDING |
 | P12-08E | Kiro、Grok、Codex、Claude 渠道接入 P12 runtime | 每渠道至少一个完整 mock/fixture vertical slice；Credential/Quota/Health 隔离 | PENDING |
 | P12-08F | 多渠道生产图、Alias/Access Group/Client Key 和三协议本地 E2E | 不含 Secret 的图台账；每协议 × 每渠道的能力矩阵 | PENDING |
@@ -3440,3 +3440,4 @@ Next task:
 | v1.93 | 2026-08-02 | `CR-P12-COMPAT-001`：将 Chat Completions 与三协议无损桥接从 P13 前移至 P12-08，并新增 Kiro/Grok/Codex/Claude runtime、生产图、能力矩阵与真实 E2E 切片 | APPROVED；P12-08A `IN_PROGRESS`，P12-09/P12-10 保持 PENDING |
 | v1.94 | 2026-08-02 | 完成 P12-08A OpenAI Chat Completions 严格纯 Codec、行为契约、Tool 参数分片不变性、Usage 溢出与 SSE 终止顺序回归 | LOCAL_PASS_PENDING_PHASE_GATE；P12-08B 为下一切片，P12-08/P12-09/P12-10 边界不变 |
 | v1.95 | 2026-08-02 | 完成 P12-08B：在共享 Actix 数据面加入认证且有界的 `/v1/chat/completions` JSON/SSE 边界，复用 Canonical transport、keepalive、取消与 FSE 交付，并新增独立 Chat 请求观测协议 | LOCAL_PASS_PENDING_PHASE_GATE；P12-08C 为下一切片，尚无 OpenAI Chat 出站 Endpoint |
+| v1.96 | 2026-08-02 | 以 CLIProxyAPI v7.2.101 native OpenAI translator 为行为参考完成 P12-08C：第三 ApiFormat、发布/组成注册表、显式入站协议与原生载荷、Chat JSON/SSE 上游解码及 DNS-pinned 交接；既有 CPAR 安全门禁不降级 | LOCAL_PASS_PENDING_PHASE_GATE；P12-08D 为下一切片，生产图与流量未改 |

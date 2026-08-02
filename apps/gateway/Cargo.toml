@@ -21,6 +21,7 @@ gateway-router = { path = "../../crates/gateway-router" }
 gateway-store = { path = "../../crates/gateway-store" }
 gateway-upstream = { path = "../../crates/gateway-upstream" }
 libc.workspace = true
+protocol-openai-chat = { path = "../../crates/protocol-openai-chat" }
 protocol-openai-responses = { path = "../../crates/protocol-openai-responses" }
 provider-anthropic-compatible = { path = "../../crates/provider-anthropic-compatible" }
 provider-kiro = { path = "../../crates/provider-kiro" }

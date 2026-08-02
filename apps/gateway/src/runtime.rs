@@ -83,6 +83,10 @@ use gateway_upstream::{
     UpstreamHttpResponse, UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
 };
 
+use protocol_openai_chat::{
+    OpenAiChatSseDecoder, ResponseMode as ChatResponseMode,
+    decode_upstream_response as decode_chat_upstream_response,
+};
 use protocol_openai_responses::ResponseMode;
 use provider_anthropic_compatible::{
     AnthropicMessagesApiKey, AnthropicMessagesEndpoint, AnthropicMessagesOutboundRequest,
@@ -98,8 +102,9 @@ use provider_kiro::{
     profile_arn::{KiroEnterpriseProfileLookup, KiroProfileArnError, resolve_profile_arn},
 };
 use provider_openai_compatible::{
-    OpenAiResponsesApiKey, OpenAiResponsesEndpoint, OpenAiResponsesOutboundRequest,
-    OpenAiResponsesRequestBuilder,
+    OpenAiChatCompletionsApiKey, OpenAiChatCompletionsEndpoint,
+    OpenAiChatCompletionsRequestBuilder, OpenAiResponsesApiKey, OpenAiResponsesEndpoint,
+    OpenAiResponsesOutboundRequest, OpenAiResponsesRequestBuilder,
 };
 use serde_json::Value;
 
@@ -710,13 +715,14 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
         let event_sink = Arc::clone(&self.event_sink);
         let context = execution.context().clone();
         let request = execution.request().clone();
-        let usage_projection = p12_response_usage_projection(&request);
-        // The client protocol is what the inbound handler already decided; the same trusted
-        // ingress marker that selects the Usage projection identifies it.
-        let client_protocol = match usage_projection {
-            P12ResponseUsageProjection::AnthropicMessages => ProtocolFormat::AnthropicMessages,
-            P12ResponseUsageProjection::OpenAiResponses => ProtocolFormat::OpenAiResponses,
+        let client_protocol = execution.client_protocol();
+        let usage_projection = match client_protocol {
+            ProtocolFormat::AnthropicMessages => P12ResponseUsageProjection::AnthropicMessages,
+            ProtocolFormat::OpenAiChatCompletions | ProtocolFormat::OpenAiResponses => {
+                P12ResponseUsageProjection::OpenAiResponses
+            }
         };
+        let native_payload = execution.native_payload().cloned();
         let route_id = execution.route_id().cloned();
         let mode = execution.mode();
         let retry_gate = Arc::clone(execution.retry_gate());
@@ -726,6 +732,8 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             let driver = EndpointAttemptDriver {
                 request_id: context.request_id().clone(),
                 request,
+                client_protocol,
+                native_payload,
                 usage_projection,
                 mode,
                 endpoints,
@@ -778,6 +786,11 @@ fn p12_api_format_adapter_registry() -> Result<P12ApiFormatAdapterRegistry, Runt
 {
     ApiFormatAdapterRegistry::try_new([
         (
+            ApiFormat::OpenAiChatCompletions,
+            "openai-compatible.chat-completions",
+            build_openai_chat_completions_adapter as P12EndpointAdapterFactory,
+        ),
+        (
             ApiFormat::OpenAiResponses,
             "openai-compatible.responses",
             build_openai_responses_adapter as P12EndpointAdapterFactory,
@@ -797,6 +810,14 @@ fn p12_api_format_adapter_registry() -> Result<P12ApiFormatAdapterRegistry, Runt
         ),
     ])
     .map_err(|_| RuntimeCompositionError::Unavailable)
+}
+
+fn build_openai_chat_completions_adapter(
+    endpoint: &EndpointConfiguration,
+) -> Result<EndpointAdapter, RuntimeCompositionError> {
+    OpenAiChatCompletionsEndpoint::try_new(&endpoint.base_url, &endpoint.inference_path)
+        .map(EndpointAdapter::OpenAiChatCompletions)
+        .map_err(|_| RuntimeCompositionError::Unavailable)
 }
 
 fn build_openai_responses_adapter(
@@ -1218,6 +1239,8 @@ struct EndpointRuntime {
 /// [`ApiFormat`] without adding an arm here fails to compile rather than falling back to a
 /// neighbouring protocol.
 enum EndpointAdapter {
+    /// A native OpenAI-compatible Chat Completions path.
+    OpenAiChatCompletions(OpenAiChatCompletionsEndpoint),
     /// The unchanged `OpenAI`-compatible Responses path.
     OpenAiResponses(OpenAiResponsesEndpoint),
     /// The Anthropic-compatible Messages path.
@@ -1230,6 +1253,7 @@ impl EndpointAdapter {
     /// Returns the exact API Format this binding serves.
     const fn api_format(&self) -> ApiFormat {
         match self {
+            Self::OpenAiChatCompletions(_) => ApiFormat::OpenAiChatCompletions,
             Self::OpenAiResponses(_) => ApiFormat::OpenAiResponses,
             Self::AnthropicMessages(_) | Self::KiroMessages(_) => ApiFormat::AnthropicMessages,
         }
@@ -1307,6 +1331,8 @@ impl ResponsesEventSource for LeaseHoldingEventSource {
 struct EndpointAttemptDriver {
     request_id: RequestId,
     request: CanonicalRequest,
+    client_protocol: ProtocolFormat,
+    native_payload: Option<Arc<[u8]>>,
     usage_projection: P12ResponseUsageProjection,
     mode: ResponsesResponseMode,
     endpoints: Arc<BTreeMap<EndpointId, EndpointRuntime>>,
@@ -1343,6 +1369,10 @@ impl AttemptDriver for EndpointAttemptDriver {
                 return Err(AttemptFailure::NonRetryable(internal_error()));
             }
             match &runtime.adapter {
+                EndpointAdapter::OpenAiChatCompletions(endpoint) => {
+                    self.start_openai_chat_completions(runtime, endpoint, candidate, credential)
+                        .await
+                }
                 EndpointAdapter::OpenAiResponses(endpoint) => {
                     self.start_openai_responses(runtime, endpoint, candidate, credential)
                         .await
@@ -1365,6 +1395,71 @@ impl AttemptDriver for EndpointAttemptDriver {
 }
 
 impl EndpointAttemptDriver {
+    /// Runs a native OpenAI-compatible Chat Completions attempt.
+    ///
+    /// The strictly decoded ingress payload is retained and only its model is replaced, matching
+    /// the incumbent CPA's native `OpenAI` translator. Canonical reconstruction is reserved for the
+    /// separately admitted P12-08D bridge matrix.
+    async fn start_openai_chat_completions(
+        &self,
+        runtime: &EndpointRuntime,
+        endpoint: &OpenAiChatCompletionsEndpoint,
+        candidate: &SnapshotRouteCandidate,
+        credential: &CredentialLease,
+    ) -> Result<Box<dyn ResponsesEventSource>, AttemptFailure> {
+        if self.client_protocol != ProtocolFormat::OpenAiChatCompletions {
+            return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
+        }
+        let native_payload = self
+            .native_payload
+            .as_deref()
+            .ok_or_else(|| AttemptFailure::NonRetryable(upstream_protocol_error()))?;
+        let credential = std::str::from_utf8(credential.secret_bytes())
+            .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
+        let request_credential = OpenAiChatCompletionsApiKey::try_new(credential.to_owned())
+            .map_err(AttemptFailure::NonRetryable)?;
+        let outbound = OpenAiChatCompletionsRequestBuilder::build_native(
+            endpoint,
+            &request_credential,
+            candidate.upstream_model(),
+            native_payload,
+            chat_upstream_response_mode(self.mode),
+        )
+        .map_err(AttemptFailure::NonRetryable)?;
+        self.attempt_stages.record_stage(
+            &self.request_id,
+            ManagementRequestAttemptStage::EgressAdmission,
+        );
+        let admitted = runtime
+            .policy
+            .admit_url(outbound.url(), runtime.resolver.as_ref())
+            .map_err(|_| AttemptFailure::NonRetryable(egress_rejected_error()))?;
+        let request = outbound
+            .into_transport_request(admitted)
+            .map_err(AttemptFailure::NonRetryable)?;
+        let mut response = self.send_admitted_request(runtime, request).await?;
+        match self.mode {
+            ResponsesResponseMode::NonStreaming => {
+                let events = decode_chat_json_response(
+                    &mut response,
+                    self.attempt_stages.as_ref(),
+                    &self.request_id,
+                    self.usage_projection,
+                )
+                .await?;
+                Ok(Box::new(FiniteEventSource::new(events)) as Box<dyn ResponsesEventSource>)
+            }
+            ResponsesResponseMode::Streaming => {
+                self.attempt_stages.record_stage(
+                    &self.request_id,
+                    ManagementRequestAttemptStage::SseBootstrap,
+                );
+                let source = ChatSseEventSource::begin(response, self.usage_projection).await?;
+                Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
+            }
+        }
+    }
+
     /// Runs one attempt against an `OpenAI`-compatible Responses Endpoint.
     ///
     /// This is the P12 path unchanged: the same request conversion, credential shape, request
@@ -1622,6 +1717,13 @@ const fn anthropic_upstream_response_mode(mode: ResponsesResponseMode) -> Anthro
         ResponsesResponseMode::Streaming => AnthropicResponseMode::Streaming,
     }
 }
+
+const fn chat_upstream_response_mode(mode: ResponsesResponseMode) -> ChatResponseMode {
+    match mode {
+        ResponsesResponseMode::NonStreaming => ChatResponseMode::NonStreaming,
+        ResponsesResponseMode::Streaming => ChatResponseMode::Streaming,
+    }
+}
 fn p12_transport_request(
     outbound: &OpenAiResponsesOutboundRequest,
     admitted: AdmittedEgressTarget,
@@ -1717,6 +1819,7 @@ fn p12_openai_compatible_request(
 /// usage for a Responses caller while omitting only counters that an Anthropic usage object has no
 /// field to carry. It is not a client-selectable transport flag and does not change the outbound
 /// request conversion.
+#[cfg(test)]
 fn p12_response_usage_projection(request: &CanonicalRequest) -> P12ResponseUsageProjection {
     if request
         .extensions
@@ -1820,6 +1923,107 @@ async fn decode_anthropic_json_response(
     let body = std::str::from_utf8(&body).map_err(|_| AttemptFailure::BootstrapTruncated)?;
     let events = decode_upstream_response(body).map_err(|_| AttemptFailure::BootstrapTruncated)?;
     Ok(project_usage_events(events, usage_projection))
+}
+
+/// Buffers and strictly decodes one complete Chat Completions response.
+async fn decode_chat_json_response(
+    response: &mut UpstreamHttpResponse,
+    attempt_stages: &P12AttemptStageStore,
+    request_id: &RequestId,
+    usage_projection: P12ResponseUsageProjection,
+) -> Result<Vec<CanonicalEvent>, AttemptFailure> {
+    attempt_stages.record_stage(request_id, ManagementRequestAttemptStage::BodyRead);
+    let mut body = Vec::new();
+    loop {
+        let next = response
+            .next_chunk()
+            .await
+            .map_err(|_| AttemptFailure::Connection)?;
+        let Some(chunk) = next else { break };
+        append_response_chunk(&mut body, &chunk).map_err(AttemptFailure::NonRetryable)?;
+    }
+    attempt_stages.record_stage(request_id, ManagementRequestAttemptStage::Decoder);
+    let body = std::str::from_utf8(&body).map_err(|_| AttemptFailure::BootstrapTruncated)?;
+    let events =
+        decode_chat_upstream_response(body).map_err(|_| AttemptFailure::BootstrapTruncated)?;
+    Ok(project_usage_events(events, usage_projection))
+}
+
+/// Streams one native Chat Completions SSE response through the protocol-owned decoder.
+struct ChatSseEventSource {
+    response: UpstreamHttpResponse,
+    decoder: OpenAiChatSseDecoder,
+    usage_projection: P12ResponseUsageProjection,
+    pending: VecDeque<CanonicalEvent>,
+    progress_deadline: Duration,
+    progress_wait_spent: Duration,
+}
+
+impl ChatSseEventSource {
+    async fn begin(
+        response: UpstreamHttpResponse,
+        usage_projection: P12ResponseUsageProjection,
+    ) -> Result<Self, AttemptFailure> {
+        let mut source = Self {
+            response,
+            decoder: OpenAiChatSseDecoder::new(),
+            usage_projection,
+            pending: VecDeque::new(),
+            progress_deadline: P12_STREAMING_PROGRESS_TIMEOUT,
+            progress_wait_spent: Duration::ZERO,
+        };
+        source
+            .read_until_event()
+            .await
+            .map_err(|_| AttemptFailure::BootstrapTruncated)?;
+        if !matches!(
+            source.pending.front(),
+            Some(CanonicalEvent::ResponseStart(_))
+        ) {
+            return Err(AttemptFailure::BootstrapTruncated);
+        }
+        Ok(source)
+    }
+
+    async fn read_until_event(&mut self) -> Result<(), GatewayError> {
+        while self.pending.is_empty() && !self.decoder.is_finished() {
+            if self.progress_wait_spent >= self.progress_deadline {
+                return Err(provider_transient_error());
+            }
+            let wait_started = Instant::now();
+            let Some(chunk) = self.response.next_chunk().await? else {
+                self.pending.extend(self.decoder.finish()?);
+                break;
+            };
+            self.progress_wait_spent = self
+                .progress_wait_spent
+                .saturating_add(wait_started.elapsed());
+            let events = self.decoder.push(&chunk)?;
+            if !events.is_empty() {
+                self.progress_wait_spent = Duration::ZERO;
+            }
+            self.pending.extend(events);
+        }
+        Ok(())
+    }
+}
+
+impl ResponsesEventSource for ChatSseEventSource {
+    fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
+        Box::pin(async move {
+            if let Some(event) = self.pending.pop_front() {
+                return Ok(Some(project_usage_event(event, self.usage_projection)));
+            }
+            if self.decoder.is_finished() {
+                return Ok(None);
+            }
+            self.read_until_event().await?;
+            Ok(self
+                .pending
+                .pop_front()
+                .map(|event| project_usage_event(event, self.usage_projection)))
+        })
+    }
 }
 
 /// Narrows every decoded `UsageDelta` to what the client's protocol can encode.
@@ -3564,12 +3768,13 @@ mod tests {
     use gateway_protocol::{ApiFormat, ApiFormatAdapterRegistry};
     use gateway_router::{
         AttemptDriver, AttemptFailure, AttemptOrchestrator, DeterministicMockEmission,
-        DeterministicMockResponsesExecutor, ResponsesEventSource, ResponsesExecution,
-        ResponsesExecutor, ResponsesFuture, ResponsesResponseMode, RouteCredentialScheduler,
-        RouteSnapshot, RouteSnapshotInput, RouteSnapshotRegistry, RuntimeCredentialAccountStatus,
-        RuntimeHealthClock, RuntimeHealthClockError, RuntimeHealthRegistry, RuntimeQuotaRegistry,
-        RuntimeQuotaTarget, SnapshotCatalogAdmission, SnapshotRouteCandidate,
-        SnapshotRouteCandidateInput, SnapshotTransformMode, SnapshotVersion,
+        DeterministicMockResponsesExecutor, ProtocolFormat, ResponsesEventSource,
+        ResponsesExecution, ResponsesExecutor, ResponsesFuture, ResponsesResponseMode,
+        RouteCredentialScheduler, RouteSnapshot, RouteSnapshotInput, RouteSnapshotRegistry,
+        RuntimeCredentialAccountStatus, RuntimeHealthClock, RuntimeHealthClockError,
+        RuntimeHealthRegistry, RuntimeQuotaRegistry, RuntimeQuotaTarget, SnapshotCatalogAdmission,
+        SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotTransformMode,
+        SnapshotVersion,
     };
     use gateway_store::{
         control_plane::{
@@ -4637,6 +4842,8 @@ mod tests {
         let driver = EndpointAttemptDriver {
             request_id: request_id.clone(),
             request: decoded.request,
+            client_protocol: ProtocolFormat::OpenAiResponses,
+            native_payload: None,
             usage_projection: P12ResponseUsageProjection::OpenAiResponses,
             mode: ResponsesResponseMode::NonStreaming,
             endpoints: Arc::new(endpoints),
@@ -4766,6 +4973,8 @@ mod tests {
         let driver = EndpointAttemptDriver {
             request_id: request_id.clone(),
             request: decoded.request,
+            client_protocol: ProtocolFormat::OpenAiResponses,
+            native_payload: None,
             usage_projection: P12ResponseUsageProjection::OpenAiResponses,
             mode: ResponsesResponseMode::NonStreaming,
             endpoints: Arc::new(endpoints),
@@ -6205,6 +6414,15 @@ mod tests {
         };
         assert_eq!(validate_endpoint_shape(&base)?, ApiFormat::OpenAiResponses);
 
+        let mut chat = base.clone();
+        chat.adapter_id = "openai-compatible.chat-completions".to_owned();
+        chat.api_format = "openai/chat-completions".to_owned();
+        chat.inference_path = "/chat/completions".to_owned();
+        assert_eq!(
+            validate_endpoint_shape(&chat)?,
+            ApiFormat::OpenAiChatCompletions
+        );
+
         let mut messages = base.clone();
         messages.adapter_id = "anthropic-compatible.messages".to_owned();
         messages.api_format = "anthropic/messages".to_owned();
@@ -6295,7 +6513,7 @@ mod tests {
     }
 
     #[test]
-    fn the_p12_registry_binds_kiro_as_a_second_anthropic_messages_adapter()
+    fn the_p12_registry_binds_all_three_formats_and_both_messages_adapters()
     -> Result<(), Box<dyn Error>> {
         let registry = p12_api_format_adapter_registry()?;
         // Both implementations of the same wire format resolve, selected by adapter_id alone.
@@ -6314,6 +6532,14 @@ mod tests {
                 .resolve("openai/responses", "openai-compatible.responses")
                 .is_some()
         );
+        assert!(
+            registry
+                .resolve(
+                    "openai/chat-completions",
+                    "openai-compatible.chat-completions"
+                )
+                .is_some()
+        );
         // A format cannot borrow another format's implementation even though it is bound.
         assert!(
             registry
@@ -6321,6 +6547,11 @@ mod tests {
                 .is_none()
         );
         assert!(registry.resolve("kiro/messages", "kiro.messages").is_none());
+        assert!(
+            registry
+                .resolve("openai/responses", "openai-compatible.chat-completions")
+                .is_none()
+        );
         Ok(())
     }
 

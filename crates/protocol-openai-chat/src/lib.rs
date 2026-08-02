@@ -6,6 +6,8 @@
 
 #![deny(unsafe_code)]
 
+mod upstream_response;
+
 use std::{collections::BTreeSet, fmt};
 
 use gateway_core::{
@@ -15,6 +17,8 @@ use gateway_core::{
 };
 use serde::{Deserialize, de};
 use serde_json::{Map, Value, json};
+
+pub use upstream_response::{OpenAiChatSseDecoder, decode_upstream_response};
 
 /// Stable component identifier used by architecture smoke tests.
 pub const COMPONENT: &str = "protocol-openai-chat";

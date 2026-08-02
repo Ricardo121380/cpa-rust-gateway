@@ -2,8 +2,13 @@
 
 #![deny(unsafe_code)]
 
+mod openai_chat_completions;
 mod openai_responses;
 
+pub use openai_chat_completions::{
+    OpenAiChatCompletionsApiKey, OpenAiChatCompletionsEndpoint,
+    OpenAiChatCompletionsOutboundRequest, OpenAiChatCompletionsRequestBuilder,
+};
 pub use openai_responses::{
     OpenAiResponsesApiKey, OpenAiResponsesEndpoint, OpenAiResponsesOutboundRequest,
     OpenAiResponsesRequestBuilder,

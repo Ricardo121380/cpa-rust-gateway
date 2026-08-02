@@ -119,6 +119,8 @@ pub enum ResponsesResponseMode {
 pub struct ResponsesExecution {
     context: RequestContext,
     request: CanonicalRequest,
+    client_protocol: ProtocolFormat,
+    native_payload: Option<Arc<[u8]>>,
     route_id: Option<RouteId>,
     mode: ResponsesResponseMode,
     retry_gate: Arc<dyn TransparentRetryGate>,
@@ -137,6 +139,33 @@ impl ResponsesExecution {
         Self {
             context,
             request,
+            client_protocol: ProtocolFormat::OpenAiResponses,
+            native_payload: None,
+            route_id,
+            mode,
+            retry_gate,
+        }
+    }
+
+    /// Creates an execution with the ingress-decided protocol and its strictly decoded payload.
+    ///
+    /// The payload is available only to a same-protocol native adapter. Cross-protocol candidates
+    /// must use the Canonical request and the lossless transform admission matrix.
+    #[must_use]
+    pub fn new_for_protocol(
+        context: RequestContext,
+        request: CanonicalRequest,
+        client_protocol: ProtocolFormat,
+        native_payload: Arc<[u8]>,
+        route_id: Option<RouteId>,
+        mode: ResponsesResponseMode,
+        retry_gate: Arc<dyn TransparentRetryGate>,
+    ) -> Self {
+        Self {
+            context,
+            request,
+            client_protocol,
+            native_payload: Some(native_payload),
             route_id,
             mode,
             retry_gate,
@@ -153,6 +182,18 @@ impl ResponsesExecution {
     #[must_use]
     pub fn request(&self) -> &CanonicalRequest {
         &self.request
+    }
+
+    /// Returns the trusted protocol selected by the ingress decoder.
+    #[must_use]
+    pub const fn client_protocol(&self) -> ProtocolFormat {
+        self.client_protocol
+    }
+
+    /// Returns the strictly decoded native body retained for same-protocol forwarding.
+    #[must_use]
+    pub fn native_payload(&self) -> Option<&Arc<[u8]>> {
+        self.native_payload.as_ref()
     }
 
     /// Returns the Snapshot-approved Route when Snapshot authentication selected one.
@@ -184,6 +225,11 @@ impl fmt::Debug for ResponsesExecution {
             .debug_struct("ResponsesExecution")
             .field("context", &self.context)
             .field("request", &self.request)
+            .field("client_protocol", &self.client_protocol)
+            .field(
+                "native_payload_len",
+                &self.native_payload.as_ref().map(|payload| payload.len()),
+            )
             .field("route_id", &self.route_id)
             .field("mode", &self.mode)
             .field("retry_gate", &"<downstream-owned>")

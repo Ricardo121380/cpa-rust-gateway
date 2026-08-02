@@ -163,3 +163,4 @@
 - [P12-05 CR-015 post-review](evidence/p12-05-cr-015-post-review-20260726.md) — local acceptance review, credential/egress boundary, and independent rollback verification
 - [P12-06 OpenAI-compatible live differential](p12-06-openai-differential.md) — candidate preflight passed; paired corpus stopped because the incumbent Responses reference returns an unattributed internal 5xx
 - [P12-07 executed differential gate](p12-07-executed-differential-gate.md) — the differential corpus now computes its gateway projection by driving real gateway, store, Grok, and Kiro code
+- [P12-08C OpenAI-compatible Chat Completions adapter](p12-08c-openai-chat-adapter.md) — native payload preservation, strict JSON/SSE decode, exact format registry and DNS-pinned transport evidence

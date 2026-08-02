@@ -510,9 +510,11 @@ async fn chat_completions(
         ChatResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
         ChatResponseMode::Streaming => ResponsesResponseMode::Streaming,
     };
-    let execution = ResponsesExecution::new(
+    let execution = ResponsesExecution::new_for_protocol(
         context,
         decoded.request,
+        gateway_router::ProtocolFormat::OpenAiChatCompletions,
+        Arc::from(body.as_bytes()),
         route_id,
         response_mode,
         retry_gate,
@@ -597,9 +599,11 @@ async fn responses(
         ResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
         ResponseMode::Streaming => ResponsesResponseMode::Streaming,
     };
-    let execution = ResponsesExecution::new(
+    let execution = ResponsesExecution::new_for_protocol(
         context,
         decoded.request,
+        gateway_router::ProtocolFormat::OpenAiResponses,
+        Arc::from(body.as_bytes()),
         route_id,
         response_mode,
         retry_gate,
@@ -680,9 +684,11 @@ async fn messages(
         AnthropicResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
         AnthropicResponseMode::Streaming => ResponsesResponseMode::Streaming,
     };
-    let execution = ResponsesExecution::new(
+    let execution = ResponsesExecution::new_for_protocol(
         context,
         decoded.request,
+        gateway_router::ProtocolFormat::AnthropicMessages,
+        Arc::from(body.as_bytes()),
         route_id,
         response_mode,
         retry_gate,

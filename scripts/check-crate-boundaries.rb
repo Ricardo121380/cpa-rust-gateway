@@ -17,7 +17,7 @@ allowed = {
   # data-plane adapter and its immutable RouteSnapshot, encrypted Credential-pool, direct egress,
   # protocol, and JSON dependencies here only; lower-layer rules still prevent them from flowing
   # back into library crates.
-  "gateway" => %w[actix-web futures-util gateway-auth gateway-catalog gateway-control gateway-core gateway-http-actix gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream libc protocol-openai-responses provider-anthropic-compatible provider-kiro provider-openai-compatible serde_json zeroize],
+  "gateway" => %w[actix-web futures-util gateway-auth gateway-catalog gateway-control gateway-core gateway-http-actix gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream libc protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-kiro provider-openai-compatible serde_json zeroize],
   "gateway-auth" => %w[gateway-core getrandom hmac libc sha2 subtle zeroize],
   "gateway-catalog" => %w[gateway-core gateway-provider tokio],
   "gateway-control" => %w[gateway-auth gateway-catalog gateway-core gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream serde_json zeroize],
@@ -39,7 +39,7 @@ allowed = {
   "provider-anthropic-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-anthropic zeroize],
   "provider-grok" => %w[flate2 gateway-catalog gateway-core gateway-provider gateway-router gateway-store gateway-upstream getrandom hmac protocol-openai-responses rusqlite serde serde_json sha2 time tokio url zeroize],
   "provider-kiro" => %w[gateway-catalog gateway-core gateway-provider gateway-store gateway-stream gateway-upstream protocol-anthropic serde serde_json tokio url zeroize],
-  "provider-openai-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-openai-responses serde_json zeroize],
+  "provider-openai-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-openai-chat protocol-openai-responses serde_json zeroize],
 }
 
 errors = []
