@@ -383,6 +383,8 @@ impl ManagementRouteExplainRequest {
 /// Closed management protocol enum used only for a Route Explain projection.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ManagementRequestProtocol {
+    /// `OpenAI` Chat Completions request semantics.
+    OpenAiChatCompletions,
     /// `OpenAI` Responses request semantics.
     OpenAiResponses,
     /// Anthropic Messages request semantics.
@@ -3168,6 +3170,7 @@ fn runtime_target(input: RuntimeTargetInput) -> Result<ManagementRuntimeTarget, 
 
 fn management_request_protocol(value: &str) -> Result<ManagementRequestProtocol, HttpResponse> {
     match value {
+        "openai_chat_completions" => Ok(ManagementRequestProtocol::OpenAiChatCompletions),
         "openai_responses" => Ok(ManagementRequestProtocol::OpenAiResponses),
         "anthropic_messages" => Ok(ManagementRequestProtocol::AnthropicMessages),
         _ => Err(invalid_input()),

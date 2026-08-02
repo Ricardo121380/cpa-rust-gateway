@@ -40,7 +40,8 @@ pub use gateway_core::TransparentRetryGate as AttemptRetryGate;
 pub use protocol_transform::{
     NativePayloadAvailability, ProjectedProtocolRequest, ProtocolFormat,
     ProtocolTransformAdmission, ProtocolTransformInput, ProtocolTransformRejection,
-    analyze_protocol_transform, project_protocol_request,
+    analyze_protocol_transform, project_protocol_request, project_registered_protocol_request,
+    protocol_pair_is_publishable, protocol_pair_is_registered,
 };
 pub use response_transform::{
     ProtocolResponseProjector, ProtocolResponseRejection, project_protocol_response,

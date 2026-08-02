@@ -261,7 +261,7 @@ function applicationMarkup(): string {
             <form id="route-explain-form" class="form-grid" novalidate>
               <label>Route ID<input id="runtime-route-id" autocomplete="off" required></label>
               <label>Requested model<input id="runtime-requested-model" autocomplete="off" maxlength="256" required></label>
-              <label>Protocol<select id="runtime-protocol"><option value="openai_responses">OpenAI Responses</option><option value="anthropic_messages">Anthropic Messages</option></select></label>
+              <label>Protocol<select id="runtime-protocol"><option value="openai_chat_completions">OpenAI Chat Completions</option><option value="openai_responses">OpenAI Responses</option><option value="anthropic_messages">Anthropic Messages</option></select></label>
               <div class="form-actions"><button type="submit">Explain Route</button></div>
               <p class="muted">Explain is a fixed-time projection. It does not acquire a Credential lease or advance a scheduling cursor.</p>
             </form>

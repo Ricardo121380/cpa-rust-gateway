@@ -12,6 +12,7 @@ use gateway_upstream::{
     AdmittedEgressTarget, EndpointUrl, UpstreamHttpMethod, UpstreamHttpRequest,
 };
 use protocol_anthropic::{ResponseMode, encode_upstream_request};
+use serde_json::Value;
 use zeroize::Zeroizing;
 
 /// The Anthropic Messages API version sent on every outbound request.
@@ -233,6 +234,47 @@ impl fmt::Debug for AnthropicMessagesOutboundRequest {
 pub struct AnthropicMessagesRequestBuilder;
 
 impl AnthropicMessagesRequestBuilder {
+    /// Preserves a strictly decoded native Messages request while replacing only its model.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe protocol error for malformed input, response-mode disagreement, or an empty
+    /// selected model.
+    pub fn build_native(
+        endpoint: &AnthropicMessagesEndpoint,
+        api_key: &AnthropicMessagesApiKey,
+        upstream_model: &str,
+        native_body: &[u8],
+        mode: ResponseMode,
+    ) -> Result<AnthropicMessagesOutboundRequest, GatewayError> {
+        if upstream_model.is_empty() {
+            return Err(provider_protocol_error());
+        }
+        let native_body =
+            std::str::from_utf8(native_body).map_err(|_| provider_protocol_error())?;
+        let decoded = protocol_anthropic::decode_request(native_body)
+            .map_err(|_| provider_protocol_error())?;
+        if decoded.mode != mode {
+            return Err(provider_protocol_error());
+        }
+        let mut root: Value =
+            serde_json::from_str(native_body).map_err(|_| provider_protocol_error())?;
+        root.as_object_mut()
+            .ok_or_else(provider_protocol_error)?
+            .insert("model".to_owned(), Value::String(upstream_model.to_owned()));
+        let body = serde_json::to_vec(&root).map_err(|_| internal_error())?;
+        let accept = match mode {
+            ResponseMode::NonStreaming => JSON_MEDIA_TYPE,
+            ResponseMode::Streaming => SSE_MEDIA_TYPE,
+        };
+        Ok(AnthropicMessagesOutboundRequest {
+            target: endpoint.target().clone(),
+            x_api_key: Zeroizing::new(api_key.as_str().to_owned()),
+            accept,
+            body,
+        })
+    }
+
     /// Builds a request-ready Anthropic-compatible Messages target, standard headers, and JSON body.
     ///
     /// The caller supplies the already selected upstream model; the client-visible requested model
@@ -460,6 +502,34 @@ mod tests {
         assert_eq!(rebuilt.mode, ResponseMode::NonStreaming);
         assert!(encoded.contains(UPSTREAM_MODEL));
         assert!(!encoded.contains("gateway-claude"));
+        Ok(())
+    }
+
+    #[test]
+    fn native_messages_path_revalidates_mode_and_replaces_only_model() -> Result<(), Box<dyn Error>>
+    {
+        let outbound = AnthropicMessagesRequestBuilder::build_native(
+            &endpoint()?,
+            &api_key()?,
+            UPSTREAM_MODEL,
+            TEXT_REQUEST.as_bytes(),
+            ResponseMode::NonStreaming,
+        )?;
+        let original: serde_json::Value = serde_json::from_str(TEXT_REQUEST)?;
+        let actual: serde_json::Value = serde_json::from_slice(outbound.body())?;
+        let mut expected = original;
+        expected["model"] = serde_json::Value::String(UPSTREAM_MODEL.to_owned());
+        assert_eq!(actual, expected);
+        assert!(
+            AnthropicMessagesRequestBuilder::build_native(
+                &endpoint()?,
+                &api_key()?,
+                UPSTREAM_MODEL,
+                TEXT_REQUEST.as_bytes(),
+                ResponseMode::Streaming,
+            )
+            .is_err()
+        );
         Ok(())
     }
 

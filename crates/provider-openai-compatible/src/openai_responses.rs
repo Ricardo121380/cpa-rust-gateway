@@ -224,6 +224,47 @@ impl fmt::Debug for OpenAiResponsesOutboundRequest {
 pub struct OpenAiResponsesRequestBuilder;
 
 impl OpenAiResponsesRequestBuilder {
+    /// Preserves a strictly decoded native Responses request while replacing only its model.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe protocol error for malformed input, response-mode disagreement, or an empty
+    /// selected model.
+    pub fn build_native(
+        endpoint: &OpenAiResponsesEndpoint,
+        api_key: &OpenAiResponsesApiKey,
+        upstream_model: &str,
+        native_body: &[u8],
+        mode: ResponseMode,
+    ) -> Result<OpenAiResponsesOutboundRequest, GatewayError> {
+        if upstream_model.is_empty() {
+            return Err(provider_protocol_error());
+        }
+        let native_body =
+            std::str::from_utf8(native_body).map_err(|_| provider_protocol_error())?;
+        let decoded = protocol_openai_responses::decode_request(native_body)
+            .map_err(|_| provider_protocol_error())?;
+        if decoded.mode != mode {
+            return Err(provider_protocol_error());
+        }
+        let mut root: Value =
+            serde_json::from_str(native_body).map_err(|_| provider_protocol_error())?;
+        root.as_object_mut()
+            .ok_or_else(provider_protocol_error)?
+            .insert("model".to_owned(), Value::String(upstream_model.to_owned()));
+        let body = serde_json::to_vec(&root).map_err(|_| internal_error())?;
+        let accept = match mode {
+            ResponseMode::NonStreaming => "application/json",
+            ResponseMode::Streaming => "text/event-stream",
+        };
+        Ok(OpenAiResponsesOutboundRequest {
+            target: endpoint.target().clone(),
+            authorization: Zeroizing::new(format!("Bearer {}", api_key.as_str())),
+            accept,
+            body,
+        })
+    }
+
     /// Builds a request-ready OpenAI-compatible Responses target, standard headers, and JSON body.
     ///
     /// The caller supplies the already selected upstream model; the client-visible requested model
@@ -642,6 +683,36 @@ mod tests {
         assert!(!encoded.contains("gateway-model"));
         assert_eq!(rebuilt.request, expected);
         assert_eq!(rebuilt.mode, ResponseMode::Streaming);
+        Ok(())
+    }
+
+    #[test]
+    fn native_responses_path_revalidates_mode_and_replaces_only_model() -> Result<(), Box<dyn Error>>
+    {
+        let native =
+            include_str!("../../../tests/fixtures/openai-responses/request-canonical.json");
+        let outbound = OpenAiResponsesRequestBuilder::build_native(
+            &endpoint()?,
+            &api_key()?,
+            "native-upstream-model",
+            native.as_bytes(),
+            ResponseMode::Streaming,
+        )?;
+        let original: serde_json::Value = serde_json::from_str(native)?;
+        let actual: serde_json::Value = serde_json::from_slice(outbound.body())?;
+        let mut expected = original;
+        expected["model"] = serde_json::Value::String("native-upstream-model".to_owned());
+        assert_eq!(actual, expected);
+        assert!(
+            OpenAiResponsesRequestBuilder::build_native(
+                &endpoint()?,
+                &api_key()?,
+                "native-upstream-model",
+                native.as_bytes(),
+                ResponseMode::NonStreaming,
+            )
+            .is_err()
+        );
         Ok(())
     }
 

@@ -434,8 +434,16 @@ impl AttemptOrchestrator {
         D: AttemptDriver,
     {
         let event_sink = NoopGatewayEventSink;
-        self.start_inner(None, route_id, None, driver, retry_gate, &event_sink)
-            .await
+        let all_candidates = |_candidate: &SnapshotRouteCandidate| true;
+        self.start_inner(
+            None,
+            route_id,
+            &all_candidates,
+            driver,
+            retry_gate,
+            &event_sink,
+        )
+        .await
     }
 
     /// Starts one Attempt loop for a client protocol using only matching Endpoint formats.
@@ -461,10 +469,13 @@ impl AttemptOrchestrator {
         D: AttemptDriver,
     {
         let event_sink = NoopGatewayEventSink;
+        let matching_protocol = |candidate: &SnapshotRouteCandidate| {
+            candidate_matches_protocol(candidate, Some(protocol))
+        };
         self.start_inner(
             None,
             route_id,
-            Some(protocol),
+            &matching_protocol,
             driver,
             retry_gate,
             &event_sink,
@@ -493,10 +504,11 @@ impl AttemptOrchestrator {
     where
         D: AttemptDriver,
     {
+        let all_candidates = |_candidate: &SnapshotRouteCandidate| true;
         self.start_inner(
             Some(request_id),
             route_id,
-            None,
+            &all_candidates,
             driver,
             retry_gate,
             event_sink,
@@ -523,10 +535,47 @@ impl AttemptOrchestrator {
     where
         D: AttemptDriver,
     {
+        let matching_protocol = |candidate: &SnapshotRouteCandidate| {
+            candidate_matches_protocol(candidate, Some(protocol))
+        };
         self.start_inner(
             Some(request_id),
             route_id,
-            Some(protocol),
+            &matching_protocol,
+            driver,
+            retry_gate,
+            event_sink,
+        )
+        .await
+    }
+
+    /// Starts one Attempt loop using an explicit request-local Candidate admission predicate.
+    ///
+    /// The predicate runs before Health, Quota, Credential-pool access, lease acquisition, and
+    /// driver invocation. Protocol transformation callers use this seam to exclude every
+    /// unregistered or semantically lossy source/target pair without creating an upstream Attempt.
+    ///
+    /// # Errors
+    ///
+    /// Returns the existing safe routing error when no Candidate passes the predicate or when all
+    /// admitted Attempts fail.
+    pub async fn start_with_event_sink_matching<D, F>(
+        &self,
+        request_id: &RequestId,
+        route_id: &RouteId,
+        is_candidate_eligible: F,
+        driver: &D,
+        retry_gate: &dyn TransparentRetryGate,
+        event_sink: &dyn GatewayEventSink,
+    ) -> Result<StartedAttempt<D::Output>, GatewayError>
+    where
+        D: AttemptDriver,
+        F: Fn(&SnapshotRouteCandidate) -> bool + Sync,
+    {
+        self.start_inner(
+            Some(request_id),
+            route_id,
+            &is_candidate_eligible,
             driver,
             retry_gate,
             event_sink,
@@ -539,7 +588,7 @@ impl AttemptOrchestrator {
         &self,
         request_id: Option<&RequestId>,
         route_id: &RouteId,
-        protocol: Option<ProtocolFormat>,
+        is_candidate_eligible: &(dyn Fn(&SnapshotRouteCandidate) -> bool + Sync),
         driver: &D,
         retry_gate: &dyn TransparentRetryGate,
         event_sink: &dyn GatewayEventSink,
@@ -576,7 +625,7 @@ impl AttemptOrchestrator {
                     route_id,
                     &self.runtime_health,
                     &self.runtime_quota,
-                    |candidate| candidate_matches_protocol(candidate, protocol),
+                    is_candidate_eligible,
                     |candidate, credential_id| !exclusions.contains(candidate, credential_id),
                 ) {
                 Ok(selection) => (selection, None),
@@ -584,7 +633,7 @@ impl AttemptOrchestrator {
                     let recovery = budget.remaining_at(now_ms).ok().and_then(|remaining| {
                         self.begin_quota_recovery_probe_selection(
                             route_id,
-                            protocol,
+                            is_candidate_eligible,
                             &exclusions,
                             now_ms,
                             driver.start_timeout(remaining),
@@ -849,7 +898,7 @@ impl AttemptOrchestrator {
     fn begin_quota_recovery_probe_selection(
         &self,
         route_id: &RouteId,
-        protocol: Option<ProtocolFormat>,
+        is_candidate_eligible: &(dyn Fn(&SnapshotRouteCandidate) -> bool + Sync),
         exclusions: &AttemptExclusionSet,
         now_ms: i64,
         start_ceiling: Duration,
@@ -860,7 +909,7 @@ impl AttemptOrchestrator {
                 route_id,
                 &self.runtime_health,
                 &self.runtime_quota,
-                |candidate| candidate_matches_protocol(candidate, protocol),
+                is_candidate_eligible,
                 |candidate, credential_id| !exclusions.contains(candidate, credential_id),
             )
             .ok()?;
@@ -1037,7 +1086,7 @@ mod tests {
 
     use super::{
         AttemptDriver, AttemptExclusionSet, AttemptFailure, AttemptFuture, AttemptOrchestrator,
-        AttemptOrchestratorConfig,
+        AttemptOrchestratorConfig, NoopGatewayEventSink,
     };
     use crate::{
         ProtocolFormat, RouteCredentialScheduler, RouteSnapshot, RouteSnapshotInput,
@@ -1188,6 +1237,39 @@ mod tests {
             .pool(&endpoint)
             .ok_or("missing non-Canonical test pool")?;
         assert_eq!(pool.active_lease_count(&credential), Some(0));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn request_local_candidate_rejection_takes_no_lease_and_starts_no_attempt() -> TestResult
+    {
+        let (orchestrator, route_id, _health, pools) =
+            single_protocol_orchestrator(SnapshotTransformMode::Canonical)?;
+        let driver = ScriptedDriver::new(vec![DriverStep::Success("must-not-start".to_owned())]);
+        let request_id = RequestId::try_new("request-local-rejection")?;
+
+        let error = expected_error(
+            orchestrator
+                .start_with_event_sink_matching(
+                    &request_id,
+                    &route_id,
+                    |_candidate| false,
+                    &driver,
+                    &TestRetryGate::default(),
+                    &NoopGatewayEventSink,
+                )
+                .await,
+            "a rejected transform must not reach the driver",
+        )?;
+        assert_eq!(error.code(), GatewayErrorCode::CredentialUnavailable);
+        assert!(driver.attempts()?.is_empty());
+        let pool = pools
+            .pool(&EndpointId::try_new("endpoint-noncanonical")?)
+            .ok_or("missing test pool")?;
+        assert_eq!(
+            pool.active_lease_count(&CredentialId::try_new("credential-noncanonical")?),
+            Some(0),
+        );
         Ok(())
     }
 

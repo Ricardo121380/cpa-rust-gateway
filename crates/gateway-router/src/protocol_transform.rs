@@ -142,6 +142,8 @@ impl ProtocolTransformAdmission {
 /// extension values. They are safe for Route Explain and management-time diagnostics.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProtocolTransformRejection {
+    /// The source/target pair is absent from the reviewed three-protocol registry.
+    PairUnregistered,
     /// A native pass-through was requested between different protocols.
     PassthroughProtocolMismatch,
     /// A native pass-through would need to reconstruct a body from Canonical data.
@@ -184,6 +186,8 @@ pub enum ProtocolTransformRejection {
     ParallelToolsUnsupported,
     /// The Endpoint cannot provide explicit Thinking or Reasoning semantics.
     ReasoningUnsupported,
+    /// The client protocol cannot safely carry Reasoning this Endpoint may return.
+    ResponseReasoningUnsupported,
 }
 
 impl fmt::Display for ProtocolTransformRejection {
@@ -193,6 +197,100 @@ impl fmt::Display for ProtocolTransformRejection {
 }
 
 impl std::error::Error for ProtocolTransformRejection {}
+
+const REGISTERED_PROTOCOL_PAIRS: [(ProtocolFormat, ProtocolFormat); 9] = [
+    (
+        ProtocolFormat::OpenAiChatCompletions,
+        ProtocolFormat::OpenAiChatCompletions,
+    ),
+    (
+        ProtocolFormat::OpenAiChatCompletions,
+        ProtocolFormat::OpenAiResponses,
+    ),
+    (
+        ProtocolFormat::OpenAiChatCompletions,
+        ProtocolFormat::AnthropicMessages,
+    ),
+    (
+        ProtocolFormat::OpenAiResponses,
+        ProtocolFormat::OpenAiChatCompletions,
+    ),
+    (
+        ProtocolFormat::OpenAiResponses,
+        ProtocolFormat::OpenAiResponses,
+    ),
+    (
+        ProtocolFormat::OpenAiResponses,
+        ProtocolFormat::AnthropicMessages,
+    ),
+    (
+        ProtocolFormat::AnthropicMessages,
+        ProtocolFormat::OpenAiChatCompletions,
+    ),
+    (
+        ProtocolFormat::AnthropicMessages,
+        ProtocolFormat::OpenAiResponses,
+    ),
+    (
+        ProtocolFormat::AnthropicMessages,
+        ProtocolFormat::AnthropicMessages,
+    ),
+];
+
+/// Returns whether one source/target pair is explicitly present in the reviewed registry.
+#[must_use]
+pub fn protocol_pair_is_registered(source: ProtocolFormat, target: ProtocolFormat) -> bool {
+    REGISTERED_PROTOCOL_PAIRS.contains(&(source, target))
+}
+
+/// Returns whether a pair, configured transform mode, and response capability can be published.
+///
+/// This is intentionally request-free so protected Route Explain can report topology admission
+/// without receiving prompts, Tools, native bodies, or extensions. Request-local projection still
+/// runs later before any Credential lease.
+#[must_use]
+pub fn protocol_pair_is_publishable(
+    source: ProtocolFormat,
+    target: ProtocolFormat,
+    mode: SnapshotTransformMode,
+    target_capabilities: &CapabilitySet,
+) -> bool {
+    protocol_pair_is_registered(source, target)
+        && match mode {
+            SnapshotTransformMode::Passthrough | SnapshotTransformMode::Canonical => {
+                source == target
+            }
+            SnapshotTransformMode::LosslessBridge => source != target,
+        }
+        && !(source == ProtocolFormat::OpenAiChatCompletions
+            && target_capabilities.supports(SemanticCapability::Reasoning))
+}
+
+/// Projects one request only after pair registration and response-side capability admission.
+///
+/// A Chat client is excluded when the selected Endpoint advertises Reasoning: D2 deliberately has
+/// no private-reasoning-to-visible-Chat degradation, so this proof must happen before a lease or
+/// upstream Attempt rather than after a streamed Reasoning event arrives.
+///
+/// # Errors
+///
+/// Returns a stable value-free rejection for an unregistered pair, an unsafe response capability,
+/// or any request-side rejection from [`project_protocol_request`].
+pub fn project_registered_protocol_request(
+    input: ProtocolTransformInput<'_>,
+) -> Result<ProjectedProtocolRequest, ProtocolTransformRejection> {
+    if !protocol_pair_is_registered(input.source, input.target) {
+        return Err(ProtocolTransformRejection::PairUnregistered);
+    }
+    if input.source == ProtocolFormat::OpenAiChatCompletions
+        && input
+            .target_capabilities
+            .supports(SemanticCapability::Reasoning)
+    {
+        return Err(ProtocolTransformRejection::ResponseReasoningUnsupported);
+    }
+    project_protocol_request(input)
+}
 
 /// Request material prepared for the selected protocol transformation mode.
 ///
@@ -764,7 +862,8 @@ mod tests {
     use super::{
         NativePayloadAvailability, ProjectedProtocolRequest, ProtocolFormat,
         ProtocolTransformAdmission, ProtocolTransformInput, ProtocolTransformRejection,
-        analyze_protocol_transform, project_protocol_request,
+        analyze_protocol_transform, project_protocol_request, project_registered_protocol_request,
+        protocol_pair_is_publishable, protocol_pair_is_registered,
     };
     use crate::SnapshotTransformMode;
 
@@ -881,6 +980,63 @@ mod tests {
             ProtocolFormat::from_api_format("openai/chat_completions"),
             None
         );
+    }
+
+    #[test]
+    fn reviewed_registry_publishes_only_the_nine_pairs_with_their_exact_modes() {
+        let protocols = [
+            ProtocolFormat::OpenAiChatCompletions,
+            ProtocolFormat::OpenAiResponses,
+            ProtocolFormat::AnthropicMessages,
+        ];
+        for source in protocols {
+            for target in protocols {
+                assert!(protocol_pair_is_registered(source, target));
+                for mode in [
+                    SnapshotTransformMode::Passthrough,
+                    SnapshotTransformMode::Canonical,
+                    SnapshotTransformMode::LosslessBridge,
+                ] {
+                    assert_eq!(
+                        protocol_pair_is_publishable(source, target, mode, &CapabilitySet::empty(),),
+                        if source == target {
+                            matches!(
+                                mode,
+                                SnapshotTransformMode::Passthrough
+                                    | SnapshotTransformMode::Canonical
+                            )
+                        } else {
+                            mode == SnapshotTransformMode::LosslessBridge
+                        },
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn chat_response_reasoning_is_rejected_before_request_projection()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let request = request();
+        let reasoning = capabilities([SemanticCapability::Reasoning])?;
+        assert_eq!(
+            project_registered_protocol_request(input(
+                &request,
+                ProtocolFormat::OpenAiChatCompletions,
+                ProtocolFormat::OpenAiChatCompletions,
+                SnapshotTransformMode::Canonical,
+                NativePayloadAvailability::Exact,
+                &reasoning,
+            )),
+            Err(ProtocolTransformRejection::ResponseReasoningUnsupported),
+        );
+        assert!(!protocol_pair_is_publishable(
+            ProtocolFormat::OpenAiChatCompletions,
+            ProtocolFormat::OpenAiChatCompletions,
+            SnapshotTransformMode::Canonical,
+            &reasoning,
+        ));
+        Ok(())
     }
 
     #[test]

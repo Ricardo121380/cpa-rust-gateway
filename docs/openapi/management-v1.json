@@ -253,7 +253,7 @@
       "ClientKeyId": { "name": "client_key_id", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/Id" } },
       "RequestId": { "name": "request_id", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/Id" } },
       "RequestedModel": { "name": "requested_model", "in": "query", "required": true, "schema": { "type": "string", "minLength": 1, "maxLength": 256 } },
-      "RequestProtocol": { "name": "protocol", "in": "query", "required": true, "schema": { "type": "string", "enum": ["openai_responses", "anthropic_messages"] } }
+      "RequestProtocol": { "name": "protocol", "in": "query", "required": true, "schema": { "type": "string", "enum": ["openai_chat_completions", "openai_responses", "anthropic_messages"] } }
     },
     "requestBodies": {
       "ConfigVersionInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConfigVersionInput" } } } },
