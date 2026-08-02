@@ -468,3 +468,18 @@ endpoint/model identity changes the validation subject, no v1 tuple result carri
 must run the fixed twelve tuples from index zero, stop at the first failure, then restore the
 predecessor graph, key boundary, active service and disabled-at-boot state. Incumbent CPA, Caddy,
 Cloudflare, DNS and public traffic remain out of scope.
+
+## CR-P12-08G1-026 — G1 v2 Responses JSON Tool attempt stage
+
+The current Krill v2 graph passed the first six fixed tuples from index zero: all four Chat modes
+and both Responses Text modes. Responses JSON Tool, tuple seven, returned the safe `http_5xx`
+category and stopped the run. The transaction restored the predecessor graph, v2/predecessor key
+boundary, active service and disabled-at-boot state. This also proves the earlier Responses Text
+decoder change against the intended graph.
+
+Reactivate v2 without changing its graph and resume from the retained failed seventh tuple. Send it
+exactly once with no retry. Before rollback, read only the matching process-local management
+Attempt projection and retain bounded attempt count, terminal outcome and closed stage enum. Retain
+no request identifier, endpoint, credential, model, body, status, error text, timestamp or token
+value. Then restore and reverify the same predecessor boundary. Only that proven stage may justify
+the next diagnostic or repair; the six passing tuples must not be resent.
