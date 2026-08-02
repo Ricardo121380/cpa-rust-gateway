@@ -706,6 +706,7 @@ fn chat_finish_reason(reason: Option<&str>, has_tools: bool) -> Result<&'static 
     match reason {
         Some("tool_use" | "tool_calls") => Ok("tool_calls"),
         Some("max_tokens" | "length") => Ok("length"),
+        Some("refusal" | "content_filter") => Ok("content_filter"),
         Some("end_turn" | "stop") | None if !has_tools => Ok("stop"),
         None if has_tools => Ok("tool_calls"),
         _ => Err(stream_error()),
@@ -1031,6 +1032,21 @@ mod tests {
                 .transpose()?,
             Some("data: [DONE]\n\n".to_owned())
         );
+        Ok(())
+    }
+
+    #[test]
+    fn refusal_stop_reason_maps_to_content_filter_without_changing_text()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut events = text_events();
+        events[5]["response_end"]["stop_reason"] = json!("refusal");
+        let canonical = response(events)?;
+        let value = encode_response(
+            &canonical,
+            ChatResponseMetadata::try_new("public-model", 7, true)?,
+        )?;
+        assert_eq!(value["choices"][0]["message"]["content"], "hello");
+        assert_eq!(value["choices"][0]["finish_reason"], "content_filter");
         Ok(())
     }
 

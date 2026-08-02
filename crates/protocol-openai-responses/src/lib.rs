@@ -11,6 +11,8 @@ use std::{
     fmt,
 };
 
+mod upstream_response;
+
 use gateway_core::{
     CanonicalEvent, CanonicalEventState, CanonicalMessage, CanonicalRequest, CanonicalResponse,
     ErrorScope, GatewayError, GatewayErrorCode, MessageContent, MessageRole, OpaqueContent,
@@ -19,6 +21,8 @@ use gateway_core::{
 };
 use serde::{Deserialize, de};
 use serde_json::{Map, Value, json};
+
+pub use upstream_response::{OpenAiResponsesSseDecoder, decode_upstream_response};
 
 /// Stable component identifier used by architecture smoke tests.
 pub const COMPONENT: &str = "protocol-openai-responses";
@@ -663,6 +667,7 @@ pub struct OpenAiResponsesSseEncoder {
     lifecycle: CanonicalEventState,
     response: Option<ResponseState>,
     next_sequence_number: u64,
+    terminal: Option<ResponsesTerminal>,
 }
 
 impl OpenAiResponsesSseEncoder {
@@ -674,6 +679,7 @@ impl OpenAiResponsesSseEncoder {
             lifecycle: CanonicalEventState::default(),
             response: None,
             next_sequence_number: 1,
+            terminal: None,
         }
     }
 
@@ -691,12 +697,14 @@ impl OpenAiResponsesSseEncoder {
 
         let response_before = self.response.clone();
         let sequence_before = self.next_sequence_number;
+        let terminal_before = self.terminal;
         let result = self.encode_valid_event(event);
         let frames = match result {
             Ok(frames) => frames,
             Err(error) => {
                 self.response = response_before;
                 self.next_sequence_number = sequence_before;
+                self.terminal = terminal_before;
                 return Err(error);
             }
         };
@@ -720,7 +728,8 @@ impl OpenAiResponsesSseEncoder {
             ));
         }
         let response = self.response.ok_or_else(internal_error)?;
-        Ok(response.response_value(&self.metadata, "completed"))
+        let terminal = self.terminal.ok_or_else(internal_error)?;
+        Ok(response.response_value(&self.metadata, terminal.status, terminal.incomplete_reason))
     }
 
     fn encode_valid_event(
@@ -745,7 +754,7 @@ impl OpenAiResponsesSseEncoder {
             }
             CanonicalEvent::UsageDelta(delta) => self.encode_usage(&delta.usage),
             CanonicalEvent::MessageEnd(_) => self.encode_message_end(),
-            CanonicalEvent::ResponseEnd(_) => self.encode_response_end(),
+            CanonicalEvent::ResponseEnd(end) => self.encode_response_end(end),
             CanonicalEvent::StreamError(error) => self.encode_stream_error(&error.error),
         }
     }
@@ -755,7 +764,7 @@ impl OpenAiResponsesSseEncoder {
             return Err(stream_protocol_error());
         }
         let response = ResponseState::new(response_id.to_owned());
-        let payload = response.response_value(&self.metadata, "in_progress");
+        let payload = response.response_value(&self.metadata, "in_progress", None);
         self.response = Some(response);
 
         Ok(vec![
@@ -896,12 +905,21 @@ impl OpenAiResponsesSseEncoder {
         Ok(frames)
     }
 
-    fn encode_response_end(&mut self) -> Result<Vec<SseFrame>, GatewayError> {
+    fn encode_response_end(
+        &mut self,
+        end: &gateway_core::ResponseEnd,
+    ) -> Result<Vec<SseFrame>, GatewayError> {
+        let terminal = ResponsesTerminal::try_from_end(end)?;
         let metadata = self.metadata.clone();
-        let payload = self.response_mut()?.response_value(&metadata, "completed");
+        let payload = self.response_mut()?.response_value(
+            &metadata,
+            terminal.status,
+            terminal.incomplete_reason,
+        );
+        self.terminal = Some(terminal);
         Ok(vec![response_frame(
             &mut self.next_sequence_number,
-            "response.completed",
+            terminal.event,
             payload,
         )?])
     }
@@ -929,6 +947,7 @@ impl fmt::Debug for OpenAiResponsesSseEncoder {
             .field("lifecycle", &self.lifecycle)
             .field("response_started", &self.response.is_some())
             .field("next_sequence_number", &self.next_sequence_number)
+            .field("terminal", &self.terminal.is_some())
             .finish()
     }
 }
@@ -942,6 +961,39 @@ struct ResponseState {
     tools: BTreeMap<String, ToolState>,
 }
 
+#[derive(Clone, Copy)]
+struct ResponsesTerminal {
+    event: &'static str,
+    status: &'static str,
+    incomplete_reason: Option<&'static str>,
+}
+
+impl ResponsesTerminal {
+    fn try_from_end(end: &gateway_core::ResponseEnd) -> Result<Self, GatewayError> {
+        if end.stop_sequence.is_some() {
+            return Err(stream_protocol_error());
+        }
+        match end.stop_reason.as_deref() {
+            None | Some("end_turn" | "stop" | "tool_use" | "tool_calls") => Ok(Self {
+                event: "response.completed",
+                status: "completed",
+                incomplete_reason: None,
+            }),
+            Some("max_tokens" | "length") => Ok(Self {
+                event: "response.incomplete",
+                status: "incomplete",
+                incomplete_reason: Some("max_output_tokens"),
+            }),
+            Some("refusal" | "content_filter") => Ok(Self {
+                event: "response.incomplete",
+                status: "incomplete",
+                incomplete_reason: Some("content_filter"),
+            }),
+            _ => Err(stream_protocol_error()),
+        }
+    }
+}
+
 impl ResponseState {
     fn new(response_id: String) -> Self {
         Self {
@@ -953,7 +1005,12 @@ impl ResponseState {
         }
     }
 
-    fn response_value(&self, metadata: &OpenAiResponseMetadata, status: &'static str) -> Value {
+    fn response_value(
+        &self,
+        metadata: &OpenAiResponseMetadata,
+        status: &'static str,
+        incomplete_reason: Option<&'static str>,
+    ) -> Value {
         let mut response = Map::new();
         response.insert("id".to_owned(), Value::String(self.response_id.clone()));
         response.insert("object".to_owned(), Value::String("response".to_owned()));
@@ -967,7 +1024,10 @@ impl ResponseState {
             Value::String(metadata.model().to_owned()),
         );
         response.insert("error".to_owned(), Value::Null);
-        response.insert("incomplete_details".to_owned(), Value::Null);
+        response.insert(
+            "incomplete_details".to_owned(),
+            incomplete_reason.map_or(Value::Null, |reason| json!({"reason": reason})),
+        );
         response.insert(
             "output".to_owned(),
             Value::Array(self.output.iter().map(OutputItem::to_value).collect()),
@@ -981,7 +1041,7 @@ impl ResponseState {
     }
 
     fn failed_value(&self, metadata: &OpenAiResponseMetadata, error: &GatewayError) -> Value {
-        let mut response = match self.response_value(metadata, "failed") {
+        let mut response = match self.response_value(metadata, "failed", None) {
             Value::Object(response) => response,
             _ => Map::new(),
         };
@@ -2093,6 +2153,40 @@ mod tests {
             assert_eq!(encoded["output"][3]["type"], "function_call");
         }
 
+        Ok(())
+    }
+
+    #[test]
+    fn max_token_and_refusal_stops_emit_incomplete_responses() -> TestResult {
+        for (stop_reason, wire_reason) in [
+            ("max_tokens", "max_output_tokens"),
+            ("refusal", "content_filter"),
+        ] {
+            let mut events = canonical_events()?;
+            let Some(CanonicalEvent::ResponseEnd(end)) = events.last_mut() else {
+                return Err(std::io::Error::other("fixture lacks response end").into());
+            };
+            end.stop_reason = Some(stop_reason.to_owned());
+            let response = CanonicalResponse::try_new(events.clone())?;
+            let non_streaming = encode_response(&response, metadata()?)?;
+            assert_eq!(non_streaming["status"], "incomplete");
+            assert_eq!(non_streaming["incomplete_details"]["reason"], wire_reason);
+
+            let mut stream_encoder = OpenAiResponsesSseEncoder::new(metadata()?);
+            let mut frames = Vec::new();
+            for event in &events {
+                frames.extend(stream_encoder.encode_event(event)?);
+            }
+            let terminal = frames
+                .last()
+                .ok_or_else(|| std::io::Error::other("missing terminal frame"))?;
+            assert_eq!(terminal.event(), "response.incomplete");
+            assert_eq!(terminal.data()["response"]["status"], "incomplete");
+            assert_eq!(
+                terminal.data()["response"]["incomplete_details"]["reason"],
+                wire_reason
+            );
+        }
         Ok(())
     }
 

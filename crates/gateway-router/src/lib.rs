@@ -8,6 +8,7 @@
 mod attempt_orchestrator;
 mod credential_scheduler;
 mod protocol_transform;
+mod response_transform;
 mod route_explain;
 mod route_scheduler;
 mod route_snapshot;
@@ -40,6 +41,9 @@ pub use protocol_transform::{
     NativePayloadAvailability, ProjectedProtocolRequest, ProtocolFormat,
     ProtocolTransformAdmission, ProtocolTransformInput, ProtocolTransformRejection,
     analyze_protocol_transform, project_protocol_request,
+};
+pub use response_transform::{
+    ProtocolResponseProjector, ProtocolResponseRejection, project_protocol_response,
 };
 pub use route_explain::{
     RouteExplainCandidate, RouteExplainCandidateReason, RouteExplainCredential,
