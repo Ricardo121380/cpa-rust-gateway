@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.119` |
+| 计划版本 | `v1.120` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -24,6 +24,7 @@
 | 已批准变更（续 7） | `CR-P12-08G1-010`：Chat SSE Text 已通过后，Chat JSON Tool 在零 upstream Attempt 前本地 4xx，而同形 `tool_choice:required` 直连为 2xx；Chat/Responses 仅增加 string required 且必须存在 typed function Tool，未知/对象 choice 与无 Tool required 仍拒绝。 |
 | 已批准变更（续 8） | `CR-P12-08G1-011`：c71351e artifact 将 Chat JSON Tool 从 decoder 4xx 推进为 Router canonical admission 的零 Attempt 5xx；仅准入同协议、目标命名空间且结构严格合法的 Chat/Responses/Messages Tool choice，required/any 必须存在 Tool，跨协议仍因无已审查的无损映射而 fail closed。 |
 | 已批准变更（续 9） | `CR-P12-08G1-012`：f2689b2 artifact 的 Chat JSON Tool 已产生 upstream Attempt，但在 decoder 以 `StreamTruncated` 失败；只允许一次同形非流式 Tool 结构分类，CC Switch 仅只读且不得修改，仅保留封闭 key/type/count/finish/decoder-gate 类别，不保留任何值或正文。 |
+| 已批准变更（续 10） | `CR-P12-08G1-013`：CR-012 将唯一差异收敛到非流式 Tool call 的额外 `index`，但未保留其顺序关系；仅追加一次同形分类，输出 index 是否为唯一无符号整数且严格等于零基数组位置，成立才可将其作为冗余 wire 元数据忽略。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -3537,3 +3538,4 @@ Next task:
 | v1.117 | 2026-08-03 | `CR-P12-08G1-010`：e297fa1 artifact 使 Chat SSE Text 真实通过，随后 Chat JSON Tool 在零 upstream Attempt 前本地 4xx；同形 required Tool 直连 2xx，新增 Chat/Responses required Tool choice 的严格保留与无 Tool 拒绝 | IN_PROGRESS；2/12 tuple PASS，待新 exact-SHA artifact 从 Chat JSON Tool 续跑 |
 | v1.118 | 2026-08-03 | `CR-P12-08G1-011`：c71351e artifact 将 Chat JSON Tool 从 decoder 4xx 推进为 Router canonical admission 的零 Attempt 5xx；严格准入三个目标协议各自同协议 Tool choice，并以 provider builder 测试证明 wire 保留，跨协议继续拒绝 | IN_PROGRESS；2/12 tuple PASS，待新 exact-SHA artifact 从 Chat JSON Tool 续跑 |
 | v1.119 | 2026-08-03 | `CR-P12-08G1-012`：f2689b2 artifact 已使 Chat JSON Tool 进入 upstream Attempt，但 decoder 以 `StreamTruncated` 失败并完整回滚；登记一次只读 CC Switch 凭据、同形且不保留值的非流式 Tool 结构分类 | IN_PROGRESS；2/12 tuple PASS，分类不计为验收 tuple，首个封闭 decoder gate 决定后续修复 |
+| v1.120 | 2026-08-03 | `CR-P12-08G1-013`：CR-012 的 2xx JSON 通过其余 decoder gate，唯一差异为非流式 Tool call 多出 `index`；追加一次只保留 unsigned/unique/zero-based 关系的同形分类 | IN_PROGRESS；2/12 tuple PASS，只有严格零基位置关系成立才进入最小兼容修复 |

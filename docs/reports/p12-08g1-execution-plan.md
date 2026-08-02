@@ -268,3 +268,16 @@ sets; bounded counts; JSON value-type classes; finish-reason class; and the firs
 gate that rejects. It may not retain or print endpoint, credential, model, request/response body,
 IDs, Tool names, arguments, text, token counts or fingerprints. This diagnostic is not a passing G1
 tuple and cannot authorize a compatibility relaxation without a closed structural proof.
+
+## CR-P12-08G1-013 — Tool-call index relation follow-up
+
+The CR-012 classifier returned 2xx JSON and passed every strict non-streaming Chat decoder gate
+until the sole Tool call key set included `index`; all other closed key sets and value-type classes
+were valid and finish was `tool_calls`. The classifier intentionally retained neither the index
+value nor its relation to Tool-call order, so it is insufficient by itself to admit the extension.
+
+One same-shape replacement classifier may send exactly once and retain only Tool-call count,
+whether every index is an unsigned integer, whether indices are unique, and whether they equal the
+zero-based array positions. It keeps the same read-only CC Switch and no-value boundary and cannot
+retain any other response field. Only a unique zero-based relation permits the decoder to ignore
+the redundant wire index in a non-streaming response; any other result remains fail-closed.
