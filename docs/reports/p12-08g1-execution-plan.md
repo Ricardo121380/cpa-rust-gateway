@@ -567,3 +567,18 @@ Then send exactly one final direct Tool classifier request using the unchanged r
 inputs. No value, identifier or fingerprint may be retained. Equality permits a narrow Tool-item
 metadata admission; absence remains accepted, while partial, malformed or unequal pairs must stay
 rejected. This remains diagnostic and sends no G1 tuple.
+
+## CR-P12-08G1-032 — exact-artifact continuation from tuple seven
+
+The narrow decoder change passed its focused positive/negative tests and the Full gate. GitHub
+run `30766164232` built and signed both native targets from exact revision `ba54c68`; the ARM64
+artifact was downloaded, structurally verified and independently verified against its Sigstore
+bundle before the immutable release was installed. The predecessor graph remains active and the
+service remains loopback-only and disabled at boot.
+
+Reactivate the unchanged G1 v2 graph and resume at tuple seven. If tuple seven passes, the same
+fixed harness may continue with tuples eight through twelve, each of which has never been sent for
+v2; no earlier PASS is resent. Stop on the first failure, retain only the value-free receipt and
+closed Attempt stage if needed, and always restore the predecessor graph and key boundary. Passing
+all six remaining tuples completes the current-Krill Codex G1 matrix but does not authorize public
+traffic, Caddy, DNS, CC Switch mutation, old-CPA shutdown, or P12-09.
