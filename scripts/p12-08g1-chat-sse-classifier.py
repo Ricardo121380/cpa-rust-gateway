@@ -107,6 +107,11 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
     delta_refusal_classes: set[str] = set()
     unsupported_usage_detail_nonzero: set[str] = set()
     delta_role_occurrence_count = 0
+    finish_event_count = 0
+    finish_delta_keys: set[str] = set()
+    finish_delta_content_relations: set[str] = set()
+    finish_message_content_relations: set[str] = set()
+    event_sequence: list[dict] = []
 
     def value_class(value) -> str:
         if value is None:
@@ -174,6 +179,14 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
         object_classes.add(object_class)
         object_timing_classes.add(f"{timing}_{object_class}")
         error_event = error_event or "error" in value
+        event_record = {
+            "ordinal": event_count,
+            "timing": timing,
+            "object_class": object_class,
+            "id_relation": relation if isinstance(event_id, str) else "non_string",
+            "usage_class": value_class(value.get("usage")) if "usage" in value else "absent",
+            "choice_count": "zero" if choices == [] else "one" if isinstance(choices, list) and len(choices) == 1 else "other",
+        }
         if isinstance(choices, list):
             choice_count_classes.add("zero" if not choices else "one" if len(choices) == 1 else "many")
         usage = value.get("usage")
@@ -215,8 +228,10 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
                                      value_class(index))
             if "logprobs" in choice:
                 logprobs_classes.add(value_class(choice.get("logprobs")))
+            content_before_delta = accumulated_content
             delta = choice.get("delta")
             if isinstance(delta, dict):
+                event_record["delta_keys"] = sorted(str(key) for key in delta)
                 delta_keys.update(str(key) for key in delta)
                 if "role" in delta:
                     delta_role_occurrence_count += 1
@@ -224,13 +239,16 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
                     role_class = "assistant" if role == "assistant" else value_class(role)
                     delta_role_classes.add(role_class)
                     delta_role_timing_classes.add(f"{'finish' if choice.get('finish_reason') is not None else 'nonfinish'}_{role_class}")
+                    event_record["delta_role_class"] = role_class
                 content = delta.get("content")
                 if "content" in delta:
                     delta_content_classes.add(value_class(content))
+                    event_record["delta_content_class"] = value_class(content)
                 if isinstance(content, str):
                     accumulated_content += content
                 if "reasoning_content" in delta:
                     reasoning_content_classes.add(value_class(delta.get("reasoning_content")))
+                    event_record["reasoning_content_class"] = value_class(delta.get("reasoning_content"))
                 if "tool_calls" in delta:
                     delta_tool_calls_classes.add(value_class(delta.get("tool_calls")))
                 if "refusal" in delta:
@@ -244,9 +262,31 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
                 finish_classes.add("other_string")
             else:
                 finish_classes.add("other_type")
+            if reason is not None:
+                finish_event_count += 1
+                if isinstance(delta, dict):
+                    finish_delta_keys.update(str(key) for key in delta)
+                    content = delta.get("content")
+                    if "content" not in delta:
+                        finish_delta_content_relations.add("absent")
+                    elif content is None:
+                        finish_delta_content_relations.add("null")
+                    elif content == "":
+                        finish_delta_content_relations.add("empty")
+                    elif isinstance(content, str) and content == content_before_delta:
+                        finish_delta_content_relations.add("equals_prior_full")
+                    elif isinstance(content, str) and content_before_delta.endswith(content):
+                        finish_delta_content_relations.add("equals_prior_suffix")
+                    elif isinstance(content, str) and content.endswith(content_before_delta):
+                        finish_delta_content_relations.add("contains_prior_prefix")
+                    elif isinstance(content, str):
+                        finish_delta_content_relations.add("other_string")
+                    else:
+                        finish_delta_content_relations.add("other_type")
             if isinstance(usage, dict):
                 usage_timing_classes.add("finish" if reason is not None else "nonfinish")
             if "message" in choice:
+                event_record["message_class"] = value_class(choice.get("message"))
                 message_on_finish_only.add(reason is not None)
                 message = choice.get("message")
                 choice_message_classes.add(value_class(message))
@@ -262,6 +302,14 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
                         message_content_classes.add(value_class(content))
                         if isinstance(content, str):
                             message_content_equals_delta.add(content == accumulated_content)
+                            before = content == content_before_delta
+                            after = content == accumulated_content
+                            finish_message_content_relations.add(
+                                "equals_before_and_after" if before and after else
+                                "equals_before" if before else
+                                "equals_after" if after else
+                                "other"
+                            )
                     if "tool_calls" in message:
                         message_tool_calls_classes.add(value_class(message.get("tool_calls")))
                     if "reasoning_content" in message:
@@ -270,6 +318,7 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
                         )
                     if "refusal" in message:
                         message_refusal_classes.add(value_class(message.get("refusal")))
+        event_sequence.append(event_record)
     compatible = done and bool({"stop", "length", "tool_calls"} & finish_classes) and not error_event
     return {
         "event_count": event_count,
@@ -311,6 +360,11 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
         "delta_refusal_classes": sorted(delta_refusal_classes),
         "unsupported_usage_detail_nonzero": sorted(unsupported_usage_detail_nonzero),
         "delta_role_occurrence_count": delta_role_occurrence_count,
+        "finish_event_count": finish_event_count,
+        "finish_delta_keys": sorted(finish_delta_keys),
+        "finish_delta_content_relations": sorted(finish_delta_content_relations),
+        "finish_message_content_relations": sorted(finish_message_content_relations),
+        "event_sequence": event_sequence,
         "root_keys": sorted(root_keys),
         "choice_keys": sorted(choice_keys),
         "delta_keys": sorted(delta_keys),

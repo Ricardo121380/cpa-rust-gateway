@@ -18,6 +18,8 @@ response body, source hash of Secret material, or token fingerprint.
   `30756738441`), `e45f1a1c91acd725ed07dacd7079b77071785c93` (run `30757155860`) and
   `6c011cb2e761eefac5ab5bf00da0a1a81abf3d2b` (run `30757648684`). Every dual-architecture
   job, OCI smoke and independent Sigstore verification passed before its bounded loopback install.
+- The terminal-delta correction was revision `85f0d2a90575110c44bf217bd0187190e754e94f`, run
+  `30758498095`; both signed targets passed, but the replacement tuple still failed and rolled back.
 - Any later compatibility successor must be a new exact revision and private dual-architecture run;
   its SHA/run are recorded before activation, and only its independently verified
   `aarch64-unknown-linux-gnu` artifact may replace the disabled-at-boot CPAR binary.
@@ -199,3 +201,19 @@ not a second TextDelta. Any partial, suffix-only, mismatched, empty-state, Tool-
 typed terminal delta follows the ordinary decoder and therefore still fails if it contradicts the
 summary. The diagnostic retained no endpoint, key, model, request/response body, ID, text or token
 value; the next exact-SHA artifact again replaces only Chat SSE Text.
+
+## CR-P12-08G1-009 — delta-free terminal summary
+
+The CR-008 artifact still stopped on the replacement Chat SSE Text tuple and completed the same
+rollback, key and service-state checks. The earlier decoder frame number was then correlated with a
+new value-free per-event sequence rather than assumed to be a delta-bearing terminal frame. It
+proved two ordinary non-final chunks followed by one `chat.completion` terminal summary containing
+Message, finish and Usage but no `delta` key at all. The production decoder failed because it
+required `delta` before applying the already strict terminal-summary checks.
+
+Only a terminal `chat.completion` summary may omit `delta`. It must still follow a started stream,
+contain exactly one zero-index choice, a legal finish, a closed-field Message that exactly equals
+the accumulated text/Tools, valid Usage when present, and the final `[DONE]`. Ordinary chunks must
+retain an object delta, and an explicit null or wrong-type delta remains rejected even on the
+summary. The exact event-sequence receipt stores only ordinal, field names, value classes and
+identity relations; it contains no response values or Secret material.

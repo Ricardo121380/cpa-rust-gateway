@@ -32,6 +32,9 @@ class ClassifierTest(unittest.TestCase):
         ))
         self.assertTrue(result["strict_decoder_compatible"])
         self.assertNotIn("private", json.dumps(result))
+        self.assertEqual([event["ordinal"] for event in result["event_sequence"]], [1, 2, 3])
+        self.assertEqual(result["event_sequence"][0]["delta_content_class"], "nonempty_string")
+        self.assertNotIn("private", json.dumps(result["event_sequence"]))
         self.assertEqual(result["choice_message_classes"], [])
         self.assertEqual(result["reasoning_content_classes"], [])
         self.assertTrue(result["response_id_consistent"])
@@ -43,6 +46,8 @@ class ClassifierTest(unittest.TestCase):
         self.assertEqual(result["sse_field_names"], ["data"])
         self.assertEqual(result["sse_non_data_field_names"], [])
         self.assertEqual(result["sse_comment_line_count"], 0)
+        self.assertEqual(result["finish_event_count"], 1)
+        self.assertEqual(result["finish_delta_content_relations"], ["absent"])
         self.assertEqual(
             result["id_relation_classes"],
             ["finish_same", "nonfinish_first", "nonfinish_same"],
@@ -104,6 +109,23 @@ class ClassifierTest(unittest.TestCase):
         self.assertEqual(result["usage_with_choices_count"], 1)
         self.assertEqual(result["usage_total_consistent"], [False])
         self.assertEqual(result["usage_timing_classes"], ["finish"])
+        self.assertEqual(result["finish_message_content_relations"], ["equals_before_and_after"])
+
+    def test_terminal_delta_relations_retain_no_text(self):
+        result = MODULE.classify_stream(wire(
+            {"id": "private", "object": "chat.completion.chunk", "choices": [{
+                "index": 0, "delta": {"content": "private"}, "finish_reason": None,
+            }]},
+            {"id": "private-final", "object": "chat.completion", "choices": [{
+                "index": 0, "delta": {"content": "private"},
+                "message": {"role": "assistant", "content": "private"},
+                "finish_reason": "stop",
+            }]},
+            "[DONE]",
+        ))
+        self.assertEqual(result["finish_delta_content_relations"], ["equals_prior_full"])
+        self.assertEqual(result["finish_message_content_relations"], ["equals_before"])
+        self.assertNotIn("private", json.dumps(result))
 
 
 if __name__ == "__main__":

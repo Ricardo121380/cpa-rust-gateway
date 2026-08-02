@@ -375,12 +375,7 @@ impl OpenAiChatSseDecoder {
         if choice.get("index").and_then(Value::as_u64) != Some(0) {
             return Err(protocol_error());
         }
-        let delta = object(required(choice, "delta")?)?;
-        let redundant_final_text = final_summary
-            && choice
-                .get("message")
-                .is_some_and(|message| self.is_redundant_final_text_delta(delta, message));
-        self.decode_delta(delta, redundant_final_text)?;
+        self.decode_choice_delta(choice, final_summary)?;
         let finish_reason = (!choice.get("finish_reason").is_none_or(Value::is_null))
             .then(|| decode_finish_reason(choice).map(str::to_owned))
             .transpose()?;
@@ -398,6 +393,26 @@ impl OpenAiChatSseDecoder {
         }
         if let Some(usage) = root.get("usage").filter(|value| !value.is_null()) {
             self.emit_final_usage(usage)?;
+        }
+        Ok(())
+    }
+
+    fn decode_choice_delta(
+        &mut self,
+        choice: &Map<String, Value>,
+        final_summary: bool,
+    ) -> Result<(), GatewayError> {
+        match choice.get("delta") {
+            Some(delta) => {
+                let delta = object(delta)?;
+                let redundant_final_text = final_summary
+                    && choice
+                        .get("message")
+                        .is_some_and(|message| self.is_redundant_final_text_delta(delta, message));
+                self.decode_delta(delta, redundant_final_text)?;
+            }
+            None if final_summary => {}
+            None => return Err(protocol_error()),
         }
         Ok(())
     }
@@ -976,6 +991,26 @@ mod tests {
         let mut decoder = OpenAiChatSseDecoder::new();
         decoder.push(b"data: {\"id\":\"x\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"hello\"},\"finish_reason\":null}]}\n\n")?;
         assert!(decoder.push(b"data: {\"id\":\"summary\",\"object\":\"chat.completion\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"other\"},\"message\":{\"role\":\"assistant\",\"content\":\"hello\"},\"finish_reason\":\"stop\"}]}\n\n").is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn streaming_accepts_only_a_final_summary_without_delta()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let wire = concat!(
+            "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"hello\"},\"finish_reason\":null}]}\n\n",
+            "data: {\"id\":\"chat-final\",\"object\":\"chat.completion\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"hello\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
+            "data: [DONE]\n\n"
+        );
+        let mut decoder = OpenAiChatSseDecoder::new();
+        decoder.push(wire.as_bytes())?;
+        decoder.finish()?;
+        assert!(decoder.is_finished());
+
+        let mut decoder = OpenAiChatSseDecoder::new();
+        assert!(decoder.push(b"data: {\"id\":\"x\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"finish_reason\":null}]}\n\n").is_err());
+        let mut decoder = OpenAiChatSseDecoder::new();
+        assert!(decoder.push(b"data: {\"id\":\"x\",\"object\":\"chat.completion\",\"choices\":[{\"index\":0,\"delta\":null,\"message\":{\"role\":\"assistant\",\"content\":\"x\"},\"finish_reason\":\"stop\"}]}\n\n").is_err());
         Ok(())
     }
 
