@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "value_free": true,
+  "request_count": 1,
+  "retry_count": 0,
+  "status_class": "2xx",
+  "frequency_penalty_finite_zero": true,
+  "presence_penalty_finite_zero": true,
+  "prompt_cache_retention_known": true,
+  "tool_usage_all_numeric_leaves_zero": true,
+  "message_turn_ids_equal_and_valid": true,
+  "completed_at_not_before_created_at": true,
+  "cache_write_tokens_zero": true,
+  "cc_switch_access": "read_only",
+  "cc_switch_modified": false
+}

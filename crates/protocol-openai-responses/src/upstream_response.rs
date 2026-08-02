@@ -42,6 +42,7 @@ pub fn decode_upstream_response(input: &str) -> Result<Vec<CanonicalEvent>, Gate
     let value: Value = serde_json::from_str(input).map_err(|_| protocol_error())?;
     let root = object(&value)?;
     require_only_keys(root, RESPONSE_FIELDS)?;
+    validate_proven_response_metadata(root)?;
     if root.get("object").and_then(Value::as_str) != Some("response")
         || root.get("error").is_some_and(|value| !value.is_null())
     {
@@ -99,8 +100,10 @@ pub fn decode_upstream_response(input: &str) -> Result<Vec<CanonicalEvent>, Gate
 
 const RESPONSE_FIELDS: &[&str] = &[
     "background",
+    "completed_at",
     "created_at",
     "error",
+    "frequency_penalty",
     "id",
     "incomplete_details",
     "instructions",
@@ -108,11 +111,14 @@ const RESPONSE_FIELDS: &[&str] = &[
     "max_tool_calls",
     "metadata",
     "model",
+    "moderation",
     "object",
     "output",
     "parallel_tool_calls",
+    "presence_penalty",
     "previous_response_id",
     "prompt_cache_key",
+    "prompt_cache_retention",
     "reasoning",
     "safety_identifier",
     "service_tier",
@@ -121,6 +127,7 @@ const RESPONSE_FIELDS: &[&str] = &[
     "temperature",
     "text",
     "tool_choice",
+    "tool_usage",
     "tools",
     "top_logprobs",
     "top_p",
@@ -166,13 +173,26 @@ impl CompletedState {
         item: &Map<String, Value>,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
-        require_only_keys(item, &["content", "id", "role", "status", "type"])?;
+        require_only_keys(
+            item,
+            &[
+                "content",
+                "id",
+                "internal_chat_message_metadata_passthrough",
+                "metadata",
+                "phase",
+                "role",
+                "status",
+                "type",
+            ],
+        )?;
         let _ = identifier(item, "id")?;
         if item.get("role").and_then(Value::as_str) != Some("assistant")
             || !completed_or_absent(item.get("status"))
         {
             return Err(protocol_error());
         }
+        validate_proven_message_metadata(item)?;
         let content = item
             .get("content")
             .and_then(Value::as_array)
@@ -913,7 +933,7 @@ fn decode_usage(value: Option<&Value>) -> Result<Option<Usage>, GatewayError> {
     {
         return Err(protocol_error());
     }
-    let cached_tokens = nested_optional_u64(value, "input_tokens_details", "cached_tokens")?;
+    let cached_tokens = decode_input_token_details(value)?;
     let reasoning_tokens = nested_optional_u64(value, "output_tokens_details", "reasoning_tokens")?;
     Ok(Some(Usage {
         input_tokens: input,
@@ -922,6 +942,125 @@ fn decode_usage(value: Option<&Value>) -> Result<Option<Usage>, GatewayError> {
         reasoning_tokens,
         ..Usage::default()
     }))
+}
+
+fn decode_input_token_details(value: &Map<String, Value>) -> Result<Option<u64>, GatewayError> {
+    let Some(details) = value.get("input_tokens_details") else {
+        return Ok(None);
+    };
+    if details.is_null() {
+        return Ok(None);
+    }
+    let details = object(details)?;
+    require_only_keys(details, &["cached_tokens", "cache_write_tokens"])?;
+    if details
+        .get("cache_write_tokens")
+        .is_some_and(|value| value.as_u64() != Some(0))
+    {
+        return Err(protocol_error());
+    }
+    optional_u64(details, "cached_tokens")
+}
+
+fn validate_proven_response_metadata(root: &Map<String, Value>) -> Result<(), GatewayError> {
+    if let Some(completed_at) = root.get("completed_at") {
+        let completed_at = completed_at.as_u64().ok_or_else(protocol_error)?;
+        let created_at = root
+            .get("created_at")
+            .and_then(Value::as_u64)
+            .ok_or_else(protocol_error)?;
+        if completed_at < created_at {
+            return Err(protocol_error());
+        }
+    }
+    for field in ["frequency_penalty", "presence_penalty"] {
+        if root
+            .get(field)
+            .is_some_and(|value| value.as_f64() != Some(0.0))
+        {
+            return Err(protocol_error());
+        }
+    }
+    if root.get("moderation").is_some_and(|value| !value.is_null()) {
+        return Err(protocol_error());
+    }
+    if root
+        .get("prompt_cache_retention")
+        .is_some_and(|value| !matches!(value.as_str(), Some("in-memory" | "24h")))
+    {
+        return Err(protocol_error());
+    }
+    if let Some(tool_usage) = root.get("tool_usage") {
+        validate_zero_tool_usage(object(tool_usage)?)?;
+    }
+    Ok(())
+}
+
+fn validate_zero_tool_usage(tool_usage: &Map<String, Value>) -> Result<(), GatewayError> {
+    require_only_keys(tool_usage, &["image_gen", "web_search"])?;
+    if tool_usage.len() != 2 {
+        return Err(protocol_error());
+    }
+    let web_search = object(required(tool_usage, "web_search")?)?;
+    require_only_keys(web_search, &["num_requests"])?;
+    if web_search.len() != 1 || optional_u64(web_search, "num_requests")? != Some(0) {
+        return Err(protocol_error());
+    }
+    let image_gen = object(required(tool_usage, "image_gen")?)?;
+    require_only_keys(
+        image_gen,
+        &[
+            "input_tokens",
+            "input_tokens_details",
+            "output_tokens",
+            "output_tokens_details",
+            "total_tokens",
+        ],
+    )?;
+    if image_gen.len() != 5
+        || ["input_tokens", "output_tokens", "total_tokens"]
+            .iter()
+            .any(|field| optional_u64(image_gen, field).ok() != Some(Some(0)))
+    {
+        return Err(protocol_error());
+    }
+    for field in ["input_tokens_details", "output_tokens_details"] {
+        let details = object(required(image_gen, field)?)?;
+        require_only_keys(details, &["image_tokens", "text_tokens"])?;
+        if details.len() != 2
+            || ["image_tokens", "text_tokens"]
+                .iter()
+                .any(|name| optional_u64(details, name).ok() != Some(Some(0)))
+        {
+            return Err(protocol_error());
+        }
+    }
+    Ok(())
+}
+
+fn validate_proven_message_metadata(item: &Map<String, Value>) -> Result<(), GatewayError> {
+    let metadata_present = item.contains_key("metadata")
+        || item.contains_key("internal_chat_message_metadata_passthrough")
+        || item.contains_key("phase");
+    if !metadata_present {
+        return Ok(());
+    }
+    if item.get("phase").and_then(Value::as_str) != Some("final_answer") {
+        return Err(protocol_error());
+    }
+    let public = object(required(item, "metadata")?)?;
+    let internal = object(required(
+        item,
+        "internal_chat_message_metadata_passthrough",
+    )?)?;
+    require_only_keys(public, &["turn_id"])?;
+    require_only_keys(internal, &["turn_id"])?;
+    let public_turn = identifier(public, "turn_id")?;
+    let internal_turn = identifier(internal, "turn_id")?;
+    if public.len() != 1 || internal.len() != 1 || public_turn != internal_turn {
+        return Err(protocol_error());
+    }
+    Ok(())
 }
 
 fn initial_usage(usage: &Usage) -> Usage {
@@ -1022,6 +1161,10 @@ fn string_value(value: &Value, field: &str) -> Result<String, GatewayError> {
 
 fn object(value: &Value) -> Result<&Map<String, Value>, GatewayError> {
     value.as_object().ok_or_else(protocol_error)
+}
+
+fn required<'a>(value: &'a Map<String, Value>, field: &str) -> Result<&'a Value, GatewayError> {
+    value.get(field).ok_or_else(protocol_error)
 }
 
 fn require_only_keys(value: &Map<String, Value>, allowed: &[&str]) -> Result<(), GatewayError> {
@@ -1129,6 +1272,87 @@ mod tests {
         let buffered = decode_upstream_response(JSON)?;
         let streamed = decode_sse(&[1])?;
         assert_eq!(digest(&buffered), digest(&streamed));
+        Ok(())
+    }
+
+    #[test]
+    fn buffered_response_accepts_only_proven_zero_and_redundant_metadata()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let base = serde_json::json!({
+            "id": "response-id",
+            "object": "response",
+            "status": "completed",
+            "created_at": 10,
+            "completed_at": 11,
+            "error": null,
+            "frequency_penalty": 0.0,
+            "presence_penalty": 0.0,
+            "moderation": null,
+            "prompt_cache_retention": "in-memory",
+            "tool_usage": {
+                "image_gen": {
+                    "input_tokens": 0,
+                    "input_tokens_details": {"image_tokens": 0, "text_tokens": 0},
+                    "output_tokens": 0,
+                    "output_tokens_details": {"image_tokens": 0, "text_tokens": 0},
+                    "total_tokens": 0
+                },
+                "web_search": {"num_requests": 0}
+            },
+            "output": [{
+                "id": "message-id",
+                "type": "message",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "final_answer",
+                "metadata": {"turn_id": "turn-id"},
+                "internal_chat_message_metadata_passthrough": {"turn_id": "turn-id"},
+                "content": [{
+                    "type": "output_text",
+                    "text": "ok",
+                    "annotations": [],
+                    "logprobs": []
+                }]
+            }],
+            "usage": {
+                "input_tokens": 1,
+                "input_tokens_details": {"cached_tokens": 0, "cache_write_tokens": 0},
+                "output_tokens": 1,
+                "output_tokens_details": {"reasoning_tokens": 0},
+                "total_tokens": 2
+            }
+        });
+        assert!(decode_upstream_response(&base.to_string()).is_ok());
+
+        for (pointer, replacement) in [
+            ("/frequency_penalty", serde_json::json!(0.5)),
+            ("/presence_penalty", serde_json::json!(-0.5)),
+            ("/moderation", serde_json::json!({})),
+            ("/prompt_cache_retention", serde_json::json!("unknown")),
+            ("/tool_usage/web_search/num_requests", serde_json::json!(1)),
+            ("/tool_usage/image_gen/input_tokens", serde_json::json!(1)),
+            ("/output/0/phase", serde_json::json!("analysis")),
+            (
+                "/output/0/internal_chat_message_metadata_passthrough/turn_id",
+                serde_json::json!("different"),
+            ),
+            (
+                "/usage/input_tokens_details/cache_write_tokens",
+                serde_json::json!(1),
+            ),
+        ] {
+            let mut changed = base.clone();
+            *changed
+                .pointer_mut(pointer)
+                .ok_or_else(|| std::io::Error::other("test pointer missing"))? = replacement;
+            assert!(decode_upstream_response(&changed.to_string()).is_err());
+        }
+
+        let mut reversed_time = base;
+        *reversed_time
+            .pointer_mut("/completed_at")
+            .ok_or_else(|| std::io::Error::other("test pointer missing"))? = serde_json::json!(9);
+        assert!(decode_upstream_response(&reversed_time.to_string()).is_err());
         Ok(())
     }
 

@@ -393,3 +393,17 @@ classes and whether all Tool-usage numeric leaves are zero; and whether both sin
 metadata objects hold the same independently valid bounded identifier. No identifier or scalar
 value is retained. Nonzero Tool usage, unknown cache retention, unequal/invalid turn metadata,
 nonzero penalties, or an unexpected nested shape remains fail closed.
+
+## CR-P12-08G1-021 — bounded Responses metadata admission
+
+CR-020 proved both penalties are finite zero, cache retention is a supported fixed category, every
+numeric Tool-usage leaf is zero, and the two single-key turn metadata objects contain the same
+valid bounded identifier. The already observed cache-write count is also zero. These fields add no
+Canonical text, Tool lifecycle, stop reason or nonzero Usage semantics in this tuple.
+
+The buffered Responses decoder may admit only the exact proven shapes: ordered completion time,
+zero penalties, null moderation, known cache retention, the closed all-zero image/search Usage
+tree, `final_answer`, matching one-key turn metadata, and zero cache-write tokens. Each field stays
+optional for standard fixtures. Any nonzero count/penalty/cache-write value, unknown retention,
+unknown nested key, invalid or unequal turn identity, non-null moderation or reversed completion
+time remains a protocol error. No SSE or request decoder behavior changes.
