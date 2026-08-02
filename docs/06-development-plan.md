@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.91` |
+| 计划版本 | `v1.92` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-08 直接替代准入 `IN_PROGRESS`。用户已澄清最终拓扑只保留 CPAR，不采用按 Key 或百分比分流。当前先修订切换配置、客户端 Key 迁移与回滚边界；生产主机名尚未切换。Grok/Kiro 仍延期且禁用。 |
+| 当前任务 | P12-08 直接替代准入 `IN_PROGRESS`。无值客户端清点确认旧 CPA 有 3 个历史 key 身份，最近 1 小时无推理流量；本机可发现 OpenClaw CPA Provider 与一条 CC Switch Claude CPA 记录。当前 CPAR 仍是单模型 differential 图；历史 Chat 客户端须明确退休/迁移或另行补兼容，才能进入 P12-09。生产主机名尚未切换。Grok/Kiro 仍延期且禁用。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1719,7 +1719,7 @@ CR-ID: CR-P11-04-001
 | P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | [CR-015 Tool/Explain 回执](reports/evidence/p12-05-cr-015-tool-explain-receipt-20260726.md)：一次新的无外部效应 Tool tuple 为 `2xx`/`valid`，唯一 protected attempt 为 `succeeded/decoder`，Explain 选中唯一 Candidate 且无新增 upstream attempt；完整回滚与独立 post-review 均通过 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | [OpenAI-compatible live differential](reports/p12-06-openai-differential.md)：临时 Krill 原生 `codex-api-key` 参考臂与新网关 candidate 均通过 10/10 SSE、非流式、Tool、Canonical/Usage 不变量与性能取证；修正过严的可选 Usage 明细比较后，无网络离线 review 为 9/9 PASS，完整回滚通过。Grok/Kiro 切片仍延期 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | [暴露前验证回执](reports/p12-07-exposure-receipt.md)：新主机上从零完成产物验签、账户/目录/五凭据、unit 安装与启动（active、disabled-at-boot）；`cpar` 灰云 A 记录 + Let's Encrypt 证书；七项 fail-closed 暴露断言全通过（未认证与错误 key 均 401、管理面四路径均 404、公网直连 18180/18181 均不可达）；Caddy 变更前备份 preimage 并以 validate/adapt 证明其余五站点未变，reload 后 incumbent 仍正常。未录入任何真实上游凭据，`valid_key_accepted` 为 SKIP；该域名无限流（Caddy 标准版无模块）已记为缺口 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-08 | 完成 CPAR 全量替代准入、客户端 Key 迁移清单与生产切换准备 | P12-06,P12-07 | [`P12-08 readiness`](reports/p12-08-canary-readiness.md)：撤销错误的 CPA 双接受阻塞；交付全量 cutover/rollback 配置、CPAR Key 交付与客户端回退清单 | IN_PROGRESS |
+| P12-08 | 完成 CPAR 全量替代准入、客户端 Key 迁移清单与生产切换准备 | P12-06,P12-07 | [`P12-08 readiness`](reports/p12-08-canary-readiness.md) 与 [`client migration inventory`](reports/p12-08-client-migration-inventory.md)：撤销错误的 CPA 双接受阻塞；3 个历史 key 身份、可发现本机客户端、生产图与 Chat 兼容缺口均已无值登记 | IN_PROGRESS |
 | P12-09 | 将生产主机名全量切到 CPAR，实际执行一次全量回滚并再次恢复 | P12-08 | Caddy 全量切换、回滚 RTO、客户端认证与一致性报告 | PENDING |
 | P12-10 | CPAR 全量运行 72h，关闭旧 CPA，发布 Tag 和运维手册 | P12-09 | G12 报告；旧 CPA service/container 已关闭且不再承载生产流量 | PENDING |
 
@@ -3394,3 +3394,4 @@ Next task:
 | v1.89 | 2026-08-02 | `CR-P12-08-002`：用户批准开始 P12-08；先执行生产 Canary 准入只读检查，只有 active 图、独立 `rgw_` Client Key、凭据、Caddy rollback preimage 与观测链路齐备后才允许首个 10% 双接受/分流，不自动推进后续阶段 | P12-08 `IN_PROGRESS`；生产流量尚未切换 |
 | v1.90 | 2026-08-02 | P12-08 准入最小双接受事务：新网关 key 本地 200、incumbent CPA 401；已恢复 CPA 配置 preimage 并确认服务 active，未 reload Caddy 或切生产流量 | P12-08 `BLOCKED`；待确定 CPA 支持的 key 注册路径/格式后再开新 CR |
 | v1.91 | 2026-08-02 | `CR-P12-ROLLOUT-002`：用户纠正最终拓扑为 CPAR 全量替代 CPA；撤销百分比/按 Key 分流及 CPA 双接受前置，改为客户端 Key 迁移清单、全量 cutover、一次全量回滚/恢复、72h 全量观察后关闭旧 CPA | APPROVED；P12-08 恢复 `IN_PROGRESS`，生产尚未切换 |
+| v1.92 | 2026-08-02 | P12-08 无值客户端清点：旧 CPA 三个历史 key 身份；近 1h 无推理流量；本机发现 OpenClaw CPA Provider 与 CC Switch Claude CPA 记录；当前 CPAR 仍为单模型 differential 图，历史 Chat 兼容须显式处置 | P12-08 `IN_PROGRESS`；未改任何客户端或生产路由 |
