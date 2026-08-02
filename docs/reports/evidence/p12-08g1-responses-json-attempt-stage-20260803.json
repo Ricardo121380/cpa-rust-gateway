@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "value_free": true,
+  "request_count": 1,
+  "retry_count": 0,
+  "public_result": "http_5xx",
+  "attempt_count": 1,
+  "attempt_outcome": "failed",
+  "attempt_stage": "decoder",
+  "explain_result": "all_routes_single_selected",
+  "g1_key_after_rollback": 401,
+  "predecessor_key_after_rollback": 200,
+  "service_active_after_rollback": true,
+  "service_enabled_after_rollback": false
+}

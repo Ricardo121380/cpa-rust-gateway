@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.124` |
+| 计划版本 | `v1.125` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -29,6 +29,7 @@
 | 已批准变更（续 12） | `CR-P12-08G1-015`：CR-014 发现六个 Tool delta 均重复完整 identity/name 键，但未保留值类别和与首次声明的关系；仅追加一次同形分类，只有 absent/null/empty 或与首次声明完全相等的重复元数据才允许幂等忽略，冲突值继续拒绝。 |
 | 已批准变更（续 13） | `CR-P12-08G1-016`：CR-015 证明 continuation metadata 全为空，summary 的 type/name/arguments 与流完全相等但 call ID 被重建；仅终端冗余 summary 可在位置及完整 Tool 语义相等且新 ID 自身合法时保留首次流式 ID，普通非空冲突仍拒绝。 |
 | 已批准变更（续 14） | `CR-P12-08G1-017`：4d16c3a artifact 使 Chat SSE Tool PASS 后，Responses JSON Text 在一个受控 5xx 处停止；仅允许一次精确同形单发送，在服务重启前通过受保护 loopback 管理面读取该请求的有界 attempt outcome/stage，不保留请求或响应值。 |
+| 已批准变更（续 15） | `CR-P12-08G1-018`：CR-017 复现唯一 failed/decoder Attempt；仅允许一次同形直连 Responses JSON Text 结构分类，CC Switch Krill 配置只读且不得修改，只保留封闭 root/output/content/usage key/type/count/status 类别及 decoder gate 布尔值。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -3547,3 +3548,4 @@ Next task:
 | v1.122 | 2026-08-03 | `CR-P12-08G1-015`：CR-014 证明六个 Tool delta 重复完整 identity/name 键且参数累计等于 summary，但未证明重复值是否空或相等；登记一次只保留值类别与首次声明相等关系的最终分类 | IN_PROGRESS；3/12 tuple PASS，仅封闭幂等关系可进入修复 |
 | v1.123 | 2026-08-03 | `CR-P12-08G1-016`：CR-015 证明 continuation identity/name/type 全为空；终端 summary 的位置、type、name、arguments 与流相等但 call ID 重建，仅在该冗余终端闭合关系中保留首次流式 ID | IN_PROGRESS；3/12 tuple PASS，定向测试与 Full gate 后从 Chat SSE Tool 续跑 |
 | v1.124 | 2026-08-03 | `CR-P12-08G1-017`：4d16c3a exact-SHA artifact 使 Chat SSE Tool PASS，随后 Responses JSON Text 以安全 `http_5xx` 停止并完整回滚；登记一次同形单发送及同进程 attempt-stage 读取 | IN_PROGRESS；4/12 tuple PASS，不重发 Chat 四项，先定位 Responses 首个失败边界 |
+| v1.125 | 2026-08-03 | `CR-P12-08G1-018`：同形 Responses JSON Text 诊断复现 `http_5xx`，唯一 Attempt 为 `failed/decoder` 且完整回滚；登记一次只读 CC Switch、无值的直连成功响应结构分类 | IN_PROGRESS；4/12 tuple PASS，仅首个已证明 decoder 差异可进入修复 |

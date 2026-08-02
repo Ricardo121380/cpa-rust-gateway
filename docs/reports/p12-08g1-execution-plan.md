@@ -342,9 +342,25 @@ stopped, and restored the predecessor graph with both key boundaries and service
 One exact same-shape, single-send/no-retry Responses JSON Text classifier may reuse the production
 request builder and full tuple observer. Before any service restart it may read only the matching
 request's protected loopback `GET /admin/requests/{request_id}/attempts` projection and retain the
-bounded attempt count, terminal outcome, retry class and closed stage enum. It must retain no
+bounded attempt count, terminal outcome and closed stage enum. It must retain no
 endpoint, credential, model, URL, header, body, status number, error text, response value, token,
 timestamp, identifier or fingerprint. The graph must then be rolled back and the G1/predecessor
 key boundary plus active/disabled-at-boot service state reverified. A successful diagnostic does not
 authorize resending any passed tuple; a repeated failure may justify only the smallest repair at
 the proven stage.
+
+## CR-P12-08G1-018 — Responses JSON Text structure classifier
+
+CR-017 reproduced the same safe 5xx and the protected same-process projection contained exactly
+one failed Attempt at the `decoder` stage. Transport, HTTP status, content type and bounded body
+read therefore completed; no source change is justified until the successful upstream JSON shape
+is compared with the strict Responses decoder.
+
+One direct exact-shape Responses JSON Text classifier is authorized with the current selected
+Krill configuration read from CC Switch without modifying it. It is one send with no retry,
+redirect or proxy. It may retain only HTTP/content-type classes; root, output-item, content-part,
+reasoning and usage key sets; bounded counts; fixed object/type/status/null classes; and booleans
+for each current decoder gate. It must retain no endpoint, credential, model, request/response
+value, text, ID, timestamp, token count or fingerprint. The classification is diagnostic only and
+does not count as a matrix tuple. Only the first closed mismatch it proves may authorize a minimal
+decoder repair; a non-2xx or ambiguous result stops without changing source.
