@@ -14,7 +14,7 @@ response body, source hash of Secret material, or token fingerprint.
 - The first strict-compatibility correction was revision
   `d738b838419a1186fa692a271e34f216df8cdfab`, run `30756000209`; both architecture jobs and
   independent local verification passed before installation.
-- Any CR-P12-08G1-005 successor must be a new exact revision and private dual-architecture run;
+- Any later compatibility successor must be a new exact revision and private dual-architecture run;
   its SHA/run are recorded before activation, and only its independently verified
   `aarch64-unknown-linux-gnu` artifact may replace the disabled-at-boot CPAR binary.
 - Preserve the installed binary, database, unit state, active Config Version and all five systemd
@@ -148,3 +148,17 @@ and completed Tool calls. It retains the original response identity as Canonical
 summary as the first frame, without a redundant message, without finish, with mismatched semantics,
 or any non-summary identity change remains rejected. The next artifact must contain this exact
 rule; resumption again replaces only Chat SSE Text and never resends Chat JSON Text.
+
+## CR-P12-08G1-006 — nullable delta absence semantics
+
+The CR-005 artifact still stopped on the same one replacement tuple and completed rollback. The
+pinned CLIProxyAPI v7.2.101 Chat-to-Responses stream fixtures explicitly contain `role:null` on
+later deltas and `tool_calls:null` on the terminal Tool delta. In OpenAI Chat streaming these nulls
+mean that the field contributes no new delta; CPAR previously treated field presence as a required
+string/array and rejected the frame before reaching the already validated terminal summary.
+
+The Rust decoder may treat only null `role` and null `tool_calls` as absent. A non-null role must
+still be the unique initial assistant role, and non-null Tool calls must still be the bounded typed
+array. Wrong types, duplicate assistant roles and all existing Tool lifecycle violations remain
+rejected. This source-backed correction requires no additional diagnostic request and receives a
+new exact-SHA artifact before the same failed tuple is replaced.
