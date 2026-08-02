@@ -301,3 +301,19 @@ Usage classes; and index unsigned/unique/zero-based relations. It may compare su
 with accumulated deltas only as equality booleans. It must retain no endpoint, credential, model,
 body, frame bytes, ID, Tool name, arguments, text, token count or fingerprint. The result only
 authorizes a closed compatibility rule at the first proven decoder mismatch.
+
+## CR-P12-08G1-015 — repeated Tool metadata relation follow-up
+
+The CR-014 classifier observed seven Tool-bearing delta events before one terminal summary. Every
+Tool delta used the full `index/id/type/function{name,arguments}` key set, while the strict decoder
+permits identity and name only on the first delta. Argument concatenation exactly equalled the
+summary arguments, and the summary index was unsigned, unique and zero-based. The retained receipt
+did not classify repeated `id`, `type` and `name` values or compare them with the first non-empty
+declaration, so it cannot yet justify treating them as redundant.
+
+One final same-shape single-send classifier may retain, per Tool delta, only the value classes of
+`id`, `type` and function `name`, plus booleans stating whether each non-empty value equals the
+first declaration. It may also compare the terminal summary identity/name with those first
+declarations and retain the already established argument-concatenation equality. All previous
+no-value, read-only CC Switch and no-retry restrictions remain. Only absent, null, empty or exactly
+equal repeated metadata may be ignored; any conflicting value remains a protocol failure.
