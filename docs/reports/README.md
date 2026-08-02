@@ -161,4 +161,5 @@
 - [P12-05 CR-014 Tool/Explain receipt](evidence/p12-05-cr-014-tool-explain-receipt-20260726.md) — truthful stopped `2xx` Tool result with no retained body, no Explain, and complete rollback
 - [P12-05 CR-015 Tool/Explain receipt](evidence/p12-05-cr-015-tool-explain-receipt-20260726.md) — one valid no-op Tool representation, one selected/no-upstream Explain projection, and complete rollback
 - [P12-05 CR-015 post-review](evidence/p12-05-cr-015-post-review-20260726.md) — local acceptance review, credential/egress boundary, and independent rollback verification
+- [P12-06 OpenAI-compatible live differential](p12-06-openai-differential.md) — candidate preflight passed; paired corpus stopped because the incumbent Responses reference returns an unattributed internal 5xx
 - [P12-07 executed differential gate](p12-07-executed-differential-gate.md) — the differential corpus now computes its gateway projection by driving real gateway, store, Grok, and Kiro code

@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.80` |
+| 计划版本 | `v1.81` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-06 `IN_PROGRESS`。`CR-P12-06-008` 已把无可用凭据的 Kiro 功能/性能切片转为 `DEFERRED_EXTERNAL_CREDENTIAL`，不再阻塞本 Task；P7-09/G7 仍延期且 Kiro 生产路由仍禁用。当前唯一执行项是 OpenAI-compatible live differential：用固定合成请求比较 incumbent CPA 与新网关的 canonical 结构、不变量、错误所有权和终止语义；两侧不共享同一账号池，因此不得比较随机正文或把 Usage 数值不相等误判为网关缺陷。P12-04/P12-05/P12-07 仍为 `LOCAL_PASS_PENDING_PHASE_GATE`；现有 CPA、生产主机名流量和公开监听均未改变。 |
+| 当前任务 | P12-06 `BLOCKED`。OpenAI-compatible candidate 的单次非流式预检已通过，但 incumbent CPA 的修正 Responses 请求返回无更细归因的 `server_error/internal_server_error` 5xx，因此未启动成对 stream/non-stream/Tool/性能 corpus。解除阻塞需要单独批准修复 incumbent Responses/account-pool 路径，或指定另一条已工作的不可变参考臂；P12-08 不得开始。`CR-P12-06-008` 的 Kiro `DEFERRED_EXTERNAL_CREDENTIAL` 边界不变，P7-09/G7 与 Kiro 生产路由仍延期/禁用。P12-04/P12-05/P12-07 仍为 `LOCAL_PASS_PENDING_PHASE_GATE`；生产主机名流量和公开监听均未改变。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；尚未录入任何真实上游凭据，尚未在生产主机名上分流任何流量 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1717,7 +1717,7 @@ CR-ID: CR-P11-04-001
 | P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | [带时间戳、无值备份与回滚清单](reports/p12-03-server-backup-rollback.md)：现有 CPA 数据根静止快照、镜像身份、关联 unit 片段、权限、哈希和精确回滚步骤已独立复核；未安装或启动新服务 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | [Staging receipt](reports/p12-04-staging-receipt.md)：独立签名制品、精确 Unit、root-only 凭证、两个回环 listener、Health/管理面 admission、资源/日志/回滚均验收；服务 active 但 disabled-at-boot | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | [CR-015 Tool/Explain 回执](reports/evidence/p12-05-cr-015-tool-explain-receipt-20260726.md)：一次新的无外部效应 Tool tuple 为 `2xx`/`valid`，唯一 protected attempt 为 `succeeded/decoder`，Explain 选中唯一 Candidate 且无新增 upstream attempt；完整回滚与独立 post-review 均通过 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | [Kiro 渠道证据](reports/p12-06-kiro-channel-evidence.md)已记录替代 Free API-key 均被上游 `403` 拒绝；该切片按 `CR-P12-06-008` 延期且不阻塞。剩余验收为 OpenAI-compatible canonical live differential：逐字段比较可跨账号池判定的事件/Tool/Usage 结构、错误所有权和终止语义，不比较正文或非确定数值。性能含首字耗时（FirstSemanticEvent）、TTFB、总耗时、token 输出速率与 token 间延迟分位数 | IN_PROGRESS |
+| P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | [OpenAI-compatible live differential](reports/p12-06-openai-differential.md)：candidate 单次非流式结构预检通过；incumbent 修正请求到达 Responses handler 但返回 `server_error/internal_server_error` 5xx，故成对 stream/non-stream/Tool/性能 corpus 按 fail-closed 边界未启动。另见 [Kiro 渠道证据](reports/p12-06-kiro-channel-evidence.md)，该切片按 `CR-P12-06-008` 延期且不阻塞 | BLOCKED |
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | [暴露前验证回执](reports/p12-07-exposure-receipt.md)：新主机上从零完成产物验签、账户/目录/五凭据、unit 安装与启动（active、disabled-at-boot）；`cpar` 灰云 A 记录 + Let's Encrypt 证书；七项 fail-closed 暴露断言全通过（未认证与错误 key 均 401、管理面四路径均 404、公网直连 18180/18181 均不可达）；Caddy 变更前备份 preimage 并以 validate/adapt 证明其余五站点未变，reload 后 incumbent 仍正常。未录入任何真实上游凭据，`valid_key_accepted` 为 SKIP；该域名无限流（Caddy 标准版无模块）已记为缺口 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08 | 使用单独 Client Key 开始 10%→25%→50%→100% Canary | P12-06,P12-07 | 每阶段成功率、P95/P99、缓存和错误证据 | PENDING |
 | P12-09 | 在 Canary 中实际执行一次回滚并再次恢复 | P12-08 | 回滚时长和一致性报告 | PENDING |
@@ -2788,6 +2788,22 @@ CR-ID: CR-P12-06-008
 计划版本变更: v1.80
 ```
 
+### P12-06 OpenAI-compatible 执行结果
+
+2026-08-02 按 `CR-P12-06-003/008` 的既有边界建立了 root-only successor 图和固定合成差分
+harness。新网关 Krill candidate 的单次 loopback 非流式预检为 `2xx`，Canonical message、
+`end_turn` 与 Usage 结构均有效。incumbent CPA 的普通 `/v1/models` 是 generic OpenAI inventory，
+不能单独证明某模型可走 Responses；停止一个没有持久化精确计数的串行 inventory 诊断后，改用
+其内建 Responses/Codex catalog family 与 typed-message 请求轮廓，结果仍为 `5xx`，安全投影仅能
+归类为 `server_error/internal_server_error`，不能归因到账号、额度、OAuth、模型或网络。
+
+因此未执行十轮成对流式采样、非流式/Tool 对照和性能结论；否则会把 incumbent 可用性故障误写成
+兼容性差分。candidate 图仍为 active successor，但只监听 loopback、服务 disabled-at-boot，生产
+主机名没有分流；incumbent 服务仍 active、配置未改，SQLite quick-check 与 root-only preimage
+复核通过。详见 [P12-06 OpenAI-compatible live differential](reports/p12-06-openai-differential.md)。
+P12-06 转为 `BLOCKED`；只有单独批准修复 incumbent Responses/account-pool 路径，或指定另一条
+已工作且不可变的参考臂后才能恢复。P12-08 保持 `PENDING`。计划版本更新为 v1.81。
+
 ### 已批准 Change Request：CR-P12-07-001
 
 ```text
@@ -3140,3 +3156,4 @@ Next task:
 | v1.78 | 2026-08-01 | `CR-P12-06-006`：修复 Kiro 请求缺失必需字段 `conversationState.chatTriggerType`。其余字节相同时，不含该字段→400 `ValidationException`/`REQUEST_BODY_INVALID`，含该字段→200 且返回真实 `application/vnd.amazon.eventstream`。一律发送 `MANUAL`（网关的每个请求都源自客户端显式调用）。本 CR 同时如实记录并撤销了一次错误诊断：曾误判根因为 CLI 的 Content-Type，因为只看 HTTP 状态码而未看正文——`application/json` 的 200 正文实为 `UnknownOperationException`。`application/x-amz-json-1.0` 自始正确，已 revert | APPROVED；新增跨 kind 的独立断言并经变异验证；功能验证以 id=5 单次真实调用取得完整响应（`{"content":"OK"}`、`stopReason: END_TURN`、计费 0.0155 credit） |
 | v1.79 | 2026-08-02 | `CR-P12-06-007`：Pro Max 凭据超额后，受控测试 kiro-rs 其余两个 headless Free API-key 凭据；使用不可变 successor Config Version、单候选/单 attempt、root-only ledger 和不保存正文的直连分类。修复录图 helper 的 parent lineage 与 ledger 覆盖缺陷 | APPROVED；两个候选的 gateway 功能请求均为 502、修正后的同形直连均由上游返回 403，故未启动性能采样；剩余 IdC OAuth 已过期且不在本 CR，P12-06 保持 IN_PROGRESS |
 | v1.80 | 2026-08-02 | `CR-P12-06-008`：Kiro 切片因无可用凭据转为 `DEFERRED_EXTERNAL_CREDENTIAL` 且不再阻塞 P12-06；后续只执行 OpenAI-compatible live differential。两侧不共享账号池，因此差分只比较可判定的 canonical 结构、不变量、错误所有权与终止语义，正文、ID 和 Usage 具体数值不作相等比较 | APPROVED；Kiro 请求停止，P7-09/G7 与 Kiro 生产路由仍延期/禁用 |
+| v1.81 | 2026-08-02 | 记录 P12-06 OpenAI-compatible live preflight、差分 harness 与停止判据：candidate 通过，incumbent Responses 返回无细分归因的内部 5xx，完整 paired corpus 未启动 | P12-06 `BLOCKED`；须单独批准 incumbent 修复或指定另一条已工作参考臂，P12-08 保持 `PENDING` |
