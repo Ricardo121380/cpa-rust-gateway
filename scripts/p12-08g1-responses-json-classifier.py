@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import http.client
 import json
+import math
 import os
 from pathlib import Path
 import ssl
@@ -54,17 +55,36 @@ def value_class(value) -> str:
     return "other_type"
 
 
-def semantic_class(value) -> dict:
+def semantic_class(value, depth: int = 0) -> dict:
     result = {"class": value_class(value)}
     if isinstance(value, int) and not isinstance(value, bool):
         result["zero"] = value == 0
+    elif isinstance(value, float):
+        result["class"] = "finite_number" if math.isfinite(value) else "nonfinite_number"
+        result["zero"] = value == 0.0
     elif isinstance(value, dict):
         result["keys"] = sorted(value)
         result["child_classes"] = {key: value_class(value[key]) for key in sorted(value)}
+        if depth < 2:
+            result["children"] = {
+                key: semantic_class(value[key], depth + 1) for key in sorted(value)
+            }
     elif isinstance(value, list):
         result["count"] = len(value)
         result["item_classes"] = sorted({value_class(item) for item in value})
     return result
+
+
+def numeric_leaves_zero(value) -> bool:
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, (int, float)):
+        return math.isfinite(value) and value == 0
+    if isinstance(value, dict):
+        return bool(value) and all(numeric_leaves_zero(child) for child in value.values())
+    if isinstance(value, list):
+        return all(numeric_leaves_zero(child) for child in value)
+    return False
 
 
 def identifier_valid(value) -> bool:
@@ -257,6 +277,13 @@ def classify_json(value) -> dict:
             and not isinstance(value.get("created_at"), bool)
             and value["completed_at"] >= value["created_at"]
         ) if "completed_at" in value else None,
+        "prompt_cache_retention_known": (
+            value.get("prompt_cache_retention") in ("in-memory", "24h")
+        ) if "prompt_cache_retention" in value else None,
+        "tool_usage_all_numeric_leaves_zero": (
+            numeric_leaves_zero(value.get("tool_usage"))
+        ) if "tool_usage" in value else None,
+        "message_turn_ids_equal_and_valid": message_turn_ids_equal_and_valid(output),
         "object_class": "response" if value.get("object") == "response" else value_class(value.get("object")),
         "status_class": value.get("status") if value.get("status") in ("completed", "incomplete") else value_class(value.get("status")),
         "error_class": value_class(value.get("error")) if "error" in value else "absent",
@@ -269,6 +296,24 @@ def classify_json(value) -> dict:
         "strict_decoder_compatible": all(passed for _, passed in gates),
         "first_failed_gate": first_failed,
     }
+
+
+def message_turn_ids_equal_and_valid(output) -> bool | None:
+    if not isinstance(output, list):
+        return None
+    for item in output:
+        if not isinstance(item, dict) or item.get("type") != "message":
+            continue
+        left = item.get("metadata")
+        right = item.get("internal_chat_message_metadata_passthrough")
+        if left is None and right is None:
+            return None
+        if not isinstance(left, dict) or not isinstance(right, dict):
+            return False
+        if set(left) != {"turn_id"} or set(right) != {"turn_id"}:
+            return False
+        return identifier_valid(left.get("turn_id")) and left.get("turn_id") == right.get("turn_id")
+    return None
 
 
 def read_inputs() -> tuple[str, str, str]:

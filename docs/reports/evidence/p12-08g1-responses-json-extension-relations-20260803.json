@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "value_free": true,
+  "request_count": 1,
+  "retry_count": 0,
+  "status_class": "2xx",
+  "completed_at_class": "nonnegative_integer_nonzero",
+  "completed_at_not_before_created_at": true,
+  "frequency_penalty_class": "other_number_type",
+  "presence_penalty_class": "other_number_type",
+  "moderation_class": "null",
+  "prompt_cache_retention_class": "nonempty_string",
+  "tool_usage_class": "nonempty_object",
+  "tool_usage_keys": ["image_gen", "web_search"],
+  "tool_usage_child_classes": ["nonempty_object"],
+  "phase_is_final_answer": true,
+  "metadata_keys": ["turn_id"],
+  "internal_metadata_keys": ["turn_id"],
+  "metadata_child_classes": ["nonempty_string"],
+  "cache_write_tokens_class": "nonnegative_integer_zero",
+  "cc_switch_access": "read_only",
+  "cc_switch_modified": false
+}

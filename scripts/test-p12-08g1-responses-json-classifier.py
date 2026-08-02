@@ -75,6 +75,22 @@ class ClassifierTest(unittest.TestCase):
         self.assertNotIn("final_answer", json.dumps(result["output_items"][0]["extra_shapes"]))
         self.assertNotIn("secret", json.dumps(result))
 
+    def test_deep_zero_and_turn_relations_are_boolean_only(self):
+        result = MODULE.classify_json({
+            "id": "id", "object": "response", "status": "completed",
+            "frequency_penalty": 0.0, "prompt_cache_retention": "24h",
+            "tool_usage": {"web_search": {"count": 0}, "image_gen": {"count": 0}},
+            "output": [{"id": "item", "type": "message", "role": "assistant",
+                        "metadata": {"turn_id": "private-turn"},
+                        "internal_chat_message_metadata_passthrough": {"turn_id": "private-turn"},
+                        "content": [{"type": "output_text", "text": "secret"}]}],
+        })
+        self.assertTrue(result["root_extra_shapes"]["frequency_penalty"]["zero"])
+        self.assertTrue(result["prompt_cache_retention_known"])
+        self.assertTrue(result["tool_usage_all_numeric_leaves_zero"])
+        self.assertTrue(result["message_turn_ids_equal_and_valid"])
+        self.assertNotIn("private-turn", json.dumps(result))
+
 
 if __name__ == "__main__":
     unittest.main()

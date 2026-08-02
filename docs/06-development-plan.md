@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.126` |
+| 计划版本 | `v1.127` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -31,6 +31,7 @@
 | 已批准变更（续 14） | `CR-P12-08G1-017`：4d16c3a artifact 使 Chat SSE Tool PASS 后，Responses JSON Text 在一个受控 5xx 处停止；仅允许一次精确同形单发送，在服务重启前通过受保护 loopback 管理面读取该请求的有界 attempt outcome/stage，不保留请求或响应值。 |
 | 已批准变更（续 15） | `CR-P12-08G1-018`：CR-017 复现唯一 failed/decoder Attempt；仅允许一次同形直连 Responses JSON Text 结构分类，CC Switch Krill 配置只读且不得修改，只保留封闭 root/output/content/usage key/type/count/status 类别及 decoder gate 布尔值。 |
 | 已批准变更（续 16） | `CR-P12-08G1-019`：CR-018 将首个差异收敛到 6 个 root、3 个 message 及 1 个 Usage detail 扩展字段，但未证明其值类别；仅追加一次同形单发送，保留 null/empty/zero/nonzero、容器子键类别、phase 固定关系与完成时间顺序布尔值。 |
+| 已批准变更（续 17） | `CR-P12-08G1-020`：CR-019 证明完成时间有序、moderation=null、phase=final_answer、cache_write_tokens=0，但 penalties 为浮点、Tool usage/turn metadata 为嵌套对象；仅追加一次同形分类，保留有限数零值、已知 cache retention、嵌套数值叶全零及两处 turn_id 合法相等布尔值。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -3551,3 +3552,4 @@ Next task:
 | v1.124 | 2026-08-03 | `CR-P12-08G1-017`：4d16c3a exact-SHA artifact 使 Chat SSE Tool PASS，随后 Responses JSON Text 以安全 `http_5xx` 停止并完整回滚；登记一次同形单发送及同进程 attempt-stage 读取 | IN_PROGRESS；4/12 tuple PASS，不重发 Chat 四项，先定位 Responses 首个失败边界 |
 | v1.125 | 2026-08-03 | `CR-P12-08G1-018`：同形 Responses JSON Text 诊断复现 `http_5xx`，唯一 Attempt 为 `failed/decoder` 且完整回滚；登记一次只读 CC Switch、无值的直连成功响应结构分类 | IN_PROGRESS；4/12 tuple PASS，仅首个已证明 decoder 差异可进入修复 |
 | v1.126 | 2026-08-03 | `CR-P12-08G1-019`：直连分类得到 2xx JSON 与有效正文，首个差异为新增 root/message/Usage detail 字段；登记一次只保留字段值类别与封闭关系的最终分类 | IN_PROGRESS；4/12 tuple PASS，区分可忽略元数据与必须映射的 Usage 语义 |
+| v1.127 | 2026-08-03 | `CR-P12-08G1-020`：扩展值分类确认部分字段为 null/有序/固定 phase/零 cache write，但嵌套 Tool usage、turn metadata 及浮点 penalties 尚未闭合；登记最后一次深层布尔关系分类 | IN_PROGRESS；4/12 tuple PASS，仅全零/合法相等/已知固定类别可兼容 |

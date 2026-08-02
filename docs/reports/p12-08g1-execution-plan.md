@@ -379,3 +379,17 @@ null/empty/zero/nonzero/container classes, nested container key and child-value 
 value or fingerprint and keeps CC Switch read-only. A nonempty cache-write count must be mapped to
 Canonical cache-creation Usage rather than discarded; an unknown nonempty semantic container or
 unknown phase remains fail closed. Only proven null/default/redundant metadata may be ignored.
+
+## CR-P12-08G1-020 — nested Responses metadata relations
+
+CR-019 proved an ordered nonzero completion timestamp, null moderation, `final_answer` phase and a
+zero cache-write count. It also found finite-number candidates whose zero relation was not retained,
+a known cache-retention candidate not compared with the closed supported values, nested Tool-usage
+objects, and two turn-metadata objects with the same single key but no retained equality relation.
+
+One last exact-shape single send may retain only: finite-number and zero booleans for both penalty
+fields; whether cache retention is one of `in-memory|24h`; recursively bounded nested key/value
+classes and whether all Tool-usage numeric leaves are zero; and whether both single-key turn
+metadata objects hold the same independently valid bounded identifier. No identifier or scalar
+value is retained. Nonzero Tool usage, unknown cache retention, unequal/invalid turn metadata,
+nonzero penalties, or an unexpected nested shape remains fail closed.
