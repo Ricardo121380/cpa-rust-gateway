@@ -4,7 +4,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.129` |
+| 计划版本 | `v1.130` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
@@ -34,6 +34,7 @@
 | 已批准变更（续 17） | `CR-P12-08G1-020`：CR-019 证明完成时间有序、moderation=null、phase=final_answer、cache_write_tokens=0，但 penalties 为浮点、Tool usage/turn metadata 为嵌套对象；仅追加一次同形分类，保留有限数零值、已知 cache retention、嵌套数值叶全零及两处 turn_id 合法相等布尔值。 |
 | 已批准变更（续 18） | `CR-P12-08G1-021`：CR-020 证明 penalties=0、retention 属于固定类别、Tool usage 全数值叶为 0、turn metadata 合法相等；Responses decoder 仅准入这些精确零值/冗余形状，cache_write_tokens 仅准入 0，任一非零、未知或冲突继续拒绝。 |
 | 已批准变更（续 19） | `CR-P12-08G1-022`：CR-021 exact-SHA artifact 仅续跑 Responses JSON Text 一次仍为 `http_5xx`，且精确二进制与回滚边界均验证；仅允许一次同形、无重试、无值直连结构分类，用于判断上游响应是否相对 CR-020 发生形状变体；CC Switch 仍只读。 |
+| 已批准变更（续 20） | `CR-P12-08G1-023`：CR-022 当前无值结构与 CR-020 完全相同，但 Python 分类器会合并重复 JSON 名而 Rust decoder 会预解析拒绝；仅允许分类器记录重复对象/名出现次数及零值布尔量，然后进行一次同形直连确认；不保留重复名或值。 |
 
 本文是后续开发的唯一执行基线。功能矩阵定义“做什么”，行为契约定义“必须怎样表现”，本文定义“按什么顺序、交付什么、怎样证明完成”。
 
@@ -3557,3 +3558,4 @@ Next task:
 | v1.127 | 2026-08-03 | `CR-P12-08G1-020`：扩展值分类确认部分字段为 null/有序/固定 phase/零 cache write，但嵌套 Tool usage、turn metadata 及浮点 penalties 尚未闭合；登记最后一次深层布尔关系分类 | IN_PROGRESS；4/12 tuple PASS，仅全零/合法相等/已知固定类别可兼容 |
 | v1.128 | 2026-08-03 | `CR-P12-08G1-021`：最终分类证明 penalties 为有限零值、retention 已知、Tool usage 全零且 turn metadata 合法相等；登记最小 strict decoder 兼容规则 | IN_PROGRESS；4/12 tuple PASS，定向反例与 Full gate 后生成 exact-SHA artifact 续跑 Responses JSON Text |
 | v1.129 | 2026-08-03 | `CR-P12-08G1-022`：CR-021 exact-SHA 续跑仍在 Responses JSON Text decoder 边界失败；登记一次无值直连结构复核，与 CR-020 安全收据比较 | IN_PROGRESS；4/12 tuple PASS，禁止重发已通过 tuple 或未证明放宽 decoder |
+| v1.130 | 2026-08-03 | `CR-P12-08G1-023`：CR-022 证明解析后结构未漂移；补齐 Python 分类器与 Rust 预解析边界的重复 JSON 名计数 | IN_PROGRESS；4/12 tuple PASS，仅定位预解析差异，不改 decoder |

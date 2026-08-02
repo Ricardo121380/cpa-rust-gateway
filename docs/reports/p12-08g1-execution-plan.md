@@ -423,3 +423,17 @@ existing bounded field/type/count/status/zero/equality categories. It retains no
 credential, model, request/response value, text, identifier, timestamp, token count or fingerprint.
 An ambiguous or non-2xx classification stops; only a newly proved closed mismatch may authorize a
 minimal decoder change.
+
+## CR-P12-08G1-023 — duplicate-name pre-parse classifier
+
+CR-022 returned one successful JSON classification whose retained shape exactly matched CR-020.
+Source review then found one unmeasured boundary before that shape: Python's ordinary JSON loader
+collapses duplicate object names, while the production Rust decoder rejects them before parsing.
+Thus equal parsed shapes do not yet prove equal decoder inputs.
+
+The direct classifier may add only three value-free duplicate-name results: affected object count,
+duplicate-name occurrence count, and whether both counts are zero. It retains neither duplicated
+names nor values. After focused tests and the required local gate, one same-shape direct request is
+permitted with the unchanged CR-022 network, CC Switch read-only and no-retry constraints. A zero
+result closes this hypothesis and does not authorize decoder relaxation; a nonzero result requires
+a separate semantic ambiguity decision before any source change.

@@ -91,6 +91,33 @@ def identifier_valid(value) -> bool:
     return isinstance(value, str) and bool(value) and len(value.encode("utf-8")) <= MAX_IDENTIFIER_BYTES
 
 
+def decode_json_with_duplicate_counts(raw: bytes) -> tuple[object, dict]:
+    duplicate_objects = 0
+    duplicate_occurrences = 0
+
+    def object_pairs(pairs):
+        nonlocal duplicate_objects, duplicate_occurrences
+        seen = set()
+        duplicates_here = 0
+        result = {}
+        for name, value in pairs:
+            if name in seen:
+                duplicates_here += 1
+            seen.add(name)
+            result[name] = value
+        if duplicates_here:
+            duplicate_objects += 1
+            duplicate_occurrences += duplicates_here
+        return result
+
+    value = json.loads(raw, object_pairs_hook=object_pairs)
+    return value, {
+        "duplicate_json_object_count": duplicate_objects,
+        "duplicate_json_name_occurrence_count": duplicate_occurrences,
+        "duplicate_json_names_absent": duplicate_occurrences == 0,
+    }
+
+
 def completed_or_absent(value, present: bool) -> bool:
     return not present or value == "completed"
 
@@ -377,9 +404,10 @@ def main() -> int:
         }
         if status_class == "2xx" and content_type == "application/json":
             try:
-                value = json.loads(raw)
+                value, duplicate_counts = decode_json_with_duplicate_counts(raw)
             except (UnicodeDecodeError, json.JSONDecodeError) as error:
                 raise ClassifierError("response_json") from error
+            receipt.update(duplicate_counts)
             receipt.update(classify_json(value))
         write_receipt(args.out, receipt)
         print("p12-08g1-responses-classifier=" + ("PASS" if receipt.get("strict_decoder_compatible") else "FAIL"))

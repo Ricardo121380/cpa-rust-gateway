@@ -14,6 +14,20 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ClassifierTest(unittest.TestCase):
+    def test_duplicate_json_names_are_counted_without_retaining_names_or_values(self):
+        value, counts = MODULE.decode_json_with_duplicate_counts(
+            b'{"private":"first","nested":{"secret":1,"secret":2},"private":"last"}'
+        )
+        self.assertEqual(value["private"], "last")
+        self.assertEqual(counts["duplicate_json_object_count"], 2)
+        self.assertEqual(counts["duplicate_json_name_occurrence_count"], 2)
+        self.assertFalse(counts["duplicate_json_names_absent"])
+        rendered = json.dumps(counts)
+        self.assertNotIn("private", rendered)
+        self.assertNotIn("secret", rendered)
+        self.assertNotIn("first", rendered)
+        self.assertNotIn("last", rendered)
+
     def test_strict_text_response_passes_without_retaining_values(self):
         result = MODULE.classify_json({
             "id": "private-id", "object": "response", "status": "completed", "error": None,
