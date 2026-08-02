@@ -37,6 +37,9 @@ class ClassifierTest(unittest.TestCase):
         self.assertTrue(result["response_id_consistent"])
         self.assertEqual(result["choice_count_classes"], ["one", "zero"])
         self.assertEqual(result["choice_index_classes"], ["zero"])
+        self.assertEqual(result["delta_role_classes"], [])
+        self.assertEqual(result["delta_role_occurrence_count"], 0)
+        self.assertEqual(result["unsupported_usage_detail_nonzero"], [])
         self.assertEqual(
             result["id_relation_classes"],
             ["finish_same", "nonfinish_first", "nonfinish_same"],

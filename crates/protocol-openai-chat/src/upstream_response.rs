@@ -188,7 +188,6 @@ enum StreamLifecycle {
 #[derive(Default)]
 struct StreamState {
     response_id: Option<String>,
-    role_seen: bool,
     content_seen: bool,
     content: String,
     tools: BTreeMap<u64, OpenTool>,
@@ -424,9 +423,7 @@ impl OpenAiChatSseDecoder {
         };
         match delta.get("role") {
             None | Some(Value::Null) => {}
-            Some(Value::String(role)) if role == "assistant" && !state.role_seen => {
-                state.role_seen = true;
-            }
+            Some(Value::String(role)) if role == "assistant" => {}
             Some(_) => return Err(protocol_error()),
         }
         let text = match delta.get("content") {
@@ -903,7 +900,8 @@ mod tests {
     -> Result<(), Box<dyn std::error::Error>> {
         let wire = concat!(
             "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"hello\",\"reasoning_content\":\"\"},\"finish_reason\":null}]}\n\n",
-            "data: {\"id\":\"chat-final\",\"object\":\"chat.completion\",\"choices\":[{\"index\":0,\"delta\":{\"role\":null,\"reasoning_content\":\"\"},\"message\":{\"role\":\"assistant\",\"content\":\"hello\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
+            "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\" world\"},\"finish_reason\":null}]}\n\n",
+            "data: {\"id\":\"chat-final\",\"object\":\"chat.completion\",\"choices\":[{\"index\":0,\"delta\":{\"role\":null,\"reasoning_content\":\"\"},\"message\":{\"role\":\"assistant\",\"content\":\"hello world\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
             "data: [DONE]\n\n"
         );
         let mut decoder = OpenAiChatSseDecoder::new();

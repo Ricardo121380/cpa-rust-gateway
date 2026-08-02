@@ -1,0 +1,121 @@
+{
+  "choice_count_classes": [
+    "one"
+  ],
+  "choice_event_count": 4,
+  "choice_index_classes": [
+    "zero"
+  ],
+  "choice_keys": [
+    "delta",
+    "finish_reason",
+    "index",
+    "logprobs",
+    "message"
+  ],
+  "choice_message_classes": [
+    "nonempty_object"
+  ],
+  "choice_message_keys": [
+    "content",
+    "role"
+  ],
+  "completion_token_detail_keys": [
+    "accepted_prediction_tokens",
+    "audio_tokens",
+    "reasoning_tokens",
+    "rejected_prediction_tokens"
+  ],
+  "delta_content_classes": [
+    "empty_string",
+    "nonempty_string"
+  ],
+  "delta_keys": [
+    "content",
+    "reasoning_content",
+    "role"
+  ],
+  "delta_refusal_classes": [],
+  "delta_role_classes": [
+    "assistant"
+  ],
+  "delta_role_timing_classes": [
+    "nonfinish_assistant"
+  ],
+  "delta_tool_calls_classes": [],
+  "done_present": true,
+  "error_event_present": false,
+  "event_count": 4,
+  "finish_classes": [
+    "null",
+    "stop"
+  ],
+  "id_relation_classes": [
+    "finish_different",
+    "nonfinish_first",
+    "nonfinish_same"
+  ],
+  "logprobs_classes": [
+    "null"
+  ],
+  "message_content_classes": [
+    "nonempty_string"
+  ],
+  "message_content_equals_prior_delta": [
+    true
+  ],
+  "message_on_finish_only": [
+    true
+  ],
+  "message_reasoning_content_classes": [],
+  "message_refusal_classes": [],
+  "message_role_classes": [
+    "assistant"
+  ],
+  "message_tool_calls_classes": [],
+  "object_classes": [
+    "chat_chunk",
+    "chat_completion"
+  ],
+  "object_timing_classes": [
+    "finish_chat_completion",
+    "nonfinish_chat_chunk"
+  ],
+  "prompt_token_detail_keys": [
+    "audio_tokens",
+    "cached_tokens"
+  ],
+  "reasoning_content_classes": [
+    "empty_string"
+  ],
+  "response_id_consistent": false,
+  "root_keys": [
+    "choices",
+    "created",
+    "id",
+    "model",
+    "object",
+    "system_fingerprint",
+    "usage"
+  ],
+  "schema_version": 1,
+  "single_send": true,
+  "strict_decoder_compatible": true,
+  "unsupported_usage_detail_nonzero": [],
+  "usage_event_count": 0,
+  "usage_keys": [
+    "completion_tokens",
+    "completion_tokens_details",
+    "prompt_tokens",
+    "prompt_tokens_details",
+    "total_tokens"
+  ],
+  "usage_timing_classes": [
+    "finish"
+  ],
+  "usage_total_consistent": [
+    true
+  ],
+  "usage_with_choices_count": 1,
+  "value_free": true
+}

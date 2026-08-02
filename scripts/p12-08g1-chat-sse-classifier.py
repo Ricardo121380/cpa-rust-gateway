@@ -98,6 +98,12 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
     object_timing_classes: set[str] = set()
     id_relation_classes: set[str] = set()
     baseline_id: str | None = None
+    delta_role_classes: set[str] = set()
+    delta_role_timing_classes: set[str] = set()
+    delta_tool_calls_classes: set[str] = set()
+    delta_refusal_classes: set[str] = set()
+    unsupported_usage_detail_nonzero: set[str] = set()
+    delta_role_occurrence_count = 0
 
     def value_class(value) -> str:
         if value is None:
@@ -159,8 +165,15 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
             completion_details = usage.get("completion_tokens_details")
             if isinstance(prompt_details, dict):
                 prompt_detail_keys.update(str(key) for key in prompt_details)
+                audio = prompt_details.get("audio_tokens")
+                if isinstance(audio, int) and not isinstance(audio, bool) and audio != 0:
+                    unsupported_usage_detail_nonzero.add("prompt_audio_tokens")
             if isinstance(completion_details, dict):
                 completion_detail_keys.update(str(key) for key in completion_details)
+                for field in ("audio_tokens", "accepted_prediction_tokens", "rejected_prediction_tokens"):
+                    item = completion_details.get(field)
+                    if isinstance(item, int) and not isinstance(item, bool) and item != 0:
+                        unsupported_usage_detail_nonzero.add(field)
             incoming, outgoing, total_tokens = (
                 usage.get("prompt_tokens"), usage.get("completion_tokens"), usage.get("total_tokens")
             )
@@ -187,6 +200,12 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
             delta = choice.get("delta")
             if isinstance(delta, dict):
                 delta_keys.update(str(key) for key in delta)
+                if "role" in delta:
+                    delta_role_occurrence_count += 1
+                    role = delta.get("role")
+                    role_class = "assistant" if role == "assistant" else value_class(role)
+                    delta_role_classes.add(role_class)
+                    delta_role_timing_classes.add(f"{'finish' if choice.get('finish_reason') is not None else 'nonfinish'}_{role_class}")
                 content = delta.get("content")
                 if "content" in delta:
                     delta_content_classes.add(value_class(content))
@@ -194,6 +213,10 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
                     accumulated_content += content
                 if "reasoning_content" in delta:
                     reasoning_content_classes.add(value_class(delta.get("reasoning_content")))
+                if "tool_calls" in delta:
+                    delta_tool_calls_classes.add(value_class(delta.get("tool_calls")))
+                if "refusal" in delta:
+                    delta_refusal_classes.add(value_class(delta.get("refusal")))
             reason = choice.get("finish_reason")
             if reason is None:
                 finish_classes.add("null")
@@ -261,6 +284,12 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
         "usage_timing_classes": sorted(usage_timing_classes),
         "object_timing_classes": sorted(object_timing_classes),
         "id_relation_classes": sorted(id_relation_classes),
+        "delta_role_classes": sorted(delta_role_classes),
+        "delta_role_timing_classes": sorted(delta_role_timing_classes),
+        "delta_tool_calls_classes": sorted(delta_tool_calls_classes),
+        "delta_refusal_classes": sorted(delta_refusal_classes),
+        "unsupported_usage_detail_nonzero": sorted(unsupported_usage_detail_nonzero),
+        "delta_role_occurrence_count": delta_role_occurrence_count,
         "root_keys": sorted(root_keys),
         "choice_keys": sorted(choice_keys),
         "delta_keys": sorted(delta_keys),

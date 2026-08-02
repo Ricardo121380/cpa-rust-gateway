@@ -162,3 +162,17 @@ still be the unique initial assistant role, and non-null Tool calls must still b
 array. Wrong types, duplicate assistant roles and all existing Tool lifecycle violations remain
 rejected. This source-backed correction requires no additional diagnostic request and receives a
 new exact-SHA artifact before the same failed tuple is replaced.
+
+## CR-P12-08G1-007 — idempotent assistant role declarations
+
+The CR-006 artifact still stopped on the same replacement tuple and rolled back. The exact decoder
+predicate classifier excluded every other root, choice, delta, message, Usage and terminal rule,
+then a count-only follow-up proved the four-event stream declares the same assistant role twice on
+non-terminal chunks. The existing Rust state rejected the second declaration even though it carries
+no new or conflicting semantic value.
+
+The decoder may accept any number of identical string `assistant` role declarations as idempotent.
+Null remains absent; every other string or value type remains rejected. The role does not create a
+Canonical event, and this change does not weaken content, Tool, Usage, identity, summary or terminal
+validation. The correction receives a new exact-SHA artifact and again replaces only the failed
+Chat SSE Text tuple.
