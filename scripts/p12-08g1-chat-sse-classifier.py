@@ -83,6 +83,21 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
     reasoning_content_classes: set[str] = set()
     usage_with_choices_count = 0
     accumulated_content = ""
+    response_ids: set[str] = set()
+    object_classes: set[str] = set()
+    choice_count_classes: set[str] = set()
+    choice_index_classes: set[str] = set()
+    logprobs_classes: set[str] = set()
+    delta_content_classes: set[str] = set()
+    message_on_finish_only: set[bool] = set()
+    usage_keys: set[str] = set()
+    prompt_detail_keys: set[str] = set()
+    completion_detail_keys: set[str] = set()
+    usage_total_consistent: set[bool] = set()
+    usage_timing_classes: set[str] = set()
+    object_timing_classes: set[str] = set()
+    id_relation_classes: set[str] = set()
+    baseline_id: str | None = None
 
     def value_class(value) -> str:
         if value is None:
@@ -115,8 +130,43 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
         if not isinstance(value, dict):
             raise ClassifierError("stream_event_shape")
         root_keys.update(str(key) for key in value)
-        error_event = error_event or "error" in value
         choices = value.get("choices")
+        only_choice = choices[0] if isinstance(choices, list) and len(choices) == 1 and isinstance(choices[0], dict) else None
+        event_finish = only_choice is not None and only_choice.get("finish_reason") is not None
+        timing = "finish" if event_finish else "nonfinish"
+        event_id = value.get("id")
+        if isinstance(event_id, str):
+            response_ids.add(event_id)
+            relation = "first" if baseline_id is None else "same" if event_id == baseline_id else "different"
+            id_relation_classes.add(f"{timing}_{relation}")
+            if baseline_id is None:
+                baseline_id = event_id
+        object_value = value.get("object")
+        object_class = (
+            "chat_chunk" if object_value == "chat.completion.chunk" else
+            "chat_completion" if object_value == "chat.completion" else
+            value_class(object_value)
+        )
+        object_classes.add(object_class)
+        object_timing_classes.add(f"{timing}_{object_class}")
+        error_event = error_event or "error" in value
+        if isinstance(choices, list):
+            choice_count_classes.add("zero" if not choices else "one" if len(choices) == 1 else "many")
+        usage = value.get("usage")
+        if isinstance(usage, dict):
+            usage_keys.update(str(key) for key in usage)
+            prompt_details = usage.get("prompt_tokens_details")
+            completion_details = usage.get("completion_tokens_details")
+            if isinstance(prompt_details, dict):
+                prompt_detail_keys.update(str(key) for key in prompt_details)
+            if isinstance(completion_details, dict):
+                completion_detail_keys.update(str(key) for key in completion_details)
+            incoming, outgoing, total_tokens = (
+                usage.get("prompt_tokens"), usage.get("completion_tokens"), usage.get("total_tokens")
+            )
+            integers = all(isinstance(item, int) and not isinstance(item, bool) and item >= 0
+                           for item in (incoming, outgoing, total_tokens))
+            usage_total_consistent.add(bool(integers and total_tokens == incoming + outgoing))
         if choices == [] and isinstance(value.get("usage"), dict):
             usage_events += 1
         if not isinstance(choices, list):
@@ -128,7 +178,35 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
                 raise ClassifierError("choice_shape")
             choice_events += 1
             choice_keys.update(str(key) for key in choice)
+            index = choice.get("index")
+            choice_index_classes.add("zero" if index == 0 and not isinstance(index, bool) else
+                                     "nonzero" if isinstance(index, int) and not isinstance(index, bool) else
+                                     value_class(index))
+            if "logprobs" in choice:
+                logprobs_classes.add(value_class(choice.get("logprobs")))
+            delta = choice.get("delta")
+            if isinstance(delta, dict):
+                delta_keys.update(str(key) for key in delta)
+                content = delta.get("content")
+                if "content" in delta:
+                    delta_content_classes.add(value_class(content))
+                if isinstance(content, str):
+                    accumulated_content += content
+                if "reasoning_content" in delta:
+                    reasoning_content_classes.add(value_class(delta.get("reasoning_content")))
+            reason = choice.get("finish_reason")
+            if reason is None:
+                finish_classes.add("null")
+            elif reason in ("stop", "length", "tool_calls"):
+                finish_classes.add(reason)
+            elif isinstance(reason, str):
+                finish_classes.add("other_string")
+            else:
+                finish_classes.add("other_type")
+            if isinstance(usage, dict):
+                usage_timing_classes.add("finish" if reason is not None else "nonfinish")
             if "message" in choice:
+                message_on_finish_only.add(reason is not None)
                 message = choice.get("message")
                 choice_message_classes.add(value_class(message))
                 if isinstance(message, dict):
@@ -151,23 +229,6 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
                         )
                     if "refusal" in message:
                         message_refusal_classes.add(value_class(message.get("refusal")))
-            delta = choice.get("delta")
-            if isinstance(delta, dict):
-                delta_keys.update(str(key) for key in delta)
-                content = delta.get("content")
-                if isinstance(content, str):
-                    accumulated_content += content
-                if "reasoning_content" in delta:
-                    reasoning_content_classes.add(value_class(delta.get("reasoning_content")))
-            reason = choice.get("finish_reason")
-            if reason is None:
-                finish_classes.add("null")
-            elif reason in ("stop", "length", "tool_calls"):
-                finish_classes.add(reason)
-            elif isinstance(reason, str):
-                finish_classes.add("other_string")
-            else:
-                finish_classes.add("other_type")
     compatible = done and bool({"stop", "length", "tool_calls"} & finish_classes) and not error_event
     return {
         "event_count": event_count,
@@ -186,6 +247,20 @@ def classify_stream(response: http.client.HTTPResponse) -> dict:
         "message_refusal_classes": sorted(message_refusal_classes),
         "reasoning_content_classes": sorted(reasoning_content_classes),
         "usage_with_choices_count": usage_with_choices_count,
+        "response_id_consistent": len(response_ids) == 1,
+        "object_classes": sorted(object_classes),
+        "choice_count_classes": sorted(choice_count_classes),
+        "choice_index_classes": sorted(choice_index_classes),
+        "logprobs_classes": sorted(logprobs_classes),
+        "delta_content_classes": sorted(delta_content_classes),
+        "message_on_finish_only": sorted(message_on_finish_only),
+        "usage_keys": sorted(usage_keys),
+        "prompt_token_detail_keys": sorted(prompt_detail_keys),
+        "completion_token_detail_keys": sorted(completion_detail_keys),
+        "usage_total_consistent": sorted(usage_total_consistent),
+        "usage_timing_classes": sorted(usage_timing_classes),
+        "object_timing_classes": sorted(object_timing_classes),
+        "id_relation_classes": sorted(id_relation_classes),
         "root_keys": sorted(root_keys),
         "choice_keys": sorted(choice_keys),
         "delta_keys": sorted(delta_keys),

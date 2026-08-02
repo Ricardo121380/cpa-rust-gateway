@@ -34,6 +34,17 @@ class ClassifierTest(unittest.TestCase):
         self.assertNotIn("private", json.dumps(result))
         self.assertEqual(result["choice_message_classes"], [])
         self.assertEqual(result["reasoning_content_classes"], [])
+        self.assertTrue(result["response_id_consistent"])
+        self.assertEqual(result["choice_count_classes"], ["one", "zero"])
+        self.assertEqual(result["choice_index_classes"], ["zero"])
+        self.assertEqual(
+            result["id_relation_classes"],
+            ["finish_same", "nonfinish_first", "nonfinish_same"],
+        )
+        self.assertEqual(
+            result["object_timing_classes"],
+            ["finish_chat_chunk", "nonfinish_chat_chunk"],
+        )
 
     def test_missing_finish_is_classified_without_guessing(self):
         result = MODULE.classify_stream(wire(
@@ -70,8 +81,11 @@ class ClassifierTest(unittest.TestCase):
         self.assertEqual(result["message_tool_calls_classes"], ["null"])
         self.assertEqual(result["message_reasoning_content_classes"], ["empty_string"])
         self.assertEqual(result["message_refusal_classes"], ["null"])
+        self.assertEqual(result["message_on_finish_only"], [True])
         self.assertEqual(result["reasoning_content_classes"], ["empty_string"])
         self.assertEqual(result["usage_with_choices_count"], 1)
+        self.assertEqual(result["usage_total_consistent"], [False])
+        self.assertEqual(result["usage_timing_classes"], ["finish"])
 
 
 if __name__ == "__main__":

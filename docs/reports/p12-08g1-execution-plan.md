@@ -9,10 +9,14 @@ response body, source hash of Secret material, or token fingerprint.
 
 ## Exact runtime boundary
 
-- Runtime source revision: `02571e180c9991e632b1809479e10adb3cd01144`.
-- Private dual-architecture GitHub OIDC/Sigstore workflow run: `30754762093`.
-- Only its independently verified `aarch64-unknown-linux-gnu` artifact may replace the existing
-  disabled-at-boot CPAR staging binary.
+- Initial runtime source revision `02571e180c9991e632b1809479e10adb3cd01144` used private
+  dual-architecture GitHub OIDC/Sigstore run `30754762093`.
+- The first strict-compatibility correction was revision
+  `d738b838419a1186fa692a271e34f216df8cdfab`, run `30756000209`; both architecture jobs and
+  independent local verification passed before installation.
+- Any CR-P12-08G1-005 successor must be a new exact revision and private dual-architecture run;
+  its SHA/run are recorded before activation, and only its independently verified
+  `aarch64-unknown-linux-gnu` artifact may replace the disabled-at-boot CPAR binary.
 - Preserve the installed binary, database, unit state, active Config Version and all five systemd
   credentials before replacement. A failed provenance, install, restart, readiness, graph,
   request, receipt, or rollback assertion stops the sequence.
@@ -127,3 +131,20 @@ reasoning, refusal, unknown fields, non-final messages, mismatched text/Tools, d
 Usage before MessageEnd remain protocol failures. Usage on the final choices event is decoded once
 after MessageEnd. Unit tests cover text, Tool and every new rejection edge before any replacement
 G1 tuple is sent.
+
+## CR-P12-08G1-005 — final summary identity compatibility
+
+The first corrected exact-SHA runtime still produced a public Chat stream error frame; the harness
+stopped after the one replacement send and completed rollback plus both key checks. A value-free
+strict-invariant classifier proved that choice shape, index, logprobs, final message, Usage nested
+keys and token arithmetic all satisfy the closed decoder contract. The only remaining differences
+were root object and response identity. A final timing classifier proved the first semantic frames
+are one stable `chat.completion.chunk` identity, while only the terminal, redundant-message frame
+uses `chat.completion` and a different identity.
+
+The decoder may accept that alternate object/identity only after a prior chunk started the stream
+and only on a frame with a legal finish plus a message that exactly repeats all accumulated text
+and completed Tool calls. It retains the original response identity as Canonical authority. A
+summary as the first frame, without a redundant message, without finish, with mismatched semantics,
+or any non-summary identity change remains rejected. The next artifact must contain this exact
+rule; resumption again replaces only Chat SSE Text and never resends Chat JSON Text.

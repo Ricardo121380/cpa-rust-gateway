@@ -317,12 +317,17 @@ impl OpenAiChatSseDecoder {
                 "service_tier",
             ],
         )?;
-        if root.get("object").and_then(Value::as_str) != Some("chat.completion.chunk") {
-            return Err(protocol_error());
-        }
+        let final_summary = match root.get("object").and_then(Value::as_str) {
+            Some("chat.completion.chunk") => false,
+            Some("chat.completion") => true,
+            _ => return Err(protocol_error()),
+        };
         let id = nonempty(root, "id")?;
         match &mut self.lifecycle {
             StreamLifecycle::AwaitingStart => {
+                if final_summary {
+                    return Err(protocol_error());
+                }
                 let response_id = ResponseId::try_new(id).map_err(|_| protocol_error())?;
                 self.emit(CanonicalEvent::ResponseStart(ResponseStart {
                     response_id,
@@ -337,7 +342,9 @@ impl OpenAiChatSseDecoder {
                     ..StreamState::default()
                 });
             }
-            StreamLifecycle::Streaming(state) if state.response_id.as_deref() != Some(id) => {
+            StreamLifecycle::Streaming(state)
+                if state.response_id.as_deref() != Some(id) && !final_summary =>
+            {
                 return Err(protocol_error());
             }
             StreamLifecycle::Streaming(_) => {}
@@ -379,6 +386,9 @@ impl OpenAiChatSseDecoder {
                 return Err(protocol_error());
             }
             self.validate_redundant_message(message)?;
+        }
+        if final_summary && (finish_reason.is_none() || !choice.contains_key("message")) {
+            return Err(protocol_error());
         }
         if let Some(reason) = finish_reason {
             self.close_message(reason)?;
@@ -892,7 +902,7 @@ mod tests {
     -> Result<(), Box<dyn std::error::Error>> {
         let wire = concat!(
             "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"hello\",\"reasoning_content\":\"\"},\"finish_reason\":null}]}\n\n",
-            "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"reasoning_content\":\"\"},\"message\":{\"role\":\"assistant\",\"content\":\"hello\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
+            "data: {\"id\":\"chat-final\",\"object\":\"chat.completion\",\"choices\":[{\"index\":0,\"delta\":{\"reasoning_content\":\"\"},\"message\":{\"role\":\"assistant\",\"content\":\"hello\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
             "data: [DONE]\n\n"
         );
         let mut decoder = OpenAiChatSseDecoder::new();
@@ -922,7 +932,7 @@ mod tests {
     {
         let wire = concat!(
             "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"tool_calls\":[{\"index\":0,\"id\":\"call-1\",\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{\\\"q\\\":1}\"}}]},\"finish_reason\":null}]}\n\n",
-            "data: {\"id\":\"chat-1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"reasoning_content\":null},\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"call-1\",\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{\\\"q\\\":1}\"}}]},\"finish_reason\":\"tool_calls\"}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
+            "data: {\"id\":\"chat-final\",\"object\":\"chat.completion\",\"choices\":[{\"index\":0,\"delta\":{\"reasoning_content\":null},\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"call-1\",\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{\\\"q\\\":1}\"}}]},\"finish_reason\":\"tool_calls\"}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
             "data: [DONE]\n\n"
         );
         let mut decoder = OpenAiChatSseDecoder::new();
@@ -956,6 +966,13 @@ mod tests {
         let mut decoder = OpenAiChatSseDecoder::new();
         decoder.push(b"data: {\"id\":\"x\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"x\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":1,\"completion_tokens\":1,\"total_tokens\":2}}\n\n")?;
         assert!(decoder.push(b"data: {\"id\":\"x\",\"object\":\"chat.completion.chunk\",\"choices\":[],\"usage\":{\"prompt_tokens\":1,\"completion_tokens\":1,\"total_tokens\":2}}\n\n").is_err());
+
+        let mut decoder = OpenAiChatSseDecoder::new();
+        assert!(decoder.push(b"data: {\"id\":\"summary\",\"object\":\"chat.completion\",\"choices\":[{\"index\":0,\"delta\":{},\"message\":{\"role\":\"assistant\",\"content\":\"x\"},\"finish_reason\":\"stop\"}]}\n\n").is_err());
+
+        let mut decoder = OpenAiChatSseDecoder::new();
+        decoder.push(b"data: {\"id\":\"x\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"x\"},\"finish_reason\":null}]}\n\n")?;
+        assert!(decoder.push(b"data: {\"id\":\"summary\",\"object\":\"chat.completion\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n").is_err());
         Ok(())
     }
 }
