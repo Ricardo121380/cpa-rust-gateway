@@ -54,6 +54,19 @@ def value_class(value) -> str:
     return "other_type"
 
 
+def semantic_class(value) -> dict:
+    result = {"class": value_class(value)}
+    if isinstance(value, int) and not isinstance(value, bool):
+        result["zero"] = value == 0
+    elif isinstance(value, dict):
+        result["keys"] = sorted(value)
+        result["child_classes"] = {key: value_class(value[key]) for key in sorted(value)}
+    elif isinstance(value, list):
+        result["count"] = len(value)
+        result["item_classes"] = sorted({value_class(item) for item in value})
+    return result
+
+
 def identifier_valid(value) -> bool:
     return isinstance(value, str) and bool(value) and len(value.encode("utf-8")) <= MAX_IDENTIFIER_BYTES
 
@@ -74,6 +87,8 @@ def classify_usage(value) -> tuple[dict, bool]:
         "extra_keys": sorted(keys - USAGE_FIELDS),
         "input_detail_keys": [],
         "output_detail_keys": [],
+        "input_extra_shapes": {},
+        "output_extra_shapes": {},
         "integer_fields_valid": True,
         "total_consistent": True,
     }
@@ -105,7 +120,10 @@ def classify_usage(value) -> tuple[dict, bool]:
             valid = False
             continue
         result[result_key] = sorted(details)
-        if set(details) - {child}:
+        extras = set(details) - {child}
+        shape_key = "input_extra_shapes" if parent == "input_tokens_details" else "output_extra_shapes"
+        result[shape_key] = {key: semantic_class(details[key]) for key in sorted(extras)}
+        if extras:
             valid = False
         if child in details and not (
             isinstance(details[child], int) and not isinstance(details[child], bool)
@@ -151,6 +169,11 @@ def classify_json(value) -> dict:
                 record["keys"] = sorted(item)
                 allowed = ITEM_FIELDS.get(item_type)
                 record["extra_keys"] = sorted(set(item) - allowed) if allowed else sorted(item)
+                record["extra_shapes"] = {
+                    key: semantic_class(item[key]) for key in record["extra_keys"]
+                }
+                if "phase" in item:
+                    record["phase_is_final_answer"] = item.get("phase") == "final_answer"
                 record["status_class"] = (
                     "absent" if "status" not in item else
                     "completed" if item.get("status") == "completed" else value_class(item.get("status"))
@@ -224,6 +247,16 @@ def classify_json(value) -> dict:
         "json_shape": "object",
         "root_keys": sorted(root_keys),
         "root_extra_keys": sorted(root_keys - ROOT_FIELDS),
+        "root_extra_shapes": {
+            key: semantic_class(value[key]) for key in sorted(root_keys - ROOT_FIELDS)
+        },
+        "completed_at_not_before_created_at": (
+            isinstance(value.get("completed_at"), int)
+            and not isinstance(value.get("completed_at"), bool)
+            and isinstance(value.get("created_at"), int)
+            and not isinstance(value.get("created_at"), bool)
+            and value["completed_at"] >= value["created_at"]
+        ) if "completed_at" in value else None,
         "object_class": "response" if value.get("object") == "response" else value_class(value.get("object")),
         "status_class": value.get("status") if value.get("status") in ("completed", "incomplete") else value_class(value.get("status")),
         "error_class": value_class(value.get("error")) if "error" in value else "absent",

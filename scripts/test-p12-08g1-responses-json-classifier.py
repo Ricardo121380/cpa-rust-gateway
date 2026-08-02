@@ -42,6 +42,7 @@ class ClassifierTest(unittest.TestCase):
         self.assertFalse(result["strict_decoder_compatible"])
         self.assertEqual(result["first_failed_gate"], "root_fields")
         self.assertEqual(result["root_extra_keys"], ["provider_private"])
+        self.assertEqual(result["root_extra_shapes"]["provider_private"]["class"], "nonempty_string")
         self.assertNotIn("private-value", json.dumps(result))
 
     def test_message_and_usage_failures_are_value_free(self):
@@ -55,7 +56,23 @@ class ClassifierTest(unittest.TestCase):
         self.assertFalse(result["strict_decoder_compatible"])
         self.assertEqual(result["first_failed_gate"], "usage")
         self.assertEqual(result["usage"]["output_detail_keys"], ["extra", "reasoning_tokens"])
+        self.assertFalse(result["usage"]["output_extra_shapes"]["extra"]["zero"])
         self.assertEqual(result["output_items"][0]["content_parts"][0]["extra_keys"], ["extra"])
+        self.assertNotIn("secret", json.dumps(result))
+
+    def test_known_extra_relations_retain_classes_not_values(self):
+        result = MODULE.classify_json({
+            "id": "id", "object": "response", "status": "completed",
+            "created_at": 10, "completed_at": 11, "moderation": None,
+            "output": [{"id": "item", "type": "message", "role": "assistant",
+                        "phase": "final_answer", "metadata": {},
+                        "content": [{"type": "output_text", "text": "secret"}]}],
+        })
+        self.assertTrue(result["completed_at_not_before_created_at"])
+        self.assertEqual(result["root_extra_shapes"]["moderation"]["class"], "null")
+        self.assertTrue(result["output_items"][0]["phase_is_final_answer"])
+        self.assertEqual(result["output_items"][0]["extra_shapes"]["metadata"]["keys"], [])
+        self.assertNotIn("final_answer", json.dumps(result["output_items"][0]["extra_shapes"]))
         self.assertNotIn("secret", json.dumps(result))
 
 

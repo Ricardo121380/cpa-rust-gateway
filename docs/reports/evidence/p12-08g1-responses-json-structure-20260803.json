@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "value_free": true,
+  "request_count": 1,
+  "retry_count": 0,
+  "status_class": "2xx",
+  "content_type_class": "json",
+  "json_shape": "object",
+  "object_class": "response",
+  "status_class_body": "completed",
+  "error_class": "null",
+  "response_id_valid": true,
+  "output_count": 1,
+  "root_extra_keys": [
+    "completed_at",
+    "frequency_penalty",
+    "moderation",
+    "presence_penalty",
+    "prompt_cache_retention",
+    "tool_usage"
+  ],
+  "message_extra_keys": [
+    "internal_chat_message_metadata_passthrough",
+    "metadata",
+    "phase"
+  ],
+  "usage_input_detail_extra_keys": ["cache_write_tokens"],
+  "text_item_structure_valid": true,
+  "usage_integer_fields_valid": true,
+  "usage_total_consistent": true,
+  "first_failed_gate": "root_fields",
+  "strict_decoder_compatible": false,
+  "cc_switch_access": "read_only",
+  "cc_switch_modified": false
+}

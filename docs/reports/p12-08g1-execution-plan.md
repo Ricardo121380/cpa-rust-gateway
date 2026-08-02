@@ -364,3 +364,18 @@ for each current decoder gate. It must retain no endpoint, credential, model, re
 value, text, ID, timestamp, token count or fingerprint. The classification is diagnostic only and
 does not count as a matrix tuple. Only the first closed mismatch it proves may authorize a minimal
 decoder repair; a non-2xx or ambiguous result stops without changing source.
+
+## CR-P12-08G1-019 — Responses extension-value relation follow-up
+
+CR-018 received 2xx JSON with a completed response, one valid text item and consistent total
+Usage. The first strict mismatch is six extra root fields; the same response also contains three
+extra message fields and one extra input-Usage-detail field. Key sets alone cannot prove whether
+these are ignorable metadata, lifecycle semantics or cache-write accounting.
+
+One final exact-shape, one-send/no-retry classifier may retain, for only those extra fields,
+null/empty/zero/nonzero/container classes, nested container key and child-value classes, whether
+`phase` equals the closed `final_answer` category, and whether `completed_at` is not before
+`created_at`. It retains no scalar value, text, identifier, timestamp, token count, configuration
+value or fingerprint and keeps CC Switch read-only. A nonempty cache-write count must be mapped to
+Canonical cache-creation Usage rather than discarded; an unknown nonempty semantic container or
+unknown phase remains fail closed. Only proven null/default/redundant metadata may be ignored.
