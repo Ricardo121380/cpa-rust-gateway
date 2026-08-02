@@ -1719,7 +1719,7 @@ CR-ID: CR-P11-04-001
 | P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | [CR-015 Tool/Explain 回执](reports/evidence/p12-05-cr-015-tool-explain-receipt-20260726.md)：一次新的无外部效应 Tool tuple 为 `2xx`/`valid`，唯一 protected attempt 为 `succeeded/decoder`，Explain 选中唯一 Candidate 且无新增 upstream attempt；完整回滚与独立 post-review 均通过 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | [OpenAI-compatible live differential](reports/p12-06-openai-differential.md)：临时 Krill 原生 `codex-api-key` 参考臂与新网关 candidate 均通过 10/10 SSE、非流式、Tool、Canonical/Usage 不变量与性能取证；修正过严的可选 Usage 明细比较后，无网络离线 review 为 9/9 PASS，完整回滚通过。Grok/Kiro 切片仍延期 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | [暴露前验证回执](reports/p12-07-exposure-receipt.md)：新主机上从零完成产物验签、账户/目录/五凭据、unit 安装与启动（active、disabled-at-boot）；`cpar` 灰云 A 记录 + Let's Encrypt 证书；七项 fail-closed 暴露断言全通过（未认证与错误 key 均 401、管理面四路径均 404、公网直连 18180/18181 均不可达）；Caddy 变更前备份 preimage 并以 validate/adapt 证明其余五站点未变，reload 后 incumbent 仍正常。未录入任何真实上游凭据，`valid_key_accepted` 为 SKIP；该域名无限流（Caddy 标准版无模块）已记为缺口 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-08 | 使用单独 Client Key 开始 10%→25%→50%→100% Canary | P12-06,P12-07 | `CR-P12-08-002` 准入检查与首阶段证据；每阶段成功率、P95/P99、缓存和错误证据 | IN_PROGRESS |
+| P12-08 | 使用单独 Client Key 开始 10%→25%→50%→100% Canary | P12-06,P12-07 | [`P12-08 Canary readiness`](reports/p12-08-canary-readiness.md)：新网关/管理面/Caddy 只读准入通过，但 CPA 双接受最小事务返回 401，已字节恢复 preimage；未 reload Caddy、未切生产流量 | BLOCKED |
 | P12-09 | 在 Canary 中实际执行一次回滚并再次恢复 | P12-08 | 回滚时长和一致性报告 | PENDING |
 | P12-10 | 完成生产切换、72h 观察、发布 Tag 和运维手册 | P12-09 | G12 报告 | PENDING |
 
@@ -3379,3 +3379,4 @@ Next task:
 | v1.87 | 2026-08-02 | `CR-P12-06-014`：修正 differential harness 对 Usage 可选明细存在性的过严等值比较；跨臂仅比较已批准的存在/非负/守恒不变量，补正反回归并离线重算 CR-013 receipt | APPROVED；不新发网络请求，P12-08 待 P12-06 closeout review |
 | v1.88 | 2026-08-02 | 收口 P12-06 Krill 参考臂：两臂 10/10 SSE、0 失败，非流式/Tool/Canonical/Usage 不变量全通过，9/9 离线复核通过，临时 incumbent 配置完整回滚 | P12-06 `LOCAL_PASS_PENDING_PHASE_GATE`；P12-08 仍 `PENDING`，Grok/Kiro 仍延期 |
 | v1.89 | 2026-08-02 | `CR-P12-08-002`：用户批准开始 P12-08；先执行生产 Canary 准入只读检查，只有 active 图、独立 `rgw_` Client Key、凭据、Caddy rollback preimage 与观测链路齐备后才允许首个 10% 双接受/分流，不自动推进后续阶段 | P12-08 `IN_PROGRESS`；生产流量尚未切换 |
+| v1.90 | 2026-08-02 | P12-08 准入最小双接受事务：新网关 key 本地 200、incumbent CPA 401；已恢复 CPA 配置 preimage 并确认服务 active，未 reload Caddy 或切生产流量 | P12-08 `BLOCKED`；待确定 CPA 支持的 key 注册路径/格式后再开新 CR |
