@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.92` |
+| 计划版本 | `v1.93` |
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-08 直接替代准入 `IN_PROGRESS`。无值客户端清点确认旧 CPA 有 3 个历史 key 身份，最近 1 小时无推理流量；本机可发现 OpenClaw CPA Provider 与一条 CC Switch Claude CPA 记录。当前 CPAR 仍是单模型 differential 图；历史 Chat 客户端须明确退休/迁移或另行补兼容，才能进入 P12-09。生产主机名尚未切换。Grok/Kiro 仍延期且禁用。 |
+| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。用户明确 CPAR 必须同时具备 Kiro、Grok、Codex、Claude 等上游渠道，并向客户端兼容 Chat Completions、Responses、Messages 三种常见协议。原 P13-01/P13-02 已前移为 P12-08 硬前置；当前执行 P12-08A Chat 协议契约与 Codec，生产主机名尚未切换。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` + 已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照 |
@@ -1191,6 +1191,7 @@ Canary 边界: 保留 CR-P9-CANARY-001 的最多三次固定 Conversation `POST`
 - `GET /healthz`。
 - `GET /v1/models`。
 - `POST /v1/responses`，非流式与 SSE。
+- `POST /v1/chat/completions`，非流式与 SSE。
 - `POST /v1/messages`，非流式与 SSE。
 - `POST /v1/messages/count_tokens`，仅在存在可证明准确的 Provider/本地能力时返回结果。
 - 自有 Client API Key 和 Access Group。
@@ -1201,7 +1202,8 @@ Canary 边界: 保留 CR-P9-CANARY-001 的最多三次固定 Conversation `POST`
 - 首语义事件前 Failover；首语义事件后禁止透明重放。
 - 每 Endpoint+Credential 模型发现和最后成功快照。
 - 结构化 Request、Attempt、Usage、Health、Quota 和 Route Explain。
-- OpenAI-compatible Responses 与 Anthropic-compatible Messages。
+- OpenAI-compatible Chat/Responses 与 Anthropic-compatible Messages；三种入站协议经 Canonical
+  模型在可证明无损的范围内路由到任一已声明兼容的上游 Endpoint，不能表达时 fail closed。
 - Grok Build、Kiro、Grok Official、Grok Web 四个专项切片（代码完成并通过本地验证；生产路由启用延后至各自外部认证收口，见 `CR-P12-ROLLOUT-001`）。
 - 管理 API、最小可用管理 Web UI、备份与恢复。
 - systemd 和固定版本 Docker 产物。
@@ -1209,7 +1211,6 @@ Canary 边界: 保留 CR-P9-CANARY-001 的最多三次固定 Conversation `POST`
 
 ### 2.2 Release 1 明确不包含
 
-- 公共 OpenAI Chat Completions 入口及通用 Chat Endpoint。
 - 图片、音频、视频、Gemini 与 Interactions 入站协议。
 - 动态二进制插件、插件商店和在线安装。
 - PostgreSQL、S3、Git Store、Redis 协议复用和多节点控制面。
@@ -1225,7 +1226,7 @@ Canary 边界: 保留 CR-P9-CANARY-001 的最多三次固定 Conversation `POST`
 | ID | 决定 |
 |---|---|
 | BL-01 | Rust stable + Edition 2024，HTTP 服务使用 Actix Web；核心不依赖 Actix 类型。 |
-| BL-02 | Release 1 公开推理入口为 Responses 和 Anthropic Messages；Chat Completions 延后。 |
+| BL-02 | Release 1 公开推理入口同时包含 OpenAI Chat Completions、OpenAI Responses 和 Anthropic Messages；三者共享 Canonical 核心但保留各自严格 HTTP/SSE 语义。 |
 | BL-03 | 所有请求先进入 `CanonicalRequest`，所有输出转换为 `CanonicalEvent`。 |
 | BL-04 | Tool、Reasoning、Text、Usage、Error 使用显式流状态机；网络 Chunk 边界不影响语义。 |
 | BL-05 | `FirstSemanticEvent` 是透明重试边界；SSE Keepalive 不算语义事件。 |
@@ -1722,6 +1723,18 @@ CR-ID: CR-P11-04-001
 | P12-08 | 完成 CPAR 全量替代准入、客户端 Key 迁移清单与生产切换准备 | P12-06,P12-07 | [`P12-08 readiness`](reports/p12-08-canary-readiness.md) 与 [`client migration inventory`](reports/p12-08-client-migration-inventory.md)：撤销错误的 CPA 双接受阻塞；3 个历史 key 身份、可发现本机客户端、生产图与 Chat 兼容缺口均已无值登记 | IN_PROGRESS |
 | P12-09 | 将生产主机名全量切到 CPAR，实际执行一次全量回滚并再次恢复 | P12-08 | Caddy 全量切换、回滚 RTO、客户端认证与一致性报告 | PENDING |
 | P12-10 | CPAR 全量运行 72h，关闭旧 CPA，发布 Tag 和运维手册 | P12-09 | G12 报告；旧 CPA service/container 已关闭且不再承载生产流量 | PENDING |
+
+#### P12-08 兼容性补全切片（`CR-P12-COMPAT-001`）
+
+| Slice | 内容 | 完成证据 | 状态 |
+|---|---|---|---|
+| P12-08A | OpenAI Chat Completions 严格请求/响应/SSE Codec 与行为契约 | 非流式、任意 Chunk、Tool、Usage、终止与错误回归 | IN_PROGRESS |
+| P12-08B | Actix `/v1/chat/completions`、认证、正文上限、keepalive 与生命周期 | HTTP E2E 和负向边界 | PENDING |
+| P12-08C | `openai/chat-completions` Endpoint 格式与 OpenAI-compatible 出站 Adapter | API Format 注册表、发布期校验、DNS-pinned transport 测试 | PENDING |
+| P12-08D | Chat/Responses/Messages 三协议 Canonical 转换矩阵 | Text/Tool/Reasoning/Usage/History 的无损准入与 fail-closed 矩阵 | PENDING |
+| P12-08E | Kiro、Grok、Codex、Claude 渠道接入 P12 runtime | 每渠道至少一个完整 mock/fixture vertical slice；Credential/Quota/Health 隔离 | PENDING |
+| P12-08F | 多渠道生产图、Alias/Access Group/Client Key 和三协议本地 E2E | 不含 Secret 的图台账；每协议 × 每渠道的能力矩阵 | PENDING |
+| P12-08G | 各渠道真实账号受控 E2E 与客户端迁移复核 | Chat/Responses/Messages 可用组合的真实回执；不可表达组合明确拒绝 | PENDING |
 
 ### 已批准 Change Request：CR-P12-01-001
 
@@ -3135,6 +3148,34 @@ CR-ID: CR-P12-ROLLOUT-002
 计划版本变更: v1.91
 ```
 
+### 已批准 Change Request：CR-P12-COMPAT-001
+
+```text
+CR-ID: CR-P12-COMPAT-001
+原因: 用户明确 CPAR 是完整反向代理而非仅 Responses 网关：必须具备 Kiro、Grok、Codex、Claude
+      等渠道，并向客户端兼容 Chat Completions、Responses、Messages 三种常见协议。当前 Release 1
+      只有 Responses/Messages 入站，ApiFormat 只有两个值，P12 runtime 未接入 provider-grok，
+      且活动服务器图仍是单渠道 differential 图，无法替代 CPA。
+影响的 Task / Matrix ID / ADR: 将原 P13-01/P13-02 前移到 P12-08A-D；P12-08E-G 补齐四类渠道
+      runtime、生产图、能力矩阵和真实 E2E。更新 Release 1 范围、BL-02、A09/L07、目标架构、
+      BC-PROTOCOL/BC-ROUTER/BC-HTTP 及 G12。P12-09/P12-10 在这些切片完成前保持 PENDING。
+兼容边界: “兼容三协议”不等于静默伪造语义。Text、ordered history、Tool、Reasoning、Usage、
+      stop reason 与流终止只有在源协议→Canonical→目标协议可证明表达时才准入；目标协议或渠道
+      无法表达的请求在出网前返回稳定 ClientRequestError。原生渠道能力可以大于公共交集，但
+      Route Explain 必须说明该候选为何可选/被拒。
+渠道边界: Kiro 使用 `kiro.messages`；Claude 使用 `anthropic-compatible.messages`；Codex 使用
+      OpenAI-compatible Responses/Chat；Grok 的 Build/Official/Web 使用其已实现的专用边界并接入
+      P12 runtime。Credential、Quota、Health、Circuit、Catalog 与连续性按 Endpoint+Credential
+      隔离，任何渠道失败不得污染其它渠道。
+测试与回滚变化: 新增 Chat Codec 属性/Chunk 测试、Actix HTTP E2E、第三 ApiFormat 发布期拒绝、
+      三协议转换矩阵、每渠道 vertical slice 和协议×渠道能力矩阵。真实 E2E 仍使用受控无值回执；
+      缺少账号时只能阻塞对应渠道的 live Gate，不能把未测试渠道写成完成。回滚为撤销本 CR 的
+      新协议/注册表/runtime 边并恢复 P12-08 阻塞，不影响已完成 P0-P12-07 证据。
+用户批准: APPROVED，2026-08-02（“CPAR作为一个反代项目，需要有kiro，grok，codex，Claude等
+      渠道，且反代出来的需要兼容chat，response和message这三种常见协议”）
+计划版本变更: v1.93
+```
+
 ### 全量替代与回滚规则
 
 - 不执行 10%→25%→50%→100% 百分比或按 Key 分流。P12-09 只有两个生产路由状态：生产主机名
@@ -3199,12 +3240,13 @@ G12 的"无 P0/P1 故障"需要可判定的谓词。下表为封闭分类，P0/P
 
 ## 19. P13 - Release 1.1 候选范围
 
-本阶段当前为 `DEFERRED`，不能在 Release 1 开发中顺手实现。完成 G12 后，通过 Change Request 选择：
+本阶段其余候选仍为 `DEFERRED`，不能在 Release 1 开发中顺手实现。P13-01/P13-02 已由用户通过
+`CR-P12-COMPAT-001` 明确前移到 P12-08，不再属于 Release 1.1 候选；其余项须在 G12 后另行选择：
 
 | ID | 候选功能 | 当前状态 |
 |---|---|---|
-| P13-01 | OpenAI Chat Completions 入站与 compatible Chat Endpoint | DEFERRED |
-| P13-02 | Chat/Responses 受限无损桥接 | DEFERRED |
+| P13-01 | OpenAI Chat Completions 入站与 compatible Chat Endpoint（已前移到 P12-08，不再由 P13 执行） | DEFERRED |
+| P13-02 | Chat/Responses/Messages 受限无损桥接（已前移到 P12-08，不再由 P13 执行） | DEFERRED |
 | P13-03 | New API/AxonHub 一次性 Import Adapter | DEFERRED |
 | P13-04 | Cost-aware、Fill-first、Least-loaded 路由 | DEFERRED |
 | P13-05 | 管理调试用单请求 Channel Pin | DEFERRED |
@@ -3395,3 +3437,4 @@ Next task:
 | v1.90 | 2026-08-02 | P12-08 准入最小双接受事务：新网关 key 本地 200、incumbent CPA 401；已恢复 CPA 配置 preimage 并确认服务 active，未 reload Caddy 或切生产流量 | P12-08 `BLOCKED`；待确定 CPA 支持的 key 注册路径/格式后再开新 CR |
 | v1.91 | 2026-08-02 | `CR-P12-ROLLOUT-002`：用户纠正最终拓扑为 CPAR 全量替代 CPA；撤销百分比/按 Key 分流及 CPA 双接受前置，改为客户端 Key 迁移清单、全量 cutover、一次全量回滚/恢复、72h 全量观察后关闭旧 CPA | APPROVED；P12-08 恢复 `IN_PROGRESS`，生产尚未切换 |
 | v1.92 | 2026-08-02 | P12-08 无值客户端清点：旧 CPA 三个历史 key 身份；近 1h 无推理流量；本机发现 OpenClaw CPA Provider 与 CC Switch Claude CPA 记录；当前 CPAR 仍为单模型 differential 图，历史 Chat 兼容须显式处置 | P12-08 `IN_PROGRESS`；未改任何客户端或生产路由 |
+| v1.93 | 2026-08-02 | `CR-P12-COMPAT-001`：将 Chat Completions 与三协议无损桥接从 P13 前移至 P12-08，并新增 Kiro/Grok/Codex/Claude runtime、生产图、能力矩阵与真实 E2E 切片 | APPROVED；P12-08A `IN_PROGRESS`，P12-09/P12-10 保持 PENDING |

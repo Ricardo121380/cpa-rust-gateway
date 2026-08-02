@@ -323,7 +323,8 @@ M5 compatible relay expansion
 本节原有待定项已经由开发计划 `v1.0` 的 `BL-01` 至 `BL-22` 冻结；完整且优先级更高的定义见 [Rust AI Gateway 详细开发计划](06-development-plan.md#3-已冻结的技术基线)。对应结论如下：
 
 - Release 1 内建 SQLite 请求事件明细，但只通过有界异步队列写入，SQLite 不进入请求热路径。
-- 公开入口只包含 OpenAI Responses 与 Anthropic Messages；OpenAI Chat Completions 延后到 P13。
+- 公开入口同时包含 OpenAI Chat Completions、OpenAI Responses 与 Anthropic Messages；三者
+  通过 Canonical 核心执行受限无损桥接，无法表达的组合在出网前 fail closed。
 - Grok Web 进入 Release 1，但由 Feature Flag 隔离并经过独立 Gate；未经 Canary 批准不得在生产启用。
 - Session/Cache Identity 至少隔离 `client_key + provider + upstream_model`；不同连续性状态使用独立命名空间。
 - 管理 API 先于 UI；管理端采用独立 TypeScript SPA，不进入推理热路径。

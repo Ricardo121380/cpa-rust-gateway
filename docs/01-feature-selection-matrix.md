@@ -51,7 +51,7 @@ Upstream Aggregation（多中转站 + 多 Endpoint + 公开模型 + 自有 API K
 | A06 | `POST /v1/alpha/search` | 已有 | Later | 待定 | Codex 专用搜索能力 |
 | A07 | `POST /v1/messages` | 已有 | Keep | Keep | Claude Code 核心入口 |
 | A08 | `POST /v1/messages/count_tokens` | 已有 | Keep | Keep | Claude Code 客户端兼容；仅在可证明准确时返回 |
-| A09 | `POST /v1/chat/completions` | 已有 | Later | 待定 | 普通 OpenAI 客户端兼容 |
+| A09 | `POST /v1/chat/completions` | 已有 | New | New | `CR-P12-COMPAT-001` 前移到 Release 1；普通 OpenAI 客户端兼容 |
 | A10 | `POST /v1/completions` | 已有 | Drop | 待定 | 旧式 Completion 协议 |
 | A11 | Codex `/backend-api/codex/*` 别名 | 已有 | Later | 待定 | Codex CLI 原生路径兼容 |
 | A12 | Gemini `/v1beta/models/*action` | 已有 | Drop | 待定 | 第一版不支持 Gemini 协议 |
@@ -76,10 +76,10 @@ Upstream Aggregation（多中转站 + 多 Endpoint + 公开模型 + 自有 API K
 | B02 | 统一 Canonical Event Stream | 无 | New | New | 文本、Reasoning、Tool、Usage、Error |
 | B03 | OpenAI Responses 入站 Adapter | 已有直转 | Replace | Replace | 转换到 Canonical 模型 |
 | B04 | Anthropic Messages 入站 Adapter | 已有直转 | Replace | Replace | Claude Code 兼容重点 |
-| B05 | OpenAI Chat 入站 Adapter | 已有直转 | Later | 待定 | 第二阶段 |
+| B05 | OpenAI Chat 入站 Adapter | 已有直转 | Replace | Replace | `CR-P12-COMPAT-001`；严格进入 Canonical 模型 |
 | B06 | Gemini 入站 Adapter | 已有直转 | Drop | 待定 | 第一版不做 |
 | B07 | Interactions 入站 Adapter | 已有直转 | Drop | 待定 | 第一版不做 |
-| B08 | 非流式响应编码 | 已有 | Keep | 待定 | Responses 和 Anthropic 两种输出 |
+| B08 | 非流式响应编码 | 已有 | Keep | Keep | Chat、Responses、Messages 三种输出 |
 | B09 | SSE 响应编码 | 已有 | Keep | Keep | 必须保持事件次序和终止语义 |
 | B10 | WebSocket 响应编码 | 已有 | Later | 待定 | 依赖 A04 |
 | B11 | Function/Tool 定义转换 | 已有 | Keep | Keep | JSON Schema 兼容 |
@@ -377,7 +377,7 @@ Upstream Aggregation（多中转站 + 多 Endpoint + 公开模型 + 自有 API K
 | L04 | Endpoint 独立 Base URL/Path/Transport | 部分 Provider 固定 | New | New | HTTP、SSE、WebSocket 和特殊路径显式建模 |
 | L05 | Endpoint-Credential 多对多绑定 | 凭据池直接挂 Provider | New | New | 同 Key 可复用，多 Key 可独立状态和权重 |
 | L06 | OpenAI-compatible Responses Endpoint | 已有通用兼容能力 | New | New | 聚合 MVP 的第一条上游协议 |
-| L07 | OpenAI-compatible Chat Endpoint | 已有通用兼容能力 | Later | Later | 与 A09 区分；这里是上游 Endpoint |
+| L07 | OpenAI-compatible Chat Endpoint | 已有通用兼容能力 | New | New | `CR-P12-COMPAT-001`；与 A09 入站区分 |
 | L08 | Anthropic-compatible Messages Endpoint | 已有转换能力 | New | New | 支持中转站原生 Anthropic 路径 |
 | L09 | Endpoint 模型发现策略 | Provider 内部分散 | New | New | OpenAI/Anthropic/Gemini/Provider-native |
 | L10 | 每 Endpoint+Credential 模型快照 | 无统一能力 | New | New | 不能只保存中转站全局模型并集 |
@@ -425,6 +425,8 @@ F16 F17
 G19 G27
 ```
 
-L01-L36 与 L40 已随“多中转站汇总 + 自有 Base URL/API Key”需求锁定；L07、L37-L39 进入后续阶段。完整行为见 [上游聚合、统一模型与自有 API 设计](05-upstream-aggregation-design.md)。
+L01-L36 与 L40 已随“多中转站汇总 + 自有 Base URL/API Key”需求锁定；`CR-P12-COMPAT-001`
+进一步将 L07 前移到 Release 1，L37-L39 仍进入后续阶段。完整行为见
+[上游聚合、统一模型与自有 API 设计](05-upstream-aggregation-design.md)。
 
 其最终决定分别为：`Keep` 6 项、`New` 9 项、`Replace` 5 项。这些选择已经确定入口协议、流状态机、Continuity Store、透明重试边界和内建持久化观测。完整执行顺序和变更控制见 [Rust AI Gateway 详细开发计划](06-development-plan.md)，Grok/Kiro 的分层细节见 [Grok 与 Kiro 渠道参考实现分析](04-channel-reference-analysis.md)。
