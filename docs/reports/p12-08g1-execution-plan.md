@@ -451,3 +451,20 @@ the existing credential redaction and request shape. After focused tests and the
 gate, one direct request is permitted under the same read-only CC Switch, no-retry, no-redirect and
 value-free receipt constraints. This is the final structure classifier for this tuple. Only a
 closed response difference relative to the prior receipt may authorize a decoder repair.
+
+## CR-P12-08G1-025 — current Krill G1 v2 baseline
+
+CR-024's exact compatibility-header response had the same value-free parsed shape and no duplicate
+names. A subsequent no-network comparison found the decisive mismatch: the failed G1 v1 graph's
+frozen endpoint and upstream model both differ from the currently selected CC Switch Krill
+provider, and no locally retained Codex provider matches both old values. All direct classifiers
+therefore described the current intended provider, while the failed matrix exercised an obsolete
+graph. Further decoder work against that mismatch would be unsupported.
+
+Create `p12-08g1-codex-v2` from the exact current CC Switch Krill base, bearer and model delivered
+only over NUL-delimited stdin. CC Switch remains read-only. The graph keeps the same three protocol
+routes, transform modes, loopback listeners, one-attempt bound and rollback predecessor. Because
+endpoint/model identity changes the validation subject, no v1 tuple result carries forward: v2
+must run the fixed twelve tuples from index zero, stop at the first failure, then restore the
+predecessor graph, key boundary, active service and disabled-at-boot state. Incumbent CPA, Caddy,
+Cloudflare, DNS and public traffic remain out of scope.

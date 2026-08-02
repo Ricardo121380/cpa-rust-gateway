@@ -54,6 +54,7 @@ class ProductionGraphTest(unittest.TestCase):
                 self.read(value)
 
     def test_three_routes_freeze_the_required_transform_modes(self):
+        self.assertEqual(MODULE.VERSION_ID, "p12-08g1-codex-v2")
         self.assertEqual(set(MODULE.ALIASES), {"chat", "responses", "messages"})
         self.assertEqual(MODULE.MODE["chat"], "canonical")
         self.assertEqual(MODULE.MODE["responses"], "canonical")

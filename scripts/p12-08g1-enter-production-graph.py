@@ -28,7 +28,7 @@ ManagementError = shared.ManagementError
 Ledger = shared.Ledger
 read_secret = shared.read_secret
 
-VERSION_ID = "p12-08g1-codex-v1"
+VERSION_ID = "p12-08g1-codex-v2"
 ALIASES = {
     "chat": "p12-g1-codex-chat",
     "responses": "p12-g1-codex-responses",
@@ -108,7 +108,7 @@ def enter(args: argparse.Namespace) -> int:
     version = session.call(
         "POST",
         "/admin/config-versions",
-        {"id": VERSION_ID, "parent_id": args.parent_version_id, "description": "P12-08G1 controlled Codex graph"},
+        {"id": VERSION_ID, "parent_id": args.parent_version_id, "description": "P12-08G1 current Krill graph"},
         send_config_version=False,
     )
     session.config_version = VERSION_ID
