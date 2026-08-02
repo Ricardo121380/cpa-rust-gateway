@@ -34,6 +34,7 @@ allowed = {
   "gateway-stream" => %w[gateway-core gateway-protocol proptest tokio tokio-util],
   "gateway-upstream" => %w[bytes gateway-auth gateway-core gateway-provider moka reqwest tokio url zeroize],
   "protocol-anthropic" => %w[gateway-core gateway-protocol proptest serde serde_json],
+  "protocol-openai-chat" => %w[gateway-core proptest serde serde_json],
   "protocol-openai-responses" => %w[gateway-core gateway-protocol proptest serde serde_json],
   "provider-anthropic-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-anthropic zeroize],
   "provider-grok" => %w[flate2 gateway-catalog gateway-core gateway-provider gateway-router gateway-store gateway-upstream getrandom hmac protocol-openai-responses rusqlite serde serde_json sha2 time tokio url zeroize],

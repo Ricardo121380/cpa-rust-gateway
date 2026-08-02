@@ -1728,7 +1728,7 @@ CR-ID: CR-P11-04-001
 
 | Slice | 内容 | 完成证据 | 状态 |
 |---|---|---|---|
-| P12-08A | OpenAI Chat Completions 严格请求/响应/SSE Codec 与行为契约 | 非流式、任意 Chunk、Tool、Usage、终止与错误回归 | IN_PROGRESS |
+| P12-08A | OpenAI Chat Completions 严格请求/响应/SSE Codec 与行为契约 | [BC-PROTOCOL-008](contracts/BC-PROTOCOL-008-openai-chat-completions-codec.md) 与 [P12-08A 报告](reports/p12-08a-openai-chat-codec.md)：非流式、事件/Tool 参数任意分片、Usage、终止与错误回归 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08B | Actix `/v1/chat/completions`、认证、正文上限、keepalive 与生命周期 | HTTP E2E 和负向边界 | PENDING |
 | P12-08C | `openai/chat-completions` Endpoint 格式与 OpenAI-compatible 出站 Adapter | API Format 注册表、发布期校验、DNS-pinned transport 测试 | PENDING |
 | P12-08D | Chat/Responses/Messages 三协议 Canonical 转换矩阵 | Text/Tool/Reasoning/Usage/History 的无损准入与 fail-closed 矩阵 | PENDING |
@@ -3438,3 +3438,4 @@ Next task:
 | v1.91 | 2026-08-02 | `CR-P12-ROLLOUT-002`：用户纠正最终拓扑为 CPAR 全量替代 CPA；撤销百分比/按 Key 分流及 CPA 双接受前置，改为客户端 Key 迁移清单、全量 cutover、一次全量回滚/恢复、72h 全量观察后关闭旧 CPA | APPROVED；P12-08 恢复 `IN_PROGRESS`，生产尚未切换 |
 | v1.92 | 2026-08-02 | P12-08 无值客户端清点：旧 CPA 三个历史 key 身份；近 1h 无推理流量；本机发现 OpenClaw CPA Provider 与 CC Switch Claude CPA 记录；当前 CPAR 仍为单模型 differential 图，历史 Chat 兼容须显式处置 | P12-08 `IN_PROGRESS`；未改任何客户端或生产路由 |
 | v1.93 | 2026-08-02 | `CR-P12-COMPAT-001`：将 Chat Completions 与三协议无损桥接从 P13 前移至 P12-08，并新增 Kiro/Grok/Codex/Claude runtime、生产图、能力矩阵与真实 E2E 切片 | APPROVED；P12-08A `IN_PROGRESS`，P12-09/P12-10 保持 PENDING |
+| v1.94 | 2026-08-02 | 完成 P12-08A OpenAI Chat Completions 严格纯 Codec、行为契约、Tool 参数分片不变性、Usage 溢出与 SSE 终止顺序回归 | LOCAL_PASS_PENDING_PHASE_GATE；P12-08B 为下一切片，P12-08/P12-09/P12-10 边界不变 |

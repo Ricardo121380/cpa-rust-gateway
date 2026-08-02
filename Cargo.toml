@@ -15,6 +15,7 @@ members = [
     "crates/gateway-stream",
     "crates/gateway-upstream",
     "crates/protocol-anthropic",
+    "crates/protocol-openai-chat",
     "crates/protocol-openai-responses",
     "crates/provider-anthropic-compatible",
     "crates/provider-grok",

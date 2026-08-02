@@ -1604,6 +1604,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "protocol-openai-chat"
+version = "0.1.0"
+dependencies = [
+ "gateway-core",
+ "proptest",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "protocol-openai-responses"
 version = "0.1.0"
 dependencies = [

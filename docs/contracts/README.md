@@ -84,6 +84,7 @@ P5-05 已建立 [BC-ROUTER-005 Endpoint-format-isolated protocol routing](BC-ROU
 P5-06 已建立 [BC-PROTOCOL-005 Anthropic semantic and HTTP boundary](BC-PROTOCOL-005-anthropic-semantic-http-boundary.md)。
 P5-07 已建立 [BC-E2E-003 Claude Code loopback `--bare` compatibility](BC-E2E-003-claude-code-loopback-bare-compatibility.md)。
 P5-08 已建立 [BC-PROTOCOL-006 Anthropic adversarial stream safety](BC-PROTOCOL-006-anthropic-adversarial-stream-safety.md)。
+P12-08A 已建立 [BC-PROTOCOL-008 OpenAI Chat Completions strict codec](BC-PROTOCOL-008-openai-chat-completions-codec.md)。
 P6-01 已建立 [BC-CRED-003 Grok Build OAuth credential and Device Code](BC-CRED-003-grok-build-oauth-device-code.md)。
 P6-02 已建立 [BC-CRED-004 Grok Build refresh singleflight and durable revision runtime](BC-CRED-004-grok-build-refresh-runtime.md)。
 P6-03 已建立 [BC-PROVIDER-003 Grok Build Responses request and bounded decode boundary](BC-PROVIDER-003-grok-build-responses-boundary.md)。
