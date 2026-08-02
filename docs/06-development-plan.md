@@ -8,7 +8,7 @@
 | 生效日期 | `2026-08-02` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-08 兼容性补全 `IN_PROGRESS`。P12-08A-C、D0-D4、E1-E4、F1-F3 已本地通过；P12-08G1 生产切换图受控真实 E2E 正在执行。CC Switch 按 operator 指令延期且不参与演练；生产主机名尚未切换。 |
+| 当前任务 | P12-08 兼容性补全 `LOCAL_PASS_PENDING_PHASE_GATE`。P12-08A-C、D0-D4、E1-E4、F1-F3 已本地通过；P12-08G1 当前可用 Codex/Krill 生产图真实 E2E 12/12 完成并回滚。CC Switch 按 operator 指令延期且不参与演练；生产主机名尚未切换。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -1771,7 +1771,7 @@ CR-ID: CR-P11-04-001
 | P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | [CR-015 Tool/Explain 回执](reports/evidence/p12-05-cr-015-tool-explain-receipt-20260726.md)：一次新的无外部效应 Tool tuple 为 `2xx`/`valid`，唯一 protected attempt 为 `succeeded/decoder`，Explain 选中唯一 Candidate 且无新增 upstream attempt；完整回滚与独立 post-review 均通过 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | [OpenAI-compatible live differential](reports/p12-06-openai-differential.md)：临时 Krill 原生 `codex-api-key` 参考臂与新网关 candidate 均通过 10/10 SSE、非流式、Tool、Canonical/Usage 不变量与性能取证；修正过严的可选 Usage 明细比较后，无网络离线 review 为 9/9 PASS，完整回滚通过。Grok/Kiro 切片仍延期 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | [暴露前验证回执](reports/p12-07-exposure-receipt.md)：新主机上从零完成产物验签、账户/目录/五凭据、unit 安装与启动（active、disabled-at-boot）；`cpar` 灰云 A 记录 + Let's Encrypt 证书；七项 fail-closed 暴露断言全通过（未认证与错误 key 均 401、管理面四路径均 404、公网直连 18180/18181 均不可达）；Caddy 变更前备份 preimage 并以 validate/adapt 证明其余五站点未变，reload 后 incumbent 仍正常。未录入任何真实上游凭据，`valid_key_accepted` 为 SKIP；该域名无限流（Caddy 标准版无模块）已记为缺口 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-08 | 完成 CPAR 全量替代准入、客户端 Key 迁移清单与生产切换准备 | P12-06,P12-07 | [`P12-08 readiness`](reports/p12-08-canary-readiness.md) 与 [`client migration inventory`](reports/p12-08-client-migration-inventory.md)：撤销错误的 CPA 双接受阻塞；3 个历史 key 身份、可发现本机客户端、生产图与 Chat 兼容缺口均已无值登记 | IN_PROGRESS |
+| P12-08 | 完成 CPAR 全量替代准入、客户端 Key 迁移清单与生产切换准备 | P12-06,P12-07 | [`P12-08 readiness`](reports/p12-08-canary-readiness.md)、[`client migration inventory`](reports/p12-08-client-migration-inventory.md) 与 [G1 最终 review](reports/evidence/p12-08g1-final-review-20260803.md)：直接替代边界、客户端清单、三协议兼容和当前可用 Codex/Krill 12/12 真实矩阵完成；完整回滚 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-09 | 将生产主机名全量切到 CPAR，实际执行一次全量回滚并再次恢复 | P12-08 | Caddy 全量切换、回滚 RTO、客户端认证与一致性报告 | PENDING |
 | P12-10 | CPAR 全量运行 72h，关闭旧 CPA，发布 Tag 和运维手册 | P12-09 | G12 报告；旧 CPA service/container 已关闭且不再承载生产流量 | PENDING |
 
@@ -1794,7 +1794,7 @@ CR-ID: CR-P11-04-001
 | P12-08F1 | 组成多渠道生产图与模型/协议能力台账 | [F1 生产图与能力台账](reports/p12-08f1-multi-channel-production-graph.md)：不可变 adapter 能力表进入 Route Compiler；Alias/Access Group/Client Key/Endpoint/Credential/Candidate 无值台账、缺凭据渠道不入 active Version，Grok Web 无 runtime/不可选 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08F2 | 完成三协议 × 四类渠道的 loopback E2E | [F2 loopback 矩阵](reports/p12-08f2-three-protocol-four-channel-loopback.md)：7 个 `SUPPORTED` cell 完成 28 个 JSON/SSE × Text/Tool/Usage 请求；5 个 `UNSUPPORTED` cell 完成 10 个稳定拒绝且 Attempt=0；F1 Tool/JSON Schema 台账缺口已修正 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-08F3 | 完成 Client Key、Alias 与客户端迁移 dry-run | [F3 客户端迁移演练](reports/p12-08f3-client-migration-dry-run.md)：OpenClaw `0600` 配置只读，独立临时配置/状态中完成 synthetic `rgw_` key、endpoint、active alias、协议保持与字节级回退验证，live source 未变；CC Switch 按 operator 指令 `DEFERRED_BY_OPERATOR`，未读取、复制、修改、重启或测试 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-08G1 | 对生产切换图中的可用渠道执行受控真实 E2E | [G1 执行边界](reports/p12-08g1-execution-plan.md)：exact-SHA signed aarch64 artifact；当前可用 Codex 覆盖 Chat/Responses/Messages 的 JSON/SSE Text/Tool 十二 tuple；Claude 无 CC Switch 外可导出有效凭据时明确 SKIP；每个 tuple 单发送、首失败停止、无值 receipt、完整回滚 | IN_PROGRESS |
+| P12-08G1 | 对生产切换图中的可用渠道执行受控真实 E2E | [G1 最终 review](reports/evidence/p12-08g1-final-review-20260803.md)：`ec2fdf6` exact-SHA signed ARM64 artifact；当前可用 Codex/Krill 覆盖 Chat/Responses/Messages 的 JSON/SSE Text/Tool 十二 tuple 12/12 PASS；两项最终 Tool Attempt 均 succeeded；完整回滚 | DONE |
 | P12-08G2 | Kiro 与 Grok Official 外部认证补验包 | 延续 P7-09/P8-07 的延期状态；获得账号后仅补对应 `SUPPORTED` tuple。账号缺失不阻止代码、本地 E2E 或不包含这些渠道的 P12 生产切换图，但禁止宣称其 live 可用 | DEFERRED |
 
 P12-08D0-D4、E1-E4、F1-F3、G1 均是同一 P12 分支上的顺序 Task：每项独立 commit、定向 test 和
@@ -3577,3 +3577,5 @@ Next task:
 | v1.141 | 2026-08-03 | `CR-P12-08G1-033`：`ba54c68` 使 tuple 7–9 PASS，tuple 10 Messages SSE Text 在成功 SSE bootstrap 后以 lifecycle 类别失败；登记一次只保留事件类型/布尔关系的 loopback classifier | IN_PROGRESS；G1 v2 9/12，仅失败 tuple 10 可诊断重发 |
 | v1.142 | 2026-08-03 | `CR-P12-08G1-034`：分类证明 Messages SSE 生命周期完整，仅 input Usage 按既有 deferred-repayment 设计从 start 移至 terminal delta；harness 接受 start 或 terminal 的精确计数，双份必须相等 | IN_PROGRESS；runtime 不变，离线正反例通过后从 tuple 10 续跑 |
 | v1.143 | 2026-08-03 | `CR-P12-08G1-035`：tuple 10 通过后，tuple 11 Messages JSON Tool 在零 upstream Attempt 前本地失败；源码证明真实 `any` Tool choice 未被 lossless bridge 映射且 F2 fixture 漏测。新增仅限有 Tool 时的 forced-choice 等价映射（Chat/Responses `required` ↔ Messages `any`），其余 choice 继续 fail closed | IN_PROGRESS；10/12 tuple PASS，需新 exact-SHA artifact 后只续跑 tuple 11，成功才首次发送 tuple 12 |
+| v1.144 | 2026-08-03 | `CR-P12-08G1-036`：`ec2fdf6` 首次续跑的 Attempt 查询误读了旧记录；age 复核证明新请求零出网。管理 rollback 会更新 Registry，但 executor 仍绑定启动时 Config Version，因此 re-activate 与最终 rollback 后都必须重启并做真实 HTTP readiness | IN_PROGRESS；复用同一已验签 artifact 与 10/12 receipt，只重试 tuple 11，成功才首次发送 tuple 12 |
+| v1.145 | 2026-08-03 | CR-036 修正事务在 re-activate/rollback 后均重启；tuple 11 Messages JSON Tool 与 tuple 12 Messages SSE Tool 各单发送一次并通过，最终两个 Attempt 均 `succeeded`，G1 v2 12/12；predecessor key/图、loopback 与 disabled-at-boot 边界恢复 | P12-08G1 `DONE`；P12-08 `LOCAL_PASS_PENDING_PHASE_GATE`，不授权 P12-09 |

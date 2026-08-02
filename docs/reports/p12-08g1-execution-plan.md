@@ -1,6 +1,6 @@
 # P12-08G1 controlled production-graph E2E plan
 
-Status: `IN_PROGRESS`
+Status: `DONE`
 
 Date: 2026-08-02
 
@@ -22,6 +22,10 @@ response body, source hash of Secret material, or token fingerprint.
   `30758498095`; both signed targets passed, but the replacement tuple still failed and rolled back.
 - The delta-free-summary correction was revision `e297fa1fe7f3d0f3b200c723c9ecd4d42f9a52e6`, run
   `30759133160`; Chat SSE Text passed before the matrix stopped at Chat JSON Tool.
+- The final forced-Tool bridge artifact was revision
+  `ec2fdf6f1ae88d857f4865daf9f9349b22696961`, run `30767237127`; both native targets passed,
+  the ARM64 artifact passed independent structural and Sigstore verification, and the corrected
+  restart-bound continuation completed the current-Krill G1 v2 matrix at 12/12.
 - Any later compatibility successor must be a new exact revision and private dual-architecture run;
   its SHA/run are recorded before activation, and only its independently verified
   `aarch64-unknown-linux-gnu` artifact may replace the disabled-at-boot CPAR binary.
@@ -634,3 +638,30 @@ reviewed. Extend the router tests with all source/target forced-Tool pairs, wire
 assertions and negative cases, and amend the F2 live-shaped Messages fixture to include `any`.
 After focused tests, Full gate, review, commit, push, dual-target signed artifact verification and
 ARM64 deployment, resume only tuple eleven; tuple twelve may be first-sent only if eleven passes.
+
+## CR-P12-08G1-036 — restart-bound graph reactivation
+
+The first tuple-eleven continuation on the `ec2fdf6` artifact returned a safe local 5xx and fully
+restored the predecessor boundary. A first read incorrectly reported zero Attempts because it used
+the pre-namespace payload path; the corrected nested query then found a `succeeded` Attempt, but an
+age check proved that record was approximately 33 minutes old and belonged to an earlier run. No
+new upstream Attempt occurred.
+
+Source review explains the local rejection: `P12RoutedResponsesExecutor` is deliberately bound to
+the Config Version loaded at service composition and rejects when the live Registry version changes.
+The management rollback used to reactivate the G1 graph updates the Registry and key view, but it
+does not reconstruct the executor. Therefore every graph activation and rollback in this exact-
+artifact continuation must be followed by a service restart and actual HTTP readiness check. Keep
+the same `ec2fdf6` artifact and 10/12 receipt, resend only tuple eleven, wait for its terminal result,
+then roll back, restart, and reverify the predecessor key plus loopback/disabled-at-boot boundary.
+Tuple twelve remains conditional on eleven passing.
+
+## Final result
+
+The corrected CR-036 transaction resumed from 10/12. Tuple eleven (Messages JSON Tool) and tuple
+twelve (Messages SSE Tool) each sent once, produced one successful upstream Attempt, returned the
+expected `tool_use` terminal projection with valid Usage, and advanced the fixed matrix to 12/12.
+The graph was then rolled back, CPAR restarted, the G1 key was rejected, the predecessor key was
+accepted, and the service remained active, disabled at boot and loopback-only. This completes G1
+for the currently available Codex/Krill channel only; it does not claim Deferred channels or
+authorize P12-09.

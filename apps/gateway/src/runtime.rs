@@ -4359,7 +4359,9 @@ mod tests {
         EndpointCredentialPool, RedirectPolicy, UpstreamClientPool, UpstreamHttpMethod,
         UpstreamHttpRequest, UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
     };
-    use protocol_openai_responses::{ResponseMode, decode_request};
+    use protocol_openai_responses::{
+        ResponseMode, decode_request, decode_upstream_response as decode_responses_production,
+    };
     use provider_kiro::endpoint_policy::KiroEndpointKind;
     use provider_openai_compatible::{
         OpenAiResponsesApiKey, OpenAiResponsesEndpoint, OpenAiResponsesRequestBuilder,
@@ -4389,7 +4391,7 @@ mod tests {
         p12_adapter_id_serves, p12_api_format_adapter_registry, p12_attempt_start_timeout,
         p12_classify_kiro_start_failure, p12_kiro_endpoint_shape, p12_kiro_request_projection,
         p12_openai_compatible_request, p12_response_usage_projection, p12_transport_headers,
-        p12_transport_request, queue_event, validate_endpoint_shape,
+        p12_transport_request, project_usage_events, queue_event, validate_endpoint_shape,
     };
 
     const P12_SINGLETON_TEST_ENDPOINT_ID: &str = "p12-krill-endpoint";
@@ -7207,8 +7209,10 @@ mod tests {
               "id":"response-p12-anthropic-lifecycle",
               "status":"completed",
               "output":[{
+                "id":"message-p12-anthropic-http",
                 "type":"message",
                 "role":"assistant",
+                "status":"completed",
                 "content":[{"type":"output_text","text":"ok"}]
               }],
               "usage":{
@@ -7370,24 +7374,56 @@ mod tests {
     #[actix_web::test]
     async fn p12_decoded_tool_completion_is_encodable_by_the_anthropic_messages_boundary()
     -> Result<(), Box<dyn Error>> {
-        let events = decode_json_events_with_usage_projection(
-            br#"{
+        let events = project_usage_events(
+            decode_responses_production(
+                r#"{
               "id":"response-p12-tool-http",
+              "object":"response",
               "status":"completed",
+              "created_at":10,
+              "completed_at":11,
+              "error":null,
+              "frequency_penalty":0.0,
+              "presence_penalty":0.0,
+              "moderation":null,
+              "prompt_cache_retention":"in-memory",
+              "tool_usage":{
+                "image_gen":{
+                  "input_tokens":0,
+                  "input_tokens_details":{"image_tokens":0,"text_tokens":0},
+                  "output_tokens":0,
+                  "output_tokens_details":{"image_tokens":0,"text_tokens":0},
+                  "total_tokens":0
+                },
+                "web_search":{"num_requests":0}
+              },
               "output":[{
+                "id":"item-p12-tool-http",
                 "type":"function_call",
                 "call_id":"call-p12-tool-http",
                 "name":"echo",
-                "arguments":"{\"value\":\"ok\"}"
+                "status":"completed",
+                "arguments":"{\"value\":\"ok\"}",
+                "metadata":{"turn_id":"turn-p12-tool-http"},
+                "internal_chat_message_metadata_passthrough":{"turn_id":"turn-p12-tool-http"}
               }],
               "usage":{
                 "input_tokens":3,
+                "input_tokens_details":{"cached_tokens":0,"cache_write_tokens":0},
                 "output_tokens":5,
-                "output_tokens_details":{"reasoning_tokens":2}
+                "output_tokens_details":{"reasoning_tokens":0},
+                "total_tokens":8
               }
             }"#,
+            )
+            .map_err(|_| std::io::Error::other("production Responses Tool decode failed"))?,
             P12ResponseUsageProjection::AnthropicMessages,
-        )?;
+        );
+        let events = gateway_router::project_protocol_response(
+            &CanonicalResponse::try_new(events)?,
+            ProtocolFormat::AnthropicMessages,
+        )?
+        .into_events();
         let app = actix_test::init_service(
             App::new()
                 .app_data(web::Data::new(p12_decoded_messages_http_state(events)?))
