@@ -75,6 +75,10 @@ def redact_metadata!(value)
   case value
   when Hash
     value.delete("externalReferences")
+    # Registry descriptions are unstructured publisher text and can contain arbitrary download
+    # endpoints. The release SBOM retains identity, version, hashes, licenses, purls and the
+    # dependency graph; descriptions are neither required evidence nor safe artifact metadata.
+    value.delete("description")
     value.delete("url")
     value.each_value { |nested| redact_metadata!(nested) }
   when Array
