@@ -5,6 +5,7 @@
 mod account_pool;
 mod account_worker;
 mod build_responses;
+mod console_responses;
 mod continuity_state;
 mod credential_runtime;
 mod inference;
@@ -23,6 +24,7 @@ mod web_credential;
 mod web_egress_session;
 mod web_failure;
 mod web_live;
+mod web_production;
 mod web_quota;
 mod web_statsig;
 mod web_tool_emulation;
@@ -51,6 +53,16 @@ pub use build_responses::{
     GrokBuildResponsesOutboundRequest, GrokBuildResponsesRequestBuilder,
     GrokBuildResponsesStreamDecoder, MAX_GROK_BUILD_ERROR_BODY_BYTES,
     MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES, MAX_GROK_BUILD_SSE_FRAME_BYTES,
+};
+pub use console_responses::{
+    GROK_CONSOLE_CLUSTER, GROK_CONSOLE_PROVIDER_ID, GROK_CONSOLE_RESPONSES_BASE_URL,
+    GROK_CONSOLE_RESPONSES_PATH, GROK_CONSOLE_RESPONSES_URL, GROK_CONSOLE_USER_AGENT,
+    GrokConsoleExecutionMode, GrokConsoleFailureOwner, GrokConsoleInferenceAdapter,
+    GrokConsoleRequestError, GrokConsoleResponseBody, GrokConsoleResponseContentType,
+    GrokConsoleResponsesDecoder, GrokConsoleResponsesOutboundRequest,
+    GrokConsoleResponsesRequestBuilder, GrokConsoleResponsesStreamDecoder, GrokConsoleSsoToken,
+    GrokConsoleTransport, GrokConsoleTransportResponse, GrokConsoleUpstreamTransport,
+    classify_grok_console_http_failure, grok_console_retry_after_due_at,
 };
 pub use continuity_state::{
     GrokBuildAffinityBindOutcome, GrokBuildAffinityBreak, GrokBuildAffinityBreakInput,
@@ -144,6 +156,11 @@ pub use web_failure::{
     classify_grok_web_http_failure,
 };
 pub use web_live::{GrokWebLiveStreamDecoder, MAX_GROK_WEB_LIVE_FRAME_BYTES};
+pub use web_production::{
+    GrokWebProductionOutboundRequest, GrokWebProductionRequestBuilder,
+    GrokWebProductionRequestError, GrokWebProductionStreamDecoder,
+    MAX_GROK_WEB_PRODUCTION_MESSAGE_BYTES, MAX_GROK_WEB_PRODUCTION_REQUEST_BYTES,
+};
 pub use web_quota::{
     GrokWebQuotaConfidence, GrokWebQuotaError, GrokWebQuotaFixtureDecoder, GrokWebQuotaSource,
     GrokWebQuotaState, GrokWebQuotaSyncOutcome, GrokWebQuotaTier, GrokWebQuotaWindow,

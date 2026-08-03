@@ -147,6 +147,7 @@
 - [P12-10B native Grok account pool](p12-10b-native-grok-account-pool.md) — schema v10, provider-isolated encrypted accounts, atomic idempotent batch import and rollback
 - [P12-10C native Grok scheduling](p12-10c-native-grok-scheduling.md) — native accounts compiled into existing Credential pools with shared Health/Quota isolation and recovery
 - [P12-10D native Grok workers](p12-10d-native-grok-workers.md) — durable refresh/quota claims, CAS credential replacement, bounded concurrency, backoff/reauth and restart recovery
+- [P12-10E Grok Console and Web runtime](p12-10e-grok-console-web-runtime.md) — fixed native Console execution, strict JSON/SSE and three-protocol projection, plus fail-closed text-only Web production binding
 - [P12-02 deployment envelope execution plan](p12-02-execution-plan.md) — approved minimal `serve`, isolated loopback listeners, `LoadCredential`, state/log directories, systemd hardening and Linux verification plan
 - [P12-02 deployment envelope acceptance](p12-02-deployment-envelope.md) — local Full gate, independent review, and repaired real-Linux systemd 255 syntax verification accepted; no Unit was installed or started
 - [P12-03 server backup and rollback inventory plan](p12-03-execution-plan.md) — constrained server-local snapshot plan; no configuration, database, or credential material may enter the repository

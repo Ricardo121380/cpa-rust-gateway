@@ -218,6 +218,15 @@ fn encode_body(
     request: &CanonicalRequest,
     mode: ResponseMode,
 ) -> Result<Vec<u8>, GatewayError> {
+    encode_responses_body(upstream_model, request, mode, OFFICIAL_REASONING_EFFORTS)
+}
+
+pub(crate) fn encode_responses_body(
+    upstream_model: &str,
+    request: &CanonicalRequest,
+    mode: ResponseMode,
+    reasoning_efforts: &[&str],
+) -> Result<Vec<u8>, GatewayError> {
     if request.prompt_cache_key.is_some()
         || request.prompt_cache_retention.is_some()
         || !request.extensions.is_empty()
@@ -242,7 +251,10 @@ fn encode_body(
         );
     }
     if let Some(thinking) = &request.thinking {
-        root.insert("reasoning".to_owned(), encode_reasoning(thinking)?);
+        root.insert(
+            "reasoning".to_owned(),
+            encode_reasoning(thinking, reasoning_efforts)?,
+        );
     }
     serde_json::to_vec(&Value::Object(root)).map_err(|_| internal_error())
 }
@@ -370,10 +382,11 @@ fn encode_tool(tool: &ToolDefinition) -> Result<Value, GatewayError> {
     Ok(Value::Object(encoded))
 }
 
-fn encode_reasoning(thinking: &gateway_core::Thinking) -> Result<Value, GatewayError> {
-    if !thinking.extensions.is_empty()
-        || !OFFICIAL_REASONING_EFFORTS.contains(&thinking.effort.as_str())
-    {
+fn encode_reasoning(
+    thinking: &gateway_core::Thinking,
+    supported_efforts: &[&str],
+) -> Result<Value, GatewayError> {
+    if !thinking.extensions.is_empty() || !supported_efforts.contains(&thinking.effort.as_str()) {
         return Err(client_request_error());
     }
     Ok(Value::Object(Map::from_iter([(

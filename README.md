@@ -2,7 +2,7 @@
 
 本目录用于规划一个基于 CPA 功能经验、但从零实现的高性能 AI 网关。
 
-规划阶段已经完成并锁定开发计划；P0 工程基线与 21-package Rust Workspace 已建立，P1-P11 的本地实现和验证正在收尾。HTTP 技术路线确定为 `Rust + Actix Web`；框架只负责接入层，协议、路由、凭据和 Provider 核心不依赖 Actix 类型。
+规划阶段已经完成并锁定开发计划；P0-P6、P9-P11 已实现，P7/P8 的外部认证验收延后，P12 正在完成生产替代与原生账号池收口。HTTP 技术路线为 `Rust + Actix Web`；框架只负责接入层，协议、路由、凭据和 Provider 核心不依赖 Actix 类型。
 
 第一阶段渠道方向已经锁定为 `Grok Provider Family + Kiro + OpenAI-compatible`。Grok 不作为单一 Provider：官方 API、Build OAuth 与 Web/Console 使用独立 Adapter、凭据池、Quota 和连续性状态；Kiro 同时支持 CLI/IDE 端点，行为以服务器定制 Kiro-RS 为参考。
 
@@ -10,12 +10,12 @@
 
 ## 当前状态
 
-- 阶段：P1-P6、P9、P10、P11 与 P12-01 已完成；P12-02 的最小 `serve`、systemd、只读 Secret、数据目录、日志与资源限制边界，以及 P12-03 的现有 CPA 服务器本地备份/精确回滚清单，均已通过本地验收。已验收的 Linux 二进制、OCI、SBOM、checksum 与 keyless 签名仅保留为私有 CI artifact，详情见 [P12-01 release artifact](docs/reports/p12-01-release-artifact.md) 与 [P12-03 backup receipt](docs/reports/p12-03-server-backup-rollback.md)。P7 Kiro OAuth 与 P8 Official API-key 的真实外部验证按批准延后。
-- 执行计划：`v1.61`，状态 `Locked for execution`；P12-04 已在独立路径和两个 loopback-only 端口完成 Staging 验收，服务保持 active 但 disabled-at-boot，未改变现有 CPA。P12-05 是唯一 `IN_PROGRESS` Task：CR-012 的一次隔离 Messages 诊断已完整回滚，并确认需先完成一个 P12-only 的响应生命周期修复、重新签名制品和一次新的隔离验证。最新唯一任务和已批准 Change Request 见[详细开发计划](docs/06-development-plan.md)
+- 阶段：P1-P6、P9-P11 与 P12-01 至 P12-09 已完成；P7 Kiro OAuth 与 P8 Official API-key 的真实外部验证按批准延后。生产入口已全量驻留 CPAR，旧 CPA 仅保留在 P12-10 回滚窗口。
+- 执行计划：`v1.157`，状态 `Locked for execution`；P12-10A 至 P12-10E 已完成原生 Grok 账号模型、加密导入边界、既有池调度、持久 refresh/quota worker、Console runtime 与 text-only Web production binding。下一切片为 P12-10F 无明文落盘迁移 adapter；尚未迁移 live grok2api 账号，也未停止 grok2api。最新任务和批准边界见[详细开发计划](docs/06-development-plan.md)。
 - CPA 参考版本：`router-for-me/CLIProxyAPI v7.2.80`
-- Release Candidate：P12-01 已生成并独立验收 revision-bound 私有发布产物和公开 Sigstore 透明日志记录；尚未创建 GitHub Release/tag、推送镜像、登录服务器或部署。P12-02 至 P12-10 继续负责服务配置、备份、Staging、灰度、回滚与 72h Canary
+- Release Candidate：P12-09 已完成生产切换、强制回滚与恢复；P12-10 仍需完成账号迁移、真实 parity、grok2api 停服回滚演练和代表性 72h 观察，之后才能关闭旧服务并发布 Tag。
 - Rust Workspace：21-package 骨架已创建并通过 P0-03 验证
-- 服务器部署：尚未开始
+- 服务器部署：CPAR 已承载生产入口；旧 CPA 与 grok2api 仍处于受控回滚/迁移窗口
 
 ## 文档索引
 

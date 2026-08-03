@@ -1,6 +1,6 @@
 # P12-10 native Grok account pool
 
-Status: `P12-10D_DONE_P12-10E_NEXT`
+Status: `P12-10E_DONE_P12-10F_NEXT`
 
 ## Corrected architecture
 
@@ -67,8 +67,9 @@ single-owner refresh transactions and explicit rollback.
 P12-10A is complete in the [native Grok gap matrix](p12-10a-native-grok-gap-matrix.md). P12-10B is
 complete in the [native account-pool report](p12-10b-native-grok-account-pool.md). P12-10C is
 complete in the [native scheduling report](p12-10c-native-grok-scheduling.md). P12-10D is complete
-in the [native worker report](p12-10d-native-grok-workers.md). P12-10E is the next implementation
-slice.
+in the [native worker report](p12-10d-native-grok-workers.md). P12-10E is complete in the
+[Console/Web runtime report](p12-10e-grok-console-web-runtime.md). P12-10F is the next
+implementation slice.
 
 ## Migration boundary
 
