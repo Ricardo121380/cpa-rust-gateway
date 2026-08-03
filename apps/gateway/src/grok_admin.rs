@@ -13,7 +13,10 @@ use std::{
 };
 
 use crate::deployment;
-use gateway_core::{CanonicalResponse, EgressPolicyId, EndpointId, RequestContext, RequestId};
+use gateway_core::{
+    CanonicalResponse, EgressPolicyId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode,
+    RequestContext, RequestId,
+};
 use gateway_router::{
     ProtocolFormat, RuntimeCredentialAccountStatus, RuntimeHealthRegistry, RuntimeQuotaRegistry,
     project_protocol_response,
@@ -44,6 +47,11 @@ pub(crate) enum GrokAdminError {
     StoreUnavailable,
     ProbeRejected,
     ProbeUnavailable,
+    ProbeGateway {
+        stage: &'static str,
+        code: GatewayErrorCode,
+        scope: ErrorScope,
+    },
     Migration(Grok2ApiMigrationError),
     Rollback(GrokAccountPoolError),
 }
@@ -60,6 +68,12 @@ impl fmt::Display for GrokAdminError {
             Self::StoreUnavailable => "native Grok migration store is unavailable",
             Self::ProbeRejected => "native Grok probe request was rejected",
             Self::ProbeUnavailable => "native Grok probe failed",
+            Self::ProbeGateway { stage, code, scope } => {
+                return write!(
+                    formatter,
+                    "native Grok probe failed: stage={stage} code={code:?} scope={scope:?}"
+                );
+            }
             Self::Migration(error) => {
                 let receipt = error.receipt();
                 return write!(
@@ -265,7 +279,7 @@ async fn execute_probe(
             adapter
                 .execute(context, request)
                 .await
-                .map_err(|_| GrokAdminError::ProbeUnavailable)?
+                .map_err(|error| probe_gateway("start", &error))?
         }
         GrokAccountProvider::Console => {
             let (policy, resolver) = probe_egress("console.x.ai")?;
@@ -282,7 +296,7 @@ async fn execute_probe(
             adapter
                 .execute(context, request)
                 .await
-                .map_err(|_| GrokAdminError::ProbeUnavailable)?
+                .map_err(|error| probe_gateway("start", &error))?
         }
         GrokAccountProvider::Web => return Err(GrokAdminError::ProbeRejected),
     };
@@ -290,11 +304,19 @@ async fn execute_probe(
     while let Some(event) = source
         .next_event()
         .await
-        .map_err(|_| GrokAdminError::ProbeUnavailable)?
+        .map_err(|error| probe_gateway("stream", &error))?
     {
         events.push(event);
     }
     CanonicalResponse::try_new(events).map_err(|_| GrokAdminError::ProbeUnavailable)
+}
+
+fn probe_gateway(stage: &'static str, error: &GatewayError) -> GrokAdminError {
+    GrokAdminError::ProbeGateway {
+        stage,
+        code: error.code(),
+        scope: error.scope(),
+    }
 }
 
 fn probe_egress(host: &str) -> Result<(EgressPolicy, Arc<dyn EgressDnsResolver>), GrokAdminError> {
