@@ -46,7 +46,7 @@ libc = { version = "0.2.182", default-features = false }
 moka = { version = "0.12.11", default-features = false, features = ["sync"] }
 opentelemetry = { version = "0.32.0", default-features = false, features = ["trace"] }
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
-reqwest = { version = "0.12.28", default-features = false, features = ["http2", "native-tls", "socks"] }
+reqwest = { version = "0.12.28", default-features = false, features = ["http2", "rustls-tls-native-roots", "socks"] }
 rusqlite = { version = "0.40.1", default-features = false, features = ["backup", "bundled"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.150", features = ["raw_value"] }
@@ -59,6 +59,8 @@ tracing = { version = "0.1.44", default-features = false, features = ["std"] }
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "json"] }
 url = { version = "2.5.8", default-features = false }
 zeroize = { version = "1.8.2", default-features = false, features = ["alloc"] }
+wreq = { version = "=6.0.0-rc.29", default-features = false, features = ["stream", "tokio-rt", "socks"] }
+wreq-util = { version = "=3.0.0-rc.14", default-features = false, features = ["emulation"] }
 
 [workspace.lints.rust]
 unsafe_code = "deny"

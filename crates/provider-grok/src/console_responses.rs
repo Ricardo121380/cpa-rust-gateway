@@ -653,7 +653,7 @@ impl GrokConsoleUpstreamTransport {
             egress_policy,
             resolver,
             client_pool,
-            profile,
+            profile: profile.with_chrome_146_emulation(),
         }
     }
 }

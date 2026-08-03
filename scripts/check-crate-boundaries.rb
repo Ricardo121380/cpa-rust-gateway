@@ -17,7 +17,7 @@ allowed = {
   # data-plane adapter and its immutable RouteSnapshot, encrypted Credential-pool, direct egress,
   # protocol, and JSON dependencies here only; lower-layer rules still prevent them from flowing
   # back into library crates.
-  "gateway" => %w[actix-web futures-util gateway-auth gateway-catalog gateway-control gateway-core gateway-http-actix gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream libc protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-grok provider-kiro provider-openai-compatible serde_json zeroize],
+  "gateway" => %w[actix-web futures-util gateway-auth gateway-catalog gateway-control gateway-core gateway-http-actix gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream libc protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-grok provider-kiro provider-openai-compatible serde serde_json zeroize],
   "gateway-auth" => %w[gateway-core getrandom hmac libc sha2 subtle zeroize],
   "gateway-catalog" => %w[gateway-core gateway-provider tokio],
   "gateway-control" => %w[gateway-auth gateway-catalog gateway-core gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream serde_json zeroize],
@@ -35,7 +35,9 @@ allowed = {
   "gateway-router" => %w[arc-swap gateway-auth gateway-catalog gateway-core gateway-protocol gateway-provider gateway-upstream proptest protocol-anthropic protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-openai-compatible serde_json tokio],
   "gateway-store" => %w[chacha20poly1305 gateway-core gateway-observability getrandom libc rusqlite serde_json sha2 tokio zeroize],
   "gateway-stream" => %w[gateway-core gateway-protocol proptest tokio tokio-util],
-  "gateway-upstream" => %w[bytes gateway-auth gateway-core gateway-provider moka reqwest tokio url zeroize],
+  # Browser emulation is isolated in the transport leaf. Providers select the bounded profile,
+  # while routing and protocol crates remain independent of both HTTP client implementations.
+  "gateway-upstream" => %w[bytes futures-util gateway-auth gateway-core gateway-provider moka reqwest tokio url wreq wreq-util zeroize],
   "protocol-anthropic" => %w[gateway-core gateway-protocol proptest serde serde_json],
   "protocol-openai-chat" => %w[gateway-core proptest serde serde_json],
   "protocol-openai-responses" => %w[gateway-core gateway-protocol proptest serde serde_json],

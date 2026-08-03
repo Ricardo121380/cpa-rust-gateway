@@ -47,7 +47,7 @@ jobs:
       - name: Install build prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install --yes nodejs npm ripgrep
+          sudo apt-get install --yes clang cmake libclang-dev nodejs npm ripgrep
       - name: Install locked Rust toolchain
         run: rustup toolchain install 1.97.1 --profile minimal
       - name: Restore pinned quality-tool cache

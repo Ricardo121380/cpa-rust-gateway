@@ -13,11 +13,13 @@ use std::{
     hash::Hash,
     net::{IpAddr, SocketAddr},
     num::NonZeroUsize,
+    pin::Pin,
     sync::Arc,
     time::Duration,
 };
 
 use bytes::Bytes;
+use futures_util::{Stream, StreamExt};
 use gateway_core::{ErrorScope, GatewayError, GatewayErrorCode};
 use moka::sync::Cache;
 use reqwest::{
@@ -28,6 +30,7 @@ use reqwest::{
 };
 use tokio::time::{self, Instant};
 use url::Url;
+use wreq_util::Emulation;
 
 use crate::{AdmittedEgressTarget, EgressHost};
 
@@ -327,6 +330,13 @@ pub struct UpstreamTransportProfile {
     timeouts: UpstreamTimeouts,
     proxy: UpstreamProxy,
     maximum_idle_connections_per_host: NonZeroUsize,
+    browser_emulation: BrowserEmulation,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+enum BrowserEmulation {
+    Standard,
+    Chrome146,
 }
 
 impl UpstreamTransportProfile {
@@ -341,7 +351,18 @@ impl UpstreamTransportProfile {
             timeouts,
             proxy,
             maximum_idle_connections_per_host,
+            browser_emulation: BrowserEmulation::Standard,
         }
+    }
+
+    /// Returns an isolated copy that uses the Chrome 146 TLS and HTTP/2 fingerprint.
+    ///
+    /// This is reserved for browser-backed providers whose authenticated request profile includes
+    /// matching Chrome headers. Ordinary API transports continue using the standard client.
+    #[must_use]
+    pub const fn with_chrome_146_emulation(mut self) -> Self {
+        self.browser_emulation = BrowserEmulation::Chrome146;
+        self
     }
 
     /// Returns the immutable timeout profile.
@@ -373,6 +394,7 @@ impl fmt::Debug for UpstreamTransportProfile {
                 "maximum_idle_connections_per_host",
                 &self.maximum_idle_connections_per_host,
             )
+            .field("browser_emulation", &self.browser_emulation)
             .finish()
     }
 }
@@ -384,7 +406,7 @@ impl fmt::Debug for UpstreamTransportProfile {
 /// answer from reusing a connection created for another transport identity.
 #[derive(Clone)]
 pub struct UpstreamClientPool {
-    clients: Cache<ClientPoolKey, Arc<Client>>,
+    clients: Cache<ClientPoolKey, Arc<TransportClient>>,
     maximum_cached_clients: NonZeroUsize,
 }
 
@@ -418,16 +440,40 @@ impl UpstreamClientPool {
             .ok_or_else(internal_error)?;
         let client = self.client_for(request.target(), profile)?;
         let first_byte_budget = remaining_budget(deadline)?.min(profile.timeouts().ttfb());
-        let response =
-            time::timeout(first_byte_budget, client.execute(request.into_reqwest())).await;
-        let response = match response {
-            Err(_) | Ok(Err(_)) => return Err(egress_unavailable_error()),
-            Ok(Ok(response)) => response,
+        let (status, headers, response) = match client.as_ref() {
+            TransportClient::Standard(client) => {
+                let response =
+                    time::timeout(first_byte_budget, client.execute(request.into_reqwest())).await;
+                let response = match response {
+                    Err(_) | Ok(Err(_)) => return Err(egress_unavailable_error()),
+                    Ok(Ok(response)) => response,
+                };
+                (
+                    response.status().as_u16(),
+                    response.headers().clone(),
+                    RawUpstreamResponse::Standard(response),
+                )
+            }
+            TransportClient::Chrome146(client) => {
+                let request = request.into_wreq()?;
+                let response = time::timeout(first_byte_budget, client.execute(request)).await;
+                let response = match response {
+                    Err(_) | Ok(Err(_)) => return Err(egress_unavailable_error()),
+                    Ok(Ok(response)) => response,
+                };
+                let status = response.status().as_u16();
+                let headers = response.headers().clone();
+                (
+                    status,
+                    headers,
+                    RawUpstreamResponse::Chrome146(Box::pin(response.bytes_stream())),
+                )
+            }
         };
 
         Ok(UpstreamHttpResponse {
-            status: response.status().as_u16(),
-            headers: response.headers().clone(),
+            status,
+            headers,
             response,
             deadline,
             idle_timeout: profile.timeouts().idle(),
@@ -439,15 +485,25 @@ impl UpstreamClientPool {
         &self,
         target: &AdmittedEgressTarget,
         profile: &UpstreamTransportProfile,
-    ) -> Result<Arc<Client>, GatewayError> {
+    ) -> Result<Arc<TransportClient>, GatewayError> {
         let key = ClientPoolKey::new(target, profile);
         if let Some(client) = self.clients.get(&key) {
             return Ok(client);
         }
 
-        let built = Arc::new(build_client(target, profile)?);
+        let built = Arc::new(match profile.browser_emulation {
+            BrowserEmulation::Standard => TransportClient::Standard(build_client(target, profile)?),
+            BrowserEmulation::Chrome146 => {
+                TransportClient::Chrome146(build_chrome_146_client(target, profile)?)
+            }
+        });
         Ok(self.clients.get_with(key, || built))
     }
+}
+
+enum TransportClient {
+    Standard(Client),
+    Chrome146(wreq::Client),
 }
 
 impl fmt::Debug for UpstreamClientPool {
@@ -510,6 +566,35 @@ fn build_client(
         builder = builder.proxy(proxy);
     }
 
+    builder.build().map_err(|_| egress_unavailable_error())
+}
+
+fn build_chrome_146_client(
+    target: &AdmittedEgressTarget,
+    profile: &UpstreamTransportProfile,
+) -> Result<wreq::Client, GatewayError> {
+    let addresses = target
+        .resolved_addresses()
+        .iter()
+        .map(|address| SocketAddr::new(*address, 0))
+        .collect::<Vec<_>>();
+    let mut builder = wreq::Client::builder()
+        .emulation(Emulation::Chrome146)
+        .no_proxy()
+        .redirect(wreq::redirect::Policy::none())
+        .connect_timeout(profile.timeouts().connect())
+        .read_timeout(profile.timeouts().idle())
+        .timeout(profile.timeouts().total())
+        .pool_idle_timeout(profile.timeouts().idle())
+        .pool_max_idle_per_host(profile.maximum_idle_connections_per_host().get());
+
+    if matches!(target.host(), EgressHost::Domain(_)) {
+        builder = builder.resolve_to_addrs(target.host().as_str(), addresses);
+    }
+    if let Some(proxy_url) = profile.proxy().proxy_url() {
+        let proxy = wreq::Proxy::all(proxy_url).map_err(|_| egress_unavailable_error())?;
+        builder = builder.proxy(proxy);
+    }
     builder.build().map_err(|_| egress_unavailable_error())
 }
 
@@ -613,6 +698,19 @@ impl UpstreamHttpRequest {
         *request.body_mut() = Some(self.body.into());
         request
     }
+
+    fn into_wreq(self) -> Result<wreq::Request, GatewayError> {
+        let uri = self
+            .target
+            .request_url()
+            .as_str()
+            .parse::<wreq::Uri>()
+            .map_err(|_| internal_error())?;
+        let mut request = wreq::Request::new(self.method.as_reqwest(), uri);
+        *request.headers_mut() = self.headers;
+        *request.body_mut() = Some(self.body.into());
+        Ok(request)
+    }
 }
 
 impl fmt::Debug for UpstreamHttpRequest {
@@ -701,10 +799,18 @@ impl Error for UpstreamHttpRequestError {}
 pub struct UpstreamHttpResponse {
     status: u16,
     headers: HeaderMap,
-    response: reqwest::Response,
+    response: RawUpstreamResponse,
     deadline: Instant,
     idle_timeout: Duration,
     terminal_failure: bool,
+}
+
+type ChromeResponseStream =
+    Pin<Box<dyn Stream<Item = Result<Bytes, wreq::Error>> + Send + Sync + 'static>>;
+
+enum RawUpstreamResponse {
+    Standard(reqwest::Response),
+    Chrome146(ChromeResponseStream),
 }
 
 impl UpstreamHttpResponse {
@@ -750,8 +856,16 @@ impl UpstreamHttpResponse {
             }
         };
         let read_budget = remaining.min(self.idle_timeout);
-        match time::timeout(read_budget, self.response.chunk()).await {
-            Err(_) | Ok(Err(_)) => {
+        let next = async {
+            match &mut self.response {
+                RawUpstreamResponse::Standard(response) => response.chunk().await.map_err(|_| ()),
+                RawUpstreamResponse::Chrome146(response) => {
+                    response.next().await.transpose().map_err(|_| ())
+                }
+            }
+        };
+        match time::timeout(read_budget, next).await {
+            Err(_) | Ok(Err(())) => {
                 self.terminal_failure = true;
                 Err(egress_unavailable_error())
             }
@@ -1138,6 +1252,33 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn chrome_146_profile_uses_an_isolated_dns_pinned_client() -> Result<(), Box<dyn Error>> {
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let port = listener.local_addr()?.port();
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await?;
+            read_headers(&mut socket).await?;
+            socket
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok")
+                .await?;
+            socket.flush().await
+        });
+
+        let pool = pool()?;
+        let profile =
+            profile(regular_timeouts()?, UpstreamProxy::Direct)?.with_chrome_146_emulation();
+        let mut response = pool
+            .send(request(admitted_target(port)?)?, &profile)
+            .await?;
+        assert_eq!(body_bytes(&mut response).await?, b"ok");
+        server.await??;
+        pool.clients.run_pending_tasks();
+        assert_eq!(pool.clients.entry_count(), 1);
+        assert!(format!("{profile:?}").contains("Chrome146"));
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn automatic_redirects_are_exposed_without_a_second_dispatch()
     -> Result<(), Box<dyn Error>> {
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
@@ -1308,17 +1449,17 @@ mod tests {
             for byte in *b"abcd" {
                 socket.write_all(&[byte]).await?;
                 socket.flush().await?;
-                time::sleep(Duration::from_millis(220)).await;
+                time::sleep(Duration::from_millis(700)).await;
             }
             Ok::<(), io::Error>(())
         });
         let pool = pool()?;
         let total_profile = profile(
             UpstreamTimeouts::try_new(
-                Duration::from_millis(500),
-                Duration::from_millis(500),
-                Duration::from_millis(500),
-                Duration::from_millis(600),
+                Duration::from_millis(1_500),
+                Duration::from_millis(1_500),
+                Duration::from_millis(1_500),
+                Duration::from_secs(2),
             )?,
             UpstreamProxy::Direct,
         )?;
