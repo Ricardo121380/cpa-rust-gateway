@@ -3,6 +3,7 @@
 #![deny(unsafe_code)]
 
 mod account_pool;
+mod account_worker;
 mod build_responses;
 mod continuity_state;
 mod credential_runtime;
@@ -31,6 +32,12 @@ pub use account_pool::{
     GrokAccountImport, GrokAccountImportOutcome, GrokAccountMetadata, GrokAccountPoolError,
     GrokAccountPoolStore, GrokAccountProvider, GrokAccountRollbackOutcome,
     GrokNativeAccountCompileError, GrokNativeAccountPoolCompilation,
+};
+pub use account_worker::{
+    GrokAccountQuotaConfidence, GrokAccountQuotaScope, GrokAccountQuotaSource,
+    GrokAccountQuotaWindow, GrokAccountWorkerCoordinator, GrokAccountWorkerError,
+    GrokAccountWorkerExecutor, GrokAccountWorkerJob, GrokAccountWorkerKind,
+    GrokAccountWorkerResult, GrokAccountWorkerRunSummary, deterministic_refresh_due_at,
 };
 pub use build_responses::{
     GROK_BUILD_AGENT_ID_HEADER, GROK_BUILD_AUTHENTICATE_RESPONSE_HEADER,

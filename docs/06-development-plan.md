@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.155` |
+| 计划版本 | `v1.156` |
 | 生效日期 | `2026-08-03` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-10C `DONE`，P12-10D 为下一实现切片。原生 Grok 账号已在同一 store snapshot 下解密并编译为既有 `EndpointCredentialPools`，高优先级/权重/并发、disabled/reauth/cooldown、精确 Health/Quota/model block、controlled recovery 与数据库 reopen 均通过；没有第二套 scheduler。尚未读取或迁移 live grok2api 账号、未改变生产图或服务。下一步实现有界主动 credential/quota worker 和 durable outcome。CC Switch 仍不读取、不修改。 |
+| 当前任务 | P12-10D `DONE`，P12-10E 为下一实现切片。schema v11 已加入 refresh/quota due、失败计数、跨 worker 单账号 durable claim 和原子 quota window；有界 coordinator、5–8 分钟确定性 refresh jitter、revision CAS、持久 backoff/reauth、claim-expiry crash recovery 与 restart quota bootstrap 均通过。Provider 网络操作仍为注入边界，尚未读取或迁移 live grok2api 账号、未改变生产图或服务。下一步实现原生 Grok Console runtime 与 Web production binding。CC Switch 仍不读取、不修改。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -1782,7 +1782,7 @@ CR-ID: CR-P11-04-001
 | P12-10A | 冻结 grok2api `v3.0.10` 行为与 CPAR gap/mapping | [native Grok gap matrix](reports/p12-10a-native-grok-gap-matrix.md)：精确 revision、账号/调度/刷新/额度/Console/migration 映射和七项 invariant | DONE |
 | P12-10B | 原生 Grok account aggregate、加密批量导入边界与 schema | [native account-pool report](reports/p12-10b-native-grok-account-pool.md)：Build/Web/Console 独立身份、CPAR 密文、显式 link、redacted CRUD、migration up/down、幂等原子 import/rollback | DONE |
 | P12-10C | 将 native accounts 组成到既有 credential pools | [native scheduling report](reports/p12-10c-native-grok-scheduling.md)：权重/并发/饱和、Health/Quota/model block、exclusion/recovery 和 restart 回归 | DONE |
-| P12-10D | 主动 credential/quota worker | jitter、singleflight/CAS、bounded concurrency、backoff/reauth、crash recovery | PENDING |
+| P12-10D | 主动 credential/quota worker | [native worker report](reports/p12-10d-native-grok-workers.md)：jitter、singleflight/CAS、bounded concurrency、backoff/reauth、crash recovery 与 quota restart bootstrap | DONE |
 | P12-10E | Grok Console runtime 与 Web production binding | target/header/request/JSON/SSE/Tool/Usage/error fixture；三协议矩阵 | PENDING |
 | P12-10F | grok2api -> CPAR 无明文落盘迁移 adapter | root-only pipe、计数 receipt、事务回滚、重复导入幂等 | PENDING |
 | P12-10G | live subset、全池 parity 与 rollback | account attribution、quota/cooldown、三协议真实 E2E、旧池不删 | PENDING |
@@ -3602,3 +3602,4 @@ Next task:
 | v1.153 | 2026-08-03 | 完成 P12-10A：将 grok2api `v3.0.10` 精确 commit 的 Provider/account aggregate/layered selector/refresh/quota/Console/migration 行为映射到 CPAR；决定复用既有 credential pool、Health/Quota、CAS refresh 与 Canonical layers，不移植第二套 scheduler；冻结七项原生池 invariant | P12-10A `DONE`；P12-10B 为下一切片，生产/账号/grok2api 均不改变 |
 | v1.154 | 2026-08-03 | 完成 P12-10B：schema v10 新增 Build/Web/Console provider-isolated 原生账号、CPAR AEAD credential、auth/priority/weight/concurrency/refresh/cooldown/revision metadata、显式 link 和 reversible import batch；实现 bounded zeroizing import、provider-scoped identity digest、原子冲突回滚、跨批次幂等、redacted list、exact credential open 与 wrong-key fail-closed；同步修正 P11-07 一版回退应保留 v9 audit 的预期 | P12-10B `DONE`；未读取/迁移 live 账号且生产/grok2api 不变，P12-10C 下一步复用既有 scheduler/Health/Quota |
 | v1.155 | 2026-08-03 | 完成 P12-10C：原生账号按显式 Provider->Endpoint binding 在同一 store snapshot 下解封并一次性编译为标准 `EndpointCredentialPools`；native 高优先级单调映射到既有低值优先域，原样保留 weight/concurrency；disabled 不入池，reauth 与未过期 cooldown 引导到共享 Health；既有 scheduler 直接执行 exact binding/model Health、Quota、sibling isolation 和 controlled recovery。Review 修复了读行后提前释放 store 锁可能与 rollback 交错的中间实现 | P12-10C `DONE`；6 项新调度/重启/负向回归和 P12-10B 回归通过，生产/live 账号/grok2api 均不改变；P12-10D 下一步 |
+| v1.156 | 2026-08-03 | 完成 P12-10D：schema v11 持久化 refresh/quota due、失败计数、共享 per-account claim 和 account/model quota windows；有界 coordinator 以跨 kind singleflight claim 执行注入的 provider control operation，refresh 以 revision/claim CAS 加密替换 credential 并应用确定性 5–8 分钟提前 jitter，transient/reauth 结果持久 backoff 或停止重试，过期 claim 可在 reopen 后恢复；quota 全量替换原子提交并在 snapshot compile 后恢复到精确既有 RuntimeQuota target | P12-10D `DONE`；7 项 worker/CAS/crash/quota/并发回归、store migration/rollback、provider 全回归与 strict Clippy 通过；生产/live 账号/grok2api 均不改变，P12-10E 下一步 |

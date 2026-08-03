@@ -458,6 +458,7 @@ fn account(
         weight,
         max_concurrency: concurrency,
         refresh_due_at_ms: Some(NOW_MS + 1_000),
+        quota_sync_due_at_ms: Some(NOW_MS + 2_000),
         cooldown_until_ms,
     })
 }

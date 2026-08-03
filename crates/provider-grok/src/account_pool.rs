@@ -13,7 +13,10 @@ use std::{
 };
 
 use gateway_core::{CredentialId, EndpointId};
-use gateway_router::{RuntimeHealthError, RuntimeHealthRegistry};
+use gateway_router::{
+    QuotaConfidence, QuotaSnapshot, QuotaSource, QuotaWindow, RuntimeHealthError,
+    RuntimeHealthRegistry, RuntimeQuotaRegistry, RuntimeQuotaTarget,
+};
 use gateway_store::{
     migrate,
     secret_store::{EncryptedSecret, KeyVersion, PlaintextSecret, SecretStore},
@@ -45,7 +48,7 @@ pub enum GrokAccountProvider {
 }
 
 impl GrokAccountProvider {
-    const fn as_str(self) -> &'static str {
+    pub(crate) const fn as_str(self) -> &'static str {
         match self {
             Self::Build => "build",
             Self::Web => "web",
@@ -53,7 +56,7 @@ impl GrokAccountProvider {
         }
     }
 
-    fn parse(value: &str) -> Result<Self, GrokAccountPoolError> {
+    pub(crate) fn parse(value: &str) -> Result<Self, GrokAccountPoolError> {
         match value {
             "build" => Ok(Self::Build),
             "web" => Ok(Self::Web),
@@ -151,6 +154,10 @@ impl GrokAccountCredential {
         }
         Ok(Self(value.to_vec()))
     }
+
+    pub(crate) fn as_bytes(&self) -> &[u8] {
+        &self.0
+    }
 }
 
 impl fmt::Debug for GrokAccountCredential {
@@ -190,6 +197,8 @@ pub struct GrokAccountImport {
     pub max_concurrency: u32,
     /// Optional proactive-refresh deadline.
     pub refresh_due_at_ms: Option<i64>,
+    /// Optional proactive quota synchronization deadline.
+    pub quota_sync_due_at_ms: Option<i64>,
     /// Optional account-local cooldown deadline.
     pub cooldown_until_ms: Option<i64>,
 }
@@ -200,6 +209,7 @@ impl GrokAccountImport {
             || !(1..=10_000).contains(&self.weight)
             || !(1..=10_000).contains(&self.max_concurrency)
             || self.refresh_due_at_ms.is_some_and(|value| value < 0)
+            || self.quota_sync_due_at_ms.is_some_and(|value| value < 0)
             || self.cooldown_until_ms.is_some_and(|value| value < 0)
         {
             return Err(GrokAccountPoolError::InvalidSchedulingMetadata);
@@ -227,6 +237,8 @@ pub struct GrokAccountMetadata {
     pub max_concurrency: u32,
     /// Proactive refresh deadline, when known.
     pub refresh_due_at_ms: Option<i64>,
+    /// Proactive quota synchronization deadline, when known.
+    pub quota_sync_due_at_ms: Option<i64>,
     /// Account-local cooldown deadline, when active.
     pub cooldown_until_ms: Option<i64>,
     /// Monotonic credential revision.
@@ -270,6 +282,7 @@ pub struct GrokNativeAccountPoolCompilation {
     credential_pools: Arc<EndpointCredentialPools>,
     providers_by_credential: BTreeMap<CredentialId, GrokAccountProvider>,
     health_bootstrap: Vec<GrokRuntimeHealthBootstrap>,
+    quota_bootstrap: Vec<QuotaSnapshot>,
 }
 
 impl GrokNativeAccountPoolCompilation {
@@ -333,6 +346,21 @@ impl GrokNativeAccountPoolCompilation {
         }
         Ok(())
     }
+
+    /// Restores durable account/model quota snapshots into the shared runtime Quota registry.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe runtime Quota error when an exact target cannot be retained.
+    pub fn seed_runtime_quota(
+        &self,
+        runtime_quota: &RuntimeQuotaRegistry,
+    ) -> Result<(), gateway_router::RuntimeQuotaError> {
+        for snapshot in &self.quota_bootstrap {
+            runtime_quota.record_snapshot(snapshot.clone())?;
+        }
+        Ok(())
+    }
 }
 
 impl fmt::Debug for GrokNativeAccountPoolCompilation {
@@ -342,6 +370,7 @@ impl fmt::Debug for GrokNativeAccountPoolCompilation {
             .field("credential_pools", &self.credential_pools)
             .field("account_count", &self.providers_by_credential.len())
             .field("health_bootstrap_count", &self.health_bootstrap.len())
+            .field("quota_bootstrap_count", &self.quota_bootstrap.len())
             .finish()
     }
 }
@@ -474,8 +503,8 @@ impl Error for GrokAccountPoolError {}
 
 /// SQLite-backed native Grok account aggregate.
 pub struct GrokAccountPoolStore {
-    connection: Mutex<Connection>,
-    secret_store: SecretStore,
+    pub(crate) connection: Mutex<Connection>,
+    pub(crate) secret_store: SecretStore,
 }
 
 impl GrokAccountPoolStore {
@@ -650,7 +679,8 @@ impl GrokAccountPoolStore {
         let mut statement = connection
             .prepare(
                 "SELECT id, provider, auth_status, enabled, priority, weight, max_concurrency, \
-                        refresh_due_at_ms, cooldown_until_ms, revision, import_batch_id \
+                        refresh_due_at_ms, quota_sync_due_at_ms, cooldown_until_ms, revision, \
+                        import_batch_id \
                  FROM grok_accounts ORDER BY provider, id",
             )
             .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
@@ -699,6 +729,7 @@ impl GrokAccountPoolStore {
         let mut inputs_by_endpoint: BTreeMap<EndpointId, Vec<EndpointCredentialInput>> =
             BTreeMap::new();
         let mut providers_by_credential = BTreeMap::new();
+        let mut runtime_bindings_by_account = BTreeMap::new();
         let mut health_bootstrap = Vec::new();
         let connection = self
             .connection
@@ -726,6 +757,7 @@ impl GrokAccountPoolStore {
                     .map_err(|_| GrokAccountPoolError::InvalidPersistedState)?,
             };
             let plaintext = open_persisted_credential(&self.secret_store, &persisted)?;
+            let account_id = row.id.clone();
             let credential_id = CredentialId::try_new(row.id)
                 .map_err(|_| GrokAccountPoolError::InvalidPersistedState)?;
             let priority = 1_000_i64
@@ -746,6 +778,8 @@ impl GrokAccountPoolStore {
             {
                 return Err(GrokAccountPoolError::InvalidPersistedState.into());
             }
+            runtime_bindings_by_account
+                .insert(account_id, (endpoint_id.clone(), credential_id.clone()));
             if auth_status == GrokAccountAuthStatus::ReauthRequired {
                 health_bootstrap.push(GrokRuntimeHealthBootstrap::Unauthorized {
                     endpoint_id: endpoint_id.clone(),
@@ -766,6 +800,7 @@ impl GrokAccountPoolStore {
                 .or_default()
                 .push(input);
         }
+        let quota_bootstrap = load_quota_bootstrap(&connection, &runtime_bindings_by_account)?;
         drop(connection);
         let pools = inputs_by_endpoint
             .into_iter()
@@ -775,6 +810,7 @@ impl GrokAccountPoolStore {
             credential_pools: Arc::new(EndpointCredentialPools::try_new(pools)?),
             providers_by_credential,
             health_bootstrap,
+            quota_bootstrap,
         })
     }
 
@@ -858,6 +894,7 @@ impl GrokAccountPoolStore {
                 && existing.weight == entry.weight
                 && existing.max_concurrency == entry.max_concurrency
                 && existing.refresh_due_at_ms == entry.refresh_due_at_ms
+                && existing.quota_sync_due_at_ms == entry.quota_sync_due_at_ms
                 && existing.cooldown_until_ms == entry.cooldown_until_ms;
             return if credential_matches && metadata_matches {
                 Ok(ImportOneOutcome::Unchanged)
@@ -878,10 +915,10 @@ impl GrokAccountPoolStore {
                     id, provider, identity_digest, credential_ciphertext, credential_key_version, \
                     auth_status, enabled, priority, weight, max_concurrency, refresh_due_at_ms, \
                     last_refresh_at_ms, refresh_failure_count, cooldown_until_ms, revision, \
-                    import_batch_id, created_at_ms, updated_at_ms\
+                    import_batch_id, created_at_ms, updated_at_ms, quota_sync_due_at_ms\
                  ) VALUES (\
                     ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, \
-                    NULL, 0, ?12, 0, ?13, ?14, ?14\
+                    NULL, 0, ?12, 0, ?13, ?14, ?14, ?15\
                  )",
                 params![
                     account_id,
@@ -898,6 +935,7 @@ impl GrokAccountPoolStore {
                     entry.cooldown_until_ms,
                     batch_id,
                     observed_at_ms,
+                    entry.quota_sync_due_at_ms,
                 ],
             )
             .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
@@ -918,6 +956,7 @@ struct ExistingAccount {
     weight: u32,
     max_concurrency: u32,
     refresh_due_at_ms: Option<i64>,
+    quota_sync_due_at_ms: Option<i64>,
     cooldown_until_ms: Option<i64>,
 }
 
@@ -941,6 +980,26 @@ struct NativeRuntimeAccountRow {
     max_concurrency: i64,
     cooldown_until_ms: Option<i64>,
     revision: i64,
+}
+
+struct PersistedQuotaRow {
+    account_id: String,
+    scope_kind: String,
+    model_label: String,
+    window_label: String,
+    limit: Option<i64>,
+    remaining: Option<i64>,
+    reset_at_ms: Option<i64>,
+    source: String,
+    confidence: String,
+    observed_at_ms: i64,
+}
+
+struct QuotaBootstrapGroup {
+    source: QuotaSource,
+    confidence: QuotaConfidence,
+    observed_at_ms: i64,
+    windows: Vec<QuotaWindow>,
 }
 
 fn load_native_runtime_rows(
@@ -976,6 +1035,118 @@ fn load_native_runtime_rows(
         .map_err(|_| GrokAccountPoolError::StoreUnavailable)
 }
 
+fn load_quota_bootstrap(
+    connection: &Connection,
+    runtime_bindings: &BTreeMap<String, (EndpointId, CredentialId)>,
+) -> Result<Vec<QuotaSnapshot>, GrokAccountPoolError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT account_id, scope_kind, model_label, window_label, quota_limit, \
+                    quota_remaining, reset_at_ms, source, confidence, observed_at_ms \
+             FROM grok_account_quota_windows \
+             ORDER BY account_id, scope_kind, model_label, window_label",
+        )
+        .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok(PersistedQuotaRow {
+                account_id: row.get(0)?,
+                scope_kind: row.get(1)?,
+                model_label: row.get(2)?,
+                window_label: row.get(3)?,
+                limit: row.get(4)?,
+                remaining: row.get(5)?,
+                reset_at_ms: row.get(6)?,
+                source: row.get(7)?,
+                confidence: row.get(8)?,
+                observed_at_ms: row.get(9)?,
+            })
+        })
+        .map_err(|_| GrokAccountPoolError::StoreUnavailable)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+    let mut groups: BTreeMap<RuntimeQuotaTarget, QuotaBootstrapGroup> = BTreeMap::new();
+    for row in rows {
+        let Some((endpoint_id, credential_id)) = runtime_bindings.get(&row.account_id) else {
+            continue;
+        };
+        let target = match row.scope_kind.as_str() {
+            "account" if row.model_label.is_empty() => {
+                RuntimeQuotaTarget::endpoint_credential(endpoint_id.clone(), credential_id.clone())
+            }
+            "model" if !row.model_label.is_empty() => {
+                RuntimeQuotaTarget::endpoint_credential_model(
+                    endpoint_id.clone(),
+                    credential_id.clone(),
+                    row.model_label,
+                )
+                .map_err(|_| GrokAccountPoolError::InvalidPersistedState)?
+            }
+            _ => return Err(GrokAccountPoolError::InvalidPersistedState),
+        };
+        let source = parse_quota_source(&row.source)?;
+        let confidence = parse_quota_confidence(&row.confidence)?;
+        let window = QuotaWindow::try_new(
+            row.window_label,
+            optional_i64_to_u64(row.limit)?,
+            optional_i64_to_u64(row.remaining)?,
+            row.reset_at_ms,
+        )
+        .map_err(|_| GrokAccountPoolError::InvalidPersistedState)?;
+        let group = groups.entry(target).or_insert_with(|| QuotaBootstrapGroup {
+            source,
+            confidence,
+            observed_at_ms: row.observed_at_ms,
+            windows: Vec::new(),
+        });
+        if group.source != source
+            || group.confidence != confidence
+            || group.observed_at_ms != row.observed_at_ms
+        {
+            return Err(GrokAccountPoolError::InvalidPersistedState);
+        }
+        group.windows.push(window);
+    }
+    groups
+        .into_iter()
+        .map(|(target, group)| {
+            QuotaSnapshot::try_new(
+                target,
+                group.windows,
+                group.source,
+                group.confidence,
+                group.observed_at_ms,
+            )
+            .map_err(|_| GrokAccountPoolError::InvalidPersistedState)
+        })
+        .collect()
+}
+
+fn parse_quota_source(value: &str) -> Result<QuotaSource, GrokAccountPoolError> {
+    match value {
+        "billing" => Ok(QuotaSource::Billing),
+        "rest" => Ok(QuotaSource::Rest),
+        "grpc" => Ok(QuotaSource::Grpc),
+        "estimated" => Ok(QuotaSource::Estimated),
+        _ => Err(GrokAccountPoolError::InvalidPersistedState),
+    }
+}
+
+fn parse_quota_confidence(value: &str) -> Result<QuotaConfidence, GrokAccountPoolError> {
+    match value {
+        "authoritative" => Ok(QuotaConfidence::Authoritative),
+        "observed" => Ok(QuotaConfidence::Observed),
+        "estimated" => Ok(QuotaConfidence::Estimated),
+        _ => Err(GrokAccountPoolError::InvalidPersistedState),
+    }
+}
+
+fn optional_i64_to_u64(value: Option<i64>) -> Result<Option<u64>, GrokAccountPoolError> {
+    value
+        .map(|value| u64::try_from(value).map_err(|_| GrokAccountPoolError::InvalidPersistedState))
+        .transpose()
+}
+
 fn load_existing_by_identity(
     transaction: &Transaction<'_>,
     provider: GrokAccountProvider,
@@ -984,7 +1155,8 @@ fn load_existing_by_identity(
     transaction
         .query_row(
             "SELECT credential_ciphertext, credential_key_version, auth_status, enabled, \
-                    priority, weight, max_concurrency, refresh_due_at_ms, cooldown_until_ms \
+                    priority, weight, max_concurrency, refresh_due_at_ms, quota_sync_due_at_ms, \
+                    cooldown_until_ms \
              FROM grok_accounts WHERE provider = ?1 AND identity_digest = ?2",
             params![provider.as_str(), identity_digest.as_slice()],
             |row| {
@@ -1001,6 +1173,7 @@ fn load_existing_by_identity(
                     max_concurrency,
                     row.get::<_, Option<i64>>(7)?,
                     row.get::<_, Option<i64>>(8)?,
+                    row.get::<_, Option<i64>>(9)?,
                 ))
             },
         )
@@ -1016,6 +1189,7 @@ fn load_existing_by_identity(
                 weight,
                 max_concurrency,
                 refresh_due,
+                quota_sync_due,
                 cooldown_until,
             )| {
                 Ok(ExistingAccount {
@@ -1034,6 +1208,7 @@ fn load_existing_by_identity(
                     max_concurrency: u32::try_from(max_concurrency)
                         .map_err(|_| GrokAccountPoolError::InvalidPersistedState)?,
                     refresh_due_at_ms: refresh_due,
+                    quota_sync_due_at_ms: quota_sync_due,
                     cooldown_until_ms: cooldown_until,
                 })
             },
@@ -1096,7 +1271,7 @@ fn decode_metadata(row: &rusqlite::Row<'_>) -> rusqlite::Result<GrokAccountMetad
     let enabled = row.get::<_, i64>(3)?;
     let weight = row.get::<_, i64>(5)?;
     let max_concurrency = row.get::<_, i64>(6)?;
-    let revision = row.get::<_, i64>(9)?;
+    let revision = row.get::<_, i64>(10)?;
     Ok(GrokAccountMetadata {
         id: row.get(0)?,
         provider: GrokAccountProvider::parse(&provider).map_err(|_| {
@@ -1121,10 +1296,11 @@ fn decode_metadata(row: &rusqlite::Row<'_>) -> rusqlite::Result<GrokAccountMetad
         max_concurrency: u32::try_from(max_concurrency)
             .map_err(|_| rusqlite::Error::IntegralValueOutOfRange(6, max_concurrency))?,
         refresh_due_at_ms: row.get(7)?,
-        cooldown_until_ms: row.get(8)?,
+        quota_sync_due_at_ms: row.get(8)?,
+        cooldown_until_ms: row.get(9)?,
         revision: u64::try_from(revision)
-            .map_err(|_| rusqlite::Error::IntegralValueOutOfRange(9, revision))?,
-        import_batch_id: row.get(10)?,
+            .map_err(|_| rusqlite::Error::IntegralValueOutOfRange(10, revision))?,
+        import_batch_id: row.get(11)?,
     })
 }
 
@@ -1137,6 +1313,7 @@ fn validate_metadata(
         || !(1..=10_000).contains(&metadata.weight)
         || !(1..=10_000).contains(&metadata.max_concurrency)
         || metadata.refresh_due_at_ms.is_some_and(|value| value < 0)
+        || metadata.quota_sync_due_at_ms.is_some_and(|value| value < 0)
         || metadata.cooldown_until_ms.is_some_and(|value| value < 0)
     {
         return Err(GrokAccountPoolError::InvalidPersistedState);
@@ -1154,7 +1331,7 @@ fn identity_digest(provider: GrokAccountProvider, identity: &[u8]) -> [u8; 32] {
     digest.finalize().into()
 }
 
-fn credential_aad(provider: GrokAccountProvider, identity_digest: &[u8; 32]) -> Vec<u8> {
+pub(crate) fn credential_aad(provider: GrokAccountProvider, identity_digest: &[u8; 32]) -> Vec<u8> {
     let mut associated_data = Vec::with_capacity(
         ACCOUNT_SECRET_AAD_DOMAIN.len() + provider.as_str().len() + identity_digest.len() + 2,
     );
