@@ -18,8 +18,8 @@ use gateway_core::{
     RequestContext, RequestId,
 };
 use gateway_router::{
-    ProtocolFormat, RuntimeCredentialAccountStatus, RuntimeHealthRegistry, RuntimeQuotaRegistry,
-    project_protocol_response,
+    ProtocolFormat, ProtocolResponseRejection, RuntimeCredentialAccountStatus,
+    RuntimeHealthRegistry, RuntimeQuotaRegistry, project_protocol_response,
 };
 use gateway_store::secret_store::{KeyVersion, MasterKeyRing, SecretStore};
 use gateway_upstream::{
@@ -53,9 +53,9 @@ pub(crate) enum GrokAdminError {
         scope: ErrorScope,
     },
     ProbeProjection {
-        chat: bool,
-        responses: bool,
-        messages: bool,
+        chat: ProtocolResponseRejection,
+        responses: ProtocolResponseRejection,
+        messages: ProtocolResponseRejection,
     },
     Migration(Grok2ApiMigrationError),
     Rollback(GrokAccountPoolError),
@@ -86,7 +86,7 @@ impl fmt::Display for GrokAdminError {
             } => {
                 return write!(
                     formatter,
-                    "native Grok probe failed: stage=projection chat={chat} responses={responses} messages={messages}"
+                    "native Grok probe failed: stage=projection chat={chat:?} responses={responses:?} messages={messages:?}"
                 );
             }
             Self::Migration(error) => {
@@ -234,15 +234,18 @@ pub(crate) fn probe(
         credential.as_bytes(),
         observed_at_ms,
     ))?;
-    let chat = project_protocol_response(&response, ProtocolFormat::OpenAiChatCompletions).is_ok();
-    let responses = project_protocol_response(&response, ProtocolFormat::OpenAiResponses).is_ok();
-    let messages = project_protocol_response(&response, ProtocolFormat::AnthropicMessages).is_ok();
-    if !(chat && responses && messages) {
+    let chat = project_protocol_response(&response, ProtocolFormat::OpenAiChatCompletions);
+    let responses = project_protocol_response(&response, ProtocolFormat::OpenAiResponses);
+    let messages = project_protocol_response(&response, ProtocolFormat::AnthropicMessages);
+    if let (Err(chat), Err(responses), Err(messages)) = (&chat, &responses, &messages) {
         return Err(GrokAdminError::ProbeProjection {
-            chat,
-            responses,
-            messages,
+            chat: *chat,
+            responses: *responses,
+            messages: *messages,
         });
+    }
+    if chat.is_err() || responses.is_err() || messages.is_err() {
+        return Err(GrokAdminError::ProbeUnavailable);
     }
     let provider_label = match provider {
         GrokAccountProvider::Build => "grok_build",
