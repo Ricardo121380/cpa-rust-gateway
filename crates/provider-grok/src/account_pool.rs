@@ -5,11 +5,22 @@
 //! authenticated-encrypted immediately, duplicates are idempotent only when both metadata and
 //! plaintext match, and every newly created account remains attributable to a reversible batch.
 
-use std::{collections::BTreeSet, error::Error, fmt, sync::Mutex};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    error::Error,
+    fmt,
+    sync::{Arc, Mutex},
+};
 
+use gateway_core::{CredentialId, EndpointId};
+use gateway_router::{RuntimeHealthError, RuntimeHealthRegistry};
 use gateway_store::{
     migrate,
     secret_store::{EncryptedSecret, KeyVersion, PlaintextSecret, SecretStore},
+};
+use gateway_upstream::{
+    CredentialPoolBuildError, CredentialSecret, EndpointCredentialInput, EndpointCredentialPool,
+    EndpointCredentialPools,
 };
 use rusqlite::{Connection, OptionalExtension, Transaction, params};
 use sha2::{Digest, Sha256};
@@ -50,10 +61,18 @@ impl GrokAccountProvider {
             _ => Err(GrokAccountPoolError::InvalidPersistedState),
         }
     }
+
+    const fn credential_kind(self) -> &'static str {
+        match self {
+            Self::Build => "grok_build_oauth",
+            Self::Web => "grok_web_sso",
+            Self::Console => "grok_console_sso",
+        }
+    }
 }
 
 /// Authentication eligibility kept separate from quota and cooldown state.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum GrokAccountAuthStatus {
     /// Credential may be leased when its other eligibility gates pass.
     Active,
@@ -159,6 +178,8 @@ pub struct GrokAccountImport {
     pub identity: GrokAccountIdentity,
     /// Complete provider credential payload, encrypted before persistence.
     pub credential: GrokAccountCredential,
+    /// Imported authentication eligibility.
+    pub auth_status: GrokAccountAuthStatus,
     /// Operator eligibility switch.
     pub enabled: bool,
     /// Higher values are preferred by the later scheduler composition.
@@ -169,6 +190,8 @@ pub struct GrokAccountImport {
     pub max_concurrency: u32,
     /// Optional proactive-refresh deadline.
     pub refresh_due_at_ms: Option<i64>,
+    /// Optional account-local cooldown deadline.
+    pub cooldown_until_ms: Option<i64>,
 }
 
 impl GrokAccountImport {
@@ -177,6 +200,7 @@ impl GrokAccountImport {
             || !(1..=10_000).contains(&self.weight)
             || !(1..=10_000).contains(&self.max_concurrency)
             || self.refresh_due_at_ms.is_some_and(|value| value < 0)
+            || self.cooldown_until_ms.is_some_and(|value| value < 0)
         {
             return Err(GrokAccountPoolError::InvalidSchedulingMetadata);
         }
@@ -209,6 +233,177 @@ pub struct GrokAccountMetadata {
     pub revision: u64,
     /// Reversible import provenance.
     pub import_batch_id: String,
+}
+
+/// One provider-to-Endpoint binding used only while compiling a native runtime pool.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GrokAccountEndpointBinding {
+    provider: GrokAccountProvider,
+    endpoint_id: EndpointId,
+}
+
+impl GrokAccountEndpointBinding {
+    /// Binds one isolated Grok provider namespace to one compiler-approved Endpoint.
+    #[must_use]
+    pub const fn new(provider: GrokAccountProvider, endpoint_id: EndpointId) -> Self {
+        Self {
+            provider,
+            endpoint_id,
+        }
+    }
+
+    /// Returns the native provider namespace.
+    #[must_use]
+    pub const fn provider(&self) -> GrokAccountProvider {
+        self.provider
+    }
+
+    /// Returns the Endpoint receiving this provider's native account pool.
+    #[must_use]
+    pub const fn endpoint_id(&self) -> &EndpointId {
+        &self.endpoint_id
+    }
+}
+
+/// Immutable native account compilation consumed by the existing route scheduler.
+pub struct GrokNativeAccountPoolCompilation {
+    credential_pools: Arc<EndpointCredentialPools>,
+    providers_by_credential: BTreeMap<CredentialId, GrokAccountProvider>,
+    health_bootstrap: Vec<GrokRuntimeHealthBootstrap>,
+}
+
+impl GrokNativeAccountPoolCompilation {
+    /// Returns the exact standard pool set accepted by [`gateway_router::RouteCredentialScheduler`].
+    #[must_use]
+    pub fn credential_pools(&self) -> Arc<EndpointCredentialPools> {
+        Arc::clone(&self.credential_pools)
+    }
+
+    /// Returns the number of native accounts compiled into runtime pools.
+    #[must_use]
+    pub fn account_count(&self) -> usize {
+        self.providers_by_credential.len()
+    }
+
+    /// Returns the isolated provider namespace for one compiled Credential identity.
+    #[must_use]
+    pub fn provider_for_credential(
+        &self,
+        credential_id: &CredentialId,
+    ) -> Option<GrokAccountProvider> {
+        self.providers_by_credential.get(credential_id).copied()
+    }
+
+    /// Seeds persisted reauthentication and future cooldown state into the shared Health registry.
+    ///
+    /// This is a control-path restart operation. It does not read `SQLite`, inspect Secrets, create
+    /// another scheduler, or mutate Quota state. A reauthentication block dominates a cooldown.
+    ///
+    /// # Errors
+    ///
+    /// Returns the exact safe [`RuntimeHealthError`] if the shared registry cannot retain state.
+    pub fn seed_runtime_health(
+        &self,
+        runtime_health: &RuntimeHealthRegistry,
+    ) -> Result<(), RuntimeHealthError> {
+        for bootstrap in &self.health_bootstrap {
+            match bootstrap {
+                GrokRuntimeHealthBootstrap::Unauthorized {
+                    endpoint_id,
+                    credential_id,
+                } => runtime_health
+                    .mark_credential_unauthorized(endpoint_id.clone(), credential_id.clone())?,
+                GrokRuntimeHealthBootstrap::Cooldown {
+                    endpoint_id,
+                    credential_id,
+                    until_ms,
+                } => {
+                    let result = runtime_health.cool_down_until(
+                        gateway_router::RuntimeHealthKey::endpoint_credential(
+                            endpoint_id.clone(),
+                            credential_id.clone(),
+                        ),
+                        *until_ms,
+                    );
+                    if !matches!(result, Err(RuntimeHealthError::DeadlineNotInFuture)) {
+                        result?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Debug for GrokNativeAccountPoolCompilation {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("GrokNativeAccountPoolCompilation")
+            .field("credential_pools", &self.credential_pools)
+            .field("account_count", &self.providers_by_credential.len())
+            .field("health_bootstrap_count", &self.health_bootstrap.len())
+            .finish()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum GrokRuntimeHealthBootstrap {
+    Unauthorized {
+        endpoint_id: EndpointId,
+        credential_id: CredentialId,
+    },
+    Cooldown {
+        endpoint_id: EndpointId,
+        credential_id: CredentialId,
+        until_ms: i64,
+    },
+}
+
+/// Safe native account-to-runtime compilation failures.
+#[derive(Debug)]
+pub enum GrokNativeAccountCompileError {
+    /// Provider or Endpoint bindings are duplicated.
+    DuplicateBinding,
+    /// Observation time is outside the supported timestamp domain.
+    InvalidObservationTime,
+    /// Persisted account metadata or encrypted credential is invalid.
+    Account(GrokAccountPoolError),
+    /// Existing bounded Credential pool validation rejected the compiled inputs.
+    Pool(CredentialPoolBuildError),
+}
+
+impl fmt::Display for GrokNativeAccountCompileError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let message = match self {
+            Self::DuplicateBinding => "native Grok runtime binding is duplicated",
+            Self::InvalidObservationTime => "native Grok runtime observation time is invalid",
+            Self::Account(_) => "native Grok runtime account state is invalid",
+            Self::Pool(_) => "native Grok runtime Credential pool is invalid",
+        };
+        formatter.write_str(message)
+    }
+}
+
+impl Error for GrokNativeAccountCompileError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Account(error) => Some(error),
+            Self::Pool(error) => Some(error),
+            Self::DuplicateBinding | Self::InvalidObservationTime => None,
+        }
+    }
+}
+
+impl From<GrokAccountPoolError> for GrokNativeAccountCompileError {
+    fn from(error: GrokAccountPoolError) -> Self {
+        Self::Account(error)
+    }
+}
+
+impl From<CredentialPoolBuildError> for GrokNativeAccountCompileError {
+    fn from(error: CredentialPoolBuildError) -> Self {
+        Self::Pool(error)
+    }
 }
 
 /// Result of one committed native account import batch.
@@ -469,6 +664,120 @@ impl GrokAccountPoolStore {
             .collect()
     }
 
+    /// Compiles enabled native accounts into the gateway's existing immutable Credential pools.
+    ///
+    /// Disabled accounts never enter a pool. Reauthentication-required accounts do enter so the
+    /// shared controlled recovery flow can address them, but the returned compilation seeds an
+    /// exact unauthorized Health block before scheduling begins. Future persisted cooldowns are
+    /// seeded into that same registry. Higher native priorities are monotonically translated to
+    /// the existing pool's lower-is-preferred priority domain.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe binding, persisted-account, decryption, or bounded-pool classification. No
+    /// partial pool set is returned.
+    pub fn compile_native_runtime(
+        &self,
+        bindings: &[GrokAccountEndpointBinding],
+        observed_at_ms: i64,
+    ) -> Result<GrokNativeAccountPoolCompilation, GrokNativeAccountCompileError> {
+        if observed_at_ms < 0 {
+            return Err(GrokNativeAccountCompileError::InvalidObservationTime);
+        }
+        let mut bindings_by_provider = BTreeMap::new();
+        let mut endpoint_ids = BTreeSet::new();
+        for binding in bindings {
+            if bindings_by_provider
+                .insert(binding.provider, binding.endpoint_id.clone())
+                .is_some()
+                || !endpoint_ids.insert(binding.endpoint_id.clone())
+            {
+                return Err(GrokNativeAccountCompileError::DuplicateBinding);
+            }
+        }
+
+        let mut inputs_by_endpoint: BTreeMap<EndpointId, Vec<EndpointCredentialInput>> =
+            BTreeMap::new();
+        let mut providers_by_credential = BTreeMap::new();
+        let mut health_bootstrap = Vec::new();
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+        for row in load_native_runtime_rows(&connection)? {
+            let provider = GrokAccountProvider::parse(&row.provider)?;
+            let auth_status = GrokAccountAuthStatus::parse(&row.auth_status)?;
+            let enabled = sqlite_bool(row.enabled)?;
+            if !enabled || auth_status == GrokAccountAuthStatus::Disabled {
+                continue;
+            }
+            let Some(endpoint_id) = bindings_by_provider.get(&provider) else {
+                continue;
+            };
+            let identity_digest: [u8; 32] = row
+                .identity_digest
+                .try_into()
+                .map_err(|_| GrokAccountPoolError::InvalidPersistedState)?;
+            let persisted = PersistedCredential {
+                provider,
+                identity_digest,
+                ciphertext: row.ciphertext,
+                key_version: KeyVersion::try_from_sqlite_i64(row.key_version)
+                    .map_err(|_| GrokAccountPoolError::InvalidPersistedState)?,
+            };
+            let plaintext = open_persisted_credential(&self.secret_store, &persisted)?;
+            let credential_id = CredentialId::try_new(row.id)
+                .map_err(|_| GrokAccountPoolError::InvalidPersistedState)?;
+            let priority = 1_000_i64
+                .checked_sub(row.priority)
+                .ok_or(GrokAccountPoolError::InvalidPersistedState)?;
+            let input = EndpointCredentialInput {
+                credential_id: credential_id.clone(),
+                credential_kind: provider.credential_kind().to_owned(),
+                credential_revision: row.revision,
+                priority,
+                weight: row.weight,
+                concurrency: row.max_concurrency,
+                secret: CredentialSecret::try_new(plaintext.as_bytes().to_vec())?,
+            };
+            if providers_by_credential
+                .insert(credential_id.clone(), provider)
+                .is_some()
+            {
+                return Err(GrokAccountPoolError::InvalidPersistedState.into());
+            }
+            if auth_status == GrokAccountAuthStatus::ReauthRequired {
+                health_bootstrap.push(GrokRuntimeHealthBootstrap::Unauthorized {
+                    endpoint_id: endpoint_id.clone(),
+                    credential_id: credential_id.clone(),
+                });
+            } else if let Some(until_ms) = row
+                .cooldown_until_ms
+                .filter(|until_ms| *until_ms > observed_at_ms)
+            {
+                health_bootstrap.push(GrokRuntimeHealthBootstrap::Cooldown {
+                    endpoint_id: endpoint_id.clone(),
+                    credential_id: credential_id.clone(),
+                    until_ms,
+                });
+            }
+            inputs_by_endpoint
+                .entry(endpoint_id.clone())
+                .or_default()
+                .push(input);
+        }
+        drop(connection);
+        let pools = inputs_by_endpoint
+            .into_iter()
+            .map(|(endpoint_id, inputs)| EndpointCredentialPool::try_new(endpoint_id, inputs))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(GrokNativeAccountPoolCompilation {
+            credential_pools: Arc::new(EndpointCredentialPools::try_new(pools)?),
+            providers_by_credential,
+            health_bootstrap,
+        })
+    }
+
     /// Opens one exact credential for an authorized native runtime caller.
     ///
     /// # Errors
@@ -544,10 +853,12 @@ impl GrokAccountPoolStore {
             let plaintext = open_persisted_credential(&self.secret_store, &existing.credential)?;
             let credential_matches = plaintext.as_bytes() == entry.credential.0;
             let metadata_matches = existing.enabled == entry.enabled
+                && existing.auth_status == entry.auth_status
                 && existing.priority == entry.priority
                 && existing.weight == entry.weight
                 && existing.max_concurrency == entry.max_concurrency
-                && existing.refresh_due_at_ms == entry.refresh_due_at_ms;
+                && existing.refresh_due_at_ms == entry.refresh_due_at_ms
+                && existing.cooldown_until_ms == entry.cooldown_until_ms;
             return if credential_matches && metadata_matches {
                 Ok(ImportOneOutcome::Unchanged)
             } else {
@@ -570,7 +881,7 @@ impl GrokAccountPoolStore {
                     import_batch_id, created_at_ms, updated_at_ms\
                  ) VALUES (\
                     ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, \
-                    NULL, 0, NULL, 0, ?12, ?13, ?13\
+                    NULL, 0, ?12, 0, ?13, ?14, ?14\
                  )",
                 params![
                     account_id,
@@ -578,12 +889,13 @@ impl GrokAccountPoolStore {
                     digest.as_slice(),
                     encrypted.ciphertext(),
                     encrypted.key_version().as_sqlite_i64(),
-                    GrokAccountAuthStatus::Active.as_str(),
+                    entry.auth_status.as_str(),
                     i64::from(entry.enabled),
                     entry.priority,
                     i64::from(entry.weight),
                     i64::from(entry.max_concurrency),
                     entry.refresh_due_at_ms,
+                    entry.cooldown_until_ms,
                     batch_id,
                     observed_at_ms,
                 ],
@@ -600,11 +912,13 @@ enum ImportOneOutcome {
 
 struct ExistingAccount {
     credential: PersistedCredential,
+    auth_status: GrokAccountAuthStatus,
     enabled: bool,
     priority: i64,
     weight: u32,
     max_concurrency: u32,
     refresh_due_at_ms: Option<i64>,
+    cooldown_until_ms: Option<i64>,
 }
 
 struct PersistedCredential {
@@ -614,6 +928,54 @@ struct PersistedCredential {
     key_version: KeyVersion,
 }
 
+struct NativeRuntimeAccountRow {
+    id: String,
+    provider: String,
+    identity_digest: Vec<u8>,
+    ciphertext: Vec<u8>,
+    key_version: i64,
+    auth_status: String,
+    enabled: i64,
+    priority: i64,
+    weight: i64,
+    max_concurrency: i64,
+    cooldown_until_ms: Option<i64>,
+    revision: i64,
+}
+
+fn load_native_runtime_rows(
+    connection: &Connection,
+) -> Result<Vec<NativeRuntimeAccountRow>, GrokAccountPoolError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT id, provider, identity_digest, credential_ciphertext, \
+                    credential_key_version, auth_status, enabled, priority, weight, \
+                    max_concurrency, cooldown_until_ms, revision \
+             FROM grok_accounts ORDER BY provider, id",
+        )
+        .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+    statement
+        .query_map([], |row| {
+            Ok(NativeRuntimeAccountRow {
+                id: row.get(0)?,
+                provider: row.get(1)?,
+                identity_digest: row.get(2)?,
+                ciphertext: row.get(3)?,
+                key_version: row.get(4)?,
+                auth_status: row.get(5)?,
+                enabled: row.get(6)?,
+                priority: row.get(7)?,
+                weight: row.get(8)?,
+                max_concurrency: row.get(9)?,
+                cooldown_until_ms: row.get(10)?,
+                revision: row.get(11)?,
+            })
+        })
+        .map_err(|_| GrokAccountPoolError::StoreUnavailable)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| GrokAccountPoolError::StoreUnavailable)
+}
+
 fn load_existing_by_identity(
     transaction: &Transaction<'_>,
     provider: GrokAccountProvider,
@@ -621,29 +983,41 @@ fn load_existing_by_identity(
 ) -> Result<Option<ExistingAccount>, GrokAccountPoolError> {
     transaction
         .query_row(
-            "SELECT credential_ciphertext, credential_key_version, enabled, priority, weight, \
-                    max_concurrency, refresh_due_at_ms \
+            "SELECT credential_ciphertext, credential_key_version, auth_status, enabled, \
+                    priority, weight, max_concurrency, refresh_due_at_ms, cooldown_until_ms \
              FROM grok_accounts WHERE provider = ?1 AND identity_digest = ?2",
             params![provider.as_str(), identity_digest.as_slice()],
             |row| {
                 let key_version = row.get::<_, i64>(1)?;
-                let weight = row.get::<_, i64>(4)?;
-                let max_concurrency = row.get::<_, i64>(5)?;
+                let weight = row.get::<_, i64>(5)?;
+                let max_concurrency = row.get::<_, i64>(6)?;
                 Ok((
                     row.get::<_, Vec<u8>>(0)?,
                     key_version,
-                    row.get::<_, i64>(2)?,
+                    row.get::<_, String>(2)?,
                     row.get::<_, i64>(3)?,
+                    row.get::<_, i64>(4)?,
                     weight,
                     max_concurrency,
-                    row.get::<_, Option<i64>>(6)?,
+                    row.get::<_, Option<i64>>(7)?,
+                    row.get::<_, Option<i64>>(8)?,
                 ))
             },
         )
         .optional()
         .map_err(|_| GrokAccountPoolError::StoreUnavailable)?
         .map(
-            |(ciphertext, key_version, enabled, priority, weight, max_concurrency, refresh_due)| {
+            |(
+                ciphertext,
+                key_version,
+                auth_status,
+                enabled,
+                priority,
+                weight,
+                max_concurrency,
+                refresh_due,
+                cooldown_until,
+            )| {
                 Ok(ExistingAccount {
                     credential: PersistedCredential {
                         provider,
@@ -652,6 +1026,7 @@ fn load_existing_by_identity(
                         key_version: KeyVersion::try_from_sqlite_i64(key_version)
                             .map_err(|_| GrokAccountPoolError::InvalidPersistedState)?,
                     },
+                    auth_status: GrokAccountAuthStatus::parse(&auth_status)?,
                     enabled: sqlite_bool(enabled)?,
                     priority,
                     weight: u32::try_from(weight)
@@ -659,6 +1034,7 @@ fn load_existing_by_identity(
                     max_concurrency: u32::try_from(max_concurrency)
                         .map_err(|_| GrokAccountPoolError::InvalidPersistedState)?,
                     refresh_due_at_ms: refresh_due,
+                    cooldown_until_ms: cooldown_until,
                 })
             },
         )

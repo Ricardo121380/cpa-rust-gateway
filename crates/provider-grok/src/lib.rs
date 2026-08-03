@@ -27,9 +27,10 @@ mod web_statsig;
 mod web_tool_emulation;
 
 pub use account_pool::{
-    GrokAccountAuthStatus, GrokAccountCredential, GrokAccountIdentity, GrokAccountImport,
-    GrokAccountImportOutcome, GrokAccountMetadata, GrokAccountPoolError, GrokAccountPoolStore,
-    GrokAccountProvider, GrokAccountRollbackOutcome,
+    GrokAccountAuthStatus, GrokAccountCredential, GrokAccountEndpointBinding, GrokAccountIdentity,
+    GrokAccountImport, GrokAccountImportOutcome, GrokAccountMetadata, GrokAccountPoolError,
+    GrokAccountPoolStore, GrokAccountProvider, GrokAccountRollbackOutcome,
+    GrokNativeAccountCompileError, GrokNativeAccountPoolCompilation,
 };
 pub use build_responses::{
     GROK_BUILD_AGENT_ID_HEADER, GROK_BUILD_AUTHENTICATE_RESPONSE_HEADER,

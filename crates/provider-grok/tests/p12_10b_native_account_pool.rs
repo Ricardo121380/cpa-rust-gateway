@@ -224,11 +224,13 @@ fn account(
         provider,
         identity: GrokAccountIdentity::try_from_bytes(identity)?,
         credential: GrokAccountCredential::try_from_bytes(credential)?,
+        auth_status: provider_grok::GrokAccountAuthStatus::Active,
         enabled: true,
         priority,
         weight: 1,
         max_concurrency: 2,
         refresh_due_at_ms: Some(NOW_MS + 60_000),
+        cooldown_until_ms: None,
     })
 }
 
