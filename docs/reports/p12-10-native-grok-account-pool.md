@@ -1,6 +1,6 @@
 # P12-10 native Grok account pool
 
-Status: `P12-10F_DONE_P12-10G_NEXT`
+Status: `P12-10G_DONE_P12-10H_NEXT`
 
 ## Corrected architecture
 
@@ -69,8 +69,9 @@ complete in the [native account-pool report](p12-10b-native-grok-account-pool.md
 complete in the [native scheduling report](p12-10c-native-grok-scheduling.md). P12-10D is complete
 in the [native worker report](p12-10d-native-grok-workers.md). P12-10E is complete in the
 [Console/Web runtime report](p12-10e-grok-console-web-runtime.md). P12-10F is complete in the
-[memory-stream migration report](p12-10f-grok2api-memory-migration.md). P12-10G is the next
-controlled live slice.
+[memory-stream migration report](p12-10f-grok2api-memory-migration.md). P12-10G is complete in the
+[controlled live receipt](evidence/p12-10g-live-subset-receipt-20260804.md). P12-10H is the next
+slice and has not started.
 
 ## Migration boundary
 

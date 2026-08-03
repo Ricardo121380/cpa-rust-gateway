@@ -1,6 +1,6 @@
 # P12-10G controlled live migration and parity plan
 
-Status: `IN_PROGRESS_PREFLIGHT`
+Status: `DONE`
 
 ## Objective
 
@@ -64,3 +64,18 @@ P12-10G can be marked `DONE` only after the isolated live batches, exact account
 quota/cooldown checks, direct provider attempts, three-protocol parity and deliberate rollback all
 pass. A valid source export plus import alone is insufficient. Any missing runtime evidence leaves
 P12-10G open and production unchanged.
+
+## Result
+
+The controlled live execution passed on 2026-08-04. Source-database count, export-response count
+and decoded export-array length agreed for the complete Build and Console pools. One eligible
+account from each provider then passed the isolated native CPAR import, direct provider attempt,
+exact account attribution, available health/quota projection, complete Canonical lifecycle and
+Chat Completions/Responses/Messages projections. Web stopped before export as
+`web_expiry_unavailable` because no authoritative absolute session expiry was available.
+
+Both accepted batches were deliberately rolled back. The isolated database finished with zero
+native Grok accounts and `quick_check=ok`; the production database fingerprint, production CPAR
+service and grok2api health were unchanged. The exact signed gateway artifact and the reviewed
+export helper revisions are recorded in the
+[P12-10G live receipt](evidence/p12-10g-live-subset-receipt-20260804.md). P12-10H has not started.
