@@ -59,7 +59,7 @@ tracing = { version = "0.1.44", default-features = false, features = ["std"] }
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "json"] }
 url = { version = "2.5.8", default-features = false }
 zeroize = { version = "1.8.2", default-features = false, features = ["alloc"] }
-wreq = { version = "=6.0.0-rc.29", default-features = false, features = ["stream", "tokio-rt", "socks"] }
+wreq = { version = "=6.0.0-rc.29", default-features = false, features = ["brotli", "deflate", "gzip", "stream", "tokio-rt", "socks", "zstd"] }
 wreq-util = { version = "=3.0.0-rc.14", default-features = false, features = ["emulation"] }
 
 [workspace.lints.rust]

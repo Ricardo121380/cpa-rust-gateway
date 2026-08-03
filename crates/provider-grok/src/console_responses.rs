@@ -132,7 +132,7 @@ impl GrokConsoleResponsesOutboundRequest {
         if name.eq_ignore_ascii_case("accept") {
             Some(self.accept)
         } else if name.eq_ignore_ascii_case("accept-encoding") {
-            Some("identity")
+            Some("gzip, deflate, br, zstd")
         } else if name.eq_ignore_ascii_case("accept-language") {
             Some("zh-CN,zh;q=0.9,en;q=0.8")
         } else if name.eq_ignore_ascii_case("authorization") {
@@ -298,7 +298,7 @@ impl GrokConsoleResponsesRequestBuilder {
             target,
             cookie: credential.cookie_header(),
             accept: match mode {
-                ResponseMode::NonStreaming => "application/json",
+                ResponseMode::NonStreaming => "*/*",
                 ResponseMode::Streaming => "text/event-stream",
             },
             body,

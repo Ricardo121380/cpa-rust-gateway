@@ -88,6 +88,11 @@ fn console_accepts_the_native_probe_without_an_unowned_output_extension() -> Tes
         &request,
         ResponseMode::NonStreaming,
     )?;
+    assert_eq!(outbound.header("accept"), Some("*/*"));
+    assert_eq!(
+        outbound.header("accept-encoding"),
+        Some("gzip, deflate, br, zstd")
+    );
     let policy = EgressPolicy::try_new(EgressPolicyInput {
         id: EgressPolicyId::try_new("p12-10e-console-transport")?,
         name: "Console transport test".to_owned(),
