@@ -52,6 +52,11 @@ pub(crate) enum GrokAdminError {
         code: GatewayErrorCode,
         scope: ErrorScope,
     },
+    ProbeProjection {
+        chat: bool,
+        responses: bool,
+        messages: bool,
+    },
     Migration(Grok2ApiMigrationError),
     Rollback(GrokAccountPoolError),
 }
@@ -72,6 +77,16 @@ impl fmt::Display for GrokAdminError {
                 return write!(
                     formatter,
                     "native Grok probe failed: stage={stage} code={code:?} scope={scope:?}"
+                );
+            }
+            Self::ProbeProjection {
+                chat,
+                responses,
+                messages,
+            } => {
+                return write!(
+                    formatter,
+                    "native Grok probe failed: stage=projection chat={chat} responses={responses} messages={messages}"
                 );
             }
             Self::Migration(error) => {
@@ -223,7 +238,11 @@ pub(crate) fn probe(
     let responses = project_protocol_response(&response, ProtocolFormat::OpenAiResponses).is_ok();
     let messages = project_protocol_response(&response, ProtocolFormat::AnthropicMessages).is_ok();
     if !(chat && responses && messages) {
-        return Err(GrokAdminError::ProbeUnavailable);
+        return Err(GrokAdminError::ProbeProjection {
+            chat,
+            responses,
+            messages,
+        });
     }
     let provider_label = match provider {
         GrokAccountProvider::Build => "grok_build",
