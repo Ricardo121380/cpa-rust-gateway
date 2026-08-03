@@ -142,7 +142,6 @@
 - [G11 release-hardening gate report](g11-gate-report.md) — complete; GitHub Delivery Gate passed
 - [P12-01 release artifact execution plan](p12-01-execution-plan.md) — pinned Linux artifact, private OCI archive, redacted SBOM, checksum and approved keyless-signing boundary
 - [P12-01 release artifact](p12-01-release-artifact.md) — accepted revision-bound Linux binary/OCI/SBOM/manifest, GitHub OIDC keyless signature, Rekor inclusion and private workflow artifact
-- [P12-10 grok2api channel expansion](p12-10-grok2api-channel.md) — loopback proxy architecture, narrow plaintext admission, successor graph and exact-revision production acceptance boundary
 - [P12-02 deployment envelope execution plan](p12-02-execution-plan.md) — approved minimal `serve`, isolated loopback listeners, `LoadCredential`, state/log directories, systemd hardening and Linux verification plan
 - [P12-02 deployment envelope acceptance](p12-02-deployment-envelope.md) — local Full gate, independent review, and repaired real-Linux systemd 255 syntax verification accepted; no Unit was installed or started
 - [P12-03 server backup and rollback inventory plan](p12-03-execution-plan.md) — constrained server-local snapshot plan; no configuration, database, or credential material may enter the repository

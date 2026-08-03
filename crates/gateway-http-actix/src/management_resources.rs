@@ -30,7 +30,6 @@ use gateway_core::{
     RouteCandidateId, RouteId, UpstreamId,
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use url::Url;
 use zeroize::Zeroizing;
 
 use crate::management_security::{ManagementRequestPrincipal, configure_management};
@@ -3448,14 +3447,7 @@ fn parse_json<T: DeserializeOwned>(body: &[u8]) -> Result<T, HttpResponse> {
 }
 
 fn egress_policy(input: EgressPolicyInput) -> Result<EgressPolicyConfiguration, HttpResponse> {
-    let https_only = input.allowed_schemes.iter().all(|scheme| scheme == "https");
-    let exact_loopback_http = input.allowed_schemes == ["http"]
-        && input.allowed_hosts == ["127.0.0.1"]
-        && input.allowed_ports.len() == 1
-        && input.allowed_cidrs == ["127.0.0.1/32"]
-        && input.redirect_mode == "deny"
-        && input.max_redirects == 0;
-    if !(https_only || exact_loopback_http)
+    if input.allowed_schemes.iter().any(|scheme| scheme != "https")
         || input.allowed_schemes.len() > 8
         || input.allowed_hosts.len() > 128
         || input.allowed_ports.len() > 128
@@ -3513,10 +3505,7 @@ fn endpoint(
     input: EndpointInput,
     upstream_id: UpstreamId,
 ) -> Result<EndpointConfiguration, HttpResponse> {
-    let https = input.transport == "https" && input.base_url.starts_with("https://");
-    let exact_loopback_http =
-        input.transport == "http" && is_exact_loopback_http_base(&input.base_url);
-    if !(https || exact_loopback_http) {
+    if input.transport != "https" || !input.base_url.starts_with("https://") {
         return Err(invalid_input());
     }
     Ok(EndpointConfiguration {
@@ -3533,19 +3522,6 @@ fn endpoint(
         transport: EndpointTransport::Http,
         enabled: input.enabled,
     })
-}
-
-fn is_exact_loopback_http_base(value: &str) -> bool {
-    let Ok(parsed) = Url::parse(value) else {
-        return false;
-    };
-    parsed.scheme() == "http"
-        && parsed.host_str() == Some("127.0.0.1")
-        && parsed.port().is_some()
-        && parsed.username().is_empty()
-        && parsed.password().is_none()
-        && parsed.query().is_none()
-        && parsed.fragment().is_none()
 }
 
 fn credential_input(
