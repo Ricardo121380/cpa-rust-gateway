@@ -1483,7 +1483,18 @@ impl GrokBuildResponsesDecodeState {
             )?;
             self.message_open = false;
         }
-        self.emit(events, CanonicalEvent::ResponseEnd(ResponseEnd::default()))
+        let stop_reason = if self.completed_function_calls.is_empty() {
+            "end_turn"
+        } else {
+            "tool_use"
+        };
+        self.emit(
+            events,
+            CanonicalEvent::ResponseEnd(ResponseEnd {
+                stop_reason: Some(stop_reason.to_owned()),
+                ..ResponseEnd::default()
+            }),
+        )
     }
 
     fn handle_response_failed(

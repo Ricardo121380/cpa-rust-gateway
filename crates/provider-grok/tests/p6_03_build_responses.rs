@@ -496,7 +496,7 @@ fn completed_reasoning_without_content_is_a_zero_delta_canonical_item() -> TestR
     );
     assert!(matches!(
         decoded.events().last(),
-        Some(CanonicalEvent::ResponseEnd(_))
+        Some(CanonicalEvent::ResponseEnd(end)) if end.stop_reason.as_deref() == Some("end_turn")
     ));
     Ok(())
 }

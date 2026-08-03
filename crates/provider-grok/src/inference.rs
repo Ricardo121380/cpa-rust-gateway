@@ -281,6 +281,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
         let upstream_model = self.upstream_model.clone();
         let mode = self.mode;
         let transport = Arc::clone(&self.transport);
+        let reasoning_policy = ReasoningPolicy::from_request(&request);
 
         Box::pin(async move {
             let outbound = GrokBuildResponsesRequestBuilder::build(
@@ -316,13 +317,18 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                             Some(content_encoding.decoder_value()),
                             &bytes,
                         )?;
-                    Ok(Box::new(BufferedEventSource::new(decoded.into_events()))
-                        as Box<dyn CanonicalEventSource>)
+                    let events = decoded
+                        .into_events()
+                        .into_iter()
+                        .filter(|event| reasoning_policy.retains(event))
+                        .collect();
+                    Ok(Box::new(BufferedEventSource::new(events)) as Box<dyn CanonicalEventSource>)
                 }
                 GrokBuildExecutionMode::Streaming
                     if content_type == GrokBuildResponseContentType::EventStream =>
                 {
-                    Ok(Box::new(StreamingEventSource::new(body)) as Box<dyn CanonicalEventSource>)
+                    Ok(Box::new(StreamingEventSource::new(body, reasoning_policy))
+                        as Box<dyn CanonicalEventSource>)
                 }
                 _ => Err(provider_protocol_error()),
             }
@@ -370,10 +376,11 @@ struct StreamingEventSource {
     response_started: bool,
     terminal_failure_emitted: bool,
     finished: bool,
+    reasoning_policy: ReasoningPolicy,
 }
 
 impl StreamingEventSource {
-    fn new(body: Box<dyn GrokBuildResponseBody>) -> Self {
+    fn new(body: Box<dyn GrokBuildResponseBody>, reasoning_policy: ReasoningPolicy) -> Self {
         Self {
             body,
             decoder: GrokBuildResponsesStreamDecoder::new(),
@@ -381,15 +388,21 @@ impl StreamingEventSource {
             response_started: false,
             terminal_failure_emitted: false,
             finished: false,
+            reasoning_policy,
         }
     }
 
     fn next_pending(&mut self) -> Option<CanonicalEvent> {
-        let event = self.pending.pop_front()?;
-        if matches!(event, CanonicalEvent::ResponseStart(_)) {
-            self.response_started = true;
+        while let Some(event) = self.pending.pop_front() {
+            if !self.reasoning_policy.retains(&event) {
+                continue;
+            }
+            if matches!(event, CanonicalEvent::ResponseStart(_)) {
+                self.response_started = true;
+            }
+            return Some(event);
         }
-        Some(event)
+        None
     }
 
     fn terminal_failure(
@@ -405,6 +418,26 @@ impl StreamingEventSource {
         self.terminal_failure_emitted = true;
         self.finished = true;
         Ok(Some(CanonicalEvent::StreamError(StreamError { error })))
+    }
+}
+
+#[derive(Clone, Copy)]
+enum ReasoningPolicy {
+    SuppressUnrequested,
+    RetainRequested,
+}
+
+impl ReasoningPolicy {
+    fn from_request(request: &CanonicalRequest) -> Self {
+        if request.thinking.is_some() {
+            Self::RetainRequested
+        } else {
+            Self::SuppressUnrequested
+        }
+    }
+
+    fn retains(self, event: &CanonicalEvent) -> bool {
+        matches!(self, Self::RetainRequested) || !matches!(event, CanonicalEvent::ReasoningDelta(_))
     }
 }
 

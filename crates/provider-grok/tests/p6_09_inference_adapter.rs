@@ -15,7 +15,8 @@ use gateway_core::{
 };
 use gateway_provider::{CanonicalEventSource, InferenceAdapter, ProviderAdapter, ProviderFuture};
 use gateway_router::{
-    ResponsesExecution, ResponsesExecutor, ResponsesResponseMode, RoutedProviderResponsesExecutor,
+    ProtocolFormat, ResponsesExecution, ResponsesExecutor, ResponsesResponseMode,
+    RoutedProviderResponsesExecutor, project_protocol_response,
 };
 use protocol_openai_responses::decode_request;
 use provider_grok::{
@@ -36,6 +37,14 @@ async fn non_streaming_fixture_executes_through_the_real_provider_adapter() -> T
     let events = collect(adapter.execute(context()?, request()?).await?).await?;
 
     assert_success_shape(&events);
+    let response = gateway_core::CanonicalResponse::try_new(events)?;
+    for protocol in [
+        ProtocolFormat::OpenAiChatCompletions,
+        ProtocolFormat::OpenAiResponses,
+        ProtocolFormat::AnthropicMessages,
+    ] {
+        project_protocol_response(&response, protocol)?;
+    }
     assert_eq!(adapter.provider_id().as_str(), "grok.build");
     assert_eq!(transport.call_count(), 1);
     Ok(())
@@ -56,6 +65,31 @@ async fn streaming_fixture_survives_arbitrary_chunk_boundaries() -> TestResult {
     let events = collect(adapter.execute(context()?, request()?).await?).await?;
 
     assert_success_shape(&events);
+    assert_all_protocols_project(&events)?;
+    assert_eq!(transport.call_count(), 1);
+    Ok(())
+}
+
+#[tokio::test]
+async fn explicitly_requested_reasoning_remains_in_the_canonical_response() -> TestResult {
+    let transport = Arc::new(FixtureTransport::new([FixtureResponse::ok_json(
+        include_bytes!("../../../tests/fixtures/grok-build/p6-03-non-streaming.json"),
+    )]));
+    let adapter = adapter(GrokBuildExecutionMode::NonStreaming, transport.clone())?;
+
+    let events = collect(
+        adapter
+            .execute(context()?, request_with_thinking()?)
+            .await?,
+    )
+    .await?;
+
+    assert_success_shape(&events);
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, CanonicalEvent::ReasoningDelta(_)))
+    );
     assert_eq!(transport.call_count(), 1);
     Ok(())
 }
@@ -151,6 +185,13 @@ fn request() -> Result<CanonicalRequest, Box<dyn Error>> {
     .request)
 }
 
+fn request_with_thinking() -> Result<CanonicalRequest, Box<dyn Error>> {
+    Ok(decode_request(
+        r#"{"model":"gateway-build","input":"Reply with exactly: ready","max_output_tokens":32,"reasoning":{"effort":"medium"}}"#,
+    )?
+    .request)
+}
+
 fn context() -> Result<RequestContext, Box<dyn Error>> {
     Ok(RequestContext::new(RequestId::try_new("p6-09-request")?))
 }
@@ -194,6 +235,18 @@ fn assert_success_shape(events: &[CanonicalEvent]) {
             .iter()
             .any(|event| matches!(event, CanonicalEvent::StreamError(_)))
     );
+}
+
+fn assert_all_protocols_project(events: &[CanonicalEvent]) -> TestResult {
+    let response = gateway_core::CanonicalResponse::try_new(events.to_vec())?;
+    for protocol in [
+        ProtocolFormat::OpenAiChatCompletions,
+        ProtocolFormat::OpenAiResponses,
+        ProtocolFormat::AnthropicMessages,
+    ] {
+        project_protocol_response(&response, protocol)?;
+    }
+    Ok(())
 }
 
 fn terminated_stream_fixture() -> Vec<u8> {
