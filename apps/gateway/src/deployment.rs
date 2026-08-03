@@ -422,7 +422,7 @@ fn load_text_credential(directory: &Path, name: &'static str) -> Result<String, 
     Ok(value)
 }
 
-fn load_master_key(directory: &Path) -> Result<MasterKey, DeploymentError> {
+pub(crate) fn load_master_key(directory: &Path) -> Result<MasterKey, DeploymentError> {
     let mut bytes = read_credential_file(directory, MASTER_KEY_CREDENTIAL, KEY_BYTES)?;
     let key = MasterKey::try_from_bytes(&bytes)
         .map_err(|_| DeploymentError::InvalidCredential(MASTER_KEY_CREDENTIAL));

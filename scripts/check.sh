@@ -137,6 +137,7 @@ run_step "P12 G1 live harness" python3 "$repo_root/scripts/test-p12-08g1-live-e2
 run_step "P12 G1 Chat SSE classifier" python3 "$repo_root/scripts/test-p12-08g1-chat-sse-classifier.py"
 run_step "P12 G1 Responses JSON classifier" python3 "$repo_root/scripts/test-p12-08g1-responses-json-classifier.py"
 run_step "P12 G1 Messages SSE classifier" python3 "$repo_root/scripts/test-p12-08g1-messages-sse-classifier.py"
+run_step "P12 grok2api memory export" python3 "$repo_root/scripts/test-p12-10g-grok2api-memory-export.py"
 run_step "P12 production observer" python3 "$repo_root/scripts/test-p12-10-observe.py"
 run_step "Management SPA" node "$repo_root/scripts/check-management-spa.mjs"
 run_step "Rust format" cargo fmt --all -- --check

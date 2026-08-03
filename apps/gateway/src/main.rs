@@ -6,6 +6,7 @@
 #![deny(unsafe_code)]
 
 mod deployment;
+mod grok_admin;
 mod runtime;
 
 use std::{collections::BTreeMap, env, error::Error, fmt, process::ExitCode};
@@ -69,6 +70,29 @@ fn execute(command: GatewayCommand) -> Result<(), CliError> {
 }
 
 fn execute_admin(command: AdminCommand) -> Result<(), CliError> {
+    match &command {
+        AdminCommand::GrokImport {
+            database,
+            credential_directory,
+            batch,
+            observed_at_ms,
+            ..
+        } => {
+            grok_admin::import(database, credential_directory, batch, *observed_at_ms)?;
+            return Ok(());
+        }
+        AdminCommand::GrokRollback {
+            database,
+            credential_directory,
+            batch,
+            observed_at_ms,
+            ..
+        } => {
+            grok_admin::rollback(database, credential_directory, batch, *observed_at_ms)?;
+            return Ok(());
+        }
+        _ => {}
+    }
     let actor = ManagementActor::try_new(command.actor().to_owned())
         .map_err(|_| CliError::InvalidValue("--actor"))?;
     let mut service = ManagementService::open_local(command.database(), actor)?;
@@ -136,6 +160,7 @@ fn execute_admin(command: AdminCommand) -> Result<(), CliError> {
                 );
             }
         }
+        AdminCommand::GrokImport { .. } | AdminCommand::GrokRollback { .. } => unreachable!(),
     }
     Ok(())
 }
@@ -172,6 +197,20 @@ enum AdminCommand {
         database: String,
         actor: String,
     },
+    GrokImport {
+        database: String,
+        actor: String,
+        credential_directory: String,
+        batch: String,
+        observed_at_ms: i64,
+    },
+    GrokRollback {
+        database: String,
+        actor: String,
+        credential_directory: String,
+        batch: String,
+        observed_at_ms: i64,
+    },
 }
 
 impl AdminCommand {
@@ -181,7 +220,9 @@ impl AdminCommand {
             | Self::Validate { database, .. }
             | Self::Publish { database, .. }
             | Self::Rollback { database, .. }
-            | Self::Audit { database, .. } => database,
+            | Self::Audit { database, .. }
+            | Self::GrokImport { database, .. }
+            | Self::GrokRollback { database, .. } => database,
         }
     }
 
@@ -191,7 +232,9 @@ impl AdminCommand {
             | Self::Validate { actor, .. }
             | Self::Publish { actor, .. }
             | Self::Rollback { actor, .. }
-            | Self::Audit { actor, .. } => actor,
+            | Self::Audit { actor, .. }
+            | Self::GrokImport { actor, .. }
+            | Self::GrokRollback { actor, .. } => actor,
         }
     }
 }
@@ -247,6 +290,26 @@ fn parse_admin_command(arguments: Vec<String>) -> Result<AdminCommand, CliError>
         },
         "rollback" => AdminCommand::Rollback { database, actor },
         "audit" => AdminCommand::Audit { database, actor },
+        "grok-import" => AdminCommand::GrokImport {
+            database,
+            actor,
+            credential_directory: required_option(&mut options, "--credential-dir")?,
+            batch: required_option(&mut options, "--batch")?,
+            observed_at_ms: parse_i64_option(
+                &required_option(&mut options, "--observed-at-ms")?,
+                "--observed-at-ms",
+            )?,
+        },
+        "grok-rollback" => AdminCommand::GrokRollback {
+            database,
+            actor,
+            credential_directory: required_option(&mut options, "--credential-dir")?,
+            batch: required_option(&mut options, "--batch")?,
+            observed_at_ms: parse_i64_option(
+                &required_option(&mut options, "--observed-at-ms")?,
+                "--observed-at-ms",
+            )?,
+        },
         _ => return Err(CliError::Usage),
     };
     if options.is_empty() {
@@ -284,9 +347,13 @@ fn config_version_id(value: String, option: &'static str) -> Result<ConfigVersio
     ConfigVersionId::try_new(value).map_err(|_| CliError::InvalidValue(option))
 }
 
+fn parse_i64_option(value: &str, option: &'static str) -> Result<i64, CliError> {
+    value.parse().map_err(|_| CliError::InvalidValue(option))
+}
+
 fn print_usage() {
     println!(
-        "Usage:\n  gateway serve --data-listen <loopback-host:port> --management-listen <loopback-host:port> --state-dir <absolute-dir> --credential-dir <absolute-dir>\n  gateway admin create --db <path> --version <id> --description <text> [--parent <id>] [--actor <label>]\n  gateway admin validate --db <path> --version <id> [--actor <label>]\n  gateway admin publish --db <path> --version <id> [--actor <label>]\n  gateway admin rollback --db <path> [--actor <label>]\n  gateway admin audit --db <path> [--actor <label>]"
+        "Usage:\n  gateway serve --data-listen <loopback-host:port> --management-listen <loopback-host:port> --state-dir <absolute-dir> --credential-dir <absolute-dir>\n  gateway admin create --db <path> --version <id> --description <text> [--parent <id>] [--actor <label>]\n  gateway admin validate --db <path> --version <id> [--actor <label>]\n  gateway admin publish --db <path> --version <id> [--actor <label>]\n  gateway admin rollback --db <path> [--actor <label>]\n  gateway admin audit --db <path> [--actor <label>]\n  gateway admin grok-import --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>\n  gateway admin grok-rollback --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>"
     );
 }
 
@@ -301,6 +368,7 @@ enum CliError {
     MissingAuditEvent,
     Deployment(deployment::DeploymentError),
     Management(ManagementServiceError),
+    GrokAdmin(grok_admin::GrokAdminError),
 }
 
 impl fmt::Display for CliError {
@@ -321,6 +389,7 @@ impl fmt::Display for CliError {
             }
             Self::Deployment(error) => write!(formatter, "{error}"),
             Self::Management(error) => write!(formatter, "{error}"),
+            Self::GrokAdmin(error) => write!(formatter, "{error}"),
         }
     }
 }
@@ -330,6 +399,7 @@ impl Error for CliError {
         match self {
             Self::Deployment(error) => Some(error),
             Self::Management(error) => Some(error),
+            Self::GrokAdmin(error) => Some(error),
             Self::Usage
             | Self::MissingOption(_)
             | Self::MissingValue
@@ -344,6 +414,12 @@ impl Error for CliError {
 impl From<ManagementServiceError> for CliError {
     fn from(error: ManagementServiceError) -> Self {
         Self::Management(error)
+    }
+}
+
+impl From<grok_admin::GrokAdminError> for CliError {
+    fn from(error: grok_admin::GrokAdminError) -> Self {
+        Self::GrokAdmin(error)
     }
 }
 
@@ -409,5 +485,53 @@ mod tests {
             "version-one".to_owned(),
         ]);
         assert!(matches!(unknown, Err(CliError::UnexpectedOption)));
+    }
+
+    #[test]
+    fn native_grok_commands_require_explicit_local_inputs() {
+        let import = parse_command(vec![
+            "admin".to_owned(),
+            "grok-import".to_owned(),
+            "--db".to_owned(),
+            "/state/control.sqlite3".to_owned(),
+            "--credential-dir".to_owned(),
+            "/run/credentials/gateway".to_owned(),
+            "--batch".to_owned(),
+            "p12-10g-subset".to_owned(),
+            "--observed-at-ms".to_owned(),
+            "1".to_owned(),
+        ]);
+        assert!(matches!(
+            import,
+            Ok(GatewayCommand::Admin(AdminCommand::GrokImport {
+                database,
+                credential_directory,
+                batch,
+                observed_at_ms: 1,
+                ..
+            })) if database == "/state/control.sqlite3"
+                && credential_directory == "/run/credentials/gateway"
+                && batch == "p12-10g-subset"
+        ));
+
+        let rollback = parse_command(vec![
+            "admin".to_owned(),
+            "grok-rollback".to_owned(),
+            "--db".to_owned(),
+            "/state/control.sqlite3".to_owned(),
+            "--credential-dir".to_owned(),
+            "/run/credentials/gateway".to_owned(),
+            "--batch".to_owned(),
+            "p12-10g-subset".to_owned(),
+            "--observed-at-ms".to_owned(),
+            "2".to_owned(),
+        ]);
+        assert!(matches!(
+            rollback,
+            Ok(GatewayCommand::Admin(AdminCommand::GrokRollback {
+                observed_at_ms: 2,
+                ..
+            }))
+        ));
     }
 }

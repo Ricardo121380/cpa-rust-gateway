@@ -26,7 +26,7 @@ use gateway_http_actix::{
     },
 };
 use gateway_store::backup::BackupKey;
-use gateway_store::{migrate, open, schema_version};
+use gateway_store::{CURRENT_SCHEMA_VERSION, migrate, open, schema_version};
 use serde_json::{Value, json};
 
 type TestResult = Result<(), Box<dyn Error>>;
@@ -150,7 +150,7 @@ async fn backup_preflight_and_binary_restore_are_protected_bounded_and_complete(
     assert_eq!(source_preflight.status(), StatusCode::OK);
     assert_eq!(
         response_json(source_preflight).await?,
-        json!({"schema_version":9,"secret_key_required":true})
+        json!({"schema_version":CURRENT_SCHEMA_VERSION,"secret_key_required":true})
     );
 
     let restore_preflight = test::call_service(
@@ -167,7 +167,7 @@ async fn backup_preflight_and_binary_restore_are_protected_bounded_and_complete(
     assert_eq!(restore_preflight.status(), StatusCode::OK);
     assert_eq!(
         response_json(restore_preflight).await?,
-        json!({"schema_version":9,"quick_check_required":true,"compatible":true})
+        json!({"schema_version":CURRENT_SCHEMA_VERSION,"quick_check_required":true,"compatible":true})
     );
 
     let restored = test::call_service(
@@ -185,7 +185,10 @@ async fn backup_preflight_and_binary_restore_are_protected_bounded_and_complete(
     assert_eq!(response_json(restored).await?, json!({"state":"complete"}));
 
     let restored_connection = open(&target)?;
-    assert_eq!(schema_version(&restored_connection)?, Some(9));
+    assert_eq!(
+        schema_version(&restored_connection)?,
+        Some(CURRENT_SCHEMA_VERSION)
+    );
     let description: String = restored_connection.query_row(
         "SELECT description FROM config_versions WHERE id = ?1",
         ["source-version"],

@@ -6,6 +6,12 @@ repo_root="$(git rev-parse --show-toplevel)"
 work_dir="$(mktemp -d)"
 gateway_pid=""
 target_dir="${CARGO_TARGET_DIR:-$repo_root/target}"
+current_schema="$(
+  find "$repo_root/crates/gateway-store/migrations" -maxdepth 1 -name '*.up.sql' -exec basename {} \; \
+    | sed -E 's/^0*([0-9]+).*/\1/' \
+    | sort -n \
+    | tail -n 1
+)"
 
 cleanup() {
   if [[ -n "$gateway_pid" ]] && kill -0 "$gateway_pid" 2>/dev/null; then
@@ -73,7 +79,8 @@ curl --noproxy '*' --silent --show-error --fail --max-time 3 \
 curl --noproxy '*' --silent --show-error --fail --max-time 3 \
   -X POST \
   -H "X-Management-Key: $fixture_mgmt" \
-  "http://127.0.0.1:$management_port/admin/backups/preflight" | rg -Fx '{"schema_version":9,"secret_key_required":true}'
+  "http://127.0.0.1:$management_port/admin/backups/preflight" \
+  | rg -Fx "{\"schema_version\":$current_schema,\"secret_key_required\":true}"
 curl --noproxy '*' --silent --show-error --fail --max-time 3 \
   "http://127.0.0.1:$management_port/admin-ui/" | rg -q '<title>CPA Rust Gateway'
 

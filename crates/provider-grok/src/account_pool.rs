@@ -9,6 +9,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     error::Error,
     fmt,
+    path::Path,
     sync::{Arc, Mutex},
 };
 
@@ -519,6 +520,25 @@ pub struct GrokAccountPoolStore {
 }
 
 impl GrokAccountPoolStore {
+    /// Opens one direct `SQLite` path and applies the current versioned schema.
+    ///
+    /// Filesystem ownership and symbolic-link policy remain the caller's control-plane
+    /// responsibility. Keeping `rusqlite` inside this Provider boundary prevents deployment
+    /// binaries from acquiring a second persistence implementation dependency.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GrokAccountPoolError::StoreUnavailable`] when the database cannot be opened or
+    /// migrated.
+    pub fn try_open(
+        database: impl AsRef<Path>,
+        secret_store: SecretStore,
+    ) -> Result<Self, GrokAccountPoolError> {
+        let connection =
+            Connection::open(database).map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+        Self::try_new(connection, secret_store)
+    }
+
     /// Creates the store and applies the current versioned schema before accepting accounts.
     ///
     /// # Errors
