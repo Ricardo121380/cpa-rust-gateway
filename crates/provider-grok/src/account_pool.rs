@@ -203,6 +203,17 @@ pub struct GrokAccountImport {
     pub cooldown_until_ms: Option<i64>,
 }
 
+/// One relationship between two entries in the same atomic import request.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GrokAccountImportRelation {
+    /// Zero-based source entry index.
+    pub source_entry: usize,
+    /// Zero-based target entry index.
+    pub target_entry: usize,
+    /// Bounded metadata-only relationship label.
+    pub relation: String,
+}
+
 impl GrokAccountImport {
     fn validate(&self) -> Result<(), GrokAccountPoolError> {
         if !(-1_000..=1_000).contains(&self.priority)
@@ -536,9 +547,30 @@ impl GrokAccountPoolStore {
         entries: &[GrokAccountImport],
         observed_at_ms: i64,
     ) -> Result<GrokAccountImportOutcome, GrokAccountPoolError> {
+        self.import_batch_with_relations(batch_id, entries, &[], observed_at_ms)
+    }
+
+    /// Atomically imports accounts and their metadata-only relationships.
+    ///
+    /// Relationship indices address `entries`, allowing generated or existing CPAR account IDs to
+    /// remain private. All validation, encryption, account insertion and link insertion share one
+    /// transaction; any failure leaves neither accounts, links nor an applied batch row.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe validation, conflict, encryption, or storage classification.
+    #[allow(clippy::too_many_lines)] // One SQLite transaction keeps accounts, links and batch audit atomic.
+    pub fn import_batch_with_relations(
+        &self,
+        batch_id: &str,
+        entries: &[GrokAccountImport],
+        relations: &[GrokAccountImportRelation],
+        observed_at_ms: i64,
+    ) -> Result<GrokAccountImportOutcome, GrokAccountPoolError> {
         if !valid_component(batch_id, MAX_OPAQUE_ID_BYTES)
             || entries.is_empty()
             || entries.len() > MAX_BATCH_ITEMS
+            || relations.len() > MAX_BATCH_ITEMS
             || observed_at_ms < 0
         {
             return Err(GrokAccountPoolError::InvalidRequest);
@@ -550,6 +582,21 @@ impl GrokAccountPoolStore {
             let digest = identity_digest(entry.provider, &entry.identity.0);
             if !identities.insert((entry.provider, digest)) {
                 return Err(GrokAccountPoolError::DuplicateIdentity);
+            }
+        }
+        let mut unique_relations = BTreeSet::new();
+        for relation in relations {
+            if relation.source_entry >= entries.len()
+                || relation.target_entry >= entries.len()
+                || relation.source_entry == relation.target_entry
+                || !valid_component(&relation.relation, MAX_RELATION_BYTES)
+                || !unique_relations.insert((
+                    relation.source_entry,
+                    relation.target_entry,
+                    relation.relation.as_str(),
+                ))
+            {
+                return Err(GrokAccountPoolError::InvalidRequest);
             }
         }
 
@@ -582,11 +629,34 @@ impl GrokAccountPoolStore {
 
         let mut created = 0_usize;
         let mut unchanged = 0_usize;
+        let mut account_ids = Vec::with_capacity(entries.len());
         for entry in entries {
             match self.import_one(&transaction, batch_id, entry, observed_at_ms)? {
-                ImportOneOutcome::Created => created += 1,
-                ImportOneOutcome::Unchanged => unchanged += 1,
+                ImportOneOutcome::Created(account_id) => {
+                    created += 1;
+                    account_ids.push(account_id);
+                }
+                ImportOneOutcome::Unchanged(account_id) => {
+                    unchanged += 1;
+                    account_ids.push(account_id);
+                }
             }
+        }
+
+        for relation in relations {
+            transaction
+                .execute(
+                    "INSERT OR IGNORE INTO grok_account_links (\
+                        source_account_id, target_account_id, relation, created_at_ms\
+                     ) VALUES (?1, ?2, ?3, ?4)",
+                    params![
+                        account_ids[relation.source_entry],
+                        account_ids[relation.target_entry],
+                        relation.relation,
+                        observed_at_ms,
+                    ],
+                )
+                .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
         }
 
         transaction
@@ -897,7 +967,7 @@ impl GrokAccountPoolStore {
                 && existing.quota_sync_due_at_ms == entry.quota_sync_due_at_ms
                 && existing.cooldown_until_ms == entry.cooldown_until_ms;
             return if credential_matches && metadata_matches {
-                Ok(ImportOneOutcome::Unchanged)
+                Ok(ImportOneOutcome::Unchanged(existing.id))
             } else {
                 Err(GrokAccountPoolError::ExistingAccountConflict)
             };
@@ -939,16 +1009,17 @@ impl GrokAccountPoolStore {
                 ],
             )
             .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
-        Ok(ImportOneOutcome::Created)
+        Ok(ImportOneOutcome::Created(account_id))
     }
 }
 
 enum ImportOneOutcome {
-    Created,
-    Unchanged,
+    Created(String),
+    Unchanged(String),
 }
 
 struct ExistingAccount {
+    id: String,
     credential: PersistedCredential,
     auth_status: GrokAccountAuthStatus,
     enabled: bool,
@@ -1154,26 +1225,27 @@ fn load_existing_by_identity(
 ) -> Result<Option<ExistingAccount>, GrokAccountPoolError> {
     transaction
         .query_row(
-            "SELECT credential_ciphertext, credential_key_version, auth_status, enabled, \
+            "SELECT id, credential_ciphertext, credential_key_version, auth_status, enabled, \
                     priority, weight, max_concurrency, refresh_due_at_ms, quota_sync_due_at_ms, \
                     cooldown_until_ms \
              FROM grok_accounts WHERE provider = ?1 AND identity_digest = ?2",
             params![provider.as_str(), identity_digest.as_slice()],
             |row| {
-                let key_version = row.get::<_, i64>(1)?;
-                let weight = row.get::<_, i64>(5)?;
-                let max_concurrency = row.get::<_, i64>(6)?;
+                let key_version = row.get::<_, i64>(2)?;
+                let weight = row.get::<_, i64>(6)?;
+                let max_concurrency = row.get::<_, i64>(7)?;
                 Ok((
-                    row.get::<_, Vec<u8>>(0)?,
+                    row.get::<_, String>(0)?,
+                    row.get::<_, Vec<u8>>(1)?,
                     key_version,
-                    row.get::<_, String>(2)?,
-                    row.get::<_, i64>(3)?,
+                    row.get::<_, String>(3)?,
                     row.get::<_, i64>(4)?,
+                    row.get::<_, i64>(5)?,
                     weight,
                     max_concurrency,
-                    row.get::<_, Option<i64>>(7)?,
                     row.get::<_, Option<i64>>(8)?,
                     row.get::<_, Option<i64>>(9)?,
+                    row.get::<_, Option<i64>>(10)?,
                 ))
             },
         )
@@ -1181,6 +1253,7 @@ fn load_existing_by_identity(
         .map_err(|_| GrokAccountPoolError::StoreUnavailable)?
         .map(
             |(
+                id,
                 ciphertext,
                 key_version,
                 auth_status,
@@ -1193,6 +1266,7 @@ fn load_existing_by_identity(
                 cooldown_until,
             )| {
                 Ok(ExistingAccount {
+                    id,
                     credential: PersistedCredential {
                         provider,
                         identity_digest: *identity_digest,

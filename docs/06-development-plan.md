@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.157` |
+| 计划版本 | `v1.158` |
 | 生效日期 | `2026-08-03` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-10E `DONE`，P12-10F 为下一实现切片。原生 Console 已固定 target/header/request、复用严格 Responses JSON/SSE decoder 并以一个 Canonical execution 投影 Chat/Responses/Messages；Web production binding 固定 browser session/Statsig/target 且仅准入 text，不误宣称 Tool。全部证据为本地合成 fixture，未读取或迁移 live grok2api 账号、未改变生产图或服务。下一步实现无明文落盘的 grok2api -> CPAR memory-stream migration adapter。CC Switch 仍不读取、不修改。 |
+| 当前任务 | P12-10F `DONE`，P12-10G 为下一受控 live 切片。Build/Web/Console 与 Web->Build/Web->Console 关联现在可经有界 NDJSON pipe 在同一 SQLite transaction 中校验、立即 CPAR AEAD 加密、导入或整体回滚；任意 rejected record 均零写入，receipt 仅保留 source/accepted/rejected/link/create/unchanged 计数。全部证据仍为本地合成 fixture，未读取或迁移 live grok2api 账号、未改变生产图或服务。下一步为 root-only 小批量真实迁移、直接 CPAR attribution/quota/cooldown 与三协议 parity；Web expiry 无权威证据时必须拒绝，不能猜测。CC Switch 仍不读取、不修改。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -1784,7 +1784,7 @@ CR-ID: CR-P11-04-001
 | P12-10C | 将 native accounts 组成到既有 credential pools | [native scheduling report](reports/p12-10c-native-grok-scheduling.md)：权重/并发/饱和、Health/Quota/model block、exclusion/recovery 和 restart 回归 | DONE |
 | P12-10D | 主动 credential/quota worker | [native worker report](reports/p12-10d-native-grok-workers.md)：jitter、singleflight/CAS、bounded concurrency、backoff/reauth、crash recovery 与 quota restart bootstrap | DONE |
 | P12-10E | Grok Console runtime 与 Web production binding | [Console/Web runtime report](reports/p12-10e-grok-console-web-runtime.md)：固定 target/header/request、严格 JSON/SSE/Tool/Usage/error fixture、可执行 Console adapter 与三协议矩阵；Web text-only fail closed | DONE |
-| P12-10F | grok2api -> CPAR 无明文落盘迁移 adapter | root-only pipe、计数 receipt、事务回滚、重复导入幂等 | PENDING |
+| P12-10F | grok2api -> CPAR 无明文落盘迁移 adapter | [memory-stream migration report](reports/p12-10f-grok2api-memory-migration.md)：有界 root-only pipe contract、三 Provider 与两 link 映射、即时 AEAD、value-free receipt、事务回滚和重复导入幂等 | DONE |
 | P12-10G | live subset、全池 parity 与 rollback | account attribution、quota/cooldown、三协议真实 E2E、旧池不删 | PENDING |
 | P12-10H | grok2api 停服回滚演练与 CPAR-only 观察 | stop/start RTO、72h 代表性真实流量、G12 review 后永久停服 | PENDING |
 
@@ -3604,3 +3604,4 @@ Next task:
 | v1.155 | 2026-08-03 | 完成 P12-10C：原生账号按显式 Provider->Endpoint binding 在同一 store snapshot 下解封并一次性编译为标准 `EndpointCredentialPools`；native 高优先级单调映射到既有低值优先域，原样保留 weight/concurrency；disabled 不入池，reauth 与未过期 cooldown 引导到共享 Health；既有 scheduler 直接执行 exact binding/model Health、Quota、sibling isolation 和 controlled recovery。Review 修复了读行后提前释放 store 锁可能与 rollback 交错的中间实现 | P12-10C `DONE`；6 项新调度/重启/负向回归和 P12-10B 回归通过，生产/live 账号/grok2api 均不改变；P12-10D 下一步 |
 | v1.156 | 2026-08-03 | 完成 P12-10D：schema v11 持久化 refresh/quota due、失败计数、共享 per-account claim 和 account/model quota windows；有界 coordinator 以跨 kind singleflight claim 执行注入的 provider control operation，refresh 以 revision/claim CAS 加密替换 credential 并应用确定性 5–8 分钟提前 jitter，transient/reauth 结果持久 backoff 或停止重试，过期 claim 可在 reopen 后恢复；quota 全量替换原子提交并在 snapshot compile 后恢复到精确既有 RuntimeQuota target | P12-10D `DONE`；7 项 worker/CAS/crash/quota/并发回归、store migration/rollback、provider 全回归与 strict Clippy 通过；生产/live 账号/grok2api 均不改变，P12-10E 下一步 |
 | v1.157 | 2026-08-03 | 完成 P12-10E：新增固定 Console SSO Responses 请求、DNS-pinned 可执行 adapter、安全 HTTP failure owner、严格 JSON/SSE terminal 归一化；复用一个 Canonical execution 投影 Chat/Responses/Messages。Web 固定生产 target/browser session/Statsig/request/live decoder，只准入 text 并拒绝 Tool/Reasoning/cache/扩展 | P12-10E `DONE`；7 项 target/header/request/JSON/SSE/Tool/Usage/error/三协议回归、provider 全回归与 strict Clippy 通过；无 live 账号、外部请求、生产/grok2api/CC Switch 变化，P12-10F 下一步 |
+| v1.158 | 2026-08-04 | 完成 P12-10F：冻结 Build/Web/Console 与 Web->Build/Web->Console 的有界 NDJSON pipe contract；账号、即时 AEAD、link 和 batch audit 在同一 SQLite transaction，任意 rejected record 零写入，错误与 receipt 仅投影固定类别/计数；精确 rerun 为 unchanged，冲突/oversize/手工 rollback 均 fail closed | P12-10F `DONE`；5 项三 Provider/link/无明文/幂等/拒绝/冲突/rollback 回归、provider 全回归与 strict Clippy 通过；未读取 live export 或改变服务器，P12-10G 下一步 |

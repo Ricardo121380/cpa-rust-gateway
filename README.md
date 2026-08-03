@@ -11,7 +11,7 @@
 ## 当前状态
 
 - 阶段：P1-P6、P9-P11 与 P12-01 至 P12-09 已完成；P7 Kiro OAuth 与 P8 Official API-key 的真实外部验证按批准延后。生产入口已全量驻留 CPAR，旧 CPA 仅保留在 P12-10 回滚窗口。
-- 执行计划：`v1.157`，状态 `Locked for execution`；P12-10A 至 P12-10E 已完成原生 Grok 账号模型、加密导入边界、既有池调度、持久 refresh/quota worker、Console runtime 与 text-only Web production binding。下一切片为 P12-10F 无明文落盘迁移 adapter；尚未迁移 live grok2api 账号，也未停止 grok2api。最新任务和批准边界见[详细开发计划](docs/06-development-plan.md)。
+- 执行计划：`v1.158`，状态 `Locked for execution`；P12-10A 至 P12-10F 已完成原生 Grok 账号模型、既有池调度、持久 worker、Console/Web runtime 边界及 Build/Web/Console 无明文落盘事务迁移 adapter。下一切片为 P12-10G 受控真实子集迁移与全池 parity；尚未迁移 live grok2api 账号，也未停止 grok2api。最新任务和批准边界见[详细开发计划](docs/06-development-plan.md)。
 - CPA 参考版本：`router-for-me/CLIProxyAPI v7.2.80`
 - Release Candidate：P12-09 已完成生产切换、强制回滚与恢复；P12-10 仍需完成账号迁移、真实 parity、grok2api 停服回滚演练和代表性 72h 观察，之后才能关闭旧服务并发布 Tag。
 - Rust Workspace：21-package 骨架已创建并通过 P0-03 验证

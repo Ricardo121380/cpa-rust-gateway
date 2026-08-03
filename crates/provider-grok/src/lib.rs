@@ -8,6 +8,7 @@ mod build_responses;
 mod console_responses;
 mod continuity_state;
 mod credential_runtime;
+mod grok2api_migration;
 mod inference;
 mod oauth;
 mod official;
@@ -31,8 +32,8 @@ mod web_tool_emulation;
 
 pub use account_pool::{
     GrokAccountAuthStatus, GrokAccountCredential, GrokAccountEndpointBinding, GrokAccountIdentity,
-    GrokAccountImport, GrokAccountImportOutcome, GrokAccountMetadata, GrokAccountPoolError,
-    GrokAccountPoolStore, GrokAccountProvider, GrokAccountRollbackOutcome,
+    GrokAccountImport, GrokAccountImportOutcome, GrokAccountImportRelation, GrokAccountMetadata,
+    GrokAccountPoolError, GrokAccountPoolStore, GrokAccountProvider, GrokAccountRollbackOutcome,
     GrokNativeAccountCompileError, GrokNativeAccountPoolCompilation,
 };
 pub use account_worker::{
@@ -79,6 +80,11 @@ pub use credential_runtime::{
     GrokBuildCredentialRefreshCoordinator, GrokBuildCredentialRefreshCoordinatorConfigError,
     GrokBuildCredentialRefreshError, GrokBuildCredentialRefreshOutcome,
     GrokBuildCredentialSqliteStore, GrokBuildCredentialVersion,
+};
+pub use grok2api_migration::{
+    Grok2ApiMemoryStreamMigration, Grok2ApiMigrationError, Grok2ApiMigrationFailureKind,
+    Grok2ApiMigrationReceipt, MAX_GROK2API_MIGRATION_RECORD_BYTES, MAX_GROK2API_MIGRATION_RECORDS,
+    MAX_GROK2API_MIGRATION_STREAM_BYTES,
 };
 pub use inference::{
     GrokBuildExecutionMode, GrokBuildInferenceAdapter, GrokBuildResponseBody,
