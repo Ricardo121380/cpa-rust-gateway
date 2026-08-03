@@ -13,7 +13,8 @@ use gateway_core::{
 use gateway_provider::{CanonicalEventSource, InferenceAdapter, ProviderAdapter, ProviderFuture};
 use gateway_upstream::{
     AdmittedEgressTarget, EgressDnsResolver, EgressPolicy, EndpointUrl, UpstreamClientPool,
-    UpstreamHttpMethod, UpstreamHttpRequest, UpstreamHttpResponse, UpstreamTransportProfile,
+    UpstreamHttpMethod, UpstreamHttpRequest, UpstreamHttpRequestErrorCode, UpstreamHttpResponse,
+    UpstreamTransportProfile,
 };
 use protocol_openai_responses::ResponseMode;
 use serde_json::{Map, Value};
@@ -91,7 +92,7 @@ pub enum GrokConsoleRequestError {
     /// An independently admitted target differs from the fixed Console endpoint.
     TargetMismatch,
     /// Shared request admission rejected the header/body envelope.
-    TransportRequestRejected,
+    TransportRequestRejected(UpstreamHttpRequestErrorCode),
 }
 
 impl fmt::Display for GrokConsoleRequestError {
@@ -102,7 +103,7 @@ impl fmt::Display for GrokConsoleRequestError {
             Self::UnsupportedRequest => "Grok Console request is unsupported",
             Self::InternalEncodingFailure => "Grok Console request encoding failed",
             Self::TargetMismatch => "Grok Console target does not match the fixed endpoint",
-            Self::TransportRequestRejected => "Grok Console transport request was rejected",
+            Self::TransportRequestRejected(_) => "Grok Console transport request was rejected",
         })
     }
 }
@@ -212,7 +213,7 @@ impl GrokConsoleResponsesOutboundRequest {
             })
             .collect::<Vec<_>>();
         UpstreamHttpRequest::try_new(target, UpstreamHttpMethod::Post, headers, self.body)
-            .map_err(|_| GrokConsoleRequestError::TransportRequestRejected)
+            .map_err(|error| GrokConsoleRequestError::TransportRequestRejected(error.code()))
     }
 }
 

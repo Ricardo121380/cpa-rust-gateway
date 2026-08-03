@@ -27,13 +27,14 @@ use gateway_upstream::{
     EgressPolicy, EgressPolicyInput, EgressScheme, RedirectPolicy, SystemEgressDnsResolver,
     UpstreamClientPool, UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
 };
-use protocol_openai_responses::decode_request;
+use protocol_openai_responses::{ResponseMode, decode_request};
 use provider_grok::{
     GROK_CONSOLE_RESPONSES_URL, Grok2ApiMemoryStreamMigration, Grok2ApiMigrationError,
     GrokAccountEndpointBinding, GrokAccountPoolError, GrokAccountPoolStore, GrokAccountProvider,
     GrokBuildCredential, GrokBuildExecutionMode, GrokBuildInferenceAdapter,
     GrokBuildUpstreamTransport, GrokConsoleExecutionMode, GrokConsoleInferenceAdapter,
-    GrokConsoleSsoToken, GrokConsoleUpstreamTransport,
+    GrokConsoleRequestError, GrokConsoleResponsesRequestBuilder, GrokConsoleSsoToken,
+    GrokConsoleUpstreamTransport,
 };
 use provider_kiro::InferenceAdapter;
 
@@ -54,6 +55,9 @@ pub(crate) enum GrokAdminError {
     },
     ProbeEgress {
         code: EgressAdmissionErrorCode,
+    },
+    ProbeConsoleTransport {
+        category: GrokConsoleRequestError,
     },
     ProbeProjection {
         chat: ProtocolResponseRejection,
@@ -86,6 +90,12 @@ impl fmt::Display for GrokAdminError {
                 return write!(
                     formatter,
                     "native Grok probe failed: stage=admission category={code:?}"
+                );
+            }
+            Self::ProbeConsoleTransport { category } => {
+                return write!(
+                    formatter,
+                    "native Grok probe failed: stage=transport_prepare category={category:?}"
                 );
             }
             Self::ProbeProjection {
@@ -313,9 +323,23 @@ async fn execute_probe(
         }
         GrokAccountProvider::Console => {
             let (policy, resolver) = probe_egress("console.x.ai", GROK_CONSOLE_RESPONSES_URL)?;
+            let token = GrokConsoleSsoToken::try_from_bytes(credential)
+                .map_err(|_| GrokAdminError::ProbeUnavailable)?;
+            let outbound = GrokConsoleResponsesRequestBuilder::build(
+                &token,
+                "grok-build-0.1",
+                &request,
+                ResponseMode::NonStreaming,
+            )
+            .map_err(|category| GrokAdminError::ProbeConsoleTransport { category })?;
+            let admitted = policy
+                .admit_url(outbound.url(), resolver.as_ref())
+                .map_err(|error| GrokAdminError::ProbeEgress { code: error.code() })?;
+            outbound
+                .into_transport_request(admitted)
+                .map_err(|category| GrokAdminError::ProbeConsoleTransport { category })?;
             let adapter = GrokConsoleInferenceAdapter::try_new(
-                GrokConsoleSsoToken::try_from_bytes(credential)
-                    .map_err(|_| GrokAdminError::ProbeUnavailable)?,
+                token,
                 "grok-build-0.1",
                 GrokConsoleExecutionMode::NonStreaming,
                 Arc::new(GrokConsoleUpstreamTransport::new(
