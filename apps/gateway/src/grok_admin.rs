@@ -1,18 +1,38 @@
-//! Root-only, transport-free native Grok account migration commands.
+//! Root-only native Grok account migration and bounded live-probe commands.
 
 use std::{
+    collections::BTreeSet,
     error::Error,
     fmt, fs,
     io::{self, BufReader, IsTerminal},
+    net::IpAddr,
+    num::NonZeroUsize,
     path::{Path, PathBuf},
+    sync::Arc,
+    time::Duration,
 };
 
 use crate::deployment;
-use gateway_store::secret_store::{KeyVersion, MasterKeyRing, SecretStore};
-use provider_grok::{
-    Grok2ApiMemoryStreamMigration, Grok2ApiMigrationError, GrokAccountPoolError,
-    GrokAccountPoolStore,
+use gateway_core::{CanonicalResponse, EgressPolicyId, EndpointId, RequestContext, RequestId};
+use gateway_router::{
+    ProtocolFormat, RuntimeCredentialAccountStatus, RuntimeHealthRegistry, RuntimeQuotaRegistry,
+    project_protocol_response,
 };
+use gateway_store::secret_store::{KeyVersion, MasterKeyRing, SecretStore};
+use gateway_upstream::{
+    EgressCidr, EgressDnsError, EgressDnsResolver, EgressHost, EgressPolicy, EgressPolicyInput,
+    EgressScheme, RedirectPolicy, SystemEgressDnsResolver, UpstreamClientPool, UpstreamProxy,
+    UpstreamTimeouts, UpstreamTransportProfile,
+};
+use protocol_openai_responses::decode_request;
+use provider_grok::{
+    Grok2ApiMemoryStreamMigration, Grok2ApiMigrationError, GrokAccountEndpointBinding,
+    GrokAccountPoolError, GrokAccountPoolStore, GrokAccountProvider, GrokBuildCredential,
+    GrokBuildExecutionMode, GrokBuildInferenceAdapter, GrokBuildUpstreamTransport,
+    GrokConsoleExecutionMode, GrokConsoleInferenceAdapter, GrokConsoleSsoToken,
+    GrokConsoleUpstreamTransport,
+};
+use provider_kiro::InferenceAdapter;
 
 /// Safe, value-free failure for a local migration operation.
 #[derive(Debug)]
@@ -22,6 +42,8 @@ pub(crate) enum GrokAdminError {
     InvalidPath,
     CredentialUnavailable,
     StoreUnavailable,
+    ProbeRejected,
+    ProbeUnavailable,
     Migration(Grok2ApiMigrationError),
     Rollback(GrokAccountPoolError),
 }
@@ -36,6 +58,8 @@ impl fmt::Display for GrokAdminError {
             Self::InvalidPath => "native Grok migration path is unavailable or unsafe",
             Self::CredentialUnavailable => "native Grok migration key is unavailable",
             Self::StoreUnavailable => "native Grok migration store is unavailable",
+            Self::ProbeRejected => "native Grok probe request was rejected",
+            Self::ProbeUnavailable => "native Grok probe failed",
             Self::Migration(error) => {
                 let receipt = error.receipt();
                 return write!(
@@ -114,6 +138,207 @@ pub(crate) fn rollback(
         outcome.removed, outcome.already_rolled_back,
     );
     Ok(())
+}
+
+pub(crate) fn probe(
+    database: &str,
+    credential_directory: &str,
+    batch: &str,
+    provider: &str,
+    observed_at_ms: i64,
+) -> Result<(), GrokAdminError> {
+    require_root()?;
+    let provider = match provider {
+        "grok_build" => GrokAccountProvider::Build,
+        "grok_console" => GrokAccountProvider::Console,
+        _ => return Err(GrokAdminError::ProbeRejected),
+    };
+    let store = open_store(database, credential_directory)?;
+    let accounts = store
+        .list_accounts()
+        .map_err(|_| GrokAdminError::ProbeUnavailable)?;
+    let selected = accounts
+        .iter()
+        .filter(|account| account.import_batch_id == batch && account.provider == provider)
+        .collect::<Vec<_>>();
+    if selected.len() != 1 || !selected[0].enabled {
+        return Err(GrokAdminError::ProbeRejected);
+    }
+    let selected = selected[0];
+    let endpoint = EndpointId::try_new("p12-10g-native-grok".to_owned())
+        .map_err(|_| GrokAdminError::ProbeUnavailable)?;
+    let compilation = store
+        .compile_native_runtime(
+            &[GrokAccountEndpointBinding::new(provider, endpoint.clone())],
+            observed_at_ms,
+        )
+        .map_err(|_| GrokAdminError::ProbeUnavailable)?;
+    if compilation.account_count() != 1 {
+        return Err(GrokAdminError::ProbeRejected);
+    }
+    let health = RuntimeHealthRegistry::new();
+    let quota = RuntimeQuotaRegistry::new();
+    compilation
+        .seed_runtime_health(&health)
+        .map_err(|_| GrokAdminError::ProbeUnavailable)?;
+    compilation
+        .seed_runtime_quota(&quota)
+        .map_err(|_| GrokAdminError::ProbeUnavailable)?;
+    let lease = compilation
+        .credential_pools()
+        .try_lease(&endpoint)
+        .ok_or(GrokAdminError::ProbeRejected)?;
+    if lease.credential_id().as_str() != selected.id
+        || health
+            .credential_account_status_at(&endpoint, lease.credential_id(), observed_at_ms)
+            .map_err(|_| GrokAdminError::ProbeUnavailable)?
+            != RuntimeCredentialAccountStatus::Available
+        || !quota.endpoint_credential_is_available(&endpoint, lease.credential_id())
+    {
+        return Err(GrokAdminError::ProbeRejected);
+    }
+    let credential = store
+        .open_credential(&selected.id)
+        .map_err(|_| GrokAdminError::ProbeUnavailable)?;
+    let response = actix_web::rt::System::new().block_on(execute_probe(
+        provider,
+        credential.as_bytes(),
+        observed_at_ms,
+    ))?;
+    let chat = project_protocol_response(&response, ProtocolFormat::OpenAiChatCompletions).is_ok();
+    let responses = project_protocol_response(&response, ProtocolFormat::OpenAiResponses).is_ok();
+    let messages = project_protocol_response(&response, ProtocolFormat::AnthropicMessages).is_ok();
+    if !(chat && responses && messages) {
+        return Err(GrokAdminError::ProbeUnavailable);
+    }
+    let provider_label = match provider {
+        GrokAccountProvider::Build => "grok_build",
+        GrokAccountProvider::Console => "grok_console",
+        GrokAccountProvider::Web => return Err(GrokAdminError::ProbeRejected),
+    };
+    println!(
+        "native_grok_probe=PASS provider={provider_label} account_attributed=true health=available quota=available canonical_complete=true chat=true responses=true messages=true"
+    );
+    Ok(())
+}
+
+async fn execute_probe(
+    provider: GrokAccountProvider,
+    credential: &[u8],
+    observed_at_ms: i64,
+) -> Result<CanonicalResponse, GrokAdminError> {
+    let request = decode_request(
+        r#"{"model":"cpar-native-grok","input":"Reply with exactly: ready","max_output_tokens":32}"#,
+    )
+    .map_err(|_| GrokAdminError::ProbeUnavailable)?
+    .request;
+    let context = RequestContext::new(
+        RequestId::try_new("p12-10g-native-grok-probe")
+            .map_err(|_| GrokAdminError::ProbeUnavailable)?,
+    );
+    let pool =
+        UpstreamClientPool::new(NonZeroUsize::new(1).ok_or(GrokAdminError::ProbeUnavailable)?);
+    let profile = UpstreamTransportProfile::new(
+        UpstreamTimeouts::try_new(
+            Duration::from_secs(10),
+            Duration::from_mins(1),
+            Duration::from_mins(1),
+            Duration::from_mins(3),
+        )
+        .map_err(|_| GrokAdminError::ProbeUnavailable)?,
+        UpstreamProxy::Direct,
+        NonZeroUsize::new(1).ok_or(GrokAdminError::ProbeUnavailable)?,
+    );
+    let mut source = match provider {
+        GrokAccountProvider::Build => {
+            let (policy, resolver) = probe_egress("cli-chat-proxy.grok.com")?;
+            let adapter = GrokBuildInferenceAdapter::try_new(
+                GrokBuildCredential::import_runtime_json(credential, observed_at_ms)
+                    .map_err(|_| GrokAdminError::ProbeUnavailable)?,
+                "grok-code-fast-1",
+                GrokBuildExecutionMode::NonStreaming,
+                Arc::new(GrokBuildUpstreamTransport::new(
+                    policy, resolver, pool, profile,
+                )),
+            )
+            .map_err(|_| GrokAdminError::ProbeUnavailable)?;
+            adapter
+                .execute(context, request)
+                .await
+                .map_err(|_| GrokAdminError::ProbeUnavailable)?
+        }
+        GrokAccountProvider::Console => {
+            let (policy, resolver) = probe_egress("console.x.ai")?;
+            let adapter = GrokConsoleInferenceAdapter::try_new(
+                GrokConsoleSsoToken::try_from_bytes(credential)
+                    .map_err(|_| GrokAdminError::ProbeUnavailable)?,
+                "grok-build-0.1",
+                GrokConsoleExecutionMode::NonStreaming,
+                Arc::new(GrokConsoleUpstreamTransport::new(
+                    policy, resolver, pool, profile,
+                )),
+            )
+            .map_err(|_| GrokAdminError::ProbeUnavailable)?;
+            adapter
+                .execute(context, request)
+                .await
+                .map_err(|_| GrokAdminError::ProbeUnavailable)?
+        }
+        GrokAccountProvider::Web => return Err(GrokAdminError::ProbeRejected),
+    };
+    let mut events = Vec::new();
+    while let Some(event) = source
+        .next_event()
+        .await
+        .map_err(|_| GrokAdminError::ProbeUnavailable)?
+    {
+        events.push(event);
+    }
+    CanonicalResponse::try_new(events).map_err(|_| GrokAdminError::ProbeUnavailable)
+}
+
+fn probe_egress(host: &str) -> Result<(EgressPolicy, Arc<dyn EgressDnsResolver>), GrokAdminError> {
+    let host = EgressHost::try_new(host).map_err(|_| GrokAdminError::ProbeUnavailable)?;
+    let addresses = SystemEgressDnsResolver
+        .resolve(&host)
+        .map_err(|_| GrokAdminError::ProbeUnavailable)?;
+    if addresses.is_empty() {
+        return Err(GrokAdminError::ProbeUnavailable);
+    }
+    let allowed_cidrs = addresses
+        .iter()
+        .copied()
+        .map(|address| {
+            EgressCidr::try_new(address, if address.is_ipv4() { 32 } else { 128 })
+                .map_err(|_| GrokAdminError::ProbeUnavailable)
+        })
+        .collect::<Result<BTreeSet<_>, _>>()?;
+    let policy = EgressPolicy::try_new(EgressPolicyInput {
+        id: EgressPolicyId::try_new("p12-10g-native-grok-probe".to_owned())
+            .map_err(|_| GrokAdminError::ProbeUnavailable)?,
+        name: "P12-10G native Grok probe".to_owned(),
+        allowed_schemes: BTreeSet::from([EgressScheme::Https]),
+        allowed_hosts: BTreeSet::from([host.clone()]),
+        allowed_ports: BTreeSet::from([443]),
+        allowed_cidrs,
+        redirect_policy: RedirectPolicy::Deny,
+    })
+    .map_err(|_| GrokAdminError::ProbeUnavailable)?;
+    Ok((policy, Arc::new(PinnedResolver { host, addresses })))
+}
+
+struct PinnedResolver {
+    host: EgressHost,
+    addresses: Vec<IpAddr>,
+}
+
+impl EgressDnsResolver for PinnedResolver {
+    fn resolve(&self, host: &EgressHost) -> Result<Vec<IpAddr>, EgressDnsError> {
+        if host != &self.host {
+            return Err(EgressDnsError);
+        }
+        Ok(self.addresses.clone())
+    }
 }
 
 fn open_store(

@@ -70,28 +70,8 @@ fn execute(command: GatewayCommand) -> Result<(), CliError> {
 }
 
 fn execute_admin(command: AdminCommand) -> Result<(), CliError> {
-    match &command {
-        AdminCommand::GrokImport {
-            database,
-            credential_directory,
-            batch,
-            observed_at_ms,
-            ..
-        } => {
-            grok_admin::import(database, credential_directory, batch, *observed_at_ms)?;
-            return Ok(());
-        }
-        AdminCommand::GrokRollback {
-            database,
-            credential_directory,
-            batch,
-            observed_at_ms,
-            ..
-        } => {
-            grok_admin::rollback(database, credential_directory, batch, *observed_at_ms)?;
-            return Ok(());
-        }
-        _ => {}
+    if execute_grok_admin(&command)? {
+        return Ok(());
     }
     let actor = ManagementActor::try_new(command.actor().to_owned())
         .map_err(|_| CliError::InvalidValue("--actor"))?;
@@ -160,9 +140,55 @@ fn execute_admin(command: AdminCommand) -> Result<(), CliError> {
                 );
             }
         }
-        AdminCommand::GrokImport { .. } | AdminCommand::GrokRollback { .. } => unreachable!(),
+        AdminCommand::GrokImport { .. }
+        | AdminCommand::GrokRollback { .. }
+        | AdminCommand::GrokProbe { .. } => unreachable!(),
     }
     Ok(())
+}
+
+fn execute_grok_admin(command: &AdminCommand) -> Result<bool, CliError> {
+    match command {
+        AdminCommand::GrokImport {
+            database,
+            credential_directory,
+            batch,
+            observed_at_ms,
+            ..
+        } => {
+            grok_admin::import(database, credential_directory, batch, *observed_at_ms)?;
+            return Ok(true);
+        }
+        AdminCommand::GrokRollback {
+            database,
+            credential_directory,
+            batch,
+            observed_at_ms,
+            ..
+        } => {
+            grok_admin::rollback(database, credential_directory, batch, *observed_at_ms)?;
+            return Ok(true);
+        }
+        AdminCommand::GrokProbe {
+            database,
+            credential_directory,
+            batch,
+            provider,
+            observed_at_ms,
+            ..
+        } => {
+            grok_admin::probe(
+                database,
+                credential_directory,
+                batch,
+                provider,
+                *observed_at_ms,
+            )?;
+            return Ok(true);
+        }
+        _ => {}
+    }
+    Ok(false)
 }
 
 enum GatewayCommand {
@@ -211,6 +237,14 @@ enum AdminCommand {
         batch: String,
         observed_at_ms: i64,
     },
+    GrokProbe {
+        database: String,
+        actor: String,
+        credential_directory: String,
+        batch: String,
+        provider: String,
+        observed_at_ms: i64,
+    },
 }
 
 impl AdminCommand {
@@ -222,7 +256,8 @@ impl AdminCommand {
             | Self::Rollback { database, .. }
             | Self::Audit { database, .. }
             | Self::GrokImport { database, .. }
-            | Self::GrokRollback { database, .. } => database,
+            | Self::GrokRollback { database, .. }
+            | Self::GrokProbe { database, .. } => database,
         }
     }
 
@@ -234,7 +269,8 @@ impl AdminCommand {
             | Self::Rollback { actor, .. }
             | Self::Audit { actor, .. }
             | Self::GrokImport { actor, .. }
-            | Self::GrokRollback { actor, .. } => actor,
+            | Self::GrokRollback { actor, .. }
+            | Self::GrokProbe { actor, .. } => actor,
         }
     }
 }
@@ -310,6 +346,17 @@ fn parse_admin_command(arguments: Vec<String>) -> Result<AdminCommand, CliError>
                 "--observed-at-ms",
             )?,
         },
+        "grok-probe" => AdminCommand::GrokProbe {
+            database,
+            actor,
+            credential_directory: required_option(&mut options, "--credential-dir")?,
+            batch: required_option(&mut options, "--batch")?,
+            provider: required_option(&mut options, "--provider")?,
+            observed_at_ms: parse_i64_option(
+                &required_option(&mut options, "--observed-at-ms")?,
+                "--observed-at-ms",
+            )?,
+        },
         _ => return Err(CliError::Usage),
     };
     if options.is_empty() {
@@ -353,7 +400,7 @@ fn parse_i64_option(value: &str, option: &'static str) -> Result<i64, CliError> 
 
 fn print_usage() {
     println!(
-        "Usage:\n  gateway serve --data-listen <loopback-host:port> --management-listen <loopback-host:port> --state-dir <absolute-dir> --credential-dir <absolute-dir>\n  gateway admin create --db <path> --version <id> --description <text> [--parent <id>] [--actor <label>]\n  gateway admin validate --db <path> --version <id> [--actor <label>]\n  gateway admin publish --db <path> --version <id> [--actor <label>]\n  gateway admin rollback --db <path> [--actor <label>]\n  gateway admin audit --db <path> [--actor <label>]\n  gateway admin grok-import --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>\n  gateway admin grok-rollback --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>"
+        "Usage:\n  gateway serve --data-listen <loopback-host:port> --management-listen <loopback-host:port> --state-dir <absolute-dir> --credential-dir <absolute-dir>\n  gateway admin create --db <path> --version <id> --description <text> [--parent <id>] [--actor <label>]\n  gateway admin validate --db <path> --version <id> [--actor <label>]\n  gateway admin publish --db <path> --version <id> [--actor <label>]\n  gateway admin rollback --db <path> [--actor <label>]\n  gateway admin audit --db <path> [--actor <label>]\n  gateway admin grok-import --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>\n  gateway admin grok-rollback --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>\n  gateway admin grok-probe --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --provider <grok_build|grok_console> --observed-at-ms <unix-ms>"
     );
 }
 
@@ -532,6 +579,29 @@ mod tests {
                 observed_at_ms: 2,
                 ..
             }))
+        ));
+
+        let probe = parse_command(vec![
+            "admin".to_owned(),
+            "grok-probe".to_owned(),
+            "--db".to_owned(),
+            "/state/control.sqlite3".to_owned(),
+            "--credential-dir".to_owned(),
+            "/run/credentials/gateway".to_owned(),
+            "--batch".to_owned(),
+            "p12-10g-subset".to_owned(),
+            "--provider".to_owned(),
+            "grok_console".to_owned(),
+            "--observed-at-ms".to_owned(),
+            "3".to_owned(),
+        ]);
+        assert!(matches!(
+            probe,
+            Ok(GatewayCommand::Admin(AdminCommand::GrokProbe {
+                provider,
+                observed_at_ms: 3,
+                ..
+            })) if provider == "grok_console"
         ));
     }
 }

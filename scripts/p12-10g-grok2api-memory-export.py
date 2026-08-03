@@ -120,6 +120,7 @@ def source_rows(provider: str, limit: int) -> tuple[int, list[dict[str, Any]]]:
               FROM provider_accounts p
               JOIN account_credentials c ON c.account_id = p.id
              WHERE p.provider = ? AND p.enabled = 1 AND p.auth_status = 'active'
+               AND (p.cooldown_until IS NULL OR p.cooldown_until <= CURRENT_TIMESTAMP)
                AND (? != 'grok_build' OR (c.expires_at IS NOT NULL AND c.expires_at > CURRENT_TIMESTAMP))
              ORDER BY p.id
              LIMIT ?
