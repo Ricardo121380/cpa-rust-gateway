@@ -117,16 +117,29 @@ def source_rows(provider: str, limit: int) -> tuple[int, list[dict[str, Any]]]:
             """
             SELECT p.identity_key, p.name, p.email, p.user_id, p.team_id,
                    p.auth_status, p.enabled, p.priority, p.max_concurrent,
-                   p.cooldown_until, p.observed_model, c.expires_at, c.refresh_due_at
+                   p.cooldown_until, p.observed_model, c.expires_at, c.refresh_due_at,
+                   CASE WHEN p.provider = 'grok_console' THEN (
+                     SELECT r.model_upstream_model
+                       FROM request_audits r
+                      WHERE r.account_id = p.id AND r.status_code BETWEEN 200 AND 299
+                      ORDER BY r.created_at DESC LIMIT 1
+                   ) END AS probe_model,
+                   CASE WHEN p.provider = 'grok_console' THEN (
+                     SELECT max(r.created_at)
+                       FROM request_audits r
+                      WHERE r.account_id = p.id AND r.status_code BETWEEN 200 AND 299
+                   ) END AS probe_model_at
               FROM provider_accounts p
               JOIN account_credentials c ON c.account_id = p.id
              WHERE p.provider = ? AND p.enabled = 1 AND p.auth_status = 'active'
                AND (p.cooldown_until IS NULL OR p.cooldown_until <= CURRENT_TIMESTAMP)
                AND (? != 'grok_build' OR (c.expires_at IS NOT NULL AND c.expires_at > CURRENT_TIMESTAMP))
-             ORDER BY p.id
+             ORDER BY
+               CASE WHEN ? = 'grok_console' THEN probe_model_at END DESC,
+               p.id
              LIMIT ?
             """,
-            (provider, provider, limit),
+            (provider, provider, provider, limit),
         ).fetchall()
     except sqlite3.Error:
         fail("source_database_unavailable")
@@ -140,7 +153,7 @@ def account_key(account: dict[str, Any]) -> tuple[str, str, str, str]:
     return tuple(str(account.get(name) or "") for name in ("name", "email", "user_id", "team_id"))
 
 
-def canonical_credential(provider: str, exported: dict[str, Any]) -> str:
+def canonical_credential(provider: str, exported: dict[str, Any], source: dict[str, Any] | None = None) -> str:
     if provider == "grok_build":
         client_id = str(exported.get("client_id") or BUILD_CLIENT_ID)
         document = {
@@ -160,9 +173,10 @@ def canonical_credential(provider: str, exported: dict[str, Any]) -> str:
         return json.dumps(document, separators=(",", ":"))
     if provider == "grok_console":
         token = exported.get("sso_token")
-        if not isinstance(token, str) or not token:
+        model = source.get("probe_model") if source is not None else None
+        if not isinstance(token, str) or not token or not isinstance(model, str) or not model:
             fail("unsupported_console_credential")
-        return token
+        return json.dumps({"sso_token": token, "probe_model": model}, separators=(",", ":"))
     fail("web_expiry_unavailable")
 
 
@@ -197,7 +211,7 @@ def transfer_records(provider: str, limit: int, exported: dict[str, Any], rows: 
             "source_ref": f"{provider}-{index}",
             "provider": provider,
             "identity_key": row["identity_key"],
-            "credential": canonical_credential(provider, exported_account),
+            "credential": canonical_credential(provider, exported_account, row),
             "auth_status": "active",
             "enabled": True,
             "priority": int(row["priority"]),

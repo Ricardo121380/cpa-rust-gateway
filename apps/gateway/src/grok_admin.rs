@@ -37,6 +37,7 @@ use provider_grok::{
     GrokConsoleUpstreamTransport,
 };
 use provider_kiro::InferenceAdapter;
+use serde::Deserialize;
 
 /// Safe, value-free failure for a local migration operation.
 #[derive(Debug)]
@@ -323,11 +324,13 @@ async fn execute_probe(
         }
         GrokAccountProvider::Console => {
             let (policy, resolver) = probe_egress("console.x.ai", GROK_CONSOLE_RESPONSES_URL)?;
-            let token = GrokConsoleSsoToken::try_from_bytes(credential)
+            let migrated: ConsoleProbeCredential =
+                serde_json::from_slice(credential).map_err(|_| GrokAdminError::ProbeUnavailable)?;
+            let token = GrokConsoleSsoToken::try_from_bytes(migrated.sso_token.as_bytes())
                 .map_err(|_| GrokAdminError::ProbeUnavailable)?;
-            let outbound = GrokConsoleResponsesRequestBuilder::build(
+            let outbound = GrokConsoleResponsesRequestBuilder::build_observed_probe(
                 &token,
-                "grok-build-0.1",
+                &migrated.probe_model,
                 &request,
                 ResponseMode::NonStreaming,
             )
@@ -338,9 +341,9 @@ async fn execute_probe(
             outbound
                 .into_transport_request(admitted)
                 .map_err(|category| GrokAdminError::ProbeConsoleTransport { category })?;
-            let adapter = GrokConsoleInferenceAdapter::try_new(
+            let adapter = GrokConsoleInferenceAdapter::try_new_observed_probe(
                 token,
-                "grok-build-0.1",
+                migrated.probe_model,
                 GrokConsoleExecutionMode::NonStreaming,
                 Arc::new(GrokConsoleUpstreamTransport::new(
                     policy, resolver, pool, profile,
@@ -363,6 +366,13 @@ async fn execute_probe(
         events.push(event);
     }
     CanonicalResponse::try_new(events).map_err(|_| GrokAdminError::ProbeUnavailable)
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ConsoleProbeCredential {
+    sso_token: String,
+    probe_model: String,
 }
 
 fn probe_request(provider: GrokAccountProvider) -> Result<CanonicalRequest, GrokAdminError> {

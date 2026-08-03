@@ -729,6 +729,7 @@ dependencies = [
  "provider-grok",
  "provider-kiro",
  "provider-openai-compatible",
+ "serde",
  "serde_json",
  "zeroize",
 ]

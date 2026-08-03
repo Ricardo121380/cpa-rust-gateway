@@ -246,6 +246,35 @@ impl GrokConsoleResponsesRequestBuilder {
     ) -> Result<GrokConsoleResponsesOutboundRequest, GrokConsoleRequestError> {
         let spec =
             console_model(upstream_model).ok_or(GrokConsoleRequestError::UnsupportedModel)?;
+        Self::build_with_spec(credential, upstream_model, request, mode, spec)
+    }
+
+    /// Builds the text-only P12 migration probe from a source-observed successful model.
+    ///
+    /// This does not widen the production Console catalog: callers must use the explicitly named
+    /// root-only probe path, which applies a 32-token ceiling and adds no inferred capabilities.
+    ///
+    /// # Errors
+    ///
+    /// Rejects an invalid observed model or request semantics before transport.
+    pub fn build_observed_probe(
+        credential: &GrokConsoleSsoToken,
+        upstream_model: &str,
+        request: &CanonicalRequest,
+        mode: ResponseMode,
+    ) -> Result<GrokConsoleResponsesOutboundRequest, GrokConsoleRequestError> {
+        let spec = observed_probe_model(upstream_model)
+            .ok_or(GrokConsoleRequestError::UnsupportedModel)?;
+        Self::build_with_spec(credential, upstream_model, request, mode, spec)
+    }
+
+    fn build_with_spec(
+        credential: &GrokConsoleSsoToken,
+        upstream_model: &str,
+        request: &CanonicalRequest,
+        mode: ResponseMode,
+        spec: ConsoleModelSpec,
+    ) -> Result<GrokConsoleResponsesOutboundRequest, GrokConsoleRequestError> {
         if upstream_model.len() > MAX_CONSOLE_MODEL_BYTES
             || !upstream_model.bytes().all(|byte| byte.is_ascii_graphic())
         {
@@ -275,6 +304,17 @@ impl GrokConsoleResponsesRequestBuilder {
             body,
         })
     }
+}
+
+fn observed_probe_model(model: &str) -> Option<ConsoleModelSpec> {
+    (!model.is_empty()
+        && model.len() <= MAX_CONSOLE_MODEL_BYTES
+        && model.bytes().all(|byte| byte.is_ascii_graphic()))
+    .then_some(ConsoleModelSpec {
+        maximum_output_tokens: 32,
+        default_reasoning_effort: None,
+        search_tools: false,
+    })
 }
 
 #[derive(Clone, Copy)]
@@ -663,6 +703,7 @@ pub struct GrokConsoleInferenceAdapter {
     provider_id: ProviderId,
     credential: GrokConsoleSsoToken,
     upstream_model: String,
+    model_spec: ConsoleModelSpec,
     mode: GrokConsoleExecutionMode,
     transport: Arc<dyn GrokConsoleTransport>,
 }
@@ -680,15 +721,40 @@ impl GrokConsoleInferenceAdapter {
         transport: Arc<dyn GrokConsoleTransport>,
     ) -> Result<Self, GatewayError> {
         let upstream_model = upstream_model.into();
-        if console_model(&upstream_model).is_none() {
-            return Err(request_error());
-        }
+        let model_spec = console_model(&upstream_model).ok_or_else(request_error)?;
+        Self::try_new_with_spec(credential, upstream_model, model_spec, mode, transport)
+    }
+
+    /// Creates the root-only live-migration probe for a source-observed successful model.
+    ///
+    /// # Errors
+    ///
+    /// Rejects invalid observed model text or an invalid compiled provider identity.
+    pub fn try_new_observed_probe(
+        credential: GrokConsoleSsoToken,
+        upstream_model: impl Into<String>,
+        mode: GrokConsoleExecutionMode,
+        transport: Arc<dyn GrokConsoleTransport>,
+    ) -> Result<Self, GatewayError> {
+        let upstream_model = upstream_model.into();
+        let model_spec = observed_probe_model(&upstream_model).ok_or_else(request_error)?;
+        Self::try_new_with_spec(credential, upstream_model, model_spec, mode, transport)
+    }
+
+    fn try_new_with_spec(
+        credential: GrokConsoleSsoToken,
+        upstream_model: String,
+        model_spec: ConsoleModelSpec,
+        mode: GrokConsoleExecutionMode,
+        transport: Arc<dyn GrokConsoleTransport>,
+    ) -> Result<Self, GatewayError> {
         let provider_id = ProviderId::try_new(GROK_CONSOLE_PROVIDER_ID.to_owned())
             .map_err(|_| internal_error())?;
         Ok(Self {
             provider_id,
             credential,
             upstream_model,
+            model_spec,
             mode,
             transport,
         })
@@ -702,6 +768,7 @@ impl fmt::Debug for GrokConsoleInferenceAdapter {
             .field("provider_id", &self.provider_id)
             .field("credential", &self.credential)
             .field("upstream_model", &"<redacted>")
+            .field("model_spec", &"<redacted>")
             .field("mode", &self.mode)
             .field("transport", &"<injected>")
             .finish()
@@ -722,14 +789,16 @@ impl InferenceAdapter for GrokConsoleInferenceAdapter {
     ) -> ProviderFuture<'_, Result<Box<dyn CanonicalEventSource>, GatewayError>> {
         let credential = self.credential.clone();
         let upstream_model = self.upstream_model.clone();
+        let model_spec = self.model_spec;
         let mode = self.mode;
         let transport = Arc::clone(&self.transport);
         Box::pin(async move {
-            let outbound = GrokConsoleResponsesRequestBuilder::build(
+            let outbound = GrokConsoleResponsesRequestBuilder::build_with_spec(
                 &credential,
                 &upstream_model,
                 &request,
                 mode.response_mode(),
+                model_spec,
             )
             .map_err(map_request_error)?;
             let response = transport.send(outbound).await?;
