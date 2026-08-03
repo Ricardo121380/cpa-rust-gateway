@@ -21,7 +21,7 @@ ADMIN_ROOT = "http://127.0.0.1:8000/api/admin/v1"
 BUILD_CLIENT_ID = "b1a00492-073a-47ea-816f-4c329264a828"
 BUILD_ISSUER = "https://auth.x.ai"
 BUILD_SCOPE = "openid profile email offline_access grok-cli:access api:access"
-BUILD_PROBE_MODEL = "grok-4.5-build-free"
+BUILD_PROBE_MODEL = "grok-4.5"
 ALLOWED_PROVIDERS = ("grok_build", "grok_console", "grok_web")
 
 
