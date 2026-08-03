@@ -21,6 +21,7 @@ ADMIN_ROOT = "http://127.0.0.1:8000/api/admin/v1"
 BUILD_CLIENT_ID = "b1a00492-073a-47ea-816f-4c329264a828"
 BUILD_ISSUER = "https://auth.x.ai"
 BUILD_SCOPE = "openid profile email offline_access grok-cli:access api:access"
+BUILD_PROBE_MODEL = "grok-4.5-build-free"
 ALLOWED_PROVIDERS = ("grok_build", "grok_console", "grok_web")
 
 
@@ -116,7 +117,7 @@ def source_rows(provider: str, limit: int) -> tuple[int, list[dict[str, Any]]]:
             """
             SELECT p.identity_key, p.name, p.email, p.user_id, p.team_id,
                    p.auth_status, p.enabled, p.priority, p.max_concurrent,
-                   p.cooldown_until, c.expires_at, c.refresh_due_at
+                   p.cooldown_until, p.observed_model, c.expires_at, c.refresh_due_at
               FROM provider_accounts p
               JOIN account_credentials c ON c.account_id = p.id
              WHERE p.provider = ? AND p.enabled = 1 AND p.auth_status = 'active'
@@ -186,6 +187,8 @@ def transfer_records(provider: str, limit: int, exported: dict[str, Any], rows: 
         indexed[key] = account
     records = []
     for index, row in enumerate(rows):
+        if provider == "grok_build" and row["observed_model"] != BUILD_PROBE_MODEL:
+            fail("unsupported_build_model")
         exported_account = indexed.get(account_key(row))
         if exported_account is None:
             fail("source_export_mismatch")

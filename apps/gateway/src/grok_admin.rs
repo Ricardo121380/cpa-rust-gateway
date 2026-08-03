@@ -269,7 +269,7 @@ async fn execute_probe(
             let adapter = GrokBuildInferenceAdapter::try_new(
                 GrokBuildCredential::import_runtime_json(credential, observed_at_ms)
                     .map_err(|_| GrokAdminError::ProbeUnavailable)?,
-                "grok-code-fast-1",
+                "grok-4.5-build-free",
                 GrokBuildExecutionMode::NonStreaming,
                 Arc::new(GrokBuildUpstreamTransport::new(
                     policy, resolver, pool, profile,
