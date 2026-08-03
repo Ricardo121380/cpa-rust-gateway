@@ -33,7 +33,7 @@ allowed = {
   # Protocol/provider dependencies below are dev-only D1-D3 matrix tests; production routing still
   # depends only on transport-neutral gateway interfaces.
   "gateway-router" => %w[arc-swap gateway-auth gateway-catalog gateway-core gateway-protocol gateway-provider gateway-upstream proptest protocol-anthropic protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-openai-compatible serde_json tokio],
-  "gateway-store" => %w[chacha20poly1305 gateway-core gateway-observability getrandom libc rusqlite serde_json tokio zeroize],
+  "gateway-store" => %w[chacha20poly1305 gateway-core gateway-observability getrandom libc rusqlite serde_json sha2 tokio zeroize],
   "gateway-stream" => %w[gateway-core gateway-protocol proptest tokio tokio-util],
   "gateway-upstream" => %w[bytes gateway-auth gateway-core gateway-provider moka reqwest tokio url zeroize],
   "protocol-anthropic" => %w[gateway-core gateway-protocol proptest serde serde_json],

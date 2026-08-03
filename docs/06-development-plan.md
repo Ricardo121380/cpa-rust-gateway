@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.149` |
+| 计划版本 | `v1.150` |
 | 生效日期 | `2026-08-03` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-09 `IN_PROGRESS_P1_FIX_BUILD`。Jakarta SSH 已在修正 Clash TUN 排除规则后恢复；Newapi 的官方 API 迁移、CPAR 全量切换、真实回滚与再次恢复均已执行。最终检查发现上游在不同 Chat SSE 请求间复用 response ID，导致 2 个 Required Usage 事件被持久化层隔离；按 P1 规则已立即把 Caddy 与 Newapi 恢复到旧 CPA。修复与回归测试本地通过，等待 exact-revision artifact、受控部署和重新验收。P12-10 未开始；CC Switch 仍不读取、不修改。 |
+| 当前任务 | P12-09 `DONE`。上游复用 Chat SSE response ID 导致 Required Usage 隔离的问题已修复，exact-revision ARM64 签名制品已部署；重新执行的全量切换、真实回滚、恢复、Newapi 迁移与三协议矩阵均通过，修复版 25 个 Attempt 全部形成 Request/Attempt/Usage 三联记录且四个 P1 计数器保持 0。生产入口现全量指向 CPAR；旧 CPA 仅作为 P12-10 回滚窗口保留运行。下一步启动 P12-10 的 72h/1250 成功观察；CC Switch 仍不读取、不修改。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -1772,7 +1772,7 @@ CR-ID: CR-P11-04-001
 | P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | [OpenAI-compatible live differential](reports/p12-06-openai-differential.md)：临时 Krill 原生 `codex-api-key` 参考臂与新网关 candidate 均通过 10/10 SSE、非流式、Tool、Canonical/Usage 不变量与性能取证；修正过严的可选 Usage 明细比较后，无网络离线 review 为 9/9 PASS，完整回滚通过。Grok/Kiro 切片仍延期 | DONE |
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | [暴露前验证回执](reports/p12-07-exposure-receipt.md)：新主机上从零完成产物验签、账户/目录/五凭据、unit 安装与启动（active、disabled-at-boot）；`cpar` 灰云 A 记录 + Let's Encrypt 证书；七项 fail-closed 暴露断言全通过（未认证与错误 key 均 401、管理面四路径均 404、公网直连 18180/18181 均不可达）；Caddy 变更前备份 preimage 并以 validate/adapt 证明其余五站点未变，reload 后 incumbent 仍正常。未录入任何真实上游凭据，`valid_key_accepted` 为 SKIP；该域名无限流（Caddy 标准版无模块）已记为缺口 | DONE |
 | P12-08 | 完成 CPAR 全量替代准入、客户端 Key 迁移清单与生产切换准备 | P12-06,P12-07 | [`P12-08 readiness`](reports/p12-08-canary-readiness.md)、[`client migration inventory`](reports/p12-08-client-migration-inventory.md) 与 [G1 最终 review](reports/evidence/p12-08g1-final-review-20260803.md)：直接替代边界、客户端清单、三协议兼容和当前可用 Codex/Krill 12/12 真实矩阵完成；完整回滚；GitHub CI `30768254180` 的 Fast、Full supply-chain 与 Required delivery gate 通过 | DONE |
-| P12-09 | 将生产主机名全量切到 CPAR，实际执行一次全量回滚并再次恢复 | P12-08 | [P12-09 execution plan](reports/p12-09-execution-plan.md)：Newapi 迁移、全量切换/回滚/恢复与三协议矩阵已执行；Required Usage 隔离触发 P1 安全回滚，等待 exact-revision 修复制品部署后重验 | IN_PROGRESS |
+| P12-09 | 将生产主机名全量切到 CPAR，实际执行一次全量回滚并再次恢复 | P12-08 | [P12-09 execution receipt](reports/p12-09-execution-plan.md)：修复版切换/回滚/恢复 RTO 为 88ms/89ms/91ms，Newapi 与生产三协议矩阵通过，25/25 durable lifecycle 完整且 P1 零增量 | DONE |
 | P12-10 | CPAR 全量运行 72h，关闭旧 CPA，发布 Tag 和运维手册 | P12-09 | G12 报告；旧 CPA service/container 已关闭且不再承载生产流量 | PENDING |
 
 #### P12-08 兼容性补全切片（`CR-P12-COMPAT-001`）
@@ -3583,3 +3583,4 @@ Next task:
 | v1.147 | 2026-08-03 | operator 确认 Newapi 位于 Jakarta VPS；只读 SSH 校验发现现行 RSA/ECDSA/ED25519 主机指纹均与迁移包不符，原 Jakarta client key 对 deploy/root/ubuntu/opc 均被拒。严格身份边界下不覆盖 `known_hosts`、不接受未知主机后修改 Newapi | P12-09 `IN_PROGRESS_PRE_CUTOVER_GATE_EXTERNAL_ACCESS`；须经 VPS console 恢复公钥或提供新 SSH profile + 独立验证指纹，生产 Caddy 尚未 reload |
 | v1.148 | 2026-08-03 | 只读检查 operator 放入下载目录的 Jakarta 私钥：文件为 `0600`，但与已安装迁移 key 字节完全相同且公钥指纹相同；该文件直接登录 `deploy` 仍被拒，不能作为新的可信访问凭据 | P12-09 保持 `IN_PROGRESS_PRE_CUTOVER_GATE_EXTERNAL_ACCESS`；生产 Caddy 尚未 reload |
 | v1.149 | 2026-08-03 | `CR-P12-09-002`：Clash TUN 排除修正后恢复 Jakarta SSH；Newapi 经官方 API 完成迁移并通过既有两个 Messages alias 的 JSON/SSE 4/4；生产切换、真实回滚与恢复的 Caddy 有效 RTO 分别为 89ms、89ms、88ms。最终 P1 检查发现 OpenAI-compatible Chat SSE 跨请求复用 response ID，使 2 个 Required Usage 事件因全局 response-id 幂等键冲突而隔离；立即执行 89ms 安全回滚并恢复 Newapi preimage。Usage 持久化身份改为网关 request ID 的域分离固定长度摘要，同时继续限制外部 response ID；新增跨请求复用回归并保留同请求冲突、超长 ID 隔离语义 | P12-09 `IN_PROGRESS_P1_FIX_BUILD`；生产入口驻留旧 CPA，P12-10 未开始；须以 exact-revision artifact 部署并从零检查 P1 增量后重验 |
+| v1.150 | 2026-08-03 | `cb880a9` 的双架构 release-artifact run `30798197982` 通过并独立核验 revision、ARM64 ELF、manifest、receipt 与 Sigstore identity；修复制品备份部署后，在旧 CPA 承载生产时用两次真实 Chat SSE 证明上游复用同一 response ID，而 Required quarantine 保持 0。随后重新执行生产切换、Newapi 官方 API 迁移、三协议 JSON/SSE/Tool/Explain、强制回滚及恢复；有效 RTO 为 88ms/89ms/91ms，旧 CPA 认证恢复 200，最终 25/25 Attempt 的 durable lifecycle 完整，四项 P1 计数器为 0，两个数据库 quick-check 均为 `ok` | P12-09 `DONE`；生产全量驻留 CPAR，旧 CPA 只为 P12-10 回滚窗口运行；下一任务 P12-10 |

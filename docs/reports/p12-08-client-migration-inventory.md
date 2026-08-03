@@ -1,6 +1,6 @@
 # P12-08 client migration inventory
 
-Status: `P12_09_P1_SAFETY_ROLLBACK`
+Status: `P12_09_MIGRATED`
 
 Date: 2026-08-02
 
@@ -51,10 +51,9 @@ named external client.
   confirmed it must remain usable. It therefore requires an explicit CPAR key migration before
   cutover.
 
-Slot 2 is proposed as a deliberate retired OpenClaw identity. Slot 3 was successfully migrated to
-CPAR through Newapi's official management API and passed both retained aliases in JSON/SSE, then was
-restored to its complete CPA preimage when the independent P1 observability condition required a
-safety rollback. Its migration transaction is proven but must be repeated after the fix deploys.
+Slot 2 is a deliberate retired OpenClaw identity. Slot 3 was migrated to CPAR through Newapi's
+official management API, restored to its complete CPA preimage during the mandatory rollback, and
+migrated again after recovery. Both retained aliases passed JSON/SSE in the final state.
 
 ## CPAR readiness gap
 

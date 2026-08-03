@@ -1,6 +1,6 @@
 # P12-09 production cutover execution plan
 
-Status: `IN_PROGRESS_P1_FIX_BUILD`
+Status: `DONE`
 
 Date: 2026-08-03
 
@@ -81,12 +81,35 @@ preimage through the same official API.
 - A bounded diagnostic while production remained on CPA proved the upstream reused an eight-byte
   response ID already present in the Usage log; the request succeeded but the quarantine counter
   increased once more. No identifier value or response content was retained.
-- The local fix makes final Usage identity request-scoped with a domain-separated SHA-256 digest of
+- The fix makes final Usage identity request-scoped with a domain-separated SHA-256 digest of
   the gateway-owned request ID. It still validates the externally supplied response ID length.
   Focused tests prove reused upstream IDs persist for distinct requests, identical replay remains
   idempotent, conflicting same-request replay still quarantines, and oversized identifiers remain
-  bounded. Exact-revision artifact build, deployment and a fresh zero-delta production transaction
-  are still required.
+  bounded.
+
+## Fixed-revision completion receipt
+
+- Commit `cb880a9` passed focused tests and Clippy. Release-artifact run `30798197982` built and
+  signed both Linux targets; the ARM64 artifact independently passed revision, target, manifest,
+  receipt, ELF architecture and Sigstore identity verification before deployment. The predecessor
+  binary and an online control-database backup were retained in a root-only backup directory.
+- Before production cutover, two direct Chat SSE requests proved the upstream reused the same short
+  response identifier. Both requests returned valid streams, both produced complete durable
+  Request/Attempt/Usage triplets, and all four P1 durability/queue counters stayed zero.
+- The fixed transaction measured 88ms from CPA to CPAR, 89ms for the mandatory rollback to CPA, and
+  91ms for final recovery to CPAR. The old client credential returned `200` during rollback.
+- Newapi was migrated and restored only through its official management API. After final recovery,
+  its two unchanged aliases each passed Messages JSON and SSE, the ability cache matched the enabled
+  channel, and its database passed `PRAGMA quick_check`.
+- The production hostname passed authenticated Models, unauthenticated rejection, Chat, Responses
+  and Messages JSON/SSE, Chat Tool, and a side-effect-free Route Explain selecting exactly one
+  candidate. The active control database passed `PRAGMA quick_check`.
+- All 25 upstream Attempt groups emitted since the fixed binary started have matching durable
+  Request and Usage events. Required quarantine, write failure, required queue full and sink closed
+  are all zero. Data and management listeners remain loopback-only; no management route is public.
+- Final state is full CPAR replacement at the production hostname. CPAR is active and disabled at
+  boot; the old CPA container remains running only as the bounded P12-10 rollback target. P12-10 was
+  not started inside this receipt.
 
 ## Cutover transaction after the gate clears
 
