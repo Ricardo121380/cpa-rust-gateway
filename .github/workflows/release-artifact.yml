@@ -27,8 +27,9 @@ jobs:
         include:
           # Each target is built natively on a runner of its own architecture: no cross toolchain
           # and no qemu, so the pre-signing container smoke test really executes the signed binary.
+          # x86_64 stays on the older glibc build baseline required by the Debian 12 runtime image.
           - target: x86_64-unknown-linux-gnu
-            runner: ubuntu-24.04
+            runner: ubuntu-22.04
             platform: linux/amd64
             base_image: debian:bookworm-slim@sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e
           - target: aarch64-unknown-linux-gnu

@@ -20,7 +20,7 @@ required_fragments = [
   "contents: read",
   "id-token: write",
   "runs-on: ${{ matrix.runner }}",
-  "runner: ubuntu-24.04",
+  "runner: ubuntu-22.04",
   "runner: ubuntu-24.04-arm",
   "target: x86_64-unknown-linux-gnu",
   "target: aarch64-unknown-linux-gnu",
@@ -63,7 +63,7 @@ end
 verifier_path = File.join(root, "scripts", "p12-release-artifact.rb")
 verifier_text = File.read(verifier_path, encoding: "UTF-8")
 EXPECTED_MATRIX = {
-  "x86_64-unknown-linux-gnu" => { runner: "ubuntu-24.04", platform: "linux/amd64" },
+  "x86_64-unknown-linux-gnu" => { runner: "ubuntu-22.04", platform: "linux/amd64" },
   "aarch64-unknown-linux-gnu" => { runner: "ubuntu-24.04-arm", platform: "linux/arm64" }
 }.freeze
 
