@@ -74,7 +74,7 @@ class ExportContractTests(unittest.TestCase):
             "user_id": "", "team_id": "", "priority": 1, "max_concurrent": 2,
             "refresh_due_at": None, "cooldown_until": None,
             "observed_model": MODULE.BUILD_PROBE_MODEL,
-            "probe_model": "fixture-console-model",
+            "probe_model": "Console/fixture-console-model",
         }
         records = MODULE.transfer_records("grok_build", 1, build_export, [row])
         credential = json.loads(records[0]["credential"])
@@ -92,6 +92,10 @@ class ExportContractTests(unittest.TestCase):
         console_credential = json.loads(console[0]["credential"])
         self.assertEqual(console_credential["sso_token"], "fixture-console")
         self.assertEqual(console_credential["probe_model"], "fixture-console-model")
+
+        row["probe_model"] = "Build/fixture-console-model"
+        with self.assertRaisesRegex(MODULE.ExportFailure, "unsupported_console_credential"):
+            MODULE.transfer_records("grok_console", 1, console_export, [row])
 
     def test_web_and_ambiguous_identity_fail_closed(self) -> None:
         with self.assertRaisesRegex(MODULE.ExportFailure, "web_expiry_unavailable"):

@@ -153,6 +153,23 @@ def account_key(account: dict[str, Any]) -> tuple[str, str, str, str]:
     return tuple(str(account.get(name) or "") for name in ("name", "email", "user_id", "team_id"))
 
 
+def console_upstream_model(value: Any) -> str:
+    if not isinstance(value, str):
+        fail("unsupported_console_credential")
+    model = value.strip()
+    for namespace in ("Build", "Console", "Web"):
+        prefix = namespace + "/"
+        if model[: len(prefix)].casefold() != prefix.casefold():
+            continue
+        if namespace != "Console":
+            fail("unsupported_console_credential")
+        model = model[len(prefix):].strip()
+        break
+    if not model:
+        fail("unsupported_console_credential")
+    return model
+
+
 def canonical_credential(provider: str, exported: dict[str, Any], source: dict[str, Any] | None = None) -> str:
     if provider == "grok_build":
         client_id = str(exported.get("client_id") or BUILD_CLIENT_ID)
@@ -173,8 +190,8 @@ def canonical_credential(provider: str, exported: dict[str, Any], source: dict[s
         return json.dumps(document, separators=(",", ":"))
     if provider == "grok_console":
         token = exported.get("sso_token")
-        model = source.get("probe_model") if source is not None else None
-        if not isinstance(token, str) or not token or not isinstance(model, str) or not model:
+        model = console_upstream_model(source.get("probe_model") if source is not None else None)
+        if not isinstance(token, str) or not token:
             fail("unsupported_console_credential")
         return json.dumps({"sso_token": token, "probe_model": model}, separators=(",", ":"))
     fail("web_expiry_unavailable")
