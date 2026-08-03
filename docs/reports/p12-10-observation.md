@@ -1,10 +1,10 @@
 # P12-10 production observation
 
-Status: `IN_PROGRESS_OBSERVATION`
+Status: `INCOMPLETE_OPERATOR_STOP`
 
 Started: `2026-08-03T09:03:57Z`
 
-Earliest completion: `2026-08-06T09:03:57Z`
+Stopped: `2026-08-03`; the receipt records `operator_stop` and is not acceptance evidence.
 
 This report is value-free. It contains no endpoint, credential, model, request/response body,
 identifier, token fingerprint, or mutable resource ID.
@@ -36,14 +36,19 @@ The observer:
 6. polls database `PRAGMA quick_check` and the four P1 queue/durability counters; and
 7. writes the receipt atomically with mode `0600`.
 
-The active receipt is
+The terminal receipt is
 `/var/backups/cpa-rust-gateway/p12-10-20260803T090357Z/observation.json`. The first formal sample was
 successful, database integrity was `ok`, and all four P1 deltas were zero. An earlier sandbox-start
 attempt exited before any request because the gateway service's private credential mount is not
 visible to another unit; the formal unit uses the reviewed source credential path and starts a new
 window from zero.
 
-## Completion rules
+The observer was stopped because the production graph had only one upstream and the window contained
+no representative client traffic. Elapsed time and ten successful synthetic attempts are not
+reinterpreted as completion. A replacement observation starts only after the native Grok account
+pool is present and representative traffic can exercise it.
+
+## Completion rules for the replacement observation
 
 - `elapsed_seconds >= 259200` and `durable_successes >= 1250`;
 - no route drift, database-integrity failure, Required quarantine/write failure, Required queue full,
