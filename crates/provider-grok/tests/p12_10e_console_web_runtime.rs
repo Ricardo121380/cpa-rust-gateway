@@ -138,6 +138,27 @@ fn source_observed_probe_model_is_text_only_bounded_and_not_a_catalog_widening()
     Ok(())
 }
 
+#[test]
+fn source_observed_catalog_model_keeps_its_verified_console_profile() -> TestResult {
+    let request =
+        decode_request(r#"{"model":"cpar-native-grok","input":"Reply with exactly: ready"}"#)?
+            .request;
+    let token = GrokConsoleSsoToken::try_from_bytes(b"synthetic-console-sso")?;
+    let outbound = GrokConsoleResponsesRequestBuilder::build_observed_probe(
+        &token,
+        "grok-4.3",
+        &request,
+        ResponseMode::NonStreaming,
+    )?;
+    let body: serde_json::Value = serde_json::from_slice(outbound.body())?;
+    assert_eq!(body["max_output_tokens"], 1_000_000);
+    assert_eq!(body["reasoning"]["effort"], "medium");
+    assert_eq!(body["tools"][0]["type"], "web_search");
+    assert_eq!(body["tools"][1]["type"], "x_search");
+    assert_eq!(body["tool_choice"], "auto");
+    Ok(())
+}
+
 struct StaticPublicResolver;
 
 impl EgressDnsResolver for StaticPublicResolver {

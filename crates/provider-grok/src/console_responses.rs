@@ -307,6 +307,9 @@ impl GrokConsoleResponsesRequestBuilder {
 }
 
 fn observed_probe_model(model: &str) -> Option<ConsoleModelSpec> {
+    if let Some(spec) = console_model(model) {
+        return Some(spec);
+    }
     (!model.is_empty()
         && model.len() <= MAX_CONSOLE_MODEL_BYTES
         && model.bytes().all(|byte| byte.is_ascii_graphic()))
