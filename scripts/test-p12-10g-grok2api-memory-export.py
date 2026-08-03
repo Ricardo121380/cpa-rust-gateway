@@ -33,6 +33,7 @@ class ExportContractTests(unittest.TestCase):
             "identity_key": "fixture-identity", "name": "a", "email": "",
             "user_id": "", "team_id": "", "priority": 1, "max_concurrent": 2,
             "refresh_due_at": None, "cooldown_until": None,
+            "observed_model": MODULE.BUILD_PROBE_MODEL,
         }
         records = MODULE.transfer_records("grok_build", 1, build_export, [row])
         credential = json.loads(records[0]["credential"])
@@ -61,6 +62,24 @@ class ExportContractTests(unittest.TestCase):
         }
         with self.assertRaisesRegex(MODULE.ExportFailure, "ambiguous_export_identity"):
             MODULE.transfer_records("grok_console", 1, duplicate, [])
+
+    def test_build_rejects_an_unobserved_probe_model(self) -> None:
+        exported = {
+            "accounts": [{
+                "provider": "grok_build", "name": "a", "email": "",
+                "user_id": "", "team_id": "", "client_id": MODULE.BUILD_CLIENT_ID,
+                "access_token": "fixture-access", "refresh_token": "fixture-refresh",
+                "expires_at": "2099-01-01T00:00:00Z",
+            }],
+        }
+        row = {
+            "identity_key": "fixture-identity", "name": "a", "email": "",
+            "user_id": "", "team_id": "", "priority": 1, "max_concurrent": 1,
+            "refresh_due_at": None, "cooldown_until": None,
+            "observed_model": "unsupported-fixture-model",
+        }
+        with self.assertRaisesRegex(MODULE.ExportFailure, "unsupported_build_model"):
+            MODULE.transfer_records("grok_build", 1, exported, [row])
 
 
 if __name__ == "__main__":
