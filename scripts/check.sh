@@ -138,6 +138,8 @@ run_step "P12 G1 Chat SSE classifier" python3 "$repo_root/scripts/test-p12-08g1-
 run_step "P12 G1 Responses JSON classifier" python3 "$repo_root/scripts/test-p12-08g1-responses-json-classifier.py"
 run_step "P12 G1 Messages SSE classifier" python3 "$repo_root/scripts/test-p12-08g1-messages-sse-classifier.py"
 run_step "P12 production observer" python3 "$repo_root/scripts/test-p12-10-observe.py"
+run_step "P12 grok2api successor graph" python3 "$repo_root/scripts/test-p12-10-grok2api-graph.py"
+run_step "P12 grok2api private input syntax" python3 -m py_compile "$repo_root/scripts/p12-10-grok2api-input.py"
 run_step "Management SPA" node "$repo_root/scripts/check-management-spa.mjs"
 run_step "Rust format" cargo fmt --all -- --check
 run_step "Clippy" cargo clippy --locked --workspace --all-targets --all-features -- -D warnings

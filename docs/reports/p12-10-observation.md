@@ -1,10 +1,11 @@
 # P12-10 production observation
 
-Status: `IN_PROGRESS_OBSERVATION`
+Status: `INCOMPLETE_OPERATOR_STOP`
 
 Started: `2026-08-03T09:03:57Z`
 
-Earliest completion: `2026-08-06T09:03:57Z`
+Stopped: `2026-08-03`; the receipt records `operator_stop`, ten successful synthetic attempts, and
+no terminal acceptance.
 
 This report is value-free. It contains no endpoint, credential, model, request/response body,
 identifier, token fingerprint, or mutable resource ID.
@@ -36,14 +37,19 @@ The observer:
 6. polls database `PRAGMA quick_check` and the four P1 queue/durability counters; and
 7. writes the receipt atomically with mode `0600`.
 
-The active receipt is
+The terminal receipt is
 `/var/backups/cpa-rust-gateway/p12-10-20260803T090357Z/observation.json`. The first formal sample was
 successful, database integrity was `ok`, and all four P1 deltas were zero. An earlier sandbox-start
 attempt exited before any request because the gateway service's private credential mount is not
 visible to another unit; the formal unit uses the reviewed source credential path and starts a new
 window from zero.
 
-## Completion rules
+The observer was later stopped because the production graph had only one upstream and the window
+contained no representative client traffic. Its service state is terminal/failed by design and the
+receipt remains `INCOMPLETE`; elapsed wall time is not reinterpreted as acceptance. A new observation
+may start only after the production channel graph is representative.
+
+## Completion rules for a replacement observation
 
 - `elapsed_seconds >= 259200` and `durable_successes >= 1250`;
 - no route drift, database-integrity failure, Required quarantine/write failure, Required queue full,
@@ -54,4 +60,5 @@ window from zero.
 - the final receipt, process state, production matrix, Newapi state and rollback package all receive
   an explicit review before old CPA retirement.
 
-Until every condition passes, P12-10 and G12 remain incomplete and no Release 1 tag may be created.
+Until every condition passes in a replacement window, P12-10 and G12 remain incomplete and no
+Release 1 tag may be created.

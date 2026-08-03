@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.151` |
+| 计划版本 | `v1.152` |
 | 生效日期 | `2026-08-03` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-10 `IN_PROGRESS_OBSERVATION`。生产入口全量驻留 CPAR；root-only `p12-10-observation.service` 自 `2026-08-03T09:03:57Z` 起执行 72h/1250 成功观察，约每 180 秒发一个极小生产合成请求并分别统计真实/合成成功、客户端 TTFB/总延迟、数据库完整性和四个 P1 增量。首样本通过，预计不早于 `2026-08-06T09:03:57Z` 结束。旧 CPA 仅作回滚窗口保留，尚未停止；CC Switch 仍不读取、不修改。 |
+| 当前任务 | P12-10 `IN_PROGRESS_EXACT_REVISION_BUILD`。先前 72h observer 因只有合成流量且生产图仅含一个渠道，由 operator 停止并如实保留 `INCOMPLETE/operator_stop` 回执。当前按批准边界将 grok2api 作为独立 loopback OpenAI-compatible 上游接入，不复制其 OAuth 账号池；窄化的 HTTP 回环管理准入与 successor 图 helper 已本地通过，等待 exact-SHA ARM64 artifact 后发布和三协议验收。旧 CPA 继续作为回滚目标；CC Switch 仍不读取、不修改。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -1773,7 +1773,7 @@ CR-ID: CR-P11-04-001
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | [暴露前验证回执](reports/p12-07-exposure-receipt.md)：新主机上从零完成产物验签、账户/目录/五凭据、unit 安装与启动（active、disabled-at-boot）；`cpar` 灰云 A 记录 + Let's Encrypt 证书；七项 fail-closed 暴露断言全通过（未认证与错误 key 均 401、管理面四路径均 404、公网直连 18180/18181 均不可达）；Caddy 变更前备份 preimage 并以 validate/adapt 证明其余五站点未变，reload 后 incumbent 仍正常。未录入任何真实上游凭据，`valid_key_accepted` 为 SKIP；该域名无限流（Caddy 标准版无模块）已记为缺口 | DONE |
 | P12-08 | 完成 CPAR 全量替代准入、客户端 Key 迁移清单与生产切换准备 | P12-06,P12-07 | [`P12-08 readiness`](reports/p12-08-canary-readiness.md)、[`client migration inventory`](reports/p12-08-client-migration-inventory.md) 与 [G1 最终 review](reports/evidence/p12-08g1-final-review-20260803.md)：直接替代边界、客户端清单、三协议兼容和当前可用 Codex/Krill 12/12 真实矩阵完成；完整回滚；GitHub CI `30768254180` 的 Fast、Full supply-chain 与 Required delivery gate 通过 | DONE |
 | P12-09 | 将生产主机名全量切到 CPAR，实际执行一次全量回滚并再次恢复 | P12-08 | [P12-09 execution receipt](reports/p12-09-execution-plan.md)：修复版切换/回滚/恢复 RTO 为 88ms/89ms/91ms，Newapi 与生产三协议矩阵通过，25/25 durable lifecycle 完整且 P1 零增量 | DONE |
-| P12-10 | CPAR 全量运行 72h，关闭旧 CPA，发布 Tag 和运维手册 | P12-09 | [P12-10 observation](reports/p12-10-observation.md)：root-only observer 已启动并写原子无值回执；完成后仍须 G12 review、关闭旧 CPA、Tag 与运维手册 | IN_PROGRESS |
+| P12-10 | CPAR 全量运行 72h，关闭旧 CPA，发布 Tag 和运维手册 | P12-09 | [P12-10 observation](reports/p12-10-observation.md) 已以 `INCOMPLETE/operator_stop` 终止；[grok2api channel expansion](reports/p12-10-grok2api-channel.md) 正在建立代表性生产渠道图，完成三协议验收后才重启观察；随后仍须 G12 review、关闭旧 CPA、Tag 与运维手册 | IN_PROGRESS |
 
 #### P12-08 兼容性补全切片（`CR-P12-COMPAT-001`）
 
@@ -3585,3 +3585,4 @@ Next task:
 | v1.149 | 2026-08-03 | `CR-P12-09-002`：Clash TUN 排除修正后恢复 Jakarta SSH；Newapi 经官方 API 完成迁移并通过既有两个 Messages alias 的 JSON/SSE 4/4；生产切换、真实回滚与恢复的 Caddy 有效 RTO 分别为 89ms、89ms、88ms。最终 P1 检查发现 OpenAI-compatible Chat SSE 跨请求复用 response ID，使 2 个 Required Usage 事件因全局 response-id 幂等键冲突而隔离；立即执行 89ms 安全回滚并恢复 Newapi preimage。Usage 持久化身份改为网关 request ID 的域分离固定长度摘要，同时继续限制外部 response ID；新增跨请求复用回归并保留同请求冲突、超长 ID 隔离语义 | P12-09 `IN_PROGRESS_P1_FIX_BUILD`；生产入口驻留旧 CPA，P12-10 未开始；须以 exact-revision artifact 部署并从零检查 P1 增量后重验 |
 | v1.150 | 2026-08-03 | `cb880a9` 的双架构 release-artifact run `30798197982` 通过并独立核验 revision、ARM64 ELF、manifest、receipt 与 Sigstore identity；修复制品备份部署后，在旧 CPA 承载生产时用两次真实 Chat SSE 证明上游复用同一 response ID，而 Required quarantine 保持 0。随后重新执行生产切换、Newapi 官方 API 迁移、三协议 JSON/SSE/Tool/Explain、强制回滚及恢复；有效 RTO 为 88ms/89ms/91ms，旧 CPA 认证恢复 200，最终 25/25 Attempt 的 durable lifecycle 完整，四项 P1 计数器为 0，两个数据库 quick-check 均为 `ok` | P12-09 `DONE`；生产全量驻留 CPAR，旧 CPA 只为 P12-10 回滚窗口运行；下一任务 P12-10 |
 | v1.151 | 2026-08-03 | 新增 `p12-10-observe.py`：只从 root-only 文件读取 endpoint/key/model，原子写无值回执，固定生产入口探测，分别统计 durable、真实估算与合成成功、客户端 TTFB/总延迟、数据库 quick-check 和四项 P1 增量；任一路由漂移、数据库损坏、Required 可观测性增量、连续失败或样本后错误率 >1% 均 fail closed。1 秒真实演练 1/1 通过；正式 transient systemd 单元在修正服务私有 credential 路径后于 `2026-08-03T09:03:57Z` 启动 | P12-10 `IN_PROGRESS_OBSERVATION`；最早结束 `2026-08-06T09:03:57Z`，须同时满足 72h、1250 成功与无 P0/P1 后才可关闭旧 CPA |
+| v1.152 | 2026-08-03 | 72h observer 因无代表性真实流量由 operator 停止，回执固定为 `INCOMPLETE/operator_stop`；将现有 grok2api Console-backed Responses 路由作为独立 loopback 上游接入 CPAR，不复制 OAuth 账号池。管理面只新增精确 `http + 127.0.0.1 + /32 + 单端口 + deny redirect` 准入，其他明文出口继续拒绝；successor 完整重建 Codex 与 Grok 六条协议路由，须经 exact-SHA ARM64 artifact、生产回滚和三协议真实验收 | P12-10 `IN_PROGRESS_EXACT_REVISION_BUILD`；当前生产图未改变，旧 CPA 保留；验收后重启代表性观察 |
