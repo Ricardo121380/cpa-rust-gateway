@@ -70,7 +70,7 @@ fn prior_schema_upgrades_in_place_and_backup_recovers_after_a_lossy_downgrade() 
     migrate(&mut source)?;
     rollback_to_version(&mut source, previous_schema)?;
     assert_eq!(schema_version(&source)?, Some(previous_schema));
-    assert!(!table_exists(&source, "management_resource_audit_events")?);
+    assert!(!table_exists(&source, "grok_accounts")?);
 
     source.execute(
         "INSERT INTO config_versions (id, parent_id, status, created_at_ms, description) \
@@ -110,12 +110,12 @@ fn prior_schema_upgrades_in_place_and_backup_recovers_after_a_lossy_downgrade() 
         configuration_description(&source)?,
         "P11-07 legacy configuration"
     );
-    assert!(!table_exists(&source, "management_resource_audit_events")?);
+    assert!(!table_exists(&source, "grok_accounts")?);
     assert_integrity(&source)?;
 
     migrate(&mut source)?;
     assert_eq!(schema_version(&source)?, Some(CURRENT_SCHEMA_VERSION));
-    assert_eq!(audit_event_count(&source)?, 0);
+    assert_eq!(audit_event_count(&source)?, 1);
     assert_integrity(&source)?;
 
     let restored = restore_encrypted_backup_to_empty_target(&artifact, &restore_path, &backup_key)?;

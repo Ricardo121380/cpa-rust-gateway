@@ -26,9 +26,10 @@ const GROK_BUILD_CREDENTIAL_RUNTIME_SCHEMA_VERSION: i64 = 6;
 const GROK_BUILD_RUNTIME_STATE_SCHEMA_VERSION: i64 = 7;
 const CONFIG_VERSION_REVISION_SCHEMA_VERSION: i64 = 8;
 const MANAGEMENT_RESOURCE_AUDIT_SCHEMA_VERSION: i64 = 9;
+const NATIVE_GROK_ACCOUNT_POOL_SCHEMA_VERSION: i64 = 10;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = MANAGEMENT_RESOURCE_AUDIT_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = NATIVE_GROK_ACCOUNT_POOL_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -82,6 +83,11 @@ const MIGRATIONS: &[Migration] = &[
         version: MANAGEMENT_RESOURCE_AUDIT_SCHEMA_VERSION,
         up: include_str!("../migrations/0009_management_resource_audit.up.sql"),
         down: include_str!("../migrations/0009_management_resource_audit.down.sql"),
+    },
+    Migration {
+        version: NATIVE_GROK_ACCOUNT_POOL_SCHEMA_VERSION,
+        up: include_str!("../migrations/0010_native_grok_account_pool.up.sql"),
+        down: include_str!("../migrations/0010_native_grok_account_pool.down.sql"),
     },
 ];
 
@@ -477,6 +483,9 @@ mod tests {
                 "egress_policies",
                 "endpoint_credential_bindings",
                 "gateway_event_log",
+                "grok_account_import_batches",
+                "grok_account_links",
+                "grok_accounts",
                 "grok_build_affinity_breaks",
                 "grok_build_billing_profiles",
                 "grok_build_cache_affinities",

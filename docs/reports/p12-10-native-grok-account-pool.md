@@ -1,6 +1,6 @@
 # P12-10 native Grok account pool
 
-Status: `P12-10A_DONE_P12-10B_NEXT`
+Status: `P12-10B_DONE_P12-10C_NEXT`
 
 ## Corrected architecture
 
@@ -65,7 +65,8 @@ single-owner refresh transactions and explicit rollback.
 | P12-10H | Decommission rehearsal and representative observation | grok2api stop/start rollback drill, then CPAR-only 72h/real-traffic gate before permanent retirement |
 
 P12-10A is complete in the [native Grok gap matrix](p12-10a-native-grok-gap-matrix.md). P12-10B is
-the next implementation slice.
+complete in the [native account-pool report](p12-10b-native-grok-account-pool.md). P12-10C is the
+next implementation slice.
 
 ## Migration boundary
 

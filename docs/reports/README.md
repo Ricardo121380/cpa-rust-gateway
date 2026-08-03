@@ -144,6 +144,7 @@
 - [P12-01 release artifact](p12-01-release-artifact.md) — accepted revision-bound Linux binary/OCI/SBOM/manifest, GitHub OIDC keyless signature, Rekor inclusion and private workflow artifact
 - [P12-10 native Grok account pool](p12-10-native-grok-account-pool.md) — corrected final topology, frozen grok2api source behavior, native account lifecycle and migration/decommission slices
 - [P12-10A native Grok gap matrix](p12-10a-native-grok-gap-matrix.md) — exact v3.0.10 account/scheduler/refresh/quota/Console mapping into existing CPAR Rust layers
+- [P12-10B native Grok account pool](p12-10b-native-grok-account-pool.md) — schema v10, provider-isolated encrypted accounts, atomic idempotent batch import and rollback
 - [P12-02 deployment envelope execution plan](p12-02-execution-plan.md) — approved minimal `serve`, isolated loopback listeners, `LoadCredential`, state/log directories, systemd hardening and Linux verification plan
 - [P12-02 deployment envelope acceptance](p12-02-deployment-envelope.md) — local Full gate, independent review, and repaired real-Linux systemd 255 syntax verification accepted; no Unit was installed or started
 - [P12-03 server backup and rollback inventory plan](p12-03-execution-plan.md) — constrained server-local snapshot plan; no configuration, database, or credential material may enter the repository

@@ -8,7 +8,7 @@
 | 生效日期 | `2026-08-03` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-10A `DONE`，P12-10B 为下一实现切片。先前 observer 已以 `INCOMPLETE/operator_stop` 终止。按 operator 更正，CPAR 必须原生持有 Grok Build/Web/Console 账号池并最终替代 grok2api，而不是把 grok2api 当作上游；错误 proxy successor 已完整回滚，Newapi 未改，原 CPAR 生产图和旧 CPA 回滚目标均保留。已用 grok2api `v3.0.10` 精确源码完成 gap matrix，下一步实现原生账号 aggregate、加密导入契约和 schema。CC Switch 仍不读取、不修改。 |
+| 当前任务 | P12-10B `DONE`，P12-10C 为下一实现切片。CPAR 已新增 schema v10 原生持有 Grok Build/Web/Console 独立账号、CPAR 密文、auth/scheduling metadata、显式 link 与可逆导入批次；幂等/原子回滚/错误主密钥/迁移 up-down 均通过 review。尚未导入 grok2api 真实账号、未改变生产图或服务。下一步仅把 eligible native accounts 组成到既有 credential pools/Health/Quota，不引入第二套 scheduler。CC Switch 仍不读取、不修改。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -1780,7 +1780,7 @@ CR-ID: CR-P11-04-001
 | Slice | 内容 | 完成证据 | 状态 |
 |---|---|---|---|
 | P12-10A | 冻结 grok2api `v3.0.10` 行为与 CPAR gap/mapping | [native Grok gap matrix](reports/p12-10a-native-grok-gap-matrix.md)：精确 revision、账号/调度/刷新/额度/Console/migration 映射和七项 invariant | DONE |
-| P12-10B | 原生 Grok account aggregate、加密批量导入边界与 schema | Build/Web/Console 独立身份与显式 link；redacted CRUD、migration up/down、幂等 import/rollback | PENDING |
+| P12-10B | 原生 Grok account aggregate、加密批量导入边界与 schema | [native account-pool report](reports/p12-10b-native-grok-account-pool.md)：Build/Web/Console 独立身份、CPAR 密文、显式 link、redacted CRUD、migration up/down、幂等原子 import/rollback | DONE |
 | P12-10C | 将 native accounts 组成到既有 credential pools | 权重/并发/饱和、Health/Quota/model block、exclusion/recovery 和 restart 回归 | PENDING |
 | P12-10D | 主动 credential/quota worker | jitter、singleflight/CAS、bounded concurrency、backoff/reauth、crash recovery | PENDING |
 | P12-10E | Grok Console runtime 与 Web production binding | target/header/request/JSON/SSE/Tool/Usage/error fixture；三协议矩阵 | PENDING |
@@ -3600,3 +3600,4 @@ Next task:
 | v1.151 | 2026-08-03 | 新增 `p12-10-observe.py`：只从 root-only 文件读取 endpoint/key/model，原子写无值回执，固定生产入口探测，分别统计 durable、真实估算与合成成功、客户端 TTFB/总延迟、数据库 quick-check 和四项 P1 增量；任一路由漂移、数据库损坏、Required 可观测性增量、连续失败或样本后错误率 >1% 均 fail closed。1 秒真实演练 1/1 通过；正式 transient systemd 单元在修正服务私有 credential 路径后于 `2026-08-03T09:03:57Z` 启动 | P12-10 `IN_PROGRESS_OBSERVATION`；最早结束 `2026-08-06T09:03:57Z`，须同时满足 72h、1250 成功与无 P0/P1 后才可关闭旧 CPA |
 | v1.152 | 2026-08-03 | operator 纠正 Grok 最终拓扑：CPAR 原生管理 Grok 账号池并在稳定后停掉 grok2api，禁止把 grok2api 作为最终上游。错误 proxy successor 在 readiness 失败后恢复 predecessor 图/旧制品，Newapi 未改，SQLite/CPAR/Newapi 均复核通过且未采用 key 已删除；相关代码已 revert。冻结 grok2api `v3.0.10` 精确源码，新增 P12-10A-H：原生账号 aggregate、加密流式迁移、既有 credential pool 组合、刷新/额度 worker、Console runtime、三协议 parity、停服回滚与代表性 72h 观察 | P12-10 `IN_PROGRESS_DESIGN_FREEZE`；生产保持原 Codex 图，grok2api 不改不删，旧 CPA 保留 |
 | v1.153 | 2026-08-03 | 完成 P12-10A：将 grok2api `v3.0.10` 精确 commit 的 Provider/account aggregate/layered selector/refresh/quota/Console/migration 行为映射到 CPAR；决定复用既有 credential pool、Health/Quota、CAS refresh 与 Canonical layers，不移植第二套 scheduler；冻结七项原生池 invariant | P12-10A `DONE`；P12-10B 为下一切片，生产/账号/grok2api 均不改变 |
+| v1.154 | 2026-08-03 | 完成 P12-10B：schema v10 新增 Build/Web/Console provider-isolated 原生账号、CPAR AEAD credential、auth/priority/weight/concurrency/refresh/cooldown/revision metadata、显式 link 和 reversible import batch；实现 bounded zeroizing import、provider-scoped identity digest、原子冲突回滚、跨批次幂等、redacted list、exact credential open 与 wrong-key fail-closed；同步修正 P11-07 一版回退应保留 v9 audit 的预期 | P12-10B `DONE`；未读取/迁移 live 账号且生产/grok2api 不变，P12-10C 下一步复用既有 scheduler/Health/Quota |
