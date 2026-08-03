@@ -3,17 +3,23 @@
 #![deny(unsafe_code)]
 
 use std::{
+    collections::BTreeSet,
     collections::VecDeque,
     error::Error,
+    net::{IpAddr, Ipv4Addr},
     sync::{Arc, Mutex},
 };
 
 use gateway_core::{
-    CanonicalEvent, CanonicalRequest, ErrorScope, GatewayErrorCode, RequestContext, RequestId,
+    CanonicalEvent, CanonicalRequest, EgressPolicyId, ErrorScope, GatewayErrorCode, RequestContext,
+    RequestId,
 };
 use gateway_provider::{InferenceAdapter, ProviderFuture};
 use gateway_router::{ProtocolFormat, project_protocol_response};
-use gateway_upstream::UpstreamProxy;
+use gateway_upstream::{
+    EgressDnsError, EgressDnsResolver, EgressHost, EgressPolicy, EgressPolicyInput, EgressScheme,
+    RedirectPolicy, UpstreamHttpMethod, UpstreamProxy,
+};
 use protocol_openai_responses::{ResponseMode, decode_request};
 use provider_grok::{
     GROK_CONSOLE_CLUSTER, GROK_CONSOLE_RESPONSES_URL, GrokConsoleExecutionMode,
@@ -76,13 +82,33 @@ fn console_accepts_the_native_probe_without_an_unowned_output_extension() -> Tes
             .request;
     let token = GrokConsoleSsoToken::try_from_bytes(b"synthetic-console-sso")?;
 
-    GrokConsoleResponsesRequestBuilder::build(
+    let outbound = GrokConsoleResponsesRequestBuilder::build(
         &token,
         "grok-build-0.1",
         &request,
         ResponseMode::NonStreaming,
     )?;
+    let policy = EgressPolicy::try_new(EgressPolicyInput {
+        id: EgressPolicyId::try_new("p12-10e-console-transport")?,
+        name: "Console transport test".to_owned(),
+        allowed_schemes: BTreeSet::from([EgressScheme::Https]),
+        allowed_hosts: BTreeSet::from([EgressHost::try_new("console.x.ai")?]),
+        allowed_ports: BTreeSet::from([443]),
+        allowed_cidrs: BTreeSet::new(),
+        redirect_policy: RedirectPolicy::Deny,
+    })?;
+    let admitted = policy.admit_url(outbound.url(), &StaticPublicResolver)?;
+    let transport = outbound.into_transport_request(admitted)?;
+    assert_eq!(transport.method(), UpstreamHttpMethod::Post);
     Ok(())
+}
+
+struct StaticPublicResolver;
+
+impl EgressDnsResolver for StaticPublicResolver {
+    fn resolve(&self, _host: &EgressHost) -> Result<Vec<IpAddr>, EgressDnsError> {
+        Ok(vec![IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8))])
+    }
 }
 
 #[test]

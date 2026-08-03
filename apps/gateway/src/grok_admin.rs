@@ -23,17 +23,17 @@ use gateway_router::{
 };
 use gateway_store::secret_store::{KeyVersion, MasterKeyRing, SecretStore};
 use gateway_upstream::{
-    EgressCidr, EgressDnsError, EgressDnsResolver, EgressHost, EgressPolicy, EgressPolicyInput,
-    EgressScheme, RedirectPolicy, SystemEgressDnsResolver, UpstreamClientPool, UpstreamProxy,
-    UpstreamTimeouts, UpstreamTransportProfile,
+    EgressAdmissionErrorCode, EgressCidr, EgressDnsError, EgressDnsResolver, EgressHost,
+    EgressPolicy, EgressPolicyInput, EgressScheme, RedirectPolicy, SystemEgressDnsResolver,
+    UpstreamClientPool, UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
 };
 use protocol_openai_responses::decode_request;
 use provider_grok::{
-    Grok2ApiMemoryStreamMigration, Grok2ApiMigrationError, GrokAccountEndpointBinding,
-    GrokAccountPoolError, GrokAccountPoolStore, GrokAccountProvider, GrokBuildCredential,
-    GrokBuildExecutionMode, GrokBuildInferenceAdapter, GrokBuildUpstreamTransport,
-    GrokConsoleExecutionMode, GrokConsoleInferenceAdapter, GrokConsoleSsoToken,
-    GrokConsoleUpstreamTransport,
+    GROK_CONSOLE_RESPONSES_URL, Grok2ApiMemoryStreamMigration, Grok2ApiMigrationError,
+    GrokAccountEndpointBinding, GrokAccountPoolError, GrokAccountPoolStore, GrokAccountProvider,
+    GrokBuildCredential, GrokBuildExecutionMode, GrokBuildInferenceAdapter,
+    GrokBuildUpstreamTransport, GrokConsoleExecutionMode, GrokConsoleInferenceAdapter,
+    GrokConsoleSsoToken, GrokConsoleUpstreamTransport,
 };
 use provider_kiro::InferenceAdapter;
 
@@ -51,6 +51,9 @@ pub(crate) enum GrokAdminError {
         stage: &'static str,
         code: GatewayErrorCode,
         scope: ErrorScope,
+    },
+    ProbeEgress {
+        code: EgressAdmissionErrorCode,
     },
     ProbeProjection {
         chat: ProtocolResponseRejection,
@@ -77,6 +80,12 @@ impl fmt::Display for GrokAdminError {
                 return write!(
                     formatter,
                     "native Grok probe failed: stage={stage} code={code:?} scope={scope:?}"
+                );
+            }
+            Self::ProbeEgress { code } => {
+                return write!(
+                    formatter,
+                    "native Grok probe failed: stage=admission category={code:?}"
                 );
             }
             Self::ProbeProjection {
@@ -283,7 +292,10 @@ async fn execute_probe(
     );
     let mut source = match provider {
         GrokAccountProvider::Build => {
-            let (policy, resolver) = probe_egress("cli-chat-proxy.grok.com")?;
+            let (policy, resolver) = probe_egress(
+                "cli-chat-proxy.grok.com",
+                "https://cli-chat-proxy.grok.com/v1/responses",
+            )?;
             let adapter = GrokBuildInferenceAdapter::try_new(
                 GrokBuildCredential::import_runtime_json(credential, observed_at_ms)
                     .map_err(|_| GrokAdminError::ProbeUnavailable)?,
@@ -300,7 +312,7 @@ async fn execute_probe(
                 .map_err(|error| probe_gateway("start", &error))?
         }
         GrokAccountProvider::Console => {
-            let (policy, resolver) = probe_egress("console.x.ai")?;
+            let (policy, resolver) = probe_egress("console.x.ai", GROK_CONSOLE_RESPONSES_URL)?;
             let adapter = GrokConsoleInferenceAdapter::try_new(
                 GrokConsoleSsoToken::try_from_bytes(credential)
                     .map_err(|_| GrokAdminError::ProbeUnavailable)?,
@@ -354,7 +366,10 @@ fn probe_gateway(stage: &'static str, error: &GatewayError) -> GrokAdminError {
     }
 }
 
-fn probe_egress(host: &str) -> Result<(EgressPolicy, Arc<dyn EgressDnsResolver>), GrokAdminError> {
+fn probe_egress(
+    host: &str,
+    target_url: &str,
+) -> Result<(EgressPolicy, Arc<dyn EgressDnsResolver>), GrokAdminError> {
     let host = EgressHost::try_new(host).map_err(|_| GrokAdminError::ProbeUnavailable)?;
     let addresses = SystemEgressDnsResolver
         .resolve(&host)
@@ -381,7 +396,11 @@ fn probe_egress(host: &str) -> Result<(EgressPolicy, Arc<dyn EgressDnsResolver>)
         redirect_policy: RedirectPolicy::Deny,
     })
     .map_err(|_| GrokAdminError::ProbeUnavailable)?;
-    Ok((policy, Arc::new(PinnedResolver { host, addresses })))
+    let resolver: Arc<dyn EgressDnsResolver> = Arc::new(PinnedResolver { host, addresses });
+    policy
+        .admit_url(target_url, resolver.as_ref())
+        .map_err(|error| GrokAdminError::ProbeEgress { code: error.code() })?;
+    Ok((policy, resolver))
 }
 
 struct PinnedResolver {
