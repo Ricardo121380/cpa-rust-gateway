@@ -872,6 +872,7 @@ dependencies = [
  "libc",
  "rusqlite",
  "serde_json",
+ "sha2",
  "tokio",
  "zeroize",
 ]

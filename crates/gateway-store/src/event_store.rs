@@ -18,6 +18,7 @@ use std::{
 use gateway_core::{GatewayEvent, GatewayEventPriority, RequestId};
 use gateway_observability::{EventQueueReceiver, TelemetryPipeline};
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
+use sha2::{Digest, Sha256};
 
 use crate::{StoreError, StoreResult, migrate, open, open_in_memory};
 
@@ -122,30 +123,34 @@ struct EventRecord {
 
 impl EventRecord {
     fn from_event(event: &GatewayEvent) -> StoreResult<Self> {
-        let (kind, event_id, request_id, occurred_at_ms) = match event {
+        let (kind, event_id, request_id, occurred_at_ms, bounded_source_id) = match event {
             GatewayEvent::Request(value) => (
                 GatewayEventLogKind::Request,
                 value.request_id().as_str().to_owned(),
                 Some(value.request_id().as_str().to_owned()),
                 None,
+                true,
             ),
             GatewayEvent::Attempt(value) => (
                 GatewayEventLogKind::Attempt,
                 value.attempt_id().as_str().to_owned(),
                 Some(value.request_id().as_str().to_owned()),
                 Some(value.ended_at_ms()),
+                true,
             ),
             GatewayEvent::Usage(value) => (
                 GatewayEventLogKind::Usage,
-                value.response_id().as_str().to_owned(),
+                usage_event_id(value.request_id()),
                 Some(value.request_id().as_str().to_owned()),
                 None,
+                is_persistable_identifier(value.response_id().as_str()),
             ),
             GatewayEvent::Health(value) => (
                 GatewayEventLogKind::Health,
                 value.health_event_id().as_str().to_owned(),
                 None,
                 Some(value.occurred_at_ms()),
+                true,
             ),
             GatewayEvent::Diagnostic(_) => return Err(StoreError::DiagnosticEventNotPersistable),
         };
@@ -154,9 +159,11 @@ impl EventRecord {
         // The durable schema bounds both identifier columns. Enforcing that bound here, before the
         // insert, is what makes an over-long identifier a record-level poison instead of a raw
         // SQLite CHECK violation: the latter is indistinguishable from a transient store failure
-        // and would retry forever. Usage event ids are upstream-supplied response ids, so this is
-        // the one poison class an external party can actually trigger.
+        // and would retry forever. Usage keeps separately bounding the upstream response id even
+        // though its durable identity is request-scoped, so an external party cannot bypass the
+        // payload bound by supplying a long response id.
         if !is_persistable_identifier(&event_id)
+            || !bounded_source_id
             || request_id
                 .as_deref()
                 .is_some_and(|request_id| !is_persistable_identifier(request_id))
@@ -172,6 +179,18 @@ impl EventRecord {
             payload_json,
         })
     }
+}
+
+/// Derives one fixed-size Usage identity from the gateway-owned request correlation.
+///
+/// Upstreams are not required to make response identifiers globally unique. Using the raw
+/// response identifier made two otherwise valid requests conflict in the append-only store when
+/// an OpenAI-compatible SSE provider reused an identifier. A request emits at most one final Usage
+/// event, so a domain-separated digest preserves replay idempotence without trusting upstream
+/// uniqueness or exceeding the durable identifier bound.
+fn usage_event_id(request_id: &RequestId) -> String {
+    let digest = Sha256::digest(request_id.as_str().as_bytes());
+    format!("usage-request:{digest:x}")
 }
 
 /// The durable identifier bound enforced by `gateway_event_log`'s schema CHECK constraints.
@@ -1352,6 +1371,25 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn writer_persists_reused_upstream_response_ids_for_distinct_requests() -> TestResult {
+        let database_path = temporary_path("reused-upstream-response-id.sqlite");
+        let mut store = SqliteEventStore::open(&database_path)?;
+        assert_eq!(
+            store.append_batch(&[
+                usage_event("request-a", "response-shared", 3)?,
+                usage_event("request-b", "response-shared", 7)?,
+            ])?,
+            2
+        );
+        let events = store.list_events()?;
+        assert_eq!(events.len(), 2);
+        assert_ne!(events[0].event_id(), events[1].event_id());
+        drop(store);
+        fs::remove_file(database_path)?;
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn writer_quarantines_conflicting_replay_and_commits_healthy_batch_events() -> TestResult
     {
         let database_path = temporary_path("quarantine-batch.sqlite");
@@ -1373,7 +1411,7 @@ mod tests {
         let metrics = writer.metrics_handle();
         for event in [
             request_event(1)?,
-            usage_event("request-b", "response-shared", 7)?,
+            usage_event("request-a", "response-shared", 7)?,
             attempt_event(1)?,
         ] {
             assert_eq!(queue.try_emit(event), gateway_core::EventEmission::Enqueued);
@@ -1431,7 +1469,7 @@ mod tests {
         );
         let metrics = writer.metrics_handle();
         assert_eq!(
-            queue.try_emit(usage_event("request-b", "response-shared", 7)?),
+            queue.try_emit(usage_event("request-a", "response-shared", 7)?),
             gateway_core::EventEmission::Enqueued
         );
 
@@ -1466,9 +1504,9 @@ mod tests {
     #[tokio::test]
     async fn an_oversized_upstream_identifier_is_quarantined_instead_of_wedging_the_writer()
     -> TestResult {
-        // A Usage event id is the upstream-supplied response id, so its length is attacker
-        // controlled. The durable schema bounds it; without the pre-insert check the resulting
-        // CHECK violation is an ordinary SQLite error, which the writer would retry forever.
+        // The Usage payload still contains the upstream-supplied response id, so its length is
+        // attacker controlled even though the durable identity is request-scoped. Keep the
+        // explicit source-id bound to reject it before SQLite and avoid an unbounded payload.
         let database_path = temporary_path("quarantine-oversized-identifier.sqlite");
         let (queue, receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(2, 1)?)?;
         let writer = AsyncSqliteEventWriter::new(
@@ -1554,7 +1592,7 @@ mod tests {
             false,
         ));
         for event in [
-            usage_event("request-b", "response-shared", 7)?,
+            usage_event("request-a", "response-shared", 7)?,
             large_request,
             attempt_event(1)?,
         ] {

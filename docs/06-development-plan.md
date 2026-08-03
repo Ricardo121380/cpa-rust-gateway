@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.135` |
-| 生效日期 | `2026-08-02` |
+| 计划版本 | `v1.149` |
+| 生效日期 | `2026-08-03` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-08 兼容性补全 `LOCAL_PASS_PENDING_PHASE_GATE`。P12-08A-C、D0-D4、E1-E4、F1-F3 已本地通过；P12-08G1 当前可用 Codex/Krill 生产图真实 E2E 12/12 完成并回滚。CC Switch 按 operator 指令延期且不参与演练；生产主机名尚未切换。 |
+| 当前任务 | P12-09 `IN_PROGRESS_P1_FIX_BUILD`。Jakarta SSH 已在修正 Clash TUN 排除规则后恢复；Newapi 的官方 API 迁移、CPAR 全量切换、真实回滚与再次恢复均已执行。最终检查发现上游在不同 Chat SSE 请求间复用 response ID，导致 2 个 Required Usage 事件被持久化层隔离；按 P1 规则已立即把 Caddy 与 Newapi 恢复到旧 CPA。修复与回归测试本地通过，等待 exact-revision artifact、受控部署和重新验收。P12-10 未开始；CC Switch 仍不读取、不修改。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -1765,14 +1765,14 @@ CR-ID: CR-P11-04-001
 | ID | Task | 依赖 | 完成证据 | 状态 |
 |---|---|---|---|---|
 | P12-01 | 构建固定版本二进制、Docker 镜像、SBOM、Checksum 和签名 | G11 | [可验证私有发布产物](reports/p12-01-release-artifact.md)；`CR-P12-01-002` 后按 x86_64 与 aarch64 双目标各自原生构建、独立签名与回执 | DONE |
-| P12-02 | 编写 systemd Unit、只读 Secret、数据目录、日志和资源限制 | P12-01 | [deployment-envelope acceptance](reports/p12-02-deployment-envelope.md)：受支持条件、可执行 checker、负向回归、真实 Linux systemd 255 语法验证与本地 Full gate 均通过；未安装、启用或启动服务器 Unit | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | [带时间戳、无值备份与回滚清单](reports/p12-03-server-backup-rollback.md)：现有 CPA 数据根静止快照、镜像身份、关联 unit 片段、权限、哈希和精确回滚步骤已独立复核；未安装或启动新服务 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | [Staging receipt](reports/p12-04-staging-receipt.md)：独立签名制品、精确 Unit、root-only 凭证、两个回环 listener、Health/管理面 admission、资源/日志/回滚均验收；服务 active 但 disabled-at-boot | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | [CR-015 Tool/Explain 回执](reports/evidence/p12-05-cr-015-tool-explain-receipt-20260726.md)：一次新的无外部效应 Tool tuple 为 `2xx`/`valid`，唯一 protected attempt 为 `succeeded/decoder`，Explain 选中唯一 Candidate 且无新增 upstream attempt；完整回滚与独立 post-review 均通过 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | [OpenAI-compatible live differential](reports/p12-06-openai-differential.md)：临时 Krill 原生 `codex-api-key` 参考臂与新网关 candidate 均通过 10/10 SSE、非流式、Tool、Canonical/Usage 不变量与性能取证；修正过严的可选 Usage 明细比较后，无网络离线 review 为 9/9 PASS，完整回滚通过。Grok/Kiro 切片仍延期 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | [暴露前验证回执](reports/p12-07-exposure-receipt.md)：新主机上从零完成产物验签、账户/目录/五凭据、unit 安装与启动（active、disabled-at-boot）；`cpar` 灰云 A 记录 + Let's Encrypt 证书；七项 fail-closed 暴露断言全通过（未认证与错误 key 均 401、管理面四路径均 404、公网直连 18180/18181 均不可达）；Caddy 变更前备份 preimage 并以 validate/adapt 证明其余五站点未变，reload 后 incumbent 仍正常。未录入任何真实上游凭据，`valid_key_accepted` 为 SKIP；该域名无限流（Caddy 标准版无模块）已记为缺口 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-08 | 完成 CPAR 全量替代准入、客户端 Key 迁移清单与生产切换准备 | P12-06,P12-07 | [`P12-08 readiness`](reports/p12-08-canary-readiness.md)、[`client migration inventory`](reports/p12-08-client-migration-inventory.md) 与 [G1 最终 review](reports/evidence/p12-08g1-final-review-20260803.md)：直接替代边界、客户端清单、三协议兼容和当前可用 Codex/Krill 12/12 真实矩阵完成；完整回滚 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P12-09 | 将生产主机名全量切到 CPAR，实际执行一次全量回滚并再次恢复 | P12-08 | Caddy 全量切换、回滚 RTO、客户端认证与一致性报告 | PENDING |
+| P12-02 | 编写 systemd Unit、只读 Secret、数据目录、日志和资源限制 | P12-01 | [deployment-envelope acceptance](reports/p12-02-deployment-envelope.md)：受支持条件、可执行 checker、负向回归、真实 Linux systemd 255 语法验证与本地 Full gate 均通过；未安装、启用或启动服务器 Unit | DONE |
+| P12-03 | 备份当前服务器网关配置、数据库、版本和回滚命令 | P12-01 | [带时间戳、无值备份与回滚清单](reports/p12-03-server-backup-rollback.md)：现有 CPA 数据根静止快照、镜像身份、关联 unit 片段、权限、哈希和精确回滚步骤已独立复核；未安装或启动新服务 | DONE |
+| P12-04 | 在独立端口和独立数据目录部署 Staging 实例 | P12-02,P12-03 | [Staging receipt](reports/p12-04-staging-receipt.md)：独立签名制品、精确 Unit、root-only 凭证、两个回环 listener、Health/管理面 admission、资源/日志/回滚均验收；服务 active 但 disabled-at-boot | DONE |
+| P12-05 | 录入测试 Upstream/Key，验证 Responses、Messages、Tool、模型和 Explain | P12-04 | [CR-015 Tool/Explain 回执](reports/evidence/p12-05-cr-015-tool-explain-receipt-20260726.md)：一次新的无外部效应 Tool tuple 为 `2xx`/`valid`，唯一 protected attempt 为 `succeeded/decoder`，Explain 选中唯一 Candidate 且无新增 upstream attempt；完整回滚与独立 post-review 均通过 | DONE |
+| P12-06 | 执行现有网关与新网关 Shadow/Differential 流量 | P12-05 | [OpenAI-compatible live differential](reports/p12-06-openai-differential.md)：临时 Krill 原生 `codex-api-key` 参考臂与新网关 candidate 均通过 10/10 SSE、非流式、Tool、Canonical/Usage 不变量与性能取证；修正过严的可选 Usage 明细比较后，无网络离线 review 为 9/9 PASS，完整回滚通过。Grok/Kiro 切片仍延期 | DONE |
+| P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | [暴露前验证回执](reports/p12-07-exposure-receipt.md)：新主机上从零完成产物验签、账户/目录/五凭据、unit 安装与启动（active、disabled-at-boot）；`cpar` 灰云 A 记录 + Let's Encrypt 证书；七项 fail-closed 暴露断言全通过（未认证与错误 key 均 401、管理面四路径均 404、公网直连 18180/18181 均不可达）；Caddy 变更前备份 preimage 并以 validate/adapt 证明其余五站点未变，reload 后 incumbent 仍正常。未录入任何真实上游凭据，`valid_key_accepted` 为 SKIP；该域名无限流（Caddy 标准版无模块）已记为缺口 | DONE |
+| P12-08 | 完成 CPAR 全量替代准入、客户端 Key 迁移清单与生产切换准备 | P12-06,P12-07 | [`P12-08 readiness`](reports/p12-08-canary-readiness.md)、[`client migration inventory`](reports/p12-08-client-migration-inventory.md) 与 [G1 最终 review](reports/evidence/p12-08g1-final-review-20260803.md)：直接替代边界、客户端清单、三协议兼容和当前可用 Codex/Krill 12/12 真实矩阵完成；完整回滚；GitHub CI `30768254180` 的 Fast、Full supply-chain 与 Required delivery gate 通过 | DONE |
+| P12-09 | 将生产主机名全量切到 CPAR，实际执行一次全量回滚并再次恢复 | P12-08 | [P12-09 execution plan](reports/p12-09-execution-plan.md)：Newapi 迁移、全量切换/回滚/恢复与三协议矩阵已执行；Required Usage 隔离触发 P1 安全回滚，等待 exact-revision 修复制品部署后重验 | IN_PROGRESS |
 | P12-10 | CPAR 全量运行 72h，关闭旧 CPA，发布 Tag 和运维手册 | P12-09 | G12 报告；旧 CPA service/container 已关闭且不再承载生产流量 | PENDING |
 
 #### P12-08 兼容性补全切片（`CR-P12-COMPAT-001`）
@@ -3579,3 +3579,7 @@ Next task:
 | v1.143 | 2026-08-03 | `CR-P12-08G1-035`：tuple 10 通过后，tuple 11 Messages JSON Tool 在零 upstream Attempt 前本地失败；源码证明真实 `any` Tool choice 未被 lossless bridge 映射且 F2 fixture 漏测。新增仅限有 Tool 时的 forced-choice 等价映射（Chat/Responses `required` ↔ Messages `any`），其余 choice 继续 fail closed | IN_PROGRESS；10/12 tuple PASS，需新 exact-SHA artifact 后只续跑 tuple 11，成功才首次发送 tuple 12 |
 | v1.144 | 2026-08-03 | `CR-P12-08G1-036`：`ec2fdf6` 首次续跑的 Attempt 查询误读了旧记录；age 复核证明新请求零出网。管理 rollback 会更新 Registry，但 executor 仍绑定启动时 Config Version，因此 re-activate 与最终 rollback 后都必须重启并做真实 HTTP readiness | IN_PROGRESS；复用同一已验签 artifact 与 10/12 receipt，只重试 tuple 11，成功才首次发送 tuple 12 |
 | v1.145 | 2026-08-03 | CR-036 修正事务在 re-activate/rollback 后均重启；tuple 11 Messages JSON Tool 与 tuple 12 Messages SSE Tool 各单发送一次并通过，最终两个 Attempt 均 `succeeded`，G1 v2 12/12；predecessor key/图、loopback 与 disabled-at-boot 边界恢复 | P12-08G1 `DONE`；P12-08 `LOCAL_PASS_PENDING_PHASE_GATE`，不授权 P12-09 |
+| v1.146 | 2026-08-03 | `CR-P12-09-001`：用户批准开始 P12-09；P12-08 GitHub Full delivery gate 通过后，创建 root-only 生产/回滚 preimage，验证完整 Caddy 候选和三协议 JSON/SSE 回环预检。OpenClaw 当前已无 CPA 引用且无需修改；CC Switch 继续排除。slot 2 由排除法高置信度归为已退休旧 OpenClaw；operator 确认 slot 3 Newapi 必须迁移 | P12-08 `DONE`；P12-09 `IN_PROGRESS_PRE_CUTOVER_GATE`；等待 Newapi 部署位置，生产 Caddy 尚未 reload |
+| v1.147 | 2026-08-03 | operator 确认 Newapi 位于 Jakarta VPS；只读 SSH 校验发现现行 RSA/ECDSA/ED25519 主机指纹均与迁移包不符，原 Jakarta client key 对 deploy/root/ubuntu/opc 均被拒。严格身份边界下不覆盖 `known_hosts`、不接受未知主机后修改 Newapi | P12-09 `IN_PROGRESS_PRE_CUTOVER_GATE_EXTERNAL_ACCESS`；须经 VPS console 恢复公钥或提供新 SSH profile + 独立验证指纹，生产 Caddy 尚未 reload |
+| v1.148 | 2026-08-03 | 只读检查 operator 放入下载目录的 Jakarta 私钥：文件为 `0600`，但与已安装迁移 key 字节完全相同且公钥指纹相同；该文件直接登录 `deploy` 仍被拒，不能作为新的可信访问凭据 | P12-09 保持 `IN_PROGRESS_PRE_CUTOVER_GATE_EXTERNAL_ACCESS`；生产 Caddy 尚未 reload |
+| v1.149 | 2026-08-03 | `CR-P12-09-002`：Clash TUN 排除修正后恢复 Jakarta SSH；Newapi 经官方 API 完成迁移并通过既有两个 Messages alias 的 JSON/SSE 4/4；生产切换、真实回滚与恢复的 Caddy 有效 RTO 分别为 89ms、89ms、88ms。最终 P1 检查发现 OpenAI-compatible Chat SSE 跨请求复用 response ID，使 2 个 Required Usage 事件因全局 response-id 幂等键冲突而隔离；立即执行 89ms 安全回滚并恢复 Newapi preimage。Usage 持久化身份改为网关 request ID 的域分离固定长度摘要，同时继续限制外部 response ID；新增跨请求复用回归并保留同请求冲突、超长 ID 隔离语义 | P12-09 `IN_PROGRESS_P1_FIX_BUILD`；生产入口驻留旧 CPA，P12-10 未开始；须以 exact-revision artifact 部署并从零检查 P1 增量后重验 |

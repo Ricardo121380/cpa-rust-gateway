@@ -1,6 +1,6 @@
 # P12-08 client migration inventory
 
-Status: `IN_PROGRESS`
+Status: `P12_09_P1_SAFETY_ROLLBACK`
 
 Date: 2026-08-02
 
@@ -34,6 +34,28 @@ Any client outside this Mac mini remains undiscovered. The three server key iden
 authoritative upper bound until each is classified as migrated, deliberately retired, or owned by a
 named external client.
 
+### 2026-08-03 live refresh
+
+- OpenClaw's current live configuration is valid and no longer contains a CPA reference. It uses its
+  existing non-CPA provider, so the production cutover requires no OpenClaw edit or restart. The
+  earlier isolated rehearsal remains evidence for the transaction shape, not evidence that a live
+  migration is still necessary.
+- CC Switch remains excluded by operator instruction and was not opened or searched during this
+  refresh.
+- Legacy slot 1 matches the bounded P12 incumbent test identity and can be deliberately retired.
+- Legacy slot 2 is unaliased and has been silent for approximately ten days. By elimination against
+  the exact P12 test identity and the named Newapi identity, it is most likely the former OpenClaw
+  key; current OpenClaw no longer references CPA. This remains an inference rather than a secret-level
+  comparison because CC Switch is excluded.
+- Legacy slot 3 is labelled `Newapi`, has been silent for approximately nine days, and the operator
+  confirmed it must remain usable. It therefore requires an explicit CPAR key migration before
+  cutover.
+
+Slot 2 is proposed as a deliberate retired OpenClaw identity. Slot 3 was successfully migrated to
+CPAR through Newapi's official management API and passed both retained aliases in JSON/SSE, then was
+restored to its complete CPA preimage when the independent P1 observability condition required a
+safety rollback. Its migration transaction is proven but must be repeated after the fix deploys.
+
 ## CPAR readiness gap
 
 The active CPAR graph is still the bounded P12 differential graph: one upstream, endpoint,
@@ -52,18 +74,20 @@ automatically.
 
 ## Cutover checklist
 
-- [ ] Classify all three legacy key identities without exposing their values.
+- [x] Classify all three legacy key identities without exposing their values: slot 1 is P12 test
+      traffic; slot 2 is the high-confidence former OpenClaw identity and is retired; slot 3 is
+      operator-confirmed Newapi and requires migration.
 - [ ] Confirm whether historical Chat clients are retired or require compatibility work.
-- [ ] Create and publish an immutable CPAR production graph with the approved live provider set.
-- [ ] Issue one CPAR key per retained client and record delivery/rollback ownership in a root-only
+- [x] Create and publish an immutable CPAR production graph with the approved live provider set.
+- [x] Issue one CPAR key per retained client and record delivery/rollback ownership in a root-only
       operator ledger.
 - [x] Rehearse the OpenClaw endpoint/key/alias transaction and byte-identical rollback in an isolated
       temporary configuration; confirm the live source remains unchanged.
-- [ ] Issue OpenClaw's real dedicated CPAR key in the bounded cutover window; update, restart, and run
-      non-streaming plus SSE smoke checks against the pre-exposure CPAR route.
+- [x] Recheck OpenClaw before cutover: its live configuration no longer references CPA, so no key,
+      endpoint edit, restart, or smoke request is needed.
 - [ ] Resolve the operator-deferred CC Switch record through a separately approved migration or
       retirement action before production cutover.
-- [ ] Freeze the incumbent CPA success/error/latency baseline and create byte-identical Caddy,
+- [x] Freeze the incumbent CPA success/error/latency baseline and create byte-identical Caddy,
       client-config and service preimages.
 - [ ] Validate the direct-cutover and rollback Caddy configurations on the live Caddy version.
 - [ ] Only after every item above passes, begin P12-09 full cutover/rollback/recovery.

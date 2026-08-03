@@ -16,7 +16,7 @@ usage() {
     cat >&2 <<'USAGE'
 usage: p12-09-measure-caddy-rto.sh --config PATH --expect-backend LABEL --probe-url URL
                                    [--caddyfile PATH] [--timeout SECONDS] [--interval SECONDS]
-                                   [--header-file PATH] [--output PATH]
+                                   [--header-file PATH] [--probe-mode MODE] [--output PATH]
 
   --config           Caddyfile to reload into place (the rollback or the split fragment)
   --caddyfile        Live Caddyfile path Caddy runs from (default /etc/caddy/Caddyfile)
@@ -25,6 +25,8 @@ usage: p12-09-measure-caddy-rto.sh --config PATH --expect-backend LABEL --probe-
   --timeout          Give up after this many seconds (default 120)
   --interval         Seconds between probes (default 1)
   --header-file      Optional file whose first line is a request header to send; never logged
+  --probe-mode       'health-body' (default) or 'authenticated-status'. The latter classifies
+                     HTTP 200 as gateway and HTTP 401/403 as incumbent and requires --header-file
   --output           Optional receipt path; written 0600 with no secret material
 USAGE
     exit 64
@@ -37,6 +39,7 @@ probe_url=''
 timeout_seconds=120
 interval_seconds=1
 header_file=''
+probe_mode='health-body'
 output=''
 
 while [[ $# -gt 0 ]]; do
@@ -48,6 +51,7 @@ while [[ $# -gt 0 ]]; do
         --timeout) timeout_seconds="${2:-}"; shift 2 ;;
         --interval) interval_seconds="${2:-}"; shift 2 ;;
         --header-file) header_file="${2:-}"; shift 2 ;;
+        --probe-mode) probe_mode="${2:-}"; shift 2 ;;
         --output) output="${2:-}"; shift 2 ;;
         --help) usage ;;
         *) printf 'unknown argument: %s\n' "$1" >&2; usage ;;
@@ -59,6 +63,9 @@ done
 [[ -f "$caddyfile" ]] || { printf 'live Caddyfile is not a file\n' >&2; exit 64; }
 [[ "$expect_backend" == 'gateway' || "$expect_backend" == 'incumbent' ]] || {
     printf 'expect-backend must be gateway or incumbent\n' >&2; exit 64
+}
+[[ "$probe_mode" == 'health-body' || "$probe_mode" == 'authenticated-status' ]] || {
+    printf 'probe-mode must be health-body or authenticated-status\n' >&2; exit 64
 }
 [[ "$probe_url" == https://* || "$probe_url" == http://* ]] || {
     printf 'probe-url must be an http(s) URL\n' >&2; exit 64
@@ -85,12 +92,27 @@ if [[ -n "$header_file" ]]; then
     [[ -n "$probe_header" ]] || { printf 'header-file is empty\n' >&2; exit 64; }
     header_args=(--header "$probe_header")
 fi
+if [[ "$probe_mode" == 'authenticated-status' && -z "$header_file" ]]; then
+    printf 'authenticated-status probe-mode requires header-file\n' >&2
+    exit 64
+fi
 
-# The gateway and the incumbent are distinguished by a response marker that carries no secret. The
-# gateway's health endpoint is an exact fixed body, so a probe that reaches the gateway is
-# identifiable without inspecting inference output.
+# The default mode preserves the original fixed-health-body classifier. Production replacement may
+# need the authenticated status classifier when both implementations expose that same health body:
+# a successor-only Client Key makes 200 versus 401/403 an unambiguous, body-free route observation.
 observe_backend() {
-    local body
+    local body status
+    if [[ "$probe_mode" == 'authenticated-status' ]]; then
+        status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            --max-time 5 "${header_args[@]}" "$probe_url" 2>/dev/null) || status='000'
+        case "$status" in
+            200) printf 'gateway\n' ;;
+            401|403) printf 'incumbent\n' ;;
+            000) printf 'unreachable\n' ;;
+            *) printf 'ambiguous\n' ;;
+        esac
+        return 0
+    fi
     body=$(curl --silent --show-error --max-time 5 "${header_args[@]}" "$probe_url" 2>/dev/null) || {
         printf 'unreachable\n'
         return 0
@@ -151,7 +173,8 @@ if [[ -n "$output" ]]; then
   "backend_after": "$expect_backend",
   "reload_returned_ms": $reload_ms,
   "effective_ms": $elapsed_ms,
-  "probe_interval_seconds": $interval_seconds
+  "probe_interval_seconds": $interval_seconds,
+  "probe_mode": "$probe_mode"
 }
 RECEIPT
     chmod 0600 "$output"
