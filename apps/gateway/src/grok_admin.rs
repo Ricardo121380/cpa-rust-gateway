@@ -14,8 +14,8 @@ use std::{
 
 use crate::deployment;
 use gateway_core::{
-    CanonicalResponse, EgressPolicyId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode,
-    RequestContext, RequestId,
+    CanonicalRequest, CanonicalResponse, EgressPolicyId, EndpointId, ErrorScope, GatewayError,
+    GatewayErrorCode, RequestContext, RequestId,
 };
 use gateway_router::{
     ProtocolFormat, ProtocolResponseRejection, RuntimeCredentialAccountStatus,
@@ -263,11 +263,7 @@ async fn execute_probe(
     credential: &[u8],
     observed_at_ms: i64,
 ) -> Result<CanonicalResponse, GrokAdminError> {
-    let request = decode_request(
-        r#"{"model":"cpar-native-grok","input":"Reply with exactly: ready","max_output_tokens":32}"#,
-    )
-    .map_err(|_| GrokAdminError::ProbeUnavailable)?
-    .request;
+    let request = probe_request(provider)?;
     let context = RequestContext::new(
         RequestId::try_new("p12-10g-native-grok-probe")
             .map_err(|_| GrokAdminError::ProbeUnavailable)?,
@@ -331,6 +327,23 @@ async fn execute_probe(
         events.push(event);
     }
     CanonicalResponse::try_new(events).map_err(|_| GrokAdminError::ProbeUnavailable)
+}
+
+fn probe_request(provider: GrokAccountProvider) -> Result<CanonicalRequest, GrokAdminError> {
+    let body = match provider {
+        GrokAccountProvider::Build => {
+            r#"{"model":"cpar-native-grok","input":"Reply with exactly: ready","max_output_tokens":32}"#
+        }
+        // Console owns a fixed, model-specific output ceiling and rejects an inbound Responses
+        // extension that its Canonical builder cannot prove it preserves.
+        GrokAccountProvider::Console => {
+            r#"{"model":"cpar-native-grok","input":"Reply with exactly: ready"}"#
+        }
+        GrokAccountProvider::Web => return Err(GrokAdminError::ProbeRejected),
+    };
+    decode_request(body)
+        .map(|decoded| decoded.request)
+        .map_err(|_| GrokAdminError::ProbeUnavailable)
 }
 
 fn probe_gateway(stage: &'static str, error: &GatewayError) -> GrokAdminError {

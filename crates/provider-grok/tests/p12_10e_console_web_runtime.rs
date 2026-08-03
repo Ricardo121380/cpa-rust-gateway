@@ -70,6 +70,22 @@ fn console_request_pins_target_headers_and_stateless_normalization() -> TestResu
 }
 
 #[test]
+fn console_accepts_the_native_probe_without_an_unowned_output_extension() -> TestResult {
+    let request =
+        decode_request(r#"{"model":"cpar-native-grok","input":"Reply with exactly: ready"}"#)?
+            .request;
+    let token = GrokConsoleSsoToken::try_from_bytes(b"synthetic-console-sso")?;
+
+    GrokConsoleResponsesRequestBuilder::build(
+        &token,
+        "grok-build-0.1",
+        &request,
+        ResponseMode::NonStreaming,
+    )?;
+    Ok(())
+}
+
+#[test]
 fn console_json_and_every_sse_chunk_size_preserve_tool_reasoning_and_usage() -> TestResult {
     let expected = GrokConsoleResponsesDecoder::decode_non_streaming(console_json())?;
     let expected_projection = projection(expected.events());
