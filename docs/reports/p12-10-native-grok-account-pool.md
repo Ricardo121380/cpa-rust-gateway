@@ -1,6 +1,6 @@
 # P12-10 native Grok account pool
 
-Status: `P12-10G_DONE_P12-10H_SYNTHETIC_DONE_CONSOLE_MULTI_PASS_BUILD_REAUTH_EXTERNAL_HTTP_E2E_BLOCKED`
+Status: `P12-10G_DONE_P12-10H_SYNTHETIC_DONE_NATIVE_CONSOLE_ROUTE_BOUND_EXTERNAL_CONSOLE_403`
 
 ## Corrected architecture
 
@@ -62,7 +62,7 @@ single-owner refresh transactions and explicit rollback.
 | P12-10E | Native Grok Console runtime and Web production binding | strict target/header/request/JSON/SSE/Tool/Usage/error fixtures; Chat/Responses/Messages bridge matrix |
 | P12-10F | Memory-stream migration adapter from grok2api | no plaintext temp file; source/accepted/rejected/link counts, transactional rollback and idempotent rerun |
 | P12-10G | Controlled live subset and full-pool parity | direct CPAR native attempts, account attribution, quota/cooldown correctness, three protocols and rollback |
-| P12-10H | Decommission rehearsal, synthetic observation and CPAR HTTP E2E | grok2api stop/rollback drill, CPAR-only 100-cycle synthetic Console gate, then direct CPAR curl calls across three protocols/JSON-SSE once a native Grok route is visible; the native staging run completed 26 calls and stopped on `ProviderRateLimited/provider` before the 100-call gate, with no safe multi-account retry available |
+| P12-10H | Decommission rehearsal, synthetic observation and CPAR HTTP E2E | grok2api stop/rollback drill, CPAR-only 100-cycle synthetic Console gate, then direct CPAR curl calls across three protocols/JSON-SSE once a native Grok route is visible; the Build staging run completed 26 calls before `ProviderRateLimited/provider`, while the native Console route public matrix reached upstream on all six JSON/SSE paths but stopped at the same external 403/Egress category |
 
 P12-10A is complete in the [native Grok gap matrix](p12-10a-native-grok-gap-matrix.md). P12-10B is
 complete in the [native account-pool report](p12-10b-native-grok-account-pool.md). P12-10C is
@@ -79,8 +79,12 @@ the 100-call gate remains blocked. A follow-up refreshed the one eligible Build 
 828 permanent `reauthRequired` accounts for interactive OAuth, while five independent active
 Console accounts each passed native probing and rollback. The follow-up is recorded in the
 [account recovery / Console multi receipt](evidence/p12-10h-grok-account-recovery-console-multi-20260804.md)
-and its [review](evidence/p12-10h-grok-account-recovery-console-multi-review-20260804.md). All
-receipts are value-free and make no production availability claim.
+and its [review](evidence/p12-10h-grok-account-recovery-console-multi-review-20260804.md). The
+latest native Console route/public HTTP execution is recorded in the [public curl receipt](evidence/p12-10h-grok-console-native-route-cpar-curl-20260804.md)
+and [review](evidence/p12-10h-grok-console-native-route-cpar-curl-review-20260804.md): `/v1/models`
+and single-candidate explain passed, but four imported accounts all reached the upstream 403/Egress
+classification across Chat/Responses/Messages JSON/SSE. All receipts are value-free and make no
+production availability claim.
 
 ## Migration boundary
 
