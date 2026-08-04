@@ -26,4 +26,3 @@ The public Console HTTP test is correctly **blocked**, not passed. P12-10H remai
 isolated native Console route is visible and the same CPAR curl harness completes the approved
 protocol matrix. The real HTTP requirement is now the authoritative acceptance rule for subsequent
 CPAR channel tests; native probes are supplemental evidence only.
-

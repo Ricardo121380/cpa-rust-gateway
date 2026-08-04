@@ -61,6 +61,7 @@ impl ApiFormat {
             Self::OpenAiResponses => &[
                 "openai-compatible.responses",
                 "grok.build.responses",
+                "grok.console.responses",
                 "grok.official.responses",
                 "grok.web.responses",
             ],
@@ -253,11 +254,13 @@ mod tests {
             &[
                 "openai-compatible.responses",
                 "grok.build.responses",
+                "grok.console.responses",
                 "grok.official.responses",
                 "grok.web.responses",
             ]
         );
         assert!(ApiFormat::OpenAiResponses.serves("grok.build.responses"));
+        assert!(ApiFormat::OpenAiResponses.serves("grok.console.responses"));
         assert!(ApiFormat::OpenAiResponses.serves("grok.official.responses"));
         assert!(ApiFormat::OpenAiResponses.serves("grok.web.responses"));
         // One wire format, several implementations: Kiro speaks Anthropic Messages but reaches it

@@ -45,4 +45,3 @@ current active CPAR graph has no visible Grok/Console route to exercise.
 
 The next live Console test is allowed only after a native Console route and account pool are bound
 in an isolated CPAR graph. It must reuse this public curl harness and stop on the first failure.
-

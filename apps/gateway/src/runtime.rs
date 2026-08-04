@@ -105,11 +105,13 @@ use provider_anthropic_compatible::{
 };
 use provider_grok::{
     GROK_BUILD_RESPONSES_BASE_URL, GROK_BUILD_RESPONSES_PATH, GROK_BUILD_RESPONSES_URL,
+    GROK_CONSOLE_RESPONSES_BASE_URL, GROK_CONSOLE_RESPONSES_PATH, GROK_CONSOLE_RESPONSES_URL,
     GROK_OFFICIAL_API_BASE_URL, GROK_OFFICIAL_RESPONSES_PATH, GROK_OFFICIAL_RESPONSES_URL,
     GrokAccountEndpointBinding, GrokAccountPoolStore, GrokAccountProvider, GrokBuildCredential,
     GrokBuildExecutionMode, GrokBuildInferenceAdapter, GrokBuildUpstreamTransport,
-    GrokOfficialApiKey, GrokOfficialExecutionMode, GrokOfficialInferenceAdapter,
-    GrokOfficialUpstreamTransport,
+    GrokConsoleExecutionMode, GrokConsoleInferenceAdapter, GrokConsoleSsoToken,
+    GrokConsoleUpstreamTransport, GrokOfficialApiKey, GrokOfficialExecutionMode,
+    GrokOfficialInferenceAdapter, GrokOfficialUpstreamTransport,
 };
 use provider_kiro::{
     CanonicalEventSource, InferenceAdapter,
@@ -331,7 +333,9 @@ fn p12_adapter_capabilities(adapter_id: &str) -> Result<CapabilitySet, RuntimeCo
         "openai-compatible.responses" | "anthropic-compatible.messages" => {
             &[Tools, ParallelTools, Reasoning, JsonSchema, Streaming]
         }
-        "grok.build.responses" | "kiro.messages" => &[Tools, Reasoning, JsonSchema, Streaming],
+        "grok.build.responses" | "grok.console.responses" | "kiro.messages" => {
+            &[Tools, Reasoning, JsonSchema, Streaming]
+        }
         "grok.official.responses" => &[Tools, ParallelTools, Reasoning, JsonSchema, Streaming],
         "grok.web.responses" => &[],
         _ => return Err(RuntimeCompositionError::Unavailable),
@@ -722,11 +726,17 @@ impl P12RoutedResponsesExecutor {
         }
         let policies = EgressPolicyCompiler::compile(configuration)
             .map_err(|_| RuntimeCompositionError::Unavailable)?;
-        let native_endpoint_ids = configuration
+        let native_endpoint_providers = configuration
             .endpoints
             .iter()
-            .filter(|endpoint| is_native_grok_build_endpoint(endpoint))
-            .map(|endpoint| endpoint.id.clone())
+            .filter_map(|endpoint| {
+                native_grok_provider_for_endpoint(endpoint)
+                    .map(|provider| (endpoint.id.clone(), provider))
+            })
+            .collect::<BTreeMap<_, _>>();
+        let native_endpoint_ids = native_endpoint_providers
+            .keys()
+            .cloned()
             .collect::<BTreeSet<_>>();
         let pools = CredentialPoolCompiler::new(secret_store)
             .compile_excluding_endpoints(configuration, &native_endpoint_ids)
@@ -734,11 +744,10 @@ impl P12RoutedResponsesExecutor {
         let pools = if native_endpoint_ids.is_empty() {
             pools
         } else {
-            let bindings = native_endpoint_ids
+            let bindings = native_endpoint_providers
                 .iter()
-                .cloned()
-                .map(|endpoint_id| {
-                    GrokAccountEndpointBinding::new(GrokAccountProvider::Build, endpoint_id)
+                .map(|(endpoint_id, provider)| {
+                    GrokAccountEndpointBinding::new(*provider, endpoint_id.clone())
                 })
                 .collect::<Vec<_>>();
             let native_store = GrokAccountPoolStore::try_open(database, secret_store.clone())
@@ -911,6 +920,11 @@ fn p12_api_format_adapter_registry() -> Result<P12ApiFormatAdapterRegistry, Runt
         ),
         (
             ApiFormat::OpenAiResponses,
+            "grok.console.responses",
+            build_grok_console_responses_adapter as P12EndpointAdapterFactory,
+        ),
+        (
+            ApiFormat::OpenAiResponses,
             "grok.official.responses",
             build_grok_official_responses_adapter as P12EndpointAdapterFactory,
         ),
@@ -959,8 +973,30 @@ fn build_grok_build_responses_adapter(
     Ok(EndpointAdapter::GrokBuildResponses)
 }
 
-fn is_native_grok_build_endpoint(endpoint: &EndpointConfiguration) -> bool {
-    endpoint.adapter_id == "grok.build.responses"
+fn build_grok_console_responses_adapter(
+    endpoint: &EndpointConfiguration,
+) -> Result<EndpointAdapter, RuntimeCompositionError> {
+    if composed_endpoint_url(endpoint) != GROK_CONSOLE_RESPONSES_URL
+        || endpoint.base_url != GROK_CONSOLE_RESPONSES_BASE_URL
+        || endpoint.inference_path != GROK_CONSOLE_RESPONSES_PATH
+    {
+        return Err(RuntimeCompositionError::Unavailable);
+    }
+    Ok(EndpointAdapter::GrokConsoleResponses)
+}
+
+fn native_grok_provider_for_endpoint(
+    endpoint: &EndpointConfiguration,
+) -> Option<GrokAccountProvider> {
+    match endpoint.adapter_id.as_str() {
+        "grok.build.responses" => Some(GrokAccountProvider::Build),
+        "grok.console.responses" => Some(GrokAccountProvider::Console),
+        _ => None,
+    }
+}
+
+fn is_native_grok_endpoint(endpoint: &EndpointConfiguration) -> bool {
+    native_grok_provider_for_endpoint(endpoint).is_some()
 }
 
 fn build_grok_official_responses_adapter(
@@ -1134,10 +1170,7 @@ fn endpoint_runtimes(
 fn validate_p12_configuration_shape(
     configuration: &ControlPlaneConfiguration,
 ) -> Result<(), RuntimeCompositionError> {
-    let has_native_grok_endpoint = configuration
-        .endpoints
-        .iter()
-        .any(is_native_grok_build_endpoint);
+    let has_native_grok_endpoint = configuration.endpoints.iter().any(is_native_grok_endpoint);
     if configuration.version.status != ConfigVersionStatus::Active
         || configuration.egress_policies.is_empty()
         || configuration.upstreams.is_empty()
@@ -1433,6 +1466,8 @@ enum EndpointAdapter {
     OpenAiResponses(OpenAiResponsesEndpoint),
     /// The fixed Grok Build OAuth Responses path.
     GrokBuildResponses,
+    /// The fixed Grok Console SSO Responses path.
+    GrokConsoleResponses,
     /// The fixed xAI Official API-key Responses path.
     GrokOfficialResponses,
     /// The Anthropic-compatible Messages path.
@@ -1446,9 +1481,10 @@ impl EndpointAdapter {
     const fn api_format(&self) -> ApiFormat {
         match self {
             Self::OpenAiChatCompletions(_) => ApiFormat::OpenAiChatCompletions,
-            Self::OpenAiResponses(_) | Self::GrokBuildResponses | Self::GrokOfficialResponses => {
-                ApiFormat::OpenAiResponses
-            }
+            Self::OpenAiResponses(_)
+            | Self::GrokBuildResponses
+            | Self::GrokConsoleResponses
+            | Self::GrokOfficialResponses => ApiFormat::OpenAiResponses,
             Self::AnthropicMessages(_) | Self::KiroMessages(_) => ApiFormat::AnthropicMessages,
         }
     }
@@ -1591,6 +1627,7 @@ impl EndpointAttemptDriver {
             &runtime.adapter,
             EndpointAdapter::KiroMessages(_)
                 | EndpointAdapter::GrokBuildResponses
+                | EndpointAdapter::GrokConsoleResponses
                 | EndpointAdapter::GrokOfficialResponses
         ) && !matches!(
             candidate.transform_mode(),
@@ -1663,6 +1700,10 @@ impl AttemptDriver for EndpointAttemptDriver {
                 }
                 EndpointAdapter::GrokBuildResponses => {
                     self.start_grok_build(runtime, candidate, credential, &projected)
+                        .await
+                }
+                EndpointAdapter::GrokConsoleResponses => {
+                    self.start_grok_console(runtime, candidate, credential, &projected)
                         .await
                 }
                 EndpointAdapter::GrokOfficialResponses => {
@@ -1948,6 +1989,52 @@ impl EndpointAttemptDriver {
             credential,
             candidate.upstream_model(),
             grok_build_execution_mode(self.mode),
+            Arc::new(transport),
+        )
+        .map_err(AttemptFailure::NonRetryable)?;
+        self.attempt_stages.record_stage(
+            &self.request_id,
+            ManagementRequestAttemptStage::EgressAdmission,
+        );
+        self.attempt_stages.record_stage(
+            &self.request_id,
+            ManagementRequestAttemptStage::HttpTransport,
+        );
+        let source = adapter
+            .execute(
+                RequestContext::new(self.request_id.clone()),
+                request.clone(),
+            )
+            .await
+            .map_err(p12_classify_grok_start_failure)?;
+        self.attempt_stages
+            .record_stage(&self.request_id, ManagementRequestAttemptStage::HttpStatus);
+        Ok(Box::new(P12ProviderEventSource::new(source)) as Box<dyn ResponsesEventSource>)
+    }
+
+    /// Runs one Canonical attempt through the fixed Grok Console SSO Responses runtime.
+    async fn start_grok_console(
+        &self,
+        runtime: &EndpointRuntime,
+        candidate: &SnapshotRouteCandidate,
+        credential: &CredentialLease,
+        projected: &ProjectedProtocolRequest,
+    ) -> Result<Box<dyn ResponsesEventSource>, AttemptFailure> {
+        let ProjectedProtocolRequest::Canonical(request) = projected else {
+            return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
+        };
+        let credential = GrokConsoleSsoToken::try_from_bytes(credential.secret_bytes())
+            .map_err(|_| AttemptFailure::NonRetryable(credential_unavailable_error()))?;
+        let transport = GrokConsoleUpstreamTransport::new(
+            runtime.policy.clone(),
+            Arc::clone(&runtime.resolver),
+            self.client_pool.as_ref().clone(),
+            runtime.transports.for_mode(self.mode).clone(),
+        );
+        let adapter = GrokConsoleInferenceAdapter::try_new(
+            credential,
+            candidate.upstream_model(),
+            grok_console_execution_mode(self.mode),
             Arc::new(transport),
         )
         .map_err(AttemptFailure::NonRetryable)?;
@@ -2272,6 +2359,13 @@ const fn grok_build_execution_mode(mode: ResponsesResponseMode) -> GrokBuildExec
     match mode {
         ResponsesResponseMode::NonStreaming => GrokBuildExecutionMode::NonStreaming,
         ResponsesResponseMode::Streaming => GrokBuildExecutionMode::Streaming,
+    }
+}
+
+const fn grok_console_execution_mode(mode: ResponsesResponseMode) -> GrokConsoleExecutionMode {
+    match mode {
+        ResponsesResponseMode::NonStreaming => GrokConsoleExecutionMode::NonStreaming,
+        ResponsesResponseMode::Streaming => GrokConsoleExecutionMode::Streaming,
     }
 }
 
@@ -4456,20 +4550,20 @@ mod tests {
     use super::{
         AnthropicSseEventSource, EndpointAdapter, EndpointAttemptDriver, EndpointRuntime,
         FiniteEventSource, GROK_BUILD_RESPONSES_BASE_URL, GROK_BUILD_RESPONSES_PATH,
-        GROK_OFFICIAL_API_BASE_URL, GROK_OFFICIAL_RESPONSES_PATH, MAX_SSE_FRAME_BYTES,
-        MAX_SSE_IDENTIFIER_BYTES, MAX_SSE_PROGRESS_FREE_FRAMES, MAX_SSE_TOOL_CALLS,
-        MAX_UPSTREAM_RESPONSE_BYTES, OpenAiSseDecoder, OpenAiSseEventSource,
-        P12_BOOTSTRAP_TIMEOUT_MILLISECONDS, P12_CONNECT_TIMEOUT,
-        P12_KRILL_COMPATIBILITY_USER_AGENT, P12_MAX_ROUTE_ATTEMPTS,
+        GROK_CONSOLE_RESPONSES_BASE_URL, GROK_CONSOLE_RESPONSES_PATH, GROK_OFFICIAL_API_BASE_URL,
+        GROK_OFFICIAL_RESPONSES_PATH, MAX_SSE_FRAME_BYTES, MAX_SSE_IDENTIFIER_BYTES,
+        MAX_SSE_PROGRESS_FREE_FRAMES, MAX_SSE_TOOL_CALLS, MAX_UPSTREAM_RESPONSE_BYTES,
+        OpenAiSseDecoder, OpenAiSseEventSource, P12_BOOTSTRAP_TIMEOUT_MILLISECONDS,
+        P12_CONNECT_TIMEOUT, P12_KRILL_COMPATIBILITY_USER_AGENT, P12_MAX_ROUTE_ATTEMPTS,
         P12_MAX_TOTAL_BINDING_CONCURRENCY, P12_NON_STREAMING_TOTAL_TIMEOUT,
         P12_STREAMING_IDLE_TIMEOUT, P12_STREAMING_PROGRESS_TIMEOUT, P12_STREAMING_TOTAL_TIMEOUT,
         P12_STREAMING_TTFB_TIMEOUT, P12AttemptStageStore, P12EndpointAdapterFactory,
         P12FanoutEventSink, P12ResponseUsageProjection, P12TransportProfiles,
         RuntimeCompositionError, SnapshotManagementRuntimeFacade, append_response_chunk,
         build_data_plane_composition, build_grok_build_responses_adapter,
-        build_grok_official_responses_adapter, build_kiro_messages_adapter,
-        build_openai_responses_adapter, classify_anthropic_response_failure,
-        classify_openai_response_failure, decode_json_events,
+        build_grok_console_responses_adapter, build_grok_official_responses_adapter,
+        build_kiro_messages_adapter, build_openai_responses_adapter,
+        classify_anthropic_response_failure, classify_openai_response_failure, decode_json_events,
         decode_json_events_with_usage_projection, decode_sse_events,
         decode_sse_events_with_usage_projection, deployment_route_compiler, endpoint_runtimes,
         has_p12_https_only_egress_shape, has_p12_unlisted_model_override, p12_adapter_capabilities,
@@ -6528,6 +6622,10 @@ mod tests {
                 vec![Tools, Reasoning, JsonSchema, Streaming],
             ),
             (
+                "grok.console.responses",
+                vec![Tools, Reasoning, JsonSchema, Streaming],
+            ),
+            (
                 "grok.official.responses",
                 vec![Tools, ParallelTools, Reasoning, JsonSchema, Streaming],
             ),
@@ -7752,6 +7850,11 @@ mod tests {
         );
         assert!(
             registry
+                .resolve("openai/responses", "grok.console.responses")
+                .is_some()
+        );
+        assert!(
+            registry
                 .resolve("openai/responses", "grok.official.responses")
                 .is_some()
         );
@@ -7811,6 +7914,25 @@ mod tests {
         let mut substituted_build_path = build.clone();
         substituted_build_path.inference_path = "/v1/chat/completions".to_owned();
         assert!(build_grok_build_responses_adapter(&substituted_build_path).is_err());
+
+        let console = EndpointConfiguration {
+            id: EndpointId::try_new("p12-grok-console-endpoint")?,
+            adapter_id: "grok.console.responses".to_owned(),
+            base_url: GROK_CONSOLE_RESPONSES_BASE_URL.to_owned(),
+            inference_path: GROK_CONSOLE_RESPONSES_PATH.to_owned(),
+            ..build.clone()
+        };
+        assert!(matches!(
+            build_grok_console_responses_adapter(&console),
+            Ok(EndpointAdapter::GrokConsoleResponses)
+        ));
+
+        let mut substituted_console_host = console.clone();
+        substituted_console_host.base_url = "https://attacker.example.test".to_owned();
+        assert!(build_grok_console_responses_adapter(&substituted_console_host).is_err());
+        let mut substituted_console_path = console;
+        substituted_console_path.inference_path = "/v1/chat/completions".to_owned();
+        assert!(build_grok_console_responses_adapter(&substituted_console_path).is_err());
 
         let official = EndpointConfiguration {
             id: EndpointId::try_new("p12-grok-official-endpoint")?,
