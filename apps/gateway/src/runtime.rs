@@ -1304,7 +1304,10 @@ fn validate_p12_route_access_shape(
             || !candidate.enabled
             || candidate.priority < 0
             || candidate.weight < 1
-            || !has_p12_unlisted_model_override(&candidate.capability_override_json)
+            || !p12_candidate_override_is_admissible(
+                adapter_id,
+                &candidate.capability_override_json,
+            )
         {
             return Err(RuntimeCompositionError::Unavailable);
         }
@@ -1365,6 +1368,22 @@ fn has_p12_unlisted_model_override(value: &str) -> bool {
             if object.len() == 1
                 && object.get("allow_unlisted_model") == Some(&Value::Bool(true))
     )
+}
+
+/// Returns whether a P12 Candidate carries the one bounded capability override admitted by the
+/// runtime shape gate. Native Grok Build's cross-protocol `CanonicalBridge` route additionally
+/// narrows Reasoning so a Chat target cannot receive a private reasoning item; no other adapter
+/// may introduce a second override shape.
+fn p12_candidate_override_is_admissible(adapter_id: &str, value: &str) -> bool {
+    has_p12_unlisted_model_override(value)
+        || (adapter_id == "grok.build.responses"
+            && matches!(
+                serde_json::from_str::<Value>(value),
+                Ok(Value::Object(object))
+                    if object.len() == 2
+                        && object.get("allow_unlisted_model") == Some(&Value::Bool(true))
+                        && object.get("reasoning") == Some(&Value::Bool(false))
+            ))
 }
 
 /// Returns whether one `adapter_id` may serve an admitted API Format in this composition.
@@ -4455,9 +4474,10 @@ mod tests {
         decode_sse_events_with_usage_projection, deployment_route_compiler, endpoint_runtimes,
         has_p12_https_only_egress_shape, has_p12_unlisted_model_override, p12_adapter_capabilities,
         p12_adapter_id_serves, p12_api_format_adapter_registry, p12_attempt_start_timeout,
-        p12_classify_kiro_start_failure, p12_kiro_endpoint_shape, p12_kiro_request_projection,
-        p12_openai_compatible_request, p12_response_usage_projection, p12_transport_headers,
-        p12_transport_request, project_usage_events, queue_event, validate_endpoint_shape,
+        p12_candidate_override_is_admissible, p12_classify_kiro_start_failure,
+        p12_kiro_endpoint_shape, p12_kiro_request_projection, p12_openai_compatible_request,
+        p12_response_usage_projection, p12_transport_headers, p12_transport_request,
+        project_usage_events, queue_event, validate_endpoint_shape,
     };
 
     const P12_SINGLETON_TEST_ENDPOINT_ID: &str = "p12-krill-endpoint";
@@ -7575,6 +7595,18 @@ mod tests {
         ));
         assert!(!has_p12_unlisted_model_override(
             r#"{"allow_unlisted_model":true,"tools":true}"#
+        ));
+        assert!(p12_candidate_override_is_admissible(
+            "grok.build.responses",
+            r#"{"allow_unlisted_model":true,"reasoning":false}"#
+        ));
+        assert!(!p12_candidate_override_is_admissible(
+            "openai-compatible.responses",
+            r#"{"allow_unlisted_model":true,"reasoning":false}"#
+        ));
+        assert!(!p12_candidate_override_is_admissible(
+            "grok.build.responses",
+            r#"{"allow_unlisted_model":true,"reasoning":true}"#
         ));
         Ok(())
     }

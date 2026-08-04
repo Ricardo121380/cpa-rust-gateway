@@ -181,14 +181,17 @@ def finish(args: argparse.Namespace) -> int:
         base=args.management_base,
     )
     session.call("POST", f"/admin/routes/{ROUTE_ID}/validate", {}, expect=200)
-    validated = session.call("POST", f"/admin/config-versions/{VERSION_ID}/validate", {}, expect=200)
-    if validated.get("valid") is not True:
-        raise ManagementError("native Grok graph validation failed")
+    # Route validation is read-only and deliberately has no revision header. Read the current
+    # draft revision before the version-level write validation instead of assuming the prior
+    # mutation ETag survives across this fresh process invocation.
     current = session.call("GET", f"/admin/config-versions/{VERSION_ID}", None, expect=200,
                            send_config_version=False, send_if_match=False)
     session.revision = current.get("revision")
     if not session.revision:
-        raise ManagementError("native Grok graph omitted revision")
+        raise ManagementError("native Grok graph omitted revision before validation")
+    validated = session.call("POST", f"/admin/config-versions/{VERSION_ID}/validate", {}, expect=200)
+    if validated.get("valid") is not True:
+        raise ManagementError("native Grok graph validation failed")
     session.call("POST", f"/admin/config-versions/{VERSION_ID}/publish", {}, expect=200,
                  send_config_version=False)
     print("p12-10h-native-grok=PUBLISHED")
