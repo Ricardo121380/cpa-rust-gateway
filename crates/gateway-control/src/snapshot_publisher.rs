@@ -554,6 +554,7 @@ const fn snapshot_transform_mode(mode: TransformMode) -> SnapshotTransformMode {
         TransformMode::Passthrough => SnapshotTransformMode::Passthrough,
         TransformMode::Canonical => SnapshotTransformMode::Canonical,
         TransformMode::LosslessBridge => SnapshotTransformMode::LosslessBridge,
+        TransformMode::CanonicalBridge => SnapshotTransformMode::CanonicalBridge,
     }
 }
 

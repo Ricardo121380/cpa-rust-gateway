@@ -1573,8 +1573,11 @@ impl EndpointAttemptDriver {
             EndpointAdapter::KiroMessages(_)
                 | EndpointAdapter::GrokBuildResponses
                 | EndpointAdapter::GrokOfficialResponses
-        ) && candidate.transform_mode() != gateway_router::SnapshotTransformMode::Canonical
-        {
+        ) && !matches!(
+            candidate.transform_mode(),
+            gateway_router::SnapshotTransformMode::Canonical
+                | gateway_router::SnapshotTransformMode::CanonicalBridge
+        ) {
             return Err(ProtocolTransformRejection::PairUnregistered);
         }
         project_registered_protocol_request(ProtocolTransformInput {
@@ -4226,17 +4229,17 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
                 } else if !candidate.is_hard_eligible() {
                     ManagementRouteExplainCandidate::excluded(
                         candidate.id().clone(),
-                        "not-hard-eligible",
+                        "not_hard_eligible",
                     )
                 } else if !pair_is_publishable {
                     ManagementRouteExplainCandidate::excluded(
                         candidate.id().clone(),
-                        "protocol-transform-unavailable",
+                        "protocol_transform_unavailable",
                     )
                 } else {
                     ManagementRouteExplainCandidate::excluded(
                         candidate.id().clone(),
-                        "after-selected-candidate",
+                        "after_selected_candidate",
                     )
                 }
             })
@@ -8207,7 +8210,7 @@ mod tests {
         assert_eq!(explained.candidates().len(), 2);
         assert_eq!(
             explained.candidates()[0].reason(),
-            Some("protocol-transform-unavailable"),
+            Some("protocol_transform_unavailable"),
         );
         assert!(explained.candidates()[1].selected_by_projection());
         let attempts = facade

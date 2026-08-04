@@ -316,6 +316,9 @@ pub enum TransformMode {
     Canonical,
     /// The request uses a later lossless compatibility bridge.
     LosslessBridge,
+    /// The request uses Canonical semantics for the native protocol and a proven lossless
+    /// bridge when the client speaks another registered protocol.
+    CanonicalBridge,
 }
 
 impl TransformMode {
@@ -324,6 +327,7 @@ impl TransformMode {
             Self::Passthrough => "passthrough",
             Self::Canonical => "canonical",
             Self::LosslessBridge => "lossless_bridge",
+            Self::CanonicalBridge => "canonical_bridge",
         }
     }
 
@@ -332,6 +336,7 @@ impl TransformMode {
             "passthrough" => Some(Self::Passthrough),
             "canonical" => Some(Self::Canonical),
             "lossless_bridge" => Some(Self::LosslessBridge),
+            "canonical_bridge" => Some(Self::CanonicalBridge),
             _ => None,
         }
     }

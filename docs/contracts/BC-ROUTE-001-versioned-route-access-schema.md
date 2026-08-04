@@ -38,8 +38,9 @@ Tasks and must not query SQLite in the inference hot path.
 - Every Public Model, Alias, Route, Candidate, Access Group, permission link, and Client Key stays
   in one Config Version. Composite foreign keys reject cross-Version rows.
 - The initial set of route policies is exactly `round_robin`, `smooth_weighted_round_robin`, and
-  `priority_failover`; transform modes are exactly `passthrough`, `canonical`, and
-  `lossless_bridge`.
+  `priority_failover`; transform modes are `passthrough`, `canonical`, and `lossless_bridge`, with
+  the native-provider `canonical_bridge` extension. `canonical_bridge` preserves same-protocol
+  Canonical admission and explicitly selects the reviewed cross-protocol lossless bridge matrix.
 - An Access Group can grant any number of Routes, but one `(access_group, route)` relation appears
   once. A Client Key references exactly one Access Group.
 - Candidate scope is exactly `endpoint_bindings` in P2-02. It does not make a Credential selection

@@ -39,6 +39,11 @@ reconstruction, and it must be safe for Route Explain without exposing request/m
    URL, request text, Tool name/ID, cache value, or raw extension value. Its debug view redacts the
    complete Canonical request.
 
+P12 adds an explicit `canonical_bridge` mode for a native provider Endpoint that exposes one
+public route to all three registered client protocols. It uses the same Canonical projection when
+source and target match and the existing lossless bridge matrix otherwise; it does not weaken the
+three original mode rules or add a provider-specific fallback.
+
 ## Consequences
 
 - A Candidate cannot quietly become a cross-protocol fallback merely because its configured

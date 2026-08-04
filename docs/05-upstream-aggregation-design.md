@@ -270,15 +270,16 @@ fresh -> stale -> expired
 
 ### 7.2 转换模式
 
-Candidate 的 `transform_mode` 只能是：
+Candidate 的基础 `transform_mode` 有三种；P12 原生 Provider 另增加显式的 `canonical_bridge` 扩展：
 
 | 模式 | 含义 | 默认优先级 |
 |---|---|---:|
 | `passthrough` | 入站与上游格式一致，只做安全的模型/Header 改写 | 最高 |
 | `canonical` | 通过本项目 Canonical Request/Event 正常转换 | 正常 |
 | `lossless_bridge` | 跨协议桥接，只有能力分析证明无语义丢失时可用 | 最低 |
+| `canonical_bridge` | 原生协议走 Canonical，其他注册协议走已审查的 lossless bridge | P12 原生 Provider |
 
-不允许因为某个中转站宣称“同一模型支持三种协议”，就把同一条 Endpoint 同时加入三种候选。必须分别测试并保存三条 Endpoint 的能力结果。
+不允许因为某个中转站宣称“同一模型支持三种协议”，就隐式放宽既有模式或复制账号池。P12 原生 Provider 只能使用显式 `canonical_bridge`，并分别验证三种入口的能力结果。
 
 跨协议时至少检查：
 

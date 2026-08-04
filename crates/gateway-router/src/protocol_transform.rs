@@ -261,6 +261,7 @@ pub fn protocol_pair_is_publishable(
                 source == target
             }
             SnapshotTransformMode::LosslessBridge => source != target,
+            SnapshotTransformMode::CanonicalBridge => true,
         }
         && !(source == ProtocolFormat::OpenAiChatCompletions
             && target_capabilities.supports(SemanticCapability::Reasoning))
@@ -320,8 +321,8 @@ impl fmt::Debug for ProjectedProtocolRequest {
 ///
 /// `Passthrough` is intentionally narrow: it accepts only an exact native body to the same
 /// protocol, so opaque native fields are still preserved byte-for-byte by the later transport.
-/// `Canonical` and `LosslessBridge` reconstruct a body and therefore reject every retained
-/// unknown or unsupported semantic rather than guessing a conversion.
+/// `Canonical`, `LosslessBridge`, and `CanonicalBridge` reconstruct a body and therefore reject
+/// every retained unknown or unsupported semantic rather than guessing a conversion.
 #[must_use]
 pub fn analyze_protocol_transform(input: ProtocolTransformInput<'_>) -> ProtocolTransformAdmission {
     match project_protocol_request(input) {
@@ -937,6 +938,8 @@ fn capability_rejection(
 
 #[cfg(test)]
 mod tests {
+    use std::error::Error;
+
     use gateway_catalog::{CapabilitySet, SemanticCapability};
     use gateway_core::{
         CanonicalMessage, CanonicalRequest, MessageContent, MessageRole, OpaqueContent,
@@ -1095,10 +1098,13 @@ mod tests {
                     SnapshotTransformMode::Passthrough,
                     SnapshotTransformMode::Canonical,
                     SnapshotTransformMode::LosslessBridge,
+                    SnapshotTransformMode::CanonicalBridge,
                 ] {
                     assert_eq!(
                         protocol_pair_is_publishable(source, target, mode, &CapabilitySet::empty(),),
-                        if source == target {
+                        if mode == SnapshotTransformMode::CanonicalBridge {
+                            true
+                        } else if source == target {
                             matches!(
                                 mode,
                                 SnapshotTransformMode::Passthrough
@@ -1230,6 +1236,40 @@ mod tests {
             )),
             ProtocolTransformRejection::LosslessBridgeProtocolMatch,
         );
+    }
+
+    #[test]
+    fn canonical_bridge_supports_native_and_cross_protocol_projection() -> Result<(), Box<dyn Error>>
+    {
+        let request = request();
+        let capabilities = all_capabilities()?;
+        for (source, target) in [
+            (
+                ProtocolFormat::OpenAiResponses,
+                ProtocolFormat::OpenAiResponses,
+            ),
+            (
+                ProtocolFormat::OpenAiChatCompletions,
+                ProtocolFormat::OpenAiResponses,
+            ),
+            (
+                ProtocolFormat::AnthropicMessages,
+                ProtocolFormat::OpenAiResponses,
+            ),
+        ] {
+            assert_eq!(
+                analyze_protocol_transform(input(
+                    &request,
+                    source,
+                    target,
+                    SnapshotTransformMode::CanonicalBridge,
+                    NativePayloadAvailability::Unavailable,
+                    &capabilities,
+                )),
+                ProtocolTransformAdmission::Approved,
+            );
+        }
+        Ok(())
     }
 
     #[test]

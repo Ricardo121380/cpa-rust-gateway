@@ -33,7 +33,7 @@ runtime decoder remains test-only until D4 consumes its regression corpus.
 - Route Explain accepts all three client protocols and applies the same registered-pair topology
   and response capability rule used by runtime admission.
 - An unavailable transform is reported only as the value-free reason
-  `protocol-transform-unavailable`; no request text, model value, Endpoint, URL, Credential,
+  `protocol_transform_unavailable`; no request text, model value, Endpoint, URL, Credential,
   native body or extension value enters that reason.
 - Explain remains projection-only: selecting a candidate does not advance scheduling cursors,
   acquire a lease or create an upstream Attempt.

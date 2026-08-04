@@ -33,10 +33,12 @@ makes an HTTP/Provider/network call.
 | `Passthrough` | Same protocol | `Exact` | Native payload may be forwarded unchanged; unknown native fields are not reconstructed. |
 | `Canonical` | Same protocol | Any | Every retained Canonical field must have the current same-protocol re-encoding proof. |
 | `LosslessBridge` | Different protocol | Any | Every retained Canonical field must have the current cross-protocol bridge proof. |
+| `CanonicalBridge` | Same or different registered protocol | Any | Same-protocol Canonical proof, or the current cross-protocol bridge proof. |
 
 `Passthrough` with different protocols or without an exact native payload is rejected.
 `Canonical` across protocols and `LosslessBridge` within one protocol are rejected. These are
-configuration/shape failures, not fallbacks.
+configuration/shape failures, not fallbacks. `CanonicalBridge` is an explicit P12 native-provider
+extension; it does not alter the rejection rules of the original three modes.
 
 ## Invariants
 

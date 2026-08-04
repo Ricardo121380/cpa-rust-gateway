@@ -3619,6 +3619,7 @@ fn route_candidate(
         "passthrough" => TransformMode::Passthrough,
         "canonical" => TransformMode::Canonical,
         "lossless_bridge" => TransformMode::LosslessBridge,
+        "canonical_bridge" => TransformMode::CanonicalBridge,
         _ => return Err(invalid_input()),
     };
     if input.credential_scope != "all_active" {
@@ -3925,6 +3926,8 @@ fn safe_route_explain_reason(value: &str) -> bool {
             | "endpoint_unavailable"
             | "missing_credential_pool"
             | "no_eligible_credential"
+            | "protocol_transform_unavailable"
+            | "after_selected_candidate"
     )
 }
 
@@ -3983,6 +3986,7 @@ impl From<RouteCandidateConfiguration> for CandidateResponse {
                 TransformMode::Passthrough => "passthrough",
                 TransformMode::Canonical => "canonical",
                 TransformMode::LosslessBridge => "lossless_bridge",
+                TransformMode::CanonicalBridge => "canonical_bridge",
             },
             enabled: value.enabled,
             priority: value.priority,

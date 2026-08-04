@@ -81,6 +81,9 @@ pub enum SnapshotTransformMode {
     Canonical,
     /// A later route may use a proven lossless compatibility bridge.
     LosslessBridge,
+    /// A native protocol uses Canonical semantics while other registered protocols use the
+    /// reviewed lossless bridge matrix.
+    CanonicalBridge,
 }
 
 /// Catalog reason that made a Candidate hard-eligible at compilation time.

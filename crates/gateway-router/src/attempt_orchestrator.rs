@@ -1039,7 +1039,11 @@ fn candidate_matches_protocol(
 ) -> bool {
     protocol.is_none_or(|protocol| {
         candidate.protocol_format() == Some(protocol)
-            && candidate.transform_mode() == crate::SnapshotTransformMode::Canonical
+            && matches!(
+                candidate.transform_mode(),
+                crate::SnapshotTransformMode::Canonical
+                    | crate::SnapshotTransformMode::CanonicalBridge
+            )
     })
 }
 
