@@ -109,6 +109,39 @@ fn console_accepts_the_native_probe_without_an_unowned_output_extension() -> Tes
 }
 
 #[test]
+fn console_consumes_the_public_responses_output_limit_extension() -> TestResult {
+    let request = decode_request(
+        r#"{"model":"cpar-native-grok","input":"Reply with exactly: ready","max_output_tokens":8}"#,
+    )?
+    .request;
+    let token = GrokConsoleSsoToken::try_from_bytes(b"synthetic-console-sso")?;
+
+    let outbound = GrokConsoleResponsesRequestBuilder::build(
+        &token,
+        "grok-4.20-0309",
+        &request,
+        ResponseMode::NonStreaming,
+    )?;
+    let body: serde_json::Value = serde_json::from_slice(outbound.body())?;
+    assert_eq!(body["max_output_tokens"], 8);
+
+    let oversized = decode_request(
+        r#"{"model":"cpar-native-grok","input":"Reply with exactly: ready","max_output_tokens":1000001}"#,
+    )?
+    .request;
+    assert!(
+        GrokConsoleResponsesRequestBuilder::build(
+            &token,
+            "grok-4.20-0309",
+            &oversized,
+            ResponseMode::NonStreaming,
+        )
+        .is_err()
+    );
+    Ok(())
+}
+
+#[test]
 fn source_observed_probe_model_is_text_only_bounded_and_not_a_catalog_widening() -> TestResult {
     let request =
         decode_request(r#"{"model":"cpar-native-grok","input":"Reply with exactly: ready"}"#)?

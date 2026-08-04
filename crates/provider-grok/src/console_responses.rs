@@ -8,7 +8,7 @@ use std::{collections::VecDeque, error::Error, fmt, sync::Arc};
 
 use gateway_core::{
     CanonicalEvent, CanonicalRequest, CanonicalResponse, ErrorScope, GatewayError,
-    GatewayErrorCode, ProviderId, RequestContext, StreamError,
+    GatewayErrorCode, ProviderId, RawExtensions, RequestContext, StreamError,
 };
 use gateway_provider::{CanonicalEventSource, InferenceAdapter, ProviderAdapter, ProviderFuture};
 use gateway_upstream::{
@@ -303,15 +303,16 @@ impl GrokConsoleResponsesRequestBuilder {
         {
             return Err(GrokConsoleRequestError::UnsupportedModel);
         }
+        let (request, max_output_tokens) = split_console_output_limit(request, spec)?;
         let encoded =
-            encode_responses_body(upstream_model, request, mode, CONSOLE_REASONING_EFFORTS)
+            encode_responses_body(upstream_model, &request, mode, CONSOLE_REASONING_EFFORTS)
                 .map_err(|_| GrokConsoleRequestError::UnsupportedRequest)?;
         let mut root: Value = serde_json::from_slice(&encoded)
             .map_err(|_| GrokConsoleRequestError::InternalEncodingFailure)?;
         let object = root
             .as_object_mut()
             .ok_or(GrokConsoleRequestError::InternalEncodingFailure)?;
-        normalize_console_body(object, spec);
+        normalize_console_body(object, spec, max_output_tokens);
         let body = serde_json::to_vec(&root)
             .map_err(|_| GrokConsoleRequestError::InternalEncodingFailure)?;
         let target =
@@ -327,6 +328,35 @@ impl GrokConsoleResponsesRequestBuilder {
             body,
         })
     }
+}
+
+/// Consumes the one output-limit extension that all three public protocols can project onto the
+/// Responses wire format. Other extensions remain in the cloned request and are rejected by the
+/// strict shared encoder instead of being silently discarded.
+fn split_console_output_limit(
+    request: &CanonicalRequest,
+    spec: ConsoleModelSpec,
+) -> Result<(CanonicalRequest, Option<u64>), GrokConsoleRequestError> {
+    const OUTPUT_LIMIT: &str = "openai.responses.max_output_tokens";
+    let Some(raw) = request.extensions.get(OUTPUT_LIMIT) else {
+        return Ok((request.clone(), None));
+    };
+    let value = serde_json::from_str::<Value>(raw.get())
+        .ok()
+        .and_then(|value| value.as_u64())
+        .filter(|value| *value > 0 && *value <= spec.maximum_output_tokens)
+        .ok_or(GrokConsoleRequestError::UnsupportedRequest)?;
+    let mut extensions = RawExtensions::default();
+    for (name, extension) in request.extensions.iter() {
+        if name != OUTPUT_LIMIT {
+            extensions
+                .try_insert(name.to_owned(), extension.clone())
+                .map_err(|_| GrokConsoleRequestError::InternalEncodingFailure)?;
+        }
+    }
+    let mut projected = request.clone();
+    projected.extensions = extensions;
+    Ok((projected, Some(value)))
 }
 
 fn observed_probe_model(model: &str) -> Option<ConsoleModelSpec> {
@@ -379,10 +409,20 @@ fn console_model(model: &str) -> Option<ConsoleModelSpec> {
     Some(spec)
 }
 
-fn normalize_console_body(root: &mut Map<String, Value>, spec: ConsoleModelSpec) {
+fn normalize_console_body(
+    root: &mut Map<String, Value>,
+    spec: ConsoleModelSpec,
+    max_output_tokens: Option<u64>,
+) {
     root.insert("store".to_owned(), Value::Bool(false));
-    root.entry("max_output_tokens".to_owned())
-        .or_insert_with(|| Value::Number(spec.maximum_output_tokens.into()));
+    root.insert(
+        "max_output_tokens".to_owned(),
+        Value::Number(
+            max_output_tokens
+                .unwrap_or(spec.maximum_output_tokens)
+                .into(),
+        ),
+    );
     if !root.contains_key("reasoning")
         && let Some(effort) = spec.default_reasoning_effort
     {
