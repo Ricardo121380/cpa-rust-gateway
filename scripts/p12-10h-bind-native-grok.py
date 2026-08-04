@@ -54,7 +54,10 @@ UPSTREAM_MODEL = "grok-4.5"
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--management-key-file", required=True)
-    parser.add_argument("--management-base", default=shared.MANAGEMENT_BASE_DEFAULT)
+    # A staging graph must never silently fall back to the production management listener.
+    # Requiring the caller to name the isolated loopback listener makes the deployment boundary
+    # explicit at every invocation.
+    parser.add_argument("--management-base", required=True)
     parser.add_argument("--parent-version-id", required=True)
     parser.add_argument("--ledger", required=True)
     parser.add_argument("--client-key-out", required=True)
