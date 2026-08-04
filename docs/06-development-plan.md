@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.164` |
+| 计划版本 | `v1.165` |
 | 生效日期 | `2026-08-04` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-10G `DONE`；P12-10H 本地合成 100/100，native Build route 已在新加坡 loopback-only staging 使用签名 ARM 制品完成绑定与回滚。直接 CPAR HTTP E2E 的 `/v1/models` 通过，26/100 次（Responses/Chat/Messages 各 9 次后进入第 27 次）成功，随后上游返回 provider-level rate limit；由于当前 grok2api 仅有 1 个可导出的 active Build 账号，无法安全扩展账号池重跑，故保留 `BLOCKED_EXTERNAL_RATE_LIMIT`，不声称 100/100 或生产可用。 |
+| 当前任务 | P12-10G `DONE`；P12-10H 本地合成 100/100，native Build route 已在新加坡 loopback-only staging 使用签名 ARM 制品完成绑定与回滚。直接 CPAR HTTP E2E 的 `/v1/models` 通过，26/100 次（Responses/Chat/Messages 各 9 次后进入第 27 次）成功，随后上游返回 provider-level rate limit。后续受控恢复显示 Build 自动 refresh 仅成功 1 个 active/due 账号，828 个仍为永久 `reauthRequired`；5 个 Console active 账号逐一原生探针 5/5 通过并回滚。故仍保留 `BLOCKED_EXTERNAL_RATE_LIMIT`/Build OAuth 外部阻断，不声称 100/100 或生产可用。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -1789,7 +1789,7 @@ CR-ID: CR-P11-04-001
 | P12-10E | Grok Console runtime 与 Web production binding | [Console/Web runtime report](reports/p12-10e-grok-console-web-runtime.md)：固定 target/header/request、严格 JSON/SSE/Tool/Usage/error fixture、可执行 Console adapter 与三协议矩阵；Web text-only fail closed | DONE |
 | P12-10F | grok2api -> CPAR 无明文落盘迁移 adapter | [memory-stream migration report](reports/p12-10f-grok2api-memory-migration.md)：有界 root-only pipe contract、三 Provider 与两 link 映射、即时 AEAD、value-free receipt、事务回滚和重复导入幂等 | DONE |
 | P12-10G | live subset、全池 parity 与 rollback | [受控 live receipt](reports/evidence/p12-10g-live-subset-receipt-20260804.md)：完整源/导出计数一致；Build/Console 各一原生账号精确 attribution、Health/Quota、Canonical 与三协议 E2E 通过；Web 无 expiry fail closed；隔离回滚和生产不变性通过 | DONE |
-| P12-10H | grok2api 停服回滚演练、CPAR 合成观察与 HTTP E2E | [100-cycle synthetic receipt](reports/evidence/p12-10h-grok-synthetic-100-receipt-20260804.md)、[native route live E2E receipt](reports/evidence/p12-10h-grok-cpar-e2e-live-20260804.md) 与 [post-review](reports/evidence/p12-10h-grok-cpar-e2e-live-review-20260804.md)：loopback staging 绑定/发布/回滚通过；CPAR `/v1/models` 通过，26 次跨三协议 JSON/SSE 成功后首个 provider-level rate limit 停止，5-account 扩容因无足够 active Build 账号而未执行；阻断类别为 `BLOCKED_EXTERNAL_RATE_LIMIT` | BLOCKED |
+| P12-10H | grok2api 停服回滚演练、CPAR 合成观察与 HTTP E2E | [100-cycle synthetic receipt](reports/evidence/p12-10h-grok-synthetic-100-receipt-20260804.md)、[native route live E2E receipt](reports/evidence/p12-10h-grok-cpar-e2e-live-20260804.md)、[account recovery / Console multi receipt](reports/evidence/p12-10h-grok-account-recovery-console-multi-20260804.md) 与 [review](reports/evidence/p12-10h-grok-account-recovery-console-multi-review-20260804.md)：Build 自动 refresh 1/1 成功但 828 个永久 `reauthRequired` 未恢复；5 个 Console active 账号逐一原生探针 5/5 通过，三协议投影与逐账号回滚通过；Build HTTP E2E 仍在第 27 次因 provider rate limit 停止 | BLOCKED |
 
 #### P12-08 兼容性补全切片（`CR-P12-COMPAT-001`）
 
@@ -3614,3 +3614,4 @@ Next task:
 | v1.162 | 2026-08-04 | `CR-P12-10H-003`：新增直接 CPAR curl E2E harness。当前认证 `/v1/models` 返回 3 个模型但无 Grok route，预检以 `grok_route_missing` 停止；100 次推理实际发送 0 次，receipt 为 `BLOCKED_NO_GROK_ROUTE`。未修改 CPAR 图、Caddy、DNS、旧 CPA 或 CC Switch | P12-10H `BLOCKED`；先绑定 native Grok route，再重新执行 100 次 CPAR HTTP E2E |
 | v1.163 | 2026-08-04 | `CR-P12-10H-004`：按冻结 grok2api `v3.0.10` 源码完成 native route parity review；修正 Console canonical envelope 仅提取 `sso_token` 并严格验证 `probe_model`，新增回归。native Build 绑定代码、文档和本地 Full/Review 通过并已推送；生产图仍未写入，待签名 Linux ARM 制品进入隔离 staging 后再做直接 HTTP E2E | P12-10H `BLOCKED`；不声称外部 Grok HTTP 已通过 |
 | v1.164 | 2026-08-04 | `CR-P12-10H-005`：修复 runtime shape gate 对 native Grok `canonical_bridge + reasoning=false` 安全覆盖的遗漏；本地 Full gate、GitHub CI `30905365066`（Fast/Full/Required）与双架构签名 release `30906451455` 通过。Oracle Singapore staging 使用 ARM 制品绑定并发布 native Build route，`/v1/models` 预检通过，26/100 次真实 CPAR 请求成功（Responses/Chat/Messages 各 9 次，含 JSON/SSE），第 27 次为无值 `ProviderRateLimited/provider`；尝试导出 5 个账号时源池 active Build 数不足，未绕过外部限制。停止 staging、回滚图和账号，`quick_check=ok`、FK=0、生产 CPAR active/listeners unchanged、grok2api stopped | P12-10H `BLOCKED_EXTERNAL_RATE_LIMIT`；代码/隔离回滚通过，真实 100/100 与最终 P12-10 退役仍未完成 |
+| v1.165 | 2026-08-04 | P12-10H follow-up：调用 grok2api 现有 token refresh 管理接口一次，value-free receipt 显示仅 1 个 active/due Build 账号刷新成功；828 个账号保持永久 `reauthRequired`，需交互式 OAuth，不再重复自动 refresh。随后从 898 个 active Console 账号流式导出 5 条，每条进入独立 staging DB/batch；5/5 原生 Console probe 通过 Health/Quota、Canonical 和 Chat/Responses/Messages 投影，并逐条回滚，所有 staging `quick_check=ok`、FK=0，grok2api 已停止、生产 CPAR active/listeners unchanged | P12-10H `BLOCKED_EXTERNAL_RATE_LIMIT`；Console 多账号子集 PASS，Build OAuth 与 100-call HTTP gate 仍未闭合 |

@@ -1,6 +1,6 @@
 # P12-10 native Grok account pool
 
-Status: `P12-10G_DONE_P12-10H_SYNTHETIC_DONE_HTTP_E2E_BLOCKED_EXTERNAL_RATE_LIMIT`
+Status: `P12-10G_DONE_P12-10H_SYNTHETIC_DONE_CONSOLE_MULTI_PASS_BUILD_REAUTH_EXTERNAL_HTTP_E2E_BLOCKED`
 
 ## Corrected architecture
 
@@ -75,8 +75,12 @@ the [100-cycle synthetic receipt](evidence/p12-10h-grok-synthetic-100-receipt-20
 direct CPAR HTTP layer is separately tracked in the [live E2E receipt](evidence/p12-10h-grok-cpar-e2e-live-20260804.md)
 and its [post-review](evidence/p12-10h-grok-cpar-e2e-live-review-20260804.md). The native route
 was visible in isolated staging and 26 calls succeeded before the external provider rate limit;
-the 100-call gate remains blocked. All receipts are value-free and make no production availability
-claim.
+the 100-call gate remains blocked. A follow-up refreshed the one eligible Build account but left
+828 permanent `reauthRequired` accounts for interactive OAuth, while five independent active
+Console accounts each passed native probing and rollback. The follow-up is recorded in the
+[account recovery / Console multi receipt](evidence/p12-10h-grok-account-recovery-console-multi-20260804.md)
+and its [review](evidence/p12-10h-grok-account-recovery-console-multi-review-20260804.md). All
+receipts are value-free and make no production availability claim.
 
 ## Migration boundary
 
