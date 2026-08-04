@@ -34,7 +34,7 @@ ManagementError = shared.ManagementError
 Ledger = shared.Ledger
 read_secret = shared.read_secret
 
-VERSION_ID = "p12-10h-native-grok-build"
+VERSION_ID = "p12-10h-native-grok-build-v2"
 UPSTREAM_ID = "p12-10h-native-grok-upstream"
 ENDPOINT_ID = "p12-10h-native-grok-endpoint"
 PUBLIC_MODEL_ID = "p12-10h-native-grok-model"
