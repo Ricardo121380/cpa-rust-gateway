@@ -37,7 +37,10 @@ interrupted_receipt="$work_dir/interrupted-receipt.log"
 runner_output="$work_dir/interrupted-runner.log"
 "$runner" --smoke --status "$interrupted_receipt" >"$runner_output" 2>&1 &
 runner_pid=$!
-readiness_timeout_seconds=180
+# The first invocation in a clean CI workspace may compile the ignored test
+# binary before it can create the receipt. Keep this guard bounded, but do not
+# confuse a cold build with a runner protocol failure.
+readiness_timeout_seconds=420
 readiness_deadline=$((SECONDS + readiness_timeout_seconds))
 while true; do
   if [[ -f "$interrupted_receipt" ]] && rg -q '(^|[[:space:]])state=RUNNING([[:space:]]|$)' "$interrupted_receipt"; then
