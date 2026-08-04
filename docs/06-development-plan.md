@@ -8,7 +8,7 @@
 | 生效日期 | `2026-08-04` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-10G `DONE`，P12-10H 为下一切片且尚未开始。Build 与 Console 各一个受控真实账号已在隔离 CPAR 数据库通过原生直连、精确 account attribution、Health/Quota、完整 Canonical lifecycle 与 Chat/Responses/Messages 投影并主动回滚；完整源池计数与导出计数一致。Web 因无权威绝对 session expiry 在导出前 fail closed。隔离库最终为零账号且完整，生产数据库指纹、CPAR 与 grok2api 服务均未改变。下一步须单独执行 grok2api stop/start 回滚演练与代表性 CPAR-only 72h 观察；不得把本次短探针替代该门槛。CC Switch 仍不读取、不修改。 |
+| 当前任务 | P12-10G `DONE`；P12-10H 已完成经授权的 grok2api 停止与 CPAR 合成 smoke，但真实流量观察仍未完成。当前无 Grok 业务流量，因此新增 value-free harness 覆盖 native account pool/scheduling/workers、Console/Web runtime 与 migration contract；脚本明确不读取凭证、不发送 Grok 上游请求。CPAR 停服后仍 active，health 200、未认证数据面 401、管理面 loopback-only。下一步是获得代表性 CPAR-only 流量后完成 72h/1250-success 观察；合成结果不得替代该门槛。CC Switch 仍不读取、不修改。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -1786,7 +1786,7 @@ CR-ID: CR-P11-04-001
 | P12-10E | Grok Console runtime 与 Web production binding | [Console/Web runtime report](reports/p12-10e-grok-console-web-runtime.md)：固定 target/header/request、严格 JSON/SSE/Tool/Usage/error fixture、可执行 Console adapter 与三协议矩阵；Web text-only fail closed | DONE |
 | P12-10F | grok2api -> CPAR 无明文落盘迁移 adapter | [memory-stream migration report](reports/p12-10f-grok2api-memory-migration.md)：有界 root-only pipe contract、三 Provider 与两 link 映射、即时 AEAD、value-free receipt、事务回滚和重复导入幂等 | DONE |
 | P12-10G | live subset、全池 parity 与 rollback | [受控 live receipt](reports/evidence/p12-10g-live-subset-receipt-20260804.md)：完整源/导出计数一致；Build/Console 各一原生账号精确 attribution、Health/Quota、Canonical 与三协议 E2E 通过；Web 无 expiry fail closed；隔离回滚和生产不变性通过 | DONE |
-| P12-10H | grok2api 停服回滚演练与 CPAR-only 观察 | stop/start RTO、72h 代表性真实流量、G12 review 后永久停服 | PENDING |
+| P12-10H | grok2api 停服回滚演练与 CPAR-only 观察 | [synthetic smoke receipt](reports/evidence/p12-10h-grok-synthetic-receipt-20260804.md)：已授权停止 grok2api、CPAR loopback/auth 边界和五项 native Grok fixture 通过；真实 72h/1250-success 观察仍待业务流量 | IN_PROGRESS |
 
 #### P12-08 兼容性补全切片（`CR-P12-COMPAT-001`）
 
@@ -3606,3 +3606,4 @@ Next task:
 | v1.157 | 2026-08-03 | 完成 P12-10E：新增固定 Console SSO Responses 请求、DNS-pinned 可执行 adapter、安全 HTTP failure owner、严格 JSON/SSE terminal 归一化；复用一个 Canonical execution 投影 Chat/Responses/Messages。Web 固定生产 target/browser session/Statsig/request/live decoder，只准入 text 并拒绝 Tool/Reasoning/cache/扩展 | P12-10E `DONE`；7 项 target/header/request/JSON/SSE/Tool/Usage/error/三协议回归、provider 全回归与 strict Clippy 通过；无 live 账号、外部请求、生产/grok2api/CC Switch 变化，P12-10F 下一步 |
 | v1.158 | 2026-08-04 | 完成 P12-10F：冻结 Build/Web/Console 与 Web->Build/Web->Console 的有界 NDJSON pipe contract；账号、即时 AEAD、link 和 batch audit 在同一 SQLite transaction，任意 rejected record 零写入，错误与 receipt 仅投影固定类别/计数；精确 rerun 为 unchanged，冲突/oversize/手工 rollback 均 fail closed | P12-10F `DONE`；5 项三 Provider/link/无明文/幂等/拒绝/冲突/rollback 回归、provider 全回归与 strict Clippy 通过；未读取 live export 或改变服务器，P12-10G 下一步 |
 | v1.159 | 2026-08-04 | 完成 P12-10G：双架构签名 artifact workflow `30851396380` 通过；完整 Build/Console 源池、导出 header 与 document count 一致，Web 因无权威 expiry 在导出前拒绝；Build/Console 各一账号在隔离库通过原生直连、精确 attribution、Health/Quota、Canonical 与三协议投影。Review 修正 grok2api Console audit display namespace 不能直接作为 upstream model 的映射，并继续拒绝跨 Provider namespace | P12-10G `DONE`；两批主动回滚、隔离库零账号且 `quick_check=ok`，生产数据库指纹与 CPAR/grok2api 状态不变；P12-10H 下一步且未启动 |
+| v1.160 | 2026-08-04 | 用户授权在当前无 Grok 业务流量时停止 grok2api；新增 `run-p12-10h-grok-synthetic.sh`，固定 fixture 通过 native account pool/scheduling/workers、Console/Web runtime、migration 五项目标，且 loopback health=200、未认证数据面=401、管理面仍 loopback-only。合成脚本不读取凭证、不发 Grok 上游请求，不能替代 72h/1250-success 真实观察 | P12-10H `IN_PROGRESS`；grok2api 已停止，CPAR active；真实流量观察和旧 CPA 最终退役仍未完成 |

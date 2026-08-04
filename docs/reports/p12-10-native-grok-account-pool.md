@@ -1,6 +1,6 @@
 # P12-10 native Grok account pool
 
-Status: `P12-10G_DONE_P12-10H_NEXT`
+Status: `P12-10G_DONE_P12-10H_SYNTHETIC_PASS_REAL_TRAFFIC_PENDING`
 
 ## Corrected architecture
 
@@ -62,7 +62,7 @@ single-owner refresh transactions and explicit rollback.
 | P12-10E | Native Grok Console runtime and Web production binding | strict target/header/request/JSON/SSE/Tool/Usage/error fixtures; Chat/Responses/Messages bridge matrix |
 | P12-10F | Memory-stream migration adapter from grok2api | no plaintext temp file; source/accepted/rejected/link counts, transactional rollback and idempotent rerun |
 | P12-10G | Controlled live subset and full-pool parity | direct CPAR native attempts, account attribution, quota/cooldown correctness, three protocols and rollback |
-| P12-10H | Decommission rehearsal and representative observation | grok2api stop/start rollback drill, then CPAR-only 72h/real-traffic gate before permanent retirement |
+| P12-10H | Decommission rehearsal and representative observation | grok2api stop/start rollback drill, CPAR synthetic smoke, then CPAR-only 72h/real-traffic gate before permanent retirement |
 
 P12-10A is complete in the [native Grok gap matrix](p12-10a-native-grok-gap-matrix.md). P12-10B is
 complete in the [native account-pool report](p12-10b-native-grok-account-pool.md). P12-10C is
@@ -70,8 +70,9 @@ complete in the [native scheduling report](p12-10c-native-grok-scheduling.md). P
 in the [native worker report](p12-10d-native-grok-workers.md). P12-10E is complete in the
 [Console/Web runtime report](p12-10e-grok-console-web-runtime.md). P12-10F is complete in the
 [memory-stream migration report](p12-10f-grok2api-memory-migration.md). P12-10G is complete in the
-[controlled live receipt](evidence/p12-10g-live-subset-receipt-20260804.md). P12-10H is the next
-slice and has not started.
+[controlled live receipt](evidence/p12-10g-live-subset-receipt-20260804.md). P12-10H has a
+[synthetic smoke receipt](evidence/p12-10h-grok-synthetic-receipt-20260804.md), but its real-traffic
+observation gate remains open.
 
 ## Migration boundary
 
