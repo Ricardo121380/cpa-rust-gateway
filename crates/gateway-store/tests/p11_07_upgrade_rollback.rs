@@ -70,7 +70,10 @@ fn prior_schema_upgrades_in_place_and_backup_recovers_after_a_lossy_downgrade() 
     migrate(&mut source)?;
     rollback_to_version(&mut source, previous_schema)?;
     assert_eq!(schema_version(&source)?, Some(previous_schema));
-    assert!(!table_exists(&source, "grok_account_quota_windows")?);
+    assert_eq!(
+        table_exists(&source, "grok_account_quota_windows")?,
+        previous_schema >= 10
+    );
 
     source.execute(
         "INSERT INTO config_versions (id, parent_id, status, created_at_ms, description) \
@@ -110,7 +113,10 @@ fn prior_schema_upgrades_in_place_and_backup_recovers_after_a_lossy_downgrade() 
         configuration_description(&source)?,
         "P11-07 legacy configuration"
     );
-    assert!(!table_exists(&source, "grok_account_quota_windows")?);
+    assert_eq!(
+        table_exists(&source, "grok_account_quota_windows")?,
+        previous_schema >= 10
+    );
     assert_integrity(&source)?;
 
     migrate(&mut source)?;

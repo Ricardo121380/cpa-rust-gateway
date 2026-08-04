@@ -28,9 +28,10 @@ const CONFIG_VERSION_REVISION_SCHEMA_VERSION: i64 = 8;
 const MANAGEMENT_RESOURCE_AUDIT_SCHEMA_VERSION: i64 = 9;
 const NATIVE_GROK_ACCOUNT_POOL_SCHEMA_VERSION: i64 = 10;
 const NATIVE_GROK_WORKER_STATE_SCHEMA_VERSION: i64 = 11;
+const CANONICAL_BRIDGE_TRANSFORM_MODE_SCHEMA_VERSION: i64 = 12;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = NATIVE_GROK_WORKER_STATE_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = CANONICAL_BRIDGE_TRANSFORM_MODE_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -94,6 +95,11 @@ const MIGRATIONS: &[Migration] = &[
         version: NATIVE_GROK_WORKER_STATE_SCHEMA_VERSION,
         up: include_str!("../migrations/0011_native_grok_worker_state.up.sql"),
         down: include_str!("../migrations/0011_native_grok_worker_state.down.sql"),
+    },
+    Migration {
+        version: CANONICAL_BRIDGE_TRANSFORM_MODE_SCHEMA_VERSION,
+        up: include_str!("../migrations/0012_canonical_bridge_transform_mode.up.sql"),
+        down: include_str!("../migrations/0012_canonical_bridge_transform_mode.down.sql"),
     },
 ];
 
@@ -462,7 +468,7 @@ mod tests {
     use super::{
         CREATE_SCHEMA_MIGRATIONS, CURRENT_SCHEMA_VERSION, MIGRATIONS,
         VERSIONED_CONTROL_PLANE_SCHEMA_VERSION, migrate, open_in_memory, rollback_all,
-        schema_version,
+        rollback_to_version, schema_version,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -512,6 +518,31 @@ mod tests {
                 "upstreams",
             ]
         );
+        Ok(())
+    }
+
+    #[test]
+    fn canonical_bridge_transform_mode_is_persistable() -> TestResult {
+        let mut connection = open_in_memory()?;
+        migrate(&mut connection)?;
+        rollback_to_version(&mut connection, CURRENT_SCHEMA_VERSION - 1)?;
+        insert_valid_tree(&connection)?;
+        insert_valid_routing_access_tree(&connection)?;
+
+        migrate(&mut connection)?;
+
+        connection.execute(
+            "UPDATE route_candidates SET transform_mode = 'canonical_bridge' \
+             WHERE config_version_id = 'v1' AND id = 'candidate-a'",
+            [],
+        )?;
+        let mode: String = connection.query_row(
+            "SELECT transform_mode FROM route_candidates \
+             WHERE config_version_id = 'v1' AND id = 'candidate-a'",
+            [],
+            |row| row.get(0),
+        )?;
+        assert_eq!(mode, "canonical_bridge");
         Ok(())
     }
 
