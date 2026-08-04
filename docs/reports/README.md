@@ -153,6 +153,7 @@
 - [P12-10G controlled live migration receipt](evidence/p12-10g-live-subset-receipt-20260804.md) — exact signed artifact, Build/Console native CPAR parity, Web fail-closed evidence, deliberate rollback and production invariance
 - [P12-10H Grok synthetic smoke receipt](evidence/p12-10h-grok-synthetic-receipt-20260804.md) — authorized grok2api stop, CPAR loopback/auth boundary and value-free native Grok fixture harness; real-traffic gate remains open
 - [P12-10H Grok synthetic 100-cycle receipt](evidence/p12-10h-grok-synthetic-100-receipt-20260804.md) — CR-accepted 100-cycle no-traffic synthetic gate; native support targets and loopback boundary passed, with no live upstream claim
+- [P12-10H CPAR curl E2E preflight](evidence/p12-10h-grok-cpar-e2e-preflight-20260804.md) — direct CPAR `/v1/models` preflight stopped safely because no Grok route is currently visible; zero inference calls were sent
 - [P12-02 deployment envelope execution plan](p12-02-execution-plan.md) — approved minimal `serve`, isolated loopback listeners, `LoadCredential`, state/log directories, systemd hardening and Linux verification plan
 - [P12-02 deployment envelope acceptance](p12-02-deployment-envelope.md) — local Full gate, independent review, and repaired real-Linux systemd 255 syntax verification accepted; no Unit was installed or started
 - [P12-03 server backup and rollback inventory plan](p12-03-execution-plan.md) — constrained server-local snapshot plan; no configuration, database, or credential material may enter the repository

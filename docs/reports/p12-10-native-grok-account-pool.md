@@ -1,6 +1,6 @@
 # P12-10 native Grok account pool
 
-Status: `P12-10G_DONE_P12-10H_SYNTHETIC_DONE_NO_LIVE_TRAFFIC`
+Status: `P12-10G_DONE_P12-10H_SYNTHETIC_DONE_HTTP_E2E_BLOCKED_NO_GROK_ROUTE`
 
 ## Corrected architecture
 
@@ -62,7 +62,7 @@ single-owner refresh transactions and explicit rollback.
 | P12-10E | Native Grok Console runtime and Web production binding | strict target/header/request/JSON/SSE/Tool/Usage/error fixtures; Chat/Responses/Messages bridge matrix |
 | P12-10F | Memory-stream migration adapter from grok2api | no plaintext temp file; source/accepted/rejected/link counts, transactional rollback and idempotent rerun |
 | P12-10G | Controlled live subset and full-pool parity | direct CPAR native attempts, account attribution, quota/cooldown correctness, three protocols and rollback |
-| P12-10H | Decommission rehearsal and synthetic observation | grok2api stop/rollback drill, CPAR-only 100-cycle synthetic Console gate, native support regressions, and loopback boundary; the 72h/1250-success live gate is waived for this no-traffic slice by `CR-P12-10H-002` |
+| P12-10H | Decommission rehearsal, synthetic observation and CPAR HTTP E2E | grok2api stop/rollback drill, CPAR-only 100-cycle synthetic Console gate, then 100 direct CPAR curl calls across three protocols/JSON-SSE once a native Grok route is visible; the current E2E preflight is blocked by `grok_route_missing` |
 
 P12-10A is complete in the [native Grok gap matrix](p12-10a-native-grok-gap-matrix.md). P12-10B is
 complete in the [native account-pool report](p12-10b-native-grok-account-pool.md). P12-10C is
@@ -72,8 +72,9 @@ in the [native worker report](p12-10d-native-grok-workers.md). P12-10E is comple
 [memory-stream migration report](p12-10f-grok2api-memory-migration.md). P12-10G is complete in the
 [controlled live receipt](evidence/p12-10g-live-subset-receipt-20260804.md). P12-10H is accepted by
 the [100-cycle synthetic receipt](evidence/p12-10h-grok-synthetic-100-receipt-20260804.md). The
-receipt is deliberately value-free and makes no live Grok upstream availability claim; any later
-live validation requires a separate execution boundary.
+direct CPAR HTTP layer is separately tracked in the [curl E2E preflight](evidence/p12-10h-grok-cpar-e2e-preflight-20260804.md)
+and is blocked until a native Grok route is visible. Both receipts are value-free and make no
+live Grok upstream availability claim.
 
 ## Migration boundary
 
