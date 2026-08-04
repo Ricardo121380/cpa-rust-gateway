@@ -56,6 +56,21 @@ impl<'store> CredentialPoolCompiler<'store> {
         &self,
         configuration: &ControlPlaneConfiguration,
     ) -> Result<EndpointCredentialPools, CredentialPoolCompileError> {
+        self.compile_excluding_endpoints(configuration, &BTreeSet::new())
+    }
+
+    /// Compiles ordinary control-plane Credentials while leaving explicitly native Endpoint
+    /// identities to their provider-owned account pool compiler.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same bounded compile failures as [`Self::compile`], including malformed
+    /// references, authenticated-secret failures, and invalid Endpoint pool metadata.
+    pub fn compile_excluding_endpoints(
+        &self,
+        configuration: &ControlPlaneConfiguration,
+        excluded_endpoints: &BTreeSet<EndpointId>,
+    ) -> Result<EndpointCredentialPools, CredentialPoolCompileError> {
         let upstreams = index_upstreams(&configuration.upstreams)?;
         let endpoints = index_endpoints(&configuration.endpoints, &upstreams)?;
         let credentials = index_credentials(&configuration.credentials, &upstreams)?;
@@ -81,6 +96,9 @@ impl<'store> CredentialPoolCompiler<'store> {
                 return Err(CredentialPoolCompileError::DuplicateBinding);
             }
             validate_binding_ownership(binding, endpoint, credential)?;
+            if excluded_endpoints.contains(&binding.endpoint_id) {
+                continue;
+            }
             if !endpoint_upstream.enabled
                 || !credential_upstream.enabled
                 || !endpoint.enabled

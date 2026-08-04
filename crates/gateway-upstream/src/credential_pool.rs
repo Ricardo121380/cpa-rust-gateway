@@ -347,7 +347,7 @@ impl fmt::Debug for EndpointCredentialPool {
 }
 
 /// Immutable collection of independently scheduled Endpoint Credential pools.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct EndpointCredentialPools {
     pools: BTreeMap<EndpointId, Arc<EndpointCredentialPool>>,
 }
@@ -370,6 +370,25 @@ impl EndpointCredentialPools {
             }
         }
         Ok(Self { pools: indexed })
+    }
+
+    /// Merges two independently compiled pool sets without replacing an Endpoint identity.
+    ///
+    /// Native provider account pools and ordinary control-plane Credential pools are compiled by
+    /// different stores, but the request scheduler must see one immutable Endpoint index. A
+    /// duplicate Endpoint is rejected rather than silently choosing one source.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CredentialPoolBuildError::DuplicateEndpointPool`] when both sets contain the
+    /// same Endpoint identity.
+    pub fn merge(mut self, other: Self) -> Result<Self, CredentialPoolBuildError> {
+        for (endpoint_id, pool) in other.pools {
+            if self.pools.insert(endpoint_id, pool).is_some() {
+                return Err(CredentialPoolBuildError::DuplicateEndpointPool);
+            }
+        }
+        Ok(self)
     }
 
     /// Returns one Endpoint-local pool without constructing or querying runtime state.

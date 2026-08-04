@@ -106,9 +106,10 @@ use provider_anthropic_compatible::{
 use provider_grok::{
     GROK_BUILD_RESPONSES_BASE_URL, GROK_BUILD_RESPONSES_PATH, GROK_BUILD_RESPONSES_URL,
     GROK_OFFICIAL_API_BASE_URL, GROK_OFFICIAL_RESPONSES_PATH, GROK_OFFICIAL_RESPONSES_URL,
-    GrokBuildCredential, GrokBuildExecutionMode, GrokBuildInferenceAdapter,
-    GrokBuildUpstreamTransport, GrokOfficialApiKey, GrokOfficialExecutionMode,
-    GrokOfficialInferenceAdapter, GrokOfficialUpstreamTransport,
+    GrokAccountEndpointBinding, GrokAccountPoolStore, GrokAccountProvider, GrokBuildCredential,
+    GrokBuildExecutionMode, GrokBuildInferenceAdapter, GrokBuildUpstreamTransport,
+    GrokOfficialApiKey, GrokOfficialExecutionMode, GrokOfficialInferenceAdapter,
+    GrokOfficialUpstreamTransport,
 };
 use provider_kiro::{
     CanonicalEventSource, InferenceAdapter,
@@ -380,6 +381,7 @@ pub(crate) fn build_data_plane_composition(
         .map_err(|_| RuntimeCompositionError::Unavailable)?
     {
         Some(configuration) => Arc::new(P12RoutedResponsesExecutor::try_new(
+            database,
             &configuration,
             secret_store,
             Arc::clone(&registry),
@@ -698,7 +700,13 @@ struct P12RoutedResponsesExecutor {
 }
 
 impl P12RoutedResponsesExecutor {
+    // The composition boundary intentionally receives the already-validated runtime stores and
+    // registries explicitly. Native Grok account compilation adds the database handle alongside
+    // the existing immutable snapshot dependencies; bundling them would hide ownership at the
+    // control/data-plane boundary.
+    #[allow(clippy::too_many_arguments)]
     fn try_new(
+        database: &Path,
         configuration: &ControlPlaneConfiguration,
         secret_store: &SecretStore,
         registry: Arc<RouteSnapshotRegistry>,
@@ -714,9 +722,49 @@ impl P12RoutedResponsesExecutor {
         }
         let policies = EgressPolicyCompiler::compile(configuration)
             .map_err(|_| RuntimeCompositionError::Unavailable)?;
+        let native_endpoint_ids = configuration
+            .endpoints
+            .iter()
+            .filter(|endpoint| is_native_grok_build_endpoint(endpoint))
+            .map(|endpoint| endpoint.id.clone())
+            .collect::<BTreeSet<_>>();
         let pools = CredentialPoolCompiler::new(secret_store)
-            .compile(configuration)
+            .compile_excluding_endpoints(configuration, &native_endpoint_ids)
             .map_err(|_| RuntimeCompositionError::Unavailable)?;
+        let pools = if native_endpoint_ids.is_empty() {
+            pools
+        } else {
+            let bindings = native_endpoint_ids
+                .iter()
+                .cloned()
+                .map(|endpoint_id| {
+                    GrokAccountEndpointBinding::new(GrokAccountProvider::Build, endpoint_id)
+                })
+                .collect::<Vec<_>>();
+            let native_store = GrokAccountPoolStore::try_open(database, secret_store.clone())
+                .map_err(|_| RuntimeCompositionError::Unavailable)?;
+            let native_compilation = native_store
+                .compile_native_runtime(&bindings, system_now_ms_runtime()?)
+                .map_err(|_| RuntimeCompositionError::Unavailable)?;
+            for endpoint_id in &native_endpoint_ids {
+                if native_compilation
+                    .credential_pools()
+                    .pool(endpoint_id)
+                    .is_none()
+                {
+                    return Err(RuntimeCompositionError::Unavailable);
+                }
+            }
+            native_compilation
+                .seed_runtime_health(&runtime_health)
+                .map_err(|_| RuntimeCompositionError::Unavailable)?;
+            native_compilation
+                .seed_runtime_quota(&runtime_quota)
+                .map_err(|_| RuntimeCompositionError::Unavailable)?;
+            pools
+                .merge((*native_compilation.credential_pools()).clone())
+                .map_err(|_| RuntimeCompositionError::Unavailable)?
+        };
         let adapters = p12_api_format_adapter_registry()?;
         let endpoints = endpoint_runtimes(configuration, &snapshot, &policies, &adapters)?;
         let scheduler = Arc::new(RouteCredentialScheduler::new(
@@ -911,6 +959,10 @@ fn build_grok_build_responses_adapter(
     Ok(EndpointAdapter::GrokBuildResponses)
 }
 
+fn is_native_grok_build_endpoint(endpoint: &EndpointConfiguration) -> bool {
+    endpoint.adapter_id == "grok.build.responses"
+}
+
 fn build_grok_official_responses_adapter(
     endpoint: &EndpointConfiguration,
 ) -> Result<EndpointAdapter, RuntimeCompositionError> {
@@ -1082,12 +1134,16 @@ fn endpoint_runtimes(
 fn validate_p12_configuration_shape(
     configuration: &ControlPlaneConfiguration,
 ) -> Result<(), RuntimeCompositionError> {
+    let has_native_grok_endpoint = configuration
+        .endpoints
+        .iter()
+        .any(is_native_grok_build_endpoint);
     if configuration.version.status != ConfigVersionStatus::Active
         || configuration.egress_policies.is_empty()
         || configuration.upstreams.is_empty()
         || configuration.endpoints.is_empty()
-        || configuration.credentials.is_empty()
-        || configuration.endpoint_credential_bindings.is_empty()
+        || (!has_native_grok_endpoint && configuration.credentials.is_empty())
+        || (!has_native_grok_endpoint && configuration.endpoint_credential_bindings.is_empty())
         || configuration.public_models.is_empty()
         || configuration.model_routes.is_empty()
         || configuration.route_candidates.is_empty()
@@ -2089,6 +2145,13 @@ fn system_now_ms() -> Result<i64, AttemptFailure> {
         .duration_since(UNIX_EPOCH)
         .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
     i64::try_from(elapsed.as_millis()).map_err(|_| AttemptFailure::NonRetryable(internal_error()))
+}
+
+fn system_now_ms_runtime() -> Result<i64, RuntimeCompositionError> {
+    let elapsed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| RuntimeCompositionError::Unavailable)?;
+    i64::try_from(elapsed.as_millis()).map_err(|_| RuntimeCompositionError::Unavailable)
 }
 
 async fn classify_openai_response_failure(

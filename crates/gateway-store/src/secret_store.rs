@@ -120,6 +120,19 @@ pub struct MasterKeyRing {
     keys: BTreeMap<KeyVersion, MasterKey>,
 }
 
+impl Clone for MasterKeyRing {
+    fn clone(&self) -> Self {
+        Self {
+            active_key_version: self.active_key_version,
+            keys: self
+                .keys
+                .iter()
+                .map(|(version, key)| (*version, key.clone()))
+                .collect(),
+        }
+    }
+}
+
 impl MasterKeyRing {
     /// Creates a Key Ring from explicitly supplied external Master Key material.
     ///
@@ -317,6 +330,14 @@ impl fmt::Debug for EncryptedSecret {
 /// AEAD Secret operations backed by an external versioned Master Key Ring.
 pub struct SecretStore {
     key_ring: MasterKeyRing,
+}
+
+impl Clone for SecretStore {
+    fn clone(&self) -> Self {
+        Self {
+            key_ring: self.key_ring.clone(),
+        }
+    }
 }
 
 impl SecretStore {
