@@ -182,7 +182,7 @@ impl RouteCompiler {
             candidate,
             override_declaration.allow_unlisted_model,
         )?;
-        let active_binding_count = active_binding_count(endpoint, context);
+        let active_binding_count = active_binding_count(endpoint, upstream, context);
         if active_binding_count == 0 {
             return Err(route_error(
                 RouteCompileErrorCode::MissingActiveCredentialBinding,
@@ -831,8 +831,18 @@ fn catalog_admission(
 
 fn active_binding_count(
     endpoint: &EndpointConfiguration,
+    upstream: &UpstreamConfiguration,
     context: &CandidateCompilationContext<'_, '_>,
 ) -> usize {
+    // Native Grok endpoints deliberately source their credentials from the provider-owned
+    // account pool.  The runtime composes that pool after the control-plane compiler has
+    // excluded this Endpoint from ordinary encrypted Credential bindings, so a native route must
+    // not be forced to carry a duplicate placeholder Credential merely to satisfy this generic
+    // count.  Keep the exemption narrow to the reviewed adapter/upstream pair; every other
+    // Endpoint still requires an active same-Upstream binding.
+    if upstream.kind == "grok-build-native" && endpoint.adapter_id == "grok.build.responses" {
+        return 1;
+    }
     context
         .bindings
         .by_endpoint
@@ -1420,6 +1430,24 @@ mod tests {
         let debug = format!("{compiled:?}");
         assert!(!debug.contains("synthetic-credential"));
         assert!(!debug.contains("ciphertext"));
+        Ok(())
+    }
+
+    #[test]
+    fn native_grok_endpoint_uses_provider_owned_account_pool_without_placeholder_binding()
+    -> TestResult {
+        let mut fixture = fixture()?;
+        fixture.configuration.upstreams[0].kind = "grok-build-native".to_owned();
+        fixture.configuration.endpoints[0].adapter_id = "grok.build.responses".to_owned();
+        fixture.configuration.credentials.clear();
+        fixture.configuration.endpoint_credential_bindings.clear();
+
+        let compiled = fixture.compiler().compile(&fixture.configuration)?;
+        let route = compiled
+            .route(&RouteId::try_new("route-a")?)
+            .ok_or("native Grok route is missing")?;
+        assert_eq!(route.candidates().len(), 1);
+        assert_eq!(route.candidates()[0].active_binding_count(), 1);
         Ok(())
     }
 

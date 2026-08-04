@@ -1240,7 +1240,15 @@ impl ManagementMutationService {
                             && credential.status == CredentialStatus::Active
                     })
                 });
-            if !has_active_binding {
+            let native_grok_account_pool = configuration
+                .upstreams
+                .iter()
+                .find(|upstream| upstream.id == endpoint.upstream_id)
+                .is_some_and(|upstream| {
+                    upstream.kind == "grok-build-native"
+                        && endpoint.adapter_id == "grok.build.responses"
+                });
+            if !has_active_binding && !native_grok_account_pool {
                 error_codes.push("route_candidate_missing_active_credential");
             }
         }
