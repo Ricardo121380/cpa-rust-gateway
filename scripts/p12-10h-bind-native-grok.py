@@ -132,7 +132,9 @@ def enter(args: argparse.Namespace) -> int:
         "id": CANDIDATE_ID,
         "endpoint_id": ENDPOINT_ID,
         "upstream_model": UPSTREAM_MODEL,
-        "credential_scope": "endpoint_bindings",
+        # The management API accepts its stable public spelling here and maps it to
+        # the runtime's endpoint-binding scope internally.
+        "credential_scope": "all_active",
         "transform_mode": "canonical",
         "enabled": True,
         "priority": 0,
