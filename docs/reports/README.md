@@ -158,6 +158,8 @@
 - [P12-10H native Grok CPAR live E2E review](evidence/p12-10h-grok-cpar-e2e-live-review-20260804.md) — implementation, artifact, protocol coverage and rollback review; 100-call gate remains externally blocked
 - [P12-10H Grok account recovery / Console multi receipt](evidence/p12-10h-grok-account-recovery-console-multi-20260804.md) — one eligible Build refresh succeeded; five independent active Console accounts passed native three-protocol probes and rollback; 828 Build OAuth repairs remain external
 - [P12-10H Grok account recovery / Console multi review](evidence/p12-10h-grok-account-recovery-console-multi-review-20260804.md) — value-free review of refresh outcome, five-account Console subset, staging cleanup and production invariants
+- [P12-10H Grok Console public CPAR curl receipt](evidence/p12-10h-grok-console-cpar-curl-20260804.md) — real CPAR client-key preflight; no Grok route was visible, so zero inference calls were sent
+- [P12-10H Grok Console public CPAR curl review](evidence/p12-10h-grok-console-cpar-curl-review-20260804.md) — review separating native-probe evidence from public HTTP acceptance
 - [P12-02 deployment envelope execution plan](p12-02-execution-plan.md) — approved minimal `serve`, isolated loopback listeners, `LoadCredential`, state/log directories, systemd hardening and Linux verification plan
 - [P12-02 deployment envelope acceptance](p12-02-deployment-envelope.md) — local Full gate, independent review, and repaired real-Linux systemd 255 syntax verification accepted; no Unit was installed or started
 - [P12-03 server backup and rollback inventory plan](p12-03-execution-plan.md) — constrained server-local snapshot plan; no configuration, database, or credential material may enter the repository
