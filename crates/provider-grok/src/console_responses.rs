@@ -17,6 +17,7 @@ use gateway_upstream::{
     UpstreamTransportProfile,
 };
 use protocol_openai_responses::ResponseMode;
+use serde::Deserialize;
 use serde_json::{Map, Value};
 use zeroize::Zeroizing;
 
@@ -46,6 +47,18 @@ const CONSOLE_REASONING_EFFORTS: &[&str] = &["low", "medium", "high", "xhigh"];
 #[derive(Clone, Eq, PartialEq)]
 pub struct GrokConsoleSsoToken(Zeroizing<String>);
 
+/// The bounded canonical envelope emitted by the grok2api memory exporter.
+///
+/// grok2api's native Console importer extracts `sso_token` from a JSON account document. CPAR's
+/// migration stream additionally carries the source-observed model so a staging probe can retain
+/// the same model identity without putting it into the cookie value.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Grok2ApiConsoleCredentialEnvelope {
+    sso_token: String,
+    probe_model: String,
+}
+
 impl GrokConsoleSsoToken {
     /// Imports one canonical token value from a native account credential.
     ///
@@ -55,6 +68,16 @@ impl GrokConsoleSsoToken {
     pub fn try_from_bytes(value: &[u8]) -> Result<Self, GrokConsoleRequestError> {
         let value =
             std::str::from_utf8(value).map_err(|_| GrokConsoleRequestError::InvalidToken)?;
+        let value = if value.trim_start().starts_with('{') {
+            let envelope = serde_json::from_str::<Grok2ApiConsoleCredentialEnvelope>(value.trim())
+                .map_err(|_| GrokConsoleRequestError::InvalidToken)?;
+            if observed_probe_model(&envelope.probe_model).is_none() {
+                return Err(GrokConsoleRequestError::InvalidToken);
+            }
+            envelope.sso_token
+        } else {
+            value.to_owned()
+        };
         if value.is_empty()
             || value.len() > MAX_CONSOLE_SSO_TOKEN_BYTES
             || value.trim() != value
@@ -64,7 +87,7 @@ impl GrokConsoleSsoToken {
         {
             return Err(GrokConsoleRequestError::InvalidToken);
         }
-        Ok(Self(Zeroizing::new(value.to_owned())))
+        Ok(Self(Zeroizing::new(value)))
     }
 
     fn cookie_header(&self) -> Zeroizing<String> {

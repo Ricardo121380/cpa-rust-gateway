@@ -244,6 +244,32 @@ fn console_errors_and_retry_after_are_exact_and_bounded() -> TestResult {
     Ok(())
 }
 
+#[test]
+fn console_accepts_the_grok2api_canonical_credential_envelope() -> TestResult {
+    let token = GrokConsoleSsoToken::try_from_bytes(
+        br#"{"sso_token":"synthetic-console-sso","probe_model":"grok-4.3"}"#,
+    )?;
+    let request = tool_request()?;
+    let outbound = GrokConsoleResponsesRequestBuilder::build(
+        &token,
+        "grok-4.3",
+        &request,
+        ResponseMode::NonStreaming,
+    )?;
+    let cookie = outbound
+        .header("cookie")
+        .ok_or("Console envelope did not produce an SSO cookie")?;
+    assert!(cookie.contains("sso=synthetic-console-sso"));
+    assert!(!cookie.contains("probe_model"));
+    assert!(
+        GrokConsoleSsoToken::try_from_bytes(
+            br#"{"sso_token":"synthetic-console-sso","probe_model":"unknown","extra":true}"#,
+        )
+        .is_err()
+    );
+    Ok(())
+}
+
 #[tokio::test]
 async fn console_inference_adapter_executes_json_sse_and_safe_http_failures() -> TestResult {
     let expected =

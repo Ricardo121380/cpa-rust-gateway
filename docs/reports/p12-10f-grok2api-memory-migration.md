@@ -28,7 +28,10 @@ Link records may only express Web-to-Build `web_build` or Web-to-Console `web_co
 - Build credential payloads must already be one supported durable absolute-expiry OAuth document;
 - Web payloads must be a strict CPAR SSO session document with an evidence-backed absolute expiry
   and scoped secure Cookies;
-- Console payloads are one bounded SSO token;
+- Console payloads are the bounded canonical envelope emitted by the source helper: `sso_token`
+  plus the source-observed `probe_model`; CPAR validates the observed model and extracts only the
+  SSO token for the cookie, while the controlled route/request supplies its separately approved
+  upstream model;
 - unknown fields/providers/statuses, duplicate source references, unresolved/invalid links,
   unsupported credential shapes and any bounds violation fail closed;
 - any rejected record prevents the database transaction; receipts contain counts only.

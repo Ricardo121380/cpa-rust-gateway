@@ -213,6 +213,11 @@ fn oversized_record_stops_before_import() -> TestResult {
 }
 
 fn valid_stream(build_access: &str, web_cookie: &str, console_sso: &str) -> Vec<u8> {
+    let console_credential = json!({
+        "sso_token": console_sso,
+        "probe_model": "grok-4.3",
+    })
+    .to_string();
     encode_records(&[
         account_record(
             "build-1",
@@ -230,7 +235,7 @@ fn valid_stream(build_access: &str, web_cookie: &str, console_sso: &str) -> Vec<
             "console-1",
             "grok_console",
             "console-identity-a",
-            console_sso,
+            &console_credential,
         ),
         json!({
             "kind":"link", "source_ref":"web-1", "target_ref":"build-1",
