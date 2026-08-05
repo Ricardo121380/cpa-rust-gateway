@@ -167,6 +167,7 @@
 - [P12-10I-02 Grok OAuth/SSO and CPAR HTTP receipt](evidence/p12-10i-02-grok-oauth-cpar-receipt-20260805.md) — two serial Build OAuth failures, two Console SSO imports, real CPAR models/preflight and first egress-blocked inference, with staging rollback
 - [P12-10I-02 Grok OAuth/SSO and CPAR HTTP review](evidence/p12-10i-02-grok-oauth-cpar-review-20260805.md) — value-free review and `BLOCKED_WITH_EVIDENCE` decision
 - [P12-10I-08 Autoreg repair and CPAR import](evidence/p12-10i-08-autoreg-cpar-import-20260805.md) — disk/config repair, one bounded registration, encrypted native Build import, service/schema recovery, and no-route boundary
+- [P12-10I-09 Autoreg account provider matrix](evidence/p12-10i-09-autoreg-account-provider-matrix-20260805.md) — imported Build account native probe, Console/Web fail-closed shape checks, and active no-route boundary
 - [P12-02 deployment envelope execution plan](p12-02-execution-plan.md) — approved minimal `serve`, isolated loopback listeners, `LoadCredential`, state/log directories, systemd hardening and Linux verification plan
 - [P12-02 deployment envelope acceptance](p12-02-deployment-envelope.md) — local Full gate, independent review, and repaired real-Linux systemd 255 syntax verification accepted; no Unit was installed or started
 - [P12-03 server backup and rollback inventory plan](p12-03-execution-plan.md) — constrained server-local snapshot plan; no configuration, database, or credential material may enter the repository
