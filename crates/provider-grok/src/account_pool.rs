@@ -651,16 +651,26 @@ impl GrokAccountPoolStore {
         let mut unchanged = 0_usize;
         let mut account_ids = Vec::with_capacity(entries.len());
         for entry in entries {
-            match self.import_one(&transaction, batch_id, entry, observed_at_ms)? {
+            let account_id = match self.import_one(&transaction, batch_id, entry, observed_at_ms)? {
                 ImportOneOutcome::Created(account_id) => {
                     created += 1;
-                    account_ids.push(account_id);
+                    account_id
                 }
                 ImportOneOutcome::Unchanged(account_id) => {
                     unchanged += 1;
-                    account_ids.push(account_id);
+                    account_id
                 }
+            };
+            if entry.auth_status == GrokAccountAuthStatus::ReauthRequired {
+                transaction
+                    .execute(
+                        "INSERT OR IGNORE INTO grok_account_reauth_state (account_id) \
+                         VALUES (?1)",
+                        [&account_id],
+                    )
+                    .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
             }
+            account_ids.push(account_id);
         }
 
         for relation in relations {

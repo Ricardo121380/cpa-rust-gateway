@@ -29,9 +29,10 @@ const MANAGEMENT_RESOURCE_AUDIT_SCHEMA_VERSION: i64 = 9;
 const NATIVE_GROK_ACCOUNT_POOL_SCHEMA_VERSION: i64 = 10;
 const NATIVE_GROK_WORKER_STATE_SCHEMA_VERSION: i64 = 11;
 const CANONICAL_BRIDGE_TRANSFORM_MODE_SCHEMA_VERSION: i64 = 12;
+const NATIVE_GROK_REAUTH_SCHEMA_VERSION: i64 = 13;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = CANONICAL_BRIDGE_TRANSFORM_MODE_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = NATIVE_GROK_REAUTH_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -100,6 +101,11 @@ const MIGRATIONS: &[Migration] = &[
         version: CANONICAL_BRIDGE_TRANSFORM_MODE_SCHEMA_VERSION,
         up: include_str!("../migrations/0012_canonical_bridge_transform_mode.up.sql"),
         down: include_str!("../migrations/0012_canonical_bridge_transform_mode.down.sql"),
+    },
+    Migration {
+        version: NATIVE_GROK_REAUTH_SCHEMA_VERSION,
+        up: include_str!("../migrations/0013_native_grok_reauth.up.sql"),
+        down: include_str!("../migrations/0013_native_grok_reauth.down.sql"),
     },
 ];
 
@@ -498,6 +504,7 @@ mod tests {
                 "grok_account_import_batches",
                 "grok_account_links",
                 "grok_account_quota_windows",
+                "grok_account_reauth_state",
                 "grok_accounts",
                 "grok_build_affinity_breaks",
                 "grok_build_billing_profiles",

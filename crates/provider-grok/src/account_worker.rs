@@ -678,6 +678,15 @@ impl GrokAccountPoolStore {
         if changed != 1 {
             return Err(GrokAccountWorkerError::StaleClaim);
         }
+        if reauth_required {
+            transaction
+                .execute(
+                    "INSERT OR IGNORE INTO grok_account_reauth_state (account_id) \
+                     VALUES (?1)",
+                    [&job.account_id],
+                )
+                .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?;
+        }
         transaction
             .commit()
             .map_err(|_| GrokAccountWorkerError::StoreUnavailable)

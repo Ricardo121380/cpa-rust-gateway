@@ -16,6 +16,7 @@ mod official_capabilities;
 mod official_metadata;
 mod official_responses;
 mod official_runtime;
+mod reauth;
 mod runtime_state;
 mod strict_json;
 mod web_canary;
@@ -124,6 +125,10 @@ pub use official_responses::{
 pub use official_runtime::{
     GrokOfficialContinuityPolicy, GrokOfficialFailureAction, GrokOfficialFailureDisposition,
     GrokOfficialRuntimeState, GrokOfficialRuntimeStateError, classify_grok_official_http_failure,
+};
+pub use reauth::{
+    GrokReauthAttempt, GrokReauthCoordinator, GrokReauthError, GrokReauthExecutor, GrokReauthJob,
+    GrokReauthResult, GrokReauthRunSummary, GrokReauthStrategy, MAX_GROK_REAUTH_BATCH,
 };
 pub use runtime_state::{
     GrokBuildAccountEvidence, GrokBuildBillingPlan, GrokBuildCatalogSyncOutcome,
