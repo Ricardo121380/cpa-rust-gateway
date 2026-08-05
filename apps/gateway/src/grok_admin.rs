@@ -222,9 +222,6 @@ pub(crate) fn probe(
             observed_at_ms,
         )
         .map_err(|_| GrokAdminError::ProbeUnavailable)?;
-    if compilation.account_count() != 1 {
-        return Err(GrokAdminError::ProbeRejected);
-    }
     let health = RuntimeHealthRegistry::new();
     let quota = RuntimeQuotaRegistry::new();
     compilation
@@ -235,7 +232,9 @@ pub(crate) fn probe(
         .map_err(|_| GrokAdminError::ProbeUnavailable)?;
     let lease = compilation
         .credential_pools()
-        .try_lease(&endpoint)
+        .try_lease_eligible(&endpoint, |credential_id| {
+            credential_id.as_str() == selected.id
+        })
         .ok_or(GrokAdminError::ProbeRejected)?;
     if lease.credential_id().as_str() != selected.id
         || health
