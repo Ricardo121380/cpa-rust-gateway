@@ -90,3 +90,10 @@ changing the pool scope or lease accounting.
 
 Until those actions complete, P12-10I-10 remains `BLOCKED_WITH_EVIDENCE`; the Build fix is local
 and reviewed but is not a production readiness claim.
+
+## Follow-up
+
+[P12-10I-11](p12-10i-11-autoreg-sso-build-exact-artifact-receipt-20260805.md) subsequently rebuilt
+the fix as an exact signed ARM artifact and passed the required two-account, SSO-derived native
+Build probe with full rollback. The P12-10I-10 status remains `BLOCKED_WITH_EVIDENCE` only because
+its independent Console egress and Web lifetime-policy results are still unresolved.

@@ -40,3 +40,6 @@ fallback, route publication, account metadata, credential storage, or production
 The local correction is appropriately narrow and fail-closed. P12-10I-10 cannot be promoted to a
 successful live-provider matrix until the rebuilt artifact passes the SSO-derived Build probe and
 the separately blocked Console/Web boundaries are resolved under their own approved changes.
+
+P12-10I-11 later passed the exact-artifact SSO-derived Build probe in a two-account isolated pool.
+That closes the Build finding; Console and Web retain their independent external blockers.
