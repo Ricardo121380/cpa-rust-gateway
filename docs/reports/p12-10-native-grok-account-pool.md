@@ -1,6 +1,6 @@
 # P12-10 native Grok account pool
 
-Status: `P12-10G_DONE_P12-10H_SYNTHETIC_DONE_NATIVE_CONSOLE_ROUTE_BOUND_EXTERNAL_CONSOLE_403`
+Status: `P12-10G_DONE_P12-10H_SYNTHETIC_DONE_ELIGIBLE_POOL_SWEEP_EXTERNAL_CONSOLE_403_BUILD_PASS`
 
 ## Corrected architecture
 
@@ -82,9 +82,11 @@ Console accounts each passed native probing and rollback. The follow-up is recor
 and its [review](evidence/p12-10h-grok-account-recovery-console-multi-review-20260804.md). The
 latest native Console route/public HTTP execution is recorded in the [public curl receipt](evidence/p12-10h-grok-console-native-route-cpar-curl-20260804.md)
 and [review](evidence/p12-10h-grok-console-native-route-cpar-curl-review-20260804.md): `/v1/models`
-and single-candidate explain passed, but four imported accounts all reached the upstream 403/Egress
-classification across Chat/Responses/Messages JSON/SSE. All receipts are value-free and make no
-production availability claim.
+and single-candidate explain passed, but the eligible-pool sweep rotated through 25 distinct Console
+credentials and all reached the upstream 403/Egress classification. The only eligible Build account
+passed one real public Responses JSON call. The [pool sweep receipt](evidence/p12-10h-grok-console-build-pool-sweep-20260805.md)
+and [review](evidence/p12-10h-grok-console-build-pool-sweep-review-20260805.md) record the bounded
+run; all receipts are value-free and make no production availability claim.
 
 ## Migration boundary
 
