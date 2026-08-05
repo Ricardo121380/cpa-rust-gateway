@@ -42,4 +42,3 @@ TLS 和基本连接正常，但未携带 SSO 的请求收到 4xx；结合 P12-10
 ## 结论
 
 `P12-10I-03` **BLOCKED_WITH_EVIDENCE**：SSO→Build OAuth 在 5/5 Device Verify 边界失败；Console 的无凭据 egress 分类显示 TLS/连接正常但 Provider 返回 4xx。Build CPAR JSON/SSE 及新的 Console CPAR 推理没有被虚报为通过。
-

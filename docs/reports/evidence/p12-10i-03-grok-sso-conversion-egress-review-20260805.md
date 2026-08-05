@@ -21,4 +21,3 @@
 - `./scripts/check.sh docs`
 - Git whitespace 与 tracked Secret scan
 - 计划状态与文档链接复核
-
