@@ -103,7 +103,9 @@ def enter(args: argparse.Namespace) -> int:
     call(session, ledger, "candidate_id", "POST", f"/admin/routes/{ROUTE_ID}/candidates", {
         "id": CANDIDATE_ID, "endpoint_id": ENDPOINT_ID, "upstream_model": UPSTREAM_MODEL,
         "credential_scope": "all_active", "transform_mode": "canonical_bridge", "enabled": True,
-        "priority": 0, "weight": 1, "capability_override": {"allow_unlisted_model": True, "reasoning": False},
+        # Web uses the shared unlisted-model override.  Build's explicit reasoning narrowing is
+        # not an admitted Web route shape and would fail the runtime route-access gate.
+        "priority": 0, "weight": 1, "capability_override": {"allow_unlisted_model": True},
     })
     call(session, ledger, "access_group_id", "POST", "/admin/access-groups", {
         "id": ACCESS_GROUP_ID, "name": "P12-10H native Grok Web staging clients", "status": "active", "limits": {},

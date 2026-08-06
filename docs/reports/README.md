@@ -188,6 +188,8 @@
 - [P12-10I-17 Grok three-channel CPAR HTTP E2E review](evidence/p12-10i-17-grok-three-channel-cpar-e2e-review-20260806.md) — exact-artifact, stop-on-first-failure, production-invariance and external-blocker review
 - [P12-10I-18 Autoreg task-55 refreshed Build account CPAR receipt](evidence/p12-10i-18-task55-refresh-build-cpar-receipt-20260806.md) — exact-account real CPAR text test across JSON/SSE Responses, Chat and Messages
 - [P12-10I-18 Autoreg task-55 refreshed Build account CPAR review](evidence/p12-10i-18-task55-refresh-build-cpar-review-20260806.md) — attribution, protocol coverage, rollback and production-boundary review
+- [P12-10I-19 Autoreg new-account Console/Web CPAR receipt](evidence/p12-10i-19-autoreg-new-account-console-web-cpar-receipt-20260806.md) — new-account import, real Console/Web CPAR requests, value-free blockers and rollback
+- [P12-10I-19 Autoreg new-account Console/Web CPAR review](evidence/p12-10i-19-autoreg-new-account-console-web-cpar-review-20260806.md) — registration, route-shape repair, external egress result and isolation review
 - [P12-02 deployment envelope execution plan](p12-02-execution-plan.md) — approved minimal `serve`, isolated loopback listeners, `LoadCredential`, state/log directories, systemd hardening and Linux verification plan
 - [P12-02 deployment envelope acceptance](p12-02-deployment-envelope.md) — local Full gate, independent review, and repaired real-Linux systemd 255 syntax verification accepted; no Unit was installed or started
 - [P12-03 server backup and rollback inventory plan](p12-03-execution-plan.md) — constrained server-local snapshot plan; no configuration, database, or credential material may enter the repository
