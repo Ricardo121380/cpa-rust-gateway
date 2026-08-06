@@ -43,7 +43,16 @@ printf '%s' 'csrf_abcdefghijklmnopqrstuvwxyz0123456789' > "$credentials_dir/mana
 ruby -e 'File.binwrite(ARGV.fetch(0), "\xA1" * 32); File.binwrite(ARGV.fetch(1), "\xB2" * 32); File.binwrite(ARGV.fetch(2), "\xC3" * 32)' \
   "$credentials_dir/master-key" "$credentials_dir/backup-key" "$credentials_dir/client-key-pepper"
 
-cargo build --locked --package gateway >/dev/null
+if [[ "$(uname -s)" == "Linux" ]]; then
+  # Rust 1.97's bundled lld has reproducibly crashed in its parallel section writer when this final
+  # debug binary is linked after the full workspace test build on GitHub's ubuntu-24.04 runner.
+  # Serialising only this disposable Linux serve-envelope link avoids that linker bug without
+  # changing the release artifact or any runtime behavior. Apple's linker has no such option.
+  RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }-C link-arg=-Wl,--threads=1" \
+    cargo build --locked --package gateway >/dev/null
+else
+  cargo build --locked --package gateway >/dev/null
+fi
 "$target_dir/debug/gateway" serve \
   --data-listen "127.0.0.1:$data_port" \
   --management-listen "127.0.0.1:$management_port" \
