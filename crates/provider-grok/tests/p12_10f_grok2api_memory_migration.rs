@@ -85,6 +85,29 @@ fn imports_build_web_console_and_links_without_plaintext_persistence() -> TestRe
 }
 
 #[test]
+fn imports_v311_bare_json_array_with_the_same_atomic_contract() -> TestResult {
+    let store = memory_store()?;
+    let stream = valid_stream("build-array", "web-array", "console-array");
+    let records = stream
+        .split(|byte| *byte == b'\n')
+        .filter(|line| !line.is_empty())
+        .map(serde_json::from_slice::<Value>)
+        .collect::<Result<Vec<_>, _>>()?;
+    let array = serde_json::to_vec(&records)?;
+    let receipt = Grok2ApiMemoryStreamMigration::import_json_or_ndjson(
+        &store,
+        "migration-array",
+        Cursor::new(array),
+        NOW_MS,
+    )?;
+    assert_eq!(receipt.source_records, 5);
+    assert_eq!(receipt.accepted_accounts, 3);
+    assert_eq!(receipt.accepted_links, 2);
+    assert_eq!(store.list_accounts()?.len(), 3);
+    Ok(())
+}
+
+#[test]
 fn exact_rerun_is_idempotent_with_value_free_counts() -> TestResult {
     let store = memory_store()?;
     let stream = valid_stream("build-access-b", "web-cookie-b", "console-sso-b");

@@ -18,6 +18,8 @@ gateway-router = { path = "../gateway-router" }
 gateway-store = { path = "../gateway-store" }
 gateway-upstream = { path = "../gateway-upstream" }
 hmac.workspace = true
+p256.workspace = true
+rand_core.workspace = true
 protocol-openai-responses = { path = "../protocol-openai-responses" }
 rusqlite.workspace = true
 serde.workspace = true

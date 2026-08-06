@@ -4,7 +4,12 @@
 //! has no path, database, process-spawn or network API. Account identity and credential bytes are
 //! zeroized after validation and are immediately handed to the native CPAR atomic import boundary.
 
-use std::{collections::BTreeMap, error::Error, fmt, io::BufRead};
+use std::{
+    collections::BTreeMap,
+    error::Error,
+    fmt,
+    io::{BufRead, Cursor, Read},
+};
 
 use serde::{Deserialize, Deserializer};
 use zeroize::Zeroizing;
@@ -99,6 +104,73 @@ impl Error for Grok2ApiMigrationError {}
 pub struct Grok2ApiMemoryStreamMigration;
 
 impl Grok2ApiMemoryStreamMigration {
+    /// Consumes either the existing NDJSON stream or a bounded top-level JSON array.
+    ///
+    /// The array form is the credential export shape accepted by grok2api v3.1.1. It is
+    /// normalized to the same line-oriented contract before entering the existing atomic import
+    /// path, so provider validation, duplicate handling, links, and rollback remain identical.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same value-free categories as [`Self::import`].
+    pub fn import_json_or_ndjson<R: Read>(
+        store: &GrokAccountPoolStore,
+        batch_id: &str,
+        mut source: R,
+        observed_at_ms: i64,
+    ) -> Result<Grok2ApiMigrationReceipt, Grok2ApiMigrationError> {
+        let mut bytes = Zeroizing::new(Vec::new());
+        source.read_to_end(&mut bytes).map_err(|_| {
+            migration_error(
+                Grok2ApiMigrationFailureKind::SourceUnavailable,
+                Grok2ApiMigrationReceipt::default(),
+            )
+        })?;
+        if bytes.len() > MAX_GROK2API_MIGRATION_STREAM_BYTES {
+            return Err(migration_error(
+                Grok2ApiMigrationFailureKind::SourceTooLarge,
+                Grok2ApiMigrationReceipt::default(),
+            ));
+        }
+        let trimmed = bytes
+            .iter()
+            .copied()
+            .find(|byte| !byte.is_ascii_whitespace());
+        if trimmed != Some(b'[') {
+            return Self::import(store, batch_id, Cursor::new(bytes.to_vec()), observed_at_ms);
+        }
+        let values = serde_json::from_slice::<Vec<serde_json::Value>>(&bytes).map_err(|_| {
+            migration_error(
+                Grok2ApiMigrationFailureKind::RejectedRecords,
+                Grok2ApiMigrationReceipt::default(),
+            )
+        })?;
+        if values.len() > MAX_GROK2API_MIGRATION_RECORDS {
+            return Err(migration_error(
+                Grok2ApiMigrationFailureKind::SourceTooLarge,
+                Grok2ApiMigrationReceipt::default(),
+            ));
+        }
+        let mut normalized =
+            Zeroizing::new(Vec::with_capacity(bytes.len().saturating_add(values.len())));
+        for value in values {
+            let encoded = serde_json::to_vec(&value).map_err(|_| {
+                migration_error(
+                    Grok2ApiMigrationFailureKind::RejectedRecords,
+                    Grok2ApiMigrationReceipt::default(),
+                )
+            })?;
+            normalized.extend_from_slice(&encoded);
+            normalized.push(b'\n');
+        }
+        Self::import(
+            store,
+            batch_id,
+            Cursor::new(normalized.to_vec()),
+            observed_at_ms,
+        )
+    }
+
     /// Consumes, validates and atomically imports one bounded NDJSON stream.
     ///
     /// The source side must decrypt grok2api credentials in its own process and write canonical

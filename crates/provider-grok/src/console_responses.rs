@@ -4,7 +4,7 @@
 //! profile. Responses are decoded once into Canonical events by the already reviewed strict xAI
 //! Responses codec; public Chat, Responses, and Messages remain outer Canonical projections.
 
-use std::{collections::VecDeque, error::Error, fmt, sync::Arc};
+use std::{collections::VecDeque, error::Error, fmt, sync::Arc, time::SystemTime};
 
 use gateway_core::{
     CanonicalEvent, CanonicalRequest, CanonicalResponse, ErrorScope, GatewayError,
@@ -22,7 +22,8 @@ use serde_json::{Map, Value};
 use zeroize::Zeroizing;
 
 use crate::{
-    GrokOfficialResponsesDecoder, GrokOfficialResponsesStreamDecoder,
+    GrokConsoleDpopSession, GrokConsoleDpopSessionCache, GrokOfficialResponsesDecoder,
+    GrokOfficialResponsesStreamDecoder, grok_console_dpop_cache_key,
     official_responses::encode_responses_body,
 };
 
@@ -134,10 +135,12 @@ impl fmt::Display for GrokConsoleRequestError {
 impl Error for GrokConsoleRequestError {}
 
 /// Redacted fixed-target Console request.
-#[derive(Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct GrokConsoleResponsesOutboundRequest {
     target: EndpointUrl,
     cookie: Zeroizing<String>,
+    authorization: Zeroizing<String>,
+    dpop_proof: Option<Zeroizing<String>>,
     accept: &'static str,
     body: Vec<u8>,
 }
@@ -159,7 +162,7 @@ impl GrokConsoleResponsesOutboundRequest {
         } else if name.eq_ignore_ascii_case("accept-language") {
             Some("zh-CN,zh;q=0.9,en;q=0.8")
         } else if name.eq_ignore_ascii_case("authorization") {
-            Some("Bearer anonymous")
+            Some(self.authorization.as_str())
         } else if name.eq_ignore_ascii_case("content-type") {
             Some("application/json")
         } else if name.eq_ignore_ascii_case("cookie") {
@@ -186,6 +189,8 @@ impl GrokConsoleResponsesOutboundRequest {
             Some("?0")
         } else if name.eq_ignore_ascii_case("sec-ch-ua-platform") {
             Some("\"macOS\"")
+        } else if name.eq_ignore_ascii_case("dpop") {
+            self.dpop_proof.as_deref().map(String::as_str)
         } else {
             None
         }
@@ -195,6 +200,10 @@ impl GrokConsoleResponsesOutboundRequest {
     #[must_use]
     pub fn body(&self) -> &[u8] {
         &self.body
+    }
+
+    fn cookie(&self) -> &str {
+        self.cookie.as_str()
     }
 
     /// Consumes the request into the shared DNS-pinned transport envelope.
@@ -227,6 +236,7 @@ impl GrokConsoleResponsesOutboundRequest {
             "sec-ch-ua",
             "sec-ch-ua-mobile",
             "sec-ch-ua-platform",
+            "dpop",
         ];
         let headers = names
             .into_iter()
@@ -248,6 +258,29 @@ impl fmt::Debug for GrokConsoleResponsesOutboundRequest {
             .field("header_count", &17)
             .field("body_len", &self.body.len())
             .finish_non_exhaustive()
+    }
+}
+
+impl GrokConsoleResponsesOutboundRequest {
+    /// Applies one short-lived `DPoP` session to this request.
+    ///
+    /// The caller owns session acquisition and caching; this method only creates the proof and
+    /// swaps the authorization scheme, keeping token exchange outside request encoding.
+    ///
+    /// # Errors
+    ///
+    /// Returns a request encoding error when the session is expired or proof construction fails.
+    pub fn with_dpop_session(
+        mut self,
+        session: &GrokConsoleDpopSession,
+        now: SystemTime,
+    ) -> Result<Self, GrokConsoleRequestError> {
+        let proof = session
+            .proof("POST", self.url(), now)
+            .map_err(|_| GrokConsoleRequestError::InternalEncodingFailure)?;
+        self.authorization = Zeroizing::new(format!("DPoP {}", session.access_token()));
+        self.dpop_proof = Some(Zeroizing::new(proof));
+        Ok(self)
     }
 }
 
@@ -321,6 +354,8 @@ impl GrokConsoleResponsesRequestBuilder {
         Ok(GrokConsoleResponsesOutboundRequest {
             target,
             cookie: credential.cookie_header(),
+            authorization: Zeroizing::new("Bearer anonymous".to_owned()),
+            dpop_proof: None,
             accept: match mode {
                 ResponseMode::NonStreaming => "*/*",
                 ResponseMode::Streaming => "text/event-stream",
@@ -704,6 +739,7 @@ pub struct GrokConsoleUpstreamTransport {
     resolver: Arc<dyn EgressDnsResolver>,
     client_pool: UpstreamClientPool,
     profile: UpstreamTransportProfile,
+    dpop_sessions: Arc<GrokConsoleDpopSessionCache>,
 }
 
 impl GrokConsoleUpstreamTransport {
@@ -720,6 +756,7 @@ impl GrokConsoleUpstreamTransport {
             resolver,
             client_pool,
             profile: profile.with_chrome_146_emulation(),
+            dpop_sessions: Arc::new(GrokConsoleDpopSessionCache::default()),
         }
     }
 }
@@ -732,11 +769,12 @@ impl fmt::Debug for GrokConsoleUpstreamTransport {
             .field("resolver", &"<injected>")
             .field("client_pool", &self.client_pool)
             .field("profile", &self.profile)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
 impl GrokConsoleTransport for GrokConsoleUpstreamTransport {
+    #[allow(clippy::too_many_lines)] // Token exchange, one 401 renewal, and final request stay in one bounded transport transaction.
     fn send(
         &self,
         outbound: GrokConsoleResponsesOutboundRequest,
@@ -745,15 +783,140 @@ impl GrokConsoleTransport for GrokConsoleUpstreamTransport {
             .egress_policy
             .admit_url(outbound.url(), self.resolver.as_ref())
             .map_err(gateway_upstream::EgressAdmissionError::gateway_error);
-        let request = admitted.and_then(|target| {
-            outbound
-                .into_transport_request(target)
-                .map_err(|_| egress_error())
-        });
+        let dpop_sessions = Arc::clone(&self.dpop_sessions);
+        let egress_policy = self.egress_policy.clone();
+        let resolver = Arc::clone(&self.resolver);
         let pool = self.client_pool.clone();
         let profile = self.profile.clone();
         Box::pin(async move {
-            let response = pool.send(request?, &profile).await?;
+            let target = admitted?;
+            let binding = format!("{}|{}", outbound.url(), outbound.cookie());
+            let cache_key = grok_console_dpop_cache_key(&binding);
+            let now = SystemTime::now();
+            let mut session = dpop_sessions.get(&cache_key, now);
+            if session.is_none() {
+                let signing_key = GrokConsoleDpopSession::generate_key();
+                let token_url =
+                    EndpointUrl::compose(GROK_CONSOLE_RESPONSES_BASE_URL, "/v1/dpop/token")
+                        .map_err(|_| egress_error())?;
+                let token_target = egress_policy
+                    .admit_url(token_url.as_str(), resolver.as_ref())
+                    .map_err(gateway_upstream::EgressAdmissionError::gateway_error)?;
+                let token_headers = [
+                    ("accept".to_owned(), "application/json".to_owned()),
+                    ("content-type".to_owned(), "application/json".to_owned()),
+                    ("cookie".to_owned(), outbound.cookie().to_owned()),
+                    (
+                        "origin".to_owned(),
+                        GROK_CONSOLE_RESPONSES_BASE_URL.to_owned(),
+                    ),
+                    ("referer".to_owned(), "https://console.x.ai/".to_owned()),
+                    ("user-agent".to_owned(), GROK_CONSOLE_USER_AGENT.to_owned()),
+                ];
+                let token_body = GrokConsoleDpopSession::token_exchange_body(&signing_key)
+                    .map_err(|_| egress_error())?;
+                let token_request = UpstreamHttpRequest::try_new(
+                    token_target,
+                    UpstreamHttpMethod::Post,
+                    token_headers,
+                    token_body,
+                )
+                .map_err(|_| egress_error())?;
+                let mut token_response = pool.send(token_request, &profile).await?;
+                let token_bytes = read_raw_console_body(&mut token_response, 64 * 1024).await?;
+                if !(200..=299).contains(&token_response.status()) {
+                    return Err(console_failure_error(classify_grok_console_http_failure(
+                        token_response.status(),
+                        false,
+                    )));
+                }
+                let response: ConsoleDpopTokenResponse =
+                    serde_json::from_slice(&token_bytes).map_err(|_| egress_error())?;
+                let built = GrokConsoleDpopSession::from_token_response(
+                    response.access_token,
+                    &response.token_type,
+                    response.expires_in,
+                    signing_key,
+                    now,
+                )
+                .map_err(|_| egress_error())?;
+                dpop_sessions
+                    .insert(cache_key.clone(), built.clone())
+                    .map_err(|_| egress_error())?;
+                session = Some(built);
+            }
+            let original_cookie = outbound.cookie().to_owned();
+            let mut request = outbound
+                .clone()
+                .with_dpop_session(session.as_ref().ok_or_else(egress_error)?, now)
+                .map_err(|_| egress_error())?
+                .into_transport_request(target.clone())
+                .map_err(|_| egress_error())?;
+            let mut response = pool.send(request, &profile).await?;
+            if response.status() == 401 {
+                dpop_sessions
+                    .invalidate(
+                        &cache_key,
+                        session
+                            .as_ref()
+                            .map_or("", GrokConsoleDpopSession::access_token),
+                    )
+                    .map_err(|_| egress_error())?;
+                let refreshed = GrokConsoleDpopSession::generate_key();
+                let token_url =
+                    EndpointUrl::compose(GROK_CONSOLE_RESPONSES_BASE_URL, "/v1/dpop/token")
+                        .map_err(|_| egress_error())?;
+                let token_target = egress_policy
+                    .admit_url(token_url.as_str(), resolver.as_ref())
+                    .map_err(gateway_upstream::EgressAdmissionError::gateway_error)?;
+                let token_body = GrokConsoleDpopSession::token_exchange_body(&refreshed)
+                    .map_err(|_| egress_error())?;
+                let token_request = UpstreamHttpRequest::try_new(
+                    token_target,
+                    UpstreamHttpMethod::Post,
+                    vec![
+                        ("accept".to_owned(), "application/json".to_owned()),
+                        ("content-type".to_owned(), "application/json".to_owned()),
+                        ("cookie".to_owned(), original_cookie),
+                        (
+                            "origin".to_owned(),
+                            GROK_CONSOLE_RESPONSES_BASE_URL.to_owned(),
+                        ),
+                        ("referer".to_owned(), "https://console.x.ai/".to_owned()),
+                        ("user-agent".to_owned(), GROK_CONSOLE_USER_AGENT.to_owned()),
+                    ],
+                    token_body,
+                )
+                .map_err(|_| egress_error())?;
+                let mut token_response = pool.send(token_request, &profile).await?;
+                let token_bytes = read_raw_console_body(&mut token_response, 64 * 1024).await?;
+                if !(200..=299).contains(&token_response.status()) {
+                    return Ok(GrokConsoleTransportResponse::new(
+                        response.status(),
+                        console_content_type(&response),
+                        Box::new(ConsoleUpstreamBody { response }),
+                    ));
+                }
+                let token: ConsoleDpopTokenResponse =
+                    serde_json::from_slice(&token_bytes).map_err(|_| egress_error())?;
+                let refreshed = GrokConsoleDpopSession::from_token_response(
+                    token.access_token,
+                    &token.token_type,
+                    token.expires_in,
+                    refreshed,
+                    now,
+                )
+                .map_err(|_| egress_error())?;
+                dpop_sessions
+                    .insert(cache_key, refreshed.clone())
+                    .map_err(|_| egress_error())?;
+                request = outbound
+                    .with_dpop_session(&refreshed, now)
+                    .map_err(|_| egress_error())?
+                    .into_transport_request(target)
+                    .map_err(|_| egress_error())?;
+                response = pool.send(request, &profile).await?;
+            }
             Ok(GrokConsoleTransportResponse::new(
                 response.status(),
                 console_content_type(&response),
@@ -761,6 +924,27 @@ impl GrokConsoleTransport for GrokConsoleUpstreamTransport {
             ))
         })
     }
+}
+
+#[derive(Deserialize)]
+struct ConsoleDpopTokenResponse {
+    access_token: String,
+    token_type: String,
+    expires_in: u64,
+}
+
+async fn read_raw_console_body(
+    response: &mut UpstreamHttpResponse,
+    limit: usize,
+) -> Result<Vec<u8>, GatewayError> {
+    let mut bytes = Vec::new();
+    while let Some(chunk) = response.next_chunk().await? {
+        if bytes.len().saturating_add(chunk.len()) > limit {
+            return Err(egress_error());
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok(bytes)
 }
 
 /// Executable native Console inference adapter.

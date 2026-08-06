@@ -5,6 +5,8 @@
 mod account_pool;
 mod account_worker;
 mod build_responses;
+mod console_dpop;
+mod console_quota;
 mod console_responses;
 mod continuity_state;
 mod credential_runtime;
@@ -55,6 +57,14 @@ pub use build_responses::{
     GrokBuildResponsesOutboundRequest, GrokBuildResponsesRequestBuilder,
     GrokBuildResponsesStreamDecoder, MAX_GROK_BUILD_ERROR_BODY_BYTES,
     MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES, MAX_GROK_BUILD_SSE_FRAME_BYTES,
+};
+pub use console_dpop::{
+    GrokConsoleDpopError, GrokConsoleDpopSession, GrokConsoleDpopSessionCache,
+    GrokConsoleDpopToken, grok_console_dpop_cache_key,
+};
+pub use console_quota::{
+    GrokConsoleQuotaError, GrokConsoleQuotaKind, GrokConsoleQuotaWindow, GrokConsoleUsageSnapshot,
+    parse_grok_console_usage,
 };
 pub use console_responses::{
     GROK_CONSOLE_CLUSTER, GROK_CONSOLE_PROVIDER_ID, GROK_CONSOLE_RESPONSES_BASE_URL,
