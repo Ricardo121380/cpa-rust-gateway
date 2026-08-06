@@ -42,7 +42,7 @@ allowed = {
   "protocol-openai-chat" => %w[gateway-core proptest serde serde_json],
   "protocol-openai-responses" => %w[gateway-core gateway-protocol proptest serde serde_json],
   "provider-anthropic-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-anthropic serde serde_json zeroize],
-  "provider-grok" => %w[flate2 gateway-catalog gateway-core gateway-provider gateway-router gateway-store gateway-upstream getrandom hmac protocol-openai-responses rusqlite serde serde_json sha2 time tokio url zeroize],
+  "provider-grok" => %w[base64 flate2 gateway-catalog gateway-core gateway-provider gateway-router gateway-store gateway-upstream getrandom hmac protocol-openai-responses rusqlite serde serde_json sha2 time tokio url zeroize],
   "provider-kiro" => %w[gateway-catalog gateway-core gateway-provider gateway-store gateway-stream gateway-upstream protocol-anthropic serde serde_json tokio url zeroize],
   "provider-openai-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-openai-chat protocol-openai-responses serde serde_json zeroize],
 }
