@@ -18,9 +18,10 @@ use gateway_upstream::UpstreamProxy;
 use protocol_openai_responses::decode_request;
 use provider_grok::{
     GrokWebBrowserEgressSession, GrokWebBrowserUserAgent, GrokWebCredential,
-    GrokWebEgressSessionId, GrokWebProductionInferenceAdapter, GrokWebProductionOutboundRequest,
-    GrokWebProductionResponseBody, GrokWebProductionTransport, GrokWebProductionTransportResponse,
-    GrokWebStatsigRuntime, GrokWebStatsigSignature, GrokWebStatsigTransport, GrokWebTlsProfile,
+    GrokWebEgressRefresher, GrokWebEgressSessionId, GrokWebProductionInferenceAdapter,
+    GrokWebProductionOutboundRequest, GrokWebProductionResponseBody, GrokWebProductionTransport,
+    GrokWebProductionTransportResponse, GrokWebStatsigRuntime, GrokWebStatsigSignature,
+    GrokWebStatsigTransport, GrokWebTlsProfile,
 };
 use zeroize::Zeroizing;
 
@@ -32,12 +33,18 @@ async fn pre_start_403_refreshes_statsig_once_then_projects_the_live_stream() ->
     let statsig_transport = Arc::new(FixtureStatsigTransport::default());
     let statsig = Arc::new(GrokWebStatsigRuntime::try_new(statsig_transport.clone())?);
     let inference_transport = Arc::new(FixtureInferenceTransport::default());
+    let session = Arc::new(web_session(now_ms)?);
+    let egress_refresher = Arc::new(FixtureEgressRefresher {
+        calls: AtomicUsize::new(0),
+        session: Arc::clone(&session),
+    });
     let adapter = GrokWebProductionInferenceAdapter::try_new(
-        Arc::new(web_session(now_ms)?),
+        session,
         "grok-chat-fast",
         statsig,
         inference_transport.clone(),
-    )?;
+    )?
+    .with_egress_refresher(egress_refresher.clone());
     let request = decode_request(r#"{"model":"public","input":"ready"}"#)?.request;
     let mut source = adapter
         .execute(
@@ -51,6 +58,7 @@ async fn pre_start_403_refreshes_statsig_once_then_projects_the_live_stream() ->
     }
 
     assert_eq!(inference_transport.calls.load(Ordering::SeqCst), 2);
+    assert_eq!(egress_refresher.calls.load(Ordering::SeqCst), 1);
     assert_eq!(
         statsig_transport.environment_calls.load(Ordering::SeqCst),
         2
@@ -70,6 +78,30 @@ async fn pre_start_403_refreshes_statsig_once_then_projects_the_live_stream() ->
         )
     );
     Ok(())
+}
+
+struct FixtureEgressRefresher {
+    calls: AtomicUsize,
+    session: Arc<GrokWebBrowserEgressSession>,
+}
+
+impl GrokWebEgressRefresher for FixtureEgressRefresher {
+    fn refresh<'a>(
+        &'a self,
+        current: &'a GrokWebBrowserEgressSession,
+    ) -> ProviderFuture<'a, Result<Arc<GrokWebBrowserEgressSession>, GatewayError>> {
+        Box::pin(async move {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            // The fixture keeps the exact account/session binding. Production
+            // implementations may return a newly rebuilt session with refreshed
+            // cookies or a validated proxy, but never a different account.
+            assert_eq!(
+                current.egress_session_id(),
+                self.session.egress_session_id()
+            );
+            Ok(Arc::clone(&self.session))
+        })
+    }
 }
 
 #[derive(Default)]

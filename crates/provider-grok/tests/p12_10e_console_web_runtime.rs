@@ -370,6 +370,11 @@ fn web_production_binding_uses_exact_browser_profile_and_live_decoder() -> TestR
     );
     assert_eq!(outbound.header("origin"), Some("https://grok.com"));
     assert_eq!(outbound.header("x-statsig-id"), Some("synthetic-statsig"));
+    assert!(outbound.header("sec-ch-ua").is_some());
+    assert_eq!(outbound.header("sec-ch-ua-mobile"), Some("?0"));
+    assert_eq!(outbound.header("sec-ch-ua-platform"), Some("\"macOS\""));
+    assert_eq!(outbound.header("sec-ch-ua-arch"), Some("x86"));
+    assert_eq!(outbound.header("sec-ch-ua-bitness"), Some("64"));
     assert!(outbound.header("cookie").is_some());
     let body: serde_json::Value = serde_json::from_slice(outbound.body())?;
     assert_eq!(body["modeId"], "fast");

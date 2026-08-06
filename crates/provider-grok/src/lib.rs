@@ -179,7 +179,7 @@ pub use web_failure::{
 pub use web_live::{GrokWebLiveStreamDecoder, MAX_GROK_WEB_LIVE_FRAME_BYTES};
 pub use web_production::{
     GROK_WEB_PRODUCTION_BASE_URL, GROK_WEB_PRODUCTION_PROVIDER_ID, GROK_WEB_PRODUCTION_USER_AGENT,
-    GrokWebProductionInferenceAdapter, GrokWebProductionOutboundRequest,
+    GrokWebEgressRefresher, GrokWebProductionInferenceAdapter, GrokWebProductionOutboundRequest,
     GrokWebProductionRequestBuilder, GrokWebProductionRequestError, GrokWebProductionResponseBody,
     GrokWebProductionStreamDecoder, GrokWebProductionTransport, GrokWebProductionTransportResponse,
     GrokWebProductionUpstreamTransport, MAX_GROK_WEB_PRODUCTION_MESSAGE_BYTES,

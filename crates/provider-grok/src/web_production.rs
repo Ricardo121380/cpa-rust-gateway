@@ -36,6 +36,12 @@ use crate::{
 pub const GROK_WEB_PRODUCTION_BASE_URL: &str = "https://grok.com";
 /// Fixed browser profile paired with grok2api-compatible Web requests.
 pub const GROK_WEB_PRODUCTION_USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36";
+/// Chromium client hints paired with the fixed browser profile above.
+pub const GROK_WEB_PRODUCTION_SEC_CH_UA: &str =
+    "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not(A:Brand\";v=\"24\"";
+pub const GROK_WEB_PRODUCTION_SEC_CH_UA_PLATFORM: &str = "\"macOS\"";
+pub const GROK_WEB_PRODUCTION_SEC_CH_UA_ARCH: &str = "x86";
+pub const GROK_WEB_PRODUCTION_SEC_CH_UA_BITNESS: &str = "64";
 /// Stable native Web provider identity.
 pub const GROK_WEB_PRODUCTION_PROVIDER_ID: &str = "grok.web";
 
@@ -123,6 +129,16 @@ impl GrokWebProductionOutboundRequest {
             Some("cors")
         } else if name.eq_ignore_ascii_case("sec-fetch-dest") {
             Some("empty")
+        } else if name.eq_ignore_ascii_case("sec-ch-ua") {
+            Some(GROK_WEB_PRODUCTION_SEC_CH_UA)
+        } else if name.eq_ignore_ascii_case("sec-ch-ua-mobile") {
+            Some("?0")
+        } else if name.eq_ignore_ascii_case("sec-ch-ua-platform") {
+            Some(GROK_WEB_PRODUCTION_SEC_CH_UA_PLATFORM)
+        } else if name.eq_ignore_ascii_case("sec-ch-ua-arch") {
+            Some(GROK_WEB_PRODUCTION_SEC_CH_UA_ARCH)
+        } else if name.eq_ignore_ascii_case("sec-ch-ua-bitness") {
+            Some(GROK_WEB_PRODUCTION_SEC_CH_UA_BITNESS)
         } else if name.eq_ignore_ascii_case("cookie") {
             Some(self.cookie.as_str())
         } else if name.eq_ignore_ascii_case("user-agent") {
@@ -171,6 +187,11 @@ impl GrokWebProductionOutboundRequest {
             "sec-fetch-site",
             "sec-fetch-mode",
             "sec-fetch-dest",
+            "sec-ch-ua",
+            "sec-ch-ua-mobile",
+            "sec-ch-ua-platform",
+            "sec-ch-ua-arch",
+            "sec-ch-ua-bitness",
             "cookie",
             "user-agent",
             "x-statsig-id",
@@ -198,7 +219,7 @@ impl fmt::Debug for GrokWebProductionOutboundRequest {
         formatter
             .debug_struct("GrokWebProductionOutboundRequest")
             .field("target", &"<redacted>")
-            .field("header_count", &16)
+            .field("header_count", &21)
             .field("body_len", &self.body.len())
             .finish_non_exhaustive()
     }
@@ -484,6 +505,20 @@ pub struct GrokWebProductionInferenceAdapter {
     upstream_model: String,
     statsig: Arc<GrokWebStatsigRuntime>,
     transport: Arc<dyn GrokWebProductionTransport>,
+    egress_refresher: Option<Arc<dyn GrokWebEgressRefresher>>,
+}
+
+/// Explicit per-request recovery hook for a rejected Web egress session.
+///
+/// Implementations may rebuild the credential-bound session (for example after an
+/// externally managed clearance refresh or proxy rotation). The hook is deliberately
+/// injected per adapter; it never mutates a global proxy or credential pool.
+pub trait GrokWebEgressRefresher: Send + Sync {
+    /// Rebuilds the exact account-bound session for the next attempt.
+    fn refresh<'a>(
+        &'a self,
+        current: &'a GrokWebBrowserEgressSession,
+    ) -> ProviderFuture<'a, Result<Arc<GrokWebBrowserEgressSession>, GatewayError>>;
 }
 
 impl GrokWebProductionInferenceAdapter {
@@ -510,7 +545,15 @@ impl GrokWebProductionInferenceAdapter {
             upstream_model,
             statsig,
             transport,
+            egress_refresher: None,
         })
+    }
+
+    /// Adds an explicit, credential-bound egress recovery hook.
+    #[must_use]
+    pub fn with_egress_refresher(mut self, refresher: Arc<dyn GrokWebEgressRefresher>) -> Self {
+        self.egress_refresher = Some(refresher);
+        self
     }
 }
 
@@ -522,6 +565,7 @@ impl fmt::Debug for GrokWebProductionInferenceAdapter {
             .field("session", &self.session)
             .field("upstream_model", &"<redacted>")
             .field("statsig", &self.statsig)
+            .field("egress_refresher", &self.egress_refresher.is_some())
             .field("transport", &"<injected>")
             .finish()
     }
@@ -539,10 +583,11 @@ impl InferenceAdapter for GrokWebProductionInferenceAdapter {
         _context: RequestContext,
         request: CanonicalRequest,
     ) -> ProviderFuture<'_, Result<Box<dyn CanonicalEventSource>, GatewayError>> {
-        let session = Arc::clone(&self.session);
+        let mut session = Arc::clone(&self.session);
         let upstream_model = self.upstream_model.clone();
         let statsig = Arc::clone(&self.statsig);
         let transport = Arc::clone(&self.transport);
+        let egress_refresher = self.egress_refresher.clone();
         Box::pin(async move {
             let now_ms = web_now_ms()?;
             for attempt in 0_u8..=1 {
@@ -560,6 +605,9 @@ impl InferenceAdapter for GrokWebProductionInferenceAdapter {
                 if status == 403 && attempt == 0 {
                     read_web_body(&mut *body, 4 * 1024 * 1024).await?;
                     let _ = statsig.invalidate_signature_after_403(&signature)?;
+                    if let Some(refresher) = egress_refresher.as_ref() {
+                        session = refresher.refresh(&session).await?;
+                    }
                     continue;
                 }
                 if !(200..=299).contains(&status) {
