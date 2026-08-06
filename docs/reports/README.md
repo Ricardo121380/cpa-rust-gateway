@@ -192,6 +192,8 @@
 - [P12-10I-19 Autoreg new-account Console/Web CPAR review](evidence/p12-10i-19-autoreg-new-account-console-web-cpar-review-20260806.md) — registration, route-shape repair, external egress result and isolation review
 - [P12-10I-20 Grok Web recovery port receipt](evidence/p12-10i-20-grok-web-recovery-port-receipt-20260806.md) — Chromium Client Hints, explicit account-bound egress refresh hook, bounded 403 retry, and local verification
 - [P12-10I-20 Grok Web recovery port review](evidence/p12-10i-20-grok-web-recovery-port-review-20260806.md) — recovery isolation, retry bound, redaction, and remaining external-provider boundary
+- [P12-10I-21 Grok Console/Web CPAR HTTP receipt](evidence/p12-10i-21-grok-console-web-cpar-receipt-20260807.md) — five-account Console SSO sample, CPAR `/v1/models` preflight, credential-boundary failures, Web expiry inspection, and isolated rollback
+- [P12-10I-21 Grok Console/Web CPAR HTTP review](evidence/p12-10i-21-grok-console-web-cpar-review-20260807.md) — attribution, fail-closed Web lifetime policy, cleanup, and production invariance review
 - [P12-02 deployment envelope execution plan](p12-02-execution-plan.md) — approved minimal `serve`, isolated loopback listeners, `LoadCredential`, state/log directories, systemd hardening and Linux verification plan
 - [P12-02 deployment envelope acceptance](p12-02-deployment-envelope.md) — local Full gate, independent review, and repaired real-Linux systemd 255 syntax verification accepted; no Unit was installed or started
 - [P12-03 server backup and rollback inventory plan](p12-03-execution-plan.md) — constrained server-local snapshot plan; no configuration, database, or credential material may enter the repository
