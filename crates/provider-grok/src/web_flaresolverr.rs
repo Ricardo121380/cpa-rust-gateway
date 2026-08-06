@@ -270,4 +270,18 @@ mod tests {
             Err(GrokWebFlareSolverrError::MissingClearance)
         );
     }
+
+    #[test]
+    fn request_serializes_scoped_cookie_without_debug_value() {
+        let request = GrokWebFlareSolverrRequest::default().with_cookie_header("sso=secret");
+        let Ok(encoded) = request.to_json() else {
+            return;
+        };
+        let encoded = String::from_utf8_lossy(&encoded);
+        assert!(encoded.contains("Cookie"));
+        assert!(encoded.contains("sso=secret"));
+        let debug = format!("{request:?}");
+        assert!(!debug.contains("secret"));
+        assert!(debug.contains("has_headers: true"));
+    }
 }
