@@ -29,6 +29,8 @@ pub struct Grok2ApiMigrationReceipt {
     pub source_records: usize,
     /// Structurally and provider-semantically accepted account records.
     pub accepted_accounts: usize,
+    /// Accepted Web records whose source expiry was conservatively reduced to the local maximum.
+    pub capped_web_expiries: usize,
     /// Records rejected before any database transaction.
     pub rejected_records: usize,
     /// Accepted Web-to-Build or Web-to-Console links.
@@ -187,12 +189,13 @@ impl Grok2ApiMemoryStreamMigration {
                         observed_at_ms,
                     );
                     match converted {
-                        Ok(account) if valid_source_ref(&source_ref) => {
+                        Ok((account, capped_web_expiry)) if valid_source_ref(&source_ref) => {
                             match source_refs.entry(source_ref) {
                                 std::collections::btree_map::Entry::Vacant(entry) => {
                                     entry.insert(accounts.len());
                                     accounts.push(account);
                                     receipt.accepted_accounts += 1;
+                                    receipt.capped_web_expiries += usize::from(capped_web_expiry);
                                 }
                                 std::collections::btree_map::Entry::Occupied(_) => {
                                     receipt.rejected_records += 1;
@@ -305,44 +308,51 @@ fn convert_account(
     quota_sync_due_at_ms: Option<i64>,
     cooldown_until_ms: Option<i64>,
     observed_at_ms: i64,
-) -> Result<GrokAccountImport, ()> {
+) -> Result<(GrokAccountImport, bool), ()> {
     let provider = match provider {
         "grok_build" => GrokAccountProvider::Build,
         "grok_web" => GrokAccountProvider::Web,
         "grok_console" => GrokAccountProvider::Console,
         _ => return Err(()),
     };
-    match provider {
+    let (credential, capped_web_expiry) = match provider {
         GrokAccountProvider::Build => {
             GrokBuildCredential::import_runtime_json(credential.as_bytes(), observed_at_ms)
                 .map_err(|_| ())?;
+            (Zeroizing::new(credential.as_bytes().to_vec()), false)
         }
-        GrokAccountProvider::Web => {
-            GrokWebCredential::import_sso_json(credential.as_bytes(), observed_at_ms)
-                .map_err(|_| ())?;
-        }
+        GrokAccountProvider::Web => GrokWebCredential::normalize_sso_json_for_migration(
+            credential.as_bytes(),
+            observed_at_ms,
+        )
+        .map_err(|_| ())?,
         GrokAccountProvider::Console => {
             GrokConsoleSsoToken::try_from_bytes(credential.as_bytes()).map_err(|_| ())?;
+            (Zeroizing::new(credential.as_bytes().to_vec()), false)
         }
-    }
+    };
     let auth_status = match auth_status {
         "active" => GrokAccountAuthStatus::Active,
         "reauthRequired" => GrokAccountAuthStatus::ReauthRequired,
         _ => return Err(()),
     };
-    Ok(GrokAccountImport {
-        provider,
-        identity: GrokAccountIdentity::try_from_bytes(identity_key).map_err(|_| ())?,
-        credential: GrokAccountCredential::try_from_bytes(credential).map_err(|_| ())?,
-        auth_status,
-        enabled,
-        priority,
-        weight,
-        max_concurrency,
-        refresh_due_at_ms,
-        quota_sync_due_at_ms,
-        cooldown_until_ms,
-    })
+    Ok((
+        GrokAccountImport {
+            provider,
+            identity: GrokAccountIdentity::try_from_bytes(identity_key).map_err(|_| ())?,
+            credential: GrokAccountCredential::try_from_bytes(credential.as_slice())
+                .map_err(|_| ())?,
+            auth_status,
+            enabled,
+            priority,
+            weight,
+            max_concurrency,
+            refresh_due_at_ms,
+            quota_sync_due_at_ms,
+            cooldown_until_ms,
+        },
+        capped_web_expiry,
+    ))
 }
 
 fn valid_link(

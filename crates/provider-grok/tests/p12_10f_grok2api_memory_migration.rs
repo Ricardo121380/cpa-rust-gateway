@@ -36,6 +36,7 @@ fn imports_build_web_console_and_links_without_plaintext_persistence() -> TestRe
         Grok2ApiMemoryStreamMigration::import(&store, "migration-a", Cursor::new(&stream), NOW_MS)?;
     assert_eq!(receipt.source_records, 5);
     assert_eq!(receipt.accepted_accounts, 3);
+    assert_eq!(receipt.capped_web_expiries, 0);
     assert_eq!(receipt.accepted_links, 2);
     assert_eq!(receipt.rejected_records, 0);
     assert_eq!(receipt.created_accounts, 3);
@@ -104,6 +105,54 @@ fn exact_rerun_is_idempotent_with_value_free_counts() -> TestResult {
     assert_eq!(second.unchanged_accounts, 3);
     assert_eq!(second.accepted_links, 2);
     assert_eq!(store.list_accounts()?.len(), 3);
+    Ok(())
+}
+
+#[test]
+fn overlong_web_expiry_is_reduced_to_the_local_window_before_persistence() -> TestResult {
+    const DAY_MS: i64 = 24 * 60 * 60 * 1_000;
+    let store = memory_store()?;
+    let credential = json!({
+        "kind":"grok_web_sso",
+        "account_ref":"web-account-capped",
+        "lineage_ref":"migration-capped",
+        "revision":1,
+        "expires_at_ms":NOW_MS + 180 * DAY_MS,
+        "cookies":[{
+            "name":"sso", "value":"web-cookie-capped", "domain":"grok.com", "path":"/",
+            "secure":true, "http_only":true
+        }]
+    })
+    .to_string();
+    let stream = encode_records(&[account_record(
+        "web-capped",
+        "grok_web",
+        "web-identity-capped",
+        &credential,
+    )]);
+
+    let receipt = Grok2ApiMemoryStreamMigration::import(
+        &store,
+        "migration-capped",
+        Cursor::new(stream),
+        NOW_MS,
+    )?;
+    assert_eq!(receipt.accepted_accounts, 1);
+    assert_eq!(receipt.capped_web_expiries, 1);
+
+    let account = store
+        .list_accounts()?
+        .into_iter()
+        .next()
+        .ok_or("capped Web account was not imported")?;
+    let opened = store.open_credential(&account.id)?;
+    let normalized: Value = serde_json::from_slice(opened.as_bytes())?;
+    assert_eq!(
+        normalized.get("expires_at_ms").and_then(Value::as_i64),
+        Some(NOW_MS + 90 * DAY_MS)
+    );
+    let parsed = provider_grok::GrokWebCredential::import_sso_json(opened.as_bytes(), NOW_MS)?;
+    assert_eq!(parsed.expires_at_ms(), NOW_MS + 90 * DAY_MS);
     Ok(())
 }
 

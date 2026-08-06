@@ -113,10 +113,11 @@ impl fmt::Display for GrokAdminError {
                 let receipt = error.receipt();
                 return write!(
                     formatter,
-                    "native Grok migration failed: category={:?} source_records={} accepted_accounts={} rejected_records={} accepted_links={}",
+                    "native Grok migration failed: category={:?} source_records={} accepted_accounts={} capped_web_expiries={} rejected_records={} accepted_links={}",
                     error.kind(),
                     receipt.source_records,
                     receipt.accepted_accounts,
+                    receipt.capped_web_expiries,
                     receipt.rejected_records,
                     receipt.accepted_links,
                 );
@@ -160,9 +161,10 @@ pub(crate) fn import(
     )
     .map_err(GrokAdminError::Migration)?;
     println!(
-        "native_grok_import=PASS source_records={} accepted_accounts={} rejected_records={} accepted_links={} created_accounts={} unchanged_accounts={}",
+        "native_grok_import=PASS source_records={} accepted_accounts={} capped_web_expiries={} rejected_records={} accepted_links={} created_accounts={} unchanged_accounts={}",
         receipt.source_records,
         receipt.accepted_accounts,
+        receipt.capped_web_expiries,
         receipt.rejected_records,
         receipt.accepted_links,
         receipt.created_accounts,

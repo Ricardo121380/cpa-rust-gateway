@@ -202,6 +202,48 @@ impl GrokWebCredential {
         })
     }
 
+    /// Normalizes an otherwise valid migration credential to the local 90-day session window.
+    ///
+    /// This is deliberately narrower than [`Self::import_sso_json`]: direct callers retain the
+    /// strict overlong-session rejection contract. A controlled migration may accept a source
+    /// Cookie whose upstream expiry is farther away, but CPAR persists only an effective expiry of
+    /// `min(source_expiry, observed_at_ms + 90 days)`. The returned boolean makes that reduction
+    /// visible in a value-free migration receipt.
+    ///
+    /// # Errors
+    ///
+    /// Expired, malformed, overflowed, unsafe, duplicate, or otherwise invalid credentials still
+    /// fail closed. The normalized bytes and all Cookie values remain zeroized by the caller.
+    pub(crate) fn normalize_sso_json_for_migration(
+        input: &[u8],
+        observed_at_ms: i64,
+    ) -> Result<(Zeroizing<Vec<u8>>, bool), GrokWebCredentialError> {
+        let mut value = parse_strict_json(input, MAX_CREDENTIAL_JSON_BYTES)
+            .map_err(|()| GrokWebCredentialError::InvalidJson)?;
+        let object = value
+            .as_object_mut()
+            .ok_or(GrokWebCredentialError::InvalidField)?;
+        let source_expiry = required_positive_timestamp(object, "expires_at_ms")?;
+        let latest_expiry = observed_at_ms
+            .checked_add(MAX_SESSION_LIFETIME_MS)
+            .ok_or(GrokWebCredentialError::InvalidTimestamp)?;
+        if observed_at_ms < 0 || source_expiry <= observed_at_ms {
+            return Err(GrokWebCredentialError::InvalidTimestamp);
+        }
+        if source_expiry <= latest_expiry {
+            Self::import_sso_json(input, observed_at_ms)?;
+            return Ok((Zeroizing::new(input.to_vec()), false));
+        }
+        object.insert(
+            "expires_at_ms".to_owned(),
+            Value::Number(latest_expiry.into()),
+        );
+        let normalized =
+            serde_json::to_vec(&value).map_err(|_| GrokWebCredentialError::InvalidJson)?;
+        Self::import_sso_json(&normalized, observed_at_ms)?;
+        Ok((Zeroizing::new(normalized), true))
+    }
+
     /// Returns the provider identity; it is never inferred from a model name.
     #[must_use]
     pub const fn provider_id() -> &'static str {

@@ -172,6 +172,10 @@
 - [P12-10I-10 Autoreg SSO provider matrix review](evidence/p12-10i-10-autoreg-sso-provider-matrix-review-20260805.md) — narrow probe-scope review and external blockers
 - [P12-10I-11 Autoreg SSO Build exact-artifact receipt](evidence/p12-10i-11-autoreg-sso-build-exact-artifact-receipt-20260805.md) — signed ARM artifact, two-account batch-scoped probe pass, rollback, and production invariants
 - [P12-10I-11 Autoreg SSO Build exact-artifact review](evidence/p12-10i-11-autoreg-sso-build-exact-artifact-review-20260805.md) — exact attribution review and bounded Build closure
+- [P12-10I-12 Console same-egress reference parity receipt](evidence/p12-10i-12-console-reference-parity-receipt-20260806.md) — exact grok2api reference reproduced the current upstream Console 403 on the same Oracle egress
+- [P12-10I-12 Console same-egress reference parity review](evidence/p12-10i-12-console-reference-parity-review-20260806.md) — review accepting external reference parity without a speculative CPAR Console change
+- [P12-10I-13 Web local expiry-cap receipt](evidence/p12-10i-13-web-expiry-cap-local-receipt-20260806.md) — migration-only source-expiry reduction to the unchanged 90-day local maximum with explicit value-free counting
+- [P12-10I-13 Web local expiry-cap review](evidence/p12-10i-13-web-expiry-cap-local-review-20260806.md) — safety review preserving strict direct-import rejection and deferring one combined signed Web E2E
 - [P12-02 deployment envelope execution plan](p12-02-execution-plan.md) — approved minimal `serve`, isolated loopback listeners, `LoadCredential`, state/log directories, systemd hardening and Linux verification plan
 - [P12-02 deployment envelope acceptance](p12-02-deployment-envelope.md) — local Full gate, independent review, and repaired real-Linux systemd 255 syntax verification accepted; no Unit was installed or started
 - [P12-03 server backup and rollback inventory plan](p12-03-execution-plan.md) — constrained server-local snapshot plan; no configuration, database, or credential material may enter the repository

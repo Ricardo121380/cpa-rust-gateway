@@ -19,8 +19,11 @@ replacement from overwriting a newer one. It must not search a browser profile o
 
 1. Accept only a strict bounded JSON shape with opaque non-PII account and lineage references,
    non-negative revision, bounded absolute expiry, and one or more explicitly scoped Cookies.
-2. Reject duplicate JSON names, unknown fields, expired/overlong sessions, unsafe Cookie values,
+2. Reject duplicate JSON names, unknown fields, expired sessions, unsafe Cookie values,
    IP/private-like Cookie domains, insecure Cookies, and duplicate `(name, domain, path)` scopes.
+   The strict direct importer also rejects an expiry beyond 90 days. A governed migration adapter
+   may accept a valid longer source expiry only by persisting
+   `min(source_expiry, observed_at + 90 days)` and reporting a value-free capped-record count.
 3. Keep Cookie values in `Zeroizing<String>` and redact them from every debug representation.
    Public access to a value is limited to an immediate later Web-session request constructor. An
    injected `SecretStore` can produce a storage-neutral AEAD envelope; it binds the exact Web
@@ -38,6 +41,8 @@ replacement from overwriting a newer one. It must not search a browser profile o
   Cookie serialization or accepting a cross-account/cross-lineage substitution.
 - A Cookie/session refresh is explicit and revision guarded; a stale 403/refresh path cannot
   replace a newer session or silently cross account lineage.
+- A long-lived browser Cookie cannot widen CPAR authority: migration stores at most 90 days, while
+  direct callers retain the original overlong-session rejection.
 - The current slot deliberately has no persistence, browser/profile discovery, egress, or HTTP;
   later P9 tasks own those external boundaries and any durable runtime decision.
 

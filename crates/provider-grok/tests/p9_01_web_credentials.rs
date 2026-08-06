@@ -130,6 +130,18 @@ fn malformed_expired_or_ambiguous_sso_exports_fail_closed() {
         import(&expired),
         Err(GrokWebCredentialError::InvalidTimestamp)
     );
+
+    let overlong = export_with_expiry(
+        "web_account_01",
+        "sso_import_01",
+        0,
+        "session_value",
+        OBSERVED_AT_MS + 91 * 24 * 60 * 60 * 1_000,
+    );
+    assert_eq!(
+        import(&overlong),
+        Err(GrokWebCredentialError::InvalidTimestamp)
+    );
 }
 
 #[test]
