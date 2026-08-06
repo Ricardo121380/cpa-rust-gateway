@@ -178,6 +178,8 @@
 - [P12-10I-13 Web local expiry-cap review](evidence/p12-10i-13-web-expiry-cap-local-review-20260806.md) — safety review preserving strict direct-import rejection and deferring one combined signed Web E2E
 - [P12-10I-14 Web native runtime local receipt](evidence/p12-10i-14-web-native-runtime-local-receipt-20260806.md) — dynamic Statsig, fixed Web transport, native account-pool binding and strict local gate; signed Oracle E2E remains pending
 - [P12-10I-14 Web native runtime local review](evidence/p12-10i-14-web-native-runtime-local-review-20260806.md) — concurrency, target, capability, redaction and retry review before the exact-revision server cycle
+- [P12-10I-14 Web native CPAR E2E receipt](evidence/p12-10i-14-web-native-cpar-e2e-receipt-20260806.md) — corrected isolated graph, real CPAR models preflight and first inference stopped at value-free `EgressRejected/egress`
+- [P12-10I-14 Web native CPAR E2E review](evidence/p12-10i-14-web-native-cpar-e2e-review-20260806.md) — local gate and runtime-stage diagnosis pass; provider/session boundary remains blocked
 - [P12-02 deployment envelope execution plan](p12-02-execution-plan.md) — approved minimal `serve`, isolated loopback listeners, `LoadCredential`, state/log directories, systemd hardening and Linux verification plan
 - [P12-02 deployment envelope acceptance](p12-02-deployment-envelope.md) — local Full gate, independent review, and repaired real-Linux systemd 255 syntax verification accepted; no Unit was installed or started
 - [P12-03 server backup and rollback inventory plan](p12-03-execution-plan.md) — constrained server-local snapshot plan; no configuration, database, or credential material may enter the repository

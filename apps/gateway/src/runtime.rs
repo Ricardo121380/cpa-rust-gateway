@@ -285,7 +285,7 @@ pub(crate) fn deployment_route_compiler(
     database: &Path,
 ) -> Result<RouteCompiler, RuntimeCompositionError> {
     let mut repository = SqliteControlPlaneRepository::open(database)
-        .map_err(|_| RuntimeCompositionError::Unavailable)?;
+        .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::ControlPlane))?;
     let versions = repository
         .list_config_versions()
         .map_err(|_| RuntimeCompositionError::Unavailable)?;
@@ -386,7 +386,7 @@ pub(crate) fn build_data_plane_composition(
     ));
     let executor: Arc<dyn ResponsesExecutor> = match repository
         .load_active_configuration()
-        .map_err(|_| RuntimeCompositionError::Unavailable)?
+        .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::ControlPlane))?
     {
         Some(configuration) => Arc::new(P12RoutedResponsesExecutor::try_new(
             database,
@@ -409,10 +409,12 @@ pub(crate) fn build_data_plane_composition(
         Arc::new(SystemResponsesMetadataFactory::new()),
         authenticator,
         event_sink,
-        default_stream_capacity().map_err(|_| RuntimeCompositionError::Unavailable)?,
+        default_stream_capacity().map_err(|_| {
+            RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime)
+        })?,
     );
-    let event_store =
-        SqliteEventStore::open(database).map_err(|_| RuntimeCompositionError::Unavailable)?;
+    let event_store = SqliteEventStore::open(database)
+        .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EventStore))?;
 
     Ok(DataPlaneComposition {
         data,
@@ -461,11 +463,55 @@ impl DurabilityMetricsSource for P12DurabilityMetrics {
 pub(crate) enum RuntimeCompositionError {
     /// A control-plane, Snapshot, encrypted Credential, or bounded transport invariant failed.
     Unavailable,
+    /// A bounded, value-free classification used at the deployment boundary.
+    Stage(RuntimeCompositionStage),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum RuntimeCompositionStage {
+    ControlPlane,
+    RequiredResources,
+    NetworkShape,
+    CredentialBindings,
+    RouteAccess,
+    Snapshot,
+    Egress,
+    CredentialPool,
+    NativeAccountPool,
+    AdapterRegistry,
+    EndpointRuntime,
+    EventStore,
+}
+
+impl RuntimeCompositionStage {
+    const fn label(self) -> &'static str {
+        match self {
+            Self::ControlPlane => "control_plane",
+            Self::RequiredResources => "required_resources",
+            Self::NetworkShape => "network_shape",
+            Self::CredentialBindings => "credential_bindings",
+            Self::RouteAccess => "route_access",
+            Self::Snapshot => "snapshot",
+            Self::Egress => "egress",
+            Self::CredentialPool => "credential_pool",
+            Self::NativeAccountPool => "native_account_pool",
+            Self::AdapterRegistry => "adapter_registry",
+            Self::EndpointRuntime => "endpoint_runtime",
+            Self::EventStore => "event_store",
+        }
+    }
 }
 
 impl fmt::Display for RuntimeCompositionError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("P12 Staging runtime is unavailable")
+        match self {
+            Self::Unavailable => formatter.write_str("P12 Staging runtime is unavailable"),
+            Self::Stage(stage) => write!(
+                formatter,
+                "P12 Staging runtime is unavailable (stage={})",
+                stage.label()
+            ),
+        }
     }
 }
 
@@ -712,7 +758,7 @@ impl P12RoutedResponsesExecutor {
     // registries explicitly. Native Grok account compilation adds the database handle alongside
     // the existing immutable snapshot dependencies; bundling them would hide ownership at the
     // control/data-plane boundary.
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
     fn try_new(
         database: &Path,
         configuration: &ControlPlaneConfiguration,
@@ -723,13 +769,30 @@ impl P12RoutedResponsesExecutor {
         runtime_health: Arc<RuntimeHealthRegistry>,
         runtime_quota: Arc<RuntimeQuotaRegistry>,
     ) -> Result<Self, RuntimeCompositionError> {
-        validate_p12_configuration_shape(configuration)?;
+        let native_grok_graph = configuration.endpoints.iter().any(is_native_grok_endpoint);
+        let stage_error = |stage| {
+            if native_grok_graph {
+                RuntimeCompositionError::Stage(stage)
+            } else {
+                RuntimeCompositionError::Unavailable
+            }
+        };
+        validate_p12_required_resources(configuration)
+            .map_err(|_| stage_error(RuntimeCompositionStage::RequiredResources))?;
+        validate_p12_network_shape(configuration)
+            .map_err(|_| stage_error(RuntimeCompositionStage::NetworkShape))?;
+        validate_p12_credential_bindings(configuration)
+            .map_err(|_| stage_error(RuntimeCompositionStage::CredentialBindings))?;
+        validate_p12_route_access_shape(configuration)
+            .map_err(|_| stage_error(RuntimeCompositionStage::RouteAccess))?;
         let snapshot = registry.load();
         if snapshot.version().as_str() != configuration.version.id.as_str() {
-            return Err(RuntimeCompositionError::Unavailable);
+            return Err(RuntimeCompositionError::Stage(
+                RuntimeCompositionStage::Snapshot,
+            ));
         }
         let policies = EgressPolicyCompiler::compile(configuration)
-            .map_err(|_| RuntimeCompositionError::Unavailable)?;
+            .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::Egress))?;
         let native_endpoint_providers = configuration
             .endpoints
             .iter()
@@ -744,7 +807,7 @@ impl P12RoutedResponsesExecutor {
             .collect::<BTreeSet<_>>();
         let pools = CredentialPoolCompiler::new(secret_store)
             .compile_excluding_endpoints(configuration, &native_endpoint_ids)
-            .map_err(|_| RuntimeCompositionError::Unavailable)?;
+            .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::CredentialPool))?;
         let pools = if native_endpoint_ids.is_empty() {
             pools
         } else {
@@ -755,31 +818,53 @@ impl P12RoutedResponsesExecutor {
                 })
                 .collect::<Vec<_>>();
             let native_store = GrokAccountPoolStore::try_open(database, secret_store.clone())
-                .map_err(|_| RuntimeCompositionError::Unavailable)?;
+                .map_err(|_| {
+                    RuntimeCompositionError::Stage(RuntimeCompositionStage::NativeAccountPool)
+                })?;
             let native_compilation = native_store
-                .compile_native_runtime(&bindings, system_now_ms_runtime()?)
-                .map_err(|_| RuntimeCompositionError::Unavailable)?;
+                .compile_native_runtime(
+                    &bindings,
+                    system_now_ms_runtime().map_err(|_| {
+                        RuntimeCompositionError::Stage(RuntimeCompositionStage::NativeAccountPool)
+                    })?,
+                )
+                .map_err(|_| {
+                    RuntimeCompositionError::Stage(RuntimeCompositionStage::NativeAccountPool)
+                })?;
             for endpoint_id in &native_endpoint_ids {
                 if native_compilation
                     .credential_pools()
                     .pool(endpoint_id)
                     .is_none()
                 {
-                    return Err(RuntimeCompositionError::Unavailable);
+                    return Err(RuntimeCompositionError::Stage(
+                        RuntimeCompositionStage::NativeAccountPool,
+                    ));
                 }
             }
             native_compilation
                 .seed_runtime_health(&runtime_health)
-                .map_err(|_| RuntimeCompositionError::Unavailable)?;
+                .map_err(|_| {
+                    RuntimeCompositionError::Stage(RuntimeCompositionStage::NativeAccountPool)
+                })?;
             native_compilation
                 .seed_runtime_quota(&runtime_quota)
-                .map_err(|_| RuntimeCompositionError::Unavailable)?;
+                .map_err(|_| {
+                    RuntimeCompositionError::Stage(RuntimeCompositionStage::NativeAccountPool)
+                })?;
             pools
                 .merge((*native_compilation.credential_pools()).clone())
-                .map_err(|_| RuntimeCompositionError::Unavailable)?
+                .map_err(|_| {
+                    RuntimeCompositionError::Stage(RuntimeCompositionStage::CredentialPool)
+                })?
         };
-        let adapters = p12_api_format_adapter_registry()?;
-        let endpoints = endpoint_runtimes(configuration, &snapshot, &policies, &adapters)?;
+        let adapters = p12_api_format_adapter_registry().map_err(|_| {
+            RuntimeCompositionError::Stage(RuntimeCompositionStage::AdapterRegistry)
+        })?;
+        let endpoints =
+            endpoint_runtimes(configuration, &snapshot, &policies, &adapters).map_err(|_| {
+                RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime)
+            })?;
         let scheduler = Arc::new(RouteCredentialScheduler::new(
             Arc::clone(&snapshot),
             Arc::new(pools),
@@ -1190,7 +1275,7 @@ fn endpoint_runtimes(
 /// adapter for, Canonical Candidates, bounded attempt budgets, and a bounded total Credential
 /// concurrency.  One non-conforming row fails admission for the whole Version instead of serving
 /// a subset.
-fn validate_p12_configuration_shape(
+fn validate_p12_required_resources(
     configuration: &ControlPlaneConfiguration,
 ) -> Result<(), RuntimeCompositionError> {
     let has_native_grok_endpoint = configuration.endpoints.iter().any(is_native_grok_endpoint);
@@ -1209,9 +1294,7 @@ fn validate_p12_configuration_shape(
     {
         return Err(RuntimeCompositionError::Unavailable);
     }
-    validate_p12_network_shape(configuration)?;
-    validate_p12_credential_bindings(configuration)?;
-    validate_p12_route_access_shape(configuration)
+    Ok(())
 }
 
 fn validate_p12_network_shape(

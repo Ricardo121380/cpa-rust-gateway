@@ -268,7 +268,13 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         registry,
         runtime_client_key_service,
     )
-    .map_err(|_| DeploymentError::RuntimeUnavailable)?;
+    .map_err(|error| {
+        // The runtime error is deliberately value-free: it identifies only the closed
+        // composition stage and cannot contain a target, model, credential, or response value.
+        // Keep the public CLI error stable while making isolated deployment failures actionable.
+        eprintln!("{error}");
+        DeploymentError::RuntimeUnavailable
+    })?;
     let runtime::DataPlaneComposition {
         data,
         management_runtime,
