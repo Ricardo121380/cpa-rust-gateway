@@ -11,7 +11,7 @@ use gateway_store::secret_store::{EncryptedSecret, SecretStore};
 use serde_json::{Map, Value};
 use zeroize::Zeroizing;
 
-use crate::strict_json::parse_strict_json;
+use crate::{GrokWebFlareSolverrClearance, strict_json::parse_strict_json};
 
 const MAX_CREDENTIAL_JSON_BYTES: usize = 64 * 1024;
 const MAX_ACCOUNT_REFERENCE_BYTES: usize = 128;
@@ -144,6 +144,47 @@ pub struct GrokWebCredential {
 }
 
 impl GrokWebCredential {
+    /// Returns an account-preserving credential with solver-provided clearance cookies merged.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the observation time is invalid, the current credential is expired,
+    /// or the revision would overflow.
+    pub fn with_flaresolverr_clearance(
+        &self,
+        clearance: &GrokWebFlareSolverrClearance,
+        observed_at_ms: i64,
+    ) -> Result<Self, GrokWebCredentialError> {
+        if observed_at_ms < 0 || self.is_expired_at(observed_at_ms) {
+            return Err(GrokWebCredentialError::InvalidTimestamp);
+        }
+        let revision = self
+            .revision
+            .checked_add(1)
+            .ok_or(GrokWebCredentialError::InvalidRevision)?;
+        let mut cookies = self.cookies.clone();
+        for (name, value) in clearance.cookies() {
+            if let Some(existing) = cookies.iter_mut().find(|cookie| cookie.name == *name) {
+                existing.value = Zeroizing::new(value.clone());
+            } else {
+                cookies.push(GrokWebSessionCookie {
+                    name: name.clone(),
+                    value: Zeroizing::new(value.clone()),
+                    domain: "grok.com".to_owned(),
+                    path: "/".to_owned(),
+                    secure: true,
+                    http_only: false,
+                });
+            }
+        }
+        Ok(Self {
+            account_reference: self.account_reference.clone(),
+            lineage: self.lineage.clone(),
+            cookies,
+            expires_at_ms: self.expires_at_ms,
+            revision,
+        })
+    }
     /// Imports one strict Grok Web SSO cookie export at the supplied observation time.
     ///
     /// The accepted shape is deliberately narrow: `kind`, opaque `account_ref`, opaque
