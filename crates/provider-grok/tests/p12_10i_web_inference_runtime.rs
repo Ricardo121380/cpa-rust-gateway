@@ -18,10 +18,10 @@ use gateway_upstream::UpstreamProxy;
 use protocol_openai_responses::decode_request;
 use provider_grok::{
     GrokWebBrowserEgressSession, GrokWebBrowserUserAgent, GrokWebCredential,
-    GrokWebEgressRefresher, GrokWebEgressSessionId, GrokWebProductionInferenceAdapter,
-    GrokWebProductionOutboundRequest, GrokWebProductionResponseBody, GrokWebProductionTransport,
-    GrokWebProductionTransportResponse, GrokWebStatsigRuntime, GrokWebStatsigSignature,
-    GrokWebStatsigTransport, GrokWebTlsProfile,
+    GrokWebEgressRefresher, GrokWebEgressSessionId, GrokWebFlareSolverrClearance,
+    GrokWebProductionInferenceAdapter, GrokWebProductionOutboundRequest,
+    GrokWebProductionResponseBody, GrokWebProductionTransport, GrokWebProductionTransportResponse,
+    GrokWebStatsigRuntime, GrokWebStatsigSignature, GrokWebStatsigTransport, GrokWebTlsProfile,
 };
 use zeroize::Zeroizing;
 
@@ -76,6 +76,27 @@ async fn pre_start_403_refreshes_statsig_once_then_projects_the_live_stream() ->
         events.iter().any(
             |event| matches!(event, CanonicalEvent::TextDelta(delta) if delta.text == "ready")
         )
+    );
+    Ok(())
+}
+
+#[test]
+fn flaresolverr_clearance_rebuild_preserves_account_binding() -> TestResult {
+    let now_ms = current_ms()?;
+    let session = web_session(now_ms)?;
+    let clearance = GrokWebFlareSolverrClearance::parse(
+        br#"{"status":"ok","solution":{"userAgent":"Chrome","cookies":[{"name":"cf_clearance","value":"fresh"}]}}"#,
+    )?;
+    let before = session.credential_snapshot();
+    let refreshed = before.with_flaresolverr_clearance(&clearance, now_ms)?;
+    assert_eq!(refreshed.account_reference(), before.account_reference());
+    assert_eq!(refreshed.lineage(), before.lineage());
+    assert_eq!(refreshed.revision(), before.revision() + 1);
+    assert!(
+        refreshed
+            .cookies()
+            .iter()
+            .any(|cookie| cookie.name() == "cf_clearance" && cookie.value() == "fresh")
     );
     Ok(())
 }
