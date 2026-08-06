@@ -12,7 +12,7 @@
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
-| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 `CR-P6-03-003`：在确认 2xx JSON 错误对象后，增加最终一次仅从标准错误元数据映射安全类别的诊断调用。 `CR-P6-03-004`：新增一个与固定直连验收隔离的、服务器本地 grok2api Build 路由代理参考探针。 `CR-P6-03-005`：采用服务器参考的当前 Build 请求轮廓，并只登记新的固定端点 T11 非流式与 T12 SSE 验证。 `CR-P6-03-006`：通过 grok2api 支持的管理 API 导入指定 OAuth 文件并做账号专属额度刷新诊断；不重放固定直连元组，也不把共享路由调用误归因到该账号。 `CR-P6-03-007`：仅以本机官方 Grok CLI 做一次交互式 OAuth 重新认证并记录安全状态投影；不发送 P6 请求或改变服务器/路由。 |
+| 已批准变更 | `CR-P1-G1-001`：将 G1 的 Chunk 条件精确为 P1 范围内的 Tool 语义投影一致性；原始 bytes/EventStream 不变性仍由 Provider 阶段验证。 `CR-P3-G3-001`：P3-10/G3 的真实验证公开别名改为 test-only `p3-chatgpt-compat`，不把 ChatGPT-family 上游误称为 `minimax-m3`。 `CR-P3-G3-002`：test-only SSE 单帧有限上限改为 64 KiB。 `CR-P3-G3-003`：仅 P3-10 ignored live profile 的 SSE idle 上限改为 45 秒，其他 transport 边界不变。 `CR-EXEC-001`：缓存化 Full CI、docs-only Gate、单探针诊断 harness。 `CR-EXEC-002`：缓存可见交付引用、补充供应链 Gate 与缓存度量。 `CR-EXEC-003`：Task Card、集中补丁、去重验证、证据模板和时延度量。 `CR-EXEC-004` 至 `CR-EXEC-006`：按风险路由 Luna/默认/高级模型与最低足够思考强度。 `CR-EXEC-007`：P 级开发分支与单次远端正式 Delivery Gate，保留 Task 级本地 review/test，并为 CI/cache 等不可本地证明的变更保留提前远端例外。 `CR-EXEC-008`：进一步降低 GitHub 验证频率，默认只在每个 P 收口时运行一次远端 Delivery Gate；同一 P 内不因普通 Task push 触发远端验证，纯文档/状态改动不单独触发 GitHub workflow。 `CR-P4-G4-001`：新增非 HTTP、只读的管理状态查询与 403 账户受控恢复，以闭合 G4；认证 HTTP/UI 仍属 P10。 `CR-P6-03-001`：将 P6-03 已授权真实验证改为有限、可审计的模型 × 模式矩阵；每个 harness 进程仍严格只发送一次，不重试相同元组。 `CR-P6-03-002`：在前一矩阵全部得到同一脱敏失败类别后，加入一项不记录值的响应分类诊断和一个显式登记的一次性复测。 `CR-P6-03-003`：在确认 2xx JSON 错误对象后，增加最终一次仅从标准错误元数据映射安全类别的诊断调用。 `CR-P6-03-004`：新增一个与固定直连验收隔离的、服务器本地 grok2api Build 路由代理参考探针。 `CR-P6-03-005`：采用服务器参考的当前 Build 请求轮廓，并只登记新的固定端点 T11 非流式与 T12 SSE 验证。 `CR-P6-03-006`：通过 grok2api 支持的管理 API 导入指定 OAuth 文件并做账号专属额度刷新诊断；不重放固定直连元组，也不把共享路由调用误归因到该账号。 `CR-P6-03-007`：仅以本机官方 Grok CLI 做一次交互式 OAuth 重新认证并记录安全状态投影；不发送 P6 请求或改变服务器/路由。 |
 | 已批准变更（续） | `CR-P6-03-008`：以 CPA、grok2api 和 Sub2API 的 clean-room 行为参考扩展 Grok Build 的已知 OAuth 凭据来源；保留标准 JSON/Device Code/Refresh，新增 CPA xAI 文件和官方 Grok CLI indexed cache 的内存导入，不纳入 Cookie/SSO Web 转换。 `CR-P6-03-009`：仅修正 T13 零发送 wrapper 的一次替代 T15 验证；T15 的 4xx 已停止矩阵。 `CR-P6-03-010`：基于官方 CLI 静态证据更正 workspace User-Agent，仅登记新的 T16 非流式直连验证，并在 T16 完整成功时条件允许一次 T17 SSE。 `CR-P6-03-011`：T16 在无网络预检的本地标签门槛前停止后，以不同的合法短标签重新登记 T18 非流式直连；仅其完整 Canonical 成功时允许条件 T19 SSE。 `CR-P6-03-013`：用户批准完成 P6 全部要求，解除 P6-03 对后续本地安全/连续性实现的流程阻塞；不声称 T18 成功、不发送 T19 或重放任何闭合 tuple。 `CR-P6-03-014`：以当前官方 CLI 的成功模型/会话和新完成的可注入执行链路登记 T20/T21，不重放任何已关闭 tuple。 `CR-P6-03-015`：T20 的新的 2xx JSON 协议失败后，只输出固定的无值结构类别诊断 T22。 `CR-P6-03-016`：T22 发现投影在合法压缩前运行，登记一次解压后无值结构诊断 T23。 `CR-P6-03-017`：T23 仍失败后，仅投影第一个固定 decoder requirement gate 的 T24。 |
 | 已批准变更（续 2） | `CR-P7-G7-001`：P7 因 Kiro 外部账号重新认证而阻塞时，允许 P8 按自身顺序进行本地实现与审查；其与 `CR-P7-DEFER-002` 冲突的 P8/G8/P9-P12 顺序约束已由后者替代。 `CR-P7-DEFER-002`：Kiro OAuth 延后；P8-G12 按自身非 Kiro 依赖推进，P8 可执行自身 Phase Gate 与 Delivery Gate；真实 xAI 验证仍仅按 P8 自身明确授权进行。 `CR-P8-DEFER-001`：无 Official API Key 时，P8-07/G8 与 P7-09 一并延后至最终外部认证验收包；P9-P12 Gate 依赖不变。 `CR-P11-04-001`：用户批准把纯 loopback 合成 Soak 的最低门槛由 24 小时改为 10 小时；已完成的 10h13m 用户停止 receipt 仍如实标为 `INCOMPLETE`，P12 的真实 Canary 72h 观察不变。 |
 | 已批准变更（续 5） | `CR-P12-10H-002`：当前没有 Grok 业务流量时，P12-10H 的本地合成验收改为固定 100 次 Console fixture 循环，加上 native account pool/scheduling/workers/migration 四项支撑回归和 loopback health/auth 边界；本次不再等待 72h 或 1250-success。该门槛只证明 CPAR 本地合成契约和边界，不证明外部 Grok 账号/上游可用；后续真实 Grok 验证须另开执行边界。 |
@@ -475,6 +475,31 @@ CR-ID: CR-EXEC-007
 7. **完成语义。** `LOCAL_PASS_PENDING_PHASE_GATE` 是本地通过而非 `DONE`；Phase 唯一正式 Gate
    成功才把其中 Task 一并转为 `DONE`。任何本地或远端失败都回到最早受影响提交修复，不能用后续
    Task、Feature Flag 或报告文字掩盖。
+
+### 1.12 降低 GitHub 验证频率（CR-EXEC-008）
+
+1. **默认按 P 聚合。** 同一 P 的普通代码 Task 在本地完成定向测试、review、Secret/whitespace
+   检查后，允许继续下一个 Task；不因每个 Task 的 push 单独触发 GitHub workflow。P 分支可以持续
+   保留本地提交，最后统一 push 并创建该 P 的唯一 closeout 事件。
+2. **每个 P 只跑一次正式远端 Gate。** P closeout 的一次 GitHub Delivery Gate 执行 Fast、Full
+   supply-chain 和 Required delivery 检查，并作为该 P 的唯一远端验收证据。失败时冻结下一 P，修复
+   后只重跑失败的同一个 P closeout，不回退到每个 Task 逐个验证。
+3. **文档不触发远端。** 纯计划、报告、索引、状态和链接修订默认只做本地 docs gate；不单独 push
+   或启动 GitHub workflow。若该文档是 P closeout 的一部分，随 P 的唯一 closeout 提交一起验证。
+4. **必须提前验证的例外。** 只有 workflow、cache、required-status、分支保护、发布制品、依赖锁、
+   Schema/迁移、安全策略或目标环境行为等无法由本地证明的变更，才允许在 P 中途触发一次提前 GitHub
+   Gate；Task Card 必须写明原因、范围和回滚边界。提前 Gate 通过后，P closeout 仍可复用同一 SHA 的
+   结果，不重复运行相同 job，除非提交发生变化。
+5. **本地门禁不削弱。** 降低 GitHub 频率不等于降低测试频率：每个 Task 仍需本地定向测试和 review；
+   P closeout 前必须运行一次本地完整 gate。真实 Provider、部署和签名制品仍按各自授权与发布边界
+   执行，不能用更少的 GitHub run 替代这些证据。
+6. **触发与分支纪律。** 普通 P 分支开发期间不主动请求 workflow；closeout 使用固定命名的 P tag 或
+   明确的 closeout commit 触发一次。若仓库保护规则要求每次 push 检查，则不绕过保护，而是把中间
+   提交留在本地，最后一次性 push；本地检查结果和提交清单随 closeout receipt 保存。
+
+该变更预计将 GitHub workflow 次数从“每次修复/阶段提交一次”降为“每个 P 一次，外加极少数不可
+本地证明的提前例外”。安全、依赖、发布和生产边界证据保持不变；代价是 P 中途的远端回归发现会延后
+到 closeout，必须依靠本地门禁和 review 控制风险。
 
 ### 已批准 Change Request：CR-P6-03-001
 
@@ -3403,8 +3428,8 @@ G12 的"无 P0/P1 故障"需要可判定的谓词。下表为封闭分类，P0/P
 ### 20.2 提交分类与快速门禁
 
 每个代码、工具链、workflow、脚本、迁移、Fixture、契约或安全策略 Task 都必须在本地运行适用的
-定向格式/Clippy/测试、Secret scan 与 changed-doc link check；整合本地 Phase preflight 和该 Phase 的
-唯一远端 Delivery Gate 至少各运行一次以下完整集合：
+定向格式/Clippy/测试、Secret scan 与 changed-doc link check；每个 P 收口前运行一次整合本地
+Phase preflight 和该 P 的唯一远端 Delivery Gate，至少各运行一次以下完整集合：
 
 ```text
 cargo fmt --check
@@ -3666,3 +3691,4 @@ Next task:
 | v1.186 | 2026-08-06 | 按精确 grok2api `v3.0.10` Web 源码组成 native dynamic Statsig：Cookie-bound `/index` 环境、固定 HTTPS signer、严格 70-byte 签名、1h singleflight cache、sign 失败一次环境刷新、403 前置单次重试及并发旧 403 不删除新签名；Web conversation transport 接入原生 Web account pool 和 `grok.web.responses`，只声明 text/Streaming，Chat/Responses/Messages 继续经 Canonical 投影。provider/gateway 全测试、strict Clippy 与 review 通过 | P12-10I-14 `IN_PROGRESS_ARTIFACT_E2E`；未发 Web/Signer 请求，待 exact-revision artifact + Oracle 隔离 CPAR HTTP E2E/rollback |
 | v1.187 | 2026-08-06 | P12-10I-14 隔离 E2E：运行时阶段诊断定位首个 clean3 启动失败为 route-access 配置形状，根因为 staging helper 写入 30s bootstrap timeout 超过现有 15s bound；修正为 15s 后 clean4 完成导入、两次 restart、publish 与单候选 explain。真实 CPAR curl 模型列表预检通过，首个 Responses 推理发出后返回 5xx，CPAR value-free event 为 `EgressRejected/egress`；按首败未发送 Chat/Messages/SSE，生产不变。`cargo test -p gateway` 78/78、component smoke、strict Clippy、fmt/diff 全部通过 | P12-10I-14 `BLOCKED_WITH_EVIDENCE`；Web provider/session 外部边界仍需新会话或单独 Statsig 分类，不得盲重试 |
 | v1.188 | 2026-08-06 | `CR-P12-10I-16`：按 upstream grok2api `v3.1.1` 复刻 Console DPoP token exchange/proof/cache/401 renewal、真实 usage 三窗口与 24h recovery projection、顶层 JSON-array 凭证导入；provider 全测试与 strict Clippy 通过，无 live upstream/生产变更。Console media routes 暂缓，待 CPAR 建立统一 typed media protocol/HTTP contract 后再接线 | P12-10I-16 `LOCAL_PASS_PENDING_MEDIA_PROTOCOL`；P12-10I-14 仍 `BLOCKED_WITH_EVIDENCE` |
+| v1.189 | 2026-08-06 | `CR-EXEC-008`：按用户要求进一步降低 GitHub 验证频率；普通 Task 只做本地定向 gate/review，同一 P 聚合到一次 closeout Delivery Gate；纯文档/状态变更默认不触发 GitHub workflow；workflow/cache/required-status/依赖锁/发布/安全和目标环境等不可本地证明的变更保留一次提前例外。质量门槛、P closeout 的 Fast/Full/Required 和签名制品证据不降低 | APPROVED；当前执行基线 |
