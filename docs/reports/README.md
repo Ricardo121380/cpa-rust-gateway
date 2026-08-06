@@ -180,6 +180,8 @@
 - [P12-10I-14 Web native runtime local review](evidence/p12-10i-14-web-native-runtime-local-review-20260806.md) — concurrency, target, capability, redaction and retry review before the exact-revision server cycle
 - [P12-10I-14 Web native CPAR E2E receipt](evidence/p12-10i-14-web-native-cpar-e2e-receipt-20260806.md) — corrected isolated graph, real CPAR models preflight and first inference stopped at value-free `EgressRejected/egress`
 - [P12-10I-14 Web native CPAR E2E review](evidence/p12-10i-14-web-native-cpar-e2e-review-20260806.md) — local gate and runtime-stage diagnosis pass; provider/session boundary remains blocked
+- [P12-10I-15 grok2api latest-source Console receipt](evidence/p12-10i-15-grok2api-latest-console-receipt-20260806.md) — latest source comparison found no newer provider delta; isolated Console probe stopped on expired credential authorization
+- [P12-10I-15 grok2api latest-source Console review](evidence/p12-10i-15-grok2api-latest-console-review-20260806.md) — no source overwrite, separate Web/Console boundary preserved, production unchanged
 - [P12-02 deployment envelope execution plan](p12-02-execution-plan.md) — approved minimal `serve`, isolated loopback listeners, `LoadCredential`, state/log directories, systemd hardening and Linux verification plan
 - [P12-02 deployment envelope acceptance](p12-02-deployment-envelope.md) — local Full gate, independent review, and repaired real-Linux systemd 255 syntax verification accepted; no Unit was installed or started
 - [P12-03 server backup and rollback inventory plan](p12-03-execution-plan.md) — constrained server-local snapshot plan; no configuration, database, or credential material may enter the repository
