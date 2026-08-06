@@ -179,7 +179,7 @@ pub use web_failure::{
 };
 pub use web_flaresolverr::{
     GROK_WEB_FLARESOLVERR_URL, GrokWebFlareSolverrClearance, GrokWebFlareSolverrError,
-    GrokWebFlareSolverrRequest,
+    GrokWebFlareSolverrRequest, GrokWebFlareSolverrTransport, GrokWebFlareSolverrTransportResponse,
 };
 pub use web_live::{GrokWebLiveStreamDecoder, MAX_GROK_WEB_LIVE_FRAME_BYTES};
 pub use web_production::{

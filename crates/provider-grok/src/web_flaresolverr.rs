@@ -5,6 +5,8 @@
 
 use std::{error::Error, fmt};
 
+use gateway_core::GatewayError;
+use gateway_provider::ProviderFuture;
 use serde::{Deserialize, Serialize};
 
 /// Fixed local `FlareSolverr` endpoint; never configurable from a public request.
@@ -32,6 +34,58 @@ impl Default for GrokWebFlareSolverrRequest {
             max_timeout: 20_000,
         }
     }
+}
+
+impl GrokWebFlareSolverrRequest {
+    /// Encodes the fixed request without retaining or logging credential material.
+    ///
+    /// # Errors
+    ///
+    /// Returns an encoding error if the fixed request cannot be serialized.
+    pub fn to_json(&self) -> Result<Vec<u8>, GrokWebFlareSolverrError> {
+        serde_json::to_vec(self).map_err(|_| GrokWebFlareSolverrError::InvalidRequest)
+    }
+}
+
+/// Response returned by a bounded, injected loopback `FlareSolverr` transport.
+pub struct GrokWebFlareSolverrTransportResponse {
+    status: u16,
+    body: Vec<u8>,
+}
+
+impl GrokWebFlareSolverrTransportResponse {
+    /// Creates one bounded transport response.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the body exceeds the fixed response bound.
+    pub fn new(status: u16, body: Vec<u8>) -> Result<Self, GrokWebFlareSolverrError> {
+        if body.len() > MAX_RESPONSE_BYTES {
+            return Err(GrokWebFlareSolverrError::TooLarge);
+        }
+        Ok(Self { status, body })
+    }
+
+    /// Returns the HTTP status.
+    #[must_use]
+    pub const fn status(&self) -> u16 {
+        self.status
+    }
+
+    /// Consumes the response into its bounded body.
+    #[must_use]
+    pub fn into_body(self) -> Vec<u8> {
+        self.body
+    }
+}
+
+/// Explicit transport boundary for the local `FlareSolverr` service.
+pub trait GrokWebFlareSolverrTransport: Send + Sync {
+    /// Sends one fixed request to the already-admitted loopback endpoint.
+    fn send(
+        &self,
+        request: GrokWebFlareSolverrRequest,
+    ) -> ProviderFuture<'_, Result<GrokWebFlareSolverrTransportResponse, GatewayError>>;
 }
 
 /// Sanitized clearance material returned by the solver.
@@ -134,6 +188,8 @@ struct SolverCookie {
 /// Safe parser failures without response values.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GrokWebFlareSolverrError {
+    /// Request serialization failed.
+    InvalidRequest,
     /// Response exceeded the parser bound.
     TooLarge,
     /// Response was not valid JSON of the expected shape.
@@ -153,6 +209,7 @@ pub enum GrokWebFlareSolverrError {
 impl fmt::Display for GrokWebFlareSolverrError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(match self {
+            Self::InvalidRequest => "FlareSolverr request encoding failed",
             Self::TooLarge => "FlareSolverr response too large",
             Self::InvalidResponse => "FlareSolverr response invalid",
             Self::SolverRejected => "FlareSolverr rejected request",
