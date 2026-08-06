@@ -353,74 +353,63 @@ impl fmt::Display for GrokConsoleDpopError {
 impl std::error::Error for GrokConsoleDpopError {}
 
 #[cfg(test)]
-#[allow(clippy::expect_used)]
 mod tests {
     use super::*;
+    use std::error::Error;
 
-    fn token_for(key: &SigningKey, exp: u64) -> String {
+    type TestResult<T = ()> = Result<T, Box<dyn Error>>;
+
+    fn token_for(key: &SigningKey, exp: u64) -> TestResult<String> {
         let header = URL_SAFE_NO_PAD.encode(br#"{"alg":"ES256","typ":"JWT"}"#);
         let jwk = DpopJwk::from_key(key.verifying_key());
-        let claims =
-            serde_json::json!({"exp": exp, "cnf": {"jkt": jwk.thumbprint().expect("thumbprint")}});
-        format!(
+        let claims = serde_json::json!({"exp": exp, "cnf": {"jkt": jwk.thumbprint()?}});
+        Ok(format!(
             "{}.{}.sig",
             header,
-            URL_SAFE_NO_PAD.encode(serde_json::to_vec(&claims).expect("claims"))
-        )
+            URL_SAFE_NO_PAD.encode(serde_json::to_vec(&claims)?)
+        ))
     }
 
     #[test]
-    fn proof_contains_dpop_claims_and_fixed_width_signature() {
+    fn proof_contains_dpop_claims_and_fixed_width_signature() -> TestResult {
         let now = UNIX_EPOCH + Duration::from_secs(1_700_000_000);
         let key = GrokConsoleDpopSession::generate_key();
-        let token = token_for(&key, 1_700_000_600);
-        let session = GrokConsoleDpopSession::from_token_response(token, "DPoP", 600, key, now)
-            .expect("session");
-        let proof = session
-            .proof("post", "https://console.x.ai/v1/responses", now)
-            .expect("proof");
+        let token = token_for(&key, 1_700_000_600)?;
+        let session = GrokConsoleDpopSession::from_token_response(token, "DPoP", 600, key, now)?;
+        let proof = session.proof("post", "https://console.x.ai/v1/responses", now)?;
         let parts: Vec<_> = proof.split('.').collect();
         assert_eq!(parts.len(), 3);
-        assert_eq!(
-            URL_SAFE_NO_PAD.decode(parts[2]).expect("signature").len(),
-            64
-        );
-        let claims: Value =
-            serde_json::from_slice(&URL_SAFE_NO_PAD.decode(parts[1]).expect("claims"))
-                .expect("decoded claims");
+        assert_eq!(URL_SAFE_NO_PAD.decode(parts[2])?.len(), 64);
+        let claims: Value = serde_json::from_slice(&URL_SAFE_NO_PAD.decode(parts[1])?)?;
         assert_eq!(claims["htm"], "POST");
         assert_eq!(claims["htu"], "https://console.x.ai/v1/responses");
         assert!(claims["ath"].as_str().is_some());
+        Ok(())
     }
 
     #[test]
-    fn cache_invalidation_does_not_remove_a_successor() {
+    fn cache_invalidation_does_not_remove_a_successor() -> TestResult {
         let now = UNIX_EPOCH + Duration::from_secs(1_700_000_000);
         let key = GrokConsoleDpopSession::generate_key();
         let first = GrokConsoleDpopSession::from_token_response(
-            token_for(&key, 1_700_000_600),
+            token_for(&key, 1_700_000_600)?,
             "DPoP",
             600,
             key.clone(),
             now,
-        )
-        .expect("first");
+        )?;
         let successor_key = GrokConsoleDpopSession::generate_key();
         let successor = GrokConsoleDpopSession::from_token_response(
-            token_for(&successor_key, 1_700_000_600),
+            token_for(&successor_key, 1_700_000_600)?,
             "DPoP",
             600,
             successor_key,
             now,
-        )
-        .expect("successor");
+        )?;
         let cache = GrokConsoleDpopSessionCache::default();
-        cache
-            .insert("account|egress".to_owned(), successor)
-            .expect("insert");
-        cache
-            .invalidate("account|egress", first.access_token())
-            .expect("invalidate");
+        cache.insert("account|egress".to_owned(), successor)?;
+        cache.invalidate("account|egress", first.access_token())?;
         assert!(cache.get("account|egress", now).is_some());
+        Ok(())
     }
 }

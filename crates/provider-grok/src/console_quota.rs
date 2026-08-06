@@ -137,19 +137,22 @@ struct UsageQuota {
 }
 
 #[cfg(test)]
-#[allow(clippy::expect_used)]
 mod tests {
     use super::*;
+    use std::error::Error;
     use std::time::{Duration, UNIX_EPOCH};
 
+    type TestResult = Result<(), Box<dyn Error>>;
+
     #[test]
-    fn projects_complete_usage_and_predicts_chat_recovery() {
+    fn projects_complete_usage_and_predicts_chat_recovery() -> TestResult {
         let now = UNIX_EPOCH + Duration::from_secs(1_700_000_000);
         let body = br#"{"quotas":[{"kind":"video","limit":3,"used":1,"remaining":2},{"kind":"chat","limit":10,"used":10,"remaining":0},{"kind":"image","limit":5,"used":2,"remaining":3}]}"#;
-        let snapshot = parse_grok_console_usage(body, now).expect("usage");
+        let snapshot = parse_grok_console_usage(body, now)?;
         assert_eq!(snapshot.windows.len(), 3);
         assert_eq!(snapshot.windows[0].kind, GrokConsoleQuotaKind::Chat);
         assert_eq!(snapshot.windows[0].reset_at, Some(now + RECOVERY_WINDOW));
+        Ok(())
     }
 
     #[test]
