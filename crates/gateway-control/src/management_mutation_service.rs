@@ -1249,6 +1249,8 @@ impl ManagementMutationService {
                         && endpoint.adapter_id == "grok.build.responses")
                         || (upstream.kind == "grok-console-native"
                             && endpoint.adapter_id == "grok.console.responses")
+                        || (upstream.kind == "grok-web-native"
+                            && endpoint.adapter_id == "grok.web.responses")
                 });
             if !has_active_binding && !native_grok_account_pool {
                 error_codes.push("route_candidate_missing_active_credential");
