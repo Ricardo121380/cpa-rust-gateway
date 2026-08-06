@@ -27,6 +27,7 @@ mod web_conversation;
 mod web_credential;
 mod web_egress_session;
 mod web_failure;
+mod web_flaresolverr;
 mod web_live;
 mod web_production;
 mod web_quota;
@@ -175,6 +176,10 @@ pub use web_failure::{
     GrokWebEgressAvailability, GrokWebEgressFailureState, GrokWebFailureAction,
     GrokWebFailureDisposition, GrokWebFailureError, GrokWebFailureStateError,
     classify_grok_web_http_failure,
+};
+pub use web_flaresolverr::{
+    GROK_WEB_FLARESOLVERR_URL, GrokWebFlareSolverrClearance, GrokWebFlareSolverrError,
+    GrokWebFlareSolverrRequest,
 };
 pub use web_live::{GrokWebLiveStreamDecoder, MAX_GROK_WEB_LIVE_FRAME_BYTES};
 pub use web_production::{
