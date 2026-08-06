@@ -168,9 +168,12 @@ pub use web_failure::{
 };
 pub use web_live::{GrokWebLiveStreamDecoder, MAX_GROK_WEB_LIVE_FRAME_BYTES};
 pub use web_production::{
-    GrokWebProductionOutboundRequest, GrokWebProductionRequestBuilder,
-    GrokWebProductionRequestError, GrokWebProductionStreamDecoder,
-    MAX_GROK_WEB_PRODUCTION_MESSAGE_BYTES, MAX_GROK_WEB_PRODUCTION_REQUEST_BYTES,
+    GROK_WEB_PRODUCTION_BASE_URL, GROK_WEB_PRODUCTION_PROVIDER_ID, GROK_WEB_PRODUCTION_USER_AGENT,
+    GrokWebProductionInferenceAdapter, GrokWebProductionOutboundRequest,
+    GrokWebProductionRequestBuilder, GrokWebProductionRequestError, GrokWebProductionResponseBody,
+    GrokWebProductionStreamDecoder, GrokWebProductionTransport, GrokWebProductionTransportResponse,
+    GrokWebProductionUpstreamTransport, MAX_GROK_WEB_PRODUCTION_MESSAGE_BYTES,
+    MAX_GROK_WEB_PRODUCTION_REQUEST_BYTES,
 };
 pub use web_quota::{
     GrokWebQuotaConfidence, GrokWebQuotaError, GrokWebQuotaFixtureDecoder, GrokWebQuotaSource,
@@ -178,8 +181,10 @@ pub use web_quota::{
     GrokWebQuotaWindowKind, MAX_GROK_WEB_QUOTA_FIXTURE_BYTES,
 };
 pub use web_statsig::{
-    GrokWebStatsigError, GrokWebStatsigSignature, GrokWebStatsigSignatureCache,
-    GrokWebStatsigSignatureKey, GrokWebStatsigSignerBoundary, GrokWebStatsigSignerTarget,
+    GROK_WEB_DEFAULT_STATSIG_SIGNER_URL, GrokWebStatsigError, GrokWebStatsigRuntime,
+    GrokWebStatsigSignature, GrokWebStatsigSignatureCache, GrokWebStatsigSignatureKey,
+    GrokWebStatsigSignerBoundary, GrokWebStatsigSignerTarget, GrokWebStatsigTransport,
+    GrokWebStatsigUpstreamTransport,
 };
 pub use web_tool_emulation::{
     GrokWebToolCapability, GrokWebToolEmulation, GrokWebToolEmulationError,

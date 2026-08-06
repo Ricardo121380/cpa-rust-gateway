@@ -5,19 +5,39 @@
 //! target admission and strict live JSON-object decoder. Unsupported semantic surfaces fail before
 //! transport; in particular this boundary does not claim native Function Tool support.
 
-use std::{error::Error, fmt, fmt::Write as _};
+use std::{
+    collections::VecDeque,
+    error::Error,
+    fmt,
+    fmt::Write as _,
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
-use gateway_core::{CanonicalMessage, CanonicalRequest, MessageContent};
+use gateway_core::{
+    CanonicalEvent, CanonicalMessage, CanonicalRequest, ErrorScope, GatewayError, GatewayErrorCode,
+    MessageContent, ProviderId, RequestContext, StreamError,
+};
+use gateway_provider::{CanonicalEventSource, InferenceAdapter, ProviderAdapter, ProviderFuture};
 use gateway_upstream::{
-    AdmittedEgressTarget, EgressScheme, UpstreamHttpMethod, UpstreamHttpRequest,
+    AdmittedEgressTarget, EgressDnsResolver, EgressPolicy, EgressScheme, UpstreamClientPool,
+    UpstreamHttpMethod, UpstreamHttpRequest, UpstreamHttpResponse, UpstreamTransportProfile,
 };
 use serde_json::{Map, Value};
 use zeroize::Zeroizing;
 
 use crate::{
-    GROK_WEB_CANARY_HOST, GROK_WEB_CANARY_PATH, GROK_WEB_CANARY_URL, GrokWebBrowserEgressSession,
-    GrokWebBrowserEgressSessionError, GrokWebLiveStreamDecoder, GrokWebStatsigSignature,
+    GROK_WEB_CANARY_HOST, GROK_WEB_CANARY_PATH, GROK_WEB_CANARY_URL, GrokWebAccountEvidence,
+    GrokWebBrowserEgressSession, GrokWebBrowserEgressSessionError, GrokWebLiveStreamDecoder,
+    GrokWebStatsigRuntime, GrokWebStatsigSignature, classify_grok_web_http_failure,
 };
+
+/// Fixed Web base URL used by control-plane Endpoint shape validation.
+pub const GROK_WEB_PRODUCTION_BASE_URL: &str = "https://grok.com";
+/// Fixed browser profile paired with grok2api-compatible Web requests.
+pub const GROK_WEB_PRODUCTION_USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36";
+/// Stable native Web provider identity.
+pub const GROK_WEB_PRODUCTION_PROVIDER_ID: &str = "grok.web";
 
 /// Maximum normalized text retained in one Web request.
 pub const MAX_GROK_WEB_PRODUCTION_MESSAGE_BYTES: usize = 1024 * 1024;
@@ -348,3 +368,355 @@ fn map_session_error(_: GrokWebBrowserEgressSessionError) -> GrokWebProductionRe
 
 /// The production response decoder remains the strict P9-09 live JSON-object decoder.
 pub type GrokWebProductionStreamDecoder = GrokWebLiveStreamDecoder;
+
+/// Pull-only body returned from one admitted Web conversation request.
+pub trait GrokWebProductionResponseBody: Send {
+    /// Returns the next opaque body chunk or normal end of stream.
+    fn next_chunk(&mut self) -> ProviderFuture<'_, Result<Option<Vec<u8>>, GatewayError>>;
+}
+
+/// Safe status and pull-only body projection from the Web transport.
+pub struct GrokWebProductionTransportResponse {
+    status: u16,
+    body: Box<dyn GrokWebProductionResponseBody>,
+}
+
+impl GrokWebProductionTransportResponse {
+    /// Creates a response handoff after shared HTTP transport admission.
+    #[must_use]
+    pub fn new(status: u16, body: Box<dyn GrokWebProductionResponseBody>) -> Self {
+        Self { status, body }
+    }
+
+    fn into_parts(self) -> (u16, Box<dyn GrokWebProductionResponseBody>) {
+        (self.status, self.body)
+    }
+}
+
+impl fmt::Debug for GrokWebProductionTransportResponse {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("GrokWebProductionTransportResponse")
+            .field("status", &self.status)
+            .field("body", &"<streaming>")
+            .finish()
+    }
+}
+
+/// Sends one already-built Web conversation request without implicit account fallback.
+pub trait GrokWebProductionTransport: Send + Sync {
+    /// Executes exactly one admitted request.
+    fn send(
+        &self,
+        request: GrokWebProductionOutboundRequest,
+    ) -> ProviderFuture<'_, Result<GrokWebProductionTransportResponse, GatewayError>>;
+}
+
+/// Production Web conversation transport through the Chrome-emulated DNS-pinned client.
+pub struct GrokWebProductionUpstreamTransport {
+    egress_policy: EgressPolicy,
+    resolver: Arc<dyn EgressDnsResolver>,
+    client_pool: UpstreamClientPool,
+    profile: UpstreamTransportProfile,
+}
+
+impl GrokWebProductionUpstreamTransport {
+    /// Creates one explicit egress/client/profile binding.
+    #[must_use]
+    pub fn new(
+        egress_policy: EgressPolicy,
+        resolver: Arc<dyn EgressDnsResolver>,
+        client_pool: UpstreamClientPool,
+        profile: UpstreamTransportProfile,
+    ) -> Self {
+        Self {
+            egress_policy,
+            resolver,
+            client_pool,
+            profile: profile.with_chrome_146_emulation(),
+        }
+    }
+}
+
+impl fmt::Debug for GrokWebProductionUpstreamTransport {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("GrokWebProductionUpstreamTransport")
+            .field("egress_policy", self.egress_policy.id())
+            .field("resolver", &"<injected>")
+            .field("client_pool", &self.client_pool)
+            .field("profile", &self.profile)
+            .finish()
+    }
+}
+
+impl GrokWebProductionTransport for GrokWebProductionUpstreamTransport {
+    fn send(
+        &self,
+        outbound: GrokWebProductionOutboundRequest,
+    ) -> ProviderFuture<'_, Result<GrokWebProductionTransportResponse, GatewayError>> {
+        let admitted = self
+            .egress_policy
+            .admit_url(outbound.url(), self.resolver.as_ref())
+            .map_err(gateway_upstream::EgressAdmissionError::gateway_error);
+        let request = admitted.and_then(|target| {
+            outbound
+                .into_transport_request(target)
+                .map_err(|_| web_egress_error())
+        });
+        let pool = self.client_pool.clone();
+        let profile = self.profile.clone();
+        Box::pin(async move {
+            let response = pool.send(request?, &profile).await?;
+            Ok(GrokWebProductionTransportResponse::new(
+                response.status(),
+                Box::new(GrokWebProductionUpstreamBody { response }),
+            ))
+        })
+    }
+}
+
+/// Executable native Web adapter with a shared dynamic Statsig runtime.
+#[derive(Clone)]
+pub struct GrokWebProductionInferenceAdapter {
+    provider_id: ProviderId,
+    session: Arc<GrokWebBrowserEgressSession>,
+    upstream_model: String,
+    statsig: Arc<GrokWebStatsigRuntime>,
+    transport: Arc<dyn GrokWebProductionTransport>,
+}
+
+impl GrokWebProductionInferenceAdapter {
+    /// Creates one exact session/model/signer/transport binding.
+    ///
+    /// # Errors
+    ///
+    /// Rejects a blank model or invalid compiled provider identity before transport.
+    pub fn try_new(
+        session: Arc<GrokWebBrowserEgressSession>,
+        upstream_model: impl Into<String>,
+        statsig: Arc<GrokWebStatsigRuntime>,
+        transport: Arc<dyn GrokWebProductionTransport>,
+    ) -> Result<Self, GatewayError> {
+        let upstream_model = upstream_model.into();
+        if upstream_model.trim().is_empty() {
+            return Err(web_request_error());
+        }
+        let provider_id = ProviderId::try_new(GROK_WEB_PRODUCTION_PROVIDER_ID.to_owned())
+            .map_err(|_| web_internal_error())?;
+        Ok(Self {
+            provider_id,
+            session,
+            upstream_model,
+            statsig,
+            transport,
+        })
+    }
+}
+
+impl fmt::Debug for GrokWebProductionInferenceAdapter {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("GrokWebProductionInferenceAdapter")
+            .field("provider_id", &self.provider_id)
+            .field("session", &self.session)
+            .field("upstream_model", &"<redacted>")
+            .field("statsig", &self.statsig)
+            .field("transport", &"<injected>")
+            .finish()
+    }
+}
+
+impl ProviderAdapter for GrokWebProductionInferenceAdapter {
+    fn provider_id(&self) -> &ProviderId {
+        &self.provider_id
+    }
+}
+
+impl InferenceAdapter for GrokWebProductionInferenceAdapter {
+    fn execute(
+        &self,
+        _context: RequestContext,
+        request: CanonicalRequest,
+    ) -> ProviderFuture<'_, Result<Box<dyn CanonicalEventSource>, GatewayError>> {
+        let session = Arc::clone(&self.session);
+        let upstream_model = self.upstream_model.clone();
+        let statsig = Arc::clone(&self.statsig);
+        let transport = Arc::clone(&self.transport);
+        Box::pin(async move {
+            let now_ms = web_now_ms()?;
+            for attempt in 0_u8..=1 {
+                let signature = statsig.signature(&session, now_ms).await?;
+                let outbound = GrokWebProductionRequestBuilder::build(
+                    &session,
+                    signature.clone(),
+                    &upstream_model,
+                    &request,
+                    now_ms,
+                )
+                .map_err(map_web_request_error)?;
+                let response = transport.send(outbound).await?;
+                let (status, mut body) = response.into_parts();
+                if status == 403 && attempt == 0 {
+                    read_web_body(&mut *body, 4 * 1024 * 1024).await?;
+                    let _ = statsig.invalidate_signature_after_403(&signature)?;
+                    continue;
+                }
+                if !(200..=299).contains(&status) {
+                    read_web_body(&mut *body, 64 * 1024).await?;
+                    let failure =
+                        classify_grok_web_http_failure(status, GrokWebAccountEvidence::None)
+                            .map_err(|_| web_internal_error())?;
+                    return Err(failure.error().clone());
+                }
+                return Ok(
+                    Box::new(GrokWebProductionEvents::new(body)) as Box<dyn CanonicalEventSource>
+                );
+            }
+            Err(web_internal_error())
+        })
+    }
+}
+
+struct GrokWebProductionUpstreamBody {
+    response: UpstreamHttpResponse,
+}
+
+impl GrokWebProductionResponseBody for GrokWebProductionUpstreamBody {
+    fn next_chunk(&mut self) -> ProviderFuture<'_, Result<Option<Vec<u8>>, GatewayError>> {
+        Box::pin(async move {
+            self.response
+                .next_chunk()
+                .await
+                .map(|chunk| chunk.map(|bytes| bytes.to_vec()))
+        })
+    }
+}
+
+struct GrokWebProductionEvents {
+    body: Box<dyn GrokWebProductionResponseBody>,
+    decoder: GrokWebProductionStreamDecoder,
+    pending: VecDeque<CanonicalEvent>,
+    response_started: bool,
+    terminal_failure_emitted: bool,
+    finished: bool,
+}
+
+impl GrokWebProductionEvents {
+    fn new(body: Box<dyn GrokWebProductionResponseBody>) -> Self {
+        Self {
+            body,
+            decoder: GrokWebProductionStreamDecoder::new(),
+            pending: VecDeque::new(),
+            response_started: false,
+            terminal_failure_emitted: false,
+            finished: false,
+        }
+    }
+
+    fn next_pending(&mut self) -> Option<CanonicalEvent> {
+        let event = self.pending.pop_front()?;
+        if matches!(event, CanonicalEvent::ResponseStart(_)) {
+            self.response_started = true;
+        }
+        Some(event)
+    }
+
+    fn terminal_failure(
+        &mut self,
+        error: GatewayError,
+    ) -> Result<Option<CanonicalEvent>, GatewayError> {
+        if !self.response_started {
+            return Err(error);
+        }
+        if self.terminal_failure_emitted {
+            return Ok(None);
+        }
+        self.terminal_failure_emitted = true;
+        self.finished = true;
+        Ok(Some(CanonicalEvent::StreamError(StreamError { error })))
+    }
+}
+
+impl CanonicalEventSource for GrokWebProductionEvents {
+    fn next_event(&mut self) -> ProviderFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
+        Box::pin(async move {
+            if let Some(event) = self.next_pending() {
+                return Ok(Some(event));
+            }
+            if self.finished {
+                return Ok(None);
+            }
+            loop {
+                match self.body.next_chunk().await {
+                    Ok(Some(chunk)) => match self.decoder.push_bytes(&chunk) {
+                        Ok(events) => {
+                            self.pending.extend(events);
+                            if let Some(event) = self.next_pending() {
+                                return Ok(Some(event));
+                            }
+                        }
+                        Err(error) => return self.terminal_failure(error),
+                    },
+                    Ok(None) => {
+                        self.finished = true;
+                        return match self.decoder.finish() {
+                            Ok(events) => {
+                                self.pending.extend(events);
+                                Ok(self.next_pending())
+                            }
+                            Err(error) => self.terminal_failure(error),
+                        };
+                    }
+                    Err(error) => return self.terminal_failure(error),
+                }
+            }
+        })
+    }
+}
+
+async fn read_web_body(
+    body: &mut dyn GrokWebProductionResponseBody,
+    maximum_bytes: usize,
+) -> Result<(), GatewayError> {
+    let mut total = 0_usize;
+    while let Some(chunk) = body.next_chunk().await? {
+        total = total
+            .checked_add(chunk.len())
+            .ok_or_else(web_protocol_error)?;
+        if total > maximum_bytes {
+            return Err(web_protocol_error());
+        }
+    }
+    Ok(())
+}
+
+fn web_now_ms() -> Result<i64, GatewayError> {
+    let elapsed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| web_internal_error())?;
+    i64::try_from(elapsed.as_millis()).map_err(|_| web_internal_error())
+}
+
+const fn map_web_request_error(_: GrokWebProductionRequestError) -> GatewayError {
+    web_request_error()
+}
+
+const fn web_request_error() -> GatewayError {
+    GatewayError::new(GatewayErrorCode::ClientRequestError, ErrorScope::Request)
+}
+
+const fn web_egress_error() -> GatewayError {
+    GatewayError::new(GatewayErrorCode::EgressRejected, ErrorScope::Egress)
+}
+
+const fn web_protocol_error() -> GatewayError {
+    GatewayError::new(
+        GatewayErrorCode::UpstreamProtocolError,
+        ErrorScope::Provider,
+    )
+}
+
+const fn web_internal_error() -> GatewayError {
+    GatewayError::new(GatewayErrorCode::InternalError, ErrorScope::Internal)
+}

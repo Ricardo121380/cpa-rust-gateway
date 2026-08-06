@@ -11,15 +11,34 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use gateway_upstream::{AdmittedEgressTarget, EgressDnsResolver, EgressPolicy, EgressScheme};
+use base64::{Engine as _, engine::general_purpose};
+use gateway_core::{ErrorScope, GatewayError, GatewayErrorCode};
+use gateway_provider::ProviderFuture;
+use gateway_upstream::{
+    AdmittedEgressTarget, EgressDnsResolver, EgressPolicy, EgressScheme, UpstreamClientPool,
+    UpstreamHttpMethod, UpstreamHttpRequest, UpstreamHttpResponse, UpstreamTransportProfile,
+};
+use serde_json::{Map, Value};
+use sha2::{Digest, Sha256};
 use url::Url;
 use zeroize::Zeroizing;
+
+use crate::{GROK_WEB_CANARY_HOST, GROK_WEB_CANARY_PATH, GrokWebBrowserEgressSession};
 
 const MAX_SIGNATURE_METHOD_BYTES: usize = 16;
 const MAX_SIGNATURE_PATH_BYTES: usize = 2_048;
 const MAX_ENVIRONMENT_VERSION_BYTES: usize = 128;
 const MAX_SIGNATURE_VALUE_BYTES: usize = 16 * 1024;
 const MAX_SIGNATURE_CACHE_ENTRIES: usize = 256;
+const STATSIG_CACHE_TTL_MS: i64 = 60 * 60 * 1_000;
+const MAX_STATSIG_META_BODY_BYTES: usize = 4 * 1024 * 1024;
+const MAX_STATSIG_META_VALUE_BYTES: usize = 16 * 1024;
+const MAX_STATSIG_RESPONSE_BYTES: usize = 4 * 1024;
+const GROK_WEB_INDEX_URL: &str = "https://grok.com/index";
+const GROK_WEB_INDEX_PATH: &str = "/index";
+
+/// Frozen grok2api-compatible signer service used to derive current Web request signatures.
+pub const GROK_WEB_DEFAULT_STATSIG_SIGNER_URL: &str = "https://grok.wodf.de/sign";
 
 /// One exact request shape used to scope a Statsig signature cache entry.
 #[derive(Clone, Eq, Ord, PartialEq, PartialOrd)]
@@ -352,6 +371,533 @@ impl fmt::Debug for GrokWebStatsigSignerBoundary {
     }
 }
 
+/// Injected Statsig environment/signature transport.
+///
+/// Production uses one Chrome-emulated request to the Web origin for the current environment and
+/// one independently admitted standard HTTPS request to the signer. Tests can inject fixtures
+/// without DNS or network access.
+pub trait GrokWebStatsigTransport: Send + Sync {
+    /// Fetches the current bounded Web environment value with the exact browser session.
+    fn fetch_environment<'a>(
+        &'a self,
+        session: &'a GrokWebBrowserEgressSession,
+        now_ms: i64,
+    ) -> ProviderFuture<'a, Result<Zeroizing<String>, GatewayError>>;
+
+    /// Signs one exact method/path/environment tuple.
+    fn sign<'a>(
+        &'a self,
+        method: &'a str,
+        path: &'a str,
+        environment: &'a str,
+    ) -> ProviderFuture<'a, Result<GrokWebStatsigSignature, GatewayError>>;
+}
+
+/// Singleflight, one-hour Statsig cache matching the frozen grok2api production behavior.
+pub struct GrokWebStatsigRuntime {
+    cache: GrokWebStatsigSignatureCache,
+    current: Mutex<Option<(GrokWebStatsigSignatureKey, GrokWebStatsigSignature)>>,
+    refresh: tokio::sync::Mutex<()>,
+    transport: Arc<dyn GrokWebStatsigTransport>,
+}
+
+impl GrokWebStatsigRuntime {
+    /// Creates one bounded runtime around an injected transport.
+    ///
+    /// # Errors
+    ///
+    /// Fails if the fixed cache capacity cannot be constructed.
+    pub fn try_new(
+        transport: Arc<dyn GrokWebStatsigTransport>,
+    ) -> Result<Self, GrokWebStatsigError> {
+        Ok(Self {
+            cache: GrokWebStatsigSignatureCache::try_new(16)?,
+            current: Mutex::new(None),
+            refresh: tokio::sync::Mutex::new(()),
+            transport,
+        })
+    }
+
+    /// Returns the current signature, refreshing the environment and signer at most once across
+    /// concurrent callers when no unexpired cache entry exists.
+    ///
+    /// # Errors
+    ///
+    /// Returns a value-free transport, protocol, cache, time, or signer failure.
+    pub async fn signature(
+        &self,
+        session: &GrokWebBrowserEgressSession,
+        now_ms: i64,
+    ) -> Result<GrokWebStatsigSignature, GatewayError> {
+        if let Some(signature) = self.cached(now_ms)? {
+            return Ok(signature);
+        }
+        let _guard = self.refresh.lock().await;
+        if let Some(signature) = self.cached(now_ms)? {
+            return Ok(signature);
+        }
+        let mut environment = self.transport.fetch_environment(session, now_ms).await?;
+        let signature = if let Ok(signature) = self
+            .transport
+            .sign("POST", GROK_WEB_CANARY_PATH, environment.as_str())
+            .await
+        {
+            signature
+        } else {
+            environment = self.transport.fetch_environment(session, now_ms).await?;
+            self.transport
+                .sign("POST", GROK_WEB_CANARY_PATH, environment.as_str())
+                .await?
+        };
+        let environment_version = environment_digest(environment.as_str());
+        let key =
+            GrokWebStatsigSignatureKey::try_new("POST", GROK_WEB_CANARY_PATH, &environment_version)
+                .map_err(|_| statsig_internal_error())?;
+        let expires_at_ms = now_ms
+            .checked_add(STATSIG_CACHE_TTL_MS)
+            .ok_or_else(statsig_internal_error)?;
+        self.cache
+            .insert(key.clone(), signature.clone(), expires_at_ms, now_ms)
+            .map_err(|_| statsig_internal_error())?;
+        *self.current.lock().map_err(|_| statsig_internal_error())? =
+            Some((key, signature.clone()));
+        Ok(signature)
+    }
+
+    /// Invalidates only the currently active method/path/environment key after a pre-start 403.
+    ///
+    /// # Errors
+    ///
+    /// Returns a value-free local state failure.
+    pub fn invalidate_after_403(&self) -> Result<bool, GatewayError> {
+        let current = self
+            .current
+            .lock()
+            .map_err(|_| statsig_internal_error())?
+            .take();
+        current.map_or(Ok(false), |(key, _)| {
+            self.cache
+                .invalidate_after_403(&key)
+                .map_err(|_| statsig_internal_error())
+        })
+    }
+
+    /// Invalidates the current key only when it produced the exact rejected request signature.
+    ///
+    /// A concurrent request may already have refreshed the shared key before an older 403 arrives;
+    /// that stale response must not delete the replacement signature.
+    ///
+    /// # Errors
+    ///
+    /// Returns a value-free local state failure.
+    pub fn invalidate_signature_after_403(
+        &self,
+        rejected: &GrokWebStatsigSignature,
+    ) -> Result<bool, GatewayError> {
+        let mut current = self.current.lock().map_err(|_| statsig_internal_error())?;
+        let Some((key, signature)) = current.as_ref() else {
+            return Ok(false);
+        };
+        if signature != rejected {
+            return Ok(false);
+        }
+        let key = key.clone();
+        current.take();
+        self.cache
+            .invalidate_after_403(&key)
+            .map_err(|_| statsig_internal_error())
+    }
+
+    fn cached(&self, now_ms: i64) -> Result<Option<GrokWebStatsigSignature>, GatewayError> {
+        let key = self
+            .current
+            .lock()
+            .map_err(|_| statsig_internal_error())?
+            .as_ref()
+            .map(|(key, _)| key.clone());
+        key.map_or(Ok(None), |key| {
+            self.cache
+                .get(&key, now_ms)
+                .map_err(|_| statsig_internal_error())
+        })
+    }
+}
+
+impl fmt::Debug for GrokWebStatsigRuntime {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("GrokWebStatsigRuntime")
+            .field("cache", &self.cache)
+            .field("transport", &"<injected>")
+            .finish_non_exhaustive()
+    }
+}
+
+/// Production Statsig transport through the shared DNS-pinned client pool.
+pub struct GrokWebStatsigUpstreamTransport {
+    egress_policy: EgressPolicy,
+    resolver: Arc<dyn EgressDnsResolver>,
+    client_pool: UpstreamClientPool,
+    browser_profile: UpstreamTransportProfile,
+    signer_profile: UpstreamTransportProfile,
+}
+
+impl GrokWebStatsigUpstreamTransport {
+    /// Creates one fixed Web-origin and signer transport binding.
+    #[must_use]
+    pub fn new(
+        egress_policy: EgressPolicy,
+        resolver: Arc<dyn EgressDnsResolver>,
+        client_pool: UpstreamClientPool,
+        profile: UpstreamTransportProfile,
+    ) -> Self {
+        Self {
+            egress_policy,
+            resolver,
+            client_pool,
+            browser_profile: profile.clone().with_chrome_146_emulation(),
+            signer_profile: profile,
+        }
+    }
+}
+
+impl fmt::Debug for GrokWebStatsigUpstreamTransport {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("GrokWebStatsigUpstreamTransport")
+            .field("egress_policy", self.egress_policy.id())
+            .field("resolver", &"<injected>")
+            .field("client_pool", &self.client_pool)
+            .field("browser_profile", &self.browser_profile)
+            .field("signer_profile", &self.signer_profile)
+            .finish()
+    }
+}
+
+impl GrokWebStatsigTransport for GrokWebStatsigUpstreamTransport {
+    fn fetch_environment<'a>(
+        &'a self,
+        session: &'a GrokWebBrowserEgressSession,
+        now_ms: i64,
+    ) -> ProviderFuture<'a, Result<Zeroizing<String>, GatewayError>> {
+        let admitted = self
+            .egress_policy
+            .admit_url(GROK_WEB_INDEX_URL, self.resolver.as_ref())
+            .map_err(|_| statsig_egress_error());
+        let request = admitted.and_then(|target| web_index_request(session, target, now_ms));
+        Box::pin(async move {
+            let mut response = self
+                .client_pool
+                .send(request?, &self.browser_profile)
+                .await?;
+            if !(200..300).contains(&response.status()) {
+                return Err(statsig_http_error(response.status()));
+            }
+            let body = read_bounded_body(&mut response, MAX_STATSIG_META_BODY_BYTES).await?;
+            extract_statsig_meta_content(&body)
+        })
+    }
+
+    fn sign<'a>(
+        &'a self,
+        method: &'a str,
+        path: &'a str,
+        environment: &'a str,
+    ) -> ProviderFuture<'a, Result<GrokWebStatsigSignature, GatewayError>> {
+        let admitted = GrokWebStatsigSignerBoundary::new(
+            self.egress_policy.clone(),
+            Arc::clone(&self.resolver),
+        )
+        .admit_initial(GROK_WEB_DEFAULT_STATSIG_SIGNER_URL)
+        .map_err(|_| statsig_egress_error());
+        let request =
+            admitted.and_then(|target| signer_request(&target, method, path, environment));
+        Box::pin(async move {
+            let mut response = self
+                .client_pool
+                .send(request?, &self.signer_profile)
+                .await?;
+            if !(200..300).contains(&response.status()) {
+                return Err(statsig_http_error(response.status()));
+            }
+            let body = read_bounded_body(&mut response, MAX_STATSIG_RESPONSE_BYTES).await?;
+            decode_signer_response(&body)
+        })
+    }
+}
+
+fn web_index_request(
+    session: &GrokWebBrowserEgressSession,
+    target: AdmittedEgressTarget,
+    now_ms: i64,
+) -> Result<UpstreamHttpRequest, GatewayError> {
+    if target.scheme() != EgressScheme::Https
+        || target.host().as_str() != GROK_WEB_CANARY_HOST
+        || target.port() != 443
+        || target.request_url().as_str() != GROK_WEB_INDEX_URL
+    {
+        return Err(statsig_egress_error());
+    }
+    let cookie = session
+        .cookie_header_for_https(GROK_WEB_CANARY_HOST, GROK_WEB_INDEX_PATH, now_ms)
+        .map_err(|_| statsig_credential_error())?;
+    UpstreamHttpRequest::try_new(
+        target,
+        UpstreamHttpMethod::Get,
+        [
+            (
+                "accept".to_owned(),
+                "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8".to_owned(),
+            ),
+            (
+                "accept-encoding".to_owned(),
+                "gzip, deflate, br, zstd".to_owned(),
+            ),
+            (
+                "accept-language".to_owned(),
+                "zh-CN,zh;q=0.9,en;q=0.8".to_owned(),
+            ),
+            ("cache-control".to_owned(), "no-cache".to_owned()),
+            ("pragma".to_owned(), "no-cache".to_owned()),
+            ("sec-fetch-dest".to_owned(), "document".to_owned()),
+            ("sec-fetch-mode".to_owned(), "navigate".to_owned()),
+            ("sec-fetch-site".to_owned(), "same-origin".to_owned()),
+            ("upgrade-insecure-requests".to_owned(), "1".to_owned()),
+            (
+                "user-agent".to_owned(),
+                session.user_agent().header_value().to_owned(),
+            ),
+            ("cookie".to_owned(), cookie.to_string()),
+        ],
+        Vec::new(),
+    )
+    .map_err(|_| statsig_egress_error())
+}
+
+fn signer_request(
+    target: &GrokWebStatsigSignerTarget,
+    method: &str,
+    path: &str,
+    environment: &str,
+) -> Result<UpstreamHttpRequest, GatewayError> {
+    let key = GrokWebStatsigSignatureKey::try_new(method, path, "request")
+        .map_err(|_| statsig_protocol_error())?;
+    let _ = key;
+    if environment.is_empty()
+        || environment.len() > MAX_STATSIG_META_VALUE_BYTES
+        || environment.chars().any(char::is_control)
+    {
+        return Err(statsig_protocol_error());
+    }
+    let body = serde_json::to_vec(&Value::Object(Map::from_iter([
+        ("method".to_owned(), Value::String(method.to_owned())),
+        ("path".to_owned(), Value::String(path.to_owned())),
+        (
+            "environment".to_owned(),
+            Value::Object(Map::from_iter([(
+                "metaContent".to_owned(),
+                Value::String(environment.to_owned()),
+            )])),
+        ),
+    ])))
+    .map_err(|_| statsig_internal_error())?;
+    UpstreamHttpRequest::try_new(
+        target.admitted_target().clone(),
+        UpstreamHttpMethod::Post,
+        [
+            ("accept".to_owned(), "application/json".to_owned()),
+            ("content-type".to_owned(), "application/json".to_owned()),
+        ],
+        body,
+    )
+    .map_err(|_| statsig_egress_error())
+}
+
+async fn read_bounded_body(
+    response: &mut UpstreamHttpResponse,
+    maximum_bytes: usize,
+) -> Result<Vec<u8>, GatewayError> {
+    let mut bytes = Vec::new();
+    while let Some(chunk) = response.next_chunk().await? {
+        if bytes.len().saturating_add(chunk.len()) > maximum_bytes {
+            return Err(statsig_protocol_error());
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok(bytes)
+}
+
+fn extract_statsig_meta_content(body: &[u8]) -> Result<Zeroizing<String>, GatewayError> {
+    let text = std::str::from_utf8(body).map_err(|_| statsig_protocol_error())?;
+    let lower = text.to_ascii_lowercase();
+    let mut offset = 0_usize;
+    while let Some(relative) = lower[offset..].find("<meta") {
+        let start = offset + relative;
+        let Some(relative_end) = lower[start..].find('>') else {
+            return Err(statsig_protocol_error());
+        };
+        let end = start + relative_end + 1;
+        if end.saturating_sub(start) > 64 * 1024 {
+            return Err(statsig_protocol_error());
+        }
+        let tag = &text[start + 5..end - 1];
+        let attributes = parse_meta_attributes(tag)?;
+        let name = attributes
+            .get("name")
+            .map(|value| normalize_meta_name(value));
+        if name.as_deref() == Some("grok-site-verification") {
+            let content = attributes
+                .get("content")
+                .filter(|value| {
+                    !value.is_empty()
+                        && value.len() <= MAX_STATSIG_META_VALUE_BYTES
+                        && !value.chars().any(char::is_control)
+                })
+                .ok_or_else(statsig_protocol_error)?;
+            return Ok(Zeroizing::new(content.to_owned()));
+        }
+        offset = end;
+    }
+    Err(statsig_protocol_error())
+}
+
+fn parse_meta_attributes(tag: &str) -> Result<BTreeMap<String, String>, GatewayError> {
+    let bytes = tag.as_bytes();
+    let mut index = 0_usize;
+    let mut attributes = BTreeMap::new();
+    while index < bytes.len() {
+        while index < bytes.len() && (bytes[index].is_ascii_whitespace() || bytes[index] == b'/') {
+            index += 1;
+        }
+        if index == bytes.len() {
+            break;
+        }
+        let name_start = index;
+        while index < bytes.len()
+            && (bytes[index].is_ascii_alphanumeric() || matches!(bytes[index], b'-' | b'_' | b':'))
+        {
+            index += 1;
+        }
+        if index == name_start {
+            return Err(statsig_protocol_error());
+        }
+        let name = tag[name_start..index].to_ascii_lowercase();
+        while index < bytes.len() && bytes[index].is_ascii_whitespace() {
+            index += 1;
+        }
+        if index == bytes.len() || bytes[index] != b'=' {
+            if attributes.insert(name, String::new()).is_some() {
+                return Err(statsig_protocol_error());
+            }
+            continue;
+        }
+        index += 1;
+        while index < bytes.len() && bytes[index].is_ascii_whitespace() {
+            index += 1;
+        }
+        if index == bytes.len() {
+            return Err(statsig_protocol_error());
+        }
+        let quote = bytes[index];
+        let (value_start, value_end) = if matches!(quote, b'\'' | b'"') {
+            index += 1;
+            let value_start = index;
+            while index < bytes.len() && bytes[index] != quote {
+                index += 1;
+            }
+            if index == bytes.len() {
+                return Err(statsig_protocol_error());
+            }
+            let value_end = index;
+            index += 1;
+            (value_start, value_end)
+        } else {
+            let value_start = index;
+            while index < bytes.len() && !bytes[index].is_ascii_whitespace() && bytes[index] != b'/'
+            {
+                index += 1;
+            }
+            (value_start, index)
+        };
+        if attributes
+            .insert(name, tag[value_start..value_end].to_owned())
+            .is_some()
+        {
+            return Err(statsig_protocol_error());
+        }
+    }
+    Ok(attributes)
+}
+
+fn normalize_meta_name(value: &str) -> String {
+    value
+        .trim()
+        .to_lowercase()
+        .replace(['‐', '‑', '‒', '–', '—', '―'], "-")
+}
+
+fn decode_signer_response(body: &[u8]) -> Result<GrokWebStatsigSignature, GatewayError> {
+    let value = crate::strict_json::parse_strict_json(body, MAX_STATSIG_RESPONSE_BYTES)
+        .map_err(|()| statsig_protocol_error())?;
+    let object = value.as_object().ok_or_else(statsig_protocol_error)?;
+    if object.len() != 1 {
+        return Err(statsig_protocol_error());
+    }
+    let signature = object
+        .get("x-statsig-id")
+        .and_then(Value::as_str)
+        .ok_or_else(statsig_protocol_error)?;
+    let decoded = general_purpose::STANDARD_NO_PAD
+        .decode(signature)
+        .or_else(|_| general_purpose::STANDARD.decode(signature))
+        .map(Zeroizing::new)
+        .map_err(|_| statsig_protocol_error())?;
+    if decoded.len() != 70 {
+        return Err(statsig_protocol_error());
+    }
+    GrokWebStatsigSignature::try_new(signature).map_err(|_| statsig_protocol_error())
+}
+
+fn environment_digest(value: &str) -> String {
+    let digest = Sha256::digest(value.as_bytes());
+    let mut output = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        use fmt::Write as _;
+        let _ = write!(&mut output, "{byte:02x}");
+    }
+    output
+}
+
+const fn statsig_http_error(status: u16) -> GatewayError {
+    match status {
+        401 => statsig_credential_error(),
+        403 => statsig_egress_error(),
+        _ => GatewayError::new(GatewayErrorCode::ProviderTransient, ErrorScope::Provider),
+    }
+}
+
+const fn statsig_credential_error() -> GatewayError {
+    GatewayError::new(
+        GatewayErrorCode::CredentialUnauthorized,
+        ErrorScope::Credential,
+    )
+}
+
+const fn statsig_egress_error() -> GatewayError {
+    GatewayError::new(GatewayErrorCode::EgressRejected, ErrorScope::Egress)
+}
+
+const fn statsig_protocol_error() -> GatewayError {
+    GatewayError::new(
+        GatewayErrorCode::UpstreamProtocolError,
+        ErrorScope::Provider,
+    )
+}
+
+const fn statsig_internal_error() -> GatewayError {
+    GatewayError::new(GatewayErrorCode::InternalError, ErrorScope::Internal)
+}
+
 fn require_https(
     admitted: AdmittedEgressTarget,
 ) -> Result<GrokWebStatsigSignerTarget, GrokWebStatsigError> {
@@ -407,3 +953,36 @@ impl fmt::Display for GrokWebStatsigError {
 }
 
 impl Error for GrokWebStatsigError {}
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    use base64::{Engine as _, engine::general_purpose};
+
+    use super::{decode_signer_response, extract_statsig_meta_content};
+
+    #[test]
+    fn production_meta_and_signature_shapes_match_the_frozen_reference()
+    -> Result<(), Box<dyn Error>> {
+        let meta = extract_statsig_meta_content(
+            r"<html><meta charset=utf-8><meta content='fixture-env' name='Grok‑Site‑Verification'/></html>"
+                .as_bytes(),
+        )?;
+        assert_eq!(meta.as_str(), "fixture-env");
+
+        let signature = general_purpose::STANDARD_NO_PAD.encode([7_u8; 70]);
+        let body = serde_json::to_vec(&serde_json::json!({"x-statsig-id":signature}))?;
+        assert!(decode_signer_response(&body).is_ok());
+
+        let short = general_purpose::STANDARD_NO_PAD.encode([7_u8; 69]);
+        let short_body = serde_json::to_vec(&serde_json::json!({"x-statsig-id":short}))?;
+        assert!(decode_signer_response(&short_body).is_err());
+        let ambiguous = serde_json::to_vec(&serde_json::json!({
+            "x-statsig-id":signature,
+            "unexpected":true
+        }))?;
+        assert!(decode_signer_response(&ambiguous).is_err());
+        Ok(())
+    }
+}

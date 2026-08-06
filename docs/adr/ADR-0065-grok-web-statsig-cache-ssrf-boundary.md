@@ -27,3 +27,24 @@ Web/Console signer material is sensitive to method, path, and environment versio
 ## Validation and rollback
 
 Synthetic static-DNS tests cover exact cache isolation, 403 single-key invalidation, expiry/capacity, malformed keys/signatures, HTTPS/allowlist admission, same-origin redirect re-admission, cross-domain redirect rejection, and redaction. Rollback removes this module/test and documentation only; it sends no Statsig/Web request and changes no browser, proxy/TUN, server, or production configuration.
+
+## P12-10I-14 production amendment (`2026-08-06`)
+
+The separately authorized production composition now consumes this boundary without widening its
+targets. One Endpoint-scoped runtime obtains the current environment only from the fixed Web
+`/index` page using the selected credential-bound browser session, then calls the fixed HTTPS
+signer for only `POST /rest/app-chat/conversations/new`. The signer envelope is strict and its
+Base64 value must decode to exactly 70 bytes.
+
+The runtime uses a one-hour singleflight cache. A signer failure causes one fresh environment fetch
+and one final signer attempt. A conversation 403 observed before any Canonical Event conditionally
+invalidates only the signature that request actually sent and permits that request one retry. This
+conditional comparison prevents a delayed concurrent 403 from deleting a replacement signature.
+There is no retry after downstream semantic commitment, no bulk cache clearing, and no cross-account
+credential mutation.
+
+P12-10I-14 also binds the fixed Web conversation adapter into the existing native Web account pool
+and runtime registry. Its capability declaration is deliberately text-only plus Streaming; Tool,
+Reasoning, Vision, and native cross-provider fallback remain unavailable. Acceptance still requires
+an exact-revision signed artifact, isolated Oracle CPAR HTTP E2E through a client key, and complete
+rollback evidence.
