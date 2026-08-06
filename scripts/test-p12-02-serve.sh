@@ -47,8 +47,8 @@ if [[ "$(uname -s)" == "Linux" ]]; then
   # Rust 1.97's bundled lld has reproducibly crashed in its parallel section writer when this final
   # debug binary is linked after the full workspace test build on GitHub's ubuntu-24.04 runner.
   # Serialising only this disposable Linux serve-envelope link avoids that linker bug without
-  # changing the release artifact or any runtime behavior. Apple's linker has no such option.
-  RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }-C link-arg=-Wl,--threads=1" \
+  # changing Cargo fingerprints, rebuilding BoringSSL, the release artifact, or runtime behavior.
+  CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="$repo_root/scripts/p12-02-serial-linker.sh" \
     cargo build --locked --package gateway >/dev/null
 else
   cargo build --locked --package gateway >/dev/null
