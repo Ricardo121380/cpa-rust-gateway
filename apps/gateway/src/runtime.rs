@@ -166,18 +166,22 @@ struct P12GrokWebEgressRefresher {
 }
 
 impl GrokWebEgressRefresher for P12GrokWebEgressRefresher {
-    fn refresh(
-        &self,
-        current: &GrokWebBrowserEgressSession,
-    ) -> BoxFuture<'_, Result<Arc<GrokWebBrowserEgressSession>, GatewayError>> {
+    fn refresh<'a>(
+        &'a self,
+        current: &'a GrokWebBrowserEgressSession,
+    ) -> BoxFuture<'a, Result<Arc<GrokWebBrowserEgressSession>, GatewayError>> {
         let session_id = current.egress_session_id().as_str().to_owned();
         let tls_profile = current.tls_profile().clone();
         let proxy = current.proxy().clone();
         let credential = current.credential_snapshot();
         let transport = Arc::clone(&self.transport);
         Box::pin(async move {
+            let now_ms = system_now_ms().map_err(|_| internal_error())?;
+            let cookie_header = current
+                .cookie_header_for_https("grok.com", "/", now_ms)
+                .map_err(|_| credential_unavailable_error())?;
             let response = transport
-                .send(GrokWebFlareSolverrRequest::default())
+                .send(GrokWebFlareSolverrRequest::default().with_cookie_header(&cookie_header))
                 .await?;
             if !(200..=299).contains(&response.status()) {
                 return Err(internal_error());
@@ -185,7 +189,6 @@ impl GrokWebEgressRefresher for P12GrokWebEgressRefresher {
             let clearance =
                 provider_grok::GrokWebFlareSolverrClearance::parse(&response.into_body())
                     .map_err(|_| internal_error())?;
-            let now_ms = system_now_ms().map_err(|_| internal_error())?;
             let credential = credential
                 .with_flaresolverr_clearance(&clearance, now_ms)
                 .map_err(|_| credential_unavailable_error())?;

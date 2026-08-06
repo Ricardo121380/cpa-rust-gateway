@@ -3,7 +3,7 @@
 //! This module only builds the fixed loopback request and parses the bounded response. It does
 //! not discover a service, open sockets, mutate credentials, or select a proxy.
 
-use std::{error::Error, fmt};
+use std::{collections::BTreeMap, error::Error, fmt};
 
 use gateway_core::GatewayError;
 use gateway_provider::ProviderFuture;
@@ -16,7 +16,7 @@ const MAX_COOKIE_BYTES: usize = 16 * 1024;
 const MAX_USER_AGENT_BYTES: usize = 512;
 
 /// One bounded request to the local solver.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Eq, PartialEq, Serialize)]
 pub struct GrokWebFlareSolverrRequest {
     /// Fixed `FlareSolverr` command.
     pub cmd: &'static str,
@@ -24,6 +24,8 @@ pub struct GrokWebFlareSolverrRequest {
     pub url: &'static str,
     /// Bounded solver timeout in milliseconds.
     pub max_timeout: u32,
+    /// Optional scoped Cookie header used only for the exact Grok origin.
+    pub headers: Option<BTreeMap<String, String>>,
 }
 
 impl Default for GrokWebFlareSolverrRequest {
@@ -32,11 +34,33 @@ impl Default for GrokWebFlareSolverrRequest {
             cmd: "request.get",
             url: "https://grok.com/",
             max_timeout: 20_000,
+            headers: None,
         }
     }
 }
 
+impl fmt::Debug for GrokWebFlareSolverrRequest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("GrokWebFlareSolverrRequest")
+            .field("cmd", &self.cmd)
+            .field("url", &self.url)
+            .field("max_timeout", &self.max_timeout)
+            .field("has_headers", &self.headers.is_some())
+            .finish()
+    }
+}
+
 impl GrokWebFlareSolverrRequest {
+    /// Adds the already scoped Cookie header for the fixed Grok origin.
+    #[must_use]
+    pub fn with_cookie_header(mut self, cookie_header: &str) -> Self {
+        let mut headers = BTreeMap::new();
+        headers.insert("Cookie".to_owned(), cookie_header.to_owned());
+        self.headers = Some(headers);
+        self
+    }
+
     /// Encodes the fixed request without retaining or logging credential material.
     ///
     /// # Errors
