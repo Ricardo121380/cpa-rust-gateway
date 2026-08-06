@@ -25,6 +25,8 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
+use futures_util::future::BoxFuture;
+
 use gateway_auth::client_key::ClientKeyService;
 use gateway_catalog::{
     CapabilitySet, CatalogView, EndpointCapabilityEntry, EndpointCapabilityView, SemanticCapability,
@@ -34,9 +36,9 @@ use gateway_control::{
     route_compiler::RouteCompiler,
 };
 use gateway_core::{
-    AttemptEvent, AttemptOutcome, CanonicalEvent, CanonicalRequest, EndpointId, ErrorScope,
-    EventEmission, GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, RawExtensions,
-    RequestContext, RequestId, Usage, UsageDelta,
+    AttemptEvent, AttemptOutcome, CanonicalEvent, CanonicalRequest, EgressPolicyId, EndpointId,
+    ErrorScope, EventEmission, GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink,
+    RawExtensions, RequestContext, RequestId, Usage, UsageDelta,
 };
 #[cfg(test)]
 use gateway_core::{
@@ -85,9 +87,10 @@ use gateway_store::{
     secret_store::SecretStore,
 };
 use gateway_upstream::{
-    AdmittedEgressTarget, CredentialLease, EgressDnsResolver, EgressPolicy,
-    SystemEgressDnsResolver, UpstreamClientPool, UpstreamHttpMethod, UpstreamHttpRequest,
-    UpstreamHttpResponse, UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
+    AdmittedEgressTarget, CredentialLease, EgressCidr, EgressDnsResolver, EgressHost, EgressPolicy,
+    EgressPolicyInput, EgressScheme, RedirectPolicy, SystemEgressDnsResolver, UpstreamClientPool,
+    UpstreamHttpMethod, UpstreamHttpRequest, UpstreamHttpResponse, UpstreamProxy, UpstreamTimeouts,
+    UpstreamTransportProfile,
 };
 
 use protocol_openai_chat::{
@@ -114,8 +117,10 @@ use provider_grok::{
     GrokConsoleSsoToken, GrokConsoleUpstreamTransport, GrokOfficialApiKey,
     GrokOfficialExecutionMode, GrokOfficialInferenceAdapter, GrokOfficialUpstreamTransport,
     GrokWebBrowserEgressSession, GrokWebBrowserUserAgent, GrokWebCredential,
-    GrokWebEgressSessionId, GrokWebProductionInferenceAdapter, GrokWebProductionUpstreamTransport,
-    GrokWebStatsigRuntime, GrokWebStatsigUpstreamTransport, GrokWebTlsProfile,
+    GrokWebEgressRefresher, GrokWebEgressSessionId, GrokWebFlareSolverrRequest,
+    GrokWebFlareSolverrTransport, GrokWebFlareSolverrTransportResponse,
+    GrokWebProductionInferenceAdapter, GrokWebProductionUpstreamTransport, GrokWebStatsigRuntime,
+    GrokWebStatsigUpstreamTransport, GrokWebTlsProfile,
 };
 use provider_kiro::{
     CanonicalEventSource, InferenceAdapter,
@@ -144,6 +149,125 @@ use serde_json::Value;
 const MAX_UPSTREAM_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
 /// Maximum error envelope inspected for structured provider ownership signals.
 const MAX_PROVIDER_ERROR_BODY_BYTES: usize = 64 * 1024;
+
+const MAX_FLARESOLVERR_RESPONSE_BYTES: usize = 512 * 1024;
+
+/// Loopback-only `FlareSolverr` transport used by the native Web recovery hook.
+#[derive(Clone)]
+struct P12GrokWebFlareSolverrTransport {
+    policy: Arc<EgressPolicy>,
+    client_pool: Arc<UpstreamClientPool>,
+    profile: UpstreamTransportProfile,
+}
+
+#[derive(Clone)]
+struct P12GrokWebEgressRefresher {
+    transport: Arc<dyn GrokWebFlareSolverrTransport>,
+}
+
+impl GrokWebEgressRefresher for P12GrokWebEgressRefresher {
+    fn refresh(
+        &self,
+        current: &GrokWebBrowserEgressSession,
+    ) -> BoxFuture<'_, Result<Arc<GrokWebBrowserEgressSession>, GatewayError>> {
+        let session_id = current.egress_session_id().as_str().to_owned();
+        let tls_profile = current.tls_profile().clone();
+        let proxy = current.proxy().clone();
+        let credential = current.credential_snapshot();
+        let transport = Arc::clone(&self.transport);
+        Box::pin(async move {
+            let response = transport
+                .send(GrokWebFlareSolverrRequest::default())
+                .await?;
+            if !(200..=299).contains(&response.status()) {
+                return Err(internal_error());
+            }
+            let clearance =
+                provider_grok::GrokWebFlareSolverrClearance::parse(&response.into_body())
+                    .map_err(|_| internal_error())?;
+            let now_ms = system_now_ms().map_err(|_| internal_error())?;
+            let credential = credential
+                .with_flaresolverr_clearance(&clearance, now_ms)
+                .map_err(|_| credential_unavailable_error())?;
+            let session = GrokWebBrowserEgressSession::try_new(
+                GrokWebEgressSessionId::try_new(&session_id)
+                    .map_err(|_| credential_unavailable_error())?,
+                credential,
+                GrokWebBrowserUserAgent::try_new(clearance.user_agent())
+                    .map_err(|_| internal_error())?,
+                tls_profile,
+                proxy,
+                now_ms,
+            )
+            .map_err(|_| credential_unavailable_error())?;
+            Ok(Arc::new(session))
+        })
+    }
+}
+
+impl P12GrokWebFlareSolverrTransport {
+    fn new(
+        client_pool: Arc<UpstreamClientPool>,
+        profile: UpstreamTransportProfile,
+    ) -> Result<Self, GatewayError> {
+        let policy = EgressPolicy::try_new(EgressPolicyInput {
+            id: EgressPolicyId::try_new("grok-web-flaresolverr-loopback")
+                .map_err(|_| internal_error())?,
+            name: "Grok Web FlareSolverr loopback".to_owned(),
+            allowed_schemes: BTreeSet::from([EgressScheme::Http]),
+            allowed_hosts: BTreeSet::from([
+                EgressHost::try_new("127.0.0.1").map_err(|_| internal_error())?
+            ]),
+            allowed_ports: BTreeSet::from([8191]),
+            allowed_cidrs: BTreeSet::from([EgressCidr::try_new(
+                std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST),
+                32,
+            )
+            .map_err(|_| internal_error())?]),
+            redirect_policy: RedirectPolicy::Deny,
+        })
+        .map_err(|_| internal_error())?;
+        Ok(Self {
+            policy: Arc::new(policy),
+            client_pool,
+            profile,
+        })
+    }
+}
+
+impl GrokWebFlareSolverrTransport for P12GrokWebFlareSolverrTransport {
+    fn send(
+        &self,
+        request: GrokWebFlareSolverrRequest,
+    ) -> BoxFuture<'_, Result<GrokWebFlareSolverrTransportResponse, GatewayError>> {
+        let policy = Arc::clone(&self.policy);
+        let pool = Arc::clone(&self.client_pool);
+        let profile = self.profile.clone();
+        Box::pin(async move {
+            let target = policy
+                .admit_url("http://127.0.0.1:8191/v1", &SystemEgressDnsResolver)
+                .map_err(|_| internal_error())?;
+            let body = request.to_json().map_err(|_| internal_error())?;
+            let outbound = UpstreamHttpRequest::try_new(
+                target,
+                UpstreamHttpMethod::Post,
+                [("content-type".to_owned(), "application/json".to_owned())],
+                body,
+            )
+            .map_err(|_| internal_error())?;
+            let mut response = pool.send(outbound, &profile).await?;
+            let status = response.status();
+            let mut body = Vec::new();
+            while let Some(chunk) = response.next_chunk().await? {
+                if body.len().saturating_add(chunk.len()) > MAX_FLARESOLVERR_RESPONSE_BYTES {
+                    return Err(internal_error());
+                }
+                body.extend_from_slice(&chunk);
+            }
+            GrokWebFlareSolverrTransportResponse::new(status, body).map_err(|_| internal_error())
+        })
+    }
+}
 /// The largest undelivered SSE residue this runtime will buffer between two canonical events.
 ///
 /// `response.output_text.done`, `response.output_item.done`, and `response.completed` each repeat
@@ -2223,13 +2347,21 @@ impl EndpointAttemptDriver {
             self.client_pool.as_ref().clone(),
             runtime.transports.for_mode(self.mode).clone(),
         );
+        let flaresolverr_transport = P12GrokWebFlareSolverrTransport::new(
+            Arc::clone(&self.client_pool),
+            runtime.transports.for_mode(self.mode).clone(),
+        )
+        .map_err(AttemptFailure::NonRetryable)?;
         let adapter = GrokWebProductionInferenceAdapter::try_new(
             session,
             candidate.upstream_model(),
             statsig,
             Arc::new(transport),
         )
-        .map_err(AttemptFailure::NonRetryable)?;
+        .map_err(AttemptFailure::NonRetryable)?
+        .with_egress_refresher(Arc::new(P12GrokWebEgressRefresher {
+            transport: Arc::new(flaresolverr_transport),
+        }));
         self.attempt_stages.record_stage(
             &self.request_id,
             ManagementRequestAttemptStage::EgressAdmission,

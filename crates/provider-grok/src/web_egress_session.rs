@@ -203,6 +203,12 @@ impl GrokWebBrowserEgressSession {
         self.credential.expires_at_ms()
     }
 
+    /// Clones the credential snapshot for an explicit account-bound recovery operation.
+    #[must_use]
+    pub fn credential_snapshot(&self) -> GrokWebCredential {
+        self.credential.clone()
+    }
+
     /// Returns the exact User-Agent component of the immutable session fingerprint.
     #[must_use]
     pub const fn user_agent(&self) -> &GrokWebBrowserUserAgent {
