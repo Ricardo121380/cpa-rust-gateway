@@ -70,9 +70,9 @@ jobs:
         run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
       - name: Run fast gate
         env:
-          # Rust 1.97's bundled lld has reproducibly crashed in its parallel section writer on the
-          # ubuntu-24.04 runner. Use one linker for the whole Fast gate so Cargo fingerprints stay
-          # stable and the disposable serve-envelope build does not duplicate native dependencies.
+          # Rust 1.97's bundled lld has reproducibly crashed while linking the Gateway on the
+          # ubuntu-24.04 runner. Use one GNU bfd linker for the whole Fast gate so Cargo fingerprints
+          # stay stable and the disposable serve-envelope build does not duplicate dependencies.
           CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER: ${{ github.workspace }}/scripts/p12-02-serial-linker.sh
         run: ./scripts/check.sh fast
 

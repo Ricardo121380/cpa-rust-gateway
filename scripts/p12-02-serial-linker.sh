@@ -2,16 +2,13 @@
 
 set -euo pipefail
 
-is_compile=0
+linker_arguments=()
 for argument in "$@"; do
-  if [[ "$argument" == "-c" ]]; then
-    is_compile=1
-    break
+  if [[ "$argument" == "-fuse-ld=lld" ]]; then
+    linker_arguments+=("-fuse-ld=bfd")
+  else
+    linker_arguments+=("$argument")
   fi
 done
 
-if (( is_compile )); then
-  exec /usr/bin/cc "$@"
-fi
-
-exec /usr/bin/cc "$@" -Wl,--threads=1
+exec /usr/bin/cc "${linker_arguments[@]}"
