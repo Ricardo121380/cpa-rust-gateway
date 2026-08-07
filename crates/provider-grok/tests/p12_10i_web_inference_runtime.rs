@@ -12,7 +12,9 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use gateway_core::{CanonicalEvent, GatewayError, RequestContext, RequestId};
+use gateway_core::{
+    CanonicalEvent, ErrorScope, GatewayError, GatewayErrorCode, RequestContext, RequestId,
+};
 use gateway_provider::{InferenceAdapter, ProviderFuture};
 use gateway_upstream::UpstreamProxy;
 use protocol_openai_responses::decode_request;
@@ -77,6 +79,46 @@ async fn pre_start_403_refreshes_statsig_once_then_projects_the_live_stream() ->
             |event| matches!(event, CanonicalEvent::TextDelta(delta) if delta.text == "ready")
         )
     );
+    Ok(())
+}
+
+#[tokio::test]
+async fn statsig_egress_rejection_falls_back_to_unsigned_clearance_retry() -> TestResult {
+    let now_ms = current_ms()?;
+    let statsig_transport = Arc::new(RejectingStatsigTransport::default());
+    let statsig = Arc::new(GrokWebStatsigRuntime::try_new(statsig_transport.clone())?);
+    let inference_transport = Arc::new(UnsignedRetryTransport::default());
+    let session = Arc::new(web_session(now_ms)?);
+    let egress_refresher = Arc::new(FixtureEgressRefresher {
+        calls: AtomicUsize::new(0),
+        session: Arc::clone(&session),
+    });
+    let adapter = GrokWebProductionInferenceAdapter::try_new(
+        session,
+        "grok-chat-fast",
+        statsig,
+        inference_transport.clone(),
+    )?
+    .with_egress_refresher(egress_refresher.clone());
+    let request = decode_request(r#"{"model":"public","input":"ready"}"#)?.request;
+    let mut source = adapter
+        .execute(
+            RequestContext::new(RequestId::try_new("p12-10i-web-unsigned-retry")?),
+            request,
+        )
+        .await?;
+    let mut events = Vec::new();
+    while let Some(event) = source.next_event().await? {
+        events.push(event);
+    }
+
+    assert_eq!(statsig_transport.calls.load(Ordering::SeqCst), 2);
+    assert_eq!(inference_transport.calls.load(Ordering::SeqCst), 2);
+    assert_eq!(egress_refresher.calls.load(Ordering::SeqCst), 1);
+    assert!(matches!(
+        events.last(),
+        Some(CanonicalEvent::ResponseEnd(_))
+    ));
     Ok(())
 }
 
@@ -160,6 +202,36 @@ impl GrokWebStatsigTransport for FixtureStatsigTransport {
 }
 
 #[derive(Default)]
+struct RejectingStatsigTransport {
+    calls: AtomicUsize,
+}
+
+impl GrokWebStatsigTransport for RejectingStatsigTransport {
+    fn fetch_environment<'a>(
+        &'a self,
+        _: &'a GrokWebBrowserEgressSession,
+        _: i64,
+    ) -> ProviderFuture<'a, Result<Zeroizing<String>, GatewayError>> {
+        Box::pin(async move {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            Err(GatewayError::new(
+                GatewayErrorCode::EgressRejected,
+                ErrorScope::Egress,
+            ))
+        })
+    }
+
+    fn sign<'a>(
+        &'a self,
+        _: &'a str,
+        _: &'a str,
+        _: &'a str,
+    ) -> ProviderFuture<'a, Result<GrokWebStatsigSignature, GatewayError>> {
+        Box::pin(async { Err(internal_error()) })
+    }
+}
+
+#[derive(Default)]
 struct FixtureInferenceTransport {
     calls: AtomicUsize,
 }
@@ -183,6 +255,43 @@ impl GrokWebProductionTransport for FixtureInferenceTransport {
                 Box::new(FixtureBody::new(
                     concat!(
                         "{\"result\":{\"conversation\":{\"conversationId\":\"conv-i14\"}}}",
+                        "{\"result\":{\"response\":{\"token\":\"ready\",\"isThinking\":false}}}",
+                        "{\"result\":{\"response\":{\"modelResponse\":{\"message\":\"ready\"}}}}"
+                    )
+                    .as_bytes()
+                    .chunks(7)
+                    .map(ToOwned::to_owned)
+                    .collect(),
+                )),
+            ))
+        })
+    }
+}
+
+#[derive(Default)]
+struct UnsignedRetryTransport {
+    calls: AtomicUsize,
+}
+
+impl GrokWebProductionTransport for UnsignedRetryTransport {
+    fn send(
+        &self,
+        request: GrokWebProductionOutboundRequest,
+    ) -> ProviderFuture<'_, Result<GrokWebProductionTransportResponse, GatewayError>> {
+        assert!(request.header("x-statsig-id").is_none());
+        let call = self.calls.fetch_add(1, Ordering::SeqCst);
+        Box::pin(async move {
+            if call == 0 {
+                return Ok(GrokWebProductionTransportResponse::new(
+                    403,
+                    Box::new(FixtureBody::new(vec![b"forbidden".to_vec()])),
+                ));
+            }
+            Ok(GrokWebProductionTransportResponse::new(
+                200,
+                Box::new(FixtureBody::new(
+                    concat!(
+                        "{\"result\":{\"conversation\":{\"conversationId\":\"conv-unsigned\"}}}",
                         "{\"result\":{\"response\":{\"token\":\"ready\",\"isThinking\":false}}}",
                         "{\"result\":{\"response\":{\"modelResponse\":{\"message\":\"ready\"}}}}"
                     )

@@ -194,6 +194,8 @@
 - [P12-10I-20 Grok Web recovery port review](evidence/p12-10i-20-grok-web-recovery-port-review-20260806.md) — recovery isolation, retry bound, redaction, and remaining external-provider boundary
 - [P12-10I-21 Grok Console/Web CPAR HTTP receipt](evidence/p12-10i-21-grok-console-web-cpar-receipt-20260807.md) — five-account Console SSO sample, CPAR `/v1/models` preflight, credential-boundary failures, Web expiry inspection, and isolated rollback
 - [P12-10I-21 Grok Console/Web CPAR HTTP review](evidence/p12-10i-21-grok-console-web-cpar-review-20260807.md) — attribution, fail-closed Web lifetime policy, cleanup, and production invariance review
+- [P12-10I-22 Autoreg fresh Web/Console CPAR HTTP receipt](evidence/p12-10i-22-autoreg-fresh-web-console-cpar-receipt-20260807.md) — fresh registration, real CPAR client-key matrix, Console text closure, Web Oracle egress/WAF blocker, and rollback
+- [P12-10I-22 Autoreg fresh Web/Console CPAR HTTP review](evidence/p12-10i-22-autoreg-fresh-web-console-cpar-review-20260807.md) — separate Console/Web verdicts, external attribution, policy preservation, and production invariance review
 - [P12-02 deployment envelope execution plan](p12-02-execution-plan.md) — approved minimal `serve`, isolated loopback listeners, `LoadCredential`, state/log directories, systemd hardening and Linux verification plan
 - [P12-02 deployment envelope acceptance](p12-02-deployment-envelope.md) — local Full gate, independent review, and repaired real-Linux systemd 255 syntax verification accepted; no Unit was installed or started
 - [P12-03 server backup and rollback inventory plan](p12-03-execution-plan.md) — constrained server-local snapshot plan; no configuration, database, or credential material may enter the repository

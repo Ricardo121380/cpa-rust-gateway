@@ -150,7 +150,9 @@ const MAX_UPSTREAM_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
 /// Maximum error envelope inspected for structured provider ownership signals.
 const MAX_PROVIDER_ERROR_BODY_BYTES: usize = 64 * 1024;
 
-const MAX_FLARESOLVERR_RESPONSE_BYTES: usize = 512 * 1024;
+// grok2api 3.1.1 bounds the browser-solver envelope at 2 MiB.  The response is still read only
+// from the fixed loopback endpoint and the provider parser retains only allowlisted cookies.
+const MAX_FLARESOLVERR_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
 
 /// Loopback-only `FlareSolverr` transport used by the native Web recovery hook.
 #[derive(Clone)]
@@ -1637,19 +1639,21 @@ fn has_p12_unlisted_model_override(value: &str) -> bool {
 }
 
 /// Returns whether a P12 Candidate carries the one bounded capability override admitted by the
-/// runtime shape gate. Native Grok Build's cross-protocol `CanonicalBridge` route additionally
-/// narrows Reasoning so a Chat target cannot receive a private reasoning item; no other adapter
-/// may introduce a second override shape.
+/// runtime shape gate. Native Grok Build and Console cross-protocol `CanonicalBridge` routes
+/// additionally narrow Reasoning so a Chat target cannot receive a private reasoning item; no
+/// other adapter may introduce a second override shape.
 fn p12_candidate_override_is_admissible(adapter_id: &str, value: &str) -> bool {
     has_p12_unlisted_model_override(value)
-        || (adapter_id == "grok.build.responses"
-            && matches!(
-                serde_json::from_str::<Value>(value),
-                Ok(Value::Object(object))
-                    if object.len() == 2
-                        && object.get("allow_unlisted_model") == Some(&Value::Bool(true))
-                        && object.get("reasoning") == Some(&Value::Bool(false))
-            ))
+        || (matches!(
+            adapter_id,
+            "grok.build.responses" | "grok.console.responses"
+        ) && matches!(
+            serde_json::from_str::<Value>(value),
+            Ok(Value::Object(object))
+                if object.len() == 2
+                    && object.get("allow_unlisted_model") == Some(&Value::Bool(true))
+                    && object.get("reasoning") == Some(&Value::Bool(false))
+        ))
 }
 
 /// Returns whether one `adapter_id` may serve an admitted API Format in this composition.
@@ -8019,6 +8023,10 @@ mod tests {
         ));
         assert!(p12_candidate_override_is_admissible(
             "grok.build.responses",
+            r#"{"allow_unlisted_model":true,"reasoning":false}"#
+        ));
+        assert!(p12_candidate_override_is_admissible(
+            "grok.console.responses",
             r#"{"allow_unlisted_model":true,"reasoning":false}"#
         ));
         assert!(!p12_candidate_override_is_admissible(

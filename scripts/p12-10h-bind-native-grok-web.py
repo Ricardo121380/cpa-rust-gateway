@@ -45,6 +45,10 @@ EGRESS_ID = "p12-10h-native-grok-web-egress"
 WEB_BASE_URL = "https://grok.com"
 WEB_INFERENCE_PATH = "/rest/app-chat/conversations/new"
 WEB_HOST = "grok.com"
+# The Web flow obtains its Statsig signature from the same fixed signer used by the reviewed
+# grok2api-compatible implementation.  It is a separate HTTPS egress target, so the route
+# policy must admit it explicitly; otherwise the request fails before the conversation call.
+STATSIG_SIGNER_HOST = "grok.wodf.de"
 PUBLIC_MODEL = "grok-cpar-web"
 UPSTREAM_MODEL = "grok-chat-auto"
 
@@ -54,6 +58,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--management-key-file", required=True)
     parser.add_argument("--management-base", required=True)
     parser.add_argument("--parent-version-id", required=True)
+    parser.add_argument("--version-id", default=VERSION_ID)
     parser.add_argument("--ledger", required=True)
     parser.add_argument("--client-key-out", required=True)
     actions = parser.add_mutually_exclusive_group()
@@ -72,17 +77,19 @@ def enter(args: argparse.Namespace) -> int:
     ledger = Ledger(args.ledger)
     session = Management(read_secret(args.management_key_file), base=args.management_base)
     version = session.call("POST", "/admin/config-versions", {
-        "id": VERSION_ID,
+        "id": args.version_id,
         "parent_id": args.parent_version_id,
         "description": "P12-10H isolated native Grok Web text route",
     }, send_config_version=False)
-    session.config_version = VERSION_ID
+    session.config_version = args.version_id
     session.revision = version.get("revision")
-    ledger.record("config_version_id", VERSION_ID)
+    ledger.record("config_version_id", args.version_id)
     ledger.record("initial_revision", session.revision)
     call(session, ledger, "egress_policy_id", "POST", "/admin/egress-policies", {
         "id": EGRESS_ID, "name": "P12-10H native Grok Web egress",
-        "allowed_schemes": ["https"], "allowed_hosts": [WEB_HOST], "allowed_ports": [443],
+        "allowed_schemes": ["https"],
+        "allowed_hosts": [WEB_HOST, STATSIG_SIGNER_HOST],
+        "allowed_ports": [443],
         "allowed_cidrs": [], "redirect_mode": "deny", "max_redirects": 0,
     })
     call(session, ledger, "upstream_id", "POST", "/admin/upstreams", {
@@ -129,23 +136,23 @@ def enter(args: argparse.Namespace) -> int:
 
 
 def finish(args: argparse.Namespace) -> int:
-    session = Management(read_secret(args.management_key_file), config_version=VERSION_ID, base=args.management_base)
+    session = Management(read_secret(args.management_key_file), config_version=args.version_id, base=args.management_base)
     session.call("POST", f"/admin/routes/{ROUTE_ID}/validate", {}, expect=200)
-    current = session.call("GET", f"/admin/config-versions/{VERSION_ID}", None, expect=200,
+    current = session.call("GET", f"/admin/config-versions/{args.version_id}", None, expect=200,
                            send_if_match=False, send_config_version=False)
     session.revision = current.get("revision")
     if not session.revision:
         raise ManagementError("native Grok Web graph omitted revision before validation")
-    validated = session.call("POST", f"/admin/config-versions/{VERSION_ID}/validate", {}, expect=200)
+    validated = session.call("POST", f"/admin/config-versions/{args.version_id}/validate", {}, expect=200)
     if validated.get("valid") is not True:
         raise ManagementError("native Grok Web graph validation failed")
-    session.call("POST", f"/admin/config-versions/{VERSION_ID}/publish", {}, expect=200, send_config_version=False)
+    session.call("POST", f"/admin/config-versions/{args.version_id}/publish", {}, expect=200, send_config_version=False)
     print("p12-10h-native-grok-web=PUBLISHED")
     return 0
 
 
 def explain_only(args: argparse.Namespace) -> int:
-    session = Management(read_secret(args.management_key_file), config_version=VERSION_ID, base=args.management_base)
+    session = Management(read_secret(args.management_key_file), config_version=args.version_id, base=args.management_base)
     result = session.call("GET", f"/admin/routes/{ROUTE_ID}/explain?requested_model={quote(PUBLIC_MODEL)}&protocol=openai_responses",
                           None, expect=200, send_if_match=False)
     candidates = result.get("candidates")

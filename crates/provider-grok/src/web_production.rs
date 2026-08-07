@@ -91,7 +91,7 @@ pub struct GrokWebProductionOutboundRequest {
     target: &'static str,
     cookie: Zeroizing<String>,
     user_agent: Zeroizing<String>,
-    statsig_signature: GrokWebStatsigSignature,
+    statsig_signature: Option<GrokWebStatsigSignature>,
     request_id: String,
     body: Zeroizing<Vec<u8>>,
 }
@@ -144,7 +144,9 @@ impl GrokWebProductionOutboundRequest {
         } else if name.eq_ignore_ascii_case("user-agent") {
             Some(self.user_agent.as_str())
         } else if name.eq_ignore_ascii_case("x-statsig-id") {
-            Some(self.statsig_signature.as_str())
+            self.statsig_signature
+                .as_ref()
+                .map(GrokWebStatsigSignature::as_str)
         } else if name.eq_ignore_ascii_case("x-xai-request-id") {
             Some(self.request_id.as_str())
         } else {
@@ -238,7 +240,7 @@ impl GrokWebProductionRequestBuilder {
     /// messages, and bounded-size violations before transport.
     pub fn build(
         session: &GrokWebBrowserEgressSession,
-        statsig_signature: GrokWebStatsigSignature,
+        statsig_signature: Option<GrokWebStatsigSignature>,
         upstream_model: &str,
         request: &CanonicalRequest,
         now_ms: i64,
@@ -284,7 +286,7 @@ fn normalized_message(request: &CanonicalRequest) -> Result<String, GrokWebProdu
         || request.thinking.is_some()
         || request.prompt_cache_key.is_some()
         || request.prompt_cache_retention.is_some()
-        || !request.extensions.is_empty()
+        || !web_output_limits_are_supported(request)
     {
         return Err(GrokWebProductionRequestError::UnsupportedRequest);
     }
@@ -326,6 +328,35 @@ fn normalized_message(request: &CanonicalRequest) -> Result<String, GrokWebProdu
     } else {
         Ok(normalized)
     }
+}
+
+/// Accepts only the common text-output ceilings retained by the three public protocol decoders.
+///
+/// Grok Web does not expose an upstream output-limit field in the reviewed grok2api 3.1.1 text
+/// request shape, so the value is an admission bound rather than a serialized control. Unknown,
+/// duplicate-cross-protocol, zero, non-integer, or excessive extensions still fail closed.
+fn web_output_limits_are_supported(request: &CanonicalRequest) -> bool {
+    const OUTPUT_LIMITS: [&str; 3] = [
+        "openai.responses.max_output_tokens",
+        "openai.chat.max_tokens",
+        "anthropic.messages.max_tokens",
+    ];
+    if request.extensions.is_empty() {
+        return true;
+    }
+    if request.extensions.iter().count() != 1 {
+        return false;
+    }
+    let Some((name, raw)) = request.extensions.iter().next() else {
+        return false;
+    };
+    if !OUTPUT_LIMITS.contains(&name) {
+        return false;
+    }
+    serde_json::from_str::<Value>(raw.get())
+        .ok()
+        .and_then(|value| value.as_u64())
+        .is_some_and(|value| value > 0 && value <= 1_000_000)
 }
 
 fn production_payload(message: &str, mode: &str) -> Value {
@@ -591,7 +622,26 @@ impl InferenceAdapter for GrokWebProductionInferenceAdapter {
         Box::pin(async move {
             let now_ms = web_now_ms()?;
             for attempt in 0_u8..=1 {
-                let signature = statsig.signature(&session, now_ms).await?;
+                // grok2api 3.1.1 treats a temporary Statsig/meta/signing failure as an optional
+                // browser hint: it still sends the exact conversation request, then lets an
+                // upstream 403 trigger the scoped clearance refresh and one retry. A credential
+                // rejection remains terminal; only transport/provider-side failures use this
+                // unsigned fallback.
+                let signature = match statsig.signature(&session, now_ms).await {
+                    Ok(signature) => Some(signature),
+                    Err(error)
+                        if matches!(
+                            error.code(),
+                            GatewayErrorCode::EgressRejected
+                                | GatewayErrorCode::EgressUnavailable
+                                | GatewayErrorCode::ProviderTransient
+                                | GatewayErrorCode::UpstreamProtocolError
+                        ) =>
+                    {
+                        None
+                    }
+                    Err(error) => return Err(error),
+                };
                 let outbound = GrokWebProductionRequestBuilder::build(
                     &session,
                     signature.clone(),
@@ -604,7 +654,9 @@ impl InferenceAdapter for GrokWebProductionInferenceAdapter {
                 let (status, mut body) = response.into_parts();
                 if status == 403 && attempt == 0 {
                     read_web_body(&mut *body, 4 * 1024 * 1024).await?;
-                    let _ = statsig.invalidate_signature_after_403(&signature)?;
+                    if let Some(signature) = signature.as_ref() {
+                        let _ = statsig.invalidate_signature_after_403(signature)?;
+                    }
                     if let Some(refresher) = egress_refresher.as_ref() {
                         session = refresher.refresh(&session).await?;
                     }

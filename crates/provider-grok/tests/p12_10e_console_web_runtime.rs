@@ -359,7 +359,7 @@ fn web_production_binding_uses_exact_browser_profile_and_live_decoder() -> TestR
     let request = decode_request(r#"{"model":"public","input":"ready"}"#)?.request;
     let outbound = GrokWebProductionRequestBuilder::build(
         &session,
-        GrokWebStatsigSignature::try_new("synthetic-statsig")?,
+        Some(GrokWebStatsigSignature::try_new("synthetic-statsig")?),
         "grok-chat-fast",
         &request,
         NOW_MS,
@@ -404,7 +404,7 @@ fn web_production_binding_rejects_tools_reasoning_and_unknown_models() -> TestRe
     let signature = || GrokWebStatsigSignature::try_new("synthetic-statsig");
     let tool_error = GrokWebProductionRequestBuilder::build(
         &session,
-        signature()?,
+        Some(signature()?),
         "grok-chat-fast",
         &tool_request()?,
         NOW_MS,
@@ -417,13 +417,26 @@ fn web_production_binding_rejects_tools_reasoning_and_unknown_models() -> TestRe
     assert!(matches!(
         GrokWebProductionRequestBuilder::build(
             &session,
-            signature()?,
+            Some(signature()?),
             "unverified-web-model",
             &text,
             NOW_MS,
         ),
         Err(GrokWebProductionRequestError::UnsupportedModel)
     ));
+    Ok(())
+}
+
+#[test]
+fn web_production_accepts_real_responses_harness_shape() -> TestResult {
+    let session = web_session()?;
+    let request = decode_request(
+        r#"{"model":"grok-cpar-web","input":[{"type":"message","role":"user","content":"Reply with OK."}],"max_output_tokens":8,"stream":false}"#,
+    )?
+    .request;
+    let outbound =
+        GrokWebProductionRequestBuilder::build(&session, None, "grok-chat-auto", &request, NOW_MS)?;
+    assert!(outbound.header("x-statsig-id").is_none());
     Ok(())
 }
 

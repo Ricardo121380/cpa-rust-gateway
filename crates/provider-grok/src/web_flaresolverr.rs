@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 /// Fixed local `FlareSolverr` endpoint; never configurable from a public request.
 pub const GROK_WEB_FLARESOLVERR_URL: &str = "http://127.0.0.1:8191/v1";
-const MAX_RESPONSE_BYTES: usize = 512 * 1024;
+const MAX_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
 const MAX_COOKIE_BYTES: usize = 16 * 1024;
 const MAX_USER_AGENT_BYTES: usize = 512;
 

@@ -58,6 +58,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--management-key-file", required=True)
     parser.add_argument("--management-base", required=True)
     parser.add_argument("--parent-version-id", required=True)
+    parser.add_argument("--version-id", default=VERSION_ID)
     parser.add_argument("--ledger", required=True)
     parser.add_argument("--client-key-out", required=True)
     actions = parser.add_mutually_exclusive_group()
@@ -79,15 +80,15 @@ def enter(args: argparse.Namespace) -> int:
         "POST",
         "/admin/config-versions",
         {
-            "id": VERSION_ID,
+            "id": args.version_id,
             "parent_id": args.parent_version_id,
             "description": "P12-10H isolated native Grok Console route",
         },
         send_config_version=False,
     )
-    session.config_version = VERSION_ID
+    session.config_version = args.version_id
     session.revision = version.get("revision")
-    ledger.record("config_version_id", VERSION_ID)
+    ledger.record("config_version_id", args.version_id)
     ledger.record("initial_revision", session.revision)
 
     call(session, ledger, "egress_policy_id", "POST", "/admin/egress-policies", {
@@ -139,7 +140,10 @@ def enter(args: argparse.Namespace) -> int:
         "enabled": True,
         "priority": 0,
         "weight": 1,
-        "capability_override": {"allow_unlisted_model": True},
+        # Console's reviewed catalog can expose private reasoning.  Keep the same explicit
+        # narrowing used by the native Build route so an OpenAI Chat client is never selected for
+        # a response that could contain unrepresentable private-reasoning events.
+        "capability_override": {"allow_unlisted_model": True, "reasoning": False},
     })
     call(session, ledger, "access_group_id", "POST", "/admin/access-groups", {
         "id": ACCESS_GROUP_ID,
@@ -171,13 +175,13 @@ def enter(args: argparse.Namespace) -> int:
 def finish(args: argparse.Namespace) -> int:
     session = Management(
         read_secret(args.management_key_file),
-        config_version=VERSION_ID,
+        config_version=args.version_id,
         base=args.management_base,
     )
     session.call("POST", f"/admin/routes/{ROUTE_ID}/validate", {}, expect=200)
     current = session.call(
         "GET",
-        f"/admin/config-versions/{VERSION_ID}",
+        f"/admin/config-versions/{args.version_id}",
         None,
         expect=200,
         send_config_version=False,
@@ -186,11 +190,11 @@ def finish(args: argparse.Namespace) -> int:
     session.revision = current.get("revision")
     if not session.revision:
         raise ManagementError("native Grok Console graph omitted revision before validation")
-    validated = session.call("POST", f"/admin/config-versions/{VERSION_ID}/validate", {}, expect=200)
+    validated = session.call("POST", f"/admin/config-versions/{args.version_id}/validate", {}, expect=200)
     if validated.get("valid") is not True:
         raise ManagementError("native Grok Console graph validation failed")
     session.call(
-        "POST", f"/admin/config-versions/{VERSION_ID}/publish", {}, expect=200,
+        "POST", f"/admin/config-versions/{args.version_id}/publish", {}, expect=200,
         send_config_version=False,
     )
     print("p12-10h-native-grok-console=PUBLISHED")
@@ -199,7 +203,7 @@ def finish(args: argparse.Namespace) -> int:
 
 def explain_only(args: argparse.Namespace) -> int:
     session = Management(
-        read_secret(args.management_key_file), config_version=VERSION_ID, base=args.management_base
+        read_secret(args.management_key_file), config_version=args.version_id, base=args.management_base
     )
     result = session.call(
         "GET",
