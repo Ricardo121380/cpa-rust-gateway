@@ -1817,7 +1817,7 @@ CR-ID: CR-P11-04-001
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | [暴露前验证回执](reports/p12-07-exposure-receipt.md)：新主机上从零完成产物验签、账户/目录/五凭据、unit 安装与启动（active、disabled-at-boot）；`cpar` 灰云 A 记录 + Let's Encrypt 证书；七项 fail-closed 暴露断言全通过（未认证与错误 key 均 401、管理面四路径均 404、公网直连 18180/18181 均不可达）；Caddy 变更前备份 preimage 并以 validate/adapt 证明其余五站点未变，reload 后 incumbent 仍正常。未录入任何真实上游凭据，`valid_key_accepted` 为 SKIP；该域名无限流（Caddy 标准版无模块）已记为缺口 | DONE |
 | P12-08 | 完成 CPAR 全量替代准入、客户端 Key 迁移清单与生产切换准备 | P12-06,P12-07 | [`P12-08 readiness`](reports/p12-08-canary-readiness.md)、[`client migration inventory`](reports/p12-08-client-migration-inventory.md) 与 [G1 最终 review](reports/evidence/p12-08g1-final-review-20260803.md)：直接替代边界、客户端清单、三协议兼容和当前可用 Codex/Krill 12/12 真实矩阵完成；完整回滚；GitHub CI `30768254180` 的 Fast、Full supply-chain 与 Required delivery gate 通过 | DONE |
 | P12-09 | 将生产主机名全量切到 CPAR，实际执行一次全量回滚并再次恢复 | P12-08 | [P12-09 execution receipt](reports/p12-09-execution-plan.md)：修复版切换/回滚/恢复 RTO 为 88ms/89ms/91ms，Newapi 与生产三协议矩阵通过，25/25 durable lifecycle 完整且 P1 零增量 | DONE |
-| P12-10 | CPAR 原生接管所需渠道后全量运行 72h，关闭旧 CPA/grok2api，发布 Tag 和运维手册 | P12-09 | [native Grok account pool](reports/p12-10-native-grok-account-pool.md) 的 A-H 切片、迁移/回滚/三协议 parity；原 [observation](reports/p12-10-observation.md) 保留 `INCOMPLETE`，仅在代表性真实流量就绪后重启 | IN_PROGRESS |
+| P12-10 | CPAR 原生接管所需渠道收口，完成可用文本渠道验证、回滚与运维手册；长时观察改为可选 | P12-09 | [native Grok account pool](reports/p12-10-native-grok-account-pool.md) 的 A-H 切片、迁移/回滚/三协议 parity；Build/Console 文本收口，Web 保留外部出口阻塞；旧 [observation](reports/p12-10-observation.md) 不再作为硬门槛 | IN_PROGRESS |
 
 #### P12-10 原生 Grok 账号池切片
 
@@ -3346,9 +3346,9 @@ CR-ID: CR-P12-PORT-001
 - 切换前冻结旧 CPA 的成功率、TTFT、P95/P99、模型与语义基线，完成 CPAR 的独立数据面、认证、
   Tool、Usage、Explain、Credential 与观测预检；并为每个实际客户端登记新 `rgw_` key 的交付
   状态及旧 key 回退动作。任何客户端未准备好时不得切换。
-- 切换后 CPAR 全量观察至少 72h，成功请求不少于 1250。低流量时可用固定合成请求补足，但合成
-  请求须与真实流量分开计数，失败同样计入错误率分子。TTFT 与 P95/P99 当前服务端不可观测，
-  须由客户端侧证据提供；旧 CPA 的冻结基线只用于对比，不承载并行生产请求。
+- 切换后以短时健康、协议、数据库和回滚证据作为收口依据；72h 观察与 1250 成功请求不再是
+  必须门槛，可作为后续运维观察单独记录。TTFT 与 P95/P99 当前服务端不可观测，若采集则由
+  客户端侧证据提供；旧 CPA 的冻结基线只用于对比，不承载并行生产请求。
 - P12-09 必须实际执行一次全量回滚并再次恢复，记录 Caddy 路由生效 RTO、客户端认证回退时间和
   请求一致性。P12-10/G12 通过后停止并禁用旧 CPA，不保留双网关生产拓扑。
 - 任一条件触发立即回滚：
@@ -3394,8 +3394,8 @@ G12 的"无 P0/P1 故障"需要可判定的谓词。下表为封闭分类，P0/P
 
 ### G12 门禁
 
-- CPAR 承载全部实际生产流量运行 72h，无 P0/P1 故障（按上表分级判定）；不得存在百分比或按 Key 分流。
-- 该 72h 窗口内成功请求数不少于 1250，且延迟证据按上表的客户端侧路径采集。
+- CPAR 承载全部实际生产流量期间不得出现 P0/P1 故障（按上表分级判定）；不得存在百分比或按 Key 分流。长时 72h 观察和 1250 成功请求仅作为可选运维观察，不再阻塞 P12-10 收口。
+- 收口门槛改为：当前可用文本渠道完成有界真实 JSON/SSE 验证、健康/路由/数据库检查、完整回滚演练和脱敏 review；未具备有效外部凭证或出口的渠道必须明确标记为 `BLOCKED_WITH_EVIDENCE` 或 `DEFERRED`。
 - 现有生产路径仍保留固定版本回滚包。
 - G12 通过后停止并禁用旧 CPA service/container，服务器生产入口只保留 CPAR。
 - 备份、恢复、升级、降级、Secret 轮换和故障排查手册齐全。
@@ -3703,3 +3703,4 @@ Next task:
 | v1.193 | 2026-08-06 | `P12-10I-20`：按 grok2api Web 请求轮廓补齐 Chromium Client Hints；在既有 Statsig 403 单次重试后增加显式、账号绑定的 egress refresher 注入点，允许后续接入刷新后的 Cookie/已验证代理 session；13/13 provider 定向测试、fmt、diff review 通过。未启动 FlareSolverr、未轮换真实代理、未发起上游请求，生产/服务器/grok2api 不变 | P12-10I-20 `LOCAL_PASS_PENDING_PHASE_GATE`；公共 Console/Web 仍受外部 egress 证据约束 |
 | v1.194 | 2026-08-07 | `P12-10I-21`：在 Oracle Singapore ARM64 隔离 staging 绑定 native Console route，逐个导入 grok2api 63 条 SSO 中的五个非邻接样本；每次 CPAR `/v1/models` 预检和单候选 explain 通过，但五次真实 Responses JSON 均在 `CredentialUnauthorized/credential` 首败。只读启动 grok2api 后确认 898 个 Web active 账号均缺少 `expires_at/refresh_due_at`，SSO token 无 expiry claim，Web 按 90 天策略 fail closed。Console batch、route、进程和 staging 已回滚/移入可恢复 Trash，grok2api 已停止，生产 active version/health/account count 不变 | P12-10I-21 `BLOCKED_WITH_EVIDENCE`；Console/Web 仍需当前可验证凭证 |
 | v1.195 | 2026-08-07 | `CR-P12-10I-022`：Autoreg task 59 新注册账号进入 Oracle Singapore ARM64 隔离 staging；Console 真实 CPAR HTTP 文本矩阵 `6/6`（Responses/Chat/Messages × JSON/SSE）通过。Web 使用临时一小时租约及双 Cookie 形状，首个 Responses JSON 为 `EgressRejected/egress`（`1/6`）；Oracle 与 Jakarta 的同源直连分别为 `403`/`200`，FlareSolverr 解析成功但未改变 Oracle 结果。两批账号、路由、进程和临时材料回滚/清理，生产不变；全局 90 天安全上限保留 | P12-10I-22 `BLOCKED_WITH_EVIDENCE`；Console 文本闭合，Web 保留 Oracle 出口/WAF 阻断 |
+| v1.196 | 2026-08-08 | `CR-P12-10I-023`：按 operator 决定移除 P12-10 的 72 小时与 1250 成功请求硬门槛；保留短时真实 JSON/SSE、健康/路由/数据库、回滚和脱敏 review 作为收口证据，长时 soak 降级为可选运维观察。Build/Console 文本继续收口，Web 固定为 `BLOCKED_EXTERNAL_EGRESS`，Web 媒体和缺失外部认证继续 `DEFERRED`；不改生产流量、不启动 GitHub CI | APPROVED；当前执行基线 |
