@@ -1817,7 +1817,7 @@ CR-ID: CR-P11-04-001
 | P12-07 | 配置独立 Cloudflare/Caddy 测试域名和最小暴露策略 | P12-04 | [暴露前验证回执](reports/p12-07-exposure-receipt.md)：新主机上从零完成产物验签、账户/目录/五凭据、unit 安装与启动（active、disabled-at-boot）；`cpar` 灰云 A 记录 + Let's Encrypt 证书；七项 fail-closed 暴露断言全通过（未认证与错误 key 均 401、管理面四路径均 404、公网直连 18180/18181 均不可达）；Caddy 变更前备份 preimage 并以 validate/adapt 证明其余五站点未变，reload 后 incumbent 仍正常。未录入任何真实上游凭据，`valid_key_accepted` 为 SKIP；该域名无限流（Caddy 标准版无模块）已记为缺口 | DONE |
 | P12-08 | 完成 CPAR 全量替代准入、客户端 Key 迁移清单与生产切换准备 | P12-06,P12-07 | [`P12-08 readiness`](reports/p12-08-canary-readiness.md)、[`client migration inventory`](reports/p12-08-client-migration-inventory.md) 与 [G1 最终 review](reports/evidence/p12-08g1-final-review-20260803.md)：直接替代边界、客户端清单、三协议兼容和当前可用 Codex/Krill 12/12 真实矩阵完成；完整回滚；GitHub CI `30768254180` 的 Fast、Full supply-chain 与 Required delivery gate 通过 | DONE |
 | P12-09 | 将生产主机名全量切到 CPAR，实际执行一次全量回滚并再次恢复 | P12-08 | [P12-09 execution receipt](reports/p12-09-execution-plan.md)：修复版切换/回滚/恢复 RTO 为 88ms/89ms/91ms，Newapi 与生产三协议矩阵通过，25/25 durable lifecycle 完整且 P1 零增量 | DONE |
-| P12-10 | CPAR 原生接管所需渠道收口，完成可用文本渠道验证、回滚与运维手册；长时观察改为可选 | P12-09 | [native Grok account pool](reports/p12-10-native-grok-account-pool.md) 的 A-H 切片、迁移/回滚/三协议 parity；Build/Console 文本收口，Web 保留外部出口阻塞；旧 [observation](reports/p12-10-observation.md) 不再作为硬门槛 | IN_PROGRESS |
+| P12-10 | CPAR 原生接管所需渠道收口，完成可用文本渠道验证、回滚与运维手册；长时观察改为可选 | P12-09 | [native Grok account pool](reports/p12-10-native-grok-account-pool.md) 的 A-H 切片、迁移/回滚/三协议 parity；[closeout receipt](reports/evidence/p12-10-closeout-receipt-20260808.md) 与 [review](reports/evidence/p12-10-closeout-review-20260808.md) 已完成；Build/Console 文本收口，Web 保留外部出口阻塞；旧 [observation](reports/p12-10-observation.md) 不再作为硬门槛 | IN_PROGRESS |
 
 #### P12-10 原生 Grok 账号池切片
 
