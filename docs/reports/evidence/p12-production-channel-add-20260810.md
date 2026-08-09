@@ -10,7 +10,7 @@ grok2api 进程和既有公开入口均未被替换或改写。当前 Oracle Sin
 
 | 渠道 | 生产图 | 真实 CPAR 公网证据 | 当前结论 |
 |---|---|---|---|
-| ChatGPT Go（Sub2API 格式 OAuth） | 已加入独立官方 Codex OAuth upstream、credential pool、三协议 routes | Chat/Responses/Messages 的 JSON 与 SSE 受控请求均完成；本次 Go route 的 JSON/SSE 为 `2/2` | **PASS** |
+| ChatGPT Go（Sub2API 格式 OAuth） | 已加入独立官方 Codex OAuth upstream、credential pool、三协议 routes | 本次生产公网对官方 Codex Responses 的 JSON/SSE 为 `2/2`；三协议完整 `12/12` 证据来自此前同构隔离 staging | **PASS** |
 | Grok Console | 已加入 native Console account pool 与独立 route | 真实 CPAR JSON/SSE `2/2`；请求从生产 CPAR 数据面发出并完成终态 | **PASS** |
 | Grok Build | 已加入 native Build account pool 与独立 route | 当前生产池唯一 Build credential 在本次导入时已过期，JSON/SSE 均在凭证选择阶段以 `CredentialUnavailable/credential` 终止；没有发出上游推理 | **BLOCKED_WITH_EVIDENCE** |
 | Krill | 独立 upstream、bearer credential、egress policy 和三组 route；不与 Go/Grok 共享凭证或回退 | 修正 Responses/Messages 使用兼容的 Chat endpoint + canonical bridge 后，Chat/Responses/Messages JSON/SSE `6/6` | **PASS** |
@@ -33,7 +33,7 @@ Responses/Messages 的线协议兼容，不改变渠道归属。
 脱敏失败类别，不含 endpoint、client key、OAuth/SSO、Cookie、请求正文或响应正文。
 
 - 初始 12-call 回执：`public-acceptance-20260810.json`
-  - ChatGPT Go JSON/SSE：`2/2`
+  - ChatGPT Go 官方 Codex Responses JSON/SSE：`2/2`
   - Grok Console JSON/SSE：`2/2`
   - Krill Chat JSON/SSE：`2/2`
   - Grok Build JSON/SSE：`0/2`，固定类别 `CredentialUnavailable/credential`
