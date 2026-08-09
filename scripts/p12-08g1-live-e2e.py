@@ -71,14 +71,15 @@ def loopback_endpoint(raw: str) -> tuple[str, int]:
     return parsed.hostname, parsed.port or 80
 
 
-def request_body(protocol: str, *, stream: bool, tool: bool) -> bytes:
+def request_body(protocol: str, *, stream: bool, tool: bool, model: str | None = None) -> bytes:
     if tool:
         instruction = "Call emit_probe exactly once with value set to ready and return no text."
     else:
         instruction = "Return one short plain text result."
+    selected_model = model or ALIASES[protocol]
     if protocol == "responses":
         value = {
-            "model": ALIASES[protocol],
+            "model": selected_model,
             "input": [{"type": "message", "role": "user", "content": instruction}],
             "max_output_tokens": 96,
             "stream": stream,
@@ -94,7 +95,7 @@ def request_body(protocol: str, *, stream: bool, tool: bool) -> bytes:
             })
     elif protocol == "chat":
         value = {
-            "model": ALIASES[protocol], "messages": [{"role": "user", "content": instruction}],
+            "model": selected_model, "messages": [{"role": "user", "content": instruction}],
             "max_tokens": 96, "stream": stream,
         }
         if stream:
@@ -110,7 +111,7 @@ def request_body(protocol: str, *, stream: bool, tool: bool) -> bytes:
             })
     elif protocol == "messages":
         value = {
-            "model": ALIASES[protocol], "max_tokens": 96,
+            "model": selected_model, "max_tokens": 96,
             "messages": [{"role": "user", "content": instruction}], "stream": stream,
         }
         if tool:
@@ -394,11 +395,21 @@ def observe_messages_stream(response, tool: bool) -> dict:
     return {"projection": "tool" if tool else "text", "usage_valid": True, "terminal": terminal}
 
 
-def request_once(host: str, port: int, key: str, protocol: str, *, stream: bool, tool: bool, timeout: float) -> dict:
+def request_once(
+    host: str,
+    port: int,
+    key: str,
+    protocol: str,
+    *,
+    stream: bool,
+    tool: bool,
+    timeout: float,
+    model: str | None = None,
+) -> dict:
     path = {"chat": "/v1/chat/completions", "responses": "/v1/responses", "messages": "/v1/messages"}[protocol]
     conn = http.client.HTTPConnection(host, port, timeout=timeout)
     try:
-        conn.request("POST", path, request_body(protocol, stream=stream, tool=tool), {
+        conn.request("POST", path, request_body(protocol, stream=stream, tool=tool, model=model), {
             "Authorization": "Bearer " + key,
             "Content-Type": "application/json",
             "Accept": "text/event-stream" if stream else "application/json",
@@ -428,7 +439,9 @@ def write_receipt(path: Path, receipt: dict) -> None:
         handle.write("\n")
 
 
-def tuple_matrix() -> list[tuple[str, bool, bool]]:
+def tuple_matrix(text_only: bool = False) -> list[tuple[str, bool, bool]]:
+    if text_only:
+        return [(protocol, stream, False) for protocol in ("chat", "responses", "messages") for stream in (False, True)]
     return [
         (protocol, stream, tool)
         for protocol in ("chat", "responses", "messages")
@@ -471,6 +484,8 @@ def main() -> int:
     parser.add_argument("--key-file", required=True, type=Path)
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--timeout", type=float, default=120.0)
+    parser.add_argument("--model", help="Use one public model for every protocol bridge")
+    parser.add_argument("--text-only", action="store_true", help="Run only text JSON/SSE tuples")
     parser.add_argument("--resume-receipt", type=Path)
     args = parser.parse_args()
     try:
@@ -480,7 +495,7 @@ def main() -> int:
         print(f"p12-08g1-live=FAIL category={error}", file=sys.stderr)
         return 1
 
-    tuples = tuple_matrix()
+    tuples = tuple_matrix(args.text_only)
     results: list[dict] = []
     start_index = 0
     if args.resume_receipt:
@@ -494,7 +509,10 @@ def main() -> int:
     for protocol, stream, tool in tuples[start_index:]:
         sends += 1
         try:
-            observation = request_once(host, port, key, protocol, stream=stream, tool=tool, timeout=args.timeout)
+            observation = request_once(
+                host, port, key, protocol, stream=stream, tool=tool, timeout=args.timeout,
+                model=args.model,
+            )
             results.append({"protocol": protocol, "stream": stream, "mode": "tool" if tool else "text", "result": "PASS", **observation})
         except ProbeFailure as error:
             results.append({"protocol": protocol, "stream": stream, "mode": "tool" if tool else "text", "result": "FAIL", "category": str(error)})

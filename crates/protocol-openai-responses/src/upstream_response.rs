@@ -35,6 +35,24 @@ const JSON_WHITESPACE: [char; 4] = [' ', '\t', '\n', '\r'];
 /// Returns a stream-scoped upstream protocol error for an oversized, malformed, ambiguous,
 /// failed, unknown, or semantically unrepresentable response.
 pub fn decode_upstream_response(input: &str) -> Result<Vec<CanonicalEvent>, GatewayError> {
+    decode_upstream_response_with_reasoning_policy(input, false)
+}
+
+/// Decodes one complete Responses envelope with an explicit private-reasoning policy.
+///
+/// Official `ChatGPT` Codex OAuth responses can contain encrypted reasoning output that cannot be
+/// represented by the public bridge protocols. CPA/sub2api discard that private item and retain
+/// visible message/tool output. The default decoder remains strict; this opt-in is reserved for
+/// an explicitly admitted route whose capability contract excludes reasoning.
+///
+/// # Errors
+///
+/// Returns a stream-scoped upstream protocol error for an oversized, malformed, ambiguous,
+/// failed, unknown, or semantically unrepresentable response.
+pub fn decode_upstream_response_with_reasoning_policy(
+    input: &str,
+    suppress_reasoning: bool,
+) -> Result<Vec<CanonicalEvent>, GatewayError> {
     if input.len() > MAX_RESPONSE_BYTES {
         return Err(protocol_error());
     }
@@ -73,7 +91,10 @@ pub fn decode_upstream_response(input: &str) -> Result<Vec<CanonicalEvent>, Gate
             extensions: RawExtensions::default(),
         }));
     }
-    let mut state = CompletedState::default();
+    let mut state = CompletedState {
+        suppress_reasoning,
+        ..CompletedState::default()
+    };
     for item in output {
         state.decode_item(item, &mut events)?;
     }
@@ -141,6 +162,7 @@ struct CompletedState {
     message_open: bool,
     emitted_content: bool,
     call_ids: BTreeSet<String>,
+    suppress_reasoning: bool,
 }
 
 impl CompletedState {
@@ -238,6 +260,12 @@ impl CompletedState {
             ],
         )?;
         let _ = identifier(item, "id")?;
+        if self.suppress_reasoning {
+            if !completed_or_absent(item.get("status")) {
+                return Err(protocol_error());
+            }
+            return Ok(());
+        }
         if !completed_or_absent(item.get("status"))
             || item
                 .get("encrypted_content")
@@ -345,6 +373,7 @@ pub struct OpenAiResponsesSseDecoder {
     pending: Vec<CanonicalEvent>,
     progress_free_frames: usize,
     progress_marks: u64,
+    suppress_reasoning: bool,
 }
 
 impl Default for OpenAiResponsesSseDecoder {
@@ -358,6 +387,7 @@ impl Default for OpenAiResponsesSseDecoder {
             pending: Vec::new(),
             progress_free_frames: 0,
             progress_marks: 0,
+            suppress_reasoning: false,
         }
     }
 }
@@ -407,6 +437,19 @@ impl OpenAiResponsesSseDecoder {
     #[must_use]
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Creates a decoder that discards private reasoning items while preserving visible output.
+    ///
+    /// This is used only by the official `ChatGPT` Codex OAuth bridge. Item identifiers and
+    /// lifecycle order remain validated, but encrypted/private reasoning is never projected into
+    /// the downstream Canonical stream.
+    #[must_use]
+    pub fn new_with_reasoning_suppressed() -> Self {
+        Self {
+            suppress_reasoning: true,
+            ..Self::default()
+        }
     }
 
     /// Returns whether a unique terminal semantic frame was accepted.
@@ -603,6 +646,7 @@ impl OpenAiResponsesSseDecoder {
         let item = object(value.get("item").ok_or_else(protocol_error)?)?;
         let kind = required_string(item, "type")?;
         let item_id = identifier(item, "id")?.to_owned();
+        let suppress_reasoning = self.suppress_reasoning;
         let state = self.streaming_mut()?;
         if state.output_items.len() >= MAX_OUTPUT_ITEMS
             || !state.output_items.insert(item_id.clone())
@@ -615,14 +659,19 @@ impl OpenAiResponsesSseDecoder {
                 self.ensure_message()
             }
             "reasoning" => {
-                if item
-                    .get("encrypted_content")
-                    .is_some_and(|value| !value.is_null())
+                if !suppress_reasoning
+                    && item
+                        .get("encrypted_content")
+                        .is_some_and(|value| !value.is_null())
                 {
                     return Err(protocol_error());
                 }
                 state.reasoning_items.insert(item_id);
-                self.ensure_message()
+                if suppress_reasoning {
+                    Ok(())
+                } else {
+                    self.ensure_message()
+                }
             }
             "function_call" => self.start_tool(item_id, item),
             _ => Err(protocol_error()),
@@ -650,6 +699,9 @@ impl OpenAiResponsesSseDecoder {
         let delta = string_value(value, "delta")?;
         if !self.streaming_mut()?.reasoning_items.contains(&item_id) {
             return Err(protocol_error());
+        }
+        if self.suppress_reasoning {
+            return Ok(());
         }
         if !delta.is_empty() {
             self.streaming_mut()?.emitted_content = true;
@@ -1215,7 +1267,10 @@ mod tests {
     use gateway_core::{CanonicalEvent, Usage};
     use proptest::prelude::*;
 
-    use super::{MAX_FRAME_BYTES, OpenAiResponsesSseDecoder, decode_upstream_response};
+    use super::{
+        MAX_FRAME_BYTES, OpenAiResponsesSseDecoder, decode_upstream_response,
+        decode_upstream_response_with_reasoning_policy,
+    };
 
     const JSON: &str =
         include_str!("../../../tests/fixtures/openai-responses/upstream-completed-response.json");
@@ -1295,6 +1350,74 @@ mod tests {
         let buffered = decode_upstream_response(JSON)?;
         let streamed = decode_sse(&[1])?;
         assert_eq!(digest(&buffered), digest(&streamed));
+        Ok(())
+    }
+
+    #[test]
+    fn codex_reasoning_suppression_discards_encrypted_private_output()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut response: serde_json::Value = serde_json::from_str(JSON)?;
+        let output = response
+            .get_mut("output")
+            .and_then(serde_json::Value::as_array_mut)
+            .ok_or_else(|| std::io::Error::other("fixture output missing"))?;
+        output.insert(
+            0,
+            serde_json::json!({
+                "type": "reasoning",
+                "id": "reasoning-private",
+                "status": "completed",
+                "summary": [],
+                "content": [],
+                "encrypted_content": "opaque"
+            }),
+        );
+        assert!(decode_upstream_response(&response.to_string()).is_err());
+        let events = decode_upstream_response_with_reasoning_policy(&response.to_string(), true)?;
+        assert!(
+            events
+                .iter()
+                .all(|event| !matches!(event, CanonicalEvent::ReasoningDelta(_)))
+        );
+        assert!(!digest(&events).text.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn streamed_codex_reasoning_suppression_keeps_visible_text()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let sse = concat!(
+            "event: response.created\n",
+            "data: {\"type\":\"response.created\",\"response\":{\"id\":\"resp-codex\",\"usage\":null}}\n\n",
+            "event: response.output_item.added\n",
+            "data: {\"type\":\"response.output_item.added\",\"item\":{\"type\":\"reasoning\",\"id\":\"reason-codex\",\"encrypted_content\":\"opaque\",\"summary\":[],\"content\":[]}}\n\n",
+            "event: response.output_item.done\n",
+            "data: {\"type\":\"response.output_item.done\",\"item\":{\"type\":\"reasoning\",\"id\":\"reason-codex\",\"summary\":[],\"content\":[],\"encrypted_content\":\"opaque\"}}\n\n",
+            "event: response.output_item.added\n",
+            "data: {\"type\":\"response.output_item.added\",\"item\":{\"type\":\"message\",\"id\":\"msg-codex\",\"role\":\"assistant\",\"status\":\"in_progress\"}}\n\n",
+            "event: response.output_text.delta\n",
+            "data: {\"type\":\"response.output_text.delta\",\"item_id\":\"msg-codex\",\"delta\":\"ok\"}\n\n",
+            "event: response.output_item.done\n",
+            "data: {\"type\":\"response.output_item.done\",\"item\":{\"type\":\"message\",\"id\":\"msg-codex\",\"role\":\"assistant\",\"status\":\"completed\"}}\n\n",
+            "event: response.completed\n",
+            "data: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp-codex\",\"status\":\"completed\",\"usage\":null}}\n\n",
+        );
+        let mut decoder = OpenAiResponsesSseDecoder::new_with_reasoning_suppressed();
+        let events = decoder.push(sse.as_bytes())?;
+        let events = events
+            .into_iter()
+            .chain(decoder.finish()?)
+            .collect::<Vec<_>>();
+        assert!(
+            events
+                .iter()
+                .any(|event| matches!(event, CanonicalEvent::TextDelta(_)))
+        );
+        assert!(
+            events
+                .iter()
+                .all(|event| !matches!(event, CanonicalEvent::ReasoningDelta(_)))
+        );
         Ok(())
     }
 

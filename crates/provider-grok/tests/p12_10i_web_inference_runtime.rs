@@ -79,6 +79,18 @@ async fn pre_start_403_refreshes_statsig_once_then_projects_the_live_stream() ->
             |event| matches!(event, CanonicalEvent::TextDelta(delta) if delta.text == "ready")
         )
     );
+    assert!(events.iter().any(|event| matches!(
+        event,
+        CanonicalEvent::UsageDelta(delta)
+            if delta.is_final
+                && delta.usage.input_tokens.is_some_and(|value| value > 0)
+                && delta.usage.output_tokens.is_some_and(|value| value > 0)
+    )));
+    assert!(matches!(
+        events.last(),
+        Some(CanonicalEvent::ResponseEnd(end))
+            if end.stop_reason.as_deref() == Some("end_turn")
+    ));
     Ok(())
 }
 

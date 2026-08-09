@@ -10,18 +10,21 @@ use std::{
     error::Error,
     fmt,
     fmt::Write as _,
+    net::{IpAddr, Ipv4Addr},
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use base64::Engine as _;
 use gateway_core::{
     CanonicalEvent, CanonicalMessage, CanonicalRequest, ErrorScope, GatewayError, GatewayErrorCode,
-    MessageContent, ProviderId, RequestContext, StreamError,
+    MessageContent, ProviderId, RawExtensions, RequestContext, StreamError, Usage, UsageDelta,
 };
 use gateway_provider::{CanonicalEventSource, InferenceAdapter, ProviderAdapter, ProviderFuture};
 use gateway_upstream::{
-    AdmittedEgressTarget, EgressDnsResolver, EgressPolicy, EgressScheme, UpstreamClientPool,
-    UpstreamHttpMethod, UpstreamHttpRequest, UpstreamHttpResponse, UpstreamTransportProfile,
+    AdmittedEgressTarget, EgressCidr, EgressDnsResolver, EgressHost, EgressPolicy,
+    EgressPolicyInput, EgressScheme, RedirectPolicy, UpstreamClientPool, UpstreamHttpMethod,
+    UpstreamHttpRequest, UpstreamHttpResponse, UpstreamProxy, UpstreamTransportProfile,
 };
 use serde_json::{Map, Value};
 use zeroize::Zeroizing;
@@ -36,12 +39,6 @@ use crate::{
 pub const GROK_WEB_PRODUCTION_BASE_URL: &str = "https://grok.com";
 /// Fixed browser profile paired with grok2api-compatible Web requests.
 pub const GROK_WEB_PRODUCTION_USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36";
-/// Chromium client hints paired with the fixed browser profile above.
-pub const GROK_WEB_PRODUCTION_SEC_CH_UA: &str =
-    "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not(A:Brand\";v=\"24\"";
-pub const GROK_WEB_PRODUCTION_SEC_CH_UA_PLATFORM: &str = "\"macOS\"";
-pub const GROK_WEB_PRODUCTION_SEC_CH_UA_ARCH: &str = "x86";
-pub const GROK_WEB_PRODUCTION_SEC_CH_UA_BITNESS: &str = "64";
 /// Stable native Web provider identity.
 pub const GROK_WEB_PRODUCTION_PROVIDER_ID: &str = "grok.web";
 
@@ -109,7 +106,7 @@ impl GrokWebProductionOutboundRequest {
         if name.eq_ignore_ascii_case("accept") {
             Some("*/*")
         } else if name.eq_ignore_ascii_case("accept-encoding") {
-            Some("identity")
+            Some("gzip, deflate, br, zstd")
         } else if name.eq_ignore_ascii_case("accept-language") {
             Some("zh-CN,zh;q=0.9,en;q=0.8")
         } else if name.eq_ignore_ascii_case("cache-control") || name.eq_ignore_ascii_case("pragma")
@@ -129,16 +126,6 @@ impl GrokWebProductionOutboundRequest {
             Some("cors")
         } else if name.eq_ignore_ascii_case("sec-fetch-dest") {
             Some("empty")
-        } else if name.eq_ignore_ascii_case("sec-ch-ua") {
-            Some(GROK_WEB_PRODUCTION_SEC_CH_UA)
-        } else if name.eq_ignore_ascii_case("sec-ch-ua-mobile") {
-            Some("?0")
-        } else if name.eq_ignore_ascii_case("sec-ch-ua-platform") {
-            Some(GROK_WEB_PRODUCTION_SEC_CH_UA_PLATFORM)
-        } else if name.eq_ignore_ascii_case("sec-ch-ua-arch") {
-            Some(GROK_WEB_PRODUCTION_SEC_CH_UA_ARCH)
-        } else if name.eq_ignore_ascii_case("sec-ch-ua-bitness") {
-            Some(GROK_WEB_PRODUCTION_SEC_CH_UA_BITNESS)
         } else if name.eq_ignore_ascii_case("cookie") {
             Some(self.cookie.as_str())
         } else if name.eq_ignore_ascii_case("user-agent") {
@@ -158,6 +145,34 @@ impl GrokWebProductionOutboundRequest {
     #[must_use]
     pub fn body(&self) -> &[u8] {
         self.body.as_slice()
+    }
+
+    fn relay_payload(&self) -> Value {
+        Value::Object(Map::from_iter([
+            (
+                "body".to_owned(),
+                Value::String(
+                    base64::engine::general_purpose::STANDARD.encode(self.body.as_slice()),
+                ),
+            ),
+            ("cookie".to_owned(), Value::String(self.cookie.to_string())),
+            (
+                "user_agent".to_owned(),
+                Value::String(self.user_agent.to_string()),
+            ),
+            (
+                "statsig".to_owned(),
+                self.statsig_signature
+                    .as_ref()
+                    .map_or(Value::Null, |value| {
+                        Value::String(value.as_str().to_owned())
+                    }),
+            ),
+            (
+                "request_id".to_owned(),
+                Value::String(self.request_id.clone()),
+            ),
+        ]))
     }
 
     /// Converts this request after independent exact-target DNS admission.
@@ -189,11 +204,6 @@ impl GrokWebProductionOutboundRequest {
             "sec-fetch-site",
             "sec-fetch-mode",
             "sec-fetch-dest",
-            "sec-ch-ua",
-            "sec-ch-ua-mobile",
-            "sec-ch-ua-platform",
-            "sec-ch-ua-arch",
-            "sec-ch-ua-bitness",
             "cookie",
             "user-agent",
             "x-statsig-id",
@@ -221,7 +231,7 @@ impl fmt::Debug for GrokWebProductionOutboundRequest {
         formatter
             .debug_struct("GrokWebProductionOutboundRequest")
             .field("target", &"<redacted>")
-            .field("header_count", &21)
+            .field("header_count", &16)
             .field("body_len", &self.body.len())
             .finish_non_exhaustive()
     }
@@ -330,6 +340,37 @@ fn normalized_message(request: &CanonicalRequest) -> Result<String, GrokWebProdu
     }
 }
 
+// Mirrors grok2api 3.1.1's Web fallback: byte and segment estimates are conservative, and a
+// non-empty value never reports zero. The result is compatibility usage, not billing evidence.
+fn estimate_grok_web_tokens(value: &str) -> u64 {
+    let text = value.trim();
+    if text.is_empty() {
+        return 0;
+    }
+    let byte_estimate = text.len().div_ceil(4);
+    let mut segments = 0_usize;
+    let mut in_word = false;
+    for character in text.chars() {
+        if character.is_alphanumeric() || character == '_' {
+            if !in_word {
+                segments = segments.saturating_add(1);
+                in_word = true;
+            }
+        } else {
+            in_word = false;
+            if !character.is_whitespace() {
+                segments = segments.saturating_add(1);
+            }
+        }
+    }
+    let segment_estimate = segments.saturating_mul(3).div_ceil(4);
+    u64::try_from(byte_estimate.max(segment_estimate).max(1)).unwrap_or(u64::MAX)
+}
+
+fn estimate_grok_web_prompt_tokens(value: &str) -> u64 {
+    estimate_grok_web_tokens(value).saturating_add(4)
+}
+
 /// Accepts only the common text-output ceilings retained by the three public protocol decoders.
 ///
 /// Grok Web does not expose an upstream output-limit field in the reviewed grok2api 3.1.1 text
@@ -378,14 +419,14 @@ fn production_payload(message: &str, mode: &str) -> Value {
         ("disableSearch".to_owned(), Value::Bool(false)),
         ("disableSelfHarmShortCircuit".to_owned(), Value::Bool(false)),
         ("disableTextFollowUps".to_owned(), Value::Bool(false)),
-        ("enableImageGeneration".to_owned(), Value::Bool(false)),
-        ("enableImageStreaming".to_owned(), Value::Bool(false)),
-        ("enableSideBySide".to_owned(), Value::Bool(false)),
+        ("enableImageGeneration".to_owned(), Value::Bool(true)),
+        ("enableImageStreaming".to_owned(), Value::Bool(true)),
+        ("enableSideBySide".to_owned(), Value::Bool(true)),
         ("fileAttachments".to_owned(), Value::Array(Vec::new())),
         ("forceConcise".to_owned(), Value::Bool(false)),
         ("forceSideBySide".to_owned(), Value::Bool(false)),
         ("imageAttachments".to_owned(), Value::Array(Vec::new())),
-        ("imageGenerationCount".to_owned(), Value::from(0)),
+        ("imageGenerationCount".to_owned(), Value::from(2)),
         ("isAsyncChat".to_owned(), Value::Bool(false)),
         ("message".to_owned(), Value::String(message.to_owned())),
         ("modeId".to_owned(), Value::String(mode.to_owned())),
@@ -443,6 +484,13 @@ impl GrokWebProductionTransportResponse {
     fn into_parts(self) -> (u16, Box<dyn GrokWebProductionResponseBody>) {
         (self.status, self.body)
     }
+
+    fn buffered(status: u16, body: Vec<u8>) -> Self {
+        Self {
+            status,
+            body: Box::new(GrokWebProductionBufferedBody { body: Some(body) }),
+        }
+    }
 }
 
 impl fmt::Debug for GrokWebProductionTransportResponse {
@@ -470,6 +518,13 @@ pub struct GrokWebProductionUpstreamTransport {
     resolver: Arc<dyn EgressDnsResolver>,
     client_pool: UpstreamClientPool,
     profile: UpstreamTransportProfile,
+    relay: Option<GrokWebBrowserRelay>,
+}
+
+struct GrokWebBrowserRelay {
+    url: String,
+    policy: EgressPolicy,
+    profile: UpstreamTransportProfile,
 }
 
 impl GrokWebProductionUpstreamTransport {
@@ -486,7 +541,23 @@ impl GrokWebProductionUpstreamTransport {
             resolver,
             client_pool,
             profile: profile.with_chrome_146_emulation(),
+            relay: None,
         }
+    }
+
+    /// Creates a staging-only loopback browser relay binding. The default production path remains
+    /// the direct Chrome-emulated transport; this override is accepted only for explicit loopback
+    /// HTTP so a Playwright context can own Cloudflare cookies and browser TLS state.
+    pub fn new_with_browser_relay_url(
+        egress_policy: EgressPolicy,
+        resolver: Arc<dyn EgressDnsResolver>,
+        client_pool: UpstreamClientPool,
+        profile: UpstreamTransportProfile,
+        relay_url: Option<String>,
+    ) -> Self {
+        let mut transport = Self::new(egress_policy, resolver, client_pool, profile);
+        transport.relay = relay_url.and_then(|url| browser_relay(&url).ok());
+        transport
     }
 }
 
@@ -498,6 +569,7 @@ impl fmt::Debug for GrokWebProductionUpstreamTransport {
             .field("resolver", &"<injected>")
             .field("client_pool", &self.client_pool)
             .field("profile", &self.profile)
+            .field("browser_relay", &self.relay.is_some())
             .finish()
     }
 }
@@ -507,6 +579,12 @@ impl GrokWebProductionTransport for GrokWebProductionUpstreamTransport {
         &self,
         outbound: GrokWebProductionOutboundRequest,
     ) -> ProviderFuture<'_, Result<GrokWebProductionTransportResponse, GatewayError>> {
+        if let Some(relay) = &self.relay {
+            let Ok(payload) = serde_json::to_vec(&outbound.relay_payload()) else {
+                return Box::pin(async { Err(web_internal_error()) });
+            };
+            return send_via_browser_relay(relay, self.client_pool.clone(), payload);
+        }
         let admitted = self
             .egress_policy
             .admit_url(outbound.url(), self.resolver.as_ref())
@@ -526,6 +604,107 @@ impl GrokWebProductionTransport for GrokWebProductionUpstreamTransport {
             ))
         })
     }
+}
+
+fn browser_relay(value: &str) -> Result<GrokWebBrowserRelay, Box<dyn Error + Send + Sync>> {
+    let parsed = url::Url::parse(value)?;
+    let host = parsed.host_str().ok_or("missing relay host")?;
+    if parsed.scheme() != "http"
+        || !matches!(host, "127.0.0.1" | "localhost")
+        || parsed.port().unwrap_or(0) == 0
+        || parsed.username() != ""
+        || parsed.password().is_some()
+        || parsed.query().is_some()
+        || parsed.fragment().is_some()
+    {
+        return Err("browser relay must be loopback HTTP".into());
+    }
+    let port = parsed
+        .port()
+        .ok_or("browser relay requires explicit port")?;
+    let policy = EgressPolicy::try_new(EgressPolicyInput {
+        id: gateway_core::EgressPolicyId::try_new("p12-local-grok-web-browser-relay")?,
+        name: "P12 local Grok Web browser relay".to_owned(),
+        allowed_schemes: std::collections::BTreeSet::from([EgressScheme::Http]),
+        allowed_hosts: std::collections::BTreeSet::from([EgressHost::try_new(host)?]),
+        allowed_ports: std::collections::BTreeSet::from([port]),
+        allowed_cidrs: std::collections::BTreeSet::from([EgressCidr::try_new(
+            IpAddr::V4(Ipv4Addr::LOCALHOST),
+            32,
+        )?]),
+        redirect_policy: RedirectPolicy::Deny,
+    })?;
+    Ok(GrokWebBrowserRelay {
+        url: value.to_owned(),
+        policy,
+        profile: UpstreamTransportProfile::new(
+            UpstreamTransportProfile::new(profile_timeouts(), UpstreamProxy::Direct, nonzero_one())
+                .timeouts(),
+            UpstreamProxy::Direct,
+            nonzero_one(),
+        ),
+    })
+}
+
+fn profile_timeouts() -> gateway_upstream::UpstreamTimeouts {
+    gateway_upstream::UpstreamTimeouts::try_new(
+        std::time::Duration::from_secs(10),
+        std::time::Duration::from_secs(90),
+        std::time::Duration::from_secs(90),
+        std::time::Duration::from_secs(90),
+    )
+    .unwrap_or_else(|_| unreachable!("fixed relay timeouts are valid"))
+}
+
+fn nonzero_one() -> std::num::NonZeroUsize {
+    match std::num::NonZeroUsize::new(1) {
+        Some(value) => value,
+        None => unreachable!("one is non-zero"),
+    }
+}
+
+fn send_via_browser_relay(
+    relay: &GrokWebBrowserRelay,
+    pool: UpstreamClientPool,
+    payload: Vec<u8>,
+) -> ProviderFuture<'_, Result<GrokWebProductionTransportResponse, GatewayError>> {
+    let target = relay
+        .policy
+        .admit_url(&relay.url, &gateway_upstream::SystemEgressDnsResolver)
+        .map_err(gateway_upstream::EgressAdmissionError::gateway_error);
+    let body = target.and_then(|target| {
+        UpstreamHttpRequest::try_new(
+            target,
+            UpstreamHttpMethod::Post,
+            [("content-type".to_owned(), "application/json".to_owned())],
+            payload,
+        )
+        .map_err(|_| web_egress_error())
+    });
+    let profile = relay.profile.clone();
+    Box::pin(async move {
+        let mut response = pool.send(body?, &profile).await?;
+        let status = response.status();
+        let mut bytes = Vec::new();
+        while let Some(chunk) = response.next_chunk().await? {
+            bytes.extend_from_slice(&chunk);
+        }
+        let envelope: BrowserRelayResponse =
+            serde_json::from_slice(&bytes).map_err(|_| web_internal_error())?;
+        let decoded = base64::engine::general_purpose::STANDARD
+            .decode(envelope.body)
+            .map_err(|_| web_internal_error())?;
+        Ok(GrokWebProductionTransportResponse::buffered(
+            envelope.status.max(status),
+            decoded,
+        ))
+    })
+}
+
+#[derive(serde::Deserialize)]
+struct BrowserRelayResponse {
+    status: u16,
+    body: String,
 }
 
 /// Executable native Web adapter with a shared dynamic Statsig runtime.
@@ -621,6 +800,9 @@ impl InferenceAdapter for GrokWebProductionInferenceAdapter {
         let egress_refresher = self.egress_refresher.clone();
         Box::pin(async move {
             let now_ms = web_now_ms()?;
+            let input_tokens = estimate_grok_web_prompt_tokens(
+                &normalized_message(&request).map_err(map_web_request_error)?,
+            );
             for attempt in 0_u8..=1 {
                 // grok2api 3.1.1 treats a temporary Statsig/meta/signing failure as an optional
                 // browser hint: it still sends the exact conversation request, then lets an
@@ -653,7 +835,15 @@ impl InferenceAdapter for GrokWebProductionInferenceAdapter {
                 let response = transport.send(outbound).await?;
                 let (status, mut body) = response.into_parts();
                 if status == 403 && attempt == 0 {
-                    read_web_body(&mut *body, 4 * 1024 * 1024).await?;
+                    let body_bytes = read_web_body(&mut *body, 4 * 1024 * 1024).await?;
+                    if is_definitive_account_block_body(&body_bytes) {
+                        let failure = classify_grok_web_http_failure(
+                            status,
+                            GrokWebAccountEvidence::ConfirmedForbidden,
+                        )
+                        .map_err(|_| web_internal_error())?;
+                        return Err(failure.error().clone());
+                    }
                     if let Some(signature) = signature.as_ref() {
                         let _ = statsig.invalidate_signature_after_403(signature)?;
                     }
@@ -663,15 +853,14 @@ impl InferenceAdapter for GrokWebProductionInferenceAdapter {
                     continue;
                 }
                 if !(200..=299).contains(&status) {
-                    read_web_body(&mut *body, 64 * 1024).await?;
+                    let _ = read_web_body(&mut *body, 64 * 1024).await?;
                     let failure =
                         classify_grok_web_http_failure(status, GrokWebAccountEvidence::None)
                             .map_err(|_| web_internal_error())?;
                     return Err(failure.error().clone());
                 }
-                return Ok(
-                    Box::new(GrokWebProductionEvents::new(body)) as Box<dyn CanonicalEventSource>
-                );
+                return Ok(Box::new(GrokWebProductionEvents::new(body, input_tokens))
+                    as Box<dyn CanonicalEventSource>);
             }
             Err(web_internal_error())
         })
@@ -680,6 +869,16 @@ impl InferenceAdapter for GrokWebProductionInferenceAdapter {
 
 struct GrokWebProductionUpstreamBody {
     response: UpstreamHttpResponse,
+}
+
+struct GrokWebProductionBufferedBody {
+    body: Option<Vec<u8>>,
+}
+
+impl GrokWebProductionResponseBody for GrokWebProductionBufferedBody {
+    fn next_chunk(&mut self) -> ProviderFuture<'_, Result<Option<Vec<u8>>, GatewayError>> {
+        Box::pin(async { Ok(self.body.take()) })
+    }
 }
 
 impl GrokWebProductionResponseBody for GrokWebProductionUpstreamBody {
@@ -693,21 +892,31 @@ impl GrokWebProductionResponseBody for GrokWebProductionUpstreamBody {
     }
 }
 
+// These flags represent independent, one-way lifecycle facts (response-started, usage emitted,
+// terminal failure emitted, and stream finished); collapsing them into one enum would lose the
+// distinction needed by the bounded compatibility projection.
+#[allow(clippy::struct_excessive_bools)]
 struct GrokWebProductionEvents {
     body: Box<dyn GrokWebProductionResponseBody>,
     decoder: GrokWebProductionStreamDecoder,
     pending: VecDeque<CanonicalEvent>,
+    input_tokens: u64,
+    visible_text: String,
+    usage_emitted: bool,
     response_started: bool,
     terminal_failure_emitted: bool,
     finished: bool,
 }
 
 impl GrokWebProductionEvents {
-    fn new(body: Box<dyn GrokWebProductionResponseBody>) -> Self {
+    fn new(body: Box<dyn GrokWebProductionResponseBody>, input_tokens: u64) -> Self {
         Self {
             body,
             decoder: GrokWebProductionStreamDecoder::new(),
             pending: VecDeque::new(),
+            input_tokens,
+            visible_text: String::new(),
+            usage_emitted: false,
             response_started: false,
             terminal_failure_emitted: false,
             finished: false,
@@ -718,6 +927,22 @@ impl GrokWebProductionEvents {
         let event = self.pending.pop_front()?;
         if matches!(event, CanonicalEvent::ResponseStart(_)) {
             self.response_started = true;
+        }
+        if let CanonicalEvent::TextDelta(delta) = &event {
+            self.visible_text.push_str(&delta.text);
+        }
+        if matches!(event, CanonicalEvent::ResponseEnd(_)) && !self.usage_emitted {
+            self.pending.push_front(event);
+            self.usage_emitted = true;
+            return Some(CanonicalEvent::UsageDelta(UsageDelta {
+                usage: Usage {
+                    input_tokens: Some(self.input_tokens),
+                    output_tokens: Some(estimate_grok_web_tokens(&self.visible_text)),
+                    ..Usage::default()
+                },
+                is_final: true,
+                extensions: RawExtensions::default(),
+            }));
         }
         Some(event)
     }
@@ -778,8 +1003,9 @@ impl CanonicalEventSource for GrokWebProductionEvents {
 async fn read_web_body(
     body: &mut dyn GrokWebProductionResponseBody,
     maximum_bytes: usize,
-) -> Result<(), GatewayError> {
+) -> Result<Vec<u8>, GatewayError> {
     let mut total = 0_usize;
+    let mut output = Vec::new();
     while let Some(chunk) = body.next_chunk().await? {
         total = total
             .checked_add(chunk.len())
@@ -787,8 +1013,36 @@ async fn read_web_body(
         if total > maximum_bytes {
             return Err(web_protocol_error());
         }
+        output.extend_from_slice(&chunk);
     }
-    Ok(())
+    Ok(output)
+}
+
+/// Mirrors grok2api's narrow account-block classifier. A generic 403 remains an egress
+/// failure; only explicit `blocked-user` signals may disable the exact credential.
+fn is_definitive_account_block_body(body: &[u8]) -> bool {
+    let text = if let Ok(value) = serde_json::from_slice::<Value>(body) {
+        let mut fields = Vec::new();
+        if let Some(object) = value.as_object() {
+            for key in ["code", "message", "error"] {
+                if let Some(value) = object.get(key).and_then(Value::as_str) {
+                    fields.push(value.to_owned());
+                }
+            }
+            if let Some(error) = object.get("error").and_then(Value::as_object) {
+                for key in ["code", "message", "error"] {
+                    if let Some(value) = error.get(key).and_then(Value::as_str) {
+                        fields.push(value.to_owned());
+                    }
+                }
+            }
+        }
+        fields.join(" ")
+    } else {
+        String::from_utf8_lossy(body).into_owned()
+    };
+    let lowered = text.to_ascii_lowercase();
+    lowered.contains("blocked-user") || lowered.contains("user is blocked")
 }
 
 fn web_now_ms() -> Result<i64, GatewayError> {

@@ -244,6 +244,15 @@ impl UpstreamProxy {
             Self::Socks5(endpoint) => Some(&endpoint.canonical_url),
         }
     }
+
+    /// Returns the canonical URL for an explicitly validated proxy.
+    ///
+    /// This is used only to pass the same bounded proxy identity to a local browser solver. The
+    /// value is never included in diagnostics or persisted control-plane state.
+    #[must_use]
+    pub fn canonical_url(&self) -> Option<&str> {
+        self.proxy_url()
+    }
 }
 
 impl fmt::Debug for UpstreamProxy {

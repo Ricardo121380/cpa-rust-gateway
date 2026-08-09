@@ -221,6 +221,7 @@ function applicationMarkup(): string {
             <label id="resource-id-field"><span id="resource-id-label">Resource ID</span><input id="resource-id" name="resource-id" autocomplete="off"></label>
             <label id="resource-scope-field"><span id="resource-scope-label">Parent resource ID</span><input id="resource-scope-id" name="resource-scope-id" autocomplete="off"></label>
             <label class="wide">Resource JSON<textarea id="resource-json" name="resource-json" rows="13" spellcheck="false"></textarea></label>
+            <label id="credential-file-field" class="wide" hidden>Codex credential JSON file<input id="credential-file" type="file" accept="application/json,.json"></label>
             <div class="form-actions"><button type="submit">Run protected operation</button></div>
           </form>
           <p class="muted" id="routing">Credential Secrets remain write-only. Client Keys are displayed only after a successful issue operation, in a separate transient pane; every other result is metadata only.</p>
@@ -663,6 +664,7 @@ function updateResourceFields(): void {
   element<HTMLElement>("resource-scope-label").textContent = scopeLabel[kind] ?? "Parent resource ID";
   element<HTMLElement>("resource-id-field").hidden = !resourceIdNeeded;
   element<HTMLElement>("resource-scope-field").hidden = !scopeNeeded;
+  element<HTMLElement>("credential-file-field").hidden = kind !== "credential" || (action !== "create" && action !== "update");
   resourceInput.required = resourceIdNeeded;
   scopeInput.required = scopeNeeded;
   if (!resourceIdNeeded) resourceInput.value = "";
@@ -683,6 +685,27 @@ function installHandlers(): void {
     updateResourceFields();
   });
   element<HTMLSelectElement>("resource-action").addEventListener("change", updateResourceFields);
+  element<HTMLInputElement>("credential-file").addEventListener("change", async (event) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      if (file.size > 64 * 1024) throw new Error("credential JSON exceeds the 64 KiB limit");
+      const text = await file.text();
+      const parsed = JSON.parse(text) as unknown;
+      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+        throw new Error("credential JSON must be an object");
+      }
+      const current = JSON.parse(element<HTMLTextAreaElement>("resource-json").value) as Record<string, unknown>;
+      current.kind = "oauth_json";
+      current.secret = text;
+      element<HTMLTextAreaElement>("resource-json").value = JSON.stringify(current, null, 2);
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "credential JSON could not be loaded");
+    } finally {
+      input.value = "";
+    }
+  });
   populateResourceActions();
   populateResourceTemplate();
   updateResourceFields();

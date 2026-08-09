@@ -159,18 +159,22 @@ impl ManagementEndpointWorkflow for DeterministicWorkflow {
         let operation = ManagementCredentialOAuthOperation {
             state: ManagementCredentialOAuthState::Pending,
             expires_at_ms: Some(99),
+            authorization_url: None,
+            failure_class: None,
         };
-        self.oauth.insert(credential_id.clone(), operation);
+        self.oauth.insert(credential_id.clone(), operation.clone());
         operation
     }
 
     fn oauth_status(&mut self, credential_id: &CredentialId) -> ManagementCredentialOAuthOperation {
         self.oauth
             .get(credential_id)
-            .copied()
+            .cloned()
             .unwrap_or(ManagementCredentialOAuthOperation {
                 state: ManagementCredentialOAuthState::Failed,
                 expires_at_ms: None,
+                authorization_url: None,
+                failure_class: Some("session_missing"),
             })
     }
 
@@ -180,6 +184,8 @@ impl ManagementEndpointWorkflow for DeterministicWorkflow {
             ManagementCredentialOAuthOperation {
                 state: ManagementCredentialOAuthState::Cancelled,
                 expires_at_ms: None,
+                authorization_url: None,
+                failure_class: None,
             },
         );
     }
@@ -756,5 +762,68 @@ async fn endpoint_catalog_and_oauth_workflows_are_versioned_injected_and_value_f
     )
     .await;
     assert_eq!(bindings_after_delete.status(), StatusCode::NOT_FOUND);
+    Ok(())
+}
+
+#[actix_web::test]
+async fn persisted_active_oauth_projects_complete_after_session_state_is_lost() -> TestResult {
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security_state()?))
+            .app_data(web::Data::new(resource_state()?))
+            .configure(configure_management_resources),
+    )
+    .await;
+
+    let upstream = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/upstreams")
+                .set_json(json!({
+                    "id":"upstream-oauth", "name":"oauth", "kind":"openai-compatible",
+                    "enabled":true, "tags":[], "egress_policy_id":null
+                })),
+            Some("rev-0"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(upstream.status(), StatusCode::CREATED);
+
+    let credential = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/upstreams/upstream-oauth/credentials")
+                .set_json(json!({
+                    "id":"credential-oauth", "kind":"oauth_json",
+                    "secret":"encrypted-by-management-boundary", "status":"active"
+                })),
+            Some("rev-1"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(credential.status(), StatusCode::CREATED);
+
+    let status = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/credentials/credential-oauth/oauth/status"),
+            None,
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(status.status(), StatusCode::OK);
+    assert_eq!(
+        test::read_body_json::<Value, _>(status).await,
+        json!({
+            "credential_id":"credential-oauth",
+            "state":"complete",
+            "expires_at_ms":null
+        })
+    );
     Ok(())
 }

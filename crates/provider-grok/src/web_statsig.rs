@@ -8,15 +8,17 @@ use std::{
     collections::BTreeMap,
     error::Error,
     fmt,
+    net::{IpAddr, Ipv4Addr},
     sync::{Arc, Mutex},
 };
 
 use base64::{Engine as _, engine::general_purpose};
-use gateway_core::{ErrorScope, GatewayError, GatewayErrorCode};
+use gateway_core::{EgressPolicyId, ErrorScope, GatewayError, GatewayErrorCode};
 use gateway_provider::ProviderFuture;
 use gateway_upstream::{
-    AdmittedEgressTarget, EgressDnsResolver, EgressPolicy, EgressScheme, UpstreamClientPool,
-    UpstreamHttpMethod, UpstreamHttpRequest, UpstreamHttpResponse, UpstreamTransportProfile,
+    AdmittedEgressTarget, EgressCidr, EgressDnsResolver, EgressHost, EgressPolicy,
+    EgressPolicyInput, EgressScheme, RedirectPolicy, UpstreamClientPool, UpstreamHttpMethod,
+    UpstreamHttpRequest, UpstreamHttpResponse, UpstreamProxy, UpstreamTransportProfile,
 };
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
@@ -540,6 +542,8 @@ pub struct GrokWebStatsigUpstreamTransport {
     client_pool: UpstreamClientPool,
     browser_profile: UpstreamTransportProfile,
     signer_profile: UpstreamTransportProfile,
+    signer_url: String,
+    local_signer_policy: Option<EgressPolicy>,
 }
 
 impl GrokWebStatsigUpstreamTransport {
@@ -549,14 +553,48 @@ impl GrokWebStatsigUpstreamTransport {
         egress_policy: EgressPolicy,
         resolver: Arc<dyn EgressDnsResolver>,
         client_pool: UpstreamClientPool,
-        profile: UpstreamTransportProfile,
+        profile: &UpstreamTransportProfile,
     ) -> Self {
+        Self::new_with_signer_url(egress_policy, resolver, client_pool, profile, None)
+    }
+
+    /// Creates one fixed Web-origin binding and an optional explicitly local browser signer.
+    ///
+    /// The local override is limited to loopback HTTP so a staging process can use a co-located
+    /// Playwright signer without widening the persisted upstream policy or sending Web traffic to
+    /// an arbitrary operator-supplied URL. The production default remains the frozen HTTPS signer.
+    #[must_use]
+    pub fn new_with_signer_url(
+        egress_policy: EgressPolicy,
+        resolver: Arc<dyn EgressDnsResolver>,
+        client_pool: UpstreamClientPool,
+        profile: &UpstreamTransportProfile,
+        signer_url: Option<String>,
+    ) -> Self {
+        let (signer_url, local_signer_policy) = signer_url
+            .and_then(|url| {
+                local_signer_policy(&url)
+                    .ok()
+                    .map(|policy| (url, Some(policy)))
+            })
+            .unwrap_or_else(|| (GROK_WEB_DEFAULT_STATSIG_SIGNER_URL.to_owned(), None));
+        let signer_profile = if local_signer_policy.is_some() {
+            UpstreamTransportProfile::new(
+                profile.timeouts(),
+                UpstreamProxy::Direct,
+                profile.maximum_idle_connections_per_host(),
+            )
+        } else {
+            profile.clone()
+        };
         Self {
             egress_policy,
             resolver,
             client_pool,
             browser_profile: profile.clone().with_chrome_146_emulation(),
-            signer_profile: profile,
+            signer_profile,
+            signer_url,
+            local_signer_policy,
         }
     }
 }
@@ -570,6 +608,8 @@ impl fmt::Debug for GrokWebStatsigUpstreamTransport {
             .field("client_pool", &self.client_pool)
             .field("browser_profile", &self.browser_profile)
             .field("signer_profile", &self.signer_profile)
+            .field("signer_url", &"<redacted>")
+            .field("local_signer_policy", &self.local_signer_policy.is_some())
             .finish()
     }
 }
@@ -580,6 +620,18 @@ impl GrokWebStatsigTransport for GrokWebStatsigUpstreamTransport {
         session: &'a GrokWebBrowserEgressSession,
         now_ms: i64,
     ) -> ProviderFuture<'a, Result<Zeroizing<String>, GatewayError>> {
+        if self.local_signer_policy.is_some() {
+            // A loopback browser signer already loaded the authenticated Grok page and captured
+            // the browser-generated signature. Avoid repeating that page load through the Rust
+            // transport: Cloudflare may reject the non-browser TLS fingerprint even though the
+            // co-located browser session is valid. The placeholder is cache-key material only;
+            // it never leaves the loopback signer boundary as an account or Cookie value.
+            return Box::pin(async {
+                Ok(Zeroizing::new(
+                    "loopback-browser-observed-environment".to_owned(),
+                ))
+            });
+        }
         let admitted = self
             .egress_policy
             .admit_url(GROK_WEB_INDEX_URL, self.resolver.as_ref())
@@ -604,12 +656,19 @@ impl GrokWebStatsigTransport for GrokWebStatsigUpstreamTransport {
         path: &'a str,
         environment: &'a str,
     ) -> ProviderFuture<'a, Result<GrokWebStatsigSignature, GatewayError>> {
-        let admitted = GrokWebStatsigSignerBoundary::new(
-            self.egress_policy.clone(),
-            Arc::clone(&self.resolver),
-        )
-        .admit_initial(GROK_WEB_DEFAULT_STATSIG_SIGNER_URL)
-        .map_err(|_| statsig_egress_error());
+        let admitted = if let Some(policy) = &self.local_signer_policy {
+            policy
+                .admit_url(&self.signer_url, self.resolver.as_ref())
+                .map(|admitted| GrokWebStatsigSignerTarget { admitted })
+                .map_err(|_| statsig_egress_error())
+        } else {
+            GrokWebStatsigSignerBoundary::new(
+                self.egress_policy.clone(),
+                Arc::clone(&self.resolver),
+            )
+            .admit_initial(&self.signer_url)
+            .map_err(|_| statsig_egress_error())
+        };
         let request =
             admitted.and_then(|target| signer_request(&target, method, path, environment));
         Box::pin(async move {
@@ -845,6 +904,7 @@ fn decode_signer_response(body: &[u8]) -> Result<GrokWebStatsigSignature, Gatewa
     }
     let signature = object
         .get("x-statsig-id")
+        .or_else(|| object.get("statsig"))
         .and_then(Value::as_str)
         .ok_or_else(statsig_protocol_error)?;
     let decoded = general_purpose::STANDARD_NO_PAD
@@ -856,6 +916,32 @@ fn decode_signer_response(body: &[u8]) -> Result<GrokWebStatsigSignature, Gatewa
         return Err(statsig_protocol_error());
     }
     GrokWebStatsigSignature::try_new(signature).map_err(|_| statsig_protocol_error())
+}
+
+fn local_signer_policy(value: &str) -> Result<EgressPolicy, Box<dyn Error + Send + Sync>> {
+    let parsed = Url::parse(value)?;
+    let host = parsed.host_str().ok_or("missing host")?;
+    if parsed.scheme() != "http"
+        || !matches!(host, "127.0.0.1" | "localhost")
+        || parsed.port().unwrap_or(80) == 0
+        || parsed.username() != ""
+        || parsed.password().is_some()
+        || parsed.query().is_some()
+        || parsed.fragment().is_some()
+    {
+        return Err("local signer must be loopback HTTP".into());
+    }
+    let port = parsed.port().ok_or("local signer requires explicit port")?;
+    let address = IpAddr::V4(Ipv4Addr::LOCALHOST);
+    Ok(EgressPolicy::try_new(EgressPolicyInput {
+        id: EgressPolicyId::try_new("p12-local-grok-web-statsig")?,
+        name: "P12 local Grok Web Statsig signer".to_owned(),
+        allowed_schemes: std::collections::BTreeSet::from([EgressScheme::Http]),
+        allowed_hosts: std::collections::BTreeSet::from([EgressHost::try_new(host)?]),
+        allowed_ports: std::collections::BTreeSet::from([port]),
+        allowed_cidrs: std::collections::BTreeSet::from([EgressCidr::try_new(address, 32)?]),
+        redirect_policy: RedirectPolicy::Deny,
+    })?)
 }
 
 fn environment_digest(value: &str) -> String {

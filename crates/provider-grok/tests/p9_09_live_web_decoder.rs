@@ -31,7 +31,8 @@ fn concatenated_live_objects_are_chunk_invariant_and_complete_one_canonical_life
     ));
     assert!(matches!(
         expected.last(),
-        Some(CanonicalEvent::ResponseEnd(_))
+        Some(CanonicalEvent::ResponseEnd(end))
+            if end.stop_reason.as_deref() == Some("end_turn")
     ));
     Ok(())
 }

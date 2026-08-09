@@ -402,6 +402,9 @@ fn print_usage() {
     println!(
         "Usage:\n  gateway serve --data-listen <loopback-host:port> --management-listen <loopback-host:port> --state-dir <absolute-dir> --credential-dir <absolute-dir>\n  gateway admin create --db <path> --version <id> --description <text> [--parent <id>] [--actor <label>]\n  gateway admin validate --db <path> --version <id> [--actor <label>]\n  gateway admin publish --db <path> --version <id> [--actor <label>]\n  gateway admin rollback --db <path> [--actor <label>]\n  gateway admin audit --db <path> [--actor <label>]\n  gateway admin grok-import --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>\n  gateway admin grok-rollback --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>\n  gateway admin grok-probe --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --provider <grok_build|grok_console> --observed-at-ms <unix-ms>"
     );
+    println!(
+        "Optional serve flags: [--codex-oauth-proxy socks5://<host>:<port>] [--grok-web-proxy socks5://<host>:<port>] [--grok-web-flaresolverr-proxy socks5://<host>:<port>] [--grok-web-flaresolverr-port <port>]"
+    );
 }
 
 #[derive(Debug)]

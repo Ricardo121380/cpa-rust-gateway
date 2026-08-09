@@ -122,6 +122,87 @@ pub struct OpenAiResponsesOutboundRequest {
 }
 
 impl OpenAiResponsesOutboundRequest {
+    /// Forces the Codex OAuth invariant that the `ChatGPT` backend rejects stored Responses.
+    ///
+    /// The body is rebuilt as JSON and no diagnostic representation is retained.
+    ///
+    /// # Errors
+    ///
+    /// Returns an upstream protocol error when the request body is not a JSON object, or an
+    /// internal error if the modified object cannot be serialized.
+    pub fn force_store_false(&mut self) -> Result<(), GatewayError> {
+        let mut object: Map<String, Value> = serde_json::from_slice(&self.body).map_err(|_| {
+            GatewayError::new(
+                GatewayErrorCode::UpstreamProtocolError,
+                ErrorScope::Provider,
+            )
+        })?;
+        object.insert("store".to_owned(), Value::Bool(false));
+        object
+            .entry("instructions".to_owned())
+            .or_insert_with(|| Value::String("You are a helpful coding assistant.".to_owned()));
+        self.body = serde_json::to_vec(&object).map_err(|_| {
+            GatewayError::new(GatewayErrorCode::InternalError, ErrorScope::Internal)
+        })?;
+        Ok(())
+    }
+
+    /// Forces the `ChatGPT` Codex OAuth transport to use its supported SSE wire mode.
+    ///
+    /// The internal Codex endpoint currently rejects `stream:false`; callers that need a
+    /// buffered downstream response can still consume the SSE source to completion and project
+    /// the resulting Canonical sequence as JSON.  The request's other fields remain untouched.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same bounded request/body errors as [`Self::force_store_false`].
+    pub fn force_streaming(&mut self) -> Result<(), GatewayError> {
+        let mut object: Map<String, Value> = serde_json::from_slice(&self.body).map_err(|_| {
+            GatewayError::new(
+                GatewayErrorCode::UpstreamProtocolError,
+                ErrorScope::Provider,
+            )
+        })?;
+        object.insert("stream".to_owned(), Value::Bool(true));
+        self.body = serde_json::to_vec(&object).map_err(|_| {
+            GatewayError::new(GatewayErrorCode::InternalError, ErrorScope::Internal)
+        })?;
+        self.accept = "text/event-stream";
+        Ok(())
+    }
+
+    /// Removes one root-level field for an explicitly observed Codex compatibility retry.
+    ///
+    /// The `ChatGPT` Codex endpoint currently rejects `max_output_tokens` even though that field is
+    /// valid in the public Responses API.  CPA and sub2api remove only the rejected root field and
+    /// replay the same request once; nested fields and all other canonical content remain intact.
+    /// This method is intentionally private in behavior (the caller must gate it on the exact
+    /// official OAuth endpoint and rejection signal) and returns whether the field was present.
+    ///
+    /// # Errors
+    ///
+    /// Returns a value-free protocol/internal error when the body is not a JSON object or cannot
+    /// be serialized after the bounded rewrite.
+    pub fn remove_root_field(&mut self, field: &str) -> Result<bool, GatewayError> {
+        if field.is_empty() {
+            return Err(GatewayError::new(
+                GatewayErrorCode::UpstreamProtocolError,
+                ErrorScope::Provider,
+            ));
+        }
+        let mut object: Map<String, Value> = serde_json::from_slice(&self.body).map_err(|_| {
+            GatewayError::new(
+                GatewayErrorCode::UpstreamProtocolError,
+                ErrorScope::Provider,
+            )
+        })?;
+        if object.remove(field).is_none() {
+            return Ok(false);
+        }
+        self.body = serde_json::to_vec(&object).map_err(|_| internal_error())?;
+        Ok(true)
+    }
+
     /// Returns the complete configured endpoint URL.
     #[must_use]
     pub fn url(&self) -> &str {
@@ -713,6 +794,83 @@ mod tests {
             )
             .is_err()
         );
+        Ok(())
+    }
+
+    #[test]
+    fn codex_oauth_forces_store_false_without_dropping_request_fields() -> Result<(), Box<dyn Error>>
+    {
+        let decoded = decode_request(include_str!(
+            "../../../tests/fixtures/openai-responses/request-canonical.json"
+        ))?;
+        let mut outbound = OpenAiResponsesRequestBuilder::build(
+            &endpoint()?,
+            &api_key()?,
+            "upstream-model",
+            &decoded.request,
+            decoded.mode,
+        )?;
+        outbound.force_store_false()?;
+        let body: serde_json::Value = serde_json::from_slice(outbound.body())?;
+        assert_eq!(body.get("store"), Some(&serde_json::Value::Bool(false)));
+        assert_eq!(
+            body.get("model").and_then(serde_json::Value::as_str),
+            Some("upstream-model")
+        );
+        assert!(body.get("input").is_some());
+        assert_eq!(
+            body.get("instructions").and_then(serde_json::Value::as_str),
+            Some("You are a helpful coding assistant.")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn codex_oauth_can_force_sse_without_dropping_request_fields() -> Result<(), Box<dyn Error>> {
+        let decoded = decode_request(include_str!(
+            "../../../tests/fixtures/openai-responses/request-canonical.json"
+        ))?;
+        let mut outbound = OpenAiResponsesRequestBuilder::build(
+            &endpoint()?,
+            &api_key()?,
+            "upstream-model",
+            &decoded.request,
+            ResponseMode::NonStreaming,
+        )?;
+        outbound.force_streaming()?;
+        let body: serde_json::Value = serde_json::from_slice(outbound.body())?;
+        assert_eq!(body.get("stream"), Some(&serde_json::Value::Bool(true)));
+        assert!(body.get("input").is_some());
+        assert_eq!(outbound.header("accept"), Some("text/event-stream"));
+        Ok(())
+    }
+
+    #[test]
+    fn codex_rejected_root_field_retry_preserves_nested_fields() -> Result<(), Box<dyn Error>> {
+        let decoded = decode_request(include_str!(
+            "../../../tests/fixtures/openai-responses/request-canonical.json"
+        ))?;
+        let mut request = decoded.request;
+        request.extensions.try_insert(
+            "openai.responses.max_output_tokens",
+            RawJson::from_json_string("32".to_owned())?,
+        )?;
+        let mut outbound = OpenAiResponsesRequestBuilder::build(
+            &endpoint()?,
+            &api_key()?,
+            "upstream-model",
+            &request,
+            ResponseMode::NonStreaming,
+        )?;
+        outbound.force_streaming()?;
+        outbound.force_store_false()?;
+        assert!(outbound.remove_root_field("max_output_tokens")?);
+        let body: serde_json::Value = serde_json::from_slice(outbound.body())?;
+        assert!(body.get("max_output_tokens").is_none());
+        assert!(body.get("input").is_some());
+        assert_eq!(body.get("store"), Some(&serde_json::Value::Bool(false)));
+        assert_eq!(body.get("stream"), Some(&serde_json::Value::Bool(true)));
+        assert!(!outbound.remove_root_field("max_output_tokens")?);
         Ok(())
     }
 

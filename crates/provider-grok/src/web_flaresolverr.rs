@@ -25,7 +25,11 @@ pub struct GrokWebFlareSolverrRequest {
     /// Bounded solver timeout in milliseconds.
     pub max_timeout: u32,
     /// Optional scoped Cookie header used only for the exact Grok origin.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub headers: Option<BTreeMap<String, String>>,
+    /// Optional browser proxy URL used by `FlareSolverr` for the fixed Grok origin.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub proxy: Option<String>,
 }
 
 impl Default for GrokWebFlareSolverrRequest {
@@ -35,6 +39,7 @@ impl Default for GrokWebFlareSolverrRequest {
             url: "https://grok.com/",
             max_timeout: 20_000,
             headers: None,
+            proxy: None,
         }
     }
 }
@@ -47,6 +52,7 @@ impl fmt::Debug for GrokWebFlareSolverrRequest {
             .field("url", &self.url)
             .field("max_timeout", &self.max_timeout)
             .field("has_headers", &self.headers.is_some())
+            .field("has_proxy", &self.proxy.is_some())
             .finish()
     }
 }
@@ -58,6 +64,13 @@ impl GrokWebFlareSolverrRequest {
         let mut headers = BTreeMap::new();
         headers.insert("Cookie".to_owned(), cookie_header.to_owned());
         self.headers = Some(headers);
+        self
+    }
+
+    /// Adds a previously validated proxy URL for the solver's browser egress.
+    #[must_use]
+    pub fn with_proxy_url(mut self, proxy_url: &str) -> Self {
+        self.proxy = Some(proxy_url.to_owned());
         self
     }
 
@@ -143,7 +156,7 @@ impl GrokWebFlareSolverrClearance {
         }
         let mut cookies = Vec::new();
         for cookie in solution.cookies {
-            if cookie.name != "cf_clearance" && cookie.name != "sso" && cookie.name != "sso-rw" {
+            if !is_allowed_clearance_cookie(&cookie.name) {
                 continue;
             }
             if cookie.value.is_empty() || cookie.value.len() > MAX_COOKIE_BYTES {
@@ -178,6 +191,15 @@ impl GrokWebFlareSolverrClearance {
     pub fn cookies(&self) -> &[(String, String)] {
         &self.cookies
     }
+}
+
+fn is_allowed_clearance_cookie(name: &str) -> bool {
+    name == "cf_clearance"
+        || name == "__cf_bm"
+        || name == "_cfuvid"
+        || name.starts_with("cf_chl_")
+        || name == "sso"
+        || name == "sso-rw"
 }
 
 impl fmt::Debug for GrokWebFlareSolverrClearance {
@@ -260,6 +282,20 @@ mod tests {
             assert_eq!(parsed.user_agent(), "Chrome");
             assert_eq!(parsed.cookies(), &[("cf_clearance".into(), "abc".into())]);
         }
+    }
+
+    #[test]
+    fn retains_cloudflare_challenge_cookie_family() {
+        let raw = br#"{"status":"ok","solution":{"userAgent":"Chrome","cookies":[{"name":"cf_clearance","value":"abc"},{"name":"__cf_bm","value":"bm"},{"name":"_cfuvid","value":"uvid"},{"name":"cf_chl_test","value":"chl"},{"name":"other","value":"ignored"}]}}"#;
+        let parsed = GrokWebFlareSolverrClearance::parse(raw).expect("clearance");
+        assert_eq!(parsed.cookies().len(), 4);
+        assert!(parsed.cookies().iter().any(|(name, _)| name == "__cf_bm"));
+        assert!(
+            parsed
+                .cookies()
+                .iter()
+                .any(|(name, _)| name == "cf_chl_test")
+        );
     }
 
     #[test]

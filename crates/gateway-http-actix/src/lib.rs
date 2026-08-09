@@ -7,6 +7,8 @@
 
 #![deny(unsafe_code)]
 
+/// Backend-only Codex OAuth session state and replay-safe lifecycle.
+pub mod codex_oauth_management;
 /// Protected P10 encrypted-backup preflight and empty-target restore handlers.
 pub mod management_backup_resources;
 /// Protected P10 Config Version lifecycle and lifecycle-audit handlers.

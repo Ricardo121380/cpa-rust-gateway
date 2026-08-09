@@ -1703,6 +1703,69 @@ impl ControlPlaneTransaction<'_> {
         resource_updated(updated)
     }
 
+    /// Replaces one active Credential's encrypted secret as a dedicated runtime OAuth rotation.
+    ///
+    /// Ordinary graph mutations remain draft-only. OAuth login/refresh is different: it changes
+    /// only the opaque credential material, not the Endpoint, Route, binding, or Client Key
+    /// topology. This narrow operation therefore admits an `active` Version while still using an
+    /// exact per-Credential revision compare-and-swap. The caller must publish any topology change
+    /// through the normal draft lifecycle; this method cannot alter the Config Version revision or
+    /// any graph row other than the selected Credential.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::ControlPlaneMutationRequiresDraft`] for a non-active Version,
+    /// [`StoreError::ConfigVersionRevisionConflict`] when the Credential revision is stale, or
+    /// [`StoreError::ControlPlaneResourceNotFound`] when the Credential is absent.
+    pub fn rotate_active_credential(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        credential: &CredentialConfiguration,
+        expected_credential_revision: i64,
+    ) -> StoreResult<()> {
+        let status: Option<String> = self
+            .transaction
+            .query_row(
+                "SELECT status FROM config_versions WHERE id = ?1",
+                [config_version_id.as_str()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let Some(status) = status else {
+            return Err(StoreError::ConfigVersionNotFound);
+        };
+        if status != ConfigVersionStatus::Active.as_sql() {
+            return Err(StoreError::ControlPlaneMutationRequiresDraft);
+        }
+        let Some(next_revision) = expected_credential_revision.checked_add(1) else {
+            return Err(StoreError::ConfigVersionRevisionConflict);
+        };
+        if expected_credential_revision < 0 || credential.revision != next_revision {
+            return Err(StoreError::ConfigVersionRevisionConflict);
+        }
+        let updated = self.transaction.execute(
+            "UPDATE upstream_credentials SET kind = ?3, ciphertext = ?4, key_version = ?5, \
+             status = ?6, revision = ?7 WHERE config_version_id = ?1 AND id = ?2 \
+             AND upstream_id = ?8 AND revision = ?9",
+            params![
+                config_version_id.as_str(),
+                credential.id.as_str(),
+                &credential.kind,
+                credential.encrypted_secret.ciphertext(),
+                credential.encrypted_secret.key_version().as_sqlite_i64(),
+                credential.status.as_sql(),
+                credential.revision,
+                credential.upstream_id.as_str(),
+                expected_credential_revision,
+            ],
+        )?;
+        if updated == 1 {
+            Ok(())
+        } else {
+            Err(StoreError::ConfigVersionRevisionConflict)
+        }
+    }
+
     /// Deletes one Credential and its schema-owned Endpoint Bindings.
     ///
     /// # Errors
@@ -3274,6 +3337,90 @@ mod tests {
             .ok_or("active configuration was not found")?;
         assert!(loaded.credentials.is_empty());
         assert!(loaded.client_keys.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn active_oauth_rotation_is_cas_guarded_and_keeps_graph_revision() -> TestResult {
+        let version_id = ConfigVersionId::try_new("active-oauth")?;
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        repository.connection.execute(
+            "INSERT INTO config_versions (id, parent_id, status, revision, created_at_ms, description) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                version_id.as_str(),
+                Option::<&str>::None,
+                "active",
+                7_i64,
+                1_i64,
+                "active OAuth fixture",
+            ],
+        )?;
+        repository.connection.execute(
+            "INSERT INTO upstreams (config_version_id, id, name, kind, enabled, tags_json, egress_policy_id) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                version_id.as_str(),
+                "upstream-a",
+                "station-a",
+                "relay",
+                1_i64,
+                "[]",
+                Option::<&str>::None,
+            ],
+        )?;
+        let key_version = KeyVersion::try_new(1)?;
+        let secret_store = SecretStore::new(MasterKeyRing::try_new(
+            key_version,
+            [(key_version, MasterKey::try_from_bytes([8_u8; 32])?)],
+        )?);
+        let original = secret_store.seal(b"old-oauth", b"old-aad")?;
+        repository.connection.execute(
+            "INSERT INTO upstream_credentials (config_version_id, id, upstream_id, kind, ciphertext, key_version, status, revision) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            params![
+                version_id.as_str(),
+                "credential-a",
+                "upstream-a",
+                "oauth_json",
+                original.ciphertext(),
+                original.key_version().as_sqlite_i64(),
+                "active",
+                3_i64,
+            ],
+        )?;
+        let replacement = CredentialConfiguration {
+            id: CredentialId::try_new("credential-a")?,
+            upstream_id: UpstreamId::try_new("upstream-a")?,
+            kind: "oauth_json".to_owned(),
+            encrypted_secret: secret_store.seal(b"new-oauth", b"new-aad")?,
+            status: CredentialStatus::Active,
+            revision: 4,
+        };
+        let audit = super::ManagementResourceAuditEventDraft::try_new(
+            "credential_oauth_rotated",
+            "test-operator",
+            10,
+            "credential",
+            "credential-a",
+        )?;
+        let mut transaction = repository.begin_transaction()?;
+        transaction.rotate_active_credential(&version_id, &replacement, 3)?;
+        transaction.record_management_resource_audit_event(&audit, &version_id)?;
+        transaction.commit()?;
+
+        let loaded = repository
+            .load_configuration(&version_id)?
+            .ok_or("active OAuth configuration was not found")?;
+        assert_eq!(loaded.version.status, ConfigVersionStatus::Active);
+        assert_eq!(loaded.version.revision, 7);
+        assert_eq!(loaded.credentials[0].revision, 4);
+        assert!(matches!(
+            repository
+                .begin_transaction()?
+                .rotate_active_credential(&version_id, &replacement, 3),
+            Err(StoreError::ConfigVersionRevisionConflict)
+        ));
         Ok(())
     }
 

@@ -36,7 +36,7 @@ use gateway_http_actix::{
     management_lifecycle_resources::ManagementLifecycleHttpState,
     management_observability_resources::ManagementObservabilityHttpState,
     management_resources::{
-        ManagementResourceHttpState, RejectingManagementEndpointWorkflow,
+        CodexOAuthManagementWorkflow, ManagementResourceHttpState, OpenAiCodexOAuthExchange,
         SystemManagementRuntimeClock,
     },
     management_security::{
@@ -49,6 +49,7 @@ use gateway_store::{
     backup::BackupKey, control_plane::SqliteControlPlaneRepository,
     event_store::AsyncSqliteEventWriter,
 };
+use gateway_upstream::UpstreamProxy;
 use zeroize::{Zeroize, Zeroizing};
 
 use crate::runtime;
@@ -84,6 +85,10 @@ pub(crate) struct ServeCommand {
     management_listener: SocketAddr,
     state_directory: PathBuf,
     credentials_directory: PathBuf,
+    codex_oauth_proxy: UpstreamProxy,
+    grok_web_proxy: Option<UpstreamProxy>,
+    grok_web_flaresolverr_proxy: Option<UpstreamProxy>,
+    grok_web_flaresolverr_port: u16,
 }
 
 /// Parses the `gateway serve` command after the top-level command name.
@@ -108,6 +113,39 @@ pub(crate) fn parse(arguments: Vec<String>) -> Result<ServeCommand, DeploymentEr
         &required_option(&mut options, "--credential-dir")?,
         "--credential-dir",
     )?;
+    let codex_oauth_proxy = options
+        .remove("--codex-oauth-proxy")
+        .map(|value| {
+            UpstreamProxy::try_socks5(&value)
+                .map_err(|_| DeploymentError::InvalidProxy("--codex-oauth-proxy"))
+        })
+        .transpose()?
+        .unwrap_or(UpstreamProxy::Direct);
+    let grok_web_proxy = options
+        .remove("--grok-web-proxy")
+        .map(|value| {
+            UpstreamProxy::try_socks5(&value)
+                .map_err(|_| DeploymentError::InvalidProxy("--grok-web-proxy"))
+        })
+        .transpose()?;
+    let grok_web_flaresolverr_proxy = options
+        .remove("--grok-web-flaresolverr-proxy")
+        .map(|value| {
+            UpstreamProxy::try_socks5(&value)
+                .map_err(|_| DeploymentError::InvalidProxy("--grok-web-flaresolverr-proxy"))
+        })
+        .transpose()?;
+    let grok_web_flaresolverr_port = options
+        .remove("--grok-web-flaresolverr-port")
+        .map(|value| {
+            value
+                .parse::<u16>()
+                .ok()
+                .filter(|port| *port != 0)
+                .ok_or(DeploymentError::InvalidPort("--grok-web-flaresolverr-port"))
+        })
+        .transpose()?
+        .unwrap_or(8191);
     if !options.is_empty() {
         return Err(DeploymentError::UnexpectedOption);
     }
@@ -117,6 +155,10 @@ pub(crate) fn parse(arguments: Vec<String>) -> Result<ServeCommand, DeploymentEr
         management_listener,
         state_directory,
         credentials_directory,
+        codex_oauth_proxy,
+        grok_web_proxy,
+        grok_web_flaresolverr_proxy,
+        grok_web_flaresolverr_port,
     })
 }
 
@@ -262,11 +304,14 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
     .map_err(|_| DeploymentError::ControlPlaneUnavailable)?;
     let registry = Arc::clone(lifecycle_service.registry());
     let runtime_secret_store = SecretStore::new(runtime_key_ring);
-    let data_plane = runtime::build_data_plane_composition(
+    let data_plane = runtime::build_data_plane_composition_with_web_proxy(
         &database,
         &runtime_secret_store,
         registry,
         runtime_client_key_service,
+        command.grok_web_proxy.clone(),
+        command.grok_web_flaresolverr_proxy.clone(),
+        command.grok_web_flaresolverr_port,
     )
     .map_err(|error| {
         // The runtime error is deliberately value-free: it identifies only the closed
@@ -283,7 +328,9 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
     } = data_plane;
     let resources = ManagementResourceHttpState::with_workflow_and_runtime(
         mutation_service,
-        Box::new(RejectingManagementEndpointWorkflow::new()),
+        Box::new(CodexOAuthManagementWorkflow::with_exchange(Box::new(
+            OpenAiCodexOAuthExchange::new(command.codex_oauth_proxy.clone()),
+        ))),
         management_runtime,
         Box::new(SystemManagementRuntimeClock),
     );
@@ -503,6 +550,10 @@ pub(crate) enum DeploymentError {
     InvalidPath(&'static str),
     /// The two listener values were identical.
     IdenticalListeners,
+    /// The optional Web proxy was not an admitted local-DNS SOCKS5 endpoint.
+    InvalidProxy(&'static str),
+    /// The optional local `FlareSolverr` port was not a non-zero TCP port.
+    InvalidPort(&'static str),
     /// The systemd-owned state directory could not be admitted.
     StateDirectoryUnavailable,
     /// The systemd credential directory could not be admitted.
@@ -542,6 +593,10 @@ impl fmt::Display for DeploymentError {
             Self::IdenticalListeners => {
                 formatter.write_str("data and management listeners must differ")
             }
+            Self::InvalidProxy(option) => {
+                write!(formatter, "invalid SOCKS5 proxy for {option}")
+            }
+            Self::InvalidPort(option) => write!(formatter, "invalid TCP port for {option}"),
             Self::StateDirectoryUnavailable => {
                 formatter.write_str("state directory is unavailable")
             }
@@ -581,6 +636,7 @@ mod tests {
     use super::{
         BACKUP_DIRECTORY, DeploymentError, build_application_state, parse, read_credential_file,
     };
+    use gateway_upstream::UpstreamProxy;
 
     struct TemporaryDirectory(PathBuf);
 
@@ -679,6 +735,110 @@ mod tests {
             duplicate,
             Err(DeploymentError::IdenticalListeners)
         ));
+        Ok(())
+    }
+
+    #[test]
+    fn serve_parser_accepts_only_explicit_local_dns_socks5_for_grok_web()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let state = TemporaryDirectory::new()?;
+        let credentials = TemporaryDirectory::new()?;
+        let base = || {
+            vec![
+                "--data-listen".to_owned(),
+                "127.0.0.1:18180".to_owned(),
+                "--management-listen".to_owned(),
+                "127.0.0.1:18181".to_owned(),
+                "--state-dir".to_owned(),
+                state.path().display().to_string(),
+                "--credential-dir".to_owned(),
+                credentials.path().display().to_string(),
+                "--grok-web-proxy".to_owned(),
+            ]
+        };
+
+        let mut socks = base();
+        socks.push("socks5://127.0.0.1:19081".to_owned());
+        assert!(parse(socks)?.grok_web_proxy.is_some());
+
+        for rejected in [
+            "http://127.0.0.1:19081",
+            "socks5h://127.0.0.1:19081",
+            "socks5://user@127.0.0.1:19081",
+        ] {
+            let mut invalid = base();
+            invalid.push(rejected.to_owned());
+            assert!(matches!(
+                parse(invalid),
+                Err(DeploymentError::InvalidProxy("--grok-web-proxy"))
+            ));
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn serve_parser_accepts_an_independent_codex_oauth_proxy()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let state = TemporaryDirectory::new()?;
+        let credentials = TemporaryDirectory::new()?;
+        let arguments = vec![
+            "--data-listen".to_owned(),
+            "127.0.0.1:18180".to_owned(),
+            "--management-listen".to_owned(),
+            "127.0.0.1:18181".to_owned(),
+            "--state-dir".to_owned(),
+            state.path().display().to_string(),
+            "--credential-dir".to_owned(),
+            credentials.path().display().to_string(),
+            "--codex-oauth-proxy".to_owned(),
+            "socks5://127.0.0.1:19083".to_owned(),
+        ];
+        assert!(matches!(
+            parse(arguments)?.codex_oauth_proxy,
+            UpstreamProxy::Socks5(_)
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn serve_parser_accepts_an_independent_flaresolverr_proxy()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let state = TemporaryDirectory::new()?;
+        let credentials = TemporaryDirectory::new()?;
+        let arguments = vec![
+            "--data-listen".to_owned(),
+            "127.0.0.1:18180".to_owned(),
+            "--management-listen".to_owned(),
+            "127.0.0.1:18181".to_owned(),
+            "--state-dir".to_owned(),
+            state.path().display().to_string(),
+            "--credential-dir".to_owned(),
+            credentials.path().display().to_string(),
+            "--grok-web-flaresolverr-proxy".to_owned(),
+            "socks5://172.17.0.1:19082".to_owned(),
+        ];
+        assert!(parse(arguments)?.grok_web_flaresolverr_proxy.is_some());
+        Ok(())
+    }
+
+    #[test]
+    fn serve_parser_accepts_a_nonzero_flaresolverr_port() -> Result<(), Box<dyn std::error::Error>>
+    {
+        let state = TemporaryDirectory::new()?;
+        let credentials = TemporaryDirectory::new()?;
+        let arguments = vec![
+            "--data-listen".to_owned(),
+            "127.0.0.1:18180".to_owned(),
+            "--management-listen".to_owned(),
+            "127.0.0.1:18181".to_owned(),
+            "--state-dir".to_owned(),
+            state.path().display().to_string(),
+            "--credential-dir".to_owned(),
+            credentials.path().display().to_string(),
+            "--grok-web-flaresolverr-port".to_owned(),
+            "8192".to_owned(),
+        ];
+        assert_eq!(parse(arguments)?.grok_web_flaresolverr_port, 8192);
         Ok(())
     }
 

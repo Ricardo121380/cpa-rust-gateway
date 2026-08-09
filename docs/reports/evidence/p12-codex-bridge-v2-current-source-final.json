@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "value_free": true,
+  "fixed_tuple_count": 12,
+  "attempted_tuple_count": 12,
+  "successful_tuple_count": 12,
+  "network_send_count": 12,
+  "resumed_from_failed_tuple": false,
+  "stopped_on_first_failure": false,
+  "tuples": [
+    {"mode": "text", "projection": "text", "protocol": "chat", "result": "PASS", "stream": false, "terminal": "stop", "usage_valid": true},
+    {"mode": "text", "projection": "text", "protocol": "chat", "result": "PASS", "stream": true, "terminal": "stop", "usage_valid": true},
+    {"mode": "tool", "projection": "tool", "protocol": "chat", "result": "PASS", "stream": false, "terminal": "tool_calls", "usage_valid": true},
+    {"mode": "tool", "projection": "tool", "protocol": "chat", "result": "PASS", "stream": true, "terminal": "tool_calls", "usage_valid": true},
+    {"mode": "text", "projection": "text", "protocol": "responses", "result": "PASS", "stream": false, "terminal": "completed", "usage_valid": true},
+    {"mode": "text", "projection": "text", "protocol": "responses", "result": "PASS", "stream": true, "terminal": "completed", "usage_valid": true},
+    {"mode": "tool", "projection": "tool", "protocol": "responses", "result": "PASS", "stream": false, "terminal": "completed", "usage_valid": true},
+    {"mode": "tool", "projection": "tool", "protocol": "responses", "result": "PASS", "stream": true, "terminal": "completed", "usage_valid": true},
+    {"mode": "text", "projection": "text", "protocol": "messages", "result": "PASS", "stream": false, "terminal": "end_turn", "usage_valid": true},
+    {"mode": "text", "projection": "text", "protocol": "messages", "result": "PASS", "stream": true, "terminal": "end_turn", "usage_valid": true},
+    {"mode": "tool", "projection": "tool", "protocol": "messages", "result": "PASS", "stream": false, "terminal": "tool_use", "usage_valid": true},
+    {"mode": "tool", "projection": "tool", "protocol": "messages", "result": "PASS", "stream": true, "terminal": "tool_use", "usage_valid": true}
+  ]
+}

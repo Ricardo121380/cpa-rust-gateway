@@ -99,7 +99,7 @@ use protocol_openai_chat::{
 };
 use protocol_openai_responses::{
     OpenAiResponsesSseDecoder, ResponseMode,
-    decode_upstream_response as decode_responses_upstream_response,
+    decode_upstream_response_with_reasoning_policy as decode_responses_upstream_response_with_reasoning_policy,
 };
 use provider_anthropic_compatible::{
     AnthropicMessagesEndpoint, AnthropicMessagesOutboundRequest, AnthropicMessagesRequestBuilder,
@@ -153,6 +153,8 @@ const MAX_PROVIDER_ERROR_BODY_BYTES: usize = 64 * 1024;
 // grok2api 3.1.1 bounds the browser-solver envelope at 2 MiB.  The response is still read only
 // from the fixed loopback endpoint and the provider parser retains only allowlisted cookies.
 const MAX_FLARESOLVERR_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
+const GROK_WEB_STATSIG_SIGNER_URL_ENV: &str = "CPAR_GROK_WEB_STATSIG_SIGNER_URL";
+const GROK_WEB_BROWSER_RELAY_URL_ENV: &str = "CPAR_GROK_WEB_BROWSER_RELAY_URL";
 
 /// Loopback-only `FlareSolverr` transport used by the native Web recovery hook.
 #[derive(Clone)]
@@ -160,6 +162,8 @@ struct P12GrokWebFlareSolverrTransport {
     policy: Arc<EgressPolicy>,
     client_pool: Arc<UpstreamClientPool>,
     profile: UpstreamTransportProfile,
+    proxy_url: Option<String>,
+    port: u16,
 }
 
 #[derive(Clone)]
@@ -179,11 +183,8 @@ impl GrokWebEgressRefresher for P12GrokWebEgressRefresher {
         let transport = Arc::clone(&self.transport);
         Box::pin(async move {
             let now_ms = system_now_ms().map_err(|_| internal_error())?;
-            let cookie_header = current
-                .cookie_header_for_https("grok.com", "/", now_ms)
-                .map_err(|_| credential_unavailable_error())?;
             let response = transport
-                .send(GrokWebFlareSolverrRequest::default().with_cookie_header(&cookie_header))
+                .send(GrokWebFlareSolverrRequest::default())
                 .await?;
             if !(200..=299).contains(&response.status()) {
                 return Err(internal_error());
@@ -214,6 +215,8 @@ impl P12GrokWebFlareSolverrTransport {
     fn new(
         client_pool: Arc<UpstreamClientPool>,
         profile: UpstreamTransportProfile,
+        proxy_url: Option<String>,
+        port: u16,
     ) -> Result<Self, GatewayError> {
         let policy = EgressPolicy::try_new(EgressPolicyInput {
             id: EgressPolicyId::try_new("grok-web-flaresolverr-loopback")
@@ -223,7 +226,7 @@ impl P12GrokWebFlareSolverrTransport {
             allowed_hosts: BTreeSet::from([
                 EgressHost::try_new("127.0.0.1").map_err(|_| internal_error())?
             ]),
-            allowed_ports: BTreeSet::from([8191]),
+            allowed_ports: BTreeSet::from([port]),
             allowed_cidrs: BTreeSet::from([EgressCidr::try_new(
                 std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST),
                 32,
@@ -236,6 +239,8 @@ impl P12GrokWebFlareSolverrTransport {
             policy: Arc::new(policy),
             client_pool,
             profile,
+            proxy_url,
+            port,
         })
     }
 }
@@ -248,9 +253,15 @@ impl GrokWebFlareSolverrTransport for P12GrokWebFlareSolverrTransport {
         let policy = Arc::clone(&self.policy);
         let pool = Arc::clone(&self.client_pool);
         let profile = self.profile.clone();
+        let port = self.port;
+        let request = match self.proxy_url.as_deref() {
+            Some(proxy_url) => request.with_proxy_url(proxy_url),
+            None => request,
+        };
         Box::pin(async move {
+            let target_url = format!("http://127.0.0.1:{port}/v1");
             let target = policy
-                .admit_url("http://127.0.0.1:8191/v1", &SystemEgressDnsResolver)
+                .admit_url(&target_url, &SystemEgressDnsResolver)
                 .map_err(|_| internal_error())?;
             let body = request.to_json().map_err(|_| internal_error())?;
             let outbound = UpstreamHttpRequest::try_new(
@@ -384,6 +395,9 @@ const P12_OPENAI_MAX_OUTPUT_TOKENS_EXTENSION: &str = "openai.responses.max_outpu
 /// This stays in the P12 runtime instead of changing the generic OpenAI-compatible provider:
 /// other Providers retain their existing three-header contract.
 const P12_KRILL_COMPATIBILITY_USER_AGENT: &str = "codex_cli_rs/0.139.0";
+const P12_CODEX_OAUTH_USER_AGENT: &str = "codex_cli_rs/0.144.1 (Linux; arm64)";
+const P12_CODEX_OAUTH_ORIGINATOR: &str = "codex_cli_rs";
+const P12_CODEX_OAUTH_VERSION: &str = "0.144.1";
 /// Lifetime of one operator-driven recovery ticket; begin and complete happen in one call.
 const P12_OPERATOR_RECOVERY_TTL_MS: i64 = 30_000;
 
@@ -482,11 +496,37 @@ fn p12_adapter_capabilities(adapter_id: &str) -> Result<CapabilitySet, RuntimeCo
 /// An empty Staging database deliberately starts with an authenticated but unsendable data plane.
 /// Once management publishes the temporary graph, systemd must restart this isolated process so a
 /// new encrypted Credential pool and exact Snapshot are built atomically at process bootstrap.
+#[cfg(test)]
 pub(crate) fn build_data_plane_composition(
     database: &Path,
     secret_store: &SecretStore,
     registry: Arc<RouteSnapshotRegistry>,
     client_key_service: ClientKeyService,
+) -> Result<DataPlaneComposition, RuntimeCompositionError> {
+    build_data_plane_composition_with_web_proxy(
+        database,
+        secret_store,
+        registry,
+        client_key_service,
+        None,
+        None,
+        8191,
+    )
+}
+
+/// Builds the data plane with an optional, explicitly supplied Web-only proxy.
+///
+/// The default deployment remains direct. A proxy is a process-envelope input rather than a
+/// control-plane field so an operator can bind a temporary, isolated Web exit without changing
+/// persisted routes or accidentally routing other providers through it.
+pub(crate) fn build_data_plane_composition_with_web_proxy(
+    database: &Path,
+    secret_store: &SecretStore,
+    registry: Arc<RouteSnapshotRegistry>,
+    client_key_service: ClientKeyService,
+    web_proxy: Option<UpstreamProxy>,
+    flaresolverr_proxy: Option<UpstreamProxy>,
+    flaresolverr_port: u16,
 ) -> Result<DataPlaneComposition, RuntimeCompositionError> {
     let mut repository = SqliteControlPlaneRepository::open(database)
         .map_err(|_| RuntimeCompositionError::Unavailable)?;
@@ -526,6 +566,9 @@ pub(crate) fn build_data_plane_composition(
             Arc::clone(&event_sink),
             Arc::clone(&runtime_health),
             Arc::clone(&runtime_quota),
+            web_proxy,
+            flaresolverr_proxy,
+            flaresolverr_port,
         )?),
         None => Arc::new(NoActiveConfigurationExecutor),
     };
@@ -897,7 +940,14 @@ impl P12RoutedResponsesExecutor {
         event_sink: Arc<dyn GatewayEventSink>,
         runtime_health: Arc<RuntimeHealthRegistry>,
         runtime_quota: Arc<RuntimeQuotaRegistry>,
+        web_proxy: Option<UpstreamProxy>,
+        flaresolverr_proxy: Option<UpstreamProxy>,
+        flaresolverr_port: u16,
     ) -> Result<Self, RuntimeCompositionError> {
+        // Keep the value-free stage detail for the native Grok diagnostic boundary, while
+        // retaining the historical generic failure for ordinary graphs.  Existing callers use
+        // the generic variant as a compatibility contract and it must not change merely because
+        // OAuth support was added to the composition root.
         let native_grok_graph = configuration.endpoints.iter().any(is_native_grok_endpoint);
         let stage_error = |stage| {
             if native_grok_graph {
@@ -990,10 +1040,16 @@ impl P12RoutedResponsesExecutor {
         let adapters = p12_api_format_adapter_registry().map_err(|_| {
             RuntimeCompositionError::Stage(RuntimeCompositionStage::AdapterRegistry)
         })?;
-        let endpoints =
-            endpoint_runtimes(configuration, &snapshot, &policies, &adapters).map_err(|_| {
-                RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime)
-            })?;
+        let endpoints = endpoint_runtimes(
+            configuration,
+            &snapshot,
+            &policies,
+            &adapters,
+            web_proxy,
+            flaresolverr_proxy,
+            flaresolverr_port,
+        )
+        .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime))?;
         let scheduler = Arc::new(RouteCredentialScheduler::new(
             Arc::clone(&snapshot),
             Arc::new(pools),
@@ -1341,6 +1397,9 @@ fn endpoint_runtimes(
     snapshot: &RouteSnapshot,
     policies: &gateway_control::egress_policy_compiler::CompiledEgressPolicies,
     registry: &P12ApiFormatAdapterRegistry,
+    web_proxy: Option<UpstreamProxy>,
+    flaresolverr_proxy: Option<UpstreamProxy>,
+    flaresolverr_port: u16,
 ) -> Result<BTreeMap<EndpointId, EndpointRuntime>, RuntimeCompositionError> {
     let configured_ids = configuration
         .endpoints
@@ -1356,7 +1415,11 @@ fn endpoint_runtimes(
         return Err(RuntimeCompositionError::Unavailable);
     }
     let resolver: Arc<dyn EgressDnsResolver> = Arc::new(SystemEgressDnsResolver);
-    let transports = Arc::new(P12TransportProfiles::try_new()?);
+    let transports = Arc::new(P12TransportProfiles::try_new_with_web_proxy(
+        web_proxy.unwrap_or(UpstreamProxy::Direct),
+        flaresolverr_proxy,
+        flaresolverr_port,
+    )?);
     let mut runtimes = BTreeMap::new();
     for configured in &configuration.endpoints {
         let format = validate_endpoint_shape(configured)?;
@@ -1474,7 +1537,12 @@ fn validate_p12_credential_bindings(
         .map(|upstream| &upstream.id)
         .collect::<BTreeSet<_>>();
     for credential in &configuration.credentials {
-        if credential.kind != "bearer"
+        // `oauth_json` is CPAR's encrypted, normalized Codex OAuth envelope.  It is
+        // deliberately admitted at composition time alongside the incumbent opaque bearer
+        // shape; the request boundary still runs the strict importer and expiry/account-binding
+        // checks before a byte can become an Authorization header.  Keeping this admission here
+        // is the important distinction between a persisted OAuth rotation and a startup outage.
+        if !matches!(credential.kind.as_str(), "bearer" | "oauth_json")
             || credential.status != CredentialStatus::Active
             || !upstream_ids.contains(&credential.upstream_id)
         {
@@ -1638,15 +1706,16 @@ fn has_p12_unlisted_model_override(value: &str) -> bool {
     )
 }
 
-/// Returns whether a P12 Candidate carries the one bounded capability override admitted by the
-/// runtime shape gate. Native Grok Build and Console cross-protocol `CanonicalBridge` routes
-/// additionally narrow Reasoning so a Chat target cannot receive a private reasoning item; no
-/// other adapter may introduce a second override shape.
+/// Returns whether a P12 Candidate carries a bounded capability override admitted by the runtime
+/// shape gate. A candidate may either opt into an unlisted upstream model, or explicitly narrow
+/// Reasoning while keeping that model admission. The latter is needed when a Responses Endpoint is
+/// exposed through a Chat bridge: it is a capability subtraction, so it cannot manufacture a
+/// private-reasoning event that Chat cannot represent. Native Grok routes use the same shape.
 fn p12_candidate_override_is_admissible(adapter_id: &str, value: &str) -> bool {
     has_p12_unlisted_model_override(value)
         || (matches!(
             adapter_id,
-            "grok.build.responses" | "grok.console.responses"
+            "openai-compatible.responses" | "grok.build.responses" | "grok.console.responses"
         ) && matches!(
             serde_json::from_str::<Value>(value),
             Ok(Value::Object(object))
@@ -1741,41 +1810,80 @@ impl EndpointAdapter {
 struct P12TransportProfiles {
     streaming: UpstreamTransportProfile,
     non_streaming: UpstreamTransportProfile,
+    web_streaming: UpstreamTransportProfile,
+    web_non_streaming: UpstreamTransportProfile,
+    flaresolverr_proxy_url: Option<String>,
+    flaresolverr_port: u16,
+    statsig_signer_url: Option<String>,
+    browser_relay_url: Option<String>,
 }
 
 impl P12TransportProfiles {
     /// Builds both profiles from the fixed P12 deadlines, failing closed on an unsafe shape.
+    #[cfg(test)]
     fn try_new() -> Result<Self, RuntimeCompositionError> {
+        Self::try_new_with_web_proxy(UpstreamProxy::Direct, None, 8191)
+    }
+
+    /// Builds the direct profiles plus an optional Web-only proxy profile.
+    fn try_new_with_web_proxy(
+        web_proxy: UpstreamProxy,
+        flaresolverr_proxy: Option<UpstreamProxy>,
+        flaresolverr_port: u16,
+    ) -> Result<Self, RuntimeCompositionError> {
         let maximum_idle_connections_per_host =
             NonZeroUsize::new(1).ok_or(RuntimeCompositionError::Unavailable)?;
+        let streaming_timeouts = UpstreamTimeouts::try_new(
+            P12_CONNECT_TIMEOUT,
+            P12_STREAMING_TTFB_TIMEOUT,
+            P12_STREAMING_IDLE_TIMEOUT,
+            P12_STREAMING_TOTAL_TIMEOUT,
+        )
+        .map_err(|_| RuntimeCompositionError::Unavailable)?;
         let streaming = UpstreamTransportProfile::new(
-            UpstreamTimeouts::try_new(
-                P12_CONNECT_TIMEOUT,
-                P12_STREAMING_TTFB_TIMEOUT,
-                P12_STREAMING_IDLE_TIMEOUT,
-                P12_STREAMING_TOTAL_TIMEOUT,
-            )
-            .map_err(|_| RuntimeCompositionError::Unavailable)?,
+            streaming_timeouts,
             UpstreamProxy::Direct,
+            maximum_idle_connections_per_host,
+        );
+        let web_streaming = UpstreamTransportProfile::new(
+            streaming_timeouts,
+            web_proxy.clone(),
             maximum_idle_connections_per_host,
         );
         // The transport bounds the wait for response headers by first-byte and, through reqwest's
         // read timeout, by response-idle as well. A buffered upstream returns nothing until it has
         // finished, so both must equal this mode's total instead of a shorter streaming value.
+        let non_streaming_timeouts = UpstreamTimeouts::try_new(
+            P12_CONNECT_TIMEOUT,
+            P12_NON_STREAMING_TOTAL_TIMEOUT,
+            P12_NON_STREAMING_TOTAL_TIMEOUT,
+            P12_NON_STREAMING_TOTAL_TIMEOUT,
+        )
+        .map_err(|_| RuntimeCompositionError::Unavailable)?;
         let non_streaming = UpstreamTransportProfile::new(
-            UpstreamTimeouts::try_new(
-                P12_CONNECT_TIMEOUT,
-                P12_NON_STREAMING_TOTAL_TIMEOUT,
-                P12_NON_STREAMING_TOTAL_TIMEOUT,
-                P12_NON_STREAMING_TOTAL_TIMEOUT,
-            )
-            .map_err(|_| RuntimeCompositionError::Unavailable)?,
+            non_streaming_timeouts,
             UpstreamProxy::Direct,
+            maximum_idle_connections_per_host,
+        );
+        let web_non_streaming = UpstreamTransportProfile::new(
+            non_streaming_timeouts,
+            web_proxy,
             maximum_idle_connections_per_host,
         );
         Ok(Self {
             streaming,
             non_streaming,
+            web_streaming,
+            web_non_streaming,
+            flaresolverr_proxy_url: flaresolverr_proxy
+                .and_then(|proxy| proxy.canonical_url().map(str::to_owned)),
+            flaresolverr_port,
+            statsig_signer_url: std::env::var(GROK_WEB_STATSIG_SIGNER_URL_ENV)
+                .ok()
+                .filter(|value| !value.trim().is_empty()),
+            browser_relay_url: std::env::var(GROK_WEB_BROWSER_RELAY_URL_ENV)
+                .ok()
+                .filter(|value| !value.trim().is_empty()),
         })
     }
 
@@ -1785,6 +1893,35 @@ impl P12TransportProfiles {
             ResponsesResponseMode::Streaming => &self.streaming,
             ResponsesResponseMode::NonStreaming => &self.non_streaming,
         }
+    }
+
+    /// Returns the Web-specific profile, keeping non-Web providers on direct egress.
+    const fn for_web_mode(&self, mode: ResponsesResponseMode) -> &UpstreamTransportProfile {
+        match mode {
+            ResponsesResponseMode::Streaming => &self.web_streaming,
+            ResponsesResponseMode::NonStreaming => &self.web_non_streaming,
+        }
+    }
+
+    /// Returns the explicit Web proxy bound into the browser session fingerprint.
+    const fn web_proxy(&self) -> &UpstreamProxy {
+        self.web_streaming.proxy()
+    }
+
+    fn flaresolverr_proxy_url(&self) -> Option<&str> {
+        self.flaresolverr_proxy_url.as_deref()
+    }
+
+    const fn flaresolverr_port(&self) -> u16 {
+        self.flaresolverr_port
+    }
+
+    fn statsig_signer_url(&self) -> Option<&str> {
+        self.statsig_signer_url.as_deref()
+    }
+
+    fn browser_relay_url(&self) -> Option<&str> {
+        self.browser_relay_url.as_deref()
     }
 }
 
@@ -1989,7 +2126,7 @@ impl EndpointAttemptDriver {
         credential: &CredentialLease,
         projected: &ProjectedProtocolRequest,
     ) -> Result<Box<dyn ResponsesEventSource>, AttemptFailure> {
-        let credential = openai_runtime_credential(credential.secret_bytes())?;
+        let credential = openai_runtime_credential(credential.secret_bytes(), system_now_ms()?)?;
         let bearer = credential
             .bearer_at(system_now_ms()?)
             .map_err(AttemptFailure::NonRetryable)?;
@@ -2030,7 +2167,12 @@ impl EndpointAttemptDriver {
             .into_transport_request(admitted)
             .map_err(AttemptFailure::NonRetryable)?;
         let mut response = self
-            .send_admitted_request(runtime, request, HttpFailureProfile::OpenAiCompatible)
+            .send_admitted_request(
+                runtime,
+                request,
+                HttpFailureProfile::OpenAiCompatible,
+                false,
+            )
             .await?;
         match self.mode {
             ResponsesResponseMode::NonStreaming => {
@@ -2059,6 +2201,7 @@ impl EndpointAttemptDriver {
     /// This is the P12 path unchanged: the same request conversion, credential shape, request
     /// builder, egress admission, transport headers, response-mode profile, status and
     /// content-type classification, bounded JSON body, and bounded SSE decoder.
+    #[allow(clippy::too_many_lines)]
     async fn start_openai_responses(
         &self,
         runtime: &EndpointRuntime,
@@ -2067,13 +2210,17 @@ impl EndpointAttemptDriver {
         credential: &CredentialLease,
         projected: &ProjectedProtocolRequest,
     ) -> Result<Box<dyn ResponsesEventSource>, AttemptFailure> {
-        let credential = openai_runtime_credential(credential.secret_bytes())?;
+        let credential = openai_runtime_credential(credential.secret_bytes(), system_now_ms()?)?;
         let bearer = credential
             .bearer_at(system_now_ms()?)
             .map_err(AttemptFailure::NonRetryable)?;
         let request_credential = OpenAiResponsesApiKey::try_new(bearer.to_owned())
             .map_err(AttemptFailure::NonRetryable)?;
-        let outbound = match projected {
+        let is_codex_oauth = endpoint
+            .url()
+            .starts_with("https://chatgpt.com/backend-api/codex/")
+            && credential.has_account_binding();
+        let mut outbound = match projected {
             ProjectedProtocolRequest::NativeExact => OpenAiResponsesRequestBuilder::build_native(
                 endpoint,
                 &request_credential,
@@ -2092,27 +2239,89 @@ impl EndpointAttemptDriver {
             ),
         }
         .map_err(AttemptFailure::NonRetryable)?;
-        self.attempt_stages.record_stage(
-            &self.request_id,
-            ManagementRequestAttemptStage::EgressAdmission,
-        );
-        let admitted = runtime
-            .policy
-            .admit_url(outbound.url(), runtime.resolver.as_ref())
-            .map_err(|_| AttemptFailure::NonRetryable(egress_rejected_error()))?;
-        let request =
-            p12_transport_request(&outbound, admitted).map_err(AttemptFailure::NonRetryable)?;
-        let mut response = self
-            .send_admitted_request(runtime, request, HttpFailureProfile::OpenAiCompatible)
-            .await?;
+        if is_codex_oauth {
+            outbound
+                .force_store_false()
+                .map_err(AttemptFailure::NonRetryable)?;
+            if self.mode == ResponsesResponseMode::NonStreaming {
+                outbound
+                    .force_streaming()
+                    .map_err(AttemptFailure::NonRetryable)?;
+            }
+        }
+        let mut retried_rejected_max_output_tokens = false;
+        let mut response = loop {
+            self.attempt_stages.record_stage(
+                &self.request_id,
+                ManagementRequestAttemptStage::EgressAdmission,
+            );
+            let admitted = runtime
+                .policy
+                .admit_url(outbound.url(), runtime.resolver.as_ref())
+                .map_err(|_| AttemptFailure::NonRetryable(egress_rejected_error()))?;
+            if is_codex_oauth {
+                let request =
+                    p12_transport_request(&outbound, admitted, true, credential.account_id())
+                        .map_err(AttemptFailure::NonRetryable)?;
+                match self
+                    .send_codex_admitted_request(
+                        runtime,
+                        request,
+                        HttpFailureProfile::OpenAiCompatible,
+                        true,
+                    )
+                    .await
+                {
+                    Ok(response) => break response,
+                    Err(P12SendFailure::RetryWithoutMaxOutputTokens)
+                        if !retried_rejected_max_output_tokens =>
+                    {
+                        retried_rejected_max_output_tokens = true;
+                        outbound
+                            .remove_root_field("max_output_tokens")
+                            .map_err(AttemptFailure::NonRetryable)?;
+                    }
+                    Err(P12SendFailure::RetryWithoutMaxOutputTokens) => {
+                        return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
+                    }
+                    Err(P12SendFailure::Attempt(failure)) => return Err(failure),
+                }
+            } else {
+                let request =
+                    p12_transport_request(&outbound, admitted, false, credential.account_id())
+                        .map_err(AttemptFailure::NonRetryable)?;
+                break self
+                    .send_admitted_request(
+                        runtime,
+                        request,
+                        HttpFailureProfile::OpenAiCompatible,
+                        false,
+                    )
+                    .await?;
+            }
+        };
 
         match self.mode {
+            ResponsesResponseMode::NonStreaming if is_codex_oauth => {
+                self.attempt_stages.record_stage(
+                    &self.request_id,
+                    ManagementRequestAttemptStage::SseBootstrap,
+                );
+                let source = OpenAiSseEventSource::begin_with_reasoning_policy(
+                    response,
+                    self.usage_projection,
+                    is_codex_oauth,
+                )
+                .await?;
+                Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
+            }
             ResponsesResponseMode::NonStreaming => {
-                let events = decode_json_response(
+                let events = decode_json_response_with_reasoning_policy(
                     &mut response,
                     self.attempt_stages.as_ref(),
                     &self.request_id,
                     self.usage_projection,
+                    is_codex_oauth,
                 )
                 .await?;
                 Ok(Box::new(FiniteEventSource::new(events)) as Box<dyn ResponsesEventSource>)
@@ -2122,7 +2331,12 @@ impl EndpointAttemptDriver {
                     &self.request_id,
                     ManagementRequestAttemptStage::SseBootstrap,
                 );
-                let source = OpenAiSseEventSource::begin(response, self.usage_projection).await?;
+                let source = OpenAiSseEventSource::begin_with_reasoning_policy(
+                    response,
+                    self.usage_projection,
+                    is_codex_oauth,
+                )
+                .await?;
                 Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
             }
         }
@@ -2185,7 +2399,12 @@ impl EndpointAttemptDriver {
         let request = p12_anthropic_transport_request(outbound, admitted)
             .map_err(AttemptFailure::NonRetryable)?;
         let mut response = self
-            .send_admitted_request(runtime, request, HttpFailureProfile::AnthropicCompatible)
+            .send_admitted_request(
+                runtime,
+                request,
+                HttpFailureProfile::AnthropicCompatible,
+                false,
+            )
             .await?;
 
         match self.mode {
@@ -2327,7 +2546,7 @@ impl EndpointAttemptDriver {
                     .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?,
                 GrokWebTlsProfile::try_new("chrome_146")
                     .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?,
-                UpstreamProxy::Direct,
+                runtime.transports.web_proxy().clone(),
                 now_ms,
             )
             .map_err(|_| AttemptFailure::NonRetryable(credential_unavailable_error()))?,
@@ -2335,11 +2554,12 @@ impl EndpointAttemptDriver {
         let statsig = runtime
             .web_statsig
             .get_or_init(|| {
-                let transport = GrokWebStatsigUpstreamTransport::new(
+                let transport = GrokWebStatsigUpstreamTransport::new_with_signer_url(
                     runtime.policy.clone(),
                     Arc::clone(&runtime.resolver),
                     self.client_pool.as_ref().clone(),
-                    runtime.transports.non_streaming.clone(),
+                    runtime.transports.for_web_mode(self.mode),
+                    runtime.transports.statsig_signer_url().map(str::to_owned),
                 );
                 GrokWebStatsigRuntime::try_new(Arc::new(transport))
                     .map(Arc::new)
@@ -2348,15 +2568,21 @@ impl EndpointAttemptDriver {
             .as_ref()
             .map_err(|error| AttemptFailure::NonRetryable(error.clone()))?
             .clone();
-        let transport = GrokWebProductionUpstreamTransport::new(
+        let transport = GrokWebProductionUpstreamTransport::new_with_browser_relay_url(
             runtime.policy.clone(),
             Arc::clone(&runtime.resolver),
             self.client_pool.as_ref().clone(),
-            runtime.transports.for_mode(self.mode).clone(),
+            runtime.transports.for_web_mode(self.mode).clone(),
+            runtime.transports.browser_relay_url().map(str::to_owned),
         );
         let flaresolverr_transport = P12GrokWebFlareSolverrTransport::new(
             Arc::clone(&self.client_pool),
             runtime.transports.for_mode(self.mode).clone(),
+            runtime
+                .transports
+                .flaresolverr_proxy_url()
+                .map(str::to_owned),
+            runtime.transports.flaresolverr_port(),
         )
         .map_err(AttemptFailure::NonRetryable)?;
         let adapter = GrokWebProductionInferenceAdapter::try_new(
@@ -2520,7 +2746,48 @@ impl EndpointAttemptDriver {
         runtime: &EndpointRuntime,
         request: UpstreamHttpRequest,
         failure_profile: HttpFailureProfile,
+        allow_missing_content_type: bool,
     ) -> Result<UpstreamHttpResponse, AttemptFailure> {
+        self.send_admitted_request_inner(
+            runtime,
+            request,
+            failure_profile,
+            allow_missing_content_type,
+            false,
+        )
+        .await
+        .map_err(P12SendFailure::into_attempt)
+    }
+
+    /// The official Codex OAuth path needs one narrowly scoped compatibility retry copied from
+    /// CPA/sub2api: when the upstream explicitly rejects the root `max_output_tokens` field, the
+    /// caller removes that field and replays the same leased credential once. The marker never
+    /// escapes this request-local loop and is not handed to the route-level failover scheduler.
+    async fn send_codex_admitted_request(
+        &self,
+        runtime: &EndpointRuntime,
+        request: UpstreamHttpRequest,
+        failure_profile: HttpFailureProfile,
+        allow_missing_content_type: bool,
+    ) -> Result<UpstreamHttpResponse, P12SendFailure> {
+        self.send_admitted_request_inner(
+            runtime,
+            request,
+            failure_profile,
+            allow_missing_content_type,
+            true,
+        )
+        .await
+    }
+
+    async fn send_admitted_request_inner(
+        &self,
+        runtime: &EndpointRuntime,
+        request: UpstreamHttpRequest,
+        failure_profile: HttpFailureProfile,
+        allow_missing_content_type: bool,
+        detect_codex_rejected_field: bool,
+    ) -> Result<UpstreamHttpResponse, P12SendFailure> {
         self.attempt_stages.record_stage(
             &self.request_id,
             ManagementRequestAttemptStage::HttpTransport,
@@ -2529,28 +2796,75 @@ impl EndpointAttemptDriver {
             .client_pool
             .send(request, runtime.transports.for_mode(self.mode))
             .await
-            .map_err(|_| AttemptFailure::Connection)?;
+            .map_err(|_| P12SendFailure::Attempt(AttemptFailure::Connection))?;
 
         self.attempt_stages
             .record_stage(&self.request_id, ManagementRequestAttemptStage::HttpStatus);
         match response.status() {
             200..=299 => {}
             status if failure_profile == HttpFailureProfile::OpenAiCompatible => {
-                return Err(classify_openai_response_failure(&mut response, status).await);
+                let retry_after_seconds = response
+                    .header("retry-after")
+                    .and_then(|value| value.to_str().ok())
+                    .and_then(|value| value.parse::<u64>().ok());
+                let body = read_provider_error_body(&mut response).await?;
+                if detect_codex_rejected_field
+                    && status == 400
+                    && p12_openai_rejects_max_output_tokens(&body)
+                {
+                    return Err(P12SendFailure::RetryWithoutMaxOutputTokens);
+                }
+                return Err(P12SendFailure::Attempt(
+                    classify_openai_response_failure_body(status, &body, retry_after_seconds),
+                ));
             }
             status if failure_profile == HttpFailureProfile::AnthropicCompatible => {
-                return Err(classify_anthropic_response_failure(&mut response, status).await);
+                return Err(P12SendFailure::Attempt(
+                    classify_anthropic_response_failure(&mut response, status).await,
+                ));
             }
-            429 => return Err(AttemptFailure::RateLimited { retry_after: None }),
-            500..=599 => return Err(AttemptFailure::ServerError),
-            _ => return Err(AttemptFailure::NonRetryable(provider_permanent_error())),
+            429 => {
+                return Err(P12SendFailure::Attempt(AttemptFailure::RateLimited {
+                    retry_after: None,
+                }));
+            }
+            500..=599 => return Err(P12SendFailure::Attempt(AttemptFailure::ServerError)),
+            _ => {
+                return Err(P12SendFailure::Attempt(AttemptFailure::NonRetryable(
+                    provider_permanent_error(),
+                )));
+            }
         }
         self.attempt_stages
             .record_stage(&self.request_id, ManagementRequestAttemptStage::ContentType);
-        if !has_expected_content_type(&response, self.mode) {
-            return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
+        if !has_expected_content_type(&response, self.mode, allow_missing_content_type) {
+            return Err(P12SendFailure::Attempt(AttemptFailure::NonRetryable(
+                upstream_protocol_error(),
+            )));
         }
         Ok(response)
+    }
+}
+
+enum P12SendFailure {
+    Attempt(AttemptFailure),
+    RetryWithoutMaxOutputTokens,
+}
+
+impl From<AttemptFailure> for P12SendFailure {
+    fn from(failure: AttemptFailure) -> Self {
+        Self::Attempt(failure)
+    }
+}
+
+impl P12SendFailure {
+    fn into_attempt(self) -> AttemptFailure {
+        match self {
+            Self::Attempt(failure) => failure,
+            Self::RetryWithoutMaxOutputTokens => {
+                AttemptFailure::NonRetryable(upstream_protocol_error())
+            }
+        }
     }
 }
 
@@ -2562,8 +2876,9 @@ enum HttpFailureProfile {
 
 fn openai_runtime_credential(
     input: &[u8],
+    now_ms: i64,
 ) -> Result<OpenAiCompatibleRuntimeCredential, AttemptFailure> {
-    OpenAiCompatibleRuntimeCredential::import(input).map_err(|_| {
+    OpenAiCompatibleRuntimeCredential::import_compatible(input, now_ms).map_err(|_| {
         AttemptFailure::NonRetryable(GatewayError::new(
             GatewayErrorCode::CredentialUnavailable,
             ErrorScope::Credential,
@@ -2594,6 +2909,7 @@ fn system_now_ms_runtime() -> Result<i64, RuntimeCompositionError> {
     i64::try_from(elapsed.as_millis()).map_err(|_| RuntimeCompositionError::Unavailable)
 }
 
+#[cfg(test)]
 async fn classify_openai_response_failure(
     response: &mut UpstreamHttpResponse,
     status: u16,
@@ -2606,11 +2922,19 @@ async fn classify_openai_response_failure(
         Ok(body) => body,
         Err(failure) => return failure,
     };
+    classify_openai_response_failure_body(status, &body, retry_after_seconds)
+}
+
+fn classify_openai_response_failure_body(
+    status: u16,
+    body: &[u8],
+    retry_after_seconds: Option<u64>,
+) -> AttemptFailure {
     let now_epoch_seconds = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |elapsed| elapsed.as_secs());
     let disposition =
-        classify_openai_runtime_failure(status, &body, retry_after_seconds, now_epoch_seconds);
+        classify_openai_runtime_failure(status, body, retry_after_seconds, now_epoch_seconds);
     match disposition.action() {
         OpenAiRuntimeFailureAction::RecordExactQuota => AttemptFailure::RateLimited {
             retry_after: disposition.retry_after(),
@@ -2621,6 +2945,16 @@ async fn classify_openai_response_failure(
             AttemptFailure::NonRetryable(disposition.error().clone())
         }
     }
+}
+
+/// Recognizes the bounded field-rejection signal used by CPA/sub2api's Responses retry loop.
+///
+/// The official `ChatGPT` endpoint has emitted both an OpenAI-shaped `error` object and a compact
+/// `detail` string. Only the explicit `unknown/unsupported` + `max_output_tokens` combination is
+/// eligible; authentication, quota, account, and arbitrary 400 responses remain permanent.
+fn p12_openai_rejects_max_output_tokens(body: &[u8]) -> bool {
+    let text = String::from_utf8_lossy(body).to_ascii_lowercase();
+    (text.contains("unknown") || text.contains("unsupported")) && text.contains("max_output_tokens")
 }
 
 async fn classify_anthropic_response_failure(
@@ -2716,6 +3050,8 @@ const fn chat_upstream_response_mode(mode: ResponsesResponseMode) -> ChatRespons
 fn p12_transport_request(
     outbound: &OpenAiResponsesOutboundRequest,
     admitted: AdmittedEgressTarget,
+    codex_oauth: bool,
+    account_id: Option<&str>,
 ) -> Result<UpstreamHttpRequest, GatewayError> {
     if admitted.request_url() != outbound.target().as_url() {
         return Err(egress_rejected_error());
@@ -2734,15 +3070,42 @@ fn p12_transport_request(
         .ok_or_else(internal_error)?
         .to_owned();
 
+    let mut headers = vec![
+        ("accept".to_owned(), accept),
+        ("authorization".to_owned(), authorization),
+        ("content-type".to_owned(), content_type),
+        (
+            "user-agent".to_owned(),
+            if codex_oauth {
+                P12_CODEX_OAUTH_USER_AGENT.to_owned()
+            } else {
+                P12_KRILL_COMPATIBILITY_USER_AGENT.to_owned()
+            },
+        ),
+    ];
+    if codex_oauth {
+        let account_id = account_id.ok_or_else(credential_unavailable_error)?;
+        headers.push(("chatgpt-account-id".to_owned(), account_id.to_owned()));
+        headers.push((
+            "openai-beta".to_owned(),
+            "responses=experimental".to_owned(),
+        ));
+        headers.push((
+            "originator".to_owned(),
+            P12_CODEX_OAUTH_ORIGINATOR.to_owned(),
+        ));
+        headers.push(("version".to_owned(), P12_CODEX_OAUTH_VERSION.to_owned()));
+    }
     UpstreamHttpRequest::try_new(
         admitted,
         UpstreamHttpMethod::Post,
-        p12_transport_headers(&accept, &authorization, &content_type),
+        headers,
         outbound.body().to_vec(),
     )
     .map_err(|_| internal_error())
 }
 
+#[cfg(test)]
 fn p12_transport_headers(
     accept: &str,
     authorization: &str,
@@ -2850,15 +3213,36 @@ const fn p12_attempt_start_timeout(
     }
 }
 
-fn has_expected_content_type(response: &UpstreamHttpResponse, mode: ResponsesResponseMode) -> bool {
+fn expected_content_type_matches(
+    content_type: Option<&str>,
+    mode: ResponsesResponseMode,
+    allow_missing: bool,
+) -> bool {
     let expected = match mode {
         ResponsesResponseMode::NonStreaming => "application/json",
         ResponsesResponseMode::Streaming => "text/event-stream",
     };
-    response
-        .header("content-type")
-        .and_then(|value| value.to_str().ok())
-        .is_some_and(|content_type| content_type.starts_with(expected))
+    content_type.map_or(allow_missing, |content_type| {
+        content_type.starts_with(expected)
+    })
+}
+
+/// The official `ChatGPT` Codex OAuth endpoint currently omits `content-type` on successful
+/// Responses replies.  Only that explicitly authenticated route may opt into the missing-header
+/// branch; a present but wrong media type remains a protocol failure, and the strict downstream
+/// JSON/SSE decoder still owns the body shape.
+fn has_expected_content_type(
+    response: &UpstreamHttpResponse,
+    mode: ResponsesResponseMode,
+    allow_missing: bool,
+) -> bool {
+    expected_content_type_matches(
+        response
+            .header("content-type")
+            .and_then(|value| value.to_str().ok()),
+        mode,
+        allow_missing,
+    )
 }
 
 struct FiniteEventSource {
@@ -3174,11 +3558,12 @@ impl ResponsesEventSource for AnthropicSseEventSource {
     }
 }
 
-async fn decode_json_response(
+async fn decode_json_response_with_reasoning_policy(
     response: &mut UpstreamHttpResponse,
     attempt_stages: &P12AttemptStageStore,
     request_id: &RequestId,
     usage_projection: P12ResponseUsageProjection,
+    suppress_reasoning: bool,
 ) -> Result<Vec<CanonicalEvent>, AttemptFailure> {
     attempt_stages.record_stage(request_id, ManagementRequestAttemptStage::BodyRead);
     let mut body = Vec::new();
@@ -3194,8 +3579,8 @@ async fn decode_json_response(
     }
     attempt_stages.record_stage(request_id, ManagementRequestAttemptStage::Decoder);
     let body = std::str::from_utf8(&body).map_err(|_| AttemptFailure::BootstrapTruncated)?;
-    let events =
-        decode_responses_upstream_response(body).map_err(|_| AttemptFailure::BootstrapTruncated)?;
+    let events = decode_responses_upstream_response_with_reasoning_policy(body, suppress_reasoning)
+        .map_err(|_| AttemptFailure::BootstrapTruncated)?;
     Ok(project_usage_events(events, usage_projection))
 }
 
@@ -4294,14 +4679,16 @@ impl OpenAiSseDecoder {
 }
 
 impl OpenAiSseEventSource {
-    async fn begin(
+    async fn begin_with_reasoning_policy(
         response: UpstreamHttpResponse,
         usage_projection: P12ResponseUsageProjection,
+        suppress_reasoning: bool,
     ) -> Result<Self, AttemptFailure> {
-        Self::begin_with_progress_deadline(
+        Self::begin_with_progress_deadline_and_reasoning_policy(
             response,
             usage_projection,
             P12_STREAMING_PROGRESS_TIMEOUT,
+            suppress_reasoning,
         )
         .await
     }
@@ -4311,14 +4698,34 @@ impl OpenAiSseEventSource {
     /// Production always passes [`P12_STREAMING_PROGRESS_TIMEOUT`] through [`Self::begin`]; the
     /// explicit parameter exists so tests can expire the deadline in milliseconds against a live
     /// peer instead of waiting out the production value.
+    #[cfg(test)]
     async fn begin_with_progress_deadline(
         response: UpstreamHttpResponse,
         usage_projection: P12ResponseUsageProjection,
         progress_deadline: Duration,
     ) -> Result<Self, AttemptFailure> {
+        Self::begin_with_progress_deadline_and_reasoning_policy(
+            response,
+            usage_projection,
+            progress_deadline,
+            false,
+        )
+        .await
+    }
+
+    async fn begin_with_progress_deadline_and_reasoning_policy(
+        response: UpstreamHttpResponse,
+        usage_projection: P12ResponseUsageProjection,
+        progress_deadline: Duration,
+        suppress_reasoning: bool,
+    ) -> Result<Self, AttemptFailure> {
         let mut source = Self {
             response,
-            decoder: OpenAiResponsesSseDecoder::new(),
+            decoder: if suppress_reasoning {
+                OpenAiResponsesSseDecoder::new_with_reasoning_suppressed()
+            } else {
+                OpenAiResponsesSseDecoder::new()
+            },
             usage_projection,
             pending: VecDeque::new(),
             progress_deadline,
@@ -4899,15 +5306,51 @@ mod tests {
         classify_openai_response_failure, decode_json_events,
         decode_json_events_with_usage_projection, decode_sse_events,
         decode_sse_events_with_usage_projection, deployment_route_compiler, endpoint_runtimes,
-        has_p12_https_only_egress_shape, has_p12_unlisted_model_override, p12_adapter_capabilities,
-        p12_adapter_id_serves, p12_api_format_adapter_registry, p12_attempt_start_timeout,
+        expected_content_type_matches, has_p12_https_only_egress_shape,
+        has_p12_unlisted_model_override, p12_adapter_capabilities, p12_adapter_id_serves,
+        p12_api_format_adapter_registry, p12_attempt_start_timeout,
         p12_candidate_override_is_admissible, p12_classify_kiro_start_failure,
         p12_kiro_endpoint_shape, p12_kiro_request_projection, p12_openai_compatible_request,
         p12_response_usage_projection, p12_transport_headers, p12_transport_request,
         project_usage_events, queue_event, validate_endpoint_shape,
+        validate_p12_credential_bindings,
     };
 
     const P12_SINGLETON_TEST_ENDPOINT_ID: &str = "p12-krill-endpoint";
+
+    #[test]
+    fn codex_missing_response_content_type_is_scoped_and_strict_when_present() {
+        assert!(expected_content_type_matches(
+            None,
+            ResponsesResponseMode::Streaming,
+            true
+        ));
+        assert!(expected_content_type_matches(
+            None,
+            ResponsesResponseMode::NonStreaming,
+            true
+        ));
+        assert!(!expected_content_type_matches(
+            None,
+            ResponsesResponseMode::Streaming,
+            false
+        ));
+        assert!(!expected_content_type_matches(
+            Some("application/json"),
+            ResponsesResponseMode::Streaming,
+            true
+        ));
+        assert!(expected_content_type_matches(
+            Some("text/event-stream; charset=utf-8"),
+            ResponsesResponseMode::Streaming,
+            false
+        ));
+        assert!(expected_content_type_matches(
+            Some("application/json; charset=utf-8"),
+            ResponsesResponseMode::NonStreaming,
+            false
+        ));
+    }
 
     /// Renders one upstream SSE body from ordered `data`-only frames.
     ///
@@ -5572,6 +6015,27 @@ mod tests {
             profiles.for_mode(ResponsesResponseMode::Streaming),
             profiles.for_mode(ResponsesResponseMode::NonStreaming)
         );
+        Ok(())
+    }
+
+    #[test]
+    fn web_proxy_isolated_from_non_web_transport_profiles() -> Result<(), Box<dyn Error>> {
+        let proxy = UpstreamProxy::try_socks5("socks5://127.0.0.1:19081")?;
+        let profiles = P12TransportProfiles::try_new_with_web_proxy(proxy, None, 8191)?;
+
+        assert!(matches!(
+            profiles
+                .for_mode(ResponsesResponseMode::NonStreaming)
+                .proxy(),
+            UpstreamProxy::Direct
+        ));
+        assert!(matches!(
+            profiles
+                .for_web_mode(ResponsesResponseMode::NonStreaming)
+                .proxy(),
+            UpstreamProxy::Socks5(_)
+        ));
+        assert!(matches!(profiles.web_proxy(), UpstreamProxy::Socks5(_)));
         Ok(())
     }
 
@@ -7559,6 +8023,19 @@ mod tests {
     }
 
     #[test]
+    fn p12_composition_admits_normalized_codex_oauth_credentials() -> Result<(), Box<dyn Error>> {
+        let secret_store = test_secret_store()?;
+        let mut configuration = p12_configuration(&secret_store)?;
+        configuration.credentials[0].kind = "oauth_json".to_owned();
+        validate_p12_credential_bindings(&configuration)
+            .map_err(|_| "normalized OAuth credential should be admitted")?;
+
+        configuration.credentials[0].kind = "foreign_json".to_owned();
+        assert!(validate_p12_credential_bindings(&configuration).is_err());
+        Ok(())
+    }
+
+    #[test]
     fn p12_transport_request_preserves_the_admitted_target_body_and_method()
     -> Result<(), Box<dyn Error>> {
         let decoded = decode_request(include_str!(
@@ -7577,7 +8054,7 @@ mod tests {
         let policy = p12_transport_test_policy()?;
         let admitted = policy.admit_url(outbound.url(), &StaticPublicResolver)?;
 
-        let request = p12_transport_request(&outbound, admitted)?;
+        let request = p12_transport_request(&outbound, admitted, false, None)?;
         assert_eq!(request.method(), UpstreamHttpMethod::Post);
         assert_eq!(request.body(), outbound.body());
         assert_eq!(
@@ -7592,7 +8069,7 @@ mod tests {
             &StaticPublicResolver,
         )?;
         assert_eq!(
-            p12_transport_request(&outbound, mismatched)
+            p12_transport_request(&outbound, mismatched, false, None)
                 .err()
                 .map(|error| error.code()),
             Some(GatewayErrorCode::EgressRejected)
@@ -8029,7 +8506,7 @@ mod tests {
             "grok.console.responses",
             r#"{"allow_unlisted_model":true,"reasoning":false}"#
         ));
-        assert!(!p12_candidate_override_is_admissible(
+        assert!(p12_candidate_override_is_admissible(
             "openai-compatible.responses",
             r#"{"allow_unlisted_model":true,"reasoning":false}"#
         ));
@@ -8486,7 +8963,15 @@ mod tests {
         let snapshot = lifecycle.registry().load();
         let policies = EgressPolicyCompiler::compile(&configuration)?;
         let registry = p12_api_format_adapter_registry()?;
-        let runtimes = endpoint_runtimes(&configuration, &snapshot, &policies, &registry)?;
+        let runtimes = endpoint_runtimes(
+            &configuration,
+            &snapshot,
+            &policies,
+            &registry,
+            None,
+            None,
+            8191,
+        )?;
 
         assert_eq!(runtimes.len(), 2);
         let endpoint_a = EndpointId::try_new("p12-widened-endpoint-a")?;
@@ -8550,6 +9035,9 @@ mod tests {
             &snapshot,
             &policies,
             &p12_api_format_adapter_registry()?,
+            None,
+            None,
+            8191,
         )?;
 
         assert_eq!(runtimes.len(), 2);
@@ -8591,7 +9079,15 @@ mod tests {
         )])?;
 
         assert!(matches!(
-            endpoint_runtimes(&configuration, &snapshot, &policies, &openai_only),
+            endpoint_runtimes(
+                &configuration,
+                &snapshot,
+                &policies,
+                &openai_only,
+                None,
+                None,
+                8191,
+            ),
             Err(RuntimeCompositionError::Unavailable)
         ));
         Ok(())

@@ -60,6 +60,24 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "completeCredentialOAuth": {
+    "method": "POST",
+    "path": "/admin/credentials/{credential_id}/oauth/callback",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "credential_id",
+        "in": "path",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "createAccessGroup": {
     "method": "POST",
     "path": "/admin/access-groups",
@@ -466,6 +484,24 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "exportCredential": {
+    "method": "POST",
+    "path": "/admin/credentials/{credential_id}/export",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "credential_id",
+        "in": "path",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "getAccessGroup": {
     "method": "GET",
     "path": "/admin/access-groups/{access_group_id}",
@@ -531,6 +567,24 @@ export const managementOperations = {
   "getCredential": {
     "method": "GET",
     "path": "/admin/credentials/{credential_id}",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "credential_id",
+        "in": "path",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "getCredentialMetadata": {
+    "method": "GET",
+    "path": "/admin/credentials/{credential_id}/metadata",
     "parameters": [
       {
         "name": "X-Config-Version",
@@ -887,6 +941,24 @@ export const managementOperations = {
       {
         "name": "If-Match",
         "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "refreshCredentialOAuth": {
+    "method": "POST",
+    "path": "/admin/credentials/{credential_id}/oauth/refresh",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "credential_id",
+        "in": "path",
         "required": true
       }
     ],
@@ -1374,6 +1446,10 @@ export class ManagementApi {
     return this.request("cancelCredentialOAuth", request);
   }
 
+  completeCredentialOAuth(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("completeCredentialOAuth", request);
+  }
+
   createAccessGroup(request: ManagementRequest = {}): Promise<Response> {
     return this.request("createAccessGroup", request);
   }
@@ -1450,6 +1526,10 @@ export class ManagementApi {
     return this.request("explainRoute", request);
   }
 
+  exportCredential(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("exportCredential", request);
+  }
+
   getAccessGroup(request: ManagementRequest = {}): Promise<Response> {
     return this.request("getAccessGroup", request);
   }
@@ -1468,6 +1548,10 @@ export class ManagementApi {
 
   getCredential(request: ManagementRequest = {}): Promise<Response> {
     return this.request("getCredential", request);
+  }
+
+  getCredentialMetadata(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("getCredentialMetadata", request);
   }
 
   getCredentialOAuthStatus(request: ManagementRequest = {}): Promise<Response> {
@@ -1564,6 +1648,10 @@ export class ManagementApi {
 
   publishConfigVersion(request: ManagementRequest = {}): Promise<Response> {
     return this.request("publishConfigVersion", request);
+  }
+
+  refreshCredentialOAuth(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("refreshCredentialOAuth", request);
   }
 
   requestQuotaRecovery(request: ManagementRequest = {}): Promise<Response> {

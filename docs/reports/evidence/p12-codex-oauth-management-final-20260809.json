@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "kind": "p12_codex_oauth_management_final",
+  "observed_at": "2026-08-09",
+  "value_free": true,
+  "local_gates": {
+    "provider_openai_compatible_tests": 35,
+    "gateway_http_actix_unit_tests": 54,
+    "management_resources_tests": 3,
+    "gateway_tests": 85,
+    "gateway_component_smoke_tests": 1,
+    "strict_clippy": "pass",
+    "fmt_check": "pass",
+    "terminal_session_material_zeroized": true,
+    "relay_python_compile": "pass",
+    "openapi_client_generation_check": "pass"
+  },
+  "staging": {
+    "location": "oracle_singapore_isolated_loopback",
+    "oauth_status_projection": "complete",
+    "failure_class": null,
+    "durable_rotation_audit": "present",
+    "production_mutated": false
+  },
+  "runtime_receipt": {
+    "source": "p12-codex-bridge-v2-current-source-final.json",
+    "fixed_tuple_count": 12,
+    "attempted_tuple_count": 12,
+    "successful_tuple_count": 12,
+    "network_send_count": 12,
+    "value_free": true
+  },
+  "fresh_harness_boundary": {
+    "attempted_tuple_count": 1,
+    "successful_tuple_count": 0,
+    "classification": "client_key_unauthorized_before_route",
+    "counted_as_oauth_failure": false,
+    "counted_as_new_runtime_pass": false
+  },
+  "remaining_boundary": "pending_oauth_state_is_process_local_across_restart",
+  "github_ci_started": false
+}

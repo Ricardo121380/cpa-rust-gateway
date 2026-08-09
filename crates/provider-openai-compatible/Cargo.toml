@@ -11,10 +11,12 @@ publish.workspace = true
 gateway-core = { path = "../gateway-core" }
 gateway-provider = { path = "../gateway-provider" }
 gateway-upstream = { path = "../gateway-upstream" }
+base64.workspace = true
 protocol-openai-chat = { path = "../protocol-openai-chat" }
 protocol-openai-responses = { path = "../protocol-openai-responses" }
 serde.workspace = true
 serde_json.workspace = true
+time.workspace = true
 zeroize.workspace = true
 
 [lints]

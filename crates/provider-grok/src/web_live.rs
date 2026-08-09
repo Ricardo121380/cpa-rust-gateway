@@ -311,7 +311,13 @@ impl GrokWebLiveDecodeState {
             }),
         )?;
         self.message_open = false;
-        self.emit(events, CanonicalEvent::ResponseEnd(ResponseEnd::default()))?;
+        self.emit(
+            events,
+            CanonicalEvent::ResponseEnd(ResponseEnd {
+                stop_reason: Some("end_turn".to_owned()),
+                ..ResponseEnd::default()
+            }),
+        )?;
         self.canonical.finish()
     }
 

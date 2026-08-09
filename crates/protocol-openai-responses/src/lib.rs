@@ -22,7 +22,10 @@ use gateway_core::{
 use serde::{Deserialize, de};
 use serde_json::{Map, Value, json};
 
-pub use upstream_response::{OpenAiResponsesSseDecoder, decode_upstream_response};
+pub use upstream_response::{
+    OpenAiResponsesSseDecoder, decode_upstream_response,
+    decode_upstream_response_with_reasoning_policy,
+};
 
 /// Stable component identifier used by architecture smoke tests.
 pub const COMPONENT: &str = "protocol-openai-responses";

@@ -7,13 +7,17 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     sync::Mutex,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use actix_web::{
     HttpMessage, HttpRequest, HttpResponse,
     http::{StatusCode, header},
     web,
+};
+use base64::{
+    Engine as _,
+    engine::general_purpose::{STANDARD, STANDARD_NO_PAD, URL_SAFE, URL_SAFE_NO_PAD},
 };
 use gateway_control::management_mutation_service::{
     AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus, ClientKeyIssue,
@@ -29,9 +33,16 @@ use gateway_core::{
     AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, PublicModelId, RequestId,
     RouteCandidateId, RouteId, UpstreamId,
 };
+use gateway_upstream::UpstreamProxy;
+use provider_openai_compatible::{
+    CodexCredentialExportFormat, CodexOAuthRefreshCoordinator, CodexOAuthRevisionedCredential,
+    CodexOAuthTokenTransport, CodexOAuthTransportError, OpenAiCompatibleRuntimeCredential,
+};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use sha2::Digest;
 use zeroize::Zeroizing;
 
+use crate::codex_oauth_management::{CodexOAuthSession, CodexOAuthSessionState};
 use crate::management_security::{ManagementRequestPrincipal, configure_management};
 
 const CONFIG_VERSION_HEADER: &str = "x-config-version";
@@ -39,6 +50,9 @@ const IF_MATCH_HEADER: &str = "if-match";
 const MAX_MANAGEMENT_JSON_BYTES: usize = 70 * 1024;
 const MAX_RUNTIME_ROWS: usize = 256;
 const MAX_REQUEST_ATTEMPTS: usize = 128;
+const CODEX_OAUTH_HTTP_TIMEOUT: Duration = Duration::from_secs(30);
+const MAX_CODEX_OAUTH_RESPONSE_BYTES: u64 = 256 * 1024;
+const CODEX_OAUTH_USER_AGENT: &str = "codex_cli_rs/0.144.1";
 
 /// Management-time application state for P10-04 resource handlers.
 ///
@@ -49,7 +63,40 @@ pub struct ManagementResourceHttpState {
     service: Mutex<ManagementMutationService>,
     workflow: Mutex<Box<dyn ManagementEndpointWorkflow>>,
     runtime: Mutex<Box<dyn ManagementRuntimeFacade>>,
+    /// Credential ids with an in-flight refresh.  The claim spans decrypt, upstream refresh, and
+    /// the revision-guarded persistence write so two HTTP callers can never spend the same
+    /// rotating refresh token concurrently.
+    oauth_refresh_claims: Mutex<BTreeSet<CredentialId>>,
     runtime_clock: Box<dyn ManagementRuntimeClock>,
+}
+
+struct OAuthRefreshClaim<'a> {
+    claims: &'a Mutex<BTreeSet<CredentialId>>,
+    credential_id: CredentialId,
+}
+
+impl<'a> OAuthRefreshClaim<'a> {
+    fn try_acquire(
+        claims: &'a Mutex<BTreeSet<CredentialId>>,
+        credential_id: CredentialId,
+    ) -> Option<Self> {
+        let acquired = claims
+            .lock()
+            .ok()
+            .is_some_and(|mut claims| claims.insert(credential_id.clone()));
+        acquired.then_some(Self {
+            claims,
+            credential_id,
+        })
+    }
+}
+
+impl Drop for OAuthRefreshClaim<'_> {
+    fn drop(&mut self) {
+        if let Ok(mut claims) = self.claims.lock() {
+            claims.remove(&self.credential_id);
+        }
+    }
 }
 
 impl ManagementResourceHttpState {
@@ -91,8 +138,13 @@ impl ManagementResourceHttpState {
             service: Mutex::new(service),
             workflow: Mutex::new(workflow),
             runtime: Mutex::new(runtime),
+            oauth_refresh_claims: Mutex::new(BTreeSet::new()),
             runtime_clock,
         }
+    }
+
+    fn claim_oauth_refresh(&self, credential_id: &CredentialId) -> Option<OAuthRefreshClaim<'_>> {
+        OAuthRefreshClaim::try_acquire(&self.oauth_refresh_claims, credential_id.clone())
     }
 }
 
@@ -815,15 +867,21 @@ pub enum ManagementCredentialOAuthState {
     Cancelled,
     /// The workflow ended with a safe failure classification.
     Failed,
+    /// The short-lived authorization session expired before completion.
+    Expired,
 }
 
 /// Value-free OAuth operation view.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ManagementCredentialOAuthOperation {
     /// Current OAuth workflow state.
     pub state: ManagementCredentialOAuthState,
     /// Optional finite expiry time; no token, URL, or verification material is included.
     pub expires_at_ms: Option<i64>,
+    /// One-time browser authorization URL, returned only by start.
+    pub authorization_url: Option<String>,
+    /// Value-free failure category for an ended operation.
+    pub failure_class: Option<&'static str>,
 }
 
 /// Explicit seam for P10-04's bounded test, Catalog, and OAuth operations.
@@ -853,11 +911,464 @@ pub trait ManagementEndpointWorkflow: Send {
 
     /// Cancels a Credential-local OAuth workflow.
     fn cancel_oauth(&mut self, credential_id: &CredentialId);
+
+    /// Records a provider-side denial after the callback state has been verified.  A malformed or
+    /// attacker-supplied state must not be allowed to terminate a legitimate pending session.
+    fn reject_oauth(&mut self, _credential_id: &CredentialId, _state: &[u8]) -> bool {
+        false
+    }
+
+    /// Completes one pending OAuth callback after state verification; no token is returned.
+    fn complete_oauth(
+        &mut self,
+        _credential_id: &CredentialId,
+        _state: &[u8],
+        _authorization_code: Zeroizing<String>,
+    ) -> Option<Zeroizing<Vec<u8>>> {
+        None
+    }
+
+    /// Commits the session terminal state only after encrypted persistence has finished.
+    fn finalize_oauth(&mut self, _credential_id: &CredentialId, _persisted: bool) -> bool {
+        false
+    }
+
+    /// Refreshes an existing OAuth envelope outside the inference request path.
+    fn refresh_oauth(
+        &mut self,
+        _credential_id: &CredentialId,
+        _current_envelope: Zeroizing<Vec<u8>>,
+        _now_ms: i64,
+    ) -> Option<Zeroizing<Vec<u8>>> {
+        None
+    }
+}
+
+/// Injected authorization-code exchange and encrypted persistence boundary.
+pub trait ManagementCodexOAuthExchange: Send {
+    /// Exchanges one transient code and returns a validated, normalized CPAR envelope.
+    fn exchange(
+        &mut self,
+        credential_id: &CredentialId,
+        authorization_code: Zeroizing<String>,
+        code_verifier: Zeroizing<Vec<u8>>,
+    ) -> Option<Zeroizing<Vec<u8>>>;
+
+    /// Refreshes an already imported OAuth envelope and returns a normalized replacement.
+    fn refresh(
+        &mut self,
+        _credential_id: &CredentialId,
+        _current_envelope: Zeroizing<Vec<u8>>,
+        _now_ms: i64,
+    ) -> Option<Zeroizing<Vec<u8>>> {
+        None
+    }
+}
+
+struct RejectingManagementCodexOAuthExchange;
+
+impl ManagementCodexOAuthExchange for RejectingManagementCodexOAuthExchange {
+    fn exchange(
+        &mut self,
+        _credential_id: &CredentialId,
+        _authorization_code: Zeroizing<String>,
+        _code_verifier: Zeroizing<Vec<u8>>,
+    ) -> Option<Zeroizing<Vec<u8>>> {
+        None
+    }
+}
+
+struct ReqwestCodexOAuthTokenTransport {
+    proxy: UpstreamProxy,
+}
+
+impl ReqwestCodexOAuthTokenTransport {
+    fn new(proxy: UpstreamProxy) -> Self {
+        Self { proxy }
+    }
+}
+
+fn codex_oauth_http_client(
+    proxy: &UpstreamProxy,
+) -> Result<reqwest::blocking::Client, CodexOAuthTransportError> {
+    let mut builder = reqwest::blocking::Client::builder()
+        .timeout(CODEX_OAUTH_HTTP_TIMEOUT)
+        .user_agent(CODEX_OAUTH_USER_AGENT)
+        // OAuth must not inherit an operator's ambient HTTP(S)_PROXY.  If a proxy is desired it
+        // is supplied explicitly through the validated local-DNS SOCKS5 process option below.
+        .no_proxy();
+    if let Some(proxy_url) = proxy.canonical_url() {
+        let admitted =
+            reqwest::Proxy::all(proxy_url).map_err(|_| CodexOAuthTransportError::Unavailable)?;
+        builder = builder.proxy(admitted);
+    }
+    builder
+        .build()
+        .map_err(|_| CodexOAuthTransportError::Unavailable)
+}
+
+impl CodexOAuthTokenTransport for ReqwestCodexOAuthTokenTransport {
+    fn post_form(
+        &mut self,
+        url: &str,
+        body: Zeroizing<String>,
+    ) -> Result<Zeroizing<Vec<u8>>, CodexOAuthTransportError> {
+        let client = codex_oauth_http_client(&self.proxy)?;
+        let response = client
+            .post(url)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Accept", "application/json")
+            // `reqwest` owns the request body; keep the caller's Zeroizing buffer scoped to
+            // construction and pass only the encoded bytes to the transport.
+            .body(body.as_bytes().to_vec())
+            .send()
+            .map_err(|_| CodexOAuthTransportError::Unavailable)?;
+        if !response.status().is_success()
+            || response
+                .content_length()
+                .is_some_and(|length| length > MAX_CODEX_OAUTH_RESPONSE_BYTES)
+        {
+            return Err(CodexOAuthTransportError::Rejected);
+        }
+        let body = response
+            .bytes()
+            .map_err(|_| CodexOAuthTransportError::Unavailable)?;
+        if body.len() as u64 > MAX_CODEX_OAUTH_RESPONSE_BYTES {
+            return Err(CodexOAuthTransportError::InvalidResponse);
+        }
+        Ok(Zeroizing::new(body.to_vec()))
+    }
+}
+
+/// Real Codex authorization-code exchange used by the production composition root.
+pub struct OpenAiCodexOAuthExchange {
+    proxy: UpstreamProxy,
+}
+
+impl OpenAiCodexOAuthExchange {
+    /// Creates an exchange with an explicitly admitted direct or local-DNS SOCKS5 egress.
+    #[must_use]
+    pub const fn new(proxy: UpstreamProxy) -> Self {
+        Self { proxy }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum CodexOAuthResponseError {
+    InvalidCredentialShape,
+}
+
+fn normalize_codex_oauth_response(
+    body: &[u8],
+    now_ms: i64,
+) -> Result<Zeroizing<Vec<u8>>, CodexOAuthResponseError> {
+    let credential = OpenAiCompatibleRuntimeCredential::import_oauth_token_response(body, now_ms)
+        .map_err(|_| CodexOAuthResponseError::InvalidCredentialShape)?;
+    credential
+        .export_json(CodexCredentialExportFormat::Cpa)
+        .map_err(|_| CodexOAuthResponseError::InvalidCredentialShape)
+}
+
+impl ManagementCodexOAuthExchange for OpenAiCodexOAuthExchange {
+    fn exchange(
+        &mut self,
+        _credential_id: &CredentialId,
+        authorization_code: Zeroizing<String>,
+        code_verifier: Zeroizing<Vec<u8>>,
+    ) -> Option<Zeroizing<Vec<u8>>> {
+        let verifier = String::from_utf8(code_verifier.to_vec()).ok()?;
+        let form = url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("grant_type", "authorization_code")
+            .append_pair("code", authorization_code.as_str())
+            .append_pair("redirect_uri", "http://localhost:1455/auth/callback")
+            .append_pair(
+                "client_id",
+                provider_openai_compatible::CODEX_OAUTH_CLIENT_ID,
+            )
+            .append_pair("code_verifier", &verifier)
+            .finish();
+        let client = codex_oauth_http_client(&self.proxy).ok()?;
+        let Ok(response) = client
+            .post(provider_openai_compatible::CODEX_OAUTH_TOKEN_URL)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Accept", "application/json")
+            .body(form)
+            .send()
+        else {
+            return None;
+        };
+        if !response.status().is_success() {
+            return None;
+        }
+        if response
+            .content_length()
+            .is_some_and(|length| length > MAX_CODEX_OAUTH_RESPONSE_BYTES)
+        {
+            return None;
+        }
+        let Ok(body) = response.bytes() else {
+            return None;
+        };
+        if body.len() as u64 > MAX_CODEX_OAUTH_RESPONSE_BYTES {
+            return None;
+        }
+        let now_ms = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .ok()
+            .and_then(|value| i64::try_from(value.as_millis()).ok())?;
+        normalize_codex_oauth_response(&body, now_ms).ok()
+    }
+
+    fn refresh(
+        &mut self,
+        _credential_id: &CredentialId,
+        current_envelope: Zeroizing<Vec<u8>>,
+        now_ms: i64,
+    ) -> Option<Zeroizing<Vec<u8>>> {
+        let credential = OpenAiCompatibleRuntimeCredential::import_compatible(
+            current_envelope.as_slice(),
+            now_ms,
+        )
+        .ok()?;
+        let revisioned = CodexOAuthRevisionedCredential::new(credential, 0).ok()?;
+        let mut coordinator = CodexOAuthRefreshCoordinator::new(
+            revisioned,
+            ReqwestCodexOAuthTokenTransport::new(self.proxy.clone()),
+        );
+        coordinator.refresh(now_ms).ok()?;
+        coordinator
+            .credential()
+            .export_json(CodexCredentialExportFormat::Cpa)
+            .ok()
+    }
 }
 
 /// Default fail-closed P10-04 workflow. It never contacts a Provider or creates OAuth material.
 pub struct RejectingManagementEndpointWorkflow {
     oauth: BTreeMap<CredentialId, ManagementCredentialOAuthOperation>,
+}
+
+/// Backend OAuth workflow using the replay-safe Codex session state machine.
+pub struct CodexOAuthManagementWorkflow {
+    oauth: BTreeMap<CredentialId, CodexOAuthSession>,
+    exchange: Box<dyn ManagementCodexOAuthExchange>,
+}
+
+impl CodexOAuthManagementWorkflow {
+    /// Creates an empty workflow; token exchange is intentionally injected later.
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            oauth: BTreeMap::new(),
+            exchange: Box::new(RejectingManagementCodexOAuthExchange),
+        }
+    }
+
+    /// Creates a workflow with one explicitly admitted exchange implementation.
+    #[must_use]
+    pub fn with_exchange(exchange: Box<dyn ManagementCodexOAuthExchange>) -> Self {
+        Self {
+            oauth: BTreeMap::new(),
+            exchange,
+        }
+    }
+
+    fn now_ms() -> i64 {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .ok()
+            .and_then(|duration| i64::try_from(duration.as_millis()).ok())
+            .unwrap_or(0)
+    }
+}
+
+fn authorization_url(session: &CodexOAuthSession) -> String {
+    let Ok((state, verifier)) = session.transient_challenge() else {
+        return "https://auth.openai.com/oauth/authorize".to_owned();
+    };
+    let state = URL_SAFE_NO_PAD.encode(state);
+    // The session keeps raw random bytes internally; OAuth requires the printable base64url
+    // verifier string to be hashed and later sent to the token endpoint.
+    let verifier = URL_SAFE_NO_PAD.encode(verifier);
+    let challenge = URL_SAFE_NO_PAD.encode(sha2::Sha256::digest(verifier.as_bytes()));
+    // Keep this shape aligned with the incumbent Codex login flow.  The browser callback is
+    // deliberately loopback: the machine that opened the browser must receive the code, then
+    // forward only the bounded `state` + `code` to the protected management callback.  A public
+    // CPAR hostname is not a registered OAuth redirect and causes an immediate provider error.
+    format!(
+        "https://auth.openai.com/oauth/authorize?response_type=code&client_id={}&redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback&scope=openid%20profile%20email%20offline_access%20api.connectors.read%20api.connectors.invoke&state={state}&code_challenge={challenge}&code_challenge_method=S256&prompt=login&id_token_add_organizations=true&codex_cli_simplified_flow=true&originator=codex_cli_rs",
+        provider_openai_compatible::CODEX_OAUTH_CLIENT_ID
+    )
+}
+
+impl Default for CodexOAuthManagementWorkflow {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ManagementEndpointWorkflow for CodexOAuthManagementWorkflow {
+    fn test_endpoint(
+        &mut self,
+        _endpoint_id: &EndpointId,
+        _mode: ManagementEndpointTestMode,
+    ) -> ManagementEndpointTestResult {
+        ManagementEndpointTestResult {
+            outcome: ManagementEndpointTestOutcome::Rejected,
+            status_class: ManagementEndpointStatusClass::Other,
+            canonical_lifecycle: false,
+        }
+    }
+
+    fn preview_catalog(&mut self, _endpoint_id: &EndpointId) -> ManagementCatalogDiff {
+        ManagementCatalogDiff {
+            added: 0,
+            removed: 0,
+            unchanged: 0,
+        }
+    }
+
+    fn apply_catalog(&mut self, endpoint_id: &EndpointId) -> ManagementCatalogDiff {
+        self.preview_catalog(endpoint_id)
+    }
+
+    fn start_oauth(&mut self, credential_id: &CredentialId) -> ManagementCredentialOAuthOperation {
+        let now = Self::now_ms();
+        if let Some(session) = self.oauth.get_mut(credential_id) {
+            let view = session.view(now);
+            if view.state == CodexOAuthSessionState::Pending {
+                // Starting twice must be idempotent.  CPA/Sub2API keep one session per flow;
+                // returning the same challenge avoids invalidating a browser that is already
+                // on the authorization page (and prevents two simultaneous OAuth windows).
+                return ManagementCredentialOAuthOperation {
+                    state: ManagementCredentialOAuthState::Pending,
+                    expires_at_ms: Some(view.expires_at_ms),
+                    authorization_url: Some(authorization_url(session)),
+                    failure_class: None,
+                };
+            }
+        }
+        let result = CodexOAuthSession::start(credential_id.clone(), now);
+        match result {
+            Ok(mut session) => {
+                let view = session.view(now);
+                let authorization = authorization_url(&session);
+                self.oauth.insert(credential_id.clone(), session);
+                ManagementCredentialOAuthOperation {
+                    state: ManagementCredentialOAuthState::Pending,
+                    expires_at_ms: Some(view.expires_at_ms),
+                    authorization_url: Some(authorization),
+                    failure_class: None,
+                }
+            }
+            Err(_) => ManagementCredentialOAuthOperation {
+                state: ManagementCredentialOAuthState::Failed,
+                expires_at_ms: None,
+                authorization_url: None,
+                failure_class: Some("session_start_failed"),
+            },
+        }
+    }
+
+    fn oauth_status(&mut self, credential_id: &CredentialId) -> ManagementCredentialOAuthOperation {
+        let Some(session) = self.oauth.get_mut(credential_id) else {
+            return ManagementCredentialOAuthOperation {
+                state: ManagementCredentialOAuthState::Failed,
+                expires_at_ms: None,
+                authorization_url: None,
+                failure_class: Some("session_missing"),
+            };
+        };
+        let view = session.view(Self::now_ms());
+        ManagementCredentialOAuthOperation {
+            state: match view.state {
+                CodexOAuthSessionState::Pending => ManagementCredentialOAuthState::Pending,
+                CodexOAuthSessionState::Complete => ManagementCredentialOAuthState::Complete,
+                CodexOAuthSessionState::Cancelled => ManagementCredentialOAuthState::Cancelled,
+                CodexOAuthSessionState::Expired => ManagementCredentialOAuthState::Expired,
+                CodexOAuthSessionState::Failed => ManagementCredentialOAuthState::Failed,
+            },
+            expires_at_ms: Some(view.expires_at_ms),
+            authorization_url: None,
+            failure_class: view.failure_class,
+        }
+    }
+
+    fn cancel_oauth(&mut self, credential_id: &CredentialId) {
+        if let Some(session) = self.oauth.get_mut(credential_id) {
+            let _ = session.cancel(Self::now_ms());
+        }
+    }
+
+    fn reject_oauth(&mut self, credential_id: &CredentialId, state: &[u8]) -> bool {
+        let now = Self::now_ms();
+        let Some(session) = self.oauth.get_mut(credential_id) else {
+            return false;
+        };
+        if !session.verify_state(state) {
+            return false;
+        }
+        session.fail(now, "provider_rejected").is_ok()
+    }
+
+    fn complete_oauth(
+        &mut self,
+        credential_id: &CredentialId,
+        state: &[u8],
+        authorization_code: Zeroizing<String>,
+    ) -> Option<Zeroizing<Vec<u8>>> {
+        let now = Self::now_ms();
+        let verifier = {
+            let session = self.oauth.get_mut(credential_id)?;
+            if !session.verify_state(state) {
+                // Do not consume/terminate the session on a mismatched state.  Otherwise an
+                // unsolicited callback can deny service to the browser holding the legitimate
+                // state.  The caller still receives a value-free rejection and may submit the
+                // correct callback once it arrives.
+                return None;
+            }
+            if session.claim_completion(now).is_err() {
+                return None;
+            }
+            Zeroizing::new(
+                URL_SAFE_NO_PAD
+                    .encode(session.transient_verifier())
+                    .into_bytes(),
+            )
+        };
+        let envelope = self
+            .exchange
+            .exchange(credential_id, authorization_code, verifier);
+        if envelope.is_none() {
+            if let Some(session) = self.oauth.get_mut(credential_id) {
+                let _ = session.fail(now, "token_exchange_failed");
+            }
+            return None;
+        }
+        envelope
+    }
+
+    fn finalize_oauth(&mut self, credential_id: &CredentialId, persisted: bool) -> bool {
+        let now = Self::now_ms();
+        let Some(session) = self.oauth.get_mut(credential_id) else {
+            return false;
+        };
+        if persisted {
+            session.complete(now).is_ok()
+        } else {
+            session.fail(now, "persistence_failed").is_ok()
+        }
+    }
+
+    fn refresh_oauth(
+        &mut self,
+        credential_id: &CredentialId,
+        current_envelope: Zeroizing<Vec<u8>>,
+        now_ms: i64,
+    ) -> Option<Zeroizing<Vec<u8>>> {
+        self.exchange
+            .refresh(credential_id, current_envelope, now_ms)
+    }
 }
 
 impl RejectingManagementEndpointWorkflow {
@@ -905,18 +1416,22 @@ impl ManagementEndpointWorkflow for RejectingManagementEndpointWorkflow {
         let operation = ManagementCredentialOAuthOperation {
             state: ManagementCredentialOAuthState::Pending,
             expires_at_ms: None,
+            authorization_url: None,
+            failure_class: None,
         };
-        self.oauth.insert(credential_id.clone(), operation);
+        self.oauth.insert(credential_id.clone(), operation.clone());
         operation
     }
 
     fn oauth_status(&mut self, credential_id: &CredentialId) -> ManagementCredentialOAuthOperation {
         self.oauth
             .get(credential_id)
-            .copied()
+            .cloned()
             .unwrap_or(ManagementCredentialOAuthOperation {
                 state: ManagementCredentialOAuthState::Failed,
                 expires_at_ms: None,
+                authorization_url: None,
+                failure_class: Some("session_missing"),
             })
     }
 
@@ -926,8 +1441,19 @@ impl ManagementEndpointWorkflow for RejectingManagementEndpointWorkflow {
             ManagementCredentialOAuthOperation {
                 state: ManagementCredentialOAuthState::Cancelled,
                 expires_at_ms: None,
+                authorization_url: None,
+                failure_class: None,
             },
         );
+    }
+
+    fn reject_oauth(&mut self, credential_id: &CredentialId, _state: &[u8]) -> bool {
+        if let Some(operation) = self.oauth.get_mut(credential_id) {
+            operation.state = ManagementCredentialOAuthState::Failed;
+            operation.failure_class = Some("provider_rejected");
+            return true;
+        }
+        false
     }
 }
 
@@ -1023,6 +1549,22 @@ fn configure_upstream_resource_routes(config: &mut web::ServiceConfig) {
         .route(
             "/credentials/{credential_id}/oauth/cancel",
             web::post().to(cancel_credential_oauth),
+        )
+        .route(
+            "/credentials/{credential_id}/oauth/callback",
+            web::post().to(complete_credential_oauth),
+        )
+        .route(
+            "/credentials/{credential_id}/oauth/refresh",
+            web::post().to(refresh_credential_oauth),
+        )
+        .route(
+            "/credentials/{credential_id}/export",
+            web::post().to(export_credential),
+        )
+        .route(
+            "/credentials/{credential_id}/metadata",
+            web::get().to(get_credential_metadata),
         )
         .route(
             "/endpoints/{endpoint_id}/credential-bindings",
@@ -1341,6 +1883,159 @@ struct CredentialOAuthResponse {
     credential_id: String,
     state: &'static str,
     expires_at_ms: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    authorization_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    failure_class: Option<&'static str>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CredentialOAuthCallbackRequest {
+    #[serde(default)]
+    state: String,
+    #[serde(default)]
+    code: String,
+    #[serde(default)]
+    error: Option<String>,
+    #[serde(default)]
+    callback_url: Option<String>,
+}
+
+struct ParsedOAuthCallback {
+    state: String,
+    code: String,
+}
+
+#[derive(Clone)]
+enum OAuthCallbackInputError {
+    Invalid,
+    ProviderRejected { state: Option<String> },
+}
+
+/// Accepts either the relay's `{state, code}` pair or a copied loopback callback URL.
+///
+/// CPA/Sub2API both tolerate users pasting the complete browser callback.  Parsing it here keeps
+/// the management API independent of a particular local relay implementation while never making
+/// a network request or retaining the URL after this bounded handler call.
+fn parse_oauth_callback_request(
+    payload: &CredentialOAuthCallbackRequest,
+) -> Result<ParsedOAuthCallback, OAuthCallbackInputError> {
+    let explicit_state = payload.state.trim();
+    if payload
+        .callback_url
+        .as_deref()
+        .is_some_and(|value| value.len() > 20 * 1024)
+        || payload
+            .error
+            .as_deref()
+            .is_some_and(|value| value.len() > 256)
+    {
+        return Err(OAuthCallbackInputError::Invalid);
+    }
+    if payload
+        .error
+        .as_deref()
+        .is_some_and(|value| !value.trim().is_empty())
+    {
+        let state = (!explicit_state.is_empty() && explicit_state.len() <= 512)
+            .then(|| explicit_state.to_owned());
+        return Err(OAuthCallbackInputError::ProviderRejected { state });
+    }
+    let source = payload
+        .callback_url
+        .as_deref()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or(payload.code.as_str())
+        .trim();
+    let looks_like_url = source.contains("://")
+        || source.starts_with('?')
+        || (source.contains('=') && (source.contains('&') || source.starts_with("code=")));
+    let (mut code, mut state) = if looks_like_url {
+        let normalized = if source.starts_with('?') {
+            format!("http://localhost/{source}")
+        } else if source.contains("://") {
+            source.to_owned()
+        } else {
+            format!("http://{source}")
+        };
+        let url = url::Url::parse(&normalized).map_err(|_| OAuthCallbackInputError::Invalid)?;
+        let mut code = url
+            .query_pairs()
+            .find(|(key, _)| key == "code")
+            .map(|(_, value)| value.into_owned());
+        let mut state = url
+            .query_pairs()
+            .find(|(key, _)| key == "state")
+            .map(|(_, value)| value.into_owned());
+        let provider_rejected = url
+            .query_pairs()
+            .any(|(key, _)| key == "error" || key == "error_description");
+        let fragment = url.fragment().unwrap_or_default();
+        for (key, value) in url::form_urlencoded::parse(fragment.as_bytes()) {
+            match key.as_ref() {
+                "code" if code.is_none() => code = Some(value.into_owned()),
+                "state" if state.is_none() => state = Some(value.into_owned()),
+                "error" | "error_description" => {
+                    return Err(OAuthCallbackInputError::ProviderRejected { state });
+                }
+                _ => {}
+            }
+        }
+        if provider_rejected {
+            return Err(OAuthCallbackInputError::ProviderRejected { state });
+        }
+        let code = code.unwrap_or_default();
+        let state = state.unwrap_or_default();
+        (code, state)
+    } else {
+        (source.to_owned(), explicit_state.to_owned())
+    };
+    if code.contains('#')
+        && state.is_empty()
+        && let Some((candidate, candidate_state)) = code
+            .split_once('#')
+            .map(|(candidate, candidate_state)| (candidate.to_owned(), candidate_state.to_owned()))
+    {
+        code = candidate;
+        state = candidate_state;
+    }
+    if !explicit_state.is_empty() && !state.is_empty() && explicit_state != state {
+        return Err(OAuthCallbackInputError::Invalid);
+    }
+    if state.is_empty() {
+        explicit_state.clone_into(&mut state);
+    }
+    if code.is_empty() || state.is_empty() || state.len() > 512 || code.len() > 16 * 1024 {
+        return Err(OAuthCallbackInputError::Invalid);
+    }
+    Ok(ParsedOAuthCallback { state, code })
+}
+
+fn decode_oauth_state(input: &[u8]) -> Option<Vec<u8>> {
+    URL_SAFE_NO_PAD
+        .decode(input)
+        .or_else(|_| URL_SAFE.decode(input))
+        .or_else(|_| STANDARD_NO_PAD.decode(input))
+        .or_else(|_| STANDARD.decode(input))
+        .ok()
+}
+
+#[derive(Deserialize)]
+struct CredentialExportRequest {
+    format: String,
+}
+
+#[derive(Serialize)]
+struct CredentialMetadataResponse {
+    credential_id: String,
+    kind: String,
+    revision: i64,
+    plan: Option<String>,
+    quota: Option<String>,
+    platform: Option<String>,
+    email: Option<String>,
+    source_format: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -2173,10 +2868,24 @@ async fn get_credential_oauth_status(
     if let Err(response) = require_credential(&state, &context.version, &credential_id) {
         return response;
     }
-    let operation = match workflow(&state) {
+    let mut operation = match workflow(&state) {
         Ok(mut workflow) => workflow.oauth_status(&credential_id),
         Err(response) => return response,
     };
+    // OAuth state/challenge material is intentionally process-local.  After a clean restart the
+    // transient session map is empty, but an already persisted active `oauth_json` credential is
+    // still a valid completed account.  Project that durable fact as complete without decrypting
+    // or returning any credential material; a live pending/failed session always wins above.
+    if operation.state == ManagementCredentialOAuthState::Failed
+        && operation.expires_at_ms.is_none()
+        && let Ok(mut service) = service(&state)
+        && let Ok(view) = service.get_credential(&context.version, &credential_id)
+        && view.value().kind == "oauth_json"
+        && view.value().status == CredentialStatus::Active
+    {
+        operation.state = ManagementCredentialOAuthState::Complete;
+        operation.failure_class = None;
+    }
     HttpResponse::Ok().json(CredentialOAuthResponse::new(&credential_id, operation))
 }
 
@@ -2217,6 +2926,305 @@ async fn cancel_credential_oauth(
         Ok(()) => HttpResponse::NoContent().finish(),
         Err(error) => management_error(error),
     }
+}
+
+async fn complete_credential_oauth(
+    request: HttpRequest,
+    path: web::Path<String>,
+    payload: web::Json<CredentialOAuthCallbackRequest>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(credential_id) = CredentialId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    if let Err(response) = require_credential(&state, &context.version, &credential_id) {
+        return response;
+    }
+    let callback = match parse_oauth_callback_request(&payload) {
+        Ok(callback) => callback,
+        Err(OAuthCallbackInputError::Invalid) => return invalid_input(),
+        Err(OAuthCallbackInputError::ProviderRejected {
+            state: callback_state,
+        }) => {
+            if let Some(callback_state) = callback_state
+                .as_deref()
+                .and_then(|value| decode_oauth_state(value.as_bytes()))
+                && let Ok(mut workflow) = workflow(&state)
+            {
+                let _ = workflow.reject_oauth(&credential_id, &callback_state);
+            }
+            return HttpResponse::Conflict().json(serde_json::json!({
+                "error": "oauth_provider_rejected",
+                "credential_id": credential_id.as_str(),
+                "failure_class": "provider_rejected",
+            }));
+        }
+    };
+    let Some(decoded_state) = decode_oauth_state(callback.state.as_bytes()) else {
+        return invalid_input();
+    };
+    let envelope = match workflow(&state) {
+        Ok(mut workflow) => workflow.complete_oauth(
+            &credential_id,
+            &decoded_state,
+            Zeroizing::new(callback.code),
+        ),
+        Err(response) => return response,
+    };
+    let Some(envelope) = envelope else {
+        return HttpResponse::Conflict().json(serde_json::json!({
+            "error": "oauth_callback_rejected",
+            "credential_id": credential_id.as_str(),
+        }));
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    let current = match service.get_credential(&context.version, &credential_id) {
+        Ok(current) => current,
+        Err(error) => return management_error(error),
+    };
+    let persisted = service.persist_oauth_credential_if_revision(
+        &actor,
+        &context.version,
+        current.revision(),
+        credential_id.clone(),
+        current.value().revision,
+        envelope.as_slice(),
+    );
+    drop(service);
+    if let Err(error) = persisted {
+        if let Ok(mut workflow) = workflow(&state) {
+            let _ = workflow.finalize_oauth(&credential_id, false);
+        }
+        return management_error(error);
+    }
+    let finalized = match workflow(&state) {
+        Ok(mut workflow) => workflow.finalize_oauth(&credential_id, true),
+        Err(_) => false,
+    };
+    if !finalized {
+        return internal_error();
+    }
+    HttpResponse::Accepted().json(serde_json::json!({
+        "credential_id": credential_id.as_str(),
+        "state": "complete",
+    }))
+}
+
+async fn refresh_credential_oauth(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let Ok(credential_id) = CredentialId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let Some(_refresh_claim) = state.claim_oauth_refresh(&credential_id) else {
+        return HttpResponse::Conflict().json(serde_json::json!({
+            "error": "oauth_refresh_in_progress",
+            "credential_id": credential_id.as_str(),
+        }));
+    };
+    refresh_credential_oauth_claimed(&request, &credential_id, &state)
+}
+
+fn refresh_credential_oauth_claimed(
+    request: &HttpRequest,
+    credential_id: &CredentialId,
+    state: &web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    if let Err(response) = require_credential(state, &context.version, credential_id) {
+        return response;
+    }
+    let (current, current_envelope) = {
+        let mut service = match service(state) {
+            Ok(service) => service,
+            Err(response) => return response,
+        };
+        let current = match service.get_credential(&context.version, credential_id) {
+            Ok(current) => current,
+            Err(error) => return management_error(error),
+        };
+        if current.value().kind != "oauth_json" {
+            return invalid_input();
+        }
+        if current.value().status != CredentialStatus::Active {
+            return HttpResponse::Conflict().json(serde_json::json!({
+                "error": "credential_not_active",
+                "credential_id": credential_id.as_str(),
+            }));
+        }
+        let plaintext = match service.open_credential_for_export(&context.version, credential_id) {
+            Ok(plaintext) => plaintext,
+            Err(error) => return management_error(error),
+        };
+        (current, Zeroizing::new(plaintext.as_bytes().to_vec()))
+    };
+    let now_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .and_then(|duration| i64::try_from(duration.as_millis()).ok())
+        .unwrap_or(0);
+    let refreshed = match workflow(state) {
+        Ok(mut workflow) => workflow.refresh_oauth(credential_id, current_envelope, now_ms),
+        Err(response) => return response,
+    };
+    let Some(refreshed) = refreshed else {
+        return HttpResponse::Conflict().json(serde_json::json!({
+            "error": "oauth_refresh_rejected",
+            "credential_id": credential_id.as_str(),
+        }));
+    };
+    let actor = match principal(request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    let persisted = match service.persist_oauth_credential_if_revision(
+        &actor,
+        &context.version,
+        current.revision(),
+        credential_id.clone(),
+        current.value().revision,
+        refreshed.as_slice(),
+    ) {
+        Ok(persisted) => persisted,
+        Err(error) => return management_error(error),
+    };
+    HttpResponse::Accepted().json(serde_json::json!({
+        "credential_id": credential_id.as_str(),
+        "state": "complete",
+        "revision": persisted.value().revision,
+    }))
+}
+
+async fn export_credential(
+    request: HttpRequest,
+    path: web::Path<String>,
+    payload: web::Json<CredentialExportRequest>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(credential_id) = CredentialId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let Ok(format) = CodexCredentialExportFormat::parse(payload.format.as_str()) else {
+        return invalid_input();
+    };
+    if let Err(response) = require_credential(&state, &context.version, &credential_id) {
+        return response;
+    }
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    let plaintext = match service.open_credential_for_export(&context.version, &credential_id) {
+        Ok(value) => value,
+        Err(error) => return management_error(error),
+    };
+    let now_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .and_then(|value| i64::try_from(value.as_millis()).ok())
+        .unwrap_or(0);
+    let Ok(credential) =
+        OpenAiCompatibleRuntimeCredential::import_compatible(plaintext.as_bytes(), now_ms)
+    else {
+        return invalid_input();
+    };
+    let Ok(output) = credential.export_json(format) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    if service
+        .record_resource_action(
+            &actor,
+            &context.version,
+            "credential_exported",
+            "credential",
+            credential_id.as_str(),
+        )
+        .is_err()
+    {
+        return internal_error();
+    }
+    HttpResponse::Ok()
+        .insert_header((header::CACHE_CONTROL, "no-store"))
+        .content_type("application/json")
+        .body(output.as_slice().to_vec())
+}
+
+async fn get_credential_metadata(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(credential_id) = CredentialId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    if let Err(response) = require_credential(&state, &context.version, &credential_id) {
+        return response;
+    }
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    let view = match service.get_credential(&context.version, &credential_id) {
+        Ok(value) => value.value().clone(),
+        Err(error) => return management_error(error),
+    };
+    let plaintext = match service.open_credential_for_export(&context.version, &credential_id) {
+        Ok(value) => value,
+        Err(error) => return management_error(error),
+    };
+    let now_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .and_then(|value| i64::try_from(value.as_millis()).ok())
+        .unwrap_or(0);
+    let Ok(credential) =
+        OpenAiCompatibleRuntimeCredential::import_compatible(plaintext.as_bytes(), now_ms)
+    else {
+        return invalid_input();
+    };
+    let metadata = credential.metadata();
+    HttpResponse::Ok().json(CredentialMetadataResponse {
+        credential_id: view.id.to_string(),
+        kind: view.kind,
+        revision: view.revision,
+        plan: metadata.and_then(|value| value.plan.clone()),
+        quota: metadata.and_then(|value| value.quota.clone()),
+        platform: metadata.and_then(|value| value.platform.clone()),
+        email: metadata.and_then(|value| value.email.clone()),
+        source_format: metadata.and_then(|value| value.source_format.clone()),
+    })
 }
 
 async fn list_endpoint_credential_bindings(
@@ -3827,6 +4835,11 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
                 "Management configuration is not writable",
             )
         }
+        ManagementResourceError::CredentialRevisionConflict => error_response(
+            StatusCode::CONFLICT,
+            "management_credential_revision_conflict",
+            "Credential changed",
+        ),
         ManagementResourceError::InvalidRevision
         | ManagementResourceError::InvalidCredentialInput => invalid_input(),
         ManagementResourceError::Store(_)
@@ -4174,8 +5187,11 @@ impl CredentialOAuthResponse {
                 ManagementCredentialOAuthState::Complete => "complete",
                 ManagementCredentialOAuthState::Cancelled => "cancelled",
                 ManagementCredentialOAuthState::Failed => "failed",
+                ManagementCredentialOAuthState::Expired => "expired",
             },
             expires_at_ms: value.expires_at_ms,
+            authorization_url: value.authorization_url,
+            failure_class: value.failure_class,
         }
     }
 }
@@ -4214,5 +5230,217 @@ mod tests {
             RouteResponse::try_from(route_with_policy(RoutePolicy::PriorityFailover)?).is_err()
         );
         Ok(())
+    }
+
+    #[test]
+    fn codex_authorization_url_hashes_the_printable_pkce_verifier() -> TestResult {
+        let session = CodexOAuthSession::start(CredentialId::try_new("cred-codex")?, 1_000)?;
+        let (raw_state, raw_verifier) = session.transient_challenge()?;
+        let url = url::Url::parse(&authorization_url(&session))?;
+        let query: std::collections::BTreeMap<_, _> = url.query_pairs().into_owned().collect();
+        assert_eq!(query.get("response_type").map(String::as_str), Some("code"));
+        assert_eq!(
+            query.get("state").map(String::as_str),
+            Some(
+                base64::engine::general_purpose::URL_SAFE_NO_PAD
+                    .encode(raw_state)
+                    .as_str()
+            )
+        );
+        let verifier = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(raw_verifier);
+        let expected_challenge = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .encode(sha2::Sha256::digest(verifier.as_bytes()));
+        assert_eq!(
+            query.get("code_challenge").map(String::as_str),
+            Some(expected_challenge.as_str())
+        );
+        assert_eq!(
+            query.get("code_challenge_method").map(String::as_str),
+            Some("S256")
+        );
+        assert!(
+            query
+                .get("scope")
+                .is_some_and(|scope| scope.contains("offline_access"))
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn codex_oauth_start_is_idempotent_for_a_pending_session() -> TestResult {
+        let credential_id = CredentialId::try_new("cred-codex")?;
+        let mut workflow = CodexOAuthManagementWorkflow::new();
+        let first = workflow.start_oauth(&credential_id);
+        let second = workflow.start_oauth(&credential_id);
+        assert_eq!(first.state, ManagementCredentialOAuthState::Pending);
+        assert_eq!(second.state, ManagementCredentialOAuthState::Pending);
+        assert_eq!(first.expires_at_ms, second.expires_at_ms);
+        assert_eq!(first.authorization_url, second.authorization_url);
+        Ok(())
+    }
+
+    #[test]
+    fn oauth_refresh_claim_is_exclusive_and_released_on_drop() -> TestResult {
+        let claims = Mutex::new(BTreeSet::new());
+        let credential_id = CredentialId::try_new("cred-codex")?;
+        let first = OAuthRefreshClaim::try_acquire(&claims, credential_id.clone())
+            .ok_or("first refresh claim was rejected")?;
+        assert!(OAuthRefreshClaim::try_acquire(&claims, credential_id.clone()).is_none());
+        drop(first);
+        assert!(OAuthRefreshClaim::try_acquire(&claims, credential_id).is_some());
+        Ok(())
+    }
+
+    #[test]
+    fn mismatched_callback_state_does_not_consume_the_pending_session() -> TestResult {
+        let credential_id = CredentialId::try_new("cred-codex")?;
+        let mut workflow = CodexOAuthManagementWorkflow::new();
+        let started = workflow.start_oauth(&credential_id);
+        let url = url::Url::parse(started.authorization_url.as_deref().ok_or("missing URL")?)?;
+        let state = url
+            .query_pairs()
+            .find(|(key, _)| key == "state")
+            .map(|(_, value)| value.into_owned())
+            .ok_or("missing state")?;
+        assert!(
+            workflow
+                .complete_oauth(
+                    &credential_id,
+                    b"attacker-state",
+                    Zeroizing::new("code".to_owned()),
+                )
+                .is_none()
+        );
+        assert_eq!(
+            workflow.oauth_status(&credential_id).state,
+            ManagementCredentialOAuthState::Pending
+        );
+        // The legitimate callback remains the only path allowed to claim the session.  The
+        // default exchange rejects it, but it must now be classified as exchange failure rather
+        // than state mismatch/terminalized by the attacker attempt.
+        let decoded = decode_oauth_state(state.as_bytes()).ok_or("invalid state")?;
+        assert!(
+            workflow
+                .complete_oauth(&credential_id, &decoded, Zeroizing::new("code".to_owned()),)
+                .is_none()
+        );
+        assert_eq!(
+            workflow.oauth_status(&credential_id).failure_class,
+            Some("token_exchange_failed")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn codex_token_response_normalization_ignores_protocol_metadata() -> TestResult {
+        let body = br#"{
+            "access_token":"access-value",
+            "refresh_token":"refresh-value",
+            "expires_in":3600,
+            "account_id":"account-value",
+            "token_type":"Bearer",
+            "scope":"openid email offline_access"
+        }"#;
+        let envelope = normalize_codex_oauth_response(body, 1_000_000)
+            .map_err(|_| std::io::Error::other("token response was rejected"))?;
+        let imported =
+            OpenAiCompatibleRuntimeCredential::import_compatible(envelope.as_slice(), 1_000_000)?;
+        assert!(imported.has_account_binding());
+        let text = std::str::from_utf8(envelope.as_slice())?;
+        assert!(!text.contains("token_type"));
+        assert!(!text.contains("scope"));
+        Ok(())
+    }
+
+    #[test]
+    fn codex_token_response_normalization_accepts_jwt_expiry_and_rejects_duplicates() -> TestResult
+    {
+        let id_token = "header.eyJleHAiOjIwMDAsImVtYWlsIjoidXNlckBleGFtcGxlLnRlc3QiLCJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOnsiY2hhdGdwdF9hY2NvdW50X2lkIjoiYWNjb3VudCJ9fQ.signature";
+        let body = format!(
+            r#"{{"access_token":"opaque-access","refresh_token":"refresh","id_token":"{id_token}","token_type":"Bearer"}}"#
+        );
+        let envelope = normalize_codex_oauth_response(body.as_bytes(), 1_000)
+            .map_err(|_| std::io::Error::other("JWT-expiry token response was rejected"))?;
+        let credential =
+            OpenAiCompatibleRuntimeCredential::import_compatible(envelope.as_slice(), 1_000)?;
+        assert_eq!(credential.bearer_at(1_999_999)?, "opaque-access");
+        let duplicate =
+            br#"{"access_token":"a","access_token":"b","refresh_token":"r","expires_in":30}"#;
+        assert!(normalize_codex_oauth_response(duplicate, 1_000).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn oauth_callback_parser_accepts_relay_pairs_and_full_browser_urls() -> TestResult {
+        let relay = CredentialOAuthCallbackRequest {
+            state: "state-value".to_owned(),
+            code: "code-value".to_owned(),
+            error: None,
+            callback_url: None,
+        };
+        let parsed = parse_oauth_callback_request(&relay).map_err(|_| "relay pair rejected")?;
+        assert_eq!(parsed.state, "state-value");
+        assert_eq!(parsed.code, "code-value");
+
+        let full = CredentialOAuthCallbackRequest {
+            state: String::new(),
+            code: "http://localhost:1455/auth/callback?code=code-value&state=state-value"
+                .to_owned(),
+            error: None,
+            callback_url: None,
+        };
+        let parsed = parse_oauth_callback_request(&full).map_err(|_| "callback URL rejected")?;
+        assert_eq!(parsed.state, "state-value");
+        assert_eq!(parsed.code, "code-value");
+
+        let fragment = CredentialOAuthCallbackRequest {
+            state: String::new(),
+            code: String::new(),
+            error: None,
+            callback_url: Some(
+                "http://localhost:1455/auth/callback#code=code-value&state=state-value".to_owned(),
+            ),
+        };
+        let parsed = parse_oauth_callback_request(&fragment)
+            .map_err(|_| "fragment callback URL rejected")?;
+        assert_eq!(parsed.state, "state-value");
+        assert_eq!(parsed.code, "code-value");
+        Ok(())
+    }
+
+    #[test]
+    fn oauth_callback_parser_rejects_state_conflicts_and_provider_errors() {
+        let conflict = CredentialOAuthCallbackRequest {
+            state: "state-a".to_owned(),
+            code: "http://localhost:1455/auth/callback?code=code&state=state-b".to_owned(),
+            error: None,
+            callback_url: None,
+        };
+        assert!(matches!(
+            parse_oauth_callback_request(&conflict),
+            Err(OAuthCallbackInputError::Invalid)
+        ));
+        let error = CredentialOAuthCallbackRequest {
+            state: String::new(),
+            code: "http://localhost:1455/auth/callback?error=access_denied".to_owned(),
+            error: None,
+            callback_url: None,
+        };
+        assert!(matches!(
+            parse_oauth_callback_request(&error),
+            Err(OAuthCallbackInputError::ProviderRejected { state: None })
+        ));
+        let error_with_state = CredentialOAuthCallbackRequest {
+            state: String::new(),
+            code: "http://localhost:1455/auth/callback?error=access_denied&state=state-value"
+                .to_owned(),
+            error: None,
+            callback_url: None,
+        };
+        assert!(matches!(
+            parse_oauth_callback_request(&error_with_state),
+            Err(OAuthCallbackInputError::ProviderRejected { state: Some(value) })
+                if value == "state-value"
+        ));
     }
 }

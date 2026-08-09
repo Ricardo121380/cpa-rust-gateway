@@ -736,6 +736,34 @@ impl ManagementMutationService {
         Ok(Revisioned::new(CredentialView::from(credential), revision))
     }
 
+    /// Opens one Credential only for an explicitly authorized one-time export operation.
+    ///
+    /// The caller receives zeroizing bytes and must immediately transform or return them through
+    /// the dedicated export boundary. Ordinary management reads continue to use `get_credential`
+    /// and can never reach this method's plaintext result.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the requested version or credential is absent, or when the encrypted
+    /// secret cannot be opened with its exact associated data.
+    pub fn open_credential_for_export(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        credential_id: &CredentialId,
+    ) -> Result<gateway_store::secret_store::PlaintextSecret, ManagementResourceError> {
+        let credential = self
+            .configuration(config_version_id)?
+            .credentials
+            .into_iter()
+            .find(|candidate| &candidate.id == credential_id)
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        let associated_data =
+            credential_associated_data(config_version_id, &credential.id, &credential.upstream_id)?;
+        Ok(self
+            .secret_store
+            .open(&credential.encrypted_secret, &associated_data)?)
+    }
+
     /// Re-seals and replaces one Credential while preserving its owning Upstream identity.
     ///
     /// # Errors
@@ -783,6 +811,124 @@ impl ManagementMutationService {
         Ok(Revisioned::new(
             self.credential_view(config_version_id, &credential_id)?,
             ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Replaces one encrypted Credential only when its record revision still matches.
+    ///
+    /// This is the management persistence CAS used by OAuth refresh workers. A stale worker is
+    /// rejected before sealing or storage mutation, so it cannot overwrite a rotated token.
+    ///
+    /// # Errors
+    ///
+    /// Returns a revision conflict for stale configuration or credential revisions, or a value-free
+    /// management error when sealing or the guarded transaction fails.
+    pub fn update_credential_if_revision(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_config_revision: ConfigRevision,
+        expected_credential_revision: i64,
+        input: CredentialUpsert<'_>,
+    ) -> Result<Revisioned<CredentialView>, ManagementResourceError> {
+        let current = self
+            .configuration(config_version_id)?
+            .credentials
+            .into_iter()
+            .find(|candidate| candidate.id == input.id)
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        if current.revision != expected_credential_revision {
+            return Err(ManagementResourceError::CredentialRevisionConflict);
+        }
+        self.update_credential(actor, config_version_id, expected_config_revision, input)
+    }
+
+    /// Persists a validated OAuth envelope through the normal encrypted Credential CAS path.
+    ///
+    /// The caller validates the token response and normalizes metadata. This method owns only the
+    /// durable boundary: fixed `oauth_json` kind, AEAD sealing, audit, and both revisions.
+    ///
+    /// # Errors
+    ///
+    /// Returns a revision conflict before mutation when the credential changed, or a value-free
+    /// management error when validation, sealing, audit, or the guarded transaction fails.
+    pub fn persist_oauth_credential_if_revision(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_config_revision: ConfigRevision,
+        credential_id: CredentialId,
+        expected_credential_revision: i64,
+        oauth_envelope: &[u8],
+    ) -> Result<Revisioned<CredentialView>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let current = configuration
+            .credentials
+            .into_iter()
+            .find(|candidate| candidate.id == credential_id)
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        if current.revision != expected_credential_revision {
+            return Err(ManagementResourceError::CredentialRevisionConflict);
+        }
+        let next_credential_revision = current
+            .revision
+            .checked_add(1)
+            .ok_or(ManagementResourceError::InvalidRevision)?;
+        let credential = self.seal_credential(
+            config_version_id,
+            current.upstream_id,
+            CredentialUpsert {
+                id: credential_id,
+                kind: "oauth_json".to_owned(),
+                plaintext_secret: oauth_envelope,
+                status: CredentialStatus::Active,
+            },
+            next_credential_revision,
+        )?;
+
+        if configuration.version.status == ConfigVersionStatus::Active {
+            // OAuth login/refresh changes only the encrypted account material.  Keep the
+            // published graph immutable while allowing the CPA/Sub2API-style account-pool
+            // rotation to succeed on the active Version through its own exact CAS boundary.
+            let audit = self.audit(
+                "credential_oauth_rotated",
+                actor,
+                config_version_id,
+                "credential",
+                credential.id.as_str(),
+            )?;
+            let mut transaction = self.repository.begin_transaction()?;
+            transaction.rotate_active_credential(
+                config_version_id,
+                &credential,
+                expected_credential_revision,
+            )?;
+            transaction.record_management_resource_audit_event(&audit, config_version_id)?;
+            transaction.commit()?;
+            return Ok(Revisioned::new(
+                self.credential_view(config_version_id, &credential.id)?,
+                expected_config_revision,
+            ));
+        }
+
+        let audit = self.audit(
+            "credential_oauth_completed",
+            actor,
+            config_version_id,
+            "credential",
+            credential.id.as_str(),
+        )?;
+        let ((), next_config_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_config_revision.as_i64(),
+            |transaction| {
+                transaction.update_credential(config_version_id, &credential)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            self.credential_view(config_version_id, &credential.id)?,
+            ConfigRevision::try_new(next_config_revision)?,
         ))
     }
 
@@ -1864,6 +2010,8 @@ pub enum ManagementResourceError {
     InvalidRevision,
     /// A credential mutation had no plaintext Secret or an invalid record revision.
     InvalidCredentialInput,
+    /// A concurrent credential update advanced the record revision.
+    CredentialRevisionConflict,
 }
 
 impl fmt::Display for ManagementResourceError {
@@ -1893,6 +2041,9 @@ impl fmt::Display for ManagementResourceError {
             Self::InvalidCredentialInput => {
                 formatter.write_str("management credential input is invalid")
             }
+            Self::CredentialRevisionConflict => {
+                formatter.write_str("management credential revision conflict")
+            }
         }
     }
 }
@@ -1909,6 +2060,7 @@ impl Error for ManagementResourceError {
             | Self::ResourceNotFound
             | Self::InvalidRevision
             | Self::InvalidCredentialInput
+            | Self::CredentialRevisionConflict
             | Self::ClientKeyIssuerUnavailable => None,
         }
     }
@@ -2033,6 +2185,99 @@ mod tests {
         )?;
 
         assert_audit_events(&mut service)?;
+        Ok(())
+    }
+
+    #[test]
+    fn oauth_persistence_rejects_stale_credential_revision_before_mutation() -> TestResult {
+        let (mut service, version_id, actor) = test_service()?;
+        let policy = create_egress_policy(&mut service, &actor, &version_id)?;
+        let upstream = create_upstream(&mut service, &actor, &version_id, policy.revision())?;
+        let endpoint = create_endpoint(&mut service, &actor, &version_id, upstream.revision())?;
+        let credential = create_credential(&mut service, &actor, &version_id, endpoint.revision())?;
+
+        let updated = service.persist_oauth_credential_if_revision(
+            &actor,
+            &version_id,
+            credential.revision(),
+            CredentialId::try_new("credential-a")?,
+            0,
+            br#"{"kind":"codex_oauth","access_token":"new","refresh_token":"refresh","expires_at_ms":1000}"#,
+        )?;
+        assert_eq!(updated.value().kind, "oauth_json");
+        assert_eq!(updated.value().revision, 1);
+
+        let stale = service.persist_oauth_credential_if_revision(
+            &actor,
+            &version_id,
+            updated.revision(),
+            CredentialId::try_new("credential-a")?,
+            0,
+            br#"{"kind":"codex_oauth","access_token":"stale","refresh_token":"refresh","expires_at_ms":1000}"#,
+        );
+        assert!(matches!(
+            stale,
+            Err(ManagementResourceError::CredentialRevisionConflict)
+        ));
+        assert_eq!(
+            service
+                .get_credential(&version_id, &CredentialId::try_new("credential-a")?)?
+                .value()
+                .revision,
+            1
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn active_oauth_persistence_rotates_only_the_credential_revision() -> TestResult {
+        let (mut service, version_id, actor) = test_service()?;
+        let policy = create_egress_policy(&mut service, &actor, &version_id)?;
+        let upstream = create_upstream(&mut service, &actor, &version_id, policy.revision())?;
+        let endpoint = create_endpoint(&mut service, &actor, &version_id, upstream.revision())?;
+        let credential = create_credential(&mut service, &actor, &version_id, endpoint.revision())?;
+        service.repository_mut().activate_version(&version_id)?;
+
+        let updated = service.persist_oauth_credential_if_revision(
+            &actor,
+            &version_id,
+            credential.revision(),
+            CredentialId::try_new("credential-a")?,
+            credential.value().revision,
+            br#"{"kind":"codex_oauth","access_token":"new","refresh_token":"refresh","expires_at_ms":1000}"#,
+        )?;
+        assert_eq!(updated.revision(), credential.revision());
+        assert_eq!(updated.value().revision, 1);
+        assert_eq!(updated.value().kind, "oauth_json");
+        let stored = service
+            .repository_mut()
+            .load_configuration(&version_id)?
+            .ok_or("active OAuth configuration was not found")?;
+        assert_eq!(stored.version.status, ConfigVersionStatus::Active);
+        assert_eq!(stored.version.revision, credential.revision().as_i64());
+        assert_eq!(stored.credentials[0].revision, 1);
+        assert_eq!(
+            service
+                .resource_audit_events()?
+                .last()
+                .ok_or("OAuth rotation audit event was not found")?
+                .action(),
+            "credential_oauth_rotated"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn credential_export_open_is_explicit_and_zeroizing() -> TestResult {
+        let (mut service, version_id, actor) = test_service()?;
+        let policy = create_egress_policy(&mut service, &actor, &version_id)?;
+        let upstream = create_upstream(&mut service, &actor, &version_id, policy.revision())?;
+        let endpoint = create_endpoint(&mut service, &actor, &version_id, upstream.revision())?;
+        let credential = create_credential(&mut service, &actor, &version_id, endpoint.revision())?;
+        let opened = service
+            .open_credential_for_export(&version_id, &CredentialId::try_new("credential-a")?)?;
+        assert_eq!(opened.as_bytes(), b"test-secret-not-returned");
+        assert_eq!(credential.value().revision, 0);
         Ok(())
     }
 
