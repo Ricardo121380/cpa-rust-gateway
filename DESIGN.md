@@ -1079,3 +1079,76 @@ RuntimePage 早就把这些 id 渲染在矩阵列头和目录表里了。
 `check.mjs` 的 C6 存储禁令扫到字符串字面量里的 `document.cookie` 直接失败。
 这是机械门禁的正常代价。**修法是换掉测试载荷,不是给门禁开口子** ——
 `alert(1)` 验证的是同一件事(scheme 被拒),而那条禁令的价值远大于一个测试的措辞。
+
+---
+
+## 15. 运营账号池:G1 没来,但它要的东西来了
+
+后端 2026-08-11 收了 P12、开了 **P13「管理与运营」**,首个切片 P13-04A 交付
+`GET /admin/operations/account-pools`。这个端点不是 G1,但它一次性解掉了 G1 挡住的两件事。
+
+### 15.1 为什么它比 G1 提案更适合这个面板
+
+它按 **binding** 成行,一行同时携带 provider / channel / account / binding / route:
+
+- **不需要活动版本**。它读的是配置版本,不是运行时快照 —— 草稿就能用。
+  这一点决定性:运行时投影(`runtime/availability`)至今返回 `Vec::new()`,
+  挂在它上面的入口永远是空的(§14 的教训)。
+- **凭据终于可枚举**。`account_id` 就在行里,凭据详情面因此有了真实入口,
+  §14.2 里那个"矩阵列头"的临时入口可以退居二线。
+- 稳定 keyset 分页 `(provider_id, channel_id, account_id)`,默认 50 / 上限 100,
+  游标绑版本与 revision,过期或跨版本 `409`。
+
+代价是两条必须写在界面上的边界:
+
+1. **一行就是一个绑定** —— 建了端点或凭据但没绑定,这里根本不出现。
+   面板对零行的空态因此说的是"没有任何绑定",不是"没有子资源"。
+2. **投影按设计不返回 URL**(报告原文:no URL/path, ciphertext, digest, headers or body)。
+   端点表的「地址」列直接删掉,并写明 `base_url`/`inference_path` 属于配置面。
+
+### 15.2 词汇按后端为准(用户 2026-08-11 决定)
+
+运营面和配置面对同一批实体用了不同的词,而且**不只是命名**:
+
+| | 配置面(既有契约) | 运营面(P13-04) |
+|---|---|---|
+| 实体 | upstream / endpoint / credential | provider / channel / account |
+| 凭据状态 | active / disabled / **revoked** | active / **cooling** / **unauthorized** / disabled |
+| 传输 | **https** | **http** / sse / websocket |
+
+第三行不是纸面差异:实测同一个端点,配置面建的是 `"https"`,运营面回的是 `"http"`。
+
+用户的裁决是**以后端为准**。落地为一条规则:**哪个端点回答,就用哪个端点的词** ——
+运营面的表头写 `channel_id`/`account_id`,状态徽章直接显示 `cooling`,
+`transport` 原样显示 `http`,前端不发明映射层。这与既有的
+"契约值(错误码、枚举、标识符)永不翻译"是同一条纪律(§9 rule 16)。
+
+`cooling` 与 `unauthorized` 各给一个独立色调:一个是"等",一个是"停",
+折成同一个会让运维分不清该等还是该处理。
+
+### 15.3 `configured_enabled` 是静态合取,不是健康
+
+报告的 explicit non-claims 写得很清楚:`enabled` = `provider && channel && binding`,
+**不代表**凭据 active、健康、有额度或当前可路由。
+
+一个绿色的 `enabled` 徽章很容易被读成"这条路能用"。所以绑定表下面直接写了这句话,
+并指明运行时状态要等 P13-06 的 Provider 池投影。这不是啰嗦 —— 这是唯一能防止
+"库存显示 enabled,请求却全失败"变成一次误判的地方。
+
+### 15.4 顺手抓到的既有布局 bug
+
+`.row-actions` 是 `display: flex`,而它加在 `<td>` 上。
+flex 会把单元格移出表格布局,浏览器于是把连续的 flex 单元格包进**一个匿名单元格** ——
+两个相邻的 `.row-actions` 列因此叠在一起。
+
+实测证据:修复前两个 `<td>` 都报 `x=1140 w=174 h=46`(行高 93 的一半);
+修复后 `x=1139` 与 `x=1313`,高度都是 47。
+
+这个 bug 在旧面板(端点表同样有「测试」+「目录发现」两个相邻 `.row-actions`)就存在,
+只是从没被测量过。修法是让 `td.row-actions` 保持 `table-cell`,按钮改用行内间距。
+
+### 15.5 提案通道少了一半
+
+`proposed.ts` 原本承载 G1 graph 与 G3 analytics 两条未落地契约的 DEV 专用通道。
+G1 那条已删除(连同 `upstreamSubresources` 与它的测试)—— 真端点到了,
+留着假的只会让人以为还有第二条路。analytics 那条还在,等 P13-05。

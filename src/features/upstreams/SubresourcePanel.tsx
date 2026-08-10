@@ -1,16 +1,29 @@
-// Per-upstream subresource panel: endpoints / credentials / bindings, sliced
-// from the PROPOSED G1 graph (fixture-backed until the contract lands).
-// Endpoint test + catalog discovery drive REAL contract operations.
+// Per-provider subresource panel, driven by the REAL operational inventory
+// (P13-04A `listOperationalAccountPools`) instead of the proposed G1 graph.
+//
+// Vocabulary is the contract's: this endpoint answers in provider / channel /
+// account, so that is what the tables say. The config plane (upstream /
+// endpoint / credential, status active|disabled|revoked) is a different
+// contract and keeps its own words on its own pages.
+//
+// Two boundaries the panel has to state rather than paper over:
+//   - one row IS one binding, so unbound channels and accounts do not appear;
+//   - the projection is URL-free by design (no base_url / inference_path).
+// Endpoint test and catalog discovery still drive their own real operations.
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
-import { fetchProposedGraph, graphAvailable } from "../../api/proposed";
 import { Sheet } from "../../components/Sheet";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useVersionStore } from "../config-versions/versionStore";
-import { upstreamSubresources } from "./model";
-import { OAuthWizard } from "./OAuthWizard";
+import { CredentialSheet } from "./CredentialSheet";
+import {
+  accountStatusTone,
+  POOL_PAGE_LIMIT,
+  providerPool,
+  type AccountPoolPage,
+} from "./pools";
 
 type EndpointTest = Readonly<{
   outcome: "pass" | "rejected" | "transport_failed" | "protocol_failed";
@@ -34,14 +47,20 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
   const [discovery, setDiscovery] = useState<
     { endpointId: string; diff: CatalogDiff; applied: boolean } | undefined
   >();
-  const [oauthTarget, setOauthTarget] = useState<string | undefined>();
+  const [accountTarget, setAccountTarget] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
 
-  const graph = useQuery({
-    queryKey: ["graph", scope],
-    queryFn: () => fetchProposedGraph(scope as string),
-    enabled: scope !== undefined && graphAvailable(),
+  const pools = useQuery({
+    queryKey: ["account-pools", scope, upstreamId],
+    queryFn: () =>
+      call<AccountPoolPage>(
+        "listOperationalAccountPools",
+        { query: { provider_id: upstreamId, limit: POOL_PAGE_LIMIT } },
+        { versionScoped: true },
+      ),
+    enabled: scope !== undefined,
     staleTime: 10_000,
+    retry: false,
   });
 
   const test = useMutation({
@@ -78,25 +97,42 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
     onError: (cause) => setError(asAppError(cause).message),
   });
 
-  if (!graphAvailable()) {
+  if (pools.isError) {
     return (
-      <div className="card empty-state" data-kind="unwired">
+      <div className="card empty-state" data-kind="unavailable">
         <p>
-          <span className="mono">{upstreamId}</span> 的子资源枚举依赖 G1 全图契约
-          (提案已交后端会话:CR-FE-001-shapes)。契约落地并 sync-contract 后此面板自动点亮。
+          读取运营库存失败
+          <br />
+          <small className="muted">{asAppError(pools.error).message}</small>
         </p>
       </div>
     );
   }
-  if (graph.isLoading || graph.data === undefined) {
+  if (pools.data === undefined) {
     return (
       <div className="card empty-state" data-kind="empty">
-        <p>加载配置图…</p>
+        <p>读取运营库存…</p>
       </div>
     );
   }
 
-  const sub = upstreamSubresources(graph.data, upstreamId);
+  const pool = providerPool(pools.data.items, upstreamId);
+  const truncated = pools.data.next_cursor != null;
+
+  if (pool === undefined) {
+    return (
+      <div className="card empty-state" data-kind="empty">
+        <p>
+          <span className="mono">{upstreamId}</span> 在本配置版本下没有任何绑定
+          <br />
+          <small className="muted">
+            运营库存按<strong>绑定</strong>成行 —— 建了端点或凭据但尚未绑定,这里就不会出现。
+            先在配置面建立 endpoint-credential 绑定。
+          </small>
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="card subresource-panel">
@@ -109,34 +145,39 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
         </p>
       ) : null}
 
+      {truncated ? (
+        <p className="action-notice">
+          该 provider 的绑定超过 {POOL_PAGE_LIMIT} 条,下面只显示第一页。
+        </p>
+      ) : null}
+
       <h3>
-        端点 <span className="idchip mono">{sub.endpoints.length}</span>
+        Channel <span className="idchip mono">{pool.channels.length}</span>
       </h3>
       <table>
         <thead>
           <tr>
-            <th>ID</th>
-            <th>协议</th>
-            <th>地址</th>
+            <th>channel_id</th>
+            <th>adapter</th>
+            <th>api_format</th>
+            <th>transport</th>
             <th>状态</th>
             <th>测试</th>
             <th>目录发现</th>
           </tr>
         </thead>
         <tbody>
-          {sub.endpoints.map((endpoint) => {
-            const result = testResults[endpoint.id];
+          {pool.channels.map((channel) => {
+            const result = testResults[channel.channel_id];
             return (
-              <tr key={endpoint.id}>
-                <td className="mono">{endpoint.id}</td>
-                <td className="mono">{endpoint.api_format}</td>
-                <td className="mono">
-                  {endpoint.base_url}
-                  {endpoint.inference_path}
-                </td>
+              <tr key={channel.channel_id}>
+                <td className="mono">{channel.channel_id}</td>
+                <td className="mono">{channel.adapter_id}</td>
+                <td className="mono">{channel.api_format}</td>
+                <td className="mono">{channel.transport}</td>
                 <td>
-                  <StatusBadge status={endpoint.enabled ? "active" : "disabled"}>
-                    {endpoint.enabled ? "enabled" : "disabled"}
+                  <StatusBadge status={channel.channel_enabled ? "active" : "disabled"}>
+                    {channel.channel_enabled ? "enabled" : "disabled"}
                   </StatusBadge>
                 </td>
                 <td className="row-actions">
@@ -144,7 +185,9 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
                     type="button"
                     className="secondary"
                     disabled={test.isPending}
-                    onClick={() => test.mutate({ endpointId: endpoint.id, mode: "non_streaming" })}
+                    onClick={() =>
+                      test.mutate({ endpointId: channel.channel_id, mode: "non_streaming" })
+                    }
                   >
                     非流式
                   </button>
@@ -152,7 +195,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
                     type="button"
                     className="secondary"
                     disabled={test.isPending}
-                    onClick={() => test.mutate({ endpointId: endpoint.id, mode: "sse" })}
+                    onClick={() => test.mutate({ endpointId: channel.channel_id, mode: "sse" })}
                   >
                     SSE
                   </button>
@@ -168,7 +211,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
                     type="button"
                     className="secondary"
                     disabled={preview.isPending}
-                    onClick={() => preview.mutate(endpoint.id)}
+                    onClick={() => preview.mutate(channel.channel_id)}
                   >
                     预览
                   </button>
@@ -178,41 +221,39 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
           })}
         </tbody>
       </table>
+      <p className="stat-sub">
+        运营库存不含地址 —— <span className="mono">base_url</span> 与
+        <span className="mono">inference_path</span> 属于配置面,该投影按设计不返回 URL。
+      </p>
 
       <h3>
-        凭据 <span className="idchip mono">{sub.credentials.length}</span>
+        Account <span className="idchip mono">{pool.accounts.length}</span>
       </h3>
       <table>
         <thead>
           <tr>
-            <th>ID</th>
-            <th>类型</th>
-            <th>状态</th>
+            <th>account_id</th>
+            <th>kind</th>
+            <th>status</th>
             <th>revision</th>
             <th>操作</th>
           </tr>
         </thead>
         <tbody>
-          {sub.credentials.map((credential) => (
-            <tr key={credential.id}>
-              <td className="mono">{credential.id}</td>
-              <td className="mono">{credential.kind}</td>
+          {pool.accounts.map((account) => (
+            <tr key={account.account_id}>
+              <td className="mono">{account.account_id}</td>
+              <td className="mono">{account.account_kind}</td>
               <td>
-                <StatusBadge status={credential.status} />
+                <StatusBadge status={accountStatusTone(account.account_status)}>
+                  {account.account_status}
+                </StatusBadge>
               </td>
-              <td className="mono">{credential.revision}</td>
+              <td className="mono">{account.account_revision}</td>
               <td className="row-actions">
-                {credential.kind === "oauth" ? (
-                  <button
-                    type="button"
-                    disabled={!editable}
-                    onClick={() => setOauthTarget(credential.id)}
-                  >
-                    OAuth 授权
-                  </button>
-                ) : (
-                  <span className="muted-3">write-only</span>
-                )}
+                <button type="button" onClick={() => setAccountTarget(account.account_id)}>
+                  详情
+                </button>
               </td>
             </tr>
           ))}
@@ -220,36 +261,45 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
       </table>
 
       <h3>
-        绑定 <span className="idchip mono">{sub.bindings.length}</span>
+        绑定 <span className="idchip mono">{pool.bindings.length}</span>
       </h3>
       <table>
         <thead>
           <tr>
-            <th>端点</th>
-            <th>凭据</th>
-            <th>状态</th>
+            <th>channel</th>
+            <th>account</th>
+            <th>静态启用</th>
             <th>priority</th>
             <th>weight</th>
             <th>concurrency</th>
+            <th>route</th>
           </tr>
         </thead>
         <tbody>
-          {sub.bindings.map((binding) => (
-            <tr key={`${binding.endpoint_id}:${binding.credential_id}`}>
-              <td className="mono">{binding.endpoint_id}</td>
-              <td className="mono">{binding.credential_id}</td>
+          {pool.bindings.map((binding) => (
+            <tr key={`${binding.channel_id}:${binding.account_id}`}>
+              <td className="mono">{binding.channel_id}</td>
+              <td className="mono">{binding.account_id}</td>
               <td>
-                <StatusBadge status={binding.enabled ? "active" : "disabled"}>
-                  {binding.enabled ? "enabled" : "disabled"}
+                <StatusBadge status={binding.configured_enabled ? "active" : "disabled"}>
+                  {binding.configured_enabled ? "enabled" : "disabled"}
                 </StatusBadge>
               </td>
               <td className="mono">{binding.priority}</td>
               <td className="mono">{binding.weight}</td>
               <td className="mono">{binding.concurrency}</td>
+              <td className="mono">
+                {binding.route_ids.length === 0 ? "—" : binding.route_ids.join(" ")}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+      <p className="stat-sub">
+        「静态启用」= <span className="mono">provider &amp;&amp; channel &amp;&amp; binding</span>{" "}
+        三者皆开。它<strong>不</strong>代表凭据健康、有额度或当前可路由 ——
+        运行时状态要等 P13-06 的 Provider 池投影。
+      </p>
 
       {discovery !== undefined ? (
         <Sheet
@@ -280,8 +330,11 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
         </Sheet>
       ) : null}
 
-      {oauthTarget !== undefined ? (
-        <OAuthWizard credentialId={oauthTarget} onClose={() => setOauthTarget(undefined)} />
+      {accountTarget !== undefined ? (
+        <CredentialSheet
+          credentialId={accountTarget}
+          onClose={() => setAccountTarget(undefined)}
+        />
       ) : null}
     </div>
   );

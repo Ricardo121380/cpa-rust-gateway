@@ -192,6 +192,17 @@ const state = {
           tags: [],
           egress_policy_id: null,
         },
+        // Created but nothing bound yet — the common half-configured state,
+        // and the one that proves the operational inventory is binding-driven
+        // rather than upstream-driven.
+        {
+          id: "kiro-sub",
+          name: "Kiro 订阅池",
+          kind: "kiro",
+          enabled: true,
+          tags: [],
+          egress_policy_id: null,
+        },
       ],
     ],
   ]),
@@ -229,7 +240,7 @@ const state = {
       "draft-2026-08",
       [
         { id: "cred-relay-key", upstream_id: "relay-a", kind: "api_key", status: "active", revision: 2, secret_present: true },
-        { id: "cred-grok-oauth", upstream_id: "grok-build-pool", kind: "oauth", status: "disabled", revision: 0, secret_present: true },
+        { id: "cred-grok-oauth", upstream_id: "grok-build-pool", kind: "oauth", status: "active", revision: 0, secret_present: true },
       ],
     ],
   ]),
@@ -245,6 +256,19 @@ const state = {
           priority: 0,
           weight: 1,
           concurrency: 4,
+        },
+        // The oauth account needs a binding to exist at all: the operational
+        // inventory is binding-driven, so an unbound credential is invisible
+        // to the subresource panel — which is exactly the coverage boundary
+        // the panel now states.
+        {
+          endpoint_id: "ep-grok-build",
+          upstream_id: "grok-build-pool",
+          credential_id: "cred-grok-oauth",
+          enabled: false,
+          priority: 1,
+          weight: 1,
+          concurrency: 2,
         },
       ],
     ],
@@ -695,32 +719,78 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       return json(201, { ...JSON.parse(bodyText ?? "{}"), public_model_id: modelId }, revisionToken(version));
     }
 
-    // ---- PROPOSED G1: full graph (shape per CR-FE-001-shapes doc) ----
-    const graph = /^GET \/admin\/config-versions\/([^/]+)\/graph$/u.exec(route);
-    if (graph !== null) {
-      const version = state.versions.find((row) => row.id === decodeURIComponent(graph[1] ?? ""));
-      if (version === undefined) {
-        return errorResponse(409, "management_lifecycle_conflict", "unknown config version");
-      }
-      return json(
-        200,
-        {
-          config_version: { ...version, revision: revisionToken(version) },
-          egress_policies: state.egress.get(version.id) ?? [],
-          upstreams: state.upstreams.get(version.id) ?? [],
-          endpoints: state.endpoints.get(version.id) ?? [],
-          credentials: state.credentials.get(version.id) ?? [],
-          bindings: state.bindings.get(version.id) ?? [],
-          public_models: state.models.get(version.id) ?? [],
-          aliases: state.aliases.get(version.id) ?? [],
-          routes: state.routes.get(version.id) ?? [],
-          candidates: [],
-          access_groups: state.groups.get(version.id) ?? [],
-          access_group_routes: [],
-          client_keys: state.keys.get(version.id) ?? [],
-        },
-        revisionToken(version),
-      );
+    // ---- P13-04A: operational account-pool inventory (real contract op) ----
+    // One row per endpoint-credential binding, joined up through channel and
+    // provider. URL-free by contract: no base_url, no inference_path.
+    if (route === "GET /admin/operations/account-pools") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const providerFilter = url.searchParams.get("provider_id");
+      const channelFilter = url.searchParams.get("channel_id");
+      const statusFilter = url.searchParams.get("account_status");
+      const enabledFilter = url.searchParams.get("enabled");
+
+      const upstreams = state.upstreams.get(version.id) ?? [];
+      const endpoints = state.endpoints.get(version.id) ?? [];
+      const credentials = state.credentials.get(version.id) ?? [];
+      const routes = state.routes.get(version.id) ?? [];
+
+      const items = (state.bindings.get(version.id) ?? [])
+        .map((binding) => {
+          const channel = endpoints.find((row) => row.id === binding.endpoint_id);
+          const account = credentials.find((row) => row.id === binding.credential_id);
+          const provider = upstreams.find((row) => row.id === binding.upstream_id);
+          if (channel === undefined || account === undefined || provider === undefined) {
+            return undefined;
+          }
+          // The operations plane carries its own status vocabulary
+          // (active|cooling|unauthorized|disabled) — the stored config value
+          // is mapped, not reused, so the fixture exercises the real set.
+          const accountStatus =
+            account.status === "active"
+              ? account.kind === "oauth"
+                ? "cooling"
+                : "active"
+              : account.status === "revoked"
+                ? "unauthorized"
+                : "disabled";
+          return {
+            provider_id: provider.id,
+            provider_name: provider.name ?? provider.id,
+            provider_kind: provider.kind,
+            provider_enabled: provider.enabled,
+            egress_policy_id: provider.egress_policy_id ?? null,
+            channel_id: channel.id,
+            adapter_id: channel.adapter_id,
+            api_format: channel.api_format,
+            transport: "http",
+            channel_enabled: channel.enabled,
+            account_id: account.id,
+            account_kind: account.kind,
+            account_status: accountStatus,
+            account_revision: account.revision,
+            binding_enabled: binding.enabled,
+            configured_enabled: provider.enabled && channel.enabled && binding.enabled,
+            priority: binding.priority,
+            weight: binding.weight,
+            concurrency: binding.concurrency,
+            route_ids: routes.map((row) => row.id),
+          };
+        })
+        .filter((row) => row !== undefined)
+        .filter((row) => providerFilter === null || row.provider_id === providerFilter)
+        .filter((row) => channelFilter === null || row.channel_id === channelFilter)
+        .filter((row) => statusFilter === null || row.account_status === statusFilter)
+        .filter(
+          (row) => enabledFilter === null || row.configured_enabled === (enabledFilter === "true"),
+        );
+
+      return json(200, {
+        config_version_id: version.id,
+        revision: version.revision,
+        items,
+        next_cursor: null,
+      });
     }
 
     // ---- credential detail + metadata (real contract ops) ----

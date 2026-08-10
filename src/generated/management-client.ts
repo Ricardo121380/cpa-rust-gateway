@@ -858,6 +858,112 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "listOperationalAccountPools": {
+    "method": "GET",
+    "path": "/admin/operations/account-pools",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "provider_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "channel_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "account_status",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "enabled",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "listOperationalUsage": {
+    "method": "GET",
+    "path": "/admin/operations/usage",
+    "parameters": [
+      {
+        "name": "from_ms",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "to_ms",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "provider_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "channel_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "account_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "model",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "client_key_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "access_group_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "protocol",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "listPublicModels": {
     "method": "GET",
     "path": "/admin/public-models",
@@ -1620,6 +1726,14 @@ export class ManagementApi {
 
   listManagementAuditEvents(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listManagementAuditEvents", request);
+  }
+
+  listOperationalAccountPools(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listOperationalAccountPools", request);
+  }
+
+  listOperationalUsage(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listOperationalUsage", request);
   }
 
   listPublicModels(request: ManagementRequest = {}): Promise<Response> {

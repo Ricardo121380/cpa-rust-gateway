@@ -3,7 +3,7 @@
 // depend on: summary vs timeline, cursor paging, status filter.
 import { beforeAll, describe, expect, it } from "vitest";
 import { useSessionStore } from "../session/sessionStore";
-import { fetchProposedAnalytics, fetchProposedDashboard, fetchProposedGraph } from "./proposed";
+import { fetchProposedAnalytics, fetchProposedDashboard } from "./proposed";
 
 beforeAll(() => {
   useSessionStore.getState().unlock(`mgmt_${"a".repeat(40)}`, `csrf_${"b".repeat(40)}`);
@@ -72,11 +72,5 @@ describe("proposed analytics fixture", () => {
     expect(summary.health_strip.length).toBe(48); // 8h of 10-minute buckets
     expect(summary.kpi.requests).toBeGreaterThan(0);
     expect(summary.token_mix.cache_read).toBeGreaterThan(0);
-  });
-
-  it("graph slices exist for seeded upstream", async () => {
-    const graph = await fetchProposedGraph("draft-2026-08");
-    expect(graph.endpoints.length).toBeGreaterThan(0);
-    expect(graph.credentials.some((credential) => credential.kind === "oauth")).toBe(true);
   });
 });

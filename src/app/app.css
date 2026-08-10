@@ -570,9 +570,26 @@ tbody tr:last-child td {
 tr[data-selected="true"] {
   background: color-mix(in srgb, var(--tint) 7%, transparent);
 }
+/* `display: flex` on a <td> takes it out of the table layout: the browser
+   wraps consecutive flex cells in one anonymous cell, so two adjacent
+   .row-actions columns stack on top of each other at the same x instead of
+   sitting side by side (measured: both at x=1140, each half the row height).
+   Keep the cell a table-cell and lay the buttons out inline instead. */
+td.row-actions {
+  white-space: nowrap;
+}
 .row-actions {
   display: flex;
   gap: 6px;
+}
+td.row-actions {
+  display: table-cell;
+}
+td.row-actions > * {
+  vertical-align: middle;
+}
+td.row-actions > * + * {
+  margin-left: 6px;
 }
 .row-actions button {
   font-size: 12px;

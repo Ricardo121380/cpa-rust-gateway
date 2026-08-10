@@ -1,23 +1,8 @@
-// Upstream-domain pure model: graph slicing per upstream + OAuth polling.
-import type { ConfigVersionGraph } from "../../api/proposed-types";
-
-export type UpstreamSubresources = Readonly<{
-  endpoints: ConfigVersionGraph["endpoints"];
-  credentials: ConfigVersionGraph["credentials"];
-  bindings: ConfigVersionGraph["bindings"];
-}>;
-
-export function upstreamSubresources(
-  graph: ConfigVersionGraph,
-  upstreamId: string,
-): UpstreamSubresources {
-  return {
-    endpoints: graph.endpoints.filter((endpoint) => endpoint.upstream_id === upstreamId),
-    credentials: graph.credentials.filter((credential) => credential.upstream_id === upstreamId),
-    bindings: graph.bindings.filter((binding) => binding.upstream_id === upstreamId),
-  };
-}
-
+// Upstream-domain pure model: the credential OAuth lifecycle.
+//
+// Graph slicing lived here until P13-04A landed listOperationalAccountPools —
+// per-provider subresources now come from that real projection (pools.ts),
+// so the proposed-G1 slicer is gone rather than kept "just in case".
 export type OAuthState = "pending" | "complete" | "cancelled" | "failed" | "expired";
 
 /** TanStack Query refetchInterval: poll every 2s while pending, else stop. */

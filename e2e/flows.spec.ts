@@ -35,7 +35,7 @@ test("client key issuance is reveal-once and revoke is two-step", async ({ page 
   await expect(page.locator("tr", { hasText: prefix })).toContainText("revoked");
 });
 
-test("upstream subresources: three tables, endpoint test badge", async ({ page }) => {
+test("upstream subresources come from the operational inventory", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "上游");
@@ -46,9 +46,14 @@ test("upstream subresources: three tables, endpoint test badge", async ({ page }
     .getByRole("button", { name: "子资源" })
     .click();
   const panel = page.locator(".subresource-panel");
-  await expect(panel).toContainText("端点");
-  await expect(panel).toContainText("凭据");
+  // The operations plane's own vocabulary, verbatim — not translated back
+  // into the config plane's upstream/endpoint/credential.
+  await expect(panel).toContainText("Channel");
+  await expect(panel).toContainText("Account");
   await expect(panel).toContainText("绑定");
+  // Boundaries the projection imposes, stated rather than papered over.
+  await expect(panel).toContainText("该投影按设计不返回 URL");
+  await expect(panel).toContainText("不代表凭据健康");
 
   await panel
     .getByRole("row", { name: /ep-relay-a-responses openai/u })
@@ -67,7 +72,8 @@ test("oauth wizard completes through the callback paste, not by waiting", async 
     .first()
     .getByRole("button", { name: "子资源" })
     .click();
-  await page.getByRole("button", { name: "OAuth 授权" }).click();
+  await page.getByRole("row", { name: /cred-grok-oauth/u }).getByRole("button", { name: "详情" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "重新授权" }).click();
   const wizard = page.getByRole("dialog");
   await wizard.getByRole("button", { name: "启动授权" }).click();
   await expect(wizard).toContainText("pending");
@@ -97,7 +103,8 @@ test("a callback from another session is refused with the contract's reason", as
     .first()
     .getByRole("button", { name: "子资源" })
     .click();
-  await page.getByRole("button", { name: "OAuth 授权" }).click();
+  await page.getByRole("row", { name: /cred-grok-oauth/u }).getByRole("button", { name: "详情" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "重新授权" }).click();
   const wizard = page.getByRole("dialog");
   await wizard.getByRole("button", { name: "启动授权" }).click();
   await expect(wizard).toContainText("pending");
@@ -117,7 +124,8 @@ test("a paste with no state is refused before it reaches the gateway", async ({ 
     .first()
     .getByRole("button", { name: "子资源" })
     .click();
-  await page.getByRole("button", { name: "OAuth 授权" }).click();
+  await page.getByRole("row", { name: /cred-grok-oauth/u }).getByRole("button", { name: "详情" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "重新授权" }).click();
   const wizard = page.getByRole("dialog");
   await wizard.getByRole("button", { name: "启动授权" }).click();
 

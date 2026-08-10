@@ -84,3 +84,37 @@ test("no secret material reaches the DOM", async ({ page }) => {
   expect(text).not.toContain("secret");
   expect(text).not.toMatch(/[A-Za-z0-9_-]{32,}/u);
 });
+
+test("a provider with no binding says so — the inventory is binding-driven", async ({ page }) => {
+  await unlock(page);
+  await selectDraft(page);
+  await navigate(page, "上游");
+  // kiro-sub has an upstream row but no endpoint-credential binding, so the
+  // projection returns zero rows for it. That is not "no upstream".
+  await page
+    .locator("tr", { hasText: "kiro-sub" })
+    .first()
+    .getByRole("button", { name: "子资源" })
+    .click();
+  await expect(page.locator(".empty-state")).toContainText("没有任何绑定");
+  await expect(page.locator(".empty-state")).toContainText("按");
+});
+
+test("the account row opens the credential sheet from the pool inventory", async ({ page }) => {
+  await unlock(page);
+  await selectDraft(page);
+  await navigate(page, "上游");
+  await page
+    .locator("tr", { hasText: "grok-build-pool" })
+    .first()
+    .getByRole("button", { name: "子资源" })
+    .click();
+
+  const panel = page.locator(".subresource-panel");
+  // The operations status vocabulary reaches the screen unmapped.
+  // anchored: the id also appears in the binding table below
+  await expect(panel.getByRole("row", { name: /^cred-grok-oauth oauth/u })).toContainText("cooling");
+
+  await panel.getByRole("row", { name: /cred-grok-oauth/u }).getByRole("button", { name: "详情" }).click();
+  await expect(page.getByRole("dialog")).toContainText("凭据 · cred-grok-oauth");
+});

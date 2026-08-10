@@ -16,6 +16,7 @@
     { "name": "upstreams" },
     { "name": "routing" },
     { "name": "runtime" },
+    { "name": "operations" },
     { "name": "audit" },
     { "name": "backup" }
   ],
@@ -231,6 +232,51 @@
       "parameters": [{ "$ref": "#/components/parameters/ConfigVersion" }],
       "post": { "tags": ["runtime"], "operationId": "requestQuotaRecovery", "x-delivery-phase": "P10-06", "x-audit-action": "quota_recovery_requested", "requestBody": { "$ref": "#/components/requestBodies/RuntimeTarget" }, "responses": { "202": { "$ref": "#/components/responses/RuntimeAction" }, "default": { "$ref": "#/components/responses/Error" } } }
     },
+    "/admin/operations/account-pools": {
+      "parameters": [{ "$ref": "#/components/parameters/ConfigVersion" }],
+      "get": {
+        "tags": ["operations"],
+        "operationId": "listOperationalAccountPools",
+        "x-delivery-phase": "P13-04",
+        "parameters": [
+          { "$ref": "#/components/parameters/OperationalProviderId" },
+          { "$ref": "#/components/parameters/OperationalChannelId" },
+          { "$ref": "#/components/parameters/OperationalAccountStatus" },
+          { "$ref": "#/components/parameters/OperationalEnabled" },
+          { "$ref": "#/components/parameters/OperationalLimit" },
+          { "$ref": "#/components/parameters/OperationalCursor" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OperationalAccountPoolPage" },
+          "409": { "$ref": "#/components/responses/Error" },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/admin/operations/usage": {
+      "get": {
+        "tags": ["operations"],
+        "operationId": "listOperationalUsage",
+        "x-delivery-phase": "P13-04",
+        "parameters": [
+          { "$ref": "#/components/parameters/OperationalFromMs" },
+          { "$ref": "#/components/parameters/OperationalToMs" },
+          { "$ref": "#/components/parameters/OperationalProviderId" },
+          { "$ref": "#/components/parameters/OperationalChannelId" },
+          { "$ref": "#/components/parameters/OperationalAccountId" },
+          { "$ref": "#/components/parameters/OperationalModel" },
+          { "$ref": "#/components/parameters/OperationalClientKeyId" },
+          { "$ref": "#/components/parameters/OperationalAccessGroupId" },
+          { "$ref": "#/components/parameters/OperationalProtocol" },
+          { "$ref": "#/components/parameters/OperationalUsageLimit" },
+          { "$ref": "#/components/parameters/OperationalUsageCursor" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OperationalUsagePage" },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
     "/admin/requests/{request_id}/attempts": {
       "parameters": [{ "$ref": "#/components/parameters/RequestId" }],
       "get": { "tags": ["runtime"], "operationId": "listRequestAttempts", "x-delivery-phase": "P10-06", "responses": { "200": { "$ref": "#/components/responses/AttemptList" }, "default": { "$ref": "#/components/responses/Error" } } }
@@ -269,7 +315,22 @@
       "ClientKeyId": { "name": "client_key_id", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/Id" } },
       "RequestId": { "name": "request_id", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/Id" } },
       "RequestedModel": { "name": "requested_model", "in": "query", "required": true, "schema": { "type": "string", "minLength": 1, "maxLength": 256 } },
-      "RequestProtocol": { "name": "protocol", "in": "query", "required": true, "schema": { "type": "string", "enum": ["openai_chat_completions", "openai_responses", "anthropic_messages"] } }
+      "RequestProtocol": { "name": "protocol", "in": "query", "required": true, "schema": { "type": "string", "enum": ["openai_chat_completions", "openai_responses", "anthropic_messages"] } },
+      "OperationalProviderId": { "name": "provider_id", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/Id" } },
+      "OperationalChannelId": { "name": "channel_id", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/Id" } },
+      "OperationalAccountStatus": { "name": "account_status", "in": "query", "required": false, "schema": { "type": "string", "enum": ["active", "cooling", "unauthorized", "disabled"] } },
+      "OperationalEnabled": { "name": "enabled", "in": "query", "required": false, "schema": { "type": "boolean" } },
+      "OperationalLimit": { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } },
+      "OperationalCursor": { "name": "cursor", "in": "query", "required": false, "schema": { "type": "string", "minLength": 1, "maxLength": 2048 } },
+      "OperationalFromMs": { "name": "from_ms", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 0 } },
+      "OperationalToMs": { "name": "to_ms", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 0 } },
+      "OperationalAccountId": { "name": "account_id", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/Id" } },
+      "OperationalModel": { "name": "model", "in": "query", "required": false, "schema": { "type": "string", "minLength": 1, "maxLength": 256 } },
+      "OperationalClientKeyId": { "name": "client_key_id", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/Id" } },
+      "OperationalAccessGroupId": { "name": "access_group_id", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/Id" } },
+      "OperationalProtocol": { "name": "protocol", "in": "query", "required": false, "schema": { "type": "string", "enum": ["openai_chat_completions", "openai_responses", "anthropic_messages"] } },
+      "OperationalUsageLimit": { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } },
+      "OperationalUsageCursor": { "name": "cursor", "in": "query", "required": false, "schema": { "type": "string", "minLength": 1, "maxLength": 2048 } }
     },
     "requestBodies": {
       "ConfigVersionInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConfigVersionInput" } } } },
@@ -323,6 +384,8 @@
       "RuntimeAvailability": { "description": "Secret-free runtime status", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RuntimeAvailability" } } } },
       "RuntimeAction": { "description": "Controlled runtime recovery action", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RuntimeAction" } } } },
       "RouteExplain": { "description": "Read-only route explanation", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RouteExplain" } } } },
+      "OperationalAccountPoolPage": { "description": "Secret-free configured Provider/Channel/Account inventory page", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OperationalAccountPoolPage" } } } },
+      "OperationalUsagePage": { "description": "Secret-free durable usage and explicitly unpriced cost page", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OperationalUsagePage" } } } },
       "AttemptList": { "description": "Value-free attempts", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Attempt" } } } } },
       "AuditEventList": { "description": "Append-only management audit records", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/AuditEvent" } } } } },
       "BackupPreflight": { "description": "Backup preflight", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BackupPreflight" } } } },
@@ -372,6 +435,11 @@
       "RuntimeTarget": { "type": "object", "additionalProperties": false, "required": ["endpoint_id", "credential_id"], "properties": { "endpoint_id": { "$ref": "#/components/schemas/Id" }, "credential_id": { "$ref": "#/components/schemas/Id" }, "upstream_model": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 256 }, { "type": "null" }] } } },
       "RuntimeAction": { "type": "object", "additionalProperties": false, "required": ["state"], "properties": { "state": { "type": "string", "enum": ["recovery_required", "probe_scheduled", "rejected"] } } },
       "RouteExplain": { "type": "object", "additionalProperties": false, "required": ["route_id", "candidates"], "properties": { "route_id": { "$ref": "#/components/schemas/Id" }, "candidates": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["candidate_id", "decision"], "properties": { "candidate_id": { "$ref": "#/components/schemas/Id" }, "decision": { "type": "string", "enum": ["selected", "excluded"] }, "reason": { "type": "string", "maxLength": 128 } } } } } },
+      "OperationalAccountPoolPage": { "type": "object", "additionalProperties": false, "required": ["config_version_id", "revision", "items", "next_cursor"], "properties": { "config_version_id": { "$ref": "#/components/schemas/Id" }, "revision": { "type": "integer", "minimum": 0 }, "items": { "type": "array", "maxItems": 100, "items": { "$ref": "#/components/schemas/OperationalAccountPoolItem" } }, "next_cursor": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 2048 }, { "type": "null" }] } } },
+      "OperationalAccountPoolItem": { "type": "object", "additionalProperties": false, "required": ["provider_id", "provider_name", "provider_kind", "provider_enabled", "egress_policy_id", "channel_id", "adapter_id", "api_format", "transport", "channel_enabled", "account_id", "account_kind", "account_status", "account_revision", "binding_enabled", "configured_enabled", "priority", "weight", "concurrency", "route_ids"], "properties": { "provider_id": { "$ref": "#/components/schemas/Id" }, "provider_name": { "type": "string", "minLength": 1, "maxLength": 256 }, "provider_kind": { "type": "string", "minLength": 1, "maxLength": 128 }, "provider_enabled": { "type": "boolean" }, "egress_policy_id": { "anyOf": [{ "$ref": "#/components/schemas/Id" }, { "type": "null" }] }, "channel_id": { "$ref": "#/components/schemas/Id" }, "adapter_id": { "type": "string", "minLength": 1, "maxLength": 128 }, "api_format": { "type": "string", "minLength": 1, "maxLength": 128 }, "transport": { "type": "string", "enum": ["http", "sse", "websocket"] }, "channel_enabled": { "type": "boolean" }, "account_id": { "$ref": "#/components/schemas/Id" }, "account_kind": { "type": "string", "minLength": 1, "maxLength": 128 }, "account_status": { "type": "string", "enum": ["active", "cooling", "unauthorized", "disabled"] }, "account_revision": { "type": "integer", "minimum": 0 }, "binding_enabled": { "type": "boolean" }, "configured_enabled": { "type": "boolean" }, "priority": { "type": "integer", "minimum": 0 }, "weight": { "type": "integer", "minimum": 1, "maximum": 10000 }, "concurrency": { "type": "integer", "minimum": 1, "maximum": 100000 }, "route_ids": { "type": "array", "maxItems": 128, "items": { "$ref": "#/components/schemas/Id" } } } },
+      "OperationalTokenMetric": { "type": "object", "additionalProperties": false, "required": ["total", "confidence"], "properties": { "total": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "confidence": { "type": "string", "enum": ["exact", "partial", "unknown"] } } },
+      "OperationalUsagePage": { "type": "object", "additionalProperties": false, "required": ["observed_through_ms", "items", "next_cursor"], "properties": { "observed_through_ms": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "items": { "type": "array", "maxItems": 100, "items": { "$ref": "#/components/schemas/OperationalUsageItem" } }, "next_cursor": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 2048 }, { "type": "null" }] } } },
+      "OperationalUsageItem": { "type": "object", "additionalProperties": false, "required": ["provider_id", "channel_id", "account_id", "public_model", "protocol", "client_key_id", "access_group_id", "request_count", "usage_observations", "input_tokens", "output_tokens", "reasoning_tokens", "cache_read_tokens", "cache_creation_tokens", "cached_tokens", "observed_at_ms", "cost_microunits", "cost_confidence"], "properties": { "provider_id": { "$ref": "#/components/schemas/Id" }, "channel_id": { "$ref": "#/components/schemas/Id" }, "account_id": { "$ref": "#/components/schemas/Id" }, "public_model": { "type": "string", "minLength": 1, "maxLength": 256 }, "protocol": { "type": "string", "enum": ["openai_chat_completions", "openai_responses", "anthropic_messages"] }, "client_key_id": { "$ref": "#/components/schemas/Id" }, "access_group_id": { "anyOf": [{ "$ref": "#/components/schemas/Id" }, { "type": "null" }] }, "request_count": { "type": "integer", "minimum": 1 }, "usage_observations": { "type": "integer", "minimum": 1 }, "input_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "output_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "reasoning_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "cache_read_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "cache_creation_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "cached_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "observed_at_ms": { "type": "integer", "minimum": 0 }, "cost_microunits": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "cost_confidence": { "type": "string", "enum": ["unpriced"] } } },
       "Attempt": { "type": "object", "additionalProperties": false, "required": ["attempt_id", "outcome"], "properties": { "attempt_id": { "$ref": "#/components/schemas/Id" }, "outcome": { "type": "string", "maxLength": 64 }, "stage": { "type": "string", "enum": ["request_conversion", "egress_admission", "http_transport", "http_status", "content_type", "body_read", "decoder", "sse_bootstrap"] }, "endpoint_id": { "$ref": "#/components/schemas/Id" }, "credential_id": { "$ref": "#/components/schemas/Id" } } },
       "AuditEvent": { "type": "object", "additionalProperties": false, "required": ["id", "action", "actor", "occurred_at_ms", "config_version_id"], "properties": { "id": { "type": "integer", "minimum": 1 }, "action": { "type": "string", "maxLength": 64 }, "actor": { "type": "string", "maxLength": 128 }, "occurred_at_ms": { "type": "integer", "minimum": 0 }, "config_version_id": { "$ref": "#/components/schemas/Id" }, "replaced_config_version_id": { "anyOf": [{ "$ref": "#/components/schemas/Id" }, { "type": "null" }] } } },
       "BackupPreflight": { "type": "object", "additionalProperties": false, "required": ["schema_version", "secret_key_required"], "properties": { "schema_version": { "type": "integer", "minimum": 1 }, "secret_key_required": { "type": "boolean" } } },
