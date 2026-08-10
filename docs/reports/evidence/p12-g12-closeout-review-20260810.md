@@ -2,12 +2,14 @@
 
 ## Verdict
 
-`READY_FOR_G12`
+`PASS_WITH_EXPLICIT_DEFERRED_BOUNDARIES`
 
-The closeout candidate is suitable for the single formal P12 Delivery Gate. It closes the available
-Release 1 text scope while keeping every externally blocked or deliberately deferred channel
-explicit. It does not claim that Grok Web, Kiro OAuth, Official API-key E2E, or automatic Autoreg
-reauth is complete.
+The exact closeout revision `bab02f1` passed the single formal Delivery Gate (run
+`31396631571`). The old CPA was then stopped and disabled without deleting its data or rollback
+materials, and CPAR-only readiness was rechecked successfully. This closes the available Release 1
+text scope while keeping every externally blocked or deliberately deferred channel explicit. It
+does not claim that Grok Web, Kiro OAuth, Official API-key E2E, or automatic Autoreg reauth is
+complete.
 
 ## Findings
 
@@ -30,19 +32,24 @@ reauth is complete.
 6. **CI frequency policy is preserved.** This closeout requests one explicit Fast + Full +
    supply-chain Delivery Gate. It does not require a separate expensive run for each documentation
    file or ordinary branch synchronization.
+7. **Formal Gate and retirement evidence are complete.** Authorize, Fast, Full supply-chain, and
+   Required all succeeded for the immutable revision. The old CPA units are inactive/disabled,
+   CPAR remains active, old ports are absent, CPAR listeners remain present, and a root-only client
+   key still obtains a valid public model-list shape. SQLite quick checks remain `ok`.
 
-## Required closeout actions
+## Closeout actions completed
 
-1. Run the local final gate and review this candidate at its exact commit.
-2. Trigger exactly one formal P12 Delivery Gate for that immutable revision.
-3. Only after the gate succeeds, retire the old CPA according to the existing rollback runbook and
-   verify CPAR-only readiness.
-4. Append the gate/retirement result and update the plan to `P12 DONE_WITH_BOUNDARY`; keep P13
-   deferred until a separate Change Request selects its scope.
+1. Local docs/full gates and final review passed.
+2. Formal Delivery Gate run `31396631571` passed for exact revision `bab02f1`.
+3. Old CPA was stopped/disabled after the gate; data, units, containers, and rollback preimages
+   were retained.
+4. CPAR-only readiness and SQLite integrity were rechecked successfully.
+5. The development plan was updated to `P12 DONE_WITH_BOUNDARY`; P13 remains deferred pending a
+   separate Change Request.
 
 ## Non-actions
 
 - Do not start Web egress work or a new Web probe.
 - Do not enable Autoreg scheduler, automatic reauth, or replenishment.
 - Do not modify Caddy/DNS/CC Switch or create a new production route.
-- Do not start P13 before G12 closeout.
+- Do not start P13 without a separate approved Change Request and scope/evidence plan.
