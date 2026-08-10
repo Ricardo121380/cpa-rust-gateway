@@ -4,6 +4,8 @@
 
 /// Encrypted control-plane backup artifacts and empty-target restoration primitives.
 pub mod backup;
+/// Versioned integer-rate price catalog and idempotent, retention-bounded billing ledger.
+pub mod billing_ledger;
 /// AEAD Secret storage, external Master Key loading, and key-rotation primitives.
 pub mod control_plane;
 /// Append-only durable lifecycle event storage and its asynchronous bounded-queue consumer.
@@ -30,9 +32,10 @@ const NATIVE_GROK_ACCOUNT_POOL_SCHEMA_VERSION: i64 = 10;
 const NATIVE_GROK_WORKER_STATE_SCHEMA_VERSION: i64 = 11;
 const CANONICAL_BRIDGE_TRANSFORM_MODE_SCHEMA_VERSION: i64 = 12;
 const NATIVE_GROK_REAUTH_SCHEMA_VERSION: i64 = 13;
+const BILLING_LEDGER_SCHEMA_VERSION: i64 = 14;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = NATIVE_GROK_REAUTH_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = BILLING_LEDGER_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -107,6 +110,11 @@ const MIGRATIONS: &[Migration] = &[
         up: include_str!("../migrations/0013_native_grok_reauth.up.sql"),
         down: include_str!("../migrations/0013_native_grok_reauth.down.sql"),
     },
+    Migration {
+        version: BILLING_LEDGER_SCHEMA_VERSION,
+        up: include_str!("../migrations/0014_billing_ledger.up.sql"),
+        down: include_str!("../migrations/0014_billing_ledger.down.sql"),
+    },
 ];
 
 struct Migration {
@@ -169,6 +177,12 @@ pub enum StoreError {
     InvalidPersistedGatewayEvent,
     /// A replay reused one stable `(event_type, event_id)` with different event contents.
     ConflictingGatewayEventReplay,
+    /// A billing source event was replayed with different value-free identity or usage data.
+    ConflictingBillingLedgerReplay,
+    /// A persisted billing row or price catalog entry failed the bounded decoding contract.
+    InvalidPersistedBillingRecord,
+    /// A billing price catalog version already exists with different entries or metadata.
+    ConflictingBillingCatalogVersion,
     /// A low-priority diagnostic was offered to the durable Required-event store.
     DiagnosticEventNotPersistable,
     /// `PRAGMA quick_check` returned a non-`ok` integrity result.
@@ -224,6 +238,15 @@ impl fmt::Display for StoreError {
             Self::ConflictingGatewayEventReplay => {
                 formatter.write_str("gateway event replay conflicts with an existing durable event")
             }
+            Self::ConflictingBillingLedgerReplay => {
+                formatter.write_str("billing ledger replay conflicts with an existing source event")
+            }
+            Self::InvalidPersistedBillingRecord => {
+                formatter.write_str("persisted billing record is malformed")
+            }
+            Self::ConflictingBillingCatalogVersion => {
+                formatter.write_str("billing catalog version conflicts with existing entries")
+            }
             Self::DiagnosticEventNotPersistable => {
                 formatter.write_str("diagnostic events are not persisted in the required event log")
             }
@@ -251,6 +274,9 @@ impl Error for StoreError {
             | Self::InvalidManagementAuditEvent
             | Self::InvalidPersistedGatewayEvent
             | Self::ConflictingGatewayEventReplay
+            | Self::ConflictingBillingLedgerReplay
+            | Self::InvalidPersistedBillingRecord
+            | Self::ConflictingBillingCatalogVersion
             | Self::DiagnosticEventNotPersistable
             | Self::GatewayEventLogIntegrityCheckFailed => None,
         }
@@ -496,6 +522,9 @@ mod tests {
             vec![
                 "access_group_routes",
                 "access_groups",
+                "billing_ledger_entries",
+                "billing_price_catalog_entries",
+                "billing_price_catalog_versions",
                 "client_keys",
                 "config_versions",
                 "egress_policies",

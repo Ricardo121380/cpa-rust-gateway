@@ -2,6 +2,8 @@
 
 #![deny(unsafe_code)]
 
+/// Provider-scoped fixed-point pricing for the durable P13-05 billing ledger.
+pub mod billing_service;
 /// Transactional management-only Credential and Client Key provisioning service.
 pub mod control_plane_service;
 /// Management-time decryption and compilation of Endpoint Credential runtime pools.

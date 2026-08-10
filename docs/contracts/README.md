@@ -112,3 +112,4 @@ P10-09 已建立 [BC-MGMT-008 Embedded management UI and inference-route isolati
 P13-04A 已建立 [BC-MGMT-009 Provider-aware operational inventory](BC-MGMT-009-provider-aware-operational-inventory.md)（Accepted；本地实现与 review 通过，phase gate pending）。
 P13-04B 已建立 [BC-MGMT-010 Durable usage and explicitly unpriced cost operations](BC-MGMT-010-durable-usage-cost-operations.md)（Accepted；本地实现与 review 通过，phase gate pending）。
 后续契约随对应 Task 创建并在需求追踪索引中登记。
+P13-05A 已建立 [BC-MGMT-011 Versioned billing catalog and durable ledger](BC-MGMT-011-versioned-billing-catalog-ledger.md)（本地实现与 focused review 通过，phase gate pending）。
