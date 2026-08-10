@@ -69,6 +69,18 @@ end
 assert_equal(errors, "ci required job name", "Required lightweight gate", ci_jobs.dig("required", "name"))
 assert_equal(errors, "delivery required job name", "Required delivery gate", delivery_jobs.dig("required", "name"))
 
+# Fast compiles every workspace target and then links the large gateway test/bin graph. GitHub's
+# clean runner does not have enough ephemeral disk for the default dev/test debug information.
+# These profile overrides remove only debug symbols; they must not weaken features, Clippy or test
+# coverage. Guard them here so a workflow-only edit cannot reintroduce the disk exhaustion.
+delivery_fast_env = delivery_jobs.dig("fast", "env")
+unless delivery_fast_env.is_a?(Hash)
+  errors << "delivery fast job must define disk-bounded Cargo profile overrides"
+  delivery_fast_env = {}
+end
+assert_equal(errors, "delivery fast dev debug", "0", delivery_fast_env["CARGO_PROFILE_DEV_DEBUG"])
+assert_equal(errors, "delivery fast test debug", "0", delivery_fast_env["CARGO_PROFILE_TEST_DEBUG"])
+
 # `gateway-http-actix` runs the management SPA build from its Cargo build script.  Keep the
 # lightweight code path usable on a fresh runner by pinning the JavaScript toolchain, restoring
 # only npm's lockfile-scoped cache, and installing the SPA before any Cargo command can invoke the

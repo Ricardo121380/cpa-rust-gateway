@@ -105,6 +105,12 @@ jobs:
     if: needs.authorize.outputs.authorized == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      # The clean GitHub runner has a small ephemeral disk. Debug symbols are not part of the
+      # delivery artifact and previously exhausted the runner while linking the gateway after
+      # Clippy. Keep the same code, features, lint levels and tests while bounding target/ size.
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
     steps:
       - name: Checkout requested revision
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
