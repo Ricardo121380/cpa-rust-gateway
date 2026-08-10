@@ -69,6 +69,69 @@ end
 assert_equal(errors, "ci required job name", "Required lightweight gate", ci_jobs.dig("required", "name"))
 assert_equal(errors, "delivery required job name", "Required delivery gate", delivery_jobs.dig("required", "name"))
 
+# `gateway-http-actix` runs the management SPA build from its Cargo build script.  Keep the
+# lightweight code path usable on a fresh runner by pinning the JavaScript toolchain, restoring
+# only npm's lockfile-scoped cache, and installing the SPA before any Cargo command can invoke the
+# build script.  These checks intentionally inspect the parsed step structure as well as the exact
+# install command so a renamed or reordered step cannot silently reintroduce the cold-run failure.
+code_steps = ci_jobs.dig("code", "steps")
+unless code_steps.is_a?(Array)
+  errors << "ci code job must define a steps array"
+  code_steps = []
+end
+
+code_env = ci_jobs.dig("code", "env")
+node_version = code_env.is_a?(Hash) ? code_env["NODE_VERSION"] : nil
+npm_version = code_env.is_a?(Hash) ? code_env["NPM_VERSION"] : nil
+errors << "ci code job must pin NODE_VERSION to a full semver" unless node_version.is_a?(String) && node_version.match?(/\A\d+\.\d+\.\d+\z/)
+errors << "ci code job must pin NPM_VERSION to a full semver" unless npm_version.is_a?(String) && npm_version.match?(/\A\d+\.\d+\.\d+\z/)
+
+setup_node_steps = code_steps.select do |step|
+  step.is_a?(Hash) && step["uses"].is_a?(String) && step["uses"].start_with?("actions/setup-node@")
+end
+if setup_node_steps.length != 1
+  errors << "ci code job must have exactly one actions/setup-node step"
+else
+  setup_node = setup_node_steps.fetch(0)
+  setup_with = setup_node["with"]
+  unless setup_with.is_a?(Hash)
+    errors << "ci setup-node step must define with inputs"
+    setup_with = {}
+  end
+  assert_equal(errors, "ci setup-node node-version", "${{ env.NODE_VERSION }}", setup_with["node-version"])
+  assert_equal(errors, "ci setup-node cache", "npm", setup_with["cache"])
+  assert_equal(errors, "ci setup-node cache dependency path", "web/admin-ui/package-lock.json", setup_with["cache-dependency-path"])
+  errors << "ci setup-node must not resolve a moving latest version" if setup_with["check-latest"] == true
+end
+
+version_check_index = code_steps.index do |step|
+  run = step.is_a?(Hash) ? step["run"] : nil
+  run.is_a?(String) && run.include?("node --version") && run.include?("npm --version")
+end
+if version_check_index.nil?
+  errors << "ci code job must verify the pinned Node.js and npm versions"
+end
+
+npm_install_index = code_steps.index do |step|
+  next false unless step.is_a?(Hash) && step["run"].is_a?(String)
+
+  step["run"].include?("npm ci --ignore-scripts --no-audit --no-fund")
+end
+if npm_install_index.nil?
+  errors << "ci code job must install the management SPA with locked npm ci"
+else
+  npm_step = code_steps.fetch(npm_install_index)
+  assert_equal(errors, "ci npm install working-directory", "web/admin-ui", npm_step["working-directory"])
+end
+
+cargo_indices = code_steps.each_index.select do |index|
+  run = code_steps.fetch(index).is_a?(Hash) ? code_steps.fetch(index)["run"] : nil
+  run.is_a?(String) && run.match?(/\bcargo(?:\s|\+)/)
+end
+if npm_install_index && !cargo_indices.empty? && npm_install_index >= cargo_indices.min
+  errors << "ci npm install must precede every Cargo command in the code job"
+end
+
 ci_text = File.read(ci_path, encoding: "UTF-8")
 delivery_text = File.read(delivery_path, encoding: "UTF-8")
 

@@ -65,6 +65,9 @@ jobs:
     if: needs.classify.outputs.scope == 'code'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      NODE_VERSION: "24.19.0"
+      NPM_VERSION: "11.17.0"
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -72,6 +75,20 @@ jobs:
           fetch-depth: 0
       - name: Install lightweight native prerequisites
         run: sudo apt-get update && sudo apt-get install --yes clang cmake libclang-dev ripgrep
+      - name: Install pinned Node.js and restore the npm cache
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/admin-ui/package-lock.json
+      - name: Verify pinned Node.js and npm
+        run: |
+          set -euo pipefail
+          test "$(node --version)" = "v${NODE_VERSION}"
+          test "$(npm --version)" = "$NPM_VERSION"
+      - name: Install locked management SPA dependencies
+        working-directory: web/admin-ui
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt
       - name: Run repository safety checks
