@@ -4,13 +4,13 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.244` |
+| 计划版本 | `v1.245` |
 | 生效日期 | `2026-08-11` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P6`、P9、P10、P11 与 P12 已完成（P12 为 `DONE_WITH_BOUNDARY`）；P13 已启动 P13-04 管理控制面后端基础；P7 Kiro OAuth、P8 Official API-key E2E 与 Grok Web 外部边界仍延后。 |
-| 当前任务 | `P13-04A` 本地实现与 review 已完成，状态 `LOCAL_PASS_PENDING_PHASE_GATE`；P13-04 仍 `IN_PROGRESS`，下一步为在本阶段其他读模型切片完成后统一收口一次 Delivery Gate。当前切片每个 Endpoint-Credential binding 一行，读取 caller-selected Config Version，使用 revision-bound keyset pagination。不得调用 Provider、修改生产/active Config Version、暴露 URL/密文/明文/digest/request body，或将配置状态声称为实时 Health/Quota。正式 Delivery Gate run `31396631571` 在 exact revision `bab02f1` 上通过；旧 CPA 已停止并禁用，CPAR-only readiness 与 SQLite integrity 复核通过，旧 CPA 数据/unit/container/preimage 保留以便回滚。官方 Codex/ChatGPT 账号渠道统一兼容任意套餐以及 CPA JSON、Sub2API JSON、官方 OAuth 三类凭据，不单列 Go 套餐；生产 Codex、Grok Console、Grok Build 与 Krill 有对应的 value-free 公共回执，Grok Web 仍因外部 egress/WAF 边界搁置。Oracle Autoreg 是唯一 active Autoreg service，注册 scheduler 与自动 reauth 仍保持手动/禁用。Jakarta 源数据、回滚 preimage 与项目目录保留，不删除、不双活。 |
+| 当前阶段 | `P1` 至 `P6`、P9、P10、P11 与 P12 已完成（P12 为 `DONE_WITH_BOUNDARY`）；P13 的 P13-04 管理控制面后端基础已本地完成，下一项为 P13-05 计费账本；P7 Kiro OAuth、P8 Official API-key E2E 与 Grok Web 外部边界仍延后。 |
+| 当前任务 | `P13-04`（A 配置库存 + B durable usage/cost projection）本地实现、focused gates 与 review 已完成，状态 `LOCAL_PASS_PENDING_PHASE_GATE`；按 P13 的 Phase 级验证规则不为单个 Task 启动昂贵 GitHub Delivery Gate，下一任务为 `P13-05` versioned price catalog、幂等计费事件与 durable billing ledger。P13-04 只读 selected Config Version 或 gateway-owned event log，不调用 Provider、不修改生产/active Config Version、不暴露 URL/密文/明文/digest/request body；token 不完整时携带 confidence，价格未知时费用明确为 `unpriced`。正式 Delivery Gate run `31396631571` 在 exact revision `bab02f1` 上通过；旧 CPA 已停止并禁用，CPAR-only readiness 与 SQLite integrity 复核通过，旧 CPA 数据/unit/container/preimage 保留以便回滚。官方 Codex/ChatGPT 账号渠道统一兼容任意套餐以及 CPA JSON、Sub2API JSON、官方 OAuth 三类凭据，不单列 Go 套餐；生产 Codex、Grok Console、Grok Build 与 Krill 有对应的 value-free 公共回执，Grok Web 仍因外部 egress/WAF 边界搁置。Oracle Autoreg 是唯一 active Autoreg service，注册 scheduler 与自动 reauth 仍保持手动/禁用。Jakarta 源数据、回滚 preimage 与项目目录保留，不删除、不双活。 |
 | 已批准变更（2026-08-10） | `CR-EXEC-008` 语义澄清：仅降低昂贵 Fast/Full/supply-chain/release evidence 的默认运行频率，不限制 branch、push、PR update/review/rebase/merge；本轮已另开并实现 workflow 解耦，轻量 PR gate 与 tag/manual/closeout-label Delivery Gate 分离。`CR-P12-AUTOREG-MIGRATE-001`：Autoreg Oracle successor 已完成 staged/health、单账号 registration 与 dedicated file-sink 验证；本轮按 operator 批准完成 CPAR 显式 provider-binding/import、真实公网 Build 与 Console canary、Oracle 单活与 Jakarta fencing，保留 rollback window。`CR-P12-AUTOREG-CONSOLE-001`：Console SSO 仅通过 strict Oracle source adapter、same-batch native probe 和真实公共 CPAR 六元组后保留生产批次；scheduler/reauth 仍单独受控。 |
-| 本次计划变更（2026-08-10） | `CR-P13-001` 的首个执行切片固定为 `P13-04A`：复用 P10 管理安全、Config Version、revision/ETag 与 AEAD 基线，新增每个 Endpoint-Credential binding 一行的 Secret-free Provider/Channel/Account/Pool inventory；支持 Provider/Channel/四种 stored account status/static enabled 过滤，以及 `(provider_id, channel_id, account_id)` revision-bound keyset pagination（default 50、max 100）。只读选定版本、不调用 Provider、不改生产或 active Config Version；native Provider runtime pool/live state 延后 P13-06 facade。 |
+| 本次计划变更（2026-08-11） | `P13-04` 已完成两个后端切片：P13-04A 复用 P10 管理安全、Config Version、revision/ETag 与 AEAD 基线，提供 Secret-free Provider/Channel/Account/Pool inventory；P13-04B 复用 durable event log 与 P10 audit/runtime quota，提供有界 Usage 聚合、token confidence 和显式 `unpriced` cost。两者都不调用 Provider、不改生产或 active Config Version；native Provider runtime pool/live state 延后 P13-06，versioned price catalog 与 durable billing ledger 进入 P13-05。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -1451,7 +1451,7 @@ deploy/
 | P10 | 完整管理 API、Web UI、备份恢复 | G9 | G10 | DONE |
 | P11 | 差分、性能、安全与发布加固 | G10 | G11 | DONE |
 | P12 | 服务器部署、灰度、切换与回滚 | G11 | G12 | DONE_WITH_BOUNDARY |
-| P13 | Release 1.1 管理、账号池、路由与协议扩展 | G12 + `CR-P13-001` | 独立计划；当前 P13-04A | IN_PROGRESS |
+| P13 | Release 1.1 管理、账号池、路由与协议扩展 | G12 + `CR-P13-001` | 独立计划；P13-04 本地完成，当前下一项 P13-05 | IN_PROGRESS |
 
 ## 6. P0 - 仓库与工程基线
 
@@ -3504,8 +3504,8 @@ OpenAPI，再做正式 UI；不允许前端直接读 SQLite、凭证明文或自
 | P13-01 | OpenAI Chat Completions 入站与 compatible Chat Endpoint（已前移到 P12-08，不再由 P13 执行） | `CR-P12-COMPAT-001` | P12-08A/B/C 证据 | DEFERRED |
 | P13-02 | Chat/Responses/Messages 受限无损桥接（已前移到 P12-08，不再由 P13 执行） | `CR-P12-COMPAT-001` | P12-08D1/D2/D3/D4 证据 | DEFERRED |
 | P13-03 | New API/AxonHub 一次性 Import Adapter（用户明确不需要，当前移出实施范围） | 新 CR（未来可恢复） | 不进入本轮验收 | DEFERRED |
-| P13-04 | CPAMP-like 管理控制面后端基础：Provider/Channel/Account/Pool/Usage/Quota/Cost 的 typed read model、分页过滤、审计和 OpenAPI；首个 P13-04A 只读配置 inventory 复用现有 AEAD、revision/ETag、Management Key/CSRF 和 Provider 隔离 | P12/G12；P10 management baseline | P13-04A ADR/Contract/报告、typed control compiler、protected HTTP route、OpenAPI/client、value-free unit/HTTP fixture 与本地 review 已通过；P13-04 仍需后续读模型切片和一次阶段 Delivery Gate；不触发 Provider 请求 | IN_PROGRESS |
-| P13-05 | Usage、Quota、Cost、Billing 账本：按 request/client-key/access-group/provider/channel/credential/model 聚合 token、延迟、状态、quota window 和 cost；未知价格/未知 token 必须带 confidence，不得伪造计费；先做后端读模型，前端再做报表 | P13-04 | 固定 decimal 计费、幂等事件、重启恢复、时间窗口/retention、Secret/正文不入库、权限与脱敏测试 | DEFERRED |
+| P13-04 | CPAMP-like 管理控制面后端基础：Provider/Channel/Account/Pool/Usage/Quota/Cost 的 typed read model、分页过滤、审计和 OpenAPI；已完成 P13-04A 配置 inventory 与 P13-04B durable usage/unpriced-cost projection，复用现有 P10 安全、审计和 runtime quota 边界 | P12/G12；P10 management baseline；P3/P4 event log | P13-04A/B ADR/Contract/报告、typed control compiler、protected HTTP routes、OpenAPI/client、value-free unit/HTTP fixture、read-only SQLite facade、fmt/Clippy/docs/review 全部通过；正式 P13 Delivery Gate 延至 P13 phase close，不触发 Provider 请求 | LOCAL_PASS_PENDING_PHASE_GATE |
+| P13-05 | Versioned Usage/Quota/Cost/Billing 账本：在 P13-04 usage read model 之上补充 versioned price catalog、固定 decimal 计费、幂等账单事件、延迟/status/quota window、retention/重启恢复与前端报表契约；未知价格/未知 token 必须带 confidence，不得伪造计费 | P13-04 | 固定 decimal 计费、幂等事件、重启恢复、时间窗口/retention、Secret/正文不入库、权限与脱敏测试；不得重写 P13-04 的 unpriced 事实 | DEFERRED |
 | P13-06 | Provider-aware Account Pool：多账号轮换、lease/concurrency、Health/Quota/Circuit、模型/额度同步、失败反馈、expired 排除和 operator 操作；不同 Provider 通过策略接口实现，不共享凭证或状态 | P13-04 | Build/Console/Codex/Krill synthetic pool、过期/刷新/并发/重启一致性、精确 attribution、无跨 Provider fallback | DEFERRED |
 | P13-07 | Cost-aware、Fill-first、Least-loaded 路由：在 Provider scope 内依据额度、并发、健康和 capability 选择；保留 max_attempts、首败边界和 Config Version 回滚 | P13-05、P13-06 | deterministic selector matrix、quota 缺失/并发/过期/降级测试、Route Explain、staging canary | DEFERRED |
 | P13-08 | 管理调试用单请求 Channel Pin：operator 明确指定 Provider/Channel/Route/Credential/JSON 或 SSE，仅一条请求，返回 value-free receipt；不得成为公开用户 API 或绕过正常 auth/egress | P13-04、P13-06 | 单请求/首败/无重试/无跨 Provider fallback、credential attribution、upstream sent/not-sent、审计与回滚测试 | DEFERRED |
@@ -3520,8 +3520,8 @@ OpenAPI，再做正式 UI；不允许前端直接读 SQLite、凭证明文或自
 
 优先级按“对当前生产反代的直接价值 × 可控风险 × 对既有渠道的影响”排序：
 
-1. **P13-04 管理控制面后端基础（最高优先级，下一步）**：先把 CPAMP 需要的清晰后端领域模型、读模型、分页过滤、权限、审计和 OpenAPI 契约补齐。现有 P10 管理 API 不推倒重来，而是扩展为 typed、Provider-aware 的运营接口。
-2. **P13-05 Usage/Quota/Cost/Billing（高优先级）**：这是用户明确要求的 CPAMP 能力。先完成可审计后端账本和时间序列接口，再做前端图表；不把价格未知或上游未提供的 token 猜成费用。
+1. **P13-04 管理控制面后端基础（已完成本地切片，待 P13 收口 Gate）**：已补齐 CPAMP 需要的 Provider-aware inventory 与 durable usage/unpriced-cost 读模型、分页过滤、权限和 OpenAPI 契约。现有 P10 管理 API 未推倒重来，而是扩展为 typed、Provider-aware 的运营接口。
+2. **P13-05 Usage/Quota/Cost/Billing 账本（当前下一项，高优先级）**：这是用户明确要求的 CPAMP 能力。基于 P13-04 的事实读模型补充可审计后端账本、versioned price catalog 和时间序列接口，再做前端图表；不把价格未知或上游未提供的 token 猜成费用。
 3. **P13-06 Account Pool（高优先级）**：统一抽象多账号轮换、健康、额度、失败反馈和同步，但每个 Provider 保留自己的 executor、credential shape、egress 和 refresh policy。
 4. **P13-07 Routing（高优先级）**：在 P13-05/P13-06 有数据后实现 cost-aware/fill-first/least-loaded；否则路由只能基于不完整状态，容易产生错误选路。
 5. **P13-08 Channel Pin（中高优先级）**：实现后能显著降低排查时间，并为后续真实 Provider 验收提供单请求、单账号、可审计工具。
@@ -3543,9 +3543,24 @@ OpenAPI，再做正式 UI；不允许前端直接读 SQLite、凭证明文或自
 | 字段 | Provider id/name/kind/enabled/egress policy；Channel id/adapter/API format/transport/enabled；Account id/kind/`active|cooling|unauthorized|disabled`/revision；Binding enabled/priority/weight/concurrency；sorted/deduplicated `route_ids` |
 | 查询 | `provider_id`、`channel_id`、`account_status`、`enabled`、`limit`、`cursor`；stable `(provider_id, channel_id, account_id)` keyset，default 50、max 100，cursor 绑定 Config Version ID + revision，stale/cross-version 为安全 `409` |
 | 必须成立 | 只读 caller-selected Config Version；`enabled` 仅为 Provider/Channel/Binding 配置开关合取；无 Provider send/lease/Snapshot publish/生产 mutation；无 URL/path/credential cipher/plaintext/client-key digest/request body；不声称 live Health/Quota/Circuit |
-| Deferred | native Grok/Provider runtime account pools、live Health/Quota/Circuit、usage/cost/billing、refresh/reauth、proxy pool；经 P13-06 injected Provider-specific facade 才可加入 |
+| Deferred | native Grok/Provider runtime account pools、live Health/Quota/Circuit、refresh/reauth、proxy pool，以及 versioned priced usage/cost/billing；P13-04B 仅在后续切片补充 durable、明确 `unpriced` 的 Usage projection，Provider-owned live state 经 P13-06 injected facade 才可加入 |
 | 定向验收 | projection/filter/order/limit/cursor/stale conflict unit tests；管理鉴权/Config Version/ETag/HTTP pagination/no-secret regression；OpenAPI closed schema/generated client；fmt/Clippy/docs/diff review |
 | 禁止项 | 不修改 production/server/active Config Version，不发真实 Provider 请求，不启动 GitHub CI/Delivery Gate，不改既有未跟踪 helper 文件 |
+
+### 19.5 P13-04B Task Card
+
+| 字段 | 固定值 |
+|---|---|
+| 范围等级 / 预算 | `L`；只读管理运营投影跨 control/HTTP/store/OpenAPI/generated client/docs，先跑定向本地门禁，P13 收口前不启动昂贵远端 Delivery Gate |
+| 依赖 | P3/P4 bounded Request/Attempt/Usage event log；P10 Management Key、审计、runtime Health/Quota 状态与统一错误封装；P13-04A 管理路由基线 |
+| 输出 | `GET /admin/operations/usage`；有界、可分页的 Provider/Channel/Account/public model/protocol/Client Key/Access Group 聚合 |
+| 语义 | 只选择每个 Request 的最高编号 Attempt；仅成功 Attempt 关联 final Usage；失败/缺失 lineage/counter overflow fail closed；过滤按 identity/model/protocol/inclusive Attempt-end-time；重试失败 Attempt 不归因 |
+| 使用量 | 每个 token 返回 `{total, confidence}`，confidence 为 `exact|partial|unknown`；checked addition；未知值不转成零 |
+| 费用 | `cost_microunits=null`、`cost_confidence=unpriced`；不硬编码价格、不从 token 反推金额；versioned price catalog 与 billing ledger 由 P13-05 承担 |
+| 分页 | 稳定 `(provider_id, channel_id, account_id, public_model, protocol, client_key_id, access_group_id)` keyset；default 50、max 100；cursor 只含非 Secret 维度且 HTTP 边界有长度/字符限制；不声称跨并发写入的快照一致性 |
+| 生产组合 | 通过只读 SQLite event facade + bounded scan 读取 gateway-owned durable events；不迁移、不写 journal mode、不调用 Provider、不租约/不改配置 |
+| 定向验收 | usage compiler unit（lineage/filter/group/confidence/pagination/unpriced）；受保护 HTTP fixture（auth、malformed query、secret/body/private-model absence）；OpenAPI closed schema/generated client；read-only store test；fmt/Clippy/docs/diff review |
+| 禁止项 | 不改 production/server/active Config Version，不发送真实 Provider/OAuth 请求，不新增全局 proxy/fallback，不修改既有未跟踪 helper 文件 |
 
 ## 20. 测试体系
 
@@ -3885,3 +3900,4 @@ Next task:
 | v1.242 | 2026-08-10 | `CR-P13-001`：按用户反馈重排 Release 1.1 清单。移除当前范围内的 New API/AxonHub Import Adapter；将 CPAMP-like 管理控制面后端列为 P13-04 下一项，随后依次安排 Usage/Quota/Cost/Billing、Provider-aware Account Pool、Cost-aware/Fill-first/Least-loaded Routing、单请求 Channel Pin、Responses retrieval/compact、Provider-specific Egress/Proxy Pool、自动 refresh/reauth/replenishment，并将 WebSocket、Media、更多 Provider 作为条件性候选。明确管理后端先于正式前端，能力按 Provider 分层，禁止跨 Provider 隐式 fallback；普通 push/PR/merge 不受限，昂贵 Delivery Gate 仍按 P 收口运行 | `CR-P13-001` `APPROVED_PLAN_UPDATE`; P13-04 `PENDING`，其余新增项 `DEFERRED` |
 | v1.243 | 2026-08-10 | 启动 `CR-P13-001` 的首个实现切片 P13-04A：复用 P10 management control plane，新增 selected Config Version 上一行/Endpoint-Credential binding 的 Secret-free Provider/Channel/Account/Pool inventory；冻结字段、四种 Credential stored status、static-enabled filter、default 50/max 100 的 revision-bound keyset pagination 与 stale/cross-version `409`。native Provider pool/live Health/Quota 继续留给 P13-06 facade；本切片不调用 Provider、不改 production/active Config Version、不暴露 URL/Secret/digest/body。ADR/Contract/report 初始状态如实为 implementation/review pending | P13-04 `IN_PROGRESS`; current task `P13-04A`; evidence target: [`p13-04a-management-operational-inventory.md`](reports/p13-04a-management-operational-inventory.md) |
 | v1.244 | 2026-08-11 | P13-04A 本地实现与 review 完成：新增 `GET /admin/operations/account-pools`，以 Endpoint-Credential binding 编译 Provider/Channel/Account/Binding/Route typed projection；支持四种 stored Credential status、static enabled filter、稳定 keyset pagination 和 Config Version/revision cursor 冲突 409；复用 Management Key、X-Config-Version、ETag、现有错误封装和 generated client。control/HTTP/OpenAPI/client/docs focused gates 全部通过；未执行 Provider 请求、生产/服务器变更或 GitHub Delivery Gate。P13-04 仍 `IN_PROGRESS`，等待后续读模型切片后统一阶段 Gate | `P13-04A` `LOCAL_PASS_PENDING_PHASE_GATE`; evidence: [`p13-04a-management-operational-inventory.md`](reports/p13-04a-management-operational-inventory.md) |
+| v1.245 | 2026-08-11 | P13-04 本地收口：保留 P13-04A selected Config Version account-pool inventory；新增 P13-04B `GET /admin/operations/usage`，以 gateway-owned durable Request/最高编号成功 Attempt/final Usage lineage 生成有界、可过滤、稳定 keyset 的 Provider/Channel/Account/public model/protocol/Client Key/Access Group 聚合。token 字段使用 `exact|partial|unknown` confidence 与 checked totals；无 versioned price catalog 时费用固定 `null/unpriced`，不伪造金额。生产组合仅以 read-only SQLite facade 做 max+1 有界事件读取；复用既有 P10 管理 admission、audit 与 runtime quota，不发送 Provider 请求、不改生产/active Config Version。control/store/HTTP/OpenAPI/generated-client/SPA/docs 的 focused tests、strict Clippy、fmt 与 diff review 通过；按 P13 Phase 规则未启动昂贵 GitHub Delivery Gate，下一项为 P13-05 durable billing ledger | `P13-04` `LOCAL_PASS_PENDING_PHASE_GATE`; evidence: [`p13-04-management-operations.md`](reports/p13-04-management-operations.md) |

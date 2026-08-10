@@ -30,13 +30,15 @@ use gateway_control::management_mutation_service::{
     StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
 };
 use gateway_control::management_operations_service::{
-    DEFAULT_ACCOUNT_POOL_LIMIT, MAX_ACCOUNT_POOL_LIMIT, ManagementOperationsError,
-    OperationalAccountPoolCursor, OperationalAccountPoolItem, OperationalAccountPoolPage,
-    OperationalAccountPoolQuery,
+    DEFAULT_ACCOUNT_POOL_LIMIT, DEFAULT_USAGE_LIMIT, MAX_ACCOUNT_POOL_LIMIT, MAX_USAGE_LIMIT,
+    MAX_USAGE_MODEL_CHARS, ManagementOperationsError, OperationalAccountPoolCursor,
+    OperationalAccountPoolItem, OperationalAccountPoolPage, OperationalAccountPoolQuery,
+    OperationalCostConfidence, OperationalTokenConfidence, OperationalTokenMetric,
+    OperationalUsageCursor, OperationalUsagePage, OperationalUsageQuery,
 };
 use gateway_core::{
-    AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, PublicModelId, RequestId,
-    RouteCandidateId, RouteId, UpstreamId,
+    AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, GatewayProtocol,
+    PublicModelId, RequestId, RouteCandidateId, RouteId, UpstreamId,
 };
 use gateway_upstream::UpstreamProxy;
 use provider_openai_compatible::{
@@ -68,11 +70,51 @@ pub struct ManagementResourceHttpState {
     service: Mutex<ManagementMutationService>,
     workflow: Mutex<Box<dyn ManagementEndpointWorkflow>>,
     runtime: Mutex<Box<dyn ManagementRuntimeFacade>>,
+    usage: Mutex<Box<dyn ManagementUsageFacade>>,
     /// Credential ids with an in-flight refresh.  The claim spans decrypt, upstream refresh, and
     /// the revision-guarded persistence write so two HTTP callers can never spend the same
     /// rotating refresh token concurrently.
     oauth_refresh_claims: Mutex<BTreeSet<CredentialId>>,
     runtime_clock: Box<dyn ManagementRuntimeClock>,
+}
+
+/// Read-only source for the durable usage/cost operations projection.
+pub trait ManagementUsageFacade: Send + Sync {
+    /// Compiles one bounded usage page without receiving a Provider, Secret, or request body.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe operations error when the durable source or aggregation is unavailable.
+    fn list_usage(
+        &self,
+        query: &OperationalUsageQuery,
+    ) -> Result<OperationalUsagePage, ManagementOperationsError>;
+}
+
+/// Fail-closed usage source used until the serving composition injects its event-log reader.
+pub struct RejectingManagementUsageFacade;
+
+impl RejectingManagementUsageFacade {
+    /// Creates a no-op, no-send usage source.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for RejectingManagementUsageFacade {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ManagementUsageFacade for RejectingManagementUsageFacade {
+    fn list_usage(
+        &self,
+        _query: &OperationalUsageQuery,
+    ) -> Result<OperationalUsagePage, ManagementOperationsError> {
+        Err(ManagementOperationsError::SourceUnavailable)
+    }
 }
 
 struct OAuthRefreshClaim<'a> {
@@ -139,13 +181,39 @@ impl ManagementResourceHttpState {
         runtime: Box<dyn ManagementRuntimeFacade>,
         runtime_clock: Box<dyn ManagementRuntimeClock>,
     ) -> Self {
+        Self::with_workflow_and_runtime_and_usage(
+            service,
+            workflow,
+            runtime,
+            runtime_clock,
+            Box::new(RejectingManagementUsageFacade::new()),
+        )
+    }
+
+    /// Creates the state with an explicit read-only usage/cost observation source.
+    #[must_use]
+    pub fn with_workflow_and_runtime_and_usage(
+        service: ManagementMutationService,
+        workflow: Box<dyn ManagementEndpointWorkflow>,
+        runtime: Box<dyn ManagementRuntimeFacade>,
+        runtime_clock: Box<dyn ManagementRuntimeClock>,
+        usage: Box<dyn ManagementUsageFacade>,
+    ) -> Self {
         Self {
             service: Mutex::new(service),
             workflow: Mutex::new(workflow),
             runtime: Mutex::new(runtime),
+            usage: Mutex::new(usage),
             oauth_refresh_claims: Mutex::new(BTreeSet::new()),
             runtime_clock,
         }
+    }
+
+    /// Replaces the default rejecting usage source without changing the other management seams.
+    #[must_use]
+    pub fn with_usage(mut self, usage: Box<dyn ManagementUsageFacade>) -> Self {
+        self.usage = Mutex::new(usage);
+        self
     }
 
     fn claim_oauth_refresh(&self, credential_id: &CredentialId) -> Option<OAuthRefreshClaim<'_>> {
@@ -1674,10 +1742,12 @@ fn configure_runtime_resource_routes(config: &mut web::ServiceConfig) {
 }
 
 fn configure_operations_resource_routes(config: &mut web::ServiceConfig) {
-    config.route(
-        "/operations/account-pools",
-        web::get().to(list_operational_account_pools),
-    );
+    config
+        .route(
+            "/operations/account-pools",
+            web::get().to(list_operational_account_pools),
+        )
+        .route("/operations/usage", web::get().to(list_operational_usage));
 }
 
 #[derive(Deserialize)]
@@ -2228,6 +2298,187 @@ struct OperationalAccountPoolCursorWire {
     provider_id: String,
     channel_id: String,
     account_id: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OperationalUsageQueryParams {
+    from_ms: Option<i64>,
+    to_ms: Option<i64>,
+    provider_id: Option<String>,
+    channel_id: Option<String>,
+    account_id: Option<String>,
+    model: Option<String>,
+    client_key_id: Option<String>,
+    access_group_id: Option<String>,
+    protocol: Option<String>,
+    limit: Option<usize>,
+    cursor: Option<String>,
+}
+
+#[derive(Serialize)]
+struct OperationalUsagePageResponse {
+    observed_through_ms: Option<i64>,
+    items: Vec<OperationalUsageItemResponse>,
+    next_cursor: Option<String>,
+}
+
+#[derive(Serialize)]
+struct OperationalUsageItemResponse {
+    provider_id: String,
+    channel_id: String,
+    account_id: String,
+    public_model: String,
+    protocol: &'static str,
+    client_key_id: String,
+    access_group_id: Option<String>,
+    request_count: u64,
+    usage_observations: u64,
+    input_tokens: OperationalTokenMetricResponse,
+    output_tokens: OperationalTokenMetricResponse,
+    reasoning_tokens: OperationalTokenMetricResponse,
+    cache_read_tokens: OperationalTokenMetricResponse,
+    cache_creation_tokens: OperationalTokenMetricResponse,
+    cached_tokens: OperationalTokenMetricResponse,
+    observed_at_ms: i64,
+    cost_microunits: Option<u64>,
+    cost_confidence: &'static str,
+}
+
+#[derive(Serialize)]
+struct OperationalTokenMetricResponse {
+    total: Option<u64>,
+    confidence: &'static str,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OperationalUsageCursorWire {
+    provider_id: String,
+    channel_id: String,
+    account_id: String,
+    public_model: String,
+    protocol: String,
+    client_key_id: String,
+    access_group_id: Option<String>,
+}
+
+#[allow(clippy::too_many_lines)]
+async fn list_operational_usage(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let params = match web::Query::<OperationalUsageQueryParams>::from_query(request.query_string())
+    {
+        Ok(params) => params.into_inner(),
+        Err(_) => return invalid_input(),
+    };
+    let cursor = match params.cursor.as_deref() {
+        Some(value) if value.len() <= 2048 => decode_operational_usage_cursor(value),
+        Some(_) => Err(ManagementOperationsError::InvalidQuery),
+        None => Ok(None),
+    };
+    let cursor = match cursor {
+        Ok(cursor) => cursor,
+        Err(error) => return management_error(ManagementResourceError::from(error)),
+    };
+    let provider_id = match usage_query_id(params.provider_id) {
+        Ok(value) => value
+            .map(|value| UpstreamId::try_new(value).map_err(|_| invalid_input()))
+            .transpose(),
+        Err(response) => return response,
+    };
+    let provider_id = match provider_id {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let channel_id = match usage_query_id(params.channel_id) {
+        Ok(value) => value
+            .map(|value| EndpointId::try_new(value).map_err(|_| invalid_input()))
+            .transpose(),
+        Err(response) => return response,
+    };
+    let channel_id = match channel_id {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let account_id = match usage_query_id(params.account_id) {
+        Ok(value) => value
+            .map(|value| CredentialId::try_new(value).map_err(|_| invalid_input()))
+            .transpose(),
+        Err(response) => return response,
+    };
+    let account_id = match account_id {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let client_key_id = match usage_query_id(params.client_key_id) {
+        Ok(value) => value
+            .map(|value| ClientKeyId::try_new(value).map_err(|_| invalid_input()))
+            .transpose(),
+        Err(response) => return response,
+    };
+    let client_key_id = match client_key_id {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let access_group_id = match usage_query_id(params.access_group_id) {
+        Ok(value) => value
+            .map(|value| AccessGroupId::try_new(value).map_err(|_| invalid_input()))
+            .transpose(),
+        Err(response) => return response,
+    };
+    let access_group_id = match access_group_id {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let model = match params.model {
+        Some(value) => match bounded_text(value, MAX_USAGE_MODEL_CHARS) {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let protocol = match params.protocol {
+        Some(value) => match operational_usage_protocol(&value) {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let limit = params.limit.unwrap_or(DEFAULT_USAGE_LIMIT);
+    if limit == 0 || limit > MAX_USAGE_LIMIT {
+        return invalid_input();
+    }
+    let query = match OperationalUsageQuery::try_new(
+        params.from_ms,
+        params.to_ms,
+        provider_id,
+        channel_id,
+        account_id,
+        model,
+        client_key_id,
+        access_group_id,
+        protocol,
+        limit,
+        cursor,
+    ) {
+        Ok(query) => query,
+        Err(error) => return management_error(ManagementResourceError::from(error)),
+    };
+    let usage_source = match usage(&state) {
+        Ok(source) => source,
+        Err(response) => return response,
+    };
+    match usage_source.list_usage(&query) {
+        Ok(page) => match operational_usage_page_response(page) {
+            Ok(response) => HttpResponse::Ok()
+                .insert_header((header::CACHE_CONTROL, "no-store"))
+                .json(response),
+            Err(response) => response,
+        },
+        Err(error) => management_error(ManagementResourceError::from(error)),
+    }
 }
 
 async fn list_operational_account_pools(
@@ -4352,6 +4603,12 @@ fn runtime(
     state.runtime.lock().map_err(|_| internal_error())
 }
 
+fn usage(
+    state: &web::Data<ManagementResourceHttpState>,
+) -> Result<std::sync::MutexGuard<'_, Box<dyn ManagementUsageFacade>>, HttpResponse> {
+    state.usage.lock().map_err(|_| internal_error())
+}
+
 fn require_runtime_target(
     state: &web::Data<ManagementResourceHttpState>,
     config_version_id: &ConfigVersionId,
@@ -5004,7 +5261,8 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
         | ManagementResourceError::ClientKey(_)
         | ManagementResourceError::ClientKeyIssuerUnavailable
         | ManagementResourceError::Operations(
-            ManagementOperationsError::InconsistentConfiguration,
+            ManagementOperationsError::InconsistentConfiguration
+            | ManagementOperationsError::SourceUnavailable,
         ) => internal_error(),
     };
     drop(error);
@@ -5246,6 +5504,27 @@ fn operational_query_id(value: String) -> Result<String, HttpResponse> {
     bounded_text(value, 128)
 }
 
+fn usage_query_id(value: Option<String>) -> Result<Option<String>, HttpResponse> {
+    value.map(|value| bounded_text(value, 128)).transpose()
+}
+
+fn operational_usage_protocol(value: &str) -> Result<GatewayProtocol, HttpResponse> {
+    match value {
+        "openai_chat_completions" => Ok(GatewayProtocol::OpenAiChatCompletions),
+        "openai_responses" => Ok(GatewayProtocol::OpenAiResponses),
+        "anthropic_messages" => Ok(GatewayProtocol::AnthropicMessages),
+        _ => Err(invalid_input()),
+    }
+}
+
+fn operational_usage_protocol_response(value: GatewayProtocol) -> &'static str {
+    match value {
+        GatewayProtocol::OpenAiChatCompletions => "openai_chat_completions",
+        GatewayProtocol::OpenAiResponses => "openai_responses",
+        GatewayProtocol::AnthropicMessages => "anthropic_messages",
+    }
+}
+
 fn operational_account_status_response(value: CredentialStatus) -> &'static str {
     match value {
         CredentialStatus::Active => "active",
@@ -5362,6 +5641,141 @@ fn operational_account_pool_item_response(
             .map(|id| id.as_str().to_owned())
             .collect(),
     }
+}
+
+fn encode_operational_usage_cursor(
+    cursor: &OperationalUsageCursor,
+) -> Result<String, HttpResponse> {
+    let wire = OperationalUsageCursorWire {
+        provider_id: cursor.provider_id().as_str().to_owned(),
+        channel_id: cursor.channel_id().as_str().to_owned(),
+        account_id: cursor.account_id().as_str().to_owned(),
+        public_model: cursor.public_model().to_owned(),
+        protocol: operational_usage_protocol_response(cursor.protocol()).to_owned(),
+        client_key_id: cursor.client_key_id().as_str().to_owned(),
+        access_group_id: cursor.access_group_id().map(|id| id.as_str().to_owned()),
+    };
+    serde_json::to_vec(&wire)
+        .map(|bytes| URL_SAFE_NO_PAD.encode(bytes))
+        .map_err(|_| internal_error())
+}
+
+fn decode_operational_usage_cursor(
+    value: &str,
+) -> Result<Option<OperationalUsageCursor>, ManagementOperationsError> {
+    if value.is_empty() {
+        return Err(ManagementOperationsError::InvalidQuery);
+    }
+    let bytes = URL_SAFE_NO_PAD
+        .decode(value)
+        .map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    let wire: OperationalUsageCursorWire =
+        serde_json::from_slice(&bytes).map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    if wire.provider_id.chars().count() > 128
+        || wire.channel_id.chars().count() > 128
+        || wire.account_id.chars().count() > 128
+        || wire.client_key_id.chars().count() > 128
+        || wire.public_model.is_empty()
+        || wire.public_model.chars().count() > MAX_USAGE_MODEL_CHARS
+        || wire
+            .access_group_id
+            .as_deref()
+            .is_some_and(|id| id.chars().count() > 128)
+    {
+        return Err(ManagementOperationsError::InvalidQuery);
+    }
+    let provider_id = UpstreamId::try_new(wire.provider_id)
+        .map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    let channel_id = EndpointId::try_new(wire.channel_id)
+        .map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    let account_id = CredentialId::try_new(wire.account_id)
+        .map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    let client_key_id = ClientKeyId::try_new(wire.client_key_id)
+        .map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    let access_group_id = wire
+        .access_group_id
+        .map(AccessGroupId::try_new)
+        .transpose()
+        .map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    let protocol = match wire.protocol.as_str() {
+        "openai_chat_completions" => GatewayProtocol::OpenAiChatCompletions,
+        "openai_responses" => GatewayProtocol::OpenAiResponses,
+        "anthropic_messages" => GatewayProtocol::AnthropicMessages,
+        _ => return Err(ManagementOperationsError::InvalidQuery),
+    };
+    OperationalUsageCursor::try_new(
+        provider_id,
+        channel_id,
+        account_id,
+        wire.public_model,
+        protocol,
+        client_key_id,
+        access_group_id,
+    )
+    .map(Some)
+}
+
+fn operational_token_confidence_response(value: OperationalTokenConfidence) -> &'static str {
+    match value {
+        OperationalTokenConfidence::Exact => "exact",
+        OperationalTokenConfidence::Partial => "partial",
+        OperationalTokenConfidence::Unknown => "unknown",
+    }
+}
+
+fn operational_token_metric_response(
+    value: OperationalTokenMetric,
+) -> OperationalTokenMetricResponse {
+    OperationalTokenMetricResponse {
+        total: value.total,
+        confidence: operational_token_confidence_response(value.confidence),
+    }
+}
+
+fn operational_cost_confidence_response(value: OperationalCostConfidence) -> &'static str {
+    match value {
+        OperationalCostConfidence::Unpriced => "unpriced",
+    }
+}
+
+fn operational_usage_page_response(
+    value: OperationalUsagePage,
+) -> Result<OperationalUsagePageResponse, HttpResponse> {
+    let next_cursor = value
+        .next_cursor
+        .as_ref()
+        .map(encode_operational_usage_cursor)
+        .transpose()?;
+    Ok(OperationalUsagePageResponse {
+        observed_through_ms: value.observed_through_ms,
+        items: value
+            .items
+            .into_iter()
+            .map(|item| OperationalUsageItemResponse {
+                provider_id: item.provider_id.as_str().to_owned(),
+                channel_id: item.channel_id.as_str().to_owned(),
+                account_id: item.account_id.as_str().to_owned(),
+                public_model: item.public_model,
+                protocol: operational_usage_protocol_response(item.protocol),
+                client_key_id: item.client_key_id.as_str().to_owned(),
+                access_group_id: item.access_group_id.map(|id| id.as_str().to_owned()),
+                request_count: item.request_count,
+                usage_observations: item.usage_observations,
+                input_tokens: operational_token_metric_response(item.input_tokens),
+                output_tokens: operational_token_metric_response(item.output_tokens),
+                reasoning_tokens: operational_token_metric_response(item.reasoning_tokens),
+                cache_read_tokens: operational_token_metric_response(item.cache_read_tokens),
+                cache_creation_tokens: operational_token_metric_response(
+                    item.cache_creation_tokens,
+                ),
+                cached_tokens: operational_token_metric_response(item.cached_tokens),
+                observed_at_ms: item.observed_at_ms,
+                cost_microunits: item.cost_microunits,
+                cost_confidence: operational_cost_confidence_response(item.cost_confidence),
+            })
+            .collect(),
+        next_cursor,
+    })
 }
 
 impl From<EgressPolicyConfiguration> for EgressPolicyResponse {

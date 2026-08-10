@@ -110,4 +110,5 @@ P10-05 已建立 [BC-MGMT-006 Protected routing and Client Key workflows](BC-MGM
 P10-08 已建立 [BC-MGMT-007 Encrypted control-plane backup and empty-target restore](BC-MGMT-007-encrypted-control-plane-backup.md)。
 P10-09 已建立 [BC-MGMT-008 Embedded management UI and inference-route isolation](BC-MGMT-008-embedded-management-ui-inference-isolation.md)。
 P13-04A 已建立 [BC-MGMT-009 Provider-aware operational inventory](BC-MGMT-009-provider-aware-operational-inventory.md)（Accepted；本地实现与 review 通过，phase gate pending）。
+P13-04B 已建立 [BC-MGMT-010 Durable usage and explicitly unpriced cost operations](BC-MGMT-010-durable-usage-cost-operations.md)（Accepted；本地实现与 review 通过，phase gate pending）。
 后续契约随对应 Task 创建并在需求追踪索引中登记。

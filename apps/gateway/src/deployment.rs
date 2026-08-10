@@ -28,6 +28,10 @@ use gateway_control::{
     management_mutation_service::{
         KeyVersion, ManagementMutationService, MasterKey, MasterKeyRing, SecretStore,
     },
+    management_operations_service::{
+        ManagementOperationsError, OperationalUsagePage, OperationalUsageQuery,
+        compile_operational_usage_page,
+    },
     management_service::{ManagementActor, ManagementService},
 };
 use gateway_http_actix::{
@@ -36,8 +40,8 @@ use gateway_http_actix::{
     management_lifecycle_resources::ManagementLifecycleHttpState,
     management_observability_resources::ManagementObservabilityHttpState,
     management_resources::{
-        CodexOAuthManagementWorkflow, ManagementResourceHttpState, OpenAiCodexOAuthExchange,
-        SystemManagementRuntimeClock,
+        CodexOAuthManagementWorkflow, ManagementResourceHttpState, ManagementUsageFacade,
+        OpenAiCodexOAuthExchange, SystemManagementRuntimeClock,
     },
     management_security::{
         ManagementBrowserPolicy, ManagementCsrfToken, ManagementHttpState, ManagementKey,
@@ -46,8 +50,9 @@ use gateway_http_actix::{
 };
 use gateway_observability::try_init_json_tracing;
 use gateway_store::{
-    backup::BackupKey, control_plane::SqliteControlPlaneRepository,
-    event_store::AsyncSqliteEventWriter,
+    backup::BackupKey,
+    control_plane::SqliteControlPlaneRepository,
+    event_store::{AsyncSqliteEventWriter, SqliteEventStore},
 };
 use gateway_upstream::UpstreamProxy;
 use zeroize::{Zeroize, Zeroizing};
@@ -256,6 +261,33 @@ struct ApplicationState {
     event_writer: AsyncSqliteEventWriter,
 }
 
+/// Read-only production source for P13-04's durable usage/cost projection.
+struct DeploymentManagementUsageFacade {
+    database: PathBuf,
+}
+
+impl DeploymentManagementUsageFacade {
+    fn new(database: PathBuf) -> Self {
+        Self { database }
+    }
+}
+
+impl ManagementUsageFacade for DeploymentManagementUsageFacade {
+    fn list_usage(
+        &self,
+        query: &OperationalUsageQuery,
+    ) -> Result<OperationalUsagePage, ManagementOperationsError> {
+        let store = SqliteEventStore::open_read_only(&self.database)
+            .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
+        let events = store
+            .list_events_bounded(
+                gateway_control::management_operations_service::MAX_USAGE_EVENTS + 1,
+            )
+            .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
+        compile_operational_usage_page(&events, query)
+    }
+}
+
 fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, DeploymentError> {
     ensure_direct_directory(
         &command.state_directory,
@@ -326,13 +358,14 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         observability,
         event_writer,
     } = data_plane;
-    let resources = ManagementResourceHttpState::with_workflow_and_runtime(
+    let resources = ManagementResourceHttpState::with_workflow_and_runtime_and_usage(
         mutation_service,
         Box::new(CodexOAuthManagementWorkflow::with_exchange(Box::new(
             OpenAiCodexOAuthExchange::new(command.codex_oauth_proxy.clone()),
         ))),
         management_runtime,
         Box::new(SystemManagementRuntimeClock),
+        Box::new(DeploymentManagementUsageFacade::new(database.clone())),
     );
     let lifecycle = ManagementLifecycleHttpState::new(lifecycle_service);
     let backup = ManagementBackupHttpState::new(

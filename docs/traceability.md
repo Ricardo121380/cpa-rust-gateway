@@ -162,6 +162,7 @@
 | Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
 |---|---|---|---|---|---|
 | P13-04A | Plan 19；`CR-P13-001`；P10 management baseline | [ADR-0076](adr/ADR-0076-provider-aware-management-inventory.md)、[BC-MGMT-009](contracts/BC-MGMT-009-provider-aware-operational-inventory.md) | 已实现 `GET /admin/operations/account-pools`：选定 Config Version 的 Provider/Channel/Account/Binding/Route typed read projection、过滤和 revision-bound keyset pagination；不含 Secret/URL/live state，不调用 Provider | [P13-04A report](reports/p13-04a-management-operational-inventory.md)（本地实现、review 与 focused gates 通过；phase gate pending） | LOCAL_PASS_PENDING_PHASE_GATE |
+| P13-04B | Plan 19；`CR-P13-001`；P3/P4 event log 与 P10 management baseline | [ADR-0077](adr/ADR-0077-durable-usage-cost-operations-read-model.md)、[BC-MGMT-010](contracts/BC-MGMT-010-durable-usage-cost-operations.md) | 已实现 `GET /admin/operations/usage`：只读、有限事件扫描，按 Provider/Channel/Account/public model/protocol/Client Key/Access Group 聚合 Request/Attempt/Usage lineage；token 带 confidence，费用明确 `unpriced`；复用既有 P10 audit 与 runtime quota，不调用 Provider | [P13-04 closeout report](reports/p13-04-management-operations.md)（P13-04A/B 本地实现、review 与 focused gates 通过；phase gate pending） | LOCAL_PASS_PENDING_PHASE_GATE |
 
 ## 后续 Phase 映射
 

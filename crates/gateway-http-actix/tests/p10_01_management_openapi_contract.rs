@@ -301,7 +301,7 @@ fn operation_parameters(
     Ok(parameters)
 }
 
-fn required_operations() -> [(&'static str, &'static str); 34] {
+fn required_operations() -> [(&'static str, &'static str); 35] {
     [
         ("/admin/config-versions", "get"),
         ("/admin/config-versions", "post"),
@@ -337,6 +337,7 @@ fn required_operations() -> [(&'static str, &'static str); 34] {
         ("/admin/runtime/availability", "get"),
         ("/admin/runtime/quota/reset", "post"),
         ("/admin/operations/account-pools", "get"),
+        ("/admin/operations/usage", "get"),
         ("/admin/requests/{request_id}/attempts", "get"),
         ("/admin/audit-events", "get"),
         ("/admin/backups/preflight", "post"),

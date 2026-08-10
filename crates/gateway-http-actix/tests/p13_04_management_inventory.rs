@@ -1,4 +1,4 @@
-//! P13-04A configured account-pool inventory HTTP regression tests.
+//! P13-04 management operations HTTP regression tests.
 
 #![deny(unsafe_code)]
 
@@ -15,20 +15,46 @@ use gateway_control::management_mutation_service::{
     EndpointTransport, KeyVersion, ManagementMutationService, MasterKey, MasterKeyRing,
     SecretStore, SqliteControlPlaneRepository,
 };
-use gateway_core::{CredentialId, EndpointId, UpstreamId};
+use gateway_control::management_operations_service::{
+    ManagementOperationsError, OperationalUsagePage, OperationalUsageQuery,
+    compile_operational_usage_page,
+};
+use gateway_core::{
+    AttemptEvent, AttemptOutcome, AttemptRetryDecision, ClientKeyId, CredentialId, EndpointId,
+    GatewayEvent, GatewayProtocol, RequestEvent, ResponseId, RouteCandidateId, RouteId, UpstreamId,
+    Usage, UsageEvent,
+};
 use gateway_http_actix::{
-    management_resources::{ManagementResourceHttpState, configure_management_resources},
+    management_resources::{
+        ManagementResourceHttpState, ManagementUsageFacade, configure_management_resources,
+    },
     management_security::{
         MANAGEMENT_KEY_HEADER, ManagementBrowserPolicy, ManagementHttpState, ManagementKey,
         ManagementNetworkPolicy,
     },
 };
-use gateway_store::control_plane::{CredentialStatus, UpstreamConfiguration};
+use gateway_store::{
+    control_plane::{CredentialStatus, UpstreamConfiguration},
+    event_store::SqliteEventStore,
+};
 use serde_json::Value;
 
 type TestResult = Result<(), Box<dyn Error>>;
 
 const MANAGEMENT_KEY: &str = "mgmt_0123456789abcdefghijklmnopqrstuvwxyz";
+
+struct FixtureUsageFacade {
+    events: Vec<gateway_store::event_store::StoredGatewayEvent>,
+}
+
+impl ManagementUsageFacade for FixtureUsageFacade {
+    fn list_usage(
+        &self,
+        query: &OperationalUsageQuery,
+    ) -> Result<OperationalUsagePage, ManagementOperationsError> {
+        compile_operational_usage_page(&self.events, query)
+    }
+}
 
 fn loopback() -> SocketAddr {
     SocketAddr::from(([127, 0, 0, 1], 45_405))
@@ -64,9 +90,52 @@ fn resource_state() -> Result<ManagementResourceHttpState, Box<dyn Error>> {
             &secret_store,
         )?)?;
     }
-    Ok(ManagementResourceHttpState::new(
-        ManagementMutationService::new(repository, secret_store),
-    ))
+    let mut event_store = SqliteEventStore::open_in_memory()?;
+    let request = RequestEvent::new(
+        gateway_core::RequestId::try_new("usage-http-request")?,
+        ClientKeyId::try_new("usage-http-client")?,
+        None,
+        GatewayProtocol::OpenAiResponses,
+        "usage-public-model".to_owned(),
+        "usage-public-model".to_owned(),
+        None,
+        false,
+    );
+    let attempt = AttemptEvent::new(
+        request.request_id().clone(),
+        1,
+        RouteId::try_new("usage-http-route")?,
+        RouteCandidateId::try_new("usage-http-candidate")?,
+        CredentialId::try_new("account-a")?,
+        EndpointId::try_new("channel-inventory")?,
+        UpstreamId::try_new("provider-inventory")?,
+        "usage-private-model".to_owned(),
+        99,
+        100,
+        AttemptOutcome::Succeeded,
+        AttemptRetryDecision::Completed,
+    );
+    let usage = UsageEvent::from_usage(
+        request.request_id().clone(),
+        ResponseId::try_new("usage-http-response")?,
+        &Usage {
+            input_tokens: Some(11),
+            output_tokens: Some(7),
+            ..Usage::default()
+        },
+    );
+    event_store.append_batch(&[
+        GatewayEvent::Request(request),
+        GatewayEvent::Attempt(attempt),
+        GatewayEvent::Usage(usage),
+    ])?;
+    let usage_events = event_store.list_events()?;
+    Ok(
+        ManagementResourceHttpState::new(ManagementMutationService::new(repository, secret_store))
+            .with_usage(Box::new(FixtureUsageFacade {
+                events: usage_events,
+            })),
+    )
 }
 
 fn fixture(
@@ -191,6 +260,40 @@ async fn inventory_is_protected_paginated_and_value_free() -> TestResult {
     assert_eq!(second_body["items"][0]["account_id"], "account-b");
     assert!(second_body["next_cursor"].is_null());
 
+    let usage = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get()
+                .uri("/admin/operations/usage?protocol=openai_responses&model=usage-public-model"),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(usage.status(), StatusCode::OK);
+    assert_eq!(
+        usage.headers().get(header::CACHE_CONTROL),
+        Some(&header::HeaderValue::from_static("no-store"))
+    );
+    let usage_body: Value = test::read_body_json(usage).await;
+    assert_eq!(usage_body["items"][0]["request_count"], 1);
+    assert_eq!(usage_body["items"][0]["input_tokens"]["total"], 11);
+    assert_eq!(
+        usage_body["items"][0]["input_tokens"]["confidence"],
+        "exact"
+    );
+    assert_eq!(usage_body["items"][0]["cost_microunits"], Value::Null);
+    assert_eq!(usage_body["items"][0]["cost_confidence"], "unpriced");
+    let usage_serialized = serde_json::to_string(&usage_body)?;
+    for forbidden in [
+        "usage-private-model",
+        "secret-upstream.example",
+        "secret-must-not-leak",
+        "request body",
+    ] {
+        assert!(!usage_serialized.contains(forbidden));
+    }
+
     let stale = test::call_service(
         &app,
         authorized(
@@ -229,6 +332,49 @@ async fn inventory_is_protected_paginated_and_value_free() -> TestResult {
     )
     .await;
     assert_eq!(duplicate_query.status(), StatusCode::BAD_REQUEST);
+
+    let invalid_usage_query = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/operations/usage?limit=0"),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(invalid_usage_query.status(), StatusCode::BAD_REQUEST);
+
+    let unknown_usage_query = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/operations/usage?unknown=true"),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(unknown_usage_query.status(), StatusCode::BAD_REQUEST);
+
+    let duplicate_usage_query = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/operations/usage?limit=1&limit=2"),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(duplicate_usage_query.status(), StatusCode::BAD_REQUEST);
+
+    let usage_denied = test::call_service(
+        &app,
+        test::TestRequest::get()
+            .uri("/admin/operations/usage")
+            .peer_addr(loopback())
+            .to_request(),
+    )
+    .await;
+    assert_eq!(usage_denied.status(), StatusCode::NOT_FOUND);
 
     let denied = test::call_service(
         &app,

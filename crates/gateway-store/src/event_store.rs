@@ -17,7 +17,7 @@ use std::{
 
 use gateway_core::{GatewayEvent, GatewayEventPriority, RequestId};
 use gateway_observability::{EventQueueReceiver, TelemetryPipeline};
-use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
+use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
 use sha2::{Digest, Sha256};
 
 use crate::{StoreError, StoreResult, migrate, open, open_in_memory};
@@ -216,6 +216,20 @@ impl SqliteEventStore {
         Self::from_connection(open(path)?)
     }
 
+    /// Opens an already-migrated file-backed event store without any migration or journal-mode
+    /// write. This is the read-only management boundary used while the serve-time event writer
+    /// owns the writable connection.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when `SQLite` cannot open the path read-only or configure its
+    /// bounded busy timeout.
+    pub fn open_read_only(path: impl AsRef<Path>) -> StoreResult<Self> {
+        let connection = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+        connection.busy_timeout(Duration::from_secs(5))?;
+        Ok(Self { connection })
+    }
+
     /// Opens and migrates one isolated in-memory event store.
     ///
     /// # Errors
@@ -332,6 +346,21 @@ impl SqliteEventStore {
             "SELECT event_ordinal, event_type, event_id, request_id, occurred_at_ms, payload_json \
              FROM gateway_event_log ORDER BY event_ordinal",
             [],
+        )
+    }
+
+    /// Returns at most `limit` events. A caller can request its bounded maximum plus one to detect
+    /// an oversized read without allocating an unbounded vector.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidPersistedGatewayEvent`] if a selected row is malformed.
+    pub fn list_events_bounded(&self, limit: usize) -> StoreResult<Vec<StoredGatewayEvent>> {
+        let limit = i64::try_from(limit).map_err(|_| StoreError::InvalidPersistedGatewayEvent)?;
+        self.load_events(
+            "SELECT event_ordinal, event_type, event_id, request_id, occurred_at_ms, payload_json \
+             FROM gateway_event_log ORDER BY event_ordinal LIMIT ?1",
+            [limit],
         )
     }
 
@@ -1067,6 +1096,26 @@ mod tests {
         assert_eq!(health_events[0].kind(), GatewayEventLogKind::Health);
         store.quick_check()?;
         drop(store);
+        fs::remove_file(database_path)?;
+        Ok(())
+    }
+
+    #[test]
+    fn read_only_store_returns_bounded_events_in_order() -> TestResult {
+        let (_request_id, events) = sample_events()?;
+        let database_path = temporary_path("read-only");
+        {
+            let mut store = SqliteEventStore::open(&database_path)?;
+            assert_eq!(store.append_batch(&events)?, 4);
+        }
+
+        let read_only = SqliteEventStore::open_read_only(&database_path)?;
+        let first_page = read_only.list_events_bounded(2)?;
+        assert_eq!(first_page.len(), 2);
+        assert_eq!(first_page[0].ordinal(), 1);
+        assert_eq!(first_page[1].ordinal(), 2);
+        read_only.quick_check()?;
+        drop(read_only);
         fs::remove_file(database_path)?;
         Ok(())
     }
