@@ -1,0 +1,82 @@
+# Oracle Singapore ARM64 overlay for the migrated /opt/example-autoreg tree.
+# Keep every bind and listener isolated from CPAR's production listeners.
+services:
+  warp:
+    image: caomingjun/warp:latest
+    restart: unless-stopped
+    environment:
+      WARP_SLEEP: 2
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "127.0.0.1:21180:1080"
+
+  privoxy:
+    build:
+      context: ../..
+      dockerfile: deploy/autoreg/Dockerfile.privoxy-arm64
+    image: autoreg-oracle-privoxy:latest
+    restart: unless-stopped
+    depends_on:
+      - warp
+    ports:
+      - "127.0.0.1:24080:8118"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8118 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    restart: unless-stopped
+    environment:
+      LOG_LEVEL: info
+      TZ: Asia/Shanghai
+    ports:
+      - "127.0.0.1:28191:8191"
+    depends_on:
+      - privoxy
+
+  console:
+    build:
+      context: ../..
+      dockerfile: deploy/autoreg/Dockerfile.oracle-arm64
+    working_dir: /workspace
+    command: python /workspace/apps/console/app.py
+    network_mode: host
+    env_file:
+      - /opt/example-autoreg/cloudmail/public-api.env
+      - /opt/example-autoreg/cloudmail/edge-gate.env
+    environment:
+      GROK_REGISTER_SOURCE_DIR: /workspace
+      GROK_REGISTER_PYTHON: /usr/local/bin/python
+      GROK_REGISTER_CONSOLE_HOST: 127.0.0.1
+      GROK_REGISTER_CONSOLE_PORT: 18650
+      GROK_REGISTER_CONSOLE_MAX_CONCURRENT_TASKS: "1"
+      GROK_REGISTER_DEFAULT_RUN_COUNT: "1"
+      GROK_REGISTER_DEFAULT_PROXY: http://127.0.0.1:24080
+      GROK_REGISTER_DEFAULT_BROWSER_PROXY: http://127.0.0.1:24080
+      REGISTER_PROXY: http://127.0.0.1:24080
+      CLEARANCE_ENABLED: "1"
+      FLARESOLVERR_URL: http://127.0.0.1:28191
+      CLEARANCE_PROXY: http://127.0.0.1:24080
+      NO_PROXY: 127.0.0.1,localhost
+      no_proxy: 127.0.0.1,localhost
+      TZ: Asia/Shanghai
+    volumes:
+      - ../..:/workspace
+      - /opt/example-autoreg/cliproxyapi-auths:/opt/example-legacy-gateway/cpa/auths
+      - /opt/example-autoreg/.cache/cloakbrowser:/root/.cloakbrowser
+    restart: unless-stopped
+    depends_on:
+      - warp
+      - privoxy
+      - flaresolverr
+    deploy:
+      resources:
+        limits:
+          cpus: "2.5"
+          memory: 3G
+    shm_size: "1gb"

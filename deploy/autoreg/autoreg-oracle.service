@@ -1,0 +1,19 @@
+[Unit]
+Description=Autoreg console stack on Oracle Singapore (ARM64)
+Documentation=https://github.com/Ricardo121380/cpa-rust-gateway
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+ConditionPathExists=/opt/example-autoreg/project/deploy/autoreg/docker-compose.oracle.yml
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/example-autoreg/project
+ExecStart=/usr/bin/docker compose -p autoreg-oracle -f deploy/autoreg/docker-compose.oracle.yml up -d
+ExecStop=/usr/bin/docker compose -p autoreg-oracle -f deploy/autoreg/docker-compose.oracle.yml down
+TimeoutStartSec=0
+TimeoutStopSec=120
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

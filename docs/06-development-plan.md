@@ -4,11 +4,12 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.195` |
-| 生效日期 | `2026-08-07` |
+| 计划版本 | `v1.234` |
+| 生效日期 | `2026-08-10` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10 与 P11 已完成；P12 正在执行，P12-01 已验收。P7 Kiro OAuth 与 P8 Official API-key E2E 仍延后。 |
-| 当前任务 | P12-10G `DONE`；P12-10H 仍为 `BLOCKED_EXTERNAL_CONSOLE_403`。P12-10I-01 已完成本地实现与 review，状态为 `LOCAL_PASS_PENDING_PHASE_GATE`。P12-10I-02 至 I-06 的既有受控 OAuth/SSO 结果保持不变。P12-10I-08 已将 1 个 Autoreg Build OAuth 加密导入生产 native pool；P12-10I-09 已完成该账号的 Build 原生 probe 与 Console/Web fail-closed shape 验证；P12-10I-10 已完成 Autoreg SSO→Build/Console/Web 的隔离矩阵；P12-10I-11 已闭合 SSO-derived Build。P12-10I-12 已用精确 grok2api 同出口参考确认 Console 为 `BLOCKED_EXTERNAL_EGRESS_WITH_REFERENCE_PARITY`，不修改 CPAR Console。P12-10I-13 已实现 Web 迁移专用的 `min(source expiry, observed+90d)` 本地期限收窄和显式计数，严格 importer 仍拒绝 overlong。P12-10I-14 的 native Web runtime 与 recovery port 已完成本地实现和 review，公共 E2E 仍为 `BLOCKED_WITH_EVIDENCE`。P12-10I-20 的 Chromium Client Hints、账号绑定 refresher 与单次 403 recovery 保持 `LOCAL_PASS_PENDING_PHASE_GATE`；P12-10I-21 的旧样本诊断已由 P12-10I-22 的新 Autoreg task-59 受控复测补充：Console 真实 CPAR HTTP 文本矩阵 `6/6` 通过；Web 使用临时 1 小时租约及双 Cookie 形状，首个 Responses JSON 为 `EgressRejected/egress`（`1/6`），Oracle 直连同源 `403` 而 Jakarta 为 `200`，仍属 Oracle 出口/WAF 阻断。两批账号、隔离 staging 与临时材料已清理，生产 health/active version/Grok account count 不变；全局 90 天安全上限保持不变。 |
+| 当前任务 | P12 继续执行。官方 Codex/ChatGPT 账号渠道统一兼容任意套餐以及 CPA JSON、Sub2API JSON、官方 OAuth 三类凭据，不单列 Go 套餐；生产 Codex、Grok Console 与 Krill 已有真实公共文本回执，Grok Build 当前因凭据不可用待补充。Autoreg 已从 Jakarta 复制并以 ARM64 overlay 在 Oracle Singapore `/opt/example-autoreg` 完成 loopback 健康验收，Jakarta 源端仍在线；下一步只允许在 Oracle 做串行注册 canary，并通过 CPAR 显式 import/provider binding 验证后再决定单活切换。Grok Web 保持搁置，不把 egress/WAF 阻断解释为实现成功。 |
+| 已批准变更（2026-08-10） | `CR-EXEC-008` 语义澄清：仅降低昂贵 Fast/Full/supply-chain/release evidence 的默认运行频率，不限制 branch、push、PR update/review/rebase/merge；现行 workflow 尚未完成 job 解耦，实际 YAML 优化须另开 CR。`CR-P12-AUTOREG-MIGRATE-001`：Autoreg Oracle successor 仅完成 staged/health 验证，Jakarta 源端在线；注册 canary、单活切换和源端退役必须后续独立验收。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -464,9 +465,10 @@ CR-ID: CR-EXEC-007
 3. **一次普通远端交付。** 全部 Task 本地验收后，执行整合本地 full、跨 Crate/契约/Phase-specific
    测试和 Phase review，将结果写入 closeout target，创建注释 `phase-p<phase>-complete` tag，并以
    Phase 分支和 tag 的单次交付事件运行 Fast + Full。tag 通过前，不得开始下一 Phase、合并或发布。
-4. **不重复状态提交。** 正常 Task 不逐个 push、不逐个跑 Code/docs Gate，也不在 tag 通过后为 run ID
-   另建 docs-only 提交。需要记录的远端证据放在 tag、GitHub run/job summary 和下一 Phase 开始时的
-   计划状态中；独立计划文档变更仍可走 docs-only Gate。
+4. **Git 操作与昂贵 Gate 解耦。** 正常 Task 可按协作、备份和 review 需要持续 `git push`、创建或
+   更新 PR、rebase 与 merge；这些 Git 事件本身不应被解释为必须为每个 Task 重跑 Fast/Full。
+   closeout tag 只定义该 Phase 的正式远端验收证据时机，不限制分支同步频率。需要记录的远端证据
+   放在 tag、GitHub run/job summary 和下一 Phase 开始时的计划状态中。
 5. **提前远端例外是窄边界。** CI workflow、cache、required-status、分支/发布控制或其它只能在
    GitHub/目标环境证明的改动，必须在该 Task 后跑一次提前远端 Gate，并在 Task Card 和报告中写明。
    该 Gate 不是普通 Task 的模板；真实 Provider 请求仍只按单独授权和既有调用边界执行。
@@ -479,14 +481,16 @@ CR-ID: CR-EXEC-007
 
 ### 1.12 降低 GitHub 验证频率（CR-EXEC-008）
 
-1. **默认按 P 聚合。** 同一 P 的普通代码 Task 在本地完成定向测试、review、Secret/whitespace
-   检查后，允许继续下一个 Task；不因每个 Task 的 push 单独触发 GitHub workflow。P 分支可以持续
-   保留本地提交，最后统一 push 并创建该 P 的唯一 closeout 事件。
+1. **默认按 P 聚合昂贵 Gate。** 同一 P 的普通代码 Task 在本地完成定向测试、review、Secret/
+   whitespace 检查后，允许继续下一个 Task；分支可按需要持续 push、创建或更新 PR 并接受 review，
+   不把这些 Git 操作等同于每个 Task 必须单独运行 Fast/Full/supply-chain。P closeout 只聚合正式
+   远端验收证据，不要求把中间提交只留在本机。
 2. **每个 P 只跑一次正式远端 Gate。** P closeout 的一次 GitHub Delivery Gate 执行 Fast、Full
    supply-chain 和 Required delivery 检查，并作为该 P 的唯一远端验收证据。失败时冻结下一 P，修复
    后只重跑失败的同一个 P closeout，不回退到每个 Task 逐个验证。
-3. **文档不触发远端。** 纯计划、报告、索引、状态和链接修订默认只做本地 docs gate；不单独 push
-   或启动 GitHub workflow。若该文档是 P closeout 的一部分，随 P 的唯一 closeout 提交一起验证。
+3. **文档不单独触发昂贵 Gate。** 纯计划、报告、索引、状态和链接修订默认只做本地 docs gate；
+   可以正常 push、发起 PR 或合并，但不因此运行 Fast/Full/supply-chain。若文档是 P closeout 的
+   一部分，随该 P 的正式 closeout evidence 一起验证。
 4. **必须提前验证的例外。** 只有 workflow、cache、required-status、分支保护、发布制品、依赖锁、
    Schema/迁移、安全策略或目标环境行为等无法由本地证明的变更，才允许在 P 中途触发一次提前 GitHub
    Gate；Task Card 必须写明原因、范围和回滚边界。提前 Gate 通过后，P closeout 仍可复用同一 SHA 的
@@ -494,13 +498,16 @@ CR-ID: CR-EXEC-007
 5. **本地门禁不削弱。** 降低 GitHub 频率不等于降低测试频率：每个 Task 仍需本地定向测试和 review；
    P closeout 前必须运行一次本地完整 gate。真实 Provider、部署和签名制品仍按各自授权与发布边界
    执行，不能用更少的 GitHub run 替代这些证据。
-6. **触发与分支纪律。** 普通 P 分支开发期间不主动请求 workflow；closeout 使用固定命名的 P tag 或
-   明确的 closeout commit 触发一次。若仓库保护规则要求每次 push 检查，则不绕过保护，而是把中间
-   提交留在本地，最后一次性 push；本地检查结果和提交清单随 closeout receipt 保存。
+6. **触发与分支纪律。** 普通 P 分支可随时 push、更新 PR、review、rebase 或 merge；closeout 使用
+   固定命名的 P tag 或明确的 closeout commit 触发一次昂贵 Gate。受保护分支需要 required status 时
+   仍正常执行该必要检查，不绕过 branch protection。现有 `.github/workflows/ci.yml` 仍会在所有 PR、
+   `main` push 与 Phase tag 上运行；因此“Git 操作与昂贵 Gate 解耦”是执行政策目标，若要实际减少
+   runner minutes，必须另开 workflow CR，把轻量 required check 与 tag/manual 的昂贵 Gate 拆分后
+   再声称 YAML 已实现该策略。
 
-该变更预计将 GitHub workflow 次数从“每次修复/阶段提交一次”降为“每个 P 一次，外加极少数不可
-本地证明的提前例外”。安全、依赖、发布和生产边界证据保持不变；代价是 P 中途的远端回归发现会延后
-到 closeout，必须依靠本地门禁和 review 控制风险。
+该变更预计将昂贵 GitHub Gate run 从“每次修复/阶段提交一次”降为“每个 P 一次，外加极少数不可
+本地证明的提前例外”，但不减少 push、PR 更新或 merge 频率。安全、依赖、发布和生产边界证据保持
+不变；代价是 P 中途的远端回归发现会延后到 closeout，必须依靠本地门禁和 review 控制风险。
 
 ### 已批准 Change Request：CR-P6-03-001
 
@@ -1396,8 +1403,9 @@ deploy/
 - 一个分支只承载一个未完成 Phase 的顺序 Task 与其测试修复；每个 Task 保持独立提交，不因共用分支
   而合并范围、跳过 review 或跨 Phase 混入功能。
 - Commit 标题以 Task ID 开头，例如 `P1-03: add canonical event state machine`。
-- 普通 Phase 只在 closeout 时上传 Phase 分支并创建带说明的阶段 Tag，例如 `phase-p3-complete`；该
-  单次交付触发 Fast + Full。提前远端例外只能按 `CR-EXEC-007` 记录并运行。
+- 普通 Phase 分支可按协作需要持续 push、更新 PR、review、rebase 或 merge；closeout 时创建带说明的
+  阶段 Tag，例如 `phase-p3-complete`，以触发该 Phase 唯一的正式 Fast + Full evidence。提前昂贵
+  Gate 例外只能按 `CR-EXEC-007` 记录并运行。
 - Release 使用 SemVer，首个服务器候选版本从 `v0.1.0-alpha.1` 开始。
 - 不提交 `.env`、真实数据库、Token、Cookie、OAuth JSON 或生产日志。
 
@@ -1848,6 +1856,27 @@ CR-ID: CR-P11-04-001
 | P12-10I-20 | 移植 grok2api Web 浏览器轮廓与受控 403 egress recovery 边界 | [receipt](reports/evidence/p12-10i-20-grok-web-recovery-port-receipt-20260806.md) 与 [review](reports/evidence/p12-10i-20-grok-web-recovery-port-review-20260806.md)：Chromium Client Hints、账号绑定 refresher 注入点、单次 403 recovery 与 13/13 provider 定向回归通过；未启动 FlareSolverr/真实代理轮换，未声称公共 HTTP 成功 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P12-10I-21 | Console/Web 真实 CPAR HTTP 诊断与源池期限检查 | [receipt](reports/evidence/p12-10i-21-grok-console-web-cpar-receipt-20260807.md) 与 [review](reports/evidence/p12-10i-21-grok-console-web-cpar-review-20260807.md)：五个非邻接 Console SSO 样本均通过 CPAR `/v1/models` 但首个 Responses 为 `CredentialUnauthorized/credential`；898 个 Web 源账号无可验证 expiry，Web 预导入 fail closed；隔离回滚与生产不变性通过 | BLOCKED_WITH_EVIDENCE |
 | P12-10I-22 | Autoreg 新注册账号的 Web/Console 真实 CPAR 文本复测 | [receipt](reports/evidence/p12-10i-22-autoreg-fresh-web-console-cpar-receipt-20260807.md) 与 [review](reports/evidence/p12-10i-22-autoreg-fresh-web-console-cpar-review-20260807.md)：Console 通过 CPAR Base URL + client key 完成 Responses/Chat/Messages × JSON/SSE `6/6`；Web 临时一小时租约与双 Cookie 形状导入通过，但首个 Responses JSON 为 `EgressRejected/egress`（`1/6`），Oracle 同源直连 `403`、Jakarta `200`；回滚与生产不变性通过 | BLOCKED_WITH_EVIDENCE |
+
+#### Autoreg Oracle 迁移与账号供应边界（`CR-P12-AUTOREG-MIGRATE-001`）
+
+1. **源端保留。** 先冻结并复制 Jakarta 的已知项目 revision、脏工作树、console SQLite/tasks/runtime、
+   CloudMail 配置与独立 auth pool；不得因迁移删除源数据或先停源服务。当前已完成复制，Jakarta
+   predecessor 仍在线，作为回滚窗口。
+2. **Oracle ARM64 安装。** 在 `/opt/example-autoreg` 使用独立路径与 loopback listener 安装 ARM64
+   Playwright/CloakBrowser、WARP、Privoxy、FlareSolverr 和 console；此阶段只验证服务/认证/健康，
+   不向 CPAR 生产池自动导入账号。当前 Oracle systemd 与四个容器已通过该阶段；复制数据库中继承的
+   inspection scheduler 已在 Oracle 副本上 fence 为 `enabled=false`，Jakarta 仍是唯一写入权威。
+3. **隔离账号 canary。** 新注册或重新认证只服务 Grok Build OAuth、Console SSO 和 Web session 的
+   受控 replenishment；Autoreg 不是上游数据面，也不是渠道可用性证据。每批必须串行、有界、shape/
+   expiry fail-closed，凭证通过受控内存管道与 CPAR AEAD import 进入明确的 Provider batch；禁止双活
+   scheduler、静默合池、跨 Provider 转换或把 WAF/egress 拒绝解释为可绕过限制。
+4. **单活切换。** 只有 operator 接受 Oracle canary 和 CPAR 显式导入回执后，才可停止 Jakarta
+   scheduler/service 并进入 Oracle 单活。回滚为停止/禁用 Oracle scheduler，恢复 Jakarta 已知良好
+   service/config/DB/cursor，并回滚本次 CPAR batch/route links；外部已经注册的账号不能假装撤销，
+   应 quarantine，或在上游支持时 revoke，并仅记录 value-free 计数。
+
+整个迁移不得修改 CPAR active Config Version、生产 credential pool、Caddy、DNS、旧 CPA、CC Switch
+或 grok2api，除非后续另有明确 CR。当前状态为第 2 阶段完成、源端保留；尚未执行单活切换。
 
 #### P12-08 兼容性补全切片（`CR-P12-COMPAT-001`）
 
@@ -3358,6 +3387,17 @@ CR-ID: CR-P12-PORT-001
   - 出现 Secret 泄漏、数据库损坏、流重复或错误跨账号连续性。
   - 无法用 Route Explain 解释实际选路。
 
+#### 历史 Canary/G12 决策锚点（仅供审计，已不再是当前硬门槛）
+
+审计锚点 A：`切换后 CPAR 全量观察至少 72h，成功请求不少于 1250`。
+审计锚点 B：`无 P0/P1 故障（按上表分级判定）`。
+
+为保持旧版统计推导和 checker 的可追溯性，以下原始决策文字必须保留，但不应被解释为当前
+P12-10 收口条件：不执行 10%→25%→50%→100% 百分比或按 Key 分流；切换后 CPAR 全量观察至少
+72h，成功请求不少于 1250；合成补足请求单独计数；G12 通过后停止并禁用旧 CPA；无 P0/P1 故障
+（按上表分级判定）。`CR-P12-10I-023` 已明确将 72h/1250 降级为可选运维观察，当前收口只采用
+短时真实 JSON/SSE、健康/路由/数据库、回滚和脱敏 review；该历史锚点不重新启用长时硬门槛。
+
 #### 判据信号的实际来源
 
 判据不得引用不存在的指标。当前 Prometheus 暴露面只有 7 个计数器
@@ -3444,8 +3484,9 @@ secret scan
 changed-doc link check
 ```
 
-普通代码 Task 不逐个触发 GitHub Gate；CI/workflow/cache/required-status 的窄例外按 `CR-EXEC-007`
-提前验证。纯报告、索引或计划状态变更使用 `docs-only` Gate：Markdown/格式、文档链接、Secret
+普通代码 Task 不逐个触发昂贵 GitHub Gate，但 push、PR 更新、review、rebase 和 merge 可按需要
+进行；CI/workflow/cache/required-status 的窄例外按 `CR-EXEC-007` 提前验证。纯报告、索引或计划
+状态变更使用 `docs-only` Gate：Markdown/格式、文档链接、Secret
 scan 和计划一致性检查。它不能以未执行的 Rust/供应链检查冒充代码 Full Gate；具体 workflow 分类、
 required-status 与 P 级 trigger/cache 行为由 P4-00 的既有基础和 P5-00 共同验证。
 
@@ -3741,3 +3782,4 @@ Next task:
 | v1.231 | 2026-08-09 | `CR-P12-CODEX-PUBLIC-SSE-DIAG-001`：按 CLIProxyAPI/Sub2API 对照确认三者均对无终止事件 EOF fail-closed；同一 staging 凭据的三组 Codex identity A/B 共 6/6 直连 HTTP 200 且含 `response.completed`，删除被上游拒绝的根级 `max_output_tokens` 后通过。真实 CPAR staging 经 Caddy 默认与显式 `flush_interval -1` 各 2/2 完成；公网当前测试 key 的 `/v1/models` 为 200，但 loopback/公网推理均在 SSE 前同为 `CredentialUnavailable` 503，故当前不是 framing 证据。生产未改动、无 GitHub CI；下一步需单独确认后刷新/替换生产 OAuth，再做一次短公网 SSE 验收 | `CR-P12-CODEX-PUBLIC-SSE-DIAG-001` `DONE_WITH_PROD_CREDENTIAL_BOUNDARY`; evidence: [`p12-codex-public-sse-diagnosis-20260809.md`](reports/evidence/p12-codex-public-sse-diagnosis-20260809.md)
 | v1.232 | 2026-08-09 | `CR-P12-CODEX-OAUTH-004`：修正生产 Codex OAuth 上游选择，明确禁止复用 Krill/API-key endpoint；按 CPA/Sub2API 的官方 OAuth 轮廓将 active graph 切换为独立的官方 ChatGPT Codex Responses endpoint，使用账号绑定头、Codex 身份头、`store:false`、强制 upstream SSE 和受控 reasoning-suppressed decoder。Chat/Responses/Messages 通过显式 `lossless_bridge` 投影；Chat 候选额外移除不可表示的 reasoning capability，避免发布门禁误选或泄漏私有 reasoning。凭证通过管理面按新 Config Version 重新加密，避免版本绑定 AAD 导致运行时拒绝。Oracle Singapore service active；真实公网 CPAR `/v1/models`=200，三协议 JSON 与 SSE 均 HTTP 200（SSE 帧计数 9/4/6）；本地 fmt、provider/gateway focused tests、strict Clippy 全通过。旧 CPA、Caddy、DNS、grok2api 与 GitHub CI 均未改动 | `CR-P12-CODEX-OAUTH-004` `DONE`; evidence: [`p12-codex-official-endpoint-switch-20260809.md`](reports/evidence/p12-codex-official-endpoint-switch-20260809.md)
 | v1.233 | 2026-08-10 | `CR-P12-PROD-CHANNEL-ADD-001`：在 Oracle Singapore 创建 successor Config Version `p12-09-codex-official-oauth-v6`，将下午验证的 ChatGPT Go Sub2API OAuth 导入独立官方 Codex pool，同时加入 native Grok Build/Console routes，并保持 Krill 为独立 upstream/credential/egress/失败域。真实公网 CPAR 回执：ChatGPT Go JSON/SSE `2/2`、Grok Console JSON/SSE `2/2`；Krill 在 candidate 修正为兼容 Chat endpoint + canonical bridge 后，三协议 JSON/SSE `6/6`。Grok Build route 已入生产图，但现有唯一 Build credential 已过期，公共 JSON/SSE `0/2`，固定类别 `CredentialUnavailable/credential`，未发出上游请求；不得把它标为生产可用。服务 active、listener 仅 loopback、SQLite `quick_check=ok`/FK=0，临时脚本/明文 OAuth export/grok2api debug 进程已清理；本轮不触发 GitHub CI 或 push | `CR-P12-PROD-CHANNEL-ADD-001` `DEPLOYED_WITH_BUILD_CREDENTIAL_BLOCKER`; evidence: [`p12-production-channel-add-20260810.md`](reports/evidence/p12-production-channel-add-20260810.md)
+| v1.234 | 2026-08-10 | `CR-P12-AUTOREG-MIGRATE-001`：将 Autoreg 从 Jakarta VPS 复制到 Oracle Singapore ARM64 的 `/opt/example-autoreg`，保留原项目脏工作树、console SQLite/tasks/runtime 与独立 CPA auth pool；Oracle 使用 ARM64 Playwright/CloakBrowser、WARP、源码同形 Privoxy 和 FlareSolverr，console 仅 loopback `127.0.0.1:18650`，systemd `autoreg-oracle.service` 已启用。Oracle 依赖 healthy，受保护 console login 后 `/api/health`、`/api/meta`、`/api/platforms` 均 200；Jakarta 源端继续运行，未改 CPAR/旧 CPA/Caddy/DNS/CC Switch，也未把账号池静默合并进 CPAR。Autoreg 作为 Grok 账号注册/重新认证工具，后续生成凭证必须通过 CPAR 显式导入边界进入对应 native pool，不按套餐名称区分官方账号渠道。GitHub 规则同步收紧的是昂贵 Actions 验证触发：日常本地 gate、分支创建、`git push`、PR 创建/更新和 merge 频率不受限制；仅在阶段收口、受保护 merge gate 或手动批准时运行一次 Fast/Full/release evidence，push/merge 仍按开发需要正常进行 | `CR-P12-AUTOREG-MIGRATE-001` `ORACLE_STAGED_VALIDATED_SOURCE_ONLINE`; evidence: [`autoreg-oracle-migration-20260810.md`](reports/evidence/autoreg-oracle-migration-20260810.md) |

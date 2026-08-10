@@ -1,0 +1,12 @@
+# ARM64-compatible Privoxy sidecar for the migrated Autoreg stack.
+FROM debian:bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends privoxy netcat-openbsd ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY deploy/privoxy-warp.conf /etc/privoxy/config
+
+CMD ["privoxy", "--no-daemon", "/etc/privoxy/config"]
