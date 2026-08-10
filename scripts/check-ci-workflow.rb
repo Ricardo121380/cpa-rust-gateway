@@ -89,6 +89,9 @@ errors << "ci code job must pin NPM_VERSION to a full semver" unless npm_version
 setup_node_steps = code_steps.select do |step|
   step.is_a?(Hash) && step["uses"].is_a?(String) && step["uses"].start_with?("actions/setup-node@")
 end
+setup_node_index = code_steps.index do |step|
+  step.is_a?(Hash) && step["uses"].is_a?(String) && step["uses"].start_with?("actions/setup-node@")
+end
 if setup_node_steps.length != 1
   errors << "ci code job must have exactly one actions/setup-node step"
 else
@@ -110,6 +113,11 @@ version_check_index = code_steps.index do |step|
 end
 if version_check_index.nil?
   errors << "ci code job must verify the pinned Node.js and npm versions"
+else
+  version_check_run = code_steps.fetch(version_check_index).fetch("run")
+  unless version_check_run.include?("v${NODE_VERSION}") && version_check_run.include?("$NPM_VERSION")
+    errors << "ci code job version check must compare against NODE_VERSION and NPM_VERSION"
+  end
 end
 
 npm_install_index = code_steps.index do |step|
@@ -122,6 +130,13 @@ if npm_install_index.nil?
 else
   npm_step = code_steps.fetch(npm_install_index)
   assert_equal(errors, "ci npm install working-directory", "web/admin-ui", npm_step["working-directory"])
+end
+
+if setup_node_index && npm_install_index && setup_node_index >= npm_install_index
+  errors << "ci setup-node must precede npm install"
+end
+if setup_node_index && version_check_index && setup_node_index >= version_check_index
+  errors << "ci setup-node must precede its Node.js/npm version check"
 end
 
 cargo_indices = code_steps.each_index.select do |index|
