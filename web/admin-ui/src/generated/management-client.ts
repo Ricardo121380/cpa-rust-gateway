@@ -858,6 +858,49 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "listOperationalAccountPools": {
+    "method": "GET",
+    "path": "/admin/operations/account-pools",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "provider_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "channel_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "account_status",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "enabled",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "listPublicModels": {
     "method": "GET",
     "path": "/admin/public-models",
@@ -1620,6 +1663,10 @@ export class ManagementApi {
 
   listManagementAuditEvents(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listManagementAuditEvents", request);
+  }
+
+  listOperationalAccountPools(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listOperationalAccountPools", request);
   }
 
   listPublicModels(request: ManagementRequest = {}): Promise<Response> {

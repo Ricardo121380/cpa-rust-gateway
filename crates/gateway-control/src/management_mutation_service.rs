@@ -33,6 +33,10 @@ pub use gateway_store::{
 
 use crate::{
     control_plane_service::{ControlPlaneServiceError, credential_associated_data},
+    management_operations_service::{
+        ManagementOperationsError, OperationalAccountPoolPage, OperationalAccountPoolQuery,
+        compile_operational_account_pool_page,
+    },
     management_service::{
         ManagementActor, ManagementClock, ManagementClockError, SystemManagementClock,
     },
@@ -986,6 +990,26 @@ impl ManagementMutationService {
             bindings,
             ConfigRevision::try_new(configuration.version.revision)?,
         ))
+    }
+
+    /// Returns a stable secret-free page of configured Provider/Channel/Account bindings.
+    ///
+    /// This read projects only the caller-selected Config Version. It does not decrypt a
+    /// Credential, contact a Provider, or reinterpret durable state as live health or quota.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the Version is absent, the query or persisted revision is invalid,
+    /// a cursor belongs to another graph revision, or a binding violates Provider ownership.
+    pub fn list_operational_account_pools(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        query: &OperationalAccountPoolQuery,
+    ) -> Result<Revisioned<OperationalAccountPoolPage>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let revision = ConfigRevision::try_new(configuration.version.revision)?;
+        let page = compile_operational_account_pool_page(&configuration, query)?;
+        Ok(Revisioned::new(page, revision))
     }
 
     /// Creates one exact Endpoint/Credential binding using an exact draft revision.
@@ -2012,6 +2036,8 @@ pub enum ManagementResourceError {
     InvalidCredentialInput,
     /// A concurrent credential update advanced the record revision.
     CredentialRevisionConflict,
+    /// The P13 operational read-model query, cursor, or source graph was invalid.
+    Operations(ManagementOperationsError),
 }
 
 impl fmt::Display for ManagementResourceError {
@@ -2044,6 +2070,7 @@ impl fmt::Display for ManagementResourceError {
             Self::CredentialRevisionConflict => {
                 formatter.write_str("management credential revision conflict")
             }
+            Self::Operations(error) => write!(formatter, "management operations failed: {error}"),
         }
     }
 }
@@ -2056,6 +2083,7 @@ impl Error for ManagementResourceError {
             Self::ControlPlane(error) => Some(error),
             Self::Clock(error) => Some(error),
             Self::ClientKey(error) => Some(error),
+            Self::Operations(error) => Some(error),
             Self::ConfigVersionNotFound
             | Self::ResourceNotFound
             | Self::InvalidRevision
@@ -2093,6 +2121,12 @@ impl From<ManagementClockError> for ManagementResourceError {
 impl From<ClientKeyError> for ManagementResourceError {
     fn from(value: ClientKeyError) -> Self {
         Self::ClientKey(value)
+    }
+}
+
+impl From<ManagementOperationsError> for ManagementResourceError {
+    fn from(value: ManagementOperationsError) -> Self {
+        Self::Operations(value)
     }
 }
 

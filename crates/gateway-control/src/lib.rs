@@ -12,6 +12,8 @@ pub mod egress_policy_compiler;
 pub mod management_backup_service;
 /// Versioned draft-resource mutations used by the protected P10 management HTTP surface.
 pub mod management_mutation_service;
+/// Secret-free, version-scoped operational read models for the management surface.
+pub mod management_operations_service;
 /// Local transport-neutral lifecycle API for configuration validation and publication.
 pub mod management_service;
 /// Semantic Config Version validation and secret-free Route compilation.

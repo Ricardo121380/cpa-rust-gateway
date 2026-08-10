@@ -29,6 +29,11 @@ use gateway_control::management_mutation_service::{
     RouteCandidateConfiguration, RoutePolicy, StoreError, StoredClientKeyStatus,
     StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
 };
+use gateway_control::management_operations_service::{
+    DEFAULT_ACCOUNT_POOL_LIMIT, MAX_ACCOUNT_POOL_LIMIT, ManagementOperationsError,
+    OperationalAccountPoolCursor, OperationalAccountPoolItem, OperationalAccountPoolPage,
+    OperationalAccountPoolQuery,
+};
 use gateway_core::{
     AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, PublicModelId, RequestId,
     RouteCandidateId, RouteId, UpstreamId,
@@ -1466,6 +1471,7 @@ fn resource_routes(config: &mut web::ServiceConfig) {
     configure_upstream_resource_routes(config);
     configure_routing_resource_routes(config);
     configure_runtime_resource_routes(config);
+    configure_operations_resource_routes(config);
 }
 
 /// Registers only the P10 resource paths inside an already protected management scope.
@@ -1665,6 +1671,13 @@ fn configure_runtime_resource_routes(config: &mut web::ServiceConfig) {
             "/requests/{request_id}/attempts",
             web::get().to(list_request_attempts),
         );
+}
+
+fn configure_operations_resource_routes(config: &mut web::ServiceConfig) {
+    config.route(
+        "/operations/account-pools",
+        web::get().to(list_operational_account_pools),
+    );
 }
 
 #[derive(Deserialize)]
@@ -2161,6 +2174,138 @@ struct RequestAttemptResponse {
     endpoint_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     credential_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OperationalAccountPoolQueryParams {
+    provider_id: Option<String>,
+    channel_id: Option<String>,
+    account_status: Option<String>,
+    enabled: Option<bool>,
+    limit: Option<usize>,
+    cursor: Option<String>,
+}
+
+#[derive(Serialize)]
+struct OperationalAccountPoolPageResponse {
+    config_version_id: String,
+    revision: i64,
+    items: Vec<OperationalAccountPoolItemResponse>,
+    next_cursor: Option<String>,
+}
+
+#[derive(Serialize)]
+#[allow(clippy::struct_excessive_bools)]
+struct OperationalAccountPoolItemResponse {
+    provider_id: String,
+    provider_name: String,
+    provider_kind: String,
+    provider_enabled: bool,
+    egress_policy_id: Option<String>,
+    channel_id: String,
+    adapter_id: String,
+    api_format: String,
+    transport: &'static str,
+    channel_enabled: bool,
+    account_id: String,
+    account_kind: String,
+    account_status: &'static str,
+    account_revision: i64,
+    binding_enabled: bool,
+    configured_enabled: bool,
+    priority: i64,
+    weight: i64,
+    concurrency: i64,
+    route_ids: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OperationalAccountPoolCursorWire {
+    config_version_id: String,
+    revision: i64,
+    provider_id: String,
+    channel_id: String,
+    account_id: String,
+}
+
+async fn list_operational_account_pools(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let params =
+        match web::Query::<OperationalAccountPoolQueryParams>::from_query(request.query_string()) {
+            Ok(params) => params.into_inner(),
+            Err(_) => return invalid_input(),
+        };
+    let cursor = match params.cursor.as_deref() {
+        Some(value) if value.len() <= 2048 => decode_operational_account_pool_cursor(value),
+        Some(_) => Err(ManagementOperationsError::InvalidQuery),
+        None => Ok(None),
+    };
+    let cursor = match cursor {
+        Ok(cursor) => cursor,
+        Err(error) => return management_error(ManagementResourceError::from(error)),
+    };
+    let provider_id = match params.provider_id {
+        Some(value) => match operational_query_id(value)
+            .and_then(|value| UpstreamId::try_new(value).map_err(|_| invalid_input()))
+        {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let channel_id = match params.channel_id {
+        Some(value) => match operational_query_id(value)
+            .and_then(|value| EndpointId::try_new(value).map_err(|_| invalid_input()))
+        {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let account_status = match params.account_status {
+        Some(value) => match operational_account_status(&value) {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let limit = params.limit.unwrap_or(DEFAULT_ACCOUNT_POOL_LIMIT);
+    if limit == 0 || limit > MAX_ACCOUNT_POOL_LIMIT {
+        return invalid_input();
+    }
+    let query = match OperationalAccountPoolQuery::try_new(
+        provider_id,
+        channel_id,
+        account_status,
+        params.enabled,
+        limit,
+        cursor,
+    ) {
+        Ok(query) => query,
+        Err(error) => return management_error(ManagementResourceError::from(error)),
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_operational_account_pools(&context.version, &query) {
+        Ok(value) => {
+            let (page, revision) = value.into_parts();
+            match operational_account_pool_page_response(page) {
+                Ok(response) => response_with_revision(StatusCode::OK, revision, response),
+                Err(response) => response,
+            }
+        }
+        Err(error) => management_error(error),
+    }
 }
 
 async fn list_egress_policies(
@@ -4840,6 +4985,16 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
             "management_credential_revision_conflict",
             "Credential changed",
         ),
+        ManagementResourceError::Operations(ManagementOperationsError::CursorVersionConflict) => {
+            error_response(
+                StatusCode::CONFLICT,
+                "management_operations_cursor_conflict",
+                "Management inventory changed",
+            )
+        }
+        ManagementResourceError::Operations(ManagementOperationsError::InvalidQuery) => {
+            invalid_input()
+        }
         ManagementResourceError::InvalidRevision
         | ManagementResourceError::InvalidCredentialInput => invalid_input(),
         ManagementResourceError::Store(_)
@@ -4847,7 +5002,10 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
         | ManagementResourceError::ControlPlane(_)
         | ManagementResourceError::Clock(_)
         | ManagementResourceError::ClientKey(_)
-        | ManagementResourceError::ClientKeyIssuerUnavailable => internal_error(),
+        | ManagementResourceError::ClientKeyIssuerUnavailable
+        | ManagementResourceError::Operations(
+            ManagementOperationsError::InconsistentConfiguration,
+        ) => internal_error(),
     };
     drop(error);
     response
@@ -5071,6 +5229,138 @@ const fn client_key_status_response(value: StoredClientKeyStatus) -> &'static st
         StoredClientKeyStatus::Active => "active",
         StoredClientKeyStatus::Disabled => "disabled",
         StoredClientKeyStatus::Revoked => "revoked",
+    }
+}
+
+fn operational_account_status(value: &str) -> Result<CredentialStatus, HttpResponse> {
+    match value {
+        "active" => Ok(CredentialStatus::Active),
+        "cooling" => Ok(CredentialStatus::Cooling),
+        "unauthorized" => Ok(CredentialStatus::Unauthorized),
+        "disabled" => Ok(CredentialStatus::Disabled),
+        _ => Err(invalid_input()),
+    }
+}
+
+fn operational_query_id(value: String) -> Result<String, HttpResponse> {
+    bounded_text(value, 128)
+}
+
+fn operational_account_status_response(value: CredentialStatus) -> &'static str {
+    match value {
+        CredentialStatus::Active => "active",
+        CredentialStatus::Cooling => "cooling",
+        CredentialStatus::Unauthorized => "unauthorized",
+        CredentialStatus::Disabled => "disabled",
+    }
+}
+
+fn operational_transport_response(value: EndpointTransport) -> &'static str {
+    match value {
+        EndpointTransport::Http => "http",
+        EndpointTransport::Sse => "sse",
+        EndpointTransport::Websocket => "websocket",
+    }
+}
+
+fn encode_operational_account_pool_cursor(
+    cursor: &OperationalAccountPoolCursor,
+) -> Result<String, HttpResponse> {
+    let wire = OperationalAccountPoolCursorWire {
+        config_version_id: cursor.config_version_id().to_owned(),
+        revision: cursor.revision(),
+        provider_id: cursor.provider_id().as_str().to_owned(),
+        channel_id: cursor.channel_id().as_str().to_owned(),
+        account_id: cursor.account_id().as_str().to_owned(),
+    };
+    serde_json::to_vec(&wire)
+        .map(|bytes| URL_SAFE_NO_PAD.encode(bytes))
+        .map_err(|_| internal_error())
+}
+
+fn decode_operational_account_pool_cursor(
+    value: &str,
+) -> Result<Option<OperationalAccountPoolCursor>, ManagementOperationsError> {
+    if value.is_empty() {
+        return Err(ManagementOperationsError::InvalidQuery);
+    }
+    let bytes = URL_SAFE_NO_PAD
+        .decode(value)
+        .map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    let wire: OperationalAccountPoolCursorWire =
+        serde_json::from_slice(&bytes).map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    if wire.config_version_id.is_empty()
+        || wire.config_version_id.chars().count() > 128
+        || wire.provider_id.chars().count() > 128
+        || wire.channel_id.chars().count() > 128
+        || wire.account_id.chars().count() > 128
+    {
+        return Err(ManagementOperationsError::InvalidQuery);
+    }
+    let provider_id = UpstreamId::try_new(wire.provider_id)
+        .map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    let channel_id = EndpointId::try_new(wire.channel_id)
+        .map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    let account_id = CredentialId::try_new(wire.account_id)
+        .map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    OperationalAccountPoolCursor::try_new(
+        wire.config_version_id,
+        wire.revision,
+        provider_id,
+        channel_id,
+        account_id,
+    )
+    .map(Some)
+}
+
+fn operational_account_pool_page_response(
+    value: OperationalAccountPoolPage,
+) -> Result<OperationalAccountPoolPageResponse, HttpResponse> {
+    let next_cursor = value
+        .next_cursor
+        .as_ref()
+        .map(encode_operational_account_pool_cursor)
+        .transpose()?;
+    Ok(OperationalAccountPoolPageResponse {
+        config_version_id: value.config_version_id,
+        revision: value.revision,
+        items: value
+            .items
+            .into_iter()
+            .map(operational_account_pool_item_response)
+            .collect(),
+        next_cursor,
+    })
+}
+
+fn operational_account_pool_item_response(
+    value: OperationalAccountPoolItem,
+) -> OperationalAccountPoolItemResponse {
+    OperationalAccountPoolItemResponse {
+        provider_id: value.provider_id.as_str().to_owned(),
+        provider_name: value.provider_name,
+        provider_kind: value.provider_kind,
+        provider_enabled: value.provider_enabled,
+        egress_policy_id: value.egress_policy_id.map(|id| id.as_str().to_owned()),
+        channel_id: value.channel_id.as_str().to_owned(),
+        adapter_id: value.adapter_id,
+        api_format: value.api_format,
+        transport: operational_transport_response(value.transport),
+        channel_enabled: value.channel_enabled,
+        account_id: value.account_id.as_str().to_owned(),
+        account_kind: value.account_kind,
+        account_status: operational_account_status_response(value.account_status),
+        account_revision: value.account_revision,
+        binding_enabled: value.binding_enabled,
+        configured_enabled: value.configured_enabled,
+        priority: value.priority,
+        weight: value.weight,
+        concurrency: value.concurrency,
+        route_ids: value
+            .route_ids
+            .into_iter()
+            .map(|id| id.as_str().to_owned())
+            .collect(),
     }
 }
 

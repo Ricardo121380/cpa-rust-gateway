@@ -157,6 +157,12 @@
 | P12-06 | Plan 18；docs/04 Kiro 渠道参考 | [BC-PROTOCOL-007](contracts/BC-PROTOCOL-007-api-format-adapter-registry.md)（放宽为一格式多适配器）、`CR-P12-06-003`（取证范围）、`CR-P12-06-004`（Kiro 接线） | `ApiFormat::adapter_ids()` 取代唯一 `adapter_id()`，发布期与装配期同表判定集合成员；`ApiFormatAdapterRegistry` 改按 `adapter_id` 索引并拒绝跨格式绑定；新增 `kiro.messages` 适配器与 `apps/gateway` 的 provider-kiro 边（经其重导出消费 Provider trait，不新增 gateway-provider 边）；Kiro Endpoint 的 host+path 必须等于 policy 由 kind/Region 派生的 URL | `gateway-protocol`/`gateway-control`/`gateway` 定向测试与全量 clippy 通过；覆盖同格式双适配器解析、跨格式借用被拒、未知 adapter_id 被拒、ide/cli 派生与外来 host 被拒 | IN_PROGRESS（接线完成，Kiro 取证与性能基线待执行） |
 | P12-08 | Plan 18 Canary 规则与 G12 门禁 | `CR-P12-ROLLOUT-001`（分流机制）、`CR-P12-08-001`（样本量、严重度分级、可观测性口径） | 阶段门槛按 1pp 触发阈值反推为 1250 并给出基线样本量表；50% 阶段 24h；四级严重度分级；判据信号来源表明确 TTFT/P95 服务端不可观测；`scripts/check-p12-08-canary-thresholds.rb` 重算统计并断言分级与口径未被静默改动 | [Runbook §7 Canary 阶段判据](p12-rollout-runbook.md)；`check.sh docs` 通过，四类回归注入均被拒 | PENDING（判据已定，执行待 P12-06/P12-07） |
 
+## P13 追踪
+
+| Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
+|---|---|---|---|---|---|
+| P13-04A | Plan 19；`CR-P13-001`；P10 management baseline | [ADR-0076](adr/ADR-0076-provider-aware-management-inventory.md)、[BC-MGMT-009](contracts/BC-MGMT-009-provider-aware-operational-inventory.md) | 已实现 `GET /admin/operations/account-pools`：选定 Config Version 的 Provider/Channel/Account/Binding/Route typed read projection、过滤和 revision-bound keyset pagination；不含 Secret/URL/live state，不调用 Provider | [P13-04A report](reports/p13-04a-management-operational-inventory.md)（本地实现、review 与 focused gates 通过；phase gate pending） | LOCAL_PASS_PENDING_PHASE_GATE |
+
 ## 后续 Phase 映射
 
 | 矩阵模块 | 主要 Phase |
@@ -168,10 +174,10 @@
 | E 凭据与错误 | P2-P9 |
 | F Thinking 与缓存 | P5-P9 |
 | G 可观测性 | P3、P4、P10、P11 |
-| H Management | P2、P4、P10 |
+| H Management | P2、P4、P10、P13 |
 | I 插件 | Release 1 Drop/Deferred |
 | J 配置与部署 | P0、P2、P10-P12 |
 | K 性能 | P1、P3、P11 |
-| L 上游聚合 | P2-P5；延后项进入 P13 |
+| L 上游聚合 | P2-P5；Provider-aware 管理扩展进入 P13 |
 
 具体 Task 开始时在本文件新增或更新一行；若无法映射到权威来源，必须先创建 Change Request。
