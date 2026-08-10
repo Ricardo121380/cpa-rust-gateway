@@ -621,10 +621,11 @@ impl AttemptOrchestrator {
 
             let (selection, quota_probe) = match self
                 .scheduler
-                .select_eligible_and_lease_with_runtime_health_quota_and_binding(
+                .select_eligible_and_lease_with_runtime_health_quota_and_binding_at(
                     route_id,
                     &self.runtime_health,
                     &self.runtime_quota,
+                    now_ms,
                     is_candidate_eligible,
                     |candidate, credential_id| !exclusions.contains(candidate, credential_id),
                 ) {
@@ -918,10 +919,11 @@ impl AttemptOrchestrator {
     ) -> Option<(SelectedRouteCredential, RuntimeQuotaRecoveryProbe)> {
         let selection = self
             .scheduler
-            .select_eligible_and_lease_for_quota_recovery(
+            .select_eligible_and_lease_for_quota_recovery_at(
                 route_id,
                 &self.runtime_health,
                 &self.runtime_quota,
+                now_ms,
                 is_candidate_eligible,
                 |candidate, credential_id| !exclusions.contains(candidate, credential_id),
             )
@@ -2203,6 +2205,7 @@ mod tests {
                     priority: 0,
                     weight: 1,
                     concurrency: 1,
+                    expires_at_ms: None,
                     secret: CredentialSecret::try_new(
                         format!("synthetic-{credential_id}").into_bytes(),
                     )?,

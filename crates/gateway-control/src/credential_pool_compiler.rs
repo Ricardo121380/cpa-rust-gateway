@@ -124,6 +124,7 @@ impl<'store> CredentialPoolCompiler<'store> {
                 priority: binding.priority,
                 weight: binding.weight,
                 concurrency: binding.concurrency,
+                expires_at_ms: None,
                 secret,
             };
             inputs_by_endpoint

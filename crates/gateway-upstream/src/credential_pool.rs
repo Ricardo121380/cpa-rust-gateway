@@ -81,6 +81,11 @@ pub struct EndpointCredentialInput {
     pub weight: i64,
     /// Positive maximum number of concurrent live leases.
     pub concurrency: i64,
+    /// Optional absolute Unix-millisecond expiry for a runtime credential.
+    ///
+    /// This is non-secret scheduling metadata. `None` preserves the historical non-expiring
+    /// behavior used by API keys and Provider credentials whose lifetime is managed elsewhere.
+    pub expires_at_ms: Option<i64>,
     /// Decrypted, redacted, zeroizing Credential material.
     pub secret: CredentialSecret,
 }
@@ -95,6 +100,7 @@ impl fmt::Debug for EndpointCredentialInput {
             .field("priority", &self.priority)
             .field("weight", &self.weight)
             .field("concurrency", &self.concurrency)
+            .field("expires_at_ms", &self.expires_at_ms)
             .field("secret", &"<redacted>")
             .finish()
     }
@@ -205,6 +211,7 @@ impl EndpointCredentialPool {
                     .map_err(|_| CredentialPoolBuildError::InvalidCredentialWeight)?,
                 maximum_concurrency: usize::try_from(entry.concurrency)
                     .map_err(|_| CredentialPoolBuildError::InvalidCredentialConcurrency)?,
+                expires_at_ms: entry.expires_at_ms,
                 secret: entry.secret,
                 active_leases: AtomicUsize::new(0),
             }));
@@ -266,13 +273,42 @@ impl EndpointCredentialPool {
     where
         F: FnMut(&CredentialId) -> bool,
     {
+        self.try_lease_slots(|credential| is_eligible(&credential.credential_id))
+    }
+
+    /// Attempts to acquire one lease while applying an absolute expiry at the supplied time.
+    ///
+    /// The expiry check runs before capacity reservation and is intentionally separate from
+    /// [`Self::try_lease_eligible`], preserving the historical API's behavior for callers that do
+    /// not provide an observation time. Credentials with `None` expiry never expire here.
+    #[must_use]
+    pub fn try_lease_eligible_at<F>(
+        &self,
+        now_ms: i64,
+        mut is_eligible: F,
+    ) -> Option<CredentialLease>
+    where
+        F: FnMut(&CredentialId) -> bool,
+    {
+        self.try_lease_slots(|credential| {
+            credential
+                .expires_at_ms
+                .is_none_or(|expires_at_ms| expires_at_ms > now_ms)
+                && is_eligible(&credential.credential_id)
+        })
+    }
+
+    fn try_lease_slots<F>(&self, mut is_eligible: F) -> Option<CredentialLease>
+    where
+        F: FnMut(&CredentialSlot) -> bool,
+    {
         for (priority_tier, cursor) in self.priority_tiers.iter().zip(&self.cursors) {
             let slot_indexes = &priority_tier.slot_indexes;
             let start = cursor.fetch_add(1, Ordering::Relaxed);
             for offset in 0..slot_indexes.len() {
                 let slot_index = start.wrapping_add(offset) % slot_indexes.len();
                 let credential = self.credentials.get(slot_indexes[slot_index])?;
-                if !is_eligible(&credential.credential_id) {
+                if !is_eligible(credential) {
                     continue;
                 }
                 if credential.try_acquire() {
@@ -417,6 +453,22 @@ impl EndpointCredentialPools {
         self.pool(endpoint_id)?.try_lease_eligible(is_eligible)
     }
 
+    /// Attempts to acquire one Endpoint-local lease after applying an absolute expiry and a
+    /// non-secret Credential-ID eligibility predicate.
+    #[must_use]
+    pub fn try_lease_eligible_at<F>(
+        &self,
+        endpoint_id: &EndpointId,
+        now_ms: i64,
+        is_eligible: F,
+    ) -> Option<CredentialLease>
+    where
+        F: FnMut(&CredentialId) -> bool,
+    {
+        self.pool(endpoint_id)?
+            .try_lease_eligible_at(now_ms, is_eligible)
+    }
+
     /// Returns the number of Endpoint pools in this immutable set.
     #[must_use]
     pub fn endpoint_count(&self) -> usize {
@@ -492,6 +544,7 @@ struct CredentialSlot {
     priority: i64,
     weight: usize,
     maximum_concurrency: usize,
+    expires_at_ms: Option<i64>,
     secret: CredentialSecret,
     active_leases: AtomicUsize,
 }
@@ -569,6 +622,12 @@ fn validate_entry(entry: &EndpointCredentialInput) -> Result<(), CredentialPoolB
     if entry.concurrency <= 0 {
         return Err(CredentialPoolBuildError::InvalidCredentialConcurrency);
     }
+    if entry
+        .expires_at_ms
+        .is_some_and(|expires_at_ms| expires_at_ms < 0)
+    {
+        return Err(CredentialPoolBuildError::InvalidCredentialExpiry);
+    }
     Ok(())
 }
 
@@ -637,6 +696,8 @@ pub enum CredentialPoolBuildError {
     InvalidCredentialWeight,
     /// A Credential binding used a non-positive or unrepresentable concurrency limit.
     InvalidCredentialConcurrency,
+    /// A Credential expiry was negative and cannot represent a Unix-millisecond instant.
+    InvalidCredentialExpiry,
     /// A precompiled Credential tier would exceed its finite slot limit.
     CredentialScheduleTooLarge,
     /// Internal construction found an impossible missing sorted slot reference.
@@ -656,6 +717,7 @@ impl fmt::Display for CredentialPoolBuildError {
             Self::InvalidCredentialPriority => "Credential priority tier is invalid",
             Self::InvalidCredentialWeight => "Credential scheduling weight is invalid",
             Self::InvalidCredentialConcurrency => "Credential concurrency limit is invalid",
+            Self::InvalidCredentialExpiry => "Credential expiry is invalid",
             Self::CredentialScheduleTooLarge => {
                 "Endpoint Credential schedule exceeds its finite limit"
             }
@@ -861,6 +923,7 @@ mod tests {
             priority: 0,
             weight: 1,
             concurrency: 1,
+            expires_at_ms: None,
             secret: CredentialSecret::try_new(secret.as_bytes().to_vec())?,
         };
         assert!(!format!("{input:?}").contains(secret));
@@ -881,6 +944,7 @@ mod tests {
                     priority,
                     weight,
                     concurrency,
+                    expires_at_ms: None,
                     secret: CredentialSecret::try_new(
                         format!("synthetic-{credential_id}").into_bytes(),
                     )?,

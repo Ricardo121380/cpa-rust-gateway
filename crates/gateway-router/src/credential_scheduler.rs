@@ -29,6 +29,10 @@ pub struct RouteCredentialScheduler {
     credential_pools: Arc<EndpointCredentialPools>,
 }
 
+// The pre-expiry API variants intentionally preserve their historical behavior: expiry-aware
+// filtering is opt-in through the `_at` methods used by request orchestration.
+const LEGACY_NO_EXPIRY_OBSERVATION_MS: i64 = i64::MIN;
+
 impl RouteCredentialScheduler {
     /// Creates a two-stage selector from one immutable Snapshot and Endpoint-local pools.
     ///
@@ -158,6 +162,36 @@ impl RouteCredentialScheduler {
         &self,
         route_id: &RouteId,
         runtime_health: &RuntimeHealthRegistry,
+        is_candidate_eligible: FCandidate,
+        is_binding_eligible: FBinding,
+    ) -> Result<SelectedRouteCredential, GatewayError>
+    where
+        FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
+        FBinding: FnMut(&SnapshotRouteCandidate, &CredentialId) -> bool,
+    {
+        self.select_eligible_and_lease_with_runtime_health_and_binding_at(
+            route_id,
+            runtime_health,
+            LEGACY_NO_EXPIRY_OBSERVATION_MS,
+            is_candidate_eligible,
+            is_binding_eligible,
+        )
+    }
+
+    /// Expiry-aware variant of [`Self::select_eligible_and_lease_with_runtime_health_and_binding`].
+    ///
+    /// `observed_at_ms` is evaluated immediately before the Endpoint pool attempts its lease, so
+    /// an expired slot cannot win a higher-priority tier over a current sibling.
+    ///
+    /// # Errors
+    ///
+    /// Returns `CredentialUnavailable/Credential` when no Candidate and current Credential can
+    /// satisfy the supplied predicates and runtime-health state.
+    pub fn select_eligible_and_lease_with_runtime_health_and_binding_at<FCandidate, FBinding>(
+        &self,
+        route_id: &RouteId,
+        runtime_health: &RuntimeHealthRegistry,
+        observed_at_ms: i64,
         mut is_candidate_eligible: FCandidate,
         mut is_binding_eligible: FBinding,
     ) -> Result<SelectedRouteCredential, GatewayError>
@@ -172,8 +206,9 @@ impl RouteCredentialScheduler {
             {
                 return false;
             }
-            let Some(acquired) = self.credential_pools.try_lease_eligible(
+            let Some(acquired) = self.credential_pools.try_lease_eligible_at(
                 candidate.endpoint_id(),
+                observed_at_ms,
                 |credential_id| {
                     is_binding_eligible(candidate, credential_id)
                         && runtime_health.endpoint_credential_is_available(
@@ -215,6 +250,39 @@ impl RouteCredentialScheduler {
         route_id: &RouteId,
         runtime_health: &RuntimeHealthRegistry,
         runtime_quota: &RuntimeQuotaRegistry,
+        is_candidate_eligible: FCandidate,
+        is_binding_eligible: FBinding,
+    ) -> Result<SelectedRouteCredential, GatewayError>
+    where
+        FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
+        FBinding: FnMut(&SnapshotRouteCandidate, &CredentialId) -> bool,
+    {
+        self.select_eligible_and_lease_with_runtime_health_quota_and_binding_at(
+            route_id,
+            runtime_health,
+            runtime_quota,
+            LEGACY_NO_EXPIRY_OBSERVATION_MS,
+            is_candidate_eligible,
+            is_binding_eligible,
+        )
+    }
+
+    /// Expiry-aware variant of
+    /// [`Self::select_eligible_and_lease_with_runtime_health_quota_and_binding`].
+    ///
+    /// # Errors
+    ///
+    /// Returns `CredentialUnavailable/Credential` when no current Credential passes the supplied
+    /// predicates, runtime-health state, and quota state.
+    pub fn select_eligible_and_lease_with_runtime_health_quota_and_binding_at<
+        FCandidate,
+        FBinding,
+    >(
+        &self,
+        route_id: &RouteId,
+        runtime_health: &RuntimeHealthRegistry,
+        runtime_quota: &RuntimeQuotaRegistry,
+        observed_at_ms: i64,
         mut is_candidate_eligible: FCandidate,
         mut is_binding_eligible: FBinding,
     ) -> Result<SelectedRouteCredential, GatewayError>
@@ -229,8 +297,9 @@ impl RouteCredentialScheduler {
             {
                 return false;
             }
-            let Some(acquired) = self.credential_pools.try_lease_eligible(
+            let Some(acquired) = self.credential_pools.try_lease_eligible_at(
                 candidate.endpoint_id(),
+                observed_at_ms,
                 |credential_id| {
                     is_binding_eligible(candidate, credential_id)
                         && runtime_health.endpoint_credential_is_available(
@@ -283,6 +352,35 @@ impl RouteCredentialScheduler {
         route_id: &RouteId,
         runtime_health: &RuntimeHealthRegistry,
         runtime_quota: &RuntimeQuotaRegistry,
+        is_candidate_eligible: FCandidate,
+        is_binding_eligible: FBinding,
+    ) -> Result<SelectedRouteCredential, GatewayError>
+    where
+        FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
+        FBinding: FnMut(&SnapshotRouteCandidate, &CredentialId) -> bool,
+    {
+        self.select_eligible_and_lease_for_quota_recovery_at(
+            route_id,
+            runtime_health,
+            runtime_quota,
+            LEGACY_NO_EXPIRY_OBSERVATION_MS,
+            is_candidate_eligible,
+            is_binding_eligible,
+        )
+    }
+
+    /// Expiry-aware variant of [`Self::select_eligible_and_lease_for_quota_recovery`].
+    ///
+    /// # Errors
+    ///
+    /// Returns `CredentialUnavailable/Credential` when no current Credential is eligible for a
+    /// due quota-recovery probe.
+    pub fn select_eligible_and_lease_for_quota_recovery_at<FCandidate, FBinding>(
+        &self,
+        route_id: &RouteId,
+        runtime_health: &RuntimeHealthRegistry,
+        runtime_quota: &RuntimeQuotaRegistry,
+        observed_at_ms: i64,
         mut is_candidate_eligible: FCandidate,
         mut is_binding_eligible: FBinding,
     ) -> Result<SelectedRouteCredential, GatewayError>
@@ -297,8 +395,9 @@ impl RouteCredentialScheduler {
             {
                 return false;
             }
-            let Some(acquired) = self.credential_pools.try_lease_eligible(
+            let Some(acquired) = self.credential_pools.try_lease_eligible_at(
                 candidate.endpoint_id(),
+                observed_at_ms,
                 |credential_id| {
                     is_binding_eligible(candidate, credential_id)
                         && runtime_health.endpoint_credential_is_available(
@@ -967,6 +1066,7 @@ mod tests {
                     priority,
                     weight,
                     concurrency,
+                    expires_at_ms: None,
                     secret: CredentialSecret::try_new(
                         format!("synthetic-{credential_id}").into_bytes(),
                     )?,

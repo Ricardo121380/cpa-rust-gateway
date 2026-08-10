@@ -999,6 +999,7 @@ mod tests {
                     priority,
                     weight,
                     concurrency,
+                    expires_at_ms: None,
                     secret: CredentialSecret::try_new(
                         format!("synthetic-{credential_id}").into_bytes(),
                     )?,

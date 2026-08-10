@@ -40,6 +40,7 @@ const ENDPOINT: &str = "grok-build-endpoint";
 const MODEL: &str = "grok-upstream-model";
 const FRESH_BUILD_EXPIRY: &str = "2027-01-15T09:00:00Z";
 const EXPIRED_BUILD_EXPIRY: &str = "2027-01-15T07:59:59Z";
+const LIVE_EXPIRING_BUILD_EXPIRY: &str = "2027-01-15T08:00:01Z";
 static TEMPORARY_DATABASE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 #[test]
@@ -244,6 +245,61 @@ fn expired_preferred_build_does_not_obscure_fresh_sibling_after_restart() -> Tes
     let compilation = restarted.compile_native_runtime(&bindings()?, NOW_MS)?;
     assert_eq!(compilation.account_count(), 2);
     assert_fresh_build_selected(&compilation, &expired_id, &fresh_id)?;
+    Ok(())
+}
+
+#[test]
+fn live_expiry_skips_preferred_build_before_lease_after_time_advances() -> TestResult {
+    let database = TemporaryDatabase::new()?;
+    let store = open_store(database.path())?;
+    store.import_batch(
+        "live-build-expiry",
+        &[
+            build_account_with_expiry("live-expiring-preferred", 100, LIVE_EXPIRING_BUILD_EXPIRY)?,
+            build_account_with_expiry("live-fresh-sibling", 0, FRESH_BUILD_EXPIRY)?,
+        ],
+        NOW_MS,
+    )?;
+    let metadata = store.list_accounts()?;
+    let preferred_id = CredentialId::try_new(
+        metadata
+            .iter()
+            .find(|account| account.priority == 100)
+            .ok_or("live preferred account missing")?
+            .id
+            .clone(),
+    )?;
+    let sibling_id = CredentialId::try_new(
+        metadata
+            .iter()
+            .find(|account| account.priority == 0)
+            .ok_or("live sibling account missing")?
+            .id
+            .clone(),
+    )?;
+    let compilation = store.compile_native_runtime(&bindings()?, NOW_MS)?;
+    let health = RuntimeHealthRegistry::with_clock(Arc::new(FixedClock::new(NOW_MS)));
+    compilation.seed_runtime_health(&health)?;
+    let scheduler = build_scheduler(compilation.credential_pools())?;
+
+    let before_expiry = scheduler.select_eligible_and_lease_with_runtime_health_and_binding_at(
+        &route_id()?,
+        &health,
+        NOW_MS,
+        |_| true,
+        |_, _| true,
+    )?;
+    assert_eq!(before_expiry.lease().credential_id(), &preferred_id);
+    drop(before_expiry);
+
+    let after_expiry = scheduler.select_eligible_and_lease_with_runtime_health_and_binding_at(
+        &route_id()?,
+        &health,
+        NOW_MS + 2_000,
+        |_| true,
+        |_, _| true,
+    )?;
+    assert_eq!(after_expiry.lease().credential_id(), &sibling_id);
     Ok(())
 }
 

@@ -44,6 +44,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       authorized: ${{ steps.request.outputs.authorized }}
+      invalidated: ${{ steps.request.outputs.invalidated }}
       revision: ${{ steps.request.outputs.revision }}
     steps:
       - name: Check trigger boundary
@@ -59,6 +60,7 @@ jobs:
         run: |
           set -euo pipefail
           authorized=false
+          invalidated=false
           case "$EVENT_NAME" in
             push)
               test "$REF_TYPE" = "tag"
@@ -76,6 +78,7 @@ jobs:
                 authorized=true
                 printf '%s\n' 'Closeout label accepted for this exact head SHA.'
               else
+                invalidated=true
                 printf '%s\n' 'No delivery run: closeout label is absent or the head changed; re-add the label or dispatch manually.'
               fi
               ;;
@@ -86,6 +89,7 @@ jobs:
           esac
           test -n "$REQUESTED_SHA"
           printf 'authorized=%s\n' "$authorized" >> "$GITHUB_OUTPUT"
+          printf 'invalidated=%s\n' "$invalidated" >> "$GITHUB_OUTPUT"
           printf 'revision=%s\n' "$REQUESTED_SHA" >> "$GITHUB_OUTPUT"
           {
             printf '%s\n' '## Delivery request boundary'
@@ -165,18 +169,23 @@ jobs:
   required:
     name: Required delivery gate
     needs: [authorize, fast, full]
-    if: always() && needs.authorize.outputs.authorized == 'true'
+    if: always() && (needs.authorize.outputs.authorized == 'true' || needs.authorize.outputs.invalidated == 'true')
     runs-on: ubuntu-24.04
     steps:
       - name: Verify formal delivery path
         env:
           AUTH_RESULT: ${{ needs.authorize.result }}
+          INVALIDATED: ${{ needs.authorize.outputs.invalidated }}
           FAST_RESULT: ${{ needs.fast.result }}
           FULL_RESULT: ${{ needs.full.result }}
           DELIVERY_REVISION: ${{ needs.authorize.outputs.revision }}
         run: |
           set -euo pipefail
           test "$AUTH_RESULT" = "success"
+          if [[ "$INVALIDATED" == "true" ]]; then
+            printf '%s\n' 'Formal delivery gate invalidated by a new PR head; remove and re-add delivery-closeout or dispatch manually.' >&2
+            exit 1
+          fi
           test "$FAST_RESULT" = "success"
           test "$FULL_RESULT" = "success"
           {

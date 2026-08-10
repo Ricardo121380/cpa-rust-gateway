@@ -810,6 +810,7 @@ impl GrokAccountPoolStore {
     ///
     /// Returns a safe binding, persisted-account, decryption, or bounded-pool classification. No
     /// partial pool set is returned.
+    #[allow(clippy::too_many_lines)]
     pub fn compile_native_runtime(
         &self,
         bindings: &[GrokAccountEndpointBinding],
@@ -867,6 +868,8 @@ impl GrokAccountPoolStore {
             let priority = 1_000_i64
                 .checked_sub(row.priority)
                 .ok_or(GrokAccountPoolError::InvalidPersistedState)?;
+            let (expires_at_ms, build_credential_current) =
+                build_credential_runtime_state(provider, plaintext.as_bytes(), observed_at_ms);
             let input = EndpointCredentialInput {
                 credential_id: credential_id.clone(),
                 credential_kind: provider.credential_kind().to_owned(),
@@ -874,6 +877,7 @@ impl GrokAccountPoolStore {
                 priority,
                 weight: row.weight,
                 concurrency: row.max_concurrency,
+                expires_at_ms,
                 secret: CredentialSecret::try_new(plaintext.as_bytes().to_vec())?,
             };
             if providers_by_credential
@@ -884,7 +888,7 @@ impl GrokAccountPoolStore {
             }
             runtime_bindings_by_account
                 .insert(account_id, (endpoint_id.clone(), credential_id.clone()));
-            if runtime_auth_blocked(provider, auth_status, plaintext.as_bytes(), observed_at_ms) {
+            if runtime_auth_blocked(provider, auth_status, build_credential_current) {
                 health_bootstrap.push(GrokRuntimeHealthBootstrap::Unauthorized {
                     endpoint_id: endpoint_id.clone(),
                     credential_id: credential_id.clone(),
@@ -1053,20 +1057,35 @@ impl GrokAccountPoolStore {
 /// its metadata has a higher priority. An invalid or expired value is deliberately reported as
 /// unavailable; the original encrypted bytes remain in the account store for the refresh/reauth
 /// control path.
-fn build_credential_is_current(credential: &[u8], observed_at_ms: i64) -> bool {
-    GrokBuildCredential::import_runtime_json(credential, observed_at_ms).is_ok()
+fn build_credential_runtime_state(
+    provider: GrokAccountProvider,
+    credential: &[u8],
+    observed_at_ms: i64,
+) -> (Option<i64>, bool) {
+    if provider != GrokAccountProvider::Build {
+        return (None, true);
+    }
+    if let Ok(credential) = GrokBuildCredential::import_runtime_json(credential, observed_at_ms) {
+        return (Some(credential.expires_at_ms()), true);
+    }
+    if let Ok(credential) = GrokBuildCredential::from_persisted_bytes(credential) {
+        return (
+            Some(credential.expires_at_ms()),
+            !credential.is_expired_at(observed_at_ms),
+        );
+    }
+    (None, false)
 }
 
 fn runtime_auth_blocked(
     provider: GrokAccountProvider,
     auth_status: GrokAccountAuthStatus,
-    credential: &[u8],
-    observed_at_ms: i64,
+    build_credential_current: bool,
 ) -> bool {
     auth_status == GrokAccountAuthStatus::ReauthRequired
         || (provider == GrokAccountProvider::Build
             && auth_status == GrokAccountAuthStatus::Active
-            && !build_credential_is_current(credential, observed_at_ms))
+            && !build_credential_current)
 }
 
 enum ImportOneOutcome {

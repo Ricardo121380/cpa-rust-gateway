@@ -6608,6 +6608,7 @@ mod tests {
                 priority: 0,
                 weight: 1,
                 concurrency: 1,
+                expires_at_ms: None,
                 secret: CredentialSecret::try_new(b"p12-format-guard-secret".to_vec())?,
             }],
         )?;

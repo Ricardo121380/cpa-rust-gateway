@@ -101,7 +101,7 @@ errors << "delivery-gate must state exact-head invalidation" unless delivery_tex
 # file, while allowing ordinary `run:` steps to evolve independently.
 [ci_path, delivery_path].each do |path|
   text = File.read(path, encoding: "UTF-8")
-  text.scan(/^\s*-\s+uses:\s*([^\s#]+)/).flatten.each do |action|
+  text.scan(/^\s*uses:\s*([^\s#]+)/).flatten.each do |action|
     reference = action.split("@", 2)[1]
     unless reference && reference.match?(/\A[0-9a-f]{40}\z/)
       errors << "GitHub Action is not pinned to a full commit SHA: #{action} (#{path})"

@@ -179,6 +179,7 @@ pub(crate) fn build_aggregation_harness(
                 priority: 0,
                 weight: 1,
                 concurrency: 1,
+                expires_at_ms: None,
                 secret: CredentialSecret::try_new(endpoint.credential)?,
             }],
         )?);
