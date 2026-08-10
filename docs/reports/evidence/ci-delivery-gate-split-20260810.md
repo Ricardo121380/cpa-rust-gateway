@@ -28,8 +28,11 @@ The following checks passed on the same worktree revision:
 - `./scripts/check.sh fast` (including workspace Clippy/tests, management SPA, P12 envelope and
   secret/document checks)
 
-No GitHub Actions run was started for this closeout. The repository branch-protection API returned
-HTTP 403 under the current private-repository plan, so the old required context cannot be claimed as
-migrated. The repository owner must review required contexts when that API is available.
+No expensive Delivery Gate was manually started for this closeout. After the branch push, the normal
+PR workflow auto-triggered as designed: scope classification passed, the lightweight compile job was
+queued, and Docs-only plus all Fast/Full/supply-chain Delivery jobs were skipped. The repository
+branch-protection API returned HTTP 403 under the current private-repository plan, so the old required
+context cannot be claimed as migrated. The repository owner must review required contexts when that
+API is available.
 
 Verdict: `PASS_LOCAL_WITH_REQUIRED-CONTEXT-BOUNDARY`.
