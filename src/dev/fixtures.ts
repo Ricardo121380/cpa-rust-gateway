@@ -336,6 +336,52 @@ function hex(length: number): string {
   return out;
 }
 
+// Prometheus exposition, matching telemetry.rs::render_prometheus exactly.
+// Counters grow with each scrape so the overview's "since you opened this
+// page" delta has something to show. The pipeline is rendered healthy on the
+// Required path with diagnostics shedding — the common real state, and the one
+// that proves the UI does not cry wolf over by-design backpressure.
+let scrapes = 0;
+
+function renderMetrics(scrape: number): string {
+  const requests = 1180 + scrape * 7;
+  const attempts = 1246 + scrape * 8;
+  const failed = 63 + Math.floor(scrape / 3);
+  const lines = [
+    "# HELP gateway_observability_events_total Gateway lifecycle events processed by the background event consumer.",
+    "# TYPE gateway_observability_events_total counter",
+    `gateway_observability_events_total{kind="request"} ${requests}`,
+    `gateway_observability_events_total{kind="attempt"} ${attempts}`,
+    `gateway_observability_events_total{kind="usage"} ${requests - 12}`,
+    `gateway_observability_events_total{kind="health"} ${18 + scrape}`,
+    `gateway_observability_events_total{kind="diagnostic"} ${406 + scrape * 3}`,
+    "# HELP gateway_observability_attempts_total Terminal upstream Attempts observed by outcome.",
+    "# TYPE gateway_observability_attempts_total counter",
+    `gateway_observability_attempts_total{outcome="succeeded"} ${attempts - failed}`,
+    `gateway_observability_attempts_total{outcome="failed"} ${failed}`,
+    "# TYPE gateway_observability_usage_tokens_total counter",
+    `gateway_observability_usage_tokens_total{kind="input"} ${4_182_000 + scrape * 9100}`,
+    `gateway_observability_usage_tokens_total{kind="output"} ${716_400 + scrape * 1400}`,
+    `gateway_observability_usage_tokens_total{kind="reasoning"} ${233_900 + scrape * 620}`,
+    `gateway_observability_usage_tokens_total{kind="cache_read"} ${1_905_200 + scrape * 4300}`,
+    `gateway_observability_usage_tokens_total{kind="cache_creation"} ${88_600 + scrape * 210}`,
+    `gateway_observability_usage_tokens_total{kind="cached"} ${1_993_800 + scrape * 4510}`,
+    "# TYPE gateway_observability_queue_admission_total counter",
+    'gateway_observability_queue_admission_total{outcome="required_queue_full"} 0',
+    `gateway_observability_queue_admission_total{outcome="diagnostic_dropped"} ${142 + scrape * 2}`,
+    'gateway_observability_queue_admission_total{outcome="sink_closed"} 0',
+    "# TYPE gateway_observability_durable_events_total counter",
+    'gateway_observability_durable_events_total{outcome="required_quarantined"} 0',
+    'gateway_observability_durable_events_total{outcome="write_failed"} 0',
+    "# TYPE gateway_observability_durable_pending_required gauge",
+    `gateway_observability_durable_pending_required ${scrape % 5}`,
+    "# TYPE gateway_observability_exports_total counter",
+    `gateway_observability_exports_total{sink="json",outcome="emitted"} ${requests + attempts}`,
+    'gateway_observability_exports_total{sink="opentelemetry",outcome="disabled"} 1',
+  ];
+  return `${lines.join("\n")}\n`;
+}
+
 export const fixtureFetch: typeof fetch = (input, init) => {
   // No `new Request(...)`: Node's Request rejects relative URLs, and the
   // generated client always issues relative /admin paths.
@@ -919,6 +965,15 @@ export const fixtureFetch: typeof fetch = (input, init) => {
           { request_id: "req-1043", occurred_at_ms: now - 340_000, error_code: "provider_rate_limited", error_scope: "quota_window", stage: "http_status" },
           { request_id: "req-1029", occurred_at_ms: now - 1_960_000, error_code: "stream_truncated", error_scope: "stream", stage: "sse_bootstrap" },
         ],
+      });
+    }
+
+    // ---- observability exposition (real contract op, text/plain) ----
+    if (route === "GET /admin/observability/metrics") {
+      scrapes += 1;
+      return new Response(renderMetrics(scrapes), {
+        status: 200,
+        headers: new Headers({ "Content-Type": "text/plain; version=0.0.4" }),
       });
     }
 

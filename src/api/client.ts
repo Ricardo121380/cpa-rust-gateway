@@ -38,11 +38,11 @@ function declaredHeaderNames(operation: ManagementOperationName): ReadonlySet<st
   );
 }
 
-export async function call<T>(
+async function send(
   operation: ManagementOperationName,
-  request: ManagementRequest = {},
-  options: CallOptions = {},
-): Promise<T> {
+  request: ManagementRequest,
+  options: CallOptions,
+): Promise<Response> {
   const version = useVersionStore.getState();
   const declared = declaredHeaderNames(operation);
   const headers: Record<string, string> = { ...(request.headers as Record<string, string> | undefined) };
@@ -80,9 +80,30 @@ export async function call<T>(
   }
 
   version.advanceFromEtag(response.headers.get("ETag"));
+  return response;
+}
 
+export async function call<T>(
+  operation: ManagementOperationName,
+  request: ManagementRequest = {},
+  options: CallOptions = {},
+): Promise<T> {
+  const response = await send(operation, request, options);
   if (response.status === 204) {
     return undefined as T;
   }
   return (await response.json()) as T;
+}
+
+/**
+ * Same request path, text body. The observability exposition is served as
+ * `text/plain; version=0.0.4`, so it cannot go through call<T>() — parsing it
+ * is the caller's job (src/api/prometheus.ts).
+ */
+export async function callText(
+  operation: ManagementOperationName,
+  request: ManagementRequest = {},
+  options: CallOptions = {},
+): Promise<string> {
+  return (await send(operation, request, options)).text();
 }

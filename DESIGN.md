@@ -891,3 +891,106 @@ Enter 提交),所以点击可达的事键盘也必须可达。
 选中状态"丢失"。这是 C6(禁止任何浏览器存储)的必然结果 —— 刷新清空内存会话。
 我最初的 E2E 断言了"刷新后仍在",那是在拿测试对抗安全模型;
 改为断言 URL 契约本身:重新导航到同一 URL 必须复现同一个选中桶。
+
+---
+
+## 13. G2 部分落地:网关实时计数与观测管道健康
+
+后端在 2026-08-09 的契约里加了 5 个算子(纯增量,65→70,零删除),其中
+`GET /admin/observability/metrics` 是本节的全部来源。前端此前把整个观测面
+当成一块"等 G2+G3"的空白,这是错的:G2 的一半已经在了。
+
+### 13.1 这个平面能说什么、不能说什么
+
+端点返回 **Prometheus 文本曝露格式**(`text/plain; version=0.0.4`),
+7 个指标族,全部是**自网关进程启动的累计计数器**,重启归零。
+渲染器的注释写得很明确:"never adds request-scoped or target-scoped label"。
+
+所以:
+
+| 能 | 不能 |
+|---|---|
+| 上游尝试成败(`attempts_total{outcome}`) | 任何时间桶 —— 没有时间维度 |
+| Token 按类别(`usage_tokens_total{kind}`) | 按模型 / 按 Key / 按凭据切分 |
+| 事件按类别(`events_total{kind}`) | 延迟分位 —— 指标里根本没有延迟 |
+| 队列与持久化的丢弃计数 | 单条请求 —— 没有请求标识 |
+
+**不要从这些计数器推导 G3 的任何东西。** 缺的不是聚合逻辑,是标签维度本身;
+凑出来的"今日"或"按模型"会是编造的。总览页因此是两个**分别标注**的平面:
+「网关实时计数 · 自进程启动累计」与「今日分析 · 按时间窗」。
+
+这条标注不是排版偏好。接线后第一版两个统计行都没有标题,页面上先后出现
+`成功率 94.98%` 和 `成功率 98.72%` —— 同一个词两个数字,读起来像 bug。
+两个平面各自带标题与徽章之后才消歧。
+
+### 13.2 严重度:丢弃不等于丢弃
+
+`queue_admission_total{outcome="diagnostic_dropped"}` 与
+`durable_events_total{outcome="required_quarantined"}` 都是"事件没留下",
+但意义相反:队列把 Required 和 Diagnostic 分开,**就是为了在压力下先丢诊断**。
+诊断丢弃是背压设计在工作,Required 丢失是持久化日志真的丢了数据。
+
+`metrics.ts` 因此给每个丢弃源带 `severity`,UI 分开呈现:Required 为零时是
+`badge-good`「必需事件无丢失」,非零是 `badge-critical` 加明细表;诊断丢弃永远
+只是一句灰色附注,并明写"背压设计,非故障"。把两者用同一个音量喊出来,
+只会训练运维忽略真正要紧的那个。
+
+**这是 UI 里唯一的数据丢失告警面** —— G3 落地后也不会替代它,分析端点报的是
+请求,报不了"事件日志自己丢了多少"。
+
+### 13.3 累计值没有用,增量才有用
+
+`gateway_observability_attempts_total 1254` 这种进程生命期数字对运维几乎无信息。
+有信息的是"我打开这页之后涨了多少"。所以留一个 `baseline` ref。
+
+坑在这里:baseline 一旦在首次抓取时设好,`growthSince` 立刻返回 `{attempts: 0}`,
+页面第一帧就显示「本页 +0」。那是**对一个根本不存在的观测窗口下结论** ——
+此刻还没有第二次抓取。修法是把 baseline 连同它那次抓取的 `dataUpdatedAt` 一起存,
+只有 `dataUpdatedAt` 前进过才谈增量。这样「+0」出现时是真信息(轮询了一轮,网关空闲),
+而不是占位符。E2E 两头都锁:首帧不得出现「本页 +」,时钟推进 16s 后必须出现。
+
+`growthSince` 另外在计数器变小时返回 undefined —— 那意味着网关重启,基线已经没有意义。
+
+### 13.4 传输:契约里第一个非 JSON 响应
+
+生成客户端的 `request()` 返回原始 `Response`,但 `call<T>()` 一律走 `.json()`。
+Prometheus 是 text/plain,于是把 `call()` 的请求路径抽成 `send()`,
+加一个 `callText()` 走 `.text()`。fetch 仍然只在 `src/generated` 内发起,C5 不破。
+
+`src/api/prometheus.ts` 是纯解析器(`parsePrometheus` + `pick`),
+非有限值的行直接丢弃 —— NaN 漏到 StatTile 上会渲染成 "NaN"。
+
+### 13.5 Token 卡为什么会让位
+
+`TokenSummary` 的字段与 `usage_tokens_total` 的 `kind` 标签**完全对上**,
+`TokenMixBar` 零改动即可消费累计值。但 G3 在场时它的「今日」版本严格更有用,
+两张同形状的 Token 卡并列只是噪音 —— 所以累计版只在 `analyticsAvailable()`
+为假时渲染。这也意味着它在 fixture dev 下没有 E2E 路径,由单测覆盖形状。
+
+腾出的位置给「事件构成」:这是已经解析、原本被丢掉的数据,
+回答"管道到底有没有收到用量事件",且让栅格不再是一张孤零零的整宽空卡。
+
+### 13.6 一个**不是** bug 的东西 —— 别再"修"一次
+
+上一轮留了一条待办:"轮询在后台标签页不暂停,只有 RuntimePage 做对了,
+应把它的 `visibilitychange` 模式推广到另外 4 个页面"。**这条是错的。**
+
+TanStack Query v5.101.4 默认就不在隐藏标签页发请求。
+`queryObserver.js:215` 的定时回调是:
+
+```js
+if (this.options.refetchIntervalInBackground || focusManager.isFocused()) { … }
+```
+
+`refetchIntervalInBackground` 全仓没有任何赋值(falsy),而
+`focusManager.isFocused()` 就是 `document.visibilityState !== "hidden"`。
+实测:隐藏 6 个周期 **0 次请求**,可见时正常轮询,返回后恢复。
+
+所以 `MonitoringPage` / `OverviewPage` / `AuditBackupPage` 无需改动,
+本节新增的 15s 轮询同样自动受管。
+
+RuntimePage 的 `useDocumentVisible` **保留**,但理由不是省请求:
+它驱动 `.rt-poll-state` 那个"轮询中/已暂停"指示器,是给用户看的。
+第 700 行的 `refetchIntervalInBackground: false` 是在重申默认值,留着无害。
+
+把那段手写 gating 复制到另外四个页面会是 ~30 行纯粹的冗余代码。

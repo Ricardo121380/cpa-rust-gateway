@@ -50,6 +50,9 @@ test("theme choice writes the third theming layer; system writes nothing", async
 test("settings never renders a secret, and locking clears the session", async ({ page }) => {
   await unlock(page);
   await navigate(page, "设置");
+  // innerText() is a one-shot read with no retry, so the page has to be there
+  // first — otherwise this races the route transition and reads bare shell.
+  await expect(page.getByRole("button", { name: "锁定并清除密钥" })).toBeVisible();
 
   // the full key must not be in the DOM in any form, masked or not
   const body = await page.locator("body").innerText();

@@ -17,7 +17,8 @@ test("unlock rejects malformed keys locally and accepts the fixture key", async 
 test("overview lights up KPI, strip, mix and deep-links into monitoring", async ({ page }) => {
   await unlock(page);
   await expect(page.getByText("今日请求")).toBeVisible();
-  await expect(page.getByText("成功率")).toBeVisible();
+  // exact: the live-counters plane above has its own 尝试成功率 tile.
+  await expect(page.getByText("成功率", { exact: true })).toBeVisible();
   await expect(page.locator(".health-strip .health-cell").first()).toBeVisible();
   await expect(page.locator(".token-mix rect").first()).toBeVisible();
 
