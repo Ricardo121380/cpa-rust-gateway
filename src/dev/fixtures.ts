@@ -91,7 +91,17 @@ type BindingRow = {
   concurrency: number;
 };
 
-type OAuthOp = { state: "pending" | "complete" | "cancelled" | "failed"; polls: number; expires_at_ms: number };
+type OAuthOp = {
+  state: "pending" | "complete" | "cancelled" | "failed" | "expired";
+  polls: number;
+  expires_at_ms: number;
+  // The state token the fixture "issued" with the authorization URL. The
+  // callback has to carry it back — that binding is the whole point of the
+  // parameter, so the fixture checks it instead of accepting any paste.
+  authState: string;
+  authorization_url: string;
+  failure_class?: string;
+};
 
 type AuditRow = {
   id: number;
@@ -713,13 +723,77 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       );
     }
 
-    // ---- credential OAuth (real contract ops; device-flow state machine) ----
+    // ---- credential detail + metadata (real contract ops) ----
+    const credGet = /^GET \/admin\/credentials\/([^/]+)$/u.exec(route);
+    if (credGet !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const id = decodeURIComponent(credGet[1] ?? "");
+      const row = (state.credentials.get(version.id) ?? []).find((entry) => entry.id === id);
+      if (row === undefined) {
+        return errorResponse(409, "management_lifecycle_conflict", "unknown credential");
+      }
+      return json(200, row);
+    }
+    const credMeta = /^GET \/admin\/credentials\/([^/]+)\/metadata$/u.exec(route);
+    if (credMeta !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const id = decodeURIComponent(credMeta[1] ?? "");
+      const row = (state.credentials.get(version.id) ?? []).find((entry) => entry.id === id);
+      if (row === undefined) {
+        return errorResponse(409, "management_lifecycle_conflict", "unknown credential");
+      }
+      // Every metadata field is nullable in the contract. The oauth credential
+      // carries a full account identity; the api_key one carries almost
+      // nothing — both are real shapes and the UI has to read honestly.
+      const rich = row.kind === "oauth";
+      return json(200, {
+        credential_id: row.id,
+        kind: row.kind,
+        revision: row.revision,
+        plan: rich ? "SuperGrok Heavy" : null,
+        quota: rich ? "1000 req/day" : null,
+        platform: rich ? "grok" : null,
+        email: rich ? "ops@fixture.example" : null,
+        source_format: rich ? "direct_oauth" : null,
+      });
+    }
+    const oauthRefresh = /^POST \/admin\/credentials\/([^/]+)\/oauth\/refresh$/u.exec(route);
+    if (oauthRefresh !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const id = decodeURIComponent(oauthRefresh[1] ?? "");
+      const row = (state.credentials.get(version.id) ?? []).find((entry) => entry.id === id);
+      if (row === undefined || row.kind !== "oauth") {
+        return errorResponse(409, "management_lifecycle_conflict", "credential does not hold an oauth token");
+      }
+      row.revision += 1;
+      return json(202, { credential_id: id, state: "complete", revision: row.revision });
+    }
+
+    // ---- credential OAuth (real contract ops; authorization-code flow) ----
     const oauthStart = /^POST \/admin\/credentials\/([^/]+)\/oauth\/start$/u.exec(route);
     if (oauthStart !== null) {
       const id = decodeURIComponent(oauthStart[1] ?? "");
-      state.oauthOps.set(id, { state: "pending", polls: 0, expires_at_ms: Date.now() + 300_000 });
-      const op = state.oauthOps.get(id) as OAuthOp;
-      return json(202, { credential_id: id, state: op.state, expires_at_ms: op.expires_at_ms });
+      const authState = `st-${hashString(id).toString(16)}`;
+      const op: OAuthOp = {
+        state: "pending",
+        polls: 0,
+        expires_at_ms: Date.now() + 300_000,
+        authState,
+        authorization_url:
+          `https://auth.fixture.example/authorize?client_id=prism-fixture` +
+          `&redirect_uri=${encodeURIComponent("http://127.0.0.1:8085/callback")}` +
+          `&response_type=code&scope=openid+offline&state=${authState}`,
+      };
+      state.oauthOps.set(id, op);
+      return json(202, {
+        credential_id: id,
+        state: op.state,
+        expires_at_ms: op.expires_at_ms,
+        authorization_url: op.authorization_url,
+      });
     }
     const oauthStatus = /^GET \/admin\/credentials\/([^/]+)\/oauth\/status$/u.exec(route);
     if (oauthStatus !== null) {
@@ -728,13 +802,47 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if (op === undefined) {
         return errorResponse(409, "management_lifecycle_conflict", "no oauth operation for credential");
       }
-      if (op.state === "pending") {
-        op.polls += 1;
-        if (op.polls >= 3) {
-          op.state = "complete"; // third poll succeeds — exercises the full pending path
+      // Deliberately does NOT auto-complete. The old fixture flipped to
+      // complete on the third poll, which made a wizard with no completion
+      // call look like it worked — the real flow cannot finish without the
+      // callback, and the fixture must not be kinder than the gateway.
+      op.polls += 1;
+      return json(200, {
+        credential_id: id,
+        state: op.state,
+        expires_at_ms: op.expires_at_ms,
+        authorization_url: op.authorization_url,
+        ...(op.failure_class === undefined ? {} : { failure_class: op.failure_class }),
+      });
+    }
+    const oauthCallback = /^POST \/admin\/credentials\/([^/]+)\/oauth\/callback$/u.exec(route);
+    if (oauthCallback !== null) {
+      const id = decodeURIComponent(oauthCallback[1] ?? "");
+      const op = state.oauthOps.get(id);
+      if (op === undefined || op.state !== "pending") {
+        return errorResponse(409, "management_lifecycle_conflict", "no pending oauth operation");
+      }
+      const body = JSON.parse(bodyText ?? "{}") as { state?: string; code?: string; error?: string };
+      if (body.state !== op.authState) {
+        op.state = "failed";
+        op.failure_class = "state_mismatch";
+      } else if (body.error !== undefined) {
+        op.state = "failed";
+        op.failure_class = "provider_rejected";
+      } else {
+        op.state = "complete";
+        const row = (state.credentials.get("draft-2026-08") ?? []).find((entry) => entry.id === id);
+        if (row !== undefined) {
+          row.status = "active";
+          row.revision += 1;
         }
       }
-      return json(200, { credential_id: id, state: op.state, expires_at_ms: op.expires_at_ms });
+      return json(202, {
+        credential_id: id,
+        state: op.state,
+        expires_at_ms: op.expires_at_ms,
+        ...(op.failure_class === undefined ? {} : { failure_class: op.failure_class }),
+      });
     }
     const oauthCancel = /^POST \/admin\/credentials\/([^/]+)\/oauth\/cancel$/u.exec(route);
     if (oauthCancel !== null) {

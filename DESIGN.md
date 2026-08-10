@@ -994,3 +994,88 @@ RuntimePage 的 `useDocumentVisible` **保留**,但理由不是省请求:
 第 700 行的 `refetchIntervalInBackground: false` 是在重申默认值,留着无害。
 
 把那段手写 gating 复制到另外四个页面会是 ~30 行纯粹的冗余代码。
+
+---
+
+## 14. 凭据可操作面:一个一直点不到、且流程本身就断的功能
+
+契约 8/9 补的 5 个算子里有 4 个是凭据作用域的。接线之前先查了一遍它们的入口,
+结果发现要修的不止是接线。
+
+### 14.1 OAuth 向导以前不可能完成
+
+三件事叠在一起,谁也没发现:
+
+1. **生产里点不到。** `OAuthWizard` 只在 `SubresourcePanel` 里挂载,
+   而那个面板走 `graphAvailable()` —— 它等于 `fixturesEnabled()`。
+   生产构建渲染的是"等 G1"诚实态,凭据表根本不出现。
+2. **拿到了授权地址却不显示。** 契约的 `OAuthOperation` 一直有
+   `authorization_url` 和 `failure_class`(7/26 那份就有),
+   但向导的本地类型只建模了 `{credential_id, state, expires_at_ms}`。
+   用户点"启动授权",界面说 pending 并开始轮询,**却从没告诉他去哪儿授权**。
+3. **文案说错了流派。** 写的是"设备授权流",并称 `user_code`/`verification_uri`
+   需要契约扩展。实际是授权码流,URL 就在响应里,8/9 还补上了 `oauth/callback`。
+
+**而 fixture 在替它圆谎**:旧 fixture 的 `oauth/status` 在第三次轮询时自动翻成
+`complete`,于是 E2E「oauth wizard polls to complete」一直绿。
+一个没有完成调用的向导,在一个比网关更宽容的后端上,看起来是work的。
+
+fixture 现在不再自动完成 —— 必须带着正确的 `state` 走 `oauth/callback`。
+**fixture 不得比网关仁慈**,否则它测的是一个不存在的系统。
+
+### 14.2 入口:运行时投影就是凭据的枚举
+
+契约没有 `listCredentials`,也没有 `listEndpoints` —— 这正是 G1 要补的。
+但 `GET /admin/runtime/availability` 与 `GET /admin/catalog/status`
+都是**免 id 的顶层 GET**,且都返回 `{endpoint_id, credential_id, …}`。
+RuntimePage 早就把这些 id 渲染在矩阵列头和目录表里了。
+
+所以凭据面挂在运行时页:矩阵列头是凭据的规范清单,点它开详情 Sheet。
+`CredentialButton` 各自持有自己的 sheet 状态 —— 两个调用点在不同的表里,
+一次只能点一个,页面级选中态是纯粹的管道工程。
+
+**覆盖面的诚实边界**:这两个投影只列出运行时**观测到的**凭据。
+建了但从未绑定的凭据,在 G1 之前仍然无处可见。
+
+### 14.3 回调粘贴:客户端先判,别去换一个 400
+
+`OAuthCallbackInput` 要求 `state`,可选 `code` / `error` / `callback_url`。
+`state` 是把这次粘贴绑定到本次会话的东西 —— 没有它,网关只能回 400。
+`parseOAuthCallback` 因此在前端就把话说清楚:没有 state 是"这不是本次授权的回调地址",
+既没 code 也没 error 是"授权可能没有完成",超长是"超出契约允许的长度"。
+三条都有单测,E2E 也验证了坏粘贴**根本没有变成请求**。
+
+`authorization_url` 会变成 `href`,所以过 `safeExternalUrl`:
+只放行 http/https。"网关发来的"不等于"可以交给浏览器当代码执行"。
+
+### 14.4 顺手补上的全局空缺:锚点从来没有样式
+
+写向导时发现那个授权链接是 UA 默认的 `#0000EE` —— 全仓**没有任何 anchor 规则**,
+每一页的链接都在设计系统之外。加了一条 `a { color: var(--tint) }`,下划线保留
+(颜色不得单独承载可供性)。
+
+我看截图判断"规则没生效",**结论是错的** —— 实测计算值就是 `rgb(0,113,227)`。
+截图上的颜色不可靠,这就是要量的原因。
+
+实测对比度:
+
+| | `--surface` | `--surface-2` |
+|---|---|---|
+| Light `#0071e3` | **4.70:1** ✅ | **4.39:1** ❌ |
+| Dark `#0a84ff` | **4.94:1** ✅ | **4.54:1** ✅ |
+
+浅色下 `--tint` 落在 `--surface-2` 上不过 AA,而那个表面只隔一层卡片。
+抬高 `--tint` 不是选项:它同时是导航 ink 与 chart-1 色相,
+§10.4 已经证过任何 AA 干净的取值都会塌进 `--ink-2`。
+
+于是加了 `e2e/contrast.spec.ts`:走遍 11 个页面 × 双主题,
+把每个链接对**它背后真正那层不透明底色**做测量。
+容器型链接(`.count-tile`)刻意跳过 —— 它的内容全是带自己 ink 的子元素,
+锚点的颜色不绘制任何东西。我的第一版探针没做这个区分,报了 5 条假阳性。
+
+### 14.5 门禁抓到了我自己
+
+`safeExternalUrl` 的测试里写了 `javascript:alert(document.cookie)`,
+`check.mjs` 的 C6 存储禁令扫到字符串字面量里的 `document.cookie` 直接失败。
+这是机械门禁的正常代价。**修法是换掉测试载荷,不是给门禁开口子** ——
+`alert(1)` 验证的是同一件事(scheme 被拒),而那条禁令的价值远大于一个测试的措辞。

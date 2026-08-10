@@ -19,6 +19,7 @@ import { asAppError } from "../../api/errors";
 import { useMessages } from "../../i18n/messages";
 import { useNowTick } from "../../utils/useNowTick";
 import { useVersionStore } from "../config-versions/versionStore";
+import { CredentialSheet } from "../upstreams/CredentialSheet";
 import {
   abnormalRows,
   ageStage,
@@ -52,7 +53,33 @@ import "./runtime.css";
 
 const POLL_MS = 10_000;
 
-/** Poll only while the tab is actually being looked at. */
+/**
+ * A credential id that opens its detail sheet.
+ *
+ * These projections are the only production enumeration of credentials until
+ * G1 lands (there is no listCredentials), so this is where the credential
+ * surface hangs. Each button owns its own sheet state: the two call sites are
+ * in different tables and only one can be clicked at a time, so a page-level
+ * selection would be plumbing for nothing.
+ */
+function CredentialButton({ id }: Readonly<{ id: string }>) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className="idbtn mono" onClick={() => setOpen(true)}>
+        {id}
+      </button>
+      {open ? <CredentialSheet credentialId={id} onClose={() => setOpen(false)} /> : null}
+    </>
+  );
+}
+
+/** Poll only while the tab is actually being looked at.
+ *
+ * NOT for saving requests — TanStack already skips interval fetches while
+ * document.visibilityState is "hidden" (queryObserver.js:215). This drives the
+ * visible poll-state indicator below, which is a different job. See
+ * DESIGN.md §13.6 before "fixing" the other polling pages. */
 function useDocumentVisible(): boolean {
   const [visible, setVisible] = useState(() => document.visibilityState === "visible");
   useEffect(() => {
@@ -234,7 +261,7 @@ function AvailabilityMatrixCard({
                   </th>
                   {matrix.credentials.map((credential) => (
                     <th key={credential} scope="col" className="mono">
-                      {credential}
+                      <CredentialButton id={credential} />
                     </th>
                   ))}
                 </tr>
@@ -476,7 +503,9 @@ function CatalogCard({
               return (
                 <tr key={`${row.endpoint_id} ${row.credential_id}`}>
                   <td className="mono">{row.endpoint_id}</td>
-                  <td className="mono">{row.credential_id}</td>
+                  <td className="mono">
+                    <CredentialButton id={row.credential_id} />
+                  </td>
                   <td>
                     <StateChip
                       meta={freshnessMeta(row.freshness)}

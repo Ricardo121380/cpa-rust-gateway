@@ -57,7 +57,7 @@ test("upstream subresources: three tables, endpoint test badge", async ({ page }
   await expect(panel.getByRole("row", { name: /ep-relay-a-responses openai/u })).toContainText("pass · 2xx");
 });
 
-test("oauth wizard polls to complete", async ({ page }) => {
+test("oauth wizard completes through the callback paste, not by waiting", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "上游");
@@ -71,8 +71,61 @@ test("oauth wizard polls to complete", async ({ page }) => {
   const wizard = page.getByRole("dialog");
   await wizard.getByRole("button", { name: "启动授权" }).click();
   await expect(wizard).toContainText("pending");
-  await expect(wizard).toContainText("complete", { timeout: 12_000 });
+
+  // The authorization URL is the thing the old wizard never showed. Take the
+  // state out of it and build the redirect the provider would have produced —
+  // that is the whole flow, and polling alone can never finish it.
+  const authorize = await wizard.getByRole("link", { name: /在新标签页打开授权页/u }).getAttribute("href");
+  expect(authorize).toBeTruthy();
+  const authState = new URL(authorize ?? "").searchParams.get("state");
+  expect(authState).toBeTruthy();
+
+  await wizard
+    .getByLabel("回调地址")
+    .fill(`http://127.0.0.1:8085/callback?code=fixture-code&state=${authState ?? ""}`);
+  await wizard.getByRole("button", { name: "完成授权" }).click();
+  await expect(wizard).toContainText("complete");
   await wizard.getByRole("button", { name: "完成" }).click();
+});
+
+test("a callback from another session is refused with the contract's reason", async ({ page }) => {
+  await unlock(page);
+  await selectDraft(page);
+  await navigate(page, "上游");
+  await page
+    .locator("tr", { hasText: "grok-build-pool" })
+    .first()
+    .getByRole("button", { name: "子资源" })
+    .click();
+  await page.getByRole("button", { name: "OAuth 授权" }).click();
+  const wizard = page.getByRole("dialog");
+  await wizard.getByRole("button", { name: "启动授权" }).click();
+  await expect(wizard).toContainText("pending");
+
+  await wizard.getByLabel("回调地址").fill("http://127.0.0.1:8085/callback?code=c&state=st-wrong");
+  await wizard.getByRole("button", { name: "完成授权" }).click();
+  await expect(wizard).toContainText("state_mismatch");
+  await expect(wizard).toContainText("请用本次授权产生的地址");
+});
+
+test("a paste with no state is refused before it reaches the gateway", async ({ page }) => {
+  await unlock(page);
+  await selectDraft(page);
+  await navigate(page, "上游");
+  await page
+    .locator("tr", { hasText: "grok-build-pool" })
+    .first()
+    .getByRole("button", { name: "子资源" })
+    .click();
+  await page.getByRole("button", { name: "OAuth 授权" }).click();
+  const wizard = page.getByRole("dialog");
+  await wizard.getByRole("button", { name: "启动授权" }).click();
+
+  await wizard.getByLabel("回调地址").fill("http://127.0.0.1:8085/callback?code=only-a-code");
+  await wizard.getByRole("button", { name: "完成授权" }).click();
+  await expect(wizard).toContainText("没有 state 参数");
+  // still pending — the bad paste never became a request
+  await expect(wizard).toContainText("pending");
 });
 
 test("monitoring paginates events with the cursor", async ({ page }) => {

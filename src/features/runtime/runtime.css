@@ -493,3 +493,23 @@
     flex: 1 1 100%;
   }
 }
+
+/* A credential id that opens its detail sheet. It reads as the id it is —
+   monospace, inheriting the cell's size — with the tint and an underline
+   carrying the affordance, so the matrix header stays a header. */
+.runtime-page .idbtn {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  color: var(--tint);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--tint) 45%, transparent);
+  cursor: pointer;
+}
+.runtime-page .idbtn:hover,
+.runtime-page .idbtn:focus-visible {
+  text-decoration-color: currentColor;
+}
