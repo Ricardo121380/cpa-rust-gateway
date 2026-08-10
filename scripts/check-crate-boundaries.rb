@@ -26,7 +26,7 @@ allowed = {
   # on the protocol/router crates whose behavior it projects because nothing depends on it; the
   # direction never reverses.
   "differential-gate" => %w[gateway-core gateway-router gateway-store gateway-upstream protocol-anthropic protocol-openai-chat protocol-openai-responses provider-grok provider-kiro serde serde_json],
-  "gateway-http-actix" => %w[actix-web criterion futures-util gateway-auth gateway-control gateway-core gateway-observability gateway-protocol gateway-router gateway-store gateway-stream gateway-upstream getrandom protocol-anthropic protocol-openai-chat protocol-openai-responses provider-openai-compatible serde serde_json subtle tokio url zeroize],
+  "gateway-http-actix" => %w[actix-web base64 criterion futures-util gateway-auth gateway-control gateway-core gateway-observability gateway-protocol gateway-router gateway-store gateway-stream gateway-upstream getrandom protocol-anthropic protocol-openai-chat protocol-openai-responses provider-openai-compatible reqwest serde serde_json sha2 subtle tokio url zeroize],
   "gateway-observability" => %w[gateway-core opentelemetry serde serde_json sha2 tokio tracing tracing-subscriber],
   "gateway-protocol" => %w[gateway-core],
   "gateway-provider" => %w[criterion gateway-core serde serde_json tokio],
@@ -44,7 +44,7 @@ allowed = {
   "provider-anthropic-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-anthropic serde serde_json zeroize],
   "provider-grok" => %w[base64 flate2 gateway-catalog gateway-core gateway-provider gateway-router gateway-store gateway-upstream getrandom hmac p256 protocol-openai-responses rand_core rusqlite serde serde_json sha2 time tokio url zeroize],
   "provider-kiro" => %w[gateway-catalog gateway-core gateway-provider gateway-store gateway-stream gateway-upstream protocol-anthropic serde serde_json tokio url zeroize],
-  "provider-openai-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-openai-chat protocol-openai-responses serde serde_json zeroize],
+  "provider-openai-compatible" => %w[base64 gateway-core gateway-provider gateway-upstream protocol-openai-chat protocol-openai-responses serde serde_json time zeroize],
 }
 
 errors = []

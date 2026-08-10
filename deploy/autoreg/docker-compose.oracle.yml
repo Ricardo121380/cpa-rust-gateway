@@ -68,7 +68,8 @@ services:
     volumes:
       - ../..:/workspace
       - /opt/example-autoreg/cliproxyapi-auths:/opt/example-legacy-gateway/cpa/auths
-      - /opt/example-autoreg/.cache/cloakbrowser:/root/.cloakbrowser
+      # Do not mount the excluded Jakarta browser cache here: an empty host
+      # directory would hide the ARM64 CloakBrowser binary installed in the image.
     restart: unless-stopped
     depends_on:
       - warp

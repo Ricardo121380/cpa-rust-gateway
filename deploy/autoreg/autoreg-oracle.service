@@ -9,6 +9,7 @@ ConditionPathExists=/opt/example-autoreg/project/deploy/autoreg/docker-compose.o
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/opt/example-autoreg/project
+ExecStartPre=/usr/bin/python3 /opt/example-autoreg/project/deploy/autoreg/prepare-oracle-config.py
 ExecStart=/usr/bin/docker compose -p autoreg-oracle -f deploy/autoreg/docker-compose.oracle.yml up -d
 ExecStop=/usr/bin/docker compose -p autoreg-oracle -f deploy/autoreg/docker-compose.oracle.yml down
 TimeoutStartSec=0

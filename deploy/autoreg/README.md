@@ -11,6 +11,11 @@ It is intentionally separate from CPAR and the retired Jakarta predecessor:
   `28191`; the console listens only on `127.0.0.1:18650`;
 - `/opt/example-autoreg/project/deploy/autoreg/autoreg-oracle.service` is the optional durable
   systemd wrapper. It does not change Caddy, DNS, CPAR, the old CPA, or CC Switch.
+- The systemd pre-start hook applies `deploy/autoreg/prepare-oracle-config.py`.
+  It idempotently remaps the copied browser sidecars to Oracle loopback ports,
+  disables the legacy/grok2api sink, and forces CPA credential writes to the
+  dedicated mounted pool with `prefer=dir`/`using_api=false`; secret fields are
+  preserved and never printed.
 
 The source Jakarta stack must remain running until an operator accepts the Oracle
 instance and explicitly authorizes a cutover. Rollback is `docker compose down` for

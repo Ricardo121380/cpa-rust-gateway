@@ -287,15 +287,18 @@ mod tests {
     #[test]
     fn retains_cloudflare_challenge_cookie_family() {
         let raw = br#"{"status":"ok","solution":{"userAgent":"Chrome","cookies":[{"name":"cf_clearance","value":"abc"},{"name":"__cf_bm","value":"bm"},{"name":"_cfuvid","value":"uvid"},{"name":"cf_chl_test","value":"chl"},{"name":"other","value":"ignored"}]}}"#;
-        let parsed = GrokWebFlareSolverrClearance::parse(raw).expect("clearance");
-        assert_eq!(parsed.cookies().len(), 4);
-        assert!(parsed.cookies().iter().any(|(name, _)| name == "__cf_bm"));
-        assert!(
-            parsed
-                .cookies()
-                .iter()
-                .any(|(name, _)| name == "cf_chl_test")
-        );
+        let result = GrokWebFlareSolverrClearance::parse(raw);
+        assert!(result.is_ok(), "clearance parse failed: {result:?}");
+        if let Ok(parsed) = result {
+            assert_eq!(parsed.cookies().len(), 4);
+            assert!(parsed.cookies().iter().any(|(name, _)| name == "__cf_bm"));
+            assert!(
+                parsed
+                    .cookies()
+                    .iter()
+                    .any(|(name, _)| name == "cf_chl_test")
+            );
+        }
     }
 
     #[test]
