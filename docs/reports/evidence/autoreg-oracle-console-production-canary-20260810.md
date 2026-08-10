@@ -29,8 +29,11 @@ newly imported, higher-priority canary account.
 
 ## Public data-plane matrix
 
-The matrix used the real public CPAR host `cpar.example.invalid` and the existing root-only client
-key. It sent exactly six requests, with no retry and no cross-provider fallback:
+After the import, CPAR was restarted once so the startup-compiled native account pool could load
+the new batch. The restart kept the same active Config Version, route graph, database and
+loopback listeners. The matrix then used the real public CPAR host `cpar.example.invalid` and the
+existing root-only client key. It sent exactly six requests, with no retry and no cross-provider
+fallback:
 
 | Protocol | JSON | SSE |
 |---|---:|---:|
@@ -38,10 +41,16 @@ key. It sent exactly six requests, with no retry and no cross-provider fallback:
 | Chat Completions | PASS | PASS |
 | Messages | PASS | PASS |
 
-Receipt summary: `attempted_calls=6`, `successful_calls=6`, `value_free=true`. Every response
+The post-reload receipt summary is `attempted_calls=6`, `successful_calls=6`, `value_free=true`.
+Every response
 had the expected content type and semantic terminal condition. The value-free receipt is kept
 root-only on Oracle; no token, cookie, account identity, request body or response body entered
 the repository.
+
+For transparency, a first six-request observation was made before the restart. It also returned
+6/6, but it is explicitly excluded from acceptance because the running process had not yet
+recompiled its native pool after the import. Only the post-reload six-request receipt above is
+the final Console source-provenance evidence.
 
 ## Post-canary state
 
