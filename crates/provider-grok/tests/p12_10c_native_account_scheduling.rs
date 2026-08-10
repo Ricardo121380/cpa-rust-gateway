@@ -38,6 +38,8 @@ type TestResult = Result<(), Box<dyn Error>>;
 const NOW_MS: i64 = 1_800_000_000_000;
 const ENDPOINT: &str = "grok-build-endpoint";
 const MODEL: &str = "grok-upstream-model";
+const FRESH_BUILD_EXPIRY: &str = "2027-01-15T09:00:00Z";
+const EXPIRED_BUILD_EXPIRY: &str = "2027-01-15T07:59:59Z";
 static TEMPORARY_DATABASE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 #[test]
@@ -196,6 +198,52 @@ fn native_priority_and_concurrency_use_the_existing_endpoint_pool() -> TestResul
     assert!(pool.active_lease_count(preferred.credential_id()).is_some());
     drop(preferred);
     drop(fallback);
+    Ok(())
+}
+
+#[test]
+fn expired_preferred_build_does_not_obscure_fresh_sibling_after_restart() -> TestResult {
+    let database = TemporaryDatabase::new()?;
+    let store = open_store(database.path())?;
+    store.import_batch(
+        "build-expiry",
+        &[
+            build_account_with_expiry("expired-preferred", 100, EXPIRED_BUILD_EXPIRY)?,
+            build_account_with_expiry("fresh-sibling", 0, FRESH_BUILD_EXPIRY)?,
+        ],
+        NOW_MS,
+    )?;
+    let metadata = store.list_accounts()?;
+    let expired_id = CredentialId::try_new(
+        metadata
+            .iter()
+            .find(|account| account.priority == 100)
+            .ok_or("expired preferred account missing")?
+            .id
+            .clone(),
+    )?;
+    let fresh_id = CredentialId::try_new(
+        metadata
+            .iter()
+            .find(|account| account.priority == 0)
+            .ok_or("fresh sibling account missing")?
+            .id
+            .clone(),
+    )?;
+
+    let compilation = store.compile_native_runtime(&bindings()?, NOW_MS)?;
+    assert_eq!(compilation.account_count(), 2);
+    assert_eq!(
+        compilation.provider_for_credential(&expired_id),
+        Some(GrokAccountProvider::Build)
+    );
+    assert_fresh_build_selected(&compilation, &expired_id, &fresh_id)?;
+    drop(store);
+
+    let restarted = open_store(database.path())?;
+    let compilation = restarted.compile_native_runtime(&bindings()?, NOW_MS)?;
+    assert_eq!(compilation.account_count(), 2);
+    assert_fresh_build_selected(&compilation, &expired_id, &fresh_id)?;
     Ok(())
 }
 
@@ -451,7 +499,10 @@ fn account(
     Ok(GrokAccountImport {
         provider: GrokAccountProvider::Build,
         identity: GrokAccountIdentity::try_from_bytes(identity)?,
-        credential: GrokAccountCredential::try_from_bytes(format!("secret-{identity}"))?,
+        credential: GrokAccountCredential::try_from_bytes(build_credential_json(
+            identity,
+            FRESH_BUILD_EXPIRY,
+        ))?,
         auth_status,
         enabled,
         priority,
@@ -461,6 +512,51 @@ fn account(
         quota_sync_due_at_ms: Some(NOW_MS + 2_000),
         cooldown_until_ms,
     })
+}
+
+fn build_account_with_expiry(
+    identity: &str,
+    priority: i64,
+    expires_at: &str,
+) -> Result<GrokAccountImport, Box<dyn Error>> {
+    Ok(GrokAccountImport {
+        provider: GrokAccountProvider::Build,
+        identity: GrokAccountIdentity::try_from_bytes(identity)?,
+        credential: GrokAccountCredential::try_from_bytes(build_credential_json(
+            identity, expires_at,
+        ))?,
+        auth_status: GrokAccountAuthStatus::Active,
+        enabled: true,
+        priority,
+        weight: 1,
+        max_concurrency: 1,
+        refresh_due_at_ms: Some(NOW_MS),
+        quota_sync_due_at_ms: None,
+        cooldown_until_ms: None,
+    })
+}
+
+fn build_credential_json(identity: &str, expires_at: &str) -> Vec<u8> {
+    format!(
+        r#"{{"access_token":"access-{identity}","refresh_token":"refresh-{identity}","expires_at":"{expires_at}"}}"#
+    )
+    .into_bytes()
+}
+
+fn assert_fresh_build_selected(
+    compilation: &provider_grok::GrokNativeAccountPoolCompilation,
+    expired_id: &CredentialId,
+    fresh_id: &CredentialId,
+) -> TestResult {
+    let health = RuntimeHealthRegistry::with_clock(Arc::new(FixedClock::new(NOW_MS)));
+    compilation.seed_runtime_health(&health)?;
+    let endpoint = EndpointId::try_new(ENDPOINT)?;
+    assert!(!health.endpoint_credential_is_available(&endpoint, expired_id));
+    assert!(health.endpoint_credential_is_available(&endpoint, fresh_id));
+    let scheduler = build_scheduler(compilation.credential_pools())?;
+    let selected = scheduler.select_runtime_eligible_and_lease(&route_id()?, &health)?;
+    assert_eq!(selected.lease().credential_id(), fresh_id);
+    Ok(())
 }
 
 fn bindings() -> Result<Vec<GrokAccountEndpointBinding>, Box<dyn Error>> {

@@ -1,0 +1,188 @@
+name: delivery-gate
+
+# The formal delivery gate is intentionally opt-in.  Ordinary PR synchronization and branch
+# pushes must not spend runner minutes on Fast + supply-chain checks.  A closeout label is a
+# one-shot request bound to the exact head SHA at the moment the label is added; after a new
+# commit, remove and re-add the label (or use workflow_dispatch) to request a fresh gate.
+on:
+  push:
+    tags:
+      - "phase-p*-complete"
+  workflow_dispatch:
+    inputs:
+      closeout_reason:
+        description: "Why this exact revision is ready for the formal delivery gate"
+        required: true
+        type: string
+  pull_request:
+    types:
+      - labeled
+      - synchronize
+
+permissions:
+  contents: read
+
+concurrency:
+  group: delivery-gate-${{ github.workflow }}-${{ github.ref }}
+  # A new PR head invalidates and cancels a still-running closeout for the old head. Immutable tag
+  # and explicit manual runs are retained as formal evidence and are never auto-cancelled.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_INCREMENTAL: "0"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  authorize:
+    name: Authorize explicit delivery request
+    # Unrelated labels and ordinary PR synchronization without a closeout label consume no runner.
+    # A synchronized PR that still carries the label runs only this tiny invalidation receipt.
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.action == 'labeled' && github.event.label.name == 'delivery-closeout') ||
+      (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'delivery-closeout'))
+    runs-on: ubuntu-24.04
+    outputs:
+      authorized: ${{ steps.request.outputs.authorized }}
+      revision: ${{ steps.request.outputs.revision }}
+    steps:
+      - name: Check trigger boundary
+        id: request
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+          LABEL_NAME: ${{ github.event.label.name }}
+          CLOSEOUT_REASON: ${{ inputs.closeout_reason }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          REQUESTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          authorized=false
+          case "$EVENT_NAME" in
+            push)
+              test "$REF_TYPE" = "tag"
+              case "$REF_NAME" in
+                phase-p*-complete) authorized=true ;;
+                *) printf 'unexpected delivery tag: %s\n' "$REF_NAME" >&2; exit 1 ;;
+              esac
+              ;;
+            workflow_dispatch)
+              test -n "$CLOSEOUT_REASON"
+              authorized=true
+              ;;
+            pull_request)
+              if [[ "$EVENT_ACTION" == "labeled" && "$LABEL_NAME" == "delivery-closeout" ]]; then
+                authorized=true
+                printf '%s\n' 'Closeout label accepted for this exact head SHA.'
+              else
+                printf '%s\n' 'No delivery run: closeout label is absent or the head changed; re-add the label or dispatch manually.'
+              fi
+              ;;
+            *)
+              printf 'unsupported delivery event: %s\n' "$EVENT_NAME" >&2
+              exit 1
+              ;;
+          esac
+          test -n "$REQUESTED_SHA"
+          printf 'authorized=%s\n' "$authorized" >> "$GITHUB_OUTPUT"
+          printf 'revision=%s\n' "$REQUESTED_SHA" >> "$GITHUB_OUTPUT"
+          {
+            printf '%s\n' '## Delivery request boundary'
+            printf '\n'
+            printf '%s\n' "- Event: \`$EVENT_NAME\`"
+            printf '%s\n' "- Authorized: \`$authorized\`"
+            printf '%s\n' "- Requested SHA: \`${REQUESTED_SHA}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  fast:
+    name: Fast gate (explicit delivery)
+    needs: authorize
+    if: needs.authorize.outputs.authorized == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout requested revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.authorize.outputs.revision }}
+      - name: Install CI prerequisites
+        run: sudo apt-get update && sudo apt-get install --yes clang cmake libclang-dev nodejs npm ripgrep
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
+      - name: Run fast gate
+        env:
+          # Rust 1.97's bundled lld has reproducibly crashed while linking the Gateway on the
+          # ubuntu-24.04 runner. Use one GNU bfd linker for the whole formal gate.
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER: ${{ github.workspace }}/scripts/p12-02-serial-linker.sh
+        run: ./scripts/check.sh fast
+
+  full:
+    name: Full supply-chain gate (explicit delivery)
+    needs: [authorize, fast]
+    if: needs.authorize.outputs.authorized == 'true' && needs.fast.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout requested revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.authorize.outputs.revision }}
+      - name: Install native build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clang cmake libclang-dev nodejs npm ripgrep
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.97.1 --profile minimal
+      - name: Restore pinned quality-tool cache
+        id: quality-tool-cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            ~/.cargo/bin/cargo-deny
+            ~/.cargo/bin/cargo-audit
+            ~/.cargo/bin/cargo-cyclonedx
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: quality-tools-${{ runner.os }}-rust-1.97.1-${{ hashFiles('tools/quality-tool-versions.env') }}
+      - name: Install pinned quality tools
+        run: ./scripts/install-quality-tools.sh
+      - name: Summarize quality-tool cache
+        env:
+          CACHE_HIT: ${{ steps.quality-tool-cache.outputs.cache-hit }}
+        run: |
+          {
+            printf '%s\n' '## Pinned quality-tool cache'
+            printf '\n'
+            printf '%s\n' "- Cache hit: \`${CACHE_HIT:-false}\`"
+            printf '%s\n' '- Warm-install operational target: `<= 10 seconds` (hard ceiling: `<= 90 seconds`).'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Run supplemental supply-chain gate
+        run: ./scripts/check.sh supply-chain
+
+  required:
+    name: Required delivery gate
+    needs: [authorize, fast, full]
+    if: always() && needs.authorize.outputs.authorized == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Verify formal delivery path
+        env:
+          AUTH_RESULT: ${{ needs.authorize.result }}
+          FAST_RESULT: ${{ needs.fast.result }}
+          FULL_RESULT: ${{ needs.full.result }}
+          DELIVERY_REVISION: ${{ needs.authorize.outputs.revision }}
+        run: |
+          set -euo pipefail
+          test "$AUTH_RESULT" = "success"
+          test "$FAST_RESULT" = "success"
+          test "$FULL_RESULT" = "success"
+          {
+            printf '%s\n' '## Formal delivery gate'
+            printf '\n'
+            printf '%s\n' "- Revision: \`${DELIVERY_REVISION}\`"
+            printf '%s\n' '- Fast and supplemental supply-chain checks passed for the requested immutable revision.'
+            printf '%s\n' '- This job is the formal closeout evidence; ordinary PR checks use `Required lightweight gate`.'
+          } >> "$GITHUB_STEP_SUMMARY"

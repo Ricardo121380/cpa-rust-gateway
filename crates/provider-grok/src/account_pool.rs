@@ -13,6 +13,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use crate::oauth::GrokBuildCredential;
 use gateway_core::{CredentialId, EndpointId};
 use gateway_router::{
     QuotaConfidence, QuotaSnapshot, QuotaSource, QuotaWindow, RuntimeHealthError,
@@ -798,9 +799,12 @@ impl GrokAccountPoolStore {
     ///
     /// Disabled accounts never enter a pool. Reauthentication-required accounts do enter so the
     /// shared controlled recovery flow can address them, but the returned compilation seeds an
-    /// exact unauthorized Health block before scheduling begins. Future persisted cooldowns are
-    /// seeded into that same registry. Higher native priorities are monotonically translated to
-    /// the existing pool's lower-is-preferred priority domain.
+    /// exact unauthorized Health block before scheduling begins. Active Build accounts are also
+    /// parsed at this boundary: a malformed or already-expired durable OAuth envelope is retained
+    /// for refresh/reauth recovery, but receives the same unauthorized Health block and therefore
+    /// cannot obscure a fresh lower-priority sibling. Future persisted cooldowns are seeded into
+    /// that same registry. Higher native priorities are monotonically translated to the existing
+    /// pool's lower-is-preferred priority domain.
     ///
     /// # Errors
     ///
@@ -880,7 +884,7 @@ impl GrokAccountPoolStore {
             }
             runtime_bindings_by_account
                 .insert(account_id, (endpoint_id.clone(), credential_id.clone()));
-            if auth_status == GrokAccountAuthStatus::ReauthRequired {
+            if runtime_auth_blocked(provider, auth_status, plaintext.as_bytes(), observed_at_ms) {
                 health_bootstrap.push(GrokRuntimeHealthBootstrap::Unauthorized {
                     endpoint_id: endpoint_id.clone(),
                     credential_id: credential_id.clone(),
@@ -1041,6 +1045,28 @@ impl GrokAccountPoolStore {
             .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
         Ok(ImportOneOutcome::Created(account_id))
     }
+}
+
+/// Checks the durable Build credential envelope retained by the native account store.
+///
+/// This check runs at compile time so a stale active account cannot win scheduling solely because
+/// its metadata has a higher priority. An invalid or expired value is deliberately reported as
+/// unavailable; the original encrypted bytes remain in the account store for the refresh/reauth
+/// control path.
+fn build_credential_is_current(credential: &[u8], observed_at_ms: i64) -> bool {
+    GrokBuildCredential::import_runtime_json(credential, observed_at_ms).is_ok()
+}
+
+fn runtime_auth_blocked(
+    provider: GrokAccountProvider,
+    auth_status: GrokAccountAuthStatus,
+    credential: &[u8],
+    observed_at_ms: i64,
+) -> bool {
+    auth_status == GrokAccountAuthStatus::ReauthRequired
+        || (provider == GrokAccountProvider::Build
+            && auth_status == GrokAccountAuthStatus::Active
+            && !build_credential_is_current(credential, observed_at_ms))
 }
 
 enum ImportOneOutcome {
