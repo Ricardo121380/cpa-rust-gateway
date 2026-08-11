@@ -1048,6 +1048,49 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "listProviderAccountPools": {
+    "method": "GET",
+    "path": "/admin/operations/provider-account-pools",
+    "parameters": [
+      {
+        "name": "provider_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "channel_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "auth_status",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "runtime_status",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "enabled",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "listPublicModels": {
     "method": "GET",
     "path": "/admin/public-models",
@@ -1853,6 +1896,10 @@ export class ManagementApi {
 
   listOperationalUsage(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listOperationalUsage", request);
+  }
+
+  listProviderAccountPools(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listProviderAccountPools", request);
   }
 
   listPublicModels(request: ManagementRequest = {}): Promise<Response> {

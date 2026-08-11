@@ -40,9 +40,15 @@ use gateway_control::management_operations_service::{
     OperationalTokenConfidence, OperationalTokenMetric, OperationalUsageCursor,
     OperationalUsagePage, OperationalUsageQuery, compile_operational_billing_page,
 };
+use gateway_control::provider_account_pool_service::{
+    DEFAULT_PROVIDER_ACCOUNT_POOL_LIMIT, ProviderAccountAuthStatus, ProviderAccountPoolCursor,
+    ProviderAccountPoolError, ProviderAccountPoolFacade, ProviderAccountPoolItem,
+    ProviderAccountPoolPage, ProviderAccountPoolQuery, ProviderAccountRuntimeStatus,
+    RejectingProviderAccountPoolFacade,
+};
 use gateway_core::{
     AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, GatewayProtocol,
-    PublicModelId, RequestId, RouteCandidateId, RouteId, UpstreamId,
+    ProviderId, PublicModelId, RequestId, RouteCandidateId, RouteId, UpstreamId,
 };
 use gateway_store::billing_ledger::SqliteBillingLedger;
 use gateway_upstream::UpstreamProxy;
@@ -79,6 +85,7 @@ pub struct ManagementResourceHttpState {
     workflow: Mutex<Box<dyn ManagementEndpointWorkflow>>,
     runtime: Mutex<Box<dyn ManagementRuntimeFacade>>,
     usage: Mutex<Box<dyn ManagementUsageFacade>>,
+    provider_account_pools: Mutex<Box<dyn ProviderAccountPoolFacade>>,
     /// Credential ids with an in-flight refresh.  The claim spans decrypt, upstream refresh, and
     /// the revision-guarded persistence write so two HTTP callers can never spend the same
     /// rotating refresh token concurrently.
@@ -265,6 +272,7 @@ impl ManagementResourceHttpState {
             workflow: Mutex::new(workflow),
             runtime: Mutex::new(runtime),
             usage: Mutex::new(usage),
+            provider_account_pools: Mutex::new(Box::new(RejectingProviderAccountPoolFacade::new())),
             oauth_refresh_claims: Mutex::new(BTreeSet::new()),
             runtime_clock,
         }
@@ -274,6 +282,18 @@ impl ManagementResourceHttpState {
     #[must_use]
     pub fn with_usage(mut self, usage: Box<dyn ManagementUsageFacade>) -> Self {
         self.usage = Mutex::new(usage);
+        self
+    }
+
+    /// Replaces the fail-closed Provider-owned account-pool source with an injected read-only
+    /// facade. The facade builds the observation snapshot; this HTTP layer never contacts a
+    /// Provider or decrypts an account.
+    #[must_use]
+    pub fn with_provider_account_pools(
+        mut self,
+        provider_account_pools: Box<dyn ProviderAccountPoolFacade>,
+    ) -> Self {
+        self.provider_account_pools = Mutex::new(provider_account_pools);
         self
     }
 
@@ -1809,6 +1829,10 @@ fn configure_operations_resource_routes(config: &mut web::ServiceConfig) {
             "/operations/account-pools",
             web::get().to(list_operational_account_pools),
         )
+        .route(
+            "/operations/provider-account-pools",
+            web::get().to(list_provider_account_pools),
+        )
         .route("/operations/usage", web::get().to(list_operational_usage));
     config.route(
         "/operations/billing",
@@ -2364,6 +2388,55 @@ struct OperationalAccountPoolItemResponse {
     weight: i64,
     concurrency: i64,
     route_ids: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ProviderAccountPoolQueryParams {
+    provider_id: Option<String>,
+    channel_id: Option<String>,
+    auth_status: Option<String>,
+    runtime_status: Option<String>,
+    enabled: Option<bool>,
+    limit: Option<usize>,
+    cursor: Option<String>,
+}
+
+#[derive(Serialize)]
+struct ProviderAccountPoolPageResponse {
+    snapshot_id: String,
+    observed_at_ms: i64,
+    items: Vec<ProviderAccountPoolItemResponse>,
+    next_cursor: Option<String>,
+}
+
+#[derive(Serialize)]
+#[allow(clippy::struct_excessive_bools)]
+struct ProviderAccountPoolItemResponse {
+    provider_id: String,
+    channel_id: String,
+    account_id: String,
+    account_kind: String,
+    auth_status: &'static str,
+    runtime_status: &'static str,
+    enabled: bool,
+    priority: i64,
+    weight: u32,
+    max_concurrency: u32,
+    active_leases: u32,
+    expires_at_ms: Option<i64>,
+    refresh_due_at_ms: Option<i64>,
+    quota_sync_due_at_ms: Option<i64>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ProviderAccountPoolCursorWire {
+    snapshot_id: String,
+    filter_fingerprint: String,
+    provider_id: String,
+    channel_id: String,
+    account_id: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -2943,6 +3016,85 @@ async fn list_operational_account_pools(
             }
         }
         Err(error) => management_error(error),
+    }
+}
+
+#[allow(clippy::too_many_lines)]
+async fn list_provider_account_pools(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let params =
+        match web::Query::<ProviderAccountPoolQueryParams>::from_query(request.query_string()) {
+            Ok(params) => params.into_inner(),
+            Err(_) => return invalid_input(),
+        };
+    let provider_id = match params.provider_id {
+        Some(value) => match operational_query_id(value)
+            .and_then(|value| ProviderId::try_new(value).map_err(|_| invalid_input()))
+        {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let channel_id = match params.channel_id {
+        Some(value) => match operational_query_id(value)
+            .and_then(|value| EndpointId::try_new(value).map_err(|_| invalid_input()))
+        {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let auth_status = match params.auth_status.as_deref() {
+        Some(value) => match provider_account_auth_status(value) {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let runtime_status = match params.runtime_status.as_deref() {
+        Some(value) => match provider_account_runtime_status(value) {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let cursor = match params.cursor.as_deref() {
+        Some(value) if value.len() <= 2048 => decode_provider_account_pool_cursor(value),
+        Some(_) => Err(ProviderAccountPoolError::InvalidQuery),
+        None => Ok(None),
+    };
+    let cursor = match cursor {
+        Ok(cursor) => cursor,
+        Err(error) => return provider_account_pool_error(error),
+    };
+    let limit = params.limit.unwrap_or(DEFAULT_PROVIDER_ACCOUNT_POOL_LIMIT);
+    let query = match ProviderAccountPoolQuery::try_new(
+        provider_id,
+        channel_id,
+        auth_status,
+        runtime_status,
+        params.enabled,
+        limit,
+        cursor,
+    ) {
+        Ok(query) => query,
+        Err(error) => return provider_account_pool_error(error),
+    };
+    let source = match provider_account_pools(&state) {
+        Ok(source) => source,
+        Err(response) => return response,
+    };
+    match source.list_provider_account_pools(&query) {
+        Ok(page) => match provider_account_pool_page_response(page) {
+            Ok(response) => HttpResponse::Ok()
+                .insert_header((header::CACHE_CONTROL, "no-store"))
+                .json(response),
+            Err(response) => response,
+        },
+        Err(error) => provider_account_pool_error(error),
     }
 }
 
@@ -4996,6 +5148,15 @@ fn usage(
     state.usage.lock().map_err(|_| internal_error())
 }
 
+fn provider_account_pools(
+    state: &web::Data<ManagementResourceHttpState>,
+) -> Result<std::sync::MutexGuard<'_, Box<dyn ProviderAccountPoolFacade>>, HttpResponse> {
+    state
+        .provider_account_pools
+        .lock()
+        .map_err(|_| internal_error())
+}
+
 fn require_runtime_target(
     state: &web::Data<ManagementResourceHttpState>,
     config_version_id: &ConfigVersionId,
@@ -5664,6 +5825,20 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
     response
 }
 
+fn provider_account_pool_error(error: ProviderAccountPoolError) -> HttpResponse {
+    match error {
+        ProviderAccountPoolError::InvalidQuery => invalid_input(),
+        ProviderAccountPoolError::CursorConflict => error_response(
+            StatusCode::CONFLICT,
+            "management_provider_account_pool_cursor_conflict",
+            "Provider account-pool snapshot changed",
+        ),
+        ProviderAccountPoolError::InvalidSnapshot | ProviderAccountPoolError::SourceUnavailable => {
+            internal_error()
+        }
+    }
+}
+
 fn invalid_input() -> HttpResponse {
     error_response(
         StatusCode::BAD_REQUEST,
@@ -5926,6 +6101,123 @@ fn operational_account_status_response(value: CredentialStatus) -> &'static str 
         CredentialStatus::Cooling => "cooling",
         CredentialStatus::Unauthorized => "unauthorized",
         CredentialStatus::Disabled => "disabled",
+    }
+}
+
+fn provider_account_auth_status(value: &str) -> Result<ProviderAccountAuthStatus, HttpResponse> {
+    match value {
+        "active" => Ok(ProviderAccountAuthStatus::Active),
+        "reauth_required" => Ok(ProviderAccountAuthStatus::ReauthRequired),
+        "disabled" => Ok(ProviderAccountAuthStatus::Disabled),
+        "expired" => Ok(ProviderAccountAuthStatus::Expired),
+        _ => Err(invalid_input()),
+    }
+}
+
+fn provider_account_runtime_status(
+    value: &str,
+) -> Result<ProviderAccountRuntimeStatus, HttpResponse> {
+    match value {
+        "available" => Ok(ProviderAccountRuntimeStatus::Available),
+        "cooling" => Ok(ProviderAccountRuntimeStatus::Cooling),
+        "circuit_open" => Ok(ProviderAccountRuntimeStatus::CircuitOpen),
+        "quota_blocked" => Ok(ProviderAccountRuntimeStatus::QuotaBlocked),
+        "unauthorized" => Ok(ProviderAccountRuntimeStatus::Unauthorized),
+        "recovery_in_flight" => Ok(ProviderAccountRuntimeStatus::RecoveryInFlight),
+        "expired" => Ok(ProviderAccountRuntimeStatus::Expired),
+        _ => Err(invalid_input()),
+    }
+}
+
+fn encode_provider_account_pool_cursor(
+    cursor: &ProviderAccountPoolCursor,
+) -> Result<String, HttpResponse> {
+    let wire = ProviderAccountPoolCursorWire {
+        snapshot_id: cursor.snapshot_id().to_owned(),
+        filter_fingerprint: cursor.filter_fingerprint().to_owned(),
+        provider_id: cursor.provider_id().as_str().to_owned(),
+        channel_id: cursor.channel_id().as_str().to_owned(),
+        account_id: cursor.account_id().as_str().to_owned(),
+    };
+    serde_json::to_vec(&wire)
+        .map(|bytes| URL_SAFE_NO_PAD.encode(bytes))
+        .map_err(|_| internal_error())
+}
+
+fn decode_provider_account_pool_cursor(
+    value: &str,
+) -> Result<Option<ProviderAccountPoolCursor>, ProviderAccountPoolError> {
+    if value.is_empty() {
+        return Err(ProviderAccountPoolError::InvalidQuery);
+    }
+    let bytes = URL_SAFE_NO_PAD
+        .decode(value)
+        .map_err(|_| ProviderAccountPoolError::InvalidQuery)?;
+    let wire: ProviderAccountPoolCursorWire =
+        serde_json::from_slice(&bytes).map_err(|_| ProviderAccountPoolError::InvalidQuery)?;
+    if wire.snapshot_id.is_empty()
+        || wire.snapshot_id.chars().count() > 128
+        || wire.filter_fingerprint.chars().count() > 512
+        || wire.provider_id.chars().count() > 128
+        || wire.channel_id.chars().count() > 128
+        || wire.account_id.chars().count() > 128
+    {
+        return Err(ProviderAccountPoolError::InvalidQuery);
+    }
+    let provider_id = ProviderId::try_new(wire.provider_id)
+        .map_err(|_| ProviderAccountPoolError::InvalidQuery)?;
+    let channel_id =
+        EndpointId::try_new(wire.channel_id).map_err(|_| ProviderAccountPoolError::InvalidQuery)?;
+    let account_id = CredentialId::try_new(wire.account_id)
+        .map_err(|_| ProviderAccountPoolError::InvalidQuery)?;
+    ProviderAccountPoolCursor::try_new(
+        wire.snapshot_id,
+        wire.filter_fingerprint,
+        provider_id,
+        channel_id,
+        account_id,
+    )
+    .map(Some)
+}
+
+fn provider_account_pool_page_response(
+    value: ProviderAccountPoolPage,
+) -> Result<ProviderAccountPoolPageResponse, HttpResponse> {
+    let next_cursor = value
+        .next_cursor
+        .as_ref()
+        .map(encode_provider_account_pool_cursor)
+        .transpose()?;
+    Ok(ProviderAccountPoolPageResponse {
+        snapshot_id: value.snapshot_id,
+        observed_at_ms: value.observed_at_ms,
+        items: value
+            .items
+            .into_iter()
+            .map(provider_account_pool_item_response)
+            .collect(),
+        next_cursor,
+    })
+}
+
+fn provider_account_pool_item_response(
+    value: ProviderAccountPoolItem,
+) -> ProviderAccountPoolItemResponse {
+    ProviderAccountPoolItemResponse {
+        provider_id: value.provider_id.as_str().to_owned(),
+        channel_id: value.channel_id.as_str().to_owned(),
+        account_id: value.account_id.as_str().to_owned(),
+        account_kind: value.account_kind,
+        auth_status: value.auth_status.as_str(),
+        runtime_status: value.runtime_status.as_str(),
+        enabled: value.enabled,
+        priority: value.priority,
+        weight: value.weight,
+        max_concurrency: value.max_concurrency,
+        active_leases: value.active_leases,
+        expires_at_ms: value.expires_at_ms,
+        refresh_due_at_ms: value.refresh_due_at_ms,
+        quota_sync_due_at_ms: value.quota_sync_due_at_ms,
     }
 }
 

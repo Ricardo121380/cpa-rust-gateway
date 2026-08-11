@@ -20,6 +20,8 @@ pub mod management_mutation_service;
 pub mod management_operations_service;
 /// Local transport-neutral lifecycle API for configuration validation and publication.
 pub mod management_service;
+/// Provider-owned, snapshot-scoped account-pool operational projections.
+pub mod provider_account_pool_service;
 /// Semantic Config Version validation and secret-free Route compilation.
 pub mod route_compiler;
 /// Atomic publication and rollback of compiler-approved RouteSnapshots.

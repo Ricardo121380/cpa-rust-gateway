@@ -20,10 +20,14 @@ use gateway_control::management_operations_service::{
     OperationalUsagePage, OperationalUsageQuery, compile_operational_billing_page,
     compile_operational_usage_page,
 };
+use gateway_control::provider_account_pool_service::{
+    ProviderAccountAuthStatus, ProviderAccountPoolItem, ProviderAccountPoolSnapshot,
+    ProviderAccountRuntimeStatus, SnapshotProviderAccountPoolFacade,
+};
 use gateway_core::{
     AttemptEvent, AttemptOutcome, AttemptRetryDecision, ClientKeyId, CredentialId, EndpointId,
-    GatewayEvent, GatewayProtocol, RequestEvent, ResponseId, RouteCandidateId, RouteId, UpstreamId,
-    Usage, UsageEvent,
+    GatewayEvent, GatewayProtocol, ProviderId, RequestEvent, ResponseId, RouteCandidateId, RouteId,
+    UpstreamId, Usage, UsageEvent,
 };
 use gateway_http_actix::{
     management_resources::{
@@ -85,6 +89,7 @@ fn authorized(request: test::TestRequest, version: &str) -> test::TestRequest {
         .insert_header(("X-Config-Version", version))
 }
 
+#[allow(clippy::too_many_lines)]
 fn resource_state() -> Result<ManagementResourceHttpState, Box<dyn Error>> {
     let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
     let key_version = KeyVersion::try_new(1)?;
@@ -162,12 +167,69 @@ fn resource_state() -> Result<ManagementResourceHttpState, Box<dyn Error>> {
         retention_expires_at_ms: 10_000,
         recorded_at_ms: 101,
     }];
+    let provider_snapshot = ProviderAccountPoolSnapshot::try_new(
+        "provider-snapshot-1",
+        123,
+        vec![
+            ProviderAccountPoolItem {
+                provider_id: ProviderId::try_new("grok")?,
+                channel_id: EndpointId::try_new("channel-build")?,
+                account_id: CredentialId::try_new("grok-account-a")?,
+                account_kind: "grok_build_oauth".to_owned(),
+                auth_status: ProviderAccountAuthStatus::Active,
+                runtime_status: ProviderAccountRuntimeStatus::Available,
+                enabled: true,
+                priority: 1,
+                weight: 1,
+                max_concurrency: 4,
+                active_leases: 1,
+                expires_at_ms: Some(200),
+                refresh_due_at_ms: Some(150),
+                quota_sync_due_at_ms: Some(160),
+            },
+            ProviderAccountPoolItem {
+                provider_id: ProviderId::try_new("grok")?,
+                channel_id: EndpointId::try_new("channel-build")?,
+                account_id: CredentialId::try_new("grok-account-b")?,
+                account_kind: "grok_build_oauth".to_owned(),
+                auth_status: ProviderAccountAuthStatus::ReauthRequired,
+                runtime_status: ProviderAccountRuntimeStatus::Unauthorized,
+                enabled: true,
+                priority: 2,
+                weight: 1,
+                max_concurrency: 4,
+                active_leases: 0,
+                expires_at_ms: None,
+                refresh_due_at_ms: Some(140),
+                quota_sync_due_at_ms: None,
+            },
+            ProviderAccountPoolItem {
+                provider_id: ProviderId::try_new("codex")?,
+                channel_id: EndpointId::try_new("channel-chat")?,
+                account_id: CredentialId::try_new("codex-account-a")?,
+                account_kind: "codex_oauth".to_owned(),
+                auth_status: ProviderAccountAuthStatus::Disabled,
+                runtime_status: ProviderAccountRuntimeStatus::CircuitOpen,
+                enabled: false,
+                priority: 3,
+                weight: 1,
+                max_concurrency: 2,
+                active_leases: 0,
+                expires_at_ms: None,
+                refresh_due_at_ms: None,
+                quota_sync_due_at_ms: None,
+            },
+        ],
+    )?;
     Ok(
         ManagementResourceHttpState::new(ManagementMutationService::new(repository, secret_store))
             .with_usage(Box::new(FixtureUsageFacade {
                 events: usage_events,
                 billing_entries,
-            })),
+            }))
+            .with_provider_account_pools(Box::new(SnapshotProviderAccountPoolFacade::new(
+                provider_snapshot,
+            ))),
     )
 }
 
@@ -292,6 +354,86 @@ async fn inventory_is_protected_paginated_and_value_free() -> TestResult {
     let second_body: Value = test::read_body_json(second).await;
     assert_eq!(second_body["items"][0]["account_id"], "account-b");
     assert!(second_body["next_cursor"].is_null());
+
+    let provider_first = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get()
+                .uri("/admin/operations/provider-account-pools?provider_id=grok&limit=1"),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(provider_first.status(), StatusCode::OK);
+    assert_eq!(
+        provider_first.headers().get(header::CACHE_CONTROL),
+        Some(&header::HeaderValue::from_static("no-store"))
+    );
+    let provider_first_body: Value = test::read_body_json(provider_first).await;
+    assert_eq!(provider_first_body["snapshot_id"], "provider-snapshot-1");
+    assert_eq!(provider_first_body["observed_at_ms"], 123);
+    assert_eq!(
+        provider_first_body["items"][0]["account_id"],
+        "grok-account-a"
+    );
+    assert_eq!(provider_first_body["items"][0]["auth_status"], "active");
+    assert_eq!(
+        provider_first_body["items"][0]["runtime_status"],
+        "available"
+    );
+    let provider_cursor = provider_first_body["next_cursor"]
+        .as_str()
+        .ok_or("provider first page missing cursor")?;
+    let provider_second = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri(&format!(
+                "/admin/operations/provider-account-pools?provider_id=grok&limit=1&cursor={provider_cursor}"
+            )),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(provider_second.status(), StatusCode::OK);
+    let provider_second_body: Value = test::read_body_json(provider_second).await;
+    assert_eq!(
+        provider_second_body["items"][0]["account_id"],
+        "grok-account-b"
+    );
+    assert_eq!(
+        provider_second_body["items"][0]["auth_status"],
+        "reauth_required"
+    );
+    assert_eq!(
+        provider_second_body["items"][0]["runtime_status"],
+        "unauthorized"
+    );
+    assert!(provider_second_body["next_cursor"].is_null());
+
+    let provider_stale = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri(&format!(
+                "/admin/operations/provider-account-pools?provider_id=codex&limit=1&cursor={provider_cursor}"
+            )),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(provider_stale.status(), StatusCode::CONFLICT);
+    let provider_serialized = serde_json::to_string(&provider_first_body)?;
+    for forbidden in [
+        "ciphertext",
+        "secret",
+        "base_url",
+        "client_key_digest",
+        "request_body",
+    ] {
+        assert!(!provider_serialized.contains(forbidden));
+    }
 
     let usage = test::call_service(
         &app,
