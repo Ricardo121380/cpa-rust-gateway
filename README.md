@@ -194,13 +194,15 @@ The public repository is intentionally value-free:
 
 CPA, CLIProxyAPI, Sub2API, grok2api and Kiro-RS are behavior and compatibility references,
 not bundled runtime dependencies.  Their licenses and notices are recorded in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md),
 [`docs/00-reference-baseline.md`](docs/00-reference-baseline.md) and
 [`docs/04-channel-reference-analysis.md`](docs/04-channel-reference-analysis.md).  Any future
 direct code import must preserve the upstream license and attribution; clean-room behavior
 reimplementation must not be described as copied source.
 
 CPA、CLIProxyAPI、Sub2API、grok2api 和 Kiro-RS 是行为/兼容性参考，不是本项目的运行时依赖。
-相关许可和声明记录在 [`docs/00-reference-baseline.md`](docs/00-reference-baseline.md) 与
+相关许可和声明记录在 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)、
+[`docs/00-reference-baseline.md`](docs/00-reference-baseline.md) 与
 [`docs/04-channel-reference-analysis.md`](docs/04-channel-reference-analysis.md)。未来如直接
 引入代码，必须保留上游许可和署名；clean-room 行为重实现不得描述为复制源码。
 
@@ -220,10 +222,11 @@ CPA、CLIProxyAPI、Sub2API、grok2api 和 Kiro-RS 是行为/兼容性参考，�
 
 ## License
 
-No project license has been selected yet.  Public visibility does not by itself grant permission
-to copy, modify or redistribute this repository.  Until a maintainer adds a license, treat the
-project as “all rights reserved” and review the third-party notices and compatibility references
-before using any part of it.
+CPAR is licensed under the [MIT License](LICENSE).  You may use, copy, modify, merge, publish,
+distribute, sublicense and sell copies subject to the copyright and permission notice in that
+license.  Upstream reference notices remain available in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
-当前尚未选择项目许可证。仓库公开并不自动授予复制、修改或再分发权限。在维护者添加明确许可
-之前，请按“保留所有权利”理解，并在使用任何部分前检查第三方声明和兼容性参考。
+CPAR 采用 [MIT License](LICENSE)。在保留许可证中的版权和许可声明的前提下，可以使用、复制、
+修改、合并、发布、分发、再许可或销售本项目。上游参考项目的版权与许可声明见
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
