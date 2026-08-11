@@ -2,6 +2,8 @@
 
 #![deny(unsafe_code)]
 
+/// Durable Usage-to-billing materialization with restart-safe checkpoints.
+pub mod billing_materializer;
 /// Provider-scoped fixed-point pricing for the durable P13-05 billing ledger.
 pub mod billing_service;
 /// Transactional management-only Credential and Client Key provisioning service.

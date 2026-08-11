@@ -30,16 +30,19 @@ use gateway_control::management_mutation_service::{
     StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
 };
 use gateway_control::management_operations_service::{
-    DEFAULT_ACCOUNT_POOL_LIMIT, DEFAULT_USAGE_LIMIT, MAX_ACCOUNT_POOL_LIMIT, MAX_USAGE_LIMIT,
-    MAX_USAGE_MODEL_CHARS, ManagementOperationsError, OperationalAccountPoolCursor,
-    OperationalAccountPoolItem, OperationalAccountPoolPage, OperationalAccountPoolQuery,
-    OperationalCostConfidence, OperationalTokenConfidence, OperationalTokenMetric,
-    OperationalUsageCursor, OperationalUsagePage, OperationalUsageQuery,
+    DEFAULT_ACCOUNT_POOL_LIMIT, DEFAULT_USAGE_LIMIT, MAX_ACCOUNT_POOL_LIMIT, MAX_USAGE_EVENTS,
+    MAX_USAGE_LIMIT, MAX_USAGE_MODEL_CHARS, ManagementOperationsError,
+    OperationalAccountPoolCursor, OperationalAccountPoolItem, OperationalAccountPoolPage,
+    OperationalAccountPoolQuery, OperationalBillingCursor, OperationalBillingPage,
+    OperationalBillingQuery, OperationalBillingStatus, OperationalCostConfidence,
+    OperationalTokenConfidence, OperationalTokenMetric, OperationalUsageCursor,
+    OperationalUsagePage, OperationalUsageQuery, compile_operational_billing_page,
 };
 use gateway_core::{
     AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, GatewayProtocol,
     PublicModelId, RequestId, RouteCandidateId, RouteId, UpstreamId,
 };
+use gateway_store::billing_ledger::SqliteBillingLedger;
 use gateway_upstream::UpstreamProxy;
 use provider_openai_compatible::{
     CodexCredentialExportFormat, CodexOAuthRefreshCoordinator, CodexOAuthRevisionedCredential,
@@ -89,6 +92,59 @@ pub trait ManagementUsageFacade: Send + Sync {
         &self,
         query: &OperationalUsageQuery,
     ) -> Result<OperationalUsagePage, ManagementOperationsError>;
+
+    /// Lists immutable, secret-free billing rows and a filtered status/cost summary.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe operations error when the durable billing source is unavailable.
+    fn list_billing(
+        &self,
+        _query: &OperationalBillingQuery,
+    ) -> Result<OperationalBillingPage, ManagementOperationsError> {
+        Err(ManagementOperationsError::SourceUnavailable)
+    }
+}
+
+/// Read-only billing facade backed by the durable `SQLite` ledger.
+pub struct SqliteBillingManagementFacade {
+    ledger: Mutex<SqliteBillingLedger>,
+}
+
+impl SqliteBillingManagementFacade {
+    /// Wraps an already-migrated billing ledger for bounded management reads.
+    #[must_use]
+    pub fn new(ledger: SqliteBillingLedger) -> Self {
+        Self {
+            ledger: Mutex::new(ledger),
+        }
+    }
+}
+
+impl ManagementUsageFacade for SqliteBillingManagementFacade {
+    fn list_usage(
+        &self,
+        _query: &OperationalUsageQuery,
+    ) -> Result<OperationalUsagePage, ManagementOperationsError> {
+        Err(ManagementOperationsError::SourceUnavailable)
+    }
+
+    fn list_billing(
+        &self,
+        query: &OperationalBillingQuery,
+    ) -> Result<OperationalBillingPage, ManagementOperationsError> {
+        let ledger = self
+            .ledger
+            .lock()
+            .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
+        let entries = ledger
+            .list_bounded(MAX_USAGE_EVENTS + 1)
+            .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
+        if entries.len() > MAX_USAGE_EVENTS {
+            return Err(ManagementOperationsError::SourceUnavailable);
+        }
+        compile_operational_billing_page(&entries, query)
+    }
 }
 
 /// Fail-closed usage source used until the serving composition injects its event-log reader.
@@ -1748,6 +1804,10 @@ fn configure_operations_resource_routes(config: &mut web::ServiceConfig) {
             web::get().to(list_operational_account_pools),
         )
         .route("/operations/usage", web::get().to(list_operational_usage));
+    config.route(
+        "/operations/billing",
+        web::get().to(list_operational_billing),
+    );
 }
 
 #[derive(Deserialize)]
@@ -2363,6 +2423,67 @@ struct OperationalUsageCursorWire {
     access_group_id: Option<String>,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OperationalBillingQueryParams {
+    from_ms: Option<u64>,
+    to_ms: Option<u64>,
+    provider_id: Option<String>,
+    channel_id: Option<String>,
+    account_id: Option<String>,
+    model: Option<String>,
+    status: Option<String>,
+    limit: Option<usize>,
+    cursor: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OperationalBillingCursorWire {
+    snapshot_ledger_id: i64,
+    occurred_at_ms: u64,
+    ledger_id: i64,
+}
+
+#[derive(Serialize)]
+struct OperationalBillingPageResponse {
+    snapshot_ledger_id: Option<i64>,
+    items: Vec<OperationalBillingItemResponse>,
+    summary: OperationalBillingSummaryResponse,
+    next_cursor: Option<String>,
+}
+
+#[derive(Serialize)]
+struct OperationalBillingItemResponse {
+    ledger_id: i64,
+    request_id: String,
+    response_id: String,
+    provider_id: String,
+    channel_id: String,
+    account_id: String,
+    model: String,
+    input_tokens: Option<u64>,
+    output_tokens: Option<u64>,
+    reasoning_tokens: Option<u64>,
+    cache_read_tokens: Option<u64>,
+    cache_creation_tokens: Option<u64>,
+    cached_tokens: Option<u64>,
+    occurred_at_ms: u64,
+    catalog_version_id: Option<String>,
+    cost_microunits: Option<u64>,
+    cost_confidence: &'static str,
+}
+
+#[derive(Serialize)]
+struct OperationalBillingSummaryResponse {
+    records: u64,
+    exact_records: u64,
+    partial_records: u64,
+    unknown_records: u64,
+    unpriced_records: u64,
+    known_cost_microunits: Option<u64>,
+}
+
 #[allow(clippy::too_many_lines)]
 async fn list_operational_usage(
     request: HttpRequest,
@@ -2472,6 +2593,93 @@ async fn list_operational_usage(
     };
     match usage_source.list_usage(&query) {
         Ok(page) => match operational_usage_page_response(page) {
+            Ok(response) => HttpResponse::Ok()
+                .insert_header((header::CACHE_CONTROL, "no-store"))
+                .json(response),
+            Err(response) => response,
+        },
+        Err(error) => management_error(ManagementResourceError::from(error)),
+    }
+}
+
+#[allow(clippy::too_many_lines)]
+async fn list_operational_billing(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let params =
+        match web::Query::<OperationalBillingQueryParams>::from_query(request.query_string()) {
+            Ok(params) => params.into_inner(),
+            Err(_) => return invalid_input(),
+        };
+    let cursor = match params.cursor.as_deref() {
+        Some(value) if value.len() <= 2048 => decode_operational_billing_cursor(value),
+        Some(_) => Err(ManagementOperationsError::InvalidQuery),
+        None => Ok(None),
+    };
+    let cursor = match cursor {
+        Ok(cursor) => cursor,
+        Err(error) => return management_error(ManagementResourceError::from(error)),
+    };
+    let limit = params.limit.unwrap_or(DEFAULT_USAGE_LIMIT);
+    if limit == 0 || limit > MAX_USAGE_LIMIT {
+        return invalid_input();
+    }
+    let status = match params.status.as_deref() {
+        Some(value) => match operational_billing_status(value) {
+            Ok(status) => Some(status),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let provider_id = match params.provider_id {
+        Some(value) => match operational_query_id(value) {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let channel_id = match params.channel_id {
+        Some(value) => match operational_query_id(value) {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let account_id = match params.account_id {
+        Some(value) => match operational_query_id(value) {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let model = match params.model {
+        Some(value) => match bounded_text(value, MAX_USAGE_MODEL_CHARS) {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let query = match OperationalBillingQuery::try_new(
+        params.from_ms,
+        params.to_ms,
+        provider_id,
+        channel_id,
+        account_id,
+        model,
+        status,
+        limit,
+        cursor,
+    ) {
+        Ok(query) => query,
+        Err(error) => return management_error(ManagementResourceError::from(error)),
+    };
+    let source = match usage(&state) {
+        Ok(source) => source,
+        Err(response) => return response,
+    };
+    match source.list_billing(&query) {
+        Ok(page) => match operational_billing_page_response(page) {
             Ok(response) => HttpResponse::Ok()
                 .insert_header((header::CACHE_CONTROL, "no-store"))
                 .json(response),
@@ -5774,6 +5982,97 @@ fn operational_usage_page_response(
                 cost_confidence: operational_cost_confidence_response(item.cost_confidence),
             })
             .collect(),
+        next_cursor,
+    })
+}
+
+fn operational_billing_status(value: &str) -> Result<OperationalBillingStatus, HttpResponse> {
+    match value {
+        "exact" => Ok(OperationalBillingStatus::Exact),
+        "partial" => Ok(OperationalBillingStatus::Partial),
+        "unknown" => Ok(OperationalBillingStatus::Unknown),
+        "unpriced" => Ok(OperationalBillingStatus::Unpriced),
+        _ => Err(invalid_input()),
+    }
+}
+
+fn operational_billing_status_response(value: OperationalBillingStatus) -> &'static str {
+    match value {
+        OperationalBillingStatus::Exact => "exact",
+        OperationalBillingStatus::Partial => "partial",
+        OperationalBillingStatus::Unknown => "unknown",
+        OperationalBillingStatus::Unpriced => "unpriced",
+    }
+}
+
+fn encode_operational_billing_cursor(
+    cursor: &OperationalBillingCursor,
+) -> Result<String, HttpResponse> {
+    serde_json::to_vec(&OperationalBillingCursorWire {
+        snapshot_ledger_id: cursor.snapshot_ledger_id(),
+        occurred_at_ms: cursor.occurred_at_ms(),
+        ledger_id: cursor.ledger_id(),
+    })
+    .map(|bytes| URL_SAFE_NO_PAD.encode(bytes))
+    .map_err(|_| internal_error())
+}
+
+fn decode_operational_billing_cursor(
+    value: &str,
+) -> Result<Option<OperationalBillingCursor>, ManagementOperationsError> {
+    if value.is_empty() {
+        return Err(ManagementOperationsError::InvalidQuery);
+    }
+    let bytes = URL_SAFE_NO_PAD
+        .decode(value)
+        .map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    let wire: OperationalBillingCursorWire =
+        serde_json::from_slice(&bytes).map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    OperationalBillingCursor::try_new(wire.snapshot_ledger_id, wire.occurred_at_ms, wire.ledger_id)
+        .map(Some)
+}
+
+fn operational_billing_page_response(
+    value: OperationalBillingPage,
+) -> Result<OperationalBillingPageResponse, HttpResponse> {
+    let next_cursor = value
+        .next_cursor
+        .as_ref()
+        .map(encode_operational_billing_cursor)
+        .transpose()?;
+    Ok(OperationalBillingPageResponse {
+        snapshot_ledger_id: value.snapshot_ledger_id,
+        items: value
+            .items
+            .into_iter()
+            .map(|item| OperationalBillingItemResponse {
+                ledger_id: item.ledger_id,
+                request_id: item.request_id,
+                response_id: item.response_id,
+                provider_id: item.provider_id,
+                channel_id: item.channel_id,
+                account_id: item.account_id,
+                model: item.model,
+                input_tokens: item.usage.input_tokens,
+                output_tokens: item.usage.output_tokens,
+                reasoning_tokens: item.usage.reasoning_tokens,
+                cache_read_tokens: item.usage.cache_read_tokens,
+                cache_creation_tokens: item.usage.cache_creation_tokens,
+                cached_tokens: item.usage.cached_tokens,
+                occurred_at_ms: item.occurred_at_ms,
+                catalog_version_id: item.catalog_version_id,
+                cost_microunits: item.cost_microunits,
+                cost_confidence: operational_billing_status_response(item.cost_confidence),
+            })
+            .collect(),
+        summary: OperationalBillingSummaryResponse {
+            records: value.summary.records,
+            exact_records: value.summary.exact_records,
+            partial_records: value.summary.partial_records,
+            unknown_records: value.summary.unknown_records,
+            unpriced_records: value.summary.unpriced_records,
+            known_cost_microunits: value.summary.known_cost_microunits,
+        },
         next_cursor,
     })
 }

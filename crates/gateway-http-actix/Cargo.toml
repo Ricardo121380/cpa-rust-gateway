@@ -18,6 +18,7 @@ gateway-observability = { path = "../gateway-observability" }
 gateway-protocol = { path = "../gateway-protocol" }
 gateway-router = { path = "../gateway-router" }
 gateway-stream = { path = "../gateway-stream" }
+gateway-store = { path = "../gateway-store" }
 gateway-upstream = { path = "../gateway-upstream" }
 getrandom.workspace = true
 protocol-anthropic = { path = "../protocol-anthropic" }

@@ -5,10 +5,10 @@
 //! persists and replays that decision.  Prices are integer micro-units per million tokens, so no
 //! floating point or locale-dependent decimal conversion can change a bill after a restart.
 
-use std::path::Path;
+use std::{path::Path, time::Duration};
 
 use gateway_core::UsageSummary;
-use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
+use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
 use sha2::{Digest, Sha256};
 
 use crate::{StoreError, StoreResult, migrate, open, open_in_memory};
@@ -74,6 +74,17 @@ pub struct BillingPriceCatalog {
     pub source: BillingCatalogSource,
     pub created_at_ms: u64,
     pub entries: Vec<BillingPriceEntry>,
+}
+
+/// Durable high-water mark for one billing materializer.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BillingMaterializerCheckpoint {
+    /// Stable application-owned materializer identity.
+    pub materializer_id: String,
+    /// Last gateway event ordinal processed successfully.
+    pub event_ordinal: i64,
+    /// Wall-clock time of the checkpoint write.
+    pub updated_at_ms: u64,
 }
 
 /// Cost confidence recorded for a billing row.
@@ -234,6 +245,18 @@ impl SqliteBillingLedger {
         Self::from_connection(open(path)?)
     }
 
+    /// Opens an already-migrated billing ledger without migration or journal-mode writes.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when `SQLite` cannot open the path read-only or configure its
+    /// bounded busy timeout.
+    pub fn open_read_only(path: impl AsRef<Path>) -> StoreResult<Self> {
+        let connection = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+        connection.busy_timeout(Duration::from_secs(5))?;
+        Ok(Self { connection })
+    }
+
     /// Opens and migrates an isolated in-memory billing store.
     ///
     /// # Errors
@@ -355,6 +378,109 @@ impl SqliteBillingLedger {
             created_at_ms: u64_from_i64(created_at_ms)?,
             entries,
         }))
+    }
+
+    /// Returns all immutable price catalogs in deterministic effective-time order.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the bound is invalid or a persisted catalog is malformed.
+    pub fn list_catalogs_bounded(&self, limit: usize) -> StoreResult<Vec<BillingPriceCatalog>> {
+        let limit = i64::try_from(limit).map_err(|_| StoreError::InvalidPersistedBillingRecord)?;
+        let mut statement = self.connection.prepare(
+            "SELECT catalog_version_id FROM billing_price_catalog_versions \
+             ORDER BY effective_at_ms, catalog_version_id LIMIT ?1",
+        )?;
+        let ids = statement
+            .query_map([limit], |row| row.get::<_, String>(0))?
+            .collect::<Result<Vec<_>, _>>()?;
+        ids.into_iter()
+            .map(|id| {
+                self.catalog(&id)?
+                    .ok_or(StoreError::InvalidPersistedBillingRecord)
+            })
+            .collect()
+    }
+
+    /// Loads one materializer checkpoint, if it has run before.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the identifier is invalid or the persisted checkpoint is malformed.
+    pub fn load_checkpoint(
+        &self,
+        materializer_id: &str,
+    ) -> StoreResult<Option<BillingMaterializerCheckpoint>> {
+        if materializer_id.trim().is_empty() || materializer_id.len() > MAX_SHORT_ID_BYTES {
+            return Err(StoreError::InvalidPersistedBillingRecord);
+        }
+        let row = self
+            .connection
+            .query_row(
+                "SELECT materializer_id, event_ordinal, updated_at_ms \
+                 FROM billing_materializer_checkpoints WHERE materializer_id = ?1",
+                [materializer_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                    ))
+                },
+            )
+            .optional()?;
+        row.map(|(materializer_id, event_ordinal, updated_at_ms)| {
+            if event_ordinal < 0 {
+                return Err(StoreError::InvalidPersistedBillingRecord);
+            }
+            Ok(BillingMaterializerCheckpoint {
+                materializer_id,
+                event_ordinal,
+                updated_at_ms: u64_from_i64(updated_at_ms)?,
+            })
+        })
+        .transpose()
+    }
+
+    /// Advances a materializer checkpoint monotonically after a successful batch.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] for invalid identifiers/timestamps, a checkpoint regression, or a
+    /// `SQLite` failure.
+    pub fn save_checkpoint(
+        &mut self,
+        materializer_id: &str,
+        event_ordinal: i64,
+        updated_at_ms: u64,
+    ) -> StoreResult<()> {
+        if materializer_id.trim().is_empty()
+            || materializer_id.len() > MAX_SHORT_ID_BYTES
+            || event_ordinal < 0
+        {
+            return Err(StoreError::InvalidPersistedBillingRecord);
+        }
+        let updated_at_ms = i64_from_u64(updated_at_ms)?;
+        let previous: Option<i64> = self
+            .connection
+            .query_row(
+                "SELECT event_ordinal FROM billing_materializer_checkpoints \
+                 WHERE materializer_id = ?1",
+                [materializer_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if previous.is_some_and(|value| event_ordinal < value) {
+            return Err(StoreError::InvalidPersistedBillingRecord);
+        }
+        self.connection.execute(
+            "INSERT INTO billing_materializer_checkpoints \
+             (materializer_id, event_ordinal, updated_at_ms) VALUES (?1, ?2, ?3) \
+             ON CONFLICT(materializer_id) DO UPDATE SET event_ordinal = excluded.event_ordinal, \
+             updated_at_ms = excluded.updated_at_ms",
+            params![materializer_id, event_ordinal, updated_at_ms],
+        )?;
+        Ok(())
     }
 
     /// Records one value-free billing decision with source-event idempotence.
@@ -834,6 +960,44 @@ mod tests {
         assert_eq!(reopened.purge_expired(3_000, 10)?, 1);
         assert!(reopened.list_bounded(10)?.is_empty());
         let _ = std::fs::remove_file(path);
+        Ok(())
+    }
+
+    #[test]
+    fn checkpoint_is_monotonic_and_catalogs_are_stably_ordered()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteBillingLedger::open_in_memory()?;
+        let mut later = catalog();
+        later.catalog_version_id = "catalog-2".to_owned();
+        later.effective_at_ms = 200;
+        store.insert_catalog(&later)?;
+        store.insert_catalog(&catalog())?;
+        assert_eq!(
+            store
+                .list_catalogs_bounded(10)?
+                .into_iter()
+                .map(|value| value.catalog_version_id)
+                .collect::<Vec<_>>(),
+            vec!["catalog-1", "catalog-2"]
+        );
+
+        assert!(store.load_checkpoint("billing-v1")?.is_none());
+        store.save_checkpoint("billing-v1", 10, 1_000)?;
+        store.save_checkpoint("billing-v1", 10, 1_001)?;
+        assert_eq!(
+            store
+                .load_checkpoint("billing-v1")?
+                .ok_or("checkpoint missing")?,
+            BillingMaterializerCheckpoint {
+                materializer_id: "billing-v1".to_owned(),
+                event_ordinal: 10,
+                updated_at_ms: 1_001,
+            }
+        );
+        assert!(matches!(
+            store.save_checkpoint("billing-v1", 9, 1_002),
+            Err(StoreError::InvalidPersistedBillingRecord)
+        ));
         Ok(())
     }
 }

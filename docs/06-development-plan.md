@@ -4,13 +4,13 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.247` |
+| 计划版本 | `v1.248` |
 | 生效日期 | `2026-08-11` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10、P11 与 P12 已完成（P12 为 `DONE_WITH_BOUNDARY`）；P13-04 保持 phase gate pending，P13-05 已进入开发；P7 Kiro OAuth、P8 Official API-key E2E 与 Grok Web 外部边界仍延后。 |
-| 当前任务 | `P13-05A` 已完成本地实现、review 与分支推送；当前下一项为 `P13-05B` 受保护管理端 usage/cost/billing read model、时间窗口/分页/状态汇总与 OpenAPI/generated client。P13-04/P13-05 均不调用 Provider、不修改生产/active Config Version、不暴露 URL/密文/明文/digest/request body；token 不完整时携带 confidence，价格未知时费用明确为 `unpriced`。正式 P13 Delivery Gate 仍按 Phase 收口一次运行。 |
+| 当前任务 | `P13-05A/B` 已完成本地实现与整体 review：durable Usage 可经 checkpointed materializer 写入幂等 ledger，并由 `GET /admin/operations/billing` 做有界时间/Provider/Channel/Account/Model/status 查询、snapshot cursor 与汇总。当前下一项为 `P13-05C`：为 immutable price catalog 增加受保护 operator import/write、CSRF、audit、revision/conflict 与回滚契约；完成后再收口 P13-05。正式 P13 Delivery Gate 仍按 Phase 收口一次运行。 |
 | 已批准变更（2026-08-10） | `CR-EXEC-008` 语义澄清：仅降低昂贵 Fast/Full/supply-chain/release evidence 的默认运行频率，不限制 branch、push、PR update/review/rebase/merge；本轮已另开并实现 workflow 解耦，轻量 PR gate 与 tag/manual/closeout-label Delivery Gate 分离。`CR-P12-AUTOREG-MIGRATE-001`：Autoreg Oracle successor 已完成 staged/health、单账号 registration 与 dedicated file-sink 验证；本轮按 operator 批准完成 CPAR 显式 provider-binding/import、真实公网 Build 与 Console canary、Oracle 单活与 Jakarta fencing，保留 rollback window。`CR-P12-AUTOREG-CONSOLE-001`：Console SSO 仅通过 strict Oracle source adapter、same-batch native probe 和真实公共 CPAR 六元组后保留生产批次；scheduler/reauth 仍单独受控。 |
-| 本次计划变更（2026-08-11） | `P13-04` 已完成两个后端切片；本分支进入 `P13-05A`，新增 0014 versioned billing catalog/ledger schema、整数微单位计价与 source-event 幂等、冲突回放、retention/restart primitives。P13-05A 不改写 P13-04 的 `unpriced` 事实，不调用 Provider、不修改生产/active Config Version、不触碰前端正式 UI；HTTP 报表契约留给下一片。 |
+| 本次计划变更（2026-08-11） | `P13-05B` 已完成 migration 0015 materializer checkpoint、ordinal-bounded durable event read、完整 Usage lineage 计价物化，以及受保护 billing HTTP read model/OpenAPI/client。整体 review 确认 P13-05A/B 数据链一致且不泄露 Secret/正文；明确剩余 P13-05C 仅补 operator price catalog mutation/import，不把 Store API 误称为可用管理写接口。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -3505,7 +3505,7 @@ OpenAPI，再做正式 UI；不允许前端直接读 SQLite、凭证明文或自
 | P13-02 | Chat/Responses/Messages 受限无损桥接（已前移到 P12-08，不再由 P13 执行） | `CR-P12-COMPAT-001` | P12-08D1/D2/D3/D4 证据 | DEFERRED |
 | P13-03 | New API/AxonHub 一次性 Import Adapter（用户明确不需要，当前移出实施范围） | 新 CR（未来可恢复） | 不进入本轮验收 | DEFERRED |
 | P13-04 | CPAMP-like 管理控制面后端基础：Provider/Channel/Account/Pool/Usage/Quota/Cost 的 typed read model、分页过滤、审计和 OpenAPI；已完成 P13-04A 配置 inventory 与 P13-04B durable usage/unpriced-cost projection，复用现有 P10 安全、审计和 runtime quota 边界 | P12/G12；P10 management baseline；P3/P4 event log | P13-04A/B ADR/Contract/报告、typed control compiler、protected HTTP routes、OpenAPI/client、value-free unit/HTTP fixture、read-only SQLite facade、fmt/Clippy/docs/review 全部通过；正式 P13 Delivery Gate 延至 P13 phase close，不触发 Provider 请求 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P13-05 | Versioned Usage/Quota/Cost/Billing 账本：在 P13-04 usage read model 之上补充 versioned price catalog、固定 decimal 计费、幂等账单事件、延迟/status/quota window、retention/重启恢复与前端报表契约；未知价格/未知 token 必须带 confidence，不得伪造计费 | P13-04 | P13-05A 已完成 catalog/ledger primitives；后续完成受保护 HTTP read model、时间窗口/状态/汇总契约、Secret/正文不入库与脱敏测试；不得重写 P13-04 的 unpriced 事实 | IN_PROGRESS |
+| P13-05 | Versioned Usage/Quota/Cost/Billing 账本：在 P13-04 usage read model 之上补充 versioned price catalog、固定 decimal 计费、幂等账单事件、延迟/status/quota window、retention/重启恢复与前端报表契约；未知价格/未知 token 必须带 confidence，不得伪造计费 | P13-04 | P13-05A catalog/ledger + P13-05B checkpointed materializer/protected billing read model 已本地通过；剩余 P13-05C operator catalog import/write、CSRF/audit/revision/conflict/rollback 后收口 | IN_PROGRESS |
 | P13-06 | Provider-aware Account Pool：多账号轮换、lease/concurrency、Health/Quota/Circuit、模型/额度同步、失败反馈、expired 排除和 operator 操作；不同 Provider 通过策略接口实现，不共享凭证或状态 | P13-04 | Build/Console/Codex/Krill synthetic pool、过期/刷新/并发/重启一致性、精确 attribution、无跨 Provider fallback | DEFERRED |
 | P13-07 | Cost-aware、Fill-first、Least-loaded 路由：在 Provider scope 内依据额度、并发、健康和 capability 选择；保留 max_attempts、首败边界和 Config Version 回滚 | P13-05、P13-06 | deterministic selector matrix、quota 缺失/并发/过期/降级测试、Route Explain、staging canary | DEFERRED |
 | P13-08 | 管理调试用单请求 Channel Pin：operator 明确指定 Provider/Channel/Route/Credential/JSON 或 SSE，仅一条请求，返回 value-free receipt；不得成为公开用户 API 或绕过正常 auth/egress | P13-04、P13-06 | 单请求/首败/无重试/无跨 Provider fallback、credential attribution、upstream sent/not-sent、审计与回滚测试 | DEFERRED |
@@ -3575,6 +3575,22 @@ OpenAPI，再做正式 UI；不允许前端直接读 SQLite、凭证明文或自
 | 安全边界 | 仅存值-free identity、token 汇总、catalog revision、cost/status；不存正文、Cookie、Header、URL、Secret、client-key digest；不调用 Provider、不修改生产/active Config Version |
 | 交付物 | [ADR-0078](adr/ADR-0078-versioned-billing-catalog-and-ledger.md)、[BC-MGMT-011](contracts/BC-MGMT-011-versioned-billing-catalog-ledger.md)、[P13-05A report](reports/p13-05a-billing-ledger-foundation.md) |
 | 下一片 | 受保护 management usage/cost/billing read model、时间窗口/分页/状态 OpenAPI 与 generated client；保留 P13-04 `unpriced` 事实 |
+
+### 19.7 P13-05B Task Card
+
+| 字段 | 固定值 |
+|---|---|
+| 范围等级 / 预算 | `L`；完成 durable event → billing ledger → protected management read 闭环；定向本地 Gate，不运行正式 P13 Delivery Gate |
+| 依赖 | P13-05A immutable catalog/ledger；P4 durable Request/Attempt/Usage event log；P10 Management Key/安全错误；P13-04 operations route |
+| 输出 | migration 0015 materializer checkpoint；ordinal-bounded event read；`billing_materializer`；`GET /admin/operations/billing`；OpenAPI/generated client |
+| 物化 | 每个新 final Usage 重载完整 request lineage；选择最高编号成功 Attempt；按 Attempt end time 选择最新有效且精确匹配 Provider/Channel/public Model 的 catalog；batch 全部写入后才推进 checkpoint |
+| 幂等/恢复 | ledger `source_event_id` 防重复；checkpoint 单调；进程在 ledger insert 后、checkpoint 前中断时重放为 no-op；缺失/冲突 lineage fail closed |
+| 查询 | inclusive `from_ms/to_ms`、Provider/Channel/Account/Model/status、default 50/max 100；cursor 绑定 immutable snapshot max ledger id 与 `(occurred_at_ms, ledger_id)` keyset |
+| 汇总 | `exact|partial|unknown|unpriced` 分项计数与 nullable known cost；未知价格/token 不变成零、不伪造费用 |
+| 安全 | 响应不含 source event id/fingerprint、Secret/ciphertext、URL/path、key digest、Cookie/Header/body/upstream content；management-only、`no-store`、不调用 Provider、不改 active Config Version |
+| 交付物 | [ADR-0079](adr/ADR-0079-billing-materialization-and-read-model.md)、[BC-MGMT-012](contracts/BC-MGMT-012-billing-materialization-read-model.md)、[P13-05B report](reports/p13-05b-billing-materialization-read-model.md) |
+| 整体 review | P13-05A/B 数据链、catalog/time selection、checkpoint/replay、retention/confidence、HTTP auth/query/cursor/no-secret、OpenAPI/client 与 strict Clippy 全部复核；结论 `LOCAL_PASS_PENDING_PHASE_GATE` |
+| 下一片 | P13-05C 只做受保护 operator price catalog import/write：Management Key + CSRF、audit、immutable version conflict、revision/rollback 和 no-secret receipt；不混入 P13-06 live account pool |
 
 ## 20. 测试体系
 
@@ -3917,3 +3933,4 @@ Next task:
 | v1.245 | 2026-08-11 | P13-04 本地收口：保留 P13-04A selected Config Version account-pool inventory；新增 P13-04B `GET /admin/operations/usage`，以 gateway-owned durable Request/最高编号成功 Attempt/final Usage lineage 生成有界、可过滤、稳定 keyset 的 Provider/Channel/Account/public model/protocol/Client Key/Access Group 聚合。token 字段使用 `exact|partial|unknown` confidence 与 checked totals；无 versioned price catalog 时费用固定 `null/unpriced`，不伪造金额。生产组合仅以 read-only SQLite facade 做 max+1 有界事件读取；复用既有 P10 管理 admission、audit 与 runtime quota，不发送 Provider 请求、不改生产/active Config Version。control/store/HTTP/OpenAPI/generated-client/SPA/docs 的 focused tests、strict Clippy、fmt 与 diff review 通过；按 P13 Phase 规则未启动昂贵 GitHub Delivery Gate，下一项为 P13-05 durable billing ledger | `P13-04` `LOCAL_PASS_PENDING_PHASE_GATE`; evidence: [`p13-04-management-operations.md`](reports/p13-04-management-operations.md) |
 | v1.246 | 2026-08-11 | P13-05A 开发启动：新增 migration 0014 的 immutable versioned price catalog 与 retention-bounded `billing_ledger_entries`；Store 层提供 catalog replay/conflict、source-event fingerprint idempotence、bounded purge 与 file reopen；Control 层提供 Provider/Channel/Model 精确匹配的 integer micro-unit quote，明确 `exact|partial|unknown|unpriced`，不把缺失 token 当零。focused gateway-store 42 tests 与 gateway-control billing tests 通过；不接 Provider、不改 production/active Config Version、不启动正式前端或昂贵 Delivery Gate；下一片为受保护 management billing read model 与 OpenAPI/client 契约 | `P13-05A` `LOCAL_PASS_PENDING_PHASE_GATE`; evidence: [`p13-05a-billing-ledger-foundation.md`](reports/p13-05a-billing-ledger-foundation.md) |
 | v1.247 | 2026-08-11 | 公开许可元数据收口：参考冻结 CPA `v7.2.80` 的 MIT 许可，为 CPAR 新增独立 MIT `LICENSE`，将 Cargo workspace license 从历史 `Apache-2.0` 元数据统一为 `MIT`，README 中英文许可说明改为可执行的 MIT 权利/义务，并新增 `THIRD_PARTY_NOTICES.md` 原样保留 CPA 上游版权及 MIT 许可。历史 P11 报告仍作为当时元数据证据不回写；当前下一项保持 P13-05B，不触发 Provider、生产变更或昂贵 Delivery Gate | `PUBLIC_LICENSE_METADATA_ALIGNED`; P13-05 `IN_PROGRESS` |
+| v1.248 | 2026-08-11 | 完成 P13-05B：migration 0015 `billing_materializer_checkpoints`、ordinal-bounded event read、完整 Request/最高成功 Attempt/Usage lineage 的 restart-safe billing materializer、effective Provider/Channel/Model catalog selection、source-event idempotent ledger replay；新增受保护 `GET /admin/operations/billing`，支持时间窗口、Provider/Channel/Account/Model/status 过滤、snapshot keyset cursor、exact/partial/unknown/unpriced 汇总，OpenAPI/generated client 与 HTTP 脱敏/权限回归通过。P13-05A+B 整体 review 通过，唯一明确剩余为 P13-05C 的 operator price catalog import/write（CSRF/audit/revision/conflict/rollback）；不调用 Provider、不改生产/active Config Version、不触发昂贵 P13 Delivery Gate | `P13-05A/B` `LOCAL_PASS_PENDING_PHASE_GATE`; evidence: [`p13-05b-billing-materialization-read-model.md`](reports/p13-05b-billing-materialization-read-model.md) |

@@ -105,3 +105,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0077 Durable usage and explicitly unpriced cost operations read model](ADR-0077-durable-usage-cost-operations-read-model.md) — `P13-04B`（Accepted；phase gate pending）。
 - [ADR-0045 Grok Build runtime state and continuity isolation](ADR-0045-grok-build-runtime-continuity.md) — `P6-04` 至 `P6-07`（Accepted）。
 - [ADR-0078 Versioned billing catalog and idempotent ledger](ADR-0078-versioned-billing-catalog-and-ledger.md) — `P13-05A`（Accepted；本地实现）
+- [ADR-0079 Billing materialization and protected read model](ADR-0079-billing-materialization-and-read-model.md) — `P13-05B`（Accepted；本地实现，phase gate pending）

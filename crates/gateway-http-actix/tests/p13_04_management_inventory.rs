@@ -16,7 +16,8 @@ use gateway_control::management_mutation_service::{
     SecretStore, SqliteControlPlaneRepository,
 };
 use gateway_control::management_operations_service::{
-    ManagementOperationsError, OperationalUsagePage, OperationalUsageQuery,
+    ManagementOperationsError, OperationalBillingPage, OperationalBillingQuery,
+    OperationalUsagePage, OperationalUsageQuery, compile_operational_billing_page,
     compile_operational_usage_page,
 };
 use gateway_core::{
@@ -34,6 +35,7 @@ use gateway_http_actix::{
     },
 };
 use gateway_store::{
+    billing_ledger::{BillingCostConfidence, BillingLedgerEntry},
     control_plane::{CredentialStatus, UpstreamConfiguration},
     event_store::SqliteEventStore,
 };
@@ -45,6 +47,7 @@ const MANAGEMENT_KEY: &str = "mgmt_0123456789abcdefghijklmnopqrstuvwxyz";
 
 struct FixtureUsageFacade {
     events: Vec<gateway_store::event_store::StoredGatewayEvent>,
+    billing_entries: Vec<BillingLedgerEntry>,
 }
 
 impl ManagementUsageFacade for FixtureUsageFacade {
@@ -53,6 +56,13 @@ impl ManagementUsageFacade for FixtureUsageFacade {
         query: &OperationalUsageQuery,
     ) -> Result<OperationalUsagePage, ManagementOperationsError> {
         compile_operational_usage_page(&self.events, query)
+    }
+
+    fn list_billing(
+        &self,
+        query: &OperationalBillingQuery,
+    ) -> Result<OperationalBillingPage, ManagementOperationsError> {
+        compile_operational_billing_page(&self.billing_entries, query)
     }
 }
 
@@ -130,10 +140,33 @@ fn resource_state() -> Result<ManagementResourceHttpState, Box<dyn Error>> {
         GatewayEvent::Usage(usage),
     ])?;
     let usage_events = event_store.list_events()?;
+    let billing_entries = vec![BillingLedgerEntry {
+        ledger_id: 1,
+        source_event_id: "billing-source-1".to_owned(),
+        source_fingerprint: "a".repeat(64),
+        request_id: "usage-http-request".to_owned(),
+        response_id: "usage-http-response".to_owned(),
+        provider_id: "provider-inventory".to_owned(),
+        channel_id: "channel-inventory".to_owned(),
+        account_id: "account-a".to_owned(),
+        model: "usage-public-model".to_owned(),
+        occurred_at_ms: 100,
+        catalog_version_id: None,
+        usage: gateway_core::UsageSummary {
+            input_tokens: Some(11),
+            output_tokens: Some(7),
+            ..gateway_core::UsageSummary::default()
+        },
+        cost_microunits: None,
+        cost_confidence: BillingCostConfidence::Unpriced,
+        retention_expires_at_ms: 10_000,
+        recorded_at_ms: 101,
+    }];
     Ok(
         ManagementResourceHttpState::new(ManagementMutationService::new(repository, secret_store))
             .with_usage(Box::new(FixtureUsageFacade {
                 events: usage_events,
+                billing_entries,
             })),
     )
 }
@@ -365,6 +398,43 @@ async fn inventory_is_protected_paginated_and_value_free() -> TestResult {
     )
     .await;
     assert_eq!(duplicate_usage_query.status(), StatusCode::BAD_REQUEST);
+
+    let billing = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/operations/billing?status=unpriced"),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(billing.status(), StatusCode::OK);
+    assert_eq!(
+        billing.headers().get(header::CACHE_CONTROL),
+        Some(&header::HeaderValue::from_static("no-store"))
+    );
+    let billing_body: Value = test::read_body_json(billing).await;
+    assert_eq!(
+        billing_body["items"][0]["provider_id"],
+        "provider-inventory"
+    );
+    assert_eq!(billing_body["items"][0]["cost_confidence"], "unpriced");
+    assert_eq!(billing_body["summary"]["unpriced_records"], 1);
+    let billing_serialized = serde_json::to_string(&billing_body)?;
+    for forbidden in ["source_event_id", "source_fingerprint", "encrypted_secret"] {
+        assert!(!billing_serialized.contains(forbidden));
+    }
+
+    let invalid_billing_query = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/operations/billing?status=not-a-status"),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(invalid_billing_query.status(), StatusCode::BAD_REQUEST);
 
     let usage_denied = test::call_service(
         &app,

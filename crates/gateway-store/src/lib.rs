@@ -33,9 +33,10 @@ const NATIVE_GROK_WORKER_STATE_SCHEMA_VERSION: i64 = 11;
 const CANONICAL_BRIDGE_TRANSFORM_MODE_SCHEMA_VERSION: i64 = 12;
 const NATIVE_GROK_REAUTH_SCHEMA_VERSION: i64 = 13;
 const BILLING_LEDGER_SCHEMA_VERSION: i64 = 14;
+const BILLING_MATERIALIZER_CHECKPOINT_SCHEMA_VERSION: i64 = 15;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = BILLING_LEDGER_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = BILLING_MATERIALIZER_CHECKPOINT_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -114,6 +115,11 @@ const MIGRATIONS: &[Migration] = &[
         version: BILLING_LEDGER_SCHEMA_VERSION,
         up: include_str!("../migrations/0014_billing_ledger.up.sql"),
         down: include_str!("../migrations/0014_billing_ledger.down.sql"),
+    },
+    Migration {
+        version: BILLING_MATERIALIZER_CHECKPOINT_SCHEMA_VERSION,
+        up: include_str!("../migrations/0015_billing_materializer_checkpoint.up.sql"),
+        down: include_str!("../migrations/0015_billing_materializer_checkpoint.down.sql"),
     },
 ];
 
@@ -523,6 +529,7 @@ mod tests {
                 "access_group_routes",
                 "access_groups",
                 "billing_ledger_entries",
+                "billing_materializer_checkpoints",
                 "billing_price_catalog_entries",
                 "billing_price_catalog_versions",
                 "client_keys",

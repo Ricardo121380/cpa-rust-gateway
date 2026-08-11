@@ -29,8 +29,9 @@ use gateway_control::{
         KeyVersion, ManagementMutationService, MasterKey, MasterKeyRing, SecretStore,
     },
     management_operations_service::{
-        ManagementOperationsError, OperationalUsagePage, OperationalUsageQuery,
-        compile_operational_usage_page,
+        MAX_USAGE_EVENTS, ManagementOperationsError, OperationalBillingPage,
+        OperationalBillingQuery, OperationalUsagePage, OperationalUsageQuery,
+        compile_operational_billing_page, compile_operational_usage_page,
     },
     management_service::{ManagementActor, ManagementService},
 };
@@ -51,6 +52,7 @@ use gateway_http_actix::{
 use gateway_observability::try_init_json_tracing;
 use gateway_store::{
     backup::BackupKey,
+    billing_ledger::SqliteBillingLedger,
     control_plane::SqliteControlPlaneRepository,
     event_store::{AsyncSqliteEventWriter, SqliteEventStore},
 };
@@ -285,6 +287,21 @@ impl ManagementUsageFacade for DeploymentManagementUsageFacade {
             )
             .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
         compile_operational_usage_page(&events, query)
+    }
+
+    fn list_billing(
+        &self,
+        query: &OperationalBillingQuery,
+    ) -> Result<OperationalBillingPage, ManagementOperationsError> {
+        let ledger = SqliteBillingLedger::open_read_only(&self.database)
+            .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
+        let entries = ledger
+            .list_bounded(MAX_USAGE_EVENTS + 1)
+            .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
+        if entries.len() > MAX_USAGE_EVENTS {
+            return Err(ManagementOperationsError::SourceUnavailable);
+        }
+        compile_operational_billing_page(&entries, query)
     }
 }
 
