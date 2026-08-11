@@ -3516,6 +3516,25 @@ OpenAPI，再做正式 UI；不允许前端直接读 SQLite、凭证明文或自
 | P13-13 | 统一 typed Media/Files/Batch 协议：Images、Image Edits、Videos、Files、异步任务和媒体缓存；不直接照搬 Grok2API 的 provider-specific JSON | P13-04、P13-09 | 统一协议/存储/TTL/大小/权限/取消/GC 设计，至少一个 Provider 的隔离 E2E；未完成协议前不加公开路由 | DEFERRED |
 | P13-14 | 额外 Provider 矩阵：Gemini、Kimi、Antigravity、Copilot 等，仅在用户确认 CPAR 需要这些渠道时加入 | P13-04、P13-06 | Provider adapter、协议能力矩阵、凭证生命周期、真实/合成 E2E 和独立 egress/回滚证据 | DEFERRED |
 
+### 19.2b 管理前端(Prism)的挂接点
+
+管理前端已并入本仓 `web/prism`,由 `cargo build` 构建并嵌入(见
+`crates/gateway-http-actix/build.rs`)。**前端计划不在本文档内**,见
+[08 · 管理前端开发计划](08-management-frontend-development-plan.md);
+P13 任务状态以本文档为准,前端不修改上面的任务表。
+
+后端任务对前端的解锁关系(供排期时参考):
+
+| 后端任务 | 解锁的前端面 |
+|---|---|
+| P13-04A `account-pools` | 上游子资源面板、凭据详情入口(**已接线**) |
+| P13-04B `operations/usage` | 用量分析页的数据源(形状与提案的 G3 不同,前端需客户端聚合) |
+| P13-05 计费账本与价格目录 | 计费页、价格目录管理页、请求监控的真实请求列表(`request_id` 首次出现于此) |
+| P13-06 Provider 池 live state | 运行时页整页 —— 目前 `runtime_availability`/`catalog_status` 返回空数组,矩阵永远无行 |
+
+两个工具在同一仓协作(后端 Codex,前端 Claude Code),边界与越界留痕规则见
+[AGENTS.md](../AGENTS.md) 与 [cross-boundary-log](cross-boundary-log.md)。
+
 ### 19.3 优先级和执行原则
 
 优先级按“对当前生产反代的直接价值 × 可控风险 × 对既有渠道的影响”排序：

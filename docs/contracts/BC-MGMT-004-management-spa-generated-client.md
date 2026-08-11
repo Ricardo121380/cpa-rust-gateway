@@ -7,6 +7,14 @@
 | Status | Accepted |
 | Domain | Static management SPA and generated API client |
 
+> **2026-08-11 · 部分被取代。** 本记录描述的 `scripts/generate-management-client.mjs`
+> 与 `web/admin-ui` 已随管理前端合并删除。**决策本身仍然成立**:生成客户端是唯一
+> API 通道,唯一生成输入是 `docs/openapi/management-v1.json`,手写客户端仍被禁止。
+> 变的只是实现位置 —— 生成器现为 `web/prism/scripts/generate-client.mjs`,
+> 新鲜度由 `npm --prefix web/prism run check` 机械校验。
+> 见 [cross-boundary-log](../cross-boundary-log.md) 与
+> [08 · 管理前端开发计划](../08-management-frontend-development-plan.md)。
+
 ## Inputs and output
 
 The only API-generation input is the tracked P10-01

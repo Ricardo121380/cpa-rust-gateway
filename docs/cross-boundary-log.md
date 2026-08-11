@@ -81,3 +81,24 @@ P13-05 operation, so nothing was lost.
 
 **Other side:** FYI — when P13-05/P13-06 merge to `main`, the frontend will pick
 them up with `sync-contract`. No coordination needed.
+
+---
+
+## 2026-08-11 · Claude Code · 计划与流程合并
+
+**Touched:**
+- `docs/06-development-plan.md` — 新增 §19.2b(前端挂接点),**未改动 P13 任务表**
+- `docs/adr/ADR-0071-management-spa-generated-client-build.md` — 顶部加"部分被取代"注记
+- `docs/contracts/BC-MGMT-004-management-spa-generated-client.md` — 同上
+- `docs/08-management-frontend-development-plan.md`(前端侧,整篇重写)
+
+**Why:** 合并后两侧各有一套计划,而它们互相不知道对方的存在。docs/08 旧版整篇描述的是
+独立仓时期的一套**未落地**选型(ECharts / zod / CSS Modules / 升级后端生成器)与按
+**提案版 G1/G3 形状**写的组件规格 —— 后端最终实现了不同形状,照旧规格建会第二次白干。
+
+ADR-0071 与 BC-MGMT-004 是 P10-03 的 Accepted 记录,描述的机制(`generate-management-client.mjs`、
+`web/admin-ui`)已随合并删除。**没有改写这两份记录的决策内容** —— 决策仍然成立(生成客户端是
+唯一 API 通道,唯一输入是契约),只是实现位置变了,所以只加注记不改正文。
+
+**Other side:** FYI — §19.2b 只是指针与解锁关系表,P13 任务表、状态、Gate 全部未动。
+若你认为前端计划应当反过来并入 docs/06,请在此日志回一条,我来搬。
