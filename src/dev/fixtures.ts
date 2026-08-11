@@ -103,6 +103,12 @@ type OAuthOp = {
   failure_class?: string;
 };
 
+type GroupRouteRow = {
+  access_group_id: string;
+  route_id: string;
+  enabled: boolean;
+};
+
 type AuditRow = {
   id: number;
   action: string;
@@ -153,6 +159,10 @@ const state = {
         },
       ],
     ],
+  ]),
+  // keyed "<configVersionId>:<accessGroupId>"
+  groupRoutes: new Map<string, GroupRouteRow[]>([
+    ["draft-2026-08:team-default", [{ access_group_id: "team-default", route_id: "rt-minimax", enabled: true }]],
   ]),
   keyCounter: 1,
   egress: new Map<string, EgressRow[]>([
@@ -508,6 +518,72 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const version = versionByHeader(headers);
       if (version instanceof Response) return version;
       return json(200, state.groups.get(version.id) ?? [], revisionToken(version));
+    }
+
+    if (route === "POST /admin/access-groups") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const mismatch = requireDraftAndMatch(version, headers);
+      if (mismatch !== undefined) return mismatch;
+      const body = JSON.parse(bodyText ?? "{}") as GroupRow;
+      const rows = state.groups.get(version.id) ?? [];
+      if (rows.some((row) => row.id === body.id)) {
+        return errorResponse(409, "management_lifecycle_conflict", "access group id already exists");
+      }
+      rows.push(body);
+      state.groups.set(version.id, rows);
+      version.revision += 1;
+      return json(201, body, revisionToken(version));
+    }
+
+    const groupOne = /^(PATCH|DELETE) \/admin\/access-groups\/([^/]+)$/u.exec(route);
+    if (groupOne !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const mismatch = requireDraftAndMatch(version, headers);
+      if (mismatch !== undefined) return mismatch;
+      const id = decodeURIComponent(groupOne[2] ?? "");
+      const rows = state.groups.get(version.id) ?? [];
+      const index = rows.findIndex((row) => row.id === id);
+      if (index < 0) {
+        return errorResponse(409, "management_lifecycle_conflict", "unknown access group");
+      }
+      if (groupOne[1] === "DELETE") {
+        rows.splice(index, 1);
+        state.groupRoutes.delete(`${version.id}:${id}`);
+        version.revision += 1;
+        return new Response(null, { status: 204 });
+      }
+      // PATCH takes the whole AccessGroupInput — replacement, not merge.
+      const body = JSON.parse(bodyText ?? "{}") as GroupRow;
+      rows[index] = { ...body, id };
+      version.revision += 1;
+      return json(200, rows[index], revisionToken(version));
+    }
+
+    const groupRoutes = /^(GET|POST) \/admin\/access-groups\/([^/]+)\/routes$/u.exec(route);
+    if (groupRoutes !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const id = decodeURIComponent(groupRoutes[2] ?? "");
+      const key = `${version.id}:${id}`;
+      const rows = state.groupRoutes.get(key) ?? [];
+      if (groupRoutes[1] === "GET") {
+        return json(200, rows, revisionToken(version));
+      }
+      const mismatch = requireDraftAndMatch(version, headers);
+      if (mismatch !== undefined) return mismatch;
+      const body = JSON.parse(bodyText ?? "{}") as { route_id: string; enabled: boolean };
+      const grant = { access_group_id: id, route_id: body.route_id, enabled: body.enabled };
+      const existing = rows.findIndex((row) => row.route_id === body.route_id);
+      if (existing >= 0) {
+        rows[existing] = grant;
+      } else {
+        rows.push(grant);
+      }
+      state.groupRoutes.set(key, rows);
+      version.revision += 1;
+      return json(201, grant, revisionToken(version));
     }
 
     if (route === "GET /admin/client-keys") {

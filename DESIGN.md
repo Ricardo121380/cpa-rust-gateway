@@ -1152,3 +1152,73 @@ flex 会把单元格移出表格布局,浏览器于是把连续的 flex 单元�
 `proposed.ts` 原本承载 G1 graph 与 G3 analytics 两条未落地契约的 DEV 专用通道。
 G1 那条已删除(连同 `upstreamSubresources` 与它的测试)—— 真端点到了,
 留着假的只会让人以为还有第二条路。analytics 那条还在,等 P13-05。
+
+---
+
+## 16. 访问组与路由授权:配置链上缺失的一半
+
+盘点契约用量时发现:76 个算子里 prism 只调用 41 个,而一个可用配置需要的 12 步里
+**面板只覆盖 6 步**。今天演示用的那份配置图,全部是用 curl 灌进去的 ——
+面板做不到,这就是证据。
+
+访问组是其中最刺眼的一环:表格自始至终没有「操作」列,`grantAccessGroupRoute`
+完全没有 UI。没有它们,签发出来的 Client Key **到不了任何模型**。
+而这四个算子从第一天起就在契约里,没有被任何东西阻塞过。
+
+### 16.1 限额编辑:显示格式就是输入格式
+
+`AccessGroupInput.limits` 是自由对象(`Record<string, integer ≥ 0>`,最多 16 项)。
+表格本来就把它渲染成 `key=value key=value`,于是编辑器直接收同一个字符串 ——
+运维可以把表格里那一行原样复制回表单,不需要脑内翻译。
+
+`parseLimits` 在前端就把契约会拒绝的东西拦下来(负数、小数、非整数、重复键、超过 16 项),
+理由和 OAuth 回调粘贴一样:与其换一个 400,不如当场说清哪里不对。
+
+### 16.2 PATCH 是整体替换,所以表单必须预填
+
+`PATCH /admin/access-groups/{id}` 收的是**完整的 `AccessGroupInput`**,不是 partial ——
+这一点我在灌演示数据时先踩过一次(部分 body 直接 400)。
+
+后果是:编辑表单若不预填当前值,保存就会把没碰过的字段悄悄清空。
+E2E 因此显式断言三个字段都带着现值打开,并在表单里写明「保存等于整体替换」。
+
+### 16.3 路由不可枚举
+
+契约有 `createRoute`/`getRoute`/`updateRoute`/`deleteRoute`,**没有 `listRoutes`**。
+授权表单因此不能给一个下拉框。
+
+折中:自由文本 + datalist 建议,建议来源是运营库存里出现过的 `route_ids`,
+并在表单里直说「建议并不完整」。这比一个假装完整的下拉框诚实,
+也比纯文本框好用。
+
+没有授权的组不显示空表格,而是直接说「组内的 Client Key 现在到不了任何模型」——
+空表格会被读成"正常",这句话不会。
+
+### 16.4 浏览器 origin 被默认拒绝 —— 嵌入切换不是可选项
+
+实机验证时,GET 全部正常,而 **POST 一律 `404 management_access_denied`**。
+
+原因不在 prism:`management_security.rs` 开头就写着
+"Browser origins are denied by default",而 `deployment.rs::management_origin`
+把允许的 origin **硬性推导为管理监听器自己的地址**:
+
+```rust
+// apps/gateway/src/deployment.rs:576-582
+fn management_origin(listener: SocketAddr) -> Result<ManagementOrigin, DeploymentError> {
+    let value = format!("http://{}:{}", address.ip(), address.port());
+    ManagementOrigin::try_new(value)…
+}
+```
+
+也就是说:**只有从管理监听器自己提供的 UI 才能做写操作**。任何反代、任何独立端口的
+托管方式,浏览器带上的 Origin 都不匹配,所有 mutation 全部拒绝。
+
+这把嵌入切换(`web/admin-ui/dist` 四个文件名对齐)从"交付上的收尾"
+升级成 **生产里写操作能工作的唯一前提**。演示用的反代因此重写 Origin 头,
+以复现嵌入后的条件 —— 那是复现,不是绕过。
+
+### 16.5 实机结果
+
+对真网关(`serve` + 真库)从面板完成:新建访问组 `ag-live`
+(`max_concurrency=6 rpm=300`)→ 授权路由 `rt-grok4`,零失败请求,
+并经 API 直接确认落库。这是 prism 第一次真正写出一段此前只能用 curl 造的配置。
