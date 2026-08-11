@@ -284,63 +284,10 @@ impl SqliteBillingLedger {
     /// Returns [`StoreError`] for malformed catalog values, a conflicting version, or a `SQLite`
     /// transaction failure.
     pub fn insert_catalog(&mut self, catalog: &BillingPriceCatalog) -> StoreResult<()> {
-        validate_catalog(catalog)?;
         let transaction = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let existing: Option<(i64, String, i64)> = transaction
-            .query_row(
-                "SELECT effective_at_ms, source, created_at_ms FROM billing_price_catalog_versions \
-                 WHERE catalog_version_id = ?1",
-                [catalog.catalog_version_id.as_str()],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-            )
-            .optional()?;
-        if let Some((effective_at_ms, source, created_at_ms)) = existing {
-            let existing_entries = load_catalog_entries(&transaction, &catalog.catalog_version_id)?;
-            let same = u64_from_i64(effective_at_ms)? == catalog.effective_at_ms
-                && BillingCatalogSource::from_sql(&source)? == catalog.source
-                && u64_from_i64(created_at_ms)? == catalog.created_at_ms
-                && existing_entries == sorted_entries(catalog.entries.clone());
-            if same {
-                transaction.commit()?;
-                return Ok(());
-            }
-            return Err(StoreError::ConflictingBillingCatalogVersion);
-        }
-
-        transaction.execute(
-            "INSERT INTO billing_price_catalog_versions \
-             (catalog_version_id, effective_at_ms, source, created_at_ms) VALUES (?1, ?2, ?3, ?4)",
-            params![
-                catalog.catalog_version_id,
-                i64_from_u64(catalog.effective_at_ms)?,
-                catalog.source.as_sql(),
-                i64_from_u64(catalog.created_at_ms)?,
-            ],
-        )?;
-        for entry in sorted_entries(catalog.entries.clone()) {
-            transaction.execute(
-                "INSERT INTO billing_price_catalog_entries \
-                 (catalog_version_id, provider_id, channel_id, model, \
-                  input_microunits_per_million, output_microunits_per_million, \
-                  reasoning_microunits_per_million, cache_read_microunits_per_million, \
-                  cache_creation_microunits_per_million, cached_microunits_per_million) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-                params![
-                    catalog.catalog_version_id,
-                    entry.provider_id,
-                    entry.channel_id,
-                    entry.model,
-                    i64_from_u64(entry.input_microunits_per_million)?,
-                    i64_from_u64(entry.output_microunits_per_million)?,
-                    i64_from_u64(entry.reasoning_microunits_per_million)?,
-                    i64_from_u64(entry.cache_read_microunits_per_million)?,
-                    i64_from_u64(entry.cache_creation_microunits_per_million)?,
-                    i64_from_u64(entry.cached_microunits_per_million)?,
-                ],
-            )?;
-        }
+        insert_catalog_in_transaction(&transaction, catalog)?;
         transaction.commit()?;
         Ok(())
     }
@@ -352,32 +299,7 @@ impl SqliteBillingLedger {
     /// Returns [`StoreError`] when a persisted catalog row is malformed or `SQLite` rejects the
     /// read.
     pub fn catalog(&self, catalog_version_id: &str) -> StoreResult<Option<BillingPriceCatalog>> {
-        let Some((effective_at_ms, source, created_at_ms)) = self
-            .connection
-            .query_row(
-                "SELECT effective_at_ms, source, created_at_ms \
-                 FROM billing_price_catalog_versions WHERE catalog_version_id = ?1",
-                [catalog_version_id],
-                |row| {
-                    Ok((
-                        row.get::<_, i64>(0)?,
-                        row.get::<_, String>(1)?,
-                        row.get::<_, i64>(2)?,
-                    ))
-                },
-            )
-            .optional()?
-        else {
-            return Ok(None);
-        };
-        let entries = load_catalog_entries(&self.connection, catalog_version_id)?;
-        Ok(Some(BillingPriceCatalog {
-            catalog_version_id: catalog_version_id.to_owned(),
-            effective_at_ms: u64_from_i64(effective_at_ms)?,
-            source: BillingCatalogSource::from_sql(&source)?,
-            created_at_ms: u64_from_i64(created_at_ms)?,
-            entries,
-        }))
+        load_catalog_from_connection(&self.connection, catalog_version_id)
     }
 
     /// Returns all immutable price catalogs in deterministic effective-time order.
@@ -386,20 +308,7 @@ impl SqliteBillingLedger {
     ///
     /// Returns [`StoreError`] when the bound is invalid or a persisted catalog is malformed.
     pub fn list_catalogs_bounded(&self, limit: usize) -> StoreResult<Vec<BillingPriceCatalog>> {
-        let limit = i64::try_from(limit).map_err(|_| StoreError::InvalidPersistedBillingRecord)?;
-        let mut statement = self.connection.prepare(
-            "SELECT catalog_version_id FROM billing_price_catalog_versions \
-             ORDER BY effective_at_ms, catalog_version_id LIMIT ?1",
-        )?;
-        let ids = statement
-            .query_map([limit], |row| row.get::<_, String>(0))?
-            .collect::<Result<Vec<_>, _>>()?;
-        ids.into_iter()
-            .map(|id| {
-                self.catalog(&id)?
-                    .ok_or(StoreError::InvalidPersistedBillingRecord)
-            })
-            .collect()
+        list_catalogs_bounded_from_connection(&self.connection, limit)
     }
 
     /// Loads one materializer checkpoint, if it has run before.
@@ -589,6 +498,117 @@ impl SqliteBillingLedger {
         transaction.commit()?;
         Ok(changed)
     }
+}
+
+pub(crate) fn insert_catalog_in_transaction(
+    transaction: &rusqlite::Transaction<'_>,
+    catalog: &BillingPriceCatalog,
+) -> StoreResult<()> {
+    validate_catalog(catalog)?;
+    let existing: Option<(i64, String, i64)> = transaction
+        .query_row(
+            "SELECT effective_at_ms, source, created_at_ms FROM billing_price_catalog_versions \
+             WHERE catalog_version_id = ?1",
+            [catalog.catalog_version_id.as_str()],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .optional()?;
+    if let Some((effective_at_ms, source, created_at_ms)) = existing {
+        let existing_entries = load_catalog_entries(transaction, &catalog.catalog_version_id)?;
+        let same = u64_from_i64(effective_at_ms)? == catalog.effective_at_ms
+            && BillingCatalogSource::from_sql(&source)? == catalog.source
+            && u64_from_i64(created_at_ms)? == catalog.created_at_ms
+            && existing_entries == sorted_entries(catalog.entries.clone());
+        if same {
+            return Ok(());
+        }
+        return Err(StoreError::ConflictingBillingCatalogVersion);
+    }
+
+    transaction.execute(
+        "INSERT INTO billing_price_catalog_versions \
+         (catalog_version_id, effective_at_ms, source, created_at_ms) VALUES (?1, ?2, ?3, ?4)",
+        params![
+            catalog.catalog_version_id,
+            i64_from_u64(catalog.effective_at_ms)?,
+            catalog.source.as_sql(),
+            i64_from_u64(catalog.created_at_ms)?,
+        ],
+    )?;
+    for entry in sorted_entries(catalog.entries.clone()) {
+        transaction.execute(
+            "INSERT INTO billing_price_catalog_entries \
+             (catalog_version_id, provider_id, channel_id, model, \
+              input_microunits_per_million, output_microunits_per_million, \
+              reasoning_microunits_per_million, cache_read_microunits_per_million, \
+              cache_creation_microunits_per_million, cached_microunits_per_million) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            params![
+                catalog.catalog_version_id,
+                entry.provider_id,
+                entry.channel_id,
+                entry.model,
+                i64_from_u64(entry.input_microunits_per_million)?,
+                i64_from_u64(entry.output_microunits_per_million)?,
+                i64_from_u64(entry.reasoning_microunits_per_million)?,
+                i64_from_u64(entry.cache_read_microunits_per_million)?,
+                i64_from_u64(entry.cache_creation_microunits_per_million)?,
+                i64_from_u64(entry.cached_microunits_per_million)?,
+            ],
+        )?;
+    }
+    Ok(())
+}
+
+pub(crate) fn load_catalog_from_connection(
+    connection: &Connection,
+    catalog_version_id: &str,
+) -> StoreResult<Option<BillingPriceCatalog>> {
+    let Some((effective_at_ms, source, created_at_ms)) = connection
+        .query_row(
+            "SELECT effective_at_ms, source, created_at_ms \
+             FROM billing_price_catalog_versions WHERE catalog_version_id = ?1",
+            [catalog_version_id],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                ))
+            },
+        )
+        .optional()?
+    else {
+        return Ok(None);
+    };
+    let entries = load_catalog_entries(connection, catalog_version_id)?;
+    Ok(Some(BillingPriceCatalog {
+        catalog_version_id: catalog_version_id.to_owned(),
+        effective_at_ms: u64_from_i64(effective_at_ms)?,
+        source: BillingCatalogSource::from_sql(&source)?,
+        created_at_ms: u64_from_i64(created_at_ms)?,
+        entries,
+    }))
+}
+
+pub(crate) fn list_catalogs_bounded_from_connection(
+    connection: &Connection,
+    limit: usize,
+) -> StoreResult<Vec<BillingPriceCatalog>> {
+    let limit = i64::try_from(limit).map_err(|_| StoreError::InvalidPersistedBillingRecord)?;
+    let mut statement = connection.prepare(
+        "SELECT catalog_version_id FROM billing_price_catalog_versions \
+         ORDER BY effective_at_ms, catalog_version_id LIMIT ?1",
+    )?;
+    let ids = statement
+        .query_map([limit], |row| row.get::<_, String>(0))?
+        .collect::<Result<Vec<_>, _>>()?;
+    ids.into_iter()
+        .map(|id| {
+            load_catalog_from_connection(connection, &id)?
+                .ok_or(StoreError::InvalidPersistedBillingRecord)
+        })
+        .collect()
 }
 
 fn sorted_entries(mut entries: Vec<BillingPriceEntry>) -> Vec<BillingPriceEntry> {

@@ -13,7 +13,12 @@ use gateway_core::{
 use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
 
 use crate::{
-    StoreError, StoreResult, migrate,
+    StoreError, StoreResult,
+    billing_ledger::{
+        BillingPriceCatalog, insert_catalog_in_transaction, list_catalogs_bounded_from_connection,
+        load_catalog_from_connection,
+    },
+    migrate,
     secret_store::{EncryptedSecret, KeyVersion},
 };
 
@@ -1154,6 +1159,30 @@ impl SqliteControlPlaneRepository {
         Ok(versions)
     }
 
+    /// Loads one immutable billing price catalog from the same migrated control-plane database.
+    ///
+    /// # Errors
+    ///
+    /// Returns a fail-closed [`StoreError`] when the catalog is malformed or cannot be read.
+    pub fn load_billing_catalog(
+        &mut self,
+        catalog_version_id: &str,
+    ) -> StoreResult<Option<BillingPriceCatalog>> {
+        load_catalog_from_connection(&self.connection, catalog_version_id)
+    }
+
+    /// Returns a bounded, deterministic list of immutable billing price catalogs.
+    ///
+    /// # Errors
+    ///
+    /// Returns a fail-closed [`StoreError`] when the bound or persisted catalog is invalid.
+    pub fn list_billing_catalogs_bounded(
+        &self,
+        limit: usize,
+    ) -> StoreResult<Vec<BillingPriceCatalog>> {
+        list_catalogs_bounded_from_connection(&self.connection, limit)
+    }
+
     /// Loads exactly one safe Config Version root metadata record.
     ///
     /// Unlike [`Self::load_configuration`], this projection reads no graph rows, Credential
@@ -1385,6 +1414,23 @@ pub struct ControlPlaneTransaction<'connection> {
 }
 
 impl ControlPlaneTransaction<'_> {
+    /// Inserts one immutable billing catalog inside this control-plane transaction.
+    ///
+    /// The management mutation boundary is create-only: any existing catalog identity fails
+    /// closed, even though the lower billing Store retains exact-replay idempotence for crash
+    /// recovery. This method exists so a catalog write, Config Version revision bump, and
+    /// management audit event can commit atomically.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] for malformed or conflicting catalog data.
+    pub fn insert_billing_catalog(&mut self, catalog: &BillingPriceCatalog) -> StoreResult<()> {
+        if load_catalog_from_connection(&self.transaction, &catalog.catalog_version_id)?.is_some() {
+            return Err(StoreError::ConflictingBillingCatalogVersion);
+        }
+        insert_catalog_in_transaction(&self.transaction, catalog)
+    }
+
     /// Verifies a draft graph's exact revision and advances it once for the current transaction.
     ///
     /// The method is public only so management-time services can compose one bounded resource

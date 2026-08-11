@@ -15,6 +15,9 @@ use gateway_core::{
     AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, PublicModelId, RouteId,
     UpstreamId,
 };
+pub use gateway_store::billing_ledger::{
+    BillingCatalogSource, BillingPriceCatalog, BillingPriceEntry,
+};
 use gateway_store::secret_store::SecretStoreError;
 pub use gateway_store::secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore};
 pub use gateway_store::{
@@ -128,6 +131,95 @@ impl<T> Revisioned<T> {
     #[must_use]
     pub fn into_parts(self) -> (T, ConfigRevision) {
         (self.value, self.revision)
+    }
+}
+
+/// Maximum immutable billing catalog versions returned by one management read.
+pub const MAX_MANAGEMENT_BILLING_CATALOGS: usize = 256;
+
+/// Validated operator/import boundary before the service assigns durable creation time.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BillingCatalogImport {
+    /// New immutable catalog version identity.
+    pub catalog_version_id: String,
+    /// Inclusive timestamp at which future Usage can select this version.
+    pub effective_at_ms: u64,
+    /// Operator or reviewed-import provenance; test provenance is rejected by the service.
+    pub source: BillingCatalogSource,
+    /// Provider/Channel/public-Model integer rates.
+    pub entries: Vec<BillingPriceEntry>,
+}
+
+/// Operation recorded by a protected billing catalog write.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BillingCatalogMutationOperation {
+    /// A new catalog was imported or manually entered.
+    Imported,
+    /// A new immutable catalog was created from a retained predecessor.
+    RolledBack,
+}
+
+/// Secret-free receipt returned after one atomic billing catalog mutation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BillingCatalogMutationReceipt {
+    catalog_version_id: String,
+    effective_at_ms: u64,
+    source: BillingCatalogSource,
+    entry_count: usize,
+    operation: BillingCatalogMutationOperation,
+    rolled_back_from: Option<String>,
+}
+
+impl BillingCatalogMutationReceipt {
+    fn new(
+        catalog: &BillingPriceCatalog,
+        operation: BillingCatalogMutationOperation,
+        rolled_back_from: Option<String>,
+    ) -> Self {
+        Self {
+            catalog_version_id: catalog.catalog_version_id.clone(),
+            effective_at_ms: catalog.effective_at_ms,
+            source: catalog.source,
+            entry_count: catalog.entries.len(),
+            operation,
+            rolled_back_from,
+        }
+    }
+
+    /// Returns the newly durable catalog version identity.
+    #[must_use]
+    pub fn catalog_version_id(&self) -> &str {
+        &self.catalog_version_id
+    }
+
+    /// Returns when this catalog becomes effective for future quotes.
+    #[must_use]
+    pub const fn effective_at_ms(&self) -> u64 {
+        self.effective_at_ms
+    }
+
+    /// Returns the non-secret catalog source classification.
+    #[must_use]
+    pub const fn source(&self) -> BillingCatalogSource {
+        self.source
+    }
+
+    /// Returns the number of Provider/Channel/Model entries written.
+    #[must_use]
+    pub const fn entry_count(&self) -> usize {
+        self.entry_count
+    }
+
+    /// Returns whether this write imported a new catalog or created a rollback fork.
+    #[must_use]
+    pub const fn operation(&self) -> BillingCatalogMutationOperation {
+        self.operation
+    }
+
+    /// Returns the predecessor catalog for a rollback fork, if this was a rollback.
+    #[must_use]
+    pub fn rolled_back_from(&self) -> Option<&str> {
+        self.rolled_back_from.as_deref()
     }
 }
 
@@ -1806,6 +1898,144 @@ impl ManagementMutationService {
         )
     }
 
+    /// Lists immutable billing catalogs under the selected management Config Version.
+    ///
+    /// The Config Version is an admission/revision context only; catalog rows remain global to
+    /// the migrated control-plane database and are never copied into the graph.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the Version or bounded catalog source is unavailable.
+    pub fn list_billing_catalogs(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+    ) -> Result<Revisioned<Vec<BillingPriceCatalog>>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let catalogs = self
+            .repository
+            .list_billing_catalogs_bounded(MAX_MANAGEMENT_BILLING_CATALOGS + 1)?;
+        if catalogs.len() > MAX_MANAGEMENT_BILLING_CATALOGS {
+            return Err(ManagementResourceError::Store(
+                StoreError::InvalidPersistedBillingRecord,
+            ));
+        }
+        Ok(Revisioned::new(
+            catalogs,
+            ConfigRevision::try_new(configuration.version.revision)?,
+        ))
+    }
+
+    /// Imports one immutable billing catalog and atomically advances the selected draft revision
+    /// with its non-secret audit event.
+    ///
+    /// # Errors
+    ///
+    /// Returns a revision conflict for a stale draft, a catalog conflict for a reused version
+    /// with different content, or a value-free validation/storage error.
+    pub fn import_billing_catalog(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        input: BillingCatalogImport,
+    ) -> Result<Revisioned<BillingCatalogMutationReceipt>, ManagementResourceError> {
+        if matches!(input.source, BillingCatalogSource::Test) || input.entries.is_empty() {
+            return Err(ManagementResourceError::InvalidBillingCatalogInput);
+        }
+        let created_at_ms = u64::try_from(self.clock.now_ms()?)
+            .map_err(|_| ManagementResourceError::InvalidBillingCatalogInput)?;
+        let catalog = BillingPriceCatalog {
+            catalog_version_id: input.catalog_version_id,
+            effective_at_ms: input.effective_at_ms,
+            source: input.source,
+            created_at_ms,
+            entries: input.entries,
+        };
+        let audit = self.audit(
+            "billing_catalog_imported",
+            actor,
+            config_version_id,
+            "billing_catalog",
+            &catalog.catalog_version_id,
+        )?;
+        let receipt = BillingCatalogMutationReceipt::new(
+            &catalog,
+            BillingCatalogMutationOperation::Imported,
+            None,
+        );
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.insert_billing_catalog(&catalog)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            receipt,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Creates a new immutable catalog version from a retained predecessor. Existing rows are
+    /// never edited or deleted, so rollback is an auditable forward fork rather than destructive
+    /// history rewriting.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the predecessor is absent, the new version conflicts, the draft
+    /// revision is stale, or the atomic catalog/audit transaction fails.
+    pub fn rollback_billing_catalog(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        predecessor_version_id: &str,
+        new_version_id: String,
+        effective_at_ms: u64,
+    ) -> Result<Revisioned<BillingCatalogMutationReceipt>, ManagementResourceError> {
+        if predecessor_version_id == new_version_id || new_version_id.trim().is_empty() {
+            return Err(ManagementResourceError::InvalidBillingCatalogInput);
+        }
+        let predecessor = self
+            .repository
+            .load_billing_catalog(predecessor_version_id)?
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        let created_at_ms = u64::try_from(self.clock.now_ms()?)
+            .map_err(|_| ManagementResourceError::InvalidBillingCatalogInput)?;
+        let catalog = BillingPriceCatalog {
+            catalog_version_id: new_version_id,
+            effective_at_ms,
+            source: BillingCatalogSource::Operator,
+            created_at_ms,
+            entries: predecessor.entries,
+        };
+        let audit = self.audit(
+            "billing_catalog_rolled_back",
+            actor,
+            config_version_id,
+            "billing_catalog",
+            &catalog.catalog_version_id,
+        )?;
+        let receipt = BillingCatalogMutationReceipt::new(
+            &catalog,
+            BillingCatalogMutationOperation::RolledBack,
+            Some(predecessor_version_id.to_owned()),
+        );
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.insert_billing_catalog(&catalog)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            receipt,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
     /// Returns the owned Repository only to an explicitly management-time caller.
     #[must_use]
     pub fn repository_mut(&mut self) -> &mut SqliteControlPlaneRepository {
@@ -2036,6 +2266,8 @@ pub enum ManagementResourceError {
     InvalidCredentialInput,
     /// A concurrent credential update advanced the record revision.
     CredentialRevisionConflict,
+    /// A protected billing catalog request violated the bounded immutable input contract.
+    InvalidBillingCatalogInput,
     /// The P13 operational read-model query, cursor, or source graph was invalid.
     Operations(ManagementOperationsError),
 }
@@ -2070,6 +2302,9 @@ impl fmt::Display for ManagementResourceError {
             Self::CredentialRevisionConflict => {
                 formatter.write_str("management credential revision conflict")
             }
+            Self::InvalidBillingCatalogInput => {
+                formatter.write_str("management billing catalog input is invalid")
+            }
             Self::Operations(error) => write!(formatter, "management operations failed: {error}"),
         }
     }
@@ -2089,6 +2324,7 @@ impl Error for ManagementResourceError {
             | Self::InvalidRevision
             | Self::InvalidCredentialInput
             | Self::CredentialRevisionConflict
+            | Self::InvalidBillingCatalogInput
             | Self::ClientKeyIssuerUnavailable => None,
         }
     }
@@ -2156,8 +2392,9 @@ mod tests {
     use crate::management_service::{ManagementActor, ManagementClock, ManagementClockError};
 
     use super::{
-        ClientKeyIssue, ClientKeyUpdate, ConfigRevision, CredentialUpsert, CredentialView,
-        ManagementMutationService, ManagementResourceError, Revisioned,
+        BillingCatalogImport, BillingCatalogMutationOperation, BillingCatalogSource,
+        BillingPriceEntry, ClientKeyIssue, ClientKeyUpdate, ConfigRevision, CredentialUpsert,
+        CredentialView, ManagementMutationService, ManagementResourceError, Revisioned,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -2219,6 +2456,106 @@ mod tests {
         )?;
 
         assert_audit_events(&mut service)?;
+        Ok(())
+    }
+
+    #[test]
+    fn billing_catalog_mutation_is_atomic_audited_and_forward_rollback_only() -> TestResult {
+        let (mut service, version_id, actor) = test_service()?;
+        let entry = BillingPriceEntry {
+            provider_id: "provider-a".to_owned(),
+            channel_id: "channel-a".to_owned(),
+            model: "model-a".to_owned(),
+            input_microunits_per_million: 2_000_000,
+            output_microunits_per_million: 4_000_000,
+            reasoning_microunits_per_million: 0,
+            cache_read_microunits_per_million: 0,
+            cache_creation_microunits_per_million: 0,
+            cached_microunits_per_million: 0,
+        };
+
+        let imported = service.import_billing_catalog(
+            &actor,
+            &version_id,
+            ConfigRevision::initial(),
+            BillingCatalogImport {
+                catalog_version_id: "catalog-v1".to_owned(),
+                effective_at_ms: 1_000,
+                source: BillingCatalogSource::Imported,
+                entries: vec![entry.clone()],
+            },
+        )?;
+        assert_eq!(imported.revision().as_i64(), 1);
+        assert_eq!(
+            imported.value().operation(),
+            BillingCatalogMutationOperation::Imported
+        );
+        assert_eq!(service.resource_audit_events()?.len(), 1);
+        assert_eq!(
+            service
+                .resource_audit_events()?
+                .first()
+                .ok_or("billing import audit event missing")?
+                .action(),
+            "billing_catalog_imported"
+        );
+
+        let mut conflicting_entry = entry;
+        conflicting_entry.input_microunits_per_million = 9_000_000;
+        let conflict = service.import_billing_catalog(
+            &actor,
+            &version_id,
+            imported.revision(),
+            BillingCatalogImport {
+                catalog_version_id: "catalog-v1".to_owned(),
+                effective_at_ms: 1_000,
+                source: BillingCatalogSource::Imported,
+                entries: vec![conflicting_entry],
+            },
+        );
+        assert!(matches!(
+            conflict,
+            Err(ManagementResourceError::Store(
+                StoreError::ConflictingBillingCatalogVersion
+            ))
+        ));
+        assert_eq!(
+            service
+                .list_billing_catalogs(&version_id)?
+                .revision()
+                .as_i64(),
+            1
+        );
+        assert_eq!(service.resource_audit_events()?.len(), 1);
+
+        let rolled_back = service.rollback_billing_catalog(
+            &actor,
+            &version_id,
+            imported.revision(),
+            "catalog-v1",
+            "catalog-v2".to_owned(),
+            2_000,
+        )?;
+        assert_eq!(rolled_back.revision().as_i64(), 2);
+        assert_eq!(
+            rolled_back.value().operation(),
+            BillingCatalogMutationOperation::RolledBack
+        );
+        assert_eq!(rolled_back.value().rolled_back_from(), Some("catalog-v1"));
+        assert_eq!(service.resource_audit_events()?.len(), 2);
+        assert_eq!(
+            service
+                .resource_audit_events()?
+                .last()
+                .ok_or("billing rollback audit event missing")?
+                .action(),
+            "billing_catalog_rolled_back"
+        );
+        let catalogs = service.list_billing_catalogs(&version_id)?.value().clone();
+        assert_eq!(catalogs.len(), 2);
+        assert_eq!(catalogs[0].catalog_version_id, "catalog-v1");
+        assert_eq!(catalogs[1].catalog_version_id, "catalog-v2");
+        assert_eq!(catalogs[0].entries, catalogs[1].entries);
         Ok(())
     }
 

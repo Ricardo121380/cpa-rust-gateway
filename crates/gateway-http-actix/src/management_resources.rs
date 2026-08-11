@@ -20,14 +20,16 @@ use base64::{
     engine::general_purpose::{STANDARD, STANDARD_NO_PAD, URL_SAFE, URL_SAFE_NO_PAD},
 };
 use gateway_control::management_mutation_service::{
-    AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus, ClientKeyIssue,
-    ClientKeyUpdate, ClientKeyView, ConfigRevision, ConfigVersionId, CredentialScope,
-    CredentialStatus, CredentialUpsert, CredentialView, EgressPolicyConfiguration,
-    EndpointConfiguration, EndpointCredentialBindingConfiguration, EndpointTransport,
-    ManagementMutationService, ManagementResourceError, ManagementRouteValidation,
-    ModelAliasConfiguration, ModelRouteConfiguration, PublicModelConfiguration, Revisioned,
-    RouteCandidateConfiguration, RoutePolicy, StoreError, StoredClientKeyStatus,
-    StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
+    AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus,
+    BillingCatalogImport, BillingCatalogMutationOperation, BillingCatalogMutationReceipt,
+    BillingCatalogSource, BillingPriceCatalog, BillingPriceEntry, ClientKeyIssue, ClientKeyUpdate,
+    ClientKeyView, ConfigRevision, ConfigVersionId, CredentialScope, CredentialStatus,
+    CredentialUpsert, CredentialView, EgressPolicyConfiguration, EndpointConfiguration,
+    EndpointCredentialBindingConfiguration, EndpointTransport, ManagementMutationService,
+    ManagementResourceError, ManagementRouteValidation, ModelAliasConfiguration,
+    ModelRouteConfiguration, PublicModelConfiguration, Revisioned, RouteCandidateConfiguration,
+    RoutePolicy, StoreError, StoredClientKeyStatus, StoredEgressRedirectMode, TransformMode,
+    UpstreamConfiguration,
 };
 use gateway_control::management_operations_service::{
     DEFAULT_ACCOUNT_POOL_LIMIT, DEFAULT_USAGE_LIMIT, MAX_ACCOUNT_POOL_LIMIT, MAX_USAGE_EVENTS,
@@ -60,6 +62,9 @@ const IF_MATCH_HEADER: &str = "if-match";
 const MAX_MANAGEMENT_JSON_BYTES: usize = 70 * 1024;
 const MAX_RUNTIME_ROWS: usize = 256;
 const MAX_REQUEST_ATTEMPTS: usize = 128;
+const MAX_BILLING_CATALOG_ENTRIES: usize = 512;
+// JSON numbers must remain exactly representable for generated TypeScript consumers.
+const MAX_BILLING_JSON_INTEGER: u64 = 9_007_199_254_740_991;
 const CODEX_OAUTH_HTTP_TIMEOUT: Duration = Duration::from_secs(30);
 const MAX_CODEX_OAUTH_RESPONSE_BYTES: u64 = 256 * 1024;
 const CODEX_OAUTH_USER_AGENT: &str = "codex_cli_rs/0.144.1";
@@ -1596,6 +1601,7 @@ fn resource_routes(config: &mut web::ServiceConfig) {
     configure_routing_resource_routes(config);
     configure_runtime_resource_routes(config);
     configure_operations_resource_routes(config);
+    configure_billing_resource_routes(config);
 }
 
 /// Registers only the P10 resource paths inside an already protected management scope.
@@ -1808,6 +1814,16 @@ fn configure_operations_resource_routes(config: &mut web::ServiceConfig) {
         "/operations/billing",
         web::get().to(list_operational_billing),
     );
+}
+
+fn configure_billing_resource_routes(config: &mut web::ServiceConfig) {
+    config
+        .route("/billing/catalogs", web::get().to(list_billing_catalogs))
+        .route("/billing/catalogs", web::post().to(import_billing_catalog))
+        .route(
+            "/billing/catalogs/{catalog_version_id}/rollback",
+            web::post().to(rollback_billing_catalog),
+        );
 }
 
 #[derive(Deserialize)]
@@ -2484,6 +2500,68 @@ struct OperationalBillingSummaryResponse {
     known_cost_microunits: Option<u64>,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BillingCatalogImportInput {
+    catalog_version_id: String,
+    effective_at_ms: u64,
+    source: String,
+    entries: Vec<BillingCatalogEntryInput>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BillingCatalogEntryInput {
+    provider_id: String,
+    channel_id: String,
+    model: String,
+    input_microunits_per_million: u64,
+    output_microunits_per_million: u64,
+    reasoning_microunits_per_million: u64,
+    cache_read_microunits_per_million: u64,
+    cache_creation_microunits_per_million: u64,
+    cached_microunits_per_million: u64,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BillingCatalogRollbackInput {
+    new_catalog_version_id: String,
+    effective_at_ms: u64,
+}
+
+#[derive(Serialize)]
+struct BillingCatalogResponse {
+    catalog_version_id: String,
+    effective_at_ms: u64,
+    source: &'static str,
+    created_at_ms: u64,
+    entries: Vec<BillingCatalogEntryResponse>,
+}
+
+#[derive(Serialize)]
+struct BillingCatalogEntryResponse {
+    provider_id: String,
+    channel_id: String,
+    model: String,
+    input_microunits_per_million: u64,
+    output_microunits_per_million: u64,
+    reasoning_microunits_per_million: u64,
+    cache_read_microunits_per_million: u64,
+    cache_creation_microunits_per_million: u64,
+    cached_microunits_per_million: u64,
+}
+
+#[derive(Serialize)]
+struct BillingCatalogMutationResponse {
+    catalog_version_id: String,
+    effective_at_ms: u64,
+    source: &'static str,
+    entry_count: usize,
+    operation: &'static str,
+    rolled_back_from: Option<String>,
+}
+
 #[allow(clippy::too_many_lines)]
 async fn list_operational_usage(
     request: HttpRequest,
@@ -2686,6 +2764,107 @@ async fn list_operational_billing(
             Err(response) => response,
         },
         Err(error) => management_error(ManagementResourceError::from(error)),
+    }
+}
+
+async fn list_billing_catalogs(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_billing_catalogs(&context.version) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |catalogs| {
+            catalogs
+                .into_iter()
+                .map(billing_catalog_response)
+                .collect::<Vec<_>>()
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn import_billing_catalog(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let input =
+        match parse_json::<BillingCatalogImportInput>(&body).and_then(billing_catalog_import) {
+            Ok(input) => input,
+            Err(response) => return response,
+        };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.import_billing_catalog(&actor, &context.version, context.revision, input) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, |value| {
+            billing_catalog_mutation_response(&value)
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn rollback_billing_catalog(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let predecessor_version_id = match bounded_text(path.into_inner(), 128) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let input = match parse_json::<BillingCatalogRollbackInput>(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    if input.effective_at_ms > MAX_BILLING_JSON_INTEGER {
+        return invalid_input();
+    }
+    let new_catalog_version_id = match bounded_text(input.new_catalog_version_id, 128) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.rollback_billing_catalog(
+        &actor,
+        &context.version,
+        context.revision,
+        &predecessor_version_id,
+        new_catalog_version_id,
+        input.effective_at_ms,
+    ) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, |value| {
+            billing_catalog_mutation_response(&value)
+        }),
+        Err(error) => management_error(error),
     }
 }
 
@@ -5450,6 +5629,13 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
             "management_credential_revision_conflict",
             "Credential changed",
         ),
+        ManagementResourceError::Store(StoreError::ConflictingBillingCatalogVersion) => {
+            error_response(
+                StatusCode::CONFLICT,
+                "management_billing_catalog_conflict",
+                "Billing catalog version already exists",
+            )
+        }
         ManagementResourceError::Operations(ManagementOperationsError::CursorVersionConflict) => {
             error_response(
                 StatusCode::CONFLICT,
@@ -5461,7 +5647,8 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
             invalid_input()
         }
         ManagementResourceError::InvalidRevision
-        | ManagementResourceError::InvalidCredentialInput => invalid_input(),
+        | ManagementResourceError::InvalidCredentialInput
+        | ManagementResourceError::InvalidBillingCatalogInput => invalid_input(),
         ManagementResourceError::Store(_)
         | ManagementResourceError::SecretStore(_)
         | ManagementResourceError::ControlPlane(_)
@@ -6075,6 +6262,114 @@ fn operational_billing_page_response(
         },
         next_cursor,
     })
+}
+
+fn billing_catalog_import(
+    input: BillingCatalogImportInput,
+) -> Result<BillingCatalogImport, HttpResponse> {
+    if input.entries.is_empty()
+        || input.entries.len() > MAX_BILLING_CATALOG_ENTRIES
+        || input.effective_at_ms > MAX_BILLING_JSON_INTEGER
+    {
+        return Err(invalid_input());
+    }
+    let catalog_version_id = bounded_text(input.catalog_version_id, 128)?;
+    let source = match input.source.as_str() {
+        "operator" => BillingCatalogSource::Operator,
+        "imported" => BillingCatalogSource::Imported,
+        _ => return Err(invalid_input()),
+    };
+    let mut identities = BTreeSet::new();
+    let entries = input
+        .entries
+        .into_iter()
+        .map(|entry| {
+            if [
+                entry.input_microunits_per_million,
+                entry.output_microunits_per_million,
+                entry.reasoning_microunits_per_million,
+                entry.cache_read_microunits_per_million,
+                entry.cache_creation_microunits_per_million,
+                entry.cached_microunits_per_million,
+            ]
+            .into_iter()
+            .any(|rate| rate > MAX_BILLING_JSON_INTEGER)
+            {
+                return Err(invalid_input());
+            }
+            let provider_id = bounded_text(entry.provider_id, 128)?;
+            let channel_id = bounded_text(entry.channel_id, 128)?;
+            let model = bounded_text(entry.model, 512)?;
+            if !identities.insert((provider_id.clone(), channel_id.clone(), model.clone())) {
+                return Err(invalid_input());
+            }
+            Ok(BillingPriceEntry {
+                provider_id,
+                channel_id,
+                model,
+                input_microunits_per_million: entry.input_microunits_per_million,
+                output_microunits_per_million: entry.output_microunits_per_million,
+                reasoning_microunits_per_million: entry.reasoning_microunits_per_million,
+                cache_read_microunits_per_million: entry.cache_read_microunits_per_million,
+                cache_creation_microunits_per_million: entry.cache_creation_microunits_per_million,
+                cached_microunits_per_million: entry.cached_microunits_per_million,
+            })
+        })
+        .collect::<Result<Vec<_>, HttpResponse>>()?;
+    Ok(BillingCatalogImport {
+        catalog_version_id,
+        effective_at_ms: input.effective_at_ms,
+        source,
+        entries,
+    })
+}
+
+const fn billing_catalog_source_response(value: BillingCatalogSource) -> &'static str {
+    match value {
+        BillingCatalogSource::Operator => "operator",
+        BillingCatalogSource::Imported => "imported",
+        BillingCatalogSource::Test => "test",
+    }
+}
+
+fn billing_catalog_response(value: BillingPriceCatalog) -> BillingCatalogResponse {
+    BillingCatalogResponse {
+        catalog_version_id: value.catalog_version_id,
+        effective_at_ms: value.effective_at_ms,
+        source: billing_catalog_source_response(value.source),
+        created_at_ms: value.created_at_ms,
+        entries: value
+            .entries
+            .into_iter()
+            .map(|entry| BillingCatalogEntryResponse {
+                provider_id: entry.provider_id,
+                channel_id: entry.channel_id,
+                model: entry.model,
+                input_microunits_per_million: entry.input_microunits_per_million,
+                output_microunits_per_million: entry.output_microunits_per_million,
+                reasoning_microunits_per_million: entry.reasoning_microunits_per_million,
+                cache_read_microunits_per_million: entry.cache_read_microunits_per_million,
+                cache_creation_microunits_per_million: entry.cache_creation_microunits_per_million,
+                cached_microunits_per_million: entry.cached_microunits_per_million,
+            })
+            .collect(),
+    }
+}
+
+fn billing_catalog_mutation_response(
+    value: &BillingCatalogMutationReceipt,
+) -> BillingCatalogMutationResponse {
+    BillingCatalogMutationResponse {
+        catalog_version_id: value.catalog_version_id().to_owned(),
+        effective_at_ms: value.effective_at_ms(),
+        source: billing_catalog_source_response(value.source()),
+        entry_count: value.entry_count(),
+        operation: match value.operation() {
+            BillingCatalogMutationOperation::Imported => "imported",
+            BillingCatalogMutationOperation::RolledBack => "rolled_back",
+        },
+        rolled_back_from: value.rolled_back_from().map(str::to_owned),
+    }
 }
 
 impl From<EgressPolicyConfiguration> for EgressPolicyResponse {
