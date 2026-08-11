@@ -80,14 +80,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: web/admin-ui/package-lock.json
+          cache-dependency-path: web/prism/package-lock.json
       - name: Verify pinned Node.js and npm
         run: |
           set -euo pipefail
           test "$(node --version)" = "v${NODE_VERSION}"
           test "$(npm --version)" = "$NPM_VERSION"
       - name: Install locked management SPA dependencies
-        working-directory: web/admin-ui
+        working-directory: web/prism
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt

@@ -115,7 +115,7 @@ else
   end
   assert_equal(errors, "ci setup-node node-version", "${{ env.NODE_VERSION }}", setup_with["node-version"])
   assert_equal(errors, "ci setup-node cache", "npm", setup_with["cache"])
-  assert_equal(errors, "ci setup-node cache dependency path", "web/admin-ui/package-lock.json", setup_with["cache-dependency-path"])
+  assert_equal(errors, "ci setup-node cache dependency path", "web/prism/package-lock.json", setup_with["cache-dependency-path"])
   errors << "ci setup-node must not resolve a moving latest version" if setup_with["check-latest"] == true
 end
 
@@ -141,7 +141,7 @@ if npm_install_index.nil?
   errors << "ci code job must install the management SPA with locked npm ci"
 else
   npm_step = code_steps.fetch(npm_install_index)
-  assert_equal(errors, "ci npm install working-directory", "web/admin-ui", npm_step["working-directory"])
+  assert_equal(errors, "ci npm install working-directory", "web/prism", npm_step["working-directory"])
 end
 
 if setup_node_index && npm_install_index && setup_node_index >= npm_install_index

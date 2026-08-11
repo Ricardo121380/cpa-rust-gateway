@@ -143,7 +143,7 @@ The following boundaries remain explicit and are not hidden by the public README
 cargo fmt --all -- --check
 cargo test --locked --workspace --all-features
 cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-npm --prefix web/admin-ui run check
+npm --prefix web/prism run check
 ./scripts/check.sh docs
 ```
 

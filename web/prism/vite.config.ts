@@ -6,9 +6,13 @@ import react from "@vitejs/plugin-react";
 // through SVG presentation attributes). Vite's dev server injects styles as
 // inline <style> tags, so DEV gets a policy that permits exactly that and
 // nothing more — production keeps the strict one.
+// frame-ancestors is ignored when delivered in a <meta> element (the browser
+// says so in the console). The gateway sends the real policy as a header on
+// every embedded asset, which is where frame-ancestors takes effect — so the
+// meta policy carries only the directives a meta CSP can actually enforce.
 const PROD_CSP =
   "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; " +
-  "connect-src 'self'; form-action 'none'; frame-ancestors 'none'";
+  "connect-src 'self'; form-action 'none'";
 const DEV_CSP =
   "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
   "style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws:; " +

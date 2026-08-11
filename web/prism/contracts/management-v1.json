@@ -17,7 +17,6 @@
     { "name": "routing" },
     { "name": "runtime" },
     { "name": "operations" },
-    { "name": "billing" },
     { "name": "audit" },
     { "name": "backup" }
   ],
@@ -278,73 +277,6 @@
         }
       }
     },
-    "/admin/operations/billing": {
-      "get": {
-        "tags": ["operations"],
-        "operationId": "listOperationalBilling",
-        "x-delivery-phase": "P13-05B",
-        "parameters": [
-          { "$ref": "#/components/parameters/BillingFromMs" },
-          { "$ref": "#/components/parameters/BillingToMs" },
-          { "$ref": "#/components/parameters/BillingProviderId" },
-          { "$ref": "#/components/parameters/BillingChannelId" },
-          { "$ref": "#/components/parameters/BillingAccountId" },
-          { "$ref": "#/components/parameters/BillingModel" },
-          { "$ref": "#/components/parameters/BillingStatus" },
-          { "$ref": "#/components/parameters/BillingLimit" },
-          { "$ref": "#/components/parameters/BillingCursor" }
-        ],
-        "responses": {
-          "200": { "$ref": "#/components/responses/OperationalBillingPage" },
-          "default": { "$ref": "#/components/responses/Error" }
-        }
-      }
-    },
-    "/admin/billing/catalogs": {
-      "parameters": [{ "$ref": "#/components/parameters/ConfigVersion" }],
-      "get": {
-        "tags": ["billing"],
-        "operationId": "listBillingCatalogs",
-        "x-delivery-phase": "P13-05C",
-        "responses": {
-          "200": { "$ref": "#/components/responses/BillingCatalogList" },
-          "default": { "$ref": "#/components/responses/Error" }
-        }
-      },
-      "post": {
-        "tags": ["billing"],
-        "operationId": "importBillingCatalog",
-        "x-delivery-phase": "P13-05C",
-        "x-audit-action": "billing_catalog_imported",
-        "parameters": [{ "$ref": "#/components/parameters/IfMatch" }],
-        "requestBody": { "$ref": "#/components/requestBodies/BillingCatalogImportInput" },
-        "responses": {
-          "201": { "$ref": "#/components/responses/BillingCatalogMutation" },
-          "409": { "$ref": "#/components/responses/Error" },
-          "default": { "$ref": "#/components/responses/Error" }
-        }
-      }
-    },
-    "/admin/billing/catalogs/{catalog_version_id}/rollback": {
-      "parameters": [
-        { "$ref": "#/components/parameters/ConfigVersion" },
-        { "$ref": "#/components/parameters/BillingCatalogVersionId" }
-      ],
-      "post": {
-        "tags": ["billing"],
-        "operationId": "rollbackBillingCatalog",
-        "x-delivery-phase": "P13-05C",
-        "x-audit-action": "billing_catalog_rolled_back",
-        "parameters": [{ "$ref": "#/components/parameters/IfMatch" }],
-        "requestBody": { "$ref": "#/components/requestBodies/BillingCatalogRollbackInput" },
-        "responses": {
-          "201": { "$ref": "#/components/responses/BillingCatalogMutation" },
-          "404": { "$ref": "#/components/responses/Error" },
-          "409": { "$ref": "#/components/responses/Error" },
-          "default": { "$ref": "#/components/responses/Error" }
-        }
-      }
-    },
     "/admin/requests/{request_id}/attempts": {
       "parameters": [{ "$ref": "#/components/parameters/RequestId" }],
       "get": { "tags": ["runtime"], "operationId": "listRequestAttempts", "x-delivery-phase": "P10-06", "responses": { "200": { "$ref": "#/components/responses/AttemptList" }, "default": { "$ref": "#/components/responses/Error" } } }
@@ -377,7 +309,6 @@
       "UpstreamId": { "name": "upstream_id", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/Id" } },
       "EndpointId": { "name": "endpoint_id", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/Id" } },
       "CredentialId": { "name": "credential_id", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/Id" } },
-      "BillingCatalogVersionId": { "name": "catalog_version_id", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/Id" } },
       "PublicModelId": { "name": "public_model_id", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/Id" } },
       "RouteId": { "name": "route_id", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/Id" } },
       "AccessGroupId": { "name": "access_group_id", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/Id" } },
@@ -399,16 +330,7 @@
       "OperationalAccessGroupId": { "name": "access_group_id", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/Id" } },
       "OperationalProtocol": { "name": "protocol", "in": "query", "required": false, "schema": { "type": "string", "enum": ["openai_chat_completions", "openai_responses", "anthropic_messages"] } },
       "OperationalUsageLimit": { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } },
-      "OperationalUsageCursor": { "name": "cursor", "in": "query", "required": false, "schema": { "type": "string", "minLength": 1, "maxLength": 2048 } },
-      "BillingFromMs": { "name": "from_ms", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 0 } },
-      "BillingToMs": { "name": "to_ms", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 0 } },
-      "BillingProviderId": { "name": "provider_id", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/Id" } },
-      "BillingChannelId": { "name": "channel_id", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/Id" } },
-      "BillingAccountId": { "name": "account_id", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/Id" } },
-      "BillingModel": { "name": "model", "in": "query", "required": false, "schema": { "type": "string", "minLength": 1, "maxLength": 256 } },
-      "BillingStatus": { "name": "status", "in": "query", "required": false, "schema": { "type": "string", "enum": ["exact", "partial", "unknown", "unpriced"] } },
-      "BillingLimit": { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } },
-      "BillingCursor": { "name": "cursor", "in": "query", "required": false, "schema": { "type": "string", "minLength": 1, "maxLength": 2048 } }
+      "OperationalUsageCursor": { "name": "cursor", "in": "query", "required": false, "schema": { "type": "string", "minLength": 1, "maxLength": 2048 } }
     },
     "requestBodies": {
       "ConfigVersionInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConfigVersionInput" } } } },
@@ -426,8 +348,6 @@
       "AccessGroupRouteInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AccessGroupRouteInput" } } } },
       "ClientKeyInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ClientKeyInput" } } } },
       "RuntimeTarget": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RuntimeTarget" } } } },
-      "BillingCatalogImportInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BillingCatalogImportInput" } } } },
-      "BillingCatalogRollbackInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BillingCatalogRollbackInput" } } } },
       "CredentialExportInput": { "required": true, "content": { "application/json": { "schema": { "type": "object", "additionalProperties": false, "required": ["format"], "properties": { "format": { "type": "string", "enum": ["cpa", "sub2api"] } } } } } },
       "OAuthCallbackInput": { "required": true, "content": { "application/json": { "schema": { "type": "object", "additionalProperties": false, "required": ["state"], "properties": { "state": { "type": "string", "minLength": 1, "maxLength": 512 }, "code": { "type": "string", "maxLength": 16384 }, "error": { "type": "string", "maxLength": 256 }, "callback_url": { "type": "string", "maxLength": 20480, "format": "uri" } } } } } },
       "BackupMaterial": { "required": true, "content": { "application/octet-stream": { "schema": { "type": "string", "format": "binary", "writeOnly": true } } } }
@@ -466,9 +386,6 @@
       "RouteExplain": { "description": "Read-only route explanation", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RouteExplain" } } } },
       "OperationalAccountPoolPage": { "description": "Secret-free configured Provider/Channel/Account inventory page", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OperationalAccountPoolPage" } } } },
       "OperationalUsagePage": { "description": "Secret-free durable usage and explicitly unpriced cost page", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OperationalUsagePage" } } } },
-      "OperationalBillingPage": { "description": "Secret-free immutable billing rows with status and known-cost summary", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OperationalBillingPage" } } } },
-      "BillingCatalogList": { "description": "Immutable billing catalogs", "content": { "application/json": { "schema": { "type": "array", "maxItems": 256, "items": { "$ref": "#/components/schemas/BillingCatalog" } } } } },
-      "BillingCatalogMutation": { "description": "Secret-free billing catalog mutation receipt", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BillingCatalogMutation" } } } },
       "AttemptList": { "description": "Value-free attempts", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Attempt" } } } } },
       "AuditEventList": { "description": "Append-only management audit records", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/AuditEvent" } } } } },
       "BackupPreflight": { "description": "Backup preflight", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BackupPreflight" } } } },
@@ -523,16 +440,6 @@
       "OperationalTokenMetric": { "type": "object", "additionalProperties": false, "required": ["total", "confidence"], "properties": { "total": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "confidence": { "type": "string", "enum": ["exact", "partial", "unknown"] } } },
       "OperationalUsagePage": { "type": "object", "additionalProperties": false, "required": ["observed_through_ms", "items", "next_cursor"], "properties": { "observed_through_ms": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "items": { "type": "array", "maxItems": 100, "items": { "$ref": "#/components/schemas/OperationalUsageItem" } }, "next_cursor": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 2048 }, { "type": "null" }] } } },
       "OperationalUsageItem": { "type": "object", "additionalProperties": false, "required": ["provider_id", "channel_id", "account_id", "public_model", "protocol", "client_key_id", "access_group_id", "request_count", "usage_observations", "input_tokens", "output_tokens", "reasoning_tokens", "cache_read_tokens", "cache_creation_tokens", "cached_tokens", "observed_at_ms", "cost_microunits", "cost_confidence"], "properties": { "provider_id": { "$ref": "#/components/schemas/Id" }, "channel_id": { "$ref": "#/components/schemas/Id" }, "account_id": { "$ref": "#/components/schemas/Id" }, "public_model": { "type": "string", "minLength": 1, "maxLength": 256 }, "protocol": { "type": "string", "enum": ["openai_chat_completions", "openai_responses", "anthropic_messages"] }, "client_key_id": { "$ref": "#/components/schemas/Id" }, "access_group_id": { "anyOf": [{ "$ref": "#/components/schemas/Id" }, { "type": "null" }] }, "request_count": { "type": "integer", "minimum": 1 }, "usage_observations": { "type": "integer", "minimum": 1 }, "input_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "output_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "reasoning_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "cache_read_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "cache_creation_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "cached_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "observed_at_ms": { "type": "integer", "minimum": 0 }, "cost_microunits": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "cost_confidence": { "type": "string", "enum": ["unpriced"] } } },
-      "OperationalBillingPage": { "type": "object", "additionalProperties": false, "required": ["snapshot_ledger_id", "items", "summary", "next_cursor"], "properties": { "snapshot_ledger_id": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "items": { "type": "array", "maxItems": 100, "items": { "$ref": "#/components/schemas/OperationalBillingItem" } }, "summary": { "$ref": "#/components/schemas/OperationalBillingSummary" }, "next_cursor": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 2048 }, { "type": "null" }] } } },
-      "OperationalBillingItem": { "type": "object", "additionalProperties": false, "required": ["ledger_id", "request_id", "response_id", "provider_id", "channel_id", "account_id", "model", "input_tokens", "output_tokens", "reasoning_tokens", "cache_read_tokens", "cache_creation_tokens", "cached_tokens", "occurred_at_ms", "catalog_version_id", "cost_microunits", "cost_confidence"], "properties": { "ledger_id": { "type": "integer", "minimum": 1 }, "request_id": { "$ref": "#/components/schemas/Id512" }, "response_id": { "$ref": "#/components/schemas/Id512" }, "provider_id": { "$ref": "#/components/schemas/Id" }, "channel_id": { "$ref": "#/components/schemas/Id" }, "account_id": { "$ref": "#/components/schemas/Id" }, "model": { "type": "string", "minLength": 1, "maxLength": 512 }, "input_tokens": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "output_tokens": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "reasoning_tokens": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "cache_read_tokens": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "cache_creation_tokens": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "cached_tokens": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "occurred_at_ms": { "type": "integer", "minimum": 0 }, "catalog_version_id": { "anyOf": [{ "$ref": "#/components/schemas/Id" }, { "type": "null" }] }, "cost_microunits": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "cost_confidence": { "type": "string", "enum": ["exact", "partial", "unknown", "unpriced"] } } },
-      "OperationalBillingSummary": { "type": "object", "additionalProperties": false, "required": ["records", "exact_records", "partial_records", "unknown_records", "unpriced_records", "known_cost_microunits"], "properties": { "records": { "type": "integer", "minimum": 0 }, "exact_records": { "type": "integer", "minimum": 0 }, "partial_records": { "type": "integer", "minimum": 0 }, "unknown_records": { "type": "integer", "minimum": 0 }, "unpriced_records": { "type": "integer", "minimum": 0 }, "known_cost_microunits": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] } } },
-      "BillingCatalogImportInput": { "type": "object", "additionalProperties": false, "required": ["catalog_version_id", "effective_at_ms", "source", "entries"], "properties": { "catalog_version_id": { "$ref": "#/components/schemas/Id" }, "effective_at_ms": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "source": { "type": "string", "enum": ["operator", "imported"] }, "entries": { "type": "array", "minItems": 1, "maxItems": 512, "items": { "$ref": "#/components/schemas/BillingCatalogEntryInput" } } } },
-      "BillingCatalogEntryInput": { "type": "object", "additionalProperties": false, "required": ["provider_id", "channel_id", "model", "input_microunits_per_million", "output_microunits_per_million", "reasoning_microunits_per_million", "cache_read_microunits_per_million", "cache_creation_microunits_per_million", "cached_microunits_per_million"], "properties": { "provider_id": { "$ref": "#/components/schemas/Id" }, "channel_id": { "$ref": "#/components/schemas/Id" }, "model": { "type": "string", "minLength": 1, "maxLength": 512 }, "input_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "output_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "reasoning_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "cache_read_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "cache_creation_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "cached_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 } } },
-      "BillingCatalogRollbackInput": { "type": "object", "additionalProperties": false, "required": ["new_catalog_version_id", "effective_at_ms"], "properties": { "new_catalog_version_id": { "$ref": "#/components/schemas/Id" }, "effective_at_ms": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 } } },
-      "BillingCatalog": { "type": "object", "additionalProperties": false, "required": ["catalog_version_id", "effective_at_ms", "source", "created_at_ms", "entries"], "properties": { "catalog_version_id": { "$ref": "#/components/schemas/Id" }, "effective_at_ms": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "source": { "type": "string", "enum": ["operator", "imported", "test"] }, "created_at_ms": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "entries": { "type": "array", "maxItems": 512, "items": { "$ref": "#/components/schemas/BillingCatalogEntry" } } } },
-      "BillingCatalogEntry": { "type": "object", "additionalProperties": false, "required": ["provider_id", "channel_id", "model", "input_microunits_per_million", "output_microunits_per_million", "reasoning_microunits_per_million", "cache_read_microunits_per_million", "cache_creation_microunits_per_million", "cached_microunits_per_million"], "properties": { "provider_id": { "$ref": "#/components/schemas/Id" }, "channel_id": { "$ref": "#/components/schemas/Id" }, "model": { "type": "string", "minLength": 1, "maxLength": 512 }, "input_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "output_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "reasoning_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "cache_read_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "cache_creation_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "cached_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 } } },
-      "BillingCatalogMutation": { "type": "object", "additionalProperties": false, "required": ["catalog_version_id", "effective_at_ms", "source", "entry_count", "operation", "rolled_back_from"], "properties": { "catalog_version_id": { "$ref": "#/components/schemas/Id" }, "effective_at_ms": { "type": "integer", "minimum": 0 }, "source": { "type": "string", "enum": ["operator", "imported"] }, "entry_count": { "type": "integer", "minimum": 1, "maximum": 512 }, "operation": { "type": "string", "enum": ["imported", "rolled_back"] }, "rolled_back_from": { "anyOf": [{ "$ref": "#/components/schemas/Id" }, { "type": "null" }] } } },
-      "Id512": { "type": "string", "minLength": 1, "maxLength": 512 },
       "Attempt": { "type": "object", "additionalProperties": false, "required": ["attempt_id", "outcome"], "properties": { "attempt_id": { "$ref": "#/components/schemas/Id" }, "outcome": { "type": "string", "maxLength": 64 }, "stage": { "type": "string", "enum": ["request_conversion", "egress_admission", "http_transport", "http_status", "content_type", "body_read", "decoder", "sse_bootstrap"] }, "endpoint_id": { "$ref": "#/components/schemas/Id" }, "credential_id": { "$ref": "#/components/schemas/Id" } } },
       "AuditEvent": { "type": "object", "additionalProperties": false, "required": ["id", "action", "actor", "occurred_at_ms", "config_version_id"], "properties": { "id": { "type": "integer", "minimum": 1 }, "action": { "type": "string", "maxLength": 64 }, "actor": { "type": "string", "maxLength": 128 }, "occurred_at_ms": { "type": "integer", "minimum": 0 }, "config_version_id": { "$ref": "#/components/schemas/Id" }, "replaced_config_version_id": { "anyOf": [{ "$ref": "#/components/schemas/Id" }, { "type": "null" }] } } },
       "BackupPreflight": { "type": "object", "additionalProperties": false, "required": ["schema_version", "secret_key_required"], "properties": { "schema_version": { "type": "integer", "minimum": 1 }, "secret_key_required": { "type": "boolean" } } },

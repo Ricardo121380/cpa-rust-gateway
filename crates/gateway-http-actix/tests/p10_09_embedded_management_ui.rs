@@ -13,12 +13,11 @@ use gateway_http_actix::{configure, management_ui_resources::configure_embedded_
 
 type TestResult = Result<(), Box<dyn Error>>;
 
-const CONTENT_SECURITY_POLICY: &str = "default-src 'self'; base-uri 'none'; connect-src 'self'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; object-src 'none'; script-src 'self'; style-src 'self'";
-const INDEX: &[u8] = include_bytes!("../../../web/admin-ui/dist/index.html");
-const STYLES: &[u8] = include_bytes!("../../../web/admin-ui/dist/assets/styles.css");
-const APPLICATION: &[u8] = include_bytes!("../../../web/admin-ui/dist/assets/main.js");
-const GENERATED_CLIENT: &[u8] =
-    include_bytes!("../../../web/admin-ui/dist/assets/generated/management-client.js");
+const CONTENT_SECURITY_POLICY: &str = "default-src 'self'; base-uri 'none'; connect-src 'self'; form-action 'none'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self'";
+const INDEX: &[u8] = include_bytes!("../../../web/prism/dist/index.html");
+const STYLES: &[u8] = include_bytes!("../../../web/prism/dist/assets/index.css");
+const APPLICATION: &[u8] = include_bytes!("../../../web/prism/dist/assets/main.js");
+const VENDOR: &[u8] = include_bytes!("../../../web/prism/dist/assets/vendor.js");
 
 #[actix_web::test]
 async fn embedded_management_ui_serves_only_exact_reviewed_assets_with_hardened_headers()
@@ -46,7 +45,7 @@ async fn embedded_management_ui_serves_only_exact_reviewed_assets_with_hardened_
     for (path, expected_content_type, expected_body) in [
         ("/admin-ui/", "text/html; charset=utf-8", INDEX),
         (
-            "/admin-ui/assets/styles.css",
+            "/admin-ui/assets/index.css",
             "text/css; charset=utf-8",
             STYLES,
         ),
@@ -56,9 +55,9 @@ async fn embedded_management_ui_serves_only_exact_reviewed_assets_with_hardened_
             APPLICATION,
         ),
         (
-            "/admin-ui/assets/generated/management-client.js",
+            "/admin-ui/assets/vendor.js",
             "application/javascript; charset=utf-8",
-            GENERATED_CLIENT,
+            VENDOR,
         ),
     ] {
         let response =

@@ -65,7 +65,7 @@ jobs:
       - name: Install pinned SBOM tool
         run: ./scripts/install-quality-tools.sh
       - name: Install management SPA build inputs
-        working-directory: web/admin-ui
+        working-directory: web/prism
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Verify the runner architecture matches the release target
         run: |

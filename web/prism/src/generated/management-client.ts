@@ -751,24 +751,6 @@ export const managementOperations = {
     "bodyEncoding": "json",
     "bodyRequired": true
   },
-  "importBillingCatalog": {
-    "method": "POST",
-    "path": "/admin/billing/catalogs",
-    "parameters": [
-      {
-        "name": "X-Config-Version",
-        "in": "header",
-        "required": true
-      },
-      {
-        "name": "If-Match",
-        "in": "header",
-        "required": true
-      }
-    ],
-    "bodyEncoding": "json",
-    "bodyRequired": true
-  },
   "issueClientKey": {
     "method": "POST",
     "path": "/admin/client-keys",
@@ -808,19 +790,6 @@ export const managementOperations = {
   "listAccessGroups": {
     "method": "GET",
     "path": "/admin/access-groups",
-    "parameters": [
-      {
-        "name": "X-Config-Version",
-        "in": "header",
-        "required": true
-      }
-    ],
-    "bodyEncoding": "none",
-    "bodyRequired": false
-  },
-  "listBillingCatalogs": {
-    "method": "GET",
-    "path": "/admin/billing/catalogs",
     "parameters": [
       {
         "name": "X-Config-Version",
@@ -915,59 +884,6 @@ export const managementOperations = {
       },
       {
         "name": "enabled",
-        "in": "query",
-        "required": false
-      },
-      {
-        "name": "limit",
-        "in": "query",
-        "required": false
-      },
-      {
-        "name": "cursor",
-        "in": "query",
-        "required": false
-      }
-    ],
-    "bodyEncoding": "none",
-    "bodyRequired": false
-  },
-  "listOperationalBilling": {
-    "method": "GET",
-    "path": "/admin/operations/billing",
-    "parameters": [
-      {
-        "name": "from_ms",
-        "in": "query",
-        "required": false
-      },
-      {
-        "name": "to_ms",
-        "in": "query",
-        "required": false
-      },
-      {
-        "name": "provider_id",
-        "in": "query",
-        "required": false
-      },
-      {
-        "name": "channel_id",
-        "in": "query",
-        "required": false
-      },
-      {
-        "name": "account_id",
-        "in": "query",
-        "required": false
-      },
-      {
-        "name": "model",
-        "in": "query",
-        "required": false
-      },
-      {
-        "name": "status",
         "in": "query",
         "required": false
       },
@@ -1197,29 +1113,6 @@ export const managementOperations = {
     ],
     "bodyEncoding": "none",
     "bodyRequired": false
-  },
-  "rollbackBillingCatalog": {
-    "method": "POST",
-    "path": "/admin/billing/catalogs/{catalog_version_id}/rollback",
-    "parameters": [
-      {
-        "name": "X-Config-Version",
-        "in": "header",
-        "required": true
-      },
-      {
-        "name": "catalog_version_id",
-        "in": "path",
-        "required": true
-      },
-      {
-        "name": "If-Match",
-        "in": "header",
-        "required": true
-      }
-    ],
-    "bodyEncoding": "json",
-    "bodyRequired": true
   },
   "rollbackConfigVersion": {
     "method": "POST",
@@ -1803,10 +1696,6 @@ export class ManagementApi {
     return this.request("grantAccessGroupRoute", request);
   }
 
-  importBillingCatalog(request: ManagementRequest = {}): Promise<Response> {
-    return this.request("importBillingCatalog", request);
-  }
-
   issueClientKey(request: ManagementRequest = {}): Promise<Response> {
     return this.request("issueClientKey", request);
   }
@@ -1817,10 +1706,6 @@ export class ManagementApi {
 
   listAccessGroups(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listAccessGroups", request);
-  }
-
-  listBillingCatalogs(request: ManagementRequest = {}): Promise<Response> {
-    return this.request("listBillingCatalogs", request);
   }
 
   listClientKeys(request: ManagementRequest = {}): Promise<Response> {
@@ -1845,10 +1730,6 @@ export class ManagementApi {
 
   listOperationalAccountPools(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listOperationalAccountPools", request);
-  }
-
-  listOperationalBilling(request: ManagementRequest = {}): Promise<Response> {
-    return this.request("listOperationalBilling", request);
   }
 
   listOperationalUsage(request: ManagementRequest = {}): Promise<Response> {
@@ -1897,10 +1778,6 @@ export class ManagementApi {
 
   revokeClientKey(request: ManagementRequest = {}): Promise<Response> {
     return this.request("revokeClientKey", request);
-  }
-
-  rollbackBillingCatalog(request: ManagementRequest = {}): Promise<Response> {
-    return this.request("rollbackBillingCatalog", request);
   }
 
   rollbackConfigVersion(request: ManagementRequest = {}): Promise<Response> {

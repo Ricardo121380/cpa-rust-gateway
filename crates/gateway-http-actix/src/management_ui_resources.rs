@@ -9,33 +9,41 @@
 use actix_web::{HttpResponse, http::header, web};
 
 const MANAGEMENT_UI_ROOT: &str = "/admin-ui/";
-const CONTENT_SECURITY_POLICY: &str = "default-src 'self'; base-uri 'none'; connect-src 'self'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; object-src 'none'; script-src 'self'; style-src 'self'";
+// `data:` is admitted for images only. The management SPA generates its glass
+// lens displacement maps at runtime with canvas.toDataURL (web/prism
+// src/components/glass/PrismLens.tsx), and a data: image cannot execute — the
+// dangerous data: sinks are script-src and object-src, which stay closed.
+// Requested by the frontend side; see docs/cross-boundary-log.md 2026-08-11.
+const CONTENT_SECURITY_POLICY: &str = "default-src 'self'; base-uri 'none'; connect-src 'self'; form-action 'none'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self'";
 
 const INDEX: EmbeddedAsset = EmbeddedAsset::new(
     include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../web/admin-ui/dist/index.html"
+        "/../../web/prism/dist/index.html"
     )),
     "text/html; charset=utf-8",
 );
 const STYLES: EmbeddedAsset = EmbeddedAsset::new(
     include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../web/admin-ui/dist/assets/styles.css"
+        "/../../web/prism/dist/assets/index.css"
     )),
     "text/css; charset=utf-8",
 );
 const APPLICATION: EmbeddedAsset = EmbeddedAsset::new(
     include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../web/admin-ui/dist/assets/main.js"
+        "/../../web/prism/dist/assets/main.js"
     )),
     "application/javascript; charset=utf-8",
 );
-const GENERATED_CLIENT: EmbeddedAsset = EmbeddedAsset::new(
+/// Vendor chunk the entry module preloads. The SPA emits exactly four files
+/// (its own C3 check pins the set), so this route count is fixed, not a policy
+/// of "serve whatever the bundler produced".
+const VENDOR: EmbeddedAsset = EmbeddedAsset::new(
     include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../web/admin-ui/dist/assets/generated/management-client.js"
+        "/../../web/prism/dist/assets/vendor.js"
     )),
     "application/javascript; charset=utf-8",
 );
@@ -61,12 +69,9 @@ pub fn configure_embedded_management_ui(config: &mut web::ServiceConfig) {
     config
         .route("/admin-ui", web::get().to(redirect_to_management_ui_root))
         .route(MANAGEMENT_UI_ROOT, web::get().to(index))
-        .route("/admin-ui/assets/styles.css", web::get().to(styles))
+        .route("/admin-ui/assets/index.css", web::get().to(styles))
         .route("/admin-ui/assets/main.js", web::get().to(application))
-        .route(
-            "/admin-ui/assets/generated/management-client.js",
-            web::get().to(generated_client),
-        );
+        .route("/admin-ui/assets/vendor.js", web::get().to(vendor));
 }
 
 async fn redirect_to_management_ui_root() -> HttpResponse {
@@ -88,8 +93,8 @@ async fn application() -> HttpResponse {
     embedded_asset_response(APPLICATION)
 }
 
-async fn generated_client() -> HttpResponse {
-    embedded_asset_response(GENERATED_CLIENT)
+async fn vendor() -> HttpResponse {
+    embedded_asset_response(VENDOR)
 }
 
 fn embedded_asset_response(asset: EmbeddedAsset) -> HttpResponse {

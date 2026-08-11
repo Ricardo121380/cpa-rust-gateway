@@ -78,7 +78,7 @@ install_management_spa_dependencies() {
   command -v node >/dev/null
   command -v npm >/dev/null
   (
-    cd "$repo_root/web/admin-ui"
+    cd "$repo_root/web/prism"
     npm ci --ignore-scripts --no-audit --no-fund
   )
 }

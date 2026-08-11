@@ -15,17 +15,20 @@ fn main() {
         fail("could not locate the repository root");
     };
 
+    // The SPA is web/prism since the frontend merge. Its sources are many more
+    // files than the old hand-written admin-ui, so the watch list is the build
+    // inputs that are not themselves generated: the contract, the build script,
+    // the lockfile/config, and the source tree.
     for relative_path in [
         "docs/openapi/management-v1.json",
         "scripts/build-management-spa.sh",
-        "scripts/generate-management-client.mjs",
-        "web/admin-ui/package-lock.json",
-        "web/admin-ui/package.json",
-        "web/admin-ui/tsconfig.json",
-        "web/admin-ui/src/generated/management-client.ts",
-        "web/admin-ui/src/index.html",
-        "web/admin-ui/src/main.ts",
-        "web/admin-ui/src/styles.css",
+        "web/prism/package-lock.json",
+        "web/prism/package.json",
+        "web/prism/tsconfig.json",
+        "web/prism/vite.config.ts",
+        "web/prism/index.html",
+        "web/prism/src",
+        "web/prism/contracts/management-v1.json",
     ] {
         println!(
             "cargo:rerun-if-changed={}",
@@ -49,11 +52,14 @@ fn main() {
         ));
     }
 
+    // Exactly these four, and the SPA's own check.mjs pins the same set from
+    // its side (C3): a fifth asset would be served by nothing and must fail the
+    // build rather than ship unreachable bytes.
     for relative_path in [
-        "web/admin-ui/dist/index.html",
-        "web/admin-ui/dist/assets/main.js",
-        "web/admin-ui/dist/assets/generated/management-client.js",
-        "web/admin-ui/dist/assets/styles.css",
+        "web/prism/dist/index.html",
+        "web/prism/dist/assets/main.js",
+        "web/prism/dist/assets/vendor.js",
+        "web/prism/dist/assets/index.css",
     ] {
         if !repository.join(relative_path).is_file() {
             fail(format_args!(
