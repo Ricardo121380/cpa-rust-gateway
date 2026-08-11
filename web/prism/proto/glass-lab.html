@@ -1,0 +1,1225 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light" data-treatment="c" data-lens="probe">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prism · Glass Lab</title>
+<style>
+/* ==========================================================================
+   PRISM GLASS LAB  —  proto/glass-lab.html
+   ---------------------------------------------------------------------------
+   A lab, not shipped. Everything in sections 1-7 is authored so it ports 1:1
+   into src/design/tokens.css + src/design/glass.css + src/app/app.css:
+   class-based, no style attributes, no external assets.
+
+   Lab-only: this <style> element, the .labbar chrome, and the JS at the bottom
+   (in the app that JS is a <PrismLens> React component that renders SVG
+   attributes — see section 10 of the report).
+
+   THE THREE TREATMENTS
+     A  today's baseline: blur + saturate + 1px border + one flat shadow
+     B  layered glass:    tuned backdrop, specular ring, edge bloom,
+                          4-stop adaptive shadow
+     C  true lensing:     B + backdrop-filter: url(#prism-lens-*), a
+                          precomputed convex-squircle displacement map fed
+                          through feDisplacementMap. Falls back to B.
+   ========================================================================== */
+
+/* ---------- 1. TOKENS (ports to tokens.css) ------------------------------ */
+:root {
+  --canvas: #eef0f6;
+  --surface: #ffffff;
+  --surface-2: #f6f7fa;
+  --ink: #14161c;
+  --ink-2: #5d6270;
+  --ink-3: #8b909e;
+  --separator: rgba(16, 20, 34, 0.09);
+  --tint: #0071e3;
+  --tint-ink: #ffffff;
+
+  --status-good: #248a3d;
+  --status-warn: #b7791f;
+  --status-serious: #c93400;
+  --status-critical: #d70015;
+  --chart-1: #0066d6;
+  --chart-2: #b85f00;
+  --chart-3: #0079ab;
+  --chart-4: #c41e77;
+
+  /* --- ambient background --------------------------------------------------
+     Four tinted light sources + a spectral streak + a conic sheen + grain.
+     Authored CSS/SVG only. Glass with nothing behind it cannot look like
+     glass: this layer is the "behind". Every strength is a token so the
+     whole field can be dialled from loud (lab) to quiet (product). */
+  --amb-1: #5f9dff;   /* cool key light,  top-left  */
+  --amb-2: #b98cff;   /* violet fill,     top-right */
+  --amb-3: #3fd7bd;   /* teal bounce,     bottom    */
+  --amb-4: #ffb877;   /* warm rim,        mid-right */
+  --amb-strength-1: 0.80;
+  --amb-strength-2: 0.70;
+  --amb-strength-3: 0.62;
+  --amb-strength-4: 0.48;
+  --amb-streak: 0.5;
+  --amb-grain: 0.55;
+
+  /* --- A: today's baseline ---------------------------------------------- */
+  --a-bg: rgba(255, 255, 255, 0.55);
+  --a-blur: 20px;
+  --a-sat: 180%;
+  --a-border: rgba(255, 255, 255, 0.65);
+  --a-shadow: 0 8px 32px rgba(20, 24, 40, 0.16);
+  --a-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+  /* --- B: layered glass -------------------------------------------------- */
+  --glass-blur: 12px;
+  --glass-sat: 180%;
+  --glass-bright: 1.06;
+  --glass-contrast: 1.02;
+  /* vertical tint ramp: light arrives from above, so the top edge carries
+     more of it. A FLAT rgba() fill is the single biggest reason A reads as
+     a card — a sheet of glass is never one uniform value. */
+  --glass-tint-top: rgba(255, 255, 255, 0.40);
+  --glass-tint-mid: rgba(255, 255, 255, 0.13);
+  --glass-tint-bot: rgba(255, 255, 255, 0.22);
+  /* specular ring: bright at 10 o'clock and 4 o'clock, gone on the flanks */
+  --ring-w: 1px;
+  --ring-1: rgba(255, 255, 255, 0.95);
+  --ring-2: rgba(255, 255, 255, 0.42);
+  --ring-3: rgba(255, 255, 255, 0.02);
+  --ring-4: rgba(255, 255, 255, 0.55);
+  --ring-5: rgba(255, 255, 255, 0.90);
+  /* inner bloom: 1px hairlines on both edges + two soft interior gradients */
+  --glass-inner:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.90),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.45),
+    inset 0 14px 22px -20px rgba(255, 255, 255, 0.95),
+    inset 0 -18px 26px -22px rgba(255, 255, 255, 0.60);
+  /* adaptive shadow: contact + near + mid + ambient. Four stops with negative
+     spread, not one 32px blob — that is what reads as "floating above". */
+  --glass-shadow:
+    0 1px 1px rgba(14, 18, 32, 0.05),
+    0 4px 10px -3px rgba(14, 18, 32, 0.08),
+    0 14px 28px -8px rgba(14, 18, 32, 0.12),
+    0 30px 60px -22px rgba(14, 18, 32, 0.18);
+  /* over-text boost (WWDC25: shadow opacity rises when content is behind) */
+  --glass-shadow-boost:
+    0 1px 1px rgba(14, 18, 32, 0.07),
+    0 5px 12px -3px rgba(14, 18, 32, 0.12),
+    0 16px 32px -8px rgba(14, 18, 32, 0.18),
+    0 34px 66px -22px rgba(14, 18, 32, 0.26);
+  --glass-edge-top: rgba(255, 255, 255, 0.28);
+  --glass-edge-bot: rgba(255, 255, 255, 0.14);
+
+  /* --- C: lens geometry (read by the lens builder) ----------------------- */
+  --lens-bezel: 26;      /* px of bezel band measured in from the edge      */
+  --lens-thickness: 34;  /* px of virtual glass thickness (drives strength) */
+  --lens-ior: 1.5;       /* refractive index of the virtual material        */
+  --lens-gain: 1;        /* artistic multiplier on the computed scale       */
+
+  --r-outer: 22px;
+  --pad: 8px;
+  --r-inner: calc(var(--r-outer) - var(--pad));
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur: 200ms;
+  --dur-anneal: 600ms;
+
+  --font-text: -apple-system, "SF Pro Text", system-ui, "PingFang SC", sans-serif;
+  --font-display: -apple-system, "SF Pro Display", system-ui, "PingFang SC", sans-serif;
+  --font-mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  --canvas: #07080d;
+  --surface: #14161e;
+  --surface-2: #1b1e28;
+  --ink: #f2f3f7;
+  --ink-2: #9aa0b0;
+  --ink-3: #6b7183;
+  --separator: rgba(255, 255, 255, 0.09);
+  --tint: #0a84ff;
+
+  --status-good: #30d158;
+  --status-warn: #ffd60a;
+  --status-serious: #ff9f0a;
+  --status-critical: #ff453a;
+  --chart-1: #0a84ff;
+  --chart-2: #cc7a00;
+  --chart-3: #2196c9;
+  --chart-4: #db4e92;
+
+  --amb-1: #1e5fe0;
+  --amb-2: #7c3aed;
+  --amb-3: #0f9d8f;
+  --amb-4: #c2560a;
+  --amb-strength-1: 0.72;
+  --amb-strength-2: 0.66;
+  --amb-strength-3: 0.52;
+  --amb-strength-4: 0.36;
+  --amb-streak: 0.42;
+  --amb-grain: 0.70;
+
+  --a-bg: rgba(22, 22, 29, 0.52);
+  --a-border: rgba(255, 255, 255, 0.14);
+  --a-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --a-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+
+  /* dark glass: LESS saturation, MORE brightness. A dark pane over a dark
+     canvas disappears unless it lifts the backdrop. */
+  --glass-blur: 13px;
+  --glass-sat: 165%;
+  --glass-bright: 1.30;
+  --glass-contrast: 1.04;
+  --glass-tint-top: rgba(255, 255, 255, 0.095);
+  --glass-tint-mid: rgba(255, 255, 255, 0.02);
+  --glass-tint-bot: rgba(255, 255, 255, 0.05);
+  --ring-1: rgba(255, 255, 255, 0.62);
+  --ring-2: rgba(255, 255, 255, 0.20);
+  --ring-3: rgba(255, 255, 255, 0.02);
+  --ring-4: rgba(255, 255, 255, 0.24);
+  --ring-5: rgba(255, 255, 255, 0.50);
+  --glass-inner:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.30),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.16),
+    inset 0 16px 26px -24px rgba(255, 255, 255, 0.55),
+    inset 0 -20px 30px -26px rgba(255, 255, 255, 0.35);
+  --glass-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.30),
+    0 5px 12px -4px rgba(0, 0, 0, 0.40),
+    0 18px 36px -10px rgba(0, 0, 0, 0.45),
+    0 40px 70px -24px rgba(0, 0, 0, 0.55);
+  --glass-shadow-boost:
+    0 1px 1px rgba(0, 0, 0, 0.40),
+    0 6px 14px -4px rgba(0, 0, 0, 0.50),
+    0 20px 40px -10px rgba(0, 0, 0, 0.55),
+    0 44px 78px -24px rgba(0, 0, 0, 0.65);
+  --glass-edge-top: rgba(255, 255, 255, 0.10);
+  --glass-edge-bot: rgba(255, 255, 255, 0.05);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 13.5px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* ---------- 2. AMBIENT BACKGROUND (ports to app.css) ---------------------
+   Two fixed layers behind everything. No images, no CDN.
+   ------------------------------------------------------------------------ */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--canvas);
+  background-image:
+    /* 1. the prism streak — a narrow spectral fan crossing the rail column.
+          The highest-value ingredient: the only layer with HUE variation at a
+          SMALL spatial scale, which is exactly what refraction reveals. */
+    linear-gradient(107deg,
+      transparent 0%,
+      color-mix(in oklab, #ff5f6d calc(var(--amb-streak) * 26%), transparent) 12%,
+      color-mix(in oklab, #ffc371 calc(var(--amb-streak) * 22%), transparent) 17%,
+      color-mix(in oklab, #6ee7b7 calc(var(--amb-streak) * 24%), transparent) 22%,
+      color-mix(in oklab, #60a5fa calc(var(--amb-streak) * 30%), transparent) 27%,
+      color-mix(in oklab, #a78bfa calc(var(--amb-streak) * 26%), transparent) 32%,
+      transparent 44%),
+    /* 2. four coloured light sources at the corners */
+    radial-gradient(64% 52% at 4% -6%,
+      color-mix(in oklab, var(--amb-1) calc(var(--amb-strength-1) * 100%), transparent) 0%,
+      transparent 70%),
+    radial-gradient(56% 50% at 98% 2%,
+      color-mix(in oklab, var(--amb-2) calc(var(--amb-strength-2) * 100%), transparent) 0%,
+      transparent 68%),
+    radial-gradient(70% 62% at 36% 108%,
+      color-mix(in oklab, var(--amb-3) calc(var(--amb-strength-3) * 100%), transparent) 0%,
+      transparent 66%),
+    radial-gradient(34% 40% at 90% 62%,
+      color-mix(in oklab, var(--amb-4) calc(var(--amb-strength-4) * 100%), transparent) 0%,
+      transparent 72%),
+    /* 3. a mid-scale sheen so the field is never locally flat */
+    conic-gradient(from 205deg at 24% 22%,
+      color-mix(in oklab, var(--amb-2) 22%, transparent) 0deg,
+      transparent 84deg,
+      color-mix(in oklab, var(--amb-1) 20%, transparent) 186deg,
+      transparent 300deg);
+}
+/* grain: gives blur AND refraction high-frequency detail to bite on */
+.ambient-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: var(--amb-grain);
+  mix-blend-mode: overlay;
+}
+.ambient-grain > svg { width: 100%; height: 100%; display: block; }
+html[data-theme="dark"] .ambient-grain { mix-blend-mode: soft-light; }
+
+.lens-defs { position: fixed; width: 0; height: 0; pointer-events: none; }
+
+/* ---------- 3. GLASS ------------------------------------------------------ */
+.glass {
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--r-outer);
+}
+.glass > * { position: relative; z-index: 1; }
+
+/* ===== A — baseline ====================================================== */
+.glass-a,
+html[data-treatment="a"] .glass {
+  background: var(--a-bg);
+  -webkit-backdrop-filter: blur(var(--a-blur)) saturate(var(--a-sat));
+  backdrop-filter: blur(var(--a-blur)) saturate(var(--a-sat));
+  border: 1px solid var(--a-border);
+  box-shadow: var(--a-shadow), var(--a-highlight);
+}
+
+/* ===== B — layered glass ================================================= */
+.glass-b, .glass-c,
+html[data-treatment="b"] .glass,
+html[data-treatment="c"] .glass {
+  border: 0;
+  background-color: transparent;
+  background-image: linear-gradient(
+    to bottom,
+    var(--glass-tint-top) 0%,
+    var(--glass-tint-mid) 46%,
+    var(--glass-tint-bot) 100%);
+  -webkit-backdrop-filter:
+    blur(var(--glass-blur)) saturate(var(--glass-sat))
+    brightness(var(--glass-bright)) contrast(var(--glass-contrast));
+  backdrop-filter:
+    blur(var(--glass-blur)) saturate(var(--glass-sat))
+    brightness(var(--glass-bright)) contrast(var(--glass-contrast));
+  box-shadow: var(--glass-shadow), var(--glass-inner);
+}
+/* WWDC25: the shadow deepens while content is under the pane */
+.glass-b[data-over="content"], .glass-c[data-over="content"],
+html[data-treatment="b"] .glass[data-over="content"],
+html[data-treatment="c"] .glass[data-over="content"] {
+  box-shadow: var(--glass-shadow-boost), var(--glass-inner);
+}
+
+/* specular ring — a MASKED GRADIENT BORDER, never a flat 1px line.
+   This is the second biggest difference from A: a real rounded glass edge is
+   lit at two opposing arcs and dark on the flanks. */
+.glass-b::before, .glass-c::before,
+html[data-treatment="b"] .glass::before,
+html[data-treatment="c"] .glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  padding: var(--ring-w);
+  pointer-events: none;
+  background: linear-gradient(147deg,
+    var(--ring-1) 0%, var(--ring-2) 16%, var(--ring-3) 38%,
+    var(--ring-3) 60%, var(--ring-4) 84%, var(--ring-5) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+/* wide edge bloom just inside the ring: the glass body catching the light */
+.glass-b::after, .glass-c::after,
+html[data-treatment="b"] .glass::after,
+html[data-treatment="c"] .glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, var(--glass-edge-top) 0%, transparent 18px),
+    linear-gradient(to top,    var(--glass-edge-bot) 0%, transparent 14px);
+}
+
+/* ===== C — true lensing ==================================================
+   C is B with the CSS backdrop-filter swapped for an SVG filter. Every other
+   layer (ring, bloom, tint, shadow) is shared, so degrading to B is one
+   property. Each pane gets its OWN filter with a STABLE id, because the
+   displacement map must be exactly the pane's pixel size — the class names
+   below are fixed, only SVG attributes change at runtime. That is what keeps
+   the port free of style attributes.
+
+   The @supports ladder must exclude Firefox AND Safari: both PARSE
+   `backdrop-filter: url(#x)` as valid and then render nothing at all.
+   ------------------------------------------------------------------------ */
+@supports (backdrop-filter: url(#prism-lens-topbar))
+      and (not (-moz-appearance: none))
+      and (not (background: -webkit-named-image(i))) {
+  html[data-lens="on"][data-treatment="c"] .glass[data-pane="topbar"] {
+    -webkit-backdrop-filter: url(#prism-lens-topbar);
+    backdrop-filter: url(#prism-lens-topbar);
+  }
+  html[data-lens="on"][data-treatment="c"] .glass[data-pane="rail"] {
+    -webkit-backdrop-filter: url(#prism-lens-rail);
+    backdrop-filter: url(#prism-lens-rail);
+  }
+  html[data-lens="on"][data-treatment="c"] .glass[data-pane="dock"] {
+    -webkit-backdrop-filter: url(#prism-lens-dock);
+    backdrop-filter: url(#prism-lens-dock);
+  }
+  html[data-lens="on"] .glass-c[data-pane="cmp"] {
+    -webkit-backdrop-filter: url(#prism-lens-cmp);
+    backdrop-filter: url(#prism-lens-cmp);
+  }
+  /* the SVG already blurs, saturates and brightens: pull the CSS tint back
+     so the pane does not double-frost */
+  html[data-lens="on"][data-treatment="c"] .glass,
+  html[data-lens="on"] .glass-c {
+    background-image: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--glass-tint-top) 72%, transparent) 0%,
+      color-mix(in srgb, var(--glass-tint-mid) 72%, transparent) 46%,
+      color-mix(in srgb, var(--glass-tint-bot) 72%, transparent) 100%);
+  }
+}
+
+/* ---------- 4. SHELL LAYOUT (ports to app.css) ---------------------------
+   THE structural rule: the content canvas is ONE full-bleed scroller and the
+   three glass panes FLOAT OVER IT. A grid where the rail is a sibling of the
+   canvas can never read as glass, because nothing ever passes behind it.
+   Cards slide --card-shift to the left, under the rail's inner edge, and hand
+   the shift back as padding so no glyph is ever occluded.
+   ------------------------------------------------------------------------ */
+.shell {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+
+  --shell-pad: 12px;
+  --shell-gap: 12px;
+  --topbar-h: 54px;
+  --rail-w: 196px;
+  /* how far a content SURFACE tucks under the rail's inner edge. This number
+     is the whole trick: it is the only reason the rail has anything but flat
+     background to refract. */
+  --rail-underlap: 18px;
+  /* the dock's footprint, as tokens, so the bottom scroll edge is DERIVED
+     from the pane it protects instead of being a magic number */
+  --dock-h: 51px;
+  --dock-inset: 18px;
+  --deck-bottom: calc(var(--shell-pad) + var(--topbar-h));
+  --rail-top: calc(var(--deck-bottom) + var(--shell-gap));
+  --rail-right: calc(var(--shell-pad) + var(--rail-w));
+  --canvas-top: calc(var(--deck-bottom) + var(--shell-gap));
+  --canvas-left: calc(var(--rail-right) - var(--rail-underlap));
+}
+.topbar {
+  position: absolute;
+  top: var(--shell-pad); left: var(--shell-pad); right: var(--shell-pad);
+  z-index: 40;
+  height: var(--topbar-h);
+  display: flex; align-items: center; gap: 14px;
+  padding: 0 16px 0 18px;
+  border-radius: 16px;
+}
+.rail {
+  position: absolute;
+  top: var(--rail-top); left: var(--shell-pad); bottom: var(--shell-pad);
+  z-index: 30;
+  width: var(--rail-w);
+  padding: 12px 10px;
+  border-radius: var(--r-outer);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.dock {
+  position: absolute;
+  bottom: var(--dock-inset); left: calc(50% + 96px);
+  transform: translateX(-50%);
+  z-index: 50;
+  width: max-content;
+  display: flex; align-items: center; gap: 14px;
+  padding: 9px 10px 9px 18px;
+  border-radius: 100px;
+}
+/* the ONE scroll container, full-bleed under all three panes */
+.canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: var(--canvas-top) var(--shell-pad) 170px var(--canvas-left);
+  min-width: 0;
+  /* Scroll edge effect (docs/07 §8.1), TOP AND BOTTOM. The gradients are
+     anchored to the BORDER BOX — which is the viewport — not to the scrolled
+     content, so they stay put while content travels through them: opaque from
+     the first un-occluded row, half dissolved inside the bar (the glass still
+     has something to refract), gone 2px past the bar's outer lip so nothing
+     peeks into the gutter. Costs zero extra backdrop-filter panes.
+
+     THE BOTTOM RAMP IS NOT DECORATION — it is the only fix for the dock.
+     backdrop-filter blur is measured to be weak within ~15px of a pane's own
+     edge (the backdrop is clipped to the pane, so the kernel is one-sided
+     there). A 51px dock is almost entirely "edge", so NO blur radius and no
+     SVG lens can veil a table row that slides under its bottom lip: verified
+     with the full lens chain, with a bare feGaussianBlur(20), and with native
+     `backdrop-filter: blur(20px)` — all three leak the row identically.
+     Fading the content out before it reaches the dock is what actually works,
+     and it is the same mechanism the topbar already uses. */
+  --edge-top: linear-gradient(to bottom,
+    transparent 0, transparent calc(var(--shell-pad) + 2px),
+    rgba(0,0,0,0.5) calc(var(--deck-bottom) - 14px),
+    #000 var(--canvas-top));
+  --edge-bottom: linear-gradient(to top,
+    transparent 0, transparent calc(var(--dock-inset) - 4px),
+    rgba(0,0,0,0.45) calc(var(--dock-inset) + var(--dock-h) - 18px),
+    #000 calc(var(--dock-inset) + var(--dock-h) + 10px));
+  -webkit-mask-image: var(--edge-top), var(--edge-bottom);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--edge-top), var(--edge-bottom);
+  mask-composite: intersect;
+}
+/* Surfaces START at --canvas-left, i.e. --rail-underlap px UNDER the rail's
+   inner edge, and hand the underlap back as padding: measured from the
+   VISIBLE edge their inset is exactly a normal card's. No glyph is ever
+   occluded; the rail still gets real content to bend. */
+.canvas .card { padding-left: calc(18px + var(--rail-underlap)); }
+.canvas .card.tablecard { padding-left: var(--rail-underlap); }
+.canvas > h2, .canvas > .sub, .canvas > .compare {
+  padding-left: calc(var(--rail-underlap) + 8px);
+}
+
+/* ---------- 5. MATERIAL SEMANTICS (docs/07 §8.4) --------------------------
+   Material encodes config-version state. In C the same three states also move
+   the lens: a draft is a THICKER, softer piece of glass. */
+.glass[data-material="draft"] {
+  --glass-blur: 22px; --glass-sat: 120%; --lens-frost: 20; --lens-sat: 1.2;
+}
+.glass[data-material="active"] {
+  --glass-blur: 11px; --glass-sat: 195%; --lens-frost: 9;  --lens-sat: 1.85;
+}
+.glass[data-material="archived"] {
+  --glass-blur: 16px; --glass-sat: 70%;  --lens-frost: 13; --lens-sat: 0.8;
+}
+.glass[data-material] {
+  transition: backdrop-filter var(--dur-anneal) var(--ease),
+              -webkit-backdrop-filter var(--dur-anneal) var(--ease);
+}
+
+/* ---------- 6. DEGRADATIONS ----------------------------------------------
+   SPECIFICITY IS PART OF THE CONTRACT HERE.
+   The lensing rules are written as `html[data-lens][data-treatment] .glass
+   [data-pane]` — specificity (0,4,1). A degradation written as plain `.glass`
+   is (0,1,0) and SILENTLY LOSES: verified with emulateMedia, the topbar kept
+   `backdrop-filter: url(#prism-lens-topbar)` under both prefers-contrast:more
+   and prefers-reduced-transparency:reduce.
+   Every degradation below therefore repeats the winning prefix. In the shipped
+   glass.css there is no data-treatment switch, so the equivalent minimum is to
+   carry `.glass[data-pane]` on each degradation selector.
+   ------------------------------------------------------------------------ */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass { background: var(--surface); border: 1px solid var(--separator); }
+  .glass::before, .glass::after { display: none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass, .glass-a, .glass-b, .glass-c,
+  html[data-treatment] .glass,
+  html[data-lens="on"][data-treatment="c"] .glass,
+  html[data-lens="on"][data-treatment="c"] .glass[data-pane],
+  html[data-lens="on"] .glass-c[data-pane] {
+    background-color: color-mix(in srgb, var(--surface) 94%, transparent);
+    background-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: var(--glass-shadow);
+  }
+  .glass::before, .glass-b::before, .glass-c::before { background: var(--separator); }
+  .glass::after, .glass-b::after, .glass-c::after { display: none; }
+}
+@media (prefers-contrast: more) {
+  .glass, .glass-a, .glass-b, .glass-c,
+  html[data-treatment] .glass,
+  html[data-lens="on"][data-treatment="c"] .glass,
+  html[data-lens="on"][data-treatment="c"] .glass[data-pane],
+  html[data-lens="on"] .glass-c[data-pane] {
+    background: var(--surface);
+    background-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border: 1px solid var(--ink-2);
+    box-shadow: none;
+  }
+  .glass::before, .glass::after,
+  .glass-b::before, .glass-b::after,
+  .glass-c::before, .glass-c::after { display: none; }
+}
+/* Once the panes go opaque there is nothing to see through, so the soft scroll
+   edges become hard ones: content is clipped exactly at each bar's lip instead
+   of ghosting behind it. Both ramps degrade, not just the top one. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .canvas {
+    --edge-top: linear-gradient(to bottom,
+      transparent 0 var(--deck-bottom), #000 var(--deck-bottom));
+    --edge-bottom: linear-gradient(to top,
+      transparent 0 calc(var(--dock-inset) + var(--dock-h)),
+      #000 calc(var(--dock-inset) + var(--dock-h)));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur: 0ms; --dur-anneal: 0ms; }
+}
+
+/* ---------- 7. SHELL CONTENT (solid, never glass) ------------------------ */
+.brand { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; font-size: 15px; }
+.brand em { font-style: normal; color: var(--tint); }
+.topbar-spacer { flex: 1; }
+.pulse { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-2); }
+.pulse b { color: var(--ink); font-weight: 600; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--status-good); }
+
+.rail-group { display: flex; flex-direction: column; gap: 1px; padding: 5px 0; }
+.rail-group + .rail-group { border-top: 1px solid var(--separator); }
+.rail-group h6 {
+  margin: 4px 12px 4px; font-size: 10px; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--ink-3); font-weight: 700;
+}
+.rail a { color: var(--ink-2); text-decoration: none; padding: 6px 12px; border-radius: var(--r-inner); font-size: 12.5px; }
+.rail a.on { background: color-mix(in srgb, var(--tint) 15%, transparent); color: var(--tint); font-weight: 600; }
+
+.btn {
+  font: inherit; font-size: 12.5px; font-weight: 600;
+  padding: 7px 15px; border: 0; border-radius: 100px;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  color: var(--ink); cursor: pointer;
+}
+/* tint is spent on exactly one action per screen */
+.btn-primary { background: var(--tint); color: var(--tint-ink); }
+.dock .btn { background: color-mix(in srgb, var(--ink) 10%, transparent); }
+
+h2 { font-family: var(--font-display); font-size: 21px; letter-spacing: -0.022em; margin: 0 0 4px; }
+.sub { color: var(--ink-2); font-size: 12.5px; margin: 0 0 16px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--separator);
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 2px rgba(14, 18, 32, 0.04);
+}
+html[data-theme="dark"] .card { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); }
+.card h3 { margin: 0 0 10px; font-size: 13.5px; font-weight: 650; }
+
+.stat-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 14px; }
+.stat-label { font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); font-weight: 700; }
+.stat-value { font-family: var(--font-display); font-size: 25px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.stat-sub { font-size: 11.5px; color: var(--ink-2); }
+.grid-2 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 12px; margin-bottom: 14px; }
+.grid-2b { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th { text-align: left; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); font-weight: 700; }
+th, td { padding: 7px 12px; border-bottom: 1px solid var(--separator); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: none; }
+.tablecard { padding: 14px 0 4px; }
+.tablecard h3 { margin: 0 18px 8px; }
+.tablecard th:first-child, .tablecard td:first-child { padding-left: 18px; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 650; padding: 1px 9px; border-radius: 100px;
+  border: 1px solid transparent;
+}
+.badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.b-good { color: var(--status-good); background: color-mix(in srgb, var(--status-good) 13%, transparent); border-color: color-mix(in srgb, var(--status-good) 30%, transparent); }
+.b-warn { color: var(--status-warn); background: color-mix(in srgb, var(--status-warn) 15%, transparent); border-color: color-mix(in srgb, var(--status-warn) 32%, transparent); }
+.b-crit { color: var(--status-critical); background: color-mix(in srgb, var(--status-critical) 13%, transparent); border-color: color-mix(in srgb, var(--status-critical) 30%, transparent); }
+.idchip { font-family: var(--font-mono); font-size: 11px; background: var(--surface-2); border: 1px solid var(--separator); padding: 1px 7px; border-radius: 6px; color: var(--ink-2); }
+
+.health-strip { display: flex; gap: 2px; flex-wrap: wrap; }
+.hc { width: 12px; height: 15px; border-radius: 3px; background: color-mix(in srgb, var(--status-good) 55%, var(--surface-2)); }
+.hc.w { background: color-mix(in srgb, var(--status-warn) 75%, var(--surface-2)); }
+.hc.c { background: var(--status-critical); }
+.hc.n { background: var(--surface-2); border: 1px solid var(--separator); }
+
+/* ---------- 8. SIDE-BY-SIDE COMPARISON BAND ------------------------------ */
+.compare {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  padding: 34px 26px 30px;
+  margin-bottom: 14px;
+  isolation: isolate;
+}
+/* a deliberately brutal backdrop: hard edges, saturated colour, big type.
+   The only honest test of a glass material is high-frequency content. */
+.compare-bed {
+  position: absolute; inset: 0; z-index: 0;
+  background-image: repeating-linear-gradient(115deg,
+    var(--chart-1) 0 26px, var(--chart-4) 26px 52px,
+    var(--chart-3) 52px 78px, var(--chart-2) 78px 104px);
+  opacity: 0.9;
+}
+.compare-bed-2 {
+  position: absolute; inset: 0; z-index: 0;
+  background-image:
+    radial-gradient(40% 90% at 20% 50%, rgba(255,255,255,.95), transparent 70%),
+    radial-gradient(34% 80% at 72% 40%, rgba(0,0,0,.55), transparent 72%);
+}
+.compare-type {
+  position: absolute; inset: 0; z-index: 0;
+  display: flex; align-items: center; justify-content: space-around;
+  font-family: var(--font-display); font-weight: 800; font-size: 66px;
+  letter-spacing: -0.04em; color: rgba(255,255,255,.9);
+  mix-blend-mode: overlay;
+}
+.compare-row { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.cmp { padding: 16px 18px; border-radius: var(--r-outer); min-height: 132px; }
+.cmp h4 { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+.cmp p { margin: 0; font-size: 12px; }
+.cmp .stat-value { font-size: 27px; }
+.compare-note { position: relative; z-index: 1; margin: 16px 0 0; font-size: 11.5px; color: rgba(255,255,255,.92); }
+
+/* ---------- 9. LAB CHROME (not part of the port) ------------------------- */
+.labbar {
+  position: fixed; top: 12px; right: 12px; z-index: 90;
+  display: flex; gap: 6px; align-items: center;
+  padding: 6px 8px; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--separator);
+  box-shadow: 0 6px 18px rgba(0,0,0,.18); font-size: 11.5px;
+}
+.labbar button {
+  font: inherit; font-weight: 650; padding: 4px 9px; border-radius: 7px;
+  border: 1px solid var(--separator); background: var(--surface-2);
+  color: var(--ink-2); cursor: pointer;
+}
+.labbar button[aria-pressed="true"] { background: var(--tint); color: #fff; border-color: transparent; }
+.labbar .sep { width: 1px; height: 18px; background: var(--separator); }
+#lensState { color: var(--ink-3); font-family: var(--font-mono); font-size: 10.5px; }
+html[data-lab="off"] .labbar { display: none; }
+</style>
+</head>
+<body>
+
+<!-- ================= SVG FILTER DEFINITIONS =================================
+     Inline SVG markup is CSP-safe: markup, not a style attribute, not an
+     external resource. The displacement maps are data: URIs, which the shipped
+     policy already allows (`img-src 'self' data:` — vite.config.ts).
+     Filter ids are STABLE; only attribute values are rewritten on resize.
+     ========================================================================= -->
+<svg class="lens-defs" aria-hidden="true" focusable="false">
+  <defs>
+    <!-- ambient grain -->
+    <filter id="prism-grain" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="3" seed="7" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="saturate" values="0" result="g"/>
+      <feComponentTransfer in="g">
+        <feFuncA type="linear" slope="0.42" intercept="0"/>
+      </feComponentTransfer>
+    </filter>
+
+    <!-- ===================== THE LENS ==================================== -->
+    <!-- One filter per pane. Pipeline (identical in all four):
+           map    feImage    R = x displacement, G = y displacement,
+                             B = bezel coverage  (feDisplacementMap ignores B,
+                             so the mask rides along for free in the same map)
+           frost  blur(SourceGraphic, --lens-frost)     the interior
+           rim    displace(SourceGraphic, map, -scale)  SHARP, so the bend
+                                                        survives; blurring
+                                                        AFTER displacement
+                                                        erases the lensing
+           out    frost UNDER (rim clipped to the bezel band), then saturate
+         The negative scale samples OUTWARD: Chrome's backdrop image extends
+         past the element, so there are no transparent fringes. -->
+    <filter id="prism-lens-topbar" x="0%" y="0%" width="100%" height="100%"
+            color-interpolation-filters="sRGB">
+      <feImage result="map" preserveAspectRatio="none" x="0" y="0" width="10" height="10" href=""/>
+      <feColorMatrix in="map" result="rimmask" type="matrix"
+        values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 1 0 0"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="frost"/>
+      <!-- The rim is a LENS, not a hole: it must be frosted too, or the bezel
+           band shows a pin-sharp image of whatever is under it. On short panes
+           that band is 30-40% of the pane, which is exactly where the dock was
+           still leaking table text after the bezel clamp. Pre-blurring the
+           source keeps the bend (the displacement is much larger than this
+           radius) while killing the glyphs. -->
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="rimsrc"/>
+      <feDisplacementMap in="rimsrc" in2="map" scale="-38"
+                         xChannelSelector="R" yChannelSelector="G" result="bent"/>
+      <feComposite in="bent" in2="rimmask" operator="in" result="rim"/>
+      <feMerge result="stack"><feMergeNode in="frost"/><feMergeNode in="rim"/></feMerge>
+      <feColorMatrix in="stack" type="saturate" values="1.8" result="sat"/>
+      <feComponentTransfer in="sat">
+        <feFuncR type="linear" slope="1.06" intercept="0"/>
+        <feFuncG type="linear" slope="1.06" intercept="0"/>
+        <feFuncB type="linear" slope="1.06" intercept="0"/>
+      </feComponentTransfer>
+    </filter>
+
+    <filter id="prism-lens-rail" x="0%" y="0%" width="100%" height="100%"
+            color-interpolation-filters="sRGB">
+      <feImage result="map" preserveAspectRatio="none" x="0" y="0" width="10" height="10" href=""/>
+      <feColorMatrix in="map" result="rimmask" type="matrix"
+        values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 1 0 0"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="frost"/>
+      <!-- The rim is a LENS, not a hole: it must be frosted too, or the bezel
+           band shows a pin-sharp image of whatever is under it. On short panes
+           that band is 30-40% of the pane, which is exactly where the dock was
+           still leaking table text after the bezel clamp. Pre-blurring the
+           source keeps the bend (the displacement is much larger than this
+           radius) while killing the glyphs. -->
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="rimsrc"/>
+      <feDisplacementMap in="rimsrc" in2="map" scale="-38"
+                         xChannelSelector="R" yChannelSelector="G" result="bent"/>
+      <feComposite in="bent" in2="rimmask" operator="in" result="rim"/>
+      <feMerge result="stack"><feMergeNode in="frost"/><feMergeNode in="rim"/></feMerge>
+      <feColorMatrix in="stack" type="saturate" values="1.8" result="sat"/>
+      <feComponentTransfer in="sat">
+        <feFuncR type="linear" slope="1.06" intercept="0"/>
+        <feFuncG type="linear" slope="1.06" intercept="0"/>
+        <feFuncB type="linear" slope="1.06" intercept="0"/>
+      </feComponentTransfer>
+    </filter>
+
+    <filter id="prism-lens-dock" x="0%" y="0%" width="100%" height="100%"
+            color-interpolation-filters="sRGB">
+      <feImage result="map" preserveAspectRatio="none" x="0" y="0" width="10" height="10" href=""/>
+      <feColorMatrix in="map" result="rimmask" type="matrix"
+        values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 1 0 0"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="frost"/>
+      <!-- The rim is a LENS, not a hole: it must be frosted too, or the bezel
+           band shows a pin-sharp image of whatever is under it. On short panes
+           that band is 30-40% of the pane, which is exactly where the dock was
+           still leaking table text after the bezel clamp. Pre-blurring the
+           source keeps the bend (the displacement is much larger than this
+           radius) while killing the glyphs. -->
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="rimsrc"/>
+      <feDisplacementMap in="rimsrc" in2="map" scale="-38"
+                         xChannelSelector="R" yChannelSelector="G" result="bent"/>
+      <feComposite in="bent" in2="rimmask" operator="in" result="rim"/>
+      <feMerge result="stack"><feMergeNode in="frost"/><feMergeNode in="rim"/></feMerge>
+      <feColorMatrix in="stack" type="saturate" values="1.8" result="sat"/>
+      <feComponentTransfer in="sat">
+        <feFuncR type="linear" slope="1.06" intercept="0"/>
+        <feFuncG type="linear" slope="1.06" intercept="0"/>
+        <feFuncB type="linear" slope="1.06" intercept="0"/>
+      </feComponentTransfer>
+    </filter>
+
+    <!-- lab-only 4th instance so the comparison band can show C live -->
+    <filter id="prism-lens-cmp" x="0%" y="0%" width="100%" height="100%"
+            color-interpolation-filters="sRGB">
+      <feImage result="map" preserveAspectRatio="none" x="0" y="0" width="10" height="10" href=""/>
+      <feColorMatrix in="map" result="rimmask" type="matrix"
+        values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 1 0 0"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="frost"/>
+      <!-- The rim is a LENS, not a hole: it must be frosted too, or the bezel
+           band shows a pin-sharp image of whatever is under it. On short panes
+           that band is 30-40% of the pane, which is exactly where the dock was
+           still leaking table text after the bezel clamp. Pre-blurring the
+           source keeps the bend (the displacement is much larger than this
+           radius) while killing the glyphs. -->
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="rimsrc"/>
+      <feDisplacementMap in="rimsrc" in2="map" scale="-38"
+                         xChannelSelector="R" yChannelSelector="G" result="bent"/>
+      <feComposite in="bent" in2="rimmask" operator="in" result="rim"/>
+      <feMerge result="stack"><feMergeNode in="frost"/><feMergeNode in="rim"/></feMerge>
+      <feColorMatrix in="stack" type="saturate" values="1.8" result="sat"/>
+      <feComponentTransfer in="sat">
+        <feFuncR type="linear" slope="1.06" intercept="0"/>
+        <feFuncG type="linear" slope="1.06" intercept="0"/>
+        <feFuncB type="linear" slope="1.06" intercept="0"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+</svg>
+
+<div class="shell">
+<div class="ambient"></div>
+<div class="ambient-grain" aria-hidden="true">
+  <svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+    <rect width="100%" height="100%" filter="url(#prism-grain)"/>
+  </svg>
+</div>
+
+<!-- ===================== SHELL: EXACTLY 3 GLASS PANES ==================== -->
+<header class="topbar glass" data-pane="topbar" data-material="active">
+  <span class="brand">◇ Pris<em>m</em></span>
+  <span class="idchip">v-2026-07 · rev-87</span>
+  <span class="pulse"><span class="dot"></span>今日 <b>1 877</b> 请求 · 失败 <b>24</b> · P95 <b>21.4s</b></span>
+  <span class="topbar-spacer"></span>
+  <button class="btn">回滚</button>
+  <button class="btn btn-primary">发布草稿</button>
+</header>
+
+<nav class="rail glass" data-pane="rail" data-material="active">
+  <div class="rail-group">
+    <h6>观测</h6>
+    <a href="#" class="on">总览</a><a href="#">用量分析</a><a href="#">请求监控</a>
+  </div>
+  <div class="rail-group">
+    <h6>配置</h6>
+    <a href="#">配置版本</a><a href="#">上游</a><a href="#">模型与路由</a>
+    <a href="#">访问控制</a><a href="#">出口策略</a>
+  </div>
+  <div class="rail-group">
+    <h6>运行时</h6>
+    <a href="#">凭据健康</a><a href="#">配额窗口</a><a href="#">审计与备份</a>
+  </div>
+</nav>
+
+<main class="canvas">
+  <h2>总览</h2>
+  <p class="sub">活动版本 v-2026-07 · 两站 minimax-m3 聚合 · 数据窗口 今日 00:00 → 现在</p>
+
+  <div class="stat-row">
+    <div class="card"><div class="stat-label">请求</div><div class="stat-value">1 877</div><div class="stat-sub">失败 24</div></div>
+    <div class="card"><div class="stat-label">成功率</div><div class="stat-value">98.7%</div><div class="stat-sub">1853 / 1877</div></div>
+    <div class="card"><div class="stat-label">Token</div><div class="stat-value">217.6M</div><div class="stat-sub">全类别</div></div>
+    <div class="card"><div class="stat-label">P95 延迟</div><div class="stat-value">21.4s</div><div class="stat-sub">尝试时间戳</div></div>
+    <div class="card"><div class="stat-label">凭据</div><div class="stat-value">12</div><div class="stat-sub">2 冷却中</div></div>
+    <div class="card"><div class="stat-label">上游</div><div class="stat-value">6</div><div class="stat-sub">全部可达</div></div>
+  </div>
+
+  <!-- ============ side-by-side treatment comparison ==================== -->
+  <section class="compare">
+    <div class="compare-bed"></div>
+    <div class="compare-bed-2"></div>
+    <div class="compare-type" aria-hidden="true"><span>REFRACT</span><span>棱镜</span><span>1877</span></div>
+    <div class="compare-row">
+      <div class="cmp glass-a">
+        <h4>A · baseline</h4>
+        <div class="stat-value">98.7%</div>
+        <p>blur(20px) saturate(180%) · 1px border · one flat shadow</p>
+      </div>
+      <div class="cmp glass-b">
+        <h4>B · layered</h4>
+        <div class="stat-value">98.7%</div>
+        <p>tuned backdrop · specular ring · edge bloom · 4-stop shadow</p>
+      </div>
+      <div class="cmp glass-c" data-pane="cmp">
+        <h4>C · lensing</h4>
+        <div class="stat-value">98.7%</div>
+        <p>B + feDisplacementMap through a convex-squircle bezel</p>
+      </div>
+    </div>
+    <p class="compare-note">同一背景、同一尺寸、同一内容 —— 只有材质不同。A 读作卡片,B 读作玻璃板,C 读作有厚度的透镜(注意 C 的边缘把条纹压弯)。</p>
+  </section>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>流量趋势(今日,按小时)</h3>
+      <svg viewBox="0 0 620 170" width="100%" height="170" role="img" aria-label="每小时请求数">
+        <g fill="var(--chart-1)">
+          <rect x="6"   y="118" width="20" height="42" rx="3"/><rect x="32"  y="70"  width="20" height="90" rx="3"/>
+          <rect x="58"  y="132" width="20" height="28" rx="3"/><rect x="84"  y="96"  width="20" height="64" rx="3"/>
+          <rect x="110" y="108" width="20" height="52" rx="3"/><rect x="136" y="88"  width="20" height="72" rx="3"/>
+          <rect x="162" y="102" width="20" height="58" rx="3"/><rect x="188" y="124" width="20" height="36" rx="3"/>
+          <rect x="214" y="80"  width="20" height="80" rx="3"/><rect x="240" y="44"  width="20" height="116" rx="3"/>
+          <rect x="266" y="66"  width="20" height="94" rx="3"/><rect x="292" y="128" width="20" height="32" rx="3"/>
+          <rect x="318" y="38"  width="20" height="122" rx="3"/><rect x="344" y="72"  width="20" height="88" rx="3"/>
+          <rect x="370" y="92"  width="20" height="68" rx="3"/><rect x="396" y="112" width="20" height="48" rx="3"/>
+          <rect x="422" y="60"  width="20" height="100" rx="3"/><rect x="448" y="84"  width="20" height="76" rx="3"/>
+          <rect x="474" y="120" width="20" height="40" rx="3"/><rect x="500" y="54"  width="20" height="106" rx="3"/>
+          <rect x="526" y="76"  width="20" height="84" rx="3"/><rect x="552" y="100" width="20" height="60" rx="3"/>
+          <rect x="578" y="86"  width="20" height="74" rx="3"/>
+        </g>
+        <g fill="var(--status-critical)">
+          <rect x="32" y="70" width="20" height="5" rx="2"/><rect x="240" y="44" width="20" height="7" rx="2"/>
+          <rect x="318" y="38" width="20" height="4" rx="2"/><rect x="500" y="54" width="20" height="6" rx="2"/>
+        </g>
+        <path d="M0 160 H620" stroke="var(--separator)" stroke-width="1" fill="none"/>
+      </svg>
+    </div>
+    <div class="card">
+      <h3>Token 构成(今日)</h3>
+      <svg viewBox="0 0 300 26" width="100%" height="26" role="img" aria-label="Token 构成">
+        <rect x="0"   y="0" width="38"  height="26" rx="6" fill="var(--chart-1)"/>
+        <rect x="41"  y="0" width="6"   height="26" rx="3" fill="var(--chart-2)"/>
+        <rect x="50"  y="0" width="12"  height="26" rx="4" fill="var(--chart-3)"/>
+        <rect x="65"  y="0" width="235" height="26" rx="6" fill="var(--chart-4)"/>
+      </svg>
+      <p class="stat-sub">输入 27.1M · 输出 1.0M · 推理 336.1K · 缓存读 189.2M</p>
+      <h3>请求健康条带(10 分钟桶)</h3>
+      <div class="health-strip">
+        <span class="hc"></span><span class="hc"></span><span class="hc"></span><span class="hc w"></span>
+        <span class="hc"></span><span class="hc"></span><span class="hc c"></span><span class="hc"></span>
+        <span class="hc"></span><span class="hc n"></span><span class="hc"></span><span class="hc"></span>
+        <span class="hc w"></span><span class="hc"></span><span class="hc"></span><span class="hc"></span>
+        <span class="hc"></span><span class="hc c"></span><span class="hc"></span><span class="hc"></span>
+        <span class="hc"></span><span class="hc"></span><span class="hc n"></span><span class="hc"></span>
+        <span class="hc"></span><span class="hc w"></span><span class="hc"></span><span class="hc"></span>
+        <span class="hc"></span><span class="hc"></span><span class="hc"></span><span class="hc"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2b">
+    <div class="card tablecard">
+      <h3>模型用量排行(今日)</h3>
+      <table>
+        <thead><tr><th>模型</th><th>请求</th><th>Token</th><th>P95</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">minimax-m3</td><td>1 351</td><td>174.0M</td><td>19.8s</td><td><span class="badge b-good">健康</span></td></tr>
+          <tr><td class="mono">glm-5-air</td><td>526</td><td>43.6M</td><td>24.1s</td><td><span class="badge b-warn">降级</span></td></tr>
+          <tr><td class="mono">grok-4.3-high</td><td>318</td><td>28.4M</td><td>31.7s</td><td><span class="badge b-good">健康</span></td></tr>
+          <tr><td class="mono">claude-opus-5</td><td>204</td><td>19.9M</td><td>16.2s</td><td><span class="badge b-good">健康</span></td></tr>
+          <tr><td class="mono">kiro-sonnet</td><td>96</td><td>7.1M</td><td>44.0s</td><td><span class="badge b-crit">失败</span></td></tr>
+          <tr><td class="mono">gpt-oss-120b</td><td>41</td><td>2.2M</td><td>12.5s</td><td><span class="badge b-good">健康</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card tablecard">
+      <h3>最近失败</h3>
+      <table>
+        <thead><tr><th>请求</th><th>原因</th><th>阶段</th><th>凭据</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">req-1043</td><td><span class="badge b-crit">provider_rate_limited</span></td><td>quota_window</td><td class="mono">cred-07</td></tr>
+          <tr><td class="mono">req-1029</td><td><span class="badge b-crit">stream_truncated</span></td><td>sse_bootstrap</td><td class="mono">cred-02</td></tr>
+          <tr><td class="mono">req-1017</td><td><span class="badge b-warn">upstream_timeout</span></td><td>connect</td><td class="mono">cred-11</td></tr>
+          <tr><td class="mono">req-0994</td><td><span class="badge b-crit">auth_rejected</span></td><td>credential</td><td class="mono">cred-04</td></tr>
+          <tr><td class="mono">req-0982</td><td><span class="badge b-warn">egress_denied</span></td><td>policy</td><td class="mono">cred-09</td></tr>
+          <tr><td class="mono">req-0971</td><td><span class="badge b-crit">provider_rate_limited</span></td><td>quota_window</td><td class="mono">cred-07</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card tablecard">
+    <h3>请求监控(实时尾部)</h3>
+    <table>
+      <thead><tr><th>时间</th><th>请求</th><th>模型</th><th>上游</th><th>凭据</th><th>Token in/out</th><th>耗时</th><th>尝试</th><th>结果</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">14:02:11</td><td class="mono">req-1051</td><td class="mono">minimax-m3</td><td>minimax-cn</td><td class="mono">cred-01</td><td class="mono">18.2K / 1.1K</td><td class="mono">18.4s</td><td>1</td><td><span class="badge b-good">200</span></td></tr>
+        <tr><td class="mono">14:02:04</td><td class="mono">req-1050</td><td class="mono">glm-5-air</td><td>zhipu</td><td class="mono">cred-05</td><td class="mono">9.4K / 0.8K</td><td class="mono">11.9s</td><td>1</td><td><span class="badge b-good">200</span></td></tr>
+        <tr><td class="mono">14:01:52</td><td class="mono">req-1049</td><td class="mono">kiro-sonnet</td><td>kiro</td><td class="mono">cred-08</td><td class="mono">31.7K / 0.0K</td><td class="mono">44.0s</td><td>3</td><td><span class="badge b-crit">502</span></td></tr>
+        <tr><td class="mono">14:01:40</td><td class="mono">req-1048</td><td class="mono">grok-4.3-high</td><td>xai</td><td class="mono">cred-03</td><td class="mono">22.0K / 2.4K</td><td class="mono">29.6s</td><td>2</td><td><span class="badge b-good">200</span></td></tr>
+        <tr><td class="mono">14:01:33</td><td class="mono">req-1047</td><td class="mono">minimax-m3</td><td>minimax-io</td><td class="mono">cred-02</td><td class="mono">15.1K / 1.6K</td><td class="mono">17.2s</td><td>1</td><td><span class="badge b-good">200</span></td></tr>
+        <tr><td class="mono">14:01:20</td><td class="mono">req-1046</td><td class="mono">claude-opus-5</td><td>anthropic</td><td class="mono">cred-04</td><td class="mono">40.8K / 3.9K</td><td class="mono">16.2s</td><td>1</td><td><span class="badge b-good">200</span></td></tr>
+        <tr><td class="mono">14:01:09</td><td class="mono">req-1045</td><td class="mono">glm-5-air</td><td>zhipu</td><td class="mono">cred-05</td><td class="mono">7.7K / 0.6K</td><td class="mono">24.1s</td><td>2</td><td><span class="badge b-warn">429</span></td></tr>
+        <tr><td class="mono">14:00:58</td><td class="mono">req-1044</td><td class="mono">minimax-m3</td><td>minimax-cn</td><td class="mono">cred-01</td><td class="mono">12.3K / 1.0K</td><td class="mono">15.5s</td><td>1</td><td><span class="badge b-good">200</span></td></tr>
+        <tr><td class="mono">14:00:47</td><td class="mono">req-1043</td><td class="mono">grok-4.3-high</td><td>xai</td><td class="mono">cred-07</td><td class="mono">19.6K / 0.0K</td><td class="mono">3.1s</td><td>4</td><td><span class="badge b-crit">429</span></td></tr>
+        <tr><td class="mono">14:00:31</td><td class="mono">req-1042</td><td class="mono">gpt-oss-120b</td><td>local</td><td class="mono">cred-12</td><td class="mono">5.2K / 0.9K</td><td class="mono">12.5s</td><td>1</td><td><span class="badge b-good">200</span></td></tr>
+        <tr><td class="mono">14:00:18</td><td class="mono">req-1041</td><td class="mono">minimax-m3</td><td>minimax-io</td><td class="mono">cred-02</td><td class="mono">28.4K / 2.2K</td><td class="mono">22.8s</td><td>1</td><td><span class="badge b-good">200</span></td></tr>
+        <tr><td class="mono">14:00:02</td><td class="mono">req-1040</td><td class="mono">claude-opus-5</td><td>anthropic</td><td class="mono">cred-04</td><td class="mono">33.1K / 4.7K</td><td class="mono">19.0s</td><td>1</td><td><span class="badge b-good">200</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<footer class="dock glass" data-pane="dock" data-material="draft">
+  <span>草稿 <span class="idchip">v-2026-07-draft · rev-88</span> · 3 处未发布变更</span>
+  <button class="btn">丢弃</button>
+  <button class="btn">验证</button>
+  <button class="btn btn-primary">发布</button>
+</footer>
+</div><!-- /.shell -->
+
+<div class="labbar">
+  <button data-set="theme" data-val="light">Light</button>
+  <button data-set="theme" data-val="dark">Dark</button>
+  <span class="sep"></span>
+  <button data-set="treatment" data-val="a">A</button>
+  <button data-set="treatment" data-val="b">B</button>
+  <button data-set="treatment" data-val="c">C</button>
+  <span class="sep"></span>
+  <span id="lensState">…</span>
+</div>
+
+<script>
+/* ==========================================================================
+   LENS BUILDER
+   In the app this is <PrismLens pane="rail"/>: a React component that measures
+   its pane with a ResizeObserver and writes SVG ATTRIBUTES (href, width,
+   height, scale, stdDeviation). No style attribute is ever touched, so the
+   CSP `style-src 'self'` rule and scripts/check.mjs both stay happy.
+   ========================================================================== */
+const root = document.documentElement;
+const N = 200;                    /* profile samples along one radius        */
+
+/* Apple's squircle profile: y = (1-(1-x)^4)^(1/4)
+   Softer flat->curve transition than a circular arc, so the refraction
+   gradient stays smooth when the shape is stretched into a long rectangle. */
+const squircle = (x) => Math.pow(1 - Math.pow(1 - x, 4), 0.25);
+
+/* Snell-Descartes on one radius: air (n=1) -> glass (n=ior).
+   t = 0 at the outer edge, 1 at the end of the bezel.
+   Returned magnitudes are normalised to 1 and `max` is the px scale to hand
+   to feDisplacementMap (that is exactly what the scale attribute means). */
+function profile(bezel, thickness, ior) {
+  const mags = [];
+  for (let i = 0; i < N; i++) {
+    const t = i / (N - 1);
+    const d = 1e-3;
+    const slope =
+      (squircle(Math.min(1, t + d)) - squircle(Math.max(0, t - d))) /
+      (2 * d) * (thickness / bezel);
+    const theta1 = Math.atan(slope);
+    const theta2 = Math.asin(Math.max(-1, Math.min(1, Math.sin(theta1) / ior)));
+    /* the (1 - .55*height) term fades the bend as the glass flattens out */
+    mags.push(Math.tan(theta1 - theta2) * thickness * (1 - squircle(t) * 0.55));
+  }
+  const max = Math.max(...mags, 1e-6);
+  return { mags: mags.map((m) => m / max), max };
+}
+
+/* R = x displacement, G = y displacement, B = bezel coverage (the rim mask —
+   feDisplacementMap ignores B and A, so the mask rides in the same image and
+   costs nothing). 128 is neutral in R/G. */
+function buildMap(w, h, radius, bezel, thickness, ior) {
+  const c = document.createElement("canvas");
+  c.width = Math.max(2, Math.round(w));
+  c.height = Math.max(2, Math.round(h));
+  const ctx = c.getContext("2d");
+
+  /* CLAMP THE BEZEL TO THE PANE'S SHORT SIDE.
+     The rim band is the SHARP, displaced backdrop composited OVER the frost.
+     A bezel wider than half the short side therefore covers the whole pane,
+     the frost never shows, and what looks like "glass" is really a clear
+     window: every glyph underneath survives at full contrast.
+     Measured on this shell at the nominal 26px bezel:
+       rail   196x810  rim = 6% of height    correct
+       topbar 1416x54  rim = 96% of height   BROKEN
+       dock    545x51  rim = 100% of height  BROKEN
+     0.30 keeps the frost dominant on a 51px pill (rim 15px per edge, 40% of
+     the height) while leaving the tall rail untouched. */
+  const bez = Math.max(4, Math.min(bezel, Math.min(c.width, c.height) * 0.30));
+
+  const img = ctx.createImageData(c.width, c.height);
+  const { mags, max } = profile(bez, thickness, ior);
+  const r = Math.min(radius, c.width / 2, c.height / 2);
+  for (let y = 0; y < c.height; y++) {
+    for (let x = 0; x < c.width; x++) {
+      const px = x + 0.5, py = y + 0.5;
+      /* signed distance to a rounded rect + its outward normal */
+      const cx = Math.min(Math.max(px, r), c.width - r);
+      const cy = Math.min(Math.max(py, r), c.height - r);
+      let nx = px - cx, ny = py - cy, dist;
+      const len = Math.hypot(nx, ny);
+      if (len < 1e-6) {
+        const dl = px, dr = c.width - px, dt = py, db = c.height - py;
+        dist = Math.min(dl, dr, dt, db);
+        if (dist === dl) { nx = -1; ny = 0; }
+        else if (dist === dr) { nx = 1; ny = 0; }
+        else if (dist === dt) { nx = 0; ny = -1; }
+        else { nx = 0; ny = 1; }
+      } else { dist = r - len; nx /= len; ny /= len; }
+      const t = Math.min(1, Math.max(0, dist / bez));
+      const mag = mags[Math.min(N - 1, Math.round(t * (N - 1)))];
+      /* rim coverage: 1 across the bezel, smoothstepped to 0 just inside it */
+      const u = Math.min(1, Math.max(0, 1 - t));
+      const cover = u * u * (3 - 2 * u);
+      const i = (y * c.width + x) * 4;
+      img.data[i]     = Math.round(128 + nx * mag * 127);
+      img.data[i + 1] = Math.round(128 + ny * mag * 127);
+      img.data[i + 2] = Math.round(cover * 255);
+      img.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return { url: c.toDataURL("image/png"), scale: max };
+}
+
+const PANES = [
+  { sel: ".topbar", id: "prism-lens-topbar" },
+  { sel: ".rail",   id: "prism-lens-rail" },
+  { sel: ".dock",   id: "prism-lens-dock" },
+  { sel: ".cmp.glass-c", id: "prism-lens-cmp" },
+];
+const num = (el, name, fallback) => {
+  const v = parseFloat(getComputedStyle(el).getPropertyValue(name));
+  return Number.isFinite(v) ? v : fallback;
+};
+
+function updatePane({ sel, id }) {
+  const el = document.querySelector(sel);
+  const f = document.getElementById(id);
+  if (el === null || f === null) return;
+  const r = el.getBoundingClientRect();
+  if (r.width < 4 || r.height < 4) return;
+  const cs = getComputedStyle(el);
+  const radius = parseFloat(cs.borderTopLeftRadius) || 20;
+  const bezel = num(el, "--lens-bezel", 26);
+  const thickness = num(el, "--lens-thickness", 34);
+  const ior = num(el, "--lens-ior", 1.5);
+  const gain = num(el, "--lens-gain", 1);
+  const frost = num(el, "--lens-frost", 10);
+  const sat = num(el, "--lens-sat", 1.8);
+  const key = [Math.round(r.width), Math.round(r.height), radius, bezel, thickness, ior].join("/");
+  if (f.dataset.key !== key) {
+    const { url, scale } = buildMap(r.width, r.height, radius, bezel, thickness, ior);
+    f.dataset.key = key;
+    f.dataset.scale = String(scale);
+    const im = f.querySelector("feImage");
+    im.setAttribute("href", url);
+    im.setAttribute("width", String(Math.round(r.width)));
+    im.setAttribute("height", String(Math.round(r.height)));
+  }
+  /* negative scale = sample OUTWARD (physically correct convex lens) */
+  f.querySelector("feDisplacementMap")
+   .setAttribute("scale", String(-(parseFloat(f.dataset.scale) * gain).toFixed(2)));
+  const blurs = f.querySelectorAll("feGaussianBlur");
+  blurs[0].setAttribute("stdDeviation", String(frost));
+  blurs[1].setAttribute("stdDeviation", String(num(el, "--lens-rim-blur", 3)));
+  f.querySelector('feColorMatrix[type="saturate"]').setAttribute("values", String(sat));
+}
+function updateAll() { PANES.forEach(updatePane); }
+
+/* ---------------------------------------- runtime capability probe
+   `@supports (backdrop-filter: url(#x))` is TRUE in Firefox and Safari and
+   then renders NOTHING, so CSS alone cannot gate this. The @supports ladder
+   in the stylesheet excludes both engines; this is the belt to that braces
+   and is also what the lab uses to force the fallback. */
+const isFirefox = CSS.supports("-moz-appearance", "none");
+const isSafari = CSS.supports("background", "-webkit-named-image(i)");
+const parsesUrl = CSS.supports("backdrop-filter", "url(#prism-lens-rail)")
+               || CSS.supports("-webkit-backdrop-filter", "url(#prism-lens-rail)");
+const lensOk = parsesUrl && !isFirefox && !isSafari;
+root.dataset.lens = lensOk ? "on" : "off";
+
+/* over-content probe: WWDC25 deepens the shadow while real content is behind
+   the pane. One elementFromPoint per pane per scroll frame — cheap. */
+function updateOver() {
+  for (const { sel } of PANES) {
+    const el = document.querySelector(sel);
+    if (el === null || el.classList.contains("cmp")) continue;
+    const r = el.getBoundingClientRect();
+    const probe = document.elementFromPoint(
+      Math.min(innerWidth - 2, r.left + r.width / 2),
+      Math.max(2, Math.min(innerHeight - 2, r.top + r.height + 6)));
+    const overContent = probe !== null && probe.closest(".canvas") !== null;
+    el.dataset.over = overContent ? "content" : "ambient";
+  }
+}
+
+document.querySelectorAll(".labbar button").forEach((b) => {
+  b.addEventListener("click", () => {
+    root.dataset[b.dataset.set] = b.dataset.val;
+    sync(); updateAll();
+  });
+});
+function sync() {
+  document.querySelectorAll(".labbar button").forEach((b) => {
+    b.setAttribute("aria-pressed", String(root.dataset[b.dataset.set] === b.dataset.val));
+  });
+  document.getElementById("lensState").textContent =
+    `lens=${root.dataset.lens} parses=${parsesUrl} ff=${isFirefox} sf=${isSafari}`;
+}
+
+new ResizeObserver(updateAll).observe(document.body);
+addEventListener("resize", updateAll);
+document.querySelector(".canvas").addEventListener("scroll", () => {
+  updateOver(); updatePane(PANES[3]);
+}, { passive: true });
+sync(); updateAll(); updateOver();
+window.__labReady = true;
+</script>
+</body>
+</html>

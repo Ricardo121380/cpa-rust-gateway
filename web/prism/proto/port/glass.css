@@ -1,0 +1,170 @@
+/* ===========================================================================
+   PORT 2/3 — replaces src/design/glass.css
+   docs/07 §8.3. Glass is the functional layer only (rail / topbar / dock /
+   sheet); the content canvas is always solid; never glass-on-glass; <=3 chrome
+   panes per screen; Regular variant only.
+
+   Layer order inside a pane (bottom -> top):
+     backdrop-filter   the lens (C) or blur+saturate+brightness stack (B)
+     ::after           wide edge bloom, z-index 0
+     background-image  the vertical tint RAMP
+     content           z-index 1
+     ::before          specular ring (masked gradient border), z-index 2
+   =========================================================================== */
+
+.glass {
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--r-outer);
+  border: 0;
+  background-color: transparent;
+  background-image: linear-gradient(
+    to bottom,
+    var(--glass-tint-top) 0%,
+    var(--glass-tint-mid) 46%,
+    var(--glass-tint-bot) 100%);
+  -webkit-backdrop-filter:
+    blur(var(--glass-blur)) saturate(var(--glass-sat))
+    brightness(var(--glass-bright)) contrast(var(--glass-contrast));
+  backdrop-filter:
+    blur(var(--glass-blur)) saturate(var(--glass-sat))
+    brightness(var(--glass-bright)) contrast(var(--glass-contrast));
+  box-shadow: var(--glass-shadow), var(--glass-inner);
+}
+.glass > * { position: relative; z-index: 1; }
+
+/* WWDC25: the shadow deepens while real content is passing under the pane.
+   <PrismLens> sets data-over="content" | "ambient" from one elementFromPoint
+   probe per pane per scroll frame. */
+.glass[data-over="content"] {
+  box-shadow: var(--glass-shadow-boost), var(--glass-inner);
+}
+
+/* Specular ring. NOT a 1px border: a gradient ring, bright at 10 and 4
+   o'clock, extinguished on the flanks, painted into the border box by a
+   xor/exclude mask. This is the second biggest difference from the baseline. */
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  padding: var(--ring-w);
+  pointer-events: none;
+  background: linear-gradient(147deg,
+    var(--ring-1) 0%, var(--ring-2) 16%, var(--ring-3) 38%,
+    var(--ring-3) 60%, var(--ring-4) 84%, var(--ring-5) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+/* Wide edge bloom just inside the ring: the glass BODY catching the light. */
+.glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, var(--glass-edge-top) 0%, transparent 18px),
+    linear-gradient(to top,    var(--glass-edge-bot) 0%, transparent 14px);
+}
+
+/* ---- C: true lensing -----------------------------------------------------
+   C is B with the CSS backdrop-filter swapped for an SVG filter; every other
+   layer is shared, so degrading to B is one property.
+
+   The @supports ladder must exclude Firefox AND Safari: both PARSE
+   `backdrop-filter: url(#x)` as valid and then render NOTHING at all, so
+   @supports alone is not a capability test. <PrismLens> writes
+   data-lens="on|off" as the runtime belt to this brace.
+   -------------------------------------------------------------------------- */
+@supports (backdrop-filter: url(#prism-lens-topbar))
+      and (not (-moz-appearance: none))
+      and (not (background: -webkit-named-image(i))) {
+  html[data-lens="on"] .glass[data-pane="topbar"] {
+    -webkit-backdrop-filter: url(#prism-lens-topbar);
+    backdrop-filter: url(#prism-lens-topbar);
+  }
+  html[data-lens="on"] .glass[data-pane="rail"] {
+    -webkit-backdrop-filter: url(#prism-lens-rail);
+    backdrop-filter: url(#prism-lens-rail);
+  }
+  html[data-lens="on"] .glass[data-pane="dock"] {
+    -webkit-backdrop-filter: url(#prism-lens-dock);
+    backdrop-filter: url(#prism-lens-dock);
+  }
+  /* the SVG chain already blurs, saturates and brightens: pull the CSS tint
+     back so the pane does not double-frost */
+  html[data-lens="on"] .glass[data-pane] {
+    background-image: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--glass-tint-top) 72%, transparent) 0%,
+      color-mix(in srgb, var(--glass-tint-mid) 72%, transparent) 46%,
+      color-mix(in srgb, var(--glass-tint-bot) 72%, transparent) 100%);
+  }
+}
+
+/* ---- material semantics (docs/07 §8.4) ----------------------------------
+   Material encodes config-version state. In C the same three states also move
+   the lens: a draft is a THICKER, softer piece of glass. */
+.glass[data-material="draft"] {
+  --glass-blur: 22px; --glass-sat: 120%; --lens-frost: 20; --lens-sat: 1.2;
+}
+.glass[data-material="active"] {
+  --glass-blur: 11px; --glass-sat: 195%; --lens-frost: 9;  --lens-sat: 1.85;
+}
+.glass[data-material="archived"] {
+  --glass-blur: 16px; --glass-sat: 70%;  --lens-frost: 13; --lens-sat: 0.8;
+}
+/* publish = one bounded anneal transition (state change, not decoration) */
+.glass[data-material] {
+  transition: backdrop-filter var(--dur-anneal) var(--ease),
+              -webkit-backdrop-filter var(--dur-anneal) var(--ease);
+}
+
+/* ---- degradations --------------------------------------------------------
+   SPECIFICITY IS PART OF THE CONTRACT.
+   The lensing rules above are `html[data-lens] .glass[data-pane]` =
+   specificity (0,3,1). A degradation written as plain `.glass` is (0,1,0) and
+   SILENTLY LOSES — verified in the lab: the topbar kept
+   `backdrop-filter: url(#prism-lens-topbar)` under prefers-contrast:more.
+   Every degradation therefore carries `.glass[data-pane]` as well.
+   -------------------------------------------------------------------------- */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass, .glass[data-pane] {
+    background: var(--surface);
+    background-image: none;
+    border: 1px solid var(--separator);
+  }
+  .glass::before, .glass::after { display: none; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  html[data-lens="on"] .glass[data-pane] {
+    background-color: color-mix(in srgb, var(--surface) 94%, transparent);
+    background-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: var(--glass-shadow);
+  }
+  .glass::before { background: var(--separator); }
+  .glass::after { display: none; }
+}
+
+@media (prefers-contrast: more) {
+  .glass,
+  html[data-lens="on"] .glass[data-pane] {
+    background: var(--surface);
+    background-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border: 1px solid var(--ink-2);
+    box-shadow: none;
+  }
+  .glass::before, .glass::after { display: none; }
+}

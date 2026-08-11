@@ -1,0 +1,134 @@
+/* ===========================================================================
+   PORT 1/3 — merge into src/design/tokens.css
+   Winning treatment = C (lensing) with automatic fallback to B (layered).
+   Values below are the ones that survived the lab; the ones that did NOT are
+   recorded as comments so nobody re-tries them.
+   =========================================================================== */
+
+:root {
+  /* ---- ambient background ------------------------------------------------
+     Glass with nothing behind it cannot look like glass. This is the "behind".
+     Authored CSS/SVG only — no images, no CDN, CSP-clean.
+     The prism streak is the single highest-value ingredient: it is the only
+     layer with HUE variation at a SMALL spatial scale, and small-scale hue
+     variation is exactly what refraction reveals. Four wide radial lights
+     alone read as a flat pastel wash (tested: the rail looked like a card). */
+  --amb-1: #5f9dff;   /* cool key light,  top-left  */
+  --amb-2: #b98cff;   /* violet fill,     top-right */
+  --amb-3: #3fd7bd;   /* teal bounce,     bottom    */
+  --amb-4: #ffb877;   /* warm rim,        mid-right */
+  --amb-strength-1: 0.80;
+  --amb-strength-2: 0.70;
+  --amb-strength-3: 0.62;
+  --amb-strength-4: 0.48;
+  --amb-streak: 0.5;  /* spectral fan crossing the rail column */
+  --amb-grain: 0.55;  /* high-frequency bite for blur AND refraction */
+
+  /* ---- glass body (treatment B — also the fallback for C) ---------------- */
+  --glass-blur: 12px;      /* was 20px: 20 over-frosts and kills the backdrop */
+  --glass-sat: 180%;
+  --glass-bright: 1.06;
+  --glass-contrast: 1.02;
+
+  /* Vertical tint RAMP, not a flat fill. A flat rgba() body is the single
+     biggest reason the old baseline reads as a card: a sheet of glass is never
+     one uniform value. Light arrives from above, so the top edge carries more. */
+  --glass-tint-top: rgba(255, 255, 255, 0.40);
+  --glass-tint-mid: rgba(255, 255, 255, 0.13);
+  --glass-tint-bot: rgba(255, 255, 255, 0.22);
+
+  /* Specular ring — a MASKED GRADIENT BORDER, never a flat 1px line. A real
+     rounded glass edge is lit at two opposing arcs and dark on the flanks. */
+  --ring-w: 1px;
+  --ring-1: rgba(255, 255, 255, 0.95);
+  --ring-2: rgba(255, 255, 255, 0.42);
+  --ring-3: rgba(255, 255, 255, 0.02);
+  --ring-4: rgba(255, 255, 255, 0.55);
+  --ring-5: rgba(255, 255, 255, 0.90);
+
+  /* Inner bloom: 1px hairlines on both edges + two soft interior gradients */
+  --glass-inner:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.90),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.45),
+    inset 0 14px 22px -20px rgba(255, 255, 255, 0.95),
+    inset 0 -18px 26px -22px rgba(255, 255, 255, 0.60);
+
+  /* Adaptive shadow: contact + near + mid + ambient. FOUR stops with negative
+     spread — that is what reads as "floating above". One 32px blob does not. */
+  --glass-shadow:
+    0 1px 1px rgba(14, 18, 32, 0.05),
+    0 4px 10px -3px rgba(14, 18, 32, 0.08),
+    0 14px 28px -8px rgba(14, 18, 32, 0.12),
+    0 30px 60px -22px rgba(14, 18, 32, 0.18);
+  /* WWDC25: shadow opacity rises while real content is behind the pane */
+  --glass-shadow-boost:
+    0 1px 1px rgba(14, 18, 32, 0.07),
+    0 5px 12px -3px rgba(14, 18, 32, 0.12),
+    0 16px 32px -8px rgba(14, 18, 32, 0.18),
+    0 34px 66px -22px rgba(14, 18, 32, 0.26);
+
+  --glass-edge-top: rgba(255, 255, 255, 0.28);
+  --glass-edge-bot: rgba(255, 255, 255, 0.14);
+
+  /* ---- lens geometry (treatment C — read by <PrismLens>) ----------------- */
+  --lens-bezel: 26;      /* px of bezel band measured in from the edge        */
+  --lens-thickness: 34;  /* px of virtual glass thickness (drives strength)   */
+  --lens-ior: 1.5;       /* refractive index of the virtual material          */
+  --lens-gain: 1;        /* artistic multiplier on the computed scale         */
+  --lens-rim-blur: 3;    /* stdDeviation applied BEFORE displacement.
+                            0 => the rim shows a pin-sharp compressed image.
+                            >=20 => the bend disappears entirely (verified:
+                            the stripe test card stopped bending). 3 is the
+                            usable window. */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --amb-1: #1e5fe0;
+    --amb-2: #7c3aed;
+    --amb-3: #0f9d8f;
+    --amb-4: #c2560a;
+    --amb-strength-1: 0.72;
+    --amb-strength-2: 0.66;
+    --amb-strength-3: 0.52;
+    --amb-strength-4: 0.36;
+    --amb-streak: 0.42;
+    --amb-grain: 0.70;
+
+    /* Dark glass: LESS saturation, MORE brightness. A dark pane over a dark
+       canvas disappears unless it LIFTS the backdrop. */
+    --glass-blur: 13px;
+    --glass-sat: 165%;
+    --glass-bright: 1.30;
+    --glass-contrast: 1.04;
+    --glass-tint-top: rgba(255, 255, 255, 0.095);
+    --glass-tint-mid: rgba(255, 255, 255, 0.02);
+    --glass-tint-bot: rgba(255, 255, 255, 0.05);
+    --ring-1: rgba(255, 255, 255, 0.62);
+    --ring-2: rgba(255, 255, 255, 0.20);
+    --ring-3: rgba(255, 255, 255, 0.02);
+    --ring-4: rgba(255, 255, 255, 0.24);
+    --ring-5: rgba(255, 255, 255, 0.50);
+    --glass-inner:
+      inset 0 1px 0.5px rgba(255, 255, 255, 0.30),
+      inset 0 -1px 0.5px rgba(255, 255, 255, 0.16),
+      inset 0 16px 26px -24px rgba(255, 255, 255, 0.55),
+      inset 0 -20px 30px -26px rgba(255, 255, 255, 0.35);
+    --glass-shadow:
+      0 1px 1px rgba(0, 0, 0, 0.30),
+      0 5px 12px -4px rgba(0, 0, 0, 0.40),
+      0 18px 36px -10px rgba(0, 0, 0, 0.45),
+      0 40px 70px -24px rgba(0, 0, 0, 0.55);
+    --glass-shadow-boost:
+      0 1px 1px rgba(0, 0, 0, 0.40),
+      0 6px 14px -4px rgba(0, 0, 0, 0.50),
+      0 20px 40px -10px rgba(0, 0, 0, 0.55),
+      0 44px 78px -24px rgba(0, 0, 0, 0.65);
+    --glass-edge-top: rgba(255, 255, 255, 0.10);
+    --glass-edge-bot: rgba(255, 255, 255, 0.05);
+  }
+}
+
+/* Repeat the dark block verbatim under :root[data-theme="dark"], and the light
+   block under :root[data-theme="light"], to keep the existing three-layer
+   override discipline in tokens.css. */

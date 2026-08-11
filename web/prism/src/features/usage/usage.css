@@ -1,0 +1,145 @@
+/* 用量分析 page chrome. Content layer only — everything here is SOLID
+   (var(--surface) / var(--surface-2)); the glass budget belongs to the shell's
+   rail, topbar and dock. No glass-on-glass, no third material.
+
+   Layout note: `.shell :is(.canvas, .canvas > section) > :not(section)` in
+   app.css hands every direct child of the page a left shift + matching padding
+   so surfaces underlap the rail. Anything that needs its OWN left padding
+   (the segmented tab control) therefore sits inside a plain wrapper that
+   absorbs the shift, instead of fighting that rule's specificity. */
+
+.usage-tabbar {
+  margin-top: 12px;
+}
+
+.usage-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 100px;
+  background: var(--surface-2);
+  border: 1px solid var(--separator);
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.usage-tabs::-webkit-scrollbar {
+  display: none;
+}
+.usage-tabs button {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 100px;
+  background: transparent;
+  color: var(--ink-2);
+}
+.usage-tabs button[aria-selected="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(14, 18, 32, 0.12);
+}
+
+/* metric switch — same chip vocabulary as the range presets */
+.usage-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.usage-chips button {
+  font-size: 12px;
+  padding: 5px 12px;
+}
+/* .chip-on / .chip-off come from app.css — sizing only here. */
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.card-head h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.card-note {
+  margin: 2px 0 0;
+  font-size: 12px;
+  /* --ink-2, not --ink-3: this is a sentence the user reads. See tokens.css. */
+  color: var(--ink-2);
+}
+
+/* the table view every chart is paired with (identity is never colour-alone,
+   and every plotted value stays reachable as text) */
+.chart-table {
+  margin-top: 10px;
+  font-size: 12.5px;
+}
+.chart-table summary {
+  cursor: pointer;
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+.chart-table .chart-table-scroll {
+  max-height: 220px;
+  overflow: auto;
+  margin-top: 6px;
+}
+.chart-table th,
+.chart-table td {
+  padding: 5px 12px;
+}
+.chart-table th:first-child,
+.chart-table td:first-child {
+  padding-left: 0;
+}
+
+.heat-detail-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.heat-detail-head h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.heat-detail-window {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.heat-kpis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+  margin: 12px 0 4px;
+}
+.heat-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.heat-kpi .stat-value {
+  font-size: 19px;
+}
+
+.usage-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+/* Links wear the tint (docs/07 §8: tint is the interactive colour), measured
+   4.9:1 on dark --surface and 4.7:1 on light — the UA default link blue is
+   neither. */
+.usage-link,
+.usage-drill {
+  color: var(--tint);
+}
+.usage-drill {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 13px;
+}

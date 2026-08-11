@@ -1,0 +1,528 @@
+/* Authored-SVG chart chrome. Every rule here styles SVG children by CLASS —
+   dynamic geometry rides presentation attributes instead, so nothing needs a
+   style attribute and `style-src 'self'` stays intact.
+
+   Marks follow the dataviz spec: 2px lines, >=8px markers with a 2px surface
+   ring, a ~10% area wash, hairline recessive grid, text in ink tokens (never
+   the series colour). */
+
+.chart-figure {
+  margin: 0;
+}
+.chart-figure figcaption {
+  font-size: 12px;
+  color: var(--ink-2);
+  margin-bottom: 6px;
+}
+
+/* The box is measured (useMeasuredWidth) and the SVG is emitted at 1:1, so one
+   type scale holds across every chart on the page regardless of card width. */
+.chart-box {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  margin-top: 4px;
+}
+.chart-svg {
+  display: block;
+  max-width: 100%;
+  touch-action: none;
+}
+
+.chart-grid {
+  stroke: var(--separator);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+/* Axis labels wear --ink-2, not --ink-3: measured on --surface they are
+   6.3:1 in dark and 5.9:1 in light, where --ink-3 falls to ~3.5:1 — too low for
+   11px numerals that carry the values the chart does not directly label. */
+.chart-axis-text {
+  fill: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.chart-axis-text[data-anchor="end"] {
+  text-anchor: end;
+}
+.chart-axis-text[data-anchor="middle"] {
+  text-anchor: middle;
+}
+
+.chart-line {
+  fill: none;
+  stroke: var(--chart-1);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart-area {
+  fill: var(--chart-1);
+  fill-opacity: 0.1;
+  stroke: none;
+}
+.chart-dot {
+  fill: var(--chart-1);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+.chart-endlabel {
+  fill: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-anchor: end;
+}
+
+.chart-crosshair {
+  stroke: var(--ink-3);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+/* Committed selection, as opposed to the transient crosshair above. It has to
+   stay legible while the crosshair is also on screen, so it is darker, wider
+   dashed, and carries a hollow ring the crosshair does not have — shape, not
+   just colour. */
+.chart-selected {
+  stroke: var(--ink-2);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+.chart-selected-dot {
+  fill: var(--surface);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.chart-hit {
+  fill: transparent;
+}
+.chart-tip-bg {
+  fill: var(--surface);
+  stroke: var(--separator);
+  stroke-width: 1;
+}
+.chart-tip-text {
+  fill: var(--ink);
+  font-family: var(--font-text);
+  font-size: 11px;
+}
+.chart-tip-text[data-role="value"] {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.chart-tip-text[data-role="meta"] {
+  fill: var(--ink-2);
+}
+
+/* ---- entity comparison: four series, hue + dash ---------------------------
+   The categorical palette has exactly four validated steps, which is why
+   COMPARE_LIMIT is 4 — a fifth series would have to reuse a hue or borrow from
+   the status pool, and both make the chart lie.
+
+   Each series also gets its own dash pattern. That is not decoration: it is the
+   redundant channel that keeps the lines tellable apart under forced-colors,
+   under a colour-vision deficiency, and in a greyscale print. Series 1 stays
+   solid so the leader reads as the plain case. */
+.chart-line[data-series="1"] { stroke: var(--chart-1); }
+.chart-line[data-series="2"] { stroke: var(--chart-2); stroke-dasharray: 7 4; }
+.chart-line[data-series="3"] { stroke: var(--chart-3); stroke-dasharray: 2 3; }
+.chart-line[data-series="4"] { stroke: var(--chart-4); stroke-dasharray: 9 3 2 3; }
+
+.chart-dot[data-series="1"] { fill: var(--chart-1); }
+.chart-dot[data-series="2"] { fill: var(--chart-2); }
+.chart-dot[data-series="3"] { fill: var(--chart-3); }
+.chart-dot[data-series="4"] { fill: var(--chart-4); }
+
+/* The tooltip lists every series at the cursor, so each row wears its own hue —
+   that is the only thing tying a number to a line once four of them overlap. */
+.chart-tip-text[data-series="1"] { fill: var(--chart-1); }
+.chart-tip-text[data-series="2"] { fill: var(--chart-2); }
+.chart-tip-text[data-series="3"] { fill: var(--chart-3); }
+.chart-tip-text[data-series="4"] { fill: var(--chart-4); }
+
+.chart-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+/* ---- rank table expansion (docs/07 §7.2 展开对比面板) ---------------------- */
+
+.rank-toggle-cell {
+  width: 1%;
+  white-space: nowrap;
+}
+.rank-toggle {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--separator);
+}
+.rank-toggle:hover {
+  color: var(--ink);
+}
+tr[data-expanded="true"] {
+  background: var(--surface-2);
+}
+.rank-detail-row > td {
+  background: var(--surface-2);
+}
+.rank-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 32px;
+  padding: 4px 0 10px;
+}
+.rank-detail-facts {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 6px 16px;
+  margin: 0;
+  font-size: 12.5px;
+}
+.rank-detail-facts dt {
+  color: var(--ink-2);
+}
+.rank-detail-facts dd {
+  margin: 0;
+  color: var(--ink);
+}
+.rank-detail-chart {
+  flex: 1 1 380px;
+  min-width: 0;
+}
+
+/* A selected bucket is echoed in the paired data table, so the mark is not
+   chart-only. */
+tr[data-selected="true"] {
+  background: color-mix(in srgb, var(--tint) 8%, transparent);
+}
+
+/* ---- selected-bucket detail on the trend tab ---- */
+
+.bucket-detail {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--r-inner);
+  background: var(--surface-2);
+  border: 1px solid var(--separator);
+}
+.bucket-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.bucket-facts {
+  display: grid;
+  /* Fixed pairs rather than auto-fit: with auto-fit a narrow viewport reflowed
+     one dt/dd pair onto its own row and the labels no longer lined up with the
+     values above them. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px 20px;
+  margin: 0;
+  font-size: 12.5px;
+}
+.bucket-facts dt {
+  color: var(--ink-2);
+  /* dt/dd alternate in source order, so an explicit row keeps every label in
+     row 1 and every value in row 2 regardless of column count. */
+  grid-row: 1;
+}
+.bucket-facts dd {
+  margin: 0;
+  color: var(--ink);
+  grid-row: 2;
+}
+
+@media (max-width: 720px) {
+  .bucket-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .bucket-facts dt,
+  .bucket-facts dd {
+    grid-row: auto;
+  }
+  .bucket-facts dd {
+    margin-bottom: 6px;
+  }
+}
+
+/* ---- zoom brush (>12 buckets) ---------------------------------------------
+   Two stacked <input type="range"> over a dimmed overview. The natives are kept
+   for keyboard/AT/touch support; only their appearance is replaced. */
+.zoom-brush {
+  margin-top: 12px;
+}
+.zoom-overview {
+  display: block;
+  width: 100%;
+  height: 30px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--separator);
+}
+.zoom-spark {
+  fill: none;
+  stroke: var(--chart-1);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.7;
+}
+.zoom-outside {
+  fill: var(--surface-2);
+  opacity: 0.72;
+}
+.zoom-window {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Both handles occupy the same row so they read as one control. The row overlays
+   the bottom of the overview rather than sitting below it: the thumbs have to
+   look like they grip the window edges, and a separate row underneath reads as
+   two unrelated sliders. */
+.zoom-handles {
+  position: relative;
+  height: 22px;
+  margin-top: -12px;
+}
+.zoom-handles input[type="range"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  /* Only the thumbs are interactive; the transparent track would otherwise
+     swallow clicks meant for the handle underneath. */
+  pointer-events: none;
+}
+.zoom-handles input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: auto;
+  width: 14px;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--ink-2);
+  cursor: ew-resize;
+}
+.zoom-handles input[type="range"]::-moz-range-thumb {
+  pointer-events: auto;
+  width: 14px;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--ink-2);
+  cursor: ew-resize;
+}
+.zoom-handles input[type="range"]:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--tint);
+  outline-offset: 1px;
+}
+.zoom-handles input[type="range"]:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--tint);
+  outline-offset: 1px;
+}
+
+.zoom-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.zoom-reset {
+  font-size: 12px;
+  padding: 3px 10px;
+}
+
+/* Legend: swatch carries the same dash pattern as its line, so the mapping is
+   readable without hovering the chart. */
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+}
+.chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink);
+}
+.chart-legend svg {
+  flex: none;
+}
+
+/* ---- heatmap: ONE hue, lightness ramp, step 0 reserved for "no traffic" ----
+   The ramp mixes the categorical hue into the SURFACE, so it reads as "more of
+   the same thing" in both themes. Dark needs a steeper first step: over
+   #1e1e26 a 14% mix is indistinguishable from the empty cell, which would make
+   "a little traffic" look like "none". Three-layer theming, same as tokens. */
+:root {
+  --heat-1: 14%;
+  --heat-2: 31%;
+  --heat-3: 50%;
+  --heat-4: 72%;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --heat-1: 26%;
+    --heat-2: 44%;
+    --heat-3: 62%;
+    --heat-4: 80%;
+  }
+}
+:root[data-theme="dark"] {
+  --heat-1: 26%;
+  --heat-2: 44%;
+  --heat-3: 62%;
+  --heat-4: 80%;
+}
+:root[data-theme="light"] {
+  --heat-1: 14%;
+  --heat-2: 31%;
+  --heat-3: 50%;
+  --heat-4: 72%;
+}
+
+.heat-cell {
+  fill: var(--surface-2);
+  stroke: transparent;
+  stroke-width: 2;
+  cursor: pointer;
+}
+.heat-cell[data-step="1"] { fill: color-mix(in oklab, var(--chart-1) var(--heat-1), var(--surface-2)); }
+.heat-cell[data-step="2"] { fill: color-mix(in oklab, var(--chart-1) var(--heat-2), var(--surface-2)); }
+.heat-cell[data-step="3"] { fill: color-mix(in oklab, var(--chart-1) var(--heat-3), var(--surface-2)); }
+.heat-cell[data-step="4"] { fill: color-mix(in oklab, var(--chart-1) var(--heat-4), var(--surface-2)); }
+.heat-cell[data-step="5"] { fill: var(--chart-1); }
+.heat-cell[data-selected="true"] {
+  stroke: var(--ink);
+}
+.heat-cell:hover {
+  stroke: var(--ink-2);
+}
+.heat-cell:focus-visible {
+  outline: none;
+  stroke: var(--tint);
+}
+
+.heat-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.heat-legend-swatches {
+  display: flex;
+  gap: 2px;
+}
+.heat-swatch {
+  width: 26px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--separator);
+}
+.heat-swatch[data-step="1"] { background: color-mix(in oklab, var(--chart-1) var(--heat-1), var(--surface-2)); border-color: transparent; }
+.heat-swatch[data-step="2"] { background: color-mix(in oklab, var(--chart-1) var(--heat-2), var(--surface-2)); border-color: transparent; }
+.heat-swatch[data-step="3"] { background: color-mix(in oklab, var(--chart-1) var(--heat-3), var(--surface-2)); border-color: transparent; }
+.heat-swatch[data-step="4"] { background: color-mix(in oklab, var(--chart-1) var(--heat-4), var(--surface-2)); border-color: transparent; }
+.heat-swatch[data-step="5"] { background: var(--chart-1); border-color: transparent; }
+
+/* ---- rank table share bar: magnitude, one hue, never a rank colour ---- */
+
+.share-cell {
+  min-width: 168px;
+}
+.share-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.share-bar {
+  display: block;
+  flex: none;
+  width: 120px;
+  height: 8px;
+}
+.share-track {
+  fill: var(--surface-2);
+}
+/* An expanded row's background IS --surface-2, so the track vanished into it and
+   the bar looked shorter than its neighbours (measured identical — only the
+   track was gone). Step it one level away from whichever surface it sits on. */
+tr[data-expanded="true"] .share-track {
+  fill: color-mix(in srgb, var(--ink) 9%, var(--surface-2));
+}
+.share-fill {
+  fill: var(--chart-1);
+}
+.share-value {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+/* Reduced motion / opaque modes: the charts carry no motion, but hover chrome
+   should not shimmer under prefers-reduced-motion either. */
+@media (prefers-reduced-motion: reduce) {
+  .chart-svg,
+  .heat-cell {
+    transition: none;
+  }
+}
+
+/* High-contrast / forced-colors: hue is no longer a dependable channel, so the
+   grid and the marks fall back to system ink and the heatmap keeps its ramp as
+   an ordered opacity of one colour. */
+@media (prefers-contrast: more) {
+  .chart-grid {
+    stroke: var(--ink-3);
+  }
+  .chart-tip-bg {
+    stroke: var(--ink-2);
+  }
+  .heat-cell {
+    stroke: var(--separator);
+  }
+}
+
+/* forced-colors overrides every author colour, so the four comparison hues all
+   collapse to the same system stroke. The dash patterns are what survive, and
+   they are already the redundant channel — pin them here so the collapse is a
+   documented outcome rather than four identical lines. */
+@media (forced-colors: active) {
+  .chart-line[data-series] {
+    stroke: CanvasText;
+  }
+  .chart-line[data-series="1"] { stroke-width: 3; }
+  .chart-line[data-series="2"] { stroke-width: 2; }
+  .chart-line[data-series="3"] { stroke-width: 2; }
+  .chart-line[data-series="4"] { stroke-width: 1.5; }
+  .chart-tip-text[data-series] {
+    fill: CanvasText;
+  }
+}

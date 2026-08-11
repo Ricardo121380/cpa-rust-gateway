@@ -1,0 +1,515 @@
+/* Runtime page (docs/07 §7.5).
+   Everything here is CONTENT: solid surfaces on the solid canvas, zero
+   backdrop-filter, so the shell's three-glass-pane budget is untouched.
+
+   Every rule is scoped under .runtime-page so this file can never reach
+   another page's markup.
+
+   COLOUR DISCIPLINE — the state chip is the page's one new primitive, and it
+   splits its two jobs on purpose:
+     - the GLYPH and the tinted body carry the status colour (icon/graphic
+       contrast, >=3:1 against the card, which the status pool already meets);
+     - the LABEL is --ink, so the text a person actually reads measures ~14:1
+       in light and ~13:1 in dark, on every one of the six states.
+   The alternative (status colour as the text colour, like .badge) measures
+   3.2-3.8:1 for warn/good on a tinted white card — below AA for 12px text.
+   Colour is therefore never the only channel AND never the legibility path. */
+
+.runtime-page .rt-card {
+  margin-top: 14px;
+}
+
+/* ---- card head: title + help, with room for one control ---------------- */
+
+/* Horizontal rhythm. A plain .card pads itself, so its blocks sit at margin 0;
+   .card.tablewrap gives its padding to th/td:first-child instead, so the blocks
+   that are NOT table rows have to reproduce that same 20px themselves. Getting
+   this wrong is what makes a card's title drift right of its own table. */
+.runtime-page .rt-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 12px;
+}
+.runtime-page .card.tablewrap .rt-head,
+.runtime-page .card.tablewrap .rt-legend,
+.runtime-page .card.tablewrap .rt-footnote,
+.runtime-page .card.tablewrap .empty-state[data-kind="unavailable"] {
+  margin-left: 20px;
+  margin-right: 20px;
+}
+/* …and the mirror case: inside a plain card the table must not re-pad. */
+.runtime-page .card:not(.tablewrap) :is(th, td):first-child {
+  padding-left: 0;
+}
+.runtime-page .rt-head-text {
+  min-width: 0;
+}
+.runtime-page .rt-head h3 {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+/* the contract operation this panel is a view of — named, not paraphrased */
+.runtime-page .rt-op {
+  /* 12px, on the ladder (DESIGN.md §6.2). 11.5px was a size this page invented
+     for itself and it sat between two existing steps for no reason. */
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+.runtime-page .rt-help {
+  margin: 0;
+  max-width: 78ch;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+.runtime-page .rt-help strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.runtime-page .rt-help .rt-warn {
+  display: block;
+  margin-top: 4px;
+  color: var(--status-serious);
+}
+.runtime-page .rt-head-aside {
+  flex: none;
+}
+.runtime-page .rt-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.runtime-page .rt-footnote {
+  margin: 10px 0 0;
+  font-size: 12px;
+  /* ink-3 measures 3.26:1 on the card — fine for a dot, not for a sentence */
+  color: var(--ink-2);
+}
+
+/* ---- poll status in the page head -------------------------------------- */
+
+.runtime-page .rt-poll {
+  align-items: center;
+}
+.runtime-page .rt-poll-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.runtime-page .rt-poll-state::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+.runtime-page .rt-poll-state[data-live="true"]::before {
+  background: var(--status-good);
+}
+
+/* ---- the state chip: colour + shape + text ----------------------------- */
+
+.runtime-page .rt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--separator);
+}
+.runtime-page .rt-glyph {
+  display: inline-block;
+  min-width: 1em;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--ink-3);
+}
+
+/* one rule per state: tinted body + status-coloured glyph, ink label */
+.runtime-page .rt-chip[data-state="available"],
+.runtime-page .rt-chip[data-state="fresh"],
+.runtime-page .rt-chip[data-state="selected"],
+.runtime-page .rt-chip[data-state="probe_scheduled"] {
+  background: color-mix(in srgb, var(--status-good) 13%, var(--surface));
+  border-color: color-mix(in srgb, var(--status-good) 34%, transparent);
+}
+.runtime-page .rt-chip[data-state="available"] .rt-glyph,
+.runtime-page .rt-chip[data-state="fresh"] .rt-glyph,
+.runtime-page .rt-chip[data-state="selected"] .rt-glyph,
+.runtime-page .rt-chip[data-state="probe_scheduled"] .rt-glyph {
+  color: var(--status-good);
+}
+
+/* warn is the darkest member of the light status pool, so its glyph has the
+   least headroom: measured 3.08:1 at a 15% body, 3.4:1 at 11%. */
+.runtime-page .rt-chip[data-state="cooldown"],
+.runtime-page .rt-chip[data-state="stale"] {
+  background: color-mix(in srgb, var(--status-warn) 11%, var(--surface));
+  border-color: color-mix(in srgb, var(--status-warn) 38%, transparent);
+}
+.runtime-page .rt-chip[data-state="cooldown"] .rt-glyph,
+.runtime-page .rt-chip[data-state="stale"] .rt-glyph {
+  color: var(--status-warn);
+}
+
+.runtime-page .rt-chip[data-state="circuit_open"],
+.runtime-page .rt-chip[data-state="quota_blocked"],
+.runtime-page .rt-chip[data-state="expired"],
+.runtime-page .rt-chip[data-state="rejected"] {
+  background: color-mix(in srgb, var(--status-serious) 13%, var(--surface));
+  border-color: color-mix(in srgb, var(--status-serious) 34%, transparent);
+}
+.runtime-page .rt-chip[data-state="circuit_open"] .rt-glyph,
+.runtime-page .rt-chip[data-state="quota_blocked"] .rt-glyph,
+.runtime-page .rt-chip[data-state="expired"] .rt-glyph,
+.runtime-page .rt-chip[data-state="rejected"] .rt-glyph {
+  color: var(--status-serious);
+}
+
+.runtime-page .rt-chip[data-state="credential_forbidden"] {
+  background: color-mix(in srgb, var(--status-critical) 13%, var(--surface));
+  border-color: color-mix(in srgb, var(--status-critical) 34%, transparent);
+}
+.runtime-page .rt-chip[data-state="credential_forbidden"] .rt-glyph {
+  color: var(--status-critical);
+}
+
+.runtime-page .rt-chip[data-state="recovery_required"] {
+  background: color-mix(in srgb, var(--tint) 13%, var(--surface));
+  border-color: color-mix(in srgb, var(--tint) 34%, transparent);
+}
+.runtime-page .rt-chip[data-state="recovery_required"] .rt-glyph {
+  color: var(--tint);
+}
+
+/* absent pair and unknown enum member: deliberately colourless */
+.runtime-page .rt-chip[data-state="none"],
+.runtime-page .rt-chip[data-state="missing"],
+.runtime-page .rt-chip[data-state="excluded"],
+.runtime-page .rt-chip[data-state="unknown"] {
+  color: var(--ink-2);
+  background: transparent;
+  border-style: dashed;
+}
+
+/* ---- summary row: one count per present state -------------------------- */
+
+.runtime-page .rt-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.runtime-page .rt-count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--r-inner);
+  background: var(--surface);
+  border: 1px solid var(--separator);
+}
+.runtime-page .rt-count .rt-glyph {
+  font-size: 12px;
+}
+.runtime-page .rt-count-value {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.runtime-page .rt-count-label {
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.runtime-page .rt-count-enum {
+  font-size: 11px;
+  color: var(--ink-2);
+}
+.runtime-page .rt-count[data-state="available"] .rt-glyph {
+  color: var(--status-good);
+}
+.runtime-page .rt-count[data-state="cooldown"] .rt-glyph {
+  color: var(--status-warn);
+}
+.runtime-page .rt-count[data-state="circuit_open"] .rt-glyph,
+.runtime-page .rt-count[data-state="quota_blocked"] .rt-glyph {
+  color: var(--status-serious);
+}
+.runtime-page .rt-count[data-state="credential_forbidden"] .rt-glyph {
+  color: var(--status-critical);
+}
+.runtime-page .rt-count[data-state="recovery_required"] .rt-glyph {
+  color: var(--tint);
+}
+
+/* ---- the matrix -------------------------------------------------------- */
+
+.runtime-page .rt-matrix-scroll {
+  overflow-x: auto;
+}
+/* Columns hug their content instead of stretching to 100%: two credentials
+   must not sit half a screen apart, and twenty must scroll rather than crush. */
+.runtime-page .rt-matrix {
+  width: auto;
+  min-width: max-content;
+}
+.runtime-page .rt-matrix .rt-cell,
+.runtime-page .rt-matrix th[scope="col"] {
+  min-width: 132px;
+}
+/* .tablewrap only clears the last row's td border; the row head is a th */
+.runtime-page .rt-matrix tbody tr:last-child th {
+  border-bottom: none;
+}
+.runtime-page .rt-matrix th[scope="col"] {
+  font-family: var(--font-mono);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  color: var(--ink-2);
+  vertical-align: bottom;
+}
+.runtime-page .rt-matrix .rt-corner {
+  font-family: var(--font-text);
+  font-size: 11px;
+  /* This one names the two axes ("endpoint \ credential") — it is the label a
+     reader needs to parse the matrix, not a caption repeating visible data, so
+     it takes --ink-2. See tokens.css on --ink-3. */
+  color: var(--ink-2);
+  text-transform: none;
+}
+.runtime-page .rt-matrix .rt-rowhead {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0;
+  /* the row label must survive horizontal scrolling of a wide matrix */
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+}
+.runtime-page .rt-matrix .rt-cell,
+.runtime-page .rt-matrix th[scope="col"]:not(.rt-corner) {
+  text-align: center;
+}
+
+/* ---- legend: chip / enum / semantics ----------------------------------- */
+
+.runtime-page .rt-legend {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 6px 14px;
+  margin: 14px 0 4px;
+  max-width: 760px;
+  font-size: 12.5px;
+}
+.runtime-page .rt-legend-row {
+  display: contents;
+}
+.runtime-page .rt-legend dt,
+.runtime-page .rt-legend dd {
+  margin: 0;
+  align-self: center;
+}
+.runtime-page .rt-legend-enum {
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+.runtime-page .rt-legend-detail {
+  color: var(--ink-2);
+}
+
+/* ---- catalog stage column ---------------------------------------------- */
+
+.runtime-page .rt-stage {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.runtime-page .rt-stage[data-stage="refresh_due"],
+.runtime-page .rt-stage[data-stage="hard_expired"] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ---- explain form ------------------------------------------------------ */
+
+.runtime-page .rt-explain-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 0 0 14px;
+}
+.runtime-page .rt-explain-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.runtime-page .rt-explain-form input,
+.runtime-page .rt-explain-form select {
+  padding: 7px 10px;
+  border-radius: var(--r-inner);
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  min-width: 200px;
+}
+.runtime-page .rt-explain-summary {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.runtime-page .rt-error-text {
+  font-size: 12.5px;
+  color: var(--status-critical);
+}
+
+/* ---- state blocks ------------------------------------------------------ */
+
+.runtime-page .empty-state {
+  padding: 28px 20px;
+}
+.runtime-page .empty-state[data-kind="unavailable"] {
+  border: 1px dashed color-mix(in srgb, var(--status-serious) 45%, transparent);
+  border-radius: var(--r-inner);
+  margin: 0 0 4px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--status-serious) 5%, transparent);
+}
+.runtime-page .empty-state[data-kind="filtered"],
+.runtime-page .empty-state[data-kind="loading"] {
+  color: var(--ink-2);
+}
+.runtime-page .empty-state[data-kind="error"] {
+  color: var(--status-critical);
+}
+/* The detail line under every empty state is the HONEST part — it says which
+   of the four emptinesses this is. It is not decoration, so it does not get
+   decoration's contrast: ink-2 (5.1:1) rather than the shared .muted-3. */
+.runtime-page .empty-state small,
+.runtime-page .empty-state small.muted-3 {
+  display: inline-block;
+  max-width: 72ch;
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+/* ---- a11y degradations -------------------------------------------------
+   The page has no glass, so nothing to de-frost — but the chips lean on
+   low-alpha tints, which flatten under a forced-contrast setting. Give them a
+   solid border and a stronger body there, and drop the tint entirely when the
+   platform asks for reduced transparency. */
+
+@media (prefers-contrast: more) {
+  .runtime-page .rt-chip {
+    border-width: 1px;
+    border-color: currentColor;
+    font-weight: 700;
+  }
+  .runtime-page .rt-chip[data-state="none"],
+  .runtime-page .rt-chip[data-state="missing"],
+  .runtime-page .rt-chip[data-state="excluded"],
+  .runtime-page .rt-chip[data-state="unknown"] {
+    border-style: solid;
+  }
+  .runtime-page .rt-help,
+  .runtime-page .rt-legend-detail,
+  .runtime-page .rt-stage,
+  .runtime-page .rt-count-enum,
+  .runtime-page .rt-legend-enum {
+    color: var(--ink);
+  }
+  .runtime-page .empty-state[data-kind="unavailable"] {
+    border-style: solid;
+    border-color: var(--status-serious);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .runtime-page .rt-chip {
+    background: var(--surface-2);
+    border-color: var(--separator);
+  }
+  .runtime-page .empty-state[data-kind="unavailable"] {
+    background: var(--surface-2);
+  }
+}
+
+/* Nothing on this page animates; the rule is here so a future hover/anneal
+   addition cannot forget it. */
+@media (prefers-reduced-motion: reduce) {
+  .runtime-page * {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* ---- narrow ------------------------------------------------------------ */
+
+@media (max-width: 720px) {
+  .runtime-page .rt-head {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .runtime-page .rt-legend {
+    grid-template-columns: auto 1fr;
+  }
+  .runtime-page .rt-legend-enum {
+    display: none;
+  }
+  .runtime-page .rt-explain-form input,
+  .runtime-page .rt-explain-form select {
+    min-width: 0;
+    width: 100%;
+  }
+  .runtime-page .rt-explain-form label {
+    flex: 1 1 100%;
+  }
+}
+
+/* A credential id that opens its detail sheet. It reads as the id it is —
+   monospace, inheriting the cell's size — with the tint and an underline
+   carrying the affordance, so the matrix header stays a header. */
+.runtime-page .idbtn {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  color: var(--tint);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--tint) 45%, transparent);
+  cursor: pointer;
+}
+.runtime-page .idbtn:hover,
+.runtime-page .idbtn:focus-visible {
+  text-decoration-color: currentColor;
+}

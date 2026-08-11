@@ -1,0 +1,419 @@
+/* Prism design tokens — docs/07 §8.2. Three-layer theming:
+   :root (light) → @media prefers-color-scheme (dark) → [data-theme] override. */
+
+:root {
+  /* canvas / surface / ink */
+  --canvas: #f2f2f7;
+  --canvas-ambient: linear-gradient(160deg, #c8d8e8 0%, #e8e4f0 45%, #d4e4e0 100%);
+  --surface: #ffffff;
+  --surface-2: #f7f7fa;
+  --ink: #1d1d1f;
+  --ink-2: #6e6e73;
+  /* --ink-3 is NOT a body-text colour. It measures 3.26:1 on --surface and
+     2.92:1 on --canvas, so any sentence a user has to read must use --ink-2
+     (5.07:1) instead. Keep --ink-3 for non-text and incidental marks where AA
+     does not apply: chart grid lines and axis ticks, the uppercase 11px column
+     labels that repeat the data directly below them, status dots. An
+     explanatory paragraph in --ink-3 is a bug — that is how .card-note shipped
+     at 3.3:1. Raising the token is not the fix: any value clearing 4.5:1 on
+     --surface-2 lands within 0.1 of --ink-2 and collapses the three-step ramp
+     into two. */
+  --ink-3: #8e8e93;
+  --separator: rgba(0, 0, 0, 0.1);
+  --tint: #0071e3;
+  --tint-ink: #ffffff;
+  /* Solid FILL behind --tint-ink. Separate from --tint because --tint has to
+     stay bright enough to read as a label on a light surface (and doubles as
+     --chart-1's hue), while a fill carrying 12-13px white text has to clear
+     4.5:1 against white. In light mode the two coincide (#0071e3 measures
+     4.70:1); in dark mode they cannot — see the dark block. */
+  --tint-fill: #0071e3;
+
+  /* status pool — badges only, never chart series */
+  --status-good: #248a3d;
+  --status-warn: #b7791f;
+  --status-serious: #c93400;
+  --status-critical: #d70015;
+
+  /* categorical chart palette (validated light steps) */
+  --chart-1: #0066d6;
+  --chart-2: #b85f00;
+  --chart-3: #0079ab;
+  --chart-4: #c41e77;
+
+  /* glass material (Regular variant) */
+
+  /* Material semantics: config-version state, as glass (docs/07 §8.4).
+     These are the SHIPPED values, measured on this shell — the earlier set
+     (draft 28px/120%, active 14px/190%, archived 20px/80%) was authored before
+     the ambient layer existed and read as three barely-distinguishable frosts
+     once there was real content to refract. Both render paths consume these:
+     --mat-*-blur/-sat for the layered fallback, --mat-*-frost/-lsat for the
+     SVG lens, so a state can never move on one path and not the other. */
+  --mat-draft-blur: 22px;
+  --mat-draft-sat: 120%;
+  --mat-draft-frost: 20;
+  --mat-draft-lsat: 1.2;
+  --mat-active-blur: 11px;
+  --mat-active-sat: 195%;
+  --mat-active-frost: 9;
+  --mat-active-lsat: 1.85;
+  --mat-archived-blur: 16px;
+  --mat-archived-sat: 70%;
+  --mat-archived-frost: 13;
+  --mat-archived-lsat: 0.8;
+
+  /* geometry: concentric radii — inner = outer − padding */
+  --r-outer: 20px;
+  --pad: 8px;
+  --r-inner: calc(var(--r-outer) - var(--pad));
+
+  /* motion */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur: 200ms;
+  --dur-anneal: 600ms;
+
+  /* type */
+  --font-text: -apple-system, "SF Pro Text", system-ui, "PingFang SC",
+    "Hiragino Sans GB", sans-serif;
+  --font-display: -apple-system, "SF Pro Display", system-ui, "PingFang SC",
+    sans-serif;
+  --font-mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  /* ==== ambient + glass material (ported from proto/port) ==== */
+  /* ---- ambient background ------------------------------------------------
+     Glass with nothing behind it cannot look like glass. This is the "behind".
+     Authored CSS/SVG only — no images, no CDN, CSP-clean.
+     The prism streak is the single highest-value ingredient: it is the only
+     layer with HUE variation at a SMALL spatial scale, and small-scale hue
+     variation is exactly what refraction reveals. Four wide radial lights
+     alone read as a flat pastel wash (tested: the rail looked like a card). */
+  --amb-1: #5f9dff;   /* cool key light,  top-left  */
+  --amb-2: #b98cff;   /* violet fill,     top-right */
+  --amb-3: #3fd7bd;   /* teal bounce,     bottom    */
+  --amb-4: #ffb877;   /* warm rim,        mid-right */
+  --amb-strength-1: 0.42;
+  --amb-strength-2: 0.38;
+  --amb-strength-3: 0.34;
+  --amb-strength-4: 0.26;
+  --amb-streak: 0.32;  /* spectral fan crossing the rail column */
+  --amb-grain: 0.40;  /* high-frequency bite for blur AND refraction */
+
+  /* ---- glass body (treatment B — also the fallback for C) ---------------- */
+  --glass-blur: 12px;      /* was 20px: 20 over-frosts and kills the backdrop */
+  --glass-sat: 180%;
+  --glass-bright: 1.06;
+  --glass-contrast: 1.02;
+
+  /* Vertical tint RAMP, not a flat fill. A flat rgba() body is the single
+     biggest reason the old baseline reads as a card: a sheet of glass is never
+     one uniform value. Light arrives from above, so the top edge carries more. */
+  --glass-tint-top: rgba(255, 255, 255, 0.62);
+  --glass-tint-mid: rgba(255, 255, 255, 0.44);
+  --glass-tint-bot: rgba(255, 255, 255, 0.52);
+
+  /* Specular ring — a MASKED GRADIENT BORDER, never a flat 1px line. A real
+     rounded glass edge is lit at two opposing arcs and dark on the flanks. */
+  --ring-w: 1px;
+  --ring-1: rgba(255, 255, 255, 0.95);
+  --ring-2: rgba(255, 255, 255, 0.42);
+  --ring-3: rgba(255, 255, 255, 0.02);
+  --ring-4: rgba(255, 255, 255, 0.55);
+  --ring-5: rgba(255, 255, 255, 0.90);
+
+  /* Inner bloom: 1px hairlines on both edges + two soft interior gradients */
+  --glass-inner:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.90),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.45),
+    inset 0 14px 22px -20px rgba(255, 255, 255, 0.95),
+    inset 0 -18px 26px -22px rgba(255, 255, 255, 0.60);
+
+  /* Adaptive shadow: contact + near + mid + ambient. FOUR stops with negative
+     spread — that is what reads as "floating above". One 32px blob does not. */
+  --glass-shadow:
+    0 1px 1px rgba(14, 18, 32, 0.05),
+    0 4px 10px -3px rgba(14, 18, 32, 0.08),
+    0 14px 28px -8px rgba(14, 18, 32, 0.12),
+    0 30px 60px -22px rgba(14, 18, 32, 0.18);
+  /* WWDC25: shadow opacity rises while real content is behind the pane */
+  --glass-shadow-boost:
+    0 1px 1px rgba(14, 18, 32, 0.07),
+    0 5px 12px -3px rgba(14, 18, 32, 0.12),
+    0 16px 32px -8px rgba(14, 18, 32, 0.18),
+    0 34px 66px -22px rgba(14, 18, 32, 0.26);
+
+  --glass-edge-top: rgba(255, 255, 255, 0.28);
+  --glass-edge-bot: rgba(255, 255, 255, 0.14);
+
+  /* ---- lens geometry (treatment C — read by <PrismLens>) ----------------- */
+  --lens-bezel: 26;      /* px of bezel band measured in from the edge        */
+  --lens-thickness: 34;  /* px of virtual glass thickness (drives strength)   */
+  --lens-ior: 1.5;       /* refractive index of the virtual material          */
+  --lens-gain: 1;        /* artistic multiplier on the computed scale         */
+  --lens-rim-blur: 3;    /* stdDeviation applied BEFORE displacement.
+                            0 => the rim shows a pin-sharp compressed image.
+                            >=20 => the bend disappears entirely (verified:
+                            the stripe test card stopped bending). 3 is the
+                            usable window. */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #0b0b10;
+    --canvas-ambient: linear-gradient(160deg, #101826 0%, #181428 45%, #0e1e1e 100%);
+    --surface: #16161d;
+    --surface-2: #1e1e26;
+    --ink: #f5f5f7;
+    --ink-2: #98989d;
+    --ink-3: #6e6e76;
+    --separator: rgba(255, 255, 255, 0.1);
+    --tint: #0a84ff;
+    /* White 12-13px text on #0a84ff measures 3.65:1 — below AA. --tint itself
+       must stay this bright (it is nav/link ink on a near-black surface, and
+       --chart-1's hue), so the FILL darkens instead: white on #0f6fd6 is
+       4.92:1. Same reading, same hue family, AA-clean. */
+    --tint-fill: #0f6fd6;
+    --status-good: #30d158;
+    --status-warn: #ffd60a;
+    --status-serious: #ff9f0a;
+    --status-critical: #ff453a;
+    --chart-1: #0a84ff;
+    --chart-2: #cc7a00;
+    --chart-3: #2196c9;
+    --chart-4: #db4e92;
+  --amb-1: #1e5fe0;
+  --amb-2: #7c3aed;
+  --amb-3: #0f9d8f;
+  --amb-4: #c2560a;
+  --amb-strength-1: 0.34;
+  --amb-strength-2: 0.30;
+  --amb-strength-3: 0.26;
+  --amb-strength-4: 0.20;
+  --amb-streak: 0.26;
+  --amb-grain: 0.45;
+
+  /* Dark glass: LESS saturation, MORE brightness. A dark pane over a dark
+     canvas disappears unless it LIFTS the backdrop. */
+  --glass-blur: 13px;
+  --glass-sat: 165%;
+  --glass-bright: 1.04;
+  --glass-contrast: 1.04;
+  --glass-tint-top: rgba(12, 12, 18, 0.52);
+  --glass-tint-mid: rgba(12, 12, 18, 0.40);
+  --glass-tint-bot: rgba(12, 12, 18, 0.48);
+  --ring-1: rgba(255, 255, 255, 0.62);
+  --ring-2: rgba(255, 255, 255, 0.20);
+  --ring-3: rgba(255, 255, 255, 0.02);
+  --ring-4: rgba(255, 255, 255, 0.24);
+  --ring-5: rgba(255, 255, 255, 0.50);
+  --glass-inner:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.30),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.16),
+    inset 0 16px 26px -24px rgba(255, 255, 255, 0.55),
+    inset 0 -20px 30px -26px rgba(255, 255, 255, 0.35);
+  --glass-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.30),
+    0 5px 12px -4px rgba(0, 0, 0, 0.40),
+    0 18px 36px -10px rgba(0, 0, 0, 0.45),
+    0 40px 70px -24px rgba(0, 0, 0, 0.55);
+  --glass-shadow-boost:
+    0 1px 1px rgba(0, 0, 0, 0.40),
+    0 6px 14px -4px rgba(0, 0, 0, 0.50),
+    0 20px 40px -10px rgba(0, 0, 0, 0.55),
+    0 44px 78px -24px rgba(0, 0, 0, 0.65);
+  --glass-edge-top: rgba(255, 255, 255, 0.10);
+  --glass-edge-bot: rgba(255, 255, 255, 0.05);
+  }
+}
+
+:root[data-theme="light"] {
+  --canvas: #f2f2f7;
+  --canvas-ambient: linear-gradient(160deg, #c8d8e8 0%, #e8e4f0 45%, #d4e4e0 100%);
+  --surface: #ffffff;
+  --surface-2: #f7f7fa;
+  --ink: #1d1d1f;
+  --ink-2: #6e6e73;
+  --ink-3: #8e8e93;
+  --separator: rgba(0, 0, 0, 0.1);
+  --tint: #0071e3;
+  --status-good: #248a3d;
+  --status-warn: #b7791f;
+  --status-serious: #c93400;
+  --status-critical: #d70015;
+  --chart-1: #0066d6;
+  --chart-2: #b85f00;
+  --chart-3: #0079ab;
+  --chart-4: #c41e77;
+
+  /* ---- ambient background ------------------------------------------------
+     Glass with nothing behind it cannot look like glass. This is the "behind".
+     Authored CSS/SVG only — no images, no CDN, CSP-clean.
+     The prism streak is the single highest-value ingredient: it is the only
+     layer with HUE variation at a SMALL spatial scale, and small-scale hue
+     variation is exactly what refraction reveals. Four wide radial lights
+     alone read as a flat pastel wash (tested: the rail looked like a card). */
+  --amb-1: #5f9dff;   /* cool key light,  top-left  */
+  --amb-2: #b98cff;   /* violet fill,     top-right */
+  --amb-3: #3fd7bd;   /* teal bounce,     bottom    */
+  --amb-4: #ffb877;   /* warm rim,        mid-right */
+  --amb-strength-1: 0.42;
+  --amb-strength-2: 0.38;
+  --amb-strength-3: 0.34;
+  --amb-strength-4: 0.26;
+  --amb-streak: 0.32;  /* spectral fan crossing the rail column */
+  --amb-grain: 0.40;  /* high-frequency bite for blur AND refraction */
+
+  /* ---- glass body (treatment B — also the fallback for C) ---------------- */
+  --glass-blur: 12px;      /* was 20px: 20 over-frosts and kills the backdrop */
+  --glass-sat: 180%;
+  --glass-bright: 1.06;
+  --glass-contrast: 1.02;
+
+  /* Vertical tint RAMP, not a flat fill. A flat rgba() body is the single
+     biggest reason the old baseline reads as a card: a sheet of glass is never
+     one uniform value. Light arrives from above, so the top edge carries more. */
+  --glass-tint-top: rgba(255, 255, 255, 0.62);
+  --glass-tint-mid: rgba(255, 255, 255, 0.44);
+  --glass-tint-bot: rgba(255, 255, 255, 0.52);
+
+  /* Specular ring — a MASKED GRADIENT BORDER, never a flat 1px line. A real
+     rounded glass edge is lit at two opposing arcs and dark on the flanks. */
+  --ring-w: 1px;
+  --ring-1: rgba(255, 255, 255, 0.95);
+  --ring-2: rgba(255, 255, 255, 0.42);
+  --ring-3: rgba(255, 255, 255, 0.02);
+  --ring-4: rgba(255, 255, 255, 0.55);
+  --ring-5: rgba(255, 255, 255, 0.90);
+
+  /* Inner bloom: 1px hairlines on both edges + two soft interior gradients */
+  --glass-inner:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.90),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.45),
+    inset 0 14px 22px -20px rgba(255, 255, 255, 0.95),
+    inset 0 -18px 26px -22px rgba(255, 255, 255, 0.60);
+
+  /* Adaptive shadow: contact + near + mid + ambient. FOUR stops with negative
+     spread — that is what reads as "floating above". One 32px blob does not. */
+  --glass-shadow:
+    0 1px 1px rgba(14, 18, 32, 0.05),
+    0 4px 10px -3px rgba(14, 18, 32, 0.08),
+    0 14px 28px -8px rgba(14, 18, 32, 0.12),
+    0 30px 60px -22px rgba(14, 18, 32, 0.18);
+  /* WWDC25: shadow opacity rises while real content is behind the pane */
+  --glass-shadow-boost:
+    0 1px 1px rgba(14, 18, 32, 0.07),
+    0 5px 12px -3px rgba(14, 18, 32, 0.12),
+    0 16px 32px -8px rgba(14, 18, 32, 0.18),
+    0 34px 66px -22px rgba(14, 18, 32, 0.26);
+
+  --glass-edge-top: rgba(255, 255, 255, 0.28);
+  --glass-edge-bot: rgba(255, 255, 255, 0.14);
+
+  /* ---- lens geometry (treatment C — read by <PrismLens>) ----------------- */
+  --lens-bezel: 26;      /* px of bezel band measured in from the edge        */
+  --lens-thickness: 34;  /* px of virtual glass thickness (drives strength)   */
+  --lens-ior: 1.5;       /* refractive index of the virtual material          */
+  --lens-gain: 1;        /* artistic multiplier on the computed scale         */
+  --lens-rim-blur: 3;    /* stdDeviation applied BEFORE displacement.
+                            0 => the rim shows a pin-sharp compressed image.
+                            >=20 => the bend disappears entirely (verified:
+                            the stripe test card stopped bending). 3 is the
+                            usable window. */
+}
+
+:root[data-theme="dark"] {
+  --canvas: #0b0b10;
+  --canvas-ambient: linear-gradient(160deg, #101826 0%, #181428 45%, #0e1e1e 100%);
+  --surface: #16161d;
+  --surface-2: #1e1e26;
+  --ink: #f5f5f7;
+  --ink-2: #98989d;
+  --ink-3: #6e6e76;
+  --separator: rgba(255, 255, 255, 0.1);
+  --tint: #0a84ff;
+  --tint-fill: #0f6fd6; /* keep in step with the media-query block above */
+  --status-good: #30d158;
+  --status-warn: #ffd60a;
+  --status-serious: #ff9f0a;
+  --status-critical: #ff453a;
+  --chart-1: #0a84ff;
+  --chart-2: #cc7a00;
+  --chart-3: #2196c9;
+  --chart-4: #db4e92;
+
+  --amb-1: #1e5fe0;
+  --amb-2: #7c3aed;
+  --amb-3: #0f9d8f;
+  --amb-4: #c2560a;
+  --amb-strength-1: 0.34;
+  --amb-strength-2: 0.30;
+  --amb-strength-3: 0.26;
+  --amb-strength-4: 0.20;
+  --amb-streak: 0.26;
+  --amb-grain: 0.45;
+
+  /* Dark glass: LESS saturation, MORE brightness. A dark pane over a dark
+     canvas disappears unless it LIFTS the backdrop. */
+  --glass-blur: 13px;
+  --glass-sat: 165%;
+  --glass-bright: 1.04;
+  --glass-contrast: 1.04;
+  --glass-tint-top: rgba(12, 12, 18, 0.52);
+  --glass-tint-mid: rgba(12, 12, 18, 0.40);
+  --glass-tint-bot: rgba(12, 12, 18, 0.48);
+  --ring-1: rgba(255, 255, 255, 0.62);
+  --ring-2: rgba(255, 255, 255, 0.20);
+  --ring-3: rgba(255, 255, 255, 0.02);
+  --ring-4: rgba(255, 255, 255, 0.24);
+  --ring-5: rgba(255, 255, 255, 0.50);
+  --glass-inner:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.30),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.16),
+    inset 0 16px 26px -24px rgba(255, 255, 255, 0.55),
+    inset 0 -20px 30px -26px rgba(255, 255, 255, 0.35);
+  --glass-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.30),
+    0 5px 12px -4px rgba(0, 0, 0, 0.40),
+    0 18px 36px -10px rgba(0, 0, 0, 0.45),
+    0 40px 70px -24px rgba(0, 0, 0, 0.55);
+  --glass-shadow-boost:
+    0 1px 1px rgba(0, 0, 0, 0.40),
+    0 6px 14px -4px rgba(0, 0, 0, 0.50),
+    0 20px 40px -10px rgba(0, 0, 0, 0.55),
+    0 44px 78px -24px rgba(0, 0, 0, 0.65);
+  --glass-edge-top: rgba(255, 255, 255, 0.10);
+  --glass-edge-bot: rgba(255, 255, 255, 0.05);
+}
+
+/* base */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--tint);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur: 120ms;
+    --dur-anneal: 0ms;
+  }
+}

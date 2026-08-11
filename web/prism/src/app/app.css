@@ -1,0 +1,1338 @@
+/* Shell layout + FE-0 scaffold styles. Content canvas is solid; only rail,
+   topbar and dock are glass.
+
+   ---------------------------------------------------------------------------
+   Liquid Glass shell (docs/07 §8.1 "滚动边缘效果"): the functional layer FLOATS
+   and the content layer SCROLLS UNDERNEATH IT. The shell is a viewport-locked
+   box holding three siblings:
+
+     .topdeck  fixed top chrome  — glass topbar (+ solid conflict alert)
+     .rail     fixed side chrome — glass, never scrolls away
+     .canvas   the only scroll container — full-bleed, solid, masked at the
+               edge where it slides beneath the topbar
+
+   All geometry hangs off one token chain so chrome and canvas cannot drift:
+
+     --deck-bottom   y where the fixed top deck ends
+     --rail-top      y where the rail starts
+     --chrome-bottom y where the lowest fixed top chrome ends (rail on mobile)
+     --canvas-top    first row of never-occluded content
+     --canvas-left   first column of never-occluded content
+     --card-shift    how far a content SURFACE travels left (across the gutter
+                     and --rail-underlap under the rail). Text-level blocks
+                     give all of it back as padding; card-like surfaces give
+                     back everything except --rail-underlap, so their VISIBLE
+                     inset is unchanged and no text, cell or control ever sits
+                     under the glass.
+
+   Chrome glass panes stay at exactly three: topbar, rail, draft dock. The
+   scroll edge effect is a mask-image gradient — zero extra backdrop-filter.
+   --------------------------------------------------------------------------- */
+
+.shell {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+
+  --shell-pad: 12px;
+  --shell-gap: 12px;
+  --topbar-h: 52px;
+  --conflict-h: 38px;
+  --conflict-block: 0px; /* -> conflict-h + gap while a 409 conflict is shown */
+  --rail-w: 200px;
+  --rail-underlap: 12px;
+  --card-shift: calc(var(--shell-gap) + var(--rail-underlap));
+  --dock-h: 58px; /* one-line dock; .dock keeps itself to one line */
+  --dock-inset: 18px; /* == .dock bottom */
+  --dock-clearance: 0px; /* -> derived below while drafting */
+
+  --topbar-bottom: calc(var(--shell-pad) + var(--topbar-h));
+  --deck-bottom: calc(var(--topbar-bottom) + var(--conflict-block));
+  --rail-top: calc(var(--deck-bottom) + var(--shell-gap));
+  --rail-right: calc(var(--shell-pad) + var(--rail-w));
+  --chrome-bottom: var(--deck-bottom);
+  --canvas-top: calc(var(--chrome-bottom) + var(--shell-gap));
+  /* left edge of TEXT-level content; surfaces then travel --card-shift left of
+     it, landing --rail-underlap under --rail-right */
+  --canvas-left: calc(var(--rail-right) + var(--shell-gap));
+
+  /* Scroll edge effect, as tokens so every variant (and the a11y degradation)
+     swaps one value instead of restating the gradient — and so no override can
+     out-specify the degradation rule.
+
+     --edge         ONE glass bar in the stack: a single ramp. Content ghosts
+                    through the bar (the glass has something to refract) and is
+                    gone by its top lip.
+     --edge-stacked TWO bars (conflict alert on desktop, rail strip on mobile):
+                    the ghost window is confined to the topbar, then the mask
+                    returns to transparent so content cannot peek through the
+                    12px gutter BETWEEN the bars, where there is no glass. */
+  --edge: linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--shell-pad) + 2px),
+    rgba(0, 0, 0, 0.5) calc(var(--chrome-bottom) - 14px),
+    #000 var(--canvas-top)
+  );
+  --edge-stacked: linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--shell-pad) + 2px),
+    rgba(0, 0, 0, 0.45) calc(var(--topbar-bottom) - 14px),
+    transparent var(--topbar-bottom),
+    transparent var(--chrome-bottom),
+    #000 var(--canvas-top)
+  );
+
+  /* ambient, never scrolls: this is what the glass refracts wherever content
+     is not passing beneath it */
+  background:
+    radial-gradient(1200px 560px at 10% -10%, color-mix(in srgb, var(--tint) 12%, transparent), transparent 60%),
+    var(--canvas-ambient);
+}
+.shell[data-conflict="true"] {
+  --conflict-block: calc(var(--conflict-h) + var(--shell-gap));
+}
+/* Derived, not guessed: the dock is a fixed one-line pill, so the canvas can
+   reserve exactly its footprint plus a gutter. (Was a magic 96px, which left
+   1px of slack once the dock wrapped to two lines under 720px.) */
+.shell[data-dock="true"] {
+  --dock-clearance: calc(
+    var(--dock-h) + var(--dock-inset) + var(--shell-gap) + 8px
+  );
+}
+
+/* ---- fixed top deck --------------------------------------------------- */
+
+.topdeck {
+  position: absolute;
+  z-index: 40;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--shell-gap);
+  padding: var(--shell-pad) var(--shell-pad) 0;
+  pointer-events: none;
+}
+.topdeck > * {
+  pointer-events: auto;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: var(--topbar-h);
+  padding: 0 18px;
+  border-radius: 16px;
+}
+.brand {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.brand span {
+  color: var(--tint);
+}
+.readonly-note {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.conflict-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: var(--conflict-h);
+  padding: 0 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--status-warn) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--status-warn) 35%, transparent);
+  color: var(--ink);
+  font-size: 13px;
+}
+.conflict-bar:empty {
+  display: none;
+}
+
+/* ---- floating rail ---------------------------------------------------- */
+
+.rail {
+  position: absolute;
+  z-index: 30;
+  top: var(--rail-top);
+  left: var(--shell-pad);
+  width: var(--rail-w);
+  max-height: calc(100% - var(--rail-top) - var(--shell-pad));
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px;
+  border-radius: 16px;
+  font-size: 13px;
+}
+.rail-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 0;
+}
+.rail-group + .rail-group {
+  border-top: 1px solid var(--separator);
+}
+.rail a {
+  color: var(--ink-2);
+  text-decoration: none;
+  padding: 7px 12px;
+  border-radius: var(--r-inner);
+  /* --dur is the design system's interaction duration and is the token
+     prefers-reduced-motion shortens; hover/press states must go through it
+     rather than snapping, or the token is decorative and the reduced-motion
+     override has nothing to shorten. Colour only — no geometry moves. */
+  transition:
+    color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
+}
+.rail a:hover {
+  color: var(--ink);
+}
+.rail a.on {
+  /* Chip stays at 16% and the LABEL changes instead. The obvious fix — a denser
+     chip — is arithmetically impossible: the chip is made of --tint, so raising
+     its density pushes the backdrop toward the label's own colour and the ratio
+     drops (measured 3.20 -> 2.93 light, 3.92 -> 3.65 dark at 22%). Sweeping
+     0-100% never reaches 4.5:1; even 0% only gives 3.63.
+     Ink-on-chip measures 10.69:1 (light) / 12.92:1 (dark). The blue is still
+     what marks the active item — it just moved entirely into the chip. */
+  background: color-mix(in srgb, var(--tint) 16%, transparent);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ---- content canvas: the one scroll container ------------------------- */
+
+.canvas {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: var(--canvas-top) var(--shell-pad)
+    calc(var(--shell-pad) + var(--dock-clearance)) var(--canvas-left);
+
+  /* The scrollport starts at the VIEWPORT's top edge, i.e. underneath the glass
+     deck, so every browser-driven scroll (Tab focus, scrollIntoView, find-in-
+     page, :target) parks its element under the topbar and the user never sees
+     what they just focused. scroll-padding moves the "optimal viewing region"
+     down to the first un-occluded row — and up off the dock. */
+  scroll-padding: var(--canvas-top) var(--shell-pad)
+    calc(var(--shell-pad) + var(--dock-clearance)) var(--canvas-left);
+  /* no-op under overlay scrollbars; stops the classic-scrollbar platforms from
+     reflowing the content column when a page grows past one screen */
+  scrollbar-gutter: stable;
+
+  /* Scroll edge effect. The gradient is anchored to the border box (= the
+     viewport), not to the scrolled content, so it stays put while content
+     travels through it. See --edge / --edge-stacked on .shell. */
+  -webkit-mask-image: var(--edge);
+  mask-image: var(--edge);
+}
+
+/* Second bar in the deck => confine the ghost window to the topbar so nothing
+   shows through the gutter above the (solid) conflict alert. */
+.shell[data-conflict="true"] .canvas {
+  -webkit-mask-image: var(--edge-stacked);
+  mask-image: var(--edge-stacked);
+}
+.canvas h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  margin: 4px 0 14px;
+}
+
+/* Content surfaces slide --card-shift to the left — across the gutter and
+   --rail-underlap under the rail's inner edge — so the rail refracts real
+   content instead of flat background. Pages either put their blocks straight
+   into the canvas (Overview) or wrap them in a <section>; tabbed pages add a
+   [role="tabpanel"] inside that section. Those wrappers are LAYOUT-ONLY: they
+   pass the shift through to their children rather than consuming it, and the
+   match is depth-independent so adding a wrapper level cannot silently strand a
+   page's cards 24px right of every other page's (which is exactly what the
+   tabpanel on Usage did). Text-level blocks hand the whole shift back as
+   padding (their glyphs do not move). Grid wrappers hand back nothing, so their
+   FIRST COLUMN underlaps exactly like a full-width card — that is what keeps
+   the canvas's left edge straight instead of ragged.
+
+   The structural half of the match sits in :where() so this rule stays at
+   (0,2,0): high enough to beat .card's own `padding` shorthand, low enough that
+   the hand-back rules below still win. Without that, adding the tabpanel level
+   also silently out-specified every hand-back and halved the visible padding of
+   direct-child surfaces. */
+.shell :where(.canvas, .canvas :is(section, [role="tabpanel"])) > :not(section, [role="tabpanel"]) {
+  margin-left: calc(-1 * var(--card-shift));
+  padding-left: var(--card-shift);
+}
+.shell
+  :where(.canvas, .canvas :is(section, [role="tabpanel"]))
+  > :is(.overview-grid, .stat-row) {
+  padding-left: 0;
+}
+
+/* Surfaces (any depth: full-width, grid cell, stat tile) hand back everything
+   except the underlap, so measured from the VISIBLE left edge their padding is
+   exactly what it always was. */
+.shell .canvas .card {
+  padding-left: calc(20px + var(--rail-underlap));
+}
+.shell .canvas .stat-tile,
+.shell .canvas .filter-bar {
+  padding-left: calc(16px + var(--rail-underlap));
+}
+/* tables own their horizontal padding via th/td:first-child */
+.shell .canvas .card.tablewrap {
+  padding-left: var(--rail-underlap);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--separator);
+  border-radius: 16px;
+  padding: 18px 20px;
+}
+.empty-state {
+  color: var(--ink-2);
+  text-align: center;
+  padding: 40px 20px;
+}
+.empty-state[data-kind="unwired"] {
+  border-style: dashed;
+}
+
+.idchip {
+  display: inline-block;
+  font-size: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--separator);
+  padding: 2px 8px;
+  border-radius: 6px;
+  color: var(--ink-2);
+}
+
+.version-picker select {
+  font-size: 12.5px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  color: var(--ink);
+  max-width: 320px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* unlock scene */
+.unlock-scene {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--canvas-ambient);
+}
+.unlock-card {
+  width: min(420px, 100%);
+  padding: 32px 34px;
+}
+.unlock-card h1 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  margin: 0 0 18px;
+}
+.unlock-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.unlock-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.unlock-card input {
+  padding: 9px 12px;
+  border-radius: var(--r-inner);
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+}
+.unlock-card .unlock-submit,
+.unlock-card form > button.secondary {
+  margin-top: 4px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 100px;
+  background: var(--tint-fill);
+  color: var(--tint-ink);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.unlock-card .unlock-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.unlock-error {
+  color: var(--status-critical);
+  font-size: 13px;
+  margin: 0;
+}
+.unlock-hint {
+  color: var(--ink-2);
+  font-size: 12px;
+  margin: 4px 0 0;
+}
+
+/* Under 720px the rail collapses into a horizontal strip pinned below the
+   topbar: it stays visible while the canvas scrolls under BOTH bars, so
+   --chrome-bottom (which drives the canvas inset and the scroll edge) grows
+   by the strip. No side gutter left, so no underlap either. */
+@media (max-width: 720px) {
+  .shell {
+    --rail-h: 44px;
+    --rail-underlap: 0px;
+    --card-shift: 0px;
+    --canvas-left: var(--shell-pad);
+    --chrome-bottom: calc(var(--rail-top) + var(--rail-h));
+  }
+  .topbar {
+    gap: 10px;
+  }
+  .readonly-note {
+    display: none;
+  }
+  .version-picker select {
+    max-width: 190px;
+  }
+  .rail {
+    top: var(--rail-top);
+    left: var(--shell-pad);
+    right: var(--shell-pad);
+    width: auto;
+    height: var(--rail-h);
+    max-height: none;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    padding: 0 8px;
+  }
+  .rail::-webkit-scrollbar {
+    display: none; /* a 15px classic bar would eat a third of a 44px strip */
+  }
+  /* Without these the flex items SHRINK instead of overflowing: every label
+     wrapped to one glyph per line (5-6 lines tall in a 44px strip, clipped)
+     and the strip never became scrollable. Verified at 700/560/420px. */
+  .rail-group {
+    flex-direction: row;
+    padding: 0;
+    flex: none;
+  }
+  .rail a {
+    flex: none;
+    white-space: nowrap;
+  }
+  .rail-group + .rail-group {
+    border-top: none;
+    border-left: 1px solid var(--separator);
+  }
+  /* Two bars in the stack: ghost only inside the topbar, so the nav labels on
+     the glass strip stay legible and the gutter between them stays clean. */
+  .canvas {
+    -webkit-mask-image: var(--edge-stacked);
+    mask-image: var(--edge-stacked);
+  }
+}
+
+/* Degradation: when the bars go opaque there is nothing to see through, so
+   the soft scroll edge becomes a hard one — content is clipped exactly at the
+   bar's bottom edge instead of ghosting behind it. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .shell {
+    --edge: linear-gradient(
+      to bottom,
+      transparent 0 var(--chrome-bottom),
+      #000 var(--chrome-bottom)
+    );
+    --edge-stacked: var(--edge);
+  }
+}
+
+/* ---------- FE-1: tables, badges, sheets, page chrome ---------- */
+
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.page-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* The app had no anchor rule at all, so every link rendered in the UA's
+   #0000EE — off-palette on every page, and conspicuous next to a tint button.
+   The underline stays: colour alone must not carry the affordance. */
+a {
+  color: var(--tint);
+  text-underline-offset: 3px;
+}
+
+button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 100px;
+  background: var(--tint-fill);
+  color: var(--tint-ink);
+  cursor: pointer;
+}
+button.secondary {
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--separator);
+}
+button.danger {
+  background: color-mix(in srgb, var(--status-critical) 12%, var(--surface));
+  color: var(--status-critical);
+  border: 1px solid color-mix(in srgb, var(--status-critical) 35%, transparent);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tablewrap {
+  margin-top: 14px;
+  overflow-x: auto;
+  padding: 12px 0 4px;
+}
+.tablewrap h3 {
+  margin: 0 20px 8px;
+  font-size: 14px;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+th,
+td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--separator);
+  white-space: nowrap;
+}
+th:first-child,
+td:first-child {
+  padding-left: 20px;
+}
+tbody tr:last-child td {
+  border-bottom: none;
+}
+tr[data-selected="true"] {
+  background: color-mix(in srgb, var(--tint) 7%, transparent);
+}
+/* `display: flex` on a <td> takes it out of the table layout: the browser
+   wraps consecutive flex cells in one anonymous cell, so two adjacent
+   .row-actions columns stack on top of each other at the same x instead of
+   sitting side by side (measured: both at x=1140, each half the row height).
+   Keep the cell a table-cell and lay the buttons out inline instead. */
+td.row-actions {
+  white-space: nowrap;
+}
+.row-actions {
+  display: flex;
+  gap: 6px;
+}
+td.row-actions {
+  display: table-cell;
+}
+td.row-actions > * {
+  vertical-align: middle;
+}
+td.row-actions > * + * {
+  margin-left: 6px;
+}
+.row-actions button {
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 100px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.badge-good {
+  color: var(--status-good);
+  background: color-mix(in srgb, var(--status-good) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-good) 30%, transparent);
+}
+.badge-warn {
+  color: var(--status-warn);
+  background: color-mix(in srgb, var(--status-warn) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-warn) 30%, transparent);
+}
+.badge-serious {
+  color: var(--status-serious);
+  background: color-mix(in srgb, var(--status-serious) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-serious) 30%, transparent);
+}
+.badge-critical {
+  color: var(--status-critical);
+  background: color-mix(in srgb, var(--status-critical) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-critical) 30%, transparent);
+}
+.badge-tint {
+  color: var(--tint);
+  background: color-mix(in srgb, var(--tint) 12%, transparent);
+  border-color: color-mix(in srgb, var(--tint) 30%, transparent);
+}
+.badge-muted {
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border-color: var(--separator);
+}
+
+.action-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--status-critical);
+  background: color-mix(in srgb, var(--status-critical) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--status-critical) 25%, transparent);
+}
+.action-error button {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: transparent;
+  color: inherit;
+  border: 1px solid currentColor;
+}
+
+.validation-card {
+  margin-top: 14px;
+}
+.validation-card ul {
+  margin: 8px 0;
+  padding-left: 20px;
+  color: var(--status-serious);
+}
+
+/* sheet (glass modal layer) */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--canvas) 55%, transparent);
+}
+.sheet-panel {
+  width: min(440px, 92vw);
+  padding: 24px 26px;
+}
+.sheet-panel h3 {
+  margin: 0 0 14px;
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+.sheet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sheet-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.sheet-form input,
+.sheet-form select {
+  padding: 8px 11px;
+  border-radius: var(--r-inner);
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+}
+.sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.reveal-warning {
+  color: var(--status-serious);
+  font-size: 13px;
+  margin: 0 0 10px;
+}
+.reveal-key {
+  display: block;
+  padding: 12px 14px;
+  border-radius: var(--r-inner);
+  background: var(--surface);
+  border: 1px solid var(--separator);
+  font-size: 12.5px;
+  word-break: break-all;
+  user-select: all;
+}
+
+/* ---------- FE-1 batch 2: chips, dock, toggle ---------- */
+
+.chips {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 8px;
+  border: 1px solid var(--separator);
+  border-radius: var(--r-inner);
+  background: var(--surface);
+}
+.chips-row input {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  padding: 4px 2px;
+}
+.chips-row input:focus {
+  outline: none;
+}
+.chip {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 100px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--separator);
+  cursor: pointer;
+  transition:
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+.chip:hover {
+  color: var(--status-critical);
+  border-color: color-mix(in srgb, var(--status-critical) 40%, transparent);
+}
+.chips-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--status-critical);
+}
+
+.toggle-row {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+  color: var(--ink) !important;
+}
+
+.dock {
+  position: fixed;
+  bottom: var(--dock-inset);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px 10px 18px;
+  border-radius: 100px;
+  font-size: 13px;
+  max-width: min(720px, calc(100vw - 32px));
+}
+/* The canvas reserves --dock-clearance from --dock-h, so the dock must not be
+   free to grow: its label ellipsises instead of wrapping to a second line
+   (which is what made it 77px tall — and 1px from covering the last card — at
+   700px). Height is now 58px at every width. */
+.dock > :first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dock .idchip {
+  margin-left: 6px;
+}
+.dock-actions {
+  flex: none;
+  display: flex;
+  gap: 8px;
+}
+.dock-error {
+  color: var(--status-critical);
+  font-size: 12px;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- FE-1 batch 3: overview, capability set, notice ---------- */
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+}
+.count-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+.count-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 88px;
+  padding: 12px 14px;
+  border-radius: var(--r-inner);
+  background: var(--surface-2);
+  border: 1px solid var(--separator);
+  text-decoration: none;
+  transition: border-color var(--dur) var(--ease);
+}
+.count-tile:hover {
+  border-color: var(--tint);
+}
+.count-value {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.count-label {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.capability-set {
+  border: 1px solid var(--separator);
+  border-radius: var(--r-inner);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.capability-set legend {
+  font-size: 12px;
+  color: var(--ink-2);
+  padding: 0 6px;
+}
+.capability-set small {
+  color: var(--ink-2);
+}
+
+.action-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--tint) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--tint) 25%, transparent);
+}
+.action-notice button {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: transparent;
+  color: var(--tint);
+  border: 1px solid currentColor;
+}
+
+/* ---------- FE-3 build-ahead: subresource panel, oauth, diff ---------- */
+
+.subresource-panel {
+  margin-top: 14px;
+  overflow-x: auto;
+}
+.subresource-panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  margin: 14px 0 6px;
+}
+.subresource-panel h3:first-of-type {
+  margin-top: 0;
+}
+.subresource-panel table {
+  margin-bottom: 4px;
+}
+
+.oauth-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* An authorization URL is long and opaque — it has to wrap inside the sheet
+   rather than push a horizontal scrollbar through the modal. */
+.oauth-url {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.oauth-callback-input {
+  display: block;
+  width: 100%;
+  margin: 6px 0 4px;
+  padding: 8px 11px;
+  border-radius: var(--r-inner);
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  resize: vertical;
+}
+
+.diff-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 6px 0 10px;
+}
+
+/* ---------- FE-2 build-ahead: stat tiles, micro-charts, filter bar ---------- */
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+}
+.stat-label {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.stat-sub {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.sparkline {
+  margin-top: 6px;
+  opacity: 0.75;
+}
+
+.health-strip {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.health-cell {
+  width: 14px;
+  height: 16px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  color: var(--tint-ink);
+  background: var(--surface-2);
+  border: 1px solid var(--separator);
+}
+.health-cell[data-state="ok"] {
+  background: color-mix(in srgb, var(--status-good) 55%, var(--surface-2));
+  border-color: transparent;
+}
+.health-cell[data-state="warn"] {
+  background: color-mix(in srgb, var(--status-warn) 70%, var(--surface-2));
+  border-color: transparent;
+  color: var(--ink);
+}
+.health-cell[data-state="bad"] {
+  background: var(--status-critical);
+  border-color: transparent;
+}
+
+.token-mix {
+  display: flex;
+  height: 26px;
+  gap: 2px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.token-seg {
+  display: block;
+  min-width: 3px;
+}
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+.mini-timeline {
+  width: 100%;
+  height: 120px;
+  margin-top: 8px;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+  padding: 12px 16px;
+}
+.filter-bar label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.filter-bar select {
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12.5px;
+}
+/* Segmented on/off chips. Defined once, unscoped: every call site (time-range
+   presets, usage metric switch, settings choices) wants the same pair, and
+   scoping them per-feature meant the same two rules were written three times. */
+.chip-on {
+  background: var(--tint-fill);
+  color: var(--tint-ink);
+}
+.chip-off {
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--separator);
+}
+
+.preset-chips {
+  display: flex;
+  gap: 4px;
+}
+.preset-chips button {
+  font-size: 12px;
+  padding: 5px 12px;
+}
+
+.load-more {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0 6px;
+}
+
+/* ---------- utility classes (replaces inline styles: CSP style-src 'self'
+     blocks style attributes, proven by the browser smoke suite) ---------- */
+
+[data-gap="top"] { margin-top: 14px; }
+[data-gap="sm"] { margin-top: 8px; }
+.muted { color: var(--ink-2); }
+/* .muted-3 carries real sentences at 4 of its 6 call sites (empty-state
+   explanations, the OAuth hint), so it cannot use --ink-3 — see tokens.css. It
+   stays a distinct class from .muted only to mark "quieter than body", which is
+   now expressed by size and position rather than by a sub-AA colour. */
+.muted-3 { color: var(--ink-2); }
+.small { font-size: 13px; }
+
+.legend-dot-input { background: var(--chart-1); }
+.legend-dot-output { background: var(--chart-2); }
+.legend-dot-reasoning { background: var(--chart-3); }
+.legend-dot-cache_read { background: var(--chart-4); }
+
+.token-mix { width: 100%; height: 26px; margin-top: 8px; display: block; }
+
+/* ---------- secret field (paste-friendly, password-manager-proof) ---------- */
+
+.secret-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.secret-field > label {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.secret-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.secret-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: var(--r-inner);
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+}
+.secret-input.is-masked {
+  -webkit-text-security: disc;
+  text-security: disc;
+}
+.secret-input[aria-invalid="true"] {
+  border-color: var(--status-critical);
+}
+.secret-toggle {
+  flex: 0 0 auto;
+  width: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--separator);
+  border-radius: var(--r-inner);
+  background: var(--surface);
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.secret-toggle[aria-pressed="true"] {
+  color: var(--tint);
+}
+.unlock-error:empty {
+  display: none;
+}
+
+/* ===========================================================================
+   PORT 3/3 — merge into src/app/app.css
+   (a) the ambient background recipe   (b) the TWO-SIDED scroll edge effect
+   =========================================================================== */
+
+/* ---- (a) ambient background ----------------------------------------------
+   Two fixed layers behind everything. No images, no CDN, CSP-clean.
+   Replaces the current single `--canvas-ambient` linear-gradient on .shell,
+   which is too low-frequency for a lens to bite on: refraction of a smooth
+   pastel wash is invisible, which is why the rail read as a flat card.
+   -------------------------------------------------------------------------- */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--canvas);
+  background-image:
+    /* 1. the prism streak — a narrow spectral fan crossing the rail column.
+          The highest-value layer: the only one with HUE variation at a SMALL
+          spatial scale, which is exactly what refraction reveals. */
+    linear-gradient(107deg,
+      transparent 0%,
+      color-mix(in oklab, #ff5f6d calc(var(--amb-streak) * 26%), transparent) 12%,
+      color-mix(in oklab, #ffc371 calc(var(--amb-streak) * 22%), transparent) 17%,
+      color-mix(in oklab, #6ee7b7 calc(var(--amb-streak) * 24%), transparent) 22%,
+      color-mix(in oklab, #60a5fa calc(var(--amb-streak) * 30%), transparent) 27%,
+      color-mix(in oklab, #a78bfa calc(var(--amb-streak) * 26%), transparent) 32%,
+      transparent 44%),
+    /* 2. four coloured light sources at the corners */
+    radial-gradient(64% 52% at 4% -6%,
+      color-mix(in oklab, var(--amb-1) calc(var(--amb-strength-1) * 100%), transparent) 0%,
+      transparent 70%),
+    radial-gradient(56% 50% at 98% 2%,
+      color-mix(in oklab, var(--amb-2) calc(var(--amb-strength-2) * 100%), transparent) 0%,
+      transparent 68%),
+    radial-gradient(70% 62% at 36% 108%,
+      color-mix(in oklab, var(--amb-3) calc(var(--amb-strength-3) * 100%), transparent) 0%,
+      transparent 66%),
+    radial-gradient(34% 40% at 90% 62%,
+      color-mix(in oklab, var(--amb-4) calc(var(--amb-strength-4) * 100%), transparent) 0%,
+      transparent 72%),
+    /* 3. a mid-scale sheen so the field is never locally flat */
+    conic-gradient(from 205deg at 24% 22%,
+      color-mix(in oklab, var(--amb-2) 22%, transparent) 0deg,
+      transparent 84deg,
+      color-mix(in oklab, var(--amb-1) 20%, transparent) 186deg,
+      transparent 300deg);
+}
+
+/* Grain gives blur AND refraction high-frequency detail to bite on. The SVG
+   lives in the DOM (inline <svg> in JSX is allowed); this rule only positions
+   it, so no style attribute is involved. */
+.ambient-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: var(--amb-grain);
+  mix-blend-mode: overlay;
+}
+.ambient-grain > svg { width: 100%; height: 100%; display: block; }
+:root[data-theme="dark"] .ambient-grain { mix-blend-mode: soft-light; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .ambient-grain { mix-blend-mode: soft-light; }
+}
+/* the grain is decoration: drop it when the user has asked for less */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .ambient-grain { display: none; }
+}
+
+/* ---- (b) scroll edge effect, TOP AND BOTTOM ------------------------------
+   The gradients are anchored to the BORDER BOX (= the viewport), not to the
+   scrolled content, so they stay put while content travels through them.
+
+   THE BOTTOM RAMP IS NOT DECORATION — it is the only fix for the draft dock.
+   Measured: backdrop-filter blur is weak within ~15px of a pane's own edge,
+   because the backdrop is clipped to the pane and the kernel is one-sided
+   there. A 51px dock is almost entirely "edge", so NO blur radius and no SVG
+   lens can veil a table row sliding under its bottom lip — confirmed
+   identically with the full lens chain, with a bare feGaussianBlur(20), and
+   with native `backdrop-filter: blur(20px)`. Fading the content out before it
+   arrives is what works, and it is the mechanism the topbar already uses.
+   Costs zero extra backdrop-filter panes.
+   -------------------------------------------------------------------------- */
+.shell {
+  /* the dock's footprint as tokens, so the bottom edge is DERIVED from the
+     pane it protects instead of being a magic number */
+  --dock-h: 58px;
+  --dock-inset: 18px;
+}
+.canvas {
+  --edge-top: linear-gradient(to bottom,
+    transparent 0, transparent calc(var(--shell-pad) + 2px),
+    rgba(0, 0, 0, 0.5) calc(var(--chrome-bottom) - 14px),
+    #000 var(--canvas-top));
+  --edge-bottom: linear-gradient(to top,
+    transparent 0, transparent calc(var(--dock-inset) - 4px),
+    rgba(0, 0, 0, 0.45) calc(var(--dock-inset) + var(--dock-h) - 18px),
+    #000 calc(var(--dock-inset) + var(--dock-h) + 10px));
+  -webkit-mask-image: var(--edge-top), var(--edge-bottom);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--edge-top), var(--edge-bottom);
+  mask-composite: intersect;
+}
+/* only fade the bottom while the dock is actually mounted */
+.shell:not([data-dock="true"]) .canvas {
+  --edge-bottom: linear-gradient(#000 0 0);
+}
+/* Two bars in the top deck (conflict alert on desktop, rail strip on mobile):
+   confine the ghost window to the topbar so nothing shows through the gutter. */
+.shell[data-conflict="true"] .canvas {
+  --edge-top: linear-gradient(to bottom,
+    transparent 0, transparent calc(var(--shell-pad) + 2px),
+    rgba(0, 0, 0, 0.45) calc(var(--topbar-bottom) - 14px),
+    transparent var(--topbar-bottom),
+    transparent var(--chrome-bottom),
+    #000 var(--canvas-top));
+}
+
+/* Once the panes go opaque there is nothing to see through, so the soft edges
+   become hard ones. BOTH ramps degrade, not just the top one. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .canvas,
+  .shell[data-conflict="true"] .canvas {
+    --edge-top: linear-gradient(to bottom,
+      transparent 0 var(--chrome-bottom), #000 var(--chrome-bottom));
+    --edge-bottom: linear-gradient(to top,
+      transparent 0 calc(var(--dock-inset) + var(--dock-h)),
+      #000 calc(var(--dock-inset) + var(--dock-h)));
+  }
+}
+
+/* PrismLens keeps its filter definitions out of layout entirely. */
+.lens-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
