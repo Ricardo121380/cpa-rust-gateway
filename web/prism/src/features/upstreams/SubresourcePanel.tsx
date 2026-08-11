@@ -10,8 +10,8 @@
 //   - one row IS one binding, so unbound channels and accounts do not appear;
 //   - the projection is URL-free by design (no base_url / inference_path).
 // Endpoint test and catalog discovery still drive their own real operations.
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { Sheet } from "../../components/Sheet";
@@ -32,12 +32,245 @@ type EndpointTest = Readonly<{
 }>;
 type CatalogDiff = Readonly<{ added: number; removed: number; unchanged: number }>;
 
+/** Full endpoint record. The operational inventory is URL-free by contract, so
+ *  editing needs this read: PATCH takes a whole EndpointInput and a form that
+ *  cannot pre-fill base_url would blank it on save. */
+type EndpointRecord = Readonly<{
+  id: string;
+  adapter_id: string;
+  api_format: string;
+  base_url: string;
+  inference_path: string;
+  models_path?: string | null;
+  transport: string;
+  enabled: boolean;
+}>;
+
+type ChannelForm = { mode: "create" } | { mode: "edit"; channelId: string };
+type AccountForm = { mode: "create" } | { mode: "edit"; accountId: string; kind: string };
+
 const TEST_TONE: Record<EndpointTest["outcome"], string> = {
   pass: "active",
   rejected: "quota_blocked",
   transport_failed: "credential_forbidden",
   protocol_failed: "circuit_open",
 };
+
+type SheetSubmit = (body: unknown, existing: string | undefined) => void;
+
+/** Channel create/edit. PATCH replaces the whole EndpointInput, and the pool
+ *  inventory omits base_url by design, so editing reads the full record first
+ *  — a form that could not pre-fill the URL would blank it on save. */
+function ChannelSheet({
+  form,
+  pending,
+  onCancel,
+  onSubmit,
+}: Readonly<{ form: ChannelForm; pending: boolean; onCancel: () => void; onSubmit: SheetSubmit }>) {
+  const editing = form.mode === "edit" ? form.channelId : undefined;
+  const record = useQuery({
+    queryKey: ["endpoint", editing],
+    queryFn: () =>
+      call<EndpointRecord>(
+        "getEndpoint",
+        { path: { endpoint_id: editing as string } },
+        { versionScoped: true },
+      ),
+    enabled: editing !== undefined,
+  });
+
+  if (editing !== undefined && record.data === undefined) {
+    return (
+      <Sheet title={`编辑 Channel · ${editing}`} onEscape={onCancel}>
+        <p className="muted">{record.isError ? "读取端点失败" : "读取端点…"}</p>
+        <div className="sheet-actions">
+          <button type="button" onClick={onCancel}>
+            关闭
+          </button>
+        </div>
+      </Sheet>
+    );
+  }
+  const current = record.data;
+
+  return (
+    <Sheet
+      title={editing === undefined ? "新建 Channel" : `编辑 Channel · ${editing}`}
+      onEscape={onCancel}
+    >
+      <form
+        className="sheet-form"
+        onSubmit={(event: FormEvent<HTMLFormElement>) => {
+          event.preventDefault();
+          const data = new FormData(event.currentTarget);
+          const modelsPath = String(data.get("models_path") ?? "").trim();
+          onSubmit(
+            {
+              id: String(data.get("id") ?? "").trim(),
+              adapter_id: String(data.get("adapter_id") ?? "").trim(),
+              api_format: String(data.get("api_format") ?? "").trim(),
+              base_url: String(data.get("base_url") ?? "").trim(),
+              inference_path: String(data.get("inference_path") ?? "").trim(),
+              models_path: modelsPath === "" ? null : modelsPath,
+              transport: "https",
+              enabled: data.get("enabled") === "on",
+            },
+            editing,
+          );
+        }}
+      >
+        <label>
+          id
+          <input
+            name="id"
+            className="mono"
+            required
+            maxLength={128}
+            readOnly={editing !== undefined}
+            defaultValue={current?.id ?? ""}
+          />
+        </label>
+        <label>
+          adapter_id
+          <input name="adapter_id" className="mono" required defaultValue={current?.adapter_id ?? ""} />
+        </label>
+        <label>
+          api_format
+          <input name="api_format" className="mono" required defaultValue={current?.api_format ?? ""} />
+        </label>
+        <label>
+          base_url
+          <input name="base_url" className="mono" required defaultValue={current?.base_url ?? ""} />
+        </label>
+        <label>
+          inference_path
+          <input
+            name="inference_path"
+            className="mono"
+            required
+            defaultValue={current?.inference_path ?? ""}
+          />
+        </label>
+        <label>
+          models_path(可空)
+          <input name="models_path" className="mono" defaultValue={current?.models_path ?? ""} />
+        </label>
+        <label className="check-row">
+          <input name="enabled" type="checkbox" defaultChecked={current?.enabled ?? true} />
+          启用
+        </label>
+        <p className="stat-sub">
+          契约的 transport 目前只有 <span className="mono">https</span> 一个取值,故不作为可选项。
+          保存等于整体替换。
+        </p>
+        <div className="sheet-actions">
+          <button type="button" className="secondary" onClick={onCancel}>
+            取消
+          </button>
+          <button type="submit" disabled={pending}>
+            {editing === undefined ? "创建" : "保存"}
+          </button>
+        </div>
+      </form>
+    </Sheet>
+  );
+}
+
+/** Account create/edit.
+ *
+ *  CredentialInput.secret is REQUIRED, and the read model never returns a
+ *  secret (only secret_present). So PATCH — a whole-object replace — cannot be
+ *  done without re-entering it: there is no way to change only the status.
+ *  The form says so instead of quietly posting a blank and earning a 400. */
+function AccountSheet({
+  form,
+  pending,
+  onCancel,
+  onSubmit,
+}: Readonly<{ form: AccountForm; pending: boolean; onCancel: () => void; onSubmit: SheetSubmit }>) {
+  const editing = form.mode === "edit" ? form.accountId : undefined;
+  return (
+    <Sheet
+      title={editing === undefined ? "新建 Account" : `编辑 Account · ${editing}`}
+      onEscape={onCancel}
+    >
+      <form
+        className="sheet-form"
+        onSubmit={(event: FormEvent<HTMLFormElement>) => {
+          event.preventDefault();
+          const data = new FormData(event.currentTarget);
+          onSubmit(
+            {
+              id: String(data.get("id") ?? "").trim(),
+              kind: String(data.get("kind") ?? "").trim(),
+              secret: String(data.get("secret") ?? ""),
+              status: String(data.get("status") ?? "active"),
+            },
+            editing,
+          );
+        }}
+      >
+        <label>
+          id
+          <input
+            name="id"
+            className="mono"
+            required
+            maxLength={128}
+            readOnly={editing !== undefined}
+            defaultValue={editing ?? ""}
+          />
+        </label>
+        <label>
+          kind
+          <input
+            name="kind"
+            className="mono"
+            required
+            defaultValue={form.mode === "edit" ? form.kind : "api_key"}
+          />
+        </label>
+        <label>
+          status
+          <select name="status" defaultValue="active">
+            <option value="active">active</option>
+            <option value="disabled">disabled</option>
+            <option value="revoked">revoked</option>
+          </select>
+        </label>
+        <label>
+          secret
+          {/* Not type="password": Safari's password manager covers the field and
+              swallows paste, and these are machine credentials that are always
+              pasted. Same reason the unlock screen uses a masked text input. */}
+          <input
+            name="secret"
+            className="mono"
+            type="text"
+            required
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </label>
+        {editing !== undefined ? (
+          <p className="stat-sub">
+            契约的 <span className="mono">CredentialInput.secret</span> 是必填,而读模型
+            <strong>永不返回密钥</strong> —— 所以哪怕只想改状态,也必须重新输入密钥。
+            这不是本页的限制,是 PATCH 整体替换语义的直接后果。
+          </p>
+        ) : null}
+        <div className="sheet-actions">
+          <button type="button" className="secondary" onClick={onCancel}>
+            取消
+          </button>
+          <button type="submit" disabled={pending}>
+            {editing === undefined ? "创建" : "保存"}
+          </button>
+        </div>
+      </form>
+    </Sheet>
+  );
+}
 
 export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }>) {
   const context = useVersionStore((s) => s.context);
@@ -48,7 +281,14 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
     { endpointId: string; diff: CatalogDiff; applied: boolean } | undefined
   >();
   const [accountTarget, setAccountTarget] = useState<string | undefined>();
+  const [channelForm, setChannelForm] = useState<ChannelForm | undefined>();
+  const [accountForm, setAccountForm] = useState<AccountForm | undefined>();
+  const [bindingForm, setBindingForm] = useState<{ channelId: string } | undefined>();
+  const [confirmDelete, setConfirmDelete] = useState<
+    { kind: "channel" | "account"; id: string } | undefined
+  >();
   const [error, setError] = useState<string | undefined>();
+  const queryClient = useQueryClient();
 
   const pools = useQuery({
     queryKey: ["account-pools", scope, upstreamId],
@@ -94,6 +334,87 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
         { versionScoped: true, mutating: true },
       ),
     onSuccess: (diff, endpointId) => setDiscovery({ endpointId, diff, applied: true }),
+    onError: (cause) => setError(asAppError(cause).message),
+  });
+
+  function refresh(): void {
+    void queryClient.invalidateQueries({ queryKey: ["account-pools", scope, upstreamId] });
+  }
+
+  // Every one of these takes a WHOLE Input on PATCH — the contract has no
+  // partial update for subresources, so each form is seeded with current
+  // values and saving replaces the record.
+  const saveChannel = useMutation({
+    mutationFn: (input: { existing: string | undefined; body: unknown }) =>
+      input.existing === undefined
+        ? call<EndpointRecord>(
+            "createEndpoint",
+            { path: { upstream_id: upstreamId }, body: input.body },
+            { versionScoped: true, mutating: true },
+          )
+        : call<EndpointRecord>(
+            "updateEndpoint",
+            { path: { endpoint_id: input.existing }, body: input.body },
+            { versionScoped: true, mutating: true },
+          ),
+    onSuccess: () => {
+      setChannelForm(undefined);
+      refresh();
+    },
+    onError: (cause) => setError(asAppError(cause).message),
+  });
+
+  const saveAccount = useMutation({
+    mutationFn: (input: { existing: string | undefined; body: unknown }) =>
+      input.existing === undefined
+        ? call<unknown>(
+            "createCredential",
+            { path: { upstream_id: upstreamId }, body: input.body },
+            { versionScoped: true, mutating: true },
+          )
+        : call<unknown>(
+            "updateCredential",
+            { path: { credential_id: input.existing }, body: input.body },
+            { versionScoped: true, mutating: true },
+          ),
+    onSuccess: () => {
+      setAccountForm(undefined);
+      refresh();
+    },
+    onError: (cause) => setError(asAppError(cause).message),
+  });
+
+  const saveBinding = useMutation({
+    mutationFn: (input: { endpointId: string; body: unknown }) =>
+      call<unknown>(
+        "createEndpointCredentialBinding",
+        { path: { endpoint_id: input.endpointId }, body: input.body },
+        { versionScoped: true, mutating: true },
+      ),
+    onSuccess: () => {
+      setBindingForm(undefined);
+      refresh();
+    },
+    onError: (cause) => setError(asAppError(cause).message),
+  });
+
+  const remove = useMutation({
+    mutationFn: (target: { kind: "channel" | "account"; id: string }) =>
+      target.kind === "channel"
+        ? call<undefined>(
+            "deleteEndpoint",
+            { path: { endpoint_id: target.id } },
+            { versionScoped: true, mutating: true },
+          )
+        : call<undefined>(
+            "deleteCredential",
+            { path: { credential_id: target.id } },
+            { versionScoped: true, mutating: true },
+          ),
+    onSuccess: () => {
+      setConfirmDelete(undefined);
+      refresh();
+    },
     onError: (cause) => setError(asAppError(cause).message),
   });
 
@@ -153,7 +474,29 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
 
       <h3>
         Channel <span className="idchip mono">{pool.channels.length}</span>
+        <button
+          type="button"
+          className="secondary"
+          disabled={!editable}
+          title={editable ? undefined : "仅草稿版本可编辑"}
+          onClick={() => setChannelForm({ mode: "create" })}
+        >
+          新建 Channel
+        </button>
+        <button
+          type="button"
+          className="secondary"
+          disabled={!editable}
+          title={editable ? undefined : "仅草稿版本可编辑"}
+          onClick={() => setBindingForm({ channelId: "" })}
+        >
+          加绑定
+        </button>
       </h3>
+      <p className="stat-sub">
+        新建的 Channel 在<strong>绑定之前不会出现在下表</strong> —— 库存按绑定成行。
+        用上面的「加绑定」把它接上凭据,它才会现身。
+      </p>
       <table>
         <thead>
           <tr>
@@ -215,6 +558,30 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
                   >
                     预览
                   </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={!editable}
+                    onClick={() => setBindingForm({ channelId: channel.channel_id })}
+                  >
+                    加绑定
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={!editable}
+                    onClick={() => setChannelForm({ mode: "edit", channelId: channel.channel_id })}
+                  >
+                    编辑
+                  </button>
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={!editable}
+                    onClick={() => setConfirmDelete({ kind: "channel", id: channel.channel_id })}
+                  >
+                    删除
+                  </button>
                 </td>
               </tr>
             );
@@ -228,6 +595,15 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
 
       <h3>
         Account <span className="idchip mono">{pool.accounts.length}</span>
+        <button
+          type="button"
+          className="secondary"
+          disabled={!editable}
+          title={editable ? undefined : "仅草稿版本可编辑"}
+          onClick={() => setAccountForm({ mode: "create" })}
+        >
+          新建 Account
+        </button>
       </h3>
       <table>
         <thead>
@@ -253,6 +629,28 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
               <td className="row-actions">
                 <button type="button" onClick={() => setAccountTarget(account.account_id)}>
                   详情
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={!editable}
+                  onClick={() =>
+                    setAccountForm({
+                      mode: "edit",
+                      accountId: account.account_id,
+                      kind: account.account_kind,
+                    })
+                  }
+                >
+                  编辑
+                </button>
+                <button
+                  type="button"
+                  className="danger"
+                  disabled={!editable}
+                  onClick={() => setConfirmDelete({ kind: "account", id: account.account_id })}
+                >
+                  删除
                 </button>
               </td>
             </tr>
@@ -326,6 +724,126 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
                 应用到草稿
               </button>
             ) : null}
+          </div>
+        </Sheet>
+      ) : null}
+
+      {channelForm !== undefined ? (
+        <ChannelSheet
+          form={channelForm}
+          pending={saveChannel.isPending}
+          onCancel={() => setChannelForm(undefined)}
+          onSubmit={(body, existing) => saveChannel.mutate({ existing, body })}
+        />
+      ) : null}
+
+      {accountForm !== undefined ? (
+        <AccountSheet
+          form={accountForm}
+          pending={saveAccount.isPending}
+          onCancel={() => setAccountForm(undefined)}
+          onSubmit={(body, existing) => saveAccount.mutate({ existing, body })}
+        />
+      ) : null}
+
+      {bindingForm !== undefined ? (
+        <Sheet
+          title={bindingForm.channelId === "" ? "加绑定" : `加绑定 · ${bindingForm.channelId}`}
+          onEscape={() => setBindingForm(undefined)}
+        >
+          <form
+            className="sheet-form"
+            onSubmit={(event: FormEvent<HTMLFormElement>) => {
+              event.preventDefault();
+              const data = new FormData(event.currentTarget);
+              saveBinding.mutate({
+                endpointId: String(data.get("channel_id") ?? "").trim(),
+                body: {
+                  credential_id: String(data.get("credential_id") ?? "").trim(),
+                  enabled: data.get("enabled") === "on",
+                  priority: Number(data.get("priority") ?? 0),
+                  weight: Number(data.get("weight") ?? 1),
+                  concurrency: Number(data.get("concurrency") ?? 1),
+                },
+              });
+            }}
+          >
+            <label>
+              channel_id
+              <input
+                name="channel_id"
+                className="mono"
+                required
+                maxLength={128}
+                list="pool-channels"
+                defaultValue={bindingForm.channelId}
+              />
+            </label>
+            <datalist id="pool-channels">
+              {pool.channels.map((channel) => (
+                <option key={channel.channel_id} value={channel.channel_id} />
+              ))}
+            </datalist>
+            <p className="stat-sub">
+              建议列表只含<strong>已有绑定</strong>的 Channel。刚建的那个不在其中 —— 直接把 id 输进来。
+            </p>
+            <label>
+              credential_id
+              <input name="credential_id" className="mono" required maxLength={128} list="pool-accounts" />
+            </label>
+            <datalist id="pool-accounts">
+              {pool.accounts.map((account) => (
+                <option key={account.account_id} value={account.account_id} />
+              ))}
+            </datalist>
+            <label>
+              priority
+              <input name="priority" type="number" defaultValue={0} min={0} required />
+            </label>
+            <label>
+              weight
+              <input name="weight" type="number" defaultValue={1} min={0} required />
+            </label>
+            <label>
+              concurrency
+              <input name="concurrency" type="number" defaultValue={1} min={0} required />
+            </label>
+            <label className="check-row">
+              <input name="enabled" type="checkbox" defaultChecked />
+              启用
+            </label>
+            <div className="sheet-actions">
+              <button type="button" className="secondary" onClick={() => setBindingForm(undefined)}>
+                取消
+              </button>
+              <button type="submit" disabled={saveBinding.isPending}>
+                添加
+              </button>
+            </div>
+          </form>
+        </Sheet>
+      ) : null}
+
+      {confirmDelete !== undefined ? (
+        <Sheet title="确认删除" onEscape={() => setConfirmDelete(undefined)}>
+          <p>
+            删除 <span className="mono">{confirmDelete.id}</span>
+            {confirmDelete.kind === "channel"
+              ? " 会连带移除它的全部绑定,引用它的路由候选将失去目标 —— 该配置版本可能因此验证失败。"
+              : " 会连带移除它的全部绑定。若某个 Channel 只剩这一个可用凭据,相关路由将无候选可选。"}
+          </p>
+          <div className="sheet-actions">
+            <button type="button" className="secondary" onClick={() => setConfirmDelete(undefined)}>
+              取消
+            </button>
+            <button
+              type="button"
+              className="danger"
+              disabled={remove.isPending}
+              onClick={() => remove.mutate(confirmDelete)}
+            >
+              确认删除
+            </button>
           </div>
         </Sheet>
       ) : null}

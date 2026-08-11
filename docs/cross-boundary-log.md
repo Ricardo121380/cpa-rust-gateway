@@ -102,3 +102,26 @@ ADR-0071 与 BC-MGMT-004 是 P10-03 的 Accepted 记录,描述的机制(`generat
 
 **Other side:** FYI — §19.2b 只是指针与解锁关系表,P13 任务表、状态、Gate 全部未动。
 若你认为前端计划应当反过来并入 docs/06,请在此日志回一条,我来搬。
+
+---
+
+## 2026-08-12 · Claude Code · 后端 bug:重复 id 建端点返回 500 而非 409
+
+**Touched:** 无 —— 未改后��代码,只报告。
+
+**Why:** 接子资源 CRUD 时,对真网关(`serve`,本地库)用**已存在的 id** 再建一次端点:
+
+```
+POST /admin/upstreams/up-grok/endpoints   {"id":"ep-t1", ...}
+→ 500 {"error":{"code":"management_internal_error","message":"Management operation failed"}}
+```
+
+首次创建同一载荷返回 201,`models_path` 取 null / 字符串 / 省略三种写法也都 201 ——
+**唯一变量是 id 重复**。重复 id 是客户端错误,其他资源(如 access-groups、config-versions)
+在同样情况下返回 `409 management_lifecycle_conflict`。
+
+面板因此只能显示 "Management operation failed",无法告诉运维"这个 id 已经存在"。
+
+**Other side:** action required(低优先级)—— 期望与既有惯例一致返回 409。
+凭据/绑定的重复路径未逐一验证,可能是同一处的问题。
+前端已按 409 语义写好文案,后端改过来即可自动生效。

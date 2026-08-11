@@ -795,6 +795,138 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       return json(201, { ...JSON.parse(bodyText ?? "{}"), public_model_id: modelId }, revisionToken(version));
     }
 
+    // ---- subresource CRUD (real contract ops; PATCH replaces whole objects) ----
+    const epCreate = /^POST \/admin\/upstreams\/([^/]+)\/endpoints$/u.exec(route);
+    if (epCreate !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const mismatch = requireDraftAndMatch(version, headers);
+      if (mismatch !== undefined) return mismatch;
+      const body = JSON.parse(bodyText ?? "{}") as Omit<EndpointRow, "upstream_id">;
+      const rows = state.endpoints.get(version.id) ?? [];
+      if (rows.some((row) => row.id === body.id)) {
+        return errorResponse(409, "management_lifecycle_conflict", "endpoint id already exists");
+      }
+      const row = { ...body, upstream_id: decodeURIComponent(epCreate[1] ?? "") } as EndpointRow;
+      rows.push(row);
+      state.endpoints.set(version.id, rows);
+      version.revision += 1;
+      return json(201, row, revisionToken(version));
+    }
+
+    const epOne = /^(GET|PATCH|DELETE) \/admin\/endpoints\/([^/]+)$/u.exec(route);
+    if (epOne !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const id = decodeURIComponent(epOne[2] ?? "");
+      const rows = state.endpoints.get(version.id) ?? [];
+      const index = rows.findIndex((row) => row.id === id);
+      if (index < 0) {
+        return errorResponse(409, "management_lifecycle_conflict", "unknown endpoint");
+      }
+      if (epOne[1] === "GET") {
+        return json(200, rows[index], revisionToken(version));
+      }
+      const mismatch = requireDraftAndMatch(version, headers);
+      if (mismatch !== undefined) return mismatch;
+      if (epOne[1] === "DELETE") {
+        rows.splice(index, 1);
+        state.bindings.set(
+          version.id,
+          (state.bindings.get(version.id) ?? []).filter((b) => b.endpoint_id !== id),
+        );
+        version.revision += 1;
+        return new Response(null, { status: 204 });
+      }
+      const body = JSON.parse(bodyText ?? "{}") as EndpointRow;
+      rows[index] = { ...body, id, upstream_id: rows[index]?.upstream_id ?? "" };
+      version.revision += 1;
+      return json(200, rows[index], revisionToken(version));
+    }
+
+    const credCreate = /^POST \/admin\/upstreams\/([^/]+)\/credentials$/u.exec(route);
+    if (credCreate !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const mismatch = requireDraftAndMatch(version, headers);
+      if (mismatch !== undefined) return mismatch;
+      const body = JSON.parse(bodyText ?? "{}") as { id: string; kind: string; secret?: string; status: CredentialRow["status"] };
+      if (body.secret === undefined || body.secret.length === 0) {
+        return errorResponse(400, "invalid_management_request", "secret is required");
+      }
+      const rows = state.credentials.get(version.id) ?? [];
+      if (rows.some((row) => row.id === body.id)) {
+        return errorResponse(409, "management_lifecycle_conflict", "credential id already exists");
+      }
+      // The response is the redacted view: the secret never comes back out.
+      const row: CredentialRow = {
+        id: body.id,
+        upstream_id: decodeURIComponent(credCreate[1] ?? ""),
+        kind: body.kind,
+        status: body.status,
+        revision: 0,
+        secret_present: true,
+      };
+      rows.push(row);
+      state.credentials.set(version.id, rows);
+      version.revision += 1;
+      return json(201, row, revisionToken(version));
+    }
+
+    const credPatchDelete = /^(PATCH|DELETE) \/admin\/credentials\/([^/]+)$/u.exec(route);
+    if (credPatchDelete !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const mismatch = requireDraftAndMatch(version, headers);
+      if (mismatch !== undefined) return mismatch;
+      const id = decodeURIComponent(credPatchDelete[2] ?? "");
+      const rows = state.credentials.get(version.id) ?? [];
+      const index = rows.findIndex((row) => row.id === id);
+      const existing = rows[index];
+      if (index < 0 || existing === undefined) {
+        return errorResponse(409, "management_lifecycle_conflict", "unknown credential");
+      }
+      if (credPatchDelete[1] === "DELETE") {
+        rows.splice(index, 1);
+        state.bindings.set(
+          version.id,
+          (state.bindings.get(version.id) ?? []).filter((b) => b.credential_id !== id),
+        );
+        version.revision += 1;
+        return new Response(null, { status: 204 });
+      }
+      const body = JSON.parse(bodyText ?? "{}") as { kind: string; secret?: string; status: CredentialRow["status"] };
+      if (body.secret === undefined || body.secret.length === 0) {
+        return errorResponse(400, "invalid_management_request", "secret is required on replace");
+      }
+      rows[index] = { ...existing, kind: body.kind, status: body.status, revision: existing.revision + 1 };
+      version.revision += 1;
+      return json(200, rows[index], revisionToken(version));
+    }
+
+    const bindCreate = /^POST \/admin\/endpoints\/([^/]+)\/credential-bindings$/u.exec(route);
+    if (bindCreate !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const mismatch = requireDraftAndMatch(version, headers);
+      if (mismatch !== undefined) return mismatch;
+      const endpointId = decodeURIComponent(bindCreate[1] ?? "");
+      const endpoint = (state.endpoints.get(version.id) ?? []).find((row) => row.id === endpointId);
+      if (endpoint === undefined) {
+        return errorResponse(409, "management_lifecycle_conflict", "unknown endpoint");
+      }
+      const body = JSON.parse(bodyText ?? "{}") as Omit<BindingRow, "endpoint_id" | "upstream_id">;
+      const rows = state.bindings.get(version.id) ?? [];
+      if (rows.some((b) => b.endpoint_id === endpointId && b.credential_id === body.credential_id)) {
+        return errorResponse(409, "management_lifecycle_conflict", "binding already exists");
+      }
+      const row: BindingRow = { ...body, endpoint_id: endpointId, upstream_id: endpoint.upstream_id };
+      rows.push(row);
+      state.bindings.set(version.id, rows);
+      version.revision += 1;
+      return json(201, row, revisionToken(version));
+    }
+
     // ---- P13-04A: operational account-pool inventory (real contract op) ----
     // One row per endpoint-credential binding, joined up through channel and
     // provider. URL-free by contract: no base_url, no inference_path.
