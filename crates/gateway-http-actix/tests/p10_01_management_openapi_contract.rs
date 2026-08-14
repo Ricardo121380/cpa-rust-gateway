@@ -43,6 +43,17 @@ fn management_contract_has_no_dangling_local_references() -> TestResult {
 }
 
 #[test]
+fn provider_account_pool_bounds_match_existing_runtime_scheduler_domains() -> TestResult {
+    let document = document()?;
+    let item = &document["components"]["schemas"]["ProviderAccountPoolItem"]["properties"];
+    assert_eq!(item["priority"]["minimum"], 0);
+    assert!(item["priority"].get("maximum").is_none());
+    assert_eq!(item["max_concurrency"]["maximum"], 100_000);
+    assert_eq!(item["active_leases"]["maximum"], 100_000);
+    Ok(())
+}
+
+#[test]
 fn management_contract_is_separate_from_client_keys_and_uses_optimistic_transactions() -> TestResult
 {
     let document = document()?;

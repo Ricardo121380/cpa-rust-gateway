@@ -316,7 +316,6 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
     )?;
     let backup_directory = command.state_directory.join(BACKUP_DIRECTORY);
     ensure_owned_backup_directory(&backup_directory)?;
-
     // Parentheses deliberately prevent the literal-secret scanner from mistaking this loader
     // invocation for an inline management-key assignment.
     let management_key = (load_management_key(&command.credentials_directory))?;
@@ -353,7 +352,13 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
     .map_err(|_| DeploymentError::ControlPlaneUnavailable)?;
     let registry = Arc::clone(lifecycle_service.registry());
     let runtime_secret_store = SecretStore::new(runtime_key_ring);
-    let data_plane = runtime::build_data_plane_composition_with_web_proxy(
+    let runtime::DataPlaneComposition {
+        data,
+        management_runtime,
+        provider_account_pools,
+        observability,
+        event_writer,
+    } = runtime::build_data_plane_composition_with_web_proxy(
         &database,
         &runtime_secret_store,
         registry,
@@ -369,12 +374,6 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         eprintln!("{error}");
         DeploymentError::RuntimeUnavailable
     })?;
-    let runtime::DataPlaneComposition {
-        data,
-        management_runtime,
-        observability,
-        event_writer,
-    } = data_plane;
     let resources = ManagementResourceHttpState::with_workflow_and_runtime_and_usage(
         mutation_service,
         Box::new(CodexOAuthManagementWorkflow::with_exchange(Box::new(
@@ -383,7 +382,8 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         management_runtime,
         Box::new(SystemManagementRuntimeClock),
         Box::new(DeploymentManagementUsageFacade::new(database.clone())),
-    );
+    )
+    .with_provider_account_pools(provider_account_pools);
     let lifecycle = ManagementLifecycleHttpState::new(lifecycle_service);
     let backup = ManagementBackupHttpState::new(
         ManagementBackupService::try_new(
@@ -404,7 +404,6 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         },
     )
     .map_err(|_| DeploymentError::RuntimeUnavailable)?;
-
     Ok(ApplicationState {
         data,
         security,

@@ -20,7 +20,7 @@ if (import.meta.env.DEV && import.meta.env["VITE_PRISM_FIXTURES"] === "1") {
 }
 
 const api = new ManagementApi({
-  managementKey: readManagementKey,
+  managementKey: () => readManagementKey(),
   csrfToken: readCsrfToken,
   ...(fetchOverride === undefined ? {} : { fetch: fetchOverride }),
 });

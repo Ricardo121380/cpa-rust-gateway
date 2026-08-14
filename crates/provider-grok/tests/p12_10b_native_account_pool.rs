@@ -10,10 +10,11 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use gateway_core::EndpointId;
 use gateway_store::secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore};
 use provider_grok::{
-    GrokAccountCredential, GrokAccountIdentity, GrokAccountImport, GrokAccountPoolError,
-    GrokAccountPoolStore, GrokAccountProvider,
+    GrokAccountAuthStatus, GrokAccountCredential, GrokAccountEndpointBinding, GrokAccountIdentity,
+    GrokAccountImport, GrokAccountPoolError, GrokAccountPoolStore, GrokAccountProvider,
 };
 use rusqlite::Connection;
 
@@ -211,6 +212,173 @@ fn duplicate_identity_invalid_bounds_and_wrong_key_fail_closed() -> TestResult {
         wrong_key_store.open_credential(&account_id),
         Err(GrokAccountPoolError::SecretStoreFailure)
     ));
+    Ok(())
+}
+
+#[test]
+fn runtime_compilation_carries_one_complete_redacted_metadata_snapshot() -> TestResult {
+    let database = TemporaryDatabase::new()?;
+    let store =
+        GrokAccountPoolStore::try_new(Connection::open(database.path())?, secret_store(0xA5)?)?;
+    let mut disabled_build = account(
+        GrokAccountProvider::Build,
+        b"atomic-disabled-build",
+        b"atomic-disabled-build-secret",
+        30,
+    )?;
+    disabled_build.auth_status = GrokAccountAuthStatus::Disabled;
+    disabled_build.enabled = false;
+    disabled_build.refresh_due_at_ms = Some(NOW_MS + 10_000);
+    disabled_build.quota_sync_due_at_ms = Some(NOW_MS + 20_000);
+
+    let mut reauth_web = account(
+        GrokAccountProvider::Web,
+        b"atomic-reauth-web",
+        b"atomic-reauth-web-secret",
+        20,
+    )?;
+    reauth_web.auth_status = GrokAccountAuthStatus::ReauthRequired;
+    reauth_web.cooldown_until_ms = Some(NOW_MS + 30_000);
+
+    let console = account(
+        GrokAccountProvider::Console,
+        b"atomic-unbound-console",
+        b"atomic-unbound-console-secret",
+        10,
+    )?;
+    store.import_batch(
+        "atomic-metadata",
+        &[disabled_build, reauth_web, console],
+        NOW_MS,
+    )?;
+
+    let compilation = store.compile_native_runtime(
+        &[GrokAccountEndpointBinding::new(
+            GrokAccountProvider::Web,
+            EndpointId::try_new("atomic-web-endpoint")?,
+        )],
+        NOW_MS,
+    )?;
+
+    assert_eq!(compilation.account_count(), 1);
+    let metadata = compilation
+        .account_metadata()
+        .ok_or("atomic metadata snapshot unexpectedly unavailable")?;
+    assert_eq!(metadata.len(), 3);
+    assert_eq!(
+        metadata
+            .iter()
+            .map(|account| (account.provider, account.auth_status, account.enabled))
+            .collect::<Vec<_>>(),
+        vec![
+            (
+                GrokAccountProvider::Build,
+                GrokAccountAuthStatus::Disabled,
+                false,
+            ),
+            (
+                GrokAccountProvider::Console,
+                GrokAccountAuthStatus::Active,
+                true,
+            ),
+            (
+                GrokAccountProvider::Web,
+                GrokAccountAuthStatus::ReauthRequired,
+                true,
+            ),
+        ]
+    );
+    let disabled = metadata
+        .iter()
+        .find(|account| account.provider == GrokAccountProvider::Build)
+        .ok_or("disabled Build metadata missing")?;
+    assert_eq!(disabled.refresh_due_at_ms, Some(NOW_MS + 10_000));
+    assert_eq!(disabled.quota_sync_due_at_ms, Some(NOW_MS + 20_000));
+    assert_eq!(disabled.revision, 0);
+    assert_eq!(disabled.import_batch_id, "atomic-metadata");
+    let reauth = metadata
+        .iter()
+        .find(|account| account.provider == GrokAccountProvider::Web)
+        .ok_or("reauth Web metadata missing")?;
+    assert_eq!(reauth.cooldown_until_ms, Some(NOW_MS + 30_000));
+
+    let redacted = format!("{metadata:?} {compilation:?}");
+    for forbidden in [
+        "atomic-disabled-build",
+        "atomic-disabled-build-secret",
+        "atomic-reauth-web",
+        "atomic-reauth-web-secret",
+        "atomic-unbound-console",
+        "atomic-unbound-console-secret",
+        "identity_digest",
+        "ciphertext",
+    ] {
+        assert!(!redacted.contains(forbidden));
+    }
+    Ok(())
+}
+
+#[test]
+fn invalid_disabled_metadata_does_not_stop_the_existing_runtime_pool() -> TestResult {
+    let database = TemporaryDatabase::new()?;
+    let store =
+        GrokAccountPoolStore::try_new(Connection::open(database.path())?, secret_store(0xA5)?)?;
+    let active_web = account(
+        GrokAccountProvider::Web,
+        b"available-web",
+        b"available-web-secret",
+        20,
+    )?;
+    let mut disabled_build = account(
+        GrokAccountProvider::Build,
+        b"invalid-disabled-build",
+        b"invalid-disabled-build-secret",
+        30,
+    )?;
+    disabled_build.auth_status = GrokAccountAuthStatus::Disabled;
+    disabled_build.enabled = false;
+    store.import_batch(
+        "metadata-unavailable",
+        &[active_web, disabled_build],
+        NOW_MS,
+    )?;
+    drop(store);
+
+    let connection = Connection::open(database.path())?;
+    connection.execute_batch("PRAGMA ignore_check_constraints = ON")?;
+    assert_eq!(
+        connection.execute(
+            "UPDATE grok_accounts SET refresh_due_at_ms = -1 WHERE provider = 'build'",
+            [],
+        )?,
+        1
+    );
+    drop(connection);
+
+    let store =
+        GrokAccountPoolStore::try_new(Connection::open(database.path())?, secret_store(0xA5)?)?;
+    let endpoint_id = EndpointId::try_new("available-web-endpoint")?;
+    let compilation = store.compile_native_runtime(
+        &[GrokAccountEndpointBinding::new(
+            GrokAccountProvider::Web,
+            endpoint_id.clone(),
+        )],
+        NOW_MS,
+    )?;
+
+    assert_eq!(compilation.account_count(), 1);
+    assert!(compilation.account_metadata().is_none());
+    assert!(compilation.credential_pools().pool(&endpoint_id).is_some());
+    let redacted = format!("{compilation:?}");
+    for forbidden in [
+        "available-web-secret",
+        "invalid-disabled-build",
+        "invalid-disabled-build-secret",
+        "identity_digest",
+        "ciphertext",
+    ] {
+        assert!(!redacted.contains(forbidden));
+    }
     Ok(())
 }
 

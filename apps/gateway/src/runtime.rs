@@ -32,13 +32,18 @@ use gateway_catalog::{
     CapabilitySet, CatalogView, EndpointCapabilityEntry, EndpointCapabilityView, SemanticCapability,
 };
 use gateway_control::{
-    credential_pool_compiler::CredentialPoolCompiler, egress_policy_compiler::EgressPolicyCompiler,
+    credential_pool_compiler::CredentialPoolCompiler,
+    egress_policy_compiler::EgressPolicyCompiler,
+    provider_account_pool_service::{
+        ProviderAccountAuthStatus, ProviderAccountPoolFacade, ProviderAccountRuntimeStatus,
+        RejectingProviderAccountPoolFacade,
+    },
     route_compiler::RouteCompiler,
 };
 use gateway_core::{
-    AttemptEvent, AttemptOutcome, CanonicalEvent, CanonicalRequest, EgressPolicyId, EndpointId,
-    ErrorScope, EventEmission, GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink,
-    RawExtensions, RequestContext, RequestId, Usage, UsageDelta,
+    AttemptEvent, AttemptOutcome, CanonicalEvent, CanonicalRequest, CredentialId, EgressPolicyId,
+    EndpointId, ErrorScope, EventEmission, GatewayError, GatewayErrorCode, GatewayEvent,
+    GatewayEventSink, ProviderId, RawExtensions, RequestContext, RequestId, Usage, UsageDelta,
 };
 #[cfg(test)]
 use gateway_core::{
@@ -88,9 +93,9 @@ use gateway_store::{
 };
 use gateway_upstream::{
     AdmittedEgressTarget, CredentialLease, EgressCidr, EgressDnsResolver, EgressHost, EgressPolicy,
-    EgressPolicyInput, EgressScheme, RedirectPolicy, SystemEgressDnsResolver, UpstreamClientPool,
-    UpstreamHttpMethod, UpstreamHttpRequest, UpstreamHttpResponse, UpstreamProxy, UpstreamTimeouts,
-    UpstreamTransportProfile,
+    EgressPolicyInput, EgressScheme, EndpointCredentialPools, RedirectPolicy,
+    SystemEgressDnsResolver, UpstreamClientPool, UpstreamHttpMethod, UpstreamHttpRequest,
+    UpstreamHttpResponse, UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
 };
 
 use protocol_openai_chat::{
@@ -111,14 +116,14 @@ use provider_grok::{
     GROK_CONSOLE_RESPONSES_BASE_URL, GROK_CONSOLE_RESPONSES_PATH, GROK_CONSOLE_RESPONSES_URL,
     GROK_OFFICIAL_API_BASE_URL, GROK_OFFICIAL_RESPONSES_PATH, GROK_OFFICIAL_RESPONSES_URL,
     GROK_WEB_CANARY_PATH, GROK_WEB_CANARY_URL, GROK_WEB_PRODUCTION_BASE_URL,
-    GROK_WEB_PRODUCTION_USER_AGENT, GrokAccountEndpointBinding, GrokAccountPoolStore,
-    GrokAccountProvider, GrokBuildCredential, GrokBuildExecutionMode, GrokBuildInferenceAdapter,
-    GrokBuildUpstreamTransport, GrokConsoleExecutionMode, GrokConsoleInferenceAdapter,
-    GrokConsoleSsoToken, GrokConsoleUpstreamTransport, GrokOfficialApiKey,
-    GrokOfficialExecutionMode, GrokOfficialInferenceAdapter, GrokOfficialUpstreamTransport,
-    GrokWebBrowserEgressSession, GrokWebBrowserUserAgent, GrokWebCredential,
-    GrokWebEgressRefresher, GrokWebEgressSessionId, GrokWebFlareSolverrRequest,
-    GrokWebFlareSolverrTransport, GrokWebFlareSolverrTransportResponse,
+    GROK_WEB_PRODUCTION_USER_AGENT, GrokAccountAuthStatus, GrokAccountEndpointBinding,
+    GrokAccountMetadata, GrokAccountPoolStore, GrokAccountProvider, GrokBuildCredential,
+    GrokBuildExecutionMode, GrokBuildInferenceAdapter, GrokBuildUpstreamTransport,
+    GrokConsoleExecutionMode, GrokConsoleInferenceAdapter, GrokConsoleSsoToken,
+    GrokConsoleUpstreamTransport, GrokOfficialApiKey, GrokOfficialExecutionMode,
+    GrokOfficialInferenceAdapter, GrokOfficialUpstreamTransport, GrokWebBrowserEgressSession,
+    GrokWebBrowserUserAgent, GrokWebCredential, GrokWebEgressRefresher, GrokWebEgressSessionId,
+    GrokWebFlareSolverrRequest, GrokWebFlareSolverrTransport, GrokWebFlareSolverrTransportResponse,
     GrokWebProductionInferenceAdapter, GrokWebProductionUpstreamTransport, GrokWebStatsigRuntime,
     GrokWebStatsigUpstreamTransport, GrokWebTlsProfile,
 };
@@ -137,6 +142,11 @@ use provider_openai_compatible::{
     OpenAiRuntimeFailureAction, classify_openai_runtime_failure,
 };
 use serde_json::Value;
+
+use crate::provider_account_pool_adapter::{
+    ProviderAccountDescriptor, ProviderAccountDescriptorSource, ProviderAccountPoolAdapter,
+    SystemProviderAccountPoolClock,
+};
 
 /// The largest complete non-streaming Responses body this runtime will buffer.
 ///
@@ -400,6 +410,11 @@ const P12_CODEX_OAUTH_ORIGINATOR: &str = "codex_cli_rs";
 const P12_CODEX_OAUTH_VERSION: &str = "0.144.1";
 /// Lifetime of one operator-driven recovery ticket; begin and complete happen in one call.
 const P12_OPERATOR_RECOVERY_TTL_MS: i64 = 30_000;
+/// Short read-model lifetime: long enough for bounded cursor pagination, short enough that
+/// lease/Health/Quota observations do not masquerade as durable configuration state.
+const P13_PROVIDER_ACCOUNT_POOL_SNAPSHOT_TTL: Duration = Duration::from_secs(5);
+/// Cursor-bearing readers may finish a bounded multi-page traversal after the latest view refreshes.
+const P13_PROVIDER_ACCOUNT_POOL_CURSOR_RETENTION: Duration = Duration::from_mins(2);
 
 /// Production pieces that must be attached to the separate P12 listeners together.
 pub(crate) struct DataPlaneComposition {
@@ -407,6 +422,8 @@ pub(crate) struct DataPlaneComposition {
     pub(crate) data: ResponsesHttpState,
     /// Management projection backed by the Snapshot registry, durable event log, and stage ledger.
     pub(crate) management_runtime: Box<dyn ManagementRuntimeFacade>,
+    /// Read-only projection over the exact account pools and runtime registries used by routing.
+    pub(crate) provider_account_pools: Box<dyn ProviderAccountPoolFacade>,
     /// Management-listener exposition over the shared bounded telemetry registry.
     pub(crate) observability: ManagementObservabilityHttpState,
     /// Durable event consumer that the deployment envelope spawns after its listeners bind and
@@ -553,24 +570,33 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
         Arc::clone(&attempt_stages),
         Arc::clone(&event_queue),
     ));
-    let executor: Arc<dyn ResponsesExecutor> = match repository
+    let (executor, provider_account_pools): (
+        Arc<dyn ResponsesExecutor>,
+        Box<dyn ProviderAccountPoolFacade>,
+    ) = match repository
         .load_active_configuration()
         .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::ControlPlane))?
     {
-        Some(configuration) => Arc::new(P12RoutedResponsesExecutor::try_new(
-            database,
-            &configuration,
-            secret_store,
-            Arc::clone(&registry),
-            Arc::clone(&attempt_stages),
-            Arc::clone(&event_sink),
-            Arc::clone(&runtime_health),
-            Arc::clone(&runtime_quota),
-            web_proxy,
-            flaresolverr_proxy,
-            flaresolverr_port,
-        )?),
-        None => Arc::new(NoActiveConfigurationExecutor),
+        Some(configuration) => {
+            let (executor, provider_account_pools) = P12RoutedResponsesExecutor::try_new(
+                database,
+                &configuration,
+                secret_store,
+                Arc::clone(&registry),
+                Arc::clone(&attempt_stages),
+                Arc::clone(&event_sink),
+                Arc::clone(&runtime_health),
+                Arc::clone(&runtime_quota),
+                web_proxy,
+                flaresolverr_proxy,
+                flaresolverr_port,
+            )?;
+            (Arc::new(executor), provider_account_pools)
+        }
+        None => (
+            Arc::new(NoActiveConfigurationExecutor),
+            Box::new(RejectingProviderAccountPoolFacade::new()),
+        ),
     };
     let authenticator = Arc::new(gateway_router::SnapshotClientKeyAuthenticator::new(
         Arc::clone(&registry),
@@ -597,6 +623,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
             runtime_quota,
             event_store,
         }),
+        provider_account_pools,
         observability: ManagementObservabilityHttpState::new(telemetry_metrics, event_queue)
             .with_durability(Arc::new(P12DurabilityMetrics::new(
                 event_writer.metrics_handle(),
@@ -650,6 +677,7 @@ pub(crate) enum RuntimeCompositionStage {
     Egress,
     CredentialPool,
     NativeAccountPool,
+    ProviderAccountPool,
     AdapterRegistry,
     EndpointRuntime,
     EventStore,
@@ -667,6 +695,7 @@ impl RuntimeCompositionStage {
             Self::Egress => "egress",
             Self::CredentialPool => "credential_pool",
             Self::NativeAccountPool => "native_account_pool",
+            Self::ProviderAccountPool => "provider_account_pool",
             Self::AdapterRegistry => "adapter_registry",
             Self::EndpointRuntime => "endpoint_runtime",
             Self::EventStore => "event_store",
@@ -943,7 +972,7 @@ impl P12RoutedResponsesExecutor {
         web_proxy: Option<UpstreamProxy>,
         flaresolverr_proxy: Option<UpstreamProxy>,
         flaresolverr_port: u16,
-    ) -> Result<Self, RuntimeCompositionError> {
+    ) -> Result<(Self, Box<dyn ProviderAccountPoolFacade>), RuntimeCompositionError> {
         // Keep the value-free stage detail for the native Grok diagnostic boundary, while
         // retaining the historical generic failure for ordinary graphs.  Existing callers use
         // the generic variant as a compatibility contract and it must not change merely because
@@ -984,6 +1013,10 @@ impl P12RoutedResponsesExecutor {
             .keys()
             .cloned()
             .collect::<BTreeSet<_>>();
+        let observed_at_ms = system_now_ms_runtime()
+            .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::CredentialPool))?;
+        let mut provider_account_descriptors =
+            ordinary_provider_account_descriptors(configuration, &native_endpoint_ids);
         let pools = CredentialPoolCompiler::new(secret_store)
             .compile_excluding_endpoints(configuration, &native_endpoint_ids)
             .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::CredentialPool))?;
@@ -1001,15 +1034,24 @@ impl P12RoutedResponsesExecutor {
                     RuntimeCompositionError::Stage(RuntimeCompositionStage::NativeAccountPool)
                 })?;
             let native_compilation = native_store
-                .compile_native_runtime(
-                    &bindings,
-                    system_now_ms_runtime().map_err(|_| {
-                        RuntimeCompositionError::Stage(RuntimeCompositionStage::NativeAccountPool)
-                    })?,
-                )
+                .compile_native_runtime(&bindings, observed_at_ms)
                 .map_err(|_| {
                     RuntimeCompositionError::Stage(RuntimeCompositionStage::NativeAccountPool)
                 })?;
+            provider_account_descriptors = provider_account_descriptors.and_then(|mut ordinary| {
+                let native_accounts =
+                    native_compilation
+                        .account_metadata()
+                        .ok_or(RuntimeCompositionError::Stage(
+                            RuntimeCompositionStage::ProviderAccountPool,
+                        ))?;
+                ordinary.extend(native_provider_account_descriptors(
+                    configuration,
+                    &bindings,
+                    native_accounts,
+                )?);
+                Ok(ordinary)
+            });
             for endpoint_id in &native_endpoint_ids {
                 if native_compilation
                     .credential_pools()
@@ -1037,6 +1079,13 @@ impl P12RoutedResponsesExecutor {
                     RuntimeCompositionError::Stage(RuntimeCompositionStage::CredentialPool)
                 })?
         };
+        let pools = Arc::new(pools);
+        let provider_account_pools = provider_account_pool_facade(
+            provider_account_descriptors,
+            Arc::clone(&pools),
+            Arc::clone(&runtime_health),
+            Arc::clone(&runtime_quota),
+        );
         let adapters = p12_api_format_adapter_registry().map_err(|_| {
             RuntimeCompositionError::Stage(RuntimeCompositionStage::AdapterRegistry)
         })?;
@@ -1052,7 +1101,7 @@ impl P12RoutedResponsesExecutor {
         .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime))?;
         let scheduler = Arc::new(RouteCredentialScheduler::new(
             Arc::clone(&snapshot),
-            Arc::new(pools),
+            Arc::clone(&pools),
         ));
         let orchestrator = Arc::new(AttemptOrchestrator::with_runtime_quota_and_clock_config(
             scheduler,
@@ -1068,15 +1117,18 @@ impl P12RoutedResponsesExecutor {
             NonZeroUsize::new(cached_clients).ok_or(RuntimeCompositionError::Unavailable)?,
         ));
 
-        Ok(Self {
-            registry,
-            snapshot_version: snapshot.version().clone(),
-            orchestrator,
-            endpoints: Arc::new(endpoints),
-            client_pool,
-            attempt_stages,
-            event_sink,
-        })
+        Ok((
+            Self {
+                registry,
+                snapshot_version: snapshot.version().clone(),
+                orchestrator,
+                endpoints: Arc::new(endpoints),
+                client_pool,
+                attempt_stages,
+                event_sink,
+            },
+            provider_account_pools,
+        ))
     }
 
     fn snapshot_is_current(&self) -> bool {
@@ -1274,6 +1326,244 @@ fn build_grok_web_responses_adapter(
         return Err(RuntimeCompositionError::Unavailable);
     }
     Ok(EndpointAdapter::GrokWebResponses)
+}
+
+fn ordinary_provider_account_descriptors(
+    configuration: &ControlPlaneConfiguration,
+    native_endpoint_ids: &BTreeSet<EndpointId>,
+) -> Result<Vec<ProviderAccountDescriptor>, RuntimeCompositionError> {
+    let upstreams = configuration
+        .upstreams
+        .iter()
+        .map(|upstream| (upstream.id.clone(), upstream))
+        .collect::<BTreeMap<_, _>>();
+    let endpoints = configuration
+        .endpoints
+        .iter()
+        .map(|endpoint| (endpoint.id.clone(), endpoint))
+        .collect::<BTreeMap<_, _>>();
+    let credentials = configuration
+        .credentials
+        .iter()
+        .map(|credential| (credential.id.clone(), credential))
+        .collect::<BTreeMap<_, _>>();
+    let models = provider_account_models(configuration);
+    let mut descriptors = Vec::new();
+
+    for binding in &configuration.endpoint_credential_bindings {
+        if native_endpoint_ids.contains(&binding.endpoint_id) {
+            continue;
+        }
+        let endpoint =
+            endpoints
+                .get(&binding.endpoint_id)
+                .ok_or(RuntimeCompositionError::Stage(
+                    RuntimeCompositionStage::ProviderAccountPool,
+                ))?;
+        let credential =
+            credentials
+                .get(&binding.credential_id)
+                .ok_or(RuntimeCompositionError::Stage(
+                    RuntimeCompositionStage::ProviderAccountPool,
+                ))?;
+        let upstream =
+            upstreams
+                .get(&binding.upstream_id)
+                .ok_or(RuntimeCompositionError::Stage(
+                    RuntimeCompositionStage::ProviderAccountPool,
+                ))?;
+        if endpoint.upstream_id != binding.upstream_id
+            || credential.upstream_id != binding.upstream_id
+        {
+            return Err(RuntimeCompositionError::Stage(
+                RuntimeCompositionStage::ProviderAccountPool,
+            ));
+        }
+        let (auth_status, runtime_status_hint) = match credential.status {
+            CredentialStatus::Active => (
+                ProviderAccountAuthStatus::Active,
+                ProviderAccountRuntimeStatus::Available,
+            ),
+            CredentialStatus::Cooling => (
+                ProviderAccountAuthStatus::Active,
+                ProviderAccountRuntimeStatus::Cooling,
+            ),
+            CredentialStatus::Unauthorized => (
+                ProviderAccountAuthStatus::ReauthRequired,
+                ProviderAccountRuntimeStatus::Unauthorized,
+            ),
+            CredentialStatus::Disabled => (
+                ProviderAccountAuthStatus::Disabled,
+                ProviderAccountRuntimeStatus::Available,
+            ),
+        };
+        descriptors.push(ProviderAccountDescriptor {
+            source: ProviderAccountDescriptorSource::Ordinary,
+            provider_id: ProviderId::try_new(upstream.id.as_str().to_owned()).map_err(|_| {
+                RuntimeCompositionError::Stage(RuntimeCompositionStage::ProviderAccountPool)
+            })?,
+            channel_id: endpoint.id.clone(),
+            account_id: credential.id.clone(),
+            account_kind: credential.kind.clone(),
+            auth_status,
+            runtime_status_hint,
+            enabled: upstream.enabled
+                && endpoint.enabled
+                && binding.enabled
+                && credential.status != CredentialStatus::Disabled,
+            priority: binding.priority,
+            weight: u32::try_from(binding.weight).map_err(|_| {
+                RuntimeCompositionError::Stage(RuntimeCompositionStage::ProviderAccountPool)
+            })?,
+            max_concurrency: u32::try_from(binding.concurrency).map_err(|_| {
+                RuntimeCompositionError::Stage(RuntimeCompositionStage::ProviderAccountPool)
+            })?,
+            expires_at_ms: None,
+            refresh_due_at_ms: None,
+            quota_sync_due_at_ms: None,
+            upstream_models: models.get(&endpoint.id).cloned().unwrap_or_default(),
+        });
+    }
+    Ok(descriptors)
+}
+
+fn native_provider_account_descriptors(
+    configuration: &ControlPlaneConfiguration,
+    bindings: &[GrokAccountEndpointBinding],
+    accounts: &[GrokAccountMetadata],
+) -> Result<Vec<ProviderAccountDescriptor>, RuntimeCompositionError> {
+    let upstreams = configuration
+        .upstreams
+        .iter()
+        .map(|upstream| (upstream.id.clone(), upstream))
+        .collect::<BTreeMap<_, _>>();
+    let endpoints = configuration
+        .endpoints
+        .iter()
+        .map(|endpoint| (endpoint.id.clone(), endpoint))
+        .collect::<BTreeMap<_, _>>();
+    let models = provider_account_models(configuration);
+    let mut endpoints_by_provider = BTreeMap::new();
+    for binding in bindings {
+        if endpoints_by_provider
+            .insert(binding.provider(), binding.endpoint_id().clone())
+            .is_some()
+        {
+            return Err(RuntimeCompositionError::Stage(
+                RuntimeCompositionStage::ProviderAccountPool,
+            ));
+        }
+    }
+
+    let mut descriptors = Vec::new();
+    for account in accounts {
+        let Some(endpoint_id) = endpoints_by_provider.get(&account.provider) else {
+            continue;
+        };
+        let endpoint = endpoints
+            .get(endpoint_id)
+            .ok_or(RuntimeCompositionError::Stage(
+                RuntimeCompositionStage::ProviderAccountPool,
+            ))?;
+        let upstream =
+            upstreams
+                .get(&endpoint.upstream_id)
+                .ok_or(RuntimeCompositionError::Stage(
+                    RuntimeCompositionStage::ProviderAccountPool,
+                ))?;
+        let auth_status = match account.auth_status {
+            GrokAccountAuthStatus::Active => ProviderAccountAuthStatus::Active,
+            GrokAccountAuthStatus::ReauthRequired => ProviderAccountAuthStatus::ReauthRequired,
+            GrokAccountAuthStatus::Disabled => ProviderAccountAuthStatus::Disabled,
+        };
+        let runtime_status_hint = if auth_status == ProviderAccountAuthStatus::ReauthRequired {
+            ProviderAccountRuntimeStatus::Unauthorized
+        } else {
+            ProviderAccountRuntimeStatus::Available
+        };
+        descriptors.push(ProviderAccountDescriptor {
+            source: ProviderAccountDescriptorSource::Native,
+            provider_id: ProviderId::try_new(upstream.id.as_str().to_owned()).map_err(|_| {
+                RuntimeCompositionError::Stage(RuntimeCompositionStage::ProviderAccountPool)
+            })?,
+            channel_id: endpoint.id.clone(),
+            account_id: CredentialId::try_new(account.id.clone()).map_err(|_| {
+                RuntimeCompositionError::Stage(RuntimeCompositionStage::ProviderAccountPool)
+            })?,
+            account_kind: grok_account_kind(account.provider).to_owned(),
+            auth_status,
+            runtime_status_hint,
+            enabled: upstream.enabled
+                && endpoint.enabled
+                && account.enabled
+                && auth_status != ProviderAccountAuthStatus::Disabled,
+            priority: 1_000_i64.checked_sub(account.priority).ok_or(
+                RuntimeCompositionError::Stage(RuntimeCompositionStage::ProviderAccountPool),
+            )?,
+            weight: account.weight,
+            max_concurrency: account.max_concurrency,
+            // Build expiry is retained by the compiled pool diagnostic entry. Web/Console
+            // lifetimes remain Provider-managed metadata and therefore stay unknown here.
+            expires_at_ms: None,
+            refresh_due_at_ms: account.refresh_due_at_ms,
+            quota_sync_due_at_ms: account.quota_sync_due_at_ms,
+            upstream_models: models.get(endpoint_id).cloned().unwrap_or_default(),
+        });
+    }
+    Ok(descriptors)
+}
+
+fn provider_account_pool_facade(
+    descriptors: Result<Vec<ProviderAccountDescriptor>, RuntimeCompositionError>,
+    credential_pools: Arc<EndpointCredentialPools>,
+    runtime_health: Arc<RuntimeHealthRegistry>,
+    runtime_quota: Arc<RuntimeQuotaRegistry>,
+) -> Box<dyn ProviderAccountPoolFacade> {
+    descriptors
+        .and_then(|descriptors| {
+            ProviderAccountPoolAdapter::try_new(
+                descriptors,
+                credential_pools,
+                runtime_health,
+                runtime_quota,
+                Arc::new(SystemProviderAccountPoolClock),
+                P13_PROVIDER_ACCOUNT_POOL_SNAPSHOT_TTL,
+                P13_PROVIDER_ACCOUNT_POOL_CURSOR_RETENTION,
+            )
+            .map_err(|_| {
+                RuntimeCompositionError::Stage(RuntimeCompositionStage::ProviderAccountPool)
+            })
+        })
+        .map_or_else(
+            |_| Box::new(RejectingProviderAccountPoolFacade::new()) as Box<_>,
+            |adapter| Box::new(adapter) as Box<_>,
+        )
+}
+
+fn provider_account_models(
+    configuration: &ControlPlaneConfiguration,
+) -> BTreeMap<EndpointId, Vec<String>> {
+    let mut models: BTreeMap<EndpointId, BTreeSet<String>> = BTreeMap::new();
+    for candidate in &configuration.route_candidates {
+        if candidate.enabled {
+            models
+                .entry(candidate.endpoint_id.clone())
+                .or_default()
+                .insert(candidate.upstream_model.clone());
+        }
+    }
+    models
+        .into_iter()
+        .map(|(endpoint_id, models)| (endpoint_id, models.into_iter().collect()))
+        .collect()
+}
+
+const fn grok_account_kind(provider: GrokAccountProvider) -> &'static str {
+    match provider {
+        GrokAccountProvider::Build => "grok_build_oauth",
+        GrokAccountProvider::Web => "grok_web_sso",
+        GrokAccountProvider::Console => "grok_console_sso",
+    }
 }
 
 fn native_grok_provider_for_endpoint(
@@ -8906,8 +9196,132 @@ mod tests {
             std::sync::Arc::clone(lifecycle.registry()),
             ClientKeyService::new(ClientKeyPepper::try_from_bytes([0xE1_u8; 32])?),
         )?;
+        let account_page = composition
+            .provider_account_pools
+            .list_provider_account_pools(
+                &gateway_control::provider_account_pool_service::ProviderAccountPoolQuery::default(
+                ),
+            )?;
+        assert_eq!(account_page.items.len(), 1);
+        assert_eq!(
+            account_page.items[0].provider_id.as_str(),
+            "p12-runtime-upstream"
+        );
+        assert_eq!(
+            account_page.items[0].channel_id.as_str(),
+            P12_SINGLETON_TEST_ENDPOINT_ID
+        );
+        assert_eq!(
+            account_page.items[0].account_id.as_str(),
+            "p12-runtime-credential"
+        );
+        assert_eq!(
+            account_page.items[0].runtime_status,
+            gateway_control::provider_account_pool_service::ProviderAccountRuntimeStatus::Available
+        );
         drop(composition);
         assert!(directory.path().join("control.sqlite3").is_file());
+        Ok(())
+    }
+
+    #[test]
+    fn native_grok_metadata_maps_to_the_configured_provider_channel_without_a_send()
+    -> Result<(), Box<dyn Error>> {
+        let secret_store = test_secret_store()?;
+        let configuration = p12_configuration(&secret_store)?;
+        let endpoint_id = configuration.endpoints[0].id.clone();
+        let bindings = [provider_grok::GrokAccountEndpointBinding::new(
+            provider_grok::GrokAccountProvider::Build,
+            endpoint_id,
+        )];
+        let accounts = [
+            provider_grok::GrokAccountMetadata {
+                id: "native-build-active".to_owned(),
+                provider: provider_grok::GrokAccountProvider::Build,
+                auth_status: provider_grok::GrokAccountAuthStatus::Active,
+                enabled: true,
+                priority: -1_000,
+                weight: 3,
+                max_concurrency: 2,
+                refresh_due_at_ms: Some(500),
+                quota_sync_due_at_ms: Some(600),
+                cooldown_until_ms: Some(400),
+                revision: 7,
+                import_batch_id: "native-build-batch".to_owned(),
+            },
+            provider_grok::GrokAccountMetadata {
+                id: "native-build-reauth".to_owned(),
+                provider: provider_grok::GrokAccountProvider::Build,
+                auth_status: provider_grok::GrokAccountAuthStatus::ReauthRequired,
+                enabled: true,
+                priority: 800,
+                weight: 1,
+                max_concurrency: 1,
+                refresh_due_at_ms: None,
+                quota_sync_due_at_ms: None,
+                cooldown_until_ms: None,
+                revision: 3,
+                import_batch_id: "native-build-batch".to_owned(),
+            },
+        ];
+
+        let rows =
+            super::native_provider_account_descriptors(&configuration, &bindings, &accounts)?;
+        assert_eq!(rows.len(), 2);
+        let active = rows
+            .iter()
+            .find(|row| row.account_id.as_str() == "native-build-active")
+            .ok_or("active native row missing")?;
+        assert_eq!(active.provider_id.as_str(), "p12-runtime-upstream");
+        assert_eq!(active.channel_id.as_str(), P12_SINGLETON_TEST_ENDPOINT_ID);
+        assert_eq!(active.account_kind, "grok_build_oauth");
+        assert_eq!(active.priority, 2_000);
+        assert_eq!(active.weight, 3);
+        assert_eq!(active.max_concurrency, 2);
+        assert_eq!(active.upstream_models, ["p12-test-upstream-model"]);
+        assert_eq!(
+            active.runtime_status_hint,
+            gateway_control::provider_account_pool_service::ProviderAccountRuntimeStatus::Available
+        );
+        let reauth = rows
+            .iter()
+            .find(|row| row.account_id.as_str() == "native-build-reauth")
+            .ok_or("reauth native row missing")?;
+        assert_eq!(
+            reauth.auth_status,
+            gateway_control::provider_account_pool_service::ProviderAccountAuthStatus::ReauthRequired
+        );
+        assert_eq!(
+            reauth.runtime_status_hint,
+            gateway_control::provider_account_pool_service::ProviderAccountRuntimeStatus::Unauthorized
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_management_projection_does_not_block_the_serving_pool() -> Result<(), Box<dyn Error>>
+    {
+        let secret_store = test_secret_store()?;
+        let configuration = p12_configuration(&secret_store)?;
+        let mut descriptors =
+            super::ordinary_provider_account_descriptors(&configuration, &BTreeSet::new())?;
+        descriptors[0].upstream_models = (0..257).map(|index| format!("model-{index}")).collect();
+        let pools = Arc::new(CredentialPoolCompiler::new(&secret_store).compile(&configuration)?);
+        assert!(pools.pool(&configuration.endpoints[0].id).is_some());
+
+        let facade = super::provider_account_pool_facade(
+            Ok(descriptors),
+            pools,
+            Arc::new(RuntimeHealthRegistry::new()),
+            Arc::new(RuntimeQuotaRegistry::new()),
+        );
+        assert_eq!(
+            facade.list_provider_account_pools(
+                &gateway_control::provider_account_pool_service::ProviderAccountPoolQuery::default(
+                ),
+            ),
+            Err(gateway_control::provider_account_pool_service::ProviderAccountPoolError::SourceUnavailable)
+        );
         Ok(())
     }
 

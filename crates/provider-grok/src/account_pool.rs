@@ -293,6 +293,7 @@ impl GrokAccountEndpointBinding {
 /// Immutable native account compilation consumed by the existing route scheduler.
 pub struct GrokNativeAccountPoolCompilation {
     credential_pools: Arc<EndpointCredentialPools>,
+    account_metadata: Option<Vec<GrokAccountMetadata>>,
     providers_by_credential: BTreeMap<CredentialId, GrokAccountProvider>,
     health_bootstrap: Vec<GrokRuntimeHealthBootstrap>,
     quota_bootstrap: Vec<QuotaSnapshot>,
@@ -305,7 +306,19 @@ impl GrokNativeAccountPoolCompilation {
         Arc::clone(&self.credential_pools)
     }
 
-    /// Returns the number of native accounts compiled into runtime pools.
+    /// Returns the complete redacted account snapshot read atomically with this compilation.
+    ///
+    /// Unlike [`Self::account_count`], this includes disabled, reauthentication-required and
+    /// currently unbound native accounts. The returned metadata never contains identity digests,
+    /// credential ciphertext or decrypted credential material. `None` means a metadata-only field
+    /// could not be safely projected; eligible runtime accounts remain compiled under their
+    /// existing stricter pool validation so a management-only failure cannot stop the data plane.
+    #[must_use]
+    pub fn account_metadata(&self) -> Option<&[GrokAccountMetadata]> {
+        self.account_metadata.as_deref()
+    }
+
+    /// Returns the number of enabled, bound native accounts compiled into runtime pools.
     #[must_use]
     pub fn account_count(&self) -> usize {
         self.providers_by_credential.len()
@@ -382,6 +395,10 @@ impl fmt::Debug for GrokNativeAccountPoolCompilation {
             .debug_struct("GrokNativeAccountPoolCompilation")
             .field("credential_pools", &self.credential_pools)
             .field("account_count", &self.providers_by_credential.len())
+            .field(
+                "metadata_count",
+                &self.account_metadata.as_ref().map(Vec::len),
+            )
             .field("health_bootstrap_count", &self.health_bootstrap.len())
             .field("quota_bootstrap_count", &self.quota_bootstrap.len())
             .finish()
@@ -836,6 +853,7 @@ impl GrokAccountPoolStore {
         let mut providers_by_credential = BTreeMap::new();
         let mut runtime_bindings_by_account = BTreeMap::new();
         let mut health_bootstrap = Vec::new();
+        let mut account_metadata = Some(Vec::new());
         let connection = self
             .connection
             .lock()
@@ -844,6 +862,14 @@ impl GrokAccountPoolStore {
             let provider = GrokAccountProvider::parse(&row.provider)?;
             let auth_status = GrokAccountAuthStatus::parse(&row.auth_status)?;
             let enabled = sqlite_bool(row.enabled)?;
+            account_metadata = account_metadata.and_then(|mut metadata| {
+                metadata_from_runtime_row(&row, provider, auth_status, enabled)
+                    .map(|account| {
+                        metadata.push(account);
+                        metadata
+                    })
+                    .ok()
+            });
             if !enabled || auth_status == GrokAccountAuthStatus::Disabled {
                 continue;
             }
@@ -916,6 +942,7 @@ impl GrokAccountPoolStore {
             .collect::<Result<Vec<_>, _>>()?;
         Ok(GrokNativeAccountPoolCompilation {
             credential_pools: Arc::new(EndpointCredentialPools::try_new(pools)?),
+            account_metadata,
             providers_by_credential,
             health_bootstrap,
             quota_bootstrap,
@@ -1124,8 +1151,11 @@ struct NativeRuntimeAccountRow {
     priority: i64,
     weight: i64,
     max_concurrency: i64,
+    refresh_due_at_ms: Option<i64>,
+    quota_sync_due_at_ms: Option<i64>,
     cooldown_until_ms: Option<i64>,
     revision: i64,
+    import_batch_id: String,
 }
 
 struct PersistedQuotaRow {
@@ -1155,7 +1185,8 @@ fn load_native_runtime_rows(
         .prepare(
             "SELECT id, provider, identity_digest, credential_ciphertext, \
                     credential_key_version, auth_status, enabled, priority, weight, \
-                    max_concurrency, cooldown_until_ms, revision \
+                    max_concurrency, refresh_due_at_ms, quota_sync_due_at_ms, \
+                    cooldown_until_ms, revision, import_batch_id \
              FROM grok_accounts ORDER BY provider, id",
         )
         .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
@@ -1172,13 +1203,41 @@ fn load_native_runtime_rows(
                 priority: row.get(7)?,
                 weight: row.get(8)?,
                 max_concurrency: row.get(9)?,
-                cooldown_until_ms: row.get(10)?,
-                revision: row.get(11)?,
+                refresh_due_at_ms: row.get(10)?,
+                quota_sync_due_at_ms: row.get(11)?,
+                cooldown_until_ms: row.get(12)?,
+                revision: row.get(13)?,
+                import_batch_id: row.get(14)?,
             })
         })
         .map_err(|_| GrokAccountPoolError::StoreUnavailable)?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|_| GrokAccountPoolError::StoreUnavailable)
+}
+
+fn metadata_from_runtime_row(
+    row: &NativeRuntimeAccountRow,
+    provider: GrokAccountProvider,
+    auth_status: GrokAccountAuthStatus,
+    enabled: bool,
+) -> Result<GrokAccountMetadata, GrokAccountPoolError> {
+    validate_metadata(GrokAccountMetadata {
+        id: row.id.clone(),
+        provider,
+        auth_status,
+        enabled,
+        priority: row.priority,
+        weight: u32::try_from(row.weight)
+            .map_err(|_| GrokAccountPoolError::InvalidPersistedState)?,
+        max_concurrency: u32::try_from(row.max_concurrency)
+            .map_err(|_| GrokAccountPoolError::InvalidPersistedState)?,
+        refresh_due_at_ms: row.refresh_due_at_ms,
+        quota_sync_due_at_ms: row.quota_sync_due_at_ms,
+        cooldown_until_ms: row.cooldown_until_ms,
+        revision: u64::try_from(row.revision)
+            .map_err(|_| GrokAccountPoolError::InvalidPersistedState)?,
+        import_batch_id: row.import_batch_id.clone(),
+    })
 }
 
 fn load_quota_bootstrap(

@@ -113,11 +113,14 @@ pub struct ProviderAccountPoolItem {
 
 impl ProviderAccountPoolItem {
     fn validate(&self) -> Result<(), ProviderAccountPoolError> {
-        if self.account_kind.trim().is_empty()
+        if !valid_opaque_id(self.provider_id.as_str())
+            || !valid_opaque_id(self.channel_id.as_str())
+            || !valid_opaque_id(self.account_id.as_str())
+            || self.account_kind.trim().is_empty()
             || self.account_kind.chars().count() > MAX_TEXT_CHARS
-            || !(-1_000..=1_000).contains(&self.priority)
+            || self.priority < 0
             || !(1..=10_000).contains(&self.weight)
-            || !(1..=10_000).contains(&self.max_concurrency)
+            || !(1..=100_000).contains(&self.max_concurrency)
             || self.active_leases > self.max_concurrency
             || self.expires_at_ms.is_some_and(|value| value < 0)
             || self.refresh_due_at_ms.is_some_and(|value| value < 0)
@@ -288,7 +291,7 @@ impl ProviderAccountPoolQuery {
     /// # Errors
     ///
     /// Returns [`ProviderAccountPoolError::InvalidQuery`] when `limit` is zero or exceeds the
-    /// public maximum.
+    /// public maximum, or an optional opaque filter identity is outside the bounded ID domain.
     pub fn try_new(
         provider_id: Option<ProviderId>,
         channel_id: Option<EndpointId>,
@@ -298,8 +301,14 @@ impl ProviderAccountPoolQuery {
         limit: usize,
         cursor: Option<ProviderAccountPoolCursor>,
     ) -> Result<Self, ProviderAccountPoolError> {
-        // Query construction is intentionally infallible apart from the public page bound.
-        if !(1..=MAX_PROVIDER_ACCOUNT_POOL_LIMIT).contains(&limit) {
+        if !(1..=MAX_PROVIDER_ACCOUNT_POOL_LIMIT).contains(&limit)
+            || provider_id
+                .as_ref()
+                .is_some_and(|value| !valid_opaque_id(value.as_str()))
+            || channel_id
+                .as_ref()
+                .is_some_and(|value| !valid_opaque_id(value.as_str()))
+        {
             return Err(ProviderAccountPoolError::InvalidQuery);
         }
         Ok(Self {
@@ -331,8 +340,7 @@ impl ProviderAccountPoolQuery {
     }
 
     fn filter_fingerprint(&self) -> String {
-        format!(
-            "{}|{}|{}|{}|{}",
+        [
             self.provider_id.as_ref().map_or("", ProviderId::as_str),
             self.channel_id.as_ref().map_or("", EndpointId::as_str),
             self.auth_status
@@ -341,7 +349,9 @@ impl ProviderAccountPoolQuery {
                 .map_or("", ProviderAccountRuntimeStatus::as_str),
             self.enabled
                 .map_or("", |value| if value { "true" } else { "false" }),
-        )
+        ]
+        .map(|value| format!("{}:{value}", value.len()))
+        .join("|")
     }
 }
 
@@ -360,8 +370,8 @@ impl ProviderAccountPoolCursor {
     ///
     /// # Errors
     ///
-    /// Returns [`ProviderAccountPoolError::InvalidQuery`] when the snapshot or filter fingerprint
-    /// is empty/overlong.
+    /// Returns [`ProviderAccountPoolError::InvalidQuery`] when a snapshot, filter fingerprint, or
+    /// cursor identity is outside its bounded transport/ID domain.
     pub fn try_new(
         snapshot_id: impl Into<String>,
         filter_fingerprint: impl Into<String>,
@@ -369,13 +379,14 @@ impl ProviderAccountPoolCursor {
         channel_id: EndpointId,
         account_id: CredentialId,
     ) -> Result<Self, ProviderAccountPoolError> {
-        // Cursor construction validates only bounded transport fields; identifier constructors
-        // validate the opaque key fields before this function is called.
         let snapshot_id = snapshot_id.into();
         let filter_fingerprint = filter_fingerprint.into();
         if snapshot_id.trim().is_empty()
             || snapshot_id.chars().count() > MAX_SNAPSHOT_ID_CHARS
             || filter_fingerprint.chars().count() > 512
+            || !valid_opaque_id(provider_id.as_str())
+            || !valid_opaque_id(channel_id.as_str())
+            || !valid_opaque_id(account_id.as_str())
         {
             return Err(ProviderAccountPoolError::InvalidQuery);
         }
@@ -425,6 +436,10 @@ impl ProviderAccountPoolCursor {
             self.account_id.as_str(),
         )
     }
+}
+
+fn valid_opaque_id(value: &str) -> bool {
+    !value.trim().is_empty() && value.chars().count() <= MAX_TEXT_CHARS
 }
 
 /// One page of a single observed Provider-owned snapshot.
@@ -627,11 +642,96 @@ mod tests {
     }
 
     #[test]
+    fn cursor_filter_fingerprint_is_unambiguous_for_delimiter_bearing_ids() {
+        let snapshot = ProviderAccountPoolSnapshot::try_new(
+            "snapshot-1",
+            10,
+            vec![
+                item("a|b", "c", "a"),
+                item("a|b", "c", "b"),
+                item("a", "b|c", "a"),
+                item("a", "b|c", "b"),
+            ],
+        )
+        .expect("snapshot");
+        let first = snapshot
+            .page(
+                &ProviderAccountPoolQuery::try_new(
+                    Some(ProviderId::try_new("a|b").expect("provider")),
+                    Some(EndpointId::try_new("c").expect("channel")),
+                    None,
+                    None,
+                    None,
+                    1,
+                    None,
+                )
+                .expect("query"),
+            )
+            .expect("first page");
+        let changed_filter = ProviderAccountPoolQuery::try_new(
+            Some(ProviderId::try_new("a").expect("provider")),
+            Some(EndpointId::try_new("b|c").expect("channel")),
+            None,
+            None,
+            None,
+            1,
+            first.next_cursor,
+        )
+        .expect("query");
+        assert_eq!(
+            snapshot.page(&changed_filter),
+            Err(ProviderAccountPoolError::CursorConflict)
+        );
+    }
+
+    #[test]
     fn invalid_or_secret_bearing_metadata_is_rejected_at_snapshot_boundary() {
         let mut invalid = item("grok", "build", "a");
         invalid.account_kind = "".to_owned();
         assert_eq!(
             ProviderAccountPoolSnapshot::try_new("snapshot-1", 10, vec![invalid]),
+            Err(ProviderAccountPoolError::InvalidSnapshot)
+        );
+
+        let overlong = "x".repeat(MAX_TEXT_CHARS + 1);
+        assert_eq!(
+            ProviderAccountPoolSnapshot::try_new(
+                "snapshot-2",
+                10,
+                vec![item(&overlong, "build", "a")],
+            ),
+            Err(ProviderAccountPoolError::InvalidSnapshot)
+        );
+        assert_eq!(
+            ProviderAccountPoolQuery::try_new(
+                Some(ProviderId::try_new(overlong).expect("opaque id")),
+                None,
+                None,
+                None,
+                None,
+                1,
+                None,
+            ),
+            Err(ProviderAccountPoolError::InvalidQuery)
+        );
+    }
+
+    #[test]
+    fn scheduler_normalized_priority_and_existing_binding_concurrency_are_representable() {
+        let mut high_capacity = item("grok", "build", "a");
+        // Native Grok priority -1000 normalizes to the shared lower-is-better tier 2000, while
+        // ordinary management bindings already admit concurrency up to 100000.
+        high_capacity.priority = 2_000;
+        high_capacity.max_concurrency = 100_000;
+        high_capacity.active_leases = 100_000;
+        assert!(
+            ProviderAccountPoolSnapshot::try_new("snapshot-1", 10, vec![high_capacity]).is_ok()
+        );
+
+        let mut invalid = item("grok", "build", "negative");
+        invalid.priority = -1;
+        assert_eq!(
+            ProviderAccountPoolSnapshot::try_new("snapshot-2", 10, vec![invalid]),
             Err(ProviderAccountPoolError::InvalidSnapshot)
         );
     }

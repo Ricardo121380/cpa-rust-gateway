@@ -125,3 +125,39 @@ POST /admin/upstreams/up-grok/endpoints   {"id":"ep-t1", ...}
 **Other side:** action required(低优先级)—— 期望与既有惯例一致返回 409。
 凭据/绑定的重复路径未逐一验证,可能是同一处的问题。
 前端已按 409 语义写好文案,后端改过来即可自动生效。
+
+---
+
+## 2026-08-15 · Codex · P13-05/P13-06 management contract synced into Prism
+
+**Touched:**
+- `docs/openapi/management-v1.json` — the authoritative P13-05/P13-06A backend contract was
+  brought into this integration branch; P13-06B also aligns the Provider account-pool numeric
+  bounds with the existing runtime scheduler domain. This documentation closeout did not
+  hand-edit the contract.
+- `web/prism/contracts/management-v1.json` — updated only by
+  `npm --prefix web/prism run sync-contract` from the authoritative backend contract.
+
+**Why:** the integration branch combines the P13-05/P13-06A backend work with the current Prism
+tree. Keeping Prism's vendored contract byte-aligned prevents the frontend check from consuming
+the older P13-04 snapshot while the backend exposes the protected billing and Provider account-pool
+operations.
+
+**Other side:** FYI — no manual action required. Prism's generated client is already current; do
+not hand-edit `web/prism/contracts/management-v1.json` or `web/prism/src/generated/`.
+
+---
+
+## 2026-08-15 · Codex · Prism management-key loader made an explicit closure
+
+**Touched:** `web/prism/src/api/client.ts`
+
+**Why:** the existing client passed `readManagementKey` directly as a callback, which is valid at
+runtime, but the repository's value-free tracked-secret scanner conservatively interpreted the
+long bare identifier after `managementKey:` as a possible literal. The equivalent zero-argument
+closure keeps the generated-client fetch seam and session ownership unchanged while allowing the
+scanner to distinguish executable code from a credential value. No credential, default, fixture,
+or request behavior was added.
+
+**Other side:** FYI — no action required. This is a one-line semantic no-op required to restore the
+existing documentation/secret gate without weakening its detection pattern.

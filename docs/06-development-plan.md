@@ -4,13 +4,13 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.250` |
-| 生效日期 | `2026-08-11` |
+| 计划版本 | `v1.251` |
+| 生效日期 | `2026-08-15` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P6`、P9、P10、P11 与 P12 已完成（P12 为 `DONE_WITH_BOUNDARY`）；P13-04、P13-05 与 P13-06A 已完成本地实现、等待统一 P13 phase gate；P13-06 仍为 `IN_PROGRESS`；P7 Kiro OAuth、P8 Official API-key E2E 与 Grok Web 外部边界仍延后。 |
-| 当前任务 | `P13-06A` Provider-owned account-pool operational facade 已完成本地实现与 review：只读、快照绑定、secret-free 的 Provider/Channel/Account live inventory 与受保护分页接口已闭环，状态 `LOCAL_PASS_PENDING_PHASE_GATE`。下一片为 `P13-06B`：通过显式 Provider adapter 接入现有 native/runtime pool 的 lease/Health/Quota/Circuit 只读一致性投影；不自动 refresh/reauth、不改 production。正式 P13 Delivery Gate 仍按 Phase 收口一次运行。 |
+| 当前阶段 | `P1` 至 `P6`、P9、P10、P11 与 P12 已完成（P12 为 `DONE_WITH_BOUNDARY`）；P13-04、P13-05 与 P13-06A/B 已完成本地实现、等待统一 P13 phase gate；P13-06 仍为 `IN_PROGRESS`；P7 Kiro OAuth、P8 Official API-key E2E 与 Grok Web 外部边界仍延后。 |
+| 当前任务 | `P13-06B` Provider runtime account-pool adapter 已完成本地实现与 review：应用组合层直接观察路由使用的同一 `EndpointCredentialPools`/Health/Quota 对象，将普通 Config binding 与同次 runtime-row snapshot 的 redacted native Grok metadata/pool 投影到 P13-06A facade；快照 freshness 为五秒，旧 cursor 最多保留八个 snapshot/两分钟，instance nonce 隔离重启；状态 `LOCAL_PASS_PENDING_PHASE_GATE`。下一片为 `P13-06C`：受保护的 operator actions 与显式 failure feedback；不自动 refresh/reauth、不改 production deployment/traffic。正式 P13 Delivery Gate 仍按 Phase 收口一次运行。 |
 | 已批准变更（2026-08-10） | `CR-EXEC-008` 语义澄清：仅降低昂贵 Fast/Full/supply-chain/release evidence 的默认运行频率，不限制 branch、push、PR update/review/rebase/merge；本轮已另开并实现 workflow 解耦，轻量 PR gate 与 tag/manual/closeout-label Delivery Gate 分离。`CR-P12-AUTOREG-MIGRATE-001`：Autoreg Oracle successor 已完成 staged/health、单账号 registration 与 dedicated file-sink 验证；本轮按 operator 批准完成 CPAR 显式 provider-binding/import、真实公网 Build 与 Console canary、Oracle 单活与 Jakarta fencing，保留 rollback window。`CR-P12-AUTOREG-CONSOLE-001`：Console SSO 仅通过 strict Oracle source adapter、same-batch native probe 和真实公共 CPAR 六元组后保留生产批次；scheduler/reauth 仍单独受控。 |
-| 本次计划变更（2026-08-11） | `P13-05C` 已完成受保护 catalog list/import/forward rollback：复用 P10 Management Key、same-origin CSRF、selected Config Version、If-Match/ETag 与 audit；catalog 写入、draft revision 和 audit 同事务提交，冲突不留部分状态，回退只创建新 immutable version 且不重算历史 ledger。P13-05A/B/C 整体 review 完成，状态 `LOCAL_PASS_PENDING_PHASE_GATE`。P13-06A 新增 Provider-owned account-pool typed facade、snapshot-bound keyset pagination 与 `GET /admin/operations/provider-account-pools`；静态 Config Version inventory 与 Provider-owned live snapshot 严格分离，focused gates 与整体 review 通过，状态 `LOCAL_PASS_PENDING_PHASE_GATE`；下一片 P13-06B 才接入 Provider adapter，不自动 reauth 或改生产状态。 |
+| 本次计划变更（2026-08-15） | `P13-06B` 将应用层现有 runtime account pools 接入 P13-06A：普通 ChatGPT/Codex/Krill-style Endpoint/Credential binding 与 native Grok Build/Web/Console redacted metadata 经显式 descriptor 进入同一只读 adapter；adapter 直接观察路由使用的 pool/Health/Quota `Arc`。独立 review 后强化为：native cooldown 只由共享 Health 按查询时钟自然过期；native metadata/pool 来自同次 runtime-row snapshot；active+enabled+available 必须有 kind/priority/weight/concurrency 完全一致的 exact diagnostic；五秒 freshness 与八快照/两分钟 cursor retention 分离；per-adapter random nonce、长度前缀 filter fingerprint 和 128 字符 ID 上限；management descriptor/capacity/metadata 构建失败注入 rejecting facade/`503` 而不阻断 serving data plane。最终本地矩阵为 53 tests（adapter 8、runtime 3、upstream 7、control 5、HTTP 1、OpenAPI 8、Grok 回归 21）；不宣称每 Provider 两个真实账号或新 restart DB E2E，不调用 Provider、不启动 refresh/scheduler、不改生产 deployment/traffic 或运行昂贵 Delivery Gate。状态 `LOCAL_PASS_PENDING_PHASE_GATE`；P13-06 保持 `IN_PROGRESS`，下一片为 P13-06C operator actions/failure feedback。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
 | 生产部署 | 新主机（aarch64）已完成 P12-07：服务 active/disabled-at-boot、仅回环监听、测试域名 `cpar` 公网暴露且七项断言通过；最终切换为生产主机名全量指向 CPAR，旧 CPA 仅保留有限回滚窗口并在 P12-10 关闭 |
 | 行为参考 | CPA `v7.2.80` 为生产基线，CLIProxyAPI `v7.2.101` 的 handler/translator/executor/auth/registry 源码及测试为 P12-08 起的首要移植参考；CPAR 用 Rust 新架构复现其已准入行为，并保留已冻结的 AxonHub/New API/Sub2API/grok2api/Kiro-RS 快照作为渠道专项补充 |
@@ -3492,10 +3492,11 @@ Claude Code 已完成的管理面基础不是空白，当前 CPAR 已有：
   Upstreams、Routing/Access、Runtime、Configuration、Backup/Restore 的基础页面，不保存 Key/CSRF，
   也不展示 Secret。
 
-现有管理面仍不是 CPAMP 级别的运营控制工具：缺少按 Provider/Channel 的账号池总览、账号健康和额度
-变化视图、usage/cost/billing 账本、批量 refresh/reauth 操作、路由负载面板、Provider-specific egress
-池管理、任务队列和供前端直接消费的分页/过滤/时间序列读模型。后续先扩展后端 typed read model 和
-OpenAPI，再做正式 UI；不允许前端直接读 SQLite、凭证明文或自定义任意 HTTP。
+管理面仍不是完整的 CPAMP 级运营控制工具。P13-04/P13-05/P13-06A/B 已补齐 Provider/Channel 静态
+inventory、durable usage/billing 与 Provider runtime account-pool live read model；仍缺少受保护账号
+operator actions/失败反馈、批量 refresh/reauth、路由负载策略、Provider-specific egress 池管理、任务
+队列和正式前端页面。后端继续优先提供 typed read/mutation model 与 OpenAPI，再由 Prism 消费；不允许
+前端直接读 SQLite、凭证明文或自定义任意 HTTP。
 
 ### 19.2 P13 实施清单
 
@@ -3506,7 +3507,7 @@ OpenAPI，再做正式 UI；不允许前端直接读 SQLite、凭证明文或自
 | P13-03 | New API/AxonHub 一次性 Import Adapter（用户明确不需要，当前移出实施范围） | 新 CR（未来可恢复） | 不进入本轮验收 | DEFERRED |
 | P13-04 | CPAMP-like 管理控制面后端基础：Provider/Channel/Account/Pool/Usage/Quota/Cost 的 typed read model、分页过滤、审计和 OpenAPI；已完成 P13-04A 配置 inventory 与 P13-04B durable usage/unpriced-cost projection，复用现有 P10 安全、审计和 runtime quota 边界 | P12/G12；P10 management baseline；P3/P4 event log | P13-04A/B ADR/Contract/报告、typed control compiler、protected HTTP routes、OpenAPI/client、value-free unit/HTTP fixture、read-only SQLite facade、fmt/Clippy/docs/review 全部通过；正式 P13 Delivery Gate 延至 P13 phase close，不触发 Provider 请求 | LOCAL_PASS_PENDING_PHASE_GATE |
 | P13-05 | Versioned Usage/Quota/Cost/Billing 账本：在 P13-04 usage read model 之上补充 versioned price catalog、固定 decimal 计费、幂等账单事件、延迟/status/quota window、retention/重启恢复与前端报表契约；未知价格/未知 token 必须带 confidence，不得伪造计费 | P13-04 | P13-05A catalog/ledger + P13-05B checkpointed materializer/protected billing read model + P13-05C protected operator catalog list/import/forward rollback 已完成本地实现与整体 review | LOCAL_PASS_PENDING_PHASE_GATE |
-| P13-06 | Provider-aware Account Pool：多账号轮换、lease/concurrency、Health/Quota/Circuit、模型/额度同步、失败反馈、expired 排除和 operator 操作；不同 Provider 通过策略接口实现，不共享凭证或状态 | P13-04 | P13-06A 已实现 Provider-owned secret-free snapshot facade 与 `GET /admin/operations/provider-account-pools`；后续 B/C 再接入 Provider adapter、lease/Health/Quota 同步和 operator actions；Build/Console/Codex/Krill synthetic pool、过期/刷新/并发/重启一致性、精确 attribution、无跨 Provider fallback | IN_PROGRESS |
+| P13-06 | Provider-aware Account Pool：多账号轮换、lease/concurrency、Health/Quota/Circuit、模型/额度同步、失败反馈、expired 排除和 operator 操作；不同 Provider 通过策略接口实现，不共享凭证或状态 | P13-04 | P13-06A 已实现 Provider-owned secret-free snapshot facade 与 `GET /admin/operations/provider-account-pools`；P13-06B 已将 ordinary Config bindings 与同次 runtime-row snapshot 的 native Grok metadata/pool 接入只读 adapter，直接观察现有 pool/Health/Quota，并完成 exact diagnostic、model-scoped Health/Quota、lease/expiry、fresh/retained cursor、nonce 与 isolation 回归；management projection 构建失败为 rejecting facade/`503`，不阻断 serving data plane。P13-06C 再实现 operator actions 与显式 failure feedback。现有 P12 Grok tests 只作回归证据，不宣称新的每 Provider 双真实账号或 restart DB E2E | IN_PROGRESS |
 | P13-07 | Cost-aware、Fill-first、Least-loaded 路由：在 Provider scope 内依据额度、并发、健康和 capability 选择；保留 max_attempts、首败边界和 Config Version 回滚 | P13-05、P13-06 | deterministic selector matrix、quota 缺失/并发/过期/降级测试、Route Explain、staging canary | DEFERRED |
 | P13-08 | 管理调试用单请求 Channel Pin：operator 明确指定 Provider/Channel/Route/Credential/JSON 或 SSE，仅一条请求，返回 value-free receipt；不得成为公开用户 API 或绕过正常 auth/egress | P13-04、P13-06 | 单请求/首败/无重试/无跨 Provider fallback、credential attribution、upstream sent/not-sent、审计与回滚测试 | DEFERRED |
 | P13-09 | Responses stored response 查询与 `compact`：补齐 `/v1/responses/{id}`、`/v1/responses/compact` 等有边界的状态/压缩能力，明确 owner、TTL、加密存储、跨账号连续性和客户端协议投影 | P12-08 Responses baseline、P13-04 | request ownership、TTL/GC、重启恢复、tool/reasoning/usage/stop 语义、未拥有 ID fail closed、JSON/SSE 回归 | DEFERRED |
@@ -3530,7 +3531,7 @@ P13 任务状态以本文档为准,前端不修改上面的任务表。
 | P13-04A `account-pools` | 上游子资源面板、凭据详情入口(**已接线**) |
 | P13-04B `operations/usage` | 用量分析页的数据源(形状与提案的 G3 不同,前端需客户端聚合) |
 | P13-05 计费账本与价格目录 | 计费页、价格目录管理页、请求监控的真实请求列表(`request_id` 首次出现于此) |
-| P13-06 Provider 池 live state | 运行时页整页 —— 目前 `runtime_availability`/`catalog_status` 返回空数组,矩阵永远无行 |
+| P13-06 Provider 池 live state | P13-06A/B 的 `operations/provider-account-pools` 后端数据源已完成本地实现；Prism 运行时页接线与 operator actions 等待 P13-06C/前端排期 |
 
 两个工具在同一仓协作(后端 Codex,前端 Claude Code),边界与越界留痕规则见
 [AGENTS.md](../AGENTS.md) 与 [cross-boundary-log](cross-boundary-log.md)。
@@ -3541,7 +3542,7 @@ P13 任务状态以本文档为准,前端不修改上面的任务表。
 
 1. **P13-04 管理控制面后端基础（已完成本地切片，待 P13 收口 Gate）**：已补齐 CPAMP 需要的 Provider-aware inventory 与 durable usage/unpriced-cost 读模型、分页过滤、权限和 OpenAPI 契约。现有 P10 管理 API 未推倒重来，而是扩展为 typed、Provider-aware 的运营接口。
 2. **P13-05 Usage/Quota/Cost/Billing 账本（已完成本地 A/B/C，待 P13 收口 Gate）**：已补齐可审计后端账本、versioned price catalog、checkpointed materializer、时间序列查询和受保护 operator catalog mutation；价格未知或 token 缺失继续保持明确 confidence，不伪造费用。
-3. **P13-06 Account Pool（当前下一候选，高优先级）**：统一抽象多账号轮换、健康、额度、失败反馈和同步，但每个 Provider 保留自己的 executor、credential shape、egress 和 refresh policy。
+3. **P13-06 Account Pool（A/B 已本地完成，C 为当前下一片，高优先级）**：已经统一 secret-free live inventory 并接入现有 native/ordinary runtime pools；下一步补齐受保护 operator actions 与显式 failure feedback。每个 Provider 继续保留自己的 executor、credential shape、egress 和 refresh policy。
 4. **P13-07 Routing（高优先级）**：在 P13-05/P13-06 有数据后实现 cost-aware/fill-first/least-loaded；否则路由只能基于不完整状态，容易产生错误选路。
 5. **P13-08 Channel Pin（中高优先级）**：实现后能显著降低排查时间，并为后续真实 Provider 验收提供单请求、单账号、可审计工具。
 6. **P13-09 Responses retrieval/compact（中优先级）**：补齐常用 Responses 客户端能力，但必须先定义持久化、owner、TTL 和跨账号连续性。
@@ -3639,7 +3640,26 @@ P13 任务状态以本文档为准,前端不修改上面的任务表。
 | Provider 隔离 | facade 是 Provider-neutral，但 adapter 必须保持 Provider 自己的 credential shape、egress、refresh 和失败域；provider filter 只做精确匹配，不提供跨 Provider fallback；Grok Build/Web/Console、Codex、Krill 的 native runtime 账号不自动互相转换 |
 | 交付物 | [ADR-0081](adr/ADR-0081-provider-owned-account-pool-facade.md)、[BC-MGMT-014](contracts/BC-MGMT-014-provider-owned-account-pool-inventory.md)、[P13-06A report](reports/p13-06a-provider-account-pool-facade.md) |
 | 定向验收 | control unit：排序、精确 Provider 过滤、状态分离、cursor snapshot/filter 冲突、非法边界；HTTP：Management Key、no-store、分页、过滤、无 Secret/URL/body；OpenAPI/client、fmt、strict Clippy、docs/diff review |
-| 下一片 | P13-06B：将 Grok/ChatGPT/Krill 等已存在 native/runtime pool 通过显式 Provider adapter 注入 facade，并对 lease/Health/Quota/Circuit 做只读一致性投影；不启动自动 refresh/reauth（P13-12）或通用 proxy pool（P13-11） |
+| 后续片 | P13-06B 已完成：将现有 native/ordinary runtime pool 通过显式 adapter 注入 facade，并对 lease/Health/Quota/Circuit 做只读一致性投影；详见下一 Task Card |
+
+### 19.10 P13-06B Task Card
+
+| 字段 | 固定值 |
+|---|---|
+| 范围等级 / 预算 | `L`；应用 runtime composition、compiled pool diagnostic、Health/Quota 与 P13-06A facade 接线；只运行本地定向 Gate，不运行正式 P13 Delivery Gate |
+| 依赖 | P13-06A typed snapshot/query/cursor/facade 与受保护 HTTP；现有 `EndpointCredentialPools`、`RuntimeHealthRegistry`、`RuntimeQuotaRegistry`；native Grok redacted account metadata 与 exact Provider/Endpoint binding |
+| 输出 | `apps/gateway::ProviderAccountPoolAdapter`；生产组合向 management service 注入只读 facade；compiled pool 增加 secret-free credential kind/expiry/live-lease diagnostic；OpenAPI 数值界限与现有 scheduler domain 对齐 |
+| 来源 | ordinary Endpoint/Credential bindings 从 active `ControlPlaneConfiguration` 编译，覆盖现有 ChatGPT/Codex/Krill-style pools；native Grok Build/Web/Console 从 redacted metadata + exact binding 编译；不读取 Secret、不跨 Provider 转换 |
+| 运行时所有权 | adapter 直接观察路由使用的同一 `Arc<EndpointCredentialPools>`、`Arc<RuntimeHealthRegistry>` 与 `Arc<RuntimeQuotaRegistry>`；不创建第二 scheduler、第二 Health/Quota state 或管理专用账号池 |
+| 状态投影 | auth 与 runtime 状态继续独立；exact Endpoint/Credential[/Model] Health/Quota 聚合到既有 closed enum；native cooldown 不固化到 descriptor，而由共享 Health 按查询时钟自然过期；expiry/recovery/unauthorized/circuit/cooling/quota 优先级显式且只读 |
+| 来源一致性 | native Grok metadata 与 compiled pool 必须来自同次 runtime-row snapshot；`active + enabled + available` 必须存在 exact diagnostic，且 kind/priority/weight/concurrency 与 descriptor 完全一致，缺失或 drift 则 source unavailable；inactive/disabled/unavailable 仅作为不可准入 metadata 可见 |
+| 快照 | production freshness 五秒；刷新后的旧 cursor 仍可读取最多八个 retained snapshot/两分钟，超过 retention 安全 409；每个 adapter 使用随机 nonce 隔离重启/同毫秒 cursor；filter fingerprint 使用长度前缀，opaque ID 上限 128 字符；不把 point-in-time lease/Health/Quota 冒充 durable config |
+| 安全边界 | 无 Provider I/O、lease acquisition、refresh/reauth、scheduler/Store/production mutation；无 Secret/ciphertext/URL/Header/Cookie/body/client-key digest/raw quota；source failure fail closed，不由其他 Provider 补行；management descriptor/capacity/metadata 构建失败注入 `RejectingProviderAccountPoolFacade` 并返回 `503`，但不阻断或修改 serving data plane |
+| 定向验收 | adapter Health/Quota/auth/expiry/lease/isolation、model-scoped Health/Quota、fresh/retained/new/old cursor、random nonce、filter/ID bounds 与 diagnostic drift tests；ordinary active graph composition、native Grok same-row metadata/pool mapping、rejecting-facade serving isolation；compiled-pool diagnostic no-secret regression；P13-06A control/HTTP/OpenAPI/Prism/docs 回归；strict Clippy/fmt/diff review。最终本地矩阵 53 tests（adapter 8、runtime 3、upstream 7、control 5、HTTP 1、OpenAPI 8、Grok 回归 21） |
+| 证据边界 | 不宣称每个 Provider 两个真实账号、真实生产多账号矩阵或新的 file-backed restart DB E2E；现有 P12 Grok pool/scheduling/worker suites 只作回归证据 |
+| 交付物 | [ADR-0082](adr/ADR-0082-provider-runtime-pool-adapter.md)、[BC-MGMT-015](contracts/BC-MGMT-015-provider-runtime-pool-adapter.md)、[P13-06B report](reports/p13-06b-provider-runtime-pool-adapter.md) |
+| 状态 | `LOCAL_PASS_PENDING_PHASE_GATE`；本地实现与 review 完成，正式 P13 phase Delivery Gate 待阶段收口 |
+| 下一片 | P13-06C：在既有 Management Key/CSRF/revision/audit 边界内实现受保护 operator actions 与显式 failure feedback；自动 refresh/reauth 仍属 P13-12，proxy pool 仍属 P13-11 |
 
 ## 20. 测试体系
 
@@ -3985,3 +4005,4 @@ Next task:
 | v1.248 | 2026-08-11 | 完成 P13-05B：migration 0015 `billing_materializer_checkpoints`、ordinal-bounded event read、完整 Request/最高成功 Attempt/Usage lineage 的 restart-safe billing materializer、effective Provider/Channel/Model catalog selection、source-event idempotent ledger replay；新增受保护 `GET /admin/operations/billing`，支持时间窗口、Provider/Channel/Account/Model/status 过滤、snapshot keyset cursor、exact/partial/unknown/unpriced 汇总，OpenAPI/generated client 与 HTTP 脱敏/权限回归通过。P13-05A+B 整体 review 通过，唯一明确剩余为 P13-05C 的 operator price catalog import/write（CSRF/audit/revision/conflict/rollback）；不调用 Provider、不改生产/active Config Version、不触发昂贵 P13 Delivery Gate | `P13-05A/B` `LOCAL_PASS_PENDING_PHASE_GATE`; evidence: [`p13-05b-billing-materialization-read-model.md`](reports/p13-05b-billing-materialization-read-model.md) |
 | v1.249 | 2026-08-11 | 完成 P13-05C 与 P13-05A/B/C 整体 review：新增 protected catalog list/import/rollback HTTP 边界、OpenAPI/generated client 和 value-free receipt；复用 Management Key、same-origin CSRF、selected Config Version、If-Match/ETag 与 audit。catalog insert、draft revision increment 和 resource audit 同一 transaction；management create 对任何已存在 id（含相同重试）稳定安全冲突且不留部分状态，Store exact replay 仅保留给 crash recovery；rollback 是复制 predecessor 到新 immutable operator version 的向前 fork，不删除 catalog、不重算历史 ledger。focused Store/Control/HTTP/OpenAPI/client/docs/strict Clippy 与 diff review 通过后，P13-05 收口为 `LOCAL_PASS_PENDING_PHASE_GATE`；不启动 scheduler/正式 UI/Provider/production/昂贵 Delivery Gate，下一候选为 P13-06 | evidence: [`p13-05c-billing-catalog-management.md`](reports/p13-05c-billing-catalog-management.md) |
 | v1.250 | 2026-08-11 | 完成 P13-06A：新增 Provider-owned、Provider-neutral 的 secret-free account-pool snapshot/query/cursor/facade；认证生命周期与 runtime Health/Quota/Circuit 状态严格分离；新增受保护 `GET /admin/operations/provider-account-pools`，支持精确 Provider/Channel/status/enabled 过滤、snapshot/filter-bound keyset pagination、no-store 和 fail-closed source。现有 `/admin/operations/account-pools` 仍只表示 selected Config Version 的静态 binding inventory，不冒充 live pool。P13-06A 未调用 Provider、不接生产/自动 reauth/代理池；control 53 tests、HTTP lib 54 tests、OpenAPI 7 tests、management inventory fixture、generated client/SPA、strict Clippy、fmt、docs/secret/diff review 全部通过；后续 P13-06B 再注入 Grok/ChatGPT/Krill 等显式 Provider adapter | `P13-06A` `LOCAL_PASS_PENDING_PHASE_GATE`; evidence: [`p13-06a-provider-account-pool-facade.md`](reports/p13-06a-provider-account-pool-facade.md) |
+| v1.251 | 2026-08-15 | 完成 P13-06B：应用 runtime composition 新增显式 Provider account-pool adapter，直接观察路由使用的同一 compiled credential pools 与 exact Health/Quota registries；ordinary active Config bindings 与 native Grok Build/Web/Console redacted metadata/pool 经同次 runtime-row snapshot 和 exact Provider/Channel/Account descriptor 进入 P13-06A facade。独立 review 补齐 shared-Health query-clock cooldown expiry、active/enabled/available exact diagnostic 与 kind/priority/weight/concurrency drift 拒绝、model-scoped Health/Quota、五秒 freshness + 八快照/两分钟 cursor retention、per-adapter random nonce、长度前缀 filter fingerprint 与 128 字符 ID 边界；management descriptor/capacity/metadata 构建失败以 rejecting facade/`503` 隔离，不阻断 serving data plane。最终本地矩阵为 53 tests（adapter 8、runtime 3、upstream 7、control 5、HTTP 1、OpenAPI 8、Grok 回归 21）；现有 P12 Grok tests 仅作回归证据，不包含每 Provider 双真实账号、生产多账号矩阵或新 restart DB E2E。未调用 Provider、refresh/reauth、scheduler mutation、server/production deployment/traffic 或昂贵 GitHub Delivery Gate。下一片为 P13-06C operator actions 与显式 failure feedback | `P13-06B` `LOCAL_PASS_PENDING_PHASE_GATE`; P13-06 `IN_PROGRESS`; evidence: [`p13-06b-provider-runtime-pool-adapter.md`](reports/p13-06b-provider-runtime-pool-adapter.md) |

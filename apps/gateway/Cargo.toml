@@ -20,6 +20,7 @@ gateway-protocol = { path = "../../crates/gateway-protocol" }
 gateway-router = { path = "../../crates/gateway-router" }
 gateway-store = { path = "../../crates/gateway-store" }
 gateway-upstream = { path = "../../crates/gateway-upstream" }
+getrandom.workspace = true
 libc.workspace = true
 protocol-openai-chat = { path = "../../crates/protocol-openai-chat" }
 protocol-openai-responses = { path = "../../crates/protocol-openai-responses" }

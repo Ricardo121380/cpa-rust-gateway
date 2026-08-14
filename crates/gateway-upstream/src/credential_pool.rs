@@ -125,9 +125,11 @@ pub struct EndpointCredentialPool {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CredentialPoolEntrySnapshot {
     credential_id: CredentialId,
+    credential_kind: String,
     priority: i64,
     weight: usize,
     maximum_concurrency: usize,
+    expires_at_ms: Option<i64>,
     active_leases: usize,
 }
 
@@ -136,6 +138,12 @@ impl CredentialPoolEntrySnapshot {
     #[must_use]
     pub fn credential_id(&self) -> &CredentialId {
         &self.credential_id
+    }
+
+    /// Returns the non-secret Provider credential kind retained by this pool entry.
+    #[must_use]
+    pub fn credential_kind(&self) -> &str {
+        &self.credential_kind
     }
 
     /// Returns the immutable lower-is-better pool priority.
@@ -154,6 +162,12 @@ impl CredentialPoolEntrySnapshot {
     #[must_use]
     pub const fn maximum_concurrency(&self) -> usize {
         self.maximum_concurrency
+    }
+
+    /// Returns the optional non-secret absolute credential expiry observed at pool compilation.
+    #[must_use]
+    pub const fn expires_at_ms(&self) -> Option<i64> {
+        self.expires_at_ms
     }
 
     /// Returns the point-in-time active lease count.
@@ -553,9 +567,11 @@ impl CredentialSlot {
     fn snapshot(&self) -> CredentialPoolEntrySnapshot {
         CredentialPoolEntrySnapshot {
             credential_id: self.credential_id.clone(),
+            credential_kind: self.credential_kind.clone(),
             priority: self.priority,
             weight: self.weight,
             maximum_concurrency: self.maximum_concurrency,
+            expires_at_ms: self.expires_at_ms,
             active_leases: self.active_leases.load(Ordering::Acquire),
         }
     }
@@ -824,6 +840,82 @@ mod tests {
             .ok_or_else(|| io::Error::other("expected replacement lease"))?;
         released.release();
         assert_eq!(pool.active_lease_count(&credential_id), Some(0));
+        Ok(())
+    }
+
+    #[test]
+    fn diagnostic_snapshot_exposes_kind_expiry_and_live_lease_without_secret() -> TestResult {
+        let expired_secret = "expired-codex-secret";
+        let current_secret = "current-api-key-secret";
+        let pool = EndpointCredentialPool::try_new(
+            EndpointId::try_new("endpoint-a")?,
+            [
+                EndpointCredentialInput {
+                    credential_id: CredentialId::try_new("credential-expired")?,
+                    credential_kind: "codex_oauth".to_owned(),
+                    credential_revision: 7,
+                    priority: 0,
+                    weight: 1,
+                    concurrency: 1,
+                    expires_at_ms: Some(100),
+                    secret: CredentialSecret::try_new(expired_secret.as_bytes().to_vec())?,
+                },
+                EndpointCredentialInput {
+                    credential_id: CredentialId::try_new("credential-current")?,
+                    credential_kind: "api_key".to_owned(),
+                    credential_revision: 8,
+                    priority: 0,
+                    weight: 1,
+                    concurrency: 1,
+                    expires_at_ms: Some(500),
+                    secret: CredentialSecret::try_new(current_secret.as_bytes().to_vec())?,
+                },
+            ],
+        )?;
+
+        let diagnostics = pool.diagnostic_entries();
+        let expired = diagnostics
+            .iter()
+            .find(|entry| entry.credential_id().as_str() == "credential-expired")
+            .ok_or_else(|| io::Error::other("expired diagnostic entry missing"))?;
+        assert_eq!(expired.credential_kind(), "codex_oauth");
+        assert_eq!(expired.expires_at_ms(), Some(100));
+        assert_eq!(expired.active_leases(), 0);
+        assert!(!format!("{expired:?}").contains(expired_secret));
+
+        let current = diagnostics
+            .iter()
+            .find(|entry| entry.credential_id().as_str() == "credential-current")
+            .ok_or_else(|| io::Error::other("current diagnostic entry missing"))?;
+        assert_eq!(current.credential_kind(), "api_key");
+        assert_eq!(current.expires_at_ms(), Some(500));
+
+        let lease = pool
+            .try_lease_eligible_at(150, |_| true)
+            .ok_or_else(|| io::Error::other("current credential should be leaseable"))?;
+        assert_eq!(lease.credential_id().as_str(), "credential-current");
+        assert_eq!(
+            pool.active_lease_count(&CredentialId::try_new("credential-current")?),
+            Some(1)
+        );
+        let live = pool
+            .diagnostic_entries()
+            .into_iter()
+            .find(|entry| entry.credential_id().as_str() == "credential-current")
+            .ok_or_else(|| io::Error::other("live diagnostic entry missing"))?;
+        assert_eq!(live.active_leases(), 1);
+        drop(lease);
+        assert_eq!(
+            pool.active_lease_count(&CredentialId::try_new("credential-current")?),
+            Some(0)
+        );
+        let released = pool
+            .diagnostic_entries()
+            .into_iter()
+            .find(|entry| entry.credential_id().as_str() == "credential-current")
+            .ok_or_else(|| io::Error::other("released diagnostic entry missing"))?;
+        assert_eq!(released.active_leases(), 0);
+        assert!(!format!("{current:?}").contains(current_secret));
         Ok(())
     }
 
