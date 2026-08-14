@@ -2,6 +2,10 @@
 
 #![deny(unsafe_code)]
 
+/// Durable Usage-to-billing materialization with restart-safe checkpoints.
+pub mod billing_materializer;
+/// Provider-scoped fixed-point pricing for the durable P13-05 billing ledger.
+pub mod billing_service;
 /// Transactional management-only Credential and Client Key provisioning service.
 pub mod control_plane_service;
 /// Management-time decryption and compilation of Endpoint Credential runtime pools.
@@ -16,6 +20,8 @@ pub mod management_mutation_service;
 pub mod management_operations_service;
 /// Local transport-neutral lifecycle API for configuration validation and publication.
 pub mod management_service;
+/// Provider-owned, snapshot-scoped account-pool operational projections.
+pub mod provider_account_pool_service;
 /// Semantic Config Version validation and secret-free Route compilation.
 pub mod route_compiler;
 /// Atomic publication and rollback of compiler-approved RouteSnapshots.

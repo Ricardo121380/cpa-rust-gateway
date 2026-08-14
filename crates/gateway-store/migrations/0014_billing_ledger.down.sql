@@ -1,0 +1,6 @@
+DROP INDEX billing_ledger_retention_idx;
+DROP INDEX billing_ledger_occurred_idx;
+DROP TABLE billing_ledger_entries;
+DROP INDEX billing_price_catalog_effective_idx;
+DROP TABLE billing_price_catalog_entries;
+DROP TABLE billing_price_catalog_versions;

@@ -16,13 +16,18 @@ use gateway_control::management_mutation_service::{
     SecretStore, SqliteControlPlaneRepository,
 };
 use gateway_control::management_operations_service::{
-    ManagementOperationsError, OperationalUsagePage, OperationalUsageQuery,
+    ManagementOperationsError, OperationalBillingPage, OperationalBillingQuery,
+    OperationalUsagePage, OperationalUsageQuery, compile_operational_billing_page,
     compile_operational_usage_page,
+};
+use gateway_control::provider_account_pool_service::{
+    ProviderAccountAuthStatus, ProviderAccountPoolItem, ProviderAccountPoolSnapshot,
+    ProviderAccountRuntimeStatus, SnapshotProviderAccountPoolFacade,
 };
 use gateway_core::{
     AttemptEvent, AttemptOutcome, AttemptRetryDecision, ClientKeyId, CredentialId, EndpointId,
-    GatewayEvent, GatewayProtocol, RequestEvent, ResponseId, RouteCandidateId, RouteId, UpstreamId,
-    Usage, UsageEvent,
+    GatewayEvent, GatewayProtocol, ProviderId, RequestEvent, ResponseId, RouteCandidateId, RouteId,
+    UpstreamId, Usage, UsageEvent,
 };
 use gateway_http_actix::{
     management_resources::{
@@ -34,6 +39,7 @@ use gateway_http_actix::{
     },
 };
 use gateway_store::{
+    billing_ledger::{BillingCostConfidence, BillingLedgerEntry},
     control_plane::{CredentialStatus, UpstreamConfiguration},
     event_store::SqliteEventStore,
 };
@@ -45,6 +51,7 @@ const MANAGEMENT_KEY: &str = "mgmt_0123456789abcdefghijklmnopqrstuvwxyz";
 
 struct FixtureUsageFacade {
     events: Vec<gateway_store::event_store::StoredGatewayEvent>,
+    billing_entries: Vec<BillingLedgerEntry>,
 }
 
 impl ManagementUsageFacade for FixtureUsageFacade {
@@ -53,6 +60,13 @@ impl ManagementUsageFacade for FixtureUsageFacade {
         query: &OperationalUsageQuery,
     ) -> Result<OperationalUsagePage, ManagementOperationsError> {
         compile_operational_usage_page(&self.events, query)
+    }
+
+    fn list_billing(
+        &self,
+        query: &OperationalBillingQuery,
+    ) -> Result<OperationalBillingPage, ManagementOperationsError> {
+        compile_operational_billing_page(&self.billing_entries, query)
     }
 }
 
@@ -75,6 +89,7 @@ fn authorized(request: test::TestRequest, version: &str) -> test::TestRequest {
         .insert_header(("X-Config-Version", version))
 }
 
+#[allow(clippy::too_many_lines)]
 fn resource_state() -> Result<ManagementResourceHttpState, Box<dyn Error>> {
     let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
     let key_version = KeyVersion::try_new(1)?;
@@ -130,11 +145,91 @@ fn resource_state() -> Result<ManagementResourceHttpState, Box<dyn Error>> {
         GatewayEvent::Usage(usage),
     ])?;
     let usage_events = event_store.list_events()?;
+    let billing_entries = vec![BillingLedgerEntry {
+        ledger_id: 1,
+        source_event_id: "billing-source-1".to_owned(),
+        source_fingerprint: "a".repeat(64),
+        request_id: "usage-http-request".to_owned(),
+        response_id: "usage-http-response".to_owned(),
+        provider_id: "provider-inventory".to_owned(),
+        channel_id: "channel-inventory".to_owned(),
+        account_id: "account-a".to_owned(),
+        model: "usage-public-model".to_owned(),
+        occurred_at_ms: 100,
+        catalog_version_id: None,
+        usage: gateway_core::UsageSummary {
+            input_tokens: Some(11),
+            output_tokens: Some(7),
+            ..gateway_core::UsageSummary::default()
+        },
+        cost_microunits: None,
+        cost_confidence: BillingCostConfidence::Unpriced,
+        retention_expires_at_ms: 10_000,
+        recorded_at_ms: 101,
+    }];
+    let provider_snapshot = ProviderAccountPoolSnapshot::try_new(
+        "provider-snapshot-1",
+        123,
+        vec![
+            ProviderAccountPoolItem {
+                provider_id: ProviderId::try_new("grok")?,
+                channel_id: EndpointId::try_new("channel-build")?,
+                account_id: CredentialId::try_new("grok-account-a")?,
+                account_kind: "grok_build_oauth".to_owned(),
+                auth_status: ProviderAccountAuthStatus::Active,
+                runtime_status: ProviderAccountRuntimeStatus::Available,
+                enabled: true,
+                priority: 1,
+                weight: 1,
+                max_concurrency: 4,
+                active_leases: 1,
+                expires_at_ms: Some(200),
+                refresh_due_at_ms: Some(150),
+                quota_sync_due_at_ms: Some(160),
+            },
+            ProviderAccountPoolItem {
+                provider_id: ProviderId::try_new("grok")?,
+                channel_id: EndpointId::try_new("channel-build")?,
+                account_id: CredentialId::try_new("grok-account-b")?,
+                account_kind: "grok_build_oauth".to_owned(),
+                auth_status: ProviderAccountAuthStatus::ReauthRequired,
+                runtime_status: ProviderAccountRuntimeStatus::Unauthorized,
+                enabled: true,
+                priority: 2,
+                weight: 1,
+                max_concurrency: 4,
+                active_leases: 0,
+                expires_at_ms: None,
+                refresh_due_at_ms: Some(140),
+                quota_sync_due_at_ms: None,
+            },
+            ProviderAccountPoolItem {
+                provider_id: ProviderId::try_new("codex")?,
+                channel_id: EndpointId::try_new("channel-chat")?,
+                account_id: CredentialId::try_new("codex-account-a")?,
+                account_kind: "codex_oauth".to_owned(),
+                auth_status: ProviderAccountAuthStatus::Disabled,
+                runtime_status: ProviderAccountRuntimeStatus::CircuitOpen,
+                enabled: false,
+                priority: 3,
+                weight: 1,
+                max_concurrency: 2,
+                active_leases: 0,
+                expires_at_ms: None,
+                refresh_due_at_ms: None,
+                quota_sync_due_at_ms: None,
+            },
+        ],
+    )?;
     Ok(
         ManagementResourceHttpState::new(ManagementMutationService::new(repository, secret_store))
             .with_usage(Box::new(FixtureUsageFacade {
                 events: usage_events,
-            })),
+                billing_entries,
+            }))
+            .with_provider_account_pools(Box::new(SnapshotProviderAccountPoolFacade::new(
+                provider_snapshot,
+            ))),
     )
 }
 
@@ -260,6 +355,86 @@ async fn inventory_is_protected_paginated_and_value_free() -> TestResult {
     assert_eq!(second_body["items"][0]["account_id"], "account-b");
     assert!(second_body["next_cursor"].is_null());
 
+    let provider_first = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get()
+                .uri("/admin/operations/provider-account-pools?provider_id=grok&limit=1"),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(provider_first.status(), StatusCode::OK);
+    assert_eq!(
+        provider_first.headers().get(header::CACHE_CONTROL),
+        Some(&header::HeaderValue::from_static("no-store"))
+    );
+    let provider_first_body: Value = test::read_body_json(provider_first).await;
+    assert_eq!(provider_first_body["snapshot_id"], "provider-snapshot-1");
+    assert_eq!(provider_first_body["observed_at_ms"], 123);
+    assert_eq!(
+        provider_first_body["items"][0]["account_id"],
+        "grok-account-a"
+    );
+    assert_eq!(provider_first_body["items"][0]["auth_status"], "active");
+    assert_eq!(
+        provider_first_body["items"][0]["runtime_status"],
+        "available"
+    );
+    let provider_cursor = provider_first_body["next_cursor"]
+        .as_str()
+        .ok_or("provider first page missing cursor")?;
+    let provider_second = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri(&format!(
+                "/admin/operations/provider-account-pools?provider_id=grok&limit=1&cursor={provider_cursor}"
+            )),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(provider_second.status(), StatusCode::OK);
+    let provider_second_body: Value = test::read_body_json(provider_second).await;
+    assert_eq!(
+        provider_second_body["items"][0]["account_id"],
+        "grok-account-b"
+    );
+    assert_eq!(
+        provider_second_body["items"][0]["auth_status"],
+        "reauth_required"
+    );
+    assert_eq!(
+        provider_second_body["items"][0]["runtime_status"],
+        "unauthorized"
+    );
+    assert!(provider_second_body["next_cursor"].is_null());
+
+    let provider_stale = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri(&format!(
+                "/admin/operations/provider-account-pools?provider_id=codex&limit=1&cursor={provider_cursor}"
+            )),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(provider_stale.status(), StatusCode::CONFLICT);
+    let provider_serialized = serde_json::to_string(&provider_first_body)?;
+    for forbidden in [
+        "ciphertext",
+        "secret",
+        "base_url",
+        "client_key_digest",
+        "request_body",
+    ] {
+        assert!(!provider_serialized.contains(forbidden));
+    }
+
     let usage = test::call_service(
         &app,
         authorized(
@@ -365,6 +540,43 @@ async fn inventory_is_protected_paginated_and_value_free() -> TestResult {
     )
     .await;
     assert_eq!(duplicate_usage_query.status(), StatusCode::BAD_REQUEST);
+
+    let billing = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/operations/billing?status=unpriced"),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(billing.status(), StatusCode::OK);
+    assert_eq!(
+        billing.headers().get(header::CACHE_CONTROL),
+        Some(&header::HeaderValue::from_static("no-store"))
+    );
+    let billing_body: Value = test::read_body_json(billing).await;
+    assert_eq!(
+        billing_body["items"][0]["provider_id"],
+        "provider-inventory"
+    );
+    assert_eq!(billing_body["items"][0]["cost_confidence"], "unpriced");
+    assert_eq!(billing_body["summary"]["unpriced_records"], 1);
+    let billing_serialized = serde_json::to_string(&billing_body)?;
+    for forbidden in ["source_event_id", "source_fingerprint", "encrypted_secret"] {
+        assert!(!billing_serialized.contains(forbidden));
+    }
+
+    let invalid_billing_query = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/operations/billing?status=not-a-status"),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(invalid_billing_query.status(), StatusCode::BAD_REQUEST);
 
     let usage_denied = test::call_service(
         &app,

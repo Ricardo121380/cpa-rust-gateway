@@ -364,6 +364,28 @@ impl SqliteEventStore {
         )
     }
 
+    /// Returns at most `limit` events strictly after a durable ordinal checkpoint.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidPersistedGatewayEvent`] for an invalid bound or malformed
+    /// selected row.
+    pub fn list_events_after_ordinal_bounded(
+        &self,
+        ordinal: i64,
+        limit: usize,
+    ) -> StoreResult<Vec<StoredGatewayEvent>> {
+        if ordinal < 0 {
+            return Err(StoreError::InvalidPersistedGatewayEvent);
+        }
+        let limit = i64::try_from(limit).map_err(|_| StoreError::InvalidPersistedGatewayEvent)?;
+        self.load_events(
+            "SELECT event_ordinal, event_type, event_id, request_id, occurred_at_ms, payload_json \
+             FROM gateway_event_log WHERE event_ordinal > ?1 ORDER BY event_ordinal LIMIT ?2",
+            rusqlite::params![ordinal, limit],
+        )
+    }
+
     /// Runs `PRAGMA quick_check` and accepts only `SQLite`'s exact `ok` result.
     ///
     /// # Errors

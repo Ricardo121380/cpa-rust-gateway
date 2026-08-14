@@ -14,6 +14,7 @@ use gateway_core::{
     AccessGroupId, AttemptEvent, AttemptOutcome, ClientKeyId, CredentialId, EgressPolicyId,
     EndpointId, GatewayEvent, GatewayProtocol, RequestEvent, RouteId, UpstreamId, UsageEvent,
 };
+use gateway_store::billing_ledger::{BillingCostConfidence, BillingLedgerEntry};
 use gateway_store::control_plane::{
     ControlPlaneConfiguration, CredentialConfiguration, CredentialStatus, EndpointConfiguration,
     EndpointCredentialBindingConfiguration, EndpointTransport, UpstreamConfiguration,
@@ -521,6 +522,298 @@ pub struct OperationalUsagePage {
     pub items: Vec<OperationalUsageItem>,
     /// Cursor for the next page, absent when the filtered result is exhausted.
     pub next_cursor: Option<OperationalUsageCursor>,
+}
+
+/// Billing status exposed by the protected management read model.
+pub type OperationalBillingStatus = BillingCostConfidence;
+
+/// Stable keyset position for one immutable billing ledger page.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OperationalBillingCursor {
+    snapshot_ledger_id: i64,
+    occurred_at_ms: u64,
+    ledger_id: i64,
+}
+
+impl OperationalBillingCursor {
+    /// Builds a cursor bound to an immutable ledger snapshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementOperationsError::InvalidQuery`] for negative identifiers.
+    pub fn try_new(
+        snapshot_ledger_id: i64,
+        occurred_at_ms: u64,
+        ledger_id: i64,
+    ) -> Result<Self, ManagementOperationsError> {
+        if snapshot_ledger_id < 0 || ledger_id < 0 {
+            return Err(ManagementOperationsError::InvalidQuery);
+        }
+        Ok(Self {
+            snapshot_ledger_id,
+            occurred_at_ms,
+            ledger_id,
+        })
+    }
+
+    /// Maximum ledger row included by this cursor's snapshot.
+    #[must_use]
+    pub const fn snapshot_ledger_id(&self) -> i64 {
+        self.snapshot_ledger_id
+    }
+    /// Last row time emitted by the prior page.
+    #[must_use]
+    pub const fn occurred_at_ms(&self) -> u64 {
+        self.occurred_at_ms
+    }
+    /// Last row id emitted by the prior page.
+    #[must_use]
+    pub const fn ledger_id(&self) -> i64 {
+        self.ledger_id
+    }
+}
+
+/// Typed filters for the protected billing ledger read model.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OperationalBillingQuery {
+    /// Inclusive lower occurrence bound.
+    pub from_ms: Option<u64>,
+    /// Inclusive upper occurrence bound.
+    pub to_ms: Option<u64>,
+    /// Exact Provider filter.
+    pub provider_id: Option<String>,
+    /// Exact Channel filter.
+    pub channel_id: Option<String>,
+    /// Exact Account filter.
+    pub account_id: Option<String>,
+    /// Exact public model filter.
+    pub model: Option<String>,
+    /// Exact cost confidence/status filter.
+    pub status: Option<BillingCostConfidence>,
+    /// Bounded page size.
+    pub limit: usize,
+    /// Optional immutable snapshot cursor.
+    pub cursor: Option<OperationalBillingCursor>,
+}
+
+impl OperationalBillingQuery {
+    /// Validates billing filters and bounds.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementOperationsError::InvalidQuery`] for reversed time bounds, invalid
+    /// model text, or an out-of-range page size.
+    #[allow(clippy::too_many_arguments)]
+    pub fn try_new(
+        from_ms: Option<u64>,
+        to_ms: Option<u64>,
+        provider_id: Option<String>,
+        channel_id: Option<String>,
+        account_id: Option<String>,
+        model: Option<String>,
+        status: Option<BillingCostConfidence>,
+        limit: usize,
+        cursor: Option<OperationalBillingCursor>,
+    ) -> Result<Self, ManagementOperationsError> {
+        if matches!((from_ms, to_ms), (Some(from), Some(to)) if from > to)
+            || !(1..=MAX_USAGE_LIMIT).contains(&limit)
+            || model
+                .as_ref()
+                .is_some_and(|value| !bounded_usage_text(value))
+        {
+            return Err(ManagementOperationsError::InvalidQuery);
+        }
+        Ok(Self {
+            from_ms,
+            to_ms,
+            provider_id,
+            channel_id,
+            account_id,
+            model,
+            status,
+            limit,
+            cursor,
+        })
+    }
+}
+
+/// One secret-free billing row suitable for a management response.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OperationalBillingItem {
+    /// Durable row identity.
+    pub ledger_id: i64,
+    /// Gateway request correlation, not request content.
+    pub request_id: String,
+    /// Canonical response correlation, not response content.
+    pub response_id: String,
+    /// Provider/channel/account identities selected by the successful Attempt.
+    pub provider_id: String,
+    pub channel_id: String,
+    pub account_id: String,
+    /// Public model label used for pricing.
+    pub model: String,
+    /// Final standardized token dimensions.
+    pub usage: gateway_core::UsageSummary,
+    /// Occurrence and catalog metadata.
+    pub occurred_at_ms: u64,
+    pub catalog_version_id: Option<String>,
+    pub cost_microunits: Option<u64>,
+    pub cost_confidence: BillingCostConfidence,
+}
+
+/// Counts and known-cost total over the immutable filtered snapshot.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
+pub struct OperationalBillingSummary {
+    pub records: u64,
+    pub exact_records: u64,
+    pub partial_records: u64,
+    pub unknown_records: u64,
+    pub unpriced_records: u64,
+    pub known_cost_microunits: Option<u64>,
+}
+
+/// One bounded billing page and its snapshot summary.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OperationalBillingPage {
+    pub snapshot_ledger_id: Option<i64>,
+    pub items: Vec<OperationalBillingItem>,
+    pub summary: OperationalBillingSummary,
+    pub next_cursor: Option<OperationalBillingCursor>,
+}
+
+/// Compiles a deterministic billing page from immutable ledger rows.
+///
+/// # Errors
+///
+/// Returns [`ManagementOperationsError`] when the input exceeds the finite bound, the query is
+/// invalid, or a checked summary counter overflows.
+#[allow(clippy::too_many_lines)]
+pub fn compile_operational_billing_page(
+    entries: &[BillingLedgerEntry],
+    query: &OperationalBillingQuery,
+) -> Result<OperationalBillingPage, ManagementOperationsError> {
+    if entries.len() > MAX_USAGE_EVENTS {
+        return Err(ManagementOperationsError::SourceUnavailable);
+    }
+    OperationalBillingQuery::try_new(
+        query.from_ms,
+        query.to_ms,
+        query.provider_id.clone(),
+        query.channel_id.clone(),
+        query.account_id.clone(),
+        query.model.clone(),
+        query.status,
+        query.limit,
+        query.cursor.clone(),
+    )?;
+    let snapshot_ledger_id = query.cursor.as_ref().map_or_else(
+        || entries.iter().map(|entry| entry.ledger_id).max(),
+        |cursor| Some(cursor.snapshot_ledger_id()),
+    );
+    let mut filtered = entries
+        .iter()
+        .filter(|entry| snapshot_ledger_id.is_none_or(|max| entry.ledger_id <= max))
+        .filter(|entry| {
+            query
+                .from_ms
+                .is_none_or(|from| entry.occurred_at_ms >= from)
+        })
+        .filter(|entry| query.to_ms.is_none_or(|to| entry.occurred_at_ms <= to))
+        .filter(|entry| {
+            query
+                .provider_id
+                .as_deref()
+                .is_none_or(|id| id == entry.provider_id)
+        })
+        .filter(|entry| {
+            query
+                .channel_id
+                .as_deref()
+                .is_none_or(|id| id == entry.channel_id)
+        })
+        .filter(|entry| {
+            query
+                .account_id
+                .as_deref()
+                .is_none_or(|id| id == entry.account_id)
+        })
+        .filter(|entry| {
+            query
+                .model
+                .as_deref()
+                .is_none_or(|model| model == entry.model)
+        })
+        .filter(|entry| {
+            query
+                .status
+                .is_none_or(|status| status == entry.cost_confidence)
+        })
+        .collect::<Vec<_>>();
+    filtered.sort_by_key(|entry| (entry.occurred_at_ms, entry.ledger_id));
+    let mut summary = OperationalBillingSummary::default();
+    for entry in &filtered {
+        summary.records = summary
+            .records
+            .checked_add(1)
+            .ok_or(ManagementOperationsError::InconsistentConfiguration)?;
+        match entry.cost_confidence {
+            BillingCostConfidence::Exact => summary.exact_records += 1,
+            BillingCostConfidence::Partial => summary.partial_records += 1,
+            BillingCostConfidence::Unknown => summary.unknown_records += 1,
+            BillingCostConfidence::Unpriced => summary.unpriced_records += 1,
+        }
+        if let Some(cost) = entry.cost_microunits {
+            summary.known_cost_microunits = Some(
+                summary
+                    .known_cost_microunits
+                    .unwrap_or(0)
+                    .checked_add(cost)
+                    .ok_or(ManagementOperationsError::InconsistentConfiguration)?,
+            );
+        }
+    }
+    if let Some(cursor) = &query.cursor {
+        filtered.retain(|entry| {
+            (entry.occurred_at_ms, entry.ledger_id) > (cursor.occurred_at_ms(), cursor.ledger_id())
+        });
+    }
+    let has_more = filtered.len() > query.limit;
+    filtered.truncate(query.limit);
+    let items = filtered
+        .into_iter()
+        .map(|entry| OperationalBillingItem {
+            ledger_id: entry.ledger_id,
+            request_id: entry.request_id.clone(),
+            response_id: entry.response_id.clone(),
+            provider_id: entry.provider_id.clone(),
+            channel_id: entry.channel_id.clone(),
+            account_id: entry.account_id.clone(),
+            model: entry.model.clone(),
+            usage: entry.usage.clone(),
+            occurred_at_ms: entry.occurred_at_ms,
+            catalog_version_id: entry.catalog_version_id.clone(),
+            cost_microunits: entry.cost_microunits,
+            cost_confidence: entry.cost_confidence,
+        })
+        .collect::<Vec<_>>();
+    let next_cursor =
+        has_more
+            .then(|| items.last())
+            .flatten()
+            .map(|item| OperationalBillingCursor {
+                snapshot_ledger_id: snapshot_ledger_id.unwrap_or(item.ledger_id),
+                occurred_at_ms: item.occurred_at_ms,
+                ledger_id: item.ledger_id,
+            });
+    Ok(OperationalBillingPage {
+        snapshot_ledger_id,
+        items,
+        summary,
+        next_cursor,
+    })
 }
 
 /// Compiles one secret-free, deterministic configured account-pool inventory page.
@@ -1088,6 +1381,7 @@ mod tests {
         RouteId, UpstreamId, Usage, UsageEvent,
     };
     use gateway_store::{
+        billing_ledger::{BillingCostConfidence, BillingLedgerEntry},
         control_plane::{
             ConfigVersion, ConfigVersionId, ConfigVersionStatus, ControlPlaneConfiguration,
             CredentialConfiguration, CredentialScope, CredentialStatus, EndpointConfiguration,
@@ -1100,7 +1394,8 @@ mod tests {
 
     use super::{
         ManagementOperationsError, OperationalAccountPoolCursor, OperationalAccountPoolQuery,
-        OperationalTokenConfidence, OperationalUsageQuery, compile_operational_account_pool_page,
+        OperationalBillingQuery, OperationalTokenConfidence, OperationalUsageQuery,
+        compile_operational_account_pool_page, compile_operational_billing_page,
         compile_operational_usage_page,
     };
 
@@ -1284,6 +1579,66 @@ mod tests {
         assert_eq!(first.items[0].observed_at_ms, 200);
         assert!(first.next_cursor.is_none());
         assert_eq!(first.observed_through_ms, Some(200));
+        Ok(())
+    }
+
+    #[test]
+    fn billing_page_has_snapshot_cursor_and_status_summary() -> TestResult {
+        let row = |ledger_id: i64, occurred_at_ms: u64, confidence: BillingCostConfidence| {
+            BillingLedgerEntry {
+                ledger_id,
+                source_event_id: format!("source-{ledger_id}"),
+                source_fingerprint: "a".repeat(64),
+                request_id: format!("request-{ledger_id}"),
+                response_id: format!("response-{ledger_id}"),
+                provider_id: "provider".to_owned(),
+                channel_id: "channel".to_owned(),
+                account_id: "account".to_owned(),
+                model: "model".to_owned(),
+                occurred_at_ms,
+                catalog_version_id: None,
+                usage: gateway_core::UsageSummary {
+                    input_tokens: Some(10),
+                    ..gateway_core::UsageSummary::default()
+                },
+                cost_microunits: (confidence == BillingCostConfidence::Exact).then_some(7),
+                cost_confidence: confidence,
+                retention_expires_at_ms: occurred_at_ms + 100,
+                recorded_at_ms: occurred_at_ms,
+            }
+        };
+        let entries = vec![
+            row(1, 100, BillingCostConfidence::Exact),
+            row(2, 200, BillingCostConfidence::Unpriced),
+        ];
+        let first = compile_operational_billing_page(
+            &entries,
+            &OperationalBillingQuery::try_new(None, None, None, None, None, None, None, 1, None)?,
+        )?;
+        assert_eq!(first.snapshot_ledger_id, Some(2));
+        assert_eq!(first.summary.records, 2);
+        assert_eq!(first.summary.known_cost_microunits, Some(7));
+        let cursor = first.next_cursor.ok_or("missing billing cursor")?;
+        let second = compile_operational_billing_page(
+            &entries,
+            &OperationalBillingQuery::try_new(
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                1,
+                Some(cursor),
+            )?,
+        )?;
+        assert_eq!(second.items.len(), 1);
+        assert_eq!(second.items[0].ledger_id, 2);
+        assert_eq!(
+            second.items[0].cost_confidence,
+            BillingCostConfidence::Unpriced
+        );
         Ok(())
     }
 

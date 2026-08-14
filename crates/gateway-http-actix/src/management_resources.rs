@@ -20,26 +20,37 @@ use base64::{
     engine::general_purpose::{STANDARD, STANDARD_NO_PAD, URL_SAFE, URL_SAFE_NO_PAD},
 };
 use gateway_control::management_mutation_service::{
-    AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus, ClientKeyIssue,
-    ClientKeyUpdate, ClientKeyView, ConfigRevision, ConfigVersionId, CredentialScope,
-    CredentialStatus, CredentialUpsert, CredentialView, EgressPolicyConfiguration,
-    EndpointConfiguration, EndpointCredentialBindingConfiguration, EndpointTransport,
-    ManagementMutationService, ManagementResourceError, ManagementRouteValidation,
-    ModelAliasConfiguration, ModelRouteConfiguration, PublicModelConfiguration, Revisioned,
-    RouteCandidateConfiguration, RoutePolicy, StoreError, StoredClientKeyStatus,
-    StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
+    AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus,
+    BillingCatalogImport, BillingCatalogMutationOperation, BillingCatalogMutationReceipt,
+    BillingCatalogSource, BillingPriceCatalog, BillingPriceEntry, ClientKeyIssue, ClientKeyUpdate,
+    ClientKeyView, ConfigRevision, ConfigVersionId, CredentialScope, CredentialStatus,
+    CredentialUpsert, CredentialView, EgressPolicyConfiguration, EndpointConfiguration,
+    EndpointCredentialBindingConfiguration, EndpointTransport, ManagementMutationService,
+    ManagementResourceError, ManagementRouteValidation, ModelAliasConfiguration,
+    ModelRouteConfiguration, PublicModelConfiguration, Revisioned, RouteCandidateConfiguration,
+    RoutePolicy, StoreError, StoredClientKeyStatus, StoredEgressRedirectMode, TransformMode,
+    UpstreamConfiguration,
 };
 use gateway_control::management_operations_service::{
-    DEFAULT_ACCOUNT_POOL_LIMIT, DEFAULT_USAGE_LIMIT, MAX_ACCOUNT_POOL_LIMIT, MAX_USAGE_LIMIT,
-    MAX_USAGE_MODEL_CHARS, ManagementOperationsError, OperationalAccountPoolCursor,
-    OperationalAccountPoolItem, OperationalAccountPoolPage, OperationalAccountPoolQuery,
-    OperationalCostConfidence, OperationalTokenConfidence, OperationalTokenMetric,
-    OperationalUsageCursor, OperationalUsagePage, OperationalUsageQuery,
+    DEFAULT_ACCOUNT_POOL_LIMIT, DEFAULT_USAGE_LIMIT, MAX_ACCOUNT_POOL_LIMIT, MAX_USAGE_EVENTS,
+    MAX_USAGE_LIMIT, MAX_USAGE_MODEL_CHARS, ManagementOperationsError,
+    OperationalAccountPoolCursor, OperationalAccountPoolItem, OperationalAccountPoolPage,
+    OperationalAccountPoolQuery, OperationalBillingCursor, OperationalBillingPage,
+    OperationalBillingQuery, OperationalBillingStatus, OperationalCostConfidence,
+    OperationalTokenConfidence, OperationalTokenMetric, OperationalUsageCursor,
+    OperationalUsagePage, OperationalUsageQuery, compile_operational_billing_page,
+};
+use gateway_control::provider_account_pool_service::{
+    DEFAULT_PROVIDER_ACCOUNT_POOL_LIMIT, ProviderAccountAuthStatus, ProviderAccountPoolCursor,
+    ProviderAccountPoolError, ProviderAccountPoolFacade, ProviderAccountPoolItem,
+    ProviderAccountPoolPage, ProviderAccountPoolQuery, ProviderAccountRuntimeStatus,
+    RejectingProviderAccountPoolFacade,
 };
 use gateway_core::{
     AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, GatewayProtocol,
-    PublicModelId, RequestId, RouteCandidateId, RouteId, UpstreamId,
+    ProviderId, PublicModelId, RequestId, RouteCandidateId, RouteId, UpstreamId,
 };
+use gateway_store::billing_ledger::SqliteBillingLedger;
 use gateway_upstream::UpstreamProxy;
 use provider_openai_compatible::{
     CodexCredentialExportFormat, CodexOAuthRefreshCoordinator, CodexOAuthRevisionedCredential,
@@ -57,6 +68,9 @@ const IF_MATCH_HEADER: &str = "if-match";
 const MAX_MANAGEMENT_JSON_BYTES: usize = 70 * 1024;
 const MAX_RUNTIME_ROWS: usize = 256;
 const MAX_REQUEST_ATTEMPTS: usize = 128;
+const MAX_BILLING_CATALOG_ENTRIES: usize = 512;
+// JSON numbers must remain exactly representable for generated TypeScript consumers.
+const MAX_BILLING_JSON_INTEGER: u64 = 9_007_199_254_740_991;
 const CODEX_OAUTH_HTTP_TIMEOUT: Duration = Duration::from_secs(30);
 const MAX_CODEX_OAUTH_RESPONSE_BYTES: u64 = 256 * 1024;
 const CODEX_OAUTH_USER_AGENT: &str = "codex_cli_rs/0.144.1";
@@ -71,6 +85,7 @@ pub struct ManagementResourceHttpState {
     workflow: Mutex<Box<dyn ManagementEndpointWorkflow>>,
     runtime: Mutex<Box<dyn ManagementRuntimeFacade>>,
     usage: Mutex<Box<dyn ManagementUsageFacade>>,
+    provider_account_pools: Mutex<Box<dyn ProviderAccountPoolFacade>>,
     /// Credential ids with an in-flight refresh.  The claim spans decrypt, upstream refresh, and
     /// the revision-guarded persistence write so two HTTP callers can never spend the same
     /// rotating refresh token concurrently.
@@ -89,6 +104,59 @@ pub trait ManagementUsageFacade: Send + Sync {
         &self,
         query: &OperationalUsageQuery,
     ) -> Result<OperationalUsagePage, ManagementOperationsError>;
+
+    /// Lists immutable, secret-free billing rows and a filtered status/cost summary.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe operations error when the durable billing source is unavailable.
+    fn list_billing(
+        &self,
+        _query: &OperationalBillingQuery,
+    ) -> Result<OperationalBillingPage, ManagementOperationsError> {
+        Err(ManagementOperationsError::SourceUnavailable)
+    }
+}
+
+/// Read-only billing facade backed by the durable `SQLite` ledger.
+pub struct SqliteBillingManagementFacade {
+    ledger: Mutex<SqliteBillingLedger>,
+}
+
+impl SqliteBillingManagementFacade {
+    /// Wraps an already-migrated billing ledger for bounded management reads.
+    #[must_use]
+    pub fn new(ledger: SqliteBillingLedger) -> Self {
+        Self {
+            ledger: Mutex::new(ledger),
+        }
+    }
+}
+
+impl ManagementUsageFacade for SqliteBillingManagementFacade {
+    fn list_usage(
+        &self,
+        _query: &OperationalUsageQuery,
+    ) -> Result<OperationalUsagePage, ManagementOperationsError> {
+        Err(ManagementOperationsError::SourceUnavailable)
+    }
+
+    fn list_billing(
+        &self,
+        query: &OperationalBillingQuery,
+    ) -> Result<OperationalBillingPage, ManagementOperationsError> {
+        let ledger = self
+            .ledger
+            .lock()
+            .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
+        let entries = ledger
+            .list_bounded(MAX_USAGE_EVENTS + 1)
+            .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
+        if entries.len() > MAX_USAGE_EVENTS {
+            return Err(ManagementOperationsError::SourceUnavailable);
+        }
+        compile_operational_billing_page(&entries, query)
+    }
 }
 
 /// Fail-closed usage source used until the serving composition injects its event-log reader.
@@ -204,6 +272,7 @@ impl ManagementResourceHttpState {
             workflow: Mutex::new(workflow),
             runtime: Mutex::new(runtime),
             usage: Mutex::new(usage),
+            provider_account_pools: Mutex::new(Box::new(RejectingProviderAccountPoolFacade::new())),
             oauth_refresh_claims: Mutex::new(BTreeSet::new()),
             runtime_clock,
         }
@@ -213,6 +282,18 @@ impl ManagementResourceHttpState {
     #[must_use]
     pub fn with_usage(mut self, usage: Box<dyn ManagementUsageFacade>) -> Self {
         self.usage = Mutex::new(usage);
+        self
+    }
+
+    /// Replaces the fail-closed Provider-owned account-pool source with an injected read-only
+    /// facade. The facade builds the observation snapshot; this HTTP layer never contacts a
+    /// Provider or decrypts an account.
+    #[must_use]
+    pub fn with_provider_account_pools(
+        mut self,
+        provider_account_pools: Box<dyn ProviderAccountPoolFacade>,
+    ) -> Self {
+        self.provider_account_pools = Mutex::new(provider_account_pools);
         self
     }
 
@@ -1540,6 +1621,7 @@ fn resource_routes(config: &mut web::ServiceConfig) {
     configure_routing_resource_routes(config);
     configure_runtime_resource_routes(config);
     configure_operations_resource_routes(config);
+    configure_billing_resource_routes(config);
 }
 
 /// Registers only the P10 resource paths inside an already protected management scope.
@@ -1747,7 +1829,25 @@ fn configure_operations_resource_routes(config: &mut web::ServiceConfig) {
             "/operations/account-pools",
             web::get().to(list_operational_account_pools),
         )
+        .route(
+            "/operations/provider-account-pools",
+            web::get().to(list_provider_account_pools),
+        )
         .route("/operations/usage", web::get().to(list_operational_usage));
+    config.route(
+        "/operations/billing",
+        web::get().to(list_operational_billing),
+    );
+}
+
+fn configure_billing_resource_routes(config: &mut web::ServiceConfig) {
+    config
+        .route("/billing/catalogs", web::get().to(list_billing_catalogs))
+        .route("/billing/catalogs", web::post().to(import_billing_catalog))
+        .route(
+            "/billing/catalogs/{catalog_version_id}/rollback",
+            web::post().to(rollback_billing_catalog),
+        );
 }
 
 #[derive(Deserialize)]
@@ -2290,6 +2390,55 @@ struct OperationalAccountPoolItemResponse {
     route_ids: Vec<String>,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ProviderAccountPoolQueryParams {
+    provider_id: Option<String>,
+    channel_id: Option<String>,
+    auth_status: Option<String>,
+    runtime_status: Option<String>,
+    enabled: Option<bool>,
+    limit: Option<usize>,
+    cursor: Option<String>,
+}
+
+#[derive(Serialize)]
+struct ProviderAccountPoolPageResponse {
+    snapshot_id: String,
+    observed_at_ms: i64,
+    items: Vec<ProviderAccountPoolItemResponse>,
+    next_cursor: Option<String>,
+}
+
+#[derive(Serialize)]
+#[allow(clippy::struct_excessive_bools)]
+struct ProviderAccountPoolItemResponse {
+    provider_id: String,
+    channel_id: String,
+    account_id: String,
+    account_kind: String,
+    auth_status: &'static str,
+    runtime_status: &'static str,
+    enabled: bool,
+    priority: i64,
+    weight: u32,
+    max_concurrency: u32,
+    active_leases: u32,
+    expires_at_ms: Option<i64>,
+    refresh_due_at_ms: Option<i64>,
+    quota_sync_due_at_ms: Option<i64>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ProviderAccountPoolCursorWire {
+    snapshot_id: String,
+    filter_fingerprint: String,
+    provider_id: String,
+    channel_id: String,
+    account_id: String,
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct OperationalAccountPoolCursorWire {
@@ -2361,6 +2510,129 @@ struct OperationalUsageCursorWire {
     protocol: String,
     client_key_id: String,
     access_group_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OperationalBillingQueryParams {
+    from_ms: Option<u64>,
+    to_ms: Option<u64>,
+    provider_id: Option<String>,
+    channel_id: Option<String>,
+    account_id: Option<String>,
+    model: Option<String>,
+    status: Option<String>,
+    limit: Option<usize>,
+    cursor: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OperationalBillingCursorWire {
+    snapshot_ledger_id: i64,
+    occurred_at_ms: u64,
+    ledger_id: i64,
+}
+
+#[derive(Serialize)]
+struct OperationalBillingPageResponse {
+    snapshot_ledger_id: Option<i64>,
+    items: Vec<OperationalBillingItemResponse>,
+    summary: OperationalBillingSummaryResponse,
+    next_cursor: Option<String>,
+}
+
+#[derive(Serialize)]
+struct OperationalBillingItemResponse {
+    ledger_id: i64,
+    request_id: String,
+    response_id: String,
+    provider_id: String,
+    channel_id: String,
+    account_id: String,
+    model: String,
+    input_tokens: Option<u64>,
+    output_tokens: Option<u64>,
+    reasoning_tokens: Option<u64>,
+    cache_read_tokens: Option<u64>,
+    cache_creation_tokens: Option<u64>,
+    cached_tokens: Option<u64>,
+    occurred_at_ms: u64,
+    catalog_version_id: Option<String>,
+    cost_microunits: Option<u64>,
+    cost_confidence: &'static str,
+}
+
+#[derive(Serialize)]
+struct OperationalBillingSummaryResponse {
+    records: u64,
+    exact_records: u64,
+    partial_records: u64,
+    unknown_records: u64,
+    unpriced_records: u64,
+    known_cost_microunits: Option<u64>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BillingCatalogImportInput {
+    catalog_version_id: String,
+    effective_at_ms: u64,
+    source: String,
+    entries: Vec<BillingCatalogEntryInput>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BillingCatalogEntryInput {
+    provider_id: String,
+    channel_id: String,
+    model: String,
+    input_microunits_per_million: u64,
+    output_microunits_per_million: u64,
+    reasoning_microunits_per_million: u64,
+    cache_read_microunits_per_million: u64,
+    cache_creation_microunits_per_million: u64,
+    cached_microunits_per_million: u64,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BillingCatalogRollbackInput {
+    new_catalog_version_id: String,
+    effective_at_ms: u64,
+}
+
+#[derive(Serialize)]
+struct BillingCatalogResponse {
+    catalog_version_id: String,
+    effective_at_ms: u64,
+    source: &'static str,
+    created_at_ms: u64,
+    entries: Vec<BillingCatalogEntryResponse>,
+}
+
+#[derive(Serialize)]
+struct BillingCatalogEntryResponse {
+    provider_id: String,
+    channel_id: String,
+    model: String,
+    input_microunits_per_million: u64,
+    output_microunits_per_million: u64,
+    reasoning_microunits_per_million: u64,
+    cache_read_microunits_per_million: u64,
+    cache_creation_microunits_per_million: u64,
+    cached_microunits_per_million: u64,
+}
+
+#[derive(Serialize)]
+struct BillingCatalogMutationResponse {
+    catalog_version_id: String,
+    effective_at_ms: u64,
+    source: &'static str,
+    entry_count: usize,
+    operation: &'static str,
+    rolled_back_from: Option<String>,
 }
 
 #[allow(clippy::too_many_lines)]
@@ -2481,6 +2753,194 @@ async fn list_operational_usage(
     }
 }
 
+#[allow(clippy::too_many_lines)]
+async fn list_operational_billing(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let params =
+        match web::Query::<OperationalBillingQueryParams>::from_query(request.query_string()) {
+            Ok(params) => params.into_inner(),
+            Err(_) => return invalid_input(),
+        };
+    let cursor = match params.cursor.as_deref() {
+        Some(value) if value.len() <= 2048 => decode_operational_billing_cursor(value),
+        Some(_) => Err(ManagementOperationsError::InvalidQuery),
+        None => Ok(None),
+    };
+    let cursor = match cursor {
+        Ok(cursor) => cursor,
+        Err(error) => return management_error(ManagementResourceError::from(error)),
+    };
+    let limit = params.limit.unwrap_or(DEFAULT_USAGE_LIMIT);
+    if limit == 0 || limit > MAX_USAGE_LIMIT {
+        return invalid_input();
+    }
+    let status = match params.status.as_deref() {
+        Some(value) => match operational_billing_status(value) {
+            Ok(status) => Some(status),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let provider_id = match params.provider_id {
+        Some(value) => match operational_query_id(value) {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let channel_id = match params.channel_id {
+        Some(value) => match operational_query_id(value) {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let account_id = match params.account_id {
+        Some(value) => match operational_query_id(value) {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let model = match params.model {
+        Some(value) => match bounded_text(value, MAX_USAGE_MODEL_CHARS) {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let query = match OperationalBillingQuery::try_new(
+        params.from_ms,
+        params.to_ms,
+        provider_id,
+        channel_id,
+        account_id,
+        model,
+        status,
+        limit,
+        cursor,
+    ) {
+        Ok(query) => query,
+        Err(error) => return management_error(ManagementResourceError::from(error)),
+    };
+    let source = match usage(&state) {
+        Ok(source) => source,
+        Err(response) => return response,
+    };
+    match source.list_billing(&query) {
+        Ok(page) => match operational_billing_page_response(page) {
+            Ok(response) => HttpResponse::Ok()
+                .insert_header((header::CACHE_CONTROL, "no-store"))
+                .json(response),
+            Err(response) => response,
+        },
+        Err(error) => management_error(ManagementResourceError::from(error)),
+    }
+}
+
+async fn list_billing_catalogs(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_billing_catalogs(&context.version) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |catalogs| {
+            catalogs
+                .into_iter()
+                .map(billing_catalog_response)
+                .collect::<Vec<_>>()
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn import_billing_catalog(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let input =
+        match parse_json::<BillingCatalogImportInput>(&body).and_then(billing_catalog_import) {
+            Ok(input) => input,
+            Err(response) => return response,
+        };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.import_billing_catalog(&actor, &context.version, context.revision, input) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, |value| {
+            billing_catalog_mutation_response(&value)
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn rollback_billing_catalog(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let predecessor_version_id = match bounded_text(path.into_inner(), 128) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let input = match parse_json::<BillingCatalogRollbackInput>(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    if input.effective_at_ms > MAX_BILLING_JSON_INTEGER {
+        return invalid_input();
+    }
+    let new_catalog_version_id = match bounded_text(input.new_catalog_version_id, 128) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.rollback_billing_catalog(
+        &actor,
+        &context.version,
+        context.revision,
+        &predecessor_version_id,
+        new_catalog_version_id,
+        input.effective_at_ms,
+    ) {
+        Ok(value) => revisioned_json(StatusCode::CREATED, value, |value| {
+            billing_catalog_mutation_response(&value)
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
 async fn list_operational_account_pools(
     request: HttpRequest,
     state: web::Data<ManagementResourceHttpState>,
@@ -2556,6 +3016,85 @@ async fn list_operational_account_pools(
             }
         }
         Err(error) => management_error(error),
+    }
+}
+
+#[allow(clippy::too_many_lines)]
+async fn list_provider_account_pools(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let params =
+        match web::Query::<ProviderAccountPoolQueryParams>::from_query(request.query_string()) {
+            Ok(params) => params.into_inner(),
+            Err(_) => return invalid_input(),
+        };
+    let provider_id = match params.provider_id {
+        Some(value) => match operational_query_id(value)
+            .and_then(|value| ProviderId::try_new(value).map_err(|_| invalid_input()))
+        {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let channel_id = match params.channel_id {
+        Some(value) => match operational_query_id(value)
+            .and_then(|value| EndpointId::try_new(value).map_err(|_| invalid_input()))
+        {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let auth_status = match params.auth_status.as_deref() {
+        Some(value) => match provider_account_auth_status(value) {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let runtime_status = match params.runtime_status.as_deref() {
+        Some(value) => match provider_account_runtime_status(value) {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let cursor = match params.cursor.as_deref() {
+        Some(value) if value.len() <= 2048 => decode_provider_account_pool_cursor(value),
+        Some(_) => Err(ProviderAccountPoolError::InvalidQuery),
+        None => Ok(None),
+    };
+    let cursor = match cursor {
+        Ok(cursor) => cursor,
+        Err(error) => return provider_account_pool_error(error),
+    };
+    let limit = params.limit.unwrap_or(DEFAULT_PROVIDER_ACCOUNT_POOL_LIMIT);
+    let query = match ProviderAccountPoolQuery::try_new(
+        provider_id,
+        channel_id,
+        auth_status,
+        runtime_status,
+        params.enabled,
+        limit,
+        cursor,
+    ) {
+        Ok(query) => query,
+        Err(error) => return provider_account_pool_error(error),
+    };
+    let source = match provider_account_pools(&state) {
+        Ok(source) => source,
+        Err(response) => return response,
+    };
+    match source.list_provider_account_pools(&query) {
+        Ok(page) => match provider_account_pool_page_response(page) {
+            Ok(response) => HttpResponse::Ok()
+                .insert_header((header::CACHE_CONTROL, "no-store"))
+                .json(response),
+            Err(response) => response,
+        },
+        Err(error) => provider_account_pool_error(error),
     }
 }
 
@@ -4609,6 +5148,15 @@ fn usage(
     state.usage.lock().map_err(|_| internal_error())
 }
 
+fn provider_account_pools(
+    state: &web::Data<ManagementResourceHttpState>,
+) -> Result<std::sync::MutexGuard<'_, Box<dyn ProviderAccountPoolFacade>>, HttpResponse> {
+    state
+        .provider_account_pools
+        .lock()
+        .map_err(|_| internal_error())
+}
+
 fn require_runtime_target(
     state: &web::Data<ManagementResourceHttpState>,
     config_version_id: &ConfigVersionId,
@@ -5242,6 +5790,13 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
             "management_credential_revision_conflict",
             "Credential changed",
         ),
+        ManagementResourceError::Store(StoreError::ConflictingBillingCatalogVersion) => {
+            error_response(
+                StatusCode::CONFLICT,
+                "management_billing_catalog_conflict",
+                "Billing catalog version already exists",
+            )
+        }
         ManagementResourceError::Operations(ManagementOperationsError::CursorVersionConflict) => {
             error_response(
                 StatusCode::CONFLICT,
@@ -5253,7 +5808,8 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
             invalid_input()
         }
         ManagementResourceError::InvalidRevision
-        | ManagementResourceError::InvalidCredentialInput => invalid_input(),
+        | ManagementResourceError::InvalidCredentialInput
+        | ManagementResourceError::InvalidBillingCatalogInput => invalid_input(),
         ManagementResourceError::Store(_)
         | ManagementResourceError::SecretStore(_)
         | ManagementResourceError::ControlPlane(_)
@@ -5267,6 +5823,20 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
     };
     drop(error);
     response
+}
+
+fn provider_account_pool_error(error: ProviderAccountPoolError) -> HttpResponse {
+    match error {
+        ProviderAccountPoolError::InvalidQuery => invalid_input(),
+        ProviderAccountPoolError::CursorConflict => error_response(
+            StatusCode::CONFLICT,
+            "management_provider_account_pool_cursor_conflict",
+            "Provider account-pool snapshot changed",
+        ),
+        ProviderAccountPoolError::InvalidSnapshot | ProviderAccountPoolError::SourceUnavailable => {
+            internal_error()
+        }
+    }
 }
 
 fn invalid_input() -> HttpResponse {
@@ -5534,6 +6104,123 @@ fn operational_account_status_response(value: CredentialStatus) -> &'static str 
     }
 }
 
+fn provider_account_auth_status(value: &str) -> Result<ProviderAccountAuthStatus, HttpResponse> {
+    match value {
+        "active" => Ok(ProviderAccountAuthStatus::Active),
+        "reauth_required" => Ok(ProviderAccountAuthStatus::ReauthRequired),
+        "disabled" => Ok(ProviderAccountAuthStatus::Disabled),
+        "expired" => Ok(ProviderAccountAuthStatus::Expired),
+        _ => Err(invalid_input()),
+    }
+}
+
+fn provider_account_runtime_status(
+    value: &str,
+) -> Result<ProviderAccountRuntimeStatus, HttpResponse> {
+    match value {
+        "available" => Ok(ProviderAccountRuntimeStatus::Available),
+        "cooling" => Ok(ProviderAccountRuntimeStatus::Cooling),
+        "circuit_open" => Ok(ProviderAccountRuntimeStatus::CircuitOpen),
+        "quota_blocked" => Ok(ProviderAccountRuntimeStatus::QuotaBlocked),
+        "unauthorized" => Ok(ProviderAccountRuntimeStatus::Unauthorized),
+        "recovery_in_flight" => Ok(ProviderAccountRuntimeStatus::RecoveryInFlight),
+        "expired" => Ok(ProviderAccountRuntimeStatus::Expired),
+        _ => Err(invalid_input()),
+    }
+}
+
+fn encode_provider_account_pool_cursor(
+    cursor: &ProviderAccountPoolCursor,
+) -> Result<String, HttpResponse> {
+    let wire = ProviderAccountPoolCursorWire {
+        snapshot_id: cursor.snapshot_id().to_owned(),
+        filter_fingerprint: cursor.filter_fingerprint().to_owned(),
+        provider_id: cursor.provider_id().as_str().to_owned(),
+        channel_id: cursor.channel_id().as_str().to_owned(),
+        account_id: cursor.account_id().as_str().to_owned(),
+    };
+    serde_json::to_vec(&wire)
+        .map(|bytes| URL_SAFE_NO_PAD.encode(bytes))
+        .map_err(|_| internal_error())
+}
+
+fn decode_provider_account_pool_cursor(
+    value: &str,
+) -> Result<Option<ProviderAccountPoolCursor>, ProviderAccountPoolError> {
+    if value.is_empty() {
+        return Err(ProviderAccountPoolError::InvalidQuery);
+    }
+    let bytes = URL_SAFE_NO_PAD
+        .decode(value)
+        .map_err(|_| ProviderAccountPoolError::InvalidQuery)?;
+    let wire: ProviderAccountPoolCursorWire =
+        serde_json::from_slice(&bytes).map_err(|_| ProviderAccountPoolError::InvalidQuery)?;
+    if wire.snapshot_id.is_empty()
+        || wire.snapshot_id.chars().count() > 128
+        || wire.filter_fingerprint.chars().count() > 512
+        || wire.provider_id.chars().count() > 128
+        || wire.channel_id.chars().count() > 128
+        || wire.account_id.chars().count() > 128
+    {
+        return Err(ProviderAccountPoolError::InvalidQuery);
+    }
+    let provider_id = ProviderId::try_new(wire.provider_id)
+        .map_err(|_| ProviderAccountPoolError::InvalidQuery)?;
+    let channel_id =
+        EndpointId::try_new(wire.channel_id).map_err(|_| ProviderAccountPoolError::InvalidQuery)?;
+    let account_id = CredentialId::try_new(wire.account_id)
+        .map_err(|_| ProviderAccountPoolError::InvalidQuery)?;
+    ProviderAccountPoolCursor::try_new(
+        wire.snapshot_id,
+        wire.filter_fingerprint,
+        provider_id,
+        channel_id,
+        account_id,
+    )
+    .map(Some)
+}
+
+fn provider_account_pool_page_response(
+    value: ProviderAccountPoolPage,
+) -> Result<ProviderAccountPoolPageResponse, HttpResponse> {
+    let next_cursor = value
+        .next_cursor
+        .as_ref()
+        .map(encode_provider_account_pool_cursor)
+        .transpose()?;
+    Ok(ProviderAccountPoolPageResponse {
+        snapshot_id: value.snapshot_id,
+        observed_at_ms: value.observed_at_ms,
+        items: value
+            .items
+            .into_iter()
+            .map(provider_account_pool_item_response)
+            .collect(),
+        next_cursor,
+    })
+}
+
+fn provider_account_pool_item_response(
+    value: ProviderAccountPoolItem,
+) -> ProviderAccountPoolItemResponse {
+    ProviderAccountPoolItemResponse {
+        provider_id: value.provider_id.as_str().to_owned(),
+        channel_id: value.channel_id.as_str().to_owned(),
+        account_id: value.account_id.as_str().to_owned(),
+        account_kind: value.account_kind,
+        auth_status: value.auth_status.as_str(),
+        runtime_status: value.runtime_status.as_str(),
+        enabled: value.enabled,
+        priority: value.priority,
+        weight: value.weight,
+        max_concurrency: value.max_concurrency,
+        active_leases: value.active_leases,
+        expires_at_ms: value.expires_at_ms,
+        refresh_due_at_ms: value.refresh_due_at_ms,
+        quota_sync_due_at_ms: value.quota_sync_due_at_ms,
+    }
+}
+
 fn operational_transport_response(value: EndpointTransport) -> &'static str {
     match value {
         EndpointTransport::Http => "http",
@@ -5776,6 +6463,205 @@ fn operational_usage_page_response(
             .collect(),
         next_cursor,
     })
+}
+
+fn operational_billing_status(value: &str) -> Result<OperationalBillingStatus, HttpResponse> {
+    match value {
+        "exact" => Ok(OperationalBillingStatus::Exact),
+        "partial" => Ok(OperationalBillingStatus::Partial),
+        "unknown" => Ok(OperationalBillingStatus::Unknown),
+        "unpriced" => Ok(OperationalBillingStatus::Unpriced),
+        _ => Err(invalid_input()),
+    }
+}
+
+fn operational_billing_status_response(value: OperationalBillingStatus) -> &'static str {
+    match value {
+        OperationalBillingStatus::Exact => "exact",
+        OperationalBillingStatus::Partial => "partial",
+        OperationalBillingStatus::Unknown => "unknown",
+        OperationalBillingStatus::Unpriced => "unpriced",
+    }
+}
+
+fn encode_operational_billing_cursor(
+    cursor: &OperationalBillingCursor,
+) -> Result<String, HttpResponse> {
+    serde_json::to_vec(&OperationalBillingCursorWire {
+        snapshot_ledger_id: cursor.snapshot_ledger_id(),
+        occurred_at_ms: cursor.occurred_at_ms(),
+        ledger_id: cursor.ledger_id(),
+    })
+    .map(|bytes| URL_SAFE_NO_PAD.encode(bytes))
+    .map_err(|_| internal_error())
+}
+
+fn decode_operational_billing_cursor(
+    value: &str,
+) -> Result<Option<OperationalBillingCursor>, ManagementOperationsError> {
+    if value.is_empty() {
+        return Err(ManagementOperationsError::InvalidQuery);
+    }
+    let bytes = URL_SAFE_NO_PAD
+        .decode(value)
+        .map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    let wire: OperationalBillingCursorWire =
+        serde_json::from_slice(&bytes).map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    OperationalBillingCursor::try_new(wire.snapshot_ledger_id, wire.occurred_at_ms, wire.ledger_id)
+        .map(Some)
+}
+
+fn operational_billing_page_response(
+    value: OperationalBillingPage,
+) -> Result<OperationalBillingPageResponse, HttpResponse> {
+    let next_cursor = value
+        .next_cursor
+        .as_ref()
+        .map(encode_operational_billing_cursor)
+        .transpose()?;
+    Ok(OperationalBillingPageResponse {
+        snapshot_ledger_id: value.snapshot_ledger_id,
+        items: value
+            .items
+            .into_iter()
+            .map(|item| OperationalBillingItemResponse {
+                ledger_id: item.ledger_id,
+                request_id: item.request_id,
+                response_id: item.response_id,
+                provider_id: item.provider_id,
+                channel_id: item.channel_id,
+                account_id: item.account_id,
+                model: item.model,
+                input_tokens: item.usage.input_tokens,
+                output_tokens: item.usage.output_tokens,
+                reasoning_tokens: item.usage.reasoning_tokens,
+                cache_read_tokens: item.usage.cache_read_tokens,
+                cache_creation_tokens: item.usage.cache_creation_tokens,
+                cached_tokens: item.usage.cached_tokens,
+                occurred_at_ms: item.occurred_at_ms,
+                catalog_version_id: item.catalog_version_id,
+                cost_microunits: item.cost_microunits,
+                cost_confidence: operational_billing_status_response(item.cost_confidence),
+            })
+            .collect(),
+        summary: OperationalBillingSummaryResponse {
+            records: value.summary.records,
+            exact_records: value.summary.exact_records,
+            partial_records: value.summary.partial_records,
+            unknown_records: value.summary.unknown_records,
+            unpriced_records: value.summary.unpriced_records,
+            known_cost_microunits: value.summary.known_cost_microunits,
+        },
+        next_cursor,
+    })
+}
+
+fn billing_catalog_import(
+    input: BillingCatalogImportInput,
+) -> Result<BillingCatalogImport, HttpResponse> {
+    if input.entries.is_empty()
+        || input.entries.len() > MAX_BILLING_CATALOG_ENTRIES
+        || input.effective_at_ms > MAX_BILLING_JSON_INTEGER
+    {
+        return Err(invalid_input());
+    }
+    let catalog_version_id = bounded_text(input.catalog_version_id, 128)?;
+    let source = match input.source.as_str() {
+        "operator" => BillingCatalogSource::Operator,
+        "imported" => BillingCatalogSource::Imported,
+        _ => return Err(invalid_input()),
+    };
+    let mut identities = BTreeSet::new();
+    let entries = input
+        .entries
+        .into_iter()
+        .map(|entry| {
+            if [
+                entry.input_microunits_per_million,
+                entry.output_microunits_per_million,
+                entry.reasoning_microunits_per_million,
+                entry.cache_read_microunits_per_million,
+                entry.cache_creation_microunits_per_million,
+                entry.cached_microunits_per_million,
+            ]
+            .into_iter()
+            .any(|rate| rate > MAX_BILLING_JSON_INTEGER)
+            {
+                return Err(invalid_input());
+            }
+            let provider_id = bounded_text(entry.provider_id, 128)?;
+            let channel_id = bounded_text(entry.channel_id, 128)?;
+            let model = bounded_text(entry.model, 512)?;
+            if !identities.insert((provider_id.clone(), channel_id.clone(), model.clone())) {
+                return Err(invalid_input());
+            }
+            Ok(BillingPriceEntry {
+                provider_id,
+                channel_id,
+                model,
+                input_microunits_per_million: entry.input_microunits_per_million,
+                output_microunits_per_million: entry.output_microunits_per_million,
+                reasoning_microunits_per_million: entry.reasoning_microunits_per_million,
+                cache_read_microunits_per_million: entry.cache_read_microunits_per_million,
+                cache_creation_microunits_per_million: entry.cache_creation_microunits_per_million,
+                cached_microunits_per_million: entry.cached_microunits_per_million,
+            })
+        })
+        .collect::<Result<Vec<_>, HttpResponse>>()?;
+    Ok(BillingCatalogImport {
+        catalog_version_id,
+        effective_at_ms: input.effective_at_ms,
+        source,
+        entries,
+    })
+}
+
+const fn billing_catalog_source_response(value: BillingCatalogSource) -> &'static str {
+    match value {
+        BillingCatalogSource::Operator => "operator",
+        BillingCatalogSource::Imported => "imported",
+        BillingCatalogSource::Test => "test",
+    }
+}
+
+fn billing_catalog_response(value: BillingPriceCatalog) -> BillingCatalogResponse {
+    BillingCatalogResponse {
+        catalog_version_id: value.catalog_version_id,
+        effective_at_ms: value.effective_at_ms,
+        source: billing_catalog_source_response(value.source),
+        created_at_ms: value.created_at_ms,
+        entries: value
+            .entries
+            .into_iter()
+            .map(|entry| BillingCatalogEntryResponse {
+                provider_id: entry.provider_id,
+                channel_id: entry.channel_id,
+                model: entry.model,
+                input_microunits_per_million: entry.input_microunits_per_million,
+                output_microunits_per_million: entry.output_microunits_per_million,
+                reasoning_microunits_per_million: entry.reasoning_microunits_per_million,
+                cache_read_microunits_per_million: entry.cache_read_microunits_per_million,
+                cache_creation_microunits_per_million: entry.cache_creation_microunits_per_million,
+                cached_microunits_per_million: entry.cached_microunits_per_million,
+            })
+            .collect(),
+    }
+}
+
+fn billing_catalog_mutation_response(
+    value: &BillingCatalogMutationReceipt,
+) -> BillingCatalogMutationResponse {
+    BillingCatalogMutationResponse {
+        catalog_version_id: value.catalog_version_id().to_owned(),
+        effective_at_ms: value.effective_at_ms(),
+        source: billing_catalog_source_response(value.source()),
+        entry_count: value.entry_count(),
+        operation: match value.operation() {
+            BillingCatalogMutationOperation::Imported => "imported",
+            BillingCatalogMutationOperation::RolledBack => "rolled_back",
+        },
+        rolled_back_from: value.rolled_back_from().map(str::to_owned),
+    }
 }
 
 impl From<EgressPolicyConfiguration> for EgressPolicyResponse {
