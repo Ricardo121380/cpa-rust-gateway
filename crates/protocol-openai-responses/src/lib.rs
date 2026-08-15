@@ -46,6 +46,19 @@ pub struct DecodedResponsesRequest {
     pub request: CanonicalRequest,
     /// Requested response representation.
     pub mode: ResponseMode,
+    /// Whether the authenticated caller explicitly requested gateway-owned durable storage.
+    pub store: bool,
+    normalized_native_payload: Option<Vec<u8>>,
+}
+
+impl DecodedResponsesRequest {
+    /// Returns a native Responses payload with gateway-owned `store:true` normalized to false.
+    ///
+    /// `None` means the original validated request bytes may be retained unchanged.
+    #[must_use]
+    pub fn normalized_native_payload(&self) -> Option<&[u8]> {
+        self.normalized_native_payload.as_deref()
+    }
 }
 
 impl fmt::Debug for DecodedResponsesRequest {
@@ -54,6 +67,11 @@ impl fmt::Debug for DecodedResponsesRequest {
             .debug_struct("DecodedResponsesRequest")
             .field("request", &self.request)
             .field("mode", &self.mode)
+            .field("store", &self.store)
+            .field(
+                "normalized_native_payload_len",
+                &self.normalized_native_payload.as_ref().map(Vec::len),
+            )
             .finish()
     }
 }
@@ -70,6 +88,19 @@ pub fn decode_request(input: &str) -> Result<DecodedResponsesRequest, GatewayErr
     let value: Value = serde_json::from_str(input).map_err(|_| client_request_error())?;
     let root = object(&value)?;
     reject_unimplemented_execution_controls(root)?;
+
+    let store = match root.get("store") {
+        None | Some(Value::Bool(false)) => false,
+        Some(Value::Bool(true)) => true,
+        Some(_) => return Err(client_request_error()),
+    };
+    let normalized_native_payload = if store {
+        let mut normalized = value.clone();
+        object_mut(&mut normalized)?.insert("store".to_owned(), Value::Bool(false));
+        Some(serde_json::to_vec(&normalized).map_err(|_| internal_error())?)
+    } else {
+        None
+    };
 
     let requested_model = required_string(root, "model")?.to_owned();
     if requested_model.is_empty() {
@@ -113,6 +144,7 @@ pub fn decode_request(input: &str) -> Result<DecodedResponsesRequest, GatewayErr
             "reasoning",
             "prompt_cache_key",
             "prompt_cache_retention",
+            "store",
         ],
         "openai.responses.",
     )?;
@@ -128,6 +160,8 @@ pub fn decode_request(input: &str) -> Result<DecodedResponsesRequest, GatewayErr
             extensions,
         },
         mode,
+        store,
+        normalized_native_payload,
     })
 }
 
@@ -338,6 +372,10 @@ fn object(value: &Value) -> Result<&Map<String, Value>, GatewayError> {
     value.as_object().ok_or_else(client_request_error)
 }
 
+fn object_mut(value: &mut Value) -> Result<&mut Map<String, Value>, GatewayError> {
+    value.as_object_mut().ok_or_else(client_request_error)
+}
+
 fn array(value: &Value) -> Result<&Vec<Value>, GatewayError> {
     value.as_array().ok_or_else(client_request_error)
 }
@@ -375,7 +413,6 @@ fn extensions_except_with_prefix(
 fn reject_unimplemented_execution_controls(root: &Map<String, Value>) -> Result<(), GatewayError> {
     for name in [
         "background",
-        "store",
         "conversation",
         "previous_response_id",
         "text",
@@ -2002,6 +2039,36 @@ mod tests {
             Some(r#"["reasoning.encrypted_content"]"#)
         );
 
+        Ok(())
+    }
+
+    #[test]
+    fn accepts_gateway_store_control_and_normalizes_native_forwarding() -> TestResult {
+        let stored = decode_request(
+            r#"{"model":"gateway-model","input":"hello","store":true,"stream":true}"#,
+        )?;
+        assert!(stored.store);
+        assert_eq!(stored.mode, ResponseMode::Streaming);
+        assert!(
+            stored
+                .request
+                .extensions
+                .get("openai.responses.store")
+                .is_none()
+        );
+        let normalized: serde_json::Value = serde_json::from_slice(
+            stored
+                .normalized_native_payload()
+                .ok_or("missing normalized payload")?,
+        )?;
+        assert_eq!(normalized["store"], false);
+        assert_eq!(normalized["input"], "hello");
+
+        let unstored =
+            decode_request(r#"{"model":"gateway-model","input":"hello","store":false}"#)?;
+        assert!(!unstored.store);
+        assert!(unstored.normalized_native_payload().is_none());
+        assert!(decode_request(r#"{"model":"gateway-model","store":"true"}"#).is_err());
         Ok(())
     }
 

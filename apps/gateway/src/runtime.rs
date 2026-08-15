@@ -46,7 +46,7 @@ use gateway_core::{
     AttemptEvent, AttemptOutcome, CanonicalEvent, CanonicalEventState, CanonicalMessage,
     CanonicalRequest, CredentialId, EgressPolicyId, EndpointId, ErrorScope, EventEmission,
     GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, MessageContent, MessageRole,
-    NoopGatewayEventSink, ProviderId, RawExtensions, RawJson, RequestContext, RequestId,
+    NoopGatewayEventSink, ProviderId, RawExtensions, RawJson, RequestContext, RequestId, RouteId,
     TextContent, TransparentRetryGate, TransparentRetryGateFuture, Usage, UsageDelta,
 };
 #[cfg(test)]
@@ -80,8 +80,8 @@ use gateway_router::{
     ProtocolResponseProjector, ProtocolTransformInput, ProtocolTransformRejection,
     ProviderScopedPriceEvidence, ProviderScopedRouteExplainInput,
     ProviderScopedRouteExplainSnapshot, QuotaConfidence, QuotaSnapshot, QuotaSource,
-    ResponsesEventSource, ResponsesExecution, ResponsesExecutor, ResponsesFuture,
-    ResponsesResponseMode, RouteCredentialScheduler, RouteExplainCandidate,
+    ResponsesEventSource, ResponsesExecution, ResponsesExecutionLineage, ResponsesExecutor,
+    ResponsesFuture, ResponsesResponseMode, RouteCredentialScheduler, RouteExplainCandidate,
     RouteExplainCandidateReason, RouteExplainInput, RouteSnapshot, RouteSnapshotRegistry,
     RuntimeCredentialAccountStatus, RuntimeHealthAccountRecoveryResult, RuntimeHealthRegistry,
     RuntimeQuotaAvailability, RuntimeQuotaRegistry, RuntimeQuotaTarget, SelectedRouteCredential,
@@ -99,6 +99,7 @@ use gateway_store::{
         AsyncSqliteEventWriter, EventWriterConfig, EventWriterMetricsHandle, SqliteEventStore,
     },
     secret_store::SecretStore,
+    stored_response::SqliteStoredResponseStore,
 };
 use gateway_upstream::{
     AdmittedEgressTarget, CredentialLease, EgressCidr, EgressDnsResolver, EgressHost, EgressPolicy,
@@ -695,6 +696,10 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
         Arc::clone(&registry),
         client_key_service,
     ));
+    let stored_responses = Arc::new(
+        SqliteStoredResponseStore::open(database, secret_store.clone())
+            .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::StoredResponse))?,
+    );
     let data = ResponsesHttpState::with_snapshot_metadata_and_event_sink(
         executor,
         Arc::new(SystemResponsesMetadataFactory::new()),
@@ -703,7 +708,8 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
         default_stream_capacity().map_err(|_| {
             RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime)
         })?,
-    );
+    )
+    .with_stored_response_store(stored_responses);
     let event_store = SqliteEventStore::open(database)
         .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EventStore))?;
 
@@ -778,6 +784,7 @@ pub(crate) enum RuntimeCompositionStage {
     AdapterRegistry,
     EndpointRuntime,
     EventStore,
+    StoredResponse,
 }
 
 impl RuntimeCompositionStage {
@@ -797,6 +804,7 @@ impl RuntimeCompositionStage {
             Self::AdapterRegistry => "adapter_registry",
             Self::EndpointRuntime => "endpoint_runtime",
             Self::EventStore => "event_store",
+            Self::StoredResponse => "stored_response",
         }
     }
 }
@@ -1655,6 +1663,10 @@ impl ManagementChannelPinFacade for P12ChannelPinFacade {
 }
 
 impl ResponsesExecutor for P12RoutedResponsesExecutor {
+    fn supports_stored_response_lineage(&self) -> bool {
+        true
+    }
+
     fn execute(
         &self,
         _context: RequestContext,
@@ -1688,6 +1700,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
         let route_id = execution.route_id().cloned();
         let mode = execution.mode();
         let retry_gate = Arc::clone(execution.retry_gate());
+        let lineage_recorder = execution.lineage_recorder().cloned();
         let registry = Arc::clone(&self.registry);
         let snapshot_version = self.snapshot_version.clone();
 
@@ -1729,6 +1742,14 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                     event_sink.as_ref(),
                 )
                 .await?;
+            if let Some(recorder) = lineage_recorder {
+                recorder.record(stored_response_execution_lineage(
+                    &snapshot_version,
+                    &route_id,
+                    started.candidate(),
+                    started.lease(),
+                )?)?;
+            }
             let (source, selection) = started.into_parts();
             Ok(Box::new(LeaseHoldingEventSource {
                 source: Box::new(ProjectedEventSource::new(source, client_protocol)),
@@ -1736,6 +1757,26 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             }) as Box<dyn ResponsesEventSource>)
         })
     }
+}
+
+fn stored_response_execution_lineage(
+    snapshot_version: &SnapshotVersion,
+    route_id: &RouteId,
+    candidate: &SnapshotRouteCandidate,
+    lease: &CredentialLease,
+) -> Result<ResponsesExecutionLineage, GatewayError> {
+    let provider_id = ProviderId::try_new(candidate.upstream_id().as_str().to_owned())
+        .map_err(|_| internal_error())?;
+    Ok(ResponsesExecutionLineage::new(
+        snapshot_version.clone(),
+        provider_id,
+        candidate.upstream_id().clone(),
+        candidate.endpoint_id().clone(),
+        route_id.clone(),
+        candidate.id().clone(),
+        lease.credential_id().clone(),
+        lease.credential_revision(),
+    ))
 }
 
 /// Builds one Endpoint's format-specific execution binding from its stored configuration.
@@ -7678,6 +7719,50 @@ mod tests {
             Some(ManagementRequestAttemptStage::Decoder)
         );
         peer.await??;
+        Ok(())
+    }
+
+    #[test]
+    fn stored_response_lineage_uses_the_selected_candidate_and_live_lease()
+    -> Result<(), Box<dyn Error>> {
+        let directory = TemporaryDirectory::new()?;
+        let database = directory.join("control.sqlite3");
+        let secret_store = test_secret_store()?;
+        let configuration = p12_configuration(&secret_store)?;
+        let config_version_id = configuration.version.id.clone();
+        let mut repository = SqliteControlPlaneRepository::open(&database)?;
+        repository.write_configuration(&configuration)?;
+        repository.activate_version(&config_version_id)?;
+        drop(repository);
+        let lifecycle = ManagementService::bootstrap(
+            SqliteControlPlaneRepository::open(&database)?,
+            deployment_route_compiler(&database)?,
+            ManagementActor::try_new("p13-09b-runtime-lineage-test")?,
+        )?;
+        let snapshot = lifecycle.registry().load();
+        let pools = CredentialPoolCompiler::new(&secret_store).compile(&configuration)?;
+        let scheduler = RouteCredentialScheduler::new(snapshot, Arc::new(pools));
+        let selection = scheduler.select_and_lease(&RouteId::try_new("p12-runtime-route")?)?;
+        let lineage = super::stored_response_execution_lineage(
+            scheduler.snapshot_version(),
+            &RouteId::try_new("p12-runtime-route")?,
+            selection.candidate(),
+            selection.lease(),
+        )?;
+        assert_eq!(lineage.snapshot_version().as_str(), "p12-runtime-config");
+        assert_eq!(lineage.provider_id().as_str(), "p12-runtime-upstream");
+        assert_eq!(lineage.upstream_id().as_str(), "p12-runtime-upstream");
+        assert_eq!(
+            lineage.channel_id().as_str(),
+            P12_SINGLETON_TEST_ENDPOINT_ID
+        );
+        assert_eq!(lineage.route_id().as_str(), "p12-runtime-route");
+        assert_eq!(
+            lineage.route_candidate_id().as_str(),
+            "p12-runtime-candidate"
+        );
+        assert_eq!(lineage.credential_id().as_str(), "p12-runtime-credential");
+        assert_eq!(lineage.credential_revision(), 1);
         Ok(())
     }
 

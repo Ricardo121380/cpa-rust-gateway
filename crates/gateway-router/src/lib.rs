@@ -7,6 +7,7 @@
 
 mod attempt_orchestrator;
 mod credential_scheduler;
+mod execution_lineage;
 mod protocol_transform;
 mod provider_scoped_selector;
 mod response_transform;
@@ -36,6 +37,7 @@ pub use attempt_orchestrator::{
     DEFAULT_TRANSIENT_COOLDOWN, StartedAttempt,
 };
 pub use credential_scheduler::{RouteCredentialScheduler, SelectedRouteCredential};
+pub use execution_lineage::{ResponsesExecutionLineage, ResponsesExecutionLineageRecorder};
 pub use gateway_catalog::CapabilitySet;
 pub use gateway_core::TransparentRetryGate as AttemptRetryGate;
 pub use protocol_transform::{
@@ -138,6 +140,7 @@ pub struct ResponsesExecution {
     route_id: Option<RouteId>,
     mode: ResponsesResponseMode,
     retry_gate: Arc<dyn TransparentRetryGate>,
+    lineage_recorder: Option<Arc<ResponsesExecutionLineageRecorder>>,
 }
 
 impl ResponsesExecution {
@@ -158,6 +161,7 @@ impl ResponsesExecution {
             route_id,
             mode,
             retry_gate,
+            lineage_recorder: None,
         }
     }
 
@@ -183,6 +187,7 @@ impl ResponsesExecution {
             route_id,
             mode,
             retry_gate,
+            lineage_recorder: None,
         }
     }
 
@@ -228,6 +233,22 @@ impl ResponsesExecution {
         &self.retry_gate
     }
 
+    /// Attaches the request-local successful-attempt lineage recorder used by opt-in storage.
+    #[must_use]
+    pub fn with_lineage_recorder(
+        mut self,
+        recorder: Arc<ResponsesExecutionLineageRecorder>,
+    ) -> Self {
+        self.lineage_recorder = Some(recorder);
+        self
+    }
+
+    /// Returns the optional request-local successful-attempt lineage recorder.
+    #[must_use]
+    pub fn lineage_recorder(&self) -> Option<&Arc<ResponsesExecutionLineageRecorder>> {
+        self.lineage_recorder.as_ref()
+    }
+
     fn into_legacy_parts(self) -> (RequestContext, CanonicalRequest) {
         (self.context, self.request)
     }
@@ -247,6 +268,7 @@ impl fmt::Debug for ResponsesExecution {
             .field("route_id", &self.route_id)
             .field("mode", &self.mode)
             .field("retry_gate", &"<downstream-owned>")
+            .field("lineage_recorder", &self.lineage_recorder.is_some())
             .finish()
     }
 }
@@ -257,6 +279,12 @@ impl fmt::Debug for ResponsesExecution {
 /// P1 deliberately has no catalog lookup, retry policy, credential selection, or route snapshot.
 /// A later router implementation can add those internals while preserving this core-only surface.
 pub trait ResponsesExecutor: Send + Sync {
+    /// Returns whether this executor can publish exact successful-attempt lineage for local store.
+    #[must_use]
+    fn supports_stored_response_lineage(&self) -> bool {
+        false
+    }
+
     /// Starts one execution and returns its pull-only canonical event source.
     fn execute(
         &self,

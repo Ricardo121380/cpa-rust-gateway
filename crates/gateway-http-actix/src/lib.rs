@@ -44,15 +44,21 @@ use actix_web::{
 use futures_util::{Stream, StreamExt, stream};
 use gateway_auth::{AuthenticatedClient, ClientKeyAuthenticator};
 use gateway_core::{
-    AccessGroupId, CanonicalEvent, CanonicalResponse, ClientKeyId, ErrorScope, GatewayError,
-    GatewayErrorCode, GatewayEvent, GatewayEventSink, GatewayProtocol, NoopGatewayEventSink,
-    RequestContext, RequestEvent, RequestId, ResponseId, StreamError, TransparentRetryGate,
-    UsageEvent,
+    AccessGroupId, CanonicalEvent, CanonicalRequest, CanonicalResponse, ClientKeyId, ErrorScope,
+    GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, GatewayProtocol,
+    NoopGatewayEventSink, RequestContext, RequestEvent, RequestId, ResponseId, RouteId,
+    StreamError, TransparentRetryGate, UsageEvent,
 };
 use gateway_router::{
     CountTokensExecution, CountTokensExecutor, ResponsesEventSource, ResponsesExecution,
-    ResponsesExecutor, ResponsesResponseMode, SnapshotAuthenticatedClient,
-    SnapshotClientKeyAuthenticator, UnsupportedCountTokensExecutor,
+    ResponsesExecutionLineage, ResponsesExecutionLineageRecorder, ResponsesExecutor,
+    ResponsesResponseMode, SnapshotAuthenticatedClient, SnapshotClientKeyAuthenticator,
+    UnsupportedCountTokensExecutor,
+};
+use gateway_store::stored_response::{
+    MAX_STORED_RESPONSE_EVENTS, MAX_STORED_RESPONSE_PAYLOAD_BYTES, SqliteStoredResponseStore,
+    StoredResponseCredentialBinding, StoredResponseLineage, StoredResponsePayload,
+    StoredResponseTarget,
 };
 use gateway_stream::{
     CanonicalEventSender, CanonicalEventStream, FirstSemanticEventTracker, StreamCancellation,
@@ -70,8 +76,8 @@ use protocol_openai_chat::{
     encode_response as encode_chat_response,
 };
 use protocol_openai_responses::{
-    OpenAiResponseMetadata, OpenAiResponsesSseEncoder, ResponseMode, SseFrame as OpenAiSseFrame,
-    decode_request, encode_error, encode_model_list, encode_response,
+    DecodedResponsesRequest, OpenAiResponseMetadata, OpenAiResponsesSseEncoder, ResponseMode,
+    SseFrame as OpenAiSseFrame, decode_request, encode_error, encode_model_list, encode_response,
 };
 
 /// Stable component identifier used by architecture smoke tests.
@@ -253,6 +259,7 @@ pub struct ResponsesHttpState {
     metadata_factory: Arc<dyn ResponsesMetadataFactory>,
     stream_capacity: StreamCapacity,
     event_sink: Arc<dyn GatewayEventSink>,
+    stored_responses: Option<Arc<SqliteStoredResponseStore>>,
 }
 
 #[derive(Clone)]
@@ -349,6 +356,7 @@ impl ResponsesHttpState {
             metadata_factory,
             stream_capacity,
             event_sink,
+            stored_responses: None,
         }
     }
 
@@ -385,6 +393,7 @@ impl ResponsesHttpState {
             metadata_factory,
             stream_capacity,
             event_sink,
+            stored_responses: None,
         }
     }
 
@@ -415,6 +424,154 @@ impl ResponsesHttpState {
         self.count_tokens_executor = count_tokens_executor;
         self
     }
+
+    /// Attaches the encrypted, Client-Key-owned stored Response repository.
+    #[must_use]
+    pub fn with_stored_response_store(
+        mut self,
+        stored_responses: Arc<SqliteStoredResponseStore>,
+    ) -> Self {
+        self.stored_responses = Some(stored_responses);
+        self
+    }
+}
+
+#[derive(Clone)]
+struct StoredResponseWriteContext {
+    repository: Arc<SqliteStoredResponseStore>,
+    client_key_id: ClientKeyId,
+    canonical_request: gateway_core::CanonicalRequest,
+    public_model: String,
+    created_at_seconds: u64,
+    created_at_ms: i64,
+    execution_lineage: ResponsesExecutionLineage,
+}
+
+struct StoredResponseCapture {
+    context: StoredResponseWriteContext,
+    events: Vec<CanonicalEvent>,
+    serialized_bytes: usize,
+}
+
+impl StoredResponseCapture {
+    fn try_new(
+        context: StoredResponseWriteContext,
+        first: CanonicalEvent,
+    ) -> Result<Self, GatewayError> {
+        let request_bytes = serde_json::to_vec(&context.canonical_request)
+            .map_err(|_| internal_error())?
+            .len();
+        let first_bytes = serde_json::to_vec(&first)
+            .map_err(|_| internal_error())?
+            .len();
+        let serialized_bytes = request_bytes
+            .checked_add(first_bytes)
+            .ok_or_else(internal_error)?;
+        if serialized_bytes > MAX_STORED_RESPONSE_PAYLOAD_BYTES {
+            return Err(internal_error());
+        }
+        Ok(Self {
+            context,
+            events: vec![first],
+            serialized_bytes,
+        })
+    }
+
+    fn push(&mut self, event: CanonicalEvent) -> Result<(), GatewayError> {
+        if self.events.len() >= MAX_STORED_RESPONSE_EVENTS {
+            return Err(internal_error());
+        }
+        let event_bytes = serde_json::to_vec(&event)
+            .map_err(|_| internal_error())?
+            .len();
+        self.serialized_bytes = self
+            .serialized_bytes
+            .checked_add(event_bytes)
+            .ok_or_else(internal_error)?;
+        if self.serialized_bytes > MAX_STORED_RESPONSE_PAYLOAD_BYTES {
+            return Err(internal_error());
+        }
+        self.events.push(event);
+        Ok(())
+    }
+
+    fn completed_response(&self) -> Result<CanonicalResponse, GatewayError> {
+        CanonicalResponse::try_new(self.events.clone())
+    }
+}
+
+struct PreparedResponsesExecution {
+    execution: ResponsesExecution,
+    mode: ResponseMode,
+    canonical_request_for_store: Option<CanonicalRequest>,
+    lineage_recorder: Option<Arc<ResponsesExecutionLineageRecorder>>,
+}
+
+fn prepare_responses_execution(
+    context: RequestContext,
+    decoded: DecodedResponsesRequest,
+    original_body: &str,
+    route_id: Option<RouteId>,
+    retry_gate: Arc<dyn TransparentRetryGate>,
+) -> PreparedResponsesExecution {
+    let mode = decoded.mode;
+    let canonical_request_for_store = decoded.store.then(|| decoded.request.clone());
+    let native_payload: Arc<[u8]> = decoded.normalized_native_payload().map_or_else(
+        || Arc::from(original_body.as_bytes()),
+        |payload| Arc::from(payload.to_vec()),
+    );
+    let lineage_recorder = decoded
+        .store
+        .then(|| Arc::new(ResponsesExecutionLineageRecorder::new()));
+    let response_mode = match mode {
+        ResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
+        ResponseMode::Streaming => ResponsesResponseMode::Streaming,
+    };
+    let mut execution = ResponsesExecution::new_for_protocol(
+        context,
+        decoded.request,
+        gateway_router::ProtocolFormat::OpenAiResponses,
+        native_payload,
+        route_id,
+        response_mode,
+        retry_gate,
+    );
+    if let Some(recorder) = lineage_recorder.as_ref() {
+        execution = execution.with_lineage_recorder(Arc::clone(recorder));
+    }
+    PreparedResponsesExecution {
+        execution,
+        mode,
+        canonical_request_for_store,
+        lineage_recorder,
+    }
+}
+
+fn prepare_stored_response_write_context(
+    state: &ResponsesHttpState,
+    canonical_request: Option<CanonicalRequest>,
+    lineage_recorder: Option<Arc<ResponsesExecutionLineageRecorder>>,
+    client_key_id: ClientKeyId,
+    public_model: String,
+    created_at_seconds: u64,
+) -> Result<Option<StoredResponseWriteContext>, GatewayError> {
+    let Some(canonical_request) = canonical_request else {
+        return Ok(None);
+    };
+    let repository = state.stored_responses.clone().ok_or_else(internal_error)?;
+    let lineage = lineage_recorder
+        .ok_or_else(internal_error)?
+        .lineage()?
+        .ok_or_else(internal_error)?;
+    Ok(Some(StoredResponseWriteContext {
+        repository,
+        client_key_id,
+        canonical_request,
+        public_model,
+        created_at_seconds,
+        created_at_ms: system_now_ms()?,
+        execution_lineage: lineage,
+    }))
 }
 
 /// Creates a validated P1 default bounded-stream capacity.
@@ -437,6 +594,14 @@ pub fn configure(config: &mut web::ServiceConfig) {
         .route("/v1/models", web::get().to(models))
         .route("/v1/chat/completions", web::post().to(chat_completions))
         .route("/v1/responses", web::post().to(responses))
+        .route(
+            "/v1/responses/{response_id}",
+            web::get().to(retrieve_stored_response),
+        )
+        .route(
+            "/v1/responses/{response_id}",
+            web::delete().to(delete_stored_response),
+        )
         .route("/v1/messages", web::post().to(messages))
         .route("/v1/messages/count_tokens", web::post().to(count_tokens));
 }
@@ -610,6 +775,11 @@ async fn responses(
         Ok(decoded) => decoded,
         Err(error) => return pre_header_error(&error),
     };
+    if decoded.store
+        && (state.stored_responses.is_none() || !state.executor.supports_stored_response_lineage())
+    {
+        return pre_header_stored_response_error(&internal_error());
+    }
     let requested_model = decoded.request.requested_model.clone();
     let (public_model, route_alias, route_id) =
         match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
@@ -626,7 +796,7 @@ async fn responses(
         .event_sink
         .try_emit(GatewayEvent::Request(RequestEvent::new(
             request_id.clone(),
-            client_key_id,
+            client_key_id.clone(),
             access_group_id,
             GatewayProtocol::OpenAiResponses,
             requested_model,
@@ -636,19 +806,12 @@ async fn responses(
         )));
     let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
     let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
-    let response_mode = match decoded.mode {
-        ResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
-        ResponseMode::Streaming => ResponsesResponseMode::Streaming,
-    };
-    let execution = ResponsesExecution::new_for_protocol(
-        context,
-        decoded.request,
-        gateway_router::ProtocolFormat::OpenAiResponses,
-        Arc::from(body.as_bytes()),
-        route_id,
-        response_mode,
-        retry_gate,
-    );
+    let PreparedResponsesExecution {
+        execution,
+        mode,
+        canonical_request_for_store,
+        lineage_recorder,
+    } = prepare_responses_execution(context, decoded, body, route_id, retry_gate);
     let mut source = match state.executor.execute_routed(execution).await {
         Ok(source) => source,
         Err(error) => return pre_header_error(&error),
@@ -662,16 +825,164 @@ async fn responses(
         Ok(metadata) => metadata,
         Err(error) => return pre_header_error(&error),
     };
+    let stored_response = match prepare_stored_response_write_context(
+        &state,
+        canonical_request_for_store,
+        lineage_recorder,
+        client_key_id,
+        public_model.clone(),
+        metadata.created_at(),
+    ) {
+        Ok(context) => context,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
     let usage_observer = UsageEventObserver::new(request_id, Arc::clone(&state.event_sink));
 
-    match decoded.mode {
+    deliver_responses(
+        mode,
+        source,
+        first,
+        metadata,
+        usage_observer,
+        sender,
+        stream,
+        stored_response,
+    )
+    .await
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn deliver_responses(
+    mode: ResponseMode,
+    source: Box<dyn ResponsesEventSource>,
+    first: CanonicalEvent,
+    metadata: OpenAiResponseMetadata,
+    usage_observer: UsageEventObserver,
+    sender: CanonicalEventSender,
+    stream: CanonicalEventStream,
+    stored_response: Option<StoredResponseWriteContext>,
+) -> HttpResponse {
+    match mode {
         ResponseMode::NonStreaming => {
-            non_streaming_response(source, first, metadata, usage_observer, sender, stream).await
+            non_streaming_response(
+                source,
+                first,
+                metadata,
+                usage_observer,
+                sender,
+                stream,
+                stored_response,
+            )
+            .await
         }
         ResponseMode::Streaming => {
-            streaming_response(source, first, metadata, usage_observer, sender, stream).await
+            streaming_response(
+                source,
+                first,
+                metadata,
+                usage_observer,
+                sender,
+                stream,
+                stored_response,
+            )
+            .await
         }
     }
+}
+
+async fn retrieve_stored_response(
+    request: HttpRequest,
+    state: web::Data<ResponsesHttpState>,
+    response_id: web::Path<String>,
+) -> HttpResponse {
+    let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
+    {
+        Ok(authenticated_client) => authenticated_client,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
+    let Some(response_id) = parse_stored_response_id(response_id.into_inner()) else {
+        return stored_response_not_found();
+    };
+    let (client_key_id, _access_group_id) = authenticated_client.event_identity();
+    let Some(repository) = state.stored_responses.clone() else {
+        return pre_header_stored_response_error(&internal_error());
+    };
+    let now_ms = match system_now_ms() {
+        Ok(now_ms) => now_ms,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
+    let response_id_for_lookup = response_id.clone();
+    let record = match tokio::task::spawn_blocking(move || {
+        repository.get_owned(&client_key_id, &response_id_for_lookup, now_ms)
+    })
+    .await
+    {
+        Ok(Ok(Some(record))) => record,
+        Ok(Ok(None)) => return stored_response_not_found(),
+        Ok(Err(_)) | Err(_) => return pre_header_stored_response_error(&internal_error()),
+    };
+    let Ok(canonical) = record.payload().canonical_response() else {
+        return pre_header_stored_response_error(&internal_error());
+    };
+    let metadata = match OpenAiResponseMetadata::try_new(
+        record.payload().public_model(),
+        record.payload().created_at_seconds(),
+    ) {
+        Ok(metadata) => metadata,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
+    match encode_response(&canonical, metadata) {
+        Ok(body) => HttpResponse::Ok()
+            .insert_header((header::CACHE_CONTROL, "no-store"))
+            .content_type("application/json")
+            .body(body.to_string()),
+        Err(error) => pre_header_stored_response_error(&error),
+    }
+}
+
+async fn delete_stored_response(
+    request: HttpRequest,
+    state: web::Data<ResponsesHttpState>,
+    response_id: web::Path<String>,
+) -> HttpResponse {
+    let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
+    {
+        Ok(authenticated_client) => authenticated_client,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
+    let Some(response_id) = parse_stored_response_id(response_id.into_inner()) else {
+        return stored_response_not_found();
+    };
+    let (client_key_id, _access_group_id) = authenticated_client.event_identity();
+    let Some(repository) = state.stored_responses.clone() else {
+        return pre_header_stored_response_error(&internal_error());
+    };
+    let now_ms = match system_now_ms() {
+        Ok(now_ms) => now_ms,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
+    let response_id_for_delete = response_id.clone();
+    let Ok(Ok(deleted)) = tokio::task::spawn_blocking(move || {
+        repository.delete_owned(&client_key_id, &response_id_for_delete, now_ms)
+    })
+    .await
+    else {
+        return pre_header_stored_response_error(&internal_error());
+    };
+    if !deleted {
+        return stored_response_not_found();
+    }
+    HttpResponse::Ok()
+        .insert_header((header::CACHE_CONTROL, "no-store"))
+        .content_type("application/json")
+        .body(
+            serde_json::json!({
+                "id": response_id.as_str(),
+                "object": "response.deleted",
+                "deleted": true,
+            })
+            .to_string(),
+        )
 }
 
 async fn messages(
@@ -905,7 +1216,7 @@ async fn chat_non_streaming_response(
     stream: CanonicalEventStream,
 ) -> HttpResponse {
     let mut stream =
-        match start_bounded_transport(source, first, sender, stream, usage_observer).await {
+        match start_bounded_transport(source, first, sender, stream, usage_observer, None).await {
             Ok(stream) => stream,
             Err(error) => return pre_header_chat_error(&error),
         };
@@ -939,12 +1250,21 @@ async fn non_streaming_response(
     usage_observer: UsageEventObserver,
     sender: CanonicalEventSender,
     stream: CanonicalEventStream,
+    stored_response: Option<StoredResponseWriteContext>,
 ) -> HttpResponse {
-    let mut stream =
-        match start_bounded_transport(source, first, sender, stream, usage_observer).await {
-            Ok(stream) => stream,
-            Err(error) => return pre_header_error(&error),
-        };
+    let mut stream = match start_bounded_transport(
+        source,
+        first,
+        sender,
+        stream,
+        usage_observer,
+        stored_response,
+    )
+    .await
+    {
+        Ok(stream) => stream,
+        Err(error) => return pre_header_error(&error),
+    };
     let tracker = stream.control().first_semantic_event_tracker();
     let response = match collect_completed_response(&mut stream).await {
         Ok(response) => response,
@@ -981,11 +1301,11 @@ async fn chat_streaming_response(
         return pre_header_chat_error(&error);
     }
 
-    let stream = match start_bounded_transport(source, first, sender, stream, usage_observer).await
-    {
-        Ok(stream) => stream,
-        Err(error) => return pre_header_chat_error(&error),
-    };
+    let stream =
+        match start_bounded_transport(source, first, sender, stream, usage_observer, None).await {
+            Ok(stream) => stream,
+            Err(error) => return pre_header_chat_error(&error),
+        };
     let tracker = stream.control().first_semantic_event_tracker();
     let body = ProtocolSseBody::new(stream, ChatSseEncoder::new(metadata), tracker);
 
@@ -1008,7 +1328,7 @@ async fn anthropic_non_streaming_response(
     stream: CanonicalEventStream,
 ) -> HttpResponse {
     let mut stream =
-        match start_bounded_transport(source, first, sender, stream, usage_observer).await {
+        match start_bounded_transport(source, first, sender, stream, usage_observer, None).await {
             Ok(stream) => stream,
             Err(error) => return pre_header_anthropic_error(&error),
         };
@@ -1042,6 +1362,7 @@ async fn streaming_response(
     usage_observer: UsageEventObserver,
     sender: CanonicalEventSender,
     stream: CanonicalEventStream,
+    stored_response: Option<StoredResponseWriteContext>,
 ) -> HttpResponse {
     // Commit no headers until the initial event is shown encodable by a fresh protocol encoder.
     // The body owns a separate encoder so the first event still travels through P1-04 transport.
@@ -1050,7 +1371,15 @@ async fn streaming_response(
         return pre_header_error(&error);
     }
 
-    let stream = match start_bounded_transport(source, first, sender, stream, usage_observer).await
+    let stream = match start_bounded_transport(
+        source,
+        first,
+        sender,
+        stream,
+        usage_observer,
+        stored_response,
+    )
+    .await
     {
         Ok(stream) => stream,
         Err(error) => return pre_header_error(&error),
@@ -1083,11 +1412,11 @@ async fn anthropic_streaming_response(
         return pre_header_anthropic_error(&error);
     }
 
-    let stream = match start_bounded_transport(source, first, sender, stream, usage_observer).await
-    {
-        Ok(stream) => stream,
-        Err(error) => return pre_header_anthropic_error(&error),
-    };
+    let stream =
+        match start_bounded_transport(source, first, sender, stream, usage_observer, None).await {
+            Ok(stream) => stream,
+            Err(error) => return pre_header_anthropic_error(&error),
+        };
     let tracker = stream.control().first_semantic_event_tracker();
     let body = ProtocolSseBody::new(stream, AnthropicMessagesSseEncoder::new(metadata), tracker);
 
@@ -1107,13 +1436,22 @@ async fn start_bounded_transport(
     mut sender: CanonicalEventSender,
     stream: CanonicalEventStream,
     mut usage_observer: UsageEventObserver,
+    stored_response: Option<StoredResponseWriteContext>,
 ) -> Result<CanonicalEventStream, GatewayError> {
     sender.send(first.clone()).await?;
     usage_observer.observe(&first);
     let cancellation = sender.cancellation();
 
     tokio::spawn(async move {
-        pump_source(source, sender, cancellation, usage_observer).await;
+        pump_source(
+            source,
+            sender,
+            cancellation,
+            usage_observer,
+            stored_response,
+            first,
+        )
+        .await;
     });
 
     Ok(stream)
@@ -1124,7 +1462,19 @@ async fn pump_source(
     mut sender: CanonicalEventSender,
     cancellation: StreamCancellation,
     mut usage_observer: UsageEventObserver,
+    stored_response: Option<StoredResponseWriteContext>,
+    first: CanonicalEvent,
 ) {
+    let mut stored_capture = match stored_response {
+        Some(context) => match StoredResponseCapture::try_new(context, first) {
+            Ok(capture) => Some(capture),
+            Err(error) => {
+                send_terminal_failure(&mut sender, error, &cancellation).await;
+                return;
+            }
+        },
+        None => None,
+    };
     loop {
         let next = tokio::select! {
             biased;
@@ -1138,6 +1488,29 @@ async fn pump_source(
                     event,
                     CanonicalEvent::ResponseEnd(_) | CanonicalEvent::StreamError(_)
                 );
+                if !matches!(event, CanonicalEvent::StreamError(_))
+                    && let Some(capture) = stored_capture.as_mut()
+                {
+                    if let Err(error) = capture.push(event.clone()) {
+                        send_terminal_failure(&mut sender, error, &cancellation).await;
+                        return;
+                    }
+                    if matches!(event, CanonicalEvent::ResponseEnd(_)) {
+                        let response = match capture.completed_response() {
+                            Ok(response) => response,
+                            Err(error) => {
+                                send_terminal_failure(&mut sender, error, &cancellation).await;
+                                return;
+                            }
+                        };
+                        if let Err(error) =
+                            persist_completed_response(capture.context.clone(), response).await
+                        {
+                            send_terminal_failure(&mut sender, error, &cancellation).await;
+                            return;
+                        }
+                    }
+                }
                 if let Err(error) = sender.send(event.clone()).await {
                     if cancellation.is_cancelled() {
                         return;
@@ -1190,6 +1563,75 @@ async fn collect_completed_response(
     }
 
     CanonicalResponse::try_new(events)
+}
+
+async fn persist_completed_response(
+    context: StoredResponseWriteContext,
+    response: CanonicalResponse,
+) -> Result<(), GatewayError> {
+    tokio::task::spawn_blocking(move || {
+        let response_id = response
+            .events()
+            .first()
+            .and_then(|event| match event {
+                CanonicalEvent::ResponseStart(start) => Some(start.response_id.clone()),
+                _ => None,
+            })
+            .ok_or_else(internal_error)?;
+        let target = StoredResponseTarget::try_new(
+            context.execution_lineage.provider_id().clone(),
+            context.execution_lineage.upstream_id().clone(),
+            context.execution_lineage.channel_id().clone(),
+            context.execution_lineage.route_id().clone(),
+            context.execution_lineage.route_candidate_id().clone(),
+        )
+        .map_err(|_| internal_error())?;
+        let credential = StoredResponseCredentialBinding::try_new(
+            context.execution_lineage.credential_id().clone(),
+            context.execution_lineage.credential_revision(),
+            Some(response_id.as_str().to_owned()),
+        )
+        .map_err(|_| internal_error())?;
+        let lineage = StoredResponseLineage::try_new(
+            context
+                .execution_lineage
+                .snapshot_version()
+                .as_str()
+                .to_owned(),
+            target,
+            credential,
+        )
+        .map_err(|_| internal_error())?;
+        let payload = StoredResponsePayload::try_new(
+            lineage,
+            context.public_model,
+            context.created_at_seconds,
+            context.canonical_request,
+            response,
+        )
+        .map_err(|_| internal_error())?;
+        context
+            .repository
+            .put_owned(&context.client_key_id, context.created_at_ms, &payload)
+            .map(|_outcome| ())
+            .map_err(|_| internal_error())
+    })
+    .await
+    .map_err(|_| internal_error())?
+}
+
+fn parse_stored_response_id(value: String) -> Option<ResponseId> {
+    if value.is_empty() || value.len() > 512 || value.as_bytes().contains(&0) {
+        return None;
+    }
+    ResponseId::try_new(value).ok()
+}
+
+fn system_now_ms() -> Result<i64, GatewayError> {
+    let elapsed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| internal_error())?;
+    i64::try_from(elapsed.as_millis()).map_err(|_| internal_error())
 }
 
 /// Per-request observer that turns a canonical final Usage event into a non-blocking record.
@@ -1547,6 +1989,32 @@ fn pre_header_error(error: &GatewayError) -> HttpResponse {
         .body(encode_error(error).to_string())
 }
 
+fn pre_header_stored_response_error(error: &GatewayError) -> HttpResponse {
+    let mut response = pre_header_error(error);
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        header::HeaderValue::from_static("no-store"),
+    );
+    response
+}
+
+fn stored_response_not_found() -> HttpResponse {
+    HttpResponse::NotFound()
+        .insert_header((header::CACHE_CONTROL, "no-store"))
+        .content_type("application/json")
+        .body(
+            serde_json::json!({
+                "error": {
+                    "type": "invalid_request_error",
+                    "code": "response_not_found",
+                    "message": "the stored response was not found",
+                    "param": "response_id",
+                }
+            })
+            .to_string(),
+        )
+}
+
 fn pre_header_chat_error(error: &GatewayError) -> HttpResponse {
     let mut response = HttpResponse::build(error_status(error));
     if error.code() == GatewayErrorCode::ClientUnauthorized {
@@ -1697,7 +2165,7 @@ const fn internal_error() -> GatewayError {
 #[cfg(test)]
 mod tests {
     use std::{
-        collections::BTreeSet,
+        collections::{BTreeSet, VecDeque},
         error::Error,
         future::poll_fn,
         sync::{
@@ -1718,21 +2186,26 @@ mod tests {
         client_key::{ClientKeyPepper, ClientKeyService},
     };
     use gateway_core::{
-        AccessGroupId, CanonicalEvent, ClientKeyId, EndpointId, ErrorScope, ExactInputTokenCount,
-        GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, GatewayProtocol,
-        MessageEnd, MessageRole, MessageStart, PublicModelId, RawExtensions, RawJson,
-        ReasoningDelta, RequestContext, RequestId, ResponseEnd, ResponseId, ResponseStart,
-        RouteCandidateId, RouteId, StreamError, TextDelta, UpstreamId, Usage, UsageDelta,
+        AccessGroupId, CanonicalEvent, ClientKeyId, CredentialId, EndpointId, ErrorScope,
+        ExactInputTokenCount, GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink,
+        GatewayProtocol, MessageEnd, MessageRole, MessageStart, ProviderId, PublicModelId,
+        RawExtensions, RawJson, ReasoningDelta, RequestContext, RequestId, ResponseEnd, ResponseId,
+        ResponseStart, RouteCandidateId, RouteId, StreamError, TextDelta, UpstreamId, Usage,
+        UsageDelta,
     };
     use gateway_observability::{BoundedEventQueue, EventQueueConfig};
     use gateway_router::{
         CapabilitySet, CountTokensExecution, CountTokensExecutor, CountTokensFuture,
         DeterministicMockEmission, DeterministicMockResponsesExecutor, ResponsesEventSource,
-        ResponsesExecutor, ResponsesFuture, RouteSnapshot, RouteSnapshotInput,
-        RouteSnapshotRegistry, SnapshotAccessGroup, SnapshotCatalogAdmission,
-        SnapshotClientKeyAuthenticator, SnapshotClientKeyView, SnapshotPublicModel, SnapshotRoute,
-        SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
-        SnapshotTransformMode, SnapshotVersion,
+        ResponsesExecution, ResponsesExecutionLineage, ResponsesExecutor, ResponsesFuture,
+        RouteSnapshot, RouteSnapshotInput, RouteSnapshotRegistry, SnapshotAccessGroup,
+        SnapshotCatalogAdmission, SnapshotClientKeyAuthenticator, SnapshotClientKeyView,
+        SnapshotPublicModel, SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput,
+        SnapshotRoutePolicy, SnapshotTransformMode, SnapshotVersion,
+    };
+    use gateway_store::{
+        secret_store::{KeyVersion, MASTER_KEY_BYTES, MasterKey, MasterKeyRing, SecretStore},
+        stored_response::SqliteStoredResponseStore,
     };
     use gateway_stream::{FirstSemanticEventTracker, StreamCapacity, bounded_canonical_stream};
     use protocol_anthropic::{AnthropicMessagesSseEncoder, AnthropicResponseMetadata};
@@ -1748,6 +2221,7 @@ mod tests {
     type TestResult = Result<(), Box<dyn Error>>;
 
     const TEST_CLIENT_KEY: &str = "p1-test-client-key";
+    const FOREIGN_TEST_CLIENT_KEY: &str = "p13-foreign-client-key";
     const SNAPSHOT_PUBLIC_MODEL: &str = "public-model";
 
     #[actix_web::test]
@@ -1915,6 +2389,52 @@ mod tests {
 
     fn authorized(request: test::TestRequest) -> test::TestRequest {
         request.insert_header((header::AUTHORIZATION, format!("Bearer {TEST_CLIENT_KEY}")))
+    }
+
+    fn authorized_as(request: test::TestRequest, key: &str) -> test::TestRequest {
+        request.insert_header((header::AUTHORIZATION, format!("Bearer {key}")))
+    }
+
+    fn stored_response_authenticator() -> Result<Arc<dyn ClientKeyAuthenticator>, Box<dyn Error>> {
+        let owner = InMemoryClientKey::try_new(
+            TEST_CLIENT_KEY,
+            ClientKeyId::try_new("http-test-client-key")?,
+            true,
+        )?;
+        let foreign = InMemoryClientKey::try_new(
+            FOREIGN_TEST_CLIENT_KEY,
+            ClientKeyId::try_new("http-foreign-client-key")?,
+            true,
+        )?;
+        Ok(Arc::new(InMemoryClientKeyAuthenticator::try_new([
+            owner, foreign,
+        ])?))
+    }
+
+    fn stored_response_store() -> Result<Arc<SqliteStoredResponseStore>, Box<dyn Error>> {
+        let version = KeyVersion::try_new(1)?;
+        let key = MasterKey::try_from_bytes([0x31; MASTER_KEY_BYTES])?;
+        let secret_store = SecretStore::new(MasterKeyRing::try_new(version, [(version, key)])?);
+        Ok(Arc::new(SqliteStoredResponseStore::open_in_memory(
+            secret_store,
+        )?))
+    }
+
+    fn stored_response_state(
+        events: Vec<CanonicalEvent>,
+        observed_native: Arc<Mutex<Vec<serde_json::Value>>>,
+        store: Arc<SqliteStoredResponseStore>,
+    ) -> Result<ResponsesHttpState, Box<dyn Error>> {
+        Ok(ResponsesHttpState::with_metadata(
+            Arc::new(StoredResponsesExecutor {
+                events,
+                observed_native,
+            }),
+            Arc::new(FixedMetadata),
+            stored_response_authenticator()?,
+            StreamCapacity::try_new(2)?,
+        )
+        .with_stored_response_store(store))
     }
 
     fn mock_state(events: Vec<CanonicalEvent>) -> Result<ResponsesHttpState, Box<dyn Error>> {
@@ -3468,8 +3988,419 @@ mod tests {
         Ok(())
     }
 
+    #[actix_web::test]
+    async fn stored_json_response_is_owner_exact_retrievable_and_deletable() -> TestResult {
+        let observed_native = Arc::new(Mutex::new(Vec::new()));
+        let store = stored_response_store()?;
+        let state = stored_response_state(
+            text_events()?,
+            Arc::clone(&observed_native),
+            Arc::clone(&store),
+        )?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+
+        let create = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(r#"{"model":"mock-model","input":"private prompt","store":true}"#),
+        )
+        .to_request();
+        let create = test::call_service(&app, create).await;
+        assert_eq!(create.status(), StatusCode::OK);
+        let created: serde_json::Value = serde_json::from_slice(&test::read_body(create).await)?;
+        assert_eq!(created["id"], "http-test-response");
+        {
+            let observed = observed_native.lock().map_err(|_| "native lock")?;
+            assert_eq!(observed.len(), 1);
+            assert_eq!(observed[0]["store"], false);
+            assert_eq!(observed[0]["input"], "private prompt");
+        }
+
+        let durable = store
+            .get_owned(
+                &ClientKeyId::try_new("http-test-client-key")?,
+                &ResponseId::try_new("http-test-response")?,
+                super::system_now_ms()?,
+            )?
+            .ok_or("missing durable stored response")?;
+        assert_eq!(
+            durable.payload().lineage().target().provider_id().as_str(),
+            "stored-provider"
+        );
+        assert_eq!(
+            durable.payload().lineage().target().channel_id().as_str(),
+            "stored-channel"
+        );
+        assert_eq!(
+            durable.payload().lineage().target().route_id().as_str(),
+            "stored-route"
+        );
+        assert_eq!(
+            durable
+                .payload()
+                .lineage()
+                .credential()
+                .credential_id()
+                .as_str(),
+            "stored-credential"
+        );
+        assert_eq!(
+            durable
+                .payload()
+                .lineage()
+                .credential()
+                .credential_revision(),
+            11
+        );
+
+        let retrieve = authorized(test::TestRequest::get().uri("/v1/responses/http-test-response"))
+            .to_request();
+        let retrieve = test::call_service(&app, retrieve).await;
+        assert_eq!(retrieve.status(), StatusCode::OK);
+        assert_eq!(
+            retrieve
+                .headers()
+                .get(header::CACHE_CONTROL)
+                .and_then(|value| value.to_str().ok()),
+            Some("no-store")
+        );
+        let retrieved: serde_json::Value =
+            serde_json::from_slice(&test::read_body(retrieve).await)?;
+        assert_eq!(retrieved, created);
+
+        let foreign = authorized_as(
+            test::TestRequest::get().uri("/v1/responses/http-test-response"),
+            FOREIGN_TEST_CLIENT_KEY,
+        )
+        .to_request();
+        let foreign = test::call_service(&app, foreign).await;
+        assert_eq!(foreign.status(), StatusCode::NOT_FOUND);
+        assert_eq!(
+            foreign
+                .headers()
+                .get(header::CACHE_CONTROL)
+                .and_then(|value| value.to_str().ok()),
+            Some("no-store")
+        );
+        let foreign_body = test::read_body(foreign).await;
+        let missing =
+            authorized(test::TestRequest::get().uri("/v1/responses/unknown-response")).to_request();
+        let missing = test::call_service(&app, missing).await;
+        assert_eq!(missing.status(), StatusCode::NOT_FOUND);
+        assert_eq!(foreign_body, test::read_body(missing).await);
+
+        let foreign_delete = authorized_as(
+            test::TestRequest::delete().uri("/v1/responses/http-test-response"),
+            FOREIGN_TEST_CLIENT_KEY,
+        )
+        .to_request();
+        assert_eq!(
+            test::call_service(&app, foreign_delete).await.status(),
+            StatusCode::NOT_FOUND
+        );
+
+        let unauthenticated = test::TestRequest::get()
+            .uri("/v1/responses/http-test-response")
+            .to_request();
+        let unauthenticated = test::call_service(&app, unauthenticated).await;
+        assert_eq!(unauthenticated.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            unauthenticated
+                .headers()
+                .get(header::CACHE_CONTROL)
+                .and_then(|value| value.to_str().ok()),
+            Some("no-store")
+        );
+
+        let delete =
+            authorized(test::TestRequest::delete().uri("/v1/responses/http-test-response"))
+                .to_request();
+        let delete = test::call_service(&app, delete).await;
+        assert_eq!(delete.status(), StatusCode::OK);
+        let deleted: serde_json::Value = serde_json::from_slice(&test::read_body(delete).await)?;
+        assert_eq!(deleted["object"], "response.deleted");
+        assert_eq!(deleted["deleted"], true);
+
+        let after_delete =
+            authorized(test::TestRequest::get().uri("/v1/responses/http-test-response"))
+                .to_request();
+        assert_eq!(
+            test::call_service(&app, after_delete).await.status(),
+            StatusCode::NOT_FOUND
+        );
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn stored_sse_waits_for_success_and_stream_error_is_not_retrievable() -> TestResult {
+        let successful_store = stored_response_store()?;
+        let successful_state = stored_response_state(
+            text_events()?,
+            Arc::new(Mutex::new(Vec::new())),
+            successful_store,
+        )?;
+        let successful_app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(successful_state))
+                .configure(configure),
+        )
+        .await;
+        let stream =
+            authorized(test::TestRequest::post().uri("/v1/responses").set_payload(
+                r#"{"model":"mock-model","input":"hello","store":true,"stream":true}"#,
+            ))
+            .to_request();
+        let stream = test::call_service(&successful_app, stream).await;
+        assert_eq!(stream.status(), StatusCode::OK);
+        let stream_body = String::from_utf8(test::read_body(stream).await.to_vec())?;
+        assert!(stream_body.contains("event: response.completed"));
+        let retrieve = authorized(test::TestRequest::get().uri("/v1/responses/http-test-response"))
+            .to_request();
+        assert_eq!(
+            test::call_service(&successful_app, retrieve).await.status(),
+            StatusCode::OK
+        );
+
+        let failed_store = stored_response_store()?;
+        let failed_state = stored_response_state(
+            vec![
+                CanonicalEvent::ResponseStart(ResponseStart {
+                    response_id: ResponseId::try_new("failed-stored-response")?,
+                    extensions: RawExtensions::default(),
+                }),
+                CanonicalEvent::StreamError(StreamError {
+                    error: GatewayError::new(
+                        GatewayErrorCode::ProviderTransient,
+                        ErrorScope::Provider,
+                    ),
+                }),
+            ],
+            Arc::new(Mutex::new(Vec::new())),
+            failed_store,
+        )?;
+        let failed_app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(failed_state))
+                .configure(configure),
+        )
+        .await;
+        let failed =
+            authorized(test::TestRequest::post().uri("/v1/responses").set_payload(
+                r#"{"model":"mock-model","input":"hello","store":true,"stream":true}"#,
+            ))
+            .to_request();
+        let failed = test::call_service(&failed_app, failed).await;
+        assert_eq!(failed.status(), StatusCode::OK);
+        let failed_body = String::from_utf8(test::read_body(failed).await.to_vec())?;
+        assert!(failed_body.contains("response.failed"));
+        let retrieve_failed =
+            authorized(test::TestRequest::get().uri("/v1/responses/failed-stored-response"))
+                .to_request();
+        assert_eq!(
+            test::call_service(&failed_app, retrieve_failed)
+                .await
+                .status(),
+            StatusCode::NOT_FOUND
+        );
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn stored_sse_capture_fails_before_exceeding_the_durable_event_bound() -> TestResult {
+        let mut events = Vec::with_capacity(super::MAX_STORED_RESPONSE_EVENTS + 2);
+        events.push(CanonicalEvent::ResponseStart(ResponseStart {
+            response_id: ResponseId::try_new("bounded-stored-response")?,
+            extensions: RawExtensions::default(),
+        }));
+        events.extend((0..super::MAX_STORED_RESPONSE_EVENTS).map(|_| {
+            CanonicalEvent::TextDelta(TextDelta {
+                text: "x".to_owned(),
+                extensions: RawExtensions::default(),
+            })
+        }));
+        events.push(CanonicalEvent::ResponseEnd(ResponseEnd::default()));
+
+        let state = stored_response_state(
+            events,
+            Arc::new(Mutex::new(Vec::new())),
+            stored_response_store()?,
+        )?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let response =
+            authorized(test::TestRequest::post().uri("/v1/responses").set_payload(
+                r#"{"model":"mock-model","input":"hello","store":true,"stream":true}"#,
+            ))
+            .to_request();
+        let response = test::call_service(&app, response).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+        assert!(body.contains("response.failed"));
+        assert!(!body.contains("response.completed"));
+
+        let retrieve =
+            authorized(test::TestRequest::get().uri("/v1/responses/bounded-stored-response"))
+                .to_request();
+        assert_eq!(
+            test::call_service(&app, retrieve).await.status(),
+            StatusCode::NOT_FOUND
+        );
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn storage_is_opt_in_and_missing_lineage_capability_fails_before_execution() -> TestResult
+    {
+        let observed_native = Arc::new(Mutex::new(Vec::new()));
+        let store = stored_response_store()?;
+        let state = stored_response_state(
+            text_events()?,
+            Arc::clone(&observed_native),
+            Arc::clone(&store),
+        )?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let unstored = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(r#"{"model":"mock-model","input":"hello"}"#),
+        )
+        .to_request();
+        assert_eq!(
+            test::call_service(&app, unstored).await.status(),
+            StatusCode::OK
+        );
+        assert!(
+            observed_native
+                .lock()
+                .map_err(|_| "native lock")?
+                .first()
+                .is_some_and(|payload| payload.get("store").is_none())
+        );
+        let retrieve = authorized(test::TestRequest::get().uri("/v1/responses/http-test-response"))
+            .to_request();
+        assert_eq!(
+            test::call_service(&app, retrieve).await.status(),
+            StatusCode::NOT_FOUND
+        );
+
+        let calls = Arc::new(AtomicUsize::new(0));
+        let unsupported = ResponsesHttpState::with_metadata(
+            Arc::new(CountingExecutor {
+                calls: Arc::clone(&calls),
+            }),
+            Arc::new(FixedMetadata),
+            test_authenticator()?,
+            StreamCapacity::try_new(2)?,
+        )
+        .with_stored_response_store(store);
+        let unsupported_app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(unsupported))
+                .configure(configure),
+        )
+        .await;
+        let stored = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(r#"{"model":"mock-model","input":"hello","store":true}"#),
+        )
+        .to_request();
+        assert_eq!(
+            test::call_service(&unsupported_app, stored).await.status(),
+            StatusCode::INTERNAL_SERVER_ERROR
+        );
+        assert_eq!(calls.load(Ordering::Acquire), 0);
+        Ok(())
+    }
+
     struct CountingExecutor {
         calls: Arc<AtomicUsize>,
+    }
+
+    struct StoredResponsesExecutor {
+        events: Vec<CanonicalEvent>,
+        observed_native: Arc<Mutex<Vec<serde_json::Value>>>,
+    }
+
+    impl ResponsesExecutor for StoredResponsesExecutor {
+        fn supports_stored_response_lineage(&self) -> bool {
+            true
+        }
+
+        fn execute(
+            &self,
+            _context: RequestContext,
+            _request: gateway_core::CanonicalRequest,
+        ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
+            Box::pin(async { Err(super::internal_error()) })
+        }
+
+        fn execute_routed(
+            &self,
+            execution: ResponsesExecution,
+        ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
+            let result = (|| {
+                if let Some(recorder) = execution.lineage_recorder() {
+                    recorder.record(ResponsesExecutionLineage::new(
+                        SnapshotVersion::try_new("stored-config-v1")
+                            .map_err(|_| super::internal_error())?,
+                        ProviderId::try_new("stored-provider")
+                            .map_err(|_| super::internal_error())?,
+                        UpstreamId::try_new("stored-provider")
+                            .map_err(|_| super::internal_error())?,
+                        EndpointId::try_new("stored-channel")
+                            .map_err(|_| super::internal_error())?,
+                        RouteId::try_new("stored-route").map_err(|_| super::internal_error())?,
+                        RouteCandidateId::try_new("stored-candidate")
+                            .map_err(|_| super::internal_error())?,
+                        CredentialId::try_new("stored-credential")
+                            .map_err(|_| super::internal_error())?,
+                        11,
+                    ))?;
+                }
+                let native: serde_json::Value = serde_json::from_slice(
+                    execution
+                        .native_payload()
+                        .ok_or_else(super::internal_error)?,
+                )
+                .map_err(|_| super::internal_error())?;
+                self.observed_native
+                    .lock()
+                    .map_err(|_| super::internal_error())?
+                    .push(native);
+                Ok(Box::new(FiniteResponsesSource {
+                    events: self.events.clone().into(),
+                }) as Box<dyn ResponsesEventSource>)
+            })();
+            Box::pin(async move { result })
+        }
+    }
+
+    struct FiniteResponsesSource {
+        events: VecDeque<CanonicalEvent>,
+    }
+
+    impl ResponsesEventSource for FiniteResponsesSource {
+        fn next_event(
+            &mut self,
+        ) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
+            let event = self.events.pop_front();
+            Box::pin(async move { Ok(event) })
+        }
     }
 
     #[derive(Debug, Eq, PartialEq)]
