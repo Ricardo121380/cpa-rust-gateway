@@ -39,6 +39,7 @@ use gateway_control::{
         RejectingProviderAccountPoolFacade,
     },
     route_compiler::RouteCompiler,
+    routing_price_policy_service::{RoutingPriceSnapshot, compile_routing_price_snapshot},
 };
 use gateway_core::{
     AttemptEvent, AttemptOutcome, CanonicalEvent, CanonicalRequest, CredentialId, EgressPolicyId,
@@ -59,9 +60,9 @@ use gateway_http_actix::{
     management_resources::{
         ManagementCatalogStatus, ManagementQuotaRecoveryState, ManagementRequestAttempt,
         ManagementRequestAttemptStage, ManagementRequestProtocol, ManagementRouteExplain,
-        ManagementRouteExplainCandidate, ManagementRouteExplainRequest,
-        ManagementRuntimeAvailabilityStatus, ManagementRuntimeError, ManagementRuntimeFacade,
-        ManagementRuntimeTarget,
+        ManagementRouteExplainCandidate, ManagementRouteExplainPricePolicy,
+        ManagementRouteExplainRequest, ManagementRuntimeAvailabilityStatus, ManagementRuntimeError,
+        ManagementRuntimeFacade, ManagementRuntimeTarget,
     },
 };
 use gateway_observability::{
@@ -73,9 +74,10 @@ use gateway_router::{
     AttemptDriver, AttemptExclusionSet, AttemptFailure, AttemptFuture, AttemptOrchestrator,
     AttemptOrchestratorConfig, NativePayloadAvailability, ProjectedProtocolRequest, ProtocolFormat,
     ProtocolResponseProjector, ProtocolTransformInput, ProtocolTransformRejection,
-    ProviderScopedRouteExplainInput, ProviderScopedRouteExplainSnapshot, QuotaConfidence,
-    QuotaSnapshot, QuotaSource, ResponsesEventSource, ResponsesExecution, ResponsesExecutor,
-    ResponsesFuture, ResponsesResponseMode, RouteCredentialScheduler, RouteExplainCandidate,
+    ProviderScopedPriceEvidence, ProviderScopedRouteExplainInput,
+    ProviderScopedRouteExplainSnapshot, QuotaConfidence, QuotaSnapshot, QuotaSource,
+    ResponsesEventSource, ResponsesExecution, ResponsesExecutor, ResponsesFuture,
+    ResponsesResponseMode, RouteCredentialScheduler, RouteExplainCandidate,
     RouteExplainCandidateReason, RouteExplainInput, RouteSnapshot, RouteSnapshotRegistry,
     RuntimeCredentialAccountStatus, RuntimeHealthAccountRecoveryResult, RuntimeHealthRegistry,
     RuntimeQuotaAvailability, RuntimeQuotaRegistry, RuntimeQuotaTarget, SelectedRouteCredential,
@@ -85,8 +87,9 @@ use gateway_router::{
 use gateway_store::{
     control_plane::{
         ConfigVersionStatus, ControlPlaneConfiguration, CredentialScope, CredentialStatus,
-        EndpointConfiguration, EndpointTransport, RoutePolicy, SqliteControlPlaneRepository,
-        StoredClientKeyStatus, StoredEgressRedirectMode, TransformMode,
+        EndpointConfiguration, EndpointTransport, RoutePolicy, RoutingPriceComparison,
+        SqliteControlPlaneRepository, StoredClientKeyStatus, StoredEgressRedirectMode,
+        TransformMode,
     },
     event_store::{
         AsyncSqliteEventWriter, EventWriterConfig, EventWriterMetricsHandle, SqliteEventStore,
@@ -549,6 +552,7 @@ pub(crate) fn build_data_plane_composition(
 /// The default deployment remains direct. A proxy is a process-envelope input rather than a
 /// control-plane field so an operator can bind a temporary, isolated Web exit without changing
 /// persisted routes or accidentally routing other providers through it.
+#[allow(clippy::too_many_lines)]
 pub(crate) fn build_data_plane_composition_with_web_proxy(
     database: &Path,
     secret_store: &SecretStore,
@@ -583,12 +587,38 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
         Arc::clone(&attempt_stages),
         Arc::clone(&event_queue),
     ));
+    let mut routing_price_snapshot: Option<Arc<RoutingPriceSnapshot>> = None;
     let (executor, provider_account_pools, route_explain_scheduler):
         ProviderAccountPoolComposition = match repository
         .load_active_configuration()
         .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::ControlPlane))?
     {
         Some(configuration) => {
+            let observed_at_ms = system_now_ms_runtime()?;
+            if let Some(policy) = configuration.routing_price_policy.as_ref() {
+                let catalog = repository
+                    .load_billing_catalog(&policy.catalog_version_id)
+                    .map_err(|_| {
+                        RuntimeCompositionError::Stage(RuntimeCompositionStage::RoutingPricePolicy)
+                    })?
+                    .ok_or(RuntimeCompositionError::Stage(
+                        RuntimeCompositionStage::RoutingPricePolicy,
+                    ))?;
+                let snapshot = registry.load();
+                let compiled = compile_routing_price_snapshot(
+                    &snapshot,
+                    &configuration.version.id,
+                    policy,
+                    &catalog,
+                    u64::try_from(observed_at_ms).map_err(|_| {
+                        RuntimeCompositionError::Stage(RuntimeCompositionStage::RoutingPricePolicy)
+                    })?,
+                )
+                .map_err(|_| {
+                    RuntimeCompositionError::Stage(RuntimeCompositionStage::RoutingPricePolicy)
+                })?;
+                routing_price_snapshot = Some(Arc::new(compiled));
+            }
             let (executor, provider_account_pools, route_explain_scheduler) =
                 P12RoutedResponsesExecutor::try_new(
                     database,
@@ -602,6 +632,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
                     web_proxy,
                     flaresolverr_proxy,
                     flaresolverr_port,
+                    routing_price_snapshot.as_ref(),
                 )?;
             (
                 Arc::new(executor),
@@ -639,6 +670,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
             runtime_health,
             runtime_quota,
             route_explain_scheduler,
+            routing_price_snapshot,
             event_store,
         }),
         provider_account_pools,
@@ -696,6 +728,7 @@ pub(crate) enum RuntimeCompositionStage {
     CredentialPool,
     NativeAccountPool,
     ProviderAccountPool,
+    RoutingPricePolicy,
     AdapterRegistry,
     EndpointRuntime,
     EventStore,
@@ -714,6 +747,7 @@ impl RuntimeCompositionStage {
             Self::CredentialPool => "credential_pool",
             Self::NativeAccountPool => "native_account_pool",
             Self::ProviderAccountPool => "provider_account_pool",
+            Self::RoutingPricePolicy => "routing_price_policy",
             Self::AdapterRegistry => "adapter_registry",
             Self::EndpointRuntime => "endpoint_runtime",
             Self::EventStore => "event_store",
@@ -990,6 +1024,7 @@ impl P12RoutedResponsesExecutor {
         web_proxy: Option<UpstreamProxy>,
         flaresolverr_proxy: Option<UpstreamProxy>,
         flaresolverr_port: u16,
+        routing_price_snapshot: Option<&Arc<RoutingPriceSnapshot>>,
     ) -> Result<P12ExecutorComposition, RuntimeCompositionError> {
         // Keep the value-free stage detail for the native Grok diagnostic boundary, while
         // retaining the historical generic failure for ordinary graphs.  Existing callers use
@@ -1118,9 +1153,13 @@ impl P12RoutedResponsesExecutor {
             flaresolverr_port,
         )
         .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime))?;
-        let scheduler = Arc::new(RouteCredentialScheduler::new(
+        let scheduler = Arc::new(RouteCredentialScheduler::new_with_provider_price_rates(
             Arc::clone(&snapshot),
             Arc::clone(&pools),
+            routing_price_snapshot.map_or_else(
+                || Arc::new(BTreeMap::new()),
+                |snapshot| snapshot.candidate_price_rates_arc(),
+            ),
         ));
         let route_explain_scheduler = Arc::clone(&scheduler);
         let orchestrator = Arc::new(AttemptOrchestrator::with_runtime_quota_and_clock_config(
@@ -5178,6 +5217,7 @@ struct SnapshotManagementRuntimeFacade {
     runtime_health: Arc<RuntimeHealthRegistry>,
     runtime_quota: Arc<RuntimeQuotaRegistry>,
     route_explain_scheduler: Option<Arc<RouteCredentialScheduler>>,
+    routing_price_snapshot: Option<Arc<RoutingPriceSnapshot>>,
     event_store: SqliteEventStore,
 }
 
@@ -5317,6 +5357,23 @@ fn management_route_explain_reason(candidate: &RouteExplainCandidate) -> &'stati
         .unwrap_or("no_eligible_credential")
 }
 
+const fn management_price_evidence(value: ProviderScopedPriceEvidence) -> &'static str {
+    match value {
+        ProviderScopedPriceEvidence::Dominant => "dominant",
+        ProviderScopedPriceEvidence::Equal => "equal",
+        ProviderScopedPriceEvidence::Dominated => "dominated",
+        ProviderScopedPriceEvidence::Incomparable => "incomparable",
+        ProviderScopedPriceEvidence::Unpriced => "unpriced",
+        ProviderScopedPriceEvidence::NotEvaluated => "not_evaluated",
+    }
+}
+
+const fn management_price_comparison(value: RoutingPriceComparison) -> &'static str {
+    match value {
+        RoutingPriceComparison::RateDominanceV1 => "rate_dominance_v1",
+    }
+}
+
 impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
     fn catalog_status(
         &mut self,
@@ -5380,6 +5437,19 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
         request: &ManagementRouteExplainRequest,
     ) -> Result<ManagementRouteExplain, ManagementRuntimeError> {
         let snapshot = self.snapshot_for(request.config_version_id())?;
+        if self
+            .route_explain_scheduler
+            .as_ref()
+            .is_some_and(|scheduler| {
+                scheduler.snapshot_version().as_str() != request.config_version_id().as_str()
+            })
+            || self.routing_price_snapshot.as_ref().is_some_and(|price| {
+                price.config_version_id() != request.config_version_id()
+                    || price.snapshot_version().as_str() != request.config_version_id().as_str()
+            })
+        {
+            return Err(ManagementRuntimeError::Unavailable);
+        }
         let public_model = snapshot
             .resolve_public_model(request.requested_model())
             .filter(|model| model.route_id() == request.route_id())
@@ -5477,6 +5547,29 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
         let selected = projected
             .as_ref()
             .and_then(|value| value.provider_selection().selected_candidate_id());
+        let price_evidence_by_candidate = self
+            .routing_price_snapshot
+            .as_ref()
+            .and(projected.as_ref())
+            .map(|value| {
+                value
+                    .provider_selection()
+                    .decisions()
+                    .iter()
+                    .map(|decision| {
+                        (
+                            decision.candidate().candidate_id().clone(),
+                            management_price_evidence(decision.price_evidence()),
+                        )
+                    })
+                    .collect::<BTreeMap<_, _>>()
+            })
+            .unwrap_or_default();
+        let default_price_evidence = if self.routing_price_snapshot.is_some() {
+            "not_evaluated"
+        } else {
+            "disabled"
+        };
         let ambiguous_provider_scope = self.route_explain_scheduler.is_some()
             && request.provider_id().is_none()
             && provider_ids.len() > 1;
@@ -5507,7 +5600,11 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
                             .iter()
                             .find(|value| value.candidate_id() == candidate.id())
                     });
-                if selected.is_some_and(|value| value == candidate.id())
+                let price_evidence = price_evidence_by_candidate
+                    .get(candidate.id())
+                    .copied()
+                    .unwrap_or(default_price_evidence);
+                let explain = if selected.is_some_and(|value| value == candidate.id())
                     || legacy_selected.as_ref() == Some(candidate.id())
                 {
                     ManagementRouteExplainCandidate::selected(candidate.id().clone())
@@ -5546,10 +5643,21 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
                         candidate.id().clone(),
                         "after_selected_candidate",
                     )
-                }
+                };
+                explain.with_price_evidence(price_evidence)
             })
             .collect();
-        ManagementRouteExplain::try_new(route.id().clone(), candidates)
+        let explain = ManagementRouteExplain::try_new(route.id().clone(), candidates)?;
+        Ok(match &self.routing_price_snapshot {
+            Some(price_snapshot) => {
+                let policy = ManagementRouteExplainPricePolicy::new(
+                    price_snapshot.catalog_version_id().to_owned(),
+                    management_price_comparison(price_snapshot.comparison()),
+                )?;
+                explain.with_price_policy(policy)
+            }
+            None => explain,
+        })
     }
 
     fn list_request_attempts(
@@ -5708,15 +5816,16 @@ mod tests {
         SnapshotTransformMode, SnapshotVersion, project_registered_protocol_request,
     };
     use gateway_store::{
+        billing_ledger::{BillingCatalogSource, BillingPriceCatalog, BillingPriceEntry},
         control_plane::{
             AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus,
             ConfigVersion, ConfigVersionId, ConfigVersionStatus, ControlPlaneConfiguration,
             CredentialConfiguration, CredentialScope, CredentialStatus, EgressPolicyConfiguration,
             EndpointConfiguration, EndpointCredentialBindingConfiguration, EndpointTransport,
             ModelAliasConfiguration, ModelRouteConfiguration, PublicModelConfiguration,
-            RouteCandidateConfiguration, RoutePolicy, SqliteControlPlaneRepository,
-            StoredClientKey, StoredClientKeyStatus, StoredEgressRedirectMode, TransformMode,
-            UpstreamConfiguration,
+            RouteCandidateConfiguration, RoutePolicy, RoutingPriceComparison,
+            RoutingPricePolicyConfiguration, SqliteControlPlaneRepository, StoredClientKey,
+            StoredClientKeyStatus, StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
         },
         event_store::{
             AsyncSqliteEventWriter, EventWriterConfig, GatewayEventLogKind, SqliteEventStore,
@@ -5753,12 +5862,12 @@ mod tests {
         P12_STREAMING_IDLE_TIMEOUT, P12_STREAMING_PROGRESS_TIMEOUT, P12_STREAMING_TOTAL_TIMEOUT,
         P12_STREAMING_TTFB_TIMEOUT, P12AttemptStageStore, P12EndpointAdapterFactory,
         P12FanoutEventSink, P12ResponseUsageProjection, P12RoutedResponsesExecutor,
-        P12TransportProfiles, RuntimeCompositionError, SnapshotManagementRuntimeFacade,
-        append_response_chunk, build_data_plane_composition, build_grok_build_responses_adapter,
-        build_grok_console_responses_adapter, build_grok_official_responses_adapter,
-        build_grok_web_responses_adapter, build_kiro_messages_adapter,
-        build_openai_responses_adapter, classify_anthropic_response_failure,
-        classify_openai_response_failure, decode_json_events,
+        P12TransportProfiles, RuntimeCompositionError, RuntimeCompositionStage,
+        SnapshotManagementRuntimeFacade, append_response_chunk, build_data_plane_composition,
+        build_grok_build_responses_adapter, build_grok_console_responses_adapter,
+        build_grok_official_responses_adapter, build_grok_web_responses_adapter,
+        build_kiro_messages_adapter, build_openai_responses_adapter,
+        classify_anthropic_response_failure, classify_openai_response_failure, decode_json_events,
         decode_json_events_with_usage_projection, decode_sse_events,
         decode_sse_events_with_usage_projection, deployment_route_compiler, endpoint_runtimes,
         expected_content_type_matches, has_p12_https_only_egress_shape,
@@ -7035,6 +7144,7 @@ mod tests {
             None,
             None,
             8191,
+            None,
         )?;
         let decoded = protocol_openai_responses::decode_request(
             r#"{"model":"primary","input":"must not reach a provider","stream":false}"#,
@@ -8391,6 +8501,7 @@ mod tests {
             runtime_health: Arc::new(RuntimeHealthRegistry::new()),
             runtime_quota: Arc::new(RuntimeQuotaRegistry::new()),
             route_explain_scheduler: None,
+            routing_price_snapshot: None,
             event_store: SqliteEventStore::open(&database)?,
         };
         let attempts = facade
@@ -8514,6 +8625,7 @@ mod tests {
             runtime_health: Arc::new(RuntimeHealthRegistry::new()),
             runtime_quota: Arc::new(RuntimeQuotaRegistry::new()),
             route_explain_scheduler: None,
+            routing_price_snapshot: None,
             event_store: SqliteEventStore::open(&database)?,
         };
         let attempts = facade
@@ -9463,6 +9575,134 @@ mod tests {
     }
 
     #[test]
+    fn config_bound_price_policy_is_shared_with_runtime_route_explain() -> Result<(), Box<dyn Error>>
+    {
+        let directory = TemporaryDirectory::new()?;
+        let database = directory.join("control.sqlite3");
+        let secret_store = test_secret_store()?;
+        let mut configuration = p12_configuration(&secret_store)?;
+        configuration.routing_price_policy = Some(RoutingPricePolicyConfiguration::try_new(
+            "routing-catalog-v1",
+            RoutingPriceComparison::RateDominanceV1,
+        )?);
+        let config_version_id = configuration.version.id.clone();
+        let catalog = BillingPriceCatalog {
+            catalog_version_id: "routing-catalog-v1".to_owned(),
+            effective_at_ms: 0,
+            source: BillingCatalogSource::Test,
+            created_at_ms: 0,
+            entries: vec![BillingPriceEntry {
+                provider_id: "p12-runtime-upstream".to_owned(),
+                channel_id: P12_SINGLETON_TEST_ENDPOINT_ID.to_owned(),
+                model: "p12-test-model".to_owned(),
+                input_microunits_per_million: 1,
+                output_microunits_per_million: 2,
+                reasoning_microunits_per_million: 3,
+                cache_read_microunits_per_million: 4,
+                cache_creation_microunits_per_million: 5,
+                cached_microunits_per_million: 6,
+            }],
+        };
+        let mut repository = SqliteControlPlaneRepository::open(&database)?;
+        let mut transaction = repository.begin_transaction()?;
+        transaction.insert_billing_catalog(&catalog)?;
+        transaction.commit()?;
+        repository.write_configuration(&configuration)?;
+        repository.activate_version(&config_version_id)?;
+        drop(repository);
+
+        let lifecycle = ManagementService::bootstrap(
+            SqliteControlPlaneRepository::open(&database)?,
+            deployment_route_compiler(&database)?,
+            ManagementActor::try_new("p13-07d-runtime-test")?,
+        )?;
+        let mut composition = build_data_plane_composition(
+            &database,
+            &secret_store,
+            Arc::clone(lifecycle.registry()),
+            ClientKeyService::new(ClientKeyPepper::try_from_bytes([0xE1_u8; 32])?),
+        )?;
+        let request = ManagementRouteExplainRequest::try_new(
+            config_version_id,
+            RouteId::try_new("p12-runtime-route")?,
+            "p12-test-model".to_owned(),
+            ManagementRequestProtocol::OpenAiResponses,
+            Some(ProviderId::try_new("p12-runtime-upstream")?),
+            1,
+        )
+        .map_err(|_| std::io::Error::other("routing price explain request unavailable"))?;
+        let explain = composition
+            .management_runtime
+            .explain_route(&request)
+            .map_err(|_| std::io::Error::other("routing price explain unavailable"))?;
+        let policy = explain
+            .price_policy()
+            .ok_or("routing price policy missing")?;
+        assert_eq!(policy.catalog_version_id(), "routing-catalog-v1");
+        assert_eq!(policy.comparison(), "rate_dominance_v1");
+        assert_eq!(explain.candidates().len(), 1);
+        assert_eq!(explain.candidates()[0].price_evidence(), "equal");
+        assert!(explain.candidates()[0].selected_by_projection());
+        Ok(())
+    }
+
+    #[test]
+    fn config_bound_price_policy_fails_closed_for_a_future_catalog() -> Result<(), Box<dyn Error>> {
+        let directory = TemporaryDirectory::new()?;
+        let database = directory.join("control.sqlite3");
+        let secret_store = test_secret_store()?;
+        let mut configuration = p12_configuration(&secret_store)?;
+        configuration.routing_price_policy = Some(RoutingPricePolicyConfiguration::try_new(
+            "routing-catalog-failure",
+            RoutingPriceComparison::RateDominanceV1,
+        )?);
+        let catalog = BillingPriceCatalog {
+            catalog_version_id: "routing-catalog-failure".to_owned(),
+            effective_at_ms: 9_000_000_000_000_000,
+            source: BillingCatalogSource::Test,
+            created_at_ms: 0,
+            entries: vec![BillingPriceEntry {
+                provider_id: "p12-runtime-upstream".to_owned(),
+                channel_id: P12_SINGLETON_TEST_ENDPOINT_ID.to_owned(),
+                model: "p12-test-model".to_owned(),
+                input_microunits_per_million: 1,
+                output_microunits_per_million: 1,
+                reasoning_microunits_per_million: 1,
+                cache_read_microunits_per_million: 1,
+                cache_creation_microunits_per_million: 1,
+                cached_microunits_per_million: 1,
+            }],
+        };
+        let mut repository = SqliteControlPlaneRepository::open(&database)?;
+        let mut transaction = repository.begin_transaction()?;
+        transaction.insert_billing_catalog(&catalog)?;
+        transaction.commit()?;
+        let config_version_id = configuration.version.id.clone();
+        repository.write_configuration(&configuration)?;
+        repository.activate_version(&config_version_id)?;
+        drop(repository);
+
+        let lifecycle = ManagementService::bootstrap(
+            SqliteControlPlaneRepository::open(&database)?,
+            deployment_route_compiler(&database)?,
+            ManagementActor::try_new("p13-07d-failure-test")?,
+        )?;
+        let future = build_data_plane_composition(
+            &database,
+            &secret_store,
+            Arc::clone(lifecycle.registry()),
+            ClientKeyService::new(ClientKeyPepper::try_from_bytes([0xE1_u8; 32])?),
+        );
+        assert!(matches!(
+            future,
+            Err(RuntimeCompositionError::Stage(
+                RuntimeCompositionStage::RoutingPricePolicy
+            ))
+        ));
+        Ok(())
+    }
+
+    #[test]
     fn native_grok_metadata_maps_to_the_configured_provider_channel_without_a_send()
     -> Result<(), Box<dyn Error>> {
         let secret_store = test_secret_store()?;
@@ -9845,6 +10085,7 @@ mod tests {
             runtime_health: Arc::new(RuntimeHealthRegistry::new()),
             runtime_quota: Arc::new(RuntimeQuotaRegistry::new()),
             route_explain_scheduler: None,
+            routing_price_snapshot: None,
             event_store: SqliteEventStore::open_in_memory()?,
         };
         let request = ManagementRouteExplainRequest::try_new(
@@ -9957,6 +10198,7 @@ mod tests {
             runtime_health: Arc::clone(&runtime_health),
             runtime_quota: Arc::clone(&runtime_quota),
             route_explain_scheduler: Some(scheduler),
+            routing_price_snapshot: None,
             event_store: SqliteEventStore::open_in_memory()?,
         };
         let unscoped = ManagementRouteExplainRequest::try_new(
@@ -10025,6 +10267,7 @@ mod tests {
             runtime_health: Arc::clone(&runtime_health),
             runtime_quota: Arc::clone(&runtime_quota),
             route_explain_scheduler: None,
+            routing_price_snapshot: None,
             event_store: SqliteEventStore::open_in_memory()?,
         };
         Ok((facade, clock, runtime_health, runtime_quota, version))

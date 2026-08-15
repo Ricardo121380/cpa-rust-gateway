@@ -34,9 +34,10 @@ const CANONICAL_BRIDGE_TRANSFORM_MODE_SCHEMA_VERSION: i64 = 12;
 const NATIVE_GROK_REAUTH_SCHEMA_VERSION: i64 = 13;
 const BILLING_LEDGER_SCHEMA_VERSION: i64 = 14;
 const BILLING_MATERIALIZER_CHECKPOINT_SCHEMA_VERSION: i64 = 15;
+const ROUTING_PRICE_POLICY_SCHEMA_VERSION: i64 = 16;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = BILLING_MATERIALIZER_CHECKPOINT_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = ROUTING_PRICE_POLICY_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -121,6 +122,11 @@ const MIGRATIONS: &[Migration] = &[
         up: include_str!("../migrations/0015_billing_materializer_checkpoint.up.sql"),
         down: include_str!("../migrations/0015_billing_materializer_checkpoint.down.sql"),
     },
+    Migration {
+        version: ROUTING_PRICE_POLICY_SCHEMA_VERSION,
+        up: include_str!("../migrations/0016_routing_price_policy.up.sql"),
+        down: include_str!("../migrations/0016_routing_price_policy.down.sql"),
+    },
 ];
 
 struct Migration {
@@ -189,6 +195,8 @@ pub enum StoreError {
     InvalidPersistedBillingRecord,
     /// A billing price catalog version already exists with different entries or metadata.
     ConflictingBillingCatalogVersion,
+    /// A Config-Version routing price policy failed its bounded typed admission contract.
+    InvalidRoutingPricePolicyConfiguration,
     /// A low-priority diagnostic was offered to the durable Required-event store.
     DiagnosticEventNotPersistable,
     /// `PRAGMA quick_check` returned a non-`ok` integrity result.
@@ -253,6 +261,9 @@ impl fmt::Display for StoreError {
             Self::ConflictingBillingCatalogVersion => {
                 formatter.write_str("billing catalog version conflicts with existing entries")
             }
+            Self::InvalidRoutingPricePolicyConfiguration => {
+                formatter.write_str("routing price policy configuration is invalid")
+            }
             Self::DiagnosticEventNotPersistable => {
                 formatter.write_str("diagnostic events are not persisted in the required event log")
             }
@@ -283,6 +294,7 @@ impl Error for StoreError {
             | Self::ConflictingBillingLedgerReplay
             | Self::InvalidPersistedBillingRecord
             | Self::ConflictingBillingCatalogVersion
+            | Self::InvalidRoutingPricePolicyConfiguration
             | Self::DiagnosticEventNotPersistable
             | Self::GatewayEventLogIntegrityCheckFailed => None,
         }
@@ -556,6 +568,7 @@ mod tests {
                 "model_routes",
                 "public_models",
                 "route_candidates",
+                "routing_price_policies",
                 "upstream_credentials",
                 "upstream_endpoints",
                 "upstreams",
@@ -586,6 +599,51 @@ mod tests {
             |row| row.get(0),
         )?;
         assert_eq!(mode, "canonical_bridge");
+        Ok(())
+    }
+
+    #[test]
+    fn routing_price_policy_migration_up_and_down_preserves_prior_schema() -> TestResult {
+        let mut connection = open_in_memory()?;
+        migrate(&mut connection)?;
+        assert!(super::table_exists(&connection, "routing_price_policies")?);
+
+        insert_valid_tree(&connection)?;
+        connection.execute(
+            "INSERT INTO billing_price_catalog_versions \
+             (catalog_version_id, effective_at_ms, source, created_at_ms) \
+             VALUES (?1, ?2, ?3, ?4)",
+            params!["catalog-v1", 1_i64, "test", 1_i64],
+        )?;
+        connection.execute(
+            "INSERT INTO routing_price_policies \
+             (config_version_id, catalog_version_id, comparison) VALUES (?1, ?2, ?3)",
+            params!["v1", "catalog-v1", "rate_dominance_v1"],
+        )?;
+
+        rollback_to_version(&mut connection, CURRENT_SCHEMA_VERSION - 1)?;
+        assert_eq!(schema_version(&connection)?, Some(15));
+        assert!(!super::table_exists(&connection, "routing_price_policies")?);
+        assert!(super::table_exists(
+            &connection,
+            "billing_price_catalog_versions"
+        )?);
+        let catalog_count: i64 = connection.query_row(
+            "SELECT COUNT(*) FROM billing_price_catalog_versions \
+             WHERE catalog_version_id = 'catalog-v1'",
+            [],
+            |row| row.get(0),
+        )?;
+        assert_eq!(catalog_count, 1);
+
+        migrate(&mut connection)?;
+        assert_eq!(schema_version(&connection)?, Some(CURRENT_SCHEMA_VERSION));
+        assert!(super::table_exists(&connection, "routing_price_policies")?);
+        let policy_count: i64 =
+            connection.query_row("SELECT COUNT(*) FROM routing_price_policies", [], |row| {
+                row.get(0)
+            })?;
+        assert_eq!(policy_count, 0);
         Ok(())
     }
 

@@ -164,7 +164,7 @@
     },
     "/admin/routes/{route_id}/explain": {
       "parameters": [{ "$ref": "#/components/parameters/ConfigVersion" }, { "$ref": "#/components/parameters/RouteId" }],
-      "get": { "tags": ["runtime"], "operationId": "explainRoute", "x-delivery-phase": "P10-06", "parameters": [{ "$ref": "#/components/parameters/RequestedModel" }, { "$ref": "#/components/parameters/RequestProtocol" }, { "$ref": "#/components/parameters/RouteExplainProviderId" }], "responses": { "200": { "$ref": "#/components/responses/RouteExplain" }, "default": { "$ref": "#/components/responses/Error" } } }
+      "get": { "tags": ["runtime"], "operationId": "explainRoute", "x-delivery-phase": "P13-07D", "parameters": [{ "$ref": "#/components/parameters/RequestedModel" }, { "$ref": "#/components/parameters/RequestProtocol" }, { "$ref": "#/components/parameters/RouteExplainProviderId" }], "responses": { "200": { "$ref": "#/components/responses/RouteExplain" }, "default": { "$ref": "#/components/responses/Error" } } }
     },
     "/admin/access-groups": {
       "parameters": [{ "$ref": "#/components/parameters/ConfigVersion" }],
@@ -400,6 +400,45 @@
         }
       }
     },
+    "/admin/billing/routing-price-policy": {
+      "parameters": [{ "$ref": "#/components/parameters/ConfigVersion" }],
+      "get": {
+        "tags": ["billing"],
+        "operationId": "getRoutingPricePolicy",
+        "x-delivery-phase": "P13-07D",
+        "responses": {
+          "200": { "$ref": "#/components/responses/RoutingPricePolicy" },
+          "404": { "$ref": "#/components/responses/Error" },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "put": {
+        "tags": ["billing"],
+        "operationId": "setRoutingPricePolicy",
+        "x-delivery-phase": "P13-07D",
+        "x-audit-action": "routing_price_policy_set",
+        "parameters": [{ "$ref": "#/components/parameters/IfMatch" }],
+        "requestBody": { "$ref": "#/components/requestBodies/RoutingPricePolicyInput" },
+        "responses": {
+          "200": { "$ref": "#/components/responses/RoutingPricePolicy" },
+          "409": { "$ref": "#/components/responses/Error" },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "delete": {
+        "tags": ["billing"],
+        "operationId": "clearRoutingPricePolicy",
+        "x-delivery-phase": "P13-07D",
+        "x-audit-action": "routing_price_policy_cleared",
+        "parameters": [{ "$ref": "#/components/parameters/IfMatch" }],
+        "responses": {
+          "204": { "description": "Routing price policy cleared" },
+          "404": { "$ref": "#/components/responses/Error" },
+          "409": { "$ref": "#/components/responses/Error" },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
     "/admin/requests/{request_id}/attempts": {
       "parameters": [{ "$ref": "#/components/parameters/RequestId" }],
       "get": { "tags": ["runtime"], "operationId": "listRequestAttempts", "x-delivery-phase": "P10-06", "responses": { "200": { "$ref": "#/components/responses/AttemptList" }, "default": { "$ref": "#/components/responses/Error" } } }
@@ -495,6 +534,7 @@
       "ProviderAccountOperatorAction": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProviderAccountOperatorAction" } } } },
       "BillingCatalogImportInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BillingCatalogImportInput" } } } },
       "BillingCatalogRollbackInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BillingCatalogRollbackInput" } } } },
+      "RoutingPricePolicyInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RoutingPricePolicyInput" } } } },
       "CredentialExportInput": { "required": true, "content": { "application/json": { "schema": { "type": "object", "additionalProperties": false, "required": ["format"], "properties": { "format": { "type": "string", "enum": ["cpa", "sub2api"] } } } } } },
       "OAuthCallbackInput": { "required": true, "content": { "application/json": { "schema": { "type": "object", "additionalProperties": false, "required": ["state"], "properties": { "state": { "type": "string", "minLength": 1, "maxLength": 512 }, "code": { "type": "string", "maxLength": 16384 }, "error": { "type": "string", "maxLength": 256 }, "callback_url": { "type": "string", "maxLength": 20480, "format": "uri" } } } } } },
       "BackupMaterial": { "required": true, "content": { "application/octet-stream": { "schema": { "type": "string", "format": "binary", "writeOnly": true } } } }
@@ -539,6 +579,7 @@
       "OperationalBillingPage": { "description": "Secret-free immutable billing rows with status and known-cost summary", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OperationalBillingPage" } } } },
       "BillingCatalogList": { "description": "Immutable billing catalogs", "content": { "application/json": { "schema": { "type": "array", "maxItems": 256, "items": { "$ref": "#/components/schemas/BillingCatalog" } } } } },
       "BillingCatalogMutation": { "description": "Secret-free billing catalog mutation receipt", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BillingCatalogMutation" } } } },
+      "RoutingPricePolicy": { "description": "Config-Version-bound routing price policy lineage", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RoutingPricePolicy" } } } },
       "AttemptList": { "description": "Value-free attempts", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Attempt" } } } } },
       "AuditEventList": { "description": "Append-only management audit records", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/AuditEvent" } } } } },
       "BackupPreflight": { "description": "Backup preflight", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BackupPreflight" } } } },
@@ -591,7 +632,8 @@
       "ProviderAccountOperatorActionReceipt": { "type": "object", "additionalProperties": false, "required": ["state", "observed_at_ms", "cooldown_until_ms"], "properties": { "state": { "type": "string", "enum": ["cooling", "probe_scheduled", "recovery_required", "rejected"] }, "observed_at_ms": { "type": "integer", "minimum": 0 }, "cooldown_until_ms": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] } } },
       "ProviderAccountFailurePage": { "type": "object", "additionalProperties": false, "required": ["observed_through_ordinal", "items", "next_cursor"], "properties": { "observed_through_ordinal": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "items": { "type": "array", "maxItems": 100, "items": { "$ref": "#/components/schemas/ProviderAccountFailureItem" } }, "next_cursor": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 2048 }, { "type": "null" }] } } },
       "ProviderAccountFailureItem": { "type": "object", "additionalProperties": false, "required": ["provider_id", "channel_id", "account_id", "request_id", "attempt_id", "ended_at_ms", "error_code", "error_scope", "retry_decision"], "properties": { "provider_id": { "$ref": "#/components/schemas/Id" }, "channel_id": { "$ref": "#/components/schemas/Id" }, "account_id": { "$ref": "#/components/schemas/Id" }, "request_id": { "$ref": "#/components/schemas/Id512" }, "attempt_id": { "$ref": "#/components/schemas/Id512" }, "ended_at_ms": { "type": "integer", "minimum": 0 }, "error_code": { "type": "string", "enum": ["ClientRequestError", "ClientUnauthorized", "RouteNotFound", "CredentialUnavailable", "CredentialUnauthorized", "CredentialForbidden", "CredentialQuotaExceeded", "EgressRejected", "EgressUnavailable", "ProviderRateLimited", "ProviderTransient", "ProviderPermanent", "TokenCountUnsupported", "UpstreamProtocolError", "StreamTruncated", "InternalError", "Cancelled"] }, "error_scope": { "type": "string", "enum": ["request", "credential", "account", "model", "quota_window", "egress_session", "egress", "provider", "stream", "internal"] }, "retry_decision": { "type": "string", "enum": ["completed", "retry_eligible", "non_retryable", "retry_closed", "cancelled", "infrastructure_failure"] } } },
-      "RouteExplain": { "type": "object", "additionalProperties": false, "required": ["route_id", "candidates"], "properties": { "route_id": { "$ref": "#/components/schemas/Id" }, "candidates": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["candidate_id", "decision"], "properties": { "candidate_id": { "$ref": "#/components/schemas/Id" }, "decision": { "type": "string", "enum": ["selected", "excluded"] }, "reason": { "type": "string", "maxLength": 128 } } } } } },
+      "RouteExplain": { "type": "object", "additionalProperties": false, "required": ["route_id", "candidates", "price_policy"], "properties": { "route_id": { "$ref": "#/components/schemas/Id" }, "price_policy": { "anyOf": [{ "$ref": "#/components/schemas/RouteExplainPricePolicy" }, { "type": "null" }] }, "candidates": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["candidate_id", "decision", "price_evidence"], "properties": { "candidate_id": { "$ref": "#/components/schemas/Id" }, "decision": { "type": "string", "enum": ["selected", "excluded"] }, "reason": { "type": "string", "maxLength": 128 }, "price_evidence": { "type": "string", "enum": ["dominant", "equal", "dominated", "incomparable", "unpriced", "not_evaluated", "disabled"] } } } } } },
+      "RouteExplainPricePolicy": { "type": "object", "additionalProperties": false, "required": ["catalog_version_id", "comparison"], "properties": { "catalog_version_id": { "$ref": "#/components/schemas/Id" }, "comparison": { "type": "string", "enum": ["rate_dominance_v1"] } } },
       "ProviderAccountPoolPage": { "type": "object", "additionalProperties": false, "required": ["snapshot_id", "observed_at_ms", "items", "next_cursor"], "properties": { "snapshot_id": { "$ref": "#/components/schemas/Id" }, "observed_at_ms": { "type": "integer", "minimum": 0 }, "items": { "type": "array", "maxItems": 100, "items": { "$ref": "#/components/schemas/ProviderAccountPoolItem" } }, "next_cursor": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 2048 }, { "type": "null" }] } } },
       "ProviderAccountPoolItem": { "type": "object", "additionalProperties": false, "required": ["provider_id", "channel_id", "account_id", "account_kind", "auth_status", "runtime_status", "enabled", "priority", "weight", "max_concurrency", "active_leases", "expires_at_ms", "refresh_due_at_ms", "quota_sync_due_at_ms"], "properties": { "provider_id": { "$ref": "#/components/schemas/Id" }, "channel_id": { "$ref": "#/components/schemas/Id" }, "account_id": { "$ref": "#/components/schemas/Id" }, "account_kind": { "type": "string", "minLength": 1, "maxLength": 128 }, "auth_status": { "type": "string", "enum": ["active", "reauth_required", "disabled", "expired"] }, "runtime_status": { "type": "string", "enum": ["available", "cooling", "circuit_open", "quota_blocked", "unauthorized", "recovery_in_flight", "expired"] }, "enabled": { "type": "boolean" }, "priority": { "type": "integer", "minimum": 0 }, "weight": { "type": "integer", "minimum": 1, "maximum": 10000 }, "max_concurrency": { "type": "integer", "minimum": 1, "maximum": 100000 }, "active_leases": { "type": "integer", "minimum": 0, "maximum": 100000 }, "expires_at_ms": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "refresh_due_at_ms": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "quota_sync_due_at_ms": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] } } },
       "OperationalAccountPoolPage": { "type": "object", "additionalProperties": false, "required": ["config_version_id", "revision", "items", "next_cursor"], "properties": { "config_version_id": { "$ref": "#/components/schemas/Id" }, "revision": { "type": "integer", "minimum": 0 }, "items": { "type": "array", "maxItems": 100, "items": { "$ref": "#/components/schemas/OperationalAccountPoolItem" } }, "next_cursor": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 2048 }, { "type": "null" }] } } },
@@ -605,6 +647,8 @@
       "BillingCatalogImportInput": { "type": "object", "additionalProperties": false, "required": ["catalog_version_id", "effective_at_ms", "source", "entries"], "properties": { "catalog_version_id": { "$ref": "#/components/schemas/Id" }, "effective_at_ms": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "source": { "type": "string", "enum": ["operator", "imported"] }, "entries": { "type": "array", "minItems": 1, "maxItems": 512, "items": { "$ref": "#/components/schemas/BillingCatalogEntryInput" } } } },
       "BillingCatalogEntryInput": { "type": "object", "additionalProperties": false, "required": ["provider_id", "channel_id", "model", "input_microunits_per_million", "output_microunits_per_million", "reasoning_microunits_per_million", "cache_read_microunits_per_million", "cache_creation_microunits_per_million", "cached_microunits_per_million"], "properties": { "provider_id": { "$ref": "#/components/schemas/Id" }, "channel_id": { "$ref": "#/components/schemas/Id" }, "model": { "type": "string", "minLength": 1, "maxLength": 512 }, "input_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "output_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "reasoning_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "cache_read_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "cache_creation_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "cached_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 } } },
       "BillingCatalogRollbackInput": { "type": "object", "additionalProperties": false, "required": ["new_catalog_version_id", "effective_at_ms"], "properties": { "new_catalog_version_id": { "$ref": "#/components/schemas/Id" }, "effective_at_ms": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 } } },
+      "RoutingPricePolicyInput": { "type": "object", "additionalProperties": false, "required": ["catalog_version_id", "comparison"], "properties": { "catalog_version_id": { "$ref": "#/components/schemas/Id" }, "comparison": { "type": "string", "enum": ["rate_dominance_v1"] } } },
+      "RoutingPricePolicy": { "type": "object", "additionalProperties": false, "required": ["catalog_version_id", "comparison"], "properties": { "catalog_version_id": { "$ref": "#/components/schemas/Id" }, "comparison": { "type": "string", "enum": ["rate_dominance_v1"] } } },
       "BillingCatalog": { "type": "object", "additionalProperties": false, "required": ["catalog_version_id", "effective_at_ms", "source", "created_at_ms", "entries"], "properties": { "catalog_version_id": { "$ref": "#/components/schemas/Id" }, "effective_at_ms": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "source": { "type": "string", "enum": ["operator", "imported", "test"] }, "created_at_ms": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "entries": { "type": "array", "maxItems": 512, "items": { "$ref": "#/components/schemas/BillingCatalogEntry" } } } },
       "BillingCatalogEntry": { "type": "object", "additionalProperties": false, "required": ["provider_id", "channel_id", "model", "input_microunits_per_million", "output_microunits_per_million", "reasoning_microunits_per_million", "cache_read_microunits_per_million", "cache_creation_microunits_per_million", "cached_microunits_per_million"], "properties": { "provider_id": { "$ref": "#/components/schemas/Id" }, "channel_id": { "$ref": "#/components/schemas/Id" }, "model": { "type": "string", "minLength": 1, "maxLength": 512 }, "input_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "output_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "reasoning_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "cache_read_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "cache_creation_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "cached_microunits_per_million": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 } } },
       "BillingCatalogMutation": { "type": "object", "additionalProperties": false, "required": ["catalog_version_id", "effective_at_ms", "source", "entry_count", "operation", "rolled_back_from"], "properties": { "catalog_version_id": { "$ref": "#/components/schemas/Id" }, "effective_at_ms": { "type": "integer", "minimum": 0 }, "source": { "type": "string", "enum": ["operator", "imported"] }, "entry_count": { "type": "integer", "minimum": 1, "maximum": 512 }, "operation": { "type": "string", "enum": ["imported", "rolled_back"] }, "rolled_back_from": { "anyOf": [{ "$ref": "#/components/schemas/Id" }, { "type": "null" }] } } },

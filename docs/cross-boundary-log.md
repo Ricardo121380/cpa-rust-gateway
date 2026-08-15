@@ -240,6 +240,8 @@ Codex must update the authoritative OpenAPI contract and sync Prism before reque
 - `crates/gateway-http-actix/src/management_resources.rs`
 - `docs/openapi/management-v1.json`
 - `web/prism/contracts/management-v1.json` and generated client (synced from the authoritative contract)
+- `web/prism/scripts/generate-client.mjs` and `web/prism/scripts/check.mjs` (PUT support and drift guard)
+- `scripts/check-management-spa.mjs` (root compatibility checker now includes PUT)
 
 **Why:** P13-07B now projects the existing, shared Route/Credential Health/Quota observations
 through the P13-07A Provider-scoped deterministic selector. The management facade receives the
@@ -253,3 +255,28 @@ now includes the optional `provider_id` query parameter. Claude Code should expo
 Provider selector when a Route contains multiple Providers and render the new safe reason values
 `provider_scope_required` and `provider_mismatch`; do not hand-edit the generated contract/client.
 No formal UI implementation is part of this backend slice.
+
+---
+
+## 2026-08-15 · Codex · P13-07D Config-Version-bound routing price evidence
+
+**Touched:**
+- `docs/openapi/management-v1.json`
+- `web/prism/contracts/management-v1.json` and generated client (synced from the authoritative contract)
+- `crates/gateway-http-actix/src/management_resources.rs`
+- `web/prism/scripts/generate-client.mjs` and `web/prism/scripts/check.mjs` (PUT support and drift guard)
+- `scripts/check-management-spa.mjs` (root compatibility checker now includes PUT)
+
+**Why:** P13-07D binds an immutable billing catalog and the closed `rate_dominance_v1`
+comparison to the selected Config Version. Serving and Route Explain now share six-dimensional,
+secret-free price evidence; no token estimate or scalar request-cost guess is exposed. The
+protected management surface adds read/set/clear policy operations and Route Explain returns a
+required nullable policy lineage (`null` means disabled) plus one closed candidate evidence value
+per candidate. The authoritative OpenAPI and generated Prism contract/client are synchronized.
+
+**Other side:** action required — Claude Code should sync Prism's generated contract/client and
+add only a display/control surface for catalog lineage and the closed evidence values
+(`dominant`, `equal`, `dominated`, `incomparable`, `unpriced`, `not_evaluated`, `disabled`). Do not
+calculate prices in Prism, edit generated files by hand, or change public inference protocols. Keep
+the PUT support and regression guard in the two listed Prism scripts aligned with the authoritative
+OpenAPI.

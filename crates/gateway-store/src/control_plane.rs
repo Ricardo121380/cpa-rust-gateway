@@ -23,6 +23,7 @@ use crate::{
 };
 
 const CLIENT_KEY_DIGEST_BYTES: usize = 32;
+const ROUTING_PRICE_CATALOG_ID_BYTES: usize = 128;
 
 /// Stable identifier for one version-scoped administrative configuration graph.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -197,6 +198,67 @@ impl EndpointTransport {
             "websocket" => Some(Self::Websocket),
             _ => None,
         }
+    }
+}
+
+/// Closed comparison semantics for one Config-Version-bound routing price policy.
+///
+/// The Store deliberately persists an explicit algorithm version. A later implementation cannot
+/// silently reinterpret an archived or rollback Config Version with different cost semantics.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RoutingPriceComparison {
+    /// Compare immutable token-rate vectors by component-wise dominance without estimating usage.
+    RateDominanceV1,
+}
+
+impl RoutingPriceComparison {
+    const fn as_sql(self) -> &'static str {
+        match self {
+            Self::RateDominanceV1 => "rate_dominance_v1",
+        }
+    }
+
+    fn from_sql(value: &str) -> Option<Self> {
+        match value {
+            "rate_dominance_v1" => Some(Self::RateDominanceV1),
+            _ => None,
+        }
+    }
+}
+
+/// Exact immutable billing catalog and comparison semantics selected by one Config Version.
+///
+/// This is configuration identity only. It contains no credential, request, live quota, health,
+/// or derived token estimate.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoutingPricePolicyConfiguration {
+    /// Immutable P13-05 billing catalog version used by this Config Version.
+    pub catalog_version_id: String,
+    /// Closed comparison algorithm whose meaning is preserved across rollback.
+    pub comparison: RoutingPriceComparison,
+}
+
+impl RoutingPricePolicyConfiguration {
+    /// Creates a bounded catalog binding without changing its opaque identifier.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidRoutingPricePolicyConfiguration`] when the catalog identity
+    /// is blank after trimming or exceeds 128 UTF-8 bytes.
+    pub fn try_new(
+        catalog_version_id: impl Into<String>,
+        comparison: RoutingPriceComparison,
+    ) -> StoreResult<Self> {
+        let catalog_version_id = catalog_version_id.into();
+        if catalog_version_id.trim().is_empty()
+            || catalog_version_id.len() > ROUTING_PRICE_CATALOG_ID_BYTES
+        {
+            return Err(StoreError::InvalidRoutingPricePolicyConfiguration);
+        }
+        Ok(Self {
+            catalog_version_id,
+            comparison,
+        })
     }
 }
 
@@ -668,6 +730,8 @@ impl fmt::Debug for StoredClientKey {
 pub struct ControlPlaneConfiguration {
     /// The graph root.
     pub version: ConfigVersion,
+    /// Optional immutable routing-price catalog binding for this exact Config Version.
+    pub routing_price_policy: Option<RoutingPricePolicyConfiguration>,
     /// Version-scoped outbound `EgressPolicies`.
     pub egress_policies: Vec<EgressPolicyConfiguration>,
     /// Version-scoped Upstreams.
@@ -1016,6 +1080,7 @@ impl ControlPlaneConfiguration {
     pub fn new(version: ConfigVersion) -> Self {
         Self {
             version,
+            routing_price_policy: None,
             egress_policies: Vec::new(),
             upstreams: Vec::new(),
             endpoints: Vec::new(),
@@ -1181,6 +1246,61 @@ impl SqliteControlPlaneRepository {
         limit: usize,
     ) -> StoreResult<Vec<BillingPriceCatalog>> {
         list_catalogs_bounded_from_connection(&self.connection, limit)
+    }
+
+    /// Loads the optional routing price policy bound to one exact Config Version.
+    ///
+    /// The returned record contains only immutable catalog identity and closed comparison
+    /// semantics. An absent Version or an unconfigured Version returns `Ok(None)`.
+    ///
+    /// # Errors
+    ///
+    /// Returns a fail-closed [`StoreError`] when a persisted policy is malformed.
+    pub fn load_routing_price_policy(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+    ) -> StoreResult<Option<RoutingPricePolicyConfiguration>> {
+        let transaction = self.connection.transaction()?;
+        let policy = load_routing_price_policy(&transaction, config_version_id)?;
+        transaction.commit()?;
+        Ok(policy)
+    }
+
+    /// Atomically advances one draft revision and creates or replaces its routing price policy.
+    ///
+    /// # Errors
+    ///
+    /// Returns a typed revision/draft error or a fail-closed foreign-key error when the immutable
+    /// billing catalog does not exist. No revision or policy row commits on failure.
+    pub fn upsert_routing_price_policy(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        expected_revision: i64,
+        policy: &RoutingPricePolicyConfiguration,
+    ) -> StoreResult<i64> {
+        let ((), next_revision) =
+            self.mutate_draft_configuration(config_version_id, expected_revision, |transaction| {
+                transaction.upsert_routing_price_policy(config_version_id, policy)
+            })?;
+        Ok(next_revision)
+    }
+
+    /// Atomically advances one draft revision and removes its routing price policy.
+    ///
+    /// # Errors
+    ///
+    /// Returns a typed revision, draft, or resource-not-found error. A rejected delete leaves the
+    /// exact prior revision and policy row unchanged.
+    pub fn delete_routing_price_policy(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        expected_revision: i64,
+    ) -> StoreResult<i64> {
+        let ((), next_revision) =
+            self.mutate_draft_configuration(config_version_id, expected_revision, |transaction| {
+                transaction.delete_routing_price_policy(config_version_id)
+            })?;
+        Ok(next_revision)
     }
 
     /// Loads exactly one safe Config Version root metadata record.
@@ -1494,6 +1614,10 @@ impl ControlPlaneTransaction<'_> {
         self.insert_config_version(&configuration.version)?;
         let config_version_id = &configuration.version.id;
 
+        if let Some(policy) = &configuration.routing_price_policy {
+            self.upsert_routing_price_policy(config_version_id, policy)?;
+        }
+
         for egress_policy in &configuration.egress_policies {
             self.insert_egress_policy(config_version_id, egress_policy)?;
         }
@@ -1531,6 +1655,67 @@ impl ControlPlaneTransaction<'_> {
             self.insert_client_key(config_version_id, client_key)?;
         }
         Ok(())
+    }
+
+    /// Loads the optional routing price policy within this transaction's consistent view.
+    ///
+    /// # Errors
+    ///
+    /// Returns a fail-closed [`StoreError`] when the row is malformed.
+    pub fn load_routing_price_policy(
+        &self,
+        config_version_id: &ConfigVersionId,
+    ) -> StoreResult<Option<RoutingPricePolicyConfiguration>> {
+        load_routing_price_policy(&self.transaction, config_version_id)
+    }
+
+    /// Creates or replaces the single routing price policy owned by an existing draft Version.
+    ///
+    /// This method intentionally does not advance the Version revision itself. Callers that need
+    /// the public optimistic-concurrency boundary compose it through
+    /// [`SqliteControlPlaneRepository::mutate_draft_configuration`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the Version is not a draft, the policy is invalid, or its
+    /// immutable billing catalog does not exist.
+    pub fn upsert_routing_price_policy(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        policy: &RoutingPricePolicyConfiguration,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        validate_routing_price_policy(policy)?;
+        self.transaction.execute(
+            "INSERT INTO routing_price_policies (config_version_id, catalog_version_id, comparison) \
+             VALUES (?1, ?2, ?3) \
+             ON CONFLICT(config_version_id) DO UPDATE SET \
+                 catalog_version_id = excluded.catalog_version_id, \
+                 comparison = excluded.comparison",
+            params![
+                config_version_id.as_str(),
+                &policy.catalog_version_id,
+                policy.comparison.as_sql(),
+            ],
+        )?;
+        Ok(())
+    }
+
+    /// Removes the single routing price policy owned by an existing draft Version.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the Version is not a draft or has no routing price policy.
+    pub fn delete_routing_price_policy(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let deleted = self.transaction.execute(
+            "DELETE FROM routing_price_policies WHERE config_version_id = ?1",
+            [config_version_id.as_str()],
+        )?;
+        resource_updated(deleted)
     }
 
     /// Inserts one opaque encrypted credential into an existing Config Version.
@@ -2518,6 +2703,11 @@ fn bounded_non_empty(value: &str, maximum_characters: usize) -> bool {
     !value.trim().is_empty() && value.chars().count() <= maximum_characters
 }
 
+fn validate_routing_price_policy(policy: &RoutingPricePolicyConfiguration) -> StoreResult<()> {
+    RoutingPricePolicyConfiguration::try_new(policy.catalog_version_id.clone(), policy.comparison)
+        .map(|_| ())
+}
+
 fn load_configuration(
     transaction: &Transaction<'_>,
     config_version_id: &ConfigVersionId,
@@ -2528,6 +2718,7 @@ fn load_configuration(
 
     Ok(Some(ControlPlaneConfiguration {
         version,
+        routing_price_policy: load_routing_price_policy(transaction, config_version_id)?,
         egress_policies: load_egress_policies(transaction, config_version_id)?,
         upstreams: load_upstreams(transaction, config_version_id)?,
         endpoints: load_endpoints(transaction, config_version_id)?,
@@ -2544,6 +2735,28 @@ fn load_configuration(
         access_group_routes: load_access_group_routes(transaction, config_version_id)?,
         client_keys: load_client_keys(transaction, config_version_id)?,
     }))
+}
+
+fn load_routing_price_policy(
+    transaction: &Transaction<'_>,
+    config_version_id: &ConfigVersionId,
+) -> StoreResult<Option<RoutingPricePolicyConfiguration>> {
+    let record = transaction
+        .query_row(
+            "SELECT catalog_version_id, comparison FROM routing_price_policies \
+             WHERE config_version_id = ?1",
+            [config_version_id.as_str()],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )
+        .optional()?;
+    let Some((catalog_version_id, comparison)) = record else {
+        return Ok(None);
+    };
+    let comparison = RoutingPriceComparison::from_sql(&comparison)
+        .ok_or_else(|| malformed("routing_price_policies"))?;
+    RoutingPricePolicyConfiguration::try_new(catalog_version_id, comparison)
+        .map(Some)
+        .map_err(|_| malformed("routing_price_policies"))
 }
 
 fn load_management_audit_events(
@@ -3096,14 +3309,16 @@ mod tests {
 
     use crate::{
         StoreError,
+        billing_ledger::{BillingCatalogSource, BillingPriceCatalog, BillingPriceEntry},
         secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore},
     };
 
     use super::{
         AccessGroupConfiguration, AdministrativeStatus, ConfigVersion, ConfigVersionId,
         ConfigVersionStatus, ControlPlaneConfiguration, CredentialConfiguration, CredentialStatus,
-        ManagementAuditAction, ManagementAuditEventDraft, SqliteControlPlaneRepository,
-        StoredClientKey, StoredClientKeyStatus, UpstreamConfiguration,
+        ManagementAuditAction, ManagementAuditEventDraft, RoutingPriceComparison,
+        RoutingPricePolicyConfiguration, SqliteControlPlaneRepository, StoredClientKey,
+        StoredClientKeyStatus, UpstreamConfiguration,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -3182,6 +3397,212 @@ mod tests {
         let debug = format!("{client_key:?}");
         assert!(debug.contains("<redacted>"));
         assert!(!debug.contains("165"));
+        Ok(())
+    }
+
+    #[test]
+    fn routing_price_policy_is_bounded_and_contains_no_secret_material() -> TestResult {
+        assert!(matches!(
+            RoutingPricePolicyConfiguration::try_new(
+                "   ",
+                RoutingPriceComparison::RateDominanceV1
+            ),
+            Err(StoreError::InvalidRoutingPricePolicyConfiguration)
+        ));
+        assert!(matches!(
+            RoutingPricePolicyConfiguration::try_new(
+                "x".repeat(129),
+                RoutingPriceComparison::RateDominanceV1
+            ),
+            Err(StoreError::InvalidRoutingPricePolicyConfiguration)
+        ));
+
+        let policy = RoutingPricePolicyConfiguration::try_new(
+            "catalog-safe",
+            RoutingPriceComparison::RateDominanceV1,
+        )?;
+        let debug = format!("{policy:?}");
+        assert!(debug.contains("catalog-safe"));
+        assert!(debug.contains("RateDominanceV1"));
+        assert!(!debug.contains("ciphertext"));
+        assert!(!debug.contains("credential"));
+        Ok(())
+    }
+
+    #[test]
+    fn complete_graph_round_trip_preserves_exact_routing_price_policy() -> TestResult {
+        let version_id = ConfigVersionId::try_new("price-round-trip")?;
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        insert_billing_catalog(&mut repository, &billing_catalog("catalog-round-trip"))?;
+        let policy = RoutingPricePolicyConfiguration::try_new(
+            "catalog-round-trip",
+            RoutingPriceComparison::RateDominanceV1,
+        )?;
+        let mut configuration = draft_configuration(version_id.clone(), None);
+        configuration.routing_price_policy = Some(policy.clone());
+
+        repository.write_configuration(&configuration)?;
+
+        let loaded = repository
+            .load_configuration(&version_id)?
+            .ok_or("configuration was not found")?;
+        assert_eq!(loaded.routing_price_policy, Some(policy.clone()));
+        assert_eq!(
+            repository.load_routing_price_policy(&version_id)?,
+            Some(policy)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn draft_routing_price_policy_upsert_and_delete_are_revision_atomic() -> TestResult {
+        let version_id = ConfigVersionId::try_new("price-draft")?;
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        insert_billing_catalog(&mut repository, &billing_catalog("catalog-a"))?;
+        insert_billing_catalog(&mut repository, &billing_catalog("catalog-b"))?;
+        repository.write_configuration(&draft_configuration(version_id.clone(), None))?;
+
+        let policy_a = RoutingPricePolicyConfiguration::try_new(
+            "catalog-a",
+            RoutingPriceComparison::RateDominanceV1,
+        )?;
+        assert_eq!(
+            repository.upsert_routing_price_policy(&version_id, 0, &policy_a)?,
+            1
+        );
+        assert_eq!(
+            repository.load_routing_price_policy(&version_id)?,
+            Some(policy_a)
+        );
+
+        let policy_b = RoutingPricePolicyConfiguration::try_new(
+            "catalog-b",
+            RoutingPriceComparison::RateDominanceV1,
+        )?;
+        assert_eq!(
+            repository.upsert_routing_price_policy(&version_id, 1, &policy_b)?,
+            2
+        );
+        assert_eq!(
+            repository.load_routing_price_policy(&version_id)?,
+            Some(policy_b)
+        );
+
+        assert_eq!(repository.delete_routing_price_policy(&version_id, 2)?, 3);
+        assert_eq!(repository.load_routing_price_policy(&version_id)?, None);
+        assert!(matches!(
+            repository.delete_routing_price_policy(&version_id, 3),
+            Err(StoreError::ControlPlaneResourceNotFound)
+        ));
+        assert_eq!(
+            repository
+                .load_config_version(&version_id)?
+                .ok_or("draft version was not found")?
+                .revision,
+            3
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn active_and_archived_versions_reject_routing_price_policy_mutation() -> TestResult {
+        let first_id = ConfigVersionId::try_new("price-archived")?;
+        let second_id = ConfigVersionId::try_new("price-active")?;
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        insert_billing_catalog(&mut repository, &billing_catalog("catalog-state"))?;
+        repository.write_configuration(&draft_configuration(first_id.clone(), None))?;
+        repository.write_configuration(&draft_configuration(
+            second_id.clone(),
+            Some(first_id.clone()),
+        ))?;
+        repository.activate_version(&first_id)?;
+        repository.activate_version(&second_id)?;
+        let policy = RoutingPricePolicyConfiguration::try_new(
+            "catalog-state",
+            RoutingPriceComparison::RateDominanceV1,
+        )?;
+
+        assert!(matches!(
+            repository.upsert_routing_price_policy(&first_id, 0, &policy),
+            Err(StoreError::ControlPlaneMutationRequiresDraft)
+        ));
+        assert!(matches!(
+            repository.upsert_routing_price_policy(&second_id, 0, &policy),
+            Err(StoreError::ControlPlaneMutationRequiresDraft)
+        ));
+        assert_eq!(repository.load_routing_price_policy(&first_id)?, None);
+        assert_eq!(repository.load_routing_price_policy(&second_id)?, None);
+        Ok(())
+    }
+
+    #[test]
+    fn missing_catalog_rolls_back_policy_and_revision_together() -> TestResult {
+        let version_id = ConfigVersionId::try_new("price-missing-catalog")?;
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        repository.write_configuration(&draft_configuration(version_id.clone(), None))?;
+        let policy = RoutingPricePolicyConfiguration::try_new(
+            "missing-catalog",
+            RoutingPriceComparison::RateDominanceV1,
+        )?;
+
+        assert!(matches!(
+            repository.upsert_routing_price_policy(&version_id, 0, &policy),
+            Err(StoreError::Sqlite(_))
+        ));
+        assert_eq!(repository.load_routing_price_policy(&version_id)?, None);
+        assert_eq!(
+            repository
+                .load_config_version(&version_id)?
+                .ok_or("draft version was not found")?
+                .revision,
+            0
+        );
+
+        let complete_id = ConfigVersionId::try_new("price-missing-complete")?;
+        let mut complete = draft_configuration(complete_id.clone(), None);
+        complete.routing_price_policy = Some(policy);
+        assert!(matches!(
+            repository.write_configuration(&complete),
+            Err(StoreError::Sqlite(_))
+        ));
+        assert!(repository.load_configuration(&complete_id)?.is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn version_delete_cascades_policy_while_catalog_delete_is_restricted() -> TestResult {
+        let version_id = ConfigVersionId::try_new("price-foreign-keys")?;
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        insert_billing_catalog(&mut repository, &billing_catalog("catalog-foreign-keys"))?;
+        let policy = RoutingPricePolicyConfiguration::try_new(
+            "catalog-foreign-keys",
+            RoutingPriceComparison::RateDominanceV1,
+        )?;
+        let mut configuration = draft_configuration(version_id.clone(), None);
+        configuration.routing_price_policy = Some(policy);
+        repository.write_configuration(&configuration)?;
+
+        let catalog_delete = repository.connection.execute(
+            "DELETE FROM billing_price_catalog_versions WHERE catalog_version_id = ?1",
+            ["catalog-foreign-keys"],
+        );
+        assert!(catalog_delete.is_err());
+        assert!(repository.load_routing_price_policy(&version_id)?.is_some());
+
+        repository.connection.execute(
+            "DELETE FROM config_versions WHERE id = ?1",
+            [version_id.as_str()],
+        )?;
+        let policy_count: i64 = repository.connection.query_row(
+            "SELECT COUNT(*) FROM routing_price_policies WHERE config_version_id = ?1",
+            [version_id.as_str()],
+            |row| row.get(0),
+        )?;
+        assert_eq!(policy_count, 0);
+        repository.connection.execute(
+            "DELETE FROM billing_price_catalog_versions WHERE catalog_version_id = ?1",
+            ["catalog-foreign-keys"],
+        )?;
         Ok(())
     }
 
@@ -3564,5 +3985,34 @@ mod tests {
             created_at_ms: 1,
             description: "P2-07 activation fixture".to_owned(),
         })
+    }
+
+    fn billing_catalog(catalog_version_id: &str) -> BillingPriceCatalog {
+        BillingPriceCatalog {
+            catalog_version_id: catalog_version_id.to_owned(),
+            effective_at_ms: 1,
+            source: BillingCatalogSource::Test,
+            created_at_ms: 1,
+            entries: vec![BillingPriceEntry {
+                provider_id: "provider-a".to_owned(),
+                channel_id: "channel-a".to_owned(),
+                model: "model-a".to_owned(),
+                input_microunits_per_million: 1,
+                output_microunits_per_million: 2,
+                reasoning_microunits_per_million: 3,
+                cache_read_microunits_per_million: 4,
+                cache_creation_microunits_per_million: 5,
+                cached_microunits_per_million: 6,
+            }],
+        }
+    }
+
+    fn insert_billing_catalog(
+        repository: &mut SqliteControlPlaneRepository,
+        catalog: &BillingPriceCatalog,
+    ) -> Result<(), StoreError> {
+        let mut transaction = repository.begin_transaction()?;
+        transaction.insert_billing_catalog(catalog)?;
+        transaction.commit()
     }
 }

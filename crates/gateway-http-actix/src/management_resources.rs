@@ -28,8 +28,8 @@ use gateway_control::management_mutation_service::{
     EndpointCredentialBindingConfiguration, EndpointTransport, ManagementMutationService,
     ManagementResourceError, ManagementRouteValidation, ModelAliasConfiguration,
     ModelRouteConfiguration, PublicModelConfiguration, Revisioned, RouteCandidateConfiguration,
-    RoutePolicy, StoreError, StoredClientKeyStatus, StoredEgressRedirectMode, TransformMode,
-    UpstreamConfiguration,
+    RoutePolicy, RoutingPriceComparison, RoutingPricePolicyConfiguration, StoreError,
+    StoredClientKeyStatus, StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
 };
 use gateway_control::management_operations_service::{
     DEFAULT_ACCOUNT_POOL_LIMIT, DEFAULT_FAILURE_FEEDBACK_LIMIT, DEFAULT_USAGE_LIMIT,
@@ -675,6 +675,7 @@ pub struct ManagementRouteExplainCandidate {
     candidate_id: RouteCandidateId,
     selected: bool,
     reason: Option<&'static str>,
+    price_evidence: &'static str,
 }
 
 impl ManagementRouteExplainCandidate {
@@ -685,6 +686,7 @@ impl ManagementRouteExplainCandidate {
             candidate_id,
             selected: true,
             reason: None,
+            price_evidence: "disabled",
         }
     }
 
@@ -695,7 +697,15 @@ impl ManagementRouteExplainCandidate {
             candidate_id,
             selected: false,
             reason: Some(reason),
+            price_evidence: "disabled",
         }
+    }
+
+    /// Adds one closed price-evidence category without changing selection semantics.
+    #[must_use]
+    pub const fn with_price_evidence(mut self, evidence: &'static str) -> Self {
+        self.price_evidence = evidence;
+        self
     }
 
     /// Returns the stable Candidate identity.
@@ -715,6 +725,55 @@ impl ManagementRouteExplainCandidate {
     pub const fn reason(&self) -> Option<&'static str> {
         self.reason
     }
+
+    /// Returns the optional closed price-evidence category.
+    #[must_use]
+    pub const fn price_evidence(&self) -> &'static str {
+        self.price_evidence
+    }
+}
+
+/// Exact Config-Version-bound routing-price policy lineage shown by Route Explain.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementRouteExplainPricePolicy {
+    catalog_version_id: String,
+    comparison: &'static str,
+}
+
+impl ManagementRouteExplainPricePolicy {
+    /// Creates a value-free policy lineage projection.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementRuntimeError::Unavailable`] when the catalog identity is blank or
+    /// exceeds the closed 128-byte bound, or when the comparison is not a supported algorithm.
+    pub fn new(
+        catalog_version_id: String,
+        comparison: &'static str,
+    ) -> Result<Self, ManagementRuntimeError> {
+        if catalog_version_id.trim().is_empty()
+            || catalog_version_id.len() > 128
+            || comparison != "rate_dominance_v1"
+        {
+            return Err(ManagementRuntimeError::Unavailable);
+        }
+        Ok(Self {
+            catalog_version_id,
+            comparison,
+        })
+    }
+
+    /// Returns the immutable catalog identity.
+    #[must_use]
+    pub fn catalog_version_id(&self) -> &str {
+        &self.catalog_version_id
+    }
+
+    /// Returns the closed comparison algorithm name.
+    #[must_use]
+    pub const fn comparison(&self) -> &'static str {
+        self.comparison
+    }
 }
 
 /// One complete bounded Route Explain projection.
@@ -722,6 +781,7 @@ impl ManagementRouteExplainCandidate {
 pub struct ManagementRouteExplain {
     route_id: RouteId,
     candidates: Vec<ManagementRouteExplainCandidate>,
+    price_policy: Option<ManagementRouteExplainPricePolicy>,
 }
 
 impl ManagementRouteExplain {
@@ -746,13 +806,33 @@ impl ManagementRouteExplain {
                     .reason
                     .is_some_and(|reason| reason.is_empty() || reason.len() > 128)
             })
+            || candidates.iter().any(|candidate| {
+                !matches!(
+                    candidate.price_evidence,
+                    "dominant"
+                        | "equal"
+                        | "dominated"
+                        | "incomparable"
+                        | "unpriced"
+                        | "not_evaluated"
+                        | "disabled"
+                )
+            })
         {
             return Err(ManagementRuntimeError::Unavailable);
         }
         Ok(Self {
             route_id,
             candidates,
+            price_policy: None,
         })
+    }
+
+    /// Adds the exact Config-Version-bound price policy lineage.
+    #[must_use]
+    pub fn with_price_policy(mut self, policy: ManagementRouteExplainPricePolicy) -> Self {
+        self.price_policy = Some(policy);
+        self
     }
 
     /// Returns the explained Route identity.
@@ -765,6 +845,12 @@ impl ManagementRouteExplain {
     #[must_use]
     pub fn candidates(&self) -> &[ManagementRouteExplainCandidate] {
         &self.candidates
+    }
+
+    /// Returns the optional immutable price-policy lineage.
+    #[must_use]
+    pub const fn price_policy(&self) -> Option<&ManagementRouteExplainPricePolicy> {
+        self.price_policy.as_ref()
     }
 }
 
@@ -1927,6 +2013,18 @@ fn configure_billing_resource_routes(config: &mut web::ServiceConfig) {
         .route(
             "/billing/catalogs/{catalog_version_id}/rollback",
             web::post().to(rollback_billing_catalog),
+        )
+        .route(
+            "/billing/routing-price-policy",
+            web::get().to(get_routing_price_policy),
+        )
+        .route(
+            "/billing/routing-price-policy",
+            web::put().to(set_routing_price_policy),
+        )
+        .route(
+            "/billing/routing-price-policy",
+            web::delete().to(clear_routing_price_policy),
         );
 }
 
@@ -2404,6 +2502,7 @@ struct RuntimeActionResponse {
 struct RouteExplainResponse {
     route_id: String,
     candidates: Vec<RouteExplainCandidateResponse>,
+    price_policy: Option<RouteExplainPricePolicyResponse>,
 }
 
 #[derive(Serialize)]
@@ -2413,6 +2512,14 @@ struct RouteExplainCandidateResponse {
     decision: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     reason: Option<&'static str>,
+    price_evidence: &'static str,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+struct RouteExplainPricePolicyResponse {
+    catalog_version_id: String,
+    comparison: &'static str,
 }
 
 #[derive(Serialize)]
@@ -2781,6 +2888,19 @@ struct BillingCatalogMutationResponse {
     rolled_back_from: Option<String>,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RoutingPricePolicyInput {
+    catalog_version_id: String,
+    comparison: String,
+}
+
+#[derive(Serialize)]
+struct RoutingPricePolicyResponse {
+    catalog_version_id: String,
+    comparison: &'static str,
+}
+
 #[allow(clippy::too_many_lines)]
 async fn list_operational_usage(
     request: HttpRequest,
@@ -3005,6 +3125,74 @@ async fn list_billing_catalogs(
                 .map(billing_catalog_response)
                 .collect::<Vec<_>>()
         }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_routing_price_policy(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.get_routing_price_policy(&context.version) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, routing_price_policy_response),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn set_routing_price_policy(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let input =
+        match parse_json::<RoutingPricePolicyInput>(&body).and_then(routing_price_policy_input) {
+            Ok(input) => input,
+            Err(response) => return response,
+        };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.set_routing_price_policy(&actor, &context.version, context.revision, input) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, routing_price_policy_response),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn clear_routing_price_policy(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.clear_routing_price_policy(&actor, &context.version, context.revision) {
+        Ok(revision) => empty_with_revision(revision),
         Err(error) => management_error(error),
     }
 }
@@ -6120,7 +6308,8 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
         }
         ManagementResourceError::InvalidRevision
         | ManagementResourceError::InvalidCredentialInput
-        | ManagementResourceError::InvalidBillingCatalogInput => invalid_input(),
+        | ManagementResourceError::InvalidBillingCatalogInput
+        | ManagementResourceError::RoutingPriceCatalogNotEffective => invalid_input(),
         ManagementResourceError::Store(_)
         | ManagementResourceError::SecretStore(_)
         | ManagementResourceError::ControlPlane(_)
@@ -6213,6 +6402,7 @@ impl TryFrom<ManagementRouteExplain> for RouteExplainResponse {
                 if !ids.insert(candidate.candidate_id().as_str().to_owned())
                     || candidate.selected_by_projection() != reason.is_none()
                     || reason.is_some_and(|value| !safe_route_explain_reason(value))
+                    || !safe_route_explain_price_evidence(candidate.price_evidence())
                 {
                     return Err(ManagementRuntimeError::Unavailable);
                 }
@@ -6224,12 +6414,28 @@ impl TryFrom<ManagementRouteExplain> for RouteExplainResponse {
                         "excluded"
                     },
                     reason,
+                    price_evidence: candidate.price_evidence(),
                 })
             })
             .collect::<Result<Vec<_>, _>>()?;
         Ok(Self {
             route_id: value.route_id().as_str().to_owned(),
             candidates,
+            price_policy: value
+                .price_policy()
+                .map(|policy| {
+                    if policy.catalog_version_id().trim().is_empty()
+                        || policy.catalog_version_id().len() > 128
+                        || policy.comparison() != "rate_dominance_v1"
+                    {
+                        return Err(ManagementRuntimeError::Unavailable);
+                    }
+                    Ok(RouteExplainPricePolicyResponse {
+                        catalog_version_id: policy.catalog_version_id().to_owned(),
+                        comparison: policy.comparison(),
+                    })
+                })
+                .transpose()?,
         })
     }
 }
@@ -6247,6 +6453,19 @@ fn safe_route_explain_reason(value: &str) -> bool {
             | "provider_mismatch"
             | "protocol_transform_unavailable"
             | "after_selected_candidate"
+    )
+}
+
+fn safe_route_explain_price_evidence(value: &str) -> bool {
+    matches!(
+        value,
+        "dominant"
+            | "equal"
+            | "dominated"
+            | "incomparable"
+            | "unpriced"
+            | "not_evaluated"
+            | "disabled"
     )
 }
 
@@ -7058,6 +7277,29 @@ fn billing_catalog_mutation_response(
             BillingCatalogMutationOperation::RolledBack => "rolled_back",
         },
         rolled_back_from: value.rolled_back_from().map(str::to_owned),
+    }
+}
+
+fn routing_price_policy_input(
+    input: RoutingPricePolicyInput,
+) -> Result<RoutingPricePolicyConfiguration, HttpResponse> {
+    let catalog_version_id = bounded_text(input.catalog_version_id, 128)?;
+    let comparison = match input.comparison.as_str() {
+        "rate_dominance_v1" => RoutingPriceComparison::RateDominanceV1,
+        _ => return Err(invalid_input()),
+    };
+    RoutingPricePolicyConfiguration::try_new(catalog_version_id, comparison)
+        .map_err(|_| invalid_input())
+}
+
+fn routing_price_policy_response(
+    value: RoutingPricePolicyConfiguration,
+) -> RoutingPricePolicyResponse {
+    RoutingPricePolicyResponse {
+        catalog_version_id: value.catalog_version_id,
+        comparison: match value.comparison {
+            RoutingPriceComparison::RateDominanceV1 => "rate_dominance_v1",
+        },
     }
 }
 

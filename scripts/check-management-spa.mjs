@@ -16,7 +16,7 @@ const uiRoot = path.join(root, "web/prism");
 const specificationPath = path.join(root, "docs/openapi/management-v1.json");
 const vendoredContractPath = path.join(uiRoot, "contracts/management-v1.json");
 const generatedClientPath = path.join(uiRoot, "src/generated/management-client.ts");
-const httpMethods = new Set(["get", "post", "patch", "delete"]);
+const httpMethods = new Set(["get", "post", "put", "patch", "delete"]);
 
 function assert(condition, message) {
   if (!condition) {

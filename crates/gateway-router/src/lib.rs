@@ -46,7 +46,8 @@ pub use protocol_transform::{
 };
 pub use provider_scoped_selector::{
     ProviderScopedCandidate, ProviderScopedCandidateDecision, ProviderScopedHealth,
-    ProviderScopedQuota, ProviderScopedRejection, ProviderScopedSelection, ProviderScopedSelector,
+    ProviderScopedPriceEvidence, ProviderScopedPriceRates, ProviderScopedQuota,
+    ProviderScopedRejection, ProviderScopedSelection, ProviderScopedSelector,
     ProviderScopedSelectorError,
 };
 pub use response_transform::{

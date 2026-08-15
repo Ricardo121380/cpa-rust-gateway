@@ -265,3 +265,174 @@ async fn catalog_import_is_csrf_guarded_atomic_revisioned_and_rollback_only_fork
     }
     Ok(())
 }
+
+#[actix_web::test]
+async fn routing_price_policy_is_config_bound_revisioned_and_csrf_guarded() -> TestResult {
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security_state()?))
+            .app_data(web::Data::new(resource_state()?))
+            .configure(configure_management_resources),
+    )
+    .await;
+
+    let imported = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/billing/catalogs")
+                .insert_header(("If-Match", "\"rev-0\""))
+                .insert_header(("X-Management-CSRF-Token", CSRF_TOKEN))
+                .set_json(catalog("routing-catalog-v1", 2_000_000)),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(imported.status(), StatusCode::CREATED);
+
+    let policy = json!({
+        "catalog_version_id": "routing-catalog-v1",
+        "comparison": "rate_dominance_v1"
+    });
+    let denied = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::put()
+                .uri("/admin/billing/routing-price-policy")
+                .insert_header(("If-Match", "\"rev-1\""))
+                .set_json(&policy),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(denied.status(), StatusCode::NOT_FOUND);
+
+    let set = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::put()
+                .uri("/admin/billing/routing-price-policy")
+                .insert_header(("If-Match", "\"rev-1\""))
+                .insert_header(("X-Management-CSRF-Token", CSRF_TOKEN))
+                .set_json(&policy),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(set.status(), StatusCode::OK);
+    assert_eq!(
+        set.headers().get(header::ETAG),
+        Some(&header::HeaderValue::from_static("\"rev-2\""))
+    );
+    let set_body: Value = test::read_body_json(set).await;
+    assert_eq!(set_body, policy);
+
+    let get = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/billing/routing-price-policy"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(get.status(), StatusCode::OK);
+    assert_eq!(
+        get.headers().get(header::ETAG),
+        Some(&header::HeaderValue::from_static("\"rev-2\""))
+    );
+    let get_body: Value = test::read_body_json(get).await;
+    assert_eq!(get_body, policy);
+
+    let stale = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::put()
+                .uri("/admin/billing/routing-price-policy")
+                .insert_header(("If-Match", "\"rev-1\""))
+                .insert_header(("X-Management-CSRF-Token", CSRF_TOKEN))
+                .set_json(&policy),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(stale.status(), StatusCode::CONFLICT);
+
+    let mut future_catalog = catalog("routing-catalog-future", 3_000_000);
+    future_catalog["effective_at_ms"] = json!(9_000_000_000_000_000_u64);
+    let imported_future = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/billing/catalogs")
+                .insert_header(("If-Match", "\"rev-2\""))
+                .insert_header(("X-Management-CSRF-Token", CSRF_TOKEN))
+                .set_json(future_catalog),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(imported_future.status(), StatusCode::CREATED);
+    assert_eq!(
+        imported_future.headers().get(header::ETAG),
+        Some(&header::HeaderValue::from_static("\"rev-3\""))
+    );
+
+    let future_policy = json!({
+        "catalog_version_id": "routing-catalog-future",
+        "comparison": "rate_dominance_v1"
+    });
+    let future_binding = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::put()
+                .uri("/admin/billing/routing-price-policy")
+                .insert_header(("If-Match", "\"rev-3\""))
+                .insert_header(("X-Management-CSRF-Token", CSRF_TOKEN))
+                .set_json(future_policy),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(future_binding.status(), StatusCode::BAD_REQUEST);
+
+    let stale_clear = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::delete()
+                .uri("/admin/billing/routing-price-policy")
+                .insert_header(("If-Match", "\"rev-2\""))
+                .insert_header(("X-Management-CSRF-Token", CSRF_TOKEN)),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(stale_clear.status(), StatusCode::CONFLICT);
+
+    let cleared = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::delete()
+                .uri("/admin/billing/routing-price-policy")
+                .insert_header(("If-Match", "\"rev-3\""))
+                .insert_header(("X-Management-CSRF-Token", CSRF_TOKEN)),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(cleared.status(), StatusCode::NO_CONTENT);
+    assert_eq!(
+        cleared.headers().get(header::ETAG),
+        Some(&header::HeaderValue::from_static("\"rev-4\""))
+    );
+
+    let absent = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/billing/routing-price-policy"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(absent.status(), StatusCode::NOT_FOUND);
+    assert_eq!(
+        absent.headers().get(header::CACHE_CONTROL),
+        Some(&header::HeaderValue::from_static("no-store"))
+    );
+    Ok(())
+}

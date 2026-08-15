@@ -5,10 +5,11 @@
 //! exclusion reasons. The existing [`crate::RouteCredentialScheduler`] remains the owner of
 //! request-time cursor advancement, Health/Quota reads, and Credential lease acquisition.
 //!
-//! Keeping this first slice side-effect free makes the cost/usage policy reviewable before it is
-//! connected to the serving path. In particular, an unknown price or quota observation is never
-//! converted into a zero-cost or unlimited-capacity score, and a candidate from another Provider
-//! can never become an implicit fallback.
+//! Price evidence is intentionally a six-dimensional rate vector rather than a guessed
+//! per-request cost. The selector uses one bounded, globally classified dominance pass; it never
+//! feeds pairwise partial ordering into `sort_by`. In particular, an unknown price or quota
+//! observation is never converted into a zero-cost or unlimited-capacity score, and a candidate
+//! from another Provider can never become an implicit fallback.
 
 use std::{cmp::Ordering, collections::HashSet, error::Error, fmt};
 
@@ -19,6 +20,121 @@ const MAX_SELECTOR_ID_CHARS: usize = 128;
 
 fn valid_selector_id(value: &str) -> bool {
     !value.trim().is_empty() && value.chars().count() <= MAX_SELECTOR_ID_CHARS
+}
+
+/// Immutable Provider/channel/model rates in integer microunits per million tokens.
+///
+/// These six dimensions deliberately preserve the P13-05 billing catalog shape. They are price
+/// evidence, not a predicted request charge: the Router has no trustworthy request-time token
+/// vector from which to compute such a charge before Provider selection.
+#[allow(clippy::struct_field_names)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ProviderScopedPriceRates {
+    input_microunits_per_million: u64,
+    output_microunits_per_million: u64,
+    reasoning_microunits_per_million: u64,
+    cache_read_microunits_per_million: u64,
+    cache_creation_microunits_per_million: u64,
+    cached_microunits_per_million: u64,
+}
+
+impl ProviderScopedPriceRates {
+    /// Creates one exact six-dimensional catalog-rate vector.
+    #[must_use]
+    pub const fn new(
+        input_microunits_per_million: u64,
+        output_microunits_per_million: u64,
+        reasoning_microunits_per_million: u64,
+        cache_read_microunits_per_million: u64,
+        cache_creation_microunits_per_million: u64,
+        cached_microunits_per_million: u64,
+    ) -> Self {
+        Self {
+            input_microunits_per_million,
+            output_microunits_per_million,
+            reasoning_microunits_per_million,
+            cache_read_microunits_per_million,
+            cache_creation_microunits_per_million,
+            cached_microunits_per_million,
+        }
+    }
+
+    /// Returns the input-token rate.
+    #[must_use]
+    pub const fn input_microunits_per_million(&self) -> u64 {
+        self.input_microunits_per_million
+    }
+
+    /// Returns the output-token rate.
+    #[must_use]
+    pub const fn output_microunits_per_million(&self) -> u64 {
+        self.output_microunits_per_million
+    }
+
+    /// Returns the reasoning-token rate.
+    #[must_use]
+    pub const fn reasoning_microunits_per_million(&self) -> u64 {
+        self.reasoning_microunits_per_million
+    }
+
+    /// Returns the cache-read-token rate.
+    #[must_use]
+    pub const fn cache_read_microunits_per_million(&self) -> u64 {
+        self.cache_read_microunits_per_million
+    }
+
+    /// Returns the cache-creation-token rate.
+    #[must_use]
+    pub const fn cache_creation_microunits_per_million(&self) -> u64 {
+        self.cache_creation_microunits_per_million
+    }
+
+    /// Returns the generic cached-token rate.
+    #[must_use]
+    pub const fn cached_microunits_per_million(&self) -> u64 {
+        self.cached_microunits_per_million
+    }
+
+    /// Returns whether every explicitly cataloged dimension is zero.
+    ///
+    /// A missing rate vector is never treated as this value.
+    #[must_use]
+    pub const fn is_all_zero(&self) -> bool {
+        self.input_microunits_per_million == 0
+            && self.output_microunits_per_million == 0
+            && self.reasoning_microunits_per_million == 0
+            && self.cache_read_microunits_per_million == 0
+            && self.cache_creation_microunits_per_million == 0
+            && self.cached_microunits_per_million == 0
+    }
+
+    const fn dimensions(&self) -> [u64; 6] {
+        [
+            self.input_microunits_per_million,
+            self.output_microunits_per_million,
+            self.reasoning_microunits_per_million,
+            self.cache_read_microunits_per_million,
+            self.cache_creation_microunits_per_million,
+            self.cached_microunits_per_million,
+        ]
+    }
+}
+
+/// Closed evidence emitted by the bounded `rate_dominance_v1` classifier.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProviderScopedPriceEvidence {
+    /// This known vector simultaneously reaches the minimum in all six dimensions.
+    Dominant,
+    /// Every eligible known vector is exactly equal in all six dimensions.
+    Equal,
+    /// A dominant vector exists and this known vector is not one of the minima.
+    Dominated,
+    /// Known vectors cross dimensions and no vector reaches every dimension minimum.
+    Incomparable,
+    /// The eligible Candidate has no exact catalog-rate vector.
+    Unpriced,
+    /// The Candidate was rejected before price comparison and therefore was not evaluated.
+    NotEvaluated,
 }
 
 /// Health state supplied by the existing runtime registry.
@@ -60,7 +176,7 @@ pub struct ProviderScopedCandidate {
     weight: u32,
     active_leases: u32,
     max_concurrency: u32,
-    cost_microunits: Option<u64>,
+    price_rates: Option<ProviderScopedPriceRates>,
     health: ProviderScopedHealth,
     quota: ProviderScopedQuota,
     capability_match: bool,
@@ -85,7 +201,7 @@ impl ProviderScopedCandidate {
         weight: u32,
         active_leases: u32,
         max_concurrency: u32,
-        cost_microunits: Option<u64>,
+        price_rates: Option<ProviderScopedPriceRates>,
         health: ProviderScopedHealth,
         quota: ProviderScopedQuota,
         capability_match: bool,
@@ -108,7 +224,7 @@ impl ProviderScopedCandidate {
             weight,
             active_leases,
             max_concurrency,
-            cost_microunits,
+            price_rates,
             health,
             quota,
             capability_match,
@@ -158,10 +274,10 @@ impl ProviderScopedCandidate {
         self.max_concurrency
     }
 
-    /// Returns the optional versioned cost supplied by the caller.
+    /// Returns the optional exact catalog-rate vector supplied by the caller.
     #[must_use]
-    pub const fn cost_microunits(&self) -> Option<u64> {
-        self.cost_microunits
+    pub const fn price_rates(&self) -> Option<ProviderScopedPriceRates> {
+        self.price_rates
     }
 
     /// Returns the observed Health state.
@@ -235,6 +351,7 @@ pub enum ProviderScopedRejection {
 pub struct ProviderScopedCandidateDecision {
     candidate: ProviderScopedCandidate,
     rejections: Vec<ProviderScopedRejection>,
+    price_evidence: ProviderScopedPriceEvidence,
 }
 
 impl ProviderScopedCandidateDecision {
@@ -248,6 +365,12 @@ impl ProviderScopedCandidateDecision {
     #[must_use]
     pub fn rejections(&self) -> &[ProviderScopedRejection] {
         &self.rejections
+    }
+
+    /// Returns the closed price-rate classification used by deterministic ranking.
+    #[must_use]
+    pub const fn price_evidence(&self) -> ProviderScopedPriceEvidence {
+        self.price_evidence
     }
 
     /// Returns whether the candidate can be handed to the existing scheduler seam.
@@ -335,10 +458,12 @@ impl ProviderScopedSelector {
                 ProviderScopedCandidateDecision {
                     candidate,
                     rejections,
+                    price_evidence: ProviderScopedPriceEvidence::NotEvaluated,
                 }
             })
             .collect::<Vec<_>>();
 
+        classify_price_evidence(&mut decisions);
         decisions.sort_by(decision_order);
         let selected_candidate_id = decisions
             .iter()
@@ -401,14 +526,13 @@ fn decision_order(
             });
     }
 
-    // Known quota evidence and known cost always outrank unknown values. Unknown is never
-    // substituted with zero; if every candidate is unknown, the remaining deterministic load and
-    // configuration tie-breakers still provide a stable choice.
+    // Known quota evidence and classified price evidence outrank absent price evidence. Price
+    // rates are not a guessed per-request cost. If vectors cross dimensions, all known vectors in
+    // that comparison become Incomparable and fall through to load/configuration tie-breakers.
     quota_rank(left.candidate.quota)
         .cmp(&quota_rank(right.candidate.quota))
         .then_with(|| {
-            cost_rank(left.candidate.cost_microunits.as_ref())
-                .cmp(&cost_rank(right.candidate.cost_microunits.as_ref()))
+            price_evidence_rank(left.price_evidence).cmp(&price_evidence_rank(right.price_evidence))
         })
         .then_with(|| compare_load(&left.candidate, &right.candidate))
         .then_with(|| left.candidate.priority.cmp(&right.candidate.priority))
@@ -429,10 +553,64 @@ fn quota_rank(quota: ProviderScopedQuota) -> u8 {
     }
 }
 
-fn cost_rank(cost: Option<&u64>) -> (u8, u64) {
-    match cost {
-        Some(value) => (0, *value),
-        None => (1, 0),
+fn price_evidence_rank(evidence: ProviderScopedPriceEvidence) -> u8 {
+    match evidence {
+        ProviderScopedPriceEvidence::Dominant | ProviderScopedPriceEvidence::Equal => 0,
+        ProviderScopedPriceEvidence::Dominated | ProviderScopedPriceEvidence::Incomparable => 1,
+        ProviderScopedPriceEvidence::Unpriced => 2,
+        ProviderScopedPriceEvidence::NotEvaluated => 3,
+    }
+}
+
+fn classify_price_evidence(decisions: &mut [ProviderScopedCandidateDecision]) {
+    let known = decisions
+        .iter()
+        .enumerate()
+        .filter(|(_, decision)| decision.is_eligible())
+        .filter_map(|(index, decision)| decision.candidate.price_rates.map(|rates| (index, rates)))
+        .collect::<Vec<_>>();
+
+    for decision in decisions
+        .iter_mut()
+        .filter(|decision| decision.is_eligible())
+    {
+        decision.price_evidence = if decision.candidate.price_rates.is_some() {
+            // Known vectors are classified together below.
+            ProviderScopedPriceEvidence::Incomparable
+        } else {
+            ProviderScopedPriceEvidence::Unpriced
+        };
+    }
+    if known.is_empty() {
+        return;
+    }
+    if known.iter().all(|(_, rates)| *rates == known[0].1) {
+        for (index, _) in known {
+            decisions[index].price_evidence = ProviderScopedPriceEvidence::Equal;
+        }
+        return;
+    }
+
+    let mut minima = [u64::MAX; 6];
+    for (_, rates) in &known {
+        for (index, value) in rates.dimensions().into_iter().enumerate() {
+            minima[index] = minima[index].min(value);
+        }
+    }
+    let dominant = known
+        .iter()
+        .filter(|(_, rates)| rates.dimensions() == minima)
+        .map(|(index, _)| *index)
+        .collect::<Vec<_>>();
+    if dominant.is_empty() {
+        return;
+    }
+    for (index, _) in known {
+        decisions[index].price_evidence = if dominant.contains(&index) {
+            ProviderScopedPriceEvidence::Dominant
+        } else {
+            ProviderScopedPriceEvidence::Dominated
+        };
     }
 }
 
@@ -452,11 +630,16 @@ mod tests {
     use gateway_core::{EndpointId, ProviderId, RouteCandidateId};
 
     use super::{
-        ProviderScopedCandidate, ProviderScopedHealth, ProviderScopedQuota,
-        ProviderScopedRejection, ProviderScopedSelector, ProviderScopedSelectorError,
+        ProviderScopedCandidate, ProviderScopedHealth, ProviderScopedPriceEvidence,
+        ProviderScopedPriceRates, ProviderScopedQuota, ProviderScopedRejection,
+        ProviderScopedSelector, ProviderScopedSelectorError,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
+
+    const fn rates(value: u64) -> ProviderScopedPriceRates {
+        ProviderScopedPriceRates::new(value, value, value, value, value, value)
+    }
 
     fn candidate(
         provider: &str,
@@ -474,7 +657,7 @@ mod tests {
             1,
             active,
             maximum,
-            cost,
+            cost.map(rates),
             ProviderScopedHealth::Available,
             ProviderScopedQuota::Available,
             true,
@@ -494,7 +677,7 @@ mod tests {
                 1,
                 0,
                 1,
-                Some(1),
+                Some(rates(1)),
                 ProviderScopedHealth::Cooling,
                 ProviderScopedQuota::Available,
                 true,
@@ -511,7 +694,7 @@ mod tests {
     }
 
     #[test]
-    fn known_cost_and_quota_beat_unknown_without_becoming_zero() -> TestResult {
+    fn known_price_and_quota_beat_unknown_without_becoming_zero() -> TestResult {
         let selector = ProviderScopedSelector::try_new(ProviderId::try_new("provider-a")?)?;
         let mut unknown_cost = candidate("provider-a", "unknown-cost", 0, 0, 10, None)?;
         unknown_cost.quota = ProviderScopedQuota::Unknown;
@@ -524,6 +707,146 @@ mod tests {
                 .selected_candidate_id()
                 .map(gateway_core::RouteCandidateId::as_str),
             Some("known-cost")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn all_dimension_minimum_is_dominant_without_predicting_request_cost() -> TestResult {
+        let selector = ProviderScopedSelector::try_new(ProviderId::try_new("provider-a")?)?;
+        let mut lower = candidate("provider-a", "lower", 0, 5, 10, None)?;
+        lower.price_rates = Some(ProviderScopedPriceRates::new(1, 2, 3, 4, 5, 6));
+        let mut higher = candidate("provider-a", "higher", 0, 0, 10, None)?;
+        higher.price_rates = Some(ProviderScopedPriceRates::new(2, 3, 4, 5, 6, 7));
+        let selected = selector.select(vec![higher, lower])?;
+
+        assert_eq!(
+            selected
+                .selected_candidate_id()
+                .map(RouteCandidateId::as_str),
+            Some("lower")
+        );
+        assert_eq!(
+            selected.decisions()[0].price_evidence(),
+            ProviderScopedPriceEvidence::Dominant
+        );
+        assert_eq!(
+            selected.decisions()[1].price_evidence(),
+            ProviderScopedPriceEvidence::Dominated
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn identical_known_vectors_are_equal_evidence() -> TestResult {
+        let selector = ProviderScopedSelector::try_new(ProviderId::try_new("provider-a")?)?;
+        let selected = selector.select(vec![
+            candidate("provider-a", "candidate-b", 0, 0, 1, Some(9))?,
+            candidate("provider-a", "candidate-a", 0, 0, 1, Some(9))?,
+        ])?;
+
+        assert!(
+            selected.decisions().iter().all(|decision| {
+                decision.price_evidence() == ProviderScopedPriceEvidence::Equal
+            })
+        );
+        assert_eq!(
+            selected
+                .selected_candidate_id()
+                .map(RouteCandidateId::as_str),
+            Some("candidate-a")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn one_known_vector_is_equal_not_unproven_dominant() -> TestResult {
+        let selector = ProviderScopedSelector::try_new(ProviderId::try_new("provider-a")?)?;
+        let selected = selector.select(vec![candidate(
+            "provider-a",
+            "only-candidate",
+            0,
+            0,
+            1,
+            Some(9),
+        )?])?;
+
+        assert_eq!(
+            selected.decisions()[0].price_evidence(),
+            ProviderScopedPriceEvidence::Equal
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn crossing_vectors_are_incomparable_and_input_order_independent() -> TestResult {
+        let selector = ProviderScopedSelector::try_new(ProviderId::try_new("provider-a")?)?;
+        let mut input_cheap = candidate("provider-a", "candidate-a", 0, 0, 1, None)?;
+        input_cheap.price_rates = Some(ProviderScopedPriceRates::new(1, 9, 1, 9, 1, 9));
+        let mut output_cheap = candidate("provider-a", "candidate-b", 0, 0, 1, None)?;
+        output_cheap.price_rates = Some(ProviderScopedPriceRates::new(9, 1, 9, 1, 9, 1));
+
+        let forward = selector.select(vec![input_cheap.clone(), output_cheap.clone()])?;
+        let reverse = selector.select(vec![output_cheap, input_cheap])?;
+        assert_eq!(forward, reverse);
+        assert!(forward.decisions().iter().all(|decision| {
+            decision.price_evidence() == ProviderScopedPriceEvidence::Incomparable
+        }));
+        assert_eq!(
+            forward
+                .selected_candidate_id()
+                .map(RouteCandidateId::as_str),
+            Some("candidate-a")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn known_vector_ranks_before_unpriced_but_unknown_is_not_zero() -> TestResult {
+        let selector = ProviderScopedSelector::try_new(ProviderId::try_new("provider-a")?)?;
+        let selected = selector.select(vec![
+            candidate("provider-a", "unpriced", 0, 0, 10, None)?,
+            candidate("provider-a", "known", 0, 9, 10, Some(100))?,
+        ])?;
+
+        assert_eq!(
+            selected
+                .selected_candidate_id()
+                .map(RouteCandidateId::as_str),
+            Some("known")
+        );
+        assert_eq!(
+            selected.decisions()[0].price_evidence(),
+            ProviderScopedPriceEvidence::Equal
+        );
+        assert_eq!(
+            selected.decisions()[1].price_evidence(),
+            ProviderScopedPriceEvidence::Unpriced
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn explicit_all_zero_vector_is_known_zero() -> TestResult {
+        let selector = ProviderScopedSelector::try_new(ProviderId::try_new("provider-a")?)?;
+        let zero = ProviderScopedPriceRates::new(0, 0, 0, 0, 0, 0);
+        assert!(zero.is_all_zero());
+        let mut free = candidate("provider-a", "free", 0, 5, 10, None)?;
+        free.price_rates = Some(zero);
+        let selected = selector.select(vec![
+            candidate("provider-a", "unpriced", 0, 0, 10, None)?,
+            free,
+        ])?;
+
+        assert_eq!(
+            selected
+                .selected_candidate_id()
+                .map(RouteCandidateId::as_str),
+            Some("free")
+        );
+        assert_eq!(
+            selected.decisions()[0].candidate().price_rates(),
+            Some(zero)
         );
         Ok(())
     }
@@ -738,7 +1061,7 @@ mod tests {
         let selector = ProviderScopedSelector::try_new(ProviderId::try_new("provider-a")?)?;
         let first = candidate("provider-a", "candidate-a", 0, 0, 1, Some(1))?;
         let mut duplicate = first.clone();
-        duplicate.cost_microunits = Some(2);
+        duplicate.price_rates = Some(rates(2));
         let error = selector
             .select(vec![first, duplicate])
             .err()

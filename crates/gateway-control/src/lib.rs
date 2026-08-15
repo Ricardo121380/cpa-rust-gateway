@@ -24,6 +24,8 @@ pub mod management_service;
 pub mod provider_account_pool_service;
 /// Semantic Config Version validation and secret-free Route compilation.
 pub mod route_compiler;
+/// Immutable billing-catalog projection into request-time Provider price evidence.
+pub mod routing_price_policy_service;
 /// Atomic publication and rollback of compiler-approved RouteSnapshots.
 pub mod snapshot_publisher;
 

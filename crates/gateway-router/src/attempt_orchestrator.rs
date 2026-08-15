@@ -889,11 +889,19 @@ impl AttemptOrchestrator {
             .filter(|candidate| candidate.is_hard_eligible() && is_candidate_eligible(candidate))
             .map(|candidate| candidate.id().clone())
             .collect::<BTreeSet<_>>();
+        let candidate_price_rates = admitted_candidate_ids
+            .iter()
+            .filter_map(|candidate_id| {
+                self.scheduler
+                    .provider_price_rates_for_candidate(candidate_id)
+                    .map(|rates| (candidate_id.clone(), rates))
+            })
+            .collect::<BTreeMap<_, _>>();
         let input = ProviderScopedRouteExplainInput::try_new(
             RouteExplainInput::new(route_id.clone(), observed_at_ms),
             provider_id.clone(),
             admitted_candidate_ids,
-            BTreeMap::new(),
+            candidate_price_rates,
         )
         .map_err(|_| credential_unavailable_error())?;
         let explain = self

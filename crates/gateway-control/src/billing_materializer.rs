@@ -17,7 +17,7 @@ use gateway_store::{
     event_store::{SqliteEventStore, StoredGatewayEvent},
 };
 
-use crate::billing_service::{BillingPricingError, find_price_entry, quote_usage};
+use crate::billing_service::{BillingPricingError, find_effective_price_catalog, quote_usage};
 
 /// Stable materializer identity used by the default billing projector.
 pub const BILLING_MATERIALIZER_ID: &str = "gateway-usage-to-billing-v1";
@@ -195,19 +195,13 @@ fn compile_usage_entry(
     let retention_expires_at_ms = occurred_at_ms
         .checked_add(retention_ms)
         .ok_or(BillingMaterializationError::InvalidTimestamp)?;
-    let catalog = catalogs
-        .iter()
-        .filter(|catalog| catalog.effective_at_ms <= occurred_at_ms)
-        .filter(|catalog| {
-            find_price_entry(
-                catalog,
-                attempt.upstream_id().as_str(),
-                attempt.endpoint_id().as_str(),
-                request.public_model(),
-            )
-            .is_some()
-        })
-        .max_by_key(|catalog| (catalog.effective_at_ms, &catalog.catalog_version_id));
+    let catalog = find_effective_price_catalog(
+        catalogs,
+        attempt.upstream_id().as_str(),
+        attempt.endpoint_id().as_str(),
+        request.public_model(),
+        occurred_at_ms,
+    );
     let (catalog_version_id, cost_microunits, cost_confidence) = match catalog {
         Some(catalog) => {
             let quote = quote_usage(

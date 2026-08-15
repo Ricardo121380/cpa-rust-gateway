@@ -25,10 +25,10 @@ use gateway_http_actix::{
         ManagementCatalogFreshness, ManagementCatalogStatus, ManagementQuotaRecoveryState,
         ManagementRequestAttempt, ManagementRequestAttemptStage, ManagementRequestProtocol,
         ManagementResourceHttpState, ManagementRouteExplain, ManagementRouteExplainCandidate,
-        ManagementRouteExplainRequest, ManagementRuntimeAvailability,
-        ManagementRuntimeAvailabilityStatus, ManagementRuntimeClock, ManagementRuntimeError,
-        ManagementRuntimeFacade, ManagementRuntimeTarget, RejectingManagementEndpointWorkflow,
-        configure_management_resources,
+        ManagementRouteExplainPricePolicy, ManagementRouteExplainRequest,
+        ManagementRuntimeAvailability, ManagementRuntimeAvailabilityStatus, ManagementRuntimeClock,
+        ManagementRuntimeError, ManagementRuntimeFacade, ManagementRuntimeTarget,
+        RejectingManagementEndpointWorkflow, configure_management_resources,
     },
     management_security::{
         MANAGEMENT_KEY_HEADER, ManagementBrowserPolicy, ManagementHttpState, ManagementKey,
@@ -221,13 +221,23 @@ impl ManagementRuntimeFacade for FixtureRuntimeFacade {
                     RouteCandidateId::try_new("candidate-blocked")
                         .map_err(|_| ManagementRuntimeError::Unavailable)?,
                     "endpoint_cooldown",
-                ),
+                )
+                .with_price_evidence("not_evaluated"),
                 ManagementRouteExplainCandidate::selected(
                     RouteCandidateId::try_new("candidate-selected")
                         .map_err(|_| ManagementRuntimeError::Unavailable)?,
-                ),
+                )
+                .with_price_evidence("dominant"),
             ],
         )
+        .map(|explain| {
+            ManagementRouteExplainPricePolicy::new(
+                "routing-catalog-v1".to_owned(),
+                "rate_dominance_v1",
+            )
+            .map(|policy| explain.with_price_policy(policy))
+        })
+        .and_then(|result| result)
     }
 
     fn list_request_attempts(
@@ -341,9 +351,13 @@ async fn protected_runtime_views_are_value_free_and_recovery_only_requests_contr
         explain_body,
         json!({
             "route_id": "route-runtime",
+            "price_policy": {
+                "catalog_version_id": "routing-catalog-v1",
+                "comparison": "rate_dominance_v1"
+            },
             "candidates": [
-                {"candidate_id":"candidate-blocked", "decision":"excluded", "reason":"endpoint_cooldown"},
-                {"candidate_id":"candidate-selected", "decision":"selected"}
+                {"candidate_id":"candidate-blocked", "decision":"excluded", "reason":"endpoint_cooldown", "price_evidence":"not_evaluated"},
+                {"candidate_id":"candidate-selected", "decision":"selected", "price_evidence":"dominant"}
             ]
         })
     );
@@ -518,4 +532,11 @@ async fn default_runtime_facade_is_fail_closed_without_runtime_dependencies() ->
         }})
     );
     Ok(())
+}
+
+#[actix_web::test]
+async fn route_explain_price_policy_projection_rejects_unbounded_or_unknown_lineage() {
+    assert!(ManagementRouteExplainPricePolicy::new(" ".to_owned(), "rate_dominance_v1",).is_err());
+    assert!(ManagementRouteExplainPricePolicy::new("x".repeat(129), "rate_dominance_v1",).is_err());
+    assert!(ManagementRouteExplainPricePolicy::new("catalog-v1".to_owned(), "unknown",).is_err());
 }

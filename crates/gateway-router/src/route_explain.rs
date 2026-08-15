@@ -14,10 +14,11 @@ use gateway_core::{CredentialId, EndpointId, ProviderId, RouteCandidateId, Route
 use gateway_upstream::{CredentialPoolEntrySnapshot, EndpointCredentialPools};
 
 use crate::{
-    AttemptExclusionSet, ProviderScopedCandidate, ProviderScopedHealth, ProviderScopedQuota,
-    ProviderScopedSelection, ProviderScopedSelector, ProviderScopedSelectorError, RouteSnapshot,
-    RuntimeHealthAvailability, RuntimeHealthKey, RuntimeHealthRegistry, RuntimeQuotaAvailability,
-    RuntimeQuotaRegistry, RuntimeQuotaTarget, SnapshotCatalogAdmission,
+    AttemptExclusionSet, ProviderScopedCandidate, ProviderScopedHealth, ProviderScopedPriceRates,
+    ProviderScopedQuota, ProviderScopedSelection, ProviderScopedSelector,
+    ProviderScopedSelectorError, RouteSnapshot, RuntimeHealthAvailability, RuntimeHealthKey,
+    RuntimeHealthRegistry, RuntimeQuotaAvailability, RuntimeQuotaRegistry, RuntimeQuotaTarget,
+    SnapshotCatalogAdmission,
 };
 
 const MAX_PROVIDER_SCOPED_EXPLAIN_ITEMS: usize = 4_096;
@@ -156,14 +157,14 @@ impl From<ProviderScopedSelectorError> for ProviderScopedRouteExplainError {
 /// Explicit, bounded inputs for one Provider-scoped composition over an ordinary Route Explain.
 ///
 /// `admitted_candidate_ids` is supplied by the management/protocol boundary after capability
-/// admission. An empty `candidate_cost_microunits` map means cost is unknown; this API never
-/// substitutes unknown cost with zero.
+/// admission. An empty `candidate_price_rates` map means price evidence is unknown; this API
+/// never substitutes absent catalog evidence with an all-zero rate vector.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProviderScopedRouteExplainInput {
     route_explain: RouteExplainInput,
     provider_id: ProviderId,
     admitted_candidate_ids: BTreeSet<RouteCandidateId>,
-    candidate_cost_microunits: BTreeMap<RouteCandidateId, u64>,
+    candidate_price_rates: BTreeMap<RouteCandidateId, ProviderScopedPriceRates>,
 }
 
 impl ProviderScopedRouteExplainInput {
@@ -178,10 +179,10 @@ impl ProviderScopedRouteExplainInput {
         route_explain: RouteExplainInput,
         provider_id: ProviderId,
         admitted_candidate_ids: BTreeSet<RouteCandidateId>,
-        candidate_cost_microunits: BTreeMap<RouteCandidateId, u64>,
+        candidate_price_rates: BTreeMap<RouteCandidateId, ProviderScopedPriceRates>,
     ) -> Result<Self, ProviderScopedRouteExplainError> {
         if admitted_candidate_ids.len() > MAX_PROVIDER_SCOPED_EXPLAIN_ITEMS
-            || candidate_cost_microunits.len() > MAX_PROVIDER_SCOPED_EXPLAIN_ITEMS
+            || candidate_price_rates.len() > MAX_PROVIDER_SCOPED_EXPLAIN_ITEMS
         {
             return Err(ProviderScopedRouteExplainError::TooManyItems);
         }
@@ -190,7 +191,7 @@ impl ProviderScopedRouteExplainInput {
             route_explain,
             provider_id,
             admitted_candidate_ids,
-            candidate_cost_microunits,
+            candidate_price_rates,
         })
     }
 
@@ -212,10 +213,24 @@ impl ProviderScopedRouteExplainInput {
         &self.admitted_candidate_ids
     }
 
-    /// Returns caller-supplied, versioned Candidate costs; absent entries remain unknown.
+    /// Returns caller-supplied, versioned Candidate price rates; absent entries remain unpriced.
     #[must_use]
-    pub const fn candidate_cost_microunits(&self) -> &BTreeMap<RouteCandidateId, u64> {
-        &self.candidate_cost_microunits
+    pub const fn candidate_price_rates(
+        &self,
+    ) -> &BTreeMap<RouteCandidateId, ProviderScopedPriceRates> {
+        &self.candidate_price_rates
+    }
+
+    pub(crate) fn with_candidate_price_rates(
+        &self,
+        candidate_price_rates: BTreeMap<RouteCandidateId, ProviderScopedPriceRates>,
+    ) -> Result<Self, ProviderScopedRouteExplainError> {
+        Self::try_new(
+            self.route_explain.clone(),
+            self.provider_id.clone(),
+            self.admitted_candidate_ids.clone(),
+            candidate_price_rates,
+        )
     }
 }
 
@@ -757,7 +772,7 @@ pub(crate) fn explain_provider_scoped(
             active_leases,
             max_concurrency,
             input
-                .candidate_cost_microunits()
+                .candidate_price_rates()
                 .get(candidate.candidate_id())
                 .copied(),
             ProviderScopedHealth::Available,
@@ -941,12 +956,13 @@ mod tests {
         RouteExplainInput,
     };
     use crate::{
-        AttemptExclusionSet, QuotaConfidence, QuotaSnapshot, QuotaSource, QuotaWindow,
-        RouteCredentialScheduler, RouteSnapshot, RouteSnapshotInput, RuntimeHealthAvailability,
-        RuntimeHealthClock, RuntimeHealthClockError, RuntimeHealthKey, RuntimeHealthRegistry,
-        RuntimeQuotaAvailability, RuntimeQuotaRegistry, RuntimeQuotaTarget,
-        SnapshotCatalogAdmission, SnapshotPublicModel, SnapshotRoute, SnapshotRouteCandidate,
-        SnapshotRouteCandidateInput, SnapshotRoutePolicy, SnapshotTransformMode, SnapshotVersion,
+        AttemptExclusionSet, ProviderScopedPriceEvidence, ProviderScopedPriceRates,
+        QuotaConfidence, QuotaSnapshot, QuotaSource, QuotaWindow, RouteCredentialScheduler,
+        RouteSnapshot, RouteSnapshotInput, RuntimeHealthAvailability, RuntimeHealthClock,
+        RuntimeHealthClockError, RuntimeHealthKey, RuntimeHealthRegistry, RuntimeQuotaAvailability,
+        RuntimeQuotaRegistry, RuntimeQuotaTarget, SnapshotCatalogAdmission, SnapshotPublicModel,
+        SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
+        SnapshotTransformMode, SnapshotVersion,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -1270,6 +1286,79 @@ mod tests {
         )?;
         assert_eq!(selected.candidate().id().as_str(), "candidate-a");
         assert_eq!(selected.lease().credential_id().as_str(), "credential-a");
+        Ok(())
+    }
+
+    #[test]
+    fn provider_explain_and_exact_lease_share_scheduler_price_rates() -> TestResult {
+        let route_id = RouteId::try_new("route-price-rates")?;
+        let candidates = vec![
+            candidate_for_provider("candidate-a", "endpoint-a", "provider-a", "model-a")?,
+            candidate_for_provider("candidate-b", "endpoint-b", "provider-a", "model-b")?,
+        ];
+        let pools = vec![
+            endpoint_pool("endpoint-a", vec![("credential-a", 0, 1, 1)])?,
+            endpoint_pool("endpoint-b", vec![("credential-b", 0, 1, 1)])?,
+        ];
+        let price_rates = Arc::new(BTreeMap::from([
+            (
+                RouteCandidateId::try_new("candidate-a")?,
+                ProviderScopedPriceRates::new(20, 20, 20, 20, 20, 20),
+            ),
+            (
+                RouteCandidateId::try_new("candidate-b")?,
+                ProviderScopedPriceRates::new(10, 10, 10, 10, 10, 10),
+            ),
+        ]));
+        let (scheduler, _) = scheduler_from_parts_with_rates(
+            route_id.clone(),
+            candidates,
+            pools,
+            SnapshotRoutePolicy::RoundRobin,
+            Arc::clone(&price_rates),
+        )?;
+        let health = RuntimeHealthRegistry::new();
+        let quota = RuntimeQuotaRegistry::new();
+        let input = ProviderScopedRouteExplainInput::try_new(
+            RouteExplainInput::new(route_id.clone(), 100),
+            ProviderId::try_new("provider-a")?,
+            ["candidate-a", "candidate-b"]
+                .into_iter()
+                .map(RouteCandidateId::try_new)
+                .collect::<Result<_, _>>()?,
+            BTreeMap::new(),
+        )?;
+
+        assert_eq!(scheduler.provider_price_rates(), price_rates.as_ref());
+        let explain = scheduler.explain_provider_scoped(
+            &input,
+            &health,
+            &quota,
+            &AttemptExclusionSet::new(),
+        )?;
+        assert_eq!(
+            explain
+                .provider_selection()
+                .selected_candidate_id()
+                .map(RouteCandidateId::as_str),
+            Some("candidate-b")
+        );
+        assert_eq!(
+            explain.provider_selection().decisions()[0].price_evidence(),
+            ProviderScopedPriceEvidence::Dominant
+        );
+
+        let selected = scheduler.select_provider_scoped_and_lease_at(
+            &route_id,
+            explain.provider_selection(),
+            &health,
+            &quota,
+            100,
+            |_| true,
+            |_, _| true,
+        )?;
+        assert_eq!(selected.candidate().id().as_str(), "candidate-b");
+        assert_eq!(selected.lease().credential_id().as_str(), "credential-b");
         Ok(())
     }
 
@@ -1674,6 +1763,22 @@ mod tests {
         pools: Vec<EndpointCredentialPool>,
         policy: SnapshotRoutePolicy,
     ) -> Result<(RouteCredentialScheduler, Arc<EndpointCredentialPools>), Box<dyn Error>> {
+        scheduler_from_parts_with_rates(
+            route_id,
+            candidates,
+            pools,
+            policy,
+            Arc::new(BTreeMap::new()),
+        )
+    }
+
+    fn scheduler_from_parts_with_rates(
+        route_id: RouteId,
+        candidates: Vec<SnapshotRouteCandidate>,
+        pools: Vec<EndpointCredentialPool>,
+        policy: SnapshotRoutePolicy,
+        provider_price_rates: Arc<BTreeMap<RouteCandidateId, ProviderScopedPriceRates>>,
+    ) -> Result<(RouteCredentialScheduler, Arc<EndpointCredentialPools>), Box<dyn Error>> {
         let public_model_id = PublicModelId::try_new("public-model-a")?;
         let snapshot = Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
             SnapshotVersion::try_new("version-a")?,
@@ -1698,7 +1803,11 @@ mod tests {
         ))?);
         let pools = Arc::new(EndpointCredentialPools::try_new(pools)?);
         Ok((
-            RouteCredentialScheduler::new(snapshot, Arc::clone(&pools)),
+            RouteCredentialScheduler::new_with_provider_price_rates(
+                snapshot,
+                Arc::clone(&pools),
+                provider_price_rates,
+            ),
             pools,
         ))
     }

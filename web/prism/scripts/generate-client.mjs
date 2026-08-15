@@ -7,7 +7,7 @@ import path from "node:path";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const specificationPath = path.join(root, "contracts/management-v1.json");
 const outputPath = path.join(root, "src/generated/management-client.ts");
-const httpMethods = new Set(["get", "post", "patch", "delete"]);
+const httpMethods = new Set(["get", "post", "put", "patch", "delete"]);
 
 function fail(message) {
   throw new Error(`management-client generator: ${message}`);
@@ -126,6 +126,10 @@ if (!checkOnly && process.argv.length !== 2) {
 
 const specification = JSON.parse(await readFile(specificationPath, "utf8"));
 let source = generatedSource(collectOperations(specification));
+source = source.replace(
+  'export type ManagementHttpMethod = "GET" | "POST" | "PATCH" | "DELETE";',
+  'export type ManagementHttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";',
+);
 source = source
   .replace(
     "  hasJsonBody: boolean;\n}>;",

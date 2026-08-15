@@ -116,6 +116,17 @@ try {
   );
 }
 
+// Contract regression: PUT must remain representable by the generated client.
+// The routing-price policy setter uses PUT; an HTTP-method allow-list
+// regression would otherwise silently drop it while freshness still passes.
+const generatedClient = readFileSync(join(ROOT, "src/generated/management-client.ts"), "utf8");
+if (!/export type ManagementHttpMethod = [^;]*"PUT"/u.test(generatedClient)) {
+  failures.push("generated management client must support PUT operations");
+}
+if (!/"setRoutingPricePolicy":\s*\{\s*"method":\s*"PUT"/su.test(generatedClient)) {
+  failures.push("generated management client is missing setRoutingPricePolicy PUT operation");
+}
+
 // 3 + 4 (+5): build artifacts
 // A pre-existing dist is reused so the plain `check` stays fast. Under
 // --double-build that shortcut is wrong twice over: the artifact assertions

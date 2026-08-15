@@ -123,6 +123,29 @@ pub fn find_price_entry<'catalog>(
     })
 }
 
+/// Selects the latest effective catalog that contains one exact
+/// Provider/Channel/public-Model tuple.
+///
+/// Catalog time is inclusive. When two retained catalogs have the same effective timestamp, the
+/// lexicographically greater immutable catalog version wins. The tuple match is exact and does
+/// not consult aliases or an upstream model name.
+#[must_use]
+pub fn find_effective_price_catalog<'catalog>(
+    catalogs: &'catalog [BillingPriceCatalog],
+    provider_id: &str,
+    channel_id: &str,
+    public_model: &str,
+    observed_at_ms: u64,
+) -> Option<&'catalog BillingPriceCatalog> {
+    catalogs
+        .iter()
+        .filter(|catalog| catalog.effective_at_ms <= observed_at_ms)
+        .filter(|catalog| {
+            find_price_entry(catalog, provider_id, channel_id, public_model).is_some()
+        })
+        .max_by_key(|catalog| (catalog.effective_at_ms, &catalog.catalog_version_id))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -193,5 +216,46 @@ mod tests {
         assert_eq!(quote.cost_microunits, None);
         assert_eq!(quote.confidence, BillingCostConfidence::Unpriced);
         Ok(())
+    }
+
+    #[test]
+    fn effective_catalog_selection_is_inclusive_and_breaks_ties_by_version() {
+        let mut older = catalog();
+        older.catalog_version_id = "catalog-a".to_owned();
+        older.effective_at_ms = 99;
+        let mut tie_a = catalog();
+        tie_a.catalog_version_id = "catalog-b".to_owned();
+        let mut tie_b = catalog();
+        tie_b.catalog_version_id = "catalog-c".to_owned();
+        let mut future = catalog();
+        future.catalog_version_id = "catalog-z".to_owned();
+        future.effective_at_ms = 101;
+        let catalogs = vec![future, tie_a, older, tie_b];
+
+        let selected =
+            find_effective_price_catalog(&catalogs, "provider-a", "channel-a", "model-a", 100);
+        assert_eq!(
+            selected.map(|catalog| catalog.catalog_version_id.as_str()),
+            Some("catalog-c")
+        );
+    }
+
+    #[test]
+    fn effective_catalog_requires_the_exact_public_model_tuple() {
+        let catalogs = vec![catalog()];
+        assert!(
+            find_effective_price_catalog(
+                &catalogs,
+                "provider-a",
+                "channel-a",
+                "upstream-model-a",
+                100,
+            )
+            .is_none()
+        );
+        assert!(
+            find_effective_price_catalog(&catalogs, "provider-a", "other-channel", "model-a", 100,)
+                .is_none()
+        );
     }
 }

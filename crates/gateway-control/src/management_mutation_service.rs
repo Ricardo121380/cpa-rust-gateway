@@ -29,7 +29,8 @@ pub use gateway_store::{
         EndpointConfiguration, EndpointCredentialBindingConfiguration, EndpointTransport,
         ManagementResourceAuditEvent, ManagementResourceAuditEventDraft, ModelAliasConfiguration,
         ModelRouteConfiguration, PublicModelConfiguration, RouteCandidateConfiguration,
-        RoutePolicy, SqliteControlPlaneRepository, StoredClientKey, StoredClientKeyStatus,
+        RoutePolicy, RoutingPriceComparison, RoutingPricePolicyConfiguration,
+        SqliteControlPlaneRepository, StoredClientKey, StoredClientKeyStatus,
         StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
     },
 };
@@ -1943,6 +1944,111 @@ impl ManagementMutationService {
         ))
     }
 
+    /// Reads the optional immutable routing-price policy under one selected Config Version.
+    ///
+    /// This is configuration identity only. It never decrypts credentials, calls a Provider, or
+    /// presents the selected catalog as live Health or Quota.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the selected Config Version cannot be loaded or has no policy.
+    pub fn get_routing_price_policy(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+    ) -> Result<Revisioned<RoutingPricePolicyConfiguration>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let policy = configuration
+            .routing_price_policy
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        Ok(Revisioned::new(
+            policy,
+            ConfigRevision::try_new(configuration.version.revision)?,
+        ))
+    }
+
+    /// Binds one existing, already-effective catalog to an exact draft Config Version.
+    ///
+    /// The policy row, Config Version revision, and audit event commit atomically. A future
+    /// catalog, missing catalog, active Version, stale revision, or invalid policy fails closed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the Config Version, catalog, clock, policy, draft revision, or audit
+    /// transaction is invalid or unavailable.
+    pub fn set_routing_price_policy(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        policy: RoutingPricePolicyConfiguration,
+    ) -> Result<Revisioned<RoutingPricePolicyConfiguration>, ManagementResourceError> {
+        // Admission loads the selected graph first so a missing Version cannot be confused with a
+        // missing global catalog. The transaction remains the source of revision truth.
+        let _configuration = self.configuration(config_version_id)?;
+        let observed_at_ms = u64::try_from(self.clock.now_ms()?)
+            .map_err(|_| ManagementResourceError::InvalidBillingCatalogInput)?;
+        let catalog = self
+            .repository
+            .load_billing_catalog(&policy.catalog_version_id)?
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        if catalog.effective_at_ms > observed_at_ms {
+            return Err(ManagementResourceError::RoutingPriceCatalogNotEffective);
+        }
+        let audit = self.audit(
+            "routing_price_policy_set",
+            actor,
+            config_version_id,
+            "routing_price_policy",
+            &policy.catalog_version_id,
+        )?;
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.upsert_routing_price_policy(config_version_id, &policy)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            policy,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Removes the routing-price policy from an exact draft Config Version atomically.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the Config Version has no policy, the draft revision is stale, or the
+    /// delete/audit transaction cannot be committed.
+    pub fn clear_routing_price_policy(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+    ) -> Result<ConfigRevision, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let policy = configuration
+            .routing_price_policy
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        let audit = self.audit(
+            "routing_price_policy_cleared",
+            actor,
+            config_version_id,
+            "routing_price_policy",
+            &policy.catalog_version_id,
+        )?;
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.delete_routing_price_policy(config_version_id)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        ConfigRevision::try_new(next_revision)
+    }
+
     /// Imports one immutable billing catalog and atomically advances the selected draft revision
     /// with its non-secret audit event.
     ///
@@ -2286,6 +2392,8 @@ pub enum ManagementResourceError {
     CredentialRevisionConflict,
     /// A protected billing catalog request violated the bounded immutable input contract.
     InvalidBillingCatalogInput,
+    /// The selected routing-price catalog is valid but not effective at the management clock.
+    RoutingPriceCatalogNotEffective,
     /// The P13 operational read-model query, cursor, or source graph was invalid.
     Operations(ManagementOperationsError),
 }
@@ -2323,6 +2431,9 @@ impl fmt::Display for ManagementResourceError {
             Self::InvalidBillingCatalogInput => {
                 formatter.write_str("management billing catalog input is invalid")
             }
+            Self::RoutingPriceCatalogNotEffective => {
+                formatter.write_str("management routing price catalog is not yet effective")
+            }
             Self::Operations(error) => write!(formatter, "management operations failed: {error}"),
         }
     }
@@ -2343,6 +2454,7 @@ impl Error for ManagementResourceError {
             | Self::InvalidCredentialInput
             | Self::CredentialRevisionConflict
             | Self::InvalidBillingCatalogInput
+            | Self::RoutingPriceCatalogNotEffective
             | Self::ClientKeyIssuerUnavailable => None,
         }
     }
@@ -2413,6 +2525,7 @@ mod tests {
         BillingCatalogImport, BillingCatalogMutationOperation, BillingCatalogSource,
         BillingPriceEntry, ClientKeyIssue, ClientKeyUpdate, ConfigRevision, CredentialUpsert,
         CredentialView, ManagementMutationService, ManagementResourceError, Revisioned,
+        RoutingPricePolicyConfiguration,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -2574,6 +2687,140 @@ mod tests {
         assert_eq!(catalogs[0].catalog_version_id, "catalog-v1");
         assert_eq!(catalogs[1].catalog_version_id, "catalog-v2");
         assert_eq!(catalogs[0].entries, catalogs[1].entries);
+        Ok(())
+    }
+
+    #[test]
+    #[allow(clippy::too_many_lines)]
+    fn routing_price_policy_is_effective_revisioned_draft_only_and_atomic() -> TestResult {
+        let (mut service, version_id, actor) = test_service()?;
+        let entry = BillingPriceEntry {
+            provider_id: "provider-a".to_owned(),
+            channel_id: "channel-a".to_owned(),
+            model: "model-a".to_owned(),
+            input_microunits_per_million: 1,
+            output_microunits_per_million: 2,
+            reasoning_microunits_per_million: 3,
+            cache_read_microunits_per_million: 4,
+            cache_creation_microunits_per_million: 5,
+            cached_microunits_per_million: 6,
+        };
+        let imported = service.import_billing_catalog(
+            &actor,
+            &version_id,
+            ConfigRevision::initial(),
+            BillingCatalogImport {
+                catalog_version_id: "routing-catalog".to_owned(),
+                effective_at_ms: 42,
+                source: BillingCatalogSource::Operator,
+                entries: vec![entry],
+            },
+        )?;
+        let policy = RoutingPricePolicyConfiguration::try_new(
+            "routing-catalog",
+            gateway_store::control_plane::RoutingPriceComparison::RateDominanceV1,
+        )?;
+        let set = service.set_routing_price_policy(
+            &actor,
+            &version_id,
+            imported.revision(),
+            policy.clone(),
+        )?;
+        assert_eq!(set.revision().as_i64(), imported.revision().as_i64() + 1);
+        assert_eq!(
+            service.get_routing_price_policy(&version_id)?.value(),
+            &policy
+        );
+        assert_eq!(
+            service
+                .resource_audit_events()?
+                .last()
+                .ok_or("routing price set audit missing")?
+                .action(),
+            "routing_price_policy_set"
+        );
+
+        let stale = service.set_routing_price_policy(
+            &actor,
+            &version_id,
+            imported.revision(),
+            policy.clone(),
+        );
+        assert!(matches!(
+            stale,
+            Err(ManagementResourceError::Store(
+                StoreError::ConfigVersionRevisionConflict
+            ))
+        ));
+        assert_eq!(service.resource_audit_events()?.len(), 2);
+
+        let future_catalog = service.import_billing_catalog(
+            &actor,
+            &version_id,
+            set.revision(),
+            BillingCatalogImport {
+                catalog_version_id: "future-routing-catalog".to_owned(),
+                effective_at_ms: 43,
+                source: BillingCatalogSource::Operator,
+                entries: vec![BillingPriceEntry {
+                    provider_id: "provider-a".to_owned(),
+                    channel_id: "channel-a".to_owned(),
+                    model: "model-a".to_owned(),
+                    input_microunits_per_million: 1,
+                    output_microunits_per_million: 1,
+                    reasoning_microunits_per_million: 1,
+                    cache_read_microunits_per_million: 1,
+                    cache_creation_microunits_per_million: 1,
+                    cached_microunits_per_million: 1,
+                }],
+            },
+        )?;
+        let future_policy = RoutingPricePolicyConfiguration::try_new(
+            "future-routing-catalog",
+            gateway_store::control_plane::RoutingPriceComparison::RateDominanceV1,
+        )?;
+        let future = service.set_routing_price_policy(
+            &actor,
+            &version_id,
+            future_catalog.revision(),
+            future_policy,
+        );
+        assert!(matches!(
+            future,
+            Err(ManagementResourceError::RoutingPriceCatalogNotEffective)
+        ));
+        assert_eq!(
+            service
+                .get_routing_price_policy(&version_id)?
+                .value()
+                .catalog_version_id,
+            "routing-catalog"
+        );
+
+        let cleared =
+            service.clear_routing_price_policy(&actor, &version_id, future_catalog.revision())?;
+        assert!(matches!(
+            service.get_routing_price_policy(&version_id),
+            Err(ManagementResourceError::ResourceNotFound)
+        ));
+        assert_eq!(
+            service
+                .resource_audit_events()?
+                .last()
+                .ok_or("routing price clear audit missing")?
+                .action(),
+            "routing_price_policy_cleared"
+        );
+        assert_eq!(cleared.as_i64(), future_catalog.revision().as_i64() + 1);
+
+        service.repository_mut().activate_version(&version_id)?;
+        let active = service.set_routing_price_policy(&actor, &version_id, cleared, policy);
+        assert!(matches!(
+            active,
+            Err(ManagementResourceError::Store(
+                StoreError::ControlPlaneMutationRequiresDraft
+            ))
+        ));
         Ok(())
     }
 

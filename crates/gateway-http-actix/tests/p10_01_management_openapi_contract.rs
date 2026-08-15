@@ -117,6 +117,62 @@ fn provider_account_operator_contract_is_bounded_audited_and_value_free() -> Tes
 }
 
 #[test]
+fn routing_price_policy_contract_is_closed_revisioned_and_value_free() -> TestResult {
+    let document = document()?;
+    let paths = object(&document, "paths")?;
+    let path = &paths["/admin/billing/routing-price-policy"];
+    assert_eq!(path["get"]["operationId"], "getRoutingPricePolicy");
+    assert_eq!(path["put"]["operationId"], "setRoutingPricePolicy");
+    assert_eq!(path["delete"]["operationId"], "clearRoutingPricePolicy");
+    assert_eq!(path["put"]["x-audit-action"], "routing_price_policy_set");
+    assert_eq!(
+        path["delete"]["x-audit-action"],
+        "routing_price_policy_cleared"
+    );
+    for method in ["put", "delete"] {
+        assert!(
+            operation_parameters(&document, "/admin/billing/routing-price-policy", method,)?
+                .iter()
+                .any(|parameter| parameter["$ref"] == "#/components/parameters/IfMatch")
+        );
+    }
+
+    let schemas = object(&document["components"], "schemas")?;
+    for schema_name in ["RoutingPricePolicyInput", "RoutingPricePolicy"] {
+        let schema = &schemas[schema_name];
+        assert_eq!(schema["additionalProperties"], false);
+        assert_eq!(
+            schema["properties"]["comparison"]["enum"],
+            serde_json::json!(["rate_dominance_v1"])
+        );
+        assert!(schema["properties"].get("cost_microunits").is_none());
+        assert!(schema["properties"].get("token_estimate").is_none());
+    }
+    assert_eq!(
+        schemas["RouteExplain"]["properties"]["candidates"]["items"]["properties"]["price_evidence"]
+            ["enum"],
+        serde_json::json!([
+            "dominant",
+            "equal",
+            "dominated",
+            "incomparable",
+            "unpriced",
+            "not_evaluated",
+            "disabled"
+        ])
+    );
+    assert_eq!(
+        schemas["RouteExplain"]["required"],
+        serde_json::json!(["route_id", "candidates", "price_policy"])
+    );
+    assert_eq!(
+        schemas["RouteExplain"]["properties"]["candidates"]["items"]["required"],
+        serde_json::json!(["candidate_id", "decision", "price_evidence"])
+    );
+    Ok(())
+}
+
+#[test]
 fn management_contract_is_separate_from_client_keys_and_uses_optimistic_transactions() -> TestResult
 {
     let document = document()?;
@@ -375,7 +431,7 @@ fn operation_parameters(
     Ok(parameters)
 }
 
-fn required_operations() -> [(&'static str, &'static str); 38] {
+fn required_operations() -> [(&'static str, &'static str); 41] {
     [
         ("/admin/config-versions", "get"),
         ("/admin/config-versions", "post"),
@@ -402,6 +458,9 @@ fn required_operations() -> [(&'static str, &'static str); 38] {
         ("/admin/routes/{route_id}/candidates", "post"),
         ("/admin/routes/{route_id}/validate", "post"),
         ("/admin/routes/{route_id}/explain", "get"),
+        ("/admin/billing/routing-price-policy", "get"),
+        ("/admin/billing/routing-price-policy", "put"),
+        ("/admin/billing/routing-price-policy", "delete"),
         ("/admin/access-groups", "post"),
         ("/admin/access-groups/{access_group_id}/routes", "post"),
         ("/admin/client-keys", "post"),
@@ -424,7 +483,7 @@ fn required_operations() -> [(&'static str, &'static str); 38] {
     ]
 }
 
-fn concurrent_write_operations() -> [(&'static str, &'static str); 20] {
+fn concurrent_write_operations() -> [(&'static str, &'static str); 22] {
     [
         ("/admin/egress-policies", "post"),
         ("/admin/egress-policies/{egress_policy_id}", "patch"),
@@ -449,6 +508,8 @@ fn concurrent_write_operations() -> [(&'static str, &'static str); 20] {
         ("/admin/access-groups/{access_group_id}/routes", "post"),
         ("/admin/client-keys", "post"),
         ("/admin/client-keys/{client_key_id}", "delete"),
+        ("/admin/billing/routing-price-policy", "put"),
+        ("/admin/billing/routing-price-policy", "delete"),
     ]
 }
 

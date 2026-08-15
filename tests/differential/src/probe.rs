@@ -264,6 +264,7 @@ fn draft_configuration(id: &ConfigVersionId, created_at_ms: i64) -> ControlPlane
         access_groups: Vec::new(),
         access_group_routes: Vec::new(),
         client_keys: Vec::new(),
+        routing_price_policy: None,
     }
 }
 

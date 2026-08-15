@@ -6,19 +6,20 @@
 //! runtime-health registry; attempt, retry, transport, and Provider behavior remain outside this
 //! module.
 
-use std::sync::Arc;
+use std::{collections::BTreeMap, sync::Arc};
 
 use gateway_core::{
-    CredentialId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode, ProviderId, RouteId,
+    CredentialId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode, ProviderId,
+    RouteCandidateId, RouteId,
 };
 use gateway_upstream::{CredentialLease, EndpointCredentialPools};
 
 use crate::{
-    AttemptExclusionSet, ProviderScopedRouteExplainError, ProviderScopedRouteExplainInput,
-    ProviderScopedRouteExplainSnapshot, ProviderScopedSelection, RouteCandidateScheduler,
-    RouteExplainError, RouteExplainInput, RouteExplainSnapshot, RouteSnapshot,
-    RuntimeHealthRegistry, RuntimeQuotaAvailability, RuntimeQuotaRegistry, RuntimeQuotaTarget,
-    SnapshotRouteCandidate,
+    AttemptExclusionSet, ProviderScopedPriceRates, ProviderScopedRouteExplainError,
+    ProviderScopedRouteExplainInput, ProviderScopedRouteExplainSnapshot, ProviderScopedSelection,
+    RouteCandidateScheduler, RouteExplainError, RouteExplainInput, RouteExplainSnapshot,
+    RouteSnapshot, RuntimeHealthRegistry, RuntimeQuotaAvailability, RuntimeQuotaRegistry,
+    RuntimeQuotaTarget, SnapshotRouteCandidate,
 };
 
 /// A process-local two-stage scheduler for one immutable Route Snapshot and matching pools.
@@ -31,6 +32,7 @@ use crate::{
 pub struct RouteCredentialScheduler {
     candidates: RouteCandidateScheduler,
     credential_pools: Arc<EndpointCredentialPools>,
+    provider_price_rates: Arc<BTreeMap<RouteCandidateId, ProviderScopedPriceRates>>,
 }
 
 // The pre-expiry API variants intentionally preserve their historical behavior: expiry-aware
@@ -48,10 +50,49 @@ impl RouteCredentialScheduler {
         snapshot: Arc<RouteSnapshot>,
         credential_pools: Arc<EndpointCredentialPools>,
     ) -> Self {
+        Self::new_with_provider_price_rates(snapshot, credential_pools, Arc::new(BTreeMap::new()))
+    }
+
+    /// Creates a two-stage selector with one immutable, composition-time Provider price map.
+    ///
+    /// The map is keyed only by stable Candidate identity and contains no usage estimates or
+    /// credentials. An absent entry remains unpriced. Callers must rebuild the scheduler to
+    /// publish a different catalog snapshot; request-time paths never read persistence.
+    #[must_use]
+    pub fn new_with_provider_price_rates(
+        snapshot: Arc<RouteSnapshot>,
+        credential_pools: Arc<EndpointCredentialPools>,
+        provider_price_rates: Arc<BTreeMap<RouteCandidateId, ProviderScopedPriceRates>>,
+    ) -> Self {
         Self {
             candidates: RouteCandidateScheduler::new(snapshot),
             credential_pools,
+            provider_price_rates,
         }
+    }
+
+    /// Returns the immutable Candidate-price map owned by this scheduler composition.
+    #[must_use]
+    pub fn provider_price_rates(&self) -> &BTreeMap<RouteCandidateId, ProviderScopedPriceRates> {
+        &self.provider_price_rates
+    }
+
+    /// Returns one exact Candidate's immutable price vector, when cataloged.
+    #[must_use]
+    pub fn provider_price_rates_for_candidate(
+        &self,
+        candidate_id: &RouteCandidateId,
+    ) -> Option<ProviderScopedPriceRates> {
+        self.provider_price_rates.get(candidate_id).copied()
+    }
+
+    /// Returns the exact immutable Config Snapshot version owned by this scheduler.
+    ///
+    /// Management diagnostics use this value to reject a newly published registry Snapshot until
+    /// the process has rebuilt its credential pools, price map, and scheduler together.
+    #[must_use]
+    pub fn snapshot_version(&self) -> &crate::SnapshotVersion {
+        self.candidates.snapshot().version()
     }
 
     /// Selects a Candidate and immediately acquires one lease from its Endpoint Credential pool.
@@ -579,12 +620,21 @@ impl RouteCredentialScheduler {
         runtime_quota: &RuntimeQuotaRegistry,
         exclusions: &AttemptExclusionSet,
     ) -> Result<ProviderScopedRouteExplainSnapshot, ProviderScopedRouteExplainError> {
+        let candidate_price_rates = input
+            .admitted_candidate_ids()
+            .iter()
+            .filter_map(|candidate_id| {
+                self.provider_price_rates_for_candidate(candidate_id)
+                    .map(|rates| (candidate_id.clone(), rates))
+            })
+            .collect();
+        let scheduler_input = input.with_candidate_price_rates(candidate_price_rates)?;
         crate::route_explain::explain_provider_scoped(
             self.candidates.snapshot(),
             &self.credential_pools,
             runtime_health,
             runtime_quota,
-            input,
+            &scheduler_input,
             exclusions,
         )
     }
