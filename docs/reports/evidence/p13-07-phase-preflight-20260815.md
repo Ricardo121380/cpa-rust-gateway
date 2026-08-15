@@ -1,6 +1,6 @@
 # P13-07 routing phase preflight receipt — 2026-08-15
 
-Status: `READY_FOR_FORMAL_DELIVERY_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Scope
 
@@ -19,13 +19,14 @@ P13-08/P13-11/P13-12 development.
 
 - Branch: `codex/p13-06c-operator-feedback`
 - Reviewed implementation base: `8d17123c6d479d72d06e776598ef66eaf2c667b3`
-- Planned immutable tag: `phase-p13-routing-complete`
-- Formal closeout SHA and GitHub Actions run: recorded by the tag and the post-Gate reconciliation
-  after Authorize, Fast, Full supply-chain and Required all reach `success`.
+- Immutable tag: `phase-p13-routing-complete`
+- Exact closeout commit: `0c338ee8eef76e470c55515a24728324684365c5`
+- Formal Delivery Gate: GitHub Actions run
+  [31875826495](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31875826495)
 
-The annotated tag is created only after this receipt, the independent phase review and the status
-index corrections are committed. The four pre-existing untracked helper files remain outside the
-candidate.
+The annotated tag resolves to the exact closeout commit above. It was created once after this
+receipt, the independent phase review and the status-index corrections were committed; it was not
+moved or recreated. The four pre-existing untracked helper files remained outside the candidate.
 
 ## Authoritative local preflight
 
@@ -55,14 +56,32 @@ security advisory failed the run.
 
 | Slice | Evidence | Local state |
 |---|---|---|
-| P13-07A | `p13-07a-provider-scoped-selector.md`, ADR-0084, BC-ROUTE-006 | `LOCAL_PASS_PENDING_PHASE_GATE` |
-| P13-07B | `p13-07b-provider-scoped-route-explain.md`, ADR-0085, BC-ROUTE-007 | `LOCAL_PASS_PENDING_PHASE_GATE` |
-| P13-07C | `p13-07c-serving-lease-revalidation.md`, ADR-0086, BC-ROUTE-008 | `LOCAL_PASS_PENDING_PHASE_GATE` |
-| P13-07D | `p13-07d-config-bound-routing-price-evidence.md`, ADR-0087, BC-ROUTE-009 | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| P13-07A | `p13-07a-provider-scoped-selector.md`, ADR-0084, BC-ROUTE-006 | `DONE_WITH_BOUNDARY` |
+| P13-07B | `p13-07b-provider-scoped-route-explain.md`, ADR-0085, BC-ROUTE-007 | `DONE_WITH_BOUNDARY` |
+| P13-07C | `p13-07c-serving-lease-revalidation.md`, ADR-0086, BC-ROUTE-008 | `DONE_WITH_BOUNDARY` |
+| P13-07D | `p13-07d-config-bound-routing-price-evidence.md`, ADR-0087, BC-ROUTE-009 | `DONE_WITH_BOUNDARY` |
 
-## Formal Gate boundary
+## Formal Delivery Gate result
 
-The closeout uses one annotated tag event. Ordinary branch pushes do not count as formal evidence.
-The Gate is accepted only when the exact tag SHA has successful Authorize, Fast, Full supply-chain
-and Required jobs. A failure does not permit P13-08 to start and the immutable failed tag must not
-be moved.
+The single annotated-tag event for `phase-p13-routing-complete` triggered formal run
+[31875826495](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31875826495)
+against exact commit `0c338ee8eef76e470c55515a24728324684365c5`.
+
+| Job | Result | Duration |
+|---|---|---:|
+| Authorize | `success` | 3s |
+| Fast | `success` | 5m57s |
+| Full supply-chain | `success` | 1m16s |
+| Required | `success` | 2s |
+
+The only workflow annotations were non-blocking GitHub Node.js 20 deprecation notices for the
+pinned `actions/checkout` and `actions/cache` actions. They did not change the successful Gate
+result and did not authorize a workflow or dependency change during closeout.
+
+## Accepted boundary
+
+The local Full preflight passed all 43 steps and the exact immutable closeout commit passed all four
+formal Delivery Gate jobs. P13-07 therefore closes as `DONE_WITH_BOUNDARY`. The P13 umbrella remains
+`IN_PROGRESS` because later independent backlog still exists; P13-08 was not started. No Provider
+request, staging deployment, production deployment or server mutation occurred as part of this
+closeout or reconciliation.

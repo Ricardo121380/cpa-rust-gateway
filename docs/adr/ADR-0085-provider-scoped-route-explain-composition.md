@@ -1,6 +1,6 @@
 # ADR-0085: Provider-scoped Route Explain composition
 
-Status: **Accepted — P13-07B local implementation**
+Status: **Accepted — formally gated with P13-07**
 
 ## Context
 
@@ -33,14 +33,20 @@ Compose P13-07A through the existing read-only `RouteCredentialScheduler::explai
 
 ## Consequences
 
-Route Explain now reflects the same runtime observations and deterministic policy that a future
-serving-path integration can reuse, while the actual request path remains on the existing lease
+Route Explain reflects the same runtime observations and deterministic policy later reused by
+P13-07C's serving-path integration, while the actual request path remains on the existing lease
 owner. Multi-Provider routes require an explicit operator scope, and the Prism UI must eventually
-surface that choice. A later serving integration must revalidate the selected candidate at lease
-time because this is an advisory snapshot.
+surface that choice. P13-07C revalidates the selected candidate at lease time because this remains
+an advisory snapshot.
 
 ## Verification boundary
 
-P13-07B is local-only: router/runtime/HTTP/OpenAPI/Prism contract checks, strict Clippy, docs and
-secret/diff review. It does not call a Provider, change production, or run the expensive formal
-Delivery Gate.
+P13-07B's slice evidence covers router/runtime/HTTP/OpenAPI/Prism contract checks, strict Clippy,
+docs and secret/diff review. It does not call a Provider or change production.
+
+The complete P13-07 phase passed the local Full preflight (`43/43`) and the immutable
+`phase-p13-routing-complete` Delivery Gate at commit
+`0c338ee8eef76e470c55515a24728324684365c5`: [run 31875826495](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31875826495)
+completed Authorize, Fast, Full supply-chain and Required successfully in `3s`, `5m57s`, `1m16s`
+and `2s`. This acceptance does not claim Provider traffic, staging/production mutation or the
+start of P13-08.

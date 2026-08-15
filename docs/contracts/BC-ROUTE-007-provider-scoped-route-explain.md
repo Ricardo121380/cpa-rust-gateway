@@ -1,6 +1,6 @@
 # BC-ROUTE-007: Provider-scoped Route Explain composition
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Contract
 
@@ -44,3 +44,12 @@ updated only by the sync command.
 No URL, credential plaintext/ciphertext, cookie, header, request/response body, raw quota window or
 client-key digest crosses the boundary. No Provider I/O, SQLite mutation, refresh/reauth, proxy
 selection or cross-Provider fallback is allowed.
+
+## Formal evidence
+
+The complete P13-07 phase passed the local Full preflight (`43/43`) and the immutable
+`phase-p13-routing-complete` Delivery Gate at commit
+`0c338ee8eef76e470c55515a24728324684365c5`: [run 31875826495](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31875826495)
+completed Authorize, Fast, Full supply-chain and Required successfully in `3s`, `5m57s`, `1m16s`
+and `2s`. This contract is closed as `DONE_WITH_BOUNDARY`; it does not claim Provider traffic,
+staging/production mutation or the start of P13-08.

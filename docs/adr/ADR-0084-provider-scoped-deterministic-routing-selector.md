@@ -1,6 +1,6 @@
 # ADR-0084: Provider-scoped deterministic routing selector
 
-Status: **Accepted — P13-07A local implementation**
+Status: **Accepted — formally gated with P13-07**
 
 ## Context
 
@@ -44,3 +44,10 @@ cheap or unlimited route.
 P13-07A covers Provider isolation, unknown cost/quota, least-loaded ratio, stable input ordering,
 duplicate/identity rejection, closed rejection reasons, finite bounds and overflow-safe
 arithmetic. No OpenAPI or Prism contract changed in this slice.
+
+The complete P13-07 phase passed the local Full preflight (`43/43`) and the immutable
+`phase-p13-routing-complete` Delivery Gate at commit
+`0c338ee8eef76e470c55515a24728324684365c5`: [run 31875826495](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31875826495)
+completed Authorize, Fast, Full supply-chain and Required successfully in `3s`, `5m57s`, `1m16s`
+and `2s`. This acceptance does not claim Provider traffic, staging/production mutation or the
+start of P13-08.

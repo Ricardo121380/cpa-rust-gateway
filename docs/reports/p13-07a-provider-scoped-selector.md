@@ -1,6 +1,6 @@
 # P13-07A Provider-scoped deterministic selector report
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Objective
 
@@ -29,10 +29,17 @@ cost-aware/fill-first/least-loaded behavior and emits safe exclusion reasons.
 | `scripts/check-source-policy.rb` and `scripts/check-crate-boundaries.rb` | PASS |
 | `scripts/check.sh docs` | PASS (516 Markdown files; tracked-secret scan included) |
 
-## Boundary and next slice
+## Boundary and phase closeout
 
-The selector is not yet wired into request-time candidate selection. The existing
-`RouteCredentialScheduler` continues to own leases, Health/Quota reads, cursors, retry boundaries
-and Provider execution. No Provider/network request, credential refresh, production deployment,
-or frontend contract change occurred. The next P13-07 slice can add a composition adapter and
-Route Explain projection only after the policy is reviewed against the existing scheduler matrix.
+P13-07A itself did not wire the selector into request-time candidate selection. The existing
+`RouteCredentialScheduler` continued to own leases, Health/Quota reads, cursors, retry boundaries
+and Provider execution; the later P13-07B through P13-07D slices composed and integrated this
+policy without weakening that ownership. No Provider/network request, credential refresh,
+production deployment or frontend contract change is attributed to P13-07A.
+
+The complete P13-07 phase passed the local Full preflight (`43/43`) and the immutable
+`phase-p13-routing-complete` Delivery Gate at commit
+`0c338ee8eef76e470c55515a24728324684365c5`: [run 31875826495](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31875826495)
+completed Authorize, Fast, Full supply-chain and Required successfully in `3s`, `5m57s`, `1m16s`
+and `2s`. This closes P13-07A as `DONE_WITH_BOUNDARY`; it does not claim Provider traffic,
+staging/production mutation or the start of P13-08.

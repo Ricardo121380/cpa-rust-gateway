@@ -1,6 +1,6 @@
 # P13-07D Config-bound routing price evidence report
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Objective
 
@@ -56,8 +56,9 @@ already published Config Version.
   `./scripts/check.sh docs`, `./scripts/check.sh fast`, `cargo fmt --all -- --check`,
   `git diff --check`, source-policy, crate-boundary and tracked-secret checks passed. The authoritative
   OpenAPI and Prism contract contain 82 operations and are byte-aligned.
-- No Provider request, token-count request, production/server mutation, staging traffic, or formal
-  Delivery Gate was run.
+- No Provider request, token-count request, production/server mutation or staging traffic was run
+  by the implementation slice. Its local evidence was subsequently included in the one formal
+  P13-07 phase Delivery Gate recorded below.
 
 ## Independent review
 
@@ -68,8 +69,12 @@ catalog-row composition fixture and active/archived/unknown-catalog HTTP permuta
 and service-level fail-closed tests already cover those invariants, and SQLite foreign keys prevent a
 normal persisted policy from referencing a missing catalog.
 
-## Boundary and next step
+## Boundary and phase closeout
 
-P13-07D is locally complete but remains `LOCAL_PASS_PENDING_PHASE_GATE`. P13-07 and the P13 umbrella
-remain `IN_PROGRESS` until one separately authorized phase Gate decision. No staging canary, Provider
-probe, production mutation, P13-08, P13-11 or P13-12 is started by this receipt.
+The complete P13-07 phase passed the local Full preflight (`43/43`) and the immutable
+`phase-p13-routing-complete` Delivery Gate at commit
+`0c338ee8eef76e470c55515a24728324684365c5`: [run 31875826495](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31875826495)
+completed Authorize, Fast, Full supply-chain and Required successfully in `3s`, `5m57s`, `1m16s`
+and `2s`. P13-07D and P13-07 are therefore closed as `DONE_WITH_BOUNDARY`; the broader P13 phase
+remains independent of this closeout. No staging canary, Provider probe, production mutation,
+P13-08, P13-11 or P13-12 is started by this receipt.

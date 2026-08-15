@@ -1,6 +1,6 @@
 # BC-ROUTE-006: Provider-scoped deterministic selector
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Contract
 
@@ -46,3 +46,12 @@ fallback and implicit credential conversion are forbidden.
 P13-07A changes no management OpenAPI shape and no Prism generated client. A future Route Explain
 shape change must update the authoritative OpenAPI source, sync Prism, and append a
 `docs/cross-boundary-log.md` entry before frontend work.
+
+## Formal evidence
+
+The complete P13-07 phase passed the local Full preflight (`43/43`) and the immutable
+`phase-p13-routing-complete` Delivery Gate at commit
+`0c338ee8eef76e470c55515a24728324684365c5`: [run 31875826495](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31875826495)
+completed Authorize, Fast, Full supply-chain and Required successfully in `3s`, `5m57s`, `1m16s`
+and `2s`. This contract is closed as `DONE_WITH_BOUNDARY`; it does not claim Provider traffic,
+staging/production mutation or the start of P13-08.

@@ -1,6 +1,6 @@
 # ADR-0086: Provider-scoped serving lease revalidation
 
-Status: **Accepted — P13-07C local implementation**
+Status: **Accepted — formally gated with P13-07**
 
 ## Context
 
@@ -54,7 +54,9 @@ revalidation in the existing scheduler.
 
 Serving selection now uses the deterministic quota/load/priority ordering and preserves the
 race-safe exact lease semantics already exercised by the scheduler. The optional versioned cost is
-still `Unknown` because this slice does not inject the P13-05 catalog; it is never guessed as zero.
+still `Unknown` inside this slice because P13-07C does not inject the P13-05 catalog; P13-07D later
+adds the exact Config-bound price projection without changing this lease contract, and missing
+evidence is never guessed as zero.
 A candidate can be rejected after the advisory ranking, which is intentional: live state wins over
 an older explanation. A multi-Provider route must wait for an explicit policy rather than silently
 changing ownership. The same Provider boundary is therefore visible in management explanations and
@@ -62,9 +64,15 @@ in real request admission, without introducing a second source of truth.
 
 ## Verification boundary
 
-P13-07C is a local implementation and review slice. Evidence must cover selector-driven ordering,
+P13-07C evidence covers selector-driven ordering,
 lease races, expiry/Health/Quota/capacity rechecks, candidate/binding exclusions, max-attempts and
 first-semantic-event behavior, Config Version staleness, cancellation/driver lease release, and
-multi-Provider fail-closed behavior. Tests use fixtures or loopback drivers only. They must not
-send a Provider request, change production/server state, refresh credentials, or run the formal
-P13 Delivery Gate.
+multi-Provider fail-closed behavior. Tests use fixtures or loopback drivers only. They do not send
+a Provider request, change production/server state or refresh credentials.
+
+The complete P13-07 phase passed the local Full preflight (`43/43`) and the immutable
+`phase-p13-routing-complete` Delivery Gate at commit
+`0c338ee8eef76e470c55515a24728324684365c5`: [run 31875826495](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31875826495)
+completed Authorize, Fast, Full supply-chain and Required successfully in `3s`, `5m57s`, `1m16s`
+and `2s`. This acceptance does not claim Provider traffic, staging/production mutation or the
+start of P13-08.

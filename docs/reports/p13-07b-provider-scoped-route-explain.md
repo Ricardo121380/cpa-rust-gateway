@@ -1,6 +1,6 @@
 # P13-07B Provider-scoped Route Explain composition report
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Objective
 
@@ -23,8 +23,8 @@ creating a second lease owner or changing the serving request path.
 
 The serving `AttemptOrchestrator` still owns request-time cursor advancement, lease acquisition,
 retry/max-attempts, first-semantic-event handling and final Health/Quota revalidation. This slice
-does not call Providers, refresh credentials, use a proxy pool, modify production, or run the
-formal Delivery Gate.
+does not call Providers, refresh credentials, use a proxy pool or modify production. Its local
+evidence was subsequently included in the one formal P13-07 phase Delivery Gate recorded below.
 
 ## Verification
 
@@ -46,5 +46,14 @@ evidence because Cargo forwarded the test-only flag to the Criterion benchmark b
 test result above uses `--tests` with serial threads and separately compiles benchmarks without
 executing them.
 
-No Provider request, production/server change, credential refresh, lease acquisition, staging
-canary, or formal P13 Delivery Gate was performed.
+No Provider request, production/server change, credential refresh, lease acquisition or staging
+canary was performed by P13-07B.
+
+## Formal phase closeout
+
+The complete P13-07 phase passed the local Full preflight (`43/43`) and the immutable
+`phase-p13-routing-complete` Delivery Gate at commit
+`0c338ee8eef76e470c55515a24728324684365c5`: [run 31875826495](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31875826495)
+completed Authorize, Fast, Full supply-chain and Required successfully in `3s`, `5m57s`, `1m16s`
+and `2s`. This closes P13-07B as `DONE_WITH_BOUNDARY`; it does not claim Provider traffic,
+staging/production mutation or the start of P13-08.

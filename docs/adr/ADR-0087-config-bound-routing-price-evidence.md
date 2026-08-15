@@ -1,6 +1,6 @@
 # ADR-0087: Config-bound routing price evidence
 
-Status: **Accepted — P13-07D local implementation and review passed; phase gate pending**
+Status: **Accepted — formally gated with P13-07**
 
 ## Context
 
@@ -90,5 +90,11 @@ load and configured policy even when a heuristic could have guessed a cheaper pr
 conservative correctness choice.
 
 P13-07D does not start automatic catalog refresh, Provider calls, staging traffic, production
-deployment, P13-08, P13-11 or P13-12. A formal phase Gate or bounded canary remains a separate
-closeout decision after local implementation and independent review.
+deployment, P13-08, P13-11 or P13-12.
+
+The complete P13-07 phase passed the local Full preflight (`43/43`) and the immutable
+`phase-p13-routing-complete` Delivery Gate at commit
+`0c338ee8eef76e470c55515a24728324684365c5`: [run 31875826495](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31875826495)
+completed Authorize, Fast, Full supply-chain and Required successfully in `3s`, `5m57s`, `1m16s`
+and `2s`. This acceptance does not claim a staging canary, Provider traffic, production mutation
+or the start of a later task.

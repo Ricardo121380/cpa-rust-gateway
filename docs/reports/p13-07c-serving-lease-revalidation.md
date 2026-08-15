@@ -1,6 +1,6 @@
 # P13-07C Provider-scoped serving lease revalidation report
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Objective
 
@@ -20,7 +20,7 @@ timeout, cancellation and Config Version boundaries.
   attempt or widening `max_attempts`;
 - no cross-Provider fallback, implicit credential conversion, refresh/reauth or proxy-pool action;
 - public Chat/Responses/Messages, management OpenAPI, Prism and frontend shapes are unchanged;
-- no Provider request, production/server mutation or formal P13 Delivery Gate.
+- no Provider request or production/server mutation from this implementation slice.
 
 ## Delivered implementation
 
@@ -76,10 +76,15 @@ lease. A foreign hard-ineligible recovery-due fixture now proves zero lease/zero
 same-Provider fixture proves controlled recovery still succeeds. The review was rerun and reported
 no remaining blocker.
 
-## Boundary and next slice
+## Boundary and phase closeout
 
-P13-07C is locally complete and remains `LOCAL_PASS_PENDING_PHASE_GATE`; no formal P13 Delivery Gate
-or staging canary was run. P13-07 remains `IN_PROGRESS`: before phase closeout, a narrow follow-up
-must decide and implement the versioned P13-05 catalog-to-runtime cost projection so configured
-prices are not permanently represented as `Unknown`. A bounded staging canary may be evaluated only
-after that boundary and the P13 phase rules are reviewed. Do not start P13-08/11/12 from this report.
+P13-07C kept cost explicitly `Unknown` inside this slice; P13-07D subsequently supplied the exact
+Config-bound P13-05 catalog-to-runtime price projection without changing P13-07C's lease ownership
+or revalidation boundary. No staging canary was run.
+
+The complete P13-07 phase passed the local Full preflight (`43/43`) and the immutable
+`phase-p13-routing-complete` Delivery Gate at commit
+`0c338ee8eef76e470c55515a24728324684365c5`: [run 31875826495](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31875826495)
+completed Authorize, Fast, Full supply-chain and Required successfully in `3s`, `5m57s`, `1m16s`
+and `2s`. This closes P13-07C as `DONE_WITH_BOUNDARY`; it does not claim Provider traffic,
+staging/production mutation or the start of P13-08/11/12.

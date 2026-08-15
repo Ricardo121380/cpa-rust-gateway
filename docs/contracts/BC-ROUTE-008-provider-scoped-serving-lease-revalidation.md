@@ -1,6 +1,6 @@
 # BC-ROUTE-008: Provider-scoped serving lease revalidation
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Contract
 
@@ -61,9 +61,10 @@ projections. Diagnostics may report only stable candidate/provider IDs and close
 The serving path performs no Store or network I/O before the driver is invoked, and no automatic
 refresh/reauth, proxy-pool fallback or cross-Provider credential conversion is allowed.
 
-P13-07C supplies no versioned price map to the serving selector. Cost therefore remains explicitly
-`Unknown`; it is never treated as zero. Injecting a Config-Version-compatible P13-05 price-catalog
-projection is a separate follow-up contract and must not add per-request Store I/O.
+P13-07C itself supplies no versioned price map to the serving selector, so cost remains explicitly
+`Unknown` at this contract boundary and is never treated as zero. P13-07D's separate BC-ROUTE-009
+contract later injects a Config-Version-compatible P13-05 price-catalog projection without adding
+per-request Store I/O or changing the lease owner.
 
 ## Public boundary
 
@@ -72,3 +73,12 @@ OpenAPI, Prism generated clients or frontend routes. If a later task adds an exp
 internal Provider/route-policy field, it must create a new Change Request, update the authoritative
 OpenAPI source first, synchronize Prism, and append a `docs/cross-boundary-log.md` entry for Claude
 Code.
+
+## Formal evidence
+
+The complete P13-07 phase passed the local Full preflight (`43/43`) and the immutable
+`phase-p13-routing-complete` Delivery Gate at commit
+`0c338ee8eef76e470c55515a24728324684365c5`: [run 31875826495](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31875826495)
+completed Authorize, Fast, Full supply-chain and Required successfully in `3s`, `5m57s`, `1m16s`
+and `2s`. This contract is closed as `DONE_WITH_BOUNDARY`; it does not claim Provider traffic,
+staging/production mutation or the start of P13-08.
