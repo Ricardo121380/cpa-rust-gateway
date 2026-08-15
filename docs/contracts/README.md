@@ -121,4 +121,4 @@ P13-06C 已建立 [BC-MGMT-016 Provider account operator actions and failure fee
 P13-07A 已建立 [BC-ROUTE-006 Provider-scoped deterministic selector](BC-ROUTE-006-provider-scoped-deterministic-selector.md)（本地实现与 review 通过，phase gate pending）。
 P13-07B 已建立 [BC-ROUTE-007 Provider-scoped Route Explain composition](BC-ROUTE-007-provider-scoped-route-explain.md)（本地实现与 review 通过，phase gate pending）。
 P13-07C 已本地完成 [BC-ROUTE-008 Provider-scoped serving lease revalidation](BC-ROUTE-008-provider-scoped-serving-lease-revalidation.md)（same-scheduler exact lease revalidation；不改变公开协议或 Prism；等待 P13 phase gate）。
-P13-07D 已建立 [BC-ROUTE-009 Config-bound routing price evidence](BC-ROUTE-009-config-bound-routing-price-evidence.md)（implementation in progress；exact catalog binding + six-dimensional rate evidence）。
+P13-07D 已建立 [BC-ROUTE-009 Config-bound routing price evidence](BC-ROUTE-009-config-bound-routing-price-evidence.md)（本地实现与 review 已通过，phase gate pending；exact catalog binding + six-dimensional rate evidence）。

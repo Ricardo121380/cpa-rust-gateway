@@ -1,6 +1,6 @@
 # BC-ROUTE-009: Config-bound routing price evidence
 
-Status: `IN_PROGRESS`
+Status: `LOCAL_PASS_PENDING_PHASE_GATE`
 
 ## Versioned policy contract
 

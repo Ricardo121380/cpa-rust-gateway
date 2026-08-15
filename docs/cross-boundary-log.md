@@ -240,8 +240,6 @@ Codex must update the authoritative OpenAPI contract and sync Prism before reque
 - `crates/gateway-http-actix/src/management_resources.rs`
 - `docs/openapi/management-v1.json`
 - `web/prism/contracts/management-v1.json` and generated client (synced from the authoritative contract)
-- `web/prism/scripts/generate-client.mjs` and `web/prism/scripts/check.mjs` (PUT support and drift guard)
-- `scripts/check-management-spa.mjs` (root compatibility checker now includes PUT)
 
 **Why:** P13-07B now projects the existing, shared Route/Credential Health/Quota observations
 through the P13-07A Provider-scoped deterministic selector. The management facade receives the

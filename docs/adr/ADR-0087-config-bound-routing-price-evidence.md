@@ -1,6 +1,6 @@
 # ADR-0087: Config-bound routing price evidence
 
-Status: **Accepted — P13-07D implementation in progress**
+Status: **Accepted — P13-07D local implementation and review passed; phase gate pending**
 
 ## Context
 
