@@ -33,7 +33,7 @@ allowed = {
   # Protocol/provider dependencies below are dev-only D1-D3 matrix tests; production routing still
   # depends only on transport-neutral gateway interfaces.
   "gateway-router" => %w[arc-swap gateway-auth gateway-catalog gateway-core gateway-protocol gateway-provider gateway-upstream proptest protocol-anthropic protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-openai-compatible serde_json tokio],
-  "gateway-store" => %w[chacha20poly1305 gateway-core gateway-observability getrandom libc rusqlite serde_json sha2 tokio zeroize],
+  "gateway-store" => %w[chacha20poly1305 gateway-core gateway-observability getrandom libc rusqlite serde serde_json sha2 tokio zeroize],
   "gateway-stream" => %w[gateway-core gateway-protocol proptest tokio tokio-util],
   # Browser emulation is isolated in the transport leaf. Providers select the bounded profile,
   # while routing and protocol crates remain independent of both HTTP client implementations.

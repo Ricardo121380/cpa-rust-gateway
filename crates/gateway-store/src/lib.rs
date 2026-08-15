@@ -11,6 +11,8 @@ pub mod control_plane;
 /// Append-only durable lifecycle event storage and its asynchronous bounded-queue consumer.
 pub mod event_store;
 pub mod secret_store;
+/// Client-key-owned, AEAD-sealed Canonical Responses with bounded TTL and garbage collection.
+pub mod stored_response;
 
 use std::{error::Error, fmt, path::Path, time::Duration};
 
@@ -35,9 +37,10 @@ const NATIVE_GROK_REAUTH_SCHEMA_VERSION: i64 = 13;
 const BILLING_LEDGER_SCHEMA_VERSION: i64 = 14;
 const BILLING_MATERIALIZER_CHECKPOINT_SCHEMA_VERSION: i64 = 15;
 const ROUTING_PRICE_POLICY_SCHEMA_VERSION: i64 = 16;
+const STORED_RESPONSE_SCHEMA_VERSION: i64 = 17;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = ROUTING_PRICE_POLICY_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = STORED_RESPONSE_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -126,6 +129,11 @@ const MIGRATIONS: &[Migration] = &[
         version: ROUTING_PRICE_POLICY_SCHEMA_VERSION,
         up: include_str!("../migrations/0016_routing_price_policy.up.sql"),
         down: include_str!("../migrations/0016_routing_price_policy.down.sql"),
+    },
+    Migration {
+        version: STORED_RESPONSE_SCHEMA_VERSION,
+        up: include_str!("../migrations/0017_stored_responses.up.sql"),
+        down: include_str!("../migrations/0017_stored_responses.down.sql"),
     },
 ];
 
@@ -516,7 +524,8 @@ mod tests {
     use rusqlite::{Connection, Error as SqliteError, ffi, params};
 
     use super::{
-        CREATE_SCHEMA_MIGRATIONS, CURRENT_SCHEMA_VERSION, MIGRATIONS,
+        CANONICAL_BRIDGE_TRANSFORM_MODE_SCHEMA_VERSION, CREATE_SCHEMA_MIGRATIONS,
+        CURRENT_SCHEMA_VERSION, MIGRATIONS, ROUTING_PRICE_POLICY_SCHEMA_VERSION,
         VERSIONED_CONTROL_PLANE_SCHEMA_VERSION, migrate, open_in_memory, rollback_all,
         rollback_to_version, schema_version,
     };
@@ -569,6 +578,7 @@ mod tests {
                 "public_models",
                 "route_candidates",
                 "routing_price_policies",
+                "stored_responses",
                 "upstream_credentials",
                 "upstream_endpoints",
                 "upstreams",
@@ -581,7 +591,10 @@ mod tests {
     fn canonical_bridge_transform_mode_is_persistable() -> TestResult {
         let mut connection = open_in_memory()?;
         migrate(&mut connection)?;
-        rollback_to_version(&mut connection, CURRENT_SCHEMA_VERSION - 1)?;
+        rollback_to_version(
+            &mut connection,
+            CANONICAL_BRIDGE_TRANSFORM_MODE_SCHEMA_VERSION - 1,
+        )?;
         insert_valid_tree(&connection)?;
         insert_valid_routing_access_tree(&connection)?;
 
@@ -621,7 +634,7 @@ mod tests {
             params!["v1", "catalog-v1", "rate_dominance_v1"],
         )?;
 
-        rollback_to_version(&mut connection, CURRENT_SCHEMA_VERSION - 1)?;
+        rollback_to_version(&mut connection, ROUTING_PRICE_POLICY_SCHEMA_VERSION - 1)?;
         assert_eq!(schema_version(&connection)?, Some(15));
         assert!(!super::table_exists(&connection, "routing_price_policies")?);
         assert!(super::table_exists(
@@ -644,6 +657,45 @@ mod tests {
                 row.get(0)
             })?;
         assert_eq!(policy_count, 0);
+        Ok(())
+    }
+
+    #[test]
+    fn stored_response_migration_up_and_down_preserves_prior_schema() -> TestResult {
+        let mut connection = open_in_memory()?;
+        migrate(&mut connection)?;
+        assert!(super::table_exists(&connection, "stored_responses")?);
+        connection.execute(
+            "INSERT INTO stored_responses \
+             (client_key_id, response_id, created_at_ms, expires_at_ms, payload_version, \
+              key_version, ciphertext) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                "client-a",
+                "resp-a",
+                1_i64,
+                2_i64,
+                1_i64,
+                1_i64,
+                vec![1_u8; 41],
+            ],
+        )?;
+
+        rollback_to_version(&mut connection, ROUTING_PRICE_POLICY_SCHEMA_VERSION)?;
+        assert_eq!(
+            schema_version(&connection)?,
+            Some(ROUTING_PRICE_POLICY_SCHEMA_VERSION)
+        );
+        assert!(!super::table_exists(&connection, "stored_responses")?);
+        assert!(super::table_exists(&connection, "routing_price_policies")?);
+
+        migrate(&mut connection)?;
+        assert_eq!(schema_version(&connection)?, Some(CURRENT_SCHEMA_VERSION));
+        assert!(super::table_exists(&connection, "stored_responses")?);
+        let count: i64 =
+            connection.query_row("SELECT COUNT(*) FROM stored_responses", [], |row| {
+                row.get(0)
+            })?;
+        assert_eq!(count, 0);
         Ok(())
     }
 
