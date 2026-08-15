@@ -134,6 +134,40 @@ async fn statsig_egress_rejection_falls_back_to_unsigned_clearance_retry() -> Te
     Ok(())
 }
 
+#[tokio::test]
+async fn one_shot_mode_does_not_refresh_or_retry_a_web_403() -> TestResult {
+    let now_ms = current_ms()?;
+    let statsig_transport = Arc::new(RejectingStatsigTransport::default());
+    let statsig = Arc::new(GrokWebStatsigRuntime::try_new(statsig_transport.clone())?);
+    let inference_transport = Arc::new(UnsignedRetryTransport::default());
+    let session = Arc::new(web_session(now_ms)?);
+    let egress_refresher = Arc::new(FixtureEgressRefresher {
+        calls: AtomicUsize::new(0),
+        session: Arc::clone(&session),
+    });
+    let adapter = GrokWebProductionInferenceAdapter::try_new(
+        session,
+        "grok-chat-fast",
+        statsig,
+        inference_transport.clone(),
+    )?
+    .with_egress_refresher(egress_refresher.clone())
+    .without_egress_retry();
+    let request = decode_request(r#"{"model":"public","input":"ready"}"#)?.request;
+    let result = adapter
+        .execute(
+            RequestContext::new(RequestId::try_new("p13-08-web-one-shot")?),
+            request,
+        )
+        .await;
+
+    assert!(result.is_err());
+    assert_eq!(inference_transport.calls.load(Ordering::SeqCst), 1);
+    assert_eq!(egress_refresher.calls.load(Ordering::SeqCst), 0);
+    assert_eq!(statsig_transport.calls.load(Ordering::SeqCst), 1);
+    Ok(())
+}
+
 #[test]
 fn flaresolverr_clearance_rebuild_preserves_account_binding() -> TestResult {
     let now_ms = current_ms()?;

@@ -14,9 +14,9 @@ use std::{
 };
 
 use gateway_core::{
-    AttemptEvent, AttemptOutcome, AttemptRetryDecision, CredentialId, ErrorScope, GatewayError,
-    GatewayErrorCode, GatewayEvent, GatewayEventSink, NoopGatewayEventSink, ProviderId, RequestId,
-    RouteCandidateId, RouteId, TransparentRetryGate,
+    AttemptEvent, AttemptOutcome, AttemptRetryDecision, CredentialId, ErrorScope, EventEmission,
+    GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, NoopGatewayEventSink,
+    ProviderId, RequestId, RouteCandidateId, RouteId, TransparentRetryGate,
 };
 use gateway_upstream::CredentialLease;
 
@@ -633,6 +633,163 @@ impl AttemptOrchestrator {
         .await
     }
 
+    /// Starts exactly one operator-pinned Attempt and never retries or falls back.
+    ///
+    /// This entrypoint is reserved for management diagnostics.  The caller supplies the complete
+    /// immutable Route/Provider/Channel/Credential identity and an optional Candidate admission
+    /// predicate (for example, protocol/adapter compatibility).  Selection revalidates Health,
+    /// Quota, expiry, and capacity immediately before leasing, then invokes the driver at most
+    /// once.  A retryable driver failure is reported with `RetryClosed`; no exclusion, quota
+    /// recovery probe, sibling selection, or cross-Provider fallback is attempted.
+    ///
+    /// The returned [`StartedAttempt`] owns the live lease until its output is consumed/dropped,
+    /// exactly like ordinary serving.  A failed or cancelled invocation drops the lease before
+    /// returning, and the optional event sink receives one value-free terminal Attempt event when
+    /// a driver invocation actually began.
+    ///
+    /// # Errors
+    ///
+    /// Returns a secret-free gateway error when the retry gate is cancelled, the route or exact
+    /// binding is unavailable, the bounded bootstrap budget expires, or the single driver call
+    /// fails. No error path performs a second lease or driver invocation.
+    #[allow(clippy::too_many_arguments, clippy::too_many_lines)] // Keep one-shot ordering auditable.
+    pub async fn start_pinned_once_with_event_sink<D, F>(
+        &self,
+        request_id: &RequestId,
+        route_id: &RouteId,
+        provider_id: &ProviderId,
+        channel_id: &gateway_core::EndpointId,
+        credential_id: &CredentialId,
+        is_candidate_eligible: F,
+        driver: &D,
+        retry_gate: &dyn TransparentRetryGate,
+        event_sink: &dyn GatewayEventSink,
+    ) -> Result<StartedAttempt<D::Output>, GatewayError>
+    where
+        D: AttemptDriver,
+        F: Fn(&SnapshotRouteCandidate) -> bool + Sync,
+    {
+        if retry_gate.is_cancelled() {
+            return Err(request_cancelled_error());
+        }
+
+        let route = self
+            .scheduler
+            .route(route_id)
+            .ok_or_else(credential_unavailable_error)?;
+        let now_ms = self.clock.now_ms().map_err(|_| internal_error())?;
+        let mut budget = RetryBudget::from_route(&route, now_ms)?;
+        if !budget.can_start_at(now_ms) {
+            return Err(egress_unavailable_error());
+        }
+        let selection = self.scheduler.select_pinned_and_lease_at(
+            route_id,
+            provider_id,
+            channel_id,
+            credential_id,
+            &self.runtime_health,
+            &self.runtime_quota,
+            now_ms,
+            is_candidate_eligible,
+        )?;
+        let started_at_ms = self.clock.now_ms().map_err(|_| internal_error())?;
+        if retry_gate.is_cancelled() || !budget.can_start_at(started_at_ms) {
+            drop(selection);
+            return Err(if retry_gate.is_cancelled() {
+                request_cancelled_error()
+            } else {
+                egress_unavailable_error()
+            });
+        }
+        let remaining_bootstrap = budget.remaining_at(started_at_ms)?;
+        budget.record_start();
+        let attempt_number =
+            u64::try_from(budget.attempts_started()).map_err(|_| internal_error())?;
+        let attempt_result: Result<D::Output, AttemptFailure> = tokio::select! {
+            biased;
+            () = retry_gate.cancelled() => Err(AttemptFailure::Cancelled),
+            result = tokio::time::timeout(
+                driver.start_timeout(remaining_bootstrap),
+                driver.start(
+                    selection.candidate(),
+                    selection.lease(),
+                    remaining_bootstrap,
+                ),
+            ) => match result {
+                Ok(result) => result,
+                Err(_) => Err(AttemptFailure::Connection),
+            },
+        };
+
+        match attempt_result {
+            Ok(output) => {
+                if retry_gate.is_cancelled() {
+                    self.emit_pinned_attempt(
+                        request_id,
+                        route_id,
+                        &selection,
+                        attempt_number,
+                        started_at_ms,
+                        AttemptOutcome::Failed(request_cancelled_error()),
+                        AttemptRetryDecision::Cancelled,
+                        event_sink,
+                    )?;
+                    return Err(request_cancelled_error());
+                }
+                self.emit_pinned_attempt(
+                    request_id,
+                    route_id,
+                    &selection,
+                    attempt_number,
+                    started_at_ms,
+                    AttemptOutcome::Succeeded,
+                    AttemptRetryDecision::Completed,
+                    event_sink,
+                )?;
+                Ok(StartedAttempt {
+                    selection,
+                    output,
+                    attempts_started: budget.attempts_started(),
+                })
+            }
+            Err(AttemptFailure::Cancelled) => {
+                self.emit_pinned_attempt(
+                    request_id,
+                    route_id,
+                    &selection,
+                    attempt_number,
+                    started_at_ms,
+                    AttemptOutcome::Failed(request_cancelled_error()),
+                    AttemptRetryDecision::Cancelled,
+                    event_sink,
+                )?;
+                Err(request_cancelled_error())
+            }
+            Err(failure) => {
+                let safe_failure = failure.safe_error();
+                // A Channel Pin is diagnostic-only: it observes the shared Health/Quota
+                // registries for admission but must not feed one operator probe back into
+                // serving state. The value-free Attempt event remains the audit projection.
+                let retry_decision = if failure.is_retryable() {
+                    AttemptRetryDecision::RetryClosed
+                } else {
+                    AttemptRetryDecision::NonRetryable
+                };
+                self.emit_pinned_attempt(
+                    request_id,
+                    route_id,
+                    &selection,
+                    attempt_number,
+                    started_at_ms,
+                    AttemptOutcome::Failed(safe_failure.clone()),
+                    retry_decision,
+                    event_sink,
+                )?;
+                Err(safe_failure)
+            }
+        }
+    }
+
     #[allow(clippy::too_many_arguments, clippy::too_many_lines)] // One retry state machine keeps lease, gate, and event ordering auditable.
     async fn start_inner<D>(
         &self,
@@ -936,9 +1093,9 @@ impl AttemptOrchestrator {
         outcome: AttemptOutcome,
         retry_decision: AttemptRetryDecision,
         event_sink: &dyn GatewayEventSink,
-    ) {
+    ) -> EventEmission {
         let Some(request_id) = request_id else {
-            return;
+            return EventEmission::Disabled;
         };
         let ended_at_ms = match self.clock.now_ms() {
             Ok(ended_at_ms) => ended_at_ms,
@@ -958,7 +1115,36 @@ impl AttemptOrchestrator {
             outcome,
             retry_decision,
         );
-        let _emission = event_sink.try_emit(GatewayEvent::Attempt(event));
+        event_sink.try_emit(GatewayEvent::Attempt(event))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn emit_pinned_attempt(
+        &self,
+        request_id: &RequestId,
+        route_id: &RouteId,
+        selection: &SelectedRouteCredential,
+        attempt_number: u64,
+        started_at_ms: i64,
+        outcome: AttemptOutcome,
+        retry_decision: AttemptRetryDecision,
+        event_sink: &dyn GatewayEventSink,
+    ) -> Result<(), GatewayError> {
+        match self.emit_attempt(
+            Some(request_id),
+            route_id,
+            selection,
+            attempt_number,
+            started_at_ms,
+            outcome,
+            retry_decision,
+            event_sink,
+        ) {
+            EventEmission::RequiredQueueFull | EventEmission::SinkClosed => Err(internal_error()),
+            EventEmission::Enqueued
+            | EventEmission::Disabled
+            | EventEmission::DiagnosticDropped => Ok(()),
+        }
     }
 
     fn record_runtime_state(
@@ -1247,8 +1433,9 @@ mod tests {
     use gateway_catalog::{CapabilitySet, CatalogModelState};
     use gateway_core::{
         AttemptOutcome, AttemptRetryDecision, CredentialId, EndpointId, ErrorScope, EventEmission,
-        GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, PublicModelId, RequestId,
-        RouteCandidateId, RouteId, TransparentRetryGate, TransparentRetryGateFuture, UpstreamId,
+        GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, ProviderId, PublicModelId,
+        RequestId, RouteCandidateId, RouteId, TransparentRetryGate, TransparentRetryGateFuture,
+        UpstreamId,
     };
     use gateway_upstream::{
         CredentialSecret, EndpointCredentialInput, EndpointCredentialPool, EndpointCredentialPools,
@@ -1460,6 +1647,111 @@ mod tests {
                 Some(0)
             );
         }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn pinned_once_invokes_exact_binding_once_and_closes_retry() -> TestResult {
+        let (orchestrator, route_id, _clock, _health, pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a"), ("candidate-b", "endpoint-b")],
+            vec![
+                ("endpoint-a", vec!["credential-a"]),
+                ("endpoint-b", vec!["credential-b"]),
+            ],
+            3,
+            100,
+        )?;
+        let request_id = RequestId::try_new("pinned-once")?;
+        let driver = ScriptedDriver::new(vec![
+            DriverStep::Failure(AttemptFailure::Connection),
+            DriverStep::Success("must-not-fallback".to_owned()),
+        ]);
+        let events = RecordingEventSink::default();
+        let error = expected_error(
+            orchestrator
+                .start_pinned_once_with_event_sink(
+                    &request_id,
+                    &route_id,
+                    &ProviderId::try_new("upstream-endpoint-a")?,
+                    &EndpointId::try_new("endpoint-a")?,
+                    &CredentialId::try_new("credential-a")?,
+                    |_| true,
+                    &driver,
+                    &TestRetryGate::default(),
+                    &events,
+                )
+                .await,
+            "pinned diagnostic must stop after its first failure",
+        )?;
+        assert_eq!(error.code(), GatewayErrorCode::EgressUnavailable);
+        assert_eq!(
+            driver.attempts()?,
+            vec![("candidate-a".to_owned(), "credential-a".to_owned())]
+        );
+        let events = events.events()?;
+        assert_eq!(events.len(), 1);
+        let GatewayEvent::Attempt(attempt) = &events[0] else {
+            return Err("expected one Attempt event".into());
+        };
+        assert_eq!(attempt.retry_decision(), AttemptRetryDecision::RetryClosed);
+        assert_eq!(attempt.credential_id().as_str(), "credential-a");
+        assert_eq!(
+            pools
+                .pool(&EndpointId::try_new("endpoint-a")?)
+                .and_then(|pool| {
+                    pool.active_lease_count(&CredentialId::try_new("credential-a").ok()?)
+                }),
+            Some(0)
+        );
+        assert_eq!(
+            driver.attempts()?.len(),
+            1,
+            "the queued sibling step must not be consumed"
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn pinned_once_keeps_success_lease_until_started_output_is_dropped() -> TestResult {
+        let (orchestrator, route_id, _clock, _health, pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a")],
+            vec![("endpoint-a", vec!["credential-a"])],
+            1,
+            100,
+        )?;
+        let driver = ScriptedDriver::new(vec![DriverStep::Success("pinned".to_owned())]);
+        let started = orchestrator
+            .start_pinned_once_with_event_sink(
+                &RequestId::try_new("pinned-success")?,
+                &route_id,
+                &ProviderId::try_new("upstream-endpoint-a")?,
+                &EndpointId::try_new("endpoint-a")?,
+                &CredentialId::try_new("credential-a")?,
+                |_| true,
+                &driver,
+                &TestRetryGate::default(),
+                &NoopGatewayEventSink,
+            )
+            .await?;
+        assert_eq!(started.output(), "pinned");
+        assert_eq!(started.attempts_started(), 1);
+        assert_eq!(
+            pools
+                .pool(&EndpointId::try_new("endpoint-a")?)
+                .and_then(|pool| {
+                    pool.active_lease_count(&CredentialId::try_new("credential-a").ok()?)
+                }),
+            Some(1)
+        );
+        drop(started);
+        assert_eq!(
+            pools
+                .pool(&EndpointId::try_new("endpoint-a")?)
+                .and_then(|pool| {
+                    pool.active_lease_count(&CredentialId::try_new("credential-a").ok()?)
+                }),
+            Some(0)
+        );
         Ok(())
     }
 

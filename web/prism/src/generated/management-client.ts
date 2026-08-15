@@ -487,6 +487,24 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "executeChannelPin": {
+    "method": "POST",
+    "path": "/admin/operations/channel-pin",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "explainRoute": {
     "method": "GET",
     "path": "/admin/routes/{route_id}/explain",
@@ -1889,6 +1907,10 @@ export class ManagementApi {
 
   deleteUpstream(request: ManagementRequest = {}): Promise<Response> {
     return this.request("deleteUpstream", request);
+  }
+
+  executeChannelPin(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("executeChannelPin", request);
   }
 
   explainRoute(request: ManagementRequest = {}): Promise<Response> {

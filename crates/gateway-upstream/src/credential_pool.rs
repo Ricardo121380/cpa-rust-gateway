@@ -312,6 +312,39 @@ impl EndpointCredentialPool {
         })
     }
 
+    /// Attempts to acquire one exact Credential lease without advancing a weighted cursor.
+    ///
+    /// This is the management/diagnostic counterpart to [`Self::try_lease_eligible_at`].  The
+    /// target slot is resolved directly by its stable ID, then expiry, caller eligibility, and
+    /// the atomic concurrency limit are checked.  No priority-tier cursor is read or mutated, so
+    /// an operator pin cannot perturb ordinary weighted scheduling for later user requests.
+    #[must_use]
+    pub fn try_lease_exact_eligible_at<F>(
+        &self,
+        credential_id: &CredentialId,
+        now_ms: i64,
+        mut is_eligible: F,
+    ) -> Option<CredentialLease>
+    where
+        F: FnMut(&CredentialId) -> bool,
+    {
+        let credential = self
+            .credentials
+            .iter()
+            .find(|credential| &credential.credential_id == credential_id)?;
+        if credential
+            .expires_at_ms
+            .is_some_and(|expires_at_ms| expires_at_ms <= now_ms)
+            || !is_eligible(&credential.credential_id)
+            || !credential.try_acquire()
+        {
+            return None;
+        }
+        Some(CredentialLease {
+            credential: Arc::clone(credential),
+        })
+    }
+
     fn try_lease_slots<F>(&self, mut is_eligible: F) -> Option<CredentialLease>
     where
         F: FnMut(&CredentialSlot) -> bool,
@@ -481,6 +514,23 @@ impl EndpointCredentialPools {
     {
         self.pool(endpoint_id)?
             .try_lease_eligible_at(now_ms, is_eligible)
+    }
+
+    /// Attempts to acquire one exact Endpoint Credential lease without moving that pool's
+    /// weighted cursor.
+    #[must_use]
+    pub fn try_lease_exact_eligible_at<F>(
+        &self,
+        endpoint_id: &EndpointId,
+        credential_id: &CredentialId,
+        now_ms: i64,
+        is_eligible: F,
+    ) -> Option<CredentialLease>
+    where
+        F: FnMut(&CredentialId) -> bool,
+    {
+        self.pool(endpoint_id)?
+            .try_lease_exact_eligible_at(credential_id, now_ms, is_eligible)
     }
 
     /// Returns the number of Endpoint pools in this immutable set.
@@ -936,6 +986,62 @@ mod tests {
         assert_eq!(pool.active_lease_count(&credential_b), Some(1));
         drop(lease);
         assert_eq!(pool.active_lease_count(&credential_b), Some(0));
+        Ok(())
+    }
+
+    #[test]
+    fn exact_lease_checks_target_state_without_advancing_weighted_cursor() -> TestResult {
+        let entries = vec![("credential-a", 0, 3, 1), ("credential-b", 0, 1, 1)];
+        let control = pool("endpoint-a", entries.clone())?;
+        let exercised = pool("endpoint-a", entries)?;
+        let target = CredentialId::try_new("credential-b")?;
+
+        let control_prefix = control
+            .try_lease()
+            .ok_or_else(|| io::Error::other("control prefix lease missing"))?;
+        let exercised_prefix = exercised
+            .try_lease()
+            .ok_or_else(|| io::Error::other("exercised prefix lease missing"))?;
+        assert_eq!(
+            control_prefix.credential_id(),
+            exercised_prefix.credential_id()
+        );
+        drop(control_prefix);
+        drop(exercised_prefix);
+
+        assert!(
+            exercised
+                .try_lease_exact_eligible_at(&target, 100, |_| false)
+                .is_none(),
+            "caller eligibility must be checked before exact acquisition"
+        );
+        let pinned = exercised
+            .try_lease_exact_eligible_at(&target, 100, |_| true)
+            .ok_or_else(|| io::Error::other("exact target lease missing"))?;
+        assert_eq!(pinned.credential_id(), &target);
+        assert!(
+            exercised
+                .try_lease_exact_eligible_at(&target, 100, |_| true)
+                .is_none(),
+            "exact acquisition must preserve the target concurrency ceiling"
+        );
+        drop(pinned);
+
+        for _ in 0..8 {
+            let control_lease = control
+                .try_lease()
+                .ok_or_else(|| io::Error::other("control weighted lease missing"))?;
+            let exercised_lease = exercised
+                .try_lease()
+                .ok_or_else(|| io::Error::other("exercised weighted lease missing"))?;
+            assert_eq!(
+                control_lease.credential_id(),
+                exercised_lease.credential_id(),
+                "exact pin changed the ordinary weighted cursor sequence"
+            );
+            drop(control_lease);
+            drop(exercised_lease);
+        }
         Ok(())
     }
 

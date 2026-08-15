@@ -476,6 +476,92 @@ impl RouteCredentialScheduler {
         Err(credential_unavailable_error())
     }
 
+    /// Acquires one lease for an operator-pinned Route/Provider/Channel/Credential tuple.
+    ///
+    /// Unlike the normal request selector this method never ranks siblings and never advances
+    /// to a second Candidate or Credential.  The immutable Route snapshot is first checked for
+    /// exactly one hard-eligible Candidate whose upstream identifies `provider_id` and whose
+    /// Endpoint is `channel_id`; only that Candidate's Endpoint pool is then consulted for the
+    /// exact `credential_id`.  Health, Quota, expiry, and capacity are all revalidated immediately
+    /// before the atomic lease attempt.  Any mismatch, duplicate pin, stale state, or saturation
+    /// returns the same secret-free `CredentialUnavailable` error without acquiring a lease.
+    ///
+    /// The caller-supplied predicate is intentionally evaluated before runtime state and pool
+    /// access.  It is useful for management diagnostics to enforce protocol/adapter admission
+    /// without creating a second selector or a Provider fallback path.
+    ///
+    /// # Errors
+    ///
+    /// Returns the secret-free `CredentialUnavailable` error when the route is absent, the pin
+    /// is ambiguous or mismatched, runtime Health/Quota rejects the target, the credential is
+    /// expired, or the exact pool cannot acquire capacity.
+    #[allow(clippy::too_many_arguments)]
+    pub fn select_pinned_and_lease_at<FCandidate>(
+        &self,
+        route_id: &RouteId,
+        provider_id: &ProviderId,
+        channel_id: &EndpointId,
+        credential_id: &CredentialId,
+        runtime_health: &RuntimeHealthRegistry,
+        runtime_quota: &RuntimeQuotaRegistry,
+        observed_at_ms: i64,
+        mut is_candidate_eligible: FCandidate,
+    ) -> Result<SelectedRouteCredential, GatewayError>
+    where
+        FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
+    {
+        let route = self
+            .candidates
+            .route(route_id)
+            .ok_or_else(credential_unavailable_error)?;
+        let mut matching = route.candidates().iter().filter(|candidate| {
+            candidate.is_hard_eligible()
+                && candidate.endpoint_id() == channel_id
+                && ProviderId::try_new(candidate.upstream_id().as_str().to_owned())
+                    .is_ok_and(|candidate_provider| candidate_provider == *provider_id)
+                && is_candidate_eligible(candidate)
+        });
+        let Some(candidate) = matching.next() else {
+            return Err(credential_unavailable_error());
+        };
+        // A pin must identify one immutable route candidate.  Treat duplicate provider/channel
+        // entries as an ambiguous target instead of silently choosing by the route cursor.
+        if matching.next().is_some() {
+            return Err(credential_unavailable_error());
+        }
+        if !runtime_health.endpoint_is_available(candidate.endpoint_id()) {
+            return Err(credential_unavailable_error());
+        }
+        let Some(lease) = self.credential_pools.try_lease_exact_eligible_at(
+            candidate.endpoint_id(),
+            credential_id,
+            observed_at_ms,
+            |candidate_credential_id| {
+                runtime_health.endpoint_credential_is_available(
+                    candidate.endpoint_id(),
+                    candidate_credential_id,
+                ) && runtime_health.endpoint_credential_model_is_available(
+                    candidate.endpoint_id(),
+                    candidate_credential_id,
+                    candidate.upstream_model(),
+                ) && runtime_quota.endpoint_credential_is_available(
+                    candidate.endpoint_id(),
+                    candidate_credential_id,
+                ) && runtime_quota.endpoint_credential_model_is_available(
+                    candidate.endpoint_id(),
+                    candidate_credential_id,
+                    candidate.upstream_model(),
+                )
+            },
+        ) else {
+            return Err(credential_unavailable_error());
+        };
+        Ok(SelectedRouteCredential {
+            candidate: candidate.clone(),
+            lease,
+        })
+    }
+
     /// Selects one binding whose only Quota blocker is a due controlled recovery.
     ///
     /// Health predicates are unchanged and run first, so a Cooldown, Circuit, or forbidden
@@ -729,8 +815,8 @@ mod tests {
 
     use gateway_catalog::{CapabilitySet, CatalogModelState};
     use gateway_core::{
-        CredentialId, EndpointId, ErrorScope, GatewayErrorCode, PublicModelId, RouteCandidateId,
-        RouteId, UpstreamId,
+        CredentialId, EndpointId, ErrorScope, GatewayErrorCode, ProviderId, PublicModelId,
+        RouteCandidateId, RouteId, UpstreamId,
     };
     use gateway_upstream::{
         CredentialSecret, EndpointCredentialInput, EndpointCredentialPool, EndpointCredentialPools,
@@ -899,6 +985,279 @@ mod tests {
 
         assert_eq!(selected.candidate().id().as_str(), "candidate-a");
         assert_eq!(selected.lease().credential_id().as_str(), "credential-b");
+        Ok(())
+    }
+
+    #[test]
+    fn pinned_selection_requires_exact_provider_channel_and_credential() -> TestResult {
+        let (scheduler, route_id) = scheduler(
+            vec![
+                ("candidate-a", "endpoint-a", 0, 1),
+                ("candidate-b", "endpoint-b", 1, 1),
+            ],
+            vec![
+                (
+                    "endpoint-a",
+                    vec![("credential-a", 0, 1, 1), ("credential-b", 0, 1, 1)],
+                ),
+                ("endpoint-b", vec![("credential-foreign", 0, 1, 1)]),
+            ],
+        )?;
+        let health = RuntimeHealthRegistry::new();
+        let quota = RuntimeQuotaRegistry::new();
+        let selected = scheduler.select_pinned_and_lease_at(
+            &route_id,
+            &ProviderId::try_new("upstream-endpoint-a")?,
+            &EndpointId::try_new("endpoint-a")?,
+            &CredentialId::try_new("credential-b")?,
+            &health,
+            &quota,
+            100,
+            |_| true,
+        )?;
+        assert_eq!(selected.candidate().id().as_str(), "candidate-a");
+        assert_eq!(selected.lease().credential_id().as_str(), "credential-b");
+        drop(selected);
+
+        let mismatch = scheduler.select_pinned_and_lease_at(
+            &route_id,
+            &ProviderId::try_new("upstream-endpoint-b")?,
+            &EndpointId::try_new("endpoint-a")?,
+            &CredentialId::try_new("credential-b")?,
+            &health,
+            &quota,
+            100,
+            |_| true,
+        );
+        assert!(mismatch.is_err());
+        assert_eq!(
+            scheduler
+                .credential_pools
+                .pool(&EndpointId::try_new("endpoint-a")?)
+                .and_then(|pool| {
+                    pool.active_lease_count(&CredentialId::try_new("credential-b").ok()?)
+                }),
+            Some(0)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn pinned_selection_does_not_advance_route_or_credential_cursors() -> TestResult {
+        let build = || {
+            scheduler(
+                vec![
+                    ("candidate-a", "endpoint-a", 0, 3),
+                    ("candidate-b", "endpoint-b", 0, 1),
+                ],
+                vec![
+                    (
+                        "endpoint-a",
+                        vec![("credential-a-one", 0, 3, 1), ("credential-a-two", 0, 1, 1)],
+                    ),
+                    ("endpoint-b", vec![("credential-b", 0, 1, 1)]),
+                ],
+            )
+        };
+        let (control, route_id) = build()?;
+        let (exercised, exercised_route_id) = build()?;
+        let control_prefix = control.select_and_lease(&route_id)?;
+        let exercised_prefix = exercised.select_and_lease(&exercised_route_id)?;
+        assert_eq!(
+            (
+                control_prefix.candidate().id(),
+                control_prefix.lease().credential_id()
+            ),
+            (
+                exercised_prefix.candidate().id(),
+                exercised_prefix.lease().credential_id()
+            )
+        );
+        drop(control_prefix);
+        drop(exercised_prefix);
+
+        let health = RuntimeHealthRegistry::new();
+        let quota = RuntimeQuotaRegistry::new();
+        let pin = exercised.select_pinned_and_lease_at(
+            &exercised_route_id,
+            &ProviderId::try_new("upstream-endpoint-a")?,
+            &EndpointId::try_new("endpoint-a")?,
+            &CredentialId::try_new("credential-a-two")?,
+            &health,
+            &quota,
+            100,
+            |_| true,
+        )?;
+        drop(pin);
+
+        for _ in 0..12 {
+            let control_selection = control.select_and_lease(&route_id)?;
+            let exercised_selection = exercised.select_and_lease(&exercised_route_id)?;
+            assert_eq!(
+                (
+                    control_selection.candidate().id(),
+                    control_selection.lease().credential_id()
+                ),
+                (
+                    exercised_selection.candidate().id(),
+                    exercised_selection.lease().credential_id()
+                ),
+                "pinned selection changed the ordinary route/pool cursor sequence"
+            );
+            drop(control_selection);
+            drop(exercised_selection);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn pinned_selection_fails_closed_for_health_quota_and_capacity() -> TestResult {
+        let (scheduler, route_id) = scheduler(
+            vec![("candidate-a", "endpoint-a", 0, 1)],
+            vec![("endpoint-a", vec![("credential-a", 0, 1, 1)])],
+        )?;
+        let endpoint = EndpointId::try_new("endpoint-a")?;
+        let credential = CredentialId::try_new("credential-a")?;
+        let provider = ProviderId::try_new("upstream-endpoint-a")?;
+        let clock = Arc::new(FixedRuntimeHealthClock::new(100));
+        let quota = RuntimeQuotaRegistry::with_clock(clock.clone());
+
+        let health = RuntimeHealthRegistry::with_clock(clock.clone());
+        health.cool_down_until(RuntimeHealthKey::endpoint(endpoint.clone()), 200)?;
+        assert!(
+            scheduler
+                .select_pinned_and_lease_at(
+                    &route_id,
+                    &provider,
+                    &endpoint,
+                    &credential,
+                    &health,
+                    &quota,
+                    100,
+                    |_| true,
+                )
+                .is_err()
+        );
+
+        let health = RuntimeHealthRegistry::with_clock(clock.clone());
+        let quota = RuntimeQuotaRegistry::with_clock(clock);
+        quota.record_rate_limited(
+            RuntimeQuotaTarget::endpoint_credential(endpoint.clone(), credential.clone()),
+            100,
+            Some(Duration::from_millis(100)),
+            Duration::from_millis(100),
+        )?;
+        assert!(
+            scheduler
+                .select_pinned_and_lease_at(
+                    &route_id,
+                    &provider,
+                    &endpoint,
+                    &credential,
+                    &health,
+                    &quota,
+                    100,
+                    |_| true,
+                )
+                .is_err()
+        );
+
+        let quota = RuntimeQuotaRegistry::new();
+        let held = scheduler.select_and_lease(&route_id)?;
+        assert!(
+            scheduler
+                .select_pinned_and_lease_at(
+                    &route_id,
+                    &provider,
+                    &endpoint,
+                    &credential,
+                    &health,
+                    &quota,
+                    100,
+                    |_| true,
+                )
+                .is_err()
+        );
+        drop(held);
+        assert_eq!(
+            scheduler
+                .select_pinned_and_lease_at(
+                    &route_id,
+                    &provider,
+                    &endpoint,
+                    &credential,
+                    &health,
+                    &quota,
+                    100,
+                    |_| true,
+                )?
+                .lease()
+                .credential_id()
+                .as_str(),
+            "credential-a"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn pinned_selection_rejects_expired_credential_without_lease() -> TestResult {
+        let route_id = RouteId::try_new("route-pinned-expired")?;
+        let public_model_id = PublicModelId::try_new("public-model-pinned-expired")?;
+        let snapshot = Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
+            SnapshotVersion::try_new("version-pinned-expired")?,
+            vec![SnapshotPublicModel::new(
+                public_model_id.clone(),
+                "public-model".to_owned(),
+                "Public Model".to_owned(),
+                CapabilitySet::empty(),
+                route_id.clone(),
+            )],
+            Vec::new(),
+            vec![SnapshotRoute::new(
+                route_id.clone(),
+                public_model_id,
+                SnapshotRoutePolicy::RoundRobin,
+                1,
+                1_000,
+                vec![candidate("candidate-expired", "endpoint-expired", 0, 1)?],
+            )],
+            Vec::new(),
+            Vec::new(),
+        ))?);
+        let pool = EndpointCredentialPool::try_new(
+            EndpointId::try_new("endpoint-expired")?,
+            [EndpointCredentialInput {
+                credential_id: CredentialId::try_new("credential-expired")?,
+                credential_kind: "api_key".to_owned(),
+                credential_revision: 1,
+                priority: 0,
+                weight: 1,
+                concurrency: 1,
+                expires_at_ms: Some(100),
+                secret: CredentialSecret::try_new(b"expired".to_vec())?,
+            }],
+        )?;
+        let pools = Arc::new(EndpointCredentialPools::try_new([pool])?);
+        let scheduler = RouteCredentialScheduler::new(snapshot, pools.clone());
+        let result = scheduler.select_pinned_and_lease_at(
+            &route_id,
+            &ProviderId::try_new("upstream-endpoint-expired")?,
+            &EndpointId::try_new("endpoint-expired")?,
+            &CredentialId::try_new("credential-expired")?,
+            &RuntimeHealthRegistry::new(),
+            &RuntimeQuotaRegistry::new(),
+            100,
+            |_| true,
+        );
+        assert!(result.is_err());
+        assert_eq!(
+            pools
+                .pool(&EndpointId::try_new("endpoint-expired")?)
+                .and_then(|pool| {
+                    pool.active_lease_count(&CredentialId::try_new("credential-expired").ok()?)
+                }),
+            Some(0)
+        );
         Ok(())
     }
 

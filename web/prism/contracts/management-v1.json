@@ -254,6 +254,24 @@
         }
       }
     },
+    "/admin/operations/channel-pin": {
+      "parameters": [
+        { "$ref": "#/components/parameters/ConfigVersion" },
+        { "$ref": "#/components/parameters/IfMatch" }
+      ],
+      "post": {
+        "tags": ["operations"],
+        "operationId": "executeChannelPin",
+        "x-delivery-phase": "P13-08",
+        "x-audit-action": "channel_pin_requested",
+        "requestBody": { "$ref": "#/components/requestBodies/ChannelPinInput" },
+        "responses": {
+          "200": { "$ref": "#/components/responses/ChannelPin" },
+          "409": { "$ref": "#/components/responses/Error" },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
     "/admin/operations/provider-account-pools": {
       "get": {
         "tags": ["operations"],
@@ -523,6 +541,7 @@
       "CredentialInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CredentialInput" } } } },
       "BindingInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BindingInput" } } } },
       "EndpointTestInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EndpointTestInput" } } } },
+      "ChannelPinInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChannelPinInput" } } } },
       "PublicModelInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PublicModelInput" } } } },
       "AliasInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AliasInput" } } } },
       "RouteInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RouteInput" } } } },
@@ -551,6 +570,7 @@
       "Binding": { "description": "Endpoint credential binding", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Binding" } } } },
       "BindingList": { "description": "Bindings", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Binding" } } } } },
       "EndpointTest": { "description": "Value-free endpoint test result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EndpointTest" } } } },
+      "ChannelPin": { "description": "Value-free result of one exact management Channel Pin", "headers": { "Cache-Control": { "schema": { "type": "string" } } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChannelPin" } } } },
       "CatalogDiff": { "description": "Catalog discovery diff", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CatalogDiff" } } } },
       "PublicModel": { "description": "Public model", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PublicModel" } } } },
       "PublicModelList": { "description": "Public models", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/PublicModel" } } } } },
@@ -605,7 +625,9 @@
       "BindingInput": { "type": "object", "additionalProperties": false, "required": ["credential_id", "enabled", "priority", "weight", "concurrency"], "properties": { "credential_id": { "$ref": "#/components/schemas/Id" }, "enabled": { "type": "boolean" }, "priority": { "type": "integer", "minimum": 0 }, "weight": { "type": "integer", "minimum": 1, "maximum": 10000 }, "concurrency": { "type": "integer", "minimum": 1, "maximum": 100000 } } },
       "Binding": { "type": "object", "additionalProperties": false, "required": ["endpoint_id", "upstream_id", "credential_id", "enabled", "priority", "weight", "concurrency"], "properties": { "endpoint_id": { "$ref": "#/components/schemas/Id" }, "upstream_id": { "$ref": "#/components/schemas/Id" }, "credential_id": { "$ref": "#/components/schemas/Id" }, "enabled": { "type": "boolean" }, "priority": { "type": "integer", "minimum": 0 }, "weight": { "type": "integer", "minimum": 1, "maximum": 10000 }, "concurrency": { "type": "integer", "minimum": 1, "maximum": 100000 } } },
       "EndpointTestInput": { "type": "object", "additionalProperties": false, "required": ["mode"], "properties": { "mode": { "type": "string", "enum": ["non_streaming", "sse"] } } },
+      "ChannelPinInput": { "type": "object", "additionalProperties": false, "required": ["provider_id", "channel_id", "route_id", "credential_id", "requested_model", "protocol", "mode"], "properties": { "provider_id": { "$ref": "#/components/schemas/Id" }, "channel_id": { "$ref": "#/components/schemas/Id" }, "route_id": { "$ref": "#/components/schemas/Id" }, "credential_id": { "$ref": "#/components/schemas/Id" }, "requested_model": { "type": "string", "minLength": 1, "maxLength": 256 }, "protocol": { "type": "string", "enum": ["openai_chat_completions", "openai_responses", "anthropic_messages"] }, "mode": { "type": "string", "enum": ["json", "sse"] } } },
       "EndpointTest": { "type": "object", "additionalProperties": false, "required": ["outcome"], "properties": { "outcome": { "type": "string", "enum": ["pass", "rejected", "transport_failed", "protocol_failed"] }, "status_class": { "type": "string", "enum": ["2xx", "4xx", "5xx", "other"] }, "canonical_lifecycle": { "type": "boolean" } } },
+      "ChannelPin": { "type": "object", "additionalProperties": false, "required": ["request_id", "config_version_id", "config_revision", "provider_id", "channel_id", "route_id", "credential_id", "requested_model", "protocol", "mode", "outcome", "upstream_sent", "attempt_count", "response_started", "observed_at_ms"], "properties": { "request_id": { "$ref": "#/components/schemas/Id512" }, "config_version_id": { "$ref": "#/components/schemas/Id" }, "config_revision": { "type": "integer", "minimum": 0 }, "provider_id": { "$ref": "#/components/schemas/Id" }, "channel_id": { "$ref": "#/components/schemas/Id" }, "route_id": { "$ref": "#/components/schemas/Id" }, "credential_id": { "$ref": "#/components/schemas/Id" }, "requested_model": { "type": "string", "minLength": 1, "maxLength": 256 }, "protocol": { "type": "string", "enum": ["openai_chat_completions", "openai_responses", "anthropic_messages"] }, "mode": { "type": "string", "enum": ["json", "sse"] }, "outcome": { "type": "string", "enum": ["succeeded", "rejected", "failed"] }, "upstream_sent": { "type": "boolean" }, "attempt_count": { "type": "integer", "minimum": 0, "maximum": 1 }, "response_started": { "type": "boolean" }, "observed_at_ms": { "type": "integer", "minimum": 0 }, "stage": { "type": "string", "enum": ["request_conversion", "egress_admission", "http_transport", "http_status", "content_type", "body_read", "decoder", "sse_bootstrap"] } } },
       "PublicModelInput": { "type": "object", "additionalProperties": false, "required": ["id", "model_name", "status", "display_name", "capabilities"], "properties": { "id": { "$ref": "#/components/schemas/Id" }, "model_name": { "type": "string", "minLength": 1, "maxLength": 256 }, "status": { "type": "string", "enum": ["active", "disabled"] }, "display_name": { "type": "string", "maxLength": 256 }, "capabilities": { "type": "object", "maxProperties": 32, "additionalProperties": { "type": "boolean" } } } },
       "PublicModel": { "$ref": "#/components/schemas/PublicModelInput" },
       "AliasInput": { "type": "object", "additionalProperties": false, "required": ["alias"], "properties": { "alias": { "type": "string", "minLength": 1, "maxLength": 256 } } },

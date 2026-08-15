@@ -716,6 +716,7 @@ pub struct GrokWebProductionInferenceAdapter {
     statsig: Arc<GrokWebStatsigRuntime>,
     transport: Arc<dyn GrokWebProductionTransport>,
     egress_refresher: Option<Arc<dyn GrokWebEgressRefresher>>,
+    allow_egress_retry: bool,
 }
 
 /// Explicit per-request recovery hook for a rejected Web egress session.
@@ -756,6 +757,7 @@ impl GrokWebProductionInferenceAdapter {
             statsig,
             transport,
             egress_refresher: None,
+            allow_egress_retry: true,
         })
     }
 
@@ -763,6 +765,18 @@ impl GrokWebProductionInferenceAdapter {
     #[must_use]
     pub fn with_egress_refresher(mut self, refresher: Arc<dyn GrokWebEgressRefresher>) -> Self {
         self.egress_refresher = Some(refresher);
+        self
+    }
+
+    /// Disables the adapter's scoped 403/egress recovery retry for a one-shot diagnostic.
+    ///
+    /// The normal serving path retains the grok2api-compatible two-attempt behavior. Channel Pin
+    /// uses this opt-out so an adapter cannot issue a second transport request behind the router's
+    /// exact one-lease/one-driver boundary.
+    #[must_use]
+    pub fn without_egress_retry(mut self) -> Self {
+        self.allow_egress_retry = false;
+        self.egress_refresher = None;
         self
     }
 }
@@ -776,6 +790,7 @@ impl fmt::Debug for GrokWebProductionInferenceAdapter {
             .field("upstream_model", &"<redacted>")
             .field("statsig", &self.statsig)
             .field("egress_refresher", &self.egress_refresher.is_some())
+            .field("allow_egress_retry", &self.allow_egress_retry)
             .field("transport", &"<injected>")
             .finish()
     }
@@ -798,12 +813,14 @@ impl InferenceAdapter for GrokWebProductionInferenceAdapter {
         let statsig = Arc::clone(&self.statsig);
         let transport = Arc::clone(&self.transport);
         let egress_refresher = self.egress_refresher.clone();
+        let allow_egress_retry = self.allow_egress_retry;
         Box::pin(async move {
             let now_ms = web_now_ms()?;
             let input_tokens = estimate_grok_web_prompt_tokens(
                 &normalized_message(&request).map_err(map_web_request_error)?,
             );
-            for attempt in 0_u8..=1 {
+            let attempts = if allow_egress_retry { 2 } else { 1 };
+            for attempt in 0_u8..attempts {
                 // grok2api 3.1.1 treats a temporary Statsig/meta/signing failure as an optional
                 // browser hint: it still sends the exact conversation request, then lets an
                 // upstream 403 trigger the scoped clearance refresh and one retry. A credential
@@ -834,7 +851,7 @@ impl InferenceAdapter for GrokWebProductionInferenceAdapter {
                 .map_err(map_web_request_error)?;
                 let response = transport.send(outbound).await?;
                 let (status, mut body) = response.into_parts();
-                if status == 403 && attempt == 0 {
+                if status == 403 && attempt == 0 && allow_egress_retry {
                     let body_bytes = read_web_body(&mut *body, 4 * 1024 * 1024).await?;
                     if is_definitive_account_block_body(&body_bytes) {
                         let failure = classify_grok_web_http_failure(

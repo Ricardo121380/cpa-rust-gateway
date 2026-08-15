@@ -239,7 +239,8 @@ Codex must update the authoritative OpenAPI contract and sync Prism before reque
 - `apps/gateway/src/runtime.rs`
 - `crates/gateway-http-actix/src/management_resources.rs`
 - `docs/openapi/management-v1.json`
-- `web/prism/contracts/management-v1.json` and generated client (synced from the authoritative contract)
+- `web/prism/contracts/management-v1.json`
+- `web/prism/src/generated/management-client.ts`
 
 **Why:** P13-07B now projects the existing, shared Route/Credential Health/Quota observations
 through the P13-07A Provider-scoped deterministic selector. The management facade receives the
@@ -278,3 +279,32 @@ add only a display/control surface for catalog lineage and the closed evidence v
 calculate prices in Prism, edit generated files by hand, or change public inference protocols. Keep
 the PUT support and regression guard in the two listed Prism scripts aligned with the authoritative
 OpenAPI.
+
+---
+
+## 2026-08-15 · Codex · P13-08 protected Channel Pin contract
+
+**Touched:**
+- `crates/gateway-http-actix/src/management_resources.rs`
+- `crates/gateway-http-actix/tests/p10_01_management_openapi_contract.rs`
+- `docs/openapi/management-v1.json`
+- `web/prism/contracts/management-v1.json` and generated client (synced from the authoritative contract)
+
+**Why:** P13-08 adds a management-only `POST /admin/operations/channel-pin` seam for one exact
+Provider/Channel/Route/Credential diagnostic in JSON or SSE mode. The handler validates the selected
+Config Version graph, requires `X-Config-Version` plus `If-Match`, and records value-free request and
+pre-execution `channel_pin_started` audit actions before any Provider call. The returned receipt is
+the terminal source; no post-send audit append is performed. The executor is an injected fail-closed seam; this first slice admits only
+generic OpenAI Chat/Responses and Anthropic Messages Canonical/bridge candidates. `NativeExact` and
+native Grok Console/Web adapters with hidden bootstrap/refresh HTTP are rejected before lease/network.
+Admitted candidates may send at most once, with no retry, quota-recovery fallback, or cross-Provider
+fallback. The operation is not part of the public inference API and does not change Config Version
+revision; at most two pins are in flight and the bounded drain is 45 seconds idle/total with 4096
+events.
+
+**Other side:** action required — Claude Code should sync the generated Prism contract/client and,
+if a management control is later exposed, render only the bounded target fields and receipt state;
+the UI must collect the existing Config Version and revision preconditions, never construct a
+provider request or expose native-adapter controls in this slice.
+Do not add arbitrary prompt/body controls, echo upstream response data, calculate retry decisions in
+the frontend, or hand-edit generated files. No formal UI implementation is included in this slice.

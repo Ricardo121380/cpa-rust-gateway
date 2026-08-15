@@ -173,6 +173,89 @@ fn routing_price_policy_contract_is_closed_revisioned_and_value_free() -> TestRe
 }
 
 #[test]
+fn channel_pin_contract_is_one_shot_revisioned_closed_and_value_free() -> TestResult {
+    let document = document()?;
+    let paths = object(&document, "paths")?;
+    let path = &paths["/admin/operations/channel-pin"];
+    let operation = &path["post"];
+    assert_eq!(operation["operationId"], "executeChannelPin");
+    assert_eq!(operation["x-delivery-phase"], "P13-08");
+    assert_eq!(operation["x-audit-action"], "channel_pin_requested");
+    let parameters = operation_parameters(&document, "/admin/operations/channel-pin", "post")?;
+    assert!(
+        parameters
+            .iter()
+            .any(|parameter| parameter["$ref"] == "#/components/parameters/ConfigVersion")
+    );
+    assert!(
+        parameters
+            .iter()
+            .any(|parameter| parameter["$ref"] == "#/components/parameters/IfMatch")
+    );
+
+    let schemas = object(&document["components"], "schemas")?;
+    let input = &schemas["ChannelPinInput"];
+    assert_eq!(input["additionalProperties"], false);
+    assert_eq!(
+        input["properties"]["protocol"]["enum"],
+        serde_json::json!([
+            "openai_chat_completions",
+            "openai_responses",
+            "anthropic_messages"
+        ])
+    );
+    assert_eq!(
+        input["properties"]["mode"]["enum"],
+        serde_json::json!(["json", "sse"])
+    );
+    let receipt = &schemas["ChannelPin"];
+    assert_eq!(receipt["additionalProperties"], false);
+    for required in [
+        "request_id",
+        "config_version_id",
+        "config_revision",
+        "provider_id",
+        "channel_id",
+        "route_id",
+        "credential_id",
+        "requested_model",
+        "protocol",
+        "mode",
+        "outcome",
+        "upstream_sent",
+        "attempt_count",
+        "response_started",
+        "observed_at_ms",
+    ] {
+        assert!(
+            receipt["required"]
+                .as_array()
+                .is_some_and(|fields| { fields.iter().any(|field| field == required) })
+        );
+    }
+    let properties = object(receipt, "properties")?;
+    for forbidden in [
+        "url",
+        "path",
+        "headers",
+        "cookies",
+        "body",
+        "token",
+        "secret",
+        "ciphertext",
+        "digest",
+        "raw_error",
+        "status_code",
+    ] {
+        assert!(
+            !properties.contains_key(forbidden),
+            "ChannelPin exposes {forbidden}"
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn management_contract_is_separate_from_client_keys_and_uses_optimistic_transactions() -> TestResult
 {
     let document = document()?;
@@ -431,7 +514,7 @@ fn operation_parameters(
     Ok(parameters)
 }
 
-fn required_operations() -> [(&'static str, &'static str); 41] {
+fn required_operations() -> [(&'static str, &'static str); 42] {
     [
         ("/admin/config-versions", "get"),
         ("/admin/config-versions", "post"),
@@ -470,6 +553,7 @@ fn required_operations() -> [(&'static str, &'static str); 41] {
         ("/admin/runtime/availability", "get"),
         ("/admin/runtime/quota/reset", "post"),
         ("/admin/operations/account-pools", "get"),
+        ("/admin/operations/channel-pin", "post"),
         ("/admin/operations/provider-account-pools", "get"),
         ("/admin/operations/provider-account-pools/actions", "post"),
         ("/admin/operations/provider-account-pools/failures", "get"),

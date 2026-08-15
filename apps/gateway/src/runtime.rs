@@ -20,7 +20,7 @@ use std::{
     path::Path,
     sync::{
         Arc, Mutex, OnceLock,
-        atomic::{AtomicBool, AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
     },
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
@@ -34,6 +34,7 @@ use gateway_catalog::{
 use gateway_control::{
     credential_pool_compiler::CredentialPoolCompiler,
     egress_policy_compiler::EgressPolicyCompiler,
+    management_mutation_service::ConfigRevision,
     provider_account_pool_service::{
         ProviderAccountAuthStatus, ProviderAccountPoolFacade, ProviderAccountRuntimeStatus,
         RejectingProviderAccountPoolFacade,
@@ -42,15 +43,16 @@ use gateway_control::{
     routing_price_policy_service::{RoutingPriceSnapshot, compile_routing_price_snapshot},
 };
 use gateway_core::{
-    AttemptEvent, AttemptOutcome, CanonicalEvent, CanonicalRequest, CredentialId, EgressPolicyId,
-    EndpointId, ErrorScope, EventEmission, GatewayError, GatewayErrorCode, GatewayEvent,
-    GatewayEventSink, ProviderId, RawExtensions, RequestContext, RequestId, Usage, UsageDelta,
+    AttemptEvent, AttemptOutcome, CanonicalEvent, CanonicalEventState, CanonicalMessage,
+    CanonicalRequest, CredentialId, EgressPolicyId, EndpointId, ErrorScope, EventEmission,
+    GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, MessageContent, MessageRole,
+    NoopGatewayEventSink, ProviderId, RawExtensions, RawJson, RequestContext, RequestId,
+    TextContent, TransparentRetryGate, TransparentRetryGateFuture, Usage, UsageDelta,
 };
 #[cfg(test)]
 use gateway_core::{
-    CanonicalEventState, CanonicalResponse, MessageEnd, MessageRole, MessageStart, RawJson,
-    ResponseEnd, ResponseId, ResponseStart, StreamError, TextDelta, ToolCallArgumentsDelta,
-    ToolCallEnd, ToolCallStart,
+    CanonicalResponse, MessageEnd, MessageStart, ResponseEnd, ResponseId, ResponseStart,
+    StreamError, TextDelta, ToolCallArgumentsDelta, ToolCallEnd, ToolCallStart,
 };
 use gateway_http_actix::{
     ResponsesHttpState, SystemResponsesMetadataFactory, default_stream_capacity,
@@ -58,11 +60,13 @@ use gateway_http_actix::{
         DurabilityMetricsSource, ManagementObservabilityHttpState,
     },
     management_resources::{
-        ManagementCatalogStatus, ManagementQuotaRecoveryState, ManagementRequestAttempt,
-        ManagementRequestAttemptStage, ManagementRequestProtocol, ManagementRouteExplain,
-        ManagementRouteExplainCandidate, ManagementRouteExplainPricePolicy,
+        ManagementCatalogStatus, ManagementChannelPinError, ManagementChannelPinFacade,
+        ManagementChannelPinFuture, ManagementChannelPinMode, ManagementChannelPinOutcome,
+        ManagementChannelPinReceipt, ManagementChannelPinRequest, ManagementQuotaRecoveryState,
+        ManagementRequestAttempt, ManagementRequestAttemptStage, ManagementRequestProtocol,
+        ManagementRouteExplain, ManagementRouteExplainCandidate, ManagementRouteExplainPricePolicy,
         ManagementRouteExplainRequest, ManagementRuntimeAvailabilityStatus, ManagementRuntimeError,
-        ManagementRuntimeFacade, ManagementRuntimeTarget,
+        ManagementRuntimeFacade, ManagementRuntimeTarget, RejectingManagementChannelPinFacade,
     },
 };
 use gateway_observability::{
@@ -351,6 +355,16 @@ const P12_STREAMING_TOTAL_TIMEOUT: Duration = Duration::from_hours(1);
 /// governing when an attempt may begin, while the one in-flight non-streaming attempt is bounded
 /// by this transport total instead of being cut at the bootstrap deadline.
 const P12_NON_STREAMING_TOTAL_TIMEOUT: Duration = Duration::from_mins(10);
+/// The maximum idle interval allowed while draining a management Channel Pin source.
+///
+/// This intentionally remains shorter than the production streaming allowance: Channel Pin is a
+/// bounded diagnostic for a fixed short probe, not a user-facing long-running generation.
+const P13_CHANNEL_PIN_IDLE_TIMEOUT: Duration = Duration::from_secs(45);
+/// The absolute wall-clock ceiling for draining one management Channel Pin source.
+const P13_CHANNEL_PIN_TOTAL_TIMEOUT: Duration = Duration::from_secs(45);
+/// Maximum number of concurrent management pins. A pin can hold a serving lease for the full
+/// bounded drain window, so admission must be bounded independently of ordinary route capacity.
+const P13_CHANNEL_PIN_MAX_IN_FLIGHT: usize = 2;
 /// The isolated P12 streaming decoder retains at most this many Tool argument bytes per response.
 ///
 /// This must admit exactly what the non-streaming decoder admits: there, every Tool argument
@@ -403,7 +417,7 @@ const P12_MAX_ROUTE_ATTEMPTS: usize = 5;
 /// inbound request memory.
 const P12_MAX_TOTAL_BINDING_CONCURRENCY: i64 = 16;
 const P12_ANTHROPIC_MAX_TOKENS_EXTENSION: &str = "anthropic.messages.max_tokens";
-#[cfg(test)]
+const P12_OPENAI_CHAT_MAX_TOKENS_EXTENSION: &str = "openai.chat.max_tokens";
 const P12_OPENAI_MAX_OUTPUT_TOKENS_EXTENSION: &str = "openai.responses.max_output_tokens";
 /// The one verified, non-secret Krill/Codex compatibility header for P12's isolated endpoint.
 ///
@@ -420,6 +434,29 @@ const P12_OPERATOR_RECOVERY_TTL_MS: i64 = 30_000;
 const P13_PROVIDER_ACCOUNT_POOL_SNAPSHOT_TTL: Duration = Duration::from_secs(5);
 /// Cursor-bearing readers may finish a bounded multi-page traversal after the latest view refreshes.
 const P13_PROVIDER_ACCOUNT_POOL_CURSOR_RETENTION: Duration = Duration::from_mins(2);
+static P13_CHANNEL_PIN_REQUEST_COUNTER: AtomicU64 = AtomicU64::new(1);
+static P13_CHANNEL_PIN_BOOT_NONCE: OnceLock<Result<String, ()>> = OnceLock::new();
+
+fn p13_channel_pin_request_id() -> Result<RequestId, ManagementChannelPinError> {
+    let boot_nonce = P13_CHANNEL_PIN_BOOT_NONCE.get_or_init(|| {
+        let mut bytes = [0_u8; 8];
+        getrandom::fill(&mut bytes).map_err(|_| ())?;
+        let mut rendered = String::with_capacity(bytes.len().saturating_mul(2));
+        for byte in bytes {
+            use std::fmt::Write as _;
+            write!(&mut rendered, "{byte:02x}").map_err(|_| ())?;
+        }
+        Ok(rendered)
+    });
+    let boot_nonce = boot_nonce
+        .as_deref()
+        .map_err(|()| ManagementChannelPinError::Unavailable)?;
+    RequestId::try_new(format!(
+        "channel-pin-{boot_nonce}-{}",
+        P13_CHANNEL_PIN_REQUEST_COUNTER.fetch_add(1, Ordering::Relaxed)
+    ))
+    .map_err(|_| ManagementChannelPinError::Unavailable)
+}
 
 /// Production pieces that must be attached to the separate P12 listeners together.
 pub(crate) struct DataPlaneComposition {
@@ -429,6 +466,8 @@ pub(crate) struct DataPlaneComposition {
     pub(crate) management_runtime: Box<dyn ManagementRuntimeFacade>,
     /// Read-only projection over the exact account pools and runtime registries used by routing.
     pub(crate) provider_account_pools: Box<dyn ProviderAccountPoolFacade>,
+    /// Management-only one-shot Channel Pin executor sharing the serving pools and snapshot.
+    pub(crate) channel_pin: Box<dyn ManagementChannelPinFacade>,
     /// Management-listener exposition over the shared bounded telemetry registry.
     pub(crate) observability: ManagementObservabilityHttpState,
     /// Durable event consumer that the deployment envelope spawns after its listeners bind and
@@ -440,6 +479,7 @@ type ProviderAccountPoolComposition = (
     Arc<dyn ResponsesExecutor>,
     Box<dyn ProviderAccountPoolFacade>,
     Option<Arc<RouteCredentialScheduler>>,
+    Box<dyn ManagementChannelPinFacade>,
 );
 type P12ExecutorComposition = (
     P12RoutedResponsesExecutor,
@@ -588,7 +628,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
         Arc::clone(&event_queue),
     ));
     let mut routing_price_snapshot: Option<Arc<RoutingPriceSnapshot>> = None;
-    let (executor, provider_account_pools, route_explain_scheduler):
+    let (executor, provider_account_pools, route_explain_scheduler, channel_pin):
         ProviderAccountPoolComposition = match repository
         .load_active_configuration()
         .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::ControlPlane))?
@@ -634,16 +674,21 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
                     flaresolverr_port,
                     routing_price_snapshot.as_ref(),
                 )?;
+            let executor = Arc::new(executor);
+            let channel_pin: Box<dyn ManagementChannelPinFacade> =
+                Box::new(P12ChannelPinFacade::new(Arc::clone(&executor)));
             (
-                Arc::new(executor),
+                executor,
                 provider_account_pools,
                 Some(route_explain_scheduler),
+                channel_pin,
             )
         }
         None => (
             Arc::new(NoActiveConfigurationExecutor),
             Box::new(RejectingProviderAccountPoolFacade::new()),
             None,
+            Box::new(RejectingManagementChannelPinFacade::new()),
         ),
     };
     let authenticator = Arc::new(gateway_router::SnapshotClientKeyAuthenticator::new(
@@ -674,6 +719,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
             event_store,
         }),
         provider_account_pools,
+        channel_pin,
         observability: ManagementObservabilityHttpState::new(telemetry_metrics, event_queue)
             .with_durability(Arc::new(P12DurabilityMetrics::new(
                 event_writer.metrics_handle(),
@@ -940,7 +986,6 @@ impl P12AttemptStageStore {
     /// [`Self::stage_view`] withholds a stage until a terminal Attempt event pairs with it, which
     /// is the right management projection but hides which stages an attempt that failed before
     /// its first terminal did and did not reach. This seam exposes exactly that.
-    #[cfg(test)]
     fn recorded_stage(&self, request_id: &RequestId) -> Option<ManagementRequestAttemptStage> {
         let records = self.records.try_lock().ok()?;
         records.get(request_id).map(|record| record.stage)
@@ -999,11 +1044,14 @@ impl GatewayEventSink for P12FanoutEventSink {
 struct P12RoutedResponsesExecutor {
     registry: Arc<RouteSnapshotRegistry>,
     snapshot_version: SnapshotVersion,
+    config_revision: ConfigRevision,
+    scheduler: Arc<RouteCredentialScheduler>,
     orchestrator: Arc<AttemptOrchestrator>,
     endpoints: Arc<BTreeMap<EndpointId, EndpointRuntime>>,
     client_pool: Arc<UpstreamClientPool>,
     attempt_stages: Arc<P12AttemptStageStore>,
     event_sink: Arc<dyn GatewayEventSink>,
+    channel_pin_in_flight: AtomicUsize,
 }
 
 impl P12RoutedResponsesExecutor {
@@ -1180,11 +1228,16 @@ impl P12RoutedResponsesExecutor {
             Self {
                 registry,
                 snapshot_version: snapshot.version().clone(),
+                config_revision: ConfigRevision::try_new(configuration.version.revision).map_err(
+                    |_| RuntimeCompositionError::Stage(RuntimeCompositionStage::Snapshot),
+                )?,
+                scheduler: Arc::clone(&route_explain_scheduler),
                 orchestrator,
                 endpoints: Arc::new(endpoints),
                 client_pool,
                 attempt_stages,
                 event_sink,
+                channel_pin_in_flight: AtomicUsize::new(0),
             },
             provider_account_pools,
             route_explain_scheduler,
@@ -1193,6 +1246,411 @@ impl P12RoutedResponsesExecutor {
 
     fn snapshot_is_current(&self) -> bool {
         self.registry.load().version() == &self.snapshot_version
+    }
+
+    /// Executes one exact management Channel Pin against the same pools, scheduler, endpoint
+    /// runtimes, and event sink used by serving.  The request body is deliberately fixed and is
+    /// never returned or written to the audit log; the management caller chooses only target IDs
+    /// and JSON/SSE mode.
+    #[allow(clippy::too_many_lines)]
+    async fn execute_channel_pin(
+        &self,
+        request: ManagementChannelPinRequest,
+    ) -> Result<ManagementChannelPinReceipt, ManagementChannelPinError> {
+        if request.config_version_id().as_str() != self.snapshot_version.as_str()
+            || request.config_revision() != self.config_revision
+            || !self.snapshot_is_current()
+        {
+            return Err(ManagementChannelPinError::SnapshotConflict);
+        }
+        let observed_at_ms =
+            system_now_ms_runtime().map_err(|_| ManagementChannelPinError::Unavailable)?;
+        let observation = Arc::new(P13ChannelPinObservation::default());
+        let route = self
+            .scheduler
+            .route(request.route_id())
+            .ok_or(ManagementChannelPinError::InvalidTarget)?;
+        let snapshot = self.registry.load();
+        let Some(public_model) = snapshot
+            .resolve_public_model(request.requested_model())
+            .filter(|model| model.route_id() == request.route_id())
+        else {
+            return Err(ManagementChannelPinError::InvalidTarget);
+        };
+        if snapshot.route(public_model.route_id()).is_none() {
+            return Err(ManagementChannelPinError::InvalidTarget);
+        }
+        let mut candidates = route.candidates().iter().filter(|candidate| {
+            candidate.endpoint_id() == request.channel_id()
+                && ProviderId::try_new(candidate.upstream_id().as_str().to_owned())
+                    .is_ok_and(|provider| provider == *request.provider_id())
+        });
+        let Some(_candidate) = candidates.next() else {
+            return Err(ManagementChannelPinError::InvalidTarget);
+        };
+        if candidates.next().is_some() {
+            return Err(ManagementChannelPinError::InvalidTarget);
+        }
+        let endpoint_runtime = self
+            .endpoints
+            .get(request.channel_id())
+            .ok_or(ManagementChannelPinError::InvalidTarget)?;
+        if !channel_pin_single_transport_adapter(&endpoint_runtime.adapter) {
+            // Native browser/bootstrap adapters can issue auxiliary token, Statsig, or refresh
+            // requests internally. Until those Provider boundaries expose an explicit one-shot
+            // transport policy, reject them before a lease or network call rather than claiming
+            // that the management probe sent exactly one upstream request.
+            return Err(ManagementChannelPinError::InvalidTarget);
+        }
+        let _in_flight = P13ChannelPinInFlightGuard::try_acquire(&self.channel_pin_in_flight)?;
+        // The management request is pinned to the same immutable route snapshot as the serving
+        // scheduler. Re-check immediately before constructing the driver/lease so a publication
+        // between the initial graph read and exact selection cannot mix generations.
+        if !self.snapshot_is_current()
+            || self.scheduler.snapshot_version().as_str() != self.snapshot_version.as_str()
+        {
+            return Err(ManagementChannelPinError::SnapshotConflict);
+        }
+        let client_protocol = match request.protocol() {
+            gateway_http_actix::management_resources::ManagementRequestProtocol::OpenAiChatCompletions => {
+                ProtocolFormat::OpenAiChatCompletions
+            }
+            gateway_http_actix::management_resources::ManagementRequestProtocol::OpenAiResponses => {
+                ProtocolFormat::OpenAiResponses
+            }
+            gateway_http_actix::management_resources::ManagementRequestProtocol::AnthropicMessages => {
+                ProtocolFormat::AnthropicMessages
+            }
+        };
+        let request_id = p13_channel_pin_request_id()?;
+        let mut canonical = CanonicalRequest {
+            requested_model: request.requested_model().to_owned(),
+            messages: vec![CanonicalMessage {
+                role: MessageRole("user".to_owned()),
+                content: vec![MessageContent::Text(TextContent {
+                    text: "Reply with OK.".to_owned(),
+                    extensions: RawExtensions::default(),
+                })],
+                extensions: RawExtensions::default(),
+            }],
+            tools: Vec::new(),
+            thinking: None,
+            prompt_cache_key: None,
+            prompt_cache_retention: None,
+            extensions: RawExtensions::default(),
+        };
+        // Keep the fixed probe cheap on generic adapters. Codex OAuth Responses is the one
+        // reviewed exception: that upstream rejects `max_output_tokens`, and its adapter already
+        // forces a bounded-compatible SSE projection, so adding the field would turn a useful
+        // one-shot diagnostic into a deterministic pre-send protocol rejection.
+        let probe_limit = RawJson::from_json_string("8".to_owned())
+            .map_err(|_| ManagementChannelPinError::Unavailable)?;
+        match &endpoint_runtime.adapter {
+            EndpointAdapter::OpenAiChatCompletions(_) => canonical
+                .extensions
+                .try_insert(P12_OPENAI_CHAT_MAX_TOKENS_EXTENSION, probe_limit.clone())
+                .map_err(|_| ManagementChannelPinError::Unavailable)?,
+            EndpointAdapter::OpenAiResponses(endpoint)
+                if !endpoint
+                    .url()
+                    .starts_with("https://chatgpt.com/backend-api/codex/") =>
+            {
+                canonical
+                    .extensions
+                    .try_insert(P12_OPENAI_MAX_OUTPUT_TOKENS_EXTENSION, probe_limit.clone())
+                    .map_err(|_| ManagementChannelPinError::Unavailable)?;
+            }
+            EndpointAdapter::AnthropicMessages(_) => canonical
+                .extensions
+                .try_insert(P12_ANTHROPIC_MAX_TOKENS_EXTENSION, probe_limit)
+                .map_err(|_| ManagementChannelPinError::Unavailable)?,
+            _ => {}
+        }
+        let mode = match request.mode() {
+            ManagementChannelPinMode::Json => ResponsesResponseMode::NonStreaming,
+            ManagementChannelPinMode::Sse => ResponsesResponseMode::Streaming,
+        };
+        let endpoints = Arc::clone(&self.endpoints);
+        let driver = EndpointAttemptDriver {
+            request_id: request_id.clone(),
+            request: canonical,
+            client_protocol,
+            native_payload: None,
+            usage_projection: match client_protocol {
+                ProtocolFormat::AnthropicMessages => P12ResponseUsageProjection::AnthropicMessages,
+                ProtocolFormat::OpenAiChatCompletions | ProtocolFormat::OpenAiResponses => {
+                    P12ResponseUsageProjection::OpenAiResponses
+                }
+            },
+            mode,
+            endpoints,
+            client_pool: Arc::clone(&self.client_pool),
+            attempt_stages: Arc::clone(&self.attempt_stages),
+            allow_compatibility_retry: false,
+            allow_egress_refresh: false,
+            channel_pin_observation: Some(Arc::clone(&observation)),
+        };
+        let started = self
+            .orchestrator
+            .start_pinned_once_with_event_sink(
+                &request_id,
+                request.route_id(),
+                request.provider_id(),
+                request.channel_id(),
+                request.credential_id(),
+                |candidate| driver.project_candidate(candidate).is_ok(),
+                &driver,
+                &P13ChannelPinRetryGate,
+                // A Channel Pin's durable terminal state is written by the management handler
+                // after bounded source drain. Do not publish the serving Attempt event here: the
+                // orchestrator returns before the source is consumed, so that event would claim
+                // success before a later SSE/JSON decoder failure could be observed.
+                &NoopGatewayEventSink,
+            )
+            .await;
+        // Channel Pin deliberately suppresses the serving Attempt event until after the source
+        // is drained, so use the request-local stage projection rather than the public attempt
+        // listing view (which requires a terminal Attempt pairing).
+        let mut stage = self.attempt_stages.recorded_stage(&request_id);
+        let attempt_count = u8::from(observation.attempted());
+        let upstream_sent = observation.upstream_sent();
+        let upstream_stage = stage.is_some_and(|stage| {
+            matches!(
+                stage,
+                ManagementRequestAttemptStage::HttpTransport
+                    | ManagementRequestAttemptStage::HttpStatus
+                    | ManagementRequestAttemptStage::ContentType
+                    | ManagementRequestAttemptStage::BodyRead
+                    | ManagementRequestAttemptStage::Decoder
+                    | ManagementRequestAttemptStage::SseBootstrap
+            )
+        });
+        let upstream_sent = upstream_sent || upstream_stage;
+        match started {
+            Ok(started) => {
+                let (mut source, _selection) = started.into_parts();
+                let mut event_count = 0_usize;
+                let mut response_started = false;
+                let drain_deadline = Instant::now() + P13_CHANNEL_PIN_TOTAL_TIMEOUT;
+                let mut event_state = CanonicalEventState::default();
+                let lifecycle_complete = loop {
+                    let remaining = drain_deadline.saturating_duration_since(Instant::now());
+                    if remaining.is_zero() {
+                        stage = Some(ManagementRequestAttemptStage::BodyRead);
+                        return self.channel_pin_receipt(
+                            &request,
+                            request_id,
+                            ManagementChannelPinOutcome::Failed,
+                            attempt_count,
+                            upstream_sent,
+                            response_started,
+                            observed_at_ms,
+                            stage,
+                        );
+                    }
+                    let wait = remaining.min(P13_CHANNEL_PIN_IDLE_TIMEOUT);
+                    match actix_web::rt::time::timeout(wait, source.next_event()).await {
+                        Err(_) | Ok(Err(_)) => {
+                            stage = Some(ManagementRequestAttemptStage::Decoder);
+                            return self.channel_pin_receipt(
+                                &request,
+                                request_id,
+                                ManagementChannelPinOutcome::Failed,
+                                attempt_count,
+                                upstream_sent,
+                                response_started,
+                                observed_at_ms,
+                                stage,
+                            );
+                        }
+                        Ok(Ok(Some(event))) => {
+                            event_count = event_count.saturating_add(1);
+                            if event_count > 4096 {
+                                stage = Some(ManagementRequestAttemptStage::BodyRead);
+                                return self.channel_pin_receipt(
+                                    &request,
+                                    request_id,
+                                    ManagementChannelPinOutcome::Failed,
+                                    attempt_count,
+                                    upstream_sent,
+                                    response_started,
+                                    observed_at_ms,
+                                    stage,
+                                );
+                            }
+                            if matches!(event, CanonicalEvent::StreamError(_)) {
+                                stage = Some(ManagementRequestAttemptStage::Decoder);
+                                return self.channel_pin_receipt(
+                                    &request,
+                                    request_id,
+                                    ManagementChannelPinOutcome::Failed,
+                                    attempt_count,
+                                    upstream_sent,
+                                    response_started,
+                                    observed_at_ms,
+                                    stage,
+                                );
+                            }
+                            if event_state.apply(&event).is_err() {
+                                stage = Some(ManagementRequestAttemptStage::Decoder);
+                                return self.channel_pin_receipt(
+                                    &request,
+                                    request_id,
+                                    ManagementChannelPinOutcome::Failed,
+                                    attempt_count,
+                                    upstream_sent,
+                                    response_started,
+                                    observed_at_ms,
+                                    stage,
+                                );
+                            }
+                            if matches!(event, CanonicalEvent::ResponseStart(_)) {
+                                response_started = true;
+                            }
+                            if event_state.is_success() {
+                                break true;
+                            }
+                        }
+                        Ok(Ok(None)) => {
+                            if !event_state.is_success() {
+                                stage = Some(ManagementRequestAttemptStage::BodyRead);
+                            }
+                            break event_state.finish().is_ok() && event_state.is_success();
+                        }
+                    }
+                };
+                self.channel_pin_receipt(
+                    &request,
+                    request_id,
+                    if lifecycle_complete {
+                        ManagementChannelPinOutcome::Succeeded
+                    } else {
+                        ManagementChannelPinOutcome::Failed
+                    },
+                    attempt_count,
+                    upstream_sent,
+                    response_started,
+                    observed_at_ms,
+                    stage,
+                )
+            }
+            Err(_) => self.channel_pin_receipt(
+                &request,
+                request_id,
+                if attempt_count == 0 {
+                    ManagementChannelPinOutcome::Rejected
+                } else {
+                    ManagementChannelPinOutcome::Failed
+                },
+                attempt_count,
+                upstream_sent,
+                false,
+                observed_at_ms,
+                stage,
+            ),
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn channel_pin_receipt(
+        &self,
+        request: &ManagementChannelPinRequest,
+        request_id: RequestId,
+        outcome: ManagementChannelPinOutcome,
+        attempt_count: u8,
+        upstream_sent: bool,
+        response_started: bool,
+        observed_at_ms: i64,
+        stage: Option<ManagementRequestAttemptStage>,
+    ) -> Result<ManagementChannelPinReceipt, ManagementChannelPinError> {
+        ManagementChannelPinReceipt::try_new(
+            request_id,
+            request.config_version_id().clone(),
+            self.config_revision,
+            request.provider_id().clone(),
+            request.channel_id().clone(),
+            request.route_id().clone(),
+            request.credential_id().clone(),
+            request.requested_model().to_owned(),
+            request.protocol(),
+            request.mode(),
+            outcome,
+            upstream_sent,
+            attempt_count,
+            response_started,
+            observed_at_ms,
+            stage,
+        )
+    }
+}
+
+/// Channel Pin always disables transparent retries and has no external cancellation source.
+struct P13ChannelPinRetryGate;
+
+/// RAII admission token for the bounded management diagnostic budget.
+struct P13ChannelPinInFlightGuard<'a> {
+    counter: &'a AtomicUsize,
+}
+
+impl<'a> P13ChannelPinInFlightGuard<'a> {
+    fn try_acquire(counter: &'a AtomicUsize) -> Result<Self, ManagementChannelPinError> {
+        let acquired = counter
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
+                (current < P13_CHANNEL_PIN_MAX_IN_FLIGHT).then_some(current + 1)
+            })
+            .is_ok();
+        if acquired {
+            Ok(Self { counter })
+        } else {
+            Err(ManagementChannelPinError::Unavailable)
+        }
+    }
+}
+
+impl Drop for P13ChannelPinInFlightGuard<'_> {
+    fn drop(&mut self) {
+        let previous = self.counter.fetch_sub(1, Ordering::AcqRel);
+        debug_assert!(previous > 0, "Channel Pin in-flight counter underflow");
+    }
+}
+
+fn channel_pin_single_transport_adapter(adapter: &EndpointAdapter) -> bool {
+    matches!(
+        adapter,
+        EndpointAdapter::OpenAiChatCompletions(_)
+            | EndpointAdapter::OpenAiResponses(_)
+            | EndpointAdapter::AnthropicMessages(_)
+    )
+}
+
+impl TransparentRetryGate for P13ChannelPinRetryGate {
+    fn is_cancelled(&self) -> bool {
+        false
+    }
+
+    fn allows_transparent_retry(&self) -> bool {
+        false
+    }
+
+    fn cancelled(&self) -> TransparentRetryGateFuture<'_> {
+        Box::pin(std::future::pending())
+    }
+}
+
+struct P12ChannelPinFacade {
+    executor: Arc<P12RoutedResponsesExecutor>,
+}
+
+impl P12ChannelPinFacade {
+    fn new(executor: Arc<P12RoutedResponsesExecutor>) -> Self {
+        Self { executor }
+    }
+}
+
+impl ManagementChannelPinFacade for P12ChannelPinFacade {
+    fn execute(&self, request: ManagementChannelPinRequest) -> ManagementChannelPinFuture {
+        let executor = Arc::clone(&self.executor);
+        Box::pin(async move { executor.execute_channel_pin(request).await })
     }
 }
 
@@ -1252,6 +1710,9 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                 endpoints,
                 client_pool,
                 attempt_stages,
+                allow_compatibility_retry: true,
+                allow_egress_refresh: true,
+                channel_pin_observation: None,
             };
             // BC-ROUTER-005: a Candidate may only serve the client protocol it speaks. Once the
             // graph can hold Endpoints of more than one format, selecting without this filter
@@ -2343,9 +2804,44 @@ struct EndpointAttemptDriver {
     endpoints: Arc<BTreeMap<EndpointId, EndpointRuntime>>,
     client_pool: Arc<UpstreamClientPool>,
     attempt_stages: Arc<P12AttemptStageStore>,
+    allow_compatibility_retry: bool,
+    allow_egress_refresh: bool,
+    channel_pin_observation: Option<Arc<P13ChannelPinObservation>>,
+}
+
+/// Request-local, value-free observation used by Channel Pin to distinguish a rejected lease
+/// from a driver invocation when the shared stage ledger is contended or unavailable.
+#[derive(Default)]
+struct P13ChannelPinObservation {
+    attempted: AtomicBool,
+    upstream_sent: AtomicBool,
+}
+
+impl P13ChannelPinObservation {
+    fn mark_attempted(&self) {
+        self.attempted.store(true, Ordering::Release);
+    }
+
+    fn mark_upstream_sent(&self) {
+        self.upstream_sent.store(true, Ordering::Release);
+    }
+
+    fn attempted(&self) -> bool {
+        self.attempted.load(Ordering::Acquire)
+    }
+
+    fn upstream_sent(&self) -> bool {
+        self.upstream_sent.load(Ordering::Acquire)
+    }
 }
 
 impl EndpointAttemptDriver {
+    fn mark_upstream_sent(&self) {
+        if let Some(observation) = &self.channel_pin_observation {
+            observation.mark_upstream_sent();
+        }
+    }
+
     /// Produces the exact request material for one Candidate without reading a Secret or taking a
     /// lease. The same function is used by the scheduler predicate and again by the driver, so
     /// admission and execution cannot drift.
@@ -2404,6 +2900,9 @@ impl AttemptDriver for EndpointAttemptDriver {
         _bootstrap_timeout: Duration,
     ) -> AttemptFuture<'a, Result<Self::Output, AttemptFailure>> {
         Box::pin(async move {
+            if let Some(observation) = &self.channel_pin_observation {
+                observation.mark_attempted();
+            }
             self.attempt_stages.record_stage(
                 &self.request_id,
                 ManagementRequestAttemptStage::RequestConversion,
@@ -2635,7 +3134,8 @@ impl EndpointAttemptDriver {
                 {
                     Ok(response) => break response,
                     Err(P12SendFailure::RetryWithoutMaxOutputTokens)
-                        if !retried_rejected_max_output_tokens =>
+                        if self.allow_compatibility_retry
+                            && !retried_rejected_max_output_tokens =>
                     {
                         retried_rejected_max_output_tokens = true;
                         outbound
@@ -2826,6 +3326,7 @@ impl EndpointAttemptDriver {
             &self.request_id,
             ManagementRequestAttemptStage::HttpTransport,
         );
+        self.mark_upstream_sent();
         let source = adapter
             .execute(
                 RequestContext::new(self.request_id.clone()),
@@ -2872,6 +3373,7 @@ impl EndpointAttemptDriver {
             &self.request_id,
             ManagementRequestAttemptStage::HttpTransport,
         );
+        self.mark_upstream_sent();
         let source = adapter
             .execute(
                 RequestContext::new(self.request_id.clone()),
@@ -2946,16 +3448,20 @@ impl EndpointAttemptDriver {
             runtime.transports.flaresolverr_port(),
         )
         .map_err(AttemptFailure::NonRetryable)?;
-        let adapter = GrokWebProductionInferenceAdapter::try_new(
+        let mut adapter = GrokWebProductionInferenceAdapter::try_new(
             session,
             candidate.upstream_model(),
             statsig,
             Arc::new(transport),
         )
-        .map_err(AttemptFailure::NonRetryable)?
-        .with_egress_refresher(Arc::new(P12GrokWebEgressRefresher {
-            transport: Arc::new(flaresolverr_transport),
-        }));
+        .map_err(AttemptFailure::NonRetryable)?;
+        if self.allow_egress_refresh {
+            adapter = adapter.with_egress_refresher(Arc::new(P12GrokWebEgressRefresher {
+                transport: Arc::new(flaresolverr_transport),
+            }));
+        } else {
+            adapter = adapter.without_egress_retry();
+        }
         self.attempt_stages.record_stage(
             &self.request_id,
             ManagementRequestAttemptStage::EgressAdmission,
@@ -2964,6 +3470,7 @@ impl EndpointAttemptDriver {
             &self.request_id,
             ManagementRequestAttemptStage::HttpTransport,
         );
+        self.mark_upstream_sent();
         let source = adapter
             .execute(
                 RequestContext::new(self.request_id.clone()),
@@ -3012,6 +3519,7 @@ impl EndpointAttemptDriver {
             &self.request_id,
             ManagementRequestAttemptStage::HttpTransport,
         );
+        self.mark_upstream_sent();
         let source = adapter
             .execute(
                 RequestContext::new(self.request_id.clone()),
@@ -3089,6 +3597,7 @@ impl EndpointAttemptDriver {
             &self.request_id,
             ManagementRequestAttemptStage::HttpTransport,
         );
+        self.mark_upstream_sent();
         let source = adapter
             .execute(context, p12_kiro_request_projection(request))
             .await
@@ -3153,6 +3662,7 @@ impl EndpointAttemptDriver {
             &self.request_id,
             ManagementRequestAttemptStage::HttpTransport,
         );
+        self.mark_upstream_sent();
         let mut response = self
             .client_pool
             .send(request, runtime.transports.for_mode(self.mode))
@@ -5761,7 +6271,7 @@ mod tests {
         path::{Path, PathBuf},
         sync::{
             Arc, OnceLock,
-            atomic::{AtomicI64, AtomicU64, Ordering},
+            atomic::{AtomicI64, AtomicU64, AtomicUsize, Ordering},
         },
         time::{Duration, Instant, SystemTime, UNIX_EPOCH},
     };
@@ -5862,11 +6372,12 @@ mod tests {
         P12_STREAMING_IDLE_TIMEOUT, P12_STREAMING_PROGRESS_TIMEOUT, P12_STREAMING_TOTAL_TIMEOUT,
         P12_STREAMING_TTFB_TIMEOUT, P12AttemptStageStore, P12EndpointAdapterFactory,
         P12FanoutEventSink, P12ResponseUsageProjection, P12RoutedResponsesExecutor,
-        P12TransportProfiles, RuntimeCompositionError, RuntimeCompositionStage,
-        SnapshotManagementRuntimeFacade, append_response_chunk, build_data_plane_composition,
-        build_grok_build_responses_adapter, build_grok_console_responses_adapter,
-        build_grok_official_responses_adapter, build_grok_web_responses_adapter,
-        build_kiro_messages_adapter, build_openai_responses_adapter,
+        P12TransportProfiles, P13_CHANNEL_PIN_MAX_IN_FLIGHT, P13ChannelPinInFlightGuard,
+        RuntimeCompositionError, RuntimeCompositionStage, SnapshotManagementRuntimeFacade,
+        append_response_chunk, build_data_plane_composition, build_grok_build_responses_adapter,
+        build_grok_console_responses_adapter, build_grok_official_responses_adapter,
+        build_grok_web_responses_adapter, build_kiro_messages_adapter,
+        build_openai_responses_adapter, channel_pin_single_transport_adapter,
         classify_anthropic_response_failure, classify_openai_response_failure, decode_json_events,
         decode_json_events_with_usage_projection, decode_sse_events,
         decode_sse_events_with_usage_projection, deployment_route_compiler, endpoint_runtimes,
@@ -5876,11 +6387,72 @@ mod tests {
         p12_candidate_override_is_admissible, p12_classify_kiro_start_failure,
         p12_kiro_endpoint_shape, p12_kiro_request_projection, p12_openai_compatible_request,
         p12_response_usage_projection, p12_transport_headers, p12_transport_request,
-        project_usage_events, queue_event, validate_endpoint_shape,
+        p13_channel_pin_request_id, project_usage_events, queue_event, validate_endpoint_shape,
         validate_p12_credential_bindings,
     };
 
     const P12_SINGLETON_TEST_ENDPOINT_ID: &str = "p12-krill-endpoint";
+
+    #[test]
+    fn channel_pin_admission_is_bounded_and_releases_on_drop() -> Result<(), Box<dyn Error>> {
+        let counter = AtomicUsize::new(0);
+        let first = P13ChannelPinInFlightGuard::try_acquire(&counter)
+            .map_err(|_| std::io::Error::other("first slot should be available"))?;
+        let second = P13ChannelPinInFlightGuard::try_acquire(&counter)
+            .map_err(|_| std::io::Error::other("second slot should be available"))?;
+        assert_eq!(
+            counter.load(Ordering::Acquire),
+            P13_CHANNEL_PIN_MAX_IN_FLIGHT
+        );
+        assert!(P13ChannelPinInFlightGuard::try_acquire(&counter).is_err());
+        drop(second);
+        assert_eq!(counter.load(Ordering::Acquire), 1);
+        let third = P13ChannelPinInFlightGuard::try_acquire(&counter)
+            .map_err(|_| std::io::Error::other("released slot should be available"))?;
+        assert_eq!(
+            counter.load(Ordering::Acquire),
+            P13_CHANNEL_PIN_MAX_IN_FLIGHT
+        );
+        drop(third);
+        drop(first);
+        assert_eq!(counter.load(Ordering::Acquire), 0);
+        Ok(())
+    }
+
+    #[test]
+    fn channel_pin_request_ids_have_restart_unique_boot_nonce() -> Result<(), Box<dyn Error>> {
+        let first = p13_channel_pin_request_id()
+            .map_err(|_| std::io::Error::other("request id should be generated"))?;
+        let second = p13_channel_pin_request_id()
+            .map_err(|_| std::io::Error::other("request id should be generated"))?;
+        assert_ne!(first, second);
+        assert!(first.as_str().starts_with("channel-pin-"));
+        assert!(second.as_str().starts_with("channel-pin-"));
+        Ok(())
+    }
+
+    #[test]
+    fn channel_pin_rejects_native_adapters_before_the_transport_boundary()
+    -> Result<(), Box<dyn Error>> {
+        let generic = EndpointAdapter::OpenAiResponses(OpenAiResponsesEndpoint::try_new(
+            "https://gateway.example.test/v1",
+            "/responses",
+        )?);
+        assert!(channel_pin_single_transport_adapter(&generic));
+        assert!(!channel_pin_single_transport_adapter(
+            &EndpointAdapter::GrokBuildResponses
+        ));
+        assert!(!channel_pin_single_transport_adapter(
+            &EndpointAdapter::GrokConsoleResponses
+        ));
+        assert!(!channel_pin_single_transport_adapter(
+            &EndpointAdapter::GrokWebResponses
+        ));
+        assert!(!channel_pin_single_transport_adapter(
+            &EndpointAdapter::GrokOfficialResponses
+        ));
+        Ok(())
+    }
 
     #[test]
     fn codex_missing_response_content_type_is_scoped_and_strict_when_present() {
@@ -7056,6 +7628,9 @@ mod tests {
                 NonZeroUsize::new(4).ok_or("client pool needs capacity")?,
             )),
             attempt_stages: Arc::clone(&attempt_stages),
+            allow_compatibility_retry: true,
+            allow_egress_refresh: true,
+            channel_pin_observation: None,
         };
         let route_id = RouteId::try_new("p12-widened-route-primary")?;
         for candidate in snapshot
@@ -7267,6 +7842,9 @@ mod tests {
                 NonZeroUsize::new(4).ok_or("client pool needs capacity")?,
             )),
             attempt_stages: Arc::clone(&attempt_stages),
+            allow_compatibility_retry: true,
+            allow_egress_refresh: true,
+            channel_pin_observation: None,
         };
 
         let result = driver

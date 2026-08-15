@@ -6,6 +6,8 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
+    future::Future,
+    pin::Pin,
     sync::Mutex,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -87,6 +89,7 @@ pub struct ManagementResourceHttpState {
     service: Mutex<ManagementMutationService>,
     workflow: Mutex<Box<dyn ManagementEndpointWorkflow>>,
     runtime: Mutex<Box<dyn ManagementRuntimeFacade>>,
+    channel_pin: Mutex<Box<dyn ManagementChannelPinFacade>>,
     usage: Mutex<Box<dyn ManagementUsageFacade>>,
     failure_feedback: Mutex<Box<dyn ManagementFailureFeedbackFacade>>,
     provider_account_pools: Mutex<Box<dyn ProviderAccountPoolFacade>>,
@@ -315,6 +318,7 @@ impl ManagementResourceHttpState {
             service: Mutex::new(service),
             workflow: Mutex::new(workflow),
             runtime: Mutex::new(runtime),
+            channel_pin: Mutex::new(Box::new(RejectingManagementChannelPinFacade::new())),
             usage: Mutex::new(usage),
             failure_feedback: Mutex::new(Box::new(RejectingManagementFailureFeedbackFacade::new())),
             provider_account_pools: Mutex::new(Box::new(RejectingProviderAccountPoolFacade::new())),
@@ -349,6 +353,14 @@ impl ManagementResourceHttpState {
         provider_account_pools: Box<dyn ProviderAccountPoolFacade>,
     ) -> Self {
         self.provider_account_pools = Mutex::new(provider_account_pools);
+        self
+    }
+
+    /// Replaces the fail-closed Channel Pin executor with one explicitly owned by the serving
+    /// composition. The executor is independent from the ordinary management runtime read model.
+    #[must_use]
+    pub fn with_channel_pin(mut self, channel_pin: Box<dyn ManagementChannelPinFacade>) -> Self {
+        self.channel_pin = Mutex::new(channel_pin);
         self
     }
 
@@ -983,6 +995,381 @@ pub enum ManagementRuntimeError {
     InvalidInput,
     /// Runtime dependencies or an isolated state shard are unavailable.
     Unavailable,
+}
+
+/// The two upstream probe shapes accepted by the management-only Channel Pin operation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementChannelPinMode {
+    /// Ask the selected adapter for one bounded finite JSON response.
+    Json,
+    /// Ask the selected adapter for one bounded SSE response and drain it to completion.
+    Sse,
+}
+
+impl ManagementChannelPinMode {
+    /// Returns the closed wire category used by the management contract.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Json => "json",
+            Self::Sse => "sse",
+        }
+    }
+}
+
+/// Exact, value-free target supplied to the isolated Channel Pin executor.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementChannelPinRequest {
+    config_version_id: ConfigVersionId,
+    config_revision: ConfigRevision,
+    provider_id: ProviderId,
+    channel_id: EndpointId,
+    route_id: RouteId,
+    credential_id: CredentialId,
+    requested_model: String,
+    protocol: ManagementRequestProtocol,
+    mode: ManagementChannelPinMode,
+}
+
+impl ManagementChannelPinRequest {
+    /// Creates a request after the HTTP boundary has validated all opaque identifiers.
+    #[must_use]
+    #[allow(clippy::too_many_arguments)]
+    pub const fn new(
+        config_version_id: ConfigVersionId,
+        config_revision: ConfigRevision,
+        provider_id: ProviderId,
+        channel_id: EndpointId,
+        route_id: RouteId,
+        credential_id: CredentialId,
+        requested_model: String,
+        protocol: ManagementRequestProtocol,
+        mode: ManagementChannelPinMode,
+    ) -> Self {
+        Self {
+            config_version_id,
+            config_revision,
+            provider_id,
+            channel_id,
+            route_id,
+            credential_id,
+            requested_model,
+            protocol,
+            mode,
+        }
+    }
+
+    /// Returns the selected Config Version.
+    #[must_use]
+    pub const fn config_version_id(&self) -> &ConfigVersionId {
+        &self.config_version_id
+    }
+
+    /// Returns the exact revision admitted by the caller's `If-Match` precondition.
+    #[must_use]
+    pub const fn config_revision(&self) -> ConfigRevision {
+        self.config_revision
+    }
+
+    /// Returns the explicit owning Provider identity.
+    #[must_use]
+    pub const fn provider_id(&self) -> &ProviderId {
+        &self.provider_id
+    }
+
+    /// Returns the exact Channel/Endpoint identity.
+    #[must_use]
+    pub const fn channel_id(&self) -> &EndpointId {
+        &self.channel_id
+    }
+
+    /// Returns the exact Route identity.
+    #[must_use]
+    pub const fn route_id(&self) -> &RouteId {
+        &self.route_id
+    }
+
+    /// Returns the exact Credential identity.
+    #[must_use]
+    pub const fn credential_id(&self) -> &CredentialId {
+        &self.credential_id
+    }
+
+    /// Returns the bounded public model used by the fixed probe.
+    #[must_use]
+    pub fn requested_model(&self) -> &str {
+        &self.requested_model
+    }
+
+    /// Returns the explicit client protocol used for adapter admission.
+    #[must_use]
+    pub const fn protocol(&self) -> ManagementRequestProtocol {
+        self.protocol
+    }
+
+    /// Returns the upstream probe shape.
+    #[must_use]
+    pub const fn mode(&self) -> ManagementChannelPinMode {
+        self.mode
+    }
+}
+
+/// Closed terminal result for one Channel Pin attempt.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementChannelPinOutcome {
+    /// The bounded response completed its canonical lifecycle.
+    Succeeded,
+    /// The target was rejected before an upstream request was sent.
+    Rejected,
+    /// The one allowed upstream request was sent but failed its bounded lifecycle.
+    Failed,
+}
+
+impl ManagementChannelPinOutcome {
+    /// Returns the closed wire category.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Succeeded => "succeeded",
+            Self::Rejected => "rejected",
+            Self::Failed => "failed",
+        }
+    }
+}
+
+/// Safe failure categories for a Channel Pin executor.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementChannelPinError {
+    /// The target was not admitted by the selected Config Version.
+    InvalidTarget,
+    /// The pinned target changed or the runtime snapshot is stale.
+    SnapshotConflict,
+    /// The isolated runtime executor is not available.
+    Unavailable,
+    /// The operation failed after the single upstream attempt.
+    ExecutionFailed,
+}
+
+/// Value-free receipt returned by the Channel Pin executor.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagementChannelPinReceipt {
+    request_id: RequestId,
+    config_version_id: ConfigVersionId,
+    config_revision: ConfigRevision,
+    provider_id: ProviderId,
+    channel_id: EndpointId,
+    route_id: RouteId,
+    credential_id: CredentialId,
+    requested_model: String,
+    protocol: ManagementRequestProtocol,
+    mode: ManagementChannelPinMode,
+    outcome: ManagementChannelPinOutcome,
+    upstream_sent: bool,
+    attempt_count: u8,
+    response_started: bool,
+    observed_at_ms: i64,
+    stage: Option<ManagementRequestAttemptStage>,
+}
+
+impl ManagementChannelPinReceipt {
+    /// Creates a bounded receipt. `attempt_count` is deliberately limited to zero or one.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementChannelPinError::Unavailable`] when the receipt violates the
+    /// zero-or-one attempt, sent/response, model, or timestamp bounds.
+    #[allow(clippy::too_many_arguments)]
+    pub fn try_new(
+        request_id: RequestId,
+        config_version_id: ConfigVersionId,
+        config_revision: ConfigRevision,
+        provider_id: ProviderId,
+        channel_id: EndpointId,
+        route_id: RouteId,
+        credential_id: CredentialId,
+        requested_model: String,
+        protocol: ManagementRequestProtocol,
+        mode: ManagementChannelPinMode,
+        outcome: ManagementChannelPinOutcome,
+        upstream_sent: bool,
+        attempt_count: u8,
+        response_started: bool,
+        observed_at_ms: i64,
+        stage: Option<ManagementRequestAttemptStage>,
+    ) -> Result<Self, ManagementChannelPinError> {
+        let outcome_valid = match outcome {
+            ManagementChannelPinOutcome::Rejected => {
+                attempt_count == 0 && !upstream_sent && !response_started && stage.is_none()
+            }
+            ManagementChannelPinOutcome::Succeeded => {
+                attempt_count == 1 && upstream_sent && response_started
+            }
+            ManagementChannelPinOutcome::Failed => match attempt_count {
+                0 => !upstream_sent && !response_started && stage.is_none(),
+                1 => true,
+                _ => false,
+            },
+        };
+        if !outcome_valid
+            || attempt_count > 1
+            || (attempt_count == 0 && upstream_sent)
+            || (!upstream_sent && response_started)
+            || observed_at_ms < 0
+            || requested_model.trim().is_empty()
+            || requested_model.chars().count() > 256
+        {
+            return Err(ManagementChannelPinError::Unavailable);
+        }
+        Ok(Self {
+            request_id,
+            config_version_id,
+            config_revision,
+            provider_id,
+            channel_id,
+            route_id,
+            credential_id,
+            requested_model,
+            protocol,
+            mode,
+            outcome,
+            upstream_sent,
+            attempt_count,
+            response_started,
+            observed_at_ms,
+            stage,
+        })
+    }
+
+    /// Returns the opaque request correlation identity.
+    #[must_use]
+    pub const fn request_id(&self) -> &RequestId {
+        &self.request_id
+    }
+
+    /// Returns the selected Config Version.
+    #[must_use]
+    pub const fn config_version_id(&self) -> &ConfigVersionId {
+        &self.config_version_id
+    }
+
+    /// Returns the revision observed before execution.
+    #[must_use]
+    pub const fn config_revision(&self) -> ConfigRevision {
+        self.config_revision
+    }
+
+    /// Returns the explicit Provider identity.
+    #[must_use]
+    pub const fn provider_id(&self) -> &ProviderId {
+        &self.provider_id
+    }
+
+    /// Returns the exact Channel identity.
+    #[must_use]
+    pub const fn channel_id(&self) -> &EndpointId {
+        &self.channel_id
+    }
+
+    /// Returns the exact Route identity.
+    #[must_use]
+    pub const fn route_id(&self) -> &RouteId {
+        &self.route_id
+    }
+
+    /// Returns the exact Credential identity.
+    #[must_use]
+    pub const fn credential_id(&self) -> &CredentialId {
+        &self.credential_id
+    }
+
+    /// Returns the bounded public model used by the probe.
+    #[must_use]
+    pub fn requested_model(&self) -> &str {
+        &self.requested_model
+    }
+
+    /// Returns the explicit probe protocol.
+    #[must_use]
+    pub const fn protocol(&self) -> ManagementRequestProtocol {
+        self.protocol
+    }
+
+    /// Returns the requested upstream probe shape.
+    #[must_use]
+    pub const fn mode(&self) -> ManagementChannelPinMode {
+        self.mode
+    }
+
+    /// Returns the terminal outcome.
+    #[must_use]
+    pub const fn outcome(&self) -> ManagementChannelPinOutcome {
+        self.outcome
+    }
+
+    /// Returns whether the one allowed upstream request crossed the send boundary.
+    #[must_use]
+    pub const fn upstream_sent(&self) -> bool {
+        self.upstream_sent
+    }
+
+    /// Returns the number of upstream attempts (zero or one).
+    #[must_use]
+    pub const fn attempt_count(&self) -> u8 {
+        self.attempt_count
+    }
+
+    /// Returns whether a semantic response event was observed before the bounded drain ended.
+    #[must_use]
+    pub const fn response_started(&self) -> bool {
+        self.response_started
+    }
+
+    /// Returns the non-secret observation timestamp captured before execution.
+    #[must_use]
+    pub const fn observed_at_ms(&self) -> i64 {
+        self.observed_at_ms
+    }
+
+    /// Returns the safe terminal stage, if known.
+    #[must_use]
+    pub const fn stage(&self) -> Option<ManagementRequestAttemptStage> {
+        self.stage
+    }
+}
+
+/// Boxed future used by the management-only Channel Pin seam.
+pub type ManagementChannelPinFuture = Pin<
+    Box<dyn Future<Output = Result<ManagementChannelPinReceipt, ManagementChannelPinError>> + Send>,
+>;
+
+/// Isolated executor for one exact management Channel Pin.
+pub trait ManagementChannelPinFacade: Send + Sync {
+    /// Executes at most one request for the exact target; the implementation owns all Provider
+    /// handles and must never derive an endpoint, credential, or retry policy from free-form HTTP.
+    fn execute(&self, request: ManagementChannelPinRequest) -> ManagementChannelPinFuture;
+}
+
+/// Fail-closed Channel Pin executor used until the serving composition injects the real one.
+pub struct RejectingManagementChannelPinFacade;
+
+impl RejectingManagementChannelPinFacade {
+    /// Creates a no-send executor.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for RejectingManagementChannelPinFacade {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ManagementChannelPinFacade for RejectingManagementChannelPinFacade {
+    fn execute(&self, _request: ManagementChannelPinRequest) -> ManagementChannelPinFuture {
+        Box::pin(async { Err(ManagementChannelPinError::Unavailable) })
+    }
 }
 
 /// Explicit P10-06 runtime seam.
@@ -1984,6 +2371,10 @@ fn configure_runtime_resource_routes(config: &mut web::ServiceConfig) {
 fn configure_operations_resource_routes(config: &mut web::ServiceConfig) {
     config
         .route(
+            "/operations/channel-pin",
+            web::post().to(execute_channel_pin),
+        )
+        .route(
             "/operations/account-pools",
             web::get().to(list_operational_account_pools),
         )
@@ -2087,6 +2478,18 @@ struct BindingInput {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct EndpointTestInput {
+    mode: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChannelPinInput {
+    provider_id: String,
+    channel_id: String,
+    route_id: String,
+    credential_id: String,
+    requested_model: String,
+    protocol: String,
     mode: String,
 }
 
@@ -2231,6 +2634,27 @@ struct EndpointTestResponse {
     outcome: &'static str,
     status_class: &'static str,
     canonical_lifecycle: bool,
+}
+
+#[derive(Serialize)]
+struct ChannelPinResponse {
+    request_id: String,
+    config_version_id: String,
+    config_revision: i64,
+    provider_id: String,
+    channel_id: String,
+    route_id: String,
+    credential_id: String,
+    requested_model: String,
+    protocol: &'static str,
+    mode: &'static str,
+    outcome: &'static str,
+    upstream_sent: bool,
+    attempt_count: u8,
+    response_started: bool,
+    observed_at_ms: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stage: Option<&'static str>,
 }
 
 #[derive(Serialize)]
@@ -3110,7 +3534,7 @@ async fn list_billing_catalogs(
     request: HttpRequest,
     state: web::Data<ManagementResourceHttpState>,
 ) -> HttpResponse {
-    let context = match read_context(&request) {
+    let context = match write_context(&request) {
         Ok(context) => context,
         Err(response) => return response,
     };
@@ -4037,6 +4461,175 @@ async fn test_endpoint(
         Err(response) => return response,
     };
     HttpResponse::Ok().json(EndpointTestResponse::from(result))
+}
+
+/// Executes one protected, exact-target Channel Pin.  The handler validates only graph identity;
+/// the injected facade owns lease acquisition, transport, and the no-retry execution boundary.
+#[allow(clippy::too_many_lines)]
+async fn execute_channel_pin(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let input: ChannelPinInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let Ok(provider_id) = ProviderId::try_new(input.provider_id) else {
+        return invalid_input();
+    };
+    let Ok(channel_id) = EndpointId::try_new(input.channel_id) else {
+        return invalid_input();
+    };
+    let Ok(route_id) = RouteId::try_new(input.route_id) else {
+        return invalid_input();
+    };
+    let Ok(credential_id) = CredentialId::try_new(input.credential_id) else {
+        return invalid_input();
+    };
+    if input.requested_model.trim().is_empty() || input.requested_model.chars().count() > 256 {
+        return invalid_input();
+    }
+    let protocol = match management_request_protocol(&input.protocol) {
+        Ok(protocol) => protocol,
+        Err(response) => return response,
+    };
+    let mode = match input.mode.as_str() {
+        "json" => ManagementChannelPinMode::Json,
+        "sse" => ManagementChannelPinMode::Sse,
+        _ => return invalid_input(),
+    };
+
+    // Record the operator intent before graph admission so a well-formed but rejected target
+    // remains auditable. This is a value-free resource action and does not advance Config
+    // Version revision or authorize the executor.
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    {
+        let mut management_service = match service(&state) {
+            Ok(value) => value,
+            Err(response) => return response,
+        };
+        if let Err(error) = management_service.record_resource_action(
+            &actor,
+            &context.version,
+            "channel_pin_requested",
+            "channel_pin",
+            route_id.as_str(),
+        ) {
+            return management_error(error);
+        }
+    }
+
+    // Validate the complete identity relation from one selected Config Version before handing
+    // anything to the executor.  This prevents a facade from becoming an alternate config
+    // lookup or cross-Provider fallback mechanism.
+    let revision = {
+        let mut management_service = match service(&state) {
+            Ok(value) => value,
+            Err(response) => return response,
+        };
+        let endpoint = match management_service.get_endpoint(&context.version, &channel_id) {
+            Ok(value) => value.into_parts().0,
+            Err(error) => return management_error(error),
+        };
+        let credential = match management_service.get_credential(&context.version, &credential_id) {
+            Ok(value) => value.into_parts().0,
+            Err(error) => return management_error(error),
+        };
+        let Ok(upstream_id) = UpstreamId::try_new(provider_id.as_str().to_owned()) else {
+            return invalid_input();
+        };
+        if endpoint.upstream_id != upstream_id || credential.upstream_id != upstream_id {
+            return invalid_input();
+        }
+        if let Err(error) = management_service.get_upstream(&context.version, &upstream_id) {
+            return management_error(error);
+        }
+        if let Err(error) = management_service.get_model_route(&context.version, &route_id) {
+            return management_error(error);
+        }
+        let bindings = match management_service
+            .list_endpoint_credential_bindings(&context.version, &channel_id)
+        {
+            Ok(value) => value.into_parts().0,
+            Err(error) => return management_error(error),
+        };
+        if !bindings.iter().any(|binding| {
+            binding.credential_id == credential_id && binding.upstream_id == upstream_id
+        }) {
+            return invalid_input();
+        }
+        match management_service.require_config_version(&context.version) {
+            Ok(revision) if revision == context.revision => revision,
+            Ok(_) => return channel_pin_error(ManagementChannelPinError::SnapshotConflict),
+            Err(error) => return management_error(error),
+        }
+    };
+
+    let pin_request = ManagementChannelPinRequest::new(
+        context.version.clone(),
+        revision,
+        provider_id,
+        channel_id,
+        route_id,
+        credential_id,
+        input.requested_model,
+        protocol,
+        mode,
+    );
+    let expected_request = pin_request.clone();
+    // Persist the final pre-execution boundary before any Provider/transport call. This makes an
+    // audit-storage failure a guaranteed no-send result; after the one-shot call begins, the
+    // handler never turns a receipt into a retryable 5xx merely because a second audit append
+    // failed. The returned receipt remains the terminal source for the operator's exact outcome.
+    {
+        let mut management_service = match service(&state) {
+            Ok(value) => value,
+            Err(response) => return response,
+        };
+        if let Err(error) = management_service.record_resource_action(
+            &actor,
+            &context.version,
+            "channel_pin_started",
+            "channel_pin",
+            expected_request.route_id().as_str(),
+        ) {
+            return management_error(error);
+        }
+    }
+    let future = match channel_pin(&state) {
+        Ok(source) => source.execute(pin_request),
+        Err(response) => return response,
+    };
+    match future.await {
+        Ok(receipt) => {
+            if receipt.config_version_id() != &context.version
+                || receipt.config_revision() != revision
+                || receipt.provider_id() != expected_request.provider_id()
+                || receipt.channel_id() != expected_request.channel_id()
+                || receipt.route_id() != expected_request.route_id()
+                || receipt.credential_id() != expected_request.credential_id()
+                || receipt.requested_model() != expected_request.requested_model()
+                || receipt.protocol() != expected_request.protocol()
+                || receipt.mode() != expected_request.mode()
+                || receipt.attempt_count() > 1
+                || receipt.observed_at_ms() < 0
+            {
+                return channel_pin_error(ManagementChannelPinError::SnapshotConflict);
+            }
+            HttpResponse::Ok()
+                .insert_header((header::CACHE_CONTROL, "no-store"))
+                .json(ChannelPinResponse::from(receipt))
+        }
+        Err(error) => channel_pin_error(error),
+    }
 }
 
 async fn preview_catalog_discovery(
@@ -5613,6 +6206,14 @@ fn management_request_protocol(value: &str) -> Result<ManagementRequestProtocol,
     }
 }
 
+fn management_request_protocol_str(value: ManagementRequestProtocol) -> &'static str {
+    match value {
+        ManagementRequestProtocol::OpenAiChatCompletions => "openai_chat_completions",
+        ManagementRequestProtocol::OpenAiResponses => "openai_responses",
+        ManagementRequestProtocol::AnthropicMessages => "anthropic_messages",
+    }
+}
+
 fn runtime_observed_at(
     state: &web::Data<ManagementResourceHttpState>,
 ) -> Result<i64, HttpResponse> {
@@ -5654,6 +6255,12 @@ fn provider_account_pools(
         .provider_account_pools
         .lock()
         .map_err(|_| internal_error())
+}
+
+fn channel_pin(
+    state: &web::Data<ManagementResourceHttpState>,
+) -> Result<std::sync::MutexGuard<'_, Box<dyn ManagementChannelPinFacade>>, HttpResponse> {
+    state.channel_pin.lock().map_err(|_| internal_error())
 }
 
 fn require_runtime_target(
@@ -6343,6 +6950,31 @@ fn provider_account_pool_error(error: ProviderAccountPoolError) -> HttpResponse 
         ProviderAccountPoolError::InvalidSnapshot | ProviderAccountPoolError::SourceUnavailable => {
             internal_error()
         }
+    }
+}
+
+fn channel_pin_error(error: ManagementChannelPinError) -> HttpResponse {
+    match error {
+        ManagementChannelPinError::InvalidTarget => error_response(
+            StatusCode::BAD_REQUEST,
+            "invalid_management_request",
+            "Management request is invalid",
+        ),
+        ManagementChannelPinError::SnapshotConflict => error_response(
+            StatusCode::CONFLICT,
+            "management_channel_pin_target_changed",
+            "Channel Pin target changed",
+        ),
+        ManagementChannelPinError::Unavailable => error_response(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "management_runtime_unavailable",
+            "Management runtime is unavailable",
+        ),
+        ManagementChannelPinError::ExecutionFailed => error_response(
+            StatusCode::BAD_GATEWAY,
+            "management_channel_pin_failed",
+            "Channel Pin failed",
+        ),
     }
 }
 
@@ -7398,6 +8030,30 @@ impl From<ManagementEndpointTestResult> for EndpointTestResponse {
         }
     }
 }
+
+impl From<ManagementChannelPinReceipt> for ChannelPinResponse {
+    fn from(value: ManagementChannelPinReceipt) -> Self {
+        Self {
+            request_id: value.request_id().as_str().to_owned(),
+            config_version_id: value.config_version_id().as_str().to_owned(),
+            config_revision: value.config_revision().as_i64(),
+            provider_id: value.provider_id().as_str().to_owned(),
+            channel_id: value.channel_id().as_str().to_owned(),
+            route_id: value.route_id().as_str().to_owned(),
+            credential_id: value.credential_id().as_str().to_owned(),
+            requested_model: value.requested_model().to_owned(),
+            protocol: management_request_protocol_str(value.protocol()),
+            mode: value.mode().as_str(),
+            outcome: value.outcome().as_str(),
+            upstream_sent: value.upstream_sent(),
+            attempt_count: value.attempt_count(),
+            response_started: value.response_started(),
+            observed_at_ms: value.observed_at_ms(),
+            stage: value.stage().map(ManagementRequestAttemptStage::as_str),
+        }
+    }
+}
+
 impl From<ManagementCatalogDiff> for CatalogDiffResponse {
     fn from(value: ManagementCatalogDiff) -> Self {
         Self {
