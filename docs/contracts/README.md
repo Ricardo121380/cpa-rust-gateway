@@ -117,3 +117,4 @@ P13-05B 已建立 [BC-MGMT-012 Billing materialization and protected read model]
 P13-05C 已建立 [BC-MGMT-013 Protected immutable billing catalog management](BC-MGMT-013-protected-billing-catalog-management.md)（本地实现与整体 review 通过，phase gate pending）。
 P13-06A 已建立 [BC-MGMT-014 Provider-owned account-pool inventory](BC-MGMT-014-provider-owned-account-pool-inventory.md)（本地实现与 focused review 通过，phase gate pending）。
 P13-06B 已建立 [BC-MGMT-015 Provider runtime account-pool adapter](BC-MGMT-015-provider-runtime-pool-adapter.md)（本地实现与 focused review 通过，phase gate pending；不宣称新的真实多账号或 restart DB E2E）。
+P13-06C 已建立 [BC-MGMT-016 Provider account operator actions and failure feedback](BC-MGMT-016-provider-account-operator-actions-and-failure-feedback.md)（本地实现与 review 通过，phase gate pending；OpenAPI/Prism handoff 已同步留痕）。

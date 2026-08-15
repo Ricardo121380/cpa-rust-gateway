@@ -32,16 +32,19 @@ use gateway_control::management_mutation_service::{
     UpstreamConfiguration,
 };
 use gateway_control::management_operations_service::{
-    DEFAULT_ACCOUNT_POOL_LIMIT, DEFAULT_USAGE_LIMIT, MAX_ACCOUNT_POOL_LIMIT, MAX_USAGE_EVENTS,
-    MAX_USAGE_LIMIT, MAX_USAGE_MODEL_CHARS, ManagementOperationsError,
-    OperationalAccountPoolCursor, OperationalAccountPoolItem, OperationalAccountPoolPage,
-    OperationalAccountPoolQuery, OperationalBillingCursor, OperationalBillingPage,
-    OperationalBillingQuery, OperationalBillingStatus, OperationalCostConfidence,
-    OperationalTokenConfidence, OperationalTokenMetric, OperationalUsageCursor,
-    OperationalUsagePage, OperationalUsageQuery, compile_operational_billing_page,
+    DEFAULT_ACCOUNT_POOL_LIMIT, DEFAULT_FAILURE_FEEDBACK_LIMIT, DEFAULT_USAGE_LIMIT,
+    FailureFeedbackCursor, FailureFeedbackPage, FailureFeedbackQuery, MAX_ACCOUNT_POOL_LIMIT,
+    MAX_FAILURE_FEEDBACK_LIMIT, MAX_USAGE_EVENTS, MAX_USAGE_LIMIT, MAX_USAGE_MODEL_CHARS,
+    ManagementOperationsError, OperationalAccountPoolCursor, OperationalAccountPoolItem,
+    OperationalAccountPoolPage, OperationalAccountPoolQuery, OperationalBillingCursor,
+    OperationalBillingPage, OperationalBillingQuery, OperationalBillingStatus,
+    OperationalCostConfidence, OperationalTokenConfidence, OperationalTokenMetric,
+    OperationalUsageCursor, OperationalUsagePage, OperationalUsageQuery,
+    compile_operational_billing_page,
 };
 use gateway_control::provider_account_pool_service::{
-    DEFAULT_PROVIDER_ACCOUNT_POOL_LIMIT, ProviderAccountAuthStatus, ProviderAccountPoolCursor,
+    DEFAULT_PROVIDER_ACCOUNT_POOL_LIMIT, ProviderAccountAuthStatus, ProviderAccountOperatorAction,
+    ProviderAccountOperatorActionKind, ProviderAccountOperatorReceipt, ProviderAccountPoolCursor,
     ProviderAccountPoolError, ProviderAccountPoolFacade, ProviderAccountPoolItem,
     ProviderAccountPoolPage, ProviderAccountPoolQuery, ProviderAccountRuntimeStatus,
     RejectingProviderAccountPoolFacade,
@@ -85,6 +88,7 @@ pub struct ManagementResourceHttpState {
     workflow: Mutex<Box<dyn ManagementEndpointWorkflow>>,
     runtime: Mutex<Box<dyn ManagementRuntimeFacade>>,
     usage: Mutex<Box<dyn ManagementUsageFacade>>,
+    failure_feedback: Mutex<Box<dyn ManagementFailureFeedbackFacade>>,
     provider_account_pools: Mutex<Box<dyn ProviderAccountPoolFacade>>,
     /// Credential ids with an in-flight refresh.  The claim spans decrypt, upstream refresh, and
     /// the revision-guarded persistence write so two HTTP callers can never spend the same
@@ -114,6 +118,46 @@ pub trait ManagementUsageFacade: Send + Sync {
         &self,
         _query: &OperationalBillingQuery,
     ) -> Result<OperationalBillingPage, ManagementOperationsError> {
+        Err(ManagementOperationsError::SourceUnavailable)
+    }
+}
+
+/// Read-only source for durable, secret-free Provider account failure feedback.
+pub trait ManagementFailureFeedbackFacade: Send + Sync {
+    /// Compiles a bounded page from gateway-owned Attempt events only.
+    ///
+    /// # Errors
+    ///
+    /// Returns a management operations error when the durable source is unavailable, oversized,
+    /// malformed, or the cursor does not match the requested filters.
+    fn list_failure_feedback(
+        &self,
+        query: &FailureFeedbackQuery,
+    ) -> Result<FailureFeedbackPage, ManagementOperationsError>;
+}
+
+/// Fail-closed failure source used until the deployment injects its event-log reader.
+pub struct RejectingManagementFailureFeedbackFacade;
+
+impl RejectingManagementFailureFeedbackFacade {
+    /// Creates a no-send, no-provider default.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for RejectingManagementFailureFeedbackFacade {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ManagementFailureFeedbackFacade for RejectingManagementFailureFeedbackFacade {
+    fn list_failure_feedback(
+        &self,
+        _query: &FailureFeedbackQuery,
+    ) -> Result<FailureFeedbackPage, ManagementOperationsError> {
         Err(ManagementOperationsError::SourceUnavailable)
     }
 }
@@ -272,6 +316,7 @@ impl ManagementResourceHttpState {
             workflow: Mutex::new(workflow),
             runtime: Mutex::new(runtime),
             usage: Mutex::new(usage),
+            failure_feedback: Mutex::new(Box::new(RejectingManagementFailureFeedbackFacade::new())),
             provider_account_pools: Mutex::new(Box::new(RejectingProviderAccountPoolFacade::new())),
             oauth_refresh_claims: Mutex::new(BTreeSet::new()),
             runtime_clock,
@@ -282,6 +327,16 @@ impl ManagementResourceHttpState {
     #[must_use]
     pub fn with_usage(mut self, usage: Box<dyn ManagementUsageFacade>) -> Self {
         self.usage = Mutex::new(usage);
+        self
+    }
+
+    /// Replaces the default failure-feedback source with a bounded event-log reader.
+    #[must_use]
+    pub fn with_failure_feedback(
+        mut self,
+        failure_feedback: Box<dyn ManagementFailureFeedbackFacade>,
+    ) -> Self {
+        self.failure_feedback = Mutex::new(failure_feedback);
         self
     }
 
@@ -1833,6 +1888,14 @@ fn configure_operations_resource_routes(config: &mut web::ServiceConfig) {
             "/operations/provider-account-pools",
             web::get().to(list_provider_account_pools),
         )
+        .route(
+            "/operations/provider-account-pools/actions",
+            web::post().to(apply_provider_account_pool_action),
+        )
+        .route(
+            "/operations/provider-account-pools/failures",
+            web::get().to(list_provider_account_failures),
+        )
         .route("/operations/usage", web::get().to(list_operational_usage));
     config.route(
         "/operations/billing",
@@ -2437,6 +2500,71 @@ struct ProviderAccountPoolCursorWire {
     provider_id: String,
     channel_id: String,
     account_id: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ProviderAccountOperatorActionInput {
+    provider_id: String,
+    channel_id: String,
+    account_id: String,
+    action: String,
+    upstream_model: Option<String>,
+    cooldown_ms: Option<i64>,
+}
+
+#[derive(Serialize)]
+struct ProviderAccountOperatorActionResponse {
+    state: &'static str,
+    observed_at_ms: i64,
+    cooldown_until_ms: Option<i64>,
+}
+
+impl From<ProviderAccountOperatorReceipt> for ProviderAccountOperatorActionResponse {
+    fn from(value: ProviderAccountOperatorReceipt) -> Self {
+        Self {
+            state: value.state.as_str(),
+            observed_at_ms: value.observed_at_ms,
+            cooldown_until_ms: value.cooldown_until_ms,
+        }
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct FailureFeedbackQueryParams {
+    provider_id: Option<String>,
+    channel_id: Option<String>,
+    account_id: Option<String>,
+    limit: Option<usize>,
+    cursor: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct FailureFeedbackCursorWire {
+    ordinal: i64,
+    filter_fingerprint: String,
+}
+
+#[derive(Serialize)]
+struct FailureFeedbackPageResponse {
+    observed_through_ordinal: Option<i64>,
+    items: Vec<FailureFeedbackItemResponse>,
+    next_cursor: Option<String>,
+}
+
+#[derive(Serialize)]
+struct FailureFeedbackItemResponse {
+    provider_id: String,
+    channel_id: String,
+    account_id: String,
+    request_id: String,
+    attempt_id: String,
+    ended_at_ms: i64,
+    error_code: &'static str,
+    error_scope: &'static str,
+    retry_decision: &'static str,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -3095,6 +3223,157 @@ async fn list_provider_account_pools(
             Err(response) => response,
         },
         Err(error) => provider_account_pool_error(error),
+    }
+}
+
+async fn apply_provider_account_pool_action(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let input = match parse_json::<ProviderAccountOperatorActionInput>(&body) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let Ok(provider_id) = ProviderId::try_new(input.provider_id) else {
+        return invalid_input();
+    };
+    let Ok(channel_id) = EndpointId::try_new(input.channel_id) else {
+        return invalid_input();
+    };
+    let Ok(account_id) = CredentialId::try_new(input.account_id) else {
+        return invalid_input();
+    };
+    let kind = match input.action.as_str() {
+        "cool_down" => ProviderAccountOperatorActionKind::CoolDown,
+        "request_recovery" => ProviderAccountOperatorActionKind::RequestRecovery,
+        _ => return invalid_input(),
+    };
+    let action = match ProviderAccountOperatorAction::try_new(
+        context.version.as_str().to_owned(),
+        provider_id,
+        channel_id,
+        account_id,
+        input.upstream_model,
+        kind,
+        input.cooldown_ms,
+    ) {
+        Ok(value) => value,
+        Err(error) => return provider_account_pool_error(error),
+    };
+    let observed_at_ms = match runtime_observed_at(&state) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let audit_action = match kind {
+        ProviderAccountOperatorActionKind::CoolDown => "provider_account_cool_down_requested",
+        ProviderAccountOperatorActionKind::RequestRecovery => "provider_account_recovery_requested",
+    };
+    let resource_id = provider_account_action_resource_id(&action);
+    let mut management_service = match service(&state) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    if let Err(error) = management_service.record_resource_action(
+        &actor,
+        &context.version,
+        audit_action,
+        "provider_account",
+        &resource_id,
+    ) {
+        return management_error(error);
+    }
+    let action_result = match provider_account_pools(&state) {
+        Ok(source) => source.apply_operator_action(&action, observed_at_ms),
+        Err(response) => return response,
+    };
+    match action_result {
+        Ok(receipt) => HttpResponse::Accepted()
+            .insert_header((header::CACHE_CONTROL, "no-store"))
+            .json(ProviderAccountOperatorActionResponse::from(receipt)),
+        Err(error) => provider_account_pool_error(error),
+    }
+}
+
+async fn list_provider_account_failures(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let version_admission = match service(&state) {
+        Ok(mut service) => service.require_config_version(&context.version),
+        Err(response) => return response,
+    };
+    if let Err(error) = version_admission {
+        return management_error(error);
+    }
+    let params = match web::Query::<FailureFeedbackQueryParams>::from_query(request.query_string())
+    {
+        Ok(params) => params.into_inner(),
+        Err(_) => return invalid_input(),
+    };
+    let provider_id = match params.provider_id {
+        Some(value) => match UpstreamId::try_new(value) {
+            Ok(value) => Some(value),
+            Err(_) => return invalid_input(),
+        },
+        None => None,
+    };
+    let channel_id = match params.channel_id {
+        Some(value) => match EndpointId::try_new(value) {
+            Ok(value) => Some(value),
+            Err(_) => return invalid_input(),
+        },
+        None => None,
+    };
+    let account_id = match params.account_id {
+        Some(value) => match CredentialId::try_new(value) {
+            Ok(value) => Some(value),
+            Err(_) => return invalid_input(),
+        },
+        None => None,
+    };
+    let cursor = match params.cursor.as_deref() {
+        Some(value) if value.len() <= 2048 => decode_failure_feedback_cursor(value),
+        Some(_) => Err(ManagementOperationsError::InvalidQuery),
+        None => Ok(None),
+    };
+    let cursor = match cursor {
+        Ok(cursor) => cursor,
+        Err(error) => return management_error(ManagementResourceError::from(error)),
+    };
+    let limit = params.limit.unwrap_or(DEFAULT_FAILURE_FEEDBACK_LIMIT);
+    if !(1..=MAX_FAILURE_FEEDBACK_LIMIT).contains(&limit) {
+        return invalid_input();
+    }
+    let query =
+        match FailureFeedbackQuery::try_new(provider_id, channel_id, account_id, limit, cursor) {
+            Ok(query) => query,
+            Err(error) => return management_error(ManagementResourceError::from(error)),
+        };
+    let source = match failure_feedback(&state) {
+        Ok(source) => source,
+        Err(response) => return response,
+    };
+    match source.list_failure_feedback(&query) {
+        Ok(page) => match failure_feedback_page_response(page) {
+            Ok(response) => HttpResponse::Ok()
+                .insert_header((header::CACHE_CONTROL, "no-store"))
+                .json(response),
+            Err(response) => response,
+        },
+        Err(error) => management_error(ManagementResourceError::from(error)),
     }
 }
 
@@ -5148,6 +5427,12 @@ fn usage(
     state.usage.lock().map_err(|_| internal_error())
 }
 
+fn failure_feedback(
+    state: &web::Data<ManagementResourceHttpState>,
+) -> Result<std::sync::MutexGuard<'_, Box<dyn ManagementFailureFeedbackFacade>>, HttpResponse> {
+    state.failure_feedback.lock().map_err(|_| internal_error())
+}
+
 fn provider_account_pools(
     state: &web::Data<ManagementResourceHttpState>,
 ) -> Result<std::sync::MutexGuard<'_, Box<dyn ProviderAccountPoolFacade>>, HttpResponse> {
@@ -5827,11 +6112,18 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
 
 fn provider_account_pool_error(error: ProviderAccountPoolError) -> HttpResponse {
     match error {
-        ProviderAccountPoolError::InvalidQuery => invalid_input(),
+        ProviderAccountPoolError::InvalidQuery | ProviderAccountPoolError::InvalidAction => {
+            invalid_input()
+        }
         ProviderAccountPoolError::CursorConflict => error_response(
             StatusCode::CONFLICT,
             "management_provider_account_pool_cursor_conflict",
             "Provider account-pool snapshot changed",
+        ),
+        ProviderAccountPoolError::ActionTargetUnavailable => error_response(
+            StatusCode::CONFLICT,
+            "management_provider_account_action_target_changed",
+            "Provider account action target changed",
         ),
         ProviderAccountPoolError::InvalidSnapshot | ProviderAccountPoolError::SourceUnavailable => {
             internal_error()
@@ -6219,6 +6511,83 @@ fn provider_account_pool_item_response(
         refresh_due_at_ms: value.refresh_due_at_ms,
         quota_sync_due_at_ms: value.quota_sync_due_at_ms,
     }
+}
+
+fn encode_failure_feedback_cursor(cursor: &FailureFeedbackCursor) -> Result<String, HttpResponse> {
+    let wire = FailureFeedbackCursorWire {
+        ordinal: cursor.ordinal(),
+        filter_fingerprint: cursor.filter_fingerprint().to_owned(),
+    };
+    serde_json::to_vec(&wire)
+        .map(|bytes| URL_SAFE_NO_PAD.encode(bytes))
+        .map_err(|_| internal_error())
+}
+
+fn decode_failure_feedback_cursor(
+    value: &str,
+) -> Result<Option<FailureFeedbackCursor>, ManagementOperationsError> {
+    if value.is_empty() {
+        return Err(ManagementOperationsError::InvalidQuery);
+    }
+    let bytes = URL_SAFE_NO_PAD
+        .decode(value)
+        .map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    let wire: FailureFeedbackCursorWire =
+        serde_json::from_slice(&bytes).map_err(|_| ManagementOperationsError::InvalidQuery)?;
+    if wire.filter_fingerprint.chars().count() > 512 {
+        return Err(ManagementOperationsError::InvalidQuery);
+    }
+    FailureFeedbackCursor::try_new(wire.ordinal, wire.filter_fingerprint).map(Some)
+}
+
+fn failure_feedback_page_response(
+    value: FailureFeedbackPage,
+) -> Result<FailureFeedbackPageResponse, HttpResponse> {
+    let next_cursor = value
+        .next_cursor
+        .as_ref()
+        .map(encode_failure_feedback_cursor)
+        .transpose()?;
+    Ok(FailureFeedbackPageResponse {
+        observed_through_ordinal: value.observed_through_ordinal,
+        items: value
+            .items
+            .into_iter()
+            .map(|item| FailureFeedbackItemResponse {
+                provider_id: item.provider_id.as_str().to_owned(),
+                channel_id: item.channel_id.as_str().to_owned(),
+                account_id: item.account_id.as_str().to_owned(),
+                request_id: item.request_id,
+                attempt_id: item.attempt_id,
+                ended_at_ms: item.ended_at_ms,
+                error_code: item.error_code,
+                error_scope: item.error_scope,
+                retry_decision: retry_decision_response(item.retry_decision),
+            })
+            .collect(),
+        next_cursor,
+    })
+}
+
+fn retry_decision_response(value: gateway_core::AttemptRetryDecision) -> &'static str {
+    match value {
+        gateway_core::AttemptRetryDecision::Completed => "completed",
+        gateway_core::AttemptRetryDecision::RetryEligible => "retry_eligible",
+        gateway_core::AttemptRetryDecision::NonRetryable => "non_retryable",
+        gateway_core::AttemptRetryDecision::RetryClosed => "retry_closed",
+        gateway_core::AttemptRetryDecision::Cancelled => "cancelled",
+        gateway_core::AttemptRetryDecision::InfrastructureFailure => "infrastructure_failure",
+    }
+}
+
+fn provider_account_action_resource_id(action: &ProviderAccountOperatorAction) -> String {
+    let mut digest = sha2::Sha256::new();
+    digest.update(action.provider_id.as_str().as_bytes());
+    digest.update([0]);
+    digest.update(action.channel_id.as_str().as_bytes());
+    digest.update([0]);
+    digest.update(action.account_id.as_str().as_bytes());
+    format!("sha256:{:x}", digest.finalize())
 }
 
 fn operational_transport_response(value: EndpointTransport) -> &'static str {

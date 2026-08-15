@@ -109,3 +109,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0080 Protected immutable billing catalog management](ADR-0080-protected-billing-catalog-management.md) — `P13-05C`（Accepted；本地实现与整体 review，phase gate pending）
 - [ADR-0081 Provider-owned account-pool facade](ADR-0081-provider-owned-account-pool-facade.md) — `P13-06A`（Accepted；本地实现，phase gate pending）
 - [ADR-0082 Provider runtime account-pool adapter](ADR-0082-provider-runtime-pool-adapter.md) — `P13-06B`（Accepted；本地实现与 review，phase gate pending）
+- [ADR-0083 Provider account-pool operator actions and failure feedback](ADR-0083-provider-account-operator-actions.md) — `P13-06C`（Accepted；本地实现完成，phase gate pending）

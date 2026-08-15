@@ -42,6 +42,19 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "applyProviderAccountPoolAction": {
+    "method": "POST",
+    "path": "/admin/operations/provider-account-pools/actions",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "cancelCredentialOAuth": {
     "method": "POST",
     "path": "/admin/credentials/{credential_id}/oauth/cancel",
@@ -1048,6 +1061,44 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "listProviderAccountFailures": {
+    "method": "GET",
+    "path": "/admin/operations/provider-account-pools/failures",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "provider_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "channel_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "account_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "listProviderAccountPools": {
     "method": "GET",
     "path": "/admin/operations/provider-account-pools",
@@ -1698,6 +1749,10 @@ export class ManagementApi {
     return this.request("applyCatalogDiscovery", request);
   }
 
+  applyProviderAccountPoolAction(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("applyProviderAccountPoolAction", request);
+  }
+
   cancelCredentialOAuth(request: ManagementRequest = {}): Promise<Response> {
     return this.request("cancelCredentialOAuth", request);
   }
@@ -1896,6 +1951,10 @@ export class ManagementApi {
 
   listOperationalUsage(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listOperationalUsage", request);
+  }
+
+  listProviderAccountFailures(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listProviderAccountFailures", request);
   }
 
   listProviderAccountPools(request: ManagementRequest = {}): Promise<Response> {

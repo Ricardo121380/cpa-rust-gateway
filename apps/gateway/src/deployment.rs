@@ -29,9 +29,10 @@ use gateway_control::{
         KeyVersion, ManagementMutationService, MasterKey, MasterKeyRing, SecretStore,
     },
     management_operations_service::{
-        MAX_USAGE_EVENTS, ManagementOperationsError, OperationalBillingPage,
-        OperationalBillingQuery, OperationalUsagePage, OperationalUsageQuery,
-        compile_operational_billing_page, compile_operational_usage_page,
+        FailureFeedbackPage, FailureFeedbackQuery, MAX_USAGE_EVENTS, ManagementOperationsError,
+        OperationalBillingPage, OperationalBillingQuery, OperationalUsagePage,
+        OperationalUsageQuery, compile_failure_feedback_page, compile_operational_billing_page,
+        compile_operational_usage_page,
     },
     management_service::{ManagementActor, ManagementService},
 };
@@ -41,8 +42,8 @@ use gateway_http_actix::{
     management_lifecycle_resources::ManagementLifecycleHttpState,
     management_observability_resources::ManagementObservabilityHttpState,
     management_resources::{
-        CodexOAuthManagementWorkflow, ManagementResourceHttpState, ManagementUsageFacade,
-        OpenAiCodexOAuthExchange, SystemManagementRuntimeClock,
+        CodexOAuthManagementWorkflow, ManagementFailureFeedbackFacade, ManagementResourceHttpState,
+        ManagementUsageFacade, OpenAiCodexOAuthExchange, SystemManagementRuntimeClock,
     },
     management_security::{
         ManagementBrowserPolicy, ManagementCsrfToken, ManagementHttpState, ManagementKey,
@@ -305,6 +306,23 @@ impl ManagementUsageFacade for DeploymentManagementUsageFacade {
     }
 }
 
+impl ManagementFailureFeedbackFacade for DeploymentManagementUsageFacade {
+    fn list_failure_feedback(
+        &self,
+        query: &FailureFeedbackQuery,
+    ) -> Result<FailureFeedbackPage, ManagementOperationsError> {
+        let store = SqliteEventStore::open_read_only(&self.database)
+            .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
+        let events = store
+            .list_events_bounded(MAX_USAGE_EVENTS + 1)
+            .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
+        compile_failure_feedback_page(&events, query)
+    }
+}
+
+// Keep the serving and management compositions visibly adjacent so one database/runtime source
+// cannot be wired into a second hidden control plane.
+#[allow(clippy::too_many_lines)]
 fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, DeploymentError> {
     ensure_direct_directory(
         &command.state_directory,
@@ -383,6 +401,9 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         Box::new(SystemManagementRuntimeClock),
         Box::new(DeploymentManagementUsageFacade::new(database.clone())),
     )
+    .with_failure_feedback(Box::new(DeploymentManagementUsageFacade::new(
+        database.clone(),
+    )))
     .with_provider_account_pools(provider_account_pools);
     let lifecycle = ManagementLifecycleHttpState::new(lifecycle_service);
     let backup = ManagementBackupHttpState::new(

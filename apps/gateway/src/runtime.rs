@@ -1081,6 +1081,7 @@ impl P12RoutedResponsesExecutor {
         };
         let pools = Arc::new(pools);
         let provider_account_pools = provider_account_pool_facade(
+            configuration.version.id.as_str().to_owned(),
             provider_account_descriptors,
             Arc::clone(&pools),
             Arc::clone(&runtime_health),
@@ -1514,6 +1515,7 @@ fn native_provider_account_descriptors(
 }
 
 fn provider_account_pool_facade(
+    config_version_id: String,
     descriptors: Result<Vec<ProviderAccountDescriptor>, RuntimeCompositionError>,
     credential_pools: Arc<EndpointCredentialPools>,
     runtime_health: Arc<RuntimeHealthRegistry>,
@@ -1530,6 +1532,7 @@ fn provider_account_pool_facade(
                 P13_PROVIDER_ACCOUNT_POOL_SNAPSHOT_TTL,
                 P13_PROVIDER_ACCOUNT_POOL_CURSOR_RETENTION,
             )
+            .and_then(|adapter| adapter.with_config_version(config_version_id))
             .map_err(|_| {
                 RuntimeCompositionError::Stage(RuntimeCompositionStage::ProviderAccountPool)
             })
@@ -9310,6 +9313,7 @@ mod tests {
         assert!(pools.pool(&configuration.endpoints[0].id).is_some());
 
         let facade = super::provider_account_pool_facade(
+            configuration.version.id.as_str().to_owned(),
             Ok(descriptors),
             pools,
             Arc::new(RuntimeHealthRegistry::new()),

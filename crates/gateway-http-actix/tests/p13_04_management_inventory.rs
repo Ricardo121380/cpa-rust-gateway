@@ -16,22 +16,26 @@ use gateway_control::management_mutation_service::{
     SecretStore, SqliteControlPlaneRepository,
 };
 use gateway_control::management_operations_service::{
-    ManagementOperationsError, OperationalBillingPage, OperationalBillingQuery,
-    OperationalUsagePage, OperationalUsageQuery, compile_operational_billing_page,
+    FailureFeedbackPage, FailureFeedbackQuery, ManagementOperationsError, OperationalBillingPage,
+    OperationalBillingQuery, OperationalUsagePage, OperationalUsageQuery,
+    compile_failure_feedback_page, compile_operational_billing_page,
     compile_operational_usage_page,
 };
 use gateway_control::provider_account_pool_service::{
-    ProviderAccountAuthStatus, ProviderAccountPoolItem, ProviderAccountPoolSnapshot,
-    ProviderAccountRuntimeStatus, SnapshotProviderAccountPoolFacade,
+    ProviderAccountAuthStatus, ProviderAccountOperatorAction, ProviderAccountOperatorActionKind,
+    ProviderAccountOperatorReceipt, ProviderAccountOperatorState, ProviderAccountPoolError,
+    ProviderAccountPoolFacade, ProviderAccountPoolItem, ProviderAccountPoolPage,
+    ProviderAccountPoolQuery, ProviderAccountPoolSnapshot, ProviderAccountRuntimeStatus,
 };
 use gateway_core::{
     AttemptEvent, AttemptOutcome, AttemptRetryDecision, ClientKeyId, CredentialId, EndpointId,
-    GatewayEvent, GatewayProtocol, ProviderId, RequestEvent, ResponseId, RouteCandidateId, RouteId,
-    UpstreamId, Usage, UsageEvent,
+    ErrorScope, GatewayError, GatewayErrorCode, GatewayEvent, GatewayProtocol, ProviderId,
+    RequestEvent, ResponseId, RouteCandidateId, RouteId, UpstreamId, Usage, UsageEvent,
 };
 use gateway_http_actix::{
     management_resources::{
-        ManagementResourceHttpState, ManagementUsageFacade, configure_management_resources,
+        ManagementFailureFeedbackFacade, ManagementResourceHttpState, ManagementUsageFacade,
+        configure_management_resources,
     },
     management_security::{
         MANAGEMENT_KEY_HEADER, ManagementBrowserPolicy, ManagementHttpState, ManagementKey,
@@ -67,6 +71,60 @@ impl ManagementUsageFacade for FixtureUsageFacade {
         query: &OperationalBillingQuery,
     ) -> Result<OperationalBillingPage, ManagementOperationsError> {
         compile_operational_billing_page(&self.billing_entries, query)
+    }
+}
+
+impl ManagementFailureFeedbackFacade for FixtureUsageFacade {
+    fn list_failure_feedback(
+        &self,
+        query: &FailureFeedbackQuery,
+    ) -> Result<FailureFeedbackPage, ManagementOperationsError> {
+        compile_failure_feedback_page(&self.events, query)
+    }
+}
+
+struct FixtureProviderAccountPoolFacade {
+    snapshot: ProviderAccountPoolSnapshot,
+}
+
+impl ProviderAccountPoolFacade for FixtureProviderAccountPoolFacade {
+    fn list_provider_account_pools(
+        &self,
+        query: &ProviderAccountPoolQuery,
+    ) -> Result<ProviderAccountPoolPage, ProviderAccountPoolError> {
+        self.snapshot.page(query)
+    }
+
+    fn apply_operator_action(
+        &self,
+        action: &ProviderAccountOperatorAction,
+        observed_at_ms: i64,
+    ) -> Result<ProviderAccountOperatorReceipt, ProviderAccountPoolError> {
+        if action.config_version_id != "inventory-v1"
+            || action.provider_id.as_str() != "grok"
+            || action.channel_id.as_str() != "channel-build"
+            || action.account_id.as_str() != "grok-account-a"
+        {
+            return Err(ProviderAccountPoolError::ActionTargetUnavailable);
+        }
+        let (state, cooldown_until_ms) = match action.kind {
+            ProviderAccountOperatorActionKind::CoolDown => (
+                ProviderAccountOperatorState::Cooling,
+                Some(
+                    observed_at_ms
+                        .checked_add(action.cooldown_ms.unwrap_or_default())
+                        .ok_or(ProviderAccountPoolError::SourceUnavailable)?,
+                ),
+            ),
+            ProviderAccountOperatorActionKind::RequestRecovery => {
+                (ProviderAccountOperatorState::ProbeScheduled, None)
+            }
+        };
+        Ok(ProviderAccountOperatorReceipt {
+            state,
+            observed_at_ms,
+            cooldown_until_ms,
+        })
     }
 }
 
@@ -139,10 +197,39 @@ fn resource_state() -> Result<ManagementResourceHttpState, Box<dyn Error>> {
             ..Usage::default()
         },
     );
+    let failed_request = RequestEvent::new(
+        gateway_core::RequestId::try_new("failure-http-request")?,
+        ClientKeyId::try_new("failure-http-client")?,
+        None,
+        GatewayProtocol::OpenAiResponses,
+        "failure-public-model".to_owned(),
+        "failure-public-model".to_owned(),
+        None,
+        false,
+    );
+    let failed_attempt = AttemptEvent::new(
+        failed_request.request_id().clone(),
+        1,
+        RouteId::try_new("failure-http-route")?,
+        RouteCandidateId::try_new("failure-http-candidate")?,
+        CredentialId::try_new("account-b")?,
+        EndpointId::try_new("channel-inventory")?,
+        UpstreamId::try_new("provider-inventory")?,
+        "private-model-must-not-leak".to_owned(),
+        101,
+        102,
+        AttemptOutcome::Failed(GatewayError::new(
+            GatewayErrorCode::CredentialUnauthorized,
+            ErrorScope::Credential,
+        )),
+        AttemptRetryDecision::NonRetryable,
+    );
     event_store.append_batch(&[
         GatewayEvent::Request(request),
         GatewayEvent::Attempt(attempt),
         GatewayEvent::Usage(usage),
+        GatewayEvent::Request(failed_request),
+        GatewayEvent::Attempt(failed_attempt),
     ])?;
     let usage_events = event_store.list_events()?;
     let billing_entries = vec![BillingLedgerEntry {
@@ -224,12 +311,16 @@ fn resource_state() -> Result<ManagementResourceHttpState, Box<dyn Error>> {
     Ok(
         ManagementResourceHttpState::new(ManagementMutationService::new(repository, secret_store))
             .with_usage(Box::new(FixtureUsageFacade {
-                events: usage_events,
+                events: usage_events.clone(),
                 billing_entries,
             }))
-            .with_provider_account_pools(Box::new(SnapshotProviderAccountPoolFacade::new(
-                provider_snapshot,
-            ))),
+            .with_failure_feedback(Box::new(FixtureUsageFacade {
+                events: usage_events,
+                billing_entries: Vec::new(),
+            }))
+            .with_provider_account_pools(Box::new(FixtureProviderAccountPoolFacade {
+                snapshot: provider_snapshot,
+            })),
     )
 }
 
@@ -434,6 +525,151 @@ async fn inventory_is_protected_paginated_and_value_free() -> TestResult {
     ] {
         assert!(!provider_serialized.contains(forbidden));
     }
+
+    let action = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/operations/provider-account-pools/actions")
+                .set_json(serde_json::json!({
+                    "provider_id": "grok",
+                    "channel_id": "channel-build",
+                    "account_id": "grok-account-a",
+                    "action": "cool_down",
+                    "cooldown_ms": 1000
+                })),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(action.status(), StatusCode::ACCEPTED);
+    assert_eq!(
+        action.headers().get(header::CACHE_CONTROL),
+        Some(&header::HeaderValue::from_static("no-store"))
+    );
+    let action_body: Value = test::read_body_json(action).await;
+    assert_eq!(action_body["state"], "cooling");
+    assert!(action_body["observed_at_ms"].as_i64().is_some());
+    assert_eq!(
+        action_body["cooldown_until_ms"].as_i64(),
+        action_body["observed_at_ms"]
+            .as_i64()
+            .and_then(|value| value.checked_add(1000))
+    );
+
+    let stale_action = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/operations/provider-account-pools/actions")
+                .set_json(serde_json::json!({
+                    "provider_id": "grok",
+                    "channel_id": "channel-build",
+                    "account_id": "grok-account-a",
+                    "action": "request_recovery"
+                })),
+            "inventory-v2",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(stale_action.status(), StatusCode::CONFLICT);
+
+    let invalid_action = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/operations/provider-account-pools/actions")
+                .set_json(serde_json::json!({
+                    "provider_id": "grok",
+                    "channel_id": "channel-build",
+                    "account_id": "grok-account-a",
+                    "action": "cool_down",
+                    "cooldown_ms": 999
+                })),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(invalid_action.status(), StatusCode::BAD_REQUEST);
+
+    let failures = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri(
+                "/admin/operations/provider-account-pools/failures?provider_id=provider-inventory&channel_id=channel-inventory&account_id=account-b",
+            ),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(failures.status(), StatusCode::OK);
+    assert_eq!(
+        failures.headers().get(header::CACHE_CONTROL),
+        Some(&header::HeaderValue::from_static("no-store"))
+    );
+    let failures_body: Value = test::read_body_json(failures).await;
+    assert_eq!(failures_body["items"].as_array().map(Vec::len), Some(1));
+    assert_eq!(
+        failures_body["items"][0]["provider_id"],
+        "provider-inventory"
+    );
+    assert_eq!(failures_body["items"][0]["channel_id"], "channel-inventory");
+    assert_eq!(failures_body["items"][0]["account_id"], "account-b");
+    assert_eq!(
+        failures_body["items"][0]["error_code"],
+        "CredentialUnauthorized"
+    );
+    assert_eq!(failures_body["items"][0]["error_scope"], "credential");
+    assert_eq!(failures_body["items"][0]["retry_decision"], "non_retryable");
+    let failures_serialized = serde_json::to_string(&failures_body)?;
+    for forbidden in [
+        "private-model-must-not-leak",
+        "secret",
+        "base_url",
+        "header",
+        "cookie",
+        "request_body",
+    ] {
+        assert!(!failures_serialized.contains(forbidden));
+    }
+
+    let failures_without_version = test::call_service(
+        &app,
+        test::TestRequest::get()
+            .uri("/admin/operations/provider-account-pools/failures")
+            .peer_addr(loopback())
+            .insert_header((MANAGEMENT_KEY_HEADER, MANAGEMENT_KEY))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(failures_without_version.status(), StatusCode::BAD_REQUEST);
+
+    let failures_unknown_version = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/operations/provider-account-pools/failures"),
+            "missing-version",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(failures_unknown_version.status(), StatusCode::NOT_FOUND);
+
+    let failures_unknown_query = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get()
+                .uri("/admin/operations/provider-account-pools/failures?unknown=true"),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(failures_unknown_query.status(), StatusCode::BAD_REQUEST);
 
     let usage = test::call_service(
         &app,

@@ -275,6 +275,40 @@
         }
       }
     },
+    "/admin/operations/provider-account-pools/actions": {
+      "parameters": [{ "$ref": "#/components/parameters/ConfigVersion" }],
+      "post": {
+        "tags": ["operations"],
+        "operationId": "applyProviderAccountPoolAction",
+        "x-delivery-phase": "P13-06C",
+        "x-audit-action": "provider_account_operator_action",
+        "requestBody": { "$ref": "#/components/requestBodies/ProviderAccountOperatorAction" },
+        "responses": {
+          "202": { "$ref": "#/components/responses/ProviderAccountOperatorAction" },
+          "409": { "$ref": "#/components/responses/Error" },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/admin/operations/provider-account-pools/failures": {
+      "parameters": [{ "$ref": "#/components/parameters/ConfigVersion" }],
+      "get": {
+        "tags": ["operations"],
+        "operationId": "listProviderAccountFailures",
+        "x-delivery-phase": "P13-06C",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProviderAccountPoolProviderId" },
+          { "$ref": "#/components/parameters/ProviderAccountPoolChannelId" },
+          { "$ref": "#/components/parameters/ProviderAccountFailureAccountId" },
+          { "$ref": "#/components/parameters/ProviderAccountFailureLimit" },
+          { "$ref": "#/components/parameters/ProviderAccountFailureCursor" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/ProviderAccountFailurePage" },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
     "/admin/operations/usage": {
       "get": {
         "tags": ["operations"],
@@ -419,6 +453,9 @@
       "ProviderAccountPoolEnabled": { "name": "enabled", "in": "query", "required": false, "schema": { "type": "boolean" } },
       "ProviderAccountPoolLimit": { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } },
       "ProviderAccountPoolCursor": { "name": "cursor", "in": "query", "required": false, "schema": { "type": "string", "minLength": 1, "maxLength": 2048 } },
+      "ProviderAccountFailureAccountId": { "name": "account_id", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/Id" } },
+      "ProviderAccountFailureLimit": { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } },
+      "ProviderAccountFailureCursor": { "name": "cursor", "in": "query", "required": false, "schema": { "type": "string", "minLength": 1, "maxLength": 2048 } },
       "OperationalFromMs": { "name": "from_ms", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 0 } },
       "OperationalToMs": { "name": "to_ms", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 0 } },
       "OperationalAccountId": { "name": "account_id", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/Id" } },
@@ -454,6 +491,7 @@
       "AccessGroupRouteInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AccessGroupRouteInput" } } } },
       "ClientKeyInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ClientKeyInput" } } } },
       "RuntimeTarget": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RuntimeTarget" } } } },
+      "ProviderAccountOperatorAction": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProviderAccountOperatorAction" } } } },
       "BillingCatalogImportInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BillingCatalogImportInput" } } } },
       "BillingCatalogRollbackInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BillingCatalogRollbackInput" } } } },
       "CredentialExportInput": { "required": true, "content": { "application/json": { "schema": { "type": "object", "additionalProperties": false, "required": ["format"], "properties": { "format": { "type": "string", "enum": ["cpa", "sub2api"] } } } } } },
@@ -494,6 +532,8 @@
       "RouteExplain": { "description": "Read-only route explanation", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RouteExplain" } } } },
       "OperationalAccountPoolPage": { "description": "Secret-free configured Provider/Channel/Account inventory page", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OperationalAccountPoolPage" } } } },
       "ProviderAccountPoolPage": { "description": "Secret-free observed Provider-owned account-pool snapshot", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProviderAccountPoolPage" } } } },
+      "ProviderAccountOperatorAction": { "description": "Secret-free local Provider account operator action receipt", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProviderAccountOperatorActionReceipt" } } } },
+      "ProviderAccountFailurePage": { "description": "Secret-free bounded failure feedback from durable Attempt classifications", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProviderAccountFailurePage" } } } },
       "OperationalUsagePage": { "description": "Secret-free durable usage and explicitly unpriced cost page", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OperationalUsagePage" } } } },
       "OperationalBillingPage": { "description": "Secret-free immutable billing rows with status and known-cost summary", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OperationalBillingPage" } } } },
       "BillingCatalogList": { "description": "Immutable billing catalogs", "content": { "application/json": { "schema": { "type": "array", "maxItems": 256, "items": { "$ref": "#/components/schemas/BillingCatalog" } } } } },
@@ -546,6 +586,10 @@
       "RuntimeAvailability": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["endpoint_id", "credential_id", "availability"], "properties": { "endpoint_id": { "$ref": "#/components/schemas/Id" }, "credential_id": { "$ref": "#/components/schemas/Id" }, "availability": { "type": "string", "enum": ["available", "cooldown", "circuit_open", "quota_blocked", "credential_forbidden", "recovery_required"] } } } },
       "RuntimeTarget": { "type": "object", "additionalProperties": false, "required": ["endpoint_id", "credential_id"], "properties": { "endpoint_id": { "$ref": "#/components/schemas/Id" }, "credential_id": { "$ref": "#/components/schemas/Id" }, "upstream_model": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 256 }, { "type": "null" }] } } },
       "RuntimeAction": { "type": "object", "additionalProperties": false, "required": ["state"], "properties": { "state": { "type": "string", "enum": ["recovery_required", "probe_scheduled", "rejected"] } } },
+      "ProviderAccountOperatorAction": { "type": "object", "additionalProperties": false, "required": ["provider_id", "channel_id", "account_id", "action"], "properties": { "provider_id": { "$ref": "#/components/schemas/Id" }, "channel_id": { "$ref": "#/components/schemas/Id" }, "account_id": { "$ref": "#/components/schemas/Id" }, "action": { "type": "string", "enum": ["cool_down", "request_recovery"] }, "upstream_model": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 256 }, { "type": "null" }] }, "cooldown_ms": { "anyOf": [{ "type": "integer", "minimum": 1000, "maximum": 86400000 }, { "type": "null" }] } } },
+      "ProviderAccountOperatorActionReceipt": { "type": "object", "additionalProperties": false, "required": ["state", "observed_at_ms", "cooldown_until_ms"], "properties": { "state": { "type": "string", "enum": ["cooling", "probe_scheduled", "recovery_required", "rejected"] }, "observed_at_ms": { "type": "integer", "minimum": 0 }, "cooldown_until_ms": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] } } },
+      "ProviderAccountFailurePage": { "type": "object", "additionalProperties": false, "required": ["observed_through_ordinal", "items", "next_cursor"], "properties": { "observed_through_ordinal": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "items": { "type": "array", "maxItems": 100, "items": { "$ref": "#/components/schemas/ProviderAccountFailureItem" } }, "next_cursor": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 2048 }, { "type": "null" }] } } },
+      "ProviderAccountFailureItem": { "type": "object", "additionalProperties": false, "required": ["provider_id", "channel_id", "account_id", "request_id", "attempt_id", "ended_at_ms", "error_code", "error_scope", "retry_decision"], "properties": { "provider_id": { "$ref": "#/components/schemas/Id" }, "channel_id": { "$ref": "#/components/schemas/Id" }, "account_id": { "$ref": "#/components/schemas/Id" }, "request_id": { "$ref": "#/components/schemas/Id512" }, "attempt_id": { "$ref": "#/components/schemas/Id512" }, "ended_at_ms": { "type": "integer", "minimum": 0 }, "error_code": { "type": "string", "enum": ["ClientRequestError", "ClientUnauthorized", "RouteNotFound", "CredentialUnavailable", "CredentialUnauthorized", "CredentialForbidden", "CredentialQuotaExceeded", "EgressRejected", "EgressUnavailable", "ProviderRateLimited", "ProviderTransient", "ProviderPermanent", "TokenCountUnsupported", "UpstreamProtocolError", "StreamTruncated", "InternalError", "Cancelled"] }, "error_scope": { "type": "string", "enum": ["request", "credential", "account", "model", "quota_window", "egress_session", "egress", "provider", "stream", "internal"] }, "retry_decision": { "type": "string", "enum": ["completed", "retry_eligible", "non_retryable", "retry_closed", "cancelled", "infrastructure_failure"] } } },
       "RouteExplain": { "type": "object", "additionalProperties": false, "required": ["route_id", "candidates"], "properties": { "route_id": { "$ref": "#/components/schemas/Id" }, "candidates": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["candidate_id", "decision"], "properties": { "candidate_id": { "$ref": "#/components/schemas/Id" }, "decision": { "type": "string", "enum": ["selected", "excluded"] }, "reason": { "type": "string", "maxLength": 128 } } } } } },
       "ProviderAccountPoolPage": { "type": "object", "additionalProperties": false, "required": ["snapshot_id", "observed_at_ms", "items", "next_cursor"], "properties": { "snapshot_id": { "$ref": "#/components/schemas/Id" }, "observed_at_ms": { "type": "integer", "minimum": 0 }, "items": { "type": "array", "maxItems": 100, "items": { "$ref": "#/components/schemas/ProviderAccountPoolItem" } }, "next_cursor": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 2048 }, { "type": "null" }] } } },
       "ProviderAccountPoolItem": { "type": "object", "additionalProperties": false, "required": ["provider_id", "channel_id", "account_id", "account_kind", "auth_status", "runtime_status", "enabled", "priority", "weight", "max_concurrency", "active_leases", "expires_at_ms", "refresh_due_at_ms", "quota_sync_due_at_ms"], "properties": { "provider_id": { "$ref": "#/components/schemas/Id" }, "channel_id": { "$ref": "#/components/schemas/Id" }, "account_id": { "$ref": "#/components/schemas/Id" }, "account_kind": { "type": "string", "minLength": 1, "maxLength": 128 }, "auth_status": { "type": "string", "enum": ["active", "reauth_required", "disabled", "expired"] }, "runtime_status": { "type": "string", "enum": ["available", "cooling", "circuit_open", "quota_blocked", "unauthorized", "recovery_in_flight", "expired"] }, "enabled": { "type": "boolean" }, "priority": { "type": "integer", "minimum": 0 }, "weight": { "type": "integer", "minimum": 1, "maximum": 10000 }, "max_concurrency": { "type": "integer", "minimum": 1, "maximum": 100000 }, "active_leases": { "type": "integer", "minimum": 0, "maximum": 100000 }, "expires_at_ms": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "refresh_due_at_ms": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "quota_sync_due_at_ms": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] } } },

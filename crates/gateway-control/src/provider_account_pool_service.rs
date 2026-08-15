@@ -13,6 +13,10 @@ use gateway_core::{CredentialId, EndpointId, ProviderId};
 pub const DEFAULT_PROVIDER_ACCOUNT_POOL_LIMIT: usize = 50;
 /// Maximum number of Provider-owned account rows returned in one page.
 pub const MAX_PROVIDER_ACCOUNT_POOL_LIMIT: usize = 100;
+/// Smallest operator cooldown accepted by the protected action boundary.
+pub const MIN_PROVIDER_ACCOUNT_COOLDOWN_MS: i64 = 1_000;
+/// Largest operator cooldown accepted by the protected action boundary.
+pub const MAX_PROVIDER_ACCOUNT_COOLDOWN_MS: i64 = 86_400_000;
 const MAX_TEXT_CHARS: usize = 128;
 const MAX_SNAPSHOT_ID_CHARS: usize = 128;
 
@@ -59,6 +63,135 @@ pub enum ProviderAccountRuntimeStatus {
     RecoveryInFlight,
     /// Runtime will not lease an expired credential.
     Expired,
+}
+
+/// One explicitly requested, local Provider-account action.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProviderAccountOperatorAction {
+    /// Selected Config Version that authorized this runtime action.
+    pub config_version_id: String,
+    /// Exact Provider family identity.
+    pub provider_id: ProviderId,
+    /// Exact Provider channel/Endpoint identity.
+    pub channel_id: EndpointId,
+    /// Exact opaque account identity.
+    pub account_id: CredentialId,
+    /// Optional exact model scope for Health/Quota state.
+    pub upstream_model: Option<String>,
+    /// Requested action kind.
+    pub kind: ProviderAccountOperatorActionKind,
+    /// Required only for [`ProviderAccountOperatorActionKind::CoolDown`].
+    pub cooldown_ms: Option<i64>,
+}
+
+/// Closed set of runtime actions admitted by P13-06C.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProviderAccountOperatorActionKind {
+    /// Put the exact Health key into a bounded transient cooldown.
+    CoolDown,
+    /// Ask the existing controlled account/quota recovery state machine to advance locally.
+    RequestRecovery,
+}
+
+impl ProviderAccountOperatorActionKind {
+    /// Stable wire value used by the management contract.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::CoolDown => "cool_down",
+            Self::RequestRecovery => "request_recovery",
+        }
+    }
+}
+
+impl ProviderAccountOperatorAction {
+    /// Validates one action at the provider-neutral boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ProviderAccountPoolError::InvalidAction`] when an identity/model is outside the
+    /// bounded domain or the action-specific cooldown fields are inconsistent.
+    pub fn try_new(
+        config_version_id: impl Into<String>,
+        provider_id: ProviderId,
+        channel_id: EndpointId,
+        account_id: CredentialId,
+        upstream_model: Option<String>,
+        kind: ProviderAccountOperatorActionKind,
+        cooldown_ms: Option<i64>,
+    ) -> Result<Self, ProviderAccountPoolError> {
+        let config_version_id = config_version_id.into();
+        if !valid_opaque_id(&config_version_id)
+            || !valid_opaque_id(provider_id.as_str())
+            || !valid_opaque_id(channel_id.as_str())
+            || !valid_opaque_id(account_id.as_str())
+            || upstream_model
+                .as_deref()
+                .is_some_and(|value| value.trim().is_empty() || value.chars().count() > 256)
+        {
+            return Err(ProviderAccountPoolError::InvalidAction);
+        }
+        match kind {
+            ProviderAccountOperatorActionKind::CoolDown
+                if !cooldown_ms.is_some_and(|value| {
+                    (MIN_PROVIDER_ACCOUNT_COOLDOWN_MS..=MAX_PROVIDER_ACCOUNT_COOLDOWN_MS)
+                        .contains(&value)
+                }) =>
+            {
+                return Err(ProviderAccountPoolError::InvalidAction);
+            }
+            ProviderAccountOperatorActionKind::RequestRecovery if cooldown_ms.is_some() => {
+                return Err(ProviderAccountPoolError::InvalidAction);
+            }
+            _ => {}
+        }
+        Ok(Self {
+            config_version_id,
+            provider_id,
+            channel_id,
+            account_id,
+            upstream_model,
+            kind,
+            cooldown_ms,
+        })
+    }
+}
+
+/// Safe state returned after one operator action.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProviderAccountOperatorState {
+    /// The action placed an exact Health key into cooldown.
+    Cooling,
+    /// A controlled account or quota probe now owns the exact target.
+    ProbeScheduled,
+    /// The quota window has not reset and cannot be moved by an operator action.
+    RecoveryRequired,
+    /// The requested transition is not applicable to the current exact state.
+    Rejected,
+}
+
+impl ProviderAccountOperatorState {
+    /// Stable wire value used by the management contract.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Cooling => "cooling",
+            Self::ProbeScheduled => "probe_scheduled",
+            Self::RecoveryRequired => "recovery_required",
+            Self::Rejected => "rejected",
+        }
+    }
+}
+
+/// Value-free receipt for one accepted operator action.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProviderAccountOperatorReceipt {
+    /// Closed action state.
+    pub state: ProviderAccountOperatorState,
+    /// The sampled action time.
+    pub observed_at_ms: i64,
+    /// Effective cooldown deadline when the action was `cool_down`.
+    pub cooldown_until_ms: Option<i64>,
 }
 
 impl ProviderAccountRuntimeStatus {
@@ -466,6 +599,10 @@ pub enum ProviderAccountPoolError {
     CursorConflict,
     /// Provider-specific source is unavailable; no partial data is returned.
     SourceUnavailable,
+    /// The requested operator action is malformed.
+    InvalidAction,
+    /// The exact action target is not part of the serving Provider pool.
+    ActionTargetUnavailable,
 }
 
 impl fmt::Display for ProviderAccountPoolError {
@@ -475,6 +612,10 @@ impl fmt::Display for ProviderAccountPoolError {
             Self::InvalidSnapshot => "provider account-pool snapshot is invalid",
             Self::CursorConflict => "provider account-pool cursor is stale",
             Self::SourceUnavailable => "provider account-pool source is unavailable",
+            Self::InvalidAction => "provider account-pool operator action is invalid",
+            Self::ActionTargetUnavailable => {
+                "provider account-pool operator action target is unavailable"
+            }
         })
     }
 }
@@ -493,6 +634,23 @@ pub trait ProviderAccountPoolFacade: Send + Sync {
         &self,
         query: &ProviderAccountPoolQuery,
     ) -> Result<ProviderAccountPoolPage, ProviderAccountPoolError>;
+
+    /// Applies one bounded local action to an exact Provider account.
+    ///
+    /// Implementations must not contact a Provider, acquire a lease, mutate a Config Version, or
+    /// refresh/reauthenticate a credential. The default is fail-closed for read-only fixtures.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ProviderAccountPoolError::ActionTargetUnavailable`] when the facade does not
+    /// implement operator actions; provider adapters may return other bounded pool errors.
+    fn apply_operator_action(
+        &self,
+        _action: &ProviderAccountOperatorAction,
+        _observed_at_ms: i64,
+    ) -> Result<ProviderAccountOperatorReceipt, ProviderAccountPoolError> {
+        Err(ProviderAccountPoolError::ActionTargetUnavailable)
+    }
 }
 
 /// Fail-closed facade used until the serving composition injects Provider adapters.

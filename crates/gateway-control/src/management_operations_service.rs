@@ -11,8 +11,9 @@ use std::{
 };
 
 use gateway_core::{
-    AccessGroupId, AttemptEvent, AttemptOutcome, ClientKeyId, CredentialId, EgressPolicyId,
-    EndpointId, GatewayEvent, GatewayProtocol, RequestEvent, RouteId, UpstreamId, UsageEvent,
+    AccessGroupId, AttemptEvent, AttemptOutcome, AttemptRetryDecision, ClientKeyId, CredentialId,
+    EgressPolicyId, EndpointId, GatewayEvent, GatewayProtocol, RequestEvent, RouteId, UpstreamId,
+    UsageEvent,
 };
 use gateway_store::billing_ledger::{BillingCostConfidence, BillingLedgerEntry};
 use gateway_store::control_plane::{
@@ -33,6 +34,10 @@ pub const MAX_USAGE_LIMIT: usize = 100;
 pub const MAX_USAGE_EVENTS: usize = 100_000;
 /// Maximum public model label length admitted to the operations projection.
 pub const MAX_USAGE_MODEL_CHARS: usize = 256;
+/// Default number of safe failure-feedback rows returned by one page.
+pub const DEFAULT_FAILURE_FEEDBACK_LIMIT: usize = 50;
+/// Maximum number of safe failure-feedback rows returned by one page.
+pub const MAX_FAILURE_FEEDBACK_LIMIT: usize = 100;
 
 /// Typed filters and page position for the configured account-pool inventory.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -49,6 +54,171 @@ pub struct OperationalAccountPoolQuery {
     pub limit: usize,
     /// Optional revision-bound stable keyset cursor.
     pub cursor: Option<OperationalAccountPoolCursor>,
+}
+
+/// Exact filters for the durable Attempt failure-feedback projection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FailureFeedbackQuery {
+    /// Exact Provider/Upstream filter.
+    pub provider_id: Option<UpstreamId>,
+    /// Exact Endpoint/Channel filter.
+    pub channel_id: Option<EndpointId>,
+    /// Exact Credential/Account filter.
+    pub account_id: Option<CredentialId>,
+    /// Bounded page size.
+    pub limit: usize,
+    /// Durable append ordinal of the last row from the previous page.
+    pub cursor: Option<FailureFeedbackCursor>,
+}
+
+impl Default for FailureFeedbackQuery {
+    fn default() -> Self {
+        Self {
+            provider_id: None,
+            channel_id: None,
+            account_id: None,
+            limit: DEFAULT_FAILURE_FEEDBACK_LIMIT,
+            cursor: None,
+        }
+    }
+}
+
+impl FailureFeedbackQuery {
+    /// Validates the bounded query.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementOperationsError::InvalidQuery`] when an identity is empty/overlong or
+    /// the requested page size is outside the public bound.
+    pub fn try_new(
+        provider_id: Option<UpstreamId>,
+        channel_id: Option<EndpointId>,
+        account_id: Option<CredentialId>,
+        limit: usize,
+        cursor: Option<FailureFeedbackCursor>,
+    ) -> Result<Self, ManagementOperationsError> {
+        if !(1..=MAX_FAILURE_FEEDBACK_LIMIT).contains(&limit)
+            || provider_id
+                .as_ref()
+                .is_some_and(|value| !bounded_opaque_id(value.as_str()))
+            || channel_id
+                .as_ref()
+                .is_some_and(|value| !bounded_opaque_id(value.as_str()))
+            || account_id
+                .as_ref()
+                .is_some_and(|value| !bounded_opaque_id(value.as_str()))
+        {
+            return Err(ManagementOperationsError::InvalidQuery);
+        }
+        Ok(Self {
+            provider_id,
+            channel_id,
+            account_id,
+            limit,
+            cursor,
+        })
+    }
+
+    fn matches(&self, item: &FailureFeedbackItem) -> bool {
+        self.provider_id
+            .as_ref()
+            .is_none_or(|value| value == &item.provider_id)
+            && self
+                .channel_id
+                .as_ref()
+                .is_none_or(|value| value == &item.channel_id)
+            && self
+                .account_id
+                .as_ref()
+                .is_none_or(|value| value == &item.account_id)
+    }
+
+    fn filter_fingerprint(&self) -> String {
+        [
+            self.provider_id.as_ref().map_or("", UpstreamId::as_str),
+            self.channel_id.as_ref().map_or("", EndpointId::as_str),
+            self.account_id.as_ref().map_or("", CredentialId::as_str),
+        ]
+        .map(|value| format!("{}:{value}", value.len()))
+        .join("|")
+    }
+}
+
+/// Opaque durable append position for failure feedback.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FailureFeedbackCursor {
+    ordinal: i64,
+    filter_fingerprint: String,
+}
+
+impl FailureFeedbackCursor {
+    /// Reconstructs a bounded cursor decoded by the HTTP adapter.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementOperationsError::InvalidQuery`] when the ordinal is negative or the
+    /// filter fingerprint exceeds the transport bound.
+    pub fn try_new(
+        ordinal: i64,
+        filter_fingerprint: impl Into<String>,
+    ) -> Result<Self, ManagementOperationsError> {
+        let filter_fingerprint = filter_fingerprint.into();
+        if ordinal < 0 || filter_fingerprint.len() > 512 {
+            return Err(ManagementOperationsError::InvalidQuery);
+        }
+        Ok(Self {
+            ordinal,
+            filter_fingerprint,
+        })
+    }
+
+    /// Returns the durable append ordinal.
+    #[must_use]
+    pub const fn ordinal(&self) -> i64 {
+        self.ordinal
+    }
+
+    /// Returns the query fingerprint bound to this cursor.
+    #[must_use]
+    pub fn filter_fingerprint(&self) -> &str {
+        &self.filter_fingerprint
+    }
+}
+
+/// One secret-free durable Attempt failure.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FailureFeedbackItem {
+    /// Durable append ordinal used only for pagination.
+    pub ordinal: i64,
+    /// Request correlation identity.
+    pub request_id: String,
+    /// Deterministic Attempt identity.
+    pub attempt_id: String,
+    /// Exact Provider/Upstream identity.
+    pub provider_id: UpstreamId,
+    /// Exact Endpoint/Channel identity.
+    pub channel_id: EndpointId,
+    /// Exact Credential/Account identity.
+    pub account_id: CredentialId,
+    /// Terminal time.
+    pub ended_at_ms: i64,
+    /// Closed Gateway error category.
+    pub error_code: &'static str,
+    /// Closed remediation scope.
+    pub error_scope: &'static str,
+    /// Closed retry decision.
+    pub retry_decision: AttemptRetryDecision,
+}
+
+/// One bounded newest-first failure-feedback page.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FailureFeedbackPage {
+    /// Maximum observed durable ordinal at compilation time.
+    pub observed_through_ordinal: Option<i64>,
+    /// Newest-first safe failure rows.
+    pub items: Vec<FailureFeedbackItem>,
+    /// Cursor for the next older page.
+    pub next_cursor: Option<FailureFeedbackCursor>,
 }
 
 impl Default for OperationalAccountPoolQuery {
@@ -1151,12 +1321,103 @@ fn bounded_usage_text(value: &str) -> bool {
     !value.is_empty() && value.chars().count() <= MAX_USAGE_MODEL_CHARS
 }
 
+fn bounded_opaque_id(value: &str) -> bool {
+    !value.trim().is_empty() && value.chars().count() <= 128
+}
+
 fn protocol_key(value: GatewayProtocol) -> &'static str {
     match value {
         GatewayProtocol::OpenAiChatCompletions => "openai_chat_completions",
         GatewayProtocol::OpenAiResponses => "openai_responses",
         GatewayProtocol::AnthropicMessages => "anthropic_messages",
     }
+}
+
+/// Compiles bounded, newest-first failure feedback from durable Attempt events.
+///
+/// The compiler intentionally admits only the closed [`GatewayError`] classification carried by
+/// `AttemptOutcome::Failed`; it never parses raw Provider text or returns the upstream model.
+/// Durable append order is the cursor order, so later events cannot be inserted before an already
+/// issued page position.
+///
+/// # Errors
+///
+/// Returns [`ManagementOperationsError::SourceUnavailable`] when the durable source exceeds the
+/// bounded reader limit, [`ManagementOperationsError::InvalidQuery`] for an invalid query, or
+/// [`ManagementOperationsError::CursorVersionConflict`] when a cursor is reused with different
+/// filters.
+pub fn compile_failure_feedback_page(
+    events: &[StoredGatewayEvent],
+    query: &FailureFeedbackQuery,
+) -> Result<FailureFeedbackPage, ManagementOperationsError> {
+    if events.len() > MAX_USAGE_EVENTS {
+        return Err(ManagementOperationsError::SourceUnavailable);
+    }
+    FailureFeedbackQuery::try_new(
+        query.provider_id.clone(),
+        query.channel_id.clone(),
+        query.account_id.clone(),
+        query.limit,
+        query.cursor.clone(),
+    )?;
+    if let Some(cursor) = &query.cursor
+        && cursor.filter_fingerprint() != query.filter_fingerprint()
+    {
+        return Err(ManagementOperationsError::CursorVersionConflict);
+    }
+
+    let observed_through_ordinal = events.last().map(StoredGatewayEvent::ordinal);
+    let mut items = Vec::new();
+    for stored in events.iter().rev() {
+        if query
+            .cursor
+            .as_ref()
+            .is_some_and(|cursor| stored.ordinal() >= cursor.ordinal())
+        {
+            continue;
+        }
+        let gateway_core::GatewayEvent::Attempt(attempt) = stored.event() else {
+            continue;
+        };
+        let AttemptOutcome::Failed(error) = attempt.outcome() else {
+            continue;
+        };
+        let provider_id = attempt.upstream_id().clone();
+        let channel_id = attempt.endpoint_id().clone();
+        let account_id = attempt.credential_id().clone();
+        let candidate = FailureFeedbackItem {
+            ordinal: stored.ordinal(),
+            request_id: attempt.request_id().as_str().to_owned(),
+            attempt_id: attempt.attempt_id().as_str().to_owned(),
+            provider_id,
+            channel_id,
+            account_id,
+            ended_at_ms: attempt.ended_at_ms(),
+            error_code: error.code().as_str(),
+            error_scope: error.scope().as_str(),
+            retry_decision: attempt.retry_decision(),
+        };
+        if query.matches(&candidate) {
+            items.push(candidate);
+            if items.len() > query.limit {
+                break;
+            }
+        }
+    }
+    let has_more = items.len() > query.limit;
+    items.truncate(query.limit);
+    let next_cursor = has_more
+        .then(|| items.last())
+        .flatten()
+        .map(|item| FailureFeedbackCursor {
+            ordinal: item.ordinal,
+            filter_fingerprint: query.filter_fingerprint(),
+        });
+    Ok(FailureFeedbackPage {
+        observed_through_ordinal,
+        items,
+        next_cursor,
+    })
 }
 
 fn insert_attempt_event(
@@ -1377,8 +1638,8 @@ mod tests {
 
     use gateway_core::{
         AccessGroupId, AttemptEvent, AttemptOutcome, AttemptRetryDecision, ClientKeyId,
-        CredentialId, EndpointId, GatewayEvent, GatewayProtocol, RequestEvent, RouteCandidateId,
-        RouteId, UpstreamId, Usage, UsageEvent,
+        CredentialId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode, GatewayEvent,
+        GatewayProtocol, RequestEvent, RouteCandidateId, RouteId, UpstreamId, Usage, UsageEvent,
     };
     use gateway_store::{
         billing_ledger::{BillingCostConfidence, BillingLedgerEntry},
@@ -1393,8 +1654,9 @@ mod tests {
     };
 
     use super::{
-        ManagementOperationsError, OperationalAccountPoolCursor, OperationalAccountPoolQuery,
-        OperationalBillingQuery, OperationalTokenConfidence, OperationalUsageQuery,
+        FailureFeedbackQuery, ManagementOperationsError, OperationalAccountPoolCursor,
+        OperationalAccountPoolQuery, OperationalBillingQuery, OperationalTokenConfidence,
+        OperationalUsageQuery, compile_failure_feedback_page,
         compile_operational_account_pool_page, compile_operational_billing_page,
         compile_operational_usage_page,
     };
@@ -1579,6 +1841,100 @@ mod tests {
         assert_eq!(first.items[0].observed_at_ms, 200);
         assert!(first.next_cursor.is_none());
         assert_eq!(first.observed_through_ms, Some(200));
+        Ok(())
+    }
+
+    #[test]
+    fn failure_feedback_is_newest_first_filtered_paginated_and_value_free() -> TestResult {
+        let mut store = SqliteEventStore::open_in_memory()?;
+        let failed_attempt = |request: &str,
+                              account: &str,
+                              ended_at_ms: i64,
+                              code: GatewayErrorCode|
+         -> Result<GatewayEvent, Box<dyn Error>> {
+            Ok(GatewayEvent::Attempt(AttemptEvent::new(
+                gateway_core::RequestId::try_new(request)?,
+                1,
+                RouteId::try_new("failure-route")?,
+                RouteCandidateId::try_new("failure-candidate")?,
+                CredentialId::try_new(account)?,
+                EndpointId::try_new("failure-channel")?,
+                UpstreamId::try_new("failure-provider")?,
+                "must-not-escape-model".to_owned(),
+                ended_at_ms - 1,
+                ended_at_ms,
+                AttemptOutcome::Failed(GatewayError::new(code, ErrorScope::Credential)),
+                AttemptRetryDecision::NonRetryable,
+            )))
+        };
+        store.append_batch(&[
+            failed_attempt(
+                "failure-request-a",
+                "failure-account-a",
+                100,
+                GatewayErrorCode::CredentialUnauthorized,
+            )?,
+            failed_attempt(
+                "failure-request-b",
+                "failure-account-b",
+                200,
+                GatewayErrorCode::ProviderTransient,
+            )?,
+            failed_attempt(
+                "failure-request-c",
+                "failure-account-a",
+                300,
+                GatewayErrorCode::CredentialForbidden,
+            )?,
+        ])?;
+        let events = store.list_events()?;
+        let first = compile_failure_feedback_page(
+            &events,
+            &FailureFeedbackQuery::try_new(
+                Some(UpstreamId::try_new("failure-provider")?),
+                Some(EndpointId::try_new("failure-channel")?),
+                Some(CredentialId::try_new("failure-account-a")?),
+                1,
+                None,
+            )?,
+        )?;
+        assert_eq!(first.items.len(), 1);
+        assert_eq!(first.items[0].request_id, "failure-request-c");
+        assert_eq!(first.items[0].error_code, "CredentialForbidden");
+        assert_eq!(first.items[0].error_scope, "credential");
+        let cursor = first.next_cursor.clone().ok_or("missing failure cursor")?;
+        let second = compile_failure_feedback_page(
+            &events,
+            &FailureFeedbackQuery::try_new(
+                Some(UpstreamId::try_new("failure-provider")?),
+                Some(EndpointId::try_new("failure-channel")?),
+                Some(CredentialId::try_new("failure-account-a")?),
+                1,
+                Some(cursor),
+            )?,
+        )?;
+        assert_eq!(second.items.len(), 1);
+        assert_eq!(second.items[0].request_id, "failure-request-a");
+        assert!(second.next_cursor.is_none());
+        let rendered = format!("{first:?}{second:?}");
+        assert!(!rendered.contains("must-not-escape-model"));
+        Ok(())
+    }
+
+    #[test]
+    fn failure_feedback_cursor_rejects_cross_filter_reuse() -> TestResult {
+        let cursor = super::FailureFeedbackCursor::try_new(7, "1:a|0:|0:")?;
+        let query = FailureFeedbackQuery::try_new(
+            Some(UpstreamId::try_new("b")?),
+            None,
+            None,
+            1,
+            Some(cursor),
+        )?;
+        assert_eq!(
+            compile_failure_feedback_page(&[], &query),
+            Err(ManagementOperationsError::CursorVersionConflict)
+        );
         Ok(())
     }
 

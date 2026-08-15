@@ -401,6 +401,24 @@ impl ManagementMutationService {
         }
     }
 
+    /// Confirms that one selected Config Version exists and returns its current revision.
+    ///
+    /// Runtime management reads use this narrow admission check when their durable source is not
+    /// itself stored inside the configuration graph. It does not decrypt credentials or mutate
+    /// the selected Version.
+    ///
+    /// # Errors
+    ///
+    /// Returns the existing management resource error when the Version is absent or its revision
+    /// is outside the bounded revision domain.
+    pub fn require_config_version(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+    ) -> Result<ConfigRevision, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        ConfigRevision::try_new(configuration.version.revision)
+    }
+
     /// Returns one Version-scoped Egress Policy if present, together with the current revision.
     ///
     /// # Errors

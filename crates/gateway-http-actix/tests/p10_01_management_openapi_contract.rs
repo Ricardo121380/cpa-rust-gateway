@@ -54,6 +54,69 @@ fn provider_account_pool_bounds_match_existing_runtime_scheduler_domains() -> Te
 }
 
 #[test]
+fn provider_account_operator_contract_is_bounded_audited_and_value_free() -> TestResult {
+    let document = document()?;
+    let paths = object(&document, "paths")?;
+    let action = &paths["/admin/operations/provider-account-pools/actions"]["post"];
+    assert_eq!(action["operationId"], "applyProviderAccountPoolAction");
+    assert_eq!(action["x-delivery-phase"], "P13-06C");
+    assert_eq!(action["x-audit-action"], "provider_account_operator_action");
+    assert!(
+        operation_parameters(
+            &document,
+            "/admin/operations/provider-account-pools/actions",
+            "post",
+        )?
+        .iter()
+        .any(|parameter| parameter["$ref"] == "#/components/parameters/ConfigVersion")
+    );
+
+    let schemas = object(&document["components"], "schemas")?;
+    let input = schemas
+        .get("ProviderAccountOperatorAction")
+        .ok_or("missing ProviderAccountOperatorAction")?;
+    assert_eq!(input["additionalProperties"], false);
+    assert_eq!(
+        input["properties"]["cooldown_ms"]["anyOf"][0]["minimum"],
+        1_000
+    );
+    assert_eq!(
+        input["properties"]["cooldown_ms"]["anyOf"][0]["maximum"],
+        86_400_000
+    );
+    let receipt = schemas
+        .get("ProviderAccountOperatorActionReceipt")
+        .ok_or("missing ProviderAccountOperatorActionReceipt")?;
+    assert_eq!(receipt["additionalProperties"], false);
+
+    let failure = schemas
+        .get("ProviderAccountFailureItem")
+        .ok_or("missing ProviderAccountFailureItem")?;
+    assert_eq!(failure["additionalProperties"], false);
+    let properties = object(failure, "properties")?;
+    for forbidden in [
+        "upstream_model",
+        "url",
+        "headers",
+        "body",
+        "cookie",
+        "secret",
+        "digest",
+        "raw_error",
+    ] {
+        assert!(
+            !properties.contains_key(forbidden),
+            "ProviderAccountFailureItem exposes {forbidden}"
+        );
+    }
+    assert_eq!(
+        schemas["ProviderAccountFailurePage"]["properties"]["items"]["maxItems"],
+        100
+    );
+    Ok(())
+}
+
+#[test]
 fn management_contract_is_separate_from_client_keys_and_uses_optimistic_transactions() -> TestResult
 {
     let document = document()?;
@@ -312,7 +375,7 @@ fn operation_parameters(
     Ok(parameters)
 }
 
-fn required_operations() -> [(&'static str, &'static str); 36] {
+fn required_operations() -> [(&'static str, &'static str); 38] {
     [
         ("/admin/config-versions", "get"),
         ("/admin/config-versions", "post"),
@@ -349,6 +412,8 @@ fn required_operations() -> [(&'static str, &'static str); 36] {
         ("/admin/runtime/quota/reset", "post"),
         ("/admin/operations/account-pools", "get"),
         ("/admin/operations/provider-account-pools", "get"),
+        ("/admin/operations/provider-account-pools/actions", "post"),
+        ("/admin/operations/provider-account-pools/failures", "get"),
         ("/admin/operations/usage", "get"),
         ("/admin/requests/{request_id}/attempts", "get"),
         ("/admin/audit-events", "get"),
