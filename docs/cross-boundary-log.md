@@ -214,3 +214,17 @@ failure.
 **Other side:** FYI — no `web/prism/**` source, generated client, or contract file was edited;
 no frontend action is required. The existing P13-06C wrappers remain available for the planned
 Prism runtime-page/operator-action integration.
+
+---
+
+## 2026-08-15 · Codex · P13-07A routing policy seam completed without API drift
+
+**Touched:** `crates/gateway-router/src/provider_scoped_selector.rs` and backend-only routing
+documentation. No `docs/openapi/management-v1.json` or `web/prism/**` file changed.
+
+**Why:** P13-07A freezes a side-effect-free Provider-scoped cost/quota/load ranking policy before
+it is connected to the serving scheduler or management Route Explain surface.
+
+**Other side:** FYI — no Claude Code action is required for P13-07A. P13-07B will perform the
+composition/scheduler/Route Explain integration; if that changes the management response shape,
+Codex must update the authoritative OpenAPI contract and sync Prism before requesting UI work.

@@ -8,6 +8,7 @@
 mod attempt_orchestrator;
 mod credential_scheduler;
 mod protocol_transform;
+mod provider_scoped_selector;
 mod response_transform;
 mod route_explain;
 mod route_scheduler;
@@ -42,6 +43,11 @@ pub use protocol_transform::{
     ProtocolTransformAdmission, ProtocolTransformInput, ProtocolTransformRejection,
     analyze_protocol_transform, project_protocol_request, project_registered_protocol_request,
     protocol_pair_is_publishable, protocol_pair_is_registered,
+};
+pub use provider_scoped_selector::{
+    ProviderScopedCandidate, ProviderScopedCandidateDecision, ProviderScopedHealth,
+    ProviderScopedQuota, ProviderScopedRejection, ProviderScopedSelection, ProviderScopedSelector,
+    ProviderScopedSelectorError,
 };
 pub use response_transform::{
     ProtocolResponseProjector, ProtocolResponseRejection, project_protocol_response,
