@@ -19,7 +19,7 @@ use gateway_control::management_mutation_service::{
     ConfigVersion, ConfigVersionId, ConfigVersionStatus, ControlPlaneConfiguration, KeyVersion,
     ManagementMutationService, MasterKey, MasterKeyRing, SecretStore, SqliteControlPlaneRepository,
 };
-use gateway_core::{CredentialId, EndpointId, RequestId, RouteCandidateId};
+use gateway_core::{CredentialId, EndpointId, ProviderId, RequestId, RouteCandidateId};
 use gateway_http_actix::{
     management_resources::{
         ManagementCatalogFreshness, ManagementCatalogStatus, ManagementQuotaRecoveryState,
@@ -205,6 +205,7 @@ impl ManagementRuntimeFacade for FixtureRuntimeFacade {
             || request.route_id().as_str() != "route-runtime"
             || request.requested_model() != "public-runtime"
             || request.protocol() != ManagementRequestProtocol::OpenAiResponses
+            || request.provider_id().map(ProviderId::as_str) != Some("provider-runtime")
             || request.observed_at_ms() != 1_700_000_000_000
         {
             return Err(ManagementRuntimeError::Unavailable);
@@ -327,7 +328,7 @@ async fn protected_runtime_views_are_value_free_and_recovery_only_requests_contr
         &app,
         authorized(
             test::TestRequest::get().uri(
-                "/admin/routes/route-runtime/explain?requested_model=public-runtime&protocol=openai_responses",
+                "/admin/routes/route-runtime/explain?requested_model=public-runtime&protocol=openai_responses&provider_id=provider-runtime",
             ),
             None,
         )

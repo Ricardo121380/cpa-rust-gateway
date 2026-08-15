@@ -4,16 +4,23 @@
 //! acquires a Credential lease, advances a scheduler cursor, opens a Circuit/Quota probe, queries
 //! persistence, or executes a Provider request.
 
-use std::{error::Error, fmt};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    error::Error,
+    fmt,
+};
 
-use gateway_core::{CredentialId, EndpointId, RouteCandidateId, RouteId, UpstreamId};
+use gateway_core::{CredentialId, EndpointId, ProviderId, RouteCandidateId, RouteId, UpstreamId};
 use gateway_upstream::{CredentialPoolEntrySnapshot, EndpointCredentialPools};
 
 use crate::{
-    AttemptExclusionSet, RouteSnapshot, RuntimeHealthAvailability, RuntimeHealthKey,
-    RuntimeHealthRegistry, RuntimeQuotaAvailability, RuntimeQuotaRegistry, RuntimeQuotaTarget,
-    SnapshotCatalogAdmission,
+    AttemptExclusionSet, ProviderScopedCandidate, ProviderScopedHealth, ProviderScopedQuota,
+    ProviderScopedSelection, ProviderScopedSelector, ProviderScopedSelectorError, RouteSnapshot,
+    RuntimeHealthAvailability, RuntimeHealthKey, RuntimeHealthRegistry, RuntimeQuotaAvailability,
+    RuntimeQuotaRegistry, RuntimeQuotaTarget, SnapshotCatalogAdmission,
 };
+
+const MAX_PROVIDER_SCOPED_EXPLAIN_ITEMS: usize = 4_096;
 
 /// One immutable input for a deterministic Route Explain projection.
 ///
@@ -97,6 +104,121 @@ impl fmt::Display for RouteExplainError {
 
 impl Error for RouteExplainError {}
 
+/// Safe construction or composition failure for a Provider-scoped Route Explain snapshot.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProviderScopedRouteExplainError {
+    /// The immutable Route Explain base could not resolve its exact Route/schedule.
+    Route(RouteExplainError),
+    /// The admitted-ID or cost input exceeded the finite composition bound.
+    TooManyItems,
+    /// A Provider identity or aggregate scheduling observation failed closed validation.
+    InvalidObservation,
+    /// A runtime Quota observation could not be read coherently.
+    QuotaUnavailable,
+    /// The deterministic Provider-scoped selector rejected malformed or duplicate observations.
+    Selector(ProviderScopedSelectorError),
+}
+
+impl fmt::Display for ProviderScopedRouteExplainError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Route(_) => "provider-scoped route explain base is unavailable",
+            Self::TooManyItems => "provider-scoped route explain input exceeds its finite bound",
+            Self::InvalidObservation => "provider-scoped route explain observation is invalid",
+            Self::QuotaUnavailable => "provider-scoped route explain quota is unavailable",
+            Self::Selector(_) => "provider-scoped route explain selection failed",
+        })
+    }
+}
+
+impl Error for ProviderScopedRouteExplainError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Route(error) => Some(error),
+            Self::Selector(error) => Some(error),
+            Self::TooManyItems | Self::InvalidObservation | Self::QuotaUnavailable => None,
+        }
+    }
+}
+
+impl From<RouteExplainError> for ProviderScopedRouteExplainError {
+    fn from(error: RouteExplainError) -> Self {
+        Self::Route(error)
+    }
+}
+
+impl From<ProviderScopedSelectorError> for ProviderScopedRouteExplainError {
+    fn from(error: ProviderScopedSelectorError) -> Self {
+        Self::Selector(error)
+    }
+}
+
+/// Explicit, bounded inputs for one Provider-scoped composition over an ordinary Route Explain.
+///
+/// `admitted_candidate_ids` is supplied by the management/protocol boundary after capability
+/// admission. An empty `candidate_cost_microunits` map means cost is unknown; this API never
+/// substitutes unknown cost with zero.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProviderScopedRouteExplainInput {
+    route_explain: RouteExplainInput,
+    provider_id: ProviderId,
+    admitted_candidate_ids: BTreeSet<RouteCandidateId>,
+    candidate_cost_microunits: BTreeMap<RouteCandidateId, u64>,
+}
+
+impl ProviderScopedRouteExplainInput {
+    /// Creates one exact Provider-scoped diagnostic input.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ProviderScopedRouteExplainError::TooManyItems`] when either caller-owned map
+    /// exceeds the same bounded domain as the Provider selector, or a selector validation error
+    /// when the Provider identity is not safe for this policy seam.
+    pub fn try_new(
+        route_explain: RouteExplainInput,
+        provider_id: ProviderId,
+        admitted_candidate_ids: BTreeSet<RouteCandidateId>,
+        candidate_cost_microunits: BTreeMap<RouteCandidateId, u64>,
+    ) -> Result<Self, ProviderScopedRouteExplainError> {
+        if admitted_candidate_ids.len() > MAX_PROVIDER_SCOPED_EXPLAIN_ITEMS
+            || candidate_cost_microunits.len() > MAX_PROVIDER_SCOPED_EXPLAIN_ITEMS
+        {
+            return Err(ProviderScopedRouteExplainError::TooManyItems);
+        }
+        ProviderScopedSelector::try_new(provider_id.clone())?;
+        Ok(Self {
+            route_explain,
+            provider_id,
+            admitted_candidate_ids,
+            candidate_cost_microunits,
+        })
+    }
+
+    /// Returns the ordinary immutable Route Explain input used as the diagnostic base.
+    #[must_use]
+    pub const fn route_explain(&self) -> &RouteExplainInput {
+        &self.route_explain
+    }
+
+    /// Returns the exact requested Provider scope.
+    #[must_use]
+    pub const fn provider_id(&self) -> &ProviderId {
+        &self.provider_id
+    }
+
+    /// Returns the protocol/capability-admitted Candidate identities.
+    #[must_use]
+    pub const fn admitted_candidate_ids(&self) -> &BTreeSet<RouteCandidateId> {
+        &self.admitted_candidate_ids
+    }
+
+    /// Returns caller-supplied, versioned Candidate costs; absent entries remain unknown.
+    #[must_use]
+    pub const fn candidate_cost_microunits(&self) -> &BTreeMap<RouteCandidateId, u64> {
+        &self.candidate_cost_microunits
+    }
+}
+
 /// One complete, bounded Route Explain result for a fixed input and runtime-observation time.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RouteExplainSnapshot {
@@ -132,6 +254,27 @@ impl RouteExplainSnapshot {
     #[must_use]
     pub fn projected_selection(&self) -> Option<&RouteExplainProjectedSelection> {
         self.projected_selection.as_ref()
+    }
+}
+
+/// One ordinary Route Explain snapshot plus its Provider-scoped policy projection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProviderScopedRouteExplainSnapshot {
+    base: RouteExplainSnapshot,
+    provider_selection: ProviderScopedSelection,
+}
+
+impl ProviderScopedRouteExplainSnapshot {
+    /// Returns the complete existing Route Explain evidence for every immutable Candidate.
+    #[must_use]
+    pub const fn base(&self) -> &RouteExplainSnapshot {
+        &self.base
+    }
+
+    /// Returns the exact Provider-scoped deterministic selection over admitted eligible rows.
+    #[must_use]
+    pub const fn provider_selection(&self) -> &ProviderScopedSelection {
+        &self.provider_selection
     }
 }
 
@@ -292,6 +435,7 @@ pub struct RouteExplainCredential {
     priority: i64,
     weight: usize,
     maximum_concurrency: usize,
+    expires_at_ms: Option<i64>,
     active_leases: usize,
     reasons: Vec<RouteExplainCredentialReason>,
 }
@@ -321,6 +465,12 @@ impl RouteExplainCredential {
         self.maximum_concurrency
     }
 
+    /// Returns the optional absolute Credential expiry retained by the exact runtime pool.
+    #[must_use]
+    pub const fn expires_at_ms(&self) -> Option<i64> {
+        self.expires_at_ms
+    }
+
     /// Returns the point-in-time active lease count.
     #[must_use]
     pub const fn active_leases(&self) -> usize {
@@ -345,6 +495,8 @@ impl RouteExplainCredential {
 pub enum RouteExplainCredentialReason {
     /// This exact Candidate/Credential pair was excluded by the current request's prior attempt.
     RequestExcluded,
+    /// The absolute Credential expiry is at or before the explicit observation time.
+    Expired,
     /// The point-in-time active lease count reached the immutable concurrency maximum.
     Saturated,
     /// Exact Endpoint/Credential Health is cooling or Circuit-open.
@@ -484,6 +636,10 @@ fn explain_credential(
     if exclusions.contains(candidate, credential_id) {
         reasons.push(RouteExplainCredentialReason::RequestExcluded);
     }
+    let expires_at_ms = entry.expires_at_ms();
+    if expires_at_ms.is_some_and(|expires_at_ms| expires_at_ms <= observed_at_ms) {
+        reasons.push(RouteExplainCredentialReason::Expired);
+    }
     if entry.is_saturated() {
         reasons.push(RouteExplainCredentialReason::Saturated);
     }
@@ -549,9 +705,149 @@ fn explain_credential(
         priority: entry.priority(),
         weight: entry.weight(),
         maximum_concurrency: entry.maximum_concurrency(),
+        expires_at_ms,
         active_leases: entry.active_leases(),
         reasons,
     }
+}
+
+/// Builds a Provider-scoped Route Explain projection from the same immutable base evidence.
+///
+/// Only Candidates that are both base-eligible and explicitly admitted are handed to the
+/// Provider selector. Provider identity is derived directly from each Candidate's immutable
+/// `upstream_id`; no Endpoint adapter or implicit fallback map is consulted. The function only
+/// reads pool diagnostics and runtime Health/Quota state, so it never advances a cursor or acquires
+/// a lease.
+pub(crate) fn explain_provider_scoped(
+    snapshot: &RouteSnapshot,
+    credential_pools: &EndpointCredentialPools,
+    runtime_health: &RuntimeHealthRegistry,
+    runtime_quota: &RuntimeQuotaRegistry,
+    input: &ProviderScopedRouteExplainInput,
+    exclusions: &AttemptExclusionSet,
+) -> Result<ProviderScopedRouteExplainSnapshot, ProviderScopedRouteExplainError> {
+    let base = explain(
+        snapshot,
+        credential_pools,
+        runtime_health,
+        runtime_quota,
+        input.route_explain(),
+        exclusions,
+    )?;
+    let selector = ProviderScopedSelector::try_new(input.provider_id().clone())?;
+    let mut observations = Vec::new();
+    for candidate in base.candidates().iter().filter(|candidate| {
+        candidate.is_eligible()
+            && input
+                .admitted_candidate_ids()
+                .contains(candidate.candidate_id())
+    }) {
+        let provider_id = ProviderId::try_new(candidate.upstream_id().as_str().to_owned())
+            .map_err(|_| ProviderScopedRouteExplainError::InvalidObservation)?;
+        let (active_leases, max_concurrency) = aggregate_capacity(candidate)?;
+        let quota = aggregate_quota(candidate, runtime_quota, base.observed_at_ms())?;
+        let weight = u32::try_from(candidate.weight())
+            .map_err(|_| ProviderScopedRouteExplainError::InvalidObservation)?;
+        observations.push(ProviderScopedCandidate::try_new(
+            provider_id,
+            candidate.endpoint_id().clone(),
+            candidate.candidate_id().clone(),
+            candidate.priority(),
+            weight,
+            active_leases,
+            max_concurrency,
+            input
+                .candidate_cost_microunits()
+                .get(candidate.candidate_id())
+                .copied(),
+            ProviderScopedHealth::Available,
+            quota,
+            true,
+            false,
+        )?);
+    }
+    let provider_selection = selector.select(observations)?;
+    Ok(ProviderScopedRouteExplainSnapshot {
+        base,
+        provider_selection,
+    })
+}
+
+fn aggregate_capacity(
+    candidate: &RouteExplainCandidate,
+) -> Result<(u32, u32), ProviderScopedRouteExplainError> {
+    let mut active_leases = 0_u32;
+    let mut max_concurrency = 0_u32;
+    for credential in candidate
+        .credentials()
+        .iter()
+        .filter(|credential| credential.is_eligible())
+    {
+        active_leases = active_leases
+            .checked_add(
+                u32::try_from(credential.active_leases())
+                    .map_err(|_| ProviderScopedRouteExplainError::InvalidObservation)?,
+            )
+            .ok_or(ProviderScopedRouteExplainError::InvalidObservation)?;
+        max_concurrency = max_concurrency
+            .checked_add(
+                u32::try_from(credential.maximum_concurrency())
+                    .map_err(|_| ProviderScopedRouteExplainError::InvalidObservation)?,
+            )
+            .ok_or(ProviderScopedRouteExplainError::InvalidObservation)?;
+    }
+    if max_concurrency == 0 {
+        return Err(ProviderScopedRouteExplainError::InvalidObservation);
+    }
+    Ok((active_leases, max_concurrency))
+}
+
+fn aggregate_quota(
+    candidate: &RouteExplainCandidate,
+    runtime_quota: &RuntimeQuotaRegistry,
+    observed_at_ms: i64,
+) -> Result<ProviderScopedQuota, ProviderScopedRouteExplainError> {
+    let mut unknown = false;
+    for credential in candidate
+        .credentials()
+        .iter()
+        .filter(|credential| credential.is_eligible())
+    {
+        let binding_target = RuntimeQuotaTarget::endpoint_credential(
+            candidate.endpoint_id().clone(),
+            credential.credential_id().clone(),
+        );
+        let model_target = RuntimeQuotaTarget::endpoint_credential_model(
+            candidate.endpoint_id().clone(),
+            credential.credential_id().clone(),
+            candidate.upstream_model(),
+        )
+        .map_err(|_| ProviderScopedRouteExplainError::QuotaUnavailable)?;
+        for target in [binding_target, model_target] {
+            let status = runtime_quota
+                .status_at(&target, observed_at_ms)
+                .map_err(|_| ProviderScopedRouteExplainError::QuotaUnavailable)?;
+            match status.availability() {
+                RuntimeQuotaAvailability::Available => {
+                    if status.snapshot().is_none() {
+                        unknown = true;
+                    }
+                }
+                RuntimeQuotaAvailability::Exhausted { .. }
+                | RuntimeQuotaAvailability::RecoveryRequired { .. } => {
+                    return Ok(ProviderScopedQuota::Blocked);
+                }
+                RuntimeQuotaAvailability::RecoveryProbeInFlight { .. } => {
+                    return Ok(ProviderScopedQuota::RecoveryInFlight);
+                }
+            }
+        }
+    }
+    Ok(if unknown {
+        ProviderScopedQuota::Unknown
+    } else {
+        ProviderScopedQuota::Available
+    })
 }
 
 fn push_health_reason(
@@ -623,6 +919,7 @@ fn project_selection(
 #[cfg(test)]
 mod tests {
     use std::{
+        collections::{BTreeMap, BTreeSet},
         error::Error,
         sync::{
             Arc,
@@ -632,13 +929,14 @@ mod tests {
 
     use gateway_catalog::{CapabilitySet, CatalogModelState};
     use gateway_core::{
-        CredentialId, EndpointId, PublicModelId, RouteCandidateId, RouteId, UpstreamId,
+        CredentialId, EndpointId, ProviderId, PublicModelId, RouteCandidateId, RouteId, UpstreamId,
     };
     use gateway_upstream::{
         CredentialSecret, EndpointCredentialInput, EndpointCredentialPool, EndpointCredentialPools,
     };
 
     use super::{
+        ProviderScopedRouteExplainError, ProviderScopedRouteExplainInput,
         RouteExplainCandidateReason, RouteExplainCredentialReason, RouteExplainError,
         RouteExplainInput,
     };
@@ -908,6 +1206,166 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn provider_composition_prefers_known_quota_then_least_loaded_without_side_effects()
+    -> TestResult {
+        let (scheduler, route_id, pools) = scheduler_from_candidates(
+            vec![
+                candidate_for_provider("candidate-a", "endpoint-a", "provider-a", "model-a")?,
+                candidate_for_provider("candidate-b", "endpoint-b", "provider-a", "model-b")?,
+            ],
+            vec![
+                ("endpoint-a", vec![("credential-a", 0, 1, 4)]),
+                ("endpoint-b", vec![("credential-b", 0, 1, 4)]),
+            ],
+            SnapshotRoutePolicy::RoundRobin,
+        )?;
+        let held = pools
+            .pool(&EndpointId::try_new("endpoint-a")?)
+            .and_then(|pool| pool.try_lease())
+            .ok_or("expected one held lease")?;
+        let health = RuntimeHealthRegistry::new();
+        let quota = RuntimeQuotaRegistry::new();
+        record_known_available_quota(&quota, "endpoint-a", "credential-a", "model-a", 100)?;
+        record_known_available_quota(&quota, "endpoint-b", "credential-b", "model-b", 100)?;
+        let input = ProviderScopedRouteExplainInput::try_new(
+            RouteExplainInput::new(route_id.clone(), 100),
+            ProviderId::try_new("provider-a")?,
+            ["candidate-a", "candidate-b"]
+                .into_iter()
+                .map(RouteCandidateId::try_new)
+                .collect::<Result<_, _>>()?,
+            BTreeMap::new(),
+        )?;
+
+        let first = scheduler.explain_provider_scoped(
+            &input,
+            &health,
+            &quota,
+            &AttemptExclusionSet::new(),
+        )?;
+        let second = scheduler.explain_provider_scoped(
+            &input,
+            &health,
+            &quota,
+            &AttemptExclusionSet::new(),
+        )?;
+        assert_eq!(first, second);
+        assert_eq!(
+            first
+                .provider_selection()
+                .selected_candidate_id()
+                .map(RouteCandidateId::as_str),
+            Some("candidate-b")
+        );
+        assert_eq!(held.credential_id().as_str(), "credential-a");
+        drop(held);
+
+        let selected = scheduler.select_eligible_and_lease_with_runtime_health_quota_and_binding(
+            &route_id,
+            &health,
+            &quota,
+            |_| true,
+            |_, _| true,
+        )?;
+        assert_eq!(selected.candidate().id().as_str(), "candidate-a");
+        assert_eq!(selected.lease().credential_id().as_str(), "credential-a");
+        Ok(())
+    }
+
+    #[test]
+    fn expired_requested_provider_never_falls_back_to_a_foreign_provider() -> TestResult {
+        let route_id = RouteId::try_new("route-a")?;
+        let candidates = vec![
+            candidate_for_provider("candidate-a", "endpoint-a", "provider-a", "model-a")?,
+            candidate_for_provider("candidate-b", "endpoint-b", "provider-b", "model-b")?,
+        ];
+        let pools = vec![
+            endpoint_pool_with_expiry("endpoint-a", vec![("credential-a", 0, 1, 1, Some(100))])?,
+            endpoint_pool_with_expiry("endpoint-b", vec![("credential-b", 0, 1, 1, Some(101))])?,
+        ];
+        let (scheduler, pools) = scheduler_from_parts(
+            route_id.clone(),
+            candidates,
+            pools,
+            SnapshotRoutePolicy::RoundRobin,
+        )?;
+        let input = ProviderScopedRouteExplainInput::try_new(
+            RouteExplainInput::new(route_id, 100),
+            ProviderId::try_new("provider-a")?,
+            ["candidate-a", "candidate-b"]
+                .into_iter()
+                .map(RouteCandidateId::try_new)
+                .collect::<Result<_, _>>()?,
+            BTreeMap::new(),
+        )?;
+        let explain = scheduler.explain_provider_scoped(
+            &input,
+            &RuntimeHealthRegistry::new(),
+            &RuntimeQuotaRegistry::new(),
+            &AttemptExclusionSet::new(),
+        )?;
+        let expired = explain
+            .base()
+            .candidates()
+            .iter()
+            .find(|candidate| candidate.candidate_id().as_str() == "candidate-a")
+            .ok_or("expired candidate was not explained")?;
+        assert_eq!(expired.credentials()[0].expires_at_ms(), Some(100));
+        assert_eq!(
+            expired.credentials()[0].reasons(),
+            &[RouteExplainCredentialReason::Expired]
+        );
+        assert!(!expired.is_eligible());
+        assert_eq!(explain.provider_selection().selected_candidate_id(), None);
+        assert_eq!(explain.provider_selection().decisions().len(), 1);
+        assert_eq!(
+            explain.provider_selection().decisions()[0].rejections(),
+            &[crate::ProviderScopedRejection::ProviderMismatch]
+        );
+        assert_eq!(
+            pools
+                .pool(&EndpointId::try_new("endpoint-a")?)
+                .and_then(|pool| {
+                    pool.active_lease_count(&CredentialId::try_new("credential-a").ok()?)
+                }),
+            Some(0)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn provider_composition_input_is_bounded_and_fails_closed() -> TestResult {
+        let admitted = (0..=super::MAX_PROVIDER_SCOPED_EXPLAIN_ITEMS)
+            .map(|index| RouteCandidateId::try_new(format!("candidate-{index}")))
+            .collect::<Result<BTreeSet<_>, _>>()?;
+        let error = ProviderScopedRouteExplainInput::try_new(
+            RouteExplainInput::new(RouteId::try_new("route-a")?, 100),
+            ProviderId::try_new("provider-a")?,
+            admitted,
+            BTreeMap::new(),
+        )
+        .err()
+        .ok_or("oversized admitted-candidate input was accepted")?;
+        assert_eq!(error, ProviderScopedRouteExplainError::TooManyItems);
+
+        let invalid_provider = ProviderScopedRouteExplainInput::try_new(
+            RouteExplainInput::new(RouteId::try_new("route-a")?, 100),
+            ProviderId::try_new("   ")?,
+            BTreeSet::new(),
+            BTreeMap::new(),
+        )
+        .err()
+        .ok_or("whitespace-only provider scope was accepted")?;
+        assert_eq!(
+            invalid_provider,
+            ProviderScopedRouteExplainError::Selector(
+                crate::ProviderScopedSelectorError::InvalidCandidate
+            )
+        );
+        Ok(())
+    }
+
     fn scheduler<'a>(
         candidate_specs: Vec<CandidateSpec<'a>>,
         pool_specs: Vec<PoolSpec<'a>>,
@@ -920,8 +1378,6 @@ mod tests {
         ),
         Box<dyn Error>,
     > {
-        let route_id = RouteId::try_new("route-a")?;
-        let public_model_id = PublicModelId::try_new("public-model-a")?;
         let candidates = candidate_specs
             .into_iter()
             .map(
@@ -930,6 +1386,43 @@ mod tests {
                 },
             )
             .collect::<Result<Vec<_>, _>>()?;
+        let pools = pool_specs
+            .into_iter()
+            .map(|(endpoint_id, entries)| endpoint_pool(endpoint_id, entries))
+            .collect::<Result<Vec<_>, _>>()?;
+        let route_id = RouteId::try_new("route-a")?;
+        let (scheduler, pools) = scheduler_from_parts(route_id.clone(), candidates, pools, policy)?;
+        Ok((scheduler, route_id, pools))
+    }
+
+    fn scheduler_from_candidates(
+        candidates: Vec<SnapshotRouteCandidate>,
+        pool_specs: Vec<PoolSpec<'_>>,
+        policy: SnapshotRoutePolicy,
+    ) -> Result<
+        (
+            RouteCredentialScheduler,
+            RouteId,
+            Arc<EndpointCredentialPools>,
+        ),
+        Box<dyn Error>,
+    > {
+        let route_id = RouteId::try_new("route-a")?;
+        let pools = pool_specs
+            .into_iter()
+            .map(|(endpoint_id, entries)| endpoint_pool(endpoint_id, entries))
+            .collect::<Result<Vec<_>, _>>()?;
+        let (scheduler, pools) = scheduler_from_parts(route_id.clone(), candidates, pools, policy)?;
+        Ok((scheduler, route_id, pools))
+    }
+
+    fn scheduler_from_parts(
+        route_id: RouteId,
+        candidates: Vec<SnapshotRouteCandidate>,
+        pools: Vec<EndpointCredentialPool>,
+        policy: SnapshotRoutePolicy,
+    ) -> Result<(RouteCredentialScheduler, Arc<EndpointCredentialPools>), Box<dyn Error>> {
+        let public_model_id = PublicModelId::try_new("public-model-a")?;
         let snapshot = Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
             SnapshotVersion::try_new("version-a")?,
             vec![SnapshotPublicModel::new(
@@ -941,7 +1434,7 @@ mod tests {
             )],
             Vec::new(),
             vec![SnapshotRoute::new(
-                route_id.clone(),
+                route_id,
                 public_model_id,
                 policy,
                 3,
@@ -951,14 +1444,9 @@ mod tests {
             Vec::new(),
             Vec::new(),
         ))?);
-        let pools = pool_specs
-            .into_iter()
-            .map(|(endpoint_id, entries)| endpoint_pool(endpoint_id, entries))
-            .collect::<Result<Vec<_>, _>>()?;
         let pools = Arc::new(EndpointCredentialPools::try_new(pools)?);
         Ok((
             RouteCredentialScheduler::new(snapshot, Arc::clone(&pools)),
-            route_id,
             pools,
         ))
     }
@@ -970,10 +1458,44 @@ mod tests {
         priority: i64,
         weight: i64,
     ) -> Result<SnapshotRouteCandidate, Box<dyn Error>> {
+        candidate_for_provider_with_schedule(
+            candidate_id,
+            endpoint_id,
+            &format!("upstream-{endpoint_id}"),
+            upstream_model,
+            priority,
+            weight,
+        )
+    }
+
+    fn candidate_for_provider(
+        candidate_id: &str,
+        endpoint_id: &str,
+        provider_id: &str,
+        upstream_model: &str,
+    ) -> Result<SnapshotRouteCandidate, Box<dyn Error>> {
+        candidate_for_provider_with_schedule(
+            candidate_id,
+            endpoint_id,
+            provider_id,
+            upstream_model,
+            0,
+            1,
+        )
+    }
+
+    fn candidate_for_provider_with_schedule(
+        candidate_id: &str,
+        endpoint_id: &str,
+        provider_id: &str,
+        upstream_model: &str,
+        priority: i64,
+        weight: i64,
+    ) -> Result<SnapshotRouteCandidate, Box<dyn Error>> {
         Ok(SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
             id: RouteCandidateId::try_new(candidate_id)?,
             endpoint_id: EndpointId::try_new(endpoint_id)?,
-            upstream_id: UpstreamId::try_new(format!("upstream-{endpoint_id}"))?,
+            upstream_id: UpstreamId::try_new(provider_id)?,
             endpoint_api_format: "openai/responses".to_owned(),
             upstream_model: upstream_model.to_owned(),
             transform_mode: SnapshotTransformMode::Canonical,
@@ -989,27 +1511,72 @@ mod tests {
         endpoint_id: &str,
         entries: Vec<CredentialSpec<'_>>,
     ) -> Result<EndpointCredentialPool, Box<dyn Error>> {
+        endpoint_pool_with_expiry(
+            endpoint_id,
+            entries
+                .into_iter()
+                .map(|(credential_id, priority, weight, concurrency)| {
+                    (credential_id, priority, weight, concurrency, None)
+                })
+                .collect(),
+        )
+    }
+
+    fn endpoint_pool_with_expiry(
+        endpoint_id: &str,
+        entries: Vec<(&str, i64, i64, i64, Option<i64>)>,
+    ) -> Result<EndpointCredentialPool, Box<dyn Error>> {
         let entries = entries
             .into_iter()
-            .map(|(credential_id, priority, weight, concurrency)| {
-                Ok(EndpointCredentialInput {
-                    credential_id: CredentialId::try_new(credential_id)?,
-                    credential_kind: "api_key".to_owned(),
-                    credential_revision: 0,
-                    priority,
-                    weight,
-                    concurrency,
-                    expires_at_ms: None,
-                    secret: CredentialSecret::try_new(
-                        format!("synthetic-{credential_id}").into_bytes(),
-                    )?,
-                })
-            })
+            .map(
+                |(credential_id, priority, weight, concurrency, expires_at_ms)| {
+                    Ok(EndpointCredentialInput {
+                        credential_id: CredentialId::try_new(credential_id)?,
+                        credential_kind: "api_key".to_owned(),
+                        credential_revision: 0,
+                        priority,
+                        weight,
+                        concurrency,
+                        expires_at_ms,
+                        secret: CredentialSecret::try_new(
+                            format!("synthetic-{credential_id}").into_bytes(),
+                        )?,
+                    })
+                },
+            )
             .collect::<Result<Vec<_>, Box<dyn Error>>>()?;
         Ok(EndpointCredentialPool::try_new(
             EndpointId::try_new(endpoint_id)?,
             entries,
         )?)
+    }
+
+    fn record_known_available_quota(
+        quota: &RuntimeQuotaRegistry,
+        endpoint_id: &str,
+        credential_id: &str,
+        model: &str,
+        observed_at_ms: i64,
+    ) -> Result<(), Box<dyn Error>> {
+        let endpoint_id = EndpointId::try_new(endpoint_id)?;
+        let credential_id = CredentialId::try_new(credential_id)?;
+        for target in [
+            RuntimeQuotaTarget::endpoint_credential(endpoint_id.clone(), credential_id.clone()),
+            RuntimeQuotaTarget::endpoint_credential_model(
+                endpoint_id.clone(),
+                credential_id.clone(),
+                model,
+            )?,
+        ] {
+            quota.record_snapshot(QuotaSnapshot::try_new(
+                target,
+                vec![QuotaWindow::try_new("requests", Some(10), Some(10), None)?],
+                QuotaSource::Header,
+                QuotaConfidence::Observed,
+                observed_at_ms,
+            )?)?;
+        }
+        Ok(())
     }
 
     #[derive(Debug)]

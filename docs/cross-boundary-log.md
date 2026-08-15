@@ -228,3 +228,28 @@ it is connected to the serving scheduler or management Route Explain surface.
 **Other side:** FYI — no Claude Code action is required for P13-07A. P13-07B will perform the
 composition/scheduler/Route Explain integration; if that changes the management response shape,
 Codex must update the authoritative OpenAPI contract and sync Prism before requesting UI work.
+
+---
+
+## 2026-08-15 · Codex · P13-07B Provider-scoped Route Explain composition
+
+**Touched:**
+- `crates/gateway-router/src/route_explain.rs`
+- `crates/gateway-router/src/credential_scheduler.rs`
+- `apps/gateway/src/runtime.rs`
+- `crates/gateway-http-actix/src/management_resources.rs`
+- `docs/openapi/management-v1.json`
+- `web/prism/contracts/management-v1.json` and generated client (synced from the authoritative contract)
+
+**Why:** P13-07B now projects the existing, shared Route/Credential Health/Quota observations
+through the P13-07A Provider-scoped deterministic selector. The management facade receives the
+same read-only scheduler/pool assembly used by serving; no second lease owner, cursor, Provider
+request, cost inference, or cross-Provider fallback is introduced. Route Explain accepts an
+optional exact `provider_id`; omission is inferred only for a single-Provider Route, while a
+multi-Provider Route fails closed with `provider_scope_required`.
+
+**Other side:** action required — the response shape is unchanged, but Prism's generated contract
+now includes the optional `provider_id` query parameter. Claude Code should expose an explicit
+Provider selector when a Route contains multiple Providers and render the new safe reason values
+`provider_scope_required` and `provider_mismatch`; do not hand-edit the generated contract/client.
+No formal UI implementation is part of this backend slice.

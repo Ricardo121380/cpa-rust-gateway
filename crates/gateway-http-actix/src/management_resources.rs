@@ -581,6 +581,7 @@ pub struct ManagementRouteExplainRequest {
     route_id: RouteId,
     requested_model: String,
     protocol: ManagementRequestProtocol,
+    provider_id: Option<ProviderId>,
     observed_at_ms: i64,
 }
 
@@ -596,9 +597,15 @@ impl ManagementRouteExplainRequest {
         route_id: RouteId,
         requested_model: String,
         protocol: ManagementRequestProtocol,
+        provider_id: Option<ProviderId>,
         observed_at_ms: i64,
     ) -> Result<Self, ManagementRuntimeError> {
-        if requested_model.is_empty() || requested_model.chars().count() > 256 {
+        if requested_model.is_empty()
+            || requested_model.chars().count() > 256
+            || provider_id.as_ref().is_some_and(|provider_id| {
+                provider_id.as_str().trim().is_empty() || provider_id.as_str().chars().count() > 128
+            })
+        {
             return Err(ManagementRuntimeError::InvalidInput);
         }
         Ok(Self {
@@ -606,6 +613,7 @@ impl ManagementRouteExplainRequest {
             route_id,
             requested_model,
             protocol,
+            provider_id,
             observed_at_ms,
         })
     }
@@ -632,6 +640,15 @@ impl ManagementRouteExplainRequest {
     #[must_use]
     pub const fn protocol(&self) -> ManagementRequestProtocol {
         self.protocol
+    }
+
+    /// Returns the exact Provider scope requested by the operator.
+    ///
+    /// A missing scope is only admissible when the immutable Route contains one unique Provider;
+    /// a runtime facade must not infer a fallback Provider from Candidate order.
+    #[must_use]
+    pub const fn provider_id(&self) -> Option<&ProviderId> {
+        self.provider_id.as_ref()
     }
 
     /// Returns the fixed runtime observation time.
@@ -2052,6 +2069,7 @@ struct RuntimeTargetInput {
 struct RouteExplainQuery {
     requested_model: String,
     protocol: String,
+    provider_id: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -4996,6 +5014,13 @@ async fn explain_route(
         Ok(value) => value,
         Err(response) => return response,
     };
+    let provider_id = match query.provider_id.as_deref() {
+        Some(value) => match ProviderId::try_new(value) {
+            Ok(value) => Some(value),
+            Err(_) => return invalid_input(),
+        },
+        None => None,
+    };
     let observed_at_ms = match runtime_observed_at(&state) {
         Ok(value) => value,
         Err(response) => return response,
@@ -5005,6 +5030,7 @@ async fn explain_route(
         route_id,
         query.requested_model.clone(),
         protocol,
+        provider_id,
         observed_at_ms,
     ) {
         Ok(value) => value,
@@ -6217,6 +6243,8 @@ fn safe_route_explain_reason(value: &str) -> bool {
             | "endpoint_unavailable"
             | "missing_credential_pool"
             | "no_eligible_credential"
+            | "provider_scope_required"
+            | "provider_mismatch"
             | "protocol_transform_unavailable"
             | "after_selected_candidate"
     )

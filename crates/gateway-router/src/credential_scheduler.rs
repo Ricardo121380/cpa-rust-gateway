@@ -12,9 +12,10 @@ use gateway_core::{CredentialId, EndpointId, ErrorScope, GatewayError, GatewayEr
 use gateway_upstream::{CredentialLease, EndpointCredentialPools};
 
 use crate::{
-    AttemptExclusionSet, RouteCandidateScheduler, RouteExplainError, RouteExplainInput,
-    RouteExplainSnapshot, RouteSnapshot, RuntimeHealthRegistry, RuntimeQuotaAvailability,
-    RuntimeQuotaRegistry, RuntimeQuotaTarget, SnapshotRouteCandidate,
+    AttemptExclusionSet, ProviderScopedRouteExplainError, ProviderScopedRouteExplainInput,
+    ProviderScopedRouteExplainSnapshot, RouteCandidateScheduler, RouteExplainError,
+    RouteExplainInput, RouteExplainSnapshot, RouteSnapshot, RuntimeHealthRegistry,
+    RuntimeQuotaAvailability, RuntimeQuotaRegistry, RuntimeQuotaTarget, SnapshotRouteCandidate,
 };
 
 /// A process-local two-stage scheduler for one immutable Route Snapshot and matching pools.
@@ -452,6 +453,33 @@ impl RouteCredentialScheduler {
         exclusions: &AttemptExclusionSet,
     ) -> Result<RouteExplainSnapshot, RouteExplainError> {
         crate::route_explain::explain(
+            self.candidates.snapshot(),
+            &self.credential_pools,
+            runtime_health,
+            runtime_quota,
+            input,
+            exclusions,
+        )
+    }
+
+    /// Composes the existing Route Explain evidence with one exact Provider-scoped selector.
+    ///
+    /// This is a read-only management projection. It only hands base-eligible, explicitly
+    /// admitted Candidates to the selector, reuses the supplied Health/Quota registries, and
+    /// never advances Candidate/Credential cursors or acquires a lease.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ProviderScopedRouteExplainError`] when the immutable Route, bounded input, or
+    /// runtime observation cannot be represented safely.
+    pub fn explain_provider_scoped(
+        &self,
+        input: &ProviderScopedRouteExplainInput,
+        runtime_health: &RuntimeHealthRegistry,
+        runtime_quota: &RuntimeQuotaRegistry,
+        exclusions: &AttemptExclusionSet,
+    ) -> Result<ProviderScopedRouteExplainSnapshot, ProviderScopedRouteExplainError> {
+        crate::route_explain::explain_provider_scoped(
             self.candidates.snapshot(),
             &self.credential_pools,
             runtime_health,

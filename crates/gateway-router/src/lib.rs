@@ -53,8 +53,9 @@ pub use response_transform::{
     ProtocolResponseProjector, ProtocolResponseRejection, project_protocol_response,
 };
 pub use route_explain::{
-    RouteExplainCandidate, RouteExplainCandidateReason, RouteExplainCredential,
-    RouteExplainCredentialReason, RouteExplainError, RouteExplainInput,
+    ProviderScopedRouteExplainError, ProviderScopedRouteExplainInput,
+    ProviderScopedRouteExplainSnapshot, RouteExplainCandidate, RouteExplainCandidateReason,
+    RouteExplainCredential, RouteExplainCredentialReason, RouteExplainError, RouteExplainInput,
     RouteExplainProjectedSelection, RouteExplainSnapshot,
 };
 pub use route_scheduler::RouteCandidateScheduler;

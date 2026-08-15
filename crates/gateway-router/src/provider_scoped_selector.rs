@@ -588,14 +588,92 @@ mod tests {
         let mut quota = candidate("provider-a", "quota", 0, 0, 1, Some(1))?;
         quota.quota = ProviderScopedQuota::Blocked;
         let saturated = candidate("provider-a", "saturated", 0, 1, 1, Some(1))?;
+        let foreign = candidate("provider-b", "foreign", 0, 0, 1, Some(1))?;
+        let mut cooling = candidate("provider-a", "cooling", 0, 0, 1, Some(1))?;
+        cooling.health = ProviderScopedHealth::Cooling;
+        let mut circuit = candidate("provider-a", "circuit", 0, 0, 1, Some(1))?;
+        circuit.health = ProviderScopedHealth::CircuitOpen;
+        let mut unauthorized = candidate("provider-a", "unauthorized", 0, 0, 1, Some(1))?;
+        unauthorized.health = ProviderScopedHealth::Unauthorized;
+        let mut recovery = candidate("provider-a", "recovery", 0, 0, 1, Some(1))?;
+        recovery.health = ProviderScopedHealth::RecoveryInFlight;
+        let mut quota_recovery = candidate("provider-a", "quota-recovery", 0, 0, 1, Some(1))?;
+        quota_recovery.quota = ProviderScopedQuota::RecoveryInFlight;
         let selected = selector.select(vec![capability, expired, quota, saturated])?;
         assert_eq!(selected.selected_candidate_id(), None);
         assert_eq!(selected.decisions().len(), 4);
-        assert!(
-            selected
+        for decision in selected.decisions() {
+            assert!(!decision.is_eligible());
+        }
+        let selected = selector.select(vec![
+            foreign,
+            cooling,
+            circuit,
+            unauthorized,
+            recovery,
+            quota_recovery,
+        ])?;
+        assert_eq!(selected.selected_candidate_id(), None);
+        let expected = [
+            (
+                "circuit",
+                vec![ProviderScopedRejection::Health(
+                    ProviderScopedHealth::CircuitOpen,
+                )],
+            ),
+            (
+                "cooling",
+                vec![ProviderScopedRejection::Health(
+                    ProviderScopedHealth::Cooling,
+                )],
+            ),
+            ("foreign", vec![ProviderScopedRejection::ProviderMismatch]),
+            (
+                "quota-recovery",
+                vec![ProviderScopedRejection::Quota(
+                    ProviderScopedQuota::RecoveryInFlight,
+                )],
+            ),
+            (
+                "recovery",
+                vec![ProviderScopedRejection::Health(
+                    ProviderScopedHealth::RecoveryInFlight,
+                )],
+            ),
+            (
+                "unauthorized",
+                vec![ProviderScopedRejection::Health(
+                    ProviderScopedHealth::Unauthorized,
+                )],
+            ),
+        ];
+        assert_eq!(selected.decisions().len(), expected.len());
+        for (id, rejections) in expected {
+            let decision = selected
                 .decisions()
                 .iter()
-                .all(|decision| !decision.is_eligible())
+                .find(|decision| decision.candidate().candidate_id().as_str() == id)
+                .ok_or("rejection-matrix candidate was not returned")?;
+            assert_eq!(decision.rejections(), rejections.as_slice(), "{id}");
+        }
+
+        let selected = selector.select(vec![{
+            let mut value = candidate("provider-a", "all-reasons", 0, 1, 1, Some(1))?;
+            value.capability_match = false;
+            value.expired = true;
+            value.health = ProviderScopedHealth::Cooling;
+            value.quota = ProviderScopedQuota::Blocked;
+            value
+        }])?;
+        assert_eq!(
+            selected.decisions()[0].rejections(),
+            &[
+                ProviderScopedRejection::CapabilityMismatch,
+                ProviderScopedRejection::Expired,
+                ProviderScopedRejection::Health(ProviderScopedHealth::Cooling),
+                ProviderScopedRejection::Quota(ProviderScopedQuota::Blocked),
+                ProviderScopedRejection::Saturated,
+            ]
         );
         Ok(())
     }

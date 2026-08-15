@@ -164,7 +164,7 @@
     },
     "/admin/routes/{route_id}/explain": {
       "parameters": [{ "$ref": "#/components/parameters/ConfigVersion" }, { "$ref": "#/components/parameters/RouteId" }],
-      "get": { "tags": ["runtime"], "operationId": "explainRoute", "x-delivery-phase": "P10-06", "parameters": [{ "$ref": "#/components/parameters/RequestedModel" }, { "$ref": "#/components/parameters/RequestProtocol" }], "responses": { "200": { "$ref": "#/components/responses/RouteExplain" }, "default": { "$ref": "#/components/responses/Error" } } }
+      "get": { "tags": ["runtime"], "operationId": "explainRoute", "x-delivery-phase": "P10-06", "parameters": [{ "$ref": "#/components/parameters/RequestedModel" }, { "$ref": "#/components/parameters/RequestProtocol" }, { "$ref": "#/components/parameters/RouteExplainProviderId" }], "responses": { "200": { "$ref": "#/components/responses/RouteExplain" }, "default": { "$ref": "#/components/responses/Error" } } }
     },
     "/admin/access-groups": {
       "parameters": [{ "$ref": "#/components/parameters/ConfigVersion" }],
@@ -440,6 +440,7 @@
       "RequestId": { "name": "request_id", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/Id" } },
       "RequestedModel": { "name": "requested_model", "in": "query", "required": true, "schema": { "type": "string", "minLength": 1, "maxLength": 256 } },
       "RequestProtocol": { "name": "protocol", "in": "query", "required": true, "schema": { "type": "string", "enum": ["openai_chat_completions", "openai_responses", "anthropic_messages"] } },
+      "RouteExplainProviderId": { "name": "provider_id", "in": "query", "required": false, "description": "Exact Provider scope. May be omitted only when the selected Route has one unique Provider.", "schema": { "$ref": "#/components/schemas/Id" } },
       "OperationalProviderId": { "name": "provider_id", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/Id" } },
       "OperationalChannelId": { "name": "channel_id", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/Id" } },
       "OperationalAccountStatus": { "name": "account_status", "in": "query", "required": false, "schema": { "type": "string", "enum": ["active", "cooling", "unauthorized", "disabled"] } },

@@ -492,6 +492,11 @@ export const managementOperations = {
         "name": "protocol",
         "in": "query",
         "required": true
+      },
+      {
+        "name": "provider_id",
+        "in": "query",
+        "required": false
       }
     ],
     "bodyEncoding": "none",

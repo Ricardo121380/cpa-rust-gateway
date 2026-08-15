@@ -70,11 +70,13 @@ use gateway_observability::{
 };
 use gateway_protocol::{ApiFormat, ApiFormatAdapterRegistry};
 use gateway_router::{
-    AttemptDriver, AttemptFailure, AttemptFuture, AttemptOrchestrator, AttemptOrchestratorConfig,
-    NativePayloadAvailability, ProjectedProtocolRequest, ProtocolFormat, ProtocolResponseProjector,
-    ProtocolTransformInput, ProtocolTransformRejection, QuotaConfidence, QuotaSnapshot,
-    QuotaSource, ResponsesEventSource, ResponsesExecution, ResponsesExecutor, ResponsesFuture,
-    ResponsesResponseMode, RouteCredentialScheduler, RouteSnapshot, RouteSnapshotRegistry,
+    AttemptDriver, AttemptExclusionSet, AttemptFailure, AttemptFuture, AttemptOrchestrator,
+    AttemptOrchestratorConfig, NativePayloadAvailability, ProjectedProtocolRequest, ProtocolFormat,
+    ProtocolResponseProjector, ProtocolTransformInput, ProtocolTransformRejection,
+    ProviderScopedRouteExplainInput, ProviderScopedRouteExplainSnapshot, QuotaConfidence,
+    QuotaSnapshot, QuotaSource, ResponsesEventSource, ResponsesExecution, ResponsesExecutor,
+    ResponsesFuture, ResponsesResponseMode, RouteCredentialScheduler, RouteExplainCandidate,
+    RouteExplainCandidateReason, RouteExplainInput, RouteSnapshot, RouteSnapshotRegistry,
     RuntimeCredentialAccountStatus, RuntimeHealthAccountRecoveryResult, RuntimeHealthRegistry,
     RuntimeQuotaAvailability, RuntimeQuotaRegistry, RuntimeQuotaTarget, SelectedRouteCredential,
     SnapshotRouteCandidate, SnapshotVersion, SystemRuntimeHealthClock,
@@ -431,6 +433,17 @@ pub(crate) struct DataPlaneComposition {
     pub(crate) event_writer: AsyncSqliteEventWriter,
 }
 
+type ProviderAccountPoolComposition = (
+    Arc<dyn ResponsesExecutor>,
+    Box<dyn ProviderAccountPoolFacade>,
+    Option<Arc<RouteCredentialScheduler>>,
+);
+type P12ExecutorComposition = (
+    P12RoutedResponsesExecutor,
+    Box<dyn ProviderAccountPoolFacade>,
+    Arc<RouteCredentialScheduler>,
+);
+
 /// Returns the fixed compiler evidence for every Endpoint stored in the control database.
 ///
 /// Capabilities come only from the reviewed adapter ledger below, never from a credential,
@@ -570,32 +583,36 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
         Arc::clone(&attempt_stages),
         Arc::clone(&event_queue),
     ));
-    let (executor, provider_account_pools): (
-        Arc<dyn ResponsesExecutor>,
-        Box<dyn ProviderAccountPoolFacade>,
-    ) = match repository
+    let (executor, provider_account_pools, route_explain_scheduler):
+        ProviderAccountPoolComposition = match repository
         .load_active_configuration()
         .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::ControlPlane))?
     {
         Some(configuration) => {
-            let (executor, provider_account_pools) = P12RoutedResponsesExecutor::try_new(
-                database,
-                &configuration,
-                secret_store,
-                Arc::clone(&registry),
-                Arc::clone(&attempt_stages),
-                Arc::clone(&event_sink),
-                Arc::clone(&runtime_health),
-                Arc::clone(&runtime_quota),
-                web_proxy,
-                flaresolverr_proxy,
-                flaresolverr_port,
-            )?;
-            (Arc::new(executor), provider_account_pools)
+            let (executor, provider_account_pools, route_explain_scheduler) =
+                P12RoutedResponsesExecutor::try_new(
+                    database,
+                    &configuration,
+                    secret_store,
+                    Arc::clone(&registry),
+                    Arc::clone(&attempt_stages),
+                    Arc::clone(&event_sink),
+                    Arc::clone(&runtime_health),
+                    Arc::clone(&runtime_quota),
+                    web_proxy,
+                    flaresolverr_proxy,
+                    flaresolverr_port,
+                )?;
+            (
+                Arc::new(executor),
+                provider_account_pools,
+                Some(route_explain_scheduler),
+            )
         }
         None => (
             Arc::new(NoActiveConfigurationExecutor),
             Box::new(RejectingProviderAccountPoolFacade::new()),
+            None,
         ),
     };
     let authenticator = Arc::new(gateway_router::SnapshotClientKeyAuthenticator::new(
@@ -621,6 +638,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
             attempt_stages,
             runtime_health,
             runtime_quota,
+            route_explain_scheduler,
             event_store,
         }),
         provider_account_pools,
@@ -972,7 +990,7 @@ impl P12RoutedResponsesExecutor {
         web_proxy: Option<UpstreamProxy>,
         flaresolverr_proxy: Option<UpstreamProxy>,
         flaresolverr_port: u16,
-    ) -> Result<(Self, Box<dyn ProviderAccountPoolFacade>), RuntimeCompositionError> {
+    ) -> Result<P12ExecutorComposition, RuntimeCompositionError> {
         // Keep the value-free stage detail for the native Grok diagnostic boundary, while
         // retaining the historical generic failure for ordinary graphs.  Existing callers use
         // the generic variant as a compatibility contract and it must not change merely because
@@ -1104,6 +1122,7 @@ impl P12RoutedResponsesExecutor {
             Arc::clone(&snapshot),
             Arc::clone(&pools),
         ));
+        let route_explain_scheduler = Arc::clone(&scheduler);
         let orchestrator = Arc::new(AttemptOrchestrator::with_runtime_quota_and_clock_config(
             scheduler,
             runtime_health,
@@ -1129,6 +1148,7 @@ impl P12RoutedResponsesExecutor {
                 event_sink,
             },
             provider_account_pools,
+            route_explain_scheduler,
         ))
     }
 
@@ -5148,6 +5168,7 @@ struct SnapshotManagementRuntimeFacade {
     attempt_stages: Arc<P12AttemptStageStore>,
     runtime_health: Arc<RuntimeHealthRegistry>,
     runtime_quota: Arc<RuntimeQuotaRegistry>,
+    route_explain_scheduler: Option<Arc<RouteCredentialScheduler>>,
     event_store: SqliteEventStore,
 }
 
@@ -5261,6 +5282,32 @@ impl SnapshotManagementRuntimeFacade {
     }
 }
 
+fn management_route_explain_reason(candidate: &RouteExplainCandidate) -> &'static str {
+    candidate
+        .reasons()
+        .iter()
+        .map(|reason| match reason {
+            RouteExplainCandidateReason::NotHardEligible => "not_hard_eligible",
+            RouteExplainCandidateReason::EndpointHealth(availability) => match availability {
+                gateway_router::RuntimeHealthAvailability::CoolingDown { .. } => {
+                    "endpoint_cooldown"
+                }
+                gateway_router::RuntimeHealthAvailability::CircuitOpen { .. } => {
+                    "endpoint_circuit_open"
+                }
+                gateway_router::RuntimeHealthAvailability::AccountForbidden
+                | gateway_router::RuntimeHealthAvailability::CredentialUnauthorized
+                | gateway_router::RuntimeHealthAvailability::AccountRecoveryInFlight { .. }
+                | gateway_router::RuntimeHealthAvailability::Available => "endpoint_unavailable",
+            },
+            RouteExplainCandidateReason::EndpointHealthUnavailable => "endpoint_unavailable",
+            RouteExplainCandidateReason::MissingCredentialPool => "missing_credential_pool",
+            RouteExplainCandidateReason::NoEligibleCredential => "no_eligible_credential",
+        })
+        .next()
+        .unwrap_or("no_eligible_credential")
+}
+
 impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
     fn catalog_status(
         &mut self,
@@ -5318,6 +5365,7 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
         }
     }
 
+    #[allow(clippy::too_many_lines)] // Keep the value-free scope/admission/reason projection together.
     fn explain_route(
         &mut self,
         request: &ManagementRouteExplainRequest,
@@ -5338,37 +5386,121 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
             ManagementRequestProtocol::OpenAiResponses => ProtocolFormat::OpenAiResponses,
             ManagementRequestProtocol::AnthropicMessages => ProtocolFormat::AnthropicMessages,
         };
-        // Fixed-input projection: the first hard-eligible, registry-publishable Candidate in
-        // stable Snapshot order is reported selected; live smooth-weighted selection is
-        // deliberately not simulated. Request-local semantic admission still runs before a lease.
-        let selected = route
+        let pair_is_publishable = |candidate: &SnapshotRouteCandidate| {
+            candidate.protocol_format().is_some_and(|target| {
+                protocol_pair_is_publishable(
+                    source,
+                    target,
+                    candidate.transform_mode(),
+                    candidate.effective_capabilities(),
+                )
+            })
+        };
+        let admitted_candidate_ids = route
             .candidates()
             .iter()
-            .find(|candidate| {
-                candidate.is_hard_eligible()
-                    && candidate.protocol_format().is_some_and(|target| {
-                        protocol_pair_is_publishable(
-                            source,
-                            target,
-                            candidate.transform_mode(),
-                            candidate.effective_capabilities(),
-                        )
-                    })
+            .filter(|candidate| candidate.is_hard_eligible() && pair_is_publishable(candidate))
+            .map(|candidate| candidate.id().clone())
+            .collect::<BTreeSet<_>>();
+        let provider_ids = admitted_candidate_ids
+            .iter()
+            .filter_map(|candidate_id| {
+                route
+                    .candidates()
+                    .iter()
+                    .find(|candidate| candidate.id() == candidate_id)
+                    .map(|candidate| candidate.upstream_id().clone())
             })
-            .map(|candidate| candidate.id().clone());
+            .map(|upstream_id| {
+                ProviderId::try_new(upstream_id.as_str().to_owned())
+                    .map_err(|_| ManagementRuntimeError::Unavailable)
+            })
+            .collect::<Result<BTreeSet<_>, _>>()?;
+        let inferred_provider = match request.provider_id().cloned() {
+            Some(provider_id) => Some(provider_id),
+            None if provider_ids.len() == 1 => provider_ids.iter().next().cloned(),
+            None => None,
+        };
+
+        let projected = if let Some(scheduler) = &self.route_explain_scheduler {
+            let route_input = RouteExplainInput::new(route.id().clone(), request.observed_at_ms());
+            if let Some(provider_id) = inferred_provider.clone() {
+                let composition_input = ProviderScopedRouteExplainInput::try_new(
+                    route_input,
+                    provider_id,
+                    admitted_candidate_ids.clone(),
+                    BTreeMap::new(),
+                )
+                .map_err(|_| ManagementRuntimeError::Unavailable)?;
+                Some(
+                    scheduler
+                        .explain_provider_scoped(
+                            &composition_input,
+                            &self.runtime_health,
+                            &self.runtime_quota,
+                            &AttemptExclusionSet::new(),
+                        )
+                        .map_err(|_| ManagementRuntimeError::Unavailable)?,
+                )
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        let base_explain = if projected.is_none() {
+            self.route_explain_scheduler
+                .as_ref()
+                .map(|scheduler| {
+                    scheduler
+                        .explain(
+                            &RouteExplainInput::new(route.id().clone(), request.observed_at_ms()),
+                            &self.runtime_health,
+                            &self.runtime_quota,
+                            &AttemptExclusionSet::new(),
+                        )
+                        .map_err(|_| ManagementRuntimeError::Unavailable)
+                })
+                .transpose()?
+        } else {
+            None
+        };
+        let selected = projected
+            .as_ref()
+            .and_then(|value| value.provider_selection().selected_candidate_id());
+        let ambiguous_provider_scope = self.route_explain_scheduler.is_some()
+            && request.provider_id().is_none()
+            && provider_ids.len() > 1;
+        let legacy_selected = if projected.is_none()
+            && !ambiguous_provider_scope
+            && request.provider_id().is_none()
+        {
+            route
+                .candidates()
+                .iter()
+                .find(|candidate| candidate.is_hard_eligible() && pair_is_publishable(candidate))
+                .map(|candidate| candidate.id().clone())
+        } else {
+            None
+        };
         let candidates = route
             .candidates()
             .iter()
             .map(|candidate| {
-                let pair_is_publishable = candidate.protocol_format().is_some_and(|target| {
-                    protocol_pair_is_publishable(
-                        source,
-                        target,
-                        candidate.transform_mode(),
-                        candidate.effective_capabilities(),
-                    )
-                });
-                if selected.as_ref() == Some(candidate.id()) {
+                let pair_is_publishable = pair_is_publishable(candidate);
+                let base_candidate = projected
+                    .as_ref()
+                    .map(ProviderScopedRouteExplainSnapshot::base)
+                    .or(base_explain.as_ref())
+                    .and_then(|snapshot| {
+                        snapshot
+                            .candidates()
+                            .iter()
+                            .find(|value| value.candidate_id() == candidate.id())
+                    });
+                if selected.is_some_and(|value| value == candidate.id())
+                    || legacy_selected.as_ref() == Some(candidate.id())
+                {
                     ManagementRouteExplainCandidate::selected(candidate.id().clone())
                 } else if !candidate.is_hard_eligible() {
                     ManagementRouteExplainCandidate::excluded(
@@ -5379,6 +5511,26 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
                     ManagementRouteExplainCandidate::excluded(
                         candidate.id().clone(),
                         "protocol_transform_unavailable",
+                    )
+                } else if let Some(base_candidate) =
+                    base_candidate.filter(|value| !value.is_eligible())
+                {
+                    ManagementRouteExplainCandidate::excluded(
+                        candidate.id().clone(),
+                        management_route_explain_reason(base_candidate),
+                    )
+                } else if ambiguous_provider_scope {
+                    ManagementRouteExplainCandidate::excluded(
+                        candidate.id().clone(),
+                        "provider_scope_required",
+                    )
+                } else if request.provider_id().is_some_and(|provider_id| {
+                    ProviderId::try_new(candidate.upstream_id().as_str().to_owned())
+                        .is_ok_and(|candidate_provider| candidate_provider != *provider_id)
+                }) {
+                    ManagementRouteExplainCandidate::excluded(
+                        candidate.id().clone(),
+                        "provider_mismatch",
                     )
                 } else {
                     ManagementRouteExplainCandidate::excluded(
@@ -5566,8 +5718,9 @@ mod tests {
     use gateway_upstream::{
         AdmittedEgressTarget, CredentialSecret, EgressCidr, EgressDnsError, EgressDnsResolver,
         EgressHost, EgressPolicy, EgressPolicyInput, EgressScheme, EndpointCredentialInput,
-        EndpointCredentialPool, RedirectPolicy, UpstreamClientPool, UpstreamHttpMethod,
-        UpstreamHttpRequest, UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
+        EndpointCredentialPool, EndpointCredentialPools, RedirectPolicy, UpstreamClientPool,
+        UpstreamHttpMethod, UpstreamHttpRequest, UpstreamProxy, UpstreamTimeouts,
+        UpstreamTransportProfile,
     };
     use protocol_openai_responses::{
         ResponseMode, decode_request, decode_upstream_response as decode_responses_production,
@@ -8157,6 +8310,7 @@ mod tests {
             attempt_stages,
             runtime_health: Arc::new(RuntimeHealthRegistry::new()),
             runtime_quota: Arc::new(RuntimeQuotaRegistry::new()),
+            route_explain_scheduler: None,
             event_store: SqliteEventStore::open(&database)?,
         };
         let attempts = facade
@@ -8279,6 +8433,7 @@ mod tests {
             attempt_stages,
             runtime_health: Arc::new(RuntimeHealthRegistry::new()),
             runtime_quota: Arc::new(RuntimeQuotaRegistry::new()),
+            route_explain_scheduler: None,
             event_store: SqliteEventStore::open(&database)?,
         };
         let attempts = facade
@@ -9609,6 +9764,7 @@ mod tests {
             attempt_stages: Arc::new(P12AttemptStageStore::new()),
             runtime_health: Arc::new(RuntimeHealthRegistry::new()),
             runtime_quota: Arc::new(RuntimeQuotaRegistry::new()),
+            route_explain_scheduler: None,
             event_store: SqliteEventStore::open_in_memory()?,
         };
         let request = ManagementRouteExplainRequest::try_new(
@@ -9616,6 +9772,7 @@ mod tests {
             route_id,
             "p12-d3-public-model".to_owned(),
             ManagementRequestProtocol::OpenAiChatCompletions,
+            None,
             1,
         )
         .map_err(|_| std::io::Error::other("route explain request unavailable"))?;
@@ -9632,6 +9789,129 @@ mod tests {
             .list_request_attempts(&RequestId::try_new("never-started")?)
             .map_err(|_| std::io::Error::other("attempt listing unavailable"))?;
         assert!(attempts.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    #[allow(clippy::too_many_lines)] // One explicit two-Provider fixture proves the scope boundary.
+    fn provider_scoped_route_explain_requires_scope_for_multiple_providers()
+    -> Result<(), Box<dyn Error>> {
+        let version = ConfigVersionId::try_new("p13-07b-explain-config")?;
+        let route_id = RouteId::try_new("p13-07b-explain-route")?;
+        let public_model_id = PublicModelId::try_new("p13-07b-explain-model")?;
+        let candidate = |id: &str, endpoint: &str, provider: &str, priority: i64| {
+            Ok::<_, Box<dyn Error>>(SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
+                id: RouteCandidateId::try_new(id)?,
+                endpoint_id: EndpointId::try_new(endpoint)?,
+                upstream_id: UpstreamId::try_new(provider)?,
+                endpoint_api_format: "openai/responses".to_owned(),
+                upstream_model: "p13-07b-upstream-model".to_owned(),
+                transform_mode: SnapshotTransformMode::Canonical,
+                priority,
+                weight: 1,
+                effective_capabilities: CapabilitySet::empty(),
+                catalog_admission: SnapshotCatalogAdmission::AllowedUnlisted,
+                active_binding_count: 1,
+            }))
+        };
+        let candidates = vec![
+            candidate("candidate-a", "endpoint-a", "provider-a", 0)?,
+            candidate("candidate-b", "endpoint-b", "provider-b", 1)?,
+        ];
+        let snapshot = Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
+            SnapshotVersion::try_new(version.as_str())?,
+            vec![SnapshotPublicModel::new(
+                public_model_id.clone(),
+                "p13-07b-public-model".to_owned(),
+                "P13-07B public model".to_owned(),
+                CapabilitySet::empty(),
+                route_id.clone(),
+            )],
+            Vec::new(),
+            vec![SnapshotRoute::new(
+                route_id.clone(),
+                public_model_id,
+                SnapshotRoutePolicy::PriorityFailover,
+                1,
+                1_000,
+                candidates,
+            )],
+            Vec::new(),
+            Vec::new(),
+        ))?);
+        let pools = Arc::new(EndpointCredentialPools::try_new(vec![
+            EndpointCredentialPool::try_new(
+                EndpointId::try_new("endpoint-a")?,
+                [EndpointCredentialInput {
+                    credential_id: CredentialId::try_new("credential-a")?,
+                    credential_kind: "bearer".to_owned(),
+                    credential_revision: 1,
+                    priority: 0,
+                    weight: 1,
+                    concurrency: 1,
+                    expires_at_ms: None,
+                    secret: CredentialSecret::try_new(b"p13-07b-a".to_vec())?,
+                }],
+            )?,
+            EndpointCredentialPool::try_new(
+                EndpointId::try_new("endpoint-b")?,
+                [EndpointCredentialInput {
+                    credential_id: CredentialId::try_new("credential-b")?,
+                    credential_kind: "bearer".to_owned(),
+                    credential_revision: 1,
+                    priority: 0,
+                    weight: 1,
+                    concurrency: 1,
+                    expires_at_ms: None,
+                    secret: CredentialSecret::try_new(b"p13-07b-b".to_vec())?,
+                }],
+            )?,
+        ])?);
+        let scheduler = Arc::new(RouteCredentialScheduler::new(Arc::clone(&snapshot), pools));
+        let runtime_health = Arc::new(RuntimeHealthRegistry::new());
+        let runtime_quota = Arc::new(RuntimeQuotaRegistry::new());
+        let registry = Arc::new(RouteSnapshotRegistry::new(snapshot));
+        let mut facade = SnapshotManagementRuntimeFacade {
+            registry,
+            attempt_stages: Arc::new(P12AttemptStageStore::new()),
+            runtime_health: Arc::clone(&runtime_health),
+            runtime_quota: Arc::clone(&runtime_quota),
+            route_explain_scheduler: Some(scheduler),
+            event_store: SqliteEventStore::open_in_memory()?,
+        };
+        let unscoped = ManagementRouteExplainRequest::try_new(
+            version.clone(),
+            route_id.clone(),
+            "p13-07b-public-model".to_owned(),
+            ManagementRequestProtocol::OpenAiResponses,
+            None,
+            100,
+        )
+        .map_err(|_| std::io::Error::other("unscoped route explain request unavailable"))?;
+        let unscoped = facade
+            .explain_route(&unscoped)
+            .map_err(|_| std::io::Error::other("unscoped route explain unavailable"))?;
+        assert!(
+            unscoped
+                .candidates()
+                .iter()
+                .all(|candidate| candidate.reason() == Some("provider_scope_required"))
+        );
+
+        let scoped = ManagementRouteExplainRequest::try_new(
+            version,
+            route_id,
+            "p13-07b-public-model".to_owned(),
+            ManagementRequestProtocol::OpenAiResponses,
+            Some(ProviderId::try_new("provider-a")?),
+            100,
+        )
+        .map_err(|_| std::io::Error::other("scoped route explain request unavailable"))?;
+        let scoped = facade
+            .explain_route(&scoped)
+            .map_err(|_| std::io::Error::other("scoped route explain unavailable"))?;
+        assert!(scoped.candidates()[0].selected_by_projection());
+        assert_eq!(scoped.candidates()[1].reason(), Some("provider_mismatch"));
         Ok(())
     }
 
@@ -9664,6 +9944,7 @@ mod tests {
             attempt_stages: Arc::new(P12AttemptStageStore::new()),
             runtime_health: Arc::clone(&runtime_health),
             runtime_quota: Arc::clone(&runtime_quota),
+            route_explain_scheduler: None,
             event_store: SqliteEventStore::open_in_memory()?,
         };
         Ok((facade, clock, runtime_health, runtime_quota, version))
