@@ -1,6 +1,6 @@
 # P13 unified local phase preflight receipt — 2026-08-15
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Scope
 
@@ -32,6 +32,20 @@ The full report recorded `PASS` for all 43 steps, including:
 
 The independent Prism unit run also passed: `17` files and `157/157` tests.
 
+## Formal phase Delivery Gate
+
+The one authorized remote phase gate was run once for the exact pushed revision:
+
+- GitHub Actions run: [31858904767](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31858904767)
+- Revision: `a22f312801c8167bcd15300ca9b6fe700ac2f37d`
+- Authorize: `success`
+- Fast gate: `success` (6m04s)
+- Full supply-chain gate: `success` (1m30s)
+- Required delivery gate: `success`
+
+The only annotation was GitHub's Node.js 20 deprecation notice for the pinned checkout action;
+it did not affect the result.
+
 ## Review and corrective evidence
 
 - The root `scripts/check-management-spa.mjs` now validates the authoritative Prism contract and
@@ -52,6 +66,7 @@ The independent Prism unit run also passed: `17` files and `157/157` tests.
 No Provider/network request, refresh/reauth worker, scheduler mutation, server deployment or
 production traffic change occurred. The four pre-existing untracked helper files were preserved.
 
-The next and only remaining P13 closeout action is one formal Delivery Gate on the exact pushed
-revision. Until that remote gate passes, P13 remains `IN_PROGRESS`/`LOCAL_PASS_PENDING_PHASE_GATE`
-and P13-07 must not start.
+The P13-04/P13-05/P13-06 backend slices are now formally gated and closed with this boundary.
+The P13 umbrella remains `IN_PROGRESS` because later candidates are separate tasks. The next
+planned task is P13-07 routing; Prism UI integration, automatic reauth/replenishment, Web egress
+pool and Provider live/production work remain separately bounded and are not implied by this gate.

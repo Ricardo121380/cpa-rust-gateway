@@ -6,7 +6,7 @@
 | Task | `P13-04` (`P13-04A` + `P13-04B`) |
 | Date | `2026-08-11` |
 | Scope | CPAMP-like typed management backend foundations |
-| Status | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Status | `DONE_WITH_BOUNDARY` |
 
 ## Delivered surface
 
@@ -37,12 +37,12 @@ or implicit cross-Provider fallback was introduced.
 | Runtime quota boundary | Existing P10 runtime availability/quota projection reused; no live claim in usage read model | `PASS_LOCAL` |
 | Production source | Read-only SQLite event facade with bounded scan; no Provider or configuration mutation | `PASS_LOCAL` |
 | Contract/client | OpenAPI closed schemas and generated TypeScript operations | `PASS_LOCAL` |
-| Review/gates | Focused tests, Clippy, SPA/client, docs and diff checks | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| Review/gates | Focused tests, Clippy, SPA/client, docs/diff checks and formal P13 Delivery Gate run 31858904767 | `PASS` |
 
 ## Evidence and boundary
 
-The formal P13 Delivery Gate is intentionally deferred until the P13 phase close; this report is
-the local completion evidence for P13-04. No GitHub workflow, production deployment, server
+The formal P13 Delivery Gate run 31858904767 passed for the exact pushed revision. This report
+closes P13-04's backend scope with an explicit boundary: no production deployment, server
 mutation, Provider request, OAuth refresh, account-pool lease or public UI work was performed.
 
 Rollback removes the P13-04B route/facade/compiler/OpenAPI/client and documentation. The event

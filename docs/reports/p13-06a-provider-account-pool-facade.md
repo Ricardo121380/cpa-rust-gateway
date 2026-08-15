@@ -46,4 +46,5 @@ Provider facade. P13-06B should adapt existing Grok/ChatGPT/Krill native/runtime
 facade and verify lease/Health/Quota/Circuit consistency without introducing cross-Provider
 fallback or automatic reauth.
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`.
+Status: `DONE_WITH_BOUNDARY` after formal P13 Delivery Gate run
+[31858904767](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31858904767).

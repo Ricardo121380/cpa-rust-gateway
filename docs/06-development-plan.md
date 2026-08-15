@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.255` |
+| 计划版本 | `v1.256` |
 | 生效日期 | `2026-08-15` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P6`、P9、P10、P11 与 P12 已完成（P12 为 `DONE_WITH_BOUNDARY`）；P13-04、P13-05 与 P13-06A/B/C 已完成本地实现、等待统一 P13 phase gate；P13-06 仍为 `IN_PROGRESS`；P7 Kiro OAuth、P8 Official API-key E2E 与 Grok Web 外部边界仍延后。 |
-| 当前任务 | `P13-06C` 本地实现、定向验证与整体 review 已完成，状态为 `LOCAL_PASS_PENDING_PHASE_GATE`；统一 P13 本地 preflight 已通过，包含当前 Prism 门禁适配、服务封装、全特性 Clippy/工作区测试与 P12 回归；待一次正式 P13 phase Delivery Gate，不启动 P13-07。runtime action 仍只做有界本地状态变更，失败反馈只投影脱敏 Attempt 分类；不自动 refresh/reauth、不改 production deployment/traffic。 |
+| 当前阶段 | `P1` 至 `P6`、P9、P10、P11 与 P12 已完成（P12 为 `DONE_WITH_BOUNDARY`）；P13-04、P13-05 与 P13-06A/B/C 已通过统一正式 Delivery Gate 并以 `DONE_WITH_BOUNDARY` 收口；P13 仍为 `IN_PROGRESS`，当前进入 P13-07；P7 Kiro OAuth、P8 Official API-key E2E 与 Grok Web 外部边界仍延后。 |
+| 当前任务 | `P13-07` routing Task Card/实现启动：在已通过 Gate 的 usage/quota 与 account-pool 状态之上，先做 Provider scope 内 deterministic cost-aware/fill-first/least-loaded selector；保留 max_attempts、首败和 Config Version 回滚边界，不跨 Provider fallback，不启动 P13-11/P13-12。 |
 | 已批准变更（2026-08-10） | `CR-EXEC-008` 语义澄清：仅降低昂贵 Fast/Full/supply-chain/release evidence 的默认运行频率，不限制 branch、push、PR update/review/rebase/merge；本轮已另开并实现 workflow 解耦，轻量 PR gate 与 tag/manual/closeout-label Delivery Gate 分离。`CR-P12-AUTOREG-MIGRATE-001`：Autoreg Oracle successor 已完成 staged/health、单账号 registration 与 dedicated file-sink 验证；本轮按 operator 批准完成 CPAR 显式 provider-binding/import、真实公网 Build 与 Console canary、Oracle 单活与 Jakarta fencing，保留 rollback window。`CR-P12-AUTOREG-CONSOLE-001`：Console SSO 仅通过 strict Oracle source adapter、same-batch native probe 和真实公共 CPAR 六元组后保留生产批次；scheduler/reauth 仍单独受控。 |
 | 本次计划变更（2026-08-15） | 完成 `P13-06C` 本地实现与整体 review：在 P13-06B 的同一 runtime composition 上增加受保护、Provider/Channel/Account 精确绑定的 `cool_down` 与 `request_recovery` operator action；复用 Management Key、same-origin CSRF、`X-Config-Version` 绑定和 resource audit，但不修改 Config Version/revision、不调用 Provider、不启动 refresh/reauth。新增有界 failure-feedback 读模型，仅输出持久化 Attempt 的错误 code/scope、retry decision、时间和 opaque attribution，不输出 URL/Header/Cookie/body/Secret/raw model。后端已更新 `docs/openapi/management-v1.json`，并运行 `npm --prefix web/prism run sync-contract`；`docs/cross-boundary-log.md` 已留痕并明确 Claude Code 的 Prism UI 接入项，正式 UI 仍不在本切片。P13-06B 与 P13-06C 均为 `LOCAL_PASS_PENDING_PHASE_GATE`，P13-06 仍等待统一 phase gate。 |
 | Rust Workspace | 20-package（P0-03 建立 21 个；`CR-P12-06-001` 批次删除两个从未落码的保留 crate，`tests/differential` 成为工作区成员） |
@@ -1451,7 +1451,7 @@ deploy/
 | P10 | 完整管理 API、Web UI、备份恢复 | G9 | G10 | DONE |
 | P11 | 差分、性能、安全与发布加固 | G10 | G11 | DONE |
 | P12 | 服务器部署、灰度、切换与回滚 | G11 | G12 | DONE_WITH_BOUNDARY |
-| P13 | Release 1.1 管理、账号池、路由与协议扩展 | G12 + `CR-P13-001` | 独立计划；P13-04/P13-05/P13-06A/B/C 已完成本地实现与 review，当前等待一次统一 phase Delivery Gate；Gate 前不启动 P13-07 | IN_PROGRESS |
+| P13 | Release 1.1 管理、账号池、路由与协议扩展 | G12 + `CR-P13-001` | 独立计划；P13-04/P13-05/P13-06A/B/C 已通过正式 Delivery Gate（run 31858904767）并以 `DONE_WITH_BOUNDARY` 收口，当前进入 P13-07；后续 Provider egress/reauth/UI 仍按独立边界推进 | IN_PROGRESS |
 
 ## 6. P0 - 仓库与工程基线
 
@@ -3505,10 +3505,10 @@ operator actions/失败反馈、批量 refresh/reauth、路由负载策略、Pro
 | P13-01 | OpenAI Chat Completions 入站与 compatible Chat Endpoint（已前移到 P12-08，不再由 P13 执行） | `CR-P12-COMPAT-001` | P12-08A/B/C 证据 | DEFERRED |
 | P13-02 | Chat/Responses/Messages 受限无损桥接（已前移到 P12-08，不再由 P13 执行） | `CR-P12-COMPAT-001` | P12-08D1/D2/D3/D4 证据 | DEFERRED |
 | P13-03 | New API/AxonHub 一次性 Import Adapter（用户明确不需要，当前移出实施范围） | 新 CR（未来可恢复） | 不进入本轮验收 | DEFERRED |
-| P13-04 | CPAMP-like 管理控制面后端基础：Provider/Channel/Account/Pool/Usage/Quota/Cost 的 typed read model、分页过滤、审计和 OpenAPI；已完成 P13-04A 配置 inventory 与 P13-04B durable usage/unpriced-cost projection，复用现有 P10 安全、审计和 runtime quota 边界 | P12/G12；P10 management baseline；P3/P4 event log | P13-04A/B ADR/Contract/报告、typed control compiler、protected HTTP routes、OpenAPI/client、value-free unit/HTTP fixture、read-only SQLite facade、fmt/Clippy/docs/review 全部通过；正式 P13 Delivery Gate 延至 P13 phase close，不触发 Provider 请求 | LOCAL_PASS_PENDING_PHASE_GATE |
-| P13-05 | Versioned Usage/Quota/Cost/Billing 账本：在 P13-04 usage read model 之上补充 versioned price catalog、固定 decimal 计费、幂等账单事件、延迟/status/quota window、retention/重启恢复与前端报表契约；未知价格/未知 token 必须带 confidence，不得伪造计费 | P13-04 | P13-05A catalog/ledger + P13-05B checkpointed materializer/protected billing read model + P13-05C protected operator catalog list/import/forward rollback 已完成本地实现与整体 review | LOCAL_PASS_PENDING_PHASE_GATE |
-| P13-06 | Provider-aware Account Pool：多账号轮换、lease/concurrency、Health/Quota/Circuit、模型/额度同步、失败反馈、expired 排除和 operator 操作；不同 Provider 通过策略接口实现，不共享凭证或状态 | P13-04 | P13-06A secret-free snapshot facade、P13-06B ordinary/native runtime adapter、P13-06C exact-account operator actions 与脱敏 failure feedback 均已完成本地实现、整体 review 和本地 phase preflight；management projection 构建失败仍为 rejecting facade/`503`，不阻断 serving data plane。现有 P12 Grok tests 只作回归证据，不宣称新的每 Provider 双真实账号或 restart DB E2E | IN_PROGRESS |
-| P13-07 | Cost-aware、Fill-first、Least-loaded 路由：在 Provider scope 内依据额度、并发、健康和 capability 选择；保留 max_attempts、首败边界和 Config Version 回滚 | P13-05、P13-06 | deterministic selector matrix、quota 缺失/并发/过期/降级测试、Route Explain、staging canary | DEFERRED |
+| P13-04 | CPAMP-like 管理控制面后端基础：Provider/Channel/Account/Pool/Usage/Quota/Cost 的 typed read model、分页过滤、审计和 OpenAPI；已完成 P13-04A 配置 inventory 与 P13-04B durable usage/unpriced-cost projection，复用现有 P10 安全、审计和 runtime quota 边界 | P12/G12；P10 management baseline；P3/P4 event log | P13-04A/B ADR/Contract/报告、typed control compiler、protected HTTP routes、OpenAPI/client、value-free unit/HTTP fixture、read-only SQLite facade、fmt/Clippy/docs/review 与正式 P13 Delivery Gate run 31858904767 全部通过；不触发 Provider 请求 | DONE |
+| P13-05 | Versioned Usage/Quota/Cost/Billing 账本：在 P13-04 usage read model 之上补充 versioned price catalog、固定 decimal 计费、幂等账单事件、延迟/status/quota window、retention/重启恢复与前端报表契约；未知价格/未知 token 必须带 confidence，不得伪造计费 | P13-04 | P13-05A catalog/ledger + P13-05B checkpointed materializer/protected billing read model + P13-05C protected operator catalog list/import/forward rollback 已完成本地实现、整体 review 与正式 P13 Delivery Gate run 31858904767；正式前端/自动 cadence/Provider live state仍独立边界 | DONE |
+| P13-06 | Provider-aware Account Pool：多账号轮换、lease/concurrency、Health/Quota/Circuit、模型/额度同步、失败反馈、expired 排除和 operator 操作；不同 Provider 通过策略接口实现，不共享凭证或状态 | P13-04 | P13-06A secret-free snapshot facade、P13-06B ordinary/native runtime adapter、P13-06C exact-account operator actions 与脱敏 failure feedback 均已完成本地实现、整体 review、本地 Full preflight 与正式 P13 Delivery Gate run 31858904767；management projection 构建失败仍为 rejecting facade/`503`，不阻断 serving data plane；不宣称新的每 Provider 双真实账号或 restart DB E2E | DONE |
+| P13-07 | Cost-aware、Fill-first、Least-loaded 路由：在 Provider scope 内依据额度、并发、健康和 capability 选择；保留 max_attempts、首败边界和 Config Version 回滚 | P13-05、P13-06 | P13-07A deterministic Provider-scoped selector、quota/health/concurrency/expiry/capability matrix、Route Explain 与 bounded staging canary；不跨 Provider fallback | IN_PROGRESS |
 | P13-08 | 管理调试用单请求 Channel Pin：operator 明确指定 Provider/Channel/Route/Credential/JSON 或 SSE，仅一条请求，返回 value-free receipt；不得成为公开用户 API 或绕过正常 auth/egress | P13-04、P13-06 | 单请求/首败/无重试/无跨 Provider fallback、credential attribution、upstream sent/not-sent、审计与回滚测试 | DEFERRED |
 | P13-09 | Responses stored response 查询与 `compact`：补齐 `/v1/responses/{id}`、`/v1/responses/compact` 等有边界的状态/压缩能力，明确 owner、TTL、加密存储、跨账号连续性和客户端协议投影 | P12-08 Responses baseline、P13-04 | request ownership、TTL/GC、重启恢复、tool/reasoning/usage/stop 语义、未拥有 ID fail closed、JSON/SSE 回归 | DEFERRED |
 | P13-10 | 公共 WebSocket 数据面：在 HTTP/SSE 之外增加显式 WebSocket transport，仅为声明支持的 Provider/协议开放；保持 auth、origin、backpressure、message size、idle/total timeout 和 close reason 边界 | P13-04、P13-09 | handshake/auth、fragmentation、backpressure、disconnect/reconnect、close semantics、Provider capability matrix、无 SSE 路径回归 | DEFERRED |
@@ -3531,7 +3531,7 @@ P13 任务状态以本文档为准,前端不修改上面的任务表。
 | P13-04A `account-pools` | 上游子资源面板、凭据详情入口(**已接线**) |
 | P13-04B `operations/usage` | 用量分析页的数据源(形状与提案的 G3 不同,前端需客户端聚合) |
 | P13-05 计费账本与价格目录 | 计费页、价格目录管理页、请求监控的真实请求列表(`request_id` 首次出现于此) |
-| P13-06 Provider 池 live state | P13-06A/B 的 `operations/provider-account-pools` 后端数据源已完成本地实现；Prism 运行时页接线与 operator actions 等待 P13-06C/前端排期 |
+| P13-06 Provider 池 live state | P13-06A/B/C 的 `operations/provider-account-pools`、operator actions 与 failure-feedback 后端数据源已通过正式 Gate；Prism 运行时页接线仍按 `docs/cross-boundary-log.md` 由 Claude Code 排期 |
 
 两个工具在同一仓协作(后端 Codex,前端 Claude Code),边界与越界留痕规则见
 [AGENTS.md](../AGENTS.md) 与 [cross-boundary-log](cross-boundary-log.md)。
@@ -3540,10 +3540,10 @@ P13 任务状态以本文档为准,前端不修改上面的任务表。
 
 优先级按“对当前生产反代的直接价值 × 可控风险 × 对既有渠道的影响”排序：
 
-1. **P13-04 管理控制面后端基础（已完成本地切片，待 P13 收口 Gate）**：已补齐 CPAMP 需要的 Provider-aware inventory 与 durable usage/unpriced-cost 读模型、分页过滤、权限和 OpenAPI 契约。现有 P10 管理 API 未推倒重来，而是扩展为 typed、Provider-aware 的运营接口。
-2. **P13-05 Usage/Quota/Cost/Billing 账本（已完成本地 A/B/C，待 P13 收口 Gate）**：已补齐可审计后端账本、versioned price catalog、checkpointed materializer、时间序列查询和受保护 operator catalog mutation；价格未知或 token 缺失继续保持明确 confidence，不伪造费用。
-3. **P13-06 Account Pool（A/B/C 已本地完成，待 P13 收口 Gate）**：已经统一 secret-free live inventory、现有 native/ordinary runtime pools、受保护 operator actions 与显式 failure feedback；每个 Provider 继续保留自己的 executor、credential shape、egress 和 refresh policy。
-4. **P13-07 Routing（高优先级）**：在 P13-05/P13-06 有数据后实现 cost-aware/fill-first/least-loaded；否则路由只能基于不完整状态，容易产生错误选路。
+1. **P13-04 管理控制面后端基础（正式 Gate 收口）**：已补齐 CPAMP 需要的 Provider-aware inventory 与 durable usage/unpriced-cost 读模型、分页过滤、权限和 OpenAPI 契约；正式 Delivery Gate run 31858904767 通过，状态 `DONE_WITH_BOUNDARY`。
+2. **P13-05 Usage/Quota/Cost/Billing 账本（正式 Gate 收口）**：已补齐可审计后端账本、versioned price catalog、checkpointed materializer、时间序列查询和受保护 operator catalog mutation；价格未知或 token 缺失继续保持明确 confidence，不伪造费用，状态 `DONE_WITH_BOUNDARY`。
+3. **P13-06 Account Pool（正式 Gate 收口）**：已经统一 secret-free live inventory、现有 native/ordinary runtime pools、受保护 operator actions 与显式 failure feedback；每个 Provider 继续保留自己的 executor、credential shape、egress 和 refresh policy，状态 `DONE_WITH_BOUNDARY`。
+4. **P13-07 Routing（当前高优先级）**：在已通过 Gate 的 P13-05/P13-06 状态源之上，先实现 Provider scope 内 deterministic cost-aware/fill-first/least-loaded selector；保留 max_attempts、首败和 Config Version 回滚边界。
 5. **P13-08 Channel Pin（中高优先级）**：实现后能显著降低排查时间，并为后续真实 Provider 验收提供单请求、单账号、可审计工具。
 6. **P13-09 Responses retrieval/compact（中优先级）**：补齐常用 Responses 客户端能力，但必须先定义持久化、owner、TTL 和跨账号连续性。
 7. **P13-11 Egress/Proxy Pool 与 P13-12 自动 reauth（条件性高优先级）**：只有在继续推进 Grok Web 或需要无人值守账号供给时启动；它们受外部出口和账号授权约束，不能阻塞管理面和计费后端。
@@ -3624,7 +3624,7 @@ P13 任务状态以本文档为准,前端不修改上面的任务表。
 | 输入边界 | source 仅 `operator|imported`；1..512 个唯一 Provider/Channel/public-Model 条目；rate/effective time 为 JSON/TypeScript 可精确表示的非负 integer（上限 `9_007_199_254_740_991`）；Store 内部仍保留更宽的 SQLite `i64` 能力；`test` source 不能经 HTTP 导入 |
 | 安全 | 复用管理 listener/network/Key/CSRF；mutation 仅 draft；响应不含 Secret/ciphertext、credential、URL/path、Header/Cookie/body、client-key digest 或 source-event fingerprint；不调用 Provider |
 | 交付物 | [ADR-0080](adr/ADR-0080-protected-billing-catalog-management.md)、[BC-MGMT-013](contracts/BC-MGMT-013-protected-billing-catalog-management.md)、[P13-05C report](reports/p13-05c-billing-catalog-management.md) |
-| 整体 review | P13-05A/B/C 的 fixed-point quote、effective-time catalog、checkpoint/replay、immutable ledger、protected read/write、revision/audit/CSRF/rollback/no-secret 契约统一复核；结论 `LOCAL_PASS_PENDING_PHASE_GATE` |
+| 整体 review | P13-05A/B/C 的 fixed-point quote、effective-time catalog、checkpoint/replay、immutable ledger、protected read/write、revision/audit/CSRF/rollback/no-secret 契约统一复核；正式 Delivery Gate run 31858904767 通过，结论 `DONE_WITH_BOUNDARY` |
 | Deferred | 自动 materializer scheduler/cadence、catalog discovery、正式计费 UI、Provider live state 和 production catalog mutation；分别由后续独立 Task/CR 承担 |
 
 ### 19.9 P13-06A Task Card
@@ -3658,7 +3658,7 @@ P13 任务状态以本文档为准,前端不修改上面的任务表。
 | 定向验收 | adapter Health/Quota/auth/expiry/lease/isolation、model-scoped Health/Quota、fresh/retained/new/old cursor、random nonce、filter/ID bounds 与 diagnostic drift tests；ordinary active graph composition、native Grok same-row metadata/pool mapping、rejecting-facade serving isolation；compiled-pool diagnostic no-secret regression；P13-06A control/HTTP/OpenAPI/Prism/docs 回归；strict Clippy/fmt/diff review。最终本地矩阵 53 tests（adapter 8、runtime 3、upstream 7、control 5、HTTP 1、OpenAPI 8、Grok 回归 21） |
 | 证据边界 | 不宣称每个 Provider 两个真实账号、真实生产多账号矩阵或新的 file-backed restart DB E2E；现有 P12 Grok pool/scheduling/worker suites 只作回归证据 |
 | 交付物 | [ADR-0082](adr/ADR-0082-provider-runtime-pool-adapter.md)、[BC-MGMT-015](contracts/BC-MGMT-015-provider-runtime-pool-adapter.md)、[P13-06B report](reports/p13-06b-provider-runtime-pool-adapter.md) |
-| 状态 | `LOCAL_PASS_PENDING_PHASE_GATE`；本地实现与 review 完成，正式 P13 phase Delivery Gate 待阶段收口 |
+| 状态 | `DONE_WITH_BOUNDARY`；本地实现、review 与正式 P13 phase Delivery Gate run 31858904767 完成 |
 | 下一片 | P13-06C：在既有 Management Key/CSRF/revision/audit 边界内实现受保护 operator actions 与显式 failure feedback；自动 refresh/reauth 仍属 P13-12，proxy pool 仍属 P13-11 |
 
 ### 19.11 P13-06C Task Card
@@ -3675,7 +3675,21 @@ P13 任务状态以本文档为准,前端不修改上面的任务表。
 | 前后端边界 | 后端先更新 `docs/openapi/management-v1.json`，再运行 `npm --prefix web/prism run sync-contract`；不手改 Prism UI；同一提交必须更新 `docs/cross-boundary-log.md`，明确 Claude Code 需要接收新 wrappers/页面动作，Git trailer 添加 `Cross-Boundary` |
 | 定向验收 | control：action target/TTL/model isolation、recovery state machine、failure filtering/order/cursor/no-secret；HTTP：Key/CSRF/version admission、audit、invalid/stale target、value-free receipt；OpenAPI/Prism sync/check、strict Clippy/fmt/docs/secret/diff review；不调用 Provider、不改 production/server/traffic，不运行昂贵 Delivery Gate |
 | 交付物 | [ADR-0083](adr/ADR-0083-provider-account-operator-actions.md)、[BC-MGMT-016](contracts/BC-MGMT-016-provider-account-operator-actions-and-failure-feedback.md)、[P13-06C report](reports/p13-06c-provider-account-operator-actions.md) |
-| 状态 | `LOCAL_PASS_PENDING_PHASE_GATE`；P13-06C 本地实现、定向 Gate 与整体 review 已完成；P13-06A/B/C 统一等待 P13 phase gate，未启动 P13-07 |
+| 状态 | `DONE_WITH_BOUNDARY`；P13-06C 本地实现、定向 Gate、整体 review 与正式 P13 phase Delivery Gate run 31858904767 已完成；Prism UI 接线、Provider-specific reauth/egress 仍为独立边界 |
+
+### 19.12 P13-07A Task Card
+
+| 字段 | 固定值 |
+|---|---|
+| 范围等级 / 预算 | `L`；先实现 Provider scope 内 deterministic cost-aware/fill-first/least-loaded selector 与 explain 投影；不把路由策略扩展、Provider I/O、生产 canary 混入同一片 |
+| 依赖 | P13-05 versioned usage/quota/cost read model；P13-06 shared account-pool/Health/Quota facade；现有 `RouteCredentialScheduler`、route candidate capability 与 `max_attempts`/首败边界 |
+| 输出 | 复用现有 scheduler 的 Provider-scoped candidate scoring/selection seam；对额度、并发、健康、expiry、capability 与已知成本做有界 deterministic 排序；Route Explain 能展示脱敏 score reason/排除原因，不暴露 credential/URL/body |
+| 选择语义 | `fill-first` 先排除不可用/过期/额度阻塞/并发饱和候选；同一 Provider/Channel 内再按成本、优先级、least-loaded 与既有 weight 做稳定 deterministic tie-break；未知成本/未知 quota 不伪造为零，不跨 Provider fallback |
+| 失败与回退 | 保留现有 `max_attempts`、first-semantic-event、首败和 Config Version 快照边界；selector 失败只返回安全无候选/不可用类别，不触发 Provider 请求、refresh/reauth、proxy pool 或隐式凭证转换 |
+| 前后端边界 | 若 Route Explain/OpenAPI 形状发生变化，先更新 `docs/openapi/management-v1.json`，运行 `npm --prefix web/prism run sync-contract`，并在同一提交更新 `docs/cross-boundary-log.md` 通知 Claude Code；无正式 UI 改造 |
+| 定向验收 | deterministic selector matrix：quota 缺失/耗尽与 controlled recovery、Health/Circuit/Unauthorized、expiry、并发饱和、capability mismatch、成本未知/版本切换、同 Provider sibling isolation、跨 Provider 禁止 fallback；Route Explain/no-secret、existing scheduler/P12 protocol regression、strict Clippy/fmt/docs/review |
+| 交付物 | P13-07A ADR/contract/report（实现后补齐）；不启动 P13-08/11/12，不做公网或生产 traffic canary |
+| 状态 | `IN_PROGRESS`；正式 P13 phase Gate 已通过，当前仅推进这一项；完成后按 Task 本地 review，再由 P13 phase 规则决定下一次正式 Gate |
 
 ## 20. 测试体系
 
@@ -4026,3 +4040,4 @@ Next task:
 | v1.253 | 2026-08-15 | 完成 P13-06C 本地实现、定向 Gate 与整体 review：新增受保护 exact-account `cool_down`/`request_recovery`，复用同一 serving Health/Quota registry、Management Key/CSRF、`X-Config-Version` 和 value-free resource audit；新增 bounded newest-first Attempt failure feedback，严格排除 model/URL/header/cookie/body/raw error/secret/digest。补齐 stale/unknown/disabled target、model isolation、quota recovery state machine、cursor retention/nonce、source-unavailable serving isolation、HTTP auth/version/no-store/no-secret 与 OpenAPI contract 回归。管理契约已由 `docs/openapi/management-v1.json` 同步到 Prism generated client，`docs/cross-boundary-log.md` 明确 Claude Code 后续 UI 接入项。`gateway` 99 tests、`gateway-control` 57、`gateway-http-actix --tests` 118 passed（4 ignored）、provider-grok 21、strict Clippy、Prism check/type-check/build、docs/secret/diff review 通过；未调用 Provider、未改 production/server/traffic、未运行昂贵 Delivery Gate。P13-06A/B/C 统一标记 `LOCAL_PASS_PENDING_PHASE_GATE`，下一步是一次 P13 phase gate | `P13-06C` `LOCAL_PASS_PENDING_PHASE_GATE`; evidence: [`p13-06c-provider-account-operator-actions.md`](reports/p13-06c-provider-account-operator-actions.md) |
 | v1.254 | 2026-08-15 | P13 统一本地 phase preflight 的首轮修复尝试：根目录管理 SPA 门禁、P12 serve envelope、source-policy 与 crate-boundary 检查依次暴露了 Prism 迁移兼容、`pipefail` 假失败、测试断言风格和 `gateway -> getrandom` 白名单缺口；这些问题均在未调用 Provider、未改 production/server/traffic 的前提下修正，首轮报告不作为通过证据。最终通过证据由 v1.255 receipt 记录 | `P13` `IN_PROGRESS`; superseded by v1.255 |
 | v1.255 | 2026-08-15 | P13 统一 phase preflight 最终通过：`CHECK_REPORT_PATH=/tmp/cpar-p13-phase-preflight-20260815-final3.md ./scripts/check.sh full` 全部 PASS（Shell/CI/classifier/plan/Canary/Caddy、P12 离线与 serve、Prism contract/generated client 双构建、Rust fmt/Clippy/全工作区测试、source/secret/crate-boundary/docs/contract/whitespace、质量工具、cargo-deny 与 RustSec）；另行 `web/prism` Vitest 157/157 PASS。同步补齐 P13-06B 进程 nonce 的 `gateway -> getrandom` 边界说明；P13-04/05/06A/B/C 仍只等待一次正式统一 phase Delivery Gate，不启动 P13-07，未调用 Provider、未改 production/server/traffic | `P13` `IN_PROGRESS`; local evidence: [`p13-phase-preflight-20260815.md`](reports/evidence/p13-phase-preflight-20260815.md) |
+| v1.256 | 2026-08-15 | P13-04/P13-05/P13-06A/B/C 在 exact pushed revision `a22f312801c8167bcd15300ca9b6fe700ac2f37d` 上完成唯一一次正式 Delivery Gate：Authorize、Fast（6m04s）、Full supply-chain（1m30s）和 Required 全部 PASS，run [31858904767](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31858904767)。上述后端切片统一收口为 `DONE_WITH_BOUNDARY`；Prism UI、Provider-specific egress/reauth、生产多账号与外部 Web 边界仍不在本 Gate。按计划启动 P13-07A：Provider scope 内 deterministic cost-aware/fill-first/least-loaded selector 与 Route Explain，保持首败、max_attempts、Config Version 和无跨 Provider fallback 边界 | `P13-07` `IN_PROGRESS`; formal evidence: [`p13-phase-preflight-20260815.md`](reports/evidence/p13-phase-preflight-20260815.md) |

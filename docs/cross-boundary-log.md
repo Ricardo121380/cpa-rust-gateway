@@ -185,6 +185,19 @@ generated contract/client. No formal UI is part of this backend slice.
 
 ---
 
+## 2026-08-15 · Codex · P13 phase gate closeout and P13-07A kickoff
+
+**Status:** P13-04/P13-05/P13-06A/B/C passed the single formal Delivery Gate run
+`31858904767` for exact revision `a22f312`; these backend slices are now `DONE_WITH_BOUNDARY`.
+
+**Next backend slice:** P13-07A starts a Provider-scoped deterministic routing selector and Route
+Explain projection. No Prism source, OpenAPI contract, generated client, or frontend route was
+changed in this kickoff. If the selector changes the Route Explain response shape, Codex must first
+sync `docs/openapi/management-v1.json` into Prism and add a new entry here; Claude Code should not
+hand-edit generated client output.
+
+---
+
 ## 2026-08-15 · Codex · P13 phase-gate compatibility checks aligned with Prism
 
 **Touched:**

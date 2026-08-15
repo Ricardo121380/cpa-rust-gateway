@@ -1,6 +1,6 @@
 # P13-06C report: Provider account operator actions and failure feedback
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Objective
 
@@ -31,8 +31,9 @@ registries as the only source of truth.
 
 ## Review verdict
 
-`PASS_WITH_BOUNDARY`: the backend slice is locally complete and review-clean, but it remains
-`LOCAL_PASS_PENDING_PHASE_GATE` until the unified P13 phase gate is run. The adapter mutates only
+`PASS_WITH_BOUNDARY`: the backend slice is complete and review-clean after the unified P13 phase
+Delivery Gate run
+[31858904767](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31858904767). The adapter mutates only
 the already shared in-process Health/Quota registries; it does not send Provider requests, acquire
 leases, refresh or reauthenticate credentials, publish a Config Version, or change production
 traffic. Failure feedback is compiled only from typed durable `AttemptEvent` classifications and
@@ -58,7 +59,8 @@ in this backend slice.
 - `cargo fmt --all -- --check`, `git diff --check`, OpenAPI JSON validation, docs/link/contract/plan/
   secret checks: passed.
 - Unified local phase preflight: [`p13-phase-preflight-20260815.md`](evidence/p13-phase-preflight-20260815.md)
-  records the authoritative Full gate (`43/43` steps PASS) and Prism Vitest (`157/157` PASS).
+  records the authoritative Full gate (`43/43` steps PASS), Prism Vitest (`157/157` PASS) and the
+  formal remote Delivery Gate (`31858904767` all required jobs PASS).
 
 The full `--all-targets` HTTP command was also checked; one run exposed an unrelated temporary-file
 collision in the pre-existing backup test and a `--test-threads` argument being forwarded to an

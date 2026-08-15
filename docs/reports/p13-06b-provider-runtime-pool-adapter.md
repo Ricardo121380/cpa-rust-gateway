@@ -2,9 +2,11 @@
 
 ## Status
 
-`LOCAL_PASS_PENDING_PHASE_GATE` — the runtime adapter, composition injection, focused local tests,
-and review are complete. The formal P13 Delivery Gate remains deferred to P13 closeout. This
-report intentionally does not claim a new live Provider, production, or server result.
+`DONE_WITH_BOUNDARY` — the runtime adapter, composition injection, focused local tests, review and
+formal P13 Delivery Gate run
+[31858904767](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31858904767) are
+complete. This report intentionally does not claim a new live Provider, production, or server
+result.
 
 ## Objective
 

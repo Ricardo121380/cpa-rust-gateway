@@ -59,6 +59,8 @@ local backend pass.
 
 ## Boundary
 
-P13-05 is `LOCAL_PASS_PENDING_PHASE_GATE`.  The expensive P13 Delivery Gate remains deferred to
-the P13 phase close.  No production, server, Provider, OAuth or GitHub Actions activity occurred,
-and the four existing untracked helper scripts remain outside this change.
+P13-05 is `DONE_WITH_BOUNDARY` after formal P13 Delivery Gate run
+[31858904767](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31858904767) passed for
+the exact pushed revision. No production, server, Provider, OAuth or account refresh activity
+occurred, and the four existing untracked helper scripts remain outside this change. The formal
+frontend and automatic materializer/Provider lifecycle work remain separate follow-up tasks.
