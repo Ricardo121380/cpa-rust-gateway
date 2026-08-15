@@ -4,20 +4,27 @@
 //! and sharded runtime health into one pre-first-semantic-event retry loop. It intentionally owns
 //! no HTTP client, Provider decoder, persistence handle, or downstream protocol writer.
 
-use std::{collections::BTreeSet, fmt, future::Future, pin::Pin, sync::Arc, time::Duration};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt,
+    future::Future,
+    pin::Pin,
+    sync::Arc,
+    time::Duration,
+};
 
 use gateway_core::{
     AttemptEvent, AttemptOutcome, AttemptRetryDecision, CredentialId, ErrorScope, GatewayError,
-    GatewayErrorCode, GatewayEvent, GatewayEventSink, NoopGatewayEventSink, RequestId,
+    GatewayErrorCode, GatewayEvent, GatewayEventSink, NoopGatewayEventSink, ProviderId, RequestId,
     RouteCandidateId, RouteId, TransparentRetryGate,
 };
 use gateway_upstream::CredentialLease;
 
 use crate::{
-    ProtocolFormat, QuotaConfidence, QuotaSnapshot, QuotaSource, RouteCredentialScheduler,
-    RuntimeHealthClock, RuntimeHealthKey, RuntimeHealthRegistry, RuntimeQuotaRecoveryProbe,
-    RuntimeQuotaRegistry, RuntimeQuotaTarget, SelectedRouteCredential, SnapshotRouteCandidate,
-    SystemRuntimeHealthClock,
+    ProtocolFormat, ProviderScopedRouteExplainInput, QuotaConfidence, QuotaSnapshot, QuotaSource,
+    RouteCredentialScheduler, RouteExplainInput, RuntimeHealthClock, RuntimeHealthKey,
+    RuntimeHealthRegistry, RuntimeQuotaRecoveryProbe, RuntimeQuotaRegistry, RuntimeQuotaTarget,
+    SelectedRouteCredential, SnapshotRoute, SnapshotRouteCandidate, SystemRuntimeHealthClock,
 };
 
 /// The finite estimated reset used for a 429 that does not declare retry-after information.
@@ -439,6 +446,7 @@ impl AttemptOrchestrator {
             None,
             route_id,
             &all_candidates,
+            false,
             driver,
             retry_gate,
             &event_sink,
@@ -476,6 +484,7 @@ impl AttemptOrchestrator {
             None,
             route_id,
             &matching_protocol,
+            false,
             driver,
             retry_gate,
             &event_sink,
@@ -509,6 +518,7 @@ impl AttemptOrchestrator {
             Some(request_id),
             route_id,
             &all_candidates,
+            false,
             driver,
             retry_gate,
             event_sink,
@@ -542,6 +552,7 @@ impl AttemptOrchestrator {
             Some(request_id),
             route_id,
             &matching_protocol,
+            false,
             driver,
             retry_gate,
             event_sink,
@@ -576,6 +587,7 @@ impl AttemptOrchestrator {
             Some(request_id),
             route_id,
             &is_candidate_eligible,
+            false,
             driver,
             retry_gate,
             event_sink,
@@ -583,12 +595,51 @@ impl AttemptOrchestrator {
         .await
     }
 
-    #[allow(clippy::too_many_lines)] // One retry state machine keeps lease, gate, and event ordering auditable.
+    /// Starts the bounded Attempt loop with the Provider-scoped selector as an advisory ranking.
+    ///
+    /// The route must have exactly one Provider after the caller's admission predicate is
+    /// applied. The selector is rebuilt for every pre-lease iteration and every ranked Candidate
+    /// is revalidated by the same scheduler immediately before its atomic lease. This keeps the
+    /// existing max-attempts, first-semantic-event, cancellation, quota-recovery, and retry state
+    /// machine as the sole owner of request execution while preventing an implicit cross-Provider
+    /// fallback when the public request has no Provider scope field.
+    ///
+    /// # Errors
+    ///
+    /// Returns the existing secret-free `CredentialUnavailable/Credential` error when no admitted
+    /// Candidate exists or more than one Provider is represented by the route.
+    pub async fn start_with_event_sink_provider_scoped_matching<D, F>(
+        &self,
+        request_id: &RequestId,
+        route_id: &RouteId,
+        is_candidate_eligible: F,
+        driver: &D,
+        retry_gate: &dyn TransparentRetryGate,
+        event_sink: &dyn GatewayEventSink,
+    ) -> Result<StartedAttempt<D::Output>, GatewayError>
+    where
+        D: AttemptDriver,
+        F: Fn(&SnapshotRouteCandidate) -> bool + Sync,
+    {
+        self.start_inner(
+            Some(request_id),
+            route_id,
+            &is_candidate_eligible,
+            true,
+            driver,
+            retry_gate,
+            event_sink,
+        )
+        .await
+    }
+
+    #[allow(clippy::too_many_arguments, clippy::too_many_lines)] // One retry state machine keeps lease, gate, and event ordering auditable.
     async fn start_inner<D>(
         &self,
         request_id: Option<&RequestId>,
         route_id: &RouteId,
         is_candidate_eligible: &(dyn Fn(&SnapshotRouteCandidate) -> bool + Sync),
+        provider_scoped: bool,
         driver: &D,
         retry_gate: &dyn TransparentRetryGate,
         event_sink: &dyn GatewayEventSink,
@@ -604,6 +655,11 @@ impl AttemptOrchestrator {
             .scheduler
             .route(route_id)
             .ok_or_else(credential_unavailable_error)?;
+        let provider_scope = if provider_scoped {
+            Some(unique_provider_scope(&route, is_candidate_eligible)?)
+        } else {
+            None
+        };
         let now_ms = self.clock.now_ms().map_err(|_| internal_error())?;
         let mut budget = RetryBudget::from_route(&route, now_ms)?;
         let mut exclusions = AttemptExclusionSet::new();
@@ -619,21 +675,33 @@ impl AttemptOrchestrator {
                 return Err(last_failure.unwrap_or_else(egress_unavailable_error));
             }
 
-            let (selection, quota_probe) = match self
-                .scheduler
-                .select_eligible_and_lease_with_runtime_health_quota_and_binding_at(
+            let selection_result = if let Some(provider_id) = provider_scope.as_ref() {
+                self.select_provider_scoped_and_lease(
                     route_id,
-                    &self.runtime_health,
-                    &self.runtime_quota,
-                    now_ms,
+                    &route,
+                    provider_id,
                     is_candidate_eligible,
-                    |candidate, credential_id| !exclusions.contains(candidate, credential_id),
-                ) {
+                    &exclusions,
+                    now_ms,
+                )
+            } else {
+                self.scheduler
+                    .select_eligible_and_lease_with_runtime_health_quota_and_binding_at(
+                        route_id,
+                        &self.runtime_health,
+                        &self.runtime_quota,
+                        now_ms,
+                        is_candidate_eligible,
+                        |candidate, credential_id| !exclusions.contains(candidate, credential_id),
+                    )
+            };
+            let (selection, quota_probe) = match selection_result {
                 Ok(selection) => (selection, None),
                 Err(error) => {
                     let recovery = budget.remaining_at(now_ms).ok().and_then(|remaining| {
                         self.begin_quota_recovery_probe_selection(
                             route_id,
+                            provider_scope.as_ref(),
                             is_candidate_eligible,
                             &exclusions,
                             now_ms,
@@ -806,6 +874,49 @@ impl AttemptOrchestrator {
         }
     }
 
+    fn select_provider_scoped_and_lease(
+        &self,
+        route_id: &RouteId,
+        route: &SnapshotRoute,
+        provider_id: &ProviderId,
+        is_candidate_eligible: &(dyn Fn(&SnapshotRouteCandidate) -> bool + Sync),
+        exclusions: &AttemptExclusionSet,
+        observed_at_ms: i64,
+    ) -> Result<SelectedRouteCredential, GatewayError> {
+        let admitted_candidate_ids = route
+            .candidates()
+            .iter()
+            .filter(|candidate| candidate.is_hard_eligible() && is_candidate_eligible(candidate))
+            .map(|candidate| candidate.id().clone())
+            .collect::<BTreeSet<_>>();
+        let input = ProviderScopedRouteExplainInput::try_new(
+            RouteExplainInput::new(route_id.clone(), observed_at_ms),
+            provider_id.clone(),
+            admitted_candidate_ids,
+            BTreeMap::new(),
+        )
+        .map_err(|_| credential_unavailable_error())?;
+        let explain = self
+            .scheduler
+            .explain_provider_scoped(
+                &input,
+                &self.runtime_health,
+                &self.runtime_quota,
+                exclusions,
+            )
+            .map_err(|_| credential_unavailable_error())?;
+        let lease_observed_at_ms = self.clock.now_ms().map_err(|_| internal_error())?;
+        self.scheduler.select_provider_scoped_and_lease_at(
+            route_id,
+            explain.provider_selection(),
+            &self.runtime_health,
+            &self.runtime_quota,
+            lease_observed_at_ms,
+            is_candidate_eligible,
+            |candidate, credential_id| !exclusions.contains(candidate, credential_id),
+        )
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn emit_attempt(
         &self,
@@ -912,6 +1023,7 @@ impl AttemptOrchestrator {
     fn begin_quota_recovery_probe_selection(
         &self,
         route_id: &RouteId,
+        provider_scope: Option<&ProviderId>,
         is_candidate_eligible: &(dyn Fn(&SnapshotRouteCandidate) -> bool + Sync),
         exclusions: &AttemptExclusionSet,
         now_ms: i64,
@@ -924,7 +1036,16 @@ impl AttemptOrchestrator {
                 &self.runtime_health,
                 &self.runtime_quota,
                 now_ms,
-                is_candidate_eligible,
+                |candidate| {
+                    is_candidate_eligible(candidate)
+                        && provider_scope.is_none_or(|provider_id| {
+                            candidate.is_hard_eligible()
+                                && ProviderId::try_new(candidate.upstream_id().as_str().to_owned())
+                                    .is_ok_and(|candidate_provider| {
+                                        &candidate_provider == provider_id
+                                    })
+                        })
+                },
                 |candidate, credential_id| !exclusions.contains(candidate, credential_id),
             )
             .ok()?;
@@ -1047,6 +1168,29 @@ fn candidate_matches_protocol(
                     | crate::SnapshotTransformMode::CanonicalBridge
             )
     })
+}
+
+fn unique_provider_scope(
+    route: &SnapshotRoute,
+    is_candidate_eligible: &(dyn Fn(&SnapshotRouteCandidate) -> bool + Sync),
+) -> Result<ProviderId, GatewayError> {
+    let providers = route
+        .candidates()
+        .iter()
+        .filter(|candidate| candidate.is_hard_eligible() && is_candidate_eligible(candidate))
+        .map(|candidate| {
+            ProviderId::try_new(candidate.upstream_id().as_str().to_owned())
+                .map_err(|_| credential_unavailable_error())
+        })
+        .collect::<Result<BTreeSet<_>, _>>()?;
+    let mut providers = providers.into_iter();
+    let Some(provider_id) = providers.next() else {
+        return Err(credential_unavailable_error());
+    };
+    if providers.next().is_some() {
+        return Err(credential_unavailable_error());
+    }
+    Ok(provider_id)
 }
 
 const fn credential_unavailable_error() -> GatewayError {
@@ -1226,6 +1370,227 @@ mod tests {
                 "candidate-anthropic".to_owned(),
                 "credential-anthropic".to_owned()
             )]
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn provider_scoped_retry_stays_within_one_provider() -> TestResult {
+        let (orchestrator, route_id, _health, _pools) = protocol_isolation_orchestrator()?;
+        let request_id = RequestId::try_new("provider-scoped-retry")?;
+        let driver = ScriptedDriver::new(vec![
+            DriverStep::Failure(AttemptFailure::Connection),
+            DriverStep::Success("same-provider-sibling".to_owned()),
+        ]);
+
+        let started = orchestrator
+            .start_with_event_sink_provider_scoped_matching(
+                &request_id,
+                &route_id,
+                |_| true,
+                &driver,
+                &TestRetryGate::default(),
+                &NoopGatewayEventSink,
+            )
+            .await?;
+        assert_eq!(started.output(), "same-provider-sibling");
+        assert_eq!(started.attempts_started(), 2);
+        assert_eq!(
+            driver.attempts()?,
+            vec![
+                (
+                    "candidate-anthropic".to_owned(),
+                    "credential-anthropic".to_owned()
+                ),
+                (
+                    "candidate-responses".to_owned(),
+                    "credential-responses".to_owned()
+                )
+            ]
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn provider_scoped_entrypoint_fails_closed_for_ambiguous_routes() -> TestResult {
+        let (orchestrator, route_id, _clock, _health, pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a"), ("candidate-b", "endpoint-b")],
+            vec![
+                ("endpoint-a", vec!["credential-a"]),
+                ("endpoint-b", vec!["credential-b"]),
+            ],
+            3,
+            100,
+        )?;
+        let request_id = RequestId::try_new("provider-scoped-ambiguous")?;
+        let driver = ScriptedDriver::new(vec![DriverStep::Success("must-not-start".to_owned())]);
+
+        let error = expected_error(
+            orchestrator
+                .start_with_event_sink_provider_scoped_matching(
+                    &request_id,
+                    &route_id,
+                    |_| true,
+                    &driver,
+                    &TestRetryGate::default(),
+                    &NoopGatewayEventSink,
+                )
+                .await,
+            "provider-scoped serving must reject an ambiguous route before leasing",
+        )?;
+        assert_eq!(error.code(), GatewayErrorCode::CredentialUnavailable);
+        assert!(driver.attempts()?.is_empty());
+        for (endpoint, credential) in [
+            ("endpoint-a", "credential-a"),
+            ("endpoint-b", "credential-b"),
+        ] {
+            let pool = pools
+                .pool(&EndpointId::try_new(endpoint)?)
+                .ok_or("missing ambiguous-route pool")?;
+            assert_eq!(
+                pool.active_lease_count(&CredentialId::try_new(credential)?),
+                Some(0)
+            );
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn provider_scoped_quota_recovery_never_leases_a_foreign_hard_ineligible_candidate()
+    -> TestResult {
+        let route_id = RouteId::try_new("route-provider-recovery")?;
+        let public_model_id = PublicModelId::try_new("public-model-provider-recovery")?;
+        let snapshot = Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
+            SnapshotVersion::try_new("version-provider-recovery")?,
+            vec![SnapshotPublicModel::new(
+                public_model_id.clone(),
+                "provider-recovery".to_owned(),
+                "Provider Recovery".to_owned(),
+                CapabilitySet::empty(),
+                route_id.clone(),
+            )],
+            Vec::new(),
+            vec![SnapshotRoute::new(
+                route_id.clone(),
+                public_model_id,
+                SnapshotRoutePolicy::RoundRobin,
+                2,
+                100,
+                vec![
+                    candidate("candidate-a", "endpoint-a")?,
+                    candidate_with_catalog_state(
+                        "candidate-b",
+                        "endpoint-b",
+                        CatalogModelState::Expired,
+                    )?,
+                ],
+            )],
+            Vec::new(),
+            Vec::new(),
+        ))?);
+        let pools = Arc::new(EndpointCredentialPools::try_new(vec![
+            endpoint_pool("endpoint-a", vec!["credential-a"])?,
+            endpoint_pool("endpoint-b", vec!["credential-b"])?,
+        ])?);
+        let scheduler = Arc::new(RouteCredentialScheduler::new(snapshot, Arc::clone(&pools)));
+        let clock = Arc::new(FixedRuntimeHealthClock::new(100));
+        let health_clock: Arc<dyn RuntimeHealthClock> = clock.clone();
+        let health = Arc::new(RuntimeHealthRegistry::with_clock(Arc::clone(&health_clock)));
+        let orchestrator = AttemptOrchestrator::with_clock_and_config(
+            scheduler,
+            Arc::clone(&health),
+            health_clock,
+            AttemptOrchestratorConfig::try_new(
+                Duration::from_millis(20),
+                Duration::from_millis(10),
+            )?,
+        );
+        health.cool_down_until(
+            crate::RuntimeHealthKey::endpoint(EndpointId::try_new("endpoint-a")?),
+            200,
+        )?;
+        let foreign_target = crate::RuntimeQuotaTarget::endpoint_credential(
+            EndpointId::try_new("endpoint-b")?,
+            CredentialId::try_new("credential-b")?,
+        );
+        orchestrator.runtime_quota.record_rate_limited(
+            foreign_target,
+            100,
+            Some(Duration::from_millis(20)),
+            Duration::from_millis(20),
+        )?;
+        clock.advance_ms(20);
+        let driver = ScriptedDriver::new(vec![DriverStep::Success("must-not-start".to_owned())]);
+
+        let error = expected_error(
+            orchestrator
+                .start_with_event_sink_provider_scoped_matching(
+                    &RequestId::try_new("provider-scoped-recovery")?,
+                    &route_id,
+                    |_| true,
+                    &driver,
+                    &TestRetryGate::default(),
+                    &NoopGatewayEventSink,
+                )
+                .await,
+            "quota recovery crossed the inferred Provider scope",
+        )?;
+        assert_eq!(error.code(), GatewayErrorCode::CredentialUnavailable);
+        assert!(driver.attempts()?.is_empty());
+        for (endpoint, credential) in [
+            ("endpoint-a", "credential-a"),
+            ("endpoint-b", "credential-b"),
+        ] {
+            assert_eq!(
+                pools
+                    .pool(&EndpointId::try_new(endpoint)?)
+                    .and_then(|pool| {
+                        pool.active_lease_count(&CredentialId::try_new(credential).ok()?)
+                    }),
+                Some(0)
+            );
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn provider_scoped_quota_recovery_keeps_the_due_probe_inside_its_provider() -> TestResult
+    {
+        let (orchestrator, route_id, clock, _health, _pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a")],
+            vec![("endpoint-a", vec!["credential-a"])],
+            2,
+            100,
+        )?;
+        let target = crate::RuntimeQuotaTarget::endpoint_credential(
+            EndpointId::try_new("endpoint-a")?,
+            CredentialId::try_new("credential-a")?,
+        );
+        orchestrator.runtime_quota.record_rate_limited(
+            target.clone(),
+            100,
+            Some(Duration::from_millis(20)),
+            Duration::from_millis(20),
+        )?;
+        clock.advance_ms(20);
+        let driver = ScriptedDriver::new(vec![DriverStep::Success("recovered".to_owned())]);
+
+        let started = orchestrator
+            .start_with_event_sink_provider_scoped_matching(
+                &RequestId::try_new("provider-scoped-recovery-success")?,
+                &route_id,
+                |_| true,
+                &driver,
+                &TestRetryGate::default(),
+                &NoopGatewayEventSink,
+            )
+            .await?;
+        assert_eq!(started.output(), "recovered");
+        assert_eq!(started.attempts_started(), 1);
+        assert_eq!(driver.attempts()?.len(), 1);
+        assert_eq!(
+            orchestrator.runtime_quota.availability(&target)?,
+            crate::RuntimeQuotaAvailability::Available
         );
         Ok(())
     }
@@ -2187,6 +2552,26 @@ mod tests {
             weight: 1,
             effective_capabilities: CapabilitySet::empty(),
             catalog_admission: SnapshotCatalogAdmission::Listed(CatalogModelState::Fresh),
+            active_binding_count: 1,
+        }))
+    }
+
+    fn candidate_with_catalog_state(
+        candidate_id: &str,
+        endpoint_id: &str,
+        catalog_state: CatalogModelState,
+    ) -> Result<SnapshotRouteCandidate, Box<dyn Error>> {
+        Ok(SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
+            id: RouteCandidateId::try_new(candidate_id)?,
+            endpoint_id: EndpointId::try_new(endpoint_id)?,
+            upstream_id: UpstreamId::try_new(format!("upstream-{endpoint_id}"))?,
+            endpoint_api_format: "openai/responses".to_owned(),
+            upstream_model: "upstream-model".to_owned(),
+            transform_mode: SnapshotTransformMode::Canonical,
+            priority: 0,
+            weight: 1,
+            effective_capabilities: CapabilitySet::empty(),
+            catalog_admission: SnapshotCatalogAdmission::Listed(catalog_state),
             active_binding_count: 1,
         }))
     }

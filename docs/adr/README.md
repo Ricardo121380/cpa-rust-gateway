@@ -112,3 +112,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0083 Provider account-pool operator actions and failure feedback](ADR-0083-provider-account-operator-actions.md) — `P13-06C`（Accepted；正式 Gate 已通过）
 - [ADR-0084 Provider-scoped deterministic routing selector](ADR-0084-provider-scoped-deterministic-routing-selector.md) — `P13-07A`（Accepted；本地实现与 review，phase gate pending）
 - [ADR-0085 Provider-scoped Route Explain composition](ADR-0085-provider-scoped-route-explain-composition.md) — `P13-07B`（Accepted；本地实现与 review，phase gate pending）
+- [ADR-0086 Provider-scoped serving lease revalidation](ADR-0086-provider-scoped-serving-lease-revalidation.md) — `P13-07C`（Accepted；本地实现与 review 完成，等待 P13 phase gate）

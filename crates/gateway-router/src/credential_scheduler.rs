@@ -8,14 +8,17 @@
 
 use std::sync::Arc;
 
-use gateway_core::{CredentialId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode, RouteId};
+use gateway_core::{
+    CredentialId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode, ProviderId, RouteId,
+};
 use gateway_upstream::{CredentialLease, EndpointCredentialPools};
 
 use crate::{
     AttemptExclusionSet, ProviderScopedRouteExplainError, ProviderScopedRouteExplainInput,
-    ProviderScopedRouteExplainSnapshot, RouteCandidateScheduler, RouteExplainError,
-    RouteExplainInput, RouteExplainSnapshot, RouteSnapshot, RuntimeHealthRegistry,
-    RuntimeQuotaAvailability, RuntimeQuotaRegistry, RuntimeQuotaTarget, SnapshotRouteCandidate,
+    ProviderScopedRouteExplainSnapshot, ProviderScopedSelection, RouteCandidateScheduler,
+    RouteExplainError, RouteExplainInput, RouteExplainSnapshot, RouteSnapshot,
+    RuntimeHealthRegistry, RuntimeQuotaAvailability, RuntimeQuotaRegistry, RuntimeQuotaTarget,
+    SnapshotRouteCandidate,
 };
 
 /// A process-local two-stage scheduler for one immutable Route Snapshot and matching pools.
@@ -333,6 +336,103 @@ impl RouteCredentialScheduler {
             (Some(candidate), Some(lease)) => Ok(SelectedRouteCredential { candidate, lease }),
             _ => Err(credential_unavailable_error()),
         }
+    }
+
+    /// Revalidates a read-only Provider-scoped ranking and acquires one exact request lease.
+    ///
+    /// The [`ProviderScopedSelection`] is advisory: its aggregate capacity, Health, Quota, and
+    /// expiry observations are deliberately not trusted for serving. Every ranked Candidate is
+    /// resolved again from this scheduler's immutable Route Snapshot, checked against the exact
+    /// Provider scope and caller admission predicate, and then rechecked against the shared live
+    /// Health/Quota registries and Credential pool immediately before the atomic lease attempt.
+    /// A saturation/expiry/state race simply advances to the next already-ranked Candidate in the
+    /// same Provider; it never consumes an Attempt budget slot and never falls through to another
+    /// Provider.
+    ///
+    /// # Errors
+    ///
+    /// Returns the existing secret-free `CredentialUnavailable/Credential` result when the Route
+    /// or ranked Candidate is no longer present, the scope no longer matches, or no ranked
+    /// Candidate can pass fresh admission and acquire a live Credential lease.
+    #[allow(clippy::too_many_arguments)]
+    pub fn select_provider_scoped_and_lease_at<FCandidate, FBinding>(
+        &self,
+        route_id: &RouteId,
+        selection: &ProviderScopedSelection,
+        runtime_health: &RuntimeHealthRegistry,
+        runtime_quota: &RuntimeQuotaRegistry,
+        observed_at_ms: i64,
+        mut is_candidate_eligible: FCandidate,
+        mut is_binding_eligible: FBinding,
+    ) -> Result<SelectedRouteCredential, GatewayError>
+    where
+        FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
+        FBinding: FnMut(&SnapshotRouteCandidate, &CredentialId) -> bool,
+    {
+        let route = self
+            .candidates
+            .route(route_id)
+            .ok_or_else(credential_unavailable_error)?;
+        for decision in selection
+            .decisions()
+            .iter()
+            .filter(|decision| decision.is_eligible())
+        {
+            let ranked = decision.candidate();
+            let Some(candidate) = route
+                .candidates()
+                .iter()
+                .find(|candidate| candidate.id() == ranked.candidate_id())
+            else {
+                continue;
+            };
+            let Ok(candidate_provider) =
+                ProviderId::try_new(candidate.upstream_id().as_str().to_owned())
+            else {
+                continue;
+            };
+            if ranked.provider_id() != selection.provider_id()
+                || candidate_provider != *selection.provider_id()
+                || ranked.channel_id() != candidate.endpoint_id()
+                || !candidate.is_hard_eligible()
+                || !is_candidate_eligible(candidate)
+                || !runtime_health.endpoint_is_available(candidate.endpoint_id())
+            {
+                continue;
+            }
+            let Some(lease) = self.credential_pools.try_lease_eligible_at(
+                candidate.endpoint_id(),
+                observed_at_ms,
+                |credential_id| {
+                    is_binding_eligible(candidate, credential_id)
+                        && runtime_health.endpoint_credential_is_available(
+                            candidate.endpoint_id(),
+                            credential_id,
+                        )
+                        && runtime_health.endpoint_credential_model_is_available(
+                            candidate.endpoint_id(),
+                            credential_id,
+                            candidate.upstream_model(),
+                        )
+                        && runtime_quota.endpoint_credential_is_available(
+                            candidate.endpoint_id(),
+                            credential_id,
+                        )
+                        && runtime_quota.endpoint_credential_model_is_available(
+                            candidate.endpoint_id(),
+                            credential_id,
+                            candidate.upstream_model(),
+                        )
+                },
+            ) else {
+                continue;
+            };
+            return Ok(SelectedRouteCredential {
+                candidate: candidate.clone(),
+                lease,
+            });
+        }
+        Err(credential_unavailable_error())
     }
 
     /// Selects one binding whose only Quota blocker is a due controlled recovery.

@@ -1191,8 +1191,17 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
         let route_id = execution.route_id().cloned();
         let mode = execution.mode();
         let retry_gate = Arc::clone(execution.retry_gate());
+        let registry = Arc::clone(&self.registry);
+        let snapshot_version = self.snapshot_version.clone();
 
         Box::pin(async move {
+            // A management publication may replace the active Config Version while this request
+            // is waiting for its first executor poll. Recheck at the request-start boundary before
+            // selector/lease work. A publication after this check follows the existing pinned
+            // in-flight Snapshot semantics rather than trying to revoke the request atomically.
+            if registry.load().version() != &snapshot_version {
+                return Err(stale_runtime_error());
+            }
             let route_id = route_id.ok_or_else(route_not_found_error)?;
             let driver = EndpointAttemptDriver {
                 request_id: context.request_id().clone(),
@@ -1211,7 +1220,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             // then fails non-retryably after the lease was taken — a hard failure where the
             // filter would simply have chosen a different Candidate before the first byte.
             let started = orchestrator
-                .start_with_event_sink_matching(
+                .start_with_event_sink_provider_scoped_matching(
                     context.request_id(),
                     &route_id,
                     |candidate| driver.project_candidate(candidate).is_ok(),
@@ -5743,9 +5752,9 @@ mod tests {
         P12_MAX_TOTAL_BINDING_CONCURRENCY, P12_NON_STREAMING_TOTAL_TIMEOUT,
         P12_STREAMING_IDLE_TIMEOUT, P12_STREAMING_PROGRESS_TIMEOUT, P12_STREAMING_TOTAL_TIMEOUT,
         P12_STREAMING_TTFB_TIMEOUT, P12AttemptStageStore, P12EndpointAdapterFactory,
-        P12FanoutEventSink, P12ResponseUsageProjection, P12TransportProfiles,
-        RuntimeCompositionError, SnapshotManagementRuntimeFacade, append_response_chunk,
-        build_data_plane_composition, build_grok_build_responses_adapter,
+        P12FanoutEventSink, P12ResponseUsageProjection, P12RoutedResponsesExecutor,
+        P12TransportProfiles, RuntimeCompositionError, SnapshotManagementRuntimeFacade,
+        append_response_chunk, build_data_plane_composition, build_grok_build_responses_adapter,
         build_grok_console_responses_adapter, build_grok_official_responses_adapter,
         build_grok_web_responses_adapter, build_kiro_messages_adapter,
         build_openai_responses_adapter, classify_anthropic_response_failure,
@@ -6985,6 +6994,77 @@ mod tests {
             Some(ManagementRequestAttemptStage::Decoder)
         );
         peer.await??;
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn routed_executor_rejects_ambiguous_provider_scope_before_driver_start()
+    -> Result<(), Box<dyn Error>> {
+        let directory = TemporaryDirectory::new()?;
+        let database = directory.join("control.sqlite3");
+        let secret_store = test_secret_store()?;
+        let draft_configuration =
+            p12_widened_configuration(&secret_store, &p12_production_network())?;
+        let config_version_id = draft_configuration.version.id.clone();
+        let mut repository = SqliteControlPlaneRepository::open(&database)?;
+        repository.write_configuration(&draft_configuration)?;
+        repository.activate_version(&config_version_id)?;
+        let configuration = repository
+            .load_active_configuration()?
+            .ok_or("active configuration missing")?;
+        drop(repository);
+        let lifecycle = ManagementService::bootstrap(
+            SqliteControlPlaneRepository::open(&database)?,
+            deployment_route_compiler(&database)?,
+            ManagementActor::try_new("p13-07c-runtime-scope-test")?,
+        )?;
+        let attempt_stages = Arc::new(P12AttemptStageStore::new());
+        let event_sink: Arc<dyn GatewayEventSink> =
+            Arc::new(P12AttemptEventSink::new(Arc::clone(&attempt_stages)));
+        let runtime_health = Arc::new(RuntimeHealthRegistry::new());
+        let runtime_quota = Arc::new(RuntimeQuotaRegistry::new());
+        let (executor, _account_pools, scheduler) = P12RoutedResponsesExecutor::try_new(
+            &database,
+            &configuration,
+            &secret_store,
+            Arc::clone(lifecycle.registry()),
+            Arc::clone(&attempt_stages),
+            event_sink,
+            runtime_health,
+            runtime_quota,
+            None,
+            None,
+            8191,
+        )?;
+        let decoded = protocol_openai_responses::decode_request(
+            r#"{"model":"primary","input":"must not reach a provider","stream":false}"#,
+        )?;
+        let request_id = RequestId::try_new("p13-07c-ambiguous-runtime")?;
+        let execution = ResponsesExecution::new(
+            RequestContext::new(request_id),
+            decoded.request,
+            Some(RouteId::try_new("p12-widened-route-primary")?),
+            ResponsesResponseMode::NonStreaming,
+            Arc::new(NeverCancelledGate),
+        );
+        let error = executor
+            .execute_routed(execution)
+            .await
+            .err()
+            .ok_or("ambiguous provider route unexpectedly started")?;
+        assert_eq!(error.code(), GatewayErrorCode::CredentialUnavailable);
+        assert_eq!(error.scope(), ErrorScope::Credential);
+        assert!(
+            scheduler
+                .route(&RouteId::try_new("p12-widened-route-primary")?)
+                .is_some()
+        );
+        assert_eq!(
+            attempt_stages
+                .list_request_attempts(&RequestId::try_new("p13-07c-ambiguous-runtime")?)
+                .map_err(|_| "attempt ledger unexpectedly unavailable")?,
+            Vec::new()
+        );
         Ok(())
     }
 

@@ -1274,6 +1274,258 @@ mod tests {
     }
 
     #[test]
+    fn provider_selection_revalidates_capacity_before_the_exact_lease() -> TestResult {
+        let (scheduler, route_id, pools) = scheduler_from_candidates(
+            vec![
+                candidate_for_provider("candidate-a", "endpoint-a", "provider-a", "model-a")?,
+                candidate_for_provider("candidate-b", "endpoint-b", "provider-a", "model-b")?,
+            ],
+            vec![
+                ("endpoint-a", vec![("credential-a", 0, 1, 1)]),
+                ("endpoint-b", vec![("credential-b", 0, 1, 1)]),
+            ],
+            SnapshotRoutePolicy::RoundRobin,
+        )?;
+        let health = RuntimeHealthRegistry::new();
+        let quota = RuntimeQuotaRegistry::new();
+        let input = ProviderScopedRouteExplainInput::try_new(
+            RouteExplainInput::new(route_id.clone(), 100),
+            ProviderId::try_new("provider-a")?,
+            ["candidate-a", "candidate-b"]
+                .into_iter()
+                .map(RouteCandidateId::try_new)
+                .collect::<Result<_, _>>()?,
+            BTreeMap::new(),
+        )?;
+        let explain = scheduler.explain_provider_scoped(
+            &input,
+            &health,
+            &quota,
+            &AttemptExclusionSet::new(),
+        )?;
+        assert_eq!(
+            explain
+                .provider_selection()
+                .selected_candidate_id()
+                .map(RouteCandidateId::as_str),
+            Some("candidate-a")
+        );
+
+        // The read-only selector saw A as available. Saturate it before the real lease to model
+        // the normal concurrent-request race; the exact helper must skip A and use ranked sibling
+        // B without creating a second Attempt or crossing Provider scope.
+        let held = pools
+            .pool(&EndpointId::try_new("endpoint-a")?)
+            .and_then(|pool| pool.try_lease())
+            .ok_or("expected candidate-a lease to be held")?;
+        let selected = scheduler.select_provider_scoped_and_lease_at(
+            &route_id,
+            explain.provider_selection(),
+            &health,
+            &quota,
+            100,
+            |_| true,
+            |_, _| true,
+        )?;
+        assert_eq!(selected.candidate().id().as_str(), "candidate-b");
+        assert_eq!(selected.lease().credential_id().as_str(), "credential-b");
+        drop(selected);
+        drop(held);
+        Ok(())
+    }
+
+    #[test]
+    fn provider_selection_revalidates_expiry_before_leasing() -> TestResult {
+        let route_id = RouteId::try_new("route-expiry-race")?;
+        let (scheduler, pools) = scheduler_from_parts(
+            route_id.clone(),
+            vec![candidate_for_provider(
+                "candidate-a",
+                "endpoint-a",
+                "provider-a",
+                "model-a",
+            )?],
+            vec![endpoint_pool_with_expiry(
+                "endpoint-a",
+                vec![("credential-a", 0, 1, 1, Some(200))],
+            )?],
+            SnapshotRoutePolicy::RoundRobin,
+        )?;
+        let clock = Arc::new(FixedClock::new(100));
+        let health = RuntimeHealthRegistry::with_clock(clock.clone());
+        let quota = RuntimeQuotaRegistry::with_clock(clock);
+        let input = ProviderScopedRouteExplainInput::try_new(
+            RouteExplainInput::new(route_id.clone(), 100),
+            ProviderId::try_new("provider-a")?,
+            [RouteCandidateId::try_new("candidate-a")?]
+                .into_iter()
+                .collect(),
+            BTreeMap::new(),
+        )?;
+        let explain = scheduler.explain_provider_scoped(
+            &input,
+            &health,
+            &quota,
+            &AttemptExclusionSet::new(),
+        )?;
+        assert_eq!(
+            explain.provider_selection().selected_candidate_id(),
+            Some(&RouteCandidateId::try_new("candidate-a")?)
+        );
+
+        let error = scheduler
+            .select_provider_scoped_and_lease_at(
+                &route_id,
+                explain.provider_selection(),
+                &health,
+                &quota,
+                200,
+                |_| true,
+                |_, _| true,
+            )
+            .err()
+            .ok_or("expired credential unexpectedly leased")?;
+        assert_eq!(
+            error.code(),
+            gateway_core::GatewayErrorCode::CredentialUnavailable
+        );
+        assert_eq!(
+            pools
+                .pool(&EndpointId::try_new("endpoint-a")?)
+                .and_then(|pool| {
+                    pool.active_lease_count(&CredentialId::try_new("credential-a").ok()?)
+                }),
+            Some(0)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn provider_selection_revalidates_health_before_leasing() -> TestResult {
+        let (scheduler, route_id, pools) = scheduler_from_candidates(
+            vec![candidate_for_provider(
+                "candidate-a",
+                "endpoint-a",
+                "provider-a",
+                "model-a",
+            )?],
+            vec![("endpoint-a", vec![("credential-a", 0, 1, 1)])],
+            SnapshotRoutePolicy::RoundRobin,
+        )?;
+        let clock = Arc::new(FixedClock::new(100));
+        let health = RuntimeHealthRegistry::with_clock(clock.clone());
+        let quota = RuntimeQuotaRegistry::with_clock(clock);
+        let input = ProviderScopedRouteExplainInput::try_new(
+            RouteExplainInput::new(route_id.clone(), 100),
+            ProviderId::try_new("provider-a")?,
+            [RouteCandidateId::try_new("candidate-a")?]
+                .into_iter()
+                .collect(),
+            BTreeMap::new(),
+        )?;
+        let explain = scheduler.explain_provider_scoped(
+            &input,
+            &health,
+            &quota,
+            &AttemptExclusionSet::new(),
+        )?;
+        health.cool_down_until(
+            RuntimeHealthKey::endpoint(EndpointId::try_new("endpoint-a")?),
+            300,
+        )?;
+        let error = scheduler
+            .select_provider_scoped_and_lease_at(
+                &route_id,
+                explain.provider_selection(),
+                &health,
+                &quota,
+                100,
+                |_| true,
+                |_, _| true,
+            )
+            .err()
+            .ok_or("cooled endpoint unexpectedly leased")?;
+        assert_eq!(
+            error.code(),
+            gateway_core::GatewayErrorCode::CredentialUnavailable
+        );
+        assert_eq!(
+            pools
+                .pool(&EndpointId::try_new("endpoint-a")?)
+                .and_then(|pool| {
+                    pool.active_lease_count(&CredentialId::try_new("credential-a").ok()?)
+                }),
+            Some(0)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn provider_selection_revalidates_quota_before_leasing() -> TestResult {
+        let (scheduler, route_id, pools) = scheduler_from_candidates(
+            vec![candidate_for_provider(
+                "candidate-a",
+                "endpoint-a",
+                "provider-a",
+                "model-a",
+            )?],
+            vec![("endpoint-a", vec![("credential-a", 0, 1, 1)])],
+            SnapshotRoutePolicy::RoundRobin,
+        )?;
+        let clock = Arc::new(FixedClock::new(100));
+        let health = RuntimeHealthRegistry::with_clock(clock.clone());
+        let quota = RuntimeQuotaRegistry::with_clock(clock);
+        let input = ProviderScopedRouteExplainInput::try_new(
+            RouteExplainInput::new(route_id.clone(), 100),
+            ProviderId::try_new("provider-a")?,
+            [RouteCandidateId::try_new("candidate-a")?]
+                .into_iter()
+                .collect(),
+            BTreeMap::new(),
+        )?;
+        let explain = scheduler.explain_provider_scoped(
+            &input,
+            &health,
+            &quota,
+            &AttemptExclusionSet::new(),
+        )?;
+        quota.record_rate_limited(
+            RuntimeQuotaTarget::endpoint_credential(
+                EndpointId::try_new("endpoint-a")?,
+                CredentialId::try_new("credential-a")?,
+            ),
+            100,
+            Some(std::time::Duration::from_millis(200)),
+            std::time::Duration::from_millis(200),
+        )?;
+        let error = scheduler
+            .select_provider_scoped_and_lease_at(
+                &route_id,
+                explain.provider_selection(),
+                &health,
+                &quota,
+                100,
+                |_| true,
+                |_, _| true,
+            )
+            .err()
+            .ok_or("quota-blocked credential unexpectedly leased")?;
+        assert_eq!(
+            error.code(),
+            gateway_core::GatewayErrorCode::CredentialUnavailable
+        );
+        assert_eq!(
+            pools
+                .pool(&EndpointId::try_new("endpoint-a")?)
+                .and_then(|pool| {
+                    pool.active_lease_count(&CredentialId::try_new("credential-a").ok()?)
+                }),
+            Some(0)
+        );
+        Ok(())
+    }
+
+    #[test]
     fn expired_requested_provider_never_falls_back_to_a_foreign_provider() -> TestResult {
         let route_id = RouteId::try_new("route-a")?;
         let candidates = vec![
