@@ -57,6 +57,8 @@ in this backend slice.
 - Prism `check`, `type-check`, and `build`: passed; generated client was not hand-edited.
 - `cargo fmt --all -- --check`, `git diff --check`, OpenAPI JSON validation, docs/link/contract/plan/
   secret checks: passed.
+- Unified local phase preflight: [`p13-phase-preflight-20260815.md`](evidence/p13-phase-preflight-20260815.md)
+  records the authoritative Full gate (`43/43` steps PASS) and Prism Vitest (`157/157` PASS).
 
 The full `--all-targets` HTTP command was also checked; one run exposed an unrelated temporary-file
 collision in the pre-existing backup test and a `--test-threads` argument being forwarded to an

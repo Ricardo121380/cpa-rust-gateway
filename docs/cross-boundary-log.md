@@ -182,3 +182,22 @@ should add the Prism state/UI integration for `applyProviderAccountPoolAction` a
 `listProviderAccountFailures`, including explicit confirmation for cooldown/recovery, safe display
 of the closed error classification, pagination, and 409 stale-target handling. Do not hand-edit the
 generated contract/client. No formal UI is part of this backend slice.
+
+---
+
+## 2026-08-15 · Codex · P13 phase-gate compatibility checks aligned with Prism
+
+**Touched:**
+- `scripts/check-management-spa.mjs`
+- `scripts/test-p12-02-serve.sh`
+
+**Why:** the repository-wide gate still invoked the deleted `web/admin-ui` checker and asserted
+the pre-Prism document title. The root compatibility command now validates the authoritative
+OpenAPI contract against Prism's vendored copy and delegates source/CSP/generated-client and
+reproducible-build checks to `web/prism/scripts/check.mjs`. The serve envelope test now checks the
+current `Prism · Gateway Management` title without a `curl | rg -q` pipefail/SIGPIPE false
+failure.
+
+**Other side:** FYI — no `web/prism/**` source, generated client, or contract file was edited;
+no frontend action is required. The existing P13-06C wrappers remain available for the planned
+Prism runtime-page/operator-action integration.

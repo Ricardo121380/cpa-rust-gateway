@@ -91,7 +91,9 @@ gateway-core
   `protocol-openai-responses` 的 Canonical 请求类型，但绝不引用其它 Provider 私有 crate；
   `time` 仅在 `CR-P6-03-008` 的 bytes-only OAuth 来源适配中严格解析 RFC3339 绝对过期时间，
   不读取时钟、不创建网络 I/O，也不改变 P6-01 相对 `expires_in` 行为。
-  `flate2` 仅用于 1 MiB 上限内的 gzip 解码，`getrandom` 仅生成不持久化、不诊断的进程/请求关联值；
+  `flate2` 仅用于 1 MiB 上限内的 gzip 解码，`getrandom` 仅生成不持久化、不诊断的进程/请求关联值；部署组合根
+  `gateway` 额外使用它生成 Provider account-pool 管理快照的进程实例 nonce，用于拒绝重启后复用旧
+  cursor；该值不进入诊断、日志、凭证或持久化状态。
   `tokio` 仅为 ignored 的授权单探针测试目标提供受限异步驱动。P8-05 的 `gateway-router` 运行时
   依赖仅接收已脱敏的 `RuntimeQuotaRegistry` 和 exact-target quota 类型，以将 Official Header 观察
   写入 Router-owned 状态；它不选择 Route/Public Model/凭据、不开 HTTP、不读取 Build/Web 状态，且

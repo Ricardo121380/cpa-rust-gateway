@@ -81,7 +81,11 @@ curl --noproxy '*' --silent --show-error --fail --max-time 3 \
   -H "X-Management-Key: $fixture_mgmt" \
   "http://127.0.0.1:$management_port/admin/backups/preflight" \
   | rg -Fx "{\"schema_version\":$current_schema,\"secret_key_required\":true}"
-curl --noproxy '*' --silent --show-error --fail --max-time 3 \
-  "http://127.0.0.1:$management_port/admin-ui/" | rg -q '<title>CPA Rust Gateway'
+management_ui_html="$(curl --noproxy '*' --silent --show-error --fail --max-time 3 \
+  "http://127.0.0.1:$management_port/admin-ui/")"
+if [[ "$management_ui_html" != *'<title>Prism · Gateway Management'* ]]; then
+  printf 'p12-02 serve test: embedded management UI title is missing\n' >&2
+  exit 1
+fi
 
 printf 'p12-02 serve test: loopback readiness, listener isolation and protected management passed\n'

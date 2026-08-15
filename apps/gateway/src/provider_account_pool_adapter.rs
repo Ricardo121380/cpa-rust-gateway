@@ -941,12 +941,26 @@ mod tests {
         }
     }
 
+    fn must<T, E>(value: Result<T, E>) -> T {
+        match value {
+            Ok(value) => value,
+            Err(_) => std::process::abort(),
+        }
+    }
+
+    fn must_some<T>(value: Option<T>) -> T {
+        match value {
+            Some(value) => value,
+            None => std::process::abort(),
+        }
+    }
+
     fn descriptor(provider: &str, channel: &str, account: &str) -> ProviderAccountDescriptor {
         ProviderAccountDescriptor {
             source: ProviderAccountDescriptorSource::Ordinary,
-            provider_id: ProviderId::try_new(provider).expect("provider"),
-            channel_id: EndpointId::try_new(channel).expect("channel"),
-            account_id: CredentialId::try_new(account).expect("account"),
+            provider_id: must(ProviderId::try_new(provider)),
+            channel_id: must(EndpointId::try_new(channel)),
+            account_id: must(CredentialId::try_new(account)),
             account_kind: "bearer".to_owned(),
             auth_status: ProviderAccountAuthStatus::Active,
             runtime_status_hint: ProviderAccountRuntimeStatus::Available,
@@ -988,7 +1002,9 @@ mod tests {
     }
 
     fn query(limit: usize) -> ProviderAccountPoolQuery {
-        ProviderAccountPoolQuery::try_new(None, None, None, None, None, limit, None).expect("query")
+        must(ProviderAccountPoolQuery::try_new(
+            None, None, None, None, None, limit, None,
+        ))
     }
 
     fn assert_runtime_status(
@@ -1063,9 +1079,8 @@ mod tests {
         )?;
         health.mark_credential_unauthorized(endpoint.clone(), unauthorized.account_id.clone())?;
         health.mark_credential_unauthorized(endpoint.clone(), recovery.account_id.clone())?;
-        let _ticket = health
-            .begin_account_recovery(&endpoint, &recovery.account_id, 500)?
-            .expect("recovery ticket");
+        let _ticket =
+            must_some(health.begin_account_recovery(&endpoint, &recovery.account_id, 500)?);
         let quota_registry = Arc::new(RuntimeQuotaRegistry::with_clock(clock.clone()));
         quota_registry.record_rate_limited(
             RuntimeQuotaTarget::endpoint_credential(endpoint.clone(), quota.account_id.clone()),
@@ -1110,11 +1125,8 @@ mod tests {
         first.max_concurrency = 3;
         let descriptors = vec![first.clone(), second.clone(), other.clone()];
         let pools = pools(&descriptors)?;
-        let lease = pools
-            .pool(&first.channel_id)
-            .expect("channel pool")
-            .try_lease()
-            .expect("lease");
+        let channel_pool = must_some(pools.pool(&first.channel_id));
+        let lease = must_some(channel_pool.try_lease());
         let adapter = ProviderAccountPoolAdapter::try_new(
             descriptors,
             pools,
@@ -1125,13 +1137,9 @@ mod tests {
             Duration::from_secs(20),
         )?;
         let page = adapter.list_provider_account_pools(&query(20))?;
-        let account_a = page
-            .items
-            .iter()
-            .find(|item| {
-                item.channel_id.as_str() == "channel-a" && item.account_id.as_str() == "account-a"
-            })
-            .expect("account-a");
+        let account_a = must_some(page.items.iter().find(|item| {
+            item.channel_id.as_str() == "channel-a" && item.account_id.as_str() == "account-a"
+        }));
         assert_eq!(account_a.active_leases, 1);
         assert_eq!(account_a.max_concurrency, 3);
         drop(lease);
@@ -1168,7 +1176,7 @@ mod tests {
         )?;
         let first = adapter.list_provider_account_pools(&query(50))?;
         assert_eq!(first.items.len(), 50);
-        let cursor = first.next_cursor.clone().expect("next cursor");
+        let cursor = must_some(first.next_cursor.clone());
         let second_query = ProviderAccountPoolQuery::try_new(
             None,
             None,
@@ -1421,12 +1429,13 @@ mod tests {
         let after = adapter.list_provider_account_pools(&query(10))?;
         assert_ne!(after.snapshot_id, before.snapshot_id);
         assert_eq!(
-            after
-                .items
-                .iter()
-                .find(|item| item.account_id == target.account_id)
-                .expect("target row")
-                .runtime_status,
+            must_some(
+                after
+                    .items
+                    .iter()
+                    .find(|item| item.account_id == target.account_id),
+            )
+            .runtime_status,
             ProviderAccountRuntimeStatus::Cooling
         );
         assert!(matches!(

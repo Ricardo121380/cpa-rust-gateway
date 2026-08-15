@@ -65,11 +65,11 @@ npm --prefix web/prism run check           # 失步则机械失败
 
 | 前端项 | 依赖 | 状态 |
 |---|---|---|
-| 运行时页真实数据 · 503 文案拆分 | **P13-06** | 可用性矩阵与目录新鲜度目前返回空数组(`Vec::new()`);前端已能区分 503 的两种含义,但要等有数据才值得做 |
+| 运行时页真实数据 · 503 文案拆分 | **P13-06** | 后端 P13-06A/B/C 已提供 live account-pool inventory、operator action 与 failure-feedback wrappers；Prism 运行时页接线仍由 Claude Code 按 `docs/cross-boundary-log.md` 处理，当前不宣称正式 UI 已交付 |
 | 用量分析页改造 | P13-05 ✅ 已交付 | 形状已定:`operations/usage`。**注意仍无服务端时间桶**,图表需客户端聚合 |
 | 计费与价格目录页 | P13-05 ✅ 已交付 | 目录导入/列出/回滚 + 每请求成本。G9 的控制面 |
 | 请求监控真实列表 | P13-05 ✅ 已交付 | `operations/billing` 带 `request_id`,配合 `listRequestAttempts` 可做下钻 |
-| 家族配额页 | P13-06 | 尚未开工 |
+| 家族配额页 | P13-06 | 后端状态源已具备；正式页面尚未开工，等待 Prism 排期 |
 | 能力自描述 | — | **G7 不在 P13 清单内,应视为可能永不到来**;各页继续靠 503 反推 |
 
 ### 已明确不做

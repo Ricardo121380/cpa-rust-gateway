@@ -707,11 +707,25 @@ impl ProviderAccountPoolFacade for SnapshotProviderAccountPoolFacade {
 mod tests {
     use super::*;
 
+    fn must<T, E>(value: Result<T, E>) -> T {
+        match value {
+            Ok(value) => value,
+            Err(_) => std::process::abort(),
+        }
+    }
+
+    fn must_some<T>(value: Option<T>) -> T {
+        match value {
+            Some(value) => value,
+            None => std::process::abort(),
+        }
+    }
+
     fn item(provider: &str, channel: &str, account: &str) -> ProviderAccountPoolItem {
         ProviderAccountPoolItem {
-            provider_id: ProviderId::try_new(provider).expect("provider id"),
-            channel_id: EndpointId::try_new(channel).expect("channel id"),
-            account_id: CredentialId::try_new(account).expect("account id"),
+            provider_id: must(ProviderId::try_new(provider)),
+            channel_id: must(EndpointId::try_new(channel)),
+            account_id: must(CredentialId::try_new(account)),
             account_kind: "synthetic".to_owned(),
             auth_status: ProviderAccountAuthStatus::Active,
             runtime_status: ProviderAccountRuntimeStatus::Available,
@@ -728,7 +742,7 @@ mod tests {
 
     #[test]
     fn snapshot_is_sorted_and_paginates_without_cross_provider_fallback() {
-        let snapshot = ProviderAccountPoolSnapshot::try_new(
+        let snapshot = must(ProviderAccountPoolSnapshot::try_new(
             "snapshot-1",
             10,
             vec![
@@ -736,63 +750,57 @@ mod tests {
                 item("codex", "chat", "a"),
                 item("grok", "build", "a"),
             ],
-        )
-        .expect("snapshot");
-        let first = snapshot
-            .page(
-                &ProviderAccountPoolQuery::try_new(
-                    Some(ProviderId::try_new("grok").expect("provider")),
-                    None,
-                    None,
-                    None,
-                    None,
-                    1,
-                    None,
-                )
-                .expect("query"),
-            )
-            .expect("page");
+        ));
+        let first = must(snapshot.page(&must(ProviderAccountPoolQuery::try_new(
+            Some(must(ProviderId::try_new("grok"))),
+            None,
+            None,
+            None,
+            None,
+            1,
+            None,
+        ))));
         assert_eq!(first.items[0].account_id.as_str(), "a");
         assert!(first.next_cursor.is_some());
-        let second_query = ProviderAccountPoolQuery::try_new(
-            Some(ProviderId::try_new("grok").expect("provider")),
+        let second_query = must(ProviderAccountPoolQuery::try_new(
+            Some(must(ProviderId::try_new("grok"))),
             None,
             None,
             None,
             None,
             1,
             first.next_cursor,
-        )
-        .expect("query");
-        let second = snapshot.page(&second_query).expect("page");
+        ));
+        let second = must(snapshot.page(&second_query));
         assert_eq!(second.items[0].account_id.as_str(), "b");
         assert!(second.next_cursor.is_none());
     }
 
     #[test]
     fn cursor_rejects_changed_snapshot_or_filters() {
-        let snapshot = ProviderAccountPoolSnapshot::try_new(
+        let snapshot = must(ProviderAccountPoolSnapshot::try_new(
             "snapshot-1",
             10,
             vec![item("grok", "build", "a"), item("grok", "build", "b")],
-        )
-        .expect("snapshot");
-        let first = snapshot
-            .page(
-                &ProviderAccountPoolQuery::try_new(None, None, None, None, None, 1, None)
-                    .expect("query"),
-            )
-            .expect("page");
-        let cursor = first.next_cursor.expect("cursor");
-        let changed = ProviderAccountPoolSnapshot::try_new(
+        ));
+        let first = must(snapshot.page(&must(ProviderAccountPoolQuery::try_new(
+            None, None, None, None, None, 1, None,
+        ))));
+        let cursor = must_some(first.next_cursor);
+        let changed = must(ProviderAccountPoolSnapshot::try_new(
             "snapshot-2",
             11,
             vec![item("grok", "build", "a"), item("grok", "build", "b")],
-        )
-        .expect("snapshot");
-        let query =
-            ProviderAccountPoolQuery::try_new(None, None, None, None, None, 1, Some(cursor))
-                .expect("query");
+        ));
+        let query = must(ProviderAccountPoolQuery::try_new(
+            None,
+            None,
+            None,
+            None,
+            None,
+            1,
+            Some(cursor),
+        ));
         assert_eq!(
             changed.page(&query),
             Err(ProviderAccountPoolError::CursorConflict)
@@ -801,7 +809,7 @@ mod tests {
 
     #[test]
     fn cursor_filter_fingerprint_is_unambiguous_for_delimiter_bearing_ids() {
-        let snapshot = ProviderAccountPoolSnapshot::try_new(
+        let snapshot = must(ProviderAccountPoolSnapshot::try_new(
             "snapshot-1",
             10,
             vec![
@@ -810,32 +818,25 @@ mod tests {
                 item("a", "b|c", "a"),
                 item("a", "b|c", "b"),
             ],
-        )
-        .expect("snapshot");
-        let first = snapshot
-            .page(
-                &ProviderAccountPoolQuery::try_new(
-                    Some(ProviderId::try_new("a|b").expect("provider")),
-                    Some(EndpointId::try_new("c").expect("channel")),
-                    None,
-                    None,
-                    None,
-                    1,
-                    None,
-                )
-                .expect("query"),
-            )
-            .expect("first page");
-        let changed_filter = ProviderAccountPoolQuery::try_new(
-            Some(ProviderId::try_new("a").expect("provider")),
-            Some(EndpointId::try_new("b|c").expect("channel")),
+        ));
+        let first = must(snapshot.page(&must(ProviderAccountPoolQuery::try_new(
+            Some(must(ProviderId::try_new("a|b"))),
+            Some(must(EndpointId::try_new("c"))),
+            None,
+            None,
+            None,
+            1,
+            None,
+        ))));
+        let changed_filter = must(ProviderAccountPoolQuery::try_new(
+            Some(must(ProviderId::try_new("a"))),
+            Some(must(EndpointId::try_new("b|c"))),
             None,
             None,
             None,
             1,
             first.next_cursor,
-        )
-        .expect("query");
+        ));
         assert_eq!(
             snapshot.page(&changed_filter),
             Err(ProviderAccountPoolError::CursorConflict)
@@ -862,7 +863,7 @@ mod tests {
         );
         assert_eq!(
             ProviderAccountPoolQuery::try_new(
-                Some(ProviderId::try_new(overlong).expect("opaque id")),
+                Some(must(ProviderId::try_new(overlong))),
                 None,
                 None,
                 None,
