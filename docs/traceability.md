@@ -147,6 +147,16 @@
 
 ## P12 追踪
 
+### CPAR / Autoreg 项目边界（CR-P12-AUTOREG-SEPARATION-001）
+
+- Autoreg 独立负责注册、SSO/OAuth、refresh、账号健康、replenishment 与 scheduler；这些结果不计为
+  CPAR/P12 的代码完成或失败。
+- CPAR/P12 只追踪外部凭证进入 CPAR 后的严格导入、Provider/Channel/Route binding、lease/Health/Quota、
+  CPAR 公共 Base URL + client key 反代、错误分类与 rollback。
+- 历史 P12-10I receipt 保持不可变；报告中应区分 `AUTOREG_ACCOUNT_SOURCE_RESULT`、
+  `CPAR_IMPORT_RESULT` 和 `CPAR_PUBLIC_PROXY_RESULT`。
+- P12-10H 全池 Console 外部 sweep 与 P12-10I-22/I-24 单账号 Console 反代成功属于不同覆盖范围，不能互相覆盖。
+
 | Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
 |---|---|---|---|---|---|
 | P12-01 | Plan 18；§22 供应链纪律 | `CR-P12-01-001`（OIDC keyless 签名边界）、`CR-P12-01-002`（双目标原生发布矩阵） | `release-artifact.yml` 双目标 matrix（x86_64/aarch64，各自同架构 runner、无 qemu）；`p12-release-artifact.rb` 封闭目标表推导二进制名/ELF `e_machine`/OCI architecture/基础镜像 digest；`generate-p12-01-sbom.rb` 封闭目标白名单；`Dockerfile` 逐架构传入基础镜像并由 `base.name` 复核 | [P12-01 发布产物验收与双目标修订](reports/p12-01-release-artifact.md)：[run 30533211028](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/30533211028) 两 job SUCCESS，两份产物本地签名+回执复验通过 | DONE |
