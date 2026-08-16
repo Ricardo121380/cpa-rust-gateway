@@ -1,6 +1,6 @@
 # BC-SEC-007: Compatible serving transport handoff
 
-Status: **P13-11C LOCAL_PASS_PENDING_PHASE_GATE**
+Status: **P13-11C DONE_WITH_BOUNDARY**
 
 ## Scope
 
@@ -47,3 +47,11 @@ Autoreg, credential refresh, or real proxy probes.
 - sticky same-node and unavailable-node fail-closed tests;
 - generic serving loopback tests with zero real Provider/proxy traffic;
 - strict Clippy, formatting, docs, source/crate boundaries, secret scan and local Fast Gate.
+
+## Formal acceptance
+
+This contract is accepted as P13-11C within the aggregate formal Gate:
+`phase-p13-egress-complete` at `a716eaaa9d31c26b6d09489f3f7fdbb9b0e1ebeb`, run
+[31959162202](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31959162202). All four
+jobs passed. Native Provider adapters, real proxy nodes, browser clearance and production traffic
+remain outside this contract.

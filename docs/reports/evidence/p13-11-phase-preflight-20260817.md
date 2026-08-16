@@ -1,6 +1,6 @@
 # P13-11 generic egress phase preflight receipt — 2026-08-17
 
-Status: `READY_FOR_FORMAL_DELIVERY_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Scope
 
@@ -19,9 +19,8 @@ probe or recovery, Autoreg operations, or a production rollout.
 
 - Branch: `codex/p13-11-egress`
 - Exact local implementation commit: `fafb34a38af33b798915d922ca035a5e32f7c9e8`
-- Candidate phase tag (not created): `phase-p13-egress-complete`; its target must be the exact
-  pushed HEAD that contains this receipt and the accompanying phase review, not the implementation
-  commit alone.
+- Immutable phase tag: `phase-p13-egress-complete`
+- Exact tagged commit: `a716eaaa9d31c26b6d09489f3f7fdbb9b0e1ebeb`
 - Host: `Darwin 25.2.0 arm64`
 - Pre-existing untracked helper files: preserved outside the candidate and not staged.
 
@@ -46,17 +45,33 @@ from `cargo-deny` were non-fatal policy diagnostics.
 
 | Slice | Evidence | Local state |
 |---|---|---|
-| P13-11A | `p13-11a-generic-compatible-endpoint-egress.md`, ADR-0093, BC-SEC-005 | `LOCAL_PASS_PENDING_PHASE_GATE` |
-| P13-11B | `p13-11b-compatible-endpoint-runtime-composition.md`, ADR-0094, BC-SEC-006 | `LOCAL_PASS_PENDING_PHASE_GATE` |
-| P13-11C | `p13-11c-compatible-serving-transport-handoff.md`, ADR-0095, BC-SEC-007 | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| P13-11A | `p13-11a-generic-compatible-endpoint-egress.md`, ADR-0093, BC-SEC-005 | `DONE_WITH_BOUNDARY` |
+| P13-11B | `p13-11b-compatible-endpoint-runtime-composition.md`, ADR-0094, BC-SEC-006 | `DONE_WITH_BOUNDARY` |
+| P13-11C | `p13-11c-compatible-serving-transport-handoff.md`, ADR-0095, BC-SEC-007 | `DONE_WITH_BOUNDARY` |
 
 The affected local suites include `gateway-upstream` `37`, `gateway-router` `151`,
 `gateway-control` `72`, and `gateway` `106`, together with the complete workspace matrix included
 by Full. The slice reports remain the authoritative detailed test and boundary descriptions.
 
+## Formal Delivery Gate result
+
+The annotated tag `phase-p13-egress-complete` triggered formal run
+[31959162202](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31959162202) against
+the exact tagged commit above. All jobs passed:
+
+| Job | Result | Duration |
+|---|---|---:|
+| Authorize explicit delivery request | `success` | 4s |
+| Fast gate (explicit delivery) | `success` | 6m25s |
+| Full supply-chain gate (explicit delivery) | `success` | 1m15s |
+| Required delivery gate | `success` | 3s |
+
+The only annotations were non-blocking GitHub Node.js 20-to-24 notices for pinned checkout/cache
+actions. The tag was created once and was not moved or recreated.
+
 ## Explicit non-evidence
 
 No Provider request, DNS lookup, proxy probe, server/staging/production mutation, credential
-refresh, Autoreg operation, GitHub tag, push or formal Delivery Gate was performed. The default
-deployment remains Direct-only. P13-11D protected proxy-pool persistence/management and
-Provider-specific probe/recovery require a later, separately authorized task.
+refresh, Autoreg operation, or production rollout was performed. The default deployment remains
+Direct-only. P13-11D protected proxy-pool persistence/management and Provider-specific
+probe/recovery remain separate follow-up tasks.

@@ -1,6 +1,6 @@
 # BC-SEC-006: Compatible-endpoint runtime egress composition
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Scope
 
@@ -52,3 +52,11 @@ The local slice must prove direct/fixed/pool target resolution, bounded weighted
 node cooldown/disabled/capacity isolation, exact Credential lease and release, expiry/Health/Quota
 fail-closed behavior, mixed/foreign active-config rejection, credential-kind drift rejection, and
 secret-free observations without Store, Provider or network I/O.
+
+## Formal acceptance
+
+This contract is accepted as P13-11B within the aggregate formal Gate:
+`phase-p13-egress-complete` at `a716eaaa9d31c26b6d09489f3f7fdbb9b0e1ebeb`, run
+[31959162202](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31959162202). All four
+jobs passed. The contract does not authorize real proxy probes or Provider/staging/production
+traffic.

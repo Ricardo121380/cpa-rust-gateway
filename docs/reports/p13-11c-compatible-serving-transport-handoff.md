@@ -1,6 +1,6 @@
 # P13-11C compatible serving transport handoff report
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 Date: 2026-08-16
 
@@ -62,3 +62,17 @@ After the phase-specific review and one explicitly authorized phase Delivery Gat
 a separately approved Config-Version proxy-pool management surface and explicitly authorized
 Provider-specific probes/recovery. P13-11C does not infer such configuration from a Provider name
 or credential format, and the current deployment remains Direct-only.
+
+## Formal phase gate
+
+P13-11C is accepted as part of the aggregate P13-11 closeout:
+
+- immutable tag: `phase-p13-egress-complete`;
+- exact commit: `a716eaaa9d31c26b6d09489f3f7fdbb9b0e1ebeb`;
+- formal run: [31959162202](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31959162202);
+- Authorize `success` (4s), Fast `success` (6m25s), Full supply-chain `success` (1m15s), and
+  Required `success` (3s).
+
+The Gate accepts the generic serving handoff and its local failure/lease boundaries. Native
+Grok/Kiro adapters, browser clearance, Provider-specific auxiliary HTTP, real proxy nodes and
+production traffic remain outside the accepted evidence.

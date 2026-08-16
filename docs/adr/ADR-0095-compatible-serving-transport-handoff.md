@@ -1,6 +1,6 @@
 # ADR-0095: Compatible serving transport handoff
 
-Status: **Accepted locally — P13-11C LOCAL_PASS_PENDING_PHASE_GATE**
+Status: **Accepted — P13-11C formally gated as `DONE_WITH_BOUNDARY`**
 
 Date: 2026-08-16
 
@@ -60,3 +60,11 @@ Provider-specific browser/clearance behavior.
   real serving path and cannot isolate egress-node failures.
 - **Expose proxy selection in the public request.** Rejected because egress is an operator-owned
   Provider/Endpoint policy, not client input.
+
+## Formal phase acceptance
+
+This decision was accepted in the aggregate P13-11 phase Gate:
+`phase-p13-egress-complete` at `a716eaaa9d31c26b6d09489f3f7fdbb9b0e1ebeb`, formal run
+[31959162202](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31959162202). Authorize,
+Fast, Full supply-chain and Required all passed. Native Provider adapters, real proxy nodes,
+browser clearance and production traffic remain outside the accepted boundary.

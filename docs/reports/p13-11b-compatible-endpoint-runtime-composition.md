@@ -1,6 +1,6 @@
 # P13-11B compatible-endpoint runtime composition report
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 Date: 2026-08-16
 
@@ -49,3 +49,17 @@ untracked helper scripts were preserved untouched; no OpenAPI/Prism/frontend sur
 
 P13-11C may connect the composed transport assignment to request-time serving and add
 Provider-specific sticky/probe/failure feedback only after this local composition is reviewed.
+
+## Formal phase gate
+
+P13-11B is accepted as part of the aggregate P13-11 closeout:
+
+- immutable tag: `phase-p13-egress-complete`;
+- exact commit: `a716eaaa9d31c26b6d09489f3f7fdbb9b0e1ebeb`;
+- formal run: [31959162202](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31959162202);
+- Authorize `success` (4s), Fast `success` (6m25s), Full supply-chain `success` (1m15s), and
+  Required `success` (3s).
+
+The Gate accepts deterministic local runtime composition and exact lease isolation. It does not
+authorize a real proxy probe, Provider traffic, server deployment or the later protected
+proxy-pool management surface.

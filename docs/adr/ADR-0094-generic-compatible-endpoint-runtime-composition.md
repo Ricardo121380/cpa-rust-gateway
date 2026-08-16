@@ -1,6 +1,6 @@
 # ADR-0094: Generic compatible-endpoint runtime egress composition
 
-Status: **Accepted — P13-11B LOCAL_PASS_PENDING_PHASE_GATE**
+Status: **Accepted — P13-11B formally gated as `DONE_WITH_BOUNDARY`**
 
 Date: 2026-08-16
 
@@ -66,3 +66,11 @@ P13-11B proves deterministic local composition, exact lease ownership, and healt
 it does not make a proxy node reachable, authorize an account, or prove a Provider response. The
 serving adapter request-time transport switch, Provider-specific sticky/probe/failure feedback,
 and any real egress probe belong to P13-11C or a separately authorized Provider task.
+
+## Formal phase acceptance
+
+This decision was accepted in the aggregate P13-11 phase Gate:
+`phase-p13-egress-complete` at `a716eaaa9d31c26b6d09489f3f7fdbb9b0e1ebeb`, formal run
+[31959162202](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31959162202). Authorize,
+Fast, Full supply-chain and Required all passed. The acceptance does not authorize real Provider
+traffic, proxy probes, staging/production or the later protected management surface.

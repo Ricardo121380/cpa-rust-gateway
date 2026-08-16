@@ -1,6 +1,6 @@
 # BC-SEC-005: Generic compatible-endpoint egress profile
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Scope
 
@@ -47,3 +47,10 @@ or egress node may not cause fallback to another Provider or another credential 
 The first local slice must prove relay-name neutrality, CPA/Sub2API metadata neutrality, exact
 binding ownership, URL/SSRF policy reuse, bounded retry/stickiness/failure-scope validation, and
 secret-free debug/error behavior without any Provider or network call.
+
+## Formal acceptance
+
+This contract is accepted as P13-11A within the aggregate formal Gate:
+`phase-p13-egress-complete` at `a716eaaa9d31c26b6d09489f3f7fdbb9b0e1ebeb`, run
+[31959162202](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31959162202). All four
+jobs passed. The contract does not claim live proxy, Provider, staging or production evidence.

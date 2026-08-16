@@ -1,6 +1,6 @@
 # ADR-0093: Generic compatible-endpoint egress profiles
 
-Status: **LOCAL_PASS_PENDING_PHASE_GATE — P13-11A local implementation complete**
+Status: **Accepted — P13-11A formally gated as `DONE_WITH_BOUNDARY`**
 
 Date: 2026-08-16
 
@@ -68,3 +68,11 @@ admission boundary. The profile does not itself prove that a proxy node works, t
 authorized, or that Grok Web has a valid browser session; those remain runtime evidence tasks.
 
 P13-11A has no Provider, server, production, staging, OAuth, Autoreg, or network side effects.
+
+## Formal phase acceptance
+
+This decision was accepted in the aggregate P13-11 phase Gate:
+`phase-p13-egress-complete` at `a716eaaa9d31c26b6d09489f3f7fdbb9b0e1ebeb`, formal run
+[31959162202](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31959162202). Authorize,
+Fast, Full supply-chain and Required all passed. The acceptance does not authorize real Provider
+traffic, proxy probes, staging/production or Provider-specific recovery.

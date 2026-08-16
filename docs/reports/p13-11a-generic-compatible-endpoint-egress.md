@@ -1,6 +1,6 @@
 # P13-11A generic compatible-endpoint egress report
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 Date: 2026-08-16
 
@@ -43,3 +43,17 @@ account authorization, Grok Web clearance, Provider response compatibility, stag
 Autoreg, or server deployment. P13-11B must add runtime composition and bounded pool observation
 before any real egress probe is considered. No management OpenAPI/Prism or frontend files changed,
 so no Claude Code frontend action is required for this slice.
+
+## Formal phase gate
+
+P13-11A is accepted as part of the aggregate P13-11 closeout:
+
+- immutable tag: `phase-p13-egress-complete`;
+- exact commit: `a716eaaa9d31c26b6d09489f3f7fdbb9b0e1ebeb`;
+- formal run: [31959162202](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31959162202);
+- Authorize `success` (4s), Fast `success` (6m25s), Full supply-chain `success` (1m15s), and
+  Required `success` (3s).
+
+The tag was created once and was not moved or recreated. The Gate accepts the local typed
+foundation only; it does not prove a live proxy, Provider account, egress node, staging or
+production deployment.
