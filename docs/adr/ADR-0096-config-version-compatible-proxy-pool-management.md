@@ -1,6 +1,6 @@
 # ADR-0096: Config-Version-owned compatible proxy-pool management
 
-Status: Accepted for D1 local implementation — `P13-11D1 LOCAL_PASS_PENDING_PHASE_GATE`; D2/D3 not started
+Status: Accepted for D1/D2 local implementation — `P13-11D2 LOCAL_PASS_PENDING_PHASE_GATE`; D3 not started
 
 Date: 2026-08-17
 
@@ -91,15 +91,25 @@ serve its pinned graph.
 
 ### Protected management boundary
 
-D2 will expose typed resource operations only under the existing protected `/admin` scope. Reads
-require Management Key and `X-Config-Version`; writes additionally require same-origin CSRF when
-an Origin is present and exact `If-Match`. The public inference API does not accept pool IDs,
-node IDs, or proxy values.
+D2 exposes typed resource operations only under the existing protected `/admin/operations` scope.
+Reads require Management Key and `X-Config-Version`; writes additionally require same-origin
+CSRF when an Origin is present and exact `If-Match`. Successful revisioned responses are marked
+`Cache-Control: no-store`. The public inference API does not accept pool IDs, node IDs, or proxy
+values.
 
-The authoritative source is `docs/openapi/management-v1.json`. When D2 changes it, the same
-change must run `npm --prefix web/prism run sync-contract` and append a precise handoff to
+The authoritative source is `docs/openapi/management-v1.json`. D2 changed it, ran
+`npm --prefix web/prism run sync-contract`, and appended a precise handoff to
 `docs/cross-boundary-log.md`. Claude Code may implement a management control using the generated
 client but must never hand-edit generated files or display proxy endpoint material.
+
+### D2 local implementation evidence
+
+The backend now provides bounded pool, node, and exact binding-profile list/get/create/update/delete
+operations. Node endpoint input is write-only: create/explicit rotation validates and immediately
+seals a local-DNS SOCKS5 endpoint, while an update that omits the endpoint preserves the existing
+AEAD value. Responses expose only `proxy_configured` and closed policy fields. Protected HTTP,
+OpenAPI operation-count, Prism sync/check, generated-client freshness, and management-SPA checks
+passed locally. This is not formal phase-gate evidence and does not start D3.
 
 ## Consequences
 

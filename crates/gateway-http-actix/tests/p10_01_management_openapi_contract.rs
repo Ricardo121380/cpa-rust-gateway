@@ -514,7 +514,7 @@ fn operation_parameters(
     Ok(parameters)
 }
 
-fn required_operations() -> [(&'static str, &'static str); 42] {
+fn required_operations() -> [(&'static str, &'static str); 57] {
     [
         ("/admin/config-versions", "get"),
         ("/admin/config-versions", "post"),
@@ -526,6 +526,30 @@ fn required_operations() -> [(&'static str, &'static str); 42] {
         ("/admin/upstreams/{upstream_id}/endpoints", "post"),
         ("/admin/upstreams/{upstream_id}/credentials", "post"),
         ("/admin/endpoints/{endpoint_id}/credential-bindings", "post"),
+        ("/admin/compatible-proxy-pools", "get"),
+        ("/admin/compatible-proxy-pools", "post"),
+        ("/admin/compatible-proxy-pools/{pool_id}", "get"),
+        ("/admin/compatible-proxy-pools/{pool_id}", "patch"),
+        ("/admin/compatible-proxy-pools/{pool_id}", "delete"),
+        ("/admin/compatible-proxy-nodes", "get"),
+        ("/admin/compatible-proxy-nodes", "post"),
+        ("/admin/compatible-proxy-nodes/{node_id}", "get"),
+        ("/admin/compatible-proxy-nodes/{node_id}", "patch"),
+        ("/admin/compatible-proxy-nodes/{node_id}", "delete"),
+        ("/admin/compatible-egress-bindings", "get"),
+        ("/admin/compatible-egress-bindings", "post"),
+        (
+            "/admin/compatible-egress-bindings/{endpoint_id}/{credential_id}",
+            "get",
+        ),
+        (
+            "/admin/compatible-egress-bindings/{endpoint_id}/{credential_id}",
+            "patch",
+        ),
+        (
+            "/admin/compatible-egress-bindings/{endpoint_id}/{credential_id}",
+            "delete",
+        ),
         ("/admin/endpoints/{endpoint_id}/test", "post"),
         (
             "/admin/endpoints/{endpoint_id}/models/discover-preview",
@@ -567,7 +591,7 @@ fn required_operations() -> [(&'static str, &'static str); 42] {
     ]
 }
 
-fn concurrent_write_operations() -> [(&'static str, &'static str); 22] {
+fn concurrent_write_operations() -> [(&'static str, &'static str); 31] {
     [
         ("/admin/egress-policies", "post"),
         ("/admin/egress-policies/{egress_policy_id}", "patch"),
@@ -578,6 +602,21 @@ fn concurrent_write_operations() -> [(&'static str, &'static str); 22] {
         ("/admin/upstreams/{upstream_id}/credentials", "post"),
         ("/admin/credentials/{credential_id}", "patch"),
         ("/admin/endpoints/{endpoint_id}/credential-bindings", "post"),
+        ("/admin/compatible-proxy-pools", "post"),
+        ("/admin/compatible-proxy-pools/{pool_id}", "patch"),
+        ("/admin/compatible-proxy-pools/{pool_id}", "delete"),
+        ("/admin/compatible-proxy-nodes", "post"),
+        ("/admin/compatible-proxy-nodes/{node_id}", "patch"),
+        ("/admin/compatible-proxy-nodes/{node_id}", "delete"),
+        ("/admin/compatible-egress-bindings", "post"),
+        (
+            "/admin/compatible-egress-bindings/{endpoint_id}/{credential_id}",
+            "patch",
+        ),
+        (
+            "/admin/compatible-egress-bindings/{endpoint_id}/{credential_id}",
+            "delete",
+        ),
         (
             "/admin/endpoints/{endpoint_id}/models/discover-apply",
             "post",

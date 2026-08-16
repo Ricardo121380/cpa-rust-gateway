@@ -344,3 +344,29 @@ native client without `Origin`, and send `response.create` rather than Realtime 
 a Prism management control, edit management generated clients, assume browser support, or expose
 `response.append`, Chat/Messages WebSocket, binary/media, or Provider-native upstream WebSocket in
 this slice. Management OpenAPI and the existing Prism API contract remain unchanged.
+
+---
+
+## 2026-08-17 · Codex · P13-11D2 compatible egress management API
+
+**Touched:**
+- `crates/gateway-control/src/management_mutation_service.rs`
+- `crates/gateway-http-actix/src/management_resources.rs`
+- `crates/gateway-http-actix/tests/p10_01_management_openapi_contract.rs`
+- `crates/gateway-http-actix/tests/p10_04_management_resources.rs`
+- `crates/gateway-store/src/control_plane.rs`
+- `docs/openapi/management-v1.json`
+- `web/prism/contracts/management-v1.json` and generated client (synced from the authoritative contract)
+
+**Why:** P13-11D2 adds protected, revision-guarded management CRUD for compatible proxy pools,
+compatible proxy nodes, and exact Endpoint-Credential egress bindings. Node endpoints are accepted
+only for immediate local-DNS SOCKS5 validation and AEAD sealing; responses and audit rows expose
+only bounded identities, policy, capacity, and `proxy_configured`, never endpoint URLs, ciphertext,
+key versions, credentials, or request bodies. Mutations remain draft-only, If-Match guarded, and
+audited atomically; no Provider, proxy, DNS, server, or production request is made.
+
+**Other side:** action required — Claude Code should sync the generated Prism contract/client and
+may add only management controls that select existing Upstream/Pool/Node/Endpoint-Credential IDs,
+show revision/ETag conflicts, and render the secret-free response fields. Never echo or persist the
+write-only `proxy_endpoint`, construct transport requests in the browser, or hand-edit generated
+files. No public inference protocol changed in this slice.

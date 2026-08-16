@@ -1125,6 +1125,7 @@ dependencies = [
  "gateway-store",
  "gateway-upstream",
  "serde_json",
+ "sha2",
  "zeroize",
 ]
 

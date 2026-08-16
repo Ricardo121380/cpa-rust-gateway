@@ -17,6 +17,7 @@ gateway-router = { path = "../gateway-router" }
 gateway-store = { path = "../gateway-store" }
 gateway-upstream = { path = "../gateway-upstream" }
 serde_json.workspace = true
+sha2.workspace = true
 zeroize.workspace = true
 
 [lints]

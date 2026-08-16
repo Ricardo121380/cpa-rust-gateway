@@ -827,3 +827,248 @@ async fn persisted_active_oauth_projects_complete_after_session_state_is_lost() 
     );
     Ok(())
 }
+
+#[actix_web::test]
+async fn compatible_egress_management_is_revisioned_and_secret_free() -> TestResult {
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security_state()?))
+            .app_data(web::Data::new(resource_state()?))
+            .configure(configure_management_resources),
+    )
+    .await;
+
+    let upstream = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/upstreams")
+                .set_json(json!({
+                    "id":"upstream-egress", "name":"egress", "kind":"openai-compatible",
+                    "enabled":true, "tags":[], "egress_policy_id":null
+                })),
+            Some("rev-0"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(upstream.status(), StatusCode::CREATED);
+
+    let endpoint = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/upstreams/upstream-egress/endpoints")
+                .set_json(json!({
+                    "id":"endpoint-egress", "adapter_id":"openai.compatible",
+                    "api_format":"openai_responses", "base_url":"https://example.test",
+                    "inference_path":"/v1/responses", "models_path":null,
+                    "transport":"https", "enabled":true
+                })),
+            Some("rev-1"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(endpoint.status(), StatusCode::CREATED);
+
+    let credential = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/upstreams/upstream-egress/credentials")
+                .set_json(json!({
+                    "id":"credential-egress", "kind":"api_key",
+                    "secret":"egress-secret-value", "status":"active"
+                })),
+            Some("rev-2"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(credential.status(), StatusCode::CREATED);
+
+    let binding = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/endpoints/endpoint-egress/credential-bindings")
+                .set_json(json!({
+                    "credential_id":"credential-egress", "enabled":true,
+                    "priority":0, "weight":1, "concurrency":4
+                })),
+            Some("rev-3"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(binding.status(), StatusCode::CREATED);
+
+    let pool = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/compatible-proxy-pools")
+                .set_json(json!({
+                    "id":"pool-egress", "upstream_id":"upstream-egress",
+                    "name":"local pool", "enabled":true
+                })),
+            Some("rev-4"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(pool.status(), StatusCode::CREATED);
+    assert_eq!(
+        pool.headers().get(header::ETAG),
+        Some(&header::HeaderValue::from_static("\"rev-5\""))
+    );
+    assert_eq!(
+        pool.headers().get(header::CACHE_CONTROL),
+        Some(&header::HeaderValue::from_static("no-store"))
+    );
+
+    let node = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/compatible-proxy-nodes")
+                .set_json(json!({
+                    "id":"node-egress", "upstream_id":"upstream-egress",
+                    "pool_id":"pool-egress", "name":"local node",
+                    "proxy_endpoint":"socks5://127.0.0.1:1080", "enabled":true,
+                    "weight":2, "maximum_concurrency":8
+                })),
+            Some("rev-5"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(node.status(), StatusCode::CREATED);
+    let node_body = test::read_body(node).await;
+    assert!(
+        !node_body
+            .windows(b"socks5://127.0.0.1:1080".len())
+            .any(|window| window == b"socks5://127.0.0.1:1080")
+    );
+    assert!(
+        !node_body
+            .windows(b"proxy_endpoint".len())
+            .any(|window| window == b"proxy_endpoint")
+    );
+
+    let egress_binding = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/compatible-egress-bindings")
+                .set_json(json!({
+                    "endpoint_id":"endpoint-egress", "credential_id":"credential-egress",
+                    "target_kind":"proxy_pool", "target_id":"pool-egress",
+                    "failure_scope":"egress_node", "stickiness":"credential_and_egress",
+                    "pre_submit_max_attempts":2
+                })),
+            Some("rev-6"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(egress_binding.status(), StatusCode::CREATED);
+
+    let listed = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/compatible-egress-bindings"),
+            None,
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(listed.status(), StatusCode::OK);
+    assert_eq!(
+        listed.headers().get(header::CACHE_CONTROL),
+        Some(&header::HeaderValue::from_static("no-store"))
+    );
+    let listed_body = test::read_body_json::<Value, _>(listed).await;
+    assert_eq!(listed_body[0]["target_kind"], "proxy_pool");
+    assert!(listed_body[0].get("proxy_endpoint").is_none());
+    assert!(listed_body[0].get("ciphertext").is_none());
+
+    let node_metadata_update = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::patch()
+                .uri("/admin/compatible-proxy-nodes/node-egress")
+                .set_json(json!({
+                    "id":"node-egress", "upstream_id":"upstream-egress",
+                    "pool_id":"pool-egress", "name":"renamed node", "enabled":true,
+                    "weight":3, "maximum_concurrency":9
+                })),
+            Some("rev-7"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(node_metadata_update.status(), StatusCode::OK);
+    let updated_node_body = test::read_body(node_metadata_update).await;
+    assert!(
+        !updated_node_body
+            .windows(b"socks5://127.0.0.1:1080".len())
+            .any(|window| window == b"socks5://127.0.0.1:1080")
+    );
+
+    let stale = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/compatible-proxy-pools")
+                .set_json(json!({
+                    "id":"pool-stale", "upstream_id":"upstream-egress",
+                    "name":"stale", "enabled":true
+                })),
+            Some("rev-6"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(stale.status(), StatusCode::CONFLICT);
+
+    let delete_binding = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::delete()
+                .uri("/admin/compatible-egress-bindings/endpoint-egress/credential-egress"),
+            Some("rev-8"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(delete_binding.status(), StatusCode::NO_CONTENT);
+    assert_eq!(
+        delete_binding.headers().get(header::CACHE_CONTROL),
+        Some(&header::HeaderValue::from_static("no-store"))
+    );
+
+    let delete_node = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::delete().uri("/admin/compatible-proxy-nodes/node-egress"),
+            Some("rev-9"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(delete_node.status(), StatusCode::NO_CONTENT);
+
+    let delete_pool = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::delete().uri("/admin/compatible-proxy-pools/pool-egress"),
+            Some("rev-10"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(delete_pool.status(), StatusCode::NO_CONTENT);
+    Ok(())
+}

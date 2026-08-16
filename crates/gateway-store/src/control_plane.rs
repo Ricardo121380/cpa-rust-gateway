@@ -2561,6 +2561,52 @@ impl ControlPlaneTransaction<'_> {
         Ok(())
     }
 
+    /// Replaces one compatible proxy pool without changing its stable identity or owner.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the Version is not a draft, the pool is absent, or a
+    /// constraint rejects the replacement.
+    pub fn update_compatible_proxy_pool(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        pool: &CompatibleProxyPoolConfiguration,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        validate_compatible_proxy_pool(pool)?;
+        let updated = self.transaction.execute(
+            "UPDATE compatible_egress_proxy_pools SET name = ?4, enabled = ?5 \
+             WHERE config_version_id = ?1 AND id = ?2 AND upstream_id = ?3",
+            params![
+                config_version_id.as_str(),
+                pool.id.as_str(),
+                pool.upstream_id.as_str(),
+                &pool.name,
+                boolean_to_sql(pool.enabled),
+            ],
+        )?;
+        resource_updated(updated)
+    }
+
+    /// Deletes one compatible proxy pool; schema triggers reject referenced pools.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the Version is not a draft, the pool is absent/referenced,
+    /// or `SQLite` rejects the deletion.
+    pub fn delete_compatible_proxy_pool(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        pool_id: &CompatibleProxyPoolId,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let deleted = self.transaction.execute(
+            "DELETE FROM compatible_egress_proxy_pools WHERE config_version_id = ?1 AND id = ?2",
+            params![config_version_id.as_str(), pool_id.as_str()],
+        )?;
+        resource_updated(deleted)
+    }
+
     /// Inserts one Config-Version-owned AEAD-sealed compatible proxy node.
     ///
     /// # Errors
@@ -2592,6 +2638,58 @@ impl ControlPlaneTransaction<'_> {
             ],
         )?;
         Ok(())
+    }
+
+    /// Replaces one compatible proxy node while preserving its stable identity and owner.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the Version is not a draft, the node is absent, or a
+    /// constraint rejects the replacement.
+    pub fn update_compatible_proxy_node(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        node: &CompatibleProxyNodeConfiguration,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        validate_compatible_proxy_node(node)?;
+        let updated = self.transaction.execute(
+            "UPDATE compatible_egress_proxy_nodes SET pool_id = ?4, name = ?5, ciphertext = ?6, \
+             key_version = ?7, enabled = ?8, weight = ?9, maximum_concurrency = ?10 \
+             WHERE config_version_id = ?1 AND id = ?2 AND upstream_id = ?3",
+            params![
+                config_version_id.as_str(),
+                node.id.as_str(),
+                node.upstream_id.as_str(),
+                node.pool_id.as_ref().map(CompatibleProxyPoolId::as_str),
+                &node.name,
+                node.encrypted_proxy.ciphertext(),
+                node.encrypted_proxy.key_version().as_sqlite_i64(),
+                boolean_to_sql(node.enabled),
+                i64::from(node.weight),
+                i64::from(node.maximum_concurrency),
+            ],
+        )?;
+        resource_updated(updated)
+    }
+
+    /// Deletes one compatible proxy node; schema triggers reject referenced nodes.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the Version is not a draft, the node is absent/referenced,
+    /// or `SQLite` rejects the deletion.
+    pub fn delete_compatible_proxy_node(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        node_id: &CompatibleProxyNodeId,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let deleted = self.transaction.execute(
+            "DELETE FROM compatible_egress_proxy_nodes WHERE config_version_id = ?1 AND id = ?2",
+            params![config_version_id.as_str(), node_id.as_str()],
+        )?;
+        resource_updated(deleted)
     }
 
     /// Inserts one Endpoint into a Version that was admitted for the current transaction.
@@ -2694,6 +2792,63 @@ impl ControlPlaneTransaction<'_> {
             ],
         )?;
         Ok(())
+    }
+
+    /// Replaces one exact Endpoint-Credential compatible egress profile.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the Version is not a draft, the profile is absent, its target
+    /// crosses ownership, or a database constraint rejects the replacement.
+    pub fn update_compatible_egress_binding(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        binding: &CompatibleEgressBindingConfiguration,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        validate_compatible_egress_binding(binding)?;
+        let (target_kind, target_id) = compatible_egress_target_sql(&binding.target);
+        let updated = self.transaction.execute(
+            "UPDATE compatible_egress_binding_profiles SET target_kind = ?4, target_id = ?5, \
+             failure_scope = ?6, stickiness = ?7, pre_submit_max_attempts = ?8 \
+             WHERE config_version_id = ?1 AND endpoint_id = ?2 AND credential_id = ?3",
+            params![
+                config_version_id.as_str(),
+                binding.endpoint_id.as_str(),
+                binding.credential_id.as_str(),
+                target_kind,
+                target_id,
+                binding.failure_scope.as_sql(),
+                binding.stickiness.as_sql(),
+                i64::from(binding.pre_submit_max_attempts),
+            ],
+        )?;
+        resource_updated(updated)
+    }
+
+    /// Deletes one exact Endpoint-Credential compatible egress profile.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the Version is not a draft, the profile is absent, or `SQLite`
+    /// rejects the deletion.
+    pub fn delete_compatible_egress_binding(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        endpoint_id: &EndpointId,
+        credential_id: &CredentialId,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let deleted = self.transaction.execute(
+            "DELETE FROM compatible_egress_binding_profiles \
+             WHERE config_version_id = ?1 AND endpoint_id = ?2 AND credential_id = ?3",
+            params![
+                config_version_id.as_str(),
+                endpoint_id.as_str(),
+                credential_id.as_str(),
+            ],
+        )?;
+        resource_updated(deleted)
     }
 
     /// Inserts one Public Model into an existing draft configuration graph.
@@ -3124,6 +3279,20 @@ fn validate_compatible_egress_binding(
         return Err(StoreError::InvalidCompatibleEgressConfiguration);
     }
     Ok(())
+}
+
+fn compatible_egress_target_sql(
+    target: &CompatibleEgressTargetConfiguration,
+) -> (&'static str, Option<&str>) {
+    match target {
+        CompatibleEgressTargetConfiguration::Direct => ("direct", None),
+        CompatibleEgressTargetConfiguration::FixedProxy(node_id) => {
+            ("fixed_proxy", Some(node_id.as_str()))
+        }
+        CompatibleEgressTargetConfiguration::ProxyPool(pool_id) => {
+            ("proxy_pool", Some(pool_id.as_str()))
+        }
+    }
 }
 
 fn load_configuration(

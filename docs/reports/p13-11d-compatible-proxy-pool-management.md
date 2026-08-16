@@ -1,13 +1,13 @@
 # P13-11D compatible proxy-pool management report
 
-Status: `P13-11D1 LOCAL_PASS_PENDING_PHASE_GATE`; D2/D3 remain not started
+Status: `P13-11D2 LOCAL_PASS_PENDING_PHASE_GATE`; D1 and D2 are locally implemented/reviewable; D3 remains not started
 
 Date: 2026-08-17
 
 ## Outcome first
 
-P13-11D has started as a new post-Gate task. Its architecture and acceptance boundary are frozen;
-no implementation claim is made yet. P13-11A/B/C remain formally accepted by
+P13-11D is a new post-Gate task. D1 and D2 are now implemented as local, reviewable slices;
+no formal D delivery gate is claimed. P13-11A/B/C remain formally accepted by
 `phase-p13-egress-complete` at `a716eaaa9d31c26b6d09489f3f7fdbb9b0e1ebeb` and GitHub run
 [31959162202](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31959162202).
 The old tag will not be moved or reinterpreted to include D.
@@ -31,7 +31,7 @@ Delivered locally in commit `8849b9c`:
 - draft-owned graph write order, same-Upstream ownership, delete/restrict triggers, corruption/
   row-swap/AAD-boundary, migration down/up, and secret-free diagnostics tests.
 
-The existing draft revision/If-Match mutation service remains the D2 owner; D1 adds the typed graph
+The existing draft revision/If-Match mutation service is reused by D2; D1 adds the typed graph
 records and keeps `write_configuration` draft-only. Clone/rollback/reopen use the existing Store
 graph machinery and remain covered by the repository's broader control-plane regression suite.
 
@@ -40,19 +40,22 @@ the Direct production default.
 
 ### P13-11D2 — protected management contract
 
-Planned output:
+Implemented locally in the current worktree (not formally gated):
 
-- bounded list/get/create/update/rotate/delete operations for pool, node, and exact binding
-  profile resources;
-- existing Management Key, origin/CSRF, `X-Config-Version`, `If-Match`, draft-only revision, and
-  value-free audit behavior;
-- a response shape that exposes opaque identity, enabled state, weight/capacity and closed policy
-  values, plus `proxy_configured`, but never proxy URL/ciphertext/key version;
-- authoritative `docs/openapi/management-v1.json` update, generated Prism contract/client sync,
-  HTTP/OpenAPI security regression, and a precise `docs/cross-boundary-log.md` handoff to Claude
-  Code.
+- bounded list/get/create/update/delete operations for pool, node, and exact binding-profile
+  resources under the existing protected `/admin/operations` scope;
+- existing Management Key, peer/origin/CSRF, `X-Config-Version`, `If-Match`, draft-only revision,
+  atomic mutation and value-free audit behavior;
+- closed response DTOs exposing only opaque identity, enabled state, weight/capacity and closed
+  target/failure/stickiness/retry values, plus `proxy_configured`; proxy endpoint input is
+  write-only and update omission preserves the sealed value;
+- authoritative `docs/openapi/management-v1.json` update, Prism contract/generated-client sync,
+  OpenAPI operation-count regression and a precise `docs/cross-boundary-log.md` handoff to Claude
+  Code. Successful revisioned responses now carry `Cache-Control: no-store`.
 
-No formal Prism page is part of the backend slice.
+No formal Prism page is part of this backend slice. Claude Code action is required before any
+management UI is built; generated artifacts must be consumed, not hand-edited, and proxy input
+must never be displayed or retained by the frontend.
 
 ### P13-11D3 — active runtime composition
 
@@ -65,7 +68,7 @@ Planned output:
 - hot-path Store/decryption absence, Direct default preservation, and deterministic loopback tests
   through the existing P13-11C serving handoff.
 
-D3 still does not authorize a real proxy or Provider request.
+D3 is not started and does not authorize a real proxy or Provider request.
 
 ## Security and ownership decisions
 
@@ -104,15 +107,31 @@ Local D1 checks passed:
 - strict Clippy for `gateway-store` and `gateway-control`, workspace formatting, staged secret
   scan, and `git diff --check` passed.
 
+Local D2 checks passed:
+
+- protected HTTP round trip for pool/node/binding create, list, update, stale revision and delete;
+  the focused `p10_04_management_resources` case passed and verified that endpoint text,
+  ciphertext, and proxy fields are absent from responses;
+- `gateway-store` 61/61 and `gateway-control` 76/76 compilation/tests and strict Clippy passed
+  with the D2 mutation methods and bounded composite-audit-ID regression;
+- `p10_01_management_openapi_contract` passed with 57 required operations and 31 protected
+  writes;
+- management JSON decoding now rejects duplicate object keys recursively in addition to unknown
+  fields and bounded-value checks;
+- `npm --prefix web/prism run sync-contract`, `npm --prefix web/prism run check`,
+  `node web/prism/scripts/generate-client.mjs --check`, and
+  `node scripts/check-management-spa.mjs` passed (98 generated operations);
+- OpenAPI JSON validation, formatting, and diff checks passed. No Provider, proxy, DNS, server,
+  staging, or production activity occurred.
+
 This is a local slice result only. No Fast/Full or formal P13-11D Delivery Gate is claimed yet.
 
 ## Frontend handoff
 
-D1 has no management contract change and therefore does not touch OpenAPI or Prism. D2 will be a
-cross-boundary change. At that point Codex must update the authoritative OpenAPI first, run
-`npm --prefix web/prism run sync-contract`, and add an action-required log entry naming every
-contract/generated surface. Claude Code must consume the generated client and must not retain or
-redisplay proxy endpoint input.
+D1 had no management contract change. D2 is the cross-boundary change: Codex updated the
+authoritative OpenAPI first, ran `npm --prefix web/prism run sync-contract`, and added an
+action-required log entry naming every contract/generated surface. Claude Code must consume the
+generated client and must not retain or redisplay proxy endpoint input.
 
 ## Explicit non-evidence
 
@@ -122,11 +141,11 @@ This report is not evidence for:
 - Grok Web clearance, Console bootstrap, FlareSolverr, Kiro, or native-provider behavior;
 - Autoreg registration, OAuth/SSO, refresh, account repair, or replenishment;
 - server, staging, production, public API, management UI, or traffic changes;
-- D2 protected management HTTP/OpenAPI/Prism, D3 active runtime composition, aggregate Full, or
-  formal P13-11D Delivery Gate completion.
+- D3 active runtime composition, aggregate Full, or formal P13-11D Delivery Gate completion.
 
 ## Next action
 
-Start P13-11D2: add the protected management mutation/read operations, then update the authoritative
-management OpenAPI, sync Prism, and append the exact cross-boundary handoff for Claude Code before
-any frontend implementation is considered.
+Next action: complete the D2 local review and commit the backend/OpenAPI/Prism contract slice.
+After review, start P13-11D3 active Config-Version runtime composition. Do not run a formal D
+Delivery Gate until D3 and the aggregate evidence are complete; do not call Provider, proxy, DNS,
+server, staging, or production systems.

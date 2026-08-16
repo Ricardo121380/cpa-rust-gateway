@@ -127,6 +127,60 @@ export const managementOperations = {
     "bodyEncoding": "json",
     "bodyRequired": true
   },
+  "createCompatibleEgressBinding": {
+    "method": "POST",
+    "path": "/admin/compatible-egress-bindings",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
+  "createCompatibleProxyNode": {
+    "method": "POST",
+    "path": "/admin/compatible-proxy-nodes",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
+  "createCompatibleProxyPool": {
+    "method": "POST",
+    "path": "/admin/compatible-proxy-pools",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "createConfigVersion": {
     "method": "POST",
     "path": "/admin/config-versions",
@@ -337,6 +391,80 @@ export const managementOperations = {
       },
       {
         "name": "access_group_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "deleteCompatibleEgressBinding": {
+    "method": "DELETE",
+    "path": "/admin/compatible-egress-bindings/{endpoint_id}/{credential_id}",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "endpoint_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "credential_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "deleteCompatibleProxyNode": {
+    "method": "DELETE",
+    "path": "/admin/compatible-proxy-nodes/{node_id}",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "node_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "deleteCompatibleProxyPool": {
+    "method": "DELETE",
+    "path": "/admin/compatible-proxy-pools/{pool_id}",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "pool_id",
         "in": "path",
         "required": true
       },
@@ -598,6 +726,65 @@ export const managementOperations = {
       },
       {
         "name": "client_key_id",
+        "in": "path",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "getCompatibleEgressBinding": {
+    "method": "GET",
+    "path": "/admin/compatible-egress-bindings/{endpoint_id}/{credential_id}",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "endpoint_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "credential_id",
+        "in": "path",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "getCompatibleProxyNode": {
+    "method": "GET",
+    "path": "/admin/compatible-proxy-nodes/{node_id}",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "node_id",
+        "in": "path",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "getCompatibleProxyPool": {
+    "method": "GET",
+    "path": "/admin/compatible-proxy-pools/{pool_id}",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "pool_id",
         "in": "path",
         "required": true
       }
@@ -901,6 +1088,45 @@ export const managementOperations = {
   "listClientKeys": {
     "method": "GET",
     "path": "/admin/client-keys",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "listCompatibleEgressBindings": {
+    "method": "GET",
+    "path": "/admin/compatible-egress-bindings",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "listCompatibleProxyNodes": {
+    "method": "GET",
+    "path": "/admin/compatible-proxy-nodes",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "listCompatibleProxyPools": {
+    "method": "GET",
+    "path": "/admin/compatible-proxy-pools",
     "parameters": [
       {
         "name": "X-Config-Version",
@@ -1482,6 +1708,80 @@ export const managementOperations = {
     "bodyEncoding": "json",
     "bodyRequired": true
   },
+  "updateCompatibleEgressBinding": {
+    "method": "PATCH",
+    "path": "/admin/compatible-egress-bindings/{endpoint_id}/{credential_id}",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "endpoint_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "credential_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
+  "updateCompatibleProxyNode": {
+    "method": "PATCH",
+    "path": "/admin/compatible-proxy-nodes/{node_id}",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "node_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
+  "updateCompatibleProxyPool": {
+    "method": "PATCH",
+    "path": "/admin/compatible-proxy-pools/{pool_id}",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "pool_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "updateCredential": {
     "method": "PATCH",
     "path": "/admin/credentials/{credential_id}",
@@ -1841,6 +2141,18 @@ export class ManagementApi {
     return this.request("createAccessGroup", request);
   }
 
+  createCompatibleEgressBinding(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("createCompatibleEgressBinding", request);
+  }
+
+  createCompatibleProxyNode(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("createCompatibleProxyNode", request);
+  }
+
+  createCompatibleProxyPool(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("createCompatibleProxyPool", request);
+  }
+
   createConfigVersion(request: ManagementRequest = {}): Promise<Response> {
     return this.request("createConfigVersion", request);
   }
@@ -1883,6 +2195,18 @@ export class ManagementApi {
 
   deleteAccessGroup(request: ManagementRequest = {}): Promise<Response> {
     return this.request("deleteAccessGroup", request);
+  }
+
+  deleteCompatibleEgressBinding(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("deleteCompatibleEgressBinding", request);
+  }
+
+  deleteCompatibleProxyNode(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("deleteCompatibleProxyNode", request);
+  }
+
+  deleteCompatibleProxyPool(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("deleteCompatibleProxyPool", request);
   }
 
   deleteCredential(request: ManagementRequest = {}): Promise<Response> {
@@ -1931,6 +2255,18 @@ export class ManagementApi {
 
   getClientKey(request: ManagementRequest = {}): Promise<Response> {
     return this.request("getClientKey", request);
+  }
+
+  getCompatibleEgressBinding(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("getCompatibleEgressBinding", request);
+  }
+
+  getCompatibleProxyNode(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("getCompatibleProxyNode", request);
+  }
+
+  getCompatibleProxyPool(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("getCompatibleProxyPool", request);
   }
 
   getConfigVersion(request: ManagementRequest = {}): Promise<Response> {
@@ -2007,6 +2343,18 @@ export class ManagementApi {
 
   listClientKeys(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listClientKeys", request);
+  }
+
+  listCompatibleEgressBindings(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listCompatibleEgressBindings", request);
+  }
+
+  listCompatibleProxyNodes(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listCompatibleProxyNodes", request);
+  }
+
+  listCompatibleProxyPools(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listCompatibleProxyPools", request);
   }
 
   listConfigVersions(request: ManagementRequest = {}): Promise<Response> {
@@ -2115,6 +2463,18 @@ export class ManagementApi {
 
   updateClientKey(request: ManagementRequest = {}): Promise<Response> {
     return this.request("updateClientKey", request);
+  }
+
+  updateCompatibleEgressBinding(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("updateCompatibleEgressBinding", request);
+  }
+
+  updateCompatibleProxyNode(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("updateCompatibleProxyNode", request);
+  }
+
+  updateCompatibleProxyPool(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("updateCompatibleProxyPool", request);
   }
 
   updateCredential(request: ManagementRequest = {}): Promise<Response> {

@@ -8,6 +8,8 @@
 
 use std::{error::Error, fmt, sync::Arc};
 
+use sha2::{Digest, Sha256};
+
 use gateway_auth::client_key::{
     ClientKeyError, ClientKeyService, ClientKeyStatus as IssuedClientKeyStatus, PresentedClientKey,
 };
@@ -24,19 +26,24 @@ pub use gateway_store::{
     StoreError,
     control_plane::{
         AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus,
-        ConfigVersion, ConfigVersionId, ConfigVersionStatus, ControlPlaneConfiguration,
-        CredentialConfiguration, CredentialScope, CredentialStatus, EgressPolicyConfiguration,
-        EndpointConfiguration, EndpointCredentialBindingConfiguration, EndpointTransport,
-        ManagementResourceAuditEvent, ManagementResourceAuditEventDraft, ModelAliasConfiguration,
-        ModelRouteConfiguration, PublicModelConfiguration, RouteCandidateConfiguration,
-        RoutePolicy, RoutingPriceComparison, RoutingPricePolicyConfiguration,
-        SqliteControlPlaneRepository, StoredClientKey, StoredClientKeyStatus,
+        CompatibleEgressBindingConfiguration, CompatibleEgressTargetConfiguration,
+        CompatibleProxyNodeConfiguration, CompatibleProxyNodeId, CompatibleProxyPoolConfiguration,
+        CompatibleProxyPoolId, ConfigVersion, ConfigVersionId, ConfigVersionStatus,
+        ControlPlaneConfiguration, CredentialConfiguration, CredentialScope, CredentialStatus,
+        EgressPolicyConfiguration, EndpointConfiguration, EndpointCredentialBindingConfiguration,
+        EndpointTransport, ManagementResourceAuditEvent, ManagementResourceAuditEventDraft,
+        ModelAliasConfiguration, ModelRouteConfiguration, PublicModelConfiguration,
+        RouteCandidateConfiguration, RoutePolicy, RoutingPriceComparison,
+        RoutingPricePolicyConfiguration, SqliteControlPlaneRepository, StoredClientKey,
+        StoredClientKeyStatus, StoredCompatibleFailureScope, StoredCompatibleStickiness,
         StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
     },
 };
 
 use crate::{
-    control_plane_service::{ControlPlaneServiceError, credential_associated_data},
+    control_plane_service::{
+        ControlPlaneServiceError, credential_associated_data, seal_compatible_proxy_node_endpoint,
+    },
     management_operations_service::{
         ManagementOperationsError, OperationalAccountPoolPage, OperationalAccountPoolQuery,
         compile_operational_account_pool_page,
@@ -240,6 +247,159 @@ pub struct CredentialView {
     pub revision: i64,
     /// Always true for a persisted credential; plaintext is never returned.
     pub secret_present: bool,
+}
+
+/// Secret-free view of one Config-Version-owned compatible proxy pool.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CompatibleProxyPoolView {
+    /// Stable pool identity.
+    pub id: CompatibleProxyPoolId,
+    /// Exact owning Upstream identity.
+    pub upstream_id: UpstreamId,
+    /// Bounded operator display name.
+    pub name: String,
+    /// Administrative eligibility bit.
+    pub enabled: bool,
+}
+
+/// Secret-free view of one Config-Version-owned compatible proxy node.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CompatibleProxyNodeView {
+    /// Stable node identity.
+    pub id: CompatibleProxyNodeId,
+    /// Exact owning Upstream identity.
+    pub upstream_id: UpstreamId,
+    /// Optional owning pool.
+    pub pool_id: Option<CompatibleProxyPoolId>,
+    /// Bounded operator display name.
+    pub name: String,
+    /// Administrative eligibility bit.
+    pub enabled: bool,
+    /// Weighted selection value.
+    pub weight: u16,
+    /// Maximum concurrent leases.
+    pub maximum_concurrency: u32,
+    /// True when an encrypted endpoint is configured; endpoint material is never returned.
+    pub proxy_configured: bool,
+}
+
+/// Secret-free target projection for one exact binding profile.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CompatibleEgressTargetView {
+    /// Use the direct transport.
+    Direct,
+    /// Use one standalone node.
+    FixedProxy(CompatibleProxyNodeId),
+    /// Select one member of a named pool.
+    ProxyPool(CompatibleProxyPoolId),
+}
+
+/// Secret-free view of one exact Endpoint-Credential egress binding profile.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CompatibleEgressBindingView {
+    /// Existing Endpoint identity.
+    pub endpoint_id: EndpointId,
+    /// Existing Credential identity.
+    pub credential_id: CredentialId,
+    /// Direct, fixed-node, or pool target.
+    pub target: CompatibleEgressTargetView,
+    /// Failure attribution scope.
+    pub failure_scope: StoredCompatibleFailureScope,
+    /// Credential/egress stickiness policy.
+    pub stickiness: StoredCompatibleStickiness,
+    /// Total pre-submit attempt bound.
+    pub pre_submit_max_attempts: u8,
+}
+
+/// Typed management input for one compatible proxy node.
+///
+/// The endpoint is held only for the immediate sealing operation. Its custom Debug output is
+/// redacted so an accidental management log cannot disclose the proxy URL.
+pub struct CompatibleProxyNodeUpsert {
+    /// Stable node identity.
+    pub id: CompatibleProxyNodeId,
+    /// Exact owning Upstream identity.
+    pub upstream_id: UpstreamId,
+    /// Optional same-Upstream pool.
+    pub pool_id: Option<CompatibleProxyPoolId>,
+    /// Bounded operator display name.
+    pub name: String,
+    /// Optional plaintext local-DNS SOCKS5 endpoint; consumed immediately and never persisted as
+    /// plaintext. `None` preserves an existing endpoint during an update.
+    pub proxy_endpoint: Option<String>,
+    /// Administrative eligibility bit.
+    pub enabled: bool,
+    /// Weighted selection value.
+    pub weight: u16,
+    /// Maximum concurrent leases.
+    pub maximum_concurrency: u32,
+}
+
+impl fmt::Debug for CompatibleProxyNodeUpsert {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("CompatibleProxyNodeUpsert")
+            .field("id", &self.id)
+            .field("upstream_id", &self.upstream_id)
+            .field("pool_id", &self.pool_id)
+            .field("name", &self.name)
+            .field(
+                "proxy_endpoint",
+                &self.proxy_endpoint.as_ref().map(|_| "<redacted>"),
+            )
+            .field("enabled", &self.enabled)
+            .field("weight", &self.weight)
+            .field("maximum_concurrency", &self.maximum_concurrency)
+            .finish()
+    }
+}
+
+impl From<&CompatibleProxyPoolConfiguration> for CompatibleProxyPoolView {
+    fn from(value: &CompatibleProxyPoolConfiguration) -> Self {
+        Self {
+            id: value.id.clone(),
+            upstream_id: value.upstream_id.clone(),
+            name: value.name.clone(),
+            enabled: value.enabled,
+        }
+    }
+}
+
+impl From<&CompatibleProxyNodeConfiguration> for CompatibleProxyNodeView {
+    fn from(value: &CompatibleProxyNodeConfiguration) -> Self {
+        Self {
+            id: value.id.clone(),
+            upstream_id: value.upstream_id.clone(),
+            pool_id: value.pool_id.clone(),
+            name: value.name.clone(),
+            enabled: value.enabled,
+            weight: value.weight,
+            maximum_concurrency: value.maximum_concurrency,
+            proxy_configured: true,
+        }
+    }
+}
+
+impl From<&CompatibleEgressBindingConfiguration> for CompatibleEgressBindingView {
+    fn from(value: &CompatibleEgressBindingConfiguration) -> Self {
+        let target = match &value.target {
+            CompatibleEgressTargetConfiguration::Direct => CompatibleEgressTargetView::Direct,
+            CompatibleEgressTargetConfiguration::FixedProxy(id) => {
+                CompatibleEgressTargetView::FixedProxy(id.clone())
+            }
+            CompatibleEgressTargetConfiguration::ProxyPool(id) => {
+                CompatibleEgressTargetView::ProxyPool(id.clone())
+            }
+        };
+        Self {
+            endpoint_id: value.endpoint_id.clone(),
+            credential_id: value.credential_id.clone(),
+            target,
+            failure_scope: value.failure_scope,
+            stickiness: value.stickiness,
+            pre_submit_max_attempts: value.pre_submit_max_attempts,
+        }
+    }
 }
 
 /// One management Credential create or replacement request.
@@ -1121,6 +1281,421 @@ impl ManagementMutationService {
         let revision = ConfigRevision::try_new(configuration.version.revision)?;
         let page = compile_operational_account_pool_page(&configuration, query)?;
         Ok(Revisioned::new(page, revision))
+    }
+
+    /// Lists all Config-Version-owned compatible proxy pools in stable Store order.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the selected Version is absent or has malformed persisted revision
+    /// state. No proxy endpoint or ciphertext is opened.
+    pub fn list_compatible_proxy_pools(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+    ) -> Result<Revisioned<Vec<CompatibleProxyPoolView>>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let revision = ConfigRevision::try_new(configuration.version.revision)?;
+        let pools = configuration
+            .compatible_proxy_pools
+            .iter()
+            .map(CompatibleProxyPoolView::from)
+            .collect();
+        Ok(Revisioned::new(pools, revision))
+    }
+
+    /// Returns one Config-Version-owned compatible proxy pool without opening any endpoint.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementResourceError::ResourceNotFound`] when the pool is absent.
+    pub fn get_compatible_proxy_pool(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        pool_id: &CompatibleProxyPoolId,
+    ) -> Result<Revisioned<CompatibleProxyPoolView>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let revision = ConfigRevision::try_new(configuration.version.revision)?;
+        let pool = configuration
+            .compatible_proxy_pools
+            .iter()
+            .find(|candidate| &candidate.id == pool_id)
+            .map(CompatibleProxyPoolView::from)
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        Ok(Revisioned::new(pool, revision))
+    }
+
+    /// Creates one compatible proxy pool under an exact draft revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when ownership, bounds, revision, or the atomic resource/audit write is
+    /// rejected.
+    pub fn create_compatible_proxy_pool(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        pool: &CompatibleProxyPoolConfiguration,
+    ) -> Result<Revisioned<CompatibleProxyPoolView>, ManagementResourceError> {
+        let audit = self.audit(
+            "compatible_proxy_pool_created",
+            actor,
+            config_version_id,
+            "compatible_proxy_pool",
+            pool.id.as_str(),
+        )?;
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.insert_compatible_proxy_pool(config_version_id, pool)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            CompatibleProxyPoolView::from(pool),
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Updates one compatible proxy pool under an exact draft revision.
+    ///
+    /// The stable pool and Upstream identities cannot be silently moved by this operation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the pool is absent, ownership/bounds are invalid, or the atomic
+    /// revision/audit transaction fails.
+    pub fn update_compatible_proxy_pool(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        pool: &CompatibleProxyPoolConfiguration,
+    ) -> Result<Revisioned<CompatibleProxyPoolView>, ManagementResourceError> {
+        let audit = self.audit(
+            "compatible_proxy_pool_updated",
+            actor,
+            config_version_id,
+            "compatible_proxy_pool",
+            pool.id.as_str(),
+        )?;
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.update_compatible_proxy_pool(config_version_id, pool)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            CompatibleProxyPoolView::from(pool),
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Deletes one compatible proxy pool under an exact draft revision.
+    ///
+    /// Referenced nodes or binding profiles make the transaction fail closed; no implicit Direct
+    /// fallback is created.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the pool is absent, referenced, or the revision/audit transaction
+    /// cannot commit.
+    pub fn delete_compatible_proxy_pool(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        pool_id: &CompatibleProxyPoolId,
+    ) -> Result<ConfigRevision, ManagementResourceError> {
+        self.delete_resource(
+            actor,
+            config_version_id,
+            expected_revision,
+            ResourceAction {
+                action: "compatible_proxy_pool_deleted",
+                resource_kind: "compatible_proxy_pool",
+                resource_id: pool_id.as_str(),
+            },
+            |transaction| transaction.delete_compatible_proxy_pool(config_version_id, pool_id),
+        )
+    }
+
+    /// Lists all Config-Version-owned compatible proxy nodes without returning endpoint material.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the selected Version is absent or has malformed persisted revision
+    /// state.
+    pub fn list_compatible_proxy_nodes(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+    ) -> Result<Revisioned<Vec<CompatibleProxyNodeView>>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let revision = ConfigRevision::try_new(configuration.version.revision)?;
+        let nodes = configuration
+            .compatible_proxy_nodes
+            .iter()
+            .map(CompatibleProxyNodeView::from)
+            .collect();
+        Ok(Revisioned::new(nodes, revision))
+    }
+
+    /// Returns one compatible proxy node as a secret-free view.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementResourceError::ResourceNotFound`] when the node is absent.
+    pub fn get_compatible_proxy_node(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        node_id: &CompatibleProxyNodeId,
+    ) -> Result<Revisioned<CompatibleProxyNodeView>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let revision = ConfigRevision::try_new(configuration.version.revision)?;
+        let node = configuration
+            .compatible_proxy_nodes
+            .iter()
+            .find(|candidate| &candidate.id == node_id)
+            .map(CompatibleProxyNodeView::from)
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        Ok(Revisioned::new(node, revision))
+    }
+
+    /// Creates one compatible proxy node after local-DNS SOCKS5 validation and immediate AEAD
+    /// sealing.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the endpoint, ownership, bounds, revision, or atomic audit write is
+    /// rejected. The plaintext endpoint is not retained by the service.
+    pub fn create_compatible_proxy_node(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        input: &CompatibleProxyNodeUpsert,
+    ) -> Result<Revisioned<CompatibleProxyNodeView>, ManagementResourceError> {
+        let node = self.seal_compatible_proxy_node(config_version_id, input, None)?;
+        let audit = self.audit(
+            "compatible_proxy_node_created",
+            actor,
+            config_version_id,
+            "compatible_proxy_node",
+            node.id.as_str(),
+        )?;
+        let view = CompatibleProxyNodeView::from(&node);
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.insert_compatible_proxy_node(config_version_id, &node)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            view,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Updates one compatible proxy node and reseals its endpoint under the same identity-bound
+    /// AAD. The node cannot move to another Upstream or silently change identity.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when endpoint admission, ownership, bounds, node existence, revision, or
+    /// the atomic audit write is rejected.
+    pub fn update_compatible_proxy_node(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        input: &CompatibleProxyNodeUpsert,
+    ) -> Result<Revisioned<CompatibleProxyNodeView>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let existing = configuration
+            .compatible_proxy_nodes
+            .into_iter()
+            .find(|candidate| candidate.id == input.id)
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        if existing.upstream_id != input.upstream_id {
+            return Err(ManagementResourceError::ResourceNotFound);
+        }
+        if input.proxy_endpoint.is_none() && existing.pool_id != input.pool_id {
+            return Err(ControlPlaneServiceError::InvalidCompatibleProxyEndpoint.into());
+        }
+        let node = self.seal_compatible_proxy_node(config_version_id, input, Some(existing))?;
+        let audit = self.audit(
+            "compatible_proxy_node_updated",
+            actor,
+            config_version_id,
+            "compatible_proxy_node",
+            node.id.as_str(),
+        )?;
+        let view = CompatibleProxyNodeView::from(&node);
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.update_compatible_proxy_node(config_version_id, &node)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            view,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Deletes one compatible proxy node under an exact draft revision.
+    ///
+    /// Referenced fixed bindings or pool membership are rejected by the Store triggers.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the node is absent/referenced or the revision/audit transaction
+    /// cannot commit.
+    pub fn delete_compatible_proxy_node(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        node_id: &CompatibleProxyNodeId,
+    ) -> Result<ConfigRevision, ManagementResourceError> {
+        self.delete_resource(
+            actor,
+            config_version_id,
+            expected_revision,
+            ResourceAction {
+                action: "compatible_proxy_node_deleted",
+                resource_kind: "compatible_proxy_node",
+                resource_id: node_id.as_str(),
+            },
+            |transaction| transaction.delete_compatible_proxy_node(config_version_id, node_id),
+        )
+    }
+
+    /// Lists all exact Endpoint-Credential compatible egress binding profiles.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the selected Version is absent or malformed.
+    pub fn list_compatible_egress_bindings(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+    ) -> Result<Revisioned<Vec<CompatibleEgressBindingView>>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let revision = ConfigRevision::try_new(configuration.version.revision)?;
+        let bindings = configuration
+            .compatible_egress_bindings
+            .iter()
+            .map(CompatibleEgressBindingView::from)
+            .collect();
+        Ok(Revisioned::new(bindings, revision))
+    }
+
+    /// Returns one exact Endpoint-Credential compatible egress binding profile.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ManagementResourceError::ResourceNotFound`] when the profile is absent.
+    pub fn get_compatible_egress_binding(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        endpoint_id: &EndpointId,
+        credential_id: &CredentialId,
+    ) -> Result<Revisioned<CompatibleEgressBindingView>, ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        let revision = ConfigRevision::try_new(configuration.version.revision)?;
+        let binding = configuration
+            .compatible_egress_bindings
+            .iter()
+            .find(|candidate| {
+                &candidate.endpoint_id == endpoint_id && &candidate.credential_id == credential_id
+            })
+            .map(CompatibleEgressBindingView::from)
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        Ok(Revisioned::new(binding, revision))
+    }
+
+    /// Creates one exact binding profile under an exact draft revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the binding/target ownership, closed policy, revision, or audit
+    /// transaction is rejected.
+    pub fn create_compatible_egress_binding(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        binding: &CompatibleEgressBindingConfiguration,
+    ) -> Result<Revisioned<CompatibleEgressBindingView>, ManagementResourceError> {
+        self.mutate_compatible_egress_binding(
+            actor,
+            config_version_id,
+            expected_revision,
+            binding,
+            false,
+        )
+    }
+
+    /// Updates one exact binding profile under an exact draft revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the profile is absent, target ownership/policy is invalid, or the
+    /// revision/audit transaction cannot commit.
+    pub fn update_compatible_egress_binding(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        binding: &CompatibleEgressBindingConfiguration,
+    ) -> Result<Revisioned<CompatibleEgressBindingView>, ManagementResourceError> {
+        self.mutate_compatible_egress_binding(
+            actor,
+            config_version_id,
+            expected_revision,
+            binding,
+            true,
+        )
+    }
+
+    /// Deletes one exact binding profile under an exact draft revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the profile is absent or the revision/audit transaction cannot commit.
+    pub fn delete_compatible_egress_binding(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        endpoint_id: &EndpointId,
+        credential_id: &CredentialId,
+    ) -> Result<ConfigRevision, ManagementResourceError> {
+        let resource_id = compatible_binding_audit_id(endpoint_id, credential_id);
+        self.delete_resource(
+            actor,
+            config_version_id,
+            expected_revision,
+            ResourceAction {
+                action: "compatible_egress_binding_deleted",
+                resource_kind: "compatible_egress_binding",
+                resource_id: &resource_id,
+            },
+            |transaction| {
+                transaction.delete_compatible_egress_binding(
+                    config_version_id,
+                    endpoint_id,
+                    credential_id,
+                )
+            },
+        )
     }
 
     /// Creates one exact Endpoint/Credential binding using an exact draft revision.
@@ -2280,6 +2855,78 @@ impl ManagementMutationService {
         })
     }
 
+    fn seal_compatible_proxy_node(
+        &self,
+        config_version_id: &ConfigVersionId,
+        input: &CompatibleProxyNodeUpsert,
+        existing: Option<CompatibleProxyNodeConfiguration>,
+    ) -> Result<CompatibleProxyNodeConfiguration, ManagementResourceError> {
+        let encrypted_proxy = match input.proxy_endpoint.as_deref() {
+            Some(proxy_endpoint) => seal_compatible_proxy_node_endpoint(
+                &self.secret_store,
+                config_version_id,
+                &input.upstream_id,
+                input.pool_id.as_ref(),
+                &input.id,
+                proxy_endpoint,
+            )?,
+            None => {
+                existing
+                    .ok_or(ControlPlaneServiceError::InvalidCompatibleProxyEndpoint)?
+                    .encrypted_proxy
+            }
+        };
+        Ok(CompatibleProxyNodeConfiguration {
+            id: input.id.clone(),
+            upstream_id: input.upstream_id.clone(),
+            pool_id: input.pool_id.clone(),
+            name: input.name.clone(),
+            encrypted_proxy,
+            enabled: input.enabled,
+            weight: input.weight,
+            maximum_concurrency: input.maximum_concurrency,
+        })
+    }
+
+    fn mutate_compatible_egress_binding(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        binding: &CompatibleEgressBindingConfiguration,
+        replacing: bool,
+    ) -> Result<Revisioned<CompatibleEgressBindingView>, ManagementResourceError> {
+        let resource_id = compatible_binding_audit_id(&binding.endpoint_id, &binding.credential_id);
+        let audit = self.audit(
+            if replacing {
+                "compatible_egress_binding_updated"
+            } else {
+                "compatible_egress_binding_created"
+            },
+            actor,
+            config_version_id,
+            "compatible_egress_binding",
+            &resource_id,
+        )?;
+        let view = CompatibleEgressBindingView::from(binding);
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                if replacing {
+                    transaction.update_compatible_egress_binding(config_version_id, binding)?;
+                } else {
+                    transaction.insert_compatible_egress_binding(config_version_id, binding)?;
+                }
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            view,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
     fn credential_view(
         &mut self,
         config_version_id: &ConfigVersionId,
@@ -2320,6 +2967,29 @@ impl ManagementMutationService {
             resource_id,
         )?)
     }
+}
+
+/// Produces a bounded opaque audit identity for an Endpoint-Credential pair.
+///
+/// Individual opaque IDs may each be 128 bytes, while the durable audit resource identifier is
+/// bounded to 128 bytes. A domain-separated SHA-256 projection preserves pair distinction without
+/// truncating either input or placing the identifiers themselves in the audit row.
+fn compatible_binding_audit_id(endpoint_id: &EndpointId, credential_id: &CredentialId) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut hasher = Sha256::new();
+    hasher.update(b"cpar-compatible-egress-binding-audit-v1");
+    for value in [endpoint_id.as_str(), credential_id.as_str()] {
+        hasher.update((value.len() as u64).to_be_bytes());
+        hasher.update(value.as_bytes());
+    }
+    let digest = hasher.finalize();
+    let mut resource_id = String::with_capacity(5 + digest.len() * 2);
+    resource_id.push_str("bind-");
+    for byte in digest {
+        resource_id.push(HEX[usize::from(byte >> 4)] as char);
+        resource_id.push(HEX[usize::from(byte & 0x0f)] as char);
+    }
+    resource_id
 }
 
 impl From<CredentialConfiguration> for CredentialView {
@@ -3310,6 +3980,19 @@ mod tests {
         assert_eq!(audit_events[3].resource_id(), "credential-a");
         assert_eq!(audit_events[5].action(), "catalog_discovery_applied");
         assert_eq!(audit_events[6].action(), "credential_oauth_cancelled");
+        Ok(())
+    }
+
+    #[test]
+    fn compatible_binding_audit_id_is_bounded_and_pair_bound() -> TestResult {
+        let endpoint = EndpointId::try_new("e".repeat(128))?;
+        let credential_a = CredentialId::try_new("a".repeat(128))?;
+        let credential_b = CredentialId::try_new("b".repeat(128))?;
+        let audit_a = super::compatible_binding_audit_id(&endpoint, &credential_a);
+        let audit_b = super::compatible_binding_audit_id(&endpoint, &credential_b);
+        assert_eq!(audit_a.len(), 69);
+        assert!(audit_a.starts_with("bind-"));
+        assert_ne!(audit_a, audit_b);
         Ok(())
     }
 

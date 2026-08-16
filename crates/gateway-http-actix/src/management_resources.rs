@@ -21,17 +21,23 @@ use base64::{
     Engine as _,
     engine::general_purpose::{STANDARD, STANDARD_NO_PAD, URL_SAFE, URL_SAFE_NO_PAD},
 };
+use gateway_control::control_plane_service::ControlPlaneServiceError;
 use gateway_control::management_mutation_service::{
     AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus,
     BillingCatalogImport, BillingCatalogMutationOperation, BillingCatalogMutationReceipt,
     BillingCatalogSource, BillingPriceCatalog, BillingPriceEntry, ClientKeyIssue, ClientKeyUpdate,
-    ClientKeyView, ConfigRevision, ConfigVersionId, CredentialScope, CredentialStatus,
-    CredentialUpsert, CredentialView, EgressPolicyConfiguration, EndpointConfiguration,
-    EndpointCredentialBindingConfiguration, EndpointTransport, ManagementMutationService,
-    ManagementResourceError, ManagementRouteValidation, ModelAliasConfiguration,
-    ModelRouteConfiguration, PublicModelConfiguration, Revisioned, RouteCandidateConfiguration,
-    RoutePolicy, RoutingPriceComparison, RoutingPricePolicyConfiguration, StoreError,
-    StoredClientKeyStatus, StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
+    ClientKeyView, CompatibleEgressBindingConfiguration, CompatibleEgressBindingView,
+    CompatibleEgressTargetConfiguration, CompatibleEgressTargetView, CompatibleProxyNodeId,
+    CompatibleProxyNodeUpsert, CompatibleProxyNodeView, CompatibleProxyPoolConfiguration,
+    CompatibleProxyPoolId, CompatibleProxyPoolView, ConfigRevision, ConfigVersionId,
+    CredentialScope, CredentialStatus, CredentialUpsert, CredentialView, EgressPolicyConfiguration,
+    EndpointConfiguration, EndpointCredentialBindingConfiguration, EndpointTransport,
+    ManagementMutationService, ManagementResourceError, ManagementRouteValidation,
+    ModelAliasConfiguration, ModelRouteConfiguration, PublicModelConfiguration, Revisioned,
+    RouteCandidateConfiguration, RoutePolicy, RoutingPriceComparison,
+    RoutingPricePolicyConfiguration, StoreError, StoredClientKeyStatus,
+    StoredCompatibleFailureScope, StoredCompatibleStickiness, StoredEgressRedirectMode,
+    TransformMode, UpstreamConfiguration,
 };
 use gateway_control::management_operations_service::{
     DEFAULT_ACCOUNT_POOL_LIMIT, DEFAULT_FAILURE_FEEDBACK_LIMIT, DEFAULT_USAGE_LIMIT,
@@ -61,7 +67,10 @@ use provider_openai_compatible::{
     CodexCredentialExportFormat, CodexOAuthRefreshCoordinator, CodexOAuthRevisionedCredential,
     CodexOAuthTokenTransport, CodexOAuthTransportError, OpenAiCompatibleRuntimeCredential,
 };
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{
+    Deserialize, Deserializer, Serialize,
+    de::{self, DeserializeOwned, DeserializeSeed, MapAccess, SeqAccess, Visitor},
+};
 use sha2::Digest;
 use zeroize::Zeroizing;
 
@@ -2371,6 +2380,66 @@ fn configure_runtime_resource_routes(config: &mut web::ServiceConfig) {
 fn configure_operations_resource_routes(config: &mut web::ServiceConfig) {
     config
         .route(
+            "/compatible-proxy-pools",
+            web::get().to(list_compatible_proxy_pools),
+        )
+        .route(
+            "/compatible-proxy-pools",
+            web::post().to(create_compatible_proxy_pool),
+        )
+        .route(
+            "/compatible-proxy-pools/{pool_id}",
+            web::get().to(get_compatible_proxy_pool),
+        )
+        .route(
+            "/compatible-proxy-pools/{pool_id}",
+            web::patch().to(update_compatible_proxy_pool),
+        )
+        .route(
+            "/compatible-proxy-pools/{pool_id}",
+            web::delete().to(delete_compatible_proxy_pool),
+        )
+        .route(
+            "/compatible-proxy-nodes",
+            web::get().to(list_compatible_proxy_nodes),
+        )
+        .route(
+            "/compatible-proxy-nodes",
+            web::post().to(create_compatible_proxy_node),
+        )
+        .route(
+            "/compatible-proxy-nodes/{node_id}",
+            web::get().to(get_compatible_proxy_node),
+        )
+        .route(
+            "/compatible-proxy-nodes/{node_id}",
+            web::patch().to(update_compatible_proxy_node),
+        )
+        .route(
+            "/compatible-proxy-nodes/{node_id}",
+            web::delete().to(delete_compatible_proxy_node),
+        )
+        .route(
+            "/compatible-egress-bindings",
+            web::get().to(list_compatible_egress_bindings),
+        )
+        .route(
+            "/compatible-egress-bindings",
+            web::post().to(create_compatible_egress_binding),
+        )
+        .route(
+            "/compatible-egress-bindings/{endpoint_id}/{credential_id}",
+            web::get().to(get_compatible_egress_binding),
+        )
+        .route(
+            "/compatible-egress-bindings/{endpoint_id}/{credential_id}",
+            web::patch().to(update_compatible_egress_binding),
+        )
+        .route(
+            "/compatible-egress-bindings/{endpoint_id}/{credential_id}",
+            web::delete().to(delete_compatible_egress_binding),
+        )
+        .route(
             "/operations/channel-pin",
             web::post().to(execute_channel_pin),
         )
@@ -2473,6 +2542,40 @@ struct BindingInput {
     priority: i64,
     weight: i64,
     concurrency: i64,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CompatibleProxyPoolInput {
+    id: String,
+    upstream_id: String,
+    name: String,
+    enabled: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CompatibleProxyNodeInput {
+    id: String,
+    upstream_id: String,
+    pool_id: Option<String>,
+    name: String,
+    proxy_endpoint: Option<String>,
+    enabled: bool,
+    weight: i64,
+    maximum_concurrency: i64,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CompatibleEgressBindingInput {
+    endpoint_id: String,
+    credential_id: String,
+    target_kind: String,
+    target_id: Option<String>,
+    failure_scope: String,
+    stickiness: String,
+    pre_submit_max_attempts: i64,
 }
 
 #[derive(Deserialize)]
@@ -2627,6 +2730,86 @@ struct BindingResponse {
     priority: i64,
     weight: i64,
     concurrency: i64,
+}
+
+#[derive(Serialize)]
+struct CompatibleProxyPoolResponse {
+    id: String,
+    upstream_id: String,
+    name: String,
+    enabled: bool,
+}
+
+#[derive(Serialize)]
+struct CompatibleProxyNodeResponse {
+    id: String,
+    upstream_id: String,
+    pool_id: Option<String>,
+    name: String,
+    enabled: bool,
+    weight: u16,
+    maximum_concurrency: u32,
+    proxy_configured: bool,
+}
+
+#[derive(Serialize)]
+struct CompatibleEgressBindingResponse {
+    endpoint_id: String,
+    credential_id: String,
+    target_kind: &'static str,
+    target_id: Option<String>,
+    failure_scope: &'static str,
+    stickiness: &'static str,
+    pre_submit_max_attempts: u8,
+}
+
+impl From<CompatibleProxyPoolView> for CompatibleProxyPoolResponse {
+    fn from(value: CompatibleProxyPoolView) -> Self {
+        Self {
+            id: value.id.as_str().to_owned(),
+            upstream_id: value.upstream_id.as_str().to_owned(),
+            name: value.name,
+            enabled: value.enabled,
+        }
+    }
+}
+
+impl From<CompatibleProxyNodeView> for CompatibleProxyNodeResponse {
+    fn from(value: CompatibleProxyNodeView) -> Self {
+        Self {
+            id: value.id.as_str().to_owned(),
+            upstream_id: value.upstream_id.as_str().to_owned(),
+            pool_id: value.pool_id.map(|id| id.as_str().to_owned()),
+            name: value.name,
+            enabled: value.enabled,
+            weight: value.weight,
+            maximum_concurrency: value.maximum_concurrency,
+            proxy_configured: value.proxy_configured,
+        }
+    }
+}
+
+impl From<CompatibleEgressBindingView> for CompatibleEgressBindingResponse {
+    fn from(value: CompatibleEgressBindingView) -> Self {
+        let (target_kind, target_id) = match value.target {
+            CompatibleEgressTargetView::Direct => ("direct", None),
+            CompatibleEgressTargetView::FixedProxy(id) => {
+                ("fixed_proxy", Some(id.as_str().to_owned()))
+            }
+            CompatibleEgressTargetView::ProxyPool(id) => {
+                ("proxy_pool", Some(id.as_str().to_owned()))
+            }
+        };
+        Self {
+            endpoint_id: value.endpoint_id.as_str().to_owned(),
+            credential_id: value.credential_id.as_str().to_owned(),
+            target_kind,
+            target_id,
+            failure_scope: compatible_failure_scope_str(value.failure_scope),
+            stickiness: compatible_stickiness_str(value.stickiness),
+            pre_submit_max_attempts: value.pre_submit_max_attempts,
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -4026,6 +4209,458 @@ async fn list_egress_policies(
                 .map(EgressPolicyResponse::from)
                 .collect::<Vec<_>>()
         }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn list_compatible_proxy_pools(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_compatible_proxy_pools(&context.version) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |pools| {
+            pools
+                .into_iter()
+                .map(CompatibleProxyPoolResponse::from)
+                .collect::<Vec<_>>()
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_compatible_proxy_pool(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(pool_id) = CompatibleProxyPoolId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.get_compatible_proxy_pool(&context.version, &pool_id) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, CompatibleProxyPoolResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_compatible_proxy_pool(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let input: CompatibleProxyPoolInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let pool = match compatible_proxy_pool(input) {
+        Ok(pool) => pool,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_compatible_proxy_pool(&actor, &context.version, context.revision, &pool) {
+        Ok(value) => revisioned_json(
+            StatusCode::CREATED,
+            value,
+            CompatibleProxyPoolResponse::from,
+        ),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn update_compatible_proxy_pool(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let path_id = path.into_inner();
+    let input: CompatibleProxyPoolInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    if input.id != path_id {
+        return invalid_input();
+    }
+    let pool = match compatible_proxy_pool(input) {
+        Ok(pool) => pool,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.update_compatible_proxy_pool(&actor, &context.version, context.revision, &pool) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, CompatibleProxyPoolResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn delete_compatible_proxy_pool(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(pool_id) = CompatibleProxyPoolId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.delete_compatible_proxy_pool(&actor, &context.version, context.revision, &pool_id)
+    {
+        Ok(revision) => empty_with_revision(revision),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn list_compatible_proxy_nodes(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_compatible_proxy_nodes(&context.version) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |nodes| {
+            nodes
+                .into_iter()
+                .map(CompatibleProxyNodeResponse::from)
+                .collect::<Vec<_>>()
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_compatible_proxy_node(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(node_id) = CompatibleProxyNodeId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.get_compatible_proxy_node(&context.version, &node_id) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, CompatibleProxyNodeResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_compatible_proxy_node(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let input: CompatibleProxyNodeInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let node = match compatible_proxy_node(input) {
+        Ok(node) => node,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_compatible_proxy_node(&actor, &context.version, context.revision, &node) {
+        Ok(value) => revisioned_json(
+            StatusCode::CREATED,
+            value,
+            CompatibleProxyNodeResponse::from,
+        ),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn update_compatible_proxy_node(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let path_id = path.into_inner();
+    let input: CompatibleProxyNodeInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    if input.id != path_id {
+        return invalid_input();
+    }
+    let node = match compatible_proxy_node(input) {
+        Ok(node) => node,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.update_compatible_proxy_node(&actor, &context.version, context.revision, &node) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, CompatibleProxyNodeResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn delete_compatible_proxy_node(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let Ok(node_id) = CompatibleProxyNodeId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.delete_compatible_proxy_node(&actor, &context.version, context.revision, &node_id)
+    {
+        Ok(revision) => empty_with_revision(revision),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn list_compatible_egress_bindings(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.list_compatible_egress_bindings(&context.version) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, |bindings| {
+            bindings
+                .into_iter()
+                .map(CompatibleEgressBindingResponse::from)
+                .collect::<Vec<_>>()
+        }),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn get_compatible_egress_binding(
+    request: HttpRequest,
+    path: web::Path<(String, String)>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let (endpoint_raw, credential_raw) = path.into_inner();
+    let Ok(endpoint_id) = EndpointId::try_new(endpoint_raw) else {
+        return invalid_input();
+    };
+    let Ok(credential_id) = CredentialId::try_new(credential_raw) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.get_compatible_egress_binding(&context.version, &endpoint_id, &credential_id) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, CompatibleEgressBindingResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn create_compatible_egress_binding(
+    request: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let input: CompatibleEgressBindingInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    let binding = match compatible_egress_binding(input) {
+        Ok(binding) => binding,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.create_compatible_egress_binding(
+        &actor,
+        &context.version,
+        context.revision,
+        &binding,
+    ) {
+        Ok(value) => revisioned_json(
+            StatusCode::CREATED,
+            value,
+            CompatibleEgressBindingResponse::from,
+        ),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn update_compatible_egress_binding(
+    request: HttpRequest,
+    path: web::Path<(String, String)>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let (endpoint_raw, credential_raw) = path.into_inner();
+    let input: CompatibleEgressBindingInput = match parse_json(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    if input.endpoint_id != endpoint_raw || input.credential_id != credential_raw {
+        return invalid_input();
+    }
+    let binding = match compatible_egress_binding(input) {
+        Ok(binding) => binding,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.update_compatible_egress_binding(
+        &actor,
+        &context.version,
+        context.revision,
+        &binding,
+    ) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, CompatibleEgressBindingResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn delete_compatible_egress_binding(
+    request: HttpRequest,
+    path: web::Path<(String, String)>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let (endpoint_raw, credential_raw) = path.into_inner();
+    let Ok(endpoint_id) = EndpointId::try_new(endpoint_raw) else {
+        return invalid_input();
+    };
+    let Ok(credential_id) = CredentialId::try_new(credential_raw) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.delete_compatible_egress_binding(
+        &actor,
+        &context.version,
+        context.revision,
+        &endpoint_id,
+        &credential_id,
+    ) {
+        Ok(revision) => empty_with_revision(revision),
         Err(error) => management_error(error),
     }
 }
@@ -6507,7 +7142,127 @@ fn parse_json<T: DeserializeOwned>(body: &[u8]) -> Result<T, HttpResponse> {
     if body.is_empty() || body.len() > MAX_MANAGEMENT_JSON_BYTES {
         return Err(invalid_input());
     }
+    let mut duplicate_checker = serde_json::Deserializer::from_slice(body);
+    duplicate_checker
+        .deserialize_any(DuplicateJsonKeyVisitor)
+        .map_err(|_| invalid_input())?;
+    duplicate_checker.end().map_err(|_| invalid_input())?;
     serde_json::from_slice(body).map_err(|_| invalid_input())
+}
+
+struct DuplicateJsonValueSeed;
+
+impl<'de> DeserializeSeed<'de> for DuplicateJsonValueSeed {
+    type Value = ();
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(DuplicateJsonKeyVisitor)
+    }
+}
+
+struct DuplicateJsonKeyVisitor;
+
+impl<'de> Visitor<'de> for DuplicateJsonKeyVisitor {
+    type Value = ();
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("a JSON value with unique object keys")
+    }
+
+    fn visit_bool<E>(self, _value: bool) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_i64<E>(self, _value: i64) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_u64<E>(self, _value: u64) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_f64<E>(self, _value: f64) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_i128<E>(self, _value: i128) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_u128<E>(self, _value: u128) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_char<E>(self, _value: char) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_str<E>(self, _value: &str) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_borrowed_str<E>(self, _value: &'de str) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_string<E>(self, _value: String) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_bytes<E>(self, _value: &[u8]) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_borrowed_bytes<E>(self, _value: &'de [u8]) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_byte_buf<E>(self, _value: Vec<u8>) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(self)
+    }
+
+    fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        while sequence
+            .next_element_seed(DuplicateJsonValueSeed)?
+            .is_some()
+        {}
+        Ok(())
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut keys = BTreeSet::new();
+        while let Some(key) = map.next_key::<String>()? {
+            if !keys.insert(key) {
+                return Err(de::Error::custom("duplicate JSON object key"));
+            }
+            map.next_value_seed(DuplicateJsonValueSeed)?;
+        }
+        Ok(())
+    }
 }
 
 fn egress_policy(input: EgressPolicyInput) -> Result<EgressPolicyConfiguration, HttpResponse> {
@@ -6815,10 +7570,122 @@ fn endpoint_test_mode(value: &str) -> Result<ManagementEndpointTestMode, HttpRes
 }
 
 fn bounded_text(value: String, maximum: usize) -> Result<String, HttpResponse> {
-    if value.trim().is_empty() || value.chars().count() > maximum {
+    if value.trim().is_empty()
+        || value.trim() != value
+        || value.chars().count() > maximum
+        || value.chars().any(char::is_control)
+    {
         Err(invalid_input())
     } else {
         Ok(value)
+    }
+}
+
+fn compatible_proxy_pool(
+    input: CompatibleProxyPoolInput,
+) -> Result<CompatibleProxyPoolConfiguration, HttpResponse> {
+    Ok(CompatibleProxyPoolConfiguration {
+        id: CompatibleProxyPoolId::try_new(input.id).map_err(|_| invalid_input())?,
+        upstream_id: UpstreamId::try_new(input.upstream_id).map_err(|_| invalid_input())?,
+        name: bounded_text(input.name, 256)?,
+        enabled: input.enabled,
+    })
+}
+
+fn compatible_proxy_node(
+    input: CompatibleProxyNodeInput,
+) -> Result<CompatibleProxyNodeUpsert, HttpResponse> {
+    if let Some(proxy_endpoint) = &input.proxy_endpoint
+        && (proxy_endpoint.trim().is_empty()
+            || proxy_endpoint.len() > 2048
+            || proxy_endpoint.chars().any(char::is_control))
+    {
+        return Err(invalid_input());
+    }
+    let weight = u16::try_from(input.weight)
+        .ok()
+        .filter(|value| (1..=1024).contains(value))
+        .ok_or_else(invalid_input)?;
+    let maximum_concurrency = u32::try_from(input.maximum_concurrency)
+        .ok()
+        .filter(|value| (1..=100_000).contains(value))
+        .ok_or_else(invalid_input)?;
+    Ok(CompatibleProxyNodeUpsert {
+        id: CompatibleProxyNodeId::try_new(input.id).map_err(|_| invalid_input())?,
+        upstream_id: UpstreamId::try_new(input.upstream_id).map_err(|_| invalid_input())?,
+        pool_id: input
+            .pool_id
+            .map(CompatibleProxyPoolId::try_new)
+            .transpose()
+            .map_err(|_| invalid_input())?,
+        name: bounded_text(input.name, 256)?,
+        proxy_endpoint: input.proxy_endpoint,
+        enabled: input.enabled,
+        weight,
+        maximum_concurrency,
+    })
+}
+
+fn compatible_egress_binding(
+    input: CompatibleEgressBindingInput,
+) -> Result<CompatibleEgressBindingConfiguration, HttpResponse> {
+    let endpoint_id = EndpointId::try_new(input.endpoint_id).map_err(|_| invalid_input())?;
+    let credential_id = CredentialId::try_new(input.credential_id).map_err(|_| invalid_input())?;
+    let target = match (input.target_kind.as_str(), input.target_id) {
+        ("direct", None) => CompatibleEgressTargetConfiguration::Direct,
+        ("fixed_proxy", Some(value)) => CompatibleEgressTargetConfiguration::FixedProxy(
+            CompatibleProxyNodeId::try_new(value).map_err(|_| invalid_input())?,
+        ),
+        ("proxy_pool", Some(value)) => CompatibleEgressTargetConfiguration::ProxyPool(
+            CompatibleProxyPoolId::try_new(value).map_err(|_| invalid_input())?,
+        ),
+        _ => return Err(invalid_input()),
+    };
+    let failure_scope = match input.failure_scope.as_str() {
+        "endpoint" => StoredCompatibleFailureScope::Endpoint,
+        "credential" => StoredCompatibleFailureScope::Credential,
+        "egress_node" => StoredCompatibleFailureScope::EgressNode,
+        _ => return Err(invalid_input()),
+    };
+    let stickiness = match input.stickiness.as_str() {
+        "none" => StoredCompatibleStickiness::None,
+        "credential" => StoredCompatibleStickiness::Credential,
+        "credential_and_egress" => StoredCompatibleStickiness::CredentialAndEgress,
+        _ => return Err(invalid_input()),
+    };
+    let pre_submit_max_attempts = u8::try_from(input.pre_submit_max_attempts)
+        .ok()
+        .filter(|value| (1..=3).contains(value))
+        .ok_or_else(invalid_input)?;
+    if matches!(target, CompatibleEgressTargetConfiguration::Direct)
+        && (matches!(failure_scope, StoredCompatibleFailureScope::EgressNode)
+            || matches!(stickiness, StoredCompatibleStickiness::CredentialAndEgress))
+    {
+        return Err(invalid_input());
+    }
+    Ok(CompatibleEgressBindingConfiguration {
+        endpoint_id,
+        credential_id,
+        target,
+        failure_scope,
+        stickiness,
+        pre_submit_max_attempts,
+    })
+}
+
+const fn compatible_failure_scope_str(value: StoredCompatibleFailureScope) -> &'static str {
+    match value {
+        StoredCompatibleFailureScope::Endpoint => "endpoint",
+        StoredCompatibleFailureScope::Credential => "credential",
+        StoredCompatibleFailureScope::EgressNode => "egress_node",
+    }
+}
+
+const fn compatible_stickiness_str(value: StoredCompatibleStickiness) -> &'static str {
+    match value {
+        StoredCompatibleStickiness::None => "none",
+        StoredCompatibleStickiness::Credential => "credential",
+        StoredCompatibleStickiness::CredentialAndEgress => "credential_and_egress",
     }
 }
 
@@ -6834,6 +7701,7 @@ fn revisioned_json<T, U: Serialize>(
     let (resource, revision) = value.into_parts();
     HttpResponse::build(status)
         .insert_header((header::ETAG, format!("\"{}\"", revision.as_token())))
+        .insert_header((header::CACHE_CONTROL, "no-store"))
         .json(convert(resource))
 }
 
@@ -6857,12 +7725,14 @@ fn response_with_revision<T: Serialize>(
 ) -> HttpResponse {
     HttpResponse::build(status)
         .insert_header((header::ETAG, format!("\"{}\"", revision.as_token())))
+        .insert_header((header::CACHE_CONTROL, "no-store"))
         .json(value)
 }
 
 fn empty_with_revision(revision: ConfigRevision) -> HttpResponse {
     HttpResponse::NoContent()
         .insert_header((header::ETAG, format!("\"{}\"", revision.as_token())))
+        .insert_header((header::CACHE_CONTROL, "no-store"))
         .finish()
 }
 
@@ -6916,7 +7786,11 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
         ManagementResourceError::InvalidRevision
         | ManagementResourceError::InvalidCredentialInput
         | ManagementResourceError::InvalidBillingCatalogInput
-        | ManagementResourceError::RoutingPriceCatalogNotEffective => invalid_input(),
+        | ManagementResourceError::RoutingPriceCatalogNotEffective
+        | ManagementResourceError::Store(StoreError::InvalidCompatibleEgressConfiguration)
+        | ManagementResourceError::ControlPlane(
+            ControlPlaneServiceError::InvalidCompatibleProxyEndpoint,
+        ) => invalid_input(),
         ManagementResourceError::Store(_)
         | ManagementResourceError::SecretStore(_)
         | ManagementResourceError::ControlPlane(_)
@@ -8115,6 +8989,15 @@ mod tests {
             RouteResponse::try_from(route_with_policy(RoutePolicy::PriorityFailover)?).is_err()
         );
         Ok(())
+    }
+
+    #[test]
+    fn management_json_parser_rejects_duplicate_keys_at_any_depth() {
+        assert!(parse_json::<serde_json::Value>(br#"{"outer":{"value":1,"value":2}}"#).is_err());
+        assert!(
+            parse_json::<serde_json::Value>(br#"{"outer":{"value":1},"items":[{"value":2}]}"#)
+                .is_ok()
+        );
     }
 
     #[test]

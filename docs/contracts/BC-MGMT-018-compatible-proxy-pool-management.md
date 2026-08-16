@@ -1,6 +1,6 @@
 # BC-MGMT-018: Compatible proxy-pool persistence and protected management
 
-Status: `P13-11D1 LOCAL_PASS_PENDING_PHASE_GATE`; D2/D3 not started
+Status: `P13-11D2 LOCAL_PASS_PENDING_PHASE_GATE`; D1 and D2 locally implemented; D3 not started
 
 ## Purpose
 
@@ -107,9 +107,12 @@ Explicit rotation replaces it atomically. Unknown fields, overlong values, dupli
 keys, and unbounded collections are rejected.
 
 Every successful write returns the next Config revision and records a value-free action such as
-`compatible_proxy_pool_created`, `compatible_proxy_node_rotated`, or
+`compatible_proxy_pool_created`, `compatible_proxy_node_updated`, or
 `compatible_egress_binding_updated`. Audit resource IDs are opaque identities only and never
 contain a URL, proxy address, Credential secret, request body, or ciphertext.
+For the composite Endpoint-Credential binding key, the implementation uses a bounded,
+domain-separated opaque projection rather than concatenating arbitrarily long IDs into the audit
+row; the projection is not returned by the public data plane and does not contain either source ID.
 
 If the authoritative OpenAPI changes, the same backend change must run
 `npm --prefix web/prism run sync-contract` and append an action-required entry to
@@ -142,13 +145,17 @@ it must not store or redisplay the submitted proxy URL.
 - encryption/open/rotation, missing key, corruption, wrong AAD, and row-swap rejection;
 - no raw proxy or ciphertext in safe projections, Debug, errors, or audit.
 
-### D2 HTTP/OpenAPI
+### D2 HTTP/OpenAPI — locally implemented
 
 - Management Key, peer/origin, CSRF, Config Version, `If-Match`, stale revision, active/archived
   rejection, unknown/foreign owner, limits, closed enum, and no-store behavior;
 - create/read/update/rotate/delete round trips with responses and audit free of proxy material;
 - authoritative OpenAPI reference/closed-schema tests, generated client freshness, Prism sync, and
   cross-boundary handoff.
+
+The current local HTTP fixture covers protected create/list/update/delete round trips, stale
+revision rejection, endpoint-value preservation when an update omits the write-only field, and
+secret-free responses. Successful revisioned management responses carry `Cache-Control: no-store`.
 
 ### D3 runtime
 
