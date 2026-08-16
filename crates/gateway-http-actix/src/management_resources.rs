@@ -3534,7 +3534,7 @@ async fn list_billing_catalogs(
     request: HttpRequest,
     state: web::Data<ManagementResourceHttpState>,
 ) -> HttpResponse {
-    let context = match write_context(&request) {
+    let context = match read_context(&request) {
         Ok(context) => context,
         Err(response) => return response,
     };
