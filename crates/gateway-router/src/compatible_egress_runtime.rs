@@ -504,6 +504,48 @@ impl CompatibleEgressTransportRegistry {
         }
     }
 
+    /// Acquires one exact fixed/pool node without advancing a pool cursor.
+    ///
+    /// Serving uses this only for a process-local `CredentialAndEgress` sticky assignment. It
+    /// never searches a sibling node and therefore cannot silently rotate an exact sticky
+    /// binding across egress identities.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CompatibleEgressTransportError::NoAvailableNode`] when the requested node is
+    /// cooling, disabled, or saturated.
+    pub fn try_acquire_exact(
+        &self,
+        target: &CompatibleEgressTarget,
+        node_id: &str,
+        now_ms: i64,
+    ) -> Result<CompatibleEgressTransportLease, CompatibleEgressTransportError> {
+        match target {
+            CompatibleEgressTarget::Direct => {
+                Err(CompatibleEgressTransportError::DirectTargetHasNoNode)
+            }
+            CompatibleEgressTarget::FixedProxy { profile_id } => {
+                if profile_id != node_id {
+                    return Err(CompatibleEgressTransportError::UnknownProxyNode);
+                }
+                let node = self
+                    .inner
+                    .fixed
+                    .get(profile_id)
+                    .ok_or(CompatibleEgressTransportError::UnknownFixedProxy)?;
+                acquire_node(target.clone(), Arc::clone(node), now_ms)
+            }
+            CompatibleEgressTarget::ProxyPool { pool_id } => {
+                let pool = self
+                    .inner
+                    .pools
+                    .get(pool_id)
+                    .ok_or(CompatibleEgressTransportError::UnknownProxyPool)?;
+                pool.try_acquire_exact(target.clone(), node_id, now_ms)
+            }
+        }
+    }
+
     /// Marks one fixed/pool node cooling until a future timestamp.
     ///
     /// This is a local failure-feedback primitive. It does not touch Credential Health/Quota and
@@ -859,6 +901,20 @@ impl EgressNodePool {
             }
         }
         Err(CompatibleEgressTransportError::NoAvailableNode)
+    }
+
+    fn try_acquire_exact(
+        &self,
+        target: CompatibleEgressTarget,
+        node_id: &str,
+        now_ms: i64,
+    ) -> Result<CompatibleEgressTransportLease, CompatibleEgressTransportError> {
+        let node = self
+            .nodes
+            .iter()
+            .find(|node| node.node_id == node_id)
+            .ok_or(CompatibleEgressTransportError::UnknownProxyNode)?;
+        acquire_node(target, Arc::clone(node), now_ms)
     }
 }
 

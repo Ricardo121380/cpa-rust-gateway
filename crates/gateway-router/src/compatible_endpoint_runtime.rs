@@ -10,14 +10,15 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     error::Error,
     fmt,
-    sync::Arc,
+    sync::{Arc, RwLock},
+    time::Duration,
 };
 
 use gateway_core::{CredentialId, EndpointId, GatewayProtocol, UpstreamId};
 use gateway_upstream::{
     CompatibleEgressError, CompatibleEgressTarget, CompatibleEndpointEgressProfile,
-    CredentialLease, CredentialPoolEntrySnapshot, EgressPolicy, EndpointCredentialPools,
-    EndpointUrl,
+    CompatibleFailureScope, CredentialLease, CredentialPoolEntrySnapshot, EgressPolicy,
+    EndpointCredentialPools, EndpointUrl,
 };
 
 use crate::{
@@ -169,6 +170,11 @@ pub enum CompatibleEndpointRuntimeError {
     EgressUnavailable,
     /// The transport registry returned an unexpected local state error.
     EgressRegistryUnavailable,
+    /// The serving scheduler supplied a Credential whose identity or revision does not match
+    /// this exact compatible Endpoint runtime.
+    SelectedCredentialMismatch,
+    /// Exact failure feedback could not be committed to the shared local state.
+    FailureFeedbackUnavailable,
 }
 
 impl fmt::Display for CompatibleEndpointRuntimeError {
@@ -180,6 +186,10 @@ impl fmt::Display for CompatibleEndpointRuntimeError {
             Self::NoEligibleCredential => "no compatible Credential is eligible",
             Self::EgressUnavailable => "compatible egress target is unavailable",
             Self::EgressRegistryUnavailable => "compatible egress registry is unavailable",
+            Self::SelectedCredentialMismatch => {
+                "selected Credential does not match compatible runtime"
+            }
+            Self::FailureFeedbackUnavailable => "compatible egress failure feedback is unavailable",
         };
         formatter.write_str(message)
     }
@@ -327,6 +337,70 @@ impl CompatibleEndpointBindingObservation {
     }
 }
 
+/// A request-scoped egress-only lease for a Credential lease owned by the serving scheduler.
+///
+/// This type deliberately contains no Credential bytes. The ordinary `CredentialLease` remains
+/// owned by `AttemptOrchestrator`; this lease only keeps the selected egress node capacity alive
+/// until the returned event source is dropped.
+pub struct CompatibleEndpointEgressLease {
+    snapshot_version: SnapshotVersion,
+    profile: CompatibleEndpointEgressProfile,
+    endpoint_url: Arc<EndpointUrl>,
+    egress_policy: Arc<EgressPolicy>,
+    egress_lease: CompatibleEgressTransportLease,
+}
+
+impl CompatibleEndpointEgressLease {
+    /// Returns the exact Config Version identity.
+    #[must_use]
+    pub fn snapshot_version(&self) -> &SnapshotVersion {
+        &self.snapshot_version
+    }
+
+    /// Returns the exact compatible binding profile.
+    #[must_use]
+    pub fn profile(&self) -> &CompatibleEndpointEgressProfile {
+        &self.profile
+    }
+
+    /// Returns the admitted endpoint URL for the later per-attempt policy check.
+    #[must_use]
+    pub fn endpoint_url(&self) -> &EndpointUrl {
+        self.endpoint_url.as_ref()
+    }
+
+    /// Returns the compiled URL/SSRF policy.
+    #[must_use]
+    pub fn egress_policy(&self) -> &EgressPolicy {
+        self.egress_policy.as_ref()
+    }
+
+    /// Returns the selected transport profile (with local timeout values preserved by the caller).
+    #[must_use]
+    pub fn transport_profile(&self) -> &gateway_upstream::UpstreamTransportProfile {
+        self.egress_lease.transport_profile()
+    }
+
+    /// Returns the selected fixed/pool node identity, if any.
+    #[must_use]
+    pub fn selected_egress_node_id(&self) -> Option<&str> {
+        self.egress_lease.selected_node_id()
+    }
+}
+
+impl fmt::Debug for CompatibleEndpointEgressLease {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("CompatibleEndpointEgressLease")
+            .field("snapshot_version", &self.snapshot_version)
+            .field("profile", &self.profile)
+            .field("endpoint_url", &self.endpoint_url)
+            .field("egress_policy", &self.egress_policy)
+            .field("egress_lease", &self.egress_lease)
+            .finish()
+    }
+}
+
 /// One composed runtime for one exact generic Endpoint.
 pub struct CompatibleEndpointRuntime {
     snapshot_version: SnapshotVersion,
@@ -340,6 +414,7 @@ pub struct CompatibleEndpointRuntime {
     runtime_health: Arc<RuntimeHealthRegistry>,
     runtime_quota: Arc<RuntimeQuotaRegistry>,
     transport_registry: CompatibleEgressTransportRegistry,
+    sticky_nodes: RwLock<BTreeMap<CredentialId, String>>,
 }
 
 impl CompatibleEndpointRuntime {
@@ -411,6 +486,7 @@ impl CompatibleEndpointRuntime {
             runtime_health: input.runtime_health,
             runtime_quota: input.runtime_quota,
             transport_registry: input.transport_registry,
+            sticky_nodes: RwLock::new(BTreeMap::new()),
         })
     }
 
@@ -578,6 +654,208 @@ impl CompatibleEndpointRuntime {
             credential_lease,
             egress_lease,
         })
+    }
+
+    /// Acquires only egress capacity for the exact live Credential lease selected by serving.
+    ///
+    /// This is the P13-11C handoff seam: it never advances a Credential cursor or creates a
+    /// second Credential lease. Health, account status, quota, model state and expiry are
+    /// rechecked immediately before the egress node is acquired; Credential capacity is already
+    /// owned by the caller and is therefore intentionally not treated as saturation here.
+    ///
+    /// # Errors
+    ///
+    /// Returns a closed error when the selected lease does not belong to this exact runtime or
+    /// any local predicate/egress capacity fails.
+    pub fn try_lease_egress_for_credential(
+        &self,
+        credential: &CredentialLease,
+        upstream_model: Option<&str>,
+        observed_at_ms: i64,
+    ) -> Result<CompatibleEndpointEgressLease, CompatibleEndpointRuntimeError> {
+        let profile = self
+            .profiles
+            .get(credential.credential_id())
+            .ok_or(CompatibleEndpointRuntimeError::SelectedCredentialMismatch)?;
+        if profile.credential_kind() != credential.credential_kind()
+            || self
+                .credential_pools
+                .pool(&self.endpoint_id)
+                .and_then(|pool| {
+                    pool.diagnostic_entries()
+                        .into_iter()
+                        .find(|entry| entry.credential_id() == credential.credential_id())
+                })
+                .is_none_or(|entry| entry.credential_revision() != credential.credential_revision())
+        {
+            return Err(CompatibleEndpointRuntimeError::SelectedCredentialMismatch);
+        }
+        let pool = self
+            .credential_pools
+            .pool(&self.endpoint_id)
+            .ok_or(CompatibleEndpointRuntimeError::SelectedCredentialMismatch)?;
+        let entry = pool
+            .diagnostic_entries()
+            .into_iter()
+            .find(|entry| entry.credential_id() == credential.credential_id())
+            .ok_or(CompatibleEndpointRuntimeError::SelectedCredentialMismatch)?;
+        let endpoint_health = self
+            .runtime_health
+            .availability_at(
+                &RuntimeHealthKey::endpoint(self.endpoint_id.clone()),
+                observed_at_ms,
+            )
+            .map_err(|_| CompatibleEndpointRuntimeError::HealthUnavailable)?;
+        if !endpoint_health.is_available() {
+            return Err(CompatibleEndpointRuntimeError::EndpointBlocked);
+        }
+        let observation = self.observation_for_profile(
+            profile,
+            &entry,
+            endpoint_health,
+            upstream_model,
+            observed_at_ms,
+        )?;
+        if !observation.endpoint_health.is_available()
+            || !observation.credential_health.is_available()
+            || !matches!(
+                observation.account_status,
+                RuntimeCredentialAccountStatus::Available
+            )
+            || !matches!(
+                observation.binding_quota,
+                RuntimeQuotaAvailability::Available
+            )
+            || observation
+                .model_health
+                .is_some_and(|availability| !availability.is_available())
+            || observation.model_quota.is_some_and(|availability| {
+                !matches!(availability, RuntimeQuotaAvailability::Available)
+            })
+            || observation
+                .expires_at_ms
+                .is_some_and(|expires_at_ms| expires_at_ms <= observed_at_ms)
+            || !observation.egress.availability().is_available()
+        {
+            return Err(CompatibleEndpointRuntimeError::NoEligibleCredential);
+        }
+        let egress_lease = self.acquire_egress(profile, observed_at_ms)?;
+        Ok(CompatibleEndpointEgressLease {
+            snapshot_version: self.snapshot_version.clone(),
+            profile: profile.clone(),
+            endpoint_url: Arc::clone(&self.endpoint_url),
+            egress_policy: Arc::clone(&self.egress_policy),
+            egress_lease,
+        })
+    }
+
+    /// Records one pre-response transport failure against the profile's exact scope.
+    ///
+    /// This operation mutates only the shared local Health registry or the selected egress node;
+    /// it never starts a probe and never changes another Provider's state.
+    ///
+    /// # Errors
+    ///
+    /// Returns a closed error when the lease belongs to another runtime, the deadline is invalid,
+    /// or the selected local state cannot be updated.
+    pub fn record_transport_failure(
+        &self,
+        lease: &CompatibleEndpointEgressLease,
+        observed_at_ms: i64,
+        cooldown: Duration,
+    ) -> Result<(), CompatibleEndpointRuntimeError> {
+        if lease.snapshot_version() != &self.snapshot_version
+            || !lease.profile().same_binding(
+                self.profiles
+                    .get(lease.profile().credential_id())
+                    .ok_or(CompatibleEndpointRuntimeError::SelectedCredentialMismatch)?,
+            )
+        {
+            return Err(CompatibleEndpointRuntimeError::SelectedCredentialMismatch);
+        }
+        let cooldown_ms = i64::try_from(cooldown.as_millis())
+            .map_err(|_| CompatibleEndpointRuntimeError::FailureFeedbackUnavailable)?;
+        let until_ms = observed_at_ms
+            .checked_add(cooldown_ms)
+            .filter(|until_ms| *until_ms > observed_at_ms)
+            .ok_or(CompatibleEndpointRuntimeError::FailureFeedbackUnavailable)?;
+        match lease.profile().failure_scope() {
+            CompatibleFailureScope::Endpoint => self
+                .runtime_health
+                .cool_down_until(
+                    RuntimeHealthKey::endpoint(self.endpoint_id.clone()),
+                    until_ms,
+                )
+                .map_err(|_| CompatibleEndpointRuntimeError::FailureFeedbackUnavailable),
+            CompatibleFailureScope::Credential => self
+                .runtime_health
+                .cool_down_until(
+                    RuntimeHealthKey::endpoint_credential(
+                        self.endpoint_id.clone(),
+                        lease.profile().credential_id().clone(),
+                    ),
+                    until_ms,
+                )
+                .map_err(|_| CompatibleEndpointRuntimeError::FailureFeedbackUnavailable),
+            CompatibleFailureScope::EgressNode => {
+                let node_id = lease
+                    .selected_egress_node_id()
+                    .ok_or(CompatibleEndpointRuntimeError::FailureFeedbackUnavailable)?;
+                self.transport_registry
+                    .cool_down_until(lease.profile().target(), node_id, until_ms, observed_at_ms)
+                    .map_err(|_| CompatibleEndpointRuntimeError::FailureFeedbackUnavailable)
+            }
+        }
+    }
+
+    fn acquire_egress(
+        &self,
+        profile: &CompatibleEndpointEgressProfile,
+        observed_at_ms: i64,
+    ) -> Result<CompatibleEgressTransportLease, CompatibleEndpointRuntimeError> {
+        if !matches!(
+            profile.stickiness(),
+            gateway_upstream::CompatibleStickiness::CredentialAndEgress
+        ) {
+            return self
+                .transport_registry
+                .try_acquire(profile.target(), observed_at_ms)
+                .map_err(|_| CompatibleEndpointRuntimeError::EgressUnavailable);
+        }
+        if let Some(sticky_node) = self
+            .sticky_nodes
+            .read()
+            .map_err(|_| CompatibleEndpointRuntimeError::EgressRegistryUnavailable)?
+            .get(profile.credential_id())
+            .cloned()
+        {
+            return self
+                .transport_registry
+                .try_acquire_exact(profile.target(), &sticky_node, observed_at_ms)
+                .map_err(|_| CompatibleEndpointRuntimeError::EgressUnavailable);
+        }
+        let lease = self
+            .transport_registry
+            .try_acquire(profile.target(), observed_at_ms)
+            .map_err(|_| CompatibleEndpointRuntimeError::EgressUnavailable)?;
+        let node_id = lease
+            .selected_node_id()
+            .ok_or(CompatibleEndpointRuntimeError::EgressUnavailable)?
+            .to_owned();
+        let mut sticky_nodes = self
+            .sticky_nodes
+            .write()
+            .map_err(|_| CompatibleEndpointRuntimeError::EgressRegistryUnavailable)?;
+        if let Some(existing) = sticky_nodes.get(profile.credential_id()).cloned() {
+            drop(sticky_nodes);
+            drop(lease);
+            return self
+                .transport_registry
+                .try_acquire_exact(profile.target(), &existing, observed_at_ms)
+                .map_err(|_| CompatibleEndpointRuntimeError::EgressUnavailable);
+        }
+        sticky_nodes.insert(profile.credential_id().clone(), node_id);
+        Ok(lease)
     }
 
     fn observation_for_profile(
@@ -773,6 +1051,10 @@ impl fmt::Debug for CompatibleEndpointRuntime {
             .field("runtime_health", &"<shared>")
             .field("runtime_quota", &"<shared>")
             .field("transport_registry", &self.transport_registry)
+            .field(
+                "sticky_assignment_count",
+                &self.sticky_nodes.read().map_or(0, |nodes| nodes.len()),
+            )
             .finish()
     }
 }
@@ -870,7 +1152,13 @@ impl fmt::Debug for CompatibleEndpointRuntimeLease {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::BTreeSet, error::Error, num::NonZeroUsize, sync::Arc, time::Duration};
+    use std::{
+        collections::BTreeSet,
+        error::Error,
+        num::NonZeroUsize,
+        sync::Arc,
+        time::{Duration, SystemTime, UNIX_EPOCH},
+    };
 
     use gateway_core::{CredentialId, EgressPolicyId, EndpointId, GatewayProtocol, UpstreamId};
     use gateway_upstream::{
@@ -967,6 +1255,33 @@ mod tests {
                         weight: 1,
                         maximum_concurrency: 1,
                     }],
+                }],
+            },
+        )?)
+    }
+
+    fn two_node_registry() -> Result<CompatibleEgressTransportRegistry, Box<dyn Error>> {
+        Ok(CompatibleEgressTransportRegistry::try_new(
+            CompatibleEgressTransportRegistryInput {
+                owner_upstream_id: UpstreamId::try_new("upstream")?,
+                direct_profile: direct_profile()?,
+                fixed_proxies: Vec::new(),
+                proxy_pools: vec![CompatibleProxyPoolInput {
+                    pool_id: "pool".to_owned(),
+                    nodes: vec![
+                        CompatibleEgressNodeInput {
+                            node_id: "node-a".to_owned(),
+                            transport_profile: socks_profile(19081)?,
+                            weight: 1,
+                            maximum_concurrency: 1,
+                        },
+                        CompatibleEgressNodeInput {
+                            node_id: "node-b".to_owned(),
+                            transport_profile: socks_profile(19082)?,
+                            weight: 1,
+                            maximum_concurrency: 1,
+                        },
+                    ],
                 }],
             },
         )?)
@@ -1141,6 +1456,119 @@ mod tests {
             runtime.try_lease_at(None, 100),
             Err(CompatibleEndpointRuntimeError::NoEligibleCredential)
         ));
+        Ok(())
+    }
+
+    #[test]
+    fn serving_credential_handoff_keeps_egress_exact_and_feedback_scoped()
+    -> Result<(), Box<dyn Error>> {
+        let endpoint = EndpointId::try_new("endpoint")?;
+        let input = input(
+            &endpoint,
+            vec![
+                (
+                    "credential-a",
+                    CompatibleEgressTarget::ProxyPool {
+                        pool_id: "pool".to_owned(),
+                    },
+                ),
+                ("credential-b", CompatibleEgressTarget::Direct),
+            ],
+            None,
+        )?;
+        let pools = Arc::clone(&input.credential_pools);
+        let runtime_health = Arc::clone(&input.runtime_health);
+        let runtime = CompatibleEndpointRuntime::try_new(input)?;
+        let now_ms = i64::try_from(SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis())?;
+        let credential_id = CredentialId::try_new("credential-a")?;
+        let credential = pools
+            .try_lease_exact_eligible_at(&endpoint, &credential_id, now_ms, |_| true)
+            .ok_or("exact serving credential lease unavailable")?;
+        let egress = runtime.try_lease_egress_for_credential(&credential, Some("model"), now_ms)?;
+        assert_eq!(egress.profile().credential_id(), &credential_id);
+        assert_eq!(egress.selected_egress_node_id(), Some("node-a"));
+        assert!(matches!(
+            egress.transport_profile().proxy(),
+            UpstreamProxy::Socks5(_)
+        ));
+        runtime.record_transport_failure(&egress, now_ms, Duration::from_secs(5))?;
+        assert!(matches!(
+            runtime_health.availability_at(
+                &crate::RuntimeHealthKey::endpoint_credential(endpoint, credential_id),
+                now_ms,
+            )?,
+            crate::RuntimeHealthAvailability::CoolingDown { .. }
+        ));
+        drop(egress);
+        drop(credential);
+        assert_eq!(
+            runtime
+                .observations_at(Some("model"), now_ms)?
+                .iter()
+                .find(|observation| observation.credential_id().as_str() == "credential-a")
+                .ok_or("credential observation missing")?
+                .active_leases(),
+            0
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn credential_and_egress_stickiness_fails_closed_instead_of_rotating()
+    -> Result<(), Box<dyn Error>> {
+        let endpoint = EndpointId::try_new("endpoint")?;
+        let mut input = input(
+            &endpoint,
+            vec![(
+                "credential-a",
+                CompatibleEgressTarget::ProxyPool {
+                    pool_id: "pool".to_owned(),
+                },
+            )],
+            None,
+        )?;
+        input.transport_registry = two_node_registry()?;
+        input.bindings[0].profile = gateway_upstream::CompatibleEndpointEgressProfile::try_new(
+            CompatibleEndpointEgressInput {
+                upstream_id: UpstreamId::try_new("upstream")?,
+                endpoint_id: endpoint.clone(),
+                credential_id: CredentialId::try_new("credential-a")?,
+                credential_kind: "api_key".to_owned(),
+                protocol: GatewayProtocol::OpenAiResponses,
+                egress_policy_id: EgressPolicyId::try_new("policy")?,
+                target: CompatibleEgressTarget::ProxyPool {
+                    pool_id: "pool".to_owned(),
+                },
+                failure_scope: CompatibleFailureScope::EgressNode,
+                stickiness: CompatibleStickiness::CredentialAndEgress,
+                retry_policy: CompatibleRetryPolicy::pre_submit(2)?,
+            },
+        )?;
+        let pools = Arc::clone(&input.credential_pools);
+        let runtime = CompatibleEndpointRuntime::try_new(input)?;
+        let now_ms = i64::try_from(SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis())?;
+        let credential_id = CredentialId::try_new("credential-a")?;
+        let credential = pools
+            .try_lease_exact_eligible_at(&endpoint, &credential_id, now_ms, |_| true)
+            .ok_or("exact serving credential lease unavailable")?;
+        let first = runtime.try_lease_egress_for_credential(&credential, Some("model"), now_ms)?;
+        let first_node = first
+            .selected_egress_node_id()
+            .ok_or("sticky test did not select a node")?
+            .to_owned();
+        assert_eq!(first_node, "node-a");
+        runtime.record_transport_failure(&first, now_ms, Duration::from_secs(5))?;
+        drop(first);
+        drop(credential);
+
+        let credential = pools
+            .try_lease_exact_eligible_at(&endpoint, &credential_id, now_ms, |_| true)
+            .ok_or("credential lease was not released")?;
+        assert!(matches!(
+            runtime.try_lease_egress_for_credential(&credential, Some("model"), now_ms),
+            Err(CompatibleEndpointRuntimeError::EgressUnavailable)
+        ));
+        drop(credential);
         Ok(())
     }
 

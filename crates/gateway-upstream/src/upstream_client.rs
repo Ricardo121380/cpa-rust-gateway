@@ -374,6 +374,18 @@ impl UpstreamTransportProfile {
         self
     }
 
+    /// Returns an isolated copy with the same timeout/cache/emulation bounds and a different
+    /// already-validated proxy identity.
+    ///
+    /// Runtime egress composition uses this narrow overlay after the request's response-mode
+    /// profile has been selected. It prevents a proxy-node choice from silently changing JSON or
+    /// SSE deadlines, connection-pool limits, or browser transport emulation.
+    #[must_use]
+    pub fn with_proxy(mut self, proxy: UpstreamProxy) -> Self {
+        self.proxy = proxy;
+        self
+    }
+
     /// Returns the immutable timeout profile.
     #[must_use]
     pub const fn timeouts(&self) -> UpstreamTimeouts {

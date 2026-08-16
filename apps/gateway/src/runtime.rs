@@ -32,6 +32,9 @@ use gateway_catalog::{
     CapabilitySet, CatalogView, EndpointCapabilityEntry, EndpointCapabilityView, SemanticCapability,
 };
 use gateway_control::{
+    compatible_egress_runtime_compiler::{
+        CompatibleEgressRuntimeCompiler, CompatibleEndpointBindingRuntimeSettings,
+    },
     credential_pool_compiler::CredentialPoolCompiler,
     egress_policy_compiler::EgressPolicyCompiler,
     management_mutation_service::ConfigRevision,
@@ -76,9 +79,11 @@ use gateway_observability::{
 use gateway_protocol::{ApiFormat, ApiFormatAdapterRegistry};
 use gateway_router::{
     AttemptDriver, AttemptExclusionSet, AttemptFailure, AttemptFuture, AttemptOrchestrator,
-    AttemptOrchestratorConfig, NativePayloadAvailability, ProjectedProtocolRequest, ProtocolFormat,
-    ProtocolResponseProjector, ProtocolTransformInput, ProtocolTransformRejection,
-    ProviderScopedPriceEvidence, ProviderScopedRouteExplainInput,
+    AttemptOrchestratorConfig, CompatibleEgressTransportRegistry,
+    CompatibleEgressTransportRegistryInput, CompatibleEndpointEgressLease,
+    CompatibleEndpointRuntime, DEFAULT_TRANSIENT_COOLDOWN, NativePayloadAvailability,
+    ProjectedProtocolRequest, ProtocolFormat, ProtocolResponseProjector, ProtocolTransformInput,
+    ProtocolTransformRejection, ProviderScopedPriceEvidence, ProviderScopedRouteExplainInput,
     ProviderScopedRouteExplainSnapshot, QuotaConfidence, QuotaSnapshot, QuotaSource,
     ResponsesClientTransport, ResponsesEventSource, ResponsesExecution, ResponsesExecutionLineage,
     ResponsesExecutor, ResponsesFuture, ResponsesResponseMode, RouteCredentialScheduler,
@@ -1080,6 +1085,7 @@ struct P12RoutedResponsesExecutor {
     scheduler: Arc<RouteCredentialScheduler>,
     orchestrator: Arc<AttemptOrchestrator>,
     endpoints: Arc<BTreeMap<EndpointId, EndpointRuntime>>,
+    compatible_endpoints: Arc<BTreeMap<EndpointId, Arc<CompatibleEndpointRuntime>>>,
     client_pool: Arc<UpstreamClientPool>,
     attempt_stages: Arc<P12AttemptStageStore>,
     event_sink: Arc<dyn GatewayEventSink>,
@@ -1233,6 +1239,24 @@ impl P12RoutedResponsesExecutor {
             flaresolverr_port,
         )
         .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime))?;
+        let compatible_transport_registries =
+            compatible_direct_transport_registries(configuration, &endpoints).map_err(|_| {
+                RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime)
+            })?;
+        let compatible_endpoints = CompatibleEgressRuntimeCompiler::new(
+            configuration,
+            &policies,
+            Arc::clone(&pools),
+            Arc::clone(&runtime_health),
+            Arc::clone(&runtime_quota),
+            compatible_transport_registries,
+            BTreeMap::<(EndpointId, CredentialId), CompatibleEndpointBindingRuntimeSettings>::new(),
+        )
+        .compile()
+        .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime))?
+        .into_iter()
+        .map(|(endpoint_id, runtime)| (endpoint_id, Arc::new(runtime)))
+        .collect::<BTreeMap<_, _>>();
         let scheduler = Arc::new(RouteCredentialScheduler::new_with_provider_price_rates(
             Arc::clone(&snapshot),
             Arc::clone(&pools),
@@ -1266,6 +1290,7 @@ impl P12RoutedResponsesExecutor {
                 scheduler: Arc::clone(&route_explain_scheduler),
                 orchestrator,
                 endpoints: Arc::new(endpoints),
+                compatible_endpoints: Arc::new(compatible_endpoints),
                 client_pool,
                 attempt_stages,
                 event_sink,
@@ -1417,6 +1442,7 @@ impl P12RoutedResponsesExecutor {
             mode,
             client_transport: ResponsesClientTransport::Http,
             endpoints,
+            compatible_endpoints: Arc::clone(&self.compatible_endpoints),
             client_pool: Arc::clone(&self.client_pool),
             attempt_stages: Arc::clone(&self.attempt_stages),
             allow_compatibility_retry: false,
@@ -1713,6 +1739,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
         }
         let orchestrator = Arc::clone(&self.orchestrator);
         let endpoints = Arc::clone(&self.endpoints);
+        let compatible_endpoints = Arc::clone(&self.compatible_endpoints);
         let client_pool = Arc::clone(&self.client_pool);
         let attempt_stages = Arc::clone(&self.attempt_stages);
         let event_sink = Arc::clone(&self.event_sink);
@@ -1760,6 +1787,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                 mode,
                 client_transport,
                 endpoints,
+                compatible_endpoints,
                 client_pool,
                 attempt_stages,
                 allow_compatibility_retry: !exact_continuation,
@@ -2375,6 +2403,55 @@ fn endpoint_runtimes(
     Ok(runtimes)
 }
 
+/// Builds one Direct transport registry per generic Upstream for the default deployment.
+///
+/// Proxy-pool membership is intentionally not inferred from a Provider name or credential
+/// format. A later composition owner may inject fixed/pool registries through the same compiler;
+/// the serving handoff and failure-scope logic are identical. Keeping this default Direct-only
+/// also preserves the existing process-envelope behavior until a bounded Config-Version proxy
+/// schema is approved.
+fn compatible_direct_transport_registries(
+    configuration: &ControlPlaneConfiguration,
+    endpoints: &BTreeMap<EndpointId, EndpointRuntime>,
+) -> Result<
+    BTreeMap<gateway_core::UpstreamId, CompatibleEgressTransportRegistry>,
+    RuntimeCompositionError,
+> {
+    let mut registries = BTreeMap::new();
+    for endpoint in &configuration.endpoints {
+        if !is_generic_compatible_adapter(&endpoint.adapter_id) {
+            continue;
+        }
+        let runtime = endpoints
+            .get(&endpoint.id)
+            .ok_or(RuntimeCompositionError::Unavailable)?;
+        let registry =
+            CompatibleEgressTransportRegistry::try_new(CompatibleEgressTransportRegistryInput {
+                owner_upstream_id: endpoint.upstream_id.clone(),
+                direct_profile: runtime
+                    .transports
+                    .for_mode(ResponsesResponseMode::NonStreaming)
+                    .clone(),
+                fixed_proxies: Vec::new(),
+                proxy_pools: Vec::new(),
+            })
+            .map_err(|_| RuntimeCompositionError::Unavailable)?;
+        registries
+            .entry(endpoint.upstream_id.clone())
+            .or_insert(registry);
+    }
+    Ok(registries)
+}
+
+fn is_generic_compatible_adapter(adapter_id: &str) -> bool {
+    matches!(
+        adapter_id,
+        "openai-compatible.chat-completions"
+            | "openai-compatible.responses"
+            | "anthropic-compatible.messages"
+    )
+}
+
 /// Narrows this composition to the reviewed production graph shape before a Secret can be
 /// opened or an outbound request can be constructed.
 ///
@@ -2890,6 +2967,37 @@ impl ResponsesEventSource for LeaseHoldingEventSource {
     }
 }
 
+/// Keeps a compatible egress-node reservation alive for the complete response source.
+///
+/// The ordinary [`SelectedRouteCredential`] is owned by the router's attempt state. This wrapper
+/// owns only the second, local egress lease; dropping the source therefore releases the proxy-node
+/// capacity on JSON completion, SSE cancellation, timeout, or decoder failure without creating a
+/// second Credential lease.
+struct CompatibleEgressLeaseHoldingEventSource {
+    source: Box<dyn ResponsesEventSource>,
+    _runtime: Arc<CompatibleEndpointRuntime>,
+    _lease: CompatibleEndpointEgressLease,
+}
+
+impl ResponsesEventSource for CompatibleEgressLeaseHoldingEventSource {
+    fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
+        self.source.next_event()
+    }
+}
+
+/// Borrowed request-local view of the compatible egress handoff. The owned selection is kept in
+/// `EndpointAttemptDriver::start` until the provider event source has been wrapped.
+#[derive(Clone, Copy)]
+struct CompatibleTransportContext<'a> {
+    runtime: &'a CompatibleEndpointRuntime,
+    lease: &'a CompatibleEndpointEgressLease,
+}
+
+struct CompatibleEgressSelection {
+    runtime: Arc<CompatibleEndpointRuntime>,
+    lease: CompatibleEndpointEgressLease,
+}
+
 struct EndpointAttemptDriver {
     request_id: RequestId,
     request: CanonicalRequest,
@@ -2899,6 +3007,7 @@ struct EndpointAttemptDriver {
     mode: ResponsesResponseMode,
     client_transport: ResponsesClientTransport,
     endpoints: Arc<BTreeMap<EndpointId, EndpointRuntime>>,
+    compatible_endpoints: Arc<BTreeMap<EndpointId, Arc<CompatibleEndpointRuntime>>>,
     client_pool: Arc<UpstreamClientPool>,
     attempt_stages: Arc<P12AttemptStageStore>,
     allow_compatibility_retry: bool,
@@ -2936,6 +3045,79 @@ impl EndpointAttemptDriver {
     fn mark_upstream_sent(&self) {
         if let Some(observation) = &self.channel_pin_observation {
             observation.mark_upstream_sent();
+        }
+    }
+
+    /// Acquires the provider-neutral egress handoff for a generic compatible adapter. Native
+    /// Provider adapters deliberately bypass this path because they own a different transport
+    /// contract (and may have provider-specific bootstrap traffic).
+    fn compatible_egress_for_candidate(
+        &self,
+        runtime: &EndpointRuntime,
+        candidate: &SnapshotRouteCandidate,
+        credential: &CredentialLease,
+    ) -> Result<Option<CompatibleEgressSelection>, AttemptFailure> {
+        if !matches!(
+            &runtime.adapter,
+            EndpointAdapter::OpenAiChatCompletions(_)
+                | EndpointAdapter::OpenAiResponses(_)
+                | EndpointAdapter::AnthropicMessages(_)
+        ) {
+            return Ok(None);
+        }
+        let Some(compatible_runtime) = self.compatible_endpoints.get(candidate.endpoint_id())
+        else {
+            // Test-only drivers may omit the optional P13-11C composition. The production
+            // composition always supplies a direct registry for every generic Endpoint.
+            return Ok(None);
+        };
+        let observed_at_ms = system_now_ms()?;
+        let lease = compatible_runtime
+            .try_lease_egress_for_credential(
+                credential,
+                Some(candidate.upstream_model()),
+                observed_at_ms,
+            )
+            .map_err(|error| match error {
+                gateway_router::CompatibleEndpointRuntimeError::SelectedCredentialMismatch
+                | gateway_router::CompatibleEndpointRuntimeError::FailureFeedbackUnavailable => {
+                    AttemptFailure::NonRetryable(internal_error())
+                }
+                gateway_router::CompatibleEndpointRuntimeError::HealthUnavailable
+                | gateway_router::CompatibleEndpointRuntimeError::QuotaUnavailable
+                | gateway_router::CompatibleEndpointRuntimeError::EndpointBlocked
+                | gateway_router::CompatibleEndpointRuntimeError::NoEligibleCredential
+                | gateway_router::CompatibleEndpointRuntimeError::EgressUnavailable
+                | gateway_router::CompatibleEndpointRuntimeError::EgressRegistryUnavailable => {
+                    AttemptFailure::CompatibleEgress
+                }
+            })?;
+        Ok(Some(CompatibleEgressSelection {
+            runtime: Arc::clone(compatible_runtime),
+            lease,
+        }))
+    }
+
+    fn compatible_context(
+        selection: Option<&CompatibleEgressSelection>,
+    ) -> Option<CompatibleTransportContext<'_>> {
+        selection.map(|selection| CompatibleTransportContext {
+            runtime: selection.runtime.as_ref(),
+            lease: &selection.lease,
+        })
+    }
+
+    fn wrap_compatible_source(
+        selection: Option<CompatibleEgressSelection>,
+        source: Box<dyn ResponsesEventSource>,
+    ) -> Box<dyn ResponsesEventSource> {
+        match selection {
+            Some(selection) => Box::new(CompatibleEgressLeaseHoldingEventSource {
+                source,
+                _runtime: selection.runtime,
+                _lease: selection.lease,
+            }),
+            None => source,
         }
     }
 
@@ -3028,16 +3210,29 @@ impl AttemptDriver for EndpointAttemptDriver {
             let projected = self
                 .project_candidate(candidate)
                 .map_err(|_| AttemptFailure::NonRetryable(upstream_protocol_error()))?;
-            match &runtime.adapter {
+            let compatible_selection =
+                self.compatible_egress_for_candidate(runtime, candidate, credential)?;
+            let compatible_context = Self::compatible_context(compatible_selection.as_ref());
+            let result = match &runtime.adapter {
                 EndpointAdapter::OpenAiChatCompletions(endpoint) => {
                     self.start_openai_chat_completions(
-                        runtime, endpoint, candidate, credential, &projected,
+                        runtime,
+                        endpoint,
+                        candidate,
+                        credential,
+                        &projected,
+                        compatible_context,
                     )
                     .await
                 }
                 EndpointAdapter::OpenAiResponses(endpoint) => {
                     self.start_openai_responses(
-                        runtime, endpoint, candidate, credential, &projected,
+                        runtime,
+                        endpoint,
+                        candidate,
+                        credential,
+                        &projected,
+                        compatible_context,
                     )
                     .await
                 }
@@ -3059,7 +3254,12 @@ impl AttemptDriver for EndpointAttemptDriver {
                 }
                 EndpointAdapter::AnthropicMessages(endpoint) => {
                     self.start_anthropic_messages(
-                        runtime, endpoint, candidate, credential, &projected,
+                        runtime,
+                        endpoint,
+                        candidate,
+                        credential,
+                        &projected,
+                        compatible_context,
                     )
                     .await
                 }
@@ -3067,7 +3267,8 @@ impl AttemptDriver for EndpointAttemptDriver {
                     self.start_kiro_messages(runtime, policy, candidate, credential, &projected)
                         .await
                 }
-            }
+            };
+            result.map(|source| Self::wrap_compatible_source(compatible_selection, source))
         })
     }
 
@@ -3089,6 +3290,7 @@ impl EndpointAttemptDriver {
         candidate: &SnapshotRouteCandidate,
         credential: &CredentialLease,
         projected: &ProjectedProtocolRequest,
+        compatible: Option<CompatibleTransportContext<'_>>,
     ) -> Result<Box<dyn ResponsesEventSource>, AttemptFailure> {
         let credential = openai_runtime_credential(credential.secret_bytes(), system_now_ms()?)?;
         let bearer = credential
@@ -3136,6 +3338,7 @@ impl EndpointAttemptDriver {
                 request,
                 HttpFailureProfile::OpenAiCompatible,
                 false,
+                compatible,
             )
             .await?;
         match self.mode {
@@ -3173,6 +3376,7 @@ impl EndpointAttemptDriver {
         candidate: &SnapshotRouteCandidate,
         credential: &CredentialLease,
         projected: &ProjectedProtocolRequest,
+        compatible: Option<CompatibleTransportContext<'_>>,
     ) -> Result<Box<dyn ResponsesEventSource>, AttemptFailure> {
         let credential = openai_runtime_credential(credential.secret_bytes(), system_now_ms()?)?;
         let bearer = credential
@@ -3233,6 +3437,7 @@ impl EndpointAttemptDriver {
                         request,
                         HttpFailureProfile::OpenAiCompatible,
                         true,
+                        compatible,
                     )
                     .await
                 {
@@ -3261,6 +3466,7 @@ impl EndpointAttemptDriver {
                         request,
                         HttpFailureProfile::OpenAiCompatible,
                         false,
+                        compatible,
                     )
                     .await?;
             }
@@ -3322,6 +3528,7 @@ impl EndpointAttemptDriver {
         candidate: &SnapshotRouteCandidate,
         credential: &CredentialLease,
         projected: &ProjectedProtocolRequest,
+        compatible: Option<CompatibleTransportContext<'_>>,
     ) -> Result<Box<dyn ResponsesEventSource>, AttemptFailure> {
         // No `max_tokens` translation happens here: the Anthropic Messages codec reads the
         // namespaced extension directly and fails closed on a request that carries no lossless
@@ -3369,6 +3576,7 @@ impl EndpointAttemptDriver {
                 request,
                 HttpFailureProfile::AnthropicCompatible,
                 false,
+                compatible,
             )
             .await?;
 
@@ -3721,6 +3929,7 @@ impl EndpointAttemptDriver {
         request: UpstreamHttpRequest,
         failure_profile: HttpFailureProfile,
         allow_missing_content_type: bool,
+        compatible: Option<CompatibleTransportContext<'_>>,
     ) -> Result<UpstreamHttpResponse, AttemptFailure> {
         self.send_admitted_request_inner(
             runtime,
@@ -3728,6 +3937,7 @@ impl EndpointAttemptDriver {
             failure_profile,
             allow_missing_content_type,
             false,
+            compatible,
         )
         .await
         .map_err(P12SendFailure::into_attempt)
@@ -3743,6 +3953,7 @@ impl EndpointAttemptDriver {
         request: UpstreamHttpRequest,
         failure_profile: HttpFailureProfile,
         allow_missing_content_type: bool,
+        compatible: Option<CompatibleTransportContext<'_>>,
     ) -> Result<UpstreamHttpResponse, P12SendFailure> {
         self.send_admitted_request_inner(
             runtime,
@@ -3750,6 +3961,7 @@ impl EndpointAttemptDriver {
             failure_profile,
             allow_missing_content_type,
             true,
+            compatible,
         )
         .await
     }
@@ -3761,17 +3973,33 @@ impl EndpointAttemptDriver {
         failure_profile: HttpFailureProfile,
         allow_missing_content_type: bool,
         detect_codex_rejected_field: bool,
+        compatible: Option<CompatibleTransportContext<'_>>,
     ) -> Result<UpstreamHttpResponse, P12SendFailure> {
         self.attempt_stages.record_stage(
             &self.request_id,
             ManagementRequestAttemptStage::HttpTransport,
         );
         self.mark_upstream_sent();
-        let mut response = self
-            .client_pool
-            .send(request, runtime.transports.for_mode(self.mode))
-            .await
-            .map_err(|_| P12SendFailure::Attempt(AttemptFailure::Connection))?;
+        let base_profile = runtime.transports.for_mode(self.mode);
+        let compatible_profile = compatible.map(|context| {
+            base_profile
+                .clone()
+                .with_proxy(context.lease.transport_profile().proxy().clone())
+        });
+        let transport_profile = compatible_profile.as_ref().unwrap_or(base_profile);
+        let Ok(mut response) = self.client_pool.send(request, transport_profile).await else {
+            if let Some(context) = compatible {
+                let now_ms = system_now_ms().map_err(P12SendFailure::Attempt)?;
+                context
+                    .runtime
+                    .record_transport_failure(context.lease, now_ms, DEFAULT_TRANSIENT_COOLDOWN)
+                    .map_err(|_| {
+                        P12SendFailure::Attempt(AttemptFailure::NonRetryable(internal_error()))
+                    })?;
+                return Err(P12SendFailure::Attempt(AttemptFailure::CompatibleEgress));
+            }
+            return Err(P12SendFailure::Attempt(AttemptFailure::Connection));
+        };
 
         self.attempt_stages
             .record_stage(&self.request_id, ManagementRequestAttemptStage::HttpStatus);
@@ -6367,7 +6595,7 @@ fn internal_error() -> GatewayError {
 #[cfg(test)]
 mod tests {
     use std::{
-        collections::{BTreeSet, VecDeque},
+        collections::{BTreeMap, BTreeSet, VecDeque},
         error::Error,
         fs,
         net::{IpAddr, Ipv4Addr},
@@ -7730,6 +7958,7 @@ mod tests {
             mode: ResponsesResponseMode::NonStreaming,
             client_transport: ResponsesClientTransport::Http,
             endpoints: Arc::new(endpoints),
+            compatible_endpoints: Arc::new(BTreeMap::new()),
             client_pool: Arc::new(UpstreamClientPool::new(
                 NonZeroUsize::new(4).ok_or("client pool needs capacity")?,
             )),
@@ -7989,6 +8218,7 @@ mod tests {
             mode: ResponsesResponseMode::NonStreaming,
             client_transport: ResponsesClientTransport::Http,
             endpoints: Arc::new(endpoints),
+            compatible_endpoints: Arc::new(BTreeMap::new()),
             client_pool: Arc::new(UpstreamClientPool::new(
                 NonZeroUsize::new(4).ok_or("client pool needs capacity")?,
             )),

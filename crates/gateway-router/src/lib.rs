@@ -48,7 +48,7 @@ pub use compatible_egress_runtime::{
     MAX_COMPATIBLE_EGRESS_SCHEDULE_SLOTS, MAX_COMPATIBLE_EGRESS_TOTAL_NODES,
 };
 pub use compatible_endpoint_runtime::{
-    CompatibleEndpointBindingObservation, CompatibleEndpointRuntime,
+    CompatibleEndpointBindingObservation, CompatibleEndpointEgressLease, CompatibleEndpointRuntime,
     CompatibleEndpointRuntimeBindingInput, CompatibleEndpointRuntimeBuildError,
     CompatibleEndpointRuntimeError, CompatibleEndpointRuntimeInput, CompatibleEndpointRuntimeLease,
     MAX_COMPATIBLE_ENDPOINT_BINDINGS,

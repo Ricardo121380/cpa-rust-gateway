@@ -138,6 +138,9 @@ pub enum AttemptFailure {
     BootstrapTruncated,
     /// The request was cancelled during the Attempt.
     Cancelled,
+    /// A generic compatible Endpoint already recorded a scoped egress failure (Endpoint,
+    /// Credential, or egress node); the orchestrator must not add another Endpoint cooldown.
+    CompatibleEgress,
     /// A classified failure that must not be retried by this task.
     NonRetryable(GatewayError),
 }
@@ -149,6 +152,7 @@ impl AttemptFailure {
         matches!(
             self,
             Self::Connection
+                | Self::CompatibleEgress
                 | Self::RateLimited { .. }
                 | Self::ServerError
                 | Self::BootstrapTruncated
@@ -159,7 +163,7 @@ impl AttemptFailure {
     #[must_use]
     pub fn safe_error(&self) -> GatewayError {
         match self {
-            Self::Connection => egress_unavailable_error(),
+            Self::Connection | Self::CompatibleEgress => egress_unavailable_error(),
             Self::RateLimited { .. } => provider_rate_limited_error(),
             Self::ServerError => provider_transient_error(),
             Self::BootstrapTruncated => stream_truncated_error(),
@@ -173,7 +177,10 @@ impl AttemptFailure {
             Self::Connection | Self::ServerError | Self::BootstrapTruncated => {
                 Some(CooldownScope::Endpoint(config.transient_cooldown()))
             }
-            Self::RateLimited { .. } | Self::Cancelled | Self::NonRetryable(_) => None,
+            Self::RateLimited { .. }
+            | Self::Cancelled
+            | Self::CompatibleEgress
+            | Self::NonRetryable(_) => None,
         }
     }
 }
@@ -189,6 +196,7 @@ impl fmt::Debug for AttemptFailure {
             Self::ServerError => formatter.write_str("AttemptFailure::ServerError"),
             Self::BootstrapTruncated => formatter.write_str("AttemptFailure::BootstrapTruncated"),
             Self::Cancelled => formatter.write_str("AttemptFailure::Cancelled"),
+            Self::CompatibleEgress => formatter.write_str("AttemptFailure::CompatibleEgress"),
             Self::NonRetryable(error) => formatter
                 .debug_tuple("AttemptFailure::NonRetryable")
                 .field(error)
