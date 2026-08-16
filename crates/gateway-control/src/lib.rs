@@ -6,6 +6,8 @@
 pub mod billing_materializer;
 /// Provider-scoped fixed-point pricing for the durable P13-05 billing ledger.
 pub mod billing_service;
+/// Active Config-Version composition for generic compatible Endpoint egress pools.
+pub mod compatible_egress_runtime_compiler;
 /// Transactional management-only Credential and Client Key provisioning service.
 pub mod control_plane_service;
 /// Management-time decryption and compilation of Endpoint Credential runtime pools.

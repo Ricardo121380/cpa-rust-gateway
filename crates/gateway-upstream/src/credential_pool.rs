@@ -126,6 +126,7 @@ pub struct EndpointCredentialPool {
 pub struct CredentialPoolEntrySnapshot {
     credential_id: CredentialId,
     credential_kind: String,
+    credential_revision: u64,
     priority: i64,
     weight: usize,
     maximum_concurrency: usize,
@@ -144,6 +145,12 @@ impl CredentialPoolEntrySnapshot {
     #[must_use]
     pub fn credential_kind(&self) -> &str {
         &self.credential_kind
+    }
+
+    /// Returns the persistent Credential revision captured by this pool build.
+    #[must_use]
+    pub const fn credential_revision(&self) -> u64 {
+        self.credential_revision
     }
 
     /// Returns the immutable lower-is-better pool priority.
@@ -673,6 +680,7 @@ impl CredentialSlot {
         CredentialPoolEntrySnapshot {
             credential_id: self.credential_id.clone(),
             credential_kind: self.credential_kind.clone(),
+            credential_revision: self.credential_revision,
             priority: self.priority,
             weight: self.weight,
             maximum_concurrency: self.maximum_concurrency,
@@ -984,6 +992,7 @@ mod tests {
             .find(|entry| entry.credential_id().as_str() == "credential-expired")
             .ok_or_else(|| io::Error::other("expired diagnostic entry missing"))?;
         assert_eq!(expired.credential_kind(), "codex_oauth");
+        assert_eq!(expired.credential_revision(), 7);
         assert_eq!(expired.expires_at_ms(), Some(100));
         assert_eq!(expired.active_leases(), 0);
         assert!(!format!("{expired:?}").contains(expired_secret));
@@ -993,6 +1002,7 @@ mod tests {
             .find(|entry| entry.credential_id().as_str() == "credential-current")
             .ok_or_else(|| io::Error::other("current diagnostic entry missing"))?;
         assert_eq!(current.credential_kind(), "api_key");
+        assert_eq!(current.credential_revision(), 8);
         assert_eq!(current.expires_at_ms(), Some(500));
 
         let lease = pool

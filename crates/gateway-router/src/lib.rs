@@ -6,6 +6,8 @@
 #![deny(unsafe_code)]
 
 mod attempt_orchestrator;
+mod compatible_egress_runtime;
+mod compatible_endpoint_runtime;
 mod credential_scheduler;
 mod execution_lineage;
 mod protocol_transform;
@@ -35,6 +37,21 @@ pub use attempt_orchestrator::{
     AttemptDriver, AttemptExclusionSet, AttemptFailure, AttemptFuture, AttemptOrchestrator,
     AttemptOrchestratorConfig, AttemptOrchestratorConfigError, DEFAULT_RATE_LIMIT_COOLDOWN,
     DEFAULT_TRANSIENT_COOLDOWN, StartedAttempt,
+};
+pub use compatible_egress_runtime::{
+    CompatibleEgressNodeAvailability, CompatibleEgressNodeInput,
+    CompatibleEgressTargetAvailability, CompatibleEgressTargetObservation,
+    CompatibleEgressTransportBuildError, CompatibleEgressTransportError,
+    CompatibleEgressTransportLease, CompatibleEgressTransportRegistry,
+    CompatibleEgressTransportRegistryInput, CompatibleFixedProxyInput, CompatibleProxyPoolInput,
+    MAX_COMPATIBLE_EGRESS_NODES_PER_POOL, MAX_COMPATIBLE_EGRESS_PROXY_POOLS,
+    MAX_COMPATIBLE_EGRESS_SCHEDULE_SLOTS, MAX_COMPATIBLE_EGRESS_TOTAL_NODES,
+};
+pub use compatible_endpoint_runtime::{
+    CompatibleEndpointBindingObservation, CompatibleEndpointRuntime,
+    CompatibleEndpointRuntimeBindingInput, CompatibleEndpointRuntimeBuildError,
+    CompatibleEndpointRuntimeError, CompatibleEndpointRuntimeInput, CompatibleEndpointRuntimeLease,
+    MAX_COMPATIBLE_ENDPOINT_BINDINGS,
 };
 pub use credential_scheduler::{RouteCredentialScheduler, SelectedRouteCredential};
 pub use execution_lineage::{
