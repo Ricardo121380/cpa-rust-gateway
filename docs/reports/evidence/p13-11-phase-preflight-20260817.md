@@ -17,7 +17,7 @@ probe or recovery, Autoreg operations, or a production rollout.
 
 ## Candidate lineage
 
-- Branch: `codex/p13-10-websocket`
+- Branch: `codex/p13-11-egress`
 - Exact local implementation commit: `fafb34a38af33b798915d922ca035a5e32f7c9e8`
 - Candidate phase tag (not created): `phase-p13-egress-complete`; its target must be the exact
   pushed HEAD that contains this receipt and the accompanying phase review, not the implementation
