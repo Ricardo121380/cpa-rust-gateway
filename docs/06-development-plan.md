@@ -4,11 +4,12 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.287` |
+| 计划版本 | `v1.288` |
 | 生效日期 | `2026-08-16` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10、P11 与 CPAR 侧 P12 已完成（P12 为 `DONE_WITH_BOUNDARY`）；P13-04、P13-05、P13-06A/B/C、P13-07A/B/C/D、P13-08、P13-09A/B/C 与 P13-10A 均已通过对应正式 Delivery Gate 并以 `DONE_WITH_BOUNDARY` 收口。P13 umbrella 因后续独立 backlog 继续 `IN_PROGRESS`。P7 Kiro OAuth、P8 Official API-key E2E 与 Grok Web 外部 egress 边界仍延后。Autoreg 注册、SSO/OAuth、refresh、账号权益和 replenishment 不属于 CPAR/P12；CPAR 自身的 credential pool Health/Quota/Circuit、lease、cooldown、failure feedback 和调度仍属于 CPAR，按 `CR-P12-AUTOREG-SEPARATION-001/002` 解释。 |
-| 当前任务 | `P13-11C Compatible Serving Transport Handoff` 已完成本地实现、review 与 Fast Gate，当前为 `LOCAL_PASS_PENDING_PHASE_GATE`：复用 P13-11B active runtime map 和现有 RouteCredentialScheduler 的 exact Credential lease，仅为该 Credential 获取 egress lease；选中 proxy 覆盖到既有 JSON/SSE 模式超时 profile，lease 持有至 Canonical source drop；连接失败按 Endpoint/Credential/EgressNode 精确归因且不重复 Endpoint cooldown。默认部署仍为 Direct；只做本地 deterministic/loopback，不调用 Provider/真实代理、不启动 Web clearance、Autoreg、生产或管理 OpenAPI/Prism/frontend 改造。 |
+| 当前任务 | `P13-11 aggregate local preflight/review` 已完成，当前为 `READY_FOR_FORMAL_DELIVERY_GATE`：P13-11A/B/C 的 generic endpoint profile、active Config runtime composition 和 serving exact-Credential egress handoff 均通过本地 review 与 43/43 Full。候选 exact commit 为 `fafb34a38af33b798915d922ca035a5e32f7c9e8`，候选 tag `phase-p13-egress-complete` 尚未创建。默认部署仍为 Direct；不调用 Provider/真实代理、不启动 Web clearance、Autoreg、生产、服务器或管理 OpenAPI/Prism/frontend 改造；P13-11D 不在本轮自动启动。 |
+| 本次计划变更（2026-08-17，P13-11 aggregate closeout candidate） | `CHECK_REPORT_PATH=/tmp/cpar-p13-11-phase-preflight-20260817.md ./scripts/check.sh full` 在 Darwin arm64 上 43/43 steps PASS（2026-08-16T16:12:07Z–16:14:15Z）；P13-11A/B/C slice review 无 P1/P2 blocker。新增 aggregate preflight/review receipt，状态为 `READY_FOR_FORMAL_DELIVERY_GATE`；只允许在明确授权后将唯一 annotated `phase-p13-egress-complete` 固定到 exact pushed commit并运行一次正式 Gate。当前不创建 tag、不 push、不调用 Provider、不改 server/staging/production，不启动 P13-11D；四个 pre-existing untracked helper 保持未触碰。 |
 | 本次计划变更（2026-08-16，CR-P12-AUTOREG-SEPARATION-001/002） | 用户明确 Autoreg 与 CPAR 是两个完全独立的项目，并补充澄清“账号健康”分为两层：Autoreg 负责注册、SSO/OAuth、refresh、账号权益和 replenishment；CPAR/P12 负责外部凭证导入后的 Provider/Channel/Route 绑定、credential pool Health/Quota/Circuit、lease、cooldown、failure feedback、调度和公共 Base URL + client key 反代。CPAR 可参考 grok2api 的账号池行为，但不接管账号注册或修复，也不依赖 Autoreg 数据库/HTTP/browser/scheduler。历史 P12-10I receipt 保留为事实并区分账号源、CPAR runtime pool、import 和 public proxy 结果。详见 [CR-P12-AUTOREG-SEPARATION-001](change-requests/CR-P12-AUTOREG-SEPARATION-001.md) 与 [CR-P12-AUTOREG-SEPARATION-002](change-requests/CR-P12-AUTOREG-SEPARATION-002.md)。 |
 | 本次计划变更（2026-08-16，P13-09） | 按用户批准启动 P13-09，并拆分为三个可独立 review 的安全切片：A 先建立独立 AEAD stored-response namespace、exact Client Key owner、TTL/GC/restart；B 再启用 opt-in `store:true` 与 `GET/DELETE /v1/responses/{id}`，证明 JSON/SSE 成功终态的持久化时序；C 最后实现 `previous_response_id` 与 `/v1/responses/compact`，要求显式 Provider capability 和原 Provider/Channel/Credential lineage，不允许跨账号或跨 Provider fallback。A 不改变公开 decoder、OpenAPI/Prism、serving graph、生产/staging 或 Provider traffic。 |
 | 已批准变更（2026-08-10） | `CR-EXEC-008` 语义澄清：仅降低昂贵 Fast/Full/supply-chain/release evidence 的默认运行频率，不限制 branch、push、PR update/review/rebase/merge；本轮已另开并实现 workflow 解耦，轻量 PR gate 与 tag/manual/closeout-label Delivery Gate 分离。`CR-P12-AUTOREG-MIGRATE-001`：Autoreg Oracle successor 已完成 staged/health、单账号 registration 与 dedicated file-sink 验证；本轮按 operator 批准完成 CPAR 显式 provider-binding/import、真实公网 Build 与 Console canary、Oracle 单活与 Jakarta fencing，保留 rollback window。`CR-P12-AUTOREG-CONSOLE-001`：Console SSO 仅通过 strict Oracle source adapter、same-batch native probe 和真实公共 CPAR 六元组后保留生产批次；scheduler/reauth 仍单独受控。 |
@@ -3592,7 +3593,7 @@ P13 任务状态以本文档为准,前端不修改上面的任务表。
 4. **P13-07 Routing（正式 Gate 收口）**：Provider scope 内 deterministic cost-aware/fill-first/least-loaded selector、Route Explain、serving exact lease revalidation 与 Config-bound 六维价格证据已由 run 31875826495 正式验收，状态 `DONE_WITH_BOUNDARY`。
 5. **P13-08 Channel Pin（正式收口）**：受保护单请求、单账号、可审计工具已由 `phase-p13-channel-pin-complete` / run 31928169486 以 `DONE_WITH_BOUNDARY` 验收；首片仍只覆盖 reviewed generic adapters 与 deterministic mock，不触发真实 Provider、生产/staging 或公开用户 API。
 6. **P13-09 Responses retrieval/compact（正式 Gate 收口）**：P13-09A/B/C 的 AEAD owner/TTL/GC/restart、opt-in store + GET/DELETE、exact continuity/compact 已由 run 31922870604 正式验收，状态 `DONE_WITH_BOUNDARY`。
-7. **P13-11 Egress/Proxy Pool（当前执行 P13-11C）与 P13-12 自动 reauth（独立延期）**：P13-11A 已统一 generic compatible endpoint (`base_url + api_key`/CPA/Sub2API/Krill/custom relay) 的 typed egress binding；P13-11B 已把它组合到 active Config Version、现有 Credential pool、Health/Quota 和受控 Direct/local-DNS SOCKS5 transport registry；P13-11C 将该 composition 接入 serving exact Credential lease、模式化 transport 与精确 failure feedback。真实 Provider probe/自动恢复仍需独立授权；P13-12 属于 Autoreg-owned external dependency，不在当前 CPAR 实施范围；两者都不能引入跨 Provider 隐式 fallback。
+7. **P13-11 Egress/Proxy Pool（A/B/C aggregate ready for formal Gate）与 P13-12 自动 reauth（独立延期）**：P13-11A 已统一 generic compatible endpoint (`base_url + api_key`/CPA/Sub2API/直接 OAuth/custom relay) 的 typed egress binding；P13-11B 已把它组合到 active Config Version、现有 Credential pool、Health/Quota 和受控 Direct/local-DNS SOCKS5 transport registry；P13-11C 已将该 composition 接入 serving exact Credential lease、模式化 transport 与精确 failure feedback。A/B/C 的本地 aggregate Full 与 phase review 已完成，当前等待一次明确授权的 `phase-p13-egress-complete` 正式 Gate；P13-11D protected proxy-pool persistence/management 尚未开始。真实 Provider probe/自动恢复仍需独立授权；P13-12 属于 Autoreg-owned external dependency，不在当前 CPAR 实施范围；两者都不能引入跨 Provider 隐式 fallback。
 8. **P13-10 WebSocket（A 片已正式收口）**：OpenAI Responses 公共 WebSocket 已复用现有 Canonical/连续性/Provider capability，并由 `phase-p13-websocket-complete` / run 31926927914 验收为 `DONE_WITH_BOUNDARY`；Provider-native upstream WS 与其他协议 WS 不随手扩展。P13-13 Media、P13-14 更多 Provider 仍按独立需求追加。
 
 能力按 Provider 定义，而不是把 CPA/grok2api 的所有能力全局化：例如 Web 可以使用绑定的代理池和浏览器出口，Codex 官方 OAuth 使用官方 endpoint，Grok Build/Console 使用各自 native pool，Krill 保持独立 upstream/credential/egress。任何 Provider 失败都不能静默借用其他 Provider 的凭证或代理。
@@ -3875,8 +3876,18 @@ P13 任务状态以本文档为准,前端不修改上面的任务表。
 | 安全 | 不从 Client 请求、credential format 或 Provider 名推断 proxy；不泄露 base/proxy URL、secret、body、DNS answer；不改 public/management API、OpenAPI、Prism/frontend |
 | 测试 | exact lease handoff、mode deadline preservation、Direct/SOCKS5 overlay、source lifetime/cancel/error/drop、sticky same-node、failure scope/no double cooldown、generic loopback、native isolation、no Store/Provider/network probe |
 | 交付物 | [ADR-0095](adr/ADR-0095-compatible-serving-transport-handoff.md)、[BC-SEC-007](contracts/BC-SEC-007-compatible-serving-transport-handoff.md)、[P13-11C report](reports/p13-11c-compatible-serving-transport-handoff.md) |
-| 状态 | `LOCAL_PASS_PENDING_PHASE_GATE`；P13-11A/B 保持 `LOCAL_PASS_PENDING_PHASE_GATE`；P13-11 parent 继续 `IN_PROGRESS` |
-| 下一边界 | 完成本地 review 后再决定 P13-11D protected proxy-pool persistence/management 和显式授权的 Provider-specific probe/recovery；不自动启动真实网络验证 |
+| 状态 | `LOCAL_PASS_PENDING_PHASE_GATE`；P13-11A/B 保持 `LOCAL_PASS_PENDING_PHASE_GATE`；A/B/C aggregate 已完成本地 43/43 Full 与 phase review，计划状态为 `READY_FOR_FORMAL_DELIVERY_GATE`；P13-11 parent 继续 `IN_PROGRESS` |
+| 下一边界 | 在明确授权后将唯一 `phase-p13-egress-complete` tag 固定到 exact pushed commit并运行一次正式 Gate；Gate 前不启动 P13-11D protected proxy-pool persistence/management、Provider-specific probe/recovery 或真实网络验证 |
+
+### 19.22 P13-11 aggregate phase closeout candidate
+
+| 字段 | 固定值 |
+|---|---|
+| 范围 | 聚合 P13-11A/B/C 的 generic endpoint profile、active runtime composition 与 serving transport handoff；不新增代码行为，不改变公开或管理 API |
+| 本地证据 | [phase preflight receipt](reports/evidence/p13-11-phase-preflight-20260817.md)、[phase review](reports/evidence/p13-11-phase-review-20260817.md)；`43/43` Full，exact local commit `fafb34a38af33b798915d922ca035a5e32f7c9e8` |
+| 状态 | `READY_FOR_FORMAL_DELIVERY_GATE`；A/B/C slice reports 仍保留 `LOCAL_PASS_PENDING_PHASE_GATE`，P13-11 parent 仍 `IN_PROGRESS` |
+| 允许的下一步 | 仅在明确授权后创建唯一 annotated `phase-p13-egress-complete` tag、push exact commit并运行一次正式 Fast/Full/Required Delivery Gate；不得重复运行普通昂贵 Gate |
+| 明确未做 | Provider/代理/DNS/服务器/staging/production、Autoreg、真实 egress probe/recovery、P13-11D persistence/management、OpenAPI/Prism/frontend 改造 |
 
 ## 20. 测试体系
 
@@ -4003,6 +4014,7 @@ Next task:
 
 | 版本 | 日期 | 变化 | 批准状态 |
 |---|---|---|---|
+| v1.288 | 2026-08-17 | P13-11 aggregate closeout candidate：P13-11A/B/C 的本地实现、slice review 与 `CHECK_REPORT_PATH=/tmp/cpar-p13-11-phase-preflight-20260817.md ./scripts/check.sh full` 均通过；Full 43/43，exact local commit `fafb34a38af33b798915d922ca035a5e32f7c9e8`，新增 aggregate preflight/review receipt。只允许在明确授权后创建唯一 `phase-p13-egress-complete` tag 并运行一次正式 Delivery Gate；不创建 tag、不 push、不调用 Provider/网络、不改 server/staging/production、不启动 P13-11D，四个 untracked helper 保持未触碰 | `P13-11 READY_FOR_FORMAL_DELIVERY_GATE`; P13-11 parent `IN_PROGRESS` |
 | v1.287 | 2026-08-16 | P13-11C review follow-up：补齐 `CredentialAndEgress` 粘性节点不可用时 fail-closed 的双节点回归，并同步 ADR/Contract/Traceability 的本地通过状态与 `gateway-router` 实际 `151` 测试计数；仍不调用 Provider/网络、不启动真实探针或 P13-11D，不触碰 OpenAPI/Prism/frontend/生产 | `P13-11C LOCAL_PASS_PENDING_PHASE_GATE`; P13-11 parent `IN_PROGRESS` |
 | v1.286 | 2026-08-16 | 完成 P13-11C 本地 serving handoff：generic OpenAI Chat/Responses 与 Anthropic Messages 复用现有 RouteCredentialScheduler 的 exact Credential lease，仅追加同 Endpoint 的 egress lease；selected proxy 只覆盖既有 JSON/SSE mode-specific profile 的 proxy 字段并持有到 source drop；transport failure 按 Endpoint/Credential/EgressNode 精确反馈并映射为 `CompatibleEgress`，避免重复 Endpoint cooldown；native Grok/Kiro/Provider-specific adapter 不进入 generic handoff。gateway-upstream 37、gateway-router 150、gateway-control 72、gateway 106、strict Clippy、fmt、diff、docs 与 Fast Gate 全部通过；默认部署仍 Direct，不调用 Provider/真实代理、不改 OpenAPI/Prism/frontend/生产 | `P13-11C LOCAL_PASS_PENDING_PHASE_GATE`; P13-11 parent `IN_PROGRESS` |
 | v1.285 | 2026-08-16 | 启动 P13-11C：复用现有 serving RouteCredentialScheduler 的 exact Credential lease，仅追加 compatible egress lease；selected Direct/local-DNS SOCKS5 proxy 覆盖到原 JSON/SSE mode-specific timeout profile并持有至 source drop；pre-response transport failure 按 Endpoint/Credential/EgressNode scope 精确反馈，避免统一 Endpoint double cooldown；`CredentialAndEgress` sticky 仅限同 runtime exact binding且不可用时 fail closed。默认 deployment 仍 Direct，只做本地 deterministic/loopback，不调用 Provider/真实代理、不开自动 probe/recovery、不改 OpenAPI/Prism/frontend/生产 | `P13-11C IN_PROGRESS`; no external authorization consumed |
