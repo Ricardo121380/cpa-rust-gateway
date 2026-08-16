@@ -4,12 +4,12 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.290` |
+| 计划版本 | `v1.291` |
 | 生效日期 | `2026-08-17` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10、P11 与 CPAR 侧 P12 已完成（P12 为 `DONE_WITH_BOUNDARY`）；P13-04、P13-05、P13-06A/B/C、P13-07A/B/C/D、P13-08、P13-09A/B/C、P13-10A 与 P13-11A/B/C 均已通过对应正式 Delivery Gate 并以 `DONE_WITH_BOUNDARY` 收口。P13 umbrella 与 P13-11 umbrella 因后续独立 backlog 继续 `IN_PROGRESS`。P7 Kiro OAuth、P8 Official API-key E2E 与 Grok Web 外部 egress 边界仍延后。Autoreg 注册、SSO/OAuth、refresh、账号权益和 replenishment 不属于 CPAR/P12；CPAR 自身的 credential pool Health/Quota/Circuit、lease、cooldown、failure feedback 和调度仍属于 CPAR，按 `CR-P12-AUTOREG-SEPARATION-001/002` 解释。 |
-| 当前任务 | `P13-11D1` 已启动：先建立 Config-Version-owned compatible proxy pool/node/binding profile 的 typed persistence foundation、AEAD proxy endpoint boundary 与 draft revision/rollback contract；暂不增加 HTTP/OpenAPI/Prism，暂不把新配置接入 serving。P13-11A/B/C 已由 `phase-p13-egress-complete` / exact `a716eaaa9d31c26b6d09489f3f7fdbb9b0e1ebeb` / Gate 31959162202 正式收口。默认部署仍为 Direct；不调用 Provider/真实代理、不启动 Web clearance、Autoreg、生产、服务器或 frontend 改造。 |
-| 本次计划变更（2026-08-17，P13-11D1 启动） | 新增 [ADR-0096](adr/ADR-0096-config-version-compatible-proxy-pool-management.md)、[BC-MGMT-018](contracts/BC-MGMT-018-compatible-proxy-pool-management.md) 与 P13-11D Task Card。D 拆为：D1 typed Store/AEAD foundation；D2 protected management HTTP/OpenAPI；D3 active runtime composition。D1 只修改本地 Store/control 模型与 deterministic tests，不接触 Provider/代理/DNS/server/staging/production；D2 若改变管理契约，必须先改 authoritative OpenAPI、运行 `npm --prefix web/prism run sync-contract`，并在 `docs/cross-boundary-log.md` 给 Claude Code 留痕。 |
+| 当前任务 | `P13-11D2` 已启动：P13-11D1 的 typed Store/AEAD foundation 已完成本地 review，当前进入 protected management list/get/create/update/delete contract；HTTP/OpenAPI/Prism 变更必须同步 cross-boundary log 提醒 Claude Code。D3 仍未启动，默认部署仍为 Direct；不调用 Provider/真实代理、不启动 Web clearance、Autoreg、生产或服务器改造。 |
+| 本次计划变更（2026-08-17，P13-11D1/D2） | P13-11D1 已在 commit `8849b9c` 完成本地 typed Store/AEAD slice：migration 0019、Config-Version-owned pool/node/exact binding records、local-DNS SOCKS5 validation、独立 AAD、same-Upstream ownership 与 redacted graph tests；`gateway-store` 61/61、`gateway-control` 75/75、下游 check、严格 Clippy、fmt、secret-scan、diff 均通过。状态为 `LOCAL_PASS_PENDING_PHASE_GATE`，未运行正式 Gate。现在开始 D2 protected management HTTP/OpenAPI；一旦修改 authoritative OpenAPI，必须运行 Prism sync 并在 cross-boundary log 提醒 Claude Code。 |
 | 本次计划变更（2026-08-17，P13-11 正式收口） | `phase-p13-egress-complete` 已固定到 exact commit `a716eaaa9d31c26b6d09489f3f7fdbb9b0e1ebeb` 并触发唯一正式 Delivery Gate run [31959162202](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31959162202)：Authorize 4s、Fast 6m25s、Full supply-chain 1m15s、Required 3s 全部 PASS。P13-11A/B/C 与 aggregate 统一为 `DONE_WITH_BOUNDARY`；P13-11D 作为独立后续任务，不包含在本 tag。未调用 Provider、未做真实代理/DNS 探针、未改 server/staging/production、OpenAPI/Prism/frontend 或四个 untracked helper。 |
 | 本次计划变更（2026-08-17，P13-11 aggregate closeout candidate） | `CHECK_REPORT_PATH=/tmp/cpar-p13-11-phase-preflight-20260817.md ./scripts/check.sh full` 在 Darwin arm64 上 43/43 steps PASS（2026-08-16T16:12:07Z–16:14:15Z）；P13-11A/B/C slice review 无 P1/P2 blocker。新增 aggregate preflight/review receipt，状态为 `READY_FOR_FORMAL_DELIVERY_GATE`；只允许在明确授权后将唯一 annotated `phase-p13-egress-complete` 固定到 exact pushed commit并运行一次正式 Gate。当前不创建 tag、不 push、不调用 Provider、不改 server/staging/production，不启动 P13-11D；四个 pre-existing untracked helper 保持未触碰。 |
 | 本次计划变更（2026-08-16，CR-P12-AUTOREG-SEPARATION-001/002） | 用户明确 Autoreg 与 CPAR 是两个完全独立的项目，并补充澄清“账号健康”分为两层：Autoreg 负责注册、SSO/OAuth、refresh、账号权益和 replenishment；CPAR/P12 负责外部凭证导入后的 Provider/Channel/Route 绑定、credential pool Health/Quota/Circuit、lease、cooldown、failure feedback、调度和公共 Base URL + client key 反代。CPAR 可参考 grok2api 的账号池行为，但不接管账号注册或修复，也不依赖 Autoreg 数据库/HTTP/browser/scheduler。历史 P12-10I receipt 保留为事实并区分账号源、CPAR runtime pool、import 和 public proxy 结果。详见 [CR-P12-AUTOREG-SEPARATION-001](change-requests/CR-P12-AUTOREG-SEPARATION-001.md) 与 [CR-P12-AUTOREG-SEPARATION-002](change-requests/CR-P12-AUTOREG-SEPARATION-002.md)。 |
@@ -3888,8 +3888,8 @@ P13 任务状态以本文档为准,前端不修改上面的任务表。
 | 范围 | 聚合 P13-11A/B/C 的 generic endpoint profile、active runtime composition 与 serving transport handoff；不新增代码行为，不改变公开或管理 API |
 | 本地证据 | [phase preflight receipt](reports/evidence/p13-11-phase-preflight-20260817.md)、[phase review](reports/evidence/p13-11-phase-review-20260817.md)；`43/43` Full；实现基线 `fafb34a38af33b798915d922ca035a5e32f7c9e8`，正式 tag 目标以授权时包含全部 closeout 文档的 exact pushed HEAD 为准 |
 | 状态 | `DONE_WITH_BOUNDARY`；A/B/C slice reports、ADR/Contract、aggregate receipt/review 与 formal Gate 均已对齐到 exact tag/commit/run；P13-11 parent 仍 `IN_PROGRESS` |
-| 允许的下一步 | 创建 P13-11D Task Card 和本地设计/实现计划；不得把 Provider-specific probe/recovery、Autoreg 或真实生产网络验证混入 D |
-| 明确未做 | Provider/代理/DNS/服务器/staging/production、Autoreg、真实 egress probe/recovery、P13-11D persistence/management、OpenAPI/Prism/frontend 改造 |
+| 允许的下一步 | D1 已本地完成；继续 D2 protected management contract。不得把 Provider-specific probe/recovery、Autoreg 或真实生产网络验证混入 D |
+| 明确未做 | Provider/代理/DNS/服务器/staging/production、Autoreg、真实 egress probe/recovery、D2 HTTP/OpenAPI/Prism 与 D3 runtime composition |
 
 ### 19.23 P13-11D Task Card — Config-Version-owned compatible proxy-pool management
 
@@ -3905,7 +3905,7 @@ P13 任务状态以本文档为准,前端不修改上面的任务表。
 | 前后端边界 | D1 不修改管理 OpenAPI/Prism。D2 必须先修改 `docs/openapi/management-v1.json`，运行 `npm --prefix web/prism run sync-contract`，并在同一提交更新 `docs/cross-boundary-log.md`；Claude Code 只消费生成 client 和实现控制页，不得手改生成文件或展示 proxy secret |
 | 定向验收 | Store：migration/foreign key/draft revision/atomic rollback/clone/reopen/AEAD key rotation/corruption/row swap；Control：bounded deterministic compiler、exact ownership、closed enum/capacity/weight/retry；HTTP：Key/CSRF/version/revision/audit/redaction；Runtime：same-Upstream fixed/pool selection、cursor/capacity/Health isolation、default Direct、不读 Store；strict Clippy/fmt/docs/secret/diff/review |
 | 交付物 | [ADR-0096](adr/ADR-0096-config-version-compatible-proxy-pool-management.md)、[BC-MGMT-018](contracts/BC-MGMT-018-compatible-proxy-pool-management.md)、[P13-11D report](reports/p13-11d-compatible-proxy-pool-management.md)；D2 contract change时追加 [cross-boundary log](cross-boundary-log.md) |
-| 当前状态 | `IN_PROGRESS`：D1 设计已冻结，代码/迁移/测试尚未完成；D2/D3 尚未启动；P13-11A/B/C 的正式 tag/Gate 不回写或移动 |
+| 当前状态 | `IN_PROGRESS`：D1 `LOCAL_PASS_PENDING_PHASE_GATE`（commit `8849b9c`）；D2 已启动，先做 protected management service/HTTP contract；D3 尚未启动；P13-11A/B/C 的正式 tag/Gate 不回写或移动 |
 
 ## 20. 测试体系
 
@@ -4028,10 +4028,11 @@ Next task:
 
 ## 25. 计划变更记录
 
-> 当前版本置顶变更：`v1.290`（2026-08-17）见下方第一行；历史版本保持原样。
+> 当前版本置顶变更：`v1.291`（2026-08-17）见下方第一行；历史版本保持原样。
 
 | 版本 | 日期 | 变化 | 批准状态 |
 |---|---|---|---|
+| v1.291 | 2026-08-17 | P13-11D1 完成本地实现与 review：新增 migration 0019、Config-Version-owned pool/node/exact binding-profile typed records、same-Upstream composite ownership、restrict/update triggers、local-DNS SOCKS5 canonical validation、独立 `cpar-compatible-egress-node-v1` AAD 与 redacted/corruption/rollback tests；commit `8849b9c`。`gateway-store` 61/61、`gateway-control` 75/75、下游 check、严格 Clippy、fmt、staged secret-scan、diff 全部通过。未运行正式 P13-11D Gate；当前进入 D2 protected management HTTP/OpenAPI，D3 未启动 | `P13-11D1 LOCAL_PASS_PENDING_PHASE_GATE`; `P13-11D2 IN_PROGRESS` |
 | v1.290 | 2026-08-17 | 启动 P13-11D1：冻结 Config-Version-owned compatible proxy pool/node/exact binding-profile persistence、独立 AEAD proxy endpoint、same-Upstream ownership、draft revision/rollback 与 D1/D2/D3 分片。D1 不改变 HTTP/OpenAPI/Prism/serving；D2 发生管理契约变化时必须 sync Prism 并通过 cross-boundary log 提醒 Claude Code；D3 才把 active graph 注入既有 runtime。全程不调用 Provider/代理/DNS/Autoreg，不改服务器或生产 | `P13-11D1 IN_PROGRESS`; P13-11 parent `IN_PROGRESS` |
 | v1.289 | 2026-08-17 | P13-11A/B/C 正式收口：唯一 annotated tag `phase-p13-egress-complete` 固定到 exact commit `a716eaaa9d31c26b6d09489f3f7fdbb9b0e1ebeb`；GitHub run 31959162202 的 Authorize/Fast/Full supply-chain/Required 以 4s/6m25s/1m15s/3s 全部成功。slice reports、ADR/Contract、aggregate preflight/review、索引与 traceability 统一为 `DONE_WITH_BOUNDARY`；没有 Provider 请求、真实代理/DNS 探针、server/staging/production 或 OpenAPI/Prism/frontend 变化。P13-11D 不属于该 tag，将作为独立后续任务启动 | `P13-11A/B/C DONE_WITH_BOUNDARY`; P13-11 parent `IN_PROGRESS` |
 | v1.288 | 2026-08-17 | P13-11 aggregate closeout candidate：P13-11A/B/C 的本地实现、slice review 与 `CHECK_REPORT_PATH=/tmp/cpar-p13-11-phase-preflight-20260817.md ./scripts/check.sh full` 均通过；Full 43/43，实现基线为 `fafb34a38af33b798915d922ca035a5e32f7c9e8`，新增 aggregate preflight/review receipt。只允许在明确授权后把唯一 `phase-p13-egress-complete` tag 固定到包含全部 closeout 文档的 exact pushed HEAD 并运行一次正式 Delivery Gate；不创建 tag、不 push、不调用 Provider/网络、不改 server/staging/production、不启动 P13-11D，四个 untracked helper 保持未触碰 | `P13-11 READY_FOR_FORMAL_DELIVERY_GATE`; P13-11 parent `IN_PROGRESS` |

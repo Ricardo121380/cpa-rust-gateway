@@ -1,6 +1,6 @@
 # BC-MGMT-018: Compatible proxy-pool persistence and protected management
 
-Status: IN_PROGRESS (`P13-11D1` design frozen; implementation pending)
+Status: `P13-11D1 LOCAL_PASS_PENDING_PHASE_GATE`; D2/D3 not started
 
 ## Purpose
 

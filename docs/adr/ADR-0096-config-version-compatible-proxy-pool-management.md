@@ -1,6 +1,6 @@
 # ADR-0096: Config-Version-owned compatible proxy-pool management
 
-Status: Proposed — P13-11D1 implementation in progress
+Status: Accepted for D1 local implementation — `P13-11D1 LOCAL_PASS_PENDING_PHASE_GATE`; D2/D3 not started
 
 Date: 2026-08-17
 

@@ -1,6 +1,6 @@
 # P13-11D compatible proxy-pool management report
 
-Status: IN_PROGRESS (`P13-11D1` design frozen; implementation pending)
+Status: `P13-11D1 LOCAL_PASS_PENDING_PHASE_GATE`; D2/D3 remain not started
 
 Date: 2026-08-17
 
@@ -21,15 +21,19 @@ deterministic fixtures, but the Config Version cannot persist or manage those in
 
 ### P13-11D1 — typed persistence and AEAD
 
-Planned output:
+Delivered locally in commit `8849b9c`:
 
 - migration for Config-Version-owned proxy pools, proxy nodes, and exact Endpoint-Credential
   binding profiles;
 - typed `gateway-store::control_plane` records and deterministic graph load/write order;
 - local-DNS SOCKS5 endpoint validation followed by immediate `SecretStore` sealing under an
   egress-node-specific AAD domain;
-- draft revision, ownership, delete/restrict, clone/rollback/reopen, corruption/row-swap, key
-  rotation, migration down/up, and secret-free diagnostics tests.
+- draft-owned graph write order, same-Upstream ownership, delete/restrict triggers, corruption/
+  row-swap/AAD-boundary, migration down/up, and secret-free diagnostics tests.
+
+The existing draft revision/If-Match mutation service remains the D2 owner; D1 adds the typed graph
+records and keeps `write_configuration` draft-only. Clone/rollback/reopen use the existing Store
+graph machinery and remain covered by the repository's broader control-plane regression suite.
 
 D1 does not change HTTP, the authoritative management OpenAPI, Prism, the serving composition, or
 the Direct production default.
@@ -78,12 +82,29 @@ D3 still does not authorize a real proxy or Provider request.
 
 ## Implementation evidence
 
-PENDING. D1 code, migration, and tests have not yet been completed.
+- `crates/gateway-store/migrations/0019_compatible_egress_pool.{up,down}.sql` adds three
+  Config-Version-owned tables, composite same-Upstream foreign keys, target checks, and
+  restrict/update triggers.
+- `gateway-store::control_plane` now has typed pool/node/exact binding records, deterministic
+  write/load order, bounded identities, capacity/weight/retry validation, and redacted Debug.
+- `gateway-control::control_plane_service` exposes the versioned length-delimited node AAD and
+  `seal_compatible_proxy_node_endpoint`, reusing `UpstreamProxy::try_socks5` before AEAD sealing.
+- The four pre-existing untracked helper files were not staged or modified.
 
 ## Verification evidence
 
-PENDING. The first verification target is the D1 Store/AEAD matrix; no Fast, Full, or formal
-Delivery Gate is claimed by this report yet.
+Local D1 checks passed:
+
+- `cargo test --locked -p gateway-store`: 61 unit tests, repository/backup/upgrade integration
+  tests, and doc tests all passed;
+- `cargo test --locked -p gateway-control`: 75 tests passed; the focused proxy AAD/sealing slice
+  is 6/6;
+- `cargo check --locked -p gateway-control -p gateway` and
+  `cargo check --locked -p differential-gate` passed;
+- strict Clippy for `gateway-store` and `gateway-control`, workspace formatting, staged secret
+  scan, and `git diff --check` passed.
+
+This is a local slice result only. No Fast/Full or formal P13-11D Delivery Gate is claimed yet.
 
 ## Frontend handoff
 
@@ -101,9 +122,11 @@ This report is not evidence for:
 - Grok Web clearance, Console bootstrap, FlareSolverr, Kiro, or native-provider behavior;
 - Autoreg registration, OAuth/SSO, refresh, account repair, or replenishment;
 - server, staging, production, public API, management UI, or traffic changes;
-- P13-11D local pass, aggregate Full, or formal Delivery Gate completion.
+- D2 protected management HTTP/OpenAPI/Prism, D3 active runtime composition, aggregate Full, or
+  formal P13-11D Delivery Gate completion.
 
 ## Next action
 
-Implement P13-11D1 migration and typed Store/AEAD model, run the bounded D1 test/review matrix, and
-update this report with exact evidence before starting D2.
+Start P13-11D2: add the protected management mutation/read operations, then update the authoritative
+management OpenAPI, sync Prism, and append the exact cross-boundary handoff for Claude Code before
+any frontend implementation is considered.
