@@ -147,14 +147,19 @@
 
 ## P12 追踪
 
-### CPAR / Autoreg 项目边界（CR-P12-AUTOREG-SEPARATION-001）
+### CPAR / Autoreg 项目边界（CR-P12-AUTOREG-SEPARATION-001/002）
 
-- Autoreg 独立负责注册、SSO/OAuth、refresh、账号健康、replenishment 与 scheduler；这些结果不计为
-  CPAR/P12 的代码完成或失败。
-- CPAR/P12 只追踪外部凭证进入 CPAR 后的严格导入、Provider/Channel/Route binding、lease/Health/Quota、
-  CPAR 公共 Base URL + client key 反代、错误分类与 rollback。
+- Autoreg 独立负责注册、SSO/OAuth、refresh、账号权益、账号源生命周期健康、replenishment 与 scheduler；
+  这些结果不计为 CPAR/P12 的账号修复工作。
+- CPAR/P12 独立负责外部凭证进入 CPAR 后的严格导入、Provider/Channel/Route binding、credential pool
+  Health/Quota/Circuit、lease、cooldown、failure feedback、运行时可用性和 CPAR 公共 Base URL + client key
+  反代；CPAR 可参考 grok2api 行为，但不依赖 Autoreg 或 grok2api 的数据库/HTTP/worker。
+- `CredentialUnauthorized`、expiry、Quota、cooldown、Circuit 和 `EgressRejected` 由 CPAR 记录、隔离和
+  fail closed；账号登录/refresh/权益根因修复仍回 Autoreg，Provider-specific egress 属 CPAR。
+- P12-10D 中的 `refresh_due`/`reauth_required` 是 CPAR 的状态投影和待处理边界，不表示 CPAR 执行
+  Autoreg refresh/OAuth；新的凭证由 Autoreg 外部交付后再经 CPAR import/CAS 替换。
 - 历史 P12-10I receipt 保持不可变；报告中应区分 `AUTOREG_ACCOUNT_SOURCE_RESULT`、
-  `CPAR_IMPORT_RESULT` 和 `CPAR_PUBLIC_PROXY_RESULT`。
+  `CPAR_RUNTIME_POOL_STATE`、`CPAR_IMPORT_RESULT` 和 `CPAR_PUBLIC_PROXY_RESULT`。
 - P12-10H 全池 Console 外部 sweep 与 P12-10I-22/I-24 单账号 Console 反代成功属于不同覆盖范围，不能互相覆盖。
 
 | Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |

@@ -4,12 +4,12 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.280` |
+| 计划版本 | `v1.281` |
 | 生效日期 | `2026-08-16` |
 | 状态 | `Locked for execution` |
-| 当前阶段 | `P1` 至 `P6`、P9、P10、P11 与 CPAR 侧 P12 已完成（P12 为 `DONE_WITH_BOUNDARY`）；P13-04、P13-05、P13-06A/B/C、P13-07A/B/C/D、P13-08、P13-09A/B/C 与 P13-10A 均已通过对应正式 Delivery Gate 并以 `DONE_WITH_BOUNDARY` 收口。P13 umbrella 因后续独立 backlog 继续 `IN_PROGRESS`。P7 Kiro OAuth、P8 Official API-key E2E 与 Grok Web 外部 egress 边界仍延后。Autoreg 注册、SSO/OAuth、refresh、账号健康和 replenishment 不属于 CPAR/P12 开发或验收，按 `CR-P12-AUTOREG-SEPARATION-001` 作为独立项目处理。 |
-| 当前任务 | `P13-08/P13-10 DONE_WITH_BOUNDARY`：Channel Pin retrospective exact tag run 31928169486 与公共 Responses WebSocket run 31926927914 均已通过。下一候选为 P13-11 Provider-specific Egress/Proxy Pool，但其仍为条件性 `DEFERRED`，本次没有自动启动任何新 Task。P12 后续只处理“已提供凭证进入 CPAR 后的导入、绑定和反代”；Autoreg 账号生成/修复不再作为 P12 待办。 |
-| 本次计划变更（2026-08-16，CR-P12-AUTOREG-SEPARATION-001） | 用户明确 Autoreg 与 CPAR 是两个完全独立的项目：Autoreg 负责注册、SSO/OAuth、refresh、账号健康和 replenishment；CPAR/P12 只接收外部提供的有效凭证，负责严格导入、Provider/Channel/Route 绑定、lease/Health/Quota、公共 Base URL + client key 反代和 value-free 结果。历史 P12-10I 的 Autoreg 注册/转换/refresh 失败 receipt 保留为事实证据，但不再计为 P12 的 CPAR 开发缺陷；只有 CPAR import、binding、route、协议和反代结果属于 P12。详见 [CR-P12-AUTOREG-SEPARATION-001](change-requests/CR-P12-AUTOREG-SEPARATION-001.md)。 |
+| 当前阶段 | `P1` 至 `P6`、P9、P10、P11 与 CPAR 侧 P12 已完成（P12 为 `DONE_WITH_BOUNDARY`）；P13-04、P13-05、P13-06A/B/C、P13-07A/B/C/D、P13-08、P13-09A/B/C 与 P13-10A 均已通过对应正式 Delivery Gate 并以 `DONE_WITH_BOUNDARY` 收口。P13 umbrella 因后续独立 backlog 继续 `IN_PROGRESS`。P7 Kiro OAuth、P8 Official API-key E2E 与 Grok Web 外部 egress 边界仍延后。Autoreg 注册、SSO/OAuth、refresh、账号权益和 replenishment 不属于 CPAR/P12；CPAR 自身的 credential pool Health/Quota/Circuit、lease、cooldown、failure feedback 和调度仍属于 CPAR，按 `CR-P12-AUTOREG-SEPARATION-001/002` 解释。 |
+| 当前任务 | `P13-08/P13-10 DONE_WITH_BOUNDARY`：Channel Pin retrospective exact tag run 31928169486 与公共 Responses WebSocket run 31926927914 均已通过。下一候选为 P13-11 Provider-specific Egress/Proxy Pool，但其仍为条件性 `DEFERRED`，本次没有自动启动任何新 Task。P12 后续只处理“已提供凭证进入 CPAR 后的导入、绑定、运行时账号池健康与反代”；Autoreg 账号生成/修复/refresh 不再作为 P12 待办。 |
+| 本次计划变更（2026-08-16，CR-P12-AUTOREG-SEPARATION-001/002） | 用户明确 Autoreg 与 CPAR 是两个完全独立的项目，并补充澄清“账号健康”分为两层：Autoreg 负责注册、SSO/OAuth、refresh、账号权益和 replenishment；CPAR/P12 负责外部凭证导入后的 Provider/Channel/Route 绑定、credential pool Health/Quota/Circuit、lease、cooldown、failure feedback、调度和公共 Base URL + client key 反代。CPAR 可参考 grok2api 的账号池行为，但不接管账号注册或修复，也不依赖 Autoreg 数据库/HTTP/browser/scheduler。历史 P12-10I receipt 保留为事实并区分账号源、CPAR runtime pool、import 和 public proxy 结果。详见 [CR-P12-AUTOREG-SEPARATION-001](change-requests/CR-P12-AUTOREG-SEPARATION-001.md) 与 [CR-P12-AUTOREG-SEPARATION-002](change-requests/CR-P12-AUTOREG-SEPARATION-002.md)。 |
 | 本次计划变更（2026-08-16，P13-09） | 按用户批准启动 P13-09，并拆分为三个可独立 review 的安全切片：A 先建立独立 AEAD stored-response namespace、exact Client Key owner、TTL/GC/restart；B 再启用 opt-in `store:true` 与 `GET/DELETE /v1/responses/{id}`，证明 JSON/SSE 成功终态的持久化时序；C 最后实现 `previous_response_id` 与 `/v1/responses/compact`，要求显式 Provider capability 和原 Provider/Channel/Credential lineage，不允许跨账号或跨 Provider fallback。A 不改变公开 decoder、OpenAPI/Prism、serving graph、生产/staging 或 Provider traffic。 |
 | 已批准变更（2026-08-10） | `CR-EXEC-008` 语义澄清：仅降低昂贵 Fast/Full/supply-chain/release evidence 的默认运行频率，不限制 branch、push、PR update/review/rebase/merge；本轮已另开并实现 workflow 解耦，轻量 PR gate 与 tag/manual/closeout-label Delivery Gate 分离。`CR-P12-AUTOREG-MIGRATE-001`：Autoreg Oracle successor 已完成 staged/health、单账号 registration 与 dedicated file-sink 验证；本轮按 operator 批准完成 CPAR 显式 provider-binding/import、真实公网 Build 与 Console canary、Oracle 单活与 Jakarta fencing，保留 rollback window。`CR-P12-AUTOREG-CONSOLE-001`：Console SSO 仅通过 strict Oracle source adapter、same-batch native probe 和真实公共 CPAR 六元组后保留生产批次；scheduler/reauth 仍单独受控。 |
 | 本次计划变更（2026-08-15） | 完成 `P13-07A` 本地实现与 review：在 `gateway-router` 增加只消费脱敏状态的 Provider-scoped selector，显式排除 foreign Provider、capability mismatch、expiry、Health/Quota/recovery 与并发饱和；已知 quota/cost 优先于 unknown，unknown 不伪造为零或无限；least-loaded 使用 `u128` 比例比较，随后按 quota → cost → least-loaded → priority → weight → opaque identity 稳定决胜。4096 candidate、128 字符、空白和 duplicate identity 均 fail closed。该切片不获取 lease、不读 Store、不调用 Provider、不改 OpenAPI/Prism/production；现有 `RouteCredentialScheduler` 仍是 request-time 唯一 lease owner。 |
@@ -1875,22 +1875,25 @@ CR-ID: CR-P11-04-001
 | P12-10I-23 | Oracle Autoreg → CPAR 显式 provider-binding/import canary、真实公网 Build 验证与单活切换 | [production canary](reports/evidence/autoreg-oracle-cpar-production-canary-20260810.md)、[single-active cutover](reports/evidence/autoreg-oracle-single-active-cutover-20260810.md) 与各自 review：Autoreg eligible source `1` 通过受控内存管道导入 Grok Build native pool `1/1`；CPAR 真实公网 `cpar.example.invalid` 使用 client key 完成 Responses/Chat/Messages × JSON/SSE `6/6`；Oracle service active，Jakarta Autoreg compose 已 fencing/stopped，回滚 preimage 与 CPAR batch rollback 保留 | ORACLE_PRIMARY_JAKARTA_RETIRED_WITH_ROLLBACK |
 | P12-10I-24 | Oracle Autoreg Console SSO source adapter、显式 `grok_console` import/probe 与真实公网 Console 验证 | [source adapter](reports/evidence/autoreg-oracle-console-source-adapter-20260810.md)、[production canary](reports/evidence/autoreg-oracle-console-production-canary-20260810.md) 与 [review](reports/evidence/autoreg-oracle-console-production-canary-20260810-review.md)：task-67 单账号严格导出/导入 `1/1`，隔离 same-batch native probe 与 JSON/SSE `6/6` 通过；生产批次保留后真实 `cpar.example.invalid` Responses/Chat/Messages × JSON/SSE `6/6`；Oracle 单活/Jakarta fencing、rollback window 保持，scheduler 仍手动/禁用 | DONE_WITH_BOUNDARY |
 
-#### CPAR 与 Autoreg 的独立项目边界（`CR-P12-AUTOREG-SEPARATION-001`）
+#### CPAR 与 Autoreg 的独立项目边界（`CR-P12-AUTOREG-SEPARATION-001/002`）
 
 本节覆盖当前计划的状态解释；历史 receipt 和历史计划变更不被改写。
 
-- **Autoreg 项目负责**：注册、浏览器登录、SSO/Device OAuth、refresh、账号权益/额度、账号健康、
-  replenishment、任务队列、浏览器运行时、Autoreg SQLite 以及 Jakarta/Oracle Autoreg scheduler。
-- **CPAR/P12 负责**：在收到外部凭证包后，严格解析和 AEAD 导入、Provider/Channel/Route binding、
-  expiry/Health/Quota/lease、CPAR Base URL + client key 的真实 JSON/SSE 反代、错误分类和 rollback。
+- **Autoreg 项目负责**：注册、浏览器登录、SSO/Device OAuth、refresh、账号权益/额度、账号源生命周期
+  健康、replenishment、任务队列、浏览器运行时、Autoreg SQLite 以及 Jakarta/Oracle Autoreg scheduler。
+- **CPAR/P12 负责**：在收到外部凭证包后，严格解析和 AEAD 导入、Provider/Channel/Route binding；并独立
+  维护 credential pool 的 Health/Quota/Circuit、available/cooling/unauthorized/expired、lease、capacity、
+  failure feedback、cooldown/recovery、CPAR Base URL + client key 的真实 JSON/SSE 反代、错误分类和 rollback。
 - **禁止项目耦合**：CPAR 不读取 Autoreg 数据库，不调用 Autoreg HTTP/浏览器，不启动 Autoreg scheduler，
   不把 Autoreg 当作上游 Provider，也不在 CPAR 内修复账号注册、SSO、refresh 或账号权益。
-- **失败归属**：`CredentialUnauthorized`、账号过期、上游账号权益拒绝属于外部凭证/Autoreg 结果；
-  `EgressRejected` 属于对应 Provider 出口结果；只有 shape、导入、binding、lease、协议投影、错误分类、
-  secret/rollback 等 CPAR 行为错误才算 P12 的实现缺陷。
+- **失败归属**：CPAR 负责记录并控制 `CredentialUnauthorized`、expiry、Quota、cooldown、Circuit 和
+  `EgressRejected` 等运行时状态；其中账号登录、refresh、权益和新凭证生成的根因修复仍属于 Autoreg，
+  Provider 出口属于 CPAR 的 Provider-specific egress。只有 shape、导入、binding、lease、协议投影、
+  错误分类、secret/rollback 等 CPAR 行为错误才算 P12 的实现缺陷。
 - **历史 P12-10I 任务**：其中注册、SSO→OAuth、refresh 和账号补给部分现在只作为
   `AUTOREG_ACCOUNT_SOURCE_RESULT` 事实记录；同一 receipt 中的 CPAR import/public proxy 部分仍保留为
-  `CPAR_IMPORT_RESULT` 和 `CPAR_PUBLIC_PROXY_RESULT`，不再把 Autoreg 失败计入 P12 未完成开发项。
+  `CPAR_RUNTIME_POOL_STATE`、`CPAR_IMPORT_RESULT` 和 `CPAR_PUBLIC_PROXY_RESULT`，不再把 Autoreg 失败
+  计入 P12 未完成开发项。
 - **Console 结论**：P12-10H 的全池历史 sweep 仍可保留外部阻塞记录，但 P12-10I-22 与 P12-10I-24
   已证明新鲜外部 Console 凭证进入 CPAR 后的单账号公共文本反代；两者不冲突，分别代表全池供应和
   CPAR 单账号反代范围。
@@ -1899,7 +1902,7 @@ CR-ID: CR-P11-04-001
 
 | 历史记录 | 当前归属 | 是否算作 CPAR/P12 未完成开发 |
 |---|---|---|
-| P12-10I-01 至 P12-10I-10 | Autoreg 注册、SSO/OAuth、refresh、账号来源和转换；其中 CPAR import/proxy 子结果另行保留 | 否；仅 CPAR 子结果按凭证已提供后的导入/反代证据计算 |
+| P12-10I-01 至 P12-10I-10 | Autoreg 注册、SSO/OAuth、refresh、账号来源和转换；其中 CPAR runtime pool/import/proxy 子结果另行保留 | 否；仅 CPAR 子结果按凭证已提供后的池状态、导入/反代证据计算 |
 | P12-10I-12、P12-10I-21、P12-10I-22 | 外部账号/出口诊断 + CPAR 公共边界 | 否；成功的 CPAR 子矩阵计入 CPAR，账号或上游拒绝回到外部项目 |
 | P12-10I-13、P12-10I-14、P12-10I-20 | Web Provider/egress 相关；账号来源仍由外部项目提供 | Web egress 属 P13-11 条件边界，Autoreg 账号问题不计入 P12 |
 | P12-10I-23、P12-10I-24 | 外部凭证已提供后的 CPAR import、binding 和公网 proxy canary | 是 CPAR 证据；已分别记录为 `ORACLE_PRIMARY_JAKARTA_RETIRED_WITH_ROLLBACK` 和 `DONE_WITH_BOUNDARY` |
@@ -3946,10 +3949,11 @@ Next task:
 
 ## 25. 计划变更记录
 
-> 当前版本置顶变更：`v1.280`（2026-08-16）见下方第一行；历史版本保持原样。
+> 当前版本置顶变更：`v1.281`（2026-08-16）见下方第一行；历史版本保持原样。
 
 | 版本 | 日期 | 变化 | 批准状态 |
 |---|---|---|---|
+| v1.281 | 2026-08-16 | `CR-P12-AUTOREG-SEPARATION-002`：澄清“账号健康”不是单一归属。Autoreg 负责账号源生命周期（注册、登录、SSO/OAuth、refresh、权益和 replenishment）；CPAR 仍必须独立维护已导入 credential pool 的 Health/Quota/Circuit、available/cooling/unauthorized/expired、lease、capacity、cooldown、failure feedback、调度和恢复。P12-10D 的 `refresh_due`/`reauth_required` 仅是 CPAR 的待处理状态，不代表 CPAR 执行账号 refresh；替换凭证由 Autoreg 外部交付。CPAR 可参考 grok2api 的账号池行为，但不依赖 Autoreg/grok2api 的数据库、HTTP、浏览器或 worker，也不负责注册或修复账号；历史报告新增 `CPAR_RUNTIME_POOL_STATE` 分类 | `APPROVED_SCOPE_CLARIFICATION` |
 | v1.280 | 2026-08-16 | `CR-P12-AUTOREG-SEPARATION-001`：Autoreg 与 CPAR 明确为两个完全独立的项目。Autoreg 负责注册、SSO/OAuth、refresh、账号权益/健康、replenishment、任务队列和 scheduler；CPAR/P12 只负责接收外部凭证包后的严格导入、Provider/Channel/Route binding、lease/Health/Quota、CPAR Base URL + client key 反代、错误分类和 rollback。历史 P12-10I 的账号注册/转换/refresh 失败 receipt 保留为事实，但不再计为 P12 的 CPAR 开发缺陷；P12-10H 全池 Console sweep 的外部阻塞与 P12-10I-22/I-24 的单账号 CPAR Console 成功分别标记，避免混淆。P13-12 改为 Autoreg-owned external dependency，非当前 CPAR 实施任务；不修改 Provider 代码、管理 OpenAPI/Prism、前端或生产配置 | `APPROVED_SCOPE_BOUNDARY` |
 | v1.0 | 2026-07-18 | 建立 Release 1 全阶段、任务、Gate、测试、安全、Git、灰度和变更控制基线 | 当前执行基线 |
 | v1.1 | 2026-07-19 至 2026-07-21 | 记录 P1/G1 的 Tool 语义投影澄清，以及 P3/G3 的公开别名、有限 SSE 帧与 idle 边界 Change Request | 已批准的历史执行基线 |
