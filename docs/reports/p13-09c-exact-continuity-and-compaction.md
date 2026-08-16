@@ -50,8 +50,9 @@ sibling, egress, credential-format, or cross-Provider fallback.
 - `cargo fmt --all -- --check`, docs (`539` Markdown / `107` referenced contract tests / `129`
   plan tasks with one `IN_PROGRESS`), source policy (`224` Rust files / `21` crate roots), crate
   boundaries (`21` packages), tracked Secret scan and `git diff --check`: PASS;
-- the aggregate P13-09 Full preflight and its one formal remote Delivery Gate remain the next
-  closeout step; no per-slice GitHub Gate was started.
+- the aggregate P13-09 Full preflight passed `43/43` steps on `Darwin 25.2.0 arm64` from
+  `2026-08-16T02:45:33Z` through `2026-08-16T02:48:18Z`; the one formal tagged Delivery Gate is
+  the only remaining closeout step, and no per-slice GitHub Gate was started.
 
 ## Review
 
@@ -76,5 +77,5 @@ staging or production compact execution.
 
 ## Boundary
 
-P13-09A/B/C are locally implemented and reviewed. P13-10 must not start until the aggregate local
-Full preflight and the single P13-09 formal Delivery Gate close the phase boundary.
+P13-09A/B/C are locally implemented, reviewed and covered by one aggregate Full preflight. P13-10
+must not start until the single P13-09 formal Delivery Gate closes the phase boundary.
