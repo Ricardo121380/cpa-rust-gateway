@@ -9,6 +9,15 @@ use gateway_core::{
 
 use crate::SnapshotVersion;
 
+/// Exact stored-history operation requested for one Responses execution.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ResponsesContinuationKind {
+    /// Replay one complete Client-Key-owned stored Response.
+    StoredResponse,
+    /// Generate or consume one gateway-owned compaction summary.
+    Compaction,
+}
+
 /// Exact immutable routing and Credential identity of the Attempt whose source was returned.
 #[derive(Clone, Eq, PartialEq)]
 pub struct ResponsesExecutionLineage {
@@ -109,6 +118,43 @@ impl fmt::Debug for ResponsesExecutionLineage {
             .field("route_candidate_id", &"<redacted>")
             .field("credential_id", &"<redacted>")
             .field("credential_revision", &self.credential_revision)
+            .finish()
+    }
+}
+
+/// Immutable exact-lineage pin carried from owned storage to the serving lease boundary.
+#[derive(Clone, Eq, PartialEq)]
+pub struct ResponsesContinuationPin {
+    lineage: ResponsesExecutionLineage,
+    kind: ResponsesContinuationKind,
+}
+
+impl ResponsesContinuationPin {
+    /// Creates a continuation pin from already-authenticated encrypted lineage.
+    #[must_use]
+    pub const fn new(lineage: ResponsesExecutionLineage, kind: ResponsesContinuationKind) -> Self {
+        Self { lineage, kind }
+    }
+
+    /// Returns the exact stored lineage.
+    #[must_use]
+    pub const fn lineage(&self) -> &ResponsesExecutionLineage {
+        &self.lineage
+    }
+
+    /// Returns the required stored-history operation.
+    #[must_use]
+    pub const fn kind(&self) -> ResponsesContinuationKind {
+        self.kind
+    }
+}
+
+impl fmt::Debug for ResponsesContinuationPin {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ResponsesContinuationPin")
+            .field("lineage", &self.lineage)
+            .field("kind", &self.kind)
             .finish()
     }
 }

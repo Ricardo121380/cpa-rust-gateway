@@ -34,6 +34,10 @@ pub const MAX_STORED_RESPONSE_EVENTS: usize = 4_096;
 pub const MAX_STORED_RESPONSE_PAYLOAD_BYTES: usize = 8 * 1024 * 1024;
 /// Maximum rows deleted by one bounded garbage-collection transaction.
 pub const MAX_STORED_RESPONSE_GC_BATCH: usize = 4_096;
+/// Maximum UTF-8 bytes retained in one gateway-generated compact summary.
+pub const MAX_STORED_RESPONSE_COMPACTION_SUMMARY_BYTES: usize = 1024 * 1024;
+/// Public prefix that distinguishes CPAR-owned compact locators from upstream blobs.
+pub const STORED_RESPONSE_COMPACTION_PREFIX: &str = "cpar_compact_v1.";
 
 const STORED_RESPONSE_PAYLOAD_VERSION: i64 = 1;
 const STORED_RESPONSE_PAYLOAD_VERSION_U16: u16 = 1;
@@ -41,6 +45,11 @@ const MAX_DURABLE_IDENTIFIER_BYTES: usize = 128;
 const MAX_RESPONSE_IDENTIFIER_BYTES: usize = 512;
 const MAX_PUBLIC_MODEL_BYTES: usize = 512;
 const AAD_DOMAIN: &[u8] = b"cpar:stored-response:v1\0";
+const COMPACTION_AAD_DOMAIN: &[u8] = b"cpar:stored-response-compaction:v1\0";
+const COMPACTION_PAYLOAD_VERSION: i64 = 1;
+const COMPACTION_PAYLOAD_VERSION_U16: u16 = 1;
+const COMPACTION_RANDOM_BYTES: usize = 16;
+const COMPACTION_TOKEN_GENERATION_ATTEMPTS: usize = 4;
 
 /// Provider/channel/route identity pinned to one stored response.
 #[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -435,6 +444,167 @@ impl fmt::Debug for StoredResponseRecord {
     }
 }
 
+/// Gateway-owned compact history sealed under an AEAD domain separate from stored Responses.
+#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StoredResponseCompactionPayload {
+    payload_version: u16,
+    lineage: StoredResponseLineage,
+    source_response_id: ResponseId,
+    public_model: String,
+    summary: String,
+}
+
+impl StoredResponseCompactionPayload {
+    /// Creates one bounded compact history payload.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe input/bound error for invalid lineage, identifiers, model, or summary.
+    pub fn try_new(
+        lineage: StoredResponseLineage,
+        source_response_id: ResponseId,
+        public_model: impl Into<String>,
+        summary: impl Into<String>,
+    ) -> Result<Self, StoredResponseStoreError> {
+        let payload = Self {
+            payload_version: COMPACTION_PAYLOAD_VERSION_U16,
+            lineage,
+            source_response_id,
+            public_model: public_model.into(),
+            summary: summary.into(),
+        };
+        payload.validate()?;
+        let encoded =
+            serde_json::to_vec(&payload).map_err(|_| StoredResponseStoreError::InvalidInput)?;
+        ensure_payload_bound(encoded.len())?;
+        Ok(payload)
+    }
+
+    /// Returns the exact execution lineage inherited from the source Response.
+    #[must_use]
+    pub const fn lineage(&self) -> &StoredResponseLineage {
+        &self.lineage
+    }
+
+    /// Returns the exact source Response identity.
+    #[must_use]
+    pub const fn source_response_id(&self) -> &ResponseId {
+        &self.source_response_id
+    }
+
+    /// Returns the public model that the continuation must keep.
+    #[must_use]
+    pub fn public_model(&self) -> &str {
+        &self.public_model
+    }
+
+    /// Returns the gateway-generated summary after exact owner admission.
+    #[must_use]
+    pub fn summary(&self) -> &str {
+        &self.summary
+    }
+
+    fn validate(&self) -> Result<(), StoredResponseStoreError> {
+        if self.payload_version != COMPACTION_PAYLOAD_VERSION_U16 {
+            return Err(StoredResponseStoreError::InvalidPersistedRecord);
+        }
+        validate_identifier(
+            self.lineage.config_version_id(),
+            MAX_DURABLE_IDENTIFIER_BYTES,
+        )?;
+        for value in [
+            self.lineage.target().provider_id().as_str(),
+            self.lineage.target().upstream_id().as_str(),
+            self.lineage.target().channel_id().as_str(),
+            self.lineage.target().route_id().as_str(),
+            self.lineage.target().route_candidate_id().as_str(),
+            self.lineage.credential().credential_id().as_str(),
+        ] {
+            validate_identifier(value, MAX_DURABLE_IDENTIFIER_BYTES)?;
+        }
+        validate_identifier(
+            self.source_response_id.as_str(),
+            MAX_RESPONSE_IDENTIFIER_BYTES,
+        )?;
+        validate_identifier(&self.public_model, MAX_PUBLIC_MODEL_BYTES)?;
+        if self.summary.is_empty()
+            || self.summary.len() > MAX_STORED_RESPONSE_COMPACTION_SUMMARY_BYTES
+        {
+            return Err(StoredResponseStoreError::PayloadTooLarge);
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Debug for StoredResponseCompactionPayload {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("StoredResponseCompactionPayload")
+            .field("payload_version", &self.payload_version)
+            .field("lineage", &self.lineage)
+            .field("source_response_id", &"<redacted>")
+            .field("public_model", &"<redacted>")
+            .field("summary", &"<redacted>")
+            .finish()
+    }
+}
+
+/// Decrypted compaction returned only after exact owner and expiry admission.
+#[derive(Clone, Eq, PartialEq)]
+pub struct StoredResponseCompactionRecord {
+    client_key_id: ClientKeyId,
+    compact_id: String,
+    created_at_ms: i64,
+    expires_at_ms: i64,
+    payload: StoredResponseCompactionPayload,
+}
+
+impl StoredResponseCompactionRecord {
+    /// Returns the public opaque locator.
+    #[must_use]
+    pub fn compact_id(&self) -> &str {
+        &self.compact_id
+    }
+
+    /// Returns the exact owner after admission.
+    #[must_use]
+    pub const fn client_key_id(&self) -> &ClientKeyId {
+        &self.client_key_id
+    }
+
+    /// Returns the durable creation instant.
+    #[must_use]
+    pub const fn created_at_ms(&self) -> i64 {
+        self.created_at_ms
+    }
+
+    /// Returns the exclusive expiry instant.
+    #[must_use]
+    pub const fn expires_at_ms(&self) -> i64 {
+        self.expires_at_ms
+    }
+
+    /// Returns decrypted compact state to the already-authorized caller.
+    #[must_use]
+    pub const fn payload(&self) -> &StoredResponseCompactionPayload {
+        &self.payload
+    }
+}
+
+impl fmt::Debug for StoredResponseCompactionRecord {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("StoredResponseCompactionRecord")
+            .field("client_key_id", &"<redacted>")
+            .field("compact_id", &"<redacted>")
+            .field("created_at_ms", &self.created_at_ms)
+            .field("expires_at_ms", &self.expires_at_ms)
+            .field("payload", &self.payload)
+            .finish()
+    }
+}
+
 /// Idempotent result of one durable put.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StoredResponsePutOutcome {
@@ -564,6 +734,117 @@ impl SqliteStoredResponseStore {
         Ok(StoredResponsePutOutcome::Stored)
     }
 
+    /// Stores one compact history under an unguessable owner-scoped locator.
+    ///
+    /// The compact plaintext uses a separate AEAD domain and table. Locator collisions are
+    /// retried within a fixed bound and never overwrite existing owner state.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe input/bound, randomness, AEAD, collision, or `SQLite` error.
+    pub fn put_compaction_owned(
+        &self,
+        client_key_id: &ClientKeyId,
+        created_at_ms: i64,
+        payload: &StoredResponseCompactionPayload,
+    ) -> Result<StoredResponseCompactionRecord, StoredResponseStoreError> {
+        validate_identifier(client_key_id.as_str(), MAX_DURABLE_IDENTIFIER_BYTES)?;
+        if created_at_ms < 0 {
+            return Err(StoredResponseStoreError::InvalidInput);
+        }
+        payload.validate()?;
+        let expires_at_ms = created_at_ms
+            .checked_add(STORED_RESPONSE_TTL_MILLISECONDS)
+            .ok_or(StoredResponseStoreError::TimeOverflow)?;
+        let plaintext = Zeroizing::new(
+            serde_json::to_vec(payload).map_err(|_| StoredResponseStoreError::InvalidInput)?,
+        );
+        ensure_payload_bound(plaintext.len())?;
+
+        for _attempt in 0..COMPACTION_TOKEN_GENERATION_ATTEMPTS {
+            let compact_id = generate_compaction_id()?;
+            let associated_data = compaction_associated_data(
+                client_key_id,
+                &compact_id,
+                created_at_ms,
+                expires_at_ms,
+            )?;
+            let encrypted = self
+                .secret_store
+                .seal(plaintext.as_slice(), &associated_data)?;
+            let connection = self.lock_connection()?;
+            let inserted = connection
+                .execute(
+                    "INSERT OR IGNORE INTO stored_response_compactions \
+                     (client_key_id, compact_id, created_at_ms, expires_at_ms, payload_version, \
+                      key_version, ciphertext) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    params![
+                        client_key_id.as_str(),
+                        compact_id,
+                        created_at_ms,
+                        expires_at_ms,
+                        COMPACTION_PAYLOAD_VERSION,
+                        encrypted.key_version().as_sqlite_i64(),
+                        encrypted.ciphertext(),
+                    ],
+                )
+                .map_err(StoreError::from)?;
+            drop(connection);
+            if inserted == 1 {
+                return Ok(StoredResponseCompactionRecord {
+                    client_key_id: client_key_id.clone(),
+                    compact_id,
+                    created_at_ms,
+                    expires_at_ms,
+                    payload: payload.clone(),
+                });
+            }
+        }
+        Err(StoredResponseStoreError::ConflictingReplay)
+    }
+
+    /// Opens one exact, still-unexpired owner-scoped compact locator.
+    ///
+    /// Missing, foreign-owner, and expired locators all return `Ok(None)`. Authentication,
+    /// corruption, missing keys, or malformed plaintext fail closed.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe validation, AEAD, lock, or `SQLite` error.
+    pub fn get_compaction_owned(
+        &self,
+        client_key_id: &ClientKeyId,
+        compact_id: &str,
+        now_ms: i64,
+    ) -> Result<Option<StoredResponseCompactionRecord>, StoredResponseStoreError> {
+        validate_identifier(client_key_id.as_str(), MAX_DURABLE_IDENTIFIER_BYTES)?;
+        validate_compaction_id(compact_id)?;
+        if now_ms < 0 {
+            return Err(StoredResponseStoreError::InvalidInput);
+        }
+        let connection = self.lock_connection()?;
+        let Some(row) = load_compaction_row(&connection, client_key_id.as_str(), compact_id)?
+        else {
+            return Ok(None);
+        };
+        if row.expires_at_ms <= now_ms {
+            return Ok(None);
+        }
+        let plaintext = open_compaction_row(&self.secret_store, client_key_id, compact_id, &row)?;
+        let payload: StoredResponseCompactionPayload = serde_json::from_slice(plaintext.as_bytes())
+            .map_err(|_| StoredResponseStoreError::InvalidPersistedRecord)?;
+        payload
+            .validate()
+            .map_err(|_| StoredResponseStoreError::InvalidPersistedRecord)?;
+        Ok(Some(StoredResponseCompactionRecord {
+            client_key_id: client_key_id.clone(),
+            compact_id: compact_id.to_owned(),
+            created_at_ms: row.created_at_ms,
+            expires_at_ms: row.expires_at_ms,
+            payload,
+        }))
+    }
+
     /// Loads one exact, unexpired owner record and authenticates its encrypted payload.
     ///
     /// A missing, foreign-owner, or expired ID returns `Ok(None)` through the same path. Corrupt
@@ -665,6 +946,38 @@ impl SqliteStoredResponseStore {
         Ok(deleted)
     }
 
+    /// Physically removes at most `limit` expired compact rows in deterministic order.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a zero/oversized batch, negative clock, lock failure, or `SQLite`
+    /// error.
+    pub fn purge_expired_compactions(
+        &self,
+        now_ms: i64,
+        limit: usize,
+    ) -> Result<usize, StoredResponseStoreError> {
+        if now_ms < 0 || limit == 0 || limit > MAX_STORED_RESPONSE_GC_BATCH {
+            return Err(StoredResponseStoreError::InvalidGcLimit);
+        }
+        let limit = i64::try_from(limit).map_err(|_| StoredResponseStoreError::InvalidGcLimit)?;
+        let mut connection = self.lock_connection()?;
+        let transaction = connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(StoreError::from)?;
+        let deleted = transaction
+            .execute(
+                "DELETE FROM stored_response_compactions WHERE rowid IN(\
+                    SELECT rowid FROM stored_response_compactions WHERE expires_at_ms <= ?1 \
+                    ORDER BY expires_at_ms, client_key_id, compact_id LIMIT ?2\
+                 )",
+                params![now_ms, limit],
+            )
+            .map_err(StoreError::from)?;
+        transaction.commit().map_err(StoreError::from)?;
+        Ok(deleted)
+    }
+
     fn lock_connection(&self) -> Result<MutexGuard<'_, Connection>, StoredResponseStoreError> {
         self.connection
             .lock()
@@ -686,6 +999,14 @@ struct StoredResponseRow {
     ciphertext: Vec<u8>,
 }
 
+struct StoredResponseCompactionRow {
+    created_at_ms: i64,
+    expires_at_ms: i64,
+    payload_version: i64,
+    key_version: i64,
+    ciphertext: Vec<u8>,
+}
+
 fn load_row(
     connection: &Connection,
     client_key_id: &str,
@@ -698,6 +1019,31 @@ fn load_row(
             params![client_key_id, response_id],
             |row| {
                 Ok(StoredResponseRow {
+                    created_at_ms: row.get(0)?,
+                    expires_at_ms: row.get(1)?,
+                    payload_version: row.get(2)?,
+                    key_version: row.get(3)?,
+                    ciphertext: row.get(4)?,
+                })
+            },
+        )
+        .optional()
+        .map_err(StoreError::from)
+        .map_err(StoredResponseStoreError::from)
+}
+
+fn load_compaction_row(
+    connection: &Connection,
+    client_key_id: &str,
+    compact_id: &str,
+) -> Result<Option<StoredResponseCompactionRow>, StoredResponseStoreError> {
+    connection
+        .query_row(
+            "SELECT created_at_ms, expires_at_ms, payload_version, key_version, ciphertext \
+             FROM stored_response_compactions WHERE client_key_id = ?1 AND compact_id = ?2",
+            params![client_key_id, compact_id],
+            |row| {
+                Ok(StoredResponseCompactionRow {
                     created_at_ms: row.get(0)?,
                     expires_at_ms: row.get(1)?,
                     payload_version: row.get(2)?,
@@ -733,10 +1079,47 @@ fn open_row(
         .map_err(StoredResponseStoreError::from)
 }
 
+fn open_compaction_row(
+    secret_store: &SecretStore,
+    client_key_id: &ClientKeyId,
+    compact_id: &str,
+    row: &StoredResponseCompactionRow,
+) -> Result<crate::secret_store::PlaintextSecret, StoredResponseStoreError> {
+    validate_compaction_row(row)?;
+    let key_version = KeyVersion::try_from_sqlite_i64(row.key_version)
+        .map_err(|_| StoredResponseStoreError::InvalidPersistedRecord)?;
+    let encrypted = EncryptedSecret::try_from_persisted(key_version, row.ciphertext.clone())
+        .map_err(|_| StoredResponseStoreError::InvalidPersistedRecord)?;
+    let associated_data = compaction_associated_data(
+        client_key_id,
+        compact_id,
+        row.created_at_ms,
+        row.expires_at_ms,
+    )?;
+    secret_store
+        .open(&encrypted, &associated_data)
+        .map_err(StoredResponseStoreError::from)
+}
+
 fn validate_row(row: &StoredResponseRow) -> Result<(), StoredResponseStoreError> {
     if row.created_at_ms < 0
         || row.expires_at_ms <= row.created_at_ms
         || row.payload_version != STORED_RESPONSE_PAYLOAD_VERSION
+        || row.key_version <= 0
+        || row.ciphertext.is_empty()
+        || row.ciphertext.len() > 16 * 1024 * 1024
+    {
+        return Err(StoredResponseStoreError::InvalidPersistedRecord);
+    }
+    Ok(())
+}
+
+fn validate_compaction_row(
+    row: &StoredResponseCompactionRow,
+) -> Result<(), StoredResponseStoreError> {
+    if row.created_at_ms < 0
+        || row.expires_at_ms <= row.created_at_ms
+        || row.payload_version != COMPACTION_PAYLOAD_VERSION
         || row.key_version <= 0
         || row.ciphertext.is_empty()
         || row.ciphertext.len() > 16 * 1024 * 1024
@@ -775,6 +1158,51 @@ fn associated_data(
     associated_data.extend_from_slice(&created_at_ms.to_be_bytes());
     associated_data.extend_from_slice(&expires_at_ms.to_be_bytes());
     Ok(associated_data)
+}
+
+fn compaction_associated_data(
+    client_key_id: &ClientKeyId,
+    compact_id: &str,
+    created_at_ms: i64,
+    expires_at_ms: i64,
+) -> Result<Vec<u8>, StoredResponseStoreError> {
+    let mut associated_data = Vec::with_capacity(
+        COMPACTION_AAD_DOMAIN.len() + client_key_id.as_str().len() + compact_id.len() + 22,
+    );
+    associated_data.extend_from_slice(COMPACTION_AAD_DOMAIN);
+    append_length_prefixed(&mut associated_data, client_key_id.as_str())?;
+    append_length_prefixed(&mut associated_data, compact_id)?;
+    associated_data.extend_from_slice(&COMPACTION_PAYLOAD_VERSION_U16.to_be_bytes());
+    associated_data.extend_from_slice(&created_at_ms.to_be_bytes());
+    associated_data.extend_from_slice(&expires_at_ms.to_be_bytes());
+    Ok(associated_data)
+}
+
+fn generate_compaction_id() -> Result<String, StoredResponseStoreError> {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+
+    let mut random = [0_u8; COMPACTION_RANDOM_BYTES];
+    getrandom::fill(&mut random).map_err(|_| StoredResponseStoreError::RandomnessUnavailable)?;
+    let mut encoded = String::with_capacity(STORED_RESPONSE_COMPACTION_PREFIX.len() + 32);
+    encoded.push_str(STORED_RESPONSE_COMPACTION_PREFIX);
+    for byte in random {
+        encoded.push(char::from(HEX[usize::from(byte >> 4)]));
+        encoded.push(char::from(HEX[usize::from(byte & 0x0f)]));
+    }
+    Ok(encoded)
+}
+
+fn validate_compaction_id(value: &str) -> Result<(), StoredResponseStoreError> {
+    validate_identifier(value, MAX_RESPONSE_IDENTIFIER_BYTES)?;
+    if !value.starts_with(STORED_RESPONSE_COMPACTION_PREFIX)
+        || value.len() != STORED_RESPONSE_COMPACTION_PREFIX.len() + 32
+        || !value[STORED_RESPONSE_COMPACTION_PREFIX.len()..]
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return Err(StoredResponseStoreError::InvalidInput);
+    }
+    Ok(())
 }
 
 fn append_length_prefixed(
@@ -816,6 +1244,8 @@ pub enum StoredResponseStoreError {
     InvalidPersistedRecord,
     /// The same owner/Response ID was replayed with different durable content.
     ConflictingReplay,
+    /// Compact locator generation could not obtain operating-system randomness.
+    RandomnessUnavailable,
     /// Fixed TTL arithmetic overflowed the signed millisecond domain.
     TimeOverflow,
     /// A garbage-collection batch was zero, oversized, or supplied a negative clock.
@@ -842,6 +1272,9 @@ impl fmt::Display for StoredResponseStoreError {
             Self::ConflictingReplay => {
                 formatter.write_str("stored-response replay conflicts with durable state")
             }
+            Self::RandomnessUnavailable => {
+                formatter.write_str("stored-response locator randomness is unavailable")
+            }
             Self::TimeOverflow => formatter.write_str("stored-response retention time overflowed"),
             Self::InvalidGcLimit => {
                 formatter.write_str("stored-response garbage-collection batch is invalid")
@@ -862,6 +1295,7 @@ impl Error for StoredResponseStoreError {
             | Self::PayloadTooLarge
             | Self::InvalidPersistedRecord
             | Self::ConflictingReplay
+            | Self::RandomnessUnavailable
             | Self::TimeOverflow
             | Self::InvalidGcLimit
             | Self::LockPoisoned => None,
@@ -891,10 +1325,12 @@ mod tests {
     };
 
     use super::{
-        MAX_STORED_RESPONSE_GC_BATCH, MAX_STORED_RESPONSE_PAYLOAD_BYTES,
+        MAX_STORED_RESPONSE_COMPACTION_SUMMARY_BYTES, MAX_STORED_RESPONSE_GC_BATCH,
+        MAX_STORED_RESPONSE_PAYLOAD_BYTES, STORED_RESPONSE_COMPACTION_PREFIX,
         STORED_RESPONSE_TTL_MILLISECONDS, SqliteStoredResponseStore,
-        StoredResponseCredentialBinding, StoredResponseLineage, StoredResponsePayload,
-        StoredResponsePutOutcome, StoredResponseStoreError, StoredResponseTarget,
+        StoredResponseCompactionPayload, StoredResponseCredentialBinding, StoredResponseLineage,
+        StoredResponsePayload, StoredResponsePutOutcome, StoredResponseStoreError,
+        StoredResponseTarget,
     };
     use crate::secret_store::{
         KeyVersion, MASTER_KEY_BYTES, MasterKey, MasterKeyRing, SecretStore,
@@ -1053,6 +1489,95 @@ mod tests {
             assert_eq!(versions, vec![2, 1]);
         }
         fs::remove_file(path)?;
+        Ok(())
+    }
+
+    #[test]
+    fn compact_state_is_owner_exact_domain_separated_and_restart_safe() -> TestResult {
+        let path = temporary_database_path();
+        let owner = client_key("client-a")?;
+        let foreign = client_key("client-b")?;
+        let compact_payload = StoredResponseCompactionPayload::try_new(
+            lineage()?,
+            response_id("resp-source")?,
+            "model-a",
+            "bounded private summary",
+        )?;
+        let compact_id;
+        {
+            let store = SqliteStoredResponseStore::open(&path, secret_store(1, &[(1, 0x11)])?)?;
+            let record = store.put_compaction_owned(&owner, 1_000, &compact_payload)?;
+            compact_id = record.compact_id().to_owned();
+            assert!(compact_id.starts_with(STORED_RESPONSE_COMPACTION_PREFIX));
+            assert_eq!(record.payload(), &compact_payload);
+            assert!(
+                store
+                    .get_compaction_owned(&foreign, &compact_id, 1_001)?
+                    .is_none()
+            );
+            let opened = store
+                .get_compaction_owned(&owner, &compact_id, 1_001)?
+                .ok_or("owned compact missing")?;
+            assert_eq!(opened.payload().summary(), "bounded private summary");
+
+            let corrupted = store.put_compaction_owned(&owner, 1_001, &compact_payload)?;
+            {
+                let connection = store.lock_connection()?;
+                connection.execute(
+                    "UPDATE stored_response_compactions \
+                     SET ciphertext = randomblob(length(ciphertext)) WHERE compact_id = ?1",
+                    [corrupted.compact_id()],
+                )?;
+            }
+            assert!(matches!(
+                store.get_compaction_owned(&owner, corrupted.compact_id(), 1_002),
+                Err(StoredResponseStoreError::SecretStore(_)
+                    | StoredResponseStoreError::InvalidPersistedRecord)
+            ));
+
+            let response = payload("resp-a", "ordinary response")?;
+            store.put_owned(&owner, 1_000, &response)?;
+            let connection = store.lock_connection()?;
+            let response_ciphertext: Vec<u8> = connection.query_row(
+                "SELECT ciphertext FROM stored_responses WHERE response_id = 'resp-a'",
+                [],
+                |row| row.get(0),
+            )?;
+            let compact_ciphertext: Vec<u8> = connection.query_row(
+                "SELECT ciphertext FROM stored_response_compactions WHERE compact_id = ?1",
+                [&compact_id],
+                |row| row.get(0),
+            )?;
+            assert_ne!(response_ciphertext, compact_ciphertext);
+        }
+        {
+            let store =
+                SqliteStoredResponseStore::open(&path, secret_store(2, &[(1, 0x11), (2, 0x22)])?)?;
+            assert!(
+                store
+                    .get_compaction_owned(&owner, &compact_id, 1_001)?
+                    .is_some()
+            );
+            let expiry = 1_000 + STORED_RESPONSE_TTL_MILLISECONDS;
+            assert!(
+                store
+                    .get_compaction_owned(&owner, &compact_id, expiry)?
+                    .is_none()
+            );
+            assert_eq!(store.purge_expired_compactions(expiry, 1)?, 1);
+        }
+        fs::remove_file(path)?;
+
+        let oversized = "x".repeat(MAX_STORED_RESPONSE_COMPACTION_SUMMARY_BYTES + 1);
+        assert!(matches!(
+            StoredResponseCompactionPayload::try_new(
+                lineage()?,
+                response_id("resp-source")?,
+                "model-a",
+                oversized,
+            ),
+            Err(StoredResponseStoreError::PayloadTooLarge)
+        ));
         Ok(())
     }
 

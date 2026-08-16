@@ -16,8 +16,8 @@ mod upstream_response;
 use gateway_core::{
     CanonicalEvent, CanonicalEventState, CanonicalMessage, CanonicalRequest, CanonicalResponse,
     ErrorScope, GatewayError, GatewayErrorCode, MessageContent, MessageRole, OpaqueContent,
-    RawExtensions, RawJson, TextContent, Thinking, ThinkingEffort, ToolCall, ToolDefinition,
-    ToolResult,
+    RawExtensions, RawJson, ResponseId, TextContent, Thinking, ThinkingEffort, ToolCall,
+    ToolDefinition, ToolResult,
 };
 use serde::{Deserialize, de};
 use serde_json::{Map, Value, json};
@@ -48,6 +48,10 @@ pub struct DecodedResponsesRequest {
     pub mode: ResponseMode,
     /// Whether the authenticated caller explicitly requested gateway-owned durable storage.
     pub store: bool,
+    /// Exact gateway-owned stored Response selected for local history replay.
+    pub previous_response_id: Option<ResponseId>,
+    /// Exact gateway-owned compaction item selected for local history replay.
+    pub compaction: Option<CompactionInput>,
     normalized_native_payload: Option<Vec<u8>>,
 }
 
@@ -59,6 +63,12 @@ impl DecodedResponsesRequest {
     pub fn normalized_native_payload(&self) -> Option<&[u8]> {
         self.normalized_native_payload.as_deref()
     }
+
+    /// Returns whether the request must use CPAR-owned Canonical replay rather than native bytes.
+    #[must_use]
+    pub const fn requires_gateway_replay(&self) -> bool {
+        self.previous_response_id.is_some() || self.compaction.is_some()
+    }
 }
 
 impl fmt::Debug for DecodedResponsesRequest {
@@ -69,11 +79,56 @@ impl fmt::Debug for DecodedResponsesRequest {
             .field("mode", &self.mode)
             .field("store", &self.store)
             .field(
+                "previous_response_present",
+                &self.previous_response_id.is_some(),
+            )
+            .field("compaction_present", &self.compaction.is_some())
+            .field(
                 "normalized_native_payload_len",
                 &self.normalized_native_payload.as_ref().map(Vec::len),
             )
             .finish()
     }
+}
+
+/// One gateway-owned compaction item extracted before Canonical request construction.
+#[derive(Clone, Eq, PartialEq)]
+pub struct CompactionInput {
+    id: Option<String>,
+    encrypted_content: String,
+}
+
+impl CompactionInput {
+    /// Returns the optional public compaction item identity.
+    #[must_use]
+    pub fn id(&self) -> Option<&str> {
+        self.id.as_deref()
+    }
+
+    /// Returns the opaque gateway-owned compact locator.
+    #[must_use]
+    pub fn encrypted_content(&self) -> &str {
+        &self.encrypted_content
+    }
+}
+
+impl fmt::Debug for CompactionInput {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("CompactionInput")
+            .field("id_present", &self.id.is_some())
+            .field("encrypted_content", &"<redacted>")
+            .finish()
+    }
+}
+
+/// Strict request admitted by `POST /v1/responses/compact`.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DecodedCompactRequest {
+    /// Public model that must match the owned stored Response.
+    pub requested_model: String,
+    /// Exact owned stored Response to summarize.
+    pub previous_response_id: ResponseId,
 }
 
 /// Decodes one complete `OpenAI` Responses JSON request into canonical request data.
@@ -94,6 +149,10 @@ pub fn decode_request(input: &str) -> Result<DecodedResponsesRequest, GatewayErr
         Some(Value::Bool(true)) => true,
         Some(_) => return Err(client_request_error()),
     };
+    let previous_response_id = root
+        .get("previous_response_id")
+        .map(decode_response_id)
+        .transpose()?;
     let normalized_native_payload = if store {
         let mut normalized = value.clone();
         object_mut(&mut normalized)?.insert("store".to_owned(), Value::Bool(false));
@@ -114,8 +173,14 @@ pub fn decode_request(input: &str) -> Result<DecodedResponsesRequest, GatewayErr
     };
 
     let mut messages = decode_instructions(root)?;
+    let mut compaction = None;
     if let Some(input) = root.get("input") {
-        messages.extend(decode_input(input)?);
+        let decoded_input = decode_input(input)?;
+        messages.extend(decoded_input.messages);
+        compaction = decoded_input.compaction;
+    }
+    if previous_response_id.is_some() && compaction.is_some() {
+        return Err(client_request_error());
     }
 
     let tools = match root.get("tools") {
@@ -145,6 +210,7 @@ pub fn decode_request(input: &str) -> Result<DecodedResponsesRequest, GatewayErr
             "prompt_cache_key",
             "prompt_cache_retention",
             "store",
+            "previous_response_id",
         ],
         "openai.responses.",
     )?;
@@ -161,7 +227,39 @@ pub fn decode_request(input: &str) -> Result<DecodedResponsesRequest, GatewayErr
         },
         mode,
         store,
+        previous_response_id,
+        compaction,
         normalized_native_payload,
+    })
+}
+
+/// Decodes the intentionally narrow gateway-owned compaction request.
+///
+/// # Errors
+///
+/// Returns `ClientRequestError/Request` for malformed JSON, duplicate or unknown fields, an
+/// invalid model/Response ID, or any streaming request.
+pub fn decode_compact_request(input: &str) -> Result<DecodedCompactRequest, GatewayError> {
+    reject_duplicate_json_names(input)?;
+    let value: Value = serde_json::from_str(input).map_err(|_| client_request_error())?;
+    let root = object(&value)?;
+    if root
+        .keys()
+        .any(|name| !matches!(name.as_str(), "model" | "previous_response_id" | "stream"))
+        || root
+            .get("stream")
+            .is_some_and(|value| value.as_bool() != Some(false))
+    {
+        return Err(client_request_error());
+    }
+    let requested_model = required_string(root, "model")?.to_owned();
+    if requested_model.is_empty() || requested_model.len() > 512 {
+        return Err(client_request_error());
+    }
+    let previous_response_id = decode_response_id(required_value(root, "previous_response_id")?)?;
+    Ok(DecodedCompactRequest {
+        requested_model,
+        previous_response_id,
     })
 }
 
@@ -181,19 +279,94 @@ fn decode_instructions(root: &Map<String, Value>) -> Result<Vec<CanonicalMessage
     }])
 }
 
-fn decode_input(input: &Value) -> Result<Vec<CanonicalMessage>, GatewayError> {
+struct DecodedInput {
+    messages: Vec<CanonicalMessage>,
+    compaction: Option<CompactionInput>,
+}
+
+fn decode_input(input: &Value) -> Result<DecodedInput, GatewayError> {
     match input {
-        Value::String(text) => Ok(vec![CanonicalMessage {
-            role: MessageRole("user".to_owned()),
-            content: vec![MessageContent::Text(TextContent {
-                text: text.clone(),
+        Value::String(text) => Ok(DecodedInput {
+            messages: vec![CanonicalMessage {
+                role: MessageRole("user".to_owned()),
+                content: vec![MessageContent::Text(TextContent {
+                    text: text.clone(),
+                    extensions: RawExtensions::default(),
+                })],
                 extensions: RawExtensions::default(),
-            })],
-            extensions: RawExtensions::default(),
-        }]),
-        Value::Array(items) => items.iter().map(decode_input_item).collect(),
+            }],
+            compaction: None,
+        }),
+        Value::Array(items) => {
+            let mut messages = Vec::with_capacity(items.len());
+            let mut compaction = None;
+            for (index, item) in items.iter().enumerate() {
+                if item
+                    .as_object()
+                    .and_then(|item| item.get("type"))
+                    .and_then(Value::as_str)
+                    == Some("compaction")
+                {
+                    if index != 0 || compaction.is_some() {
+                        return Err(client_request_error());
+                    }
+                    compaction = Some(decode_compaction_input(item)?);
+                } else {
+                    messages.push(decode_input_item(item)?);
+                }
+            }
+            if compaction.is_some() && messages.is_empty() {
+                return Err(client_request_error());
+            }
+            Ok(DecodedInput {
+                messages,
+                compaction,
+            })
+        }
         _ => Err(client_request_error()),
     }
+}
+
+fn decode_compaction_input(item: &Value) -> Result<CompactionInput, GatewayError> {
+    let item = object(item)?;
+    if item.keys().any(|name| {
+        !matches!(
+            name.as_str(),
+            "type" | "id" | "encrypted_content" | "created_by"
+        )
+    }) || item.get("type").and_then(Value::as_str) != Some("compaction")
+        || item
+            .get("created_by")
+            .is_some_and(|value| value.as_str() != Some("cpar"))
+    {
+        return Err(client_request_error());
+    }
+    let id = optional_string(item, "id")?;
+    if id
+        .as_deref()
+        .is_some_and(|id| id.is_empty() || id.len() > 512 || id.as_bytes().contains(&0))
+    {
+        return Err(client_request_error());
+    }
+    let encrypted_content = required_string(item, "encrypted_content")?.to_owned();
+    if encrypted_content.is_empty()
+        || encrypted_content.len() > 512
+        || encrypted_content.as_bytes().contains(&0)
+    {
+        return Err(client_request_error());
+    }
+    Ok(CompactionInput {
+        id,
+        encrypted_content,
+    })
+}
+
+fn decode_response_id(value: &Value) -> Result<ResponseId, GatewayError> {
+    let value = string(value)?;
+    if value.is_empty() || value.len() > 512 || value.as_bytes().contains(&0) {
+        return Err(client_request_error());
+    }
+    ResponseId::try_new(value.to_owned()).map_err(|_| client_request_error())
 }
 
 fn decode_input_item(item: &Value) -> Result<CanonicalMessage, GatewayError> {
@@ -414,7 +587,6 @@ fn reject_unimplemented_execution_controls(root: &Map<String, Value>) -> Result<
     for name in [
         "background",
         "conversation",
-        "previous_response_id",
         "text",
         "top_logprobs",
         "stream_options",
@@ -702,6 +874,43 @@ pub fn encode_response(
         let _ = encoder.encode_event(event)?;
     }
     encoder.into_completed_response()
+}
+
+/// Encodes one completed compaction execution without exposing its summary text.
+///
+/// The ordinary completed envelope (ID, model, creation time, status, usage) comes from the same
+/// validated Canonical response. Only `output` is replaced by one gateway-owned compaction item.
+///
+/// # Errors
+///
+/// Returns a safe internal/protocol error for an invalid response or unbounded item identity.
+pub fn encode_compaction_response(
+    response: &CanonicalResponse,
+    metadata: OpenAiResponseMetadata,
+    item_id: &str,
+    encrypted_content: &str,
+) -> Result<Value, GatewayError> {
+    if item_id.is_empty()
+        || item_id.len() > 512
+        || item_id.as_bytes().contains(&0)
+        || encrypted_content.is_empty()
+        || encrypted_content.len() > 512
+        || encrypted_content.as_bytes().contains(&0)
+    {
+        return Err(internal_error());
+    }
+    let mut encoded = encode_response(response, metadata)?;
+    let root = object_mut(&mut encoded)?;
+    root.insert(
+        "output".to_owned(),
+        json!([{
+            "id": item_id,
+            "type": "compaction",
+            "encrypted_content": encrypted_content,
+            "created_by": "cpar"
+        }]),
+    );
+    Ok(encoded)
 }
 
 /// Stateful Responses SSE encoder for one ordered canonical response source.
@@ -1943,8 +2152,9 @@ mod tests {
     };
 
     use super::{
-        OpenAiResponseMetadata, OpenAiResponsesSseEncoder, ResponseMode, decode_request,
-        encode_error, encode_model_list, encode_response,
+        OpenAiResponseMetadata, OpenAiResponsesSseEncoder, ResponseMode, decode_compact_request,
+        decode_request, encode_compaction_response, encode_error, encode_model_list,
+        encode_response,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -2069,6 +2279,86 @@ mod tests {
         assert!(!unstored.store);
         assert!(unstored.normalized_native_payload().is_none());
         assert!(decode_request(r#"{"model":"gateway-model","store":"true"}"#).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn decodes_gateway_owned_continuity_without_retaining_upstream_controls() -> TestResult {
+        let decoded = decode_request(
+            r#"{"model":"gateway-model","previous_response_id":"resp-owned","input":"next","store":true}"#,
+        )?;
+        assert_eq!(
+            decoded
+                .previous_response_id
+                .as_ref()
+                .map(gateway_core::ResponseId::as_str),
+            Some("resp-owned")
+        );
+        assert!(decoded.requires_gateway_replay());
+        assert!(decoded.compaction.is_none());
+        assert!(
+            decoded
+                .request
+                .extensions
+                .get("openai.responses.previous_response_id")
+                .is_none()
+        );
+        assert_eq!(decoded.request.messages.len(), 1);
+
+        for invalid in [
+            r#"{"model":"gateway-model","previous_response_id":"","input":"next"}"#,
+            r#"{"model":"gateway-model","previous_response_id":7,"input":"next"}"#,
+            r#"{"model":"gateway-model","previous_response_id":"resp-owned","input":[{"type":"compaction","encrypted_content":"cpar_compact_v1.token","created_by":"cpar"},{"role":"user","content":"next"}]}"#,
+        ] {
+            assert!(decode_request(invalid).is_err());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn compaction_item_is_first_gateway_owned_and_never_canonical_raw_data() -> TestResult {
+        let decoded = decode_request(
+            r#"{
+              "model":"gateway-model",
+              "input":[
+                {"type":"compaction","id":"cmp-a","encrypted_content":"cpar_compact_v1.token-a","created_by":"cpar"},
+                {"type":"message","role":"user","content":"continue"}
+              ]
+            }"#,
+        )?;
+        let compaction = decoded.compaction.as_ref().ok_or("missing compaction")?;
+        assert_eq!(compaction.id(), Some("cmp-a"));
+        assert_eq!(compaction.encrypted_content(), "cpar_compact_v1.token-a");
+        assert!(decoded.requires_gateway_replay());
+        assert_eq!(decoded.request.messages.len(), 1);
+
+        for invalid in [
+            r#"{"model":"gateway-model","input":[{"type":"compaction","encrypted_content":"blob"}]}"#,
+            r#"{"model":"gateway-model","input":[{"role":"user","content":"next"},{"type":"compaction","encrypted_content":"blob","created_by":"cpar"}]}"#,
+            r#"{"model":"gateway-model","input":[{"type":"compaction","encrypted_content":"blob","created_by":"foreign"},{"role":"user","content":"next"}]}"#,
+            r#"{"model":"gateway-model","input":[{"type":"compaction","encrypted_content":"blob","created_by":"cpar","unknown":true},{"role":"user","content":"next"}]}"#,
+        ] {
+            assert!(decode_request(invalid).is_err());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn compact_endpoint_request_is_closed_and_non_streaming() -> TestResult {
+        let decoded = decode_compact_request(
+            r#"{"model":"gateway-model","previous_response_id":"resp-owned","stream":false}"#,
+        )?;
+        assert_eq!(decoded.requested_model, "gateway-model");
+        assert_eq!(decoded.previous_response_id.as_str(), "resp-owned");
+
+        for invalid in [
+            r#"{"model":"gateway-model","previous_response_id":"resp-owned","stream":true}"#,
+            r#"{"model":"gateway-model","previous_response_id":"resp-owned","store":true}"#,
+            r#"{"model":"gateway-model","previous_response_id":"resp-owned","model":"other"}"#,
+            r#"{"model":"gateway-model","previous_response_id":""}"#,
+        ] {
+            assert!(decode_compact_request(invalid).is_err());
+        }
         Ok(())
     }
 
@@ -2247,6 +2537,30 @@ mod tests {
             assert_eq!(encoded["output"][3]["type"], "function_call");
         }
 
+        Ok(())
+    }
+
+    #[test]
+    fn compaction_response_replaces_output_with_only_the_opaque_locator() -> TestResult {
+        let response = CanonicalResponse::try_new(canonical_events()?)?;
+        let encoded = encode_compaction_response(
+            &response,
+            metadata()?,
+            "cmp_0123456789abcdef",
+            "cpar_compact_v1.0123456789abcdef",
+        )?;
+
+        assert_eq!(encoded["status"], "completed");
+        assert_eq!(encoded["output"].as_array().map(Vec::len), Some(1));
+        assert_eq!(encoded["output"][0]["type"], "compaction");
+        assert_eq!(encoded["output"][0]["id"], "cmp_0123456789abcdef");
+        assert_eq!(encoded["output"][0]["created_by"], "cpar");
+        assert_eq!(
+            encoded["output"][0]["encrypted_content"],
+            "cpar_compact_v1.0123456789abcdef"
+        );
+        let serialized = encoded.to_string();
+        assert!(!serialized.contains("It is clear."));
         Ok(())
     }
 

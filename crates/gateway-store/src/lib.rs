@@ -38,9 +38,10 @@ const BILLING_LEDGER_SCHEMA_VERSION: i64 = 14;
 const BILLING_MATERIALIZER_CHECKPOINT_SCHEMA_VERSION: i64 = 15;
 const ROUTING_PRICE_POLICY_SCHEMA_VERSION: i64 = 16;
 const STORED_RESPONSE_SCHEMA_VERSION: i64 = 17;
+const STORED_RESPONSE_COMPACTION_SCHEMA_VERSION: i64 = 18;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = STORED_RESPONSE_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = STORED_RESPONSE_COMPACTION_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -134,6 +135,11 @@ const MIGRATIONS: &[Migration] = &[
         version: STORED_RESPONSE_SCHEMA_VERSION,
         up: include_str!("../migrations/0017_stored_responses.up.sql"),
         down: include_str!("../migrations/0017_stored_responses.down.sql"),
+    },
+    Migration {
+        version: STORED_RESPONSE_COMPACTION_SCHEMA_VERSION,
+        up: include_str!("../migrations/0018_stored_response_compactions.up.sql"),
+        down: include_str!("../migrations/0018_stored_response_compactions.down.sql"),
     },
 ];
 
@@ -526,8 +532,8 @@ mod tests {
     use super::{
         CANONICAL_BRIDGE_TRANSFORM_MODE_SCHEMA_VERSION, CREATE_SCHEMA_MIGRATIONS,
         CURRENT_SCHEMA_VERSION, MIGRATIONS, ROUTING_PRICE_POLICY_SCHEMA_VERSION,
-        VERSIONED_CONTROL_PLANE_SCHEMA_VERSION, migrate, open_in_memory, rollback_all,
-        rollback_to_version, schema_version,
+        STORED_RESPONSE_SCHEMA_VERSION, VERSIONED_CONTROL_PLANE_SCHEMA_VERSION, migrate,
+        open_in_memory, rollback_all, rollback_to_version, schema_version,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -578,6 +584,7 @@ mod tests {
                 "public_models",
                 "route_candidates",
                 "routing_price_policies",
+                "stored_response_compactions",
                 "stored_responses",
                 "upstream_credentials",
                 "upstream_endpoints",
@@ -696,6 +703,49 @@ mod tests {
                 row.get(0)
             })?;
         assert_eq!(count, 0);
+        Ok(())
+    }
+
+    #[test]
+    fn stored_response_compaction_migration_up_and_down_preserves_responses() -> TestResult {
+        let mut connection = open_in_memory()?;
+        migrate(&mut connection)?;
+        assert!(super::table_exists(
+            &connection,
+            "stored_response_compactions"
+        )?);
+        connection.execute(
+            "INSERT INTO stored_response_compactions \
+             (client_key_id, compact_id, created_at_ms, expires_at_ms, payload_version, \
+              key_version, ciphertext) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                "client-a",
+                "cpar_compact_v1.test",
+                1_i64,
+                2_i64,
+                1_i64,
+                1_i64,
+                vec![1_u8; 41],
+            ],
+        )?;
+
+        rollback_to_version(&mut connection, STORED_RESPONSE_SCHEMA_VERSION)?;
+        assert_eq!(
+            schema_version(&connection)?,
+            Some(STORED_RESPONSE_SCHEMA_VERSION)
+        );
+        assert!(!super::table_exists(
+            &connection,
+            "stored_response_compactions"
+        )?);
+        assert!(super::table_exists(&connection, "stored_responses")?);
+
+        migrate(&mut connection)?;
+        assert_eq!(schema_version(&connection)?, Some(CURRENT_SCHEMA_VERSION));
+        assert!(super::table_exists(
+            &connection,
+            "stored_response_compactions"
+        )?);
         Ok(())
     }
 

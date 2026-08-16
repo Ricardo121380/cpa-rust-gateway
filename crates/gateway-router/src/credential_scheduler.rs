@@ -8,6 +8,7 @@
 
 use std::{collections::BTreeMap, sync::Arc};
 
+use gateway_catalog::SemanticCapability;
 use gateway_core::{
     CredentialId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode, ProviderId,
     RouteCandidateId, RouteId,
@@ -562,6 +563,89 @@ impl RouteCredentialScheduler {
         })
     }
 
+    /// Acquires the one exact Candidate and Credential revision retained by stored history.
+    ///
+    /// Every immutable identity is matched before pool access. The required Provider capability,
+    /// runtime Health/Quota, expiry, and capacity are then revalidated at `observed_at_ms`. The
+    /// direct exact-revision pool API never reads or advances ordinary routing cursors.
+    ///
+    /// # Errors
+    ///
+    /// Returns the fixed secret-free `CredentialUnavailable` error for any stale lineage,
+    /// capability mismatch, runtime blocker, revision rotation, or capacity failure.
+    #[allow(clippy::too_many_arguments)]
+    pub fn select_continuation_and_lease_at<FCandidate>(
+        &self,
+        route_id: &RouteId,
+        provider_id: &ProviderId,
+        upstream_id: &gateway_core::UpstreamId,
+        channel_id: &EndpointId,
+        route_candidate_id: &RouteCandidateId,
+        credential_id: &CredentialId,
+        credential_revision: u64,
+        required_capability: SemanticCapability,
+        runtime_health: &RuntimeHealthRegistry,
+        runtime_quota: &RuntimeQuotaRegistry,
+        observed_at_ms: i64,
+        mut is_candidate_eligible: FCandidate,
+    ) -> Result<SelectedRouteCredential, GatewayError>
+    where
+        FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
+    {
+        let route = self
+            .candidates
+            .route(route_id)
+            .ok_or_else(credential_unavailable_error)?;
+        let candidate = route
+            .candidates()
+            .iter()
+            .find(|candidate| candidate.id() == route_candidate_id)
+            .filter(|candidate| {
+                candidate.is_hard_eligible()
+                    && candidate.upstream_id() == upstream_id
+                    && candidate.endpoint_id() == channel_id
+                    && candidate
+                        .effective_capabilities()
+                        .supports(required_capability)
+                    && ProviderId::try_new(candidate.upstream_id().as_str().to_owned())
+                        .is_ok_and(|candidate_provider| candidate_provider == *provider_id)
+                    && is_candidate_eligible(candidate)
+            })
+            .ok_or_else(credential_unavailable_error)?;
+        if !runtime_health.endpoint_is_available(candidate.endpoint_id()) {
+            return Err(credential_unavailable_error());
+        }
+        let Some(lease) = self.credential_pools.try_lease_exact_revision_eligible_at(
+            candidate.endpoint_id(),
+            credential_id,
+            credential_revision,
+            observed_at_ms,
+            |candidate_credential_id| {
+                runtime_health.endpoint_credential_is_available(
+                    candidate.endpoint_id(),
+                    candidate_credential_id,
+                ) && runtime_health.endpoint_credential_model_is_available(
+                    candidate.endpoint_id(),
+                    candidate_credential_id,
+                    candidate.upstream_model(),
+                ) && runtime_quota.endpoint_credential_is_available(
+                    candidate.endpoint_id(),
+                    candidate_credential_id,
+                ) && runtime_quota.endpoint_credential_model_is_available(
+                    candidate.endpoint_id(),
+                    candidate_credential_id,
+                    candidate.upstream_model(),
+                )
+            },
+        ) else {
+            return Err(credential_unavailable_error());
+        };
+        Ok(SelectedRouteCredential {
+            candidate: candidate.clone(),
+            lease,
+        })
+    }
+
     /// Selects one binding whose only Quota blocker is a due controlled recovery.
     ///
     /// Health predicates are unchanged and run first, so a Cooldown, Circuit, or forbidden
@@ -813,7 +897,7 @@ mod tests {
         time::Duration,
     };
 
-    use gateway_catalog::{CapabilitySet, CatalogModelState};
+    use gateway_catalog::{CapabilitySet, CatalogModelState, SemanticCapability};
     use gateway_core::{
         CredentialId, EndpointId, ErrorScope, GatewayErrorCode, ProviderId, PublicModelId,
         RouteCandidateId, RouteId, UpstreamId,
@@ -1256,6 +1340,186 @@ mod tests {
                 .and_then(|pool| {
                     pool.active_lease_count(&CredentialId::try_new("credential-expired").ok()?)
                 }),
+            Some(0)
+        );
+        Ok(())
+    }
+
+    #[test]
+    #[allow(clippy::too_many_lines)] // One matrix keeps exact lineage, revision, and both capabilities auditable together.
+    fn continuation_selection_requires_exact_lineage_revision_and_capability() -> TestResult {
+        let route_id = RouteId::try_new("route-continuity")?;
+        let public_model_id = PublicModelId::try_new("public-model-continuity")?;
+        let continuity_capabilities = CapabilitySet::try_new([
+            SemanticCapability::StoredResponses,
+            SemanticCapability::ResponseCompaction,
+        ])?;
+        let exact_candidate = SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
+            id: RouteCandidateId::try_new("candidate-continuity")?,
+            endpoint_id: EndpointId::try_new("endpoint-continuity")?,
+            upstream_id: UpstreamId::try_new("upstream-continuity")?,
+            endpoint_api_format: "openai/responses".to_owned(),
+            upstream_model: "upstream-model".to_owned(),
+            transform_mode: SnapshotTransformMode::Canonical,
+            priority: 0,
+            weight: 1,
+            effective_capabilities: continuity_capabilities,
+            catalog_admission: SnapshotCatalogAdmission::Listed(CatalogModelState::Fresh),
+            active_binding_count: 2,
+        });
+        let foreign_candidate = SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
+            id: RouteCandidateId::try_new("candidate-foreign")?,
+            endpoint_id: EndpointId::try_new("endpoint-foreign")?,
+            upstream_id: UpstreamId::try_new("upstream-foreign")?,
+            endpoint_api_format: "openai/responses".to_owned(),
+            upstream_model: "upstream-model".to_owned(),
+            transform_mode: SnapshotTransformMode::Canonical,
+            priority: 1,
+            weight: 1,
+            effective_capabilities: CapabilitySet::empty(),
+            catalog_admission: SnapshotCatalogAdmission::Listed(CatalogModelState::Fresh),
+            active_binding_count: 1,
+        });
+        let snapshot = Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
+            SnapshotVersion::try_new("version-continuity")?,
+            vec![SnapshotPublicModel::new(
+                public_model_id.clone(),
+                "public-model".to_owned(),
+                "Public Model".to_owned(),
+                CapabilitySet::empty(),
+                route_id.clone(),
+            )],
+            Vec::new(),
+            vec![SnapshotRoute::new(
+                route_id.clone(),
+                public_model_id,
+                SnapshotRoutePolicy::RoundRobin,
+                2,
+                1_000,
+                vec![exact_candidate, foreign_candidate],
+            )],
+            Vec::new(),
+            Vec::new(),
+        ))?);
+        let exact_pool = EndpointCredentialPool::try_new(
+            EndpointId::try_new("endpoint-continuity")?,
+            [
+                EndpointCredentialInput {
+                    credential_id: CredentialId::try_new("credential-continuity")?,
+                    credential_kind: "oauth".to_owned(),
+                    credential_revision: 11,
+                    priority: 0,
+                    weight: 1,
+                    concurrency: 1,
+                    expires_at_ms: Some(1_000),
+                    secret: CredentialSecret::try_new(b"exact-secret".to_vec())?,
+                },
+                EndpointCredentialInput {
+                    credential_id: CredentialId::try_new("credential-sibling")?,
+                    credential_kind: "oauth".to_owned(),
+                    credential_revision: 12,
+                    priority: 0,
+                    weight: 1,
+                    concurrency: 1,
+                    expires_at_ms: Some(1_000),
+                    secret: CredentialSecret::try_new(b"sibling-secret".to_vec())?,
+                },
+            ],
+        )?;
+        let foreign_pool =
+            endpoint_pool("endpoint-foreign", vec![("credential-foreign", 0, 1, 1)])?;
+        let pools = Arc::new(EndpointCredentialPools::try_new([
+            exact_pool,
+            foreign_pool,
+        ])?);
+        let scheduler = RouteCredentialScheduler::new(snapshot, Arc::clone(&pools));
+        let health = RuntimeHealthRegistry::new();
+        let quota = RuntimeQuotaRegistry::new();
+
+        for capability in [
+            SemanticCapability::StoredResponses,
+            SemanticCapability::ResponseCompaction,
+        ] {
+            let selected = scheduler.select_continuation_and_lease_at(
+                &route_id,
+                &ProviderId::try_new("upstream-continuity")?,
+                &UpstreamId::try_new("upstream-continuity")?,
+                &EndpointId::try_new("endpoint-continuity")?,
+                &RouteCandidateId::try_new("candidate-continuity")?,
+                &CredentialId::try_new("credential-continuity")?,
+                11,
+                capability,
+                &health,
+                &quota,
+                100,
+                |_| true,
+            )?;
+            assert_eq!(selected.candidate().id().as_str(), "candidate-continuity");
+            assert_eq!(
+                selected.lease().credential_id().as_str(),
+                "credential-continuity"
+            );
+            drop(selected);
+        }
+
+        for (candidate, revision, capability) in [
+            (
+                "candidate-continuity",
+                12,
+                SemanticCapability::StoredResponses,
+            ),
+            ("candidate-foreign", 0, SemanticCapability::StoredResponses),
+            (
+                "candidate-foreign",
+                0,
+                SemanticCapability::ResponseCompaction,
+            ),
+        ] {
+            let is_exact = candidate == "candidate-continuity";
+            let provider = ProviderId::try_new(if is_exact {
+                "upstream-continuity"
+            } else {
+                "upstream-foreign"
+            })?;
+            let upstream = UpstreamId::try_new(if is_exact {
+                "upstream-continuity"
+            } else {
+                "upstream-foreign"
+            })?;
+            let endpoint = EndpointId::try_new(if is_exact {
+                "endpoint-continuity"
+            } else {
+                "endpoint-foreign"
+            })?;
+            let credential = CredentialId::try_new(if is_exact {
+                "credential-continuity"
+            } else {
+                "credential-foreign"
+            })?;
+            assert!(
+                scheduler
+                    .select_continuation_and_lease_at(
+                        &route_id,
+                        &provider,
+                        &upstream,
+                        &endpoint,
+                        &RouteCandidateId::try_new(candidate)?,
+                        &credential,
+                        revision,
+                        capability,
+                        &health,
+                        &quota,
+                        100,
+                        |_| true,
+                    )
+                    .is_err()
+            );
+        }
+        assert_eq!(
+            pools
+                .pool(&EndpointId::try_new("endpoint-continuity")?)
+                .and_then(|pool| pool
+                    .active_lease_count(&CredentialId::try_new("credential-continuity").ok()?)),
             Some(0)
         );
         Ok(())

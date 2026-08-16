@@ -796,14 +796,24 @@ fn effective_candidate_capabilities(
             )
         })?;
     for asserted in &override_declaration.asserted {
-        if !endpoint_capabilities.supports(*asserted) {
+        if !endpoint_capabilities.supports(*asserted)
+            && !explicit_generic_responses_capability(endpoint, *asserted)
+        {
             return Err(route_error(
                 RouteCompileErrorCode::CandidateCapabilityEscalation,
                 candidate.id.as_str(),
             ));
         }
     }
-    let effective = endpoint_capabilities.without(override_declaration.removed.iter().copied());
+    let effective = endpoint_capabilities
+        .without(override_declaration.removed.iter().copied())
+        .try_with(override_declaration.asserted.iter().copied())
+        .map_err(|_| {
+            route_error(
+                RouteCompileErrorCode::InvalidCandidateCapabilities,
+                candidate.id.as_str(),
+            )
+        })?;
     if !effective.supports_all(required) {
         return Err(route_error(
             RouteCompileErrorCode::CandidateCapabilityMismatch,
@@ -811,6 +821,17 @@ fn effective_candidate_capabilities(
         ));
     }
     Ok(effective)
+}
+
+fn explicit_generic_responses_capability(
+    endpoint: &EndpointConfiguration,
+    capability: SemanticCapability,
+) -> bool {
+    endpoint.adapter_id == "openai-compatible.responses"
+        && matches!(
+            capability,
+            SemanticCapability::StoredResponses | SemanticCapability::ResponseCompaction
+        )
 }
 
 fn catalog_admission(
@@ -1831,6 +1852,36 @@ mod tests {
         let capabilities = route.candidates()[0].effective_capabilities();
         assert!(capabilities.supports(SemanticCapability::Tools));
         assert!(!capabilities.supports(SemanticCapability::Reasoning));
+        Ok(())
+    }
+
+    #[test]
+    fn generic_responses_continuity_requires_an_explicit_closed_override() -> TestResult {
+        let mut fixture = fixture()?;
+        fixture.configuration.route_candidates[0].capability_override_json =
+            r#"{"stored_responses":true,"response_compaction":true}"#.to_owned();
+
+        let compiled = fixture.compiler().compile(&fixture.configuration)?;
+        let route = compiled
+            .route(&RouteId::try_new("route-a")?)
+            .ok_or("compiled Route is missing")?;
+        let capabilities = route.candidates()[0].effective_capabilities();
+        assert!(capabilities.supports(SemanticCapability::StoredResponses));
+        assert!(capabilities.supports(SemanticCapability::ResponseCompaction));
+
+        fixture.configuration.endpoints[0].adapter_id = "grok.console.responses".to_owned();
+        assert_eq!(
+            compile_error_code(&fixture)?,
+            RouteCompileErrorCode::CandidateCapabilityEscalation
+        );
+
+        fixture.configuration.endpoints[0].adapter_id = "openai-compatible.responses".to_owned();
+        fixture.configuration.route_candidates[0].capability_override_json =
+            r#"{"response_compaction":true}"#.to_owned();
+        assert_eq!(
+            compile_error_code(&fixture)?,
+            RouteCompileErrorCode::InvalidCandidateCapabilities
+        );
         Ok(())
     }
 

@@ -117,3 +117,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0088 Protected single-request Channel Pin diagnostic execution](ADR-0088-channel-pin-diagnostic-execution.md) — `P13-08`（Accepted；`LOCAL_PASS_PENDING_PHASE_GATE`；不授权 Provider/生产流量）
 - [ADR-0089 Client-owned encrypted stored Responses](ADR-0089-client-owned-encrypted-stored-responses.md) — `P13-09A`（Accepted；`LOCAL_PASS_PENDING_PHASE_GATE`；公开 retrieval/compact 尚未启用）
 - [ADR-0090 Gateway-owned stored Responses public lifecycle](ADR-0090-gateway-owned-stored-responses-public-lifecycle.md) — `P13-09B`（Accepted；`LOCAL_PASS_PENDING_PHASE_GATE`；`previous_response_id`/compact 仍属 P13-09C）
+- [ADR-0091 Exact stored Response continuity and gateway-owned compaction](ADR-0091-exact-stored-response-continuity-and-compaction.md) — `P13-09C`（Accepted；`LOCAL_PASS_PENDING_PHASE_GATE`；exact lineage、独立 AEAD compact blob、无 fallback）

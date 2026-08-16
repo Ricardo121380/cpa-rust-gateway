@@ -547,18 +547,26 @@ pub(crate) fn deployment_route_compiler(
 /// a text-only streaming capability; Tool, Reasoning, and Vision remain absent. Unknown
 /// implementation labels fail here.
 fn p12_adapter_capabilities(adapter_id: &str) -> Result<CapabilitySet, RuntimeCompositionError> {
-    use SemanticCapability::{JsonSchema, ParallelTools, Reasoning, Streaming, Tools};
+    use SemanticCapability::{
+        JsonSchema, ParallelTools, Reasoning, ResponseCompaction, StoredResponses, Streaming, Tools,
+    };
 
     let capabilities: &[SemanticCapability] = match adapter_id {
         "openai-compatible.chat-completions" => &[Tools, ParallelTools, JsonSchema, Streaming],
         "openai-compatible.responses" | "anthropic-compatible.messages" => {
             &[Tools, ParallelTools, Reasoning, JsonSchema, Streaming]
         }
-        "grok.build.responses" | "grok.console.responses" | "kiro.messages" => {
-            &[Tools, Reasoning, JsonSchema, Streaming]
-        }
+        "grok.build.responses" => &[
+            Tools,
+            Reasoning,
+            JsonSchema,
+            Streaming,
+            StoredResponses,
+            ResponseCompaction,
+        ],
+        "grok.console.responses" | "kiro.messages" => &[Tools, Reasoning, JsonSchema, Streaming],
         "grok.official.responses" => &[Tools, ParallelTools, Reasoning, JsonSchema, Streaming],
-        "grok.web.responses" => &[Streaming],
+        "grok.web.responses" => &[Streaming, StoredResponses],
         _ => return Err(RuntimeCompositionError::Unavailable),
     };
     CapabilitySet::try_new(capabilities.iter().copied())
@@ -1667,6 +1675,10 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
         true
     }
 
+    fn supports_stored_response_continuity(&self) -> bool {
+        true
+    }
+
     fn execute(
         &self,
         _context: RequestContext,
@@ -1701,6 +1713,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
         let mode = execution.mode();
         let retry_gate = Arc::clone(execution.retry_gate());
         let lineage_recorder = execution.lineage_recorder().cloned();
+        let continuation_pin = execution.continuation_pin().cloned();
         let registry = Arc::clone(&self.registry);
         let snapshot_version = self.snapshot_version.clone();
 
@@ -1713,6 +1726,13 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                 return Err(stale_runtime_error());
             }
             let route_id = route_id.ok_or_else(route_not_found_error)?;
+            if continuation_pin.as_ref().is_some_and(|pin| {
+                pin.lineage().snapshot_version() != &snapshot_version
+                    || pin.lineage().route_id() != &route_id
+            }) {
+                return Err(stale_runtime_error());
+            }
+            let exact_continuation = continuation_pin.is_some();
             let driver = EndpointAttemptDriver {
                 request_id: context.request_id().clone(),
                 request,
@@ -1723,8 +1743,8 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                 endpoints,
                 client_pool,
                 attempt_stages,
-                allow_compatibility_retry: true,
-                allow_egress_refresh: true,
+                allow_compatibility_retry: !exact_continuation,
+                allow_egress_refresh: !exact_continuation,
                 channel_pin_observation: None,
             };
             // BC-ROUTER-005: a Candidate may only serve the client protocol it speaks. Once the
@@ -1732,16 +1752,32 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             // hands an OpenAI-Responses request to an Anthropic Candidate, whose request build
             // then fails non-retryably after the lease was taken — a hard failure where the
             // filter would simply have chosen a different Candidate before the first byte.
-            let started = orchestrator
-                .start_with_event_sink_provider_scoped_matching(
-                    context.request_id(),
-                    &route_id,
-                    |candidate| driver.project_candidate(candidate).is_ok(),
-                    &driver,
-                    retry_gate.as_ref(),
-                    event_sink.as_ref(),
-                )
-                .await?;
+            let started = match continuation_pin.as_ref() {
+                Some(pin) => {
+                    orchestrator
+                        .start_continuation_once_with_event_sink(
+                            context.request_id(),
+                            pin,
+                            |candidate| driver.project_candidate(candidate).is_ok(),
+                            &driver,
+                            retry_gate.as_ref(),
+                            event_sink.as_ref(),
+                        )
+                        .await?
+                }
+                None => {
+                    orchestrator
+                        .start_with_event_sink_provider_scoped_matching(
+                            context.request_id(),
+                            &route_id,
+                            |candidate| driver.project_candidate(candidate).is_ok(),
+                            &driver,
+                            retry_gate.as_ref(),
+                            event_sink.as_ref(),
+                        )
+                        .await?
+                }
+            };
             if let Some(recorder) = lineage_recorder {
                 recorder.record(stored_response_execution_lineage(
                     &snapshot_version,
@@ -8701,7 +8737,10 @@ mod tests {
     #[test]
     fn production_adapter_capability_ledger_is_conservative_and_fail_closed()
     -> Result<(), Box<dyn Error>> {
-        use SemanticCapability::{JsonSchema, ParallelTools, Reasoning, Streaming, Tools, Vision};
+        use SemanticCapability::{
+            JsonSchema, ParallelTools, Reasoning, ResponseCompaction, StoredResponses, Streaming,
+            Tools, Vision,
+        };
 
         let cases = [
             (
@@ -8718,7 +8757,14 @@ mod tests {
             ),
             (
                 "grok.build.responses",
-                vec![Tools, Reasoning, JsonSchema, Streaming],
+                vec![
+                    Tools,
+                    Reasoning,
+                    JsonSchema,
+                    Streaming,
+                    StoredResponses,
+                    ResponseCompaction,
+                ],
             ),
             (
                 "grok.console.responses",
@@ -8728,7 +8774,7 @@ mod tests {
                 "grok.official.responses",
                 vec![Tools, ParallelTools, Reasoning, JsonSchema, Streaming],
             ),
-            ("grok.web.responses", vec![Streaming]),
+            ("grok.web.responses", vec![Streaming, StoredResponses]),
             (
                 "kiro.messages",
                 vec![Tools, Reasoning, JsonSchema, Streaming],
@@ -8743,6 +8789,8 @@ mod tests {
                 JsonSchema,
                 Vision,
                 Streaming,
+                StoredResponses,
+                ResponseCompaction,
             ] {
                 assert_eq!(
                     capabilities.supports(capability),

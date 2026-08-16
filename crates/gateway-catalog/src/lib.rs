@@ -1049,6 +1049,10 @@ pub enum SemanticCapability {
     Vision,
     /// Streaming response support.
     Streaming,
+    /// Gateway-owned stored Response history may be replayed through this exact channel.
+    StoredResponses,
+    /// Gateway-owned Response compaction may execute through this exact channel.
+    ResponseCompaction,
 }
 
 impl SemanticCapability {
@@ -1062,6 +1066,8 @@ impl SemanticCapability {
             Self::JsonSchema => "json_schema",
             Self::Vision => "vision",
             Self::Streaming => "streaming",
+            Self::StoredResponses => "stored_responses",
+            Self::ResponseCompaction => "response_compaction",
         }
     }
 
@@ -1075,6 +1081,8 @@ impl SemanticCapability {
             "json_schema" => Some(Self::JsonSchema),
             "vision" => Some(Self::Vision),
             "streaming" => Some(Self::Streaming),
+            "stored_responses" => Some(Self::StoredResponses),
+            "response_compaction" => Some(Self::ResponseCompaction),
             _ => None,
         }
     }
@@ -1133,8 +1141,30 @@ impl CapabilitySet {
             if capability == SemanticCapability::Tools {
                 capabilities.remove(&SemanticCapability::ParallelTools);
             }
+            if capability == SemanticCapability::StoredResponses {
+                capabilities.remove(&SemanticCapability::ResponseCompaction);
+            }
         }
         Self { capabilities }
+    }
+
+    /// Produces a widened set while revalidating all capability implications.
+    ///
+    /// This is reserved for an explicit configuration assertion that has already passed its
+    /// adapter-specific admission check. Callers must not use it to infer Provider support.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CatalogViewError`] when the resulting set violates a capability implication.
+    pub fn try_with(
+        &self,
+        added: impl IntoIterator<Item = SemanticCapability>,
+    ) -> Result<Self, CatalogViewError> {
+        let mut capabilities = self.capabilities.clone();
+        capabilities.extend(added);
+        let set = Self { capabilities };
+        set.validate()?;
+        Ok(set)
     }
 
     /// Iterates over supported capabilities in stable enum order.
@@ -1147,6 +1177,11 @@ impl CapabilitySet {
             && !self.supports(SemanticCapability::Tools)
         {
             return Err(CatalogViewError::ParallelToolsRequiresTools);
+        }
+        if self.supports(SemanticCapability::ResponseCompaction)
+            && !self.supports(SemanticCapability::StoredResponses)
+        {
+            return Err(CatalogViewError::ResponseCompactionRequiresStoredResponses);
         }
         Ok(())
     }
@@ -1301,6 +1336,8 @@ pub enum CatalogViewError {
     DuplicateEndpointCapabilityProfile,
     /// Parallel Tool support appeared without ordinary Tool support.
     ParallelToolsRequiresTools,
+    /// Response compaction appeared without stored-response continuity.
+    ResponseCompactionRequiresStoredResponses,
 }
 
 impl fmt::Display for CatalogViewError {
@@ -1316,6 +1353,9 @@ impl fmt::Display for CatalogViewError {
                 .write_str("Endpoint capability view contains a duplicate Endpoint profile"),
             Self::ParallelToolsRequiresTools => {
                 formatter.write_str("parallel Tool capability requires Tool capability")
+            }
+            Self::ResponseCompactionRequiresStoredResponses => {
+                formatter.write_str("Response compaction requires stored-response continuity")
             }
         }
     }
@@ -1694,6 +1734,18 @@ mod tests {
         assert!(!narrowed.supports(SemanticCapability::Tools));
         assert!(!narrowed.supports(SemanticCapability::ParallelTools));
         assert!(narrowed.supports(SemanticCapability::Streaming));
+
+        assert_eq!(
+            CapabilitySet::try_new([SemanticCapability::ResponseCompaction]),
+            Err(CatalogViewError::ResponseCompactionRequiresStoredResponses)
+        );
+        let continuity = CapabilitySet::try_new([
+            SemanticCapability::StoredResponses,
+            SemanticCapability::ResponseCompaction,
+        ])?;
+        let narrowed = continuity.without([SemanticCapability::StoredResponses]);
+        assert!(!narrowed.supports(SemanticCapability::StoredResponses));
+        assert!(!narrowed.supports(SemanticCapability::ResponseCompaction));
         Ok(())
     }
 

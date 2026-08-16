@@ -37,7 +37,10 @@ pub use attempt_orchestrator::{
     DEFAULT_TRANSIENT_COOLDOWN, StartedAttempt,
 };
 pub use credential_scheduler::{RouteCredentialScheduler, SelectedRouteCredential};
-pub use execution_lineage::{ResponsesExecutionLineage, ResponsesExecutionLineageRecorder};
+pub use execution_lineage::{
+    ResponsesContinuationKind, ResponsesContinuationPin, ResponsesExecutionLineage,
+    ResponsesExecutionLineageRecorder,
+};
 pub use gateway_catalog::CapabilitySet;
 pub use gateway_core::TransparentRetryGate as AttemptRetryGate;
 pub use protocol_transform::{
@@ -141,6 +144,7 @@ pub struct ResponsesExecution {
     mode: ResponsesResponseMode,
     retry_gate: Arc<dyn TransparentRetryGate>,
     lineage_recorder: Option<Arc<ResponsesExecutionLineageRecorder>>,
+    continuation_pin: Option<ResponsesContinuationPin>,
 }
 
 impl ResponsesExecution {
@@ -162,6 +166,7 @@ impl ResponsesExecution {
             mode,
             retry_gate,
             lineage_recorder: None,
+            continuation_pin: None,
         }
     }
 
@@ -188,6 +193,7 @@ impl ResponsesExecution {
             mode,
             retry_gate,
             lineage_recorder: None,
+            continuation_pin: None,
         }
     }
 
@@ -249,6 +255,20 @@ impl ResponsesExecution {
         self.lineage_recorder.as_ref()
     }
 
+    /// Attaches exact Client-Key-owned stored lineage for a no-fallback execution.
+    #[must_use]
+    pub fn with_continuation_pin(mut self, pin: ResponsesContinuationPin) -> Self {
+        self.native_payload = None;
+        self.continuation_pin = Some(pin);
+        self
+    }
+
+    /// Returns the optional exact stored-history execution pin.
+    #[must_use]
+    pub const fn continuation_pin(&self) -> Option<&ResponsesContinuationPin> {
+        self.continuation_pin.as_ref()
+    }
+
     fn into_legacy_parts(self) -> (RequestContext, CanonicalRequest) {
         (self.context, self.request)
     }
@@ -269,6 +289,7 @@ impl fmt::Debug for ResponsesExecution {
             .field("mode", &self.mode)
             .field("retry_gate", &"<downstream-owned>")
             .field("lineage_recorder", &self.lineage_recorder.is_some())
+            .field("continuation_pin", &self.continuation_pin.is_some())
             .finish()
     }
 }
@@ -282,6 +303,12 @@ pub trait ResponsesExecutor: Send + Sync {
     /// Returns whether this executor can publish exact successful-attempt lineage for local store.
     #[must_use]
     fn supports_stored_response_lineage(&self) -> bool {
+        false
+    }
+
+    /// Returns whether this executor enforces exact stored-history lineage without fallback.
+    #[must_use]
+    fn supports_stored_response_continuity(&self) -> bool {
         false
     }
 

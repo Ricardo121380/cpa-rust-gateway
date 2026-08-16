@@ -345,6 +345,39 @@ impl EndpointCredentialPool {
         })
     }
 
+    /// Attempts to lease one exact Credential revision without touching the weighted cursor.
+    ///
+    /// This is the stored-continuity counterpart to [`Self::try_lease_exact_eligible_at`]. A
+    /// rotated Credential is a different durable owner and therefore fails before capacity is
+    /// reserved, even when its stable Credential ID is unchanged.
+    #[must_use]
+    pub fn try_lease_exact_revision_eligible_at<F>(
+        &self,
+        credential_id: &CredentialId,
+        credential_revision: u64,
+        now_ms: i64,
+        mut is_eligible: F,
+    ) -> Option<CredentialLease>
+    where
+        F: FnMut(&CredentialId) -> bool,
+    {
+        let credential = self.credentials.iter().find(|credential| {
+            &credential.credential_id == credential_id
+                && credential.credential_revision == credential_revision
+        })?;
+        if credential
+            .expires_at_ms
+            .is_some_and(|expires_at_ms| expires_at_ms <= now_ms)
+            || !is_eligible(&credential.credential_id)
+            || !credential.try_acquire()
+        {
+            return None;
+        }
+        Some(CredentialLease {
+            credential: Arc::clone(credential),
+        })
+    }
+
     fn try_lease_slots<F>(&self, mut is_eligible: F) -> Option<CredentialLease>
     where
         F: FnMut(&CredentialSlot) -> bool,
@@ -531,6 +564,28 @@ impl EndpointCredentialPools {
     {
         self.pool(endpoint_id)?
             .try_lease_exact_eligible_at(credential_id, now_ms, is_eligible)
+    }
+
+    /// Attempts to acquire one exact Credential revision without advancing a weighted cursor.
+    #[must_use]
+    pub fn try_lease_exact_revision_eligible_at<F>(
+        &self,
+        endpoint_id: &EndpointId,
+        credential_id: &CredentialId,
+        credential_revision: u64,
+        now_ms: i64,
+        is_eligible: F,
+    ) -> Option<CredentialLease>
+    where
+        F: FnMut(&CredentialId) -> bool,
+    {
+        self.pool(endpoint_id)?
+            .try_lease_exact_revision_eligible_at(
+                credential_id,
+                credential_revision,
+                now_ms,
+                is_eligible,
+            )
     }
 
     /// Returns the number of Endpoint pools in this immutable set.
@@ -1015,6 +1070,17 @@ mod tests {
                 .is_none(),
             "caller eligibility must be checked before exact acquisition"
         );
+        assert!(
+            exercised
+                .try_lease_exact_revision_eligible_at(&target, 99, 100, |_| true)
+                .is_none(),
+            "a stale Credential revision must fail before acquisition"
+        );
+        let revision_pinned = exercised
+            .try_lease_exact_revision_eligible_at(&target, 0, 100, |_| true)
+            .ok_or_else(|| io::Error::other("exact revision lease missing"))?;
+        assert_eq!(revision_pinned.credential_revision(), 0);
+        drop(revision_pinned);
         let pinned = exercised
             .try_lease_exact_eligible_at(&target, 100, |_| true)
             .ok_or_else(|| io::Error::other("exact target lease missing"))?;

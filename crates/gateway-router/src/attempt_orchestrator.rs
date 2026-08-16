@@ -13,6 +13,7 @@ use std::{
     time::Duration,
 };
 
+use gateway_catalog::SemanticCapability;
 use gateway_core::{
     AttemptEvent, AttemptOutcome, AttemptRetryDecision, CredentialId, ErrorScope, EventEmission,
     GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, NoopGatewayEventSink,
@@ -22,9 +23,10 @@ use gateway_upstream::CredentialLease;
 
 use crate::{
     ProtocolFormat, ProviderScopedRouteExplainInput, QuotaConfidence, QuotaSnapshot, QuotaSource,
-    RouteCredentialScheduler, RouteExplainInput, RuntimeHealthClock, RuntimeHealthKey,
-    RuntimeHealthRegistry, RuntimeQuotaRecoveryProbe, RuntimeQuotaRegistry, RuntimeQuotaTarget,
-    SelectedRouteCredential, SnapshotRoute, SnapshotRouteCandidate, SystemRuntimeHealthClock,
+    ResponsesContinuationKind, ResponsesContinuationPin, RouteCredentialScheduler,
+    RouteExplainInput, RuntimeHealthClock, RuntimeHealthKey, RuntimeHealthRegistry,
+    RuntimeQuotaRecoveryProbe, RuntimeQuotaRegistry, RuntimeQuotaTarget, SelectedRouteCredential,
+    SnapshotRoute, SnapshotRouteCandidate, SystemRuntimeHealthClock,
 };
 
 /// The finite estimated reset used for a 429 that does not declare retry-after information.
@@ -790,6 +792,171 @@ impl AttemptOrchestrator {
         }
     }
 
+    /// Starts one exact stored-history execution with no retry or fallback.
+    ///
+    /// Unlike the operator diagnostic pin, this serving path records exact Health/Quota failure
+    /// ownership. It still performs one Candidate/Credential-revision lease and at most one driver
+    /// call; quota recovery, sibling selection, transparent retry, and cross-Provider fallback are
+    /// never entered.
+    ///
+    /// # Errors
+    ///
+    /// Returns a secret-free gateway error for stale lineage, unavailable exact state,
+    /// cancellation, bootstrap timeout, event-sink loss, or the single driver failure.
+    #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
+    pub async fn start_continuation_once_with_event_sink<D, F>(
+        &self,
+        request_id: &RequestId,
+        pin: &ResponsesContinuationPin,
+        is_candidate_eligible: F,
+        driver: &D,
+        retry_gate: &dyn TransparentRetryGate,
+        event_sink: &dyn GatewayEventSink,
+    ) -> Result<StartedAttempt<D::Output>, GatewayError>
+    where
+        D: AttemptDriver,
+        F: Fn(&SnapshotRouteCandidate) -> bool + Sync,
+    {
+        if retry_gate.is_cancelled() {
+            return Err(request_cancelled_error());
+        }
+        let lineage = pin.lineage();
+        let route_id = lineage.route_id();
+        let route = self
+            .scheduler
+            .route(route_id)
+            .ok_or_else(credential_unavailable_error)?;
+        let now_ms = self.clock.now_ms().map_err(|_| internal_error())?;
+        let mut budget = RetryBudget::from_route(&route, now_ms)?;
+        if !budget.can_start_at(now_ms) {
+            return Err(egress_unavailable_error());
+        }
+        let required_capability = match pin.kind() {
+            ResponsesContinuationKind::StoredResponse => SemanticCapability::StoredResponses,
+            ResponsesContinuationKind::Compaction => SemanticCapability::ResponseCompaction,
+        };
+        let selection = self.scheduler.select_continuation_and_lease_at(
+            route_id,
+            lineage.provider_id(),
+            lineage.upstream_id(),
+            lineage.channel_id(),
+            lineage.route_candidate_id(),
+            lineage.credential_id(),
+            lineage.credential_revision(),
+            required_capability,
+            &self.runtime_health,
+            &self.runtime_quota,
+            now_ms,
+            is_candidate_eligible,
+        )?;
+        let started_at_ms = self.clock.now_ms().map_err(|_| internal_error())?;
+        if retry_gate.is_cancelled() || !budget.can_start_at(started_at_ms) {
+            drop(selection);
+            return Err(if retry_gate.is_cancelled() {
+                request_cancelled_error()
+            } else {
+                egress_unavailable_error()
+            });
+        }
+        let remaining_bootstrap = budget.remaining_at(started_at_ms)?;
+        budget.record_start();
+        let attempt_number =
+            u64::try_from(budget.attempts_started()).map_err(|_| internal_error())?;
+        let attempt_result: Result<D::Output, AttemptFailure> = tokio::select! {
+            biased;
+            () = retry_gate.cancelled() => Err(AttemptFailure::Cancelled),
+            result = tokio::time::timeout(
+                driver.start_timeout(remaining_bootstrap),
+                driver.start(
+                    selection.candidate(),
+                    selection.lease(),
+                    remaining_bootstrap,
+                ),
+            ) => match result {
+                Ok(result) => result,
+                Err(_) => Err(AttemptFailure::Connection),
+            },
+        };
+
+        match attempt_result {
+            Ok(output) => {
+                if retry_gate.is_cancelled() {
+                    self.emit_pinned_attempt(
+                        request_id,
+                        route_id,
+                        &selection,
+                        attempt_number,
+                        started_at_ms,
+                        AttemptOutcome::Failed(request_cancelled_error()),
+                        AttemptRetryDecision::Cancelled,
+                        event_sink,
+                    )?;
+                    return Err(request_cancelled_error());
+                }
+                self.emit_pinned_attempt(
+                    request_id,
+                    route_id,
+                    &selection,
+                    attempt_number,
+                    started_at_ms,
+                    AttemptOutcome::Succeeded,
+                    AttemptRetryDecision::Completed,
+                    event_sink,
+                )?;
+                Ok(StartedAttempt {
+                    selection,
+                    output,
+                    attempts_started: budget.attempts_started(),
+                })
+            }
+            Err(AttemptFailure::Cancelled) => {
+                self.emit_pinned_attempt(
+                    request_id,
+                    route_id,
+                    &selection,
+                    attempt_number,
+                    started_at_ms,
+                    AttemptOutcome::Failed(request_cancelled_error()),
+                    AttemptRetryDecision::Cancelled,
+                    event_sink,
+                )?;
+                Err(request_cancelled_error())
+            }
+            Err(failure) => {
+                let safe_failure = failure.safe_error();
+                if let Err(error) = self.record_runtime_state(&selection, &failure) {
+                    self.emit_pinned_attempt(
+                        request_id,
+                        route_id,
+                        &selection,
+                        attempt_number,
+                        started_at_ms,
+                        AttemptOutcome::Failed(error.clone()),
+                        AttemptRetryDecision::InfrastructureFailure,
+                        event_sink,
+                    )?;
+                    return Err(error);
+                }
+                let retry_decision = if failure.is_retryable() {
+                    AttemptRetryDecision::RetryClosed
+                } else {
+                    AttemptRetryDecision::NonRetryable
+                };
+                self.emit_pinned_attempt(
+                    request_id,
+                    route_id,
+                    &selection,
+                    attempt_number,
+                    started_at_ms,
+                    AttemptOutcome::Failed(safe_failure.clone()),
+                    retry_decision,
+                    event_sink,
+                )?;
+                Err(safe_failure)
+            }
+        }
+    }
+
     #[allow(clippy::too_many_arguments, clippy::too_many_lines)] // One retry state machine keeps lease, gate, and event ordering auditable.
     async fn start_inner<D>(
         &self,
@@ -1430,7 +1597,7 @@ mod tests {
         time::Duration,
     };
 
-    use gateway_catalog::{CapabilitySet, CatalogModelState};
+    use gateway_catalog::{CapabilitySet, CatalogModelState, SemanticCapability};
     use gateway_core::{
         AttemptOutcome, AttemptRetryDecision, CredentialId, EndpointId, ErrorScope, EventEmission,
         GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, ProviderId, PublicModelId,
@@ -1447,7 +1614,8 @@ mod tests {
         AttemptOrchestratorConfig, NoopGatewayEventSink,
     };
     use crate::{
-        ProtocolFormat, RouteCredentialScheduler, RouteSnapshot, RouteSnapshotInput,
+        ProtocolFormat, ResponsesContinuationKind, ResponsesContinuationPin,
+        ResponsesExecutionLineage, RouteCredentialScheduler, RouteSnapshot, RouteSnapshotInput,
         RuntimeCredentialAccountStatus, RuntimeHealthAccountRecoveryResult, RuntimeHealthClock,
         RuntimeHealthClockError, RuntimeHealthRegistry, SnapshotCatalogAdmission,
         SnapshotPublicModel, SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput,
@@ -1750,6 +1918,88 @@ mod tests {
                 .and_then(|pool| {
                     pool.active_lease_count(&CredentialId::try_new("credential-a").ok()?)
                 }),
+            Some(0)
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn continuation_once_keeps_exact_revision_and_never_falls_back() -> TestResult {
+        let (orchestrator, route_id, _clock, _health, pools) = continuation_orchestrator()?;
+        let pin = continuation_pin(ResponsesContinuationKind::StoredResponse)?;
+        let driver = ScriptedDriver::new(vec![
+            DriverStep::Failure(AttemptFailure::Connection),
+            DriverStep::Success("must-not-fallback".to_owned()),
+        ]);
+        let events = RecordingEventSink::default();
+        let error = expected_error(
+            orchestrator
+                .start_continuation_once_with_event_sink(
+                    &RequestId::try_new("continuation-failure")?,
+                    &pin,
+                    |_| true,
+                    &driver,
+                    &TestRetryGate::default(),
+                    &events,
+                )
+                .await,
+            "stored continuation must stop after its exact Attempt fails",
+        )?;
+        assert_eq!(error.code(), GatewayErrorCode::EgressUnavailable);
+        assert_eq!(
+            driver.attempts()?,
+            vec![(
+                "candidate-continuity".to_owned(),
+                "credential-continuity".to_owned()
+            )]
+        );
+        let events = events.events()?;
+        assert_eq!(events.len(), 1);
+        let GatewayEvent::Attempt(attempt) = &events[0] else {
+            return Err("expected one stored-continuation Attempt event".into());
+        };
+        assert_eq!(attempt.retry_decision(), AttemptRetryDecision::RetryClosed);
+        assert_eq!(attempt.credential_id().as_str(), "credential-continuity");
+        assert_eq!(attempt.route_id(), &route_id);
+        assert_eq!(
+            pools
+                .pool(&EndpointId::try_new("endpoint-continuity")?)
+                .and_then(|pool| pool
+                    .active_lease_count(&CredentialId::try_new("credential-continuity").ok()?)),
+            Some(0)
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn compaction_continuation_holds_and_releases_only_the_exact_lease() -> TestResult {
+        let (orchestrator, _route_id, _clock, _health, pools) = continuation_orchestrator()?;
+        let driver = ScriptedDriver::new(vec![DriverStep::Success("compact".to_owned())]);
+        let started = orchestrator
+            .start_continuation_once_with_event_sink(
+                &RequestId::try_new("compaction-success")?,
+                &continuation_pin(ResponsesContinuationKind::Compaction)?,
+                |_| true,
+                &driver,
+                &TestRetryGate::default(),
+                &NoopGatewayEventSink,
+            )
+            .await?;
+        assert_eq!(started.output(), "compact");
+        assert_eq!(started.attempts_started(), 1);
+        assert_eq!(
+            pools
+                .pool(&EndpointId::try_new("endpoint-continuity")?)
+                .and_then(|pool| pool
+                    .active_lease_count(&CredentialId::try_new("credential-continuity").ok()?)),
+            Some(1)
+        );
+        drop(started);
+        assert_eq!(
+            pools
+                .pool(&EndpointId::try_new("endpoint-continuity")?)
+                .and_then(|pool| pool
+                    .active_lease_count(&CredentialId::try_new("credential-continuity").ok()?)),
             Some(0)
         );
         Ok(())
@@ -2691,6 +2941,119 @@ mod tests {
             clock,
             health,
             pools,
+        ))
+    }
+
+    fn continuation_orchestrator() -> Result<OrchestratorFixture, Box<dyn Error>> {
+        let route_id = RouteId::try_new("route-continuity")?;
+        let public_model_id = PublicModelId::try_new("public-model-continuity")?;
+        let capabilities = CapabilitySet::try_new([
+            SemanticCapability::StoredResponses,
+            SemanticCapability::ResponseCompaction,
+        ])?;
+        let candidate = |id: &str, endpoint: &str, upstream: &str, priority| {
+            Ok::<_, Box<dyn Error>>(SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
+                id: RouteCandidateId::try_new(id)?,
+                endpoint_id: EndpointId::try_new(endpoint)?,
+                upstream_id: UpstreamId::try_new(upstream)?,
+                endpoint_api_format: "openai/responses".to_owned(),
+                upstream_model: "upstream-model".to_owned(),
+                transform_mode: SnapshotTransformMode::Canonical,
+                priority,
+                weight: 1,
+                effective_capabilities: capabilities.clone(),
+                catalog_admission: SnapshotCatalogAdmission::Listed(CatalogModelState::Fresh),
+                active_binding_count: 1,
+            }))
+        };
+        let snapshot = Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
+            SnapshotVersion::try_new("version-continuity")?,
+            vec![SnapshotPublicModel::new(
+                public_model_id.clone(),
+                "public-model".to_owned(),
+                "Public Model".to_owned(),
+                CapabilitySet::empty(),
+                route_id.clone(),
+            )],
+            Vec::new(),
+            vec![SnapshotRoute::new(
+                route_id.clone(),
+                public_model_id,
+                SnapshotRoutePolicy::RoundRobin,
+                2,
+                100,
+                vec![
+                    candidate(
+                        "candidate-continuity",
+                        "endpoint-continuity",
+                        "upstream-continuity",
+                        0,
+                    )?,
+                    candidate(
+                        "candidate-fallback",
+                        "endpoint-fallback",
+                        "upstream-fallback",
+                        1,
+                    )?,
+                ],
+            )],
+            Vec::new(),
+            Vec::new(),
+        ))?);
+        let exact_pool = EndpointCredentialPool::try_new(
+            EndpointId::try_new("endpoint-continuity")?,
+            [EndpointCredentialInput {
+                credential_id: CredentialId::try_new("credential-continuity")?,
+                credential_kind: "oauth".to_owned(),
+                credential_revision: 11,
+                priority: 0,
+                weight: 1,
+                concurrency: 1,
+                expires_at_ms: None,
+                secret: CredentialSecret::try_new(b"continuity-secret".to_vec())?,
+            }],
+        )?;
+        let pools = Arc::new(EndpointCredentialPools::try_new([
+            exact_pool,
+            endpoint_pool("endpoint-fallback", vec!["credential-fallback"])?,
+        ])?);
+        let scheduler = Arc::new(RouteCredentialScheduler::new(snapshot, Arc::clone(&pools)));
+        let clock = Arc::new(FixedRuntimeHealthClock::new(100));
+        let health_clock: Arc<dyn RuntimeHealthClock> = clock.clone();
+        let health = Arc::new(RuntimeHealthRegistry::with_clock(Arc::clone(&health_clock)));
+        let config = AttemptOrchestratorConfig::try_new(
+            Duration::from_millis(20),
+            Duration::from_millis(10),
+        )?;
+        Ok((
+            AttemptOrchestrator::with_clock_and_config(
+                scheduler,
+                Arc::clone(&health),
+                health_clock,
+                config,
+            ),
+            route_id,
+            clock,
+            health,
+            pools,
+        ))
+    }
+
+    fn continuation_pin(
+        kind: ResponsesContinuationKind,
+    ) -> Result<ResponsesContinuationPin, Box<dyn Error>> {
+        Ok(ResponsesContinuationPin::new(
+            ResponsesExecutionLineage::new(
+                SnapshotVersion::try_new("version-continuity")?,
+                ProviderId::try_new("upstream-continuity")?,
+                UpstreamId::try_new("upstream-continuity")?,
+                EndpointId::try_new("endpoint-continuity")?,
+                RouteId::try_new("route-continuity")?,
+                RouteCandidateId::try_new("candidate-continuity")?,
+                CredentialId::try_new("credential-continuity")?,
+                11,
+            ),
+            kind,
         ))
     }
 

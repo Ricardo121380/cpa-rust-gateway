@@ -21,6 +21,7 @@ pub mod management_resources;
 pub mod management_security;
 /// Embedded static management SPA resources, configured separately from public inference routes.
 pub mod management_ui_resources;
+mod stored_response_continuity;
 
 use std::{
     collections::VecDeque,
@@ -47,18 +48,19 @@ use gateway_core::{
     AccessGroupId, CanonicalEvent, CanonicalRequest, CanonicalResponse, ClientKeyId, ErrorScope,
     GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, GatewayProtocol,
     NoopGatewayEventSink, RequestContext, RequestEvent, RequestId, ResponseId, RouteId,
-    StreamError, TransparentRetryGate, UsageEvent,
+    StreamError, TransparentRetryGate, TransparentRetryGateFuture, UsageEvent,
 };
 use gateway_router::{
-    CountTokensExecution, CountTokensExecutor, ResponsesEventSource, ResponsesExecution,
-    ResponsesExecutionLineage, ResponsesExecutionLineageRecorder, ResponsesExecutor,
-    ResponsesResponseMode, SnapshotAuthenticatedClient, SnapshotClientKeyAuthenticator,
-    UnsupportedCountTokensExecutor,
+    CountTokensExecution, CountTokensExecutor, ResponsesContinuationKind, ResponsesContinuationPin,
+    ResponsesEventSource, ResponsesExecution, ResponsesExecutionLineage,
+    ResponsesExecutionLineageRecorder, ResponsesExecutor, ResponsesResponseMode,
+    SnapshotAuthenticatedClient, SnapshotClientKeyAuthenticator, UnsupportedCountTokensExecutor,
 };
 use gateway_store::stored_response::{
-    MAX_STORED_RESPONSE_EVENTS, MAX_STORED_RESPONSE_PAYLOAD_BYTES, SqliteStoredResponseStore,
+    MAX_STORED_RESPONSE_EVENTS, MAX_STORED_RESPONSE_PAYLOAD_BYTES,
+    STORED_RESPONSE_COMPACTION_PREFIX, SqliteStoredResponseStore, StoredResponseCompactionPayload,
     StoredResponseCredentialBinding, StoredResponseLineage, StoredResponsePayload,
-    StoredResponseTarget,
+    StoredResponseRecord, StoredResponseStoreError, StoredResponseTarget,
 };
 use gateway_stream::{
     CanonicalEventSender, CanonicalEventStream, FirstSemanticEventTracker, StreamCancellation,
@@ -77,7 +79,13 @@ use protocol_openai_chat::{
 };
 use protocol_openai_responses::{
     DecodedResponsesRequest, OpenAiResponseMetadata, OpenAiResponsesSseEncoder, ResponseMode,
-    SseFrame as OpenAiSseFrame, decode_request, encode_error, encode_model_list, encode_response,
+    SseFrame as OpenAiSseFrame, decode_compact_request, decode_request, encode_compaction_response,
+    encode_error, encode_model_list, encode_response,
+};
+
+use crate::stored_response_continuity::{
+    compaction_request, continuation_pin, extract_compaction_summary, replay_compaction,
+    replay_stored_response,
 };
 
 /// Stable component identifier used by architecture smoke tests.
@@ -121,6 +129,12 @@ pub const MAX_INFERENCE_REQUEST_BODY_BYTES: usize = 4 * 1024 * 1024;
 /// Without this, a client that opens a request and then stalls mid-body parks a handler holding
 /// its partial buffer indefinitely; Actix's own client timeout covers only the request head.
 const INFERENCE_REQUEST_BODY_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// The longest a gateway-owned compaction execution may retain its exact lineage lease.
+///
+/// The request itself also carries a fixed output-token bound, while this wall-clock bound closes
+/// the case where an admitted upstream response starts but never completes.
+const STORED_RESPONSE_COMPACTION_TOTAL_TIMEOUT: Duration = Duration::from_mins(2);
 
 /// Creates request context and response metadata without making HTTP handlers depend on a clock
 /// or identifier implementation.
@@ -507,19 +521,49 @@ struct PreparedResponsesExecution {
     lineage_recorder: Option<Arc<ResponsesExecutionLineageRecorder>>,
 }
 
+struct PreparedOwnedContinuation {
+    request: CanonicalRequest,
+    pin: ResponsesContinuationPin,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum OwnedContinuityError {
+    NotFound,
+    Unavailable,
+    Internal,
+}
+
+/// Continuation and compaction are exact-lineage operations and never permit a second Attempt.
+struct StoredContinuationRetryGate;
+
+impl TransparentRetryGate for StoredContinuationRetryGate {
+    fn is_cancelled(&self) -> bool {
+        false
+    }
+
+    fn allows_transparent_retry(&self) -> bool {
+        false
+    }
+
+    fn cancelled(&self) -> TransparentRetryGateFuture<'_> {
+        Box::pin(std::future::pending())
+    }
+}
+
 fn prepare_responses_execution(
     context: RequestContext,
-    decoded: DecodedResponsesRequest,
+    decoded: &DecodedResponsesRequest,
     original_body: &str,
     route_id: Option<RouteId>,
     retry_gate: Arc<dyn TransparentRetryGate>,
+    owned_continuation: Option<PreparedOwnedContinuation>,
 ) -> PreparedResponsesExecution {
     let mode = decoded.mode;
-    let canonical_request_for_store = decoded.store.then(|| decoded.request.clone());
-    let native_payload: Arc<[u8]> = decoded.normalized_native_payload().map_or_else(
-        || Arc::from(original_body.as_bytes()),
-        |payload| Arc::from(payload.to_vec()),
+    let (request, continuation_pin) = owned_continuation.map_or_else(
+        || (decoded.request.clone(), None),
+        |owned| (owned.request, Some(owned.pin)),
     );
+    let canonical_request_for_store = decoded.store.then(|| request.clone());
     let lineage_recorder = decoded
         .store
         .then(|| Arc::new(ResponsesExecutionLineageRecorder::new()));
@@ -527,15 +571,32 @@ fn prepare_responses_execution(
         ResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
         ResponseMode::Streaming => ResponsesResponseMode::Streaming,
     };
-    let mut execution = ResponsesExecution::new_for_protocol(
-        context,
-        decoded.request,
-        gateway_router::ProtocolFormat::OpenAiResponses,
-        native_payload,
-        route_id,
-        response_mode,
-        retry_gate,
-    );
+    let mut execution = if let Some(pin) = continuation_pin.as_ref() {
+        ResponsesExecution::new(
+            context,
+            request,
+            Some(pin.lineage().route_id().clone()),
+            response_mode,
+            retry_gate,
+        )
+    } else {
+        let native_payload: Arc<[u8]> = decoded.normalized_native_payload().map_or_else(
+            || Arc::from(original_body.as_bytes()),
+            |payload| Arc::from(payload.to_vec()),
+        );
+        ResponsesExecution::new_for_protocol(
+            context,
+            request,
+            gateway_router::ProtocolFormat::OpenAiResponses,
+            native_payload,
+            route_id,
+            response_mode,
+            retry_gate,
+        )
+    };
+    if let Some(pin) = continuation_pin {
+        execution = execution.with_continuation_pin(pin);
+    }
     if let Some(recorder) = lineage_recorder.as_ref() {
         execution = execution.with_lineage_recorder(Arc::clone(recorder));
     }
@@ -574,6 +635,118 @@ fn prepare_stored_response_write_context(
     }))
 }
 
+async fn prepare_owned_continuation(
+    state: &ResponsesHttpState,
+    client_key_id: &ClientKeyId,
+    public_model: &str,
+    current_route_id: Option<&RouteId>,
+    decoded: &DecodedResponsesRequest,
+) -> Result<Option<PreparedOwnedContinuation>, OwnedContinuityError> {
+    if !decoded.requires_gateway_replay() {
+        return Ok(None);
+    }
+    if !state.executor.supports_stored_response_continuity() {
+        return Err(OwnedContinuityError::Unavailable);
+    }
+    let repository = state
+        .stored_responses
+        .clone()
+        .ok_or(OwnedContinuityError::Internal)?;
+    let now_ms = system_now_ms().map_err(|_| OwnedContinuityError::Internal)?;
+
+    if let Some(response_id) = decoded.previous_response_id.as_ref() {
+        let record = load_owned_response(
+            repository,
+            client_key_id.clone(),
+            response_id.clone(),
+            now_ms,
+        )
+        .await?;
+        let payload = record.payload();
+        ensure_continuity_identity(
+            payload.public_model(),
+            payload.lineage(),
+            public_model,
+            current_route_id,
+        )?;
+        return Ok(Some(PreparedOwnedContinuation {
+            request: replay_stored_response(payload, decoded.request.clone())
+                .map_err(|_| OwnedContinuityError::Unavailable)?,
+            pin: continuation_pin(payload.lineage(), ResponsesContinuationKind::StoredResponse)
+                .map_err(|_| OwnedContinuityError::Internal)?,
+        }));
+    }
+
+    let compact = decoded
+        .compaction
+        .as_ref()
+        .ok_or(OwnedContinuityError::Internal)?;
+    let compact_id = compact.encrypted_content().to_owned();
+    let owner = client_key_id.clone();
+    let record = tokio::task::spawn_blocking(move || {
+        repository.get_compaction_owned(&owner, &compact_id, now_ms)
+    })
+    .await
+    .map_err(|_| OwnedContinuityError::Internal)?
+    .map_err(|error| owned_continuity_store_error(&error))?
+    .ok_or(OwnedContinuityError::NotFound)?;
+    let payload = record.payload();
+    ensure_continuity_identity(
+        payload.public_model(),
+        payload.lineage(),
+        public_model,
+        current_route_id,
+    )?;
+    Ok(Some(PreparedOwnedContinuation {
+        request: replay_compaction(payload, decoded.request.clone())
+            .map_err(|_| OwnedContinuityError::Unavailable)?,
+        pin: continuation_pin(payload.lineage(), ResponsesContinuationKind::Compaction)
+            .map_err(|_| OwnedContinuityError::Internal)?,
+    }))
+}
+
+async fn load_owned_response(
+    repository: Arc<SqliteStoredResponseStore>,
+    client_key_id: ClientKeyId,
+    response_id: ResponseId,
+    now_ms: i64,
+) -> Result<StoredResponseRecord, OwnedContinuityError> {
+    tokio::task::spawn_blocking(move || repository.get_owned(&client_key_id, &response_id, now_ms))
+        .await
+        .map_err(|_| OwnedContinuityError::Internal)?
+        .map_err(|error| owned_continuity_store_error(&error))?
+        .ok_or(OwnedContinuityError::NotFound)
+}
+
+fn owned_continuity_store_error(error: &StoredResponseStoreError) -> OwnedContinuityError {
+    match error {
+        StoredResponseStoreError::InvalidInput
+        | StoredResponseStoreError::InvalidPersistedRecord
+        | StoredResponseStoreError::SecretStore(_) => OwnedContinuityError::NotFound,
+        StoredResponseStoreError::Store(_)
+        | StoredResponseStoreError::PayloadTooLarge
+        | StoredResponseStoreError::ConflictingReplay
+        | StoredResponseStoreError::RandomnessUnavailable
+        | StoredResponseStoreError::TimeOverflow
+        | StoredResponseStoreError::InvalidGcLimit
+        | StoredResponseStoreError::LockPoisoned => OwnedContinuityError::Internal,
+    }
+}
+
+fn ensure_continuity_identity(
+    stored_public_model: &str,
+    lineage: &StoredResponseLineage,
+    public_model: &str,
+    current_route_id: Option<&RouteId>,
+) -> Result<(), OwnedContinuityError> {
+    if stored_public_model != public_model
+        || current_route_id.is_some_and(|route_id| route_id != lineage.target().route_id())
+    {
+        return Err(OwnedContinuityError::Unavailable);
+    }
+    Ok(())
+}
+
 /// Creates a validated P1 default bounded-stream capacity.
 ///
 /// # Errors
@@ -594,6 +767,7 @@ pub fn configure(config: &mut web::ServiceConfig) {
         .route("/v1/models", web::get().to(models))
         .route("/v1/chat/completions", web::post().to(chat_completions))
         .route("/v1/responses", web::post().to(responses))
+        .route("/v1/responses/compact", web::post().to(compact_responses))
         .route(
             "/v1/responses/{response_id}",
             web::get().to(retrieve_stored_response),
@@ -754,6 +928,7 @@ async fn chat_completions(
     }
 }
 
+#[allow(clippy::too_many_lines)] // Keep public admission, first-event, and durable-store ordering auditable.
 async fn responses(
     request: HttpRequest,
     state: web::Data<ResponsesHttpState>,
@@ -792,6 +967,18 @@ async fn responses(
     };
     let request_id = context.request_id().clone();
     let (client_key_id, access_group_id) = authenticated_client.event_identity();
+    let owned_continuation = match prepare_owned_continuation(
+        &state,
+        &client_key_id,
+        &public_model,
+        route_id.as_ref(),
+        &decoded,
+    )
+    .await
+    {
+        Ok(continuation) => continuation,
+        Err(error) => return owned_continuity_error(error),
+    };
     let _request_event = state
         .event_sink
         .try_emit(GatewayEvent::Request(RequestEvent::new(
@@ -811,7 +998,14 @@ async fn responses(
         mode,
         canonical_request_for_store,
         lineage_recorder,
-    } = prepare_responses_execution(context, decoded, body, route_id, retry_gate);
+    } = prepare_responses_execution(
+        context,
+        &decoded,
+        body,
+        route_id,
+        retry_gate,
+        owned_continuation,
+    );
     let mut source = match state.executor.execute_routed(execution).await {
         Ok(source) => source,
         Err(error) => return pre_header_error(&error),
@@ -887,6 +1081,161 @@ async fn deliver_responses(
             )
             .await
         }
+    }
+}
+
+#[allow(clippy::too_many_lines)] // One linear flow proves owner lookup precedes the sole exact attempt and AEAD write.
+async fn compact_responses(
+    request: HttpRequest,
+    state: web::Data<ResponsesHttpState>,
+    payload: web::Payload,
+) -> HttpResponse {
+    let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
+    {
+        Ok(authenticated_client) => authenticated_client,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
+    let body = match read_bounded_request_body(&request, payload).await {
+        Ok(body) => body,
+        Err(error) => return stored_response_request_body_error(error),
+    };
+    let Ok(body) = std::str::from_utf8(&body) else {
+        return pre_header_stored_response_error(&client_request_error());
+    };
+    let decoded = match decode_compact_request(body) {
+        Ok(decoded) => decoded,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
+    if !state.executor.supports_stored_response_continuity() {
+        return continuity_unavailable();
+    }
+    let Some(repository) = state.stored_responses.clone() else {
+        return pre_header_stored_response_error(&internal_error());
+    };
+    let requested_model = decoded.requested_model;
+    let (public_model, route_alias, route_id) =
+        match resolve_public_model(&authenticated_client, &requested_model) {
+            Ok(resolved) => resolved,
+            Err(error) => return pre_header_stored_response_error(&error),
+        };
+    let (client_key_id, access_group_id) = authenticated_client.event_identity();
+    let lookup_now_ms = match system_now_ms() {
+        Ok(now_ms) => now_ms,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
+    let stored = match load_owned_response(
+        Arc::clone(&repository),
+        client_key_id.clone(),
+        decoded.previous_response_id,
+        lookup_now_ms,
+    )
+    .await
+    {
+        Ok(record) => record,
+        Err(error) => return owned_continuity_error(error),
+    };
+    if let Err(error) = ensure_continuity_identity(
+        stored.payload().public_model(),
+        stored.payload().lineage(),
+        &public_model,
+        route_id.as_ref(),
+    ) {
+        return owned_continuity_error(error);
+    }
+    let context = match state.metadata_factory.request_context() {
+        Ok(context) => context,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
+    let request_id = context.request_id().clone();
+    let _request_event = state
+        .event_sink
+        .try_emit(GatewayEvent::Request(RequestEvent::new(
+            request_id.clone(),
+            client_key_id.clone(),
+            access_group_id,
+            GatewayProtocol::OpenAiResponses,
+            requested_model,
+            public_model.clone(),
+            route_alias,
+            false,
+        )));
+    let compact_request = match compaction_request(stored.payload()) {
+        Ok(request) => request,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
+    let pin = match continuation_pin(
+        stored.payload().lineage(),
+        ResponsesContinuationKind::Compaction,
+    ) {
+        Ok(pin) => pin,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
+    let execution = ResponsesExecution::new(
+        context,
+        compact_request,
+        Some(pin.lineage().route_id().clone()),
+        ResponsesResponseMode::NonStreaming,
+        Arc::new(StoredContinuationRetryGate),
+    )
+    .with_continuation_pin(pin);
+    let mut source = match state.executor.execute_routed(execution).await {
+        Ok(source) => source,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
+    let canonical = match tokio::time::timeout(
+        STORED_RESPONSE_COMPACTION_TOTAL_TIMEOUT,
+        collect_bounded_source(&mut source),
+    )
+    .await
+    {
+        Ok(Ok(canonical)) => canonical,
+        Ok(Err(error)) => return pre_header_stored_response_error(&error),
+        Err(_) => return pre_header_stored_response_error(&compaction_timeout_error()),
+    };
+    let mut usage_observer = UsageEventObserver::new(request_id, Arc::clone(&state.event_sink));
+    for event in canonical.events() {
+        usage_observer.observe(event);
+    }
+    let summary = match extract_compaction_summary(&canonical) {
+        Ok(summary) => summary,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
+    let metadata = match state.metadata_factory.response_metadata(&public_model) {
+        Ok(metadata) => metadata,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
+    let persisted_at_ms = match system_now_ms() {
+        Ok(now_ms) => now_ms,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
+    let Ok(compact_payload) = StoredResponseCompactionPayload::try_new(
+        stored.payload().lineage().clone(),
+        stored.response_id().clone(),
+        public_model.clone(),
+        summary,
+    ) else {
+        return pre_header_stored_response_error(&internal_error());
+    };
+    let Ok(Ok(compact_record)) = tokio::task::spawn_blocking(move || {
+        repository.put_compaction_owned(&client_key_id, persisted_at_ms, &compact_payload)
+    })
+    .await
+    else {
+        return pre_header_stored_response_error(&internal_error());
+    };
+    let Some(locator_suffix) = compact_record
+        .compact_id()
+        .strip_prefix(STORED_RESPONSE_COMPACTION_PREFIX)
+    else {
+        return pre_header_stored_response_error(&internal_error());
+    };
+    let item_id = format!("cmp_{locator_suffix}");
+    match encode_compaction_response(&canonical, metadata, &item_id, compact_record.compact_id()) {
+        Ok(body) => HttpResponse::Ok()
+            .insert_header((header::CACHE_CONTROL, "no-store"))
+            .content_type("application/json")
+            .body(body.to_string()),
+        Err(error) => pre_header_stored_response_error(&error),
     }
 }
 
@@ -1565,6 +1914,29 @@ async fn collect_completed_response(
     CanonicalResponse::try_new(events)
 }
 
+async fn collect_bounded_source(
+    source: &mut Box<dyn ResponsesEventSource>,
+) -> Result<CanonicalResponse, GatewayError> {
+    let mut events = Vec::new();
+    let mut serialized_bytes = 0_usize;
+    while let Some(event) = source.next_event().await? {
+        if events.len() >= MAX_STORED_RESPONSE_EVENTS {
+            return Err(internal_error());
+        }
+        let event_bytes = serde_json::to_vec(&event)
+            .map_err(|_| internal_error())?
+            .len();
+        serialized_bytes = serialized_bytes
+            .checked_add(event_bytes)
+            .ok_or_else(internal_error)?;
+        if serialized_bytes > MAX_STORED_RESPONSE_PAYLOAD_BYTES {
+            return Err(internal_error());
+        }
+        events.push(event);
+    }
+    CanonicalResponse::try_new(events)
+}
+
 async fn persist_completed_response(
     context: StoredResponseWriteContext,
     response: CanonicalResponse,
@@ -1998,6 +2370,40 @@ fn pre_header_stored_response_error(error: &GatewayError) -> HttpResponse {
     response
 }
 
+fn owned_continuity_error(error: OwnedContinuityError) -> HttpResponse {
+    match error {
+        OwnedContinuityError::NotFound => stored_response_not_found(),
+        OwnedContinuityError::Unavailable => continuity_unavailable(),
+        OwnedContinuityError::Internal => pre_header_stored_response_error(&internal_error()),
+    }
+}
+
+fn continuity_unavailable() -> HttpResponse {
+    HttpResponse::Conflict()
+        .insert_header((header::CACHE_CONTROL, "no-store"))
+        .content_type("application/json")
+        .body(
+            serde_json::json!({
+                "error": {
+                    "type": "invalid_request_error",
+                    "code": "continuity_unavailable",
+                    "message": "the stored response cannot be continued on its exact target",
+                    "param": "previous_response_id",
+                }
+            })
+            .to_string(),
+        )
+}
+
+fn stored_response_request_body_error(error: RequestBodyError) -> HttpResponse {
+    let mut response = request_body_error(error);
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        header::HeaderValue::from_static("no-store"),
+    );
+    response
+}
+
 fn stored_response_not_found() -> HttpResponse {
     HttpResponse::NotFound()
         .insert_header((header::CACHE_CONTROL, "no-store"))
@@ -2158,6 +2564,10 @@ const fn stream_protocol_error() -> GatewayError {
     GatewayError::new(GatewayErrorCode::UpstreamProtocolError, ErrorScope::Stream)
 }
 
+const fn compaction_timeout_error() -> GatewayError {
+    GatewayError::new(GatewayErrorCode::ProviderTransient, ErrorScope::Provider)
+}
+
 const fn internal_error() -> GatewayError {
     GatewayError::new(GatewayErrorCode::InternalError, ErrorScope::Internal)
 }
@@ -2186,26 +2596,30 @@ mod tests {
         client_key::{ClientKeyPepper, ClientKeyService},
     };
     use gateway_core::{
-        AccessGroupId, CanonicalEvent, ClientKeyId, CredentialId, EndpointId, ErrorScope,
-        ExactInputTokenCount, GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink,
-        GatewayProtocol, MessageEnd, MessageRole, MessageStart, ProviderId, PublicModelId,
-        RawExtensions, RawJson, ReasoningDelta, RequestContext, RequestId, ResponseEnd, ResponseId,
-        ResponseStart, RouteCandidateId, RouteId, StreamError, TextDelta, UpstreamId, Usage,
-        UsageDelta,
+        AccessGroupId, CanonicalEvent, CanonicalRequest, CanonicalResponse, ClientKeyId,
+        CredentialId, EndpointId, ErrorScope, ExactInputTokenCount, GatewayError, GatewayErrorCode,
+        GatewayEvent, GatewayEventSink, GatewayProtocol, MessageEnd, MessageRole, MessageStart,
+        ProviderId, PublicModelId, RawExtensions, RawJson, ReasoningDelta, RequestContext,
+        RequestId, ResponseEnd, ResponseId, ResponseStart, RouteCandidateId, RouteId, StreamError,
+        TextDelta, UpstreamId, Usage, UsageDelta,
     };
     use gateway_observability::{BoundedEventQueue, EventQueueConfig};
     use gateway_router::{
         CapabilitySet, CountTokensExecution, CountTokensExecutor, CountTokensFuture,
-        DeterministicMockEmission, DeterministicMockResponsesExecutor, ResponsesEventSource,
-        ResponsesExecution, ResponsesExecutionLineage, ResponsesExecutor, ResponsesFuture,
-        RouteSnapshot, RouteSnapshotInput, RouteSnapshotRegistry, SnapshotAccessGroup,
-        SnapshotCatalogAdmission, SnapshotClientKeyAuthenticator, SnapshotClientKeyView,
-        SnapshotPublicModel, SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput,
-        SnapshotRoutePolicy, SnapshotTransformMode, SnapshotVersion,
+        DeterministicMockEmission, DeterministicMockResponsesExecutor, ResponsesContinuationKind,
+        ResponsesContinuationPin, ResponsesEventSource, ResponsesExecution,
+        ResponsesExecutionLineage, ResponsesExecutor, ResponsesFuture, RouteSnapshot,
+        RouteSnapshotInput, RouteSnapshotRegistry, SnapshotAccessGroup, SnapshotCatalogAdmission,
+        SnapshotClientKeyAuthenticator, SnapshotClientKeyView, SnapshotPublicModel, SnapshotRoute,
+        SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
+        SnapshotTransformMode, SnapshotVersion,
     };
     use gateway_store::{
         secret_store::{KeyVersion, MASTER_KEY_BYTES, MasterKey, MasterKeyRing, SecretStore},
-        stored_response::SqliteStoredResponseStore,
+        stored_response::{
+            SqliteStoredResponseStore, StoredResponseCredentialBinding, StoredResponseLineage,
+            StoredResponsePayload, StoredResponseTarget,
+        },
     };
     use gateway_stream::{FirstSemanticEventTracker, StreamCapacity, bounded_canonical_stream};
     use protocol_anthropic::{AnthropicMessagesSseEncoder, AnthropicResponseMetadata};
@@ -2420,6 +2834,75 @@ mod tests {
         )?))
     }
 
+    fn stored_response_lineage() -> Result<StoredResponseLineage, Box<dyn Error>> {
+        let target = StoredResponseTarget::try_new(
+            ProviderId::try_new("stored-provider")?,
+            UpstreamId::try_new("stored-provider")?,
+            EndpointId::try_new("stored-channel")?,
+            RouteId::try_new("stored-route")?,
+            RouteCandidateId::try_new("stored-candidate")?,
+        )?;
+        let credential = StoredResponseCredentialBinding::try_new(
+            CredentialId::try_new("stored-credential")?,
+            11,
+            Some("owned-upstream-response".to_owned()),
+        )?;
+        Ok(StoredResponseLineage::try_new(
+            "stored-config-v1",
+            target,
+            credential,
+        )?)
+    }
+
+    fn seed_owned_stored_response(
+        store: &SqliteStoredResponseStore,
+        response_id: &str,
+        public_model: &str,
+        prompt: &str,
+        answer: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        let request = protocol_openai_responses::decode_request(
+            &serde_json::json!({"model": "mock-model", "input": prompt}).to_string(),
+        )?
+        .request;
+        let response = CanonicalResponse::try_new(text_response_events(response_id, answer)?)?;
+        let payload = StoredResponsePayload::try_new(
+            stored_response_lineage()?,
+            public_model,
+            1,
+            request,
+            response,
+        )?;
+        let _ = store.put_owned(
+            &ClientKeyId::try_new("http-test-client-key")?,
+            super::system_now_ms()?,
+            &payload,
+        )?;
+        Ok(())
+    }
+
+    fn text_response_events(
+        response_id: &str,
+        text: &str,
+    ) -> Result<Vec<CanonicalEvent>, Box<dyn Error>> {
+        Ok(vec![
+            CanonicalEvent::ResponseStart(ResponseStart {
+                response_id: ResponseId::try_new(response_id)?,
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::MessageStart(MessageStart {
+                role: MessageRole("assistant".to_owned()),
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::TextDelta(TextDelta {
+                text: text.to_owned(),
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::MessageEnd(MessageEnd::default()),
+            CanonicalEvent::ResponseEnd(ResponseEnd::default()),
+        ])
+    }
+
     fn stored_response_state(
         events: Vec<CanonicalEvent>,
         observed_native: Arc<Mutex<Vec<serde_json::Value>>>,
@@ -2429,6 +2912,23 @@ mod tests {
             Arc::new(StoredResponsesExecutor {
                 events,
                 observed_native,
+            }),
+            Arc::new(FixedMetadata),
+            stored_response_authenticator()?,
+            StreamCapacity::try_new(2)?,
+        )
+        .with_stored_response_store(store))
+    }
+
+    fn continuity_state(
+        responses: Vec<Vec<CanonicalEvent>>,
+        observed: Arc<Mutex<Vec<ContinuityObservation>>>,
+        store: Arc<SqliteStoredResponseStore>,
+    ) -> Result<ResponsesHttpState, Box<dyn Error>> {
+        Ok(ResponsesHttpState::with_metadata(
+            Arc::new(ContinuityExecutor {
+                responses: Mutex::new(responses.into()),
+                observed,
             }),
             Arc::new(FixedMetadata),
             stored_response_authenticator()?,
@@ -4137,6 +4637,252 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn previous_response_replays_owned_history_on_the_exact_lineage() -> TestResult {
+        let store = stored_response_store()?;
+        seed_owned_stored_response(
+            &store,
+            "owned-history-response",
+            "mock-model",
+            "private first turn",
+            "private prior answer",
+        )?;
+        seed_owned_stored_response(
+            &store,
+            "wrong-model-response",
+            "other-model",
+            "private mismatched turn",
+            "private mismatched answer",
+        )?;
+        let observed = Arc::new(Mutex::new(Vec::new()));
+        let state = continuity_state(
+            vec![text_response_events(
+                "continued-history-response",
+                "continued answer",
+            )?],
+            Arc::clone(&observed),
+            Arc::clone(&store),
+        )?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+
+        let continuation = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(
+                    r#"{"model":"mock-model","input":"current turn","previous_response_id":"owned-history-response","store":true}"#,
+                ),
+        )
+        .to_request();
+        let continuation = test::call_service(&app, continuation).await;
+        assert_eq!(continuation.status(), StatusCode::OK);
+        let response: serde_json::Value =
+            serde_json::from_slice(&test::read_body(continuation).await)?;
+        assert_eq!(response["id"], "continued-history-response");
+
+        let request_json = {
+            let observations = observed.lock().map_err(|_| "continuity lock")?;
+            assert_eq!(observations.len(), 1);
+            let observation = &observations[0];
+            assert!(!observation.had_native_payload);
+            let pin = observation.pin.as_ref().ok_or("missing continuation pin")?;
+            assert_eq!(pin.kind(), ResponsesContinuationKind::StoredResponse);
+            assert_eq!(pin.lineage().route_id().as_str(), "stored-route");
+            assert_eq!(pin.lineage().credential_id().as_str(), "stored-credential");
+            assert_eq!(pin.lineage().credential_revision(), 11);
+            serde_json::to_string(&observation.request)?
+        };
+        assert!(request_json.contains("private first turn"));
+        assert!(request_json.contains("private prior answer"));
+        assert!(request_json.contains("current turn"));
+        assert!(!request_json.contains("owned-history-response"));
+
+        let durable = store
+            .get_owned(
+                &ClientKeyId::try_new("http-test-client-key")?,
+                &ResponseId::try_new("continued-history-response")?,
+                super::system_now_ms()?,
+            )?
+            .ok_or("continued response was not durably stored")?;
+        let durable_request = serde_json::to_string(durable.payload().request())?;
+        assert!(durable_request.contains("private first turn"));
+        assert!(durable_request.contains("private prior answer"));
+        assert!(durable_request.contains("current turn"));
+
+        let foreign = authorized_as(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(
+                    r#"{"model":"mock-model","input":"probe","previous_response_id":"owned-history-response"}"#,
+                ),
+            FOREIGN_TEST_CLIENT_KEY,
+        )
+        .to_request();
+        let foreign = test::call_service(&app, foreign).await;
+        assert_eq!(foreign.status(), StatusCode::NOT_FOUND);
+        assert_eq!(
+            foreign
+                .headers()
+                .get(header::CACHE_CONTROL)
+                .and_then(|value| value.to_str().ok()),
+            Some("no-store")
+        );
+        assert_eq!(observed.lock().map_err(|_| "continuity lock")?.len(), 1);
+
+        let wrong_model = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(
+                    r#"{"model":"mock-model","input":"probe","previous_response_id":"wrong-model-response"}"#,
+                ),
+        )
+        .to_request();
+        let wrong_model = test::call_service(&app, wrong_model).await;
+        assert_eq!(wrong_model.status(), StatusCode::CONFLICT);
+        assert_eq!(
+            wrong_model
+                .headers()
+                .get(header::CACHE_CONTROL)
+                .and_then(|value| value.to_str().ok()),
+            Some("no-store")
+        );
+        assert_eq!(observed.lock().map_err(|_| "continuity lock")?.len(), 1);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn compaction_is_owner_exact_encrypted_and_locally_replayed() -> TestResult {
+        let store = stored_response_store()?;
+        seed_owned_stored_response(
+            &store,
+            "compact-source-response",
+            "mock-model",
+            "private source prompt",
+            "private source answer",
+        )?;
+        let observed = Arc::new(Mutex::new(Vec::new()));
+        let state = continuity_state(
+            vec![
+                text_response_events("compact-summary-response", "private compact summary")?,
+                text_response_events("compact-followup-response", "followup answer")?,
+            ],
+            Arc::clone(&observed),
+            Arc::clone(&store),
+        )?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+
+        let compact = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses/compact")
+                .set_payload(
+                    r#"{"model":"mock-model","previous_response_id":"compact-source-response","stream":false}"#,
+                ),
+        )
+        .to_request();
+        let compact = test::call_service(&app, compact).await;
+        assert_eq!(compact.status(), StatusCode::OK);
+        assert_eq!(
+            compact
+                .headers()
+                .get(header::CACHE_CONTROL)
+                .and_then(|value| value.to_str().ok()),
+            Some("no-store")
+        );
+        let compact_body = test::read_body(compact).await;
+        let compact_json: serde_json::Value = serde_json::from_slice(&compact_body)?;
+        assert_eq!(compact_json["output"][0]["type"], "compaction");
+        assert_eq!(compact_json["output"][0]["created_by"], "cpar");
+        let token = compact_json["output"][0]["encrypted_content"]
+            .as_str()
+            .ok_or("missing compact locator")?
+            .to_owned();
+        assert!(token.starts_with(super::STORED_RESPONSE_COMPACTION_PREFIX));
+        let public_body = String::from_utf8(compact_body.to_vec())?;
+        for forbidden in [
+            "private compact summary",
+            "private source prompt",
+            "private source answer",
+            "stored-credential",
+            "stored-provider",
+        ] {
+            assert!(!public_body.contains(forbidden));
+        }
+
+        let foreign_body = serde_json::json!({
+            "model": "mock-model",
+            "input": [
+                {
+                    "type": "compaction",
+                    "encrypted_content": token,
+                    "created_by": "cpar"
+                },
+                {"role": "user", "content": "foreign probe"}
+            ]
+        })
+        .to_string();
+        let foreign = authorized_as(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(foreign_body),
+            FOREIGN_TEST_CLIENT_KEY,
+        )
+        .to_request();
+        assert_eq!(
+            test::call_service(&app, foreign).await.status(),
+            StatusCode::NOT_FOUND
+        );
+        assert_eq!(observed.lock().map_err(|_| "continuity lock")?.len(), 1);
+
+        let continuation_body = serde_json::json!({
+            "model": "mock-model",
+            "input": [
+                {
+                    "type": "compaction",
+                    "id": compact_json["output"][0]["id"],
+                    "encrypted_content": token,
+                    "created_by": "cpar"
+                },
+                {"role": "user", "content": "continue from summary"}
+            ]
+        })
+        .to_string();
+        let continuation = authorized(
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .set_payload(continuation_body),
+        )
+        .to_request();
+        let continuation = test::call_service(&app, continuation).await;
+        assert_eq!(continuation.status(), StatusCode::OK);
+
+        let observations = observed.lock().map_err(|_| "continuity lock")?;
+        assert_eq!(observations.len(), 2);
+        for observation in observations.iter() {
+            assert!(!observation.had_native_payload);
+            assert_eq!(
+                observation.pin.as_ref().map(ResponsesContinuationPin::kind),
+                Some(ResponsesContinuationKind::Compaction)
+            );
+        }
+        let summary_request = serde_json::to_string(&observations[0].request)?;
+        assert!(summary_request.contains("private source prompt"));
+        assert!(summary_request.contains("private source answer"));
+        let continued_request = serde_json::to_string(&observations[1].request)?;
+        assert!(continued_request.contains("private compact summary"));
+        assert!(continued_request.contains("continue from summary"));
+        assert!(!continued_request.contains("cpar_compact_v1"));
+        Ok(())
+    }
+
+    #[actix_web::test]
     async fn stored_sse_waits_for_success_and_stream_error_is_not_retrievable() -> TestResult {
         let successful_store = stored_response_store()?;
         let successful_state = stored_response_state(
@@ -4334,6 +5080,67 @@ mod tests {
     struct StoredResponsesExecutor {
         events: Vec<CanonicalEvent>,
         observed_native: Arc<Mutex<Vec<serde_json::Value>>>,
+    }
+
+    #[derive(Clone)]
+    struct ContinuityObservation {
+        request: CanonicalRequest,
+        pin: Option<ResponsesContinuationPin>,
+        had_native_payload: bool,
+    }
+
+    struct ContinuityExecutor {
+        responses: Mutex<VecDeque<Vec<CanonicalEvent>>>,
+        observed: Arc<Mutex<Vec<ContinuityObservation>>>,
+    }
+
+    impl ResponsesExecutor for ContinuityExecutor {
+        fn supports_stored_response_lineage(&self) -> bool {
+            true
+        }
+
+        fn supports_stored_response_continuity(&self) -> bool {
+            true
+        }
+
+        fn execute(
+            &self,
+            _context: RequestContext,
+            _request: CanonicalRequest,
+        ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
+            Box::pin(async { Err(super::internal_error()) })
+        }
+
+        fn execute_routed(
+            &self,
+            execution: ResponsesExecution,
+        ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
+            let result = (|| {
+                if let (Some(recorder), Some(pin)) =
+                    (execution.lineage_recorder(), execution.continuation_pin())
+                {
+                    recorder.record(pin.lineage().clone())?;
+                }
+                self.observed
+                    .lock()
+                    .map_err(|_| super::internal_error())?
+                    .push(ContinuityObservation {
+                        request: execution.request().clone(),
+                        pin: execution.continuation_pin().cloned(),
+                        had_native_payload: execution.native_payload().is_some(),
+                    });
+                let events = self
+                    .responses
+                    .lock()
+                    .map_err(|_| super::internal_error())?
+                    .pop_front()
+                    .ok_or_else(super::internal_error)?;
+                Ok(Box::new(FiniteResponsesSource {
+                    events: events.into(),
+                }) as Box<dyn ResponsesEventSource>)
+            })();
+            Box::pin(async move { result })
+        }
     }
 
     impl ResponsesExecutor for StoredResponsesExecutor {
