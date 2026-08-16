@@ -1,6 +1,6 @@
 # ADR-0088: Protected single-request Channel Pin diagnostic execution
 
-Status: **Accepted — local implementation and review complete; P13 phase gate pending**
+Status: **Accepted — formally gated with explicit Provider and production boundaries**
 
 ## Context
 

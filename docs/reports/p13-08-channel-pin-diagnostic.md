@@ -1,6 +1,6 @@
 # P13-08 Channel Pin diagnostic report
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Objective
 
@@ -93,11 +93,15 @@ receipt state closure and pre-send audit ordering were reconciled.
 7. If OpenAPI changes, did the commit synchronize Prism and leave a precise
    Claude Code handoff in `docs/cross-boundary-log.md`?
 
-## Acceptance status
+## Formal closeout
 
-The local implementation slice is `LOCAL_PASS_PENDING_PHASE_GATE`. It does not
-claim native Grok Console/Web support, a real Provider call, production/staging
-behavior, a full runtime transport E2E canary, or a formal P13 Delivery Gate.
-The native one-shot adapter boundary is an explicit follow-up task rather than
-an implicit retry exception. No production, staging, server or active Config
-Version state changed during this local acceptance.
+The exact P13-08 closeout commit `7e14a2733c461d04198a6413efda420a03545eea` is fixed by annotated
+tag `phase-p13-channel-pin-complete`. Formal Delivery Gate run
+[31928169486](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31928169486)
+passed Authorize, Fast, Full supply-chain and Required in 5s, 6m55s, 1m9s and 2s respectively,
+following the accepted 43/43 local Full preflight and phase review.
+
+P13-08 is `DONE_WITH_BOUNDARY`. It does not claim native Grok Console/Web support, a real Provider
+call, production/staging behavior or a full runtime transport E2E canary. The native one-shot
+adapter boundary is an explicit follow-up task rather than an implicit retry exception. No
+production, staging, server or active Config Version state changed during acceptance.

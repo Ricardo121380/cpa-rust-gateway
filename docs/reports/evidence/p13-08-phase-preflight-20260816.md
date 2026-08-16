@@ -1,6 +1,6 @@
 # P13-08 Channel Pin phase preflight receipt — 2026-08-16
 
-Status: `READY_FOR_FORMAL_DELIVERY_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Scope
 
@@ -25,8 +25,9 @@ server/DNS/Caddy mutation, credential refresh/reauth, proxy-pool fallback, P13-0
 - Channel Pin implementation commit: `b6a7085ed69144f395d3b5579541844fabf424e9`
 - Full-gate corrective commit: `04a8d315750ae2eb08a3f7d6f4fd72efbb101144`
 - Formal tag target: `phase-p13-channel-pin-complete`
-- Exact closeout commit: pending the receipt commit
-- Formal Delivery Gate: pending the single annotated-tag event
+- Exact closeout commit: `7e14a2733c461d04198a6413efda420a03545eea`
+- Formal Delivery Gate: GitHub Actions run
+  [31928169486](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31928169486)
 
 The four pre-existing untracked helper files remain outside the candidate.
 
@@ -83,12 +84,26 @@ The focused P13-08 matrix remains upstream 32, router 134, gateway 105,
 management HTTP/OpenAPI/security 19 and Grok one-shot regression 4, followed by the aggregate
 43-step Full pass above.
 
-## Formal Delivery Gate boundary
+## Formal Delivery Gate result
 
-Only the immutable annotated tag `phase-p13-channel-pin-complete` may trigger the P13-08 formal
-Delivery Gate. The branch and tag must first resolve to the exact receipt commit, and the single
-Authorize, Fast, Full supply-chain and Required job chain must all succeed before P13-08 is changed
-to `DONE_WITH_BOUNDARY`.
+The single annotated-tag event for `phase-p13-channel-pin-complete` triggered formal run
+[31928169486](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31928169486)
+against exact commit `7e14a2733c461d04198a6413efda420a03545eea`.
 
-No Provider request, credential operation, server mutation, production/staging traffic or later
-P13 feature is authorized by this receipt.
+| Job | Result | Duration |
+|---|---|---:|
+| Authorize | `success` | 5s |
+| Fast | `success` | 6m55s |
+| Full supply-chain | `success` | 1m9s |
+| Required | `success` | 2s |
+
+The only workflow annotations were non-blocking GitHub Node.js 20 deprecation notices for the
+pinned `actions/checkout` and `actions/cache` actions, which GitHub forced to Node.js 24. They did
+not change the successful result and did not authorize an action-version change during closeout.
+
+## Accepted closeout boundary
+
+The local Full preflight passed all 43 steps and the exact immutable closeout commit passed all four
+formal Delivery Gate jobs. P13-08 therefore closes as `DONE_WITH_BOUNDARY`. No Provider request,
+credential operation, server mutation, production/staging traffic or later P13 feature is proved or
+authorized by this receipt.

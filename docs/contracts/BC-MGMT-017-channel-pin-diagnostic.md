@@ -1,6 +1,6 @@
 # BC-MGMT-017: Protected single-request Channel Pin diagnostic
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Scope and entry point
 
