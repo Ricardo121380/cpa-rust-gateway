@@ -19,7 +19,9 @@ probe or recovery, Autoreg operations, or a production rollout.
 
 - Branch: `codex/p13-10-websocket`
 - Exact local implementation commit: `fafb34a38af33b798915d922ca035a5e32f7c9e8`
-- Candidate phase tag (not created): `phase-p13-egress-complete`
+- Candidate phase tag (not created): `phase-p13-egress-complete`; its target must be the exact
+  pushed HEAD that contains this receipt and the accompanying phase review, not the implementation
+  commit alone.
 - Host: `Darwin 25.2.0 arm64`
 - Pre-existing untracked helper files: preserved outside the candidate and not staged.
 
