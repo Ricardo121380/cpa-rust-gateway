@@ -4,11 +4,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 计划版本 | `v1.281` |
+| 计划版本 | `v1.282` |
 | 生效日期 | `2026-08-16` |
 | 状态 | `Locked for execution` |
 | 当前阶段 | `P1` 至 `P6`、P9、P10、P11 与 CPAR 侧 P12 已完成（P12 为 `DONE_WITH_BOUNDARY`）；P13-04、P13-05、P13-06A/B/C、P13-07A/B/C/D、P13-08、P13-09A/B/C 与 P13-10A 均已通过对应正式 Delivery Gate 并以 `DONE_WITH_BOUNDARY` 收口。P13 umbrella 因后续独立 backlog 继续 `IN_PROGRESS`。P7 Kiro OAuth、P8 Official API-key E2E 与 Grok Web 外部 egress 边界仍延后。Autoreg 注册、SSO/OAuth、refresh、账号权益和 replenishment 不属于 CPAR/P12；CPAR 自身的 credential pool Health/Quota/Circuit、lease、cooldown、failure feedback 和调度仍属于 CPAR，按 `CR-P12-AUTOREG-SEPARATION-001/002` 解释。 |
-| 当前任务 | `P13-08/P13-10 DONE_WITH_BOUNDARY`：Channel Pin retrospective exact tag run 31928169486 与公共 Responses WebSocket run 31926927914 均已通过。下一候选为 P13-11 Provider-specific Egress/Proxy Pool，但其仍为条件性 `DEFERRED`，本次没有自动启动任何新 Task。P12 后续只处理“已提供凭证进入 CPAR 后的导入、绑定、运行时账号池健康与反代”；Autoreg 账号生成/修复/refresh 不再作为 P12 待办。 |
+| 当前任务 | `P13-08/P13-10 DONE_WITH_BOUNDARY`：Channel Pin retrospective exact tag run 31928169486 与公共 Responses WebSocket run 31926927914 均已通过。按 [`CR-P13-11-GENERIC-ENDPOINT-EGRESS-001`](change-requests/CR-P13-11-GENERIC-ENDPOINT-EGRESS-001.md) 启动 `P13-11A Generic Compatible Endpoint Egress Foundation`：Krill、CPA relay、Sub2API relay 和自定义 `base_url + api_key` 都按同一通用端点模型处理；先完成本地 typed profile 与现有 URL/SSRF policy 复用，不调用 Provider/网络，不启动 Web clearance 或真实代理池。P12 后续只处理“已提供凭证进入 CPAR 后的导入、绑定、运行时账号池健康与反代”；Autoreg 账号生成/修复/refresh 不再作为 P12 待办。 |
 | 本次计划变更（2026-08-16，CR-P12-AUTOREG-SEPARATION-001/002） | 用户明确 Autoreg 与 CPAR 是两个完全独立的项目，并补充澄清“账号健康”分为两层：Autoreg 负责注册、SSO/OAuth、refresh、账号权益和 replenishment；CPAR/P12 负责外部凭证导入后的 Provider/Channel/Route 绑定、credential pool Health/Quota/Circuit、lease、cooldown、failure feedback、调度和公共 Base URL + client key 反代。CPAR 可参考 grok2api 的账号池行为，但不接管账号注册或修复，也不依赖 Autoreg 数据库/HTTP/browser/scheduler。历史 P12-10I receipt 保留为事实并区分账号源、CPAR runtime pool、import 和 public proxy 结果。详见 [CR-P12-AUTOREG-SEPARATION-001](change-requests/CR-P12-AUTOREG-SEPARATION-001.md) 与 [CR-P12-AUTOREG-SEPARATION-002](change-requests/CR-P12-AUTOREG-SEPARATION-002.md)。 |
 | 本次计划变更（2026-08-16，P13-09） | 按用户批准启动 P13-09，并拆分为三个可独立 review 的安全切片：A 先建立独立 AEAD stored-response namespace、exact Client Key owner、TTL/GC/restart；B 再启用 opt-in `store:true` 与 `GET/DELETE /v1/responses/{id}`，证明 JSON/SSE 成功终态的持久化时序；C 最后实现 `previous_response_id` 与 `/v1/responses/compact`，要求显式 Provider capability 和原 Provider/Channel/Credential lineage，不允许跨账号或跨 Provider fallback。A 不改变公开 decoder、OpenAPI/Prism、serving graph、生产/staging 或 Provider traffic。 |
 | 已批准变更（2026-08-10） | `CR-EXEC-008` 语义澄清：仅降低昂贵 Fast/Full/supply-chain/release evidence 的默认运行频率，不限制 branch、push、PR update/review/rebase/merge；本轮已另开并实现 workflow 解耦，轻量 PR gate 与 tag/manual/closeout-label Delivery Gate 分离。`CR-P12-AUTOREG-MIGRATE-001`：Autoreg Oracle successor 已完成 staged/health、单账号 registration 与 dedicated file-sink 验证；本轮按 operator 批准完成 CPAR 显式 provider-binding/import、真实公网 Build 与 Console canary、Oracle 单活与 Jakarta fencing，保留 rollback window。`CR-P12-AUTOREG-CONSOLE-001`：Console SSO 仅通过 strict Oracle source adapter、same-batch native probe 和真实公共 CPAR 六元组后保留生产批次；scheduler/reauth 仍单独受控。 |
@@ -3558,7 +3558,7 @@ operator actions/失败反馈、批量 refresh/reauth、路由负载策略、Pro
 | P13-08 | 管理调试用单请求 Channel Pin：operator 明确指定 Provider/Channel/Route/Credential/JSON 或 SSE，仅一条请求，返回 value-free receipt；不得成为公开用户 API 或绕过正常 auth/egress | P13-04、P13-06 | generic Chat/Responses/Messages 的单请求/首败/无重试/无跨 Provider fallback、cursor-free exact credential lease、upstream sent/not-sent、pre-send audit、bounded drain、OpenAPI/Prism sync、43/43 Full、独立 review 与 exact tagged Gate 31928169486；native adapters/真实 Provider 仍显式延期 | DONE |
 | P13-09 | Responses stored response 查询与 `compact`：A 已完成独立 AEAD store/owner/TTL/GC/restart；B 已完成 gateway-owned `store:true` 与 `GET/DELETE /v1/responses/{id}`；C 已完成 `previous_response_id` 与 `/v1/responses/compact` 的 exact Provider/account continuity 和客户端协议投影 | P12-08 Responses baseline、P13-04 | request ownership、TTL/GC、重启恢复、tool/reasoning/usage/stop 语义、未拥有 ID fail closed、JSON/SSE 回归；A/B/C 本地 review、aggregate Full 43/43 与 exact tagged Gate 31922870604 全部通过 | DONE |
 | P13-10 | 公共 WebSocket 数据面：A 片实现 OpenAI Responses `GET /v1/responses` upgrade，复用现有 Client Key/Canonical/runtime lease/stored continuity；显式 capability、有界 backpressure/fragment/message/deadline/close/cancel；Realtime、Chat/Messages WS、browser Origin 与 upstream-native WS 仍为独立后续边界 | P13-04、P13-09 | strict `response.create`、real loopback handshake/auth/origin/turn-state、JSON lifecycle、same-session exact continuity、fragment/pending/cancel、capability fail closed、HTTP/SSE 回归、aggregate Full 43/43 与 exact tagged Gate 31926927914 全部通过 | DONE |
-| P13-11 | Provider-specific Egress/Proxy Pool：参考 CPA/grok2api 的 HTTP/SOCKS、代理健康、sticky session、probe、fallback 和 Web clearance；每个 Provider 独立配置与失败域，不能将代理池做成全局隐式 fallback | P13-04、Provider 外部授权 | 代理/直连双轮廓、egress policy、SSRF/redirect/credential binding、账号-出口粘性、失败分类、隔离回滚；Web 仍需新的有效 egress 证据 | DEFERRED |
+| P13-11 | Generic compatible-endpoint + Provider-specific Egress/Proxy Pool：CPA/Sub2API/Krill/custom `base_url + api_key` 统一按端点实例建模；协议格式、凭证来源、出口、账号池 Health/Quota 和失败域分离；Grok Web clearance 仍是 Provider-specific 后续边界 | P13-04、P13-06、现有 EgressPolicy/EndpointUrl；Provider 外部授权仅在真实探针阶段需要 | P13-11A typed generic endpoint profile 已启动；后续补 runtime composition、固定 HTTP/SOCKS、Provider-scoped pool/sticky/probe/failure feedback；无全局隐式 fallback，不把 Autoreg/credential refresh 纳入 CPAR | IN_PROGRESS |
 | P13-12 | Autoreg-owned refresh/reauth/replenishment integration boundary；CPAR 不运行 Autoreg 注册、浏览器 OAuth、账号 refresh、账号健康或 replenishment scheduler。CPAR 只在收到外部凭证包后执行导入、binding、expiry 和反代验证 | 外部 Autoreg 项目交付 + 未来独立 CPAR↔Autoreg handoff contract（如确有需要） | Autoreg 自身的注册/refresh/账号池证据不计入 CPAR；CPAR 侧若新增 handoff，只验证严格 envelope、revision/CAS、过期排除、无明文日志和回滚，不接管 Autoreg 账号生命周期 | DEFERRED |
 | P13-13 | 统一 typed Media/Files/Batch 协议：Images、Image Edits、Videos、Files、异步任务和媒体缓存；不直接照搬 Grok2API 的 provider-specific JSON | P13-04、P13-09 | 统一协议/存储/TTL/大小/权限/取消/GC 设计，至少一个 Provider 的隔离 E2E；未完成协议前不加公开路由 | DEFERRED |
 | P13-14 | 额外 Provider 矩阵：Gemini、Kimi、Antigravity、Copilot 等，仅在用户确认 CPAR 需要这些渠道时加入 | P13-04、P13-06 | Provider adapter、协议能力矩阵、凭证生命周期、真实/合成 E2E 和独立 egress/回滚证据 | DEFERRED |
@@ -3592,7 +3592,7 @@ P13 任务状态以本文档为准,前端不修改上面的任务表。
 4. **P13-07 Routing（正式 Gate 收口）**：Provider scope 内 deterministic cost-aware/fill-first/least-loaded selector、Route Explain、serving exact lease revalidation 与 Config-bound 六维价格证据已由 run 31875826495 正式验收，状态 `DONE_WITH_BOUNDARY`。
 5. **P13-08 Channel Pin（正式收口）**：受保护单请求、单账号、可审计工具已由 `phase-p13-channel-pin-complete` / run 31928169486 以 `DONE_WITH_BOUNDARY` 验收；首片仍只覆盖 reviewed generic adapters 与 deterministic mock，不触发真实 Provider、生产/staging 或公开用户 API。
 6. **P13-09 Responses retrieval/compact（正式 Gate 收口）**：P13-09A/B/C 的 AEAD owner/TTL/GC/restart、opt-in store + GET/DELETE、exact continuity/compact 已由 run 31922870604 正式验收，状态 `DONE_WITH_BOUNDARY`。
-7. **P13-11 Egress/Proxy Pool 与 P13-12 自动 reauth（条件性高优先级）**：只有在继续推进 Grok Web 或需要无人值守账号供给时启动；它们受外部出口和账号授权约束，不能阻塞管理面和计费后端。
+7. **P13-11 Egress/Proxy Pool（当前执行 P13-11A）与 P13-12 自动 reauth（独立延期）**：P13-11A 先统一 generic compatible endpoint (`base_url + api_key`/CPA/Sub2API/Krill/custom relay) 的 typed egress binding；随后再做 Provider-scoped runtime pool/sticky/probe。P13-12 仍属于 Autoreg-owned external dependency，不在当前 CPAR 实施范围；两者都不能引入跨 Provider 隐式 fallback。
 8. **P13-10 WebSocket（A 片已正式收口）**：OpenAI Responses 公共 WebSocket 已复用现有 Canonical/连续性/Provider capability，并由 `phase-p13-websocket-complete` / run 31926927914 验收为 `DONE_WITH_BOUNDARY`；Provider-native upstream WS 与其他协议 WS 不随手扩展。P13-13 Media、P13-14 更多 Provider 仍按独立需求追加。
 
 能力按 Provider 定义，而不是把 CPA/grok2api 的所有能力全局化：例如 Web 可以使用绑定的代理池和浏览器出口，Codex 官方 OAuth 使用官方 endpoint，Grok Build/Console 使用各自 native pool，Krill 保持独立 upstream/credential/egress。任何 Provider 失败都不能静默借用其他 Provider 的凭证或代理。
@@ -3828,6 +3828,21 @@ P13 任务状态以本文档为准,前端不修改上面的任务表。
 | 交付物 | [ADR-0092](adr/ADR-0092-public-responses-websocket.md)、[BC-RESP-004](contracts/BC-RESP-004-public-responses-websocket.md)、[P13-10A report](reports/p13-10a-public-responses-websocket.md)、[cross-boundary log](cross-boundary-log.md)；management OpenAPI/Prism unchanged |
 | 状态 | `DONE_WITH_BOUNDARY`；protocol 30、catalog 15、router 138、gateway 106、HTTP 65、aggregate Full 43/43 与 phase review 均通过；exact `phase-p13-websocket-complete` / `dc48ec40e4fb38961925f203bf3cd0f7434a34a0` / run 31926927914 的正式 Delivery Gate 全部通过；不宣称 Provider-native WS、真实 Provider、production/staging |
 
+### 19.19 P13-11A Task Card
+
+| 字段 | 固定值 |
+|---|---|
+| 范围等级 / 预算 | `M`；建立 generic compatible-endpoint egress profile 的本地 typed foundation；只运行 `gateway-upstream` focused tests/Clippy/fmt/docs review，不运行 Provider、真实代理探针或正式 P13 Delivery Gate |
+| 统一端点模型 | CPA JSON、Sub2API JSON、直接 OAuth、plain API-key 与名为 Krill 的 relay 都是 credential source/endpoint instance metadata；统一绑定 `UpstreamId + EndpointId + CredentialId + protocol + EgressPolicyId`，名称不改变 transport 行为 |
+| 输出 | `gateway-upstream::CompatibleEndpointEgressProfile`；`Direct`、`FixedProxy`、`ProxyPool` 三种 target；`Endpoint/Credential/EgressNode` failure scope；`None/Credential/CredentialAndEgress` stickiness；仅提交前 1..=3 total-attempt retry |
+| 复用边界 | 静态 target 检查必须复用现有 `EndpointUrl` 与 `EgressPolicy`；实际 DNS pin、SOCKS/HTTP transport、pool node selection、Health/Quota mutation、lease、Provider adapter 和 persistence 留给 P13-11B/C |
+| Provider 隔离 | profile 不含 fallback list；不会跨 Provider/channel/credential 借用代理或凭证；credential source label 不触发 CPA/Sub2API/Krill 特殊分支；Grok Web browser/clearance 仍需单独 capability 与有效外部 egress evidence |
+| 安全边界 | 无 URL、API key、OAuth/SSO、Cookie、Header、proxy secret、body 或 upstream response；无 Store/Autoreg/Provider/network/server/production mutation；不改 management OpenAPI/Prism/frontend |
+| 定向验收 | relay-name neutrality；CPA/Sub2API metadata neutrality；exact ownership；URL/SSRF policy reuse；retry/stickiness/failure-scope closed validation；bounded labels；secret-free Debug/error；strict Clippy/fmt/diff/docs |
+| 交付物 | [ADR-0093](adr/ADR-0093-generic-compatible-endpoint-egress.md)、[BC-SEC-005](contracts/BC-SEC-005-generic-compatible-endpoint-egress.md)、[P13-11A report](reports/p13-11a-generic-compatible-endpoint-egress.md) |
+| 状态 | `LOCAL_PASS_PENDING_PHASE_GATE`；P13-11 parent remains `IN_PROGRESS` until runtime pool composition and later Provider-specific slices are complete |
+| 下一片 | P13-11B：将 profile 与 active Config Version、existing EndpointCredentialPools、egress transport profiles 和 Provider-scoped runtime Health/Quota 组合；仍先做本地 deterministic pool/lease/failure tests，再决定是否授权真实 egress probe |
+
 ## 20. 测试体系
 
 ### 20.1 测试层级
@@ -3949,10 +3964,11 @@ Next task:
 
 ## 25. 计划变更记录
 
-> 当前版本置顶变更：`v1.281`（2026-08-16）见下方第一行；历史版本保持原样。
+> 当前版本置顶变更：`v1.282`（2026-08-16）见下方第一行；历史版本保持原样。
 
 | 版本 | 日期 | 变化 | 批准状态 |
 |---|---|---|---|
+| v1.282 | 2026-08-16 | `CR-P13-11-GENERIC-ENDPOINT-EGRESS-001`：按用户澄清启动 P13-11A；Krill 不是特殊渠道，而是“任意兼容端点 `base_url + api_key`”的一个实例。CPA JSON、Sub2API JSON、直接 OAuth、plain API-key 和自定义 relay 统一按 exact Upstream/Endpoint/Credential binding 建模。新增 `gateway-upstream::CompatibleEndpointEgressProfile`，闭合 Direct/FixedProxy/ProxyPool、Endpoint/Credential/EgressNode failure scope、credential/credential+egress stickiness 与仅提交前 1..=3 次重试；复用 `EndpointUrl`/`EgressPolicy`，不调用 Provider/网络、不接管 Autoreg、不改管理 OpenAPI/Prism/frontend/生产。P13-11 parent 进入 `IN_PROGRESS`，P13-11B 的 runtime pool composition 与真实 egress probe 仍未启动 | `APPROVED_SCOPE_CLARIFICATION`；P13-11A `LOCAL_PASS_PENDING_PHASE_GATE` |
 | v1.281 | 2026-08-16 | `CR-P12-AUTOREG-SEPARATION-002`：澄清“账号健康”不是单一归属。Autoreg 负责账号源生命周期（注册、登录、SSO/OAuth、refresh、权益和 replenishment）；CPAR 仍必须独立维护已导入 credential pool 的 Health/Quota/Circuit、available/cooling/unauthorized/expired、lease、capacity、cooldown、failure feedback、调度和恢复。P12-10D 的 `refresh_due`/`reauth_required` 仅是 CPAR 的待处理状态，不代表 CPAR 执行账号 refresh；替换凭证由 Autoreg 外部交付。CPAR 可参考 grok2api 的账号池行为，但不依赖 Autoreg/grok2api 的数据库、HTTP、浏览器或 worker，也不负责注册或修复账号；历史报告新增 `CPAR_RUNTIME_POOL_STATE` 分类 | `APPROVED_SCOPE_CLARIFICATION` |
 | v1.280 | 2026-08-16 | `CR-P12-AUTOREG-SEPARATION-001`：Autoreg 与 CPAR 明确为两个完全独立的项目。Autoreg 负责注册、SSO/OAuth、refresh、账号权益/健康、replenishment、任务队列和 scheduler；CPAR/P12 只负责接收外部凭证包后的严格导入、Provider/Channel/Route binding、lease/Health/Quota、CPAR Base URL + client key 反代、错误分类和 rollback。历史 P12-10I 的账号注册/转换/refresh 失败 receipt 保留为事实，但不再计为 P12 的 CPAR 开发缺陷；P12-10H 全池 Console sweep 的外部阻塞与 P12-10I-22/I-24 的单账号 CPAR Console 成功分别标记，避免混淆。P13-12 改为 Autoreg-owned external dependency，非当前 CPAR 实施任务；不修改 Provider 代码、管理 OpenAPI/Prism、前端或生产配置 | `APPROVED_SCOPE_BOUNDARY` |
 | v1.0 | 2026-07-18 | 建立 Release 1 全阶段、任务、Gate、测试、安全、Git、灰度和变更控制基线 | 当前执行基线 |

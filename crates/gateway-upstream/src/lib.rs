@@ -2,6 +2,8 @@
 
 #![deny(unsafe_code)]
 
+/// Provider-neutral egress profile for generic compatible endpoints.
+pub mod compatible_egress;
 /// Bounded Endpoint Credential pools and automatically released runtime leases.
 pub mod credential_pool;
 /// Immutable outbound URL admission and DNS-pinning policy.
@@ -11,6 +13,11 @@ pub mod endpoint_url;
 /// Bounded DNS-pinned shared HTTP client transport.
 pub mod upstream_client;
 
+pub use compatible_egress::{
+    CompatibleEgressError, CompatibleEgressTarget, CompatibleEndpointEgressInput,
+    CompatibleEndpointEgressProfile, CompatibleFailureScope, CompatibleRetryPolicy,
+    CompatibleStickiness, MAX_COMPATIBLE_EGRESS_LABEL_LENGTH, MAX_COMPATIBLE_PRE_SUBMIT_ATTEMPTS,
+};
 pub use credential_pool::{
     CredentialLease, CredentialPoolBuildError, CredentialPoolEntrySnapshot, CredentialSecret,
     EndpointCredentialInput, EndpointCredentialPool, EndpointCredentialPools,
