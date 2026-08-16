@@ -1,6 +1,6 @@
 # P13-09B stored Response public lifecycle report
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 Date: 2026-08-16
 
@@ -77,3 +77,13 @@ resource-bound, or secret-exposure issue was found in P13-09B.
 - No existing untracked helper was modified or staged.
 - No Provider, deployment, production/staging/server, management OpenAPI/Prism, or expensive
   GitHub Delivery Gate action was performed.
+
+## Aggregate formal acceptance
+
+P13-09B was included without broadening its public lifecycle scope in annotated tag
+`phase-p13-responses-complete` at exact commit
+`d419c4678bd2ff563046849cef800c1985d48688`. GitHub Actions run
+[31922870604](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31922870604)
+passed Authorize, Fast, Full supply-chain and Required in `2s` / `6m10s` / `59s` / `3s`.
+Together with the aggregate local Full `43/43`, this closes P13-09B as `DONE_WITH_BOUNDARY`; it
+does not claim a real Provider or production stored-response execution.

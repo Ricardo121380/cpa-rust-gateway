@@ -1,6 +1,6 @@
 # P13-09 stored Responses phase preflight receipt — 2026-08-16
 
-Status: `READY_FOR_FORMAL_DELIVERY_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Scope
 
@@ -22,11 +22,12 @@ reauth, public WebSocket work, a management OpenAPI/Prism change, or P13-10 impl
 - Branch: `codex/p13-09-stored-responses`
 - Reviewed implementation commit: `020aa61055f904f6210b7521252b23d4a503f3a3`
 - Formal tag target: `phase-p13-responses-complete`
-- Exact closeout commit: the immutable commit containing this receipt and the phase review; it must
-  be recorded after the commit is created and before the tag is pushed.
+- Exact closeout commit: `d419c4678bd2ff563046849cef800c1985d48688`
+- Formal Delivery Gate: GitHub Actions run
+  [31922870604](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31922870604)
 
-The four pre-existing untracked helper files remain outside the candidate. The formal tag must be
-created once and must not be moved or recreated.
+The four pre-existing untracked helper files remained outside the candidate. The annotated tag
+resolves to the exact closeout commit above; it was created once and was not moved or recreated.
 
 ## Authoritative local preflight
 
@@ -59,21 +60,30 @@ remained ignored; they are not counted as P13-09 success evidence.
 
 | Slice | Evidence | Local state |
 |---|---|---|
-| P13-09A | `p13-09a-stored-response-foundation.md`, ADR-0089, BC-RESP-001 | `LOCAL_PASS_PENDING_PHASE_GATE` |
-| P13-09B | `p13-09b-stored-response-public-lifecycle.md`, ADR-0090, BC-RESP-002 | `LOCAL_PASS_PENDING_PHASE_GATE` |
-| P13-09C | `p13-09c-exact-continuity-and-compaction.md`, ADR-0091, BC-RESP-003 | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| P13-09A | `p13-09a-stored-response-foundation.md`, ADR-0089, BC-RESP-001 | `DONE_WITH_BOUNDARY` |
+| P13-09B | `p13-09b-stored-response-public-lifecycle.md`, ADR-0090, BC-RESP-002 | `DONE_WITH_BOUNDARY` |
+| P13-09C | `p13-09c-exact-continuity-and-compaction.md`, ADR-0091, BC-RESP-003 | `DONE_WITH_BOUNDARY` |
 
-## Formal Delivery Gate target
+## Formal Delivery Gate result
 
-The only remaining P13-09 closeout action is one annotated-tag Delivery Gate for
-`phase-p13-responses-complete`. The tag must resolve to the exact pushed closeout commit containing
-this receipt and the phase review. Authorize, Fast, Full supply-chain and Required must all pass
-before any P13-09 slice or aggregate status is changed to `DONE_WITH_BOUNDARY`.
+The single annotated-tag event for `phase-p13-responses-complete` triggered formal run
+[31922870604](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31922870604)
+against exact commit `d419c4678bd2ff563046849cef800c1985d48688`.
+
+| Job | Result | Duration |
+|---|---|---:|
+| Authorize | `success` | 2s |
+| Fast | `success` | 6m10s |
+| Full supply-chain | `success` | 59s |
+| Required | `success` | 3s |
+
+The only workflow annotations were non-blocking GitHub Node.js 20 deprecation notices for the
+pinned `actions/checkout` and `actions/cache` actions, which GitHub forced to Node.js 24. They did
+not change the successful result and did not authorize an action-version change during closeout.
 
 ## Accepted preflight boundary
 
-The local Full preflight proves deterministic code, contract, migration, security and
-supply-chain checks on the reviewed local candidate. It does not prove a real Provider supports a
-given stored-response capability, nor does it deploy or mutate CPAR on a server. P13-10 remains
-blocked until the single formal tagged Gate succeeds and the exact run is reconciled into the
-phase evidence.
+The local Full preflight passed all 43 steps and the exact immutable closeout commit passed all four
+formal Delivery Gate jobs. P13-09 therefore closes as `DONE_WITH_BOUNDARY`. It does not prove a
+real Provider currently supports a declared stored-response capability, nor did it deploy or
+mutate CPAR on a server. P13-10 remains a separate deferred task and was not started by this Gate.

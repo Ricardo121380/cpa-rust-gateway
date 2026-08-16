@@ -1,6 +1,6 @@
 # ADR-0091: Exact stored Response continuity and gateway-owned compaction
 
-Status: Accepted — `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: Accepted — formally gated by `phase-p13-responses-complete` / `d419c4678bd2ff563046849cef800c1985d48688` / run `31922870604`
 
 Date: 2026-08-16
 

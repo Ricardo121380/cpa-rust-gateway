@@ -1,6 +1,6 @@
 # P13-09A stored Response foundation report
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 Date: 2026-08-16
 
@@ -59,3 +59,13 @@ remaining P1/P2 issue was found in the A slice.
 - Provider capability admission, exact-account continuation, and compact remain P13-09C.
 - No Provider, server, production/staging, public traffic, GitHub Delivery Gate, or existing untracked
   helper was touched.
+
+## Aggregate formal acceptance
+
+P13-09A was included without broadening its storage-only scope in annotated tag
+`phase-p13-responses-complete` at exact commit
+`d419c4678bd2ff563046849cef800c1985d48688`. GitHub Actions run
+[31922870604](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31922870604)
+passed Authorize, Fast, Full supply-chain and Required in `2s` / `6m10s` / `59s` / `3s`.
+Together with the aggregate local Full `43/43`, this closes P13-09A as `DONE_WITH_BOUNDARY` while
+retaining the no-Provider/no-deployment boundary above.

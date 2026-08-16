@@ -1,6 +1,6 @@
 # BC-RESP-001: Client-owned stored Response foundation
 
-Status: `P13-09A LOCAL_PASS_PENDING_PHASE_GATE`; P13-09B/C public operations are not yet enabled
+Status: `P13-09A DONE_WITH_BOUNDARY`; aggregate formal Gate `31922870604` passed
 
 ## Scope
 

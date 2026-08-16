@@ -1,6 +1,6 @@
 # BC-RESP-002: Stored Response public lifecycle
 
-Status: `P13-09B LOCAL_PASS_PENDING_PHASE_GATE`; aggregate `P13-09` remains open for continuity/compact
+Status: `P13-09B DONE_WITH_BOUNDARY`; aggregate formal Gate `31922870604` passed
 
 ## Scope
 

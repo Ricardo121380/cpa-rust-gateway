@@ -1,6 +1,6 @@
 # ADR-0089: Client-owned encrypted stored Responses
 
-Status: Accepted — `P13-09A` local implementation; aggregate `P13-09` remains `IN_PROGRESS`
+Status: Accepted — formally gated by `phase-p13-responses-complete` / `d419c4678bd2ff563046849cef800c1985d48688` / run `31922870604`
 
 Date: 2026-08-16
 

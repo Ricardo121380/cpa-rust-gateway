@@ -1,6 +1,6 @@
 # P13-09C exact continuity and compaction report
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 Date: 2026-08-16
 
@@ -77,5 +77,10 @@ staging or production compact execution.
 
 ## Boundary
 
-P13-09A/B/C are locally implemented, reviewed and covered by one aggregate Full preflight. P13-10
-must not start until the single P13-09 formal Delivery Gate closes the phase boundary.
+P13-09A/B/C are implemented, reviewed and covered by one aggregate Full preflight. Annotated tag
+`phase-p13-responses-complete` resolves to exact commit
+`d419c4678bd2ff563046849cef800c1985d48688`; formal run
+[31922870604](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31922870604)
+passed Authorize, Fast, Full supply-chain and Required in `2s` / `6m10s` / `59s` / `3s`.
+P13-09C and the aggregate therefore close as `DONE_WITH_BOUNDARY`. This Gate did not authorize or
+perform a real Provider request, staging/production deployment, server mutation or P13-10 work.
