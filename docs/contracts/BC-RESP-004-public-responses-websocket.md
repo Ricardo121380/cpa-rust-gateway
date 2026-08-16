@@ -1,6 +1,6 @@
 # BC-RESP-004: Public OpenAI Responses WebSocket
 
-Status: ACCEPTED — LOCAL_PASS_PENDING_PHASE_GATE
+Status: `P13-10A DONE_WITH_BOUNDARY`; aggregate formal Gate `31926927914` passed
 
 Owner: `gateway-http-actix` / `protocol-openai-responses` / `gateway-router` / runtime composition
 

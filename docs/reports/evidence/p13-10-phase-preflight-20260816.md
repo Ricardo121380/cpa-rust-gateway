@@ -1,6 +1,6 @@
 # P13-10 public Responses WebSocket phase preflight receipt — 2026-08-16
 
-Status: `READY_FOR_FORMAL_DELIVERY_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Scope
 
@@ -22,11 +22,12 @@ Caddy mutation, credential refresh/reauth, P13-08 formal acceptance, or P13-11 i
 - Branch: `codex/p13-10-websocket`
 - Reviewed implementation commit: `fd1e21fc398c732763108bbe12036fa3999818f0`
 - Formal tag target: `phase-p13-websocket-complete`
-- Exact closeout commit: the immutable commit containing this receipt and the phase review; it must
-  be recorded after the commit is created and before the tag is pushed.
+- Exact closeout commit: `dc48ec40e4fb38961925f203bf3cd0f7434a34a0`
+- Formal Delivery Gate: GitHub Actions run
+  [31926927914](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31926927914)
 
-The four pre-existing untracked helper files remain outside the candidate. The formal tag must be
-created once and must not be moved or recreated.
+The four pre-existing untracked helper files remained outside the candidate. The annotated tag
+resolves to the exact closeout commit above; it was created once and was not moved or recreated.
 
 ## Authoritative local preflight
 
@@ -60,19 +61,28 @@ P13-10 success evidence.
 
 | Slice | Evidence | Local state |
 |---|---|---|
-| P13-10A | `p13-10a-public-responses-websocket.md`, ADR-0092, BC-RESP-004 | `LOCAL_PASS_PENDING_PHASE_GATE` |
+| P13-10A | `p13-10a-public-responses-websocket.md`, ADR-0092, BC-RESP-004 | `DONE_WITH_BOUNDARY` |
 
-## Formal Delivery Gate target
+## Formal Delivery Gate result
 
-The only remaining P13-10 closeout action is one annotated-tag Delivery Gate for
-`phase-p13-websocket-complete`. The tag must resolve to the exact pushed closeout commit containing
-this receipt and the phase review. Authorize, Fast, Full supply-chain and Required must all pass
-before P13-10A or the aggregate is changed to `DONE_WITH_BOUNDARY`.
+The single annotated-tag event for `phase-p13-websocket-complete` triggered formal run
+[31926927914](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31926927914)
+against exact commit `dc48ec40e4fb38961925f203bf3cd0f7434a34a0`.
+
+| Job | Result | Duration |
+|---|---|---:|
+| Authorize | `success` | 4s |
+| Fast | `success` | 5m51s |
+| Full supply-chain | `success` | 1m33s |
+| Required | `success` | 3s |
+
+The only workflow annotations were non-blocking GitHub Node.js 20 deprecation notices for the
+pinned `actions/checkout` and `actions/cache` actions, which GitHub forced to Node.js 24. They did
+not change the successful result and did not authorize an action-version change during closeout.
 
 ## Accepted preflight boundary
 
-The local Full preflight proves deterministic code, protocol, resource-bound, dependency,
-security and supply-chain checks on the reviewed local candidate. It does not prove a real
-Provider's current account or upstream-native WebSocket behavior, and it does not deploy or mutate
-CPAR on a server. P13-11 remains blocked until the single formal tagged Gate succeeds and the exact
-run is reconciled into the phase evidence.
+The local Full preflight passed all 43 steps and the exact immutable closeout commit passed all four
+formal Delivery Gate jobs. P13-10 therefore closes as `DONE_WITH_BOUNDARY`. It does not prove a
+real Provider's current account or upstream-native WebSocket behavior, nor did it deploy or mutate
+CPAR on a server. P13-11 remains a separate deferred task and was not started by this Gate.

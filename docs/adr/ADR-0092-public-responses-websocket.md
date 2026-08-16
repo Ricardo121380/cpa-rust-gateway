@@ -1,6 +1,6 @@
 # ADR-0092: Public OpenAI Responses WebSocket over the Canonical execution path
 
-Status: Accepted — P13-10A local pass pending formal phase Gate
+Status: Accepted — formally gated by `phase-p13-websocket-complete` / `dc48ec40e4fb38961925f203bf3cd0f7434a34a0` / run `31926927914`
 
 Date: 2026-08-16
 

@@ -1,6 +1,6 @@
 # P13-10A Public Responses WebSocket report
 
-Status: LOCAL_PASS_PENDING_PHASE_GATE
+Status: `DONE_WITH_BOUNDARY`
 
 Date: 2026-08-16
 
@@ -57,6 +57,8 @@ Attempt, usage, stored response, and exact continuity owners. A candidate must c
 | Dependency/license/RustSec | PASS — 360 dependencies / 1216-advisory database; allowed duplicate-version warnings only |
 | Strict Clippy / fmt / docs / source / crate / secret / diff checks | PASS — 544 Markdown files, 107 contract references, 21 workspace package boundaries |
 | Final local review | PASS — no remaining P1/P2 blocker |
+| Aggregate local Full preflight | PASS — 43/43 steps, `2026-08-16T04:26:59Z` through `04:28:58Z` |
+| Formal Delivery Gate | PASS — `phase-p13-websocket-complete` @ `dc48ec40e4fb38961925f203bf3cd0f7434a34a0`; run [31926927914](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31926927914) |
 
 ## Review notes
 
@@ -77,10 +79,14 @@ Attempt, usage, stored response, and exact continuity owners. A candidate must c
   failed boundary and every remaining tail check then passed without repeating already-passed
   workspace tests.
 
-## Remaining boundary
+## Closeout boundary
 
-P13-10A is `LOCAL_PASS_PENDING_PHASE_GATE`. The local implementation, affected-package matrix,
-workspace Fast steps, supply-chain check and final review pass, but no annotated phase tag or
-formal GitHub Delivery Gate has been run for P13-10. Provider-native upstream WebSocket, browser
-support, `response.append`, and any real external validation remain separate work and are not
-implied by this report.
+Annotated tag `phase-p13-websocket-complete` resolves to exact commit
+`dc48ec40e4fb38961925f203bf3cd0f7434a34a0`; formal run
+[31926927914](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31926927914)
+passed Authorize, Fast, Full supply-chain and Required in `4s` / `5m51s` / `1m33s` / `3s`.
+P13-10A and the aggregate therefore close as `DONE_WITH_BOUNDARY`. Provider-native upstream
+WebSocket, browser support, `response.append`, Realtime, Chat/Messages WebSocket and any real
+external validation remain separate work and are not implied by this report. This Gate did not
+perform a Provider request, staging/production deployment or server mutation, and did not start
+P13-11.
