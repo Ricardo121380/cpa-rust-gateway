@@ -308,3 +308,39 @@ the UI must collect the existing Config Version and revision preconditions, neve
 provider request or expose native-adapter controls in this slice.
 Do not add arbitrary prompt/body controls, echo upstream response data, calculate retry decisions in
 the frontend, or hand-edit generated files. No formal UI implementation is included in this slice.
+
+---
+
+## 2026-08-16 · Codex · P13-10A public Responses WebSocket client surface
+
+**Touched:**
+- `README.md`
+- `apps/gateway/src/runtime.rs`
+- `crates/gateway-http-actix/src/lib.rs`
+- `crates/gateway-http-actix/src/stored_response_continuity.rs`
+- `crates/protocol-openai-responses/src/lib.rs`
+- `crates/gateway-router/src/lib.rs`
+- `crates/gateway-router/src/attempt_orchestrator.rs`
+- `crates/gateway-router/src/execution_lineage.rs`
+- `crates/gateway-router/src/protocol_transform.rs`
+- `crates/gateway-catalog/src/lib.rs`
+- `docs/01-feature-selection-matrix.md`
+- `docs/02-behavior-contracts.md`
+- `docs/adr/ADR-0092-public-responses-websocket.md`
+- `docs/contracts/BC-RESP-004-public-responses-websocket.md`
+
+No `docs/openapi/management-v1.json` or `web/prism/**` file changed.
+
+**Why:** P13-10A adds the public native-client `GET /v1/responses` WebSocket upgrade. It accepts
+strict text-only flat `response.create` events and emits the existing OpenAI Responses lifecycle as
+JSON text messages while reusing Client Key auth, Canonical execution, runtime lease, usage,
+stored-response durability and exact continuation. It is not the Realtime API. Downstream
+WebSocket is independent of upstream Provider transport and requires an explicit runtime
+`responses_websocket` capability.
+
+**Other side:** action required for documentation/client integration only — Claude Code should
+recognize that the same public base URL now supports WebSocket upgrade on `GET /v1/responses`, use a
+native client without `Origin`, and send `response.create` rather than Realtime events. Do not add
+a Prism management control, edit management generated clients, assume browser support, or expose
+`response.append`, Chat/Messages WebSocket, binary/media, or Provider-native upstream WebSocket in
+this slice. Management OpenAPI and the existing Prism API contract remain unchanged.

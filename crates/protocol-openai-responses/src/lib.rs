@@ -55,6 +55,36 @@ pub struct DecodedResponsesRequest {
     normalized_native_payload: Option<Vec<u8>>,
 }
 
+/// One strictly decoded `response.create` WebSocket message.
+///
+/// The WebSocket-only `type` member is removed before the ordinary Responses decoder runs, and
+/// `stream` is normalized to `true`. The retained native payload is therefore a valid upstream
+/// Responses body rather than a CPAR WebSocket envelope.
+#[derive(Clone, Eq, PartialEq)]
+pub struct DecodedResponsesWebSocketRequest {
+    /// The ordinary typed Responses request used by routing and Canonical conversion.
+    pub response: DecodedResponsesRequest,
+    native_payload: Vec<u8>,
+}
+
+impl DecodedResponsesWebSocketRequest {
+    /// Returns the normalized upstream Responses body without the WebSocket envelope member.
+    #[must_use]
+    pub fn native_payload(&self) -> &[u8] {
+        &self.native_payload
+    }
+}
+
+impl fmt::Debug for DecodedResponsesWebSocketRequest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("DecodedResponsesWebSocketRequest")
+            .field("response", &self.response)
+            .field("native_payload_len", &self.native_payload.len())
+            .finish()
+    }
+}
+
 impl DecodedResponsesRequest {
     /// Returns a native Responses payload with gateway-owned `store:true` normalized to false.
     ///
@@ -230,6 +260,45 @@ pub fn decode_request(input: &str) -> Result<DecodedResponsesRequest, GatewayErr
         previous_response_id,
         compaction,
         normalized_native_payload,
+    })
+}
+
+/// Decodes one complete `OpenAI` Responses WebSocket `response.create` text message.
+///
+/// `response.append`, Realtime API events, binary messages, prewarm-only `generate`, and any
+/// non-Responses event type remain outside this contract. The ordinary request decoder retains
+/// its duplicate-name, unsupported-control, continuation, and raw-extension boundaries.
+///
+/// # Errors
+///
+/// Returns `ClientRequestError/Request` for malformed JSON, duplicate names, an event type other
+/// than `response.create`, an invalid `stream` value, or an unsupported prewarm request.
+pub fn decode_websocket_request(
+    input: &str,
+) -> Result<DecodedResponsesWebSocketRequest, GatewayError> {
+    reject_duplicate_json_names(input)?;
+    let mut value: Value = serde_json::from_str(input).map_err(|_| client_request_error())?;
+    let root = object_mut(&mut value)?;
+    if root.get("type").and_then(Value::as_str) != Some("response.create")
+        || root.contains_key("generate")
+    {
+        return Err(client_request_error());
+    }
+    root.remove("type");
+    match root.get("stream") {
+        None | Some(Value::Bool(true)) => {
+            root.insert("stream".to_owned(), Value::Bool(true));
+        }
+        Some(_) => return Err(client_request_error()),
+    }
+    let normalized = serde_json::to_string(&value).map_err(|_| internal_error())?;
+    let response = decode_request(&normalized)?;
+    let native_payload = response
+        .normalized_native_payload()
+        .map_or_else(|| normalized.as_bytes().to_vec(), <[u8]>::to_vec);
+    Ok(DecodedResponsesWebSocketRequest {
+        response,
+        native_payload,
     })
 }
 
@@ -2153,8 +2222,8 @@ mod tests {
 
     use super::{
         OpenAiResponseMetadata, OpenAiResponsesSseEncoder, ResponseMode, decode_compact_request,
-        decode_request, encode_compaction_response, encode_error, encode_model_list,
-        encode_response,
+        decode_request, decode_websocket_request, encode_compaction_response, encode_error,
+        encode_model_list, encode_response,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -2279,6 +2348,29 @@ mod tests {
         assert!(!unstored.store);
         assert!(unstored.normalized_native_payload().is_none());
         assert!(decode_request(r#"{"model":"gateway-model","store":"true"}"#).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn websocket_response_create_is_strict_and_normalizes_the_upstream_body() -> TestResult {
+        let decoded = decode_websocket_request(
+            r#"{"type":"response.create","model":"gateway-model","input":"hello","store":true}"#,
+        )?;
+        assert_eq!(decoded.response.mode, ResponseMode::Streaming);
+        assert!(decoded.response.store);
+        let payload: serde_json::Value = serde_json::from_slice(decoded.native_payload())?;
+        assert_eq!(payload["stream"], true);
+        assert_eq!(payload["store"], false);
+        assert!(payload.get("type").is_none());
+
+        for invalid in [
+            r#"{"type":"response.append","model":"gateway-model"}"#,
+            r#"{"type":"response.create","model":"gateway-model","stream":false}"#,
+            r#"{"type":"response.create","model":"gateway-model","generate":false}"#,
+            r#"{"type":"response.create","type":"response.create","model":"gateway-model"}"#,
+        ] {
+            assert!(decode_websocket_request(invalid).is_err());
+        }
         Ok(())
     }
 

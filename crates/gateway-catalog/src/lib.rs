@@ -1049,6 +1049,11 @@ pub enum SemanticCapability {
     Vision,
     /// Streaming response support.
     Streaming,
+    /// Public `OpenAI` Responses WebSocket ingress may use this exact channel.
+    ///
+    /// This is a downstream transport capability. It does not claim that the Provider itself
+    /// speaks WebSocket; the runtime may still project the bounded Canonical stream from HTTP/SSE.
+    ResponsesWebSocket,
     /// Gateway-owned stored Response history may be replayed through this exact channel.
     StoredResponses,
     /// Gateway-owned Response compaction may execute through this exact channel.
@@ -1066,6 +1071,7 @@ impl SemanticCapability {
             Self::JsonSchema => "json_schema",
             Self::Vision => "vision",
             Self::Streaming => "streaming",
+            Self::ResponsesWebSocket => "responses_websocket",
             Self::StoredResponses => "stored_responses",
             Self::ResponseCompaction => "response_compaction",
         }
@@ -1081,6 +1087,7 @@ impl SemanticCapability {
             "json_schema" => Some(Self::JsonSchema),
             "vision" => Some(Self::Vision),
             "streaming" => Some(Self::Streaming),
+            "responses_websocket" => Some(Self::ResponsesWebSocket),
             "stored_responses" => Some(Self::StoredResponses),
             "response_compaction" => Some(Self::ResponseCompaction),
             _ => None,
@@ -1144,6 +1151,9 @@ impl CapabilitySet {
             if capability == SemanticCapability::StoredResponses {
                 capabilities.remove(&SemanticCapability::ResponseCompaction);
             }
+            if capability == SemanticCapability::Streaming {
+                capabilities.remove(&SemanticCapability::ResponsesWebSocket);
+            }
         }
         Self { capabilities }
     }
@@ -1182,6 +1192,11 @@ impl CapabilitySet {
             && !self.supports(SemanticCapability::StoredResponses)
         {
             return Err(CatalogViewError::ResponseCompactionRequiresStoredResponses);
+        }
+        if self.supports(SemanticCapability::ResponsesWebSocket)
+            && !self.supports(SemanticCapability::Streaming)
+        {
+            return Err(CatalogViewError::ResponsesWebSocketRequiresStreaming);
         }
         Ok(())
     }
@@ -1338,6 +1353,8 @@ pub enum CatalogViewError {
     ParallelToolsRequiresTools,
     /// Response compaction appeared without stored-response continuity.
     ResponseCompactionRequiresStoredResponses,
+    /// Responses WebSocket ingress appeared without streaming support.
+    ResponsesWebSocketRequiresStreaming,
 }
 
 impl fmt::Display for CatalogViewError {
@@ -1356,6 +1373,9 @@ impl fmt::Display for CatalogViewError {
             }
             Self::ResponseCompactionRequiresStoredResponses => {
                 formatter.write_str("Response compaction requires stored-response continuity")
+            }
+            Self::ResponsesWebSocketRequiresStreaming => {
+                formatter.write_str("Responses WebSocket requires streaming capability")
             }
         }
     }
@@ -1746,6 +1766,18 @@ mod tests {
         let narrowed = continuity.without([SemanticCapability::StoredResponses]);
         assert!(!narrowed.supports(SemanticCapability::StoredResponses));
         assert!(!narrowed.supports(SemanticCapability::ResponseCompaction));
+
+        assert_eq!(
+            CapabilitySet::try_new([SemanticCapability::ResponsesWebSocket]),
+            Err(CatalogViewError::ResponsesWebSocketRequiresStreaming)
+        );
+        let websocket = CapabilitySet::try_new([
+            SemanticCapability::Streaming,
+            SemanticCapability::ResponsesWebSocket,
+        ])?;
+        let narrowed = websocket.without([SemanticCapability::Streaming]);
+        assert!(!narrowed.supports(SemanticCapability::Streaming));
+        assert!(!narrowed.supports(SemanticCapability::ResponsesWebSocket));
         Ok(())
     }
 

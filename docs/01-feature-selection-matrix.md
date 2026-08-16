@@ -46,7 +46,7 @@ Upstream Aggregation（多中转站 + 多 Endpoint + 公开模型 + 自有 API K
 | A01 | `GET /healthz` | 已有 | Keep | 待定 | 部署和负载均衡健康检查 |
 | A02 | `GET /v1/models` | 已有 | Keep | 待定 | 依赖模型注册表和凭据可用性 |
 | A03 | `POST /v1/responses` | 已有 | Keep | Keep | 第一核心入口 |
-| A04 | `GET /v1/responses` WebSocket | 已有 | Later | 待定 | 与 Codex/xAI 实时链路有关 |
+| A04 | `GET /v1/responses` WebSocket | 已有 | Later | Keep | `P13-10A`：OpenAI Responses WebSocket；复用 Canonical/认证/存储/连续性，不等同 Realtime API |
 | A05 | `POST /v1/responses/compact` | 已有 | Later | 待定 | Codex 上下文压缩 |
 | A06 | `POST /v1/alpha/search` | 已有 | Later | 待定 | Codex 专用搜索能力 |
 | A07 | `POST /v1/messages` | 已有 | Keep | Keep | Claude Code 核心入口 |
@@ -81,7 +81,7 @@ Upstream Aggregation（多中转站 + 多 Endpoint + 公开模型 + 自有 API K
 | B07 | Interactions 入站 Adapter | 已有直转 | Drop | 待定 | 第一版不做 |
 | B08 | 非流式响应编码 | 已有 | Keep | Keep | Chat、Responses、Messages 三种输出 |
 | B09 | SSE 响应编码 | 已有 | Keep | Keep | 必须保持事件次序和终止语义 |
-| B10 | WebSocket 响应编码 | 已有 | Later | 待定 | 依赖 A04 |
+| B10 | WebSocket 响应编码 | 已有 | Later | Replace | `P13-10A`：同一 Responses Canonical lifecycle 逐 JSON text frame 投影；有界背压/关闭/取消 |
 | B11 | Function/Tool 定义转换 | 已有 | Keep | Keep | JSON Schema 兼容 |
 | B12 | Tool Use 事件转换 | 已有 | Keep | Keep | Claude Code 核心 |
 | B13 | Tool Result 转换 | 已有 | Keep | 待定 | 保留关联 ID 和错误语义 |

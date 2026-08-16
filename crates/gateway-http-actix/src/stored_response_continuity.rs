@@ -42,14 +42,25 @@ pub(crate) fn continuation_pin(
 /// Expands one stored Response and the current turn into a self-contained Canonical request.
 pub(crate) fn replay_stored_response(
     previous: &StoredResponsePayload,
-    mut current: CanonicalRequest,
+    current: CanonicalRequest,
 ) -> Result<CanonicalRequest, GatewayError> {
-    let mut messages = previous.request().messages.clone();
-    messages.extend(response_messages(
+    replay_canonical_response(
+        previous.request(),
         &previous
             .canonical_response()
             .map_err(|_| internal_error())?,
-    )?);
+        current,
+    )
+}
+
+/// Expands one completed in-memory WebSocket turn and the next current turn.
+pub(crate) fn replay_canonical_response(
+    previous_request: &CanonicalRequest,
+    previous_response: &CanonicalResponse,
+    mut current: CanonicalRequest,
+) -> Result<CanonicalRequest, GatewayError> {
+    let mut messages = previous_request.messages.clone();
+    messages.extend(response_messages(previous_response)?);
     messages.append(&mut current.messages);
     current.messages = messages;
     ensure_request_bound(&current)?;

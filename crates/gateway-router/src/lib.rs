@@ -127,6 +127,18 @@ pub enum ResponsesResponseMode {
     Streaming,
 }
 
+/// Downstream transport selected by the public Responses ingress.
+///
+/// This is intentionally independent of the upstream Endpoint transport. A WebSocket client may
+/// consume the same bounded Canonical lifecycle while the selected Provider remains HTTP/SSE.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ResponsesClientTransport {
+    /// Ordinary HTTP response or server-sent events.
+    Http,
+    /// Persistent `OpenAI` Responses WebSocket mode.
+    WebSocket,
+}
+
 /// One fully admitted request handed from the HTTP boundary to a Responses executor.
 ///
 /// The request keeps its original client model reference for observability and provider encoding,
@@ -142,6 +154,7 @@ pub struct ResponsesExecution {
     native_payload: Option<Arc<[u8]>>,
     route_id: Option<RouteId>,
     mode: ResponsesResponseMode,
+    client_transport: ResponsesClientTransport,
     retry_gate: Arc<dyn TransparentRetryGate>,
     lineage_recorder: Option<Arc<ResponsesExecutionLineageRecorder>>,
     continuation_pin: Option<ResponsesContinuationPin>,
@@ -164,6 +177,7 @@ impl ResponsesExecution {
             native_payload: None,
             route_id,
             mode,
+            client_transport: ResponsesClientTransport::Http,
             retry_gate,
             lineage_recorder: None,
             continuation_pin: None,
@@ -191,6 +205,7 @@ impl ResponsesExecution {
             native_payload: Some(native_payload),
             route_id,
             mode,
+            client_transport: ResponsesClientTransport::Http,
             retry_gate,
             lineage_recorder: None,
             continuation_pin: None,
@@ -231,6 +246,22 @@ impl ResponsesExecution {
     #[must_use]
     pub const fn mode(&self) -> ResponsesResponseMode {
         self.mode
+    }
+
+    /// Selects the downstream Responses transport without changing the upstream protocol.
+    #[must_use]
+    pub const fn with_client_transport(
+        mut self,
+        client_transport: ResponsesClientTransport,
+    ) -> Self {
+        self.client_transport = client_transport;
+        self
+    }
+
+    /// Returns the public Responses transport selected at ingress.
+    #[must_use]
+    pub const fn client_transport(&self) -> ResponsesClientTransport {
+        self.client_transport
     }
 
     /// Returns the request's downstream-owned retry and cancellation gate.
@@ -287,6 +318,7 @@ impl fmt::Debug for ResponsesExecution {
             )
             .field("route_id", &self.route_id)
             .field("mode", &self.mode)
+            .field("client_transport", &self.client_transport)
             .field("retry_gate", &"<downstream-owned>")
             .field("lineage_recorder", &self.lineage_recorder.is_some())
             .field("continuation_pin", &self.continuation_pin.is_some())

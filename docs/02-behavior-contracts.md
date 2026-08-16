@@ -148,6 +148,19 @@ StreamError
 - 上游异常结束必须输出目标协议允许的错误事件；若 Header 尚未提交，可返回普通 HTTP 错误。
 - Keepalive 不改变事件状态机。
 
+### Responses WebSocket 投影
+
+- `GET /v1/responses` 只接受经过 Client Key 鉴权的 text `response.create`；它不是 Realtime API。
+- WebSocket 与 SSE 共享同一 Canonical Event 状态机、Provider capability、route/credential lease、
+  Usage、stored response 和 exact continuity；WebSocket 不建立第二套 Provider 执行链。
+- 每个 Responses lifecycle event 投影为一个 JSON text message，不包含 SSE `data:` framing。
+- frame、fragment、message、event、byte、pending turn、write/idle/turn/session timeout 都必须有界；
+  disconnect/Close/timeout/backpressure 必须取消 Canonical source 并释放 lease。
+- downstream WebSocket 不代表 upstream Provider 必须使用 WebSocket；Provider-native transport 是独立能力。
+- P13-10A 不支持 Realtime、`response.append`、binary/media、Chat/Messages WebSocket 或 browser Origin。
+
+详细约束见 [BC-RESP-004](contracts/BC-RESP-004-public-responses-websocket.md)。
+
 ## 6. 重试和失败切换
 
 ### 可透明重试

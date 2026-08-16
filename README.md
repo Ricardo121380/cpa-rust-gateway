@@ -18,7 +18,9 @@ CPAR 是基于 CPA、CLIProxyAPI、Sub2API 及各 Provider 参考项目的行为
 ### Public data plane / 公共数据面
 
 - OpenAI Chat Completions: `/v1/chat/completions`
-- OpenAI Responses: `/v1/responses`
+- OpenAI Responses over HTTP JSON/SSE: `POST /v1/responses`
+- OpenAI Responses WebSocket mode: `GET /v1/responses` followed by strict
+  `response.create` messages
 - Anthropic Messages: `/v1/messages`
 - JSON and bounded SSE projection for the supported protocol/provider matrix
 - Authenticated `/v1/models` generated from the same immutable route snapshot as inference
@@ -27,7 +29,9 @@ CPAR 是基于 CPA、CLIProxyAPI、Sub2API 及各 Provider 参考项目的行为
 公开数据面当前提供：
 
 - OpenAI Chat Completions：`/v1/chat/completions`
-- OpenAI Responses：`/v1/responses`
+- OpenAI Responses HTTP JSON/SSE：`POST /v1/responses`
+- OpenAI Responses WebSocket 模式：`GET /v1/responses`，升级后发送严格的
+  `response.create` 消息
 - Anthropic Messages：`/v1/messages`
 - 对已声明支持的协议/Provider 组合提供 JSON 和有界 SSE 投影
 - `/v1/models` 与推理使用同一份不可变 Route Snapshot
@@ -74,7 +78,8 @@ request bodies, cookies or client-key digests.  Usage counters carry `exact`, `p
 ```text
 Client protocol
   ├─ Chat Completions
-  ├─ Responses
+  ├─ Responses HTTP JSON / SSE
+  ├─ Responses WebSocket
   └─ Anthropic Messages
           │
           ▼
@@ -102,20 +107,23 @@ Workspace 按职责拆分为 canonical 类型、协议 codec、路由、凭据�
 ## Development status / 开发状态
 
 The current development plan is tracked in [`docs/06-development-plan.md`](docs/06-development-plan.md).
-P0–P6, P9–P12 have completed their approved local/phase boundaries.  P13-04 (management
-operations foundations) is locally implemented and reviewed; P13-05 is the next task for a
-versioned price catalog and durable billing ledger.
+P0–P6 and P9–P12 have completed their approved phase boundaries.  P13 is the active management,
+billing, routing and public-protocol expansion milestone.  The current P13-10A slice implements
+the public OpenAI Responses WebSocket projection while preserving the existing HTTP JSON/SSE
+paths.  Exact status and deferred boundaries remain authoritative in the development plan.
 
 当前唯一执行基线是 [`docs/06-development-plan.md`](docs/06-development-plan.md)。P0–P6、P9–P12
-已完成各自批准的本地/阶段边界。P13-04（管理运营后端基础）已完成本地实现与 review；下一项
-是 P13-05：版本化价格目录和 durable billing ledger。
+已完成各自批准的阶段边界。P13 是当前管理、计费、路由及公共协议扩展里程碑；P13-10A
+正在为公共 OpenAI Responses 增加 WebSocket 投影，同时保留现有 HTTP JSON/SSE 路径。
+精确进度和延期边界以开发计划为唯一基线。
 
 The following boundaries remain explicit and are not hidden by the public README:
 
 - external Grok Web egress/WAF validation is deferred;
 - Kiro OAuth and Official API-key external E2E require their own credentials and approval;
 - automatic refresh/reauth/replenishment is a separate controlled task;
-- WebSocket, media and additional providers are conditional roadmap items;
+- browser-Origin WebSocket access, the OpenAI Realtime API, provider-native WebSocket transport,
+  media and additional providers remain separate capability-scoped roadmap items;
 - no real credentials, production database, server key, account pool or deployment endpoint is
   stored in this repository.
 
@@ -124,7 +132,8 @@ The following boundaries remain explicit and are not hidden by the public README
 - Grok Web 的外部 egress/WAF 验收延后；
 - Kiro OAuth 和 Official API-key 的真实 E2E 需要独立账号与授权；
 - 自动 refresh/reauth/replenishment 是单独受控任务；
-- WebSocket、Media 和更多 Provider 是条件性路线图项目；
+- 浏览器 Origin WebSocket、OpenAI Realtime API、Provider 原生 WebSocket transport、Media
+  和更多 Provider 仍是按能力拆分的后续路线图项目；
 - 仓库不保存真实凭据、生产数据库、服务器私钥、账号池或部署端点。
 
 ## Quick start / 快速开始
@@ -167,6 +176,42 @@ sample configuration at a real provider until a separate provider-specific appro
 二进制通过操作者指定的文件或部署系统 Secret 源读取凭据和状态。不要把真实值写入 shell history、
 fixture、README 或 issue。进行本机演练时使用 synthetic 凭据和 loopback listener；在没有独立
 Provider 授权前，不要把示例配置指向真实上游。
+
+### Responses WebSocket / Responses WebSocket 模式
+
+After a configured CPAR Client Key and route snapshot are available, a native client can upgrade
+`GET /v1/responses` with `Authorization: Bearer <CPAR_CLIENT_KEY>`.  Each application message is
+one strict OpenAI Responses `response.create` JSON object; CPAR sends the ordinary Responses event
+lifecycle back as JSON text messages, without SSE `data:` framing:
+
+```json
+{
+  "type": "response.create",
+  "model": "<PUBLIC_MODEL>",
+  "input": "Reply with OK.",
+  "stream": true
+}
+```
+
+The P13-10A boundary permits one active turn plus one queued turn per connection, applies bounded
+frame/message/event/output and time limits, and can use a completed response from the same
+connection as `previous_response_id`.  It is not the OpenAI Realtime API.  Browser clients that
+send an `Origin` header are rejected in this first slice; use a native/CLI client without `Origin`
+until an explicit browser-origin policy is approved.  Provider adapters may still use their
+reviewed HTTP/SSE upstream transport—the WebSocket capability here is the CPAR downstream
+projection and never authorizes an undeclared provider capability.
+
+配置好 CPAR Client Key 和 Route Snapshot 后，原生客户端可使用
+`Authorization: Bearer <CPAR_CLIENT_KEY>` 升级 `GET /v1/responses`。每条应用消息必须是一个
+严格的 OpenAI Responses `response.create` JSON 对象；CPAR 会把普通 Responses 生命周期事件
+直接作为 JSON 文本消息返回，不带 SSE 的 `data:` framing。
+
+P13-10A 每条连接最多允许一个活跃 turn 和一个排队 turn，并对 frame、message、event、输出大小
+和时间实施有界限制；同一连接中已完成的 response 可作为后续请求的 `previous_response_id`。
+这不是 OpenAI Realtime API。首个切片会拒绝带 `Origin` 的浏览器连接；在显式浏览器 Origin
+策略获批前，请使用不发送 `Origin` 的原生/CLI 客户端。Provider adapter 仍可使用其已审查的
+HTTP/SSE 上游 transport；这里的 WebSocket 是 CPAR 下游投影，不会隐式授权未声明的 Provider
+能力。
 
 ## Security and public-release policy / 安全与公开发布策略
 

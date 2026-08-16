@@ -11,7 +11,8 @@ apps/gateway (binary-only deployment composition root)
      + Actix-local HTTP/Future primitives + libc credential-file guard + zeroize
 
 gateway-http-actix
-  -> protocol adapters + gateway-control/router/stream/auth/observability + Actix-local Tokio/Future primitives
+  -> protocol adapters + gateway-control/router/stream/auth/observability
+     + Actix-local HTTP/WebSocket/Tokio/Future primitives
 
 gateway-control
   -> upstream/catalog/access/router/protocol/auth/store/observability
@@ -72,6 +73,10 @@ gateway-core
   `zeroize` 保存短暂 Management Key/CSRF token，并以 `subtle` 做常量时间比较；这三项不接触
   数据面路由、Provider/transport 依赖或公共推理 API。具体 Provider/transport 依赖仍仅存在于
   相应的独立测试目标，不能进入该 crate 的库 API。
+- P13-10A 的 `actix-ws` 只在 `gateway-http-actix` 公共边界负责 RFC 6455 upgrade、frame 和有界
+  backpressure；它不拥有 Provider 选择、Credential lease、Canonical lifecycle 或 upstream
+  transport。`tokio-tungstenite` 是该 crate 的 dev-dependency，只用于真实 loopback 握手/消息
+  回归，不进入 gateway runtime dependency closure。
 - `gateway-provider` 的 P1 Mock 只能拉取 Canonical Event；它可以使用 Tokio 的等待原语来
   表达确定性 fixture 延迟，但不得依赖 `gateway-stream`、HTTP、SSE、路由、Endpoint 或凭据。
 - Provider 私有 Crate 不被 `gateway-core`、协议公共层或其它 Provider 引用。

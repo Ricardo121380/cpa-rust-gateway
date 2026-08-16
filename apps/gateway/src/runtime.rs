@@ -80,12 +80,12 @@ use gateway_router::{
     ProtocolResponseProjector, ProtocolTransformInput, ProtocolTransformRejection,
     ProviderScopedPriceEvidence, ProviderScopedRouteExplainInput,
     ProviderScopedRouteExplainSnapshot, QuotaConfidence, QuotaSnapshot, QuotaSource,
-    ResponsesEventSource, ResponsesExecution, ResponsesExecutionLineage, ResponsesExecutor,
-    ResponsesFuture, ResponsesResponseMode, RouteCredentialScheduler, RouteExplainCandidate,
-    RouteExplainCandidateReason, RouteExplainInput, RouteSnapshot, RouteSnapshotRegistry,
-    RuntimeCredentialAccountStatus, RuntimeHealthAccountRecoveryResult, RuntimeHealthRegistry,
-    RuntimeQuotaAvailability, RuntimeQuotaRegistry, RuntimeQuotaTarget, SelectedRouteCredential,
-    SnapshotRouteCandidate, SnapshotVersion, SystemRuntimeHealthClock,
+    ResponsesClientTransport, ResponsesEventSource, ResponsesExecution, ResponsesExecutionLineage,
+    ResponsesExecutor, ResponsesFuture, ResponsesResponseMode, RouteCredentialScheduler,
+    RouteExplainCandidate, RouteExplainCandidateReason, RouteExplainInput, RouteSnapshot,
+    RouteSnapshotRegistry, RuntimeCredentialAccountStatus, RuntimeHealthAccountRecoveryResult,
+    RuntimeHealthRegistry, RuntimeQuotaAvailability, RuntimeQuotaRegistry, RuntimeQuotaTarget,
+    SelectedRouteCredential, SnapshotRouteCandidate, SnapshotVersion, SystemRuntimeHealthClock,
     project_registered_protocol_request, protocol_pair_is_publishable,
 };
 use gateway_store::{
@@ -548,25 +548,41 @@ pub(crate) fn deployment_route_compiler(
 /// implementation labels fail here.
 fn p12_adapter_capabilities(adapter_id: &str) -> Result<CapabilitySet, RuntimeCompositionError> {
     use SemanticCapability::{
-        JsonSchema, ParallelTools, Reasoning, ResponseCompaction, StoredResponses, Streaming, Tools,
+        JsonSchema, ParallelTools, Reasoning, ResponseCompaction, ResponsesWebSocket,
+        StoredResponses, Streaming, Tools,
     };
 
     let capabilities: &[SemanticCapability] = match adapter_id {
-        "openai-compatible.chat-completions" => &[Tools, ParallelTools, JsonSchema, Streaming],
-        "openai-compatible.responses" | "anthropic-compatible.messages" => {
-            &[Tools, ParallelTools, Reasoning, JsonSchema, Streaming]
-        }
+        "openai-compatible.chat-completions" => &[
+            Tools,
+            ParallelTools,
+            JsonSchema,
+            Streaming,
+            ResponsesWebSocket,
+        ],
+        "openai-compatible.responses"
+        | "anthropic-compatible.messages"
+        | "grok.official.responses" => &[
+            Tools,
+            ParallelTools,
+            Reasoning,
+            JsonSchema,
+            Streaming,
+            ResponsesWebSocket,
+        ],
         "grok.build.responses" => &[
             Tools,
             Reasoning,
             JsonSchema,
             Streaming,
+            ResponsesWebSocket,
             StoredResponses,
             ResponseCompaction,
         ],
-        "grok.console.responses" | "kiro.messages" => &[Tools, Reasoning, JsonSchema, Streaming],
-        "grok.official.responses" => &[Tools, ParallelTools, Reasoning, JsonSchema, Streaming],
-        "grok.web.responses" => &[Streaming, StoredResponses],
+        "grok.console.responses" | "kiro.messages" => {
+            &[Tools, Reasoning, JsonSchema, Streaming, ResponsesWebSocket]
+        }
+        "grok.web.responses" => &[Streaming, ResponsesWebSocket, StoredResponses],
         _ => return Err(RuntimeCompositionError::Unavailable),
     };
     CapabilitySet::try_new(capabilities.iter().copied())
@@ -1399,6 +1415,7 @@ impl P12RoutedResponsesExecutor {
                 }
             },
             mode,
+            client_transport: ResponsesClientTransport::Http,
             endpoints,
             client_pool: Arc::clone(&self.client_pool),
             attempt_stages: Arc::clone(&self.attempt_stages),
@@ -1711,6 +1728,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
         let native_payload = execution.native_payload().cloned();
         let route_id = execution.route_id().cloned();
         let mode = execution.mode();
+        let client_transport = execution.client_transport();
         let retry_gate = Arc::clone(execution.retry_gate());
         let lineage_recorder = execution.lineage_recorder().cloned();
         let continuation_pin = execution.continuation_pin().cloned();
@@ -1740,6 +1758,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                 native_payload,
                 usage_projection,
                 mode,
+                client_transport,
                 endpoints,
                 client_pool,
                 attempt_stages,
@@ -2878,6 +2897,7 @@ struct EndpointAttemptDriver {
     native_payload: Option<Arc<[u8]>>,
     usage_projection: P12ResponseUsageProjection,
     mode: ResponsesResponseMode,
+    client_transport: ResponsesClientTransport,
     endpoints: Arc<BTreeMap<EndpointId, EndpointRuntime>>,
     client_pool: Arc<UpstreamClientPool>,
     attempt_stages: Arc<P12AttemptStageStore>,
@@ -2933,6 +2953,13 @@ impl EndpointAttemptDriver {
             .endpoints
             .get(candidate.endpoint_id())
             .ok_or(ProtocolTransformRejection::PairUnregistered)?;
+        if self.client_transport == ResponsesClientTransport::WebSocket
+            && !candidate
+                .effective_capabilities()
+                .supports(SemanticCapability::ResponsesWebSocket)
+        {
+            return Err(ProtocolTransformRejection::ResponsesWebSocketUnsupported);
+        }
         // Provider-specific runtimes use the protocol's Canonical semantics but not a generic
         // provider's native HTTP body. Only their typed Canonical paths are registered.
         if matches!(
@@ -6394,13 +6421,14 @@ mod tests {
     use gateway_router::{
         AttemptDriver, AttemptFailure, AttemptOrchestrator, DeterministicMockEmission,
         DeterministicMockResponsesExecutor, NativePayloadAvailability, ProjectedProtocolRequest,
-        ProtocolFormat, ProtocolTransformInput, ResponsesEventSource, ResponsesExecution,
-        ResponsesExecutor, ResponsesFuture, ResponsesResponseMode, RouteCredentialScheduler,
-        RouteSnapshot, RouteSnapshotInput, RouteSnapshotRegistry, RuntimeCredentialAccountStatus,
-        RuntimeHealthClock, RuntimeHealthClockError, RuntimeHealthRegistry, RuntimeQuotaRegistry,
-        RuntimeQuotaTarget, SnapshotCatalogAdmission, SnapshotPublicModel, SnapshotRoute,
-        SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
-        SnapshotTransformMode, SnapshotVersion, project_registered_protocol_request,
+        ProtocolFormat, ProtocolTransformInput, ResponsesClientTransport, ResponsesEventSource,
+        ResponsesExecution, ResponsesExecutor, ResponsesFuture, ResponsesResponseMode,
+        RouteCredentialScheduler, RouteSnapshot, RouteSnapshotInput, RouteSnapshotRegistry,
+        RuntimeCredentialAccountStatus, RuntimeHealthClock, RuntimeHealthClockError,
+        RuntimeHealthRegistry, RuntimeQuotaRegistry, RuntimeQuotaTarget, SnapshotCatalogAdmission,
+        SnapshotPublicModel, SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput,
+        SnapshotRoutePolicy, SnapshotTransformMode, SnapshotVersion,
+        project_registered_protocol_request,
     };
     use gateway_store::{
         billing_ledger::{BillingCatalogSource, BillingPriceCatalog, BillingPriceEntry},
@@ -7700,6 +7728,7 @@ mod tests {
             native_payload: None,
             usage_projection: P12ResponseUsageProjection::OpenAiResponses,
             mode: ResponsesResponseMode::NonStreaming,
+            client_transport: ResponsesClientTransport::Http,
             endpoints: Arc::new(endpoints),
             client_pool: Arc::new(UpstreamClientPool::new(
                 NonZeroUsize::new(4).ok_or("client pool needs capacity")?,
@@ -7958,6 +7987,7 @@ mod tests {
             native_payload: None,
             usage_projection: P12ResponseUsageProjection::OpenAiResponses,
             mode: ResponsesResponseMode::NonStreaming,
+            client_transport: ResponsesClientTransport::Http,
             endpoints: Arc::new(endpoints),
             client_pool: Arc::new(UpstreamClientPool::new(
                 NonZeroUsize::new(4).ok_or("client pool needs capacity")?,
@@ -7976,6 +8006,28 @@ mod tests {
         assert_eq!(
             attempt_stages.recorded_stage(&request_id),
             Some(ManagementRequestAttemptStage::RequestConversion)
+        );
+
+        let websocket_candidate = SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
+            id: RouteCandidateId::try_new("p13-websocket-capability-guard")?,
+            endpoint_id: candidate.endpoint_id().clone(),
+            upstream_id: candidate.upstream_id().clone(),
+            endpoint_api_format: "openai/responses".to_owned(),
+            upstream_model: "upstream-model-guard".to_owned(),
+            transform_mode: SnapshotTransformMode::Canonical,
+            priority: 0,
+            weight: 1,
+            effective_capabilities: CapabilitySet::try_new([SemanticCapability::Streaming])?,
+            catalog_admission: SnapshotCatalogAdmission::AllowedUnlisted,
+            active_binding_count: 1,
+        });
+        let websocket_driver = EndpointAttemptDriver {
+            client_transport: ResponsesClientTransport::WebSocket,
+            ..driver
+        };
+        assert_eq!(
+            websocket_driver.project_candidate(&websocket_candidate),
+            Err(gateway_router::ProtocolTransformRejection::ResponsesWebSocketUnsupported)
         );
         Ok(())
     }
@@ -8728,6 +8780,7 @@ mod tests {
                 assert!(capabilities.supports(SemanticCapability::Reasoning));
                 assert!(capabilities.supports(SemanticCapability::JsonSchema));
                 assert!(capabilities.supports(SemanticCapability::Streaming));
+                assert!(capabilities.supports(SemanticCapability::ResponsesWebSocket));
                 assert!(!capabilities.supports(SemanticCapability::Vision));
             }
         }
@@ -8738,22 +8791,42 @@ mod tests {
     fn production_adapter_capability_ledger_is_conservative_and_fail_closed()
     -> Result<(), Box<dyn Error>> {
         use SemanticCapability::{
-            JsonSchema, ParallelTools, Reasoning, ResponseCompaction, StoredResponses, Streaming,
-            Tools, Vision,
+            JsonSchema, ParallelTools, Reasoning, ResponseCompaction, ResponsesWebSocket,
+            StoredResponses, Streaming, Tools, Vision,
         };
 
         let cases = [
             (
                 "openai-compatible.chat-completions",
-                vec![Tools, ParallelTools, JsonSchema, Streaming],
+                vec![
+                    Tools,
+                    ParallelTools,
+                    JsonSchema,
+                    Streaming,
+                    ResponsesWebSocket,
+                ],
             ),
             (
                 "openai-compatible.responses",
-                vec![Tools, ParallelTools, Reasoning, JsonSchema, Streaming],
+                vec![
+                    Tools,
+                    ParallelTools,
+                    Reasoning,
+                    JsonSchema,
+                    Streaming,
+                    ResponsesWebSocket,
+                ],
             ),
             (
                 "anthropic-compatible.messages",
-                vec![Tools, ParallelTools, Reasoning, JsonSchema, Streaming],
+                vec![
+                    Tools,
+                    ParallelTools,
+                    Reasoning,
+                    JsonSchema,
+                    Streaming,
+                    ResponsesWebSocket,
+                ],
             ),
             (
                 "grok.build.responses",
@@ -8762,22 +8835,33 @@ mod tests {
                     Reasoning,
                     JsonSchema,
                     Streaming,
+                    ResponsesWebSocket,
                     StoredResponses,
                     ResponseCompaction,
                 ],
             ),
             (
                 "grok.console.responses",
-                vec![Tools, Reasoning, JsonSchema, Streaming],
+                vec![Tools, Reasoning, JsonSchema, Streaming, ResponsesWebSocket],
             ),
             (
                 "grok.official.responses",
-                vec![Tools, ParallelTools, Reasoning, JsonSchema, Streaming],
+                vec![
+                    Tools,
+                    ParallelTools,
+                    Reasoning,
+                    JsonSchema,
+                    Streaming,
+                    ResponsesWebSocket,
+                ],
             ),
-            ("grok.web.responses", vec![Streaming, StoredResponses]),
+            (
+                "grok.web.responses",
+                vec![Streaming, ResponsesWebSocket, StoredResponses],
+            ),
             (
                 "kiro.messages",
-                vec![Tools, Reasoning, JsonSchema, Streaming],
+                vec![Tools, Reasoning, JsonSchema, Streaming, ResponsesWebSocket],
             ),
         ];
         for (adapter, supported) in cases {
@@ -8789,6 +8873,7 @@ mod tests {
                 JsonSchema,
                 Vision,
                 Streaming,
+                ResponsesWebSocket,
                 StoredResponses,
                 ResponseCompaction,
             ] {

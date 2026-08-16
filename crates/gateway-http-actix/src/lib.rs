@@ -42,6 +42,10 @@ use actix_web::{
     http::{StatusCode, header},
     web,
 };
+use actix_ws::{
+    CloseCode, CloseReason, Item as WebSocketItem, Message as WebSocketMessage,
+    ProtocolError as WebSocketProtocolError,
+};
 use futures_util::{Stream, StreamExt, stream};
 use gateway_auth::{AuthenticatedClient, ClientKeyAuthenticator};
 use gateway_core::{
@@ -51,8 +55,8 @@ use gateway_core::{
     StreamError, TransparentRetryGate, TransparentRetryGateFuture, UsageEvent,
 };
 use gateway_router::{
-    CountTokensExecution, CountTokensExecutor, ResponsesContinuationKind, ResponsesContinuationPin,
-    ResponsesEventSource, ResponsesExecution, ResponsesExecutionLineage,
+    CountTokensExecution, CountTokensExecutor, ResponsesClientTransport, ResponsesContinuationKind,
+    ResponsesContinuationPin, ResponsesEventSource, ResponsesExecution, ResponsesExecutionLineage,
     ResponsesExecutionLineageRecorder, ResponsesExecutor, ResponsesResponseMode,
     SnapshotAuthenticatedClient, SnapshotClientKeyAuthenticator, UnsupportedCountTokensExecutor,
 };
@@ -79,13 +83,13 @@ use protocol_openai_chat::{
 };
 use protocol_openai_responses::{
     DecodedResponsesRequest, OpenAiResponseMetadata, OpenAiResponsesSseEncoder, ResponseMode,
-    SseFrame as OpenAiSseFrame, decode_compact_request, decode_request, encode_compaction_response,
-    encode_error, encode_model_list, encode_response,
+    SseFrame as OpenAiSseFrame, decode_compact_request, decode_request, decode_websocket_request,
+    encode_compaction_response, encode_error, encode_model_list, encode_response,
 };
 
 use crate::stored_response_continuity::{
-    compaction_request, continuation_pin, extract_compaction_summary, replay_compaction,
-    replay_stored_response,
+    compaction_request, continuation_pin, extract_compaction_summary, replay_canonical_response,
+    replay_compaction, replay_stored_response,
 };
 
 /// Stable component identifier used by architecture smoke tests.
@@ -102,6 +106,29 @@ pub const DEFAULT_STREAM_CAPACITY: usize = 8;
 /// seconds fits at least three comments inside the tightest of those windows even when one tick
 /// is delayed by a busy runtime, and costs 13 bytes per idle stream per tick.
 pub const SSE_KEEPALIVE_INTERVAL: Duration = Duration::from_secs(15);
+
+/// Maximum size of one public Responses WebSocket frame and reassembled text message.
+pub const RESPONSES_WEBSOCKET_MAX_MESSAGE_BYTES: usize = 4 * 1024 * 1024;
+/// Maximum number of fragments accepted for one text message, including empty fragments.
+pub const RESPONSES_WEBSOCKET_MAX_FRAGMENTS: usize = 64;
+/// Maximum number of complete Responses turns retained by one WebSocket connection.
+pub const RESPONSES_WEBSOCKET_MAX_SESSION_TURNS: usize = 16;
+/// Maximum combined Canonical request/response bytes retained by one WebSocket connection.
+pub const RESPONSES_WEBSOCKET_MAX_SESSION_BYTES: usize = 32 * 1024 * 1024;
+/// Maximum time a single downstream WebSocket write may remain backpressured.
+pub const RESPONSES_WEBSOCKET_WRITE_TIMEOUT: Duration = Duration::from_secs(15);
+/// Maximum silence between Canonical events for an active WebSocket turn.
+pub const RESPONSES_WEBSOCKET_EVENT_IDLE_TIMEOUT: Duration = Duration::from_secs(90);
+/// Maximum wall-clock duration of one WebSocket turn.
+pub const RESPONSES_WEBSOCKET_TURN_TIMEOUT: Duration = Duration::from_mins(10);
+/// Ping cadence for a public Responses WebSocket connection.
+pub const RESPONSES_WEBSOCKET_PING_INTERVAL: Duration = Duration::from_secs(15);
+/// Maximum time without a client Pong before closing the connection.
+pub const RESPONSES_WEBSOCKET_PONG_TIMEOUT: Duration = Duration::from_secs(45);
+/// Maximum idle duration while no turn is active.
+pub const RESPONSES_WEBSOCKET_IDLE_TIMEOUT: Duration = Duration::from_mins(5);
+/// Maximum total lifetime of one public Responses WebSocket connection.
+pub const RESPONSES_WEBSOCKET_SESSION_TIMEOUT: Duration = Duration::from_hours(2);
 
 /// The exact bytes written when a streaming SSE body has been byte-idle for one interval.
 ///
@@ -526,6 +553,219 @@ struct PreparedOwnedContinuation {
     pin: ResponsesContinuationPin,
 }
 
+#[derive(Clone)]
+struct WebSocketSessionTurn {
+    response_id: ResponseId,
+    public_model: String,
+    request: CanonicalRequest,
+    response: CanonicalResponse,
+    lineage: ResponsesExecutionLineage,
+    retained_bytes: usize,
+}
+
+#[derive(Default)]
+struct WebSocketSessionCache {
+    turns: VecDeque<WebSocketSessionTurn>,
+    retained_bytes: usize,
+}
+
+impl WebSocketSessionCache {
+    fn get(&self, response_id: &ResponseId) -> Option<WebSocketSessionTurn> {
+        self.turns
+            .iter()
+            .find(|turn| &turn.response_id == response_id)
+            .cloned()
+    }
+
+    fn insert(
+        &mut self,
+        response_id: ResponseId,
+        public_model: String,
+        request: CanonicalRequest,
+        response: CanonicalResponse,
+        lineage: ResponsesExecutionLineage,
+    ) -> Result<(), GatewayError> {
+        if let Some(previous) = self
+            .turns
+            .iter()
+            .find(|turn| turn.response_id == response_id)
+        {
+            if previous.public_model == public_model
+                && previous.request == request
+                && previous.response == response
+                && previous.lineage == lineage
+            {
+                return Ok(());
+            }
+            return Err(internal_error());
+        }
+        let request_bytes = serde_json::to_vec(&request)
+            .map_err(|_| internal_error())?
+            .len();
+        let response_bytes = serde_json::to_vec(response.events())
+            .map_err(|_| internal_error())?
+            .len();
+        let retained_bytes = request_bytes
+            .checked_add(response_bytes)
+            .ok_or_else(internal_error)?;
+        if retained_bytes > RESPONSES_WEBSOCKET_MAX_SESSION_BYTES {
+            return Err(internal_error());
+        }
+        while self.turns.len() >= RESPONSES_WEBSOCKET_MAX_SESSION_TURNS
+            || self
+                .retained_bytes
+                .checked_add(retained_bytes)
+                .is_none_or(|total| total > RESPONSES_WEBSOCKET_MAX_SESSION_BYTES)
+        {
+            let previous = self.turns.pop_front().ok_or_else(internal_error)?;
+            self.retained_bytes = self
+                .retained_bytes
+                .checked_sub(previous.retained_bytes)
+                .ok_or_else(internal_error)?;
+        }
+        self.retained_bytes = self
+            .retained_bytes
+            .checked_add(retained_bytes)
+            .ok_or_else(internal_error)?;
+        self.turns.push_back(WebSocketSessionTurn {
+            response_id,
+            public_model,
+            request,
+            response,
+            lineage,
+            retained_bytes,
+        });
+        Ok(())
+    }
+}
+
+#[derive(Default)]
+struct WebSocketFragmentAssembler {
+    text: Option<Vec<u8>>,
+    fragments: usize,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum WebSocketInboundError {
+    Protocol,
+    Unsupported,
+    InvalidText,
+    TooLarge,
+}
+
+impl fmt::Display for WebSocketInboundError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Protocol => "invalid WebSocket fragment sequence",
+            Self::Unsupported => "unsupported WebSocket message type",
+            Self::InvalidText => "invalid WebSocket text encoding",
+            Self::TooLarge => "WebSocket message exceeds the bounded limit",
+        })
+    }
+}
+
+impl std::error::Error for WebSocketInboundError {}
+
+impl WebSocketInboundError {
+    fn close_reason(self) -> CloseReason {
+        match self {
+            Self::Protocol => CloseReason {
+                code: CloseCode::Protocol,
+                description: Some("invalid_fragment_sequence".to_owned()),
+            },
+            Self::Unsupported => CloseReason {
+                code: CloseCode::Unsupported,
+                description: Some("text_messages_only".to_owned()),
+            },
+            Self::InvalidText => CloseReason {
+                code: CloseCode::Invalid,
+                description: Some("invalid_utf8".to_owned()),
+            },
+            Self::TooLarge => CloseReason {
+                code: CloseCode::Size,
+                description: Some("message_too_large".to_owned()),
+            },
+        }
+    }
+}
+
+impl WebSocketFragmentAssembler {
+    fn push_message(
+        &mut self,
+        message: WebSocketMessage,
+    ) -> Result<Option<String>, WebSocketInboundError> {
+        match message {
+            WebSocketMessage::Text(text) => {
+                if self.text.is_some() {
+                    return Err(WebSocketInboundError::Protocol);
+                }
+                if text.len() > RESPONSES_WEBSOCKET_MAX_MESSAGE_BYTES {
+                    return Err(WebSocketInboundError::TooLarge);
+                }
+                Ok(Some(text.to_string()))
+            }
+            WebSocketMessage::Binary(_) => Err(WebSocketInboundError::Unsupported),
+            WebSocketMessage::Continuation(WebSocketItem::FirstText(bytes)) => {
+                if self.text.is_some() {
+                    return Err(WebSocketInboundError::Protocol);
+                }
+                self.fragments = 1;
+                self.text = Some(bytes.to_vec());
+                self.validate_bounds()?;
+                Ok(None)
+            }
+            WebSocketMessage::Continuation(WebSocketItem::FirstBinary(_)) => {
+                Err(WebSocketInboundError::Unsupported)
+            }
+            WebSocketMessage::Continuation(WebSocketItem::Continue(bytes)) => {
+                self.append_fragment(&bytes)?;
+                Ok(None)
+            }
+            WebSocketMessage::Continuation(WebSocketItem::Last(bytes)) => {
+                self.append_fragment(&bytes)?;
+                let complete = self.text.take().ok_or(WebSocketInboundError::Protocol)?;
+                self.fragments = 0;
+                String::from_utf8(complete)
+                    .map(Some)
+                    .map_err(|_| WebSocketInboundError::InvalidText)
+            }
+            WebSocketMessage::Ping(_)
+            | WebSocketMessage::Pong(_)
+            | WebSocketMessage::Close(_)
+            | WebSocketMessage::Nop => Ok(None),
+        }
+    }
+
+    fn append_fragment(&mut self, bytes: &[u8]) -> Result<(), WebSocketInboundError> {
+        let text = self.text.as_mut().ok_or(WebSocketInboundError::Protocol)?;
+        self.fragments = self
+            .fragments
+            .checked_add(1)
+            .ok_or(WebSocketInboundError::TooLarge)?;
+        if text
+            .len()
+            .checked_add(bytes.len())
+            .is_none_or(|length| length > RESPONSES_WEBSOCKET_MAX_MESSAGE_BYTES)
+        {
+            return Err(WebSocketInboundError::TooLarge);
+        }
+        text.extend_from_slice(bytes);
+        self.validate_bounds()
+    }
+
+    fn validate_bounds(&self) -> Result<(), WebSocketInboundError> {
+        if self.fragments > RESPONSES_WEBSOCKET_MAX_FRAGMENTS
+            || self
+                .text
+                .as_ref()
+                .is_some_and(|text| text.len() > RESPONSES_WEBSOCKET_MAX_MESSAGE_BYTES)
+        {
+            return Err(WebSocketInboundError::TooLarge);
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum OwnedContinuityError {
     NotFound,
@@ -557,6 +797,7 @@ fn prepare_responses_execution(
     route_id: Option<RouteId>,
     retry_gate: Arc<dyn TransparentRetryGate>,
     owned_continuation: Option<PreparedOwnedContinuation>,
+    require_lineage: bool,
 ) -> PreparedResponsesExecution {
     let mode = decoded.mode;
     let (request, continuation_pin) = owned_continuation.map_or_else(
@@ -564,8 +805,7 @@ fn prepare_responses_execution(
         |owned| (owned.request, Some(owned.pin)),
     );
     let canonical_request_for_store = decoded.store.then(|| request.clone());
-    let lineage_recorder = decoded
-        .store
+    let lineage_recorder = (decoded.store || require_lineage)
         .then(|| Arc::new(ResponsesExecutionLineageRecorder::new()));
     let response_mode = match mode {
         ResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
@@ -766,6 +1006,7 @@ pub fn configure(config: &mut web::ServiceConfig) {
     config
         .route("/v1/models", web::get().to(models))
         .route("/v1/chat/completions", web::post().to(chat_completions))
+        .route("/v1/responses", web::get().to(responses_websocket))
         .route("/v1/responses", web::post().to(responses))
         .route("/v1/responses/compact", web::post().to(compact_responses))
         .route(
@@ -837,6 +1078,537 @@ async fn models(request: HttpRequest, state: web::Data<ResponsesHttpState>) -> H
     HttpResponse::Ok()
         .content_type("application/json")
         .body(body.to_string())
+}
+
+#[allow(clippy::too_many_lines)] // Keep the complete public upgrade admission boundary auditable.
+async fn responses_websocket(
+    request: HttpRequest,
+    state: web::Data<ResponsesHttpState>,
+    payload: web::Payload,
+) -> HttpResponse {
+    let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
+    {
+        Ok(authenticated_client) => Arc::new(authenticated_client),
+        Err(error) => return pre_websocket_error(&error),
+    };
+    if request.headers().contains_key(header::ORIGIN) {
+        return HttpResponse::Forbidden()
+            .insert_header((header::CACHE_CONTROL, "no-store"))
+            .content_type("application/json")
+            .body(encode_error(&client_request_error()).to_string());
+    }
+    let turn_state_header = header::HeaderName::from_static("x-codex-turn-state");
+    let turn_state = match single_header(&request, turn_state_header.clone()) {
+        Ok(value) => value.cloned(),
+        Err(_) => return pre_websocket_error(&client_request_error()),
+    };
+    if turn_state
+        .as_ref()
+        .is_some_and(|value| value.as_bytes().len() > 512)
+    {
+        return pre_websocket_error(&client_request_error());
+    }
+    let Ok((mut response, session, message_stream)) = actix_ws::handle(&request, payload) else {
+        return pre_websocket_error(&client_request_error());
+    };
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        header::HeaderValue::from_static("no-store"),
+    );
+    if let Some(turn_state) = turn_state {
+        response.headers_mut().insert(turn_state_header, turn_state);
+    }
+    let message_stream = message_stream.max_frame_size(RESPONSES_WEBSOCKET_MAX_MESSAGE_BYTES);
+    let state = state.clone();
+    actix_web::rt::spawn(run_responses_websocket_session(
+        session,
+        message_stream,
+        state,
+        authenticated_client,
+    ));
+    response
+}
+
+fn pre_websocket_error(error: &GatewayError) -> HttpResponse {
+    let mut response = pre_header_error(error);
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        header::HeaderValue::from_static("no-store"),
+    );
+    response
+}
+
+#[allow(clippy::too_many_lines)] // The state machine keeps close, queue, ping, and fragment policy together.
+async fn run_responses_websocket_session(
+    mut session: actix_ws::Session,
+    mut messages: actix_ws::MessageStream,
+    state: web::Data<ResponsesHttpState>,
+    authenticated_client: Arc<AuthenticatedResponsesClient>,
+) {
+    let cache = Arc::new(tokio::sync::Mutex::new(WebSocketSessionCache::default()));
+    let (done_sender, mut done_receiver) = tokio::sync::mpsc::channel::<()>(1);
+    let mut active_turn: Option<tokio::task::JoinHandle<()>> = None;
+    let mut queued_turn: Option<String> = None;
+    let mut fragments = WebSocketFragmentAssembler::default();
+    let mut ping = tokio::time::interval(RESPONSES_WEBSOCKET_PING_INTERVAL);
+    ping.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+    let started_at = tokio::time::Instant::now();
+    let mut last_activity = started_at;
+    let mut last_pong = started_at;
+
+    loop {
+        tokio::select! {
+            () = tokio::time::sleep_until(started_at + RESPONSES_WEBSOCKET_SESSION_TIMEOUT) => {
+                close_active_turn(&mut active_turn);
+                close_websocket_session(session, Some(websocket_close_reason(
+                    CloseCode::Away,
+                    "session_timeout",
+                ))).await;
+                return;
+            }
+            _ = ping.tick() => {
+                let now = tokio::time::Instant::now();
+                if now.duration_since(last_pong) > RESPONSES_WEBSOCKET_PONG_TIMEOUT {
+                    close_active_turn(&mut active_turn);
+                    close_websocket_session(session, Some(websocket_close_reason(
+                        CloseCode::Away,
+                        "pong_timeout",
+                    ))).await;
+                    return;
+                }
+                if active_turn.is_none()
+                    && now.duration_since(last_activity) > RESPONSES_WEBSOCKET_IDLE_TIMEOUT
+                {
+                    close_websocket_session(session, Some(websocket_close_reason(
+                        CloseCode::Away,
+                        "idle_timeout",
+                    ))).await;
+                    return;
+                }
+                if write_websocket_ping(&mut session, b"cpar").await.is_err() {
+                    close_active_turn(&mut active_turn);
+                    return;
+                }
+            }
+            done = done_receiver.recv(), if active_turn.is_some() => {
+                if done.is_none() {
+                    close_active_turn(&mut active_turn);
+                    return;
+                }
+                active_turn.take();
+                last_activity = tokio::time::Instant::now();
+                if let Some(request) = queued_turn.take() {
+                    active_turn = Some(spawn_responses_websocket_turn(
+                        request,
+                        session.clone(),
+                        state.clone(),
+                        Arc::clone(&authenticated_client),
+                        Arc::clone(&cache),
+                        done_sender.clone(),
+                    ));
+                }
+            }
+            incoming = messages.recv() => {
+                let Some(incoming) = incoming else {
+                    close_active_turn(&mut active_turn);
+                    return;
+                };
+                let message = match incoming {
+                    Ok(message) => message,
+                    Err(error) => {
+                        close_active_turn(&mut active_turn);
+                        close_websocket_session(
+                            session,
+                            Some(websocket_stream_error_reason(&error)),
+                        )
+                        .await;
+                        return;
+                    }
+                };
+                last_activity = tokio::time::Instant::now();
+                match message {
+                    WebSocketMessage::Ping(bytes) => {
+                        if write_websocket_pong(&mut session, &bytes).await.is_err() {
+                            close_active_turn(&mut active_turn);
+                            return;
+                        }
+                    }
+                    WebSocketMessage::Pong(_) => {
+                        last_pong = tokio::time::Instant::now();
+                    }
+                    WebSocketMessage::Close(reason) => {
+                        close_active_turn(&mut active_turn);
+                        close_websocket_session(session, reason).await;
+                        return;
+                    }
+                    WebSocketMessage::Nop => {}
+                    message => {
+                        let complete = match fragments.push_message(message) {
+                            Ok(complete) => complete,
+                            Err(error) => {
+                                close_active_turn(&mut active_turn);
+                                close_websocket_session(session, Some(error.close_reason())).await;
+                                return;
+                            }
+                        };
+                        let Some(request) = complete else {
+                            continue;
+                        };
+                        if active_turn.is_none() {
+                            active_turn = Some(spawn_responses_websocket_turn(
+                                request,
+                                session.clone(),
+                                state.clone(),
+                                Arc::clone(&authenticated_client),
+                                Arc::clone(&cache),
+                                done_sender.clone(),
+                            ));
+                        } else if queued_turn.is_none() {
+                            queued_turn = Some(request);
+                        } else {
+                            close_active_turn(&mut active_turn);
+                            close_websocket_session(session, Some(websocket_close_reason(
+                                CloseCode::Policy,
+                                "too_many_pending_requests",
+                            ))).await;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn close_active_turn(active_turn: &mut Option<tokio::task::JoinHandle<()>>) {
+    if let Some(active_turn) = active_turn.take() {
+        active_turn.abort();
+    }
+}
+
+fn websocket_close_reason(code: CloseCode, description: &str) -> CloseReason {
+    CloseReason {
+        code,
+        description: Some(description.to_owned()),
+    }
+}
+
+fn websocket_stream_error_reason(error: &WebSocketProtocolError) -> CloseReason {
+    match error {
+        WebSocketProtocolError::Overflow => {
+            websocket_close_reason(CloseCode::Size, "frame_too_large")
+        }
+        WebSocketProtocolError::Io(error) if error.kind() == std::io::ErrorKind::InvalidData => {
+            websocket_close_reason(CloseCode::Invalid, "invalid_utf8")
+        }
+        _ => websocket_close_reason(CloseCode::Protocol, "invalid_frame"),
+    }
+}
+
+async fn close_websocket_session(session: actix_ws::Session, reason: Option<CloseReason>) {
+    let _closed =
+        tokio::time::timeout(RESPONSES_WEBSOCKET_WRITE_TIMEOUT, session.close(reason)).await;
+}
+
+async fn write_websocket_ping(
+    session: &mut actix_ws::Session,
+    payload: &[u8],
+) -> Result<(), GatewayError> {
+    tokio::time::timeout(RESPONSES_WEBSOCKET_WRITE_TIMEOUT, session.ping(payload))
+        .await
+        .map_err(|_| stream_protocol_error())?
+        .map_err(|_| stream_protocol_error())
+}
+
+async fn write_websocket_pong(
+    session: &mut actix_ws::Session,
+    payload: &[u8],
+) -> Result<(), GatewayError> {
+    tokio::time::timeout(RESPONSES_WEBSOCKET_WRITE_TIMEOUT, session.pong(payload))
+        .await
+        .map_err(|_| stream_protocol_error())?
+        .map_err(|_| stream_protocol_error())
+}
+
+fn spawn_responses_websocket_turn(
+    request: String,
+    mut session: actix_ws::Session,
+    state: web::Data<ResponsesHttpState>,
+    authenticated_client: Arc<AuthenticatedResponsesClient>,
+    cache: Arc<tokio::sync::Mutex<WebSocketSessionCache>>,
+    done_sender: tokio::sync::mpsc::Sender<()>,
+) -> tokio::task::JoinHandle<()> {
+    actix_web::rt::spawn(async move {
+        let result = tokio::time::timeout(
+            RESPONSES_WEBSOCKET_TURN_TIMEOUT,
+            execute_responses_websocket_turn(
+                &request,
+                &mut session,
+                &state,
+                authenticated_client.as_ref(),
+                &cache,
+            ),
+        )
+        .await
+        .unwrap_or_else(|_| Err(stream_protocol_error()));
+        if let Err(error) = result {
+            let _sent = send_websocket_error(&mut session, &error).await;
+        }
+        let _done = done_sender.send(()).await;
+    })
+}
+
+#[allow(clippy::too_many_lines)] // Mirrors the POST Responses admission path in one reviewable flow.
+async fn execute_responses_websocket_turn(
+    body: &str,
+    session: &mut actix_ws::Session,
+    state: &ResponsesHttpState,
+    authenticated_client: &AuthenticatedResponsesClient,
+    cache: &tokio::sync::Mutex<WebSocketSessionCache>,
+) -> Result<(), GatewayError> {
+    let decoded_websocket = decode_websocket_request(body)?;
+    let decoded = &decoded_websocket.response;
+    if decoded.store
+        && (state.stored_responses.is_none() || !state.executor.supports_stored_response_lineage())
+    {
+        return Err(internal_error());
+    }
+    let requested_model = decoded.request.requested_model.clone();
+    let (public_model, route_alias, route_id) =
+        resolve_public_model(authenticated_client, &requested_model)?;
+    let context = state.metadata_factory.request_context()?;
+    let request_id = context.request_id().clone();
+    let (client_key_id, access_group_id) = authenticated_client.event_identity();
+    let owned_continuation = prepare_websocket_continuation(
+        state,
+        cache,
+        &client_key_id,
+        &public_model,
+        route_id.as_ref(),
+        decoded,
+    )
+    .await
+    .map_err(owned_continuity_gateway_error)?;
+    let _request_event = state
+        .event_sink
+        .try_emit(GatewayEvent::Request(RequestEvent::new(
+            request_id.clone(),
+            client_key_id.clone(),
+            access_group_id,
+            GatewayProtocol::OpenAiResponses,
+            requested_model,
+            public_model.clone(),
+            route_alias,
+            true,
+        )));
+    let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
+    let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
+    let normalized_body =
+        std::str::from_utf8(decoded_websocket.native_payload()).map_err(|_| internal_error())?;
+    let PreparedResponsesExecution {
+        mut execution,
+        mode: _,
+        canonical_request_for_store,
+        lineage_recorder,
+    } = prepare_responses_execution(
+        context,
+        decoded,
+        normalized_body,
+        route_id,
+        retry_gate,
+        owned_continuation,
+        true,
+    );
+    let canonical_request_for_session = execution.request().clone();
+    execution = execution.with_client_transport(ResponsesClientTransport::WebSocket);
+    let mut source = state.executor.execute_routed(execution).await?;
+    let Some(first @ CanonicalEvent::ResponseStart(_)) = source.next_event().await? else {
+        return Err(stream_protocol_error());
+    };
+    let metadata = state.metadata_factory.response_metadata(&public_model)?;
+    let stored_response = prepare_stored_response_write_context(
+        state,
+        canonical_request_for_store,
+        lineage_recorder.clone(),
+        client_key_id,
+        public_model.clone(),
+        metadata.created_at(),
+    )?;
+    let usage_observer = UsageEventObserver::new(request_id, Arc::clone(&state.event_sink));
+    let stream = start_bounded_transport(
+        source,
+        first,
+        sender,
+        stream,
+        usage_observer,
+        stored_response,
+    )
+    .await?;
+    deliver_responses_websocket_turn(
+        session,
+        stream,
+        metadata,
+        cache,
+        public_model,
+        canonical_request_for_session,
+        lineage_recorder.ok_or_else(internal_error)?,
+    )
+    .await
+}
+
+async fn prepare_websocket_continuation(
+    state: &ResponsesHttpState,
+    cache: &tokio::sync::Mutex<WebSocketSessionCache>,
+    client_key_id: &ClientKeyId,
+    public_model: &str,
+    current_route_id: Option<&RouteId>,
+    decoded: &DecodedResponsesRequest,
+) -> Result<Option<PreparedOwnedContinuation>, OwnedContinuityError> {
+    if let Some(response_id) = decoded.previous_response_id.as_ref()
+        && let Some(previous) = cache.lock().await.get(response_id)
+    {
+        if previous.public_model != public_model
+            || current_route_id.is_some_and(|route_id| route_id != previous.lineage.route_id())
+        {
+            return Err(OwnedContinuityError::Unavailable);
+        }
+        let request = replay_canonical_response(
+            &previous.request,
+            &previous.response,
+            decoded.request.clone(),
+        )
+        .map_err(|_| OwnedContinuityError::Unavailable)?;
+        return Ok(Some(PreparedOwnedContinuation {
+            request,
+            pin: ResponsesContinuationPin::new(
+                previous.lineage,
+                ResponsesContinuationKind::WebSocketSession,
+            ),
+        }));
+    }
+    prepare_owned_continuation(
+        state,
+        client_key_id,
+        public_model,
+        current_route_id,
+        decoded,
+    )
+    .await
+}
+
+fn owned_continuity_gateway_error(error: OwnedContinuityError) -> GatewayError {
+    match error {
+        OwnedContinuityError::NotFound => route_not_found(),
+        OwnedContinuityError::Unavailable => GatewayError::new(
+            GatewayErrorCode::CredentialUnavailable,
+            ErrorScope::Credential,
+        ),
+        OwnedContinuityError::Internal => internal_error(),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn deliver_responses_websocket_turn(
+    session: &mut actix_ws::Session,
+    mut stream: CanonicalEventStream,
+    metadata: OpenAiResponseMetadata,
+    cache: &tokio::sync::Mutex<WebSocketSessionCache>,
+    public_model: String,
+    canonical_request: CanonicalRequest,
+    lineage_recorder: Arc<ResponsesExecutionLineageRecorder>,
+) -> Result<(), GatewayError> {
+    let tracker = stream.control().first_semantic_event_tracker();
+    let mut encoder = OpenAiResponsesSseEncoder::new(metadata);
+    let mut events = Vec::new();
+    let mut canonical_bytes = 0_usize;
+    let mut output_bytes = 0_usize;
+
+    loop {
+        let event = tokio::time::timeout(RESPONSES_WEBSOCKET_EVENT_IDLE_TIMEOUT, stream.recv())
+            .await
+            .map_err(|_| stream_protocol_error())??
+            .ok_or_else(stream_protocol_error)?;
+        if events.len() >= MAX_STORED_RESPONSE_EVENTS {
+            return Err(internal_error());
+        }
+        canonical_bytes = canonical_bytes
+            .checked_add(
+                serde_json::to_vec(&event)
+                    .map_err(|_| internal_error())?
+                    .len(),
+            )
+            .ok_or_else(internal_error)?;
+        if canonical_bytes > MAX_STORED_RESPONSE_PAYLOAD_BYTES {
+            return Err(internal_error());
+        }
+        events.push(event.clone());
+        let completed = matches!(event, CanonicalEvent::ResponseEnd(_));
+        let failed = matches!(event, CanonicalEvent::StreamError(_));
+        if completed {
+            let response = CanonicalResponse::try_new(events.clone())?;
+            let response_id = response
+                .events()
+                .first()
+                .and_then(|event| match event {
+                    CanonicalEvent::ResponseStart(start) => Some(start.response_id.clone()),
+                    _ => None,
+                })
+                .ok_or_else(internal_error)?;
+            let lineage = lineage_recorder.lineage()?.ok_or_else(internal_error)?;
+            cache.lock().await.insert(
+                response_id,
+                public_model.clone(),
+                canonical_request.clone(),
+                response,
+                lineage,
+            )?;
+        }
+        for frame in encoder.encode_event(&event)? {
+            let message = serde_json::to_string(frame.data()).map_err(|_| internal_error())?;
+            if message.len() > RESPONSES_WEBSOCKET_MAX_MESSAGE_BYTES {
+                return Err(internal_error());
+            }
+            output_bytes = output_bytes
+                .checked_add(message.len())
+                .ok_or_else(internal_error)?;
+            if output_bytes > MAX_STORED_RESPONSE_PAYLOAD_BYTES {
+                return Err(internal_error());
+            }
+            write_websocket_text(session, message).await?;
+            if frame.is_semantic() {
+                let _delivery = tracker.mark_delivered(&event);
+            }
+        }
+        if completed || failed {
+            return Ok(());
+        }
+    }
+}
+
+async fn write_websocket_text(
+    session: &mut actix_ws::Session,
+    message: String,
+) -> Result<(), GatewayError> {
+    tokio::time::timeout(RESPONSES_WEBSOCKET_WRITE_TIMEOUT, session.text(message))
+        .await
+        .map_err(|_| stream_protocol_error())?
+        .map_err(|_| stream_protocol_error())
+}
+
+async fn send_websocket_error(
+    session: &mut actix_ws::Session,
+    error: &GatewayError,
+) -> Result<(), GatewayError> {
+    let encoded = encode_error(error);
+    let payload = serde_json::json!({
+        "type": "error",
+        "error": encoded.get("error").cloned().unwrap_or(serde_json::Value::Null),
+    });
+    write_websocket_text(
+        session,
+        serde_json::to_string(&payload).map_err(|_| internal_error())?,
+    )
+    .await
 }
 
 async fn chat_completions(
@@ -1005,6 +1777,7 @@ async fn responses(
         route_id,
         retry_gate,
         owned_continuation,
+        false,
     );
     let mut source = match state.executor.execute_routed(execution).await {
         Ok(source) => source,
@@ -2578,6 +3351,7 @@ mod tests {
         collections::{BTreeSet, VecDeque},
         error::Error,
         future::poll_fn,
+        net::{Ipv4Addr, TcpListener},
         sync::{
             Arc, Mutex,
             atomic::{AtomicBool, AtomicUsize, Ordering},
@@ -2586,11 +3360,13 @@ mod tests {
     };
 
     use actix_web::{
-        App,
+        App, HttpServer,
         body::MessageBody,
         http::{StatusCode, header},
         test, web,
     };
+    use actix_ws::{CloseCode, Item as WebSocketItem, Message as ActixWebSocketMessage};
+    use futures_util::{SinkExt, StreamExt};
     use gateway_auth::{
         ClientKeyAuthenticator, InMemoryClientKey, InMemoryClientKeyAuthenticator,
         client_key::{ClientKeyPepper, ClientKeyService},
@@ -2606,13 +3382,13 @@ mod tests {
     use gateway_observability::{BoundedEventQueue, EventQueueConfig};
     use gateway_router::{
         CapabilitySet, CountTokensExecution, CountTokensExecutor, CountTokensFuture,
-        DeterministicMockEmission, DeterministicMockResponsesExecutor, ResponsesContinuationKind,
-        ResponsesContinuationPin, ResponsesEventSource, ResponsesExecution,
-        ResponsesExecutionLineage, ResponsesExecutor, ResponsesFuture, RouteSnapshot,
-        RouteSnapshotInput, RouteSnapshotRegistry, SnapshotAccessGroup, SnapshotCatalogAdmission,
-        SnapshotClientKeyAuthenticator, SnapshotClientKeyView, SnapshotPublicModel, SnapshotRoute,
-        SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
-        SnapshotTransformMode, SnapshotVersion,
+        DeterministicMockEmission, DeterministicMockResponsesExecutor, ResponsesClientTransport,
+        ResponsesContinuationKind, ResponsesContinuationPin, ResponsesEventSource,
+        ResponsesExecution, ResponsesExecutionLineage, ResponsesExecutor, ResponsesFuture,
+        RouteSnapshot, RouteSnapshotInput, RouteSnapshotRegistry, SnapshotAccessGroup,
+        SnapshotCatalogAdmission, SnapshotClientKeyAuthenticator, SnapshotClientKeyView,
+        SnapshotPublicModel, SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput,
+        SnapshotRoutePolicy, SnapshotTransformMode, SnapshotVersion,
     };
     use gateway_store::{
         secret_store::{KeyVersion, MASTER_KEY_BYTES, MasterKey, MasterKeyRing, SecretStore},
@@ -2625,11 +3401,14 @@ mod tests {
     use protocol_anthropic::{AnthropicMessagesSseEncoder, AnthropicResponseMetadata};
     use protocol_openai_chat::ChatResponseMetadata;
     use protocol_openai_responses::{OpenAiResponseMetadata, OpenAiResponsesSseEncoder};
+    use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 
     use super::{
-        JsonDeliveryBody, MAX_INFERENCE_REQUEST_BODY_BYTES, ResponsesHttpState,
-        ResponsesMetadataFactory, SSE_KEEPALIVE_COMMENT, SSE_KEEPALIVE_INTERVAL,
-        SystemResponsesMetadataFactory, client_request_error, configure,
+        JsonDeliveryBody, MAX_INFERENCE_REQUEST_BODY_BYTES, RESPONSES_WEBSOCKET_MAX_FRAGMENTS,
+        ResponsesHttpState, ResponsesMetadataFactory, SSE_KEEPALIVE_COMMENT,
+        SSE_KEEPALIVE_INTERVAL, SystemResponsesMetadataFactory, WebSocketFragmentAssembler,
+        WebSocketInboundError, WebSocketSessionCache, client_request_error, configure,
+        websocket_stream_error_reason,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -2637,6 +3416,359 @@ mod tests {
     const TEST_CLIENT_KEY: &str = "p1-test-client-key";
     const FOREIGN_TEST_CLIENT_KEY: &str = "p13-foreign-client-key";
     const SNAPSHOT_PUBLIC_MODEL: &str = "public-model";
+
+    #[actix_web::test]
+    async fn websocket_fragment_assembler_is_text_only_and_bounded_by_bytes_and_count() -> TestResult
+    {
+        let mut assembler = WebSocketFragmentAssembler::default();
+        assert_eq!(
+            assembler.push_message(ActixWebSocketMessage::Text("complete".into()))?,
+            Some("complete".to_owned())
+        );
+        assert_eq!(
+            assembler.push_message(ActixWebSocketMessage::Continuation(
+                WebSocketItem::FirstText(web::Bytes::from_static(b"frag")),
+            ))?,
+            None
+        );
+        assert_eq!(
+            assembler.push_message(ActixWebSocketMessage::Continuation(WebSocketItem::Last(
+                web::Bytes::from_static(b"mented"),
+            )))?,
+            Some("fragmented".to_owned())
+        );
+        assert_eq!(
+            assembler.push_message(ActixWebSocketMessage::Binary(web::Bytes::from_static(
+                b"binary",
+            ))),
+            Err(WebSocketInboundError::Unsupported)
+        );
+
+        let mut fragments = WebSocketFragmentAssembler::default();
+        assert_eq!(
+            fragments.push_message(ActixWebSocketMessage::Continuation(
+                WebSocketItem::FirstText(web::Bytes::new()),
+            ))?,
+            None
+        );
+        for _ in 1..RESPONSES_WEBSOCKET_MAX_FRAGMENTS {
+            assert_eq!(
+                fragments.push_message(ActixWebSocketMessage::Continuation(
+                    WebSocketItem::Continue(web::Bytes::new()),
+                ))?,
+                None
+            );
+        }
+        assert_eq!(
+            fragments.push_message(ActixWebSocketMessage::Continuation(
+                WebSocketItem::Continue(web::Bytes::new()),
+            )),
+            Err(WebSocketInboundError::TooLarge)
+        );
+        assert_eq!(
+            websocket_stream_error_reason(&actix_ws::ProtocolError::Overflow).code,
+            CloseCode::Size
+        );
+        assert_eq!(
+            websocket_stream_error_reason(&actix_ws::ProtocolError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "invalid text",
+            )))
+            .code,
+            CloseCode::Invalid
+        );
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn websocket_session_cache_is_idempotent_but_rejects_response_id_collisions() -> TestResult
+    {
+        let request =
+            protocol_openai_responses::decode_request(r#"{"model":"mock-model","input":"first"}"#)?
+                .request;
+        let response = CanonicalResponse::try_new(websocket_text_events(
+            "ws-cache-response",
+            "first answer",
+        )?)?;
+        let lineage = websocket_test_lineage()?;
+        let mut cache = WebSocketSessionCache::default();
+        cache.insert(
+            ResponseId::try_new("ws-cache-response")?,
+            "mock-model".to_owned(),
+            request.clone(),
+            response.clone(),
+            lineage.clone(),
+        )?;
+        cache.insert(
+            ResponseId::try_new("ws-cache-response")?,
+            "mock-model".to_owned(),
+            request.clone(),
+            response,
+            lineage.clone(),
+        )?;
+        let conflicting = CanonicalResponse::try_new(websocket_text_events(
+            "ws-cache-response",
+            "different answer",
+        )?)?;
+        let error = cache
+            .insert(
+                ResponseId::try_new("ws-cache-response")?,
+                "mock-model".to_owned(),
+                request,
+                conflicting,
+                lineage,
+            )
+            .err()
+            .ok_or("conflicting response ID must fail closed")?;
+        assert_eq!(error.code(), GatewayErrorCode::InternalError);
+        assert_eq!(cache.turns.len(), 1);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn responses_websocket_handshake_stream_and_session_continuation_are_exact() -> TestResult
+    {
+        let observations = Arc::new(Mutex::new(Vec::new()));
+        let executor = WebSocketTestExecutor {
+            responses: Mutex::new(
+                vec![
+                    websocket_text_events("ws-response-1", "first answer")?,
+                    websocket_text_events("ws-response-2", "second answer")?,
+                ]
+                .into(),
+            ),
+            observations: Arc::clone(&observations),
+        };
+        let state = ResponsesHttpState::with_metadata(
+            Arc::new(executor),
+            Arc::new(FixedMetadata),
+            test_authenticator()?,
+            StreamCapacity::try_new(2)?,
+        );
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?;
+        listener.set_nonblocking(true)?;
+        let address = listener.local_addr()?;
+        let server_state = state.clone();
+        let server = HttpServer::new(move || {
+            App::new()
+                .app_data(web::Data::new(server_state.clone()))
+                .configure(configure)
+        })
+        .workers(1)
+        .listen(listener)?
+        .run();
+        let handle = server.handle();
+        let task = tokio::spawn(server);
+        tokio::task::yield_now().await;
+
+        let url = format!("ws://{address}/v1/responses");
+        let unauthorized = tokio_tungstenite::connect_async(url.clone())
+            .await
+            .err()
+            .ok_or("missing Client Key must be rejected before upgrade")?;
+        match unauthorized {
+            tokio_tungstenite::tungstenite::Error::Http(response) => {
+                assert_eq!(response.status(), 401);
+                assert_eq!(
+                    response
+                        .headers()
+                        .get("cache-control")
+                        .and_then(|value| value.to_str().ok()),
+                    Some("no-store")
+                );
+            }
+            other => return Err(format!("unexpected authentication rejection: {other}").into()),
+        }
+        let mut request = url.clone().into_client_request()?;
+        request.headers_mut().insert(
+            "authorization",
+            format!("Bearer {TEST_CLIENT_KEY}").parse()?,
+        );
+        request
+            .headers_mut()
+            .insert("x-codex-turn-state", "turn-state-1".parse()?);
+        let (mut socket, response) = tokio_tungstenite::connect_async(request).await?;
+        assert_eq!(response.status(), 101);
+        assert_eq!(
+            response
+                .headers()
+                .get("x-codex-turn-state")
+                .and_then(|value| value.to_str().ok()),
+            Some("turn-state-1")
+        );
+        socket
+            .send(tokio_tungstenite::tungstenite::Message::Text(
+                r#"{"type":"response.create","model":"mock-model","input":"first"}"#.into(),
+            ))
+            .await?;
+        let first = read_websocket_response(&mut socket).await?;
+        assert_eq!(
+            first.first().and_then(|event| event["type"].as_str()),
+            Some("response.created")
+        );
+        assert_eq!(
+            first.last().and_then(|event| event["type"].as_str()),
+            Some("response.completed")
+        );
+
+        socket
+            .send(tokio_tungstenite::tungstenite::Message::Text(
+                r#"{"type":"response.create","model":"mock-model","previous_response_id":"ws-response-1","input":"second"}"#
+                    .into(),
+            ))
+            .await?;
+        let second = read_websocket_response(&mut socket).await?;
+        assert_eq!(
+            second.last().and_then(|event| event["type"].as_str()),
+            Some("response.completed")
+        );
+        socket.close(None).await?;
+
+        let observed = { observations.lock().map_err(|_| "observation lock")?.clone() };
+        assert_eq!(observed.len(), 2);
+        assert_eq!(observed[0].transport, ResponsesClientTransport::WebSocket);
+        let first_native = observed[0]
+            .native_payload
+            .as_ref()
+            .ok_or("first turn must retain native payload")?;
+        assert_eq!(first_native["stream"], true);
+        assert!(first_native.get("type").is_none());
+        assert_eq!(observed[0].continuation, None);
+        assert_eq!(
+            observed[1].continuation,
+            Some(ResponsesContinuationKind::WebSocketSession)
+        );
+        assert!(observed[1].native_payload.is_none());
+        assert!(observed[1].message_count >= 3);
+        let mut origin_request = url.into_client_request()?;
+        origin_request.headers_mut().insert(
+            "authorization",
+            format!("Bearer {TEST_CLIENT_KEY}").parse()?,
+        );
+        origin_request
+            .headers_mut()
+            .insert("origin", "https://browser.example".parse()?);
+        let rejected = tokio_tungstenite::connect_async(origin_request)
+            .await
+            .err()
+            .ok_or("browser Origin must be rejected")?;
+        match rejected {
+            tokio_tungstenite::tungstenite::Error::Http(response) => {
+                assert_eq!(response.status(), 403);
+                assert_eq!(
+                    response
+                        .headers()
+                        .get("cache-control")
+                        .and_then(|value| value.to_str().ok()),
+                    Some("no-store")
+                );
+            }
+            other => return Err(format!("unexpected WebSocket rejection: {other}").into()),
+        }
+
+        handle.stop(true).await;
+        task.await??;
+        Ok(())
+    }
+
+    #[actix_web::test]
+    #[allow(clippy::too_many_lines)]
+    async fn responses_websocket_pending_bound_closes_and_cancels_the_active_source() -> TestResult
+    {
+        let dropped = Arc::new(AtomicBool::new(false));
+        let calls = Arc::new(AtomicUsize::new(0));
+        let state = ResponsesHttpState::with_metadata(
+            Arc::new(WebSocketBlockingExecutor {
+                dropped: Arc::clone(&dropped),
+                calls: Arc::clone(&calls),
+            }),
+            Arc::new(FixedMetadata),
+            test_authenticator()?,
+            StreamCapacity::try_new(1)?,
+        );
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?;
+        listener.set_nonblocking(true)?;
+        let address = listener.local_addr()?;
+        let server_state = state.clone();
+        let server = HttpServer::new(move || {
+            App::new()
+                .app_data(web::Data::new(server_state.clone()))
+                .configure(configure)
+        })
+        .workers(1)
+        .listen(listener)?
+        .run();
+        let handle = server.handle();
+        let task = tokio::spawn(server);
+        tokio::task::yield_now().await;
+
+        let mut request = format!("ws://{address}/v1/responses").into_client_request()?;
+        request.headers_mut().insert(
+            "authorization",
+            format!("Bearer {TEST_CLIENT_KEY}").parse()?,
+        );
+        let (mut socket, _) = tokio_tungstenite::connect_async(request).await?;
+        let request_body = r#"{"type":"response.create","model":"mock-model","input":"blocked"}"#;
+        socket
+            .send(tokio_tungstenite::tungstenite::Message::Text(
+                request_body.into(),
+            ))
+            .await?;
+
+        loop {
+            let message = tokio::time::timeout(Duration::from_secs(2), socket.next())
+                .await?
+                .ok_or("WebSocket closed before response.created")??;
+            match message {
+                tokio_tungstenite::tungstenite::Message::Text(text) => {
+                    let event: serde_json::Value = serde_json::from_str(text.as_str())?;
+                    if event["type"] == "response.created" {
+                        break;
+                    }
+                }
+                tokio_tungstenite::tungstenite::Message::Ping(bytes) => {
+                    socket
+                        .send(tokio_tungstenite::tungstenite::Message::Pong(bytes))
+                        .await?;
+                }
+                _ => {}
+            }
+        }
+
+        for _ in 0..2 {
+            socket
+                .send(tokio_tungstenite::tungstenite::Message::Text(
+                    request_body.into(),
+                ))
+                .await?;
+        }
+        let close = loop {
+            let message = tokio::time::timeout(Duration::from_secs(2), socket.next())
+                .await?
+                .ok_or("WebSocket ended without bounded close")??;
+            match message {
+                tokio_tungstenite::tungstenite::Message::Close(reason) => break reason,
+                tokio_tungstenite::tungstenite::Message::Ping(bytes) => {
+                    socket
+                        .send(tokio_tungstenite::tungstenite::Message::Pong(bytes))
+                        .await?;
+                }
+                _ => {}
+            }
+        };
+        assert!(close.is_some_and(|reason| u16::from(reason.code) == 1008));
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while !dropped.load(Ordering::Acquire) {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await?;
+        assert_eq!(calls.load(Ordering::Acquire), 1);
+
+        handle.stop(true).await;
+        task.await??;
+        Ok(())
+    }
 
     #[actix_web::test]
     async fn system_request_ids_are_restart_unique_bounded_and_debug_redacted() -> TestResult {
@@ -2706,6 +3838,28 @@ mod tests {
             }),
             CanonicalEvent::TextDelta(TextDelta {
                 text: "deterministic hello".to_owned(),
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::MessageEnd(MessageEnd::default()),
+            CanonicalEvent::ResponseEnd(ResponseEnd::default()),
+        ])
+    }
+
+    fn websocket_text_events(
+        response_id: &str,
+        text: &str,
+    ) -> Result<Vec<CanonicalEvent>, Box<dyn Error>> {
+        Ok(vec![
+            CanonicalEvent::ResponseStart(ResponseStart {
+                response_id: ResponseId::try_new(response_id.to_owned())?,
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::MessageStart(MessageStart {
+                role: MessageRole("assistant".to_owned()),
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::TextDelta(TextDelta {
+                text: text.to_owned(),
                 extensions: RawExtensions::default(),
             }),
             CanonicalEvent::MessageEnd(MessageEnd::default()),
@@ -2803,6 +3957,42 @@ mod tests {
 
     fn authorized(request: test::TestRequest) -> test::TestRequest {
         request.insert_header((header::AUTHORIZATION, format!("Bearer {TEST_CLIENT_KEY}")))
+    }
+
+    async fn read_websocket_response<S>(
+        socket: &mut tokio_tungstenite::WebSocketStream<S>,
+    ) -> Result<Vec<serde_json::Value>, Box<dyn Error>>
+    where
+        S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin,
+    {
+        let mut events = Vec::new();
+        loop {
+            let message = tokio::time::timeout(Duration::from_secs(2), socket.next())
+                .await?
+                .ok_or("WebSocket closed before a terminal response")??;
+            match message {
+                tokio_tungstenite::tungstenite::Message::Text(text) => {
+                    let event: serde_json::Value = serde_json::from_str(text.as_str())?;
+                    let terminal = matches!(
+                        event.get("type").and_then(serde_json::Value::as_str),
+                        Some("response.completed" | "response.failed" | "response.incomplete")
+                    );
+                    events.push(event);
+                    if terminal {
+                        return Ok(events);
+                    }
+                }
+                tokio_tungstenite::tungstenite::Message::Ping(bytes) => {
+                    socket
+                        .send(tokio_tungstenite::tungstenite::Message::Pong(bytes))
+                        .await?;
+                }
+                tokio_tungstenite::tungstenite::Message::Close(_) => {
+                    return Err("WebSocket closed before a terminal response".into());
+                }
+                _ => {}
+            }
+        }
     }
 
     fn authorized_as(request: test::TestRequest, key: &str) -> test::TestRequest {
@@ -5075,6 +6265,119 @@ mod tests {
 
     struct CountingExecutor {
         calls: Arc<AtomicUsize>,
+    }
+
+    #[derive(Clone)]
+    struct WebSocketExecutionObservation {
+        transport: ResponsesClientTransport,
+        native_payload: Option<serde_json::Value>,
+        continuation: Option<ResponsesContinuationKind>,
+        message_count: usize,
+    }
+
+    struct WebSocketTestExecutor {
+        responses: Mutex<VecDeque<Vec<CanonicalEvent>>>,
+        observations: Arc<Mutex<Vec<WebSocketExecutionObservation>>>,
+    }
+
+    struct WebSocketBlockingExecutor {
+        dropped: Arc<AtomicBool>,
+        calls: Arc<AtomicUsize>,
+    }
+
+    fn websocket_test_lineage() -> Result<ResponsesExecutionLineage, GatewayError> {
+        Ok(ResponsesExecutionLineage::new(
+            SnapshotVersion::try_new("websocket-config-v1").map_err(|_| super::internal_error())?,
+            ProviderId::try_new("websocket-provider").map_err(|_| super::internal_error())?,
+            UpstreamId::try_new("websocket-provider").map_err(|_| super::internal_error())?,
+            EndpointId::try_new("websocket-channel").map_err(|_| super::internal_error())?,
+            RouteId::try_new("websocket-route").map_err(|_| super::internal_error())?,
+            RouteCandidateId::try_new("websocket-candidate")
+                .map_err(|_| super::internal_error())?,
+            CredentialId::try_new("websocket-credential").map_err(|_| super::internal_error())?,
+            1,
+        ))
+    }
+
+    impl ResponsesExecutor for WebSocketBlockingExecutor {
+        fn execute(
+            &self,
+            _context: RequestContext,
+            _request: CanonicalRequest,
+        ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
+            Box::pin(async { Err(super::internal_error()) })
+        }
+
+        fn execute_routed(
+            &self,
+            execution: ResponsesExecution,
+        ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
+            self.calls.fetch_add(1, Ordering::AcqRel);
+            let result = execution
+                .lineage_recorder()
+                .ok_or_else(super::internal_error)
+                .and_then(|recorder| recorder.record(websocket_test_lineage()?));
+            let dropped = Arc::clone(&self.dropped);
+            Box::pin(async move {
+                result?;
+                Ok(Box::new(DroppingSource {
+                    dropped,
+                    first_event_pending: true,
+                }) as Box<dyn ResponsesEventSource>)
+            })
+        }
+    }
+
+    impl ResponsesExecutor for WebSocketTestExecutor {
+        fn execute(
+            &self,
+            _context: RequestContext,
+            _request: CanonicalRequest,
+        ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
+            Box::pin(async { Err(super::internal_error()) })
+        }
+
+        fn execute_routed(
+            &self,
+            execution: ResponsesExecution,
+        ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
+            let result = (|| {
+                let lineage = match execution.continuation_pin() {
+                    Some(pin) => pin.lineage().clone(),
+                    None => websocket_test_lineage()?,
+                };
+                execution
+                    .lineage_recorder()
+                    .ok_or_else(super::internal_error)?
+                    .record(lineage)?;
+                let native_payload = execution
+                    .native_payload()
+                    .map(|payload| serde_json::from_slice(payload))
+                    .transpose()
+                    .map_err(|_| super::internal_error())?;
+                self.observations
+                    .lock()
+                    .map_err(|_| super::internal_error())?
+                    .push(WebSocketExecutionObservation {
+                        transport: execution.client_transport(),
+                        native_payload,
+                        continuation: execution
+                            .continuation_pin()
+                            .map(ResponsesContinuationPin::kind),
+                        message_count: execution.request().messages.len(),
+                    });
+                let events = self
+                    .responses
+                    .lock()
+                    .map_err(|_| super::internal_error())?
+                    .pop_front()
+                    .ok_or_else(super::internal_error)?;
+                Ok(Box::new(FiniteResponsesSource {
+                    events: events.into(),
+                }) as Box<dyn ResponsesEventSource>)
+            })();
+            Box::pin(async move { result })
+        }
     }
 
     struct StoredResponsesExecutor {

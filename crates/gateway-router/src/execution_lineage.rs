@@ -16,6 +16,8 @@ pub enum ResponsesContinuationKind {
     StoredResponse,
     /// Generate or consume one gateway-owned compaction summary.
     Compaction,
+    /// Replay one bounded completed turn retained only by the current WebSocket connection.
+    WebSocketSession,
 }
 
 /// Exact immutable routing and Credential identity of the Attempt whose source was returned.

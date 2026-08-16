@@ -178,6 +178,8 @@ pub enum ProtocolTransformRejection {
     IncompatibleRole,
     /// The Endpoint cannot provide the requested streaming response.
     StreamingUnsupported,
+    /// The Endpoint is not approved for public Responses WebSocket ingress.
+    ResponsesWebSocketUnsupported,
     /// The Endpoint cannot provide declared Tool calls.
     ToolsUnsupported,
     /// The Endpoint cannot provide the required JSON Schema semantics.

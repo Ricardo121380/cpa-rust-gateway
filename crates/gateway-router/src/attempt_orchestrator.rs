@@ -834,6 +834,7 @@ impl AttemptOrchestrator {
         let required_capability = match pin.kind() {
             ResponsesContinuationKind::StoredResponse => SemanticCapability::StoredResponses,
             ResponsesContinuationKind::Compaction => SemanticCapability::ResponseCompaction,
+            ResponsesContinuationKind::WebSocketSession => SemanticCapability::ResponsesWebSocket,
         };
         let selection = self.scheduler.select_continuation_and_lease_at(
             route_id,
