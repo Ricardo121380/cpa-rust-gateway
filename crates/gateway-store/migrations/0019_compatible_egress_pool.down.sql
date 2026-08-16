@@ -1,0 +1,12 @@
+DROP TRIGGER compatible_egress_proxy_pool_reference_delete;
+DROP TRIGGER compatible_egress_proxy_node_reference_delete;
+DROP TRIGGER compatible_egress_proxy_pool_reference_update;
+DROP TRIGGER compatible_egress_proxy_node_reference_update;
+DROP TRIGGER compatible_egress_binding_pool_target_update;
+DROP TRIGGER compatible_egress_binding_pool_target_insert;
+DROP TRIGGER compatible_egress_binding_fixed_target_update;
+DROP TRIGGER compatible_egress_binding_fixed_target_insert;
+
+DROP TABLE compatible_egress_binding_profiles;
+DROP TABLE compatible_egress_proxy_nodes;
+DROP TABLE compatible_egress_proxy_pools;

@@ -9,13 +9,15 @@ use gateway_core::{AccessGroupId, ClientKeyId, CredentialId, UpstreamId};
 use gateway_store::{
     StoreError,
     control_plane::{
-        ConfigVersionId, CredentialConfiguration, CredentialStatus, SqliteControlPlaneRepository,
-        StoredClientKey, StoredClientKeyStatus,
+        CompatibleProxyNodeId, CompatibleProxyPoolId, ConfigVersionId, CredentialConfiguration,
+        CredentialStatus, SqliteControlPlaneRepository, StoredClientKey, StoredClientKeyStatus,
     },
-    secret_store::{SecretStore, SecretStoreError},
+    secret_store::{EncryptedSecret, SecretStore, SecretStoreError},
 };
+use gateway_upstream::UpstreamProxy;
 
 const CREDENTIAL_AAD_DOMAIN: &[u8] = b"cpa-rust-gateway/control-plane/credential-aad/v1";
+const COMPATIBLE_PROXY_NODE_AAD_DOMAIN: &[u8] = b"cpar-compatible-egress-node-v1";
 
 /// Non-secret metadata for one atomic Credential and Client Key provisioning operation.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -233,6 +235,86 @@ pub fn credential_associated_data(
     Ok(associated_data)
 }
 
+/// Produces stable, tuple-safe AEAD AAD for one persisted compatible proxy node.
+///
+/// The owner version, Upstream, optional pool relationship, and node identity are all bound to
+/// the ciphertext. The explicit pool-presence marker prevents a standalone node from sharing an
+/// AAD tuple with a pooled node, while length-prefixing every segment prevents concatenation
+/// collisions. The proxy endpoint itself is never included in the returned bytes in plaintext;
+/// it is sealed separately by [`SecretStore::seal`].
+///
+/// # Errors
+///
+/// Returns [`ControlPlaneServiceError::AssociatedDataSegmentTooLong`] when any opaque segment is
+/// too large for the internal length-delimited representation.
+pub fn compatible_proxy_node_associated_data(
+    config_version_id: &ConfigVersionId,
+    upstream_id: &UpstreamId,
+    pool_id: Option<&CompatibleProxyPoolId>,
+    node_id: &CompatibleProxyNodeId,
+) -> Result<Vec<u8>, ControlPlaneServiceError> {
+    let mut associated_data = Vec::with_capacity(
+        COMPATIBLE_PROXY_NODE_AAD_DOMAIN.len()
+            + 4 * 5
+            + config_version_id.as_str().len()
+            + upstream_id.as_str().len()
+            + node_id.as_str().len()
+            + pool_id.map_or(0, |pool| pool.as_str().len()),
+    );
+    associated_data.extend_from_slice(COMPATIBLE_PROXY_NODE_AAD_DOMAIN);
+    append_length_delimited_segment(&mut associated_data, config_version_id.as_str().as_bytes())?;
+    append_length_delimited_segment(&mut associated_data, upstream_id.as_str().as_bytes())?;
+    let pool_marker = if pool_id.is_some() { [1_u8] } else { [0_u8] };
+    append_length_delimited_segment(&mut associated_data, &pool_marker)?;
+    if let Some(pool_id) = pool_id {
+        append_length_delimited_segment(&mut associated_data, pool_id.as_str().as_bytes())?;
+    }
+    append_length_delimited_segment(&mut associated_data, node_id.as_str().as_bytes())?;
+    Ok(associated_data)
+}
+
+/// Validates and seals one compatible proxy endpoint for a Config-Version-owned node.
+///
+/// The existing [`UpstreamProxy`] admission boundary is deliberately reused: only local-DNS
+/// `socks5://host:explicit-port` is accepted, and user-info, query, fragment, path, HTTP(S), and
+/// remote-DNS `socks5h` forms are rejected before any ciphertext is produced. The canonical URL
+/// returned by the parser, rather than caller formatting, is what gets sealed.
+///
+/// # Errors
+///
+/// Returns [`ControlPlaneServiceError::InvalidCompatibleProxyEndpoint`] for a disallowed proxy
+/// form, or the existing Secret/AAD error classes when sealing cannot complete.
+pub fn seal_compatible_proxy_node_endpoint(
+    secret_store: &SecretStore,
+    config_version_id: &ConfigVersionId,
+    upstream_id: &UpstreamId,
+    pool_id: Option<&CompatibleProxyPoolId>,
+    node_id: &CompatibleProxyNodeId,
+    plaintext_proxy_endpoint: &str,
+) -> Result<EncryptedSecret, ControlPlaneServiceError> {
+    let proxy = UpstreamProxy::try_socks5(plaintext_proxy_endpoint)
+        .map_err(|_| ControlPlaneServiceError::InvalidCompatibleProxyEndpoint)?;
+    let canonical_proxy_endpoint = proxy
+        .canonical_url()
+        .ok_or(ControlPlaneServiceError::InvalidCompatibleProxyEndpoint)?;
+    let associated_data =
+        compatible_proxy_node_associated_data(config_version_id, upstream_id, pool_id, node_id)?;
+    secret_store
+        .seal(canonical_proxy_endpoint.as_bytes(), &associated_data)
+        .map_err(ControlPlaneServiceError::from)
+}
+
+fn append_length_delimited_segment(
+    associated_data: &mut Vec<u8>,
+    segment: &[u8],
+) -> Result<(), ControlPlaneServiceError> {
+    let length = u32::try_from(segment.len())
+        .map_err(|_| ControlPlaneServiceError::AssociatedDataSegmentTooLong)?;
+    associated_data.extend_from_slice(&length.to_be_bytes());
+    associated_data.extend_from_slice(segment);
+    Ok(())
+}
+
 fn stored_client_key_from_record(
     client_key_record: &ClientKeyRecord,
 ) -> Result<StoredClientKey, ControlPlaneServiceError> {
@@ -264,6 +346,8 @@ pub enum ControlPlaneServiceError {
     ClientKeyRecordIdentityMismatch,
     /// One identifier was too long for the stable length-delimited AAD representation.
     AssociatedDataSegmentTooLong,
+    /// A compatible proxy endpoint did not satisfy the local-DNS SOCKS5 admission boundary.
+    InvalidCompatibleProxyEndpoint,
 }
 
 impl fmt::Display for ControlPlaneServiceError {
@@ -286,6 +370,9 @@ impl fmt::Display for ControlPlaneServiceError {
             Self::AssociatedDataSegmentTooLong => {
                 formatter.write_str("control-plane associated-data segment is too long")
             }
+            Self::InvalidCompatibleProxyEndpoint => {
+                formatter.write_str("compatible proxy endpoint is invalid")
+            }
         }
     }
 }
@@ -296,7 +383,9 @@ impl Error for ControlPlaneServiceError {
             Self::Store(error) => Some(error),
             Self::SecretStore(error) => Some(error),
             Self::ClientKey(error) => Some(error),
-            Self::ClientKeyRecordIdentityMismatch | Self::AssociatedDataSegmentTooLong => None,
+            Self::ClientKeyRecordIdentityMismatch
+            | Self::AssociatedDataSegmentTooLong
+            | Self::InvalidCompatibleProxyEndpoint => None,
         }
     }
 }
@@ -327,16 +416,17 @@ mod tests {
     use gateway_core::{AccessGroupId, ClientKeyId, CredentialId, UpstreamId};
     use gateway_store::{
         control_plane::{
-            AccessGroupConfiguration, AdministrativeStatus, ConfigVersion, ConfigVersionId,
-            ConfigVersionStatus, ControlPlaneConfiguration, SqliteControlPlaneRepository,
-            UpstreamConfiguration,
+            AccessGroupConfiguration, AdministrativeStatus, CompatibleProxyNodeId,
+            CompatibleProxyPoolId, ConfigVersion, ConfigVersionId, ConfigVersionStatus,
+            ControlPlaneConfiguration, SqliteControlPlaneRepository, UpstreamConfiguration,
         },
         secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore},
     };
 
     use super::{
         ControlPlaneService, ControlPlaneServiceError, CredentialAndClientKeyProvisionRequest,
-        credential_associated_data, stored_client_key_from_record,
+        compatible_proxy_node_associated_data, credential_associated_data,
+        seal_compatible_proxy_node_endpoint, stored_client_key_from_record,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -450,6 +540,125 @@ mod tests {
             &UpstreamId::try_new("d")?,
         )?;
         assert_ne!(first, second);
+        Ok(())
+    }
+
+    #[test]
+    fn compatible_proxy_node_aad_binds_version_owner_pool_and_node() -> TestResult {
+        let version_id = ConfigVersionId::try_new("version-a")?;
+        let upstream_id = UpstreamId::try_new("upstream-a")?;
+        let pool_id = CompatibleProxyPoolId::try_new("pool-a")?;
+        let node_id = CompatibleProxyNodeId::try_new("node-a")?;
+        let store = secret_store(KeyVersion::try_new(7)?, 0x44)?;
+        let aad = compatible_proxy_node_associated_data(
+            &version_id,
+            &upstream_id,
+            Some(&pool_id),
+            &node_id,
+        )?;
+        let encrypted = store.seal(b"socks5://127.0.0.1:1080", &aad)?;
+        assert_eq!(
+            store.open(&encrypted, &aad)?.as_bytes(),
+            b"socks5://127.0.0.1:1080"
+        );
+
+        let wrong_version = compatible_proxy_node_associated_data(
+            &ConfigVersionId::try_new("version-b")?,
+            &upstream_id,
+            Some(&pool_id),
+            &node_id,
+        )?;
+        let wrong_upstream = compatible_proxy_node_associated_data(
+            &version_id,
+            &UpstreamId::try_new("upstream-b")?,
+            Some(&pool_id),
+            &node_id,
+        )?;
+        let wrong_pool =
+            compatible_proxy_node_associated_data(&version_id, &upstream_id, None, &node_id)?;
+        let wrong_node = compatible_proxy_node_associated_data(
+            &version_id,
+            &upstream_id,
+            Some(&pool_id),
+            &CompatibleProxyNodeId::try_new("node-b")?,
+        )?;
+        for wrong_aad in [wrong_version, wrong_upstream, wrong_pool, wrong_node] {
+            assert!(store.open(&encrypted, &wrong_aad).is_err());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn compatible_proxy_node_aad_presence_and_field_boundaries_are_distinct() -> TestResult {
+        let version_id = ConfigVersionId::try_new("ab")?;
+        let upstream_id = UpstreamId::try_new("c")?;
+        let node_id = CompatibleProxyNodeId::try_new("d")?;
+        let pooled = compatible_proxy_node_associated_data(
+            &version_id,
+            &upstream_id,
+            Some(&CompatibleProxyPoolId::try_new("pool")?),
+            &node_id,
+        )?;
+        let standalone =
+            compatible_proxy_node_associated_data(&version_id, &upstream_id, None, &node_id)?;
+        let repartitioned = compatible_proxy_node_associated_data(
+            &ConfigVersionId::try_new("a")?,
+            &UpstreamId::try_new("bc")?,
+            Some(&CompatibleProxyPoolId::try_new("pool")?),
+            &node_id,
+        )?;
+        assert_ne!(pooled, standalone);
+        assert_ne!(pooled, repartitioned);
+        Ok(())
+    }
+
+    #[test]
+    fn compatible_proxy_endpoint_is_validated_before_sealing() -> TestResult {
+        let version_id = ConfigVersionId::try_new("version-a")?;
+        let upstream_id = UpstreamId::try_new("upstream-a")?;
+        let pool_id = CompatibleProxyPoolId::try_new("pool-a")?;
+        let node_id = CompatibleProxyNodeId::try_new("node-a")?;
+        let store = secret_store(KeyVersion::try_new(8)?, 0x55)?;
+
+        let encrypted = seal_compatible_proxy_node_endpoint(
+            &store,
+            &version_id,
+            &upstream_id,
+            Some(&pool_id),
+            &node_id,
+            "socks5://127.0.0.1:1080/",
+        )?;
+        let aad = compatible_proxy_node_associated_data(
+            &version_id,
+            &upstream_id,
+            Some(&pool_id),
+            &node_id,
+        )?;
+        assert_eq!(
+            store.open(&encrypted, &aad)?.as_bytes(),
+            b"socks5://127.0.0.1:1080/"
+        );
+
+        for invalid in [
+            "socks5h://127.0.0.1:1080",
+            "http://127.0.0.1:8080",
+            "socks5://user:password@127.0.0.1:1080",
+            "socks5://127.0.0.1:1080/path",
+            "socks5://127.0.0.1:1080?query=1",
+            "socks5://127.0.0.1",
+        ] {
+            assert!(matches!(
+                seal_compatible_proxy_node_endpoint(
+                    &store,
+                    &version_id,
+                    &upstream_id,
+                    Some(&pool_id),
+                    &node_id,
+                    invalid,
+                ),
+                Err(ControlPlaneServiceError::InvalidCompatibleProxyEndpoint)
+            ));
+        }
         Ok(())
     }
 

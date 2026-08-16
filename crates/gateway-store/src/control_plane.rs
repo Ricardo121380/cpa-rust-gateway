@@ -464,6 +464,247 @@ pub struct EgressPolicyConfiguration {
     pub max_redirects: i64,
 }
 
+/// Stable Config-Version-scoped identity for one compatible proxy pool.
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct CompatibleProxyPoolId(String);
+
+impl CompatibleProxyPoolId {
+    /// Creates one bounded, trimmed opaque pool identity.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidCompatibleEgressConfiguration`] for an empty, overlong,
+    /// whitespace-surrounded, or control-bearing identity.
+    pub fn try_new(value: impl Into<String>) -> StoreResult<Self> {
+        let value = value.into();
+        validate_compatible_egress_text(&value, 128)?;
+        Ok(Self(value))
+    }
+
+    /// Returns the opaque persisted representation.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for CompatibleProxyPoolId {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl fmt::Display for CompatibleProxyPoolId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+impl TryFrom<String> for CompatibleProxyPoolId {
+    type Error = StoreError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::try_new(value)
+    }
+}
+
+impl TryFrom<&str> for CompatibleProxyPoolId {
+    type Error = StoreError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Self::try_new(value)
+    }
+}
+
+/// Stable Config-Version-scoped identity for one compatible proxy node.
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct CompatibleProxyNodeId(String);
+
+impl CompatibleProxyNodeId {
+    /// Creates one bounded, trimmed opaque node identity.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidCompatibleEgressConfiguration`] for an empty, overlong,
+    /// whitespace-surrounded, or control-bearing identity.
+    pub fn try_new(value: impl Into<String>) -> StoreResult<Self> {
+        let value = value.into();
+        validate_compatible_egress_text(&value, 128)?;
+        Ok(Self(value))
+    }
+
+    /// Returns the opaque persisted representation.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for CompatibleProxyNodeId {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl fmt::Display for CompatibleProxyNodeId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+impl TryFrom<String> for CompatibleProxyNodeId {
+    type Error = StoreError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::try_new(value)
+    }
+}
+
+impl TryFrom<&str> for CompatibleProxyNodeId {
+    type Error = StoreError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Self::try_new(value)
+    }
+}
+
+/// Version-scoped metadata for one compatible proxy pool.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CompatibleProxyPoolConfiguration {
+    /// Stable pool identity within the Config Version.
+    pub id: CompatibleProxyPoolId,
+    /// Exact owning Upstream/Provider instance.
+    pub upstream_id: UpstreamId,
+    /// Non-secret operator display name.
+    pub name: String,
+    /// Administrative eligibility bit.
+    pub enabled: bool,
+}
+
+/// Version-scoped encrypted compatible proxy node.
+pub struct CompatibleProxyNodeConfiguration {
+    /// Stable node identity within the Config Version.
+    pub id: CompatibleProxyNodeId,
+    /// Exact owning Upstream/Provider instance.
+    pub upstream_id: UpstreamId,
+    /// Optional same-Upstream pool. Absence makes this a standalone fixed proxy.
+    pub pool_id: Option<CompatibleProxyPoolId>,
+    /// Non-secret operator display name.
+    pub name: String,
+    /// AEAD-sealed local-DNS SOCKS5 endpoint.
+    pub encrypted_proxy: EncryptedSecret,
+    /// Administrative eligibility bit.
+    pub enabled: bool,
+    /// Smooth weighted pool-selection weight; standalone nodes require one.
+    pub weight: u16,
+    /// Maximum concurrent leases assigned to this node.
+    pub maximum_concurrency: u32,
+}
+
+impl fmt::Debug for CompatibleProxyNodeConfiguration {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("CompatibleProxyNodeConfiguration")
+            .field("id", &self.id)
+            .field("upstream_id", &self.upstream_id)
+            .field("pool_id", &self.pool_id)
+            .field("name", &self.name)
+            .field("encrypted_proxy", &"<redacted>")
+            .field("enabled", &self.enabled)
+            .field("weight", &self.weight)
+            .field("maximum_concurrency", &self.maximum_concurrency)
+            .finish()
+    }
+}
+
+/// Persisted target selected by one exact Endpoint-Credential binding.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CompatibleEgressTargetConfiguration {
+    /// Use the direct transport profile.
+    Direct,
+    /// Use one same-Upstream standalone proxy node.
+    FixedProxy(CompatibleProxyNodeId),
+    /// Select one member from one same-Upstream proxy pool.
+    ProxyPool(CompatibleProxyPoolId),
+}
+
+/// Persisted failure-attribution owner for compatible egress.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum StoredCompatibleFailureScope {
+    /// Attribute transport failure to the Endpoint.
+    Endpoint,
+    /// Attribute transport failure to the exact Endpoint-Credential binding.
+    Credential,
+    /// Attribute transport failure to the selected egress node.
+    EgressNode,
+}
+
+impl StoredCompatibleFailureScope {
+    const fn as_sql(self) -> &'static str {
+        match self {
+            Self::Endpoint => "endpoint",
+            Self::Credential => "credential",
+            Self::EgressNode => "egress_node",
+        }
+    }
+
+    fn from_sql(value: &str) -> Option<Self> {
+        match value {
+            "endpoint" => Some(Self::Endpoint),
+            "credential" => Some(Self::Credential),
+            "egress_node" => Some(Self::EgressNode),
+            _ => None,
+        }
+    }
+}
+
+/// Persisted account-to-egress stickiness policy.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum StoredCompatibleStickiness {
+    /// No assignment is retained after the request.
+    None,
+    /// Retain stable behavior for the exact Credential while eligible.
+    Credential,
+    /// Retain the exact Credential and exact egress node pairing.
+    CredentialAndEgress,
+}
+
+impl StoredCompatibleStickiness {
+    const fn as_sql(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Credential => "credential",
+            Self::CredentialAndEgress => "credential_and_egress",
+        }
+    }
+
+    fn from_sql(value: &str) -> Option<Self> {
+        match value {
+            "none" => Some(Self::None),
+            "credential" => Some(Self::Credential),
+            "credential_and_egress" => Some(Self::CredentialAndEgress),
+            _ => None,
+        }
+    }
+}
+
+/// Version-scoped compatible egress settings for one exact Endpoint-Credential binding.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CompatibleEgressBindingConfiguration {
+    /// Existing Endpoint identity.
+    pub endpoint_id: EndpointId,
+    /// Existing Credential identity.
+    pub credential_id: CredentialId,
+    /// Direct, standalone fixed proxy, or named proxy pool target.
+    pub target: CompatibleEgressTargetConfiguration,
+    /// Exact state identity that owns a transport failure.
+    pub failure_scope: StoredCompatibleFailureScope,
+    /// Exact Credential/node stickiness behavior.
+    pub stickiness: StoredCompatibleStickiness,
+    /// Total pre-submit attempt bound, including the first attempt.
+    pub pre_submit_max_attempts: u8,
+}
+
 /// One protocol-specific upstream endpoint.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EndpointConfiguration {
@@ -736,12 +977,18 @@ pub struct ControlPlaneConfiguration {
     pub egress_policies: Vec<EgressPolicyConfiguration>,
     /// Version-scoped Upstreams.
     pub upstreams: Vec<UpstreamConfiguration>,
+    /// Version-scoped compatible proxy pools.
+    pub compatible_proxy_pools: Vec<CompatibleProxyPoolConfiguration>,
+    /// Version-scoped AEAD-sealed compatible proxy nodes.
+    pub compatible_proxy_nodes: Vec<CompatibleProxyNodeConfiguration>,
     /// Version-scoped Endpoints.
     pub endpoints: Vec<EndpointConfiguration>,
     /// Version-scoped opaque Credentials.
     pub credentials: Vec<CredentialConfiguration>,
     /// Version-scoped Endpoint/Credential bindings.
     pub endpoint_credential_bindings: Vec<EndpointCredentialBindingConfiguration>,
+    /// Version-scoped compatible egress settings for exact Endpoint/Credential bindings.
+    pub compatible_egress_bindings: Vec<CompatibleEgressBindingConfiguration>,
     /// Version-scoped public models.
     pub public_models: Vec<PublicModelConfiguration>,
     /// Version-scoped aliases.
@@ -1083,9 +1330,12 @@ impl ControlPlaneConfiguration {
             routing_price_policy: None,
             egress_policies: Vec::new(),
             upstreams: Vec::new(),
+            compatible_proxy_pools: Vec::new(),
+            compatible_proxy_nodes: Vec::new(),
             endpoints: Vec::new(),
             credentials: Vec::new(),
             endpoint_credential_bindings: Vec::new(),
+            compatible_egress_bindings: Vec::new(),
             public_models: Vec::new(),
             model_aliases: Vec::new(),
             model_routes: Vec::new(),
@@ -1624,6 +1874,12 @@ impl ControlPlaneTransaction<'_> {
         for upstream in &configuration.upstreams {
             self.insert_upstream(config_version_id, upstream)?;
         }
+        for pool in &configuration.compatible_proxy_pools {
+            self.insert_compatible_proxy_pool(config_version_id, pool)?;
+        }
+        for node in &configuration.compatible_proxy_nodes {
+            self.insert_compatible_proxy_node(config_version_id, node)?;
+        }
         for endpoint in &configuration.endpoints {
             self.insert_endpoint(config_version_id, endpoint)?;
         }
@@ -1632,6 +1888,9 @@ impl ControlPlaneTransaction<'_> {
         }
         for binding in &configuration.endpoint_credential_bindings {
             self.insert_endpoint_credential_binding(config_version_id, binding)?;
+        }
+        for binding in &configuration.compatible_egress_bindings {
+            self.insert_compatible_egress_binding(config_version_id, binding)?;
         }
         for public_model in &configuration.public_models {
             self.insert_public_model(config_version_id, public_model)?;
@@ -2275,6 +2534,66 @@ impl ControlPlaneTransaction<'_> {
         Ok(())
     }
 
+    /// Inserts one Config-Version-owned compatible proxy pool.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the identity/name is invalid, the owning Upstream is absent,
+    /// or a database constraint rejects the row.
+    pub fn insert_compatible_proxy_pool(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        pool: &CompatibleProxyPoolConfiguration,
+    ) -> StoreResult<()> {
+        validate_compatible_proxy_pool(pool)?;
+        self.transaction.execute(
+            "INSERT INTO compatible_egress_proxy_pools (\
+                config_version_id, id, upstream_id, name, enabled\
+             ) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                config_version_id.as_str(),
+                pool.id.as_str(),
+                pool.upstream_id.as_str(),
+                &pool.name,
+                boolean_to_sql(pool.enabled),
+            ],
+        )?;
+        Ok(())
+    }
+
+    /// Inserts one Config-Version-owned AEAD-sealed compatible proxy node.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when a bound, owner, pool relation, encrypted envelope, or database
+    /// constraint rejects the row. No proxy plaintext is accepted by this Store method.
+    pub fn insert_compatible_proxy_node(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        node: &CompatibleProxyNodeConfiguration,
+    ) -> StoreResult<()> {
+        validate_compatible_proxy_node(node)?;
+        self.transaction.execute(
+            "INSERT INTO compatible_egress_proxy_nodes (\
+                config_version_id, id, upstream_id, pool_id, name, ciphertext, key_version, \
+                enabled, weight, maximum_concurrency\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            params![
+                config_version_id.as_str(),
+                node.id.as_str(),
+                node.upstream_id.as_str(),
+                node.pool_id.as_ref().map(CompatibleProxyPoolId::as_str),
+                &node.name,
+                node.encrypted_proxy.ciphertext(),
+                node.encrypted_proxy.key_version().as_sqlite_i64(),
+                boolean_to_sql(node.enabled),
+                i64::from(node.weight),
+                i64::from(node.maximum_concurrency),
+            ],
+        )?;
+        Ok(())
+    }
+
     /// Inserts one Endpoint into a Version that was admitted for the current transaction.
     ///
     /// # Errors
@@ -2331,6 +2650,47 @@ impl ControlPlaneTransaction<'_> {
                 binding.priority,
                 binding.weight,
                 binding.concurrency,
+            ],
+        )?;
+        Ok(())
+    }
+
+    /// Inserts compatible egress settings for one exact Endpoint-Credential binding.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the closed target/policy semantics are invalid, the existing
+    /// binding is absent, the target crosses Upstream ownership, or a database constraint rejects
+    /// the row.
+    pub fn insert_compatible_egress_binding(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        binding: &CompatibleEgressBindingConfiguration,
+    ) -> StoreResult<()> {
+        validate_compatible_egress_binding(binding)?;
+        let (target_kind, target_id) = match &binding.target {
+            CompatibleEgressTargetConfiguration::Direct => ("direct", None),
+            CompatibleEgressTargetConfiguration::FixedProxy(node_id) => {
+                ("fixed_proxy", Some(node_id.as_str()))
+            }
+            CompatibleEgressTargetConfiguration::ProxyPool(pool_id) => {
+                ("proxy_pool", Some(pool_id.as_str()))
+            }
+        };
+        self.transaction.execute(
+            "INSERT INTO compatible_egress_binding_profiles (\
+                config_version_id, endpoint_id, credential_id, target_kind, target_id, \
+                failure_scope, stickiness, pre_submit_max_attempts\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            params![
+                config_version_id.as_str(),
+                binding.endpoint_id.as_str(),
+                binding.credential_id.as_str(),
+                target_kind,
+                target_id,
+                binding.failure_scope.as_sql(),
+                binding.stickiness.as_sql(),
+                i64::from(binding.pre_submit_max_attempts),
             ],
         )?;
         Ok(())
@@ -2708,6 +3068,64 @@ fn validate_routing_price_policy(policy: &RoutingPricePolicyConfiguration) -> St
         .map(|_| ())
 }
 
+fn validate_compatible_egress_text(value: &str, maximum_bytes: usize) -> StoreResult<()> {
+    if value.is_empty()
+        || value.len() > maximum_bytes
+        || value.trim() != value
+        || value.chars().any(char::is_control)
+    {
+        return Err(StoreError::InvalidCompatibleEgressConfiguration);
+    }
+    Ok(())
+}
+
+fn validate_compatible_proxy_pool(pool: &CompatibleProxyPoolConfiguration) -> StoreResult<()> {
+    validate_compatible_egress_text(pool.id.as_str(), 128)?;
+    validate_compatible_egress_text(pool.upstream_id.as_str(), 128)?;
+    validate_compatible_egress_text(&pool.name, 256)
+}
+
+fn validate_compatible_proxy_node(node: &CompatibleProxyNodeConfiguration) -> StoreResult<()> {
+    validate_compatible_egress_text(node.id.as_str(), 128)?;
+    validate_compatible_egress_text(node.upstream_id.as_str(), 128)?;
+    validate_compatible_egress_text(&node.name, 256)?;
+    if let Some(pool_id) = &node.pool_id {
+        validate_compatible_egress_text(pool_id.as_str(), 128)?;
+    } else if node.weight != 1 {
+        return Err(StoreError::InvalidCompatibleEgressConfiguration);
+    }
+    if node.weight == 0
+        || node.weight > 1024
+        || node.maximum_concurrency == 0
+        || node.maximum_concurrency > 100_000
+    {
+        return Err(StoreError::InvalidCompatibleEgressConfiguration);
+    }
+    Ok(())
+}
+
+fn validate_compatible_egress_binding(
+    binding: &CompatibleEgressBindingConfiguration,
+) -> StoreResult<()> {
+    validate_compatible_egress_text(binding.endpoint_id.as_str(), 128)?;
+    validate_compatible_egress_text(binding.credential_id.as_str(), 128)?;
+    if !(1..=3).contains(&binding.pre_submit_max_attempts) {
+        return Err(StoreError::InvalidCompatibleEgressConfiguration);
+    }
+    if matches!(binding.target, CompatibleEgressTargetConfiguration::Direct)
+        && (matches!(
+            binding.failure_scope,
+            StoredCompatibleFailureScope::EgressNode
+        ) || matches!(
+            binding.stickiness,
+            StoredCompatibleStickiness::CredentialAndEgress
+        ))
+    {
+        return Err(StoreError::InvalidCompatibleEgressConfiguration);
+    }
+    Ok(())
+}
+
 fn load_configuration(
     transaction: &Transaction<'_>,
     config_version_id: &ConfigVersionId,
@@ -2721,9 +3139,15 @@ fn load_configuration(
         routing_price_policy: load_routing_price_policy(transaction, config_version_id)?,
         egress_policies: load_egress_policies(transaction, config_version_id)?,
         upstreams: load_upstreams(transaction, config_version_id)?,
+        compatible_proxy_pools: load_compatible_proxy_pools(transaction, config_version_id)?,
+        compatible_proxy_nodes: load_compatible_proxy_nodes(transaction, config_version_id)?,
         endpoints: load_endpoints(transaction, config_version_id)?,
         credentials: load_credentials(transaction, config_version_id)?,
         endpoint_credential_bindings: load_endpoint_credential_bindings(
+            transaction,
+            config_version_id,
+        )?,
+        compatible_egress_bindings: load_compatible_egress_bindings(
             transaction,
             config_version_id,
         )?,
@@ -2974,6 +3398,95 @@ fn load_upstreams(
     Ok(upstreams)
 }
 
+fn load_compatible_proxy_pools(
+    transaction: &Transaction<'_>,
+    config_version_id: &ConfigVersionId,
+) -> StoreResult<Vec<CompatibleProxyPoolConfiguration>> {
+    let mut statement = transaction.prepare(
+        "SELECT id, upstream_id, name, enabled \
+         FROM compatible_egress_proxy_pools \
+         WHERE config_version_id = ?1 ORDER BY id",
+    )?;
+    let mut rows = statement.query([config_version_id.as_str()])?;
+    let mut pools = Vec::new();
+    while let Some(row) = rows.next()? {
+        let pool = CompatibleProxyPoolConfiguration {
+            id: read_identifier(
+                row,
+                0,
+                CompatibleProxyPoolId::try_new,
+                "compatible_egress_proxy_pools",
+            )?,
+            upstream_id: read_identifier(
+                row,
+                1,
+                UpstreamId::try_new,
+                "compatible_egress_proxy_pools",
+            )?,
+            name: row.get(2)?,
+            enabled: read_boolean(row, 3, "compatible_egress_proxy_pools")?,
+        };
+        validate_compatible_proxy_pool(&pool)
+            .map_err(|_| malformed("compatible_egress_proxy_pools"))?;
+        pools.push(pool);
+    }
+    Ok(pools)
+}
+
+fn load_compatible_proxy_nodes(
+    transaction: &Transaction<'_>,
+    config_version_id: &ConfigVersionId,
+) -> StoreResult<Vec<CompatibleProxyNodeConfiguration>> {
+    let mut statement = transaction.prepare(
+        "SELECT id, upstream_id, pool_id, name, ciphertext, key_version, enabled, weight, \
+                maximum_concurrency \
+         FROM compatible_egress_proxy_nodes \
+         WHERE config_version_id = ?1 ORDER BY id",
+    )?;
+    let mut rows = statement.query([config_version_id.as_str()])?;
+    let mut nodes = Vec::new();
+    while let Some(row) = rows.next()? {
+        let key_version = KeyVersion::try_from_sqlite_i64(row.get(5)?)
+            .map_err(|_| malformed("compatible_egress_proxy_nodes"))?;
+        let ciphertext: Vec<u8> = row.get(4)?;
+        let encrypted_proxy = EncryptedSecret::try_from_persisted(key_version, ciphertext)
+            .map_err(|_| malformed("compatible_egress_proxy_nodes"))?;
+        let weight = u16::try_from(row.get::<_, i64>(7)?)
+            .map_err(|_| malformed("compatible_egress_proxy_nodes"))?;
+        let maximum_concurrency = u32::try_from(row.get::<_, i64>(8)?)
+            .map_err(|_| malformed("compatible_egress_proxy_nodes"))?;
+        let node = CompatibleProxyNodeConfiguration {
+            id: read_identifier(
+                row,
+                0,
+                CompatibleProxyNodeId::try_new,
+                "compatible_egress_proxy_nodes",
+            )?,
+            upstream_id: read_identifier(
+                row,
+                1,
+                UpstreamId::try_new,
+                "compatible_egress_proxy_nodes",
+            )?,
+            pool_id: read_optional_identifier(
+                row,
+                2,
+                CompatibleProxyPoolId::try_new,
+                "compatible_egress_proxy_nodes",
+            )?,
+            name: row.get(3)?,
+            encrypted_proxy,
+            enabled: read_boolean(row, 6, "compatible_egress_proxy_nodes")?,
+            weight,
+            maximum_concurrency,
+        };
+        validate_compatible_proxy_node(&node)
+            .map_err(|_| malformed("compatible_egress_proxy_nodes"))?;
+        nodes.push(node);
+    }
+    Ok(nodes)
+}
+
 fn load_endpoints(
     transaction: &Transaction<'_>,
     config_version_id: &ConfigVersionId,
@@ -3077,6 +3590,64 @@ fn load_endpoint_credential_bindings(
             weight,
             concurrency,
         });
+    }
+    Ok(bindings)
+}
+
+fn load_compatible_egress_bindings(
+    transaction: &Transaction<'_>,
+    config_version_id: &ConfigVersionId,
+) -> StoreResult<Vec<CompatibleEgressBindingConfiguration>> {
+    let mut statement = transaction.prepare(
+        "SELECT endpoint_id, credential_id, target_kind, target_id, failure_scope, stickiness, \
+                pre_submit_max_attempts \
+         FROM compatible_egress_binding_profiles \
+         WHERE config_version_id = ?1 ORDER BY endpoint_id, credential_id",
+    )?;
+    let mut rows = statement.query([config_version_id.as_str()])?;
+    let mut bindings = Vec::new();
+    while let Some(row) = rows.next()? {
+        let target_kind: String = row.get(2)?;
+        let target_id: Option<String> = row.get(3)?;
+        let target = match (target_kind.as_str(), target_id) {
+            ("direct", None) => CompatibleEgressTargetConfiguration::Direct,
+            ("fixed_proxy", Some(id)) => CompatibleEgressTargetConfiguration::FixedProxy(
+                CompatibleProxyNodeId::try_new(id)
+                    .map_err(|_| malformed("compatible_egress_binding_profiles"))?,
+            ),
+            ("proxy_pool", Some(id)) => CompatibleEgressTargetConfiguration::ProxyPool(
+                CompatibleProxyPoolId::try_new(id)
+                    .map_err(|_| malformed("compatible_egress_binding_profiles"))?,
+            ),
+            _ => return Err(malformed("compatible_egress_binding_profiles")),
+        };
+        let failure_scope = StoredCompatibleFailureScope::from_sql(&row.get::<_, String>(4)?)
+            .ok_or_else(|| malformed("compatible_egress_binding_profiles"))?;
+        let stickiness = StoredCompatibleStickiness::from_sql(&row.get::<_, String>(5)?)
+            .ok_or_else(|| malformed("compatible_egress_binding_profiles"))?;
+        let pre_submit_max_attempts = u8::try_from(row.get::<_, i64>(6)?)
+            .map_err(|_| malformed("compatible_egress_binding_profiles"))?;
+        let binding = CompatibleEgressBindingConfiguration {
+            endpoint_id: read_identifier(
+                row,
+                0,
+                EndpointId::try_new,
+                "compatible_egress_binding_profiles",
+            )?,
+            credential_id: read_identifier(
+                row,
+                1,
+                CredentialId::try_new,
+                "compatible_egress_binding_profiles",
+            )?,
+            target,
+            failure_scope,
+            stickiness,
+            pre_submit_max_attempts,
+        };
+        validate_compatible_egress_binding(&binding)
+            .map_err(|_| malformed("compatible_egress_binding_profiles"))?;
+        bindings.push(binding);
     }
     Ok(bindings)
 }
@@ -3268,20 +3839,20 @@ fn load_client_keys(
     Ok(client_keys)
 }
 
-fn read_identifier<T>(
+fn read_identifier<T, E>(
     row: &rusqlite::Row<'_>,
     index: usize,
-    create: impl FnOnce(String) -> Result<T, InvalidIdentifier>,
+    create: impl FnOnce(String) -> Result<T, E>,
     table: &'static str,
 ) -> StoreResult<T> {
     let value: String = row.get(index)?;
     create(value).map_err(|_| malformed(table))
 }
 
-fn read_optional_identifier<T>(
+fn read_optional_identifier<T, E>(
     row: &rusqlite::Row<'_>,
     index: usize,
-    create: impl FnOnce(String) -> Result<T, InvalidIdentifier> + Copy,
+    create: impl FnOnce(String) -> Result<T, E> + Copy,
     table: &'static str,
 ) -> StoreResult<Option<T>> {
     let value: Option<String> = row.get(index)?;
@@ -3304,7 +3875,7 @@ fn malformed(table: &'static str) -> StoreError {
 mod tests {
     use std::error::Error;
 
-    use gateway_core::{AccessGroupId, ClientKeyId, CredentialId, UpstreamId};
+    use gateway_core::{AccessGroupId, ClientKeyId, CredentialId, EndpointId, UpstreamId};
     use rusqlite::params;
 
     use crate::{
@@ -3314,11 +3885,15 @@ mod tests {
     };
 
     use super::{
-        AccessGroupConfiguration, AdministrativeStatus, ConfigVersion, ConfigVersionId,
-        ConfigVersionStatus, ControlPlaneConfiguration, CredentialConfiguration, CredentialStatus,
-        ManagementAuditAction, ManagementAuditEventDraft, RoutingPriceComparison,
-        RoutingPricePolicyConfiguration, SqliteControlPlaneRepository, StoredClientKey,
-        StoredClientKeyStatus, UpstreamConfiguration,
+        AccessGroupConfiguration, AdministrativeStatus, CompatibleEgressBindingConfiguration,
+        CompatibleEgressTargetConfiguration, CompatibleProxyNodeConfiguration,
+        CompatibleProxyNodeId, CompatibleProxyPoolConfiguration, CompatibleProxyPoolId,
+        ConfigVersion, ConfigVersionId, ConfigVersionStatus, ControlPlaneConfiguration,
+        CredentialConfiguration, CredentialStatus, EndpointConfiguration,
+        EndpointCredentialBindingConfiguration, EndpointTransport, ManagementAuditAction,
+        ManagementAuditEventDraft, RoutingPriceComparison, RoutingPricePolicyConfiguration,
+        SqliteControlPlaneRepository, StoredClientKey, StoredClientKeyStatus,
+        StoredCompatibleFailureScope, StoredCompatibleStickiness, UpstreamConfiguration,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -3451,6 +4026,174 @@ mod tests {
             repository.load_routing_price_policy(&version_id)?,
             Some(policy)
         );
+        Ok(())
+    }
+
+    #[test]
+    fn compatible_egress_graph_round_trip_preserves_targets_and_redacts_proxy_plaintext()
+    -> TestResult {
+        let version_id = ConfigVersionId::try_new("egress-round-trip")?;
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        let (configuration, secret_store) = compatible_egress_fixture(version_id.clone())?;
+
+        repository.write_configuration(&configuration)?;
+        let loaded = repository
+            .load_configuration(&version_id)?
+            .ok_or("compatible egress configuration was not found")?;
+        assert_eq!(loaded.compatible_proxy_pools.len(), 1);
+        assert_eq!(loaded.compatible_proxy_nodes.len(), 1);
+        assert_eq!(loaded.compatible_egress_bindings.len(), 1);
+        assert_eq!(loaded.compatible_proxy_nodes[0].weight, 3);
+        assert_eq!(loaded.compatible_proxy_nodes[0].maximum_concurrency, 8);
+        assert!(format!("{:?}", loaded.compatible_proxy_nodes[0]).contains("<redacted>"));
+        assert!(
+            !format!("{:?}", loaded.compatible_proxy_nodes[0]).contains("socks5://127.0.0.1:1080")
+        );
+        let plaintext = secret_store.open(
+            &loaded.compatible_proxy_nodes[0].encrypted_proxy,
+            b"compatible-egress-fixture-aad",
+        )?;
+        assert_eq!(plaintext.as_bytes(), b"socks5://127.0.0.1:1080");
+        Ok(())
+    }
+
+    fn compatible_egress_fixture(
+        version_id: ConfigVersionId,
+    ) -> Result<(ControlPlaneConfiguration, SecretStore), Box<dyn Error>> {
+        let key_version = KeyVersion::try_new(11)?;
+        let secret_store = SecretStore::new(MasterKeyRing::try_new(
+            key_version,
+            [(key_version, MasterKey::try_from_bytes([0x37_u8; 32])?)],
+        )?);
+        let upstream_id = UpstreamId::try_new("upstream-egress")?;
+        let endpoint_id = EndpointId::try_new("endpoint-egress")?;
+        let credential_id = CredentialId::try_new("credential-egress")?;
+        let pool_id = CompatibleProxyPoolId::try_new("pool-egress")?;
+        let node_id = CompatibleProxyNodeId::try_new("node-egress")?;
+        let mut configuration = draft_configuration(version_id, None);
+        configuration.upstreams.push(UpstreamConfiguration {
+            id: upstream_id.clone(),
+            name: "egress upstream".to_owned(),
+            kind: "compatible".to_owned(),
+            enabled: true,
+            tags_json: "[]".to_owned(),
+            egress_policy_id: None,
+        });
+        configuration
+            .compatible_proxy_pools
+            .push(CompatibleProxyPoolConfiguration {
+                id: pool_id.clone(),
+                upstream_id: upstream_id.clone(),
+                name: "egress pool".to_owned(),
+                enabled: true,
+            });
+        configuration
+            .compatible_proxy_nodes
+            .push(CompatibleProxyNodeConfiguration {
+                id: node_id,
+                upstream_id: upstream_id.clone(),
+                pool_id: Some(pool_id.clone()),
+                name: "egress node".to_owned(),
+                encrypted_proxy: secret_store
+                    .seal(b"socks5://127.0.0.1:1080", b"compatible-egress-fixture-aad")?,
+                enabled: true,
+                weight: 3,
+                maximum_concurrency: 8,
+            });
+        configuration.endpoints.push(EndpointConfiguration {
+            id: endpoint_id.clone(),
+            upstream_id: upstream_id.clone(),
+            adapter_id: "openai-compatible.responses".to_owned(),
+            api_format: "responses".to_owned(),
+            base_url: "https://upstream.invalid".to_owned(),
+            inference_path: "/v1/responses".to_owned(),
+            models_path: None,
+            transport: EndpointTransport::Http,
+            enabled: true,
+        });
+        configuration.credentials.push(CredentialConfiguration {
+            id: credential_id.clone(),
+            upstream_id: upstream_id.clone(),
+            kind: "api_key".to_owned(),
+            encrypted_secret: secret_store.seal(b"credential-value", b"credential-aad")?,
+            status: CredentialStatus::Active,
+            revision: 4,
+        });
+        configuration
+            .endpoint_credential_bindings
+            .push(EndpointCredentialBindingConfiguration {
+                endpoint_id: endpoint_id.clone(),
+                credential_id: credential_id.clone(),
+                upstream_id,
+                enabled: true,
+                priority: 0,
+                weight: 1,
+                concurrency: 2,
+            });
+        configuration
+            .compatible_egress_bindings
+            .push(CompatibleEgressBindingConfiguration {
+                endpoint_id,
+                credential_id,
+                target: CompatibleEgressTargetConfiguration::ProxyPool(pool_id),
+                failure_scope: StoredCompatibleFailureScope::EgressNode,
+                stickiness: StoredCompatibleStickiness::CredentialAndEgress,
+                pre_submit_max_attempts: 2,
+            });
+        Ok((configuration, secret_store))
+    }
+
+    #[test]
+    fn compatible_egress_rejects_cross_upstream_node_and_rolls_back_graph() -> TestResult {
+        let version_id = ConfigVersionId::try_new("egress-cross-owner")?;
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        let mut configuration = draft_configuration(version_id.clone(), None);
+        configuration.upstreams.extend([
+            UpstreamConfiguration {
+                id: UpstreamId::try_new("upstream-a")?,
+                name: "a".to_owned(),
+                kind: "compatible".to_owned(),
+                enabled: true,
+                tags_json: "[]".to_owned(),
+                egress_policy_id: None,
+            },
+            UpstreamConfiguration {
+                id: UpstreamId::try_new("upstream-b")?,
+                name: "b".to_owned(),
+                kind: "compatible".to_owned(),
+                enabled: true,
+                tags_json: "[]".to_owned(),
+                egress_policy_id: None,
+            },
+        ]);
+        configuration
+            .compatible_proxy_pools
+            .push(CompatibleProxyPoolConfiguration {
+                id: CompatibleProxyPoolId::try_new("pool-a")?,
+                upstream_id: UpstreamId::try_new("upstream-a")?,
+                name: "pool".to_owned(),
+                enabled: true,
+            });
+        let key_version = KeyVersion::try_new(1)?;
+        let secret_store = SecretStore::new(MasterKeyRing::try_new(
+            key_version,
+            [(key_version, MasterKey::try_from_bytes([0x52_u8; 32])?)],
+        )?);
+        configuration
+            .compatible_proxy_nodes
+            .push(CompatibleProxyNodeConfiguration {
+                id: CompatibleProxyNodeId::try_new("node-cross-owner")?,
+                upstream_id: UpstreamId::try_new("upstream-b")?,
+                pool_id: Some(CompatibleProxyPoolId::try_new("pool-a")?),
+                name: "cross owner".to_owned(),
+                encrypted_proxy: secret_store.seal(b"socks5://127.0.0.1:1081", b"aad")?,
+                enabled: true,
+                weight: 1,
+                maximum_concurrency: 1,
+            });
+
+        assert!(repository.write_configuration(&configuration).is_err());
+        assert!(repository.load_configuration(&version_id)?.is_none());
         Ok(())
     }
 

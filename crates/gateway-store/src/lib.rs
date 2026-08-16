@@ -39,9 +39,10 @@ const BILLING_MATERIALIZER_CHECKPOINT_SCHEMA_VERSION: i64 = 15;
 const ROUTING_PRICE_POLICY_SCHEMA_VERSION: i64 = 16;
 const STORED_RESPONSE_SCHEMA_VERSION: i64 = 17;
 const STORED_RESPONSE_COMPACTION_SCHEMA_VERSION: i64 = 18;
+const COMPATIBLE_EGRESS_POOL_SCHEMA_VERSION: i64 = 19;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = STORED_RESPONSE_COMPACTION_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = COMPATIBLE_EGRESS_POOL_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -141,6 +142,11 @@ const MIGRATIONS: &[Migration] = &[
         up: include_str!("../migrations/0018_stored_response_compactions.up.sql"),
         down: include_str!("../migrations/0018_stored_response_compactions.down.sql"),
     },
+    Migration {
+        version: COMPATIBLE_EGRESS_POOL_SCHEMA_VERSION,
+        up: include_str!("../migrations/0019_compatible_egress_pool.up.sql"),
+        down: include_str!("../migrations/0019_compatible_egress_pool.down.sql"),
+    },
 ];
 
 struct Migration {
@@ -211,6 +217,8 @@ pub enum StoreError {
     ConflictingBillingCatalogVersion,
     /// A Config-Version routing price policy failed its bounded typed admission contract.
     InvalidRoutingPricePolicyConfiguration,
+    /// A compatible proxy pool, node, or binding profile failed bounded typed validation.
+    InvalidCompatibleEgressConfiguration,
     /// A low-priority diagnostic was offered to the durable Required-event store.
     DiagnosticEventNotPersistable,
     /// `PRAGMA quick_check` returned a non-`ok` integrity result.
@@ -278,6 +286,9 @@ impl fmt::Display for StoreError {
             Self::InvalidRoutingPricePolicyConfiguration => {
                 formatter.write_str("routing price policy configuration is invalid")
             }
+            Self::InvalidCompatibleEgressConfiguration => {
+                formatter.write_str("compatible egress configuration is invalid")
+            }
             Self::DiagnosticEventNotPersistable => {
                 formatter.write_str("diagnostic events are not persisted in the required event log")
             }
@@ -309,6 +320,7 @@ impl Error for StoreError {
             | Self::InvalidPersistedBillingRecord
             | Self::ConflictingBillingCatalogVersion
             | Self::InvalidRoutingPricePolicyConfiguration
+            | Self::InvalidCompatibleEgressConfiguration
             | Self::DiagnosticEventNotPersistable
             | Self::GatewayEventLogIntegrityCheckFailed => None,
         }
@@ -530,8 +542,9 @@ mod tests {
     use rusqlite::{Connection, Error as SqliteError, ffi, params};
 
     use super::{
-        CANONICAL_BRIDGE_TRANSFORM_MODE_SCHEMA_VERSION, CREATE_SCHEMA_MIGRATIONS,
-        CURRENT_SCHEMA_VERSION, MIGRATIONS, ROUTING_PRICE_POLICY_SCHEMA_VERSION,
+        CANONICAL_BRIDGE_TRANSFORM_MODE_SCHEMA_VERSION, COMPATIBLE_EGRESS_POOL_SCHEMA_VERSION,
+        CREATE_SCHEMA_MIGRATIONS, CURRENT_SCHEMA_VERSION, MIGRATIONS,
+        ROUTING_PRICE_POLICY_SCHEMA_VERSION, STORED_RESPONSE_COMPACTION_SCHEMA_VERSION,
         STORED_RESPONSE_SCHEMA_VERSION, VERSIONED_CONTROL_PLANE_SCHEMA_VERSION, migrate,
         open_in_memory, rollback_all, rollback_to_version, schema_version,
     };
@@ -560,6 +573,9 @@ mod tests {
                 "billing_price_catalog_entries",
                 "billing_price_catalog_versions",
                 "client_keys",
+                "compatible_egress_binding_profiles",
+                "compatible_egress_proxy_nodes",
+                "compatible_egress_proxy_pools",
                 "config_versions",
                 "egress_policies",
                 "endpoint_credential_bindings",
@@ -746,6 +762,71 @@ mod tests {
             &connection,
             "stored_response_compactions"
         )?);
+        Ok(())
+    }
+
+    #[test]
+    fn compatible_egress_migration_up_and_down_preserves_prior_schema() -> TestResult {
+        let mut connection = open_in_memory()?;
+        migrate(&mut connection)?;
+        assert!(super::table_exists(
+            &connection,
+            "compatible_egress_proxy_pools"
+        )?);
+        assert!(super::table_exists(
+            &connection,
+            "compatible_egress_proxy_nodes"
+        )?);
+        assert!(super::table_exists(
+            &connection,
+            "compatible_egress_binding_profiles"
+        )?);
+
+        insert_valid_tree(&connection)?;
+        connection.execute(
+            "INSERT INTO compatible_egress_proxy_pools \
+             (config_version_id, id, upstream_id, name, enabled) \
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params!["v1", "pool-a", "upstream-a", "pool", 1_i64],
+        )?;
+
+        rollback_to_version(&mut connection, STORED_RESPONSE_COMPACTION_SCHEMA_VERSION)?;
+        assert_eq!(
+            schema_version(&connection)?,
+            Some(STORED_RESPONSE_COMPACTION_SCHEMA_VERSION)
+        );
+        assert!(!super::table_exists(
+            &connection,
+            "compatible_egress_proxy_pools"
+        )?);
+        assert!(!super::table_exists(
+            &connection,
+            "compatible_egress_proxy_nodes"
+        )?);
+        assert!(!super::table_exists(
+            &connection,
+            "compatible_egress_binding_profiles"
+        )?);
+        assert!(super::table_exists(
+            &connection,
+            "stored_response_compactions"
+        )?);
+
+        migrate(&mut connection)?;
+        assert_eq!(
+            schema_version(&connection)?,
+            Some(COMPATIBLE_EGRESS_POOL_SCHEMA_VERSION)
+        );
+        assert!(super::table_exists(
+            &connection,
+            "compatible_egress_proxy_pools"
+        )?);
+        let pool_count: i64 = connection.query_row(
+            "SELECT COUNT(*) FROM compatible_egress_proxy_pools",
+            [],
+            |row| row.get(0),
+        )?;
+        assert_eq!(pool_count, 0);
         Ok(())
     }
 
