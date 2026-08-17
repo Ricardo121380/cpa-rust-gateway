@@ -150,7 +150,12 @@ Local D3 checks passed:
 - no management OpenAPI or `web/prism/**` surface changed in D3. The existing D2 action-required
   Claude Code handoff remains the only frontend integration notice.
 
-This is a local slice result only. No Fast/Full or formal P13-11D Delivery Gate is claimed yet.
+This is local aggregate evidence only. The Full receipt is
+`/tmp/cpar-p13-11d-aggregate-full-final.md` (`43/43`, Darwin arm64,
+`2026-08-17T01:41:24Z`–`2026-08-17T01:43:02Z`). The first Full attempt stopped at the crate-boundary
+allowlist because `gateway-control` already declared its required `sha2` dependency; the one-line
+allowlist correction was committed as `acf4e47`, and the rerun passed all steps. No formal
+P13-11D Delivery Gate is claimed yet.
 
 ## Frontend handoff
 
@@ -172,7 +177,7 @@ This report is not evidence for:
 
 ## Next action
 
-Next action: commit the D3 runtime slice, then perform the P13-11D aggregate local Full/review
-closeout. Only after that evidence is complete may one new exact closeout commit/tag run the single
-formal P13-11D Delivery Gate. Do not move or reinterpret `phase-p13-egress-complete`, and do not
-call Provider, proxy, DNS, server, staging, or production systems for this local closeout.
+Next action: perform the independent P13-11D aggregate review and, after explicit authorization,
+run the one exact closeout commit/tag formal Delivery Gate. Do not move or reinterpret
+`phase-p13-egress-complete`, and do not call Provider, proxy, DNS, server, staging, or production
+systems for this local closeout.
