@@ -4,8 +4,8 @@
 |---|---|
 | 状态 | **Approved（用户于 2026-08-17 明确批准开始 E0 计划/CR 与 review）** |
 | 适用范围 | `P13-11E`：CPAR 内已导入凭证的 Provider/Channel egress、健康投影和受控恢复设计 |
-| 当前切片 | `E3 LOCAL_PASS_PENDING_PHASE_GATE`：Grok Web exact lease、named sticky egress、session/clearance 与 atomic fake-only recovery seam；不接真实 Web transport |
-| 下一切片 | P13-11E E0-E3 aggregate local review 与 phase-closeout decision；E4/E5 不自动启动 |
+| 当前切片 | `E0-E3 READY_FOR_FORMAL_DELIVERY_GATE`：本地实现、aggregate Full `43/43` 与独立 phase review 已完成；正式 Gate 成功前仍不是 `DONE_WITH_BOUNDARY` |
+| 下一切片 | 在 exact closeout candidate push 后取得明确授权，仅运行一次 `phase-p13-provider-egress-complete` formal Delivery Gate；E4 `DEFERRED_OPTIONAL`，E5 未授权 |
 | 不包含 | Autoreg 注册/登录/SSO/refresh/replenishment、真实 Provider/代理/DNS 探针、服务器/staging/production、默认公开 API 变化 |
 
 ## 1. 用户澄清与目标
@@ -90,13 +90,18 @@ credential、egress、session 和 clearance 的原始状态。
 |---|---|---|
 | E0 | 计划、ADR、Contract、渠道/状态/失败矩阵和独立 review | 是，本轮完成 |
 | E1 | typed provider-aware egress/session state、capability registry、合成状态转换测试 | 已完成本地 slice；无网络 |
-| E2 | Build/Console adapter 接线：复用 CPAR 账号池与现有 transport，验证 exact failure isolation；隐藏辅助请求必须有计数/one-shot 语义 | 仅本地合成/loopback；不是真实 Provider |
+| E2 | Build/Console adapter 接线：复用 CPAR 账号池与现有 transport，验证 exact failure isolation；隐藏辅助请求必须有计数/one-shot 语义 | 已完成本地 slice；仅合成/loopback，不是真实 Provider |
 | E3 | Web sticky egress/clearance/session 状态 seam，注入式 challenge/recovery 测试 | 已完成本地 slice；仅 fake/transport-free，真实代理/FlareSolverr 另立 CR |
-| E4 | 如需管理状态或 operator action，先另行确认 OpenAPI/Prism 变更与 Claude Code handoff | 不由 E0 自动授权 |
-| E5 | 真实 Provider/代理/DNS canary | 明确不授权；必须新 CR |
+| E4 | 如需管理状态或 operator action，先另行确认 OpenAPI/Prism 变更与 Claude Code handoff | `DEFERRED_OPTIONAL`；不阻塞 E0-E3 且不由 E0 自动授权 |
+| E5 | 真实 Provider/代理/DNS canary | `DEFERRED_UNAUTHORIZED`；必须新 CR |
 
 E1/E2/E3 完成后仍只能宣称 local/synthetic evidence，不能宣称某个 Grok 账号、节点或公网出口可用。
 正式 Phase Gate 仍按“每个 P 一次”规则执行，不为每个子切片重复运行昂贵 Delivery Gate。
+
+E0-E3 aggregate review 与本地 Full `43/43` 已完成，当前唯一候选 tag 为
+`phase-p13-provider-egress-complete`。该 tag 尚未创建；必须在 exact closeout candidate 推送并取得
+明确授权后创建，且 Authorize、Fast、Full supply-chain、Required 全部成功后才能将 E0-E3 标记为
+`DONE_WITH_BOUNDARY`。E4/E5 不包含在该 tag 中。
 
 ## 6. 非目标和回滚
 

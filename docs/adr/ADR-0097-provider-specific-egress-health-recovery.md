@@ -1,6 +1,6 @@
 # ADR-0097: Provider-specific egress, health, and recovery isolation
 
-Status: **Accepted locally — P13-11E E0/E1/E2/E3 LOCAL_PASS_PENDING_PHASE_GATE**
+Status: **Accepted locally — P13-11E E0-E3 READY_FOR_FORMAL_DELIVERY_GATE**
 
 Date: 2026-08-17
 
@@ -101,10 +101,17 @@ FlareSolverr dependency.
 
 ## Acceptance boundary
 
-E0-E3 are locally accepted when the CR, this ADR, BC-SEC-008, the E0/E1/E2/E3 reports, plan Task
-Card, and traceability row agree on the channel matrix, state ownership, no-fallback rule, exact
-lease handoff, bounded Console/Web auxiliary accounting, atomic clearance ownership, and
-no-network boundary. This local acceptance does not claim code behavior outside the covered
-adapters, Provider, proxy, DNS, staging, production, or account success. The next step is the
-aggregate E0-E3 local review and phase-closeout decision. Optional E4 management projection and any
-E5 canary remain separate acceptance boundaries and do not start automatically.
+E0-E3 are locally accepted because the CR, this ADR, BC-SEC-008, the E0/E1/E2/E3 reports, plan
+Task Card, [aggregate Full receipt](../reports/evidence/p13-11e-aggregate-full-20260817.md), and
+[phase review](../reports/evidence/p13-11e-phase-review-20260817.md) agree on the channel matrix,
+state ownership, no-fallback rule, exact lease handoff, bounded Console/Web auxiliary accounting,
+atomic clearance ownership, and no-network boundary. The aggregate Full passed `43/43`, and the
+phase review found no remaining P1/P2 blocker.
+
+This local acceptance does not claim code behavior outside the covered adapters, Provider, proxy,
+DNS, staging, production, or account success. Build/Console currently use typed Direct egress in
+the application composition, and Web remains a transport-free seam. E0-E3 are
+`READY_FOR_FORMAL_DELIVERY_GATE`, not `DONE_WITH_BOUNDARY`; the latter requires the explicitly
+authorized immutable `phase-p13-provider-egress-complete` tag and one successful formal Gate.
+Optional E4 management projection is `DEFERRED_OPTIONAL`, while E5 remains unauthorized; both are
+separate acceptance boundaries and do not start automatically.

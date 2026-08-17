@@ -229,5 +229,9 @@
 - [P12-08F1 multi-channel production graph](p12-08f1-multi-channel-production-graph.md) — immutable adapter capability ledger, value-free graph inventory, and disabled-at-boot/fail-closed channel admission
 - [P12-08F2 three-protocol by four-channel loopback](p12-08f2-three-protocol-four-channel-loopback.md) — 7 supported cells across JSON/SSE Text/Tool/Usage and 5 stable zero-Attempt rejection cells
 - [P12-08D4 legacy CPA to CPAR protocol differential](p12-08d4-legacy-protocol-differential.md) — value-free three-protocol JSON/SSE corpus, executable CPAR projections and closed parity/hardening/unsupported classification
+- [P13-11E Provider-specific egress planning](p13-11e-provider-specific-egress-planning.md) — point-in-time E0 CR/ADR/Contract/channel/state/failure matrix; historical planning receipt retained unchanged
+- [P13-11E Provider-specific egress typed state](p13-11e-provider-specific-egress-state.md) — E1 exact Provider/Channel capability, independent egress/session/clearance state and bounded synthetic transport ledger
 - [P13-11E Grok Build/Console native adapter seam](p13-11e-native-adapter-seam.md) — CPAR imported-account exact lease handoff, provider-local egress/session/DPoP/bootstrap accounting and one-shot synthetic evidence; E2 `4/4`, no Provider/network traffic
 - [P13-11E Grok Web sticky egress/session/clearance seam](p13-11e-web-egress-seam.md) — exact Web lease, named sticky egress, atomic clearance ownership and bounded fake-only attempt evidence; Web `11/11`, clearance state `13/13`, no Provider/network traffic
+- [P13-11E E0-E3 aggregate Full receipt](evidence/p13-11e-aggregate-full-20260817.md) — exact implementation baseline, Darwin arm64 local Full `43/43`, historical slice-count handling and explicit no-network/non-production boundary
+- [P13-11E E0-E3 phase review](evidence/p13-11e-phase-review-20260817.md) — no remaining P1/P2 blocker; `READY_FOR_FORMAL_DELIVERY_GATE`; E4 `DEFERRED_OPTIONAL`, E5 unauthorized

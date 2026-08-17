@@ -5,7 +5,7 @@
 | Contract | `BC-SEC-008` |
 | Task | `P13-11E` (`E0` planning/review; `E1-E3` implementation slices) |
 | ADR | [ADR-0097](../adr/ADR-0097-provider-specific-egress-health-recovery.md) |
-| Status | **LOCAL_PASS_PENDING_PHASE_GATE — E0/E1/E2/E3 complete locally** |
+| Status | **READY_FOR_FORMAL_DELIVERY_GATE — E0-E3 complete locally; formal Gate pending** |
 | Domain | Provider/Channel-local egress, account health, session/clearance and bounded recovery |
 
 ## 1. Contract invariants
@@ -145,7 +145,7 @@ proxy envelope does not expose a stable, non-secret egress node/profile identity
 infer a clearance challenge from an arbitrary `403` body. Physical proxy/Statsig/FlareSolverr
 accounting and real response evidence require a later reviewed configuration/network CR.
 
-## 6. Required tests before implementation slice can close
+## 6. Aggregate acceptance checklist
 
 - generic, Build, Console, Web, Official and other-adapter state namespaces cannot cross-mutate;
 - credential, quota, egress, session and clearance failures map to distinct owners;
@@ -161,3 +161,9 @@ accounting and real response evidence require a later reviewed configuration/net
 This contract is not evidence that any Grok Build/Console/Web account, proxy node, clearance, SSO,
 official key, Kiro credential, relay, server, DNS route or public CPAR endpoint is currently usable.
 It is also not an Autoreg registration/refresh/replenishment contract.
+
+The aggregate local Full passed `43/43`; the independent
+[phase review](../reports/evidence/p13-11e-phase-review-20260817.md) found no remaining P1/P2
+blocker. E0-E3 remain pending the explicitly authorized immutable
+`phase-p13-provider-egress-complete` formal Gate. Build/Console native fixed/pool egress and the
+production Web transport are not included. E4 is `DEFERRED_OPTIONAL`, and E5 remains unauthorized.
