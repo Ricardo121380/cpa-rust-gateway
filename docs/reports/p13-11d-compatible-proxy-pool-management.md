@@ -1,13 +1,13 @@
 # P13-11D compatible proxy-pool management report
 
-Status: `P13-11D LOCAL_PASS_PENDING_PHASE_GATE`; D1, D2, and D3 are locally implemented and reviewed
+Status: `P13-11D READY_FOR_FORMAL_DELIVERY_GATE`; D1, D2, D3, aggregate Full, and phase review passed locally
 
 Date: 2026-08-17
 
 ## Outcome first
 
-P13-11D is a new post-Gate task. D1, D2, and D3 are now implemented as local, reviewable slices;
-no formal D Delivery Gate is claimed. P13-11A/B/C remain formally accepted by
+P13-11D is a new post-Gate task. D1, D2, D3, the aggregate local Full, and the independent phase
+review are complete; no formal D Delivery Gate is claimed yet. P13-11A/B/C remain formally accepted by
 `phase-p13-egress-complete` at `a716eaaa9d31c26b6d09489f3f7fdbb9b0e1ebeb` and GitHub run
 [31959162202](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31959162202).
 The old tag will not be moved or reinterpreted to include D.
@@ -60,7 +60,7 @@ must never be displayed or retained by the frontend.
 
 ### P13-11D3 — active runtime composition
 
-Implemented locally in the current worktree (not formally gated):
+Delivered locally in commit `5bd04a7` with crate-boundary correction `acf4e47` (not formally gated):
 
 - `gateway-control` opens an enabled node only with the exact
   Config-Version/Upstream/pool/node AAD tuple and immediately re-parses the authenticated plaintext
@@ -173,12 +173,12 @@ This report is not evidence for:
 - Grok Web clearance, Console bootstrap, FlareSolverr, Kiro, or native-provider behavior;
 - Autoreg registration, OAuth/SSO, refresh, account repair, or replenishment;
 - server, staging, production, public API, management UI, or traffic changes;
-- a real proxy/Provider connectivity result, aggregate Full, or formal P13-11D Delivery Gate
-  completion.
+- a real proxy/Provider connectivity result or formal P13-11D Delivery Gate completion.
 
 ## Next action
 
-Next action: perform the independent P13-11D aggregate review and, after explicit authorization,
-run the one exact closeout commit/tag formal Delivery Gate. Do not move or reinterpret
+Next action: push the exact closeout commit containing the completed
+[`phase review`](evidence/p13-11d-phase-review-20260817.md), create the new immutable annotated tag
+`phase-p13-egress-management-complete`, and run its one formal Delivery Gate. Do not move or reinterpret
 `phase-p13-egress-complete`, and do not call Provider, proxy, DNS, server, staging, or production
 systems for this local closeout.
