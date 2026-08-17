@@ -1,6 +1,6 @@
 # ADR-0097: Provider-specific egress, health, and recovery isolation
 
-Status: **Proposed — P13-11E E0 plan/review approved; implementation not started**
+Status: **Accepted locally — P13-11E E0/E1 LOCAL_PASS_PENDING_PHASE_GATE; E2/E3 not started**
 
 Date: 2026-08-17
 
@@ -67,11 +67,18 @@ P13-11E freezes a Provider-aware state model above the existing P13-11D generic 
 
 ## Consequences
 
-The next implementation can add typed state and fake recovery without changing public protocols or
-the existing generic management contract. Management UI and OpenAPI stay unchanged until a later
-E4 decision. A Provider-specific adapter may report `recovery_in_flight` or `challenge_required`,
-but it cannot silently rotate to another Provider or mutate an Autoreg account. A real network
-result remains an explicit, separately attributable evidence item.
+The E1 implementation adds typed state and fake recovery boundaries without changing public
+protocols or the existing generic management contract. `gateway-router` owns only the capability
+and value-free state seam; existing generic transport, Credential Health, and Quota owners remain
+authoritative for their domains. Management UI and OpenAPI stay unchanged until a later E4
+decision. A Provider-specific adapter may report `recovery_in_flight` or `challenge_required`, but
+it cannot silently rotate to another Provider or mutate an Autoreg account. A real network result
+remains an explicit, separately attributable evidence item.
+
+The E1 local receipt is
+[p13-11e-provider-specific-egress-state.md](../reports/p13-11e-provider-specific-egress-state.md):
+gateway-router all-target tests `158/158` and strict Clippy passed; the synthetic transport has zero
+Provider/DNS/Store/proxy calls. E2 remains the next bounded implementation slice.
 
 ## Acceptance boundary
 

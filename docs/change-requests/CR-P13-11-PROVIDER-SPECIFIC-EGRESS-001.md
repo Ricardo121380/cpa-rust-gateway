@@ -4,8 +4,8 @@
 |---|---|
 | 状态 | **Approved（用户于 2026-08-17 明确批准开始 E0 计划/CR 与 review）** |
 | 适用范围 | `P13-11E`：CPAR 内已导入凭证的 Provider/Channel egress、健康投影和受控恢复设计 |
-| 当前切片 | `E0`：计划、ADR、Contract、验收矩阵和边界 review |
-| 下一切片 | `E1`：只读/合成的 typed state 与 capability seam；不调用 Provider 或真实代理 |
+| 当前切片 | `E1`：只读/合成的 typed state、capability seam、failure ownership 和 bounded transport ledger；不调用 Provider 或真实代理 |
+| 下一切片 | `E2`：Grok Build/Console 的 CPAR imported-account、exact lease 与 adapter-local synthetic/loopback seam；不接 Autoreg 或真实网络 |
 | 不包含 | Autoreg 注册/登录/SSO/refresh/replenishment、真实 Provider/代理/DNS 探针、服务器/staging/production、默认公开 API 变化 |
 
 ## 1. 用户澄清与目标

@@ -5,7 +5,7 @@
 | Contract | `BC-SEC-008` |
 | Task | `P13-11E` (`E0` planning/review; `E1-E3` implementation slices) |
 | ADR | [ADR-0097](../adr/ADR-0097-provider-specific-egress-health-recovery.md) |
-| Status | **PLANNED_REVIEWED — implementation not started** |
+| Status | **LOCAL_PASS_PENDING_PHASE_GATE — E0/E1 complete; E2/E3 not started** |
 | Domain | Provider/Channel-local egress, account health, session/clearance and bounded recovery |
 
 ## 1. Contract invariants
@@ -74,6 +74,26 @@ Statsig, clearance or refresh calls.
   another Provider or channel.
 - E1-E3 use fake transport and deterministic clocks. Any injected network implementation must be
   rejecting by default and must prove zero Provider/DNS/proxy calls in the local test fixture.
+
+## 5A. E1 implementation evidence
+
+`crates/gateway-router/src/provider_egress_state.rs` now provides the typed E1 seam without creating
+another Credential/Quota owner:
+
+- exact Provider/Upstream/Endpoint capability registration for Generic, Grok Build/Console/Web,
+  Official API, Codex/ChatGPT, Kiro, Claude-compatible, and other compatible adapters;
+- independent Egress, Provider-session, and Clearance keys/states with explicit deterministic
+  expiry and fail-closed unknown-state behavior;
+- capability-gated sticky egress (Web rejects Direct), bounded pre-submit recovery, and a transport
+  ledger that counts hidden auxiliary calls before one inference submission;
+- value-free failure ownership for Egress, Credential, Quota, ambiguous 403, Session, Clearance,
+  Adapter/Protocol, and post-semantic outcome.
+
+The E1 local evidence is recorded in
+[the E1 report](../reports/p13-11e-provider-specific-egress-state.md): gateway-router all-target
+tests `158/158`, strict Clippy, format, and diff checks passed. The synthetic fixture records zero
+Provider, DNS, Store, and proxy calls. No public API/OpenAPI/Prism surface changed, so no frontend
+handoff is required for E1.
 
 ## 6. Required tests before implementation slice can close
 

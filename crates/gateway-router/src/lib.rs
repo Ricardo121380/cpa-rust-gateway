@@ -11,6 +11,7 @@ mod compatible_endpoint_runtime;
 mod credential_scheduler;
 mod execution_lineage;
 mod protocol_transform;
+mod provider_egress_state;
 mod provider_scoped_selector;
 mod response_transform;
 mod route_explain;
@@ -65,6 +66,18 @@ pub use protocol_transform::{
     ProtocolTransformAdmission, ProtocolTransformInput, ProtocolTransformRejection,
     analyze_protocol_transform, project_protocol_request, project_registered_protocol_request,
     protocol_pair_is_publishable, protocol_pair_is_registered,
+};
+pub use provider_egress_state::{
+    MAX_PROVIDER_EGRESS_AUXILIARY_REQUESTS, MAX_PROVIDER_EGRESS_CAPABILITIES,
+    MAX_PROVIDER_EGRESS_IDENTITY_LENGTH, MAX_PROVIDER_EGRESS_PRE_SUBMIT_RECOVERIES,
+    MAX_PROVIDER_EGRESS_STATES_PER_DOMAIN, ProviderAccountEvidence, ProviderChannelCapability,
+    ProviderChannelCapabilityRegistry, ProviderChannelIdentity, ProviderClearanceRuntimeState,
+    ProviderClearanceStateKey, ProviderEgressChannel, ProviderEgressFailureDisposition,
+    ProviderEgressFailureEvidence, ProviderEgressFailureOwner, ProviderEgressRecoveryAction,
+    ProviderEgressRuntime, ProviderEgressRuntimeError, ProviderEgressRuntimeState,
+    ProviderEgressStateKey, ProviderEgressTargetIdentity, ProviderSessionRuntimeState,
+    ProviderSessionStateKey, ProviderStickinessCapability, ProviderTransportAttemptBudget,
+    ProviderTransportAttemptBudgetError, classify_provider_egress_failure,
 };
 pub use provider_scoped_selector::{
     ProviderScopedCandidate, ProviderScopedCandidateDecision, ProviderScopedHealth,
