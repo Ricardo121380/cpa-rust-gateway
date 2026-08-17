@@ -1,6 +1,6 @@
 # BC-MGMT-018: Compatible proxy-pool persistence and protected management
 
-Status: `P13-11D LOCAL_PASS_PENDING_PHASE_GATE`; D1, D2, and D3 locally implemented
+Status: `P13-11D DONE_WITH_BOUNDARY`; D1, D2, D3, aggregate Full, and formal Delivery Gate passed
 
 ## Purpose
 
@@ -171,7 +171,12 @@ The D3 local fixture proves exact-AAD opening, weighted two-node pool compositio
 lease release, exact durable binding settings, Direct-default preservation, and fail-closed empty
 pool/foreign native Upstream/wrong-AAD cases. Existing P13-11B/C tests remain the evidence for
 sticky selection, JSON/SSE mode-profile preservation, Health/Quota isolation, and serving failure
-feedback. Formal P13-11D Delivery Gate evidence is still pending.
+feedback. Formal P13-11D evidence is recorded by annotated tag
+`phase-p13-egress-management-complete` at exact commit
+`1beb230248fb75ced146b87c547eb020ee9cd010` and run
+[31996324578](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31996324578), whose
+Authorize/Fast/Full supply-chain/Required jobs all passed. This contract still does not claim a
+real proxy, DNS, Provider, staging, or production result.
 
 ## Non-goals
 

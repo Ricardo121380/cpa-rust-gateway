@@ -1,16 +1,19 @@
 # P13-11D compatible proxy-pool management report
 
-Status: `P13-11D READY_FOR_FORMAL_DELIVERY_GATE`; D1, D2, D3, aggregate Full, and phase review passed locally
+Status: `P13-11D DONE_WITH_BOUNDARY`; D1, D2, D3, aggregate Full, phase review, and formal Delivery Gate passed
 
 Date: 2026-08-17
 
 ## Outcome first
 
-P13-11D is a new post-Gate task. D1, D2, D3, the aggregate local Full, and the independent phase
-review are complete; no formal D Delivery Gate is claimed yet. P13-11A/B/C remain formally accepted by
+P13-11D is a new post-Gate task. D1, D2, D3, the aggregate local Full, the independent phase review,
+and the one formal D Delivery Gate are complete. P13-11A/B/C remain formally accepted by
 `phase-p13-egress-complete` at `a716eaaa9d31c26b6d09489f3f7fdbb9b0e1ebeb` and GitHub run
 [31959162202](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31959162202).
-The old tag will not be moved or reinterpreted to include D.
+The old tag will not be moved or reinterpreted to include D. D is formally closed by the new
+immutable annotated tag `phase-p13-egress-management-complete` at exact commit
+`1beb230248fb75ced146b87c547eb020ee9cd010` and GitHub run
+[31996324578](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31996324578).
 
 The former runtime gap is closed locally: `apps/gateway` now opens enabled compatible node
 endpoints exactly once while composing the active Config Version, builds one Upstream-owned
@@ -150,13 +153,15 @@ Local D3 checks passed:
 - no management OpenAPI or `web/prism/**` surface changed in D3. The existing D2 action-required
   Claude Code handoff remains the only frontend integration notice.
 
-This is local aggregate evidence only. The durable Full receipt is
+The durable local Full receipt is
 [`p13-11d-aggregate-full-20260817.md`](evidence/p13-11d-aggregate-full-20260817.md)
 (`43/43`, Darwin arm64,
 `2026-08-17T01:41:24Z`–`2026-08-17T01:43:02Z`). The first Full attempt stopped at the crate-boundary
 allowlist because `gateway-control` already declared its required `sha2` dependency; the one-line
-allowlist correction was committed as `acf4e47`, and the rerun passed all steps. No formal
-P13-11D Delivery Gate is claimed yet.
+allowlist correction was committed as `acf4e47`, and the rerun passed all steps. The formal
+Delivery Gate also passed all four jobs: Authorize 2s, Fast 7m03s, Full supply-chain 1m22s, and
+Required 3s. The tag-triggered run used the exact closeout SHA above; no manual duplicate dispatch
+was used.
 
 ## Frontend handoff
 
@@ -173,12 +178,12 @@ This report is not evidence for:
 - Grok Web clearance, Console bootstrap, FlareSolverr, Kiro, or native-provider behavior;
 - Autoreg registration, OAuth/SSO, refresh, account repair, or replenishment;
 - server, staging, production, public API, management UI, or traffic changes;
-- a real proxy/Provider connectivity result or formal P13-11D Delivery Gate completion.
+- a real proxy/Provider connectivity result; the formal Gate verifies source integrity and
+  delivery-path checks, not external network success.
 
 ## Next action
 
-Next action: push the exact closeout commit containing the completed
-[`phase review`](evidence/p13-11d-phase-review-20260817.md), create the new immutable annotated tag
-`phase-p13-egress-management-complete`, and run its one formal Delivery Gate. Do not move or reinterpret
-`phase-p13-egress-complete`, and do not call Provider, proxy, DNS, server, staging, or production
-systems for this local closeout.
+Next action: keep `phase-p13-egress-management-complete` immutable and select a separately planned
+P13-11 Provider-specific egress task if/when it is authorized. This closeout does not authorize
+Provider requests, real proxy/DNS probes, Autoreg, server, staging, production, or movement of
+`phase-p13-egress-complete`.

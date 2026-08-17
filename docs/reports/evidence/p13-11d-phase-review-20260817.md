@@ -1,15 +1,19 @@
 # P13-11D compatible egress management phase review — 2026-08-17
 
-Status: `READY_FOR_FORMAL_DELIVERY_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Review conclusion
 
-P13-11D1/D2/D3, their focused tests, the aggregate local Full receipt, and the frozen scope are
-internally consistent. No remaining P1/P2 correctness, Config-Version ownership, secret
+P13-11D1/D2/D3, their focused tests, the aggregate local Full receipt, the formal Delivery Gate,
+and the frozen scope are internally consistent. No remaining P1/P2 correctness, Config-Version ownership, secret
 projection, runtime composition, Provider-isolation, or request-hot-path finding was identified.
 
-The review authorizes only the formal source Delivery Gate for the exact closeout candidate. It
-does not authorize a Provider request, proxy or DNS probe, server mutation, staging deployment, or
+The exact closeout candidate is formally accepted by annotated tag
+`phase-p13-egress-management-complete` at commit
+`1beb230248fb75ced146b87c547eb020ee9cd010`; run
+[31996324578](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31996324578) passed
+Authorize (2s), Fast (7m03s), Full supply-chain (1m22s), and Required (3s). This review does not
+authorize a Provider request, proxy or DNS probe, server mutation, staging deployment, or
 production traffic.
 
 ## Goal-backward review
@@ -25,7 +29,7 @@ production traffic.
 | Provider boundary | Generic OpenAI Chat/Responses and Anthropic Messages compatible Endpoints are the only admitted family. Native Grok/Kiro, Web clearance, Console bootstrap, FlareSolverr, hidden auxiliary HTTP, Autoreg, refresh/reauth, and cross-Provider fallback remain outside D. |
 | Failure and capacity behavior | Existing node/pool capacity, sticky selection, lease drop, JSON/SSE profile preservation, Health/Quota and exact failure-scope tests remain authoritative. D3 adds durable weighted-pool, capacity/release, Direct-default and fail-closed graph tests. |
 | Frontend boundary | D2 changed the management contract and recorded an action-required cross-boundary handoff. D3 changed no OpenAPI or `web/prism/**` surface and creates no additional frontend task. |
-| Side effects | All implementation and Full checks were local/offline or loopback. No Provider, real proxy, DNS, Autoreg, server, staging, production, public traffic, or GitHub Delivery Gate was used before this review. |
+| Side effects | All implementation and local Full checks were local/offline or loopback. The single formal source Delivery Gate checked repository integrity and required delivery status only. No Provider, real proxy, DNS, Autoreg, server, staging, production, or public traffic was used. |
 
 ## Verification reviewed
 
@@ -43,13 +47,13 @@ production traffic.
 
 - Branch: `codex/p13-11-egress`.
 - New immutable annotated tag: `phase-p13-egress-management-complete`.
-- The tag must point to the exact pushed closeout commit that contains this review.
+- The tag points to exact pushed closeout commit `1beb230248fb75ced146b87c547eb020ee9cd010`.
 - The earlier `phase-p13-egress-complete` tag for P13-11A/B/C must not move or be reinterpreted.
-- Only one tag-triggered `delivery-gate` run is allowed for this target. Authorize, Fast, Full
-  supply-chain, and Required must all succeed before P13-11D becomes `DONE_WITH_BOUNDARY`.
+- Only one tag-triggered `delivery-gate` run was used for this target. Authorize, Fast, Full
+  supply-chain, and Required all succeeded in run `31996324578`.
 
 ## Decision
 
-P13-11D is `READY_FOR_FORMAL_DELIVERY_GATE`. A failed or cancelled formal job leaves the task
-open and requires repair on a new exact closeout target; it does not permit starting a later phase
-or weakening any egress/secret/Provider boundary.
+P13-11D is `DONE_WITH_BOUNDARY`. The tag is immutable; any future Provider-specific egress,
+real-network, or broader proxy scheme requires a separately planned task and does not weaken the
+current egress/secret/Provider boundary.

@@ -1,6 +1,6 @@
 # ADR-0096: Config-Version-owned compatible proxy-pool management
 
-Status: Accepted — `P13-11D LOCAL_PASS_PENDING_PHASE_GATE`; D1/D2/D3 locally implemented
+Status: Accepted — `P13-11D DONE_WITH_BOUNDARY`; formal tag and Delivery Gate passed
 
 Date: 2026-08-17
 
@@ -156,7 +156,8 @@ Broader schemes require a separate security review and explicit transport suppor
 
 ## Verification
 
-P13-11D cannot be accepted until the corresponding contract and report prove:
+P13-11D was accepted after the corresponding contract, report, local aggregate Full, and formal
+Delivery Gate proved:
 
 - migration up/down, graph clone/rollback/reopen, foreign-key and atomic revision behavior;
 - AEAD associated-data row-swap rejection, missing/wrong key and corruption failure, rotation, and
@@ -167,7 +168,10 @@ P13-11D cannot be accepted until the corresponding contract and report prove:
 - active Config compilation into the existing registry with default Direct behavior, no Store on
   the request path, and no cross-Provider fallback after D3;
 - focused tests, strict Clippy, formatting, docs, secret scan, diff review, and one aggregate P13
-  Delivery Gate only at the D closeout boundary.
+  Delivery Gate only at the D closeout boundary. The formal evidence is annotated tag
+  `phase-p13-egress-management-complete` at exact commit
+  `1beb230248fb75ced146b87c547eb020ee9cd010`, run
+  [31996324578](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/31996324578).
 
 No local deterministic test is evidence that a real proxy, DNS route, Provider account,
 FlareSolverr flow, server, staging, or production traffic works.
