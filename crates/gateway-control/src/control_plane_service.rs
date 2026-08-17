@@ -304,6 +304,34 @@ pub fn seal_compatible_proxy_node_endpoint(
         .map_err(ControlPlaneServiceError::from)
 }
 
+/// Opens and revalidates one persisted compatible proxy endpoint at the composition boundary.
+///
+/// The caller must provide the exact Config-Version/Upstream/pool/node tuple that was used for
+/// sealing.  The plaintext is parsed immediately into the redacted runtime proxy type and is
+/// never returned as a string.  This helper performs no network I/O or DNS resolution.
+///
+/// # Errors
+///
+/// Returns [`ControlPlaneServiceError::InvalidCompatibleProxyEndpoint`] when the authenticated
+/// plaintext is not valid UTF-8 or is not an admitted local-DNS SOCKS5 endpoint.  AEAD, key, and
+/// AAD failures retain the existing [`ControlPlaneServiceError::SecretStore`] classification.
+pub fn open_compatible_proxy_node_endpoint(
+    secret_store: &SecretStore,
+    config_version_id: &ConfigVersionId,
+    upstream_id: &UpstreamId,
+    pool_id: Option<&CompatibleProxyPoolId>,
+    node_id: &CompatibleProxyNodeId,
+    encrypted_proxy: &EncryptedSecret,
+) -> Result<UpstreamProxy, ControlPlaneServiceError> {
+    let associated_data =
+        compatible_proxy_node_associated_data(config_version_id, upstream_id, pool_id, node_id)?;
+    let plaintext = secret_store.open(encrypted_proxy, &associated_data)?;
+    let plaintext = std::str::from_utf8(plaintext.as_bytes())
+        .map_err(|_| ControlPlaneServiceError::InvalidCompatibleProxyEndpoint)?;
+    UpstreamProxy::try_socks5(plaintext)
+        .map_err(|_| ControlPlaneServiceError::InvalidCompatibleProxyEndpoint)
+}
+
 fn append_length_delimited_segment(
     associated_data: &mut Vec<u8>,
     segment: &[u8],
@@ -426,7 +454,8 @@ mod tests {
     use super::{
         ControlPlaneService, ControlPlaneServiceError, CredentialAndClientKeyProvisionRequest,
         compatible_proxy_node_associated_data, credential_associated_data,
-        seal_compatible_proxy_node_endpoint, stored_client_key_from_record,
+        open_compatible_proxy_node_endpoint, seal_compatible_proxy_node_endpoint,
+        stored_client_key_from_record,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -659,6 +688,67 @@ mod tests {
                 Err(ControlPlaneServiceError::InvalidCompatibleProxyEndpoint)
             ));
         }
+        Ok(())
+    }
+
+    #[test]
+    fn compatible_proxy_endpoint_opens_only_for_the_exact_aad_and_revalidates_plaintext()
+    -> TestResult {
+        let version_id = ConfigVersionId::try_new("version-a")?;
+        let upstream_id = UpstreamId::try_new("upstream-a")?;
+        let pool_id = CompatibleProxyPoolId::try_new("pool-a")?;
+        let node_id = CompatibleProxyNodeId::try_new("node-a")?;
+        let store = secret_store(KeyVersion::try_new(9)?, 0x66)?;
+        let encrypted = seal_compatible_proxy_node_endpoint(
+            &store,
+            &version_id,
+            &upstream_id,
+            Some(&pool_id),
+            &node_id,
+            "socks5://127.0.0.1:1080",
+        )?;
+
+        let proxy = open_compatible_proxy_node_endpoint(
+            &store,
+            &version_id,
+            &upstream_id,
+            Some(&pool_id),
+            &node_id,
+            &encrypted,
+        )?;
+        assert_eq!(proxy.canonical_url(), Some("socks5://127.0.0.1:1080"));
+        assert!(!format!("{proxy:?}").contains("127.0.0.1"));
+
+        assert!(matches!(
+            open_compatible_proxy_node_endpoint(
+                &store,
+                &ConfigVersionId::try_new("version-b")?,
+                &upstream_id,
+                Some(&pool_id),
+                &node_id,
+                &encrypted,
+            ),
+            Err(ControlPlaneServiceError::SecretStore(_))
+        ));
+
+        let aad = compatible_proxy_node_associated_data(
+            &version_id,
+            &upstream_id,
+            Some(&pool_id),
+            &node_id,
+        )?;
+        let invalid_plaintext = store.seal(b"http://127.0.0.1:8080", &aad)?;
+        assert!(matches!(
+            open_compatible_proxy_node_endpoint(
+                &store,
+                &version_id,
+                &upstream_id,
+                Some(&pool_id),
+                &node_id,
+                &invalid_plaintext,
+            ),
+            Err(ControlPlaneServiceError::InvalidCompatibleProxyEndpoint)
+        ));
         Ok(())
     }
 

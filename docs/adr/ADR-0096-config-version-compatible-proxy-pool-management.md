@@ -1,6 +1,6 @@
 # ADR-0096: Config-Version-owned compatible proxy-pool management
 
-Status: Accepted for D1/D2 local implementation — `P13-11D2 LOCAL_PASS_PENDING_PHASE_GATE`; D3 not started
+Status: Accepted — `P13-11D LOCAL_PASS_PENDING_PHASE_GATE`; D1/D2/D3 locally implemented
 
 Date: 2026-08-17
 
@@ -8,16 +8,16 @@ Date: 2026-08-17
 
 P13-11A through P13-11C established a provider-neutral egress profile, an Upstream-owned
 `CompatibleEgressTransportRegistry`, and a serving handoff that holds one exact Credential lease
-plus one exact egress lease. Those slices deliberately kept persistence out of scope. The current
-deployment therefore builds one Direct registry per generic compatible Upstream and supplies no
-fixed proxies, no proxy pools, and no non-default binding settings.
+plus one exact egress lease. Those slices deliberately kept persistence out of scope. Before
+P13-11D, deployment therefore built one Direct registry per generic compatible Upstream and
+supplied no durable fixed proxies, proxy pools, or non-default binding settings.
 
-That default is safe but not operable. An operator cannot yet describe a durable proxy pool in a
+That baseline was safe but not operable: an operator could not describe a durable proxy pool in a
 draft Config Version, review it through the protected management plane, publish or roll it back
-with the rest of the graph, or reconstruct the same pool after restart. Adding an unversioned
-global proxy file would break Config Version rollback and could silently share an exit node across
-Providers. Reading a local Clash or environment proxy at request time would also bypass the
-existing egress, audit, and secret boundaries.
+with the rest of the graph, or reconstruct the same pool after restart. P13-11D closes that gap.
+An unversioned global proxy file would still break Config Version rollback and could silently share
+an exit node across Providers. Reading a local Clash or environment proxy at request time would
+also bypass the existing egress, audit, and secret boundaries.
 
 ## Decision
 
@@ -77,13 +77,13 @@ Version cannot leave a cross-version or dangling target.
 
 ### Runtime composition
 
-D3 will decrypt and validate the active Config Version once while composing the data plane. It
-will build the existing `CompatibleFixedProxyInput`, `CompatibleProxyPoolInput`, and
-`CompatibleEndpointBindingRuntimeSettings` values. Serving will keep using the P13-11B/C
-registry and lease path; it will not read SQLite, decrypt a node, infer a proxy from a client
-request, or create a second scheduler.
+D3 decrypts and validates enabled node material once while composing the active data-plane Config
+Version. It builds the existing `CompatibleFixedProxyInput`, `CompatibleProxyPoolInput`, and
+`CompatibleEndpointBindingRuntimeSettings` values. Serving keeps using the P13-11B/C registry and
+lease path; it does not read SQLite, decrypt a node, infer a proxy from a client request, or create
+a second scheduler.
 
-No configured compatible resources means the same Direct-only default as today. Malformed
+No configured compatible resources means the same Direct-only default as before D3. Malformed
 ciphertext, a missing key, unsafe SOCKS5 endpoint, empty enabled pool, cross-Upstream reference,
 unknown target, duplicate identity, weight/capacity overflow, or Config Version drift fails closed
 before publication. It must not prevent an already-valid incumbent process from continuing to
@@ -109,7 +109,9 @@ operations. Node endpoint input is write-only: create/explicit rotation validate
 seals a local-DNS SOCKS5 endpoint, while an update that omits the endpoint preserves the existing
 AEAD value. Responses expose only `proxy_configured` and closed policy fields. Protected HTTP,
 OpenAPI operation-count, Prism sync/check, generated-client freshness, and management-SPA checks
-passed locally. This is not formal phase-gate evidence and does not start D3.
+passed locally. D3 then connected those durable resources to the active composition without
+changing the management contract. This remains local slice evidence rather than a formal phase
+Gate result.
 
 ## Consequences
 

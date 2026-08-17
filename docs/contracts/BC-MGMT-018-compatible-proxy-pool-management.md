@@ -1,6 +1,6 @@
 # BC-MGMT-018: Compatible proxy-pool persistence and protected management
 
-Status: `P13-11D2 LOCAL_PASS_PENDING_PHASE_GATE`; D1 and D2 locally implemented; D3 not started
+Status: `P13-11D LOCAL_PASS_PENDING_PHASE_GATE`; D1, D2, and D3 locally implemented
 
 ## Purpose
 
@@ -157,7 +157,7 @@ The current local HTTP fixture covers protected create/list/update/delete round 
 revision rejection, endpoint-value preservation when an update omits the write-only field, and
 secret-free responses. Successful revisioned management responses carry `Cache-Control: no-store`.
 
-### D3 runtime
+### D3 runtime — locally implemented
 
 - standalone fixed and weighted pool composition for the exact Upstream;
 - disabled/empty/cross-Upstream/unknown/corrupt configurations fail before publication;
@@ -166,6 +166,12 @@ secret-free responses. Successful revisioned management responses carry `Cache-C
 - restart/rollback reconstructs the selected Config Version and hot path performs no Store read;
 - no Provider, real proxy, DNS, Autoreg, server, staging, or production traffic is required for
   local acceptance.
+
+The D3 local fixture proves exact-AAD opening, weighted two-node pool composition, capacity and
+lease release, exact durable binding settings, Direct-default preservation, and fail-closed empty
+pool/foreign native Upstream/wrong-AAD cases. Existing P13-11B/C tests remain the evidence for
+sticky selection, JSON/SSE mode-profile preservation, Health/Quota isolation, and serving failure
+feedback. Formal P13-11D Delivery Gate evidence is still pending.
 
 ## Non-goals
 

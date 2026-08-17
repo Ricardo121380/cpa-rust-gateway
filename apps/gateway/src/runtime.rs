@@ -35,6 +35,7 @@ use gateway_control::{
     compatible_egress_runtime_compiler::{
         CompatibleEgressRuntimeCompiler, CompatibleEndpointBindingRuntimeSettings,
     },
+    control_plane_service::open_compatible_proxy_node_endpoint,
     credential_pool_compiler::CredentialPoolCompiler,
     egress_policy_compiler::EgressPolicyCompiler,
     management_mutation_service::ConfigRevision,
@@ -79,11 +80,12 @@ use gateway_observability::{
 use gateway_protocol::{ApiFormat, ApiFormatAdapterRegistry};
 use gateway_router::{
     AttemptDriver, AttemptExclusionSet, AttemptFailure, AttemptFuture, AttemptOrchestrator,
-    AttemptOrchestratorConfig, CompatibleEgressTransportRegistry,
+    AttemptOrchestratorConfig, CompatibleEgressNodeInput, CompatibleEgressTransportRegistry,
     CompatibleEgressTransportRegistryInput, CompatibleEndpointEgressLease,
-    CompatibleEndpointRuntime, DEFAULT_TRANSIENT_COOLDOWN, NativePayloadAvailability,
-    ProjectedProtocolRequest, ProtocolFormat, ProtocolResponseProjector, ProtocolTransformInput,
-    ProtocolTransformRejection, ProviderScopedPriceEvidence, ProviderScopedRouteExplainInput,
+    CompatibleEndpointRuntime, CompatibleFixedProxyInput, CompatibleProxyPoolInput,
+    DEFAULT_TRANSIENT_COOLDOWN, NativePayloadAvailability, ProjectedProtocolRequest,
+    ProtocolFormat, ProtocolResponseProjector, ProtocolTransformInput, ProtocolTransformRejection,
+    ProviderScopedPriceEvidence, ProviderScopedRouteExplainInput,
     ProviderScopedRouteExplainSnapshot, QuotaConfidence, QuotaSnapshot, QuotaSource,
     ResponsesClientTransport, ResponsesEventSource, ResponsesExecution, ResponsesExecutionLineage,
     ResponsesExecutor, ResponsesFuture, ResponsesResponseMode, RouteCredentialScheduler,
@@ -95,9 +97,10 @@ use gateway_router::{
 };
 use gateway_store::{
     control_plane::{
-        ConfigVersionStatus, ControlPlaneConfiguration, CredentialScope, CredentialStatus,
-        EndpointConfiguration, EndpointTransport, RoutePolicy, RoutingPriceComparison,
-        SqliteControlPlaneRepository, StoredClientKeyStatus, StoredEgressRedirectMode,
+        CompatibleEgressTargetConfiguration, ConfigVersionStatus, ControlPlaneConfiguration,
+        CredentialScope, CredentialStatus, EndpointConfiguration, EndpointTransport, RoutePolicy,
+        RoutingPriceComparison, SqliteControlPlaneRepository, StoredClientKeyStatus,
+        StoredCompatibleFailureScope, StoredCompatibleStickiness, StoredEgressRedirectMode,
         TransformMode,
     },
     event_store::{
@@ -107,7 +110,8 @@ use gateway_store::{
     stored_response::SqliteStoredResponseStore,
 };
 use gateway_upstream::{
-    AdmittedEgressTarget, CredentialLease, EgressCidr, EgressDnsResolver, EgressHost, EgressPolicy,
+    AdmittedEgressTarget, CompatibleEgressTarget, CompatibleFailureScope, CompatibleRetryPolicy,
+    CompatibleStickiness, CredentialLease, EgressCidr, EgressDnsResolver, EgressHost, EgressPolicy,
     EgressPolicyInput, EgressScheme, EndpointCredentialPools, RedirectPolicy,
     SystemEgressDnsResolver, UpstreamClientPool, UpstreamHttpMethod, UpstreamHttpRequest,
     UpstreamHttpResponse, UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
@@ -1239,10 +1243,10 @@ impl P12RoutedResponsesExecutor {
             flaresolverr_port,
         )
         .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime))?;
-        let compatible_transport_registries =
-            compatible_direct_transport_registries(configuration, &endpoints).map_err(|_| {
-                RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime)
-            })?;
+        let (compatible_transport_registries, compatible_binding_settings) =
+            compatible_egress_runtime_inputs(configuration, &endpoints, secret_store).map_err(
+                |_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime),
+            )?;
         let compatible_endpoints = CompatibleEgressRuntimeCompiler::new(
             configuration,
             &policies,
@@ -1250,7 +1254,7 @@ impl P12RoutedResponsesExecutor {
             Arc::clone(&runtime_health),
             Arc::clone(&runtime_quota),
             compatible_transport_registries,
-            BTreeMap::<(EndpointId, CredentialId), CompatibleEndpointBindingRuntimeSettings>::new(),
+            compatible_binding_settings,
         )
         .compile()
         .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime))?
@@ -2403,44 +2407,337 @@ fn endpoint_runtimes(
     Ok(runtimes)
 }
 
-/// Builds one Direct transport registry per generic Upstream for the default deployment.
+type CompatibleTransportRegistries =
+    BTreeMap<gateway_core::UpstreamId, CompatibleEgressTransportRegistry>;
+type CompatibleBindingSettings =
+    BTreeMap<(EndpointId, CredentialId), CompatibleEndpointBindingRuntimeSettings>;
+type CompatibleEgressRuntimeInputs = (CompatibleTransportRegistries, CompatibleBindingSettings);
+
+/// Builds the immutable transport registries and exact binding settings for generic Upstreams.
 ///
-/// Proxy-pool membership is intentionally not inferred from a Provider name or credential
-/// format. A later composition owner may inject fixed/pool registries through the same compiler;
-/// the serving handoff and failure-scope logic are identical. Keeping this default Direct-only
-/// also preserves the existing process-envelope behavior until a bounded Config-Version proxy
-/// schema is approved.
-fn compatible_direct_transport_registries(
+/// This is deliberately a composition-time operation. It opens each enabled node exactly once
+/// under the Config-Version/Upstream/pool/node AAD tuple, converts the redacted proxy directly
+/// into an `UpstreamTransportProfile`, and then drops the plaintext. No Store read, decryption,
+/// DNS lookup, or environment-proxy lookup remains on the serving hot path.
+fn compatible_egress_runtime_inputs(
     configuration: &ControlPlaneConfiguration,
     endpoints: &BTreeMap<EndpointId, EndpointRuntime>,
-) -> Result<
-    BTreeMap<gateway_core::UpstreamId, CompatibleEgressTransportRegistry>,
-    RuntimeCompositionError,
-> {
-    let mut registries = BTreeMap::new();
-    for endpoint in &configuration.endpoints {
-        if !is_generic_compatible_adapter(&endpoint.adapter_id) {
-            continue;
+    secret_store: &SecretStore,
+) -> Result<CompatibleEgressRuntimeInputs, RuntimeCompositionError> {
+    let generic_upstreams = compatible_generic_upstreams(configuration);
+    validate_compatible_resource_ownership(configuration, &generic_upstreams)?;
+    let registries = compatible_transport_registries(
+        configuration,
+        endpoints,
+        secret_store,
+        &generic_upstreams,
+    )?;
+    let settings = compatible_binding_runtime_settings(configuration, &registries)?;
+    Ok((registries, settings))
+}
+
+fn compatible_generic_upstreams(
+    configuration: &ControlPlaneConfiguration,
+) -> BTreeSet<gateway_core::UpstreamId> {
+    configuration
+        .endpoints
+        .iter()
+        .filter(|endpoint| endpoint.enabled && is_generic_compatible_adapter(&endpoint.adapter_id))
+        .filter_map(|endpoint| {
+            configuration
+                .upstreams
+                .iter()
+                .find(|upstream| upstream.id == endpoint.upstream_id)
+                .filter(|upstream| upstream.enabled)
+                .map(|_| endpoint.upstream_id.clone())
+        })
+        .collect()
+}
+
+fn validate_compatible_resource_ownership(
+    configuration: &ControlPlaneConfiguration,
+    generic_upstreams: &BTreeSet<gateway_core::UpstreamId>,
+) -> Result<(), RuntimeCompositionError> {
+    // Compatible resources are a generic-adapter contract. Do not silently retain an enabled
+    // pool/node for a native Provider and hope a later path interprets it; that would make the
+    // active graph appear healthy while the resource is unreachable. Disabled draft rows remain
+    // inert until an operator explicitly enables them.
+    for pool in configuration
+        .compatible_proxy_pools
+        .iter()
+        .filter(|pool| pool.enabled)
+    {
+        if !generic_upstreams.contains(&pool.upstream_id) {
+            return Err(RuntimeCompositionError::Unavailable);
         }
-        let runtime = endpoints
-            .get(&endpoint.id)
+    }
+    for node in configuration
+        .compatible_proxy_nodes
+        .iter()
+        .filter(|node| node.enabled)
+    {
+        if !generic_upstreams.contains(&node.upstream_id) {
+            return Err(RuntimeCompositionError::Unavailable);
+        }
+        if let Some(pool_id) = &node.pool_id {
+            let pool = configuration
+                .compatible_proxy_pools
+                .iter()
+                .find(|pool| pool.id == *pool_id)
+                .ok_or(RuntimeCompositionError::Unavailable)?;
+            if pool.upstream_id != node.upstream_id || !pool.enabled {
+                return Err(RuntimeCompositionError::Unavailable);
+            }
+        } else if node.weight != 1 {
+            return Err(RuntimeCompositionError::Unavailable);
+        }
+    }
+    Ok(())
+}
+
+fn compatible_transport_registries(
+    configuration: &ControlPlaneConfiguration,
+    endpoints: &BTreeMap<EndpointId, EndpointRuntime>,
+    secret_store: &SecretStore,
+    generic_upstreams: &BTreeSet<gateway_core::UpstreamId>,
+) -> Result<CompatibleTransportRegistries, RuntimeCompositionError> {
+    let mut registries = BTreeMap::new();
+    for upstream_id in generic_upstreams {
+        let representative = configuration
+            .endpoints
+            .iter()
+            .filter(|endpoint| {
+                endpoint.enabled
+                    && endpoint.upstream_id == *upstream_id
+                    && is_generic_compatible_adapter(&endpoint.adapter_id)
+            })
+            .min_by(|left, right| left.id.cmp(&right.id))
             .ok_or(RuntimeCompositionError::Unavailable)?;
+        let runtime = endpoints
+            .get(&representative.id)
+            .ok_or(RuntimeCompositionError::Unavailable)?;
+        let direct_profile = runtime
+            .transports
+            .for_mode(ResponsesResponseMode::NonStreaming)
+            .clone();
+        let fixed_proxies = compatible_fixed_proxy_inputs(
+            configuration,
+            secret_store,
+            upstream_id,
+            &direct_profile,
+        )?;
+        let proxy_pools = compatible_proxy_pool_inputs(
+            configuration,
+            secret_store,
+            upstream_id,
+            &direct_profile,
+        )?;
+
         let registry =
             CompatibleEgressTransportRegistry::try_new(CompatibleEgressTransportRegistryInput {
-                owner_upstream_id: endpoint.upstream_id.clone(),
-                direct_profile: runtime
-                    .transports
-                    .for_mode(ResponsesResponseMode::NonStreaming)
-                    .clone(),
-                fixed_proxies: Vec::new(),
-                proxy_pools: Vec::new(),
+                owner_upstream_id: upstream_id.clone(),
+                direct_profile,
+                fixed_proxies,
+                proxy_pools,
             })
             .map_err(|_| RuntimeCompositionError::Unavailable)?;
-        registries
-            .entry(endpoint.upstream_id.clone())
-            .or_insert(registry);
+        registries.insert(upstream_id.clone(), registry);
     }
     Ok(registries)
+}
+
+fn compatible_fixed_proxy_inputs(
+    configuration: &ControlPlaneConfiguration,
+    secret_store: &SecretStore,
+    upstream_id: &gateway_core::UpstreamId,
+    direct_profile: &UpstreamTransportProfile,
+) -> Result<Vec<CompatibleFixedProxyInput>, RuntimeCompositionError> {
+    configuration
+        .compatible_proxy_nodes
+        .iter()
+        .filter(|node| node.upstream_id == *upstream_id && node.enabled && node.pool_id.is_none())
+        .map(|node| {
+            let proxy = open_compatible_proxy_node_endpoint(
+                secret_store,
+                &configuration.version.id,
+                upstream_id,
+                None,
+                &node.id,
+                &node.encrypted_proxy,
+            )
+            .map_err(|_| RuntimeCompositionError::Unavailable)?;
+            Ok(CompatibleFixedProxyInput {
+                profile_id: node.id.as_str().to_owned(),
+                transport_profile: direct_profile.clone().with_proxy(proxy),
+                maximum_concurrency: usize::try_from(node.maximum_concurrency)
+                    .map_err(|_| RuntimeCompositionError::Unavailable)?,
+            })
+        })
+        .collect()
+}
+
+fn compatible_proxy_pool_inputs(
+    configuration: &ControlPlaneConfiguration,
+    secret_store: &SecretStore,
+    upstream_id: &gateway_core::UpstreamId,
+    direct_profile: &UpstreamTransportProfile,
+) -> Result<Vec<CompatibleProxyPoolInput>, RuntimeCompositionError> {
+    configuration
+        .compatible_proxy_pools
+        .iter()
+        .filter(|pool| pool.upstream_id == *upstream_id && pool.enabled)
+        .map(|pool| {
+            let nodes = configuration
+                .compatible_proxy_nodes
+                .iter()
+                .filter(|node| {
+                    node.upstream_id == *upstream_id
+                        && node.enabled
+                        && node.pool_id.as_ref() == Some(&pool.id)
+                })
+                .map(|node| {
+                    let proxy = open_compatible_proxy_node_endpoint(
+                        secret_store,
+                        &configuration.version.id,
+                        upstream_id,
+                        Some(&pool.id),
+                        &node.id,
+                        &node.encrypted_proxy,
+                    )
+                    .map_err(|_| RuntimeCompositionError::Unavailable)?;
+                    Ok(CompatibleEgressNodeInput {
+                        node_id: node.id.as_str().to_owned(),
+                        transport_profile: direct_profile.clone().with_proxy(proxy),
+                        weight: usize::from(node.weight),
+                        maximum_concurrency: usize::try_from(node.maximum_concurrency)
+                            .map_err(|_| RuntimeCompositionError::Unavailable)?,
+                    })
+                })
+                .collect::<Result<Vec<_>, RuntimeCompositionError>>()?;
+            // An enabled pool is an active graph dependency. Publishing an empty pool would
+            // otherwise turn a configured binding into an implicit unavailable/Direct fallback.
+            if nodes.is_empty() {
+                return Err(RuntimeCompositionError::Unavailable);
+            }
+            Ok(CompatibleProxyPoolInput {
+                pool_id: pool.id.as_str().to_owned(),
+                nodes,
+            })
+        })
+        .collect()
+}
+
+fn compatible_binding_runtime_settings(
+    configuration: &ControlPlaneConfiguration,
+    registries: &CompatibleTransportRegistries,
+) -> Result<CompatibleBindingSettings, RuntimeCompositionError> {
+    let mut settings_by_binding = BTreeMap::new();
+    for binding in &configuration.compatible_egress_bindings {
+        let endpoint = configuration
+            .endpoints
+            .iter()
+            .find(|endpoint| endpoint.id == binding.endpoint_id)
+            .ok_or(RuntimeCompositionError::Unavailable)?;
+        if !endpoint.enabled || !is_generic_compatible_adapter(&endpoint.adapter_id) {
+            return Err(RuntimeCompositionError::Unavailable);
+        }
+        let credential = configuration
+            .credentials
+            .iter()
+            .find(|credential| credential.id == binding.credential_id)
+            .ok_or(RuntimeCompositionError::Unavailable)?;
+        if credential.upstream_id != endpoint.upstream_id {
+            return Err(RuntimeCompositionError::Unavailable);
+        }
+        let exact_binding_exists = configuration
+            .endpoint_credential_bindings
+            .iter()
+            .any(|item| {
+                item.endpoint_id == binding.endpoint_id
+                    && item.credential_id == binding.credential_id
+                    && item.upstream_id == endpoint.upstream_id
+            });
+        if !exact_binding_exists {
+            return Err(RuntimeCompositionError::Unavailable);
+        }
+        let target = compatible_binding_target(configuration, endpoint, &binding.target)?;
+        let failure_scope = match binding.failure_scope {
+            StoredCompatibleFailureScope::Endpoint => CompatibleFailureScope::Endpoint,
+            StoredCompatibleFailureScope::Credential => CompatibleFailureScope::Credential,
+            StoredCompatibleFailureScope::EgressNode => CompatibleFailureScope::EgressNode,
+        };
+        let stickiness = match binding.stickiness {
+            StoredCompatibleStickiness::None => CompatibleStickiness::None,
+            StoredCompatibleStickiness::Credential => CompatibleStickiness::Credential,
+            StoredCompatibleStickiness::CredentialAndEgress => {
+                CompatibleStickiness::CredentialAndEgress
+            }
+        };
+        let retry_policy = if binding.pre_submit_max_attempts == 1 {
+            CompatibleRetryPolicy::None
+        } else {
+            CompatibleRetryPolicy::pre_submit(binding.pre_submit_max_attempts)
+                .map_err(|_| RuntimeCompositionError::Unavailable)?
+        };
+        let settings = CompatibleEndpointBindingRuntimeSettings {
+            target,
+            failure_scope,
+            stickiness,
+            retry_policy,
+        };
+        let registry = registries
+            .get(&endpoint.upstream_id)
+            .ok_or(RuntimeCompositionError::Unavailable)?;
+        if !registry.contains_target(&settings.target) {
+            return Err(RuntimeCompositionError::Unavailable);
+        }
+        if settings_by_binding
+            .insert(
+                (binding.endpoint_id.clone(), binding.credential_id.clone()),
+                settings,
+            )
+            .is_some()
+        {
+            return Err(RuntimeCompositionError::Unavailable);
+        }
+    }
+    Ok(settings_by_binding)
+}
+
+fn compatible_binding_target(
+    configuration: &ControlPlaneConfiguration,
+    endpoint: &EndpointConfiguration,
+    target: &CompatibleEgressTargetConfiguration,
+) -> Result<CompatibleEgressTarget, RuntimeCompositionError> {
+    match target {
+        CompatibleEgressTargetConfiguration::Direct => Ok(CompatibleEgressTarget::Direct),
+        CompatibleEgressTargetConfiguration::FixedProxy(node_id) => {
+            let node = configuration
+                .compatible_proxy_nodes
+                .iter()
+                .find(|node| node.id == *node_id)
+                .ok_or(RuntimeCompositionError::Unavailable)?;
+            if node.upstream_id != endpoint.upstream_id || node.pool_id.is_some() || !node.enabled {
+                return Err(RuntimeCompositionError::Unavailable);
+            }
+            Ok(CompatibleEgressTarget::FixedProxy {
+                profile_id: node.id.as_str().to_owned(),
+            })
+        }
+        CompatibleEgressTargetConfiguration::ProxyPool(pool_id) => {
+            let pool = configuration
+                .compatible_proxy_pools
+                .iter()
+                .find(|pool| pool.id == *pool_id)
+                .ok_or(RuntimeCompositionError::Unavailable)?;
+            if pool.upstream_id != endpoint.upstream_id || !pool.enabled {
+                return Err(RuntimeCompositionError::Unavailable);
+            }
+            Ok(CompatibleEgressTarget::ProxyPool {
+                pool_id: pool.id.as_str().to_owned(),
+            })
+        }
+    }
 }
 
 fn is_generic_compatible_adapter(adapter_id: &str) -> bool {
@@ -6619,7 +6916,7 @@ mod tests {
     };
     use gateway_catalog::{CapabilitySet, SemanticCapability};
     use gateway_control::{
-        control_plane_service::credential_associated_data,
+        control_plane_service::{credential_associated_data, seal_compatible_proxy_node_endpoint},
         credential_pool_compiler::CredentialPoolCompiler,
         egress_policy_compiler::EgressPolicyCompiler,
         management_service::{ManagementActor, ManagementService},
@@ -6662,13 +6959,17 @@ mod tests {
         billing_ledger::{BillingCatalogSource, BillingPriceCatalog, BillingPriceEntry},
         control_plane::{
             AccessGroupConfiguration, AccessGroupRouteConfiguration, AdministrativeStatus,
-            ConfigVersion, ConfigVersionId, ConfigVersionStatus, ControlPlaneConfiguration,
+            CompatibleEgressBindingConfiguration, CompatibleEgressTargetConfiguration,
+            CompatibleProxyNodeConfiguration, CompatibleProxyNodeId,
+            CompatibleProxyPoolConfiguration, CompatibleProxyPoolId, ConfigVersion,
+            ConfigVersionId, ConfigVersionStatus, ControlPlaneConfiguration,
             CredentialConfiguration, CredentialScope, CredentialStatus, EgressPolicyConfiguration,
             EndpointConfiguration, EndpointCredentialBindingConfiguration, EndpointTransport,
             ModelAliasConfiguration, ModelRouteConfiguration, PublicModelConfiguration,
             RouteCandidateConfiguration, RoutePolicy, RoutingPriceComparison,
             RoutingPricePolicyConfiguration, SqliteControlPlaneRepository, StoredClientKey,
-            StoredClientKeyStatus, StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
+            StoredClientKeyStatus, StoredCompatibleFailureScope, StoredCompatibleStickiness,
+            StoredEgressRedirectMode, TransformMode, UpstreamConfiguration,
         },
         event_store::{
             AsyncSqliteEventWriter, EventWriterConfig, GatewayEventLogKind, SqliteEventStore,
@@ -6677,11 +6978,11 @@ mod tests {
         secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore},
     };
     use gateway_upstream::{
-        AdmittedEgressTarget, CredentialSecret, EgressCidr, EgressDnsError, EgressDnsResolver,
-        EgressHost, EgressPolicy, EgressPolicyInput, EgressScheme, EndpointCredentialInput,
-        EndpointCredentialPool, EndpointCredentialPools, RedirectPolicy, UpstreamClientPool,
-        UpstreamHttpMethod, UpstreamHttpRequest, UpstreamProxy, UpstreamTimeouts,
-        UpstreamTransportProfile,
+        AdmittedEgressTarget, CompatibleEgressTarget, CompatibleFailureScope, CompatibleStickiness,
+        CredentialSecret, EgressCidr, EgressDnsError, EgressDnsResolver, EgressHost, EgressPolicy,
+        EgressPolicyInput, EgressScheme, EndpointCredentialInput, EndpointCredentialPool,
+        EndpointCredentialPools, RedirectPolicy, UpstreamClientPool, UpstreamHttpMethod,
+        UpstreamHttpRequest, UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
     };
     use protocol_openai_responses::{
         ResponseMode, decode_request, decode_upstream_response as decode_responses_production,
@@ -6711,7 +7012,8 @@ mod tests {
         build_grok_console_responses_adapter, build_grok_official_responses_adapter,
         build_grok_web_responses_adapter, build_kiro_messages_adapter,
         build_openai_responses_adapter, channel_pin_single_transport_adapter,
-        classify_anthropic_response_failure, classify_openai_response_failure, decode_json_events,
+        classify_anthropic_response_failure, classify_openai_response_failure,
+        compatible_egress_runtime_inputs, decode_json_events,
         decode_json_events_with_usage_projection, decode_sse_events,
         decode_sse_events_with_usage_projection, deployment_route_compiler, endpoint_runtimes,
         expected_content_type_matches, has_p12_https_only_egress_shape,
@@ -11580,6 +11882,282 @@ mod tests {
             version,
             [(version, MasterKey::try_from_bytes([0xA1_u8; 32])?)],
         )?))
+    }
+
+    fn p13_compatible_endpoint_runtimes(
+        configuration: &ControlPlaneConfiguration,
+    ) -> Result<BTreeMap<EndpointId, EndpointRuntime>, Box<dyn Error>> {
+        let route = configuration
+            .model_routes
+            .first()
+            .ok_or("missing fixture route")?;
+        let candidate = configuration
+            .route_candidates
+            .iter()
+            .find(|candidate| candidate.route_id == route.id)
+            .ok_or("missing fixture candidate")?;
+        let endpoint = configuration
+            .endpoints
+            .iter()
+            .find(|endpoint| endpoint.id == candidate.endpoint_id)
+            .ok_or("missing fixture endpoint")?;
+        let public_model = configuration
+            .public_models
+            .iter()
+            .find(|model| model.id == route.public_model_id)
+            .ok_or("missing fixture public model")?;
+        let snapshot = RouteSnapshot::try_new(RouteSnapshotInput::new(
+            SnapshotVersion::try_new(configuration.version.id.as_str())?,
+            vec![SnapshotPublicModel::new(
+                public_model.id.clone(),
+                public_model.model_name.clone(),
+                public_model.display_name.clone(),
+                CapabilitySet::empty(),
+                route.id.clone(),
+            )],
+            Vec::new(),
+            vec![SnapshotRoute::new(
+                route.id.clone(),
+                route.public_model_id.clone(),
+                SnapshotRoutePolicy::RoundRobin,
+                route.max_attempts,
+                route.bootstrap_timeout_ms,
+                vec![SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
+                    id: candidate.id.clone(),
+                    endpoint_id: endpoint.id.clone(),
+                    upstream_id: endpoint.upstream_id.clone(),
+                    endpoint_api_format: endpoint.api_format.clone(),
+                    upstream_model: candidate.upstream_model.clone(),
+                    transform_mode: SnapshotTransformMode::Canonical,
+                    priority: candidate.priority,
+                    weight: candidate.weight,
+                    effective_capabilities: p12_adapter_capabilities(&endpoint.adapter_id)?,
+                    catalog_admission: SnapshotCatalogAdmission::AllowedUnlisted,
+                    active_binding_count: configuration
+                        .endpoint_credential_bindings
+                        .iter()
+                        .filter(|binding| binding.endpoint_id == endpoint.id && binding.enabled)
+                        .count(),
+                })],
+            )],
+            Vec::new(),
+            Vec::new(),
+        ))?;
+        let policies = EgressPolicyCompiler::compile(configuration)?;
+        Ok(endpoint_runtimes(
+            configuration,
+            &snapshot,
+            &policies,
+            &p12_api_format_adapter_registry()?,
+            None,
+            None,
+            8191,
+        )?)
+    }
+
+    #[test]
+    fn p13_compatible_active_graph_compiles_fixed_pool_and_direct_defaults_without_network()
+    -> Result<(), Box<dyn Error>> {
+        let secret_store = test_secret_store()?;
+        let mut configuration = p12_configuration(&secret_store)?;
+        configuration.version.status = ConfigVersionStatus::Active;
+        let ids = P12RuntimeIds::try_new()?;
+        let pool_id = CompatibleProxyPoolId::try_new("p13-runtime-pool")?;
+        configuration
+            .compatible_proxy_pools
+            .push(CompatibleProxyPoolConfiguration {
+                id: pool_id.clone(),
+                upstream_id: ids.upstream.clone(),
+                name: "P13 runtime pool".to_owned(),
+                enabled: true,
+            });
+        for (node, weight, port) in [("node-a", 2_u16, 1080_u16), ("node-b", 1, 1081)] {
+            let node_id = CompatibleProxyNodeId::try_new(node)?;
+            configuration
+                .compatible_proxy_nodes
+                .push(CompatibleProxyNodeConfiguration {
+                    encrypted_proxy: seal_compatible_proxy_node_endpoint(
+                        &secret_store,
+                        &configuration.version.id,
+                        &ids.upstream,
+                        Some(&pool_id),
+                        &node_id,
+                        &format!("socks5://127.0.0.1:{port}"),
+                    )?,
+                    id: node_id,
+                    upstream_id: ids.upstream.clone(),
+                    pool_id: Some(pool_id.clone()),
+                    name: format!("P13 {node}"),
+                    enabled: true,
+                    weight,
+                    maximum_concurrency: 1,
+                });
+        }
+        configuration
+            .compatible_egress_bindings
+            .push(CompatibleEgressBindingConfiguration {
+                endpoint_id: ids.endpoint.clone(),
+                credential_id: ids.credential.clone(),
+                target: CompatibleEgressTargetConfiguration::ProxyPool(pool_id.clone()),
+                failure_scope: StoredCompatibleFailureScope::EgressNode,
+                stickiness: StoredCompatibleStickiness::CredentialAndEgress,
+                pre_submit_max_attempts: 2,
+            });
+        let endpoints = p13_compatible_endpoint_runtimes(&configuration)?;
+        let (registries, settings) =
+            compatible_egress_runtime_inputs(&configuration, &endpoints, &secret_store)?;
+        let registry = registries
+            .get(&ids.upstream)
+            .ok_or("missing compatible registry")?;
+        let target = CompatibleEgressTarget::ProxyPool {
+            pool_id: pool_id.as_str().to_owned(),
+        };
+        assert!(registry.contains_target(&CompatibleEgressTarget::Direct));
+        assert!(registry.contains_target(&target));
+        let setting = settings
+            .get(&(ids.endpoint.clone(), ids.credential.clone()))
+            .ok_or("missing compatible binding settings")?;
+        assert_eq!(setting.target, target);
+        assert_eq!(setting.failure_scope, CompatibleFailureScope::EgressNode);
+        assert_eq!(
+            setting.stickiness,
+            CompatibleStickiness::CredentialAndEgress
+        );
+        assert_eq!(setting.retry_policy.max_attempts(), 2);
+
+        let first = registry.try_acquire(&setting.target, 10)?;
+        let second = registry.try_acquire(&setting.target, 10)?;
+        assert_ne!(first.selected_node_id(), second.selected_node_id());
+        assert!(registry.try_acquire(&setting.target, 10).is_err());
+        assert!(!format!("{first:?}{second:?}").contains("127.0.0.1"));
+        drop((first, second));
+        assert!(registry.try_acquire(&setting.target, 10).is_ok());
+
+        let mut direct = p12_configuration(&secret_store)?;
+        direct.version.status = ConfigVersionStatus::Active;
+        let direct_endpoints = p13_compatible_endpoint_runtimes(&direct)?;
+        let (direct_registries, direct_settings) =
+            compatible_egress_runtime_inputs(&direct, &direct_endpoints, &secret_store)?;
+        assert!(direct_settings.is_empty());
+        assert!(
+            direct_registries
+                .get(&ids.upstream)
+                .is_some_and(|registry| registry.contains_target(&CompatibleEgressTarget::Direct))
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn p13_compatible_active_graph_rejects_empty_foreign_and_wrong_aad_resources()
+    -> Result<(), Box<dyn Error>> {
+        let secret_store = test_secret_store()?;
+        let ids = P12RuntimeIds::try_new()?;
+
+        let mut empty_pool = p12_configuration(&secret_store)?;
+        empty_pool.version.status = ConfigVersionStatus::Active;
+        empty_pool
+            .compatible_proxy_pools
+            .push(CompatibleProxyPoolConfiguration {
+                id: CompatibleProxyPoolId::try_new("empty-pool")?,
+                upstream_id: ids.upstream.clone(),
+                name: "empty".to_owned(),
+                enabled: true,
+            });
+        let empty_endpoints = p13_compatible_endpoint_runtimes(&empty_pool)?;
+        assert!(
+            compatible_egress_runtime_inputs(&empty_pool, &empty_endpoints, &secret_store).is_err()
+        );
+
+        let mut wrong_aad = p12_configuration(&secret_store)?;
+        wrong_aad.version.status = ConfigVersionStatus::Active;
+        let node_id = CompatibleProxyNodeId::try_new("wrong-aad-node")?;
+        wrong_aad
+            .compatible_proxy_nodes
+            .push(CompatibleProxyNodeConfiguration {
+                encrypted_proxy: seal_compatible_proxy_node_endpoint(
+                    &secret_store,
+                    &ConfigVersionId::try_new("another-version")?,
+                    &ids.upstream,
+                    None,
+                    &node_id,
+                    "socks5://127.0.0.1:1080",
+                )?,
+                id: node_id,
+                upstream_id: ids.upstream.clone(),
+                pool_id: None,
+                name: "wrong aad".to_owned(),
+                enabled: true,
+                weight: 1,
+                maximum_concurrency: 1,
+            });
+        let wrong_aad_endpoints = p13_compatible_endpoint_runtimes(&wrong_aad)?;
+        assert!(
+            compatible_egress_runtime_inputs(&wrong_aad, &wrong_aad_endpoints, &secret_store)
+                .is_err()
+        );
+
+        let mut foreign = p12_configuration(&secret_store)?;
+        foreign.version.status = ConfigVersionStatus::Active;
+        let foreign_upstream = UpstreamId::try_new("foreign-native-upstream")?;
+        foreign.upstreams.push(UpstreamConfiguration {
+            id: foreign_upstream.clone(),
+            name: "foreign".to_owned(),
+            kind: "native".to_owned(),
+            enabled: true,
+            tags_json: "[]".to_owned(),
+            egress_policy_id: Some(ids.egress_policy.clone()),
+        });
+        let foreign_node = CompatibleProxyNodeId::try_new("foreign-node")?;
+        foreign
+            .compatible_proxy_nodes
+            .push(CompatibleProxyNodeConfiguration {
+                encrypted_proxy: seal_compatible_proxy_node_endpoint(
+                    &secret_store,
+                    &foreign.version.id,
+                    &foreign_upstream,
+                    None,
+                    &foreign_node,
+                    "socks5://127.0.0.1:1080",
+                )?,
+                id: foreign_node,
+                upstream_id: foreign_upstream,
+                pool_id: None,
+                name: "foreign node".to_owned(),
+                enabled: true,
+                weight: 1,
+                maximum_concurrency: 1,
+            });
+        let foreign_endpoints = p13_compatible_endpoint_runtimes(&foreign)?;
+        assert!(
+            compatible_egress_runtime_inputs(&foreign, &foreign_endpoints, &secret_store).is_err()
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn p13_compatible_active_graph_rejects_orphaned_binding_profile() -> Result<(), Box<dyn Error>>
+    {
+        let secret_store = test_secret_store()?;
+        let ids = P12RuntimeIds::try_new()?;
+        let mut configuration = p12_configuration(&secret_store)?;
+        configuration.version.status = ConfigVersionStatus::Active;
+        let endpoints = p13_compatible_endpoint_runtimes(&configuration)?;
+        configuration.endpoint_credential_bindings.clear();
+        configuration
+            .compatible_egress_bindings
+            .push(CompatibleEgressBindingConfiguration {
+                endpoint_id: ids.endpoint,
+                credential_id: ids.credential,
+                target: CompatibleEgressTargetConfiguration::Direct,
+                failure_scope: StoredCompatibleFailureScope::Credential,
+                stickiness: StoredCompatibleStickiness::Credential,
+                pre_submit_max_attempts: 1,
+            });
+        assert!(
+            compatible_egress_runtime_inputs(&configuration, &endpoints, &secret_store).is_err()
+        );
+        Ok(())
     }
 
     struct P12WidenedNetwork {
