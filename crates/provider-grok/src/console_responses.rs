@@ -21,9 +21,10 @@ use serde::Deserialize;
 use serde_json::{Map, Value};
 use zeroize::Zeroizing;
 
+use crate::provider_egress::GrokNativeEgressEventSource;
 use crate::{
-    GrokConsoleDpopSession, GrokConsoleDpopSessionCache, GrokOfficialResponsesDecoder,
-    GrokOfficialResponsesStreamDecoder, grok_console_dpop_cache_key,
+    GrokConsoleDpopSession, GrokConsoleDpopSessionCache, GrokNativeEgressAttempt,
+    GrokOfficialResponsesDecoder, GrokOfficialResponsesStreamDecoder, grok_console_dpop_cache_key,
     official_responses::encode_responses_body,
 };
 
@@ -731,6 +732,26 @@ pub trait GrokConsoleTransport: Send + Sync {
         &self,
         request: GrokConsoleResponsesOutboundRequest,
     ) -> ProviderFuture<'_, Result<GrokConsoleTransportResponse, GatewayError>>;
+
+    /// Sends through one optional exact Provider-local attempt ledger.
+    ///
+    /// Synthetic transports have no hidden DPoP/bootstrap traffic, so the default records only
+    /// the sole inference submission.  The production transport overrides this method to account
+    /// for token exchange and to suppress the legacy second inference after a `401`.
+    fn send_with_egress_attempt(
+        &self,
+        request: GrokConsoleResponsesOutboundRequest,
+        attempt: Option<Arc<GrokNativeEgressAttempt>>,
+    ) -> ProviderFuture<'_, Result<GrokConsoleTransportResponse, GatewayError>> {
+        Box::pin(async move {
+            if let Some(attempt) = attempt {
+                attempt
+                    .record_inference_submission()
+                    .map_err(map_native_egress_error)?;
+            }
+            self.send(request).await
+        })
+    }
 }
 
 /// Production Console transport through the shared DNS-pinned client.
@@ -779,6 +800,15 @@ impl GrokConsoleTransport for GrokConsoleUpstreamTransport {
         &self,
         outbound: GrokConsoleResponsesOutboundRequest,
     ) -> ProviderFuture<'_, Result<GrokConsoleTransportResponse, GatewayError>> {
+        self.send_with_egress_attempt(outbound, None)
+    }
+
+    #[allow(clippy::too_many_lines)]
+    fn send_with_egress_attempt(
+        &self,
+        outbound: GrokConsoleResponsesOutboundRequest,
+        egress_attempt: Option<Arc<GrokNativeEgressAttempt>>,
+    ) -> ProviderFuture<'_, Result<GrokConsoleTransportResponse, GatewayError>> {
         let admitted = self
             .egress_policy
             .admit_url(outbound.url(), self.resolver.as_ref())
@@ -795,6 +825,11 @@ impl GrokConsoleTransport for GrokConsoleUpstreamTransport {
             let now = SystemTime::now();
             let mut session = dpop_sessions.get(&cache_key, now);
             if session.is_none() {
+                if let Some(attempt) = &egress_attempt {
+                    attempt
+                        .begin_console_session_bootstrap()
+                        .map_err(map_native_egress_error)?;
+                }
                 let signing_key = GrokConsoleDpopSession::generate_key();
                 let token_url =
                     EndpointUrl::compose(GROK_CONSOLE_RESPONSES_BASE_URL, "/v1/dpop/token")
@@ -843,6 +878,13 @@ impl GrokConsoleTransport for GrokConsoleUpstreamTransport {
                 dpop_sessions
                     .insert(cache_key.clone(), built.clone())
                     .map_err(|_| egress_error())?;
+                if let Some(attempt) = &egress_attempt {
+                    attempt
+                        .complete_console_session_bootstrap(
+                            built.expires_at_ms().map_err(|_| egress_error())?,
+                        )
+                        .map_err(map_native_egress_error)?;
+                }
                 session = Some(built);
             }
             let original_cookie = outbound.cookie().to_owned();
@@ -852,6 +894,11 @@ impl GrokConsoleTransport for GrokConsoleUpstreamTransport {
                 .map_err(|_| egress_error())?
                 .into_transport_request(target.clone())
                 .map_err(|_| egress_error())?;
+            if let Some(attempt) = &egress_attempt {
+                attempt
+                    .record_inference_submission()
+                    .map_err(map_native_egress_error)?;
+            }
             let mut response = pool.send(request, &profile).await?;
             if response.status() == 401 {
                 dpop_sessions
@@ -862,6 +909,16 @@ impl GrokConsoleTransport for GrokConsoleUpstreamTransport {
                             .map_or("", GrokConsoleDpopSession::access_token),
                     )
                     .map_err(|_| egress_error())?;
+                if let Some(attempt) = &egress_attempt {
+                    attempt
+                        .require_console_session_rebuild()
+                        .map_err(map_native_egress_error)?;
+                    return Ok(GrokConsoleTransportResponse::new(
+                        response.status(),
+                        console_content_type(&response),
+                        Box::new(ConsoleUpstreamBody { response }),
+                    ));
+                }
                 let refreshed = GrokConsoleDpopSession::generate_key();
                 let token_url =
                     EndpointUrl::compose(GROK_CONSOLE_RESPONSES_BASE_URL, "/v1/dpop/token")
@@ -956,6 +1013,7 @@ pub struct GrokConsoleInferenceAdapter {
     model_spec: ConsoleModelSpec,
     mode: GrokConsoleExecutionMode,
     transport: Arc<dyn GrokConsoleTransport>,
+    egress_attempt: Option<Arc<GrokNativeEgressAttempt>>,
 }
 
 impl GrokConsoleInferenceAdapter {
@@ -1007,7 +1065,15 @@ impl GrokConsoleInferenceAdapter {
             model_spec,
             mode,
             transport,
+            egress_attempt: None,
         })
+    }
+
+    /// Adds the exact CPAR lease/egress attempt compiled for this adapter invocation.
+    #[must_use]
+    pub fn with_provider_egress_attempt(mut self, attempt: Arc<GrokNativeEgressAttempt>) -> Self {
+        self.egress_attempt = Some(attempt);
+        self
     }
 }
 
@@ -1021,6 +1087,7 @@ impl fmt::Debug for GrokConsoleInferenceAdapter {
             .field("model_spec", &"<redacted>")
             .field("mode", &self.mode)
             .field("transport", &"<injected>")
+            .field("provider_egress", &self.egress_attempt.is_some())
             .finish()
     }
 }
@@ -1042,6 +1109,7 @@ impl InferenceAdapter for GrokConsoleInferenceAdapter {
         let model_spec = self.model_spec;
         let mode = self.mode;
         let transport = Arc::clone(&self.transport);
+        let egress_attempt = self.egress_attempt.clone();
         Box::pin(async move {
             let outbound = GrokConsoleResponsesRequestBuilder::build_with_spec(
                 &credential,
@@ -1051,7 +1119,9 @@ impl InferenceAdapter for GrokConsoleInferenceAdapter {
                 model_spec,
             )
             .map_err(map_request_error)?;
-            let response = transport.send(outbound).await?;
+            let response = transport
+                .send_with_egress_attempt(outbound, egress_attempt.clone())
+                .await?;
             let GrokConsoleTransportResponse {
                 status,
                 content_type,
@@ -1069,19 +1139,36 @@ impl InferenceAdapter for GrokConsoleInferenceAdapter {
                 {
                     let bytes = read_console_body(&mut *body, 8 * 1024 * 1024).await?;
                     let response = GrokConsoleResponsesDecoder::decode_non_streaming(&bytes)?;
-                    Ok(Box::new(ConsoleBufferedEvents::new(response.into_events()))
-                        as Box<dyn CanonicalEventSource>)
+                    let source = Box::new(ConsoleBufferedEvents::new(response.into_events()))
+                        as Box<dyn CanonicalEventSource>;
+                    Ok(wrap_egress_source(source, egress_attempt))
                 }
                 GrokConsoleExecutionMode::Streaming
                     if content_type == GrokConsoleResponseContentType::EventStream =>
                 {
-                    Ok(Box::new(ConsoleStreamingEvents::new(body))
-                        as Box<dyn CanonicalEventSource>)
+                    let source = Box::new(ConsoleStreamingEvents::new(body))
+                        as Box<dyn CanonicalEventSource>;
+                    Ok(wrap_egress_source(source, egress_attempt))
                 }
                 _ => Err(protocol_error()),
             }
         })
     }
+}
+
+fn wrap_egress_source(
+    source: Box<dyn CanonicalEventSource>,
+    attempt: Option<Arc<GrokNativeEgressAttempt>>,
+) -> Box<dyn CanonicalEventSource> {
+    match attempt {
+        Some(attempt) => Box::new(GrokNativeEgressEventSource::new(source, attempt))
+            as Box<dyn CanonicalEventSource>,
+        None => source,
+    }
+}
+
+const fn map_native_egress_error(_error: crate::GrokNativeEgressAttemptError) -> GatewayError {
+    GatewayError::new(GatewayErrorCode::EgressRejected, ErrorScope::Egress)
 }
 
 struct ConsoleUpstreamBody {

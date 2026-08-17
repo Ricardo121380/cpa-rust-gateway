@@ -229,3 +229,4 @@
 - [P12-08F1 multi-channel production graph](p12-08f1-multi-channel-production-graph.md) — immutable adapter capability ledger, value-free graph inventory, and disabled-at-boot/fail-closed channel admission
 - [P12-08F2 three-protocol by four-channel loopback](p12-08f2-three-protocol-four-channel-loopback.md) — 7 supported cells across JSON/SSE Text/Tool/Usage and 5 stable zero-Attempt rejection cells
 - [P12-08D4 legacy CPA to CPAR protocol differential](p12-08d4-legacy-protocol-differential.md) — value-free three-protocol JSON/SSE corpus, executable CPAR projections and closed parity/hardening/unsupported classification
+- [P13-11E Grok Build/Console native adapter seam](p13-11e-native-adapter-seam.md) — CPAR imported-account exact lease handoff, provider-local egress/session/DPoP/bootstrap accounting and one-shot synthetic evidence; E2 `4/4`, no Provider/network traffic

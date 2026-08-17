@@ -4,8 +4,8 @@
 |---|---|
 | 状态 | **Approved（用户于 2026-08-17 明确批准开始 E0 计划/CR 与 review）** |
 | 适用范围 | `P13-11E`：CPAR 内已导入凭证的 Provider/Channel egress、健康投影和受控恢复设计 |
-| 当前切片 | `E1`：只读/合成的 typed state、capability seam、failure ownership 和 bounded transport ledger；不调用 Provider 或真实代理 |
-| 下一切片 | `E2`：Grok Build/Console 的 CPAR imported-account、exact lease 与 adapter-local synthetic/loopback seam；不接 Autoreg 或真实网络 |
+| 当前切片 | `E2`：Grok Build/Console 的 CPAR imported-account、exact lease 与 adapter-local synthetic/loopback seam；不接 Autoreg 或真实网络 |
+| 下一切片 | `E3`：Grok Web sticky egress/session/clearance 的 fake-only seam；真实代理、FlareSolverr、DNS 和公网请求仍需独立授权 |
 | 不包含 | Autoreg 注册/登录/SSO/refresh/replenishment、真实 Provider/代理/DNS 探针、服务器/staging/production、默认公开 API 变化 |
 
 ## 1. 用户澄清与目标
@@ -22,7 +22,7 @@ Config-Version-owned proxy pool 和管理面。下一步不是把所有渠道强
    只决定凭证解析和 endpoint binding；不会隐式选择代理、clearance 或其他 Provider 的 fallback。
 3. Provider、Channel、Endpoint、Credential、Egress Node、Session/Clearance 是可分别归属和审计的
    failure domain；任何跨域合并都必须有显式、可验证的 capability。
-4. E0/E1 只冻结类型和合成证据。真实网络或 Provider 请求必须另立明确授权的 canary CR，不由本 CR
+4. E0-E3 只冻结类型和合成证据。真实网络或 Provider 请求必须另立明确授权的 canary CR，不由本 CR
    推断为已验证。
 
 ## 2. 渠道矩阵
@@ -73,12 +73,12 @@ credential、egress、session 和 clearance 的原始状态。
 
 1. 所有状态键至少包含 Config Version/Upstream/Endpoint（或 Channel）和 exact identity；Provider
    native 状态还需包含 account/revision，Web clearance 还需包含 clearance/session lineage。
-2. Egress lease 与 Credential lease 继续由现有 P13-11B/C owner 管理；E1 不创建第二个 scheduler，
+2. Egress lease 与 Credential lease 继续由现有 P13-11B/C owner 管理；E1/E2 不创建第二个 scheduler，
    不推进普通 routing cursor，也不读取 Store/Provider。
 3. `PreSubmit` 的有限重试只能在同一 explicit Provider/Channel scope 内，并且必须证明请求尚未提交；
    语义事件之后一律禁止重放。Provider 内部隐藏请求（如 Console DPoP/bootstrap、Web Statsig）必须
    纳入 adapter 的 bounded transport ledger，不能只计数主 inference。
-4. E0/E1 的 probe/recovery 使用 injected fake transport、deterministic clock 和 synthetic state。
+4. E0/E1/E2/E3 的 probe/recovery 使用 injected fake transport、deterministic clock 和 synthetic state。
    任何真实 endpoint、真实 proxy、DNS、FlareSolverr、SSO 或 CPAR 公网 Base URL 验证都需要新的
    canary CR、目标、次数/预算、receipt 和 rollback 规则。
 5. CPAR 可以把外部 Autoreg 交付的新 credential 作为新的 revision/CAS batch 导入并重新编译；CPAR
@@ -89,7 +89,7 @@ credential、egress、session 和 clearance 的原始状态。
 | 切片 | 内容 | 本 CR 是否授权 |
 |---|---|---|
 | E0 | 计划、ADR、Contract、渠道/状态/失败矩阵和独立 review | 是，本轮完成 |
-| E1 | typed provider-aware egress/session state、capability registry、合成状态转换测试 | 是，下一步；无网络 |
+| E1 | typed provider-aware egress/session state、capability registry、合成状态转换测试 | 已完成本地 slice；无网络 |
 | E2 | Build/Console adapter 接线：复用 CPAR 账号池与现有 transport，验证 exact failure isolation；隐藏辅助请求必须有计数/one-shot 语义 | 仅本地合成/loopback；不是真实 Provider |
 | E3 | Web sticky egress/clearance/session 状态 seam，注入式 challenge/recovery 测试 | 仅 fake transport；真实代理/FlareSolverr 另立 CR |
 | E4 | 如需管理状态或 operator action，先另行确认 OpenAPI/Prism 变更与 Claude Code handoff | 不由 E0 自动授权 |
@@ -116,9 +116,9 @@ E1/E2/E3 完成后仍只能宣称 local/synthetic evidence，不能宣称某个 
 - [x] Autoreg 仍是外部项目；没有 DB/HTTP/browser/scheduler 依赖。
 - [x] 隐藏辅助请求被明确纳入后续 one-shot、attempt、audit 和成本边界要求；实现验证留给 E2/E3。
 - [x] Egress 状态不会跨 Upstream/Provider/Channel 污染；sticky 不可用时必须 fail closed。
-- [x] E0 没有真实网络副作用；E5 明确需要新授权。E1/E2/E3 的实现测试尚未开始。
+- [x] E0 没有真实网络副作用；E1/E2 已有本地实现证据，E3 仍未开始；E5 明确需要新授权。
 - [x] 没有 OpenAPI/Prism 变更；若 E4 改管理契约，先更新权威 OpenAPI、同步 Prism 并写
       `docs/cross-boundary-log.md`。
 
-E0 的 checklist 是设计边界 review，不是 E1-E3 的代码验收；未勾选的实现证据不会被本 CR
+E0/E1/E2 的 checklist 是设计与本地实现边界 review，不是 E3/E5 或真实网络验收；未勾选的实现证据不会被本 CR
 伪装成已完成。

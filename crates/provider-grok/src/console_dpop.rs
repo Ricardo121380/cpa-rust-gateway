@@ -132,6 +132,16 @@ impl GrokConsoleDpopSession {
         self.expires_at > now.checked_add(REFRESH_SKEW).unwrap_or(now)
     }
 
+    /// Returns the non-secret absolute session expiry as Unix milliseconds.
+    pub fn expires_at_ms(&self) -> Result<i64, GrokConsoleDpopError> {
+        let millis = self
+            .expires_at
+            .duration_since(UNIX_EPOCH)
+            .map_err(|_| GrokConsoleDpopError::Clock)?
+            .as_millis();
+        i64::try_from(millis).map_err(|_| GrokConsoleDpopError::Clock)
+    }
+
     /// Signs one `DPoP` proof JWT for an HTTP request.
     pub fn proof(
         &self,

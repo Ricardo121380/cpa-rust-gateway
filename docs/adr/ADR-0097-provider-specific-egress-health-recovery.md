@@ -1,6 +1,6 @@
 # ADR-0097: Provider-specific egress, health, and recovery isolation
 
-Status: **Accepted locally — P13-11E E0/E1 LOCAL_PASS_PENDING_PHASE_GATE; E2/E3 not started**
+Status: **Accepted locally — P13-11E E0/E1/E2 LOCAL_PASS_PENDING_PHASE_GATE; E3 not started**
 
 Date: 2026-08-17
 
@@ -68,20 +68,29 @@ P13-11E freezes a Provider-aware state model above the existing P13-11D generic 
 ## Consequences
 
 The E1 implementation adds typed state and fake recovery boundaries without changing public
-protocols or the existing generic management contract. `gateway-router` owns only the capability
-and value-free state seam; existing generic transport, Credential Health, and Quota owners remain
-authoritative for their domains. Management UI and OpenAPI stay unchanged until a later E4
-decision. A Provider-specific adapter may report `recovery_in_flight` or `challenge_required`, but
-it cannot silently rotate to another Provider or mutate an Autoreg account. A real network result
-remains an explicit, separately attributable evidence item.
+protocols or the existing generic management contract. E2 now wires that seam into the native Grok
+Build and Console adapters using the existing CPAR exact lease and transport path. Build records its
+submission only after egress admission/request construction; Console counts DPoP bootstrap as
+auxiliary traffic and suppresses the legacy second inference when an E2 attempt is active. Both
+channels keep independent Provider IDs, credential kinds, session state and bounded ledgers.
+`gateway-router` owns only the capability and value-free state seam; existing generic transport,
+Credential Health, and Quota owners remain authoritative for their domains. Management UI and
+OpenAPI stay unchanged until a later E4 decision. A Provider-specific adapter may report
+`recovery_in_flight` or `challenge_required`, but it cannot silently rotate to another Provider or
+mutate an Autoreg account. A real network result remains an explicit, separately attributable
+evidence item.
 
 The E1 local receipt is
 [p13-11e-provider-specific-egress-state.md](../reports/p13-11e-provider-specific-egress-state.md):
-gateway-router all-target tests `158/158` and strict Clippy passed; the synthetic transport has zero
-Provider/DNS/Store/proxy calls. E2 remains the next bounded implementation slice.
+gateway-router all-target tests `158/158` and strict Clippy passed. The E2 local receipt is
+[p13-11e-native-adapter-seam.md](../reports/p13-11e-native-adapter-seam.md): provider-grok's
+Build/Console fixture is `4/4`, gateway remains `109/109`, and the synthetic transport has zero
+Provider/DNS/Store/proxy calls. E3 remains the next bounded implementation slice.
 
 ## Acceptance boundary
 
-E0 is accepted when the CR, this ADR, BC-SEC-008, the report, plan Task Card, and traceability row
-agree on the channel matrix, state ownership, no-fallback rule, and no-network boundary. It does
-not claim code, provider, proxy, DNS, staging, production, or account success.
+E0-E2 are locally accepted when the CR, this ADR, BC-SEC-008, the E0/E1/E2 reports, plan Task Card,
+and traceability row agree on the channel matrix, state ownership, no-fallback rule, exact lease
+handoff, bounded Console auxiliary accounting, and no-network boundary. This local acceptance does
+not claim code behavior outside the covered adapters, Provider, proxy, DNS, staging, production, or
+account success. E3 and any E5 canary remain separate acceptance boundaries.

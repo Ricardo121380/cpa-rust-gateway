@@ -18,6 +18,7 @@ mod official_capabilities;
 mod official_metadata;
 mod official_responses;
 mod official_runtime;
+mod provider_egress;
 mod reauth;
 mod runtime_state;
 mod strict_json;
@@ -99,9 +100,9 @@ pub use grok2api_migration::{
     MAX_GROK2API_MIGRATION_STREAM_BYTES,
 };
 pub use inference::{
-    GrokBuildExecutionMode, GrokBuildInferenceAdapter, GrokBuildResponseBody,
-    GrokBuildResponseContentEncoding, GrokBuildResponseContentType, GrokBuildTransport,
-    GrokBuildTransportResponse, GrokBuildUpstreamTransport,
+    GROK_BUILD_PROVIDER_ID, GrokBuildExecutionMode, GrokBuildInferenceAdapter,
+    GrokBuildResponseBody, GrokBuildResponseContentEncoding, GrokBuildResponseContentType,
+    GrokBuildTransport, GrokBuildTransportResponse, GrokBuildUpstreamTransport,
 };
 pub use oauth::{
     GROK_BUILD_DEVICE_AUTHORIZATION_URL, GROK_BUILD_OAUTH_ISSUER, GROK_BUILD_OAUTH_SCOPE,
@@ -136,6 +137,10 @@ pub use official_responses::{
 pub use official_runtime::{
     GrokOfficialContinuityPolicy, GrokOfficialFailureAction, GrokOfficialFailureDisposition,
     GrokOfficialRuntimeState, GrokOfficialRuntimeStateError, classify_grok_official_http_failure,
+};
+pub use provider_egress::{
+    GrokNativeEgressAttempt, GrokNativeEgressAttemptError, GrokNativeEgressAttemptSnapshot,
+    GrokNativeEgressClock, SystemGrokNativeEgressClock,
 };
 pub use reauth::{
     GrokReauthAttempt, GrokReauthCoordinator, GrokReauthError, GrokReauthExecutor, GrokReauthJob,

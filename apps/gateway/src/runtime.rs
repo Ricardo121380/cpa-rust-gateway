@@ -85,15 +85,19 @@ use gateway_router::{
     CompatibleEndpointRuntime, CompatibleFixedProxyInput, CompatibleProxyPoolInput,
     DEFAULT_TRANSIENT_COOLDOWN, NativePayloadAvailability, ProjectedProtocolRequest,
     ProtocolFormat, ProtocolResponseProjector, ProtocolTransformInput, ProtocolTransformRejection,
-    ProviderScopedPriceEvidence, ProviderScopedRouteExplainInput,
-    ProviderScopedRouteExplainSnapshot, QuotaConfidence, QuotaSnapshot, QuotaSource,
-    ResponsesClientTransport, ResponsesEventSource, ResponsesExecution, ResponsesExecutionLineage,
-    ResponsesExecutor, ResponsesFuture, ResponsesResponseMode, RouteCredentialScheduler,
-    RouteExplainCandidate, RouteExplainCandidateReason, RouteExplainInput, RouteSnapshot,
-    RouteSnapshotRegistry, RuntimeCredentialAccountStatus, RuntimeHealthAccountRecoveryResult,
-    RuntimeHealthRegistry, RuntimeQuotaAvailability, RuntimeQuotaRegistry, RuntimeQuotaTarget,
-    SelectedRouteCredential, SnapshotRouteCandidate, SnapshotVersion, SystemRuntimeHealthClock,
-    project_registered_protocol_request, protocol_pair_is_publishable,
+    ProviderChannelCapability, ProviderChannelCapabilityRegistry, ProviderChannelIdentity,
+    ProviderEgressChannel, ProviderEgressRuntime, ProviderEgressRuntimeError,
+    ProviderEgressStateKey, ProviderEgressTargetIdentity, ProviderScopedPriceEvidence,
+    ProviderScopedRouteExplainInput, ProviderScopedRouteExplainSnapshot,
+    ProviderSessionRuntimeState, ProviderSessionStateKey, QuotaConfidence, QuotaSnapshot,
+    QuotaSource, ResponsesClientTransport, ResponsesEventSource, ResponsesExecution,
+    ResponsesExecutionLineage, ResponsesExecutor, ResponsesFuture, ResponsesResponseMode,
+    RouteCredentialScheduler, RouteExplainCandidate, RouteExplainCandidateReason,
+    RouteExplainInput, RouteSnapshot, RouteSnapshotRegistry, RuntimeCredentialAccountStatus,
+    RuntimeHealthAccountRecoveryResult, RuntimeHealthRegistry, RuntimeQuotaAvailability,
+    RuntimeQuotaRegistry, RuntimeQuotaTarget, SelectedRouteCredential, SnapshotRouteCandidate,
+    SnapshotVersion, SystemRuntimeHealthClock, project_registered_protocol_request,
+    protocol_pair_is_publishable,
 };
 use gateway_store::{
     control_plane::{
@@ -131,20 +135,21 @@ use provider_anthropic_compatible::{
     ClaudeRuntimeCredential, classify_anthropic_runtime_failure, decode_upstream_response,
 };
 use provider_grok::{
-    GROK_BUILD_RESPONSES_BASE_URL, GROK_BUILD_RESPONSES_PATH, GROK_BUILD_RESPONSES_URL,
-    GROK_CONSOLE_RESPONSES_BASE_URL, GROK_CONSOLE_RESPONSES_PATH, GROK_CONSOLE_RESPONSES_URL,
-    GROK_OFFICIAL_API_BASE_URL, GROK_OFFICIAL_RESPONSES_PATH, GROK_OFFICIAL_RESPONSES_URL,
-    GROK_WEB_CANARY_PATH, GROK_WEB_CANARY_URL, GROK_WEB_PRODUCTION_BASE_URL,
-    GROK_WEB_PRODUCTION_USER_AGENT, GrokAccountAuthStatus, GrokAccountEndpointBinding,
-    GrokAccountMetadata, GrokAccountPoolStore, GrokAccountProvider, GrokBuildCredential,
-    GrokBuildExecutionMode, GrokBuildInferenceAdapter, GrokBuildUpstreamTransport,
-    GrokConsoleExecutionMode, GrokConsoleInferenceAdapter, GrokConsoleSsoToken,
-    GrokConsoleUpstreamTransport, GrokOfficialApiKey, GrokOfficialExecutionMode,
+    GROK_BUILD_PROVIDER_ID, GROK_BUILD_RESPONSES_BASE_URL, GROK_BUILD_RESPONSES_PATH,
+    GROK_BUILD_RESPONSES_URL, GROK_CONSOLE_RESPONSES_BASE_URL, GROK_CONSOLE_RESPONSES_PATH,
+    GROK_CONSOLE_RESPONSES_URL, GROK_OFFICIAL_API_BASE_URL, GROK_OFFICIAL_RESPONSES_PATH,
+    GROK_OFFICIAL_RESPONSES_URL, GROK_WEB_CANARY_PATH, GROK_WEB_CANARY_URL,
+    GROK_WEB_PRODUCTION_BASE_URL, GROK_WEB_PRODUCTION_USER_AGENT, GrokAccountAuthStatus,
+    GrokAccountEndpointBinding, GrokAccountMetadata, GrokAccountPoolStore, GrokAccountProvider,
+    GrokBuildCredential, GrokBuildExecutionMode, GrokBuildInferenceAdapter,
+    GrokBuildUpstreamTransport, GrokConsoleExecutionMode, GrokConsoleInferenceAdapter,
+    GrokConsoleSsoToken, GrokConsoleUpstreamTransport, GrokNativeEgressAttempt,
+    GrokNativeEgressAttemptError, GrokOfficialApiKey, GrokOfficialExecutionMode,
     GrokOfficialInferenceAdapter, GrokOfficialUpstreamTransport, GrokWebBrowserEgressSession,
     GrokWebBrowserUserAgent, GrokWebCredential, GrokWebEgressRefresher, GrokWebEgressSessionId,
     GrokWebFlareSolverrRequest, GrokWebFlareSolverrTransport, GrokWebFlareSolverrTransportResponse,
     GrokWebProductionInferenceAdapter, GrokWebProductionUpstreamTransport, GrokWebStatsigRuntime,
-    GrokWebStatsigUpstreamTransport, GrokWebTlsProfile,
+    GrokWebStatsigUpstreamTransport, GrokWebTlsProfile, SystemGrokNativeEgressClock,
 };
 use provider_kiro::{
     CanonicalEventSource, InferenceAdapter,
@@ -1094,6 +1099,7 @@ struct P12RoutedResponsesExecutor {
     attempt_stages: Arc<P12AttemptStageStore>,
     event_sink: Arc<dyn GatewayEventSink>,
     channel_pin_in_flight: AtomicUsize,
+    native_grok_egress: Option<Arc<P13NativeGrokEgressRuntime>>,
 }
 
 impl P12RoutedResponsesExecutor {
@@ -1223,6 +1229,13 @@ impl P12RoutedResponsesExecutor {
                 })?
         };
         let pools = Arc::new(pools);
+        // E2's Provider-specific state is a rejecting, native-only seam.  A malformed/missing
+        // E2 descriptor must not stop the generic compatible data plane from serving; native
+        // Build/Console attempts will fail closed before adapter/network invocation instead.
+        let native_grok_egress =
+            P13NativeGrokEgressRuntime::try_new(configuration, pools.as_ref(), observed_at_ms)
+                .ok()
+                .flatten();
         let provider_account_pools = provider_account_pool_facade(
             configuration.version.id.as_str().to_owned(),
             provider_account_descriptors,
@@ -1299,6 +1312,7 @@ impl P12RoutedResponsesExecutor {
                 attempt_stages,
                 event_sink,
                 channel_pin_in_flight: AtomicUsize::new(0),
+                native_grok_egress,
             },
             provider_account_pools,
             route_explain_scheduler,
@@ -1452,6 +1466,7 @@ impl P12RoutedResponsesExecutor {
             allow_compatibility_retry: false,
             allow_egress_refresh: false,
             channel_pin_observation: Some(Arc::clone(&observation)),
+            native_grok_egress: self.native_grok_egress.clone(),
         };
         let started = self
             .orchestrator
@@ -1797,6 +1812,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                 allow_compatibility_retry: !exact_continuation,
                 allow_egress_refresh: !exact_continuation,
                 channel_pin_observation: None,
+                native_grok_egress: self.native_grok_egress.clone(),
             };
             // BC-ROUTER-005: a Candidate may only serve the client protocol it speaks. Once the
             // graph can hold Endpoints of more than one format, selecting without this filter
@@ -2234,6 +2250,127 @@ fn native_grok_provider_for_endpoint(
         "grok.console.responses" => Some(GrokAccountProvider::Console),
         "grok.web.responses" => Some(GrokAccountProvider::Web),
         _ => None,
+    }
+}
+
+/// Provider-local E1 state compiled once beside the exact native Grok Credential pools.
+///
+/// This is intentionally not a second scheduler: the request still obtains its [`CredentialLease`]
+/// from `RouteCredentialScheduler`, then asks this read-only composition object to validate the
+/// same Endpoint/Upstream/Provider identity before constructing the Build/Console adapter.
+struct P13NativeGrokEgressRuntime {
+    runtime: Arc<ProviderEgressRuntime>,
+    channels: BTreeMap<EndpointId, ProviderChannelIdentity>,
+}
+
+impl P13NativeGrokEgressRuntime {
+    /// Compiles the local Build/Console capability and session namespaces for one active graph.
+    ///
+    /// A failure is handled by the caller as a native-adapter-only rejecting seam; generic
+    /// compatible serving remains owned by its existing runtime and is not blocked by this
+    /// Provider-specific state compiler.
+    fn try_new(
+        configuration: &ControlPlaneConfiguration,
+        pools: &EndpointCredentialPools,
+        observed_at_ms: i64,
+    ) -> Result<Option<Arc<Self>>, ProviderEgressRuntimeError> {
+        let mut capabilities = Vec::new();
+        let mut channels = BTreeMap::new();
+        for endpoint in &configuration.endpoints {
+            let channel = match endpoint.adapter_id.as_str() {
+                "grok.build.responses" => ProviderEgressChannel::GrokBuild,
+                "grok.console.responses" => ProviderEgressChannel::GrokConsole,
+                _ => continue,
+            };
+            let provider_text = match channel {
+                ProviderEgressChannel::GrokBuild => GROK_BUILD_PROVIDER_ID,
+                ProviderEgressChannel::GrokConsole => provider_grok::GROK_CONSOLE_PROVIDER_ID,
+                _ => unreachable!("the match above admits only Build and Console"),
+            };
+            let identity = ProviderChannelIdentity::try_new(
+                ProviderId::try_new(provider_text.to_owned())
+                    .map_err(|_| ProviderEgressRuntimeError::InvalidIdentity)?,
+                endpoint.upstream_id.clone(),
+                endpoint.id.clone(),
+            )?;
+            capabilities.push(ProviderChannelCapability::new(identity.clone(), channel));
+            channels.insert(endpoint.id.clone(), identity);
+        }
+        if capabilities.is_empty() {
+            return Ok(None);
+        }
+        let registry = ProviderChannelCapabilityRegistry::try_new(capabilities)?;
+        let runtime = Arc::new(ProviderEgressRuntime::new(registry));
+        for (endpoint_id, identity) in &channels {
+            runtime.set_egress_state(
+                ProviderEgressStateKey::new(identity.clone(), ProviderEgressTargetIdentity::Direct),
+                gateway_router::ProviderEgressRuntimeState::Available,
+                observed_at_ms,
+            )?;
+            if runtime
+                .capabilities()
+                .capability(identity)
+                .is_some_and(|capability| {
+                    capability.channel() == ProviderEgressChannel::GrokConsole
+                })
+                && let Some(pool) = pools.pool(endpoint_id)
+            {
+                for entry in pool.diagnostic_entries() {
+                    let session_key = ProviderSessionStateKey::try_new(
+                        identity.clone(),
+                        entry.credential_id().clone(),
+                        entry.credential_revision(),
+                        entry.credential_revision(),
+                    )?;
+                    runtime.set_session_state(
+                        session_key,
+                        ProviderSessionRuntimeState::Absent,
+                        observed_at_ms,
+                    )?;
+                }
+            }
+        }
+        Ok(Some(Arc::new(Self { runtime, channels })))
+    }
+
+    fn attempt_for(
+        &self,
+        candidate: &SnapshotRouteCandidate,
+        lease: &CredentialLease,
+    ) -> Result<Arc<GrokNativeEgressAttempt>, GrokNativeEgressAttemptError> {
+        let identity = self
+            .channels
+            .get(candidate.endpoint_id())
+            .ok_or(GrokNativeEgressAttemptError::CapabilityUnavailable)?;
+        if identity.upstream_id() != candidate.upstream_id() {
+            return Err(GrokNativeEgressAttemptError::ProviderMismatch);
+        }
+        let clock = Arc::new(SystemGrokNativeEgressClock);
+        match self
+            .runtime
+            .capabilities()
+            .capability(identity)
+            .map(ProviderChannelCapability::channel)
+        {
+            Some(ProviderEgressChannel::GrokBuild) => GrokNativeEgressAttempt::try_new_build(
+                Arc::clone(&self.runtime),
+                identity.clone(),
+                ProviderEgressTargetIdentity::Direct,
+                lease,
+                clock,
+            )
+            .map(Arc::new),
+            Some(ProviderEgressChannel::GrokConsole) => GrokNativeEgressAttempt::try_new_console(
+                Arc::clone(&self.runtime),
+                identity.clone(),
+                ProviderEgressTargetIdentity::Direct,
+                lease,
+                lease.credential_revision(),
+                clock,
+            )
+            .map(Arc::new),
+            _ => Err(GrokNativeEgressAttemptError::ChannelMismatch),
+        }
     }
 }
 
@@ -3310,6 +3447,7 @@ struct EndpointAttemptDriver {
     allow_compatibility_retry: bool,
     allow_egress_refresh: bool,
     channel_pin_observation: Option<Arc<P13ChannelPinObservation>>,
+    native_grok_egress: Option<Arc<P13NativeGrokEgressRuntime>>,
 }
 
 /// Request-local, value-free observation used by Channel Pin to distinguish a rejected lease
@@ -3911,7 +4049,7 @@ impl EndpointAttemptDriver {
         let ProjectedProtocolRequest::Canonical(request) = projected else {
             return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
         };
-        let credential =
+        let build_credential =
             GrokBuildCredential::import_runtime_json(credential.secret_bytes(), system_now_ms()?)
                 .map_err(|_| AttemptFailure::NonRetryable(credential_unavailable_error()))?;
         let transport = GrokBuildUpstreamTransport::new(
@@ -3920,13 +4058,20 @@ impl EndpointAttemptDriver {
             self.client_pool.as_ref().clone(),
             runtime.transports.for_mode(self.mode).clone(),
         );
+        let native_egress = self
+            .native_grok_egress
+            .as_ref()
+            .ok_or(AttemptFailure::NonRetryable(credential_unavailable_error()))?
+            .attempt_for(candidate, credential)
+            .map_err(native_grok_egress_attempt_failure)?;
         let adapter = GrokBuildInferenceAdapter::try_new(
-            credential,
+            build_credential,
             candidate.upstream_model(),
             grok_build_execution_mode(self.mode),
             Arc::new(transport),
         )
-        .map_err(AttemptFailure::NonRetryable)?;
+        .map_err(AttemptFailure::NonRetryable)?
+        .with_provider_egress_attempt(native_egress);
         self.attempt_stages.record_stage(
             &self.request_id,
             ManagementRequestAttemptStage::EgressAdmission,
@@ -3935,7 +4080,6 @@ impl EndpointAttemptDriver {
             &self.request_id,
             ManagementRequestAttemptStage::HttpTransport,
         );
-        self.mark_upstream_sent();
         let source = adapter
             .execute(
                 RequestContext::new(self.request_id.clone()),
@@ -3943,6 +4087,7 @@ impl EndpointAttemptDriver {
             )
             .await
             .map_err(p12_classify_grok_start_failure)?;
+        self.mark_upstream_sent();
         self.attempt_stages
             .record_stage(&self.request_id, ManagementRequestAttemptStage::HttpStatus);
         Ok(Box::new(P12ProviderEventSource::new(source)) as Box<dyn ResponsesEventSource>)
@@ -3959,7 +4104,7 @@ impl EndpointAttemptDriver {
         let ProjectedProtocolRequest::Canonical(request) = projected else {
             return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
         };
-        let credential = GrokConsoleSsoToken::try_from_bytes(credential.secret_bytes())
+        let console_credential = GrokConsoleSsoToken::try_from_bytes(credential.secret_bytes())
             .map_err(|_| AttemptFailure::NonRetryable(credential_unavailable_error()))?;
         let transport = GrokConsoleUpstreamTransport::new(
             runtime.policy.clone(),
@@ -3967,13 +4112,20 @@ impl EndpointAttemptDriver {
             self.client_pool.as_ref().clone(),
             runtime.transports.for_mode(self.mode).clone(),
         );
+        let native_egress = self
+            .native_grok_egress
+            .as_ref()
+            .ok_or(AttemptFailure::NonRetryable(credential_unavailable_error()))?
+            .attempt_for(candidate, credential)
+            .map_err(native_grok_egress_attempt_failure)?;
         let adapter = GrokConsoleInferenceAdapter::try_new(
-            credential,
+            console_credential,
             candidate.upstream_model(),
             grok_console_execution_mode(self.mode),
             Arc::new(transport),
         )
-        .map_err(AttemptFailure::NonRetryable)?;
+        .map_err(AttemptFailure::NonRetryable)?
+        .with_provider_egress_attempt(native_egress);
         self.attempt_stages.record_stage(
             &self.request_id,
             ManagementRequestAttemptStage::EgressAdmission,
@@ -3982,7 +4134,6 @@ impl EndpointAttemptDriver {
             &self.request_id,
             ManagementRequestAttemptStage::HttpTransport,
         );
-        self.mark_upstream_sent();
         let source = adapter
             .execute(
                 RequestContext::new(self.request_id.clone()),
@@ -3990,6 +4141,7 @@ impl EndpointAttemptDriver {
             )
             .await
             .map_err(p12_classify_grok_start_failure)?;
+        self.mark_upstream_sent();
         self.attempt_stages
             .record_stage(&self.request_id, ManagementRequestAttemptStage::HttpStatus);
         Ok(Box::new(P12ProviderEventSource::new(source)) as Box<dyn ResponsesEventSource>)
@@ -5195,6 +5347,32 @@ fn p12_classify_grok_start_failure(error: GatewayError) -> AttemptFailure {
             AttemptFailure::RateLimited { retry_after: None }
         }
         _ => AttemptFailure::NonRetryable(error),
+    }
+}
+
+/// Keeps E2 native state failures exact and local: an unavailable egress may be classified as a
+/// connection failure for the existing same-channel retry policy, while credential/session/budget
+/// mismatches never trigger a sibling Provider or channel fallback.
+fn native_grok_egress_attempt_failure(error: GrokNativeEgressAttemptError) -> AttemptFailure {
+    match error {
+        GrokNativeEgressAttemptError::Runtime(
+            ProviderEgressRuntimeError::EgressUnavailable
+            | ProviderEgressRuntimeError::UnknownEgressState
+            | ProviderEgressRuntimeError::StickyEgressRequired,
+        ) => AttemptFailure::Connection,
+        GrokNativeEgressAttemptError::CredentialMismatch
+        | GrokNativeEgressAttemptError::SessionUnavailable
+        | GrokNativeEgressAttemptError::ProviderMismatch
+        | GrokNativeEgressAttemptError::ChannelMismatch
+        | GrokNativeEgressAttemptError::CapabilityUnavailable => {
+            AttemptFailure::NonRetryable(credential_unavailable_error())
+        }
+        GrokNativeEgressAttemptError::Budget(_)
+        | GrokNativeEgressAttemptError::LedgerUnavailable
+        | GrokNativeEgressAttemptError::ClockUnavailable
+        | GrokNativeEgressAttemptError::Runtime(_) => {
+            AttemptFailure::NonRetryable(provider_permanent_error())
+        }
     }
 }
 
@@ -8268,6 +8446,7 @@ mod tests {
             allow_compatibility_retry: true,
             allow_egress_refresh: true,
             channel_pin_observation: None,
+            native_grok_egress: None,
         };
         let route_id = RouteId::try_new("p12-widened-route-primary")?;
         for candidate in snapshot
@@ -8528,6 +8707,7 @@ mod tests {
             allow_compatibility_retry: true,
             allow_egress_refresh: true,
             channel_pin_observation: None,
+            native_grok_egress: None,
         };
 
         let result = driver

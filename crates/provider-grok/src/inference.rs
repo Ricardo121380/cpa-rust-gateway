@@ -17,15 +17,17 @@ use gateway_upstream::{
 };
 use protocol_openai_responses::ResponseMode;
 
+use crate::provider_egress::GrokNativeEgressEventSource;
 use crate::{
     GrokBuildAccountEvidence, GrokBuildCredential, GrokBuildRateLimitEvidence,
     GrokBuildResponsesDecoder, GrokBuildResponsesHttpError, GrokBuildResponsesOutboundRequest,
-    GrokBuildResponsesRequestBuilder, GrokBuildResponsesStreamDecoder,
+    GrokBuildResponsesRequestBuilder, GrokBuildResponsesStreamDecoder, GrokNativeEgressAttempt,
     MAX_GROK_BUILD_ERROR_BODY_BYTES, MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES,
     classify_grok_build_failure,
 };
 
-const GROK_BUILD_PROVIDER_ID: &str = "grok.build";
+/// Fixed Provider identity for the native Grok Build adapter.
+pub const GROK_BUILD_PROVIDER_ID: &str = "grok.build";
 
 /// The upstream representation selected for one execution adapter.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -145,6 +147,26 @@ pub trait GrokBuildTransport: Send + Sync {
         &self,
         request: GrokBuildResponsesOutboundRequest,
     ) -> ProviderFuture<'_, Result<GrokBuildTransportResponse, GatewayError>>;
+
+    /// Sends through one optional Provider-local attempt ledger.
+    ///
+    /// Existing injected fixtures keep implementing only [`Self::send`]; this default path records
+    /// the sole inference submission before delegating.  Production Build has no hidden auxiliary
+    /// HTTP inside this transport boundary.
+    fn send_with_egress_attempt(
+        &self,
+        request: GrokBuildResponsesOutboundRequest,
+        attempt: Option<Arc<GrokNativeEgressAttempt>>,
+    ) -> ProviderFuture<'_, Result<GrokBuildTransportResponse, GatewayError>> {
+        Box::pin(async move {
+            if let Some(attempt) = attempt {
+                attempt
+                    .record_inference_submission()
+                    .map_err(map_native_egress_error)?;
+            }
+            self.send(request).await
+        })
+    }
 }
 
 /// Production transport that uses the shared, DNS-pinned upstream client only after policy admission.
@@ -190,6 +212,14 @@ impl GrokBuildTransport for GrokBuildUpstreamTransport {
         &self,
         outbound: GrokBuildResponsesOutboundRequest,
     ) -> ProviderFuture<'_, Result<GrokBuildTransportResponse, GatewayError>> {
+        self.send_with_egress_attempt(outbound, None)
+    }
+
+    fn send_with_egress_attempt(
+        &self,
+        outbound: GrokBuildResponsesOutboundRequest,
+        egress_attempt: Option<Arc<GrokNativeEgressAttempt>>,
+    ) -> ProviderFuture<'_, Result<GrokBuildTransportResponse, GatewayError>> {
         let admitted = self
             .egress_policy
             .admit_url(outbound.url(), self.resolver.as_ref())
@@ -199,7 +229,13 @@ impl GrokBuildTransport for GrokBuildUpstreamTransport {
         let profile = self.profile.clone();
 
         Box::pin(async move {
-            let response = pool.send(request?, &profile).await?;
+            let request = request?;
+            if let Some(attempt) = egress_attempt {
+                attempt
+                    .record_inference_submission()
+                    .map_err(map_native_egress_error)?;
+            }
+            let response = pool.send(request, &profile).await?;
             Ok(GrokBuildTransportResponse::new(
                 response.status(),
                 content_type(&response),
@@ -218,6 +254,7 @@ pub struct GrokBuildInferenceAdapter {
     upstream_model: String,
     mode: GrokBuildExecutionMode,
     transport: Arc<dyn GrokBuildTransport>,
+    egress_attempt: Option<Arc<GrokNativeEgressAttempt>>,
 }
 
 impl GrokBuildInferenceAdapter {
@@ -248,7 +285,15 @@ impl GrokBuildInferenceAdapter {
             upstream_model,
             mode,
             transport,
+            egress_attempt: None,
         })
+    }
+
+    /// Adds the exact CPAR lease/egress attempt compiled for this adapter invocation.
+    #[must_use]
+    pub fn with_provider_egress_attempt(mut self, attempt: Arc<GrokNativeEgressAttempt>) -> Self {
+        self.egress_attempt = Some(attempt);
+        self
     }
 }
 
@@ -261,6 +306,7 @@ impl fmt::Debug for GrokBuildInferenceAdapter {
             .field("upstream_model", &"<redacted>")
             .field("mode", &self.mode)
             .field("transport", &"<injected>")
+            .field("provider_egress", &self.egress_attempt.is_some())
             .finish()
     }
 }
@@ -281,6 +327,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
         let upstream_model = self.upstream_model.clone();
         let mode = self.mode;
         let transport = Arc::clone(&self.transport);
+        let egress_attempt = self.egress_attempt.clone();
         let reasoning_policy = ReasoningPolicy::from_request(&request);
 
         Box::pin(async move {
@@ -290,7 +337,9 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                 &request,
                 mode.response_mode(),
             )?;
-            let response = transport.send(outbound).await?;
+            let response = transport
+                .send_with_egress_attempt(outbound, egress_attempt.clone())
+                .await?;
             let (status, content_type, content_encoding, mut body) = response.into_parts();
             if !(200..=299).contains(&status) {
                 let bytes = read_bounded_body(&mut *body, MAX_GROK_BUILD_ERROR_BODY_BYTES).await?;
@@ -322,18 +371,36 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                         .into_iter()
                         .filter(|event| reasoning_policy.retains(event))
                         .collect();
-                    Ok(Box::new(BufferedEventSource::new(events)) as Box<dyn CanonicalEventSource>)
+                    let source =
+                        Box::new(BufferedEventSource::new(events)) as Box<dyn CanonicalEventSource>;
+                    Ok(wrap_egress_source(source, egress_attempt))
                 }
                 GrokBuildExecutionMode::Streaming
                     if content_type == GrokBuildResponseContentType::EventStream =>
                 {
-                    Ok(Box::new(StreamingEventSource::new(body, reasoning_policy))
-                        as Box<dyn CanonicalEventSource>)
+                    let source = Box::new(StreamingEventSource::new(body, reasoning_policy))
+                        as Box<dyn CanonicalEventSource>;
+                    Ok(wrap_egress_source(source, egress_attempt))
                 }
                 _ => Err(provider_protocol_error()),
             }
         })
     }
+}
+
+fn wrap_egress_source(
+    source: Box<dyn CanonicalEventSource>,
+    attempt: Option<Arc<GrokNativeEgressAttempt>>,
+) -> Box<dyn CanonicalEventSource> {
+    match attempt {
+        Some(attempt) => Box::new(GrokNativeEgressEventSource::new(source, attempt))
+            as Box<dyn CanonicalEventSource>,
+        None => source,
+    }
+}
+
+const fn map_native_egress_error(_error: crate::GrokNativeEgressAttemptError) -> GatewayError {
+    GatewayError::new(GatewayErrorCode::EgressRejected, ErrorScope::Egress)
 }
 
 struct UpstreamResponseBody {

@@ -5,7 +5,7 @@
 | Contract | `BC-SEC-008` |
 | Task | `P13-11E` (`E0` planning/review; `E1-E3` implementation slices) |
 | ADR | [ADR-0097](../adr/ADR-0097-provider-specific-egress-health-recovery.md) |
-| Status | **LOCAL_PASS_PENDING_PHASE_GATE — E0/E1 complete; E2/E3 not started** |
+| Status | **LOCAL_PASS_PENDING_PHASE_GATE — E0/E1/E2 complete; E3 not started** |
 | Domain | Provider/Channel-local egress, account health, session/clearance and bounded recovery |
 
 ## 1. Contract invariants
@@ -94,6 +94,29 @@ The E1 local evidence is recorded in
 tests `158/158`, strict Clippy, format, and diff checks passed. The synthetic fixture records zero
 Provider, DNS, Store, and proxy calls. No public API/OpenAPI/Prism surface changed, so no frontend
 handoff is required for E1.
+
+## 5B. E2 native Build/Console adapter evidence
+
+The E2 local evidence is recorded in
+[the E2 report](../reports/p13-11e-native-adapter-seam.md):
+
+- the existing CPAR native account-pool compilation and exact `CredentialLease` remain the only
+  selection/lease owner; the new seam only validates the exact Build or Console channel before
+  adapter execution;
+- Build and Console use distinct fixed Provider IDs, credential kinds, egress keys and (for
+  Console) session keys; no state or credential can cross the two namespaces;
+- Build records the single inference submission after egress admission and request construction;
+  Console records DPoP/bootstrap as bounded auxiliary traffic, marks a failed session as
+  `challenge_required`, and suppresses the legacy refresh/second inference while an E2 attempt is
+  active;
+- the E2 fixture covers exact lease handoff, one synthetic inference, Console bootstrap accounting,
+  unknown/confirmed `403` ownership and cross-channel rejection (`4/4`); provider-grok, router and
+  gateway regressions remain green (`158/158` router, `109/109` gateway);
+- no Provider, DNS, proxy, Store, Autoreg, server, staging or production call was made, and no
+  OpenAPI/Prism/frontend surface changed.
+
+E2 is local implementation evidence only. Grok Web sticky egress/clearance remains E3; a real
+Provider/network canary remains E5 and requires a new CR.
 
 ## 6. Required tests before implementation slice can close
 
