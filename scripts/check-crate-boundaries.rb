@@ -20,7 +20,7 @@ allowed = {
   "gateway" => %w[actix-web futures-util gateway-auth gateway-catalog gateway-control gateway-core gateway-http-actix gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream getrandom libc protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-grok provider-kiro provider-openai-compatible serde serde_json zeroize],
   "gateway-auth" => %w[gateway-core getrandom hmac libc sha2 subtle zeroize],
   "gateway-catalog" => %w[gateway-core gateway-provider tokio],
-  "gateway-control" => %w[gateway-auth gateway-catalog gateway-core gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream serde_json zeroize],
+  "gateway-control" => %w[gateway-auth gateway-catalog gateway-core gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream serde_json sha2 zeroize],
   "gateway-core" => %w[serde serde_json],
   # P11-01/P12-08D4's differential gate is a test-only leaf under tests/differential. It may depend
   # on the protocol/router crates whose behavior it projects because nothing depends on it; the
