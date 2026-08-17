@@ -1,6 +1,6 @@
 # P13-11E E2 Grok Build/Console native adapter seam report
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 Date: 2026-08-17
 
@@ -81,3 +81,15 @@ The E2 implementation is locally ready for the single P13-11E phase review. It r
 `LOCAL_PASS_PENDING_PHASE_GATE`; no formal Delivery Gate is run for this sub-slice. The next
 bounded implementation is E3's fake-only Grok Web sticky egress/session/clearance seam. A real
 Provider or network canary remains E5 and requires a new explicit authorization.
+
+## Formal aggregate closeout
+
+The preceding conclusion is retained as this E2 receipt's point-in-time history; E3 and the
+aggregate review were subsequently completed. E2 is now accepted as part of P13-11E E0-E3
+`DONE_WITH_BOUNDARY`: immutable annotated tag `phase-p13-provider-egress-complete` points to exact
+closeout commit `ba2261a5414fe73d147a102a266abd3e9a7fbb5b`, and formal Delivery Gate run
+[32044424886](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/32044424886) passed
+Authorize, Fast, Full supply-chain, and Required. The historical E2 test totals above are unchanged.
+Build/Console remain typed Direct Provider-local seams; this closeout is not native fixed/pool or
+real Provider/network evidence. E4 remains `DEFERRED_OPTIONAL`, and E5 remains
+`DEFERRED_UNAUTHORIZED`.

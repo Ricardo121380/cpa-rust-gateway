@@ -1,18 +1,21 @@
 # P13-11E Provider-specific egress phase review — 2026-08-17
 
-Status: `READY_FOR_FORMAL_DELIVERY_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 ## Review conclusion
 
-P13-11E E0/E1/E2/E3, their focused evidence, the aggregate local Full receipt, and the frozen
-scope are internally consistent. Independent goal-backward review found no remaining P1/P2
-correctness, identity ownership, cross-Provider fallback, bounded-attempt, semantic-closure,
-atomic-clearance, secret-projection, or evidence-attribution blocker.
+P13-11E E0/E1/E2/E3, their focused evidence, the aggregate local Full receipt, the formal Delivery
+Gate, and the frozen scope are internally consistent. Independent goal-backward review found no
+remaining P1/P2 correctness, identity ownership, cross-Provider fallback, bounded-attempt,
+semantic-closure, atomic-clearance, secret-projection, or evidence-attribution blocker.
 
-This review authorizes only preparation of the exact source closeout candidate. Creating the
-annotated tag and running the formal GitHub Delivery Gate still require explicit operator
-authorization. This review does not authorize a Provider request, proxy/DNS/FlareSolverr probe,
-Autoreg operation, server mutation, staging deployment, or production traffic.
+The exact closeout candidate is formally accepted by immutable annotated tag
+`phase-p13-provider-egress-complete` at commit
+`ba2261a5414fe73d147a102a266abd3e9a7fbb5b`; run
+[32044424886](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/32044424886) passed
+Authorize (3s), Fast (6m41s), Full supply-chain (1m03s), and Required (3s). This review does not
+authorize a Provider request, proxy/DNS/FlareSolverr probe, Autoreg operation, server mutation,
+staging deployment, or production traffic.
 
 ## Goal-backward review
 
@@ -49,9 +52,9 @@ Autoreg operation, server mutation, staging deployment, or production traffic.
 
 ## Explicit acceptance boundary
 
-`DONE_WITH_BOUNDARY` for E0-E3 will mean that the Provider-local state/attempt/atomic-clearance
-seam is accepted. It will not mean that native Provider proxy pools or real Grok Web egress are
-implemented or usable:
+`DONE_WITH_BOUNDARY` for E0-E3 means that the Provider-local state/attempt/atomic-clearance seam is
+accepted. It does not mean that native Provider proxy pools or real Grok Web egress are implemented
+or usable:
 
 - Build/Console use typed Direct egress in the current application composition; native
   Config-Version-owned fixed/pool node wiring is not part of E0-E3.
@@ -70,20 +73,27 @@ implemented or usable:
 - E5 real Provider/proxy/DNS canary remains deferred and unauthorized. It requires a new explicit
   target, request/budget limit, value-free receipt, rollback rule and operator approval.
 
-## Formal closeout target
+## Formal closeout evidence
 
 - Branch: `codex/p13-11-egress`.
-- Candidate immutable annotated tag: `phase-p13-provider-egress-complete`.
-- Candidate tag message: `P13-11E provider-specific egress closeout`.
-- The tag must point to the exact pushed closeout commit containing this review and the aggregate
-  Full receipt; it must not point to the implementation-only baseline.
+- Immutable annotated tag: `phase-p13-provider-egress-complete`.
+- Tag message: `P13-11E provider-specific egress closeout`.
+- The tag points to exact pushed closeout commit
+  `ba2261a5414fe73d147a102a266abd3e9a7fbb5b`, which contains this review and the aggregate Full
+  receipt; it does not point to the implementation-only baseline.
 - Existing `phase-p13-egress-complete` and `phase-p13-egress-management-complete` tags must not be
   moved, deleted, recreated or reinterpreted.
-- Only one tag-triggered `delivery-gate` run is allowed for this target. Authorize, Fast, Full
-  supply-chain and Required must all succeed before E0-E3 become `DONE_WITH_BOUNDARY`.
+- Only one tag-triggered `delivery-gate` run was used for this target. Run
+  [32044424886](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/32044424886) was a
+  `push` event with exact `headBranch=phase-p13-provider-egress-complete` and
+  `headSha=ba2261a5414fe73d147a102a266abd3e9a7fbb5b`; Authorize, Fast, Full supply-chain and Required
+  all succeeded (3s/6m41s/1m03s/3s).
+- The only non-blocking annotation was that pinned `actions/checkout` targets Node.js 20 while
+  GitHub forced Node.js 24. It neither failed nor weakened the Gate.
 
 ## Decision
 
-P13-11E E0-E3 are `READY_FOR_FORMAL_DELIVERY_GATE`. A failed or cancelled formal job leaves them
-open and requires repair on a new exact closeout target; it does not permit starting E4/E5, a later
-task, or weakening any Provider/Channel/egress/session/clearance boundary.
+P13-11E E0-E3 are `DONE_WITH_BOUNDARY`. P13-11 remains `IN_PROGRESS` because E4 is
+`DEFERRED_OPTIONAL` and E5 is `DEFERRED_UNAUTHORIZED`; neither starts automatically. The formal
+Gate does not weaken any Provider/Channel/egress/session/clearance boundary or turn the typed Direct
+Build/Console and transport-free Web seams into real-network evidence.

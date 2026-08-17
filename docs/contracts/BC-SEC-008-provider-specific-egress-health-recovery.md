@@ -5,7 +5,7 @@
 | Contract | `BC-SEC-008` |
 | Task | `P13-11E` (`E0` planning/review; `E1-E3` implementation slices) |
 | ADR | [ADR-0097](../adr/ADR-0097-provider-specific-egress-health-recovery.md) |
-| Status | **READY_FOR_FORMAL_DELIVERY_GATE — E0-E3 complete locally; formal Gate pending** |
+| Status | **DONE_WITH_BOUNDARY — E0-E3 formal tag and Delivery Gate passed** |
 | Domain | Provider/Channel-local egress, account health, session/clearance and bounded recovery |
 
 ## 1. Contract invariants
@@ -164,6 +164,10 @@ It is also not an Autoreg registration/refresh/replenishment contract.
 
 The aggregate local Full passed `43/43`; the independent
 [phase review](../reports/evidence/p13-11e-phase-review-20260817.md) found no remaining P1/P2
-blocker. E0-E3 remain pending the explicitly authorized immutable
-`phase-p13-provider-egress-complete` formal Gate. Build/Console native fixed/pool egress and the
-production Web transport are not included. E4 is `DEFERRED_OPTIONAL`, and E5 remains unauthorized.
+blocker. E0-E3 are `DONE_WITH_BOUNDARY`: immutable annotated tag
+`phase-p13-provider-egress-complete` points to exact closeout commit
+`ba2261a5414fe73d147a102a266abd3e9a7fbb5b`, and formal Delivery Gate run
+[32044424886](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/32044424886)
+passed Authorize, Fast, Full supply-chain, and Required. Build/Console native fixed/pool egress and
+the production Web transport are not included. E4 remains `DEFERRED_OPTIONAL`, and E5 remains
+`DEFERRED_UNAUTHORIZED`.

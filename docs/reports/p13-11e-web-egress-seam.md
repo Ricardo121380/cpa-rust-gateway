@@ -1,6 +1,6 @@
 # P13-11E E3 Grok Web sticky egress/session/clearance seam report
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 Date: 2026-08-17
 
@@ -98,3 +98,16 @@ the management UI, server configuration, staging or production.
 E3 remains part of the single P13-11E phase review. It does not run a formal Delivery Gate by
 itself. After local review, the next action is an aggregate E0-E3 closeout decision; optional E4
 management projection and E5 real-network canary do not start automatically.
+
+## Formal aggregate closeout
+
+The preceding next-action wording is retained as this E3 receipt's point-in-time history; the
+aggregate review and formal Gate were subsequently completed. E3 is now accepted as part of
+P13-11E E0-E3 `DONE_WITH_BOUNDARY`: immutable annotated tag
+`phase-p13-provider-egress-complete` points to exact closeout commit
+`ba2261a5414fe73d147a102a266abd3e9a7fbb5b`, and formal Delivery Gate run
+[32044424886](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/32044424886) passed
+Authorize, Fast, Full supply-chain, and Required. The historical E3 test totals above are unchanged.
+Web remains transport-free; this closeout is not evidence of a real proxy, clearance, Statsig,
+FlareSolverr, DNS, public CPAR, staging, production, or Provider request. E4 remains
+`DEFERRED_OPTIONAL`, and E5 remains `DEFERRED_UNAUTHORIZED`.

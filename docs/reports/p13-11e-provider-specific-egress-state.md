@@ -1,6 +1,6 @@
 # P13-11E E1 provider-specific egress state report
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE`
+Status: `DONE_WITH_BOUNDARY`
 
 Date: 2026-08-17
 
@@ -66,3 +66,14 @@ existing imported account pool and exact lease. It must keep Console DPoP/bootst
 finite transport ledger and must not introduce Autoreg access, Web clearance, or real Provider
 traffic. E3 remains the separate fake Web sticky-session/clearance slice; E4 would require a new
 management contract, and E5 real network evidence requires a new explicitly authorized CR.
+
+## Formal aggregate closeout
+
+The preceding next-slice wording is retained as this E1 receipt's point-in-time history; E2 and E3
+were subsequently completed under their own reports. E1 is now accepted as part of P13-11E E0-E3
+`DONE_WITH_BOUNDARY`: immutable annotated tag `phase-p13-provider-egress-complete` points to exact
+closeout commit `ba2261a5414fe73d147a102a266abd3e9a7fbb5b`, and formal Delivery Gate run
+[32044424886](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/32044424886) passed
+Authorize, Fast, Full supply-chain, and Required. The historical E1 test totals above are unchanged.
+This closeout adds no Provider/network evidence; E4 remains `DEFERRED_OPTIONAL`, and E5 remains
+`DEFERRED_UNAUTHORIZED`.

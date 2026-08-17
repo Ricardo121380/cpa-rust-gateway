@@ -4,8 +4,8 @@
 |---|---|
 | 状态 | **Approved（用户于 2026-08-17 明确批准开始 E0 计划/CR 与 review）** |
 | 适用范围 | `P13-11E`：CPAR 内已导入凭证的 Provider/Channel egress、健康投影和受控恢复设计 |
-| 当前切片 | `E0-E3 READY_FOR_FORMAL_DELIVERY_GATE`：本地实现、aggregate Full `43/43` 与独立 phase review 已完成；正式 Gate 成功前仍不是 `DONE_WITH_BOUNDARY` |
-| 下一切片 | 在 exact closeout candidate push 后取得明确授权，仅运行一次 `phase-p13-provider-egress-complete` formal Delivery Gate；E4 `DEFERRED_OPTIONAL`，E5 未授权 |
+| 当前切片 | `E0-E3 DONE_WITH_BOUNDARY`：aggregate Full `43/43`、独立 phase review 和 `phase-p13-provider-egress-complete` formal Delivery Gate 已全部完成 |
+| 下一切片 | 无自动后续切片；E4 保持 `DEFERRED_OPTIONAL`，E5 保持 `DEFERRED_UNAUTHORIZED`，均需新 Task Card/CR 和相应授权 |
 | 不包含 | Autoreg 注册/登录/SSO/refresh/replenishment、真实 Provider/代理/DNS 探针、服务器/staging/production、默认公开 API 变化 |
 
 ## 1. 用户澄清与目标
@@ -98,10 +98,12 @@ credential、egress、session 和 clearance 的原始状态。
 E1/E2/E3 完成后仍只能宣称 local/synthetic evidence，不能宣称某个 Grok 账号、节点或公网出口可用。
 正式 Phase Gate 仍按“每个 P 一次”规则执行，不为每个子切片重复运行昂贵 Delivery Gate。
 
-E0-E3 aggregate review 与本地 Full `43/43` 已完成，当前唯一候选 tag 为
-`phase-p13-provider-egress-complete`。该 tag 尚未创建；必须在 exact closeout candidate 推送并取得
-明确授权后创建，且 Authorize、Fast、Full supply-chain、Required 全部成功后才能将 E0-E3 标记为
-`DONE_WITH_BOUNDARY`。E4/E5 不包含在该 tag 中。
+E0-E3 aggregate review 与本地 Full `43/43` 已完成。用户明确批准后，immutable
+annotated tag `phase-p13-provider-egress-complete` 精确固定于 closeout commit
+`ba2261a5414fe73d147a102a266abd3e9a7fbb5b`；唯一正式 Delivery Gate run
+[32044424886](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/32044424886) 的
+Authorize（3s）、Fast（6m41s）、Full supply-chain（1m03s）和 Required（3s）全部成功，
+因此 E0-E3 为 `DONE_WITH_BOUNDARY`。E4/E5 不包含在该 tag 中，也不因此自动启动。
 
 ## 6. 非目标和回滚
 

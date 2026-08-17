@@ -1,6 +1,6 @@
 # ADR-0097: Provider-specific egress, health, and recovery isolation
 
-Status: **Accepted locally — P13-11E E0-E3 READY_FOR_FORMAL_DELIVERY_GATE**
+Status: **Accepted — P13-11E E0-E3 DONE_WITH_BOUNDARY; formal tag and Delivery Gate passed**
 
 Date: 2026-08-17
 
@@ -108,10 +108,12 @@ state ownership, no-fallback rule, exact lease handoff, bounded Console/Web auxi
 atomic clearance ownership, and no-network boundary. The aggregate Full passed `43/43`, and the
 phase review found no remaining P1/P2 blocker.
 
-This local acceptance does not claim code behavior outside the covered adapters, Provider, proxy,
-DNS, staging, production, or account success. Build/Console currently use typed Direct egress in
-the application composition, and Web remains a transport-free seam. E0-E3 are
-`READY_FOR_FORMAL_DELIVERY_GATE`, not `DONE_WITH_BOUNDARY`; the latter requires the explicitly
-authorized immutable `phase-p13-provider-egress-complete` tag and one successful formal Gate.
-Optional E4 management projection is `DEFERRED_OPTIONAL`, while E5 remains unauthorized; both are
-separate acceptance boundaries and do not start automatically.
+This acceptance does not claim code behavior outside the covered adapters, Provider, proxy, DNS,
+staging, production, or account success. Build/Console currently use typed Direct egress in the
+application composition, and Web remains a transport-free seam. E0-E3 are
+`DONE_WITH_BOUNDARY`: immutable annotated tag `phase-p13-provider-egress-complete` points to exact
+closeout commit `ba2261a5414fe73d147a102a266abd3e9a7fbb5b`, and formal Delivery Gate run
+[32044424886](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/32044424886)
+passed Authorize, Fast, Full supply-chain, and Required. Optional E4 management projection remains
+`DEFERRED_OPTIONAL`, while E5 remains `DEFERRED_UNAUTHORIZED`; both are separate acceptance
+boundaries and do not start automatically.
