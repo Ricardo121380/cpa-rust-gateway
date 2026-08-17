@@ -142,6 +142,9 @@ impl GrokNativeEgressAttempt {
         if channel.provider_id().as_str() != expected_provider {
             return Err(GrokNativeEgressAttemptError::ProviderMismatch);
         }
+        if lease.endpoint_id() != channel.endpoint_id() {
+            return Err(GrokNativeEgressAttemptError::EndpointMismatch);
+        }
         if lease.credential_kind() != expected_credential_kind || lease.credential_revision() == 0 {
             return Err(GrokNativeEgressAttemptError::CredentialMismatch);
         }
@@ -463,6 +466,8 @@ pub enum GrokNativeEgressAttemptError {
     ChannelMismatch,
     /// The exact channel capability was absent.
     CapabilityUnavailable,
+    /// The live Credential lease belongs to a different Endpoint-local pool.
+    EndpointMismatch,
     /// Credential kind/revision did not match the selected native channel.
     CredentialMismatch,
     /// The exact Console session cannot be used or rebuilt in this attempt.
@@ -495,6 +500,7 @@ impl fmt::Display for GrokNativeEgressAttemptError {
             Self::ProviderMismatch => "native Grok provider identity mismatch",
             Self::ChannelMismatch => "native Grok channel identity mismatch",
             Self::CapabilityUnavailable => "native Grok channel capability unavailable",
+            Self::EndpointMismatch => "native Grok Endpoint lease mismatch",
             Self::CredentialMismatch => "native Grok credential binding mismatch",
             Self::SessionUnavailable => "native Grok session unavailable",
             Self::Runtime(_) => "native Grok egress runtime unavailable",

@@ -348,6 +348,7 @@ impl EndpointCredentialPool {
             return None;
         }
         Some(CredentialLease {
+            endpoint_id: self.endpoint_id.clone(),
             credential: Arc::clone(credential),
         })
     }
@@ -381,6 +382,7 @@ impl EndpointCredentialPool {
             return None;
         }
         Some(CredentialLease {
+            endpoint_id: self.endpoint_id.clone(),
             credential: Arc::clone(credential),
         })
     }
@@ -400,6 +402,7 @@ impl EndpointCredentialPool {
                 }
                 if credential.try_acquire() {
                     return Some(CredentialLease {
+                        endpoint_id: self.endpoint_id.clone(),
                         credential: Arc::clone(credential),
                     });
                 }
@@ -608,10 +611,17 @@ impl EndpointCredentialPools {
 /// cancelled, releases exactly its one successful atomic acquisition. [`Self::release`] consumes
 /// the lease for callers that want an explicit end-of-use boundary.
 pub struct CredentialLease {
+    endpoint_id: EndpointId,
     credential: Arc<CredentialSlot>,
 }
 
 impl CredentialLease {
+    /// Returns the exact Endpoint-local pool identity that owns this lease.
+    #[must_use]
+    pub const fn endpoint_id(&self) -> &EndpointId {
+        &self.endpoint_id
+    }
+
     /// Returns the stable selected Credential identity.
     #[must_use]
     pub fn credential_id(&self) -> &CredentialId {
@@ -655,6 +665,7 @@ impl fmt::Debug for CredentialLease {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("CredentialLease")
+            .field("endpoint_id", &self.endpoint_id)
             .field("credential_id", &self.credential.credential_id)
             .field("credential_kind", &self.credential.credential_kind)
             .field("credential_revision", &self.credential.credential_revision)
@@ -944,6 +955,7 @@ mod tests {
         let cancelled = pool
             .try_lease()
             .ok_or_else(|| io::Error::other("expected initial lease"))?;
+        assert_eq!(cancelled.endpoint_id().as_str(), "endpoint-a");
         assert_eq!(pool.active_lease_count(&credential_id), Some(1));
         drop(cancelled);
         assert_eq!(pool.active_lease_count(&credential_id), Some(0));

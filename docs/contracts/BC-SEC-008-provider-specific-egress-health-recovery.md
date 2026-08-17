@@ -5,7 +5,7 @@
 | Contract | `BC-SEC-008` |
 | Task | `P13-11E` (`E0` planning/review; `E1-E3` implementation slices) |
 | ADR | [ADR-0097](../adr/ADR-0097-provider-specific-egress-health-recovery.md) |
-| Status | **LOCAL_PASS_PENDING_PHASE_GATE — E0/E1/E2 complete; E3 not started** |
+| Status | **LOCAL_PASS_PENDING_PHASE_GATE — E0/E1/E2/E3 complete locally** |
 | Domain | Provider/Channel-local egress, account health, session/clearance and bounded recovery |
 
 ## 1. Contract invariants
@@ -115,8 +115,35 @@ The E2 local evidence is recorded in
 - no Provider, DNS, proxy, Store, Autoreg, server, staging or production call was made, and no
   OpenAPI/Prism/frontend surface changed.
 
-E2 is local implementation evidence only. Grok Web sticky egress/clearance remains E3; a real
-Provider/network canary remains E5 and requires a new CR.
+E2 is local implementation evidence only. A real Provider/network canary remains E5 and requires
+a new CR.
+
+## 5C. E3 Grok Web attempt and atomic clearance evidence
+
+The E3 local evidence is recorded in
+[the E3 report](../reports/p13-11e-web-egress-seam.md):
+
+- one transport-free `GrokWebProviderEgressAttempt` binds the fixed `grok.web` namespace, exact
+  Upstream/Endpoint, an already-owned `grok_web_sso` Credential lease and revision, named sticky
+  egress, active Provider session, and exact clearance lineage;
+- clearance challenge marking, refresh begin, completion and failure use one atomic runtime state
+  owner ticket. A runtime-private generation prevents a stale or same-deadline ticket from
+  completing a replacement owner, and a live refresh cannot be overwritten by another challenge;
+- Statsig environment/signer submissions, one clearance refresh and the sole inference are
+  separately counted by the bounded Web ledger. The fifth auxiliary request, second recovery,
+  second inference and any operation after semantic output fail closed;
+- unknown `403` is `AmbiguousProvider/None` and changes no account/egress/session/clearance state;
+  confirmed forbidden is Credential-owned and does not poison egress/clearance; only explicit
+  `ClearanceChallenge` marks the exact clearance `RefreshRequired` for a later logical attempt;
+- Direct egress, foreign Provider/Channel/Credential/session/target, blocked exact egress, inactive
+  session and invalid clearance all stop before accounting or transport; and
+- the fixture is deterministic and transport-free (`11/11` Web scenarios, `13/13` exact-clearance
+  state scenarios). It does not contact Provider, DNS, proxy, Store, Autoreg or FlareSolverr.
+
+E3 does not attach this seam to the legacy production Web adapter because the current process-level
+proxy envelope does not expose a stable, non-secret egress node/profile identity. It also does not
+infer a clearance challenge from an arbitrary `403` body. Physical proxy/Statsig/FlareSolverr
+accounting and real response evidence require a later reviewed configuration/network CR.
 
 ## 6. Required tests before implementation slice can close
 

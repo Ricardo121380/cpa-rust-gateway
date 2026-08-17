@@ -31,6 +31,7 @@ mod web_failure;
 mod web_flaresolverr;
 mod web_live;
 mod web_production;
+mod web_provider_egress;
 mod web_quota;
 mod web_statsig;
 mod web_tool_emulation;
@@ -194,6 +195,11 @@ pub use web_production::{
     GrokWebProductionStreamDecoder, GrokWebProductionTransport, GrokWebProductionTransportResponse,
     GrokWebProductionUpstreamTransport, MAX_GROK_WEB_PRODUCTION_MESSAGE_BYTES,
     MAX_GROK_WEB_PRODUCTION_REQUEST_BYTES,
+};
+pub use web_provider_egress::{
+    GrokWebProviderEgressAttempt, GrokWebProviderEgressAttemptError,
+    GrokWebProviderEgressAttemptSnapshot, GrokWebProviderEgressClock,
+    SystemGrokWebProviderEgressClock,
 };
 pub use web_quota::{
     GrokWebQuotaConfidence, GrokWebQuotaError, GrokWebQuotaFixtureDecoder, GrokWebQuotaSource,

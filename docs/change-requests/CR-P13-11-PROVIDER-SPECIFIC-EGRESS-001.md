@@ -4,8 +4,8 @@
 |---|---|
 | 状态 | **Approved（用户于 2026-08-17 明确批准开始 E0 计划/CR 与 review）** |
 | 适用范围 | `P13-11E`：CPAR 内已导入凭证的 Provider/Channel egress、健康投影和受控恢复设计 |
-| 当前切片 | `E2`：Grok Build/Console 的 CPAR imported-account、exact lease 与 adapter-local synthetic/loopback seam；不接 Autoreg 或真实网络 |
-| 下一切片 | `E3`：Grok Web sticky egress/session/clearance 的 fake-only seam；真实代理、FlareSolverr、DNS 和公网请求仍需独立授权 |
+| 当前切片 | `E3 LOCAL_PASS_PENDING_PHASE_GATE`：Grok Web exact lease、named sticky egress、session/clearance 与 atomic fake-only recovery seam；不接真实 Web transport |
+| 下一切片 | P13-11E E0-E3 aggregate local review 与 phase-closeout decision；E4/E5 不自动启动 |
 | 不包含 | Autoreg 注册/登录/SSO/refresh/replenishment、真实 Provider/代理/DNS 探针、服务器/staging/production、默认公开 API 变化 |
 
 ## 1. 用户澄清与目标
@@ -91,7 +91,7 @@ credential、egress、session 和 clearance 的原始状态。
 | E0 | 计划、ADR、Contract、渠道/状态/失败矩阵和独立 review | 是，本轮完成 |
 | E1 | typed provider-aware egress/session state、capability registry、合成状态转换测试 | 已完成本地 slice；无网络 |
 | E2 | Build/Console adapter 接线：复用 CPAR 账号池与现有 transport，验证 exact failure isolation；隐藏辅助请求必须有计数/one-shot 语义 | 仅本地合成/loopback；不是真实 Provider |
-| E3 | Web sticky egress/clearance/session 状态 seam，注入式 challenge/recovery 测试 | 仅 fake transport；真实代理/FlareSolverr 另立 CR |
+| E3 | Web sticky egress/clearance/session 状态 seam，注入式 challenge/recovery 测试 | 已完成本地 slice；仅 fake/transport-free，真实代理/FlareSolverr 另立 CR |
 | E4 | 如需管理状态或 operator action，先另行确认 OpenAPI/Prism 变更与 Claude Code handoff | 不由 E0 自动授权 |
 | E5 | 真实 Provider/代理/DNS canary | 明确不授权；必须新 CR |
 
@@ -116,9 +116,9 @@ E1/E2/E3 完成后仍只能宣称 local/synthetic evidence，不能宣称某个 
 - [x] Autoreg 仍是外部项目；没有 DB/HTTP/browser/scheduler 依赖。
 - [x] 隐藏辅助请求被明确纳入后续 one-shot、attempt、audit 和成本边界要求；实现验证留给 E2/E3。
 - [x] Egress 状态不会跨 Upstream/Provider/Channel 污染；sticky 不可用时必须 fail closed。
-- [x] E0 没有真实网络副作用；E1/E2 已有本地实现证据，E3 仍未开始；E5 明确需要新授权。
+- [x] E0 没有真实网络副作用；E1/E2/E3 均有本地实现证据；E3 未接真实 Web transport，E5 明确需要新授权。
 - [x] 没有 OpenAPI/Prism 变更；若 E4 改管理契约，先更新权威 OpenAPI、同步 Prism 并写
       `docs/cross-boundary-log.md`。
 
-E0/E1/E2 的 checklist 是设计与本地实现边界 review，不是 E3/E5 或真实网络验收；未勾选的实现证据不会被本 CR
-伪装成已完成。
+E0/E1/E2/E3 的 checklist 是设计与本地实现边界 review，不是 E4/E5 或真实网络验收；未勾选的
+实现证据不会被本 CR 伪装成已完成。

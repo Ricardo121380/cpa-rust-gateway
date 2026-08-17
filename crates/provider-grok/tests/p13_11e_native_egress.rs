@@ -231,6 +231,7 @@ fn console_bootstrap_budget_and_failure_ownership_stay_exact() -> TestResult {
 fn build_and_console_namespaces_cannot_cross_use_each_other() -> TestResult {
     let endpoint = EndpointId::try_new("e2-cross-endpoint")?;
     let upstream = UpstreamId::try_new("e2-cross-upstream")?;
+    let credential_id = CredentialId::try_new("e2-cross-account")?;
     let build_identity = identity("grok.build", &upstream, &endpoint)?;
     let console_identity = identity("grok.console", &upstream, &endpoint)?;
     let build_runtime =
@@ -243,7 +244,7 @@ fn build_and_console_namespaces_cannot_cross_use_each_other() -> TestResult {
     let pool = EndpointCredentialPool::try_new(
         endpoint,
         [EndpointCredentialInput {
-            credential_id: CredentialId::try_new("e2-cross-account")?,
+            credential_id: credential_id.clone(),
             credential_kind: "grok_build_oauth".to_owned(),
             credential_revision: 1,
             priority: 0,
@@ -258,7 +259,7 @@ fn build_and_console_namespaces_cannot_cross_use_each_other() -> TestResult {
         .ok_or("cross namespace lease unavailable")?;
     assert!(
         GrokNativeEgressAttempt::try_new_console(
-            build_runtime,
+            Arc::clone(&build_runtime),
             console_identity,
             ProviderEgressTargetIdentity::Direct,
             &lease,
@@ -266,6 +267,34 @@ fn build_and_console_namespaces_cannot_cross_use_each_other() -> TestResult {
             Arc::new(FixedClock(NOW_MS)),
         )
         .is_err()
+    );
+
+    let foreign_endpoint_pool = EndpointCredentialPool::try_new(
+        EndpointId::try_new("e2-cross-foreign-endpoint")?,
+        [EndpointCredentialInput {
+            credential_id,
+            credential_kind: "grok_build_oauth".to_owned(),
+            credential_revision: 1,
+            priority: 0,
+            weight: 1,
+            concurrency: 1,
+            expires_at_ms: None,
+            secret: CredentialSecret::try_new(build_secret_json())?,
+        }],
+    )?;
+    let foreign_endpoint_lease = foreign_endpoint_pool
+        .try_lease()
+        .ok_or("foreign Endpoint lease unavailable")?;
+    assert_eq!(
+        GrokNativeEgressAttempt::try_new_build(
+            build_runtime,
+            build_identity,
+            ProviderEgressTargetIdentity::Direct,
+            &foreign_endpoint_lease,
+            Arc::new(FixedClock(NOW_MS)),
+        )
+        .err(),
+        Some(GrokNativeEgressAttemptError::EndpointMismatch)
     );
     Ok(())
 }

@@ -5360,7 +5360,8 @@ fn native_grok_egress_attempt_failure(error: GrokNativeEgressAttemptError) -> At
             | ProviderEgressRuntimeError::UnknownEgressState
             | ProviderEgressRuntimeError::StickyEgressRequired,
         ) => AttemptFailure::Connection,
-        GrokNativeEgressAttemptError::CredentialMismatch
+        GrokNativeEgressAttemptError::EndpointMismatch
+        | GrokNativeEgressAttemptError::CredentialMismatch
         | GrokNativeEgressAttemptError::SessionUnavailable
         | GrokNativeEgressAttemptError::ProviderMismatch
         | GrokNativeEgressAttemptError::ChannelMismatch
