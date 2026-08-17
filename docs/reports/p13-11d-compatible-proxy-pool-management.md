@@ -150,8 +150,9 @@ Local D3 checks passed:
 - no management OpenAPI or `web/prism/**` surface changed in D3. The existing D2 action-required
   Claude Code handoff remains the only frontend integration notice.
 
-This is local aggregate evidence only. The Full receipt is
-`/tmp/cpar-p13-11d-aggregate-full-final.md` (`43/43`, Darwin arm64,
+This is local aggregate evidence only. The durable Full receipt is
+[`p13-11d-aggregate-full-20260817.md`](evidence/p13-11d-aggregate-full-20260817.md)
+(`43/43`, Darwin arm64,
 `2026-08-17T01:41:24Z`–`2026-08-17T01:43:02Z`). The first Full attempt stopped at the crate-boundary
 allowlist because `gateway-control` already declared its required `sha2` dependency; the one-line
 allowlist correction was committed as `acf4e47`, and the rerun passed all steps. No formal
