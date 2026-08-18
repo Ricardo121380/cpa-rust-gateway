@@ -374,6 +374,7 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         data,
         management_runtime,
         provider_account_pools,
+        provider_egress_status,
         channel_pin,
         observability,
         event_writer,
@@ -406,6 +407,7 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         database.clone(),
     )))
     .with_provider_account_pools(provider_account_pools);
+    let resources = resources.with_provider_egress_status(provider_egress_status);
     let resources = resources.with_channel_pin(channel_pin);
     let lifecycle = ManagementLifecycleHttpState::new(lifecycle_service);
     let backup = ManagementBackupHttpState::new(

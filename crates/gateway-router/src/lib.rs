@@ -73,11 +73,12 @@ pub use provider_egress_state::{
     MAX_PROVIDER_EGRESS_STATES_PER_DOMAIN, ProviderAccountEvidence, ProviderChannelCapability,
     ProviderChannelCapabilityRegistry, ProviderChannelIdentity, ProviderClearanceRefreshFailure,
     ProviderClearanceRefreshTicket, ProviderClearanceRuntimeState, ProviderClearanceStateKey,
-    ProviderEgressChannel, ProviderEgressFailureDisposition, ProviderEgressFailureEvidence,
-    ProviderEgressFailureOwner, ProviderEgressRecoveryAction, ProviderEgressRuntime,
-    ProviderEgressRuntimeError, ProviderEgressRuntimeState, ProviderEgressStateKey,
+    ProviderClearanceStateObservation, ProviderEgressChannel, ProviderEgressFailureDisposition,
+    ProviderEgressFailureEvidence, ProviderEgressFailureOwner, ProviderEgressRecoveryAction,
+    ProviderEgressRuntime, ProviderEgressRuntimeError, ProviderEgressRuntimeSnapshot,
+    ProviderEgressRuntimeState, ProviderEgressStateKey, ProviderEgressStateObservation,
     ProviderEgressTargetIdentity, ProviderSessionRuntimeState, ProviderSessionStateKey,
-    ProviderStickinessCapability, ProviderTransportAttemptBudget,
+    ProviderSessionStateObservation, ProviderStickinessCapability, ProviderTransportAttemptBudget,
     ProviderTransportAttemptBudgetError, classify_provider_egress_failure,
 };
 pub use provider_scoped_selector::{

@@ -556,6 +556,181 @@ impl ProviderClearanceRuntimeState {
     }
 }
 
+/// One value-free egress observation from an atomic runtime snapshot.
+#[derive(Clone, Eq, PartialEq)]
+pub struct ProviderEgressStateObservation {
+    key: ProviderEgressStateKey,
+    channel: ProviderEgressChannel,
+    state: ProviderEgressRuntimeState,
+}
+
+impl ProviderEgressStateObservation {
+    /// Returns the exact Provider/Channel and egress-target key.
+    #[must_use]
+    pub const fn key(&self) -> &ProviderEgressStateKey {
+        &self.key
+    }
+
+    /// Returns the declared behavior family for the exact key.
+    #[must_use]
+    pub const fn channel(&self) -> ProviderEgressChannel {
+        self.channel
+    }
+
+    /// Returns the effective state at the snapshot's fixed observation time.
+    #[must_use]
+    pub const fn state(&self) -> ProviderEgressRuntimeState {
+        self.state
+    }
+}
+
+impl fmt::Debug for ProviderEgressStateObservation {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ProviderEgressStateObservation")
+            .field("key", &"<exact value-free egress key>")
+            .field("channel", &self.channel)
+            .field("state", &self.state)
+            .finish()
+    }
+}
+
+/// One value-free Provider-session observation from an atomic runtime snapshot.
+#[derive(Clone, Eq, PartialEq)]
+pub struct ProviderSessionStateObservation {
+    key: ProviderSessionStateKey,
+    channel: ProviderEgressChannel,
+    state: ProviderSessionRuntimeState,
+}
+
+impl ProviderSessionStateObservation {
+    /// Returns the exact Provider/Channel, Credential revision, and session-lineage key.
+    #[must_use]
+    pub const fn key(&self) -> &ProviderSessionStateKey {
+        &self.key
+    }
+
+    /// Returns the declared behavior family for the exact key.
+    #[must_use]
+    pub const fn channel(&self) -> ProviderEgressChannel {
+        self.channel
+    }
+
+    /// Returns the effective state at the snapshot's fixed observation time.
+    #[must_use]
+    pub const fn state(&self) -> ProviderSessionRuntimeState {
+        self.state
+    }
+}
+
+impl fmt::Debug for ProviderSessionStateObservation {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ProviderSessionStateObservation")
+            .field("key", &"<exact value-free session key>")
+            .field("channel", &self.channel)
+            .field("state", &self.state)
+            .finish()
+    }
+}
+
+/// One value-free clearance observation from an atomic runtime snapshot.
+#[derive(Clone, Eq, PartialEq)]
+pub struct ProviderClearanceStateObservation {
+    key: ProviderClearanceStateKey,
+    channel: ProviderEgressChannel,
+    state: ProviderClearanceRuntimeState,
+}
+
+impl ProviderClearanceStateObservation {
+    /// Returns the exact session, egress-target, and clearance-lineage key.
+    #[must_use]
+    pub const fn key(&self) -> &ProviderClearanceStateKey {
+        &self.key
+    }
+
+    /// Returns the declared behavior family for the exact key.
+    #[must_use]
+    pub const fn channel(&self) -> ProviderEgressChannel {
+        self.channel
+    }
+
+    /// Returns the effective state at the snapshot's fixed observation time.
+    #[must_use]
+    pub const fn state(&self) -> ProviderClearanceRuntimeState {
+        self.state
+    }
+}
+
+impl fmt::Debug for ProviderClearanceStateObservation {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ProviderClearanceStateObservation")
+            .field("key", &"<exact value-free clearance key>")
+            .field("channel", &self.channel)
+            .field("state", &self.state)
+            .finish()
+    }
+}
+
+/// Atomic, value-free view of all three Provider-specific runtime state domains.
+///
+/// The revision and every observation are cloned while holding one read lock. Deadlines are
+/// projected at `observed_at_ms` without normalizing or otherwise mutating retained runtime state.
+#[derive(Clone, Eq, PartialEq)]
+pub struct ProviderEgressRuntimeSnapshot {
+    revision: u64,
+    observed_at_ms: i64,
+    egress: Vec<ProviderEgressStateObservation>,
+    sessions: Vec<ProviderSessionStateObservation>,
+    clearances: Vec<ProviderClearanceStateObservation>,
+}
+
+impl ProviderEgressRuntimeSnapshot {
+    /// Returns the monotonic runtime-state revision cloned with all observations.
+    #[must_use]
+    pub const fn revision(&self) -> u64 {
+        self.revision
+    }
+
+    /// Returns the fixed timestamp used for every effective-state projection.
+    #[must_use]
+    pub const fn observed_at_ms(&self) -> i64 {
+        self.observed_at_ms
+    }
+
+    /// Returns egress observations in stable exact-key order.
+    #[must_use]
+    pub fn egress(&self) -> &[ProviderEgressStateObservation] {
+        &self.egress
+    }
+
+    /// Returns Provider-session observations in stable exact-key order.
+    #[must_use]
+    pub fn sessions(&self) -> &[ProviderSessionStateObservation] {
+        &self.sessions
+    }
+
+    /// Returns clearance observations in stable exact-key order.
+    #[must_use]
+    pub fn clearances(&self) -> &[ProviderClearanceStateObservation] {
+        &self.clearances
+    }
+}
+
+impl fmt::Debug for ProviderEgressRuntimeSnapshot {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ProviderEgressRuntimeSnapshot")
+            .field("revision", &self.revision)
+            .field("observed_at_ms", &self.observed_at_ms)
+            .field("egress_count", &self.egress.len())
+            .field("session_count", &self.sessions.len())
+            .field("clearance_count", &self.clearances.len())
+            .finish()
+    }
+}
+
 /// Opaque ownership ticket for one exact clearance refresh.
 ///
 /// The ticket contains only the value-free state key, an internal ownership generation, and its
@@ -612,6 +787,7 @@ pub struct ProviderEgressRuntime {
 
 #[derive(Default)]
 struct ProviderEgressRuntimeInner {
+    state_revision: u64,
     egress: BTreeMap<ProviderEgressStateKey, ProviderEgressRuntimeState>,
     sessions: BTreeMap<ProviderSessionStateKey, ProviderSessionRuntimeState>,
     clearances: BTreeMap<ProviderClearanceStateKey, ProviderClearanceRuntimeState>,
@@ -641,6 +817,97 @@ impl ProviderEgressRuntime {
         &self.capabilities
     }
 
+    /// Atomically clones all Provider-specific runtime state at one explicit timestamp.
+    ///
+    /// Egress, session, clearance, and the monotonic revision are read under one lock. Each
+    /// domain remains independently ordered by its exact key. Deadline transitions are projected
+    /// into effective states without writing them back, so a read cannot acquire recovery
+    /// ownership or advance the revision.
+    ///
+    /// # Errors
+    ///
+    /// Fails closed for an invalid observation time, an impossible retained capability/key
+    /// combination, or a poisoned state lock.
+    pub fn snapshot_at(
+        &self,
+        observed_at_ms: i64,
+    ) -> Result<ProviderEgressRuntimeSnapshot, ProviderEgressRuntimeError> {
+        validate_observation_time(observed_at_ms)?;
+        let runtime = self
+            .state
+            .read()
+            .map_err(|_| ProviderEgressRuntimeError::RuntimeUnavailable)?;
+
+        let mut egress = Vec::with_capacity(runtime.egress.len());
+        for (key, state) in &runtime.egress {
+            let capability = self.require_capability(key.channel())?;
+            self.validate_target(key.channel(), key.target())?;
+            egress.push(ProviderEgressStateObservation {
+                key: key.clone(),
+                channel: capability.channel(),
+                state: state.at(observed_at_ms),
+            });
+        }
+
+        let mut sessions = Vec::with_capacity(runtime.sessions.len());
+        for (key, state) in &runtime.sessions {
+            let capability = self.require_capability(key.channel())?;
+            if !capability.supports_provider_session() {
+                return Err(ProviderEgressRuntimeError::ProviderSessionUnsupported);
+            }
+            sessions.push(ProviderSessionStateObservation {
+                key: key.clone(),
+                channel: capability.channel(),
+                state: state.at(observed_at_ms),
+            });
+        }
+
+        let mut clearances = Vec::with_capacity(runtime.clearances.len());
+        for (key, owner) in &runtime.clearance_refresh_owners {
+            match runtime.clearances.get(key) {
+                Some(ProviderClearanceRuntimeState::RefreshInFlight { expires_at_ms })
+                    if *expires_at_ms == owner.expires_at_ms => {}
+                Some(_) | None => {
+                    return Err(ProviderEgressRuntimeError::ClearanceRefreshOwnershipInconsistent);
+                }
+            }
+        }
+        for (key, state) in &runtime.clearances {
+            let capability = self.require_capability(key.session().channel())?;
+            self.validate_target(key.session().channel(), key.target())?;
+            if !capability.supports_clearance() {
+                return Err(ProviderEgressRuntimeError::ClearanceUnsupported);
+            }
+            match state {
+                ProviderClearanceRuntimeState::RefreshInFlight { expires_at_ms }
+                    if runtime
+                        .clearance_refresh_owners
+                        .get(key)
+                        .is_some_and(|owner| owner.expires_at_ms == *expires_at_ms) => {}
+                ProviderClearanceRuntimeState::RefreshInFlight { .. } => {
+                    return Err(ProviderEgressRuntimeError::ClearanceRefreshOwnershipInconsistent);
+                }
+                _ if runtime.clearance_refresh_owners.contains_key(key) => {
+                    return Err(ProviderEgressRuntimeError::ClearanceRefreshOwnershipInconsistent);
+                }
+                _ => {}
+            }
+            clearances.push(ProviderClearanceStateObservation {
+                key: key.clone(),
+                channel: capability.channel(),
+                state: state.at(observed_at_ms),
+            });
+        }
+
+        Ok(ProviderEgressRuntimeSnapshot {
+            revision: runtime.state_revision,
+            observed_at_ms,
+            egress,
+            sessions,
+            clearances,
+        })
+    }
+
     /// Sets one exact egress state after validating its explicit observation/deadline.
     ///
     /// # Errors
@@ -661,12 +928,12 @@ impl ProviderEgressRuntime {
             .state
             .write()
             .map_err(|_| ProviderEgressRuntimeError::RuntimeUnavailable)?;
-        insert_bounded(
-            &mut runtime.egress,
-            key,
-            state,
-            MAX_PROVIDER_EGRESS_STATES_PER_DOMAIN,
-        )
+        ensure_bounded_capacity(&runtime.egress, &key, MAX_PROVIDER_EGRESS_STATES_PER_DOMAIN)?;
+        if runtime.egress.get(&key) != Some(&state) {
+            advance_state_revision(&mut runtime)?;
+            runtime.egress.insert(key, state);
+        }
+        Ok(())
     }
 
     /// Returns one exact egress state at the supplied deterministic time.
@@ -734,12 +1001,16 @@ impl ProviderEgressRuntime {
             .state
             .write()
             .map_err(|_| ProviderEgressRuntimeError::RuntimeUnavailable)?;
-        insert_bounded(
-            &mut runtime.sessions,
-            key,
-            state,
+        ensure_bounded_capacity(
+            &runtime.sessions,
+            &key,
             MAX_PROVIDER_EGRESS_STATES_PER_DOMAIN,
-        )
+        )?;
+        if runtime.sessions.get(&key) != Some(&state) {
+            advance_state_revision(&mut runtime)?;
+            runtime.sessions.insert(key, state);
+        }
+        Ok(())
     }
 
     /// Returns one exact Provider-session state at the supplied deterministic time.
@@ -788,11 +1059,16 @@ impl ProviderEgressRuntime {
         }
         validate_observation_time(observed_at_ms)?;
         validate_clearance_state(state, observed_at_ms)?;
+        if matches!(state, ProviderClearanceRuntimeState::RefreshInFlight { .. }) {
+            return Err(ProviderEgressRuntimeError::ClearanceRefreshOwnershipInconsistent);
+        }
         let mut runtime = self
             .state
             .write()
             .map_err(|_| ProviderEgressRuntimeError::RuntimeUnavailable)?;
-        if let Some(owner) = runtime.clearance_refresh_owners.get(&key).copied() {
+        let reclaim_expired_owner = if let Some(owner) =
+            runtime.clearance_refresh_owners.get(&key).copied()
+        {
             match runtime.clearances.get(&key).copied() {
                 Some(ProviderClearanceRuntimeState::RefreshInFlight { expires_at_ms })
                     if expires_at_ms == owner.expires_at_ms =>
@@ -800,19 +1076,28 @@ impl ProviderEgressRuntime {
                     if owner.expires_at_ms > observed_at_ms {
                         return Err(ProviderEgressRuntimeError::ClearanceRefreshInFlight);
                     }
-                    runtime.clearance_refresh_owners.remove(&key);
+                    true
                 }
                 Some(_) | None => {
                     return Err(ProviderEgressRuntimeError::ClearanceRefreshOwnershipInconsistent);
                 }
             }
-        }
-        insert_bounded(
-            &mut runtime.clearances,
-            key,
-            state,
+        } else {
+            false
+        };
+        ensure_bounded_capacity(
+            &runtime.clearances,
+            &key,
             MAX_PROVIDER_EGRESS_STATES_PER_DOMAIN,
-        )
+        )?;
+        if reclaim_expired_owner || runtime.clearances.get(&key) != Some(&state) {
+            advance_state_revision(&mut runtime)?;
+            if reclaim_expired_owner {
+                runtime.clearance_refresh_owners.remove(&key);
+            }
+            runtime.clearances.insert(key, state);
+        }
+        Ok(())
     }
 
     /// Returns one exact clearance state at the supplied deterministic time.
@@ -867,17 +1152,28 @@ impl ProviderEgressRuntime {
             .state
             .write()
             .map_err(|_| ProviderEgressRuntimeError::RuntimeUnavailable)?;
-        let state = runtime
+        let retained_state = runtime
             .clearances
-            .get_mut(key)
+            .get(key)
+            .copied()
             .ok_or(ProviderEgressRuntimeError::UnknownClearanceState)?;
-        match state.at(observed_at_ms) {
+        match retained_state.at(observed_at_ms) {
             ProviderClearanceRuntimeState::Absent
             | ProviderClearanceRuntimeState::Fresh { .. }
             | ProviderClearanceRuntimeState::Expired
             | ProviderClearanceRuntimeState::RefreshRequired => {
-                *state = ProviderClearanceRuntimeState::RefreshRequired;
-                runtime.clearance_refresh_owners.remove(key);
+                let owner_retained = runtime.clearance_refresh_owners.contains_key(key);
+                if retained_state != ProviderClearanceRuntimeState::RefreshRequired
+                    || owner_retained
+                {
+                    advance_state_revision(&mut runtime)?;
+                    runtime
+                        .clearances
+                        .insert(key.clone(), ProviderClearanceRuntimeState::RefreshRequired);
+                    if owner_retained {
+                        runtime.clearance_refresh_owners.remove(key);
+                    }
+                }
                 Ok(())
             }
             ProviderClearanceRuntimeState::RefreshInFlight { .. } => {
@@ -929,6 +1225,7 @@ impl ProviderEgressRuntime {
                     .next_clearance_refresh_generation
                     .checked_add(1)
                     .ok_or(ProviderEgressRuntimeError::ClearanceRefreshOwnershipExhausted)?;
+                advance_state_revision(&mut runtime)?;
                 runtime.next_clearance_refresh_generation = generation;
                 runtime.clearances.insert(
                     key.clone(),
@@ -986,6 +1283,7 @@ impl ProviderEgressRuntime {
             .write()
             .map_err(|_| ProviderEgressRuntimeError::RuntimeUnavailable)?;
         Self::require_live_clearance_refresh_owner(&mut runtime, ticket, observed_at_ms)?;
+        advance_state_revision(&mut runtime)?;
         runtime.clearances.insert(
             ticket.key().clone(),
             ProviderClearanceRuntimeState::Fresh {
@@ -1026,6 +1324,7 @@ impl ProviderEgressRuntime {
             }
             ProviderClearanceRefreshFailure::Invalid => ProviderClearanceRuntimeState::Invalid,
         };
+        advance_state_revision(&mut runtime)?;
         runtime.clearances.insert(ticket.key().clone(), state);
         runtime.clearance_refresh_owners.remove(ticket.key());
         Ok(())
@@ -1067,6 +1366,7 @@ impl ProviderEgressRuntime {
                     return Err(ProviderEgressRuntimeError::ClearanceRefreshTicketMismatch);
                 }
                 if expires_at_ms <= observed_at_ms {
+                    advance_state_revision(runtime)?;
                     runtime.clearances.insert(
                         ticket.key().clone(),
                         ProviderClearanceRuntimeState::RefreshRequired,
@@ -1473,6 +1773,8 @@ pub enum ProviderEgressRuntimeError {
     StickyEgressRequired,
     /// One independent state domain reached its finite retained-entry bound.
     StateCapacityExceeded,
+    /// The finite monotonic runtime-state revision was exhausted.
+    RuntimeStateRevisionExhausted,
     /// The local runtime state lock was poisoned.
     RuntimeUnavailable,
 }
@@ -1510,6 +1812,9 @@ impl fmt::Display for ProviderEgressRuntimeError {
             Self::EgressUnavailable => "provider egress identity is unavailable",
             Self::StickyEgressRequired => "provider channel requires a named sticky egress",
             Self::StateCapacityExceeded => "provider egress state capacity is exhausted",
+            Self::RuntimeStateRevisionExhausted => {
+                "provider egress runtime state revision is exhausted"
+            }
             Self::RuntimeUnavailable => "provider egress runtime is unavailable",
         };
         formatter.write_str(message)
@@ -1518,16 +1823,24 @@ impl fmt::Display for ProviderEgressRuntimeError {
 
 impl Error for ProviderEgressRuntimeError {}
 
-fn insert_bounded<K: Ord, V>(
-    entries: &mut BTreeMap<K, V>,
-    key: K,
-    value: V,
+fn ensure_bounded_capacity<K: Ord, V>(
+    entries: &BTreeMap<K, V>,
+    key: &K,
     maximum_entries: usize,
 ) -> Result<(), ProviderEgressRuntimeError> {
-    if !entries.contains_key(&key) && entries.len() >= maximum_entries {
+    if !entries.contains_key(key) && entries.len() >= maximum_entries {
         return Err(ProviderEgressRuntimeError::StateCapacityExceeded);
     }
-    entries.insert(key, value);
+    Ok(())
+}
+
+fn advance_state_revision(
+    runtime: &mut ProviderEgressRuntimeInner,
+) -> Result<(), ProviderEgressRuntimeError> {
+    runtime.state_revision = runtime
+        .state_revision
+        .checked_add(1)
+        .ok_or(ProviderEgressRuntimeError::RuntimeStateRevisionExhausted)?;
     Ok(())
 }
 
@@ -1871,6 +2184,474 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::too_many_lines)]
+    fn atomic_snapshot_preserves_three_domains_stable_order_and_exact_ownership()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let first = capability(
+            "a-provider",
+            "shared-upstream",
+            "web",
+            ProviderEgressChannel::GrokWeb,
+        )?;
+        let second = capability(
+            "z-provider",
+            "shared-upstream",
+            "web",
+            ProviderEgressChannel::GrokWeb,
+        )?;
+        let runtime =
+            ProviderEgressRuntime::new(ProviderChannelCapabilityRegistry::try_new(vec![
+                second.clone(),
+                first.clone(),
+            ])?);
+        let target = ProviderEgressTargetIdentity::named("shared-node")?;
+        let first_egress = ProviderEgressStateKey::new(first.identity().clone(), target.clone());
+        let second_egress = ProviderEgressStateKey::new(second.identity().clone(), target.clone());
+        runtime.set_egress_state(
+            second_egress.clone(),
+            ProviderEgressRuntimeState::Disabled,
+            100,
+        )?;
+        runtime.set_egress_state(
+            first_egress.clone(),
+            ProviderEgressRuntimeState::Available,
+            100,
+        )?;
+
+        let credential_id = CredentialId::try_new("shared-account")?;
+        let first_session = ProviderSessionStateKey::try_new(
+            first.identity().clone(),
+            credential_id.clone(),
+            3,
+            5,
+        )?;
+        let second_session =
+            ProviderSessionStateKey::try_new(second.identity().clone(), credential_id, 3, 5)?;
+        runtime.set_session_state(
+            second_session.clone(),
+            ProviderSessionRuntimeState::ChallengeRequired,
+            100,
+        )?;
+        runtime.set_session_state(
+            first_session.clone(),
+            ProviderSessionRuntimeState::Active { expires_at_ms: 300 },
+            100,
+        )?;
+
+        let first_clearance = ProviderClearanceStateKey::try_new(first_session, target.clone(), 7)?;
+        let second_clearance = ProviderClearanceStateKey::try_new(second_session, target, 7)?;
+        runtime.set_clearance_state(
+            second_clearance.clone(),
+            ProviderClearanceRuntimeState::Invalid,
+            100,
+        )?;
+        runtime.set_clearance_state(
+            first_clearance.clone(),
+            ProviderClearanceRuntimeState::Fresh { expires_at_ms: 250 },
+            100,
+        )?;
+
+        let snapshot = runtime.snapshot_at(150)?;
+        assert_eq!(snapshot.revision(), 6);
+        assert_eq!(snapshot.observed_at_ms(), 150);
+        assert_eq!(snapshot.egress().len(), 2);
+        assert_eq!(snapshot.sessions().len(), 2);
+        assert_eq!(snapshot.clearances().len(), 2);
+
+        assert_eq!(snapshot.egress()[0].key(), &first_egress);
+        assert_eq!(snapshot.egress()[1].key(), &second_egress);
+        assert_eq!(
+            snapshot.egress()[0].channel(),
+            ProviderEgressChannel::GrokWeb
+        );
+        assert_eq!(
+            snapshot.egress()[0].state(),
+            ProviderEgressRuntimeState::Available
+        );
+        assert_eq!(
+            snapshot.egress()[1].state(),
+            ProviderEgressRuntimeState::Disabled
+        );
+        assert_eq!(snapshot.sessions()[0].key().channel(), first.identity());
+        assert_eq!(snapshot.sessions()[1].key().channel(), second.identity());
+        assert_eq!(snapshot.clearances()[0].key(), &first_clearance);
+        assert_eq!(snapshot.clearances()[1].key(), &second_clearance);
+        assert_eq!(
+            snapshot.clearances()[0].state(),
+            ProviderClearanceRuntimeState::Fresh { expires_at_ms: 250 }
+        );
+        assert_eq!(
+            snapshot.clearances()[1].state(),
+            ProviderClearanceRuntimeState::Invalid
+        );
+
+        let debug = format!("{snapshot:?}");
+        assert!(!debug.contains("shared-account"));
+        assert!(!debug.contains("shared-node"));
+        assert!(!debug.contains("generation"));
+        assert!(!debug.contains("owner"));
+        let clearance_debug = format!("{:?}", snapshot.clearances()[0]);
+        assert!(!clearance_debug.contains("generation"));
+        assert!(!clearance_debug.contains("owner"));
+        assert!(!clearance_debug.contains("shared-account"));
+        assert!(!clearance_debug.contains("shared-node"));
+        assert!(!clearance_debug.contains("http://"));
+        assert!(!clearance_debug.contains("https://"));
+        Ok(())
+    }
+
+    #[test]
+    fn snapshot_deadline_projection_is_effective_only_and_never_writes_back()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let web = capability("grok", "grok-a", "web", ProviderEgressChannel::GrokWeb)?;
+        let runtime =
+            ProviderEgressRuntime::new(ProviderChannelCapabilityRegistry::try_new(vec![
+                web.clone(),
+            ])?);
+        let target = ProviderEgressTargetIdentity::named("sticky-node")?;
+        let egress = ProviderEgressStateKey::new(web.identity().clone(), target.clone());
+        runtime.set_egress_state(
+            egress,
+            ProviderEgressRuntimeState::CoolingDown { until_ms: 200 },
+            100,
+        )?;
+        let session = ProviderSessionStateKey::try_new(
+            web.identity().clone(),
+            CredentialId::try_new("web-account")?,
+            1,
+            1,
+        )?;
+        runtime.set_session_state(
+            session.clone(),
+            ProviderSessionRuntimeState::Active { expires_at_ms: 200 },
+            100,
+        )?;
+        let clearance = ProviderClearanceStateKey::try_new(session, target, 1)?;
+        runtime.set_clearance_state(
+            clearance,
+            ProviderClearanceRuntimeState::Fresh { expires_at_ms: 200 },
+            100,
+        )?;
+
+        let expired = runtime.snapshot_at(200)?;
+        assert_eq!(expired.revision(), 3);
+        assert_eq!(
+            expired.egress()[0].state(),
+            ProviderEgressRuntimeState::Available
+        );
+        assert_eq!(
+            expired.sessions()[0].state(),
+            ProviderSessionRuntimeState::Expired
+        );
+        assert_eq!(
+            expired.clearances()[0].state(),
+            ProviderClearanceRuntimeState::Expired
+        );
+
+        let before_deadline = runtime.snapshot_at(199)?;
+        assert_eq!(before_deadline.revision(), 3);
+        assert_eq!(
+            before_deadline.egress()[0].state(),
+            ProviderEgressRuntimeState::CoolingDown { until_ms: 200 }
+        );
+        assert_eq!(
+            before_deadline.sessions()[0].state(),
+            ProviderSessionRuntimeState::Active { expires_at_ms: 200 }
+        );
+        assert_eq!(
+            before_deadline.clearances()[0].state(),
+            ProviderClearanceRuntimeState::Fresh { expires_at_ms: 200 }
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn snapshot_rejects_unowned_or_orphaned_clearance_refresh_state()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let web = capability("grok", "grok-a", "web", ProviderEgressChannel::GrokWeb)?;
+        let runtime =
+            ProviderEgressRuntime::new(ProviderChannelCapabilityRegistry::try_new(vec![
+                web.clone(),
+            ])?);
+        let clearance = ProviderClearanceStateKey::try_new(
+            ProviderSessionStateKey::try_new(
+                web.identity().clone(),
+                CredentialId::try_new("web-account")?,
+                1,
+                1,
+            )?,
+            ProviderEgressTargetIdentity::named("sticky-node")?,
+            1,
+        )?;
+        assert_eq!(
+            runtime.set_clearance_state(
+                clearance.clone(),
+                ProviderClearanceRuntimeState::RefreshInFlight { expires_at_ms: 200 },
+                100,
+            ),
+            Err(ProviderEgressRuntimeError::ClearanceRefreshOwnershipInconsistent)
+        );
+        runtime.set_clearance_state(
+            clearance.clone(),
+            ProviderClearanceRuntimeState::RefreshRequired,
+            100,
+        )?;
+        let _ticket = runtime.begin_exact_clearance_refresh(&clearance, 100, 200)?;
+        assert_eq!(
+            runtime.snapshot_at(100)?.clearances()[0].state(),
+            ProviderClearanceRuntimeState::RefreshInFlight { expires_at_ms: 200 }
+        );
+
+        let owner = {
+            let mut inner = runtime
+                .state
+                .write()
+                .map_err(|_| std::io::Error::other("provider runtime lock poisoned"))?;
+            inner
+                .clearance_refresh_owners
+                .remove(&clearance)
+                .ok_or_else(|| std::io::Error::other("missing refresh owner"))?
+        };
+        assert_eq!(
+            runtime.snapshot_at(100),
+            Err(ProviderEgressRuntimeError::ClearanceRefreshOwnershipInconsistent)
+        );
+        {
+            let mut inner = runtime
+                .state
+                .write()
+                .map_err(|_| std::io::Error::other("provider runtime lock poisoned"))?;
+            inner.clearances.remove(&clearance);
+            inner.clearance_refresh_owners.insert(clearance, owner);
+        }
+        assert_eq!(
+            runtime.snapshot_at(100),
+            Err(ProviderEgressRuntimeError::ClearanceRefreshOwnershipInconsistent)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn snapshot_revision_and_three_domains_remain_atomic_during_writes()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let web = capability("grok", "grok-a", "web", ProviderEgressChannel::GrokWeb)?;
+        let runtime =
+            ProviderEgressRuntime::new(ProviderChannelCapabilityRegistry::try_new(vec![
+                web.clone(),
+            ])?);
+        let target = ProviderEgressTargetIdentity::named("sticky-node")?;
+        let egress = ProviderEgressStateKey::new(web.identity().clone(), target.clone());
+        runtime.set_egress_state(egress.clone(), ProviderEgressRuntimeState::Available, 100)?;
+        let session = ProviderSessionStateKey::try_new(
+            web.identity().clone(),
+            CredentialId::try_new("web-account")?,
+            1,
+            1,
+        )?;
+        runtime.set_session_state(
+            session.clone(),
+            ProviderSessionRuntimeState::Active { expires_at_ms: 500 },
+            100,
+        )?;
+        let clearance = ProviderClearanceStateKey::try_new(session, target, 1)?;
+        runtime.set_clearance_state(
+            clearance,
+            ProviderClearanceRuntimeState::Fresh { expires_at_ms: 500 },
+            100,
+        )?;
+
+        let barrier = Arc::new(Barrier::new(2));
+        let writer_runtime = runtime.clone();
+        let writer_barrier = Arc::clone(&barrier);
+        let writer = thread::spawn(move || -> Result<(), ProviderEgressRuntimeError> {
+            writer_barrier.wait();
+            for step in 0..200 {
+                let state = if step % 2 == 0 {
+                    ProviderEgressRuntimeState::Disabled
+                } else {
+                    ProviderEgressRuntimeState::Available
+                };
+                writer_runtime.set_egress_state(egress.clone(), state, 150)?;
+                thread::yield_now();
+            }
+            Ok(())
+        });
+
+        barrier.wait();
+        for _ in 0..500 {
+            let snapshot = runtime.snapshot_at(150)?;
+            let egress_state = snapshot.egress()[0].state();
+            let expected_egress = if snapshot.revision() % 2 == 0 {
+                ProviderEgressRuntimeState::Disabled
+            } else {
+                ProviderEgressRuntimeState::Available
+            };
+            assert_eq!(egress_state, expected_egress);
+            assert_eq!(snapshot.observed_at_ms(), 150);
+            assert_eq!(snapshot.egress().len(), 1);
+            assert_eq!(snapshot.sessions().len(), 1);
+            assert_eq!(snapshot.clearances().len(), 1);
+            assert_eq!(
+                snapshot.sessions()[0].state(),
+                ProviderSessionRuntimeState::Active { expires_at_ms: 500 }
+            );
+            assert_eq!(
+                snapshot.clearances()[0].state(),
+                ProviderClearanceRuntimeState::Fresh { expires_at_ms: 500 }
+            );
+            thread::yield_now();
+        }
+        writer
+            .join()
+            .map_err(|_| std::io::Error::other("provider runtime writer panicked"))??;
+        assert_eq!(runtime.snapshot_at(150)?.revision(), 203);
+        Ok(())
+    }
+
+    #[test]
+    fn runtime_revision_advances_only_for_mutation_and_overflow_is_atomic()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let web = capability("grok", "grok-a", "web", ProviderEgressChannel::GrokWeb)?;
+        let runtime =
+            ProviderEgressRuntime::new(ProviderChannelCapabilityRegistry::try_new(vec![
+                web.clone(),
+            ])?);
+        let target = ProviderEgressTargetIdentity::named("sticky-node")?;
+        let egress = ProviderEgressStateKey::new(web.identity().clone(), target.clone());
+        let session = ProviderSessionStateKey::try_new(
+            web.identity().clone(),
+            CredentialId::try_new("web-account")?,
+            1,
+            1,
+        )?;
+        let clearance = ProviderClearanceStateKey::try_new(session.clone(), target, 1)?;
+        assert_eq!(runtime.snapshot_at(100)?.revision(), 0);
+
+        runtime.set_egress_state(egress.clone(), ProviderEgressRuntimeState::Available, 100)?;
+        assert_eq!(runtime.snapshot_at(100)?.revision(), 1);
+        runtime.set_egress_state(egress.clone(), ProviderEgressRuntimeState::Available, 100)?;
+        assert_eq!(runtime.snapshot_at(100)?.revision(), 1);
+        runtime.set_session_state(
+            session,
+            ProviderSessionRuntimeState::Active { expires_at_ms: 300 },
+            100,
+        )?;
+        runtime.set_clearance_state(
+            clearance.clone(),
+            ProviderClearanceRuntimeState::RefreshRequired,
+            100,
+        )?;
+        assert_eq!(runtime.snapshot_at(100)?.revision(), 3);
+        runtime.require_exact_clearance_refresh(&clearance, 101)?;
+        assert_eq!(runtime.snapshot_at(101)?.revision(), 3);
+        let ticket = runtime.begin_exact_clearance_refresh(&clearance, 101, 200)?;
+        assert_eq!(runtime.snapshot_at(101)?.revision(), 4);
+        runtime.fail_exact_clearance_refresh(
+            &ticket,
+            102,
+            ProviderClearanceRefreshFailure::RetryRequired,
+        )?;
+        assert_eq!(runtime.snapshot_at(102)?.revision(), 5);
+
+        let generation_before_overflow = {
+            let mut inner = runtime
+                .state
+                .write()
+                .map_err(|_| std::io::Error::other("provider runtime lock poisoned"))?;
+            inner.state_revision = u64::MAX;
+            inner.next_clearance_refresh_generation
+        };
+        assert_eq!(
+            runtime.begin_exact_clearance_refresh(&clearance, 103, 201),
+            Err(ProviderEgressRuntimeError::RuntimeStateRevisionExhausted)
+        );
+        let overflow_snapshot = runtime.snapshot_at(103)?;
+        assert_eq!(overflow_snapshot.revision(), u64::MAX);
+        assert_eq!(
+            overflow_snapshot.clearances()[0].state(),
+            ProviderClearanceRuntimeState::RefreshRequired
+        );
+        let inner = runtime
+            .state
+            .read()
+            .map_err(|_| std::io::Error::other("provider runtime lock poisoned"))?;
+        assert_eq!(
+            inner.next_clearance_refresh_generation,
+            generation_before_overflow
+        );
+        assert!(!inner.clearance_refresh_owners.contains_key(&clearance));
+        Ok(())
+    }
+
+    #[test]
+    fn expired_refresh_is_read_only_effective_then_normalized_by_owned_mutation()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let web = capability("grok", "grok-a", "web", ProviderEgressChannel::GrokWeb)?;
+        let runtime =
+            ProviderEgressRuntime::new(ProviderChannelCapabilityRegistry::try_new(vec![
+                web.clone(),
+            ])?);
+        let clearance = ProviderClearanceStateKey::try_new(
+            ProviderSessionStateKey::try_new(
+                web.identity().clone(),
+                CredentialId::try_new("web-account")?,
+                1,
+                1,
+            )?,
+            ProviderEgressTargetIdentity::named("sticky-node")?,
+            1,
+        )?;
+        runtime.set_clearance_state(
+            clearance.clone(),
+            ProviderClearanceRuntimeState::RefreshRequired,
+            100,
+        )?;
+        let ticket = runtime.begin_exact_clearance_refresh(&clearance, 100, 120)?;
+        let effective = runtime.snapshot_at(120)?;
+        assert_eq!(effective.revision(), 2);
+        assert_eq!(
+            effective.clearances()[0].state(),
+            ProviderClearanceRuntimeState::RefreshRequired
+        );
+
+        assert_eq!(
+            runtime.complete_exact_clearance_refresh(&ticket, 120, 300),
+            Err(ProviderEgressRuntimeError::ClearanceRefreshTicketExpired)
+        );
+        let normalized = runtime.snapshot_at(120)?;
+        assert_eq!(normalized.revision(), 3);
+        assert_eq!(
+            normalized.clearances()[0].state(),
+            ProviderClearanceRuntimeState::RefreshRequired
+        );
+        {
+            let inner = runtime
+                .state
+                .read()
+                .map_err(|_| std::io::Error::other("provider runtime lock poisoned"))?;
+            assert!(!inner.clearance_refresh_owners.contains_key(&clearance));
+        }
+
+        let replacement = runtime.begin_exact_clearance_refresh(&clearance, 120, 140)?;
+        assert_eq!(runtime.snapshot_at(120)?.revision(), 4);
+        assert_eq!(
+            runtime.fail_exact_clearance_refresh(
+                &replacement,
+                140,
+                ProviderClearanceRefreshFailure::RetryRequired,
+            ),
+            Err(ProviderEgressRuntimeError::ClearanceRefreshTicketExpired)
+        );
+        let failure_normalized = runtime.snapshot_at(140)?;
+        assert_eq!(failure_normalized.revision(), 5);
+        assert_eq!(
+            failure_normalized.clearances()[0].state(),
+            ProviderClearanceRuntimeState::RefreshRequired
+        );
+        Ok(())
+    }
+
+    #[test]
     fn deterministic_deadlines_and_sticky_loss_fail_closed()
     -> Result<(), Box<dyn std::error::Error>> {
         let web = capability("grok", "grok-a", "web", ProviderEgressChannel::GrokWeb)?;
@@ -1944,9 +2725,10 @@ mod tests {
         )?;
         runtime.set_clearance_state(
             clearance.clone(),
-            ProviderClearanceRuntimeState::RefreshInFlight { expires_at_ms: 500 },
+            ProviderClearanceRuntimeState::RefreshRequired,
             400,
         )?;
+        let _ticket = runtime.begin_exact_clearance_refresh(&clearance, 400, 500)?;
         assert_eq!(
             runtime.clearance_state_at(&clearance, 500)?,
             ProviderClearanceRuntimeState::RefreshRequired
@@ -2060,11 +2842,8 @@ mod tests {
             ProviderClearanceRuntimeState::Fresh { expires_at_ms: 400 }
         );
 
-        runtime.set_clearance_state(
-            clearance.clone(),
-            ProviderClearanceRuntimeState::RefreshInFlight { expires_at_ms: 110 },
-            105,
-        )?;
+        runtime.require_exact_clearance_refresh(&clearance, 105)?;
+        let _expired_ticket = runtime.begin_exact_clearance_refresh(&clearance, 105, 110)?;
         runtime.require_exact_clearance_refresh(&clearance, 110)?;
         assert_eq!(
             runtime.clearance_state_at(&clearance, 110)?,

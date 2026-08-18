@@ -171,3 +171,10 @@ blocker. E0-E3 are `DONE_WITH_BOUNDARY`: immutable annotated tag
 passed Authorize, Fast, Full supply-chain, and Required. Build/Console native fixed/pool egress and
 the production Web transport are not included. E4 remains `DEFERRED_OPTIONAL`, and E5 remains
 `DEFERRED_UNAUTHORIZED`.
+
+After this contract's E0-E3 formal closeout, the user separately authorized the optional E4
+read-only management projection under
+[BC-MGMT-019](BC-MGMT-019-provider-specific-egress-runtime-status.md) and
+[CR-P13-11E4-PROVIDER-EGRESS-STATUS-001](../change-requests/CR-P13-11E4-PROVIDER-EGRESS-STATUS-001.md).
+That successor is not evidence covered by this contract's immutable tag/Gate and does not alter the
+E0-E3 result. E5 remains separately unauthorized.

@@ -129,3 +129,11 @@ Authorize（3s）、Fast（6m41s）、Full supply-chain（1m03s）和 Required�
 
 E0/E1/E2/E3 的 checklist 是设计与本地实现边界 review，不是 E4/E5 或真实网络验收；未勾选的
 实现证据不会被本 CR 伪装成已完成。
+
+## 8. Successor note
+
+After E0-E3 formal closeout, the user separately authorized the optional E4 read-only management
+projection under
+[CR-P13-11E4-PROVIDER-EGRESS-STATUS-001](CR-P13-11E4-PROVIDER-EGRESS-STATUS-001.md).
+That successor does not belong to this CR's immutable tag/Gate and does not change the E0-E3
+`DONE_WITH_BOUNDARY` result. E5 remains separately unauthorized.

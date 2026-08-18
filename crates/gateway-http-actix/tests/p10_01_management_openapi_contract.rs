@@ -117,6 +117,121 @@ fn provider_account_operator_contract_is_bounded_audited_and_value_free() -> Tes
 }
 
 #[test]
+fn provider_egress_status_contract_is_read_only_closed_and_value_free() -> TestResult {
+    let document = document()?;
+    let paths = object(&document, "paths")?;
+    let path = &paths["/admin/operations/provider-egress-status"];
+    let operation = &path["get"];
+    assert_eq!(operation["operationId"], "listProviderEgressStatus");
+    assert_eq!(operation["x-delivery-phase"], "P13-11E4");
+    assert!(operation.get("requestBody").is_none());
+    assert!(operation.get("x-audit-action").is_none());
+    assert!(path.get("post").is_none());
+    assert!(path.get("patch").is_none());
+    assert!(path.get("delete").is_none());
+    for status in ["200", "400", "409", "503", "default"] {
+        assert!(
+            operation["responses"].get(status).is_some(),
+            "missing {status}"
+        );
+    }
+
+    let parameters =
+        operation_parameters(&document, "/admin/operations/provider-egress-status", "get")?;
+    assert_eq!(parameters.len(), 9);
+    assert!(
+        parameters
+            .iter()
+            .any(|parameter| parameter["$ref"] == "#/components/parameters/ConfigVersion")
+    );
+    assert!(
+        !parameters
+            .iter()
+            .any(|parameter| parameter["$ref"] == "#/components/parameters/IfMatch")
+    );
+    for name in [
+        "ProviderEgressStatusProviderId",
+        "ProviderEgressStatusUpstreamId",
+        "ProviderEgressStatusChannelId",
+        "ProviderEgressStatusDomain",
+        "ProviderEgressStatusState",
+        "ProviderEgressStatusCredentialId",
+        "ProviderEgressStatusLimit",
+        "ProviderEgressStatusCursor",
+    ] {
+        let reference = format!("#/components/parameters/{name}");
+        assert!(
+            parameters
+                .iter()
+                .any(|parameter| parameter["$ref"] == reference),
+            "missing query parameter {name}"
+        );
+    }
+
+    let schemas = object(&document["components"], "schemas")?;
+    let page = &schemas["ProviderEgressStatusPage"];
+    assert_eq!(page["additionalProperties"], false);
+    assert_eq!(page["properties"]["items"]["maxItems"], 100);
+    assert_eq!(
+        page["properties"]["next_cursor"]["anyOf"][0]["maxLength"],
+        4_096
+    );
+    assert_eq!(
+        document["components"]["parameters"]["ProviderEgressStatusCursor"]["schema"]["maxLength"],
+        4_096
+    );
+    let success = &document["components"]["responses"]["ProviderEgressStatusPage"];
+    assert_eq!(
+        success["headers"]["Cache-Control"]["schema"]["const"],
+        "no-store"
+    );
+    assert!(success["headers"].get("ETag").is_some());
+    assert_provider_egress_status_item_schemas(schemas)?;
+    Ok(())
+}
+
+fn assert_provider_egress_status_item_schemas(
+    schemas: &serde_json::Map<String, Value>,
+) -> TestResult {
+    let union = &schemas["ProviderEgressStatusItem"];
+    assert_eq!(union["oneOf"].as_array().map(Vec::len), Some(3));
+    assert_eq!(union["discriminator"]["propertyName"], "domain");
+    for (schema_name, domain) in [
+        ("ProviderEgressStatusEgressItem", "egress"),
+        ("ProviderEgressStatusSessionItem", "session"),
+        ("ProviderEgressStatusClearanceItem", "clearance"),
+    ] {
+        let schema = &schemas[schema_name];
+        assert_eq!(schema["additionalProperties"], false);
+        assert_eq!(
+            schema["properties"]["domain"]["enum"],
+            serde_json::json!([domain])
+        );
+        let properties = object(schema, "properties")?;
+        for forbidden in [
+            "url",
+            "proxy_url",
+            "proxy_endpoint",
+            "headers",
+            "cookie",
+            "token",
+            "secret",
+            "ciphertext",
+            "request_body",
+            "raw_error",
+            "ticket",
+            "generation",
+        ] {
+            assert!(
+                !properties.contains_key(forbidden),
+                "{schema_name} exposes {forbidden}"
+            );
+        }
+    }
+    Ok(())
+}
+
+#[test]
 fn routing_price_policy_contract_is_closed_revisioned_and_value_free() -> TestResult {
     let document = document()?;
     let paths = object(&document, "paths")?;
@@ -514,7 +629,7 @@ fn operation_parameters(
     Ok(parameters)
 }
 
-fn required_operations() -> [(&'static str, &'static str); 57] {
+fn required_operations() -> [(&'static str, &'static str); 58] {
     [
         ("/admin/config-versions", "get"),
         ("/admin/config-versions", "post"),
@@ -577,6 +692,7 @@ fn required_operations() -> [(&'static str, &'static str); 57] {
         ("/admin/runtime/availability", "get"),
         ("/admin/runtime/quota/reset", "post"),
         ("/admin/operations/account-pools", "get"),
+        ("/admin/operations/provider-egress-status", "get"),
         ("/admin/operations/channel-pin", "post"),
         ("/admin/operations/provider-account-pools", "get"),
         ("/admin/operations/provider-account-pools/actions", "post"),

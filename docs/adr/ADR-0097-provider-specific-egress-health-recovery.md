@@ -117,3 +117,9 @@ closeout commit `ba2261a5414fe73d147a102a266abd3e9a7fbb5b`, and formal Delivery 
 passed Authorize, Fast, Full supply-chain, and Required. Optional E4 management projection remains
 `DEFERRED_OPTIONAL`, while E5 remains `DEFERRED_UNAUTHORIZED`; both are separate acceptance
 boundaries and do not start automatically.
+
+After this ADR's E0-E3 formal closeout, the user separately authorized E4 under
+[ADR-0098](ADR-0098-provider-specific-egress-management-projection.md) and
+[CR-P13-11E4-PROVIDER-EGRESS-STATUS-001](../change-requests/CR-P13-11E4-PROVIDER-EGRESS-STATUS-001.md).
+That successor adds a new management acceptance boundary; it does not amend this ADR's accepted
+runtime decision or the immutable E0-E3 tag/Gate. E5 remains unauthorized.

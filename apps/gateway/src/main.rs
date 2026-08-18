@@ -8,6 +8,7 @@
 mod deployment;
 mod grok_admin;
 mod provider_account_pool_adapter;
+mod provider_egress_status_adapter;
 mod runtime;
 
 use std::{collections::BTreeMap, env, error::Error, fmt, process::ExitCode};

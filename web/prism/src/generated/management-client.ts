@@ -1422,6 +1422,59 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "listProviderEgressStatus": {
+    "method": "GET",
+    "path": "/admin/operations/provider-egress-status",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "provider_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "upstream_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "channel_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "domain",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "state",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "credential_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "listPublicModels": {
     "method": "GET",
     "path": "/admin/public-models",
@@ -2391,6 +2444,10 @@ export class ManagementApi {
 
   listProviderAccountPools(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listProviderAccountPools", request);
+  }
+
+  listProviderEgressStatus(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listProviderEgressStatus", request);
   }
 
   listPublicModels(request: ManagementRequest = {}): Promise<Response> {

@@ -27,6 +27,9 @@ use std::{
 
 use futures_util::future::BoxFuture;
 
+use crate::provider_egress_status_adapter::{
+    ProviderEgressStatusAdapter, SystemProviderEgressStatusClock,
+};
 use gateway_auth::client_key::ClientKeyService;
 use gateway_catalog::{
     CapabilitySet, CatalogView, EndpointCapabilityEntry, EndpointCapabilityView, SemanticCapability,
@@ -42,6 +45,9 @@ use gateway_control::{
     provider_account_pool_service::{
         ProviderAccountAuthStatus, ProviderAccountPoolFacade, ProviderAccountRuntimeStatus,
         RejectingProviderAccountPoolFacade,
+    },
+    provider_egress_status_service::{
+        ProviderEgressStatusFacade, RejectingProviderEgressStatusFacade,
     },
     route_compiler::RouteCompiler,
     routing_price_policy_service::{RoutingPriceSnapshot, compile_routing_price_snapshot},
@@ -101,11 +107,11 @@ use gateway_router::{
 };
 use gateway_store::{
     control_plane::{
-        CompatibleEgressTargetConfiguration, ConfigVersionStatus, ControlPlaneConfiguration,
-        CredentialScope, CredentialStatus, EndpointConfiguration, EndpointTransport, RoutePolicy,
-        RoutingPriceComparison, SqliteControlPlaneRepository, StoredClientKeyStatus,
-        StoredCompatibleFailureScope, StoredCompatibleStickiness, StoredEgressRedirectMode,
-        TransformMode,
+        CompatibleEgressTargetConfiguration, ConfigVersionId, ConfigVersionStatus,
+        ControlPlaneConfiguration, CredentialScope, CredentialStatus, EndpointConfiguration,
+        EndpointTransport, RoutePolicy, RoutingPriceComparison, SqliteControlPlaneRepository,
+        StoredClientKeyStatus, StoredCompatibleFailureScope, StoredCompatibleStickiness,
+        StoredEgressRedirectMode, TransformMode,
     },
     event_store::{
         AsyncSqliteEventWriter, EventWriterConfig, EventWriterMetricsHandle, SqliteEventStore,
@@ -449,6 +455,10 @@ const P12_OPERATOR_RECOVERY_TTL_MS: i64 = 30_000;
 const P13_PROVIDER_ACCOUNT_POOL_SNAPSHOT_TTL: Duration = Duration::from_secs(5);
 /// Cursor-bearing readers may finish a bounded multi-page traversal after the latest view refreshes.
 const P13_PROVIDER_ACCOUNT_POOL_CURSOR_RETENTION: Duration = Duration::from_mins(2);
+/// Provider-specific egress status snapshots refresh independently from account-pool pages.
+const P13_PROVIDER_EGRESS_STATUS_SNAPSHOT_TTL: Duration = Duration::from_secs(5);
+/// Retained cursor pages remain immutable for this bounded period.
+const P13_PROVIDER_EGRESS_STATUS_CURSOR_RETENTION: Duration = Duration::from_mins(2);
 static P13_CHANNEL_PIN_REQUEST_COUNTER: AtomicU64 = AtomicU64::new(1);
 static P13_CHANNEL_PIN_BOOT_NONCE: OnceLock<Result<String, ()>> = OnceLock::new();
 
@@ -481,6 +491,8 @@ pub(crate) struct DataPlaneComposition {
     pub(crate) management_runtime: Box<dyn ManagementRuntimeFacade>,
     /// Read-only projection over the exact account pools and runtime registries used by routing.
     pub(crate) provider_account_pools: Box<dyn ProviderAccountPoolFacade>,
+    /// Read-only Provider-specific egress/session/clearance status projection.
+    pub(crate) provider_egress_status: Box<dyn ProviderEgressStatusFacade>,
     /// Management-only one-shot Channel Pin executor sharing the serving pools and snapshot.
     pub(crate) channel_pin: Box<dyn ManagementChannelPinFacade>,
     /// Management-listener exposition over the shared bounded telemetry registry.
@@ -494,12 +506,14 @@ type ProviderAccountPoolComposition = (
     Arc<dyn ResponsesExecutor>,
     Box<dyn ProviderAccountPoolFacade>,
     Option<Arc<RouteCredentialScheduler>>,
+    Box<dyn ProviderEgressStatusFacade>,
     Box<dyn ManagementChannelPinFacade>,
 );
 type P12ExecutorComposition = (
     P12RoutedResponsesExecutor,
     Box<dyn ProviderAccountPoolFacade>,
     Arc<RouteCredentialScheduler>,
+    Box<dyn ProviderEgressStatusFacade>,
 );
 
 /// Returns the fixed compiler evidence for every Endpoint stored in the control database.
@@ -667,8 +681,13 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
         Arc::clone(&event_queue),
     ));
     let mut routing_price_snapshot: Option<Arc<RoutingPriceSnapshot>> = None;
-    let (executor, provider_account_pools, route_explain_scheduler, channel_pin):
-        ProviderAccountPoolComposition = match repository
+    let (
+        executor,
+        provider_account_pools,
+        route_explain_scheduler,
+        provider_egress_status,
+        channel_pin,
+    ): ProviderAccountPoolComposition = match repository
         .load_active_configuration()
         .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::ControlPlane))?
     {
@@ -698,7 +717,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
                 })?;
                 routing_price_snapshot = Some(Arc::new(compiled));
             }
-            let (executor, provider_account_pools, route_explain_scheduler) =
+            let (executor, provider_account_pools, route_explain_scheduler, provider_egress_status) =
                 P12RoutedResponsesExecutor::try_new(
                     database,
                     &configuration,
@@ -720,6 +739,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
                 executor,
                 provider_account_pools,
                 Some(route_explain_scheduler),
+                provider_egress_status,
                 channel_pin,
             )
         }
@@ -727,6 +747,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
             Arc::new(NoActiveConfigurationExecutor),
             Box::new(RejectingProviderAccountPoolFacade::new()),
             None,
+            Box::new(RejectingProviderEgressStatusFacade::new()),
             Box::new(RejectingManagementChannelPinFacade::new()),
         ),
     };
@@ -763,6 +784,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
             event_store,
         }),
         provider_account_pools,
+        provider_egress_status,
         channel_pin,
         observability: ManagementObservabilityHttpState::new(telemetry_metrics, event_queue)
             .with_durability(Arc::new(P12DurabilityMetrics::new(
@@ -1232,10 +1254,18 @@ impl P12RoutedResponsesExecutor {
         // E2's Provider-specific state is a rejecting, native-only seam.  A malformed/missing
         // E2 descriptor must not stop the generic compatible data plane from serving; native
         // Build/Console attempts will fail closed before adapter/network invocation instead.
-        let native_grok_egress =
-            P13NativeGrokEgressRuntime::try_new(configuration, pools.as_ref(), observed_at_ms)
-                .ok()
-                .flatten();
+        let native_grok_egress_result =
+            P13NativeGrokEgressRuntime::try_new(configuration, pools.as_ref(), observed_at_ms);
+        let native_grok_egress = native_grok_egress_result
+            .as_ref()
+            .ok()
+            .and_then(Clone::clone);
+        let provider_egress_status = provider_egress_status_facade(
+            configuration.version.id.clone(),
+            ConfigRevision::try_new(configuration.version.revision)
+                .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::Snapshot))?,
+            native_grok_egress_result,
+        );
         let provider_account_pools = provider_account_pool_facade(
             configuration.version.id.as_str().to_owned(),
             provider_account_descriptors,
@@ -1316,6 +1346,7 @@ impl P12RoutedResponsesExecutor {
             },
             provider_account_pools,
             route_explain_scheduler,
+            provider_egress_status,
         ))
     }
 
@@ -2214,6 +2245,29 @@ fn provider_account_pool_facade(
             |_| Box::new(RejectingProviderAccountPoolFacade::new()) as Box<_>,
             |adapter| Box::new(adapter) as Box<_>,
         )
+}
+
+fn provider_egress_status_facade(
+    config_version_id: ConfigVersionId,
+    config_revision: ConfigRevision,
+    native_runtime: Result<Option<Arc<P13NativeGrokEgressRuntime>>, ProviderEgressRuntimeError>,
+) -> Box<dyn ProviderEgressStatusFacade> {
+    let runtime = match native_runtime {
+        Ok(runtime) => runtime.map(|value| Arc::clone(&value.runtime)),
+        Err(_) => return Box::new(RejectingProviderEgressStatusFacade::new()),
+    };
+    ProviderEgressStatusAdapter::try_new(
+        config_version_id,
+        config_revision,
+        runtime,
+        Arc::new(SystemProviderEgressStatusClock),
+        P13_PROVIDER_EGRESS_STATUS_SNAPSHOT_TTL,
+        P13_PROVIDER_EGRESS_STATUS_CURSOR_RETENTION,
+    )
+    .map_or_else(
+        |_| Box::new(RejectingProviderEgressStatusFacade::new()) as Box<_>,
+        |adapter| Box::new(adapter) as Box<_>,
+    )
 }
 
 fn provider_account_models(
@@ -7098,7 +7152,9 @@ mod tests {
         control_plane_service::{credential_associated_data, seal_compatible_proxy_node_endpoint},
         credential_pool_compiler::CredentialPoolCompiler,
         egress_policy_compiler::EgressPolicyCompiler,
+        management_mutation_service::ConfigRevision,
         management_service::{ManagementActor, ManagementService},
+        provider_egress_status_service::{ProviderEgressStatusError, ProviderEgressStatusQuery},
     };
     use gateway_core::{
         AccessGroupId, AttemptEvent, AttemptOutcome, AttemptRetryDecision, CanonicalEvent,
@@ -7125,14 +7181,14 @@ mod tests {
     use gateway_router::{
         AttemptDriver, AttemptFailure, AttemptOrchestrator, DeterministicMockEmission,
         DeterministicMockResponsesExecutor, NativePayloadAvailability, ProjectedProtocolRequest,
-        ProtocolFormat, ProtocolTransformInput, ResponsesClientTransport, ResponsesEventSource,
-        ResponsesExecution, ResponsesExecutor, ResponsesFuture, ResponsesResponseMode,
-        RouteCredentialScheduler, RouteSnapshot, RouteSnapshotInput, RouteSnapshotRegistry,
-        RuntimeCredentialAccountStatus, RuntimeHealthClock, RuntimeHealthClockError,
-        RuntimeHealthRegistry, RuntimeQuotaRegistry, RuntimeQuotaTarget, SnapshotCatalogAdmission,
-        SnapshotPublicModel, SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput,
-        SnapshotRoutePolicy, SnapshotTransformMode, SnapshotVersion,
-        project_registered_protocol_request,
+        ProtocolFormat, ProtocolTransformInput, ProviderEgressRuntimeError,
+        ResponsesClientTransport, ResponsesEventSource, ResponsesExecution, ResponsesExecutor,
+        ResponsesFuture, ResponsesResponseMode, RouteCredentialScheduler, RouteSnapshot,
+        RouteSnapshotInput, RouteSnapshotRegistry, RuntimeCredentialAccountStatus,
+        RuntimeHealthClock, RuntimeHealthClockError, RuntimeHealthRegistry, RuntimeQuotaRegistry,
+        RuntimeQuotaTarget, SnapshotCatalogAdmission, SnapshotPublicModel, SnapshotRoute,
+        SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
+        SnapshotTransformMode, SnapshotVersion, project_registered_protocol_request,
     };
     use gateway_store::{
         billing_ledger::{BillingCatalogSource, BillingPriceCatalog, BillingPriceEntry},
@@ -7201,11 +7257,32 @@ mod tests {
         p12_candidate_override_is_admissible, p12_classify_kiro_start_failure,
         p12_kiro_endpoint_shape, p12_kiro_request_projection, p12_openai_compatible_request,
         p12_response_usage_projection, p12_transport_headers, p12_transport_request,
-        p13_channel_pin_request_id, project_usage_events, queue_event, validate_endpoint_shape,
-        validate_p12_credential_bindings,
+        p13_channel_pin_request_id, project_usage_events, provider_egress_status_facade,
+        queue_event, validate_endpoint_shape, validate_p12_credential_bindings,
     };
 
     const P12_SINGLETON_TEST_ENDPOINT_ID: &str = "p12-krill-endpoint";
+
+    #[test]
+    fn provider_egress_compiler_failure_selects_the_rejecting_management_source()
+    -> Result<(), Box<dyn Error>> {
+        let version = ConfigVersionId::try_new("egress-status-v1")?;
+        let revision = ConfigRevision::try_new(3)?;
+        let facade = provider_egress_status_facade(
+            version.clone(),
+            revision,
+            Err(ProviderEgressRuntimeError::InvalidIdentity),
+        );
+        assert_eq!(
+            facade.list_provider_egress_status(
+                &version,
+                revision,
+                &ProviderEgressStatusQuery::default(),
+            ),
+            Err(ProviderEgressStatusError::SourceUnavailable)
+        );
+        Ok(())
+    }
 
     #[test]
     fn channel_pin_admission_is_bounded_and_releases_on_drop() -> Result<(), Box<dyn Error>> {
@@ -8568,20 +8645,21 @@ mod tests {
             Arc::new(P12AttemptEventSink::new(Arc::clone(&attempt_stages)));
         let runtime_health = Arc::new(RuntimeHealthRegistry::new());
         let runtime_quota = Arc::new(RuntimeQuotaRegistry::new());
-        let (executor, _account_pools, scheduler) = P12RoutedResponsesExecutor::try_new(
-            &database,
-            &configuration,
-            &secret_store,
-            Arc::clone(lifecycle.registry()),
-            Arc::clone(&attempt_stages),
-            event_sink,
-            runtime_health,
-            runtime_quota,
-            None,
-            None,
-            8191,
-            None,
-        )?;
+        let (executor, _account_pools, scheduler, _egress_status) =
+            P12RoutedResponsesExecutor::try_new(
+                &database,
+                &configuration,
+                &secret_store,
+                Arc::clone(lifecycle.registry()),
+                Arc::clone(&attempt_stages),
+                event_sink,
+                runtime_health,
+                runtime_quota,
+                None,
+                None,
+                8191,
+                None,
+            )?;
         let decoded = protocol_openai_responses::decode_request(
             r#"{"model":"primary","input":"must not reach a provider","stream":false}"#,
         )?;

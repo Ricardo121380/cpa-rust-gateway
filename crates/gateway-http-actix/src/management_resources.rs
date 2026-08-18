@@ -57,6 +57,14 @@ use gateway_control::provider_account_pool_service::{
     ProviderAccountPoolPage, ProviderAccountPoolQuery, ProviderAccountRuntimeStatus,
     RejectingProviderAccountPoolFacade,
 };
+use gateway_control::provider_egress_status_service::{
+    DEFAULT_PROVIDER_EGRESS_STATUS_LIMIT, MAX_PROVIDER_EGRESS_STATUS_CURSOR_LENGTH,
+    ProviderEgressStatusClearanceItem, ProviderEgressStatusCursor, ProviderEgressStatusDomain,
+    ProviderEgressStatusEgressItem, ProviderEgressStatusError, ProviderEgressStatusFacade,
+    ProviderEgressStatusItem, ProviderEgressStatusItemKey, ProviderEgressStatusPage,
+    ProviderEgressStatusQuery, ProviderEgressStatusSessionItem, ProviderEgressStatusState,
+    ProviderEgressStatusTargetKind, RejectingProviderEgressStatusFacade,
+};
 use gateway_core::{
     AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, GatewayProtocol,
     ProviderId, PublicModelId, RequestId, RouteCandidateId, RouteId, UpstreamId,
@@ -102,6 +110,7 @@ pub struct ManagementResourceHttpState {
     usage: Mutex<Box<dyn ManagementUsageFacade>>,
     failure_feedback: Mutex<Box<dyn ManagementFailureFeedbackFacade>>,
     provider_account_pools: Mutex<Box<dyn ProviderAccountPoolFacade>>,
+    provider_egress_status: Mutex<Box<dyn ProviderEgressStatusFacade>>,
     /// Credential ids with an in-flight refresh.  The claim spans decrypt, upstream refresh, and
     /// the revision-guarded persistence write so two HTTP callers can never spend the same
     /// rotating refresh token concurrently.
@@ -331,6 +340,9 @@ impl ManagementResourceHttpState {
             usage: Mutex::new(usage),
             failure_feedback: Mutex::new(Box::new(RejectingManagementFailureFeedbackFacade::new())),
             provider_account_pools: Mutex::new(Box::new(RejectingProviderAccountPoolFacade::new())),
+            provider_egress_status: Mutex::new(
+                Box::new(RejectingProviderEgressStatusFacade::new()),
+            ),
             oauth_refresh_claims: Mutex::new(BTreeSet::new()),
             runtime_clock,
         }
@@ -362,6 +374,18 @@ impl ManagementResourceHttpState {
         provider_account_pools: Box<dyn ProviderAccountPoolFacade>,
     ) -> Self {
         self.provider_account_pools = Mutex::new(provider_account_pools);
+        self
+    }
+
+    /// Replaces the fail-closed Provider-specific egress/session/clearance source with an
+    /// explicitly composed, read-only facade. This setter never creates a Provider client or
+    /// enables recovery actions.
+    #[must_use]
+    pub fn with_provider_egress_status(
+        mut self,
+        provider_egress_status: Box<dyn ProviderEgressStatusFacade>,
+    ) -> Self {
+        self.provider_egress_status = Mutex::new(provider_egress_status);
         self
     }
 
@@ -2459,6 +2483,10 @@ fn configure_operations_resource_routes(config: &mut web::ServiceConfig) {
             "/operations/provider-account-pools/failures",
             web::get().to(list_provider_account_failures),
         )
+        .route(
+            "/operations/provider-egress-status",
+            web::get().to(list_provider_egress_status),
+        )
         .route("/operations/usage", web::get().to(list_operational_usage));
     config.route(
         "/operations/billing",
@@ -3203,6 +3231,100 @@ struct ProviderAccountPoolPageResponse {
     observed_at_ms: i64,
     items: Vec<ProviderAccountPoolItemResponse>,
     next_cursor: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ProviderEgressStatusQueryParams {
+    provider_id: Option<String>,
+    upstream_id: Option<String>,
+    channel_id: Option<String>,
+    domain: Option<String>,
+    state: Option<String>,
+    credential_id: Option<String>,
+    limit: Option<usize>,
+    cursor: Option<String>,
+}
+
+#[derive(Serialize)]
+struct ProviderEgressStatusPageResponse {
+    config_version_id: String,
+    config_revision: i64,
+    runtime_revision: u64,
+    snapshot_id: String,
+    sampled_at_ms: i64,
+    items: Vec<ProviderEgressStatusItemResponse>,
+    next_cursor: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(tag = "domain")]
+enum ProviderEgressStatusItemResponse {
+    #[serde(rename = "egress")]
+    Egress {
+        provider_id: String,
+        upstream_id: String,
+        channel_id: String,
+        channel_kind: &'static str,
+        target_kind: &'static str,
+        target_id: Option<String>,
+        state: &'static str,
+        deadline_ms: Option<i64>,
+    },
+    #[serde(rename = "session")]
+    Session {
+        provider_id: String,
+        upstream_id: String,
+        channel_id: String,
+        channel_kind: &'static str,
+        credential_id: String,
+        credential_revision: u64,
+        session_revision: u64,
+        state: &'static str,
+        expires_at_ms: Option<i64>,
+    },
+    #[serde(rename = "clearance")]
+    Clearance {
+        provider_id: String,
+        upstream_id: String,
+        channel_id: String,
+        channel_kind: &'static str,
+        credential_id: String,
+        credential_revision: u64,
+        session_revision: u64,
+        target_kind: &'static str,
+        target_id: Option<String>,
+        clearance_revision: u64,
+        state: &'static str,
+        expires_at_ms: Option<i64>,
+    },
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ProviderEgressStatusCursorWire {
+    config_version_id: String,
+    config_revision: i64,
+    runtime_revision: u64,
+    snapshot_id: String,
+    sampled_at_ms: i64,
+    filter_fingerprint: String,
+    last_key: ProviderEgressStatusCursorKeyWire,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ProviderEgressStatusCursorKeyWire {
+    provider_id: String,
+    upstream_id: String,
+    channel_id: String,
+    domain: String,
+    credential_id: Option<String>,
+    credential_revision: Option<u64>,
+    session_revision: Option<u64>,
+    target_kind: Option<String>,
+    target_id: Option<String>,
+    clearance_revision: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -4036,6 +4158,122 @@ async fn list_provider_account_pools(
             Err(response) => response,
         },
         Err(error) => provider_account_pool_error(error),
+    }
+}
+
+#[allow(clippy::too_many_lines)]
+async fn list_provider_egress_status(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    if query_has_duplicate_keys(request.query_string()) {
+        return invalid_input();
+    }
+    let context = match read_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let params =
+        match web::Query::<ProviderEgressStatusQueryParams>::from_query(request.query_string()) {
+            Ok(params) => params.into_inner(),
+            Err(_) => return invalid_input(),
+        };
+    let provider_id = match params.provider_id {
+        Some(value) => match operational_query_id(value)
+            .and_then(|value| ProviderId::try_new(value).map_err(|_| invalid_input()))
+        {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let upstream_id = match params.upstream_id {
+        Some(value) => match operational_query_id(value)
+            .and_then(|value| UpstreamId::try_new(value).map_err(|_| invalid_input()))
+        {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let channel_id = match params.channel_id {
+        Some(value) => match operational_query_id(value)
+            .and_then(|value| EndpointId::try_new(value).map_err(|_| invalid_input()))
+        {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let credential_id = match params.credential_id {
+        Some(value) => match operational_query_id(value)
+            .and_then(|value| CredentialId::try_new(value).map_err(|_| invalid_input()))
+        {
+            Ok(value) => Some(value),
+            Err(response) => return response,
+        },
+        None => None,
+    };
+    let domain = match params.domain.as_deref() {
+        Some(value) => match value.parse::<ProviderEgressStatusDomain>() {
+            Ok(value) => Some(value),
+            Err(_) => return invalid_input(),
+        },
+        None => None,
+    };
+    let status = match params.state.as_deref() {
+        Some(value) => match value.parse::<ProviderEgressStatusState>() {
+            Ok(value) => Some(value),
+            Err(_) => return invalid_input(),
+        },
+        None => None,
+    };
+    let cursor = match params.cursor.as_deref() {
+        Some(value)
+            if !value.is_empty() && value.len() <= MAX_PROVIDER_EGRESS_STATUS_CURSOR_LENGTH =>
+        {
+            decode_provider_egress_status_cursor(value)
+        }
+        Some(_) => Err(ProviderEgressStatusError::InvalidQuery),
+        None => Ok(None),
+    };
+    let cursor = match cursor {
+        Ok(cursor) => cursor,
+        Err(error) => return provider_egress_status_error(error),
+    };
+    let query = match ProviderEgressStatusQuery::try_new(
+        provider_id,
+        upstream_id,
+        channel_id,
+        domain,
+        status,
+        credential_id,
+        params.limit.unwrap_or(DEFAULT_PROVIDER_EGRESS_STATUS_LIMIT),
+        cursor,
+    ) {
+        Ok(query) => query,
+        Err(error) => return provider_egress_status_error(error),
+    };
+    let revision = {
+        let mut management_service = match service(&state) {
+            Ok(service) => service,
+            Err(response) => return response,
+        };
+        match management_service.require_config_version(&context.version) {
+            Ok(revision) => revision,
+            Err(error) => return management_error(error),
+        }
+    };
+    let source = match provider_egress_status(&state) {
+        Ok(source) => source,
+        Err(response) => return response,
+    };
+    match source.list_provider_egress_status(&context.version, revision, &query) {
+        Ok(page) => match provider_egress_status_page_response(page) {
+            Ok(response) => response_with_revision(StatusCode::OK, revision, response),
+            Err(response) => response,
+        },
+        Err(error) => provider_egress_status_error(error),
     }
 }
 
@@ -6892,6 +7130,15 @@ fn provider_account_pools(
         .map_err(|_| internal_error())
 }
 
+fn provider_egress_status(
+    state: &web::Data<ManagementResourceHttpState>,
+) -> Result<std::sync::MutexGuard<'_, Box<dyn ProviderEgressStatusFacade>>, HttpResponse> {
+    state
+        .provider_egress_status
+        .lock()
+        .map_err(|_| provider_egress_status_error(ProviderEgressStatusError::SourceUnavailable))
+}
+
 fn channel_pin(
     state: &web::Data<ManagementResourceHttpState>,
 ) -> Result<std::sync::MutexGuard<'_, Box<dyn ManagementChannelPinFacade>>, HttpResponse> {
@@ -7827,6 +8074,28 @@ fn provider_account_pool_error(error: ProviderAccountPoolError) -> HttpResponse 
     }
 }
 
+fn provider_egress_status_error(error: ProviderEgressStatusError) -> HttpResponse {
+    match error {
+        ProviderEgressStatusError::InvalidQuery => invalid_input(),
+        ProviderEgressStatusError::CursorConflict => error_response(
+            StatusCode::CONFLICT,
+            "management_provider_egress_status_cursor_conflict",
+            "Provider egress status snapshot changed",
+        ),
+        ProviderEgressStatusError::ConfigConflict => error_response(
+            StatusCode::CONFLICT,
+            "management_provider_egress_status_config_conflict",
+            "Provider egress status configuration changed",
+        ),
+        ProviderEgressStatusError::SourceUnavailable
+        | ProviderEgressStatusError::InvalidSnapshot => error_response(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "management_runtime_unavailable",
+            "Management runtime is unavailable",
+        ),
+    }
+}
+
 fn channel_pin_error(error: ManagementChannelPinError) -> HttpResponse {
     match error {
         ManagementChannelPinError::InvalidTarget => error_response(
@@ -8119,6 +8388,11 @@ fn operational_query_id(value: String) -> Result<String, HttpResponse> {
     bounded_text(value, 128)
 }
 
+fn query_has_duplicate_keys(query: &str) -> bool {
+    let mut keys = BTreeSet::new();
+    url::form_urlencoded::parse(query.as_bytes()).any(|(key, _)| !keys.insert(key.into_owned()))
+}
+
 fn usage_query_id(value: Option<String>) -> Result<Option<String>, HttpResponse> {
     value.map(|value| bounded_text(value, 128)).transpose()
 }
@@ -8187,6 +8461,188 @@ fn encode_provider_account_pool_cursor(
     serde_json::to_vec(&wire)
         .map(|bytes| URL_SAFE_NO_PAD.encode(bytes))
         .map_err(|_| internal_error())
+}
+
+fn encode_provider_egress_status_cursor(
+    cursor: &ProviderEgressStatusCursor,
+) -> Result<String, HttpResponse> {
+    let key = cursor.last_key();
+    let wire = ProviderEgressStatusCursorWire {
+        config_version_id: cursor.config_version_id().as_str().to_owned(),
+        config_revision: cursor.config_revision().as_i64(),
+        runtime_revision: cursor.runtime_revision(),
+        snapshot_id: cursor.snapshot_id().to_owned(),
+        sampled_at_ms: cursor.sampled_at_ms(),
+        filter_fingerprint: cursor.filter_fingerprint().to_owned(),
+        last_key: ProviderEgressStatusCursorKeyWire {
+            provider_id: key.provider_id().as_str().to_owned(),
+            upstream_id: key.upstream_id().as_str().to_owned(),
+            channel_id: key.channel_id().as_str().to_owned(),
+            domain: key.domain().as_str().to_owned(),
+            credential_id: key.credential_id().map(|value| value.as_str().to_owned()),
+            credential_revision: key.credential_revision(),
+            session_revision: key.session_revision(),
+            target_kind: key
+                .target_kind()
+                .map(ProviderEgressStatusTargetKind::as_str)
+                .map(str::to_owned),
+            target_id: key.target_id().map(str::to_owned),
+            clearance_revision: key.clearance_revision(),
+        },
+    };
+    let encoded = serde_json::to_vec(&wire)
+        .map(|bytes| URL_SAFE_NO_PAD.encode(bytes))
+        .map_err(|_| provider_egress_status_error(ProviderEgressStatusError::SourceUnavailable))?;
+    if encoded.len() > MAX_PROVIDER_EGRESS_STATUS_CURSOR_LENGTH {
+        return Err(provider_egress_status_error(
+            ProviderEgressStatusError::InvalidSnapshot,
+        ));
+    }
+    Ok(encoded)
+}
+
+fn decode_provider_egress_status_cursor(
+    value: &str,
+) -> Result<Option<ProviderEgressStatusCursor>, ProviderEgressStatusError> {
+    let bytes = URL_SAFE_NO_PAD
+        .decode(value)
+        .map_err(|_| ProviderEgressStatusError::InvalidQuery)?;
+    if bytes.is_empty() || bytes.len() > 16 * 1024 {
+        return Err(ProviderEgressStatusError::InvalidQuery);
+    }
+    let wire: ProviderEgressStatusCursorWire =
+        serde_json::from_slice(&bytes).map_err(|_| ProviderEgressStatusError::InvalidQuery)?;
+    let config_version_id = ConfigVersionId::try_new(wire.config_version_id)
+        .map_err(|_| ProviderEgressStatusError::InvalidQuery)?;
+    let config_revision = ConfigRevision::try_new(wire.config_revision)
+        .map_err(|_| ProviderEgressStatusError::InvalidQuery)?;
+    let provider_id = ProviderId::try_new(wire.last_key.provider_id)
+        .map_err(|_| ProviderEgressStatusError::InvalidQuery)?;
+    let upstream_id = UpstreamId::try_new(wire.last_key.upstream_id)
+        .map_err(|_| ProviderEgressStatusError::InvalidQuery)?;
+    let channel_id = EndpointId::try_new(wire.last_key.channel_id)
+        .map_err(|_| ProviderEgressStatusError::InvalidQuery)?;
+    let domain = wire.last_key.domain.parse::<ProviderEgressStatusDomain>()?;
+    let credential_id = wire
+        .last_key
+        .credential_id
+        .map(CredentialId::try_new)
+        .transpose()
+        .map_err(|_| ProviderEgressStatusError::InvalidQuery)?;
+    let target_kind = wire
+        .last_key
+        .target_kind
+        .as_deref()
+        .map(str::parse::<ProviderEgressStatusTargetKind>)
+        .transpose()?;
+    let last_key = ProviderEgressStatusItemKey::try_new(
+        provider_id,
+        upstream_id,
+        channel_id,
+        domain,
+        credential_id,
+        wire.last_key.credential_revision,
+        wire.last_key.session_revision,
+        target_kind,
+        wire.last_key.target_id,
+        wire.last_key.clearance_revision,
+    )?;
+    ProviderEgressStatusCursor::try_new(
+        config_version_id,
+        config_revision,
+        wire.runtime_revision,
+        wire.snapshot_id,
+        wire.sampled_at_ms,
+        wire.filter_fingerprint,
+        last_key,
+    )
+    .map(Some)
+}
+
+fn provider_egress_status_page_response(
+    value: ProviderEgressStatusPage,
+) -> Result<ProviderEgressStatusPageResponse, HttpResponse> {
+    let next_cursor = value
+        .next_cursor
+        .as_ref()
+        .map(encode_provider_egress_status_cursor)
+        .transpose()?;
+    Ok(ProviderEgressStatusPageResponse {
+        config_version_id: value.config_version_id.as_str().to_owned(),
+        config_revision: value.config_revision.as_i64(),
+        runtime_revision: value.runtime_revision,
+        snapshot_id: value.snapshot_id,
+        sampled_at_ms: value.sampled_at_ms,
+        items: value
+            .items
+            .into_iter()
+            .map(provider_egress_status_item_response)
+            .collect(),
+        next_cursor,
+    })
+}
+
+fn provider_egress_status_item_response(
+    value: ProviderEgressStatusItem,
+) -> ProviderEgressStatusItemResponse {
+    match value {
+        ProviderEgressStatusItem::Egress(ProviderEgressStatusEgressItem {
+            channel,
+            target,
+            state,
+            deadline_ms,
+        }) => ProviderEgressStatusItemResponse::Egress {
+            provider_id: channel.provider_id.as_str().to_owned(),
+            upstream_id: channel.upstream_id.as_str().to_owned(),
+            channel_id: channel.channel_id.as_str().to_owned(),
+            channel_kind: channel.channel_kind.as_str(),
+            target_kind: target.kind.as_str(),
+            target_id: target.id,
+            state: state.as_str(),
+            deadline_ms,
+        },
+        ProviderEgressStatusItem::Session(ProviderEgressStatusSessionItem {
+            channel,
+            credential_id,
+            credential_revision,
+            session_revision,
+            state,
+            expires_at_ms,
+        }) => ProviderEgressStatusItemResponse::Session {
+            provider_id: channel.provider_id.as_str().to_owned(),
+            upstream_id: channel.upstream_id.as_str().to_owned(),
+            channel_id: channel.channel_id.as_str().to_owned(),
+            channel_kind: channel.channel_kind.as_str(),
+            credential_id: credential_id.as_str().to_owned(),
+            credential_revision,
+            session_revision,
+            state: state.as_str(),
+            expires_at_ms,
+        },
+        ProviderEgressStatusItem::Clearance(ProviderEgressStatusClearanceItem {
+            channel,
+            credential_id,
+            credential_revision,
+            session_revision,
+            target,
+            clearance_revision,
+            state,
+            expires_at_ms,
+        }) => ProviderEgressStatusItemResponse::Clearance {
+            provider_id: channel.provider_id.as_str().to_owned(),
+            upstream_id: channel.upstream_id.as_str().to_owned(),
+            channel_id: channel.channel_id.as_str().to_owned(),
+            channel_kind: channel.channel_kind.as_str(),
+            credential_id: credential_id.as_str().to_owned(),
+            credential_revision,
+            session_revision,
+            target_kind: target.kind.as_str(),
+            target_id: target.id,
+            clearance_revision,
+            state: state.as_str(),
+            expires_at_ms,
+        },
+    }
 }
 
 fn decode_provider_account_pool_cursor(

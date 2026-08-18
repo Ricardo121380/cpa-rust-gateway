@@ -24,6 +24,8 @@ pub mod management_operations_service;
 pub mod management_service;
 /// Provider-owned, snapshot-scoped account-pool operational projections.
 pub mod provider_account_pool_service;
+/// Provider-specific, immutable-snapshot egress/session/clearance management projections.
+pub mod provider_egress_status_service;
 /// Semantic Config Version validation and secret-free Route compilation.
 pub mod route_compiler;
 /// Immutable billing-catalog projection into request-time Provider price evidence.

@@ -260,9 +260,9 @@ No formal UI implementation is part of this backend slice.
 ## 2026-08-15 · Codex · P13-07D Config-Version-bound routing price evidence
 
 **Touched:**
+- `crates/gateway-http-actix/src/management_resources.rs`
 - `docs/openapi/management-v1.json`
 - `web/prism/contracts/management-v1.json` and generated client (synced from the authoritative contract)
-- `crates/gateway-http-actix/src/management_resources.rs`
 - `web/prism/scripts/generate-client.mjs` and `web/prism/scripts/check.mjs` (PUT support and drift guard)
 - `scripts/check-management-spa.mjs` (root compatibility checker now includes PUT)
 
@@ -370,3 +370,30 @@ may add only management controls that select existing Upstream/Pool/Node/Endpoin
 show revision/ETag conflicts, and render the secret-free response fields. Never echo or persist the
 write-only `proxy_endpoint`, construct transport requests in the browser, or hand-edit generated
 files. No public inference protocol changed in this slice.
+
+---
+
+## 2026-08-18 · Codex · P13-11E4 provider-specific egress status projection
+
+**Touched:**
+- `crates/gateway-http-actix/src/management_resources.rs`
+- `crates/gateway-http-actix/tests/p13_11e4_management_egress_status.rs`
+- `docs/openapi/management-v1.json`
+- `web/prism/contracts/management-v1.json` (synchronized from the authoritative contract)
+- `web/prism/src/generated/management-client.ts` (regenerated from the synchronized contract)
+- `crates/gateway-http-actix/tests/p10_01_management_openapi_contract.rs`
+
+**Why:** P13-11E4 defines the protected read-only `GET /admin/operations/provider-egress-status`
+projection. The contract binds exactly one `X-Config-Version`, bounded filters and cursor
+pagination, and a closed `oneOf` for independent `egress`, `session`, and `clearance` rows. It
+contains only provider/channel identities, opaque target IDs, closed states, safe revisions, and
+bounded timestamps; it has no request body, `If-Match`, audit action, endpoint URL, proxy detail,
+credential value, cookie, or recovery/refresh action.
+
+**Other side:** action required — Claude Code should consume the generated
+`listProviderEgressStatus` client method and render the three domains as separate views. The UI
+must send the selected `X-Config-Version`, preserve the opaque cursor and handle a 409 snapshot
+conflict by restarting the read. Do not infer a combined health value, fixed proxy/pool semantics,
+or add action buttons; do not hand-edit `web/prism/contracts/management-v1.json` or
+`web/prism/src/generated/management-client.ts`. Empty Web or clearance rows mean the exact source
+is absent; they do not mean healthy, available, fresh, tested, or production-ready.
