@@ -1,0 +1,65 @@
+/* Route workbench (features/models/RouteWorkbench.tsx).
+   Colours come from the status pool via color-mix over --surface, the same
+   recipe runtime.css uses for its chips, so the two pages read as one system.
+   No literal hex here: both themes redefine the tokens. */
+
+.route-workbench .rw-load {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.route-workbench .rw-load label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ink-2);
+  min-width: 280px;
+}
+
+.route-workbench .rw-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.route-workbench .rw-link {
+  font-size: 13px;
+}
+
+.route-workbench .rw-validation {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--status-serious) 34%, transparent);
+  background: color-mix(in srgb, var(--status-serious) 9%, var(--surface));
+}
+.route-workbench .rw-validation[data-valid="true"] {
+  border-color: color-mix(in srgb, var(--status-good) 34%, transparent);
+  background: color-mix(in srgb, var(--status-good) 11%, var(--surface));
+}
+/* --ink-1 (default body colour), never --ink-3: this line is body text. */
+.route-workbench .rw-validation > p:first-child {
+  font-weight: 600;
+}
+
+.route-workbench .rw-codes {
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.route-workbench .rw-codes li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.route-workbench .rw-code-help {
+  font-size: 12px;
+  color: var(--ink-2);
+}

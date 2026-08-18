@@ -1,6 +1,7 @@
 // Public models: client-visible model names + capabilities + 1:1 route.
-// Top-level CRUD works against the existing contract; alias/route/candidate
-// ENUMERATION waits for G1 (creation works today — insert-only contract).
+// Top-level CRUD works against the existing contract. Alias ENUMERATION still
+// waits for a list operation the contract does not have; ROUTE work no longer
+// does — see RouteWorkbench below.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { call } from "../../api/client";
@@ -9,6 +10,8 @@ import { Sheet } from "../../components/Sheet";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
+import "./models.css";
+import { RouteWorkbench } from "./RouteWorkbench";
 import {
   enabledCapabilities,
   ROUTE_POLICY,
@@ -69,6 +72,7 @@ export function ModelsPage() {
   const [confirmDelete, setConfirmDelete] = useState<PublicModel | undefined>();
   const [aliasTarget, setAliasTarget] = useState<PublicModel | undefined>();
   const [routeTarget, setRouteTarget] = useState<PublicModel | undefined>();
+  const [createdRouteId, setCreatedRouteId] = useState<string | undefined>();
   const [notice, setNotice] = useState<string | undefined>();
   const [actionError, setActionError] = useState<string | undefined>();
 
@@ -147,8 +151,14 @@ export function ModelsPage() {
       ),
     onSuccess: (created) => {
       setRouteTarget(undefined);
+      // A route with no candidate FAILS validation
+      // (management_mutation_service.rs:2074 route_missing_active_candidate),
+      // so creating one is only half a step. Hand the id straight to the
+      // workbench rather than leaving the draft in a state the operator has to
+      // discover from a failed publish.
+      setCreatedRouteId(created.id);
       setNotice(
-        `路由 ${created.id} 已创建。候选(Candidate)编辑与 Route Prism 视图等待 G1 契约解锁。`,
+        `路由 ${created.id} 已创建,但它还没有候选 —— 现在校验会报 route_missing_active_candidate,发布会被挡。下方「路由工作台」里加一个候选即可。`,
       );
     },
     onError: (error) => setActionError(asAppError(error).message),
@@ -276,10 +286,12 @@ export function ModelsPage() {
         ) : null}
       </div>
 
+      <RouteWorkbench focusRouteId={createdRouteId} editable={editable} />
+
       <div className="card empty-state" data-kind="unwired" data-gap="top">
         <p>
-          别名清单、路由参数与候选(Candidate)的枚举视图,以及 Route Prism 光路图,
-          依赖 G1 全图契约(后端会话)—— 创建操作今天可用,列表在 G1 后解锁。
+          别名清单仍无枚举算子(契约有 createModelAlias,没有对应的 list)——
+          创建今天可用,列表要等后端提供读操作。
         </p>
       </div>
 

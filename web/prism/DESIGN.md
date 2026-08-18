@@ -1222,3 +1222,115 @@ fn management_origin(listener: SocketAddr) -> Result<ManagementOrigin, Deploymen
 对真网关(`serve` + 真库)从面板完成:新建访问组 `ag-live`
 (`max_concurrency=6 rpm=300`)→ 授权路由 `rt-grok4`,零失败请求,
 并经 API 直接确认落库。这是 prism 第一次真正写出一段此前只能用 curl 造的配置。
+
+---
+
+## 17. 路由候选与 Route Explain(2026-08-18)
+
+### 17.1 补的是一个断口,不是一个功能
+
+面板此前能建路由,而且只能建路由。零候选的路由被后端两条独立路径拒绝:
+
+```rust
+// crates/gateway-control/src/management_mutation_service.rs:2074
+if active_candidates.is_empty() {
+    error_codes.push("route_missing_active_candidate");
+}
+```
+
+(第二条是 `route_compiler.rs:1254`,发布时的编译路径。)
+
+于是每一条在 Prism 里建出来的路由,都把草稿留在**面板自己修不回来**的状态:
+validate 失败 → 发布被挡 → 界面上没有任何入口能加候选。运维只能回滚或改用 curl。
+
+更糟的是当时的成功提示写着"候选编辑等待 G1 契约解锁",而 `createRouteCandidate`
+一直在契约里。**那句话把前端的欠账说成了后端未交付**,谁读了都会去等一个不会来的东西。
+
+### 17.2 三条契约事实,写在界面上而不是绕开
+
+1. **没有 `listRoutes`。** 全部 99 个算子里唯一能枚举 route_id 的读操作是
+   `listAccessGroupRoutes`,其次是运营库存的 `route_ids` 字段(本页用后者,与
+   AccessPage 同源)。两者都不完整,而**刚建好、还没有候选的路由两边都没有** ——
+   那恰好是要来修的那一类。所以输入框保持自由文本,并把这句话印在旁边。
+
+2. **候选只能新增。** `createRouteCandidate` 存在,没有 list / update / delete。
+   唯一的读取路径是 `explainRoute`,而它需要一个请求模型和协议才能作答。
+   表单直说"写错了只能删掉整条路由重建",不暗示候选可以改回去。
+
+3. **validate 只查草稿拓扑。** 后端自己的注释:"Full compiler/capability
+   admission remains the later publication boundary."所以校验区底部固定写着
+   **"这里通过不等于发布会通过"**。绿色对勾很容易被读成发布许可,那不是它的意思。
+
+### 17.3 `capability_override` 为什么是自由文本而不是复选框
+
+契约是 `{type: object, maxProperties: 32, additionalProperties: boolean}` ——
+**限制的是值的类型,不是键集**。用本面板的 `SEMANTIC_CAPABILITIES` 做复选框网格,
+会悄悄拒掉后端接受的键。`key=true key=false` 的解析器沿用 `parseLimits` 的形状
+(显示格式 == 输入格式),键任意,并且 `vision=1` 报错而不是强转成 `true`。
+
+### 17.4 Explain 的两处静默漂移
+
+**`PROTOCOLS` 少一个值。** 契约的 explain 协议枚举是三个,前端只列了两个 ——
+`openai_chat_completions` 随 P12-08 进契约后,前端从未跟进。漂移门禁看不见
+**页面没写出来的字面量**:它比对的是 vendored 契约与生成客户端,不是页面提供的选项。
+后果是 Chat Completions 这条路径在面板里根本无法解释。
+
+**响应新增必填字段,页面一声不吭。** P13-07B/D 给响应加了必填 `price_policy`
+与每候选必填 `price_evidence`,并加了可选 `provider_id`(多 Provider 路由省略时
+按契约 fail closed)。页面只**读**这个类型、从不构造它,所以 `tsc` 全绿。
+
+这次改动里,同一个字段的缺失**在单测里立刻炸了**——测试要构造 `ExplainCandidate`,
+必填字段少一个就编译不过。**可构造 = 可检测**,只读的调用点没有这个保护。
+
+### 17.5 `.sheet-panel` 从来没有 max-height(既有缺陷)
+
+候选表单有 9 个字段,比视口高。`.sheet-backdrop` 是 `place-items: center` +
+24px padding,**面板超出视口就两头被裁,提交按钮永远够不着** ——
+Playwright 报 `element is outside of the viewport` 重试 51 次。
+
+修在共享层:面板封顶 `calc(100dvh - 48px)`,滚动的是 `.sheet-form` 而不是面板
+(`.glass` 的 `::before` / `::after` 是面板内的绝对定位,让面板滚会把材质一起卷走),
+动作行 `position: sticky; bottom: 0`。CredentialSheet 也在这条线附近,只是没人撞上。
+
+### 17.6 实机验证:一半成立,另一半做不到,原因清楚
+
+对真网关(全新 state-dir、种子配置经真 API 写入、从 `/admin-ui/` 打开)跑完整闭环:
+
+```
+NOTICE     路由 rt-853903 已创建,但它还没有候选 …
+VALIDATE#1 valid=false · route_missing_active_candidate
+VALIDATE#2 valid=true          ← 加完候选
+PROBLEMS   []
+```
+
+**Explain 在真网关上返回 503,验不了。** 原因不是"没接线":
+
+```rust
+// apps/gateway/src/runtime.rs::explain_route
+let snapshot = self.snapshot_for(request.config_version_id())?;   // ← 第一步
+```
+
+Explain 对**已编译快照**求解,而快照只在版本**发布后**存在。草稿上它 503,
+与"本部署未接线"在协议层完全无法区分。而离线部署发布不了,所以 A2 的价格证据渲染
+**只在 fixture 下验证过**,这一点不含糊。
+
+两个直接后果:
+
+- **文案修正。** 面板知道当前版本是不是 active,所以草稿上的 503 现在说
+  "草稿版本没有可解释的快照 · 先发布该版本,或改选一个 active 版本",
+  不再让运维去查一个不是他的问题。
+- **fixture 修正。** fixture 原本对草稿返回 200,等于让"草稿上 Explain 能用"
+  这个不存在的状态看起来正常 —— 与当年 OAuth fixture 自动完成、
+  把一个没有 completion 调用的向导演成可用的,是同一类谎。现在 fixture 对
+  非 active 版本返回 503,E2E 因此拆成两条:草稿测文案,active 测价格证据。
+
+### 17.7 一处仍未机械化的盲区
+
+`sync-contract` + `check.mjs` 保证 `contracts/` 与 `src/generated/` 跟契约一致,
+但**响应体新增必填字段时,只读的调用点不渲染它,类型检查与门禁全部照过**;
+**页面漏掉一个 enum 字面量**同理不可见。17.4 两处都是从这个缝里漏出来的。
+
+目前只能靠读 `docs/cross-boundary-log.md` 的 action-required 条目补。
+可考虑的机械化方向(尚未做):让 `check.mjs` 比对"契约响应必填字段名"与
+"src 中出现过的字符串",给**警告级**提示 —— 不阻断,因为字段名可以被解构改名,
+误报会比漏报更快让人把门禁关掉。

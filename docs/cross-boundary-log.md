@@ -397,3 +397,61 @@ conflict by restarting the read. Do not infer a combined health value, fixed pro
 or add action buttons; do not hand-edit `web/prism/contracts/management-v1.json` or
 `web/prism/src/generated/management-client.ts`. Empty Web or clearance rows mean the exact source
 is absent; they do not mean healthy, available, fresh, tested, or production-ready.
+
+---
+
+## 2026-08-18 · Claude Code · 前端计划重排为 v0.4(后端 P13 收口后)
+
+**Touched:** `docs/08-management-frontend-development-plan.md`(仅本文件;无 `web/prism/**` 之外的源码改动)
+
+**Why:** P13-04…P13-10 全部 `DONE`、P13-11A–E4 `DONE_WITH_BOUNDARY` 之后,v0.3 的"挂在哪个后端任务下"排序依据失效 —— 没有一项前端工作在等后端。重排后的两条依据来自本次核实:
+
+1. 契约 99 个算子中 54 个已接线,45 个未接;
+2. `src/api/proposed.ts` 的 `analyticsAvailable()` 在生产构建恒为 `false`,依赖它的用量页 / 监控页 / Overview 分析半区 / 六个图表组件共 **3479 行(占 src 20.6%)在真网关上只渲染空态**。后端最终实现的是 `operations/usage` + `operations/billing`,形状与当初提案的 G3 不同。
+
+**同时记录一处正在失效的接线(前端自己的欠账,非后端问题):** P13-07B/D 之后 `explainRoute` 响应新增必填 `price_policy` 与每候选必填 `price_evidence`,并新增可选 `provider_id`;多 Provider 路由在不传 `provider_id` 时 fail closed(`provider_scope_required`)。`web/prism/src/features/runtime/RuntimePage.tsx:608` 仍只传 `requested_model` 与 `protocol`,且全仓无 `price_evidence` / `price_policy` 渲染。已排为批 A 首项修复。
+
+**Other side:** FYI — 无需 Codex 行动。docs/06 的 P13 任务表未改动,前端不修改其任务状态。
+
+一条可能对后端有用的观察:`sync-contract` + `check.mjs` 的漂移门禁保证 `contracts/` 与 `src/generated/` 跟契约一致,但**响应体新增必填字段时,调用点不渲染它,类型检查与门禁全部照过**。上面那处失效就是从这个盲区漏出来的。目前只能靠读本日志的 action-required 条目补。
+
+---
+
+## 2026-08-18 · Claude Code · 批 A 交付:路由候选/校验 + Route Explain 补齐
+
+**Touched:** 仅 `web/prism/**` 与 `docs/08-management-frontend-development-plan.md`。
+**未改动任何后端源码、契约或生成物。**
+
+**Why:** 消化两条 action required —— P13-07B(`provider_id` 与
+`provider_scope_required` / `provider_mismatch`)与 P13-07D(`price_policy` 血缘、
+七值 `price_evidence`);并补上配置链断口:面板能建路由却加不了候选,而零候选路由被
+`management_mutation_service.rs:2074` 判为 `route_missing_active_candidate`,
+草稿因此进入面板自己修不回来的状态。
+
+新接线算子:`createRouteCandidate` `validateRoute` `getRoute` `updateRoute`
+`deleteRoute`,以及 `explainRoute` 的 `provider_id` 参数与两个新响应字段。
+契约接线率 54/99 → 59/99。
+
+**Other side:** FYI — 无需 Codex 行动。以下三条是实施中对后端行为的观察,供参考:
+
+1. **`explainRoute` 在草稿版本上必然 503。** `apps/gateway/src/runtime.rs::explain_route`
+   第一步 `snapshot_for(config_version_id)`,而编译快照只在发布后存在。这与
+   "本部署未接线"在协议层完全无法区分,面板此前把两者都说成后者。现已按当前版本
+   status 分开文案。**若后端认为这两种情况值得在错误码上分开,那会是一处真正的改进;
+   不分开的话前端这样处理也能工作。**
+
+2. **`explainRoute` 的 protocol 枚举有三个值,前端此前只列了两个。**
+   `openai_chat_completions` 随 P12-08 进契约后前端从未跟进,Chat Completions
+   路径在面板里一直无法解释。已补齐。
+
+3. **漂移门禁的盲区(前端侧问题,记在这里是因为它决定了 action-required 条目的价值):**
+   `sync-contract` + `check.mjs` 保证 vendored 契约与生成客户端一致,但
+   **响应体新增必填字段时,只读的调用点不渲染它、类型检查照过**;
+   **页面漏掉一个 enum 字面量**同理不可见。上面第 2 条与 P13-07D 的两个字段都是从
+   这个缝里漏出来的。目前唯一的补救是读本日志的 action required 条目 ——
+   所以那些条目请继续写,它们不是形式。
+
+**门禁:** 176 单测 · 55 E2E · `check:full`(含双构建字节一致)·
+`cargo build -p gateway` · 嵌入测试 3/3 · 真网关闭环(全新 state-dir,
+从 `/admin-ui/` 打开):建路由 → validate `route_missing_active_candidate`
+→ 加候选 → validate 通过,零失败请求。

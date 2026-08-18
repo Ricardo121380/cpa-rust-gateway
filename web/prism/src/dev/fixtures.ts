@@ -109,6 +109,27 @@ type GroupRouteRow = {
   enabled: boolean;
 };
 
+type RouteRow = {
+  id: string;
+  public_model_id: string;
+  policy: "smooth_weighted_round_robin";
+  max_attempts: number;
+  bootstrap_timeout_ms: number;
+};
+
+type CandidateRow = {
+  id: string;
+  route_id: string;
+  endpoint_id: string;
+  upstream_model: string;
+  credential_scope: "all_active";
+  transform_mode: string;
+  enabled: boolean;
+  priority: number;
+  weight: number;
+  capability_override: Record<string, boolean>;
+};
+
 type AuditRow = {
   id: number;
   action: string;
@@ -299,7 +320,8 @@ const state = {
     ],
   ]),
   aliases: new Map<string, { alias: string; public_model_id: string }[]>(),
-  routes: new Map<string, { id: string; public_model_id: string }[]>(),
+  routes: new Map<string, RouteRow[]>(),
+  routeCandidates: new Map<string, CandidateRow[]>(),
   audit: [
     {
       id: 1,
@@ -789,10 +811,112 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if (routes.some((row) => row.public_model_id === modelId)) {
         return errorResponse(409, "management_lifecycle_conflict", "model already has a route (1:1)");
       }
-      const body = JSON.parse(bodyText ?? "{}") as { id: string };
-      routes.push({ id: body.id, public_model_id: modelId });
+      const body = JSON.parse(bodyText ?? "{}") as Omit<RouteRow, "public_model_id">;
+      const created: RouteRow = {
+        id: body.id,
+        public_model_id: modelId,
+        policy: "smooth_weighted_round_robin",
+        max_attempts: body.max_attempts,
+        bootstrap_timeout_ms: body.bootstrap_timeout_ms,
+      };
+      routes.push(created);
       version.revision += 1;
-      return json(201, { ...JSON.parse(bodyText ?? "{}"), public_model_id: modelId }, revisionToken(version));
+      return json(201, created, revisionToken(version));
+    }
+
+    // ---- route workbench: get / patch / delete / candidates / validate ----
+    //
+    // validate must FAIL for a candidate-less route. The gateway does exactly
+    // that (management_mutation_service.rs:2074), and a fixture that answered
+    // `valid: true` here would make the dead end this workbench exists to fix
+    // look like it never existed — the same way the OAuth fixture once
+    // auto-completed and hid a wizard with no completion call.
+    const routeCandidate = /^POST \/admin\/routes\/([^/]+)\/candidates$/u.exec(route);
+    if (routeCandidate !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const mismatch = requireDraftAndMatch(version, headers);
+      if (mismatch !== undefined) return mismatch;
+      const routeId = decodeURIComponent(routeCandidate[1] ?? "");
+      const routes = state.routes.get(version.id) ?? [];
+      if (!routes.some((row) => row.id === routeId)) {
+        return errorResponse(404, "management_resource_not_found", "no such route");
+      }
+      const rows =
+        state.routeCandidates.get(version.id) ??
+        state.routeCandidates.set(version.id, []).get(version.id) ??
+        [];
+      const body = JSON.parse(bodyText ?? "{}") as Omit<CandidateRow, "route_id">;
+      if (rows.some((row) => row.id === body.id)) {
+        return errorResponse(409, "management_lifecycle_conflict", "candidate id already exists");
+      }
+      const created: CandidateRow = { ...body, route_id: routeId };
+      rows.push(created);
+      version.revision += 1;
+      return json(201, created, revisionToken(version));
+    }
+
+    const routeValidate = /^POST \/admin\/routes\/([^/]+)\/validate$/u.exec(route);
+    if (routeValidate !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const routeId = decodeURIComponent(routeValidate[1] ?? "");
+      const routes = state.routes.get(version.id) ?? [];
+      if (!routes.some((row) => row.id === routeId)) {
+        return errorResponse(404, "management_resource_not_found", "no such route");
+      }
+      const active = (state.routeCandidates.get(version.id) ?? []).filter(
+        (row) => row.route_id === routeId && row.enabled,
+      );
+      const codes: string[] = [];
+      if (active.length === 0) {
+        codes.push("route_missing_active_candidate");
+      }
+      const endpoints = state.endpoints.get(version.id) ?? [];
+      for (const candidate of active) {
+        if (!endpoints.some((row) => row.id === candidate.endpoint_id)) {
+          codes.push("route_candidate_endpoint_missing");
+        }
+      }
+      codes.sort();
+      // validateRoute declares no If-Match and does not advance the revision.
+      return json(200, { valid: codes.length === 0, error_codes: [...new Set(codes)] });
+    }
+
+    const routeById = /^(GET|PATCH|DELETE) \/admin\/routes\/([^/]+)$/u.exec(route);
+    if (routeById !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const routeId = decodeURIComponent(routeById[2] ?? "");
+      const routes = state.routes.get(version.id) ?? [];
+      const index = routes.findIndex((row) => row.id === routeId);
+      if (index < 0) {
+        return errorResponse(404, "management_resource_not_found", "no such route");
+      }
+      const current = routes[index] as RouteRow;
+      if (routeById[1] === "GET") {
+        return json(200, current, revisionToken(version));
+      }
+      const mismatch = requireDraftAndMatch(version, headers);
+      if (mismatch !== undefined) return mismatch;
+      if (routeById[1] === "DELETE") {
+        routes.splice(index, 1);
+        const candidates = state.routeCandidates.get(version.id) ?? [];
+        state.routeCandidates.set(
+          version.id,
+          candidates.filter((row) => row.route_id !== routeId),
+        );
+        version.revision += 1;
+        return new Response(null, {
+          status: 204,
+          headers: new Headers({ ETag: `"${revisionToken(version)}"` }),
+        });
+      }
+      const body = JSON.parse(bodyText ?? "{}") as Omit<RouteRow, "public_model_id">;
+      const updated: RouteRow = { ...body, public_model_id: current.public_model_id };
+      routes[index] = updated;
+      version.revision += 1;
+      return json(200, updated, revisionToken(version));
     }
 
     // ---- subresource CRUD (real contract ops; PATCH replaces whole objects) ----
@@ -1401,12 +1525,63 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     if (explain !== null) {
       const version = versionByHeader(headers);
       if (version instanceof Response) return version;
+      // Explain resolves against a COMPILED SNAPSHOT, and only a published
+      // version has one (apps/gateway/src/runtime.rs::explain_route →
+      // snapshot_for). A draft 503s on the real gateway even when its route is
+      // perfectly valid — measured 2026-08-18. Answering 200 here would make a
+      // draft-only deployment look like Explain works, the same way the OAuth
+      // fixture once auto-completed and hid a wizard with no completion call.
+      if (version.status !== "active") {
+        return errorResponse(
+          503,
+          "management_runtime_unavailable",
+          "no compiled snapshot for a draft version",
+        );
+      }
+      const routeId = decodeURIComponent(explain[1] ?? "");
+      // A multi-Provider route fails closed without provider_id (P13-07B). The
+      // fixture reproduces that rather than answering anyway, so the selector
+      // is exercised instead of merely rendered.
+      const providerId = url.searchParams.get("provider_id");
+      if (routeId === "rt-multi-provider" && providerId === null) {
+        return errorResponse(
+          409,
+          "provider_scope_required",
+          "route spans multiple providers; provider_id is required",
+        );
+      }
+      const stored = (state.routeCandidates.get(version.id) ?? []).filter(
+        (row) => row.route_id === routeId,
+      );
+      const candidates =
+        stored.length > 0
+          ? stored.map((row, index) => ({
+              candidate_id: row.id,
+              decision: row.enabled && index === 0 ? "selected" : "excluded",
+              ...(row.enabled ? {} : { reason: "CandidateDisabled" }),
+              price_evidence: index === 0 ? "dominant" : "dominated",
+            }))
+          : [
+              {
+                candidate_id: "cand-relay-primary",
+                decision: "selected",
+                price_evidence: "dominant",
+              },
+              {
+                candidate_id: "cand-grok-fallback",
+                decision: "excluded",
+                reason: "NoEligibleCredential",
+                price_evidence: "unpriced",
+              },
+            ];
       return json(200, {
-        route_id: decodeURIComponent(explain[1] ?? ""),
-        candidates: [
-          { candidate_id: "cand-relay-primary", decision: "selected" },
-          { candidate_id: "cand-grok-fallback", decision: "excluded", reason: "NoEligibleCredential" },
-        ],
+        route_id: routeId,
+        // Required and nullable: null means the policy is disabled.
+        price_policy:
+          routeId === "rt-unpriced"
+            ? null
+            : { catalog_version_id: "cat-2026-08", comparison: "rate_dominance_v1" },
+        candidates,
       });
     }
 

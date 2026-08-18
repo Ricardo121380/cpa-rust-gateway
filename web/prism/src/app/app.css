@@ -684,19 +684,43 @@ td.row-actions > * + * {
   padding: 24px;
   background: color-mix(in srgb, var(--canvas) 55%, transparent);
 }
+/* The backdrop centres the panel with 24px of padding, so a panel taller than
+   the viewport got clipped at BOTH ends and its submit button became
+   unreachable — no scroll container existed anywhere in the modal. Capping the
+   panel and scrolling the form (not the panel) keeps `.glass`'s ::before/::after
+   decorations pinned to the frame: they are absolutely positioned inside the
+   panel and would scroll away with the content otherwise. */
 .sheet-panel {
   width: min(440px, 92vw);
   padding: 24px 26px;
+  max-height: calc(100dvh - 48px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 .sheet-panel h3 {
   margin: 0 0 14px;
   font-family: var(--font-display);
   letter-spacing: -0.01em;
+  flex: none;
 }
 .sheet-form {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
+  /* room for the sticky action row's own shadow-free edge */
+  padding-bottom: 2px;
+}
+/* Actions stay reachable while the fields above scroll — a long form must never
+   hide the only way to submit it. */
+.sheet-form .sheet-actions {
+  position: sticky;
+  bottom: 0;
+  background: transparent;
+  padding-top: 12px;
 }
 .sheet-form label {
   display: flex;

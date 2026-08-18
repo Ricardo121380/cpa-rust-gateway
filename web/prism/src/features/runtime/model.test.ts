@@ -8,12 +8,15 @@ import {
   countByState,
   decisionMeta,
   explainCounts,
+  explainScopeHint,
   formatAge,
   formatObservedAt,
   freshnessMeta,
   isProjectionUnavailable,
   isRecoverable,
   normalizeExplainQuery,
+  priceEvidenceMeta,
+  PROTOCOLS,
   recoverableRows,
   recoveryMeta,
   stateAttr,
@@ -205,9 +208,14 @@ describe("route explain", () => {
   it("counts decisions and keeps unknown ones visible", () => {
     expect(
       explainCounts([
-        { candidate_id: "a", decision: "selected" },
-        { candidate_id: "b", decision: "excluded", reason: "NoEligibleCredential" },
-        { candidate_id: "c", decision: "deferred" },
+        { candidate_id: "a", decision: "selected", price_evidence: "dominant" },
+        {
+          candidate_id: "b",
+          decision: "excluded",
+          reason: "NoEligibleCredential",
+          price_evidence: "not_evaluated",
+        },
+        { candidate_id: "c", decision: "deferred", price_evidence: "disabled" },
       ]),
     ).toEqual({ selected: 1, excluded: 1, other: 1 });
   });
@@ -217,6 +225,87 @@ describe("route explain", () => {
     expect(decisionMeta("excluded").tone).toBe("muted");
     expect(decisionMeta("deferred").tone).toBe("muted");
     expect(decisionMeta("deferred").label).toBe("未知");
+  });
+
+  it("offers all three contract protocols, including chat completions", () => {
+    // Missing openai_chat_completions here meant Explain could not be run for
+    // that path at all; the drift gate cannot see a literal a page omits.
+    expect([...PROTOCOLS]).toEqual([
+      "openai_chat_completions",
+      "openai_responses",
+      "anthropic_messages",
+    ]);
+  });
+
+  it("omits provider_id entirely when blank rather than sending an empty one", () => {
+    const normalized = normalizeExplainQuery({
+      route_id: "route-1",
+      requested_model: "m",
+      protocol: "openai_responses",
+      provider_id: "   ",
+    });
+    expect(normalized).toBeDefined();
+    expect(Object.hasOwn(normalized ?? {}, "provider_id")).toBe(false);
+  });
+
+  it("keeps and trims a provided provider_id", () => {
+    expect(
+      normalizeExplainQuery({
+        route_id: "route-1",
+        requested_model: "m",
+        protocol: "openai_responses",
+        provider_id: " prov-a ",
+      })?.provider_id,
+    ).toBe("prov-a");
+  });
+});
+
+describe("priceEvidenceMeta", () => {
+  it("covers all seven rate_dominance_v1 values with distinct glyphs", () => {
+    const values = [
+      "dominant",
+      "equal",
+      "dominated",
+      "incomparable",
+      "unpriced",
+      "not_evaluated",
+      "disabled",
+    ];
+    const glyphs = values.map((value) => priceEvidenceMeta(value).glyph);
+    expect(new Set(glyphs).size).toBe(values.length);
+    for (const value of values) {
+      expect(priceEvidenceMeta(value).label).not.toBe("未知");
+    }
+  });
+
+  it("does not colour the absences as verdicts", () => {
+    // not_evaluated / disabled mean no comparison happened. A status tone would
+    // read as a result the backend never produced.
+    expect(priceEvidenceMeta("not_evaluated").tone).toBe("muted");
+    expect(priceEvidenceMeta("disabled").tone).toBe("muted");
+  });
+
+  it("separates cheapest from dearest from unpriced", () => {
+    expect(priceEvidenceMeta("dominant").tone).toBe("good");
+    expect(priceEvidenceMeta("dominated").tone).toBe("warn");
+    // unpriced is a gap in the catalog, never "free".
+    expect(priceEvidenceMeta("unpriced").tone).toBe("warn");
+  });
+
+  it("renders an unknown value honestly instead of guessing a neighbour", () => {
+    expect(priceEvidenceMeta("some_future_value").label).toBe("未知");
+  });
+});
+
+describe("explainScopeHint", () => {
+  it("names the two Provider-scope failures the contract can return", () => {
+    expect(explainScopeHint("provider_scope_required")).toBeTypeOf("string");
+    expect(explainScopeHint("provider_mismatch")).toBeTypeOf("string");
+  });
+
+  it("stays out of the way for every other error", () => {
+    expect(explainScopeHint("management_internal_error")).toBeUndefined();
+    expect(explainScopeHint(undefined)).toBeUndefined();
   });
 });
 

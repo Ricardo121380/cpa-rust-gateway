@@ -14,6 +14,7 @@
 // glass. The page adds zero backdrop-filter panes to the shell's budget of 3.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { useMessages } from "../../i18n/messages";
@@ -30,11 +31,13 @@ import {
   countByState,
   decisionMeta,
   explainCounts,
+  explainScopeHint,
   formatAge,
   formatObservedAt,
   freshnessMeta,
   isProjectionUnavailable,
   normalizeExplainQuery,
+  priceEvidenceMeta,
   PROTOCOLS,
   recoverableRows,
   recoveryMeta,
@@ -547,11 +550,28 @@ function RouteExplainResult({ explain }: Readonly<{ explain: RouteExplain }>) {
         {counts.excluded}
         {counts.other > 0 ? ` / 其他 ${counts.other}` : ""}
       </p>
+      {/* price_policy is required and nullable. `null` is a real answer — the
+          policy is off — and must not read as "missing data" or as zero. */}
+      <p className="rt-price-policy">
+        {explain.price_policy === null ? (
+          <>
+            价格策略<strong>未启用</strong> —— 本次没有做任何费率比较,下表的证据列会全部是
+            <span className="mono"> disabled</span>。
+          </>
+        ) : (
+          <>
+            价格证据绑定目录{" "}
+            <span className="mono">{explain.price_policy.catalog_version_id}</span>,比较方式{" "}
+            <span className="mono">{explain.price_policy.comparison}</span>。
+            比较的是<strong>费率</strong>,不是本次请求的花费。
+          </>
+        )}
+      </p>
       {explain.candidates.length === 0 ? (
         <StateBlock
           kind="empty"
           text="该路由没有候选"
-          detail="路由存在但候选集为空 —— 请求会以 route_missing_active_candidate 失败。"
+          detail="路由存在但候选集为空 —— 请求会以 route_missing_active_candidate 失败。在「公开模型」页的路由工作台里加一个候选。"
         />
       ) : (
         <table>
@@ -559,6 +579,7 @@ function RouteExplainResult({ explain }: Readonly<{ explain: RouteExplain }>) {
             <tr>
               <th scope="col">candidate</th>
               <th scope="col">决策</th>
+              <th scope="col">价格证据(闭集)</th>
               <th scope="col">原因(闭集)</th>
             </tr>
           </thead>
@@ -571,6 +592,13 @@ function RouteExplainResult({ explain }: Readonly<{ explain: RouteExplain }>) {
                     meta={decisionMeta(candidate.decision)}
                     attr={candidate.decision}
                     raw={candidate.decision}
+                  />
+                </td>
+                <td>
+                  <StateChip
+                    meta={priceEvidenceMeta(candidate.price_evidence)}
+                    attr={candidate.price_evidence}
+                    raw={candidate.price_evidence}
                   />
                 </td>
                 <td className="mono">
@@ -588,8 +616,20 @@ function RouteExplainResult({ explain }: Readonly<{ explain: RouteExplain }>) {
 }
 
 function ExplainCard({ scope }: Readonly<{ scope: string }>) {
+  // Explain resolves against a COMPILED SNAPSHOT
+  // (apps/gateway/src/runtime.rs::explain_route calls snapshot_for first), and
+  // only a published version has one. On a draft the facade answers 503 —
+  // identical on the wire to "this deployment does not wire the projection",
+  // which is what this card used to claim. Measured against a real gateway on
+  // 2026-08-18: a draft with a perfectly valid route still 503s. The panel
+  // knows which case it is in, so it says.
+  const isDraft = useVersionStore((s) => s.context?.status) !== "active";
+  const [params] = useSearchParams();
   const [form, setForm] = useState<ExplainQuery>({
-    route_id: "",
+    // The workbench on the models page links here with the route it just fixed;
+    // routes are not enumerable, so a deep link is the only way to arrive with
+    // the id already filled in.
+    route_id: params.get("route_id") ?? "",
     requested_model: "",
     protocol: "openai_responses",
   });
@@ -602,6 +642,7 @@ function ExplainCard({ scope }: Readonly<{ scope: string }>) {
       submitted?.route_id,
       submitted?.requested_model,
       submitted?.protocol,
+      submitted?.provider_id,
     ],
     queryFn: () =>
       call<RouteExplain>(
@@ -611,6 +652,11 @@ function ExplainCard({ scope }: Readonly<{ scope: string }>) {
           query: {
             requested_model: submitted?.requested_model ?? "",
             protocol: submitted?.protocol ?? "openai_responses",
+            // Optional parameter: sending it empty is not the same as omitting
+            // it, so normalizeExplainQuery drops the key entirely when blank.
+            ...(submitted?.provider_id === undefined
+              ? {}
+              : { provider_id: submitted.provider_id }),
           },
         },
         { versionScoped: true },
@@ -625,6 +671,8 @@ function ExplainCard({ scope }: Readonly<{ scope: string }>) {
   }
 
   const error = explain.error;
+  const scopeHint =
+    error === null || error === undefined ? undefined : explainScopeHint(asAppError(error).code);
 
   return (
     <div className="card rt-card" data-gap="top">
@@ -633,7 +681,7 @@ function ExplainCard({ scope }: Readonly<{ scope: string }>) {
         operation="explainRoute"
         help={
           <>
-            对一次假想请求求解候选:返回 candidate_id 与闭集决策,永远不含请求原文。
+            对一次假想请求求解候选:返回 candidate_id、闭集决策与价格证据,永远不含请求原文。
             这是紧凑视图;完整的 Route Prism 光路图为后续签名件,数据形状与此处完全一致。
           </>
         }
@@ -676,6 +724,16 @@ function ExplainCard({ scope }: Readonly<{ scope: string }>) {
             ))}
           </select>
         </label>
+        <label>
+          provider_id(跨 Provider 的路由必填)
+          <input
+            className="mono"
+            maxLength={128}
+            placeholder="留空 = 单 Provider 路由"
+            value={form.provider_id ?? ""}
+            onChange={(event) => setForm({ ...form, provider_id: event.target.value })}
+          />
+        </label>
         <button type="submit" disabled={explain.isFetching}>
           {explain.isFetching ? "解释中…" : "解释"}
         </button>
@@ -685,16 +743,24 @@ function ExplainCard({ scope }: Readonly<{ scope: string }>) {
         <StateBlock
           kind="empty"
           text="填入 route_id 与请求模型后解释"
-          detail="面板没有路由清单可选:列出路由需要 G1(配置全图读取),契约尚未提供。"
+          detail="契约没有 listRoutes,面板给不出路由清单 —— route_id 需要手输,或从「公开模型」页的路由工作台跳过来。"
         />
       ) : error !== null && error !== undefined ? (
         isProjectionUnavailable(error) ? (
-          <UnavailableBlock operation="explainRoute" />
+          isDraft ? (
+            <StateBlock
+              kind="unavailable"
+              text="草稿版本没有可解释的快照"
+              detail="Explain 对已编译快照求解,而快照只在版本发布后存在 —— 草稿上它按契约失败关闭(503),与“本部署未接线”在协议层无法区分。先发布该版本,或改选一个 active 版本。"
+            />
+          ) : (
+            <UnavailableBlock operation="explainRoute" />
+          )
         ) : (
           <StateBlock
             kind="error"
-            text="解释失败"
-            detail={`${asAppError(error).code} · ${asAppError(error).message}`}
+            text={scopeHint === undefined ? "解释失败" : "需要显式指定 Provider"}
+            detail={scopeHint ?? `${asAppError(error).code} · ${asAppError(error).message}`}
           />
         )
       ) : explain.data === undefined ? (
