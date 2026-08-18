@@ -439,7 +439,6 @@ fn random_instance_nonce() -> Result<String, ProviderEgressStatusAdapterError> {
 }
 
 #[cfg(test)]
-#[allow(clippy::expect_used)]
 mod tests {
     use super::*;
     use std::sync::atomic::AtomicI64;
@@ -481,8 +480,15 @@ mod tests {
         }
     }
 
-    fn id<T, E: fmt::Debug>(value: &str, constructor: impl FnOnce(String) -> Result<T, E>) -> T {
-        constructor(value.to_owned()).expect("valid test id")
+    fn must<T, E>(value: Result<T, E>) -> T {
+        match value {
+            Ok(value) => value,
+            Err(_) => std::process::abort(),
+        }
+    }
+
+    fn id<T, E>(value: &str, constructor: impl FnOnce(String) -> Result<T, E>) -> T {
+        must(constructor(value.to_owned()))
     }
 
     fn channel(
@@ -491,21 +497,20 @@ mod tests {
         endpoint: &str,
         kind: ProviderEgressChannel,
     ) -> ProviderChannelCapability {
-        let identity = ProviderChannelIdentity::try_new(
+        let identity = must(ProviderChannelIdentity::try_new(
             id(provider, ProviderId::try_new),
             id(upstream, UpstreamId::try_new),
             id(endpoint, EndpointId::try_new),
-        )
-        .expect("valid channel identity");
+        ));
         ProviderChannelCapability::new(identity, kind)
     }
 
     fn config(value: &str) -> ConfigVersionId {
-        ConfigVersionId::try_new(value).expect("valid config")
+        must(ConfigVersionId::try_new(value))
     }
 
     fn revision(value: i64) -> ConfigRevision {
-        ConfigRevision::try_new(value).expect("valid revision")
+        must(ConfigRevision::try_new(value))
     }
 
     fn populated_runtime() -> Arc<ProviderEgressRuntime> {
@@ -523,22 +528,23 @@ mod tests {
         );
         let build_identity = build.identity().clone();
         let console_identity = console.identity().clone();
-        let registry = ProviderChannelCapabilityRegistry::try_new(vec![build, console])
-            .expect("valid registry");
+        let registry = must(ProviderChannelCapabilityRegistry::try_new(vec![
+            build, console,
+        ]));
         let runtime = Arc::new(ProviderEgressRuntime::new(registry));
-        runtime
-            .set_egress_state(
-                ProviderEgressStateKey::new(build_identity, ProviderEgressTargetIdentity::Direct),
-                ProviderEgressRuntimeState::Available,
-                100,
-            )
-            .expect("build egress");
+        must(runtime.set_egress_state(
+            ProviderEgressStateKey::new(build_identity, ProviderEgressTargetIdentity::Direct),
+            ProviderEgressRuntimeState::Available,
+            100,
+        ));
         let credential = id("console-account", CredentialId::try_new);
-        let session = ProviderSessionStateKey::try_new(console_identity, credential, 3, 3)
-            .expect("session key");
-        runtime
-            .set_session_state(session, ProviderSessionRuntimeState::Absent, 100)
-            .expect("console session");
+        let session = must(ProviderSessionStateKey::try_new(
+            console_identity,
+            credential,
+            3,
+            3,
+        ));
+        must(runtime.set_session_state(session, ProviderSessionRuntimeState::Absent, 100));
         runtime
     }
 
@@ -546,15 +552,14 @@ mod tests {
         runtime: Arc<ProviderEgressRuntime>,
         clock: Arc<MutableClock>,
     ) -> ProviderEgressStatusAdapter {
-        ProviderEgressStatusAdapter::try_new(
+        must(ProviderEgressStatusAdapter::try_new(
             config("active-v1"),
             revision(4),
             Some(runtime),
             clock as Arc<dyn ProviderEgressStatusClock>,
             Duration::from_secs(5),
             Duration::from_secs(30),
-        )
-        .expect("adapter")
+        ))
     }
 
     #[test]
@@ -562,13 +567,11 @@ mod tests {
         let runtime = populated_runtime();
         let clock = Arc::new(MutableClock::new(100));
         let adapter = adapter_with_clock(runtime, clock);
-        let page = adapter
-            .list_provider_egress_status(
-                &config("active-v1"),
-                revision(4),
-                &ProviderEgressStatusQuery::default(),
-            )
-            .expect("status page");
+        let page = must(adapter.list_provider_egress_status(
+            &config("active-v1"),
+            revision(4),
+            &ProviderEgressStatusQuery::default(),
+        ));
         assert_eq!(page.items.len(), 2);
         assert!(page.next_cursor.is_none());
         assert_eq!(page.items[0].domain(), ProviderEgressStatusDomain::Egress);
@@ -608,26 +611,26 @@ mod tests {
         let runtime = populated_runtime();
         let clock = Arc::new(MutableClock::new(100));
         let adapter = adapter_with_clock(runtime, Arc::clone(&clock));
-        let first_query =
-            ProviderEgressStatusQuery::try_new(None, None, None, None, None, None, 1, None)
-                .expect("query");
-        let first = adapter
-            .list_provider_egress_status(&config("active-v1"), revision(4), &first_query)
-            .expect("first page");
+        let first_query = must(ProviderEgressStatusQuery::try_new(
+            None, None, None, None, None, None, 1, None,
+        ));
+        let first = must(adapter.list_provider_egress_status(
+            &config("active-v1"),
+            revision(4),
+            &first_query,
+        ));
         assert_eq!(first.items.len(), 1);
         assert!(first.next_cursor.is_some());
 
         clock.set(6_000);
-        let refreshed = adapter
-            .list_provider_egress_status(
-                &config("active-v1"),
-                revision(4),
-                &ProviderEgressStatusQuery::default(),
-            )
-            .expect("refreshed snapshot");
+        let refreshed = must(adapter.list_provider_egress_status(
+            &config("active-v1"),
+            revision(4),
+            &ProviderEgressStatusQuery::default(),
+        ));
         assert_ne!(refreshed.snapshot_id, first.snapshot_id);
 
-        let second_query = ProviderEgressStatusQuery::try_new(
+        let second_query = must(ProviderEgressStatusQuery::try_new(
             None,
             None,
             None,
@@ -636,11 +639,12 @@ mod tests {
             None,
             1,
             first.next_cursor,
-        )
-        .expect("second query");
-        let second = adapter
-            .list_provider_egress_status(&config("active-v1"), revision(4), &second_query)
-            .expect("second page");
+        ));
+        let second = must(adapter.list_provider_egress_status(
+            &config("active-v1"),
+            revision(4),
+            &second_query,
+        ));
         assert_eq!(second.items.len(), 1);
         assert_eq!(
             second.items[0].domain(),
@@ -672,13 +676,15 @@ mod tests {
         let runtime = populated_runtime();
         let current_clock = Arc::new(MutableClock::new(100));
         let current_adapter = adapter_with_clock(runtime, Arc::clone(&current_clock));
-        let first_query =
-            ProviderEgressStatusQuery::try_new(None, None, None, None, None, None, 1, None)
-                .expect("query");
-        let current_first = current_adapter
-            .list_provider_egress_status(&config("active-v1"), revision(4), &first_query)
-            .expect("current first page");
-        let current_cursor_query = ProviderEgressStatusQuery::try_new(
+        let first_query = must(ProviderEgressStatusQuery::try_new(
+            None, None, None, None, None, None, 1, None,
+        ));
+        let current_first = must(current_adapter.list_provider_egress_status(
+            &config("active-v1"),
+            revision(4),
+            &first_query,
+        ));
+        let current_cursor_query = must(ProviderEgressStatusQuery::try_new(
             None,
             None,
             None,
@@ -687,8 +693,7 @@ mod tests {
             None,
             1,
             current_first.next_cursor,
-        )
-        .expect("current cursor query");
+        ));
         current_clock.set(30_100);
         assert!(matches!(
             current_adapter.list_provider_egress_status(
@@ -702,19 +707,17 @@ mod tests {
 
     #[test]
     fn absent_runtime_is_empty_not_healthy_and_wrong_config_fails_closed() {
-        let adapter = ProviderEgressStatusAdapter::try_new(
+        let adapter = must(ProviderEgressStatusAdapter::try_new(
             config("active-v1"),
             revision(0),
             None,
             Arc::new(FixedClock(100)),
             Duration::from_secs(5),
             Duration::from_secs(30),
-        )
-        .expect("empty adapter");
+        ));
         let query = ProviderEgressStatusQuery::default();
-        let page = adapter
-            .list_provider_egress_status(&config("active-v1"), revision(0), &query)
-            .expect("empty page");
+        let page =
+            must(adapter.list_provider_egress_status(&config("active-v1"), revision(0), &query));
         assert!(page.items.is_empty());
         assert!(page.next_cursor.is_none());
         assert!(matches!(
