@@ -1,6 +1,6 @@
 # P13-11E4 aggregate local Full receipt — 2026-08-18
 
-Status: `READY_FOR_FORMAL_DELIVERY_GATE`
+Status: `LOCAL_PASS_PENDING_PHASE_GATE` (local preflight receipt; subsequent formal closeout passed)
 
 ## Scope
 
@@ -14,9 +14,9 @@ staging or production activity.
 
 - Branch: `codex/p13-11-egress`
 - Implementation baseline tested by the final Full: `f62cd0f44e730aef23fbd04490529f55da1b103d`
-- Proposed immutable tag: `phase-p13-provider-egress-status-complete`
-- The closeout target will be the exact pushed commit containing this receipt and the phase review;
-  the tag must be created once on that exact target and must not move an existing tag.
+- Immutable tag subsequently created: `phase-p13-provider-egress-status-complete`.
+- The tag points to the exact pushed closeout candidate containing this receipt and the phase review:
+  `ce98faa9306d076f5af53b9eef0c818abb1cb9c8`.
 - The four pre-existing untracked helper files remained outside every staged commit.
 
 ## Full command and result
@@ -76,9 +76,14 @@ OpenAPI/Prism parity and forbidden-field redaction.
 - E5 real-network canary remains `DEFERRED_UNAUTHORIZED`; E0-E3's immutable tag/Gate and
   `DONE_WITH_BOUNDARY` result are unchanged.
 
-## Next formal step
+## Subsequent formal closeout
 
-The local evidence is ready for one closeout commit, one push of the branch, one annotated
-`phase-p13-provider-egress-status-complete` tag on that exact pushed commit, and one formal
-Fast+Full+Required Delivery Gate. Until all formal jobs pass, P13-11E4 remains
-`LOCAL_PASS_PENDING_PHASE_GATE` and no next phase or E5 activity starts.
+This receipt remains a local-preflight receipt and does not retroactively become the GitHub Gate.
+The authorized closeout subsequently fixed annotated tag
+`phase-p13-provider-egress-status-complete` to exact commit
+`ce98faa9306d076f5af53b9eef0c818abb1cb9c8`. Sole formal run
+[32110872875](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/32110872875) was triggered by
+that tag push with the same exact head SHA; Authorize, Fast, Full supply-chain and Required all
+succeeded (`4s` / `7m02s` / `1m00s` / `3s`). The authoritative phase result recorded in the
+[phase review](p13-11e4-phase-review-20260818.md) is therefore `DONE_WITH_BOUNDARY`. No further tag
+or expensive Gate is required, and E5 did not start.

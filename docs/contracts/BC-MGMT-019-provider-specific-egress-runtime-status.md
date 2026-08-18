@@ -5,7 +5,7 @@
 | Contract | `BC-MGMT-019` |
 | Task | `P13-11E4` |
 | ADR | [ADR-0098](../adr/ADR-0098-provider-specific-egress-management-projection.md) |
-| Status | **Accepted; local implementation and aggregate Full passed, formal phase Gate pending** |
+| Status | **DONE_WITH_BOUNDARY — formal tag and Delivery Gate passed** |
 | Domain | Protected, read-only Provider egress/session/clearance management projection |
 
 ## 1. Endpoint and admission
@@ -172,9 +172,12 @@ The focused local implementation gate passed with these exact counts:
 - strict Clippy passed for gateway-control, gateway-router, gateway-http-actix, gateway and
   provider-grok; fmt and Prism contract/client freshness check passed.
 
-Independent final review passed with no remaining P0-P3 finding. Aggregate local Full and the
-GitHub formal Delivery Gate have not run, so this contract remains `LOCAL_PASS_PENDING_PHASE_GATE` rather than
-`DONE_WITH_BOUNDARY`.
+Independent final review passed with no remaining P0-P3 finding. Aggregate local Full passed
+`43/43`. Immutable annotated tag `phase-p13-provider-egress-status-complete` points to exact
+closeout commit `ce98faa9306d076f5af53b9eef0c818abb1cb9c8`; formal Delivery Gate
+[32110872875](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/32110872875) passed
+Authorize, Fast, Full supply-chain and Required (`4s` / `7m02s` / `1m00s` / `3s`). The contract is
+therefore `DONE_WITH_BOUNDARY`.
 
 ## 11. Non-evidence
 

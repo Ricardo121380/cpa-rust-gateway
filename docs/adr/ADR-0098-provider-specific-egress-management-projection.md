@@ -1,6 +1,6 @@
 # ADR-0098: Provider-specific egress management projection
 
-- Status: Accepted; P13-11E4 local implementation and aggregate Full passed, formal phase Gate pending
+- Status: Accepted — P13-11E4 `DONE_WITH_BOUNDARY`; formal tag and Delivery Gate passed
 - Date: 2026-08-18
 - Scope: protected, read-only projection of exact Provider egress/session/clearance runtime state
 
@@ -118,10 +118,13 @@ provider-grok full suite with authorized/live tests intentionally ignored, stric
 touched Rust crates, fmt, and Prism check. E3 Web `11/11` remains historical transport-free
 evidence; a synthetic HTTP clearance row proves serializer shape only. Independent final review
 passed with no remaining P0-P3 finding. The aggregate local Full passed `43/43` from
-`2026-08-18T06:59:51Z` through `2026-08-18T07:01:49Z`; the GitHub formal Delivery Gate remains
-pending.
+`2026-08-18T06:59:51Z` through `2026-08-18T07:01:49Z`. Immutable annotated tag
+`phase-p13-provider-egress-status-complete` points to exact closeout commit
+`ce98faa9306d076f5af53b9eef0c818abb1cb9c8`; formal Delivery Gate
+[32110872875](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/32110872875) passed
+Authorize, Fast, Full supply-chain and Required in `4s` / `7m02s` / `1m00s` / `3s`.
 
-This ADR authorizes and records local implementation and contract evidence only. It does not
+This ADR authorizes and records the implementation, contract and formal process evidence only. It does not
 demonstrate a real Provider account, proxy, DNS path, production Web clearance, Build/Console
 fixed/pool transport, public CPAR endpoint, staging environment, production usability, Autoreg, or
 real health. E5 remains separately unauthorized.

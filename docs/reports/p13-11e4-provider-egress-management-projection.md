@@ -1,7 +1,7 @@
 # P13-11E4 Provider-specific egress management projection report
 
-Status: `READY_FOR_FORMAL_DELIVERY_GATE` — focused implementation gates, independent final review
-and the single aggregate local Full passed; the formal Delivery Gate remains pending
+Status: `DONE_WITH_BOUNDARY` — focused implementation gates, independent final review, aggregate
+local Full and the single formal Delivery Gate passed
 
 Date: 2026-08-18
 
@@ -101,11 +101,19 @@ snapshots and cursor replay, safe HTTP error mapping, truthful Build/Console-onl
 value-free projection surfaces, authoritative OpenAPI/Prism parity and the Claude Code handoff.
 
 The aggregate `./scripts/check.sh full` passed `43/43` on Darwin arm64; see the immutable local
-[aggregate receipt](evidence/p13-11e4-aggregate-full-20260818.md) and [phase review](evidence/p13-11e4-phase-review-20260818.md).
-The GitHub formal Delivery Gate has not run for E4, so the local result is
-`READY_FOR_FORMAL_DELIVERY_GATE`, not `DONE_WITH_BOUNDARY`. No focused slice triggers its own
-expensive remote Gate; ordinary commit, push, review and merge remain independent from Gate
-frequency.
+[aggregate receipt](evidence/p13-11e4-aggregate-full-20260818.md) and
+[phase review](evidence/p13-11e4-phase-review-20260818.md). Immutable annotated tag
+`phase-p13-provider-egress-status-complete` points to exact pushed closeout commit
+`ce98faa9306d076f5af53b9eef0c818abb1cb9c8`. The sole formal Delivery Gate run
+[32110872875](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/32110872875) was a tag
+`push` with the same exact head SHA; Authorize, Fast, Full supply-chain and Required all succeeded
+in `4s` / `7m02s` / `1m00s` / `3s`. P13-11E4 is therefore `DONE_WITH_BOUNDARY`. The only
+non-blocking annotations were the GitHub-hosted Node.js 20-to-24 compatibility notices for pinned
+checkout/cache actions; they did not fail or weaken the Gate.
+
+No focused slice triggered a separate expensive remote Gate; ordinary commit, push, review and
+merge remain independent from Gate frequency. Existing P13-11E E0-E3 tags and Gate evidence were
+not moved or reinterpreted.
 
 ## Redaction and side-effect boundary
 

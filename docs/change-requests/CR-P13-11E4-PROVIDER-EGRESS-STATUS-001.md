@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **Approved; local implementation and aggregate Full passed** — ready for the single formal phase Gate |
+| Status | **Formally accepted — `DONE_WITH_BOUNDARY`**; immutable tag and single formal phase Gate passed |
 | Task | `P13-11E4` Provider-specific egress runtime status projection |
 | Predecessor | `P13-11E` E0-E3, formally closed by immutable tag `phase-p13-provider-egress-complete` |
 | Delivery class | Read-only management contract and local synthetic/runtime-composition evidence |
@@ -145,7 +145,8 @@ fails closed with safe `503`.
 Current process composition projects Build/Console state only. Production Web/clearance may be
 empty; synthetic HTTP clearance is serializer-contract evidence only; generic-compatible state
 remains under a separate owner. Independent final review passed with no remaining P0-P3 finding;
-aggregate local Full and the
-GitHub formal Delivery Gate have not run, and the status is therefore
-`LOCAL_PASS_PENDING_PHASE_GATE`. No Provider/proxy/DNS/server/production/Autoreg or real-health
-claim is made. E5 remains `DEFERRED_UNAUTHORIZED`.
+aggregate local Full passed `43/43`. Immutable tag `phase-p13-provider-egress-status-complete`
+points to exact closeout commit `ce98faa9306d076f5af53b9eef0c818abb1cb9c8`; formal Delivery Gate
+[32110872875](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/32110872875) passed all
+required jobs. The status is `DONE_WITH_BOUNDARY`. No Provider/proxy/DNS/server/production/Autoreg
+or real-health claim is made. E5 remains `DEFERRED_UNAUTHORIZED`.
