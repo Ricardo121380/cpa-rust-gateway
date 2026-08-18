@@ -5,7 +5,7 @@
 | Contract | `BC-MGMT-019` |
 | Task | `P13-11E4` |
 | ADR | [ADR-0098](../adr/ADR-0098-provider-specific-egress-management-projection.md) |
-| Status | **Accepted; local implementation passed, formal phase Gate pending** |
+| Status | **Accepted; local implementation and aggregate Full passed, formal phase Gate pending** |
 | Domain | Protected, read-only Provider egress/session/clearance management projection |
 
 ## 1. Endpoint and admission

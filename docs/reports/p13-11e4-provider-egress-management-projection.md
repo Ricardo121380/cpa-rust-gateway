@@ -1,7 +1,7 @@
 # P13-11E4 Provider-specific egress management projection report
 
-Status: `LOCAL_PASS_PENDING_PHASE_GATE` — focused local implementation gates and independent final
-review passed; aggregate local Full and formal Delivery Gate remain pending
+Status: `READY_FOR_FORMAL_DELIVERY_GATE` — focused implementation gates, independent final review
+and the single aggregate local Full passed; the formal Delivery Gate remains pending
 
 Date: 2026-08-18
 
@@ -100,10 +100,12 @@ channel/domain capabilities, clearance owner bijection, atomic runtime revision,
 snapshots and cursor replay, safe HTTP error mapping, truthful Build/Console-only source composition,
 value-free projection surfaces, authoritative OpenAPI/Prism parity and the Claude Code handoff.
 
-Aggregate `./scripts/check.sh full` and the GitHub formal Delivery Gate have not run for E4. The
-local result is therefore `LOCAL_PASS_PENDING_PHASE_GATE`, not `DONE_WITH_BOUNDARY`. No focused
-slice triggers its own expensive remote Gate; ordinary commit, push, review and merge remain
-independent from Gate frequency.
+The aggregate `./scripts/check.sh full` passed `43/43` on Darwin arm64; see the immutable local
+[aggregate receipt](evidence/p13-11e4-aggregate-full-20260818.md) and [phase review](evidence/p13-11e4-phase-review-20260818.md).
+The GitHub formal Delivery Gate has not run for E4, so the local result is
+`READY_FOR_FORMAL_DELIVERY_GATE`, not `DONE_WITH_BOUNDARY`. No focused slice triggers its own
+expensive remote Gate; ordinary commit, push, review and merge remain independent from Gate
+frequency.
 
 ## Redaction and side-effect boundary
 

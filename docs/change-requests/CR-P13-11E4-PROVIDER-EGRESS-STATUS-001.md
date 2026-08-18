@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **Approved and locally implemented** — focused gate passed; formal phase Gate pending |
+| Status | **Approved; local implementation and aggregate Full passed** — ready for the single formal phase Gate |
 | Task | `P13-11E4` Provider-specific egress runtime status projection |
 | Predecessor | `P13-11E` E0-E3, formally closed by immutable tag `phase-p13-provider-egress-complete` |
 | Delivery class | Read-only management contract and local synthetic/runtime-composition evidence |

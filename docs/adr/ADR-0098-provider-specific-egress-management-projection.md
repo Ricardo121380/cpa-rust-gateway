@@ -1,6 +1,6 @@
 # ADR-0098: Provider-specific egress management projection
 
-- Status: Accepted; P13-11E4 local implementation passed, formal phase Gate pending
+- Status: Accepted; P13-11E4 local implementation and aggregate Full passed, formal phase Gate pending
 - Date: 2026-08-18
 - Scope: protected, read-only projection of exact Provider egress/session/clearance runtime state
 
@@ -117,8 +117,9 @@ P13-11E4 local evidence passed: gateway-router `170/170`, gateway-control `87/87
 provider-grok full suite with authorized/live tests intentionally ignored, strict Clippy for all
 touched Rust crates, fmt, and Prism check. E3 Web `11/11` remains historical transport-free
 evidence; a synthetic HTTP clearance row proves serializer shape only. Independent final review
-passed with no remaining P0-P3 finding; neither aggregate local Full nor the GitHub formal Delivery
-Gate has run.
+passed with no remaining P0-P3 finding. The aggregate local Full passed `43/43` from
+`2026-08-18T06:59:51Z` through `2026-08-18T07:01:49Z`; the GitHub formal Delivery Gate remains
+pending.
 
 This ADR authorizes and records local implementation and contract evidence only. It does not
 demonstrate a real Provider account, proxy, DNS path, production Web clearance, Build/Console
