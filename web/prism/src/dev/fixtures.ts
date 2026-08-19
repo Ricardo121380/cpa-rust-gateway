@@ -1125,6 +1125,96 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       });
     }
 
+    // ---- operations/usage (P13-04B) ----
+    //
+    // Deterministic generated rows, because the shape's hard parts only show up
+    // at scale: `limit` caps at 100, so the page must follow the cursor before
+    // it can add anything up. A fixture returning one tidy page would let a
+    // first-page-only sum look correct.
+    //
+    // The row set deliberately contains unobserved totals (`total: null`) and
+    // mixed confidences — those are the cases the page must not smooth over.
+    if (route === "GET /admin/operations/usage") {
+      // NOT version-scoped: the contract declares no X-Config-Version for this
+      // operation, so requiring one here would have the fixture reject requests
+      // the real gateway accepts.
+      const providers = ["prov-relay-a", "prov-grok"];
+      const channels = ["ch-relay-responses", "ch-grok-build"];
+      const models = ["minimax-m3", "glm-5-air", "grok-4"];
+      const protocols = [
+        "openai_chat_completions",
+        "openai_responses",
+        "anthropic_messages",
+      ] as const;
+      // `prov-flood` is a deliberate over-cap case so the truncation path is
+      // reachable in dev and in E2E; it exists only when asked for by name.
+      const flood = url.searchParams.get("provider_id") === "prov-flood";
+      const total = flood ? 2400 : 137;
+
+      const all = Array.from({ length: total }, (_, index) => {
+        const provider = flood ? "prov-flood" : (providers[index % providers.length] as string);
+        // every 11th row reports no input observation at all
+        const unobserved = index % 11 === 0;
+        // every 5th row is a partial observation
+        const partial = index % 5 === 0;
+        const confidence = unobserved ? "unknown" : partial ? "partial" : "exact";
+        const family = (base: number) => ({
+          total: unobserved ? null : base * (index + 1),
+          confidence,
+        });
+        return {
+          provider_id: provider,
+          channel_id: flood ? "ch-flood" : (channels[index % channels.length] as string),
+          account_id: `acct-${index % 7}`,
+          public_model: models[index % models.length] as string,
+          protocol: protocols[index % protocols.length],
+          client_key_id: `ck-${index % 4}`,
+          // A Client Key need not belong to a group; null is a real value the
+          // page must bucket rather than drop.
+          access_group_id: index % 6 === 0 ? null : `ag-${index % 3}`,
+          request_count: (index % 17) + 1,
+          usage_observations: (index % 17) + 1,
+          input_tokens: family(120),
+          output_tokens: family(40),
+          reasoning_tokens: family(index % 3 === 0 ? 0 : 12),
+          cache_read_tokens: family(0),
+          cache_creation_tokens: family(0),
+          cached_tokens: family(0),
+          observed_at_ms: 1787000000000 + index * 1000,
+          cost_microunits: null,
+          cost_confidence: "unpriced" as const,
+        };
+      });
+
+      const filtered = all.filter((row) => {
+        for (const [param, field] of [
+          ["provider_id", "provider_id"],
+          ["channel_id", "channel_id"],
+          ["account_id", "account_id"],
+          ["model", "public_model"],
+          ["client_key_id", "client_key_id"],
+          ["access_group_id", "access_group_id"],
+          ["protocol", "protocol"],
+        ] as const) {
+          const want = url.searchParams.get(param);
+          if (want !== null && String(row[field] ?? "") !== want) {
+            return false;
+          }
+        }
+        return true;
+      });
+
+      const limit = Math.min(Number(url.searchParams.get("limit") ?? 50) || 50, 100);
+      const offset = Number(url.searchParams.get("cursor") ?? 0) || 0;
+      const slice = filtered.slice(offset, offset + limit);
+      const nextOffset = offset + slice.length;
+      return json(200, {
+        observed_through_ms: filtered.length === 0 ? null : 1787000600000,
+        items: slice,
+        next_cursor: nextOffset < filtered.length ? String(nextOffset) : null,
+      });
+    }
+
     // ---- credential detail + metadata (real contract ops) ----
     const credGet = /^GET \/admin\/credentials\/([^/]+)$/u.exec(route);
     if (credGet !== null) {

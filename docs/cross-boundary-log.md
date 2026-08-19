@@ -455,3 +455,37 @@ is absent; they do not mean healthy, available, fresh, tested, or production-rea
 `cargo build -p gateway` · 嵌入测试 3/3 · 真网关闭环(全新 state-dir,
 从 `/admin-ui/` 打开):建路由 → validate `route_missing_active_candidate`
 → 加候选 → validate 通过,零失败请求。
+
+---
+
+## 2026-08-18 · Claude Code · 批 B1 交付:用量分析页接到 operations/usage
+
+**Touched:** 仅 `web/prism/**` 与 `docs/08-management-frontend-development-plan.md`。
+**未改动任何后端源码、契约或生成物。**
+
+**Why:** 旧用量页按提案的 G3 分析形状建成,数据源在生产构建里恒为不可用 ——
+它从未在真网关上渲染过数据。现改接 `listOperationalUsage`(P13-04B)。
+连带删除六个只为服务端时间桶而存在的图表组件:净 -2797 / +1196 行。
+
+**Other side:** FYI — 无需 Codex 行动。两条对后端行为的核对结果,供参考:
+
+1. **运营面算子的版本作用域是分裂的**,而且这个区分很容易被前端搞反:
+
+   | 声明 `X-Config-Version` | 不声明 |
+   |---|---|
+   | `listOperationalAccountPools` | `listOperationalUsage` |
+   | `listProviderEgressStatus` | `listOperationalBilling` |
+   | `listBillingCatalogs` | `listProviderAccountPools` |
+   | | `listRequestAttempts` |
+
+   语义上讲得通(观测跨版本、配置绑版本),这里只是记下来,免得下次又搞反。
+
+2. **`listOperationalUsage` 没有服务端时间桶。** 一行是整个窗口的聚合。
+   前端要画趋势只能发 K 个窗口的查询,且每个窗口都得跟游标才不少算 ——
+   代价是 K×页 次请求。**目前的决定是不画,并在页面上写明原因。**
+   若后端将来考虑加时间桶参数,那会显著改变这一页能提供的东西;
+   在此之前前端不打算用拼接近似它。
+
+**门禁:** 160 单测 · 57 E2E · `check:full`(含双构建字节一致)·
+真网关验证(不选配置版本,`GET /admin/operations/usage` 200,空态与水位正确,零控制台错误)。
+非空渲染因离线部署无法产生真实用量,仅 fixture 下验证。

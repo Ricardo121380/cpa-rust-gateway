@@ -2,31 +2,38 @@
    (var(--surface) / var(--surface-2)); the glass budget belongs to the shell's
    rail, topbar and dock. No glass-on-glass, no third material.
 
-   Layout note: `.shell :is(.canvas, .canvas > section) > :not(section)` in
-   app.css hands every direct child of the page a left shift + matching padding
-   so surfaces underlap the rail. Anything that needs its OWN left padding
-   (the segmented tab control) therefore sits inside a plain wrapper that
-   absorbs the shift, instead of fighting that rule's specificity. */
+   Rewritten alongside the page for GET /admin/operations/usage. The tab bar,
+   metric chips, chart-table pairing and heatmap KPI blocks are gone with the
+   charts they styled: without server-side time buckets there is no trend, no
+   heatmap and no zoom. */
 
-.usage-tabbar {
-  margin-top: 12px;
+.usage-hint {
+  margin: 10px 0 0;
+  /* --ink-2, not --ink-3: these are sentences the user reads. See tokens.css. */
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.55;
+  max-width: 78ch;
 }
 
-.usage-tabs {
+/* ---- controls: range segment + grouping dimension ---------------------- */
+
+.usage-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.usage-seg {
   display: inline-flex;
   gap: 2px;
   padding: 3px;
   border-radius: 100px;
   background: var(--surface-2);
   border: 1px solid var(--separator);
-  max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
 }
-.usage-tabs::-webkit-scrollbar {
-  display: none;
-}
-.usage-tabs button {
+.usage-seg button {
   flex: none;
   font-size: 13px;
   font-weight: 600;
@@ -35,111 +42,132 @@
   background: transparent;
   color: var(--ink-2);
 }
-.usage-tabs button[aria-selected="true"] {
+.usage-seg button[aria-pressed="true"] {
   background: var(--surface);
   color: var(--ink);
   box-shadow: 0 1px 2px rgba(14, 18, 32, 0.12);
 }
-
-/* metric switch — same chip vocabulary as the range presets */
-.usage-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.usage-chips button {
-  font-size: 12px;
-  padding: 5px 12px;
-}
-/* .chip-on / .chip-off come from app.css — sizing only here. */
-
-.card-head {
+.usage-by {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+/* ---- filters ----------------------------------------------------------- */
+
+.usage-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
+  align-items: end;
 }
-.card-head h3 {
-  margin: 0;
-  font-size: 14px;
-}
-.card-note {
-  margin: 2px 0 0;
-  font-size: 12px;
-  /* --ink-2, not --ink-3: this is a sentence the user reads. See tokens.css. */
+.usage-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
   color: var(--ink-2);
 }
-
-/* the table view every chart is paired with (identity is never colour-alone,
-   and every plotted value stays reachable as text) */
-.chart-table {
-  margin-top: 10px;
-  font-size: 12.5px;
-}
-.chart-table summary {
-  cursor: pointer;
-  color: var(--ink-2);
-  font-size: 12.5px;
-}
-.chart-table .chart-table-scroll {
-  max-height: 220px;
-  overflow: auto;
-  margin-top: 6px;
-}
-.chart-table th,
-.chart-table td {
-  padding: 5px 12px;
-}
-.chart-table th:first-child,
-.chart-table td:first-child {
-  padding-left: 0;
+.usage-filter-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
-.heat-detail-head {
+/* ---- summary ----------------------------------------------------------- */
+
+.usage-summary {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: 10px 32px;
   flex-wrap: wrap;
 }
-.heat-detail-head h3 {
-  margin: 0;
-  font-size: 14px;
-}
-.heat-detail-window {
-  font-size: 12px;
-  color: var(--ink-2);
-}
-.heat-kpis {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 26px;
-  margin: 12px 0 4px;
-}
-.heat-kpi {
+.usage-kpi {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.heat-kpi .stat-value {
-  font-size: 19px;
+.usage-kpi-value {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }
-
-.usage-hint {
-  margin: 10px 0 0;
+.usage-kpi-label {
   font-size: 12px;
   color: var(--ink-2);
 }
-/* Links wear the tint (docs/07 §8: tint is the interactive colour), measured
-   4.9:1 on dark --surface and 4.7:1 on light — the UA default link blue is
-   neither. */
-.usage-link,
-.usage-drill {
-  color: var(--tint);
+.usage-watermark {
+  margin: 0 0 0 auto;
+  font-size: 12px;
+  color: var(--ink-2);
 }
-.usage-drill {
+
+/* ---- table ------------------------------------------------------------- */
+
+.usage-table {
+  font-size: 12.5px;
+}
+/* Digits line up down the column; a ragged token count is unreadable. */
+.usage-table .usage-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.usage-key {
+  position: relative;
+  text-align: left;
+  font-weight: 600;
+  min-width: 160px;
+}
+.usage-share {
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin-top: 4px;
+  opacity: 0.55;
+}
+.usage-table tfoot th,
+.usage-table tfoot td {
+  border-top: 1px solid var(--separator);
+  font-weight: 700;
+}
+
+/* Confidence rides alongside the number, never replaces it. Colour is one of
+   three cues (text + tone + the ≥ marker), never the only one. */
+.usage-conf {
   display: inline-block;
-  margin-top: 10px;
-  font-size: 13px;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 100px;
+  font-size: 10.5px;
+  font-weight: 600;
+  vertical-align: 1px;
+}
+.usage-conf[data-tone="good"] {
+  color: var(--status-good);
+  background: color-mix(in srgb, var(--status-good) 12%, var(--surface));
+}
+.usage-conf[data-tone="warn"] {
+  color: var(--status-warn);
+  background: color-mix(in srgb, var(--status-warn) 14%, var(--surface));
+}
+.usage-conf[data-tone="muted"] {
+  color: var(--ink-2);
+  background: var(--surface-2);
+}
+/* The floor marker is deliberately loud inside the chip: it changes what the
+   number MEANS (lower bound, not total), which colour alone cannot say. */
+.usage-floor {
+  margin-left: 3px;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .usage-watermark {
+    margin-left: 0;
+  }
 }

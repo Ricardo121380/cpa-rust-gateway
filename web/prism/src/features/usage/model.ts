@@ -1,343 +1,404 @@
-// Usage-analytics pure model (docs/07 §7.2). Everything here is DOM-free and
-// deterministic so the URL contract, the per-tab `include` projection and the
-// chart scales can be tested without a browser.
+// 用量分析 — pure model over GET /admin/operations/usage (P13-04B).
 //
-// Value-free discipline: this module only ever handles closed enums
-// (tab / metric / status) and opaque identifiers that the backend already
-// returned. It never constructs a request body or a filter value of its own.
-import type { AnalyticsFilters, AnalyticsQuery, AnalyticsResponse } from "../../api/proposed-types";
+// This module replaces one written for the PROPOSED G3 analytics shape, which
+// the backend never implemented. That version had tabs, time buckets, a heatmap
+// and a zoom brush; in production it rendered a "contract pending" empty state
+// and nothing else, because its data source resolved to `false` outside dev
+// fixtures. What the real contract returns is a different thing entirely:
+//
+//   * NO SERVER-SIDE TIME BUCKETS. One row is an aggregate over the whole
+//     [from_ms, to_ms] window for one exact 7-tuple (provider, channel,
+//     account, public_model, protocol, client_key, access_group).
+//     `observed_at_ms` is a watermark on the row, not a bucket stamp. There is
+//     no way to ask for a series — so there is no trend line, no heatmap and no
+//     dataZoom here, and adding one would mean inventing data.
+//   * `limit` MAXES OUT AT 100. Any real deployment pages, so a total computed
+//     from one page is simply wrong — see `collect` and `truncated`.
+//   * SIX TOKEN FAMILIES, EACH WITH ITS OWN CONFIDENCE, and `total` is nullable.
+//     `null` means "not observed", which is NOT zero. Summing it as zero is the
+//     easiest way to under-report and look precise while doing it.
+//   * `cost_confidence` is the one-member enum "unpriced". Cost belongs to
+//     /admin/operations/billing; this page shows tokens, never money.
+//
+// Nothing here touches the DOM, the clock or the network.
 
-// ---------- tabs ----------
+/** Shared with StatusBadge / StateChip (docs/07 §8.6). */
+export type Tone = "good" | "warn" | "serious" | "critical" | "tint" | "muted";
 
-export const USAGE_TABS = [
-  "overview",
-  "trend",
-  "models",
-  "clientKeys",
-  "credentials",
-  "heatmap",
+export const PROTOCOLS = [
+  "openai_chat_completions",
+  "openai_responses",
+  "anthropic_messages",
 ] as const;
-export type UsageTab = (typeof USAGE_TABS)[number];
+export type Protocol = (typeof PROTOCOLS)[number];
 
-export const TAB_LABELS: Readonly<Record<UsageTab, string>> = {
-  overview: "总览",
-  trend: "趋势",
-  models: "模型",
-  clientKeys: "Client Key",
-  credentials: "凭据",
-  heatmap: "热力图",
+/** Per-family observation quality. */
+export const CONFIDENCES = ["exact", "partial", "unknown"] as const;
+export type Confidence = (typeof CONFIDENCES)[number];
+
+export type TokenFamily = Readonly<{
+  total: number | null;
+  confidence: Confidence;
+}>;
+
+/** The six families, in the order the contract declares them. */
+export const TOKEN_FAMILIES = [
+  "input_tokens",
+  "output_tokens",
+  "reasoning_tokens",
+  "cache_read_tokens",
+  "cache_creation_tokens",
+  "cached_tokens",
+] as const;
+
+export type TokenFamilyName = (typeof TOKEN_FAMILIES)[number];
+
+export type UsageRow = Readonly<{
+  provider_id: string;
+  channel_id: string;
+  account_id: string;
+  public_model: string;
+  protocol: Protocol;
+  client_key_id: string;
+  access_group_id: string | null;
+  request_count: number;
+  usage_observations: number;
+  observed_at_ms: number;
+  cost_microunits: number | null;
+  cost_confidence: "unpriced";
+}> &
+  Readonly<Record<TokenFamilyName, TokenFamily>>;
+
+export type UsageResponse = Readonly<{
+  observed_through_ms: number | null;
+  items: readonly UsageRow[];
+  next_cursor: string | null;
+}>;
+
+// ---------------------------------------------------------------------------
+// grouping dimensions
+// ---------------------------------------------------------------------------
+
+/** The seven row dimensions, each usable as a grouping key. They are exactly
+ *  the fields the contract also accepts as filters. Nothing derived. */
+export const DIMENSIONS = [
+  "provider_id",
+  "channel_id",
+  "account_id",
+  "public_model",
+  "protocol",
+  "client_key_id",
+  "access_group_id",
+] as const;
+
+export type Dimension = (typeof DIMENSIONS)[number];
+
+const DIMENSION_LABEL: Readonly<Record<Dimension, string>> = {
+  provider_id: "Provider",
+  channel_id: "Channel",
+  account_id: "账号",
+  public_model: "公开模型",
+  protocol: "协议",
+  client_key_id: "Client Key",
+  access_group_id: "访问组",
 };
 
-export function parseTab(raw: string | null): UsageTab {
-  return USAGE_TABS.find((tab) => tab === raw) ?? "overview";
+export function dimensionLabel(dimension: Dimension): string {
+  return DIMENSION_LABEL[dimension];
 }
 
-// ---------- metric switch ----------
-
-export const USAGE_METRICS = ["requests", "tokens", "failure_rate"] as const;
-export type UsageMetric = (typeof USAGE_METRICS)[number];
-
-export const METRIC_LABELS: Readonly<Record<UsageMetric, string>> = {
-  requests: "请求数",
-  tokens: "Token",
-  failure_rate: "失败率",
-};
-
-export function parseMetric(raw: string | null): UsageMetric {
-  return USAGE_METRICS.find((metric) => metric === raw) ?? "requests";
+export function parseDimension(raw: string | null): Dimension {
+  return DIMENSIONS.find((dimension) => dimension === raw) ?? "provider_id";
 }
 
-// ---------- one composite query, projected per tab ----------
+/** access_group_id is the one nullable dimension: a Client Key need not belong
+ *  to a group. `null` becomes its own bucket, never folded into "" or dropped —
+ *  "no access group" is a real answer about the deployment. */
+export const UNGROUPED_LABEL = "(无访问组)";
 
-/** Only what the visible tab actually renders — plus `options`, which every
- *  tab needs because the filter bar is shared chrome. */
-export function includeForTab(tab: UsageTab, metric: UsageMetric): AnalyticsQuery["include"] {
-  const base = { options: true } as const;
-  switch (tab) {
-    case "overview":
-      return { ...base, summary: true, timeline: true, ranks: { by: "public_model", limit: 8 } };
-    case "trend":
-      return { ...base, timeline: true };
-    case "models":
-      return { ...base, ranks: { by: "public_model", limit: 20 } };
-    case "clientKeys":
-      return { ...base, ranks: { by: "client_key", limit: 20 } };
-    case "credentials":
-      return { ...base, ranks: { by: "credential", limit: 20 } };
-    case "heatmap":
-      return { ...base, heatmap: { metric } };
+export function dimensionValue(row: UsageRow, dimension: Dimension): string | null {
+  return row[dimension];
+}
+
+// ---------------------------------------------------------------------------
+// confidence arithmetic — the part that must not lie
+// ---------------------------------------------------------------------------
+
+const RANK: Readonly<Record<Confidence, number>> = { exact: 0, partial: 1, unknown: 2 };
+
+/** A sum is only as good as its worst contributor. */
+export function weakest(values: readonly Confidence[]): Confidence {
+  let worst: Confidence = "exact";
+  for (const value of values) {
+    if (RANK[value] > RANK[worst]) {
+      worst = value;
+    }
   }
+  return worst;
 }
 
-export type UsageStatus = "all" | "success" | "failed";
+export type FamilyTotal = Readonly<{
+  /** sum of contributors that reported a number; null when none did */
+  total: number | null;
+  confidence: Confidence;
+  /** true when at least one contributor reported `total: null` — the number
+   *  above is then a LOWER BOUND, not a total, and the UI must say so. */
+  partialCoverage: boolean;
+}>;
 
-export function parseStatus(raw: string | null): UsageStatus {
-  return raw === "success" || raw === "failed" ? raw : "all";
-}
-
-export function buildFilters(status: UsageStatus, model: string | null): AnalyticsFilters {
+/**
+ * Adds one token family across rows.
+ *
+ * `total: null` contributors are NOT counted as zero — they are unobserved.
+ * They force the confidence to "unknown" and raise `partialCoverage`, because a
+ * sum missing an unknown quantity is a floor. Printing it as a total would be
+ * precise and wrong at the same time.
+ */
+export function sumFamily(rows: readonly UsageRow[], family: TokenFamilyName): FamilyTotal {
+  let total: number | null = null;
+  let partialCoverage = false;
+  const confidences: Confidence[] = [];
+  for (const row of rows) {
+    const value = row[family];
+    confidences.push(value.confidence);
+    if (value.total === null) {
+      partialCoverage = true;
+      continue;
+    }
+    total = (total ?? 0) + value.total;
+  }
   return {
-    status,
-    ...(model !== null && model !== "" ? { public_model: [model] } : {}),
+    total,
+    confidence: partialCoverage ? "unknown" : weakest(confidences),
+    partialCoverage,
   };
 }
 
-export function hasActiveFilter(status: UsageStatus, model: string | null): boolean {
-  return status !== "all" || (model !== null && model !== "");
+export type Group = Readonly<{
+  key: string;
+  /** null only for access_group_id */
+  value: string | null;
+  rows: readonly UsageRow[];
+  request_count: number;
+  usage_observations: number;
+  families: Readonly<Record<TokenFamilyName, FamilyTotal>>;
+}>;
+
+/** Groups rows by one dimension and sums each family within the group. Sorted
+ *  by request_count descending then key, so identical data always renders in
+ *  the same order. */
+export function groupBy(rows: readonly UsageRow[], dimension: Dimension): readonly Group[] {
+  const buckets = new Map<string, { value: string | null; rows: UsageRow[] }>();
+  for (const row of rows) {
+    const value = dimensionValue(row, dimension);
+    const key = value ?? UNGROUPED_LABEL;
+    const bucket = buckets.get(key) ?? { value, rows: [] };
+    bucket.rows.push(row);
+    buckets.set(key, bucket);
+  }
+  const groups = [...buckets.entries()].map(([key, bucket]) => ({
+    key,
+    value: bucket.value,
+    rows: bucket.rows as readonly UsageRow[],
+    request_count: bucket.rows.reduce((sum, row) => sum + row.request_count, 0),
+    usage_observations: bucket.rows.reduce((sum, row) => sum + row.usage_observations, 0),
+    families: Object.fromEntries(
+      TOKEN_FAMILIES.map((family) => [family, sumFamily(bucket.rows, family)]),
+    ) as Record<TokenFamilyName, FamilyTotal>,
+  }));
+  groups.sort((a, b) => b.request_count - a.request_count || a.key.localeCompare(b.key));
+  return groups;
 }
 
-// ---------- entity comparison (docs/07 §7.2: "实体对比多线图, top-N, 固定色序") ----------
+/** Share of the request total, for the inline bar. Guards the empty case so a
+ *  zero-row page cannot produce NaN widths. */
+export function shareOf(value: number, total: number): number {
+  return total <= 0 ? 0 : value / total;
+}
 
-/** Four series, because the categorical palette has four validated steps and a
- *  fifth would have to reuse a hue or borrow from the status pool. */
-export const COMPARE_LIMIT = 4;
+// ---------------------------------------------------------------------------
+// filters — only closed enums and ids the backend already returned
+// ---------------------------------------------------------------------------
 
-export type CompareKind = "models" | "clientKeys" | "credentials";
+export const FILTER_KEYS = [
+  "provider_id",
+  "channel_id",
+  "account_id",
+  "model",
+  "client_key_id",
+  "access_group_id",
+  "protocol",
+] as const;
 
-/** Which filter dimension a rank tab compares along. Keyed by tab so the
- *  compile fails if a tab is added without deciding this. */
-const COMPARE_DIMENSION: Readonly<Record<CompareKind, keyof AnalyticsFilters>> = {
-  models: "public_model",
-  clientKeys: "client_key_id",
-  credentials: "credential_id",
+export type FilterKey = (typeof FILTER_KEYS)[number];
+export type Filters = Partial<Readonly<Record<FilterKey, string>>>;
+
+const FILTER_LABEL: Readonly<Record<FilterKey, string>> = {
+  provider_id: "Provider",
+  channel_id: "Channel",
+  account_id: "账号",
+  model: "公开模型",
+  client_key_id: "Client Key",
+  access_group_id: "访问组",
+  protocol: "协议",
 };
 
-/** Top-N rank keys, in rank order. Rank order IS the colour order: series 1 gets
- *  --chart-1 and keeps it as long as the ranking holds, so the legend does not
- *  reshuffle hues between refreshes. */
-export function compareKeys(
-  ranks: NonNullable<AnalyticsResponse["ranks"]> | undefined,
-  limit: number = COMPARE_LIMIT,
-): readonly string[] {
-  return (ranks ?? []).slice(0, limit).map((row) => row.key);
+export function filterLabel(key: FilterKey): string {
+  return FILTER_LABEL[key];
 }
 
-/** One series = the shared filters plus a single-value pin on this entity. The
- *  page issues one query per key rather than asking for a cross-tab: the
- *  contract's timeline is unsegmented, and inventing a segmented shape here
- *  would be a projection the backend never promised. */
-export function compareFilters(
-  base: AnalyticsFilters,
-  kind: CompareKind,
-  key: string,
-): AnalyticsFilters {
-  return { ...base, [COMPARE_DIMENSION[kind]]: [key] };
-}
-
-/** Stable colour index for a key given the current ranking. -1 when the key has
- *  dropped out, which the caller renders as "no longer in the top N" rather than
- *  silently recolouring. */
-export function compareColorIndex(keys: readonly string[], key: string): number {
-  return keys.indexOf(key);
-}
-
-// ---------- timeline metric extraction ----------
-
-export type TimelineBucket = NonNullable<AnalyticsResponse["timeline"]>[number];
-
-export function metricValue(bucket: TimelineBucket, metric: UsageMetric): number {
-  switch (metric) {
-    case "requests":
-      return bucket.requests;
-    case "tokens":
-      return bucket.tokens_total;
-    case "failure_rate":
-      return bucket.requests > 0 ? bucket.failures / bucket.requests : 0;
-  }
-}
-
-export function formatMetric(value: number, metric: UsageMetric): string {
-  if (metric === "failure_rate") {
-    return `${(value * 100).toFixed(2)}%`;
-  }
-  return formatAxisNumber(value);
-}
-
-/** Axis / tooltip number: grouped, never scientific, never a fake precision. */
-export function formatAxisNumber(value: number): string {
-  if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}B`;
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 10_000) return `${(value / 1_000).toFixed(1)}K`;
-  return Number.isInteger(value) ? String(value) : value.toFixed(2);
-}
-
-// ---------- zoom window (docs/07 §7.2: ">12 桶时内置 dataZoom") ----------
-
-/** Below this the whole series fits comfortably and a zoom control would be
- *  chrome with nothing to do. */
-export const ZOOM_THRESHOLD = 12;
-
-export type ZoomWindow = Readonly<{ start: number; end: number }>;
-
-export function zoomAvailable(bucketCount: number): boolean {
-  return bucketCount > ZOOM_THRESHOLD;
-}
-
-/** Parse `z=start-end` from the URL. Inclusive bucket indices.
- *
- *  Clamped and ordered here rather than at the use site: the value comes from a
- *  URL a user can hand-edit or a stale link whose window has since shrunk, so
- *  every consumer would otherwise need the same defensive checks. Returns null
- *  for "no zoom", which renders the full series. */
-export function parseZoom(raw: string | null, bucketCount: number): ZoomWindow | null {
-  if (raw === null || bucketCount === 0) {
-    return null;
-  }
-  const match = /^(\d+)-(\d+)$/u.exec(raw);
-  if (match === null) {
-    return null;
-  }
-  const last = bucketCount - 1;
-  const a = Math.min(Math.max(Number(match[1]), 0), last);
-  const b = Math.min(Math.max(Number(match[2]), 0), last);
-  const start = Math.min(a, b);
-  const end = Math.max(a, b);
-  // A single bucket is not a window: a one-point line has no shape to read.
-  if (end - start < 1) {
-    return null;
-  }
-  // Covering everything is the same as no zoom — keep one representation so the
-  // "reset" affordance and the URL agree.
-  if (start === 0 && end === last) {
-    return null;
-  }
-  return { start, end };
-}
-
-export function zoomParam(window: ZoomWindow | null): string | null {
-  return window === null ? null : `${window.start}-${window.end}`;
-}
-
-export function applyZoom<T>(items: readonly T[], window: ZoomWindow | null): readonly T[] {
-  return window === null ? items : items.slice(window.start, window.end + 1);
-}
-
-// ---------- selected bucket (docs/07 §7.2: "选中桶虚线标记") ----------
-
-/** Index into the VISIBLE (post-zoom) series, or null. Stored in the URL by
- *  bucket start time rather than by index, because an index means something
- *  different after a zoom or a bucket-size change and a shared link would land
- *  on the wrong bar. */
-export function parseSelectedBucket(raw: string | null): number | null {
-  if (raw === null) {
-    return null;
-  }
-  const ms = Number(raw);
-  return Number.isFinite(ms) && ms > 0 ? ms : null;
-}
-
-export function findBucketIndex(
-  buckets: readonly TimelineBucket[],
-  startMs: number | null,
-): number | null {
-  if (startMs === null) {
-    return null;
-  }
-  const index = buckets.findIndex((bucket) => bucket.bucket_start_ms === startMs);
-  return index === -1 ? null : index;
-}
-
-// ---------- scales ----------
-// The axis maths lives with the chart primitives; re-exported here so the page
-// and its tests have one import surface.
-export { axisTicks, niceCeil } from "../../components/data/scale";
-
-// ---------- heatmap ----------
-
-export const HEAT_STEPS = 6;
-
-/** 0 = no traffic, 1..HEAT_STEPS-1 = one lightness step of a single hue.
- *  A zero cell is never given a colour step: "no data" must not read as "low". */
-export function heatStep(value: number, max: number, steps = HEAT_STEPS): number {
-  if (value <= 0 || max <= 0) return 0;
-  const ratio = value / max;
-  return Math.min(steps - 1, 1 + Math.floor(ratio * (steps - 1) * 0.999999));
-}
-
-/** Upper bound of each coloured bin, for the legend. */
-export function heatBins(max: number, steps = HEAT_STEPS): number[] {
-  const top = max > 0 ? max : 1;
-  return Array.from({ length: steps - 1 }, (_, index) => (top / (steps - 1)) * (index + 1));
-}
-
-// weekday 0 = 周日, matching Date#getDay(). The G3 proposal does not pin the
-// convention; anchoring it to getDay() is what keeps the cell → time-window
-// deep link honest, because the same call does the inverse mapping.
-export const WEEKDAY_LABELS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"] as const;
-
-export type HeatSelection = Readonly<{ weekday: number; hour: number }>;
-
-/** `?cell=w-h` — the selected heatmap cell is part of the URL contract, so a
- *  revealed detail panel survives a reload and can be linked to. */
-export function parseCell(raw: string | null): HeatSelection | null {
-  if (raw === null) return null;
-  const matched = /^([0-6])-(\d{1,2})$/u.exec(raw);
-  if (matched === null) return null;
-  const hour = Number(matched[2]);
-  if (hour > 23) return null;
-  return { weekday: Number(matched[1]), hour };
-}
-
-export function cellParam(cell: HeatSelection): string {
-  return `${cell.weekday}-${cell.hour}`;
-}
-
-export type CellWindow = Readonly<{ from_ms: number; to_ms: number }>;
-
-const HOUR_MS = 3_600_000;
-
-/** The most recent [hour, hour+1) inside the range whose LOCAL weekday/hour
- *  match the clicked cell. `null` when the range does not cover that cell —
- *  in which case there is nothing honest to deep-link to. */
-export function cellWindow(
-  weekday: number,
-  hour: number,
-  from_ms: number,
-  to_ms: number,
-): CellWindow | null {
-  const cursor = new Date(to_ms);
-  cursor.setMinutes(0, 0, 0);
-  for (let step = 0; step < 24 * 7 + 24; step += 1) {
-    const start = cursor.getTime();
-    if (start < from_ms) break;
-    if (cursor.getDay() === weekday && cursor.getHours() === hour) {
-      return { from_ms: start, to_ms: Math.min(start + HOUR_MS, to_ms) };
+/** Reads filters out of the URL. An unknown protocol is DROPPED rather than
+ *  forwarded: the contract declares a closed enum, and passing anything else
+ *  earns a 400 that reads as a panel bug. */
+export function parseFilters(get: (key: string) => string | null): Filters {
+  const filters: Record<string, string> = {};
+  for (const key of FILTER_KEYS) {
+    const raw = get(key)?.trim() ?? "";
+    if (raw.length === 0) {
+      continue;
     }
-    cursor.setTime(start - HOUR_MS);
+    if (key === "protocol" && !PROTOCOLS.some((protocol) => protocol === raw)) {
+      continue;
+    }
+    filters[key] = raw;
   }
-  return null;
+  return filters;
 }
 
-/** Deep link into 请求监控 with the window and the live filters encoded — the
- *  target page parses them back out of the URL (docs/07 §6 深链下钻). */
-export function monitoringHref(
-  window: CellWindow,
-  status: UsageStatus,
-  model: string | null,
-): string {
-  const params = new URLSearchParams({
-    range: "custom",
-    from: String(window.from_ms),
-    to: String(window.to_ms),
-    bucket: "hour",
-  });
-  if (status !== "all") params.set("status", status);
-  if (model !== null && model !== "") params.set("model", model);
-  return `/monitoring?${params.toString()}`;
+export function activeFilterCount(filters: Filters): number {
+  return Object.values(filters).filter((value) => value !== undefined && value.length > 0).length;
 }
 
-// ---------- rank tables ----------
+// ---------------------------------------------------------------------------
+// formatting
+// ---------------------------------------------------------------------------
 
-export type RankRow = NonNullable<AnalyticsResponse["ranks"]>[number];
+const CONFIDENCE_LABEL: Readonly<Record<Confidence, string>> = {
+  exact: "精确",
+  partial: "部分",
+  unknown: "未知",
+};
 
-export function shareOf(value: number, total: number): number {
-  return total > 0 ? value / total : 0;
+const CONFIDENCE_TONE: Readonly<Record<Confidence, Tone>> = {
+  exact: "good",
+  partial: "warn",
+  unknown: "muted",
+};
+
+export function confidenceLabel(confidence: Confidence): string {
+  return CONFIDENCE_LABEL[confidence];
 }
 
-export function failureRate(row: RankRow): number {
-  return row.requests > 0 ? row.failures / row.requests : 0;
+export function confidenceTone(confidence: Confidence): Tone {
+  return CONFIDENCE_TONE[confidence];
 }
 
-export function rankTotal(rows: readonly RankRow[]): number {
-  return rows.reduce((sum, row) => sum + row.requests, 0);
+const FAMILY_LABEL: Readonly<Record<TokenFamilyName, string>> = {
+  input_tokens: "输入",
+  output_tokens: "输出",
+  reasoning_tokens: "推理",
+  cache_read_tokens: "缓存读",
+  cache_creation_tokens: "缓存写",
+  cached_tokens: "已缓存",
+};
+
+export function familyLabel(family: TokenFamilyName): string {
+  return FAMILY_LABEL[family];
+}
+
+/** `null` renders as an em dash, never as 0: "not observed" and "zero tokens"
+ *  are different facts and this page must not merge them. */
+export function formatTokens(total: number | null): string {
+  return total === null ? "—" : total.toLocaleString("en-US");
+}
+
+export function formatCount(value: number): string {
+  return value.toLocaleString("en-US");
+}
+
+/** UTC, minute precision — the same wall clock the gateway logs use. */
+export function formatWatermark(observedThroughMs: number | null): string {
+  if (observedThroughMs === null) {
+    return "尚无观测";
+  }
+  return `${new Date(observedThroughMs).toISOString().slice(0, 16).replace("T", " ")}Z`;
+}
+
+// ---------------------------------------------------------------------------
+// time range
+// ---------------------------------------------------------------------------
+
+export const RANGE_PRESETS = ["24h", "7d", "30d", "all"] as const;
+export type RangePreset = (typeof RANGE_PRESETS)[number];
+
+const RANGE_LABEL: Readonly<Record<RangePreset, string>> = {
+  "24h": "24 小时",
+  "7d": "7 天",
+  "30d": "30 天",
+  all: "全部",
+};
+
+export function rangeLabel(preset: RangePreset): string {
+  return RANGE_LABEL[preset];
+}
+
+export function parseRange(raw: string | null): RangePreset {
+  return RANGE_PRESETS.find((preset) => preset === raw) ?? "7d";
+}
+
+const RANGE_MS: Readonly<Record<Exclude<RangePreset, "all">, number>> = {
+  "24h": 86_400_000,
+  "7d": 604_800_000,
+  "30d": 2_592_000_000,
+};
+
+/** "all" omits both bounds rather than sending `from_ms: 0` — an explicit zero
+ *  is a filter the backend must honour, while omission lets it answer over its
+ *  own retention window. */
+export function rangeParams(
+  preset: RangePreset,
+  nowMs: number,
+): Readonly<{ from_ms?: number; to_ms?: number }> {
+  if (preset === "all") {
+    return {};
+  }
+  return { from_ms: nowMs - RANGE_MS[preset], to_ms: nowMs };
+}
+
+// ---------------------------------------------------------------------------
+// paging
+// ---------------------------------------------------------------------------
+
+/** The contract caps `limit` at 100, so this is the largest legal page. */
+export const PAGE_LIMIT = 100;
+
+/** Hard stop on cursor-following. Bounded so a fetch-all cannot run away on a
+ *  deployment with a very wide 7-tuple space; when it trips the page SAYS SO
+ *  rather than presenting a truncated sum as a total. */
+export const MAX_PAGES = 20;
+
+export type Collected = Readonly<{
+  rows: readonly UsageRow[];
+  observed_through_ms: number | null;
+  /** true when MAX_PAGES was reached with a cursor still outstanding */
+  truncated: boolean;
+  pages: number;
+}>;
+
+/**
+ * Folds successive pages into one collection.
+ *
+ * Totals are computed over ALL fetched rows, so this must follow the cursor:
+ * summing the first page alone would under-report whenever the 7-tuple space
+ * exceeds 100 entries, which is the normal case for anything but a toy config.
+ */
+export function collect(pages: readonly UsageResponse[]): Collected {
+  const last = pages.at(-1);
+  return {
+    rows: pages.flatMap((page) => [...page.items]),
+    // Every page carries the same watermark; the last read is the freshest.
+    observed_through_ms: last?.observed_through_ms ?? null,
+    truncated: pages.length >= MAX_PAGES && (last?.next_cursor ?? null) !== null,
+    pages: pages.length,
+  };
 }

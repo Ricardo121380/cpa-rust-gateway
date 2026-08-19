@@ -1334,3 +1334,83 @@ Explain 对**已编译快照**求解,而快照只在版本**发布后**存在。
 可考虑的机械化方向(尚未做):让 `check.mjs` 比对"契约响应必填字段名"与
 "src 中出现过的字符串",给**警告级**提示 —— 不阻断,因为字段名可以被解构改名,
 误报会比漏报更快让人把门禁关掉。
+
+---
+
+## 18. 用量分析页重建(2026-08-18)
+
+### 18.1 这不是改造,是替换
+
+旧页面按**提案中的 G3 分析形状**建成:六个 tab、时间桶、热力图、缩放刷。
+它的数据源是 `api/proposed.ts`,而那个模块的开关是:
+
+```ts
+export function analyticsAvailable(): boolean {
+  return import.meta.env.DEV && import.meta.env["VITE_PRISM_FIXTURES"] === "1";
+}
+```
+
+**生产构建恒为 `false`。** 也就是说这一族代码从未在真网关上渲染过任何像素 ——
+它一直显示 "contract pending" 空态。后端最终实现的是 `operations/usage`,形状完全不同。
+
+替换后:usage 一族 1716 行 → 约 730 行;连带清掉六个只为时间桶而存在的图表组件
+(Heatmap / ZoomBrush / LineChart / MultiLineChart / SeriesLegend / RankTable)
+与三个只为它们服务的辅助模块,共 **-2797 / +1196 行**。
+
+**没有发布字节收益可宣称:**重写 UsagePage 后这些组件已被 Vite 树摇掉,
+删除去掉的是源码而不是 `dist`。产物在删除前后逐字节相同。
+
+### 18.2 契约的三条属性决定了页面长什么样
+
+**没有服务端时间桶。** 一行 = 一个 7 元组在整个 `[from_ms, to_ms]` 窗口内的聚合,
+`observed_at_ms` 是行上的水位而不是桶戳。所以**没有趋势线、没有热力图、没有缩放**。
+
+前端拼一条曲线的两种做法都不可接受:发 K 个窗口 × 每窗口跟游标 = K×页 次请求;
+不跟游标就静默少算。页面把这句话印出来,而不是画一条看起来很像的曲线。
+
+这也让 ECharts 的引入条件永久失效 —— 计划里"等时间桶到位"的那个前提不会满足。
+
+**`limit` 上限 100。** 任何真实部署都要翻页,所以**单页求和就是错的**。
+页面跟游标读到底,上限 `MAX_PAGES = 20`,到顶时明说"下面的合计是不完整的"。
+E2E 用 137 行 fixture 钉死这一点:全量合计 1,225,只算第一页是 885 ——
+两个数差得足够远,回归一眼可见。
+
+**六个 token 家族各带独立置信度,`total` 可空。** `null` 是"未观测",不是零。
+`sumFamily` 因此:null 贡献者不计入求和、把置信度压到 `unknown`、并置 `partialCoverage`。
+UI 用 `≥` 标记这类合计是**下界**。把 null 当 0 相加,会得到一个精确的错数。
+
+### 18.3 一处漏掉会让人误读的事实:usage 不受配置版本影响
+
+`listOperationalUsage` **不声明 `X-Config-Version`**。核对下来,运营面的算子分成两类:
+
+| 版本作用域 | 无版本作用域 |
+|---|---|
+| `listOperationalAccountPools`(配置库存) | `listOperationalUsage` |
+| `listProviderEgressStatus` | `listOperationalBilling` |
+| `listBillingCatalogs` | `listProviderAccountPools` |
+| | `listRequestAttempts` |
+
+用量是**已发生请求的持久观测**,天然跨版本;配置库存则必须绑版本。
+
+第一版我照着别的页面加了 `versionScoped: true` 并要求先选版本,fixture 也照做,
+结果真网关上一测就崩(`unknown config version`)。现在页面不要求选版本,
+并在正文里写明**顶栏所选版本不会过滤本页数字** —— 不写的话,
+运维会以为选了草稿就只看到草稿的用量。
+
+### 18.4 又一次被自己的门禁抓住
+
+`check.mjs` 禁止内联 style 属性(生产 CSP 是 `style-src 'self'`),用的是文本匹配。
+我在注释里**写出了那个被禁的字面串**来解释为什么用 SVG,于是门禁报了自己写的注释。
+
+与当年 `document.cookie` 写在测试字符串里触发 C6 是同一类。处理方式也一样:
+**改文案,不改门禁。**门禁宁可误报也不该被削弱。
+
+### 18.5 实机验证与其边界
+
+对真网关(`/admin-ui/`,**故意不选任何配置版本**)验证通过:
+`GET /admin/operations/usage` 返回 200、页面不索要版本、空态说明"从未接过流量"、
+水位显示"尚无观测"、零控制台错误。
+
+**非空渲染只在 fixture 下验证过。** 真网关是全新库、没有流量跑过,而要产生真实用量
+需要发布配置并真的发请求,离线部署做不到 —— 与 §17.6 里 Explain 的限制同源,
+都是"没有已发布快照"这一个前提。

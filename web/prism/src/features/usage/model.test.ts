@@ -1,389 +1,273 @@
 import { describe, expect, it } from "vitest";
 import {
-  axisTicks,
-  buildFilters,
-  cellParam,
-  cellWindow,
-  parseCell,
-  failureRate,
-  formatMetric,
-  hasActiveFilter,
-  heatBins,
-  heatStep,
-  includeForTab,
-  metricValue,
-  monitoringHref,
-  niceCeil,
-  parseMetric,
-  parseStatus,
-  parseTab,
-  rankTotal,
+  activeFilterCount,
+  collect,
+  confidenceTone,
+  formatTokens,
+  formatWatermark,
+  groupBy,
+  parseDimension,
+  parseFilters,
+  parseRange,
+  rangeParams,
   shareOf,
-  COMPARE_LIMIT,
-  compareColorIndex,
-  compareFilters,
-  compareKeys,
-  applyZoom,
-  findBucketIndex,
-  parseSelectedBucket,
-  parseZoom,
-  zoomAvailable,
-  zoomParam,
-  ZOOM_THRESHOLD,
-  type RankRow,
-  type TimelineBucket,
+  sumFamily,
+  UNGROUPED_LABEL,
+  weakest,
+  type Confidence,
+  type UsageResponse,
+  type UsageRow,
 } from "./model";
 
-const HOUR = 3_600_000;
-const NOW = 1785060000000;
-
-describe("url contract", () => {
-  it("tab falls back to overview for unknown / missing values", () => {
-    expect(parseTab("heatmap")).toBe("heatmap");
-    expect(parseTab("credentials")).toBe("credentials");
-    expect(parseTab("cost")).toBe("overview");
-    expect(parseTab(null)).toBe("overview");
+/** Row builder: everything defaults to observed/exact so each test can vary the
+ *  one thing it is about. */
+function row(over: Partial<UsageRow> = {}): UsageRow {
+  const family = (total: number | null, confidence: Confidence = "exact") => ({
+    total,
+    confidence,
   });
-
-  it("metric and status are closed enums", () => {
-    expect(parseMetric("tokens")).toBe("tokens");
-    expect(parseMetric("dollars")).toBe("requests");
-    expect(parseStatus("failed")).toBe("failed");
-    expect(parseStatus("weird")).toBe("all");
-  });
-
-  it("filters carry only closed enums and returned identifiers", () => {
-    expect(buildFilters("all", null)).toEqual({ status: "all" });
-    expect(buildFilters("failed", "glm-5-air")).toEqual({
-      status: "failed",
-      public_model: ["glm-5-air"],
-    });
-    expect(hasActiveFilter("all", null)).toBe(false);
-    expect(hasActiveFilter("all", "")).toBe(false);
-    expect(hasActiveFilter("all", "glm-5-air")).toBe(true);
-    expect(hasActiveFilter("failed", null)).toBe(true);
-  });
-});
-
-describe("per-tab include projection", () => {
-  it("asks for exactly what the tab renders", () => {
-    expect(includeForTab("overview", "requests")).toEqual({
-      options: true,
-      summary: true,
-      timeline: true,
-      ranks: { by: "public_model", limit: 8 },
-    });
-    expect(includeForTab("trend", "tokens")).toEqual({ options: true, timeline: true });
-    expect(includeForTab("models", "requests")).toEqual({
-      options: true,
-      ranks: { by: "public_model", limit: 20 },
-    });
-    expect(includeForTab("credentials", "requests")).toEqual({
-      options: true,
-      ranks: { by: "credential", limit: 20 },
-    });
-  });
-
-  it("heatmap carries the selected metric", () => {
-    expect(includeForTab("heatmap", "failure_rate")).toEqual({
-      options: true,
-      heatmap: { metric: "failure_rate" },
-    });
-  });
-
-  it("never requests events (that is 请求监控's job)", () => {
-    for (const tab of ["overview", "trend", "models", "credentials", "heatmap"] as const) {
-      expect(includeForTab(tab, "requests")).not.toHaveProperty("events");
-    }
-  });
-});
-
-describe("timeline metrics", () => {
-  const bucket: TimelineBucket = {
-    bucket_start_ms: NOW,
-    requests: 200,
-    failures: 4,
-    tokens_total: 1_800_000,
+  return {
+    provider_id: "prov-a",
+    channel_id: "ch-a",
+    account_id: "acct-a",
+    public_model: "m-1",
+    protocol: "openai_responses",
+    client_key_id: "ck-1",
+    access_group_id: "ag-1",
+    request_count: 1,
+    usage_observations: 1,
+    observed_at_ms: 1_700_000_000_000,
+    cost_microunits: null,
+    cost_confidence: "unpriced",
+    input_tokens: family(100),
+    output_tokens: family(20),
+    reasoning_tokens: family(0),
+    cache_read_tokens: family(0),
+    cache_creation_tokens: family(0),
+    cached_tokens: family(0),
+    ...over,
   };
+}
 
-  it("reads one measure per metric", () => {
-    expect(metricValue(bucket, "requests")).toBe(200);
-    expect(metricValue(bucket, "tokens")).toBe(1_800_000);
-    expect(metricValue(bucket, "failure_rate")).toBeCloseTo(0.02);
+describe("weakest", () => {
+  it("ranks exact < partial < unknown and returns the worst", () => {
+    expect(weakest(["exact", "exact"])).toBe("exact");
+    expect(weakest(["exact", "partial"])).toBe("partial");
+    expect(weakest(["partial", "unknown", "exact"])).toBe("unknown");
   });
 
-  it("failure rate of an empty bucket is 0, not NaN", () => {
-    expect(metricValue({ ...bucket, requests: 0, failures: 0 }, "failure_rate")).toBe(0);
-  });
-
-  it("formats per metric", () => {
-    expect(formatMetric(0.02, "failure_rate")).toBe("2.00%");
-    expect(formatMetric(1_800_000, "tokens")).toBe("1.8M");
-    expect(formatMetric(200, "requests")).toBe("200");
+  it("treats an empty set as exact — nothing observed cannot be contradicted", () => {
+    expect(weakest([])).toBe("exact");
   });
 });
 
-describe("axis scale", () => {
-  it("rounds up to clean tops", () => {
-    expect(niceCeil(0)).toBe(1);
-    expect(niceCeil(7)).toBe(10);
-    expect(niceCeil(180)).toBe(200);
-    expect(niceCeil(1)).toBe(1);
-    expect(niceCeil(2.4)).toBe(2.5);
+describe("sumFamily", () => {
+  it("adds observed totals and keeps exact when every contributor is exact", () => {
+    const total = sumFamily([row(), row()], "input_tokens");
+    expect(total).toEqual({ total: 200, confidence: "exact", partialCoverage: false });
   });
 
-  it("ticks span 0..top inclusive", () => {
-    const ticks = axisTicks(180, 4);
-    expect(ticks).toEqual([0, 50, 100, 150, 200]);
-  });
-});
-
-describe("heatmap ramp", () => {
-  it("zero never borrows a colour step", () => {
-    expect(heatStep(0, 200)).toBe(0);
-    expect(heatStep(5, 0)).toBe(0);
+  it("downgrades to the weakest contributor's confidence", () => {
+    const total = sumFamily(
+      [row(), row({ input_tokens: { total: 5, confidence: "partial" } })],
+      "input_tokens",
+    );
+    expect(total.total).toBe(105);
+    expect(total.confidence).toBe("partial");
+    expect(total.partialCoverage).toBe(false);
   });
 
-  it("steps rise monotonically and stop at the top step", () => {
-    expect(heatStep(1, 200)).toBe(1);
-    expect(heatStep(200, 200)).toBe(5);
-    let previous = 0;
-    for (let value = 0; value <= 200; value += 10) {
-      const step = heatStep(value, 200);
-      expect(step).toBeGreaterThanOrEqual(previous);
-      previous = step;
-    }
+  it("NEVER counts an unobserved total as zero", () => {
+    // This is the whole point of the type. A null contributor means the sum is
+    // a floor; adding it as 0 would under-report while looking precise.
+    const total = sumFamily(
+      [row(), row({ input_tokens: { total: null, confidence: "unknown" } })],
+      "input_tokens",
+    );
+    expect(total.total).toBe(100);
+    expect(total.partialCoverage).toBe(true);
+    expect(total.confidence).toBe("unknown");
   });
 
-  it("legend bins cover the range", () => {
-    const bins = heatBins(200);
-    expect(bins).toHaveLength(5);
-    expect(bins[bins.length - 1]).toBe(200);
-  });
-});
-
-describe("selected cell in the url", () => {
-  it("round-trips a valid cell", () => {
-    expect(parseCell(cellParam({ weekday: 3, hour: 14 }))).toEqual({ weekday: 3, hour: 14 });
-    expect(parseCell("0-0")).toEqual({ weekday: 0, hour: 0 });
-    expect(parseCell("6-23")).toEqual({ weekday: 6, hour: 23 });
+  it("returns null, not 0, when nothing was observed at all", () => {
+    const total = sumFamily(
+      [row({ input_tokens: { total: null, confidence: "unknown" } })],
+      "input_tokens",
+    );
+    expect(total.total).toBeNull();
+    expect(total.partialCoverage).toBe(true);
   });
 
-  it("rejects out-of-range and malformed values", () => {
-    expect(parseCell(null)).toBeNull();
-    expect(parseCell("7-1")).toBeNull();
-    expect(parseCell("1-24")).toBeNull();
-    expect(parseCell("1")).toBeNull();
-    expect(parseCell("a-b")).toBeNull();
+  it("distinguishes a real zero from an absent observation", () => {
+    const zero = sumFamily([row({ input_tokens: { total: 0, confidence: "exact" } })], "input_tokens");
+    expect(zero.total).toBe(0);
+    expect(zero.partialCoverage).toBe(false);
+    expect(zero.confidence).toBe("exact");
+  });
+
+  it("sums an empty row set to null", () => {
+    expect(sumFamily([], "output_tokens").total).toBeNull();
   });
 });
 
-describe("cell → time window", () => {
-  it("returns the most recent local occurrence inside the range", () => {
-    const to = NOW;
-    const from = to - 7 * 24 * HOUR;
-    const probe = new Date(to - 50 * HOUR);
-    probe.setMinutes(0, 0, 0);
-    const window = cellWindow(probe.getDay(), probe.getHours(), from, to);
-    expect(window).not.toBeNull();
-    const found = new Date(window!.from_ms);
-    expect(found.getDay()).toBe(probe.getDay());
-    expect(found.getHours()).toBe(probe.getHours());
-    expect(window!.from_ms).toBeGreaterThanOrEqual(from);
-    expect(window!.to_ms).toBeLessThanOrEqual(to);
-    // most recent: a later matching hour would be within one week of `to`
-    expect(to - window!.from_ms).toBeLessThan(7 * 24 * HOUR);
+describe("groupBy", () => {
+  it("groups by one dimension and sums requests within the group", () => {
+    const groups = groupBy(
+      [row({ provider_id: "a" }), row({ provider_id: "a" }), row({ provider_id: "b" })],
+      "provider_id",
+    );
+    expect(groups.map((group) => group.key)).toEqual(["a", "b"]);
+    expect(groups[0]?.request_count).toBe(2);
+    expect(groups[0]?.families.input_tokens.total).toBe(200);
   });
 
-  it("clamps the window's end to the range end", () => {
-    const to = NOW;
-    const cursor = new Date(to);
-    cursor.setMinutes(0, 0, 0);
-    const window = cellWindow(cursor.getDay(), cursor.getHours(), to - 24 * HOUR, to);
-    expect(window).not.toBeNull();
-    expect(window!.to_ms).toBe(to);
+  it("orders by request_count descending, then key, so refetches are stable", () => {
+    const groups = groupBy(
+      [
+        row({ provider_id: "b", request_count: 1 }),
+        row({ provider_id: "a", request_count: 5 }),
+        row({ provider_id: "c", request_count: 1 }),
+      ],
+      "provider_id",
+    );
+    expect(groups.map((group) => group.key)).toEqual(["a", "b", "c"]);
   });
 
-  it("returns null when the range does not cover the cell", () => {
-    const to = NOW;
-    const from = to - 2 * HOUR;
-    const cursor = new Date(to - 40 * HOUR);
-    expect(cellWindow(cursor.getDay(), cursor.getHours(), from, to)).toBeNull();
-  });
-});
-
-describe("deep link", () => {
-  it("encodes the window as a custom range plus the live filters", () => {
-    const href = monitoringHref({ from_ms: 1000, to_ms: 2000 }, "failed", "glm-5-air");
-    const params = new URLSearchParams(href.slice(href.indexOf("?")));
-    expect(href.startsWith("/monitoring?")).toBe(true);
-    expect(params.get("range")).toBe("custom");
-    expect(params.get("from")).toBe("1000");
-    expect(params.get("to")).toBe("2000");
-    expect(params.get("bucket")).toBe("hour");
-    expect(params.get("status")).toBe("failed");
-    expect(params.get("model")).toBe("glm-5-air");
+  it("gives a null access group its own bucket instead of dropping it", () => {
+    // "belongs to no access group" is a real fact about the deployment; folding
+    // it into "" would hide Client Keys that answer to no group limits.
+    const groups = groupBy(
+      [row({ access_group_id: null }), row({ access_group_id: "ag-1" })],
+      "access_group_id",
+    );
+    expect(groups.map((group) => group.key).sort()).toEqual([UNGROUPED_LABEL, "ag-1"].sort());
+    expect(groups.find((group) => group.key === UNGROUPED_LABEL)?.value).toBeNull();
   });
 
-  it("omits inactive filters", () => {
-    const href = monitoringHref({ from_ms: 1000, to_ms: 2000 }, "all", null);
-    const params = new URLSearchParams(href.slice(href.indexOf("?")));
-    expect(params.get("status")).toBeNull();
-    expect(params.get("model")).toBeNull();
+  it("propagates partial coverage from any row in the group", () => {
+    const groups = groupBy(
+      [row(), row({ output_tokens: { total: null, confidence: "unknown" } })],
+      "provider_id",
+    );
+    expect(groups[0]?.families.output_tokens.partialCoverage).toBe(true);
+    expect(groups[0]?.families.input_tokens.partialCoverage).toBe(false);
   });
 });
 
-describe("rank rows", () => {
-  const rows: readonly RankRow[] = [
-    { key: "minimax-m3", requests: 720, failures: 18, tokens_total: 8_000_000, last_seen_ms: NOW },
-    { key: "glm-5-air", requests: 280, failures: 0, tokens_total: 2_000_000, last_seen_ms: NOW },
-  ];
-
-  it("shares are computed against the visible total", () => {
-    const total = rankTotal(rows);
-    expect(total).toBe(1000);
-    expect(shareOf(rows[0]!.requests, total)).toBeCloseTo(0.72);
-    expect(shareOf(1, 0)).toBe(0);
+describe("collect", () => {
+  const page = (over: Partial<UsageResponse> = {}): UsageResponse => ({
+    observed_through_ms: 1_700_000_000_000,
+    items: [row()],
+    next_cursor: null,
+    ...over,
   });
 
-  it("failure rate of a silent entity is 0", () => {
-    expect(failureRate(rows[0]!)).toBeCloseTo(0.025);
-    expect(failureRate({ ...rows[1]!, requests: 0 })).toBe(0);
+  it("concatenates every page's rows", () => {
+    expect(collect([page(), page()]).rows).toHaveLength(2);
+  });
+
+  it("takes the watermark from the freshest read", () => {
+    expect(
+      collect([page(), page({ observed_through_ms: 1_700_000_999_000 })]).observed_through_ms,
+    ).toBe(1_700_000_999_000);
+  });
+
+  it("is not truncated when the last page has no cursor", () => {
+    expect(collect([page()]).truncated).toBe(false);
+  });
+
+  it("reports truncation when the page cap is hit with a cursor outstanding", () => {
+    // The alternative is presenting a partial sum as a total — a silent cap is
+    // exactly the failure this flag exists to prevent.
+    const pages = Array.from({ length: 20 }, () => page({ next_cursor: "more" }));
+    expect(collect(pages).truncated).toBe(true);
+  });
+
+  it("handles the empty case without inventing a watermark", () => {
+    expect(collect([]).observed_through_ms).toBeNull();
+    expect(collect([]).rows).toEqual([]);
   });
 });
 
-describe("entity comparison", () => {
-  const ranks: readonly RankRow[] = [
-    { key: "a", requests: 500, failures: 5, tokens_total: 9, last_seen_ms: NOW },
-    { key: "b", requests: 400, failures: 4, tokens_total: 8, last_seen_ms: NOW },
-    { key: "c", requests: 300, failures: 3, tokens_total: 7, last_seen_ms: NOW },
-    { key: "d", requests: 200, failures: 2, tokens_total: 6, last_seen_ms: NOW },
-    { key: "e", requests: 100, failures: 1, tokens_total: 5, last_seen_ms: NOW },
-  ];
-
-  it("takes top-N in rank order and never exceeds the palette", () => {
-    const keys = compareKeys(ranks);
-    expect(keys).toEqual(["a", "b", "c", "d"]);
-    expect(keys.length).toBeLessThanOrEqual(COMPARE_LIMIT);
-  });
-
-  it("tolerates a missing or short rank list", () => {
-    expect(compareKeys(undefined)).toEqual([]);
-    expect(compareKeys(ranks.slice(0, 2))).toEqual(["a", "b"]);
-  });
-
-  it("rank order is the colour order, so hues do not reshuffle", () => {
-    const keys = compareKeys(ranks);
-    expect(compareColorIndex(keys, "a")).toBe(0);
-    expect(compareColorIndex(keys, "d")).toBe(3);
-    // dropped out of the top N: the caller must not silently recolour it
-    expect(compareColorIndex(keys, "e")).toBe(-1);
-  });
-
-  it("pins exactly one dimension per series and keeps the shared filters", () => {
-    const base = buildFilters("failed", "glm-5-air");
-    expect(compareFilters(base, "clientKeys", "key-ci")).toEqual({
-      status: "failed",
-      public_model: ["glm-5-air"],
-      client_key_id: ["key-ci"],
-    });
-    expect(compareFilters(base, "credentials", "cred-x")).toEqual({
-      status: "failed",
-      public_model: ["glm-5-air"],
-      credential_id: ["cred-x"],
+describe("filters", () => {
+  it("reads only the declared keys and trims them", () => {
+    const params = new Map([
+      ["provider_id", " prov-a "],
+      ["model", "m-1"],
+      ["nonsense", "x"],
+    ]);
+    expect(parseFilters((key) => params.get(key) ?? null)).toEqual({
+      provider_id: "prov-a",
+      model: "m-1",
     });
   });
 
-  it("a model series overrides the shared model filter rather than conflicting", () => {
-    const base = buildFilters("all", "glm-5-air");
-    expect(compareFilters(base, "models", "minimax-m3")).toEqual({
-      status: "all",
-      public_model: ["minimax-m3"],
+  it("drops an unknown protocol rather than forwarding it into a 400", () => {
+    const params = new Map([["protocol", "grpc"]]);
+    expect(parseFilters((key) => params.get(key) ?? null)).toEqual({});
+  });
+
+  it("keeps a protocol the contract declares", () => {
+    const params = new Map([["protocol", "anthropic_messages"]]);
+    expect(parseFilters((key) => params.get(key) ?? null)).toEqual({
+      protocol: "anthropic_messages",
+    });
+  });
+
+  it("ignores blank values so an empty box is not a filter", () => {
+    const params = new Map([["provider_id", "   "]]);
+    expect(parseFilters((key) => params.get(key) ?? null)).toEqual({});
+    expect(activeFilterCount({})).toBe(0);
+    expect(activeFilterCount({ provider_id: "a", model: "b" })).toBe(2);
+  });
+});
+
+describe("range", () => {
+  it("falls back to 7d for an unknown preset", () => {
+    expect(parseRange("nonsense")).toBe("7d");
+    expect(parseRange(null)).toBe("7d");
+    expect(parseRange("24h")).toBe("24h");
+  });
+
+  it("omits both bounds for 'all' rather than sending from_ms: 0", () => {
+    // An explicit zero is a filter the backend must honour; omission lets it
+    // answer over its own retention window.
+    expect(rangeParams("all", 1_700_000_000_000)).toEqual({});
+  });
+
+  it("computes a closed window for the presets", () => {
+    expect(rangeParams("24h", 1_700_000_000_000)).toEqual({
+      from_ms: 1_700_000_000_000 - 86_400_000,
+      to_ms: 1_700_000_000_000,
     });
   });
 });
 
-describe("the six tabs each project their own include", () => {
-  it("every rank tab asks for its own dimension", () => {
-    expect(includeForTab("models", "requests").ranks?.by).toBe("public_model");
-    expect(includeForTab("clientKeys", "requests").ranks?.by).toBe("client_key");
-    expect(includeForTab("credentials", "requests").ranks?.by).toBe("credential");
+describe("formatting", () => {
+  it("renders an unobserved total as an em dash, never as zero", () => {
+    expect(formatTokens(null)).toBe("—");
+    expect(formatTokens(0)).toBe("0");
+    expect(formatTokens(1234567)).toBe("1,234,567");
   });
 
-  it("no tab asks for a projection it does not render", () => {
-    expect(includeForTab("clientKeys", "requests").heatmap).toBeUndefined();
-    expect(includeForTab("clientKeys", "requests").timeline).toBeUndefined();
-    expect(includeForTab("trend", "requests").ranks).toBeUndefined();
+  it("says so when there is no watermark at all", () => {
+    expect(formatWatermark(null)).toBe("尚无观测");
+    expect(formatWatermark(1_700_000_000_000)).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}Z$/u);
   });
 
-  it("clientKeys is a real tab, not a fallback to overview", () => {
-    expect(parseTab("clientKeys")).toBe("clientKeys");
-    expect(parseTab("nope")).toBe("overview");
-  });
-});
-
-describe("zoom window", () => {
-  it("only offered above the threshold", () => {
-    expect(zoomAvailable(ZOOM_THRESHOLD)).toBe(false);
-    expect(zoomAvailable(ZOOM_THRESHOLD + 1)).toBe(true);
-    expect(zoomAvailable(0)).toBe(false);
+  it("tones the three confidences apart", () => {
+    expect(confidenceTone("exact")).toBe("good");
+    expect(confidenceTone("partial")).toBe("warn");
+    expect(confidenceTone("unknown")).toBe("muted");
   });
 
-  it("round-trips through the URL", () => {
-    const window = parseZoom("3-9", 24);
-    expect(window).toEqual({ start: 3, end: 9 });
-    expect(zoomParam(window)).toBe("3-9");
-    expect(zoomParam(null)).toBeNull();
+  it("guards share against a zero total", () => {
+    expect(shareOf(3, 0)).toBe(0);
+    expect(shareOf(3, 12)).toBe(0.25);
   });
 
-  it("clamps a stale link whose window has since shrunk", () => {
-    // shared link said 10-40 but the range now holds 12 buckets
-    expect(parseZoom("10-40", 12)).toEqual({ start: 10, end: 11 });
-  });
-
-  it("orders reversed handles rather than producing an inverted window", () => {
-    expect(parseZoom("9-3", 24)).toEqual({ start: 3, end: 9 });
-  });
-
-  it("treats degenerate and full-coverage windows as no zoom", () => {
-    expect(parseZoom("5-5", 24)).toBeNull(); // a single bucket has no shape
-    expect(parseZoom("0-23", 24)).toBeNull(); // same as unzoomed
-    expect(parseZoom("garbage", 24)).toBeNull();
-    expect(parseZoom(null, 24)).toBeNull();
-    expect(parseZoom("0-5", 0)).toBeNull();
-  });
-
-  it("slices inclusively and is a no-op when absent", () => {
-    const items = [0, 1, 2, 3, 4, 5];
-    expect(applyZoom(items, { start: 1, end: 3 })).toEqual([1, 2, 3]);
-    expect(applyZoom(items, null)).toEqual(items);
-  });
-});
-
-describe("selected bucket", () => {
-  const buckets: readonly TimelineBucket[] = [
-    { bucket_start_ms: 1000, requests: 1, failures: 0, tokens_total: 0 },
-    { bucket_start_ms: 2000, requests: 2, failures: 0, tokens_total: 0 },
-    { bucket_start_ms: 3000, requests: 3, failures: 0, tokens_total: 0 },
-  ];
-
-  it("is stored by start time, not by index", () => {
-    // an index would point at a different bucket after a zoom or bucket change
-    expect(parseSelectedBucket("2000")).toBe(2000);
-    expect(findBucketIndex(buckets, 2000)).toBe(1);
-  });
-
-  it("rejects nonsense and reports a bucket that is no longer visible", () => {
-    expect(parseSelectedBucket("nope")).toBeNull();
-    expect(parseSelectedBucket("0")).toBeNull();
-    expect(parseSelectedBucket(null)).toBeNull();
-    expect(findBucketIndex(buckets, 9999)).toBeNull();
-    expect(findBucketIndex(buckets, null)).toBeNull();
-  });
-
-  it("survives a zoom that still contains it, and drops out of one that does not", () => {
-    const zoomed = applyZoom(buckets, { start: 1, end: 2 });
-    expect(findBucketIndex(zoomed, 2000)).toBe(0);
-    expect(findBucketIndex(zoomed, 1000)).toBeNull();
+  it("falls back to a real dimension for an unknown one", () => {
+    expect(parseDimension("nope")).toBe("provider_id");
+    expect(parseDimension("public_model")).toBe("public_model");
   });
 });
