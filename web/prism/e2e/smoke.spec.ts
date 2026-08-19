@@ -22,13 +22,15 @@ test("overview lights up KPI, strip, mix and deep-links into monitoring", async 
   await expect(page.locator(".health-strip .health-cell").first()).toBeVisible();
   await expect(page.locator(".token-mix rect").first()).toBeVisible();
 
-  await page.getByRole("link", { name: "在请求监控中查看 →" }).click();
-  await expect(page).toHaveURL(/status=failed/u);
-  const badges = page.locator("tbody .badge");
-  await expect(badges.first()).toBeVisible();
-  const texts = await badges.allTextContents();
-  expect(texts.length).toBeGreaterThan(0);
-  expect(texts.every((text) => !text.includes("成功"))).toBe(true);
+  // The old link carried ?status=failed. Monitoring has no request outcome to
+  // filter on and its `status` means cost confidence, so "recent failures"
+  // now lands on the failure-attribution tab instead.
+  await page.getByRole("link", { name: "在失败归因中查看 →" }).click();
+  await expect(page).toHaveURL(/tab=failures/u);
+  await expect(page.getByRole("tab", { name: "失败归因" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
 });
 
 test("draft dock publishes: anneal sheet, then version reads as active", async ({ page }) => {

@@ -1,102 +1,109 @@
 import { describe, expect, it } from "vitest";
-import type { RequestEventView } from "../../api/proposed-types";
-import {
-  buildJsonl,
-  EXPORT_FORMAT,
-  exportFilename,
-  toExportRow,
-  type ExportMeta,
-} from "./export";
+import { buildJsonl, EXPORT_FORMAT, exportFilename, toExportRow, type ExportMeta } from "./export";
+import type { LedgerRow } from "./model";
 
-const EVENT: RequestEventView = {
-  request_id: "req-1",
-  occurred_at_ms: 1_800_000_000_000,
-  protocol: "openai_responses",
-  public_model: "minimax-m3",
-  streaming: true,
-  outcome: "failed",
-  error_code: "upstream_timeout",
-  error_scope: "upstream",
-  stage: "await_headers",
-  retry_decision: "retry_other_credential",
-  attempt_count: 2,
-  latency_ms: 8100,
-  tokens: { input: 900, output: 30, cache_read: 6000 },
-  client_key_id: "key-ci",
-  credential_id: "cred-relay-key",
-  endpoint_id: "ep-relay-a-responses",
-};
+function ledger(over: Partial<LedgerRow> = {}): LedgerRow {
+  return {
+    ledger_id: 12,
+    request_id: "req-1",
+    response_id: "resp-1",
+    provider_id: "prov-a",
+    channel_id: "ch-a",
+    account_id: "acct-a",
+    model: "minimax-m3",
+    input_tokens: 100,
+    output_tokens: 20,
+    reasoning_tokens: null,
+    cache_read_tokens: 0,
+    cache_creation_tokens: 0,
+    cached_tokens: 0,
+    occurred_at_ms: 1_700_000_000_000,
+    catalog_version_id: "cat-1",
+    cost_microunits: 4200,
+    cost_confidence: "exact",
+    ...over,
+  };
+}
 
-const META: ExportMeta = {
-  from_ms: 1_800_000_000_000,
-  to_ms: 1_800_003_600_000,
-  status: "failed",
-  public_model: "minimax-m3",
+const meta: ExportMeta = {
+  filters: { provider_id: "prov-a" },
   row_count: 1,
   partial: false,
 };
 
-describe("export row", () => {
-  it("flattens tokens and normalizes absent fields to null", () => {
-    const row = toExportRow(EVENT);
-    expect(row.tokens_input).toBe(900);
-    expect(row.tokens_reasoning).toBeNull();
-    expect(row.occurred_at_iso).toBe(new Date(EVENT.occurred_at_ms).toISOString());
+describe("toExportRow", () => {
+  it("carries both time forms so the file serves machines and humans", () => {
+    const row = toExportRow(ledger());
+    expect(row.occurred_at_ms).toBe(1_700_000_000_000);
+    expect(row.occurred_at_iso).toBe(new Date(1_700_000_000_000).toISOString());
   });
 
-  it("carries no field the events contract does not have", () => {
-    // The whole value-free premise: if a body ever appeared in the export it
-    // would have to have come from somewhere the contract does not provide.
-    const keys = Object.keys(toExportRow(EVENT));
-    for (const forbidden of ["body", "request_body", "response", "prompt", "messages", "content"]) {
-      expect(keys).not.toContain(forbidden);
+  it("keeps an unobserved token count null instead of coercing it to zero", () => {
+    // null is "not observed" and 0 is "observed as zero"; an export that merged
+    // them would be unusable for exactly the reconciliation it exists for.
+    expect(toExportRow(ledger()).reasoning_tokens).toBeNull();
+    expect(toExportRow(ledger()).cache_read_tokens).toBe(0);
+  });
+
+  it("exports all six token families, including the ones the table folds away", () => {
+    const row = toExportRow(ledger());
+    for (const key of [
+      "input_tokens",
+      "output_tokens",
+      "reasoning_tokens",
+      "cache_read_tokens",
+      "cache_creation_tokens",
+      "cached_tokens",
+    ] as const) {
+      expect(row).toHaveProperty(key);
     }
   });
 
-  it("an event with no tokens at all exports nulls rather than zeros", () => {
-    const row = toExportRow({ ...EVENT, tokens: null });
-    expect(row.tokens_input).toBeNull();
-    expect(row.tokens_cache_read).toBeNull();
+  it("keeps cost in microunits and does not invent a currency", () => {
+    const row = toExportRow(ledger());
+    expect(row.cost_microunits).toBe(4200);
+    expect(JSON.stringify(row)).not.toMatch(/currency|usd|cny|\$/iu);
   });
 });
 
-describe("jsonl file", () => {
-  it("first line is a self-describing header, then one row per line", () => {
-    const text = buildJsonl(META, [toExportRow(EVENT)]);
-    const lines = text.trimEnd().split("\n");
+describe("buildJsonl", () => {
+  it("emits a self-describing header followed by one object per row", () => {
+    const lines = buildJsonl(meta, [toExportRow(ledger())]).trimEnd().split("\n");
     expect(lines).toHaveLength(2);
-    const header = JSON.parse(lines[0]!) as Record<string, unknown>;
+    const header = JSON.parse(lines[0] as string) as Record<string, unknown>;
     expect(header["format"]).toBe(EXPORT_FORMAT);
-    expect(header["window"]).toEqual({ from_ms: META.from_ms, to_ms: META.to_ms });
-    expect(header["filters"]).toEqual({ status: "failed", public_model: "minimax-m3" });
-    expect(JSON.parse(lines[1]!)).toMatchObject({ request_id: "req-1" });
+    expect(header["filters"]).toEqual({ provider_id: "prov-a" });
+    expect(header["partial"]).toBe(false);
   });
 
-  it("every line is independently parseable and ends with a newline", () => {
-    const text = buildJsonl(META, [toExportRow(EVENT), toExportRow({ ...EVENT, request_id: "req-2" })]);
-    expect(text.endsWith("\n")).toBe(true);
+  it("names truncation in the header, so a partial export cannot pass as complete", () => {
+    const header = JSON.parse(
+      buildJsonl({ ...meta, partial: true }, []).split("\n")[0] as string,
+    ) as Record<string, unknown>;
+    expect(header["partial"]).toBe(true);
+  });
+
+  it("every line parses independently — that is the point of JSONL", () => {
+    const text = buildJsonl({ ...meta, row_count: 3 }, [
+      toExportRow(ledger({ ledger_id: 1 })),
+      toExportRow(ledger({ ledger_id: 2 })),
+      toExportRow(ledger({ ledger_id: 3 })),
+    ]);
     for (const line of text.trimEnd().split("\n")) {
-      expect(() => JSON.parse(line)).not.toThrow();
+      expect(() => JSON.parse(line) as unknown).not.toThrow();
     }
   });
 
-  it("a partial export says so in the header and in the filename", () => {
-    const partial = { ...META, partial: true };
-    const header = JSON.parse(buildJsonl(partial, []).split("\n")[0]!) as Record<string, unknown>;
-    expect(header["partial"]).toBe(true);
-    expect(exportFilename(partial, new Date(META.from_ms))).toContain("-partial");
-    expect(exportFilename(META, new Date(META.from_ms))).not.toContain("-partial");
+  it("leaks no request or response body, because none exists upstream", () => {
+    const text = buildJsonl(meta, [toExportRow(ledger())]);
+    expect(text).not.toMatch(/"(body|request_body|prompt|messages|content)"/u);
   });
+});
 
-  it("an empty export is still a valid file with a header", () => {
-    const lines = buildJsonl({ ...META, row_count: 0 }, []).trimEnd().split("\n");
-    expect(lines).toHaveLength(1);
-    expect(() => JSON.parse(lines[0]!)).not.toThrow();
-  });
-
-  it("filename has no characters that need shell or filesystem quoting", () => {
-    const name = exportFilename(META, new Date("2026-07-30T19:58:07.000Z"));
-    expect(name).toBe("prism-requests-2026-07-30-19-58-07.jsonl");
-    expect(name).toMatch(/^[A-Za-z0-9.-]+$/u);
+describe("exportFilename", () => {
+  it("marks a partial file in its own name", () => {
+    const now = new Date(1_700_000_000_000);
+    expect(exportFilename(meta, now)).toMatch(/^prism-billing-[\d-]+\.jsonl$/u);
+    expect(exportFilename({ ...meta, partial: true }, now)).toMatch(/-partial\.jsonl$/u);
   });
 });

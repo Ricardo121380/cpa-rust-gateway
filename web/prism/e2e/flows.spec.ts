@@ -136,10 +136,12 @@ test("a paste with no state is refused before it reaches the gateway", async ({ 
   await expect(wizard).toContainText("pending");
 });
 
-test("monitoring paginates events with the cursor", async ({ page }) => {
+test("the ledger pages with the cursor and stops when the stream ends", async ({ page }) => {
   await unlock(page);
   await navigate(page, "请求监控");
-  await expect(page.locator("tbody tr")).toHaveCount(25);
-  await page.getByRole("button", { name: "加载更多" }).click();
-  await expect(page.locator("tbody tr")).toHaveCount(50);
+  // 73 fixture rows, page size 100 — one page covers them, so there is no
+  // "load more" to press. The button must be ABSENT rather than present and
+  // inert: a dead control reads as a broken one.
+  await expect(page.locator(".mon-table tbody tr")).toHaveCount(73);
+  await expect(page.getByRole("button", { name: "再读一页" })).toHaveCount(0);
 });

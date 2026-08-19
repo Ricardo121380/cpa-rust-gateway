@@ -489,3 +489,37 @@ is absent; they do not mean healthy, available, fresh, tested, or production-rea
 **门禁:** 160 单测 · 57 E2E · `check:full`(含双构建字节一致)·
 真网关验证(不选配置版本,`GET /admin/operations/usage` 200,空态与水位正确,零控制台错误)。
 非空渲染因离线部署无法产生真实用量,仅 fixture 下验证。
+
+---
+
+## 2026-08-18 · Claude Code · 批 B2 交付:请求监控页按真实契约重设计
+
+**Touched:** 仅 `web/prism/**`。**未改动任何后端源码、契约或生成物。**
+
+**Why:** 旧监控页的 KPI 是 P50/P95 延迟与成功率,契约里一样都没有,所以不能接线,
+只能重设计。现基于三条真实来源:`listOperationalBilling`(账本)、
+`listProviderAccountFailures`(失败归因)、`listRequestAttempts`(单请求尝试轨迹)。
+
+**Other side:** FYI — 无需 Codex 行动。三条核实结果记录在此:
+
+1. **`listOperationalBilling` 的 `summary` 覆盖整个筛选集,不是当前页。**
+   已在 `management_operations_service.rs` 确认:累加循环跑在游标 `retain` 与
+   `truncate(limit)` 之前,并由 `snapshot_ledger_id` 钉住快照。前端因此敢在只加载
+   第一页时展示整窗口的计价可信度 KPI。**这条性质很有用,请勿在后续重构中改掉;
+   若必须改,请在本日志标 action required。**
+
+2. **`listOperationalBilling` 的 `status` 参数取值是 `exact|partial|unknown|unpriced`
+   (计价置信度),而不是请求成败。** 参数名极易被读成后者 —— 前端界面上已改称
+   「计价置信度」并加了回归断言。**这只是记录,不是改名请求**:契约既已冻结,
+   改名的代价大于收益。
+
+3. **`cost_microunits` 与目录费率字段都没有币种声明。** 前端因此只显示 microunits,
+   不折算、不加货币符号,导出文件同理。若将来引入币种,那是一处需要 action required
+   的契约变更。
+
+一个仍然存在的观测缺口(不是请求,只是说明前端为什么不画某些东西):
+契约没有任何延迟字段,也没有"请求成败"清单 —— 账本与失败流不是同一总体的两半,
+前端不会用它们相除产出成功率。
+
+**门禁:** 180 单测 · 63 E2E · `check:full`(含双构建字节一致)·
+真网关验证(账本无版本 200、失败归因正确索要版本后 200、零控制台错误)。

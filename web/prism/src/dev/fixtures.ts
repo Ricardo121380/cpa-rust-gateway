@@ -1215,6 +1215,154 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       });
     }
 
+    // ---- operations/billing + failure attribution + per-request attempts ----
+    //
+    // Three sources, three different scoping rules — reproduced exactly,
+    // because getting them wrong is precisely how the page would mislead:
+    //   billing   NOT version-scoped, carries a whole-window `summary`
+    //   failures  IS version-scoped
+    //   attempts  NOT version-scoped, bare array, no paging
+    if (route === "GET /admin/operations/billing") {
+      const models = ["minimax-m3", "glm-5-air", "grok-4"];
+      const confidences = ["exact", "exact", "partial", "unknown", "unpriced"] as const;
+      const all = Array.from({ length: 73 }, (_, index) => {
+        const confidence = confidences[index % confidences.length] as string;
+        const priced = confidence === "exact" || confidence === "partial";
+        const observed = confidence !== "unknown";
+        return {
+          ledger_id: 1000 + index,
+          request_id: `req-${1000 + index}`,
+          response_id: `resp-${1000 + index}`,
+          provider_id: index % 2 === 0 ? "prov-relay-a" : "prov-grok",
+          channel_id: index % 2 === 0 ? "ch-relay-responses" : "ch-grok-build",
+          account_id: `acct-${index % 3}`,
+          model: models[index % models.length] as string,
+          input_tokens: observed ? 100 + index : null,
+          output_tokens: observed ? 20 + index : null,
+          reasoning_tokens: null,
+          cache_read_tokens: observed ? 0 : null,
+          cache_creation_tokens: observed ? 0 : null,
+          cached_tokens: observed ? 0 : null,
+          occurred_at_ms: 1787000000000 + index * 60000,
+          catalog_version_id: priced ? "cat-2026-08" : null,
+          cost_microunits: priced ? 4200 + index * 7 : null,
+          cost_confidence: confidence,
+        };
+      });
+
+      const filtered = all.filter((row) => {
+        for (const [param, field] of [
+          ["provider_id", "provider_id"],
+          ["channel_id", "channel_id"],
+          ["account_id", "account_id"],
+          ["model", "model"],
+          ["status", "cost_confidence"],
+        ] as const) {
+          const want = url.searchParams.get(param);
+          if (want !== null && String(row[field] ?? "") !== want) {
+            return false;
+          }
+        }
+        return true;
+      });
+
+      // The summary is computed over the WHOLE filtered set before the cursor
+      // applies — that is what the backend does, and the page relies on it to
+      // show correct figures from page one.
+      const summary = {
+        records: filtered.length,
+        exact_records: filtered.filter((row) => row.cost_confidence === "exact").length,
+        partial_records: filtered.filter((row) => row.cost_confidence === "partial").length,
+        unknown_records: filtered.filter((row) => row.cost_confidence === "unknown").length,
+        unpriced_records: filtered.filter((row) => row.cost_confidence === "unpriced").length,
+        known_cost_microunits: filtered.reduce((sum, row) => sum + (row.cost_microunits ?? 0), 0),
+      };
+
+      const limit = Math.min(Number(url.searchParams.get("limit") ?? 50) || 50, 100);
+      const offset = Number(url.searchParams.get("cursor") ?? 0) || 0;
+      const slice = filtered.slice(offset, offset + limit);
+      return json(200, {
+        snapshot_ledger_id: all.at(-1)?.ledger_id ?? null,
+        items: slice,
+        summary,
+        next_cursor: offset + slice.length < filtered.length ? String(offset + slice.length) : null,
+      });
+    }
+
+    if (route === "GET /admin/operations/provider-account-pools/failures") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const codes = [
+        "ProviderRateLimited",
+        "CredentialQuotaExceeded",
+        "EgressUnavailable",
+        "ProviderTransient",
+        "UpstreamProtocolError",
+      ];
+      const scopes = ["provider", "quota_window", "egress", "provider", "stream"];
+      const decisions = [
+        "retry_eligible",
+        "non_retryable",
+        "retry_closed",
+        "retry_eligible",
+        "completed",
+      ];
+      const all = Array.from({ length: 47 }, (_, index) => ({
+        provider_id: index % 2 === 0 ? "prov-relay-a" : "prov-grok",
+        channel_id: index % 2 === 0 ? "ch-relay-responses" : "ch-grok-build",
+        account_id: `acct-${index % 3}`,
+        // The same request appears more than once: a request can produce
+        // several failed attempts, which is why row count != failed requests.
+        request_id: `req-${1000 + Math.floor(index / 2)}`,
+        attempt_id: `att-${index}`,
+        ended_at_ms: 1787000000000 + index * 30000,
+        error_code: codes[index % codes.length] as string,
+        error_scope: scopes[index % scopes.length] as string,
+        retry_decision: decisions[index % decisions.length] as string,
+      }));
+      const filtered = all.filter((row) => {
+        for (const param of ["provider_id", "channel_id", "account_id"] as const) {
+          const want = url.searchParams.get(param);
+          if (want !== null && row[param] !== want) {
+            return false;
+          }
+        }
+        return true;
+      });
+      const limit = Math.min(Number(url.searchParams.get("limit") ?? 50) || 50, 100);
+      const offset = Number(url.searchParams.get("cursor") ?? 0) || 0;
+      const slice = filtered.slice(offset, offset + limit);
+      return json(200, {
+        observed_through_ordinal: filtered.length === 0 ? null : filtered.length,
+        items: slice,
+        next_cursor: offset + slice.length < filtered.length ? String(offset + slice.length) : null,
+      });
+    }
+
+    const attempts = /^GET \/admin\/requests\/([^/]+)\/attempts$/u.exec(route);
+    if (attempts !== null) {
+      const requestId = decodeURIComponent(attempts[1] ?? "");
+      // A bare array by contract: no cursor, no envelope. `outcome` is a free
+      // string, not an enum, so the fixture returns values the UI must not try
+      // to map to a closed vocabulary.
+      return json(200, [
+        {
+          attempt_id: `${requestId}-a0`,
+          outcome: "provider_rate_limited",
+          stage: "http_status",
+          endpoint_id: "ep-relay-a-responses",
+          credential_id: "cred-relay-key",
+        },
+        {
+          attempt_id: `${requestId}-a1`,
+          outcome: "succeeded",
+          stage: "sse_bootstrap",
+          endpoint_id: "ep-relay-a-responses",
+          credential_id: "cred-grok-oauth",
+        },
+      ]);
+    }
+
     // ---- credential detail + metadata (real contract ops) ----
     const credGet = /^GET \/admin\/credentials\/([^/]+)$/u.exec(route);
     if (credGet !== null) {

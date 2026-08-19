@@ -1,45 +1,212 @@
-/* Export bar on the events table. Tokens only; no inline styles (production CSP
-   is style-src 'self'). Every sentence uses --ink-2, never --ink-3. */
+/* 请求监控 — two independent panels over two contract sources. Tokens only; no
+   inline styles (production CSP is style-src 'self'). Every sentence uses
+   --ink-2, never --ink-3.
 
-/* .card.tablewrap deliberately has no horizontal padding — its table owns that
-   through th/td:first-child. This header row is NOT a table, so it has to supply
-   its own inset or it sits flush against the card's right border. */
-.export-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-  flex-wrap: wrap;
-  padding-right: 20px;
-}
-.export-head h3 {
-  margin: 0;
+   Rewritten with the page: the old export-head/export-bar chrome belonged to a
+   single events table that no longer exists. */
+
+.mon-hint {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.6;
+  max-width: 82ch;
 }
 
-.export-bar {
+/* ---- tabs -------------------------------------------------------------- */
+
+.mon-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  margin-top: 14px;
+  border-radius: 100px;
+  background: var(--surface-2);
+  border: 1px solid var(--separator);
+}
+.mon-tabs button {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 18px;
+  border-radius: 100px;
+  background: transparent;
+  color: var(--ink-2);
+}
+.mon-tabs button[aria-selected="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(14, 18, 32, 0.12);
+}
+
+/* ---- filters ----------------------------------------------------------- */
+
+.mon-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.mon-filters label {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  /* Bounded so the explanatory note wraps instead of stretching the header row
-     to the full table width. */
-  max-width: 46ch;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.mon-filter-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
-.export-note {
+/* ---- summary ----------------------------------------------------------- */
+
+.mon-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 12px 32px;
+}
+.mon-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mon-kpi-value {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.mon-kpi-label {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.mon-note {
+  flex-basis: 100%;
   margin: 0;
   font-size: 12px;
   line-height: 1.55;
   color: var(--ink-2);
-  text-align: right;
+}
+.mon-conf-breakdown {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mon-conf-breakdown li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 900px) {
-  .export-bar {
-    align-items: flex-start;
-    max-width: none;
-  }
-  .export-note {
-    text-align: left;
-  }
+/* ---- failure breakdown ------------------------------------------------- */
+
+.mon-breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px 32px;
+}
+.mon-breakdown h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.mon-breakdown ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.mon-breakdown li {
+  display: grid;
+  grid-template-columns: minmax(0, auto) 1fr auto;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12.5px;
+}
+.mon-bd-label {
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+/* ---- tables ------------------------------------------------------------ */
+
+.mon-table,
+.mon-attempts {
+  font-size: 12.5px;
+}
+.mon-table .mon-num,
+.mon-breakdown .mon-num,
+.mon-conf-breakdown .mon-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* Three ids in one cell; let them wrap rather than widen the table. */
+.mon-triple {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.mon-toolbar,
+.mon-more {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 20px;
+}
+.mon-more {
+  justify-content: center;
+}
+
+/* A row's request id opens its attempt trail. It behaves as a button (it opens
+   an in-page sheet, it is not navigation) but reads as a link. */
+.linklike {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--tint);
+  font-size: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Colour is one of three cues (text + tone + the title attribute's raw value),
+   never the only one. */
+.mon-chip {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.mon-chip[data-tone="good"] {
+  color: var(--status-good);
+  background: color-mix(in srgb, var(--status-good) 12%, var(--surface));
+}
+.mon-chip[data-tone="warn"] {
+  color: var(--status-warn);
+  background: color-mix(in srgb, var(--status-warn) 14%, var(--surface));
+}
+.mon-chip[data-tone="serious"] {
+  color: var(--status-serious);
+  background: color-mix(in srgb, var(--status-serious) 12%, var(--surface));
+}
+.mon-chip[data-tone="critical"] {
+  color: var(--status-critical);
+  background: color-mix(in srgb, var(--status-critical) 12%, var(--surface));
+}
+.mon-chip[data-tone="muted"] {
+  color: var(--ink-2);
+  background: var(--surface-2);
 }

@@ -325,7 +325,11 @@ function ObservabilitySection() {
               </tbody>
             </table>
           )}
-          <Link to="/monitoring?range=today&status=failed">在请求监控中查看 →</Link>
+          {/* Was `?range=today&status=failed`. Neither parameter survives: the
+              monitoring ledger has no request outcome to filter on, and its
+              `status` selects COST CONFIDENCE. The honest destination for
+              "recent failures" is the failure-attribution tab. */}
+          <Link to="/monitoring?tab=failures">在失败归因中查看 →</Link>
         </div>
       </div>
     </>

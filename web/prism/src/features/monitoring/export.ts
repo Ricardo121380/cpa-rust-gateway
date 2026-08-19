@@ -1,63 +1,60 @@
-// JSONL export (docs/07 §7.3). Client-side on purpose: the rows are already in
-// memory from the events query, so a streaming server export would be a second
-// source of truth for the same window — and the streaming endpoint is G3
-// ancillary, not delivered. What the user gets is exactly what the table showed.
+// JSONL export of the billing ledger. Client-side on purpose: the rows are
+// already in memory from the ledger query, so a server-side export would be a
+// second source of truth for the same window — and no such endpoint exists.
+// What the user gets is exactly what the table showed.
 //
-// Redaction is not optional (docs/07 §189: "脱敏默认开 … 导出与展示同一脱敏规则").
-// The export therefore carries the same fields the table renders and nothing
-// more: closed enums, identifiers, counters, timestamps. No request bodies —
-// there are none in the contract to leak, and the file must not imply otherwise.
-import type { RequestEventView } from "../../api/proposed-types";
+// The export carries the fields the table renders and nothing more: closed
+// enums, identifiers, counters, timestamps. No request or response bodies —
+// there are none in the contract to leak, and the file must not imply
+// otherwise.
+import type { LedgerRow } from "./model";
 
-/** The exact field set the monitoring table displays, in display order. Adding a
- *  field here is a deliberate act: it must already be visible in the UI. */
+/** The exact field set the ledger table displays, plus the four token families
+ *  the table folds away. Adding a field here is a deliberate act. */
 export type ExportRow = Readonly<{
+  ledger_id: number;
   request_id: string;
+  response_id: string;
   occurred_at_ms: number;
   occurred_at_iso: string;
-  public_model: string;
-  protocol: string;
-  streaming: boolean;
-  outcome: string;
-  error_code: string | null;
-  error_scope: string | null;
-  stage: string | null;
-  retry_decision: string | null;
-  attempt_count: number;
-  latency_ms: number | null;
-  tokens_input: number | null;
-  tokens_output: number | null;
-  tokens_reasoning: number | null;
-  tokens_cache_read: number | null;
-  client_key_id: string;
-  credential_id: string | null;
-  endpoint_id: string | null;
+  provider_id: string;
+  channel_id: string;
+  account_id: string;
+  model: string;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  reasoning_tokens: number | null;
+  cache_read_tokens: number | null;
+  cache_creation_tokens: number | null;
+  cached_tokens: number | null;
+  catalog_version_id: string | null;
+  /** Microunits. The contract names no currency anywhere, so the file does not
+   *  either — a consumer that wants money must supply the unit itself. */
+  cost_microunits: number | null;
+  cost_confidence: string;
 }>;
 
-export function toExportRow(event: RequestEventView): ExportRow {
-  const tokens = event.tokens ?? {};
+export function toExportRow(row: LedgerRow): ExportRow {
   return {
-    request_id: event.request_id,
-    occurred_at_ms: event.occurred_at_ms,
+    ledger_id: row.ledger_id,
+    request_id: row.request_id,
+    response_id: row.response_id,
+    occurred_at_ms: row.occurred_at_ms,
     // Both forms: the epoch for machines, ISO for a human opening the file.
-    occurred_at_iso: new Date(event.occurred_at_ms).toISOString(),
-    public_model: event.public_model,
-    protocol: event.protocol,
-    streaming: event.streaming,
-    outcome: event.outcome,
-    error_code: event.error_code ?? null,
-    error_scope: event.error_scope ?? null,
-    stage: event.stage ?? null,
-    retry_decision: event.retry_decision ?? null,
-    attempt_count: event.attempt_count,
-    latency_ms: event.latency_ms ?? null,
-    tokens_input: tokens.input ?? null,
-    tokens_output: tokens.output ?? null,
-    tokens_reasoning: tokens.reasoning ?? null,
-    tokens_cache_read: tokens.cache_read ?? null,
-    client_key_id: event.client_key_id,
-    credential_id: event.credential_id ?? null,
-    endpoint_id: event.endpoint_id ?? null,
+    occurred_at_iso: new Date(row.occurred_at_ms).toISOString(),
+    provider_id: row.provider_id,
+    channel_id: row.channel_id,
+    account_id: row.account_id,
+    model: row.model,
+    input_tokens: row.input_tokens,
+    output_tokens: row.output_tokens,
+    reasoning_tokens: row.reasoning_tokens,
+    cache_read_tokens: row.cache_read_tokens,
+    cache_creation_tokens: row.cache_creation_tokens,
+    cached_tokens: row.cached_tokens,
+    catalog_version_id: row.catalog_version_id,
+    cost_microunits: row.cost_microunits,
+    cost_confidence: row.cost_confidence,
   };
 }
 
@@ -65,34 +62,30 @@ export function toExportRow(event: RequestEventView): ExportRow {
  *  filters produced it, and how many rows the UI actually held. Without it an
  *  export of a filtered view is indistinguishable from a complete one. */
 export type ExportMeta = Readonly<{
-  from_ms: number;
-  to_ms: number;
-  status: string;
-  public_model: string | null;
+  filters: Readonly<Record<string, string>>;
   row_count: number;
-  /** true when the table had more pages the user never loaded */
+  /** true when the ledger had more pages the user never loaded */
   partial: boolean;
 }>;
 
-export const EXPORT_FORMAT = "prism.requests.v1";
+export const EXPORT_FORMAT = "prism.billing-ledger.v1";
 
 export function buildJsonl(meta: ExportMeta, rows: readonly ExportRow[]): string {
   const header = {
     format: EXPORT_FORMAT,
     exported_at_iso: new Date().toISOString(),
-    window: { from_ms: meta.from_ms, to_ms: meta.to_ms },
-    filters: { status: meta.status, public_model: meta.public_model },
+    filters: meta.filters,
     row_count: meta.row_count,
     // Named, not silent: an export of the first two pages is not the window.
     partial: meta.partial,
-    note: "Value-free by contract: closed enums, identifiers and counters only. No request or response bodies exist in the source events.",
+    note: "Value-free by contract: closed enums, identifiers, counters and timestamps only. Costs are microunits; the management contract names no currency. No request or response bodies exist in the source ledger.",
   };
   return [JSON.stringify(header), ...rows.map((row) => JSON.stringify(row))].join("\n") + "\n";
 }
 
 export function exportFilename(meta: ExportMeta, now: Date = new Date()): string {
   const stamp = now.toISOString().slice(0, 19).replace(/[:T]/gu, "-");
-  return `prism-requests-${stamp}${meta.partial ? "-partial" : ""}.jsonl`;
+  return `prism-billing-${stamp}${meta.partial ? "-partial" : ""}.jsonl`;
 }
 
 /** Blob + object URL rather than a data: URL — `connect-src 'self'` does not
