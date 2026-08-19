@@ -523,3 +523,23 @@ is absent; they do not mean healthy, available, fresh, tested, or production-rea
 
 **门禁:** 180 单测 · 63 E2E · `check:full`(含双构建字节一致)·
 真网关验证(账本无版本 200、失败归因正确索要版本后 200、零控制台错误)。
+
+---
+
+## 2026-08-19 · Codex · 公共源码镜像的 Prism 构建根目录解析
+
+**Touched:** `scripts/build-management-spa.sh`、`.dockerignore`、
+`deploy/docker/Dockerfile`、`deploy/docker/compose.yml`、双语 README/部署指南。
+未修改 `docs/openapi/management-v1.json`、Prism vendored contract、generated client 或任何
+`web/prism/**` 源码。
+
+**Why:** 公共源码镜像有意从 Docker build context 排除 `.git`，原脚本使用
+`git rev-parse --show-toplevel` 会使 Cargo build-script 在镜像 builder 中失败。脚本现在只根据
+自身的绝对目录定位仓库根；仍执行同一个 `npm --prefix web/prism run build`，仍由
+`crates/gateway-http-actix/build.rs` 校验同样四个嵌入资产。
+
+**Other side:** FYI — Claude Code 无需改前端。没有 API/schema/runtime UI 行为变化；当前未提交的
+Prism 工作保持原样。最终 integration review 应继续运行 `npm --prefix web/prism run check` 与嵌入
+资源测试。对应提交应带 trailer：
+
+`Cross-Boundary: scripts/build-management-spa.sh`

@@ -10,7 +10,8 @@
 
 set -euo pipefail
 
-repo_root="$(git rev-parse --show-toplevel)"
+script_directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd -- "$script_directory/.." && pwd)"
 ui_root="$repo_root/web/prism"
 vite_binary="$ui_root/node_modules/.bin/vite"
 

@@ -1,152 +1,177 @@
-# CPAR — Rust AI Gateway
+# CPAR — Provider-Isolated Rust AI Gateway
 
-> A provider-isolated, protocol-compatible AI gateway written in Rust.
-> 一个用 Rust 实现、按 Provider 隔离、兼容常见 AI 协议的反向代理网关。
+[简体中文](README.zh-CN.md) | English
 
-CPAR is a clean-room Rust implementation inspired by the operational lessons of CPA,
-CLIProxyAPI, Sub2API and provider-specific reference projects.  It is not a copy of any one
-upstream codebase.  The gateway separates public client protocols from provider adapters,
-credentials, routing state and egress policies so that one provider's credentials or failures
-cannot silently cross into another provider.
+CPAR is a security-oriented AI gateway written in Rust. It presents OpenAI- and
+Anthropic-compatible downstream APIs while keeping Provider credentials, accounts, routes,
+runtime health, quota, continuity state and egress policy in explicit isolation domains.
 
-CPAR 是基于 CPA、CLIProxyAPI、Sub2API 及各 Provider 参考项目的行为经验，以 clean-room 方式
-重新实现的 Rust 网关，不是对某个上游项目的逐文件复制。项目将客户端协议、Provider adapter、
-凭据、路由状态和出口策略分层建模，禁止不同 Provider 之间静默复用凭据或故障状态。
+The project is a clean-room implementation informed by operational behavior observed in CPA,
+CLIProxyAPI, Sub2API, grok2api, Kiro-RS and other compatibility references. Those projects are
+references, not bundled runtime dependencies, and CPAR is not a source-level fork of any one of
+them.
 
-## What this repository provides / 当前能力
+> **Release status:** the implemented backend through P13-11E4 has passed its documented local and
+> formal delivery gates. This does not mean every roadmap item or every real Provider/network
+> boundary is complete. See [Development status](#development-status) and the authoritative
+> [development plan](docs/06-development-plan.md).
 
-### Public data plane / 公共数据面
+## Why CPAR
 
-- OpenAI Chat Completions: `/v1/chat/completions`
-- OpenAI Responses over HTTP JSON/SSE: `POST /v1/responses`
-- OpenAI Responses WebSocket mode: `GET /v1/responses` followed by strict
-  `response.create` messages
-- Anthropic Messages: `/v1/messages`
-- JSON and bounded SSE projection for the supported protocol/provider matrix
-- Authenticated `/v1/models` generated from the same immutable route snapshot as inference
-- Request-scoped retry and fail-closed protocol transforms before the first downstream byte
+- **Provider isolation:** credentials, health, quota, sessions, clearance and egress state never
+  silently cross Provider or Channel boundaries.
+- **Protocol normalization:** Chat Completions, Responses and Anthropic Messages share a bounded
+  canonical request/event model without erasing Provider-specific capability checks.
+- **Fail-closed routing:** immutable route snapshots, exact credential leases, explicit revisions,
+  bounded retries and first-semantic-event rules prevent accidental fallback.
+- **Protected operations:** a separate loopback management listener provides versioned
+  configuration, encrypted credentials, audit, billing and runtime projections.
+- **Deployment discipline:** secrets stay outside the repository; production listeners remain
+  loopback-only behind an operator-owned TLS reverse proxy.
+- **Evidence-driven delivery:** phase reports, contracts, ADRs, traceability, local gates and
+  immutable GitHub delivery tags are retained in the repository.
 
-公开数据面当前提供：
+## Public API surface
 
-- OpenAI Chat Completions：`/v1/chat/completions`
-- OpenAI Responses HTTP JSON/SSE：`POST /v1/responses`
-- OpenAI Responses WebSocket 模式：`GET /v1/responses`，升级后发送严格的
-  `response.create` 消息
-- Anthropic Messages：`/v1/messages`
-- 对已声明支持的协议/Provider 组合提供 JSON 和有界 SSE 投影
-- `/v1/models` 与推理使用同一份不可变 Route Snapshot
-- 首字节之前的请求级重试，以及未知语义的 fail-closed 协议转换
+| Capability | Endpoint | Notes |
+|---|---|---|
+| Model catalog | `GET /v1/models` | Authenticated and generated from the immutable route snapshot used for inference. |
+| OpenAI Chat Completions | `POST /v1/chat/completions` | JSON and bounded SSE where the selected Provider/Channel declares support. |
+| OpenAI Responses | `POST /v1/responses` | JSON/SSE projection with canonical lifecycle validation. |
+| Responses WebSocket | `GET /v1/responses` | Strict `response.create`; one active plus one queued turn; not the Realtime API. |
+| Stored response retrieval | `GET /v1/responses/{id}` | Exact Client-Key ownership; foreign/expired/deleted/missing IDs share a safe not-found result. |
+| Stored response deletion | `DELETE /v1/responses/{id}` | Deletes only the exact Client-Key-owned stored response. |
+| Response compaction | `POST /v1/responses/compact` | Gateway-owned bounded continuity token, on explicitly capable routes only. |
+| Anthropic Messages | `POST /v1/messages` | JSON and bounded SSE projection. |
+| Anthropic token count | `POST /v1/messages/count_tokens` | Only when the selected capability exposes a reviewed count path. |
 
-### Provider isolation / Provider 隔离
+All inference routes require a CPAR Client Key. Protocol compatibility never authorizes an
+undeclared Provider feature: unsupported capabilities are rejected before Provider I/O.
 
-The runtime is designed for independent provider families, including OpenAI-compatible
-upstreams, official Codex/ChatGPT OAuth, Grok Build, Grok Console and Krill-style upstreams.
-Provider-specific capabilities remain explicit.  Grok Web, Kiro OAuth and other external
-boundaries are not silently advertised as production-ready when their external evidence is
-missing.
+### Supported Provider patterns
 
-运行时支持独立的 OpenAI-compatible 上游、官方 Codex/ChatGPT OAuth、Grok Build、Grok Console
-以及 Krill 类上游。Provider 专属能力必须显式声明；Grok Web、Kiro OAuth 等外部边界在缺少
-有效证据时不会被隐式标记为生产可用。
+CPAR models capabilities instead of treating every upstream as interchangeable:
 
-### Management plane / 管理面
+- generic OpenAI-compatible or Anthropic-compatible endpoints using an operator-owned
+  `base_url + api_key` binding, including Krill-style relays;
+- official Codex/ChatGPT credentials imported from supported CPA/Sub2API JSON envelopes or an
+  operator-completed OAuth flow;
+- Grok Build and Grok Console account pools with Provider-specific credential/runtime state;
+- Grok Web and Kiro adapters within their explicitly documented local/external evidence boundaries;
+- additional compatible endpoints only after their adapter, protocol and egress capabilities are
+  declared in the selected Config Version.
 
-The protected management listener provides versioned configuration workflows, encrypted
-credentials, optimistic revision/ETag checks, audit records, backup/restore boundaries and a
-generated TypeScript client.  The P13-04 operations surface adds:
+A credential format does not decide routing or proxy behavior. The exact Config Version,
+Upstream, Endpoint, adapter, Credential binding, capability and egress policy do.
 
-- `GET /admin/operations/account-pools` — secret-free Provider/Channel/Account/Binding inventory
-- `GET /admin/operations/usage` — bounded durable Request/Attempt/Usage aggregation
+## Management and operations plane
 
-管理监听器提供版本化配置、AEAD 加密凭据、revision/ETag 乐观并发控制、审计、备份/恢复边界和
-自动生成的 TypeScript client。P13-04 新增：
+The management listener is independent from the public data listener and must remain loopback-only.
+It serves the embedded Prism management application and a generated, versioned `/admin` API.
 
-- `GET /admin/operations/account-pools`：不含 Secret 的 Provider/Channel/Account/Binding 库存
-- `GET /admin/operations/usage`：有界 durable Request/Attempt/Usage 聚合
+Implemented management capabilities include:
 
-The operations projection never returns endpoint URLs, credential ciphertext/plaintext,
-request bodies, cookies or client-key digests.  Usage counters carry `exact`, `partial` or
-`unknown` confidence.  Until a versioned price catalog exists, cost is explicitly
-`null`/`unpriced`; CPAR never guesses a bill from token counts.
+- Config Version draft, validation, publication, rollback and revision/ETag workflows;
+- Upstream, Endpoint, Credential, binding, route, candidate, alias, access-group and Client-Key
+  management;
+- encrypted credential import, OAuth workflow, metadata projection and reviewed export formats;
+- configured account-pool inventory and Provider-owned runtime account-pool status;
+- exact account operator actions and value-free failure feedback;
+- runtime availability, quota recovery and Provider-scoped route explanation;
+- usage aggregation, immutable price catalogs, billing materialization and routing-price policy;
+- compatible egress pools, encrypted proxy nodes and exact binding profiles;
+- Provider-specific egress/session/clearance status as separate source-domain rows;
+- audit, observability, backup preflight and fail-closed restore staging.
 
-运营投影不会返回 endpoint URL、凭据密文/明文、请求正文、Cookie 或 client-key digest。Usage
-计数带有 `exact`、`partial`、`unknown` confidence。版本化价格目录完成前，费用固定为
-`null`/`unpriced`，不会根据 token 数量猜测账单。
+Management responses use closed schemas and bounded pagination. They do not expose endpoint URLs,
+credential plaintext/ciphertext, API keys, OAuth/SSO material, cookies, request bodies, raw Provider
+errors or Client-Key digests.
 
-## Architecture / 架构
+## Architecture
 
 ```text
-Client protocol
-  ├─ Chat Completions
-  ├─ Responses HTTP JSON / SSE
-  ├─ Responses WebSocket
-  └─ Anthropic Messages
-          │
-          ▼
-Canonical request/event boundary
-          │
-          ├─ Auth + Access Group
-          ├─ immutable Route Snapshot
-          ├─ provider-scoped credential lease
-          ├─ provider adapter + protocol projection
-          └─ bounded Request / Attempt / Usage events
-                          │
-                          ├─ SQLite event log
-                          └─ protected management read models
+Native / CLI / server client
+       │
+       ├── OpenAI Chat Completions
+       ├── OpenAI Responses HTTP JSON/SSE
+       ├── OpenAI Responses WebSocket
+       └── Anthropic Messages
+                   │
+                   ▼
+        Authentication + access group
+                   │
+                   ▼
+       Canonical request/event boundary
+                   │
+       ┌───────────┼────────────────────┐
+       ▼           ▼                    ▼
+ immutable     Provider-scoped      capability +
+ route graph   credential lease     egress admission
+       └───────────┼────────────────────┘
+                   ▼
+          Provider-specific adapter
+                   │
+                   ▼
+          bounded upstream transport
+                   │
+       ┌───────────┴─────────────────┐
+       ▼                             ▼
+ canonical downstream events   async value-free events
+                                     │
+                                     ▼
+                              SQLite + operations views
 ```
 
-The workspace is split into focused crates for canonical types, protocol codecs, routing,
-credential state, upstream transport, observability, encrypted control-plane storage and Actix
-HTTP composition.  Actix is an edge adapter; core protocol and provider logic does not depend on
-Actix types.
+The Cargo workspace is split into focused crates for canonical types, protocols, routing,
+credential/runtime state, transport, observability, encrypted persistence and Actix HTTP
+composition. Core Provider/protocol logic does not depend on Actix request types. SQLite is not
+consulted for ordinary request-time route selection; the data plane uses compiled immutable state.
 
-Workspace 按职责拆分为 canonical 类型、协议 codec、路由、凭据状态、上游传输、可观测性、AEAD
-控制面存储和 Actix HTTP composition 等 crate。Actix 只负责边界适配，核心协议与 Provider 逻辑
-不依赖 Actix 类型。
+## Security model
 
-## Development status / 开发状态
+CPAR assumes that Provider credentials, account cookies, OAuth tokens and production databases are
+high-value secrets.
 
-The current development plan is tracked in [`docs/06-development-plan.md`](docs/06-development-plan.md).
-P0–P6 and P9–P12 have completed their approved phase boundaries.  P13 is the active management,
-billing, routing and public-protocol expansion milestone.  The current P13-10A slice implements
-the public OpenAI Responses WebSocket projection while preserving the existing HTTP JSON/SSE
-paths.  Exact status and deferred boundaries remain authoritative in the development plan.
+1. Five deployment bootstrap credentials are supplied as direct regular files, never environment
+   variables or command-line values.
+2. Provider credentials and protected runtime payloads are sealed with domain-separated AEAD and
+   revision/owner-bound associated data.
+3. Public inference and protected management use different loopback listeners.
+4. Management Key, same-origin/CSRF policy, Config Version identity and revision checks protect
+   control-plane operations.
+5. Provider, Upstream, Endpoint, Credential, account and egress ownership are independently
+   validated before lease or transport.
+6. Logs, audit rows, errors, cursors and Debug output are designed to be value-free.
+7. Default tests do not contact real Providers, deploy servers or register accounts.
 
-当前唯一执行基线是 [`docs/06-development-plan.md`](docs/06-development-plan.md)。P0–P6、P9–P12
-已完成各自批准的阶段边界。P13 是当前管理、计费、路由及公共协议扩展里程碑；P13-10A
-正在为公共 OpenAI Responses 增加 WebSocket 投影，同时保留现有 HTTP JSON/SSE 路径。
-精确进度和延期边界以开发计划为唯一基线。
+Read [SECURITY.md](SECURITY.md) before operating real credentials. Report suspected exposure through
+a private GitHub Security Advisory, not a public issue.
 
-The following boundaries remain explicit and are not hidden by the public README:
+## Quick start for developers
 
-- external Grok Web egress/WAF validation is deferred;
-- Kiro OAuth and Official API-key external E2E require their own credentials and approval;
-- automatic refresh/reauth/replenishment is a separate controlled task;
-- browser-Origin WebSocket access, the OpenAI Realtime API, provider-native WebSocket transport,
-  media and additional providers remain separate capability-scoped roadmap items;
-- no real credentials, production database, server key, account pool or deployment endpoint is
-  stored in this repository.
+### Prerequisites
 
-以下边界仍保持显式延期，不会被 README 淡化：
+- Rust `1.97.1` (pinned by `rust-toolchain.toml`);
+- Node.js/npm matching `web/prism/.nvmrc` for the embedded management application;
+- Linux build packages: `build-essential`, `clang`, `cmake`, `libclang-dev`, `libssl-dev`,
+  `pkg-config`, `ca-certificates`;
+- macOS: current Xcode Command Line Tools and Homebrew/OpenSSL where required;
+- `ripgrep`; optional `cargo-deny`, `cargo-audit` and `cargo-cyclonedx` for the full gate.
 
-- Grok Web 的外部 egress/WAF 验收延后；
-- Kiro OAuth 和 Official API-key 的真实 E2E 需要独立账号与授权；
-- 自动 refresh/reauth/replenishment 是单独受控任务；
-- 浏览器 Origin WebSocket、OpenAI Realtime API、Provider 原生 WebSocket transport、Media
-  和更多 Provider 仍是按能力拆分的后续路线图项目；
-- 仓库不保存真实凭据、生产数据库、服务器私钥、账号池或部署端点。
+### Build
 
-## Quick start / 快速开始
+```bash
+git clone https://github.com/Ricardo121380/cpa-rust-gateway.git
+cd cpa-rust-gateway
+npm --prefix web/prism ci --ignore-scripts --no-audit --no-fund
+cargo build --locked --release --package gateway
+./target/release/gateway --help
+```
 
-### Prerequisites / 前置依赖
+The management UI is compiled and embedded during the Rust build. A source build therefore needs
+both the pinned Rust toolchain and installed Prism npm dependencies.
 
-- Rust toolchain pinned by `rust-toolchain.toml`
-- Cargo and `rustfmt`
-- Node.js/npm for the generated management client and admin SPA
-- `ripgrep` for repository checks
-- Optional: `cargo-deny` and `cargo-audit` for the full supply-chain gate
-
-### Build and test / 构建与测试
+### Verification
 
 ```bash
 cargo fmt --all -- --check
@@ -156,122 +181,160 @@ npm --prefix web/prism run check
 ./scripts/check.sh docs
 ```
 
-The repository also contains the approved fast/full quality gates:
+For an integration or release candidate:
 
 ```bash
 ./scripts/check.sh fast
 ./scripts/check.sh full
 ```
 
-首次执行完整供应链门禁时，如本机尚未安装工具，可按 `scripts/install-quality-tools.sh` 的说明
-准备固定版本。普通开发先执行受影响 crate 的定向测试和 `./scripts/check.sh docs`。
+The full gate installs or requires pinned supply-chain tools and is intentionally more expensive
+than normal development checks.
 
-### Local serving / 本机启动
+## Deployment
 
-The binary expects credentials and state through operator-selected files or deployment-managed
-secret sources.  Never put real values in shell history, fixtures, README files or issue reports.
-For an isolated local run, use synthetic credentials and loopback-only listeners; do not point the
-sample configuration at a real provider until a separate provider-specific approval exists.
+The complete deployment instructions are separate from this README:
 
-二进制通过操作者指定的文件或部署系统 Secret 源读取凭据和状态。不要把真实值写入 shell history、
-fixture、README 或 issue。进行本机演练时使用 synthetic 凭据和 loopback listener；在没有独立
-Provider 授权前，不要把示例配置指向真实上游。
+- [Deployment Guide — English](docs/deployment-guide.en.md)
+- [部署指南 — 简体中文](docs/deployment-guide.zh-CN.md)
 
-### Responses WebSocket / Responses WebSocket 模式
+| Method | Intended environment | Architecture status |
+|---|---|---|
+| Source-built OCI/Docker image | Linux Docker with host networking | Linux `amd64`, `arm64` |
+| Docker Compose | Single-node Linux, persistent bind mounts, host reverse proxy | Linux `amd64`, `arm64` |
+| Native binary + systemd | Debian/Ubuntu and compatible systemd distributions | Linux x86-64, AArch64 |
+| Native foreground build | Development and local evaluation | Linux and macOS host architecture |
+| WSL2 | Windows development/evaluation | Linux x86-64 inside WSL2 |
 
-After a configured CPAR Client Key and route snapshot are available, a native client can upgrade
-`GET /v1/responses` with `Authorization: Bearer <CPAR_CLIENT_KEY>`.  Each application message is
-one strict OpenAI Responses `response.create` JSON object; CPAR sends the ordinary Responses event
-lifecycle back as JSON text messages, without SSE `data:` framing:
+There is currently no public GHCR image or public GitHub Release binary. The signed release
+workflow produces private, short-lived artifacts for approved revisions. Public users should use
+the source-build Dockerfile or compile natively until a public-release workflow is approved.
 
-```json
-{
-  "type": "response.create",
-  "model": "<PUBLIC_MODEL>",
-  "input": "Reply with OK.",
-  "stream": true
-}
+### Runtime bootstrap contract
+
+`gateway serve` requires two distinct nonzero loopback listeners, an absolute writable state
+directory and an absolute read-only credential directory:
+
+```text
+gateway serve \
+  --data-listen 127.0.0.1:18180 \
+  --management-listen 127.0.0.1:18181 \
+  --state-dir /var/lib/cpa-rust-gateway \
+  --credential-dir /run/cpa-rust-gateway-credentials
 ```
 
-The P13-10A boundary permits one active turn plus one queued turn per connection, applies bounded
-frame/message/event/output and time limits, and can use a completed response from the same
-connection as `previous_response_id`.  It is not the OpenAI Realtime API.  Browser clients that
-send an `Origin` header are rejected in this first slice; use a native/CLI client without `Origin`
-until an explicit browser-origin policy is approved.  Provider adapters may still use their
-reviewed HTTP/SSE upstream transport—the WebSocket capability here is the CPAR downstream
-projection and never authorizes an undeclared provider capability.
+The credential directory must contain exactly named direct regular files:
 
-配置好 CPAR Client Key 和 Route Snapshot 后，原生客户端可使用
-`Authorization: Bearer <CPAR_CLIENT_KEY>` 升级 `GET /v1/responses`。每条应用消息必须是一个
-严格的 OpenAI Responses `response.create` JSON 对象；CPAR 会把普通 Responses 生命周期事件
-直接作为 JSON 文本消息返回，不带 SSE 的 `data:` framing。
+| File | Format |
+|---|---|
+| `management-key` | `mgmt_`-namespaced ASCII, 32–512 bytes |
+| `management-csrf` | independent `csrf_`-namespaced ASCII, 32–512 bytes |
+| `master-key` | exactly 32 raw bytes |
+| `backup-key` | exactly 32 raw bytes |
+| `client-key-pepper` | exactly 32 raw bytes |
 
-P13-10A 每条连接最多允许一个活跃 turn 和一个排队 turn，并对 frame、message、event、输出大小
-和时间实施有界限制；同一连接中已完成的 response 可作为后续请求的 `previous_response_id`。
-这不是 OpenAI Realtime API。首个切片会拒绝带 `Origin` 的浏览器连接；在显式浏览器 Origin
-策略获批前，请使用不发送 `Origin` 的原生/CLI 客户端。Provider adapter 仍可使用其已审查的
-HTTP/SSE 上游 transport；这里的 WebSocket 是 CPAR 下游投影，不会隐式授权未声明的 Provider
-能力。
+Never expose the management listener through Caddy, Nginx, a cloud load balancer or Docker port
+publishing. Expose only the data listener through an HTTPS reverse proxy after configuring routes
+and Client Keys.
 
-## Security and public-release policy / 安全与公开发布策略
+## First configuration
 
-The public repository is intentionally value-free:
+A fresh process creates/opens `control.sqlite3` but has no inference routes. Operators must create
+a draft Config Version, configure egress policy, Upstream, Endpoint, Credential binding, public
+model, route/candidate, access group and Client Key, validate the graph, publish it, and restart the
+runtime so the active immutable snapshot is composed.
 
-1. Real API keys, OAuth access/refresh tokens, SSO cookies, passwords, private keys and production
-   databases are excluded and ignored by Git.
-2. Test fixtures use clearly synthetic values and must assert that those values never appear in
-   management responses or logs.
-3. Management responses use closed schemas, bounded pagination, `no-store` for sensitive reads,
-   AEAD at rest and value-free errors.
-4. Production deployment, account registration and provider probes are never performed by the
-   default build or test commands.
-5. Please report suspected credential exposure privately according to [`SECURITY.md`](SECURITY.md).
+Use the protected management API/Prism UI or local `gateway admin` commands. Maintain an external,
+secret-free ledger of every opaque ID; some low-level resources intentionally have no collection
+endpoint. The detailed order and rollback rules are documented in
+[the P12 rollout runbook](docs/p12-rollout-runbook.md).
 
-公开仓库坚持 value-free 原则：
+## Example client request
 
-1. 真实 API key、OAuth access/refresh token、SSO Cookie、密码、私钥和生产数据库均不进入 Git；
-2. Fixture 只使用明确的 synthetic 值，并验证这些值不会进入管理响应或日志；
-3. 管理响应使用 closed schema、有界分页、敏感读操作 `no-store`、AEAD 存储和 value-free 错误；
-4. 默认构建/测试不会执行生产部署、账号注册或真实 Provider 探针；
-5. 怀疑凭据泄露时，请按 [`SECURITY.md`](SECURITY.md) 的方式私下报告。
+After an operator has published a route and issued a CPAR Client Key:
 
-## Reference and licensing notes / 参考与许可说明
+```bash
+curl --fail-with-body https://your-cpar.example/v1/responses \
+  -H 'Authorization: Bearer <CPAR_CLIENT_KEY>' \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"<PUBLIC_MODEL>","input":"Reply with OK.","stream":false}'
+```
 
-CPA, CLIProxyAPI, Sub2API, grok2api and Kiro-RS are behavior and compatibility references,
-not bundled runtime dependencies.  Their licenses and notices are recorded in
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md),
-[`docs/00-reference-baseline.md`](docs/00-reference-baseline.md) and
-[`docs/04-channel-reference-analysis.md`](docs/04-channel-reference-analysis.md).  Any future
-direct code import must preserve the upstream license and attribution; clean-room behavior
-reimplementation must not be described as copied source.
+For WebSocket mode, upgrade `GET /v1/responses` without a browser `Origin` header and send one
+strict `response.create` JSON message. This downstream WebSocket is not Provider-native transport
+and not the OpenAI Realtime API.
 
-CPA、CLIProxyAPI、Sub2API、grok2api 和 Kiro-RS 是行为/兼容性参考，不是本项目的运行时依赖。
-相关许可和声明记录在 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)、
-[`docs/00-reference-baseline.md`](docs/00-reference-baseline.md) 与
-[`docs/04-channel-reference-analysis.md`](docs/04-channel-reference-analysis.md)。未来如直接
-引入代码，必须保留上游许可和署名；clean-room 行为重实现不得描述为复制源码。
+## Development status
 
-## Documentation map / 文档导航
+- **Formally gated implementation:** approved backend slices through P13-11E4, including P13
+  management/billing/routing, Channel Pin, stored Responses, Responses WebSocket, compatible egress
+  pools and Provider egress status projection.
+- **Frontend integration:** Prism evolves independently against the generated management contract;
+  check the current branch and `docs/cross-boundary-log.md` for pending handoffs.
+- **Explicitly deferred or externally blocked:** real Kiro/Official API-key E2E, Grok Web external
+  egress/WAF evidence, P13-11E5 real Provider/proxy/DNS canary, automatic account registration or
+  repair, media/files/batch and additional Providers.
+- **Not part of CPAR:** Autoreg account registration, login, SSO/OAuth refresh, entitlement repair
+  and replenishment. CPAR owns imported credential validation, binding, lease, Health/Quota,
+  failure feedback and routing.
 
-- [Behavior contracts / 行为契约](docs/02-behavior-contracts.md)
-- [Target architecture / 目标架构](docs/03-target-architecture-draft.md)
-- [Channel references / 渠道参考](docs/04-channel-reference-analysis.md)
-- [Upstream aggregation / 上游聚合](docs/05-upstream-aggregation-design.md)
-- [Development plan / 开发计划](docs/06-development-plan.md)
-- [Traceability / 需求追踪](docs/traceability.md)
-- [ADRs / 架构决策](docs/adr/README.md)
-- [Contracts / 可执行契约](docs/contracts/README.md)
-- [Reports / 阶段报告](docs/reports/README.md)
-- [Quality gates / 质量门禁](docs/quality-gates.md)
-- [Crate boundaries / Crate 边界](docs/crate-boundaries.md)
+`DONE_WITH_BOUNDARY` means the documented acceptance boundary passed; it does not claim that every
+Provider account, external network path or production deployment was tested.
+
+## Git and release governance
+
+Development uses phase/integration branches and immutable `phase-p*-complete` evidence tags.
+Ordinary branch pushes and PR updates run lightweight checks; the expensive delivery gate is
+explicit and revision-bound. A dated inventory of every current branch and its merge recommendation
+is available in [the Git branch audit](docs/git-branch-inventory-2026-08-19.md).
+
+The safe integration path is one reviewed integration PR into `main`, followed by one formal gate
+for the immutable final revision. Historical phase branches that are already ancestors do not need
+to be merged again; non-ancestor branches must be reconciled deliberately rather than blindly
+merged.
+
+## Repository map
+
+| Path | Purpose |
+|---|---|
+| `apps/gateway` | CLI, process composition, data/management listeners |
+| `crates/gateway-*` | core, auth, catalog, control, routing, storage, transport, HTTP and observability |
+| `crates/protocol-*` | downstream/upstream protocol codecs |
+| `crates/provider-*` | Provider-specific adapters and state |
+| `web/prism` | embedded React management application and generated client |
+| `docs/adr` | accepted architecture decisions |
+| `docs/contracts` | executable behavior/security contracts |
+| `docs/reports` | phase and verification evidence |
+| `deploy` | systemd, Caddy and Docker deployment assets |
+| `scripts` | deterministic checks, release verification and bounded operator helpers |
+
+## Documentation
+
+- [Deployment Guide](docs/deployment-guide.en.md)
+- [Backend completion audit](docs/backend-completion-audit-2026-08-19.md)
+- [Git branch inventory](docs/git-branch-inventory-2026-08-19.md)
+- [Behavior contracts](docs/02-behavior-contracts.md)
+- [Target architecture](docs/03-target-architecture-draft.md)
+- [Channel reference analysis](docs/04-channel-reference-analysis.md)
+- [Development plan](docs/06-development-plan.md)
+- [Management frontend plan](docs/08-management-frontend-development-plan.md)
+- [Traceability](docs/traceability.md)
+- [Architecture decisions](docs/adr/README.md)
+- [Contracts index](docs/contracts/README.md)
+- [Reports index](docs/reports/README.md)
+- [Quality gates](docs/quality-gates.md)
+- [Crate boundaries](docs/crate-boundaries.md)
+- [Third-party notices](THIRD_PARTY_NOTICES.md)
+
+## Contributing
+
+Keep changes small, Provider-scoped and evidence-backed. Never commit real credentials or raw
+Provider payloads. Update the authoritative OpenAPI contract before generated clients, preserve
+frontend/backend ownership rules in `AGENTS.md`, add an ADR/contract for new security semantics, and
+include focused tests plus a value-free verification receipt.
 
 ## License
 
-CPAR is licensed under the [MIT License](LICENSE).  You may use, copy, modify, merge, publish,
-distribute, sublicense and sell copies subject to the copyright and permission notice in that
-license.  Upstream reference notices remain available in
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
-
-CPAR 采用 [MIT License](LICENSE)。在保留许可证中的版权和许可声明的前提下，可以使用、复制、
-修改、合并、发布、分发、再许可或销售本项目。上游参考项目的版权与许可声明见
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
+CPAR is licensed under the [MIT License](LICENSE). You may use, copy, modify, merge, publish,
+distribute, sublicense and sell copies subject to retaining the copyright and permission notice.
+Reference-project attribution and license notes remain in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -1,0 +1,52 @@
+name: cpar
+
+services:
+  gateway:
+    image: ${CPAR_IMAGE:-cpar:local}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        CPAR_REVISION: ${CPAR_REVISION:-source-build}
+        CPAR_VERSION: ${CPAR_VERSION:-source}
+    # CPAR deliberately accepts loopback listeners only. Linux host networking preserves that
+    # security boundary while allowing a host Caddy/Nginx process to reach 127.0.0.1:18180.
+    # Do not replace this with bridge-mode `ports:` unless the binary's admission contract is
+    # explicitly redesigned and reviewed.
+    network_mode: host
+    init: true
+    restart: unless-stopped
+    read_only: true
+    user: "65532:65532"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 512
+    mem_limit: 768m
+    cpus: 2.0
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    stop_grace_period: 45s
+    volumes:
+      - type: bind
+        source: ${CPAR_STATE_DIR:?set CPAR_STATE_DIR to an absolute writable directory}
+        target: /var/lib/cpa-rust-gateway
+      - type: bind
+        source: ${CPAR_CREDENTIAL_DIR:?set CPAR_CREDENTIAL_DIR to an absolute read-only directory}
+        target: /run/cpa-rust-gateway-credentials
+        read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    command:
+      - serve
+      - --data-listen
+      - 127.0.0.1:18180
+      - --management-listen
+      - 127.0.0.1:18181
+      - --state-dir
+      - /var/lib/cpa-rust-gateway
+      - --credential-dir
+      - /run/cpa-rust-gateway-credentials
