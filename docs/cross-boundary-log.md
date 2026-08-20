@@ -640,3 +640,27 @@ ProviderAccountPoolError::InvalidSnapshot | ProviderAccountPoolError::SourceUnav
 
 **门禁:** 202 单测 · 76 E2E · `check:full` · 真网关验证(未选版本时池卡片可读、
 作用域说明与 500 歧义提示均正确呈现,零 pageerror)。
+
+---
+
+## 2026-08-21 · Claude Code · 本轮收尾:计划文档进度追记与接线率订正
+
+**Touched:** `docs/08-management-frontend-development-plan.md`(前端自己的计划文档,
+位于 `web/prism/**` 之外故留痕)。**无代码改动,无契约改动,无生成物改动。**
+
+**Why:** 批 A / B / C1 已交付并推送,计划文档仍停在制定日的状态。新增 §3.0 记录
+批次进度、提交号,以及**实施中发现但计划原文没有的八条契约事实**(版本作用域逐算子
+split、`404` 需连 code 一起判、`null` 不得当 0 求和、billing `summary` 在截断前算好、
+`status` 是计价置信度、原生约束校验先于自写校验等),使下一轮可冷启动接手 C2。
+
+**订正一处此前记错的数字:契约接线率是 71/99,不是 2026-08-20 那条记的 68/99。**
+统计脚本只匹配单行 `call<T>("op")`,漏掉跨行调用与 `callText` 路径,
+`createRouteCandidate` / `refreshCredentialOAuth` / `getObservabilityMetrics`
+三个其实均已接线。正确口径(带引号的字面量)已写进计划文档 §1.2。
+剩余 28 个未接线恰好等于 C2(1)+ C3(15)+ 批 D(10)+ 明确不做(3),无游离项。
+
+**Other side:** **无需任何动作。** 2026-08-20 那条 500 vs 503 的 action required
+仍然有效,状态不变。
+
+**门禁:** 文档变更,代码门禁状态维持上一提交(202 单测 · 76 E2E · `check:full` ·
+真网关验证)。

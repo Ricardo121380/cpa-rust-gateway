@@ -3,7 +3,8 @@
 | 项目 | 值 |
 |---|---|
 | 状态 | `v0.4 — 后端 P13 收口后的重排;批 A/B 是修复,不是新功能` |
-| 日期 | 2026-08-18 |
+| 日期 | 2026-08-18 制定,2026-08-21 追记执行进度(§3.0) |
+| 执行到 | 批 A ✅ · 批 B ✅ · C1 ✅ · **下一项 C2** |
 | 取代 | v0.3(2026-08-11,并仓当日)。v0.3 的路线图假设后端还在推进,现在 P13-04…P13-10 全部 `DONE`,排序依据变了,差异见 §7 |
 | 位置 | `web/prism`,由 `cargo build` 构建并嵌入 |
 | 协作边界 | [AGENTS.md](../AGENTS.md) / [CLAUDE.md](../CLAUDE.md);越界留痕见 [cross-boundary-log](cross-boundary-log.md) |
@@ -36,6 +37,13 @@
 已接线        54  (54.5%)
 未接线        45  (45.5%)   ← 其中 3 个是明确不做
 ```
+
+**这是 08-18 的基线,不是当前值。当前值见 §3.0。**
+
+**怎么数(踩过一次坑,写下来):** 对每个 `operationId`,在 `src/` 非 `generated`
+非 `*.test.*` 的文件里找**带引号的字面量** `"opName"`。只匹配单行
+`call<T>("op")` 会漏掉跨行调用与 `callText` 这条路径 —— 我因此把 71 报成过 68。
+注释里提到算子名通常不带引号,所以引号字面量这个口径既不漏也不多。
 
 ### 1.3 生产死代码 —— 本轮最大的单一问题
 
@@ -114,6 +122,60 @@ export function analyticsAvailable(): boolean { return fixturesEnabled(); }
 
 四批,批内可并行,批间有序。总量约 **30 个工作日**。
 
+### 3.0 执行进度(2026-08-21 追记)
+
+分支 `claude/route-candidates`,全部已推送。
+
+| 批次 | 状态 | 提交 |
+|---|---|---|
+| A1 + A2 · 路由候选 / 校验 / Explain 价格证据 | ✅ | `c4969f7` |
+| B1 · 用量分析 | ✅ | `2cb233c` |
+| B2 · 请求监控 | ✅ | `cd27ff3` |
+| B3 · 计费与价格目录 | ✅ | `04877b3` |
+| B4 + B5 · Overview 收口 / 拆除 proposed 通道 + 新门禁 | ✅ | `b522225` |
+| C1 · Provider 账号池 | ✅ | `bc79ffc` |
+| **C2 · Provider egress 三分区** | ⬜ **下一项** | — |
+| C3 · Compatible 代理池 CRUD | ⬜ | — |
+| D1–D6 · 收尾 | ⬜ | — |
+
+**接线率 71/99(71.7%)。** 剩余 28 个未接线**恰好等于**待办批次加上明确不做的三个,
+没有游离项:
+
+| 归属 | 个数 |
+|---|---|
+| C3 `*CompatibleProxyPool` / `*ProxyNode` / `*EgressBinding` | 15 |
+| D3 单资源 GET 五个 | 5 |
+| D1 `get/updateClientKey` · D2 `executeChannelPin` · D4 `listEndpointCredentialBindings` | 4 |
+| C2 `listProviderEgressStatus` | 1 |
+| §4 明确不做 | 3 |
+
+门禁现状:**202 单测 · 76 E2E · `check:full` 绿 · 真网关验证通过**。
+
+**实施中发现、写进代码但计划原文没有的事实**(下一轮接手先读这几条,否则会重踩):
+
+1. **`listOperationalUsage` 不是版本作用域的。** 曾按 `versionScoped: true` 接线,
+   真网关上直接死在 "unknown config version"。运营面的版本作用域是**逐算子split**
+   的,不是整面统一 —— 已在 `src/api/client.ts` 与 DESIGN.md 列全。
+2. **`listProviderAccountPools` 不需要版本,`applyProviderAccountPoolAction` 需要。**
+   所以运行时页不能在"未选版本"时整页早退,那句话对池表是假的。
+3. **action 没有 `If-Match` 是对的** —— 它动运行时不动配置,没有 revision 可守。
+4. **"策略未设置"必须认 `404` + `management_resource_not_found` 两者。**
+   只认 404 会把 `management_access_denied`(会话已死)误报成"还没配价格策略"。
+5. **`sumFamily` 里 `null` 不是 0。** 缺口要抬成 `partialCoverage`,否则少算的钱
+   看起来像省下的钱。
+6. **billing 的 `summary` 在游标截断之前算好。** 因此 `limit: 1` 就能拿到整窗摘要,
+   Overview 的 `BillingGlance` 依赖这条性质。
+7. **billing 的 `status` 参数是计价置信度,不是请求成败。**
+8. **带 `min`/`max` 的输入,浏览器原生约束校验先于任何自写校验。** 冷却时长的
+   越界值根本走不到 `validCooldown`,E2E 断言的是 `validity.rangeUnderflow`。
+
+**一条已记录未修的后端不一致(`docs/cross-boundary-log.md`,标 action required · 低优先级):**
+`listProviderAccountPools` 未接线时返回 **500**,而本网关其余所有注入式投影都是 **503**
+—— 503 正是面板判定"此部署未启用该投影"的依据。前端不冒充判断,把两种可能都写在
+错误块里;后端改成 503 后前端无需改动即自动正确分类。
+
+---
+
 ### 批 A · 修复已交付契约的接线(~3 天)· ✅ 已完成 2026-08-18
 
 **为什么排第一:** 后端已经为这两块付过正式 Gate 的成本,前端接线过期让它等于没交付。
@@ -176,7 +238,7 @@ if active_candidates.is_empty() {
 
 ---
 
-### 批 B · 用真数据源换掉 3479 行死代码(~11.5 天)
+### 批 B · 用真数据源换掉 3479 行死代码(~11.5 天)· ✅ 已完成 2026-08-20
 
 **为什么排第二:** 单块价值最大 —— 20.6% 的前端代码在生产里不产生任何像素。而且它每多活一天,后来者就多一分把它误读为"已完成的用量分析"的风险。
 
@@ -187,6 +249,9 @@ if active_candidates.is_empty() {
 | B3 | 计费与价格目录页(全新) | `listBillingCatalogs` `importBillingCatalog` `rollbackBillingCatalog` `get/set/clearRoutingPricePolicy` | 3 天 |
 | B4 | Overview 分析半区收口 | 复用 B1/B3 摘要 | 1 天 |
 | B5 | 删除 `api/proposed*` 与 fixtures 的 analytics 部分 | — | 0.5 天 |
+
+**以下五节要点均已实施**(`2cb233c` `cd27ff3` `04877b3` `b522225`);实施中发现、
+计划原文没有的契约事实见 §3.0 第 1、4、5、6、7 条,踩坑记录见 `web/prism/DESIGN.md` §18–§21。
 
 **B1 要点:**
 - 主视图是**分组聚合表**(按 §2.1,这是数据的真实形状),不是时间序列;
@@ -217,13 +282,13 @@ if active_candidates.is_empty() {
 
 ### 批 C · 运行时与出口(~8 天)
 
-| # | 内容 | 算子 | 工作量 |
-|---|---|---|---|
-| C1 | Provider 账号池 live + operator action + 失败归因 | `listProviderAccountPools` `applyProviderAccountPoolAction` `listProviderAccountFailures` | 2.5 天 |
-| C2 | Provider egress 状态三分区 | `listProviderEgressStatus` | 2 天 |
-| C3 | Compatible 代理池 / 节点 / 绑定 CRUD | 15 个算子 | 3.5 天 |
+| # | 内容 | 算子 | 工作量 | 状态 |
+|---|---|---|---|---|
+| C1 | Provider 账号池 live + operator action + 失败归因 | `listProviderAccountPools` `applyProviderAccountPoolAction` `listProviderAccountFailures` | 2.5 天 | ✅ `bc79ffc` |
+| C2 | Provider egress 状态三分区 | `listProviderEgressStatus` | 2 天 | ⬜ 下一项 |
+| C3 | Compatible 代理池 / 节点 / 绑定 CRUD | 15 个算子 | 3.5 天 | ⬜ |
 
-**C1 要点:**
+**C1 要点**(✅ 已实施 `bc79ffc`;实施中新增的约束见 §3.0 与 `web/prism/DESIGN.md` §22):
 - `auth_status`(4 值)与 `runtime_status`(7 值)是**两个独立维度**,不合成一个"健康"值。沿用 `pools.ts` 里已有的判断:`cooling` 是等待,`unauthorized` 是停止,两者色调必须不同;
 - `applyProviderAccountPoolAction` 的两个动作(`cool_down` / `request_recovery`)都要显式确认对话框,确认文案写明作用对象是**精确到 account 的**;
 - 响应 `202` 的四态(`cooling|probe_scheduled|recovery_required|rejected`)各有文案,`rejected` 不等于失败;
