@@ -20,6 +20,7 @@ import { asAppError } from "../../api/errors";
 import { useMessages } from "../../i18n/messages";
 import { useNowTick } from "../../utils/useNowTick";
 import { useVersionStore } from "../config-versions/versionStore";
+import { Sheet } from "../../components/Sheet";
 import { CredentialSheet } from "../upstreams/CredentialSheet";
 import {
   abnormalRows,
@@ -29,9 +30,16 @@ import {
   buildAvailabilityMatrix,
   cellKey,
   countByState,
+  authStatusMeta,
+  COOLDOWN_MAX_MS,
+  COOLDOWN_MIN_MS,
   decisionMeta,
   explainCounts,
   explainScopeHint,
+  formatDue,
+  receiptMeta,
+  runtimeStatusMeta,
+  validCooldown,
   formatAge,
   formatObservedAt,
   freshnessMeta,
@@ -44,8 +52,12 @@ import {
   stateAttr,
   AVAILABILITY_STATES,
   CATALOG_REMOVAL_MISSES,
+  type ActionReceipt,
   type AvailabilityRow,
   type CatalogRow,
+  type PoolAccount,
+  type PoolAction,
+  type PoolSnapshot,
   type ExplainQuery,
   type Protocol,
   type RecoveryResponse,
@@ -776,6 +788,310 @@ function ExplainCard({ scope }: Readonly<{ scope: string }>) {
 // page
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// 5. provider account pools (P13-06B/C)
+//
+// SCOPE SPLIT, stated on screen because it is genuinely surprising: the LIST
+// declares no X-Config-Version and works with nothing selected, while the
+// ACTION requires one. Reading is always possible; acting is not. Letting an
+// operator find that out from a failed POST would be poor manners.
+// ---------------------------------------------------------------------------
+
+function PoolActionSheet({
+  account,
+  action,
+  pending,
+  onCancel,
+  onInvalid,
+  onSubmit,
+}: Readonly<{
+  account: PoolAccount;
+  action: PoolAction;
+  pending: boolean;
+  onCancel: () => void;
+  onInvalid: (message: string) => void;
+  onSubmit: (body: Readonly<Record<string, unknown>>) => void;
+}>) {
+  const isCooldown = action === "cool_down";
+  return (
+    <Sheet title={isCooldown ? "冷却这个账号" : "为这个账号请求恢复"} onEscape={onCancel}>
+      <p className="reveal-warning">
+        作用对象是<strong>精确到账号</strong>的一条:
+        <br />
+        <span className="mono">
+          {account.provider_id} / {account.channel_id} / {account.account_id}
+        </span>
+        <br />
+        {isCooldown
+          ? "冷却会把它移出调度直到到期,同 Provider 下的其他账号继续服务。"
+          : "请求恢复只是登记意图 —— 是否放行仍由运行时与上游决定,不保证恢复。"}
+      </p>
+      <form
+        className="sheet-form"
+        onSubmit={(event: FormEvent<HTMLFormElement>) => {
+          event.preventDefault();
+          const data = new FormData(event.currentTarget);
+          const body: Record<string, unknown> = {
+            provider_id: account.provider_id,
+            channel_id: account.channel_id,
+            account_id: account.account_id,
+            action,
+          };
+          const model = String(data.get("upstream_model") ?? "").trim();
+          if (model !== "") {
+            body["upstream_model"] = model;
+          }
+          if (isCooldown) {
+            const ms = Number(data.get("cooldown_ms"));
+            if (!validCooldown(ms)) {
+              onInvalid(
+                `冷却时长越界:契约要求 ${COOLDOWN_MIN_MS}–${COOLDOWN_MAX_MS} 毫秒(1 秒–24 小时)。`,
+              );
+              return;
+            }
+            body["cooldown_ms"] = ms;
+          }
+          onSubmit(body);
+        }}
+      >
+        {isCooldown ? (
+          <label>
+            冷却时长(毫秒,{COOLDOWN_MIN_MS}–{COOLDOWN_MAX_MS})
+            <input
+              name="cooldown_ms"
+              type="number"
+              min={COOLDOWN_MIN_MS}
+              max={COOLDOWN_MAX_MS}
+              defaultValue={60_000}
+            />
+            <small>留空不是"用默认值" —— 契约的字段可空,但这里必须给一个明确时长。</small>
+          </label>
+        ) : null}
+        <label>
+          upstream_model(可选)
+          <input name="upstream_model" className="mono" maxLength={256} />
+          <small>只想影响某一个上游模型时填写;留空表示整个账号。</small>
+        </label>
+        <div className="sheet-actions">
+          <button type="button" className="secondary" onClick={onCancel}>
+            取消
+          </button>
+          <button type="submit" className={isCooldown ? "danger" : undefined} disabled={pending}>
+            {isCooldown ? "确认冷却" : "确认请求恢复"}
+          </button>
+        </div>
+      </form>
+    </Sheet>
+  );
+}
+
+function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
+  const queryClient = useQueryClient();
+  const scope = useVersionStore((s) => s.context?.configVersionId);
+  const visible = useDocumentVisible();
+  const [target, setTarget] = useState<
+    Readonly<{ account: PoolAccount; action: PoolAction }> | undefined
+  >();
+  const [receipt, setReceipt] = useState<ActionReceipt | undefined>();
+  const [error, setError] = useState<string | undefined>();
+
+  const pools = useQuery({
+    // NOT version-scoped: this is live runtime state, not configuration.
+    queryKey: ["provider-pools"],
+    queryFn: () => call<PoolSnapshot>("listProviderAccountPools", { query: { limit: 100 } }),
+    refetchInterval: visible ? POLL_MS : false,
+    refetchIntervalInBackground: false,
+    placeholderData: (previous) => previous,
+    retry: false,
+  });
+
+  const act = useMutation({
+    mutationFn: (body: Readonly<Record<string, unknown>>) =>
+      call<ActionReceipt>(
+        "applyProviderAccountPoolAction",
+        { body },
+        // Version-scoped, but NO If-Match: it acts on runtime, not on config,
+        // so there is no revision to guard.
+        { versionScoped: true },
+      ),
+    onSuccess: (result) => {
+      setTarget(undefined);
+      setReceipt(result);
+      void queryClient.invalidateQueries({ queryKey: ["provider-pools"] });
+    },
+    onError: (cause) => {
+      const app = asAppError(cause);
+      setTarget(undefined);
+      // A 409 means the snapshot moved under us. Re-read before retrying, and
+      // say so instead of leaving a stale table on screen.
+      if (app.kind === "conflict") {
+        void queryClient.invalidateQueries({ queryKey: ["provider-pools"] });
+        setError("目标已过期(快照已变)—— 已重新读取,请确认后重试。");
+        return;
+      }
+      setError(app.message);
+    },
+  });
+
+  const rows = pools.data?.items ?? [];
+
+  return (
+    <div className="card rt-card" data-gap="top">
+      <CardHead
+        title="Provider 账号池 · 实时"
+        operation="listProviderAccountPools"
+        help={
+          <>
+            认证状态与运行时状态是<strong>两个独立维度</strong>,本表不把它们合成一个"健康"值 ——
+            一个账号可以认证正常而运行时正在冷却,反之亦然。
+          </>
+        }
+      />
+      <p className="rt-help">
+        <strong>本表不需要配置版本</strong>(它是实时状态),但下面的操作需要:
+        <span className="mono"> applyProviderAccountPoolAction</span> 带{" "}
+        <span className="mono">X-Config-Version</span>。
+        {scope === undefined ? <strong> 当前未选择版本,操作按钮不可用。</strong> : null}
+      </p>
+
+      {error !== undefined ? (
+        <p role="alert" className="action-error">
+          {error}
+          <button type="button" onClick={() => setError(undefined)}>
+            清除
+          </button>
+        </p>
+      ) : null}
+      {receipt === undefined ? null : (
+        <p className="action-notice">
+          <StateChip
+            meta={receiptMeta(receipt.state)}
+            attr={receipt.state}
+            raw={receipt.state}
+          />{" "}
+          {receiptMeta(receipt.state).detail}
+          {receipt.cooldown_until_ms === null
+            ? ""
+            : ` · 冷却至 ${formatObservedAt(receipt.cooldown_until_ms)}`}
+          <button type="button" onClick={() => setReceipt(undefined)}>
+            知道了
+          </button>
+        </p>
+      )}
+
+      {pools.isError ? (
+        isProjectionUnavailable(pools.error) ? (
+          <UnavailableBlock operation="listProviderAccountPools" />
+        ) : (
+          <StateBlock
+            kind="error"
+            text="读取失败"
+            // Measured against a real gateway on 2026-08-20: an unwired pool
+            // source maps to internal_error() (500), NOT the 503 every other
+            // injected projection here uses when it is not enabled. So a 500
+            // on this one read is ambiguous, and the panel says which two
+            // things it could be instead of implying a gateway defect.
+            detail={`${asAppError(pools.error).code} · ${asAppError(pools.error).message}${
+              asAppError(pools.error).status === 500
+                ? " —— 注意:本投影未接线时也返回 500(其余投影用 503),所以这既可能是真的内部错误,也可能是这台部署没有提供账号池来源。"
+                : ""
+            }`}
+          />
+        )
+      ) : pools.data === undefined ? (
+        <StateBlock kind="loading" text="读取账号池…" />
+      ) : rows.length === 0 ? (
+        <StateBlock
+          kind="empty"
+          text="没有 Provider 账号池"
+          detail="运行时没有报告任何账号 —— 这与「投影未接线」不同:接线正常,只是池是空的。"
+        />
+      ) : (
+        <>
+          <p className="rt-help">
+            快照 <span className="mono">{pools.data.snapshot_id}</span> · 观测于{" "}
+            <span className="mono">{formatObservedAt(pools.data.observed_at_ms)}</span>
+            {pools.data.next_cursor === null ? "" : " · 还有更多(本卡只读第一页)"}
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Provider / Channel / 账号</th>
+                <th scope="col">种类</th>
+                <th scope="col">认证</th>
+                <th scope="col">运行时</th>
+                <th scope="col">并发</th>
+                <th scope="col">过期</th>
+                <th scope="col">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((account) => (
+                <tr key={`${account.provider_id}/${account.channel_id}/${account.account_id}`}>
+                  <th scope="row" className="mono rt-rowhead">
+                    {account.provider_id} / {account.channel_id} / {account.account_id}
+                  </th>
+                  <td className="mono">{account.account_kind}</td>
+                  <td>
+                    <StateChip
+                      meta={authStatusMeta(account.auth_status)}
+                      attr={account.auth_status}
+                      raw={account.auth_status}
+                    />
+                  </td>
+                  <td>
+                    <StateChip
+                      meta={runtimeStatusMeta(account.runtime_status)}
+                      attr={account.runtime_status}
+                      raw={account.runtime_status}
+                    />
+                    {account.enabled ? null : <span className="rt-off">已禁用</span>}
+                  </td>
+                  <td className="mono">
+                    {account.active_leases} / {account.max_concurrency}
+                  </td>
+                  <td className="mono">{formatDue(account.expires_at_ms, nowMs)}</td>
+                  <td className="row-actions">
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={scope === undefined}
+                      title={scope === undefined ? "操作需要选择一个配置版本" : undefined}
+                      onClick={() => setTarget({ account, action: "cool_down" })}
+                    >
+                      冷却
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={scope === undefined}
+                      title={scope === undefined ? "操作需要选择一个配置版本" : undefined}
+                      onClick={() => setTarget({ account, action: "request_recovery" })}
+                    >
+                      请求恢复
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      {target === undefined ? null : (
+        <PoolActionSheet
+          account={target.account}
+          action={target.action}
+          pending={act.isPending}
+          onCancel={() => setTarget(undefined)}
+          onInvalid={setError}
+          onSubmit={(body) => act.mutate(body)}
+        />
+      )}
+    </div>
+  );
+}
+
 export function RuntimePage() {
   const t = useMessages();
   const queryClient = useQueryClient();
@@ -804,11 +1120,21 @@ export function RuntimePage() {
   });
 
   if (scope === undefined) {
+    // The pool card is NOT version-scoped, so it renders here rather than
+    // hiding behind a blanket "pick a version" state that would be false for it.
     return (
       <section className="runtime-page">
         <h2>{t.nav.runtime}</h2>
-        <div className="card empty-state" data-kind="empty">
-          <p>先在顶栏选择一个配置版本。</p>
+        <ProviderPoolCard nowMs={nowMs} />
+        <div className="card empty-state" data-kind="empty" data-gap="top">
+          <p>
+            其余三个投影需要一个配置版本。
+            <br />
+            <small className="muted-3">
+              可用性矩阵、目录新鲜度与 Route Explain 都带 X-Config-Version;
+              上面的账号池不带,所以它现在就能读。
+            </small>
+          </p>
         </div>
       </section>
     );
@@ -893,6 +1219,7 @@ export function RuntimePage() {
         loading={catalog.isLoading}
       />
 
+      <ProviderPoolCard nowMs={nowMs} />
       <ExplainCard scope={scope} />
     </section>
   );

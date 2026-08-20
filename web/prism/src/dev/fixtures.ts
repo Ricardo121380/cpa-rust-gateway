@@ -417,6 +417,7 @@ const state = {
     },
   ] as CatalogRow[],
   pricePolicy: new Map<string, { catalog_version_id: string; comparison: string }>(),
+  poolSnapshot: 1,
   routeCandidates: new Map<string, CandidateRow[]>(),
   audit: [
     {
@@ -1579,6 +1580,90 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       return new Response(null, {
         status: 204,
         headers: new Headers({ ETag: `"${revisionToken(version)}"` }),
+      });
+    }
+
+    // ---- provider account pools (P13-06B/C) ----
+    //
+    // The scope split is reproduced exactly: the LIST accepts no version and
+    // the ACTION demands one. A fixture that let the action through without a
+    // version would hide the very thing the card warns about.
+    if (route === "GET /admin/operations/provider-account-pools") {
+      const accounts = [
+        { provider: "relay-a", channel: "ep-relay-a-responses", id: "cred-relay-key",
+          kind: "api_key", auth: "active", runtime: "available", enabled: true, leases: 2 },
+        { provider: "relay-a", channel: "ep-relay-a-responses", id: "cred-relay-spare",
+          kind: "api_key", auth: "active", runtime: "cooling", enabled: true, leases: 0 },
+        { provider: "grok-build-pool", channel: "ep-grok-build", id: "cred-grok-oauth",
+          kind: "oauth", auth: "reauth_required", runtime: "unauthorized", enabled: true, leases: 0 },
+        { provider: "grok-build-pool", channel: "ep-grok-build", id: "cred-grok-old",
+          kind: "oauth", auth: "expired", runtime: "expired", enabled: false, leases: 0 },
+        { provider: "relay-a", channel: "ep-relay-a-responses", id: "cred-relay-quota",
+          kind: "api_key", auth: "active", runtime: "quota_blocked", enabled: true, leases: 0 },
+      ];
+      const items = accounts
+        .filter((row) => {
+          const p = url.searchParams.get("provider_id");
+          const c = url.searchParams.get("channel_id");
+          const a = url.searchParams.get("auth_status");
+          const r = url.searchParams.get("runtime_status");
+          const e = url.searchParams.get("enabled");
+          return (
+            (p === null || row.provider === p) &&
+            (c === null || row.channel === c) &&
+            (a === null || row.auth === a) &&
+            (r === null || row.runtime === r) &&
+            (e === null || String(row.enabled) === e)
+          );
+        })
+        .map((row, index) => ({
+          provider_id: row.provider,
+          channel_id: row.channel,
+          account_id: row.id,
+          account_kind: row.kind,
+          auth_status: row.auth,
+          runtime_status: row.runtime,
+          enabled: row.enabled,
+          priority: index,
+          weight: 1,
+          max_concurrency: 4,
+          active_leases: row.leases,
+          // Nullable on purpose: an unreported due time is neither "now" nor
+          // "never", and the UI has to render that difference.
+          expires_at_ms: row.auth === "expired" ? FIXTURE_NOW_MS - 3_600_000 : null,
+          refresh_due_at_ms: row.kind === "oauth" ? FIXTURE_NOW_MS + 7_200_000 : null,
+          quota_sync_due_at_ms: null,
+        }));
+      return json(200, {
+        snapshot_id: `snap-${state.poolSnapshot}`,
+        observed_at_ms: FIXTURE_NOW_MS,
+        items,
+        next_cursor: null,
+      });
+    }
+    if (route === "POST /admin/operations/provider-account-pools/actions") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const body = JSON.parse(bodyText ?? "{}") as {
+        account_id: string;
+        action: string;
+        cooldown_ms?: number;
+      };
+      // A stale target is a 409, and the card must re-read rather than retry
+      // blind. `cred-grok-old` stands in for "the snapshot moved under you".
+      if (body.account_id === "cred-grok-old") {
+        state.poolSnapshot += 1;
+        return errorResponse(409, "management_lifecycle_conflict", "stale action target");
+      }
+      const cooling = body.action === "cool_down";
+      // reauth_required cannot be probed back to life — the scheduler says so
+      // rather than pretending to queue something.
+      const rejected = body.account_id === "cred-grok-oauth" && !cooling;
+      state.poolSnapshot += 1;
+      return json(202, {
+        state: cooling ? "cooling" : rejected ? "recovery_required" : "probe_scheduled",
+        observed_at_ms: FIXTURE_NOW_MS,
+        cooldown_until_ms: cooling ? FIXTURE_NOW_MS + (body.cooldown_ms ?? 60_000) : null,
       });
     }
 

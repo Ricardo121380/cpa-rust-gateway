@@ -603,3 +603,40 @@ Prism 现在**不再为任何未交付的契约形状保留占位实现**。若�
 新门禁已用临时违规文件验证过确实会失败(FAILED),移除后恢复 OK ——
 未验证过会失败的门禁等于没有门禁 ·
 真网关验证:Overview 整页无任何"等待未来契约"的卡片,零控制台错误。
+
+---
+
+## 2026-08-20 · Claude Code · 批 C1 交付:Provider 账号池实时视图与操作
+
+**Touched:** 仅 `web/prism/**`。**未改动任何后端源码、契约或生成物。**
+
+**Why:** 消化 P13-06C 的 action required(`applyProviderAccountPoolAction` 与
+`listProviderAccountFailures` 的 UI 集成)。失败归因已在批 B2 接入监控页;
+本次补上实时账号池表与两个精确到账号的操作,含确认、闭集回执与 409 陈旧目标处理。
+契约接线率 68/99。
+
+**Other side:** **action required(低优先级,后端可自行决定是否处理)** ——
+一处与本仓其余投影不一致的错误映射:
+
+```rust
+// crates/gateway-http-actix/src/management_resources.rs:8071
+ProviderAccountPoolError::InvalidSnapshot | ProviderAccountPoolError::SourceUnavailable => {
+    internal_error()   // 500
+}
+```
+
+`listProviderAccountPools` 在**来源未接线**时返回 **500 management_internal_error**,
+而本网关其余注入式投影(`getRuntimeAvailability`、`getCatalogStatus`、`explainRoute`)
+在同样情形下返回 **503**。前端据 503 判定「此部署未启用该投影」,因此账号池未接线时
+会被显示成一个普通内部错误,运维会去排查一个并不存在的故障。
+
+前端不做猜测(500 也可能是真错误),已在错误文案里同时写出两种可能。
+**若后端认为 `SourceUnavailable` 应与其他投影一致改为 503,前端无需改动即可自动正确分类;
+若维持现状也可工作。** 请按你们的判断处理,改动时在此留痕即可。
+
+另记录一条已核实的作用域事实(非请求):`listProviderAccountPools` 不带
+`X-Config-Version` 而 `applyProviderAccountPoolAction` 带,且后者**没有 If-Match**
+(作用于运行时而非配置)。前端已按此设计:未选版本时表可读、操作按钮禁用并说明原因。
+
+**门禁:** 202 单测 · 76 E2E · `check:full` · 真网关验证(未选版本时池卡片可读、
+作用域说明与 500 歧义提示均正确呈现,零 pageerror)。

@@ -1633,3 +1633,72 @@ components/data:  1243 行 → 141 行(只剩 SparkLine / StatTile / TokenMixBar
 真网关上 Overview **整页要么是真数据、要么是诚实空态**,第一次没有任何"等待某个未来契约"的卡片:
 活动版本、布线规模、实时计数器(Prometheus)、观测管道健康、计价可信度(账本 summary)、
 以及一张说明为什么没有趋势线并指向真正能回答问题的两页的卡片。零控制台错误。
+
+---
+
+## 22. Provider 账号池 · 实时(2026-08-20,批 C1)
+
+### 22.1 又一处作用域分裂,而且这次是"看得见点不动"
+
+| 算子 | 版本作用域 |
+|---|---|
+| `listProviderAccountPools` | **否** —— 实时状态 |
+| `applyProviderAccountPoolAction` | **是** |
+
+所以未选版本时表格照常渲染,而每个操作按钮都不可用。RuntimePage 原本在没选版本时
+整页早退成一句"先选一个配置版本" —— 那句话对这张表是**假的**,现在改成先渲染池卡片,
+再解释其余三个投影为什么需要版本。
+
+另外这个 action **没有 `If-Match`**:它是版本作用域但不受 revision 保护,
+因为它动的是运行时而不是配置。
+
+### 22.2 认证与运行时是两个轴,不合成"健康"
+
+`auth_status`(4 值)与 `runtime_status`(7 值)各自独立:一个账号可以认证正常而运行时
+正在冷却,也可以认证已过期而运行时尚未察觉。合成一个健康值等于发明一个后端从未报告的状态。
+
+单测钉住了这一点的一个具体后果:`authStatusMeta("cooling")` 必须是「未知」——
+cooling 不是认证轴的成员,跨轴取值应当被当作未知而不是"碰巧能查到"。
+
+同一轴内也分清等待与停止:`cooling` 会自己恢复(warn),`unauthorized` 不会(critical)。
+
+### 22.3 `rejected` 是答复不是失败
+
+202 回执有四态。`rejected` 表示调度器**拒绝了这次操作** —— 这是一个答案,
+不画成错误;`recovery_required` 表示自动恢复不适用,需要人工。二者文案分开。
+
+409 陈旧目标则重新读取快照并说明,而不是盲目重试。
+
+### 22.4 原生校验先于自写校验
+
+冷却时长的输入带 `min`/`max`,所以越界值被**浏览器自身的约束校验**在提交前拦下,
+`validCooldown` 根本不会执行。E2E 因此断言的是 `validity.rangeUnderflow` 与
+"sheet 仍然打开、什么都没发出去",而不是断言一条应用级错误 ——
+断言一个不会发生的错误,等于测试一条死路径。`validCooldown` 仍然保留,
+它防的是不经过这个输入框的值(单测覆盖)。
+
+### 22.5 一处后端不一致(已记录,未改)
+
+真网关上 `listProviderAccountPools` 在**未接线时返回 500**:
+
+```rust
+// management_resources.rs:8071
+ProviderAccountPoolError::InvalidSnapshot | ProviderAccountPoolError::SourceUnavailable => {
+    internal_error()   // ← 500
+}
+```
+
+而这个网关里**其余所有注入式投影未接线时都是 503** —— 那正是 `isProjectionUnavailable`
+的判定依据,也是 `UnavailableBlock`(「此部署未启用该投影」)的触发条件。
+
+后果:未接线的账号池在面板上读作"读取失败 · Management operation failed",
+运维会去查一个不是自己的 bug。
+
+**前端不冒充判断**:500 确实也可能是真的内部错误。所以错误块把两种可能都写出来,
+并注明"本投影未接线时也返回 500(其余投影用 503)"。已在跨界日志记录。
+
+### 22.6 又一次踩到嵌入包陈旧
+
+实机验证第一次失败,因为我在最后一次 `cargo build` **之后**才改的源码 ——
+网关里嵌的还是旧 bundle。**改完前端必须重新 `cargo build` 才能实机验证**,
+这条在 §17.6 之后又犯了一次,记在这里。

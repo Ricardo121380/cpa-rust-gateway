@@ -6,6 +6,8 @@ import {
   buildAvailabilityMatrix,
   cellKey,
   countByState,
+  authStatusMeta,
+  AUTH_STATUSES,
   decisionMeta,
   explainCounts,
   explainScopeHint,
@@ -17,6 +19,11 @@ import {
   normalizeExplainQuery,
   priceEvidenceMeta,
   PROTOCOLS,
+  formatDue,
+  receiptMeta,
+  runtimeStatusMeta,
+  RUNTIME_STATUSES,
+  validCooldown,
   recoverableRows,
   recoveryMeta,
   stateAttr,
@@ -317,5 +324,53 @@ describe("isProjectionUnavailable", () => {
     expect(isProjectionUnavailable({ kind: "conflict", status: 409 })).toBe(false);
     expect(isProjectionUnavailable(new Error("boom"))).toBe(false);
     expect(isProjectionUnavailable(undefined)).toBe(false);
+  });
+});
+
+describe("provider account pools", () => {
+  it("keeps auth and runtime status as independent axes", () => {
+    // An account can be auth-active and runtime-cooling, or auth-expired while
+    // the runtime has not caught up. Collapsing them into one "health" would
+    // invent a state the backend never reported.
+    expect(authStatusMeta("active").tone).toBe("good");
+    expect(runtimeStatusMeta("cooling").tone).toBe("warn");
+    expect(authStatusMeta("cooling").label).toBe("未知"); // not a member of THIS axis
+    expect(runtimeStatusMeta("reauth_required").label).toBe("未知");
+  });
+
+  it("separates a wait from a stop", () => {
+    // cooling resolves on its own; unauthorized does not.
+    expect(runtimeStatusMeta("cooling").tone).toBe("warn");
+    expect(runtimeStatusMeta("unauthorized").tone).toBe("critical");
+  });
+
+  it("covers all four auth and all seven runtime states with distinct glyphs", () => {
+    expect(new Set(AUTH_STATUSES.map((s) => authStatusMeta(s).glyph)).size).toBe(
+      AUTH_STATUSES.length,
+    );
+    for (const status of RUNTIME_STATUSES) {
+      expect(runtimeStatusMeta(status).label).not.toBe("未知");
+    }
+  });
+
+  it("enforces the contract's cooldown window locally", () => {
+    expect(validCooldown(1000)).toBe(true);
+    expect(validCooldown(86_400_000)).toBe(true);
+    expect(validCooldown(999)).toBe(false);
+    expect(validCooldown(86_400_001)).toBe(false);
+    expect(validCooldown(1500.5)).toBe(false);
+  });
+
+  it("treats a rejected action as an answer, not a failure", () => {
+    expect(receiptMeta("rejected").tone).toBe("muted");
+    expect(receiptMeta("recovery_required").tone).toBe("serious");
+    expect(receiptMeta("probe_scheduled").tone).toBe("tint");
+    expect(receiptMeta("something_new").label).toBe("未知");
+  });
+
+  it("does not turn an unreported due time into 'now' or 'never'", () => {
+    expect(formatDue(null, 1000)).toBe("—");
+    expect(formatDue(500, 1000)).toBe("已到期");
+    expect(formatDue(1000, 1000)).toBe("已到期");
   });
 });

@@ -534,3 +534,42 @@
 .runtime-page .idbtn:focus-visible {
   text-decoration-color: currentColor;
 }
+
+/* provider account pools: independent auth/runtime axes get their own chip
+   states. Reusing the availability groups above would merge two vocabularies
+   that the page deliberately keeps apart, so the new members are added to the
+   tone group they belong to rather than aliased onto an existing state. */
+.runtime-page .rt-chip[data-state="reauth_required"],
+.runtime-page .rt-chip[data-state="quota_blocked"] {
+  background: color-mix(in srgb, var(--status-warn) 11%, var(--surface));
+  border-color: color-mix(in srgb, var(--status-warn) 38%, transparent);
+}
+.runtime-page .rt-chip[data-state="reauth_required"] .rt-glyph {
+  color: var(--status-warn);
+}
+.runtime-page .rt-chip[data-state="unauthorized"] {
+  background: color-mix(in srgb, var(--status-critical) 13%, var(--surface));
+  border-color: color-mix(in srgb, var(--status-critical) 34%, transparent);
+}
+.runtime-page .rt-chip[data-state="unauthorized"] .rt-glyph {
+  color: var(--status-critical);
+}
+.runtime-page .rt-chip[data-state="recovery_in_flight"] {
+  background: color-mix(in srgb, var(--tint) 13%, var(--surface));
+  border-color: color-mix(in srgb, var(--tint) 34%, transparent);
+}
+.runtime-page .rt-chip[data-state="recovery_in_flight"] .rt-glyph {
+  color: var(--tint);
+}
+.runtime-page .rt-chip[data-state="disabled"] {
+  color: var(--ink-2);
+  background: transparent;
+  border-style: dashed;
+}
+/* "enabled: false" is configuration, not a runtime state — it rides alongside
+   the runtime chip rather than replacing it. */
+.runtime-page .rt-off {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--ink-2);
+}
