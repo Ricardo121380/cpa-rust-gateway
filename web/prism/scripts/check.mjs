@@ -57,6 +57,20 @@ for (const file of walk(SRC)) {
   if (/\bstyle=\{\{/u.test(text)) {
     failures.push(`${rel}: inline style attribute is blocked by the production CSP`);
   }
+  // A "proposed endpoint" side channel once carried a whole analytics shape the
+  // backend never implemented. It was gated on dev fixtures, so ~3500 lines of
+  // page code — the usage page, the monitoring page, half of overview, six
+  // chart components — rendered a "contract pending" empty state in every
+  // production build and nobody noticed for months.
+  //
+  // The contract is the only source of endpoints. When a shape is missing, the
+  // route is docs/change-requests/ plus an honest empty state, not a second
+  // client that answers only in dev.
+  if (/["']\.{1,2}\/.*api\/proposed|from ["'][^"']*api\/proposed/u.test(text)) {
+    failures.push(
+      `${rel}: a proposed-endpoint channel is banned — the contract is the only source of endpoints (see docs/08 §B5)`,
+    );
+  }
   // Password-typed fields summon Safari's strong-password popover and
   // password-manager widgets, which cover the input and swallow paste. The
   // unlock secrets are machine keys: they use masked text inputs instead.

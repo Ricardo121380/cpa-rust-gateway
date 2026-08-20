@@ -14,13 +14,16 @@ test("unlock rejects malformed keys locally and accepts the fixture key", async 
   await expect(page.getByRole("heading", { name: "总览" })).toBeVisible();
 });
 
-test("overview lights up KPI, strip, mix and deep-links into monitoring", async ({ page }) => {
+test("overview shows the real planes and deep-links into failure attribution", async ({ page }) => {
   await unlock(page);
-  await expect(page.getByText("今日请求")).toBeVisible();
-  // exact: the live-counters plane above has its own 尝试成功率 tile.
-  await expect(page.getByText("成功率", { exact: true })).toBeVisible();
-  await expect(page.locator(".health-strip .health-cell").first()).toBeVisible();
+  // The "today" KPI row and health strip were the proposed analytics shape and
+  // are gone with it. What remains is the counters plane (real, from the
+  // Prometheus exposition) plus the billing summary, which is one request and
+  // covers the whole ledger window.
+  await expect(page.getByText("网关实时计数")).toBeVisible();
   await expect(page.locator(".token-mix rect").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "计价可信度" })).toBeVisible();
+  await expect(page.getByText("覆盖整个账本窗口")).toBeVisible();
 
   // The old link carried ?status=failed. Monitoring has no request outcome to
   // filter on and its `status` means cost confidence, so "recent failures"

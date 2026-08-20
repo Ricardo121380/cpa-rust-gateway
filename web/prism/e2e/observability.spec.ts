@@ -43,19 +43,25 @@ test("pipeline health reports a clean Required path without crying wolf on shed 
   await expect(card).toContainText("背压设计,非故障");
 });
 
-test("the two observability planes coexist without duplicating a card", async ({ page }) => {
+test("the counters plane stands alone, and says what it cannot show", async ({ page }) => {
   await unlock(page);
-  // Fixture dev has G3 analytics available, so the page shows both planes.
   await expect(page.getByText("网关实时计数")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "流量趋势(今日,按小时)" })).toBeVisible();
 
-  // Exactly one token-composition card: the cumulative one stands down when
-  // the time-dimension one is live.
+  // The "today" plane it used to sit beside was the proposed analytics shape:
+  // an hourly trend, a today-scoped token bar, a health strip. None existed
+  // outside fixtures, so there is exactly one token card now and no trend.
   await expect(page.getByRole("heading", { name: /^Token 构成/u })).toHaveCount(1);
-  await expect(page.getByRole("heading", { name: "Token 构成(今日)" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Token 构成(累计)" })).toBeVisible();
+  await expect(page.locator("svg.chart-svg")).toHaveCount(0);
+  await expect(page.locator(".health-strip")).toHaveCount(0);
 
-  // Pipeline health has no G3 equivalent and is always present.
+  // Pipeline health reads the exposition directly and is always present.
   await expect(page.getByRole("heading", { name: /观测管道健康/u })).toBeVisible();
+
+  // The absence is explained, not silent — and it points at the pages that can
+  // answer the question properly.
+  await expect(page.getByText("没有服务端时间桶")).toBeVisible();
+  await expect(page.getByRole("link", { name: "前往用量分析 →" })).toBeVisible();
 });
 
 test("counters accumulate a visit delta across scrapes", async ({ page }) => {

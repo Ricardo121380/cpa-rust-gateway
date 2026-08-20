@@ -2,7 +2,7 @@
 // style attributes) so it survives a strict `style-src 'self'` CSP with no
 // inline-style exemption — the browser smoke suite proved inline styles are
 // blocked under our own policy.
-import type { TokenSummary } from "../../api/proposed-types";
+import type { TokenSummary } from "../../features/overview/metrics";
 import { formatCount } from "./StatTile";
 
 const SLOTS = [

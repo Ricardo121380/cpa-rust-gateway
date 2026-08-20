@@ -8,18 +8,16 @@ import { useQuery } from "@tanstack/react-query";
 import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { call, callText } from "../../api/client";
+import { asAppError } from "../../api/errors";
 import {
-  analyticsAvailable,
-  fetchProposedAnalytics,
-  fetchProposedDashboard,
-} from "../../api/proposed";
-import { HealthStrip } from "../../components/data/HealthStrip";
-import { MiniTimeline } from "../../components/data/MiniTimeline";
-import { formatCount, formatLatency, StatTile } from "../../components/data/StatTile";
+  exactShare,
+  formatPercent,
+  type BillingResponse,
+} from "../monitoring/model";
+import { formatCount, StatTile } from "../../components/data/StatTile";
 import { TokenMixBar } from "../../components/data/TokenMixBar";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
-import { resolvePreset } from "../../utils/timerange";
 import {
   useVersionStore,
   type ConfigVersionSummary,
@@ -180,159 +178,108 @@ function LiveCountersSection() {
 
       <div className="overview-grid" data-gap="top">
         <EventMix counters={counters} />
-        {/* The cumulative mix is the fallback view. Once G3 lands, its
-            same-shaped "today" bar is strictly more useful, and two token
-            cards on one page is just noise — so this one steps aside. */}
-        {analyticsAvailable() ? null : (
-          <div className="card">
-            <h3>Token 构成(累计)</h3>
-            <TokenMixBar tokens={counters.tokens} />
-          </div>
-        )}
+        {/* Cumulative, and now unconditional: the "today" bar it used to step
+            aside for was part of the proposed analytics shape and never
+            existed. */}
+        <div className="card">
+          <h3>Token 构成(累计)</h3>
+          <TokenMixBar tokens={counters.tokens} />
+        </div>
         <PipelineHealth counters={counters} />
       </div>
     </>
   );
 }
 
-function ObservabilitySection() {
-  const t = useMessages();
-  const today = resolvePreset("today", Date.now());
-
-  const dashboard = useQuery({
-    queryKey: ["dashboard-summary"],
-    queryFn: () => fetchProposedDashboard(today.from_ms, today.to_ms),
-    enabled: analyticsAvailable(),
+/**
+ * The observability half of this page used to be a "today" dashboard over the
+ * PROPOSED G3 analytics shape: today's KPIs, an hourly trend, a health strip, a
+ * model ranking, latency percentiles. None of it existed outside dev fixtures,
+ * so in production this whole area rendered a single "not wired yet" card.
+ *
+ * What replaced it is deliberately small, because only two things can be shown
+ * here honestly and cheaply:
+ *
+ *   - The BILLING SUMMARY is one request and its figures cover the whole
+ *     window, not the page (the backend accumulates before the cursor applies).
+ *     That makes it the one real KPI this page can carry.
+ *   - Everything else worth showing needs the cursor followed to the end.
+ *     用量分析 does exactly that and says when it had to stop; repeating a
+ *     one-page approximation here would contradict it. So this links there
+ *     instead of showing a partial sum that looks authoritative.
+ *
+ * There is still no latency and no success rate anywhere in the contract.
+ */
+function BillingGlance() {
+  const billing = useQuery({
+    // Not version-scoped, like the monitoring ledger it summarises.
+    queryKey: ["overview-billing"],
+    queryFn: () => call<BillingResponse>("listOperationalBilling", { query: { limit: 1 } }),
+    retry: false,
     refetchInterval: 60_000,
   });
 
-  const trend = useQuery({
-    queryKey: ["overview-trend", today.from_ms],
-    queryFn: () =>
-      fetchProposedAnalytics({
-        from_ms: today.from_ms,
-        to_ms: today.to_ms,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        bucket: "hour",
-        include: { timeline: true },
-      }),
-    enabled: analyticsAvailable(),
-    refetchInterval: 60_000,
-  });
+  if (billing.isError) {
+    return (
+      <div className="card empty-state" data-kind="error" data-gap="top">
+        <p>{asAppError(billing.error).message}</p>
+      </div>
+    );
+  }
 
-  if (!analyticsAvailable()) {
-    return (
-      <div className="card empty-state" data-kind="unwired" data-gap="top">
-        <p>
-          {t.state.unwired}
-          <br />
-          <small className="muted">
-            上面的计数器是累计值。带时间维度的部分 —— 今日 KPI、流量趋势、健康条带、
-            模型排行与延迟分位 —— 需要 G3 分析端点(时间桶 + 按实体切分),
-            指标曝露刻意不带这些标签,无法由它推导。归后端会话。
-          </small>
-        </p>
-      </div>
-    );
-  }
-  const summary = dashboard.data;
-  if (summary === undefined) {
-    return (
-      <div className="card empty-state" data-kind="empty" data-gap="top">
-        <p>加载今日观测…</p>
-      </div>
-    );
-  }
+  const summary = billing.data?.summary;
 
   return (
-    <>
-      {/* This plane must announce itself: its 成功率 is today's, the counters
-          plane above shows the process lifetime's, and two unlabelled stat
-          rows with different numbers for the same word read as a bug. */}
-      <h3 data-gap="top">
-        今日分析 <span className="badge badge-muted">按时间窗</span>
-      </h3>
-
-      <div className="stat-row">
-        <StatTile
-          label="今日请求"
-          value={formatCount(summary.kpi.requests)}
-          sub={`失败 ${summary.kpi.failures}`}
-          spark={trend.data?.timeline?.map((bucket) => bucket.requests)}
-        />
-        <StatTile
-          label="成功率"
-          value={`${(summary.kpi.success_rate * 100).toFixed(2)}%`}
-          sub={`${summary.kpi.requests - summary.kpi.failures}/${summary.kpi.requests}`}
-        />
-        <StatTile label="Token" value={formatCount(summary.kpi.tokens_total)} sub="全部类别合计" />
-        <StatTile label="P95 延迟" value={formatLatency(summary.kpi.latency_p95_ms)} sub="来源:尝试时间戳" />
-      </div>
-
-      <div className="overview-grid" data-gap="top">
-        <div className="card">
-          <h3>流量趋势(今日,按小时)</h3>
-          {trend.data?.timeline !== undefined ? (
-            <MiniTimeline buckets={trend.data.timeline} />
-          ) : (
-            <p className="stat-sub">加载中…</p>
-          )}
+    <div className="card" data-gap="top">
+      <h3>计价可信度</h3>
+      <p className="stat-sub">
+        来自 <span className="mono">listOperationalBilling</span> 自带的汇总,
+        <strong>覆盖整个账本窗口</strong>而不是某一页 —— 所以只取 1 行也是准确的。
+        本卡不受顶栏所选配置版本影响。
+      </p>
+      {summary === undefined ? (
+        <p className="stat-sub">读取中…</p>
+      ) : summary.records === 0 ? (
+        <p className="muted">账本还没有记录 —— 网关尚未处理过可计费的请求。</p>
+      ) : (
+        <div className="count-row">
+          <span className="count-tile">
+            <span className="count-value mono">{formatCount(summary.records)}</span>
+            <span className="count-label">账本记录</span>
+          </span>
+          <span className="count-tile">
+            <span className="count-value mono">{formatPercent(exactShare(summary))}</span>
+            <span className="count-label">成本精确</span>
+          </span>
+          <span className="count-tile">
+            <span className="count-value mono">{formatCount(summary.unpriced_records)}</span>
+            <span className="count-label">无价格</span>
+          </span>
         </div>
-        <div className="card">
-          <h3>Token 构成(今日)</h3>
-          <TokenMixBar tokens={summary.token_mix} />
-        </div>
-      </div>
+      )}
+      <Link to="/monitoring">前往请求监控 →</Link>
+    </div>
+  );
+}
 
-      <div className="card" data-gap="top">
-        <h3>请求健康条带(10 分钟桶)</h3>
-        <HealthStrip buckets={summary.health_strip} />
-      </div>
-
-      <div className="overview-grid" data-gap="top">
-        <div className="card">
-          <h3>模型用量排行(今日)</h3>
-          <table>
-            <tbody>
-              {summary.top_models.map((row) => (
-                <tr key={row.public_model}>
-                  <td className="mono">{row.public_model}</td>
-                  <td className="mono">{formatCount(row.requests)} 请求</td>
-                  <td className="mono">{formatCount(row.tokens_total)} tok</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="card">
-          <h3>最近失败</h3>
-          {summary.recent_failures.length === 0 ? (
-            <p className="stat-sub">今日无失败请求</p>
-          ) : (
-            <table>
-              <tbody>
-                {summary.recent_failures.map((failure) => (
-                  <tr key={failure.request_id}>
-                    <td className="mono">{failure.request_id}</td>
-                    <td>
-                      <StatusBadge status="credential_forbidden">
-                        {failure.error_code} · {failure.error_scope}
-                      </StatusBadge>
-                    </td>
-                    <td className="mono">{failure.stage ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {/* Was `?range=today&status=failed`. Neither parameter survives: the
-              monitoring ledger has no request outcome to filter on, and its
-              `status` selects COST CONFIDENCE. The honest destination for
-              "recent failures" is the failure-attribution tab. */}
-          <Link to="/monitoring?tab=failures">在失败归因中查看 →</Link>
-        </div>
-      </div>
-    </>
+function AnalyticsPointers() {
+  return (
+    <div className="card" data-gap="top">
+      <h3>带时间维度的分析</h3>
+      <p className="stat-sub">
+        契约<strong>没有服务端时间桶</strong>,也没有延迟与请求成败清单,所以这里既没有趋势线,
+        也没有今日 KPI 与延迟分位 —— 上面的计数器是<strong>累计值</strong>。
+        <br />
+        按 Provider / 模型 / Client Key 的用量需要跟着游标读到底才准,
+        用量分析页会那样做并在提前停止时说明;这里放一个近似值只会和它打架。
+      </p>
+      <Link to="/usage">前往用量分析 →</Link>
+      <br />
+      {/* The "recent failures" card that used to carry this link was part of
+          the proposed analytics shape. The pointer survives it: failure
+          attribution is where that question is actually answerable. */}
+      <Link to="/monitoring?tab=failures">在失败归因中查看 →</Link>
+    </div>
   );
 }
 
@@ -400,7 +347,11 @@ export function OverviewPage() {
       </div>
 
       <LiveCountersSection />
-      <ObservabilitySection />
+
+      <div className="overview-grid" data-gap="top">
+        <BillingGlance />
+        <AnalyticsPointers />
+      </div>
     </section>
   );
 }

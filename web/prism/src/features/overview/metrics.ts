@@ -7,7 +7,17 @@
 // request-scoped or target-scoped label". Anything that needs a time window
 // stays behind the G3 gap; do not synthesise it from these.
 import { parsePrometheus, pick } from "../../api/prometheus";
-import type { TokenSummary } from "../../api/proposed-types";
+/** The token families the Prometheus exposition carries. Lived in
+ *  api/proposed-types until that module went with the analytics shape it
+ *  described; it is a property of these counters, not of any endpoint. */
+export type TokenSummary = Readonly<{
+  input?: number;
+  output?: number;
+  reasoning?: number;
+  cache_read?: number;
+  cache_creation?: number;
+  cached?: number;
+}>;
 
 const P = "gateway_observability_";
 

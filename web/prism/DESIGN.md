@@ -1579,3 +1579,57 @@ HTTP 204 DELETE /admin/billing/routing-price-policy   ← 真清除
 HTTP 404 GET    /admin/billing/routing-price-policy   ← 回到"未配置"
 PROBLEMS >>> []
 ```
+
+---
+
+## 21. Overview 收口与影子通道的终结(2026-08-18,批 B4 + B5)
+
+### 21.1 最后一块死代码
+
+Overview 的下半页是按提案的 G3 分析形状建的:今日 KPI、按小时趋势、健康条带、
+模型排行、延迟分位。生产里它整块渲染成一张"事件管道尚未接线"的卡片。
+
+替换它的东西刻意很小,因为这一页上**只有两样东西能既诚实又便宜地给出**:
+
+- **计价可信度**:`listOperationalBilling` 自带的 summary 覆盖整个账本窗口
+  (§19.4),所以 `limit=1` 的一次请求就能得到准确 KPI;
+- **其余都需要跟游标读到底**。用量分析页会那样做并在提前停止时明说 ——
+  在总览放一个"只读了一页"的近似值,会和那一页直接打架,所以这里放**指路**而不是数字。
+
+延迟与成功率仍然哪里都没有,页面把这句话连同原因一起写出来。
+
+### 21.2 `analyticsAvailable()` 的最终账
+
+```
+删除:  api/proposed.ts · proposed-types.ts · proposed.fixtures.test.ts
+        components/data 里 8 个组件 + 3 个辅助模块
+        dev/fixtures.ts 里 191 行分析端点
+        usage / monitoring / overview 三页的分析半区
+
+components/data:  1243 行 → 141 行(只剩 SparkLine / StatTile / TokenMixBar)
+生产死代码:      3479 行 → 0
+```
+
+### 21.3 门禁:让这件事不能再发生一次
+
+删掉代码不解决问题 —— 问题是"契约没有的形状,可以在 src 里长出一条只在 dev 下应答的通道"。
+`check.mjs` 因此新增一条:
+
+> `src/**` 不得 import `api/proposed` 一类的提案端点通道。
+> 契约是端点的唯一来源;形状缺失时走 `docs/change-requests/` 加诚实空态。
+
+**门禁写完必须验证它真的会响。** 临时放一个违规文件进去,确认 FAILED,再移除确认恢复 OK ——
+一条从未失败过的门禁和没有门禁是一回事。
+
+### 21.4 第四次自指,这次是预先避开的
+
+这条门禁的正则要求 import 上下文(`from "…api/proposed"`),而不是裸字符串匹配。
+原因是 §18.4 / §19.6 / C6 那三次教训:**文本门禁会抓到讨论它自己的文字**。
+`metrics.ts` 的注释里就写着 "Lived in api/proposed-types until…" ——
+如果按裸串匹配,这条注释会让门禁在自己落地的那一刻就红。
+
+### 21.5 实机验证
+
+真网关上 Overview **整页要么是真数据、要么是诚实空态**,第一次没有任何"等待某个未来契约"的卡片:
+活动版本、布线规模、实时计数器(Prometheus)、观测管道健康、计价可信度(账本 summary)、
+以及一张说明为什么没有趋势线并指向真正能回答问题的两页的卡片。零控制台错误。
