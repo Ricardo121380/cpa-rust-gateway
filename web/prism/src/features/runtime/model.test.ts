@@ -27,6 +27,13 @@ import {
   recoverableRows,
   recoveryMeta,
   stateAttr,
+  CLEARANCE_STATES,
+  domainStateMeta,
+  EGRESS_DOMAINS,
+  EGRESS_STATES,
+  egressConflictKind,
+  formatTarget,
+  SESSION_STATES,
   type AvailabilityRow,
 } from "./model";
 
@@ -372,5 +379,75 @@ describe("provider account pools", () => {
     expect(formatDue(null, 1000)).toBe("—");
     expect(formatDue(500, 1000)).toBe("已到期");
     expect(formatDue(1000, 1000)).toBe("已到期");
+  });
+});
+
+describe("provider egress status", () => {
+  it("keeps each domain's state vocabulary inside its own domain", () => {
+    // The backend holds one closed union of 14 values and checks domain
+    // compatibility explicitly. `fresh` is a clearance state; an egress row
+    // can never carry it, so asking for it here is a category error and reads
+    // as 未知 rather than resolving through some shared table.
+    expect(domainStateMeta("clearance", "fresh").label).not.toBe("未知");
+    expect(domainStateMeta("egress", "fresh").label).toBe("未知");
+    expect(domainStateMeta("session", "fresh").label).toBe("未知");
+
+    expect(domainStateMeta("session", "active").label).not.toBe("未知");
+    expect(domainStateMeta("egress", "active").label).toBe("未知");
+    expect(domainStateMeta("clearance", "active").label).toBe("未知");
+
+    expect(domainStateMeta("egress", "probe_due").label).not.toBe("未知");
+    expect(domainStateMeta("clearance", "probe_due").label).toBe("未知");
+  });
+
+  it("covers all three domains' states with in-domain distinct glyphs", () => {
+    for (const [domain, states] of [
+      ["egress", EGRESS_STATES],
+      ["session", SESSION_STATES],
+      ["clearance", CLEARANCE_STATES],
+    ] as const) {
+      const glyphs = states.map((state) => domainStateMeta(domain, state).glyph);
+      expect(new Set(glyphs).size).toBe(states.length);
+      for (const state of states) {
+        expect(domainStateMeta(domain, state).label).not.toBe("未知");
+      }
+    }
+    expect([...EGRESS_DOMAINS]).toEqual(["egress", "session", "clearance"]);
+  });
+
+  it("does not paint an absence as a verdict", () => {
+    // absent means "never established", not "failed" and not "fine".
+    expect(domainStateMeta("session", "absent").tone).toBe("muted");
+    expect(domainStateMeta("clearance", "absent").tone).toBe("muted");
+    // probe_due is permission to probe, not recovery — it is not "good".
+    expect(domainStateMeta("egress", "probe_due").tone).toBe("tint");
+    expect(domainStateMeta("egress", "available").tone).toBe("good");
+  });
+
+  it("keeps a named target with no id distinct from a direct one", () => {
+    expect(formatTarget("direct", null)).toBe("直连");
+    expect(formatTarget("named", "egress-pool-eu")).toBe("egress-pool-eu");
+    // The contract makes target_kind and target_id independently nullable, so
+    // this row is representable — and it is not the same as direct.
+    expect(formatTarget("named", null)).not.toBe(formatTarget("direct", null));
+    expect(formatTarget("named", null)).toContain("未报告");
+    // A row from a domain that carries no target at all.
+    expect(formatTarget(undefined, undefined)).toBe("—");
+    // An unknown kind is shown as itself rather than coerced to one of the two.
+    expect(formatTarget("tunnelled", "t-1")).toBe("tunnelled · t-1");
+  });
+
+  it("separates the snapshot-rotated 409 from the wrong-version 409", () => {
+    // They have different recoveries: one means re-read from page one, the
+    // other means page one will not help either.
+    expect(
+      egressConflictKind({ code: "management_provider_egress_status_cursor_conflict" }),
+    ).toBe("cursor");
+    expect(
+      egressConflictKind({ code: "management_provider_egress_status_config_conflict" }),
+    ).toBe("config");
+    expect(egressConflictKind({ code: "management_revision_conflict" })).toBeUndefined();
+    expect(egressConflictKind(undefined)).toBeUndefined();
+    expect(egressConflictKind(new Error("boom"))).toBeUndefined();
   });
 });

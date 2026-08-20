@@ -1667,7 +1667,144 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       });
     }
 
-    // ---- credential detail + metadata (real contract ops) ----
+    // ---- P13-11E4: provider egress status, three independent domains ----
+    //
+    // The three domains are served SEPARATELY here because the page asks for
+    // them separately (`domain=`). Two deliberate shapes:
+    //
+    //   - `clearance` is EMPTY, and that is the point. The real projection's
+    //     source only covers assembled Grok Build/Console runtime state, so a
+    //     production deployment can truthfully report no clearance rows. The
+    //     panel must say "该来源不存在" and must not read it as healthy.
+    //   - `session` carries 250 rows so paging is real, and the THIRD page
+    //     conflicts: that is a runtime snapshot rotating under an opaque
+    //     cursor, which is the one recovery the contract requires
+    //     (re-read from the start, never retry the stale cursor).
+    //
+    // config_conflict is bound to the older active version: the snapshot's
+    // source is the draft being rolled out, so `v-2026-07` is "not this
+    // snapshot's source" — the contract's own wording for that 409.
+    if (route === "GET /admin/operations/provider-egress-status") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      if (version.id !== "draft-2026-08") {
+        return errorResponse(
+          409,
+          "management_provider_egress_status_config_conflict",
+          "selected config version is not this snapshot's source",
+        );
+      }
+      const cursor = url.searchParams.get("cursor");
+      if (cursor === "page-2") {
+        return errorResponse(
+          409,
+          "management_provider_egress_status_cursor_conflict",
+          "provider egress-status cursor is stale",
+        );
+      }
+      const limit = Number(url.searchParams.get("limit") ?? "50");
+      const offset = cursor === "page-1" ? limit : 0;
+      const domain = url.searchParams.get("domain");
+
+      const egressRows = [
+        {
+          domain: "egress",
+          provider_id: "relay-a",
+          upstream_id: "relay-a",
+          channel_id: "ep-relay-a-responses",
+          channel_kind: "generic_compatible",
+          target_kind: "direct",
+          target_id: null,
+          state: "available",
+          deadline_ms: null,
+        },
+        {
+          domain: "egress",
+          provider_id: "grok-build-pool",
+          upstream_id: "grok-build-pool",
+          channel_id: "ep-grok-build",
+          channel_kind: "grok_build",
+          target_kind: "named",
+          target_id: "egress-pool-eu",
+          state: "cooling_down",
+          deadline_ms: FIXTURE_NOW_MS + 120_000,
+        },
+        {
+          domain: "egress",
+          provider_id: "grok-build-pool",
+          upstream_id: "grok-build-pool",
+          channel_id: "ep-grok-console",
+          channel_kind: "grok_console",
+          // Named target with no id reported: representable by the contract
+          // (target_kind and target_id are independently nullable) and NOT the
+          // same thing as direct. A blank cell here would erase the difference.
+          target_kind: "named",
+          target_id: null,
+          state: "circuit_open",
+          deadline_ms: FIXTURE_NOW_MS + 900_000,
+        },
+        {
+          domain: "egress",
+          provider_id: "relay-a",
+          upstream_id: "relay-a",
+          channel_id: "ep-relay-a-chat",
+          channel_kind: "other_compatible",
+          target_kind: "named",
+          target_id: "egress-pool-us",
+          state: "probe_due",
+          deadline_ms: null,
+        },
+        {
+          domain: "egress",
+          provider_id: "relay-a",
+          upstream_id: "relay-a",
+          channel_id: "ep-relay-a-legacy",
+          channel_kind: "generic_compatible",
+          target_kind: "direct",
+          target_id: null,
+          state: "disabled",
+          deadline_ms: null,
+        },
+      ];
+
+      const sessionStates = ["active", "challenge_required", "invalid", "absent", "expired"];
+      const sessionRows = Array.from({ length: 250 }, (_, index) => ({
+        domain: "session",
+        provider_id: index % 2 === 0 ? "relay-a" : "grok-build-pool",
+        upstream_id: index % 2 === 0 ? "relay-a" : "grok-build-pool",
+        channel_id: `ep-session-${index}`,
+        channel_kind: index % 2 === 0 ? "generic_compatible" : "grok_build",
+        // The two credentials that actually exist in this version, so the id
+        // button opens a real sheet rather than a 409.
+        credential_id: index % 2 === 0 ? "cred-relay-key" : "cred-grok-oauth",
+        credential_revision: 2,
+        session_revision: index + 1,
+        state: sessionStates[index % sessionStates.length],
+        expires_at_ms: index % 3 === 0 ? null : FIXTURE_NOW_MS + 3_600_000,
+      }));
+
+      const all =
+        domain === "egress"
+          ? egressRows
+          : domain === "session"
+            ? sessionRows
+            : domain === "clearance"
+              ? []
+              : [...egressRows, ...sessionRows];
+      const slice = all.slice(offset, offset + limit);
+      const more = offset + slice.length < all.length;
+      return json(200, {
+        config_version_id: version.id,
+        config_revision: version.revision,
+        runtime_revision: 41,
+        snapshot_id: `egress-snap-${domain ?? "all"}-7`,
+        sampled_at_ms: FIXTURE_NOW_MS,
+        items: slice,
+        next_cursor: more ? (offset === 0 ? "page-1" : "page-2") : null,
+      });
+    }
+
+
     const credGet = /^GET \/admin\/credentials\/([^/]+)$/u.exec(route);
     if (credGet !== null) {
       const version = versionByHeader(headers);

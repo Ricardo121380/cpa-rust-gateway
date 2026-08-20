@@ -134,8 +134,8 @@ export function analyticsAvailable(): boolean { return fixturesEnabled(); }
 | B3 · 计费与价格目录 | ✅ | `04877b3` |
 | B4 + B5 · Overview 收口 / 拆除 proposed 通道 + 新门禁 | ✅ | `b522225` |
 | C1 · Provider 账号池 | ✅ | `bc79ffc` |
-| **C2 · Provider egress 三分区** | ⬜ **下一项** | — |
-| C3 · Compatible 代理池 CRUD | ⬜ | — |
+| C2 · Provider egress 三分区 | ✅ | `9a14b69` 之后本次提交 |
+| **C3 · Compatible 代理池 CRUD** | ⬜ **下一项** | — |
 | D1–D6 · 收尾 | ⬜ | — |
 
 **接线率 71/99(71.7%)。** 剩余 28 个未接线**恰好等于**待办批次加上明确不做的三个,
@@ -285,8 +285,8 @@ if active_candidates.is_empty() {
 | # | 内容 | 算子 | 工作量 | 状态 |
 |---|---|---|---|---|
 | C1 | Provider 账号池 live + operator action + 失败归因 | `listProviderAccountPools` `applyProviderAccountPoolAction` `listProviderAccountFailures` | 2.5 天 | ✅ `bc79ffc` |
-| C2 | Provider egress 状态三分区 | `listProviderEgressStatus` | 2 天 | ⬜ 下一项 |
-| C3 | Compatible 代理池 / 节点 / 绑定 CRUD | 15 个算子 | 3.5 天 | ⬜ |
+| C2 | Provider egress 状态三分区 | `listProviderEgressStatus` | 2 天 | ✅ 见 DESIGN.md §23 |
+| C3 | Compatible 代理池 / 节点 / 绑定 CRUD | 15 个算子 | 3.5 天 | ⬜ 下一项 |
 
 **C1 要点**(✅ 已实施 `bc79ffc`;实施中新增的约束见 §3.0 与 `web/prism/DESIGN.md` §22):
 - `auth_status`(4 值)与 `runtime_status`(7 值)是**两个独立维度**,不合成一个"健康"值。沿用 `pools.ts` 里已有的判断:`cooling` 是等待,`unauthorized` 是停止,两者色调必须不同;
@@ -294,12 +294,27 @@ if active_candidates.is_empty() {
 - 响应 `202` 的四态(`cooling|probe_scheduled|recovery_required|rejected`)各有文案,`rejected` 不等于失败;
 - `409` 陈旧目标 → 重新拉取快照后重试,不静默吞掉。
 
-**C2 要点(P13-11E4 的边界,逐条抄在页面上):**
+**C2 要点(P13-11E4 的边界,逐条抄在页面上)**(✅ 已实施;实施中修正的两条见下方与 `web/prism/DESIGN.md` §23):
 - 三个域 `egress` / `session` / `clearance` 是 `oneOf` 的三种行,**分区展示,不合并成一张表**;
 - **不合成 overall health**;
 - **不加任何 action 按钮** —— 这是只读投影;
 - **空的 Web / clearance 行只意味着"该来源不存在",不等于健康、可用、新鲜、已测试或可用于生产。** 这句必须在空态里出现;
 - 传 exact `X-Config-Version`,保持 opaque cursor 原样,`409` 快照冲突后从头重读。
+
+**实施中修正的两条计划错误:**
+
+1. **"分区展示"不是版式问题,是正确性问题。** 三个域共用一个分页流,一次混读再按 `domain`
+   切分,会让一台有 100+ 条 egress 行的部署第一页里一条 session 行都没有 —— 而空态写的是
+   "该来源不存在"。改成三次独立读取(各带 `domain=`),空才真的是空。代价是三个快照,
+   因此每区标注自己的 `snapshot_id`。
+2. **`409` 是两件事不是一件。** `..._cursor_conflict`(运行时快照轮换)从头重读有用;
+   `..._config_conflict`(所选版本不是快照来源)从头重读没用,要换版本。给同一句提示会让
+   第二种情况下的操作员反复点一个永远不会成功的按钮。
+
+**顺带修掉的共享层缺陷:`client.ts` 对任何 `409` 都弹「配置已被其他会话修改」。**
+十个 409 code 里有五个是运行时侧的(游标轮换、动作目标漂移),没有人改过配置。其中三个
+**今天就能触发** —— 用量 / 监控 / 计费页都在翻分页。修在 `errors.ts::isRuntimeConflict`
+一处,五条路径一起好。
 
 **C3 要点:**
 - `proxy_endpoint` 是**只写**字段:请求里有,响应里永远没有。表单必须直说"保存后不再回显,修改需重新输入" —— 与 `CredentialInput.secret` 同一类诚实处理;

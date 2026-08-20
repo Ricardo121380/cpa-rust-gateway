@@ -12,7 +12,7 @@
 //
 // Everything here is SOLID: cards, tables and the matrix are content, never
 // glass. The page adds zero backdrop-filter panes to the shell's budget of 3.
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
@@ -34,9 +34,14 @@ import {
   COOLDOWN_MAX_MS,
   COOLDOWN_MIN_MS,
   decisionMeta,
+  DOMAIN_META,
+  domainStateMeta,
+  EGRESS_DOMAINS,
+  egressConflictKind,
   explainCounts,
   explainScopeHint,
   formatDue,
+  formatTarget,
   receiptMeta,
   runtimeStatusMeta,
   validCooldown,
@@ -55,6 +60,9 @@ import {
   type ActionReceipt,
   type AvailabilityRow,
   type CatalogRow,
+  type EgressDomain,
+  type EgressStatusPage,
+  type EgressStatusRow,
   type PoolAccount,
   type PoolAction,
   type PoolSnapshot,
@@ -1092,6 +1100,284 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// 6. provider egress status — three domains, read-only (P13-11E4)
+// ---------------------------------------------------------------------------
+
+/** One paged read per domain.
+ *
+ * NOT one mixed read partitioned in the browser. The operation returns all
+ * three domains through a single cursor, so a deployment with 100+ egress rows
+ * would put zero session rows on page one — and this page's empty state claims
+ * "该来源不存在". Sending `domain=` makes each partition's emptiness mean what
+ * the copy says it means. The cost is three snapshots instead of one, which is
+ * why every partition prints its own snapshot id rather than sharing a header.
+ */
+function useDomainQuery(domain: EgressDomain, scope: string | undefined) {
+  return useInfiniteQuery({
+    queryKey: ["provider-egress-status", scope, domain],
+    queryFn: ({ pageParam }) =>
+      call<EgressStatusPage>(
+        "listProviderEgressStatus",
+        {
+          query: {
+            domain,
+            limit: 100,
+            // The cursor is opaque: passed back exactly as received, never
+            // parsed, never constructed.
+            ...(pageParam === undefined ? {} : { cursor: pageParam }),
+          },
+        },
+        { versionScoped: true },
+      ),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last: EgressStatusPage) => last.next_cursor ?? undefined,
+    enabled: scope !== undefined,
+    retry: false,
+  });
+}
+
+type DomainQuery = ReturnType<typeof useDomainQuery>;
+
+function EgressRowCells({
+  domain,
+  row,
+  nowMs,
+}: Readonly<{ domain: EgressDomain; row: EgressStatusRow; nowMs: number }>) {
+  const chip = (
+    <StateChip meta={domainStateMeta(domain, row.state)} attr={row.state} raw={row.state} />
+  );
+  if (domain === "egress") {
+    return (
+      <>
+        <td className="mono">{row.channel_kind}</td>
+        <td className="mono">{formatTarget(row.target_kind, row.target_id)}</td>
+        <td>{chip}</td>
+        <td className="mono">{formatDue(row.deadline_ms ?? null, nowMs)}</td>
+      </>
+    );
+  }
+  if (domain === "session") {
+    return (
+      <>
+        <td className="mono">{row.channel_kind}</td>
+        <td>{row.credential_id === undefined ? "—" : <CredentialButton id={row.credential_id} />}</td>
+        <td className="mono">
+          {row.credential_revision ?? "—"} / {row.session_revision ?? "—"}
+        </td>
+        <td>{chip}</td>
+        <td className="mono">{formatDue(row.expires_at_ms ?? null, nowMs)}</td>
+      </>
+    );
+  }
+  return (
+    <>
+      <td className="mono">{row.channel_kind}</td>
+      <td>{row.credential_id === undefined ? "—" : <CredentialButton id={row.credential_id} />}</td>
+      <td className="mono">{formatTarget(row.target_kind, row.target_id)}</td>
+      <td className="mono">
+        {row.credential_revision ?? "—"} / {row.session_revision ?? "—"} /{" "}
+        {row.clearance_revision ?? "—"}
+      </td>
+      <td>{chip}</td>
+      <td className="mono">{formatDue(row.expires_at_ms ?? null, nowMs)}</td>
+    </>
+  );
+}
+
+const DOMAIN_COLUMNS: Readonly<Record<EgressDomain, readonly string[]>> = {
+  egress: ["Provider / Upstream / Channel", "种类", "出口目标", "状态", "截止"],
+  session: ["Provider / Upstream / Channel", "种类", "凭据", "凭据 rev / 会话 rev", "状态", "过期"],
+  clearance: [
+    "Provider / Upstream / Channel",
+    "种类",
+    "凭据",
+    "出口目标",
+    "凭据 / 会话 / 放行 rev",
+    "状态",
+    "过期",
+  ],
+};
+
+function EgressDomainSection({
+  domain,
+  query,
+  nowMs,
+  onRestart,
+}: Readonly<{
+  domain: EgressDomain;
+  query: DomainQuery;
+  nowMs: number;
+  onRestart: () => void;
+}>) {
+  const meta = DOMAIN_META[domain];
+  const pages = query.data?.pages ?? [];
+  const rows = pages.flatMap((page) => page.items);
+  const last = pages.at(-1);
+  const conflict = egressConflictKind(query.error);
+
+  return (
+    <section className="rt-domain" data-domain={domain}>
+      <h4>
+        {meta.title}
+        <span className="rt-op mono">domain={domain}</span>
+      </h4>
+      <p className="rt-help">{meta.help}</p>
+
+      {conflict === "cursor" ? (
+        <p role="alert" className="action-error">
+          快照已轮换 —— 继续按旧游标读取会拼出一份不存在的列表。已停在这里,请
+          <strong>从头重读</strong>本区。
+          <button type="button" onClick={onRestart}>
+            从头重读
+          </button>
+        </p>
+      ) : null}
+      {conflict === "config" ? (
+        <p role="alert" className="action-error">
+          所选配置版本不是这份快照的来源 —— 从头重读也不会有用,请在顶栏重新选择版本。
+        </p>
+      ) : null}
+
+      {query.isError && conflict === undefined ? (
+        isProjectionUnavailable(query.error) ? (
+          <UnavailableBlock operation="listProviderEgressStatus" />
+        ) : (
+          <StateBlock
+            kind="error"
+            text="读取失败"
+            detail={`${asAppError(query.error).code} · ${asAppError(query.error).message}`}
+          />
+        )
+      ) : query.data === undefined ? (
+        <StateBlock kind="loading" text="读取中…" />
+      ) : rows.length === 0 ? (
+        <StateBlock
+          kind="empty"
+          text={`本版本在 ${domain} 域没有任何行`}
+          // The sentence P13-11E4 requires, in the empty state where it is
+          // load-bearing. The current source only projects assembled Grok
+          // Build/Console runtime state, so production Web and clearance can
+          // be truthfully empty, and generic compatible comes from a separate
+          // source owner entirely.
+          detail="空只意味着「该来源不存在」—— 它不等于健康、可用、新鲜、已测试或可用于生产。当前来源只投影已组合的 Grok Build / Console 运行时状态;production 的 Web 与 clearance 可以如实为空,generic compatible 由独立来源提供,不在本投影内。"
+        />
+      ) : (
+        <>
+          <table>
+            <thead>
+              <tr>
+                {DOMAIN_COLUMNS[domain].map((label) => (
+                  <th key={label} scope="col">
+                    {label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr
+                  key={`${row.provider_id}/${row.upstream_id}/${row.channel_id}/${row.credential_id ?? ""}/${row.target_id ?? row.target_kind ?? ""}/${index}`}
+                >
+                  <th scope="row" className="mono rt-rowhead">
+                    {row.provider_id} / {row.upstream_id} / {row.channel_id}
+                  </th>
+                  <EgressRowCells domain={domain} row={row} nowMs={nowMs} />
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="rt-footnote">
+            {rows.length} 行 · 快照 <span className="mono">{last?.snapshot_id}</span> · 采样于{" "}
+            <span className="mono">{formatObservedAt(last?.sampled_at_ms ?? 0)}</span> · 配置 rev{" "}
+            <span className="mono">{last?.config_revision}</span> · 运行时 rev{" "}
+            <span className="mono">{last?.runtime_revision}</span>
+            {query.hasNextPage ? (
+              <>
+                {" · "}
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={query.isFetchingNextPage}
+                  onClick={() => void query.fetchNextPage()}
+                >
+                  {query.isFetchingNextPage ? "读取中…" : "继续读取"}
+                </button>
+              </>
+            ) : null}
+          </p>
+        </>
+      )}
+    </section>
+  );
+}
+
+function ProviderEgressCard({ scope, nowMs }: Readonly<{ scope: string; nowMs: number }>) {
+  const queryClient = useQueryClient();
+  const egress = useDomainQuery("egress", scope);
+  const session = useDomainQuery("session", scope);
+  const clearance = useDomainQuery("clearance", scope);
+  const queries: Readonly<Record<EgressDomain, DomainQuery>> = { egress, session, clearance };
+  const anyUnavailable = EGRESS_DOMAINS.some((domain) =>
+    isProjectionUnavailable(queries[domain].error),
+  );
+
+  return (
+    <div className="card rt-card" data-gap="top">
+      <CardHead
+        title="Provider 出口状态 · 三个域"
+        operation="listProviderEgressStatus"
+        help={
+          <>
+            <strong>egress / session / clearance 是三个独立的域</strong>,不是一件事的三个字段。
+            本卡按域分区,<strong>不合成任何 overall health 值</strong>,也
+            <strong>不提供任何操作</strong> —— 这是一个只读投影,契约里没有恢复或刷新算子。
+            <span className="rt-warn">
+              三个分区各自读取,快照可能不同 —— 因此每区标注自己的 snapshot 与采样时刻。
+            </span>
+          </>
+        }
+        aside={
+          <button
+            type="button"
+            className="secondary"
+            onClick={() =>
+              void queryClient.resetQueries({ queryKey: ["provider-egress-status", scope] })
+            }
+          >
+            重读三区
+          </button>
+        }
+      />
+      {EGRESS_DOMAINS.map((domain) => (
+        <EgressDomainSection
+          key={domain}
+          domain={domain}
+          query={queries[domain]}
+          nowMs={nowMs}
+          onRestart={() =>
+            void queryClient.resetQueries({
+              queryKey: ["provider-egress-status", scope, domain],
+            })
+          }
+        />
+      ))}
+      {anyUnavailable ? (
+        // Measured on a real gateway on 2026-08-21: a freshly started deployment
+        // with a config version but no imported Provider credentials answers 503
+        // here. The shared unavailable block reads that as "this deployment does
+        // not offer the projection", which is only one of the two causes — and
+        // the other one is fixed by importing credentials, not by ops.
+        <p className="rt-footnote">
+          <strong>这里的 503 有两种可能,面板分不出来。</strong>
+          一种是这台部署没有接线该投影;另一种是接线正常,但当前没有可投影的来源快照 ——
+          实测一台刚启动、没有导入任何 Provider 凭据的网关,三个域也都是 503。
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function RuntimePage() {
   const t = useMessages();
   const queryClient = useQueryClient();
@@ -1128,10 +1414,10 @@ export function RuntimePage() {
         <ProviderPoolCard nowMs={nowMs} />
         <div className="card empty-state" data-kind="empty" data-gap="top">
           <p>
-            其余三个投影需要一个配置版本。
+            其余四个投影需要一个配置版本。
             <br />
             <small className="muted-3">
-              可用性矩阵、目录新鲜度与 Route Explain 都带 X-Config-Version;
+              可用性矩阵、目录新鲜度、Provider 出口状态与 Route Explain 都带 X-Config-Version;
               上面的账号池不带,所以它现在就能读。
             </small>
           </p>
@@ -1220,6 +1506,7 @@ export function RuntimePage() {
       />
 
       <ProviderPoolCard nowMs={nowMs} />
+      <ProviderEgressCard scope={scope} nowMs={nowMs} />
       <ExplainCard scope={scope} />
     </section>
   );

@@ -54,6 +54,34 @@ export async function toAppError(response: Response): Promise<AppError> {
   };
 }
 
+/**
+ * 409s that mean a RUNTIME snapshot moved, not that the configuration changed.
+ *
+ * The shell's conflict bar says "配置已被其他会话修改" — true for an If-Match
+ * failure, false for every code below. An operational cursor going stale, or an
+ * action's target account moving between read and write, happens with nobody
+ * editing anything; raising the config banner for it sends the operator to look
+ * for a config change that never occurred.
+ *
+ * `management_provider_egress_status_config_conflict` is deliberately NOT here:
+ * that one really does mean the selected version is no longer this snapshot's
+ * source, so the banner is the correct response to it.
+ *
+ * Callers still see kind === "conflict" and still must not replay the request —
+ * this only governs whether the global version banner fires.
+ */
+const RUNTIME_CONFLICT_CODES: ReadonlySet<string> = new Set([
+  "management_operations_cursor_conflict",
+  "management_provider_account_pool_cursor_conflict",
+  "management_provider_egress_status_cursor_conflict",
+  "management_provider_account_action_target_changed",
+  "management_channel_pin_target_changed",
+]);
+
+export function isRuntimeConflict(error: AppError): boolean {
+  return error.kind === "conflict" && RUNTIME_CONFLICT_CODES.has(error.code);
+}
+
 export function networkError(cause: unknown): AppError {
   return {
     kind: "network",

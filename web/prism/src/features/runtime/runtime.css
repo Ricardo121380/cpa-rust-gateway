@@ -457,6 +457,7 @@
   .runtime-page .rt-chip[data-state="none"],
   .runtime-page .rt-chip[data-state="missing"],
   .runtime-page .rt-chip[data-state="excluded"],
+  .runtime-page .rt-chip[data-state="absent"],
   .runtime-page .rt-chip[data-state="unknown"] {
     border-style: solid;
   }
@@ -572,4 +573,79 @@
   margin-left: 8px;
   font-size: 11px;
   color: var(--ink-2);
+}
+
+/* ---- provider egress status: three partitions in one card --------------- */
+
+/* The partitions must READ as separate tables, not as three chunks of one.
+   A rule above each (except the first) does that without adding a card, which
+   would have put the shared "empty is not healthy" caveat out of view. */
+.runtime-page .rt-domain + .rt-domain {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--separator);
+}
+.runtime-page .rt-domain h4 {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+.runtime-page .rt-domain .rt-help {
+  margin-bottom: 10px;
+}
+.runtime-page .rt-domain table {
+  margin-top: 0;
+}
+
+/* The three domains carry three state vocabularies (14 values). They join the
+   tone group they belong to; none is aliased onto an existing state, because
+   two states that render identically are two states an operator cannot tell
+   apart. `available` / `fresh` / `expired` / `circuit_open` / `disabled` are
+   already defined above and are reused as-is — those are the same words with
+   the same meaning, not collisions. */
+.runtime-page .rt-chip[data-state="active"] {
+  background: color-mix(in srgb, var(--status-good) 13%, var(--surface));
+  border-color: color-mix(in srgb, var(--status-good) 34%, transparent);
+}
+.runtime-page .rt-chip[data-state="active"] .rt-glyph {
+  color: var(--status-good);
+}
+.runtime-page .rt-chip[data-state="cooling_down"],
+.runtime-page .rt-chip[data-state="challenge_required"],
+.runtime-page .rt-chip[data-state="refresh_required"] {
+  background: color-mix(in srgb, var(--status-warn) 11%, var(--surface));
+  border-color: color-mix(in srgb, var(--status-warn) 38%, transparent);
+}
+.runtime-page .rt-chip[data-state="cooling_down"] .rt-glyph,
+.runtime-page .rt-chip[data-state="challenge_required"] .rt-glyph,
+.runtime-page .rt-chip[data-state="refresh_required"] .rt-glyph {
+  color: var(--status-warn);
+}
+.runtime-page .rt-chip[data-state="probe_due"],
+.runtime-page .rt-chip[data-state="probe_in_flight"],
+.runtime-page .rt-chip[data-state="refresh_in_flight"] {
+  background: color-mix(in srgb, var(--tint) 13%, var(--surface));
+  border-color: color-mix(in srgb, var(--tint) 34%, transparent);
+}
+.runtime-page .rt-chip[data-state="probe_due"] .rt-glyph,
+.runtime-page .rt-chip[data-state="probe_in_flight"] .rt-glyph,
+.runtime-page .rt-chip[data-state="refresh_in_flight"] .rt-glyph {
+  color: var(--tint);
+}
+.runtime-page .rt-chip[data-state="invalid"] {
+  background: color-mix(in srgb, var(--status-critical) 13%, var(--surface));
+  border-color: color-mix(in srgb, var(--status-critical) 34%, transparent);
+}
+.runtime-page .rt-chip[data-state="invalid"] .rt-glyph {
+  color: var(--status-critical);
+}
+/* `absent` joins the colourless group on purpose: "not established" is an
+   absence, and a status colour would read as a verdict nobody made. */
+.runtime-page .rt-chip[data-state="absent"] {
+  color: var(--ink-2);
+  background: transparent;
+  border-style: dashed;
 }

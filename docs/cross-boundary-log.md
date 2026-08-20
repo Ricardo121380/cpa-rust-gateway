@@ -664,3 +664,37 @@ split、`404` 需连 code 一起判、`null` 不得当 0 求和、billing `summa
 
 **门禁:** 文档变更,代码门禁状态维持上一提交(202 单测 · 76 E2E · `check:full` ·
 真网关验证)。
+
+---
+
+## 2026-08-21 · Claude Code · 批 C2 交付:Provider egress 状态三分区只读视图
+
+**Touched:** `web/prism/**` 与本仓两份文档(`docs/08-…`、本文件)。
+**未改动任何后端源码、契约或生成物。**
+
+**Why:** 消化 P13-11E4 的 handoff。按 `egress` / `session` / `clearance` 分区展示,
+传 exact `X-Config-Version`,opaque cursor 原样回传,不合成 overall health,
+不加任何 action,空的 Web / clearance 明确写成"该来源不存在,不等于健康"。
+契约接线率 71 → 72/99。
+
+**一处对 handoff 的技术性偏离(更严格,不是放松):** handoff 说"分区展示",
+我实现成**三次独立读取**(每次带 `domain=`)而不是一次混读再切分。原因是三个域共用一个
+分页流:一台有 100+ 条 egress 行的部署,混读第一页里会一条 session 行都没有,
+而空态那句"该来源不存在"就变成了假话。代价是三个快照可能不同步,已在每个分区标注各自的
+`snapshot_id` 与采样时刻,并在卡头写明。
+
+**另记录一条已核实的契约事实(非请求):** 本投影的两个 `409` 语义不同 ——
+`..._cursor_conflict` 是运行时快照轮换(从头重读有效),`..._config_conflict` 是所选版本
+不是该快照来源(从头重读无效)。前端已分别渲染。顺带说明:本投影的
+`SourceUnavailable → 503` 与本仓其余投影一致,**没有** 2026-08-20 记的账号池那种不一致。
+
+**实测边界(前端侧,供后端知情):** 一台刚启动、建了配置版本但未导入任何 Provider 凭据的
+网关,三个域全部返回 `503 management_runtime_unavailable`。这与"投影未接线"在协议层无法
+区分,前端不猜,把两种可能都写在卡片上。因此**行渲染、翻页与游标冲突恢复只在 fixture 下
+验证过** —— 离线部署导不了 Provider 凭据,无法产生真实行。
+
+**Other side:** **无需任何动作。** 2026-08-20 那条账号池 500 vs 503 的 action required
+仍然有效,状态不变。
+
+**门禁:** 211 单测 · 82 E2E · `check:full` · 真网关验证(三分区渲染、503 走"投影未启用"
+状态、无 action、无 overall health、外壳未误弹配置冲突横幅,零 pageerror)。

@@ -9,7 +9,7 @@ import {
 } from "../generated/management-client";
 import { readCsrfToken, readManagementKey } from "../session/sessionStore";
 import { useVersionStore } from "../features/config-versions/versionStore";
-import { networkError, toAppError } from "./errors";
+import { isRuntimeConflict, networkError, toAppError } from "./errors";
 
 // Dev-only fixture backend via the sanctioned options.fetch seam (C5 intact).
 // Guarded by import.meta.env.DEV: release builds eliminate this branch and the
@@ -69,7 +69,9 @@ async function send(
 
   if (!response.ok) {
     const error = await toAppError(response);
-    if (error.kind === "conflict") {
+    if (error.kind === "conflict" && !isRuntimeConflict(error)) {
+      // A runtime snapshot rotating is not "someone edited your config", and
+      // the shell's banner says exactly that. See isRuntimeConflict.
       version.markConflict();
     }
     if (error.kind === "session_invalid") {
