@@ -3,6 +3,7 @@ import { createHashRouter, RouterProvider } from "react-router-dom";
 import { AppShell } from "./app/AppShell";
 import { AccessPage } from "./features/access/AccessPage";
 import { AuditBackupPage } from "./features/audit/AuditBackupPage";
+import { BillingPage } from "./features/billing/BillingPage";
 import { VersionsPage } from "./features/config-versions/VersionsPage";
 import { EgressPage } from "./features/egress/EgressPage";
 import { ModelsPage } from "./features/models/ModelsPage";
@@ -29,6 +30,7 @@ const router = createHashRouter([
       { index: true, element: <OverviewPage /> },
       { path: "usage", element: <UsagePage /> },
       { path: "monitoring", element: <MonitoringPage /> },
+      { path: "billing", element: <BillingPage /> },
       { path: "versions", element: <VersionsPage /> },
       { path: "upstreams", element: <UpstreamsPage /> },
       { path: "models", element: <ModelsPage /> },

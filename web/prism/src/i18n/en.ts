@@ -28,6 +28,7 @@ export const en: Pack = {
     overview: "Overview",
     usage: "Usage",
     monitoring: "Requests",
+    billing: "Billing & prices",
     versions: "Config versions",
     upstreams: "Upstreams",
     models: "Models & routes",

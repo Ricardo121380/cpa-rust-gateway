@@ -21,6 +21,7 @@ export const zh = {
     overview: "总览",
     usage: "用量分析",
     monitoring: "请求监控",
+    billing: "计费与价格",
     versions: "配置版本",
     upstreams: "上游",
     models: "模型与路由",

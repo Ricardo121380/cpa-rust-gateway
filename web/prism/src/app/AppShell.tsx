@@ -22,6 +22,7 @@ const NAV_GROUPS: ReadonlyArray<ReadonlyArray<{ to: string; key: keyof typeof me
     { to: "/", key: "overview" },
     { to: "/usage", key: "usage" },
     { to: "/monitoring", key: "monitoring" },
+    { to: "/billing", key: "billing" },
   ],
   [
     { to: "/versions", key: "versions" },

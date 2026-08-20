@@ -117,6 +117,29 @@ type RouteRow = {
   bootstrap_timeout_ms: number;
 };
 
+type CatalogEntryRow = {
+  provider_id: string;
+  channel_id: string;
+  model: string;
+  input_microunits_per_million: number;
+  output_microunits_per_million: number;
+  reasoning_microunits_per_million: number;
+  cache_read_microunits_per_million: number;
+  cache_creation_microunits_per_million: number;
+  cached_microunits_per_million: number;
+};
+
+type CatalogRow = {
+  catalog_version_id: string;
+  effective_at_ms: number;
+  created_at_ms: number;
+  source: string;
+  entries: CatalogEntryRow[];
+};
+
+/** Pinned so "is this catalog effective yet" is deterministic in tests. */
+const FIXTURE_NOW_MS = 1787100000000;
+
 type CandidateRow = {
   id: string;
   route_id: string;
@@ -321,6 +344,79 @@ const state = {
   ]),
   aliases: new Map<string, { alias: string; public_model_id: string }[]>(),
   routes: new Map<string, RouteRow[]>(),
+  // GLOBAL, not keyed by config version — that is the contract's shape.
+  catalogs: [
+    {
+      catalog_version_id: "cat-2026-07",
+      effective_at_ms: 1784000000000,
+      created_at_ms: 1783900000000,
+      source: "imported",
+      entries: [
+        {
+          provider_id: "relay-a",
+          channel_id: "ep-relay-a-responses",
+          model: "minimax-m3",
+          input_microunits_per_million: 1400000,
+        output_microunits_per_million: 5600000,
+        reasoning_microunits_per_million: 0,
+        cache_read_microunits_per_million: 0,
+        cache_creation_microunits_per_million: 0,
+        cached_microunits_per_million: 0,
+        },
+      ],
+    },
+    {
+      catalog_version_id: "cat-2026-08",
+      effective_at_ms: 1786000000000,
+      created_at_ms: 1785900000000,
+      source: "operator",
+      entries: [
+        {
+          provider_id: "relay-a",
+          channel_id: "ep-relay-a-responses",
+          model: "minimax-m3",
+          input_microunits_per_million: 1500000,
+        output_microunits_per_million: 6000000,
+        reasoning_microunits_per_million: 0,
+        cache_read_microunits_per_million: 0,
+        cache_creation_microunits_per_million: 0,
+        cached_microunits_per_million: 0,
+        },
+        {
+          provider_id: "grok-build-pool",
+          channel_id: "ep-grok-build",
+          model: "grok-4",
+          input_microunits_per_million: 3000000,
+        output_microunits_per_million: 15000000,
+        reasoning_microunits_per_million: 0,
+        cache_read_microunits_per_million: 0,
+        cache_creation_microunits_per_million: 0,
+        cached_microunits_per_million: 0,
+        },
+      ],
+    },
+    {
+      // Dated ahead of FIXTURE_NOW_MS: listed, but binding it must fail.
+      catalog_version_id: "cat-2026-09-preview",
+      effective_at_ms: 1790000000000,
+      created_at_ms: 1786500000000,
+      source: "operator",
+      entries: [
+        {
+          provider_id: "relay-a",
+          channel_id: "ep-relay-a-responses",
+          model: "minimax-m3",
+          input_microunits_per_million: 1200000,
+        output_microunits_per_million: 4800000,
+        reasoning_microunits_per_million: 0,
+        cache_read_microunits_per_million: 0,
+        cache_creation_microunits_per_million: 0,
+        cached_microunits_per_million: 0,
+        },
+      ],
+    },
+  ] as CatalogRow[],
+  pricePolicy: new Map<string, { catalog_version_id: string; comparison: string }>(),
   routeCandidates: new Map<string, CandidateRow[]>(),
   audit: [
     {
@@ -1361,6 +1457,135 @@ export const fixtureFetch: typeof fetch = (input, init) => {
           credential_id: "cred-grok-oauth",
         },
       ]);
+    }
+
+    // ---- billing catalogs + routing price policy (P13-05C / P13-07D) ----
+    //
+    // Two different scopes on one page, reproduced faithfully because getting
+    // them backwards is the mistake the page exists to prevent:
+    //   catalogs  GLOBAL — one list, shared by every config version
+    //   policy    PER CONFIG VERSION
+    if (route === "GET /admin/billing/catalogs") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      return json(200, state.catalogs, revisionToken(version));
+    }
+    if (route === "POST /admin/billing/catalogs") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const mismatch = requireDraftAndMatch(version, headers);
+      if (mismatch !== undefined) return mismatch;
+      const body = JSON.parse(bodyText ?? "{}") as CatalogRow;
+      if (state.catalogs.some((row) => row.catalog_version_id === body.catalog_version_id)) {
+        return errorResponse(409, "management_lifecycle_conflict", "catalog id already exists");
+      }
+      // Global on purpose: no version key anywhere.
+      state.catalogs.push({ ...body, created_at_ms: 1787100000000 });
+      version.revision += 1;
+      return json(
+        201,
+        {
+          catalog_version_id: body.catalog_version_id,
+          effective_at_ms: body.effective_at_ms,
+          source: body.source,
+          entry_count: body.entries.length,
+          operation: "imported",
+          rolled_back_from: null,
+        },
+        revisionToken(version),
+      );
+    }
+    const catalogRollback = /^POST \/admin\/billing\/catalogs\/([^/]+)\/rollback$/u.exec(route);
+    if (catalogRollback !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const mismatch = requireDraftAndMatch(version, headers);
+      if (mismatch !== undefined) return mismatch;
+      const from = decodeURIComponent(catalogRollback[1] ?? "");
+      const source = state.catalogs.find((row) => row.catalog_version_id === from);
+      if (source === undefined) {
+        return errorResponse(404, "management_resource_not_found", "no such catalog");
+      }
+      const body = JSON.parse(bodyText ?? "{}") as {
+        new_catalog_version_id: string;
+        effective_at_ms: number;
+      };
+      // Forward-only: a copy is appended, nothing is deleted.
+      state.catalogs.push({
+        catalog_version_id: body.new_catalog_version_id,
+        effective_at_ms: body.effective_at_ms,
+        created_at_ms: 1787100000000,
+        source: source.source,
+        entries: source.entries,
+      });
+      version.revision += 1;
+      return json(
+        201,
+        {
+          catalog_version_id: body.new_catalog_version_id,
+          effective_at_ms: body.effective_at_ms,
+          source: source.source,
+          entry_count: source.entries.length,
+          operation: "rolled_back",
+          rolled_back_from: from,
+        },
+        revisionToken(version),
+      );
+    }
+    if (route === "GET /admin/billing/routing-price-policy") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const policy = state.pricePolicy.get(version.id);
+      if (policy === undefined) {
+        // NOT an error: an unset policy is a legitimate state, and it is the
+        // reason every candidate's price_evidence reads `disabled`.
+        return errorResponse(404, "management_resource_not_found", "no routing price policy");
+      }
+      return json(200, policy, revisionToken(version));
+    }
+    if (route === "PUT /admin/billing/routing-price-policy") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const mismatch = requireDraftAndMatch(version, headers);
+      if (mismatch !== undefined) return mismatch;
+      const body = JSON.parse(bodyText ?? "{}") as { catalog_version_id: string };
+      const catalog = state.catalogs.find(
+        (row) => row.catalog_version_id === body.catalog_version_id,
+      );
+      if (catalog === undefined) {
+        return errorResponse(404, "management_resource_not_found", "no such catalog");
+      }
+      // The backend refuses a catalog whose effective time has not arrived
+      // (RoutingPriceCatalogNotEffective). Answering 200 here would let the UI
+      // offer a binding the real gateway rejects.
+      if (catalog.effective_at_ms > FIXTURE_NOW_MS) {
+        return errorResponse(
+          409,
+          "routing_price_catalog_not_effective",
+          "catalog is not effective yet",
+        );
+      }
+      state.pricePolicy.set(version.id, {
+        catalog_version_id: body.catalog_version_id,
+        comparison: "rate_dominance_v1",
+      });
+      version.revision += 1;
+      return json(200, state.pricePolicy.get(version.id), revisionToken(version));
+    }
+    if (route === "DELETE /admin/billing/routing-price-policy") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const mismatch = requireDraftAndMatch(version, headers);
+      if (mismatch !== undefined) return mismatch;
+      if (!state.pricePolicy.has(version.id)) {
+        return errorResponse(404, "management_resource_not_found", "no routing price policy");
+      }
+      state.pricePolicy.delete(version.id);
+      version.revision += 1;
+      return new Response(null, {
+        status: 204,
+        headers: new Headers({ ETag: `"${revisionToken(version)}"` }),
+      });
     }
 
     // ---- credential detail + metadata (real contract ops) ----

@@ -1503,3 +1503,79 @@ Overview 自身仍跑在 `proposed` 上,整页重建是 B4。
 - 零控制台错误。
 
 非空渲染同样只在 fixture 下验证 —— 真库没有跑过流量,产生账本行需要真实请求。
+
+---
+
+## 20. 计费与价格目录页(2026-08-18,全新)
+
+### 20.1 一页两种作用域,这是本页最重要的一件事
+
+| | 作用域 | 依据 |
+|---|---|---|
+| **价格目录** | **全局** | `list_billing_catalogs_bounded()` 不接受版本参数;`X-Config-Version` 只用于带回 revision |
+| **路由价格策略** | **按配置版本** | 策略行写在所选草稿上,`upsert_routing_price_policy(config_version_id, …)` |
+
+也就是说:**在草稿上导入一份目录,所有配置版本立刻都看得到**。
+"我在草稿里操作所以是隔离的"是这一页最可能出现的误判,页面因此把这句话写在目录卡片顶部。
+
+### 20.2 导入是整份提交,而且只增不改
+
+契约里没有目录的修改与删除算子。改价的做法是**导入一份新目录**;
+撤销的做法是**回滚出一份新目录**(复制旧条目、向前追加)。`rolled_back_from` 记录血缘。
+
+`entries` 的 `minItems` 是 **1** —— 空目录非法,所以"清空价格"不是一个可表达的操作。
+
+### 20.3 512 条不是用表单填的
+
+条目上限 512,来源是计价表导出。所以导入口是**粘贴 JSON**,由
+`parseCatalogEntries` 按契约边界严格校验,并**报出第几条、哪个字段**:
+
+> 第 2 条:model 必须是非空字符串。
+
+在 512 行的粘贴上返回一句 `400 invalid_management_request` 对拿着计价表的人毫无用处。
+校验在前端做完才发请求,E2E 里有一条断言"请求根本没发出去"。
+
+顺带:任一条目重复 `provider/channel/model` 也在本地拦下 —— 后端有自己的判断,
+但一次明显的粘贴重复不值得走一趟网络。
+
+### 20.4 未生效的目录不能绑定
+
+`set_routing_price_policy` 检查 `catalog.effective_at_ms > now` 并以
+`RoutingPriceCatalogNotEffective` 失败关闭。所以绑定选择器**只列已生效的目录**,
+未生效的在列表里带「未生效」徽章并压低对比度 —— 让人从 4xx 里发现这件事是糟糕的设计。
+
+### 20.5 404 是状态不是错误 —— 但不能只看 404
+
+未配置策略时 `getRoutingPricePolicy` 返回
+`404 management_resource_not_found`。这是**合法状态**:它正是所有候选的
+`price_evidence` 读作 `disabled` 的原因,不该画成红色错误。
+
+**但判定必须连错误码一起看。** `classifyStatus` 里:
+
+```ts
+if (status === 404 && code === "management_access_denied") return "session_invalid";
+```
+
+`404 management_access_denied` 是网关对**不被允许的浏览器 origin** 的失败关闭应答,
+客户端会据此重置会话。若把"任何 404"都当作"策略未配置",就会在一个正在死去的会话上
+画一个平静的空状态。单测里专门有一条钉住这个区分。
+
+### 20.6 清除策略要说清后果
+
+清除不是"关掉一个开关":本版本**每一个候选**的 `price_evidence` 都会变成 `disabled`,
+基于费率的路由比较随之停止。确认框把这句话写全,并说明目录本身不受影响。
+
+### 20.7 实机验证 —— B 批第一个完整跑通写循环的页面
+
+用量与账本页都受限于"离线部署产不出真实流量",非空渲染只能靠 fixture。
+**计费页不依赖流量**,所以在真网关上跑完了整条写循环:
+
+```
+HTTP 404 GET    /admin/billing/routing-price-policy   ← 渲染为"未配置"状态
+HTTP 200 GET    /admin/billing/catalogs
+HTTP 201 POST   /admin/billing/catalogs               ← 真导入
+HTTP 200 PUT    /admin/billing/routing-price-policy   ← 真绑定
+HTTP 204 DELETE /admin/billing/routing-price-policy   ← 真清除
+HTTP 404 GET    /admin/billing/routing-price-policy   ← 回到"未配置"
+PROBLEMS >>> []
+```

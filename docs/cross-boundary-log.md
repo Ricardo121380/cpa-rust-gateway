@@ -543,3 +543,35 @@ Prism 工作保持原样。最终 integration review 应继续运行 `npm --pref
 资源测试。对应提交应带 trailer：
 
 `Cross-Boundary: scripts/build-management-spa.sh`
+
+---
+
+## 2026-08-18 · Claude Code · 批 B3 交付:计费与价格目录页(全新)
+
+**Touched:** 仅 `web/prism/**`。**未改动任何后端源码、契约或生成物。**
+
+**Why:** P13-05C 的目录导入/列出/回滚与 P13-07D 的路由价格策略此前完全没有控制面。
+新增 `/billing` 页,接入全部六个算子:`listBillingCatalogs` `importBillingCatalog`
+`rollbackBillingCatalog` `getRoutingPricePolicy` `setRoutingPricePolicy`
+`clearRoutingPricePolicy`。契约接线率 66/99。
+
+**Other side:** FYI — 无需 Codex 行动。四条核实结果:
+
+1. **目录是全局的,策略是按版本的。** `list_billing_catalogs_bounded()` 不接版本参数,
+   `X-Config-Version` 只用于回传 revision;而 `upsert_routing_price_policy` 写在版本上。
+   前端把"在草稿里导入目录会影响所有版本"明写在页面上 —— 这是本页最容易被误读的一点。
+
+2. **`getRoutingPricePolicy` 未配置时返回 `404 management_resource_not_found`。**
+   前端按状态而非错误渲染,并**同时匹配错误码**:因为
+   `404 management_access_denied`(不被允许的浏览器 origin)会触发会话重置,
+   只看状态码会把它吞掉。**这两个 404 语义不同、都走 404,是一处值得注意的重叠。**
+
+3. **`entries` 的 `minItems` 是 1** —— 空目录非法,所以"清空价格"不可表达;
+   改价只能导入新目录。前端已按此设计,不提供"删除目录"入口(契约也没有)。
+
+4. **`set_routing_price_policy` 拒绝未生效目录**(`RoutingPriceCatalogNotEffective`)。
+   前端的绑定选择器只列已生效目录,未生效的在列表里标注但不可选。
+
+**门禁:** 200 单测 · 71 E2E · `check:full`(含双构建字节一致)·
+**真网关完整写循环**:404 未配置 → 201 导入 → 200 绑定 → 204 清除 → 404,零控制台错误。
+(这是批 B 第一个不依赖流量、因而能在离线部署上完整验证写路径的页面。)
