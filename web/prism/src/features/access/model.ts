@@ -84,3 +84,28 @@ export function parseLimits(raw: string): ParsedLimits {
   }
   return { ok: true, limits };
 }
+
+/** `datetime-local` wants a local "YYYY-MM-DDTHH:mm" with no zone, so a stored
+ *  epoch has to be shifted into the browser's own offset before it can pre-fill
+ *  the field. Rendering the UTC string here would silently move an expiry by
+ *  the operator's offset every time they opened the form without touching it. */
+export function toLocalInput(expiresAtMs: number | null | undefined): string {
+  if (expiresAtMs === null || expiresAtMs === undefined) {
+    return "";
+  }
+  const at = new Date(expiresAtMs);
+  return new Date(at.getTime() - at.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
+/**
+ * Whether this edit brings a revoked key back to life.
+ *
+ * `update_client_key` applies `status` with no transition check, and revoking
+ * RETAINS the redacted record — so the original secret authenticates again the
+ * moment the status goes back to active. Revocation is therefore not terminal
+ * through this operation, and an operator who revoked because a key leaked
+ * needs to be told that before they undo it.
+ */
+export function isReactivation(current: string, next: string): boolean {
+  return current === "revoked" && next !== "revoked";
+}

@@ -135,17 +135,21 @@ export function analyticsAvailable(): boolean { return fixturesEnabled(); }
 | B4 + B5 · Overview 收口 / 拆除 proposed 通道 + 新门禁 | ✅ | `b522225` |
 | C1 · Provider 账号池 | ✅ | `bc79ffc` |
 | C2 · Provider egress 三分区 | ✅ | `cc8f198` |
-| C3 · Compatible 代理池 / 节点 / 绑定 | ✅ | 本次提交 |
-| **D1–D6 · 收尾** | ⬜ **下一项** | — |
+| C3 · Compatible 代理池 / 节点 / 绑定 | ✅ | `a95c5de` |
+| D1 · Client Key 编辑 · D2 · Channel Pin · D4 · 绑定核对 · D5 · 质量门 | ✅ | 本次提交 |
+| **D3 · 单资源详情抽屉** | ❌ **不做** | 见 §4 与 DESIGN.md §25.1 |
+| **D6 · i18n 页面正文** | ⬜ **待决策** | 见下方 |
 
-**接线率 84/99(84.8%)。** 剩余 28 个未接线**恰好等于**待办批次加上明确不做的三个,
+**接线率 87/99(87.9%)。** 剩余 28 个未接线**恰好等于**待办批次加上明确不做的三个,
 没有游离项:
 
 | 归属 | 个数 |
 |---|---|
-| D3 单资源 GET(五个原有 + 三个 `getCompatible*`) | 8 |
-| D1 `get/updateClientKey` · D2 `executeChannelPin` · D4 `listEndpointCredentialBindings` | 4 |
-| §4 明确不做 | 3 |
+| D3 单资源 GET(五个原有 + 三个 `getCompatible*`)—— **不做** | 8 |
+| `getClientKey` —— **不做**(与上同因) | 1 |
+| §4 明确不做(`exportCredential` / `previewRestore` / `restoreBackup`) | 3 |
+
+**12 个未接线全部是明确不做的,没有待办项。**
 
 门禁现状:**202 单测 · 76 E2E · `check:full` 绿 · 真网关验证通过**。
 
@@ -344,11 +348,38 @@ if active_candidates.is_empty() {
 | D5 | 质量门补洞 | 390 窄屏 project;`--ink-3` 跨块继承 | 1 天 |
 | D6 | i18n 页面正文 | 全站 | 3.5 天 |
 
-**D1:** 现在只有签发与吊销两个极端。`status` 闭集三值(`active|disabled|revoked`),补上 `disabled` 与改过期。注意 `PATCH` 是全量替换,表单要先 `getClientKey` 预填 —— 与子资源 CRUD 里 `getEndpoint` 同一模式。
+**D1**(✅ 已实施):现在只有签发与吊销两个极端。`status` 闭集三值,补上 `disabled` 与改过期。
 
-**D2:** 只收集契约里的有界字段(`provider_id` `channel_id` `route_id` `credential_id` `requested_model` `protocol` `mode`),**不提供任意 prompt / body 输入框**。receipt 渲染 `outcome` 三值 + `upstream_sent` + 八值 `stage`。`upstream_sent: false` 与 `outcome: failed` 是不同信息,必须分开显示。
+**原文错在最后一句** —— "表单要先 `getClientKey` 预填"。`listClientKeys` 返回的 schema 与
+`getClientKey` **完全相同**,列表行本身就是完整记录,预读只多一个往返。见 D3。
 
-**D5 两个洞的现状:**
+**实施中发现并已呈现的一条:吊销不是终态。** `update_client_key` 无条件写入 status
+(没有迁移检查),而 `revoke_client_key` 明确"retaining its redacted record" —— 哈希还在。
+所以把一把 revoked 的 Key 改回 active,**当初发出去的密钥会重新可用**。已在真网关上验证确实成功,
+表单在选中那一刻就弹警告。
+
+**D2**(✅ 已实施)**:** 只收集契约里的有界字段(`provider_id` `channel_id` `route_id` `credential_id` `requested_model` `protocol` `mode`),**不提供任意 prompt / body 输入框**。receipt 渲染 `outcome` 三值 + `upstream_sent` + 八值 `stage`。`upstream_sent: false` 与 `outcome: failed` 是不同信息,必须分开显示。
+
+**补两条原文没写的:** 它带 **`If-Match`** —— 不是只读诊断,真的会调用上游、消耗配额;
+契约把 `attempt_count` 封顶在 **1**。两句都写在按钮上方。
+
+**D3 —— 不做。** 核对契约后发现**每一个 list 返回的 schema 与它的 get 完全相同**
+(`listUpstreams`→`Upstream` 与 `getUpstream`→`Upstream`,五对全部如此;`listClientKeys`
+与三个 `getCompatible*` 同理)。列表行本身就是完整记录,再拉一次只多一个往返、不多一个字段。
+`getEndpoint` 是唯一真正的反例 —— 契约里没有 `listEndpoints`,运营库存又不含 `base_url` ——
+而它早就接了。接这八个会把接线率从 87 推到 95,**但那是为计数器接线**。
+
+**D4**(✅ 已实施):价值不在"再列一次绑定"。面板上已有的绑定表来自运营库存,而那是
+**join 驱动**的 —— channel / account / provider 三者都能解析才会出现一行。所以一条指向
+已删除凭据的绑定在那张表里**完全看不见**,却仍然会让校验和发布失败。配置侧的回答一对,
+差的那条就是卡住发布的那条。
+
+**D5 实施后修正:洞比原文写的更糟。** 原文说"没有窄屏 project"。真正的问题是
+`.canvas` 是 `overflow-x: hidden`,所以"文档横向滚动"这个断言**永远不会失败** ——
+超宽内容不是滚出去而是**被裁掉**,右侧的操作按钮列直接够不着。改成检测"越界且无可滚动祖先"
+之后一次抓出三页(计费 +533px、出口 +211px、运行时 +625px),已修。
+
+**D5 原文:**
 - `playwright.config.ts:16` 只有一个 `chromium` project,没有窄屏;
 - `check.mjs:79` 的 `--ink-3` 规则只在**声明了 `color: var(--ink-3)` 的同一个块内**查字号,继承来的字号查不到。
 

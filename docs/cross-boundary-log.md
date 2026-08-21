@@ -733,3 +733,42 @@ GET 同样不返回),逐行再拉一次拿不到新东西。归入批 D3 的详�
 非 socks5 被表单拦下 → 合法地址被网关接受并封存 → 全页面任何位置都搜不到该地址 →
 留空编辑后网关保留了封存地址 → 被引用的池删除被网关拒绝且面板提前预测)。
 本批是 C 批里**唯一能在离线部署上端到端验证的**,因为它是普通配置资源,不依赖任何 Provider 来源。
+
+---
+
+## 2026-08-21 · Claude Code · 批 D 收尾:Client Key 编辑、Channel Pin、绑定核对、质量门
+
+**Touched:** `web/prism/**` 与本仓两份文档(`docs/08-…`、本文件)。
+**未改动任何后端源码、契约或生成物。**
+
+**Why:** 消化批 D 的 D1 / D2 / D4 / D5。接线率 84 → **87/99,剩余 12 个全部是明确不做的**。
+
+**一条对后端行为的核实,前端已据此加了警告(非请求):**
+`update_client_key`(`management_mutation_service.rs:2440`)**无条件写入 `status`,没有任何
+状态迁移检查**;而 `revoke_client_key` 的文档写明 "retaining its redacted record"。
+两者合起来:把一把 `revoked` 的 Client Key 改回 `active`,**当初发出去的那串密钥会重新通过认证**。
+**已在真网关上实测确认这确实会成功。** 前端不阻止它(契约允许),但在选中那一刻就明确告知
+"这会让已吊销的密钥再次可用;若当初是因泄露吊销,请改为签发新的"。
+如果后端认为吊销应当是终态,那是后端的决定 —— 前端现在如实呈现当前行为。
+
+**八个单资源 GET 明确不接(`getUpstream` / `getPublicModel` / `getAccessGroup` /
+`getEgressPolicy` / `getConfigVersion` / `getClientKey` / 三个 `getCompatible*`):**
+核对契约后,**每一个 list 返回的 schema 与它对应的 get 完全相同**,列表行即完整记录。
+`getEndpoint` 是唯一真正的反例(没有 `listEndpoints`,且运营库存不含 `base_url`),它早已接线。
+接这八个会把接线率推到 95,但不会多渲染任何一个字段 —— 那是为计数器接线,不做。
+
+**前端自身质量门补洞(与后端无关,仅留痕):**
+- `.canvas` 是 `overflow-x: hidden`,因此"文档横向滚动"这类断言**永远不会失败** ——
+  超宽内容不是滚出去而是**被裁掉**。改成检测"越界且无可横向滚动祖先"后,在 390px 抓出
+  三页被裁(计费 +533px、出口策略 +211px、运行时 +625px),已修并加 `narrow-390` project。
+- `--ink-3` 门禁此前只在同块内查字号,继承来的字号查不到;现要求本块声明 <12px 字号
+  或写明 `/* ink-3: … */` 理由。全仓唯一命中处(`.secret-toggle`)确实合法,补注解而非放宽门禁。
+
+**Other side:** **无需任何动作。** 2026-08-20 那条账号池 500 vs 503 的 action required
+仍然有效,状态不变。
+
+**门禁:** 223 单测 · 97 E2E(含新增 `narrow-390` project 2 条)· `check:full` ·
+真网关验证(Client Key 从列表行直接预填并保存、revoked→active 在真网关上成功且警告正确、
+Channel Pin 面板文案与"无自由输入框"成立,零 pageerror)。
+**Channel Pin 未在真网关上实际触发** —— 它会真的调用上游 Provider,离线部署无凭据,
+且那属于 E5 未授权的真实网络范围。它的回执渲染只在 fixture 下验证过。

@@ -224,6 +224,16 @@ const state = {
           status: "active",
           expires_at_ms: null,
         },
+        // A revoked key, so the panel can be asked what happens when someone
+        // brings one back: update_client_key applies status with no transition
+        // check and revoking retains the record, so the old secret works again.
+        {
+          id: "key-dead",
+          access_group_id: "team-default",
+          prefix: "rgw_00dead00deadbeef",
+          status: "revoked",
+          expires_at_ms: null,
+        },
       ],
     ],
   ]),
@@ -822,6 +832,32 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       (state.keys.get(version.id) ?? []).push(row);
       version.revision += 1;
       return json(201, { ...row, key: `${row.prefix}_${hex(64)}` }, revisionToken(version));
+    }
+
+    const keyPatch = /^PATCH \/admin\/client-keys\/([^/]+)$/u.exec(route);
+    if (keyPatch !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const rejected = requireDraftAndMatch(version, headers);
+      if (rejected !== undefined) return rejected;
+      const list = state.keys.get(version.id) ?? [];
+      const id = decodeURIComponent(keyPatch[1] ?? "");
+      const row = list.find((entry) => entry.id === id);
+      if (row === undefined) {
+        return errorResponse(409, "management_lifecycle_conflict", "unknown client key");
+      }
+      const body = JSON.parse(bodyText ?? "{}") as {
+        access_group_id: string;
+        status: "active" | "disabled" | "revoked";
+        expires_at_ms?: number | null;
+      };
+      // No transition check — matching the backend, which is exactly why the
+      // panel warns before reviving a revoked key rather than after.
+      row.access_group_id = body.access_group_id;
+      row.status = body.status;
+      row.expires_at_ms = body.expires_at_ms ?? null;
+      version.revision += 1;
+      return json(200, row, revisionToken(version));
     }
 
     const revoke = /^DELETE \/admin\/client-keys\/([^/]+)$/u.exec(route);
@@ -2079,6 +2115,68 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       list[index] = next;
       version.revision += 1;
       return json(200, next, revisionToken(version));
+    }
+
+    // ---- P13-08: channel pin. A REAL upstream call in production; here it
+    // answers the three outcomes so the panel's four independent facts
+    // (outcome / upstream_sent / response_started / stage) can be told apart.
+    if (route === "POST /admin/operations/channel-pin") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const rejected = requireDraftAndMatch(version, headers);
+      if (rejected !== undefined) return rejected;
+      const input = JSON.parse(bodyText ?? "{}") as Record<string, string>;
+      // A target that moved between read and call: 409, and nothing is sent.
+      if (input["credential_id"] === "cred-grok-old") {
+        return errorResponse(
+          409,
+          "management_channel_pin_target_changed",
+          "channel pin target changed",
+        );
+      }
+      // Never left the gateway: outcome failed WITHOUT upstream_sent — a local
+      // problem, which is different information from a provider-side failure.
+      const local = input["credential_id"] === "cred-relay-quota";
+      const ok = input["credential_id"] === "cred-relay-key";
+      return json(200, {
+        ...input,
+        request_id: `pin-${state.poolSnapshot}-${input["route_id"] ?? "r"}`,
+        config_version_id: version.id,
+        config_revision: version.revision,
+        outcome: ok ? "succeeded" : local ? "failed" : "rejected",
+        upstream_sent: ok,
+        attempt_count: 1,
+        response_started: ok,
+        observed_at_ms: FIXTURE_NOW_MS,
+        ...(ok ? {} : { stage: local ? "egress_admission" : "http_status" }),
+      });
+    }
+
+    const bindingList = /^GET \/admin\/endpoints\/([^/]+)\/credential-bindings$/u.exec(route);
+    if (bindingList !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const endpointId = decodeURIComponent(bindingList[1] ?? "");
+      const rows = (state.bindings.get(version.id) ?? []).filter(
+        (row) => row.endpoint_id === endpointId,
+      );
+      // One config binding that the operational inventory cannot show, because
+      // its credential does not resolve. That gap is the whole point of D4.
+      const extra =
+        endpointId === "ep-relay-a-responses"
+          ? [
+              {
+                endpoint_id: endpointId,
+                upstream_id: "relay-a",
+                credential_id: "cred-deleted",
+                enabled: true,
+                priority: 9,
+                weight: 1,
+                concurrency: 1,
+              },
+            ]
+          : [];
+      return json(200, [...rows, ...extra], revisionToken(version));
     }
 
     const credGet = /^GET \/admin\/credentials\/([^/]+)$/u.exec(route);

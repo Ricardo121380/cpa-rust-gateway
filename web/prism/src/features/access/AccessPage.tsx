@@ -15,6 +15,8 @@ import {
   formatLimits,
   parseLimits,
   type AccessGroupRecord,
+  isReactivation,
+  toLocalInput,
   type ClientKeyRecord,
   type IssuedClientKey,
 } from "./model";
@@ -170,6 +172,10 @@ export function AccessPage() {
   const editable = context?.status === "draft";
   const [issuing, setIssuing] = useState(false);
   const [issued, setIssued] = useState<IssuedClientKey | undefined>();
+  const [editKey, setEditKey] = useState<ClientKeyRecord | undefined>();
+  // Live status inside the edit sheet, so the reactivation warning can appear
+  // the moment the operator selects it rather than after they submit.
+  const [editStatus, setEditStatus] = useState<string>("active");
   const [copied, setCopied] = useState(false);
   const [actionError, setActionError] = useState<string | undefined>();
   const [confirmRevoke, setConfirmRevoke] = useState<string | undefined>();
@@ -209,6 +215,36 @@ export function AccessPage() {
       setIssuing(false);
       setIssued(record);
       setCopied(false);
+      void queryClient.invalidateQueries({ queryKey: ["client-keys", scope] });
+    },
+    onError: (error) => setActionError(asAppError(error).message),
+  });
+
+  // PATCH replaces the whole ClientKeyInput. The plan expected a getClientKey
+  // pre-read first — but listClientKeys returns the SAME ClientKey schema, so
+  // the row already is the full record and a detail read would only add a round
+  // trip. (getEndpoint is the real counterexample: there is no listEndpoints,
+  // and the operational inventory omits base_url.)
+  const updateKey = useMutation({
+    // ClientKeyInput has NO prefix — it is derived from the issued secret and is
+    // not the operator's to set — so the mutation takes the input shape rather
+    // than the record shape.
+    mutationFn: (input: Omit<ClientKeyRecord, "prefix">) =>
+      call<ClientKeyRecord>(
+        "updateClientKey",
+        {
+          path: { client_key_id: input.id },
+          body: {
+            id: input.id,
+            access_group_id: input.access_group_id,
+            status: input.status,
+            expires_at_ms: input.expires_at_ms ?? null,
+          },
+        },
+        { versionScoped: true, mutating: true },
+      ),
+    onSuccess: () => {
+      setEditKey(undefined);
       void queryClient.invalidateQueries({ queryKey: ["client-keys", scope] });
     },
     onError: (error) => setActionError(asAppError(error).message),
@@ -456,6 +492,17 @@ export function AccessPage() {
                   </td>
                   <td className="mono">{formatExpiry(record.expires_at_ms)}</td>
                   <td className="row-actions">
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={!editable}
+                      onClick={() => {
+                        setEditKey(record);
+                        setEditStatus(record.status);
+                      }}
+                    >
+                      编辑
+                    </button>
                     {record.status === "active" ? (
                       <button
                         type="button"
@@ -465,9 +512,7 @@ export function AccessPage() {
                       >
                         吊销
                       </button>
-                    ) : (
-                      "—"
-                    )}
+                    ) : null}
                   </td>
                 </tr>
               );
@@ -592,6 +637,80 @@ export function AccessPage() {
               </button>
               <button type="submit" disabled={issue.isPending}>
                 签发
+              </button>
+            </div>
+          </form>
+        </Sheet>
+      ) : null}
+
+      {editKey !== undefined ? (
+        <Sheet title={`编辑 Client Key · ${editKey.prefix}`} onEscape={() => setEditKey(undefined)}>
+          <form
+            className="sheet-form"
+            onSubmit={(event: FormEvent<HTMLFormElement>) => {
+              event.preventDefault();
+              const data = new FormData(event.currentTarget);
+              const expiresRaw = String(data.get("expires_at") ?? "");
+              updateKey.mutate({
+                id: editKey.id,
+                access_group_id: String(data.get("access_group_id") ?? ""),
+                status: editStatus as ClientKeyRecord["status"],
+                expires_at_ms: expiresRaw === "" ? null : new Date(expiresRaw).getTime(),
+              });
+            }}
+          >
+            <p className="stat-sub">
+              PATCH 是<strong>整体替换</strong>,所以这三项一起提交。
+              <span className="mono"> prefix</span> 不在输入模型里 —— 它由签发时的密钥派生,
+              改不了,也不需要重填密钥(密钥从来就没有存在这边)。
+            </p>
+            <label>
+              访问组
+              <select name="access_group_id" defaultValue={editKey.access_group_id} required>
+                {(groups.data ?? []).map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}({group.id})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              状态
+              <select
+                name="status"
+                value={editStatus}
+                onChange={(event) => setEditStatus(event.target.value)}
+              >
+                <option value="active">active</option>
+                <option value="disabled">disabled</option>
+                <option value="revoked">revoked</option>
+              </select>
+            </label>
+            {isReactivation(editKey.status, editStatus) ? (
+              // Measured from the backend: update_client_key applies status with
+              // no transition check, and revoking RETAINS the redacted record.
+              // So this is not "re-enable an inert row" — the original secret
+              // authenticates again.
+              <p role="alert" className="reveal-warning">
+                这会让一把<strong>已吊销</strong>的 Key 重新生效 ——
+                吊销保留了密钥记录,所以当初发出去的那串密钥会<strong>再次可用</strong>。
+                如果当初是因为泄露才吊销的,请改为签发一把新的。
+              </p>
+            ) : null}
+            <label>
+              过期时间(留空 = 永不过期)
+              <input
+                name="expires_at"
+                type="datetime-local"
+                defaultValue={toLocalInput(editKey.expires_at_ms)}
+              />
+            </label>
+            <div className="sheet-actions">
+              <button type="button" className="secondary" onClick={() => setEditKey(undefined)}>
+                取消
+              </button>
+              <button type="submit" disabled={updateKey.isPending}>
+                保存
               </button>
             </div>
           </form>

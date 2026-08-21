@@ -56,11 +56,114 @@ const TEST_TONE: Record<EndpointTest["outcome"], string> = {
   protocol_failed: "circuit_open",
 };
 
+type ConfigBinding = Readonly<{
+  endpoint_id: string;
+  upstream_id: string;
+  credential_id: string;
+  enabled: boolean;
+  priority: number;
+  weight: number;
+  concurrency: number;
+}>;
+
 type SheetSubmit = (body: unknown, existing: string | undefined) => void;
 
 /** Channel create/edit. PATCH replaces the whole EndpointInput, and the pool
  *  inventory omits base_url by design, so editing reads the full record first
  *  — a form that could not pre-fill the URL would blank it on save. */
+/** Config-plane bindings for ONE channel.
+ *
+ * The table on the panel is driven by the operational inventory, which is
+ * binding-driven AND join-driven: a row only appears when its channel, account
+ * and provider all resolve. So a binding whose credential was deleted is
+ * invisible there while still sitting in the configuration — and it is exactly
+ * that binding that makes a version fail to publish with nothing on screen to
+ * explain it. listEndpointCredentialBindings is the config's own answer, so the
+ * two can be compared instead of assumed equal. */
+function BindingReconcileSheet({
+  channelId,
+  operationalCredentialIds,
+  onClose,
+}: Readonly<{
+  channelId: string;
+  operationalCredentialIds: ReadonlySet<string>;
+  onClose: () => void;
+}>) {
+  const bindings = useQuery({
+    queryKey: ["endpoint-credential-bindings", channelId],
+    queryFn: () =>
+      call<ConfigBinding[]>(
+        "listEndpointCredentialBindings",
+        { path: { endpoint_id: channelId } },
+        { versionScoped: true },
+      ),
+    retry: false,
+  });
+  const rows = bindings.data ?? [];
+  const hidden = rows.filter((row) => !operationalCredentialIds.has(row.credential_id));
+
+  return (
+    <Sheet title={`配置侧绑定 · ${channelId}`} onEscape={onClose}>
+      <p className="stat-sub">
+        上面的绑定表来自<strong>运营库存</strong>,一行需要 channel、account、provider
+        三者都能解析才会出现。这里是<strong>配置自己</strong>的回答 ——
+        两边不一致时,差的那条就是发布会被卡住、而面板上看不出来的那条。
+      </p>
+      {bindings.isLoading ? <p className="stat-sub">读取中…</p> : null}
+      {bindings.isError ? (
+        <p role="alert" className="action-error">
+          {asAppError(bindings.error).code} · {asAppError(bindings.error).message}
+        </p>
+      ) : null}
+      {bindings.data !== undefined && rows.length === 0 ? (
+        <p className="stat-sub">配置里这个 channel 没有任何绑定。</p>
+      ) : null}
+      {rows.length > 0 ? (
+        <table>
+          <thead>
+            <tr>
+              <th>credential</th>
+              <th>upstream</th>
+              <th>enabled</th>
+              <th>priority</th>
+              <th>weight</th>
+              <th>concurrency</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.credential_id}>
+                <td className="mono">
+                  {row.credential_id}
+                  {operationalCredentialIds.has(row.credential_id) ? null : (
+                    <strong> · 运营库存里没有</strong>
+                  )}
+                </td>
+                <td className="mono">{row.upstream_id}</td>
+                <td>{row.enabled ? "是" : "否"}</td>
+                <td className="mono">{row.priority}</td>
+                <td className="mono">{row.weight}</td>
+                <td className="mono">{row.concurrency}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
+      {hidden.length > 0 ? (
+        <p role="alert" className="reveal-warning">
+          有 {hidden.length} 条绑定只存在于配置里:{hidden.map((r) => r.credential_id).join("、")}。
+          它们指向的凭据无法解析,所以运营库存不显示 —— 但校验与发布仍然会看到它们。
+        </p>
+      ) : null}
+      <div className="sheet-actions">
+        <button type="button" onClick={onClose}>
+          关闭
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
 function ChannelSheet({
   form,
   pending,
@@ -277,6 +380,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
   const editable = context?.status === "draft";
   const scope = context?.configVersionId;
   const [testResults, setTestResults] = useState<Record<string, EndpointTest>>({});
+  const [reconcile, setReconcile] = useState<string | undefined>();
   const [discovery, setDiscovery] = useState<
     { endpointId: string; diff: CatalogDiff; applied: boolean } | undefined
   >();
@@ -569,6 +673,13 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
                   <button
                     type="button"
                     className="secondary"
+                    onClick={() => setReconcile(channel.channel_id)}
+                  >
+                    核对绑定
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
                     disabled={!editable}
                     onClick={() => setChannelForm({ mode: "edit", channelId: channel.channel_id })}
                   >
@@ -698,6 +809,20 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
         三者皆开。它<strong>不</strong>代表凭据健康、有额度或当前可路由 ——
         运行时状态要等 P13-06 的 Provider 池投影。
       </p>
+
+      {reconcile !== undefined ? (
+        <BindingReconcileSheet
+          channelId={reconcile}
+          operationalCredentialIds={
+            new Set(
+              pool.bindings
+                .filter((binding) => binding.channel_id === reconcile)
+                .map((binding) => binding.account_id),
+            )
+          }
+          onClose={() => setReconcile(undefined)}
+        />
+      ) : null}
 
       {discovery !== undefined ? (
         <Sheet

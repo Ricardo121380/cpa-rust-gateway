@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  isReactivation,
+  toLocalInput,
   displayKeyStatus,
   formatExpiry,
   formatLimits,
@@ -83,5 +85,27 @@ describe("parseLimits / formatLimits", () => {
   it("refuses more entries than the contract allows", () => {
     const many = Array.from({ length: 17 }, (_, i) => `k${i}=1`).join(" ");
     expect(parseLimits(many).ok).toBe(false);
+  });
+});
+
+describe("client key editing", () => {
+  it("pre-fills datetime-local in the browser's own offset, not UTC", () => {
+    // Rendering the UTC string into a local-time input would shift the expiry
+    // by the operator's offset on every open, even with no edit.
+    const at = Date.UTC(2026, 7, 21, 15, 30);
+    const local = toLocalInput(at);
+    expect(new Date(local).getTime()).toBe(at);
+    expect(toLocalInput(null)).toBe("");
+    expect(toLocalInput(undefined)).toBe("");
+  });
+
+  it("flags bringing a revoked key back to life", () => {
+    // The backend applies status with no transition check and revoking keeps
+    // the redacted record, so the original secret works again.
+    expect(isReactivation("revoked", "active")).toBe(true);
+    expect(isReactivation("revoked", "disabled")).toBe(true);
+    expect(isReactivation("revoked", "revoked")).toBe(false);
+    expect(isReactivation("disabled", "active")).toBe(false);
+    expect(isReactivation("active", "disabled")).toBe(false);
   });
 });

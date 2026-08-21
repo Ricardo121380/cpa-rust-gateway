@@ -1873,3 +1873,94 @@ fixture 也照同样规则拒绝,否则"预测"就没有任何东西可对照。
 不接受用户名/密码、主机与端口都必须写明、不接受路径/查询串/片段。它**检查一个 operator
 打进来的字符串**,既不拼装地址也不打开任何连接 —— 网关始终是唯一会去连那个代理的东西。
 价值是把一个不透明的 400 换成一句能照着改的话。
+
+---
+
+## 25. 批 D 收尾(2026-08-21)
+
+### 25.1 计划要求的"详情预读"整类都是多余的
+
+计划说 D1 要"先 `getClientKey` 预填 —— 与 `getEndpoint` 同一模式",D3 则是五个单资源 GET
+做详情抽屉。核对契约后:
+
+```
+listConfigVersions -> ConfigVersion     getConfigVersion -> ConfigVersion
+listEgressPolicies -> EgressPolicy      getEgressPolicy  -> EgressPolicy
+listUpstreams      -> Upstream          getUpstream      -> Upstream
+listPublicModels   -> PublicModel       getPublicModel   -> PublicModel
+listAccessGroups   -> AccessGroup       getAccessGroup   -> AccessGroup
+listClientKeys     -> ClientKey         getClientKey     -> ClientKey
+```
+
+**每一个 list 返回的 schema 与它的 get 完全相同。** 所以列表行本身就是完整记录,
+再拉一次只多一个往返,拿不到任何新字段。
+
+`getEndpoint` 是**唯一**真正的反例,而它早就接了:契约里根本没有 `listEndpoints`,
+运营库存又不含 `base_url`,不预读就会在保存时把 URL 清空。
+
+于是这八个 GET(五个原有 + 三个 `getCompatible*`)**故意不接**。接了会把接线率从 87 推到 95,
+但那是**为了计数器接线** —— 与 §1.3 那条"为不存在的数据建 UI"是同一种病的镜像。
+
+### 25.2 吊销不是终态,而且旧密钥会重新生效
+
+```rust
+// management_mutation_service.rs:2440
+view.status = input.status;   // 没有任何状态迁移检查
+```
+
+`update_client_key` 无条件写入 status,而 `revoke_client_key` 的文档写明
+"**retaining its redacted record**" —— 哈希还在。两者合起来:把一把 revoked 的 Key 改回
+active,**当初发出去的那串密钥立刻重新可以认证**。
+
+**已在真网关上验证过这确实会成功**,不是读源码推出来的。所以这不是"重新启用一行失效记录",
+而是恢复一把可能已经泄露的凭据。表单在选中那一刻就弹警告,而不是保存之后。
+
+### 25.3 Channel Pin:四个事实,不是一个
+
+`upstream_sent` 与 `outcome` 是**不同的信息**:
+
+- `failed` + `upstream_sent: false` —— 请求**从未离开网关**,问题在出口之前,查本地;
+- `failed` + `upstream_sent: true` —— 上游收到了,查上游。
+
+只报一个 "failed" 就把"该去看哪一半"扔掉了。`response_started` 与 `stage` 同理,
+面板把四个分开列。
+
+另外两件容易漏的:它带 **`If-Match`** —— 这不是只读诊断,它真的会调用上游、消耗配额;
+契约把 `attempt_count` 封顶在 **1**,所以按一次最多一次调用。这两句都写在按钮上方。
+
+### 25.4 D4 的价值不在"再列一次绑定"
+
+面板上已有的绑定表来自运营库存,而那是 **join 驱动**的:channel、account、provider
+三者都能解析才会出现一行。所以一条指向已删除凭据的绑定在那张表里**完全看不见**,
+却仍然会让校验和发布失败 —— 面板上没有任何东西解释为什么。
+
+`listEndpointCredentialBindings` 是配置侧自己的回答,两边一比,差的那条就是卡住发布的那条。
+
+### 25.5 窄屏的洞比"没有窄屏 project"更糟
+
+先写的断言是"document 不横向滚动"。它**永远不会失败** ——
+`.canvas` 是 `overflow-x: hidden`(app.css:223),文档根本无法横向滚动。
+超出的内容不是滚出去,是**被裁掉**:没有滚动条、没有提示,右侧列(也就是每行操作按钮所在的列)
+直接够不着。
+
+把断言改成"是否有元素越过滚动容器右边缘、且没有任何可横向滚动的祖先"之后,
+一次抓出**三页**:计费与价格 +533px、出口策略 +211px、运行时 +625px。
+
+修法是让表格自己成为滚动容器(`@media (max-width: 720px) { .canvas table { display:block; overflow-x:auto } }`),
+不需要给十一个页面加包裹元素。**去掉这条规则测试就会失败** —— 验证过。
+
+### 25.6 `--ink-3` 门禁的洞:继承来的字号查不到
+
+旧规则只在**同一个块内**找 `font-size`。一个只写 `color: var(--ink-3)` 而字号靠继承的块,
+规则从来没有对它生效过。静态解析不了级联,所以改成要求这个块**自己说清楚**:
+要么在本块声明 <12px 的字号,要么写一条 `/* ink-3: 为什么这是非文字标记 */` 注解。
+
+全仓只有一处命中(`.secret-toggle`),而它确实合法 —— 内容是 SVG 图标、可访问名来自
+`aria-label`、一个字都没有,3.26:1 过的是 3:1 的非文字线。**给它写注解,不是放宽门禁。**
+
+### 25.7 我自己的一处错误
+
+为了让 E2E 好定位,我把 fixture 里 Client Key 的 prefix 从 `rgw_9f3c…` 改成了 `ck_live`,
+结果打断了一条既有断言 —— 那条断言检查的正是 `rgw_` 这个前缀约定。
+**为了测试方便去改仿真数据的形状是反的**:fixture 存在的意义就是长得像生产。
+已改回真实前缀,改的是我自己的选择器。

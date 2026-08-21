@@ -42,6 +42,11 @@ import {
   explainScopeHint,
   formatDue,
   formatTarget,
+  normalizePinInput,
+  PIN_MODES,
+  pinOutcomeMeta,
+  pinReach,
+  pinStageLabel,
   receiptMeta,
   runtimeStatusMeta,
   validCooldown,
@@ -63,6 +68,8 @@ import {
   type EgressDomain,
   type EgressStatusPage,
   type EgressStatusRow,
+  type PinInput,
+  type PinReceipt,
   type PoolAccount,
   type PoolAction,
   type PoolSnapshot,
@@ -1378,6 +1385,187 @@ function ProviderEgressCard({ scope, nowMs }: Readonly<{ scope: string; nowMs: n
   );
 }
 
+// ---------------------------------------------------------------------------
+// 7. channel pin — the one diagnostic that really calls the provider (P13-08)
+// ---------------------------------------------------------------------------
+
+const PIN_FIELDS: ReadonlyArray<Readonly<{ name: keyof PinInput; label: string }>> = [
+  { name: "provider_id", label: "provider_id" },
+  { name: "channel_id", label: "channel_id" },
+  { name: "route_id", label: "route_id" },
+  { name: "credential_id", label: "credential_id" },
+];
+
+function ChannelPinCard({ scope }: Readonly<{ scope: string }>) {
+  const [receipt, setReceipt] = useState<PinReceipt | undefined>();
+  const [error, setError] = useState<string | undefined>();
+  const [invalid, setInvalid] = useState(false);
+
+  const pin = useMutation({
+    mutationFn: (body: PinInput) =>
+      // If-Match, because this is not a read: it spends one real upstream call.
+      call<PinReceipt>("executeChannelPin", { body }, { versionScoped: true, mutating: true }),
+    onSuccess: (result) => {
+      setError(undefined);
+      setReceipt(result);
+    },
+    onError: (cause) => {
+      const app = asAppError(cause);
+      setReceipt(undefined);
+      setError(
+        app.code === "management_channel_pin_target_changed"
+          ? "目标在这次尝试期间发生了变化 —— 什么都没有发出,请重新读取后再试。"
+          : `${app.code} · ${app.message}`,
+      );
+    },
+  });
+
+  return (
+    <div className="card rt-card" data-gap="top">
+      <CardHead
+        title="通道诊断 · Channel Pin"
+        operation="executeChannelPin"
+        help={
+          <>
+            固定一条 provider / channel / route / credential 链路,发一次<strong>真实请求</strong>
+            看它走到哪里。字段全部是契约里的有界 id 与闭集枚举 ——
+            <strong>没有 prompt 或请求体输入</strong>,这个面板发不出任意内容。
+            <span className="rt-warn">
+              这不是只读:它带 If-Match,并且真的会调用上游,消耗你自己的配额。契约把
+              attempt_count 封顶在 1,所以按一次最多一次调用。
+            </span>
+          </>
+        }
+      />
+
+      <form
+        className="rt-explain-form"
+        onSubmit={(event: FormEvent<HTMLFormElement>) => {
+          event.preventDefault();
+          const data = new FormData(event.currentTarget);
+          const normalized = normalizePinInput({
+            provider_id: String(data.get("provider_id") ?? ""),
+            channel_id: String(data.get("channel_id") ?? ""),
+            route_id: String(data.get("route_id") ?? ""),
+            credential_id: String(data.get("credential_id") ?? ""),
+            requested_model: String(data.get("requested_model") ?? ""),
+            protocol: String(data.get("protocol") ?? ""),
+            mode: String(data.get("mode") ?? ""),
+          });
+          if (normalized === undefined) {
+            setInvalid(true);
+            return;
+          }
+          setInvalid(false);
+          pin.mutate(normalized);
+        }}
+      >
+        {PIN_FIELDS.map((field) => (
+          <label key={field.name}>
+            {field.label}
+            <input name={field.name} className="mono" required maxLength={128} />
+          </label>
+        ))}
+        <label>
+          requested_model
+          <input name="requested_model" className="mono" required maxLength={256} />
+        </label>
+        <label>
+          protocol
+          <select name="protocol" defaultValue="openai_responses">
+            {PROTOCOLS.map((protocol) => (
+              <option key={protocol} value={protocol}>
+                {protocol}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          mode
+          <select name="mode" defaultValue="json">
+            {PIN_MODES.map((mode) => (
+              <option key={mode} value={mode}>
+                {mode}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="submit" disabled={pin.isPending || scope === ""}>
+          {pin.isPending ? "调用中…" : "发一次真实请求"}
+        </button>
+      </form>
+
+      {invalid ? (
+        <p role="alert" className="rt-error-text">
+          七个字段都是必填的,空白不会被发出去。
+        </p>
+      ) : null}
+      {error === undefined ? null : (
+        <p role="alert" className="action-error">
+          {error}
+          <button type="button" onClick={() => setError(undefined)}>
+            清除
+          </button>
+        </p>
+      )}
+
+      {receipt === undefined ? null : (
+        <div className="rt-pin-receipt">
+          <p className="rt-pin-line">
+            <StateChip
+              meta={pinOutcomeMeta(receipt.outcome)}
+              attr={receipt.outcome}
+              raw={receipt.outcome}
+            />{" "}
+            {pinOutcomeMeta(receipt.outcome).detail}
+          </p>
+          {/* upstream_sent and outcome are DIFFERENT facts. "failed" without
+              having reached the provider is a local problem; "failed" after
+              reaching it is not. Collapsing them loses which half to look at. */}
+          <p className="rt-pin-line">
+            <strong>{pinReach(receipt)}</strong>
+          </p>
+          <dl className="rt-legend">
+            <div className="rt-legend-row">
+              <dt>停在</dt>
+              <dd className="mono rt-legend-enum">{receipt.stage ?? "—"}</dd>
+              <dd className="rt-legend-detail">{pinStageLabel(receipt.stage)}</dd>
+            </div>
+            <div className="rt-legend-row">
+              <dt>upstream_sent</dt>
+              <dd className="mono rt-legend-enum">{String(receipt.upstream_sent)}</dd>
+              <dd className="rt-legend-detail">请求是否真的发到了上游</dd>
+            </div>
+            <div className="rt-legend-row">
+              <dt>response_started</dt>
+              <dd className="mono rt-legend-enum">{String(receipt.response_started)}</dd>
+              <dd className="rt-legend-detail">上游是否开始回应</dd>
+            </div>
+            <div className="rt-legend-row">
+              <dt>attempt_count</dt>
+              <dd className="mono rt-legend-enum">{receipt.attempt_count}</dd>
+              <dd className="rt-legend-detail">契约封顶为 1</dd>
+            </div>
+            <div className="rt-legend-row">
+              <dt>request_id</dt>
+              <dd className="mono rt-legend-enum">{receipt.request_id}</dd>
+              <dd className="rt-legend-detail">
+                可以拿去请求监控页的账本流与失败归因里对
+              </dd>
+            </div>
+          </dl>
+          <p className="rt-footnote">
+            观测于 <span className="mono">{formatObservedAt(receipt.observed_at_ms)}</span> · 配置{" "}
+            <span className="mono">
+              {receipt.config_version_id}@{receipt.config_revision}
+            </span>
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function RuntimePage() {
   const t = useMessages();
   const queryClient = useQueryClient();
@@ -1508,6 +1696,7 @@ export function RuntimePage() {
       <ProviderPoolCard nowMs={nowMs} />
       <ProviderEgressCard scope={scope} nowMs={nowMs} />
       <ExplainCard scope={scope} />
+      <ChannelPinCard scope={scope} />
     </section>
   );
 }

@@ -91,11 +91,24 @@ for (const file of walk(SRC)) {
     const blocks = text.split("}");
     for (const block of blocks) {
       if (!/color:\s*var\(--ink-3\)/u.test(block)) continue;
+      const selector = (block.split("{")[0] ?? "").trim().split("\n").pop() ?? "?";
       const size = /font-size:\s*(\d+(?:\.\d+)?)px/u.exec(block);
       if (size !== null && Number(size[1]) >= 12) {
-        const selector = (block.split("{")[0] ?? "").trim().split("\n").pop() ?? "?";
         failures.push(
           `${rel}: ${selector} puts ${size[1]}px body text in --ink-3 (below AA) — use --ink-2`,
+        );
+        continue;
+      }
+      // The hole this closes: a block with NO local font-size inherits one, and
+      // an inherited size is not statically knowable — so the rule above simply
+      // never fired for it. Rather than resolve the cascade, require the block
+      // to make its own case: either a sub-12px size right here, or an explicit
+      // `ink-3:` note saying why this is a non-text mark.
+      if (size === null && !/ink-3:/u.test(block)) {
+        failures.push(
+          `${rel}: ${selector} sets --ink-3 with no local font-size — its size is inherited and` +
+            ` cannot be checked. Declare the font-size here, or annotate the block with` +
+            ` "/* ink-3: <why this is a non-text mark> */".`,
         );
       }
     }

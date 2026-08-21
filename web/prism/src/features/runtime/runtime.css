@@ -649,3 +649,25 @@
   background: transparent;
   border-style: dashed;
 }
+
+/* ---- channel pin receipt ------------------------------------------------ */
+
+.runtime-page .rt-pin-receipt {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: var(--r-inner);
+  background: var(--surface);
+  border: 1px solid var(--separator);
+}
+.runtime-page .rt-pin-line {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--ink);
+}
+.runtime-page .rt-pin-receipt .rt-legend {
+  margin-top: 10px;
+}
+.runtime-page .rt-pin-receipt dt {
+  font-size: 12px;
+  color: var(--ink-2);
+}

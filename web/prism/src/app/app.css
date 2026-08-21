@@ -537,6 +537,23 @@ button:disabled {
   overflow-x: auto;
   padding: 12px 0 4px;
 }
+
+/* Every table, narrow viewports.
+   The canvas is `overflow-x: hidden`, so a table wider than the viewport is not
+   scrolled off-screen — it is CUT OFF, with no scrollbar and no way to reach the
+   right-hand columns, which is where every row's action buttons live. `.tablewrap`
+   solves this for the cards that happen to use it; the rest had nothing. Making
+   the table its own scroll container needs no wrapper element and therefore no
+   change to eleven pages of markup.
+   Verified by e2e/narrow.spec.ts, which fails without this rule. */
+@media (max-width: 720px) {
+  .canvas table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+}
 .tablewrap h3 {
   margin: 0 20px 8px;
   font-size: 14px;
@@ -1201,6 +1218,9 @@ td.row-actions > * + * {
   border-color: var(--status-critical);
 }
 .secret-toggle {
+  /* ink-3: this button's content is an SVG icon on currentColor — its accessible
+     name comes from aria-label, and it renders no text at all. 3.26:1 clears the
+     3:1 bar for non-text contrast, which is the bar that applies here. */
   flex: 0 0 auto;
   width: 38px;
   display: grid;
