@@ -698,3 +698,38 @@ split、`404` 需连 code 一起判、`null` 不得当 0 求和、billing `summa
 
 **门禁:** 211 单测 · 82 E2E · `check:full` · 真网关验证(三分区渲染、503 走"投影未启用"
 状态、无 action、无 overall health、外壳未误弹配置冲突横幅,零 pageerror)。
+
+---
+
+## 2026-08-21 · Claude Code · 批 C3 交付:兼容出口代理池 / 节点 / 绑定 CRUD
+
+**Touched:** `web/prism/**` 与本仓两份文档(`docs/08-…`、本文件)。
+**未改动任何后端源码、契约或生成物。**
+
+**Why:** 消化 P13-11 A–D 的 15 个算子,挂在出口策略页下方(策略说"能去哪",
+这三层说"从哪条线出去")。接线率 72 → 84/99。
+
+**三条已核实的契约事实(非请求,仅留痕):**
+
+1. **`CompatibleProxyNodeUpdateInput.proxy_endpoint` 的更新语义与 `CredentialInput.secret`
+   相反。** 前者"省略或 null 保留现有封存值",后者 PATCH 必填。两者都只写不回显,
+   但把凭据表单那句"必须重新输入"抄过来,就是让运维重打一个正在工作的代理地址。
+   前端已按各自真实语义分别措辞。
+2. **`proxy_configured` 在 `management_mutation_service.rs:378` 硬编码为 `true`。**
+   它是常量不是观测,永远不会返回 false。前端保留 boolean 渲染(契约声明的是 boolean),
+   但文案不让它读起来像"面板验证过这个代理可达" —— E5 真实网络仍未授权。
+3. **`target_id` 按 `target_kind` 取自两个不同命名空间**,后端按整对匹配,
+   `direct` + 任意 id 与 `proxy_pool` + 无 id 同样是 400。前端按 kind 切换候选列表,
+   `direct` 不渲染该字段。
+
+**三个 `getCompatibleProxyPool` / `ProxyNode` / `EgressBinding` 故意未接:**
+三个读模型都已完整(池与绑定的读模型等于输入模型;节点缺的 `proxy_endpoint` 是只写的,
+GET 同样不返回),逐行再拉一次拿不到新东西。归入批 D3 的详情抽屉。
+
+**Other side:** **无需任何动作。** 2026-08-20 那条账号池 500 vs 503 的 action required
+仍然有效,状态不变。
+
+**门禁:** 221 单测 · 90 E2E · `check:full` · **真网关全链路验证**(建池 → 空池仍可见 →
+非 socks5 被表单拦下 → 合法地址被网关接受并封存 → 全页面任何位置都搜不到该地址 →
+留空编辑后网关保留了封存地址 → 被引用的池删除被网关拒绝且面板提前预测)。
+本批是 C 批里**唯一能在离线部署上端到端验证的**,因为它是普通配置资源,不依赖任何 Provider 来源。

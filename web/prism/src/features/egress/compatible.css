@@ -1,0 +1,138 @@
+/* Compatible proxy pools / nodes / bindings — content on the solid canvas,
+   zero backdrop-filter, so the shell's three-glass-pane budget is untouched.
+   Every rule is scoped under .compatible-proxy so this file cannot reach
+   another page's markup. */
+
+.compatible-proxy h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+.compatible-proxy .cp-help {
+  margin: 0 0 14px;
+  max-width: 78ch;
+  font-size: 12.5px;
+  line-height: 1.6;
+  /* ink-3 measures 3.26:1 on the card — fine for a dot, not for a sentence */
+  color: var(--ink-2);
+}
+.compatible-proxy .cp-help strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ---- section: title + help on the left, ONE create button on the right ----
+   The button is here rather than on a row on purpose: a pool with no nodes has
+   no rows, and that is exactly the state a freshly created pool is in. */
+.compatible-proxy .cp-section + .cp-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--separator);
+}
+.compatible-proxy .cp-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 12px;
+}
+.compatible-proxy .cp-head-text {
+  min-width: 0;
+}
+.compatible-proxy .cp-head h3 {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+.compatible-proxy .cp-op {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+.compatible-proxy .cp-head .cp-help {
+  margin: 0;
+}
+.compatible-proxy .cp-head > button {
+  flex: none;
+}
+
+/* ---- node groups ------------------------------------------------------- */
+
+.compatible-proxy .cp-group + .cp-group {
+  margin-top: 16px;
+}
+.compatible-proxy .cp-group h4 {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.compatible-proxy .cp-empty {
+  margin: 0;
+  padding: 10px 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+/* ---- row heads carry IDS, and ids are case-sensitive -------------------
+   The shared `th` rule uppercases and shrinks to --ink-3, which is right for a
+   column label and wrong for an identifier: it renders `node-eu-1` as
+   `NODE-EU-1`, which is a different string if anyone retypes or greps it.
+   Same fix the runtime matrix needed for its row labels. */
+.compatible-proxy .cp-rowhead {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ---- the sealed-endpoint cell ------------------------------------------
+   Deliberately NOT a redacted-looking value: there is no value to redact on
+   this side. The read model carries a boolean, and the cell says which. */
+.compatible-proxy .cp-sealed {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.compatible-proxy .cp-sealed[data-configured="true"] {
+  color: var(--ink);
+}
+.compatible-proxy .cp-target {
+  color: var(--ink-2);
+}
+
+/* ---- forms ------------------------------------------------------------- */
+
+.compatible-proxy .cp-pair,
+.sheet-form .cp-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.sheet-form .cp-pair > label {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.sheet-form .field-error {
+  margin: -4px 0 0;
+  font-size: 12.5px;
+  color: var(--status-critical);
+}
+
+@media (max-width: 720px) {
+  .compatible-proxy .cp-head {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .compatible-proxy .cp-help,
+  .compatible-proxy .cp-empty,
+  .compatible-proxy .cp-sealed,
+  .compatible-proxy .cp-op {
+    color: var(--ink);
+  }
+}

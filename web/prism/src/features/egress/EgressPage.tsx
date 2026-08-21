@@ -9,6 +9,8 @@ import { ChipsInput } from "../../components/ChipsInput";
 import { Sheet } from "../../components/Sheet";
 import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
+import { CompatibleProxyPanel } from "./CompatibleProxyPanel";
+import "./compatible.css";
 import {
   normalizedMaxRedirects,
   referencingUpstreams,
@@ -224,6 +226,8 @@ export function EgressPage() {
           </div>
         ) : null}
       </div>
+
+      <CompatibleProxyPanel upstreams={upstreams.data ?? []} />
 
       {draft !== undefined ? (
         <Sheet

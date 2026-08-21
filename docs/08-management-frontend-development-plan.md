@@ -134,19 +134,17 @@ export function analyticsAvailable(): boolean { return fixturesEnabled(); }
 | B3 · 计费与价格目录 | ✅ | `04877b3` |
 | B4 + B5 · Overview 收口 / 拆除 proposed 通道 + 新门禁 | ✅ | `b522225` |
 | C1 · Provider 账号池 | ✅ | `bc79ffc` |
-| C2 · Provider egress 三分区 | ✅ | `9a14b69` 之后本次提交 |
-| **C3 · Compatible 代理池 CRUD** | ⬜ **下一项** | — |
-| D1–D6 · 收尾 | ⬜ | — |
+| C2 · Provider egress 三分区 | ✅ | `cc8f198` |
+| C3 · Compatible 代理池 / 节点 / 绑定 | ✅ | 本次提交 |
+| **D1–D6 · 收尾** | ⬜ **下一项** | — |
 
-**接线率 71/99(71.7%)。** 剩余 28 个未接线**恰好等于**待办批次加上明确不做的三个,
+**接线率 84/99(84.8%)。** 剩余 28 个未接线**恰好等于**待办批次加上明确不做的三个,
 没有游离项:
 
 | 归属 | 个数 |
 |---|---|
-| C3 `*CompatibleProxyPool` / `*ProxyNode` / `*EgressBinding` | 15 |
-| D3 单资源 GET 五个 | 5 |
+| D3 单资源 GET(五个原有 + 三个 `getCompatible*`) | 8 |
 | D1 `get/updateClientKey` · D2 `executeChannelPin` · D4 `listEndpointCredentialBindings` | 4 |
-| C2 `listProviderEgressStatus` | 1 |
 | §4 明确不做 | 3 |
 
 门禁现状:**202 单测 · 76 E2E · `check:full` 绿 · 真网关验证通过**。
@@ -286,7 +284,7 @@ if active_candidates.is_empty() {
 |---|---|---|---|---|
 | C1 | Provider 账号池 live + operator action + 失败归因 | `listProviderAccountPools` `applyProviderAccountPoolAction` `listProviderAccountFailures` | 2.5 天 | ✅ `bc79ffc` |
 | C2 | Provider egress 状态三分区 | `listProviderEgressStatus` | 2 天 | ✅ 见 DESIGN.md §23 |
-| C3 | Compatible 代理池 / 节点 / 绑定 CRUD | 15 个算子 | 3.5 天 | ⬜ 下一项 |
+| C3 | Compatible 代理池 / 节点 / 绑定 CRUD | 15 个算子 | 3.5 天 | ✅ 见 DESIGN.md §24 |
 
 **C1 要点**(✅ 已实施 `bc79ffc`;实施中新增的约束见 §3.0 与 `web/prism/DESIGN.md` §22):
 - `auth_status`(4 值)与 `runtime_status`(7 值)是**两个独立维度**,不合成一个"健康"值。沿用 `pools.ts` 里已有的判断:`cooling` 是等待,`unauthorized` 是停止,两者色调必须不同;
@@ -316,10 +314,22 @@ if active_candidates.is_empty() {
 **今天就能触发** —— 用量 / 监控 / 计费页都在翻分页。修在 `errors.ts::isRuntimeConflict`
 一处,五条路径一起好。
 
-**C3 要点:**
+**C3 要点**(✅ 已实施;实施中修正的一条见下方与 `web/prism/DESIGN.md` §24):
 - `proxy_endpoint` 是**只写**字段:请求里有,响应里永远没有。表单必须直说"保存后不再回显,修改需重新输入" —— 与 `CredentialInput.secret` 同一类诚实处理;
 - 读模型只给 `proxy_configured: boolean`,**不得在浏览器里拼 SOCKS5 地址或构造任何传输请求**;
 - 三层实体(pool → node → binding)的绑定入口要吸取子资源 CRUD 那次教训:**新建的 pool 在有 node 之前不出现在下级视图**,入口必须放在面板级而非行级。
+
+**实施中修正的一条计划错误:`proxy_endpoint` 与 `CredentialInput.secret` 是同类但反向。**
+两者都只写、都不回显,到此为止相同;但凭据密钥在 PATCH 时**必填**(所以 Account 表单说
+"哪怕只想改状态也必须重新输入"),而这里契约明说"省略或 null 保留现有封存值,给字符串才轮换"。
+照抄那句话等于让运维重打一个正在正常工作的代理地址。
+
+**另记两条已核实的契约事实:** `proxy_configured` 被后端**硬编码为 true**,是常量而非观测,
+界面不能让它读起来像"面板验证过这个代理可用";`target_id` 按 `target_kind` 来自**两个不同的
+命名空间**,且后端按整对匹配 —— `direct` + 任意 id 与 `proxy_pool` + 无 id 同样是 400。
+
+**三个 `getCompatible*` 单资源 GET 故意未接:** 三个读模型都已完整(池与绑定的读模型等于
+输入模型),逐行再拉一次拿不到新东西。它们属于 D3 的详情抽屉。
 
 ---
 

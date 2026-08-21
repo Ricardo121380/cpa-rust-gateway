@@ -43,6 +43,29 @@ type EgressRow = {
   max_redirects: number;
 };
 
+type CompatPoolRow = { id: string; upstream_id: string; name: string; enabled: boolean };
+
+type CompatNodeRow = {
+  id: string;
+  upstream_id: string;
+  pool_id: string | null;
+  name: string;
+  enabled: boolean;
+  weight: number;
+  maximum_concurrency: number;
+  proxy_configured: boolean;
+};
+
+type CompatBindingRow = {
+  endpoint_id: string;
+  credential_id: string;
+  target_kind: string;
+  target_id: string | null;
+  failure_scope: string;
+  stickiness: string;
+  pre_submit_max_attempts: number;
+};
+
 type UpstreamRow = {
   id: string;
   name: string;
@@ -418,6 +441,47 @@ const state = {
   ] as CatalogRow[],
   pricePolicy: new Map<string, { catalog_version_id: string; comparison: string }>(),
   poolSnapshot: 1,
+  // Compatible proxy pools / nodes / bindings (P13-11 A–D). Seeded so the two
+  // states that matter are both on screen from the start: a pool WITH nodes,
+  // and a pool with NONE — the latter being exactly what a freshly created
+  // pool looks like, and the reason the create button is section-level.
+  compatPools: new Map<string, CompatPoolRow[]>([
+    [
+      "draft-2026-08",
+      [
+        { id: "pool-eu", upstream_id: "relay-a", name: "EU 出口池", enabled: true },
+        { id: "pool-empty", upstream_id: "relay-a", name: "空池(刚建的样子)", enabled: true },
+      ],
+    ],
+  ]),
+  compatNodes: new Map<string, CompatNodeRow[]>([
+    [
+      "draft-2026-08",
+      [
+        // proxy_configured is hardcoded true by the backend: a stored node
+        // always has a sealed endpoint. The fixture does not invent a false.
+        { id: "node-eu-1", upstream_id: "relay-a", pool_id: "pool-eu", name: "法兰克福 1",
+          enabled: true, weight: 1, maximum_concurrency: 8, proxy_configured: true },
+        { id: "node-eu-2", upstream_id: "relay-a", pool_id: "pool-eu", name: "阿姆斯特丹 1",
+          enabled: false, weight: 2, maximum_concurrency: 4, proxy_configured: true },
+        { id: "node-loose", upstream_id: "grok-build-pool", pool_id: null, name: "独立节点",
+          enabled: true, weight: 1, maximum_concurrency: 2, proxy_configured: true },
+      ],
+    ],
+  ]),
+  compatBindings: new Map<string, CompatBindingRow[]>([
+    [
+      "draft-2026-08",
+      [
+        { endpoint_id: "ep-relay-a-responses", credential_id: "cred-relay-key",
+          target_kind: "proxy_pool", target_id: "pool-eu", failure_scope: "egress_node",
+          stickiness: "credential", pre_submit_max_attempts: 2 },
+        { endpoint_id: "ep-grok-build", credential_id: "cred-grok-oauth",
+          target_kind: "fixed_proxy", target_id: "node-eu-1", failure_scope: "credential",
+          stickiness: "credential_and_egress", pre_submit_max_attempts: 1 },
+      ],
+    ],
+  ]),
   routeCandidates: new Map<string, CandidateRow[]>(),
   audit: [
     {
@@ -441,6 +505,37 @@ const state = {
 
 function revisionToken(version: VersionRow): string {
   return `rev-${version.revision}`;
+}
+
+/** The backend's admitted pairs, reproduced so the fixture rejects what the
+ *  gateway rejects: ("direct", null) | ("fixed_proxy", id) | ("proxy_pool", id). */
+function validCompatTarget(kind: string, targetId: string | null): boolean {
+  if (kind === "direct") {
+    return targetId === null;
+  }
+  return (kind === "fixed_proxy" || kind === "proxy_pool") && targetId !== null && targetId !== "";
+}
+
+/** Mirrors UpstreamProxy::try_socks5 — bare socks5://host:port, nothing else. */
+function validSocks5(value: string | null | undefined): boolean {
+  if (typeof value !== "string") {
+    return false;
+  }
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "socks5:" &&
+      url.username === "" &&
+      url.password === "" &&
+      url.hostname !== "" &&
+      url.port !== "" &&
+      (url.pathname === "" || url.pathname === "/") &&
+      url.search === "" &&
+      url.hash === ""
+    );
+  } catch {
+    return false;
+  }
 }
 
 function json(status: number, body: unknown, etag?: string): Response {
@@ -1804,6 +1899,187 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       });
     }
 
+
+    // ---- P13-11 A–D: compatible proxy pools / nodes / egress bindings ----
+    //
+    // The fixture enforces the three refusals the real backend enforces, so the
+    // panel's client-side predictions are checked against something that
+    // disagrees when they are wrong:
+    //   - deleting a referenced pool or node is a conflict (there is no cascade);
+    //   - (target_kind, target_id) must be one of the three admitted pairs;
+    //   - proxy_endpoint must be a bare socks5://host:port.
+    // And the one preservation: PATCH without proxy_endpoint keeps the sealed
+    // one, which is the OPPOSITE of CredentialInput.secret.
+    if (route === "GET /admin/compatible-proxy-pools") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      return json(200, state.compatPools.get(version.id) ?? [], revisionToken(version));
+    }
+    if (route === "GET /admin/compatible-proxy-nodes") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      return json(200, state.compatNodes.get(version.id) ?? [], revisionToken(version));
+    }
+    if (route === "GET /admin/compatible-egress-bindings") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      return json(200, state.compatBindings.get(version.id) ?? [], revisionToken(version));
+    }
+    if (route === "POST /admin/compatible-proxy-pools") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const rejected = requireDraftAndMatch(version, headers);
+      if (rejected !== undefined) return rejected;
+      const row = JSON.parse(bodyText ?? "{}") as CompatPoolRow;
+      state.compatPools.set(version.id, [...(state.compatPools.get(version.id) ?? []), row]);
+      version.revision += 1;
+      return json(201, row, revisionToken(version));
+    }
+    if (route === "POST /admin/compatible-proxy-nodes") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const rejected = requireDraftAndMatch(version, headers);
+      if (rejected !== undefined) return rejected;
+      const input = JSON.parse(bodyText ?? "{}") as CompatNodeRow & { proxy_endpoint?: string };
+      if (!validSocks5(input.proxy_endpoint)) {
+        return errorResponse(400, "management_invalid_input", "invalid proxy endpoint");
+      }
+      const { proxy_endpoint: _sealed, ...rest } = input;
+      const row: CompatNodeRow = { ...rest, pool_id: rest.pool_id ?? null, proxy_configured: true };
+      state.compatNodes.set(version.id, [...(state.compatNodes.get(version.id) ?? []), row]);
+      version.revision += 1;
+      return json(201, row, revisionToken(version));
+    }
+    if (route === "POST /admin/compatible-egress-bindings") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const rejected = requireDraftAndMatch(version, headers);
+      if (rejected !== undefined) return rejected;
+      const row = JSON.parse(bodyText ?? "{}") as CompatBindingRow;
+      if (!validCompatTarget(row.target_kind, row.target_id)) {
+        return errorResponse(400, "management_invalid_input", "invalid target pair");
+      }
+      state.compatBindings.set(version.id, [...(state.compatBindings.get(version.id) ?? []), row]);
+      version.revision += 1;
+      return json(201, row, revisionToken(version));
+    }
+    const compatPoolItem = /^(PATCH|DELETE) \/admin\/compatible-proxy-pools\/([^/]+)$/u.exec(route);
+    if (compatPoolItem !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const rejected = requireDraftAndMatch(version, headers);
+      if (rejected !== undefined) return rejected;
+      const list = state.compatPools.get(version.id) ?? [];
+      const id = decodeURIComponent(compatPoolItem[2] ?? "");
+      const index = list.findIndex((row) => row.id === id);
+      if (index === -1) {
+        return errorResponse(409, "management_lifecycle_conflict", "unknown proxy pool");
+      }
+      if (compatPoolItem[1] === "DELETE") {
+        const held =
+          (state.compatNodes.get(version.id) ?? []).some((node) => node.pool_id === id) ||
+          (state.compatBindings.get(version.id) ?? []).some(
+            (b) => b.target_kind === "proxy_pool" && b.target_id === id,
+          );
+        if (held) {
+          return errorResponse(409, "management_lifecycle_conflict", "proxy pool is referenced");
+        }
+        list.splice(index, 1);
+        version.revision += 1;
+        return new Response(null, {
+          status: 204,
+          headers: new Headers({ ETag: `"${revisionToken(version)}"` }),
+        });
+      }
+      const next = { ...JSON.parse(bodyText ?? "{}"), id } as CompatPoolRow;
+      list[index] = next;
+      version.revision += 1;
+      return json(200, next, revisionToken(version));
+    }
+    const compatNodeItem = /^(PATCH|DELETE) \/admin\/compatible-proxy-nodes\/([^/]+)$/u.exec(route);
+    if (compatNodeItem !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const rejected = requireDraftAndMatch(version, headers);
+      if (rejected !== undefined) return rejected;
+      const list = state.compatNodes.get(version.id) ?? [];
+      const id = decodeURIComponent(compatNodeItem[2] ?? "");
+      const index = list.findIndex((row) => row.id === id);
+      const current = list[index];
+      if (current === undefined) {
+        return errorResponse(409, "management_lifecycle_conflict", "unknown proxy node");
+      }
+      if (compatNodeItem[1] === "DELETE") {
+        const held = (state.compatBindings.get(version.id) ?? []).some(
+          (b) => b.target_kind === "fixed_proxy" && b.target_id === id,
+        );
+        if (held) {
+          return errorResponse(409, "management_lifecycle_conflict", "proxy node is referenced");
+        }
+        list.splice(index, 1);
+        version.revision += 1;
+        return new Response(null, {
+          status: 204,
+          headers: new Headers({ ETag: `"${revisionToken(version)}"` }),
+        });
+      }
+      const input = JSON.parse(bodyText ?? "{}") as CompatNodeRow & {
+        proxy_endpoint?: string | null;
+      };
+      // Omitted or null PRESERVES the sealed endpoint; a string rotates it.
+      if (
+        input.proxy_endpoint !== undefined &&
+        input.proxy_endpoint !== null &&
+        !validSocks5(input.proxy_endpoint)
+      ) {
+        return errorResponse(400, "management_invalid_input", "invalid proxy endpoint");
+      }
+      const { proxy_endpoint: _rotated, ...rest } = input;
+      list[index] = {
+        ...rest,
+        id,
+        pool_id: rest.pool_id ?? null,
+        proxy_configured: current.proxy_configured,
+      };
+      version.revision += 1;
+      return json(200, list[index], revisionToken(version));
+    }
+    const compatBindingItem =
+      /^(PATCH|DELETE) \/admin\/compatible-egress-bindings\/([^/]+)\/([^/]+)$/u.exec(route);
+    if (compatBindingItem !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const rejected = requireDraftAndMatch(version, headers);
+      if (rejected !== undefined) return rejected;
+      const list = state.compatBindings.get(version.id) ?? [];
+      const endpointId = decodeURIComponent(compatBindingItem[2] ?? "");
+      const credentialId = decodeURIComponent(compatBindingItem[3] ?? "");
+      const index = list.findIndex(
+        (row) => row.endpoint_id === endpointId && row.credential_id === credentialId,
+      );
+      if (index === -1) {
+        return errorResponse(409, "management_lifecycle_conflict", "unknown binding");
+      }
+      if (compatBindingItem[1] === "DELETE") {
+        list.splice(index, 1);
+        version.revision += 1;
+        return new Response(null, {
+          status: 204,
+          headers: new Headers({ ETag: `"${revisionToken(version)}"` }),
+        });
+      }
+      const next = {
+        ...JSON.parse(bodyText ?? "{}"),
+        endpoint_id: endpointId,
+        credential_id: credentialId,
+      } as CompatBindingRow;
+      if (!validCompatTarget(next.target_kind, next.target_id)) {
+        return errorResponse(400, "management_invalid_input", "invalid target pair");
+      }
+      list[index] = next;
+      version.revision += 1;
+      return json(200, next, revisionToken(version));
+    }
 
     const credGet = /^GET \/admin\/credentials\/([^/]+)$/u.exec(route);
     if (credGet !== null) {
