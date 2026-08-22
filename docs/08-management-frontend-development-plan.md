@@ -4,7 +4,7 @@
 |---|---|
 | 状态 | `v0.4 — 后端 P13 收口后的重排;批 A/B 是修复,不是新功能` |
 | 日期 | 2026-08-18 制定,2026-08-21 追记执行进度(§3.0) |
-| 执行到 | 批 A ✅ · 批 B ✅ · C1 ✅ · **下一项 C2** |
+| 执行到 | **批 A–D 全部收口(2026-08-21)。** 接线率 87/99,剩余 12 个全部是明确不做的,无待办项 |
 | 取代 | v0.3(2026-08-11,并仓当日)。v0.3 的路线图假设后端还在推进,现在 P13-04…P13-10 全部 `DONE`,排序依据变了,差异见 §7 |
 | 位置 | `web/prism`,由 `cargo build` 构建并嵌入 |
 | 协作边界 | [AGENTS.md](../AGENTS.md) / [CLAUDE.md](../CLAUDE.md);越界留痕见 [cross-boundary-log](cross-boundary-log.md) |
@@ -136,13 +136,12 @@ export function analyticsAvailable(): boolean { return fixturesEnabled(); }
 | C1 · Provider 账号池 | ✅ | `bc79ffc` |
 | C2 · Provider egress 三分区 | ✅ | `cc8f198` |
 | C3 · Compatible 代理池 / 节点 / 绑定 | ✅ | `a95c5de` |
-| D1 · Client Key 编辑 · D2 · Channel Pin · D4 · 绑定核对 · D5 · 质量门 | ✅ | 本次提交 |
+| D1 · Client Key 编辑 · D2 · Channel Pin · D4 · 绑定核对 · D5 · 质量门 | ✅ | `ef8cdc8` |
 | **D3 · 单资源详情抽屉** | ❌ **不做** | 见 §4 与 DESIGN.md §25.1 |
-| D6 · i18n **骨架层** | ✅ | 本次提交 |
+| D6 · i18n **骨架层** | ✅ | `1273838` |
 | D6 · i18n **页面正文** | ⬜ **不排期** | 实测体量见下,由使用方决定 |
 
-**接线率 87/99(87.9%)。** 剩余 28 个未接线**恰好等于**待办批次加上明确不做的三个,
-没有游离项:
+**接线率 87/99(87.9%)。** 剩余 12 个未接线**全部是明确不做的**,没有一个是待办项:
 
 | 归属 | 个数 |
 |---|---|
@@ -150,7 +149,9 @@ export function analyticsAvailable(): boolean { return fixturesEnabled(); }
 | `getClientKey` —— **不做**(与上同因) | 1 |
 | §4 明确不做(`exportCredential` / `previewRestore` / `restoreBackup`) | 3 |
 
-**12 个未接线全部是明确不做的,没有待办项。**
+**这张表就是完成度证明:未接线数 = 明确不做数。** 计划里没有剩下的活。
+
+**唯一开放项**是页面正文英文化(D6 的另一半),它不排期 —— 见批 D 的 D6 条目。
 
 门禁现状:**202 单测 · 76 E2E · `check:full` 绿 · 真网关验证通过**。
 
