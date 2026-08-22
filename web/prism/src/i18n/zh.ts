@@ -56,7 +56,9 @@ export const zh = {
     themeActive: "当前生效",
 
     language: "语言",
-    languageHelp: "同样只存于内存。界面文案立即切换,后端返回的枚举与标识符不翻译(它们是契约的一部分)。",
+    languageHelp: "同样只存于内存。后端返回的标识符不翻译 —— 它们是契约的一部分。",
+    languageCoverage:
+      "英文目前覆盖:导航、设置、解锁与版本选择,以及所有状态词汇(徽章、图例、tooltip 的标签与释义)。各页面的说明性正文仍是中文 —— 那是本面板承重的部分,译松一分就变成一个更弱的断言,所以宁可原样留着,也不给一个看起来完整的半成品。",
 
     session: "会话",
     sessionHelp: "Management Key 与 CSRF Token 只存在于内存,从不落盘、从不进 URL。",

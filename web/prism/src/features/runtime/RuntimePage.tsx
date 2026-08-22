@@ -17,7 +17,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
-import { useMessages } from "../../i18n/messages";
+import { useLangStore, useMessages } from "../../i18n/messages";
 import { useNowTick } from "../../utils/useNowTick";
 import { useVersionStore } from "../config-versions/versionStore";
 import { Sheet } from "../../components/Sheet";
@@ -54,6 +54,7 @@ import {
   formatObservedAt,
   freshnessMeta,
   isProjectionUnavailable,
+  localizeMeta,
   normalizeExplainQuery,
   priceEvidenceMeta,
   PROTOCOLS,
@@ -166,10 +167,15 @@ function UnavailableBlock({ operation }: Readonly<{ operation: string }>) {
 
 /** Chip carrying colour + shape + text; used by every projection on this page. */
 function StateChip({
-  meta,
+  meta: source,
   attr,
   raw,
 }: Readonly<{ meta: StateMeta; attr: string; raw: string }>) {
+  // Every chip in the app goes through here, so localising the vocabulary is
+  // one component rather than forty call sites. Glyph and tone are untouched —
+  // they are not language-dependent, and the raw enum value stays visible to
+  // screen readers either way.
+  const meta = localizeMeta(source, useLangStore.getState().lang);
   return (
     <span className="rt-chip" data-state={attr} title={`${raw} · ${meta.detail}`}>
       <span className="rt-glyph" aria-hidden="true">
@@ -206,6 +212,7 @@ function CardHead({
 // ---------------------------------------------------------------------------
 
 function AvailabilityLegend() {
+  const lang = useLangStore((state) => state.lang);
   return (
     <dl className="rt-legend">
       {AVAILABILITY_STATES.map((state) => {
@@ -216,7 +223,7 @@ function AvailabilityLegend() {
               <StateChip meta={meta} attr={state} raw={state} />
             </dt>
             <dd className="mono rt-legend-enum">{state}</dd>
-            <dd className="rt-legend-detail">{meta.detail}</dd>
+            <dd className="rt-legend-detail">{localizeMeta(meta, lang).detail}</dd>
           </div>
         );
       })}
@@ -901,6 +908,7 @@ function PoolActionSheet({
 }
 
 function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
+  const lang = useLangStore((state) => state.lang);
   const queryClient = useQueryClient();
   const scope = useVersionStore((s) => s.context?.configVersionId);
   const visible = useDocumentVisible();
@@ -984,7 +992,7 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
             attr={receipt.state}
             raw={receipt.state}
           />{" "}
-          {receiptMeta(receipt.state).detail}
+          {localizeMeta(receiptMeta(receipt.state), lang).detail}
           {receipt.cooldown_until_ms === null
             ? ""
             : ` · 冷却至 ${formatObservedAt(receipt.cooldown_until_ms)}`}
@@ -1397,6 +1405,7 @@ const PIN_FIELDS: ReadonlyArray<Readonly<{ name: keyof PinInput; label: string }
 ];
 
 function ChannelPinCard({ scope }: Readonly<{ scope: string }>) {
+  const lang = useLangStore((state) => state.lang);
   const [receipt, setReceipt] = useState<PinReceipt | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [invalid, setInvalid] = useState(false);
@@ -1517,7 +1526,7 @@ function ChannelPinCard({ scope }: Readonly<{ scope: string }>) {
               attr={receipt.outcome}
               raw={receipt.outcome}
             />{" "}
-            {pinOutcomeMeta(receipt.outcome).detail}
+            {localizeMeta(pinOutcomeMeta(receipt.outcome), lang).detail}
           </p>
           {/* upstream_sent and outcome are DIFFERENT facts. "failed" without
               having reached the provider is a local problem; "failed" after

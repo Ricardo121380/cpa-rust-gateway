@@ -99,6 +99,11 @@ export function SettingsPage() {
           <h3>{t.settings.language}</h3>
         </div>
         <p className="settings-help">{t.settings.languageHelp}</p>
+        {/* The switch used to promise "UI text switches immediately", which was
+            true of the chrome and false of every page body. Saying what English
+            actually reaches is the difference between a known gap and a
+            surprise. */}
+        <p className="settings-help">{t.settings.languageCoverage}</p>
         <div className="settings-choice" role="radiogroup" aria-label={t.settings.language}>
           {LANGS.map((option) => (
             <button
