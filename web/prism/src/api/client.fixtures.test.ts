@@ -90,3 +90,27 @@ describe("fixture-backed api pipeline", () => {
     expect(useVersionStore.getState().conflict).toBe(true);
   });
 });
+
+describe("option / contract agreement", () => {
+  it("refuses an option the operation does not declare, instead of dropping it", async () => {
+    // listOperationalUsage carries no X-Config-Version: usage is durable
+    // observation of requests that already happened and spans config versions
+    // by construction. Marking the call version-scoped used to do nothing at
+    // all — no header, no error — which reads as "these numbers are filtered by
+    // the version in the top bar" when they are not.
+    await expect(
+      call("listOperationalUsage", {}, { versionScoped: true }),
+    ).rejects.toThrow(/declares no X-Config-Version/u);
+
+    // Same for a revision guard on an operation that has none.
+    await expect(
+      call("validateConfigVersion", { path: { config_version_id: "draft-2026-08" } }, { mutating: true }),
+    ).rejects.toThrow(/declares no If-Match/u);
+  });
+
+  it("still accepts the options where the contract does declare them", async () => {
+    await expect(
+      call("listOperationalAccountPools", {}, { versionScoped: true }),
+    ).resolves.toBeDefined();
+  });
+});

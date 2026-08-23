@@ -157,9 +157,20 @@ export function analyticsAvailable(): boolean { return fixturesEnabled(); }
 
 **实施中发现、写进代码但计划原文没有的事实**(下一轮接手先读这几条,否则会重踩):
 
-1. **`listOperationalUsage` 不是版本作用域的。** 曾按 `versionScoped: true` 接线,
-   真网关上直接死在 "unknown config version"。运营面的版本作用域是**逐算子split**
-   的,不是整面统一 —— 已在 `src/api/client.ts` 与 DESIGN.md 列全。
+1. **`listOperationalUsage` 不是版本作用域的。** 运营面的版本作用域是**逐算子**的,
+   不是整面统一:同在 `/admin/operations/*` 下,account-pools / billing catalogs /
+   account failures / egress status **带**版本,而 usage / billing / provider pools /
+   request attempts **不带**。判定方式与当前实况写在 `src/api/client.ts`
+   的 `declaredHeaderNames` 上方(含一条可直接跑的命令),不再抄一份会漂移的清单。
+
+   **本条原文有两处错,2026-08-24 核实后更正:**
+   - 原文说"真网关上直接死在 `unknown config version`"。那个字符串出自
+     `src/dev/fixtures.ts:567`,**是 fixture 的报错,不是真网关的** —— 当年挂的是 fixture。
+   - 原文的机制也不对。`client.ts` 的守卫是
+     `options.versionScoped === true && declared.has("x-config-version")`,所以给一个
+     不声明版本头的算子传 `versionScoped: true` **根本不会报错,而是静默空操作** ——
+     头不发、没提示。**真正的危险方向恰好相反**:你以为这个读取按版本过滤了,其实没有。
+     已在 `send()` 里改成显式抛错(带单测),这个方向从此不会再静默。
 2. **`listProviderAccountPools` 不需要版本,`applyProviderAccountPoolAction` 需要。**
    所以运行时页不能在"未选版本"时整页早退,那句话对池表是假的。
 3. **action 没有 `If-Match` 是对的** —— 它动运行时不动配置,没有 revision 可守。
@@ -172,6 +183,13 @@ export function analyticsAvailable(): boolean { return fixturesEnabled(); }
 7. **billing 的 `status` 参数是计价置信度,不是请求成败。**
 8. **带 `min`/`max` 的输入,浏览器原生约束校验先于任何自写校验。** 冷却时长的
    越界值根本走不到 `validCooldown`,E2E 断言的是 `validity.rangeUnderflow`。
+
+**一条本轮新记的前端待办(有证据,未做):`versionScoped` / `mutating` 两个开关是冗余的,可以删掉。**
+实测契约里 **84/99** 个算子声明 `X-Config-Version`、**45/99** 声明 `If-Match`,
+而**两者在声明时全部是 `required: true`,没有一个是可选的**。既然"声明了就必须发",
+客户端完全可以从生成客户端推导,不需要调用点再传一个可能写错的布尔。
+删掉它们等于删掉整类错误(而不是给它加门禁)。代价是要动六十多个调用点,
+属于独立的一次机械重构,不适合塞进收尾。
 
 **一条已记录未修的后端不一致(`docs/cross-boundary-log.md`,标 action required · 低优先级):**
 `listProviderAccountPools` 未接线时返回 **500**,而本网关其余所有注入式投影都是 **503**
