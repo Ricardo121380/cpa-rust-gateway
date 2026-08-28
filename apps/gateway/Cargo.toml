@@ -1,0 +1,35 @@
+[package]
+name = "gateway"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+actix-web.workspace = true
+futures-util.workspace = true
+gateway-auth = { path = "../../crates/gateway-auth" }
+gateway-catalog = { path = "../../crates/gateway-catalog" }
+gateway-control = { path = "../../crates/gateway-control" }
+gateway-core = { path = "../../crates/gateway-core" }
+gateway-http-actix = { path = "../../crates/gateway-http-actix" }
+gateway-observability = { path = "../../crates/gateway-observability" }
+gateway-protocol = { path = "../../crates/gateway-protocol" }
+gateway-router = { path = "../../crates/gateway-router" }
+gateway-store = { path = "../../crates/gateway-store" }
+gateway-upstream = { path = "../../crates/gateway-upstream" }
+libc.workspace = true
+protocol-openai-chat = { path = "../../crates/protocol-openai-chat" }
+protocol-openai-responses = { path = "../../crates/protocol-openai-responses" }
+provider-anthropic-compatible = { path = "../../crates/provider-anthropic-compatible" }
+provider-grok = { path = "../../crates/provider-grok" }
+provider-kiro = { path = "../../crates/provider-kiro" }
+provider-openai-compatible = { path = "../../crates/provider-openai-compatible" }
+serde.workspace = true
+serde_json.workspace = true
+zeroize.workspace = true
+
+[lints]
+workspace = true

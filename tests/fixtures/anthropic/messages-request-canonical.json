@@ -1,0 +1,123 @@
+{
+  "requested_model": "gateway-claude",
+  "messages": [
+    {
+      "role": "system",
+      "content": [
+        {
+          "text": {
+            "text": "Follow the tool policy.",
+            "extensions": {
+              "anthropic.cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "text": {
+            "text": "secret prompt",
+            "extensions": {}
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "text": {
+            "text": "Checking.",
+            "extensions": {}
+          }
+        },
+        {
+          "tool_call": {
+            "id": "call-01",
+            "name": "lookup",
+            "arguments": {
+              "query": "weather"
+            },
+            "extensions": {
+              "anthropic.vendor": {
+                "safe": true
+              }
+            }
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "tool_result": {
+            "call_id": "call-01",
+            "output": {
+              "forecast": "clear"
+            },
+            "is_error": false,
+            "extensions": {}
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "text": {
+            "text": "Continue.",
+            "extensions": {}
+          }
+        }
+      ],
+      "extensions": {}
+    }
+  ],
+  "tools": [
+    {
+      "name": "lookup",
+      "description": "Look up a value.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "extensions": {
+        "anthropic.cache_control": {
+          "type": "ephemeral"
+        }
+      }
+    }
+  ],
+  "thinking": {
+    "effort": "enabled",
+    "extensions": {
+      "anthropic.thinking.budget_tokens": 1024
+    }
+  },
+  "prompt_cache_retention": "ephemeral",
+  "extensions": {
+    "anthropic.messages.max_tokens": 128,
+    "anthropic.messages.metadata": {
+      "user_id": "test-user"
+    },
+    "anthropic.messages.temperature": 0
+  }
+}

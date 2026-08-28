@@ -1,0 +1,62 @@
+event: response.created
+data: {"response":{"created_at":1700000000,"error":null,"id":"response-01","incomplete_details":null,"model":"gateway-model","object":"response","output":[],"status":"in_progress","usage":null},"sequence_number":1,"type":"response.created"}
+
+event: response.in_progress
+data: {"response":{"created_at":1700000000,"error":null,"id":"response-01","incomplete_details":null,"model":"gateway-model","object":"response","output":[],"status":"in_progress","usage":null},"sequence_number":2,"type":"response.in_progress"}
+
+event: response.output_item.added
+data: {"item":{"content":[{"text":"","type":"reasoning_text"}],"id":"rsn_response-01_0","status":"in_progress","type":"reasoning"},"output_index":0,"sequence_number":3,"type":"response.output_item.added"}
+
+event: response.reasoning_text.delta
+data: {"content_index":0,"delta":"Check weather.","item_id":"rsn_response-01_0","output_index":0,"sequence_number":4,"type":"response.reasoning_text.delta"}
+
+event: response.output_item.added
+data: {"item":{"content":[{"annotations":[],"text":"","type":"output_text"}],"id":"msg_response-01_1","role":"assistant","status":"in_progress","type":"message"},"output_index":1,"sequence_number":5,"type":"response.output_item.added"}
+
+event: response.content_part.added
+data: {"content_index":0,"item_id":"msg_response-01_1","output_index":1,"part":{"annotations":[],"text":"","type":"output_text"},"sequence_number":6,"type":"response.content_part.added"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"It is clear.","item_id":"msg_response-01_1","logprobs":[],"output_index":1,"sequence_number":7,"type":"response.output_text.delta"}
+
+event: response.output_item.added
+data: {"item":{"arguments":"","call_id":"call-alpha","id":"fc_response-01_2","name":"lookup_weather","status":"in_progress","type":"function_call"},"output_index":2,"sequence_number":8,"type":"response.output_item.added"}
+
+event: response.output_item.added
+data: {"item":{"arguments":"","call_id":"call-beta","id":"fc_response-01_3","name":"lookup_temperature","status":"in_progress","type":"function_call"},"output_index":3,"sequence_number":9,"type":"response.output_item.added"}
+
+event: response.function_call_arguments.delta
+data: {"delta":"{\"city\":\"Berlin\"}","item_id":"fc_response-01_2","output_index":2,"sequence_number":10,"type":"response.function_call_arguments.delta"}
+
+event: response.function_call_arguments.delta
+data: {"delta":"{\"unit\":\"C\"}","item_id":"fc_response-01_3","output_index":3,"sequence_number":11,"type":"response.function_call_arguments.delta"}
+
+event: response.function_call_arguments.done
+data: {"arguments":"{\"city\":\"Berlin\"}","item_id":"fc_response-01_2","name":"lookup_weather","output_index":2,"sequence_number":12,"type":"response.function_call_arguments.done"}
+
+event: response.output_item.done
+data: {"item":{"arguments":"{\"city\":\"Berlin\"}","call_id":"call-alpha","id":"fc_response-01_2","name":"lookup_weather","status":"completed","type":"function_call"},"output_index":2,"sequence_number":13,"type":"response.output_item.done"}
+
+event: response.function_call_arguments.done
+data: {"arguments":"{\"unit\":\"C\"}","item_id":"fc_response-01_3","name":"lookup_temperature","output_index":3,"sequence_number":14,"type":"response.function_call_arguments.done"}
+
+event: response.output_item.done
+data: {"item":{"arguments":"{\"unit\":\"C\"}","call_id":"call-beta","id":"fc_response-01_3","name":"lookup_temperature","status":"completed","type":"function_call"},"output_index":3,"sequence_number":15,"type":"response.output_item.done"}
+
+event: response.reasoning_text.done
+data: {"content_index":0,"item_id":"rsn_response-01_0","output_index":0,"sequence_number":16,"text":"Check weather.","type":"response.reasoning_text.done"}
+
+event: response.output_item.done
+data: {"item":{"content":[{"text":"Check weather.","type":"reasoning_text"}],"id":"rsn_response-01_0","status":"completed","type":"reasoning"},"output_index":0,"sequence_number":17,"type":"response.output_item.done"}
+
+event: response.output_text.done
+data: {"content_index":0,"item_id":"msg_response-01_1","logprobs":[],"output_index":1,"sequence_number":18,"text":"It is clear.","type":"response.output_text.done"}
+
+event: response.content_part.done
+data: {"content_index":0,"item_id":"msg_response-01_1","output_index":1,"part":{"annotations":[],"text":"It is clear.","type":"output_text"},"sequence_number":19,"type":"response.content_part.done"}
+
+event: response.output_item.done
+data: {"item":{"content":[{"annotations":[],"text":"It is clear.","type":"output_text"}],"id":"msg_response-01_1","role":"assistant","status":"completed","type":"message"},"output_index":1,"sequence_number":20,"type":"response.output_item.done"}
+
+event: response.completed
+data: {"response":{"created_at":1700000000,"error":null,"id":"response-01","incomplete_details":null,"model":"gateway-model","object":"response","output":[{"content":[{"text":"Check weather.","type":"reasoning_text"}],"id":"rsn_response-01_0","status":"completed","type":"reasoning"},{"content":[{"annotations":[],"text":"It is clear.","type":"output_text"}],"id":"msg_response-01_1","role":"assistant","status":"completed","type":"message"},{"arguments":"{\"city\":\"Berlin\"}","call_id":"call-alpha","id":"fc_response-01_2","name":"lookup_weather","status":"completed","type":"function_call"},{"arguments":"{\"unit\":\"C\"}","call_id":"call-beta","id":"fc_response-01_3","name":"lookup_temperature","status":"completed","type":"function_call"}],"status":"completed","usage":{"input_tokens":12,"output_tokens":8,"output_tokens_details":{"reasoning_tokens":3},"total_tokens":20}},"sequence_number":21,"type":"response.completed"}

@@ -1,0 +1,41 @@
+{
+  "requested_model": "fixture-model",
+  "messages": [
+    {
+      "role": "user",
+      "content": [{ "text": { "text": "call the fixture tool", "extensions": {} } }],
+      "extensions": {}
+    },
+    {
+      "role": "assistant",
+      "content": [{
+        "tool_call": {
+          "id": "fixture-call",
+          "name": "fixture-tool",
+          "arguments": { "value": 1 },
+          "extensions": {}
+        }
+      }],
+      "extensions": {}
+    },
+    {
+      "role": "tool",
+      "content": [{
+        "tool_result": {
+          "call_id": "fixture-call",
+          "output": "done",
+          "is_error": false,
+          "extensions": {}
+        }
+      }],
+      "extensions": {}
+    }
+  ],
+  "tools": [{
+    "name": "fixture-tool",
+    "description": "fixture description",
+    "input_schema": { "type": "object" },
+    "extensions": {}
+  }],
+  "extensions": { "openai.responses.max_output_tokens": 64 }
+}

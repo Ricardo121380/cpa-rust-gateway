@@ -1,0 +1,57 @@
+{
+  "model": "gateway-model",
+  "instructions": "Use tools safely.",
+  "input": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": [
+        {
+          "type": "input_text",
+          "text": "What is the weather?"
+        },
+        {
+          "type": "input_image",
+          "image_url": "https://example.invalid/image.png"
+        }
+      ]
+    },
+    {
+      "type": "function_call",
+      "call_id": "history-call",
+      "name": "lookup_weather",
+      "arguments": "{\"city\":\"Berlin\"}"
+    },
+    {
+      "type": "function_call_output",
+      "call_id": "history-call",
+      "output": "clear"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "name": "lookup_weather",
+      "description": "Look up a forecast.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string"
+          }
+        }
+      },
+      "strict": true
+    }
+  ],
+  "reasoning": {
+    "effort": "medium",
+    "summary": "auto"
+  },
+  "prompt_cache_key": "cache-key-01",
+  "prompt_cache_retention": "24h",
+  "metadata": {
+    "source": "fixture"
+  },
+  "stream": true
+}

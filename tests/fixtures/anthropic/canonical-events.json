@@ -1,0 +1,10 @@
+[
+  {"response_start":{"response_id":"message-01","extensions":{}}},
+  {"usage_delta":{"usage":{"input_tokens":11,"extensions":{}},"is_final":false,"extensions":{}}},
+  {"message_start":{"role":"assistant","extensions":{}}},
+  {"text_delta":{"text":"Hello","extensions":{}}},
+  {"text_delta":{"text":" there","extensions":{}}},
+  {"message_end":{"extensions":{}}},
+  {"usage_delta":{"usage":{"input_tokens":11,"output_tokens":3,"extensions":{}},"is_final":true,"extensions":{}}},
+  {"response_end":{"stop_reason":"end_turn","stop_sequence":null,"extensions":{}}}
+]

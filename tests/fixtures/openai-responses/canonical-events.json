@@ -1,0 +1,90 @@
+[
+  {
+    "response_start": {
+      "response_id": "response-01",
+      "extensions": {}
+    }
+  },
+  {
+    "message_start": {
+      "role": "assistant",
+      "extensions": {}
+    }
+  },
+  {
+    "reasoning_delta": {
+      "text": "Check weather.",
+      "extensions": {}
+    }
+  },
+  {
+    "text_delta": {
+      "text": "It is clear.",
+      "extensions": {}
+    }
+  },
+  {
+    "tool_call_start": {
+      "call_id": "call-alpha",
+      "name": "lookup_weather",
+      "extensions": {}
+    }
+  },
+  {
+    "tool_call_start": {
+      "call_id": "call-beta",
+      "name": "lookup_temperature",
+      "extensions": {}
+    }
+  },
+  {
+    "tool_call_arguments_delta": {
+      "call_id": "call-alpha",
+      "delta": "{\"city\":\"Berlin\"}",
+      "extensions": {}
+    }
+  },
+  {
+    "tool_call_arguments_delta": {
+      "call_id": "call-beta",
+      "delta": "{\"unit\":\"C\"}",
+      "extensions": {}
+    }
+  },
+  {
+    "tool_call_end": {
+      "call_id": "call-alpha",
+      "arguments": {"city":"Berlin"},
+      "extensions": {}
+    }
+  },
+  {
+    "tool_call_end": {
+      "call_id": "call-beta",
+      "arguments": {"unit":"C"},
+      "extensions": {}
+    }
+  },
+  {
+    "usage_delta": {
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 8,
+        "reasoning_tokens": 3,
+        "extensions": {}
+      },
+      "is_final": true,
+      "extensions": {}
+    }
+  },
+  {
+    "message_end": {
+      "extensions": {}
+    }
+  },
+  {
+    "response_end": {
+      "extensions": {}
+    }
+  }
+]

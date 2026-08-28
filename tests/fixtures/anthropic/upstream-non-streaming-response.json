@@ -1,0 +1,20 @@
+{
+  "id": "msg_upstream_json",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-upstream",
+  "content": [
+    {"type": "thinking", "thinking": "Weighing options."},
+    {"type": "text", "text": "Hello there"},
+    {"type": "tool_use", "id": "tool-weather", "name": "lookup_weather", "input": {"city": "Berlin"}}
+  ],
+  "stop_reason": "tool_use",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 11,
+    "output_tokens": 3,
+    "cache_read_input_tokens": 5,
+    "cache_creation_input_tokens": 2,
+    "service_tier": "standard"
+  }
+}

@@ -1,0 +1,51 @@
+# macOS and editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Rust build and test output
+target/
+**/target/
+coverage/
+*.profraw
+*.profdata
+
+# JavaScript build output
+node_modules/
+dist/
+.vite/
+
+# Logs and runtime state
+*.log
+logs/
+tmp/
+*.pid
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.oauth.json
+auths/
+credentials/
+secrets/
+deploy-secrets/
+.cargo/credentials
+.cargo/credentials.toml
+
+# Local reports that may contain raw provider data
+docs/reports/private/
+tests/fixtures/private/
+benchmarks/private/

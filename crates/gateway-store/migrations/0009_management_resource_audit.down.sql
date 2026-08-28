@@ -1,0 +1,4 @@
+DROP TRIGGER management_resource_audit_events_no_delete;
+DROP TRIGGER management_resource_audit_events_no_update;
+DROP INDEX management_resource_audit_events_config_version_id_id;
+DROP TABLE management_resource_audit_events;

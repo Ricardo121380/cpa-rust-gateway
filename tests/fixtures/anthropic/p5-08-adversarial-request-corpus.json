@@ -1,0 +1,32 @@
+[
+  {
+    "id": "retained_unknown_fields",
+    "expected": "accept",
+    "input": "{\"model\":\"p5-08-model\",\"max_tokens\":1,\"vendor_root\":{\"enabled\":true},\"messages\":[{\"role\":\"user\",\"vendor_message\":[1,2],\"content\":[{\"type\":\"text\",\"text\":\"fixed corpus\",\"vendor_block\":{\"tier\":\"test\"}}]}]}"
+  },
+  {
+    "id": "unknown_content_block_is_opaque",
+    "expected": "accept",
+    "input": "{\"model\":\"p5-08-model\",\"max_tokens\":1,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"future_content\",\"payload\":[true,3]}]}]}"
+  },
+  {
+    "id": "nested_duplicate_unknown_name",
+    "expected": "client_request_error",
+    "input": "{\"model\":\"p5-08-model\",\"max_tokens\":1,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"x\",\"vendor\":1,\"vendor\":2}]}]}"
+  },
+  {
+    "id": "structurally_truncated_json",
+    "expected": "client_request_error",
+    "input": "{\"model\":\"p5-08-model\",\"max_tokens\":1,\"messages\":[{\"role\":\"user\",\"content\":\"unterminated\"}]"
+  },
+  {
+    "id": "user_tool_use_is_not_reclassified",
+    "expected": "client_request_error",
+    "input": "{\"model\":\"p5-08-model\",\"max_tokens\":1,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"tool_use\",\"id\":\"call\",\"name\":\"tool\",\"input\":{}}]}]}"
+  },
+  {
+    "id": "ambiguous_cache_control_is_rejected",
+    "expected": "client_request_error",
+    "input": "{\"model\":\"p5-08-model\",\"max_tokens\":1,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"x\",\"cache_control\":{\"type\":\"persistent\"}}]}]}"
+  }
+]

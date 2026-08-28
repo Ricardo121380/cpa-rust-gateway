@@ -1,0 +1,2 @@
+DROP INDEX grok_build_credential_runtime_credential_idx;
+DROP TABLE grok_build_credential_runtime;

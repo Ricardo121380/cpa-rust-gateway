@@ -1,0 +1,80 @@
+{
+  "requested_model": "gateway-model",
+  "messages": [
+    {
+      "role": "developer",
+      "content": [
+        {
+          "text": {
+            "text": "Use the available tools safely.",
+            "extensions": {
+              "vendor_text": {"priority": 1}
+            }
+          }
+        },
+        {
+          "opaque": {
+            "raw": {"kind":"input_image","image_url":{"url":"https://example.invalid/fake.png"},"extensions":{"vendor_media":{"safe":true}}},
+            "extensions": {}
+          }
+        }
+      ],
+      "extensions": {
+        "vendor_message": {"scope": ["tenant-a"]}
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "tool_call": {
+            "id": "call-01",
+            "name": "lookup",
+            "arguments": {"query":"weather"},
+            "extensions": {
+              "vendor_tool_call": {"parallel": false}
+            }
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "tool_result": {
+            "call_id": "call-01",
+            "output": {"forecast":"clear"},
+            "is_error": false,
+            "extensions": {
+              "vendor_tool_result": {"source":"fixture"}
+            }
+          }
+        }
+      ],
+      "extensions": {}
+    }
+  ],
+  "tools": [
+    {
+      "name": "lookup",
+      "description": "Look up a forecast.",
+      "input_schema": {"type":"object","properties":{"query":{"type":"string"}},"required":["query"]},
+      "extensions": {
+        "vendor_tool": {"strict": true}
+      }
+    }
+  ],
+  "thinking": {
+    "effort": "future-provider-level",
+    "extensions": {
+      "vendor_thinking": {"hint":"retain"}
+    }
+  },
+  "prompt_cache_key": "cache-key-01",
+  "prompt_cache_retention": "24h",
+  "extensions": {
+    "vendor_request": {"mode":"audit","flags":[true,false]}
+  }
+}

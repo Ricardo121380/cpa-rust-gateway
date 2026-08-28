@@ -1,0 +1,31 @@
+# P12-09 direct cutover: production hostname unchanged, all traffic goes to CPAR.
+#
+# This is a fragment, not a whole Caddyfile. It replaces exactly one existing site block on the
+# server; every other site (cpam, grok, kiro, sub) stays untouched.
+#
+# Deliberately NO global `servers` block. Caddy scopes `servers` by listener address, not by site,
+# so a global timeouts block on the server's single :443 listener would silently apply to every
+# other site sharing it. Scoping it would require moving this site to another port, which changes
+# the public surface.
+#
+# That is safe to omit because Caddy's server-level timeouts default to none, which is exactly what
+# a long-lived event stream needs. `CR-P12-ROLLOUT-001` requires read/idle timeouts above the data
+# plane's 15s SSE keepalive interval; "no timeout" satisfies that by construction. The live config
+# on the server currently sets no timeouts, verified with `caddy adapt`.
+#
+# The hazard is therefore the opposite of the usual one: adding a routine read or idle timeout here
+# would cut healthy idle streams between keepalives. `scripts/check-p12-caddy-split.rb` enforces
+# that any timeout introduced later still clears the gateway's own ceilings, which it reads from the
+# Rust source (15s keepalive, 30s inbound body, 15min progress deadline, 1h streaming total).
+#
+# Caddy needs no explicit flush configuration for SSE: responses with
+# `Content-Type: text/event-stream` are flushed immediately regardless of flush_interval.
+# Do not add `encode` to this site — compressing an event stream reintroduces buffering.
+
+cpa.example.invalid {
+	# No header, key, weight or percentage split: CPAR replaces CPA for this hostname.
+	reverse_proxy 127.0.0.1:18180
+}
+
+# There is deliberately no site block for the management listener. 127.0.0.1:18181 must remain
+# unreachable from the public internet; adding a route here would break that invariant.

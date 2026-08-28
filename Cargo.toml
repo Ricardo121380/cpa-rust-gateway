@@ -1,0 +1,83 @@
+[workspace]
+resolver = "2"
+members = [
+    "apps/gateway",
+    "crates/gateway-auth",
+    "crates/gateway-catalog",
+    "crates/gateway-control",
+    "crates/gateway-core",
+    "crates/gateway-http-actix",
+    "crates/gateway-observability",
+    "crates/gateway-protocol",
+    "crates/gateway-provider",
+    "crates/gateway-router",
+    "crates/gateway-store",
+    "crates/gateway-stream",
+    "crates/gateway-upstream",
+    "crates/protocol-anthropic",
+    "crates/protocol-openai-chat",
+    "crates/protocol-openai-responses",
+    "crates/provider-anthropic-compatible",
+    "crates/provider-grok",
+    "crates/provider-kiro",
+    "crates/provider-openai-compatible",
+    "tests/differential",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97.1"
+license = "MIT"
+authors = ["Huang Rui"]
+publish = false
+
+[workspace.dependencies]
+actix-web = { version = "4.11.0", default-features = false, features = ["macros"] }
+arc-swap = { version = "1.9.2", default-features = false }
+base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
+bytes = { version = "1.12.1", default-features = false }
+chacha20poly1305 = { version = "0.10.1", default-features = false, features = ["std"] }
+criterion = { version = "0.7.0", default-features = false, features = ["async_tokio"] }
+futures-util = { version = "0.3.32", default-features = false }
+flate2 = { version = "1.1.9", default-features = false, features = ["rust_backend"] }
+getrandom = { version = "0.3.4", default-features = false }
+hmac = { version = "0.12.1", default-features = false }
+p256 = { version = "0.13.2", default-features = false, features = ["ecdsa", "arithmetic", "sha256"] }
+rand_core = { version = "0.6.4", features = ["getrandom"] }
+libc = { version = "0.2.182", default-features = false }
+moka = { version = "0.12.11", default-features = false, features = ["sync"] }
+opentelemetry = { version = "0.32.0", default-features = false, features = ["trace"] }
+proptest = { version = "1.11.0", default-features = false, features = ["std"] }
+reqwest = { version = "0.12.28", default-features = false, features = ["http2", "rustls-tls-native-roots", "socks"] }
+rusqlite = { version = "0.40.1", default-features = false, features = ["backup", "bundled"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = { version = "1.0.150", features = ["raw_value"] }
+sha2 = { version = "0.10.9", default-features = false }
+subtle = { version = "2.6.1", default-features = false }
+time = { version = "0.3.53", default-features = false, features = ["parsing", "formatting"] }
+tokio = { version = "1.53.0", default-features = false, features = ["io-util", "net", "sync", "macros", "rt", "time"] }
+tokio-util = { version = "0.7.18", default-features = false }
+tracing = { version = "0.1.44", default-features = false, features = ["std"] }
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "json"] }
+url = { version = "2.5.8", default-features = false }
+zeroize = { version = "1.8.2", default-features = false, features = ["alloc"] }
+wreq = { version = "=6.0.0-rc.29", default-features = false, features = ["brotli", "deflate", "gzip", "stream", "tokio-rt", "socks", "zstd"] }
+wreq-util = { version = "=3.0.0-rc.14", default-features = false, features = ["emulation"] }
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+expect_used = "deny"
+panic = "deny"
+unwrap_used = "deny"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+panic = "abort"
+strip = "symbols"

@@ -1,0 +1,5 @@
+DROP TRIGGER gateway_event_log_no_delete;
+DROP TRIGGER gateway_event_log_no_update;
+DROP INDEX gateway_event_log_type_ordinal;
+DROP INDEX gateway_event_log_request_id_ordinal;
+DROP TABLE gateway_event_log;

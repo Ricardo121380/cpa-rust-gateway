@@ -1,0 +1,42 @@
+{
+  "emissions": [
+    {
+      "after_ms": 0,
+      "event": {
+        "response_start": {
+          "response_id": "mock-error-response",
+          "extensions": {}
+        }
+      }
+    },
+    {
+      "after_ms": 0,
+      "event": {
+        "message_start": {
+          "role": "assistant",
+          "extensions": {}
+        }
+      }
+    },
+    {
+      "after_ms": 0,
+      "event": {
+        "text_delta": {
+          "text": "partial mock output",
+          "extensions": {}
+        }
+      }
+    },
+    {
+      "after_ms": 0,
+      "event": {
+        "stream_error": {
+          "error": {
+            "code": "ProviderTransient",
+            "scope": "provider"
+          }
+        }
+      }
+    }
+  ]
+}

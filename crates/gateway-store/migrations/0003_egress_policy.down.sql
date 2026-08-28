@@ -1,0 +1,5 @@
+DROP TRIGGER egress_policies_reference_key_update;
+DROP TRIGGER egress_policies_reference_delete;
+DROP TRIGGER upstreams_egress_policy_reference_update;
+DROP TRIGGER upstreams_egress_policy_reference_insert;
+DROP TABLE egress_policies;

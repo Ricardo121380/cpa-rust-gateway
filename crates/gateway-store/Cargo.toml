@@ -1,0 +1,23 @@
+[package]
+name = "gateway-store"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+chacha20poly1305.workspace = true
+gateway-core = { path = "../gateway-core" }
+gateway-observability = { path = "../gateway-observability" }
+getrandom.workspace = true
+libc.workspace = true
+rusqlite.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tokio.workspace = true
+zeroize.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,13 @@
+[
+  {"response_start":{"response_id":"msg_upstream_json","extensions":{}}},
+  {"usage_delta":{"usage":{"input_tokens":11,"cache_read_tokens":5,"cache_creation_tokens":2,"extensions":{}},"is_final":false,"extensions":{}}},
+  {"message_start":{"role":"assistant","extensions":{}}},
+  {"reasoning_delta":{"text":"Weighing options.","extensions":{}}},
+  {"text_delta":{"text":"Hello there","extensions":{}}},
+  {"tool_call_start":{"call_id":"tool-weather","name":"lookup_weather","extensions":{}}},
+  {"tool_call_arguments_delta":{"call_id":"tool-weather","delta":"{\"city\":\"Berlin\"}","extensions":{}}},
+  {"tool_call_end":{"call_id":"tool-weather","arguments":{"city":"Berlin"},"extensions":{}}},
+  {"message_end":{"extensions":{}}},
+  {"usage_delta":{"usage":{"input_tokens":11,"output_tokens":3,"cache_read_tokens":5,"cache_creation_tokens":2,"extensions":{}},"is_final":true,"extensions":{}}},
+  {"response_end":{"stop_reason":"tool_use","extensions":{}}}
+]

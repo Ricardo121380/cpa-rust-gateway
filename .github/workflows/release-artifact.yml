@@ -1,0 +1,224 @@
+name: release-artifact
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: release-artifact-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_INCREMENTAL: "0"
+  RELEASE_RUST_VERSION: "1.97.1"
+  RELEASE_VERSION: "0.1.0"
+
+jobs:
+  build:
+    name: Build and sign ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Each target is built natively on a runner of its own architecture: no cross toolchain
+          # and no qemu, so the pre-signing container smoke test really executes the signed binary.
+          # x86_64 stays on the older glibc build baseline required by the Debian 12 runtime image.
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-22.04
+            platform: linux/amd64
+            base_image: debian:bookworm-slim@sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+            base_image: debian:bookworm-slim@sha256:9b67294679b30e5d6ab257b40594feeb4a4b81f7fcf4131f4decf0d6a212a9b0
+    env:
+      RELEASE_TARGET: ${{ matrix.target }}
+      RELEASE_BASE_IMAGE: ${{ matrix.base_image }}
+      RELEASE_BINARY: gateway-${{ matrix.target }}
+    steps:
+      - name: Checkout selected revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Install build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clang cmake libclang-dev nodejs npm ripgrep
+      - name: Install locked Rust toolchain
+        run: rustup toolchain install 1.97.1 --profile minimal
+      - name: Restore pinned quality-tool cache
+        id: quality-tool-cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            ~/.cargo/bin/cargo-deny
+            ~/.cargo/bin/cargo-audit
+            ~/.cargo/bin/cargo-cyclonedx
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: quality-tools-${{ runner.os }}-${{ runner.arch }}-rust-1.97.1-${{ hashFiles('tools/quality-tool-versions.env') }}
+      - name: Install pinned SBOM tool
+        run: ./scripts/install-quality-tools.sh
+      - name: Install management SPA build inputs
+        working-directory: web/admin-ui
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify the runner architecture matches the release target
+        run: |
+          set -euo pipefail
+          # Guards against a target being built on the wrong architecture, which would silently
+          # produce an artifact the production host cannot execute.
+          case "$RELEASE_TARGET" in
+            x86_64-unknown-linux-gnu) expected_machines='x86_64 amd64' ;;
+            aarch64-unknown-linux-gnu) expected_machines='aarch64 arm64' ;;
+            *) echo "unsupported release target: $RELEASE_TARGET" >&2; exit 1 ;;
+          esac
+          actual_machine="$(uname -m)"
+          matched=0
+          for candidate in $expected_machines; do
+            if [[ "$actual_machine" == "$candidate" ]]; then
+              matched=1
+            fi
+          done
+          if [[ "$matched" -ne 1 ]]; then
+            echo "runner is $actual_machine but $RELEASE_TARGET requires one of: $expected_machines" >&2
+            exit 1
+          fi
+      - name: Build revision-bound Linux binary
+        env:
+          GATEWAY_RELEASE_REVISION: ${{ github.sha }}
+          GATEWAY_RELEASE_RUST_VERSION: ${{ env.RELEASE_RUST_VERSION }}
+          GATEWAY_RELEASE_TARGET: ${{ env.RELEASE_TARGET }}
+        run: |
+          set -euo pipefail
+          mkdir --parents release-artifact release-image-context
+          cargo +1.97.1 build --locked --release --package gateway
+          install -m 0755 target/release/gateway "release-artifact/$RELEASE_BINARY"
+          ./scripts/p12-release-artifact.rb build-metadata \
+            --revision "$GITHUB_SHA" \
+            --rust-toolchain "$RELEASE_RUST_VERSION" \
+            --target "$RELEASE_TARGET" \
+            --version "$RELEASE_VERSION" \
+            --output release-artifact/gateway-build-metadata.json
+          ./scripts/p12-release-artifact.rb identity \
+            --repository "$GITHUB_REPOSITORY" \
+            --workflow-path .github/workflows/release-artifact.yml \
+            --ref "$GITHUB_REF" \
+            --output release-artifact/signing-identity.json
+          cp "release-artifact/$RELEASE_BINARY" release-image-context/gateway
+      - name: Generate redacted CycloneDX SBOM
+        run: |
+          ./scripts/generate-p12-01-sbom.rb \
+            --target "$RELEASE_TARGET" \
+            --output release-artifact/gateway-sbom.cdx.json
+      - name: Build non-root OCI archive and Docker smoke image
+        env:
+          IMAGE_REF: cpa-rust-gateway:${{ github.sha }}
+          DOCKER_ARCHIVE: ${{ runner.temp }}/gateway-image.docker.tar
+          RELEASE_PLATFORM: ${{ matrix.platform }}
+        run: |
+          set -euo pipefail
+          builder_name="p12-release-$GITHUB_RUN_ID"
+          docker buildx create --name "$builder_name" --driver docker-container --use
+          docker buildx inspect --bootstrap
+          docker buildx build \
+            --builder "$builder_name" \
+            --platform "$RELEASE_PLATFORM" \
+            --file Dockerfile \
+            --build-arg RELEASE_REVISION="$GITHUB_SHA" \
+            --build-arg RELEASE_VERSION="$RELEASE_VERSION" \
+            --build-arg RELEASE_RUST_VERSION="$RELEASE_RUST_VERSION" \
+            --build-arg RELEASE_TARGET="$RELEASE_TARGET" \
+            --build-arg RELEASE_BASE_IMAGE="$RELEASE_BASE_IMAGE" \
+            --output "type=oci,dest=release-artifact/gateway-image.oci.tar,name=$IMAGE_REF" \
+            --output "type=docker,dest=$DOCKER_ARCHIVE,name=$IMAGE_REF" \
+            release-image-context
+      - name: Verify unsigned artifact structure before signing
+        run: |
+          ./scripts/p12-release-artifact.rb manifest \
+            --artifact-dir release-artifact \
+            --revision "$GITHUB_SHA" \
+            --rust-toolchain "$RELEASE_RUST_VERSION" \
+            --target "$RELEASE_TARGET" \
+            --version "$RELEASE_VERSION" \
+            --output release-artifact/artifact-manifest.json
+          ./scripts/p12-release-artifact.rb verify \
+            --artifact-dir release-artifact \
+            --revision "$GITHUB_SHA" \
+            --rust-toolchain "$RELEASE_RUST_VERSION" \
+            --target "$RELEASE_TARGET" \
+            --version "$RELEASE_VERSION"
+      - name: Load and smoke the temporary Docker archive without a network
+        env:
+          IMAGE_REF: cpa-rust-gateway:${{ github.sha }}
+          DOCKER_ARCHIVE: ${{ runner.temp }}/gateway-image.docker.tar
+        run: |
+          set -euo pipefail
+          docker load --input "$DOCKER_ARCHIVE"
+          docker image inspect "$IMAGE_REF" --format '{{.Config.User}} {{json .Config.Entrypoint}}' \
+            | rg -Fx '65532:65532 ["/usr/local/bin/gateway"]'
+          docker run --rm --network none --read-only --user 65532:65532 "$IMAGE_REF" --help
+      - name: Install pinned Cosign
+        uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
+        with:
+          cosign-release: v2.6.4
+      - name: Keylessly sign the immutable manifest
+        run: |
+          cosign sign-blob --yes \
+            --bundle release-artifact/artifact-manifest.sigstore.json \
+            --output-signature release-artifact/artifact-manifest.json.sig \
+            release-artifact/artifact-manifest.json
+      - name: Independently verify the Sigstore bundle identity
+        run: |
+          set -euo pipefail
+          certificate_identity="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV.fetch(0))).fetch("certificate_identity")' release-artifact/signing-identity.json)"
+          certificate_issuer="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV.fetch(0))).fetch("certificate_oidc_issuer")' release-artifact/signing-identity.json)"
+          cosign verify-blob \
+            --bundle release-artifact/artifact-manifest.sigstore.json \
+            --certificate-identity "$certificate_identity" \
+            --certificate-oidc-issuer "$certificate_issuer" \
+            release-artifact/artifact-manifest.json
+      - name: Record and structurally verify signed receipt
+        run: |
+          set -euo pipefail
+          ./scripts/p12-release-artifact.rb receipt \
+            --artifact-dir release-artifact \
+            --revision "$GITHUB_SHA" \
+            --rust-toolchain "$RELEASE_RUST_VERSION" \
+            --target "$RELEASE_TARGET" \
+            --version "$RELEASE_VERSION" \
+            --workflow-run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --output release-artifact/artifact-receipt.json
+          ./scripts/p12-release-artifact.rb verify \
+            --artifact-dir release-artifact \
+            --revision "$GITHUB_SHA" \
+            --rust-toolchain "$RELEASE_RUST_VERSION" \
+            --target "$RELEASE_TARGET" \
+            --version "$RELEASE_VERSION" \
+            --require-signature \
+            --require-receipt
+      - name: Publish value-free receipt summary
+        run: |
+          ruby -rjson -e '
+            receipt = JSON.parse(File.read("release-artifact/artifact-receipt.json"))
+            target = ENV.fetch("RELEASE_TARGET")
+            puts "## P12-01 private release artifact (#{target})"
+            puts
+            puts "- Revision: `#{receipt.fetch("revision")}`"
+            puts "- Target: `#{target}`"
+            puts "- Manifest SHA-256: `#{receipt.fetch("manifest_sha256")}`"
+            puts "- SBOM SHA-256: `#{receipt.fetch("sbom_sha256")}`"
+            puts "- Signature: `#{receipt.fetch("signing").fetch("type")}` / `#{receipt.fetch("signing").fetch("verification")}`"
+            puts "- OCI archive, binary, SBOM, manifest, signature and receipt remain private workflow artifacts."
+          ' >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload private release artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: p12-01-release-artifact-${{ matrix.target }}-${{ github.sha }}
+          path: release-artifact/
+          if-no-files-found: error
+          retention-days: 14
