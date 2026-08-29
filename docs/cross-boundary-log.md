@@ -801,3 +801,60 @@ glyph 与 tone 不随语言变。后端返回的标识符一律不翻译。
 覆盖声明在屏、旧的过度承诺文案已不在包里、正文如声明所述仍是中文,零 pageerror)。
 **徽章英文在真网关上验不到** —— 离线部署三个投影全 503,`.rt-chip` 计数为 0,
 没有数据就没有徽章;只在 fixture 下验证过(并用临时回退确认过 E2E 确实会失败)。
+
+---
+
+## 2026-08-26 · Codex · Oracle Singapore VPS 安全连接交接
+
+**Touched:** `CLAUDE.md`、`docs/handoffs/claude-code-oracle-singapore-vps.md`、本文件。
+**未改动** `web/prism/**`、管理 OpenAPI、生成客户端、后端源码或远程服务。
+
+**Why:** 用户要求确认 CPAR 是否部署在 Oracle 新加坡 VPS，并给 Claude Code 一份连接方案。
+Codex 通过本机既有 SSH alias 做了 value-free 只读核对：`new-vps` 是 Oracle
+`ap-singapore-1` / Ubuntu 24.04 / ARM64，CPAR、Autoreg wrapper、Caddy 与三个 loopback
+listener 均存在；旧 `jakarta-vps` 的 CPAR 进程也仍 active，因此不得把“Oracle 已运行”
+解释为“Jakarta CPAR 可停”或“当前公网流量位置已重新证明”。零远程 mutation、零 Provider 请求、
+零 Secret 输出。
+
+**Other side:** **Action required.** Claude Code 在任何 Oracle 真机 UI 验证前必须完整阅读新
+handoff，只使用本机 `new-vps` alias 与 `18181:127.0.0.1:18181` SSH tunnel；不得展开/提交
+真实 IP、私钥路径或管理凭据。Prism 嵌入 gateway binary，禁止直接覆盖远程 `dist`。本交接只
+授权连接和只读检查，不授权部署、restart、Docker/SQLite/Caddy/DNS/Provider/Autoreg mutation。
+
+---
+
+## 2026-08-29 · Claude Code · P13 全量发布方案(第 1–4 步已完成,未装机)
+
+**Touched:** `docs/handoffs/p13-production-release-plan.md`(新增)、本文件。
+**未改动** `web/prism/**`、契约、生成物、后端源码。**未连接任何远程主机。**
+
+**Why:** operator 要求把本轮前端成果跑在真机上。核查后确认**"只发前端"结构上不可能** ——
+`c02a689`(当前生产血缘)的契约里 `listProviderEgressStatus` / `listOperationalUsage` /
+`createCompatibleProxyPool` / `executeChannelPin` / `listOperationalBilling` 全部为 0,
+Prism 批 A–D 就是消费 P13 契约的那部分工作。operator 据此选择 **P13 全量后端上生产**。
+
+**已完成 handoff §6 的第 1–4 步:**
+干净提交 `d75ab21` → `sync-contract`(契约未变、生成物零漂移)+ `check:full` →
+经既有 release workflow 在 `ubuntu-24.04-arm` 原生 runner 构建 aarch64 artifact
+([run 33091046905](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/33091046905))→
+`p12-release-artifact.rb verify --require-signature --require-receipt` 通过,
+并在本机独立 `cosign verify-blob` 验签 **Verified OK**。
+二进制 `714faebe…9e9cbc`,SBOM CycloneDX 1.5 / 290 组件。
+
+**给后端知情的两条实测结论(本次发布的运维要害):**
+
+1. **迁移在网关启动时自动施加**(`control_plane.rs:1384` `from_connection` → `migrate`),
+   没有单独命令、没有确认。`systemctl restart` 即在生产库上建 `0014`–`0019` 六张表。
+2. **六个迁移全部只新建表,没有任何 `ALTER TABLE` / `DROP` / `RENAME`** ——
+   既有 P12 表不变,因此**回滚只需换回旧二进制,不需要 down 迁移**。
+   但每个迁移各自一个事务(非六个原子),中途失败会停在中间态,只能走库恢复。
+
+**方案的头号风险,已写进文件 §8:** P13-07 改过路由/候选编译路径,
+现役 P12 时代 active Config Version 在 P13 下能否编译出运行图,**只能靠用生产库快照做 preflight**
+(独立端口 18280/18281、独立目录)来回答;preflight 第 3 项 `/v1/models` 非空是发布的硬闸。
+
+**Other side:** **无需 Codex 动作。** 但若后端认为 P13 上生产还需要额外的 Delivery Gate 证据
+(文件 §8 第 2 条:36 个后端提交含协议与调度改动,本文件不能代替 P13 自己的门禁),请在此留痕。
+
+**未做:** 未装机、未重启、未碰 Caddy/DNS/防火墙/Docker/Autoreg,零 Provider 请求,零 Secret 输出。
+handoff §6 明确装机与重启由 operator 执行。

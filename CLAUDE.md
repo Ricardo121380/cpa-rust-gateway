@@ -28,6 +28,14 @@ npm --prefix web/prism run sync-contract   # contract is backend-owned, follow i
 npm --prefix web/prism run check           # fails on generated-client drift
 ```
 
+## Oracle Singapore VPS handoff
+
+Before connecting to the Oracle Singapore host for real-gateway frontend verification, read
+[`docs/handoffs/claude-code-oracle-singapore-vps.md`](docs/handoffs/claude-code-oracle-singapore-vps.md)
+in full. The local SSH alias is `new-vps`; the handoff is read-only by default and explains the
+required loopback tunnel, origin constraint, CPAR/Autoreg separation, redaction rules, and stop
+conditions. It does not authorize deployment, restart, Provider requests, or traffic changes.
+
 ## When your change touches the backend
 
 Frontend work reaches backend files more often than it looks: the CSP the UI
