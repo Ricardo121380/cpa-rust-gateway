@@ -3344,6 +3344,16 @@ struct ProviderAccountPoolItemResponse {
     expires_at_ms: Option<i64>,
     refresh_due_at_ms: Option<i64>,
     quota_sync_due_at_ms: Option<i64>,
+    entitlement: Option<ProviderAccountEntitlementResponse>,
+}
+
+#[derive(Serialize)]
+struct ProviderAccountEntitlementResponse {
+    domain: &'static str,
+    tier: &'static str,
+    source: &'static str,
+    confidence: &'static str,
+    observed_at_ms: i64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -8069,7 +8079,11 @@ fn provider_account_pool_error(error: ProviderAccountPoolError) -> HttpResponse 
             "Provider account action target changed",
         ),
         ProviderAccountPoolError::InvalidSnapshot | ProviderAccountPoolError::SourceUnavailable => {
-            internal_error()
+            error_response(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "management_runtime_unavailable",
+                "Management runtime is unavailable",
+            )
         }
     }
 }
@@ -8719,6 +8733,15 @@ fn provider_account_pool_item_response(
         expires_at_ms: value.expires_at_ms,
         refresh_due_at_ms: value.refresh_due_at_ms,
         quota_sync_due_at_ms: value.quota_sync_due_at_ms,
+        entitlement: value
+            .entitlement
+            .map(|entitlement| ProviderAccountEntitlementResponse {
+                domain: entitlement.domain().as_str(),
+                tier: entitlement.tier().as_str(),
+                source: entitlement.source().as_str(),
+                confidence: entitlement.confidence().as_str(),
+                observed_at_ms: entitlement.observed_at_ms(),
+            }),
     }
 }
 

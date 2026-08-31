@@ -10,11 +10,15 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use gateway_core::EndpointId;
+use gateway_core::{
+    EndpointId, ProviderAccountEntitlement, ProviderAccountEntitlementConfidence,
+    ProviderAccountEntitlementSource, ProviderAccountEntitlementTier,
+};
 use gateway_store::secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore};
 use provider_grok::{
-    GrokAccountAuthStatus, GrokAccountCredential, GrokAccountEndpointBinding, GrokAccountIdentity,
-    GrokAccountImport, GrokAccountPoolError, GrokAccountPoolStore, GrokAccountProvider,
+    GrokAccountAuthStatus, GrokAccountCredential, GrokAccountEndpointBinding,
+    GrokAccountEntitlementUpdateOutcome, GrokAccountIdentity, GrokAccountImport,
+    GrokAccountPoolError, GrokAccountPoolStore, GrokAccountProvider,
 };
 use rusqlite::Connection;
 
@@ -171,6 +175,104 @@ fn batch_rollback_cascades_links_and_is_repeatable() -> TestResult {
             row.get(0)
         })?;
     assert_eq!(link_count, 0);
+    Ok(())
+}
+
+#[test]
+fn entitlement_is_channel_scoped_monotonic_projected_and_cascaded() -> TestResult {
+    let database = TemporaryDatabase::new()?;
+    let store =
+        GrokAccountPoolStore::try_new(Connection::open(database.path())?, secret_store(0xA5)?)?;
+    store.import_batch(
+        "entitlement-batch",
+        &[
+            account(GrokAccountProvider::Build, b"tier-build", b"build", 3)?,
+            account(GrokAccountProvider::Web, b"tier-web", b"web", 2)?,
+            account(GrokAccountProvider::Console, b"tier-console", b"console", 1)?,
+        ],
+        NOW_MS,
+    )?;
+    let accounts = store.list_accounts()?;
+    let build = accounts
+        .iter()
+        .find(|account| account.provider == GrokAccountProvider::Build)
+        .ok_or("Build account missing")?;
+    let web = accounts
+        .iter()
+        .find(|account| account.provider == GrokAccountProvider::Web)
+        .ok_or("Web account missing")?;
+    let console = accounts
+        .iter()
+        .find(|account| account.provider == GrokAccountProvider::Console)
+        .ok_or("Console account missing")?;
+    let build_entitlement = ProviderAccountEntitlement::try_new(
+        ProviderAccountEntitlementTier::GrokBuildSupergrok,
+        ProviderAccountEntitlementSource::ProviderSubscription,
+        ProviderAccountEntitlementConfidence::Authoritative,
+        NOW_MS + 2,
+    )?;
+    assert_eq!(
+        store.set_account_entitlement(&build.id, build_entitlement)?,
+        GrokAccountEntitlementUpdateOutcome::Created
+    );
+    assert_eq!(
+        store.set_account_entitlement(&build.id, build_entitlement)?,
+        GrokAccountEntitlementUpdateOutcome::Unchanged
+    );
+    let stale = ProviderAccountEntitlement::try_new(
+        ProviderAccountEntitlementTier::GrokBuildHeavy,
+        ProviderAccountEntitlementSource::SignedToken,
+        ProviderAccountEntitlementConfidence::Derived,
+        NOW_MS + 2,
+    )?;
+    assert_eq!(
+        store.set_account_entitlement(&build.id, stale),
+        Err(GrokAccountPoolError::StaleEntitlement)
+    );
+    assert_eq!(
+        store.set_account_entitlement(&web.id, build_entitlement),
+        Err(GrokAccountPoolError::InvalidRequest)
+    );
+    let web_entitlement = ProviderAccountEntitlement::try_new(
+        ProviderAccountEntitlementTier::GrokWebSuper,
+        ProviderAccountEntitlementSource::ProviderSubscription,
+        ProviderAccountEntitlementConfidence::Authoritative,
+        NOW_MS + 2,
+    )?;
+    assert_eq!(
+        store.set_account_entitlement(&console.id, web_entitlement),
+        Err(GrokAccountPoolError::InvalidRequest)
+    );
+
+    let compilation = store.compile_native_runtime(
+        &[GrokAccountEndpointBinding::new(
+            GrokAccountProvider::Build,
+            EndpointId::try_new("tier-build-endpoint")?,
+        )],
+        NOW_MS,
+    )?;
+    let projected = compilation
+        .account_metadata()
+        .ok_or("metadata unavailable")?
+        .iter()
+        .find(|account| account.id == build.id)
+        .and_then(|account| account.entitlement)
+        .ok_or("Build entitlement was not projected")?;
+    assert_eq!(projected, build_entitlement);
+
+    assert_eq!(
+        store
+            .rollback_import_batch("entitlement-batch", NOW_MS + 3)?
+            .removed,
+        3
+    );
+    let connection = Connection::open(database.path())?;
+    let rows: i64 = connection.query_row(
+        "SELECT count(*) FROM grok_account_entitlements",
+        [],
+        |row| row.get(0),
+    )?;
+    assert_eq!(rows, 0);
     Ok(())
 }
 

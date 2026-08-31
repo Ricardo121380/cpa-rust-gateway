@@ -144,7 +144,8 @@ fn execute_admin(command: AdminCommand) -> Result<(), CliError> {
         }
         AdminCommand::GrokImport { .. }
         | AdminCommand::GrokRollback { .. }
-        | AdminCommand::GrokProbe { .. } => unreachable!(),
+        | AdminCommand::GrokProbe { .. }
+        | AdminCommand::GrokBuildEntitlementSync { .. } => unreachable!(),
     }
     Ok(())
 }
@@ -184,6 +185,21 @@ fn execute_grok_admin(command: &AdminCommand) -> Result<bool, CliError> {
                 credential_directory,
                 batch,
                 provider,
+                *observed_at_ms,
+            )?;
+            return Ok(true);
+        }
+        AdminCommand::GrokBuildEntitlementSync {
+            database,
+            credential_directory,
+            batch,
+            observed_at_ms,
+            ..
+        } => {
+            grok_admin::sync_build_entitlement(
+                database,
+                credential_directory,
+                batch,
                 *observed_at_ms,
             )?;
             return Ok(true);
@@ -247,6 +263,13 @@ enum AdminCommand {
         provider: String,
         observed_at_ms: i64,
     },
+    GrokBuildEntitlementSync {
+        database: String,
+        actor: String,
+        credential_directory: String,
+        batch: String,
+        observed_at_ms: i64,
+    },
 }
 
 impl AdminCommand {
@@ -259,7 +282,8 @@ impl AdminCommand {
             | Self::Audit { database, .. }
             | Self::GrokImport { database, .. }
             | Self::GrokRollback { database, .. }
-            | Self::GrokProbe { database, .. } => database,
+            | Self::GrokProbe { database, .. }
+            | Self::GrokBuildEntitlementSync { database, .. } => database,
         }
     }
 
@@ -272,7 +296,8 @@ impl AdminCommand {
             | Self::Audit { actor, .. }
             | Self::GrokImport { actor, .. }
             | Self::GrokRollback { actor, .. }
-            | Self::GrokProbe { actor, .. } => actor,
+            | Self::GrokProbe { actor, .. }
+            | Self::GrokBuildEntitlementSync { actor, .. } => actor,
         }
     }
 }
@@ -359,6 +384,16 @@ fn parse_admin_command(arguments: Vec<String>) -> Result<AdminCommand, CliError>
                 "--observed-at-ms",
             )?,
         },
+        "grok-build-entitlement-sync" => AdminCommand::GrokBuildEntitlementSync {
+            database,
+            actor,
+            credential_directory: required_option(&mut options, "--credential-dir")?,
+            batch: required_option(&mut options, "--batch")?,
+            observed_at_ms: parse_i64_option(
+                &required_option(&mut options, "--observed-at-ms")?,
+                "--observed-at-ms",
+            )?,
+        },
         _ => return Err(CliError::Usage),
     };
     if options.is_empty() {
@@ -402,7 +437,7 @@ fn parse_i64_option(value: &str, option: &'static str) -> Result<i64, CliError> 
 
 fn print_usage() {
     println!(
-        "Usage:\n  gateway serve --data-listen <loopback-host:port> --management-listen <loopback-host:port> --state-dir <absolute-dir> --credential-dir <absolute-dir>\n  gateway admin create --db <path> --version <id> --description <text> [--parent <id>] [--actor <label>]\n  gateway admin validate --db <path> --version <id> [--actor <label>]\n  gateway admin publish --db <path> --version <id> [--actor <label>]\n  gateway admin rollback --db <path> [--actor <label>]\n  gateway admin audit --db <path> [--actor <label>]\n  gateway admin grok-import --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>\n  gateway admin grok-rollback --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>\n  gateway admin grok-probe --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --provider <grok_build|grok_console> --observed-at-ms <unix-ms>"
+        "Usage:\n  gateway serve --data-listen <loopback-host:port> --management-listen <loopback-host:port> --state-dir <absolute-dir> --credential-dir <absolute-dir>\n  gateway admin create --db <path> --version <id> --description <text> [--parent <id>] [--actor <label>]\n  gateway admin validate --db <path> --version <id> [--actor <label>]\n  gateway admin publish --db <path> --version <id> [--actor <label>]\n  gateway admin rollback --db <path> [--actor <label>]\n  gateway admin audit --db <path> [--actor <label>]\n  gateway admin grok-import --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>\n  gateway admin grok-rollback --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>\n  gateway admin grok-probe --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --provider <grok_build|grok_console> --observed-at-ms <unix-ms>\n  gateway admin grok-build-entitlement-sync --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>"
     );
     println!(
         "Optional serve flags: [--codex-oauth-proxy socks5://<host>:<port>] [--grok-web-proxy socks5://<host>:<port>] [--grok-web-flaresolverr-proxy socks5://<host>:<port>] [--grok-web-flaresolverr-port <port>]"
@@ -607,6 +642,29 @@ mod tests {
                 observed_at_ms: 3,
                 ..
             })) if provider == "grok_console"
+        ));
+
+        let entitlement_sync = parse_command(vec![
+            "admin".to_owned(),
+            "grok-build-entitlement-sync".to_owned(),
+            "--db".to_owned(),
+            "/state/control.sqlite3".to_owned(),
+            "--credential-dir".to_owned(),
+            "/run/credentials/gateway".to_owned(),
+            "--batch".to_owned(),
+            "local-grok-build".to_owned(),
+            "--observed-at-ms".to_owned(),
+            "4".to_owned(),
+        ]);
+        assert!(matches!(
+            entitlement_sync,
+            Ok(GatewayCommand::Admin(
+                AdminCommand::GrokBuildEntitlementSync {
+                    batch,
+                    observed_at_ms: 4,
+                    ..
+                }
+            )) if batch == "local-grok-build"
         ));
     }
 }

@@ -40,9 +40,10 @@ const ROUTING_PRICE_POLICY_SCHEMA_VERSION: i64 = 16;
 const STORED_RESPONSE_SCHEMA_VERSION: i64 = 17;
 const STORED_RESPONSE_COMPACTION_SCHEMA_VERSION: i64 = 18;
 const COMPATIBLE_EGRESS_POOL_SCHEMA_VERSION: i64 = 19;
+const GROK_ACCOUNT_ENTITLEMENT_SCHEMA_VERSION: i64 = 20;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = COMPATIBLE_EGRESS_POOL_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = GROK_ACCOUNT_ENTITLEMENT_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -146,6 +147,11 @@ const MIGRATIONS: &[Migration] = &[
         version: COMPATIBLE_EGRESS_POOL_SCHEMA_VERSION,
         up: include_str!("../migrations/0019_compatible_egress_pool.up.sql"),
         down: include_str!("../migrations/0019_compatible_egress_pool.down.sql"),
+    },
+    Migration {
+        version: GROK_ACCOUNT_ENTITLEMENT_SCHEMA_VERSION,
+        up: include_str!("../migrations/0020_grok_account_entitlements.up.sql"),
+        down: include_str!("../migrations/0020_grok_account_entitlements.down.sql"),
     },
 ];
 
@@ -580,6 +586,7 @@ mod tests {
                 "egress_policies",
                 "endpoint_credential_bindings",
                 "gateway_event_log",
+                "grok_account_entitlements",
                 "grok_account_import_batches",
                 "grok_account_links",
                 "grok_account_quota_windows",
@@ -813,10 +820,7 @@ mod tests {
         )?);
 
         migrate(&mut connection)?;
-        assert_eq!(
-            schema_version(&connection)?,
-            Some(COMPATIBLE_EGRESS_POOL_SCHEMA_VERSION)
-        );
+        assert_eq!(schema_version(&connection)?, Some(CURRENT_SCHEMA_VERSION));
         assert!(super::table_exists(
             &connection,
             "compatible_egress_proxy_pools"
@@ -827,6 +831,54 @@ mod tests {
             |row| row.get(0),
         )?;
         assert_eq!(pool_count, 0);
+        Ok(())
+    }
+
+    #[test]
+    fn grok_account_entitlement_migration_is_additive_and_domain_checked() -> TestResult {
+        let mut connection = open_in_memory()?;
+        migrate(&mut connection)?;
+        connection.execute(
+            "INSERT INTO grok_account_import_batches \
+             (id, status, created_count, unchanged_count, created_at_ms, rolled_back_at_ms) \
+             VALUES ('batch-a', 'applied', 1, 0, 1, NULL)",
+            [],
+        )?;
+        connection.execute(
+            "INSERT INTO grok_accounts \
+             (id, provider, identity_digest, credential_ciphertext, credential_key_version, \
+              auth_status, enabled, priority, weight, max_concurrency, refresh_due_at_ms, \
+              last_refresh_at_ms, refresh_failure_count, cooldown_until_ms, revision, \
+              import_batch_id, created_at_ms, updated_at_ms, quota_sync_due_at_ms) \
+             VALUES ('account-a', 'build', ?1, ?2, 1, 'active', 1, 1, 1, 1, NULL, NULL, 0, \
+                     NULL, 0, 'batch-a', 1, 1, NULL)",
+            params![vec![7_u8; 32], vec![8_u8; 41]],
+        )?;
+        connection.execute(
+            "INSERT INTO grok_account_entitlements \
+             (account_id, domain, tier, source, confidence, observed_at_ms) \
+             VALUES ('account-a', 'grok_build', 'supergrok', 'provider_subscription', \
+                     'authoritative', 2)",
+            [],
+        )?;
+        assert!(
+            connection
+                .execute(
+                    "UPDATE grok_account_entitlements SET domain = 'grok_web', tier = 'super' \
+                     WHERE account_id = 'account-a'",
+                    [],
+                )
+                .is_err()
+        );
+
+        rollback_to_version(&mut connection, COMPATIBLE_EGRESS_POOL_SCHEMA_VERSION)?;
+        assert!(!super::table_exists(
+            &connection,
+            "grok_account_entitlements"
+        )?);
+        assert!(super::table_exists(&connection, "grok_accounts")?);
+        migrate(&mut connection)?;
+        assert_eq!(schema_version(&connection)?, Some(CURRENT_SCHEMA_VERSION));
         Ok(())
     }
 

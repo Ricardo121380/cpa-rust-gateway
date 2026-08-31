@@ -1,12 +1,17 @@
 //! Strict API-key and Claude OAuth credential/refresh boundary.
 
-use std::{error::Error, fmt};
+use std::{
+    error::Error,
+    fmt,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
-use gateway_core::{ErrorScope, GatewayError, GatewayErrorCode};
+use gateway_core::{ErrorScope, GatewayError, GatewayErrorCode, ProviderAccountEntitlement};
 use serde::{Deserialize, Serialize, de};
 use zeroize::{Zeroize, Zeroizing};
 
 use crate::AnthropicMessagesAuthorization;
+use crate::account_entitlement::claude_entitlement_from_imported_plan;
 
 /// Fixed token endpoint used by the pinned Claude OAuth reference.
 pub const CLAUDE_OAUTH_TOKEN_URL: &str = "https://api.anthropic.com/v1/oauth/token";
@@ -28,6 +33,7 @@ pub struct ClaudeOAuthCredential {
     refresh_token: Zeroizing<String>,
     expires_at_ms: i64,
     account_id: Option<Zeroizing<String>>,
+    entitlement: Option<ProviderAccountEntitlement>,
 }
 
 /// Secret-owning refresh handoff for an explicitly composed DNS-pinned worker.
@@ -84,6 +90,26 @@ impl ClaudeRuntimeCredential {
     /// Rejects empty, oversized, whitespace-padded API-key, duplicate-name, unknown-field, or
     /// incomplete OAuth input without retaining a diagnostic value.
     pub fn import(input: &[u8]) -> Result<Self, ClaudeRuntimeCredentialError> {
+        let observed_at_ms = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .ok()
+            .and_then(|duration| i64::try_from(duration.as_millis()).ok())
+            .ok_or(ClaudeRuntimeCredentialError::Invalid)?;
+        Self::import_at(input, observed_at_ms)
+    }
+
+    /// Imports a credential with an explicit observation time for deterministic composition/tests.
+    ///
+    /// # Errors
+    ///
+    /// Applies the same strict validation as [`Self::import`] and rejects a negative timestamp.
+    pub fn import_at(
+        input: &[u8],
+        observed_at_ms: i64,
+    ) -> Result<Self, ClaudeRuntimeCredentialError> {
+        if observed_at_ms < 0 {
+            return Err(ClaudeRuntimeCredentialError::Invalid);
+        }
         if input.is_empty() || input.len() > MAX_CREDENTIAL_BYTES {
             return Err(ClaudeRuntimeCredentialError::Invalid);
         }
@@ -108,6 +134,12 @@ impl ClaudeRuntimeCredential {
             || document.refresh_token.trim().is_empty()
             || document.expires_at_ms <= 0
             || document.account_id.as_deref().is_some_and(str::is_empty)
+            || document.plan.as_deref().is_some_and(|plan| {
+                plan.trim().is_empty()
+                    || plan.trim() != plan
+                    || plan.len() > 128
+                    || !plan.is_ascii()
+            })
         {
             return Err(ClaudeRuntimeCredentialError::Invalid);
         }
@@ -116,6 +148,10 @@ impl ClaudeRuntimeCredential {
             refresh_token: Zeroizing::new(document.refresh_token),
             expires_at_ms: document.expires_at_ms,
             account_id: document.account_id.map(Zeroizing::new),
+            entitlement: document
+                .plan
+                .as_deref()
+                .and_then(|plan| claude_entitlement_from_imported_plan(plan, observed_at_ms)),
         }))
     }
 
@@ -200,6 +236,15 @@ impl ClaudeRuntimeCredential {
     pub fn has_account_binding(&self) -> bool {
         matches!(self, Self::OAuth(value) if value.account_id.is_some())
     }
+
+    /// Returns the non-secret normalized Claude plan observation, when explicitly supplied.
+    #[must_use]
+    pub const fn entitlement(&self) -> Option<ProviderAccountEntitlement> {
+        match self {
+            Self::OAuth(value) => value.entitlement,
+            Self::ApiKey(_) => None,
+        }
+    }
 }
 
 impl fmt::Debug for ClaudeRuntimeCredential {
@@ -212,6 +257,7 @@ impl fmt::Debug for ClaudeRuntimeCredential {
                 .field("refresh_token", &"[REDACTED]")
                 .field("expires_at_ms", &value.expires_at_ms)
                 .field("account_id_present", &value.account_id.is_some())
+                .field("entitlement", &value.entitlement)
                 .finish(),
         }
     }
@@ -225,6 +271,8 @@ struct ClaudeOAuthDocument {
     refresh_token: String,
     expires_at_ms: i64,
     account_id: Option<String>,
+    #[serde(default, alias = "plan_type", alias = "subscription_tier")]
+    plan: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -388,5 +436,28 @@ mod tests {
         assert!(ClaudeRuntimeCredential::import(b" padded").is_err());
         assert!(ClaudeRuntimeCredential::import(br#"{"kind":"claude_oauth","kind":"claude_oauth","access_token":"a","refresh_token":"r","expires_at_ms":1}"#).is_err());
         assert!(ClaudeRuntimeCredential::import(br#"{"kind":"claude_oauth","access_token":"a","refresh_token":"r","expires_at_ms":1,"foreign":true}"#).is_err());
+    }
+
+    #[test]
+    fn explicit_claude_plan_is_normalized_without_cross_domain_inference()
+    -> Result<(), Box<dyn Error>> {
+        let oauth = ClaudeRuntimeCredential::import_at(
+            br#"{"kind":"claude_oauth","access_token":"a","refresh_token":"r","expires_at_ms":100,"plan_type":"max5x"}"#,
+            42,
+        )?;
+        let entitlement = oauth.entitlement().ok_or("Claude entitlement missing")?;
+        assert_eq!(
+            entitlement.domain(),
+            gateway_core::ProviderAccountEntitlementDomain::Claude
+        );
+        assert_eq!(
+            entitlement.tier(),
+            gateway_core::ProviderAccountEntitlementTier::ClaudeMax5x
+        );
+        assert!(ClaudeRuntimeCredential::import_at(
+            br#"{"kind":"claude_oauth","access_token":"a","refresh_token":"r","expires_at_ms":100,"plan":" max5x"}"#,
+            42,
+        ).is_err());
+        Ok(())
     }
 }

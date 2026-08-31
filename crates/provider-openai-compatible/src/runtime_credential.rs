@@ -7,12 +7,16 @@ use std::{
 };
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-use gateway_core::{ErrorScope, GatewayError, GatewayErrorCode};
+use gateway_core::{ErrorScope, GatewayError, GatewayErrorCode, ProviderAccountEntitlement};
 use serde::{Deserialize, de};
 use serde_json::Value;
 use serde_json::json;
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zeroize::{Zeroize, Zeroizing};
+
+use crate::account_entitlement::{
+    chatgpt_entitlement_from_imported_plan, chatgpt_entitlement_from_signed_plan,
+};
 
 /// Fixed OAuth client identity used by the incumbent Codex implementation.
 pub const CODEX_OAUTH_CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
@@ -56,6 +60,8 @@ pub struct CodexCredentialMetadata {
     pub email: Option<String>,
     /// Accepted source envelope family.
     pub source_format: Option<String>,
+    /// Normalized `ChatGPT` account plan with explicit evidence provenance.
+    pub entitlement: Option<ProviderAccountEntitlement>,
 }
 
 impl fmt::Debug for CodexCredentialMetadata {
@@ -67,6 +73,7 @@ impl fmt::Debug for CodexCredentialMetadata {
             .field("platform", &self.platform)
             .field("email", &self.email.as_ref().map(|_| "[REDACTED]"))
             .field("source_format", &self.source_format)
+            .field("entitlement", &self.entitlement)
             .finish()
     }
 }
@@ -352,7 +359,7 @@ impl OpenAiCompatibleRuntimeCredential {
         } else {
             Some("cpa".to_owned())
         };
-        let metadata = metadata_from_objects(object, token, source_format);
+        let metadata = metadata_from_objects(object, token, source_format, now_ms, true);
         let id_token = optional_string_field(token, "id_token");
         let access_token_text = token.get("access_token").and_then(Value::as_str);
         let user_id = optional_string_field(token, "chatgpt_user_id")
@@ -369,10 +376,14 @@ impl OpenAiCompatibleRuntimeCredential {
             .email
             .or_else(|| jwt_string_claim(id_token.as_deref(), "email"))
             .or_else(|| jwt_string_claim(access_token_text, "email"));
-        metadata.plan = metadata
-            .plan
-            .or_else(|| jwt_auth_field(id_token.as_deref(), "chatgpt_plan_type"))
-            .or_else(|| jwt_auth_field(access_token_text, "chatgpt_plan_type"));
+        if metadata.plan.is_none() {
+            let signed_plan = jwt_auth_field(id_token.as_deref(), "chatgpt_plan_type")
+                .or_else(|| jwt_auth_field(access_token_text, "chatgpt_plan_type"));
+            metadata.entitlement = signed_plan
+                .as_deref()
+                .and_then(|plan| chatgpt_entitlement_from_signed_plan(plan, now_ms));
+            metadata.plan = signed_plan;
+        }
         Ok(Self::CodexOAuth(CodexOAuthCredential {
             access_token: Zeroizing::new(access_token),
             refresh_token: Zeroizing::new(refresh_token),
@@ -468,6 +479,14 @@ impl OpenAiCompatibleRuntimeCredential {
         let mut credential = Self::import_compatible(&normalized, now_ms)?;
         if let Self::CodexOAuth(value) = &mut credential {
             value.metadata.source_format = Some("direct_oauth".to_owned());
+            let signed_plan = jwt_auth_field(
+                value.id_token.as_deref().map(String::as_str),
+                "chatgpt_plan_type",
+            )
+            .or_else(|| jwt_auth_field(Some(value.access_token.as_str()), "chatgpt_plan_type"));
+            value.metadata.entitlement = signed_plan
+                .as_deref()
+                .and_then(|plan| chatgpt_entitlement_from_signed_plan(plan, now_ms));
         }
         Ok(credential)
     }
@@ -552,22 +571,26 @@ impl OpenAiCompatibleRuntimeCredential {
             .or_else(|| jwt_auth_field(token.get("access_token").and_then(Value::as_str), "poid"))
             .or_else(|| jwt_auth_field(id_token.as_deref(), "poid"));
         let response_client_id = optional_string_field(token, "client_id");
-        let mut metadata = metadata_from_objects(root, token, None);
+        let mut metadata = metadata_from_objects(root, token, None, now_ms, false);
         metadata.email = metadata
             .email
             .or_else(|| jwt_string_claim(id_token.as_deref(), "email"))
             .or_else(|| {
                 jwt_string_claim(token.get("access_token").and_then(Value::as_str), "email")
             });
-        metadata.plan = metadata
-            .plan
-            .or_else(|| jwt_auth_field(id_token.as_deref(), "chatgpt_plan_type"))
-            .or_else(|| {
-                jwt_auth_field(
-                    token.get("access_token").and_then(Value::as_str),
-                    "chatgpt_plan_type",
-                )
-            });
+        if metadata.plan.is_none() {
+            let signed_plan =
+                jwt_auth_field(id_token.as_deref(), "chatgpt_plan_type").or_else(|| {
+                    jwt_auth_field(
+                        token.get("access_token").and_then(Value::as_str),
+                        "chatgpt_plan_type",
+                    )
+                });
+            metadata.entitlement = signed_plan
+                .as_deref()
+                .and_then(|plan| chatgpt_entitlement_from_signed_plan(plan, now_ms));
+            metadata.plan = signed_plan;
+        }
         let Self::CodexOAuth(current) = self else {
             return Err(OpenAiRuntimeCredentialError::NotRefreshable);
         };
@@ -586,6 +609,7 @@ impl OpenAiCompatibleRuntimeCredential {
             .platform
             .or_else(|| current.metadata.platform.clone());
         metadata.email = metadata.email.or_else(|| current.metadata.email.clone());
+        metadata.entitlement = metadata.entitlement.or(current.metadata.entitlement);
         metadata
             .source_format
             .clone_from(&current.metadata.source_format);
@@ -794,6 +818,8 @@ fn metadata_from_objects(
     root: &serde_json::Map<String, Value>,
     token: &serde_json::Map<String, Value>,
     source_format: Option<String>,
+    observed_at_ms: i64,
+    imported_entitlement: bool,
 ) -> CodexCredentialMetadata {
     let meta = root.get("_meta").and_then(Value::as_object);
     let extra = root.get("extra").and_then(Value::as_object);
@@ -819,16 +845,24 @@ fn metadata_from_objects(
             None
         }
     });
+    let plan = text("plan_type")
+        .or_else(|| text("plan"))
+        .or_else(|| text("package"))
+        .or_else(|| text("package_name"))
+        .or_else(|| text("subscription_tier"));
+    let entitlement = imported_entitlement
+        .then(|| {
+            plan.as_deref()
+                .and_then(|plan| chatgpt_entitlement_from_imported_plan(plan, observed_at_ms))
+        })
+        .flatten();
     CodexCredentialMetadata {
-        plan: text("plan_type")
-            .or_else(|| text("plan"))
-            .or_else(|| text("package"))
-            .or_else(|| text("package_name"))
-            .or_else(|| text("subscription_tier")),
+        plan,
         quota,
         platform,
         email: text("email"),
         source_format,
+        entitlement,
     }
 }
 
@@ -1405,6 +1439,15 @@ mod tests {
         assert_eq!(metadata.platform.as_deref(), Some("chatgpt"));
         assert_eq!(metadata.email.as_deref(), Some("user@example.test"));
         assert_eq!(metadata.source_format.as_deref(), Some("sub2api"));
+        let entitlement = metadata.entitlement.ok_or("ChatGPT entitlement missing")?;
+        assert_eq!(
+            entitlement.tier(),
+            gateway_core::ProviderAccountEntitlementTier::ChatGptGo
+        );
+        assert_eq!(
+            entitlement.source(),
+            gateway_core::ProviderAccountEntitlementSource::ImportedMetadata
+        );
         assert!(!format!("{metadata:?}").contains("user@example.test"));
         assert!(format!("{metadata:?}").contains("[REDACTED]"));
         Ok(())
@@ -1430,6 +1473,12 @@ mod tests {
         )?;
         let metadata = imported.metadata().ok_or("OAuth metadata missing")?;
         assert_eq!(metadata.plan.as_deref(), Some("go"));
+        assert_eq!(
+            metadata
+                .entitlement
+                .map(gateway_core::ProviderAccountEntitlement::tier),
+            Some(gateway_core::ProviderAccountEntitlementTier::ChatGptGo)
+        );
         assert_eq!(metadata.platform.as_deref(), Some("openai"));
         let quota = metadata.quota.as_deref().ok_or("quota summary missing")?;
         assert!(quota.contains("used_percent=12"));

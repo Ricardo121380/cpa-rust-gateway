@@ -38,7 +38,7 @@ use gateway_control::{
     compatible_egress_runtime_compiler::{
         CompatibleEgressRuntimeCompiler, CompatibleEndpointBindingRuntimeSettings,
     },
-    control_plane_service::open_compatible_proxy_node_endpoint,
+    control_plane_service::{credential_associated_data, open_compatible_proxy_node_endpoint},
     credential_pool_compiler::CredentialPoolCompiler,
     egress_policy_compiler::EgressPolicyCompiler,
     management_mutation_service::ConfigRevision,
@@ -1186,8 +1186,12 @@ impl P12RoutedResponsesExecutor {
             .collect::<BTreeSet<_>>();
         let observed_at_ms = system_now_ms_runtime()
             .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::CredentialPool))?;
-        let mut provider_account_descriptors =
-            ordinary_provider_account_descriptors(configuration, &native_endpoint_ids);
+        let mut provider_account_descriptors = ordinary_provider_account_descriptors(
+            configuration,
+            &native_endpoint_ids,
+            secret_store,
+            observed_at_ms,
+        );
         let pools = CredentialPoolCompiler::new(secret_store)
             .compile_excluding_endpoints(configuration, &native_endpoint_ids)
             .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::CredentialPool))?;
@@ -2036,6 +2040,8 @@ fn build_grok_web_responses_adapter(
 fn ordinary_provider_account_descriptors(
     configuration: &ControlPlaneConfiguration,
     native_endpoint_ids: &BTreeSet<EndpointId>,
+    secret_store: &SecretStore,
+    observed_at_ms: i64,
 ) -> Result<Vec<ProviderAccountDescriptor>, RuntimeCompositionError> {
     let upstreams = configuration
         .upstreams
@@ -2126,10 +2132,55 @@ fn ordinary_provider_account_descriptors(
             expires_at_ms: None,
             refresh_due_at_ms: None,
             quota_sync_due_at_ms: None,
+            entitlement: ordinary_account_entitlement(
+                configuration,
+                endpoint,
+                credential,
+                secret_store,
+                observed_at_ms,
+            ),
             upstream_models: models.get(&endpoint.id).cloned().unwrap_or_default(),
         });
     }
     Ok(descriptors)
+}
+
+fn ordinary_account_entitlement(
+    configuration: &ControlPlaneConfiguration,
+    endpoint: &EndpointConfiguration,
+    credential: &gateway_store::control_plane::CredentialConfiguration,
+    secret_store: &SecretStore,
+    observed_at_ms: i64,
+) -> Option<gateway_core::ProviderAccountEntitlement> {
+    if credential.status != CredentialStatus::Active {
+        return None;
+    }
+    let is_codex = endpoint.adapter_id == "openai-compatible.responses"
+        && composed_endpoint_url(endpoint).starts_with("https://chatgpt.com/backend-api/codex/");
+    let is_claude = endpoint.adapter_id == "anthropic-compatible.messages"
+        && composed_endpoint_url(endpoint) == "https://api.anthropic.com/v1/messages";
+    if !is_codex && !is_claude {
+        return None;
+    }
+    let associated_data = credential_associated_data(
+        &configuration.version.id,
+        &credential.id,
+        &credential.upstream_id,
+    )
+    .ok()?;
+    let plaintext = secret_store
+        .open(&credential.encrypted_secret, &associated_data)
+        .ok()?;
+    if is_codex {
+        OpenAiCompatibleRuntimeCredential::import_compatible(plaintext.as_bytes(), observed_at_ms)
+            .ok()?
+            .metadata()?
+            .entitlement
+    } else {
+        ClaudeRuntimeCredential::import_at(plaintext.as_bytes(), observed_at_ms)
+            .ok()?
+            .entitlement()
+    }
 }
 
 fn native_provider_account_descriptors(
@@ -2212,6 +2263,7 @@ fn native_provider_account_descriptors(
             expires_at_ms: None,
             refresh_due_at_ms: account.refresh_due_at_ms,
             quota_sync_due_at_ms: account.quota_sync_due_at_ms,
+            entitlement: account.entitlement,
             upstream_models: models.get(endpoint_id).cloned().unwrap_or_default(),
         });
     }
@@ -11313,6 +11365,12 @@ mod tests {
                 cooldown_until_ms: Some(400),
                 revision: 7,
                 import_batch_id: "native-build-batch".to_owned(),
+                entitlement: Some(gateway_core::ProviderAccountEntitlement::try_new(
+                    gateway_core::ProviderAccountEntitlementTier::GrokBuildSupergrok,
+                    gateway_core::ProviderAccountEntitlementSource::ProviderSubscription,
+                    gateway_core::ProviderAccountEntitlementConfidence::Authoritative,
+                    19,
+                )?),
             },
             provider_grok::GrokAccountMetadata {
                 id: "native-build-reauth".to_owned(),
@@ -11327,6 +11385,7 @@ mod tests {
                 cooldown_until_ms: None,
                 revision: 3,
                 import_batch_id: "native-build-batch".to_owned(),
+                entitlement: None,
             },
         ];
 
@@ -11340,6 +11399,12 @@ mod tests {
         assert_eq!(active.provider_id.as_str(), "p12-runtime-upstream");
         assert_eq!(active.channel_id.as_str(), P12_SINGLETON_TEST_ENDPOINT_ID);
         assert_eq!(active.account_kind, "grok_build_oauth");
+        assert_eq!(
+            active
+                .entitlement
+                .map(gateway_core::ProviderAccountEntitlement::tier),
+            Some(gateway_core::ProviderAccountEntitlementTier::GrokBuildSupergrok)
+        );
         assert_eq!(active.priority, 2_000);
         assert_eq!(active.weight, 3);
         assert_eq!(active.max_concurrency, 2);
@@ -11364,12 +11429,91 @@ mod tests {
     }
 
     #[test]
+    fn ordinary_codex_and_claude_metadata_keep_distinct_entitlement_domains()
+    -> Result<(), Box<dyn Error>> {
+        let secret_store = test_secret_store()?;
+        let mut codex = p12_configuration(&secret_store)?;
+        codex.endpoints[0].base_url = "https://chatgpt.com/backend-api/codex".to_owned();
+        codex.endpoints[0].inference_path = "/responses".to_owned();
+        codex.credentials[0].kind = "oauth_json".to_owned();
+        let aad = credential_associated_data(
+            &codex.version.id,
+            &codex.credentials[0].id,
+            &codex.credentials[0].upstream_id,
+        )?;
+        codex.credentials[0].encrypted_secret = secret_store.seal(
+            br#"{"auth_mode":"chatgpt","tokens":{"access_token":"a","refresh_token":"r","expires_at_ms":1000},"_meta":{"plan_type":"plus"}}"#,
+            &aad,
+        )?;
+        let codex_rows = super::ordinary_provider_account_descriptors(
+            &codex,
+            &BTreeSet::new(),
+            &secret_store,
+            42,
+        )?;
+        let codex_entitlement = codex_rows[0].entitlement.ok_or("Codex tier missing")?;
+        assert_eq!(
+            codex_entitlement.domain(),
+            gateway_core::ProviderAccountEntitlementDomain::ChatGpt
+        );
+        assert_eq!(
+            codex_entitlement.tier(),
+            gateway_core::ProviderAccountEntitlementTier::ChatGptPlus
+        );
+
+        let mut claude = p12_configuration(&secret_store)?;
+        claude.endpoints[0].adapter_id = "anthropic-compatible.messages".to_owned();
+        claude.endpoints[0].api_format = "anthropic/messages".to_owned();
+        claude.endpoints[0].base_url = "https://api.anthropic.com/v1".to_owned();
+        claude.endpoints[0].inference_path = "/messages".to_owned();
+        claude.credentials[0].kind = "oauth_json".to_owned();
+        let aad = credential_associated_data(
+            &claude.version.id,
+            &claude.credentials[0].id,
+            &claude.credentials[0].upstream_id,
+        )?;
+        claude.credentials[0].encrypted_secret = secret_store.seal(
+            br#"{"kind":"claude_oauth","access_token":"a","refresh_token":"r","expires_at_ms":1000,"plan":"max20x"}"#,
+            &aad,
+        )?;
+        let claude_rows = super::ordinary_provider_account_descriptors(
+            &claude,
+            &BTreeSet::new(),
+            &secret_store,
+            42,
+        )?;
+        let claude_entitlement = claude_rows[0].entitlement.ok_or("Claude tier missing")?;
+        assert_eq!(
+            claude_entitlement.domain(),
+            gateway_core::ProviderAccountEntitlementDomain::Claude
+        );
+        assert_eq!(
+            claude_entitlement.tier(),
+            gateway_core::ProviderAccountEntitlementTier::ClaudeMax20x
+        );
+
+        claude.endpoints[0].base_url = "https://relay.example.test/v1".to_owned();
+        let generic_rows = super::ordinary_provider_account_descriptors(
+            &claude,
+            &BTreeSet::new(),
+            &secret_store,
+            43,
+        )?;
+        assert_eq!(generic_rows[0].entitlement, None);
+        Ok(())
+    }
+
+    #[test]
     fn invalid_management_projection_does_not_block_the_serving_pool() -> Result<(), Box<dyn Error>>
     {
         let secret_store = test_secret_store()?;
         let configuration = p12_configuration(&secret_store)?;
-        let mut descriptors =
-            super::ordinary_provider_account_descriptors(&configuration, &BTreeSet::new())?;
+        let mut descriptors = super::ordinary_provider_account_descriptors(
+            &configuration,
+            &BTreeSet::new(),
+            &secret_store,
+            0,
+        )?;
         descriptors[0].upstream_models = (0..257).map(|index| format!("model-{index}")).collect();
         let pools = Arc::new(CredentialPoolCompiler::new(&secret_store).compile(&configuration)?);
         assert!(pools.pool(&configuration.endpoints[0].id).is_some());

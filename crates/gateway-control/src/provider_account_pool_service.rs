@@ -7,7 +7,7 @@
 
 use std::{collections::BTreeSet, error::Error, fmt};
 
-use gateway_core::{CredentialId, EndpointId, ProviderId};
+use gateway_core::{CredentialId, EndpointId, ProviderAccountEntitlement, ProviderId};
 
 /// Default number of Provider-owned account rows returned in one page.
 pub const DEFAULT_PROVIDER_ACCOUNT_POOL_LIMIT: usize = 50;
@@ -242,6 +242,8 @@ pub struct ProviderAccountPoolItem {
     pub refresh_due_at_ms: Option<i64>,
     /// Provider-specific quota synchronization deadline, if known.
     pub quota_sync_due_at_ms: Option<i64>,
+    /// Provider/channel-scoped entitlement observation, if explicit evidence exists.
+    pub entitlement: Option<ProviderAccountEntitlement>,
 }
 
 impl ProviderAccountPoolItem {
@@ -737,6 +739,7 @@ mod tests {
             expires_at_ms: None,
             refresh_due_at_ms: None,
             quota_sync_due_at_ms: None,
+            entitlement: None,
         }
     }
 

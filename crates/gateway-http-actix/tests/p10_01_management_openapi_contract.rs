@@ -50,6 +50,29 @@ fn provider_account_pool_bounds_match_existing_runtime_scheduler_domains() -> Te
     assert!(item["priority"].get("maximum").is_none());
     assert_eq!(item["max_concurrency"]["maximum"], 100_000);
     assert_eq!(item["active_leases"]["maximum"], 100_000);
+    assert!(item["entitlement"]["anyOf"].is_array());
+    let entitlement = &document["components"]["schemas"]["ProviderAccountEntitlement"];
+    assert_eq!(entitlement["additionalProperties"], false);
+    assert_eq!(
+        entitlement["allOf"][0]["oneOf"].as_array().map(Vec::len),
+        Some(4)
+    );
+    assert_eq!(
+        entitlement["allOf"][0]["oneOf"][0]["properties"]["domain"]["enum"],
+        serde_json::json!(["grok_build"])
+    );
+    assert_eq!(
+        entitlement["allOf"][0]["oneOf"][0]["properties"]["tier"]["enum"],
+        serde_json::json!(["unknown", "free", "supergrok", "heavy"])
+    );
+    assert_eq!(
+        entitlement["allOf"][0]["oneOf"][1]["properties"]["tier"]["enum"],
+        serde_json::json!(["unknown", "basic", "super", "heavy"])
+    );
+    assert_eq!(
+        entitlement["allOf"][1]["oneOf"].as_array().map(Vec::len),
+        Some(3)
+    );
     Ok(())
 }
 

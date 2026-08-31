@@ -2,6 +2,7 @@
 
 #![deny(unsafe_code)]
 
+mod account_entitlement;
 mod account_pool;
 mod account_worker;
 mod build_responses;
@@ -36,10 +37,15 @@ mod web_quota;
 mod web_statsig;
 mod web_tool_emulation;
 
+pub use account_entitlement::{
+    GROK_BUILD_SUBSCRIPTION_URL, GrokBuildEntitlementError,
+    grok_build_entitlement_from_access_token, grok_build_entitlement_from_subscription_response,
+};
 pub use account_pool::{
-    GrokAccountAuthStatus, GrokAccountCredential, GrokAccountEndpointBinding, GrokAccountIdentity,
-    GrokAccountImport, GrokAccountImportOutcome, GrokAccountImportRelation, GrokAccountMetadata,
-    GrokAccountPoolError, GrokAccountPoolStore, GrokAccountProvider, GrokAccountRollbackOutcome,
+    GrokAccountAuthStatus, GrokAccountCredential, GrokAccountEndpointBinding,
+    GrokAccountEntitlementUpdateOutcome, GrokAccountIdentity, GrokAccountImport,
+    GrokAccountImportOutcome, GrokAccountImportRelation, GrokAccountMetadata, GrokAccountPoolError,
+    GrokAccountPoolStore, GrokAccountProvider, GrokAccountRollbackOutcome,
     GrokNativeAccountCompileError, GrokNativeAccountPoolCompilation,
 };
 pub use account_worker::{

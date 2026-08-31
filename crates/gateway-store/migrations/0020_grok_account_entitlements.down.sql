@@ -1,0 +1,4 @@
+DROP TRIGGER IF EXISTS grok_account_entitlements_provider_update;
+DROP TRIGGER IF EXISTS grok_account_entitlements_provider_insert;
+DROP INDEX IF EXISTS grok_account_entitlements_by_domain_tier;
+DROP TABLE IF EXISTS grok_account_entitlements;

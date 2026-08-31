@@ -858,3 +858,39 @@ Prism 批 A–D 就是消费 P13 契约的那部分工作。operator 据此选�
 
 **未做:** 未装机、未重启、未碰 Caddy/DNS/防火墙/Docker/Autoreg,零 Provider 请求,零 Secret 输出。
 handoff §6 明确装机与重启由 operator 执行。
+
+---
+
+## 2026-09-01 · Codex · P13-12 Provider/channel-scoped account entitlement
+
+**Touched:** 后端 Rust、migration `0020`、authoritative
+`docs/openapi/management-v1.json`、开发计划/CR 与本文件。**未改动** `web/prism/**`。
+
+**Why:** operator 要求识别反代账号等级，并明确纠正 Grok
+`free/supergrok/heavy` 只属于 **Grok Build**；Grok Web 与 Grok Console 是单独渠道。
+同时，Autoreg 是独立项目，不再占用 CPAR 的 P13-12。后端新增 nullable
+`ProviderAccountPoolItem.entitlement`，原子字段为 `domain/tier/source/confidence/observed_at_ms`。
+无证据时是 `null`，不得根据 quota、请求成功或同一 Grok 身份猜测。
+
+**Action required for Claude Code:** authoritative OpenAPI 已变，`web/prism/contracts` 与 generated
+client/fixture 目前会故意显示 drift。请在你当前前端分支执行 `npm --prefix web/prism run
+sync-contract`，然后只在账号池详情中消费新字段：
+
+- 必须把 domain 与 tier 一起显示，例如 `Grok Build · SuperGrok`；
+- `entitlement: null` 显示“未观测/Not observed”，不能显示 Free 或 Unknown；
+- 不得把 Grok Build 的值复制给 Web/Console，也不得合成 overall health；
+- source/confidence/observed time 可作为证据详情；tier 不能替代 auth/runtime/quota 状态；
+- fixture 至少覆盖 Build `supergrok`、Web 独立域、Console/null、ChatGPT 与 Claude 重名 `free`
+  仍按 domain 区分。
+
+**Resolved prior action:** 2026-08-20 留下的账号池 `500` vs `503` 已由后端修复并回归：
+`InvalidSnapshot`/`SourceUnavailable` 现在统一返回 `503 management_runtime_unavailable`。
+
+**Other side:** Claude Code 不需要也不得修改 migration、Rust tier parser、生产数据库或执行 live
+subscription sync。后端完成前此项保持 `IN_PROGRESS`；OpenAPI 字段形状已冻结，可先完成前端接线。
+
+**Existing frontend gate issue:** 本次后端验证运行 `./scripts/check.sh docs` 时，文档链接、契约引用、
+计划状态、canary/Caddy 边界与 secret scan 均通过，但仓库的全历史 whitespace 步骤发现已提交的
+`web/prism/src/features/models/model.ts` 在 EOF 有一个额外空行。普通后端工作区 `git diff --check`
+通过，说明这不是本次后端 diff。Claude Code 同步契约时请一并删除该 EOF 空行并重跑前端/文档门禁；
+Codex 按所有权边界没有修改该文件。

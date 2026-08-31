@@ -15,7 +15,7 @@ use std::{
 use crate::deployment;
 use gateway_core::{
     CanonicalRequest, CanonicalResponse, EgressPolicyId, EndpointId, ErrorScope, GatewayError,
-    GatewayErrorCode, RequestContext, RequestId,
+    GatewayErrorCode, ProviderAccountEntitlement, RequestContext, RequestId,
 };
 use gateway_router::{
     ProtocolFormat, ProtocolResponseRejection, RuntimeCredentialAccountStatus,
@@ -25,19 +25,26 @@ use gateway_store::secret_store::{KeyVersion, MasterKeyRing, SecretStore};
 use gateway_upstream::{
     EgressAdmissionErrorCode, EgressCidr, EgressDnsError, EgressDnsResolver, EgressHost,
     EgressPolicy, EgressPolicyInput, EgressScheme, RedirectPolicy, SystemEgressDnsResolver,
-    UpstreamClientPool, UpstreamProxy, UpstreamTimeouts, UpstreamTransportProfile,
+    UpstreamClientPool, UpstreamHttpMethod, UpstreamHttpRequest, UpstreamProxy, UpstreamTimeouts,
+    UpstreamTransportProfile,
 };
 use protocol_openai_responses::{ResponseMode, decode_request};
 use provider_grok::{
-    GROK_CONSOLE_RESPONSES_URL, Grok2ApiMemoryStreamMigration, Grok2ApiMigrationError,
-    GrokAccountEndpointBinding, GrokAccountPoolError, GrokAccountPoolStore, GrokAccountProvider,
-    GrokBuildCredential, GrokBuildExecutionMode, GrokBuildInferenceAdapter,
-    GrokBuildUpstreamTransport, GrokConsoleExecutionMode, GrokConsoleInferenceAdapter,
-    GrokConsoleRequestError, GrokConsoleResponsesRequestBuilder, GrokConsoleSsoToken,
-    GrokConsoleUpstreamTransport,
+    GROK_BUILD_CLIENT_IDENTIFIER, GROK_BUILD_CLIENT_IDENTIFIER_HEADER, GROK_BUILD_CLIENT_MODE,
+    GROK_BUILD_CLIENT_MODE_HEADER, GROK_BUILD_CLIENT_VERSION, GROK_BUILD_CLIENT_VERSION_HEADER,
+    GROK_BUILD_SUBSCRIPTION_URL, GROK_BUILD_TOKEN_AUTH_HEADER, GROK_BUILD_TOKEN_AUTH_VALUE,
+    GROK_BUILD_USER_AGENT, GROK_CONSOLE_RESPONSES_URL, Grok2ApiMemoryStreamMigration,
+    Grok2ApiMigrationError, GrokAccountEndpointBinding, GrokAccountEntitlementUpdateOutcome,
+    GrokAccountPoolError, GrokAccountPoolStore, GrokAccountProvider, GrokBuildCredential,
+    GrokBuildExecutionMode, GrokBuildInferenceAdapter, GrokBuildUpstreamTransport,
+    GrokConsoleExecutionMode, GrokConsoleInferenceAdapter, GrokConsoleRequestError,
+    GrokConsoleResponsesRequestBuilder, GrokConsoleSsoToken, GrokConsoleUpstreamTransport,
+    grok_build_entitlement_from_access_token, grok_build_entitlement_from_subscription_response,
 };
 use provider_kiro::InferenceAdapter;
 use serde::Deserialize;
+
+const MAX_BUILD_SUBSCRIPTION_RESPONSE_BYTES: usize = 64 * 1024;
 
 /// Safe, value-free failure for a local migration operation.
 #[derive(Debug)]
@@ -65,6 +72,8 @@ pub(crate) enum GrokAdminError {
         responses: ProtocolResponseRejection,
         messages: ProtocolResponseRejection,
     },
+    EntitlementRejected,
+    Entitlement(GrokAccountPoolError),
     Migration(Grok2ApiMigrationError),
     Rollback(GrokAccountPoolError),
 }
@@ -81,6 +90,7 @@ impl fmt::Display for GrokAdminError {
             Self::StoreUnavailable => "native Grok migration store is unavailable",
             Self::ProbeRejected => "native Grok probe request was rejected",
             Self::ProbeUnavailable => "native Grok probe failed",
+            Self::EntitlementRejected => "native Grok Build entitlement sync was rejected",
             Self::ProbeGateway { stage, code, scope } => {
                 return write!(
                     formatter,
@@ -128,6 +138,12 @@ impl fmt::Display for GrokAdminError {
                     "native Grok migration rollback failed: category={error:?}"
                 );
             }
+            Self::Entitlement(error) => {
+                return write!(
+                    formatter,
+                    "native Grok Build entitlement sync failed: category={error:?}"
+                );
+            }
         })
     }
 }
@@ -136,7 +152,7 @@ impl Error for GrokAdminError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Migration(error) => Some(error),
-            Self::Rollback(error) => Some(error),
+            Self::Rollback(error) | Self::Entitlement(error) => Some(error),
             _ => None,
         }
     }
@@ -189,6 +205,132 @@ pub(crate) fn rollback(
         outcome.removed, outcome.already_rolled_back,
     );
     Ok(())
+}
+
+/// Synchronizes the exact enabled Build account in one import batch.
+///
+/// The command performs at most one bodyless subscription request. A valid successful response is
+/// authoritative; every other live result may only fall back to the already-held access-token
+/// claim. It never selects Web or Console accounts, sends inference, refreshes, or retries.
+pub(crate) fn sync_build_entitlement(
+    database: &str,
+    credential_directory: &str,
+    batch: &str,
+    observed_at_ms: i64,
+) -> Result<(), GrokAdminError> {
+    require_root()?;
+    let store = open_store(database, credential_directory)?;
+    let accounts = store.list_accounts().map_err(GrokAdminError::Entitlement)?;
+    let selected = accounts
+        .iter()
+        .filter(|account| {
+            account.import_batch_id == batch
+                && account.provider == GrokAccountProvider::Build
+                && account.enabled
+        })
+        .collect::<Vec<_>>();
+    if selected.len() != 1 {
+        return Err(GrokAdminError::EntitlementRejected);
+    }
+    let selected = selected[0];
+    let credential_bytes = store
+        .open_credential(&selected.id)
+        .map_err(GrokAdminError::Entitlement)?;
+    let credential =
+        GrokBuildCredential::import_runtime_json(credential_bytes.as_bytes(), observed_at_ms)
+            .map_err(|_| GrokAdminError::EntitlementRejected)?;
+    let live_body =
+        actix_web::rt::System::new().block_on(fetch_build_subscription(credential.access_token()));
+    let entitlement = select_build_entitlement(
+        live_body.as_deref(),
+        credential.access_token(),
+        observed_at_ms,
+    )?;
+    let outcome = store
+        .set_account_entitlement(&selected.id, entitlement)
+        .map_err(GrokAdminError::Entitlement)?;
+    let outcome = match outcome {
+        GrokAccountEntitlementUpdateOutcome::Created => "created",
+        GrokAccountEntitlementUpdateOutcome::Updated => "updated",
+        GrokAccountEntitlementUpdateOutcome::Unchanged => "unchanged",
+    };
+    println!(
+        "native_grok_entitlement_sync=PASS provider=grok_build domain={} tier={} source={} confidence={} outcome={outcome}",
+        entitlement.domain().as_str(),
+        entitlement.tier().as_str(),
+        entitlement.source().as_str(),
+        entitlement.confidence().as_str(),
+    );
+    Ok(())
+}
+
+fn select_build_entitlement(
+    live_body: Option<&[u8]>,
+    access_token: &str,
+    observed_at_ms: i64,
+) -> Result<ProviderAccountEntitlement, GrokAdminError> {
+    live_body
+        .and_then(|body| {
+            grok_build_entitlement_from_subscription_response(body, observed_at_ms).ok()
+        })
+        .or_else(|| grok_build_entitlement_from_access_token(access_token, observed_at_ms).ok())
+        .ok_or(GrokAdminError::EntitlementRejected)
+}
+
+async fn fetch_build_subscription(access_token: &str) -> Option<Vec<u8>> {
+    let (policy, resolver) =
+        probe_egress("cli-chat-proxy.grok.com", GROK_BUILD_SUBSCRIPTION_URL).ok()?;
+    let admitted = policy
+        .admit_url(GROK_BUILD_SUBSCRIPTION_URL, resolver.as_ref())
+        .ok()?;
+    let headers = vec![
+        ("accept".to_owned(), "application/json".to_owned()),
+        ("authorization".to_owned(), format!("Bearer {access_token}")),
+        (
+            GROK_BUILD_TOKEN_AUTH_HEADER.to_owned(),
+            GROK_BUILD_TOKEN_AUTH_VALUE.to_owned(),
+        ),
+        (
+            GROK_BUILD_CLIENT_VERSION_HEADER.to_owned(),
+            GROK_BUILD_CLIENT_VERSION.to_owned(),
+        ),
+        (
+            GROK_BUILD_CLIENT_IDENTIFIER_HEADER.to_owned(),
+            GROK_BUILD_CLIENT_IDENTIFIER.to_owned(),
+        ),
+        (
+            GROK_BUILD_CLIENT_MODE_HEADER.to_owned(),
+            GROK_BUILD_CLIENT_MODE.to_owned(),
+        ),
+        ("user-agent".to_owned(), GROK_BUILD_USER_AGENT.to_owned()),
+    ];
+    let request =
+        UpstreamHttpRequest::try_new(admitted, UpstreamHttpMethod::Get, headers, Vec::new())
+            .ok()?;
+    let profile = UpstreamTransportProfile::new(
+        UpstreamTimeouts::try_new(
+            Duration::from_secs(10),
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+            Duration::from_secs(45),
+        )
+        .ok()?,
+        UpstreamProxy::Direct,
+        NonZeroUsize::new(1)?,
+    );
+    let pool = UpstreamClientPool::new(NonZeroUsize::new(1)?);
+    let mut response = pool.send(request, &profile).await.ok()?;
+    if !(200..300).contains(&response.status()) {
+        return None;
+    }
+    let mut body = Vec::new();
+    while let Some(chunk) = response.next_chunk().await.ok()? {
+        if body.len().saturating_add(chunk.len()) > MAX_BUILD_SUBSCRIPTION_RESPONSE_BYTES {
+            return None;
+        }
+        body.extend_from_slice(&chunk);
+    }
+    (!body.is_empty()).then_some(body)
 }
 
 pub(crate) fn probe(
@@ -503,5 +645,58 @@ fn require_root() -> Result<(), GrokAdminError> {
         Ok(())
     } else {
         Err(GrokAdminError::RootRequired)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use gateway_core::{
+        ProviderAccountEntitlementConfidence, ProviderAccountEntitlementSource,
+        ProviderAccountEntitlementTier,
+    };
+
+    use super::select_build_entitlement;
+
+    const HEAVY_TOKEN: &str = "e30.eyJ0aWVyIjo1fQ.signature";
+
+    #[test]
+    fn successful_subscription_observation_wins_over_token_fallback()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let entitlement =
+            select_build_entitlement(Some(br#"{"subscriptionTier":"GrokPro"}"#), HEAVY_TOKEN, 42)?;
+        assert_eq!(
+            entitlement.tier(),
+            ProviderAccountEntitlementTier::GrokBuildSupergrok
+        );
+        assert_eq!(
+            entitlement.source(),
+            ProviderAccountEntitlementSource::ProviderSubscription
+        );
+        assert_eq!(
+            entitlement.confidence(),
+            ProviderAccountEntitlementConfidence::Authoritative
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn missing_or_invalid_live_observation_uses_only_the_token_claim()
+    -> Result<(), Box<dyn std::error::Error>> {
+        for live in [None, Some(b"{}".as_slice())] {
+            let entitlement = select_build_entitlement(live, HEAVY_TOKEN, 42)?;
+            assert_eq!(
+                entitlement.tier(),
+                ProviderAccountEntitlementTier::GrokBuildHeavy
+            );
+            assert_eq!(
+                entitlement.source(),
+                ProviderAccountEntitlementSource::SignedToken
+            );
+            assert_eq!(
+                entitlement.confidence(),
+                ProviderAccountEntitlementConfidence::Derived
+            );
+        }
+        Ok(())
     }
 }

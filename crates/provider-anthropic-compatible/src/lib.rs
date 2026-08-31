@@ -2,6 +2,7 @@
 
 #![deny(unsafe_code)]
 
+mod account_entitlement;
 mod anthropic_messages;
 mod runtime_credential;
 mod runtime_failure;

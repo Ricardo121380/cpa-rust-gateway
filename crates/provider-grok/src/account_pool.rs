@@ -14,7 +14,11 @@ use std::{
 };
 
 use crate::oauth::GrokBuildCredential;
-use gateway_core::{CredentialId, EndpointId};
+use gateway_core::{
+    CredentialId, EndpointId, ProviderAccountEntitlement, ProviderAccountEntitlementConfidence,
+    ProviderAccountEntitlementDomain, ProviderAccountEntitlementSource,
+    ProviderAccountEntitlementTier,
+};
 use gateway_router::{
     QuotaConfidence, QuotaSnapshot, QuotaSource, QuotaWindow, RuntimeHealthError,
     RuntimeHealthRegistry, RuntimeQuotaRegistry, RuntimeQuotaTarget,
@@ -258,6 +262,19 @@ pub struct GrokAccountMetadata {
     pub revision: u64,
     /// Reversible import provenance.
     pub import_batch_id: String,
+    /// Channel-scoped entitlement observation, when explicitly persisted.
+    pub entitlement: Option<ProviderAccountEntitlement>,
+}
+
+/// Result of one exact native-account entitlement write.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum GrokAccountEntitlementUpdateOutcome {
+    /// First observation created the child row.
+    Created,
+    /// A newer observation replaced the prior row.
+    Updated,
+    /// The exact observation was already durable.
+    Unchanged,
 }
 
 /// One provider-to-Endpoint binding used only while compiling a native runtime pool.
@@ -508,6 +525,8 @@ pub enum GrokAccountPoolError {
     SecretStoreFailure,
     /// Persisted metadata or envelope is malformed.
     InvalidPersistedState,
+    /// A newer entitlement observation already owns the account row.
+    StaleEntitlement,
 }
 
 impl fmt::Display for GrokAccountPoolError {
@@ -524,6 +543,7 @@ impl fmt::Display for GrokAccountPoolError {
             Self::NotFound => "native Grok account resource was not found",
             Self::SecretStoreFailure => "native Grok account encryption failed",
             Self::InvalidPersistedState => "native Grok account persisted state is invalid",
+            Self::StaleEntitlement => "native Grok account entitlement observation is stale",
         };
         formatter.write_str(message)
     }
@@ -802,14 +822,93 @@ impl GrokAccountPoolStore {
                  FROM grok_accounts ORDER BY provider, id",
             )
             .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
-        statement
+        let mut accounts = statement
             .query_map([], decode_metadata)
             .map_err(|_| GrokAccountPoolError::StoreUnavailable)?
             .map(|row| {
                 row.map_err(|_| GrokAccountPoolError::InvalidPersistedState)
                     .and_then(validate_metadata)
             })
-            .collect()
+            .collect::<Result<Vec<_>, _>>()?;
+        drop(statement);
+        let entitlements = load_account_entitlements(&connection)?;
+        for account in &mut accounts {
+            account.entitlement = entitlements.get(&account.id).copied();
+            validate_metadata(account.clone())?;
+        }
+        Ok(accounts)
+    }
+
+    /// Persists one exact, channel-scoped entitlement observation without changing credential
+    /// revision, Health, Quota, Circuit or scheduler state.
+    ///
+    /// # Errors
+    ///
+    /// Rejects a missing account, Build/Web domain mismatch, Console entitlement, stale
+    /// observation or malformed persisted state.
+    pub fn set_account_entitlement(
+        &self,
+        account_id: &str,
+        entitlement: ProviderAccountEntitlement,
+    ) -> Result<GrokAccountEntitlementUpdateOutcome, GrokAccountPoolError> {
+        if !valid_component(account_id, MAX_OPAQUE_ID_BYTES) {
+            return Err(GrokAccountPoolError::InvalidRequest);
+        }
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+        let provider = connection
+            .query_row(
+                "SELECT provider FROM grok_accounts WHERE id = ?1",
+                [account_id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(|_| GrokAccountPoolError::StoreUnavailable)?
+            .ok_or(GrokAccountPoolError::NotFound)
+            .and_then(|value| GrokAccountProvider::parse(&value))?;
+        if !entitlement_matches_provider(provider, entitlement) {
+            return Err(GrokAccountPoolError::InvalidRequest);
+        }
+        let existing = connection
+            .query_row(
+                "SELECT domain, tier, source, confidence, observed_at_ms \
+                 FROM grok_account_entitlements WHERE account_id = ?1",
+                [account_id],
+                decode_entitlement,
+            )
+            .optional()
+            .map_err(|_| GrokAccountPoolError::InvalidPersistedState)?;
+        if existing == Some(entitlement) {
+            return Ok(GrokAccountEntitlementUpdateOutcome::Unchanged);
+        }
+        if existing.is_some_and(|value| value.observed_at_ms() >= entitlement.observed_at_ms()) {
+            return Err(GrokAccountPoolError::StaleEntitlement);
+        }
+        connection
+            .execute(
+                "INSERT INTO grok_account_entitlements \
+                 (account_id, domain, tier, source, confidence, observed_at_ms) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6) \
+                 ON CONFLICT(account_id) DO UPDATE SET \
+                    domain = excluded.domain, tier = excluded.tier, source = excluded.source, \
+                    confidence = excluded.confidence, observed_at_ms = excluded.observed_at_ms",
+                params![
+                    account_id,
+                    entitlement.domain().as_str(),
+                    entitlement.tier().as_str(),
+                    entitlement.source().as_str(),
+                    entitlement.confidence().as_str(),
+                    entitlement.observed_at_ms(),
+                ],
+            )
+            .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+        Ok(if existing.is_some() {
+            GrokAccountEntitlementUpdateOutcome::Updated
+        } else {
+            GrokAccountEntitlementUpdateOutcome::Created
+        })
     }
 
     /// Compiles enabled native accounts into the gateway's existing immutable Credential pools.
@@ -858,17 +957,24 @@ impl GrokAccountPoolStore {
             .connection
             .lock()
             .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+        let entitlements = load_account_entitlements(&connection)?;
         for row in load_native_runtime_rows(&connection)? {
             let provider = GrokAccountProvider::parse(&row.provider)?;
             let auth_status = GrokAccountAuthStatus::parse(&row.auth_status)?;
             let enabled = sqlite_bool(row.enabled)?;
             account_metadata = account_metadata.and_then(|mut metadata| {
-                metadata_from_runtime_row(&row, provider, auth_status, enabled)
-                    .map(|account| {
-                        metadata.push(account);
-                        metadata
-                    })
-                    .ok()
+                metadata_from_runtime_row(
+                    &row,
+                    provider,
+                    auth_status,
+                    enabled,
+                    entitlements.get(&row.id).copied(),
+                )
+                .map(|account| {
+                    metadata.push(account);
+                    metadata
+                })
+                .ok()
             });
             if !enabled || auth_status == GrokAccountAuthStatus::Disabled {
                 continue;
@@ -1220,6 +1326,7 @@ fn metadata_from_runtime_row(
     provider: GrokAccountProvider,
     auth_status: GrokAccountAuthStatus,
     enabled: bool,
+    entitlement: Option<ProviderAccountEntitlement>,
 ) -> Result<GrokAccountMetadata, GrokAccountPoolError> {
     validate_metadata(GrokAccountMetadata {
         id: row.id.clone(),
@@ -1237,6 +1344,7 @@ fn metadata_from_runtime_row(
         revision: u64::try_from(row.revision)
             .map_err(|_| GrokAccountPoolError::InvalidPersistedState)?,
         import_batch_id: row.import_batch_id.clone(),
+        entitlement,
     })
 }
 
@@ -1473,6 +1581,72 @@ fn open_persisted_credential(
         .map_err(|_| GrokAccountPoolError::SecretStoreFailure)
 }
 
+fn load_account_entitlements(
+    connection: &Connection,
+) -> Result<BTreeMap<String, ProviderAccountEntitlement>, GrokAccountPoolError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT account_id, domain, tier, source, confidence, observed_at_ms \
+             FROM grok_account_entitlements ORDER BY account_id",
+        )
+        .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+    let rows = statement
+        .query_map([], |row| {
+            let account_id = row.get::<_, String>(0)?;
+            decode_entitlement_at(row, 1).map(|entitlement| (account_id, entitlement))
+        })
+        .map_err(|_| GrokAccountPoolError::StoreUnavailable)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| GrokAccountPoolError::InvalidPersistedState)?;
+    let mut entitlements = BTreeMap::new();
+    for (account_id, entitlement) in rows {
+        if entitlements.insert(account_id, entitlement).is_some() {
+            return Err(GrokAccountPoolError::InvalidPersistedState);
+        }
+    }
+    Ok(entitlements)
+}
+
+fn decode_entitlement(row: &rusqlite::Row<'_>) -> rusqlite::Result<ProviderAccountEntitlement> {
+    decode_entitlement_at(row, 0)
+}
+
+fn decode_entitlement_at(
+    row: &rusqlite::Row<'_>,
+    offset: usize,
+) -> rusqlite::Result<ProviderAccountEntitlement> {
+    let domain = match row.get::<_, String>(offset)?.as_str() {
+        "grok_build" => ProviderAccountEntitlementDomain::GrokBuild,
+        "grok_web" => ProviderAccountEntitlementDomain::GrokWeb,
+        _ => return Err(rusqlite::Error::InvalidQuery),
+    };
+    let tier = ProviderAccountEntitlementTier::parse(domain, &row.get::<_, String>(offset + 1)?)
+        .map_err(|_| rusqlite::Error::InvalidQuery)?;
+    let source = ProviderAccountEntitlementSource::parse(&row.get::<_, String>(offset + 2)?)
+        .map_err(|_| rusqlite::Error::InvalidQuery)?;
+    let confidence =
+        ProviderAccountEntitlementConfidence::parse(&row.get::<_, String>(offset + 3)?)
+            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+    ProviderAccountEntitlement::try_new(tier, source, confidence, row.get(offset + 4)?)
+        .map_err(|_| rusqlite::Error::InvalidQuery)
+}
+
+const fn entitlement_matches_provider(
+    provider: GrokAccountProvider,
+    entitlement: ProviderAccountEntitlement,
+) -> bool {
+    matches!(
+        (provider, entitlement.domain()),
+        (
+            GrokAccountProvider::Build,
+            ProviderAccountEntitlementDomain::GrokBuild
+        ) | (
+            GrokAccountProvider::Web,
+            ProviderAccountEntitlementDomain::GrokWeb
+        )
+    )
+}
+
 fn decode_metadata(row: &rusqlite::Row<'_>) -> rusqlite::Result<GrokAccountMetadata> {
     let provider = row.get::<_, String>(1)?;
     let auth_status = row.get::<_, String>(2)?;
@@ -1509,6 +1683,7 @@ fn decode_metadata(row: &rusqlite::Row<'_>) -> rusqlite::Result<GrokAccountMetad
         revision: u64::try_from(revision)
             .map_err(|_| rusqlite::Error::IntegralValueOutOfRange(10, revision))?,
         import_batch_id: row.get(11)?,
+        entitlement: None,
     })
 }
 
@@ -1523,6 +1698,9 @@ fn validate_metadata(
         || metadata.refresh_due_at_ms.is_some_and(|value| value < 0)
         || metadata.quota_sync_due_at_ms.is_some_and(|value| value < 0)
         || metadata.cooldown_until_ms.is_some_and(|value| value < 0)
+        || metadata
+            .entitlement
+            .is_some_and(|value| !entitlement_matches_provider(metadata.provider, value))
     {
         return Err(GrokAccountPoolError::InvalidPersistedState);
     }

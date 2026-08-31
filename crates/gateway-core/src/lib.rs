@@ -2,6 +2,7 @@
 
 #![deny(unsafe_code)]
 
+mod account_entitlement;
 mod canonical_event;
 mod canonical_request;
 mod error;
@@ -15,6 +16,11 @@ mod thinking;
 mod token_count;
 mod tool;
 
+pub use account_entitlement::{
+    ProviderAccountEntitlement, ProviderAccountEntitlementConfidence,
+    ProviderAccountEntitlementDomain, ProviderAccountEntitlementError,
+    ProviderAccountEntitlementSource, ProviderAccountEntitlementTier,
+};
 pub use canonical_event::{
     CanonicalEvent, CanonicalEventState, CanonicalResponse, MessageEnd, MessageStart,
     ReasoningDelta, ResponseEnd, ResponseStart, StreamError, TextDelta, ToolCallArgumentsDelta,

@@ -2,6 +2,7 @@
 
 #![deny(unsafe_code)]
 
+mod account_entitlement;
 mod oauth_transport;
 mod openai_chat_completions;
 mod openai_responses;

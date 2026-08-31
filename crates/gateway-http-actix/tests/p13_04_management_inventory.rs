@@ -29,8 +29,10 @@ use gateway_control::provider_account_pool_service::{
 };
 use gateway_core::{
     AttemptEvent, AttemptOutcome, AttemptRetryDecision, ClientKeyId, CredentialId, EndpointId,
-    ErrorScope, GatewayError, GatewayErrorCode, GatewayEvent, GatewayProtocol, ProviderId,
-    RequestEvent, ResponseId, RouteCandidateId, RouteId, UpstreamId, Usage, UsageEvent,
+    ErrorScope, GatewayError, GatewayErrorCode, GatewayEvent, GatewayProtocol,
+    ProviderAccountEntitlement, ProviderAccountEntitlementConfidence,
+    ProviderAccountEntitlementSource, ProviderAccountEntitlementTier, ProviderId, RequestEvent,
+    ResponseId, RouteCandidateId, RouteId, UpstreamId, Usage, UsageEvent,
 };
 use gateway_http_actix::{
     management_resources::{
@@ -85,6 +87,19 @@ impl ManagementFailureFeedbackFacade for FixtureUsageFacade {
 
 struct FixtureProviderAccountPoolFacade {
     snapshot: ProviderAccountPoolSnapshot,
+}
+
+struct UnavailableProviderAccountPoolFacade {
+    error: ProviderAccountPoolError,
+}
+
+impl ProviderAccountPoolFacade for UnavailableProviderAccountPoolFacade {
+    fn list_provider_account_pools(
+        &self,
+        _query: &ProviderAccountPoolQuery,
+    ) -> Result<ProviderAccountPoolPage, ProviderAccountPoolError> {
+        Err(self.error)
+    }
 }
 
 impl ProviderAccountPoolFacade for FixtureProviderAccountPoolFacade {
@@ -273,6 +288,12 @@ fn resource_state() -> Result<ManagementResourceHttpState, Box<dyn Error>> {
                 expires_at_ms: Some(200),
                 refresh_due_at_ms: Some(150),
                 quota_sync_due_at_ms: Some(160),
+                entitlement: Some(ProviderAccountEntitlement::try_new(
+                    ProviderAccountEntitlementTier::GrokBuildSupergrok,
+                    ProviderAccountEntitlementSource::ProviderSubscription,
+                    ProviderAccountEntitlementConfidence::Authoritative,
+                    122,
+                )?),
             },
             ProviderAccountPoolItem {
                 provider_id: ProviderId::try_new("grok")?,
@@ -289,6 +310,7 @@ fn resource_state() -> Result<ManagementResourceHttpState, Box<dyn Error>> {
                 expires_at_ms: None,
                 refresh_due_at_ms: Some(140),
                 quota_sync_due_at_ms: None,
+                entitlement: None,
             },
             ProviderAccountPoolItem {
                 provider_id: ProviderId::try_new("codex")?,
@@ -305,6 +327,7 @@ fn resource_state() -> Result<ManagementResourceHttpState, Box<dyn Error>> {
                 expires_at_ms: None,
                 refresh_due_at_ms: None,
                 quota_sync_due_at_ms: None,
+                entitlement: None,
             },
         ],
     )?;
@@ -472,6 +495,22 @@ async fn inventory_is_protected_paginated_and_value_free() -> TestResult {
     assert_eq!(
         provider_first_body["items"][0]["runtime_status"],
         "available"
+    );
+    assert_eq!(
+        provider_first_body["items"][0]["entitlement"]["domain"],
+        "grok_build"
+    );
+    assert_eq!(
+        provider_first_body["items"][0]["entitlement"]["tier"],
+        "supergrok"
+    );
+    assert_eq!(
+        provider_first_body["items"][0]["entitlement"]["source"],
+        "provider_subscription"
+    );
+    assert_eq!(
+        provider_first_body["items"][0]["entitlement"]["confidence"],
+        "authoritative"
     );
     let provider_cursor = provider_first_body["next_cursor"]
         .as_str()
@@ -834,5 +873,37 @@ async fn inventory_is_protected_paginated_and_value_free() -> TestResult {
     )
     .await;
     assert_eq!(denied.status(), StatusCode::NOT_FOUND);
+    Ok(())
+}
+
+#[actix_web::test]
+async fn provider_account_pool_runtime_failures_are_service_unavailable() -> TestResult {
+    for error in [
+        ProviderAccountPoolError::SourceUnavailable,
+        ProviderAccountPoolError::InvalidSnapshot,
+    ] {
+        let state = resource_state()?
+            .with_provider_account_pools(Box::new(UnavailableProviderAccountPoolFacade { error }));
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(security_state()?))
+                .app_data(web::Data::new(state))
+                .configure(configure_management_resources),
+        )
+        .await;
+        let response = test::call_service(
+            &app,
+            authorized(
+                test::TestRequest::get()
+                    .uri("/admin/operations/provider-account-pools?provider_id=grok"),
+                "inventory-v1",
+            )
+            .to_request(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        let body: Value = test::read_body_json(response).await;
+        assert_eq!(body["error"]["code"], "management_runtime_unavailable");
+    }
     Ok(())
 }

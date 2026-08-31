@@ -29,6 +29,7 @@ use gateway_control::provider_account_pool_service::{
     ProviderAccountPoolFacade, ProviderAccountPoolItem, ProviderAccountPoolPage,
     ProviderAccountPoolQuery, ProviderAccountPoolSnapshot, ProviderAccountRuntimeStatus,
 };
+use gateway_core::ProviderAccountEntitlement;
 use gateway_core::{CredentialId, EndpointId, ProviderId};
 use gateway_router::{
     QuotaConfidence, QuotaSnapshot, QuotaSource, RuntimeCredentialAccountStatus,
@@ -114,6 +115,8 @@ pub(crate) struct ProviderAccountDescriptor {
     pub(crate) expires_at_ms: Option<i64>,
     pub(crate) refresh_due_at_ms: Option<i64>,
     pub(crate) quota_sync_due_at_ms: Option<i64>,
+    /// Provider/channel-scoped plan observation; never inferred by this adapter.
+    pub(crate) entitlement: Option<ProviderAccountEntitlement>,
     /// Exact compiler-approved upstream model labels used for model-scoped Health/Quota reads.
     pub(crate) upstream_models: Vec<String>,
 }
@@ -595,6 +598,7 @@ impl ProviderAccountPoolAdapter {
                 expires_at_ms,
                 refresh_due_at_ms: descriptor.refresh_due_at_ms,
                 quota_sync_due_at_ms: descriptor.quota_sync_due_at_ms,
+                entitlement: descriptor.entitlement,
             });
         }
         Ok(items)
@@ -971,6 +975,7 @@ mod tests {
             expires_at_ms: None,
             refresh_due_at_ms: None,
             quota_sync_due_at_ms: None,
+            entitlement: None,
             upstream_models: vec!["model-a".to_owned()],
         }
     }
