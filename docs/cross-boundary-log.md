@@ -934,3 +934,37 @@ provider/channel/endpoint/credential-scoped discovery、staleness/removal、授�
 materialization；在真实上游目录和隔离回归完成前不得把该能力标为 DONE。OAuth 注册仍不属于
 CPAR，但 CPAR 对已导入 refresh token 的 runtime refresh/过期处理需要单独补齐，不得把“本次凭据
 探针成功”表述成“长期自动续期已完成”。
+
+---
+
+## 2026-09-02 · Codex · P13-15A 生产上线、Pi Responses 实测与下一片模型发现
+
+**Touched:** 后端 Grok native runtime revision、通用协议转换、回归测试、P13 报告与计划。
+**未改动:** `web/prism/**`、Management OpenAPI、generated client。
+
+生产已运行 revision `ac23f387bb71d2494d6b2d999096e2bd1c9c5d1e`。认证后的 `/v1/models`
+返回当前授权 Route Candidate 的 exact ID：`gpt-5.6-terra`、`grok-4.20-0309`、`grok-4.5`；
+`grok-cpar-build` 不再广告，跨 Route 歧义 ID 仍 fail closed。真实 public
+`POST /v1/responses` 与 Pi 0.84.3 streaming 调用均以 `grok-4.5` 成功；服务事件明确记录
+`protocol=openai_responses`。Pi 和 CC Switch 保存的 provider 均为 CPAR `/v1` +
+`openai-responses` + exact `grok-4.5`，不是 Messages。旧 Messages event 只属于历史诊断探针。
+
+当前导入的官方 Grok Build 凭据无需重新 OAuth；CPAR 的 entitlement projection 已受控记录为
+`grok_build / supergrok / provider_subscription / authoritative`。本次还修复 durable revision `0`
+到 runtime revision `1` 的 one-based 投影，否则一个 revision-zero Console row 会让完整 Build/Console
+egress source fail closed；同时只允许同协议 OpenAI Responses 保留 typed prompt-cache controls，
+跨协议转换仍拒绝，Build adapter 继续负责 tenant-isolated opaque derivation。
+
+**Action required for Claude Code:**
+
+- 模型选择器只消费 gateway 返回的 exact ID，不重新引入 `grok-cpar-*`、Provider 前缀别名或前端白名单；
+- 不要把当前三项列表硬编码。P13-15A 仍是 compiler-retained Candidate 投影，下一片 P13-15B
+  才会为 Build、Web、Console、Official、Kiro、OpenAI/Anthropic-compatible 以及任意新增渠道组合
+  Endpoint/Credential-scoped discovery source；上游不支持 list API 的渠道必须展示显式 configured
+  exact source/freshness，不能猜测模型；
+- 同名 ID 可能因多个 channel/Endpoint 而被后端省略或判歧义；UI 需要呈现受保护 provenance，不能
+  靠改名消除冲突；
+- Grok Build 的 `free/supergrok/heavy` 只属于 Build entitlement；Web 和 Console 继续独立。
+
+后端下一任务是 P13-15B。P13-15C/D 与 P13-15E 剩余 generic/multi-Credential/channel isolation、
+正式 Gate 仍未完成，不能把全量动态模型透传标为 DONE。

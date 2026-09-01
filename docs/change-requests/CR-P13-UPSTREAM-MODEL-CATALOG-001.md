@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **APPROVED / IN_PROGRESS — P13-15A local pass; P13-15B-E pending** |
+| Status | **APPROVED / IN_PROGRESS — P13-15A production live pass; P13-15B-E pending** |
 | CPAR task | `P13-15` |
 | Authority | User correction on 2026-09-01: reverse-proxied channels expose upstream model IDs instead of CPAR-invented aliases; applies to every channel |
 | Delivery class | Provider/channel/endpoint/credential-scoped discovery, immutable authorized projection and exact-model routing |
@@ -78,6 +78,11 @@ catalog behavior.
   advertised model and never as evidence that pass-through is complete;
 - change Pi and CC Switch to a discovered exact ID only after the public list and real Responses
   request pass.
+
+Production evidence now proves the exact serving/list boundary, a real Grok Build Responses call,
+and Pi/CC Switch migration to `grok-4.5`. This does not complete discovery: the current public list
+still projects exact IDs from compiler-retained candidates, so P13-15B-D remain required before
+CPAR can follow upstream additions/removals automatically for every channel and Credential.
 
 ### P13-15B · Provider/channel discovery composition
 

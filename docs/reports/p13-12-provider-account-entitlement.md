@@ -2,11 +2,11 @@
 
 ## Status
 
-`LOCAL_BACKEND_PASS / PRODUCTION_BACKFILL_PENDING / FRONTEND_SYNC_PENDING`
+`BACKEND_PRODUCTION_PASS / FRONTEND_SYNC_PENDING / FORMAL_GATE_PENDING`
 
-This report records the backend implementation and its current acceptance boundary. It does not
-claim production installation, a durable observation for the current live account, Claude Code
-contract synchronization, a formal Delivery Gate, or Pi/CC Switch end-to-end acceptance yet.
+This report records the backend implementation and its current acceptance boundary. The production
+binary and current Grok Build entitlement are now installed and verified. It does not yet claim
+Claude Code contract/UI synchronization or a formal Delivery Gate.
 
 ## Delivered backend behavior
 
@@ -77,14 +77,23 @@ already committed extra EOF blank line in Claude Code-owned
 The exact frontend repair and contract synchronization are recorded in
 `docs/cross-boundary-log.md`; Codex did not modify `web/prism/**`.
 
+## Production backfill and runtime proof
+
+The newly imported official local Grok Build OAuth credential was reused; no replacement login was
+required. The exact one-account import batch was synchronized through the bounded Build
+subscription path and stored as `grok_build / supergrok / provider_subscription / authoritative`.
+The protected production account-pool projection reports the account available with that same
+entitlement, while the Provider egress projection reports Build available. No account identifier,
+email, access token, refresh token or Client Key is retained in this report.
+
+The deployment also corrected native Grok runtime revision lineage: durable revision zero is now
+projected as one-based runtime revision one, while the database revision remains unchanged. This
+prevents an unrelated zero-revision Console row from rejecting the entire Build/Console runtime
+snapshot. The regression covers the zero-to-one projection and the subsequent one-to-two update.
+
 ## Remaining closeout work
 
-1. Commit and push the backend branch without staging the four pre-existing untracked helpers.
-2. Produce and verify a revision-bound Linux aarch64 artifact, back up the Oracle production DB and
-   binary, preflight against a copied state directory, then install only if all fail-closed checks
-   pass.
-3. Run the exact-batch Build entitlement sync once and retain only its value-free receipt.
-4. Have Claude Code synchronize the contract, fix the existing EOF whitespace issue, wire the
+1. Have Claude Code synchronize the contract, fix the existing EOF whitespace issue, wire the
    account-pool UI and run its frontend gates.
-5. Run the formal Delivery Gate before changing this report and P13-12 to final
+2. Run the formal Delivery Gate before changing this report and P13-12 to final
    `DONE_WITH_BOUNDARY`.
