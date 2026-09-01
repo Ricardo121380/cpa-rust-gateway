@@ -26,6 +26,7 @@ RUN apt-get update \
         clang \
         cmake \
         curl \
+        git \
         libclang-dev \
         libssl-dev \
         pkg-config \

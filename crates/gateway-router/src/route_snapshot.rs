@@ -105,6 +105,21 @@ pub struct SnapshotPublicModel {
     route_id: RouteId,
 }
 
+/// Result of resolving one exact upstream model inside one Access Group's immutable view.
+///
+/// `Ambiguous` is distinct from `Absent` so a legacy CPAR alias cannot shadow an upstream model
+/// that is visible through more than one Route. The Config Version must first define one
+/// deterministic route for that exact model identity.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SnapshotExactModelResolution<'snapshot> {
+    /// No visible hard-eligible Candidate carries the exact upstream model.
+    Absent,
+    /// Exactly one visible Public Model Route carries the exact upstream model.
+    Unique(&'snapshot SnapshotPublicModel),
+    /// More than one visible Public Model Route carries the exact upstream model.
+    Ambiguous,
+}
+
 impl SnapshotPublicModel {
     /// Creates one compiler-approved public-model view.
     #[must_use]
@@ -824,6 +839,76 @@ impl RouteSnapshot {
         })
     }
 
+    /// Iterates exact upstream model IDs visible to one Access Group in stable model order.
+    ///
+    /// The projection contains only hard-eligible Candidates of permitted Routes. An ID carried by
+    /// more than one visible Route is omitted until an explicit deterministic route policy removes
+    /// the ambiguity; request resolution independently reports the collision as
+    /// [`SnapshotExactModelResolution::Ambiguous`].
+    pub fn exact_upstream_models_for_access_group<'snapshot>(
+        &'snapshot self,
+        access_group_id: &AccessGroupId,
+    ) -> impl Iterator<Item = &'snapshot str> {
+        let mut models = BTreeSet::new();
+        if let Some(access_group) = self.access_group(access_group_id) {
+            for public_model in self.public_models.values() {
+                if !self.public_model_is_visible_to(access_group, public_model) {
+                    continue;
+                }
+                if let Some(route) = self.route(public_model.route_id()) {
+                    models.extend(
+                        route
+                            .candidates()
+                            .iter()
+                            .filter(|candidate| candidate.is_hard_eligible())
+                            .map(SnapshotRouteCandidate::upstream_model),
+                    );
+                }
+            }
+        }
+        models.retain(|model| {
+            matches!(
+                self.resolve_exact_upstream_model_for_access_group(access_group_id, model),
+                SnapshotExactModelResolution::Unique(_)
+            )
+        });
+        models.into_iter()
+    }
+
+    /// Resolves one exact upstream model without allowing a CPAR alias to hide ambiguity.
+    #[must_use]
+    pub fn resolve_exact_upstream_model_for_access_group<'snapshot>(
+        &'snapshot self,
+        access_group_id: &AccessGroupId,
+        upstream_model: &str,
+    ) -> SnapshotExactModelResolution<'snapshot> {
+        let Some(access_group) = self.access_group(access_group_id) else {
+            return SnapshotExactModelResolution::Absent;
+        };
+        let mut resolved = None;
+        for public_model in self.public_models.values() {
+            if !self.public_model_is_visible_to(access_group, public_model) {
+                continue;
+            }
+            let carries_model = self.route(public_model.route_id()).is_some_and(|route| {
+                route.candidates().iter().any(|candidate| {
+                    candidate.is_hard_eligible() && candidate.upstream_model() == upstream_model
+                })
+            });
+            if !carries_model {
+                continue;
+            }
+            if resolved.is_some() {
+                return SnapshotExactModelResolution::Ambiguous;
+            }
+            resolved = Some(public_model);
+        }
+        resolved.map_or(
+            SnapshotExactModelResolution::Absent,
+            SnapshotExactModelResolution::Unique,
+        )
+    }
+
     /// Returns an exact Alias target identity.
     #[must_use]
     pub fn alias_target(&self, alias: &str) -> Option<&PublicModelId> {
@@ -1262,6 +1347,22 @@ impl SnapshotAuthenticatedClient {
             .public_models_for_access_group(self.access_group_id())
     }
 
+    /// Iterates exact upstream model IDs visible to this authenticated Client Key.
+    pub fn exact_upstream_models(&self) -> impl Iterator<Item = &str> {
+        self.snapshot
+            .exact_upstream_models_for_access_group(self.access_group_id())
+    }
+
+    /// Resolves an exact upstream model inside this Client Key's pinned authorized Snapshot.
+    #[must_use]
+    pub fn resolve_exact_upstream_model(
+        &self,
+        upstream_model: &str,
+    ) -> SnapshotExactModelResolution<'_> {
+        self.snapshot
+            .resolve_exact_upstream_model_for_access_group(self.access_group_id(), upstream_model)
+    }
+
     /// Resolves an exact Public Model or Alias to its visible stable Public Model.
     #[must_use]
     pub fn resolve_public_model(&self, model_name_or_alias: &str) -> Option<&SnapshotPublicModel> {
@@ -1459,8 +1560,9 @@ mod tests {
         RouteSnapshot, RouteSnapshotBuildError, RouteSnapshotInput, RouteSnapshotRegistry,
         SnapshotAccessGroup, SnapshotCatalogAdmission, SnapshotClientKeyAuthenticator,
         SnapshotClientKeyClock, SnapshotClientKeyClockError, SnapshotClientKeyView,
-        SnapshotPublicModel, SnapshotRegistryError, SnapshotRoute, SnapshotRouteCandidate,
-        SnapshotRouteCandidateInput, SnapshotRoutePolicy, SnapshotTransformMode, SnapshotVersion,
+        SnapshotExactModelResolution, SnapshotPublicModel, SnapshotRegistryError, SnapshotRoute,
+        SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
+        SnapshotTransformMode, SnapshotVersion,
     };
     use gateway_core::{
         AccessGroupId, ClientKeyId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode,
@@ -1524,6 +1626,33 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(visible_to_b, vec!["beta-model"]);
 
+        assert_eq!(
+            snapshot
+                .exact_upstream_models_for_access_group(&group_a)
+                .collect::<Vec<_>>(),
+            vec!["upstream-candidate-alpha", "upstream-candidate-beta"]
+        );
+        assert_eq!(
+            snapshot
+                .exact_upstream_models_for_access_group(&group_b)
+                .collect::<Vec<_>>(),
+            vec!["upstream-candidate-beta"]
+        );
+        assert!(matches!(
+            snapshot.resolve_exact_upstream_model_for_access_group(
+                &group_a,
+                "upstream-candidate-alpha"
+            ),
+            SnapshotExactModelResolution::Unique(model) if model.model_name() == "alpha-model"
+        ));
+        assert_eq!(
+            snapshot.resolve_exact_upstream_model_for_access_group(
+                &group_b,
+                "upstream-candidate-alpha"
+            ),
+            SnapshotExactModelResolution::Absent
+        );
+
         let alias = snapshot
             .resolve_public_model_for_access_group(&group_a, "alias-alpha")
             .ok_or("expected visible Alias to resolve")?;
@@ -1542,6 +1671,27 @@ mod tests {
             snapshot
                 .resolve_public_model_for_access_group(&group_a, "alias-expired")
                 .is_none()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn exact_upstream_resolution_fails_closed_for_duplicate_visible_routes() -> TestResult {
+        let snapshot = duplicate_exact_model_snapshot("version-collision")?;
+        let access_group_id = AccessGroupId::try_new("group-a")?;
+
+        assert_eq!(
+            snapshot
+                .exact_upstream_models_for_access_group(&access_group_id)
+                .collect::<Vec<_>>(),
+            Vec::<&str>::new()
+        );
+        assert_eq!(
+            snapshot.resolve_exact_upstream_model_for_access_group(
+                &access_group_id,
+                "shared-upstream-model"
+            ),
+            SnapshotExactModelResolution::Ambiguous
         );
         Ok(())
     }
@@ -1752,6 +1902,14 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["public-model"]
         );
+        assert_eq!(
+            authenticated.exact_upstream_models().collect::<Vec<_>>(),
+            vec!["upstream-model"]
+        );
+        assert!(matches!(
+            authenticated.resolve_exact_upstream_model("upstream-model"),
+            SnapshotExactModelResolution::Unique(model) if model.model_name() == "public-model"
+        ));
         assert_eq!(
             authenticated
                 .resolve_public_model("model-alias")
@@ -1984,6 +2142,52 @@ mod tests {
         Ok(Arc::new(snapshot))
     }
 
+    fn duplicate_exact_model_snapshot(version: &str) -> Result<Arc<RouteSnapshot>, Box<dyn Error>> {
+        let alpha_model_id = PublicModelId::try_new("public-model-alpha")?;
+        let beta_model_id = PublicModelId::try_new("public-model-beta")?;
+        let alpha_route_id = RouteId::try_new("route-alpha")?;
+        let beta_route_id = RouteId::try_new("route-beta")?;
+        let snapshot = RouteSnapshot::try_new(RouteSnapshotInput::new(
+            SnapshotVersion::try_new(version.to_owned())?,
+            vec![
+                visibility_public_model(
+                    alpha_model_id.clone(),
+                    "alpha-model",
+                    alpha_route_id.clone(),
+                ),
+                visibility_public_model(beta_model_id.clone(), "beta-model", beta_route_id.clone()),
+            ],
+            Vec::new(),
+            vec![
+                visibility_route_with_upstream_model(
+                    alpha_route_id.clone(),
+                    alpha_model_id,
+                    "candidate-alpha",
+                    "endpoint-alpha",
+                    "shared-upstream-model",
+                    1,
+                    CatalogModelState::Fresh,
+                )?,
+                visibility_route_with_upstream_model(
+                    beta_route_id.clone(),
+                    beta_model_id,
+                    "candidate-beta",
+                    "endpoint-beta",
+                    "shared-upstream-model",
+                    1,
+                    CatalogModelState::Fresh,
+                )?,
+            ],
+            vec![SnapshotAccessGroup::new(
+                AccessGroupId::try_new("group-a")?,
+                "Group A".to_owned(),
+                BTreeSet::from([alpha_route_id, beta_route_id]),
+            )],
+            Vec::new(),
+        ))?;
+        Ok(Arc::new(snapshot))
+    }
+
     fn visibility_public_model(
         public_model_id: PublicModelId,
         model_name: &str,
@@ -2006,6 +2210,27 @@ mod tests {
         active_binding_count: usize,
         catalog_state: CatalogModelState,
     ) -> Result<SnapshotRoute, Box<dyn Error>> {
+        let upstream_model = format!("upstream-{candidate_id}");
+        visibility_route_with_upstream_model(
+            route_id,
+            public_model_id,
+            candidate_id,
+            endpoint_id,
+            &upstream_model,
+            active_binding_count,
+            catalog_state,
+        )
+    }
+
+    fn visibility_route_with_upstream_model(
+        route_id: RouteId,
+        public_model_id: PublicModelId,
+        candidate_id: &str,
+        endpoint_id: &str,
+        upstream_model: &str,
+        active_binding_count: usize,
+        catalog_state: CatalogModelState,
+    ) -> Result<SnapshotRoute, Box<dyn Error>> {
         Ok(SnapshotRoute::new(
             route_id,
             public_model_id,
@@ -2015,6 +2240,7 @@ mod tests {
             vec![visibility_candidate(
                 candidate_id,
                 endpoint_id,
+                upstream_model,
                 active_binding_count,
                 catalog_state,
             )?],
@@ -2024,6 +2250,7 @@ mod tests {
     fn visibility_candidate(
         candidate_id: &str,
         endpoint_id: &str,
+        upstream_model: &str,
         active_binding_count: usize,
         catalog_state: CatalogModelState,
     ) -> Result<SnapshotRouteCandidate, Box<dyn Error>> {
@@ -2032,7 +2259,7 @@ mod tests {
             endpoint_id: EndpointId::try_new(endpoint_id)?,
             upstream_id: UpstreamId::try_new(format!("upstream-{endpoint_id}"))?,
             endpoint_api_format: "openai/responses".to_owned(),
-            upstream_model: format!("upstream-{candidate_id}"),
+            upstream_model: upstream_model.to_owned(),
             transform_mode: SnapshotTransformMode::Canonical,
             priority: 0,
             weight: 1,

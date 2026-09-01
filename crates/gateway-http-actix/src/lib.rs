@@ -58,7 +58,8 @@ use gateway_router::{
     CountTokensExecution, CountTokensExecutor, ResponsesClientTransport, ResponsesContinuationKind,
     ResponsesContinuationPin, ResponsesEventSource, ResponsesExecution, ResponsesExecutionLineage,
     ResponsesExecutionLineageRecorder, ResponsesExecutor, ResponsesResponseMode,
-    SnapshotAuthenticatedClient, SnapshotClientKeyAuthenticator, UnsupportedCountTokensExecutor,
+    SnapshotAuthenticatedClient, SnapshotClientKeyAuthenticator, SnapshotExactModelResolution,
+    UnsupportedCountTokensExecutor,
 };
 use gateway_store::stored_response::{
     MAX_STORED_RESPONSE_EVENTS, MAX_STORED_RESPONSE_PAYLOAD_BYTES,
@@ -548,6 +549,17 @@ struct PreparedResponsesExecution {
     lineage_recorder: Option<Arc<ResponsesExecutionLineageRecorder>>,
 }
 
+struct ResolvedPublicModel {
+    public_model: String,
+    route_alias: Option<String>,
+    route: ResponsesRouteSelection,
+}
+
+struct ResponsesRouteSelection {
+    route_id: Option<RouteId>,
+    exact_upstream_model: Option<String>,
+}
+
 struct PreparedOwnedContinuation {
     request: CanonicalRequest,
     pin: ResponsesContinuationPin,
@@ -794,7 +806,7 @@ fn prepare_responses_execution(
     context: RequestContext,
     decoded: &DecodedResponsesRequest,
     original_body: &str,
-    route_id: Option<RouteId>,
+    route: ResponsesRouteSelection,
     retry_gate: Arc<dyn TransparentRetryGate>,
     owned_continuation: Option<PreparedOwnedContinuation>,
     require_lineage: bool,
@@ -829,13 +841,15 @@ fn prepare_responses_execution(
             request,
             gateway_router::ProtocolFormat::OpenAiResponses,
             native_payload,
-            route_id,
+            route.route_id,
             response_mode,
             retry_gate,
         )
     };
     if let Some(pin) = continuation_pin {
         execution = execution.with_continuation_pin(pin);
+    } else {
+        execution = execution.with_exact_upstream_model(route.exact_upstream_model);
     }
     if let Some(recorder) = lineage_recorder.as_ref() {
         execution = execution.with_lineage_recorder(Arc::clone(recorder));
@@ -1066,11 +1080,7 @@ async fn models(request: HttpRequest, state: web::Data<ResponsesHttpState>) -> H
         Ok(AuthenticatedResponsesClient::Generic(_)) => return pre_header_error(&route_not_found()),
         Err(error) => return pre_header_error(&error),
     };
-    let body = match encode_model_list(
-        authenticated_client
-            .public_models()
-            .map(gateway_router::SnapshotPublicModel::model_name),
-    ) {
+    let body = match encode_model_list(authenticated_client.exact_upstream_models()) {
         Ok(body) => body,
         Err(error) => return pre_header_error(&error),
     };
@@ -1374,17 +1384,21 @@ async fn execute_responses_websocket_turn(
         return Err(internal_error());
     }
     let requested_model = decoded.request.requested_model.clone();
-    let (public_model, route_alias, route_id) =
-        resolve_public_model(authenticated_client, &requested_model)?;
+    let ResolvedPublicModel {
+        public_model,
+        route_alias,
+        route,
+    } = resolve_public_model(authenticated_client, &requested_model)?;
     let context = state.metadata_factory.request_context()?;
     let request_id = context.request_id().clone();
     let (client_key_id, access_group_id) = authenticated_client.event_identity();
+    let context = context.with_client_key_id(client_key_id.clone());
     let owned_continuation = prepare_websocket_continuation(
         state,
         cache,
         &client_key_id,
         &public_model,
-        route_id.as_ref(),
+        route.route_id.as_ref(),
         decoded,
     )
     .await
@@ -1414,7 +1428,7 @@ async fn execute_responses_websocket_turn(
         context,
         decoded,
         normalized_body,
-        route_id,
+        route,
         retry_gate,
         owned_continuation,
         true,
@@ -1633,17 +1647,21 @@ async fn chat_completions(
         Err(error) => return pre_header_chat_error(&error),
     };
     let requested_model = decoded.request.requested_model.clone();
-    let (public_model, route_alias, route_id) =
-        match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
-            Ok(resolved) => resolved,
-            Err(error) => return pre_header_chat_error(&error),
-        };
+    let ResolvedPublicModel {
+        public_model,
+        route_alias,
+        route,
+    } = match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
+        Ok(resolved) => resolved,
+        Err(error) => return pre_header_chat_error(&error),
+    };
     let context = match state.metadata_factory.request_context() {
         Ok(context) => context,
         Err(error) => return pre_header_chat_error(&error),
     };
     let request_id = context.request_id().clone();
     let (client_key_id, access_group_id) = authenticated_client.event_identity();
+    let context = context.with_client_key_id(client_key_id.clone());
     let _request_event = state
         .event_sink
         .try_emit(GatewayEvent::Request(RequestEvent::new(
@@ -1667,10 +1685,11 @@ async fn chat_completions(
         decoded.request,
         gateway_router::ProtocolFormat::OpenAiChatCompletions,
         Arc::from(body.as_bytes()),
-        route_id,
+        route.route_id,
         response_mode,
         retry_gate,
-    );
+    )
+    .with_exact_upstream_model(route.exact_upstream_model);
     let mut source = match state.executor.execute_routed(execution).await {
         Ok(source) => source,
         Err(error) => return pre_header_chat_error(&error),
@@ -1728,22 +1747,26 @@ async fn responses(
         return pre_header_stored_response_error(&internal_error());
     }
     let requested_model = decoded.request.requested_model.clone();
-    let (public_model, route_alias, route_id) =
-        match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
-            Ok(resolved) => resolved,
-            Err(error) => return pre_header_error(&error),
-        };
+    let ResolvedPublicModel {
+        public_model,
+        route_alias,
+        route,
+    } = match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
+        Ok(resolved) => resolved,
+        Err(error) => return pre_header_error(&error),
+    };
     let context = match state.metadata_factory.request_context() {
         Ok(context) => context,
         Err(error) => return pre_header_error(&error),
     };
     let request_id = context.request_id().clone();
     let (client_key_id, access_group_id) = authenticated_client.event_identity();
+    let context = context.with_client_key_id(client_key_id.clone());
     let owned_continuation = match prepare_owned_continuation(
         &state,
         &client_key_id,
         &public_model,
-        route_id.as_ref(),
+        route.route_id.as_ref(),
         &decoded,
     )
     .await
@@ -1774,7 +1797,7 @@ async fn responses(
         context,
         &decoded,
         body,
-        route_id,
+        route,
         retry_gate,
         owned_continuation,
         false,
@@ -1886,11 +1909,14 @@ async fn compact_responses(
         return pre_header_stored_response_error(&internal_error());
     };
     let requested_model = decoded.requested_model;
-    let (public_model, route_alias, route_id) =
-        match resolve_public_model(&authenticated_client, &requested_model) {
-            Ok(resolved) => resolved,
-            Err(error) => return pre_header_stored_response_error(&error),
-        };
+    let ResolvedPublicModel {
+        public_model,
+        route_alias,
+        route,
+    } = match resolve_public_model(&authenticated_client, &requested_model) {
+        Ok(resolved) => resolved,
+        Err(error) => return pre_header_stored_response_error(&error),
+    };
     let (client_key_id, access_group_id) = authenticated_client.event_identity();
     let lookup_now_ms = match system_now_ms() {
         Ok(now_ms) => now_ms,
@@ -1911,7 +1937,7 @@ async fn compact_responses(
         stored.payload().public_model(),
         stored.payload().lineage(),
         &public_model,
-        route_id.as_ref(),
+        route.route_id.as_ref(),
     ) {
         return owned_continuity_error(error);
     }
@@ -1944,7 +1970,7 @@ async fn compact_responses(
         Err(error) => return pre_header_stored_response_error(&error),
     };
     let execution = ResponsesExecution::new(
-        context,
+        context.with_client_key_id(client_key_id.clone()),
         compact_request,
         Some(pin.lineage().route_id().clone()),
         ResponsesResponseMode::NonStreaming,
@@ -2129,17 +2155,21 @@ async fn messages(
         Err(error) => return pre_header_anthropic_error(&error),
     };
     let requested_model = decoded.request.requested_model.clone();
-    let (public_model, route_alias, route_id) =
-        match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
-            Ok(resolved) => resolved,
-            Err(error) => return pre_header_anthropic_error(&error),
-        };
+    let ResolvedPublicModel {
+        public_model,
+        route_alias,
+        route,
+    } = match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
+        Ok(resolved) => resolved,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
     let context = match state.metadata_factory.request_context() {
         Ok(context) => context,
         Err(error) => return pre_header_anthropic_error(&error),
     };
     let request_id = context.request_id().clone();
     let (client_key_id, access_group_id) = authenticated_client.event_identity();
+    let context = context.with_client_key_id(client_key_id.clone());
     let _request_event = state
         .event_sink
         .try_emit(GatewayEvent::Request(RequestEvent::new(
@@ -2163,10 +2193,11 @@ async fn messages(
         decoded.request,
         gateway_router::ProtocolFormat::AnthropicMessages,
         Arc::from(body.as_bytes()),
-        route_id,
+        route.route_id,
         response_mode,
         retry_gate,
-    );
+    )
+    .with_exact_upstream_model(route.exact_upstream_model);
     let mut source = match state.executor.execute_routed(execution).await {
         Ok(source) => source,
         Err(error) => return pre_header_anthropic_error(&error),
@@ -2222,7 +2253,7 @@ async fn count_tokens(
         Ok(decoded) => decoded,
         Err(error) => return pre_header_anthropic_error(&error),
     };
-    let (_public_model, _route_alias, route_id) =
+    let ResolvedPublicModel { route, .. } =
         match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
             Ok(resolved) => resolved,
             Err(error) => return pre_header_anthropic_error(&error),
@@ -2231,7 +2262,7 @@ async fn count_tokens(
         Ok(context) => context,
         Err(error) => return pre_header_anthropic_error(&error),
     };
-    let execution = CountTokensExecution::new(context, decoded.request, route_id);
+    let execution = CountTokensExecution::new(context, decoded.request, route.route_id);
     let count = match state.count_tokens_executor.count_tokens(execution).await {
         Ok(count) => count,
         Err(error) => return pre_header_anthropic_error(&error),
@@ -2309,10 +2340,31 @@ fn declared_length_exceeds_limit(request: &HttpRequest) -> bool {
 fn resolve_public_model(
     authenticated_client: &AuthenticatedResponsesClient,
     requested_model: &str,
-) -> Result<(String, Option<String>, Option<gateway_core::RouteId>), GatewayError> {
+) -> Result<ResolvedPublicModel, GatewayError> {
     match authenticated_client {
-        AuthenticatedResponsesClient::Generic(_) => Ok((requested_model.to_owned(), None, None)),
+        AuthenticatedResponsesClient::Generic(_) => Ok(ResolvedPublicModel {
+            public_model: requested_model.to_owned(),
+            route_alias: None,
+            route: ResponsesRouteSelection {
+                route_id: None,
+                exact_upstream_model: None,
+            },
+        }),
         AuthenticatedResponsesClient::Snapshot(authenticated_client) => {
+            match authenticated_client.resolve_exact_upstream_model(requested_model) {
+                SnapshotExactModelResolution::Unique(public_model) => {
+                    return Ok(ResolvedPublicModel {
+                        public_model: requested_model.to_owned(),
+                        route_alias: None,
+                        route: ResponsesRouteSelection {
+                            route_id: Some(public_model.route_id().clone()),
+                            exact_upstream_model: Some(requested_model.to_owned()),
+                        },
+                    });
+                }
+                SnapshotExactModelResolution::Ambiguous => return Err(route_not_found()),
+                SnapshotExactModelResolution::Absent => {}
+            }
             let Some(public_model) = authenticated_client.resolve_public_model(requested_model)
             else {
                 return Err(route_not_found());
@@ -2320,11 +2372,14 @@ fn resolve_public_model(
             let public_model_name = public_model.model_name().to_owned();
             let route_alias =
                 (requested_model != public_model_name).then(|| requested_model.to_owned());
-            Ok((
-                public_model_name,
+            Ok(ResolvedPublicModel {
+                public_model: public_model_name,
                 route_alias,
-                Some(public_model.route_id().clone()),
-            ))
+                route: ResponsesRouteSelection {
+                    route_id: Some(public_model.route_id().clone()),
+                    exact_upstream_model: None,
+                },
+            })
         }
     }
 }
@@ -3627,6 +3682,11 @@ mod tests {
         let observed = { observations.lock().map_err(|_| "observation lock")?.clone() };
         assert_eq!(observed.len(), 2);
         assert_eq!(observed[0].transport, ResponsesClientTransport::WebSocket);
+        assert!(
+            observed
+                .iter()
+                .all(|turn| turn.client_key_id.as_deref() == Some("http-test-client-key"))
+        );
         let first_native = observed[0]
             .native_payload
             .as_ref()
@@ -4870,12 +4930,37 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
         let body = String::from_utf8(test::read_body(response).await.to_vec())?;
         assert!(body.contains(r#""object":"list""#));
-        assert!(body.contains(r#""id":"public-model""#));
+        assert!(body.contains(r#""id":"sensitive-upstream-model""#));
         assert!(body.contains(r#""owned_by":"gateway""#));
+        assert!(!body.contains(r#""id":"public-model""#));
         assert!(!body.contains(SNAPSHOT_MODEL_ALIAS));
-        assert!(!body.contains("sensitive-upstream-model"));
         assert!(!body.contains("http-snapshot-endpoint"));
         assert_eq!(calls.load(Ordering::Acquire), 0);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn snapshot_responses_accepts_and_returns_an_exact_upstream_model() -> TestResult {
+        let (state, presented_key) = snapshot_auth_state(text_events()?)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = test::TestRequest::post()
+            .uri("/v1/responses")
+            .insert_header((header::AUTHORIZATION, format!("Bearer {presented_key}")))
+            .set_payload(r#"{"model":"sensitive-upstream-model","input":"hello"}"#)
+            .to_request();
+
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+        assert!(body.contains(r#""status":"completed""#));
+        assert!(body.contains(r#""model":"sensitive-upstream-model""#));
+        assert!(!body.contains(SNAPSHOT_PUBLIC_MODEL));
+        assert!(!body.contains(SNAPSHOT_MODEL_ALIAS));
         Ok(())
     }
 
@@ -6270,6 +6355,7 @@ mod tests {
     #[derive(Clone)]
     struct WebSocketExecutionObservation {
         transport: ResponsesClientTransport,
+        client_key_id: Option<String>,
         native_payload: Option<serde_json::Value>,
         continuation: Option<ResponsesContinuationKind>,
         message_count: usize,
@@ -6360,6 +6446,10 @@ mod tests {
                     .map_err(|_| super::internal_error())?
                     .push(WebSocketExecutionObservation {
                         transport: execution.client_transport(),
+                        client_key_id: execution
+                            .context()
+                            .client_key_id()
+                            .map(|client_key_id| client_key_id.as_str().to_owned()),
                         native_payload,
                         continuation: execution
                             .continuation_pin()

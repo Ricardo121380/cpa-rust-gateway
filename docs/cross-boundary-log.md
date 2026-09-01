@@ -894,3 +894,43 @@ subscription sync。后端完成前此项保持 `IN_PROGRESS`；OpenAPI 字段�
 `web/prism/src/features/models/model.ts` 在 EOF 有一个额外空行。普通后端工作区 `git diff --check`
 通过，说明这不是本次后端 diff。Claude Code 同步契约时请一并删除该 EOF 空行并重跑前端/文档门禁；
 Codex 按所有权边界没有修改该文件。
+
+---
+
+## 2026-09-01 · Codex · Pi/Grok Build Responses 接线纠正与全渠道模型目录边界
+
+**Touched:** 后端 Request Context、Grok Build Responses adapter、systemd/deployment 文档与本文件。
+**未改动** `web/prism/**`、Management OpenAPI 或 generated client。
+
+**Why:** operator 明确纠正三项接线原则：
+
+1. Grok Build 给 Pi 的协议必须是 `openai-responses`，不能把 Anthropic Messages 诊断路径当成最终配置；
+2. OpenAI Responses SDK 的 provider `baseUrl` 应停在 CPAR 的 `/v1`，由 SDK 追加 `/responses`；
+3. Client-facing model catalog 必须来自各渠道上游发现，保留上游 model id，不能靠 CPAR 人工增加
+   `grok-cpar-*` 一类别名冒充透传。第三条适用于 Grok Build/Web/Console、OpenAI/Anthropic-compatible
+   端点以及任意 `baseURL + API key` 渠道，并且必须经过 Client Key 授权过滤，不能跨渠道泄漏。
+
+本次后端修复了 Pi Responses 请求携带 `prompt_cache_key` 时的租户隔离边界：入口只把已认证
+`ClientKeyId`（不含 presented secret）带到 Grok Build adapter；adapter 使用 deployment-scoped
+32-byte key、Client Key identity、exact upstream model 和原始 cache key 派生 opaque identity，
+原始值不会发给上游。该部署 key 是第六个独立 systemd credential，不复用 master key 或
+Client Key pepper。
+
+**Action required for Claude Code:** P13-15A 后端工作树已经把 `/v1/models` 改为当前 Client Key
+有权访问且 hard-eligible 的 Route Candidate `upstream_model` 原值，并用同一 exact ID 约束请求
+路由；部署前的生产 binary 仍返回旧静态 alias。P13-15A 只修正 serving boundary，
+**尚未完成 P13-15B-E 的全渠道真实 discovery、freshness/removal 与 Credential-scoped route
+materialization**。因此：
+
+- 不要在 Prism、fixture、Pi/CC Switch 交接里把 `grok-cpar-build` 或其他 CPAR alias 写成上游真实模型；
+- Provider/API 类型保持 OpenAI Responses；不要恢复 Anthropic Messages workaround；
+- 模型选择器必须消费授权后的 gateway catalog，并显示 exact upstream model id 与 channel/domain，
+  不应在前端维护渠道模型白名单；
+- Grok Build、Grok Web、Grok Console 即使返回同名 model id，也必须保留各自 channel identity，
+  generic compatible endpoint 也必须保留 endpoint identity。
+
+**Other side:** 后端已按 `CR-P13-UPSTREAM-MODEL-CATALOG-001` 完成 A 片，B-E 将继续实现
+provider/channel/endpoint/credential-scoped discovery、staleness/removal、授权 union 与 exact route
+materialization；在真实上游目录和隔离回归完成前不得把该能力标为 DONE。OAuth 注册仍不属于
+CPAR，但 CPAR 对已导入 refresh token 的 runtime refresh/过期处理需要单独补齐，不得把“本次凭据
+探针成功”表述成“长期自动续期已完成”。

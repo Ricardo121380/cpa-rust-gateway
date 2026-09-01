@@ -22,7 +22,7 @@ API/UI and remains loopback-only at both systemd and P10 admission layers.
 
 ## Credential hand-off contract
 
-Before a future staging installation, an operator supplies five root-owned direct regular files
+Before a future staging installation, an operator supplies six root-owned direct regular files
 outside this repository under `/etc/cpa-rust-gateway/credentials/`. The unit copies them through
 `LoadCredential=` and passes only the systemd-provided read-only credential directory (`%d`) to the
 process. The process rejects missing, symbolic-link, special, empty, oversized, malformed, or
@@ -35,6 +35,7 @@ wrong-size material. It does not read Secret environment variables or a home dir
 | `master-key` | exactly 32 raw bytes, active version `1` | encrypted control-plane Secrets |
 | `backup-key` | exactly 32 raw bytes | encrypted backup/restore material |
 | `client-key-pepper` | exactly 32 raw bytes | Client-Key issuance and verification |
+| `grok-build-cache-key` | exactly 32 raw bytes | tenant-isolated Grok Build prompt-cache identities |
 
 Credential values, endpoints, provider keys, database snapshots, restore artifacts, and server
 paths must never be committed. The unit also sets `UMask=0077`, uses an unprivileged service

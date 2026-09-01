@@ -54,10 +54,11 @@ use gateway_control::{
 };
 use gateway_core::{
     AttemptEvent, AttemptOutcome, CanonicalEvent, CanonicalEventState, CanonicalMessage,
-    CanonicalRequest, CredentialId, EgressPolicyId, EndpointId, ErrorScope, EventEmission,
-    GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, MessageContent, MessageRole,
-    NoopGatewayEventSink, ProviderId, RawExtensions, RawJson, RequestContext, RequestId, RouteId,
-    TextContent, TransparentRetryGate, TransparentRetryGateFuture, Usage, UsageDelta,
+    CanonicalRequest, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, ErrorScope,
+    EventEmission, GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, MessageContent,
+    MessageRole, NoopGatewayEventSink, ProviderId, RawExtensions, RawJson, RequestContext,
+    RequestId, RouteId, TextContent, TransparentRetryGate, TransparentRetryGateFuture, Usage,
+    UsageDelta,
 };
 #[cfg(test)]
 use gateway_core::{
@@ -147,13 +148,14 @@ use provider_grok::{
     GROK_OFFICIAL_RESPONSES_URL, GROK_WEB_CANARY_PATH, GROK_WEB_CANARY_URL,
     GROK_WEB_PRODUCTION_BASE_URL, GROK_WEB_PRODUCTION_USER_AGENT, GrokAccountAuthStatus,
     GrokAccountEndpointBinding, GrokAccountMetadata, GrokAccountPoolStore, GrokAccountProvider,
-    GrokBuildCredential, GrokBuildExecutionMode, GrokBuildInferenceAdapter,
-    GrokBuildUpstreamTransport, GrokConsoleExecutionMode, GrokConsoleInferenceAdapter,
-    GrokConsoleSsoToken, GrokConsoleUpstreamTransport, GrokNativeEgressAttempt,
-    GrokNativeEgressAttemptError, GrokOfficialApiKey, GrokOfficialExecutionMode,
-    GrokOfficialInferenceAdapter, GrokOfficialUpstreamTransport, GrokWebBrowserEgressSession,
-    GrokWebBrowserUserAgent, GrokWebCredential, GrokWebEgressRefresher, GrokWebEgressSessionId,
-    GrokWebFlareSolverrRequest, GrokWebFlareSolverrTransport, GrokWebFlareSolverrTransportResponse,
+    GrokBuildCacheIdentityDeriver, GrokBuildCredential, GrokBuildExecutionMode,
+    GrokBuildInferenceAdapter, GrokBuildUpstreamTransport, GrokConsoleExecutionMode,
+    GrokConsoleInferenceAdapter, GrokConsoleSsoToken, GrokConsoleUpstreamTransport,
+    GrokNativeEgressAttempt, GrokNativeEgressAttemptError, GrokOfficialApiKey,
+    GrokOfficialExecutionMode, GrokOfficialInferenceAdapter, GrokOfficialUpstreamTransport,
+    GrokWebBrowserEgressSession, GrokWebBrowserUserAgent, GrokWebCredential,
+    GrokWebEgressRefresher, GrokWebEgressSessionId, GrokWebFlareSolverrRequest,
+    GrokWebFlareSolverrTransport, GrokWebFlareSolverrTransportResponse,
     GrokWebProductionInferenceAdapter, GrokWebProductionUpstreamTransport, GrokWebStatsigRuntime,
     GrokWebStatsigUpstreamTransport, GrokWebTlsProfile, SystemGrokNativeEgressClock,
 };
@@ -634,6 +636,7 @@ pub(crate) fn build_data_plane_composition(
         secret_store,
         registry,
         client_key_service,
+        Arc::new(GrokBuildCacheIdentityDeriver::new([0xC4; 32])),
         None,
         None,
         8191,
@@ -645,12 +648,13 @@ pub(crate) fn build_data_plane_composition(
 /// The default deployment remains direct. A proxy is a process-envelope input rather than a
 /// control-plane field so an operator can bind a temporary, isolated Web exit without changing
 /// persisted routes or accidentally routing other providers through it.
-#[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)] // Keep one explicit bootstrap envelope for every deployment-owned transport and secret.
 pub(crate) fn build_data_plane_composition_with_web_proxy(
     database: &Path,
     secret_store: &SecretStore,
     registry: Arc<RouteSnapshotRegistry>,
     client_key_service: ClientKeyService,
+    grok_build_cache_identity_deriver: Arc<GrokBuildCacheIdentityDeriver>,
     web_proxy: Option<UpstreamProxy>,
     flaresolverr_proxy: Option<UpstreamProxy>,
     flaresolverr_port: u16,
@@ -727,6 +731,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
                     Arc::clone(&event_sink),
                     Arc::clone(&runtime_health),
                     Arc::clone(&runtime_quota),
+                    grok_build_cache_identity_deriver,
                     web_proxy,
                     flaresolverr_proxy,
                     flaresolverr_port,
@@ -1122,6 +1127,7 @@ struct P12RoutedResponsesExecutor {
     event_sink: Arc<dyn GatewayEventSink>,
     channel_pin_in_flight: AtomicUsize,
     native_grok_egress: Option<Arc<P13NativeGrokEgressRuntime>>,
+    grok_build_cache_identity_deriver: Arc<GrokBuildCacheIdentityDeriver>,
 }
 
 impl P12RoutedResponsesExecutor {
@@ -1139,6 +1145,7 @@ impl P12RoutedResponsesExecutor {
         event_sink: Arc<dyn GatewayEventSink>,
         runtime_health: Arc<RuntimeHealthRegistry>,
         runtime_quota: Arc<RuntimeQuotaRegistry>,
+        grok_build_cache_identity_deriver: Arc<GrokBuildCacheIdentityDeriver>,
         web_proxy: Option<UpstreamProxy>,
         flaresolverr_proxy: Option<UpstreamProxy>,
         flaresolverr_port: u16,
@@ -1347,6 +1354,7 @@ impl P12RoutedResponsesExecutor {
                 event_sink,
                 channel_pin_in_flight: AtomicUsize::new(0),
                 native_grok_egress,
+                grok_build_cache_identity_deriver,
             },
             provider_account_pools,
             route_explain_scheduler,
@@ -1483,6 +1491,7 @@ impl P12RoutedResponsesExecutor {
         let endpoints = Arc::clone(&self.endpoints);
         let driver = EndpointAttemptDriver {
             request_id: request_id.clone(),
+            client_key_id: None,
             request: canonical,
             client_protocol,
             native_payload: None,
@@ -1502,6 +1511,7 @@ impl P12RoutedResponsesExecutor {
             allow_egress_refresh: false,
             channel_pin_observation: Some(Arc::clone(&observation)),
             native_grok_egress: self.native_grok_egress.clone(),
+            grok_build_cache_identity_deriver: Arc::clone(&self.grok_build_cache_identity_deriver),
         };
         let started = self
             .orchestrator
@@ -1784,6 +1794,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
         Box::pin(async { Err(route_not_found_error()) })
     }
 
+    #[allow(clippy::too_many_lines)] // Keep exact-model admission, selection, lease and lineage in one auditable request flow.
     fn execute_routed(
         &self,
         execution: ResponsesExecution,
@@ -1808,6 +1819,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
         };
         let native_payload = execution.native_payload().cloned();
         let route_id = execution.route_id().cloned();
+        let exact_upstream_model = execution.exact_upstream_model().map(str::to_owned);
         let mode = execution.mode();
         let client_transport = execution.client_transport();
         let retry_gate = Arc::clone(execution.retry_gate());
@@ -1834,6 +1846,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             let exact_continuation = continuation_pin.is_some();
             let driver = EndpointAttemptDriver {
                 request_id: context.request_id().clone(),
+                client_key_id: context.client_key_id().cloned(),
                 request,
                 client_protocol,
                 native_payload,
@@ -1848,6 +1861,9 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                 allow_egress_refresh: !exact_continuation,
                 channel_pin_observation: None,
                 native_grok_egress: self.native_grok_egress.clone(),
+                grok_build_cache_identity_deriver: Arc::clone(
+                    &self.grok_build_cache_identity_deriver,
+                ),
             };
             // BC-ROUTER-005: a Candidate may only serve the client protocol it speaks. Once the
             // graph can hold Endpoints of more than one format, selecting without this filter
@@ -1860,7 +1876,12 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                         .start_continuation_once_with_event_sink(
                             context.request_id(),
                             pin,
-                            |candidate| driver.project_candidate(candidate).is_ok(),
+                            |candidate| {
+                                exact_upstream_model
+                                    .as_deref()
+                                    .is_none_or(|model| candidate.upstream_model() == model)
+                                    && driver.project_candidate(candidate).is_ok()
+                            },
                             &driver,
                             retry_gate.as_ref(),
                             event_sink.as_ref(),
@@ -1872,7 +1893,12 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                         .start_with_event_sink_provider_scoped_matching(
                             context.request_id(),
                             &route_id,
-                            |candidate| driver.project_candidate(candidate).is_ok(),
+                            |candidate| {
+                                exact_upstream_model
+                                    .as_deref()
+                                    .is_none_or(|model| candidate.upstream_model() == model)
+                                    && driver.project_candidate(candidate).is_ok()
+                            },
                             &driver,
                             retry_gate.as_ref(),
                             event_sink.as_ref(),
@@ -3540,6 +3566,7 @@ struct CompatibleEgressSelection {
 
 struct EndpointAttemptDriver {
     request_id: RequestId,
+    client_key_id: Option<ClientKeyId>,
     request: CanonicalRequest,
     client_protocol: ProtocolFormat,
     native_payload: Option<Arc<[u8]>>,
@@ -3554,6 +3581,7 @@ struct EndpointAttemptDriver {
     allow_egress_refresh: bool,
     channel_pin_observation: Option<Arc<P13ChannelPinObservation>>,
     native_grok_egress: Option<Arc<P13NativeGrokEgressRuntime>>,
+    grok_build_cache_identity_deriver: Arc<GrokBuildCacheIdentityDeriver>,
 }
 
 /// Request-local, value-free observation used by Channel Pin to distinguish a rejected lease
@@ -4177,7 +4205,8 @@ impl EndpointAttemptDriver {
             Arc::new(transport),
         )
         .map_err(AttemptFailure::NonRetryable)?
-        .with_provider_egress_attempt(native_egress);
+        .with_provider_egress_attempt(native_egress)
+        .with_cache_identity_deriver(Arc::clone(&self.grok_build_cache_identity_deriver));
         self.attempt_stages.record_stage(
             &self.request_id,
             ManagementRequestAttemptStage::EgressAdmission,
@@ -4186,11 +4215,12 @@ impl EndpointAttemptDriver {
             &self.request_id,
             ManagementRequestAttemptStage::HttpTransport,
         );
+        let mut context = RequestContext::new(self.request_id.clone());
+        if let Some(client_key_id) = self.client_key_id.clone() {
+            context = context.with_client_key_id(client_key_id);
+        }
         let source = adapter
-            .execute(
-                RequestContext::new(self.request_id.clone()),
-                request.clone(),
-            )
+            .execute(context, request.clone())
             .await
             .map_err(p12_classify_grok_start_failure)?;
         self.mark_upstream_sent();
@@ -7274,6 +7304,7 @@ mod tests {
     use protocol_openai_responses::{
         ResponseMode, decode_request, decode_upstream_response as decode_responses_production,
     };
+    use provider_grok::GrokBuildCacheIdentityDeriver;
     use provider_kiro::endpoint_policy::KiroEndpointKind;
     use provider_openai_compatible::{
         OpenAiResponsesApiKey, OpenAiResponsesEndpoint, OpenAiResponsesRequestBuilder,
@@ -8561,6 +8592,7 @@ mod tests {
         )?;
         let driver = EndpointAttemptDriver {
             request_id: request_id.clone(),
+            client_key_id: None,
             request: decoded.request,
             client_protocol: ProtocolFormat::OpenAiResponses,
             native_payload: None,
@@ -8577,6 +8609,9 @@ mod tests {
             allow_egress_refresh: true,
             channel_pin_observation: None,
             native_grok_egress: None,
+            grok_build_cache_identity_deriver: Arc::new(GrokBuildCacheIdentityDeriver::new(
+                [0xC4; 32],
+            )),
         };
         let route_id = RouteId::try_new("p12-widened-route-primary")?;
         for candidate in snapshot
@@ -8707,6 +8742,7 @@ mod tests {
                 event_sink,
                 runtime_health,
                 runtime_quota,
+                Arc::new(GrokBuildCacheIdentityDeriver::new([0xC4; 32])),
                 None,
                 None,
                 8191,
@@ -8823,6 +8859,7 @@ mod tests {
         ))?;
         let driver = EndpointAttemptDriver {
             request_id: request_id.clone(),
+            client_key_id: None,
             request: decoded.request,
             client_protocol: ProtocolFormat::OpenAiResponses,
             native_payload: None,
@@ -8839,6 +8876,9 @@ mod tests {
             allow_egress_refresh: true,
             channel_pin_observation: None,
             native_grok_egress: None,
+            grok_build_cache_identity_deriver: Arc::new(GrokBuildCacheIdentityDeriver::new(
+                [0xC4; 32],
+            )),
         };
 
         let result = driver

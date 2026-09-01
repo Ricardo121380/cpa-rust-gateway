@@ -62,7 +62,7 @@ gateway serve \
 
 ### 3.2 Bootstrap credentials
 
-Create five direct regular files. Symlinks, directories, special files, empty/oversized data and
+Create six direct regular files. Symlinks, directories, special files, empty/oversized data and
 incorrectly sized binary keys are rejected.
 
 | Name | Requirement |
@@ -72,6 +72,7 @@ incorrectly sized binary keys are rejected.
 | `master-key` | exactly 32 random raw bytes |
 | `backup-key` | exactly 32 random raw bytes |
 | `client-key-pepper` | exactly 32 random raw bytes |
+| `grok-build-cache-key` | exactly 32 random raw bytes, used only for tenant-isolated Grok Build prompt-cache identities |
 
 Example for a root-managed Linux host:
 
@@ -82,6 +83,7 @@ sudo sh -c 'umask 077; printf "csrf_%s" "$(openssl rand -hex 32)" > /etc/cpa-rus
 sudo sh -c 'umask 077; openssl rand -out /etc/cpa-rust-gateway/credentials/master-key 32'
 sudo sh -c 'umask 077; openssl rand -out /etc/cpa-rust-gateway/credentials/backup-key 32'
 sudo sh -c 'umask 077; openssl rand -out /etc/cpa-rust-gateway/credentials/client-key-pepper 32'
+sudo sh -c 'umask 077; openssl rand -out /etc/cpa-rust-gateway/credentials/grok-build-cache-key 32'
 ```
 
 Back up the key material separately from the SQLite state. A database backup without the matching
@@ -200,7 +202,7 @@ the credential mount must be readable/traversable but not writable.
 ```bash
 sudo install -d -o 65532 -g 65532 -m 0700 /srv/cpar/state
 sudo install -d -o 65532 -g 65532 -m 0500 /srv/cpar/credentials
-# Create the five files securely, then:
+# Create the six files securely, then:
 sudo chown 65532:65532 /srv/cpar/credentials/*
 sudo chmod 0400 /srv/cpar/credentials/*
 ```

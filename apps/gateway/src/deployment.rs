@@ -58,6 +58,7 @@ use gateway_store::{
     event_store::{AsyncSqliteEventWriter, SqliteEventStore},
 };
 use gateway_upstream::UpstreamProxy;
+use provider_grok::GrokBuildCacheIdentityDeriver;
 use zeroize::{Zeroize, Zeroizing};
 
 use crate::runtime;
@@ -80,6 +81,7 @@ const MANAGEMENT_CSRF_CREDENTIAL: &str = "management-csrf";
 const MASTER_KEY_CREDENTIAL: &str = "master-key";
 const BACKUP_KEY_CREDENTIAL: &str = "backup-key";
 const CLIENT_KEY_PEPPER_CREDENTIAL: &str = "client-key-pepper";
+const GROK_BUILD_CACHE_KEY_CREDENTIAL: &str = "grok-build-cache-key";
 const KEY_BYTES: usize = 32;
 const MAX_TEXT_CREDENTIAL_BYTES: usize = 512;
 const CONTROL_DATABASE_FILE: &str = "control.sqlite3";
@@ -340,6 +342,9 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
     let management_csrf = load_management_csrf(&command.credentials_directory)?;
     let master_key = load_master_key(&command.credentials_directory)?;
     let backup_key = load_backup_key(&command.credentials_directory)?;
+    let grok_build_cache_identity_deriver = Arc::new(load_grok_build_cache_identity_deriver(
+        &command.credentials_directory,
+    )?);
 
     let key_version = KeyVersion::try_new(1).map_err(|_| DeploymentError::RuntimeUnavailable)?;
     let management_key_ring =
@@ -383,6 +388,7 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         &runtime_secret_store,
         registry,
         runtime_client_key_service,
+        grok_build_cache_identity_deriver,
         command.grok_web_proxy.clone(),
         command.grok_web_flaresolverr_proxy.clone(),
         command.grok_web_flaresolverr_port,
@@ -444,6 +450,23 @@ fn load_client_key_service(directory: &Path) -> Result<ClientKeyService, Deploym
     let pepper = ClientKeyPepper::load_from_file(directory.join(CLIENT_KEY_PEPPER_CREDENTIAL))
         .map_err(|_| DeploymentError::InvalidCredential(CLIENT_KEY_PEPPER_CREDENTIAL))?;
     Ok(ClientKeyService::new(pepper))
+}
+
+fn load_grok_build_cache_identity_deriver(
+    directory: &Path,
+) -> Result<GrokBuildCacheIdentityDeriver, DeploymentError> {
+    let mut bytes = read_credential_file(directory, GROK_BUILD_CACHE_KEY_CREDENTIAL, KEY_BYTES)?;
+    if bytes.len() != KEY_BYTES {
+        return Err(DeploymentError::InvalidCredential(
+            GROK_BUILD_CACHE_KEY_CREDENTIAL,
+        ));
+    }
+    let mut key = [0_u8; KEY_BYTES];
+    key.copy_from_slice(&bytes);
+    bytes.zeroize();
+    let deriver = GrokBuildCacheIdentityDeriver::new(key);
+    key.zeroize();
+    Ok(deriver)
 }
 
 fn parse_options(arguments: Vec<String>) -> Result<BTreeMap<String, String>, DeploymentError> {
@@ -757,6 +780,7 @@ mod tests {
         fs::write(directory.join("master-key"), [0xA1; 32])?;
         fs::write(directory.join("backup-key"), [0xB2; 32])?;
         fs::write(directory.join("client-key-pepper"), [0xC3; 32])?;
+        fs::write(directory.join("grok-build-cache-key"), [0xD4; 32])?;
         Ok(())
     }
 

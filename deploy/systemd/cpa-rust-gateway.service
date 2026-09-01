@@ -31,6 +31,7 @@ LoadCredential=management-csrf:/etc/cpa-rust-gateway/credentials/management-csrf
 LoadCredential=master-key:/etc/cpa-rust-gateway/credentials/master-key
 LoadCredential=backup-key:/etc/cpa-rust-gateway/credentials/backup-key
 LoadCredential=client-key-pepper:/etc/cpa-rust-gateway/credentials/client-key-pepper
+LoadCredential=grok-build-cache-key:/etc/cpa-rust-gateway/credentials/grok-build-cache-key
 NoNewPrivileges=yes
 CapabilityBoundingSet=
 AmbientCapabilities=

@@ -32,6 +32,7 @@ required = [
   "LoadCredential=master-key:/etc/cpa-rust-gateway/credentials/master-key",
   "LoadCredential=backup-key:/etc/cpa-rust-gateway/credentials/backup-key",
   "LoadCredential=client-key-pepper:/etc/cpa-rust-gateway/credentials/client-key-pepper",
+  "LoadCredential=grok-build-cache-key:/etc/cpa-rust-gateway/credentials/grok-build-cache-key",
   "NoNewPrivileges=yes", "CapabilityBoundingSet=", "AmbientCapabilities=", "PrivateTmp=yes",
   "PrivateDevices=yes", "ProtectSystem=strict", "ProtectHome=yes", "ProtectControlGroups=yes",
   "ProtectKernelTunables=yes", "ProtectKernelModules=yes", "ProtectKernelLogs=yes",
@@ -57,7 +58,7 @@ errors << "unit must pass only systemd's credential directory" unless exec_start
 forbidden = lines.grep(/^(Environment|EnvironmentFile)=/i)
 errors << "unit must not use environment credential configuration" unless forbidden.empty?
 errors << "unit must not use a root service account" if lines.include?("User=root") || lines.include?("Group=root")
-errors << "unit must use all five direct LoadCredential entries" unless lines.grep(/^LoadCredential=/).length == 5
+errors << "unit must use all six direct LoadCredential entries" unless lines.grep(/^LoadCredential=/).length == 6
 errors << "unit must not use unsupported ConditionPathIsExecutable" if lines.any? { |line| line.start_with?("ConditionPathIsExecutable=") }
 
 if errors.any?
@@ -76,7 +77,7 @@ end
 # is for: the static table above already asserts the whole `ExecStart=` line byte-exact, so the
 # path is fully covered without systemd. Point the analysed copy at an executable stub instead and
 # let systemd check what only systemd can: that every directive parses and the unit is loadable.
-# `LoadCredential=` sources are *not* resolved by verify (measured on systemd 255), so the five
+# `LoadCredential=` sources are *not* resolved by verify (measured on systemd 255), so the six
 # credential paths stay verbatim and keep failing closed at runtime rather than here.
 #
 # Exit status alone is nearly worthless here: verify exits 0 on an unknown key, an unknown section,

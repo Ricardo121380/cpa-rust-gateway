@@ -19,11 +19,11 @@ use protocol_openai_responses::ResponseMode;
 
 use crate::provider_egress::GrokNativeEgressEventSource;
 use crate::{
-    GrokBuildAccountEvidence, GrokBuildCredential, GrokBuildRateLimitEvidence,
-    GrokBuildResponsesDecoder, GrokBuildResponsesHttpError, GrokBuildResponsesOutboundRequest,
-    GrokBuildResponsesRequestBuilder, GrokBuildResponsesStreamDecoder, GrokNativeEgressAttempt,
-    MAX_GROK_BUILD_ERROR_BODY_BYTES, MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES,
-    classify_grok_build_failure,
+    GrokBuildAccountEvidence, GrokBuildCacheIdentityDeriver, GrokBuildCredential,
+    GrokBuildRateLimitEvidence, GrokBuildResponsesDecoder, GrokBuildResponsesHttpError,
+    GrokBuildResponsesOutboundRequest, GrokBuildResponsesRequestBuilder,
+    GrokBuildResponsesStreamDecoder, GrokNativeEgressAttempt, MAX_GROK_BUILD_ERROR_BODY_BYTES,
+    MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES, classify_grok_build_failure,
 };
 
 /// Fixed Provider identity for the native Grok Build adapter.
@@ -255,6 +255,7 @@ pub struct GrokBuildInferenceAdapter {
     mode: GrokBuildExecutionMode,
     transport: Arc<dyn GrokBuildTransport>,
     egress_attempt: Option<Arc<GrokNativeEgressAttempt>>,
+    cache_identity_deriver: Option<Arc<GrokBuildCacheIdentityDeriver>>,
 }
 
 impl GrokBuildInferenceAdapter {
@@ -286,6 +287,7 @@ impl GrokBuildInferenceAdapter {
             mode,
             transport,
             egress_attempt: None,
+            cache_identity_deriver: None,
         })
     }
 
@@ -293,6 +295,16 @@ impl GrokBuildInferenceAdapter {
     #[must_use]
     pub fn with_provider_egress_attempt(mut self, attempt: Arc<GrokNativeEgressAttempt>) -> Self {
         self.egress_attempt = Some(attempt);
+        self
+    }
+
+    /// Adds the deployment-scoped secret boundary used to isolate upstream prompt-cache keys.
+    #[must_use]
+    pub fn with_cache_identity_deriver(
+        mut self,
+        deriver: Arc<GrokBuildCacheIdentityDeriver>,
+    ) -> Self {
+        self.cache_identity_deriver = Some(deriver);
         self
     }
 }
@@ -307,6 +319,10 @@ impl fmt::Debug for GrokBuildInferenceAdapter {
             .field("mode", &self.mode)
             .field("transport", &"<injected>")
             .field("provider_egress", &self.egress_attempt.is_some())
+            .field(
+                "cache_identity_deriver",
+                &self.cache_identity_deriver.is_some(),
+            )
             .finish()
     }
 }
@@ -320,7 +336,7 @@ impl ProviderAdapter for GrokBuildInferenceAdapter {
 impl InferenceAdapter for GrokBuildInferenceAdapter {
     fn execute(
         &self,
-        _context: RequestContext,
+        context: RequestContext,
         request: CanonicalRequest,
     ) -> ProviderFuture<'_, Result<Box<dyn CanonicalEventSource>, GatewayError>> {
         let credential = self.credential.clone();
@@ -328,14 +344,33 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
         let mode = self.mode;
         let transport = Arc::clone(&self.transport);
         let egress_attempt = self.egress_attempt.clone();
+        let cache_identity_deriver = self.cache_identity_deriver.clone();
         let reasoning_policy = ReasoningPolicy::from_request(&request);
 
         Box::pin(async move {
-            let outbound = GrokBuildResponsesRequestBuilder::build(
+            let cache_identity = request
+                .prompt_cache_key
+                .as_deref()
+                .map(|prompt_cache_key| {
+                    cache_identity_deriver
+                        .as_ref()
+                        .ok_or_else(provider_protocol_error)?
+                        .derive(
+                            context
+                                .client_key_id()
+                                .ok_or_else(provider_protocol_error)?,
+                            &upstream_model,
+                            prompt_cache_key,
+                        )
+                        .map_err(|_| provider_protocol_error())
+                })
+                .transpose()?;
+            let outbound = GrokBuildResponsesRequestBuilder::build_with_cache_identity(
                 &credential,
                 &upstream_model,
                 &request,
                 mode.response_mode(),
+                cache_identity.as_ref(),
             )?;
             let response = transport
                 .send_with_egress_attempt(outbound, egress_attempt.clone())

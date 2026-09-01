@@ -102,10 +102,10 @@ pub use route_snapshot::{
     RouteSnapshotBuildError, RouteSnapshotInput, RouteSnapshotRegistry, SnapshotAccessGroup,
     SnapshotAuthenticatedClient, SnapshotCatalogAdmission, SnapshotClientKeyAuthenticator,
     SnapshotClientKeyClock, SnapshotClientKeyClockError, SnapshotClientKeyView,
-    SnapshotPriorityTierSchedule, SnapshotPublicModel, SnapshotRegistryError, SnapshotRoute,
-    SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
-    SnapshotRouteSchedule, SnapshotTransformMode, SnapshotTransition, SnapshotVersion,
-    SystemSnapshotClientKeyClock,
+    SnapshotExactModelResolution, SnapshotPriorityTierSchedule, SnapshotPublicModel,
+    SnapshotRegistryError, SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput,
+    SnapshotRoutePolicy, SnapshotRouteSchedule, SnapshotTransformMode, SnapshotTransition,
+    SnapshotVersion, SystemSnapshotClientKeyClock,
 };
 pub use runtime_health::{
     DEFAULT_RUNTIME_HEALTH_SHARD_COUNT, MAX_RUNTIME_HEALTH_ENTRIES_PER_SHARD,
@@ -185,6 +185,7 @@ pub struct ResponsesExecution {
     client_protocol: ProtocolFormat,
     native_payload: Option<Arc<[u8]>>,
     route_id: Option<RouteId>,
+    exact_upstream_model: Option<String>,
     mode: ResponsesResponseMode,
     client_transport: ResponsesClientTransport,
     retry_gate: Arc<dyn TransparentRetryGate>,
@@ -208,6 +209,7 @@ impl ResponsesExecution {
             client_protocol: ProtocolFormat::OpenAiResponses,
             native_payload: None,
             route_id,
+            exact_upstream_model: None,
             mode,
             client_transport: ResponsesClientTransport::Http,
             retry_gate,
@@ -236,6 +238,7 @@ impl ResponsesExecution {
             client_protocol,
             native_payload: Some(native_payload),
             route_id,
+            exact_upstream_model: None,
             mode,
             client_transport: ResponsesClientTransport::Http,
             retry_gate,
@@ -272,6 +275,19 @@ impl ResponsesExecution {
     #[must_use]
     pub fn route_id(&self) -> Option<&RouteId> {
         self.route_id.as_ref()
+    }
+
+    /// Constrains execution to Candidates carrying one ingress-resolved exact upstream model.
+    #[must_use]
+    pub fn with_exact_upstream_model(mut self, upstream_model: Option<String>) -> Self {
+        self.exact_upstream_model = upstream_model;
+        self
+    }
+
+    /// Returns the exact upstream-model constraint selected from the pinned authorized Snapshot.
+    #[must_use]
+    pub fn exact_upstream_model(&self) -> Option<&str> {
+        self.exact_upstream_model.as_deref()
     }
 
     /// Returns the requested public response representation.
@@ -349,6 +365,10 @@ impl fmt::Debug for ResponsesExecution {
                 &self.native_payload.as_ref().map(|payload| payload.len()),
             )
             .field("route_id", &self.route_id)
+            .field(
+                "exact_upstream_model_present",
+                &self.exact_upstream_model.is_some(),
+            )
             .field("mode", &self.mode)
             .field("client_transport", &self.client_transport)
             .field("retry_gate", &"<downstream-owned>")

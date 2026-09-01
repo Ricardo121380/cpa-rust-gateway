@@ -56,7 +56,7 @@ gateway serve \
 
 ### 3.2 Bootstrap Credential
 
-必须创建五个直接普通文件。符号链接、目录、Special File、空值、超限值或错误长度都会被拒绝。
+必须创建六个直接普通文件。符号链接、目录、Special File、空值、超限值或错误长度都会被拒绝。
 
 | 文件名 | 要求 |
 |---|---|
@@ -65,6 +65,7 @@ gateway serve \
 | `master-key` | 恰好 32 个随机原始字节 |
 | `backup-key` | 恰好 32 个随机原始字节 |
 | `client-key-pepper` | 恰好 32 个随机原始字节 |
+| `grok-build-cache-key` | 恰好 32 个随机原始字节；仅用于租户隔离的 Grok Build Prompt Cache Identity |
 
 Linux root 管理示例：
 
@@ -75,6 +76,7 @@ sudo sh -c 'umask 077; printf "csrf_%s" "$(openssl rand -hex 32)" > /etc/cpa-rus
 sudo sh -c 'umask 077; openssl rand -out /etc/cpa-rust-gateway/credentials/master-key 32'
 sudo sh -c 'umask 077; openssl rand -out /etc/cpa-rust-gateway/credentials/backup-key 32'
 sudo sh -c 'umask 077; openssl rand -out /etc/cpa-rust-gateway/credentials/client-key-pepper 32'
+sudo sh -c 'umask 077; openssl rand -out /etc/cpa-rust-gateway/credentials/grok-build-cache-key 32'
 ```
 
 Key Material 与 SQLite State 必须分别备份：没有匹配 Key Ring 的数据库备份无法打开加密 Credential；
@@ -191,7 +193,7 @@ Runtime Image 使用数字 UID/GID `65532`。State Mount 必须对该身份可�
 ```bash
 sudo install -d -o 65532 -g 65532 -m 0700 /srv/cpar/state
 sudo install -d -o 65532 -g 65532 -m 0500 /srv/cpar/credentials
-# 安全创建五个文件后：
+# 安全创建六个文件后：
 sudo chown 65532:65532 /srv/cpar/credentials/*
 sudo chmod 0400 /srv/cpar/credentials/*
 ```

@@ -10,8 +10,8 @@ use std::{
 };
 
 use gateway_core::{
-    CanonicalEvent, CanonicalRequest, ErrorScope, GatewayError, GatewayErrorCode, RequestContext,
-    RequestId, TransparentRetryGate, TransparentRetryGateFuture,
+    CanonicalEvent, CanonicalRequest, ClientKeyId, ErrorScope, GatewayError, GatewayErrorCode,
+    RequestContext, RequestId, TransparentRetryGate, TransparentRetryGateFuture,
 };
 use gateway_provider::{CanonicalEventSource, InferenceAdapter, ProviderAdapter, ProviderFuture};
 use gateway_router::{
@@ -20,9 +20,10 @@ use gateway_router::{
 };
 use protocol_openai_responses::decode_request;
 use provider_grok::{
-    GrokBuildCredential, GrokBuildExecutionMode, GrokBuildInferenceAdapter, GrokBuildResponseBody,
-    GrokBuildResponseContentEncoding, GrokBuildResponseContentType,
-    GrokBuildResponsesOutboundRequest, GrokBuildTransport, GrokBuildTransportResponse,
+    GrokBuildCacheIdentityDeriver, GrokBuildCredential, GrokBuildExecutionMode,
+    GrokBuildInferenceAdapter, GrokBuildResponseBody, GrokBuildResponseContentEncoding,
+    GrokBuildResponseContentType, GrokBuildResponsesOutboundRequest, GrokBuildTransport,
+    GrokBuildTransportResponse,
 };
 
 type TestResult = Result<(), Box<dyn Error>>;
@@ -90,6 +91,44 @@ async fn explicitly_requested_reasoning_remains_in_the_canonical_response() -> T
             .iter()
             .any(|event| matches!(event, CanonicalEvent::ReasoningDelta(_)))
     );
+    assert_eq!(transport.call_count(), 1);
+    Ok(())
+}
+
+#[tokio::test]
+async fn prompt_cache_key_is_tenant_derived_before_build_transport() -> TestResult {
+    let transport = Arc::new(FixtureTransport::new([FixtureResponse::ok_json(
+        include_bytes!("../../../tests/fixtures/grok-build/p6-03-non-streaming.json"),
+    )]));
+    let deriver = Arc::new(GrokBuildCacheIdentityDeriver::new([0x39; 32]));
+    let adapter = adapter(GrokBuildExecutionMode::NonStreaming, transport.clone())?
+        .with_cache_identity_deriver(Arc::clone(&deriver));
+    let client_key_id = ClientKeyId::try_new("p13-responses-cache-client")?;
+    let raw_cache_key = "pi-session-cache-key";
+    let mut request = request()?;
+    request.prompt_cache_key = Some(raw_cache_key.to_owned());
+
+    collect(
+        adapter
+            .execute(
+                context()?.with_client_key_id(client_key_id.clone()),
+                request,
+            )
+            .await?,
+    )
+    .await?;
+
+    let body = transport
+        .request_body()
+        .ok_or("request body was not captured")?;
+    let body: serde_json::Value = serde_json::from_slice(&body)?;
+    let expected = deriver.derive(&client_key_id, "grok-4.5-build", raw_cache_key)?;
+    assert_eq!(
+        body.get("prompt_cache_key")
+            .and_then(serde_json::Value::as_str),
+        Some(expected.as_str())
+    );
+    assert!(!serde_json::to_string(&body)?.contains(raw_cache_key));
     assert_eq!(transport.call_count(), 1);
     Ok(())
 }
@@ -311,6 +350,7 @@ impl FixtureResponse {
 struct FixtureTransport {
     responses: Mutex<VecDeque<FixtureResponse>>,
     calls: Mutex<u8>,
+    request_body: Mutex<Option<Vec<u8>>>,
 }
 
 impl FixtureTransport {
@@ -318,19 +358,27 @@ impl FixtureTransport {
         Self {
             responses: Mutex::new(responses.into_iter().collect()),
             calls: Mutex::new(0),
+            request_body: Mutex::new(None),
         }
     }
 
     fn call_count(&self) -> u8 {
         self.calls.lock().map_or(0, |calls| *calls)
     }
+
+    fn request_body(&self) -> Option<Vec<u8>> {
+        self.request_body.lock().ok().and_then(|body| body.clone())
+    }
 }
 
 impl GrokBuildTransport for FixtureTransport {
     fn send(
         &self,
-        _request: GrokBuildResponsesOutboundRequest,
+        request: GrokBuildResponsesOutboundRequest,
     ) -> ProviderFuture<'_, Result<GrokBuildTransportResponse, GatewayError>> {
+        if let Ok(mut body) = self.request_body.lock() {
+            *body = Some(request.body().to_vec());
+        }
         let response = self
             .responses
             .lock()
