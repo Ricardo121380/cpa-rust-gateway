@@ -662,7 +662,12 @@ fn canonical_rejection(
     target: ProtocolFormat,
 ) -> Result<(), ProtocolTransformRejection> {
     validate_target_root_extensions(request, target)?;
-    if request.prompt_cache_key.is_some() || request.prompt_cache_retention.is_some() {
+    // Responses cache controls are typed, losslessly retained fields when the target is still
+    // Responses. Cross-protocol projection rejects them earlier in `project_cross_protocol`, and
+    // Chat/Messages targets continue to fail closed here.
+    if target != ProtocolFormat::OpenAiResponses
+        && (request.prompt_cache_key.is_some() || request.prompt_cache_retention.is_some())
+    {
         return Err(ProtocolTransformRejection::CacheControlUnsupported);
     }
     if request.messages.is_empty() {
@@ -1674,6 +1679,31 @@ mod tests {
             &all_capabilities,
             ProtocolTransformRejection::IncompatibleRole,
         )?;
+        Ok(())
+    }
+
+    #[test]
+    fn same_protocol_responses_preserves_typed_cache_controls()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut with_cache_control = request();
+        with_cache_control.prompt_cache_key = Some("private-cache-key".to_owned());
+        with_cache_control.prompt_cache_retention = Some("in-memory".to_owned());
+        let target_capabilities = all_capabilities()?;
+        let projected = project_registered_protocol_request(ProtocolTransformInput {
+            source: ProtocolFormat::OpenAiResponses,
+            target: ProtocolFormat::OpenAiResponses,
+            mode: SnapshotTransformMode::CanonicalBridge,
+            native_payload: NativePayloadAvailability::Exact,
+            request: &with_cache_control,
+            streaming: false,
+            requires_json_schema: false,
+            requires_parallel_tools: false,
+            target_capabilities: &target_capabilities,
+        })?;
+        assert_eq!(
+            projected,
+            ProjectedProtocolRequest::Canonical(with_cache_control)
+        );
         Ok(())
     }
 

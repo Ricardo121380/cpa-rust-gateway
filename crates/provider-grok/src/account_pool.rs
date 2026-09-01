@@ -1000,12 +1000,20 @@ impl GrokAccountPoolStore {
             let priority = 1_000_i64
                 .checked_sub(row.priority)
                 .ok_or(GrokAccountPoolError::InvalidPersistedState)?;
+            // Durable native-account revisions start at zero. Provider egress session keys use
+            // zero as an invalid sentinel, so expose an exact, monotonic one-based runtime
+            // lineage without rewriting the durable optimistic-concurrency revision.
+            let credential_revision = row
+                .revision
+                .checked_add(1)
+                .filter(|revision| *revision > 0)
+                .ok_or(GrokAccountPoolError::InvalidPersistedState)?;
             let (expires_at_ms, build_credential_current) =
                 build_credential_runtime_state(provider, plaintext.as_bytes(), observed_at_ms);
             let input = EndpointCredentialInput {
                 credential_id: credential_id.clone(),
                 credential_kind: provider.credential_kind().to_owned(),
-                credential_revision: row.revision,
+                credential_revision,
                 priority,
                 weight: row.weight,
                 concurrency: row.max_concurrency,

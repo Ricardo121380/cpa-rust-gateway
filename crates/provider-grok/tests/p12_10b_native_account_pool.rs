@@ -484,6 +484,66 @@ fn invalid_disabled_metadata_does_not_stop_the_existing_runtime_pool() -> TestRe
     Ok(())
 }
 
+#[test]
+fn runtime_credential_revision_is_nonzero_and_monotonic_from_durable_revision() -> TestResult {
+    let database = TemporaryDatabase::new()?;
+    let store =
+        GrokAccountPoolStore::try_new(Connection::open(database.path())?, secret_store(0xA5)?)?;
+    store.import_batch(
+        "runtime-revision",
+        &[account(
+            GrokAccountProvider::Console,
+            b"runtime-revision-console",
+            b"runtime-revision-secret",
+            10,
+        )?],
+        NOW_MS,
+    )?;
+    let endpoint_id = EndpointId::try_new("runtime-revision-console-endpoint")?;
+    let bindings = [GrokAccountEndpointBinding::new(
+        GrokAccountProvider::Console,
+        endpoint_id.clone(),
+    )];
+    let initial = store.compile_native_runtime(&bindings, NOW_MS)?;
+    let initial_revision = initial
+        .credential_pools()
+        .pool(&endpoint_id)
+        .ok_or("initial Console pool missing")?
+        .diagnostic_entries()
+        .into_iter()
+        .next()
+        .ok_or("initial Console credential missing")?
+        .credential_revision();
+    assert_eq!(initial_revision, 1);
+    drop(initial);
+    drop(store);
+
+    let connection = Connection::open(database.path())?;
+    assert_eq!(
+        connection.execute(
+            "UPDATE grok_accounts SET revision = 1 WHERE import_batch_id = 'runtime-revision'",
+            [],
+        )?,
+        1
+    );
+    drop(connection);
+
+    let store =
+        GrokAccountPoolStore::try_new(Connection::open(database.path())?, secret_store(0xA5)?)?;
+    let refreshed = store.compile_native_runtime(&bindings, NOW_MS)?;
+    let refreshed_revision = refreshed
+        .credential_pools()
+        .pool(&endpoint_id)
+        .ok_or("refreshed Console pool missing")?
+        .diagnostic_entries()
+        .into_iter()
+        .next()
+        .ok_or("refreshed Console credential missing")?
+        .credential_revision();
+    assert_eq!(refreshed_revision, 2);
+    Ok(())
+}
+
 fn account(
     provider: GrokAccountProvider,
     identity: &[u8],
