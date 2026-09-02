@@ -3,7 +3,7 @@
 简体中文 | [English](deployment-guide.en.md)
 
 本文说明如何在不削弱 Listener、Credential 和 Provider 隔离契约的前提下构建、部署、升级和回滚
-CPAR。内容以 2026-08-20 的仓库状态为基线。
+CPAR。内容以 2026-09-02 的仓库状态为基线。
 
 ## 1. 系统与架构支持矩阵
 
@@ -397,7 +397,23 @@ operator/Autoreg 完成交互重新授权；普通日常续期不依赖 Autoreg 
 新增 refreshable Provider 时，必须先实现 exact Provider/channel executor、egress、CAS/backoff 和
 重启测试；禁止仅凭 `oauth_json` 标签或 JSON 外形复用 Codex/Grok refresh 协议。
 
-## 13. 故障排查
+## 13. 动态模型目录运维
+
+P13-15C/D 按活动 Config Version、Endpoint 和 Credential 把成功目录保存在 `control.sqlite3`。
+当前自动 source 是 Grok Build 与 official Codex。启动时先物化最后一次持久化成功；两个 listener
+绑定后立即执行一次 worker，之后每小时检查。只有目标从未成功或已经超过 24 小时刷新截止时间时才
+会产生 Provider 请求。
+
+客户端权威来源是经过认证的 `GET /v1/models`。不能从账号套餐生成 model ID，也不能把某次观测到
+的列表复制成反向代理或前端常量。使用受保护的 `GET /admin/catalog/status` 查看 exact target 的
+freshness、成功版本、是否应刷新、保留数量和安全失败分类。Stale 仍可服务；Expired 不会产生可租用
+的动态 Route。瞬时失败保留最后成功，删除模型必须连续三次成功遗漏且隔离至少 24 小时。
+
+升级后应验证一次授权模型列表，再使用新物化的 exact ID 执行一次有界 Responses 请求。需要回滚时，
+必须同时恢复旧 executable 和匹配的 SQLite preimage：migration 0021 状态与编译出的运行时 snapshot
+属于同一部署世代。不得为了读取目录诊断而把管理 listener 暴露到公网。
+
+## 14. 故障排查
 
 | 现象 | 检查项 |
 |---|---|
@@ -406,11 +422,12 @@ operator/Autoreg 完成交互重新授权；普通日常续期不依赖 Autoreg 
 | Credential 被拒绝 | 检查精确文件名、普通文件、大小/前缀、Permission 且不能是 Symlink。 |
 | `/healthz` 正常但不能推理 | Publish 完整 Config Version、签发 Client Key 并重启。 |
 | Management 返回 not found | 检查 Management Key、loopback peer/origin 和精确 Config Version Header。 |
+| 预期上游模型缺失 | 检查 exact Endpoint/Credential 的受保护 catalog freshness/failure；不要添加前端常量。 |
 | SSE 被缓冲 | 禁止 Proxy Buffer/Compression，并检查 Idle/Read Timeout。 |
 | Cursor/Revision 冲突 | 从第一页重新执行有界读取，或重新读取当前 ETag/Revision。 |
 | Restore 后数据库无法解密 | 恢复匹配的外部 Master/Backup Key；不要猜测或直接替换 Key。 |
 
-## 14. 明确不在本文授权范围内的事项
+## 15. 明确不在本文授权范围内的事项
 
 本文不授权真实 Provider Probe、账号注册、Autoreg、公开管理面、交互 Credential reauth/账号修复、
 生产 Grok Web Clearance、Kubernetes 或未支持架构。已导入且已支持的 OAuth 日常自动续期属于正常

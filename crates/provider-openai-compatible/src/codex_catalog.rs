@@ -330,7 +330,7 @@ impl ModelCatalogSource for CodexCatalogAdapter {
             let response = transport.send(request).await?;
             let (status, body) = response.into_parts();
             if !(200..=299).contains(&status) {
-                return Err(provider_protocol_error());
+                return Err(catalog_http_error(status));
             }
             parse_catalog(&body)
         })
@@ -427,6 +427,27 @@ const fn provider_protocol_error() -> GatewayError {
         GatewayErrorCode::UpstreamProtocolError,
         ErrorScope::Provider,
     )
+}
+
+const fn catalog_http_error(status: u16) -> GatewayError {
+    match status {
+        401 => GatewayError::new(
+            GatewayErrorCode::CredentialUnauthorized,
+            ErrorScope::Credential,
+        ),
+        403 => GatewayError::new(
+            GatewayErrorCode::CredentialForbidden,
+            ErrorScope::Credential,
+        ),
+        429 => GatewayError::new(
+            GatewayErrorCode::ProviderRateLimited,
+            ErrorScope::QuotaWindow,
+        ),
+        408 | 500..=599 => {
+            GatewayError::new(GatewayErrorCode::ProviderTransient, ErrorScope::Provider)
+        }
+        _ => GatewayError::new(GatewayErrorCode::ProviderPermanent, ErrorScope::Provider),
+    }
 }
 
 const fn internal_error() -> GatewayError {

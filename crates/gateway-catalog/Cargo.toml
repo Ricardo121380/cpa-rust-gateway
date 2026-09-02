@@ -10,6 +10,8 @@ publish.workspace = true
 [dependencies]
 gateway-core = { path = "../gateway-core" }
 gateway-provider = { path = "../gateway-provider" }
+gateway-store = { path = "../gateway-store" }
+rusqlite.workspace = true
 tokio.workspace = true
 
 [lints]

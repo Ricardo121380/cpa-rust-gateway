@@ -102,10 +102,10 @@ pub use route_snapshot::{
     RouteSnapshotBuildError, RouteSnapshotInput, RouteSnapshotRegistry, SnapshotAccessGroup,
     SnapshotAuthenticatedClient, SnapshotCatalogAdmission, SnapshotClientKeyAuthenticator,
     SnapshotClientKeyClock, SnapshotClientKeyClockError, SnapshotClientKeyView,
-    SnapshotExactModelResolution, SnapshotPriorityTierSchedule, SnapshotPublicModel,
-    SnapshotRegistryError, SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput,
-    SnapshotRoutePolicy, SnapshotRouteSchedule, SnapshotTransformMode, SnapshotTransition,
-    SnapshotVersion, SystemSnapshotClientKeyClock,
+    SnapshotCredentialCatalog, SnapshotExactModelResolution, SnapshotPriorityTierSchedule,
+    SnapshotPublicModel, SnapshotRegistryError, SnapshotRoute, SnapshotRouteCandidate,
+    SnapshotRouteCandidateInput, SnapshotRoutePolicy, SnapshotRouteSchedule, SnapshotTransformMode,
+    SnapshotTransition, SnapshotVersion, SystemSnapshotClientKeyClock,
 };
 pub use runtime_health::{
     DEFAULT_RUNTIME_HEALTH_SHARD_COUNT, MAX_RUNTIME_HEALTH_ENTRIES_PER_SHARD,
@@ -186,6 +186,7 @@ pub struct ResponsesExecution {
     native_payload: Option<Arc<[u8]>>,
     route_id: Option<RouteId>,
     exact_upstream_model: Option<String>,
+    route_snapshot: Option<Arc<RouteSnapshot>>,
     mode: ResponsesResponseMode,
     client_transport: ResponsesClientTransport,
     retry_gate: Arc<dyn TransparentRetryGate>,
@@ -210,6 +211,7 @@ impl ResponsesExecution {
             native_payload: None,
             route_id,
             exact_upstream_model: None,
+            route_snapshot: None,
             mode,
             client_transport: ResponsesClientTransport::Http,
             retry_gate,
@@ -239,6 +241,7 @@ impl ResponsesExecution {
             native_payload: Some(native_payload),
             route_id,
             exact_upstream_model: None,
+            route_snapshot: None,
             mode,
             client_transport: ResponsesClientTransport::Http,
             retry_gate,
@@ -288,6 +291,19 @@ impl ResponsesExecution {
     #[must_use]
     pub fn exact_upstream_model(&self) -> Option<&str> {
         self.exact_upstream_model.as_deref()
+    }
+
+    /// Pins execution to the exact immutable Catalog snapshot used by ingress admission.
+    #[must_use]
+    pub fn with_route_snapshot(mut self, snapshot: Option<Arc<RouteSnapshot>>) -> Self {
+        self.route_snapshot = snapshot;
+        self
+    }
+
+    /// Returns the ingress-pinned Catalog snapshot, when Snapshot authentication was active.
+    #[must_use]
+    pub fn route_snapshot(&self) -> Option<&Arc<RouteSnapshot>> {
+        self.route_snapshot.as_ref()
     }
 
     /// Returns the requested public response representation.
@@ -369,6 +385,7 @@ impl fmt::Debug for ResponsesExecution {
                 "exact_upstream_model_present",
                 &self.exact_upstream_model.is_some(),
             )
+            .field("route_snapshot_pinned", &self.route_snapshot.is_some())
             .field("mode", &self.mode)
             .field("client_transport", &self.client_transport)
             .field("retry_gate", &"<downstream-owned>")

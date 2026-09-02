@@ -1,8 +1,8 @@
 //! Immutable model Catalog and Endpoint-capability evidence for control-plane compilation.
 //!
-//! P2-06 deliberately keeps these types storage-neutral and explicitly injected. P4-01 owns
-//! per-Endpoint/Credential discovery singleflight; P4-02 and later own snapshot freshness,
-//! persistence, diffs, and runtime diagnostics.
+//! P2-06 keeps the domain types storage-neutral and explicitly injected. P4-01 owns exact
+//! Endpoint/Credential discovery singleflight; P4-02 owns snapshot freshness/diffs, while
+//! P13-15C adds the explicitly constructed `SQLite` last-success repository used by production.
 
 #![deny(unsafe_code)]
 
@@ -16,6 +16,13 @@ use std::{
 use gateway_core::{CredentialId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode};
 use gateway_provider::{ProviderAdapter, ProviderFuture};
 use tokio::sync::{Mutex, watch};
+
+mod durable;
+
+pub use durable::{
+    CatalogDiscoveryFailureClass, DurableCatalogError, DurableCatalogFailureStatus,
+    DurableCatalogModel, DurableCatalogSnapshotStatus, SqliteCatalogSnapshotStore,
+};
 
 /// Stable component identifier used by architecture smoke tests.
 pub const COMPONENT: &str = "gateway-catalog";
@@ -445,7 +452,7 @@ pub struct CatalogSnapshotStatus {
 }
 
 impl CatalogSnapshotStatus {
-    fn at(snapshot: CatalogSnapshot, now_ms: i64) -> Result<Self, CatalogSnapshotError> {
+    pub(crate) fn at(snapshot: CatalogSnapshot, now_ms: i64) -> Result<Self, CatalogSnapshotError> {
         let freshness = snapshot.freshness_at(now_ms)?;
         let refresh_due = snapshot.is_refresh_due_at(now_ms)?;
         Ok(Self {

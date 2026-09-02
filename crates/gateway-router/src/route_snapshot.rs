@@ -18,9 +18,10 @@ use gateway_auth::{
 };
 use gateway_catalog::{CapabilitySet, CatalogModelState};
 use gateway_core::{
-    AccessGroupId, ClientKeyId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode,
-    InvalidIdentifier, PublicModelId, RouteCandidateId, RouteId, UpstreamId,
+    AccessGroupId, ClientKeyId, CredentialId, EndpointId, ErrorScope, GatewayError,
+    GatewayErrorCode, InvalidIdentifier, PublicModelId, RouteCandidateId, RouteId, UpstreamId,
 };
+use sha2::{Digest, Sha256};
 
 use crate::ProtocolFormat;
 
@@ -184,6 +185,7 @@ pub struct SnapshotRouteCandidate {
     effective_capabilities: CapabilitySet,
     catalog_admission: SnapshotCatalogAdmission,
     active_binding_count: usize,
+    eligible_credential_ids: Option<BTreeSet<gateway_core::CredentialId>>,
 }
 
 /// Complete compiler-approved input for one credential-free route Candidate.
@@ -229,7 +231,31 @@ impl SnapshotRouteCandidate {
             effective_capabilities: input.effective_capabilities,
             catalog_admission: input.catalog_admission,
             active_binding_count: input.active_binding_count,
+            eligible_credential_ids: None,
         }
+    }
+
+    /// Restricts this immutable Candidate to the exact Credentials whose Catalog listed it.
+    ///
+    /// Ordinary Config-compiled Candidates remain unrestricted. Discovery-materialized
+    /// Candidates use this builder so a model observed on one Credential can never be leased
+    /// through a sibling Credential on the same Endpoint.
+    #[must_use]
+    pub fn with_eligible_credentials(
+        mut self,
+        credential_ids: BTreeSet<gateway_core::CredentialId>,
+    ) -> Self {
+        self.active_binding_count = credential_ids.len();
+        self.eligible_credential_ids = Some(credential_ids);
+        self
+    }
+
+    /// Returns whether this Candidate permits the exact Credential binding.
+    #[must_use]
+    pub fn allows_credential(&self, credential_id: &gateway_core::CredentialId) -> bool {
+        self.eligible_credential_ids
+            .as_ref()
+            .is_none_or(|credential_ids| credential_ids.contains(credential_id))
     }
 
     /// Returns the stable Candidate identity.
@@ -645,6 +671,33 @@ pub struct RouteSnapshotInput {
     client_keys: Vec<SnapshotClientKeyView>,
 }
 
+/// One exact Credential's durable discovery evidence used for data-plane materialization.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SnapshotCredentialCatalog {
+    endpoint_id: EndpointId,
+    credential_id: CredentialId,
+    state: CatalogModelState,
+    models: BTreeSet<String>,
+}
+
+impl SnapshotCredentialCatalog {
+    /// Creates one already-normalized exact-Credential Catalog input.
+    #[must_use]
+    pub fn new(
+        endpoint_id: EndpointId,
+        credential_id: CredentialId,
+        state: CatalogModelState,
+        models: BTreeSet<String>,
+    ) -> Self {
+        Self {
+            endpoint_id,
+            credential_id,
+            state,
+            models,
+        }
+    }
+}
+
 impl RouteSnapshotInput {
     /// Creates one complete Snapshot input with redacted Client Key HMAC views.
     #[must_use]
@@ -776,6 +829,199 @@ impl RouteSnapshot {
             access_groups,
             client_keys,
         })
+    }
+
+    /// Materializes exact discovered models into a new immutable Snapshot.
+    ///
+    /// Existing Routes remain the capability and permission templates. A model is bound only to
+    /// Credentials whose exact target-local Catalog still admits it. Newly discovered model IDs
+    /// inherit their template Route's access grants; if more than one base Route could own the
+    /// same new exact ID, that ID is omitted rather than resolved heuristically.
+    ///
+    /// # Errors
+    ///
+    /// Returns the ordinary Snapshot validation error if deterministic derived identities or the
+    /// reconstructed graph violate an immutable routing invariant.
+    #[allow(clippy::too_many_lines)] // Keep one atomic derived-Snapshot construction path auditable.
+    pub fn materialize_credential_catalogs(
+        &self,
+        catalogs: impl IntoIterator<Item = SnapshotCredentialCatalog>,
+    ) -> Result<Self, RouteSnapshotBuildError> {
+        let catalogs = catalogs.into_iter().collect::<Vec<_>>();
+        if catalogs.is_empty() {
+            return Ok(self.clone());
+        }
+        let managed_endpoints = catalogs
+            .iter()
+            .map(|catalog| catalog.endpoint_id.clone())
+            .collect::<BTreeSet<_>>();
+        let mut eligibility =
+            BTreeMap::<(EndpointId, String), (CatalogModelState, BTreeSet<CredentialId>)>::new();
+        for catalog in &catalogs {
+            for model in &catalog.models {
+                if model.is_empty() || !catalog.state.is_hard_eligible() {
+                    continue;
+                }
+                let entry = eligibility
+                    .entry((catalog.endpoint_id.clone(), model.clone()))
+                    .or_insert((catalog.state, BTreeSet::new()));
+                entry.0 = fresher_catalog_state(entry.0, catalog.state);
+                entry.1.insert(catalog.credential_id.clone());
+            }
+        }
+
+        let mut public_models = self.public_models.values().cloned().collect::<Vec<_>>();
+        let mut routes = Vec::new();
+        let mut existing_exact_models = self.public_models.keys().cloned().collect::<BTreeSet<_>>();
+        for route in self.routes.values() {
+            let candidates = route
+                .candidates
+                .iter()
+                .cloned()
+                .map(|candidate| {
+                    existing_exact_models.insert(candidate.upstream_model.clone());
+                    restrict_catalog_candidate(candidate, &managed_endpoints, &eligibility)
+                })
+                .collect();
+            routes.push(SnapshotRoute::new(
+                route.id.clone(),
+                route.public_model_id.clone(),
+                route.policy,
+                route.max_attempts,
+                route.bootstrap_timeout_ms,
+                candidates,
+            ));
+        }
+
+        let discovered_models = eligibility
+            .keys()
+            .map(|(_, model)| model.clone())
+            .collect::<BTreeSet<_>>();
+        let mut derived_base_routes = BTreeMap::<RouteId, Vec<RouteId>>::new();
+        for model in discovered_models.difference(&existing_exact_models) {
+            let matching_routes = self
+                .routes
+                .values()
+                .filter(|route| {
+                    route.candidates.iter().any(|candidate| {
+                        eligibility.contains_key(&(candidate.endpoint_id.clone(), model.clone()))
+                            && eligibility.contains_key(&(
+                                candidate.endpoint_id.clone(),
+                                candidate.upstream_model.clone(),
+                            ))
+                    })
+                })
+                .collect::<Vec<_>>();
+            if matching_routes.len() != 1 {
+                continue;
+            }
+            let template_route = matching_routes[0];
+            let Some(template_public_model_name) = self
+                .public_model_names_by_id
+                .get(&template_route.public_model_id)
+            else {
+                return Err(RouteSnapshotBuildError::UnknownRoutePublicModel);
+            };
+            let Some(template_public_model) = self.public_models.get(template_public_model_name)
+            else {
+                return Err(RouteSnapshotBuildError::UnknownRoutePublicModel);
+            };
+            let public_model_id = PublicModelId::try_new(derived_id(
+                "catalog-model",
+                template_route.id.as_str(),
+                model,
+            ))
+            .map_err(|_| RouteSnapshotBuildError::InvalidDerivedIdentity)?;
+            let route_id = RouteId::try_new(derived_id(
+                "catalog-route",
+                template_route.id.as_str(),
+                model,
+            ))
+            .map_err(|_| RouteSnapshotBuildError::InvalidDerivedIdentity)?;
+            let candidates = template_route
+                .candidates
+                .iter()
+                .filter_map(|candidate| {
+                    let (state, credentials) =
+                        eligibility.get(&(candidate.endpoint_id.clone(), model.clone()))?;
+                    let mut candidate = candidate.clone();
+                    candidate.id = RouteCandidateId::try_new(derived_id(
+                        "catalog-candidate",
+                        candidate.id.as_str(),
+                        model,
+                    ))
+                    .ok()?;
+                    candidate.upstream_model.clone_from(model);
+                    candidate.catalog_admission = SnapshotCatalogAdmission::Listed(*state);
+                    Some(candidate.with_eligible_credentials(credentials.clone()))
+                })
+                .collect::<Vec<_>>();
+            if candidates.is_empty() {
+                continue;
+            }
+            public_models.push(SnapshotPublicModel::new(
+                public_model_id.clone(),
+                model.clone(),
+                model.clone(),
+                template_public_model.required_capabilities.clone(),
+                route_id.clone(),
+            ));
+            routes.push(SnapshotRoute::new(
+                route_id.clone(),
+                public_model_id,
+                template_route.policy,
+                template_route.max_attempts,
+                template_route.bootstrap_timeout_ms,
+                candidates,
+            ));
+            derived_base_routes
+                .entry(template_route.id.clone())
+                .or_default()
+                .push(route_id);
+        }
+
+        let access_groups = self
+            .access_groups
+            .values()
+            .cloned()
+            .map(|mut group| {
+                for (base_route, derived_routes) in &derived_base_routes {
+                    if group.allowed_route_ids.contains(base_route) {
+                        group
+                            .allowed_route_ids
+                            .extend(derived_routes.iter().cloned());
+                    }
+                }
+                group
+            })
+            .collect::<Vec<_>>();
+        let grants = access_groups
+            .iter()
+            .map(|group| (group.id.clone(), group.allowed_route_ids.clone()))
+            .collect::<BTreeMap<_, _>>();
+        let client_keys = self
+            .client_keys
+            .values()
+            .map(|client_key| {
+                let allowed = grants
+                    .get(client_key.access_group_id())
+                    .cloned()
+                    .unwrap_or_default();
+                SnapshotClientKeyView::new(client_key.record.clone(), allowed)
+            })
+            .collect();
+
+        Self::try_new(RouteSnapshotInput::new(
+            self.version.clone(),
+            public_models,
+            self.aliases
+                .iter()
+                .map(|(alias, target)| (alias.clone(), target.clone()))
+                .collect(),
+            routes,
+            access_groups,
+            client_keys,
+        ))
     }
 
     /// Returns the Config Version pinned by this Snapshot.
@@ -1043,6 +1289,8 @@ pub enum RouteSnapshotBuildError {
     ClientKeyReferencesUnknownAccessGroup,
     /// A Client Key's copied Route permissions did not match its active Access Group.
     ClientKeyRoutePermissionsMismatch,
+    /// A deterministic discovery-derived identifier could not be represented safely.
+    InvalidDerivedIdentity,
 }
 
 impl fmt::Display for RouteSnapshotBuildError {
@@ -1076,9 +1324,63 @@ impl fmt::Display for RouteSnapshotBuildError {
             Self::ClientKeyRoutePermissionsMismatch => {
                 "Snapshot Client Key permissions do not match its active Access Group"
             }
+            Self::InvalidDerivedIdentity => "Snapshot derived Catalog identity is invalid",
         };
         formatter.write_str(description)
     }
+}
+
+fn restrict_catalog_candidate(
+    mut candidate: SnapshotRouteCandidate,
+    managed_endpoints: &BTreeSet<EndpointId>,
+    eligibility: &BTreeMap<(EndpointId, String), (CatalogModelState, BTreeSet<CredentialId>)>,
+) -> SnapshotRouteCandidate {
+    if !managed_endpoints.contains(&candidate.endpoint_id) {
+        return candidate;
+    }
+    if let Some((state, credentials)) = eligibility.get(&(
+        candidate.endpoint_id.clone(),
+        candidate.upstream_model.clone(),
+    )) {
+        candidate.catalog_admission = SnapshotCatalogAdmission::Listed(*state);
+        candidate.with_eligible_credentials(credentials.clone())
+    } else {
+        candidate.catalog_admission = SnapshotCatalogAdmission::Listed(CatalogModelState::Expired);
+        candidate.with_eligible_credentials(BTreeSet::new())
+    }
+}
+
+const fn fresher_catalog_state(
+    left: CatalogModelState,
+    right: CatalogModelState,
+) -> CatalogModelState {
+    match (left, right) {
+        (CatalogModelState::Fresh | CatalogModelState::Manual, _)
+        | (_, CatalogModelState::Expired) => left,
+        (_, CatalogModelState::Fresh | CatalogModelState::Manual) => right,
+        _ => CatalogModelState::Stale,
+    }
+}
+
+fn derived_id(domain: &str, base: &str, model: &str) -> String {
+    let mut digest = Sha256::new();
+    digest.update(domain.as_bytes());
+    digest.update([0]);
+    digest.update(base.as_bytes());
+    digest.update([0]);
+    digest.update(model.as_bytes());
+    let digest = digest.finalize();
+    format!("dyn-{}", hex_prefix(&digest, 16))
+}
+
+fn hex_prefix(bytes: &[u8], length: usize) -> String {
+    use std::fmt::Write as _;
+
+    let mut output = String::with_capacity(length.saturating_mul(2));
+    for byte in bytes.iter().take(length) {
+        let _ = write!(output, "{byte:02x}");
+    }
+    output
 }
 
 impl Error for RouteSnapshotBuildError {}
@@ -1306,9 +1608,23 @@ impl Error for SnapshotClientKeyClockError {}
 
 /// Prefix-indexed HMAC Client Key authenticator backed only by the current immutable Snapshot.
 pub struct SnapshotClientKeyAuthenticator {
-    registry: Arc<RouteSnapshotRegistry>,
+    source: SnapshotSource,
     verifier: ClientKeyService,
     clock: Arc<dyn SnapshotClientKeyClock>,
+}
+
+enum SnapshotSource {
+    Registry(Arc<RouteSnapshotRegistry>),
+    Scheduler(Arc<crate::RouteCredentialScheduler>),
+}
+
+impl SnapshotSource {
+    fn load(&self) -> Arc<RouteSnapshot> {
+        match self {
+            Self::Registry(registry) => registry.load(),
+            Self::Scheduler(scheduler) => scheduler.snapshot(),
+        }
+    }
 }
 
 /// One successfully authenticated Client Key paired with its exact immutable Snapshot.
@@ -1339,6 +1655,12 @@ impl SnapshotAuthenticatedClient {
     #[must_use]
     pub fn snapshot_version(&self) -> &SnapshotVersion {
         self.snapshot.version()
+    }
+
+    /// Clones the exact immutable Snapshot pointer retained at authentication time.
+    #[must_use]
+    pub fn snapshot(&self) -> Arc<RouteSnapshot> {
+        Arc::clone(&self.snapshot)
     }
 
     /// Iterates this Client Key's visible Public Models in stable name order.
@@ -1401,9 +1723,22 @@ impl SnapshotClientKeyAuthenticator {
         clock: Arc<dyn SnapshotClientKeyClock>,
     ) -> Self {
         Self {
-            registry,
+            source: SnapshotSource::Registry(registry),
             verifier,
             clock,
+        }
+    }
+
+    /// Creates an authenticator backed by the exact mutable data-plane Catalog publication seam.
+    #[must_use]
+    pub fn new_with_scheduler(
+        scheduler: Arc<crate::RouteCredentialScheduler>,
+        verifier: ClientKeyService,
+    ) -> Self {
+        Self {
+            source: SnapshotSource::Scheduler(scheduler),
+            verifier,
+            clock: Arc::new(SystemSnapshotClientKeyClock),
         }
     }
 
@@ -1420,7 +1755,7 @@ impl SnapshotClientKeyAuthenticator {
         &self,
         presented_key: &str,
     ) -> Result<SnapshotAuthenticatedClient, GatewayError> {
-        let snapshot = self.registry.load();
+        let snapshot = self.source.load();
         let authenticated_client = self.authenticate_snapshot(&snapshot, presented_key)?;
         let access_group_id = authenticated_client
             .access_group_id()
@@ -1463,7 +1798,7 @@ impl fmt::Debug for SnapshotClientKeyAuthenticator {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("SnapshotClientKeyAuthenticator")
-            .field("registry", &self.registry)
+            .field("source", &"<immutable-snapshot-source>")
             .field("verifier", &"<redacted>")
             .finish_non_exhaustive()
     }
@@ -1560,13 +1895,13 @@ mod tests {
         RouteSnapshot, RouteSnapshotBuildError, RouteSnapshotInput, RouteSnapshotRegistry,
         SnapshotAccessGroup, SnapshotCatalogAdmission, SnapshotClientKeyAuthenticator,
         SnapshotClientKeyClock, SnapshotClientKeyClockError, SnapshotClientKeyView,
-        SnapshotExactModelResolution, SnapshotPublicModel, SnapshotRegistryError, SnapshotRoute,
-        SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
-        SnapshotTransformMode, SnapshotVersion,
+        SnapshotCredentialCatalog, SnapshotExactModelResolution, SnapshotPublicModel,
+        SnapshotRegistryError, SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput,
+        SnapshotRoutePolicy, SnapshotTransformMode, SnapshotVersion,
     };
     use gateway_core::{
-        AccessGroupId, ClientKeyId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode,
-        PublicModelId, RouteCandidateId, RouteId, UpstreamId,
+        AccessGroupId, ClientKeyId, CredentialId, EndpointId, ErrorScope, GatewayError,
+        GatewayErrorCode, PublicModelId, RouteCandidateId, RouteId, UpstreamId,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -1602,6 +1937,49 @@ mod tests {
             .ok_or_else(|| io::Error::other("expected access group"))?;
         assert!(access_group.permits_route(route.id()));
         assert_eq!(snapshot.version().as_str(), "version-a");
+        Ok(())
+    }
+
+    #[test]
+    fn materialized_catalog_inherits_access_and_keeps_exact_credential_eligibility() -> TestResult {
+        let snapshot = sample_snapshot("version-a")?;
+        let materialized = snapshot.materialize_credential_catalogs([
+            SnapshotCredentialCatalog::new(
+                EndpointId::try_new("endpoint-a")?,
+                CredentialId::try_new("credential-a")?,
+                CatalogModelState::Fresh,
+                BTreeSet::from(["grok-4.6".to_owned(), "upstream-model".to_owned()]),
+            ),
+            SnapshotCredentialCatalog::new(
+                EndpointId::try_new("endpoint-a")?,
+                CredentialId::try_new("credential-b")?,
+                CatalogModelState::Stale,
+                BTreeSet::from(["grok-4.6".to_owned(), "upstream-model".to_owned()]),
+            ),
+        ])?;
+        let group_id = AccessGroupId::try_new("group-a")?;
+        let public_model = materialized
+            .resolve_public_model_for_access_group(&group_id, "grok-4.6")
+            .ok_or("discovered model did not inherit access")?;
+        let route = materialized
+            .route(public_model.route_id())
+            .ok_or("discovered route missing")?;
+        assert_eq!(route.candidates().len(), 1);
+        let candidate = &route.candidates()[0];
+        assert!(candidate.allows_credential(&CredentialId::try_new("credential-a")?));
+        assert!(candidate.allows_credential(&CredentialId::try_new("credential-b")?));
+        assert!(!candidate.allows_credential(&CredentialId::try_new("credential-c")?));
+        assert_eq!(candidate.active_binding_count(), 2);
+        assert_eq!(
+            candidate.catalog_admission(),
+            SnapshotCatalogAdmission::Listed(CatalogModelState::Fresh)
+        );
+        assert!(
+            materialized
+                .resolve_public_model_for_access_group(&group_id, "public-model")
+                .is_some(),
+            "the discovered anchor model must remain visible"
+        );
         Ok(())
     }
 

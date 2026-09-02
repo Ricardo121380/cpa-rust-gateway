@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **APPROVED / IN_PROGRESS — P13-15A production live pass; P13-15B Build/Codex sources local pass; remaining B-E pending** |
+| Status | **APPROVED / IN_PROGRESS — P13-15A production live pass; P13-15B Build/Codex sources partial pass; P13-15C/D local pass; remaining B channels and E pending** |
 | CPAR task | `P13-15` |
 | Authority | User correction on 2026-09-01: reverse-proxied channels expose upstream model IDs instead of CPAR-invented aliases; applies to every channel |
 | Delivery class | Provider/channel/endpoint/credential-scoped discovery, immutable authorized projection and exact-model routing |
@@ -22,10 +22,11 @@ selected upstream actually receives `grok-4.5`. That is an alias catalog, not up
 pass-through. Adding `grok-4.5` and `grok-4.6` manually would make the strings look correct but
 would still fail the requirement when an account gains, loses or renames a model.
 
-The repository already contains storage-neutral, exact `(EndpointId, CredentialId)` discovery
+The repository already contained storage-neutral, exact `(EndpointId, CredentialId)` discovery
 primitives, last-success freshness, diff/removal isolation and compiler catalog admission in
-`gateway-catalog`. They are not yet composed into the serving `/v1/models` projection or automatic
-route materialization for all channels.
+`gateway-catalog`. P13-15C/D now add the durable repository, runtime refresh worker and atomic exact
+Credential route materializer for the currently implemented Build/Codex sources. The remaining
+gap is additional channel sources and P13-15E live/isolation/formal acceptance, not a frontend list.
 
 ## 3. Frozen meaning of pass-through
 
@@ -94,8 +95,8 @@ CPAR can follow upstream additions/removals automatically for every channel and 
 The Build and official Codex source implementations now pass locally. Real upstream observations
 include Build `grok-4.6`/`grok-4.5` and visible API-supported Codex
 `gpt-5.6-terra`/`gpt-5.6-luna`/`gpt-5.5`/`gpt-5.4-mini`. Those values are observations, not a
-new CPAR whitelist. Remaining channel sources and P13-15C/D persistence/materialization are still
-required before production follows catalog additions or removals automatically.
+new CPAR whitelist. Remaining channel sources still require their own adapters and P13-15E proof;
+P13-15C/D now provide the shared durable/materialization path used by Build/Codex.
 
 ### P13-15C · Durable last-success, refresh and removal
 
@@ -105,6 +106,18 @@ required before production follows catalog additions or removals automatically.
   isolation; a failed call never increments removal evidence;
 - publish refresh status and safe failure class through protected management views.
 
+Implemented locally on 2026-09-02:
+
+- SQLite migration 0021 stores target-local version/deadlines, retained model rows, successful-miss
+  isolation and the latest safe failure class, all scoped by Config Version + Endpoint + Credential;
+- successful observations alone advance version/removal evidence; failures preserve the last
+  success, and persisted deadline drift fails closed on read;
+- the runtime performs an immediate post-listener pass and then an hourly pass, while actual
+  Provider sends remain suppressed until the 24-hour refresh deadline;
+- protected `GET /admin/catalog/status` now exposes optional `snapshot_version`, `refresh_due`,
+  `model_count`, `last_failure_at_ms` and a closed failure class. It does not expose model IDs,
+  URLs, bodies, account identity or secrets.
+
 ### P13-15D · Exact route materialization
 
 - compile discovered exact IDs into immutable Client-Key-authorized routes without modifying a
@@ -113,6 +126,20 @@ required before production follows catalog additions or removals automatically.
 - make additions atomic with snapshot publication and make ambiguous cross-channel IDs fail closed;
 - ensure Chat, Responses, Messages and WebSocket ingress use the same exact-model resolver while
   retaining their own protocol encoders.
+
+Implemented locally on 2026-09-02:
+
+- the base Config Snapshot remains the permission/capability template; dynamic publication does
+  not mutate a draft or silently edit the stored Config Version;
+- discovered exact IDs are deterministically materialized only from an unambiguous same-route
+  source anchor, inherit the existing Access Group grants and carry an exact eligible Credential
+  set; every lease path rechecks that set;
+- Fresh and Stale catalogs remain eligible, Expired catalogs produce no route, and cross-route
+  ambiguity remains omitted/fail-closed;
+- one `ArcSwap` publication atomically replaces the data-plane candidate snapshot. Ingress carries
+  its exact immutable Snapshot pointer into execution; scheduler selection uses that same loaded
+  generation or fails closed, so a concurrent Catalog publication cannot mix authorization from
+  one snapshot with Candidate/Credential selection from another.
 
 ### P13-15E · Real acceptance and migration
 

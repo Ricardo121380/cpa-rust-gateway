@@ -65,6 +65,11 @@ impl RouteCandidateScheduler {
         &self.snapshot
     }
 
+    /// Clones the immutable Snapshot pointer without exposing scheduler cursors.
+    pub(crate) fn snapshot_arc(&self) -> Arc<RouteSnapshot> {
+        Arc::clone(&self.snapshot)
+    }
+
     /// Selects the next hard-eligible Candidate from the lowest available priority tier.
     #[must_use]
     pub fn select(&self, route_id: &RouteId) -> Option<SnapshotRouteCandidate> {

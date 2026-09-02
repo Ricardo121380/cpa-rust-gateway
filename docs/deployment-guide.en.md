@@ -3,7 +3,7 @@
 [简体中文](deployment-guide.zh-CN.md) | English
 
 This guide describes how to build and operate CPAR without weakening its listener, credential or
-Provider-isolation contracts. It is written for the current repository state as of 2026-08-20.
+Provider-isolation contracts. It is written for the current repository state as of 2026-09-02.
 
 ## 1. Support matrix
 
@@ -419,7 +419,27 @@ Before activating another refreshable Provider, implement its exact Provider/cha
 egress, CAS/backoff and restart tests. Never select a Codex or Grok refresh protocol merely from an
 `oauth_json` label or a compatible-looking JSON document.
 
-## 13. Troubleshooting
+## 13. Dynamic model-catalog operations
+
+P13-15C/D stores successful catalogs in `control.sqlite3` per active Config Version, Endpoint and
+Credential. The current automatic sources are Grok Build and official Codex. On startup the last
+durable success is materialized before the first new discovery; after listeners bind, the worker
+runs immediately and then hourly. Provider traffic occurs only for a never-successful target or
+after its 24-hour refresh deadline.
+
+Treat authenticated `GET /v1/models` as the client authority. Do not construct model IDs from
+account tiers and do not copy a point-in-time observed list into a reverse proxy or frontend. Use
+protected `GET /admin/catalog/status` for exact target freshness, success version, refresh-due
+state, retained count and safe failure classification. A Stale target can still serve; an Expired
+target has no eligible dynamic route. A transient failure keeps the last success, while removal
+requires three successful omissions and at least 24 hours.
+
+After upgrading, verify one authorized list call and one bounded Responses request for a newly
+materialized exact ID. If a rollback is required, restore the old executable and its matching
+SQLite preimage: migration 0021 state and the compiled runtime snapshot must be treated as one
+deployment generation. Never expose the management listener to obtain catalog diagnostics.
+
+## 14. Troubleshooting
 
 | Symptom | Check |
 |---|---|
@@ -428,11 +448,12 @@ egress, CAS/backoff and restart tests. Never select a Codex or Grok refresh prot
 | Credential rejected | Verify exact filename, direct regular file, size/prefix, permissions and no symlink. |
 | `/healthz` works but inference does not | Publish a complete Config Version, issue a Client Key and restart. |
 | Management returns not found | Confirm Management Key, loopback peer/origin and exact Config Version headers. |
+| Expected upstream model is absent | Check protected catalog freshness/failure for the exact Endpoint/Credential; do not add a frontend constant. |
 | SSE appears buffered | Disable reverse-proxy buffering/compression and inspect idle/read timeouts. |
 | Old cursor/revision conflicts | Restart the bounded read from page one or re-read the current ETag/revision. |
 | Database cannot decrypt after restore | Restore the matching external master/backup key material; do not guess or replace keys. |
 
-## 14. Deliberate non-goals
+## 15. Deliberate non-goals
 
 This guide does not authorize real Provider probes, account registration, Autoreg, public
 management exposure, interactive credential reauthorization/account repair, production Grok Web

@@ -1030,3 +1030,36 @@ CPAR 在启动 catch-up 中自动刷新了一个 Build 凭据，durable/runtime 
   `free` 凭据显示为 Go，也不得把 refresh-grant 失效误写成“CPAR 不会自动刷新”。
 
 **Other side:** action required，但目前没有 OpenAPI 形状变更，不需要重生 generated client。
+
+---
+
+## 2026-09-02 · Codex · P13-15C/D 动态目录状态与 exact Credential 路由物化
+
+**Touched:** `docs/openapi/management-v1.json`、后端 Catalog persistence/runtime/router、双语
+README/部署指南。**未改动:** `web/prism/**`、Prism generated client 与 vendored contract。
+
+**Why:** P13-15B 已能从 exact Grok Build/Codex Credential 读取真实上游模型，但 discovery 结果尚未
+进入 durable freshness/removal 与 serving snapshot，导致生产 `/v1/models` 仍只显示静态 Candidate。
+P13-15C/D 现在按 Config Version + Endpoint + Credential 持久化 last success，并原子物化只允许实际
+列出模型的 Credential 租约。
+
+后端变化：
+
+- `GET /admin/catalog/status` 的每一项仍保留原有必填字段，新增 optional
+  `snapshot_version`、`refresh_due`、`model_count`、`last_failure_at_ms`、
+  `last_failure_class`；failure class 是 `authentication|authorization|rate_limit|transport|upstream|internal`；
+- failure-only、尚无成功目录的 target 使用 `freshness=missing`，version/refresh/model count 缺席；
+- `/v1/models` 仍是普通 OpenAI list shape，但 Build/Codex worker 成功后集合可以随 immutable Catalog
+  publication 动态增减；UI 不能把当前观测到的 `grok-4.6`、Luna 等写成常量；
+- account tier 与 model catalog 分离：Grok Build `free/supergrok/heavy` 或 ChatGPT
+  `free/go/plus/pro5x/pro20x` 只供权益展示，不能生成 model ID；
+- 同名模型的 channel/Endpoint/Credential provenance 继续由后端保护和消歧；公开客户端只发送 exact ID。
+
+**Action required for Claude Code:** 在合并本提交后运行
+`npm --prefix web/prism run sync-contract`，提交生成的 Prism contract/client 变化，并让目录状态 UI
+兼容上述 optional 字段。`missing` 不能显示成空目录成功；`stale` 仍可服务但应提示；`expired` 不可路由；
+safe failure class 只能用于诊断标签，不能据此自动 OAuth、修账号或合成 overall account health。模型选择器
+继续实时消费授权后的 gateway `/v1/models`，不得增加前端模型/套餐白名单。
+
+**Other side:** action required。P13-15C/D 当前是本地通过，Oracle `grok-4.6` production acceptance、
+remaining channel sources 与 P13-15E formal Gate 尚未完成；不要提前把 P13-15 标成 DONE。

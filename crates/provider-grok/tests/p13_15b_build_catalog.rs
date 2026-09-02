@@ -142,14 +142,22 @@ async fn build_source_rejects_unbounded_malformed_and_non_success_results() -> T
     .err()
     .ok_or("oversized Build catalog accepted")?;
     assert_eq!(error.code(), GatewayErrorCode::UpstreamProtocolError);
-    let error = adapter(Arc::new(ScriptedTransport::new([response(
-        401, b"ignored",
-    )])))?
-    .models(target()?)
-    .await
-    .err()
-    .ok_or("non-success Build catalog accepted")?;
-    assert_eq!(error.code(), GatewayErrorCode::UpstreamProtocolError);
+    for (status, expected) in [
+        (401, GatewayErrorCode::CredentialUnauthorized),
+        (403, GatewayErrorCode::CredentialForbidden),
+        (429, GatewayErrorCode::ProviderRateLimited),
+        (500, GatewayErrorCode::ProviderTransient),
+        (404, GatewayErrorCode::ProviderPermanent),
+    ] {
+        let error = adapter(Arc::new(ScriptedTransport::new([response(
+            status, b"ignored",
+        )])))?
+        .models(target()?)
+        .await
+        .err()
+        .ok_or("non-success Build catalog accepted")?;
+        assert_eq!(error.code(), expected);
+    }
     Ok(())
 }
 

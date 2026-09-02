@@ -194,6 +194,7 @@ async fn run_servers(
         observability,
         event_writer,
         credential_refresh_worker,
+        model_catalog_worker,
     } = application;
     let data = web::Data::new(data);
     let data_server = HttpServer::new(move || App::new().app_data(data.clone()).configure(configure))
@@ -233,8 +234,14 @@ async fn run_servers(
     let mut event_writer = actix_web::rt::spawn(event_writer.run());
     let credential_refresh_worker =
         credential_refresh_worker.map(|worker| actix_web::rt::spawn(worker.run()));
+    let model_catalog_worker =
+        model_catalog_worker.map(|worker| actix_web::rt::spawn(worker.run()));
     let server_result = try_join(data_server, management_server).await;
     if let Some(worker) = credential_refresh_worker {
+        worker.abort();
+        let _ = worker.await;
+    }
+    if let Some(worker) = model_catalog_worker {
         worker.abort();
         let _ = worker.await;
     }
@@ -272,6 +279,7 @@ struct ApplicationState {
     observability: ManagementObservabilityHttpState,
     event_writer: AsyncSqliteEventWriter,
     credential_refresh_worker: Option<credential_refresh::RuntimeCredentialRefreshWorker>,
+    model_catalog_worker: Option<runtime::RuntimeModelCatalogWorker>,
 }
 
 /// Read-only production source for P13-04's durable usage/cost projection.
@@ -411,6 +419,7 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         observability,
         event_writer,
         credential_refresh_worker,
+        model_catalog_worker,
     } = runtime::build_data_plane_composition_with_web_proxy(
         &database,
         &runtime_secret_store,
@@ -473,6 +482,7 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         observability,
         event_writer,
         credential_refresh_worker,
+        model_catalog_worker,
     })
 }
 
@@ -1001,6 +1011,7 @@ mod tests {
             observability,
             event_writer,
             credential_refresh_worker: _,
+            model_catalog_worker: _,
         } = application;
         drop((data, security, resources, lifecycle, backup, observability));
 

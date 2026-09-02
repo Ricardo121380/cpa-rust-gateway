@@ -57,7 +57,7 @@ use gateway_core::{
 use gateway_router::{
     CountTokensExecution, CountTokensExecutor, ResponsesClientTransport, ResponsesContinuationKind,
     ResponsesContinuationPin, ResponsesEventSource, ResponsesExecution, ResponsesExecutionLineage,
-    ResponsesExecutionLineageRecorder, ResponsesExecutor, ResponsesResponseMode,
+    ResponsesExecutionLineageRecorder, ResponsesExecutor, ResponsesResponseMode, RouteSnapshot,
     SnapshotAuthenticatedClient, SnapshotClientKeyAuthenticator, SnapshotExactModelResolution,
     UnsupportedCountTokensExecutor,
 };
@@ -558,6 +558,7 @@ struct ResolvedPublicModel {
 struct ResponsesRouteSelection {
     route_id: Option<RouteId>,
     exact_upstream_model: Option<String>,
+    snapshot: Option<Arc<RouteSnapshot>>,
 }
 
 struct PreparedOwnedContinuation {
@@ -851,6 +852,7 @@ fn prepare_responses_execution(
     } else {
         execution = execution.with_exact_upstream_model(route.exact_upstream_model);
     }
+    execution = execution.with_route_snapshot(route.snapshot);
     if let Some(recorder) = lineage_recorder.as_ref() {
         execution = execution.with_lineage_recorder(Arc::clone(recorder));
     }
@@ -1689,7 +1691,8 @@ async fn chat_completions(
         response_mode,
         retry_gate,
     )
-    .with_exact_upstream_model(route.exact_upstream_model);
+    .with_exact_upstream_model(route.exact_upstream_model)
+    .with_route_snapshot(route.snapshot);
     let mut source = match state.executor.execute_routed(execution).await {
         Ok(source) => source,
         Err(error) => return pre_header_chat_error(&error),
@@ -1976,7 +1979,8 @@ async fn compact_responses(
         ResponsesResponseMode::NonStreaming,
         Arc::new(StoredContinuationRetryGate),
     )
-    .with_continuation_pin(pin);
+    .with_continuation_pin(pin)
+    .with_route_snapshot(route.snapshot);
     let mut source = match state.executor.execute_routed(execution).await {
         Ok(source) => source,
         Err(error) => return pre_header_stored_response_error(&error),
@@ -2197,7 +2201,8 @@ async fn messages(
         response_mode,
         retry_gate,
     )
-    .with_exact_upstream_model(route.exact_upstream_model);
+    .with_exact_upstream_model(route.exact_upstream_model)
+    .with_route_snapshot(route.snapshot);
     let mut source = match state.executor.execute_routed(execution).await {
         Ok(source) => source,
         Err(error) => return pre_header_anthropic_error(&error),
@@ -2348,6 +2353,7 @@ fn resolve_public_model(
             route: ResponsesRouteSelection {
                 route_id: None,
                 exact_upstream_model: None,
+                snapshot: None,
             },
         }),
         AuthenticatedResponsesClient::Snapshot(authenticated_client) => {
@@ -2359,6 +2365,7 @@ fn resolve_public_model(
                         route: ResponsesRouteSelection {
                             route_id: Some(public_model.route_id().clone()),
                             exact_upstream_model: Some(requested_model.to_owned()),
+                            snapshot: Some(authenticated_client.snapshot()),
                         },
                     });
                 }
@@ -2378,6 +2385,7 @@ fn resolve_public_model(
                 route: ResponsesRouteSelection {
                     route_id: Some(public_model.route_id().clone()),
                     exact_upstream_model: None,
+                    snapshot: Some(authenticated_client.snapshot()),
                 },
             })
         }

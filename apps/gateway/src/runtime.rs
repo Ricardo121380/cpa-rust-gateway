@@ -33,7 +33,9 @@ use crate::provider_egress_status_adapter::{
 };
 use gateway_auth::client_key::ClientKeyService;
 use gateway_catalog::{
-    CapabilitySet, CatalogView, EndpointCapabilityEntry, EndpointCapabilityView, SemanticCapability,
+    CapabilitySet, CatalogDiscoveryFailureClass, CatalogModelState, CatalogSnapshotFreshness,
+    CatalogView, EndpointCapabilityEntry, EndpointCapabilityView, ModelCatalogScheduler,
+    ModelCatalogTarget, SemanticCapability, SqliteCatalogSnapshotStore,
 };
 use gateway_control::{
     compatible_egress_runtime_compiler::{
@@ -72,11 +74,12 @@ use gateway_http_actix::{
         DurabilityMetricsSource, ManagementObservabilityHttpState,
     },
     management_resources::{
-        ManagementCatalogStatus, ManagementChannelPinError, ManagementChannelPinFacade,
-        ManagementChannelPinFuture, ManagementChannelPinMode, ManagementChannelPinOutcome,
-        ManagementChannelPinReceipt, ManagementChannelPinRequest, ManagementQuotaRecoveryState,
-        ManagementRequestAttempt, ManagementRequestAttemptStage, ManagementRequestProtocol,
-        ManagementRouteExplain, ManagementRouteExplainCandidate, ManagementRouteExplainPricePolicy,
+        ManagementCatalogFailureClass, ManagementCatalogFreshness, ManagementCatalogStatus,
+        ManagementChannelPinError, ManagementChannelPinFacade, ManagementChannelPinFuture,
+        ManagementChannelPinMode, ManagementChannelPinOutcome, ManagementChannelPinReceipt,
+        ManagementChannelPinRequest, ManagementQuotaRecoveryState, ManagementRequestAttempt,
+        ManagementRequestAttemptStage, ManagementRequestProtocol, ManagementRouteExplain,
+        ManagementRouteExplainCandidate, ManagementRouteExplainPricePolicy,
         ManagementRouteExplainRequest, ManagementRuntimeAvailabilityStatus, ManagementRuntimeError,
         ManagementRuntimeFacade, ManagementRuntimeTarget, RejectingManagementChannelPinFacade,
     },
@@ -103,9 +106,9 @@ use gateway_router::{
     RouteCredentialScheduler, RouteExplainCandidate, RouteExplainCandidateReason,
     RouteExplainInput, RouteSnapshot, RouteSnapshotRegistry, RuntimeCredentialAccountStatus,
     RuntimeHealthAccountRecoveryResult, RuntimeHealthRegistry, RuntimeQuotaAvailability,
-    RuntimeQuotaRegistry, RuntimeQuotaTarget, SelectedRouteCredential, SnapshotRouteCandidate,
-    SnapshotVersion, SystemRuntimeHealthClock, project_registered_protocol_request,
-    protocol_pair_is_publishable,
+    RuntimeQuotaRegistry, RuntimeQuotaTarget, SelectedRouteCredential, SnapshotCredentialCatalog,
+    SnapshotRouteCandidate, SnapshotVersion, SystemRuntimeHealthClock,
+    project_registered_protocol_request, protocol_pair_is_publishable,
 };
 use gateway_store::{
     control_plane::{
@@ -149,14 +152,14 @@ use provider_grok::{
     GROK_OFFICIAL_RESPONSES_URL, GROK_WEB_CANARY_PATH, GROK_WEB_CANARY_URL,
     GROK_WEB_PRODUCTION_BASE_URL, GROK_WEB_PRODUCTION_USER_AGENT, GrokAccountAuthStatus,
     GrokAccountEndpointBinding, GrokAccountMetadata, GrokAccountPoolStore, GrokAccountProvider,
-    GrokBuildCacheIdentityDeriver, GrokBuildCredential, GrokBuildExecutionMode,
-    GrokBuildInferenceAdapter, GrokBuildUpstreamTransport, GrokConsoleExecutionMode,
-    GrokConsoleInferenceAdapter, GrokConsoleSsoToken, GrokConsoleUpstreamTransport,
-    GrokNativeEgressAttempt, GrokNativeEgressAttemptError, GrokOfficialApiKey,
-    GrokOfficialExecutionMode, GrokOfficialInferenceAdapter, GrokOfficialUpstreamTransport,
-    GrokWebBrowserEgressSession, GrokWebBrowserUserAgent, GrokWebCredential,
-    GrokWebEgressRefresher, GrokWebEgressSessionId, GrokWebFlareSolverrRequest,
-    GrokWebFlareSolverrTransport, GrokWebFlareSolverrTransportResponse,
+    GrokBuildCacheIdentityDeriver, GrokBuildCatalogAdapter, GrokBuildCredential,
+    GrokBuildExecutionMode, GrokBuildInferenceAdapter, GrokBuildUpstreamCatalogTransport,
+    GrokBuildUpstreamTransport, GrokConsoleExecutionMode, GrokConsoleInferenceAdapter,
+    GrokConsoleSsoToken, GrokConsoleUpstreamTransport, GrokNativeEgressAttempt,
+    GrokNativeEgressAttemptError, GrokOfficialApiKey, GrokOfficialExecutionMode,
+    GrokOfficialInferenceAdapter, GrokOfficialUpstreamTransport, GrokWebBrowserEgressSession,
+    GrokWebBrowserUserAgent, GrokWebCredential, GrokWebEgressRefresher, GrokWebEgressSessionId,
+    GrokWebFlareSolverrRequest, GrokWebFlareSolverrTransport, GrokWebFlareSolverrTransportResponse,
     GrokWebProductionInferenceAdapter, GrokWebProductionUpstreamTransport, GrokWebStatsigRuntime,
     GrokWebStatsigUpstreamTransport, GrokWebTlsProfile, SystemGrokNativeEgressClock,
 };
@@ -171,6 +174,7 @@ use provider_kiro::{
 use provider_openai_compatible::{
     CODEX_CATALOG_CLIENT_VERSION as P12_CODEX_OAUTH_VERSION,
     CODEX_ORIGINATOR as P12_CODEX_OAUTH_ORIGINATOR, CODEX_USER_AGENT as P12_CODEX_OAUTH_USER_AGENT,
+    CodexCatalogAdapter, CodexCatalogCredential, CodexUpstreamCatalogTransport,
     OpenAiChatCompletionsApiKey, OpenAiChatCompletionsEndpoint,
     OpenAiChatCompletionsRequestBuilder, OpenAiCompatibleRuntimeCredential, OpenAiResponsesApiKey,
     OpenAiResponsesEndpoint, OpenAiResponsesOutboundRequest, OpenAiResponsesRequestBuilder,
@@ -504,6 +508,8 @@ pub(crate) struct DataPlaneComposition {
     pub(crate) event_writer: AsyncSqliteEventWriter,
     /// Periodic refresh-token owner for credentials already stored in CPAR.
     pub(crate) credential_refresh_worker: Option<RuntimeCredentialRefreshWorker>,
+    /// Durable upstream-model discovery and atomic exact-Credential route publisher.
+    pub(crate) model_catalog_worker: Option<RuntimeModelCatalogWorker>,
 }
 
 type ProviderAccountPoolComposition = (
@@ -513,6 +519,7 @@ type ProviderAccountPoolComposition = (
     Box<dyn ProviderEgressStatusFacade>,
     Box<dyn ManagementChannelPinFacade>,
     Option<RuntimeCredentialRefreshWorker>,
+    Option<RuntimeModelCatalogWorker>,
 );
 type P12ExecutorComposition = (
     P12RoutedResponsesExecutor,
@@ -520,6 +527,7 @@ type P12ExecutorComposition = (
     Arc<RouteCredentialScheduler>,
     Box<dyn ProviderEgressStatusFacade>,
     Option<RuntimeCredentialRefreshWorker>,
+    Option<RuntimeModelCatalogWorker>,
 );
 
 /// Returns the fixed compiler evidence for every Endpoint stored in the control database.
@@ -698,6 +706,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
         provider_egress_status,
         channel_pin,
         credential_refresh_worker,
+        model_catalog_worker,
     ): ProviderAccountPoolComposition = match repository
         .load_active_configuration()
         .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::ControlPlane))?
@@ -734,6 +743,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
                 route_explain_scheduler,
                 provider_egress_status,
                 credential_refresh_worker,
+                model_catalog_worker,
             ) = P12RoutedResponsesExecutor::try_new(
                 database,
                 &configuration,
@@ -760,6 +770,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
                 provider_egress_status,
                 channel_pin,
                 credential_refresh_worker,
+                model_catalog_worker,
             )
         }
         None => (
@@ -769,12 +780,19 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
             Box::new(RejectingProviderEgressStatusFacade::new()),
             Box::new(RejectingManagementChannelPinFacade::new()),
             None,
+            None,
         ),
     };
-    let authenticator = Arc::new(gateway_router::SnapshotClientKeyAuthenticator::new(
-        Arc::clone(&registry),
-        client_key_service,
-    ));
+    let authenticator = Arc::new(match route_explain_scheduler.as_ref() {
+        Some(scheduler) => gateway_router::SnapshotClientKeyAuthenticator::new_with_scheduler(
+            Arc::clone(scheduler),
+            client_key_service,
+        ),
+        None => gateway_router::SnapshotClientKeyAuthenticator::new(
+            Arc::clone(&registry),
+            client_key_service,
+        ),
+    });
     let stored_responses = Arc::new(
         SqliteStoredResponseStore::open(database, secret_store.clone())
             .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::StoredResponse))?,
@@ -791,6 +809,8 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
     .with_stored_response_store(stored_responses);
     let event_store = SqliteEventStore::open(database)
         .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EventStore))?;
+    let catalog_store = SqliteCatalogSnapshotStore::open(database)
+        .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::Snapshot))?;
 
     Ok(DataPlaneComposition {
         data,
@@ -802,6 +822,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
             route_explain_scheduler,
             routing_price_snapshot,
             event_store,
+            catalog_store,
         }),
         provider_account_pools,
         provider_egress_status,
@@ -812,6 +833,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
             ))),
         event_writer,
         credential_refresh_worker,
+        model_catalog_worker,
     })
 }
 
@@ -1320,16 +1342,20 @@ impl P12RoutedResponsesExecutor {
         let adapters = p12_api_format_adapter_registry().map_err(|_| {
             RuntimeCompositionError::Stage(RuntimeCompositionStage::AdapterRegistry)
         })?;
-        let endpoints = endpoint_runtimes(
-            configuration,
-            &snapshot,
-            &policies,
-            &adapters,
-            web_proxy,
-            flaresolverr_proxy,
-            flaresolverr_port,
-        )
-        .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime))?;
+        let endpoints = Arc::new(
+            endpoint_runtimes(
+                configuration,
+                &snapshot,
+                &policies,
+                &adapters,
+                web_proxy,
+                flaresolverr_proxy,
+                flaresolverr_port,
+            )
+            .map_err(|_| {
+                RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime)
+            })?,
+        );
         let (compatible_transport_registries, compatible_binding_settings) =
             compatible_egress_runtime_inputs(configuration, &endpoints, secret_store).map_err(
                 |_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime),
@@ -1370,6 +1396,15 @@ impl P12RoutedResponsesExecutor {
         let client_pool = Arc::new(UpstreamClientPool::new(
             NonZeroUsize::new(cached_clients).ok_or(RuntimeCompositionError::Unavailable)?,
         ));
+        let model_catalog_worker = RuntimeModelCatalogWorker::try_new(
+            database,
+            configuration,
+            Arc::clone(&snapshot),
+            Arc::clone(&route_explain_scheduler),
+            Arc::clone(&pools),
+            endpoints.as_ref(),
+            client_pool.as_ref().clone(),
+        )?;
 
         Ok((
             Self {
@@ -1380,7 +1415,7 @@ impl P12RoutedResponsesExecutor {
                 )?,
                 scheduler: Arc::clone(&route_explain_scheduler),
                 orchestrator,
-                endpoints: Arc::new(endpoints),
+                endpoints,
                 compatible_endpoints: Arc::new(compatible_endpoints),
                 client_pool,
                 attempt_stages,
@@ -1393,6 +1428,7 @@ impl P12RoutedResponsesExecutor {
             route_explain_scheduler,
             provider_egress_status,
             credential_refresh_worker,
+            model_catalog_worker,
         ))
     }
 
@@ -1854,6 +1890,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
         let native_payload = execution.native_payload().cloned();
         let route_id = execution.route_id().cloned();
         let exact_upstream_model = execution.exact_upstream_model().map(str::to_owned);
+        let route_snapshot = execution.route_snapshot().cloned();
         let mode = execution.mode();
         let client_transport = execution.client_transport();
         let retry_gate = Arc::clone(execution.retry_gate());
@@ -1904,40 +1941,56 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             // hands an OpenAI-Responses request to an Anthropic Candidate, whose request build
             // then fails non-retryably after the lease was taken — a hard failure where the
             // filter would simply have chosen a different Candidate before the first byte.
-            let started = match continuation_pin.as_ref() {
-                Some(pin) => {
-                    orchestrator
-                        .start_continuation_once_with_event_sink(
-                            context.request_id(),
-                            pin,
-                            |candidate| {
-                                exact_upstream_model
-                                    .as_deref()
-                                    .is_none_or(|model| candidate.upstream_model() == model)
-                                    && driver.project_candidate(candidate).is_ok()
-                            },
-                            &driver,
-                            retry_gate.as_ref(),
-                            event_sink.as_ref(),
-                        )
-                        .await?
-                }
-                None => {
-                    orchestrator
-                        .start_with_event_sink_provider_scoped_matching(
-                            context.request_id(),
-                            &route_id,
-                            |candidate| {
-                                exact_upstream_model
-                                    .as_deref()
-                                    .is_none_or(|model| candidate.upstream_model() == model)
-                                    && driver.project_candidate(candidate).is_ok()
-                            },
-                            &driver,
-                            retry_gate.as_ref(),
-                            event_sink.as_ref(),
-                        )
-                        .await?
+            let started = if let Some(pin) = continuation_pin.as_ref() {
+                orchestrator
+                    .start_continuation_once_with_event_sink(
+                        context.request_id(),
+                        pin,
+                        route_snapshot.as_ref(),
+                        |candidate| {
+                            exact_upstream_model
+                                .as_deref()
+                                .is_none_or(|model| candidate.upstream_model() == model)
+                                && driver.project_candidate(candidate).is_ok()
+                        },
+                        &driver,
+                        retry_gate.as_ref(),
+                        event_sink.as_ref(),
+                    )
+                    .await?
+            } else {
+                let is_candidate_eligible = |candidate: &SnapshotRouteCandidate| {
+                    exact_upstream_model
+                        .as_deref()
+                        .is_none_or(|model| candidate.upstream_model() == model)
+                        && driver.project_candidate(candidate).is_ok()
+                };
+                match route_snapshot.as_ref() {
+                    Some(snapshot) => {
+                        orchestrator
+                            .start_with_event_sink_provider_scoped_matching_from_snapshot(
+                                context.request_id(),
+                                snapshot,
+                                &route_id,
+                                is_candidate_eligible,
+                                &driver,
+                                retry_gate.as_ref(),
+                                event_sink.as_ref(),
+                            )
+                            .await?
+                    }
+                    None => {
+                        orchestrator
+                            .start_with_event_sink_provider_scoped_matching(
+                                context.request_id(),
+                                &route_id,
+                                is_candidate_eligible,
+                                &driver,
+                                retry_gate.as_ref(),
+                                event_sink.as_ref(),
+                            )
+                            .await?
+                    }
                 }
             };
             if let Some(recorder) = lineage_recorder {
@@ -3354,6 +3407,321 @@ struct EndpointRuntime {
     resolver: Arc<dyn EgressDnsResolver>,
     transports: Arc<P12TransportProfiles>,
     web_statsig: OnceLock<Result<Arc<GrokWebStatsigRuntime>, GatewayError>>,
+}
+
+const MODEL_CATALOG_RUNTIME_INTERVAL: Duration = Duration::from_hours(1);
+
+#[derive(Clone, Copy)]
+enum RuntimeCatalogProvider {
+    GrokBuild,
+    Codex,
+}
+
+struct RuntimeCatalogTarget {
+    endpoint_id: EndpointId,
+    provider: RuntimeCatalogProvider,
+    policy: EgressPolicy,
+    resolver: Arc<dyn EgressDnsResolver>,
+    profile: UpstreamTransportProfile,
+}
+
+/// Background owner for P13-15C/D durable discovery and atomic route publication.
+pub(crate) struct RuntimeModelCatalogWorker {
+    config_version_id: String,
+    store: Arc<SqliteCatalogSnapshotStore>,
+    base_snapshot: Arc<RouteSnapshot>,
+    scheduler: Arc<RouteCredentialScheduler>,
+    pools: Arc<EndpointCredentialPools>,
+    targets: Vec<RuntimeCatalogTarget>,
+    client_pool: UpstreamClientPool,
+}
+
+impl RuntimeModelCatalogWorker {
+    fn try_new(
+        database: &Path,
+        configuration: &ControlPlaneConfiguration,
+        base_snapshot: Arc<RouteSnapshot>,
+        scheduler: Arc<RouteCredentialScheduler>,
+        pools: Arc<EndpointCredentialPools>,
+        endpoints: &BTreeMap<EndpointId, EndpointRuntime>,
+        client_pool: UpstreamClientPool,
+    ) -> Result<Option<Self>, RuntimeCompositionError> {
+        let mut targets = Vec::new();
+        for endpoint in configuration
+            .endpoints
+            .iter()
+            .filter(|endpoint| endpoint.enabled)
+        {
+            let Some(runtime) = endpoints.get(&endpoint.id) else {
+                continue;
+            };
+            let provider = match &runtime.adapter {
+                EndpointAdapter::GrokBuildResponses => RuntimeCatalogProvider::GrokBuild,
+                EndpointAdapter::OpenAiResponses(_)
+                    if endpoint.adapter_id == "openai-compatible.responses"
+                        && composed_endpoint_url(endpoint)
+                            .starts_with("https://chatgpt.com/backend-api/codex/") =>
+                {
+                    RuntimeCatalogProvider::Codex
+                }
+                _ => continue,
+            };
+            if pools.pool(&endpoint.id).is_none() {
+                continue;
+            }
+            targets.push(RuntimeCatalogTarget {
+                endpoint_id: endpoint.id.clone(),
+                provider,
+                policy: runtime.policy.clone(),
+                resolver: Arc::clone(&runtime.resolver),
+                profile: runtime.transports.non_streaming.clone(),
+            });
+        }
+        if targets.is_empty() {
+            return Ok(None);
+        }
+        let worker =
+            Self {
+                config_version_id: configuration.version.id.as_str().to_owned(),
+                store: Arc::new(SqliteCatalogSnapshotStore::open(database).map_err(|_| {
+                    RuntimeCompositionError::Stage(RuntimeCompositionStage::Snapshot)
+                })?),
+                base_snapshot,
+                scheduler,
+                pools,
+                targets,
+                client_pool,
+            };
+        worker.publish_durable(system_now_ms_runtime()?)?;
+        Ok(Some(worker))
+    }
+
+    /// Runs one immediate pass, then refreshes and re-evaluates expiry hourly.
+    pub(crate) async fn run(self) {
+        let worker = Arc::new(self);
+        loop {
+            let Ok(observed_at_ms) = system_now_ms_runtime() else {
+                tracing::warn!(target: "model_catalog", "model Catalog clock unavailable");
+                actix_web::rt::time::sleep(MODEL_CATALOG_RUNTIME_INTERVAL).await;
+                continue;
+            };
+            if let Ok((attempted, succeeded)) = worker.run_once(observed_at_ms).await {
+                tracing::info!(
+                    target: "model_catalog",
+                    attempted,
+                    succeeded,
+                    "model Catalog pass completed"
+                );
+            } else {
+                tracing::warn!(
+                    target: "model_catalog",
+                    "model Catalog pass unavailable"
+                );
+            }
+            actix_web::rt::time::sleep(MODEL_CATALOG_RUNTIME_INTERVAL).await;
+        }
+    }
+
+    async fn run_once(
+        &self,
+        observed_at_ms: i64,
+    ) -> Result<(usize, usize), RuntimeCompositionError> {
+        let mut attempted = 0_usize;
+        let mut succeeded = 0_usize;
+        for target in &self.targets {
+            let credential_ids = self
+                .pools
+                .pool(&target.endpoint_id)
+                .map(|pool| {
+                    pool.diagnostic_entries()
+                        .into_iter()
+                        .map(|entry| entry.credential_id().clone())
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
+            for credential_id in credential_ids {
+                let catalog_target =
+                    ModelCatalogTarget::new(target.endpoint_id.clone(), credential_id.clone());
+                let refresh_due = self
+                    .store
+                    .status_at(&self.config_version_id, &catalog_target, observed_at_ms)
+                    .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::Snapshot))?
+                    .is_none_or(|status| status.is_refresh_due());
+                if !refresh_due {
+                    continue;
+                }
+                let Some(lease) = self.pools.try_lease_exact_eligible_at(
+                    &target.endpoint_id,
+                    &credential_id,
+                    observed_at_ms,
+                    |_| true,
+                ) else {
+                    continue;
+                };
+                attempted = attempted.saturating_add(1);
+                let discovery = self
+                    .discover(target, catalog_target.clone(), &lease, observed_at_ms)
+                    .await;
+                drop(lease);
+                match discovery {
+                    Ok(models) => {
+                        self.store
+                            .record_success(
+                                &self.config_version_id,
+                                &catalog_target,
+                                models,
+                                observed_at_ms,
+                            )
+                            .map_err(|_| {
+                                RuntimeCompositionError::Stage(RuntimeCompositionStage::Snapshot)
+                            })?;
+                        succeeded = succeeded.saturating_add(1);
+                    }
+                    Err(error) => {
+                        self.store
+                            .record_failure(
+                                &self.config_version_id,
+                                &catalog_target,
+                                observed_at_ms,
+                                catalog_failure_class(error.code()),
+                            )
+                            .map_err(|_| {
+                                RuntimeCompositionError::Stage(RuntimeCompositionStage::Snapshot)
+                            })?;
+                    }
+                }
+            }
+        }
+        self.publish_durable(observed_at_ms)?;
+        Ok((attempted, succeeded))
+    }
+
+    async fn discover(
+        &self,
+        target: &RuntimeCatalogTarget,
+        catalog_target: ModelCatalogTarget,
+        lease: &CredentialLease,
+        observed_at_ms: i64,
+    ) -> Result<Vec<gateway_catalog::DiscoveredModel>, GatewayError> {
+        match target.provider {
+            RuntimeCatalogProvider::GrokBuild => {
+                let credential =
+                    GrokBuildCredential::import_runtime_json(lease.secret_bytes(), observed_at_ms)
+                        .map_err(|_| {
+                            GatewayError::new(
+                                GatewayErrorCode::CredentialUnauthorized,
+                                ErrorScope::Credential,
+                            )
+                        })?;
+                let transport = Arc::new(GrokBuildUpstreamCatalogTransport::new(
+                    target.policy.clone(),
+                    Arc::clone(&target.resolver),
+                    self.client_pool.clone(),
+                    target.profile.clone(),
+                ));
+                let source = Arc::new(GrokBuildCatalogAdapter::try_new(
+                    target.endpoint_id.clone(),
+                    lease.credential_id().clone(),
+                    credential,
+                    transport,
+                )?);
+                ModelCatalogScheduler::new(source)
+                    .synchronize(catalog_target)
+                    .await
+            }
+            RuntimeCatalogProvider::Codex => {
+                let runtime = OpenAiCompatibleRuntimeCredential::import_compatible(
+                    lease.secret_bytes(),
+                    observed_at_ms,
+                )
+                .map_err(|_| {
+                    GatewayError::new(
+                        GatewayErrorCode::CredentialUnauthorized,
+                        ErrorScope::Credential,
+                    )
+                })?;
+                let credential = CodexCatalogCredential::try_from_runtime(&runtime, observed_at_ms)
+                    .map_err(|_| {
+                        GatewayError::new(
+                            GatewayErrorCode::CredentialUnauthorized,
+                            ErrorScope::Credential,
+                        )
+                    })?;
+                let transport = Arc::new(CodexUpstreamCatalogTransport::new(
+                    target.policy.clone(),
+                    Arc::clone(&target.resolver),
+                    self.client_pool.clone(),
+                    target.profile.clone(),
+                ));
+                let source = Arc::new(CodexCatalogAdapter::try_new(
+                    target.endpoint_id.clone(),
+                    lease.credential_id().clone(),
+                    credential,
+                    transport,
+                )?);
+                ModelCatalogScheduler::new(source)
+                    .synchronize(catalog_target)
+                    .await
+            }
+        }
+    }
+
+    fn publish_durable(&self, observed_at_ms: i64) -> Result<(), RuntimeCompositionError> {
+        let catalogs = self
+            .store
+            .list_statuses_at(&self.config_version_id, observed_at_ms)
+            .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::Snapshot))?
+            .into_iter()
+            .filter(|status| {
+                let target = status.snapshot().target();
+                self.pools.pool(target.endpoint_id()).is_some_and(|pool| {
+                    pool.diagnostic_entries()
+                        .iter()
+                        .any(|entry| entry.credential_id() == target.credential_id())
+                })
+            })
+            .map(|status| {
+                let state = match status.freshness() {
+                    CatalogSnapshotFreshness::Fresh => CatalogModelState::Fresh,
+                    CatalogSnapshotFreshness::Stale => CatalogModelState::Stale,
+                    CatalogSnapshotFreshness::Expired => CatalogModelState::Expired,
+                };
+                SnapshotCredentialCatalog::new(
+                    status.snapshot().target().endpoint_id().clone(),
+                    status.snapshot().target().credential_id().clone(),
+                    state,
+                    status
+                        .eligible_models()
+                        .map(|model| model.upstream_model().to_owned())
+                        .collect(),
+                )
+            })
+            .collect::<Vec<_>>();
+        let snapshot = self
+            .base_snapshot
+            .materialize_credential_catalogs(catalogs)
+            .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::Snapshot))?;
+        self.scheduler
+            .publish_catalog_snapshot(Arc::new(snapshot))
+            .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::Snapshot))
+    }
+}
+
+const fn catalog_failure_class(code: GatewayErrorCode) -> CatalogDiscoveryFailureClass {
+    match code {
+        GatewayErrorCode::CredentialUnauthorized => CatalogDiscoveryFailureClass::Authentication,
+        GatewayErrorCode::CredentialForbidden => CatalogDiscoveryFailureClass::Authorization,
+        GatewayErrorCode::CredentialQuotaExceeded | GatewayErrorCode::ProviderRateLimited => {
+            CatalogDiscoveryFailureClass::RateLimit
+        }
+        GatewayErrorCode::EgressRejected | GatewayErrorCode::EgressUnavailable => {
+            CatalogDiscoveryFailureClass::Transport
+        }
+        GatewayErrorCode::ProviderTransient
+        | GatewayErrorCode::ProviderPermanent
+        | GatewayErrorCode::UpstreamProtocolError => CatalogDiscoveryFailureClass::Upstream,
+        _ => CatalogDiscoveryFailureClass::Internal,
+    }
 }
 
 /// The per-Endpoint execution binding selected by that Endpoint's declared `api_format`.
@@ -6707,6 +7075,7 @@ struct SnapshotManagementRuntimeFacade {
     route_explain_scheduler: Option<Arc<RouteCredentialScheduler>>,
     routing_price_snapshot: Option<Arc<RoutingPriceSnapshot>>,
     event_store: SqliteEventStore,
+    catalog_store: SqliteCatalogSnapshotStore,
 }
 
 impl SnapshotManagementRuntimeFacade {
@@ -6862,13 +7231,84 @@ const fn management_price_comparison(value: RoutingPriceComparison) -> &'static 
     }
 }
 
+const fn management_catalog_failure_class(
+    value: CatalogDiscoveryFailureClass,
+) -> ManagementCatalogFailureClass {
+    match value {
+        CatalogDiscoveryFailureClass::Authentication => {
+            ManagementCatalogFailureClass::Authentication
+        }
+        CatalogDiscoveryFailureClass::Authorization => ManagementCatalogFailureClass::Authorization,
+        CatalogDiscoveryFailureClass::RateLimit => ManagementCatalogFailureClass::RateLimit,
+        CatalogDiscoveryFailureClass::Transport => ManagementCatalogFailureClass::Transport,
+        CatalogDiscoveryFailureClass::Upstream => ManagementCatalogFailureClass::Upstream,
+        CatalogDiscoveryFailureClass::Internal => ManagementCatalogFailureClass::Internal,
+    }
+}
+
 impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
     fn catalog_status(
         &mut self,
         config_version_id: &gateway_store::control_plane::ConfigVersionId,
-        _observed_at_ms: i64,
+        observed_at_ms: i64,
     ) -> Result<Vec<ManagementCatalogStatus>, ManagementRuntimeError> {
-        self.snapshot_for(config_version_id).map(|_| Vec::new())
+        self.snapshot_for(config_version_id)?;
+        let mut targets = BTreeSet::new();
+        let mut statuses = self
+            .catalog_store
+            .list_statuses_at(config_version_id.as_str(), observed_at_ms)
+            .map_err(|_| ManagementRuntimeError::Unavailable)?
+            .into_iter()
+            .map(|status| {
+                let freshness = match status.freshness() {
+                    CatalogSnapshotFreshness::Fresh => ManagementCatalogFreshness::Fresh,
+                    CatalogSnapshotFreshness::Stale => ManagementCatalogFreshness::Stale,
+                    CatalogSnapshotFreshness::Expired => ManagementCatalogFreshness::Expired,
+                };
+                let failure = status
+                    .last_failure()
+                    .map(|(at, class)| (at, management_catalog_failure_class(class)));
+                targets.insert(status.snapshot().target().clone());
+                Ok(ManagementCatalogStatus::new(
+                    status.snapshot().target().endpoint_id().clone(),
+                    status.snapshot().target().credential_id().clone(),
+                    freshness,
+                    status.snapshot().observed_at_ms(),
+                )
+                .with_discovery_details(
+                    status.snapshot().version(),
+                    status.is_refresh_due(),
+                    status.eligible_models().count(),
+                    failure,
+                ))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        for failure in self
+            .catalog_store
+            .list_failures(config_version_id.as_str())
+            .map_err(|_| ManagementRuntimeError::Unavailable)?
+        {
+            if targets.contains(failure.target()) {
+                continue;
+            }
+            statuses.push(
+                ManagementCatalogStatus::new(
+                    failure.target().endpoint_id().clone(),
+                    failure.target().credential_id().clone(),
+                    ManagementCatalogFreshness::Missing,
+                    failure.failed_at_ms(),
+                )
+                .with_last_failure(
+                    failure.failed_at_ms(),
+                    management_catalog_failure_class(failure.class()),
+                ),
+            );
+        }
+        statuses.sort_by(|left, right| {
+            (left.endpoint_id(), left.credential_id())
+                .cmp(&(right.endpoint_id(), right.credential_id()))
+        });
+        Ok(statuses)
     }
 
     fn runtime_availability(
@@ -7263,7 +7703,10 @@ mod tests {
         ClientKeyAuthenticator, InMemoryClientKey, InMemoryClientKeyAuthenticator,
         client_key::{ClientKeyPepper, ClientKeyService},
     };
-    use gateway_catalog::{CapabilitySet, SemanticCapability};
+    use gateway_catalog::{
+        CapabilitySet, CatalogDiscoveryFailureClass, DiscoveredModel, ModelCatalogTarget,
+        SemanticCapability, SqliteCatalogSnapshotStore,
+    };
     use gateway_control::{
         control_plane_service::{credential_associated_data, seal_compatible_proxy_node_endpoint},
         credential_pool_compiler::CredentialPoolCompiler,
@@ -7284,6 +7727,7 @@ mod tests {
     use gateway_http_actix::{
         ResponsesHttpState, SystemResponsesMetadataFactory, configure, default_stream_capacity,
         management_resources::{
+            ManagementCatalogFailureClass, ManagementCatalogFreshness,
             ManagementQuotaRecoveryState, ManagementRequestAttemptStage, ManagementRequestProtocol,
             ManagementRouteExplainRequest, ManagementRuntimeError, ManagementRuntimeFacade,
             ManagementRuntimeTarget,
@@ -8766,7 +9210,7 @@ mod tests {
             Arc::new(P12AttemptEventSink::new(Arc::clone(&attempt_stages)));
         let runtime_health = Arc::new(RuntimeHealthRegistry::new());
         let runtime_quota = Arc::new(RuntimeQuotaRegistry::new());
-        let (executor, _account_pools, scheduler, _egress_status, _refresh_worker) =
+        let (executor, _account_pools, scheduler, _egress_status, _refresh_worker, _catalog_worker) =
             P12RoutedResponsesExecutor::try_new(
                 &database,
                 &configuration,
@@ -10217,6 +10661,7 @@ mod tests {
             route_explain_scheduler: None,
             routing_price_snapshot: None,
             event_store: SqliteEventStore::open(&database)?,
+            catalog_store: SqliteCatalogSnapshotStore::open(&database)?,
         };
         let attempts = facade
             .list_request_attempts(&request_id)
@@ -10341,6 +10786,7 @@ mod tests {
             route_explain_scheduler: None,
             routing_price_snapshot: None,
             event_store: SqliteEventStore::open(&database)?,
+            catalog_store: SqliteCatalogSnapshotStore::open(&database)?,
         };
         let attempts = facade
             .list_request_attempts(&request_id)
@@ -11893,6 +12339,7 @@ mod tests {
             route_explain_scheduler: None,
             routing_price_snapshot: None,
             event_store: SqliteEventStore::open_in_memory()?,
+            catalog_store: SqliteCatalogSnapshotStore::open_in_memory()?,
         };
         let request = ManagementRouteExplainRequest::try_new(
             version,
@@ -12006,6 +12453,7 @@ mod tests {
             route_explain_scheduler: Some(scheduler),
             routing_price_snapshot: None,
             event_store: SqliteEventStore::open_in_memory()?,
+            catalog_store: SqliteCatalogSnapshotStore::open_in_memory()?,
         };
         let unscoped = ManagementRouteExplainRequest::try_new(
             version.clone(),
@@ -12075,8 +12523,61 @@ mod tests {
             route_explain_scheduler: None,
             routing_price_snapshot: None,
             event_store: SqliteEventStore::open_in_memory()?,
+            catalog_store: SqliteCatalogSnapshotStore::open_in_memory()?,
         };
         Ok((facade, clock, runtime_health, runtime_quota, version))
+    }
+
+    #[test]
+    fn management_catalog_status_projects_success_and_failure_only_targets()
+    -> Result<(), Box<dyn Error>> {
+        let (mut facade, _clock, _health, _quota, version) = management_facade_fixture(1_000)?;
+        let successful = ModelCatalogTarget::new(
+            EndpointId::try_new("endpoint-a")?,
+            CredentialId::try_new("credential-a")?,
+        );
+        facade.catalog_store.record_success(
+            version.as_str(),
+            &successful,
+            [DiscoveredModel::try_new("grok-4.6")?],
+            1_000,
+        )?;
+        facade.catalog_store.record_failure(
+            version.as_str(),
+            &successful,
+            2_000,
+            CatalogDiscoveryFailureClass::RateLimit,
+        )?;
+        let missing = ModelCatalogTarget::new(
+            EndpointId::try_new("endpoint-b")?,
+            CredentialId::try_new("credential-b")?,
+        );
+        facade.catalog_store.record_failure(
+            version.as_str(),
+            &missing,
+            2_500,
+            CatalogDiscoveryFailureClass::Authentication,
+        )?;
+
+        let statuses = facade
+            .catalog_status(&version, 3_000)
+            .map_err(|_| "Catalog status unavailable")?;
+        assert_eq!(statuses.len(), 2);
+        assert_eq!(statuses[0].freshness(), ManagementCatalogFreshness::Fresh);
+        assert_eq!(statuses[0].snapshot_version(), Some(1));
+        assert_eq!(statuses[0].refresh_due(), Some(false));
+        assert_eq!(statuses[0].model_count(), Some(1));
+        assert_eq!(
+            statuses[0].last_failure_class(),
+            Some(ManagementCatalogFailureClass::RateLimit)
+        );
+        assert_eq!(statuses[1].freshness(), ManagementCatalogFreshness::Missing);
+        assert_eq!(statuses[1].snapshot_version(), None);
+        assert_eq!(
+            statuses[1].last_failure_class(),
+            Some(ManagementCatalogFailureClass::Authentication)
+        );
+        Ok(())
     }
 
     #[derive(Debug)]

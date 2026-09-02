@@ -24,7 +24,7 @@ use gateway_upstream::CredentialLease;
 use crate::{
     ProtocolFormat, ProviderScopedRouteExplainInput, QuotaConfidence, QuotaSnapshot, QuotaSource,
     ResponsesContinuationKind, ResponsesContinuationPin, RouteCredentialScheduler,
-    RouteExplainInput, RuntimeHealthClock, RuntimeHealthKey, RuntimeHealthRegistry,
+    RouteExplainInput, RouteSnapshot, RuntimeHealthClock, RuntimeHealthKey, RuntimeHealthRegistry,
     RuntimeQuotaRecoveryProbe, RuntimeQuotaRegistry, RuntimeQuotaTarget, SelectedRouteCredential,
     SnapshotRoute, SnapshotRouteCandidate, SystemRuntimeHealthClock,
 };
@@ -454,6 +454,7 @@ impl AttemptOrchestrator {
         let all_candidates = |_candidate: &SnapshotRouteCandidate| true;
         self.start_inner(
             None,
+            None,
             route_id,
             &all_candidates,
             false,
@@ -492,6 +493,7 @@ impl AttemptOrchestrator {
         };
         self.start_inner(
             None,
+            None,
             route_id,
             &matching_protocol,
             false,
@@ -526,6 +528,7 @@ impl AttemptOrchestrator {
         let all_candidates = |_candidate: &SnapshotRouteCandidate| true;
         self.start_inner(
             Some(request_id),
+            None,
             route_id,
             &all_candidates,
             false,
@@ -560,6 +563,7 @@ impl AttemptOrchestrator {
         };
         self.start_inner(
             Some(request_id),
+            None,
             route_id,
             &matching_protocol,
             false,
@@ -595,6 +599,7 @@ impl AttemptOrchestrator {
     {
         self.start_inner(
             Some(request_id),
+            None,
             route_id,
             &is_candidate_eligible,
             false,
@@ -633,6 +638,44 @@ impl AttemptOrchestrator {
     {
         self.start_inner(
             Some(request_id),
+            None,
+            route_id,
+            &is_candidate_eligible,
+            true,
+            driver,
+            retry_gate,
+            event_sink,
+        )
+        .await
+    }
+
+    /// Starts a Provider-scoped Attempt loop pinned to ingress' exact Catalog snapshot.
+    ///
+    /// A newer Catalog publication cannot be mixed into Candidate or Credential selection for
+    /// this request. If publication wins before a later retry selection, that retry fails closed.
+    ///
+    /// # Errors
+    ///
+    /// Returns the existing secret-free routing error for a stale snapshot, unavailable binding,
+    /// exhausted retry budget, cancellation, or terminal Provider failure.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn start_with_event_sink_provider_scoped_matching_from_snapshot<D, F>(
+        &self,
+        request_id: &RequestId,
+        snapshot: &Arc<RouteSnapshot>,
+        route_id: &RouteId,
+        is_candidate_eligible: F,
+        driver: &D,
+        retry_gate: &dyn TransparentRetryGate,
+        event_sink: &dyn GatewayEventSink,
+    ) -> Result<StartedAttempt<D::Output>, GatewayError>
+    where
+        D: AttemptDriver,
+        F: Fn(&SnapshotRouteCandidate) -> bool + Sync,
+    {
+        self.start_inner(
+            Some(request_id),
+            Some(snapshot),
             route_id,
             &is_candidate_eligible,
             true,
@@ -816,6 +859,7 @@ impl AttemptOrchestrator {
         &self,
         request_id: &RequestId,
         pin: &ResponsesContinuationPin,
+        expected_snapshot: Option<&Arc<RouteSnapshot>>,
         is_candidate_eligible: F,
         driver: &D,
         retry_gate: &dyn TransparentRetryGate,
@@ -832,7 +876,7 @@ impl AttemptOrchestrator {
         let route_id = lineage.route_id();
         let route = self
             .scheduler
-            .route(route_id)
+            .route_from_snapshot(expected_snapshot, route_id)?
             .ok_or_else(credential_unavailable_error)?;
         let now_ms = self.clock.now_ms().map_err(|_| internal_error())?;
         let mut budget = RetryBudget::from_route(&route, now_ms)?;
@@ -844,20 +888,23 @@ impl AttemptOrchestrator {
             ResponsesContinuationKind::Compaction => SemanticCapability::ResponseCompaction,
             ResponsesContinuationKind::WebSocketSession => SemanticCapability::ResponsesWebSocket,
         };
-        let selection = self.scheduler.select_continuation_and_lease_at(
-            route_id,
-            lineage.provider_id(),
-            lineage.upstream_id(),
-            lineage.channel_id(),
-            lineage.route_candidate_id(),
-            lineage.credential_id(),
-            lineage.credential_revision(),
-            required_capability,
-            &self.runtime_health,
-            &self.runtime_quota,
-            now_ms,
-            is_candidate_eligible,
-        )?;
+        let selection = self
+            .scheduler
+            .select_continuation_and_lease_at_from_snapshot(
+                expected_snapshot,
+                route_id,
+                lineage.provider_id(),
+                lineage.upstream_id(),
+                lineage.channel_id(),
+                lineage.route_candidate_id(),
+                lineage.credential_id(),
+                lineage.credential_revision(),
+                required_capability,
+                &self.runtime_health,
+                &self.runtime_quota,
+                now_ms,
+                is_candidate_eligible,
+            )?;
         let started_at_ms = self.clock.now_ms().map_err(|_| internal_error())?;
         if retry_gate.is_cancelled() || !budget.can_start_at(started_at_ms) {
             drop(selection);
@@ -970,6 +1017,7 @@ impl AttemptOrchestrator {
     async fn start_inner<D>(
         &self,
         request_id: Option<&RequestId>,
+        expected_snapshot: Option<&Arc<RouteSnapshot>>,
         route_id: &RouteId,
         is_candidate_eligible: &(dyn Fn(&SnapshotRouteCandidate) -> bool + Sync),
         provider_scoped: bool,
@@ -986,7 +1034,7 @@ impl AttemptOrchestrator {
 
         let route = self
             .scheduler
-            .route(route_id)
+            .route_from_snapshot(expected_snapshot, route_id)?
             .ok_or_else(credential_unavailable_error)?;
         let provider_scope = if provider_scoped {
             Some(unique_provider_scope(&route, is_candidate_eligible)?)
@@ -1010,6 +1058,7 @@ impl AttemptOrchestrator {
 
             let selection_result = if let Some(provider_id) = provider_scope.as_ref() {
                 self.select_provider_scoped_and_lease(
+                    expected_snapshot,
                     route_id,
                     &route,
                     provider_id,
@@ -1019,7 +1068,8 @@ impl AttemptOrchestrator {
                 )
             } else {
                 self.scheduler
-                    .select_eligible_and_lease_with_runtime_health_quota_and_binding_at(
+                    .select_eligible_and_lease_with_runtime_health_quota_and_binding_at_from_snapshot(
+                        expected_snapshot,
                         route_id,
                         &self.runtime_health,
                         &self.runtime_quota,
@@ -1033,6 +1083,7 @@ impl AttemptOrchestrator {
                 Err(error) => {
                     let recovery = budget.remaining_at(now_ms).ok().and_then(|remaining| {
                         self.begin_quota_recovery_probe_selection(
+                            expected_snapshot,
                             route_id,
                             provider_scope.as_ref(),
                             is_candidate_eligible,
@@ -1207,8 +1258,10 @@ impl AttemptOrchestrator {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn select_provider_scoped_and_lease(
         &self,
+        expected_snapshot: Option<&Arc<RouteSnapshot>>,
         route_id: &RouteId,
         route: &SnapshotRoute,
         provider_id: &ProviderId,
@@ -1239,7 +1292,8 @@ impl AttemptOrchestrator {
         .map_err(|_| credential_unavailable_error())?;
         let explain = self
             .scheduler
-            .explain_provider_scoped(
+            .explain_provider_scoped_from_snapshot(
+                expected_snapshot,
                 &input,
                 &self.runtime_health,
                 &self.runtime_quota,
@@ -1247,15 +1301,17 @@ impl AttemptOrchestrator {
             )
             .map_err(|_| credential_unavailable_error())?;
         let lease_observed_at_ms = self.clock.now_ms().map_err(|_| internal_error())?;
-        self.scheduler.select_provider_scoped_and_lease_at(
-            route_id,
-            explain.provider_selection(),
-            &self.runtime_health,
-            &self.runtime_quota,
-            lease_observed_at_ms,
-            is_candidate_eligible,
-            |candidate, credential_id| !exclusions.contains(candidate, credential_id),
-        )
+        self.scheduler
+            .select_provider_scoped_and_lease_at_from_snapshot(
+                expected_snapshot,
+                route_id,
+                explain.provider_selection(),
+                &self.runtime_health,
+                &self.runtime_quota,
+                lease_observed_at_ms,
+                is_candidate_eligible,
+                |candidate, credential_id| !exclusions.contains(candidate, credential_id),
+            )
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1390,8 +1446,10 @@ impl AttemptOrchestrator {
     /// its Reset (`RecoveryRequired`). Beginning the registry ticket is the final atomic gate:
     /// exactly one caller can hold it, so concurrent failed selections cannot start a second
     /// probe. Any clock, scheduling, or registry failure fails closed by admitting nothing.
+    #[allow(clippy::too_many_arguments)]
     fn begin_quota_recovery_probe_selection(
         &self,
+        expected_snapshot: Option<&Arc<RouteSnapshot>>,
         route_id: &RouteId,
         provider_scope: Option<&ProviderId>,
         is_candidate_eligible: &(dyn Fn(&SnapshotRouteCandidate) -> bool + Sync),
@@ -1401,7 +1459,8 @@ impl AttemptOrchestrator {
     ) -> Option<(SelectedRouteCredential, RuntimeQuotaRecoveryProbe)> {
         let selection = self
             .scheduler
-            .select_eligible_and_lease_for_quota_recovery_at(
+            .select_eligible_and_lease_for_quota_recovery_at_from_snapshot(
+                expected_snapshot,
                 route_id,
                 &self.runtime_health,
                 &self.runtime_quota,
@@ -1946,6 +2005,7 @@ mod tests {
                 .start_continuation_once_with_event_sink(
                     &RequestId::try_new("continuation-failure")?,
                     &pin,
+                    None,
                     |_| true,
                     &driver,
                     &TestRetryGate::default(),
@@ -1988,6 +2048,7 @@ mod tests {
             .start_continuation_once_with_event_sink(
                 &RequestId::try_new("compaction-success")?,
                 &continuation_pin(ResponsesContinuationKind::Compaction)?,
+                None,
                 |_| true,
                 &driver,
                 &TestRetryGate::default(),

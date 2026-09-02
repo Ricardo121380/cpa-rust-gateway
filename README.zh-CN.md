@@ -236,6 +236,31 @@ group 和 Client Key，验证整张图，发布并重启 runtime，才能组合 
 opaque ID 台账；部分底层资源有意不提供 collection/list API。详细顺序和回滚规则见
 [P12 Rollout Runbook](docs/p12-rollout-runbook.md)。
 
+## 动态上游模型目录
+
+对于已经支持 discovery 的渠道，`/v1/models` 不是手写的 Provider/套餐模型表。CPAR 按活动
+Config Version + Endpoint + Credential 发现 exact upstream model ID，把最后一次成功结果持久化到
+SQLite，再从已发布的 Route 模板原子派生只允许对应 Credential 租约的运行时 Route。当前自动运行时
+source 仅覆盖 Grok Build 与 official Codex；Grok Web/Console、xAI Official、Kiro 和 generic
+compatible endpoint 仍需各自经过审查的 source adapter。
+
+默认生命周期为 Fresh 6 小时、24 小时后应刷新、72 小时硬过期。瞬时失败保留最后一次成功；删除模型
+必须至少连续三次成功响应都遗漏该模型，并且隔离满 24 小时，失败请求不计数。Worker 每小时检查一次
+状态，但只有目标从未成功或已经到刷新截止时间时才会联系 Provider。
+
+操作者可以检查受保护的 `GET /admin/catalog/status`。它只返回 exact opaque Endpoint/Credential ID、
+freshness、目标本地 snapshot version、是否应刷新、保留模型数量和有限的失败时间/类别；不会返回模型
+ID、URL、响应正文、账号身份或 Secret。启动或升级后应当：
+
+1. 使用目标 CPAR Client Key 认证调用 `GET /v1/models`；
+2. 确认列表只包含该 Key 有权访问的 exact upstream ID；
+3. 用选中的 exact ID 和该渠道真实协议执行一次有界请求；
+4. 模型缺失或过期时查看受保护 status，不能用前端常量补齐。
+
+Grok Build 的 `free/supergrok/heavy` 和 ChatGPT 的 `free/go/plus/pro5x/pro20x` 属于独立权益
+metadata，绝不能据此生成 model ID。首次交互 OAuth 和被撤销 refresh grant 的恢复仍由
+operator/Autoreg 负责；有效 OAuth 已导入 CPAR 且渠道已支持 refresh 时，日常自动续期由 CPAR 负责。
+
 ## 客户端请求示例
 
 操作者发布 Route 并签发 CPAR Client Key 后：
@@ -257,10 +282,11 @@ Realtime API。
   Responses、Responses WebSocket、compatible egress pool 和 Provider egress 状态投影；
 - **前端集成：** Prism 独立消费 generated management contract，当前 handoff 以实际分支和
   `docs/cross-boundary-log.md` 为准；
-- **正在实施：** P13-15 全渠道上游模型目录透传；Build/Codex exact-Credential discovery source
-  已完成并真实观测 `grok-4.6`、`grok-4.5`、`gpt-5.6-terra`、`gpt-5.6-luna`、`gpt-5.5`
-  与 `gpt-5.4-mini`；但 durable freshness、自动 route materialization、其他渠道和正式 Gate 尚未
-  完成，因此公网 `/v1/models` 不能靠手工常量补齐；
+- **正在实施：** P13-15 全渠道上游模型目录透传；Build/Codex exact-Credential source 已真实观测
+  `grok-4.6`、`grok-4.5`、`gpt-5.6-terra`、`gpt-5.6-luna`、`gpt-5.5` 与
+  `gpt-5.4-mini`；P13-15C/D 的 durable freshness/removal、受保护 status 和 atomic
+  Credential-scoped route materialization 已本地通过。生产 `grok-4.6`、其他渠道 source、隔离矩阵和
+  正式 Gate 仍待完成；客户端必须消费 gateway 返回列表，不能靠手工常量补齐；
 - **显式延期或外部阻塞：** Kiro/Official API-key 真实 E2E、Grok Web 外部 egress/WAF、
   P13-11E5 真实 Provider/代理/DNS canary、自动账号注册/修复、Media/Files/Batch 和更多 Provider；
 - **CPAR 凭据生命周期：** 已保存、已绑定且 Provider 明确支持 refresh 的 OAuth 由 CPAR 在启动时和

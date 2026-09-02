@@ -41,9 +41,10 @@ const STORED_RESPONSE_SCHEMA_VERSION: i64 = 17;
 const STORED_RESPONSE_COMPACTION_SCHEMA_VERSION: i64 = 18;
 const COMPATIBLE_EGRESS_POOL_SCHEMA_VERSION: i64 = 19;
 const GROK_ACCOUNT_ENTITLEMENT_SCHEMA_VERSION: i64 = 20;
+const MODEL_CATALOG_SCHEMA_VERSION: i64 = 21;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = GROK_ACCOUNT_ENTITLEMENT_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = MODEL_CATALOG_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -152,6 +153,11 @@ const MIGRATIONS: &[Migration] = &[
         version: GROK_ACCOUNT_ENTITLEMENT_SCHEMA_VERSION,
         up: include_str!("../migrations/0020_grok_account_entitlements.up.sql"),
         down: include_str!("../migrations/0020_grok_account_entitlements.down.sql"),
+    },
+    Migration {
+        version: MODEL_CATALOG_SCHEMA_VERSION,
+        up: include_str!("../migrations/0021_model_catalog.up.sql"),
+        down: include_str!("../migrations/0021_model_catalog.down.sql"),
     },
 ];
 
@@ -603,6 +609,9 @@ mod tests {
                 "management_audit_events",
                 "management_resource_audit_events",
                 "model_aliases",
+                "model_catalog_failures",
+                "model_catalog_models",
+                "model_catalog_targets",
                 "model_routes",
                 "public_models",
                 "route_candidates",

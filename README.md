@@ -249,6 +249,36 @@ secret-free ledger of every opaque ID; some low-level resources intentionally ha
 endpoint. The detailed order and rollback rules are documented in
 [the P12 rollout runbook](docs/p12-rollout-runbook.md).
 
+## Dynamic upstream model catalog
+
+For supported discovery channels, `/v1/models` is not a handwritten Provider or subscription-tier
+table. CPAR discovers exact upstream model IDs per active Config Version + Endpoint + Credential,
+retains the last successful result in SQLite and atomically derives Credential-restricted runtime
+routes from the published route template. The current automatic runtime sources are Grok Build and
+official Codex; Grok Web/Console, xAI Official, Kiro and generic compatible endpoints still require
+their own reviewed source adapters.
+
+The default lifecycle is Fresh for 6 hours, refresh due after 24 hours and hard expiry after 72
+hours. A transient failure preserves the last success. Removing a model requires three successful
+omissions and at least 24 hours of isolation; failed calls do not count. The worker checks state
+hourly but contacts a Provider only when a target has no success or its refresh deadline is due.
+
+Operators can inspect the protected `GET /admin/catalog/status` resource. It reports exact opaque
+Endpoint/Credential IDs, freshness, target-local snapshot version, whether refresh is due, retained
+model count, and a bounded failure time/class. It deliberately does not return model IDs, URLs,
+response bodies, account identities or secrets. After startup or upgrade:
+
+1. authenticate `GET /v1/models` with the intended CPAR Client Key;
+2. confirm only authorized exact upstream IDs are present;
+3. make one bounded request using the chosen exact ID and the channel's real protocol;
+4. use the protected status resource—not frontend constants—to diagnose missing/expired catalogs.
+
+Account tiers such as Grok Build `free/supergrok/heavy` and ChatGPT
+`free/go/plus/pro5x/pro20x` are separate entitlement metadata. They never generate model IDs.
+Interactive first OAuth and recovery of a revoked refresh grant remain operator/Autoreg work;
+routine refresh of a valid OAuth grant already imported into a supported CPAR channel is owned by
+CPAR.
+
 ## Example client request
 
 After an operator has published a route and issued a CPAR Client Key:
@@ -272,10 +302,11 @@ and not the OpenAI Realtime API.
 - **Frontend integration:** Prism evolves independently against the generated management contract;
   check the current branch and `docs/cross-boundary-log.md` for pending handoffs.
 - **In progress:** P13-15 all-channel upstream model-catalog pass-through. Exact-Credential Build
-  and Codex discovery sources have observed `grok-4.6`, `grok-4.5`, `gpt-5.6-terra`,
-  `gpt-5.6-luna`, `gpt-5.5` and `gpt-5.4-mini`; durable freshness, automatic route materialization,
-  remaining channels and the formal gate are still pending, so public `/v1/models` must not be
-  filled with manual constants.
+  and Codex sources have observed `grok-4.6`, `grok-4.5`, `gpt-5.6-terra`, `gpt-5.6-luna`,
+  `gpt-5.5` and `gpt-5.4-mini`; P13-15C/D durable freshness/removal, protected status and atomic
+  Credential-scoped route materialization pass locally. Production `grok-4.6`, remaining channel
+  sources, isolation matrix and the formal gate are still pending, so clients must consume the
+  gateway list rather than manual constants.
 - **Explicitly deferred or externally blocked:** real Kiro/Official API-key E2E, Grok Web external
   egress/WAF evidence, P13-11E5 real Provider/proxy/DNS canary, automatic account registration or
   repair, media/files/batch and additional Providers.

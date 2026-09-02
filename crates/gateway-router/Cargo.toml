@@ -16,6 +16,7 @@ gateway-protocol = { path = "../gateway-protocol" }
 gateway-provider = { path = "../gateway-provider" }
 gateway-upstream = { path = "../gateway-upstream" }
 serde_json.workspace = true
+sha2.workspace = true
 tokio.workspace = true
 
 [dev-dependencies]

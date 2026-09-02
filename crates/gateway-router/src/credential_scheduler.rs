@@ -8,6 +8,8 @@
 
 use std::{collections::BTreeMap, sync::Arc};
 
+use arc_swap::ArcSwap;
+
 use gateway_catalog::SemanticCapability;
 use gateway_core::{
     CredentialId, EndpointId, ErrorScope, GatewayError, GatewayErrorCode, ProviderId,
@@ -31,7 +33,8 @@ use crate::{
 /// externally owned runtime-health registry; they never classify or mutate runtime state.
 #[derive(Debug)]
 pub struct RouteCredentialScheduler {
-    candidates: RouteCandidateScheduler,
+    candidates: ArcSwap<RouteCandidateScheduler>,
+    snapshot_version: crate::SnapshotVersion,
     credential_pools: Arc<EndpointCredentialPools>,
     provider_price_rates: Arc<BTreeMap<RouteCandidateId, ProviderScopedPriceRates>>,
 }
@@ -66,7 +69,8 @@ impl RouteCredentialScheduler {
         provider_price_rates: Arc<BTreeMap<RouteCandidateId, ProviderScopedPriceRates>>,
     ) -> Self {
         Self {
-            candidates: RouteCandidateScheduler::new(snapshot),
+            snapshot_version: snapshot.version().clone(),
+            candidates: ArcSwap::from_pointee(RouteCandidateScheduler::new(snapshot)),
             credential_pools,
             provider_price_rates,
         }
@@ -93,7 +97,49 @@ impl RouteCredentialScheduler {
     /// the process has rebuilt its credential pools, price map, and scheduler together.
     #[must_use]
     pub fn snapshot_version(&self) -> &crate::SnapshotVersion {
-        self.candidates.snapshot().version()
+        &self.snapshot_version
+    }
+
+    /// Loads the exact immutable data-plane Snapshot currently used for new selections.
+    #[must_use]
+    pub fn snapshot(&self) -> Arc<RouteSnapshot> {
+        self.candidates.load_full().snapshot_arc()
+    }
+
+    fn candidates_for_snapshot(
+        &self,
+        expected_snapshot: Option<&Arc<RouteSnapshot>>,
+    ) -> Result<Arc<RouteCandidateScheduler>, GatewayError> {
+        let candidates = self.candidates.load_full();
+        if expected_snapshot
+            .is_some_and(|expected| !Arc::ptr_eq(&candidates.snapshot_arc(), expected))
+        {
+            return Err(credential_unavailable_error());
+        }
+        Ok(candidates)
+    }
+
+    /// Atomically publishes a Catalog-materialized Snapshot for the same Config Version.
+    ///
+    /// Config Version transitions still rebuild the complete runtime composition. This narrow
+    /// publication seam only replaces discovery-derived routes and resets their route cursors.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe internal error when the replacement belongs to another Config Version.
+    pub fn publish_catalog_snapshot(
+        &self,
+        snapshot: Arc<RouteSnapshot>,
+    ) -> Result<(), GatewayError> {
+        if snapshot.version() != &self.snapshot_version {
+            return Err(GatewayError::new(
+                GatewayErrorCode::InternalError,
+                ErrorScope::Internal,
+            ));
+        }
+        self.candidates
+            .store(Arc::new(RouteCandidateScheduler::new(snapshot)));
+        Ok(())
     }
 
     /// Selects a Candidate and immediately acquires one lease from its Endpoint Credential pool.
@@ -129,11 +175,16 @@ impl RouteCredentialScheduler {
         F: FnMut(&SnapshotRouteCandidate) -> bool,
     {
         let mut lease = None;
-        let candidate = self.candidates.select_eligible(route_id, |candidate| {
+        let candidates = self.candidates.load_full();
+        let candidate = candidates.select_eligible(route_id, |candidate| {
             if !is_candidate_eligible(candidate) {
                 return false;
             }
-            let Some(acquired) = self.credential_pools.try_lease(candidate.endpoint_id()) else {
+            let Some(acquired) = self.credential_pools.try_lease_eligible_at(
+                candidate.endpoint_id(),
+                LEGACY_NO_EXPIRY_OBSERVATION_MS,
+                |credential_id| candidate.allows_credential(credential_id),
+            ) else {
                 return false;
             };
             lease = Some(acquired);
@@ -246,7 +297,8 @@ impl RouteCredentialScheduler {
         FBinding: FnMut(&SnapshotRouteCandidate, &CredentialId) -> bool,
     {
         let mut lease = None;
-        let candidate = self.candidates.select_eligible(route_id, |candidate| {
+        let candidates = self.candidates.load_full();
+        let candidate = candidates.select_eligible(route_id, |candidate| {
             if !is_candidate_eligible(candidate)
                 || !runtime_health.endpoint_is_available(candidate.endpoint_id())
             {
@@ -256,7 +308,8 @@ impl RouteCredentialScheduler {
                 candidate.endpoint_id(),
                 observed_at_ms,
                 |credential_id| {
-                    is_binding_eligible(candidate, credential_id)
+                    candidate.allows_credential(credential_id)
+                        && is_binding_eligible(candidate, credential_id)
                         && runtime_health.endpoint_credential_is_available(
                             candidate.endpoint_id(),
                             credential_id,
@@ -329,6 +382,35 @@ impl RouteCredentialScheduler {
         runtime_health: &RuntimeHealthRegistry,
         runtime_quota: &RuntimeQuotaRegistry,
         observed_at_ms: i64,
+        is_candidate_eligible: FCandidate,
+        is_binding_eligible: FBinding,
+    ) -> Result<SelectedRouteCredential, GatewayError>
+    where
+        FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
+        FBinding: FnMut(&SnapshotRouteCandidate, &CredentialId) -> bool,
+    {
+        self.select_eligible_and_lease_with_runtime_health_quota_and_binding_at_from_snapshot(
+            None,
+            route_id,
+            runtime_health,
+            runtime_quota,
+            observed_at_ms,
+            is_candidate_eligible,
+            is_binding_eligible,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn select_eligible_and_lease_with_runtime_health_quota_and_binding_at_from_snapshot<
+        FCandidate,
+        FBinding,
+    >(
+        &self,
+        expected_snapshot: Option<&Arc<RouteSnapshot>>,
+        route_id: &RouteId,
+        runtime_health: &RuntimeHealthRegistry,
+        runtime_quota: &RuntimeQuotaRegistry,
+        observed_at_ms: i64,
         mut is_candidate_eligible: FCandidate,
         mut is_binding_eligible: FBinding,
     ) -> Result<SelectedRouteCredential, GatewayError>
@@ -337,7 +419,8 @@ impl RouteCredentialScheduler {
         FBinding: FnMut(&SnapshotRouteCandidate, &CredentialId) -> bool,
     {
         let mut lease = None;
-        let candidate = self.candidates.select_eligible(route_id, |candidate| {
+        let candidates = self.candidates_for_snapshot(expected_snapshot)?;
+        let candidate = candidates.select_eligible(route_id, |candidate| {
             if !is_candidate_eligible(candidate)
                 || !runtime_health.endpoint_is_available(candidate.endpoint_id())
             {
@@ -347,7 +430,8 @@ impl RouteCredentialScheduler {
                 candidate.endpoint_id(),
                 observed_at_ms,
                 |credential_id| {
-                    is_binding_eligible(candidate, credential_id)
+                    candidate.allows_credential(credential_id)
+                        && is_binding_eligible(candidate, credential_id)
                         && runtime_health.endpoint_credential_is_available(
                             candidate.endpoint_id(),
                             credential_id,
@@ -404,6 +488,34 @@ impl RouteCredentialScheduler {
         runtime_health: &RuntimeHealthRegistry,
         runtime_quota: &RuntimeQuotaRegistry,
         observed_at_ms: i64,
+        is_candidate_eligible: FCandidate,
+        is_binding_eligible: FBinding,
+    ) -> Result<SelectedRouteCredential, GatewayError>
+    where
+        FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
+        FBinding: FnMut(&SnapshotRouteCandidate, &CredentialId) -> bool,
+    {
+        self.select_provider_scoped_and_lease_at_from_snapshot(
+            None,
+            route_id,
+            selection,
+            runtime_health,
+            runtime_quota,
+            observed_at_ms,
+            is_candidate_eligible,
+            is_binding_eligible,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn select_provider_scoped_and_lease_at_from_snapshot<FCandidate, FBinding>(
+        &self,
+        expected_snapshot: Option<&Arc<RouteSnapshot>>,
+        route_id: &RouteId,
+        selection: &ProviderScopedSelection,
+        runtime_health: &RuntimeHealthRegistry,
+        runtime_quota: &RuntimeQuotaRegistry,
+        observed_at_ms: i64,
         mut is_candidate_eligible: FCandidate,
         mut is_binding_eligible: FBinding,
     ) -> Result<SelectedRouteCredential, GatewayError>
@@ -411,8 +523,8 @@ impl RouteCredentialScheduler {
         FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
         FBinding: FnMut(&SnapshotRouteCandidate, &CredentialId) -> bool,
     {
-        let route = self
-            .candidates
+        let candidates = self.candidates_for_snapshot(expected_snapshot)?;
+        let route = candidates
             .route(route_id)
             .ok_or_else(credential_unavailable_error)?;
         for decision in selection
@@ -446,7 +558,8 @@ impl RouteCredentialScheduler {
                 candidate.endpoint_id(),
                 observed_at_ms,
                 |credential_id| {
-                    is_binding_eligible(candidate, credential_id)
+                    candidate.allows_credential(credential_id)
+                        && is_binding_eligible(candidate, credential_id)
                         && runtime_health.endpoint_credential_is_available(
                             candidate.endpoint_id(),
                             credential_id,
@@ -511,8 +624,8 @@ impl RouteCredentialScheduler {
     where
         FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
     {
-        let route = self
-            .candidates
+        let candidates = self.candidates.load_full();
+        let route = candidates
             .route(route_id)
             .ok_or_else(credential_unavailable_error)?;
         let mut matching = route.candidates().iter().filter(|candidate| {
@@ -538,21 +651,25 @@ impl RouteCredentialScheduler {
             credential_id,
             observed_at_ms,
             |candidate_credential_id| {
-                runtime_health.endpoint_credential_is_available(
-                    candidate.endpoint_id(),
-                    candidate_credential_id,
-                ) && runtime_health.endpoint_credential_model_is_available(
-                    candidate.endpoint_id(),
-                    candidate_credential_id,
-                    candidate.upstream_model(),
-                ) && runtime_quota.endpoint_credential_is_available(
-                    candidate.endpoint_id(),
-                    candidate_credential_id,
-                ) && runtime_quota.endpoint_credential_model_is_available(
-                    candidate.endpoint_id(),
-                    candidate_credential_id,
-                    candidate.upstream_model(),
-                )
+                candidate.allows_credential(candidate_credential_id)
+                    && runtime_health.endpoint_credential_is_available(
+                        candidate.endpoint_id(),
+                        candidate_credential_id,
+                    )
+                    && runtime_health.endpoint_credential_model_is_available(
+                        candidate.endpoint_id(),
+                        candidate_credential_id,
+                        candidate.upstream_model(),
+                    )
+                    && runtime_quota.endpoint_credential_is_available(
+                        candidate.endpoint_id(),
+                        candidate_credential_id,
+                    )
+                    && runtime_quota.endpoint_credential_model_is_available(
+                        candidate.endpoint_id(),
+                        candidate_credential_id,
+                        candidate.upstream_model(),
+                    )
             },
         ) else {
             return Err(credential_unavailable_error());
@@ -587,13 +704,50 @@ impl RouteCredentialScheduler {
         runtime_health: &RuntimeHealthRegistry,
         runtime_quota: &RuntimeQuotaRegistry,
         observed_at_ms: i64,
+        is_candidate_eligible: FCandidate,
+    ) -> Result<SelectedRouteCredential, GatewayError>
+    where
+        FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
+    {
+        self.select_continuation_and_lease_at_from_snapshot(
+            None,
+            route_id,
+            provider_id,
+            upstream_id,
+            channel_id,
+            route_candidate_id,
+            credential_id,
+            credential_revision,
+            required_capability,
+            runtime_health,
+            runtime_quota,
+            observed_at_ms,
+            is_candidate_eligible,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn select_continuation_and_lease_at_from_snapshot<FCandidate>(
+        &self,
+        expected_snapshot: Option<&Arc<RouteSnapshot>>,
+        route_id: &RouteId,
+        provider_id: &ProviderId,
+        upstream_id: &gateway_core::UpstreamId,
+        channel_id: &EndpointId,
+        route_candidate_id: &RouteCandidateId,
+        credential_id: &CredentialId,
+        credential_revision: u64,
+        required_capability: SemanticCapability,
+        runtime_health: &RuntimeHealthRegistry,
+        runtime_quota: &RuntimeQuotaRegistry,
+        observed_at_ms: i64,
         mut is_candidate_eligible: FCandidate,
     ) -> Result<SelectedRouteCredential, GatewayError>
     where
         FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
     {
-        let route = self
-            .candidates
+        let candidates = self.candidates_for_snapshot(expected_snapshot)?;
+        let route = candidates
             .route(route_id)
             .ok_or_else(credential_unavailable_error)?;
         let candidate = route
@@ -621,21 +775,25 @@ impl RouteCredentialScheduler {
             credential_revision,
             observed_at_ms,
             |candidate_credential_id| {
-                runtime_health.endpoint_credential_is_available(
-                    candidate.endpoint_id(),
-                    candidate_credential_id,
-                ) && runtime_health.endpoint_credential_model_is_available(
-                    candidate.endpoint_id(),
-                    candidate_credential_id,
-                    candidate.upstream_model(),
-                ) && runtime_quota.endpoint_credential_is_available(
-                    candidate.endpoint_id(),
-                    candidate_credential_id,
-                ) && runtime_quota.endpoint_credential_model_is_available(
-                    candidate.endpoint_id(),
-                    candidate_credential_id,
-                    candidate.upstream_model(),
-                )
+                candidate.allows_credential(candidate_credential_id)
+                    && runtime_health.endpoint_credential_is_available(
+                        candidate.endpoint_id(),
+                        candidate_credential_id,
+                    )
+                    && runtime_health.endpoint_credential_model_is_available(
+                        candidate.endpoint_id(),
+                        candidate_credential_id,
+                        candidate.upstream_model(),
+                    )
+                    && runtime_quota.endpoint_credential_is_available(
+                        candidate.endpoint_id(),
+                        candidate_credential_id,
+                    )
+                    && runtime_quota.endpoint_credential_model_is_available(
+                        candidate.endpoint_id(),
+                        candidate_credential_id,
+                        candidate.upstream_model(),
+                    )
             },
         ) else {
             return Err(credential_unavailable_error());
@@ -693,6 +851,35 @@ impl RouteCredentialScheduler {
         runtime_health: &RuntimeHealthRegistry,
         runtime_quota: &RuntimeQuotaRegistry,
         observed_at_ms: i64,
+        is_candidate_eligible: FCandidate,
+        is_binding_eligible: FBinding,
+    ) -> Result<SelectedRouteCredential, GatewayError>
+    where
+        FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
+        FBinding: FnMut(&SnapshotRouteCandidate, &CredentialId) -> bool,
+    {
+        self.select_eligible_and_lease_for_quota_recovery_at_from_snapshot(
+            None,
+            route_id,
+            runtime_health,
+            runtime_quota,
+            observed_at_ms,
+            is_candidate_eligible,
+            is_binding_eligible,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn select_eligible_and_lease_for_quota_recovery_at_from_snapshot<
+        FCandidate,
+        FBinding,
+    >(
+        &self,
+        expected_snapshot: Option<&Arc<RouteSnapshot>>,
+        route_id: &RouteId,
+        runtime_health: &RuntimeHealthRegistry,
+        runtime_quota: &RuntimeQuotaRegistry,
+        observed_at_ms: i64,
         mut is_candidate_eligible: FCandidate,
         mut is_binding_eligible: FBinding,
     ) -> Result<SelectedRouteCredential, GatewayError>
@@ -701,7 +888,8 @@ impl RouteCredentialScheduler {
         FBinding: FnMut(&SnapshotRouteCandidate, &CredentialId) -> bool,
     {
         let mut lease = None;
-        let candidate = self.candidates.select_eligible(route_id, |candidate| {
+        let candidates = self.candidates_for_snapshot(expected_snapshot)?;
+        let candidate = candidates.select_eligible(route_id, |candidate| {
             if !is_candidate_eligible(candidate)
                 || !runtime_health.endpoint_is_available(candidate.endpoint_id())
             {
@@ -711,7 +899,8 @@ impl RouteCredentialScheduler {
                 candidate.endpoint_id(),
                 observed_at_ms,
                 |credential_id| {
-                    is_binding_eligible(candidate, credential_id)
+                    candidate.allows_credential(credential_id)
+                        && is_binding_eligible(candidate, credential_id)
                         && runtime_health.endpoint_credential_is_available(
                             candidate.endpoint_id(),
                             credential_id,
@@ -763,8 +952,9 @@ impl RouteCredentialScheduler {
         runtime_quota: &RuntimeQuotaRegistry,
         exclusions: &AttemptExclusionSet,
     ) -> Result<RouteExplainSnapshot, RouteExplainError> {
+        let candidates = self.candidates.load_full();
         crate::route_explain::explain(
-            self.candidates.snapshot(),
+            candidates.snapshot(),
             &self.credential_pools,
             runtime_health,
             runtime_quota,
@@ -790,6 +980,23 @@ impl RouteCredentialScheduler {
         runtime_quota: &RuntimeQuotaRegistry,
         exclusions: &AttemptExclusionSet,
     ) -> Result<ProviderScopedRouteExplainSnapshot, ProviderScopedRouteExplainError> {
+        self.explain_provider_scoped_from_snapshot(
+            None,
+            input,
+            runtime_health,
+            runtime_quota,
+            exclusions,
+        )
+    }
+
+    pub(crate) fn explain_provider_scoped_from_snapshot(
+        &self,
+        expected_snapshot: Option<&Arc<RouteSnapshot>>,
+        input: &ProviderScopedRouteExplainInput,
+        runtime_health: &RuntimeHealthRegistry,
+        runtime_quota: &RuntimeQuotaRegistry,
+        exclusions: &AttemptExclusionSet,
+    ) -> Result<ProviderScopedRouteExplainSnapshot, ProviderScopedRouteExplainError> {
         let candidate_price_rates = input
             .admitted_candidate_ids()
             .iter()
@@ -799,8 +1006,11 @@ impl RouteCredentialScheduler {
             })
             .collect();
         let scheduler_input = input.with_candidate_price_rates(candidate_price_rates)?;
+        let candidates = self
+            .candidates_for_snapshot(expected_snapshot)
+            .map_err(|_| ProviderScopedRouteExplainError::InvalidObservation)?;
         crate::route_explain::explain_provider_scoped(
-            self.candidates.snapshot(),
+            candidates.snapshot(),
             &self.credential_pools,
             runtime_health,
             runtime_quota,
@@ -815,7 +1025,18 @@ impl RouteCredentialScheduler {
     /// contains no Credential or Secret material and does not advance a scheduler cursor.
     #[must_use]
     pub fn route(&self, route_id: &RouteId) -> Option<crate::SnapshotRoute> {
-        self.candidates.route(route_id).cloned()
+        self.candidates.load().route(route_id).cloned()
+    }
+
+    pub(crate) fn route_from_snapshot(
+        &self,
+        expected_snapshot: Option<&Arc<RouteSnapshot>>,
+        route_id: &RouteId,
+    ) -> Result<Option<crate::SnapshotRoute>, GatewayError> {
+        Ok(self
+            .candidates_for_snapshot(expected_snapshot)?
+            .route(route_id)
+            .cloned())
     }
 }
 
@@ -886,7 +1107,7 @@ fn binding_quota_is_recovery_due(
 #[cfg(test)]
 mod tests {
     use std::{
-        collections::BTreeMap,
+        collections::{BTreeMap, BTreeSet},
         error::Error,
         io,
         sync::{
@@ -921,6 +1142,95 @@ mod tests {
     type CandidateSpec<'a> = (&'a str, &'a str, i64, i64);
     type CredentialSpec<'a> = (&'a str, i64, i64, i64);
     type PoolSpec<'a> = (&'a str, Vec<CredentialSpec<'a>>);
+
+    #[test]
+    fn catalog_candidate_leases_only_a_credential_that_listed_the_model() -> TestResult {
+        let route_id = RouteId::try_new("route-a")?;
+        let public_model_id = PublicModelId::try_new("public-model-a")?;
+        let candidate = candidate("candidate-a", "endpoint-a", 0, 1)?
+            .with_eligible_credentials(BTreeSet::from([CredentialId::try_new("credential-b")?]));
+        let snapshot = Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
+            SnapshotVersion::try_new("version-a")?,
+            vec![SnapshotPublicModel::new(
+                public_model_id.clone(),
+                "public-model".to_owned(),
+                "Public Model".to_owned(),
+                CapabilitySet::empty(),
+                route_id.clone(),
+            )],
+            Vec::new(),
+            vec![SnapshotRoute::new(
+                route_id.clone(),
+                public_model_id,
+                SnapshotRoutePolicy::RoundRobin,
+                1,
+                1_000,
+                vec![candidate],
+            )],
+            Vec::new(),
+            Vec::new(),
+        ))?);
+        let pools = Arc::new(EndpointCredentialPools::try_new([endpoint_pool(
+            "endpoint-a",
+            vec![("credential-a", 0, 100, 1), ("credential-b", 0, 1, 1)],
+        )?])?);
+        let scheduler = RouteCredentialScheduler::new(snapshot, pools);
+
+        for _ in 0..4 {
+            let selected = scheduler.select_and_lease(&route_id)?;
+            assert_eq!(selected.lease().credential_id().as_str(), "credential-b");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn ingress_pinned_catalog_never_selects_from_a_later_publication() -> TestResult {
+        let route_id = RouteId::try_new("route-a")?;
+        let public_model_id = PublicModelId::try_new("public-model-a")?;
+        let snapshot = Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
+            SnapshotVersion::try_new("version-a")?,
+            vec![SnapshotPublicModel::new(
+                public_model_id.clone(),
+                "public-model".to_owned(),
+                "Public Model".to_owned(),
+                CapabilitySet::empty(),
+                route_id.clone(),
+            )],
+            Vec::new(),
+            vec![SnapshotRoute::new(
+                route_id.clone(),
+                public_model_id,
+                SnapshotRoutePolicy::RoundRobin,
+                1,
+                1_000,
+                vec![candidate("candidate-a", "endpoint-a", 0, 1)?],
+            )],
+            Vec::new(),
+            Vec::new(),
+        ))?);
+        let pools = Arc::new(EndpointCredentialPools::try_new([endpoint_pool(
+            "endpoint-a",
+            vec![("credential-a", 0, 1, 1)],
+        )?])?);
+        let scheduler = RouteCredentialScheduler::new(Arc::clone(&snapshot), pools);
+        scheduler.publish_catalog_snapshot(Arc::new((*snapshot).clone()))?;
+        let error = scheduler
+            .select_eligible_and_lease_with_runtime_health_quota_and_binding_at_from_snapshot(
+                Some(&snapshot),
+                &route_id,
+                &RuntimeHealthRegistry::new(),
+                &RuntimeQuotaRegistry::new(),
+                0,
+                |_| true,
+                |_, _| true,
+            )
+            .err()
+            .ok_or("later Catalog publication was mixed into a pinned request")?;
+
+        assert_eq!(error.code(), GatewayErrorCode::CredentialUnavailable);
+        assert_eq!(error.scope(), ErrorScope::Credential);
+        Ok(())
+    }
 
     #[test]
     fn two_layer_atomic_cursors_preserve_route_and_endpoint_weights_under_concurrency() -> TestResult

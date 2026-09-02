@@ -1112,6 +1112,8 @@ version = "0.1.0"
 dependencies = [
  "gateway-core",
  "gateway-provider",
+ "gateway-store",
+ "rusqlite",
  "tokio",
 ]
 
@@ -1224,6 +1226,7 @@ dependencies = [
  "provider-anthropic-compatible",
  "provider-openai-compatible",
  "serde_json",
+ "sha2",
  "tokio",
 ]
 

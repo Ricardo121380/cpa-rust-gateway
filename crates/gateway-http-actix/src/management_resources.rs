@@ -498,6 +498,23 @@ pub enum ManagementCatalogFreshness {
     Missing,
 }
 
+/// Safe failure category for one protected Catalog refresh status.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ManagementCatalogFailureClass {
+    /// Credential authentication failed.
+    Authentication,
+    /// Credential authorization failed.
+    Authorization,
+    /// Provider rate or quota admission failed.
+    RateLimit,
+    /// Egress or HTTP transport failed.
+    Transport,
+    /// Provider response or protocol failed.
+    Upstream,
+    /// CPAR's own Catalog pipeline failed.
+    Internal,
+}
+
 /// Value-free Catalog status for one exact Endpoint/Credential binding.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ManagementCatalogStatus {
@@ -505,6 +522,11 @@ pub struct ManagementCatalogStatus {
     credential_id: CredentialId,
     freshness: ManagementCatalogFreshness,
     observed_at_ms: i64,
+    snapshot_version: Option<u64>,
+    refresh_due: Option<bool>,
+    model_count: Option<usize>,
+    last_failure_at_ms: Option<i64>,
+    last_failure_class: Option<ManagementCatalogFailureClass>,
 }
 
 impl ManagementCatalogStatus {
@@ -521,7 +543,43 @@ impl ManagementCatalogStatus {
             credential_id,
             freshness,
             observed_at_ms,
+            snapshot_version: None,
+            refresh_due: None,
+            model_count: None,
+            last_failure_at_ms: None,
+            last_failure_class: None,
         }
+    }
+
+    /// Attaches P13-15C durable discovery details without exposing model or secret values.
+    #[must_use]
+    pub fn with_discovery_details(
+        mut self,
+        snapshot_version: u64,
+        refresh_due: bool,
+        model_count: usize,
+        last_failure: Option<(i64, ManagementCatalogFailureClass)>,
+    ) -> Self {
+        self.snapshot_version = Some(snapshot_version);
+        self.refresh_due = Some(refresh_due);
+        self.model_count = Some(model_count);
+        if let Some((at, class)) = last_failure {
+            self.last_failure_at_ms = Some(at);
+            self.last_failure_class = Some(class);
+        }
+        self
+    }
+
+    /// Attaches the latest safe failure to a missing target that has no successful snapshot yet.
+    #[must_use]
+    pub fn with_last_failure(
+        mut self,
+        failed_at_ms: i64,
+        class: ManagementCatalogFailureClass,
+    ) -> Self {
+        self.last_failure_at_ms = Some(failed_at_ms);
+        self.last_failure_class = Some(class);
+        self
     }
 
     /// Returns the Endpoint identity.
@@ -546,6 +604,36 @@ impl ManagementCatalogStatus {
     #[must_use]
     pub const fn observed_at_ms(&self) -> i64 {
         self.observed_at_ms
+    }
+
+    /// Returns the target-local successful snapshot version when discovery-backed.
+    #[must_use]
+    pub const fn snapshot_version(&self) -> Option<u64> {
+        self.snapshot_version
+    }
+
+    /// Returns whether background refresh is due when discovery-backed.
+    #[must_use]
+    pub const fn refresh_due(&self) -> Option<bool> {
+        self.refresh_due
+    }
+
+    /// Returns the retained eligible model count without exposing model IDs.
+    #[must_use]
+    pub const fn model_count(&self) -> Option<usize> {
+        self.model_count
+    }
+
+    /// Returns the latest safe failed refresh time after the last success.
+    #[must_use]
+    pub const fn last_failure_at_ms(&self) -> Option<i64> {
+        self.last_failure_at_ms
+    }
+
+    /// Returns the latest safe failed refresh class after the last success.
+    #[must_use]
+    pub const fn last_failure_class(&self) -> Option<ManagementCatalogFailureClass> {
+        self.last_failure_class
     }
 }
 
@@ -3119,6 +3207,16 @@ struct CatalogStatusResponse {
     credential_id: String,
     freshness: &'static str,
     observed_at_ms: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    snapshot_version: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    refresh_due: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    model_count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    last_failure_at_ms: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    last_failure_class: Option<&'static str>,
 }
 
 #[derive(Serialize)]
@@ -7211,6 +7309,13 @@ fn catalog_status_response(
                 credential_id: status.credential_id().as_str().to_owned(),
                 freshness: catalog_freshness_response(status.freshness()),
                 observed_at_ms: status.observed_at_ms(),
+                snapshot_version: status.snapshot_version(),
+                refresh_due: status.refresh_due(),
+                model_count: status.model_count(),
+                last_failure_at_ms: status.last_failure_at_ms(),
+                last_failure_class: status
+                    .last_failure_class()
+                    .map(catalog_failure_class_response),
             })
         })
         .collect()
@@ -7273,6 +7378,17 @@ fn catalog_freshness_response(value: ManagementCatalogFreshness) -> &'static str
         ManagementCatalogFreshness::Stale => "stale",
         ManagementCatalogFreshness::Expired => "expired",
         ManagementCatalogFreshness::Missing => "missing",
+    }
+}
+
+const fn catalog_failure_class_response(value: ManagementCatalogFailureClass) -> &'static str {
+    match value {
+        ManagementCatalogFailureClass::Authentication => "authentication",
+        ManagementCatalogFailureClass::Authorization => "authorization",
+        ManagementCatalogFailureClass::RateLimit => "rate_limit",
+        ManagementCatalogFailureClass::Transport => "transport",
+        ManagementCatalogFailureClass::Upstream => "upstream",
+        ManagementCatalogFailureClass::Internal => "internal",
     }
 }
 

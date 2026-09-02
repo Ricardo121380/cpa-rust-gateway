@@ -22,13 +22,14 @@ use gateway_control::management_mutation_service::{
 use gateway_core::{CredentialId, EndpointId, ProviderId, RequestId, RouteCandidateId};
 use gateway_http_actix::{
     management_resources::{
-        ManagementCatalogFreshness, ManagementCatalogStatus, ManagementQuotaRecoveryState,
-        ManagementRequestAttempt, ManagementRequestAttemptStage, ManagementRequestProtocol,
-        ManagementResourceHttpState, ManagementRouteExplain, ManagementRouteExplainCandidate,
-        ManagementRouteExplainPricePolicy, ManagementRouteExplainRequest,
-        ManagementRuntimeAvailability, ManagementRuntimeAvailabilityStatus, ManagementRuntimeClock,
-        ManagementRuntimeError, ManagementRuntimeFacade, ManagementRuntimeTarget,
-        RejectingManagementEndpointWorkflow, configure_management_resources,
+        ManagementCatalogFailureClass, ManagementCatalogFreshness, ManagementCatalogStatus,
+        ManagementQuotaRecoveryState, ManagementRequestAttempt, ManagementRequestAttemptStage,
+        ManagementRequestProtocol, ManagementResourceHttpState, ManagementRouteExplain,
+        ManagementRouteExplainCandidate, ManagementRouteExplainPricePolicy,
+        ManagementRouteExplainRequest, ManagementRuntimeAvailability,
+        ManagementRuntimeAvailabilityStatus, ManagementRuntimeClock, ManagementRuntimeError,
+        ManagementRuntimeFacade, ManagementRuntimeTarget, RejectingManagementEndpointWorkflow,
+        configure_management_resources,
     },
     management_security::{
         MANAGEMENT_KEY_HEADER, ManagementBrowserPolicy, ManagementHttpState, ManagementKey,
@@ -151,12 +152,23 @@ impl ManagementRuntimeFacade for FixtureRuntimeFacade {
         calls.catalog_reads += 1;
         calls.observed_at.push(observed_at_ms);
         drop(calls);
-        Ok(vec![ManagementCatalogStatus::new(
-            Self::endpoint()?,
-            Self::credential()?,
-            ManagementCatalogFreshness::Fresh,
-            observed_at_ms,
-        )])
+        Ok(vec![
+            ManagementCatalogStatus::new(
+                Self::endpoint()?,
+                Self::credential()?,
+                ManagementCatalogFreshness::Fresh,
+                observed_at_ms,
+            )
+            .with_discovery_details(
+                7,
+                false,
+                4,
+                Some((
+                    observed_at_ms - 1_000,
+                    ManagementCatalogFailureClass::Transport,
+                )),
+            ),
+        ])
     }
 
     fn runtime_availability(
@@ -311,7 +323,10 @@ async fn protected_runtime_views_are_value_free_and_recovery_only_requests_contr
         catalog_body,
         json!([{
             "endpoint_id": ENDPOINT, "credential_id": CREDENTIAL,
-            "freshness": "fresh", "observed_at_ms": 1_700_000_000_000_i64
+            "freshness": "fresh", "observed_at_ms": 1_700_000_000_000_i64,
+            "snapshot_version": 7, "refresh_due": false, "model_count": 4,
+            "last_failure_at_ms": 1_699_999_999_000_i64,
+            "last_failure_class": "transport"
         }])
     );
 
