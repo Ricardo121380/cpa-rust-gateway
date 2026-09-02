@@ -1,5 +1,10 @@
 # Backend completion and publication audit — 2026-08-19
 
+> 2026-09-02 amendment: this dated audit remains valid for its original snapshot, but its former
+> P13-12/Autoreg refresh row is superseded. P13-12 now owns account entitlement. P13-15 model
+> pass-through and P13-16 CPAR-owned runtime OAuth refresh are active backend work; see the current
+> development plan and `CR-P13-RUNTIME-OAUTH-REFRESH-001`.
+
 ## Verdict
 
 The implemented and approved CPAR backend is formally gated through **P13-11E4**, but the phrase
@@ -47,7 +52,7 @@ documentation/deployment work and four preserved local helper scripts.
 | Grok Web external egress/WAF | Deferred | Local seams do not prove production Statsig/clearance/FlareSolverr or proxy-path success. |
 | P13-11E5 real Provider/proxy/DNS canary | `DEFERRED_UNAUTHORIZED` | No real network activity is authorized by the completed local Gate. |
 | Build/Console native fixed/pool production path | Boundary remains | E0–E3 prove typed state/attempt seams, not every production proxy topology. |
-| P13-12 Autoreg handoff | Deferred external dependency | Registration, login, SSO/OAuth refresh, entitlement repair and replenishment are Autoreg, not CPAR. |
+| P13-12 entitlement / P13-15 catalog / P13-16 refresh | Superseded after this audit | P13-12 is account entitlement; P13-15 dynamic catalog remains in progress; imported supported OAuth routine refresh is CPAR-owned P13-16, while Autoreg keeps registration/initial auth/revoked-grant recovery/replenishment. |
 | P13-13 Media/Files/Batch | Deferred | Independent protocol/storage/security project. |
 | P13-14 additional Providers | Deferred | Each Provider needs a capability/credential/egress contract. |
 | Provider-native WebSocket and Realtime | Deferred | P13-10A is the CPAR downstream Responses WebSocket, not Provider-native transport or Realtime. |

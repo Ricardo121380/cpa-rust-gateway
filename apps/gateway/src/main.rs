@@ -5,6 +5,7 @@
 
 #![deny(unsafe_code)]
 
+mod credential_refresh;
 mod deployment;
 mod grok_admin;
 mod provider_account_pool_adapter;

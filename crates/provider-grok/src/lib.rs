@@ -5,6 +5,7 @@
 mod account_entitlement;
 mod account_pool;
 mod account_worker;
+mod build_catalog;
 mod build_responses;
 mod console_dpop;
 mod console_quota;
@@ -53,6 +54,12 @@ pub use account_worker::{
     GrokAccountQuotaWindow, GrokAccountWorkerCoordinator, GrokAccountWorkerError,
     GrokAccountWorkerExecutor, GrokAccountWorkerJob, GrokAccountWorkerKind,
     GrokAccountWorkerResult, GrokAccountWorkerRunSummary, deterministic_refresh_due_at,
+};
+pub use build_catalog::{
+    GROK_BUILD_MODELS_PATH, GROK_BUILD_MODELS_URL, GrokBuildCatalogAdapter,
+    GrokBuildCatalogRequest, GrokBuildCatalogTransport, GrokBuildCatalogTransportResponse,
+    GrokBuildModelsEndpoint, GrokBuildUpstreamCatalogTransport,
+    MAX_GROK_BUILD_CATALOG_RESPONSE_BYTES,
 };
 pub use build_responses::{
     GROK_BUILD_AGENT_ID_HEADER, GROK_BUILD_AUTHENTICATE_RESPONSE_HEADER,
@@ -118,6 +125,7 @@ pub use oauth::{
     GrokBuildDevicePoller, GrokBuildOAuthEndpoint, GrokBuildOAuthError, GrokBuildOAuthFlow,
     GrokBuildOAuthHttpResponse, GrokBuildOAuthRequest, GrokBuildOAuthRequestKind,
     GrokBuildOAuthTransport, GrokBuildOAuthTransportError,
+    MAX_GROK_BUILD_OAUTH_HTTP_RESPONSE_BYTES,
 };
 pub use official::{
     GROK_OFFICIAL_API_BASE_URL, GROK_OFFICIAL_MODELS_PATH, GROK_OFFICIAL_MODELS_URL,

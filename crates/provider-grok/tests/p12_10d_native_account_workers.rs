@@ -104,6 +104,50 @@ fn durable_claim_is_cross_kind_singleflight_and_reclaimed_only_after_expiry() ->
 }
 
 #[test]
+fn provider_scoped_refresh_never_claims_a_sibling_channel() -> TestResult {
+    let database = TemporaryDatabase::new()?;
+    let store = Arc::new(open_store(database.path())?);
+    store.import_batch(
+        "provider-scope",
+        &[
+            account_for_provider("build-scope", GrokAccountProvider::Build, NOW_MS, NOW_MS)?,
+            account_for_provider(
+                "console-scope",
+                GrokAccountProvider::Console,
+                NOW_MS,
+                NOW_MS,
+            )?,
+        ],
+        NOW_MS,
+    )?;
+    let executor = RecordingExecutor::default();
+    let coordinator = GrokAccountWorkerCoordinator::try_new(2, CLAIM_LEASE_MS)?;
+    let build = coordinator.run_once_for_provider(
+        &store,
+        GrokAccountWorkerKind::Refresh,
+        GrokAccountProvider::Build,
+        NOW_MS,
+        &executor,
+    )?;
+    assert_eq!(build.claimed, 1);
+    assert_eq!(executor.providers()?, [GrokAccountProvider::Build]);
+
+    let console = coordinator.run_once_for_provider(
+        &store,
+        GrokAccountWorkerKind::Refresh,
+        GrokAccountProvider::Console,
+        NOW_MS,
+        &executor,
+    )?;
+    assert_eq!(console.claimed, 1);
+    assert_eq!(
+        executor.providers()?,
+        [GrokAccountProvider::Build, GrokAccountProvider::Console]
+    );
+    Ok(())
+}
+
+#[test]
 fn refresh_success_commits_next_revision_and_redacted_replacement() -> TestResult {
     let database = TemporaryDatabase::new()?;
     let store = Arc::new(open_store(database.path())?);
@@ -311,8 +355,22 @@ fn account(
     refresh_due_at_ms: i64,
     quota_sync_due_at_ms: i64,
 ) -> Result<GrokAccountImport, Box<dyn Error>> {
+    account_for_provider(
+        identity,
+        GrokAccountProvider::Build,
+        refresh_due_at_ms,
+        quota_sync_due_at_ms,
+    )
+}
+
+fn account_for_provider(
+    identity: &str,
+    provider: GrokAccountProvider,
+    refresh_due_at_ms: i64,
+    quota_sync_due_at_ms: i64,
+) -> Result<GrokAccountImport, Box<dyn Error>> {
     Ok(GrokAccountImport {
-        provider: GrokAccountProvider::Build,
+        provider,
         identity: GrokAccountIdentity::try_from_bytes(identity)?,
         credential: GrokAccountCredential::try_from_bytes(format!("credential-{identity}"))?,
         auth_status: GrokAccountAuthStatus::Active,
@@ -324,6 +382,28 @@ fn account(
         quota_sync_due_at_ms: Some(quota_sync_due_at_ms),
         cooldown_until_ms: None,
     })
+}
+
+#[derive(Default)]
+struct RecordingExecutor(Mutex<Vec<GrokAccountProvider>>);
+
+impl RecordingExecutor {
+    fn providers(&self) -> Result<Vec<GrokAccountProvider>, Box<dyn Error>> {
+        Ok(self
+            .0
+            .lock()
+            .map_err(|_| "recording executor poisoned")?
+            .clone())
+    }
+}
+
+impl GrokAccountWorkerExecutor for RecordingExecutor {
+    fn execute(&self, job: &GrokAccountWorkerJob) -> GrokAccountWorkerResult {
+        if let Ok(mut providers) = self.0.lock() {
+            providers.push(job.provider());
+        }
+        GrokAccountWorkerResult::TransientFailure
+    }
 }
 
 fn bindings() -> Result<Vec<GrokAccountEndpointBinding>, Box<dyn Error>> {

@@ -161,6 +161,21 @@ impl GrokAccountCredential {
         Ok(Self(value.to_vec()))
     }
 
+    /// Encodes one validated Build credential for immediate encrypted account-store persistence.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe validation error if the complete credential cannot fit the bounded native
+    /// account envelope.
+    pub fn try_from_build_credential(
+        credential: &GrokBuildCredential,
+    ) -> Result<Self, GrokAccountPoolError> {
+        let persisted = credential
+            .persisted_bytes()
+            .map_err(|_| GrokAccountPoolError::InvalidCredential)?;
+        Self::try_from_bytes(persisted.as_slice())
+    }
+
     pub(crate) fn as_bytes(&self) -> &[u8] {
         &self.0
     }
@@ -1206,10 +1221,9 @@ fn build_credential_runtime_state(
     if provider != GrokAccountProvider::Build {
         return (None, true);
     }
-    if let Ok(credential) = GrokBuildCredential::import_runtime_json(credential, observed_at_ms) {
-        return (Some(credential.expires_at_ms()), true);
-    }
-    if let Ok(credential) = GrokBuildCredential::from_persisted_bytes(credential) {
+    if let Ok(credential) =
+        GrokBuildCredential::import_refreshable_runtime(credential, observed_at_ms)
+    {
         return (
             Some(credential.expires_at_ms()),
             !credential.is_expired_at(observed_at_ms),

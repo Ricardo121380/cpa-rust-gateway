@@ -968,3 +968,38 @@ egress source fail closed；同时只允许同协议 OpenAI Responses 保留 typ
 
 后端下一任务是 P13-15B。P13-15C/D 与 P13-15E 剩余 generic/multi-Credential/channel isolation、
 正式 Gate 仍未完成，不能把全量动态模型透传标为 DONE。
+
+---
+
+## 2026-09-02 · Codex · Build/Codex 真实目录源与 CPAR runtime OAuth 自动续期
+
+**Touched:** 后端 Provider catalog adapters、Credential pool/runtime composition、双语 README/部署
+指南、计划/CR/report 与本文件。**未改动** `web/prism/**`、Management OpenAPI 或 generated client。
+
+**Why:** operator 纠正了两个长期运行语义：进入 CPAR 的 refreshable OAuth 应由 CPAR 日常自动
+续期，而不是依赖 Autoreg；模型列表必须来自 exact upstream catalog，不能把当前三项 production
+Candidate 列表当作完整模型集合。
+
+后端本地实现已增加：
+
+- 启动前 catch-up + listener 启动后的每分钟 bounded refresh owner；当前 active production scope 是
+  Grok Build 与 official Codex OAuth。刷新后通过 encrypted revision CAS 持久化，并原子替换后续
+  lease 的 runtime material；在途 lease 继续固定旧 revision。API key、Console/Web SSO cookie 不伪
+  refresh；注册、首次 OAuth 与 revoked grant 的交互 reauth 仍属于 Autoreg/operator。
+- Grok Build exact-Credential catalog source，真实上游当前返回 `grok-4.6`、`grok-4.5`。
+- official Codex exact-Credential catalog source，真实上游 visible + API-supported 当前返回
+  `gpt-5.6-terra`、`gpt-5.6-luna`、`gpt-5.5`、`gpt-5.4-mini`；hidden/non-API 项不公开。
+
+**Action required for Claude Code:**
+
+- 不要把上述集合写进前端常量、套餐映射或 fixture 当作永久清单；它只是 2026-09-02 exact
+  Credential 的上游观测。模型选择仍消费 gateway 的授权后 `/v1/models`。
+- ChatGPT `free/go/plus/pro` 与 Grok Build `free/supergrok/heavy` 是 entitlement 展示域，不是前端
+  生成 model ID 的规则；同一套餐以后出现/移除模型时以上游目录为准。
+- 当前没有 Management OpenAPI shape 变化，不需要重新生成 client。P13-15C/D 接入 durable
+  freshness 与 route materialization 后若新增 protected provenance/status API，后端会另留 action。
+- UI 若显示 credential expiry/health，不要把 `reauth_required` 表述为“CPAR 没有自动刷新”；它表示
+  自动 refresh grant 已失败或撤销，需要外部交互授权。普通 `refresh_due` 由 CPAR 自己处理。
+
+**Other side:** FYI + action required。P13-15B 目前只完成 Build/Codex source；其他渠道、P13-15C/D
+和正式 Gate 未完成。P13-16A 本地通过，仍等待 Oracle deployment/post-expiry continuity 证据。

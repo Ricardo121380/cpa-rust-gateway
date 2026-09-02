@@ -1085,8 +1085,11 @@ dependencies = [
  "provider-grok",
  "provider-kiro",
  "provider-openai-compatible",
+ "reqwest",
  "serde",
  "serde_json",
+ "tokio",
+ "tracing",
  "zeroize",
 ]
 
@@ -1256,6 +1259,7 @@ dependencies = [
 name = "gateway-upstream"
 version = "0.1.0"
 dependencies = [
+ "arc-swap",
  "bytes",
  "futures-util",
  "gateway-auth",
@@ -2145,6 +2149,7 @@ name = "provider-openai-compatible"
 version = "0.1.0"
 dependencies = [
  "base64",
+ "gateway-catalog",
  "gateway-core",
  "gateway-provider",
  "gateway-upstream",
@@ -2153,6 +2158,7 @@ dependencies = [
  "serde",
  "serde_json",
  "time",
+ "tokio",
  "zeroize",
 ]
 

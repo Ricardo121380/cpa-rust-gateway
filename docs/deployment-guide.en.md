@@ -392,7 +392,31 @@ skopeo copy \
 `docker load` is appropriate only for a Docker archive, not the formal OCI layout. Complete both
 the structural/digest verification and the independent Cosign verification before use.
 
-## 12. Troubleshooting
+## 12. Automatic OAuth renewal and rollback
+
+When the active Config Version contains a refreshable OAuth channel supported by CPAR,
+`gateway serve` runs one bounded catch-up before compiling serving pools and starts a one-minute
+background check after both listeners bind. The current production composition covers native Grok
+Build OAuth and exact official Codex OAuth. Static API keys and Grok Console/Web SSO cookies are not
+misclassified as refreshable OAuth.
+
+Operators should inspect only redacted counters and states: `claimed`, `succeeded`, `backed_off`,
+`reauth_required` and `runtime_replaced`. Logs must not contain access/refresh tokens, account
+identity or Provider response bodies. `reauth_required` means the stored refresh grant can no longer
+recover automatically; stop leasing that Credential and let the operator/Autoreg perform
+interactive authorization. Routine renewal does not depend on the Autoreg service being online.
+
+Keep both the old binary symlink and a SQLite preimage verified with `quick_check` and foreign-key
+checks before an upgrade. Startup catch-up may rotate encrypted Credential material before listener
+bind. If startup then fails after a rotation, restore the database preimage together with the old
+binary; switching only the executable is not a complete rollback. A request that already owns a
+lease finishes on its pinned old secret revision, while later leases observe the atomic replacement.
+
+Before activating another refreshable Provider, implement its exact Provider/channel executor,
+egress, CAS/backoff and restart tests. Never select a Codex or Grok refresh protocol merely from an
+`oauth_json` label or a compatible-looking JSON document.
+
+## 13. Troubleshooting
 
 | Symptom | Check |
 |---|---|
@@ -405,8 +429,10 @@ the structural/digest verification and the independent Cosign verification befor
 | Old cursor/revision conflicts | Restart the bounded read from page one or re-read the current ETag/revision. |
 | Database cannot decrypt after restore | Restore the matching external master/backup key material; do not guess or replace keys. |
 
-## 13. Deliberate non-goals
+## 14. Deliberate non-goals
 
 This guide does not authorize real Provider probes, account registration, Autoreg, public
-management exposure, automatic credential repair, production Grok Web clearance, Kubernetes or
-unsupported architectures. Those require their own change request, evidence and rollback plan.
+management exposure, interactive credential reauthorization/account repair, production Grok Web
+clearance, Kubernetes or unsupported architectures. Routine automatic renewal of an imported,
+supported OAuth grant is normal CPAR runtime behavior; it does not authorize registration or repair
+of a revoked refresh grant.

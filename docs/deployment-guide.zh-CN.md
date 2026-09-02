@@ -375,7 +375,27 @@ skopeo copy \
 `docker load` 只适用于 Docker Archive，不适用于正式 OCI Layout。使用前必须同时完成结构/摘要
 验证与独立 Cosign 验证。
 
-## 12. 故障排查
+## 12. OAuth 自动续期与回滚
+
+当活动 Config Version 包含 CPAR 已支持的 refreshable OAuth 渠道时，`gateway serve` 会在编译服务
+账号池前执行一次有界 catch-up，并在两个 listener 成功绑定后启动每分钟一次的后台检查。当前生产
+组合覆盖 Grok Build native OAuth 与 exact official Codex OAuth；静态 API Key、Grok Console/Web 的
+SSO Cookie 不会被当作 OAuth 刷新。
+
+运维时只检查脱敏计数与状态：`claimed`、`succeeded`、`backed_off`、`reauth_required`、
+`runtime_replaced`。日志不应出现 access/refresh token、账号身份或 Provider response body。
+`reauth_required` 表示已保存的 refresh grant 不能继续自动恢复，此时停止租用该 Credential，并由
+operator/Autoreg 完成交互重新授权；普通日常续期不依赖 Autoreg 服务在线。
+
+升级前必须同时保留旧 binary symlink 和经过 `quick_check`/foreign-key 检查的 SQLite preimage。
+启动 catch-up 可能在 listener 绑定前旋转加密 Credential；如果新进程启动失败且已经发生 rotation，
+回滚时必须同时恢复数据库 preimage 与旧 binary，不能只切回旧可执行文件。当前请求持有的 lease 会
+完成在旧 secret revision 上，只有后续 lease 才观察到原子替换后的 material。
+
+新增 refreshable Provider 时，必须先实现 exact Provider/channel executor、egress、CAS/backoff 和
+重启测试；禁止仅凭 `oauth_json` 标签或 JSON 外形复用 Codex/Grok refresh 协议。
+
+## 13. 故障排查
 
 | 现象 | 检查项 |
 |---|---|
@@ -388,7 +408,8 @@ skopeo copy \
 | Cursor/Revision 冲突 | 从第一页重新执行有界读取，或重新读取当前 ETag/Revision。 |
 | Restore 后数据库无法解密 | 恢复匹配的外部 Master/Backup Key；不要猜测或直接替换 Key。 |
 
-## 13. 明确不在本文授权范围内的事项
+## 14. 明确不在本文授权范围内的事项
 
-本文不授权真实 Provider Probe、账号注册、Autoreg、公开管理面、自动 Credential 修复、生产 Grok
-Web Clearance、Kubernetes 或未支持架构。这些工作必须有独立 Change Request、证据和回滚计划。
+本文不授权真实 Provider Probe、账号注册、Autoreg、公开管理面、交互 Credential reauth/账号修复、
+生产 Grok Web Clearance、Kubernetes 或未支持架构。已导入且已支持的 OAuth 日常自动续期属于正常
+CPAR runtime，不等于授权注册新账号或修复被撤销的 refresh grant。

@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **APPROVED / IN_PROGRESS — P13-15A production live pass; P13-15B-E pending** |
+| Status | **APPROVED / IN_PROGRESS — P13-15A production live pass; P13-15B Build/Codex sources local pass; remaining B-E pending** |
 | CPAR task | `P13-15` |
 | Authority | User correction on 2026-09-01: reverse-proxied channels expose upstream model IDs instead of CPAR-invented aliases; applies to every channel |
 | Delivery class | Provider/channel/endpoint/credential-scoped discovery, immutable authorized projection and exact-model routing |
@@ -90,6 +90,12 @@ CPAR can follow upstream additions/removals automatically for every channel and 
 - preserve the existing exact `(EndpointId, CredentialId)` singleflight boundary;
 - bound status, body size, entry count, ID length, redirects, timeouts and content type;
 - store no raw credential, URL query, response body or account identity in catalog records.
+
+The Build and official Codex source implementations now pass locally. Real upstream observations
+include Build `grok-4.6`/`grok-4.5` and visible API-supported Codex
+`gpt-5.6-terra`/`gpt-5.6-luna`/`gpt-5.5`/`gpt-5.4-mini`. Those values are observations, not a
+new CPAR whitelist. Remaining channel sources and P13-15C/D persistence/materialization are still
+required before production follows catalog additions or removals automatically.
 
 ### P13-15C · Durable last-success, refresh and removal
 

@@ -6,7 +6,7 @@
 | 适用范围 | `P13-11E`：CPAR 内已导入凭证的 Provider/Channel egress、健康投影和受控恢复设计 |
 | 当前切片 | `E0-E3 DONE_WITH_BOUNDARY`：aggregate Full `43/43`、独立 phase review 和 `phase-p13-provider-egress-complete` formal Delivery Gate 已全部完成 |
 | 下一切片 | 无自动后续切片；E4 保持 `DEFERRED_OPTIONAL`，E5 保持 `DEFERRED_UNAUTHORIZED`，均需新 Task Card/CR 和相应授权 |
-| 不包含 | Autoreg 注册/登录/SSO/refresh/replenishment、真实 Provider/代理/DNS 探针、服务器/staging/production、默认公开 API 变化 |
+| 不包含 | Autoreg 注册/首次授权/revoked-grant 交互 reauth/replenishment、真实 Provider/代理/DNS 探针、服务器/staging/production、默认公开 API 变化；CPAR 已导入 OAuth 的日常 refresh 后续由 P13-16 独立组合 |
 
 ## 1. 用户澄清与目标
 
@@ -16,8 +16,10 @@ Config-Version-owned proxy pool 和管理面。下一步不是把所有渠道强
 
 本 CR 采用以下原则：
 
-1. CPAR 只管理已经导入 CPAR 的凭证在自身运行时中的 Health/Quota/Circuit、lease、cooldown、失败
-   反馈和调度；Autoreg 仍独立负责注册、浏览器登录、SSO/OAuth、refresh、套餐/权益和 replenishment。
+1. CPAR 管理已经导入 CPAR 的凭证在自身运行时中的 Health/Quota/Circuit、lease、cooldown、失败
+   反馈和调度；按后续 `CR-P13-RUNTIME-OAUTH-REFRESH-001`，CPAR 也负责已保存且 exact-channel
+   支持的 OAuth 日常 refresh。Autoreg 仍独立负责注册、浏览器首次登录/授权、revoked grant 的交互
+   reauth、套餐/权益修复和 replenishment。
 2. 凭证格式不是出口策略。CPA JSON、Sub2API JSON、官方 OAuth、API key 和自定义 `base_url + api_key`
    只决定凭证解析和 endpoint binding；不会隐式选择代理、clearance 或其他 Provider 的 fallback。
 3. Provider、Channel、Endpoint、Credential、Egress Node、Session/Clearance 是可分别归属和审计的
@@ -30,7 +32,7 @@ Config-Version-owned proxy pool 和管理面。下一步不是把所有渠道强
 | 渠道/适配器 | 出口边界 | 账号/会话边界 | 允许的恢复方向 | 明确禁止 |
 |---|---|---|---|---|
 | Generic compatible（OpenAI Chat/Responses、Anthropic Messages、Codex/ChatGPT OAuth、CPA/Sub2API、Krill/custom relay） | 沿用 P13-11D 的 exact Upstream/Endpoint-Credential egress profile；direct/fixed/pool 只属于该 Upstream | Credential Health/Quota/Circuit 与 Egress Node Health 分离 | 只允许同一 exact binding 内的有界 pre-submit transport recovery；默认不自动换 Provider | 不使用 Grok browser/clearance/Statsig/DPoP 状态，不把“Krill”当全局渠道，不跨 endpoint/credential fallback |
-| Grok Build native | Build 专属 direct/fixed/pool egress scope；出口状态不得与 Console/Web 共用 | Build native account、Credential revision、quota 和 egress 各自独立 | 仅 CPAR 运行时对 exact egress/transport 进行分类和有限恢复；账号 refresh/SSO 由 Autoreg 外部交付新凭证 | 不从 Autoreg 读取数据库，不用 Console/Web session，不跨 Grok channel 或 generic relay fallback |
+| Grok Build native | Build 专属 direct/fixed/pool egress scope；出口状态不得与 Console/Web 共用 | Build native account、Credential revision、quota 和 egress 各自独立 | CPAR 对 exact egress/transport 有限恢复，并由 P13-16 对已保存 Build OAuth 做日常 refresh；grant 撤销后才由 Autoreg/operator 交付新授权 | 不从 Autoreg 读取数据库，不用 Console/Web session，不跨 Grok channel 或 generic relay fallback |
 | Grok Console native | Console 专属 egress/session scope；DPoP、bootstrap 等辅助请求必须归入 Console adapter 的请求账本 | Console account、session/DPoP、credential revision、quota 与 egress 分离 | 只在 Console capability 明确允许时恢复 exact session/egress；一次诊断不得暗含第二次 inference | 不复用 Web clearance、Build OAuth、Statsig cache 或其他 Provider 的 egress；不把隐藏辅助请求伪装成“零请求” |
 | Grok Web native | sticky browser egress 与 clearance/session 绑定；egress、clearance、session、account 分开记账 | Web account/SSO、session、clearance、credential revision 和 quota 独立 | 对明确的 egress challenge 才允许一次 bounded provider-specific recovery；需单独 capability 和证据 | 不把未知 403 直接标成账号封禁，不跨 Web/Console/Build fallback，不在 E0 启动 FlareSolverr/代理池 |
 | Grok Official API key（P8 deferred） | generic direct/fixed/pool profile；不得套用浏览器出口 | API key credential 与 quota/egress 分离 | 待 P8 官方 API-key E2E 定义 | 不使用 Web clearance、Console DPoP 或 native Grok Web recovery |

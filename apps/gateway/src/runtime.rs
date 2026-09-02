@@ -27,6 +27,7 @@ use std::{
 
 use futures_util::future::BoxFuture;
 
+use crate::credential_refresh::RuntimeCredentialRefreshWorker;
 use crate::provider_egress_status_adapter::{
     ProviderEgressStatusAdapter, SystemProviderEgressStatusClock,
 };
@@ -168,6 +169,8 @@ use provider_kiro::{
     profile_arn::{KiroEnterpriseProfileLookup, KiroProfileArnError, resolve_profile_arn},
 };
 use provider_openai_compatible::{
+    CODEX_CATALOG_CLIENT_VERSION as P12_CODEX_OAUTH_VERSION,
+    CODEX_ORIGINATOR as P12_CODEX_OAUTH_ORIGINATOR, CODEX_USER_AGENT as P12_CODEX_OAUTH_USER_AGENT,
     OpenAiChatCompletionsApiKey, OpenAiChatCompletionsEndpoint,
     OpenAiChatCompletionsRequestBuilder, OpenAiCompatibleRuntimeCredential, OpenAiResponsesApiKey,
     OpenAiResponsesEndpoint, OpenAiResponsesOutboundRequest, OpenAiResponsesRequestBuilder,
@@ -447,9 +450,6 @@ const P12_OPENAI_MAX_OUTPUT_TOKENS_EXTENSION: &str = "openai.responses.max_outpu
 /// This stays in the P12 runtime instead of changing the generic OpenAI-compatible provider:
 /// other Providers retain their existing three-header contract.
 const P12_KRILL_COMPATIBILITY_USER_AGENT: &str = "codex_cli_rs/0.139.0";
-const P12_CODEX_OAUTH_USER_AGENT: &str = "codex_cli_rs/0.144.1 (Linux; arm64)";
-const P12_CODEX_OAUTH_ORIGINATOR: &str = "codex_cli_rs";
-const P12_CODEX_OAUTH_VERSION: &str = "0.144.1";
 /// Lifetime of one operator-driven recovery ticket; begin and complete happen in one call.
 const P12_OPERATOR_RECOVERY_TTL_MS: i64 = 30_000;
 /// Short read-model lifetime: long enough for bounded cursor pagination, short enough that
@@ -502,6 +502,8 @@ pub(crate) struct DataPlaneComposition {
     /// Durable event consumer that the deployment envelope spawns after its listeners bind and
     /// joins with a bounded wait after they stop.
     pub(crate) event_writer: AsyncSqliteEventWriter,
+    /// Periodic refresh-token owner for credentials already stored in CPAR.
+    pub(crate) credential_refresh_worker: Option<RuntimeCredentialRefreshWorker>,
 }
 
 type ProviderAccountPoolComposition = (
@@ -510,12 +512,14 @@ type ProviderAccountPoolComposition = (
     Option<Arc<RouteCredentialScheduler>>,
     Box<dyn ProviderEgressStatusFacade>,
     Box<dyn ManagementChannelPinFacade>,
+    Option<RuntimeCredentialRefreshWorker>,
 );
 type P12ExecutorComposition = (
     P12RoutedResponsesExecutor,
     Box<dyn ProviderAccountPoolFacade>,
     Arc<RouteCredentialScheduler>,
     Box<dyn ProviderEgressStatusFacade>,
+    Option<RuntimeCredentialRefreshWorker>,
 );
 
 /// Returns the fixed compiler evidence for every Endpoint stored in the control database.
@@ -637,6 +641,7 @@ pub(crate) fn build_data_plane_composition(
         registry,
         client_key_service,
         Arc::new(GrokBuildCacheIdentityDeriver::new([0xC4; 32])),
+        UpstreamProxy::Direct,
         None,
         None,
         8191,
@@ -655,6 +660,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
     registry: Arc<RouteSnapshotRegistry>,
     client_key_service: ClientKeyService,
     grok_build_cache_identity_deriver: Arc<GrokBuildCacheIdentityDeriver>,
+    codex_oauth_proxy: UpstreamProxy,
     web_proxy: Option<UpstreamProxy>,
     flaresolverr_proxy: Option<UpstreamProxy>,
     flaresolverr_port: u16,
@@ -691,6 +697,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
         route_explain_scheduler,
         provider_egress_status,
         channel_pin,
+        credential_refresh_worker,
     ): ProviderAccountPoolComposition = match repository
         .load_active_configuration()
         .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::ControlPlane))?
@@ -721,22 +728,28 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
                 })?;
                 routing_price_snapshot = Some(Arc::new(compiled));
             }
-            let (executor, provider_account_pools, route_explain_scheduler, provider_egress_status) =
-                P12RoutedResponsesExecutor::try_new(
-                    database,
-                    &configuration,
-                    secret_store,
-                    Arc::clone(&registry),
-                    Arc::clone(&attempt_stages),
-                    Arc::clone(&event_sink),
-                    Arc::clone(&runtime_health),
-                    Arc::clone(&runtime_quota),
-                    grok_build_cache_identity_deriver,
-                    web_proxy,
-                    flaresolverr_proxy,
-                    flaresolverr_port,
-                    routing_price_snapshot.as_ref(),
-                )?;
+            let (
+                executor,
+                provider_account_pools,
+                route_explain_scheduler,
+                provider_egress_status,
+                credential_refresh_worker,
+            ) = P12RoutedResponsesExecutor::try_new(
+                database,
+                &configuration,
+                secret_store,
+                Arc::clone(&registry),
+                Arc::clone(&attempt_stages),
+                Arc::clone(&event_sink),
+                Arc::clone(&runtime_health),
+                Arc::clone(&runtime_quota),
+                grok_build_cache_identity_deriver,
+                codex_oauth_proxy,
+                web_proxy,
+                flaresolverr_proxy,
+                flaresolverr_port,
+                routing_price_snapshot.as_ref(),
+            )?;
             let executor = Arc::new(executor);
             let channel_pin: Box<dyn ManagementChannelPinFacade> =
                 Box::new(P12ChannelPinFacade::new(Arc::clone(&executor)));
@@ -746,6 +759,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
                 Some(route_explain_scheduler),
                 provider_egress_status,
                 channel_pin,
+                credential_refresh_worker,
             )
         }
         None => (
@@ -754,6 +768,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
             None,
             Box::new(RejectingProviderEgressStatusFacade::new()),
             Box::new(RejectingManagementChannelPinFacade::new()),
+            None,
         ),
     };
     let authenticator = Arc::new(gateway_router::SnapshotClientKeyAuthenticator::new(
@@ -796,6 +811,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
                 event_writer.metrics_handle(),
             ))),
         event_writer,
+        credential_refresh_worker,
     })
 }
 
@@ -1146,6 +1162,7 @@ impl P12RoutedResponsesExecutor {
         runtime_health: Arc<RuntimeHealthRegistry>,
         runtime_quota: Arc<RuntimeQuotaRegistry>,
         grok_build_cache_identity_deriver: Arc<GrokBuildCacheIdentityDeriver>,
+        codex_oauth_proxy: UpstreamProxy,
         web_proxy: Option<UpstreamProxy>,
         flaresolverr_proxy: Option<UpstreamProxy>,
         flaresolverr_port: u16,
@@ -1262,6 +1279,22 @@ impl P12RoutedResponsesExecutor {
                 })?
         };
         let pools = Arc::new(pools);
+        let build_endpoints = configuration
+            .endpoints
+            .iter()
+            .filter(|endpoint| endpoint.enabled && endpoint.adapter_id == "grok.build.responses")
+            .map(|endpoint| endpoint.id.clone())
+            .collect::<Vec<_>>();
+        let credential_refresh_worker = RuntimeCredentialRefreshWorker::try_new(
+            database,
+            secret_store.clone(),
+            Arc::clone(&pools),
+            Arc::clone(&runtime_health),
+            build_endpoints,
+            codex_oauth_proxy,
+            configuration.version.id.clone(),
+        )
+        .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::NativeAccountPool))?;
         // E2's Provider-specific state is a rejecting, native-only seam.  A malformed/missing
         // E2 descriptor must not stop the generic compatible data plane from serving; native
         // Build/Console attempts will fail closed before adapter/network invocation instead.
@@ -1359,6 +1392,7 @@ impl P12RoutedResponsesExecutor {
             provider_account_pools,
             route_explain_scheduler,
             provider_egress_status,
+            credential_refresh_worker,
         ))
     }
 
@@ -4184,7 +4218,7 @@ impl EndpointAttemptDriver {
             return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
         };
         let build_credential =
-            GrokBuildCredential::import_runtime_json(credential.secret_bytes(), system_now_ms()?)
+            GrokBuildCredential::import_active_runtime(credential.secret_bytes(), system_now_ms()?)
                 .map_err(|_| AttemptFailure::NonRetryable(credential_unavailable_error()))?;
         let transport = GrokBuildUpstreamTransport::new(
             runtime.policy.clone(),
@@ -8732,7 +8766,7 @@ mod tests {
             Arc::new(P12AttemptEventSink::new(Arc::clone(&attempt_stages)));
         let runtime_health = Arc::new(RuntimeHealthRegistry::new());
         let runtime_quota = Arc::new(RuntimeQuotaRegistry::new());
-        let (executor, _account_pools, scheduler, _egress_status) =
+        let (executor, _account_pools, scheduler, _egress_status, _refresh_worker) =
             P12RoutedResponsesExecutor::try_new(
                 &database,
                 &configuration,
@@ -8743,6 +8777,7 @@ mod tests {
                 runtime_health,
                 runtime_quota,
                 Arc::new(GrokBuildCacheIdentityDeriver::new([0xC4; 32])),
+                UpstreamProxy::Direct,
                 None,
                 None,
                 8191,

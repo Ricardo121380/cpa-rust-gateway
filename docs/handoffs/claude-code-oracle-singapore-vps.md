@@ -31,6 +31,10 @@ host as part of frontend work.
   public data plane.
 - Autoreg is an external account-source lifecycle project. It may produce a credential package for
   explicit import, but it is not a CPAR Provider, route, upstream, database, or scheduler.
+- CPAR itself performs routine renewal for an already-imported, active and supported refreshable
+  OAuth grant. Autoreg remains responsible for registration, initial authorization, replenishment
+  and interactive reauthorization after a refresh grant is revoked. Do not diagnose normal token
+  rotation by reading or restarting Autoreg.
 - Sharing one Oracle VM does not merge their ownership or authorization boundaries.
 - The committed Autoreg overlay uses example paths. The live Oracle unit currently reports
   `WorkingDirectory=/opt/autoreg/project`; never assume a template path when inspecting the live
@@ -39,6 +43,7 @@ host as part of frontend work.
 Relevant durable evidence:
 
 - `docs/change-requests/CR-P12-AUTOREG-SEPARATION-001.md`
+- `docs/change-requests/CR-P13-RUNTIME-OAUTH-REFRESH-001.md`
 - `docs/reports/evidence/autoreg-oracle-single-active-cutover-20260810.md`
 - `docs/reports/evidence/autoreg-oracle-cpar-production-canary-20260810.md`
 - `docs/reports/evidence/autoreg-oracle-console-production-canary-20260810.md`

@@ -15,6 +15,7 @@ use std::{
     },
 };
 
+use arc_swap::ArcSwap;
 use gateway_core::{CredentialId, EndpointId};
 use zeroize::Zeroizing;
 
@@ -90,6 +91,30 @@ pub struct EndpointCredentialInput {
     pub secret: CredentialSecret,
 }
 
+/// Complete replacement material for one stable runtime Credential slot.
+///
+/// Scheduling metadata remains fixed, while a refresh worker may atomically replace the secret,
+/// expiry, and durable revision. A live lease pins the prior material until that request ends.
+pub struct CredentialMaterialReplacement {
+    /// Strictly newer non-negative durable Credential revision.
+    pub credential_revision: i64,
+    /// Optional absolute Unix-millisecond expiry for the replacement.
+    pub expires_at_ms: Option<i64>,
+    /// Complete replacement secret; partial token updates are never accepted here.
+    pub secret: CredentialSecret,
+}
+
+impl fmt::Debug for CredentialMaterialReplacement {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("CredentialMaterialReplacement")
+            .field("credential_revision", &self.credential_revision)
+            .field("expires_at_ms", &self.expires_at_ms)
+            .field("secret", &"<redacted>")
+            .finish()
+    }
+}
+
 impl fmt::Debug for EndpointCredentialInput {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
@@ -106,7 +131,7 @@ impl fmt::Debug for EndpointCredentialInput {
     }
 }
 
-/// A bounded, immutable Credential schedule for one Endpoint.
+/// A bounded Credential schedule for one Endpoint with atomically replaceable secret material.
 ///
 /// The schedule and entry metadata are constructed once. Each selection uses one independent
 /// atomic cursor per priority tier and a bounded compare-and-exchange acquisition attempt for
@@ -225,15 +250,17 @@ impl EndpointCredentialPool {
             credentials.push(Arc::new(CredentialSlot {
                 credential_id: entry.credential_id,
                 credential_kind: entry.credential_kind,
-                credential_revision: u64::try_from(entry.credential_revision)
-                    .map_err(|_| CredentialPoolBuildError::InvalidCredentialRevision)?,
                 priority,
                 weight: usize::try_from(entry.weight)
                     .map_err(|_| CredentialPoolBuildError::InvalidCredentialWeight)?,
                 maximum_concurrency: usize::try_from(entry.concurrency)
                     .map_err(|_| CredentialPoolBuildError::InvalidCredentialConcurrency)?,
-                expires_at_ms: entry.expires_at_ms,
-                secret: entry.secret,
+                material: ArcSwap::from_pointee(CredentialMaterial {
+                    credential_revision: u64::try_from(entry.credential_revision)
+                        .map_err(|_| CredentialPoolBuildError::InvalidCredentialRevision)?,
+                    expires_at_ms: entry.expires_at_ms,
+                    secret: entry.secret,
+                }),
                 active_leases: AtomicUsize::new(0),
             }));
             credentials_by_priority
@@ -294,7 +321,7 @@ impl EndpointCredentialPool {
     where
         F: FnMut(&CredentialId) -> bool,
     {
-        self.try_lease_slots(|credential| is_eligible(&credential.credential_id))
+        self.try_lease_slots(|credential, _material| is_eligible(&credential.credential_id))
     }
 
     /// Attempts to acquire one lease while applying an absolute expiry at the supplied time.
@@ -311,8 +338,8 @@ impl EndpointCredentialPool {
     where
         F: FnMut(&CredentialId) -> bool,
     {
-        self.try_lease_slots(|credential| {
-            credential
+        self.try_lease_slots(|credential, material| {
+            material
                 .expires_at_ms
                 .is_none_or(|expires_at_ms| expires_at_ms > now_ms)
                 && is_eligible(&credential.credential_id)
@@ -339,7 +366,8 @@ impl EndpointCredentialPool {
             .credentials
             .iter()
             .find(|credential| &credential.credential_id == credential_id)?;
-        if credential
+        let material = credential.material.load_full();
+        if material
             .expires_at_ms
             .is_some_and(|expires_at_ms| expires_at_ms <= now_ms)
             || !is_eligible(&credential.credential_id)
@@ -350,6 +378,7 @@ impl EndpointCredentialPool {
         Some(CredentialLease {
             endpoint_id: self.endpoint_id.clone(),
             credential: Arc::clone(credential),
+            material,
         })
     }
 
@@ -369,13 +398,15 @@ impl EndpointCredentialPool {
     where
         F: FnMut(&CredentialId) -> bool,
     {
-        let credential = self.credentials.iter().find(|credential| {
-            &credential.credential_id == credential_id
-                && credential.credential_revision == credential_revision
-        })?;
-        if credential
-            .expires_at_ms
-            .is_some_and(|expires_at_ms| expires_at_ms <= now_ms)
+        let credential = self
+            .credentials
+            .iter()
+            .find(|credential| &credential.credential_id == credential_id)?;
+        let material = credential.material.load_full();
+        if material.credential_revision != credential_revision
+            || material
+                .expires_at_ms
+                .is_some_and(|expires_at_ms| expires_at_ms <= now_ms)
             || !is_eligible(&credential.credential_id)
             || !credential.try_acquire()
         {
@@ -384,12 +415,13 @@ impl EndpointCredentialPool {
         Some(CredentialLease {
             endpoint_id: self.endpoint_id.clone(),
             credential: Arc::clone(credential),
+            material,
         })
     }
 
     fn try_lease_slots<F>(&self, mut is_eligible: F) -> Option<CredentialLease>
     where
-        F: FnMut(&CredentialSlot) -> bool,
+        F: FnMut(&CredentialSlot, &CredentialMaterial) -> bool,
     {
         for (priority_tier, cursor) in self.priority_tiers.iter().zip(&self.cursors) {
             let slot_indexes = &priority_tier.slot_indexes;
@@ -397,13 +429,15 @@ impl EndpointCredentialPool {
             for offset in 0..slot_indexes.len() {
                 let slot_index = start.wrapping_add(offset) % slot_indexes.len();
                 let credential = self.credentials.get(slot_indexes[slot_index])?;
-                if !is_eligible(credential) {
+                let material = credential.material.load_full();
+                if !is_eligible(credential, &material) {
                     continue;
                 }
                 if credential.try_acquire() {
                     return Some(CredentialLease {
                         endpoint_id: self.endpoint_id.clone(),
                         credential: Arc::clone(credential),
+                        material,
                     });
                 }
             }
@@ -431,6 +465,58 @@ impl EndpointCredentialPool {
             .iter()
             .map(|credential| credential.snapshot())
             .collect()
+    }
+
+    /// Atomically replaces one exact Credential's request material after a durable CAS commit.
+    ///
+    /// A revision mismatch returns `Ok(false)` and leaves the current value untouched. Existing
+    /// leases continue to own the prior secret while all later leases observe the replacement.
+    ///
+    /// # Errors
+    ///
+    /// Returns a bounded pool validation error for an invalid replacement revision or expiry.
+    pub fn replace_credential_if_revision(
+        &self,
+        credential_id: &CredentialId,
+        expected_revision: u64,
+        replacement: CredentialMaterialReplacement,
+    ) -> Result<bool, CredentialPoolBuildError> {
+        if replacement.credential_revision < 0 {
+            return Err(CredentialPoolBuildError::InvalidCredentialRevision);
+        }
+        if replacement
+            .expires_at_ms
+            .is_some_and(|expires_at_ms| expires_at_ms < 0)
+        {
+            return Err(CredentialPoolBuildError::InvalidCredentialExpiry);
+        }
+        let next_revision = u64::try_from(replacement.credential_revision)
+            .map_err(|_| CredentialPoolBuildError::InvalidCredentialRevision)?;
+        if next_revision <= expected_revision {
+            return Err(CredentialPoolBuildError::InvalidCredentialRevision);
+        }
+        let credential = self
+            .credentials
+            .iter()
+            .find(|credential| &credential.credential_id == credential_id)
+            .ok_or(CredentialPoolBuildError::InconsistentCredentialPool)?;
+        let replacement = Arc::new(CredentialMaterial {
+            credential_revision: next_revision,
+            expires_at_ms: replacement.expires_at_ms,
+            secret: replacement.secret,
+        });
+        loop {
+            let current = credential.material.load_full();
+            if current.credential_revision != expected_revision {
+                return Ok(false);
+            }
+            let observed = credential
+                .material
+                .compare_and_swap(&current, Arc::clone(&replacement));
+            if Arc::ptr_eq(&current, &observed) {
+                return Ok(true);
+            }
+        }
     }
 
     /// Peeks one currently eligible Credential using an explicit diagnostic schedule start.
@@ -598,6 +684,23 @@ impl EndpointCredentialPools {
             )
     }
 
+    /// Atomically replaces one exact Endpoint Credential after its durable revision changed.
+    ///
+    /// # Errors
+    ///
+    /// Returns a bounded pool validation error for an unknown target or invalid replacement.
+    pub fn replace_credential_if_revision(
+        &self,
+        endpoint_id: &EndpointId,
+        credential_id: &CredentialId,
+        expected_revision: u64,
+        replacement: CredentialMaterialReplacement,
+    ) -> Result<bool, CredentialPoolBuildError> {
+        self.pool(endpoint_id)
+            .ok_or(CredentialPoolBuildError::InconsistentCredentialPool)?
+            .replace_credential_if_revision(credential_id, expected_revision, replacement)
+    }
+
     /// Returns the number of Endpoint pools in this immutable set.
     #[must_use]
     pub fn endpoint_count(&self) -> usize {
@@ -613,6 +716,7 @@ impl EndpointCredentialPools {
 pub struct CredentialLease {
     endpoint_id: EndpointId,
     credential: Arc<CredentialSlot>,
+    material: Arc<CredentialMaterial>,
 }
 
 impl CredentialLease {
@@ -634,16 +738,16 @@ impl CredentialLease {
         &self.credential.credential_kind
     }
 
-    /// Returns the persistent Credential revision observed when this pool was compiled.
+    /// Returns the persistent Credential revision pinned by this request lease.
     #[must_use]
     pub fn credential_revision(&self) -> u64 {
-        self.credential.credential_revision
+        self.material.credential_revision
     }
 
     /// Returns Credential bytes only while this live lease remains owned by the caller.
     #[must_use]
     pub fn secret_bytes(&self) -> &[u8] {
-        self.credential.secret.as_bytes()
+        self.material.secret.as_bytes()
     }
 
     /// Explicitly ends this lease.
@@ -668,7 +772,7 @@ impl fmt::Debug for CredentialLease {
             .field("endpoint_id", &self.endpoint_id)
             .field("credential_id", &self.credential.credential_id)
             .field("credential_kind", &self.credential.credential_kind)
-            .field("credential_revision", &self.credential.credential_revision)
+            .field("credential_revision", &self.material.credential_revision)
             .field("secret", &"<redacted>")
             .finish()
     }
@@ -677,25 +781,30 @@ impl fmt::Debug for CredentialLease {
 struct CredentialSlot {
     credential_id: CredentialId,
     credential_kind: String,
-    credential_revision: u64,
     priority: i64,
     weight: usize,
     maximum_concurrency: usize,
+    material: ArcSwap<CredentialMaterial>,
+    active_leases: AtomicUsize,
+}
+
+struct CredentialMaterial {
+    credential_revision: u64,
     expires_at_ms: Option<i64>,
     secret: CredentialSecret,
-    active_leases: AtomicUsize,
 }
 
 impl CredentialSlot {
     fn snapshot(&self) -> CredentialPoolEntrySnapshot {
+        let material = self.material.load();
         CredentialPoolEntrySnapshot {
             credential_id: self.credential_id.clone(),
             credential_kind: self.credential_kind.clone(),
-            credential_revision: self.credential_revision,
+            credential_revision: material.credential_revision,
             priority: self.priority,
             weight: self.weight,
             maximum_concurrency: self.maximum_concurrency,
-            expires_at_ms: self.expires_at_ms,
+            expires_at_ms: material.expires_at_ms,
             active_leases: self.active_leases.load(Ordering::Acquire),
         }
     }
@@ -885,8 +994,9 @@ mod tests {
     use gateway_core::{CredentialId, EndpointId};
 
     use super::{
-        CredentialPoolBuildError, CredentialSecret, EndpointCredentialInput,
-        EndpointCredentialPool, MAX_CREDENTIAL_SCHEDULE_SLOTS_PER_PRIORITY_TIER,
+        CredentialMaterialReplacement, CredentialPoolBuildError, CredentialSecret,
+        EndpointCredentialInput, EndpointCredentialPool,
+        MAX_CREDENTIAL_SCHEDULE_SLOTS_PER_PRIORITY_TIER,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -1179,6 +1289,64 @@ mod tests {
             pool.active_lease_count(&CredentialId::try_new("credential-a")?),
             Some(0)
         );
+        Ok(())
+    }
+
+    #[test]
+    fn rotation_pins_in_flight_material_and_changes_only_later_leases() -> TestResult {
+        let endpoint = EndpointId::try_new("endpoint-a")?;
+        let credential = CredentialId::try_new("credential-a")?;
+        let pool = EndpointCredentialPool::try_new(
+            endpoint,
+            [EndpointCredentialInput {
+                credential_id: credential.clone(),
+                credential_kind: "oauth_json".to_owned(),
+                credential_revision: 1,
+                priority: 0,
+                weight: 1,
+                concurrency: 2,
+                expires_at_ms: Some(100),
+                secret: CredentialSecret::try_new(b"old-secret".to_vec())?,
+            }],
+        )?;
+        let old_lease = pool
+            .try_lease_exact_revision_eligible_at(&credential, 1, 50, |_| true)
+            .ok_or_else(|| io::Error::other("old revision lease missing"))?;
+
+        assert!(pool.replace_credential_if_revision(
+            &credential,
+            1,
+            CredentialMaterialReplacement {
+                credential_revision: 2,
+                expires_at_ms: Some(500),
+                secret: CredentialSecret::try_new(b"new-secret".to_vec())?,
+            },
+        )?);
+        assert_eq!(old_lease.credential_revision(), 1);
+        assert_eq!(old_lease.secret_bytes(), b"old-secret");
+        assert!(
+            pool.try_lease_exact_revision_eligible_at(&credential, 1, 200, |_| true)
+                .is_none(),
+            "a new lease must not observe the retired revision"
+        );
+        let new_lease = pool
+            .try_lease_exact_revision_eligible_at(&credential, 2, 200, |_| true)
+            .ok_or_else(|| io::Error::other("new revision lease missing"))?;
+        assert_eq!(new_lease.secret_bytes(), b"new-secret");
+        assert_eq!(
+            pool.diagnostic_entries()[0].credential_revision(),
+            2,
+            "diagnostics must project the currently published material"
+        );
+        assert!(!pool.replace_credential_if_revision(
+            &credential,
+            1,
+            CredentialMaterialReplacement {
+                credential_revision: 3,
+                expires_at_ms: Some(600),
+                secret: CredentialSecret::try_new(b"stale-secret".to_vec())?,
+            },
+        )?);
         Ok(())
     }
 

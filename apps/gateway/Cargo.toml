@@ -28,8 +28,11 @@ provider-anthropic-compatible = { path = "../../crates/provider-anthropic-compat
 provider-grok = { path = "../../crates/provider-grok" }
 provider-kiro = { path = "../../crates/provider-kiro" }
 provider-openai-compatible = { path = "../../crates/provider-openai-compatible" }
+reqwest = { workspace = true, features = ["blocking"] }
 serde.workspace = true
 serde_json.workspace = true
+tracing.workspace = true
+tokio.workspace = true
 zeroize.workspace = true
 
 [lints]

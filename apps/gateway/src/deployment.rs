@@ -61,7 +61,7 @@ use gateway_upstream::UpstreamProxy;
 use provider_grok::GrokBuildCacheIdentityDeriver;
 use zeroize::{Zeroize, Zeroizing};
 
-use crate::runtime;
+use crate::{credential_refresh, runtime};
 
 /// The concurrent connection ceiling for P12's loopback data listener.
 ///
@@ -193,6 +193,7 @@ async fn run_servers(
         backup,
         observability,
         event_writer,
+        credential_refresh_worker,
     } = application;
     let data = web::Data::new(data);
     let data_server = HttpServer::new(move || App::new().app_data(data.clone()).configure(configure))
@@ -230,8 +231,14 @@ async fn run_servers(
     // blocking pool, never on a listener worker. It is spawned only after both listeners bound.
     let durability = event_writer.metrics_handle();
     let mut event_writer = actix_web::rt::spawn(event_writer.run());
-    try_join(data_server, management_server)
-        .await
+    let credential_refresh_worker =
+        credential_refresh_worker.map(|worker| actix_web::rt::spawn(worker.run()));
+    let server_result = try_join(data_server, management_server).await;
+    if let Some(worker) = credential_refresh_worker {
+        worker.abort();
+        let _ = worker.await;
+    }
+    server_result
         .map(|_| ())
         .map_err(|_| DeploymentError::RuntimeUnavailable)?;
     // Both listeners have stopped and dropped every bounded-queue sender, so the writer drains
@@ -264,6 +271,7 @@ struct ApplicationState {
     backup: ManagementBackupHttpState,
     observability: ManagementObservabilityHttpState,
     event_writer: AsyncSqliteEventWriter,
+    credential_refresh_worker: Option<credential_refresh::RuntimeCredentialRefreshWorker>,
 }
 
 /// Read-only production source for P13-04's durable usage/cost projection.
@@ -375,6 +383,25 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
     .map_err(|_| DeploymentError::ControlPlaneUnavailable)?;
     let registry = Arc::clone(lifecycle_service.registry());
     let runtime_secret_store = SecretStore::new(runtime_key_ring);
+    let startup_refresh = credential_refresh::refresh_due_credentials_before_compile(
+        &database,
+        &runtime_secret_store,
+        command.codex_oauth_proxy.clone(),
+    )
+    .map_err(|_| DeploymentError::RuntimeUnavailable)?;
+    tracing::info!(
+        target: "credential_refresh",
+        provider = "grok_build",
+        claimed = startup_refresh.claimed,
+        succeeded = startup_refresh.succeeded,
+        backed_off = startup_refresh.backed_off,
+        reauth_required = startup_refresh.reauth_required,
+        panicked = startup_refresh.panicked,
+        codex_due = startup_refresh.codex_due,
+        codex_succeeded = startup_refresh.codex_succeeded,
+        codex_backed_off = startup_refresh.codex_backed_off,
+        "startup credential refresh pass completed"
+    );
     let runtime::DataPlaneComposition {
         data,
         management_runtime,
@@ -383,12 +410,14 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         channel_pin,
         observability,
         event_writer,
+        credential_refresh_worker,
     } = runtime::build_data_plane_composition_with_web_proxy(
         &database,
         &runtime_secret_store,
         registry,
         runtime_client_key_service,
         grok_build_cache_identity_deriver,
+        command.codex_oauth_proxy.clone(),
         command.grok_web_proxy.clone(),
         command.grok_web_flaresolverr_proxy.clone(),
         command.grok_web_flaresolverr_port,
@@ -443,6 +472,7 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         backup,
         observability,
         event_writer,
+        credential_refresh_worker,
     })
 }
 
@@ -970,6 +1000,7 @@ mod tests {
             backup,
             observability,
             event_writer,
+            credential_refresh_worker: _,
         } = application;
         drop((data, security, resources, lifecycle, backup, observability));
 

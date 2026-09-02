@@ -271,12 +271,20 @@ and not the OpenAI Realtime API.
   pools and Provider egress status projection.
 - **Frontend integration:** Prism evolves independently against the generated management contract;
   check the current branch and `docs/cross-boundary-log.md` for pending handoffs.
+- **In progress:** P13-15 all-channel upstream model-catalog pass-through. Exact-Credential Build
+  and Codex discovery sources are locally implemented; durable freshness, automatic route
+  materialization, remaining channels and the formal gate are still pending.
 - **Explicitly deferred or externally blocked:** real Kiro/Official API-key E2E, Grok Web external
   egress/WAF evidence, P13-11E5 real Provider/proxy/DNS canary, automatic account registration or
   repair, media/files/batch and additional Providers.
-- **Not part of CPAR:** Autoreg account registration, login, SSO/OAuth refresh, entitlement repair
-  and replenishment. CPAR owns imported credential validation, binding, lease, Health/Quota,
-  failure feedback and routing.
+- **CPAR credential lifecycle:** imported, bound OAuth grants with an explicit Provider refresh
+  protocol are renewed by CPAR at startup and during service operation, persisted through encrypted
+  CAS and atomically published to later runtime leases. API keys and SSO cookies are not treated as
+  refreshable OAuth. P13-16A covers the active Grok Build and Codex production channels; Claude and
+  Kiro need their own executor before production activation.
+- **Not part of CPAR:** Autoreg account registration, initial login/authorization, interactive
+  reauthorization after a refresh grant is revoked, entitlement repair and replenishment. Autoreg
+  is not involved in routine refresh of OAuth material already stored by CPAR.
 
 `DONE_WITH_BOUNDARY` means the documented acceptance boundary passed; it does not claim that every
 Provider account, external network path or production deployment was tested.

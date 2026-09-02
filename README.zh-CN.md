@@ -257,10 +257,15 @@ Realtime API。
   Responses、Responses WebSocket、compatible egress pool 和 Provider egress 状态投影；
 - **前端集成：** Prism 独立消费 generated management contract，当前 handoff 以实际分支和
   `docs/cross-boundary-log.md` 为准；
+- **正在实施：** P13-15 全渠道上游模型目录透传；Build/Codex exact-Credential discovery source
+  已完成本地实现，但 durable freshness、自动 route materialization、其他渠道和正式 Gate 尚未完成；
 - **显式延期或外部阻塞：** Kiro/Official API-key 真实 E2E、Grok Web 外部 egress/WAF、
   P13-11E5 真实 Provider/代理/DNS canary、自动账号注册/修复、Media/Files/Batch 和更多 Provider；
-- **不属于 CPAR：** Autoreg 的账号注册、登录、SSO/OAuth refresh、权益修复和 replenishment。
-  CPAR 只负责外部 Credential 的校验/绑定、lease、Health/Quota、failure feedback 和路由。
+- **CPAR 凭据生命周期：** 已保存、已绑定且 Provider 明确支持 refresh 的 OAuth 由 CPAR 在启动时和
+  运行中自动续期、CAS 加密保存并原子替换运行时 material。API Key 与 SSO Cookie 不伪装成 OAuth
+  refresh；当前 P13-16A 覆盖生产活动的 Grok Build 与 Codex，Claude/Kiro 激活前仍需各自 executor；
+- **不属于 CPAR：** Autoreg 的账号注册、首次登录/授权、refresh grant 撤销后的交互 reauth、权益
+  修复和 replenishment。Autoreg 不参与 CPAR 已保存 OAuth 的日常 token refresh。
 
 `DONE_WITH_BOUNDARY` 只代表文档中冻结的验收边界通过，不代表每一个 Provider 账号、外部网络路径
 或生产部署都经过测试。

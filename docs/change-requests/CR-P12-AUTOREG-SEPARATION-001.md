@@ -2,19 +2,24 @@
 
 | 项目 | 值 |
 |---|---|
-| 状态 | **Approved（用户于 2026-08-16 明确批准；运行时账号池健康语义由 CR-P12-AUTOREG-SEPARATION-002 澄清）** |
+| 状态 | **Approved（用户于 2026-08-16 明确批准；运行时账号池健康语义由 CR-P12-AUTOREG-SEPARATION-002 澄清；已导入 OAuth 的日常续期语义由 CR-P13-RUNTIME-OAUTH-REFRESH-001 修正）** |
 | 适用范围 | P12 当前计划解释、P12-10 Grok 账号相关验收、后续 P13 任务归属 |
 | 核心决定 | Autoreg 与 CPAR 是两个完全独立的项目；Autoreg 负责账号源生命周期，CPAR 负责已导入凭证在自身运行时账号池中的健康、调度和反代；详见 CR-P12-AUTOREG-SEPARATION-002 |
 | 不改变 | 历史 receipt、历史失败分类、CPAR Provider adapter、现有生产路由、现有 Autoreg 部署和回滚材料 |
 
 ## 1. 用户批准的边界
 
+> 2026-09-02 修正：本 CR 中把所有 `refresh` 一概归给 Autoreg 的文字过宽。
+> [`CR-P13-RUNTIME-OAUTH-REFRESH-001`](CR-P13-RUNTIME-OAUTH-REFRESH-001.md) 优先适用：CPAR
+> 已保存且已绑定的 refreshable OAuth 由 CPAR 做日常自动续期；Autoreg 仍负责首次授权、注册、补池
+> 和 refresh grant 被撤销后必须交互完成的重新授权。除此以外的项目分离边界不变。
+
 P12 不负责解决账号源生命周期问题。下列行为属于 Autoreg 项目，不属于 CPAR/P12 的注册、登录或账号
 修复职责：
 
 - 注册新账号；
 - 浏览器登录、SSO、Device Code 或 OAuth 授权；
-- refresh token / SSO refresh；
+- 首次取得 refresh token、SSO cookie 更新，以及 refresh grant 已失效后的交互重新授权；
 - 账号额度、套餐、封禁和上游账号权益恢复；
 - 账号池 replenishment、注册调度和自动 reauth；
 - Autoreg 数据库、任务队列、浏览器运行时和密码/SSO 存储；
@@ -40,9 +45,11 @@ disabled 等运行时健康状态；这些状态不要求 CPAR 连接 Autoreg，
 是 CPAR 的运行时账号池职责。CPAR 可以参考 grok2api 的行为语义，但不调用 grok2api 或 Autoreg 的
 数据库、HTTP、浏览器或 worker。
 
-如果外部凭证无效、过期、未授权或上游拒绝，CPAR 必须记录运行时 pool 状态、停止继续租用并 fail
-closed；账号重新登录、refresh、权益修复和新凭证生成必须回到 Autoreg。CPAR 负责“如何隔离和控制
-失效凭证”，但不负责“如何修复账号本身”。
+如果已保存 OAuth 接近过期，CPAR 必须先按 exact Provider/channel 的受控 refresh 协议续期，以加密
+CAS 保存新 revision，并原子替换运行时 material；API key 和 SSO cookie 不被伪装成可刷新 OAuth。
+如果 refresh grant 已被撤销、账号未授权或上游权益失效，CPAR 必须记录运行时 pool 状态、停止继续
+租用并 fail closed；账号重新登录、权益修复和新凭证生成才回到 Autoreg。CPAR 负责日常 token 续期
+以及“如何隔离和控制失效凭证”，但不负责注册或修复账号本身。
 
 ## 3. 对历史 P12-10 记录的解释
 
@@ -59,11 +66,12 @@ closed；账号重新登录、refresh、权益修复和新凭证生成必须回�
 
 ## 4. 后续计划调整
 
-- 不在 P12 新增 Autoreg 注册、refresh、SSO 转换或自动 replenishment 任务；
+- 不在 P12 新增 Autoreg 注册、SSO 转换或自动 replenishment 任务；CPAR 已导入 OAuth 的自动续期由
+  独立 P13-16 执行，不依赖 Autoreg scheduler；
 - 保留并继续维护 CPAR 自己的 credential pool Health/Quota/Circuit、lease、rotation、cooldown、
   recovery 和管理状态；这不是 Autoreg 账号生命周期工作；
-- P13-12 的“自动 refresh/reauth/replenishment”改为 Autoreg-owned external dependency，除非未来
-  单独批准一个 CPAR↔Autoreg credential handoff contract；
+- P13-12 已改作 Provider/channel entitlement；已导入 OAuth 的自动 refresh 由 P13-16 负责，交互
+  reauth/replenishment 仍属于 Autoreg 或 operator credential handoff；
 - P13-11 仍只处理 CPAR 的 Provider-specific egress/proxy policy，不负责注册或修复账号；
 - 任何真实 CPAR 渠道验收仍必须使用 CPAR Base URL + client key，Autoreg 的本地 probe 不能替代 CPAR
   公共数据面证据；

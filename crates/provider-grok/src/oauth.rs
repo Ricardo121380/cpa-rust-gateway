@@ -28,6 +28,8 @@ pub const GROK_BUILD_DEVICE_AUTHORIZATION_URL: &str = "https://auth.x.ai/oauth2/
 pub const GROK_BUILD_TOKEN_URL: &str = "https://auth.x.ai/oauth2/token";
 
 const MAX_OAUTH_JSON_BYTES: usize = 64 * 1024;
+/// Maximum raw body accepted from the fixed Grok Build OAuth endpoints.
+pub const MAX_GROK_BUILD_OAUTH_HTTP_RESPONSE_BYTES: usize = MAX_OAUTH_JSON_BYTES;
 const MAX_OAUTH_FIELD_BYTES: usize = 16 * 1024;
 const MAX_TOKEN_LIFETIME_SECONDS: u64 = 366 * 24 * 60 * 60;
 const ABSOLUTE_EXPIRY_FIELD_ALIASES: &[&str] = &[
@@ -74,6 +76,60 @@ pub struct GrokBuildCredential {
 }
 
 impl GrokBuildCredential {
+    /// Imports a currently usable runtime credential from JSON or CPAR's compact persisted form.
+    ///
+    /// # Errors
+    ///
+    /// Returns a value-free OAuth error for malformed or expired material.
+    pub fn import_active_runtime(
+        input: &[u8],
+        observed_at_ms: i64,
+    ) -> Result<Self, GrokBuildOAuthError> {
+        if let Ok(credential) = Self::import_runtime_json(input, observed_at_ms) {
+            return Ok(credential);
+        }
+        let credential = Self::from_persisted_bytes(input)?;
+        if credential.is_expired_at(observed_at_ms) {
+            return Err(GrokBuildOAuthError::ExpiredCredential);
+        }
+        Ok(credential)
+    }
+
+    /// Imports a refreshable runtime credential even when only its access token has expired.
+    ///
+    /// The expired-JSON compatibility window is bounded to the same maximum token lifetime as a
+    /// fresh import. CPAR's authenticated compact state already passed that import boundary when
+    /// it was persisted and retains its refresh token across a longer process outage. This permits
+    /// a crashed CPAR process to catch up after restart without admitting arbitrary historical JSON
+    /// documents to request serving.
+    ///
+    /// # Errors
+    ///
+    /// Returns a value-free OAuth error for malformed, ambiguous, or excessively stale material.
+    pub fn import_refreshable_runtime(
+        input: &[u8],
+        observed_at_ms: i64,
+    ) -> Result<Self, GrokBuildOAuthError> {
+        if let Ok(credential) = Self::from_persisted_bytes(input) {
+            return Ok(credential);
+        }
+        if let Ok(credential) = Self::import_runtime_json(input, observed_at_ms) {
+            return Ok(credential);
+        }
+        let maximum_lifetime_ms = i64::try_from(MAX_TOKEN_LIFETIME_SECONDS)
+            .ok()
+            .and_then(|seconds| seconds.checked_mul(1_000))
+            .ok_or(GrokBuildOAuthError::InvalidTimestamp)?;
+        let earliest_supported_ms = observed_at_ms
+            .checked_sub(maximum_lifetime_ms)
+            .ok_or(GrokBuildOAuthError::InvalidTimestamp)?;
+        let credential = Self::import_runtime_json(input, earliest_supported_ms)?;
+        if credential.expires_at_ms() > observed_at_ms {
+            return Err(GrokBuildOAuthError::InvalidTimestamp);
+        }
+        Ok(credential)
+    }
+
     /// Imports one durable runtime credential from the supported absolute-expiry source shapes.
     ///
     /// This deliberately excludes the relative `expires_in` token-response shape: replaying that
@@ -307,6 +363,9 @@ impl GrokBuildCredential {
         if cursor != input.len() {
             return Err(GrokBuildOAuthError::InvalidPersistedCredential);
         }
+        if expires_at_ms <= 0 {
+            return Err(GrokBuildOAuthError::InvalidPersistedCredential);
+        }
         validate_secret_field(access)?;
         validate_secret_field(refresh)?;
         validate_nonsecret_field(client_id)?;
@@ -443,7 +502,9 @@ impl GrokBuildOAuthRequest {
         dead_code,
         reason = "P6-03 owns the concrete HTTP transport that consumes this secret form body"
     )]
-    pub(crate) fn into_form_body(self) -> Zeroizing<Vec<u8>> {
+    /// Consumes the request and returns its redacted-lifetime form body for one fixed transport.
+    #[must_use]
+    pub fn into_form_body(self) -> Zeroizing<Vec<u8>> {
         let mut serializer = form_urlencoded::Serializer::new(String::new());
         match self.payload {
             GrokBuildOAuthRequestPayload::DeviceAuthorization { client_id, scope } => {
@@ -883,6 +944,8 @@ pub enum GrokBuildOAuthError {
     UnsupportedTokenType,
     /// A timestamp or duration cannot be represented safely as Unix milliseconds.
     InvalidTimestamp,
+    /// A structurally valid runtime credential is no longer usable for inference.
+    ExpiredCredential,
     /// An authenticated persisted credential did not match the bounded binary format.
     InvalidPersistedCredential,
     /// The transport response had an invalid HTTP status or exceeded its body bound.
@@ -914,6 +977,7 @@ impl fmt::Display for GrokBuildOAuthError {
             Self::AmbiguousExpiration => "Grok Build OAuth expiry is ambiguous",
             Self::UnsupportedTokenType => "Grok Build OAuth token type is unsupported",
             Self::InvalidTimestamp => "Grok Build OAuth timestamp is invalid",
+            Self::ExpiredCredential => "Grok Build OAuth credential is expired",
             Self::InvalidPersistedCredential => "Grok Build persisted credential is invalid",
             Self::InvalidHttpResponse => "Grok Build OAuth HTTP response is invalid",
             Self::InvalidDeviceAuthorizationResponse => {

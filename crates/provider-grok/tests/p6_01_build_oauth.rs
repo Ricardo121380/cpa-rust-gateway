@@ -179,6 +179,39 @@ fn runtime_import_accepts_only_durable_absolute_expiry_sources() -> Result<(), B
 }
 
 #[test]
+fn refresh_import_accepts_recently_expired_access_without_serving_it() -> Result<(), Box<dyn Error>>
+{
+    const OBSERVED_AT_MS: i64 = 1_735_776_000_000;
+    let account = format!(
+        r#"{{
+            "access_token":"expired_access","refresh_token":"still_refreshable",
+            "expires_at":"2025-01-01T00:00:10.250Z",
+            "client_id":"{GROK_BUILD_PUBLIC_CLIENT_ID}",
+            "issuer":"{GROK_BUILD_OAUTH_ISSUER}","scope":"{GROK_BUILD_OAUTH_SCOPE}",
+            "token_type":"Bearer"
+        }}"#
+    );
+
+    assert!(
+        GrokBuildCredential::import_active_runtime(account.as_bytes(), OBSERVED_AT_MS).is_err()
+    );
+    let refreshable =
+        GrokBuildCredential::import_refreshable_runtime(account.as_bytes(), OBSERVED_AT_MS)?;
+    assert!(refreshable.is_expired_at(OBSERVED_AT_MS));
+    assert_eq!(refreshable.refresh_token(), "still_refreshable");
+
+    let excessively_stale = account.replace("2025-01-01", "2023-01-01");
+    assert!(
+        GrokBuildCredential::import_refreshable_runtime(
+            excessively_stale.as_bytes(),
+            OBSERVED_AT_MS
+        )
+        .is_err()
+    );
+    Ok(())
+}
+
+#[test]
 fn known_absolute_expiry_sources_reject_wrong_identity_and_unsafe_expiry()
 -> Result<(), Box<dyn Error>> {
     const OBSERVED_AT_MS: i64 = 1_735_689_600_000;

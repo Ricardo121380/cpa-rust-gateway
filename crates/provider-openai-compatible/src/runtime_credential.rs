@@ -509,6 +509,15 @@ impl OpenAiCompatibleRuntimeCredential {
         }
     }
 
+    /// Returns the absolute OAuth expiry, or `None` for a non-refreshable API key.
+    #[must_use]
+    pub const fn expires_at_ms(&self) -> Option<i64> {
+        match self {
+            Self::ApiKey(_) => None,
+            Self::CodexOAuth(value) => Some(value.expires_at_ms),
+        }
+    }
+
     /// Builds a refresh handoff only for Codex OAuth material.
     ///
     /// # Errors
@@ -1110,7 +1119,9 @@ fn percent_encode(input: &[u8]) -> String {
     output
 }
 
-fn reject_duplicate_json_names(input: &[u8]) -> Result<(), OpenAiRuntimeCredentialError> {
+pub(crate) fn reject_duplicate_json_names(
+    input: &[u8],
+) -> Result<(), OpenAiRuntimeCredentialError> {
     serde_json::from_slice::<DuplicateFreeJson>(input)
         .map(|_| ())
         .map_err(|_| OpenAiRuntimeCredentialError::Invalid)

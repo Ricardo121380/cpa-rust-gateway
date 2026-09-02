@@ -338,8 +338,39 @@ impl GrokAccountWorkerCoordinator {
         observed_at_ms: i64,
         executor: &E,
     ) -> Result<GrokAccountWorkerRunSummary, GrokAccountWorkerError> {
-        let jobs = store.claim_due_worker_jobs(
+        self.run_once_inner(store, kind, None, observed_at_ms, executor)
+    }
+
+    /// Claims and executes only jobs in one native Provider namespace.
+    ///
+    /// This keeps a Build-only refresh implementation from claiming Web or Console work merely
+    /// because those accounts share the same durable scheduler table.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same safe claim, store, and outcome classifications as [`Self::run_once`].
+    pub fn run_once_for_provider<E: GrokAccountWorkerExecutor>(
+        &self,
+        store: &Arc<GrokAccountPoolStore>,
+        kind: GrokAccountWorkerKind,
+        provider: GrokAccountProvider,
+        observed_at_ms: i64,
+        executor: &E,
+    ) -> Result<GrokAccountWorkerRunSummary, GrokAccountWorkerError> {
+        self.run_once_inner(store, kind, Some(provider), observed_at_ms, executor)
+    }
+
+    fn run_once_inner<E: GrokAccountWorkerExecutor>(
+        &self,
+        store: &Arc<GrokAccountPoolStore>,
+        kind: GrokAccountWorkerKind,
+        provider: Option<GrokAccountProvider>,
+        observed_at_ms: i64,
+        executor: &E,
+    ) -> Result<GrokAccountWorkerRunSummary, GrokAccountWorkerError> {
+        let jobs = store.claim_due_worker_jobs_inner(
             kind,
+            provider,
             observed_at_ms,
             self.maximum_concurrency,
             self.claim_lease_ms,
@@ -441,6 +472,17 @@ impl GrokAccountPoolStore {
         limit: usize,
         claim_lease_ms: i64,
     ) -> Result<Vec<GrokAccountWorkerJob>, GrokAccountWorkerError> {
+        self.claim_due_worker_jobs_inner(kind, None, observed_at_ms, limit, claim_lease_ms)
+    }
+
+    fn claim_due_worker_jobs_inner(
+        &self,
+        kind: GrokAccountWorkerKind,
+        provider: Option<GrokAccountProvider>,
+        observed_at_ms: i64,
+        limit: usize,
+        claim_lease_ms: i64,
+    ) -> Result<Vec<GrokAccountWorkerJob>, GrokAccountWorkerError> {
         if observed_at_ms < 0
             || limit == 0
             || limit > MAX_WORKER_BATCH
@@ -458,7 +500,7 @@ impl GrokAccountPoolStore {
         let transaction = connection
             .transaction()
             .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?;
-        let rows = due_rows(&transaction, kind, observed_at_ms, limit)?;
+        let rows = due_rows(&transaction, kind, provider, observed_at_ms, limit)?;
         let mut jobs = Vec::with_capacity(rows.len());
         for row in rows {
             let claim_id = random_claim_id()?;
@@ -705,10 +747,13 @@ struct DueAccountRow {
 fn due_rows(
     transaction: &Transaction<'_>,
     kind: GrokAccountWorkerKind,
+    provider: Option<GrokAccountProvider>,
     observed_at_ms: i64,
     limit: usize,
 ) -> Result<Vec<DueAccountRow>, GrokAccountWorkerError> {
     let due_column = kind.due_column();
+    let provider_clause = provider.map_or("", |_| "AND provider = ?2");
+    let limit_parameter = if provider.is_some() { "?3" } else { "?2" };
     let sql = format!(
         "SELECT id, provider, identity_digest, credential_ciphertext, \
                 credential_key_version, revision \
@@ -716,31 +761,45 @@ fn due_rows(
          WHERE enabled = 1 AND auth_status = 'active' \
                AND {due_column} IS NOT NULL AND {due_column} <= ?1 \
                AND (worker_claim_id IS NULL OR worker_claim_expires_at_ms <= ?1) \
-         ORDER BY {due_column}, id LIMIT ?2"
+               {provider_clause} \
+         ORDER BY {due_column}, id LIMIT {limit_parameter}"
     );
     let mut statement = transaction
         .prepare(&sql)
         .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?;
-    statement
-        .query_map(
-            params![
-                observed_at_ms,
-                i64::try_from(limit).map_err(|_| GrokAccountWorkerError::InvalidRequest)?
-            ],
-            |row| {
-                Ok(DueAccountRow {
-                    account_id: row.get(0)?,
-                    provider: row.get(1)?,
-                    identity_digest: row.get(2)?,
-                    ciphertext: row.get(3)?,
-                    key_version: row.get(4)?,
-                    revision: row.get(5)?,
-                })
-            },
-        )
+    let limit = i64::try_from(limit).map_err(|_| GrokAccountWorkerError::InvalidRequest)?;
+    let mut rows = match provider {
+        Some(provider) => statement.query(params![observed_at_ms, provider.as_str(), limit]),
+        None => statement.query(params![observed_at_ms, limit]),
+    }
+    .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?;
+    let mut due = Vec::new();
+    while let Some(row) = rows
+        .next()
         .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|_| GrokAccountWorkerError::StoreUnavailable)
+    {
+        due.push(DueAccountRow {
+            account_id: row
+                .get(0)
+                .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?,
+            provider: row
+                .get(1)
+                .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?,
+            identity_digest: row
+                .get(2)
+                .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?,
+            ciphertext: row
+                .get(3)
+                .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?,
+            key_version: row
+                .get(4)
+                .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?,
+            revision: row
+                .get(5)
+                .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?,
+        });
+    }
+    Ok(due)
 }
 
 fn current_failure_count(

@@ -3,12 +3,19 @@
 #![deny(unsafe_code)]
 
 mod account_entitlement;
+mod codex_catalog;
 mod oauth_transport;
 mod openai_chat_completions;
 mod openai_responses;
 mod runtime_credential;
 mod runtime_failure;
 
+pub use codex_catalog::{
+    CODEX_CATALOG_CLIENT_VERSION, CODEX_CATALOG_PROVIDER_ID, CODEX_MODELS_URL, CODEX_ORIGINATOR,
+    CODEX_RESPONSES_BASE_URL, CODEX_RESPONSES_PATH, CODEX_USER_AGENT, CodexCatalogAdapter,
+    CodexCatalogCredential, CodexCatalogRequest, CodexCatalogTransport,
+    CodexCatalogTransportResponse, CodexUpstreamCatalogTransport, MAX_CODEX_CATALOG_RESPONSE_BYTES,
+};
 pub use oauth_transport::{
     CodexOAuthRefreshCoordinator, CodexOAuthTokenTransport, CodexOAuthTransportError,
     refresh_with_transport,
