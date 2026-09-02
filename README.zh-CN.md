@@ -285,8 +285,10 @@ Realtime API。
 - **正在实施：** P13-15 全渠道上游模型目录透传；Build/Codex exact-Credential source 已真实观测
   `grok-4.6`、`grok-4.5`、`gpt-5.6-terra`、`gpt-5.6-luna`、`gpt-5.5` 与
   `gpt-5.4-mini`；P13-15C/D 的 durable freshness/removal、受保护 status 和 atomic
-  Credential-scoped route materialization 已本地通过。生产 `grok-4.6`、其他渠道 source、隔离矩阵和
-  正式 Gate 仍待完成；客户端必须消费 gateway 返回列表，不能靠手工常量补齐；
+  Credential-scoped route materialization 已在 Oracle Singapore 通过 Grok Build 生产验收：授权
+  `/v1/models` 已动态包含 `grok-4.6`，唯一一次真实 non-streaming Responses canary 已完成。其他渠道
+  source、目标 ChatGPT Go/Codex 证据、隔离矩阵、Claude Code 接线和正式 Gate 仍待完成；客户端必须
+  消费 gateway 返回列表，不能靠手工常量补齐；
 - **显式延期或外部阻塞：** Kiro/Official API-key 真实 E2E、Grok Web 外部 egress/WAF、
   P13-11E5 真实 Provider/代理/DNS canary、自动账号注册/修复、Media/Files/Batch 和更多 Provider；
 - **CPAR 凭据生命周期：** 已保存、已绑定且 Provider 明确支持 refresh 的 OAuth 由 CPAR 在启动时和

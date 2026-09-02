@@ -2,10 +2,10 @@
 
 ## Status
 
-- Date: 2026-09-02
-- Plan: `docs/06-development-plan.md` v1.315
+- Date: 2026-09-03
+- Plan: `docs/06-development-plan.md` v1.316
 - Change request: `CR-P13-UPSTREAM-MODEL-CATALOG-001`
-- Result: **LOCAL_PASS_PENDING_PRODUCTION_AND_PHASE_GATE**
+- Result: **PRODUCTION_PASS_FOR_GROK_BUILD_PENDING_REMAINING_CHANNELS_AND_FORMAL_GATE**
 - Implemented source classes: Grok Build and official Codex only
 - Deferred from this result: Grok Web, Grok Console, xAI Official, Kiro, generic compatible
   endpoints, P13-15E multi-channel live matrix and formal Delivery Gate
@@ -94,6 +94,41 @@ Completed local evidence before commit:
 The final workspace Clippy/fmt/diff results and production revision are recorded in the closing
 commit/plan update. No test in this local slice sent a real Provider request.
 
+## Oracle Singapore production acceptance
+
+The exact implementation commit `058805e556d5b22a00bd56b846f75ed8b81696fd` was built by
+[release workflow 33651468181](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/33651468181).
+Both Linux `aarch64-unknown-linux-gnu` and `x86_64-unknown-linux-gnu` jobs passed. The signed ARM64
+artifact and OCI metadata were verified before installation; the deployed binary SHA-256 is
+`69acbe01c8aa4934867f473e6eeaa063185eeae364865d8730fd88f8ab6344af`.
+
+Immediately before cutover, the service binary, release pointer and an online SQLite backup were
+captured under `/var/backups/cpa-rust-gateway/p13-15-deploy-final-20260902T163647Z`. The current
+official Grok CLI Build grant was imported through the existing CPAR root-only atomic import path
+without a plaintext credential file, and its Build entitlement synchronized as authoritative
+`supergrok`. No token, cookie, refresh grant, principal, Credential ID or Client Key is retained in
+this receipt.
+
+After the atomic release switch and restart of only `cpa-rust-gateway.service`:
+
+- the running release and binary hashes matched the approved revision and artifact;
+- loopback and public health checks returned HTTP 200;
+- schema version 21 was active, `PRAGMA quick_check` returned `ok`, and foreign-key violations were
+  zero;
+- authenticated `/v1/models` returned four exact IDs and included `grok-4.6`;
+- `GET /admin/catalog/status` returned four targets: one Fresh Build target containing two models,
+  and three Missing targets retaining only safe failure classes;
+- SQLite contained one successful catalog target, two catalog model rows and one exact
+  `grok-4.6` row; and
+- the single approved real non-streaming `POST /v1/responses` canary for `grok-4.6` returned HTTP
+  200 with `status=completed`, the requested model and a non-empty output. The output content was
+  neither printed nor stored in this receipt.
+
+The rollback closure was not triggered. The production backup remains available; temporary local
+and remote upload/preflight directories were removed. Autoreg, Caddy, Cloudflare, DNS, frontend and
+other services were not modified. See the value-free
+[production acceptance receipt](evidence/p13-15c-d-oracle-production-acceptance-20260903.md).
+
 ## Rollback and remaining gates
 
 Rollback is the previous binary plus the prior immutable runtime snapshot. Migration 0021 is
@@ -101,11 +136,10 @@ additive; its down migration drops only the three P13-15C tables. If the worker 
 cannot load a coherent snapshot, startup/publication fails closed rather than reverting to guessed
 model constants.
 
-P13-15 is not DONE yet. The next acceptance step is to deploy the exact commit to Oracle Singapore,
-observe Build discovery/materialization, verify authenticated `/v1/models` includes `grok-4.6`, and
-complete a real `grok-4.6` OpenAI Responses call. Codex Luna remains blocked until an actual Go
-Credential is reauthorized and produces its own production catalog evidence. Remaining B sources
-and the P13-15E isolation/live matrix still require separate work.
+P13-15 is not DONE yet. Grok Build C/D production acceptance is complete, but Codex Luna remains
+blocked until an actual Go Credential is reauthorized and produces its own production catalog
+evidence. Remaining B channel sources, the P13-15E isolation/live matrix, Claude Code contract/UI
+integration and the formal Delivery Gate still require separate work.
 
 ---
 
@@ -119,5 +153,7 @@ Credential 精确持久化；成功版本单调递增，失败保留最后成功
 
 本片没有硬编码 `grok-4.6`、`gpt-5.6-luna` 或套餐到模型的映射，也没有把 Grok Build 的
 `supergrok`、ChatGPT 的 `go` 当作目录来源。当前自动 source 只覆盖 Grok Build 与 official Codex；
-Web、Console、Official API key、Kiro 和通用 `baseURL + API key` 仍需各自独立 source。生产部署与
-`grok-4.6` 真实 Responses 验收通过前，状态只能是本地通过、等待生产与正式 Gate。
+Web、Console、Official API key、Kiro 和通用 `baseURL + API key` 仍需各自独立 source。Oracle
+Singapore 已部署 exact commit `058805e5`；生产授权目录现已动态包含 `grok-4.6`，且唯一一次真实
+non-streaming Responses 验收返回 `200/completed`。因此 C/D 的 Grok Build 生产边界已通过，但
+P13-15 总项仍等待其余渠道、E 隔离矩阵、Claude Code 接线和正式 Delivery Gate，不能标记 DONE。

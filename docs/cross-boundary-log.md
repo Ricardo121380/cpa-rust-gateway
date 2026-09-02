@@ -1063,3 +1063,30 @@ safe failure class 只能用于诊断标签，不能据此自动 OAuth、修账�
 
 **Other side:** action required。P13-15C/D 当前是本地通过，Oracle `grok-4.6` production acceptance、
 remaining channel sources 与 P13-15E formal Gate 尚未完成；不要提前把 P13-15 标成 DONE。
+
+---
+
+## 2026-09-03 · Codex · P13-15C/D Grok Build 已通过 Oracle 生产验收
+
+**Touched:** 后端生产 release、Build exact Credential import/entitlement sync、计划与 value-free
+receipt。**未改动:** `web/prism/**`、Prism generated client、Management OpenAPI shape、Autoreg、
+Caddy 配置、Cloudflare、DNS 与其他服务。
+
+**Why:** exact implementation `058805e556d5b22a00bd56b846f75ed8b81696fd` 已部署 Oracle
+Singapore，授权 `/v1/models` 现返回四个 exact upstream ID 并通过 durable catalog 动态包含
+`grok-4.6`；唯一一次真实 non-streaming `grok-4.6` Responses canary 返回 `200/completed`。这取代
+上一条记录中“生产仍只有三个模型”的时点事实，但不改变 account tier 与 model catalog 分离原则。
+
+当前 protected `GET /admin/catalog/status` 有四个 target：一个 Fresh Build target（两个模型）与三个
+Missing target（仅保留 safe failure class）。这代表 Build 生产路径通过，不代表所有 target 或整个
+P13-15 已健康/完成。
+
+**Action required for Claude Code:** 若上一条 P13-15C/D 的 contract/client sync 尚未完成，继续运行
+`npm --prefix web/prism run sync-contract` 并实现 optional catalog operational fields。目录页必须逐
+target 展示 `fresh|stale|expired|missing` 与 safe failure；不得把 1 Fresh 合成为 overall healthy，也
+不得把 3 Missing 合成为 CPAR 整体失败。模型选择器继续实时消费授权 `/v1/models`；不要硬编码
+`grok-4.6`、Luna 或套餐到模型映射。P13-15 在 remaining channel sources、target Go/Codex evidence、
+P13-15E isolation 与正式 Delivery Gate 完成前仍是 `IN_PROGRESS`。
+
+**Other side:** action required；本次 production acceptance 没有新增 OpenAPI shape，需消费的仍是
+上一条已提交的 P13-15C/D 管理契约。

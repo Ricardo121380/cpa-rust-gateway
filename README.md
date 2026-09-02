@@ -304,9 +304,11 @@ and not the OpenAI Realtime API.
 - **In progress:** P13-15 all-channel upstream model-catalog pass-through. Exact-Credential Build
   and Codex sources have observed `grok-4.6`, `grok-4.5`, `gpt-5.6-terra`, `gpt-5.6-luna`,
   `gpt-5.5` and `gpt-5.4-mini`; P13-15C/D durable freshness/removal, protected status and atomic
-  Credential-scoped route materialization pass locally. Production `grok-4.6`, remaining channel
-  sources, isolation matrix and the formal gate are still pending, so clients must consume the
-  gateway list rather than manual constants.
+  Credential-scoped route materialization now pass in Oracle Singapore for Grok Build:
+  authenticated `/v1/models` dynamically includes `grok-4.6`, and one real non-streaming Responses
+  canary completed. Remaining channel sources, target ChatGPT Go/Codex evidence, the isolation
+  matrix, Claude Code integration and the formal gate are still pending, so clients must consume
+  the gateway list rather than manual constants.
 - **Explicitly deferred or externally blocked:** real Kiro/Official API-key E2E, Grok Web external
   egress/WAF evidence, P13-11E5 real Provider/proxy/DNS canary, automatic account registration or
   repair, media/files/batch and additional Providers.
