@@ -6,10 +6,10 @@
 
 use std::{
     cell::Cell,
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     io::Read,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, Mutex},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -25,7 +25,8 @@ use gateway_http_actix::management_resources::{
 use gateway_router::{RuntimeHealthAccountRecoveryResult, RuntimeHealthRegistry};
 use gateway_store::{
     control_plane::{
-        ConfigVersionId, ControlPlaneConfiguration, CredentialStatus, SqliteControlPlaneRepository,
+        ConfigVersionId, ControlPlaneConfiguration, CredentialConfiguration, CredentialStatus,
+        SqliteControlPlaneRepository,
     },
     secret_store::SecretStore,
 };
@@ -52,6 +53,8 @@ const OAUTH_CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const OAUTH_REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
 const RECOVERY_TICKET_MS: i64 = 30_000;
 const CODEX_REFRESH_SKEW_MS: i64 = 8 * 60 * 1_000;
+const CODEX_REFRESH_INITIAL_BACKOFF_MS: i64 = 60 * 1_000;
+const CODEX_REFRESH_MAX_BACKOFF_MS: i64 = 60 * 60 * 1_000;
 const CODEX_RESPONSES_ADAPTER_ID: &str = "openai-compatible.responses";
 
 /// A redacted result from one runtime refresh pass.
@@ -96,6 +99,12 @@ struct CodexRefreshSummary {
     runtime_replaced: usize,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct CodexRefreshBackoff {
+    failure_count: u32,
+    retry_after_ms: i64,
+}
+
 /// Runs one startup catch-up before immutable graph metadata is compiled.
 pub(crate) fn refresh_due_credentials_before_compile(
     database: &Path,
@@ -133,6 +142,7 @@ pub(crate) fn refresh_due_credentials_before_compile(
         &scope.codex_credential_ids,
         None,
         None,
+        None,
         observed_at_ms,
     )?;
     Ok(RuntimeCredentialRefreshSummary::with_runtime_replaced(
@@ -152,6 +162,7 @@ pub(crate) struct RuntimeCredentialRefreshWorker {
     codex_proxy: UpstreamProxy,
     config_version_id: ConfigVersionId,
     codex_credential_ids: BTreeSet<CredentialId>,
+    codex_backoff: Mutex<BTreeMap<CredentialId, CodexRefreshBackoff>>,
 }
 
 impl RuntimeCredentialRefreshWorker {
@@ -183,13 +194,15 @@ impl RuntimeCredentialRefreshWorker {
             codex_proxy,
             config_version_id,
             codex_credential_ids,
+            codex_backoff: Mutex::new(BTreeMap::new()),
         }))
     }
 
     /// Runs until the process runtime stops. Each network/store pass stays on the blocking pool.
     pub(crate) async fn run(self) {
         let worker = Arc::new(self);
-        let mut interval = actix_web::rt::time::interval(REFRESH_INTERVAL);
+        let start_at = tokio::time::Instant::now() + REFRESH_INTERVAL;
+        let mut interval = actix_web::rt::time::interval_at(start_at, REFRESH_INTERVAL);
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
         loop {
             interval.tick().await;
@@ -242,6 +255,7 @@ impl RuntimeCredentialRefreshWorker {
             &self.codex_credential_ids,
             Some(self.pools.as_ref()),
             Some(self.runtime_health.as_ref()),
+            Some(&self.codex_backoff),
             observed_at_ms,
         )?;
         runtime_replaced = runtime_replaced.saturating_add(codex.runtime_replaced);
@@ -410,6 +424,7 @@ fn refresh_codex_credentials(
     codex_credential_ids: &BTreeSet<CredentialId>,
     pools: Option<&EndpointCredentialPools>,
     runtime_health: Option<&RuntimeHealthRegistry>,
+    backoff: Option<&Mutex<BTreeMap<CredentialId, CodexRefreshBackoff>>>,
     observed_at_ms: i64,
 ) -> Result<CodexRefreshSummary, GrokAccountWorkerError> {
     let mut repository = SqliteControlPlaneRepository::open(database)
@@ -439,34 +454,29 @@ fn refresh_codex_credentials(
         .iter()
         .filter(|credential| codex_credential_ids.contains(&credential.id))
     {
-        let associated_data = credential_associated_data(
-            &configuration.version.id,
-            &credential.id,
-            &credential.upstream_id,
-        )
-        .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
-        let plaintext = secret_store
-            .open(&credential.encrypted_secret, &associated_data)
-            .map_err(|_| GrokAccountWorkerError::SecretStoreFailure)?;
-        let mut runtime_bytes = Zeroizing::new(plaintext.as_bytes().to_vec());
-        let mut runtime_credential = OpenAiCompatibleRuntimeCredential::import_compatible(
-            runtime_bytes.as_slice(),
-            observed_at_ms,
-        )
-        .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
-        let mut runtime_revision = u64::try_from(credential.revision)
-            .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
+        let (mut runtime_bytes, mut runtime_credential, mut runtime_revision) =
+            open_codex_runtime_credential(
+                &configuration,
+                credential,
+                secret_store,
+                observed_at_ms,
+            )?;
 
         if runtime_credential
             .expires_at_ms()
             .is_some_and(|expires_at_ms| expires_at_ms <= refresh_cutoff)
         {
             summary.due += 1;
+            if codex_refresh_is_deferred(backoff, &credential.id, observed_at_ms)? {
+                summary.backed_off += 1;
+                continue;
+            }
             let Some(refreshed) = exchange.refresh(
                 &credential.id,
                 Zeroizing::new(runtime_bytes.to_vec()),
                 observed_at_ms,
             ) else {
+                back_off_codex_refresh(backoff, &credential.id, observed_at_ms)?;
                 summary.backed_off += 1;
                 continue;
             };
@@ -474,6 +484,7 @@ fn refresh_codex_credentials(
                 refreshed.as_slice(),
                 observed_at_ms,
             ) else {
+                back_off_codex_refresh(backoff, &credential.id, observed_at_ms)?;
                 summary.backed_off += 1;
                 continue;
             };
@@ -488,9 +499,11 @@ fn refresh_codex_credentials(
                 )
                 .is_err()
             {
+                back_off_codex_refresh(backoff, &credential.id, observed_at_ms)?;
                 summary.backed_off += 1;
                 continue;
             }
+            clear_codex_refresh_backoff(backoff, &credential.id)?;
             runtime_revision = runtime_revision
                 .checked_add(1)
                 .ok_or(GrokAccountWorkerError::InvalidPersistedState)?;
@@ -514,6 +527,93 @@ fn refresh_codex_credentials(
                 )?);
     }
     Ok(summary)
+}
+
+fn open_codex_runtime_credential(
+    configuration: &ControlPlaneConfiguration,
+    credential: &CredentialConfiguration,
+    secret_store: &SecretStore,
+    observed_at_ms: i64,
+) -> Result<(Zeroizing<Vec<u8>>, OpenAiCompatibleRuntimeCredential, u64), GrokAccountWorkerError> {
+    let associated_data = credential_associated_data(
+        &configuration.version.id,
+        &credential.id,
+        &credential.upstream_id,
+    )
+    .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
+    let plaintext = secret_store
+        .open(&credential.encrypted_secret, &associated_data)
+        .map_err(|_| GrokAccountWorkerError::SecretStoreFailure)?;
+    let runtime_bytes = Zeroizing::new(plaintext.as_bytes().to_vec());
+    let runtime_credential = OpenAiCompatibleRuntimeCredential::import_compatible(
+        runtime_bytes.as_slice(),
+        observed_at_ms,
+    )
+    .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
+    let runtime_revision = u64::try_from(credential.revision)
+        .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
+    Ok((runtime_bytes, runtime_credential, runtime_revision))
+}
+
+fn codex_refresh_is_deferred(
+    backoff: Option<&Mutex<BTreeMap<CredentialId, CodexRefreshBackoff>>>,
+    credential_id: &CredentialId,
+    observed_at_ms: i64,
+) -> Result<bool, GrokAccountWorkerError> {
+    let Some(backoff) = backoff else {
+        return Ok(false);
+    };
+    let states = backoff
+        .lock()
+        .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
+    Ok(states
+        .get(credential_id)
+        .is_some_and(|state| observed_at_ms < state.retry_after_ms))
+}
+
+fn back_off_codex_refresh(
+    backoff: Option<&Mutex<BTreeMap<CredentialId, CodexRefreshBackoff>>>,
+    credential_id: &CredentialId,
+    observed_at_ms: i64,
+) -> Result<(), GrokAccountWorkerError> {
+    let Some(backoff) = backoff else {
+        return Ok(());
+    };
+    let mut states = backoff
+        .lock()
+        .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
+    let state = states
+        .entry(credential_id.clone())
+        .or_insert(CodexRefreshBackoff {
+            failure_count: 0,
+            retry_after_ms: observed_at_ms,
+        });
+    state.failure_count = state.failure_count.saturating_add(1);
+    state.retry_after_ms = observed_at_ms
+        .checked_add(codex_refresh_backoff_delay_ms(state.failure_count))
+        .ok_or(GrokAccountWorkerError::InvalidRequest)?;
+    Ok(())
+}
+
+fn clear_codex_refresh_backoff(
+    backoff: Option<&Mutex<BTreeMap<CredentialId, CodexRefreshBackoff>>>,
+    credential_id: &CredentialId,
+) -> Result<(), GrokAccountWorkerError> {
+    let Some(backoff) = backoff else {
+        return Ok(());
+    };
+    backoff
+        .lock()
+        .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?
+        .remove(credential_id);
+    Ok(())
+}
+
+fn codex_refresh_backoff_delay_ms(failure_count: u32) -> i64 {
+    let exponent = failure_count.saturating_sub(1).min(6);
+    CODEX_REFRESH_INITIAL_BACKOFF_MS
+        .saturating_mul(1_i64 << exponent)
+        .min(CODEX_REFRESH_MAX_BACKOFF_MS)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -726,7 +826,7 @@ impl GrokBuildOAuthTransport for GrokBuildRefreshTransport {
 
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
+    use std::{collections::BTreeMap, error::Error, sync::Mutex};
 
     use gateway_core::{CredentialId, EndpointId, UpstreamId};
     use gateway_store::{
@@ -738,9 +838,48 @@ mod tests {
         secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore},
     };
 
-    use super::{CODEX_RESPONSES_ADAPTER_ID, CODEX_RESPONSES_BASE_URL, refresh_scope};
+    use super::{
+        CODEX_REFRESH_INITIAL_BACKOFF_MS, CODEX_REFRESH_MAX_BACKOFF_MS, CODEX_RESPONSES_ADAPTER_ID,
+        CODEX_RESPONSES_BASE_URL, back_off_codex_refresh, clear_codex_refresh_backoff,
+        codex_refresh_backoff_delay_ms, codex_refresh_is_deferred, refresh_scope,
+    };
 
     type TestResult = Result<(), Box<dyn Error>>;
+
+    #[test]
+    fn codex_refresh_backoff_grows_is_bounded_and_can_be_cleared() -> TestResult {
+        let credential_id = CredentialId::try_new("codex-backoff-test")?;
+        let states = Mutex::new(BTreeMap::new());
+        let observed_at_ms = 10_000_i64;
+
+        assert!(!codex_refresh_is_deferred(
+            Some(&states),
+            &credential_id,
+            observed_at_ms,
+        )?);
+        back_off_codex_refresh(Some(&states), &credential_id, observed_at_ms)?;
+        assert!(codex_refresh_is_deferred(
+            Some(&states),
+            &credential_id,
+            observed_at_ms,
+        )?);
+        assert_eq!(
+            codex_refresh_backoff_delay_ms(1),
+            CODEX_REFRESH_INITIAL_BACKOFF_MS
+        );
+        assert_eq!(
+            codex_refresh_backoff_delay_ms(u32::MAX),
+            CODEX_REFRESH_MAX_BACKOFF_MS
+        );
+
+        clear_codex_refresh_backoff(Some(&states), &credential_id)?;
+        assert!(!codex_refresh_is_deferred(
+            Some(&states),
+            &credential_id,
+            observed_at_ms,
+        )?);
+        Ok(())
+    }
 
     #[test]
     fn refresh_scope_uses_exact_channel_binding_not_the_oauth_storage_label() -> TestResult {
