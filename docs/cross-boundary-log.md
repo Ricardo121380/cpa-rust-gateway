@@ -1003,3 +1003,30 @@ Candidate 列表当作完整模型集合。
 
 **Other side:** FYI + action required。P13-15B 目前只完成 Build/Codex source；其他渠道、P13-15C/D
 和正式 Gate 未完成。P13-16A 本地通过，仍等待 Oracle deployment/post-expiry continuity 证据。
+
+---
+
+## 2026-09-02 · Codex · P13-16A 生产刷新验收与 P13-15C/D 前端边界
+
+**Touched:** 后端 credential refresh worker、部署指南、计划/report/traceability。
+**未改动:** `web/prism/**`、Management OpenAPI、generated client、Pi provider 模型数组。
+
+Oracle Singapore 已部署 exact commit `388e156cdf8c4c0693ecaed02ddd772f89e03962`，ARM64
+artifact SHA-256 为 `4691d6b34dd09f8eff101f7e65f3ad5094bc54b8e1ae39faee8b0da6b095b5fc`。
+CPAR 在启动 catch-up 中自动刷新了一个 Build 凭据，durable/runtime revision
+`0 -> 1`，真实公网 `grok-4.5` Responses 仍返回 `200/completed/CPAR_OK`。一个 Build grant
+已 `reauth_required`；两个生产 Codex Credential 都是 `free`而非 Go，且它们的旧 refresh grant
+均被上游拒绝，需要 operator 为目标账号重新 OAuth。Codex 失败已使用
+`1/2/4/.../60` 分钟有界退避，不再对无效 grant 每分钟实际发送。
+
+**Action required for Claude Code:**
+
+- 生产 `/v1/models` 当前仍只有 `gpt-5.6-terra`、`grok-4.20-0309`、`grok-4.5`。
+  这是 P13-15C/D 尚未物化的后端缺口，不是前端应该用常量补齐的缺口。
+- 不要根据 ChatGPT `free/go/plus/pro` 或 Grok Build `free/supergrok/heavy` 生成模型列表；
+  `gpt-5.6-luna` 与 `grok-4.6` 必须由 exact production Credential 的 catalog 证据进入后端
+  immutable authorized snapshot 后才显示。
+- 重新 OAuth 后，UI 只需继续消费 gateway catalog 和 credential status；不得把
+  `free` 凭据显示为 Go，也不得把 refresh-grant 失效误写成“CPAR 不会自动刷新”。
+
+**Other side:** action required，但目前没有 OpenAPI 形状变更，不需要重生 generated client。

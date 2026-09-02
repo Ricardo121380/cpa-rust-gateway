@@ -384,6 +384,8 @@ SSO Cookie 不会被当作 OAuth 刷新。
 
 运维时只检查脱敏计数与状态：`claimed`、`succeeded`、`backed_off`、`reauth_required`、
 `runtime_replaced`。日志不应出现 access/refresh token、账号身份或 Provider response body。
+Codex 刷新失败不得每分钟无界请求：当前 worker 使用 `1/2/4/.../60` 分钟的进程内指数退避，
+刷新成功后立即清除。
 `reauth_required` 表示已保存的 refresh grant 不能继续自动恢复，此时停止租用该 Credential，并由
 operator/Autoreg 完成交互重新授权；普通日常续期不依赖 Autoreg 服务在线。
 

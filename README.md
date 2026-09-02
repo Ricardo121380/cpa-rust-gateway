@@ -272,16 +272,19 @@ and not the OpenAI Realtime API.
 - **Frontend integration:** Prism evolves independently against the generated management contract;
   check the current branch and `docs/cross-boundary-log.md` for pending handoffs.
 - **In progress:** P13-15 all-channel upstream model-catalog pass-through. Exact-Credential Build
-  and Codex discovery sources are locally implemented; durable freshness, automatic route
-  materialization, remaining channels and the formal gate are still pending.
+  and Codex discovery sources have observed `grok-4.6`, `grok-4.5`, `gpt-5.6-terra`,
+  `gpt-5.6-luna`, `gpt-5.5` and `gpt-5.4-mini`; durable freshness, automatic route materialization,
+  remaining channels and the formal gate are still pending, so public `/v1/models` must not be
+  filled with manual constants.
 - **Explicitly deferred or externally blocked:** real Kiro/Official API-key E2E, Grok Web external
   egress/WAF evidence, P13-11E5 real Provider/proxy/DNS canary, automatic account registration or
   repair, media/files/batch and additional Providers.
 - **CPAR credential lifecycle:** imported, bound OAuth grants with an explicit Provider refresh
   protocol are renewed by CPAR at startup and during service operation, persisted through encrypted
   CAS and atomically published to later runtime leases. API keys and SSO cookies are not treated as
-  refreshable OAuth. P13-16A covers the active Grok Build and Codex production channels; Claude and
-  Kiro need their own executor before production activation.
+  refreshable OAuth. P13-16A has proved Grok Build automatic refresh and continued serving in
+  production; invalid Codex grants use bounded `1/2/4/.../60` minute backoff. Claude and Kiro need
+  their own exact-channel executor before production activation.
 - **Not part of CPAR:** Autoreg account registration, initial login/authorization, interactive
   reauthorization after a refresh grant is revoked, entitlement repair and replenishment. Autoreg
   is not involved in routine refresh of OAuth material already stored by CPAR.

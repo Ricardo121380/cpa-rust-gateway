@@ -402,9 +402,12 @@ misclassified as refreshable OAuth.
 
 Operators should inspect only redacted counters and states: `claimed`, `succeeded`, `backed_off`,
 `reauth_required` and `runtime_replaced`. Logs must not contain access/refresh tokens, account
-identity or Provider response bodies. `reauth_required` means the stored refresh grant can no longer
-recover automatically; stop leasing that Credential and let the operator/Autoreg perform
-interactive authorization. Routine renewal does not depend on the Autoreg service being online.
+identity or Provider response bodies. Failed Codex refreshes must not contact the upstream every
+minute without a bound: the current worker uses process-local exponential `1/2/4/.../60` minute
+backoff and clears it immediately after success. `reauth_required` means the stored refresh grant
+can no longer recover automatically; stop leasing that Credential and let the operator/Autoreg
+perform interactive authorization. Routine renewal does not depend on the Autoreg service being
+online.
 
 Keep both the old binary symlink and a SQLite preimage verified with `quick_check` and foreign-key
 checks before an upgrade. Startup catch-up may rotate encrypted Credential material before listener

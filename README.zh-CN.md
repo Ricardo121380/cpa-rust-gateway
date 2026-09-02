@@ -258,12 +258,15 @@ Realtime API。
 - **前端集成：** Prism 独立消费 generated management contract，当前 handoff 以实际分支和
   `docs/cross-boundary-log.md` 为准；
 - **正在实施：** P13-15 全渠道上游模型目录透传；Build/Codex exact-Credential discovery source
-  已完成本地实现，但 durable freshness、自动 route materialization、其他渠道和正式 Gate 尚未完成；
+  已完成并真实观测 `grok-4.6`、`grok-4.5`、`gpt-5.6-terra`、`gpt-5.6-luna`、`gpt-5.5`
+  与 `gpt-5.4-mini`；但 durable freshness、自动 route materialization、其他渠道和正式 Gate 尚未
+  完成，因此公网 `/v1/models` 不能靠手工常量补齐；
 - **显式延期或外部阻塞：** Kiro/Official API-key 真实 E2E、Grok Web 外部 egress/WAF、
   P13-11E5 真实 Provider/代理/DNS canary、自动账号注册/修复、Media/Files/Batch 和更多 Provider；
 - **CPAR 凭据生命周期：** 已保存、已绑定且 Provider 明确支持 refresh 的 OAuth 由 CPAR 在启动时和
   运行中自动续期、CAS 加密保存并原子替换运行时 material。API Key 与 SSO Cookie 不伪装成 OAuth
-  refresh；当前 P13-16A 覆盖生产活动的 Grok Build 与 Codex，Claude/Kiro 激活前仍需各自 executor；
+  refresh；当前 P13-16A 已在生产证明 Grok Build 自动刷新后继续服务，Codex 无效 grant 使用
+  `1/2/4/.../60` 分钟退避；Claude/Kiro 激活前仍需各自 exact-channel executor；
 - **不属于 CPAR：** Autoreg 的账号注册、首次登录/授权、refresh grant 撤销后的交互 reauth、权益
   修复和 replenishment。Autoreg 不参与 CPAR 已保存 OAuth 的日常 token refresh。
 
