@@ -1390,11 +1390,8 @@ impl GrokBuildResponsesDecodeState {
         event: &Map<String, Value>,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
-        let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
-        let call_id = required_identifier(event, "call_id", stream_protocol_error())?;
-        if self.function_call_ids.get(item_id).map(String::as_str) != Some(call_id)
-            || self.completed_function_calls.contains(call_id)
-        {
+        let call_id = self.function_call_id(event)?.to_owned();
+        if self.completed_function_calls.contains(&call_id) {
             return Err(stream_protocol_error());
         }
         let delta = required_string(event, "delta", stream_protocol_error())?;
@@ -1403,7 +1400,7 @@ impl GrokBuildResponsesDecodeState {
         }
         let next_length = self
             .function_arguments
-            .get(call_id)
+            .get(&call_id)
             .map_or(0, String::len)
             .checked_add(delta.len())
             .ok_or_else(stream_protocol_error)?;
@@ -1431,14 +1428,26 @@ impl GrokBuildResponsesDecodeState {
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
         let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
-        let call_id = required_identifier(event, "call_id", stream_protocol_error())?;
-        if self.function_call_ids.get(item_id).map(String::as_str) != Some(call_id)
-            || self.done_item_ids.contains(item_id)
-        {
+        let call_id = self.function_call_id(event)?.to_owned();
+        if self.done_item_ids.contains(item_id) {
             return Err(stream_protocol_error());
         }
         let arguments = required_string(event, "arguments", stream_protocol_error())?;
-        self.finish_function_call(call_id, arguments, events)
+        self.finish_function_call(&call_id, arguments, events)
+    }
+
+    fn function_call_id(&self, event: &Map<String, Value>) -> Result<&str, GatewayError> {
+        let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
+        let call_id = self
+            .function_call_ids
+            .get(item_id)
+            .ok_or_else(stream_protocol_error)?;
+        if event.contains_key("call_id")
+            && required_identifier(event, "call_id", stream_protocol_error())? != call_id
+        {
+            return Err(stream_protocol_error());
+        }
+        Ok(call_id)
     }
 
     fn handle_response_completed(

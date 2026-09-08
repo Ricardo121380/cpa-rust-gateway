@@ -353,6 +353,108 @@ fn arbitrary_sse_chunks_and_non_streaming_fixture_have_the_same_semantic_project
 }
 
 #[test]
+fn current_tool_events_use_item_identity_across_arbitrary_chunks() -> TestResult {
+    let fixture = include_str!("../../../tests/fixtures/grok-build/p6-03-stream.sse");
+    let current = fixture
+        .lines()
+        .map(|line| {
+            if line.contains("\"type\":\"response.function_call_arguments.") {
+                line.replace(",\"call_id\":\"call-grok-build-01\"", "")
+            } else {
+                line.to_owned()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        + "\n\n";
+    let expected = GrokBuildResponsesDecoder::decode_non_streaming(include_bytes!(
+        "../../../tests/fixtures/grok-build/p6-03-non-streaming.json"
+    ))?;
+    for chunk_size in [1, 2, 7, 31, 257, 4096] {
+        let mut decoder = GrokBuildResponsesStreamDecoder::new();
+        let mut events = Vec::new();
+        for chunk in current.as_bytes().chunks(chunk_size) {
+            events.extend(decoder.push_bytes(chunk)?);
+        }
+        decoder.finish()?;
+        assert_eq!(projection(&events)?, projection(expected.events())?);
+    }
+    for event_type in ["delta", "done"] {
+        for replacement in [
+            "\"item_id\":\"unknown-item\"".to_owned(),
+            "\"item_id\":\"fc-grok-build-01\",\"call_id\":\"wrong-call\"".to_owned(),
+            "\"item_id\":\"fc-grok-build-01\",\"call_id\":null".to_owned(),
+        ] {
+            let invalid = current
+                .lines()
+                .map(|line| {
+                    if line.contains(&format!(
+                        "\"type\":\"response.function_call_arguments.{event_type}\""
+                    )) {
+                        line.replace("\"item_id\":\"fc-grok-build-01\"", &replacement)
+                    } else {
+                        line.to_owned()
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+                + "\n\n";
+            assert!(
+                GrokBuildResponsesStreamDecoder::new()
+                    .push_bytes(invalid.as_bytes())
+                    .is_err()
+            );
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn interleaved_tool_arguments_remain_bound_to_their_declared_items() -> TestResult {
+    use serde_json::json;
+    let values = vec![
+        json!({"type":"response.created","response":{"id":"response-interleaved"}}),
+        json!({"type":"response.output_item.added","item":{"id":"item-a","type":"function_call","call_id":"call-a","name":"echo"}}),
+        json!({"type":"response.output_item.added","item":{"id":"item-b","type":"function_call","call_id":"call-b","name":"echo"}}),
+        json!({"type":"response.function_call_arguments.delta","item_id":"item-a","delta":"{\"value\":"}),
+        json!({"type":"response.function_call_arguments.delta","item_id":"item-b","delta":"{\"value\":2}"}),
+        json!({"type":"response.function_call_arguments.delta","item_id":"item-a","delta":"1}"}),
+        json!({"type":"response.function_call_arguments.done","item_id":"item-b","arguments":"{\"value\":2}"}),
+        json!({"type":"response.function_call_arguments.done","item_id":"item-a","arguments":"{\"value\":1}"}),
+    ];
+    let wire = values
+        .iter()
+        .map(|v| {
+            format!(
+                "event: {}\ndata: {v}\n\n",
+                v["type"].as_str().unwrap_or_default()
+            )
+        })
+        .collect::<String>();
+    for size in [1, 7, 4096] {
+        let mut decoder = GrokBuildResponsesStreamDecoder::new();
+        let mut ends = Vec::new();
+        for chunk in wire.as_bytes().chunks(size) {
+            for event in decoder.push_bytes(chunk)? {
+                if let CanonicalEvent::ToolCallEnd(end) = event {
+                    ends.push((end.call_id, end.arguments.get().to_owned()));
+                }
+            }
+        }
+        assert_eq!(
+            ends,
+            vec![
+                ("call-b".to_owned(), "{\"value\":2}".to_owned()),
+                ("call-a".to_owned(), "{\"value\":1}".to_owned())
+            ]
+        );
+        let late = b"event: response.function_call_arguments.delta\ndata: {\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"item-a\",\"delta\":\"x\"}\n\n";
+        assert!(decoder.push_bytes(late).is_err());
+    }
+    Ok(())
+}
+
+#[test]
 fn error_envelope_is_bounded_and_does_not_retain_upstream_text() -> TestResult {
     let error = GrokBuildResponsesHttpError::parse(
         429,
