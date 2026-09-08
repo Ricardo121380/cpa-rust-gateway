@@ -1109,3 +1109,22 @@ API client。模型选择器仍应读取授权 `/v1/models`，不要硬编码；
 未因这次单账号恢复而变成健康，P13-15 整体状态不变。本机 Pi 的旧配置仍只列 `grok-4.5`。
 
 **Other side:** FYI，无新增前端接线要求；此前未完成的逐 target 状态展示要求仍有效。
+
+---
+
+## 2026-09-08 · Codex · Grok Build 流式工具调用与结果回传修复
+
+**Touched:** `crates/provider-grok/src/build_responses.rs`、
+`crates/gateway-router/src/protocol_transform.rs`、对应测试、
+`scripts/verify-pi-responses-tools.mjs` 与脱敏验收报告。Oracle 运行签名版本
+`fb93c489bbbc6e2d5aa35b41b3da413b7ab5851e`。
+
+**Why:** 上游工具参数事件仅带 item_id 时不应要求重复 call_id；Pi 回传的合法 function_call.id
+也不应被路由当作未知扩展而返回 CredentialUnavailable。已修复两处，保持身份校验与跨协议隔离。
+
+**Claude Code FYI:** 无 Management OpenAPI 或前端文件修改，无需重生成客户端。公网 Grok Build
+的 grok-4.6 / grok-4.5 均已通过实际 Pi Responses 客户端的两轮流式工具闭环，不需要切 Messages。
+后续模型验收应区分目录可见、文本调用、流式工具调用及结果回传；仓库新增显式执行的验收脚本。
+本次仍不代表其他渠道或整个 P13-15 完成。
+
+**Other side:** FYI，无新增前端接线要求。
