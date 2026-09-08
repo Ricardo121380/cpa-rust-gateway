@@ -1128,3 +1128,23 @@ API client。模型选择器仍应读取授权 `/v1/models`，不要硬编码；
 本次仍不代表其他渠道或整个 P13-15 完成。
 
 **Other side:** FYI，无新增前端接线要求。
+
+---
+
+## 2026-09-08 · Codex · OMP 多轮 Responses 文本历史回传修复
+
+**Touched:** `crates/gateway-router/src/protocol_transform.rs`、
+`scripts/verify-pi-responses-tools.mjs`、
+`docs/reports/evidence/grok-build-omp-text-replay-20260908.md`。
+Oracle 已部署签名版本 `4bb55b147518d32ac0ce6210ce652b4bb1668663`。
+
+**Why:** 此前两轮工具验收未覆盖助手文本再次进入历史；Pi 回传的合法助手消息
+id/status/phase 与空 annotations 被候选路由误拒绝，外显为 503 CredentialUnavailable。
+现在同协议保留这些已验证字段，未知字段与跨协议转换仍拒绝。
+
+**Claude Code FYI:** 无 Management OpenAPI 或前端文件修改，无需重新生成客户端。
+OMP 受控 Pi AI 0.84.3 对 grok-4.6、grok-4.5 均完成四轮真实闭环：工具、文本、
+带完整历史的工具、文本。后续模型验收需包含助手文本历史重放，不能仅以两轮工具成功判断。
+此结果支持继续 OMP 验收，但不等于 OMP C12、其他渠道或 P13-15 整体完成；费用仍未核实。
+
+**Other side:** FYI，无新增前端接线要求。

@@ -43,4 +43,31 @@ replayed an assistant text response, so it did not cover this case.
 This is a CPAR repair. It does not mark OMP C12, other provider channels, or the
 P13-15 Delivery Gate complete. Synthetic SDK cost coefficients in the diagnostic
 script are not evidence of zero real billing; provider cost remains unverified.
-Production rollout and the four-request results are recorded below after execution.
+
+## Production and controlled-client acceptance: PASS
+
+- Runtime/source revision: `4bb55b147518d32ac0ce6210ce652b4bb1668663`.
+- Release workflow: https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34245264701
+  (ARM64 and x86_64 both succeeded).
+- ARM64 binary SHA-256:
+  `44955dee3abde3e9a40060b19300971e64667309d78243e2143a1d7c9a3bb2af`.
+- Independent Cosign verification and repository artifact verification passed;
+  uploaded and installed binary hashes matched. Database backup passed SQLite
+  quick_check and foreign_key_check before switching the binary.
+- Recovery backup: `/var/backups/cpa-rust-gateway/omp-text-replay-20260908T153952Z`.
+- Oracle service is active on the recorded revision; `/healthz` returned status ok.
+- Client: OMP controlled stack's `@earendil-works/pi-ai` version `0.84.3`, stack
+  `aaa97ca62ab5479528a35c6bdbd62df543bb9497a4b2bf7919111550a8c2a5eb`.
+- `grok-4.6`: all four requests passed, with stop reasons
+  `toolUse / stop / toolUse / stop`.
+- `grok-4.5`: all four requests passed, with the same stop reasons.
+- Each tool request emitted toolcall_start/delta/end and a completed event;
+  parsed name/arguments matched the synthetic diagnostic. Each result request
+  returned expected text. The third request included unchanged assistant text
+  history from the second response. Script exited zero.
+- No payload stripping, Pi configuration changes, retries, artificial inter-turn
+  delay, real tool execution, account import, or OAuth was used for acceptance.
+
+Only CPAR was restarted. The OMP C12 matrix and its evidence files were not changed.
+The earlier two-request report remains historical evidence; this four-request
+acceptance covers the additional assistant-text replay defect it did not exercise.
