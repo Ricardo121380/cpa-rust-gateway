@@ -687,8 +687,8 @@ fn canonical_rejection(
                     return Err(ProtocolTransformRejection::OpaqueContent);
                 }
                 MessageContent::ToolCall(call)
-                    if !call.extensions.is_empty()
-                        && !(target == ProtocolFormat::OpenAiResponses
+                    if !(call.extensions.is_empty()
+                        || target == ProtocolFormat::OpenAiResponses
                             && call.extensions.iter().all(|(key, value)| {
                                 key == "id"
                                     && serde_json::from_str::<String>(value.get()).is_ok_and(|id| {

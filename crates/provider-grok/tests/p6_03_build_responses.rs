@@ -412,7 +412,7 @@ fn current_tool_events_use_item_identity_across_arbitrary_chunks() -> TestResult
 #[test]
 fn interleaved_tool_arguments_remain_bound_to_their_declared_items() -> TestResult {
     use serde_json::json;
-    let values = vec![
+    let values = [
         json!({"type":"response.created","response":{"id":"response-interleaved"}}),
         json!({"type":"response.output_item.added","item":{"id":"item-a","type":"function_call","call_id":"call-a","name":"echo"}}),
         json!({"type":"response.output_item.added","item":{"id":"item-b","type":"function_call","call_id":"call-b","name":"echo"}}),
@@ -422,15 +422,15 @@ fn interleaved_tool_arguments_remain_bound_to_their_declared_items() -> TestResu
         json!({"type":"response.function_call_arguments.done","item_id":"item-b","arguments":"{\"value\":2}"}),
         json!({"type":"response.function_call_arguments.done","item_id":"item-a","arguments":"{\"value\":1}"}),
     ];
-    let wire = values
-        .iter()
-        .map(|v| {
-            format!(
-                "event: {}\ndata: {v}\n\n",
-                v["type"].as_str().unwrap_or_default()
-            )
-        })
-        .collect::<String>();
+    let mut wire = String::new();
+    for value in values {
+        use std::fmt::Write as _;
+        write!(
+            wire,
+            "event: {}\ndata: {value}\n\n",
+            value["type"].as_str().unwrap_or_default()
+        )?;
+    }
     for size in [1, 7, 4096] {
         let mut decoder = GrokBuildResponsesStreamDecoder::new();
         let mut ends = Vec::new();

@@ -1410,13 +1410,13 @@ impl GrokBuildResponsesDecodeState {
         self.emit(
             events,
             CanonicalEvent::ToolCallArgumentsDelta(ToolCallArgumentsDelta {
-                call_id: call_id.to_owned(),
+                call_id: call_id.clone(),
                 delta: delta.to_owned(),
                 extensions: RawExtensions::default(),
             }),
         )?;
         self.function_arguments
-            .entry(call_id.to_owned())
+            .entry(call_id)
             .or_default()
             .push_str(delta);
         Ok(())
