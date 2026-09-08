@@ -29,6 +29,32 @@ Regression coverage includes expanded/reordered scopes, durable round-trip, a se
 refresh, and rejection of required-scope loss. Production deployment and refresh /
 Responses acceptance will be recorded below after execution.
 
+The complete `provider-grok` package passed 201 tests. The follow-up gateway
+administration checks passed both `grok_admin::tests` tests.
+
+## Production refresh and Responses acceptance
+
+- Scope-fix revision: `8a279fc48e4485a6e2b19ed84a86edbb563e441c`.
+- Signed release: https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34227749027
+  (both Linux architectures passed).
+- ARM64 SHA-256: `8634831e8fb828702a406369ad7cb499bb1ffeb57aa5602e4f4517b7d4ef5836`.
+- Independent local Cosign verification and repository artifact verification passed;
+  the uploaded and installed binary hashes matched.
+- Final pre-cutover backup: `/var/backups/cpa-rust-gateway/scope-fix-20260908T125208Z`.
+- Target account refreshed at startup to revision 1, then through the running worker
+  to revision 2. Both succeeded with failure count 0 and a future refresh deadline.
+- SQLite quick check passed, with zero foreign-key violations.
+- Authenticated public `/v1/models` returned HTTP 200 and both Build model IDs.
+- One non-streaming public Responses request for each of `grok-4.6` and `grok-4.5`
+  returned HTTP 200, `completed`, and non-empty output, using the existing Pi Client Key.
+
+The entitlement-sync command exposed a second defect: it and the root-only Build
+probe only decoded source JSON, whereas successful refresh stores authenticated
+compact credential bytes. Both call sites now use the existing active-runtime
+decoder, which supports both forms and still rejects expired access tokens. This
+does not change any management HTTP shape. Follow-up deployment and authoritative
+entitlement acceptance remain to be recorded.
+
 ## Recovery boundary
 
 The root-only existing rollback/import commands replaced only the failed Build

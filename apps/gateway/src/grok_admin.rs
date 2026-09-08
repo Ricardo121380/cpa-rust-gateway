@@ -237,7 +237,7 @@ pub(crate) fn sync_build_entitlement(
         .open_credential(&selected.id)
         .map_err(GrokAdminError::Entitlement)?;
     let credential =
-        GrokBuildCredential::import_runtime_json(credential_bytes.as_bytes(), observed_at_ms)
+        GrokBuildCredential::import_active_runtime(credential_bytes.as_bytes(), observed_at_ms)
             .map_err(|_| GrokAdminError::EntitlementRejected)?;
     let live_body =
         actix_web::rt::System::new().block_on(fetch_build_subscription(credential.access_token()));
@@ -451,7 +451,7 @@ async fn execute_probe(
                 "https://cli-chat-proxy.grok.com/v1/responses",
             )?;
             let adapter = GrokBuildInferenceAdapter::try_new(
-                GrokBuildCredential::import_runtime_json(credential, observed_at_ms)
+                GrokBuildCredential::import_active_runtime(credential, observed_at_ms)
                     .map_err(|_| GrokAdminError::ProbeUnavailable)?,
                 "grok-4.5",
                 GrokBuildExecutionMode::NonStreaming,
