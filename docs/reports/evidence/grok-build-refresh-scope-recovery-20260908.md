@@ -25,9 +25,8 @@ of order, and preserves the issuer's returned scope. Missing required scopes rem
 rejected. Absolute-expiry imports accept the same baseline-preserving expansion.
 No requested OAuth privileges, issuer, client identity, endpoint or protocol changed.
 
-Regression coverage includes expanded/reordered scopes, durable round-trip, a second
-refresh, and rejection of required-scope loss. Production deployment and refresh /
-Responses acceptance will be recorded below after execution.
+Regression coverage includes expanded/reordered scopes, absolute-expiry reimport, a
+second refresh, and rejection of required-scope loss.
 
 The complete `provider-grok` package passed 201 tests. The follow-up gateway
 administration checks passed both `grok_admin::tests` tests.
@@ -52,8 +51,35 @@ The entitlement-sync command exposed a second defect: it and the root-only Build
 probe only decoded source JSON, whereas successful refresh stores authenticated
 compact credential bytes. Both call sites now use the existing active-runtime
 decoder, which supports both forms and still rejects expired access tokens. This
-does not change any management HTTP shape. Follow-up deployment and authoritative
-entitlement acceptance remain to be recorded.
+does not change any management HTTP shape.
+
+## Final deployment and acceptance
+
+- Final runtime revision: `928e971eb7d6f520b50ded677803e259d4549cb1`.
+- Signed release: https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34228892449
+  (both Linux architectures passed).
+- ARM64 SHA-256: `7ec82552fbf0d24cbc9ae9871d65543f8881a97dda7f68d5ceaf10e9975b5342`.
+- Independent signature and complete artifact verification passed; target-host
+  uploaded and installed hashes matched before switching the release pointer.
+- Final backup: `/var/backups/cpa-rust-gateway/scope-fix-20260908T130401Z`.
+- The native entitlement synchronizer successfully read compact refreshed state and
+  recorded `domain=grok_build`, `tier=supergrok`, `source=provider_subscription`,
+  `confidence=authoritative`.
+- Startup performed a third successful refresh; target revision is 3, status is
+  active, failure count is 0, and the next automatic refresh is scheduled.
+- Protected runtime status is `active / available`, with the authoritative tier and
+  a future access-token expiry. Database integrity and foreign keys passed again.
+- Public model listing and one Responses request per Build model passed again on
+  the final binary. Total bounded inference checks in this repair: four requests,
+  two per model across the two deployed revisions, all HTTP 200 / completed.
+- CPAR, Caddy and the independent Autoreg unit are active. Only CPAR was restarted.
+
+**Verdict: PASS for this Grok Build refresh and runtime recovery.** No frontend,
+OpenAPI, Client Key, Pi provider configuration, other channel credential, DNS or
+proxy settings changed. Other missing/expired catalog targets and overall P13-15
+completion remain outside this repair. Pi's existing local model selection still
+contains only `grok-4.5`; the server's authenticated catalog contains both Build IDs.
+Long-term unattended operation beyond the tested refresh cycles is not claimed.
 
 ## Recovery boundary
 

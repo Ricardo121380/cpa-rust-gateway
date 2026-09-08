@@ -1090,3 +1090,22 @@ P13-15E isolation 与正式 Delivery Gate 完成前仍是 `IN_PROGRESS`。
 
 **Other side:** action required；本次 production acceptance 没有新增 OpenAPI shape，需消费的仍是
 上一条已提交的 P13-15C/D 管理契约。
+
+---
+
+## 2026-09-08 · Codex · Grok Build 自动刷新生产修复
+
+**Touched:** `crates/provider-grok/src/oauth.rs`、`apps/gateway/src/grok_admin.rs`、相关回归测试及
+`docs/reports/evidence/grok-build-refresh-scope-recovery-20260908.md`；Oracle CPAR 最终运行
+`928e971eb7d6f520b50ded677803e259d4549cb1`。没有修改前端文件或管理 HTTP 契约。
+
+**Why:** 上游 OAuth 成功响应返回扩展后的 scope，后端原先按字符串完全相等比较，误判刷新失败。
+已改为权限集合包含校验，保留上游 scope 并拒绝必需权限丢失；原生套餐同步/诊断命令也已支持
+自动刷新后的内部凭据格式。
+
+**Claude Code FYI:** 恢复的 Build 账号已三次刷新成功，运行时 `active / available`，套餐为权威
+`grok_build / supergrok`。公网 `grok-4.6`、`grok-4.5` 均通过 Responses 验收。此次无须重新生成
+API client。模型选择器仍应读取授权 `/v1/models`，不要硬编码；其他 Missing/Expired target
+未因这次单账号恢复而变成健康，P13-15 整体状态不变。本机 Pi 的旧配置仍只列 `grok-4.5`。
+
+**Other side:** FYI，无新增前端接线要求；此前未完成的逐 target 状态展示要求仍有效。
