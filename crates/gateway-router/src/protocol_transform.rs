@@ -675,12 +675,37 @@ fn canonical_rejection(
     }
 
     for (position, message) in request.messages.iter().enumerate() {
-        if !message.extensions.is_empty() {
+        if !(message.extensions.is_empty()
+            || target == ProtocolFormat::OpenAiResponses
+                && message.role.0 == "assistant"
+                && message.extensions.iter().all(|(key, raw)| {
+                    let Ok(value) = serde_json::from_str::<serde_json::Value>(raw.get()) else {
+                        return false;
+                    };
+                    match key {
+                        "id" => valid_responses_item_id(&value),
+                        "status" => value.as_str() == Some("completed"),
+                        "phase" => matches!(value.as_str(), Some("commentary" | "final_answer")),
+                        _ => false,
+                    }
+                }))
+        {
             return Err(ProtocolTransformRejection::UnknownMessageExtensions);
         }
         for content in &message.content {
             match content {
-                MessageContent::Text(text) if !text.extensions.is_empty() => {
+                MessageContent::Text(text)
+                    if !(text.extensions.is_empty()
+                        || target == ProtocolFormat::OpenAiResponses
+                            && message.role.0 == "assistant"
+                            && text.extensions.iter().all(|(key, raw)| {
+                                key == "annotations"
+                                    && serde_json::from_str::<serde_json::Value>(raw.get())
+                                        .is_ok_and(|value| {
+                                            value.as_array().is_some_and(Vec::is_empty)
+                                        })
+                            })) =>
+                {
                     return Err(ProtocolTransformRejection::UnknownContentExtensions);
                 }
                 MessageContent::Opaque(_) => {
@@ -691,11 +716,8 @@ fn canonical_rejection(
                         || target == ProtocolFormat::OpenAiResponses
                             && call.extensions.iter().all(|(key, value)| {
                                 key == "id"
-                                    && serde_json::from_str::<String>(value.get()).is_ok_and(|id| {
-                                        !id.is_empty()
-                                            && id.len() <= 512
-                                            && id.bytes().all(|byte| byte.is_ascii_graphic())
-                                    })
+                                    && serde_json::from_str::<serde_json::Value>(value.get())
+                                        .is_ok_and(|value| valid_responses_item_id(&value))
                             })) =>
                 {
                     return Err(ProtocolTransformRejection::UnknownContentExtensions);
@@ -727,6 +749,12 @@ fn canonical_rejection(
     }
 
     validate_target_thinking(request.thinking.as_ref(), target)
+}
+
+fn valid_responses_item_id(value: &serde_json::Value) -> bool {
+    value.as_str().is_some_and(|id| {
+        !id.is_empty() && id.len() <= 512 && id.bytes().all(|byte| byte.is_ascii_graphic())
+    })
 }
 
 fn validate_target_root_extensions(
@@ -1932,6 +1960,75 @@ mod tests {
             let invalid = protocol_openai_responses::decode_request(&body)?;
             assert!(
                 super::canonical_rejection(&invalid.request, ProtocolFormat::OpenAiResponses)
+                    .is_err()
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn responses_assistant_text_replay_preserves_known_metadata() -> Result<(), Box<dyn Error>> {
+        let body = serde_json::json!({"model":"synthetic","input":[
+            {"role":"user","content":"first"},
+            {"type":"message","role":"assistant","id":"msg_replay","status":"completed","phase":"commentary","content":[{"type":"output_text","text":"Checking now","annotations":[]}]},
+            {"type":"function_call","id":"fc_replay","call_id":"call_replay","name":"echo","arguments":"{}"},
+            {"type":"function_call_output","call_id":"call_replay","output":"ok"},
+            {"type":"message","role":"assistant","id":"msg_final","status":"completed","phase":"final_answer","content":[{"type":"output_text","text":"Done","annotations":[]}]},
+            {"role":"user","content":"again"}
+        ]});
+        let decoded = protocol_openai_responses::decode_request(&body.to_string())?;
+        let capabilities = all_capabilities()?;
+        let projected = canonical_projection(project_protocol_request(input(
+            &decoded.request,
+            ProtocolFormat::OpenAiResponses,
+            ProtocolFormat::OpenAiResponses,
+            SnapshotTransformMode::Canonical,
+            NativePayloadAvailability::Unavailable,
+            &capabilities,
+        )))?;
+        assert_eq!(projected.messages, decoded.request.messages);
+        for target in [
+            ProtocolFormat::OpenAiChatCompletions,
+            ProtocolFormat::AnthropicMessages,
+        ] {
+            assert!(
+                project_protocol_request(input(
+                    &decoded.request,
+                    ProtocolFormat::OpenAiResponses,
+                    target,
+                    SnapshotTransformMode::LosslessBridge,
+                    NativePayloadAvailability::Unavailable,
+                    &capabilities
+                ))
+                .is_err()
+            );
+        }
+        for (field, value) in [
+            ("id", serde_json::json!(null)),
+            ("id", serde_json::json!("bad id")),
+            ("status", serde_json::json!("in_progress")),
+            ("phase", serde_json::json!("unknown")),
+            ("vendor", serde_json::json!(true)),
+            ("role", serde_json::json!("user")),
+        ] {
+            let mut invalid = body.clone();
+            invalid["input"][1][field] = value;
+            let parsed = protocol_openai_responses::decode_request(&invalid.to_string())?;
+            assert!(
+                super::canonical_rejection(&parsed.request, ProtocolFormat::OpenAiResponses)
+                    .is_err()
+            );
+        }
+        for annotation in [
+            serde_json::json!(null),
+            serde_json::json!({}),
+            serde_json::json!([{"type":"unknown"}]),
+        ] {
+            let mut invalid = body.clone();
+            invalid["input"][1]["content"][0]["annotations"] = annotation;
+            let parsed = protocol_openai_responses::decode_request(&invalid.to_string())?;
+            assert!(
+                super::canonical_rejection(&parsed.request, ProtocolFormat::OpenAiResponses)
                     .is_err()
             );
         }

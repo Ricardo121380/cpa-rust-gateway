@@ -1,4 +1,4 @@
-// Explicit live acceptance: two inference requests per model; no external tool execution.
+// Explicit live acceptance: four inference requests per model; no external tool execution.
 // Uses the selected existing provider key in memory; never prints credentials or model content.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
@@ -28,5 +28,14 @@ for(const id of modelIds) {
  const first=await run([user],true);const calls=first.content.filter(x=>x.type==='toolCall');assert.equal(calls.length,1);assert.equal(calls[0].name,'diagnostic_echo');assert.deepEqual(calls[0].arguments,{value:'CPAR_TOOL_OK'});
  const result={role:'toolResult',toolCallId:calls[0].id,toolName:'diagnostic_echo',content:[{type:'text',text:'CPAR_TOOL_OK'}],isError:false,timestamp:Date.now()};
  const final=await run([user,first,result],false);assert(final.content.some(x=>x.type==='text'&&x.text.includes('CPAR_TOOL_OK')));assert(!final.content.some(x=>x.type==='toolCall'));
- console.log(JSON.stringify({id,two_turn_tool_loop:'PASS'}));
+ const nextUser={role:'user',content:'Call diagnostic_echo again with value CPAR_TOOL_OK. After its result, reply exactly CPAR_TOOL_OK.',timestamp:Date.now()};
+ const history=[user,first,result,final,nextUser];
+ const next=await run(history,true);
+ const nextCalls=next.content.filter(x=>x.type==='toolCall');
+ assert.equal(nextCalls.length,1);assert.equal(nextCalls[0].name,'diagnostic_echo');assert.deepEqual(nextCalls[0].arguments,{value:'CPAR_TOOL_OK'});
+ const nextResult={...result,toolCallId:nextCalls[0].id,timestamp:Date.now()};
+ const last=await run([...history,next,nextResult],false);
+ assert(last.content.some(x=>x.type==='text'&&x.text.includes('CPAR_TOOL_OK')));
+ assert(!last.content.some(x=>x.type==='toolCall'));
+ console.log(JSON.stringify({id,four_turn_text_and_tool_replay:'PASS'}));
 }
