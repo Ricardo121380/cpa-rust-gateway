@@ -686,7 +686,18 @@ fn canonical_rejection(
                 MessageContent::Opaque(_) => {
                     return Err(ProtocolTransformRejection::OpaqueContent);
                 }
-                MessageContent::ToolCall(call) if !call.extensions.is_empty() => {
+                MessageContent::ToolCall(call)
+                    if !call.extensions.is_empty()
+                        && !(target == ProtocolFormat::OpenAiResponses
+                            && call.extensions.iter().all(|(key, value)| {
+                                key == "id"
+                                    && serde_json::from_str::<String>(value.get()).is_ok_and(|id| {
+                                        !id.is_empty()
+                                            && id.len() <= 512
+                                            && id.bytes().all(|byte| byte.is_ascii_graphic())
+                                    })
+                            })) =>
+                {
                     return Err(ProtocolTransformRejection::UnknownContentExtensions);
                 }
                 MessageContent::ToolResult(result) if !result.extensions.is_empty() => {
@@ -1886,6 +1897,45 @@ mod tests {
                 Err(std::io::Error::other("typed mode returned native projection").into())
             }
         }
+    }
+
+    #[test]
+    fn responses_tool_replay_preserves_item_id_without_admitting_unknown_extensions()
+    -> Result<(), Box<dyn Error>> {
+        let decoded = protocol_openai_responses::decode_request(
+            r#"{"model":"test","input":[{"type":"function_call","id":"fc_replay","call_id":"call_replay","name":"echo","arguments":"{}"},{"type":"function_call_output","call_id":"call_replay","output":"ok"}]}"#,
+        )?;
+        super::canonical_rejection(&decoded.request, ProtocolFormat::OpenAiResponses)?;
+        assert!(
+            super::canonical_rejection(&decoded.request, ProtocolFormat::OpenAiChatCompletions)
+                .is_err()
+        );
+        let MessageContent::ToolCall(call) = &decoded.request.messages[0].content[0] else {
+            return Err("missing tool".into());
+        };
+        assert_eq!(
+            call.extensions
+                .iter()
+                .next()
+                .map(|(key, value)| (key, value.get())),
+            Some(("id", "\"fc_replay\""))
+        );
+        for extra in [
+            r#""id":null"#,
+            r#""id":"""#,
+            r#""id":"bad id""#,
+            r#""unexpected":"value""#,
+        ] {
+            let body = format!(
+                r#"{{"model":"test","input":[{{"type":"function_call","call_id":"call","name":"echo","arguments":"{{}}",{extra}}}]}}"#
+            );
+            let invalid = protocol_openai_responses::decode_request(&body)?;
+            assert!(
+                super::canonical_rejection(&invalid.request, ProtocolFormat::OpenAiResponses)
+                    .is_err()
+            );
+        }
+        Ok(())
     }
 
     #[test]
