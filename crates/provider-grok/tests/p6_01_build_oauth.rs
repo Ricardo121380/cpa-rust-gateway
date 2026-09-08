@@ -588,6 +588,46 @@ fn refresh_requires_a_matching_client_and_never_exposes_form_secrets() -> Result
     Ok(())
 }
 
+#[test]
+fn refresh_accepts_expanded_reordered_scopes_and_preserves_them() -> Result<(), Box<dyn Error>> {
+    let credential = GrokBuildCredential::import_json(
+        br#"{"access_token":"synthetic_access","refresh_token":"synthetic_refresh","expires_in":3600}"#,
+        0,
+    )?;
+    let scopes = "workspaces:write conversations:read api:access grok-cli:access offline_access email profile openid conversations:write workspaces:read";
+    let body = format!(
+        r#"{{"access_token":"synthetic_new_access","refresh_token":"synthetic_new_refresh","expires_in":21600,"token_type":"Bearer","scope":"{scopes}"}}"#
+    );
+    let transport = ScriptedTransport::new(vec![response(200, body.as_bytes())?]);
+    let refreshed = GrokBuildOAuthFlow::default().refresh(&transport, &credential, 1_000)?;
+    assert_eq!(refreshed.scope(), scopes);
+    assert_eq!(refreshed.refresh_token(), "synthetic_new_refresh");
+    let persisted = format!(
+        r#"{{"access_token":"synthetic_new_access","refresh_token":"synthetic_new_refresh","expires_at":"1970-01-01T06:00:01Z","scope":"{scopes}"}}"#
+    );
+    let imported = GrokBuildCredential::import_refreshable_runtime(persisted.as_bytes(), 2_000)?;
+    assert_eq!(imported.scope(), scopes);
+    let transport = ScriptedTransport::new(vec![response(200, body.as_bytes())?]);
+    assert_eq!(
+        GrokBuildOAuthFlow::default()
+            .refresh(&transport, &imported, 2_000)?
+            .scope(),
+        scopes
+    );
+    // A subsequent refresh must preserve even the additional scopes already granted.
+    let downgraded = format!(
+        r#"{{"access_token":"synthetic_next","refresh_token":"synthetic_next_refresh","expires_in":21600,"scope":"{GROK_BUILD_OAUTH_SCOPE}"}}"#
+    );
+    let transport = ScriptedTransport::new(vec![response(200, downgraded.as_bytes())?]);
+    assert!(matches!(
+        GrokBuildOAuthFlow::default().refresh(&transport, &refreshed, 2_000),
+        Err(GrokBuildOAuthError::InvalidTokenResponse)
+    ));
+    let missing = persisted.replace("api:access ", "");
+    assert!(GrokBuildCredential::import_refreshable_runtime(missing.as_bytes(), 2_000).is_err());
+    Ok(())
+}
+
 struct ScriptedTransport {
     responses: Mutex<VecDeque<GrokBuildOAuthHttpResponse>>,
     observed: Mutex<Vec<(GrokBuildOAuthEndpoint, GrokBuildOAuthRequestKind)>>,

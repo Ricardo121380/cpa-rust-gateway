@@ -1110,7 +1110,7 @@ fn credential_from_absolute_expiry_object(
         return Err(GrokBuildOAuthError::CredentialClientMismatch);
     }
     let scope = optional_scope_field(object, "scope")?.unwrap_or(GROK_BUILD_OAUTH_SCOPE);
-    if scope != GROK_BUILD_OAUTH_SCOPE {
+    if !scope_contains(scope, GROK_BUILD_OAUTH_SCOPE) {
         return Err(GrokBuildOAuthError::InvalidTokenResponse);
     }
 
@@ -1256,7 +1256,7 @@ fn credential_from_object(
         .unwrap_or(GROK_BUILD_OAUTH_SCOPE)
         .to_owned();
     validate_scope(&scope)?;
-    if required_scope.is_some_and(|expected| expected != scope) {
+    if required_scope.is_some_and(|expected| !scope_contains(&scope, expected)) {
         return Err(GrokBuildOAuthError::InvalidTokenResponse);
     }
 
@@ -1267,6 +1267,16 @@ fn credential_from_object(
         client_id,
         scope,
         source,
+    })
+}
+
+// OAuth scopes are a set. The issuer may return additional granted scopes or reorder them;
+// neither invalidates the refresh, but losing a required scope still fails closed.
+fn scope_contains(actual: &str, required: &str) -> bool {
+    required.split_ascii_whitespace().all(|scope| {
+        actual
+            .split_ascii_whitespace()
+            .any(|granted| granted == scope)
     })
 }
 
