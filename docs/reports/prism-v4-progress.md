@@ -348,6 +348,17 @@ Provider/Channel/Account与旧页ordinal，再读取最多limit+1条并复用原
 水位和旧页位置；2项failure-feedback回归改为验证真实存储读取并通过，gateway Clippy通过。
 用量读取仍需修复，B2尚未整体完成；B4与完整M4仍待实施。
 
+## B2 用量流式关联基础
+
+新增 visit_usage_lineages：在一个读事务中固定事件ordinal上界，关联每个Usage的Request与
+最新Attempt，将时间/身份过滤和分组keyset位置交给SQL，按分组键有序回调。完整筛选范围的
+observed-through独立计算，不因续页位置缩小；回调可在收集足够分组后停止，不创建全历史
+事件向量。缺失/冲突链路失败关闭，保留原有语义。
+
+新增大历史回归通过：100005条无Usage的请求历史不影响两个有效用量链路，分组顺序、
+时间过滤、续页全局观察时间、新增事件被旧snapshot排除均核对；孤立Usage被拒绝。
+store Clippy通过。当前仍是存储基础，生产用量聚合与HTTP游标快照接线需继续，B2未完成。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、

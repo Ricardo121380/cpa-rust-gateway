@@ -74,6 +74,31 @@ pub struct StoredGatewayEvent {
     event: GatewayEvent,
 }
 
+/// Storage predicates for a consistent usage-lineage traversal.
+#[derive(Clone, Debug, Default)]
+#[allow(missing_docs)]
+pub struct UsageEventQuery<'query> {
+    pub from_ms: Option<i64>,
+    pub to_ms: Option<i64>,
+    pub provider_id: Option<&'query str>,
+    pub channel_id: Option<&'query str>,
+    pub account_id: Option<&'query str>,
+    pub public_model: Option<&'query str>,
+    pub client_key_id: Option<&'query str>,
+    pub access_group_id: Option<&'query str>,
+    pub protocol: Option<&'query str>,
+    pub snapshot_ordinal: Option<i64>,
+    pub after: Option<[&'query str; 7]>,
+}
+
+/// Observation metadata over all filtered usage groups, independent of the page position.
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub struct UsageEventRead {
+    pub snapshot_ordinal: Option<i64>,
+    pub observed_through_ms: Option<i64>,
+}
+
 /// Bounded newest-first Attempt-failure selection for management reads.
 #[derive(Clone, Copy, Debug, Default)]
 #[allow(missing_docs)]
@@ -404,6 +429,142 @@ impl SqliteEventStore {
              FROM gateway_event_log WHERE event_ordinal > ?1 ORDER BY event_ordinal LIMIT ?2",
             rusqlite::params![ordinal, limit],
         )
+    }
+
+    /// Streams complete Request/latest Attempt/Usage lineages in stable aggregation-key order.
+    ///
+    /// The visitor may stop after enough groups; global filtered observation metadata is computed
+    /// separately in the same read transaction. No complete history vector is constructed.
+    ///
+    /// # Errors
+    /// Returns an error for inconsistent lineage, malformed selected events or storage failure.
+    #[allow(clippy::too_many_lines)] // Keep snapshot, filtered metadata and ordered traversal in one audited transaction.
+    pub fn visit_usage_lineages<F>(
+        &self,
+        query: &UsageEventQuery<'_>,
+        mut visitor: F,
+    ) -> StoreResult<UsageEventRead>
+    where
+        F: FnMut(
+            &gateway_core::RequestEvent,
+            &gateway_core::AttemptEvent,
+            &gateway_core::UsageEvent,
+        ) -> StoreResult<bool>,
+    {
+        if query.snapshot_ordinal.is_some_and(|id| id < 0)
+            || query.from_ms.is_some_and(|time| time < 0)
+            || query.to_ms.is_some_and(|time| time < 0)
+            || matches!((query.from_ms, query.to_ms), (Some(from), Some(to)) if from > to)
+        {
+            return Err(StoreError::InvalidPersistedGatewayEvent);
+        }
+        let transaction = self.connection.unchecked_transaction()?;
+        let maximum: Option<i64> = transaction.query_row(
+            "SELECT MAX(event_ordinal) FROM gateway_event_log",
+            [],
+            |row| row.get(0),
+        )?;
+        let snapshot = query.snapshot_ordinal.or(maximum);
+        let from = query.from_ms.unwrap_or(0);
+        let to = query.to_ms.unwrap_or(i64::MAX);
+        let cte = "WITH lineages AS (
+            SELECT u.request_id,
+            (SELECT r.payload_json FROM gateway_event_log r WHERE r.event_type='request' AND r.request_id=u.request_id AND r.event_ordinal<=?1 LIMIT 1) AS r,
+            (SELECT a.payload_json FROM gateway_event_log a WHERE a.event_type='attempt' AND a.request_id=u.request_id AND a.event_ordinal<=?1 ORDER BY json_extract(a.payload_json, '$.attempt.attempt_number') DESC LIMIT 1) AS a,
+            MIN(u.payload_json) AS u, COUNT(DISTINCT u.payload_json) AS usage_count
+            FROM gateway_event_log u WHERE u.event_type='usage' AND u.event_ordinal<=?1 GROUP BY u.request_id
+        ), projected AS (
+            SELECT r,a,u,usage_count,
+            json_extract(a,'$.attempt.ended_at_ms') AS observed,
+            json_extract(a,'$.attempt.upstream_id') AS provider,
+            json_extract(a,'$.attempt.endpoint_id') AS channel,
+            json_extract(a,'$.attempt.credential_id') AS account,
+            json_extract(r,'$.request.public_model') AS model,
+            json_extract(r,'$.request.protocol') AS protocol,
+            json_extract(r,'$.request.client_key_id') AS client,
+            COALESCE(json_extract(r,'$.request.access_group_id'),'') AS access_group,
+            (r IS NULL OR a IS NULL OR usage_count<>1 OR json_extract(a,'$.attempt.outcome')<>'succeeded') AS invalid
+            FROM lineages
+        ), filtered AS (
+            SELECT * FROM projected WHERE invalid OR (observed>=?2 AND observed<=?3
+            AND (?4 IS NULL OR provider=?4) AND (?5 IS NULL OR channel=?5)
+            AND (?6 IS NULL OR account=?6) AND (?7 IS NULL OR model=?7)
+            AND (?8 IS NULL OR client=?8) AND (?9 IS NULL OR access_group=?9)
+            AND (?10 IS NULL OR protocol=?10))
+        )";
+        let (observed, invalid): (Option<i64>, Option<i64>) = transaction.query_row(
+            &format!("{cte} SELECT MAX(observed), MAX(invalid) FROM filtered"),
+            rusqlite::params![
+                snapshot.unwrap_or(0),
+                from,
+                to,
+                query.provider_id,
+                query.channel_id,
+                query.account_id,
+                query.public_model,
+                query.client_key_id,
+                query.access_group_id,
+                query.protocol,
+            ],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+        if invalid.is_some_and(|value| value != 0) {
+            return Err(StoreError::InvalidPersistedGatewayEvent);
+        }
+        {
+            let after = query.after.unwrap_or([""; 7]);
+            let mut statement = transaction.prepare(&format!("{cte} SELECT r,a,u FROM filtered
+                WHERE (?11=0 OR (provider,channel,account,model,protocol,client,access_group)>(?12,?13,?14,?15,?16,?17,?18))
+                ORDER BY provider,channel,account,model,protocol,client,access_group"))?;
+            let mut rows = statement.query(rusqlite::params![
+                snapshot.unwrap_or(0),
+                from,
+                to,
+                query.provider_id,
+                query.channel_id,
+                query.account_id,
+                query.public_model,
+                query.client_key_id,
+                query.access_group_id,
+                query.protocol,
+                query.after.is_some(),
+                after[0],
+                after[1],
+                after[2],
+                after[3],
+                after[4],
+                after[5],
+                after[6]
+            ])?;
+            while let Some(row) = rows.next()? {
+                let decode = |column| -> StoreResult<GatewayEvent> {
+                    let value: String = row.get(column)?;
+                    serde_json::from_str(&value)
+                        .map_err(|_| StoreError::InvalidPersistedGatewayEvent)
+                };
+                let (
+                    GatewayEvent::Request(request),
+                    GatewayEvent::Attempt(attempt),
+                    GatewayEvent::Usage(usage),
+                ) = (decode(0)?, decode(1)?, decode(2)?)
+                else {
+                    return Err(StoreError::InvalidPersistedGatewayEvent);
+                };
+                if request.request_id() != attempt.request_id()
+                    || request.request_id() != usage.request_id()
+                {
+                    return Err(StoreError::InvalidPersistedGatewayEvent);
+                }
+                if !visitor(&request, &attempt, &usage)? {
+                    break;
+                }
+            }
+        }
+        transaction.commit()?;
+        Ok(UsageEventRead {
+            snapshot_ordinal: snapshot,
+            observed_through_ms: observed,
+        })
     }
 
     /// Filters failure Attempts before decoding and paging, without a global history ceiling.
@@ -1096,6 +1257,107 @@ mod tests {
             HealthEventKind::CircuitRecovered,
         ));
         Ok((request_id, vec![request, attempt, usage, health]))
+    }
+
+    #[test]
+    fn usage_lineages_stream_in_key_order_with_snapshot_and_complete_observation()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteEventStore::open_in_memory()?;
+        let template = serde_json::to_string(&request_event(1)?)?;
+        store.connection.execute("WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<100005)
+            INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json)
+            SELECT 'request','unused-'||x,'unused-'||x,json_set(?1,'$.request.request_id','unused-'||x) FROM n", [template])?;
+        let append = |store: &mut SqliteEventStore,
+                      sequence: u32,
+                      client: &str,
+                      ended: i64|
+         -> Result<(), Box<dyn std::error::Error>> {
+            let id = RequestId::try_new(format!("usage-stream-{sequence}"))?;
+            store.append_batch(&[
+                GatewayEvent::Request(RequestEvent::new(
+                    id.clone(),
+                    ClientKeyId::try_new(client)?,
+                    None,
+                    GatewayProtocol::OpenAiResponses,
+                    "model-01".to_owned(),
+                    "model-01".to_owned(),
+                    None,
+                    false,
+                )),
+                GatewayEvent::Attempt(AttemptEvent::new(
+                    id.clone(),
+                    1,
+                    RouteId::try_new("route-01")?,
+                    RouteCandidateId::try_new("candidate-01")?,
+                    CredentialId::try_new("credential-01")?,
+                    EndpointId::try_new("endpoint-01")?,
+                    UpstreamId::try_new("upstream-01")?,
+                    "exact-model".to_owned(),
+                    ended - 1,
+                    ended,
+                    AttemptOutcome::Succeeded,
+                    AttemptRetryDecision::Completed,
+                )),
+                usage_event(
+                    id.as_str(),
+                    &format!("response-{sequence}"),
+                    u64::from(sequence),
+                )?,
+            ])?;
+            Ok(())
+        };
+        append(&mut store, 1, "client-b", 100)?;
+        append(&mut store, 2, "client-a", 200)?;
+        let mut seen = Vec::new();
+        let metadata =
+            store.visit_usage_lineages(&super::UsageEventQuery::default(), |request, _, _| {
+                seen.push(request.client_key_id().as_str().to_owned());
+                Ok(true)
+            })?;
+        assert_eq!(seen, vec!["client-a", "client-b"]);
+        assert_eq!(metadata.observed_through_ms, Some(200));
+        append(&mut store, 3, "client-c", 300)?;
+        seen.clear();
+        let query = super::UsageEventQuery {
+            snapshot_ordinal: metadata.snapshot_ordinal,
+            after: Some([
+                "upstream-01",
+                "endpoint-01",
+                "credential-01",
+                "model-01",
+                "openai_responses",
+                "client-a",
+                "",
+            ]),
+            ..super::UsageEventQuery::default()
+        };
+        let continued = store.visit_usage_lineages(&query, |request, _, _| {
+            seen.push(request.client_key_id().as_str().to_owned());
+            Ok(true)
+        })?;
+        assert_eq!(seen, vec!["client-b"]);
+        assert_eq!(continued, metadata);
+        let mut count = 0;
+        let filtered = store.visit_usage_lineages(
+            &super::UsageEventQuery {
+                from_ms: Some(150),
+                to_ms: Some(250),
+                ..super::UsageEventQuery::default()
+            },
+            |_, _, _| {
+                count += 1;
+                Ok(true)
+            },
+        )?;
+        assert_eq!(count, 1);
+        assert_eq!(filtered.observed_through_ms, Some(200));
+        store.append_batch(&[usage_event("orphan-request", "orphan-response", 1)?])?;
+        assert!(
+            store
+                .visit_usage_lineages(&super::UsageEventQuery::default(), |_, _, _| Ok(true))
+                .is_err()
+        );
+        Ok(())
     }
 
     #[test]
