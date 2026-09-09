@@ -14,6 +14,9 @@ test("serving model contexts stay separate and source links preserve exact IDs",
   await panel.getByRole("button", { name: "模型来源" }).click();
   const inspector = page.getByRole("dialog");
   await expect(inspector).toContainText("endpoint-exact-beta");
+  await expect(inspector).toContainText("目录 v7");
+  await expect(inspector).toContainText("硬过期");
+  await expect(inspector).toContainText("目录准入有效");
   await inspector.getByRole("link", { name: "在诊断中检查该模型" }).click();
   await expect(page.getByLabel("请求模型", { exact: true })).toHaveValue("exact-beta");
   await navigate(page, "模型目录");

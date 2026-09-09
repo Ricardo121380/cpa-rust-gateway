@@ -1449,3 +1449,23 @@ the shared client, with matching DTOs. Six focused Chromium tests, type-check an
 four-file/CSP/double-build gate passed. Group switch clears prior model results;
 revoked Key errors do not retain the previous identity's models. Real gateway and
 catalog expiry/snapshot evidence remain unfinished work in this Goal.
+
+
+## 2026-09-10 — Codex / B3 catalog completion timestamps and source evidence
+
+**What:** Updated `apps/gateway/src/runtime.rs` to resample time before per-account
+admission, after discovery completion and before publication. Added pinned catalog
+evidence to `crates/gateway-http-actix/src/management_resources.rs` and authority
+`docs/openapi/management-v1.json`; ran sync-contract. Updated
+`web/prism/contracts/management-v1.json`,
+`web/prism/src/features/catalog/EffectiveModels.tsx`,
+`web/prism/src/dev/fixtures.ts` and `web/prism/e2e/effective-models.spec.ts`.
+
+**Why:** Avoid using a slow pass's start time for completed observations. Display
+per-Credential durable version and deadlines from the exact serving snapshot,
+with current catalog admission and an explicit unobserved state.
+
+**Other side:** FYI under full-stack authorization. Source.catalog_evidence is now
+required; no secrets are included. Contract/HTTP tests, gateway Clippy, type-check,
+source-evidence Chromium flow and four-file/CSP gate passed. Delayed real-loopback
+refresh and final gateway acceptance remain pending; no real Provider was contacted.

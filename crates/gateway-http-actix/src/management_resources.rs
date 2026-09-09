@@ -1503,6 +1503,23 @@ pub enum ManagementEffectiveModelContext {
     ClientKey(ClientKeyId),
 }
 
+/// Per-Credential durable catalog evidence pinned in the serving snapshot.
+#[derive(Clone, Debug, Serialize)]
+pub struct ManagementModelCatalogEvidence {
+    /// Safe Credential identity, never secret material.
+    pub credential_id: String,
+    /// Per-target catalog version.
+    pub version: u64,
+    /// Last successful observation time.
+    pub observed_at_ms: i64,
+    /// Soft-staleness deadline.
+    pub stale_at_ms: i64,
+    /// Hard-expiry deadline for new admission.
+    pub expires_at_ms: i64,
+    /// Whether this exact binding's Catalog admits the model at query time.
+    pub catalog_eligible: bool,
+}
+
 /// Safe compiler provenance for one exact model Candidate.
 #[derive(Clone, Debug, Serialize)]
 pub struct ManagementEffectiveModelSource {
@@ -1516,6 +1533,8 @@ pub struct ManagementEffectiveModelSource {
     pub api_format: String,
     /// Compiler admission category; not runtime health or entitlement.
     pub catalog_admission: &'static str,
+    /// Empty means no durable discovery observation, not zero-valued evidence.
+    pub catalog_evidence: Vec<ManagementModelCatalogEvidence>,
 }
 
 /// One exact model visible to the selected serving authorization context.

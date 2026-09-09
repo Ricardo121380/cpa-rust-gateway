@@ -21,6 +21,14 @@ export type EffectiveModel = Readonly<{
     endpoint_id: string;
     upstream_id: string;
     api_format: string;
+    catalog_evidence: readonly Readonly<{
+      credential_id: string;
+      version: number;
+      observed_at_ms: number;
+      stale_at_ms: number;
+      expires_at_ms: number;
+      catalog_eligible: boolean;
+    }>[];
     catalog_admission:
       | "manual"
       | "fresh"
@@ -230,6 +238,31 @@ export function EffectiveModels() {
                 <dt>编译目录准入</dt>
                 <dd>{source.catalog_admission}</dd>
               </div>
+              {source.catalog_evidence.length === 0 ? (
+                <div>
+                  <dt>目录观测</dt>
+                  <dd>未观测</dd>
+                </div>
+              ) : (
+                source.catalog_evidence.map((evidence) => (
+                  <div key={evidence.credential_id}>
+                    <dt>
+                      {evidence.credential_id} · 目录 v{evidence.version}
+                    </dt>
+                    <dd>
+                      观测 {new Date(evidence.observed_at_ms).toLocaleString()}
+                      <br />
+                      软过期 {new Date(evidence.stale_at_ms).toLocaleString()}
+                      <br />
+                      硬过期 {new Date(evidence.expires_at_ms).toLocaleString()}
+                      <br />
+                      {evidence.catalog_eligible
+                        ? "目录准入有效"
+                        : "目录不准入"}
+                    </dd>
+                  </div>
+                ))
+              )}
             </dl>
           ))}
           <Link

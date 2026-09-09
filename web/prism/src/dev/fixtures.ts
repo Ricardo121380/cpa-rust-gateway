@@ -991,7 +991,8 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       return json(200, {config_version: version.id, access_group_id: group.id, client_key_id: keyId,
         projection_id: projectionId, observed_at_ms: Date.now(), next_cursor: null,
         items: [{id: modelId, public_model_id: `public-${modelId}`, public_model_name: `Public ${modelId}`, route_id: `route-${modelId}`,
-          sources: [{candidate_id: `candidate-${modelId}`, endpoint_id: `endpoint-${modelId}`, upstream_id: `upstream-${modelId}`, api_format: "openai/responses", catalog_admission: "manual"}]}]});
+          sources: [{candidate_id: `candidate-${modelId}`, endpoint_id: `endpoint-${modelId}`, upstream_id: `upstream-${modelId}`, api_format: "openai/responses", catalog_admission: "fresh", catalog_evidence: [{credential_id: `credential-${modelId}`, version: 7,
+            observed_at_ms: Date.now() - 1000, stale_at_ms: Date.now() + 60000, expires_at_ms: Date.now() + 120000, catalog_eligible: true}]}]}]});
     }
 
     const routingLists = {

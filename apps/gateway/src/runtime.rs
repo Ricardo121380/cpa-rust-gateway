@@ -3500,12 +3500,7 @@ impl RuntimeModelCatalogWorker {
     pub(crate) async fn run(self) {
         let worker = Arc::new(self);
         loop {
-            let Ok(observed_at_ms) = system_now_ms_runtime() else {
-                tracing::warn!(target: "model_catalog", "model Catalog clock unavailable");
-                actix_web::rt::time::sleep(MODEL_CATALOG_RUNTIME_INTERVAL).await;
-                continue;
-            };
-            if let Ok((attempted, succeeded)) = worker.run_once(observed_at_ms).await {
+            if let Ok((attempted, succeeded)) = worker.run_once().await {
                 tracing::info!(
                     target: "model_catalog",
                     attempted,
@@ -3522,10 +3517,7 @@ impl RuntimeModelCatalogWorker {
         }
     }
 
-    async fn run_once(
-        &self,
-        observed_at_ms: i64,
-    ) -> Result<(usize, usize), RuntimeCompositionError> {
+    async fn run_once(&self) -> Result<(usize, usize), RuntimeCompositionError> {
         let mut attempted = 0_usize;
         let mut succeeded = 0_usize;
         for target in &self.targets {
@@ -3540,6 +3532,8 @@ impl RuntimeModelCatalogWorker {
                 })
                 .unwrap_or_default();
             for credential_id in credential_ids {
+                // Previous network work may have crossed both lease and Catalog deadlines.
+                let observed_at_ms = system_now_ms_runtime()?;
                 let catalog_target =
                     ModelCatalogTarget::new(target.endpoint_id.clone(), credential_id.clone());
                 let refresh_due = self
@@ -3563,6 +3557,8 @@ impl RuntimeModelCatalogWorker {
                     .discover(target, catalog_target.clone(), &lease, observed_at_ms)
                     .await;
                 drop(lease);
+                // Persist the completed observation, not the beginning of a potentially slow pass.
+                let completed_at_ms = system_now_ms_runtime()?;
                 match discovery {
                     Ok(models) => {
                         self.store
@@ -3570,7 +3566,7 @@ impl RuntimeModelCatalogWorker {
                                 &self.config_version_id,
                                 &catalog_target,
                                 models,
-                                observed_at_ms,
+                                completed_at_ms,
                             )
                             .map_err(|_| {
                                 RuntimeCompositionError::Stage(RuntimeCompositionStage::Snapshot)
@@ -3582,7 +3578,7 @@ impl RuntimeModelCatalogWorker {
                             .record_failure(
                                 &self.config_version_id,
                                 &catalog_target,
-                                observed_at_ms,
+                                completed_at_ms,
                                 catalog_failure_class(error.code()),
                             )
                             .map_err(|_| {
@@ -3592,7 +3588,7 @@ impl RuntimeModelCatalogWorker {
                 }
             }
         }
-        self.publish_durable(observed_at_ms)?;
+        self.publish_durable(system_now_ms_runtime()?)?;
         Ok((attempted, succeeded))
     }
 
@@ -7301,6 +7297,13 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
                         endpoint_id: candidate.endpoint_id().as_str().to_owned(),
                         upstream_id: candidate.upstream_id().as_str().to_owned(),
                         api_format: candidate.endpoint_api_format().to_owned(),
+                        catalog_evidence: candidate.catalog_evidence().map(|(id, evidence)|
+                            gateway_http_actix::management_resources::ManagementModelCatalogEvidence {
+                                credential_id: id.as_str().to_owned(), version: evidence.version,
+                                observed_at_ms: evidence.observed_at_ms, stale_at_ms: evidence.stale_at_ms,
+                                expires_at_ms: evidence.expires_at_ms,
+                                catalog_eligible: candidate.allows_credential_at(id, observed_at_ms),
+                            }).collect(),
                         catalog_admission: match candidate.catalog_admission() {
                             SnapshotCatalogAdmission::AllowedUnlisted => "allowed_unlisted",
                             SnapshotCatalogAdmission::Listed(CatalogModelState::Manual) => "manual",

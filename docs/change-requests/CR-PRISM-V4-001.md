@@ -67,3 +67,11 @@ Access Group ID 或 Client Key ID；不接收 Client Key secret。复用数据�
 observed_at_ms、items、next_cursor。projection_id 是投影指纹，不冒充目录 snapshot 版本；
 source 当前表达 Candidate/Endpoint/Upstream、协议和编译目录准入。目录 snapshot 的观测
 时间、版本和硬过期证据仍需在 B3 中接通，未作为空值或猜测值伪造。
+
+## BE-FE-01 / B3 目录证据定稿（2026-09-10）
+
+EffectiveModelSource 新增必需 catalog_evidence 数组，元素为闭合 ModelCatalogEvidence：
+credential_id、version、observed_at_ms、stale_at_ms、expires_at_ms、catalog_eligible。
+证据来自当前 serving Candidate 固定的 durable discovery snapshot，不在查询时拼接另一个
+最新目录。catalog_eligible 使用查询时刻判断；没有持久观测为 []，前端显示“未观测”。
+这些证据参与 projection_id，变化导致续页409。权威契约定稿后已运行 sync-contract。

@@ -222,6 +222,18 @@ exact 解析使用该时刻；管理 facade 使用查询时刻。Explain 同时�
 认证模型列表为空/解析 Absent，旧认证对象仍保留99时视图。gateway bin Clippy 与 diff
 检查通过。刷新完成时间纠正、目录证据 HTTP/UI 投影和真实在途网关验收仍需完成。
 
+## B3 刷新时钟与目录证据
+
+刷新 worker 不再复用整个 pass 的起始时刻；每个账号准入、网络完成后的成功/失败记录、
+最终快照发布分别读取当前时钟。来源投影新增同一 serving snapshot 的逐 Credential
+目录版本/observed/stale/expires 和当前目录准入布尔值；模型详情显示这些证据，缺失时
+标记“未观测”。权威契约已同步，source 的证据也参与分页投影指纹。
+
+本批通过：已有 catalog status runtime 回归、13 项契约测试、4 项 runtime HTTP 测试、
+gateway bin Clippy、前端类型检查、包含 v7/硬过期/准入展示断言的 Chromium 流程及
+四文件/CSP/双构建门禁。未用这些测试冒充慢 discovery 的真实 loopback 回归或完整 M4。
+B3 仍需最终真实网关/在途验收；计费 B1/B2 与 B4 维护仍为当前待实施项。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、
