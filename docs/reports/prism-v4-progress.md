@@ -417,3 +417,20 @@ SPA 双构建门禁通过。新增测试初次草稿 ID/表格定位有误，修
 
 此脚本当前覆盖真实管理初始化，尚未覆盖 mock Provider 请求、计费结果、发布/重启、全页
 浏览器与大样本验收。M4 未完成，继续扩展同一验收工具，不以本批 smoke 代替完整交付。
+
+## M4 管理创建新 Endpoint 的真实发布修复
+
+真实 serve 从空状态运行后，发现启动时固定的 Endpoint 能力表无法识别后续管理创建的
+Endpoint，导致整份配置校验/发布返回 409。RouteCompiler 新增可信 Adapter 能力表模式，
+按每份配置当前 Endpoint 的 adapter_id 查能力；未知 Adapter 失败关闭。serve 注入当前构建
+支持的保守能力表，保留原静态 Endpoint 证据模式给既有调用方。
+
+新增 Endpoint / 未知 Adapter 回归、各版本独立 Adapter 能力回归、15 项 RouteCompiler
+回归与 gateway Clippy 通过。真实验收脚本扩展 TLS loopback mock（临时自签 CA 仅由测试
+进程 SSL_CERT_FILE 使用，不安装到系统）和上游、绑定、候选 PATCH、Access Group / Key
+管理写入，随后真实校验与发布通过。无 discovery 场景显式启用已有 allow_unlisted_model，
+目录证据/硬过期另需验收。共 9 项真实管理/嵌入检查通过，mock 请求/账本尚未执行。
+证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-lx2z1wap/evidence.json`。
+
+当前 runtime 装配文档明确：空启动后发布需重启本地进程以装配凭据池和数据面。接下来需
+验证该真实重启路径、有效模型、Provider 请求和计费；不能把已发布误报为数据面已切换。

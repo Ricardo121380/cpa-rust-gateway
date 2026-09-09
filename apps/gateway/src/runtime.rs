@@ -34,8 +34,8 @@ use crate::provider_egress_status_adapter::{
 use gateway_auth::client_key::ClientKeyService;
 use gateway_catalog::{
     CapabilitySet, CatalogDiscoveryFailureClass, CatalogModelState, CatalogSnapshotFreshness,
-    CatalogView, EndpointCapabilityEntry, EndpointCapabilityView, ModelCatalogScheduler,
-    ModelCatalogTarget, SemanticCapability, SqliteCatalogSnapshotStore,
+    CatalogView, ModelCatalogScheduler, ModelCatalogTarget, SemanticCapability,
+    SqliteCatalogSnapshotStore,
 };
 use gateway_control::{
     compatible_egress_runtime_compiler::{
@@ -543,42 +543,27 @@ type P12ExecutorComposition = (
 pub(crate) fn deployment_route_compiler(
     database: &Path,
 ) -> Result<RouteCompiler, RuntimeCompositionError> {
-    let mut repository = SqliteControlPlaneRepository::open(database)
+    // Opening validates the state database, but capability profiles are bound to adapter
+    // implementations, not whichever endpoint IDs happened to exist at bootstrap.
+    SqliteControlPlaneRepository::open(database)
         .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::ControlPlane))?;
-    let versions = repository
-        .list_config_versions()
-        .map_err(|_| RuntimeCompositionError::Unavailable)?;
-    let mut endpoint_capabilities = BTreeMap::new();
-    for version in versions {
-        let Some(configuration) = repository
-            .load_configuration(&version.id)
-            .map_err(|_| RuntimeCompositionError::Unavailable)?
-        else {
-            continue;
-        };
-        for endpoint in configuration.endpoints {
-            let capabilities = p12_adapter_capabilities(&endpoint.adapter_id)?;
-            if let Some((existing_adapter, existing_capabilities)) =
-                endpoint_capabilities.get(&endpoint.id)
-            {
-                if existing_adapter != &endpoint.adapter_id
-                    || existing_capabilities != &capabilities
-                {
-                    return Err(RuntimeCompositionError::Unavailable);
-                }
-            } else {
-                endpoint_capabilities.insert(endpoint.id, (endpoint.adapter_id, capabilities));
-            }
-        }
+    let mut profiles = BTreeMap::new();
+    for adapter in [
+        "openai-compatible.chat-completions",
+        "openai-compatible.responses",
+        "anthropic-compatible.messages",
+        "grok.official.responses",
+        "grok.build.responses",
+        "grok.console.responses",
+        "kiro.messages",
+        "grok.web.responses",
+    ] {
+        profiles.insert(adapter.to_owned(), p12_adapter_capabilities(adapter)?);
     }
-    let capabilities = EndpointCapabilityView::try_new(endpoint_capabilities.into_iter().map(
-        |(endpoint_id, (_adapter_id, capabilities))| EndpointCapabilityEntry {
-            endpoint_id,
-            capabilities,
-        },
+    Ok(RouteCompiler::with_adapter_capabilities(
+        CatalogView::default(),
+        profiles,
     ))
-    .map_err(|_| RuntimeCompositionError::Unavailable)?;
-    Ok(RouteCompiler::new(CatalogView::default(), capabilities))
 }
 
 /// Returns the conservative semantic capabilities proved by this build for one adapter.
@@ -10202,14 +10187,18 @@ mod tests {
     }
 
     #[test]
-    fn deployment_compiler_profiles_only_stored_endpoints() -> Result<(), Box<dyn Error>> {
+    fn deployment_compiler_profiles_new_endpoints_and_rejects_unknown_adapters()
+    -> Result<(), Box<dyn Error>> {
         let directory = TemporaryDirectory::new()?;
         let database = directory.join("control.sqlite3");
         let secret_store = test_secret_store()?;
         let configuration = p12_widened_configuration(&secret_store, &p12_production_network())?;
 
         let empty = deployment_route_compiler(&database)?;
-        assert!(empty.compile(&configuration).is_err());
+        assert!(empty.compile(&configuration).is_ok());
+        let mut unsupported = p12_widened_configuration(&secret_store, &p12_production_network())?;
+        unsupported.endpoints[0].adapter_id = "unknown-adapter".to_owned();
+        assert!(empty.compile(&unsupported).is_err());
 
         let mut repository = SqliteControlPlaneRepository::open(&database)?;
         repository.write_configuration(&configuration)?;
@@ -10365,8 +10354,7 @@ mod tests {
     }
 
     #[test]
-    fn one_endpoint_identity_cannot_change_capability_profile_across_versions()
-    -> Result<(), Box<dyn Error>> {
+    fn endpoint_capability_profiles_follow_each_version_adapter() -> Result<(), Box<dyn Error>> {
         let directory = TemporaryDirectory::new()?;
         let database = directory.join("control.sqlite3");
         let secret_store = test_secret_store()?;
@@ -10383,10 +10371,9 @@ mod tests {
         repository.write_configuration(&second)?;
         drop(repository);
 
-        assert!(matches!(
-            deployment_route_compiler(&database),
-            Err(RuntimeCompositionError::Unavailable)
-        ));
+        let compiler = deployment_route_compiler(&database)?;
+        assert!(compiler.compile(&first).is_ok());
+        assert!(compiler.compile(&second).is_ok());
         Ok(())
     }
 

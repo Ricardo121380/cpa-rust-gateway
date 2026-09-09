@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 """Prism acceptance against the real local serve binary; synthetic state only."""
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import ssl
+import threading
 import json
 import os
 from pathlib import Path
@@ -33,6 +36,36 @@ def main():
     ]:
         (credentials / name).write_bytes(value)
         os.chmod(credentials / name, 0o600)
+    cert_config = root / 'cert.cnf'
+    cert_config.write_text("[req]\ndistinguished_name=dn\nx509_extensions=ext\nprompt=no\n[dn]\nCN=localhost\n[ext]\nsubjectAltName=IP:127.0.0.1,DNS:localhost\nbasicConstraints=critical,CA:TRUE\nkeyUsage=critical,keyCertSign,digitalSignature,keyEncipherment\n")
+    cert, private_key = root / 'local-ca.pem', root / 'local-key.pem'
+    subprocess.run(['openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes',
+                    '-keyout', str(private_key), '-out', str(cert), '-days', '1',
+                    '-config', str(cert_config)], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    class MockProvider(BaseHTTPRequestHandler):
+        def log_message(self, *_args):
+            pass
+
+        def do_POST(self):
+            self.rfile.read(int(self.headers.get('Content-Length', '0')))
+            body = json.dumps({'id': 'resp_local_mock', 'object': 'response',
+                'created_at': int(time.time()), 'status': 'completed', 'model': 'local-exact-model',
+                'output': [{'id': 'msg_local', 'type': 'message', 'role': 'assistant', 'status': 'completed',
+                            'content': [{'type': 'output_text', 'text': 'local acceptance', 'annotations': []}]}],
+                'usage': {'input_tokens': 10, 'output_tokens': 3, 'total_tokens': 13}}).encode()
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+    provider = ThreadingHTTPServer(('127.0.0.1', 0), MockProvider)
+    tls = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    tls.load_cert_chain(cert, private_key)
+    provider.socket = tls.wrap_socket(provider.socket, server_side=True)
+    threading.Thread(target=provider.serve_forever, daemon=True).start()
+    provider_port = provider.server_port
     data_port, management_port = free_port(), free_port()
     base = f'http://127.0.0.1:{management_port}'
     checks = []
@@ -41,7 +74,7 @@ def main():
         str(ROOT / 'target/debug/gateway'), 'serve', '--state-dir', str(state),
         '--credential-dir', str(credentials), '--data-listen', f'127.0.0.1:{data_port}',
         '--management-listen', f'127.0.0.1:{management_port}',
-    ], stdout=log, stderr=log)
+    ], stdout=log, stderr=log, env={**os.environ, 'SSL_CERT_FILE': str(cert)})
 
     def request(path, method='GET', body=None, revision=None, scope=None):
         headers = {'x-management-key': key, 'Origin': base,
@@ -104,6 +137,43 @@ def main():
                                         revision=revision, scope=scope)
         assert status == 200 and not validation['valid']
         checks.append('candidate-less route fails real topology validation')
+        def mutate(path, body, method='POST'):
+            nonlocal revision
+            status, headers, result = request(path, method, body, revision=revision, scope=scope)
+            assert status in (200, 201, 204)
+            revision = headers.get('ETag', revision)
+            return result
+
+        mutate('/admin/egress-policies', {'id': 'local-egress', 'name': 'Loopback only',
+            'allowed_schemes': ['https'], 'allowed_hosts': ['127.0.0.1'],
+            'allowed_ports': [provider_port], 'allowed_cidrs': ['127.0.0.1/32'],
+            'redirect_mode': 'deny', 'max_redirects': 0})
+        mutate('/admin/upstreams', {'id': 'local-upstream', 'name': 'Loopback mock',
+            'kind': 'openai-compatible', 'enabled': True, 'tags': [], 'egress_policy_id': 'local-egress'})
+        mutate('/admin/upstreams/local-upstream/endpoints', {'id': 'local-endpoint',
+            'adapter_id': 'openai-compatible.responses', 'api_format': 'openai/responses',
+            'base_url': f'https://127.0.0.1:{provider_port}/v1', 'inference_path': '/responses',
+            'models_path': None, 'transport': 'https', 'enabled': True})
+        mutate('/admin/upstreams/local-upstream/credentials', {'id': 'local-credential',
+            'kind': 'bearer', 'secret': secrets.token_hex(24), 'status': 'active'})
+        mutate('/admin/endpoints/local-endpoint/credential-bindings', {'credential_id': 'local-credential',
+            'enabled': True, 'priority': 0, 'weight': 1, 'concurrency': 4})
+        candidate = {'id': 'local-candidate', 'endpoint_id': 'local-endpoint',
+            'upstream_model': 'local-exact-model', 'credential_scope': 'all_active',
+            'transform_mode': 'passthrough', 'enabled': True, 'priority': 0, 'weight': 1,
+            'capability_override': {'allow_unlisted_model': True}}
+        mutate('/admin/routes/local-route/candidates', candidate)
+        mutate('/admin/routes/local-route/candidates/local-candidate', {**candidate, 'weight': 2}, 'PATCH')
+        mutate('/admin/access-groups', {'id': 'local-group', 'name': 'Local', 'status': 'active', 'limits': {}})
+        mutate('/admin/access-groups/local-group/routes', {'route_id': 'local-route', 'enabled': True})
+        issued = mutate('/admin/client-keys', {'id': 'local-client', 'access_group_id': 'local-group', 'status': 'active'})
+        checks.append('real upstream, binding, candidate edit and authorization management writes')
+        validation = mutate(f'/admin/config-versions/{scope}/validate', {})
+        (root / 'validation.json').write_text(json.dumps(validation, indent=2))
+        assert validation['valid'], 'configuration invalid; inspect validation.json'
+        mutate(f'/admin/config-versions/{scope}/publish', {})
+        checks.append('real configuration validation and publication')
+
         status, _, processing = request('/admin/operations/billing-processing')
         assert status == 200
         checks.append('production billing processing endpoint')
@@ -124,6 +194,8 @@ def main():
             process.wait()
             raise RuntimeError('gateway did not stop within acceptance timeout') from None
         log.close()
+        provider.shutdown()
+        provider.server_close()
 
 
 if __name__ == '__main__':

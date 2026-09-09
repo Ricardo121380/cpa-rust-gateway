@@ -29,6 +29,7 @@ use serde_json::Value;
 pub struct RouteCompiler {
     catalog: CatalogView,
     endpoint_capabilities: EndpointCapabilityView,
+    adapter_capabilities: Option<BTreeMap<String, CapabilitySet>>,
 }
 
 impl RouteCompiler {
@@ -38,6 +39,21 @@ impl RouteCompiler {
         Self {
             catalog,
             endpoint_capabilities,
+            adapter_capabilities: None,
+        }
+    }
+
+    /// Uses trusted build-time adapter profiles against each current configuration's endpoints.
+    /// Unknown adapters fail closed; endpoint identities are not frozen at process startup.
+    #[must_use]
+    pub fn with_adapter_capabilities(
+        catalog: CatalogView,
+        profiles: BTreeMap<String, CapabilitySet>,
+    ) -> Self {
+        Self {
+            catalog,
+            endpoint_capabilities: EndpointCapabilityView::default(),
+            adapter_capabilities: Some(profiles),
         }
     }
 
@@ -173,7 +189,10 @@ impl RouteCompiler {
             candidate,
             required,
             endpoint,
-            &self.endpoint_capabilities,
+            match &self.adapter_capabilities {
+                Some(profiles) => profiles.get(&endpoint.adapter_id),
+                None => self.endpoint_capabilities.capabilities_for(&endpoint.id),
+            },
             &override_declaration,
         )?;
         let catalog_admission = catalog_admission(
@@ -784,17 +803,15 @@ fn effective_candidate_capabilities(
     candidate: &RouteCandidateConfiguration,
     required: &CapabilitySet,
     endpoint: &EndpointConfiguration,
-    endpoint_capabilities: &EndpointCapabilityView,
+    endpoint_capabilities: Option<&CapabilitySet>,
     override_declaration: &CandidateOverride,
 ) -> Result<CapabilitySet, RouteCompileError> {
-    let endpoint_capabilities = endpoint_capabilities
-        .capabilities_for(&endpoint.id)
-        .ok_or_else(|| {
-            route_error(
-                RouteCompileErrorCode::MissingEndpointCapabilityProfile,
-                endpoint.id.as_str(),
-            )
-        })?;
+    let endpoint_capabilities = endpoint_capabilities.ok_or_else(|| {
+        route_error(
+            RouteCompileErrorCode::MissingEndpointCapabilityProfile,
+            endpoint.id.as_str(),
+        )
+    })?;
     for asserted in &override_declaration.asserted {
         if !endpoint_capabilities.supports(*asserted)
             && !explicit_generic_responses_capability(endpoint, *asserted)
