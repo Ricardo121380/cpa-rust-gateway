@@ -20,7 +20,15 @@ type Item = RouteListItem | CandidateRecord | AliasRecord;
 
 export function RoutingInventory({
   onOpen,
-}: Readonly<{ onOpen: (id: string) => void }>) {
+  onEdit,
+  onDelete,
+  editable,
+}: Readonly<{
+  onOpen: (id: string) => void;
+  editable: boolean;
+  onEdit: (candidate: CandidateRecord) => void;
+  onDelete: (candidate: CandidateRecord) => void;
+}>) {
   const scope = useVersionStore((state) => state.context?.configVersionId);
   const [operation, setOperation] = useState<Operation>("listRoutes");
   const client = useQueryClient();
@@ -126,6 +134,24 @@ export function RoutingInventory({
                           打开路由
                         </button>
                       )}
+                      {"route_id" in item ? (
+                        <>
+                          <button
+                            className="secondary"
+                            disabled={!editable || query.isError}
+                            onClick={() => onEdit(item)}
+                          >
+                            编辑候选
+                          </button>
+                          <button
+                            className="danger"
+                            disabled={!editable || query.isError}
+                            onClick={() => onDelete(item)}
+                          >
+                            删除候选
+                          </button>
+                        </>
+                      ) : null}
                     </td>
                   </tr>
                 );

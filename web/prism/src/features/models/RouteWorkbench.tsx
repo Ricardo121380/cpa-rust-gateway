@@ -9,6 +9,8 @@ import { ObjectInspector } from "../../components/ObjectInspector";
 import { useVersionStore } from "../config-versions/versionStore";
 import {
   CREDENTIAL_SCOPE,
+  formatCapabilityOverride,
+  type CandidateRecord,
   parseCapabilityOverride,
   ROUTE_POLICY,
   routeErrorLabel,
@@ -43,6 +45,8 @@ export function RouteWorkbench({
 
   const [field, setField] = useState("");
   const [loaded, setLoaded] = useState<string | undefined>();
+  const [candidateTarget, setCandidateTarget] = useState<CandidateRecord>();
+  const [candidateDelete, setCandidateDelete] = useState<CandidateRecord>();
   const [addingCandidate, setAddingCandidate] = useState(false);
   const [editingRoute, setEditingRoute] = useState(false);
   const [inspecting, setInspecting] = useState(false);
@@ -93,6 +97,46 @@ export function RouteWorkbench({
       void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
       setNotice(`候选 ${created.id} 已加入。重新校验以确认路由现在通得过。`);
       validation.mutate(variables.routeId);
+    },
+    onError: (cause) => setError(asAppError(cause).message),
+  });
+
+  const saveCandidate = useMutation({
+    mutationFn: (input: Readonly<{ routeId: string; body: CandidateInput }>) =>
+      call<CandidateRecord>(
+        "updateRouteCandidate",
+        {
+          path: { route_id: input.routeId, candidate_id: input.body.id },
+          body: input.body,
+        },
+        { versionScoped: true, mutating: true },
+      ),
+    onSuccess: (updated) => {
+      setCandidateTarget(undefined);
+      setError(undefined);
+      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
+      setLoaded(updated.route_id);
+      validation.mutate(updated.route_id);
+      setNotice(`候选 ${updated.id} 已保存。`);
+    },
+    onError: (cause) => setError(asAppError(cause).message),
+  });
+  const deleteCandidate = useMutation({
+    mutationFn: (candidate: CandidateRecord) =>
+      call<undefined>(
+        "deleteRouteCandidate",
+        {
+          path: { route_id: candidate.route_id, candidate_id: candidate.id },
+        },
+        { versionScoped: true, mutating: true },
+      ),
+    onSuccess: (_, candidate) => {
+      setCandidateDelete(undefined);
+      setError(undefined);
+      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
+      setLoaded(candidate.route_id);
+      validation.mutate(candidate.route_id);
+      setNotice(`候选 ${candidate.id} 已删除，所属路由保留。`);
     },
     onError: (cause) => setError(asAppError(cause).message),
   });
@@ -159,6 +203,15 @@ export function RouteWorkbench({
       </header>
 
       <RoutingInventory
+        editable={editable}
+        onEdit={(candidate) => {
+          setError(undefined);
+          setCandidateTarget(candidate);
+        }}
+        onDelete={(candidate) => {
+          setError(undefined);
+          setCandidateDelete(candidate);
+        }}
         onOpen={(id) => {
           setField(id);
           setLoaded(id);
@@ -331,6 +384,47 @@ export function RouteWorkbench({
         </>
       ) : null}
 
+      {candidateTarget !== undefined ? (
+        <CandidateSheet
+          key={candidateTarget.id}
+          routeId={candidateTarget.route_id}
+          initial={candidateTarget}
+          error={error}
+          pending={saveCandidate.isPending}
+          onCancel={() => setCandidateTarget(undefined)}
+          onInvalid={setError}
+          onSubmit={(body) =>
+            saveCandidate.mutate({ routeId: candidateTarget.route_id, body })
+          }
+        />
+      ) : null}
+      {candidateDelete !== undefined ? (
+        <Sheet
+          title="确认删除候选"
+          onEscape={() => setCandidateDelete(undefined)}
+        >
+          <p>
+            删除 {candidateDelete.id}。所属路由 {candidateDelete.route_id}{" "}
+            将保留；若无启用候选，拓扑校验将失败。
+          </p>
+          {error !== undefined ? <p role="alert">{error}</p> : null}
+          <div className="sheet-actions">
+            <button
+              className="secondary"
+              onClick={() => setCandidateDelete(undefined)}
+            >
+              取消
+            </button>
+            <button
+              className="danger"
+              disabled={deleteCandidate.isPending || !editable}
+              onClick={() => deleteCandidate.mutate(candidateDelete)}
+            >
+              确认删除候选
+            </button>
+          </div>
+        </Sheet>
+      ) : null}
       {addingCandidate && record !== undefined ? (
         <CandidateSheet
           routeId={record.id}
@@ -479,22 +573,36 @@ export function RouteWorkbench({
 }
 
 function CandidateSheet({
+  initial,
+  error,
   routeId,
   pending,
   onCancel,
   onInvalid,
   onSubmit,
 }: Readonly<{
+  initial?: CandidateRecord;
+  error?: string | undefined;
   routeId: string;
   pending: boolean;
   onCancel: () => void;
   onInvalid: (message: string) => void;
   onSubmit: (body: CandidateInput) => void;
 }>) {
-  const [mode, setMode] = useState<TransformMode>("passthrough");
+  const [mode, setMode] = useState<TransformMode>(
+    initial?.transform_mode ?? "passthrough",
+  );
 
   return (
-    <Sheet title={`为 ${routeId} 添加候选`} onEscape={onCancel}>
+    <Sheet
+      title={
+        initial === undefined
+          ? `为 ${routeId} 添加候选`
+          : `编辑候选 ${initial.id}`
+      }
+      onEscape={onCancel}
+    >
+      {error !== undefined ? <p role="alert">{error}</p> : null}
       <p className="stat-sub">
         使用真实 Endpoint 与 exact 模型 ID；添加后请重新校验草稿拓扑。
       </p>
@@ -531,15 +639,29 @@ function CandidateSheet({
       >
         <label>
           候选 ID
-          <input name="id" className="mono" required maxLength={128} />
+          <input
+            name="id"
+            className="mono"
+            required
+            maxLength={128}
+            defaultValue={initial?.id}
+            readOnly={initial !== undefined}
+          />
         </label>
         <label>
           endpoint_id(必须是本版本里已存在且启用的端点)
-          <input name="endpoint_id" className="mono" required maxLength={128} />
+          <input
+            name="endpoint_id"
+            className="mono"
+            required
+            maxLength={128}
+            defaultValue={initial?.endpoint_id}
+          />
         </label>
         <label>
           upstream_model(上游侧的真实模型名)
           <input
+            defaultValue={initial?.upstream_model}
             name="upstream_model"
             className="mono"
             required
@@ -565,12 +687,21 @@ function CandidateSheet({
           <small>{transformModeHint(mode)}</small>
         </label>
         <label className="toggle-row">
-          <input name="enabled" type="checkbox" defaultChecked />
+          <input
+            name="enabled"
+            type="checkbox"
+            defaultChecked={initial?.enabled ?? true}
+          />
           启用(只有启用的候选参与校验与调度)
         </label>
         <label>
           priority(≥ 0,小的先试)
-          <input name="priority" type="number" min={0} defaultValue={0} />
+          <input
+            name="priority"
+            type="number"
+            min={0}
+            defaultValue={initial?.priority ?? 0}
+          />
         </label>
         <label>
           weight(1-10000,同优先级内的加权轮询份额)
@@ -579,12 +710,15 @@ function CandidateSheet({
             type="number"
             min={1}
             max={10000}
-            defaultValue={1}
+            defaultValue={initial?.weight ?? 1}
           />
         </label>
         <label>
           capability_override(可留空 —— 空表示不覆盖任何能力)
           <input
+            defaultValue={formatCapabilityOverride(
+              initial?.capability_override ?? {},
+            )}
             name="capability_override"
             className="mono"
             maxLength={512}
@@ -600,7 +734,7 @@ function CandidateSheet({
             取消
           </button>
           <button type="submit" disabled={pending}>
-            创建候选
+            {initial === undefined ? "创建候选" : "保存候选"}
           </button>
         </div>
       </form>

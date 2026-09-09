@@ -1118,6 +1118,28 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       return json(201, created, revisionToken(version));
     }
 
+    const candidateMutation = /^(PATCH|DELETE) \/admin\/routes\/([^/]+)\/candidates\/([^/]+)$/u.exec(route);
+    if (candidateMutation !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const mismatch = requireDraftAndMatch(version, headers);
+      if (mismatch !== undefined) return mismatch;
+      const routeId = decodeURIComponent(candidateMutation[2] ?? "");
+      const id = decodeURIComponent(candidateMutation[3] ?? "");
+      const rows = state.routeCandidates.get(version.id) ?? [];
+      const index = rows.findIndex((row) => row.id === id && row.route_id === routeId);
+      if (index < 0) return errorResponse(404, "management_resource_not_found", "candidate not found");
+      if (candidateMutation[1] === "DELETE") {
+        rows.splice(index, 1); version.revision += 1;
+        return new Response(null, {status: 204, headers: {ETag: `"${revisionToken(version)}"`}});
+      }
+      const body = JSON.parse(bodyText ?? "{}") as Omit<CandidateRow, "route_id">;
+      if (body.id !== id) return errorResponse(400, "management_invalid_input", "candidate id mismatch");
+      const updated: CandidateRow = {...body, route_id: routeId};
+      rows[index] = updated; version.revision += 1;
+      return json(200, updated, revisionToken(version));
+    }
+
     const routeValidate = /^POST \/admin\/routes\/([^/]+)\/validate$/u.exec(route);
     if (routeValidate !== null) {
       const version = versionByHeader(headers);

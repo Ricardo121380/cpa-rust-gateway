@@ -1374,3 +1374,22 @@ Typed page DTOs and synthetic fixture handlers mirror the new endpoints. Candida
 edit/delete UI, access grant route selection and full M4 acceptance remain pending.
 Type-check and six focused Chromium browser tests passed, including the new unbound
 route and candidate enumeration assertions. No real Provider/remote action occurred.
+
+
+## 2026-09-10 — Codex / V4 M2 candidate maintenance UI
+
+**What:** Updated `web/prism/src/features/models/RouteWorkbench.tsx` and
+`web/prism/src/features/models/RoutingInventory.tsx`, with matching handlers in
+`web/prism/src/dev/fixtures.ts` and regression coverage in
+`web/prism/e2e/route-candidates.spec.ts`.
+
+**Why:** Complete independent Candidate editing/deletion using the approved centered
+form and confirmation pattern. Editing preserves field values and immutable ID/Route;
+success restarts inventory reads and validates topology. Deletion retains its Route.
+
+**Other side:** FYI under full-stack authorization. Uses the already authoritative
+updateRouteCandidate/deleteRouteCandidate operations through the shared client;
+no generated edits or automatic write retry. Type-check, six focused Chromium tests
+and four-file/CSP/double-build gate passed. The browser test edits weight, priority,
+transform and capability overrides, reopens to verify values, deletes the Candidate
+and checks the remaining Route and invalid topology. Real gateway validation is still pending.

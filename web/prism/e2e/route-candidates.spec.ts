@@ -81,6 +81,29 @@ test("a new route fails validation until a candidate is added", async ({ page })
   await inventory.getByRole("button", { name: "候选", exact: true }).click();
   await expect(inventory).toContainText("cand-e2e");
   await expect(inventory).toContainText("relay-x");
+  await inventory.getByRole("button", { name: "编辑候选" }).click();
+  const editor = page.getByRole("dialog");
+  await expect(editor.getByLabel("候选 ID")).toHaveValue("cand-e2e");
+  await expect(editor.getByLabel("候选 ID")).toHaveAttribute("readonly", "");
+  await editor.getByLabel("weight", { exact: false }).fill("7");
+  await editor.getByLabel("priority", { exact: false }).fill("3");
+  await editor.getByLabel("transform_mode", { exact: false }).selectOption("canonical_bridge");
+  await editor.getByLabel("capability_override", { exact: false }).fill("vision=false tools=true");
+  await editor.getByRole("button", { name: "保存候选" }).click();
+  await expect(editor).not.toBeVisible();
+  await expect(inventory).toContainText("权重 7");
+  await inventory.getByRole("button", { name: "编辑候选" }).click();
+  await expect(editor.getByLabel("priority", { exact: false })).toHaveValue("3");
+  await expect(editor.getByLabel("transform_mode", { exact: false })).toHaveValue("canonical_bridge");
+  await expect(editor.getByLabel("capability_override", { exact: false })).toHaveValue("vision=false tools=true");
+  await editor.getByRole("button", { name: "取消", exact: true }).click();
+  await inventory.getByRole("button", { name: "删除候选" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "确认删除候选" }).click();
+  await expect(inventory).not.toContainText("cand-e2e");
+  await expect(page.locator(".rw-validation")).toHaveAttribute("data-valid", "false");
+  await inventory.getByRole("button", { name: "路由", exact: true }).click();
+  await expect(inventory).toContainText("rt-e2e");
+
   await inventory.getByRole("button", { name: "别名", exact: true }).click();
   await expect(inventory).toContainText("此版本暂无该类资源");
 
