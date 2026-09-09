@@ -434,3 +434,21 @@ Endpoint，导致整份配置校验/发布返回 409。RouteCompiler 新增可�
 
 当前 runtime 装配文档明确：空启动后发布需重启本地进程以装配凭据池和数据面。接下来需
 验证该真实重启路径、有效模型、Provider 请求和计费；不能把已发布误报为数据面已切换。
+
+## M4 真实请求 → unpriced 账本
+
+同一临时配置通过真实管理 API 发布，正常停止后重启 gateway，GET 有效模型包含 exact ID，
+数据 listener 的 `/v1/responses` 经 TLS loopback mock 成功返回，后台 worker 自动物化出一条
+账本。断言输入 10 / 输出 3 token，其他四类 null，金额 null、confidence=unpriced。
+现有验收脚本共 12 项通过；叶证书由临时 CA 签发，CA 仅注入该 gateway 进程。
+最新证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-l78gups6/evidence.json`，
+同目录 `ledger.json` 保留安全账本投影。
+
+修复两处旧 Staging 装配冲突：出口 shape 允许显式 host-sized `127.0.0.1/32` / `::1/128`
+例外，仍要求 HTTPS、host/port 白名单、禁重定向，宽 CIDR 仍拒绝；公开模型能力声明交由
+已完成的 RouteCompiler 验证，移除「必须为空」的重复拦截。出口 shape 回归、streaming 能力
+接受且未支持 vision 编译拒绝回归、gateway Clippy 通过。
+
+仍需处理：管理路由超时接受到 120000ms，而 runtime 旧装配上限 15000ms，前端默认30000ms；
+本批合成配置显式用15000ms跑通数据面，这不算解决正式默认值的兼容问题。该冲突保留为
+本轮待修复项。另需 priced 账本/重放重启、真实大样本/TTL/目录过期、全页浏览器验收。

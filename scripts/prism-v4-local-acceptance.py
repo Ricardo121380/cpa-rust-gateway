@@ -43,6 +43,15 @@ def main():
                     '-keyout', str(private_key), '-out', str(cert), '-days', '1',
                     '-config', str(cert_config)], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+    leaf_key, leaf_csr, leaf_cert = root / 'server-key.pem', root / 'server.csr', root / 'server.pem'
+    leaf_ext = root / 'server.ext'
+    leaf_ext.write_text('subjectAltName=IP:127.0.0.1,DNS:localhost\nbasicConstraints=critical,CA:FALSE\nkeyUsage=digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\n')
+    for command in [
+        ['openssl', 'req', '-new', '-newkey', 'rsa:2048', '-nodes', '-subj', '/CN=localhost', '-keyout', str(leaf_key), '-out', str(leaf_csr)],
+        ['openssl', 'x509', '-req', '-in', str(leaf_csr), '-CA', str(cert), '-CAkey', str(private_key), '-CAcreateserial', '-out', str(leaf_cert), '-days', '1', '-extfile', str(leaf_ext)],
+    ]:
+        subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
     class MockProvider(BaseHTTPRequestHandler):
         def log_message(self, *_args):
             pass
@@ -62,7 +71,7 @@ def main():
 
     provider = ThreadingHTTPServer(('127.0.0.1', 0), MockProvider)
     tls = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    tls.load_cert_chain(cert, private_key)
+    tls.load_cert_chain(leaf_cert, leaf_key)
     provider.socket = tls.wrap_socket(provider.socket, server_side=True)
     threading.Thread(target=provider.serve_forever, daemon=True).start()
     provider_port = provider.server_port
@@ -70,11 +79,14 @@ def main():
     base = f'http://127.0.0.1:{management_port}'
     checks = []
     log = (root / 'gateway.log').open('wb')
-    process = subprocess.Popen([
+    def start_gateway():
+        return subprocess.Popen([
         str(ROOT / 'target/debug/gateway'), 'serve', '--state-dir', str(state),
         '--credential-dir', str(credentials), '--data-listen', f'127.0.0.1:{data_port}',
         '--management-listen', f'127.0.0.1:{management_port}',
     ], stdout=log, stderr=log, env={**os.environ, 'SSL_CERT_FILE': str(cert)})
+
+    process = start_gateway()
 
     def request(path, method='GET', body=None, revision=None, scope=None):
         headers = {'x-management-key': key, 'Origin': base,
@@ -125,7 +137,7 @@ def main():
         revision = headers['ETag']
         status, headers, _ = request('/admin/public-models/local-model/routes', 'POST', {
             'id': 'local-route', 'policy': 'smooth_weighted_round_robin',
-            'max_attempts': 3, 'bootstrap_timeout_ms': 30000,
+            'max_attempts': 3, 'bootstrap_timeout_ms': 15000,
         }, revision=revision, scope=scope)
         assert status == 201
         revision = headers['ETag']
@@ -173,6 +185,48 @@ def main():
         assert validation['valid'], 'configuration invalid; inspect validation.json'
         mutate(f'/admin/config-versions/{scope}/publish', {})
         checks.append('real configuration validation and publication')
+        process.terminate()
+        assert process.wait(timeout=40) == 0
+        process = start_gateway()
+        deadline = time.monotonic() + 15
+        while True:
+            assert process.poll() is None, f'gateway restart failed; inspect {root / "gateway.log"}'
+            try:
+                status, _, effective = request('/admin/models/effective?access_group_id=local-group', scope=scope)
+                break
+            except urllib.error.URLError:
+                if time.monotonic() > deadline:
+                    raise
+                time.sleep(.05)
+        assert status == 200 and any(model['id'] == 'local-exact-model' for model in effective['items'])
+        checks.append('restart serves published effective model under existing group ID')
+        data_request = urllib.request.Request(f'http://127.0.0.1:{data_port}/v1/responses',
+            headers={'Authorization': 'Bearer ' + issued['key'], 'Content-Type': 'application/json'},
+            data=json.dumps({'model': 'local-exact-model', 'input': 'Synthetic local acceptance', 'stream': False}).encode())
+        try:
+            with urllib.request.urlopen(data_request, timeout=15) as response:
+                result = json.loads(response.read())
+                assert response.status == 200
+        except urllib.error.HTTPError as error:
+            raise RuntimeError(f'local data request: HTTP {error.code}: {error.read().decode()}') from None
+        checks.append('real data listener routes a controlled request to TLS loopback Provider')
+        deadline = time.monotonic() + 10
+        while True:
+            status, _, ledger = request('/admin/operations/billing?limit=10')
+            if ledger['items']:
+                break
+            if time.monotonic() > deadline:
+                raise RuntimeError('billing worker did not materialize the controlled request')
+            time.sleep(.1)
+        assert len(ledger['items']) == 1
+        row = ledger['items'][0]
+        assert row['model'] == 'local-exact-model'
+        assert (row['input_tokens'], row['output_tokens']) == (10, 3)
+        assert all(row[name] is None for name in ['reasoning_tokens', 'cache_read_tokens', 'cache_creation_tokens', 'cached_tokens'])
+        assert row['cost_confidence'] == 'unpriced' and row['cost_microunits'] is None
+        (root / 'ledger.json').write_text(json.dumps(ledger, indent=2))
+        checks.append('controlled request materializes into persistent billing ledger')
+
 
         status, _, processing = request('/admin/operations/billing-processing')
         assert status == 200

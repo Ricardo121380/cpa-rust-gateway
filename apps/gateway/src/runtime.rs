@@ -3223,9 +3223,8 @@ fn validate_p12_route_access_shape(
     configuration: &ControlPlaneConfiguration,
 ) -> Result<(), RuntimeCompositionError> {
     for model in &configuration.public_models {
-        if model.status != gateway_store::control_plane::AdministrativeStatus::Active
-            || !is_empty_capability_object(&model.capabilities_json)
-        {
+        // Required capabilities have already been checked against the compiled candidates.
+        if model.status != gateway_store::control_plane::AdministrativeStatus::Active {
             return Err(RuntimeCompositionError::Unavailable);
         }
     }
@@ -3321,7 +3320,9 @@ fn has_p12_https_only_egress_shape(
     matches!(allowed_schemes, Ok(schemes) if schemes.as_slice() == ["https"])
         && matches!(allowed_hosts, Ok(hosts) if !hosts.is_empty())
         && matches!(allowed_ports, Ok(ports) if !ports.is_empty())
-        && matches!(allowed_cidrs, Ok(cidrs) if cidrs.is_empty())
+        // Explicit host-sized loopback exceptions support local provider verification.
+        // Broader private-network allowances remain outside this runtime shape.
+        && matches!(allowed_cidrs, Ok(cidrs) if cidrs.iter().all(|cidr| matches!(cidr.as_str(), "127.0.0.1/32" | "::1/128")))
         && policy.redirect_mode == StoredEgressRedirectMode::Deny
         && policy.max_redirects == 0
 }
@@ -11335,6 +11336,20 @@ mod tests {
     }
 
     #[test]
+    fn runtime_admits_compiler_checked_public_model_capabilities() -> Result<(), Box<dyn Error>> {
+        let directory = TemporaryDirectory::new()?;
+        let compiler = deployment_route_compiler(&directory.join("control.sqlite3"))?;
+        let mut configuration =
+            p12_widened_configuration(&test_secret_store()?, &p12_production_network())?;
+        configuration.public_models[0].capabilities_json = r#"{"streaming":true}"#.to_owned();
+        assert!(compiler.compile(&configuration).is_ok());
+        assert!(super::validate_p12_route_access_shape(&configuration).is_ok());
+        configuration.public_models[0].capabilities_json = r#"{"vision":true}"#.to_owned();
+        assert!(compiler.compile(&configuration).is_err());
+        Ok(())
+    }
+
+    #[test]
     fn widened_egress_shape_requires_https_only_hosts_and_no_redirects()
     -> Result<(), Box<dyn Error>> {
         let mut policy = EgressPolicyConfiguration {
@@ -11353,6 +11368,8 @@ mod tests {
         policy.allowed_hosts_json = "[]".to_owned();
         assert!(!has_p12_https_only_egress_shape(&policy));
         policy.allowed_hosts_json = r#"["gateway.example.test"]"#.to_owned();
+        policy.allowed_cidrs_json = r#"["127.0.0.1/32","::1/128"]"#.to_owned();
+        assert!(has_p12_https_only_egress_shape(&policy));
         policy.allowed_cidrs_json = r#"["127.0.0.0/8"]"#.to_owned();
         assert!(!has_p12_https_only_egress_shape(&policy));
         policy.allowed_cidrs_json = "[]".to_owned();
