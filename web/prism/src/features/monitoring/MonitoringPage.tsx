@@ -1,3 +1,4 @@
+import { ProcessingStatus } from "../billing/ProcessingStatus";
 // 请求监控 — two independent contract sources, deliberately not merged.
 //
 // The page this replaces showed a KPI row with P50/P95 latency, a success rate
@@ -577,6 +578,7 @@ export function MonitoringPage() {
         <h2>{t.nav.monitoring}</h2>
         <span className="scope-row">{tab === "ledger" ? "账本 · 跨配置版本" : `失败归因 · ${scope ?? "未选择版本"}`}</span>
       </header>
+      <ProcessingStatus />
 
       <details className="reading-notes"><summary>数据范围与口径</summary><p className="mon-hint">
         契约里<strong>没有延迟</strong>,也<strong>没有请求成败清单</strong> ——

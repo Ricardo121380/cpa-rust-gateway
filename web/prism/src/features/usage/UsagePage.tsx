@@ -1,3 +1,4 @@
+import { ProcessingStatus } from "../billing/ProcessingStatus";
 // 用量分析 — GET /admin/operations/usage (P13-04B).
 //
 // The previous page here was built for the PROPOSED G3 analytics shape and, in
@@ -175,6 +176,7 @@ export function UsagePage() {
         <h2>{t.nav.usage}</h2>
         <span className="scope-row">时间窗聚合 · 跨配置版本</span>
       </header>
+      <ProcessingStatus />
 
       <details className="reading-notes"><summary>聚合维度与观测口径</summary><p className="usage-hint">
         一行是一个<strong>(Provider · Channel · 账号 · 公开模型 · 协议 · Client Key · 访问组)</strong>

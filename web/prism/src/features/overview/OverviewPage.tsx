@@ -1,3 +1,4 @@
+import { ProcessingStatus } from "../billing/ProcessingStatus";
 // Overview. Three truth layers, honestly separated (docs/07 §7.1):
 //  - wiring scale: real counts from the existing list contracts, per version;
 //  - live counters: the REAL bounded Prometheus exposition (G2 partial) —
@@ -309,6 +310,7 @@ export function OverviewPage() {
   return (
     <section>
       <h2>{t.nav.overview}</h2>
+      <ProcessingStatus />
       <ReadStatus pending={versions.isPending} error={versions.error} hasData={versions.data !== undefined} retry={() => void versions.refetch()} />
 
       <div className="overview-grid">

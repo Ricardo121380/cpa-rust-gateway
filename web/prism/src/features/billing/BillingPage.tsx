@@ -1,3 +1,4 @@
+import { ProcessingStatus } from "./ProcessingStatus";
 // 计费与价格目录 — the control surface for P13-05C / P13-07D.
 //
 // Two things live here and they are NOT the same scope, which is the single
@@ -410,8 +411,9 @@ export function BillingPage() {
     return (
       <section>
         <h2>{t.nav.billing}</h2>
+        <ProcessingStatus />
         <div className="card empty-state" data-kind="empty">
-          <p>先在顶栏选择一个配置版本 —— 价格策略属于版本,读取目录也要带上它。</p>
+          <p>选择配置版本后维护该版本的价格策略。计费处理状态跨版本可读。</p>
         </div>
       </section>
     );
@@ -426,6 +428,7 @@ export function BillingPage() {
         <h2>{t.nav.billing}</h2>
         <code className="idchip mono">listBillingCatalogs</code>
       </header>
+      <ProcessingStatus />
 
       {notice !== undefined ? (
         <p className="action-notice">

@@ -974,6 +974,12 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       return json(200, next, revisionToken(version));
     }
 
+    if (route === "GET /admin/operations/billing-processing") {
+      return json(200, {state: "needs_repair", observed_at_ms: Date.now() - 2000,
+        source_ordinal: 246, checkpoint_ordinal: 246, checkpoint_updated_at_ms: Date.now() - 2000,
+        unresolved_failures: 1, failure_code: null});
+    }
+
     if (route === "GET /admin/models/effective") {
       const version = versionByHeader(headers);
       if (version instanceof Response) return version;

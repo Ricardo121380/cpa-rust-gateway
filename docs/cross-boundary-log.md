@@ -1489,3 +1489,20 @@ getBillingProcessingStatus is unscoped and read-only. Frontend DTO/fixture/displ
 remain the next step. Monitor lifecycle, real SQLite worker restart, five runtime
 HTTP tests, thirteen contract tests, Clippy and SPA gate passed. This is not M4
 listener-to-Provider acceptance.
+
+
+## 2026-09-10 — Codex / B1 Prism processing state
+
+**What:** Added `web/prism/src/features/billing/ProcessingStatus.tsx`, integrated
+it into `web/prism/src/features/{billing/BillingPage.tsx,overview/OverviewPage.tsx,
+usage/UsagePage.tsx,monitoring/MonitoringPage.tsx}`, and updated fixture/E2E support
+in `web/prism/src/dev/fixtures.ts` and `web/prism/e2e/billing-processing.spec.ts`.
+
+**Why:** Show global processing/repair state alongside financial data and keep
+empty ledgers distinct from zero spend. Reads share one query cache, stop polling
+on read failure and use session cleanup already enforced by the shared client.
+
+**Other side:** FYI under full-stack authorization. No contract edits. Type-check,
+new cross-page Chromium flow, 23 existing billing/usage/monitoring tests and SPA
+gate passed. The billing no-version early return now also shows this unscoped
+status; unknown values remain unobserved rather than zero.

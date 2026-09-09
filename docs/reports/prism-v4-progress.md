@@ -288,6 +288,18 @@ needs_repair、failed、stopped；失败保留上次成功观测，停止失败�
 状态机回归、真实 SQLite worker 回归、5项 runtime HTTP 与13项契约测试、gateway Clippy、
 权威 SPA 门禁通过。前端展示尚待接入，B2/B4 与真实 HTTP/Provider 本地验收仍未完成。
 
+## B1 正式前端状态展示
+
+计费、总览、用量、请求与失败页共享 ProcessingStatus，展示跨版本消费状态、水位、待修复
+数量和上次成功观测；失败保留旧数据标记，null 显示“未观测”，空账本不等于零消费。
+默认5秒读取，读取错误后停止轮询并提供手动重试；复用 M0 会话清理。修复计费未选版本
+时的提前返回，使处理状态仍可查看。
+新增跨页面 Chromium 回归及23项既有计费/用量/失败页回归、类型检查和 SPA 门禁通过。
+
+继续核对发现 BE-FE-01 的待修复点：数据面认证在有 scheduler 时读取 scheduler snapshot，
+而管理 snapshot_for 当前仍读 registry；必须统一到真实 serving 来源后再进行最终验收。
+B2/B4、模型到草稿接续、全页面复查与 M4 仍待完成。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、
