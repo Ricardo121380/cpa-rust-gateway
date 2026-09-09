@@ -14,8 +14,8 @@ use gateway_auth::client_key::{
     ClientKeyError, ClientKeyService, ClientKeyStatus as IssuedClientKeyStatus, PresentedClientKey,
 };
 use gateway_core::{
-    AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, PublicModelId, RouteId,
-    UpstreamId,
+    AccessGroupId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, PublicModelId,
+    RouteCandidateId, RouteId, UpstreamId,
 };
 pub use gateway_store::billing_ledger::{
     BillingCatalogSource, BillingPriceCatalog, BillingPriceEntry,
@@ -2045,6 +2045,69 @@ impl ManagementMutationService {
         ))
     }
 
+    /// Updates a Candidate in one exact draft revision, preserving its owning Route.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a stale/non-draft Version, invalid Candidate or references,
+    /// an absent Candidate/owner, or a failed resource/audit transaction.
+    pub fn update_route_candidate(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        candidate: RouteCandidateConfiguration,
+    ) -> Result<Revisioned<RouteCandidateConfiguration>, ManagementResourceError> {
+        let audit = self.audit(
+            "route_candidate_updated",
+            actor,
+            config_version_id,
+            "route_candidate",
+            candidate.id.as_str(),
+        )?;
+        let ((), next_revision) = self.repository.mutate_draft_configuration(
+            config_version_id,
+            expected_revision.as_i64(),
+            |transaction| {
+                transaction.update_route_candidate(config_version_id, &candidate)?;
+                transaction.record_management_resource_audit_event(&audit, config_version_id)
+            },
+        )?;
+        Ok(Revisioned::new(
+            candidate,
+            ConfigRevision::try_new(next_revision)?,
+        ))
+    }
+
+    /// Deletes a Candidate without deleting its Route; topology validation may then fail.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a stale/non-draft Version, an absent Candidate/owner,
+    /// or a failed resource/audit transaction.
+    pub fn delete_route_candidate(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        route_id: &RouteId,
+        candidate_id: &RouteCandidateId,
+    ) -> Result<ConfigRevision, ManagementResourceError> {
+        self.delete_resource(
+            actor,
+            config_version_id,
+            expected_revision,
+            ResourceAction {
+                action: "route_candidate_deleted",
+                resource_kind: "route_candidate",
+                resource_id: candidate_id.as_str(),
+            },
+            |transaction| {
+                transaction.delete_route_candidate(config_version_id, route_id, candidate_id)
+            },
+        )
+    }
+
     /// Validates only draft Route topology without publishing, selecting, or contacting an
     /// upstream. Full compiler/capability admission remains the later publication boundary.
     ///
@@ -3594,6 +3657,102 @@ mod tests {
         let revision =
             issue_and_assert_redacted_client_key(&mut service, &actor, &version_id, revision)?;
         update_revoke_and_assert_graph_cascade(&mut service, &actor, &version_id, revision)
+    }
+
+    #[test]
+    fn candidate_mutations_preserve_owner_and_are_atomic() -> TestResult {
+        let (mut service, version_id, actor) = test_service()?;
+        let revision = create_minimax_routing_graph(&mut service, &actor, &version_id)?;
+        let graph = service.configuration(&version_id)?;
+        let mut candidate = graph.route_candidates[0].clone();
+        let route_id = candidate.route_id.clone();
+        let candidate_id = candidate.id.clone();
+        candidate.weight = 7;
+        candidate.priority = 3;
+        candidate.upstream_model = "exact-model-new".to_owned();
+        candidate.transform_mode = TransformMode::CanonicalBridge;
+        let updated =
+            service.update_route_candidate(&actor, &version_id, revision, candidate.clone())?;
+        let next_revision = updated.revision();
+        let persisted = service.configuration(&version_id)?;
+        assert_eq!(persisted.route_candidates[0].weight, 7);
+        assert_eq!(persisted.route_candidates[0].priority, 3);
+        assert_eq!(
+            persisted.route_candidates[0].upstream_model,
+            "exact-model-new"
+        );
+        assert_eq!(
+            persisted.route_candidates[0].transform_mode,
+            TransformMode::CanonicalBridge
+        );
+        let audit_count = service.resource_audit_events()?.len();
+
+        assert!(
+            service
+                .update_route_candidate(&actor, &version_id, revision, candidate.clone(),)
+                .is_err()
+        );
+        let mut wrong_owner = candidate.clone();
+        wrong_owner.route_id = RouteId::try_new("another-route")?;
+        assert!(
+            service
+                .update_route_candidate(&actor, &version_id, next_revision, wrong_owner,)
+                .is_err()
+        );
+        let mut missing_endpoint = candidate;
+        missing_endpoint.endpoint_id = EndpointId::try_new("missing-endpoint")?;
+        assert!(
+            service
+                .update_route_candidate(&actor, &version_id, next_revision, missing_endpoint,)
+                .is_err()
+        );
+        assert!(
+            service
+                .delete_route_candidate(
+                    &actor,
+                    &version_id,
+                    next_revision,
+                    &RouteId::try_new("another-route")?,
+                    &candidate_id,
+                )
+                .is_err()
+        );
+        assert_eq!(service.resource_audit_events()?.len(), audit_count);
+        assert_eq!(
+            service.list_public_models(&version_id)?.revision(),
+            next_revision
+        );
+        assert_eq!(
+            service.configuration(&version_id)?.route_candidates[0].weight,
+            7
+        );
+
+        let deleted = service.delete_route_candidate(
+            &actor,
+            &version_id,
+            next_revision,
+            &route_id,
+            &candidate_id,
+        )?;
+        assert_eq!(deleted.as_i64(), next_revision.as_i64() + 1);
+        let remaining = service.configuration(&version_id)?;
+        assert!(remaining.route_candidates.is_empty());
+        assert_eq!(remaining.model_routes.len(), 1);
+        assert_eq!(remaining.access_group_routes.len(), 1);
+        assert!(!service.validate_model_route(&version_id, &route_id)?.valid);
+        let audits = service.resource_audit_events()?;
+        assert_eq!(audits.len(), audit_count + 1);
+        assert!(
+            audits
+                .iter()
+                .any(|event| event.action() == "route_candidate_updated")
+        );
+        assert!(
+            audits
+                .iter()
+                .any(|event| event.action() == "route_candidate_deleted")
+        );
+        Ok(())
     }
 
     fn create_minimax_routing_graph(

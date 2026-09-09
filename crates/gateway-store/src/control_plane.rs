@@ -3057,6 +3057,60 @@ impl ControlPlaneTransaction<'_> {
         Ok(())
     }
 
+    /// Replaces a Candidate without changing its owning Route.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] for an absent Candidate/owner, a non-draft Version,
+    /// invalid references or a rejected structural constraint.
+    pub fn update_route_candidate(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        candidate: &RouteCandidateConfiguration,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let updated = self.transaction.execute(
+            "UPDATE route_candidates SET endpoint_id = ?4, upstream_model = ?5, \
+             credential_scope = ?6, transform_mode = ?7, enabled = ?8, priority = ?9, \
+             weight = ?10, capability_override_json = ?11 \
+             WHERE config_version_id = ?1 AND id = ?2 AND route_id = ?3",
+            params![
+                config_version_id.as_str(),
+                candidate.id.as_str(),
+                candidate.route_id.as_str(),
+                candidate.endpoint_id.as_str(),
+                &candidate.upstream_model,
+                candidate.credential_scope.as_sql(),
+                candidate.transform_mode.as_sql(),
+                boolean_to_sql(candidate.enabled),
+                candidate.priority,
+                candidate.weight,
+                &candidate.capability_override_json,
+            ],
+        )?;
+        resource_updated(updated)
+    }
+
+    /// Deletes only the exact Candidate under its owning Route.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] for an absent Candidate/owner, a non-draft Version
+    /// or a failed deletion. The owning Route is retained for later editing.
+    pub fn delete_route_candidate(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        route_id: &RouteId,
+        candidate_id: &RouteCandidateId,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let deleted = self.transaction.execute(
+            "DELETE FROM route_candidates WHERE config_version_id = ?1 AND id = ?2 AND route_id = ?3",
+            params![config_version_id.as_str(), candidate_id.as_str(), route_id.as_str()],
+        )?;
+        resource_updated(deleted)
+    }
+
     /// Inserts one Access Group into an existing draft configuration graph.
     ///
     /// # Errors

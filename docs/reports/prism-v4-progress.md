@@ -95,6 +95,17 @@ Explain 和 Channel Pin；旧账号/目录/出口入口折叠并按需挂载，�
 M1 完成不表示总 Goal 完成：M2/M3 后端能力仍未实现，M4 真实管理/数据 listener 与
 loopback Provider 未运行。接下来完成 BE-FE-01/02 和 B3，再推进物化、有界查询与 TTL。
 
+## M2 候选持久化基础
+
+已增加 Candidate 更新/删除的 Store 与 ManagementMutationService 方法。更新保留所属
+Route，删除保留 Route 与 Access Group grant；数据、revision 和审计在同一事务提交。
+新增回归验证可编辑字段持久化、旧 revision、错误 Route、无效 Endpoint 的原子回滚，
+以及删除后路由校验报告缺少有效候选。管理 mutation service 本批 9 项测试通过，
+`cargo fmt --all` 与 `git diff --check` 通过。
+
+这批尚未暴露 HTTP 接口，不是 BE-FE-02 完成证明。下一步接入 HTTP/权威契约与接口
+回归，再完成版本一致的有界枚举及正式前端交互。BE-FE-01、B1–B4 与 M4 仍待完成。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、
