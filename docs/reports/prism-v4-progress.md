@@ -155,6 +155,17 @@ Access Group 授权表单已使用完整 Route 分页，与配置资源列表复
 的 Route 引用。类型检查与 SPA 门禁通过。旧策略详情、大页/冲突 UI 和真实 gateway
 验收仍待完成；BE-FE-01、B1–B4 没有移出当前 Goal。
 
+## BE-FE-01 serving snapshot 投影基础
+
+RouteSnapshot 新增 effective_models_for_access_group，复用数据面的 exact 模型枚举和
+唯一解析，返回真实 exact ID、公开模型/Route 与硬准入 Candidate provenance。不存在的
+访问组和合法但无可见模型的访问组分别表达。Key ID 上下文通过共享的生命周期谓词检查
+启用/到期，再解析所属组；不接收秘密，也不把管理查询当作数据面认证。
+
+13 项 route_snapshot 回归、6 项 Client Key 回归及两 crate lib Clippy 通过；验证访问组
+隔离、歧义排除、到期/撤销/禁用、发布后的新旧快照语义。此批只有核心模型投影，尚未暴露
+HTTP 或接入正式模型目录；目录硬过期仍由后续 B3 补齐，不据此宣称 BE-FE-01 完成。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、

@@ -303,7 +303,11 @@ impl ClientKeyRecord {
         self.status = status;
     }
 
-    fn permits_at(&self, now_ms: i64) -> bool {
+    /// Checks lifecycle eligibility only; this does not authenticate a presented secret.
+    ///
+    /// Management projections reuse this predicate after separate management authentication.
+    #[must_use]
+    pub fn permits_at(&self, now_ms: i64) -> bool {
         self.status == ClientKeyStatus::Active
             && match self.expires_at_ms {
                 Some(expires_at_ms) => now_ms < expires_at_ms,

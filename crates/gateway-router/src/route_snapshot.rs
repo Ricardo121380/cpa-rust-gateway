@@ -106,6 +106,17 @@ pub struct SnapshotPublicModel {
     route_id: RouteId,
 }
 
+/// One exact authorized model and its immutable, secret-free routing provenance.
+#[derive(Debug)]
+pub struct SnapshotEffectiveModel<'snapshot> {
+    /// Exact upstream model ID, identical to the data-plane model list.
+    pub exact_id: &'snapshot str,
+    /// The uniquely resolved public model and owning Route.
+    pub public_model: &'snapshot SnapshotPublicModel,
+    /// Hard-eligible Candidates carrying this exact model on the authorized Route.
+    pub candidates: Vec<&'snapshot SnapshotRouteCandidate>,
+}
+
 /// Result of resolving one exact upstream model inside one Access Group's immutable view.
 ///
 /// `Ambiguous` is distinct from `Absent` so a legacy CPAR alias cannot shadow an upstream model
@@ -1121,6 +1132,65 @@ impl RouteSnapshot {
         models.into_iter()
     }
 
+    /// Projects the same exact IDs as the data plane with safe candidate provenance.
+    ///
+    /// An absent Access Group is distinct from a valid group with no visible models.
+    /// Runtime health and scheduling saturation do not redefine authorization.
+    #[must_use]
+    pub fn effective_models_for_access_group(
+        &self,
+        access_group_id: &AccessGroupId,
+    ) -> Option<Vec<SnapshotEffectiveModel<'_>>> {
+        self.access_group(access_group_id)?;
+        Some(
+            self.exact_upstream_models_for_access_group(access_group_id)
+                .filter_map(|exact_id| {
+                    let SnapshotExactModelResolution::Unique(public_model) = self
+                        .resolve_exact_upstream_model_for_access_group(access_group_id, exact_id)
+                    else {
+                        return None;
+                    };
+                    let candidates = self
+                        .route(public_model.route_id())?
+                        .candidates()
+                        .iter()
+                        .filter(|candidate| {
+                            candidate.is_hard_eligible() && candidate.upstream_model() == exact_id
+                        })
+                        .collect();
+                    Some(SnapshotEffectiveModel {
+                        exact_id,
+                        public_model,
+                        candidates,
+                    })
+                })
+                .collect(),
+        )
+    }
+
+    /// Resolves a Key ID for an independently authenticated management projection.
+    ///
+    /// Reuses the data-plane lifecycle predicate. This method is not authentication and never
+    /// accepts or checks a Client Key secret. Missing, disabled, revoked or expired Keys fail closed.
+    #[must_use]
+    pub fn access_group_for_client_key_at(
+        &self,
+        client_key_id: &ClientKeyId,
+        observed_at_ms: i64,
+    ) -> Option<&SnapshotAccessGroup> {
+        if observed_at_ms < 0 {
+            return None;
+        }
+        let key = self
+            .client_keys
+            .values()
+            .find(|key| key.client_key_id() == client_key_id)?;
+        key.record
+            .permits_at(observed_at_ms)
+            .then(|| self.access_group(key.access_group_id()))
+            .flatten()
+    }
+
     /// Resolves one exact upstream model without allowing a CPAR alias to hide ambiguity.
     #[must_use]
     pub fn resolve_exact_upstream_model_for_access_group<'snapshot>(
@@ -1990,6 +2060,42 @@ mod tests {
         let group_a = AccessGroupId::try_new("group-a")?;
         let group_b = AccessGroupId::try_new("group-b")?;
 
+        for group in [&group_a, &group_b] {
+            let projected = snapshot
+                .effective_models_for_access_group(group)
+                .ok_or("missing group")?;
+            assert_eq!(
+                projected
+                    .iter()
+                    .map(|model| model.exact_id)
+                    .collect::<Vec<_>>(),
+                snapshot
+                    .exact_upstream_models_for_access_group(group)
+                    .collect::<Vec<_>>()
+            );
+            for model in projected {
+                assert!(!model.candidates.is_empty());
+                assert!(
+                    model
+                        .candidates
+                        .iter()
+                        .all(|candidate| candidate.is_hard_eligible()
+                            && candidate.upstream_model() == model.exact_id)
+                );
+                assert!(
+                    snapshot
+                        .access_group(group)
+                        .ok_or("missing group")?
+                        .permits_route(model.public_model.route_id())
+                );
+            }
+        }
+        assert!(
+            snapshot
+                .effective_models_for_access_group(&AccessGroupId::try_new("missing-group")?)
+                .is_none()
+        );
+
         let visible_to_a = snapshot
             .public_models_for_access_group(&group_a)
             .map(SnapshotPublicModel::model_name)
@@ -2071,6 +2177,13 @@ mod tests {
             ),
             SnapshotExactModelResolution::Ambiguous
         );
+        assert!(
+            snapshot
+                .effective_models_for_access_group(&access_group_id)
+                .ok_or("missing access group")?
+                .is_empty()
+        );
+
         Ok(())
     }
 
@@ -2304,6 +2417,18 @@ mod tests {
         assert!(format!("{held_key:?}").contains("<redacted>"));
 
         registry.publish(snapshot_with_client_key("version-b", disabled_record)?)?;
+        assert!(
+            registry
+                .load()
+                .access_group_for_client_key_at(active_record.client_key_id(), 1)
+                .is_none()
+        );
+        assert!(
+            held_snapshot
+                .access_group_for_client_key_at(active_record.client_key_id(), 1)
+                .is_some()
+        );
+
         assert_eq!(held_snapshot.version().as_str(), "version-a");
         assert_eq!(authenticated.snapshot_version().as_str(), "version-a");
         assert_eq!(
@@ -2331,6 +2456,25 @@ mod tests {
             Arc::new(FixedClientKeyClock { now_ms: 99 }),
         );
         before_expiry.authenticate(presented_key.as_str())?;
+        assert!(
+            registry
+                .load()
+                .access_group_for_client_key_at(active_record.client_key_id(), 99)
+                .is_some()
+        );
+        assert!(
+            registry
+                .load()
+                .access_group_for_client_key_at(active_record.client_key_id(), 100)
+                .is_none()
+        );
+        assert!(
+            registry
+                .load()
+                .access_group_for_client_key_at(active_record.client_key_id(), -1)
+                .is_none()
+        );
+
         let wrong_secret = different_canonical_presented_key(presented_key.as_str())?;
         assert_unauthorized(before_expiry.authenticate(&wrong_secret))?;
         let unknown_key = canonical_unknown_key(&active_record);
@@ -2353,7 +2497,15 @@ mod tests {
 
         let mut revoked_record = active_record;
         revoked_record.set_status(ClientKeyStatus::Revoked);
+        let revoked_id = revoked_record.client_key_id().clone();
         registry.publish(snapshot_with_client_key("version-b", revoked_record)?)?;
+        assert!(
+            registry
+                .load()
+                .access_group_for_client_key_at(&revoked_id, 99)
+                .is_none()
+        );
+
         let revoked = SnapshotClientKeyAuthenticator::with_clock(
             registry,
             client_key_service()?,
