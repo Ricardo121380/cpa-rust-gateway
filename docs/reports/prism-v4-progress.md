@@ -317,6 +317,17 @@ SqliteBillingLedger::list_bounded 已改为单条 SELECT 读取完整行，不�
 7 项账本存储回归、3 项物化器回归与 store Clippy 通过。
 此批仅消除 N+1；全局100000上限、筛选/snapshot/cursor下推与完整聚合仍待实施，B2未完成。
 
+## B2 账本筛选、snapshot 与游标下推
+
+生产 DeploymentManagementUsageFacade 的账本读取已改用存储 query_page，移除该路径的
+全局100000条拒绝。时间、Provider/Channel/Account/model/status、snapshot ledger上界及
+keyset位置均作为SQL参数；页面最多100行、LIMIT+1。完整汇总在同一读事务流式读取匹配
+记录的两列标量，以常量内存保留全范围计数和checked u64费用总和，null与零不混淆。
+
+8项账本存储回归、11项计费相关control回归及gateway Clippy通过。新增100007条样本：
+窄窗6条分3页、完整汇总一致、页间新插入被旧snapshot排除、全范围汇总不受旧上限影响。
+用量/失败仍有旧路径，HTTP有界blocking读取也尚需接线，B2未整体完成。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、

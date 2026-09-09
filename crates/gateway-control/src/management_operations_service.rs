@@ -854,6 +854,86 @@ pub struct OperationalBillingPage {
     pub next_cursor: Option<OperationalBillingCursor>,
 }
 
+/// Reads a production ledger page with storage-side filters, cursor and complete summary.
+///
+/// # Errors
+/// Returns a safe query/storage error without exposing SQL or internal row values.
+pub fn read_operational_billing_page(
+    ledger: &gateway_store::billing_ledger::SqliteBillingLedger,
+    query: &OperationalBillingQuery,
+) -> Result<OperationalBillingPage, ManagementOperationsError> {
+    OperationalBillingQuery::try_new(
+        query.from_ms,
+        query.to_ms,
+        query.provider_id.clone(),
+        query.channel_id.clone(),
+        query.account_id.clone(),
+        query.model.clone(),
+        query.status,
+        query.limit,
+        query.cursor.clone(),
+    )?;
+    let page = ledger
+        .query_page(&gateway_store::billing_ledger::BillingLedgerQuery {
+            from_ms: query.from_ms,
+            to_ms: query.to_ms,
+            provider_id: query.provider_id.as_deref(),
+            channel_id: query.channel_id.as_deref(),
+            account_id: query.account_id.as_deref(),
+            model: query.model.as_deref(),
+            status: query.status,
+            limit: query.limit,
+            snapshot_ledger_id: query
+                .cursor
+                .as_ref()
+                .map(OperationalBillingCursor::snapshot_ledger_id),
+            after: query
+                .cursor
+                .as_ref()
+                .map(|cursor| (cursor.occurred_at_ms(), cursor.ledger_id())),
+        })
+        .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
+    let next_cursor = if page.has_more {
+        page.items.last().map(|row| OperationalBillingCursor {
+            snapshot_ledger_id: page.snapshot_ledger_id.unwrap_or(row.ledger_id),
+            occurred_at_ms: row.occurred_at_ms,
+            ledger_id: row.ledger_id,
+        })
+    } else {
+        None
+    };
+    Ok(OperationalBillingPage {
+        snapshot_ledger_id: page.snapshot_ledger_id,
+        next_cursor,
+        summary: OperationalBillingSummary {
+            records: page.summary.records,
+            exact_records: page.summary.exact_records,
+            partial_records: page.summary.partial_records,
+            unknown_records: page.summary.unknown_records,
+            unpriced_records: page.summary.unpriced_records,
+            known_cost_microunits: page.summary.known_cost_microunits,
+        },
+        items: page
+            .items
+            .into_iter()
+            .map(|entry| OperationalBillingItem {
+                ledger_id: entry.ledger_id,
+                request_id: entry.request_id,
+                response_id: entry.response_id,
+                provider_id: entry.provider_id,
+                channel_id: entry.channel_id,
+                account_id: entry.account_id,
+                model: entry.model,
+                usage: entry.usage,
+                occurred_at_ms: entry.occurred_at_ms,
+                catalog_version_id: entry.catalog_version_id,
+                cost_microunits: entry.cost_microunits,
+                cost_confidence: entry.cost_confidence,
+            })
+            .collect(),
+    })
+}
+
 /// Compiles a deterministic billing page from immutable ledger rows.
 ///
 /// # Errors

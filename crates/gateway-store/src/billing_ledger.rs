@@ -264,6 +264,46 @@ pub enum BillingRecordResult {
     Replay(BillingLedgerEntry),
 }
 
+/// Bounded, exact-filter ledger read input; all pagination predicates execute in storage.
+#[derive(Clone, Debug, Default)]
+#[allow(missing_docs)]
+pub struct BillingLedgerQuery<'query> {
+    pub from_ms: Option<u64>,
+    pub to_ms: Option<u64>,
+    pub provider_id: Option<&'query str>,
+    pub channel_id: Option<&'query str>,
+    pub account_id: Option<&'query str>,
+    pub model: Option<&'query str>,
+    pub status: Option<BillingCostConfidence>,
+    pub snapshot_ledger_id: Option<i64>,
+    pub after: Option<(u64, i64)>,
+    pub limit: usize,
+}
+
+/// Full-filter aggregate, never limited to the returned page.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub struct BillingLedgerSummary {
+    pub records: u64,
+    pub exact_records: u64,
+    pub partial_records: u64,
+    pub unknown_records: u64,
+    pub unpriced_records: u64,
+    pub known_cost_microunits: Option<u64>,
+}
+
+/// One immutable-snapshot page with a complete filtered summary.
+#[derive(Clone, Debug)]
+#[allow(missing_docs)]
+pub struct BillingLedgerPage {
+    pub snapshot_ledger_id: Option<i64>,
+    pub items: Vec<BillingLedgerEntry>,
+    pub summary: BillingLedgerSummary,
+    pub has_more: bool,
+}
+
+const LEDGER_FILTER: &str = "WHERE ledger_id <= ?1 AND occurred_at_ms >= ?2 AND occurred_at_ms <= ?3     AND (?4 IS NULL OR provider_id = ?4) AND (?5 IS NULL OR channel_id = ?5)     AND (?6 IS NULL OR account_id = ?6) AND (?7 IS NULL OR model = ?7)     AND (?8 IS NULL OR cost_confidence = ?8) AND ?9 = 0";
+
 /// Versioned catalog plus durable ledger repository.
 pub struct SqliteBillingLedger {
     connection: Connection,
@@ -614,6 +654,110 @@ impl SqliteBillingLedger {
             entries.push(decode_ledger_row(row)?);
         }
         Ok(entries)
+    }
+
+    /// Reads a keyset page and complete summary within one read transaction.
+    ///
+    /// Summary traversal streams two scalar columns with constant memory; page rows are bounded.
+    /// No global record ceiling can cause an unrelated history window to fail.
+    ///
+    /// # Errors
+    /// Returns an error for invalid bounds, invalid stored data or checked cost overflow.
+    pub fn query_page(&self, query: &BillingLedgerQuery<'_>) -> StoreResult<BillingLedgerPage> {
+        if !(1..=100).contains(&query.limit)
+            || matches!((query.from_ms, query.to_ms), (Some(from), Some(to)) if from > to)
+            || query.snapshot_ledger_id.is_some_and(|id| id < 0)
+            || query
+                .after
+                .is_some_and(|(_, id)| id < 0 || query.snapshot_ledger_id.is_none())
+        {
+            return Err(StoreError::InvalidPersistedBillingRecord);
+        }
+        let from = query.from_ms.unwrap_or(0);
+        let from_outside_storage = from > i64::MAX as u64;
+        let from = i64::try_from(from).unwrap_or(i64::MAX);
+        let to = i64::try_from(query.to_ms.unwrap_or(i64::MAX as u64)).unwrap_or(i64::MAX);
+        let status = query.status.map(BillingCostConfidence::as_sql);
+        let transaction = self.connection.unchecked_transaction()?;
+        let maximum: Option<i64> = transaction.query_row(
+            "SELECT MAX(ledger_id) FROM billing_ledger_entries",
+            [],
+            |row| row.get(0),
+        )?;
+        let snapshot = query.snapshot_ledger_id.or(maximum);
+        let upper = snapshot.unwrap_or(0);
+        let summary = {
+            let mut statement = transaction.prepare(&format!("SELECT cost_confidence, cost_microunits FROM billing_ledger_entries {LEDGER_FILTER}"))?;
+            let mut rows = statement.query(params![
+                upper,
+                from,
+                to,
+                query.provider_id,
+                query.channel_id,
+                query.account_id,
+                query.model,
+                status,
+                from_outside_storage
+            ])?;
+            let mut summary = BillingLedgerSummary::default();
+            while let Some(row) = rows.next()? {
+                summary.records = summary
+                    .records
+                    .checked_add(1)
+                    .ok_or(StoreError::InvalidPersistedBillingRecord)?;
+                match BillingCostConfidence::from_sql(&row.get::<_, String>(0)?)? {
+                    BillingCostConfidence::Exact => summary.exact_records += 1,
+                    BillingCostConfidence::Partial => summary.partial_records += 1,
+                    BillingCostConfidence::Unknown => summary.unknown_records += 1,
+                    BillingCostConfidence::Unpriced => summary.unpriced_records += 1,
+                }
+                if let Some(cost) = row.get::<_, Option<i64>>(1)? {
+                    summary.known_cost_microunits = Some(
+                        summary
+                            .known_cost_microunits
+                            .unwrap_or(0)
+                            .checked_add(u64_from_i64(cost)?)
+                            .ok_or(StoreError::InvalidPersistedBillingRecord)?,
+                    );
+                }
+            }
+            summary
+        };
+        let mut items = {
+            let (after_time, after_id) = query.after.map_or((-1, 0), |(time, id)| {
+                i64::try_from(time).map_or((i64::MAX, i64::MAX), |time| (time, id))
+            });
+            let mut statement = transaction.prepare(&format!("{LEDGER_ROW_SELECT} {LEDGER_FILTER}                 AND (occurred_at_ms, ledger_id) > (?10, ?11) ORDER BY occurred_at_ms, ledger_id LIMIT ?12"))?;
+            let mut rows = statement.query(params![
+                upper,
+                from,
+                to,
+                query.provider_id,
+                query.channel_id,
+                query.account_id,
+                query.model,
+                status,
+                from_outside_storage,
+                after_time,
+                after_id,
+                i64::try_from(query.limit + 1)
+                    .map_err(|_| StoreError::InvalidPersistedBillingRecord)?
+            ])?;
+            let mut items = Vec::new();
+            while let Some(row) = rows.next()? {
+                items.push(decode_ledger_row(row)?);
+            }
+            items
+        };
+        let has_more = items.len() > query.limit;
+        items.truncate(query.limit);
+        transaction.commit()?;
+        Ok(BillingLedgerPage {
+            snapshot_ledger_id: snapshot,
+            items,
+            summary,
+            has_more,
+        })
     }
 
     /// Deletes at most `limit` rows whose retention window has expired.
@@ -1076,6 +1220,70 @@ mod tests {
             .catalog("catalog-1")?
             .ok_or("catalog unexpectedly missing")?;
         assert_eq!(loaded.entries, catalog().entries);
+        Ok(())
+    }
+
+    #[test]
+    fn filtered_pages_cover_large_history_and_keep_a_complete_snapshot_summary()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut ledger = SqliteBillingLedger::open_in_memory()?;
+        ledger.insert_catalog(&catalog())?;
+        ledger.record(&entry())?;
+        ledger.connection.execute_batch("WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<100005)
+            INSERT INTO billing_ledger_entries (source_event_id, source_fingerprint, request_id, response_id,
+            provider_id, channel_id, account_id, model, occurred_at_ms, catalog_version_id,
+            input_tokens, output_tokens, reasoning_tokens, cache_read_tokens, cache_creation_tokens, cached_tokens,
+            cost_microunits, cost_confidence, billing_status, retention_expires_at_ms, recorded_at_ms)
+            SELECT 'large-' || x, source_fingerprint, request_id, response_id, provider_id, channel_id,
+            account_id, model, CASE WHEN x>=100000 THEN 500 ELSE 10 END, catalog_version_id,
+            input_tokens, output_tokens, reasoning_tokens, cache_read_tokens, cache_creation_tokens, cached_tokens,
+            cost_microunits, cost_confidence, billing_status, retention_expires_at_ms, recorded_at_ms
+            FROM n CROSS JOIN billing_ledger_entries WHERE ledger_id=1;")?;
+        let mut query = BillingLedgerQuery {
+            from_ms: Some(500),
+            to_ms: Some(500),
+            limit: 2,
+            provider_id: Some("provider-a"),
+            ..BillingLedgerQuery::default()
+        };
+        let first = ledger.query_page(&query)?;
+        assert_eq!(first.summary.records, 6);
+        assert_eq!(first.summary.known_cost_microunits, Some(24_000_000));
+        assert_eq!(first.items.len(), 2);
+        assert!(first.has_more);
+        let mut late = entry();
+        late.source_event_id = "late-insert".to_owned();
+        late.occurred_at_ms = 500;
+        ledger.record(&late)?;
+        query.snapshot_ledger_id = first.snapshot_ledger_id;
+        let last = first.items.last().ok_or("missing first page")?;
+        query.after = Some((last.occurred_at_ms, last.ledger_id));
+        let second = ledger.query_page(&query)?;
+        assert_eq!(second.summary, first.summary);
+        assert!(
+            second
+                .items
+                .iter()
+                .all(|row| row.ledger_id > last.ledger_id)
+        );
+        let last = second.items.last().ok_or("missing second page")?;
+        query.after = Some((last.occurred_at_ms, last.ledger_id));
+        let third = ledger.query_page(&query)?;
+        assert_eq!(third.summary, first.summary);
+        assert_eq!(third.items.len(), 2);
+        assert!(!third.has_more);
+        let all = ledger.query_page(&BillingLedgerQuery {
+            limit: 1,
+            ..BillingLedgerQuery::default()
+        })?;
+        assert_eq!(all.summary.records, 100007);
+        let empty = ledger.query_page(&BillingLedgerQuery {
+            from_ms: Some(u64::MAX),
+            limit: 1,
+            ..BillingLedgerQuery::default()
+        })?;
+        assert_eq!(empty.summary.records, 0);
+        assert_eq!(empty.summary.known_cost_microunits, None);
         Ok(())
     }
 
