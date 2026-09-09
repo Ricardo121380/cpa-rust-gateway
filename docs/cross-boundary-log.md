@@ -1506,3 +1506,21 @@ on read failure and use session cleanup already enforced by the shared client.
 new cross-page Chromium flow, 23 existing billing/usage/monitoring tests and SPA
 gate passed. The billing no-version early return now also shows this unscoped
 status; unknown values remain unobserved rather than zero.
+
+
+## 2026-09-10 — Codex / B2 streaming usage and snapshot cursor
+
+**What:** Updated production usage wiring in `apps/gateway/src/deployment.rs`,
+streaming aggregation/cursor in `crates/gateway-control/src/management_operations_service.rs`,
+opaque cursor transport in `crates/gateway-http-actix/src/management_resources.rs`,
+and authority `docs/openapi/management-v1.json`. Ran sync-contract, updating
+`web/prism/contracts/management-v1.json`; generated client bytes are unchanged.
+
+**Why:** Remove global-history loading while retaining complete per-group token
+observations and bounded application memory. New cursors pin event ordinals;
+legacy cursor transport stays accepted.
+
+**Other side:** FYI under full-stack authorization. No public response DTO changed.
+Aggregation equivalence, partial token confidence, late-event exclusion, new/legacy
+cursor roundtrip, 3 operational HTTP tests, 13 contract tests, Clippy and SPA gate
+passed. M4 real gateway acceptance remains required.

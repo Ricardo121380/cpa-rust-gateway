@@ -437,6 +437,7 @@ pub enum OperationalCostConfidence {
 /// Opaque keyset position for an aggregated usage group.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OperationalUsageCursor {
+    snapshot_ordinal: Option<i64>,
     provider_id: UpstreamId,
     channel_id: EndpointId,
     account_id: CredentialId,
@@ -465,6 +466,7 @@ impl OperationalUsageCursor {
             return Err(ManagementOperationsError::InvalidQuery);
         }
         Ok(Self {
+            snapshot_ordinal: None,
             provider_id,
             channel_id,
             account_id,
@@ -473,6 +475,27 @@ impl OperationalUsageCursor {
             client_key_id,
             access_group_id,
         })
+    }
+
+    /// Binds new cursors to one immutable event-log upper bound; None admits legacy cursors.
+    ///
+    /// # Errors
+    /// Returns `InvalidQuery` for a negative source ordinal.
+    pub fn with_snapshot_ordinal(
+        mut self,
+        ordinal: Option<i64>,
+    ) -> Result<Self, ManagementOperationsError> {
+        if ordinal.is_some_and(|value| value < 0) {
+            return Err(ManagementOperationsError::InvalidQuery);
+        }
+        self.snapshot_ordinal = ordinal;
+        Ok(self)
+    }
+
+    /// Returns the immutable source upper bound when supplied by a production page.
+    #[must_use]
+    pub const fn snapshot_ordinal(&self) -> Option<i64> {
+        self.snapshot_ordinal
     }
 
     /// Returns the Provider in this keyset position.
@@ -1700,6 +1723,7 @@ pub fn compile_operational_usage_page(
         .then(|| items.last())
         .flatten()
         .map(|item| OperationalUsageCursor {
+            snapshot_ordinal: None,
             provider_id: item.provider_id.clone(),
             channel_id: item.channel_id.clone(),
             account_id: item.account_id.clone(),
@@ -1711,6 +1735,113 @@ pub fn compile_operational_usage_page(
 
     Ok(OperationalUsagePage {
         observed_through_ms,
+        items,
+        next_cursor,
+    })
+}
+
+/// Reads complete usage groups with bounded application memory and storage-side predicates.
+///
+/// # Errors
+/// Returns safe validation, lineage or arithmetic errors. Unrelated history has no row ceiling.
+pub fn read_operational_usage_page(
+    store: &gateway_store::event_store::SqliteEventStore,
+    query: &OperationalUsageQuery,
+) -> Result<OperationalUsagePage, ManagementOperationsError> {
+    OperationalUsageQuery::try_new(
+        query.from_ms,
+        query.to_ms,
+        query.provider_id.clone(),
+        query.channel_id.clone(),
+        query.account_id.clone(),
+        query.public_model.clone(),
+        query.client_key_id.clone(),
+        query.access_group_id.clone(),
+        query.protocol,
+        query.limit,
+        query.cursor.clone(),
+    )?;
+    let key = query.cursor.as_ref().map(OperationalUsageCursor::key);
+    let after = key.as_ref().map(|key| {
+        [
+            key.provider_id.as_str(),
+            key.channel_id.as_str(),
+            key.account_id.as_str(),
+            key.public_model.as_str(),
+            key.protocol.as_str(),
+            key.client_key_id.as_str(),
+            key.access_group_id.as_str(),
+        ]
+    });
+    let mut items = Vec::with_capacity(query.limit);
+    let mut current: Option<(OperationalUsageSortKey, UsageAccumulator)> = None;
+    let mut has_more = false;
+    let mut accumulation_error = None;
+    let metadata = store
+        .visit_usage_lineages(
+            &gateway_store::event_store::UsageEventQuery {
+                from_ms: query.from_ms,
+                to_ms: query.to_ms,
+                provider_id: query.provider_id.as_ref().map(UpstreamId::as_str),
+                channel_id: query.channel_id.as_ref().map(EndpointId::as_str),
+                account_id: query.account_id.as_ref().map(CredentialId::as_str),
+                public_model: query.public_model.as_deref(),
+                client_key_id: query.client_key_id.as_ref().map(ClientKeyId::as_str),
+                access_group_id: query.access_group_id.as_ref().map(AccessGroupId::as_str),
+                protocol: query.protocol.map(protocol_key),
+                snapshot_ordinal: query
+                    .cursor
+                    .as_ref()
+                    .and_then(OperationalUsageCursor::snapshot_ordinal),
+                after,
+            },
+            |request, attempt, usage| {
+                let result = (|| -> Result<bool, ManagementOperationsError> {
+                    let mut accumulator = UsageAccumulator::new(request, attempt)?;
+                    let key = accumulator.clone().into_item().key();
+                    accumulator.add_usage(usage)?;
+                    if let Some((old_key, previous)) = current.as_mut()
+                        && *old_key == key
+                    {
+                        previous.merge(&accumulator)?;
+                        return Ok(true);
+                    }
+                    if let Some((_, previous)) = current.take() {
+                        items.push(previous.into_item());
+                    }
+                    if items.len() == query.limit {
+                        has_more = true;
+                        return Ok(false);
+                    }
+                    current = Some((key, accumulator));
+                    Ok(true)
+                })();
+                result.map_err(|error| {
+                    accumulation_error = Some(error);
+                    gateway_store::StoreError::InvalidPersistedGatewayEvent
+                })
+            },
+        )
+        .map_err(|_| accumulation_error.unwrap_or(ManagementOperationsError::SourceUnavailable))?;
+    if let Some((_, previous)) = current {
+        items.push(previous.into_item());
+    }
+    let next_cursor = if has_more {
+        items.last().map(|item| OperationalUsageCursor {
+            snapshot_ordinal: metadata.snapshot_ordinal,
+            provider_id: item.provider_id.clone(),
+            channel_id: item.channel_id.clone(),
+            account_id: item.account_id.clone(),
+            public_model: item.public_model.clone(),
+            protocol: item.protocol,
+            client_key_id: item.client_key_id.clone(),
+            access_group_id: item.access_group_id.clone(),
+        })
+    } else {
+        None
+    };
+    Ok(OperationalUsagePage {
+        observed_through_ms: metadata.observed_through_ms,
         items,
         next_cursor,
     })
@@ -1935,8 +2066,8 @@ mod tests {
             GatewayEvent::Usage(usage_two),
         ])?;
         let events = store.list_events()?;
-        let first = compile_operational_usage_page(
-            &events,
+        let first = super::read_operational_usage_page(
+            &store,
             &OperationalUsageQuery::try_new(
                 Some(100),
                 Some(200),
@@ -1962,6 +2093,60 @@ mod tests {
         assert_eq!(first.items[0].observed_at_ms, 200);
         assert!(first.next_cursor.is_none());
         assert_eq!(first.observed_through_ms, Some(200));
+        let unfiltered = OperationalUsageQuery::default();
+        assert_eq!(
+            super::read_operational_usage_page(&store, &unfiltered)?,
+            compile_operational_usage_page(&events, &unfiltered)?
+        );
+        let append_other =
+            |store: &mut SqliteEventStore, name: &str, ended: i64, tokens: u64| -> TestResult {
+                let request = RequestEvent::new(
+                    gateway_core::RequestId::try_new(name)?,
+                    ClientKeyId::try_new("client-z")?,
+                    None,
+                    GatewayProtocol::OpenAiResponses,
+                    "public-model".to_owned(),
+                    "public-model".to_owned(),
+                    None,
+                    false,
+                );
+                let usage = UsageEvent::from_usage(
+                    request.request_id().clone(),
+                    gateway_core::ResponseId::try_new(format!("response-{name}"))?,
+                    &Usage {
+                        input_tokens: Some(tokens),
+                        ..Usage::default()
+                    },
+                );
+                store.append_batch(&[
+                    GatewayEvent::Request(request.clone()),
+                    GatewayEvent::Attempt(attempt(request.request_id(), 1, ended)?),
+                    GatewayEvent::Usage(usage),
+                ])?;
+                Ok(())
+            };
+        append_other(&mut store, "other-one", 300, 2)?;
+        let mut paged = OperationalUsageQuery {
+            limit: 1,
+            ..OperationalUsageQuery::default()
+        };
+        let first = super::read_operational_usage_page(&store, &paged)?;
+        assert_eq!(first.items[0].input_tokens.total, Some(10));
+        assert_eq!(
+            first
+                .next_cursor
+                .as_ref()
+                .and_then(|cursor| cursor.snapshot_ordinal()),
+            Some(9)
+        );
+        append_other(&mut store, "other-late", 400, 999)?;
+        paged.cursor = first.next_cursor;
+        let second = super::read_operational_usage_page(&store, &paged)?;
+        assert_eq!(second.items.len(), 1);
+        assert_eq!(second.items[0].input_tokens.total, Some(2));
+        assert_eq!(second.observed_through_ms, Some(300));
+        assert!(second.next_cursor.is_none());
+
         Ok(())
     }
 

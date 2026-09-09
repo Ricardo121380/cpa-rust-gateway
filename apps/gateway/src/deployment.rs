@@ -31,8 +31,8 @@ use gateway_control::{
     management_operations_service::{
         FailureFeedbackPage, FailureFeedbackQuery, ManagementOperationsError,
         OperationalBillingPage, OperationalBillingQuery, OperationalUsagePage,
-        OperationalUsageQuery, compile_operational_usage_page, read_failure_feedback_page,
-        read_operational_billing_page,
+        OperationalUsageQuery, read_failure_feedback_page, read_operational_billing_page,
+        read_operational_usage_page,
     },
     management_service::{ManagementActor, ManagementService},
 };
@@ -313,12 +313,7 @@ impl ManagementUsageFacade for DeploymentManagementUsageFacade {
     ) -> Result<OperationalUsagePage, ManagementOperationsError> {
         let store = SqliteEventStore::open_read_only(&self.database)
             .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
-        let events = store
-            .list_events_bounded(
-                gateway_control::management_operations_service::MAX_USAGE_EVENTS + 1,
-            )
-            .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
-        compile_operational_usage_page(&events, query)
+        read_operational_usage_page(&store, query)
     }
 
     fn list_billing(

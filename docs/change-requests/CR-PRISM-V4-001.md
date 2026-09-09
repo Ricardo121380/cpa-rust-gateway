@@ -90,3 +90,11 @@ needs_repair，不因 checkpoint 追平而掩盖。HTTP 只复制内存 monitor�
 用量、账本和失败查询共享最多4个blocking任务名额。超额请求返回503与既有 Error 信封内的
 封闭 code `management_operations_busy`；不新增响应 schema 或自动重试写入。名额归实际
 blocking任务所有，HTTP取消不提前释放。原有存储异常分类保持不变。
+
+## B2 用量生产聚合与游标（2026-09-10）
+
+生产用量读取改为有序流式聚合；新 opaque cursor 内部增加可选 snapshot_ordinal，固定所有
+关联事件的上界。旧 cursor 缺少该字段仍可读取，以当前 source 建立快照，后续新 cursor
+携带上界。公开响应字段不变；observed_through_ms 始终覆盖整个筛选 snapshot，而非本页。
+权威 operation 描述已更新并 sync-contract。费用口径仍沿用该接口原契约，账本金额从
+独立 billing 查询读取；最终运营展示需在 M4 中逐项核对，不用 token 数猜测费用。

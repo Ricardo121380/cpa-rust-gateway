@@ -400,6 +400,7 @@
       "get": {
         "tags": ["operations"],
         "operationId": "listOperationalUsage",
+        "description": "Production reads stream complete filtered usage groups. Newly issued opaque cursors pin the durable event ordinal upper bound; legacy cursors without that bound remain accepted and start a new snapshot. observed_through_ms covers the full filtered snapshot, not only the returned page.",
         "x-delivery-phase": "P13-04",
         "parameters": [
           { "$ref": "#/components/parameters/OperationalFromMs" },

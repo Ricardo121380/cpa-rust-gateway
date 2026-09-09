@@ -3713,6 +3713,8 @@ struct OperationalTokenMetricResponse {
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct OperationalUsageCursorWire {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    snapshot_ordinal: Option<i64>,
     provider_id: String,
     channel_id: String,
     account_id: String,
@@ -9634,6 +9636,7 @@ fn encode_operational_usage_cursor(
     cursor: &OperationalUsageCursor,
 ) -> Result<String, HttpResponse> {
     let wire = OperationalUsageCursorWire {
+        snapshot_ordinal: cursor.snapshot_ordinal(),
         provider_id: cursor.provider_id().as_str().to_owned(),
         channel_id: cursor.channel_id().as_str().to_owned(),
         account_id: cursor.account_id().as_str().to_owned(),
@@ -9699,6 +9702,7 @@ fn decode_operational_usage_cursor(
         client_key_id,
         access_group_id,
     )
+    .and_then(|cursor| cursor.with_snapshot_ordinal(wire.snapshot_ordinal))
     .map(Some)
 }
 
@@ -10154,6 +10158,35 @@ mod tests {
             max_attempts: 1,
             bootstrap_timeout_ms: 1_000,
         })
+    }
+
+    #[test]
+    fn usage_cursor_preserves_snapshot_and_accepts_legacy_wire() -> TestResult {
+        use gateway_control::management_operations_service::OperationalUsageCursor;
+        let legacy = OperationalUsageCursor::try_new(
+            gateway_core::UpstreamId::try_new("provider")?,
+            gateway_core::EndpointId::try_new("channel")?,
+            gateway_core::CredentialId::try_new("account")?,
+            "model".to_owned(),
+            gateway_core::GatewayProtocol::OpenAiResponses,
+            gateway_core::ClientKeyId::try_new("key")?,
+            None,
+        )
+        .map_err(|_| "invalid cursor")?;
+        for ordinal in [None, Some(42)] {
+            let cursor = legacy
+                .clone()
+                .with_snapshot_ordinal(ordinal)
+                .map_err(|_| "invalid snapshot")?;
+            let encoded =
+                super::encode_operational_usage_cursor(&cursor).map_err(|_| "encode failed")?;
+            let decoded = super::decode_operational_usage_cursor(&encoded)
+                .map_err(|_| "decode failed")?
+                .ok_or("missing cursor")?;
+            assert_eq!(decoded.snapshot_ordinal(), ordinal);
+        }
+        assert!(legacy.with_snapshot_ordinal(Some(-1)).is_err());
+        Ok(())
     }
 
     #[test]

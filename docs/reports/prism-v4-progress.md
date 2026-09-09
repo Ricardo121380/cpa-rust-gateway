@@ -359,6 +359,17 @@ observed-through独立计算，不因续页位置缩小；回调可在收集足�
 时间过滤、续页全局观察时间、新增事件被旧snapshot排除均核对；孤立Usage被拒绝。
 store Clippy通过。当前仍是存储基础，生产用量聚合与HTTP游标快照接线需继续，B2未完成。
 
+## B2 用量生产接线
+
+生产用量已调用流式关联与分组聚合，不再加载全局100001条。只保留当前分组和最多limit个
+已完成分组，原六类 token checked 累加与置信度逻辑复用。新opaque cursor固定source ordinal，
+旧cursor仍可解码；完整筛选snapshot的观测上界不因分页而改变。权威说明已同步。
+
+聚合与旧实现等价、partial token、页间新增999 token被旧snapshot排除、旧/新cursor往返回归
+通过；另3项运营HTTP、13项契约、gateway Clippy及SPA门禁通过。B2三条生产读取路径及
+blocking边界已接通，仍需M4真实大样本验收。B4、模型到草稿接续、旧策略详情和全页面复查
+仍未完成；费用展示继续按账本和用量各自证据核对。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、
