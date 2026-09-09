@@ -7085,7 +7085,11 @@ impl SnapshotManagementRuntimeFacade {
         &self,
         version_id: &gateway_store::control_plane::ConfigVersionId,
     ) -> Result<Arc<RouteSnapshot>, ManagementRuntimeError> {
-        let snapshot = self.registry.load();
+        // Match data-plane authentication, including same-version discovery publications.
+        let snapshot = self
+            .route_explain_scheduler
+            .as_ref()
+            .map_or_else(|| self.registry.load(), |scheduler| scheduler.snapshot());
         (snapshot.version().as_str() == version_id.as_str())
             .then_some(snapshot)
             .ok_or(ManagementRuntimeError::Unavailable)
@@ -12604,6 +12608,59 @@ mod tests {
             catalog_store: SqliteCatalogSnapshotStore::open_in_memory()?,
         };
         Ok((facade, clock, runtime_health, runtime_quota, version))
+    }
+
+    #[test]
+    fn management_uses_the_same_serving_snapshot_source_as_authentication()
+    -> Result<(), Box<dyn Error>> {
+        use gateway_http_actix::management_resources::ManagementEffectiveModelContext;
+        let (mut facade, _, _, _, registry_version) = management_facade_fixture(1000)?;
+        let group = gateway_core::AccessGroupId::try_new("scheduler-only-group")?;
+        for version in [
+            registry_version.clone(),
+            ConfigVersionId::try_new("scheduler-serving-v2")?,
+        ] {
+            let snapshot = Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
+                SnapshotVersion::try_new(version.as_str())?,
+                Vec::new(),
+                Vec::new(),
+                Vec::new(),
+                vec![gateway_router::SnapshotAccessGroup::new(
+                    group.clone(),
+                    "Scheduler group".to_owned(),
+                    BTreeSet::new(),
+                )],
+                Vec::new(),
+            ))?);
+            facade.route_explain_scheduler = Some(Arc::new(RouteCredentialScheduler::new(
+                Arc::clone(&snapshot),
+                Arc::new(EndpointCredentialPools::try_new([])?),
+            )));
+            let selected = facade
+                .snapshot_for(&version)
+                .map_err(|_| "serving snapshot missing")?;
+            assert!(Arc::ptr_eq(&selected, &snapshot));
+            let context = ManagementEffectiveModelContext::AccessGroup(group.clone());
+            assert!(
+                facade
+                    .effective_models(&version, &context, 1000)
+                    .map_err(|_| "projection unavailable")?
+                    .is_some()
+            );
+            if version != registry_version {
+                assert_eq!(
+                    facade.snapshot_for(&registry_version).err(),
+                    Some(ManagementRuntimeError::Unavailable)
+                );
+            }
+        }
+        facade.route_explain_scheduler = None;
+        let selected = facade
+            .snapshot_for(&registry_version)
+            .map_err(|_| "registry fallback unavailable")?;
+        assert!(Arc::ptr_eq(&selected, &facade.registry.load()));
+        assert!(selected.access_group(&group).is_none());
+        Ok(())
     }
 
     #[test]

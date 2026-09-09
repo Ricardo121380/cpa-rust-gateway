@@ -297,8 +297,17 @@ needs_repair、failed、stopped；失败保留上次成功观测，停止失败�
 新增跨页面 Chromium 回归及23项既有计费/用量/失败页回归、类型检查和 SPA 门禁通过。
 
 继续核对发现 BE-FE-01 的待修复点：数据面认证在有 scheduler 时读取 scheduler snapshot，
-而管理 snapshot_for 当前仍读 registry；必须统一到真实 serving 来源后再进行最终验收。
+而管理 snapshot_for 当时仍读 registry；下述 serving 来源修复已消除该差异。
 B2/B4、模型到草稿接续、全页面复查与 M4 仍待完成。
+
+## BE-FE-01 serving 来源修复
+
+管理 snapshot_for 已与数据面认证采用相同优先级：有 route scheduler 时读取 scheduler
+实际快照，否则读取 registry。这样同版本的 discovery 物化模型/证据也能在管理投影中看到，
+不会把配置注册表中不同的内容误认为 serving 内容。
+新增回归验证同版本不同内容、不同版本拒绝旧上下文、无 scheduler 回退，并检查实际 Arc
+身份；相关2项 management runtime 回归及 gateway Clippy 通过。
+B2 有界运营读取、B4 TTL、剩余前端接续和 M4 真实网关仍待完成。
 
 ## 环境边界
 
