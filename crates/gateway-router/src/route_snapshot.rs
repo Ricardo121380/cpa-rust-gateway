@@ -1183,9 +1183,27 @@ impl RouteSnapshot {
     /// more than one visible Route is omitted until an explicit deterministic route policy removes
     /// the ambiguity; request resolution independently reports the collision as
     /// [`SnapshotExactModelResolution::Ambiguous`].
+    /// Reads this immutable authorization view using compiler admission.
     pub fn exact_upstream_models_for_access_group<'snapshot>(
         &'snapshot self,
         access_group_id: &AccessGroupId,
+    ) -> impl Iterator<Item = &'snapshot str> {
+        self.exact_upstream_models_with_time(access_group_id, None)
+    }
+
+    /// Reads this immutable authorization view at an explicit catalog-admission instant.
+    pub fn exact_upstream_models_for_access_group_at<'snapshot>(
+        &'snapshot self,
+        access_group_id: &AccessGroupId,
+        observed_at_ms: i64,
+    ) -> impl Iterator<Item = &'snapshot str> {
+        self.exact_upstream_models_with_time(access_group_id, Some(observed_at_ms))
+    }
+
+    fn exact_upstream_models_with_time<'snapshot>(
+        &'snapshot self,
+        access_group_id: &AccessGroupId,
+        observed_at_ms: Option<i64>,
     ) -> impl Iterator<Item = &'snapshot str> {
         let mut models = BTreeSet::new();
         if let Some(access_group) = self.access_group(access_group_id) {
@@ -1198,7 +1216,12 @@ impl RouteSnapshot {
                         route
                             .candidates()
                             .iter()
-                            .filter(|candidate| candidate.is_hard_eligible())
+                            .filter(|candidate| {
+                                observed_at_ms.map_or_else(
+                                    || candidate.is_hard_eligible(),
+                                    |at| candidate.is_hard_eligible_at(at),
+                                )
+                            })
                             .map(SnapshotRouteCandidate::upstream_model),
                     );
                 }
@@ -1206,7 +1229,7 @@ impl RouteSnapshot {
         }
         models.retain(|model| {
             matches!(
-                self.resolve_exact_upstream_model_for_access_group(access_group_id, model),
+                self.resolve_exact_upstream_model_with_time(access_group_id, model, observed_at_ms),
                 SnapshotExactModelResolution::Unique(_)
             )
         });
@@ -1222,12 +1245,34 @@ impl RouteSnapshot {
         &self,
         access_group_id: &AccessGroupId,
     ) -> Option<Vec<SnapshotEffectiveModel<'_>>> {
+        self.effective_models_with_time(access_group_id, None)
+    }
+
+    /// Projects exact models and provenance using the same time-aware data-plane admission.
+    #[must_use]
+    pub fn effective_models_for_access_group_at(
+        &self,
+        access_group_id: &AccessGroupId,
+        observed_at_ms: i64,
+    ) -> Option<Vec<SnapshotEffectiveModel<'_>>> {
+        self.effective_models_with_time(access_group_id, Some(observed_at_ms))
+    }
+
+    fn effective_models_with_time(
+        &self,
+        access_group_id: &AccessGroupId,
+        observed_at_ms: Option<i64>,
+    ) -> Option<Vec<SnapshotEffectiveModel<'_>>> {
         self.access_group(access_group_id)?;
         Some(
-            self.exact_upstream_models_for_access_group(access_group_id)
+            self.exact_upstream_models_with_time(access_group_id, observed_at_ms)
                 .filter_map(|exact_id| {
                     let SnapshotExactModelResolution::Unique(public_model) = self
-                        .resolve_exact_upstream_model_for_access_group(access_group_id, exact_id)
+                        .resolve_exact_upstream_model_with_time(
+                            access_group_id,
+                            exact_id,
+                            observed_at_ms,
+                        )
                     else {
                         return None;
                     };
@@ -1236,7 +1281,10 @@ impl RouteSnapshot {
                         .candidates()
                         .iter()
                         .filter(|candidate| {
-                            candidate.is_hard_eligible() && candidate.upstream_model() == exact_id
+                            observed_at_ms.map_or_else(
+                                || candidate.is_hard_eligible(),
+                                |at| candidate.is_hard_eligible_at(at),
+                            ) && candidate.upstream_model() == exact_id
                         })
                         .collect();
                     Some(SnapshotEffectiveModel {
@@ -1274,10 +1322,35 @@ impl RouteSnapshot {
 
     /// Resolves one exact upstream model without allowing a CPAR alias to hide ambiguity.
     #[must_use]
+    /// Reads this immutable authorization view using compiler admission.
     pub fn resolve_exact_upstream_model_for_access_group<'snapshot>(
         &'snapshot self,
         access_group_id: &AccessGroupId,
         upstream_model: &str,
+    ) -> SnapshotExactModelResolution<'snapshot> {
+        self.resolve_exact_upstream_model_with_time(access_group_id, upstream_model, None)
+    }
+
+    /// Reads this immutable authorization view at an explicit catalog-admission instant.
+    #[must_use]
+    pub fn resolve_exact_upstream_model_for_access_group_at<'snapshot>(
+        &'snapshot self,
+        access_group_id: &AccessGroupId,
+        upstream_model: &str,
+        observed_at_ms: i64,
+    ) -> SnapshotExactModelResolution<'snapshot> {
+        self.resolve_exact_upstream_model_with_time(
+            access_group_id,
+            upstream_model,
+            Some(observed_at_ms),
+        )
+    }
+
+    fn resolve_exact_upstream_model_with_time<'snapshot>(
+        &'snapshot self,
+        access_group_id: &AccessGroupId,
+        upstream_model: &str,
+        observed_at_ms: Option<i64>,
     ) -> SnapshotExactModelResolution<'snapshot> {
         let Some(access_group) = self.access_group(access_group_id) else {
             return SnapshotExactModelResolution::Absent;
@@ -1289,7 +1362,10 @@ impl RouteSnapshot {
             }
             let carries_model = self.route(public_model.route_id()).is_some_and(|route| {
                 route.candidates().iter().any(|candidate| {
-                    candidate.is_hard_eligible() && candidate.upstream_model() == upstream_model
+                    observed_at_ms.map_or_else(
+                        || candidate.is_hard_eligible(),
+                        |at| candidate.is_hard_eligible_at(at),
+                    ) && candidate.upstream_model() == upstream_model
                 })
             });
             if !carries_model {
@@ -1787,6 +1863,7 @@ pub struct SnapshotAuthenticatedClient {
     snapshot: Arc<RouteSnapshot>,
     authenticated_client: AuthenticatedClient,
     access_group_id: AccessGroupId,
+    observed_at_ms: i64,
 }
 
 impl SnapshotAuthenticatedClient {
@@ -1823,7 +1900,7 @@ impl SnapshotAuthenticatedClient {
     /// Iterates exact upstream model IDs visible to this authenticated Client Key.
     pub fn exact_upstream_models(&self) -> impl Iterator<Item = &str> {
         self.snapshot
-            .exact_upstream_models_for_access_group(self.access_group_id())
+            .exact_upstream_models_for_access_group_at(self.access_group_id(), self.observed_at_ms)
     }
 
     /// Resolves an exact upstream model inside this Client Key's pinned authorized Snapshot.
@@ -1833,7 +1910,11 @@ impl SnapshotAuthenticatedClient {
         upstream_model: &str,
     ) -> SnapshotExactModelResolution<'_> {
         self.snapshot
-            .resolve_exact_upstream_model_for_access_group(self.access_group_id(), upstream_model)
+            .resolve_exact_upstream_model_for_access_group_at(
+                self.access_group_id(),
+                upstream_model,
+                self.observed_at_ms,
+            )
     }
 
     /// Resolves an exact Public Model or Alias to its visible stable Public Model.
@@ -1907,7 +1988,8 @@ impl SnapshotClientKeyAuthenticator {
         presented_key: &str,
     ) -> Result<SnapshotAuthenticatedClient, GatewayError> {
         let snapshot = self.source.load();
-        let authenticated_client = self.authenticate_snapshot(&snapshot, presented_key)?;
+        let (authenticated_client, observed_at_ms) =
+            self.authenticate_snapshot(&snapshot, presented_key)?;
         let access_group_id = authenticated_client
             .access_group_id()
             .cloned()
@@ -1916,6 +1998,7 @@ impl SnapshotClientKeyAuthenticator {
             snapshot,
             authenticated_client,
             access_group_id,
+            observed_at_ms,
         })
     }
 
@@ -1923,7 +2006,7 @@ impl SnapshotClientKeyAuthenticator {
         &self,
         snapshot: &RouteSnapshot,
         presented_key: &str,
-    ) -> Result<AuthenticatedClient, GatewayError> {
+    ) -> Result<(AuthenticatedClient, i64), GatewayError> {
         let prefix = ClientKeyPrefix::try_from_presented_key(presented_key)
             .map_err(|_| client_unauthorized_error())?;
         let client_key = snapshot
@@ -1938,9 +2021,12 @@ impl SnapshotClientKeyAuthenticator {
             return Err(client_unauthorized_error());
         }
 
-        Ok(AuthenticatedClient::with_access_group(
-            client_key.client_key_id().clone(),
-            client_key.access_group_id().clone(),
+        Ok((
+            AuthenticatedClient::with_access_group(
+                client_key.client_key_id().clone(),
+                client_key.access_group_id().clone(),
+            ),
+            now_ms,
         ))
     }
 }
@@ -2140,6 +2226,29 @@ mod tests {
         assert!(candidate.allows_credential_at(&credential_b, 100));
         assert!(candidate.is_hard_eligible_at(199));
         assert!(!candidate.is_hard_eligible_at(200));
+        assert!(
+            materialized
+                .exact_upstream_models_for_access_group_at(&group_id, 199)
+                .any(|id| id == "grok-4.6")
+        );
+        assert_eq!(
+            materialized
+                .exact_upstream_models_for_access_group_at(&group_id, 200)
+                .count(),
+            0
+        );
+        assert!(
+            materialized
+                .effective_models_for_access_group_at(&group_id, 200)
+                .ok_or("missing group")?
+                .is_empty()
+        );
+        assert!(matches!(
+            materialized
+                .resolve_exact_upstream_model_for_access_group_at(&group_id, "grok-4.6", 200),
+            SnapshotExactModelResolution::Absent
+        ));
+
         assert!(!candidate.is_hard_eligible_at(-1));
         assert_eq!(candidate.catalog_evidence().count(), 2);
         // Time-based admission does not mutate or invalidate a held snapshot.
@@ -2155,6 +2264,52 @@ mod tests {
                 .resolve_public_model_for_access_group(&group_id, "public-model")
                 .is_some(),
             "the discovered anchor model must remain visible"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn authenticated_model_lists_pin_admission_time_without_leaking_expired_catalogs() -> TestResult
+    {
+        let (_, record, secret) = issued_test_key(None)?;
+        let snapshot = snapshot_with_client_key("version-a", record)?
+            .materialize_credential_catalogs([SnapshotCredentialCatalog::new(
+                EndpointId::try_new("endpoint-a")?,
+                CredentialId::try_new("credential-a")?,
+                CatalogModelState::Fresh,
+                BTreeSet::from(["upstream-model".to_owned()]),
+            )
+            .with_evidence(super::SnapshotCatalogEvidence {
+                version: 1,
+                observed_at_ms: 1,
+                stale_at_ms: 50,
+                expires_at_ms: 100,
+            })])?;
+        let registry = Arc::new(RouteSnapshotRegistry::new(Arc::new(snapshot)));
+        let before = SnapshotClientKeyAuthenticator::with_clock(
+            Arc::clone(&registry),
+            client_key_service()?,
+            Arc::new(FixedClientKeyClock { now_ms: 99 }),
+        )
+        .authenticate_pinned(secret.as_str())?;
+        assert_eq!(
+            before.exact_upstream_models().collect::<Vec<_>>(),
+            vec!["upstream-model"]
+        );
+        let after = SnapshotClientKeyAuthenticator::with_clock(
+            registry,
+            client_key_service()?,
+            Arc::new(FixedClientKeyClock { now_ms: 100 }),
+        )
+        .authenticate_pinned(secret.as_str())?;
+        assert_eq!(after.exact_upstream_models().count(), 0);
+        assert_eq!(
+            after.resolve_exact_upstream_model("upstream-model"),
+            SnapshotExactModelResolution::Absent
+        );
+        assert_eq!(
+            before.exact_upstream_models().collect::<Vec<_>>(),
+            vec!["upstream-model"]
         );
         Ok(())
     }

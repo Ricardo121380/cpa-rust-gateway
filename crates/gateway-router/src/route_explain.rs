@@ -508,6 +508,8 @@ impl RouteExplainCredential {
 /// Safe binding-level exclusion reason.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RouteExplainCredentialReason {
+    /// The exact Credential did not list this model or its pinned Catalog has hard-expired.
+    CatalogIneligible,
     /// This exact Candidate/Credential pair was excluded by the current request's prior attempt.
     RequestExcluded,
     /// The absolute Credential expiry is at or before the explicit observation time.
@@ -587,7 +589,7 @@ fn explain_candidate(
     exclusions: &AttemptExclusionSet,
 ) -> RouteExplainCandidate {
     let mut reasons = Vec::new();
-    if !candidate.is_hard_eligible() {
+    if !candidate.is_hard_eligible_at(observed_at_ms) {
         reasons.push(RouteExplainCandidateReason::NotHardEligible);
     }
     match runtime_health.availability_at(
@@ -648,6 +650,9 @@ fn explain_credential(
 ) -> RouteExplainCredential {
     let mut reasons = Vec::new();
     let credential_id = entry.credential_id();
+    if !candidate.allows_credential_at(credential_id, observed_at_ms) {
+        reasons.push(RouteExplainCredentialReason::CatalogIneligible);
+    }
     if exclusions.contains(candidate, credential_id) {
         reasons.push(RouteExplainCredentialReason::RequestExcluded);
     }

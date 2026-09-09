@@ -211,6 +211,17 @@ allows_credential_at/is_hard_eligible_at；新租约、pin、continuation 和 qu
 无时间入口不能绕过期限。此批没有把 B3 标为完成：有效模型/Explain 的时间视图、刷新完成
 时间纠正、真实 gateway 验收及更完整在途场景仍需接续。B1/B2/B4 仍是当前必需工作。
 
+## B3 模型列表与诊断的时间视图
+
+新增 exact 模型枚举/唯一解析/来源投影的显式时间入口，复用同一过滤与歧义判断。
+数据面的 SnapshotAuthenticatedClient 固定认证时钟结果（认证只取一次时间），模型列表和
+exact 解析使用该时刻；管理 facade 使用查询时刻。Explain 同时排除整个过期候选以及
+候选内未列出模型/硬过期的 Credential，增加 CatalogIneligible 原因。
+
+177 项 Router lib 回归通过，随后新增认证边界回归单独通过：99 时模型可见，100 时新
+认证模型列表为空/解析 Absent，旧认证对象仍保留99时视图。gateway bin Clippy 与 diff
+检查通过。刷新完成时间纠正、目录证据 HTTP/UI 投影和真实在途网关验收仍需完成。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、

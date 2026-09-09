@@ -7281,7 +7281,9 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
         let Some(group) = group else {
             return Ok(None);
         };
-        let Some(models) = snapshot.effective_models_for_access_group(group.id()) else {
+        let Some(models) =
+            snapshot.effective_models_for_access_group_at(group.id(), observed_at_ms)
+        else {
             return Ok(None);
         };
         let models = models
