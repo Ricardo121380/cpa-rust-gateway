@@ -429,16 +429,17 @@ const MAX_SSE_PROGRESS_FREE_FRAMES: usize = 4096;
 /// The four JSON insignificant whitespace characters used to frame assembled Tool arguments.
 #[cfg(test)]
 const JSON_WHITESPACE: [char; 4] = [' ', '\t', '\n', '\r'];
-const P12_BOOTSTRAP_TIMEOUT_MILLISECONDS: i64 = 15_000;
+// Match the authoritative management RouteInput bounds.
+const P12_BOOTSTRAP_TIMEOUT_MILLISECONDS: i64 = 120_000;
 /// The largest per-Route transparent attempt budget this composition admits.
 ///
 /// Every attempt under this budget is pre-first-byte: the orchestrator never retries once a
 /// first semantic event exists, so this bound only caps how much sequential pre-header failover
-/// one request may buy. Five attempts cover the deepest reviewed production graph (two Endpoint
-/// Candidates, one of them holding three weighted Credentials) while the Route's bootstrap
+/// one request may buy. The management contract permits up to sixteen sequential attempts;
+/// concurrency remains governed by credential admission, while the Route's bootstrap
 /// deadline, admitted at no more than [`P12_BOOTSTRAP_TIMEOUT_MILLISECONDS`], still bounds the
 /// whole pre-first-byte window regardless of the attempt count.
-const P12_MAX_ROUTE_ATTEMPTS: usize = 5;
+const P12_MAX_ROUTE_ATTEMPTS: usize = 16;
 /// The largest total Credential concurrency this composition admits across all bindings.
 ///
 /// Each concurrently leased attempt may buffer one complete non-streaming body or one SSE frame
@@ -11332,6 +11333,23 @@ mod tests {
             event,
             CanonicalEvent::TextDelta(delta) if delta.text == "ok"
         )));
+        Ok(())
+    }
+
+    #[test]
+    fn runtime_route_bounds_match_management_contract() -> Result<(), Box<dyn Error>> {
+        let mut configuration =
+            p12_widened_configuration(&test_secret_store()?, &p12_production_network())?;
+        for (attempts, timeout) in [(1, 1), (3, 30_000), (16, 120_000)] {
+            configuration.model_routes[0].max_attempts = attempts;
+            configuration.model_routes[0].bootstrap_timeout_ms = timeout;
+            assert!(super::validate_p12_route_access_shape(&configuration).is_ok());
+        }
+        for (attempts, timeout) in [(0, 1), (17, 1), (1, 0), (1, 120_001)] {
+            configuration.model_routes[0].max_attempts = attempts;
+            configuration.model_routes[0].bootstrap_timeout_ms = timeout;
+            assert!(super::validate_p12_route_access_shape(&configuration).is_err());
+        }
         Ok(())
     }
 

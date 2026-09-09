@@ -3,6 +3,7 @@
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import ssl
 import threading
+import argparse
 import json
 import os
 from pathlib import Path
@@ -24,6 +25,9 @@ def free_port():
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--priced', action='store_true')
+    args = parser.parse_args()
     root = Path(tempfile.mkdtemp(prefix='prism-v4-acceptance-'))
     os.chmod(root, 0o700)
     state, credentials = root / 'state', root / 'credentials'
@@ -137,7 +141,7 @@ def main():
         revision = headers['ETag']
         status, headers, _ = request('/admin/public-models/local-model/routes', 'POST', {
             'id': 'local-route', 'policy': 'smooth_weighted_round_robin',
-            'max_attempts': 3, 'bootstrap_timeout_ms': 15000,
+            'max_attempts': 3, 'bootstrap_timeout_ms': 30000,
         }, revision=revision, scope=scope)
         assert status == 201
         revision = headers['ETag']
@@ -180,6 +184,15 @@ def main():
         mutate('/admin/access-groups/local-group/routes', {'route_id': 'local-route', 'enabled': True})
         issued = mutate('/admin/client-keys', {'id': 'local-client', 'access_group_id': 'local-group', 'status': 'active'})
         checks.append('real upstream, binding, candidate edit and authorization management writes')
+        if args.priced:
+            mutate('/admin/billing/catalogs', {'catalog_version_id': 'local-prices',
+                'effective_at_ms': 0, 'source': 'operator', 'entries': [{
+                    'provider_id': 'local-upstream', 'channel_id': 'local-endpoint', 'model': 'local-exact-model',
+                    'input_microunits_per_million': 1_000_000, 'output_microunits_per_million': 2_000_000,
+                    'reasoning_microunits_per_million': 0, 'cache_read_microunits_per_million': 0,
+                    'cache_creation_microunits_per_million': 0, 'cached_microunits_per_million': 0}]})
+            checks.append('import price catalog through real draft management API')
+
         validation = mutate(f'/admin/config-versions/{scope}/validate', {})
         (root / 'validation.json').write_text(json.dumps(validation, indent=2))
         assert validation['valid'], 'configuration invalid; inspect validation.json'
@@ -223,9 +236,32 @@ def main():
         assert row['model'] == 'local-exact-model'
         assert (row['input_tokens'], row['output_tokens']) == (10, 3)
         assert all(row[name] is None for name in ['reasoning_tokens', 'cache_read_tokens', 'cache_creation_tokens', 'cached_tokens'])
-        assert row['cost_confidence'] == 'unpriced' and row['cost_microunits'] is None
+        if args.priced:
+            assert row['cost_confidence'] == 'partial' and row['cost_microunits'] == 16
+            assert row['catalog_version_id'] == 'local-prices'
+        else:
+            assert row['cost_confidence'] == 'unpriced' and row['cost_microunits'] is None
         (root / 'ledger.json').write_text(json.dumps(ledger, indent=2))
         checks.append('controlled request materializes into persistent billing ledger')
+        process.terminate()
+        assert process.wait(timeout=40) == 0
+        process = start_gateway()
+        deadline = time.monotonic() + 15
+        while True:
+            assert process.poll() is None, 'gateway failed second restart'
+            try:
+                _, _, progress = request('/admin/operations/billing-processing')
+                if progress['state'] == 'current':
+                    break
+            except urllib.error.URLError:
+                pass
+            if time.monotonic() > deadline:
+                raise RuntimeError('billing checkpoint did not resume after restart')
+            time.sleep(.05)
+        _, _, replayed = request('/admin/operations/billing?limit=10')
+        assert replayed == ledger, 'ledger changed after checkpoint replay'
+        checks.append('restart resumes checkpoint without duplicate ledger or cost')
+
 
 
         status, _, processing = request('/admin/operations/billing-processing')

@@ -452,3 +452,18 @@ Endpoint，导致整份配置校验/发布返回 409。RouteCompiler 新增可�
 仍需处理：管理路由超时接受到 120000ms，而 runtime 旧装配上限 15000ms，前端默认30000ms；
 本批合成配置显式用15000ms跑通数据面，这不算解决正式默认值的兼容问题。该冲突保留为
 本轮待修复项。另需 priced 账本/重放重启、真实大样本/TTL/目录过期、全页浏览器验收。
+
+## M4 默认路由参数、定价与重启幂等
+
+运行装配的路由边界与权威 RouteInput 对齐：1–16 次尝试、1–120000ms。默认 30000ms
+合成路由现已通过真实发布/重启/请求；尝试记录上限同时跟随16，保持有界且不遗漏允许的
+重试。新增上下界/default 回归、2 项 attempts 记录回归、Clippy 和 gateway build 通过。
+本项解决上一记录的默认30000ms启动冲突。
+
+脚本增加 `--priced`，经真实管理 API 导入价格目录；输入10×1 + 输出3×2 = 16 microunits，
+其余 token 维度未观测，账本保留 partial。无价格模式仍为 unpriced/null。两种模式均完成
+第二次真实进程重启，等待 billing state=current，账本整页与重启前完全一致，无重复行/金额。
+带价14项、无价13项检查通过。状态字段首次写成phase，按权威state修正后两种模式重跑通过。
+带价证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-fhluiy15/evidence.json`；
+无价证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-sfla4mqf/evidence.json`。
+仍需真实大样本/TTL/目录过期、全页浏览器验收及其余 M4 门禁和交付报告。
