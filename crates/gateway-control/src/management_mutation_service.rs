@@ -3755,6 +3755,109 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn routing_pages_include_unbound_drafts_and_reject_revision_changes() -> TestResult {
+        use gateway_store::control_plane::RoutingPageQuery;
+        let (mut service, version_id, actor) = test_service()?;
+        let revision = create_minimax_routing_graph(&mut service, &actor, &version_id)?;
+        let original = service.configuration(&version_id)?;
+        let (_, revision) = service.repository.mutate_draft_configuration(
+            &version_id,
+            revision.as_i64(),
+            |transaction| {
+                for index in 0..205 {
+                    let mut model = original.public_models[0].clone();
+                    model.id = PublicModelId::try_new(format!("model-{index:03}"))
+                        .map_err(|_| StoreError::ControlPlaneResourceNotFound)?;
+                    model.model_name = format!("model-{index:03}");
+                    transaction.insert_public_model(&version_id, &model)?;
+                    let mut route = original.model_routes[0].clone();
+                    route.public_model_id = model.id;
+                    route.id = RouteId::try_new(format!("unbound-{index:03}"))
+                        .map_err(|_| StoreError::ControlPlaneResourceNotFound)?;
+                    transaction.insert_model_route(&version_id, &route)?;
+                    let mut candidate = original.route_candidates[0].clone();
+                    candidate.id = RouteCandidateId::try_new(format!("candidate-{index:03}"))
+                        .map_err(|_| StoreError::ControlPlaneResourceNotFound)?;
+                    candidate.route_id = route.id;
+                    transaction.insert_route_candidate(&version_id, &candidate)?;
+                    transaction.insert_model_alias(
+                        &version_id,
+                        &ModelAliasConfiguration {
+                            alias: format!("alias-{index:03}"),
+                            public_model_id: original.public_models[0].id.clone(),
+                        },
+                    )?;
+                }
+                Ok(())
+            },
+        )?;
+        let first_query = RoutingPageQuery::try_new(None, None, 200).ok_or("invalid query")?;
+        let first = service
+            .repository
+            .list_model_routes_page(&version_id, first_query)?;
+        assert_eq!(first.items.len(), 200);
+        assert_eq!(first.version.revision, revision);
+        let query = RoutingPageQuery::try_new(Some(revision), first.next_after.as_deref(), 200)
+            .ok_or("invalid continuation")?;
+        let second = service
+            .repository
+            .list_model_routes_page(&version_id, query)?;
+        assert_eq!(second.items.len(), 6);
+        assert!(second.next_after.is_none());
+        assert!(
+            first.items.last().ok_or("missing route")?.id
+                < second.items.first().ok_or("missing route")?.id
+        );
+        let candidates = service
+            .repository
+            .list_route_candidates_page(&version_id, first_query)?;
+        assert_eq!(candidates.items.len(), 200);
+        let next = RoutingPageQuery::try_new(Some(revision), candidates.next_after.as_deref(), 200)
+            .ok_or("invalid candidate continuation")?;
+        assert_eq!(
+            service
+                .repository
+                .list_route_candidates_page(&version_id, next)?
+                .items
+                .len(),
+            6
+        );
+        let aliases = service
+            .repository
+            .list_model_aliases_page(&version_id, first_query)?;
+        assert_eq!(aliases.items.len(), 200);
+        let next = RoutingPageQuery::try_new(Some(revision), aliases.next_after.as_deref(), 200)
+            .ok_or("invalid alias continuation")?;
+        assert_eq!(
+            service
+                .repository
+                .list_model_aliases_page(&version_id, next)?
+                .items
+                .len(),
+            6
+        );
+        assert!(RoutingPageQuery::try_new(None, Some("cursor"), 200).is_none());
+        assert!(RoutingPageQuery::try_new(None, None, 201).is_none());
+        assert!(RoutingPageQuery::try_new(None, None, 0).is_none());
+        service
+            .repository
+            .mutate_draft_configuration(&version_id, revision, |_| Ok(()))?;
+        assert!(matches!(
+            service
+                .repository
+                .list_model_routes_page(&version_id, query),
+            Err(StoreError::ConfigVersionRevisionConflict)
+        ));
+        assert!(matches!(
+            service
+                .repository
+                .list_model_aliases_page(&version_id, next),
+            Err(StoreError::ConfigVersionRevisionConflict)
+        ));
+        Ok(())
+    }
+
     fn create_minimax_routing_graph(
         service: &mut ManagementMutationService,
         actor: &ManagementActor,

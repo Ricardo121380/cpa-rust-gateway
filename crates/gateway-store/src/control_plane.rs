@@ -25,6 +25,49 @@ use crate::{
 const CLIENT_KEY_DIGEST_BYTES: usize = 32;
 const ROUTING_PRICE_CATALOG_ID_BYTES: usize = 128;
 
+/// Validated bounds for a revision-consistent routing resource page.
+#[derive(Clone, Copy, Debug)]
+pub struct RoutingPageQuery<'query> {
+    expected_revision: Option<i64>,
+    after: &'query str,
+    limit: u16,
+}
+
+impl<'query> RoutingPageQuery<'query> {
+    /// Admits 1–200 rows. Continuations require a revision and a bounded nonempty key.
+    #[must_use]
+    pub fn try_new(
+        expected_revision: Option<i64>,
+        after: Option<&'query str>,
+        limit: u16,
+    ) -> Option<Self> {
+        if !(1..=200).contains(&limit)
+            || expected_revision.is_some_and(|value| value < 0)
+            || after.is_some_and(|value| {
+                value.is_empty() || value.len() > 256 || expected_revision.is_none()
+            })
+        {
+            return None;
+        }
+        Some(Self {
+            expected_revision,
+            after: after.unwrap_or(""),
+            limit,
+        })
+    }
+}
+
+/// One safe routing resource page and metadata read from the same `SQLite` transaction.
+#[derive(Debug)]
+pub struct RoutingResourcePage<T> {
+    /// Configuration identity, status and revision for this page.
+    pub version: ConfigVersion,
+    /// At most the requested number of resources, ordered by their stable key.
+    pub items: Vec<T>,
+    /// Last returned key when another page exists; callers bind it to resource kind and version.
+    pub next_after: Option<String>,
+}
+
 /// Stable identifier for one version-scoped administrative configuration graph.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct ConfigVersionId(String);
@@ -1455,6 +1498,69 @@ impl SqliteControlPlaneRepository {
         let configuration = load_configuration(&transaction, config_version_id)?;
         transaction.commit()?;
         Ok(configuration)
+    }
+
+    /// Reads a bounded model routes page, including unbound draft resources.
+    ///
+    /// # Errors
+    /// Returns an error for an absent Version, changed revision or invalid stored rows.
+    pub fn list_model_routes_page(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        query: RoutingPageQuery<'_>,
+    ) -> StoreResult<RoutingResourcePage<ModelRouteConfiguration>> {
+        let transaction = self.connection.transaction()?;
+        let page = load_routing_resource_page(
+            &transaction,
+            config_version_id,
+            query,
+            load_model_routes,
+            |item| item.id.as_str(),
+        )?;
+        transaction.commit()?;
+        Ok(page)
+    }
+
+    /// Reads a bounded route candidates page, including unbound draft resources.
+    ///
+    /// # Errors
+    /// Returns an error for an absent Version, changed revision or invalid stored rows.
+    pub fn list_route_candidates_page(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        query: RoutingPageQuery<'_>,
+    ) -> StoreResult<RoutingResourcePage<RouteCandidateConfiguration>> {
+        let transaction = self.connection.transaction()?;
+        let page = load_routing_resource_page(
+            &transaction,
+            config_version_id,
+            query,
+            load_route_candidates,
+            |item| item.id.as_str(),
+        )?;
+        transaction.commit()?;
+        Ok(page)
+    }
+
+    /// Reads a bounded model aliases page, including unbound draft resources.
+    ///
+    /// # Errors
+    /// Returns an error for an absent Version, changed revision or invalid stored rows.
+    pub fn list_model_aliases_page(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        query: RoutingPageQuery<'_>,
+    ) -> StoreResult<RoutingResourcePage<ModelAliasConfiguration>> {
+        let transaction = self.connection.transaction()?;
+        let page = load_routing_resource_page(
+            &transaction,
+            config_version_id,
+            query,
+            load_model_aliases,
+            |item| item.alias.as_str(),
+        )?;
+        transaction.commit()?;
+        Ok(page)
     }
 
     /// Lists safe Config Version root metadata in deterministic identifier order.
@@ -3375,9 +3481,9 @@ fn load_configuration(
             config_version_id,
         )?,
         public_models: load_public_models(transaction, config_version_id)?,
-        model_aliases: load_model_aliases(transaction, config_version_id)?,
-        model_routes: load_model_routes(transaction, config_version_id)?,
-        route_candidates: load_route_candidates(transaction, config_version_id)?,
+        model_aliases: load_model_aliases(transaction, config_version_id, "", i64::MAX)?,
+        model_routes: load_model_routes(transaction, config_version_id, "", i64::MAX)?,
+        route_candidates: load_route_candidates(transaction, config_version_id, "", i64::MAX)?,
         access_groups: load_access_groups(transaction, config_version_id)?,
         access_group_routes: load_access_group_routes(transaction, config_version_id)?,
         client_keys: load_client_keys(transaction, config_version_id)?,
@@ -3899,15 +4005,51 @@ fn load_public_models(
     Ok(public_models)
 }
 
+fn load_routing_resource_page<T>(
+    transaction: &Transaction<'_>,
+    config_version_id: &ConfigVersionId,
+    query: RoutingPageQuery<'_>,
+    load: impl FnOnce(&Transaction<'_>, &ConfigVersionId, &str, i64) -> StoreResult<Vec<T>>,
+    key: impl Fn(&T) -> &str,
+) -> StoreResult<RoutingResourcePage<T>> {
+    let version = load_config_version(transaction, config_version_id)?
+        .ok_or(StoreError::ConfigVersionNotFound)?;
+    if query
+        .expected_revision
+        .is_some_and(|expected| expected != version.revision)
+    {
+        return Err(StoreError::ConfigVersionRevisionConflict);
+    }
+    let mut items = load(
+        transaction,
+        config_version_id,
+        query.after,
+        i64::from(query.limit) + 1,
+    )?;
+    let next_after = if items.len() > usize::from(query.limit) {
+        items.truncate(usize::from(query.limit));
+        items.last().map(|item| key(item).to_owned())
+    } else {
+        None
+    };
+    Ok(RoutingResourcePage {
+        version,
+        items,
+        next_after,
+    })
+}
+
 fn load_model_aliases(
     transaction: &Transaction<'_>,
     config_version_id: &ConfigVersionId,
+    after: &str,
+    limit: i64,
 ) -> StoreResult<Vec<ModelAliasConfiguration>> {
     let mut statement = transaction.prepare(
         "SELECT alias, public_model_id FROM model_aliases \
-         WHERE config_version_id = ?1 ORDER BY alias",
+         WHERE config_version_id = ?1 AND alias > ?2 ORDER BY alias LIMIT ?3",
     )?;
-    let mut rows = statement.query([config_version_id.as_str()])?;
+    let mut rows = statement.query(params![config_version_id.as_str(), after, limit])?;
     let mut aliases = Vec::new();
     while let Some(row) = rows.next()? {
         aliases.push(ModelAliasConfiguration {
@@ -3921,12 +4063,14 @@ fn load_model_aliases(
 fn load_model_routes(
     transaction: &Transaction<'_>,
     config_version_id: &ConfigVersionId,
+    after: &str,
+    limit: i64,
 ) -> StoreResult<Vec<ModelRouteConfiguration>> {
     let mut statement = transaction.prepare(
         "SELECT id, public_model_id, policy, max_attempts, bootstrap_timeout_ms \
-         FROM model_routes WHERE config_version_id = ?1 ORDER BY id",
+         FROM model_routes WHERE config_version_id = ?1 AND id > ?2 ORDER BY id LIMIT ?3",
     )?;
-    let mut rows = statement.query([config_version_id.as_str()])?;
+    let mut rows = statement.query(params![config_version_id.as_str(), after, limit])?;
     let mut routes = Vec::new();
     while let Some(row) = rows.next()? {
         let policy_value: String = row.get(2)?;
@@ -3951,13 +4095,15 @@ fn load_model_routes(
 fn load_route_candidates(
     transaction: &Transaction<'_>,
     config_version_id: &ConfigVersionId,
+    after: &str,
+    limit: i64,
 ) -> StoreResult<Vec<RouteCandidateConfiguration>> {
     let mut statement = transaction.prepare(
         "SELECT id, route_id, endpoint_id, upstream_model, credential_scope, transform_mode, \
                 enabled, priority, weight, capability_override_json \
-         FROM route_candidates WHERE config_version_id = ?1 ORDER BY id",
+         FROM route_candidates WHERE config_version_id = ?1 AND id > ?2 ORDER BY id LIMIT ?3",
     )?;
-    let mut rows = statement.query([config_version_id.as_str()])?;
+    let mut rows = statement.query(params![config_version_id.as_str(), after, limit])?;
     let mut candidates = Vec::new();
     while let Some(row) = rows.next()? {
         let credential_scope_value: String = row.get(4)?;

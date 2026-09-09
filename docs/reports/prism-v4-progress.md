@@ -114,5 +114,13 @@ BE-FE-02 尚未完成：版本一致的有界枚举及正式前端交互仍待�
 
 ## 环境边界
 
+M2 完整枚举的存储基础已落地：Route/Candidate/Alias 各自按稳定键执行 SQL keyset
+读取，单页 1–200，查询最多 limit+1 行；版本元数据与资源行属于同一 SQLite 事务。
+续页要求 revision，版本变化明确拒绝；读取不依赖 Access Group grants，涵盖未绑定草稿，
+不加载 Credential/Client Key。全图加载复用原解码逻辑，保持既有编译路径。
+新增 206 条资源回归验证三种分页与 revision 冲突；16 项存储回归、10 项管理服务回归、
+两 crate 的 lib Clippy（-D warnings）与 diff 检查通过。HTTP 游标绑定、契约与 UI 接入
+尚待完成，因此此处仅记录存储能力，未把 BE-FE-02 标为完成。
+
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、
 计划、报告和辅助脚本均保留，未清理或并入代码批次。
