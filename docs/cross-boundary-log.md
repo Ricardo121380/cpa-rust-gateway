@@ -1678,3 +1678,13 @@ gate and the real 8-stage browser write flow passed. Actual gateway differences,
 switch, same-version empty state, mobile 12px margin, cell overflow checks and focus
 restore passed. Early mobile CSS specificity/nowrap issues were corrected and rerun.
 No internal generator or external design model was used; approved V4 diff layout reused.
+
+## 2026-09-10 — Codex — V4 lens fallback acceptance
+
+**Files:** `web/prism/e2e/glass.spec.ts`.
+
+**What / why:** Exercise the production capability probe with unsupported URL filters
+and Firefox/Safari probe responses; verify layered blur across all three chrome panes,
+usable settings navigation and contrast preference disabling the effect. This is
+Chromium branch coverage, not certification of Firefox or Safari. Six glass tests and
+frontend type checking passed. Full-stack authorization remains in effect; FYI only.

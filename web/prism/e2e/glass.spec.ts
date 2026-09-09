@@ -118,3 +118,35 @@ test("content surfaces share one left edge across pages", async ({ page }) => {
   expect(all.length).toBeGreaterThan(2);
   expect(new Set(all).size, `left edges: ${JSON.stringify(lefts)}`).toBe(1);
 });
+
+for (const capability of ["url-unsupported", "firefox-probe", "safari-probe"] as const) {
+  test(`lens capability ${capability} retains layered blur and usable navigation`, async ({ page }) => {
+    // Exercise the production capability gate, not a forced data-lens attribute.
+    // This is Chromium branch coverage; it does not certify other browsers.
+    await page.addInitScript((capability) => {
+      const supports = CSS.supports.bind(CSS);
+      CSS.supports = ((property: string, value?: string): boolean => {
+        if (capability === "firefox-probe" && property === "-moz-appearance") return true;
+        if (capability === "safari-probe" && property === "background" && value === "-webkit-named-image(i)") return true;
+        if (capability === "url-unsupported" && value?.startsWith("url(")) return false;
+        return value === undefined ? supports(property) : supports(property, value);
+      }) as typeof CSS.supports;
+    }, capability);
+    await unlock(page);
+    await expect(page.locator("html")).toHaveAttribute("data-lens", "off");
+    await selectDraft(page);
+    for (const pane of ["topbar", "rail", "dock"]) {
+      const filter = await page.locator(`.glass[data-pane="${pane}"]`).evaluate(
+        (node) => getComputedStyle(node).backdropFilter,
+      );
+      expect(filter).toContain("blur(");
+      expect(filter).not.toContain("url(");
+    }
+    await navigate(page, "设置");
+    await expect(page.getByRole("heading", { name: "设置", exact: true })).toBeVisible();
+    await page.emulateMedia({ contrast: "more", reducedMotion: "reduce" });
+    await expect.poll(() => page.locator('.glass[data-pane="topbar"]').evaluate(
+      (node) => getComputedStyle(node).backdropFilter,
+    )).toBe("none");
+  });
+}

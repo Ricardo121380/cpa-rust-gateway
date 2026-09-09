@@ -640,3 +640,15 @@ binding及endpoint不占活动并发预算；禁用兼容出口条目保留且�
 身份均在Provider调用前拒绝，重启/TTL仍通过。证据：
 `/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-23hu06iq/evidence.json`。
 本批gateway全目标Clippy及126项binary回归通过；仍保留活动图的既有策略/参数限制。
+
+## M4 回退路径与持续预览
+
+新增3项能力探测E2E，与原3项玻璃测试共6项通过；分别覆盖URL不支持、Firefox/Safari
+探测分支，确认三面chrome回到blur、高对比度关闭滤镜、导航可用。仅实际运行Chromium。
+验收脚本新增 `--preview`：完成真实验收后保留gateway及loopback Provider，Ctrl-C统一
+停止；不输出秘密，只输出临时credentials目录，模式不可与短时catalog-expiry组合。
+本次 `--priced --inactive --preview` 验收通过并持续运行，证据：
+`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-xxmtlm0a/evidence.json`。
+
+最终单测251通过。第一次全E2E与check.sh的npm ci重叠，依赖重建导致worker文件暂时不存在，
+该次失败属于执行安排错误，不能计为通过；依赖安装结束后重新完整执行，保留原失败日志。

@@ -33,7 +33,10 @@ def main():
     parser.add_argument('--browser', action='store_true')
     parser.add_argument('--browser-flow', action='store_true')
     parser.add_argument('--catalog-expiry', action='store_true')
+    parser.add_argument('--preview', action='store_true', help='Keep the synthetic gateway and loopback Provider running until Ctrl-C')
     args = parser.parse_args()
+    if args.preview and args.catalog_expiry:
+        parser.error('--preview cannot be combined with the short-lived catalog-expiry scenario')
     root = Path(tempfile.mkdtemp(prefix='prism-v4-acceptance-'))
     os.chmod(root, 0o700)
     state, credentials = root / 'state', root / 'credentials'
@@ -335,7 +338,18 @@ def main():
             checks.append('request leased before hard expiry completes under its pinned snapshot')
             report = {'checks': checks, 'expires_at_ms': expiry, 'provider_calls': len(provider_calls)}
             (root / 'evidence.json').write_text(json.dumps(report, indent=2))
-            print(json.dumps({'passed': checks, 'evidence': str(root / 'evidence.json')}, indent=2))
+            print(json.dumps({'passed': checks, 'evidence': str(root / 'evidence.json')}, indent=2), flush=True)
+        if args.preview:
+            preview = {'url': base + '/admin-ui/#/', 'credentials_directory': str(credentials),
+                       'stop': 'Ctrl-C in the owning terminal; temporary synthetic state is retained'}
+            (root / 'preview.json').write_text(json.dumps(preview, indent=2))
+            print(json.dumps({'preview': preview}, indent=2), flush=True)
+            try:
+                while process.poll() is None:
+                    time.sleep(1)
+                raise RuntimeError('preview gateway exited unexpectedly')
+            except KeyboardInterrupt:
+                pass
             return
 
         data_request = urllib.request.Request(f'http://127.0.0.1:{data_port}/v1/responses',
@@ -529,7 +543,18 @@ def main():
         report = {'checks': checks, 'state_directory': str(state), 'management_url': base,
                   'processing': processing}
         (root / 'evidence.json').write_text(json.dumps(report, indent=2))
-        print(json.dumps({'passed': checks, 'evidence': str(root / 'evidence.json')}, indent=2))
+        print(json.dumps({'passed': checks, 'evidence': str(root / 'evidence.json')}, indent=2), flush=True)
+        if args.preview:
+            preview = {'url': base + '/admin-ui/#/', 'credentials_directory': str(credentials),
+                       'stop': 'Ctrl-C in the owning terminal; temporary synthetic state is retained'}
+            (root / 'preview.json').write_text(json.dumps(preview, indent=2))
+            print(json.dumps({'preview': preview}, indent=2), flush=True)
+            try:
+                while process.poll() is None:
+                    time.sleep(1)
+                raise RuntimeError('preview gateway exited unexpectedly')
+            except KeyboardInterrupt:
+                pass
     finally:
         release.set()
         process.terminate()
