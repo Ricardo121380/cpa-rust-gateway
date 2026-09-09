@@ -1429,3 +1429,23 @@ bind the entire safe projection and reject changed context/content with 409.
 and three closed schemas. No config revision ETag. Projection fingerprint is not a
 catalog revision. Frontend DTO/fixtures and catalog snapshot evidence remain pending.
 Four runtime HTTP tests and thirteen contract tests passed; no real Provider was called.
+
+
+## 2026-09-10 — Codex / BE-FE-01 Prism effective model directory
+
+**What:** Added `web/prism/src/features/catalog/EffectiveModels.tsx`, integrated it
+in `web/prism/src/features/catalog/CatalogPage.tsx`; updated source-to-Explain
+prefill in `web/prism/src/features/runtime/RuntimePage.tsx`, safe synthetic identity/
+model data in `web/prism/src/dev/fixtures.ts`, and
+`web/prism/e2e/effective-models.spec.ts`.
+
+**Why:** Show serving exact models by existing Access Group or Key ID with scoped
+paging, safe source inspection and diagnostic deep links. Identity selection uses
+existing list results; no Client Key secret input exists. The projection fingerprint
+is labelled distinctly from catalog observations.
+
+**Other side:** FYI under full-stack authorization. Uses listEffectiveModels through
+the shared client, with matching DTOs. Six focused Chromium tests, type-check and
+four-file/CSP/double-build gate passed. Group switch clears prior model results;
+revoked Key errors do not retain the previous identity's models. Real gateway and
+catalog expiry/snapshot evidence remain unfinished work in this Goal.

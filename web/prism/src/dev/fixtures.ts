@@ -205,6 +205,10 @@ const state = {
     },
   ] as VersionRow[],
   groups: new Map<string, GroupRow[]>([
+    ["v-2026-07", [
+      {id: "team-default", name: "默认组", status: "active", limits: {}},
+      {id: "team-batch", name: "批处理组", status: "active", limits: {}},
+    ]],
     [
       "draft-2026-08",
       [
@@ -214,6 +218,10 @@ const state = {
     ],
   ]),
   keys: new Map<string, KeyRow[]>([
+    ["v-2026-07", [
+      {id: "key-cli", access_group_id: "team-default", prefix: "rgw_9f3c21ab04d7e6b2", status: "active", expires_at_ms: null},
+      {id: "key-dead", access_group_id: "team-default", prefix: "rgw_00dead00deadbeef", status: "revoked", expires_at_ms: null},
+    ]],
     [
       "draft-2026-08",
       [
@@ -964,6 +972,26 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const next = { ...JSON.parse(bodyText ?? "{}"), id } as UpstreamRow;
       list[index] = next;
       return json(200, next, revisionToken(version));
+    }
+
+    if (route === "GET /admin/models/effective") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      if (version.status !== "active") return errorResponse(503, "management_runtime_unavailable", "serving snapshot unavailable");
+      const groupId = url.searchParams.get("access_group_id");
+      const keyId = url.searchParams.get("client_key_id");
+      if ((groupId === null) === (keyId === null)) return errorResponse(400, "management_invalid_input", "select exactly one identity");
+      if ([...url.searchParams.keys()].some((name) => !["access_group_id", "client_key_id", "limit", "cursor"].includes(name))) return errorResponse(400, "management_invalid_input", "unknown query");
+      const key = keyId === null ? undefined : state.keys.get(version.id)?.find((row) => row.id === keyId);
+      if (keyId !== null && (key === undefined || key.status !== "active" || (key.expires_at_ms !== null && key.expires_at_ms <= Date.now()))) return errorResponse(404, "management_model_context_unavailable", "key unavailable");
+      const group = state.groups.get(version.id)?.find((row) => row.id === (groupId ?? key?.access_group_id));
+      if (group === undefined) return errorResponse(404, "management_model_context_unavailable", "group unavailable");
+      const modelId = group.id === "team-default" ? "exact-alpha" : "exact-beta";
+      const projectionId = (keyId === null ? (group.id === "team-default" ? "a" : "b") : "c").repeat(64);
+      return json(200, {config_version: version.id, access_group_id: group.id, client_key_id: keyId,
+        projection_id: projectionId, observed_at_ms: Date.now(), next_cursor: null,
+        items: [{id: modelId, public_model_id: `public-${modelId}`, public_model_name: `Public ${modelId}`, route_id: `route-${modelId}`,
+          sources: [{candidate_id: `candidate-${modelId}`, endpoint_id: `endpoint-${modelId}`, upstream_id: `upstream-${modelId}`, api_format: "openai/responses", catalog_admission: "manual"}]}]});
     }
 
     const routingLists = {

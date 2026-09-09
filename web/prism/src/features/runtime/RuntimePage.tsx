@@ -665,10 +665,9 @@ function ExplainCard({ scope }: Readonly<{ scope: string }>) {
   const [params] = useSearchParams();
   const [form, setForm] = useState<ExplainQuery>({
     // The workbench on the models page links here with the route it just fixed;
-    // routes are not enumerable, so a deep link is the only way to arrive with
-    // the id already filled in.
+    // preserve the exact requested model when arriving from its source inspector.
     route_id: params.get("route_id") ?? "",
-    requested_model: "",
+    requested_model: params.get("requested_model") ?? "",
     protocol: "openai_responses",
   });
   const [submitted, setSubmitted] = useState<ExplainQuery | undefined>();

@@ -1,3 +1,4 @@
+import { EffectiveModels } from "./EffectiveModels";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -62,6 +63,7 @@ export function CatalogPage() {
           刷新目录
         </button>
       </header>
+      <EffectiveModels />
       <div className="stat-row">
         {FRESHNESS_STATES.map((state) => (
           <div className="stat-tile" key={state}>

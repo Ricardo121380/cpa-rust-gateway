@@ -187,6 +187,17 @@ gateway bin Clippy（-D warnings）和 diff 检查通过。测试初次使用相
 上下文、未知/重复/secret 参数、两页完整读取、上下文切换和投影更新冲突。
 正式前端目录、目录 snapshot 时间/版本证据、B3 和真实 gateway 验收仍在当前 Goal 内。
 
+## BE-FE-01 正式目录接入
+
+正式 CatalogPage 已接入 EffectiveModels：既有 Group/Key ID 选择、独立 query 上下文、
+分页/重读、无效身份与空态，右侧详情展示 exact ID 与 Candidate/Endpoint/Upstream/协议/
+编译目录准入。无秘密输入。来源到诊断链接预填 Route 和 exact 请求模型。
+6 项定向 Chromium 测试、类型检查及权威 SPA 门禁通过，验证两组模型隔离、Key 查询、
+撤销错误清理和诊断深链。首轮测试误选到了 Channel Pin 的同名字段，改为定位 Explain
+“请求模型”后通过，未修改断言目标值。
+模型选择到草稿维护的接续、目录 snapshot 观测证据与 B3 硬过期、完整本地 gateway
+验收仍待完成；本批浏览器使用合成 fixture，不是 M4 证明。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、
