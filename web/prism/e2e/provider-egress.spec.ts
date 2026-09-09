@@ -13,6 +13,7 @@ test("the three domains stay three tables, never one", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "运行诊断");
+  await page.getByText("相关资源状态", { exact: true }).click();
 
   // Each partition is its own section with its own head and its own snapshot —
   // three reads, so the snapshots can legitimately differ.
@@ -36,6 +37,7 @@ test("an empty domain says the source does not exist, not that it is healthy", a
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "运行诊断");
+  await page.getByText("相关资源状态", { exact: true }).click();
 
   // clearance is empty on purpose: the projection's source only covers
   // assembled Grok Build/Console state, so production Web/clearance can be
@@ -52,6 +54,7 @@ test("a named target with no id is not rendered as a direct one", async ({ page 
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "运行诊断");
+  await page.getByText("相关资源状态", { exact: true }).click();
 
   const egress = page.locator('.rt-domain[data-domain="egress"]');
   await expect(egress.locator("tr", { hasText: "ep-relay-a-responses" })).toContainText("直连");
@@ -65,6 +68,7 @@ test("each domain's chips come from that domain's vocabulary only", async ({ pag
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "运行诊断");
+  await page.getByText("相关资源状态", { exact: true }).click();
 
   const egress = page.locator('.rt-domain[data-domain="egress"]');
   await expect(egress.locator('.rt-chip[data-state="probe_due"]')).toBeVisible();
@@ -83,6 +87,7 @@ test("a rotated snapshot stops paging and restarts from the first page", async (
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "运行诊断");
+  await page.getByText("相关资源状态", { exact: true }).click();
 
   const session = page.locator('.rt-domain[data-domain="session"]');
   await expect(session.locator("tbody tr")).toHaveCount(100);
@@ -108,6 +113,7 @@ test("a rotated snapshot does not claim the configuration changed", async ({ pag
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "运行诊断");
+  await page.getByText("相关资源状态", { exact: true }).click();
 
   const session = page.locator('.rt-domain[data-domain="session"]');
   await session.getByRole("button", { name: "继续读取" }).click();

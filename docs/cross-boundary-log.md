@@ -1275,3 +1275,49 @@ The egress workspace now also exposes the existing three-domain Provider project
 API/schema change. Type-check and 16 affected browser checks passed, including four
 new inspector flows. Remaining M1-M4 work stays explicit in the progress report.
 No remote state or real Provider was accessed.
+
+---
+
+## 2026-09-09 - Codex - M1 account actions, diagnostics and read states
+
+**Touched:**
+
+- `web/prism/e2e/account-actions.spec.ts`
+- `web/prism/e2e/i18n.spec.ts`
+- `web/prism/e2e/object-inspectors.spec.ts`
+- `web/prism/e2e/provider-egress.spec.ts`
+- `web/prism/e2e/provider-pools.spec.ts`
+- `web/prism/e2e/read-status.spec.ts`
+- `web/prism/src/app/navigation.ts`
+- `web/prism/src/app/v4.css`
+- `web/prism/src/components/ObjectInspector.tsx`
+- `web/prism/src/components/ReadStatus.tsx`
+- `web/prism/src/design/modal.css`
+- `web/prism/src/dev/fixtures.ts`
+- `web/prism/src/features/access/AccessPage.tsx`
+- `web/prism/src/features/accounts/AccountsPage.tsx`
+- `web/prism/src/features/audit/AuditBackupPage.tsx`
+- `web/prism/src/features/catalog/CatalogPage.tsx`
+- `web/prism/src/features/config-versions/VersionsPage.tsx`
+- `web/prism/src/features/egress/EgressPage.tsx`
+- `web/prism/src/features/models/ModelsPage.tsx`
+- `web/prism/src/features/overview/OverviewPage.tsx`
+- `web/prism/src/features/runtime/PoolActionSheet.tsx`
+- `web/prism/src/features/runtime/RuntimePage.tsx`
+- `web/prism/src/features/upstreams/UpstreamsPage.tsx`
+- `web/prism/src/i18n/en.ts`
+- `web/prism/src/i18n/zh.ts`
+
+**Why:** Move the existing exact-account cooldown/recovery flow into the account
+inspector using the shared PoolActionSheet. Runtime defaults to diagnostics while
+preserving its resource views behind an on-demand expansion and existing account
+links. Failed reads now label retained results and offer read-only retry; no write
+is replayed. Fix the long-title flex cascade and use the backend's exact runtime
+conflict code in fixtures. Format newly authored components for review.
+
+**Other side:** FYI under the user's full-stack authorization. No new backend API
+has been introduced yet. M0/M1 are complete; BE-FE-01/02, B1-B4 and real local gateway
+acceptance remain mandatory work. Type-check, 251 unit tests, all 119 browser tests
+and the authoritative four-file SPA gate passed. After formatting the new components,
+the build and all 119 browser tests passed again; no project dependency or lock file changed.
+No remote or real Provider action was performed.

@@ -9,6 +9,7 @@ import { navigate, selectDraft, unlock } from "./helpers";
 test("the pool reads with no config version, but its actions do not", async ({ page }) => {
   await unlock(page);
   await navigate(page, "运行诊断");
+  await page.getByText("相关资源状态", { exact: true }).click();
 
   // listProviderAccountPools declares no X-Config-Version, so the table is
   // there before anything is selected — a blanket "pick a version" state
@@ -22,12 +23,14 @@ test("the pool reads with no config version, but its actions do not", async ({ p
   await expect(cool).toBeDisabled();
 
   await selectDraft(page);
+  await page.getByText("相关资源状态", { exact: true }).click();
   await expect(cool).toBeEnabled();
 });
 
 test("auth status and runtime status stay two axes, never one health value", async ({ page }) => {
   await unlock(page);
   await navigate(page, "运行诊断");
+  await page.getByText("相关资源状态", { exact: true }).click();
 
   // cred-grok-oauth is reauth_required on the auth axis and unauthorized on
   // the runtime one. Both must be visible; neither may be merged away.
@@ -41,6 +44,7 @@ test("cooling names the exact account and enforces the contract's window", async
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "运行诊断");
+  await page.getByText("相关资源状态", { exact: true }).click();
 
   await page.locator("tr", { hasText: "cred-relay-key" }).getByRole("button", { name: "冷却" }).click();
   const sheet = page.getByRole("dialog");
@@ -68,6 +72,7 @@ test("a refused recovery is reported as an answer, not an error", async ({ page 
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "运行诊断");
+  await page.getByText("相关资源状态", { exact: true }).click();
 
   await page
     .locator("tr", { hasText: "cred-grok-oauth" })
@@ -86,6 +91,7 @@ test("a stale target re-reads the snapshot instead of retrying blind", async ({ 
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "运行诊断");
+  await page.getByText("相关资源状态", { exact: true }).click();
 
   await page.locator("tr", { hasText: "cred-grok-old" }).getByRole("button", { name: "冷却" }).click();
   const sheet = page.getByRole("dialog");
@@ -94,4 +100,5 @@ test("a stale target re-reads the snapshot instead of retrying blind", async ({ 
 
   await expect(page.locator(".action-error")).toContainText("快照已变");
   await expect(page.locator(".action-error")).toContainText("重新读取");
+  await expect(page.locator(".conflict-bar")).toHaveCount(0);
 });

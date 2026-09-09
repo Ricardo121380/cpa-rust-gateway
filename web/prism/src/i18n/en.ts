@@ -52,6 +52,7 @@ export const en: Pack = {
     pickerLabel: "Config version",
   },
   state: {
+    loading: "Loading…", readFailed: "Read failed", previousData: "Previous results remain below; they are not the latest state.", retry: "Retry read",
     empty: "No data yet",
     filteredEmpty: "Nothing matches the current filters",
     unavailable: "This deployment does not expose that runtime projection",

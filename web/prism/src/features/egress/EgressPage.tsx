@@ -1,3 +1,4 @@
+import { ReadStatus } from "../../components/ReadStatus";
 // Egress policies: allowlist-based SSRF boundary (docs/07 §7.7).
 // PATCH is full-replacement (C11) — the edit sheet always loads and submits
 // the complete EgressPolicyInput.
@@ -174,6 +175,8 @@ export function EgressPage() {
           </button>
         </p>
       ) : null}
+
+      <ReadStatus pending={policies.isPending} error={policies.error} hasData={policies.data !== undefined} retry={() => void policies.refetch()} />
 
       <div className="card tablewrap">
         <table>

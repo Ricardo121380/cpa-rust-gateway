@@ -1,3 +1,4 @@
+import { ReadStatus } from "../../components/ReadStatus";
 // Public models: client-visible model names + capabilities + 1:1 route.
 // Top-level CRUD works against the existing contract. Alias ENUMERATION still
 // waits for a list operation the contract does not have; ROUTE work no longer
@@ -216,6 +217,8 @@ export function ModelsPage() {
           </button>
         </p>
       ) : null}
+
+      <ReadStatus pending={models.isPending} error={models.error} hasData={models.data !== undefined} retry={() => void models.refetch()} />
 
       <div className="card tablewrap">
         <table>

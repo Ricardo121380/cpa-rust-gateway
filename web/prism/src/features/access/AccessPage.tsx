@@ -1,3 +1,4 @@
+import { ReadStatus } from "../../components/ReadStatus";
 // Access control: groups + client keys. Signature safety flow lives here —
 // the reveal-once sheet (docs/07 §6.4): the full rgw_ key exists only in the
 // 201 issue response; closing the sheet erases it from memory permanently.
@@ -397,6 +398,9 @@ export function AccessPage() {
           </button>
         </p>
       ) : null}
+
+      <ReadStatus pending={groups.isPending} error={groups.error} hasData={groups.data !== undefined} retry={() => void groups.refetch()} />
+      <ReadStatus pending={keys.isPending} error={keys.error} hasData={keys.data !== undefined} retry={() => void keys.refetch()} />
 
       <div className="card tablewrap">
         <h3>访问组</h3>

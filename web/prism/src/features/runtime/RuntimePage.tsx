@@ -15,13 +15,12 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { EntitlementEvidence } from "./EntitlementEvidence";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { useLangStore, useMessages } from "../../i18n/messages";
 import { useNowTick } from "../../utils/useNowTick";
 import { useVersionStore } from "../config-versions/versionStore";
-import { Sheet } from "../../components/Sheet";
 import { CredentialSheet } from "../upstreams/CredentialSheet";
 import {
   abnormalRows,
@@ -32,8 +31,6 @@ import {
   cellKey,
   countByState,
   authStatusMeta,
-  COOLDOWN_MAX_MS,
-  COOLDOWN_MIN_MS,
   decisionMeta,
   DOMAIN_META,
   domainStateMeta,
@@ -50,7 +47,6 @@ import {
   pinStageLabel,
   receiptMeta,
   runtimeStatusMeta,
-  validCooldown,
   formatAge,
   formatObservedAt,
   freshnessMeta,
@@ -82,6 +78,7 @@ import {
   type StateMeta,
 } from "./model";
 import "./runtime.css";
+import { PoolActionSheet } from "./PoolActionSheet";
 
 const POLL_MS = 10_000;
 
@@ -826,94 +823,6 @@ function ExplainCard({ scope }: Readonly<{ scope: string }>) {
 // operator find that out from a failed POST would be poor manners.
 // ---------------------------------------------------------------------------
 
-function PoolActionSheet({
-  account,
-  action,
-  pending,
-  onCancel,
-  onInvalid,
-  onSubmit,
-}: Readonly<{
-  account: PoolAccount;
-  action: PoolAction;
-  pending: boolean;
-  onCancel: () => void;
-  onInvalid: (message: string) => void;
-  onSubmit: (body: Readonly<Record<string, unknown>>) => void;
-}>) {
-  const isCooldown = action === "cool_down";
-  return (
-    <Sheet title={isCooldown ? "冷却这个账号" : "为这个账号请求恢复"} onEscape={onCancel}>
-      <p className="reveal-warning">
-        作用对象是<strong>精确到账号</strong>的一条:
-        <br />
-        <span className="mono">
-          {account.provider_id} / {account.channel_id} / {account.account_id}
-        </span>
-        <br />
-        {isCooldown
-          ? "冷却会把它移出调度直到到期,同 Provider 下的其他账号继续服务。"
-          : "请求恢复只是登记意图 —— 是否放行仍由运行时与上游决定,不保证恢复。"}
-      </p>
-      <form
-        className="sheet-form"
-        onSubmit={(event: FormEvent<HTMLFormElement>) => {
-          event.preventDefault();
-          const data = new FormData(event.currentTarget);
-          const body: Record<string, unknown> = {
-            provider_id: account.provider_id,
-            channel_id: account.channel_id,
-            account_id: account.account_id,
-            action,
-          };
-          const model = String(data.get("upstream_model") ?? "").trim();
-          if (model !== "") {
-            body["upstream_model"] = model;
-          }
-          if (isCooldown) {
-            const ms = Number(data.get("cooldown_ms"));
-            if (!validCooldown(ms)) {
-              onInvalid(
-                `冷却时长越界:契约要求 ${COOLDOWN_MIN_MS}–${COOLDOWN_MAX_MS} 毫秒(1 秒–24 小时)。`,
-              );
-              return;
-            }
-            body["cooldown_ms"] = ms;
-          }
-          onSubmit(body);
-        }}
-      >
-        {isCooldown ? (
-          <label>
-            冷却时长(毫秒,{COOLDOWN_MIN_MS}–{COOLDOWN_MAX_MS})
-            <input
-              name="cooldown_ms"
-              type="number"
-              min={COOLDOWN_MIN_MS}
-              max={COOLDOWN_MAX_MS}
-              defaultValue={60_000}
-            />
-            <small>留空不是"用默认值" —— 契约的字段可空,但这里必须给一个明确时长。</small>
-          </label>
-        ) : null}
-        <label>
-          upstream_model(可选)
-          <input name="upstream_model" className="mono" maxLength={256} />
-          <small>只想影响某一个上游模型时填写;留空表示整个账号。</small>
-        </label>
-        <div className="sheet-actions">
-          <button type="button" className="secondary" onClick={onCancel}>
-            取消
-          </button>
-          <button type="submit" className={isCooldown ? "danger" : undefined} disabled={pending}>
-            {isCooldown ? "确认冷却" : "确认请求恢复"}
-          </button>
-        </div>
-      </form>
-    </Sheet>
-  );
-}
-
 function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
   const [params, setParams] = useSearchParams();
   const lang = useLangStore((state) => state.lang);
@@ -1588,6 +1497,8 @@ function ChannelPinCard({ scope }: Readonly<{ scope: string }>) {
 }
 
 export function RuntimePage() {
+  const [params] = useSearchParams();
+  const [resourcesOpen, setResourcesOpen] = useState(params.has("account_id"));
   const t = useMessages();
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
@@ -1595,6 +1506,9 @@ export function RuntimePage() {
   const visible = useDocumentVisible();
   const nowMs = useNowTick(60_000);
   const [onlyAbnormal, setOnlyAbnormal] = useState(false);
+  useEffect(() => {
+    if (params.has("account_id")) setResourcesOpen(true);
+  }, [params]);
 
   const availability = useQuery({
     queryKey: ["runtime-availability", scope],
@@ -1602,7 +1516,7 @@ export function RuntimePage() {
       call<AvailabilityRow[]>("getRuntimeAvailability", {}, { versionScoped: true }),
     enabled: scope !== undefined,
     // Poll while the tab is visible; stop dead when it is hidden.
-    refetchInterval: visible ? POLL_MS : false,
+    refetchInterval: (query) => visible && !isProjectionUnavailable(query.state.error) ? POLL_MS : false,
     refetchIntervalInBackground: false,
     placeholderData: (previous) => previous,
   });
@@ -1610,7 +1524,7 @@ export function RuntimePage() {
   const catalog = useQuery({
     queryKey: ["catalog-status", scope],
     queryFn: () => call<CatalogRow[]>("getCatalogStatus", {}, { versionScoped: true }),
-    enabled: scope !== undefined,
+    enabled: scope !== undefined && resourcesOpen,
     staleTime: 30_000,
   });
 
@@ -1620,14 +1534,14 @@ export function RuntimePage() {
     return (
       <section className="runtime-page">
         <h2>{t.nav.runtime}</h2>
-        <ProviderPoolCard nowMs={nowMs} />
+        <div className="detail-links"><Link to="/accounts">账号池</Link><Link to="/catalog">模型目录</Link><Link to="/egress">出口策略</Link></div>
+        <details open={resourcesOpen} onToggle={(event) => setResourcesOpen(event.currentTarget.open)}><summary>相关资源状态</summary>{resourcesOpen ? <ProviderPoolCard nowMs={nowMs} /> : null}</details>
         <div className="card empty-state" data-kind="empty" data-gap="top">
           <p>
-            其余四个投影需要一个配置版本。
+            选择配置版本后查看可用性矩阵、路由解释与 Channel Pin。
             <br />
             <small className="muted-3">
-              可用性矩阵、目录新鲜度、Provider 出口状态与 Route Explain 都带 X-Config-Version;
-              上面的账号池不带,所以它现在就能读。
+              账号池实时读取不依赖配置版本，可从上方入口查看。
             </small>
           </p>
         </div>
@@ -1664,6 +1578,8 @@ export function RuntimePage() {
           </button>
         </div>
       </header>
+
+      <div className="detail-links"><Link to="/accounts">账号池</Link><Link to="/catalog">模型目录</Link><Link to="/egress">出口策略</Link></div>
 
       {availabilityUnavailable ? (
         <div className="card rt-card" data-gap="top">
@@ -1707,6 +1623,7 @@ export function RuntimePage() {
         </>
       )}
 
+      <details open={resourcesOpen} onToggle={(event) => setResourcesOpen(event.currentTarget.open)} data-gap="top"><summary>相关资源状态</summary>{resourcesOpen ? <>
       <CatalogCard
         rows={catalog.data}
         nowMs={nowMs}
@@ -1716,6 +1633,7 @@ export function RuntimePage() {
 
       <ProviderPoolCard nowMs={nowMs} />
       <ProviderEgressCard scope={scope} nowMs={nowMs} />
+      </> : null}</details>
       <ExplainCard scope={scope} />
       <ChannelPinCard scope={scope} />
     </section>

@@ -1,3 +1,4 @@
+import { ReadStatus } from "../../components/ReadStatus";
 // Audit trail (append-only, read-only UI) + backup preflight.
 // Restore upload is deliberately deferred: the flow only succeeds into an
 // absent target DB — a live panel session can never satisfy that, so the UI
@@ -61,6 +62,8 @@ export function AuditBackupPage() {
           </button>
         </p>
       ) : null}
+
+      <ReadStatus pending={events.isPending} error={events.error} hasData={events.data !== undefined} retry={() => void events.refetch()} />
 
       <div className="card tablewrap">
         <h3>配置生命周期审计(append-only)</h3>

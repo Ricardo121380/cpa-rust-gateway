@@ -1,3 +1,4 @@
+import { ReadStatus } from "../../components/ReadStatus";
 // Config-version workspace: the lifecycle hub (docs/07 §7.4 / v0.1 §7.3).
 // List → create draft → validate → publish (If-Match) → rollback.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -115,6 +116,8 @@ export function VersionsPage() {
           </button>
         </p>
       ) : null}
+
+      <ReadStatus pending={versions.isPending} error={versions.error} hasData={versions.data !== undefined} retry={() => void versions.refetch()} />
 
       <div className="card tablewrap">
         <table>

@@ -1,3 +1,4 @@
+import { ReadStatus } from "../../components/ReadStatus";
 // Upstream top-level CRUD. Child resources (endpoints / credentials /
 // bindings) need the G1 graph projection — owned by the backend session —
 // so their panel renders an honest "waiting for contract" state, not a fake.
@@ -162,6 +163,8 @@ export function UpstreamsPage() {
           </button>
         </p>
       ) : null}
+
+      <ReadStatus pending={upstreams.isPending} error={upstreams.error} hasData={upstreams.data !== undefined} retry={() => void upstreams.refetch()} />
 
       <div className="card tablewrap">
         <table>

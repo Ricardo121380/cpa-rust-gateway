@@ -1789,7 +1789,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       // blind. `cred-grok-old` stands in for "the snapshot moved under you".
       if (body.account_id === "cred-grok-old") {
         state.poolSnapshot += 1;
-        return errorResponse(409, "management_lifecycle_conflict", "stale action target");
+        return errorResponse(409, "management_provider_account_action_target_changed", "stale action target");
       }
       const cooling = body.action === "cool_down";
       // reauth_required cannot be probed back to life — the scheduler says so

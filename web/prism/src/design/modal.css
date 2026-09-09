@@ -1,6 +1,9 @@
 /* V4 modal layer: solid forms and inspectors above one softly dimmed scrim.
    Glass remains reserved for navigation; Sheet owns focus and exit cleanup. */
-:root { --sheet-in: 200ms; --sheet-out: 160ms; }
+:root {
+  --sheet-in: 200ms;
+  --sheet-out: 160ms;
+}
 .sheet-backdrop[data-modal="scrim"] {
   position: fixed;
   inset: 0;
@@ -13,34 +16,101 @@
   backdrop-filter: blur(2px);
   animation: scrim-in var(--sheet-in) var(--ease) both;
 }
-.sheet-backdrop[data-modal="scrim"]:not(.sheet-ghost) ~ .sheet-backdrop[data-modal="scrim"]:not(.sheet-ghost) {
+.sheet-backdrop[data-modal="scrim"]:not(.sheet-ghost)
+  ~ .sheet-backdrop[data-modal="scrim"]:not(.sheet-ghost) {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
-@keyframes scrim-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes scrim-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes scrim-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
 .sheet-backdrop[data-modal="scrim"].sheet-ghost {
   z-index: 99;
   pointer-events: none;
   animation: scrim-out var(--sheet-out) var(--ease) both;
 }
-.sheet-backdrop .sheet-panel { width: min(600px, calc(100vw - 32px)); padding: 22px; background: var(--surface); color: var(--ink); border: 1px solid var(--separator); border-radius: 20px; box-shadow: 0 24px 80px #00000026; overflow-y: auto; }
-.sheet-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex: none; }
-.sheet-heading h3 { margin: 0; overflow-wrap: anywhere; }
-.sheet-heading button { min-width: 28px; padding: 2px 7px; font-size: 19px; }
-.sheet-backdrop[data-layout="inspector"] { display: flex; align-items: stretch; justify-content: flex-end; padding: 88px 16px 16px; }
-.sheet-backdrop[data-layout="inspector"] > [role="dialog"] { width: min(520px, calc(100vw - 32px)); }
-.sheet-backdrop[data-layout="inspector"] .sheet-panel { width: 100%; height: 100%; max-height: none; border-radius: 18px; }
-.sheet-form .sheet-actions { background: var(--surface); }
+.sheet-backdrop .sheet-panel {
+  width: min(600px, calc(100vw - 32px));
+  padding: 22px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--separator);
+  border-radius: 20px;
+  box-shadow: 0 24px 80px #00000026;
+  overflow-y: auto;
+}
+.sheet-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex: none;
+}
+.sheet-panel .sheet-heading h3 {
+  margin: 0;
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.sheet-heading button {
+  min-width: 28px;
+  flex: none;
+  padding: 2px 7px;
+  font-size: 19px;
+}
+.sheet-backdrop[data-layout="inspector"] {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  padding: 88px 16px 16px;
+}
+.sheet-backdrop[data-layout="inspector"] > [role="dialog"] {
+  width: min(520px, calc(100vw - 32px));
+}
+.sheet-backdrop[data-layout="inspector"] .sheet-panel {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  border-radius: 18px;
+}
+.sheet-form .sheet-actions {
+  background: var(--surface);
+}
 
 @media (max-width: 560px) {
-  .sheet-backdrop[data-layout="inspector"] { padding: 12px; }
-  .sheet-backdrop[data-layout="inspector"] > [role="dialog"] { width: calc(100vw - 24px); }
-  .sheet-backdrop .sheet-panel { padding: 18px; }
+  .sheet-backdrop[data-layout="inspector"] {
+    padding: 12px;
+  }
+  .sheet-backdrop[data-layout="inspector"] > [role="dialog"] {
+    width: calc(100vw - 24px);
+  }
+  .sheet-backdrop .sheet-panel {
+    padding: 18px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  :root { --sheet-in: 0ms; --sheet-out: 0ms; }
+  :root {
+    --sheet-in: 0ms;
+    --sheet-out: 0ms;
+  }
 }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .sheet-backdrop[data-modal="scrim"] { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .sheet-backdrop[data-modal="scrim"] {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }

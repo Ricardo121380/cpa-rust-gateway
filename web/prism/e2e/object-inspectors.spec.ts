@@ -72,3 +72,21 @@ test("audit and route inspectors expose the observed identity and version", asyn
   await expect(page.getByRole("dialog")).toContainText("最大尝试次数");
   await expect(page.getByRole("dialog")).toContainText("rt-inspector");
 });
+
+test("long model identities wrap inside the mobile inspector", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await unlock(page);
+  await selectDraft(page);
+  await navigate(page, "模型与路由");
+  const id = `model-${"x".repeat(120)}`;
+  await page.getByRole("button", { name: "新建公开模型" }).click();
+  const form = page.getByRole("dialog");
+  await form.getByLabel("模型 ID").fill(id);
+  await form.getByLabel("模型名", { exact: false }).fill(id);
+  await form.getByRole("button", { name: "保存", exact: true }).click();
+  await page.locator("tr").filter({ hasText: id }).getByRole("button", { name: "详情", exact: true }).click();
+  const inspector = page.getByRole("dialog");
+  await expect(inspector).toContainText(id);
+  const dimensions = await inspector.locator(".sheet-panel").evaluate((el) => ({ width: el.clientWidth, content: el.scrollWidth }));
+  expect(dimensions.content).toBeLessThanOrEqual(dimensions.width + 1);
+});

@@ -45,6 +45,7 @@ export const zh = {
     pickerLabel: "配置版本",
   },
   state: {
+    loading: "读取中…", readFailed: "读取失败", previousData: "下面保留上次读取的结果，并非最新状态。", retry: "重试读取",
     empty: "暂无数据",
     filteredEmpty: "没有符合过滤条件的结果",
     unavailable: "此部署未启用该运行时投影",

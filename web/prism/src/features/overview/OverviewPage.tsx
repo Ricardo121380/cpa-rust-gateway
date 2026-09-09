@@ -17,6 +17,7 @@ import {
 import { formatCount, StatTile } from "../../components/data/StatTile";
 import { TokenMixBar } from "../../components/data/TokenMixBar";
 import { StatusBadge } from "../../components/StatusBadge";
+import { ReadStatus } from "../../components/ReadStatus";
 import { useMessages } from "../../i18n/messages";
 import {
   useVersionStore,
@@ -308,6 +309,7 @@ export function OverviewPage() {
   return (
     <section>
       <h2>{t.nav.overview}</h2>
+      <ReadStatus pending={versions.isPending} error={versions.error} hasData={versions.data !== undefined} retry={() => void versions.refetch()} />
 
       <div className="overview-grid">
         <div className="card">
@@ -320,7 +322,7 @@ export function OverviewPage() {
               <span className="muted small">{active.description}</span>
             </p>
           ) : (
-            <p className="muted">尚无活动版本 —— 发布一个草稿后出现。</p>
+            <p className="muted">{versions.data === undefined ? "尚未读取到版本信息。" : "尚无活动版本 —— 发布一个草稿后出现。"}</p>
           )}
           <Link to="/versions">前往配置版本 →</Link>
         </div>

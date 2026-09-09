@@ -17,6 +17,7 @@ test("state vocabularies translate, glyph and enum value do not change", async (
   await selectDraft(page);
   await switchToEnglish(page);
   await page.getByRole("navigation").getByRole("link", { name: "Runtime", exact: true }).click();
+  await page.getByText("相关资源状态", { exact: true }).click();
 
   // The pool card's two axes are the densest chip surface in the app.
   const row = page.locator("tr", { hasText: "cred-grok-oauth" });
@@ -32,6 +33,7 @@ test("the same word in two vocabularies gets two translations", async ({ page })
   await selectDraft(page);
   await switchToEnglish(page);
   await page.getByRole("navigation").getByRole("link", { name: "Runtime", exact: true }).click();
+  await page.getByText("相关资源状态", { exact: true }).click();
 
   // `disabled` is an operator-disabled credential on the auth axis and an
   // administratively disabled egress in the egress domain. A flat i18n key
