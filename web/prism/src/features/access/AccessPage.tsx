@@ -1,3 +1,5 @@
+import { useRoutingPages } from "../models/useRoutingPages";
+import type { RouteListItem } from "../models/model";
 import { ReadStatus } from "../../components/ReadStatus";
 // Access control: groups + client keys. Signature safety flow lives here —
 // the reveal-once sheet (docs/07 §6.4): the full rgw_ key exists only in the
@@ -29,12 +31,6 @@ type AccessGroupRoute = Readonly<{
   enabled: boolean;
 }>;
 
-/** Routes are not enumerable: the contract has createRoute/getRoute but no
- *  listRoutes. The operational inventory carries route_ids per binding, so
- *  those become datalist suggestions — the field stays free text because the
- *  suggestions are known to be incomplete. */
-type PoolRow = Readonly<{ route_ids: readonly string[] }>;
-
 function GroupRoutes({
   groupId,
   editable,
@@ -56,18 +52,8 @@ function GroupRoutes({
     enabled: scope !== undefined,
   });
 
-  const suggestions = useQuery({
-    queryKey: ["pool-routes", scope],
-    queryFn: () =>
-      call<Readonly<{ items: readonly PoolRow[] }>>(
-        "listOperationalAccountPools",
-        { query: { limit: 100 } },
-        { versionScoped: true },
-      ),
-    enabled: scope !== undefined,
-    retry: false,
-  });
-  const routeIds = [...new Set((suggestions.data?.items ?? []).flatMap((row) => row.route_ids))];
+  const suggestions = useRoutingPages<RouteListItem>("listRoutes", adding);
+  const routeIds = suggestions.data?.pages.flatMap((page) => page.items.map((row) => row.id)) ?? [];
 
   const grant = useMutation({
     mutationFn: (input: { route_id: string; enabled: boolean }) =>
@@ -78,6 +64,7 @@ function GroupRoutes({
       ),
     onSuccess: () => {
       setAdding(false);
+      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
       void queryClient.invalidateQueries({ queryKey: ["group-routes", scope, groupId] });
     },
     onError: (error) => onError(asAppError(error).message),
@@ -146,8 +133,14 @@ function GroupRoutes({
               ))}
             </datalist>
             <p className="stat-sub">
-              契约没有 listRoutes —— 上面的建议来自运营库存里出现过的 route_id,并不完整。
+              包含未绑定草稿路由 · 已载入 {routeIds.length} 项{suggestions.hasNextPage ? " · 还有更多" : ""}
             </p>
+            {suggestions.isError ? <p role="alert">{asAppError(suggestions.error).message}。请重新读取路由列表。</p> : null}
+            <div className="sheet-actions">
+              <button type="button" className="secondary" onClick={() => void queryClient.resetQueries({ queryKey: ["routing-inventory", scope, "listRoutes"] })}>重新读取路由</button>
+              {suggestions.hasNextPage ? <button type="button" className="secondary" disabled={suggestions.isFetching || suggestions.isError}
+                onClick={() => void suggestions.fetchNextPage()}>加载更多路由</button> : null}
+            </div>
             <label className="check-row">
               <input name="enabled" type="checkbox" defaultChecked />
               启用

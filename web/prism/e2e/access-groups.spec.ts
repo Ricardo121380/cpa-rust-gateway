@@ -59,6 +59,17 @@ test("limits are judged before they reach the gateway", async ({ page }) => {
 
 test("route grants are listed per group and can be added", async ({ page }) => {
   await openAccess(page);
+  await navigate(page, "模型与路由");
+  await page.getByRole("button", { name: "新建公开模型" }).click();
+  const model = page.getByRole("dialog");
+  await model.getByLabel("模型 ID").fill("pm-grant");
+  await model.getByLabel("模型名", { exact: false }).fill("model-grant");
+  await model.getByRole("button", { name: "保存" }).click();
+  await page.locator("tr", { hasText: "model-grant" }).first().getByRole("button", { name: "建路由" }).click();
+  await page.getByRole("dialog").getByLabel("路由 ID").fill("rt-e2e");
+  await page.getByRole("dialog").getByRole("button", { name: "创建" }).click();
+  await navigate(page, "访问控制");
+
 
   const row = page.locator("tr", { hasText: "team-default" }).first();
   await row.getByRole("button", { name: "路由" }).click();
@@ -67,9 +78,8 @@ test("route grants are listed per group and can be added", async ({ page }) => {
 
   await routes.getByRole("button", { name: "授权路由" }).click();
   const sheet = page.getByRole("dialog");
-  // Routes are not enumerable — the field says so rather than pretending the
-  // suggestion list is complete.
-  await expect(sheet).toContainText("契约没有 listRoutes");
+  await expect(sheet).toContainText("包含未绑定草稿路由");
+  await expect(sheet.locator('datalist option[value="rt-e2e"]')).toHaveCount(1);
   await sheet.getByLabel("route_id").fill("rt-e2e");
   await sheet.getByRole("button", { name: "授权" }).click();
   await expect(page.locator(".group-routes")).toContainText("rt-e2e");

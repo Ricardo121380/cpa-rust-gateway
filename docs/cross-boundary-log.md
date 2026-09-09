@@ -1393,3 +1393,21 @@ no generated edits or automatic write retry. Type-check, six focused Chromium te
 and four-file/CSP/double-build gate passed. The browser test edits weight, priority,
 transform and capability overrides, reopens to verify values, deletes the Candidate
 and checks the remaining Route and invalid topology. Real gateway validation is still pending.
+
+
+## 2026-09-10 — Codex / V4 M2 Access Group route enumeration
+
+**What:** Added `web/prism/src/features/models/useRoutingPages.ts`, shared by
+`web/prism/src/features/models/RoutingInventory.tsx` and
+`web/prism/src/features/access/AccessPage.tsx`; updated
+`web/prism/src/dev/fixtures.ts` and `web/prism/e2e/access-groups.spec.ts`.
+
+**Why:** Access Group route suggestions must include unbound drafts, with bounded
+pagination and explicit restart on conflicts. The old operational inventory hints
+could not provide this. Manual exact-ID entry remains available and is validated
+by the real gateway; fixture grants now also reject absent Route references.
+
+**Other side:** FYI under full-stack authorization. Existing authoritative listRoutes
+and grantAccessGroupRoute operations are reused. Eleven focused Chromium tests
+passed, including creating a draft Route, seeing it in the grant suggestions and
+successfully granting it. No live Provider or remote action occurred.

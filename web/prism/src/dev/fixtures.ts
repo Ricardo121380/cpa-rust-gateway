@@ -792,6 +792,9 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const mismatch = requireDraftAndMatch(version, headers);
       if (mismatch !== undefined) return mismatch;
       const body = JSON.parse(bodyText ?? "{}") as { route_id: string; enabled: boolean };
+      if (!(state.routes.get(version.id) ?? []).some((row) => row.id === body.route_id)) {
+        return errorResponse(409, "management_lifecycle_conflict", "route reference is missing");
+      }
       const grant = { access_group_id: id, route_id: body.route_id, enabled: body.enabled };
       const existing = rows.findIndex((row) => row.route_id === body.route_id);
       if (existing >= 0) {

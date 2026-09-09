@@ -1,14 +1,9 @@
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { call } from "../../api/client";
+import { useRoutingPages } from "./useRoutingPages";
 import { asAppError } from "../../api/errors";
 import { useVersionStore } from "../config-versions/versionStore";
-import type {
-  RoutingPage,
-  RouteListItem,
-  CandidateRecord,
-  AliasRecord,
-} from "./model";
+import type { RouteListItem, CandidateRecord, AliasRecord } from "./model";
 
 const tabs = [
   ["listRoutes", "路由"],
@@ -33,24 +28,7 @@ export function RoutingInventory({
   const [operation, setOperation] = useState<Operation>("listRoutes");
   const client = useQueryClient();
   const key = ["routing-inventory", scope, operation];
-  const query = useInfiniteQuery({
-    queryKey: key,
-    initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam }) =>
-      call<RoutingPage<Item>>(
-        operation,
-        {
-          query: {
-            limit: 100,
-            ...(pageParam === undefined ? {} : { cursor: pageParam }),
-          },
-        },
-        { versionScoped: true },
-      ),
-    getNextPageParam: (page) => page.next_cursor ?? undefined,
-    enabled: scope !== undefined,
-    retry: false,
-  });
+  const query = useRoutingPages<Item>(operation);
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];
   return (
     <section aria-label="完整配置资源" className="card" data-gap="top">
