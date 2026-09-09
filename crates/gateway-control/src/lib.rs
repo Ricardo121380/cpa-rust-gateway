@@ -4,6 +4,7 @@
 
 /// Durable Usage-to-billing materialization with restart-safe checkpoints.
 pub mod billing_materializer;
+pub mod billing_processing;
 /// Provider-scoped fixed-point pricing for the durable P13-05 billing ledger.
 pub mod billing_service;
 /// Active Config-Version composition for generic compatible Endpoint egress pools.

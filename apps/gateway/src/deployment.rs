@@ -195,6 +195,7 @@ async fn run_servers(
         event_writer,
         credential_refresh_worker,
         model_catalog_worker,
+        billing_processing,
     } = application;
     let data = web::Data::new(data);
     let data_server = HttpServer::new(move || App::new().app_data(data.clone()).configure(configure))
@@ -234,6 +235,7 @@ async fn run_servers(
     let mut event_writer = actix_web::rt::spawn(event_writer.run());
     let billing_worker = crate::billing_worker::BillingWorker::start(
         command.state_directory.join(CONTROL_DATABASE_FILE),
+        billing_processing,
     );
     let credential_refresh_worker =
         credential_refresh_worker.map(|worker| actix_web::rt::spawn(worker.run()));
@@ -290,6 +292,7 @@ struct ApplicationState {
     event_writer: AsyncSqliteEventWriter,
     credential_refresh_worker: Option<credential_refresh::RuntimeCredentialRefreshWorker>,
     model_catalog_worker: Option<runtime::RuntimeModelCatalogWorker>,
+    billing_processing: Arc<gateway_control::billing_processing::BillingProcessingMonitor>,
 }
 
 /// Read-only production source for P13-04's durable usage/cost projection.
@@ -448,6 +451,8 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         eprintln!("{error}");
         DeploymentError::RuntimeUnavailable
     })?;
+    let billing_processing =
+        Arc::new(gateway_control::billing_processing::BillingProcessingMonitor::default());
     let resources = ManagementResourceHttpState::with_workflow_and_runtime_and_usage(
         mutation_service,
         Box::new(CodexOAuthManagementWorkflow::with_exchange(Box::new(
@@ -473,6 +478,7 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         )
         .map_err(|_| DeploymentError::BackupUnavailable)?,
     );
+    let resources = resources.with_billing_processing(Arc::clone(&billing_processing));
     let origin = management_origin(command.management_listener)?;
     let security = ManagementHttpState::new(
         management_key,
@@ -493,6 +499,7 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         event_writer,
         credential_refresh_worker,
         model_catalog_worker,
+        billing_processing,
     })
 }
 
@@ -1025,6 +1032,7 @@ mod tests {
             event_writer,
             credential_refresh_worker: _,
             model_catalog_worker: _,
+            billing_processing: _,
         } = application;
         drop((data, security, resources, lifecycle, backup, observability));
 

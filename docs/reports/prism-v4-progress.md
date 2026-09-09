@@ -278,6 +278,16 @@ checkpoint 超过源水位时失败关闭。未修复失败独立于追平进度
 掩盖坏记录。6 项账本存储回归及 store lib Clippy 通过。
 该投影还需接入 worker 状态与管理 HTTP，不能据此把处理状态界面标为完成。
 
+## B1 worker 状态与管理接口
+
+新增共享 BillingProcessingMonitor 并由 serve 实际注入 worker/管理 state；blocking 批次结束
+后发布一致水位与观察时间，读取只复制内存。状态区分 disabled、starting、current、catching_up、
+needs_repair、failed、stopped；失败保留上次成功观测，停止失败显式标为 failed。
+新增 GET /admin/operations/billing-processing，权威契约同步到106个生成操作，未观测保持 null。
+
+状态机回归、真实 SQLite worker 回归、5项 runtime HTTP 与13项契约测试、gateway Clippy、
+权威 SPA 门禁通过。前端展示尚待接入，B2/B4 与真实 HTTP/Provider 本地验收仍未完成。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、

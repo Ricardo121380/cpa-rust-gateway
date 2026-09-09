@@ -1,4 +1,7 @@
 //! Single-owner billing consumption, isolated from listener threads and Provider execution.
+use gateway_control::billing_processing::BillingProcessingMonitor;
+use gateway_store::billing_ledger::BillingMaterializationProgress;
+use std::sync::Arc;
 
 use gateway_control::billing_materializer::{
     BILLING_MATERIALIZER_ID, BillingMaterializationReceipt,
@@ -16,12 +19,15 @@ const POLL_INTERVAL: Duration = Duration::from_secs(1);
 const STOP_TIMEOUT: Duration = Duration::from_secs(30);
 
 pub(crate) struct BillingWorker {
+    monitor: Arc<BillingProcessingMonitor>,
     stop: watch::Sender<bool>,
     task: actix_web::rt::task::JoinHandle<()>,
 }
 
 impl BillingWorker {
-    pub(crate) fn start(database: PathBuf) -> Self {
+    pub(crate) fn start(database: PathBuf, monitor: Arc<BillingProcessingMonitor>) -> Self {
+        monitor.starting();
+        let owner_monitor = Arc::clone(&monitor);
         let (stop, mut stopping) = watch::channel(false);
         let task = actix_web::rt::spawn(async move {
             loop {
@@ -29,13 +35,15 @@ impl BillingWorker {
                 let database = database.clone();
                 let result =
                     actix_web::rt::task::spawn_blocking(move || run_batch(&database)).await;
-                let full_batch = if let Ok(Ok(receipt)) = result {
+                let full_batch = if let Ok(Ok((receipt, progress, observed_at_ms))) = result {
+                    monitor.observe(progress, observed_at_ms);
                     if receipt.failed_events > 0 {
                         tracing::warn!(target: "billing_materializer", failed_events = receipt.failed_events,
                             "billing source rows retained for retry");
                     }
                     receipt.scanned_events == BATCH_SIZE
                 } else {
+                    monitor.failed();
                     tracing::warn!(target: "billing_materializer", "billing batch unavailable; checkpoint retained");
                     false
                 };
@@ -52,18 +60,27 @@ impl BillingWorker {
                     _ = stopping.changed() => {},
                 }
             }
+            monitor.stopped();
         });
-        Self { stop, task }
+        Self {
+            stop,
+            task,
+            monitor: owner_monitor,
+        }
     }
 
     pub(crate) async fn stop(mut self) -> Result<(), ()> {
         let _ = self.stop.send(true);
         match actix_web::rt::time::timeout(STOP_TIMEOUT, &mut self.task).await {
             Ok(Ok(())) => Ok(()),
-            Ok(Err(_)) => Err(()),
+            Ok(Err(_)) => {
+                self.monitor.failed();
+                Err(())
+            }
             Err(_) => {
                 // A blocked SQLite call may finish, but no new batch is dispatched after abort.
                 self.task.abort();
+                self.monitor.failed();
                 Err(())
             }
         }
@@ -76,14 +93,23 @@ impl Drop for BillingWorker {
     }
 }
 
-fn run_batch(database: &std::path::Path) -> Result<BillingMaterializationReceipt, ()> {
+fn run_batch(
+    database: &std::path::Path,
+) -> Result<
+    (
+        BillingMaterializationReceipt,
+        BillingMaterializationProgress,
+        u64,
+    ),
+    (),
+> {
     let source = SqliteEventStore::open_read_only(database).map_err(|_| ())?;
     let mut ledger = SqliteBillingLedger::open(database).map_err(|_| ())?;
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|_| ())?;
     let now_ms = u64::try_from(now.as_millis()).map_err(|_| ())?;
-    materialize_billing_events_with_retention(
+    let receipt = materialize_billing_events_with_retention(
         &source,
         &mut ledger,
         BILLING_MATERIALIZER_ID,
@@ -91,7 +117,18 @@ fn run_batch(database: &std::path::Path) -> Result<BillingMaterializationReceipt
         None,
         now_ms,
     )
-    .map_err(|_| ())
+    .map_err(|_| ())?;
+    let progress = ledger
+        .materialization_progress(BILLING_MATERIALIZER_ID)
+        .map_err(|_| ())?;
+    let observed_at_ms = u64::try_from(
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|_| ())?
+            .as_millis(),
+    )
+    .map_err(|_| ())?;
+    Ok((receipt, progress, observed_at_ms))
 }
 
 #[cfg(test)]
@@ -154,7 +191,10 @@ mod tests {
             std::process::id()
         ));
         append_request(&database, 1)?;
-        let worker = BillingWorker::start(database.clone());
+        let worker = BillingWorker::start(
+            database.clone(),
+            Arc::new(BillingProcessingMonitor::default()),
+        );
         actix_web::rt::time::timeout(Duration::from_secs(5), async {
             loop {
                 let ledger = SqliteBillingLedger::open_read_only(&database)?;
@@ -184,7 +224,10 @@ mod tests {
         );
         drop(ledger);
         append_request(&database, 2)?;
-        let worker = BillingWorker::start(database.clone());
+        let worker = BillingWorker::start(
+            database.clone(),
+            Arc::new(BillingProcessingMonitor::default()),
+        );
         worker.stop().await.map_err(|()| "restart stop failed")?;
         let ledger = SqliteBillingLedger::open_read_only(&database)?;
         assert_eq!(ledger.list_bounded(10)?.len(), 2);

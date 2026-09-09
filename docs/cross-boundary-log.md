@@ -1469,3 +1469,23 @@ with current catalog admission and an explicit unobserved state.
 required; no secrets are included. Contract/HTTP tests, gateway Clippy, type-check,
 source-evidence Chromium flow and four-file/CSP gate passed. Delayed real-loopback
 refresh and final gateway acceptance remain pending; no real Provider was contacted.
+
+
+## 2026-09-10 — Codex / B1 protected processing status
+
+**What:** Added `crates/gateway-control/src/billing_processing.rs`, wired the shared
+monitor through `apps/gateway/src/{billing_worker.rs,deployment.rs}` and
+`crates/gateway-http-actix/src/management_resources.rs`. Updated authority
+`docs/openapi/management-v1.json` and ran sync-contract for
+`web/prism/contracts/management-v1.json` and
+`web/prism/src/generated/management-client.ts`.
+
+**Why:** Make absent/starting/current/lagging/repair/failed/stopped worker states
+observable without blocking management reads on storage. Failure keeps last
+successful observation metadata and exposes only a closed failure code.
+
+**Other side:** FYI under full-stack authorization. New operation
+getBillingProcessingStatus is unscoped and read-only. Frontend DTO/fixture/display
+remain the next step. Monitor lifecycle, real SQLite worker restart, five runtime
+HTTP tests, thirteen contract tests, Clippy and SPA gate passed. This is not M4
+listener-to-Provider acceptance.

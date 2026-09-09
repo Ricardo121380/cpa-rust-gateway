@@ -730,6 +730,13 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "getBillingProcessingStatus": {
+    "method": "GET",
+    "path": "/admin/operations/billing-processing",
+    "parameters": [],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "getCatalogStatus": {
     "method": "GET",
     "path": "/admin/catalog/status",
@@ -2462,6 +2469,10 @@ export class ManagementApi {
 
   getAccessGroup(request: ManagementRequest = {}): Promise<Response> {
     return this.request("getAccessGroup", request);
+  }
+
+  getBillingProcessingStatus(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("getBillingProcessingStatus", request);
   }
 
   getCatalogStatus(request: ManagementRequest = {}): Promise<Response> {

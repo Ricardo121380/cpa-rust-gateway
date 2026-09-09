@@ -692,3 +692,62 @@ async fn effective_models_require_safe_context_and_consistent_pages() -> TestRes
     assert_eq!(missing.status(), StatusCode::NOT_FOUND);
     Ok(())
 }
+
+#[actix_web::test]
+async fn billing_processing_is_protected_unscoped_and_preserves_unknown_observations() -> TestResult
+{
+    use gateway_control::billing_processing::BillingProcessingMonitor;
+    use gateway_store::billing_ledger::BillingMaterializationProgress;
+    let monitor = Arc::new(BillingProcessingMonitor::default());
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security_state()?))
+            .app_data(web::Data::new(
+                ManagementResourceHttpState::new(mutation_service()?)
+                    .with_billing_processing(Arc::clone(&monitor)),
+            ))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let path = "/admin/operations/billing-processing";
+    let denied = test::call_service(&app, test::TestRequest::get().uri(path).to_request()).await;
+    assert_eq!(denied.status(), StatusCode::NOT_FOUND);
+    let response = test::call_service(
+        &app,
+        request_only_authorized(test::TestRequest::get().uri(path)).to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert!(response.headers().get(header::ETAG).is_none());
+    let body: Value = test::read_body_json(response).await;
+    assert_eq!(body["state"], "disabled");
+    assert!(body["source_ordinal"].is_null());
+    assert!(body["observed_at_ms"].is_null());
+    monitor.observe(
+        BillingMaterializationProgress {
+            source_ordinal: 4,
+            checkpoint_ordinal: Some(4),
+            checkpoint_updated_at_ms: Some(100),
+            unresolved_failures: 1,
+        },
+        100,
+    );
+    let response = test::call_service(
+        &app,
+        request_only_authorized(test::TestRequest::get().uri(path)).to_request(),
+    )
+    .await;
+    let body: Value = test::read_body_json(response).await;
+    assert_eq!(body["state"], "needs_repair");
+    monitor.failed();
+    let response = test::call_service(
+        &app,
+        request_only_authorized(test::TestRequest::get().uri(path)).to_request(),
+    )
+    .await;
+    let body: Value = test::read_body_json(response).await;
+    assert_eq!(body["failure_code"], "batch_unavailable");
+    assert_eq!(body["observed_at_ms"], 100);
+    assert_eq!(body["unresolved_failures"], 1);
+    Ok(())
+}

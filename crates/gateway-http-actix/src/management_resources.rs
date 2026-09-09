@@ -104,6 +104,8 @@ const CODEX_OAUTH_USER_AGENT: &str = "codex_cli_rs/0.144.1";
 /// serialized transactions. Provider and OAuth workflows remain separately injected in later
 /// P10-04 code and never run while this lock is held.
 pub struct ManagementResourceHttpState {
+    billing_processing:
+        std::sync::Arc<gateway_control::billing_processing::BillingProcessingMonitor>,
     service: Mutex<ManagementMutationService>,
     workflow: Mutex<Box<dyn ManagementEndpointWorkflow>>,
     runtime: Mutex<Box<dyn ManagementRuntimeFacade>>,
@@ -334,6 +336,7 @@ impl ManagementResourceHttpState {
         usage: Box<dyn ManagementUsageFacade>,
     ) -> Self {
         Self {
+            billing_processing: std::sync::Arc::default(),
             service: Mutex::new(service),
             workflow: Mutex::new(workflow),
             runtime: Mutex::new(runtime),
@@ -349,7 +352,17 @@ impl ManagementResourceHttpState {
         }
     }
 
-    /// Replaces the default rejecting usage source without changing the other management seams.
+    /// Attaches the process-local billing monitor without enabling writes or storage reads.
+    #[must_use]
+    pub fn with_billing_processing(
+        mut self,
+        monitor: std::sync::Arc<gateway_control::billing_processing::BillingProcessingMonitor>,
+    ) -> Self {
+        self.billing_processing = monitor;
+        self
+    }
+
+    /// Attaches the durable usage projection.
     #[must_use]
     pub fn with_usage(mut self, usage: Box<dyn ManagementUsageFacade>) -> Self {
         self.usage = Mutex::new(usage);
@@ -2592,6 +2605,10 @@ fn configure_runtime_resource_routes(config: &mut web::ServiceConfig) {
 
 fn configure_operations_resource_routes(config: &mut web::ServiceConfig) {
     config
+        .route(
+            "/operations/billing-processing",
+            web::get().to(get_billing_processing),
+        )
         .route(
             "/compatible-proxy-pools",
             web::get().to(list_compatible_proxy_pools),
@@ -7055,6 +7072,27 @@ struct EffectiveModelPage {
     observed_at_ms: i64,
     items: Vec<ManagementEffectiveModel>,
     next_cursor: Option<String>,
+}
+
+async fn get_billing_processing(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    if !request.query_string().is_empty() {
+        return invalid_input();
+    }
+    let Some(status) = state.billing_processing.snapshot() else {
+        return internal_error();
+    };
+    let progress = status.progress.as_ref();
+    HttpResponse::Ok().insert_header((header::CACHE_CONTROL, "no-store")).json(serde_json::json!({
+        "state": status.phase.as_str(), "observed_at_ms": status.observed_at_ms,
+        "source_ordinal": progress.map(|value| value.source_ordinal),
+        "checkpoint_ordinal": progress.and_then(|value| value.checkpoint_ordinal),
+        "checkpoint_updated_at_ms": progress.and_then(|value| value.checkpoint_updated_at_ms),
+        "unresolved_failures": progress.map(|value| value.unresolved_failures),
+        "failure_code": if status.phase == gateway_control::billing_processing::BillingProcessingPhase::Failed { Some("batch_unavailable") } else { None },
+    }))
 }
 
 async fn get_effective_models(

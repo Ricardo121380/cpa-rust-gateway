@@ -75,3 +75,12 @@ credential_id、version、observed_at_ms、stale_at_ms、expires_at_ms、catalog
 证据来自当前 serving Candidate 固定的 durable discovery snapshot，不在查询时拼接另一个
 最新目录。catalog_eligible 使用查询时刻判断；没有持久观测为 []，前端显示“未观测”。
 这些证据参与 projection_id，变化导致续页409。权威契约定稿后已运行 sync-contract。
+
+## B1 安全处理状态定稿（2026-09-10）
+
+`GET /admin/operations/billing-processing` / `getBillingProcessingStatus`，管理鉴权、无配置
+header、无查询参数、无写入和 ETag。响应闭合 BillingProcessingStatus：state、observed_at_ms、
+source_ordinal、checkpoint_ordinal、checkpoint_updated_at_ms、unresolved_failures、failure_code。
+state 为 disabled/starting/current/catching_up/needs_repair/failed/stopped；未观测字段为 null。
+failed 保留上次成功观测时间和水位，failure_code 仅 batch_unavailable；未修复记录优先显示
+needs_repair，不因 checkpoint 追平而掩盖。HTTP 只复制内存 monitor，不访问 SQLite。
