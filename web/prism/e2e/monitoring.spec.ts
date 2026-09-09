@@ -9,7 +9,7 @@ import { navigate, selectDraft, unlock } from "./helpers";
 
 async function openMonitoring(page: import("@playwright/test").Page): Promise<void> {
   await unlock(page);
-  await navigate(page, "请求监控");
+  await navigate(page, "请求与失败");
   await expect(page.locator(".mon-table")).toBeVisible();
 }
 
@@ -77,7 +77,7 @@ test("a ledger row drills into its attempt trail", async ({ page }) => {
 
 test("the failure panel is version-scoped and says so when the ledger is not", async ({ page }) => {
   await unlock(page);
-  await navigate(page, "请求监控");
+  await navigate(page, "请求与失败");
   await page.getByRole("tab", { name: "失败归因" }).click();
 
   // No version selected: the ledger next door works fine without one, and an
@@ -94,7 +94,7 @@ test("failure counts are labelled as loaded-so-far, and rows are not requests", 
 }) => {
   await unlock(page);
   await selectDraft(page);
-  await navigate(page, "请求监控");
+  await navigate(page, "请求与失败");
   await page.getByRole("tab", { name: "失败归因" }).click();
   await expect(page.locator(".mon-table")).toBeVisible();
 

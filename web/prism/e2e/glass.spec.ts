@@ -91,13 +91,13 @@ test("content surfaces share one left edge across pages", async ({ page }) => {
   await unlock(page);
   const lefts: Record<string, number[]> = {};
   for (const [label, name] of [
-    ["请求监控", "monitoring"],
+    ["请求与失败", "monitoring"],
     ["用量分析", "usage"],
   ] as const) {
     await navigate(page, label);
     await expect(page.getByRole("heading", { name: label })).toBeVisible();
     lefts[name] = await page.evaluate(() => {
-      const canvas = document.querySelector(".canvas");
+      const canvas = document.querySelector(".workspace");
       if (canvas === null) return [];
       const full = canvas.getBoundingClientRect().width;
       return (

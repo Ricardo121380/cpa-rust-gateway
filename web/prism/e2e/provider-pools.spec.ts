@@ -8,7 +8,7 @@ import { navigate, selectDraft, unlock } from "./helpers";
 
 test("the pool reads with no config version, but its actions do not", async ({ page }) => {
   await unlock(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
   // listProviderAccountPools declares no X-Config-Version, so the table is
   // there before anything is selected — a blanket "pick a version" state
@@ -27,7 +27,7 @@ test("the pool reads with no config version, but its actions do not", async ({ p
 
 test("auth status and runtime status stay two axes, never one health value", async ({ page }) => {
   await unlock(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
   // cred-grok-oauth is reauth_required on the auth axis and unauthorized on
   // the runtime one. Both must be visible; neither may be merged away.
@@ -40,7 +40,7 @@ test("auth status and runtime status stay two axes, never one health value", asy
 test("cooling names the exact account and enforces the contract's window", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
   await page.locator("tr", { hasText: "cred-relay-key" }).getByRole("button", { name: "冷却" }).click();
   const sheet = page.getByRole("dialog");
@@ -67,7 +67,7 @@ test("cooling names the exact account and enforces the contract's window", async
 test("a refused recovery is reported as an answer, not an error", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
   await page
     .locator("tr", { hasText: "cred-grok-oauth" })
@@ -85,7 +85,7 @@ test("a refused recovery is reported as an answer, not an error", async ({ page 
 test("a stale target re-reads the snapshot instead of retrying blind", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
   await page.locator("tr", { hasText: "cred-grok-old" }).getByRole("button", { name: "冷却" }).click();
   const sheet = page.getByRole("dialog");

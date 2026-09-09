@@ -8,7 +8,7 @@ import { navigate, selectDraft, unlock } from "./helpers";
 async function openRuntime(page: import("@playwright/test").Page): Promise<void> {
   await unlock(page);
   await selectDraft(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 }
 
 test("a credential id in the availability matrix opens its detail", async ({ page }) => {
@@ -32,7 +32,7 @@ test("G5 metadata renders, and its all-null case says so instead of showing blan
   await expect(rich).toContainText("ops@fixture.example");
   await expect(rich).toContainText("SuperGrok Heavy");
   await expect(rich).toContainText("direct_oauth");
-  await rich.getByRole("button", { name: "关闭" }).click();
+  await rich.getByRole("button", { name: "关闭", exact: true }).click();
 
   // The api_key one carries nothing — every metadata field is nullable.
   await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-relay-key" }).click();
@@ -68,7 +68,7 @@ test("re-authorisation reaches the wizard and comes back to the credential", asy
 
   const wizard = page.getByRole("dialog");
   await expect(wizard).toContainText("OAuth 授权 · cred-grok-oauth");
-  await wizard.getByRole("button", { name: "关闭" }).click();
+  await wizard.getByRole("button", { name: "关闭", exact: true }).click();
   // closing the wizard returns to the credential, not to the page
   await expect(page.getByRole("dialog")).toContainText("凭据 · cred-grok-oauth");
 });

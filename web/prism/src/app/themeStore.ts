@@ -36,3 +36,16 @@ export function resolvedTheme(choice: ThemeChoice): "light" | "dark" {
   }
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
+
+type AccessibilityChoice = "transparency" | "contrast" | "motion";
+export const useAccessibilityStore = create<{
+  transparency: boolean; contrast: boolean; motion: boolean;
+  set: (choice: AccessibilityChoice, enabled: boolean) => void;
+}>((set) => ({
+  transparency: false, contrast: false, motion: false,
+  set: (choice, enabled) => {
+    if (enabled) document.documentElement.dataset[choice] = choice === "contrast" ? "more" : "reduce";
+    else delete document.documentElement.dataset[choice];
+    set({ [choice]: enabled });
+  },
+}));

@@ -3,12 +3,13 @@
 
 :root {
   /* canvas / surface / ink */
-  --canvas: #f2f2f7;
+  --canvas: #eceef2;
+  --content-canvas: #f5f5f7;
   --canvas-ambient: linear-gradient(160deg, #c8d8e8 0%, #e8e4f0 45%, #d4e4e0 100%);
   --surface: #ffffff;
-  --surface-2: #f7f7fa;
+  --surface-2: #f2f3f5;
   --ink: #1d1d1f;
-  --ink-2: #6e6e73;
+  --ink-2: #63656b;
   /* --ink-3 is NOT a body-text colour. It measures 3.26:1 on --surface and
      2.92:1 on --canvas, so any sentence a user has to read must use --ink-2
      (5.07:1) instead. Keep --ink-3 for non-text and incidental marks where AA
@@ -19,8 +20,8 @@
      --surface-2 lands within 0.1 of --ink-2 and collapses the three-step ramp
      into two. */
   --ink-3: #8e8e93;
-  --separator: rgba(0, 0, 0, 0.1);
-  --tint: #0071e3;
+  --separator: #dfe1e5;
+  --tint: #0066cc;
   --tint-ink: #ffffff;
   /* Solid FILL behind --tint-ink. Separate from --tint because --tint has to
      stay bright enough to read as a label on a light surface (and doubles as
@@ -88,16 +89,16 @@
      layer with HUE variation at a SMALL spatial scale, and small-scale hue
      variation is exactly what refraction reveals. Four wide radial lights
      alone read as a flat pastel wash (tested: the rail looked like a card). */
-  --amb-1: #5f9dff;   /* cool key light,  top-left  */
-  --amb-2: #b98cff;   /* violet fill,     top-right */
-  --amb-3: #3fd7bd;   /* teal bounce,     bottom    */
-  --amb-4: #ffb877;   /* warm rim,        mid-right */
-  --amb-strength-1: 0.42;
-  --amb-strength-2: 0.38;
-  --amb-strength-3: 0.34;
-  --amb-strength-4: 0.26;
-  --amb-streak: 0.32;  /* spectral fan crossing the rail column */
-  --amb-grain: 0.40;  /* high-frequency bite for blur AND refraction */
+  --amb-1: #85a9d7;   /* cool key light,  top-left  */
+  --amb-2: #adb7c9;   /* violet fill,     top-right */
+  --amb-3: #94b5be;   /* teal bounce,     bottom    */
+  --amb-4: #c8bfb0;   /* warm rim,        mid-right */
+  --amb-strength-1: 0.20;
+  --amb-strength-2: 0.12;
+  --amb-strength-3: 0.12;
+  --amb-strength-4: 0.08;
+  --amb-streak: 0.12;  /* spectral fan crossing the rail column */
+  --amb-grain: 0.18;  /* high-frequency bite for blur AND refraction */
 
   /* ---- glass body (treatment B — also the fallback for C) ---------------- */
   --glass-blur: 12px;      /* was 20px: 20 over-frosts and kills the backdrop */
@@ -130,17 +131,9 @@
 
   /* Adaptive shadow: contact + near + mid + ambient. FOUR stops with negative
      spread — that is what reads as "floating above". One 32px blob does not. */
-  --glass-shadow:
-    0 1px 1px rgba(14, 18, 32, 0.05),
-    0 4px 10px -3px rgba(14, 18, 32, 0.08),
-    0 14px 28px -8px rgba(14, 18, 32, 0.12),
-    0 30px 60px -22px rgba(14, 18, 32, 0.18);
+  --glass-shadow: 0 1px 1px #0e122008, 0 3px 8px -3px #0e12200d, 0 10px 20px -8px #0e122014, 0 22px 40px -20px #0e12201a;
   /* WWDC25: shadow opacity rises while real content is behind the pane */
-  --glass-shadow-boost:
-    0 1px 1px rgba(14, 18, 32, 0.07),
-    0 5px 12px -3px rgba(14, 18, 32, 0.12),
-    0 16px 32px -8px rgba(14, 18, 32, 0.18),
-    0 34px 66px -22px rgba(14, 18, 32, 0.26);
+  --glass-shadow-boost: 0 1px 1px #0e12200d, 0 4px 10px -3px #0e122014, 0 12px 24px -8px #0e12201f, 0 26px 46px -20px #0e122029;
 
   --glass-edge-top: rgba(255, 255, 255, 0.28);
   --glass-edge-bot: rgba(255, 255, 255, 0.14);
@@ -159,15 +152,16 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --canvas: #0b0b10;
+    --canvas: #101217;
+  --content-canvas: #191b20;
     --canvas-ambient: linear-gradient(160deg, #101826 0%, #181428 45%, #0e1e1e 100%);
-    --surface: #16161d;
-    --surface-2: #1e1e26;
+    --surface: #222429;
+    --surface-2: #2b2e34;
     --ink: #f5f5f7;
-    --ink-2: #98989d;
+    --ink-2: #a6a9b1;
     --ink-3: #6e6e76;
-    --separator: rgba(255, 255, 255, 0.1);
-    --tint: #0a84ff;
+    --separator: #383b43;
+    --tint: #69b0ff;
     /* White 12-13px text on #0a84ff measures 3.65:1 — below AA. --tint itself
        must stay this bright (it is nav/link ink on a near-black surface, and
        --chart-1's hue), so the FILL darkens instead: white on #0f6fd6 is
@@ -181,16 +175,16 @@
     --chart-2: #cc7a00;
     --chart-3: #2196c9;
     --chart-4: #db4e92;
-  --amb-1: #1e5fe0;
-  --amb-2: #7c3aed;
-  --amb-3: #0f9d8f;
-  --amb-4: #c2560a;
-  --amb-strength-1: 0.34;
-  --amb-strength-2: 0.30;
-  --amb-strength-3: 0.26;
-  --amb-strength-4: 0.20;
-  --amb-streak: 0.26;
-  --amb-grain: 0.45;
+  --amb-1: #356093;
+  --amb-2: #4d5669;
+  --amb-3: #2b6570;
+  --amb-4: #6d5948;
+  --amb-strength-1: 0.20;
+  --amb-strength-2: 0.12;
+  --amb-strength-3: 0.14;
+  --amb-strength-4: 0.07;
+  --amb-streak: 0.10;
+  --amb-grain: 0.18;
 
   /* Dark glass: LESS saturation, MORE brightness. A dark pane over a dark
      canvas disappears unless it LIFTS the backdrop. */
@@ -211,31 +205,24 @@
     inset 0 -1px 0.5px rgba(255, 255, 255, 0.16),
     inset 0 16px 26px -24px rgba(255, 255, 255, 0.55),
     inset 0 -20px 30px -26px rgba(255, 255, 255, 0.35);
-  --glass-shadow:
-    0 1px 1px rgba(0, 0, 0, 0.30),
-    0 5px 12px -4px rgba(0, 0, 0, 0.40),
-    0 18px 36px -10px rgba(0, 0, 0, 0.45),
-    0 40px 70px -24px rgba(0, 0, 0, 0.55);
-  --glass-shadow-boost:
-    0 1px 1px rgba(0, 0, 0, 0.40),
-    0 6px 14px -4px rgba(0, 0, 0, 0.50),
-    0 20px 40px -10px rgba(0, 0, 0, 0.55),
-    0 44px 78px -24px rgba(0, 0, 0, 0.65);
+  --glass-shadow: 0 1px 1px #00000033, 0 4px 10px -4px #00000047, 0 14px 28px -10px #0000004d, 0 28px 50px -24px #00000066;
+  --glass-shadow-boost: 0 1px 1px #00000040, 0 5px 12px -4px #00000059, 0 16px 32px -10px #00000066, 0 32px 56px -24px #00000080;
   --glass-edge-top: rgba(255, 255, 255, 0.10);
   --glass-edge-bot: rgba(255, 255, 255, 0.05);
   }
 }
 
 :root[data-theme="light"] {
-  --canvas: #f2f2f7;
+  --canvas: #eceef2;
+  --content-canvas: #f5f5f7;
   --canvas-ambient: linear-gradient(160deg, #c8d8e8 0%, #e8e4f0 45%, #d4e4e0 100%);
   --surface: #ffffff;
-  --surface-2: #f7f7fa;
+  --surface-2: #f2f3f5;
   --ink: #1d1d1f;
-  --ink-2: #6e6e73;
+  --ink-2: #63656b;
   --ink-3: #8e8e93;
-  --separator: rgba(0, 0, 0, 0.1);
-  --tint: #0071e3;
+  --separator: #dfe1e5;
+  --tint: #0066cc;
   --status-good: #248a3d;
   --status-warn: #b7791f;
   --status-serious: #c93400;
@@ -252,16 +239,16 @@
      layer with HUE variation at a SMALL spatial scale, and small-scale hue
      variation is exactly what refraction reveals. Four wide radial lights
      alone read as a flat pastel wash (tested: the rail looked like a card). */
-  --amb-1: #5f9dff;   /* cool key light,  top-left  */
-  --amb-2: #b98cff;   /* violet fill,     top-right */
-  --amb-3: #3fd7bd;   /* teal bounce,     bottom    */
-  --amb-4: #ffb877;   /* warm rim,        mid-right */
-  --amb-strength-1: 0.42;
-  --amb-strength-2: 0.38;
-  --amb-strength-3: 0.34;
-  --amb-strength-4: 0.26;
-  --amb-streak: 0.32;  /* spectral fan crossing the rail column */
-  --amb-grain: 0.40;  /* high-frequency bite for blur AND refraction */
+  --amb-1: #85a9d7;   /* cool key light,  top-left  */
+  --amb-2: #adb7c9;   /* violet fill,     top-right */
+  --amb-3: #94b5be;   /* teal bounce,     bottom    */
+  --amb-4: #c8bfb0;   /* warm rim,        mid-right */
+  --amb-strength-1: 0.20;
+  --amb-strength-2: 0.12;
+  --amb-strength-3: 0.12;
+  --amb-strength-4: 0.08;
+  --amb-streak: 0.12;  /* spectral fan crossing the rail column */
+  --amb-grain: 0.18;  /* high-frequency bite for blur AND refraction */
 
   /* ---- glass body (treatment B — also the fallback for C) ---------------- */
   --glass-blur: 12px;      /* was 20px: 20 over-frosts and kills the backdrop */
@@ -294,17 +281,9 @@
 
   /* Adaptive shadow: contact + near + mid + ambient. FOUR stops with negative
      spread — that is what reads as "floating above". One 32px blob does not. */
-  --glass-shadow:
-    0 1px 1px rgba(14, 18, 32, 0.05),
-    0 4px 10px -3px rgba(14, 18, 32, 0.08),
-    0 14px 28px -8px rgba(14, 18, 32, 0.12),
-    0 30px 60px -22px rgba(14, 18, 32, 0.18);
+  --glass-shadow: 0 1px 1px #0e122008, 0 3px 8px -3px #0e12200d, 0 10px 20px -8px #0e122014, 0 22px 40px -20px #0e12201a;
   /* WWDC25: shadow opacity rises while real content is behind the pane */
-  --glass-shadow-boost:
-    0 1px 1px rgba(14, 18, 32, 0.07),
-    0 5px 12px -3px rgba(14, 18, 32, 0.12),
-    0 16px 32px -8px rgba(14, 18, 32, 0.18),
-    0 34px 66px -22px rgba(14, 18, 32, 0.26);
+  --glass-shadow-boost: 0 1px 1px #0e12200d, 0 4px 10px -3px #0e122014, 0 12px 24px -8px #0e12201f, 0 26px 46px -20px #0e122029;
 
   --glass-edge-top: rgba(255, 255, 255, 0.28);
   --glass-edge-bot: rgba(255, 255, 255, 0.14);
@@ -322,15 +301,16 @@
 }
 
 :root[data-theme="dark"] {
-  --canvas: #0b0b10;
+  --canvas: #101217;
+  --content-canvas: #191b20;
   --canvas-ambient: linear-gradient(160deg, #101826 0%, #181428 45%, #0e1e1e 100%);
-  --surface: #16161d;
-  --surface-2: #1e1e26;
+  --surface: #222429;
+  --surface-2: #2b2e34;
   --ink: #f5f5f7;
-  --ink-2: #98989d;
+  --ink-2: #a6a9b1;
   --ink-3: #6e6e76;
-  --separator: rgba(255, 255, 255, 0.1);
-  --tint: #0a84ff;
+  --separator: #383b43;
+  --tint: #69b0ff;
   --tint-fill: #0f6fd6; /* keep in step with the media-query block above */
   --status-good: #30d158;
   --status-warn: #ffd60a;
@@ -341,16 +321,16 @@
   --chart-3: #2196c9;
   --chart-4: #db4e92;
 
-  --amb-1: #1e5fe0;
-  --amb-2: #7c3aed;
-  --amb-3: #0f9d8f;
-  --amb-4: #c2560a;
-  --amb-strength-1: 0.34;
-  --amb-strength-2: 0.30;
-  --amb-strength-3: 0.26;
-  --amb-strength-4: 0.20;
-  --amb-streak: 0.26;
-  --amb-grain: 0.45;
+  --amb-1: #356093;
+  --amb-2: #4d5669;
+  --amb-3: #2b6570;
+  --amb-4: #6d5948;
+  --amb-strength-1: 0.20;
+  --amb-strength-2: 0.12;
+  --amb-strength-3: 0.14;
+  --amb-strength-4: 0.07;
+  --amb-streak: 0.10;
+  --amb-grain: 0.18;
 
   /* Dark glass: LESS saturation, MORE brightness. A dark pane over a dark
      canvas disappears unless it LIFTS the backdrop. */
@@ -371,16 +351,8 @@
     inset 0 -1px 0.5px rgba(255, 255, 255, 0.16),
     inset 0 16px 26px -24px rgba(255, 255, 255, 0.55),
     inset 0 -20px 30px -26px rgba(255, 255, 255, 0.35);
-  --glass-shadow:
-    0 1px 1px rgba(0, 0, 0, 0.30),
-    0 5px 12px -4px rgba(0, 0, 0, 0.40),
-    0 18px 36px -10px rgba(0, 0, 0, 0.45),
-    0 40px 70px -24px rgba(0, 0, 0, 0.55);
-  --glass-shadow-boost:
-    0 1px 1px rgba(0, 0, 0, 0.40),
-    0 6px 14px -4px rgba(0, 0, 0, 0.50),
-    0 20px 40px -10px rgba(0, 0, 0, 0.55),
-    0 44px 78px -24px rgba(0, 0, 0, 0.65);
+  --glass-shadow: 0 1px 1px #00000033, 0 4px 10px -4px #00000047, 0 14px 28px -10px #0000004d, 0 28px 50px -24px #00000066;
+  --glass-shadow-boost: 0 1px 1px #00000040, 0 5px 12px -4px #00000059, 0 16px 32px -10px #00000066, 0 32px 56px -24px #00000080;
   --glass-edge-top: rgba(255, 255, 255, 0.10);
   --glass-edge-bot: rgba(255, 255, 255, 0.05);
 }

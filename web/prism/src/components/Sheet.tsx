@@ -8,7 +8,6 @@
 // only when `onEscape` is provided.
 import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { GlassSurface } from "./glass/GlassSurface";
 import { useSessionStore } from "../session/sessionStore";
 
 const FOCUSABLE =
@@ -45,19 +44,25 @@ export function Sheet({
   title,
   children,
   onEscape,
+  layout = "form",
 }: Readonly<{
   title: string;
   children: ReactNode;
   onEscape?: (() => void) | undefined;
+  layout?: "form" | "inspector";
 }>) {
   const scrimRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const scrim = scrimRef.current;
     const sessionGeneration = useSessionStore.getState().generation;
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    panelRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
+    // StrictMode reruns the effect after focus has entered the panel. Preserve
+    // the original opener instead of replacing it with the panel's first button.
+    openerRef.current ??= document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const opener = openerRef.current;
+    (panelRef.current?.querySelector<HTMLElement>(FOCUSABLE) ?? panelRef.current)?.focus();
 
     openSheets += 1;
     if (import.meta.env.DEV && openSheets > 1) {
@@ -128,18 +133,19 @@ export function Sheet({
   // canvas now carries the scroll-edge mask + its own scroll container — both
   // would clip a fixed modal painted inside its subtree.
   return createPortal(
-    <div className="sheet-backdrop" data-modal="scrim" role="presentation" ref={scrimRef}>
+    <div className="sheet-backdrop" data-modal="scrim" data-layout={layout} role="presentation" ref={scrimRef}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        tabIndex={-1}
         ref={panelRef}
         onKeyDown={trapTab}
       >
-        <GlassSurface className="sheet-panel" layer="modal">
-          <h3>{title}</h3>
+        <div className="sheet-panel">
+          <header className="sheet-heading"><h3>{title}</h3>{onEscape === undefined ? null : <button type="button" className="secondary" aria-label="关闭面板" onClick={onEscape}>×</button>}</header>
           {children}
-        </GlassSurface>
+        </div>
       </div>
     </div>,
     document.body,

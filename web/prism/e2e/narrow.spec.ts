@@ -11,14 +11,16 @@ import { navigate, selectDraft, unlock } from "./helpers";
 const PAGES = [
   "总览",
   "用量分析",
-  "请求监控",
+  "请求与失败",
   "计费与价格",
   "配置版本",
   "上游",
+  "账号池",
+  "模型目录",
   "模型与路由",
   "访问控制",
   "出口策略",
-  "运行时",
+  "运行诊断",
   "审计与备份",
   "设置",
 ];
@@ -88,6 +90,7 @@ test("the rail stays reachable and the version picker stays usable", async ({ pa
   // The rail is the only way between pages; if it collapses off-screen at this
   // width the app is unusable rather than merely ugly.
   const rail = page.getByRole("navigation");
+  if (!(await rail.isVisible())) await page.locator("#nav-toggle").click();
   await expect(rail).toBeVisible();
   const box = await rail.boundingBox();
   expect(box).not.toBeNull();

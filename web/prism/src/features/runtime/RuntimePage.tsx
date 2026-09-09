@@ -199,9 +199,8 @@ function CardHead({
       <div className="rt-head-text">
         <h3>
           {title}
-          <span className="rt-op mono">{operation}</span>
         </h3>
-        <p className="rt-help">{help}</p>
+        <details className="reading-notes"><summary>状态与数据说明</summary><span className="rt-op mono">{operation}</span><p className="rt-help">{help}</p></details>
       </div>
       {aside !== undefined ? <div className="rt-head-aside">{aside}</div> : null}
     </div>
@@ -728,7 +727,7 @@ function ExplainCard({ scope }: Readonly<{ scope: string }>) {
           </>
         }
       />
-      <form className="rt-explain-form" onSubmit={onSubmit}>
+      <form className="rt-explain-form" aria-label="路由解释" onSubmit={onSubmit}>
         <label>
           route_id
           <input
@@ -916,6 +915,7 @@ function PoolActionSheet({
 }
 
 function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
+  const [params, setParams] = useSearchParams();
   const lang = useLangStore((state) => state.lang);
   const queryClient = useQueryClient();
   const scope = useVersionStore((s) => s.context?.configVersionId);
@@ -964,7 +964,8 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
     },
   });
 
-  const rows = pools.data?.items ?? [];
+  const accountFilter = params.get("account_id");
+  const rows = (pools.data?.items ?? []).filter((row) => accountFilter === null || row.account_id === accountFilter);
 
   return (
     <div className="card rt-card" data-gap="top">
@@ -978,6 +979,7 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
           </>
         }
       />
+      {accountFilter === null ? null : <p className="scope-row">账号 {accountFilter} · <button className="secondary" onClick={() => { const next = new URLSearchParams(params); next.delete("account_id"); setParams(next); }}>查看全部账号</button></p>}
       <p className="rt-help">
         <strong>本表不需要配置版本</strong>(它是实时状态),但下面的操作需要:
         <span className="mono"> applyProviderAccountPoolAction</span> 带{" "}

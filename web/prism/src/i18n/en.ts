@@ -27,7 +27,7 @@ export const en: Pack = {
   nav: {
     overview: "Overview",
     usage: "Usage",
-    monitoring: "Requests",
+    monitoring: "Requests & failures",
     billing: "Billing & prices",
     versions: "Config versions",
     upstreams: "Upstreams",
@@ -35,8 +35,14 @@ export const en: Pack = {
     access: "Access control",
     egress: "Egress policy",
     runtime: "Runtime",
+    accounts: "Accounts",
+    catalog: "Model catalog",
     audit: "Audit & backup",
     settings: "Settings",
+  },
+  navigation: {
+    operations: "Operations", resources: "Resources", management: "Management",
+    menu: "Open all sections", search: "Find a section", theme: "Toggle appearance",
   },
   version: {
     none: "No version selected",

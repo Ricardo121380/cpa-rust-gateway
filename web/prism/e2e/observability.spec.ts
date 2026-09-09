@@ -60,7 +60,8 @@ test("the counters plane stands alone, and says what it cannot show", async ({ p
 
   // The absence is explained, not silent — and it points at the pages that can
   // answer the question properly.
-  await expect(page.getByText("没有服务端时间桶")).toBeVisible();
+  await page.getByText("分析范围", { exact: true }).click();
+  await expect(page.getByText(/当前没有服务端时间桶/u)).toBeVisible();
   await expect(page.getByRole("link", { name: "前往用量分析 →" })).toBeVisible();
 });
 

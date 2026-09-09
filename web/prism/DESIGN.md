@@ -1,5 +1,7 @@
 # DESIGN.md · Prism 已建成的视觉世界
 
+> 2026-09-09：V4 正式实现首批见 §27；旧章节保留历史依据，当前视觉以 V4 token 与实底检查面板为准。
+
 > 本文档记录 **已经存在的东西**,不是意图。基准是已批准的 `5df23a7`(Liquid Glass:让材质真的读作玻璃)。
 > 每一个数值要么来自 `src/design/tokens.css` / `src/design/glass.css` / `src/app/app.css` 的字面量,
 > 要么来自在 `127.0.0.1:5173`(fixture 模式,Chromium 1440×900 @2x,双主题)对运行中面板的实测。
@@ -2034,3 +2036,31 @@ pack 的完整性由类型强制(漏一个键就是类型错误 —— 本轮就
 **徽章的英文在真网关上验不到** —— 离线部署三个投影全 503,`.rt-chip` 计数为 **0**,
 没有数据就没有徽章。它只在 fixture 下验证过(E2E 三条,且用临时回退确认过会失败)。
 与 §23.7 同一类边界。
+
+
+## 27. V4 implementation, first batch (2026-09-09)
+
+The approved OpenDesign V4 palette now lives in `src/design/tokens.css`; `src/app/v4.css`
+composes the solid workspace and data panels over the existing chrome geometry. `PrismLens`
+math and active/draft/archived materials remain unchanged. Navigation has 14 entries plus the
+unlock route. The small-screen menu replaces the old horizontal rail strip.
+
+`Sheet` now renders a solid surface: centered forms are at most 600px wide; object inspectors
+are 520px on desktop and inset 12px on a 390px viewport. `src/design/modal.css` replaces the
+obsolete glass-sheet recipe while retaining one scrim, reduced preferences, focus trapping,
+Escape return and the session-aware exit cleanup. Account/catalog, Credential, binding and
+request-attempt details use the inspector. Other object inspectors remain in the M1 backlog.
+
+Settings adds in-memory accessibility preferences and section search. System accessibility
+preferences remain effective. Unknown entitlement combinations preserve raw server values;
+no tier-to-model mapping is introduced. Catalog Missing keeps absent successful snapshot/model
+count distinct from zero. Effective authorized models remain an M2 backend deliverable.
+
+Validation of this first batch: 251 unit tests; all 109 Chromium E2E tests; 14 routes at
+1440x900, 1280x720 and 390x844; light/dark link contrast; mobile clipping; inspector geometry;
+focus return; authentication cleanup; authoritative contract and four-file reproducible build.
+This is fixture/browser evidence, not real gateway acceptance. The approved V4 MCP readback
+hash remains `c60cc5fe67354892277a54061e56a4e59385d395a22c211160ac5cf15b9aae07`.
+
+The Goal is still active. See [progress](../../docs/reports/prism-v4-progress.md) and
+[execution plan](../../docs/handoffs/prism-v4-execution-plan.md) for remaining M1-M4 work.

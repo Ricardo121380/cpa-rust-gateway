@@ -16,7 +16,7 @@ const PROD_CSP =
 const DEV_CSP =
   "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
   "style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws:; " +
-  "form-action 'none'; frame-ancestors 'none'";
+  "form-action 'none'";
 
 function cspPlugin(): Plugin {
   return {

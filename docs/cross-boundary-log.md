@@ -1174,3 +1174,73 @@ OMP 受控 Pi AI 0.84.3 对 grok-4.6、grok-4.5 均完成四轮真实闭环：�
 B1–B4 与 BE-FE-01/02 仍属于后续 M2/M3 待实施，见 CR-PRISM-V4-001；
 本批不是 V4 全界面或真实网关验收完成。类型、245 项单测、Chromium 定向 E2E
 及权威 SPA 双构建门禁通过；未访问远端或真实 Provider。
+
+---
+
+## 2026-09-09 - Codex - Prism V4 M1 shell and resource workspaces
+
+**Touched:**
+
+- `web/prism/DESIGN.md`
+
+- `web/prism/e2e/batch-d.spec.ts`
+- `web/prism/e2e/contrast.spec.ts`
+- `web/prism/e2e/credential.spec.ts`
+- `web/prism/e2e/flows.spec.ts`
+- `web/prism/e2e/glass.spec.ts`
+- `web/prism/e2e/helpers.ts`
+- `web/prism/e2e/monitoring.spec.ts`
+- `web/prism/e2e/narrow.spec.ts`
+- `web/prism/e2e/observability.spec.ts`
+- `web/prism/e2e/provider-egress.spec.ts`
+- `web/prism/e2e/provider-pools.spec.ts`
+- `web/prism/e2e/route-candidates.spec.ts`
+- `web/prism/e2e/v4-workspaces.spec.ts`
+- `web/prism/index.html`
+- `web/prism/src/App.tsx`
+- `web/prism/src/api/client.ownership.test.ts`
+- `web/prism/src/api/queryClient.ts`
+- `web/prism/src/app/AppShell.tsx`
+- `web/prism/src/app/navigation.ts`
+- `web/prism/src/app/themeStore.ts`
+- `web/prism/src/app/v4.css`
+- `web/prism/src/components/Sheet.tsx`
+- `web/prism/src/components/StatusBadge.tsx`
+- `web/prism/src/components/glass/GlassSurface.tsx`
+- `web/prism/src/design/modal.css`
+- `web/prism/src/design/tokens.css`
+- `web/prism/src/dev/fixtures.ts`
+- `web/prism/src/features/accounts/AccountsPage.tsx`
+- `web/prism/src/features/catalog/CatalogPage.tsx`
+- `web/prism/src/features/monitoring/MonitoringPage.tsx`
+- `web/prism/src/features/overview/OverviewPage.tsx`
+- `web/prism/src/features/runtime/EntitlementEvidence.tsx`
+- `web/prism/src/features/runtime/RuntimePage.tsx`
+- `web/prism/src/features/runtime/entitlements.test.ts`
+- `web/prism/src/features/runtime/entitlements.ts`
+- `web/prism/src/features/settings/SettingsPage.tsx`
+- `web/prism/src/features/unlock/UnlockPage.tsx`
+- `web/prism/src/features/upstreams/CredentialSheet.tsx`
+- `web/prism/src/features/upstreams/SubresourcePanel.tsx`
+- `web/prism/src/features/usage/UsagePage.tsx`
+- `web/prism/src/i18n/en.ts`
+- `web/prism/src/i18n/zh.ts`
+- `web/prism/src/main.tsx`
+- `web/prism/vite.config.ts`
+
+**Why:** The user authorized Codex to implement both sides for this Goal. Apply the
+approved OpenDesign V4 palette and 14-section navigation to the real React app,
+with solid data panels, centered forms, right-side inspectors, responsive accounts
+and catalog workspaces, in-memory accessibility preferences and section search.
+Existing operations remain wired. Fix focus restoration under StrictMode and clear
+legacy identity-only query caches when the selected configuration changes.
+
+**Other side:** FYI. No backend contract change in this batch. The OpenDesign MCP
+readback matches the approved V4 SHA-256. The current conversation authored the code;
+no model CLI or OpenDesign internal generator was used. M1 object-detail work remains,
+and BE-FE-01/02 plus B1-B4 and real local gateway acceptance remain pending. This is
+not a completed Goal or a production deployment. See docs/reports/prism-v4-progress.md
+for the tested boundaries and remaining work.
+
+Validation: type-check, 251 unit tests, 109 Chromium E2E tests and the authoritative
+SPA gate passed; narrow-screen checks passed separately. No real Provider or remote operation.

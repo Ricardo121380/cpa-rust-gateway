@@ -1,10 +1,12 @@
 import { formatObservedAt, type ProviderAccountEntitlement } from "./model";
+import { isKnownEntitlement } from "./entitlements";
 
-export function EntitlementEvidence({ entitlement }: Readonly<{ entitlement: ProviderAccountEntitlement | null }>) {
+export function EntitlementEvidence({ entitlement, expanded = false }: Readonly<{ entitlement: ProviderAccountEntitlement | null; expanded?: boolean }>) {
   if (entitlement === null) return <span className="muted">权益未观测</span>;
   return (
-    <details>
+    <details open={expanded}>
       <summary>{entitlement.domain} · {entitlement.tier}</summary>
+      {isKnownEntitlement(entitlement) ? null : <p className="small muted">未识别的权益组合，以下保留服务端原值。</p>}
       <dl>
         <dt>权益域</dt><dd>{entitlement.domain}</dd>
         <dt>套餐</dt><dd>{entitlement.tier}</dd>

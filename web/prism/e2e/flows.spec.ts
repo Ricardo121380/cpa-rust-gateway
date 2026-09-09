@@ -138,7 +138,7 @@ test("a paste with no state is refused before it reaches the gateway", async ({ 
 
 test("the ledger pages with the cursor and stops when the stream ends", async ({ page }) => {
   await unlock(page);
-  await navigate(page, "请求监控");
+  await navigate(page, "请求与失败");
   // 73 fixture rows, page size 100 — one page covers them, so there is no
   // "load more" to press. The button must be ABSENT rather than present and
   // inert: a dead control reads as a broken one.

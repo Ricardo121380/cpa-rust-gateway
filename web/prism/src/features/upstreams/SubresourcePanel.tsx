@@ -103,7 +103,7 @@ function BindingReconcileSheet({
   const hidden = rows.filter((row) => !operationalCredentialIds.has(row.credential_id));
 
   return (
-    <Sheet title={`配置侧绑定 · ${channelId}`} onEscape={onClose}>
+    <Sheet title={`配置侧绑定 · ${channelId}`} layout="inspector" onEscape={onClose}>
       <p className="stat-sub">
         上面的绑定表来自<strong>运营库存</strong>,一行需要 channel、account、provider
         三者都能解析才会出现。这里是<strong>配置自己</strong>的回答 ——

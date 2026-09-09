@@ -1,8 +1,8 @@
 // Shell: exactly three chrome glass panes — rail, topbar, (draft-only) dock.
 // Content canvas is always solid (docs/07 §5.2).
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
-import { NavLink, Navigate, Outlet, useLocation } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { NavLink, Navigate, Outlet, useLocation, Link } from "react-router-dom";
 import { call } from "../api/client";
 import { GlassSurface } from "../components/glass/GlassSurface";
 import { PrismLens } from "../components/glass/PrismLens";
@@ -10,33 +10,11 @@ import {
   useVersionStore,
   type ConfigVersionSummary,
 } from "../features/config-versions/versionStore";
-import { messages, useMessages } from "../i18n/messages";
+import { useMessages } from "../i18n/messages";
 import { useSessionStore } from "../session/sessionStore";
 import { DraftDock } from "./DraftDock";
-
-/** Routes are static; labels are looked up per render so a language change
- *  reaches the rail. Keying by nav key rather than by translated string also
- *  keeps the E2E rail-scoped locators stable in either language. */
-const NAV_GROUPS: ReadonlyArray<ReadonlyArray<{ to: string; key: keyof typeof messages.nav }>> = [
-  [
-    { to: "/", key: "overview" },
-    { to: "/usage", key: "usage" },
-    { to: "/monitoring", key: "monitoring" },
-    { to: "/billing", key: "billing" },
-  ],
-  [
-    { to: "/versions", key: "versions" },
-    { to: "/upstreams", key: "upstreams" },
-    { to: "/models", key: "models" },
-    { to: "/access", key: "access" },
-    { to: "/egress", key: "egress" },
-  ],
-  [
-    { to: "/runtime", key: "runtime" },
-    { to: "/audit", key: "audit" },
-    { to: "/settings", key: "settings" },
-  ],
-];
+import { NAV_GROUPS } from "./navigation";
+import { resolvedTheme, useThemeStore } from "./themeStore";
 
 function VersionPicker() {
   const context = useVersionStore((s) => s.context);
@@ -83,13 +61,31 @@ export function AppShell() {
   const clearConflict = useVersionStore((s) => s.clearConflict);
   const t = useMessages();
   const { pathname } = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const choice = useThemeStore((s) => s.choice);
+  const setChoice = useThemeStore((s) => s.setChoice);
+  const currentGroup = NAV_GROUPS.find((group) => group.items.some((item) => item.to === pathname));
+  const currentPage = currentGroup?.items.find((item) => item.to === pathname);
   const canvasRef = useRef<HTMLElement>(null);
 
   // The canvas — not the window — is the scroll container now (content slides
   // under the fixed glass chrome), so route changes must reset *its* offset.
   useEffect(() => {
     canvasRef.current?.scrollTo({ top: 0 });
+    setMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        document.getElementById("nav-toggle")?.focus();
+      }
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [menuOpen]);
 
   if (!unlocked) {
     return <Navigate to="/unlock" replace />;
@@ -118,9 +114,17 @@ export function AppShell() {
 
       <div className="topdeck">
         <GlassSurface as="header" className="topbar" material={material} pane="topbar">
+          <button className="nav-toggle secondary" id="nav-toggle" aria-label={t.navigation.menu}
+            aria-controls="main-navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M4 6h16 M4 12h16 M4 18h16" /></svg>
+          </button>
           <strong className="brand">
             ◇ <span>Prism</span>
           </strong>
+          <div className="top-context">
+            {currentGroup === undefined ? null : <span>{t.navigation[currentGroup.label]} / </span>}
+            <strong>{currentPage === undefined ? "Prism" : t.nav[currentPage.key]}</strong>
+          </div>
           <VersionPicker />
           {context !== undefined ? (
             <span className="idchip mono">{context.revision}</span>
@@ -128,6 +132,9 @@ export function AppShell() {
           {context !== undefined && context.status !== "draft" ? (
             <span className="readonly-note">{t.version.readOnly}</span>
           ) : null}
+          <Link className="chrome-action" to="/settings?focus=search" aria-label={t.navigation.search}>⌕</Link>
+          <button className="chrome-action secondary" aria-label={t.navigation.theme}
+            onClick={() => setChoice(resolvedTheme(choice) === "dark" ? "light" : "dark")}>◐</button>
         </GlassSurface>
 
         {conflict ? (
@@ -140,17 +147,20 @@ export function AppShell() {
         ) : null}
       </div>
 
-      <GlassSurface as="nav" className="rail" material={material} pane="rail">
-        {NAV_GROUPS.map((group, index) => (
-          <div key={index} className="rail-group">
-            {group.map((item) => (
+      <GlassSurface as="nav" className="rail" material={material} pane="rail" id="main-navigation" open={menuOpen}>
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label} className="rail-group">
+            <div className="rail-label">{t.navigation[group.label]}</div>
+            {group.items.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.to === "/"}
                 className={({ isActive }) => (isActive ? "on" : "")}
+                onClick={() => setMenuOpen(false)}
               >
-                {t.nav[item.key]}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={item.icon} /></svg>
+                <span>{t.nav[item.key]}</span>
               </NavLink>
             ))}
           </div>
@@ -158,7 +168,7 @@ export function AppShell() {
       </GlassSurface>
 
       <main className="canvas" ref={canvasRef}>
-        <Outlet key={`${sessionGeneration}:${selectionGeneration}`} />
+        <div className="workspace"><Outlet key={`${sessionGeneration}:${selectionGeneration}`} /></div>
       </main>
 
       <DraftDock key={`${sessionGeneration}:${context?.configVersionId ?? "none"}`} />

@@ -15,6 +15,8 @@ import { SettingsPage } from "./features/settings/SettingsPage";
 import { UnlockPage } from "./features/unlock/UnlockPage";
 import { UpstreamsPage } from "./features/upstreams/UpstreamsPage";
 import { UsagePage } from "./features/usage/UsagePage";
+import { AccountsPage } from "./features/accounts/AccountsPage";
+import { CatalogPage } from "./features/catalog/CatalogPage";
 
 const router = createHashRouter([
   { path: "/unlock", element: <UnlockPage /> },
@@ -23,6 +25,9 @@ const router = createHashRouter([
     element: <AppShell />,
     children: [
       { index: true, element: <OverviewPage /> },
+      { path: "overview", element: <OverviewPage /> },
+      { path: "accounts", element: <AccountsPage /> },
+      { path: "catalog", element: <CatalogPage /> },
       { path: "usage", element: <UsagePage /> },
       { path: "monitoring", element: <MonitoringPage /> },
       { path: "billing", element: <BillingPage /> },

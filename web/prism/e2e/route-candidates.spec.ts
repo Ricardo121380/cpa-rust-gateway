@@ -105,8 +105,8 @@ test("explain on a draft says the snapshot is missing, not that the panel is unw
   // problem that is not theirs.
   await unlock(page);
   await selectDraft(page);
-  await navigate(page, "运行时");
-  await page.getByLabel("route_id").fill("rt-minimax");
+  await navigate(page, "运行诊断");
+  await page.getByRole("form", { name: "路由解释" }).getByLabel("route_id", { exact: true }).fill("rt-minimax");
   await page.getByLabel("请求模型").fill("minimax-m3");
   await page.getByRole("button", { name: "解释" }).click();
 
@@ -118,9 +118,9 @@ test("explain on a draft says the snapshot is missing, not that the panel is unw
 test("route explain shows price evidence and the catalog it came from", async ({ page }) => {
   await unlock(page);
   await selectActive(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
-  await page.getByLabel("route_id").fill("rt-minimax");
+  await page.getByRole("form", { name: "路由解释" }).getByLabel("route_id", { exact: true }).fill("rt-minimax");
   await page.getByLabel("请求模型").fill("minimax-m3");
   await page.getByRole("button", { name: "解释" }).click();
 
@@ -137,9 +137,9 @@ test("a multi-Provider route asks for a Provider instead of failing generically"
 }) => {
   await unlock(page);
   await selectActive(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
-  await page.getByLabel("route_id").fill("rt-multi-provider");
+  await page.getByRole("form", { name: "路由解释" }).getByLabel("route_id", { exact: true }).fill("rt-multi-provider");
   await page.getByLabel("请求模型").fill("minimax-m3");
   await page.getByRole("button", { name: "解释" }).click();
 
@@ -148,7 +148,7 @@ test("a multi-Provider route asks for a Provider instead of failing generically"
   await expect(explainCard).toContainText("需要显式指定 Provider");
   await expect(explainCard).toContainText("必须显式选一个");
 
-  await page.getByLabel("provider_id", { exact: false }).fill("prov-a");
+  await page.getByRole("form", { name: "路由解释" }).getByLabel("provider_id", { exact: false }).fill("prov-a");
   await page.getByRole("button", { name: "解释" }).click();
   await expect(page.locator('.rt-chip[data-state="dominant"]')).toBeVisible();
 });
@@ -156,7 +156,7 @@ test("a multi-Provider route asks for a Provider instead of failing generically"
 test("explain offers all three contract protocols", async ({ page }) => {
   await unlock(page);
   await selectActive(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
   // openai_chat_completions was absent until 2026-08-18: the drift gate cannot
   // see a literal a page omits, so Explain simply could not run that path.

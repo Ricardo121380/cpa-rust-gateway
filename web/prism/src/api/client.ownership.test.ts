@@ -139,6 +139,12 @@ describe("request ownership through the generated transport", () => {
     expect(useVersionStore.getState().context?.revision).toBe("rev-12");
   });
 
+  it("drops cached object details when switching configuration versions", () => {
+    queryClient.setQueryData(["credential", "shared-id"], { upstream_id: "version-a-only" });
+    select("b");
+    expect(queryClient.getQueryData(["credential", "shared-id"])).toBeUndefined();
+  });
+
   it("also guards the text response path after lock", async () => {
     const complete = pending();
     const request = callText("getObservabilityMetrics");

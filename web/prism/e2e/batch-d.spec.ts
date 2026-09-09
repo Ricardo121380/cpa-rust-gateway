@@ -43,7 +43,7 @@ test("reviving a revoked key warns that the old secret works again", async ({ pa
 test("channel pin says it spends a real call, and offers no free-form body", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
   const card = page.locator(".rt-card", { hasText: "通道诊断" });
   await expect(card).toContainText("真实请求");
@@ -58,7 +58,7 @@ test("channel pin says it spends a real call, and offers no free-form body", asy
 test("a receipt keeps upstream_sent and outcome as separate facts", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
   const card = page.locator(".rt-card", { hasText: "通道诊断" });
   for (const [label, value] of [
@@ -85,7 +85,7 @@ test("a receipt keeps upstream_sent and outcome as separate facts", async ({ pag
 test("a moved pin target is reported without claiming the config changed", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
   const card = page.locator(".rt-card", { hasText: "通道诊断" });
   for (const [label, value] of [

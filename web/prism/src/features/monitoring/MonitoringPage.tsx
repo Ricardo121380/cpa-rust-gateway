@@ -130,7 +130,7 @@ function AttemptsSheet({
   });
 
   return (
-    <Sheet title={`请求 ${requestId} 的尝试`} onEscape={onClose}>
+    <Sheet title={`请求 ${requestId} 的尝试`} layout="inspector" onEscape={onClose}>
       <p className="stat-sub">
         <span className="mono">listRequestAttempts</span> 返回一个<strong>裸数组</strong> ——
         没有游标、没有时间过滤,也不带配置版本。<span className="mono">outcome</span>{" "}
@@ -552,6 +552,7 @@ function FailurePanel({
 }
 
 export function MonitoringPage() {
+  const scope = useVersionStore((state) => state.context?.configVersionId);
   const t = useMessages();
   const [params, setParams] = useSearchParams();
   const tab = parseTab(params.get("tab"));
@@ -574,12 +575,10 @@ export function MonitoringPage() {
     <section className="monitoring-page">
       <header className="page-head">
         <h2>{t.nav.monitoring}</h2>
-        <code className="idchip mono">
-          {tab === "ledger" ? "listOperationalBilling" : "listProviderAccountFailures"}
-        </code>
+        <span className="scope-row">{tab === "ledger" ? "账本 · 跨配置版本" : `失败归因 · ${scope ?? "未选择版本"}`}</span>
       </header>
 
-      <p className="mon-hint">
+      <details className="reading-notes"><summary>数据范围与口径</summary><p className="mon-hint">
         契约里<strong>没有延迟</strong>,也<strong>没有请求成败清单</strong> ——
         所以这里没有 P50/P95,也没有成功率。能诚实给出的是两条互相独立的流:
         <strong>已计费请求的账本</strong>与<strong>归因到账号的失败尝试</strong>。
@@ -589,7 +588,7 @@ export function MonitoringPage() {
         <br />
         两者<strong>作用域也不同</strong>:失败归因带{" "}
         <span className="mono">X-Config-Version</span>,账本不带 —— 顶栏选版本只影响前者。
-      </p>
+      </p></details>
 
       <div className="mon-tabs" role="tablist">
         <button

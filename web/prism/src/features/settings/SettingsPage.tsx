@@ -6,8 +6,10 @@
 // Two of its four sections are read-only on purpose: rendering capability and
 // OS accessibility preferences are probed, not chosen, and showing them as
 // switches would imply the panel can override the operating system.
-import { useNavigate } from "react-router-dom";
-import { resolvedTheme, useThemeStore, type ThemeChoice } from "../../app/themeStore";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { resolvedTheme, useAccessibilityStore, useThemeStore, type ThemeChoice } from "../../app/themeStore";
+import { NAV_ITEMS } from "../../app/navigation";
 import { useLangStore, useMessages, type Lang } from "../../i18n/messages";
 import { useSessionStore } from "../../session/sessionStore";
 import { useMediaQuery } from "../../utils/useMediaQuery";
@@ -27,6 +29,11 @@ function fingerprint(secret: string | undefined): string {
 export function SettingsPage() {
   const t = useMessages();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const [search, setSearch] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const accessibility = useAccessibilityStore();
+  useEffect(() => { if (params.get("focus") === "search") searchRef.current?.focus(); }, [params]);
 
   const choice = useThemeStore((s) => s.choice);
   const setChoice = useThemeStore((s) => s.setChoice);
@@ -118,6 +125,18 @@ export function SettingsPage() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="card" data-gap="top">
+        <h3>辅助外观</h3><p className="settings-help">选择仅用于当前会话；系统开启的辅助偏好仍然生效。</p>
+        <div className="appearance-options">{([
+          ["transparency", "减少透明度"], ["contrast", "增强对比度"], ["motion", "减少动态效果"],
+        ] as const).map(([key, label]) => <label key={key}><input type="checkbox" checked={accessibility[key]} onChange={(event) => accessibility.set(key, event.target.checked)} />{label}</label>)}</div>
+      </div>
+      <div className="card" data-gap="top">
+        <h3>{t.navigation.search}</h3>
+        <div className="data-toolbar"><input ref={searchRef} aria-label={t.navigation.search} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.navigation.search} /></div>
+        <div className="section-search">{NAV_ITEMS.filter((item) => t.nav[item.key].toLowerCase().includes(search.toLowerCase())).map((item) => <Link key={item.to} to={item.to}>{t.nav[item.key]}</Link>)}</div>
       </div>
 
       <div className="card" data-gap="top">

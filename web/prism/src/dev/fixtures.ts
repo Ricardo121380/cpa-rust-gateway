@@ -1720,6 +1720,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     // the ACTION demands one. A fixture that let the action through without a
     // version would hide the very thing the card warns about.
     if (route === "GET /admin/operations/provider-account-pools") {
+      const now = Date.now();
       const accounts = [
         { provider: "relay-a", channel: "ep-relay-a-responses", id: "cred-relay-key",
           kind: "api_key", auth: "active", runtime: "available", enabled: true, leases: 2 },
@@ -1761,8 +1762,8 @@ export const fixtureFetch: typeof fetch = (input, init) => {
           active_leases: row.leases,
           // Nullable on purpose: an unreported due time is neither "now" nor
           // "never", and the UI has to render that difference.
-          expires_at_ms: row.auth === "expired" ? FIXTURE_NOW_MS - 3_600_000 : null,
-          refresh_due_at_ms: row.kind === "oauth" ? FIXTURE_NOW_MS + 7_200_000 : null,
+          expires_at_ms: row.auth === "expired" ? now - 3_600_000 : null,
+          refresh_due_at_ms: row.kind === "oauth" ? now + 7_200_000 : null,
           quota_sync_due_at_ms: null,
           entitlement: row.id === "cred-grok-oauth" ? {
             domain: "grok_build", tier: "supergrok", source: "provider_subscription",
@@ -1771,7 +1772,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         }));
       return json(200, {
         snapshot_id: `snap-${state.poolSnapshot}`,
-        observed_at_ms: FIXTURE_NOW_MS,
+        observed_at_ms: now,
         items,
         next_cursor: null,
       });

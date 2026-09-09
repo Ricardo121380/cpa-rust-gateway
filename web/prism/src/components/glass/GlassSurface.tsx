@@ -8,6 +8,8 @@ type GlassSurfaceProps = Readonly<{
   as?: "header" | "nav" | "aside" | "div" | "footer";
   material?: "draft" | "active" | "archived";
   className?: string;
+  id?: string;
+  open?: boolean;
   style?: CSSProperties;
   children: ReactNode;
   /** modal-layer panes (sheet/popover/toast) are exempt from the 3-pane budget */
@@ -20,6 +22,8 @@ export function GlassSurface({
   as: Tag = "div",
   material,
   className,
+  id,
+  open,
   style,
   children,
   layer = "chrome",
@@ -42,6 +46,8 @@ export function GlassSurface({
 
   return (
     <Tag
+      id={id}
+      data-open={open}
       className={className === undefined ? "glass" : `glass ${className}`}
       data-material={material}
       data-pane={pane}

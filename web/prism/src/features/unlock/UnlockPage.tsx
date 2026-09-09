@@ -68,8 +68,11 @@ export function UnlockPage() {
 
   return (
     <div className="unlock-scene">
+      <div className="ambient" aria-hidden="true" />
       <GlassSurface className="unlock-card" layer="modal">
+        <p className="brand">◇ Prism</p>
         <h1>{t.unlock.title}</h1>
+        <p className="unlock-intro">管理连接、账号与配置，继续你的工作空间。</p>
         <form onSubmit={(event) => void onSubmit(event)} noValidate>
           <SecretField
             label={t.unlock.managementKey}

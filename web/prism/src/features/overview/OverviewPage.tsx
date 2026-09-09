@@ -233,14 +233,12 @@ function BillingGlance() {
     <div className="card" data-gap="top">
       <h3>计价可信度</h3>
       <p className="stat-sub">
-        来自 <span className="mono">listOperationalBilling</span> 自带的汇总,
-        <strong>覆盖整个账本窗口</strong>而不是某一页 —— 所以只取 1 行也是准确的。
-        本卡不受顶栏所选配置版本影响。
+        覆盖整个账本窗口 · 跨配置版本。金额与计价置信度以已处理的账本为准。
       </p>
       {summary === undefined ? (
         <p className="stat-sub">读取中…</p>
       ) : summary.records === 0 ? (
-        <p className="muted">账本还没有记录 —— 网关尚未处理过可计费的请求。</p>
+        <p className="muted">账本暂无记录。可能尚未处理或没有可计价事件，不能据此判断没有消费。</p>
       ) : (
         <div className="count-row">
           <span className="count-tile">
@@ -265,14 +263,12 @@ function BillingGlance() {
 function AnalyticsPointers() {
   return (
     <div className="card" data-gap="top">
-      <h3>带时间维度的分析</h3>
+      <h3>继续查看</h3>
       <p className="stat-sub">
-        契约<strong>没有服务端时间桶</strong>,也没有延迟与请求成败清单,所以这里既没有趋势线,
-        也没有今日 KPI 与延迟分位 —— 上面的计数器是<strong>累计值</strong>。
-        <br />
-        按 Provider / 模型 / Client Key 的用量需要跟着游标读到底才准,
-        用量分析页会那样做并在提前停止时说明;这里放一个近似值只会和它打架。
+        按账号检查认证、续期与权益；按目录目标查看新鲜度和失败证据。
       </p>
+      <div className="detail-links"><Link to="/accounts">账号池 →</Link><Link to="/catalog">模型目录 →</Link></div>
+      <details className="reading-notes"><summary>分析范围</summary><p>计数器为累计值；当前没有服务端时间桶，也没有请求延迟分布。用量页提供所选时间窗的聚合，并说明观测范围是否完整。</p></details>
       <Link to="/usage">前往用量分析 →</Link>
       <br />
       {/* The "recent failures" card that used to carry this link was part of

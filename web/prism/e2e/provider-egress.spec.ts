@@ -12,7 +12,7 @@ const CARD = ".rt-card:has-text('Provider 出口状态')";
 test("the three domains stay three tables, never one", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
   // Each partition is its own section with its own head and its own snapshot —
   // three reads, so the snapshots can legitimately differ.
@@ -35,7 +35,7 @@ test("the three domains stay three tables, never one", async ({ page }) => {
 test("an empty domain says the source does not exist, not that it is healthy", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
   // clearance is empty on purpose: the projection's source only covers
   // assembled Grok Build/Console state, so production Web/clearance can be
@@ -51,7 +51,7 @@ test("an empty domain says the source does not exist, not that it is healthy", a
 test("a named target with no id is not rendered as a direct one", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
   const egress = page.locator('.rt-domain[data-domain="egress"]');
   await expect(egress.locator("tr", { hasText: "ep-relay-a-responses" })).toContainText("直连");
@@ -64,7 +64,7 @@ test("a named target with no id is not rendered as a direct one", async ({ page 
 test("each domain's chips come from that domain's vocabulary only", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
   const egress = page.locator('.rt-domain[data-domain="egress"]');
   await expect(egress.locator('.rt-chip[data-state="probe_due"]')).toBeVisible();
@@ -82,7 +82,7 @@ test("each domain's chips come from that domain's vocabulary only", async ({ pag
 test("a rotated snapshot stops paging and restarts from the first page", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
   const session = page.locator('.rt-domain[data-domain="session"]');
   await expect(session.locator("tbody tr")).toHaveCount(100);
@@ -107,7 +107,7 @@ test("a rotated snapshot stops paging and restarts from the first page", async (
 test("a rotated snapshot does not claim the configuration changed", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
-  await navigate(page, "运行时");
+  await navigate(page, "运行诊断");
 
   const session = page.locator('.rt-domain[data-domain="session"]');
   await session.getByRole("button", { name: "继续读取" }).click();

@@ -16,6 +16,10 @@ const TONE_FOR: Record<string, BadgeTone> = {
   // runtime availability
   available: "good",
   cooldown: "warn",
+  cooling: "warn",
+  reauth_required: "warn",
+  unauthorized: "critical",
+  recovery_in_flight: "tint",
   circuit_open: "serious",
   quota_blocked: "serious",
   credential_forbidden: "critical",

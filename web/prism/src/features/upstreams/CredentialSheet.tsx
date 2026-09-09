@@ -99,7 +99,7 @@ export function CredentialSheet({
   const isOAuth = row?.kind === "oauth";
 
   return (
-    <Sheet title={`凭据 · ${credentialId}`} onEscape={onClose}>
+    <Sheet title={`凭据 · ${credentialId}`} layout="inspector" onEscape={onClose}>
       {error !== undefined ? (
         <p role="alert" className="reveal-warning">
           {error}

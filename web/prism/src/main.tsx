@@ -5,6 +5,7 @@ import "./design/tokens.css";
 import "./design/glass.css";
 import "./design/modal.css";
 import "./app/app.css";
+import "./app/v4.css";
 
 const container = document.getElementById("app");
 if (container === null) {

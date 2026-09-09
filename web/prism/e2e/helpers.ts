@@ -13,6 +13,9 @@ export async function unlock(page: Page): Promise<void> {
 
 /** Navigate via the rail (scoped: page bodies also link to the same routes). */
 export async function navigate(page: Page, label: string): Promise<void> {
+  if (!(await page.getByRole("navigation").isVisible())) {
+    await page.locator("#nav-toggle").click();
+  }
   await page.getByRole("navigation").getByRole("link", { name: label, exact: true }).click();
 }
 

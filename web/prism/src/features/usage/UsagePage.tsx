@@ -173,10 +173,10 @@ export function UsagePage() {
     <section className="usage-page">
       <header className="page-head">
         <h2>{t.nav.usage}</h2>
-        <code className="idchip mono">listOperationalUsage</code>
+        <span className="scope-row">时间窗聚合 · 跨配置版本</span>
       </header>
 
-      <p className="usage-hint">
+      <details className="reading-notes"><summary>聚合维度与观测口径</summary><p className="usage-hint">
         一行是一个<strong>(Provider · Channel · 账号 · 公开模型 · 协议 · Client Key · 访问组)</strong>
         组合在所选时间窗内的<strong>聚合</strong>。契约没有服务端时间桶,所以这里没有趋势线,
         也没有热力图 —— 用 K 个窗口在前端拼一条曲线,要么需要 K×页 次请求,
@@ -189,7 +189,7 @@ export function UsagePage() {
         <br />
         成本不在本页:usage 的 <span className="mono">cost_confidence</span> 恒为{" "}
         <span className="mono">unpriced</span>,计价在「计费」侧。
-      </p>
+      </p></details>
 
       <div className="card usage-controls">
         <div className="usage-seg" role="group" aria-label="时间窗">
