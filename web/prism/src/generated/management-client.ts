@@ -1172,6 +1172,39 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "listEffectiveModels": {
+    "method": "GET",
+    "path": "/admin/models/effective",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "access_group_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "client_key_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "listEgressPolicies": {
     "method": "GET",
     "path": "/admin/egress-policies",
@@ -2541,6 +2574,10 @@ export class ManagementApi {
 
   listConfigVersions(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listConfigVersions", request);
+  }
+
+  listEffectiveModels(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listEffectiveModels", request);
   }
 
   listEgressPolicies(request: ManagementRequest = {}): Promise<Response> {

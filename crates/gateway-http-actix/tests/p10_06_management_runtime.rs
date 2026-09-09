@@ -111,6 +111,7 @@ fn assert_revision(response: &ServiceResponse, revision: i64) {
 
 #[derive(Default)]
 struct RuntimeCalls {
+    effective_generation: usize,
     catalog_reads: usize,
     availability_reads: usize,
     recovery_requests: usize,
@@ -140,6 +141,47 @@ impl FixtureRuntimeFacade {
 }
 
 impl ManagementRuntimeFacade for FixtureRuntimeFacade {
+    fn effective_models(
+        &mut self,
+        version: &ConfigVersionId,
+        context: &gateway_http_actix::management_resources::ManagementEffectiveModelContext,
+        _at: i64,
+    ) -> Result<
+        Option<gateway_http_actix::management_resources::ManagementEffectiveModels>,
+        ManagementRuntimeError,
+    > {
+        use gateway_http_actix::management_resources::{
+            ManagementEffectiveModel, ManagementEffectiveModelContext as Context,
+            ManagementEffectiveModels,
+        };
+        if version.as_str() != VERSION {
+            return Err(ManagementRuntimeError::Unavailable);
+        }
+        let (group, key) = match context {
+            Context::AccessGroup(id) => (id.as_str().to_owned(), None),
+            Context::ClientKey(id) => ("group-a".to_owned(), Some(id.as_str().to_owned())),
+        };
+        if group == "missing" {
+            return Ok(None);
+        }
+        let generation = self.calls()?.effective_generation;
+        let models = (0..3)
+            .map(|index| ManagementEffectiveModel {
+                id: format!("exact-{index}"),
+                public_model_id: format!("public-{index}"),
+                public_model_name: format!("model-{index}-{generation}"),
+                route_id: format!("route-{index}"),
+                sources: Vec::new(),
+            })
+            .collect();
+        Ok(Some(ManagementEffectiveModels {
+            config_version: VERSION.to_owned(),
+            access_group_id: group,
+            client_key_id: key,
+            models,
+        }))
+    }
+
     fn catalog_status(
         &mut self,
         config_version_id: &ConfigVersionId,
@@ -554,4 +596,99 @@ async fn route_explain_price_policy_projection_rejects_unbounded_or_unknown_line
     assert!(ManagementRouteExplainPricePolicy::new(" ".to_owned(), "rate_dominance_v1",).is_err());
     assert!(ManagementRouteExplainPricePolicy::new("x".repeat(129), "rate_dominance_v1",).is_err());
     assert!(ManagementRouteExplainPricePolicy::new("catalog-v1".to_owned(), "unknown",).is_err());
+}
+
+#[actix_web::test]
+async fn effective_models_require_safe_context_and_consistent_pages() -> TestResult {
+    let calls = Arc::new(Mutex::new(RuntimeCalls::default()));
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security_state()?))
+            .app_data(web::Data::new(runtime_state(Arc::clone(&calls))?))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let denied = test::call_service(
+        &app,
+        test::TestRequest::get()
+            .uri("/admin/models/effective?access_group_id=group-a")
+            .to_request(),
+    )
+    .await;
+    assert_eq!(denied.status(), StatusCode::NOT_FOUND);
+    for query in [
+        "",
+        "?access_group_id=a&client_key_id=b",
+        "?secret=secret",
+        "?access_group_id=a&limit=201",
+        "?access_group_id=a&access_group_id=b",
+    ] {
+        let response = test::call_service(
+            &app,
+            authorized(
+                test::TestRequest::get().uri(&format!("/admin/models/effective{query}")),
+                None,
+            )
+            .to_request(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+    let first = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/models/effective?access_group_id=group-a&limit=2"),
+            None,
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(first.status(), StatusCode::OK);
+    assert!(first.headers().get(header::ETAG).is_none());
+    let first: Value = test::read_body_json(first).await;
+    assert_eq!(first["items"].as_array().ok_or("missing models")?.len(), 2);
+    let cursor = first["next_cursor"].as_str().ok_or("missing cursor")?;
+    let url = format!("/admin/models/effective?access_group_id=group-a&limit=2&cursor={cursor}");
+    let second = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(&url), None).to_request(),
+    )
+    .await;
+    assert_eq!(second.status(), StatusCode::OK);
+    let second: Value = test::read_body_json(second).await;
+    assert_eq!(second["items"][0]["id"], "exact-2");
+    assert!(second["next_cursor"].is_null());
+    let key = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri(&format!(
+                "/admin/models/effective?client_key_id=key-a&cursor={cursor}"
+            )),
+            None,
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(key.status(), StatusCode::CONFLICT);
+    calls
+        .lock()
+        .map_err(|_| "calls poisoned")?
+        .effective_generation += 1;
+    let changed = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(&url), None).to_request(),
+    )
+    .await;
+    assert_eq!(changed.status(), StatusCode::CONFLICT);
+    let missing = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/models/effective?access_group_id=missing"),
+            None,
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(missing.status(), StatusCode::NOT_FOUND);
+    Ok(())
 }

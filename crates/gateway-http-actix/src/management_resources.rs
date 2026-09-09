@@ -2554,6 +2554,7 @@ fn configure_routing_resource_routes(config: &mut web::ServiceConfig) {
 
 fn configure_runtime_resource_routes(config: &mut web::ServiceConfig) {
     config
+        .route("/models/effective", web::get().to(get_effective_models))
         .route("/catalog/status", web::get().to(get_catalog_status))
         .route(
             "/runtime/availability",
@@ -7008,6 +7009,168 @@ async fn validate_model_route(
         Ok(value) => HttpResponse::Ok().json(ValidationResponse::from(value)),
         Err(error) => management_error(error),
     }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EffectiveModelQuery {
+    access_group_id: Option<String>,
+    client_key_id: Option<String>,
+    limit: Option<usize>,
+    cursor: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EffectiveModelCursor {
+    projection_id: String,
+    after: String,
+}
+
+#[derive(Serialize)]
+struct EffectiveModelPage {
+    config_version: String,
+    access_group_id: String,
+    client_key_id: Option<String>,
+    projection_id: String,
+    observed_at_ms: i64,
+    items: Vec<ManagementEffectiveModel>,
+    next_cursor: Option<String>,
+}
+
+async fn get_effective_models(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(value) => value,
+        Err(error) => return error,
+    };
+    if request.query_string().len() > 2048 || query_has_duplicate_keys(request.query_string()) {
+        return invalid_input();
+    }
+    let Ok(query) = web::Query::<EffectiveModelQuery>::from_query(request.query_string()) else {
+        return invalid_input();
+    };
+    let limit = query.limit.unwrap_or(100);
+    if !(1..=200).contains(&limit) {
+        return invalid_input();
+    }
+    let selected = match (&query.access_group_id, &query.client_key_id) {
+        (Some(id), None) if !id.trim().is_empty() && id.len() <= 128 => {
+            let Ok(id) = AccessGroupId::try_new(id.clone()) else {
+                return invalid_input();
+            };
+            ManagementEffectiveModelContext::AccessGroup(id)
+        }
+        (None, Some(id)) if !id.trim().is_empty() && id.len() <= 128 => {
+            let Ok(id) = ClientKeyId::try_new(id.clone()) else {
+                return invalid_input();
+            };
+            ManagementEffectiveModelContext::ClientKey(id)
+        }
+        _ => return invalid_input(),
+    };
+    let cursor = match query
+        .cursor
+        .as_ref()
+        .map(|encoded| {
+            if encoded.len() > 1024 {
+                return Err(invalid_input());
+            }
+            let bytes = URL_SAFE_NO_PAD
+                .decode(encoded)
+                .map_err(|_| invalid_input())?;
+            let cursor: EffectiveModelCursor =
+                serde_json::from_slice(&bytes).map_err(|_| invalid_input())?;
+            if cursor.projection_id.len() != 64
+                || cursor.after.is_empty()
+                || cursor.after.len() > 256
+            {
+                return Err(invalid_input());
+            }
+            Ok(cursor)
+        })
+        .transpose()
+    {
+        Ok(value) => value,
+        Err(error) => return error,
+    };
+    let observed_at_ms = match runtime_observed_at(&state) {
+        Ok(value) => value,
+        Err(error) => return error,
+    };
+    let projection = match runtime(&state).and_then(|mut facade| {
+        facade
+            .effective_models(&context.version, &selected, observed_at_ms)
+            .map_err(runtime_error)
+    }) {
+        Ok(Some(value)) => value,
+        Ok(None) => {
+            return error_response(
+                StatusCode::NOT_FOUND,
+                "management_model_context_unavailable",
+                "Model authorization context is unavailable",
+            );
+        }
+        Err(error) => return error,
+    };
+    effective_model_page(projection, cursor.as_ref(), limit, observed_at_ms)
+}
+
+fn effective_model_page(
+    projection: ManagementEffectiveModels,
+    cursor: Option<&EffectiveModelCursor>,
+    limit: usize,
+    observed_at_ms: i64,
+) -> HttpResponse {
+    let Ok(bytes) = serde_json::to_vec(&projection) else {
+        return internal_error();
+    };
+    let projection_id = format!("{:x}", sha2::Sha256::digest(bytes));
+    if cursor
+        .as_ref()
+        .is_some_and(|cursor| cursor.projection_id != projection_id)
+    {
+        return error_response(
+            StatusCode::CONFLICT,
+            "management_model_projection_changed",
+            "Model projection changed; restart enumeration",
+        );
+    }
+    let after = cursor.as_ref().map_or("", |cursor| cursor.after.as_str());
+    let mut items: Vec<_> = projection
+        .models
+        .into_iter()
+        .filter(|model| model.id.as_str() > after)
+        .take(limit + 1)
+        .collect();
+    let next_cursor = if items.len() > limit {
+        items.truncate(limit);
+        let Some(last) = items.last() else {
+            return internal_error();
+        };
+        let Ok(bytes) = serde_json::to_vec(&EffectiveModelCursor {
+            projection_id: projection_id.clone(),
+            after: last.id.clone(),
+        }) else {
+            return internal_error();
+        };
+        Some(URL_SAFE_NO_PAD.encode(bytes))
+    } else {
+        None
+    };
+    HttpResponse::Ok()
+        .insert_header((header::CACHE_CONTROL, "no-store"))
+        .json(EffectiveModelPage {
+            config_version: projection.config_version,
+            access_group_id: projection.access_group_id,
+            client_key_id: projection.client_key_id,
+            projection_id,
+            observed_at_ms,
+            items,
+            next_cursor,
+        })
 }
 
 async fn get_catalog_status(

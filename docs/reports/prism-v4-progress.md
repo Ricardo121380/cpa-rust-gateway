@@ -178,6 +178,15 @@ gateway bin Clippy（-D warnings）和 diff 检查通过。测试初次使用相
 已改用新版本发布后验证。此批没有暴露 HTTP endpoint，目录快照时间/版本证据及 B3 仍待
 补齐；最终有效模型目录与验收未完成。
 
+## BE-FE-01 管理 HTTP 接入
+
+`GET /admin/models/effective` 已接入真实 runtime facade，新增 listEffectiveModels 与三个
+闭合 schema，按权威契约生成客户端。只接受一个既有 Group ID 或 Key ID，不接受 secret。
+分页默认 100、最大 200，投影指纹绑定上下文和模型/来源内容；跨页变化返回 409。
+不发送配置 revision ETag。4 项运行时 HTTP 测试和13 项契约测试通过，覆盖鉴权、互斥
+上下文、未知/重复/secret 参数、两页完整读取、上下文切换和投影更新冲突。
+正式前端目录、目录 snapshot 时间/版本证据、B3 和真实 gateway 验收仍在当前 Goal 内。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、

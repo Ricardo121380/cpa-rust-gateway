@@ -54,3 +54,16 @@ Access Group ID 或 Client Key ID；不接收 Client Key secret。复用数据�
   revision。SQL keyset/LIMIT+1 下推，不以 grants 或 inventory 过滤，不读取秘密。
 - RouteListItem 如实返回已有 round_robin / priority_failover；现有 Route 写契约仍只接受
   smooth_weighted_round_robin。旧策略不得被前端静默转换为支持的写策略。
+
+## BE-FE-01 HTTP 定稿（2026-09-10）
+
+`GET /admin/models/effective` / `listEffectiveModels`，要求管理鉴权与 serving 配置的
+`X-Config-Version`。access_group_id 和 client_key_id 必须且只能选一个，拒绝 secret 和
+未知/重复参数。limit 1–200（默认 100），next_cursor 绑定完整安全投影；授权上下文、
+配置或来源投影变化返回 409，需要从第一页重读。无效/缺失上下文为 404；合法但无模型
+返回空 items；非 serving 配置或未装配运行时为 503。无写操作，不发配置 revision ETag。
+
+响应包括 config_version、access_group_id、client_key_id（可 null）、projection_id、
+observed_at_ms、items、next_cursor。projection_id 是投影指纹，不冒充目录 snapshot 版本；
+source 当前表达 Candidate/Endpoint/Upstream、协议和编译目录准入。目录 snapshot 的观测
+时间、版本和硬过期证据仍需在 B3 中接通，未作为空值或猜测值伪造。

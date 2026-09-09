@@ -1411,3 +1411,21 @@ by the real gateway; fixture grants now also reject absent Route references.
 and grantAccessGroupRoute operations are reused. Eleven focused Chromium tests
 passed, including creating a draft Route, seeing it in the grant suggestions and
 successfully granting it. No live Provider or remote action occurred.
+
+
+## 2026-09-10 — Codex / BE-FE-01 effective model HTTP contract
+
+**What:** Added GET `/admin/models/effective` to
+`crates/gateway-http-actix/src/management_resources.rs` and
+`docs/openapi/management-v1.json`; ran sync-contract to update
+`web/prism/contracts/management-v1.json` and
+`web/prism/src/generated/management-client.ts`.
+
+**Why:** Expose serving-only authorization/provenance through management authentication,
+using an existing Access Group ID or Key ID, never a Client Key secret. Bounded pages
+bind the entire safe projection and reject changed context/content with 409.
+
+**Other side:** FYI under full-stack authorization. New operation listEffectiveModels
+and three closed schemas. No config revision ETag. Projection fingerprint is not a
+catalog revision. Frontend DTO/fixtures and catalog snapshot evidence remain pending.
+Four runtime HTTP tests and thirteen contract tests passed; no real Provider was called.
