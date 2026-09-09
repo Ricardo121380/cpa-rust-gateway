@@ -545,6 +545,72 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
     assert_eq!(revoked_key.status(), StatusCode::NO_CONTENT);
     assert_revision(&revoked_key, 22);
 
+    for path in ["/admin/routes", "/admin/model-aliases"] {
+        let page = test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri(path), None).to_request(),
+        )
+        .await;
+        assert_eq!(page.status(), StatusCode::OK);
+        assert_revision(&page, 22);
+        let body: Value = test::read_body_json(page).await;
+        assert_eq!(body["config_version"], VERSION);
+        assert!(!body["items"].as_array().ok_or("missing items")?.is_empty());
+    }
+    let first = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/route-candidates?limit=1"),
+            None,
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(first.status(), StatusCode::OK);
+    let first: Value = test::read_body_json(first).await;
+    let cursor = first["next_cursor"].as_str().ok_or("missing cursor")?;
+    let continuation = format!("/admin/route-candidates?limit=1&cursor={cursor}");
+    let second = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(&continuation), None).to_request(),
+    )
+    .await;
+    assert_eq!(second.status(), StatusCode::OK);
+    let second: Value = test::read_body_json(second).await;
+    assert_eq!(
+        second["items"]
+            .as_array()
+            .ok_or("missing second items")?
+            .len(),
+        1
+    );
+    assert_ne!(first["items"][0]["id"], second["items"][0]["id"]);
+    assert!(second["next_cursor"].is_null());
+    for path in [
+        "/admin/route-candidates?limit=201",
+        "/admin/route-candidates?limit=0",
+        "/admin/routes?cursor=bad",
+        "/admin/routes?limit=1&limit=2",
+        "/admin/routes?unknown=1",
+    ] {
+        let invalid = test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri(path), None).to_request(),
+        )
+        .await;
+        assert_eq!(invalid.status(), StatusCode::BAD_REQUEST);
+    }
+    let wrong_kind = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri(&format!("/admin/routes?cursor={cursor}")),
+            None,
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(wrong_kind.status(), StatusCode::CONFLICT);
+
     let candidate_path = "/admin/routes/route-minimax-m3/candidates/candidate-minimax-m3";
     let candidate_input = json!({
         "id":"candidate-minimax-m3", "endpoint_id":"endpoint-routing",
@@ -586,6 +652,13 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
     .await;
     assert_eq!(updated.status(), StatusCode::OK);
     assert_revision(&updated, 23);
+    let stale_page = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(&continuation), None).to_request(),
+    )
+    .await;
+    assert_eq!(stale_page.status(), StatusCode::CONFLICT);
+
     let updated_body: Value = test::read_body_json(updated).await;
     assert_eq!(updated_body["weight"], 7);
     assert_eq!(updated_body["upstream_model"], "exact-updated-model");

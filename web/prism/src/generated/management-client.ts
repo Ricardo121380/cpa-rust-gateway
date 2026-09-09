@@ -1210,6 +1210,29 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "listModelAliases": {
+    "method": "GET",
+    "path": "/admin/model-aliases",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "listOperationalAccountPools": {
     "method": "GET",
     "path": "/admin/operations/account-pools",
@@ -1524,6 +1547,52 @@ export const managementOperations = {
         "name": "request_id",
         "in": "path",
         "required": true
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "listRouteCandidates": {
+    "method": "GET",
+    "path": "/admin/route-candidates",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "listRoutes": {
+    "method": "GET",
+    "path": "/admin/routes",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
       }
     ],
     "bodyEncoding": "none",
@@ -2486,6 +2555,10 @@ export class ManagementApi {
     return this.request("listManagementAuditEvents", request);
   }
 
+  listModelAliases(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listModelAliases", request);
+  }
+
   listOperationalAccountPools(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listOperationalAccountPools", request);
   }
@@ -2516,6 +2589,14 @@ export class ManagementApi {
 
   listRequestAttempts(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listRequestAttempts", request);
+  }
+
+  listRouteCandidates(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listRouteCandidates", request);
+  }
+
+  listRoutes(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listRoutes", request);
   }
 
   listUpstreams(request: ManagementRequest = {}): Promise<Response> {

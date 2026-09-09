@@ -112,15 +112,25 @@ ID 不一致、独立删除及父 Route 保留。13 项契约测试和路由 HTT
 BE-FE-02 尚未完成：版本一致的有界枚举及正式前端交互仍待接入。BE-FE-01、B1–B4
 与 M4 仍待完成；本批测试不替代真实 gateway 联调或磁盘重启验收。
 
-## 环境边界
+## M2 完整枚举
 
 M2 完整枚举的存储基础已落地：Route/Candidate/Alias 各自按稳定键执行 SQL keyset
 读取，单页 1–200，查询最多 limit+1 行；版本元数据与资源行属于同一 SQLite 事务。
 续页要求 revision，版本变化明确拒绝；读取不依赖 Access Group grants，涵盖未绑定草稿，
 不加载 Credential/Client Key。全图加载复用原解码逻辑，保持既有编译路径。
 新增 206 条资源回归验证三种分页与 revision 冲突；16 项存储回归、10 项管理服务回归、
-两 crate 的 lib Clippy（-D warnings）与 diff 检查通过。HTTP 游标绑定、契约与 UI 接入
-尚待完成，因此此处仅记录存储能力，未把 BE-FE-02 标为完成。
+两 crate 的 lib Clippy（-D warnings）与 diff 检查通过。
+
+HTTP 后续批次已接入三个 GET 枚举接口及资源类型/配置 ID/revision 绑定游标，定稿 CR、
+权威契约并同步 104 个生成操作。新增页对象及 RouteListItem 保留旧策略的真实标签；
+旧写策略边界不变。真实 Actix 回归验证两页候选不重叠、结束游标、错误游标类型、
+旧 revision、未知/重复/超限参数。13 项契约测试、路由生命周期回归、旧策略序列化单测、
+HTTP lib Clippy、前端类型检查及权威四文件/CSP/双构建门禁通过。
+
+前端 DTO/fixtures/完整维护交互与磁盘重启和真实 gateway 验收仍待完成，BE-FE-02
+仍未标为完成。
+
+## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、
 计划、报告和辅助脚本均保留，未清理或并入代码批次。

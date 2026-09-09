@@ -1338,3 +1338,21 @@ revision, immutable owner and atomic audit. Existing Route CRUD remains intact.
 `updateRouteCandidate` and `deleteRouteCandidate`, under the existing same-origin
 management listener. CandidateInput is reused; no new response schema or fixture
 shape is needed. UI integration and complete resource enumeration remain pending.
+
+
+## 2026-09-10 — Codex / V4 M2 routing enumeration contract
+
+**What:** Added protected GET `/admin/routes`, `/admin/route-candidates` and
+`/admin/model-aliases` in `crates/gateway-http-actix/src/management_resources.rs`;
+updated `docs/openapi/management-v1.json`, then ran sync-contract to regenerate
+`web/prism/contracts/management-v1.json` and
+`web/prism/src/generated/management-client.ts`.
+
+**Why:** Complete draft maintenance must include resources without Access Group
+grants. Pages use bounded SQL keyset reads with configuration/revision consistency.
+
+**Other side:** FYI under this Goal's full-stack authorization. New operations:
+listRoutes, listRouteCandidates, listModelAliases. Each returns a page envelope,
+not an array. Restart enumeration after cursor/revision 409; do not replay writes.
+RouteListItem preserves legacy policy labels; the existing write contract is unchanged.
+UI DTOs, fixtures and resource maintenance integration remain work in this Goal.

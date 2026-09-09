@@ -41,3 +41,16 @@ Access Group ID 或 Client Key ID；不接收 Client Key secret。复用数据�
   revision 和 `route_candidate_updated` / `route_candidate_deleted` 审计。
 - 成功返回新 ETag，PATCH 返回既有 Candidate DTO，DELETE 返回 204；409 不重放。
   复用既有错误信封与输入边界，无新增秘密字段。完整枚举接口仍在实施中。
+
+## BE-FE-02 枚举接口定稿（2026-09-10）
+
+- `GET /admin/routes` → `listRoutes` / `RoutePage`；`GET /admin/route-candidates` →
+  `listRouteCandidates` / `CandidatePage`；`GET /admin/model-aliases` →
+  `listModelAliases` / `AliasPage`。
+- 同源管理鉴权及 `X-Config-Version`，limit 默认 100、范围 1–200。next_cursor 为空时结束；
+  游标绑定资源类型、配置 ID 与 revision，类型/版本不匹配或 revision 变化返回 409，
+  客户端须丢弃旧分页并从第一页重读。limit 可以调整，未知/重复参数拒绝。
+- 响应为 config_version、revision（rev-N）、items、next_cursor；ETag 为该读取事务的
+  revision。SQL keyset/LIMIT+1 下推，不以 grants 或 inventory 过滤，不读取秘密。
+- RouteListItem 如实返回已有 round_robin / priority_failover；现有 Route 写契约仍只接受
+  smooth_weighted_round_robin。旧策略不得被前端静默转换为支持的写策略。

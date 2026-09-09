@@ -70,6 +70,7 @@ use gateway_core::{
     ProviderId, PublicModelId, RequestId, RouteCandidateId, RouteId, UpstreamId,
 };
 use gateway_store::billing_ledger::SqliteBillingLedger;
+use gateway_store::control_plane::{RoutingPageQuery, RoutingResourcePage};
 use gateway_upstream::UpstreamProxy;
 use provider_openai_compatible::{
     CodexCredentialExportFormat, CodexOAuthRefreshCoordinator, CodexOAuthRevisionedCredential,
@@ -2400,6 +2401,12 @@ fn configure_upstream_resource_routes(config: &mut web::ServiceConfig) {
 
 fn configure_routing_resource_routes(config: &mut web::ServiceConfig) {
     config
+        .route("/routes", web::get().to(list_model_routes_page))
+        .route(
+            "/route-candidates",
+            web::get().to(list_route_candidates_page),
+        )
+        .route("/model-aliases", web::get().to(list_model_aliases_page))
         .route("/public-models", web::get().to(list_public_models))
         .route("/public-models", web::post().to(create_public_model))
         .route(
@@ -6606,6 +6613,205 @@ async fn delete_model_route(
     }
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RoutingPageParams {
+    limit: Option<u16>,
+    cursor: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RoutingCursor {
+    kind: String,
+    config_version: String,
+    revision: i64,
+    after: String,
+}
+
+#[derive(Serialize)]
+struct RoutingPageResponse<T> {
+    config_version: String,
+    revision: String,
+    items: Vec<T>,
+    next_cursor: Option<String>,
+}
+
+fn routing_page_context(
+    request: &HttpRequest,
+    kind: &str,
+) -> Result<(ReadContext, RoutingPageParams, Option<RoutingCursor>), HttpResponse> {
+    let context = read_context(request)?;
+    if request.query_string().len() > 2048 || query_has_duplicate_keys(request.query_string()) {
+        return Err(invalid_input());
+    }
+    let params = web::Query::<RoutingPageParams>::from_query(request.query_string())
+        .map_err(|_| invalid_input())?
+        .into_inner();
+    let cursor = params
+        .cursor
+        .as_ref()
+        .map(|encoded| {
+            if encoded.len() > 1024 {
+                return Err(invalid_input());
+            }
+            let bytes = URL_SAFE_NO_PAD
+                .decode(encoded)
+                .map_err(|_| invalid_input())?;
+            let cursor: RoutingCursor =
+                serde_json::from_slice(&bytes).map_err(|_| invalid_input())?;
+            if cursor.kind != kind || cursor.config_version != context.version.as_str() {
+                return Err(error_response(
+                    StatusCode::CONFLICT,
+                    "management_routing_cursor_conflict",
+                    "Routing cursor belongs to another resource or configuration",
+                ));
+            }
+            Ok(cursor)
+        })
+        .transpose()?;
+    RoutingPageQuery::try_new(
+        cursor.as_ref().map(|value| value.revision),
+        cursor.as_ref().map(|value| value.after.as_str()),
+        params.limit.unwrap_or(100),
+    )
+    .ok_or_else(invalid_input)?;
+    Ok((context, params, cursor))
+}
+
+fn routing_page_json<T, U: Serialize>(
+    page: RoutingResourcePage<T>,
+    kind: &str,
+    convert: impl Fn(T) -> U,
+) -> HttpResponse {
+    let Ok(revision) = ConfigRevision::try_new(page.version.revision) else {
+        return internal_error();
+    };
+    let next_cursor = match page
+        .next_after
+        .map(|after| {
+            serde_json::to_vec(&RoutingCursor {
+                kind: kind.to_owned(),
+                config_version: page.version.id.as_str().to_owned(),
+                revision: page.version.revision,
+                after,
+            })
+        })
+        .transpose()
+    {
+        Ok(value) => value.map(|bytes| URL_SAFE_NO_PAD.encode(bytes)),
+        Err(_) => return internal_error(),
+    };
+    response_with_revision(
+        StatusCode::OK,
+        revision,
+        RoutingPageResponse {
+            config_version: page.version.id.as_str().to_owned(),
+            revision: revision.as_token(),
+            items: page.items.into_iter().map(convert).collect(),
+            next_cursor,
+        },
+    )
+}
+
+fn route_list_response(value: &ModelRouteConfiguration) -> RouteResponse {
+    RouteResponse {
+        id: value.id.as_str().to_owned(),
+        public_model_id: value.public_model_id.as_str().to_owned(),
+        policy: match value.policy {
+            RoutePolicy::SmoothWeightedRoundRobin => "smooth_weighted_round_robin",
+            RoutePolicy::RoundRobin => "round_robin",
+            RoutePolicy::PriorityFailover => "priority_failover",
+        },
+        max_attempts: value.max_attempts,
+        bootstrap_timeout_ms: value.bootstrap_timeout_ms,
+    }
+}
+
+async fn list_model_routes_page(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let (context, params, cursor) = match routing_page_context(&request, "routes") {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let Some(query) = RoutingPageQuery::try_new(
+        cursor.as_ref().map(|value| value.revision),
+        cursor.as_ref().map(|value| value.after.as_str()),
+        params.limit.unwrap_or(100),
+    ) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    match service
+        .repository_mut()
+        .list_model_routes_page(&context.version, query)
+    {
+        Ok(page) => routing_page_json(page, "routes", |route| route_list_response(&route)),
+        Err(error) => management_error(ManagementResourceError::Store(error)),
+    }
+}
+
+async fn list_route_candidates_page(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let (context, params, cursor) = match routing_page_context(&request, "candidates") {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let Some(query) = RoutingPageQuery::try_new(
+        cursor.as_ref().map(|value| value.revision),
+        cursor.as_ref().map(|value| value.after.as_str()),
+        params.limit.unwrap_or(100),
+    ) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    match service
+        .repository_mut()
+        .list_route_candidates_page(&context.version, query)
+    {
+        Ok(page) => routing_page_json(page, "candidates", CandidateResponse::from),
+        Err(error) => management_error(ManagementResourceError::Store(error)),
+    }
+}
+
+async fn list_model_aliases_page(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let (context, params, cursor) = match routing_page_context(&request, "aliases") {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let Some(query) = RoutingPageQuery::try_new(
+        cursor.as_ref().map(|value| value.revision),
+        cursor.as_ref().map(|value| value.after.as_str()),
+        params.limit.unwrap_or(100),
+    ) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    match service
+        .repository_mut()
+        .list_model_aliases_page(&context.version, query)
+    {
+        Ok(page) => routing_page_json(page, "aliases", AliasResponse::from),
+        Err(error) => management_error(ManagementResourceError::Store(error)),
+    }
+}
+
 async fn create_route_candidate(
     request: HttpRequest,
     path: web::Path<String>,
@@ -9663,6 +9869,14 @@ mod tests {
                 .map_err(|_| std::io::Error::other("frozen P10-05 policy is not representable"))?;
         assert_eq!(supported.policy, "smooth_weighted_round_robin");
         assert!(RouteResponse::try_from(route_with_policy(RoutePolicy::RoundRobin)?).is_err());
+        assert_eq!(
+            super::route_list_response(&route_with_policy(RoutePolicy::RoundRobin)?).policy,
+            "round_robin"
+        );
+        assert_eq!(
+            super::route_list_response(&route_with_policy(RoutePolicy::PriorityFailover)?).policy,
+            "priority_failover"
+        );
         assert!(
             RouteResponse::try_from(route_with_policy(RoutePolicy::PriorityFailover)?).is_err()
         );

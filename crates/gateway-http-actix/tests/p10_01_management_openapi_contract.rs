@@ -686,8 +686,11 @@ fn operation_parameters(
     Ok(parameters)
 }
 
-fn required_operations() -> [(&'static str, &'static str); 58] {
+fn required_operations() -> [(&'static str, &'static str); 61] {
     [
+        ("/admin/routes", "get"),
+        ("/admin/route-candidates", "get"),
+        ("/admin/model-aliases", "get"),
         ("/admin/config-versions", "get"),
         ("/admin/config-versions", "post"),
         ("/admin/config-versions/{config_version_id}/publish", "post"),
