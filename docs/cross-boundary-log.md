@@ -1356,3 +1356,21 @@ listRoutes, listRouteCandidates, listModelAliases. Each returns a page envelope,
 not an array. Restart enumeration after cursor/revision 409; do not replay writes.
 RouteListItem preserves legacy policy labels; the existing write contract is unchanged.
 UI DTOs, fixtures and resource maintenance integration remain work in this Goal.
+
+
+## 2026-09-10 — Codex / V4 M2 Prism resource inventory
+
+**What:** Added `web/prism/src/features/models/RoutingInventory.tsx`; updated
+`web/prism/src/features/models/{model.ts,RouteWorkbench.tsx,ModelsPage.tsx}`,
+`web/prism/src/dev/fixtures.ts` and `web/prism/e2e/route-candidates.spec.ts`.
+
+**Why:** Use the new authoritative Route/Candidate/Alias pages, including unbound
+drafts, instead of operational inventory hints. Add explicit loaded counts,
+manual pagination and restart-from-first-page after errors; refresh after local
+resource mutations. Remove obsolete claims that enumeration is unavailable.
+
+**Other side:** FYI under full-stack authorization. No contract edits in this batch.
+Typed page DTOs and synthetic fixture handlers mirror the new endpoints. Candidate
+edit/delete UI, access grant route selection and full M4 acceptance remain pending.
+Type-check and six focused Chromium browser tests passed, including the new unbound
+route and candidate enumeration assertions. No real Provider/remote action occurred.

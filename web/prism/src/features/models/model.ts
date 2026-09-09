@@ -51,7 +51,10 @@ export function enabledCapabilities(
 
 export const ROUTE_POLICY = "smooth_weighted_round_robin" as const;
 
-export function validRouteParams(maxAttempts: number, bootstrapTimeoutMs: number): boolean {
+export function validRouteParams(
+  maxAttempts: number,
+  bootstrapTimeoutMs: number,
+): boolean {
   return (
     Number.isInteger(maxAttempts) &&
     maxAttempts >= 1 &&
@@ -66,12 +69,6 @@ export function validRouteParams(maxAttempts: number, bootstrapTimeoutMs: number
 // route candidates — POST /admin/routes/{route_id}/candidates
 // ---------------------------------------------------------------------------
 //
-// Candidates are INSERT-ONLY in the contract: there is no list, no update and
-// no delete operation for them. The only read path is explainRoute, which
-// needs a requested_model and a protocol to answer. That asymmetry is a
-// contract fact, not an omission here — every surface below states it rather
-// than implying a candidate can be edited back out.
-
 export type RouteRecord = Readonly<{
   id: string;
   public_model_id: string;
@@ -109,7 +106,10 @@ export function transformModeHint(mode: TransformMode): string {
   return TRANSFORM_MODE_HINT[mode];
 }
 
-export function validCandidateParams(priority: number, weight: number): boolean {
+export function validCandidateParams(
+  priority: number,
+  weight: number,
+): boolean {
   return (
     Number.isInteger(priority) &&
     priority >= 0 &&
@@ -148,7 +148,10 @@ export function parseCapabilityOverride(raw: string): ParsedCapabilityOverride {
   for (const token of trimmed.split(/\s+/u)) {
     const at = token.indexOf("=");
     if (at <= 0 || at === token.length - 1) {
-      return { ok: false, reason: `「${token}」不是 key=true 或 key=false 形式。` };
+      return {
+        ok: false,
+        reason: `「${token}」不是 key=true 或 key=false 形式。`,
+      };
     }
     const key = token.slice(0, at);
     const rawValue = token.slice(at + 1);
@@ -164,7 +167,10 @@ export function parseCapabilityOverride(raw: string): ParsedCapabilityOverride {
     override[key] = rawValue === "true";
   }
   if (Object.keys(override).length > MAX_CAPABILITY_OVERRIDES) {
-    return { ok: false, reason: `能力覆盖最多 ${MAX_CAPABILITY_OVERRIDES} 项。` };
+    return {
+      ok: false,
+      reason: `能力覆盖最多 ${MAX_CAPABILITY_OVERRIDES} 项。`,
+    };
   }
   return { ok: true, override };
 }
@@ -174,7 +180,8 @@ export function parseCapabilityOverride(raw: string): ParsedCapabilityOverride {
 // rendered as itself: the backend may add codes, and a guessed translation
 // would be worse than the raw string an operator can grep for.
 const ROUTE_ERROR_LABEL: Readonly<Record<string, string>> = {
-  route_missing_active_candidate: "路由没有任何启用的候选 —— 建路由后必须至少加一个候选",
+  route_missing_active_candidate:
+    "路由没有任何启用的候选 —— 建路由后必须至少加一个候选",
   route_candidate_endpoint_missing: "候选指向的端点在本版本中不存在",
   route_candidate_endpoint_disabled: "候选指向的端点被禁用",
   route_candidate_missing_active_credential:
@@ -185,3 +192,26 @@ export function routeErrorLabel(code: string): string | undefined {
   return ROUTE_ERROR_LABEL[code];
 }
 
+export type RouteListItem = Omit<RouteRecord, "policy"> &
+  Readonly<{
+    policy: typeof ROUTE_POLICY | "round_robin" | "priority_failover";
+  }>;
+export type AliasRecord = Readonly<{ alias: string; public_model_id: string }>;
+export type CandidateRecord = Readonly<{
+  id: string;
+  route_id: string;
+  endpoint_id: string;
+  upstream_model: string;
+  credential_scope: typeof CREDENTIAL_SCOPE;
+  transform_mode: TransformMode;
+  enabled: boolean;
+  priority: number;
+  weight: number;
+  capability_override: Readonly<Record<string, boolean>>;
+}>;
+export type RoutingPage<T> = Readonly<{
+  config_version: string;
+  revision: string;
+  items: readonly T[];
+  next_cursor: string | null;
+}>;

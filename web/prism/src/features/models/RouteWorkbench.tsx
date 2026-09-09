@@ -1,33 +1,4 @@
-// Route workbench — the missing half of the config chain.
-//
-// Until now the panel could CREATE a route (ModelsPage) and nothing else, and
-// a route with no candidate is rejected by the backend:
-//
-//   crates/gateway-control/src/management_mutation_service.rs:2074
-//     if active_candidates.is_empty() {
-//         error_codes.push("route_missing_active_candidate");
-//     }
-//
-// so every route made here put the draft into a state the panel itself could
-// not repair. This card closes that loop.
-//
-// Three contract facts are stated on screen rather than designed around:
-//
-//  1. ROUTES ARE NOT ENUMERABLE. There is no listRoutes; getRoute needs an id
-//     you already have. The datalist below is best-effort (route_ids carried by
-//     the operational inventory, the same source AccessPage uses) and is known
-//     to be incomplete — a route whose candidates are not yet bound, which is
-//     exactly the route you come here to fix, does not appear in it. The field
-//     stays free text for that reason.
-//
-//  2. CANDIDATES ARE INSERT-ONLY. createRouteCandidate exists; there is no
-//     list, update or delete. Their only read path is explainRoute, which needs
-//     a requested_model and a protocol to answer. So this card creates them and
-//     hands off to Explain for reading — it never implies one can be edited.
-//
-//  3. validateRoute CHECKS DRAFT TOPOLOGY ONLY. The backend's own words:
-//     "Full compiler/capability admission remains the later publication
-//     boundary." A green check here is not a promise that publish succeeds.
+import { RoutingInventory } from "./RoutingInventory";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
@@ -49,8 +20,6 @@ import {
   type RouteValidation,
   type TransformMode,
 } from "./model";
-
-type PoolRow = Readonly<{ route_ids: readonly string[] }>;
 
 type CandidateInput = Readonly<{
   id: string;
@@ -82,29 +51,23 @@ export function RouteWorkbench({
   const [error, setError] = useState<string | undefined>();
 
   // The route ModelsPage just created is the one you almost certainly want, and
-  // it is precisely the one no enumeration can suggest yet.
-  const pending = focusRouteId !== undefined && focusRouteId !== loaded ? focusRouteId : undefined;
+  // keep the direct handoff alongside the complete inventory.
+  const pending =
+    focusRouteId !== undefined && focusRouteId !== loaded
+      ? focusRouteId
+      : undefined;
 
   const route = useQuery({
     queryKey: ["route", scope, loaded],
     queryFn: () =>
-      call<RouteRecord>("getRoute", { path: { route_id: loaded ?? "" } }, { versionScoped: true }),
+      call<RouteRecord>(
+        "getRoute",
+        { path: { route_id: loaded ?? "" } },
+        { versionScoped: true },
+      ),
     enabled: scope !== undefined && loaded !== undefined,
     retry: false,
   });
-
-  const suggestions = useQuery({
-    queryKey: ["pool-routes", scope],
-    queryFn: () =>
-      call<Readonly<{ items: readonly PoolRow[] }>>(
-        "listOperationalAccountPools",
-        { query: { limit: 100 } },
-        { versionScoped: true },
-      ),
-    enabled: scope !== undefined,
-    retry: false,
-  });
-  const routeIds = [...new Set((suggestions.data?.items ?? []).flatMap((row) => row.route_ids))];
 
   const validation = useMutation({
     mutationFn: (routeId: string) =>
@@ -127,6 +90,7 @@ export function RouteWorkbench({
       ),
     onSuccess: (created, variables) => {
       setAddingCandidate(false);
+      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
       setNotice(`候选 ${created.id} 已加入。重新校验以确认路由现在通得过。`);
       validation.mutate(variables.routeId);
     },
@@ -134,7 +98,12 @@ export function RouteWorkbench({
   });
 
   const saveRoute = useMutation({
-    mutationFn: (input: Readonly<{ routeId: string; body: Omit<RouteRecord, "public_model_id"> }>) =>
+    mutationFn: (
+      input: Readonly<{
+        routeId: string;
+        body: Omit<RouteRecord, "public_model_id">;
+      }>,
+    ) =>
       call<RouteRecord>(
         "updateRoute",
         { path: { route_id: input.routeId }, body: input.body },
@@ -142,7 +111,10 @@ export function RouteWorkbench({
       ),
     onSuccess: () => {
       setEditingRoute(false);
-      void queryClient.invalidateQueries({ queryKey: ["route", scope, loaded] });
+      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
+      void queryClient.invalidateQueries({
+        queryKey: ["route", scope, loaded],
+      });
     },
     onError: (cause) => setError(asAppError(cause).message),
   });
@@ -156,6 +128,7 @@ export function RouteWorkbench({
       ),
     onSuccess: () => {
       setConfirmDelete(false);
+      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
       setLoaded(undefined);
       setNotice("路由已删除,其候选一并移除。");
       validation.reset();
@@ -180,14 +153,18 @@ export function RouteWorkbench({
     <div className="card route-workbench" data-gap="top">
       <header className="page-head">
         <h3>路由工作台</h3>
-        <code className="idchip mono">getRoute · validateRoute · createRouteCandidate</code>
+        <code className="idchip mono">
+          getRoute · validateRoute · createRouteCandidate
+        </code>
       </header>
 
-      <p className="stat-sub">
-        契约里<strong>没有 listRoutes</strong>,路由只能按 id 打开。下面的建议来自运营库存里
-        已绑定的 route_id,<strong>刚建好、还没有候选的路由不会出现在建议里</strong> ——
-        那正是要来这里修的那一类,所以输入框保持自由文本。
-      </p>
+      <RoutingInventory
+        onOpen={(id) => {
+          setField(id);
+          setLoaded(id);
+          validation.reset();
+        }}
+      />
 
       {pending !== undefined ? (
         <p className="action-notice">
@@ -229,17 +206,11 @@ export function RouteWorkbench({
             className="mono"
             required
             maxLength={128}
-            list="rw-route-ids"
             placeholder="route-minimax-m3"
             value={field}
             onChange={(event) => setField(event.target.value)}
           />
         </label>
-        <datalist id="rw-route-ids">
-          {routeIds.map((id) => (
-            <option key={id} value={id} />
-          ))}
-        </datalist>
         <button type="submit" disabled={route.isFetching}>
           {route.isFetching ? "载入中…" : "载入"}
         </button>
@@ -275,7 +246,9 @@ export function RouteWorkbench({
           </table>
 
           <div className="rw-actions">
-            <button className="secondary" onClick={() => setInspecting(true)}>路由详情</button>
+            <button className="secondary" onClick={() => setInspecting(true)}>
+              路由详情
+            </button>
             <button
               type="button"
               disabled={!editable}
@@ -301,7 +274,10 @@ export function RouteWorkbench({
             >
               编辑路由
             </button>
-            <Link className="rw-link" to={`/runtime?route_id=${encodeURIComponent(record.id)}`}>
+            <Link
+              className="rw-link"
+              to={`/runtime?route_id=${encodeURIComponent(record.id)}`}
+            >
               去 Explain 看候选
             </Link>
             <button
@@ -316,13 +292,14 @@ export function RouteWorkbench({
           </div>
 
           <p className="stat-sub">
-            候选在契约里<strong>只能新增</strong>(没有列出、修改或删除算子)。要看一条路由现在
-            有哪些候选、各自是否被选中,唯一的读取路径是 Route Explain —— 它需要一个请求模型和协议
-            才能作答。
+            配置资源列表显示候选定义；Explain 用于检查指定请求的选择结果。
           </p>
 
           {validation.data !== undefined ? (
-            <div className="rw-validation" data-valid={validation.data.valid ? "true" : "false"}>
+            <div
+              className="rw-validation"
+              data-valid={validation.data.valid ? "true" : "false"}
+            >
               <p>
                 {validation.data.valid
                   ? "草稿拓扑校验通过"
@@ -335,14 +312,17 @@ export function RouteWorkbench({
                     return (
                       <li key={code}>
                         <span className="mono">{code}</span>
-                        {label === undefined ? null : <span className="rw-code-help">{label}</span>}
+                        {label === undefined ? null : (
+                          <span className="rw-code-help">{label}</span>
+                        )}
                       </li>
                     );
                   })}
                 </ul>
               )}
               <p className="stat-sub">
-                此处只校验<strong>草稿拓扑</strong>(候选是否存在、端点是否在且启用、是否有 active
+                此处只校验<strong>草稿拓扑</strong>
+                (候选是否存在、端点是否在且启用、是否有 active
                 凭据绑定)。能力准入与完整编译在<strong>发布</strong>时才发生 ——
                 这里通过不等于发布会通过。
               </p>
@@ -361,16 +341,41 @@ export function RouteWorkbench({
         />
       ) : null}
 
-      {inspecting && record !== undefined ? <ObjectInspector title={record.id} scope={`配置版本 ${scope} · 路由`} onClose={() => setInspecting(false)} facts={[
-        ["公开模型 ID", record.public_model_id], ["调度策略", record.policy], ["最大尝试次数", record.max_attempts],
-        ["启动超时 (ms)", record.bootstrap_timeout_ms],
-      ]}><div className="sheet-actions"><button disabled={!editable} onClick={() => { setInspecting(false); setEditingRoute(true); }}>编辑路由</button></div></ObjectInspector> : null}
+      {inspecting && record !== undefined ? (
+        <ObjectInspector
+          title={record.id}
+          scope={`配置版本 ${scope} · 路由`}
+          onClose={() => setInspecting(false)}
+          facts={[
+            ["公开模型 ID", record.public_model_id],
+            ["调度策略", record.policy],
+            ["最大尝试次数", record.max_attempts],
+            ["启动超时 (ms)", record.bootstrap_timeout_ms],
+          ]}
+        >
+          <div className="sheet-actions">
+            <button
+              disabled={!editable}
+              onClick={() => {
+                setInspecting(false);
+                setEditingRoute(true);
+              }}
+            >
+              编辑路由
+            </button>
+          </div>
+        </ObjectInspector>
+      ) : null}
 
       {editingRoute && record !== undefined ? (
-        <Sheet title={`编辑路由 ${record.id}`} onEscape={() => setEditingRoute(false)}>
+        <Sheet
+          title={`编辑路由 ${record.id}`}
+          onEscape={() => setEditingRoute(false)}
+        >
           <p className="stat-sub">
-            PATCH 是整体替换,所以下面每个字段都已用 <span className="mono">getRoute</span>{" "}
-            的当前值预填 —— 留空会把它写成空,而不是"不改"。
+            PATCH 是整体替换,所以下面每个字段都已用{" "}
+            <span className="mono">getRoute</span> 的当前值预填 ——
+            留空会把它写成空,而不是"不改"。
           </p>
           <form
             className="sheet-form"
@@ -378,9 +383,13 @@ export function RouteWorkbench({
               event.preventDefault();
               const data = new FormData(event.currentTarget);
               const maxAttempts = Number(data.get("max_attempts"));
-              const bootstrapTimeoutMs = Number(data.get("bootstrap_timeout_ms"));
+              const bootstrapTimeoutMs = Number(
+                data.get("bootstrap_timeout_ms"),
+              );
               if (!validRouteParams(maxAttempts, bootstrapTimeoutMs)) {
-                setError("路由参数越界:max_attempts 1-16,bootstrap_timeout_ms 1-120000");
+                setError(
+                  "路由参数越界:max_attempts 1-16,bootstrap_timeout_ms 1-120000",
+                );
                 return;
               }
               saveRoute.mutate({
@@ -423,7 +432,11 @@ export function RouteWorkbench({
               />
             </label>
             <div className="sheet-actions">
-              <button type="button" className="secondary" onClick={() => setEditingRoute(false)}>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setEditingRoute(false)}
+              >
                 取消
               </button>
               <button type="submit" disabled={saveRoute.isPending}>
@@ -437,12 +450,17 @@ export function RouteWorkbench({
       {confirmDelete && record !== undefined ? (
         <Sheet title="确认删除路由" onEscape={() => setConfirmDelete(false)}>
           <p className="reveal-warning">
-            删除路由 <span className="mono">{record.id}</span> 会一并移除它的全部候选。
-            公开模型 <span className="mono">{record.public_model_id}</span>{" "}
+            删除路由 <span className="mono">{record.id}</span>{" "}
+            会一并移除它的全部候选。 公开模型{" "}
+            <span className="mono">{record.public_model_id}</span>{" "}
             将没有可用路由,客户端解析到它的请求会失败。
           </p>
           <div className="sheet-actions">
-            <button type="button" className="secondary" onClick={() => setConfirmDelete(false)}>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => setConfirmDelete(false)}
+            >
               取消
             </button>
             <button
@@ -478,8 +496,7 @@ function CandidateSheet({
   return (
     <Sheet title={`为 ${routeId} 添加候选`} onEscape={onCancel}>
       <p className="stat-sub">
-        候选<strong>只能新增</strong>:契约没有修改或删除算子。写错了只能删掉整条路由重建,
-        所以提交前请核对 endpoint_id 与 upstream_model。
+        使用真实 Endpoint 与 exact 模型 ID；添加后请重新校验草稿拓扑。
       </p>
       <form
         className="sheet-form"
@@ -492,7 +509,9 @@ function CandidateSheet({
             onInvalid("候选参数越界:priority ≥ 0,weight 1-10000");
             return;
           }
-          const parsed = parseCapabilityOverride(String(data.get("capability_override") ?? ""));
+          const parsed = parseCapabilityOverride(
+            String(data.get("capability_override") ?? ""),
+          );
           if (!parsed.ok) {
             onInvalid(parsed.reason);
             return;
@@ -520,7 +539,12 @@ function CandidateSheet({
         </label>
         <label>
           upstream_model(上游侧的真实模型名)
-          <input name="upstream_model" className="mono" required maxLength={256} />
+          <input
+            name="upstream_model"
+            className="mono"
+            required
+            maxLength={256}
+          />
         </label>
         <label>
           credential_scope(契约当前唯一值)
@@ -528,7 +552,10 @@ function CandidateSheet({
         </label>
         <label>
           transform_mode
-          <select value={mode} onChange={(event) => setMode(event.target.value as TransformMode)}>
+          <select
+            value={mode}
+            onChange={(event) => setMode(event.target.value as TransformMode)}
+          >
             {TRANSFORM_MODES.map((value) => (
               <option key={value} value={value}>
                 {value}
@@ -547,7 +574,13 @@ function CandidateSheet({
         </label>
         <label>
           weight(1-10000,同优先级内的加权轮询份额)
-          <input name="weight" type="number" min={1} max={10000} defaultValue={1} />
+          <input
+            name="weight"
+            type="number"
+            min={1}
+            max={10000}
+            defaultValue={1}
+          />
         </label>
         <label>
           capability_override(可留空 —— 空表示不覆盖任何能力)

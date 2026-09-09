@@ -85,8 +85,10 @@ export function ModelsPage() {
     enabled: scope !== undefined,
   });
 
-  const invalidate = () =>
+  const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["public-models", scope] });
+    void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
+  };
 
   const save = useMutation({
     mutationFn: (input: DraftModel) =>
@@ -127,7 +129,8 @@ export function ModelsPage() {
       ),
     onSuccess: (created) => {
       setAliasTarget(undefined);
-      setNotice(`别名 ${created.alias} 已创建(现有别名的枚举等待 G1 契约)`);
+      setNotice(`别名 ${created.alias} 已创建，可在配置资源中查看。`);
+      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
     },
     onError: (error) => setActionError(asAppError(error).message),
   });
@@ -154,6 +157,7 @@ export function ModelsPage() {
       ),
     onSuccess: (created) => {
       setRouteTarget(undefined);
+      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
       // A route with no candidate FAILS validation
       // (management_mutation_service.rs:2074 route_missing_active_candidate),
       // so creating one is only half a step. Hand the id straight to the
@@ -301,13 +305,6 @@ export function ModelsPage() {
         <p className="small muted">这是版本配置中的公开模型；客户端实际可见性还取决于 serving 配置和访问授权。</p>
         <div className="sheet-actions"><button disabled={!editable} onClick={() => { setDraft(toDraft(inspected)); setInspected(undefined); }}>编辑模型</button></div>
       </ObjectInspector>}
-
-      <div className="card empty-state" data-kind="unwired" data-gap="top">
-        <p>
-          别名清单仍无枚举算子(契约有 createModelAlias,没有对应的 list)——
-          创建今天可用,列表要等后端提供读操作。
-        </p>
-      </div>
 
       {draft !== undefined ? (
         <Sheet

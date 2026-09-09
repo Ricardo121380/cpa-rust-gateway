@@ -130,6 +130,15 @@ HTTP lib Clippy、前端类型检查及权威四文件/CSP/双构建门禁通过
 前端 DTO/fixtures/完整维护交互与磁盘重启和真实 gateway 验收仍待完成，BE-FE-02
 仍未标为完成。
 
+## M2 前端枚举接入
+
+正式 RouteWorkbench 已接入 RoutingInventory 的 Route/Candidate/Alias 标签页、分页、
+已载入数量与错误后重读。新建空候选路由也能列出，不再依赖运营 inventory。新增 DTO
+与 fixture 页响应，修改/新建资源后清理旧分页；删除过期“无枚举接口”提示。
+类型检查、6 项定向 Chromium 回归通过，包括新建未绑定路由和候选枚举。候选编辑/删除
+UI、Access Group 完整路由选择、旧策略对象详情和大页浏览器冲突回归仍需继续，未据此
+宣称 BE-FE-02 或 M4 完成。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、

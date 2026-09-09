@@ -44,6 +44,10 @@ async function makeRoute(
 test("a new route fails validation until a candidate is added", async ({ page }) => {
   await openModels(page);
   await makeRoute(page, "rt-e2e");
+  const inventory = page.getByRole("region", { name: "完整配置资源" });
+  await expect(inventory).toContainText("rt-e2e");
+  await expect(inventory).toContainText("pm-rt-e2e");
+
 
   // The panel says what it just did to the draft rather than reporting success.
   await expect(page.locator(".action-notice").first()).toContainText(
@@ -65,7 +69,7 @@ test("a new route fails validation until a candidate is added", async ({ page })
 
   await page.locator(".route-workbench").getByRole("button", { name: "加候选" }).click();
   const sheet = page.getByRole("dialog");
-  await expect(sheet).toContainText("只能新增");
+  await expect(sheet).toContainText("exact 模型 ID");
   await sheet.getByLabel("候选 ID").fill("cand-e2e");
   await sheet.getByLabel("endpoint_id", { exact: false }).fill("ep-relay-a-responses");
   await sheet.getByLabel("upstream_model", { exact: false }).fill("relay-x");
@@ -74,6 +78,12 @@ test("a new route fails validation until a candidate is added", async ({ page })
   // Adding a candidate re-validates on its own — the operator should not have
   // to re-ask whether the thing they just fixed is fixed.
   await expect(page.locator(".rw-validation")).toHaveAttribute("data-valid", "true");
+  await inventory.getByRole("button", { name: "候选", exact: true }).click();
+  await expect(inventory).toContainText("cand-e2e");
+  await expect(inventory).toContainText("relay-x");
+  await inventory.getByRole("button", { name: "别名", exact: true }).click();
+  await expect(inventory).toContainText("此版本暂无该类资源");
+
 });
 
 test("capability_override rejects a non-boolean instead of coercing it", async ({ page }) => {

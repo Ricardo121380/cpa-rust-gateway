@@ -963,6 +963,46 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       return json(200, next, revisionToken(version));
     }
 
+    const routingLists = {
+      "GET /admin/routes": "routes",
+      "GET /admin/route-candidates": "candidates",
+      "GET /admin/model-aliases": "aliases",
+    } as const;
+    const routingKind = routingLists[route as keyof typeof routingLists];
+    if (routingKind !== undefined) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const limit = Number(url.searchParams.get("limit") ?? 100);
+      if (!Number.isInteger(limit) || limit < 1 || limit > 200
+        || [...url.searchParams.keys()].some((key) => !["limit", "cursor"].includes(key)
+          || url.searchParams.getAll(key).length > 1)) {
+        return errorResponse(400, "management_invalid_input", "invalid page query");
+      }
+      let after = "";
+      const encoded = url.searchParams.get("cursor");
+      if (encoded !== null) {
+        try {
+          const bytes = Uint8Array.from(atob(encoded.replace(/-/gu, "+").replace(/_/gu, "/")), (char) => char.charCodeAt(0));
+          const cursor = JSON.parse(new TextDecoder().decode(bytes)) as {kind: string; config_version: string; revision: number; after: string};
+          if (cursor.kind !== routingKind || cursor.config_version !== version.id || cursor.revision !== version.revision) {
+            return errorResponse(409, "management_routing_cursor_conflict", "routing page changed");
+          }
+          after = cursor.after;
+          if (typeof after !== "string" || after.length === 0) throw new Error("invalid cursor");
+        } catch { return errorResponse(400, "management_invalid_input", "invalid cursor"); }
+      }
+      const rows = routingKind === "routes" ? state.routes.get(version.id) ?? []
+        : routingKind === "candidates" ? state.routeCandidates.get(version.id) ?? [] : state.aliases.get(version.id) ?? [];
+      const key = (row: (typeof rows)[number]) => "id" in row ? row.id : row.alias;
+      const ordered = [...rows].filter((row) => key(row) > after).sort((a, b) => key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0);
+      const items = ordered.slice(0, limit);
+      const last = items.at(-1);
+      const next = last !== undefined && ordered.length > limit ? {kind: routingKind, config_version: version.id, revision: version.revision, after: key(last)} : undefined;
+      const nextCursor = next === undefined ? null : btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(next))))
+        .replace(/\+/gu, "-").replace(/\//gu, "_").replace(/=+$/u, "");
+      return json(200, { config_version: version.id, revision: revisionToken(version), items, next_cursor: nextCursor }, revisionToken(version));
+    }
+
     // ---- public models (+ insert-only aliases / routes) ----
     if (route === "GET /admin/public-models") {
       const version = versionByHeader(headers);
