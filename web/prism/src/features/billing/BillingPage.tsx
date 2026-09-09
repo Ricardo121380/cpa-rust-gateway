@@ -16,6 +16,7 @@ import { useState, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { Sheet } from "../../components/Sheet";
+import { ObjectInspector } from "../../components/ObjectInspector";
 import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
 import "./billing.css";
@@ -354,6 +355,7 @@ export function BillingPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [rollback, setRollback] = useState<Catalog | undefined>();
   const [expanded, setExpanded] = useState<string | undefined>();
+  const [inspected, setInspected] = useState<Catalog>();
 
   const catalogs = useQuery({
     queryKey: ["billing-catalogs", scope],
@@ -507,6 +509,7 @@ export function BillingPage() {
                   <td>{sourceLabel(catalog.source)}</td>
                   <td className="mono bill-num">{formatCount(catalog.entries.length)}</td>
                   <td className="row-actions">
+                    <button className="secondary" onClick={() => setInspected(catalog)}>详情</button>
                     <button
                       type="button"
                       className="secondary"
@@ -549,7 +552,7 @@ export function BillingPage() {
           </table>
         )}
 
-        {expanded === undefined ? null : (
+      {expanded === undefined ? null : (
           <div className="bill-entries-view">
             <h4>
               <span className="mono">{expanded}</span> 的条目 · 单位 microunits / 百万 token
@@ -589,6 +592,17 @@ export function BillingPage() {
           </div>
         )}
       </div>
+
+      {inspected === undefined ? null : <ObjectInspector title={inspected.catalog_version_id} scope="全局价格目录 · 单位 microunits / 百万 token" onClose={() => setInspected(undefined)} facts={[
+        ["来源", sourceLabel(inspected.source)], ["生效时间", formatTime(inspected.effective_at_ms)],
+        ["创建时间", formatTime(inspected.created_at_ms)], ["生效状态", isEffective(inspected, nowMs) ? "已生效" : "尚未生效"],
+        ["价格条目", inspected.entries.length],
+      ]}>
+        <div className="price-evidence">{inspected.entries.map((entry, index) => <details key={index}>
+          <summary>{entry.model}<span className="entity-meta"> · {entry.provider_id} / {entry.channel_id}</span></summary>
+          <dl className="fact-grid">{RATE_FIELDS.map((field) => <div key={field}><dt>{rateLabel(field)}</dt><dd>{formatRate(entry[field])}</dd></div>)}</dl>
+        </details>)}</div>
+      </ObjectInspector>}
 
       {importOpen ? (
         <ImportSheet

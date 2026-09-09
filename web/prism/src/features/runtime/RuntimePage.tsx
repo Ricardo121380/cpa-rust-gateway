@@ -1339,7 +1339,7 @@ function EgressDomainSection({
   );
 }
 
-function ProviderEgressCard({ scope, nowMs }: Readonly<{ scope: string; nowMs: number }>) {
+export function ProviderEgressCard({ scope, nowMs }: Readonly<{ scope: string; nowMs: number }>) {
   const queryClient = useQueryClient();
   const egress = useDomainQuery("egress", scope);
   const session = useDomainQuery("session", scope);

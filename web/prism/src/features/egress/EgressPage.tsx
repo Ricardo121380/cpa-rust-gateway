@@ -7,9 +7,12 @@ import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { ChipsInput } from "../../components/ChipsInput";
 import { Sheet } from "../../components/Sheet";
+import { ObjectInspector } from "../../components/ObjectInspector";
 import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
 import { CompatibleProxyPanel } from "./CompatibleProxyPanel";
+import { ProviderEgressCard } from "../runtime/RuntimePage";
+import { useNowTick } from "../../utils/useNowTick";
 import "./compatible.css";
 import {
   normalizedMaxRedirects,
@@ -72,12 +75,14 @@ function toInput(draft: DraftPolicy) {
 }
 
 export function EgressPage() {
+  const nowMs = useNowTick(60_000);
   const t = useMessages();
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
   const editable = context?.status === "draft";
   const scope = context?.configVersionId;
   const [draft, setDraft] = useState<DraftPolicy | undefined>();
+  const [inspected, setInspected] = useState<EgressPolicy>();
   const [confirmDelete, setConfirmDelete] = useState<EgressPolicy | undefined>();
   const [actionError, setActionError] = useState<string | undefined>();
 
@@ -198,6 +203,7 @@ export function EgressPage() {
                   </td>
                   <td className="mono">{refs.length > 0 ? refs.join(", ") : "—"}</td>
                   <td className="row-actions">
+                    <button className="secondary" onClick={() => setInspected(policy)}>详情</button>
                     <button
                       type="button"
                       className="secondary"
@@ -228,6 +234,14 @@ export function EgressPage() {
       </div>
 
       <CompatibleProxyPanel upstreams={upstreams.data ?? []} />
+      <ProviderEgressCard scope={scope} nowMs={nowMs} />
+
+      {inspected === undefined ? null : <ObjectInspector title={inspected.name} scope={`配置版本 ${scope} · 出口策略`} onClose={() => setInspected(undefined)} facts={[
+        ["策略 ID", inspected.id], ["允许协议", inspected.allowed_schemes.join(" · ")],
+        ["精确主机", inspected.allowed_hosts.join(" · ") || "无"], ["端口", inspected.allowed_ports.join(" · ") || "无"],
+        ["CIDR", inspected.allowed_cidrs.join(" · ") || "无"], ["重定向模式", inspected.redirect_mode],
+        ["重定向上限", inspected.max_redirects], ["引用上游", referencingUpstreams(inspected.id, upstreams.data ?? []).join(" · ") || "无"],
+      ]}><div className="sheet-actions"><button disabled={!editable} onClick={() => { setDraft(toDraft(inspected)); setInspected(undefined); }}>编辑策略</button></div></ObjectInspector>}
 
       {draft !== undefined ? (
         <Sheet

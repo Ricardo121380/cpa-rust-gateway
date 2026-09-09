@@ -66,6 +66,9 @@ button.secondary, .row-actions button, input, select, textarea { border-radius: 
 .detail-tabs button { flex: 1; border-radius: 7px; background: transparent; color: var(--ink-2); font-size: 12px; padding: 8px; }
 .detail-tabs button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px #00000012; }
 .detail-links { display: flex; flex-wrap: wrap; gap: 12px; margin: 18px 0; font-size: 13px; }
+.price-evidence { margin-top: 18px; }
+.price-evidence > details { border-top: 1px solid var(--separator); padding: 14px 0; }
+.price-evidence summary { overflow-wrap: anywhere; cursor: pointer; }
 .unlock-scene { position: relative; isolation: isolate; background: var(--canvas); }
 .unlock-card { z-index: 1; width: min(460px, 100%); border-radius: 26px; }
 .unlock-card h1 { font-size: 28px; letter-spacing: -.035em; }

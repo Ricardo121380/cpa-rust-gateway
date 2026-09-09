@@ -7,6 +7,7 @@ import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { ChipsInput } from "../../components/ChipsInput";
 import { Sheet } from "../../components/Sheet";
+import { ObjectInspector } from "../../components/ObjectInspector";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
@@ -75,6 +76,7 @@ export function UpstreamsPage() {
   const editable = context?.status === "draft";
   const scope = context?.configVersionId;
   const [draft, setDraft] = useState<DraftUpstream | undefined>();
+  const [inspected, setInspected] = useState<Upstream>();
   const [confirmDelete, setConfirmDelete] = useState<Upstream | undefined>();
   const [expanded, setExpanded] = useState<string | undefined>();
   const [actionError, setActionError] = useState<string | undefined>();
@@ -196,6 +198,7 @@ export function UpstreamsPage() {
                 </td>
                 <td className="mono">{upstream.egress_policy_id ?? "—"}</td>
                 <td className="row-actions">
+                  <button className="secondary" onClick={() => setInspected(upstream)}>详情</button>
                   <button
                     type="button"
                     className="secondary"
@@ -232,6 +235,15 @@ export function UpstreamsPage() {
       </div>
 
       {expanded !== undefined ? <SubresourcePanel upstreamId={expanded} /> : null}
+
+      {inspected === undefined ? null : <ObjectInspector title={inspected.name} scope={`配置版本 ${scope}`} onClose={() => setInspected(undefined)} facts={[
+        ["上游 ID", inspected.id], ["Provider 家族", inspected.kind], ["配置启用", inspected.enabled ? "已启用" : "已停用"],
+        ["出口策略", inspected.egress_policy_id], ["标签", inspected.tags.join(" · ") || "—"],
+      ]}>
+        <p className="small muted">配置启用不代表实时认证、quota 或调度可用。</p>
+        <div className="sheet-actions"><button className="secondary" onClick={() => { setExpanded(inspected.id); setInspected(undefined); }}>查看端点与凭据</button>
+          <button disabled={!editable} onClick={() => { setDraft(toDraft(inspected)); setInspected(undefined); }}>编辑上游</button></div>
+      </ObjectInspector>}
 
       {draft !== undefined ? (
         <Sheet title={draft.isNew ? "新建上游" : `编辑 ${draft.id}`} onEscape={() => setDraft(undefined)}>

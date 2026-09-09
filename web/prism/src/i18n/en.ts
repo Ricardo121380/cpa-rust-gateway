@@ -59,7 +59,7 @@ export const en: Pack = {
   },
   settings: {
     title: "Settings",
-    lead: "Everything here is scoped to this session. The gateway has no settings endpoint and the panel writes no browser storage, so every choice below returns to its default on refresh — deliberately, not for want of implementing it.",
+    lead: "Appearance and language apply to this session and return to their defaults on refresh.",
 
     appearance: "Appearance",
     appearanceHelp: "Follows the system by default. An explicit choice applies to this tab and does not survive a refresh.",
@@ -72,7 +72,7 @@ export const en: Pack = {
     languageHelp:
       "Also memory-only. Identifiers the backend returns are left untranslated because they are part of the contract.",
     languageCoverage:
-      "English currently covers navigation, settings, unlock and version selection, plus every state vocabulary — the labels and one-line meanings behind badges, legends and tooltips. The explanatory prose on each page is still Chinese. That prose is the load-bearing part of this panel: a loose translation states something weaker than the original, so it is left as it is rather than shipped as a half-finished English that reads as complete.",
+      "English currently covers navigation, settings, unlock, version selection and state vocabulary. The explanatory prose on each page is still Chinese.",
 
     session: "Session",
     sessionHelp: "The Management Key and CSRF Token exist in memory only — never on disk, never in a URL.",

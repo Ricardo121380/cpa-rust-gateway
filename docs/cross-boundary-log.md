@@ -1244,3 +1244,34 @@ for the tested boundaries and remaining work.
 
 Validation: type-check, 251 unit tests, 109 Chromium E2E tests and the authoritative
 SPA gate passed; narrow-screen checks passed separately. No real Provider or remote operation.
+
+---
+
+## 2026-09-09 - Codex - V4 object inspectors
+
+**Touched:**
+
+- `web/prism/e2e/object-inspectors.spec.ts`
+- `web/prism/src/app/v4.css`
+- `web/prism/src/components/ObjectInspector.tsx`
+- `web/prism/src/features/access/AccessPage.tsx`
+- `web/prism/src/features/audit/AuditBackupPage.tsx`
+- `web/prism/src/features/billing/BillingPage.tsx`
+- `web/prism/src/features/egress/EgressPage.tsx`
+- `web/prism/src/features/models/ModelsPage.tsx`
+- `web/prism/src/features/models/RouteWorkbench.tsx`
+- `web/prism/src/features/runtime/RuntimePage.tsx`
+- `web/prism/src/features/upstreams/UpstreamsPage.tsx`
+- `web/prism/src/i18n/en.ts`
+- `web/prism/src/i18n/zh.ts`
+
+**Why:** Complete the approved V4 read-only object inspection layout for upstreams,
+models, routes, price catalogs/rates, access groups, Client Key metadata, egress
+policies and audit records. Reuse existing loaded safe fields; do not issue duplicate
+single-resource reads or serialize secrets. Editing remains in centered forms.
+The egress workspace now also exposes the existing three-domain Provider projection.
+
+**Other side:** FYI. User-authorized frontend implementation by Codex; no backend
+API/schema change. Type-check and 16 affected browser checks passed, including four
+new inspector flows. Remaining M1-M4 work stays explicit in the progress report.
+No remote state or real Provider was accessed.

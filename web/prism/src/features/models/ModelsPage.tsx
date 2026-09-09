@@ -7,6 +7,7 @@ import { useState, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { Sheet } from "../../components/Sheet";
+import { ObjectInspector } from "../../components/ObjectInspector";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
@@ -69,6 +70,7 @@ export function ModelsPage() {
   const editable = context?.status === "draft";
   const scope = context?.configVersionId;
   const [draft, setDraft] = useState<DraftModel | undefined>();
+  const [inspected, setInspected] = useState<PublicModel>();
   const [confirmDelete, setConfirmDelete] = useState<PublicModel | undefined>();
   const [aliasTarget, setAliasTarget] = useState<PublicModel | undefined>();
   const [routeTarget, setRouteTarget] = useState<PublicModel | undefined>();
@@ -242,6 +244,7 @@ export function ModelsPage() {
                   ))}
                 </td>
                 <td className="row-actions">
+                  <button className="secondary" onClick={() => setInspected(model)}>详情</button>
                   <button
                     type="button"
                     className="secondary"
@@ -287,6 +290,14 @@ export function ModelsPage() {
       </div>
 
       <RouteWorkbench focusRouteId={createdRouteId} editable={editable} />
+
+      {inspected === undefined ? null : <ObjectInspector title={inspected.display_name || inspected.model_name} scope={`配置版本 ${scope}`} onClose={() => setInspected(undefined)} facts={[
+        ["配置 ID", inspected.id], ["模型名称", inspected.model_name], ["配置状态", inspected.status],
+        ["声明能力", enabledCapabilities(inspected.capabilities).join(" · ") || "未声明"],
+      ]}>
+        <p className="small muted">这是版本配置中的公开模型；客户端实际可见性还取决于 serving 配置和访问授权。</p>
+        <div className="sheet-actions"><button disabled={!editable} onClick={() => { setDraft(toDraft(inspected)); setInspected(undefined); }}>编辑模型</button></div>
+      </ObjectInspector>}
 
       <div className="card empty-state" data-kind="unwired" data-gap="top">
         <p>

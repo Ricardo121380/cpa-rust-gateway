@@ -7,6 +7,7 @@ import { useState } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { StatusBadge } from "../../components/StatusBadge";
+import { ObjectInspector } from "../../components/ObjectInspector";
 import { useMessages } from "../../i18n/messages";
 
 type AuditEvent = Readonly<{
@@ -34,6 +35,7 @@ export function AuditBackupPage() {
   const t = useMessages();
   const [preflight, setPreflight] = useState<BackupPreflight | undefined>();
   const [actionError, setActionError] = useState<string | undefined>();
+  const [inspected, setInspected] = useState<AuditEvent>();
 
   const events = useQuery({
     queryKey: ["audit-events"],
@@ -71,6 +73,7 @@ export function AuditBackupPage() {
               <th>时间</th>
               <th>配置版本</th>
               <th>被替换版本</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -88,6 +91,7 @@ export function AuditBackupPage() {
                   <td className="mono">{formatTime(event.occurred_at_ms)}</td>
                   <td className="mono">{event.config_version_id}</td>
                   <td className="mono">{event.replaced_config_version_id ?? "—"}</td>
+                  <td><button className="secondary" onClick={() => setInspected(event)}>详情</button></td>
                 </tr>
               ))}
           </tbody>
@@ -120,6 +124,10 @@ export function AuditBackupPage() {
           </p>
         ) : null}
       </div>
+      {inspected === undefined ? null : <ObjectInspector title={`审计事件 #${inspected.id}`} scope="配置生命周期 · 只读审计" onClose={() => setInspected(undefined)} facts={[
+        ["动作", inspected.action], ["执行者", inspected.actor], ["时间", formatTime(inspected.occurred_at_ms)],
+        ["配置版本", inspected.config_version_id], ["被替换版本", inspected.replaced_config_version_id],
+      ]} />}
     </section>
   );
 }

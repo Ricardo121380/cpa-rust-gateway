@@ -34,6 +34,7 @@ import { Link } from "react-router-dom";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { Sheet } from "../../components/Sheet";
+import { ObjectInspector } from "../../components/ObjectInspector";
 import { useVersionStore } from "../config-versions/versionStore";
 import {
   CREDENTIAL_SCOPE,
@@ -75,6 +76,7 @@ export function RouteWorkbench({
   const [loaded, setLoaded] = useState<string | undefined>();
   const [addingCandidate, setAddingCandidate] = useState(false);
   const [editingRoute, setEditingRoute] = useState(false);
+  const [inspecting, setInspecting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [notice, setNotice] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
@@ -273,6 +275,7 @@ export function RouteWorkbench({
           </table>
 
           <div className="rw-actions">
+            <button className="secondary" onClick={() => setInspecting(true)}>路由详情</button>
             <button
               type="button"
               disabled={!editable}
@@ -357,6 +360,11 @@ export function RouteWorkbench({
           onSubmit={(body) => addCandidate.mutate({ routeId: record.id, body })}
         />
       ) : null}
+
+      {inspecting && record !== undefined ? <ObjectInspector title={record.id} scope={`配置版本 ${scope} · 路由`} onClose={() => setInspecting(false)} facts={[
+        ["公开模型 ID", record.public_model_id], ["调度策略", record.policy], ["最大尝试次数", record.max_attempts],
+        ["启动超时 (ms)", record.bootstrap_timeout_ms],
+      ]}><div className="sheet-actions"><button disabled={!editable} onClick={() => { setInspecting(false); setEditingRoute(true); }}>编辑路由</button></div></ObjectInspector> : null}
 
       {editingRoute && record !== undefined ? (
         <Sheet title={`编辑路由 ${record.id}`} onEscape={() => setEditingRoute(false)}>
