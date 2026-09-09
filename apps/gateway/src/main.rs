@@ -5,6 +5,7 @@
 
 #![deny(unsafe_code)]
 
+mod billing_worker;
 mod credential_refresh;
 mod deployment;
 mod grok_admin;

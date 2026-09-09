@@ -232,6 +232,9 @@ async fn run_servers(
     // blocking pool, never on a listener worker. It is spawned only after both listeners bound.
     let durability = event_writer.metrics_handle();
     let mut event_writer = actix_web::rt::spawn(event_writer.run());
+    let billing_worker = crate::billing_worker::BillingWorker::start(
+        command.state_directory.join(CONTROL_DATABASE_FILE),
+    );
     let credential_refresh_worker =
         credential_refresh_worker.map(|worker| actix_web::rt::spawn(worker.run()));
     let model_catalog_worker =
@@ -245,14 +248,14 @@ async fn run_servers(
         worker.abort();
         let _ = worker.await;
     }
-    server_result
+    let server_result = server_result
         .map(|_| ())
-        .map_err(|_| DeploymentError::RuntimeUnavailable)?;
+        .map_err(|_| DeploymentError::RuntimeUnavailable);
     // Both listeners have stopped and dropped every bounded-queue sender, so the writer drains
     // the remaining Required events and exits on its own; the bounded wait keeps a wedged
     // database from hanging the stop while still making an unflushed Required loss visible.
     let flush = actix_web::rt::time::timeout(P12_EVENT_FLUSH_TIMEOUT, &mut event_writer).await;
-    match flush {
+    let flush_result = match flush {
         Ok(Ok(metrics)) if metrics.pending_required == 0 => Ok(()),
         Ok(Ok(_) | Err(_)) => Err(DeploymentError::EventLogFlushIncomplete),
         Err(_) => {
@@ -267,7 +270,14 @@ async fn run_servers(
                 Err(DeploymentError::EventLogFlushIncomplete)
             }
         }
-    }
+    };
+    let billing_result = billing_worker
+        .stop()
+        .await
+        .map_err(|()| DeploymentError::BillingWorkerStopIncomplete);
+    server_result?;
+    flush_result?;
+    billing_result
 }
 
 struct ApplicationState {
@@ -709,6 +719,7 @@ pub(crate) enum DeploymentError {
     ManagementListenerUnavailable,
     /// The durable event log did not confirm its final flush inside the bounded stop window.
     EventLogFlushIncomplete,
+    BillingWorkerStopIncomplete,
 }
 
 impl fmt::Display for DeploymentError {
@@ -752,6 +763,8 @@ impl fmt::Display for DeploymentError {
             Self::ManagementListenerUnavailable => {
                 formatter.write_str("management listener is unavailable")
             }
+            Self::BillingWorkerStopIncomplete => formatter
+                .write_str("billing worker stop incomplete; durable source resumes on restart"),
             Self::EventLogFlushIncomplete => {
                 formatter.write_str("gateway event log flush did not complete")
             }

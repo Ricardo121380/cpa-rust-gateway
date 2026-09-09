@@ -257,6 +257,19 @@ expected entry，未删除断言。物化器坏记录处理、serve worker 与�
 正常事件之前仍能入账，30秒前不重试，迟到链路补齐后自动修复且再次运行不重复；坏 JSON
 不吞掉后续事件、严格读取仍失败。serve worker 与安全状态仍待接入，B1 未完成。
 
+## B1 serve worker 接入
+
+新增 apps/gateway/src/billing_worker.rs，双 listener 绑定成功后由 serve 启动单一 owner；
+每批256条新事件，SQLite/计价进入 spawn_blocking，积压按批推进且批间让出执行。
+停止时先完成事件日志排空，再通知计费 worker 完成当前/最后有限批次，最多等待30秒；
+未消费的持久事件保留 checkpoint 供重启恢复，不要求关机时无界清空历史积压。
+serve 未定义账本自动删除时长，因此使用明确无自动过期策略（存储最大期限），没有新增
+账本清理。原显式 retention API 保持兼容。
+
+真实临时 SQLite worker 回归、3 项物化器回归及 gateway bin Clippy 通过；验证自动生成
+unpriced 账本、停止、重启追上新事件及去重。该测试未经过 HTTP listener/mock Provider，
+不是 M4 整体验收。安全处理状态与运营接线仍待完成。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、

@@ -103,6 +103,30 @@ pub fn materialize_billing_events(
     retention_ms: u64,
     now_ms: u64,
 ) -> Result<BillingMaterializationReceipt, BillingMaterializationError> {
+    materialize_billing_events_with_retention(
+        event_store,
+        billing_store,
+        materializer_id,
+        max_events,
+        Some(retention_ms),
+        now_ms,
+    )
+}
+
+/// Materializes with an explicit retention policy; `None` retains entries without automatic expiry.
+///
+/// Retained rows use the maximum representable storage deadline. No deletion is performed here.
+///
+/// # Errors
+/// Returns the same bounded source, pricing and storage errors as `materialize_billing_events`.
+pub fn materialize_billing_events_with_retention(
+    event_store: &SqliteEventStore,
+    billing_store: &mut SqliteBillingLedger,
+    materializer_id: &str,
+    max_events: usize,
+    retention_ms: Option<u64>,
+    now_ms: u64,
+) -> Result<BillingMaterializationReceipt, BillingMaterializationError> {
     if max_events == 0 || max_events > MAX_BILLING_MATERIALIZER_EVENTS {
         return Err(BillingMaterializationError::BatchTooLarge);
     }
@@ -175,7 +199,7 @@ fn materialize_row(
     materializer_id: &str,
     row: &MaterializationEvent,
     catalogs: &[BillingPriceCatalog],
-    retention_ms: u64,
+    retention_ms: Option<u64>,
     now_ms: u64,
     receipt: &mut BillingMaterializationReceipt,
 ) -> Result<(), BillingMaterializationError> {
@@ -220,7 +244,7 @@ fn compile_usage_entry(
     usage: &UsageEvent,
     lineage: &[StoredGatewayEvent],
     catalogs: &[BillingPriceCatalog],
-    retention_ms: u64,
+    retention_ms: Option<u64>,
     now_ms: u64,
 ) -> Result<BillingLedgerEntryInput, BillingMaterializationError> {
     let mut request: Option<RequestEvent> = None;
@@ -270,9 +294,12 @@ fn compile_usage_entry(
     }
     let occurred_at_ms = u64::try_from(attempt.ended_at_ms())
         .map_err(|_| BillingMaterializationError::InvalidTimestamp)?;
-    let retention_expires_at_ms = occurred_at_ms
-        .checked_add(retention_ms)
-        .ok_or(BillingMaterializationError::InvalidTimestamp)?;
+    let retention_expires_at_ms = match retention_ms {
+        Some(retention_ms) => occurred_at_ms
+            .checked_add(retention_ms)
+            .ok_or(BillingMaterializationError::InvalidTimestamp)?,
+        None => i64::MAX as u64,
+    };
     let catalog = find_effective_price_catalog(
         catalogs,
         attempt.upstream_id().as_str(),
