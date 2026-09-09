@@ -1688,3 +1688,12 @@ and Firefox/Safari probe responses; verify layered blur across all three chrome 
 usable settings navigation and contrast preference disabling the effect. This is
 Chromium branch coverage, not certification of Firefox or Safari. Six glass tests and
 frontend type checking passed. Full-stack authorization remains in effect; FYI only.
+
+## 2026-09-10 — Codex — V4 final design handoff
+
+**Files:** `web/prism/DESIGN.md`.
+
+**What / why:** Mark earlier V4 batches as historical and document the completed resource,
+diff/confirmation, mobile and fallback implementation, actual browser coverage and the
+final delivery report. Documentation only; no generic ownership rule changed. Full-stack
+authorization applies, FYI. Validate links and diff; application checks already passed.

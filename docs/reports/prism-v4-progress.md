@@ -652,3 +652,15 @@ binding及endpoint不占活动并发预算；禁用兼容出口条目保留且�
 
 最终单测251通过。第一次全E2E与check.sh的npm ci重叠，依赖重建导致worker文件暂时不存在，
 该次失败属于执行安排错误，不能计为通过；依赖安装结束后重新完整执行，保留原失败日志。
+
+## M4 最终验收完成
+
+最终完整E2E重跑127通过，单测251通过。check.sh fast整体退出0，115组Rust结果合计
+1186通过、9个既有ignored；全目标/全feature Clippy、SPA权威108 operation/四文件双构建、
+源码/边界/serve封装/文档/secret/whitespace通过，逐步结果已保存prism-v4-checks.md。
+
+最终真实 `--priced --browser --browser-flow` 通过：84页面视图+6解锁，8阶段实际写入，
+包括配置差异、确认取消/发布/回滚、ABA旧确认拒绝、真实计费和会话拒绝清理。
+证据 `/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-uxkgt8rn/evidence.json`。
+持续预览HTTP200和CSP复核通过。交付报告、设计/使用交接及完成核对表已定稿；
+无生产/远端/真实Provider操作，无本轮必需未完成项。

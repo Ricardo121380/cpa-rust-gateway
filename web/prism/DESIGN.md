@@ -1,6 +1,6 @@
 # DESIGN.md · Prism 已建成的视觉世界
 
-> 2026-09-09：V4 正式实现首批见 §27；旧章节保留历史依据，当前视觉以 V4 token 与实底检查面板为准。
+> 2026-09-10：V4 最终实现与验收见 §28；§27及更早章节为历史阶段记录，当前视觉以V4 token和实底数据/检查面板为准。
 
 > 本文档记录 **已经存在的东西**,不是意图。基准是已批准的 `5df23a7`(Liquid Glass:让材质真的读作玻璃)。
 > 每一个数值要么来自 `src/design/tokens.css` / `src/design/glass.css` / `src/app/app.css` 的字面量,
@@ -2064,3 +2064,23 @@ hash remains `c60cc5fe67354892277a54061e56a4e59385d395a22c211160ac5cf15b9aae07`.
 
 The Goal is still active. See [progress](../../docs/reports/prism-v4-progress.md) and
 [execution plan](../../docs/handoffs/prism-v4-execution-plan.md) for remaining M1-M4 work.
+
+## 28. V4 本轮最终实现与使用交接（2026-09-10）
+
+14个管理工作区和解锁页均在正式React应用中。有效模型、完整路由/候选维护、计费worker
+状态、配置差异、发布/回滚确认及资源修改审计已接真实API，§27的后续待办已落实。
+以 [交付报告](../../docs/reports/prism-v4-delivery.md) 为最终范围/验证/查看方式索引。
+
+- V4银白/石墨灰和Apple蓝，玻璃限于三面chrome，数据/对象详情实底。
+- 对象详情520px、居中表单600px；两种Sheet布局手机均留12px。
+- 配置差异为居中表格：完整双端ID/revision、基线选择、有界分页、冲突明确重读。
+  手机字段换行，不通过截断隐藏关键身份。比较仅显示变化字段名，不显示秘密值。
+- 发布/回滚由同一确认页展示目标和当前活动版本；取消无写入，旧活动生命周期确认拒绝。
+  新数据面配置需要重启serve，页面明确提示。
+- 原SVG lens能力探测保留；不支持时走blur，高对比或减少透明度使用实底。
+  实测Chromium 151，Firefox/Safari仅能力分支模拟覆盖，不作跨浏览器认证。
+- 设置偏好与解锁秘密保持会话内存语义。来源缺失仍unknown/null，目录数不是授权数。
+
+最终251单测、127 E2E、108 operation权威契约/四文件双构建及完整fast门禁通过；
+真实gateway三尺寸浅深色与写入链路证据见交付报告。新增资源细节在原OpenDesign项目中
+由本会话模型经MCP保存，无内置生成器/外部模型CLI。
