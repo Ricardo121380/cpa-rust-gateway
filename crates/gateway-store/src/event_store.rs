@@ -74,6 +74,15 @@ pub struct StoredGatewayEvent {
     event: GatewayEvent,
 }
 
+/// Billing-only source row that retains an ordinal when payload decoding fails.
+#[derive(Debug)]
+pub struct MaterializationEvent {
+    /// Durable source identity, safe to record in retry evidence.
+    pub ordinal: i64,
+    /// None means malformed stored event data; raw payload is never exposed here.
+    pub event: Option<StoredGatewayEvent>,
+}
+
 impl StoredGatewayEvent {
     /// Returns the append order allocated by `SQLite` after a successful transaction.
     #[must_use]
@@ -386,6 +395,33 @@ impl SqliteEventStore {
         )
     }
 
+    /// Reads a bounded billing source batch without allowing one bad payload to hide later rows.
+    ///
+    /// # Errors
+    /// Returns an error for invalid bounds or storage failures; malformed payloads retain ordinals.
+    pub fn materialization_events_after(
+        &self,
+        ordinal: i64,
+        limit: usize,
+    ) -> StoreResult<Vec<MaterializationEvent>> {
+        if ordinal < 0 || !(1..=1024).contains(&limit) {
+            return Err(StoreError::InvalidPersistedGatewayEvent);
+        }
+        self.load_materialization_events("SELECT event_ordinal, event_type, event_id, request_id, occurred_at_ms, payload_json             FROM gateway_event_log WHERE event_ordinal > ?1 ORDER BY event_ordinal LIMIT ?2",
+            rusqlite::params![ordinal, i64::try_from(limit).map_err(|_| StoreError::InvalidPersistedGatewayEvent)?])
+    }
+
+    /// Reads exactly one failed source ordinal for a bounded retry.
+    ///
+    /// # Errors
+    /// Returns an error for invalid identity or storage failures.
+    pub fn materialization_event(&self, ordinal: i64) -> StoreResult<Option<MaterializationEvent>> {
+        if ordinal <= 0 {
+            return Err(StoreError::InvalidPersistedGatewayEvent);
+        }
+        Ok(self.load_materialization_events("SELECT event_ordinal, event_type, event_id, request_id, occurred_at_ms, payload_json             FROM gateway_event_log WHERE event_ordinal = ?1", [ordinal])?.pop())
+    }
+
     /// Runs `PRAGMA quick_check` and accepts only `SQLite`'s exact `ok` result.
     ///
     /// # Errors
@@ -406,6 +442,20 @@ impl SqliteEventStore {
     where
         P: rusqlite::Params,
     {
+        self.load_materialization_events(sql, parameters)?
+            .into_iter()
+            .map(|row| row.event.ok_or(StoreError::InvalidPersistedGatewayEvent))
+            .collect()
+    }
+
+    fn load_materialization_events<P>(
+        &self,
+        sql: &str,
+        parameters: P,
+    ) -> StoreResult<Vec<MaterializationEvent>>
+    where
+        P: rusqlite::Params,
+    {
         let mut statement = self.connection.prepare(sql)?;
         let mut rows = statement.query(parameters)?;
         let mut events = Vec::new();
@@ -416,14 +466,18 @@ impl SqliteEventStore {
             let request_id: Option<String> = row.get(3)?;
             let occurred_at_ms = row.get(4)?;
             let payload_json: String = row.get(5)?;
-            events.push(decode_stored_event(
+            events.push(MaterializationEvent {
                 ordinal,
-                &event_type,
-                event_id,
-                request_id,
-                occurred_at_ms,
-                &payload_json,
-            )?);
+                event: decode_stored_event(
+                    ordinal,
+                    &event_type,
+                    event_id,
+                    request_id,
+                    occurred_at_ms,
+                    &payload_json,
+                )
+                .ok(),
+            });
         }
         Ok(events)
     }
@@ -1001,6 +1055,30 @@ mod tests {
             HealthEventKind::CircuitRecovered,
         ));
         Ok((request_id, vec![request, attempt, usage, health]))
+    }
+
+    #[test]
+    fn materialization_keeps_malformed_ordinals_without_weakening_normal_reads()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteEventStore::open_in_memory()?;
+        store.connection.execute("INSERT INTO gateway_event_log (event_type, event_id, request_id, payload_json) VALUES ('usage', 'malformed', 'bad-request', '{invalid')", [])?;
+        store.append_batch(&[request_event(1)?])?;
+        let rows = store.materialization_events_after(0, 2)?;
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].ordinal, 1);
+        assert!(rows[0].event.is_none());
+        assert!(rows[1].event.is_some());
+        assert!(store.list_events_after_ordinal_bounded(0, 2).is_err());
+        assert!(
+            store
+                .materialization_event(1)?
+                .ok_or("missing malformed row")?
+                .event
+                .is_none()
+        );
+        assert!(store.materialization_event(3)?.is_none());
+        assert!(store.materialization_events_after(0, 1025).is_err());
+        Ok(())
     }
 
     fn request_event(sequence: usize) -> Result<GatewayEvent, Box<dyn std::error::Error>> {

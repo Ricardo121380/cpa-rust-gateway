@@ -2,7 +2,7 @@
 //!
 //! The materializer consumes only gateway-owned, secret-free lifecycle events.  It resolves the
 //! complete Request/Attempt/Usage lineage before writing a ledger row, and advances its
-//! checkpoint only after the whole bounded batch has been accepted.  Provider calls, request
+//! checkpoint only after every row has a ledger decision or durable retry evidence. Provider calls, request
 //! bodies, credentials and endpoint URLs are outside this module by construction.
 
 use std::{collections::BTreeMap, error::Error, fmt};
@@ -14,7 +14,7 @@ use gateway_store::{
         BillingCostConfidence, BillingLedgerEntryInput, BillingPriceCatalog, BillingRecordResult,
         SqliteBillingLedger,
     },
-    event_store::{SqliteEventStore, StoredGatewayEvent},
+    event_store::{MaterializationEvent, SqliteEventStore, StoredGatewayEvent},
 };
 
 use crate::billing_service::{BillingPricingError, find_effective_price_catalog, quote_usage};
@@ -31,6 +31,10 @@ pub const MAX_BILLING_CATALOGS: usize = 256;
 pub struct BillingMaterializationReceipt {
     /// Number of event rows scanned after the previous checkpoint.
     pub scanned_events: usize,
+    /// Previously failed rows retried in this invocation.
+    pub retried_events: usize,
+    /// Rows durably retained for later repair after failing this invocation.
+    pub failed_events: usize,
     /// Number of new ledger rows inserted.
     pub inserted_rows: usize,
     /// Number of source events replayed idempotently.
@@ -80,7 +84,7 @@ impl From<BillingPricingError> for BillingMaterializationError {
     }
 }
 
-/// Materializes all new Usage events after the persisted checkpoint.
+/// Materializes a bounded batch after the checkpoint and retries bounded overdue failures.
 ///
 /// Request and Attempt rows are reloaded by request id for every new Usage row.  This makes the
 /// checkpoint safe even when the Request/Attempt happened in a prior event batch.  The ledger's
@@ -105,36 +109,110 @@ pub fn materialize_billing_events(
     let checkpoint = billing_store
         .load_checkpoint(materializer_id)?
         .map_or(0, |value| value.event_ordinal);
-    let events = event_store.list_events_after_ordinal_bounded(checkpoint, max_events)?;
+    let events = event_store.materialization_events_after(checkpoint, max_events)?;
     let catalogs = billing_store.list_catalogs_bounded(MAX_BILLING_CATALOGS + 1)?;
     if catalogs.len() > MAX_BILLING_CATALOGS {
         return Err(BillingMaterializationError::BatchTooLarge);
     }
 
-    let mut inserted_rows = 0;
-    let mut replayed_rows = 0;
-    for stored in &events {
-        let GatewayEvent::Usage(usage) = stored.event() else {
-            continue;
-        };
-        let lineage = event_store.events_for_request(usage.request_id())?;
-        let input = compile_usage_entry(stored, usage, &lineage, &catalogs, retention_ms, now_ms)?;
-        match billing_store.record(&input)? {
-            BillingRecordResult::Inserted(_) => inserted_rows += 1,
-            BillingRecordResult::Replay(_) => replayed_rows += 1,
-        }
+    let retries = if now_ms >= 30_000 {
+        billing_store.list_materialization_failures_due(
+            materializer_id,
+            now_ms - 30_000,
+            max_events,
+        )?
+    } else {
+        Vec::new()
+    };
+    let mut receipt = BillingMaterializationReceipt {
+        scanned_events: events.len(),
+        retried_events: retries.len(),
+        failed_events: 0,
+        inserted_rows: 0,
+        replayed_rows: 0,
+        checkpoint_ordinal: events.last().map(|event| event.ordinal),
+    };
+    for retry in retries {
+        let row = event_store
+            .materialization_event(retry.event_ordinal)?
+            .unwrap_or(MaterializationEvent {
+                ordinal: retry.event_ordinal,
+                event: None,
+            });
+        materialize_row(
+            event_store,
+            billing_store,
+            materializer_id,
+            &row,
+            &catalogs,
+            retention_ms,
+            now_ms,
+            &mut receipt,
+        )?;
     }
-
-    let checkpoint_ordinal = events.last().map(StoredGatewayEvent::ordinal);
-    if let Some(ordinal) = checkpoint_ordinal {
+    for row in &events {
+        materialize_row(
+            event_store,
+            billing_store,
+            materializer_id,
+            row,
+            &catalogs,
+            retention_ms,
+            now_ms,
+            &mut receipt,
+        )?;
+    }
+    if let Some(ordinal) = receipt.checkpoint_ordinal {
         billing_store.save_checkpoint(materializer_id, ordinal, now_ms)?;
     }
-    Ok(BillingMaterializationReceipt {
-        scanned_events: events.len(),
-        inserted_rows,
-        replayed_rows,
-        checkpoint_ordinal,
-    })
+    Ok(receipt)
+}
+
+#[allow(clippy::too_many_arguments)] // Explicit stores, batch pricing inputs and one receipt; no hidden runtime state.
+fn materialize_row(
+    event_store: &SqliteEventStore,
+    billing_store: &mut SqliteBillingLedger,
+    materializer_id: &str,
+    row: &MaterializationEvent,
+    catalogs: &[BillingPriceCatalog],
+    retention_ms: u64,
+    now_ms: u64,
+    receipt: &mut BillingMaterializationReceipt,
+) -> Result<(), BillingMaterializationError> {
+    let result = (|| {
+        let Some(stored) = &row.event else {
+            return Err(BillingMaterializationError::Store(
+                StoreError::InvalidPersistedGatewayEvent,
+            ));
+        };
+        let GatewayEvent::Usage(usage) = stored.event() else {
+            return Ok(None);
+        };
+        let lineage = event_store.events_for_request(usage.request_id())?;
+        let input = compile_usage_entry(stored, usage, &lineage, catalogs, retention_ms, now_ms)?;
+        Ok(Some(billing_store.record(&input)?))
+    })();
+    let reason = match result {
+        Ok(record) => {
+            match record {
+                Some(BillingRecordResult::Inserted(_)) => receipt.inserted_rows += 1,
+                Some(BillingRecordResult::Replay(_)) => receipt.replayed_rows += 1,
+                None => {}
+            }
+            billing_store.resolve_materialization_failure(materializer_id, row.ordinal, now_ms)?;
+            return Ok(());
+        }
+        Err(BillingMaterializationError::InvalidLineage) => "invalid_lineage",
+        Err(BillingMaterializationError::InvalidTimestamp) => "invalid_timestamp",
+        Err(BillingMaterializationError::PricingOverflow) => "pricing_overflow",
+        Err(BillingMaterializationError::Store(StoreError::InvalidPersistedGatewayEvent)) => {
+            "invalid_event"
+        }
+        Err(error) => return Err(error),
+    };
+    billing_store.record_materialization_failure(materializer_id, row.ordinal, reason, now_ms)?;
+    receipt.failed_events += 1;
+    Ok(())
 }
 
 fn compile_usage_entry(
@@ -246,8 +324,15 @@ mod tests {
     };
 
     fn events() -> Result<(SqliteEventStore, RequestId), Box<dyn Error>> {
+        events_for("request-1", "response-1")
+    }
+
+    fn events_for(
+        request_name: &str,
+        response_name: &str,
+    ) -> Result<(SqliteEventStore, RequestId), Box<dyn Error>> {
         let mut store = SqliteEventStore::open_in_memory()?;
-        let request_id = RequestId::try_new("request-1")?;
+        let request_id = RequestId::try_new(request_name)?;
         let request = gateway_core::RequestEvent::new(
             request_id.clone(),
             ClientKeyId::try_new("client-1")?,
@@ -274,7 +359,7 @@ mod tests {
         );
         let usage = UsageEvent::from_usage(
             request_id.clone(),
-            ResponseId::try_new("response-1")?,
+            ResponseId::try_new(response_name)?,
             &Usage {
                 input_tokens: Some(1_000_000),
                 output_tokens: Some(500_000),
@@ -335,6 +420,82 @@ mod tests {
         assert_eq!(second.scanned_events, 0);
         assert_eq!(second.inserted_rows, 0);
         assert_eq!(ledger.list_bounded(10)?.len(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn incomplete_lineage_does_not_block_later_events_and_repairs_after_arrival()
+    -> Result<(), Box<dyn Error>> {
+        let (late, _) = events_for("request-late", "response-late")?;
+        let late = late
+            .list_events_after_ordinal_bounded(0, 10)?
+            .into_iter()
+            .map(|event| event.event().clone())
+            .collect::<Vec<_>>();
+        let (normal, _) = events()?;
+        let normal = normal
+            .list_events_after_ordinal_bounded(0, 10)?
+            .into_iter()
+            .map(|event| event.event().clone())
+            .collect::<Vec<_>>();
+        let mut source = SqliteEventStore::open_in_memory()?;
+        source.append_batch(&late[2..])?;
+        source.append_batch(&normal)?;
+        let mut ledger = SqliteBillingLedger::open_in_memory()?;
+        let first = materialize_billing_events(
+            &source,
+            &mut ledger,
+            BILLING_MATERIALIZER_ID,
+            16,
+            100_000,
+            1_000,
+        )?;
+        assert_eq!(first.failed_events, 1);
+        assert_eq!(first.inserted_rows, 1);
+        assert_eq!(first.checkpoint_ordinal, Some(4));
+        assert_eq!(
+            ledger
+                .list_materialization_failures_due(BILLING_MATERIALIZER_ID, 1_000, 10)?
+                .len(),
+            1
+        );
+        let early = materialize_billing_events(
+            &source,
+            &mut ledger,
+            BILLING_MATERIALIZER_ID,
+            16,
+            100_000,
+            2_000,
+        )?;
+        assert_eq!(early.retried_events, 0);
+        source.append_batch(&late[..2])?;
+        let repaired = materialize_billing_events(
+            &source,
+            &mut ledger,
+            BILLING_MATERIALIZER_ID,
+            16,
+            100_000,
+            32_000,
+        )?;
+        assert_eq!(repaired.retried_events, 1);
+        assert_eq!(repaired.failed_events, 0);
+        assert_eq!(repaired.inserted_rows, 1);
+        assert_eq!(ledger.list_bounded(10)?.len(), 2);
+        assert!(
+            ledger
+                .list_materialization_failures_due(BILLING_MATERIALIZER_ID, 32_000, 10)?
+                .is_empty()
+        );
+        let replay = materialize_billing_events(
+            &source,
+            &mut ledger,
+            BILLING_MATERIALIZER_ID,
+            16,
+            100_000,
+            64_000,
+        )?;
+        assert_eq!(replay.inserted_rows, 0);
+        assert_eq!(replay.retried_events, 0);
         Ok(())
     }
 
