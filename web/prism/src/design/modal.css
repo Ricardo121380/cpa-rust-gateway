@@ -92,10 +92,10 @@
 }
 
 @media (max-width: 560px) {
-  .sheet-backdrop[data-layout="inspector"] {
+  .sheet-backdrop[data-layout] {
     padding: 12px;
   }
-  .sheet-backdrop[data-layout="inspector"] > [role="dialog"] {
+  .sheet-backdrop[data-layout] > [role="dialog"] {
     width: calc(100vw - 24px);
   }
   .sheet-backdrop .sheet-panel {

@@ -1659,3 +1659,22 @@ read while a write transaction remains uncommitted), 13 contract tests, Clippy a
 SPA gate passed. Real gateway compares versions across pages, excludes test secrets,
 returns 409 after draft changes and 404 for absent versions. Frontend consumer is
 still pending; do not describe configuration diff as fully delivered yet.
+
+## 2026-09-10 — Codex / production configuration difference panel
+
+**What:** Added ConfigurationDiff.tsx and its scoped table CSS; VersionsPage exposes
+“查看差异”. The panel selects baseline, pages actual compareConfigVersions responses,
+shows loaded revisions/count, stops on conflicts and explicitly resets comparison.
+Fixtures compute differences from their resource maps. Added pagination/conflict/empty
+state E2E and expanded the real browser flow. Mobile modal padding now uses 12px for
+both supported layouts, with specificity that preserves the inspector rule.
+
+**Why:** Complete the approved V4 centered difference table without fixed samples or
+secret values. Baseline/target IDs remain fully visible outside the truncated selector;
+three-column mobile data wraps within its cells instead of hiding field names.
+
+**Other side:** FYI under full-stack authorization. Seven relevant E2E, type/build/SPA
+gate and the real 8-stage browser write flow passed. Actual gateway differences, baseline
+switch, same-version empty state, mobile 12px margin, cell overflow checks and focus
+restore passed. Early mobile CSS specificity/nowrap issues were corrected and rerun.
+No internal generator or external design model was used; approved V4 diff layout reused.

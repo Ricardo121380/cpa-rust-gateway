@@ -1,0 +1,16 @@
+.configuration-diff-table table {
+  table-layout: fixed;
+  width: 100%;
+}
+.configuration-diff-table th:first-child { width: 44%; }
+.configuration-diff-table th:nth-child(2) { width: 18%; }
+.configuration-diff-table th:last-child { width: 38%; }
+.configuration-diff-table th,
+.configuration-diff-table td {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.configuration-diff-table table th,
+.configuration-diff-table table td {
+  padding: 10px 8px;
+}

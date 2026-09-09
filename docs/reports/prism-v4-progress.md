@@ -614,3 +614,17 @@ compareConfigVersions已接入权威和真实管理listener，绑定base_id与pa
 旧游标409、相同版本空差异、缺失版本404通过，既有7阶段浏览器写入链路仍通过。
 证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-u76d_018/evidence.json`。
 正式前端差异入口仍待接入，本项尚未整体完成。
+
+## M4 配置差异前端完成
+
+VersionsPage新增“查看差异”，使用V4居中Sheet，支持基线选择、两端完整ID/revision、已加载
+差异数、分页、冲突后明确重读。同版本空态与安全说明明确；字段只显示名字，不把加密载荷
+变化说成秘密明文变化。fixture基于其资源Map计算差异，实际功能由真实API验收证明。
+
+新增E2E创建60条资源，验证首50条、修改后旧页409停止、重新比较/续页和同版本空态、Escape
+焦点恢复；连同v4工作区共7项通过。实际浏览器检查真实两版本变化、基线切换、空态与手机
+12px边距，加入单元格无溢出断言；截图人工核对。手机旧scrim优先级和表格nowrap导致的
+边距/字段问题已修正，最终类型/SPA双构建/gateway构建与8阶段真实浏览器链路通过。
+证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-oxlnbel2/evidence.json`，
+同目录browser-flow含configuration-diff-desktop/mobile截图与flow.json。
+剩余：启停操作运行装配核对、回退路径证据核对、持续查看方式、最终门禁更新和交付报告。

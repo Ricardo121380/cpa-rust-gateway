@@ -1,3 +1,4 @@
+import { ConfigurationDiff } from "./ConfigurationDiff";
 import { LifecycleConfirmation } from "./LifecycleConfirmation";
 import { ReadStatus } from "../../components/ReadStatus";
 // Config-version workspace: the lifecycle hub (docs/07 §7.4 / v0.1 §7.3).
@@ -27,6 +28,7 @@ export function VersionsPage() {
   const context = useVersionStore((s) => s.context);
   const select = useVersionStore((s) => s.select);
   const [confirmation, setConfirmation] = useState<{ mode: "publish" | "rollback"; id: string }>();
+  const [diffTarget, setDiffTarget] = useState<ConfigVersionSummary>();
   const [creating, setCreating] = useState(false);
   const [validation, setValidation] = useState<{ id: string; result: Validation } | undefined>();
   const [publication, setPublication] = useState<Publication | undefined>();
@@ -113,6 +115,8 @@ export function VersionsPage() {
         </div>
       </header>
 
+      {diffTarget ? <ConfigurationDiff target={diffTarget} versions={versions.data ?? []} onClose={() => setDiffTarget(undefined)} /> : null}
+
       {confirmation ? <LifecycleConfirmation {...confirmation} pending={publish.isPending || rollback.isPending} error={actionError} onCancel={() => setConfirmation(undefined)} onConfirm={(expectedActive, lifecycleEvent) => confirmation.mode === "publish" ? publish.mutate({ id: confirmation.id, expectedActive, lifecycleEvent }) : rollback.mutate({ expectedActive, lifecycleEvent })} /> : null}
 
       {actionError !== undefined ? (
@@ -153,6 +157,7 @@ export function VersionsPage() {
                   <td>{version.description}</td>
                   <td className="mono">{version.parent_id ?? "—"}</td>
                   <td className="row-actions">
+                    <button className="secondary" onClick={() => setDiffTarget(version)}>查看差异</button>
                     <button type="button" disabled={selected} onClick={() => select(version)}>
                       {selected ? "已选择" : "选择"}
                     </button>

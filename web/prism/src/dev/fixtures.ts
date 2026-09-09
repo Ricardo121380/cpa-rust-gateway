@@ -668,6 +668,50 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       return errorResponse(404, "management_access_denied", "Management access is unavailable");
     }
 
+    const diffPath = /^GET \/admin\/config-versions\/([^/]+)\/diff$/u.exec(route);
+    if (diffPath) {
+      const target = state.versions.find(row => row.id === decodeURIComponent(diffPath[1] ?? ""));
+      const base = state.versions.find(row => row.id === url.searchParams.get("base_id"));
+      if (!base || !target) return errorResponse(404, "management_resource_not_found", "Version not found");
+      const limit = Number(url.searchParams.get("limit") ?? 100);
+      if (!Number.isInteger(limit) || limit < 1 || limit > 200) return errorResponse(400, "invalid_management_request", "Invalid limit");
+      let offset = 0;
+      const raw = url.searchParams.get("cursor");
+      if (raw) {
+        try {
+          const cursor = JSON.parse(decodeURIComponent(raw)) as { base: string; target: string; revisions: number[]; offset: number };
+          if (cursor.base !== base.id || cursor.target !== target.id || cursor.revisions[0] !== base.revision || cursor.revisions[1] !== target.revision) return errorResponse(409, "configuration_diff_conflict", "Versions changed");
+          if (!Number.isInteger(cursor.offset) || cursor.offset < 0) throw new Error("offset");
+          offset = cursor.offset;
+        } catch { return errorResponse(400, "invalid_management_request", "Invalid cursor"); }
+      }
+      const sources: [string, ReadonlyMap<string, readonly object[]>, string[]][] = [
+        ["public_model", state.models, ["id"]], ["upstream", state.upstreams, ["id"]],
+        ["endpoint", state.endpoints, ["id"]], ["credential", state.credentials, ["id"]],
+        ["credential_binding", state.bindings, ["endpoint_id", "credential_id"]],
+        ["egress_policy", state.egress, ["id"]], ["access_group", state.groups, ["id"]],
+        ["client_key", state.keys, ["id"]], ["alias", state.aliases, ["alias"]],
+        ["route", state.routes, ["id"]], ["candidate", state.routeCandidates, ["id"]],
+        ["proxy_pool", state.compatPools, ["id"]], ["proxy_node", state.compatNodes, ["id"]],
+        ["egress_binding", state.compatBindings, ["endpoint_id", "credential_id"]],
+        ["route_grant", new Map([base.id, target.id].map(id => [id, [...state.groupRoutes].filter(([key]) => key.startsWith(`${id}:`)).flatMap(([, rows]) => rows)])), ["access_group_id", "route_id"]],
+        ["routing_price_policy", new Map([...state.pricePolicy].map(([id, policy]) => [id, [{ ...policy, identity: "singleton" }]])), ["identity"]],
+      ];
+      const items: { resource_kind: string; resource_key: string; change: string; changed_fields: string[] }[] = [];
+      for (const [kind, source, keys] of sources) {
+        const index = (id: string) => new Map((source.get(id) ?? []).map(row => { const record = row as Record<string, unknown>; return [JSON.stringify(keys.map(key => record[key])), record] as const; }));
+        const left = index(base.id), right = index(target.id);
+        for (const key of new Set([...left.keys(), ...right.keys()])) {
+          const before = left.get(key), after = right.get(key);
+          const changed = before && after ? [...new Set([...Object.keys(before), ...Object.keys(after)])].filter(field => !keys.includes(field) && JSON.stringify(before[field]) !== JSON.stringify(after[field])) : [];
+          if (!before || !after || changed.length) items.push({ resource_kind: kind, resource_key: key, change: !before ? "added" : !after ? "removed" : "changed", changed_fields: changed });
+        }
+      }
+      items.sort((a, b) => a.resource_kind.localeCompare(b.resource_kind) || a.resource_key.localeCompare(b.resource_key));
+      const next = offset + limit;
+      return json(200, { base: { id: base.id, revision: revisionToken(base) }, target: { id: target.id, revision: revisionToken(target) }, items: items.slice(offset, next), next_cursor: next < items.length ? encodeURIComponent(JSON.stringify({ base: base.id, target: target.id, revisions: [base.revision, target.revision], offset: next })) : null });
+    }
+
     if (route === "GET /admin/config-versions") {
       return json(
         200,
