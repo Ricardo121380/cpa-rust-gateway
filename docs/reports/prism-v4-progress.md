@@ -403,3 +403,17 @@ Chromium E2E、类型检查和 SPA 双构建门禁通过。模型到草稿接续
 两项授权模型 E2E（上下文隔离、草稿切换与候选预填/清除）、七项路由 E2E、类型检查与
 SPA 双构建门禁通过。新增测试初次草稿 ID/表格定位有误，修正后重跑通过。
 真实 gateway 的授权选择→保存/校验/发布→重读/审计仍需 M4 验证，不以 fixture 替代。
+
+## M4 真实 serve 验收基础
+
+新增 `scripts/prism-v4-local-acceptance.py`，使用已构建的真实 gateway 二进制、随机 loopback
+端口、独立临时状态与随机合成凭据，经真实同源管理 HTTP 创建配置和路由，不直接写数据库。
+进程在 finally 中停止，状态与安全 evidence.json 保留供审查，秘密不输出。
+
+本批重新构建 gateway，并运行脚本通过 7 项：空状态管理读取、同源鉴权创建草稿、持久化
+重读、未绑定草稿路由完整枚举、无候选路由校验失败、计费处理状态、正式 `/admin-ui/`
+嵌入与 CSP。首次脚本入口路径与 revision token 拼接错误已按当前代码修正后重跑。
+证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-on7up_9k/evidence.json`。
+
+此脚本当前覆盖真实管理初始化，尚未覆盖 mock Provider 请求、计费结果、发布/重启、全页
+浏览器与大样本验收。M4 未完成，继续扩展同一验收工具，不以本批 smoke 代替完整交付。
