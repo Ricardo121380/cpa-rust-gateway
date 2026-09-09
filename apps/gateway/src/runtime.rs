@@ -3464,9 +3464,6 @@ impl RuntimeModelCatalogWorker {
                 profile: runtime.transports.non_streaming.clone(),
             });
         }
-        if targets.is_empty() {
-            return Ok(None);
-        }
         let worker =
             Self {
                 config_version_id: configuration.version.id.as_str().to_owned(),
@@ -3479,8 +3476,10 @@ impl RuntimeModelCatalogWorker {
                 targets,
                 client_pool,
             };
+        // Stored evidence applies even when this build has no automatic discovery adapter
+        // for the channel. Exact expiry admission lives in the pinned serving snapshot.
         worker.publish_durable(system_now_ms_runtime()?)?;
-        Ok(Some(worker))
+        Ok((!worker.targets.is_empty()).then_some(worker))
     }
 
     /// Runs one immediate pass, then refreshes and re-evaluates expiry hourly.

@@ -29,6 +29,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--priced', action='store_true')
     parser.add_argument('--large', action='store_true')
+    parser.add_argument('--catalog-expiry', action='store_true')
     args = parser.parse_args()
     root = Path(tempfile.mkdtemp(prefix='prism-v4-acceptance-'))
     os.chmod(root, 0o700)
@@ -58,12 +59,21 @@ def main():
     ]:
         subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+    held = threading.Event()
+    release = threading.Event()
+    provider_calls = []
+
     class MockProvider(BaseHTTPRequestHandler):
         def log_message(self, *_args):
             pass
 
         def do_POST(self):
             submitted = json.loads(self.rfile.read(int(self.headers.get('Content-Length', '0'))))
+            provider_calls.append(self.path)
+            if 'hold-through-expiry' in json.dumps(submitted):
+                held.set()
+                if not release.wait(15):
+                    raise RuntimeError('acceptance did not release held response')
             if 'controlled-failure' in json.dumps(submitted):
                 body = b'{"error":{"message":"synthetic failure","type":"server_error"}}'
                 self.send_response(503)
@@ -210,6 +220,16 @@ def main():
         checks.append('real configuration validation and publication')
         process.terminate()
         assert process.wait(timeout=40) == 0
+        if args.catalog_expiry:
+            now = int(time.time() * 1000)
+            expiry = now + 6000
+            with sqlite3.connect(state / 'control.sqlite3') as db:
+                db.execute('INSERT INTO model_catalog_targets VALUES (?, ?, ?, 1, ?, ?, ?, ?)',
+                           (scope, 'local-endpoint', 'local-credential', expiry - 72 * 3600_000, expiry - 66 * 3600_000, expiry - 48 * 3600_000, expiry))
+                db.execute('INSERT INTO model_catalog_models VALUES (?, ?, ?, ?, 1, 0, NULL, NULL)',
+                           (scope, 'local-endpoint', 'local-credential', 'local-exact-model'))
+                db.execute('INSERT INTO model_catalog_failures VALUES (?, ?, ?, ?, ?)',
+                           (scope, 'local-endpoint', 'local-credential', now, 'transport'))
         process = start_gateway()
         deadline = time.monotonic() + 15
         while True:
@@ -223,6 +243,46 @@ def main():
                 time.sleep(.05)
         assert status == 200 and any(model['id'] == 'local-exact-model' for model in effective['items'])
         checks.append('restart serves published effective model under existing group ID')
+        if args.catalog_expiry:
+            evidence = effective['items'][0]['sources'][0]['catalog_evidence']
+            assert evidence and evidence[0]['expires_at_ms'] == expiry
+            held_result = []
+            def held_request():
+                try:
+                    req = urllib.request.Request(f'http://127.0.0.1:{data_port}/v1/responses',
+                        headers={'Authorization': 'Bearer ' + issued['key'], 'Content-Type': 'application/json'},
+                        data=json.dumps({'model': 'local-exact-model', 'input': 'hold-through-expiry', 'stream': False}).encode())
+                    with urllib.request.urlopen(req, timeout=15) as response:
+                        held_result.append((response.status, json.loads(response.read())))
+                except Exception as error:
+                    held_result.append(type(error).__name__)
+            thread = threading.Thread(target=held_request)
+            thread.start()
+            assert held.wait(3), 'request did not acquire a lease before expiry'
+            while int(time.time() * 1000) <= expiry + 50:
+                time.sleep(.05)
+            _, _, expired = request('/admin/models/effective?access_group_id=local-group', scope=scope)
+            assert expired['items'] == [], 'expired catalog still offers new model selection'
+            calls_before = len(provider_calls)
+            req = urllib.request.Request(f'http://127.0.0.1:{data_port}/v1/responses',
+                headers={'Authorization': 'Bearer ' + issued['key'], 'Content-Type': 'application/json'},
+                data=json.dumps({'model': 'local-exact-model', 'input': 'after-expiry', 'stream': False}).encode())
+            try:
+                urllib.request.urlopen(req, timeout=10).close()
+                raise AssertionError('expired catalog admitted a new request')
+            except urllib.error.HTTPError as error:
+                assert error.code in (400, 403, 404, 503)
+            assert len(provider_calls) == calls_before
+            release.set()
+            thread.join(timeout=10)
+            assert held_result and held_result[0][0] == 200, 'in-flight snapshot did not finish successfully'
+            checks.append('hard expiry removes effective selection and blocks new Provider lease despite failed discovery evidence')
+            checks.append('request leased before hard expiry completes under its pinned snapshot')
+            report = {'checks': checks, 'expires_at_ms': expiry, 'provider_calls': len(provider_calls)}
+            (root / 'evidence.json').write_text(json.dumps(report, indent=2))
+            print(json.dumps({'passed': checks, 'evidence': str(root / 'evidence.json')}, indent=2))
+            return
+
         data_request = urllib.request.Request(f'http://127.0.0.1:{data_port}/v1/responses',
             headers={'Authorization': 'Bearer ' + issued['key'], 'Content-Type': 'application/json'},
             data=json.dumps({'model': 'local-exact-model', 'input': 'Synthetic local acceptance', 'stream': False}).encode())
@@ -356,6 +416,7 @@ def main():
         (root / 'evidence.json').write_text(json.dumps(report, indent=2))
         print(json.dumps({'passed': checks, 'evidence': str(root / 'evidence.json')}, indent=2))
     finally:
+        release.set()
         process.terminate()
         try:
             process.wait(timeout=40)

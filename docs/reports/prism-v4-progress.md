@@ -484,3 +484,20 @@ Endpoint，导致整份配置校验/发布返回 409。RouteCompiler 新增可�
 证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-gmly4b41/evidence.json`；
 同目录 `large-sample.json` 记录四档样本，`ledger.json` 记录真实请求账本。进程正常停止。
 仍需目录硬过期/在途语义、完整浏览器视觉与交互验收、最终仓库门禁和交付报告。
+
+## M4 目录硬过期与在途快照
+
+修复 RuntimeModelCatalogWorker 初始化：即使某渠道没有当前支持的自动 discovery adapter，
+也先把已持久化、匹配凭据池的目录证据装配进 serving snapshot，再决定是否启动 discovery
+worker。未扩大自动 discovery 渠道范围。
+
+新增 `--catalog-expiry` 真实进程场景：合成合法 6/24/72 小时期限、即将硬过期的目录和刷新
+transport 失败记录，重启后确认有效模型的来源截止时间。一个真实 TLS mock 请求先获租约，
+延迟返回直到过期；到期后有效目录为空，新请求失败且 Provider 调用计数未增加；释放已获
+租约请求后成功200。首次人工种子期限不符合存储固定策略而被拒绝，修正为合法历史时间后
+10项场景检查通过。这里的 discovery 失败是持久化合成证据，没有声称执行不支持渠道的 discovery。
+证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-v_s_i3a3/evidence.json`。
+
+gateway build、Clippy通过；修复后重跑 `--priced --large` 的17项检查通过，证据
+`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-0wa0qlr6/evidence.json`。
+仍需全页面真实浏览器视觉/功能验收与最终门禁，完整交付报告尚未生成。
