@@ -87,6 +87,19 @@ pub struct BillingMaterializerCheckpoint {
     pub updated_at_ms: u64,
 }
 
+/// Consistent, value-free source/checkpoint/failure watermarks for billing processing.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BillingMaterializationProgress {
+    /// Highest durable source ordinal; zero means the source is empty.
+    pub source_ordinal: i64,
+    /// None means no completed or durably quarantined source batch has committed a checkpoint.
+    pub checkpoint_ordinal: Option<i64>,
+    /// Time the checkpoint was last advanced or replayed.
+    pub checkpoint_updated_at_ms: Option<u64>,
+    /// Number of failures awaiting repair, including failures behind the checkpoint.
+    pub unresolved_failures: u64,
+}
+
 /// Value-free durable retry evidence for a materialization failure.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BillingMaterializerFailure {
@@ -324,6 +337,32 @@ impl SqliteBillingLedger {
     /// Returns [`StoreError`] when the bound is invalid or a persisted catalog is malformed.
     pub fn list_catalogs_bounded(&self, limit: usize) -> StoreResult<Vec<BillingPriceCatalog>> {
         list_catalogs_bounded_from_connection(&self.connection, limit)
+    }
+
+    /// Reads billing progress in one `SQLite` statement/snapshot without loading event payloads.
+    ///
+    /// # Errors
+    /// Returns an error for invalid identity, inconsistent watermarks or unavailable storage.
+    pub fn materialization_progress(
+        &self,
+        materializer_id: &str,
+    ) -> StoreResult<BillingMaterializationProgress> {
+        validate_short_id(materializer_id)?;
+        let (source, checkpoint, updated, failures): (i64, Option<i64>, Option<i64>, i64) = self.connection.query_row(
+            "SELECT COALESCE((SELECT MAX(event_ordinal) FROM gateway_event_log), 0),              (SELECT event_ordinal FROM billing_materializer_checkpoints WHERE materializer_id = ?1),              (SELECT updated_at_ms FROM billing_materializer_checkpoints WHERE materializer_id = ?1),              (SELECT COUNT(*) FROM billing_materializer_failures WHERE materializer_id = ?1 AND resolved_at_ms IS NULL)",
+            [materializer_id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)))?;
+        if source < 0
+            || checkpoint.is_some_and(|value| value < 0 || value > source)
+            || checkpoint.is_some() != updated.is_some()
+        {
+            return Err(StoreError::InvalidPersistedBillingRecord);
+        }
+        Ok(BillingMaterializationProgress {
+            source_ordinal: source,
+            checkpoint_ordinal: checkpoint,
+            checkpoint_updated_at_ms: updated.map(u64_from_i64).transpose()?,
+            unresolved_failures: u64_from_i64(failures)?,
+        })
     }
 
     /// Loads one materializer checkpoint, if it has run before.
@@ -1132,6 +1171,41 @@ mod tests {
         assert_eq!(retained, 1);
         drop(store);
         std::fs::remove_file(path)?;
+        Ok(())
+    }
+
+    #[test]
+    fn processing_progress_distinguishes_empty_lag_and_unresolved_failures()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut ledger = SqliteBillingLedger::open_in_memory()?;
+        let empty = ledger.materialization_progress("billing-v1")?;
+        assert_eq!(empty.source_ordinal, 0);
+        assert!(empty.checkpoint_ordinal.is_none());
+        assert!(empty.checkpoint_updated_at_ms.is_none());
+        ledger.connection.execute("INSERT INTO gateway_event_log(event_type, event_id, payload_json) VALUES ('usage', 'first', '{}'), ('usage', 'second', '{}')", [])?;
+        ledger.save_checkpoint("billing-v1", 1, 1000)?;
+        ledger.record_materialization_failure("billing-v1", 1, "invalid_event", 1000)?;
+        let lag = ledger.materialization_progress("billing-v1")?;
+        assert_eq!(lag.source_ordinal, 2);
+        assert_eq!(lag.checkpoint_ordinal, Some(1));
+        assert_eq!(lag.checkpoint_updated_at_ms, Some(1000));
+        assert_eq!(lag.unresolved_failures, 1);
+        ledger.save_checkpoint("billing-v1", 2, 2000)?;
+        assert_eq!(
+            ledger
+                .materialization_progress("billing-v1")?
+                .unresolved_failures,
+            1
+        );
+        ledger.resolve_materialization_failure("billing-v1", 1, 3000)?;
+        assert_eq!(
+            ledger
+                .materialization_progress("billing-v1")?
+                .unresolved_failures,
+            0
+        );
+        ledger.save_checkpoint("billing-v1", 3, 4000)?;
+        assert!(ledger.materialization_progress("billing-v1").is_err());
         Ok(())
     }
 

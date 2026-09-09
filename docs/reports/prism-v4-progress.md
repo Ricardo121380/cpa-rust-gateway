@@ -270,6 +270,14 @@ serve 未定义账本自动删除时长，因此使用明确无自动过期策�
 unpriced 账本、停止、重启追上新事件及去重。该测试未经过 HTTP listener/mock Provider，
 不是 M4 整体验收。安全处理状态与运营接线仍待完成。
 
+## B1 处理进度的存储投影
+
+新增 materialization_progress，以单条 SQLite statement 同时读取源最高 ordinal、checkpoint、
+checkpoint 时间及未修复失败数量，不加载事件正文。源为空为0，未运行 checkpoint 保留 None；
+checkpoint 超过源水位时失败关闭。未修复失败独立于追平进度，避免“checkpoint已追平”
+掩盖坏记录。6 项账本存储回归及 store lib Clippy 通过。
+该投影还需接入 worker 状态与管理 HTTP，不能据此把处理状态界面标为完成。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、
