@@ -11,6 +11,7 @@ import {
 import type { AppError } from "./errors";
 import type { ClientKeyRecord, IssuedClientKey } from "../features/access/model";
 import { call } from "./client";
+import type { CatalogRow, PoolSnapshot } from "../features/runtime/model";
 
 const KEY = `mgmt_${"a".repeat(40)}`;
 const CSRF = `csrf_${"b".repeat(40)}`;
@@ -112,5 +113,28 @@ describe("option / contract agreement", () => {
     await expect(
       call("listOperationalAccountPools", {}, { versionScoped: true }),
     ).resolves.toBeDefined();
+  });
+});
+
+describe("current catalog and entitlement contract fixtures", () => {
+  it("preserves null entitlements and complete observed evidence", async () => {
+    const pools = await call<PoolSnapshot>("listProviderAccountPools");
+    expect(pools.items.every((row) => Object.hasOwn(row, "entitlement"))).toBe(true);
+    expect(pools.items.some((row) => row.entitlement === null)).toBe(true);
+    expect(pools.items.find((row) => row.account_id === "cred-grok-oauth")?.entitlement).toMatchObject({
+      domain: "grok_build", tier: "supergrok", source: "provider_subscription", confidence: "authoritative",
+    });
+  });
+
+  it("keeps failure-only catalog evidence distinct from a successful empty catalog", async () => {
+    const rows = await call<CatalogRow[]>("getCatalogStatus", {}, { versionScoped: true });
+    expect(new Set(rows.map((row) => row.freshness))).toEqual(new Set(["fresh", "stale", "expired", "missing"]));
+    const missing = rows.find((row) => row.freshness === "missing");
+    expect(missing).toMatchObject({ observed_at_ms: 0, last_failure_class: "authentication" });
+    expect(missing?.snapshot_version).toBeUndefined();
+    expect(missing?.model_count).toBeUndefined();
+    const fresh = rows.find((row) => row.freshness === "fresh");
+    expect(fresh?.refresh_due).toBe(false);
+    expect(Date.now() - (fresh?.observed_at_ms ?? 0)).toBeLessThan(3_600_000);
   });
 });

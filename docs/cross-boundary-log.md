@@ -1148,3 +1148,29 @@ OMP 受控 Pi AI 0.84.3 对 grok-4.6、grok-4.5 均完成四轮真实闭环：�
 此结果支持继续 OMP 验收，但不等于 OMP C12、其他渠道或 P13-15 整体完成；费用仍未核实。
 
 **Other side:** FYI，无新增前端接线要求。
+
+---
+
+## 2026-09-09 · Codex · Prism V4 M0 契约与会话/版本正确性
+
+**Touched:** `web/prism/contracts/management-v1.json`（sync-contract 生成）、
+`web/prism/scripts/check.mjs`、`web/prism/src/App.tsx`、
+`web/prism/src/api/client.ts`、`web/prism/src/api/queryClient.ts`、
+`web/prism/src/api/client.ownership.test.ts`、`web/prism/src/api/client.fixtures.test.ts`、
+`web/prism/src/session/sessionStore.ts`、`web/prism/src/utils/revision.ts`、
+`web/prism/src/utils/revision.test.ts`、`web/prism/src/features/config-versions/versionStore.ts`、
+`web/prism/src/app/AppShell.tsx`、`web/prism/src/app/DraftDock.tsx`、
+`web/prism/src/components/Sheet.tsx`、`web/prism/src/dev/fixtures.ts`、
+`web/prism/src/features/runtime/model.ts`、`web/prism/src/features/runtime/RuntimePage.tsx`、
+`web/prism/src/features/runtime/EntitlementEvidence.tsx`、
+`web/prism/e2e/session-ownership.spec.ts`。
+
+**Why:** 用户本轮明确授权 Codex 统一实现前后端 V4，不永久更改默认分工。
+补齐最新 entitlement/catalog 字段；阻止晚到响应污染其他版本或新会话、revision 倒退，
+并在鉴权失效时真正锁定、取消请求、清缓存/秘密/旧表单。锁定不保留含秘密的退出动画节点。
+
+**Other side:** FYI，无需等待另一位实现者。权威 OpenAPI 本批未变，generated client
+经同步后内容不变，不能手改生成物。日常 check 现会校验权威契约。
+B1–B4 与 BE-FE-01/02 仍属于后续 M2/M3 待实施，见 CR-PRISM-V4-001；
+本批不是 V4 全界面或真实网关验收完成。类型、245 项单测、Chromium 定向 E2E
+及权威 SPA 双构建门禁通过；未访问远端或真实 Provider。

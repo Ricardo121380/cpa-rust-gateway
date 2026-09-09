@@ -2,14 +2,14 @@
 // carries `ETag: "rev-N"` holding the NEXT expected revision; mutations echo it
 // via If-Match. 409 means a concurrent writer advanced it — refetch, never replay.
 
-const REVISION_PATTERN = /^"?(rev-(?:0|[1-9][0-9]*))"?$/u;
+const REVISION_PATTERN = /^(?:"(rev-(?:0|[1-9][0-9]*))"|(rev-(?:0|[1-9][0-9]*)))$/u;
 
 export function parseRevisionToken(etag: string | null): string | undefined {
   if (etag === null) {
     return undefined;
   }
   const match = REVISION_PATTERN.exec(etag.trim());
-  return match?.[1];
+  return match?.[1] ?? match?.[2];
 }
 
 export type VersionContext = Readonly<{
@@ -24,6 +24,10 @@ export function advanceRevision(
 ): VersionContext {
   const next = parseRevisionToken(etag);
   if (next === undefined || next === context.revision) {
+    return context;
+  }
+  const current = parseRevisionToken(context.revision);
+  if (current !== undefined && BigInt(next.slice(4)) <= BigInt(current.slice(4))) {
     return context;
   }
   return { ...context, revision: next };

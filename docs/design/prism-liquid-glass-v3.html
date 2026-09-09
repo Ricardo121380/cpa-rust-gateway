@@ -1,0 +1,1022 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light" data-lens="off">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>Prism · Liquid Glass 工作空间</title>
+<style>
+/* Prism design tokens — docs/07 §8.2. Three-layer theming:
+   :root (light) → @media prefers-color-scheme (dark) → [data-theme] override. */
+
+:root {
+  /* canvas / surface / ink */
+  --canvas: #f2f2f7;
+  --canvas-ambient: linear-gradient(160deg, #c8d8e8 0%, #e8e4f0 45%, #d4e4e0 100%);
+  --surface: #ffffff;
+  --surface-2: #f7f7fa;
+  --ink: #1d1d1f;
+  --ink-2: #6e6e73;
+  /* --ink-3 is NOT a body-text colour. It measures 3.26:1 on --surface and
+     2.92:1 on --canvas, so any sentence a user has to read must use --ink-2
+     (5.07:1) instead. Keep --ink-3 for non-text and incidental marks where AA
+     does not apply: chart grid lines and axis ticks, the uppercase 11px column
+     labels that repeat the data directly below them, status dots. An
+     explanatory paragraph in --ink-3 is a bug — that is how .card-note shipped
+     at 3.3:1. Raising the token is not the fix: any value clearing 4.5:1 on
+     --surface-2 lands within 0.1 of --ink-2 and collapses the three-step ramp
+     into two. */
+  --ink-3: #8e8e93;
+  --separator: rgba(0, 0, 0, 0.1);
+  --tint: #0071e3;
+  --tint-ink: #ffffff;
+  /* Solid FILL behind --tint-ink. Separate from --tint because --tint has to
+     stay bright enough to read as a label on a light surface (and doubles as
+     --chart-1's hue), while a fill carrying 12-13px white text has to clear
+     4.5:1 against white. In light mode the two coincide (#0071e3 measures
+     4.70:1); in dark mode they cannot — see the dark block. */
+  --tint-fill: #0071e3;
+
+  /* status pool — badges only, never chart series */
+  --status-good: #248a3d;
+  --status-warn: #b7791f;
+  --status-serious: #c93400;
+  --status-critical: #d70015;
+
+  /* categorical chart palette (validated light steps) */
+  --chart-1: #0066d6;
+  --chart-2: #b85f00;
+  --chart-3: #0079ab;
+  --chart-4: #c41e77;
+
+  /* glass material (Regular variant) */
+
+  /* Material semantics: config-version state, as glass (docs/07 §8.4).
+     These are the SHIPPED values, measured on this shell — the earlier set
+     (draft 28px/120%, active 14px/190%, archived 20px/80%) was authored before
+     the ambient layer existed and read as three barely-distinguishable frosts
+     once there was real content to refract. Both render paths consume these:
+     --mat-*-blur/-sat for the layered fallback, --mat-*-frost/-lsat for the
+     SVG lens, so a state can never move on one path and not the other. */
+  --mat-draft-blur: 22px;
+  --mat-draft-sat: 120%;
+  --mat-draft-frost: 20;
+  --mat-draft-lsat: 1.2;
+  --mat-active-blur: 11px;
+  --mat-active-sat: 195%;
+  --mat-active-frost: 9;
+  --mat-active-lsat: 1.85;
+  --mat-archived-blur: 16px;
+  --mat-archived-sat: 70%;
+  --mat-archived-frost: 13;
+  --mat-archived-lsat: 0.8;
+
+  /* geometry: concentric radii — inner = outer − padding */
+  --r-outer: 20px;
+  --pad: 8px;
+  --r-inner: calc(var(--r-outer) - var(--pad));
+
+  /* motion */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur: 200ms;
+  --dur-anneal: 600ms;
+
+  /* type */
+  --font-text: -apple-system, "SF Pro Text", system-ui, "PingFang SC",
+    "Hiragino Sans GB", sans-serif;
+  --font-display: -apple-system, "SF Pro Display", system-ui, "PingFang SC",
+    sans-serif;
+  --font-mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  /* ==== ambient + glass material (ported from proto/port) ==== */
+  /* ---- ambient background ------------------------------------------------
+     Glass with nothing behind it cannot look like glass. This is the "behind".
+     Authored CSS/SVG only — no images, no CDN, CSP-clean.
+     The prism streak is the single highest-value ingredient: it is the only
+     layer with HUE variation at a SMALL spatial scale, and small-scale hue
+     variation is exactly what refraction reveals. Four wide radial lights
+     alone read as a flat pastel wash (tested: the rail looked like a card). */
+  --amb-1: #5f9dff;   /* cool key light,  top-left  */
+  --amb-2: #b98cff;   /* violet fill,     top-right */
+  --amb-3: #3fd7bd;   /* teal bounce,     bottom    */
+  --amb-4: #ffb877;   /* warm rim,        mid-right */
+  --amb-strength-1: 0.42;
+  --amb-strength-2: 0.38;
+  --amb-strength-3: 0.34;
+  --amb-strength-4: 0.26;
+  --amb-streak: 0.32;  /* spectral fan crossing the rail column */
+  --amb-grain: 0.40;  /* high-frequency bite for blur AND refraction */
+
+  /* ---- glass body (treatment B — also the fallback for C) ---------------- */
+  --glass-blur: 12px;      /* was 20px: 20 over-frosts and kills the backdrop */
+  --glass-sat: 180%;
+  --glass-bright: 1.06;
+  --glass-contrast: 1.02;
+
+  /* Vertical tint RAMP, not a flat fill. A flat rgba() body is the single
+     biggest reason the old baseline reads as a card: a sheet of glass is never
+     one uniform value. Light arrives from above, so the top edge carries more. */
+  --glass-tint-top: rgba(255, 255, 255, 0.62);
+  --glass-tint-mid: rgba(255, 255, 255, 0.44);
+  --glass-tint-bot: rgba(255, 255, 255, 0.52);
+
+  /* Specular ring — a MASKED GRADIENT BORDER, never a flat 1px line. A real
+     rounded glass edge is lit at two opposing arcs and dark on the flanks. */
+  --ring-w: 1px;
+  --ring-1: rgba(255, 255, 255, 0.95);
+  --ring-2: rgba(255, 255, 255, 0.42);
+  --ring-3: rgba(255, 255, 255, 0.02);
+  --ring-4: rgba(255, 255, 255, 0.55);
+  --ring-5: rgba(255, 255, 255, 0.90);
+
+  /* Inner bloom: 1px hairlines on both edges + two soft interior gradients */
+  --glass-inner:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.90),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.45),
+    inset 0 14px 22px -20px rgba(255, 255, 255, 0.95),
+    inset 0 -18px 26px -22px rgba(255, 255, 255, 0.60);
+
+  /* Adaptive shadow: contact + near + mid + ambient. FOUR stops with negative
+     spread — that is what reads as "floating above". One 32px blob does not. */
+  --glass-shadow:
+    0 1px 1px rgba(14, 18, 32, 0.05),
+    0 4px 10px -3px rgba(14, 18, 32, 0.08),
+    0 14px 28px -8px rgba(14, 18, 32, 0.12),
+    0 30px 60px -22px rgba(14, 18, 32, 0.18);
+  /* WWDC25: shadow opacity rises while real content is behind the pane */
+  --glass-shadow-boost:
+    0 1px 1px rgba(14, 18, 32, 0.07),
+    0 5px 12px -3px rgba(14, 18, 32, 0.12),
+    0 16px 32px -8px rgba(14, 18, 32, 0.18),
+    0 34px 66px -22px rgba(14, 18, 32, 0.26);
+
+  --glass-edge-top: rgba(255, 255, 255, 0.28);
+  --glass-edge-bot: rgba(255, 255, 255, 0.14);
+
+  /* ---- lens geometry (treatment C — read by <PrismLens>) ----------------- */
+  --lens-bezel: 26;      /* px of bezel band measured in from the edge        */
+  --lens-thickness: 34;  /* px of virtual glass thickness (drives strength)   */
+  --lens-ior: 1.5;       /* refractive index of the virtual material          */
+  --lens-gain: 1;        /* artistic multiplier on the computed scale         */
+  --lens-rim-blur: 3;    /* stdDeviation applied BEFORE displacement.
+                            0 => the rim shows a pin-sharp compressed image.
+                            >=20 => the bend disappears entirely (verified:
+                            the stripe test card stopped bending). 3 is the
+                            usable window. */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #0b0b10;
+    --canvas-ambient: linear-gradient(160deg, #101826 0%, #181428 45%, #0e1e1e 100%);
+    --surface: #16161d;
+    --surface-2: #1e1e26;
+    --ink: #f5f5f7;
+    --ink-2: #98989d;
+    --ink-3: #6e6e76;
+    --separator: rgba(255, 255, 255, 0.1);
+    --tint: #0a84ff;
+    /* White 12-13px text on #0a84ff measures 3.65:1 — below AA. --tint itself
+       must stay this bright (it is nav/link ink on a near-black surface, and
+       --chart-1's hue), so the FILL darkens instead: white on #0f6fd6 is
+       4.92:1. Same reading, same hue family, AA-clean. */
+    --tint-fill: #0f6fd6;
+    --status-good: #30d158;
+    --status-warn: #ffd60a;
+    --status-serious: #ff9f0a;
+    --status-critical: #ff453a;
+    --chart-1: #0a84ff;
+    --chart-2: #cc7a00;
+    --chart-3: #2196c9;
+    --chart-4: #db4e92;
+  --amb-1: #1e5fe0;
+  --amb-2: #7c3aed;
+  --amb-3: #0f9d8f;
+  --amb-4: #c2560a;
+  --amb-strength-1: 0.34;
+  --amb-strength-2: 0.30;
+  --amb-strength-3: 0.26;
+  --amb-strength-4: 0.20;
+  --amb-streak: 0.26;
+  --amb-grain: 0.45;
+
+  /* Dark glass: LESS saturation, MORE brightness. A dark pane over a dark
+     canvas disappears unless it LIFTS the backdrop. */
+  --glass-blur: 13px;
+  --glass-sat: 165%;
+  --glass-bright: 1.04;
+  --glass-contrast: 1.04;
+  --glass-tint-top: rgba(12, 12, 18, 0.52);
+  --glass-tint-mid: rgba(12, 12, 18, 0.40);
+  --glass-tint-bot: rgba(12, 12, 18, 0.48);
+  --ring-1: rgba(255, 255, 255, 0.62);
+  --ring-2: rgba(255, 255, 255, 0.20);
+  --ring-3: rgba(255, 255, 255, 0.02);
+  --ring-4: rgba(255, 255, 255, 0.24);
+  --ring-5: rgba(255, 255, 255, 0.50);
+  --glass-inner:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.30),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.16),
+    inset 0 16px 26px -24px rgba(255, 255, 255, 0.55),
+    inset 0 -20px 30px -26px rgba(255, 255, 255, 0.35);
+  --glass-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.30),
+    0 5px 12px -4px rgba(0, 0, 0, 0.40),
+    0 18px 36px -10px rgba(0, 0, 0, 0.45),
+    0 40px 70px -24px rgba(0, 0, 0, 0.55);
+  --glass-shadow-boost:
+    0 1px 1px rgba(0, 0, 0, 0.40),
+    0 6px 14px -4px rgba(0, 0, 0, 0.50),
+    0 20px 40px -10px rgba(0, 0, 0, 0.55),
+    0 44px 78px -24px rgba(0, 0, 0, 0.65);
+  --glass-edge-top: rgba(255, 255, 255, 0.10);
+  --glass-edge-bot: rgba(255, 255, 255, 0.05);
+  }
+}
+
+:root[data-theme="light"] {
+  --canvas: #f2f2f7;
+  --canvas-ambient: linear-gradient(160deg, #c8d8e8 0%, #e8e4f0 45%, #d4e4e0 100%);
+  --surface: #ffffff;
+  --surface-2: #f7f7fa;
+  --ink: #1d1d1f;
+  --ink-2: #6e6e73;
+  --ink-3: #8e8e93;
+  --separator: rgba(0, 0, 0, 0.1);
+  --tint: #0071e3;
+  --status-good: #248a3d;
+  --status-warn: #b7791f;
+  --status-serious: #c93400;
+  --status-critical: #d70015;
+  --chart-1: #0066d6;
+  --chart-2: #b85f00;
+  --chart-3: #0079ab;
+  --chart-4: #c41e77;
+
+  /* ---- ambient background ------------------------------------------------
+     Glass with nothing behind it cannot look like glass. This is the "behind".
+     Authored CSS/SVG only — no images, no CDN, CSP-clean.
+     The prism streak is the single highest-value ingredient: it is the only
+     layer with HUE variation at a SMALL spatial scale, and small-scale hue
+     variation is exactly what refraction reveals. Four wide radial lights
+     alone read as a flat pastel wash (tested: the rail looked like a card). */
+  --amb-1: #5f9dff;   /* cool key light,  top-left  */
+  --amb-2: #b98cff;   /* violet fill,     top-right */
+  --amb-3: #3fd7bd;   /* teal bounce,     bottom    */
+  --amb-4: #ffb877;   /* warm rim,        mid-right */
+  --amb-strength-1: 0.42;
+  --amb-strength-2: 0.38;
+  --amb-strength-3: 0.34;
+  --amb-strength-4: 0.26;
+  --amb-streak: 0.32;  /* spectral fan crossing the rail column */
+  --amb-grain: 0.40;  /* high-frequency bite for blur AND refraction */
+
+  /* ---- glass body (treatment B — also the fallback for C) ---------------- */
+  --glass-blur: 12px;      /* was 20px: 20 over-frosts and kills the backdrop */
+  --glass-sat: 180%;
+  --glass-bright: 1.06;
+  --glass-contrast: 1.02;
+
+  /* Vertical tint RAMP, not a flat fill. A flat rgba() body is the single
+     biggest reason the old baseline reads as a card: a sheet of glass is never
+     one uniform value. Light arrives from above, so the top edge carries more. */
+  --glass-tint-top: rgba(255, 255, 255, 0.62);
+  --glass-tint-mid: rgba(255, 255, 255, 0.44);
+  --glass-tint-bot: rgba(255, 255, 255, 0.52);
+
+  /* Specular ring — a MASKED GRADIENT BORDER, never a flat 1px line. A real
+     rounded glass edge is lit at two opposing arcs and dark on the flanks. */
+  --ring-w: 1px;
+  --ring-1: rgba(255, 255, 255, 0.95);
+  --ring-2: rgba(255, 255, 255, 0.42);
+  --ring-3: rgba(255, 255, 255, 0.02);
+  --ring-4: rgba(255, 255, 255, 0.55);
+  --ring-5: rgba(255, 255, 255, 0.90);
+
+  /* Inner bloom: 1px hairlines on both edges + two soft interior gradients */
+  --glass-inner:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.90),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.45),
+    inset 0 14px 22px -20px rgba(255, 255, 255, 0.95),
+    inset 0 -18px 26px -22px rgba(255, 255, 255, 0.60);
+
+  /* Adaptive shadow: contact + near + mid + ambient. FOUR stops with negative
+     spread — that is what reads as "floating above". One 32px blob does not. */
+  --glass-shadow:
+    0 1px 1px rgba(14, 18, 32, 0.05),
+    0 4px 10px -3px rgba(14, 18, 32, 0.08),
+    0 14px 28px -8px rgba(14, 18, 32, 0.12),
+    0 30px 60px -22px rgba(14, 18, 32, 0.18);
+  /* WWDC25: shadow opacity rises while real content is behind the pane */
+  --glass-shadow-boost:
+    0 1px 1px rgba(14, 18, 32, 0.07),
+    0 5px 12px -3px rgba(14, 18, 32, 0.12),
+    0 16px 32px -8px rgba(14, 18, 32, 0.18),
+    0 34px 66px -22px rgba(14, 18, 32, 0.26);
+
+  --glass-edge-top: rgba(255, 255, 255, 0.28);
+  --glass-edge-bot: rgba(255, 255, 255, 0.14);
+
+  /* ---- lens geometry (treatment C — read by <PrismLens>) ----------------- */
+  --lens-bezel: 26;      /* px of bezel band measured in from the edge        */
+  --lens-thickness: 34;  /* px of virtual glass thickness (drives strength)   */
+  --lens-ior: 1.5;       /* refractive index of the virtual material          */
+  --lens-gain: 1;        /* artistic multiplier on the computed scale         */
+  --lens-rim-blur: 3;    /* stdDeviation applied BEFORE displacement.
+                            0 => the rim shows a pin-sharp compressed image.
+                            >=20 => the bend disappears entirely (verified:
+                            the stripe test card stopped bending). 3 is the
+                            usable window. */
+}
+
+:root[data-theme="dark"] {
+  --canvas: #0b0b10;
+  --canvas-ambient: linear-gradient(160deg, #101826 0%, #181428 45%, #0e1e1e 100%);
+  --surface: #16161d;
+  --surface-2: #1e1e26;
+  --ink: #f5f5f7;
+  --ink-2: #98989d;
+  --ink-3: #6e6e76;
+  --separator: rgba(255, 255, 255, 0.1);
+  --tint: #0a84ff;
+  --tint-fill: #0f6fd6; /* keep in step with the media-query block above */
+  --status-good: #30d158;
+  --status-warn: #ffd60a;
+  --status-serious: #ff9f0a;
+  --status-critical: #ff453a;
+  --chart-1: #0a84ff;
+  --chart-2: #cc7a00;
+  --chart-3: #2196c9;
+  --chart-4: #db4e92;
+
+  --amb-1: #1e5fe0;
+  --amb-2: #7c3aed;
+  --amb-3: #0f9d8f;
+  --amb-4: #c2560a;
+  --amb-strength-1: 0.34;
+  --amb-strength-2: 0.30;
+  --amb-strength-3: 0.26;
+  --amb-strength-4: 0.20;
+  --amb-streak: 0.26;
+  --amb-grain: 0.45;
+
+  /* Dark glass: LESS saturation, MORE brightness. A dark pane over a dark
+     canvas disappears unless it LIFTS the backdrop. */
+  --glass-blur: 13px;
+  --glass-sat: 165%;
+  --glass-bright: 1.04;
+  --glass-contrast: 1.04;
+  --glass-tint-top: rgba(12, 12, 18, 0.52);
+  --glass-tint-mid: rgba(12, 12, 18, 0.40);
+  --glass-tint-bot: rgba(12, 12, 18, 0.48);
+  --ring-1: rgba(255, 255, 255, 0.62);
+  --ring-2: rgba(255, 255, 255, 0.20);
+  --ring-3: rgba(255, 255, 255, 0.02);
+  --ring-4: rgba(255, 255, 255, 0.24);
+  --ring-5: rgba(255, 255, 255, 0.50);
+  --glass-inner:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.30),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.16),
+    inset 0 16px 26px -24px rgba(255, 255, 255, 0.55),
+    inset 0 -20px 30px -26px rgba(255, 255, 255, 0.35);
+  --glass-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.30),
+    0 5px 12px -4px rgba(0, 0, 0, 0.40),
+    0 18px 36px -10px rgba(0, 0, 0, 0.45),
+    0 40px 70px -24px rgba(0, 0, 0, 0.55);
+  --glass-shadow-boost:
+    0 1px 1px rgba(0, 0, 0, 0.40),
+    0 6px 14px -4px rgba(0, 0, 0, 0.50),
+    0 20px 40px -10px rgba(0, 0, 0, 0.55),
+    0 44px 78px -24px rgba(0, 0, 0, 0.65);
+  --glass-edge-top: rgba(255, 255, 255, 0.10);
+  --glass-edge-bot: rgba(255, 255, 255, 0.05);
+}
+
+/* base */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--tint);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur: 120ms;
+    --dur-anneal: 0ms;
+  }
+}
+
+/* ===========================================================================
+   PORT 2/3 — replaces src/design/glass.css
+   docs/07 §8.3. Glass is the functional layer only (rail / topbar / dock /
+   sheet); the content canvas is always solid; never glass-on-glass; <=3 chrome
+   panes per screen; Regular variant only.
+
+   Layer order inside a pane (bottom -> top):
+     backdrop-filter   the lens (C) or blur+saturate+brightness stack (B)
+     ::after           wide edge bloom, z-index 0
+     background-image  the vertical tint RAMP
+     content           z-index 1
+     ::before          specular ring (masked gradient border), z-index 2
+   =========================================================================== */
+
+.glass {
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--r-outer);
+  border: 0;
+  background-color: transparent;
+  background-image: linear-gradient(
+    to bottom,
+    var(--glass-tint-top) 0%,
+    var(--glass-tint-mid) 46%,
+    var(--glass-tint-bot) 100%);
+  -webkit-backdrop-filter:
+    blur(var(--glass-blur)) saturate(var(--glass-sat))
+    brightness(var(--glass-bright)) contrast(var(--glass-contrast));
+  backdrop-filter:
+    blur(var(--glass-blur)) saturate(var(--glass-sat))
+    brightness(var(--glass-bright)) contrast(var(--glass-contrast));
+  box-shadow: var(--glass-shadow), var(--glass-inner);
+}
+.glass > * { position: relative; z-index: 1; }
+
+/* WWDC25: the shadow deepens while real content is passing under the pane.
+   <PrismLens> sets data-over="content" | "ambient" from one elementFromPoint
+   probe per pane per scroll frame. */
+.glass[data-over="content"] {
+  box-shadow: var(--glass-shadow-boost), var(--glass-inner);
+}
+
+/* Specular ring. NOT a 1px border: a gradient ring, bright at 10 and 4
+   o'clock, extinguished on the flanks, painted into the border box by a
+   xor/exclude mask. This is the second biggest difference from the baseline. */
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  padding: var(--ring-w);
+  pointer-events: none;
+  background: linear-gradient(147deg,
+    var(--ring-1) 0%, var(--ring-2) 16%, var(--ring-3) 38%,
+    var(--ring-3) 60%, var(--ring-4) 84%, var(--ring-5) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+/* Wide edge bloom just inside the ring: the glass BODY catching the light.
+   The two band HEIGHTS are parameterised (defaults unchanged) because a
+   thicker slab has a wider lit rim: the modal layer widens them via
+   --glass-edge-*-h instead of overriding this pseudo-element, which would
+   out-specify the degradations below. */
+.glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, var(--glass-edge-top) 0%, transparent var(--glass-edge-top-h, 18px)),
+    linear-gradient(to top,    var(--glass-edge-bot) 0%, transparent var(--glass-edge-bot-h, 14px));
+}
+
+/* ---- C: true lensing -----------------------------------------------------
+   C is B with the CSS backdrop-filter swapped for an SVG filter; every other
+   layer is shared, so degrading to B is one property.
+
+   The @supports ladder must exclude Firefox AND Safari: both PARSE
+   `backdrop-filter: url(#x)` as valid and then render NOTHING at all, so
+   @supports alone is not a capability test. <PrismLens> writes
+   data-lens="on|off" as the runtime belt to this brace.
+   -------------------------------------------------------------------------- */
+@supports (backdrop-filter: url(#prism-lens-topbar))
+      and (not (-moz-appearance: none))
+      and (not (background: -webkit-named-image(i))) {
+  html[data-lens="on"] .glass[data-pane="topbar"] {
+    -webkit-backdrop-filter: url(#prism-lens-topbar);
+    backdrop-filter: url(#prism-lens-topbar);
+  }
+  html[data-lens="on"] .glass[data-pane="rail"] {
+    -webkit-backdrop-filter: url(#prism-lens-rail);
+    backdrop-filter: url(#prism-lens-rail);
+  }
+  html[data-lens="on"] .glass[data-pane="dock"] {
+    -webkit-backdrop-filter: url(#prism-lens-dock);
+    backdrop-filter: url(#prism-lens-dock);
+  }
+  /* the SVG chain already blurs, saturates and brightens: pull the CSS tint
+     back so the pane does not double-frost */
+  html[data-lens="on"] .glass[data-pane] {
+    background-image: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--glass-tint-top) 72%, transparent) 0%,
+      color-mix(in srgb, var(--glass-tint-mid) 72%, transparent) 46%,
+      color-mix(in srgb, var(--glass-tint-bot) 72%, transparent) 100%);
+  }
+}
+
+/* ---- material semantics (docs/07 §8.4) ----------------------------------
+   Material encodes config-version state. In C the same three states also move
+   the lens: a draft is a THICKER, softer piece of glass. The numbers live in
+   tokens.css so the two render paths cannot drift apart. */
+.glass[data-material="draft"] {
+  --glass-blur: var(--mat-draft-blur);
+  --glass-sat: var(--mat-draft-sat);
+  --lens-frost: var(--mat-draft-frost);
+  --lens-sat: var(--mat-draft-lsat);
+}
+.glass[data-material="active"] {
+  --glass-blur: var(--mat-active-blur);
+  --glass-sat: var(--mat-active-sat);
+  --lens-frost: var(--mat-active-frost);
+  --lens-sat: var(--mat-active-lsat);
+}
+.glass[data-material="archived"] {
+  --glass-blur: var(--mat-archived-blur);
+  --glass-sat: var(--mat-archived-sat);
+  --lens-frost: var(--mat-archived-frost);
+  --lens-sat: var(--mat-archived-lsat);
+}
+/* Publish = one bounded anneal (state change, not decoration). This covers the
+   LAYERED path only; under backdrop-filter: url(#...) the primitives are SVG
+   attributes, which no CSS transition can move — PrismLens tweens them on the
+   same --dur-anneal / --ease pair. */
+.glass[data-material] {
+  transition: backdrop-filter var(--dur-anneal) var(--ease),
+              -webkit-backdrop-filter var(--dur-anneal) var(--ease);
+}
+
+/* ---- degradations --------------------------------------------------------
+   SPECIFICITY IS PART OF THE CONTRACT.
+   The lensing rules above are `html[data-lens] .glass[data-pane]` =
+   specificity (0,3,1). A degradation written as plain `.glass` is (0,1,0) and
+   SILENTLY LOSES — verified in the lab: the topbar kept
+   `backdrop-filter: url(#prism-lens-topbar)` under prefers-contrast:more.
+   Every degradation therefore carries `.glass[data-pane]` as well.
+   -------------------------------------------------------------------------- */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass, .glass[data-pane] {
+    background: var(--surface);
+    background-image: none;
+    border: 1px solid var(--separator);
+  }
+  .glass::before, .glass::after { display: none; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  html[data-lens="on"] .glass[data-pane] {
+    background-color: color-mix(in srgb, var(--surface) 94%, transparent);
+    background-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: var(--glass-shadow);
+  }
+  .glass::before { background: var(--separator); }
+  .glass::after { display: none; }
+}
+
+@media (prefers-contrast: more) {
+  .glass,
+  html[data-lens="on"] .glass[data-pane] {
+    background: var(--surface);
+    background-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border: 1px solid var(--ink-2);
+    box-shadow: none;
+  }
+  .glass::before, .glass::after { display: none; }
+}
+
+*{box-sizing:border-box}body{margin:0;font:14px/1.5 var(--font-text);color:var(--ink);background:var(--canvas)}button,input,select,textarea{font:inherit;color:inherit}button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}button,a{touch-action:manipulation}button{cursor:pointer}button:disabled{cursor:default;opacity:.5}a{color:var(--tint);text-decoration:none}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--tint);outline-offset:3px}svg.icon{width:18px;height:18px;flex-shrink:0;stroke-width:1.7;vertical-align:middle}.mono,code{font-family:var(--font-mono);font-variant-numeric:tabular-nums}code{font-size:12px;overflow-wrap:anywhere}.muted{color:var(--ink-2)}.small{font-size:12px}.sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}.hidden,[hidden]{display:none!important}h1,h2,h3,p{margin:0}h1{font-family:var(--font-display);font-size:30px;line-height:1.2;letter-spacing:-.035em;font-weight:700}h2{font-size:17px;letter-spacing:-.018em;font-weight:650}h3{font-size:14px;font-weight:600}.row{display:flex;align-items:center;gap:10px}.spread{justify-content:space-between}.wrap{flex-wrap:wrap}.grow{flex:1;min-width:0}.stack{display:grid;gap:18px}.gap6{gap:6px}.mt{margin-top:20px}.line{height:1px;background:var(--separator);margin:22px 0}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:4px 9px;font-size:12px;white-space:nowrap;background:var(--surface-2);color:var(--ink-2)}.pill::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}.pill.good{color:color-mix(in srgb,var(--status-good) 76%,var(--ink));background:color-mix(in srgb,var(--status-good) 9%,var(--surface))}.pill.warn{color:color-mix(in srgb,var(--status-warn) 76%,var(--ink));background:color-mix(in srgb,var(--status-warn) 10%,var(--surface))}.pill.serious{color:var(--status-serious);background:color-mix(in srgb,var(--status-serious) 8%,var(--surface))}.pill.critical{color:var(--status-critical);background:color-mix(in srgb,var(--status-critical) 8%,var(--surface))}.pill.blue{color:var(--tint);background:color-mix(in srgb,var(--tint) 8%,var(--surface))}.tag{display:inline-block;font-size:12px;color:var(--ink-2);border:1px solid var(--separator);border-radius:6px;padding:2px 6px;white-space:nowrap}.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--separator);border-radius:99px;min-height:36px;padding:7px 14px;background:var(--surface);font-size:13px;font-weight:550;white-space:nowrap}.btn:hover{background:var(--surface-2)}.btn.primary{background:var(--tint-fill);color:var(--tint-ink);border-color:transparent}.btn.primary:hover{filter:brightness(.96)}.btn.quiet{background:transparent;border-color:transparent}.btn.danger{color:var(--status-critical)}.btn.compact{min-height:30px;padding:5px 10px;font-size:12px}.icon-btn{display:inline-grid;place-items:center;width:36px;height:36px;border:0;background:transparent;border-radius:50%;flex-shrink:0}.icon-btn:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}.linkbtn{background:none;border:0;padding:0;color:var(--tint);font:inherit;cursor:pointer;text-align:left}.linkbtn:hover{text-decoration:underline}.empty{display:grid;justify-items:center;text-align:center;padding:46px 24px;gap:10px}.empty>svg{width:32px;height:32px;color:var(--ink-2)}.empty p{max-width:450px;color:var(--ink-2)}.note{display:flex;align-items:flex-start;gap:9px;color:var(--ink-2);font-size:12px;line-height:1.7}.note svg{margin-top:1px}.notice{padding:14px 16px;border:1px solid var(--separator);border-radius:12px;background:var(--surface-2);font-size:13px;color:var(--ink-2);line-height:1.7}.notice[data-kind=unwired]{border-style:dashed}.notice.warn{background:color-mix(in srgb,var(--status-warn) 6%,var(--surface));color:var(--ink)}
+.shell{position:fixed;inset:0;overflow:hidden;--shell-pad:16px;--topbar-h:56px;--rail-w:214px;--chrome-bottom:72px;--canvas-top:94px;--canvas-left:254px;--dock-clearance:0px}.shell[data-draft=true]{--dock-clearance:100px}.ambient{position:absolute;inset:0;pointer-events:none;background-color:var(--canvas);background-image:linear-gradient(107deg,transparent 6%,color-mix(in oklab,#ff5f6d calc(var(--amb-streak)*22%),transparent) 12%,color-mix(in oklab,#ffc371 calc(var(--amb-streak)*24%),transparent) 17%,color-mix(in oklab,#6ee7b7 calc(var(--amb-streak)*30%),transparent) 22%,color-mix(in oklab,#60a5fa calc(var(--amb-streak)*30%),transparent) 27%,color-mix(in oklab,#a78bfa calc(var(--amb-streak)*26%),transparent) 32%,transparent 46%),radial-gradient(ellipse 64% 52% at 4% -6%,color-mix(in oklab,var(--amb-1) calc(var(--amb-strength-1)*100%),transparent),transparent),radial-gradient(ellipse 56% 50% at 98% 2%,color-mix(in oklab,var(--amb-2) calc(var(--amb-strength-2)*100%),transparent),transparent),radial-gradient(ellipse 70% 62% at 36% 108%,color-mix(in oklab,var(--amb-3) calc(var(--amb-strength-3)*100%),transparent),transparent),radial-gradient(ellipse 34% 40% at 90% 62%,color-mix(in oklab,var(--amb-4) calc(var(--amb-strength-4)*100%),transparent),transparent),conic-gradient(from 205deg at 24% 22%,transparent,color-mix(in srgb,var(--amb-1) 7%,transparent),transparent,color-mix(in srgb,var(--amb-3) 6%,transparent),transparent)}.ambient-grain{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:var(--amb-grain);mix-blend-mode:overlay}html[data-theme=dark] .ambient-grain{mix-blend-mode:soft-light}.lens-defs{position:absolute;width:0;height:0;pointer-events:none}.topbar{--r-outer:18px;position:absolute!important;inset:16px 16px auto;height:var(--topbar-h);display:flex;align-items:center;padding:0 16px;gap:14px;z-index:40}.brand{display:flex;align-items:center;gap:10px;min-width:198px;color:var(--ink)}.brandmark{width:29px;height:29px;display:block}.brand-name{font-size:19px;font-weight:650;letter-spacing:-.05em}.brand-tag{font-size:12px;color:var(--ink-2);border-left:1px solid var(--separator);padding-left:12px;margin-left:4px}.top-divider{width:1px;height:20px;background:var(--separator)}.top-context{font-size:13px;color:var(--ink-2)}.version-select{border:0;border-radius:99px;padding:7px 30px 7px 12px;max-width:190px;background:color-mix(in srgb,var(--surface) 40%,transparent);font-size:12px}.preview-label{color:var(--ink-2);font-size:12px;white-space:nowrap}.avatar{width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--surface);display:grid;place-items:center;font-size:11px;font-weight:600}.rail{--r-outer:20px;position:absolute!important;left:16px;top:var(--canvas-top);bottom:16px;width:var(--rail-w);z-index:30;display:flex;flex-direction:column;padding:14px 10px 10px}.nav-scroll{min-height:0;flex:1;overflow:auto;scrollbar-width:none}.nav-group+.nav-group{margin-top:15px}.nav-label{color:var(--ink-2);font-size:12px;font-weight:500;padding:1px 12px 7px}.nav-link{display:flex;align-items:center;min-height:37px;gap:10px;border-radius:11px;padding:8px 11px;color:var(--ink);font-size:13px;line-height:1.5;position:relative}.nav-link svg{width:17px;height:17px;color:var(--ink-2)}.nav-link:hover{background:color-mix(in srgb,var(--surface) 40%,transparent)}.nav-link[aria-current=page]{background:color-mix(in srgb,var(--tint) 13%,var(--surface));font-weight:600;color:var(--ink);box-shadow:0 1px 2px color-mix(in srgb,var(--ink) 5%,transparent),inset 0 1px color-mix(in srgb,var(--surface) 70%,transparent)}.nav-link[aria-current=page] svg{color:var(--tint)}.nav-count{margin-left:auto;font-size:11px;min-width:20px;text-align:center;color:var(--ink-2)}.rail-bottom{margin:12px 5px 0;border-top:1px solid var(--separator);padding:12px 7px 0}.workspace-caption{display:flex;align-items:center;gap:9px;color:var(--ink-2);font-size:12px}.workspace-caption b{display:block;color:var(--ink);font-size:12px;font-weight:500}.canvas{position:absolute;inset:0;overflow:auto;scrollbar-gutter:stable;z-index:1;padding:var(--canvas-top) 24px calc(30px + var(--dock-clearance)) var(--canvas-left);scroll-padding:var(--canvas-top) 24px calc(30px + var(--dock-clearance)) var(--canvas-left);mask-image:linear-gradient(to bottom,transparent 0px,transparent 16px,#0008 58px,#000 var(--canvas-top));}.workspace{position:relative;background:var(--surface);border-radius:24px;padding:29px 28px 25px;min-height:calc(100vh - 118px);max-width:1420px;margin:0 auto;box-shadow:0 1px 2px color-mix(in srgb,var(--ink) 3%,transparent),0 12px 32px -24px color-mix(in srgb,var(--ink) 24%,transparent)}.workspace::before{content:"";position:absolute;left:-32px;top:0;bottom:0;width:48px;background:var(--surface);border-radius:24px 0 0 24px;z-index:-1}.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:24px}.eyebrow{font-size:12px;font-weight:550;letter-spacing:.02em;color:var(--ink-2);margin-bottom:8px}.subtitle{color:var(--ink-2);margin-top:9px;font-size:13px;max-width:690px}.scope-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2);margin:5px 0 24px;flex-wrap:wrap}.scope-dot{width:5px;height:5px;border-radius:50%;background:var(--tint)}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;padding:22px 0 25px;margin-bottom:24px;border-top:1px solid var(--separator);border-bottom:1px solid var(--separator)}.metric{padding:0 22px;border-right:1px solid var(--separator)}.metric:first-child{padding-left:0}.metric:last-child{border-right:0}.metric-label{font-size:12px;color:var(--ink-2);display:flex;align-items:center;gap:6px}.metric-value{font-family:var(--font-display);font-variant-numeric:tabular-nums;font-size:31px;font-weight:650;letter-spacing:-.035em;line-height:1.3;margin:7px 0 3px}.metric-value small{font-size:14px;font-weight:400;letter-spacing:0;margin-left:5px;color:var(--ink-2)}.metric-note{font-size:12px;color:var(--ink-2)}.segment{display:inline-flex;gap:3px;background:var(--surface-2);padding:4px;border-radius:99px;max-width:100%;overflow:auto}.segment button,.segment a{border:0;border-radius:99px;padding:7px 14px;background:transparent;white-space:nowrap;font-size:13px;color:var(--ink-2);min-height:34px;display:flex;align-items:center;gap:7px}.segment [aria-selected=true],.segment [aria-current=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px color-mix(in srgb,var(--ink) 12%,transparent);font-weight:550}.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}.toolbar .segment{margin-right:auto}.searchbox{display:flex;align-items:center;gap:8px;border:1px solid var(--separator);border-radius:99px;padding:8px 12px;background:var(--surface);min-width:200px;max-width:270px}.searchbox svg{color:var(--ink-2);width:16px;height:16px}.searchbox input{border:0;outline:none;background:transparent;width:100%;min-width:0;font-size:13px}.searchbox:focus-within{outline:2px solid var(--tint);outline-offset:1px}input::placeholder,textarea::placeholder{color:var(--ink-2)}.field{display:grid;gap:7px}.field label{font-size:13px;font-weight:550}.field input,.field select,.field textarea{width:100%;border:1px solid var(--separator);background:var(--surface-2);padding:10px 12px;border-radius:10px;min-height:42px}.field textarea{min-height:84px;resize:vertical}.field small{color:var(--ink-2);font-size:12px}.field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}.filter-select{border:1px solid var(--separator);padding:8px 26px 8px 11px;border-radius:99px;background:var(--surface);font-size:12px;max-width:190px;min-height:36px}.table-wrap{overflow:auto;max-width:100%;border-radius:12px;scrollbar-width:thin}table{border-collapse:collapse;width:100%;text-align:left;font-size:13px}th{font-weight:500;font-size:12px;color:var(--ink-2);background:var(--surface-2);white-space:nowrap;padding:11px 14px;border-bottom:1px solid var(--separator)}th:first-child{border-radius:10px 0 0 10px}th:last-child{border-radius:0 10px 10px 0}td{padding:16px 14px;border-bottom:1px solid var(--separator);vertical-align:middle;white-space:nowrap}tr:last-child td{border-bottom:0}tbody tr:hover{background:var(--surface-2)}td:first-child,th:first-child{padding-left:12px}td:last-child,th:last-child{padding-right:12px}.entity{display:flex;align-items:center;gap:11px}.entity b{display:block;font-weight:600;color:var(--ink)}.entity small{display:block;color:var(--ink-2);font-size:12px;margin-top:3px}.provider{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:var(--surface-2);color:var(--ink);font-size:18px;font-weight:550;flex-shrink:0;border:1px solid var(--separator)}.provider.grok{background:var(--ink);color:var(--surface)}.provider.codex{color:var(--chart-3);background:color-mix(in srgb,var(--chart-3) 8%,var(--surface));border-color:transparent}.provider.claude{color:var(--chart-2);background:color-mix(in srgb,var(--chart-2) 9%,var(--surface));border-color:transparent}.provider.api{color:var(--tint);background:color-mix(in srgb,var(--tint) 8%,var(--surface));border-color:transparent}.cell-secondary{display:block;margin-top:4px;color:var(--ink-2);font-size:12px}.table-foot{display:flex;align-items:center;justify-content:space-between;margin-top:17px;font-size:12px;color:var(--ink-2);gap:12px}.concurrency{display:flex;align-items:center;gap:8px}.mini-meter{width:42px;height:4px;border-radius:5px;background:var(--surface-2);display:block}.mini-meter line{stroke:var(--tint);stroke-width:4;stroke-linecap:round}.card{border:1px solid var(--separator);border-radius:18px;padding:22px;background:var(--surface)}.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}.two-cols{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:20px}.equal-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.three-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.fact-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.fact dt{font-size:12px;color:var(--ink-2);margin-bottom:5px}.fact dd{margin:0;font-size:13px;overflow-wrap:anywhere}.fact dl{margin:0}.info-list{display:grid}.info-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;gap:16px;border-bottom:1px solid var(--separator)}.info-row:first-child{padding-top:0}.info-row:last-child{padding-bottom:0;border-bottom:0}.info-row p{font-size:13px}.info-row small{display:block;color:var(--ink-2);font-size:12px;margin-top:4px}.hero-number{font-size:45px;line-height:1.1;font-weight:600;letter-spacing:-.04em;margin:18px 0}.bar-chart{display:grid;gap:20px}.bar-label{display:flex;align-items:center;justify-content:space-between;font-size:13px;margin-bottom:7px;gap:12px}.bar-svg{display:block;width:100%;height:8px;border-radius:9px;background:var(--surface-2)}.chart-blue{color:var(--chart-1)}.chart-orange{color:var(--chart-2)}.chart-cyan{color:var(--chart-3)}.chart-pink{color:var(--chart-4)}.bar-svg rect{fill:currentColor}.timeline{margin:0;padding:0;list-style:none}.timeline li{position:relative;padding:0 0 24px 30px}.timeline li:not(:last-child)::before{content:"";position:absolute;left:7px;top:18px;bottom:0;border-left:1px solid var(--separator)}.timeline li::after{content:"";position:absolute;left:2px;top:6px;width:11px;height:11px;border:3px solid var(--surface);border-radius:50%;background:var(--tint);box-shadow:0 0 0 1px var(--separator)}.timeline li:last-child{padding-bottom:0}.timeline b{font-size:13px;font-weight:550}.timeline p{font-size:12px;color:var(--ink-2);margin-top:5px}.switch{width:43px;height:26px;border:0;background:color-mix(in srgb,var(--ink) 17%,var(--surface));border-radius:99px;padding:3px;display:flex;align-items:center}.switch::before{content:"";width:20px;height:20px;border-radius:50%;background:white;box-shadow:0 1px 3px #0003}.switch[aria-checked=true]{background:var(--tint-fill);justify-content:flex-end}.setting-row{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0;border-bottom:1px solid var(--separator)}.setting-row:last-child{border-bottom:0}.setting-row p{font-size:13px}.setting-row small{display:block;font-size:12px;color:var(--ink-2);margin-top:5px}.swatches{display:flex;gap:9px}.appearance{width:96px;min-height:76px;padding:6px;border:2px solid transparent;border-radius:12px;background:var(--surface-2)}.appearance[aria-pressed=true]{border-color:var(--tint)}.appearance i{display:block;height:42px;border-radius:6px;position:relative;overflow:hidden;background:linear-gradient(130deg,#b3cbee,#dfcef3 50%,#a0d5ca)}.appearance.dark i{background:linear-gradient(130deg,#213753,#363048 50%,#1d433f)}.appearance i:before{content:"";position:absolute;inset:4px 68px 4px 4px;background:#ffffff60;border:1px solid #ffffff70;border-radius:4px}.appearance i:after{content:"";position:absolute;inset:4px 4px 4px 24px;background:#fffffff0;border-radius:4px}.appearance.dark i:before{background:#11131880}.appearance.dark i:after{background:#1d1d20}.appearance span{font-size:12px;display:block;margin-top:5px}.dock{--r-outer:99px;position:absolute!important;z-index:60;bottom:22px;left:calc(50% + 108px);transform:translateX(-50%);display:flex;align-items:center;gap:16px;padding:10px 12px 10px 20px;min-height:60px;max-width:calc(100vw - 36px);white-space:nowrap}.dock strong{font-size:13px;font-weight:550}.dock small{font-size:12px;color:var(--ink-2)}.shell[data-draft=true] .canvas{mask-image:linear-gradient(to bottom,transparent 0,transparent 16px,#0008 58px,#000 var(--canvas-top)),linear-gradient(to top,transparent 14px,#0008 55px,#000 95px);mask-composite:intersect}.mobile-menu{display:none}.modal{margin:auto;border:1px solid var(--separator);border-radius:24px;padding:0;color:var(--ink);background:var(--surface);max-height:calc(100dvh - 56px);width:min(600px,calc(100vw - 40px));box-shadow:0 24px 80px #0003;overflow:auto}.modal::backdrop{background:#111a2b35;backdrop-filter:blur(5px)}.modal-head{position:sticky;top:0;background:var(--surface);z-index:3;display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--separator);gap:12px}.modal-body{padding:24px}.modal-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:24px;border-top:1px solid var(--separator);padding-top:18px}.detail-hero{display:flex;align-items:center;gap:14px;margin-bottom:25px}.detail-hero .provider{width:52px;height:52px;font-size:24px;border-radius:16px}.detail-hero h2{font-size:22px}.detail-hero p{font-size:12px;color:var(--ink-2);margin-top:4px}.detail-tabs{margin-bottom:22px}.commands{display:grid;gap:5px}.command-link{display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;color:var(--ink)}.command-link:hover{background:var(--surface-2)}.command-link small{margin-left:auto;color:var(--ink-2)}.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:100px;z-index:150;max-width:calc(100vw - 32px);padding:12px 20px;border:1px solid var(--separator);border-radius:99px;background:var(--surface);box-shadow:0 8px 30px #0002;font-size:13px;display:flex;gap:9px;align-items:center}.toast svg{color:var(--status-good)}.unlock{min-height:100dvh;display:grid;place-items:center;padding:24px;position:relative}.unlock-card{max-width:410px;width:100%;padding:34px;--r-outer:28px}.unlock-card .brandmark{width:44px;height:44px;margin-bottom:24px}.unlock-card h1{font-size:27px}.unlock-card p{margin:12px 0 24px;color:var(--ink-2);font-size:13px}.unlock-card .field{margin-bottom:20px}.unlock-card .btn{width:100%;min-height:42px}.route-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:20px 0}.route-step{padding:20px;border-radius:14px;background:var(--surface-2)}.step-num{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--surface);color:var(--tint);font-size:12px;margin-bottom:14px}.route-step p{font-size:12px;color:var(--ink-2);margin-top:5px}.inline-error{color:var(--status-critical);font-size:12px;margin-top:10px}.mobile-cards{display:none}.filter-summary{margin-bottom:18px}.fingerprint{white-space:normal;overflow-wrap:anywhere}.preview-footer{font-size:12px;color:var(--ink-2);margin-top:28px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:18px;border-top:1px solid var(--separator)}.skeleton{height:12px;border-radius:6px;background:var(--surface-2);margin:12px 0}.error-box{border:1px solid var(--separator);border-radius:16px;padding:24px}.form-check{display:flex;align-items:flex-start;gap:10px;font-size:13px}.form-check input{margin-top:4px;accent-color:var(--tint)}.kbd{padding:1px 5px;border:1px solid var(--separator);border-radius:4px;font-size:11px;color:var(--ink-2)}
+html[data-transparency=reduce] .glass[data-pane],html[data-transparency=reduce] .glass{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none;border:1px solid var(--separator)}html[data-transparency=reduce] .glass::before,html[data-transparency=reduce] .glass::after,html[data-transparency=reduce] .ambient-grain{display:none}html[data-transparency=reduce] .canvas{mask-image:linear-gradient(to bottom,transparent var(--chrome-bottom),#000 var(--chrome-bottom))}html[data-contrast=more]{--ink-2:var(--ink)}html[data-contrast=more] .glass[data-pane],html[data-contrast=more] .glass{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none;border:1px solid var(--ink);box-shadow:none}html[data-contrast=more] .glass::before,html[data-contrast=more] .glass::after,html[data-contrast=more] .ambient-grain{display:none}html[data-contrast=more] .canvas{mask-image:linear-gradient(to bottom,transparent var(--chrome-bottom),#000 var(--chrome-bottom))}html[data-motion=reduce]{--dur-anneal:0ms;--dur:0ms}@media(prefers-reduced-transparency:reduce),(prefers-contrast:more){.ambient-grain{display:none}.canvas{mask-image:linear-gradient(to bottom,transparent var(--chrome-bottom),#000 var(--chrome-bottom))}}@media(prefers-reduced-motion:reduce){:root{--dur-anneal:0ms;--dur:0ms}}@media(forced-colors:active){.glass[data-pane]{background:Canvas;backdrop-filter:none;border:1px solid CanvasText}.pill,.btn,.card,.workspace{border:1px solid CanvasText}.pill::before{background:CanvasText}.ambient-grain,.ambient{display:none}.canvas{mask-image:none}.bar-svg rect{fill:CanvasText}.bar-svg{border:1px solid CanvasText}.brandmark{forced-color-adjust:none}}
+@media(max-height:820px) and (min-width:821px){.rail{padding:8px 10px}.nav-label{padding:0 12px 2px}.nav-link{min-height:32px;padding:6px 11px}.nav-group+.nav-group{margin-top:6px}.rail-bottom{margin-top:8px;padding-top:8px}.workspace-caption{font-size:11px}.workspace-caption b{font-size:11px}}
+@media(min-width:1600px){.workspace{padding:36px 38px}.metric-value{font-size:36px}td{padding-top:19px;padding-bottom:19px}.nav-link{min-height:40px}.nav-group+.nav-group{margin-top:20px}}
+@media(max-width:1200px){.shell{--rail-w:190px;--canvas-left:225px}.brand{min-width:170px}.workspace{padding:25px 22px}.top-context{display:none}.two-cols{grid-template-columns:1fr}.dock{left:calc(50% + 96px)}.metric{padding:0 15px}.metric-value{font-size:28px}.toolbar .segment{flex-basis:100%;width:max-content;flex-grow:0;margin-bottom:4px}.searchbox{max-width:none;flex:1}.three-cols{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:820px){.shell{--canvas-left:18px;--canvas-top:92px;--chrome-bottom:74px}.canvas{padding-right:18px}.workspace{min-height:calc(100dvh - 110px);padding:24px 22px}.workspace::before{display:none}.topbar{gap:8px;padding:0 10px}.brand{min-width:0}.brand-tag,.top-divider,.preview-label{display:none}.topbar .brand-name{font-size:18px}.mobile-menu{display:inline-grid}.rail{display:none;top:82px;bottom:16px;left:16px;width:230px;z-index:70}.rail[data-open=true]{display:flex}.nav-link{min-height:42px}.nav-group+.nav-group{margin-top:12px}.dock{left:50%;gap:12px}.metric-value{font-size:27px}.version-select{max-width:168px;font-size:12px}.page-head{gap:14px}.page-head .btn{padding:7px 11px}h1{font-size:27px}.equal-cols{grid-template-columns:1fr}.preview-footer{align-items:flex-start}.preview-footer span:last-child{display:none}}
+@media(max-width:560px){.shell{--canvas-left:10px;--canvas-top:88px}.topbar{inset:12px 10px auto;height:56px;border-radius:18px}.canvas{padding-right:10px}.workspace{border-radius:22px;padding:23px 18px}.brandmark{width:25px;height:25px}.brand-name{font-size:17px!important}.topbar{gap:4px}.topbar .avatar,.topbar .search-trigger{display:none}.version-select{max-width:132px;padding:7px 5px;font-size:11px}.icon-btn{width:34px;height:36px}.page-head{flex-wrap:wrap;margin-bottom:20px}.page-head>div:first-child{flex:1;min-width:180px}.page-head h1{font-size:26px}.page-head .head-actions{flex-wrap:wrap}.subtitle{font-size:13px;line-height:1.7}.scope-row{margin-bottom:20px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:20px;padding:20px 0;margin-bottom:20px}.metric{padding:0 12px}.metric:nth-child(2){border-right:0}.metric:nth-child(3){padding-left:0}.metric-value{font-size:29px}.metric-note{font-size:11px}.toolbar{gap:8px}.toolbar .segment{margin-bottom:8px}.segment button,.segment a{font-size:12px;padding:7px 11px}.searchbox{flex-basis:100%;padding:10px 12px}.filter-select{flex:1;min-width:0}.table-foot{align-items:flex-start;line-height:1.7}.account-table{display:none}.mobile-cards{display:grid;gap:12px}.account-card{border:1px solid var(--separator);border-radius:15px;padding:16px;background:var(--surface)}.account-card .account-facts{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:17px;font-size:12px}.account-card .pill{font-size:11px;padding:4px 7px}.account-card .cell-secondary{font-size:11px}.card{padding:18px;border-radius:16px}.three-cols,.fact-grid,.field-row{grid-template-columns:1fr}.fact-grid{gap:16px}.fact-grid.two{grid-template-columns:1fr 1fr}.two-cols,.equal-cols{gap:16px}.card-head{gap:10px;align-items:flex-start}.card-head h2{font-size:16px}.dock{padding:9px 10px 9px 16px;gap:8px;border-radius:22px;min-width:calc(100vw - 24px);justify-content:space-between;bottom:12px;flex-wrap:wrap;white-space:normal}.dock>div:first-child{flex:1}.dock .btn{padding:7px 10px}.dock small{font-size:11px}.dock strong{font-size:12px}.modal{width:calc(100vw - 20px);max-height:calc(100dvh - 24px);border-radius:22px}.modal-head{padding:17px 18px}.modal-body{padding:20px}.detail-hero h2{font-size:21px}.notice{font-size:12px}.preview-footer{font-size:11px;line-height:1.7}.route-steps{grid-template-columns:1fr;gap:10px}.route-step{padding:15px}.step-num{float:left;margin:0 12px 24px 0}.setting-row{align-items:flex-start}.setting-row:first-child{flex-wrap:wrap}.appearance{width:84px}.rail{top:80px;max-height:calc(100dvh - 94px)}.unlock-card{padding:28px}.head-actions .btn{min-height:38px}td,th{padding-left:12px;padding-right:12px}}
+</style></head><body><div id="app"></div><dialog id="modal" class="modal" aria-labelledby="modal-title"></dialog><div id="toast" class="toast" role="status" hidden></div>
+<script>
+'use strict';
+const ICONS={"LayoutDashboard":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"7\" height=\"9\" x=\"3\" y=\"3\" rx=\"1\"></rect><rect width=\"7\" height=\"5\" x=\"14\" y=\"3\" rx=\"1\"></rect><rect width=\"7\" height=\"9\" x=\"14\" y=\"12\" rx=\"1\"></rect><rect width=\"7\" height=\"5\" x=\"3\" y=\"16\" rx=\"1\"></rect></svg>","Users":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"></path><path d=\"M16 3.128a4 4 0 0 1 0 7.744\"></path><path d=\"M22 21v-2a4 4 0 0 0-3-3.87\"></path><circle cx=\"9\" cy=\"7\" r=\"4\"></circle></svg>","Boxes":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z\"></path><path d=\"m7 16.5-4.74-2.85\"></path><path d=\"m7 16.5 5-3\"></path><path d=\"M7 16.5v5.17\"></path><path d=\"M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z\"></path><path d=\"m17 16.5-5-3\"></path><path d=\"m17 16.5 4.74-2.85\"></path><path d=\"M17 16.5v5.17\"></path><path d=\"M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z\"></path><path d=\"M12 8 7.26 5.15\"></path><path d=\"m12 8 4.74-2.85\"></path><path d=\"M12 13.5V8\"></path></svg>","Activity":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2\"></path></svg>","ChartNoAxesCombined":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 16v5\"></path><path d=\"M16 14.639V21\"></path><path d=\"M20 10.656V21\"></path><path d=\"m22 3-8.646 8.646a.5.5 0 0 1-.708 0L9.354 8.354a.5.5 0 0 0-.707 0L2 15\"></path><path d=\"M4 18.463V21\"></path><path d=\"M8 14.656V21\"></path></svg>","Network":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"16\" y=\"16\" width=\"6\" height=\"6\" rx=\"1\"></rect><rect x=\"2\" y=\"16\" width=\"6\" height=\"6\" rx=\"1\"></rect><rect x=\"9\" y=\"2\" width=\"6\" height=\"6\" rx=\"1\"></rect><path d=\"M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3\"></path><path d=\"M12 12V8\"></path></svg>","ShieldCheck":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"></path><path d=\"m9 12 2 2 4-4\"></path></svg>","Layers":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z\"></path><path d=\"M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12\"></path><path d=\"M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17\"></path></svg>","Receipt":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 17V7\"></path><path d=\"M16 8h-6a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4H8\"></path><path d=\"M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z\"></path></svg>","Settings2":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14 17H5\"></path><path d=\"M19 7h-9\"></path><circle cx=\"17\" cy=\"17\" r=\"3\"></circle><circle cx=\"7\" cy=\"7\" r=\"3\"></circle></svg>","ChevronDown":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"></path></svg>","ChevronRight":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"></path></svg>","ArrowUpRight":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 7h10v10\"></path><path d=\"M7 17 17 7\"></path></svg>","ArrowLeft":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m12 19-7-7 7-7\"></path><path d=\"M19 12H5\"></path></svg>","ArrowRight":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"></path><path d=\"m12 5 7 7-7 7\"></path></svg>","Plus":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"></path><path d=\"M12 5v14\"></path></svg>","Search":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m21 21-4.34-4.34\"></path><circle cx=\"11\" cy=\"11\" r=\"8\"></circle></svg>","SlidersHorizontal":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 5H3\"></path><path d=\"M12 19H3\"></path><path d=\"M14 3v4\"></path><path d=\"M16 17v4\"></path><path d=\"M21 12h-9\"></path><path d=\"M21 19h-5\"></path><path d=\"M21 5h-7\"></path><path d=\"M8 10v4\"></path><path d=\"M8 12H3\"></path></svg>","Ellipsis":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"1\"></circle><circle cx=\"19\" cy=\"12\" r=\"1\"></circle><circle cx=\"5\" cy=\"12\" r=\"1\"></circle></svg>","X":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18\"></path><path d=\"m6 6 12 12\"></path></svg>","Check":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"></path></svg>","CircleCheck":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><path d=\"m9 12 2 2 4-4\"></path></svg>","CircleAlert":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><line x1=\"12\" x2=\"12\" y1=\"8\" y2=\"12\"></line><line x1=\"12\" x2=\"12.01\" y1=\"16\" y2=\"16\"></line></svg>","Clock3":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><path d=\"M12 6v6h4\"></path></svg>","RefreshCw":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8\"></path><path d=\"M21 3v5h-5\"></path><path d=\"M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16\"></path><path d=\"M8 16H3v5\"></path></svg>","Sun":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"4\"></circle><path d=\"M12 2v2\"></path><path d=\"M12 20v2\"></path><path d=\"m4.93 4.93 1.41 1.41\"></path><path d=\"m17.66 17.66 1.41 1.41\"></path><path d=\"M2 12h2\"></path><path d=\"M20 12h2\"></path><path d=\"m6.34 17.66-1.41 1.41\"></path><path d=\"m19.07 4.93-1.41 1.41\"></path></svg>","Moon":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401\"></path></svg>","Command":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3\"></path></svg>","KeyRound":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z\"></path><circle cx=\"16.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\"></circle></svg>","ArrowDownToLine":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 17V3\"></path><path d=\"m6 11 6 6 6-6\"></path><path d=\"M19 21H5\"></path></svg>","PanelLeftClose":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"></rect><path d=\"M9 3v18\"></path><path d=\"m16 15-3-3 3-3\"></path></svg>","Menu":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 5h16\"></path><path d=\"M4 12h16\"></path><path d=\"M4 19h16\"></path></svg>","ExternalLink":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M15 3h6v6\"></path><path d=\"M10 14 21 3\"></path><path d=\"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6\"></path></svg>","Copy":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\" ry=\"2\"></rect><path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\"></path></svg>","ChevronsUpDown":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m7 15 5 5 5-5\"></path><path d=\"m7 9 5-5 5 5\"></path></svg>","Funnel":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z\"></path></svg>","Zap":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z\"></path></svg>","Database":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><ellipse cx=\"12\" cy=\"5\" rx=\"9\" ry=\"3\"></ellipse><path d=\"M3 5V19A9 3 0 0 0 21 19V5\"></path><path d=\"M3 12A9 3 0 0 0 21 12\"></path></svg>","Radio":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M16.247 7.761a6 6 0 0 1 0 8.478\"></path><path d=\"M19.075 4.933a10 10 0 0 1 0 14.134\"></path><path d=\"M4.925 19.067a10 10 0 0 1 0-14.134\"></path><path d=\"M7.753 16.239a6 6 0 0 1 0-8.478\"></path><circle cx=\"12\" cy=\"12\" r=\"2\"></circle></svg>","HelpCircle":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><path d=\"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3\"></path><path d=\"M12 17h.01\"></path></svg>","CircleDashed":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.1 2.182a10 10 0 0 1 3.8 0\"></path><path d=\"M13.9 21.818a10 10 0 0 1-3.8 0\"></path><path d=\"M17.609 3.721a10 10 0 0 1 2.69 2.7\"></path><path d=\"M2.182 13.9a10 10 0 0 1 0-3.8\"></path><path d=\"M20.279 17.609a10 10 0 0 1-2.7 2.69\"></path><path d=\"M21.818 10.1a10 10 0 0 1 0 3.8\"></path><path d=\"M3.721 6.391a10 10 0 0 1 2.7-2.69\"></path><path d=\"M6.391 20.279a10 10 0 0 1-2.69-2.7\"></path></svg>","LogIn":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m10 17 5-5-5-5\"></path><path d=\"M15 12H3\"></path><path d=\"M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4\"></path></svg>","Triangle":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M13.73 4a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z\"></path></svg>","Shield":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"></path></svg>","BookOpen":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 7v14\"></path><path d=\"M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z\"></path></svg>","ListFilter":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M2 5h20\"></path><path d=\"M6 12h12\"></path><path d=\"M9 19h6\"></path></svg>","ArrowDown":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14\"></path><path d=\"m19 12-7 7-7-7\"></path></svg>","CirclePause":"<svg class=\"icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><line x1=\"10\" x2=\"10\" y1=\"15\" y2=\"9\"></line><line x1=\"14\" x2=\"14\" y1=\"15\" y2=\"9\"></line></svg>"};
+const icon=n=>ICONS[n]||ICONS.CircleDashed;
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const prism='<svg class="brandmark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="prism-brand" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0a84ff"/><stop offset=".48" stop-color="#8273e8"/><stop offset="1" stop-color="#37bca5"/></linearGradient></defs><path d="M20 4 37 33H3Z" fill="url(#prism-brand)"/><path d="M20 4v29H3Z" fill="#fff" opacity=".2"/><path d="M20 12 31 31H9Z" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="1.2"/><path d="m20 4 0 29 17 0" fill="none" stroke="#fff" stroke-opacity=".5"/></svg>';
+const PAGES=[['overview','总览','LayoutDashboard','运行','运营视图 · 跨版本'],['monitoring','请求与失败','Activity','运行','按数据流区分作用域'],['usage','用量分析','ChartNoAxesCombined','运行','运营视图 · 跨版本'],['billing','计费与价格','Receipt','运行','全局目录 · 版本价格策略'],['accounts','账号池','Users','资源','实时投影 · 跨版本'],['upstreams','上游','Boxes','资源','配置视图'],['catalog','模型目录','BookOpen','资源','目录状态 · 所选配置版本'],['models','模型与路由','Network','资源','配置视图'],['access','访问控制','KeyRound','资源','配置视图'],['runtime','运行诊断','Radio','管理','运行投影 · 所选配置版本'],['egress','出口策略','ShieldCheck','管理','配置视图 · 出口域独立'],['versions','配置版本','Layers','管理','全局配置生命周期'],['audit','审计与备份','Database','管理','全局 · 只读审计'],['settings','设置','Settings2','管理','当前浏览器会话']];
+const versionState={selected:'active',draftPublished:false,revision:17,validated:false,dirty:0};
+const accounts=[
+{id:'atlas',name:'Atlas Build',provider:'grok',channel:'grok_build',account:'demo_acct_atlas',tier:'SuperGrok',domain:'grok_build',source:'signed_token',confidence:'derived',auth:'active',runtime:'available',inflight:1,limit:4,expires:'3 小时后',refresh:'2 小时 52 分后',catalog:'fresh',count:2,snapshot:'demo-cat-104',observed:'8 分钟前',due:false,failure:null},
+{id:'grove',name:'Grove Build',provider:'grok',channel:'grok_build',account:'demo_acct_grove',tier:'Free',domain:'grok_build',source:'signed_token',confidence:'derived',auth:'active',runtime:'cooldown',inflight:0,limit:2,expires:'6 小时后',refresh:'5 小时 50 分后',catalog:'stale',count:2,snapshot:'demo-cat-097',observed:'26 小时前',due:true,failure:'rate_limit'},
+{id:'orion',name:'Orion Codex',provider:'codex',channel:'chatgpt',account:'demo_acct_orion',tier:'Plus',domain:'chatgpt',source:'provider_subscription',confidence:'authoritative',auth:'active',runtime:'available',inflight:2,limit:4,expires:'2 小时 32 分后',refresh:'2 小时 24 分后',catalog:'fresh',count:6,snapshot:'demo-cat-105',observed:'12 分钟前',due:false,failure:null},
+{id:'vega',name:'Vega Codex',provider:'codex',channel:'chatgpt',account:'demo_acct_vega',tier:null,domain:null,source:null,confidence:null,auth:'reauth_required',runtime:'credential_forbidden',inflight:0,limit:4,expires:'已过期',refresh:'需要重新授权',catalog:'expired',count:6,snapshot:'demo-cat-084',observed:'75 小时前',due:true,failure:'authentication'},
+{id:'amber',name:'Amber Claude',provider:'claude',channel:'claude',account:'demo_acct_amber',tier:'Pro',domain:'claude',source:'imported_metadata',confidence:'declared',auth:'active',runtime:'available',inflight:0,limit:2,expires:'未观测',refresh:'未观测',catalog:'missing',count:null,snapshot:null,observed:null,due:null,failure:null},
+{id:'relay',name:'Relay API',provider:'api',channel:'openai_compatible',account:'demo_acct_relay',tier:null,domain:null,source:null,confidence:null,auth:'active',runtime:'available',inflight:3,limit:8,expires:'不适用',refresh:'不适用',catalog:'missing',count:null,snapshot:null,observed:null,due:null,failure:null}
+];
+const META={active:['认证有效','good'],available:['可调度','good'],cooldown:['冷却中','warn'],reauth_required:['需重授权','serious'],credential_forbidden:['凭据不可用','critical'],fresh:['新鲜','good'],stale:['陈旧','warn'],expired:['已过期','serious'],missing:['未观测','muted'],draft:['草稿','muted'],archived:['已归档','muted'],disabled:['已停用','muted'],revoked:['已撤销','critical'],exact:['准确','good'],partial:['部分观测','warn'],unknown:['未观测','muted'],unpriced:['未定价','muted']};
+const badge=(s,label)=>`<span class="pill ${META[s]?.[1]||'muted'}">${esc(label||META[s]?.[0]||s)}</span>`;
+const provider=a=>`<span class="provider ${a.provider}" aria-hidden="true">${a.provider==='grok'?'𝕏':a.provider==='claude'?'✳':icon(a.provider==='codex'?'Command':'Boxes')}</span>`;
+const btn=(label,action,ico='',cls='')=>`<button type="button" class="btn ${cls}" data-action="${esc(action)}">${ico?icon(ico):''}${label}</button>`;
+const link=(route,label,ico='',cls='btn quiet')=>`<a class="${cls}" href="#/${esc(route)}">${ico?icon(ico):''}${label}</a>`;
+const stat=(label,value,note,unit='')=>`<div class="metric"><div class="metric-label">${label}</div><div class="metric-value">${value}${unit?`<small>${unit}</small>`:''}</div><div class="metric-note">${note}</div></div>`;
+const metrics=xs=>`<div class="metrics">${xs.map(x=>stat(...x)).join('')}</div>`;
+const table=(heads,rows,cl='')=>!rows.length?empty(u('q')?'没有符合条件的记录':'暂无记录',u('q')?'调整关键词后再试。':'当前示例尚无可展示记录。',u('q')?btn('清除筛选','clear-filters','X'):''):`<div class="table-wrap ${cl}"><table><thead><tr>${heads.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+const empty=(title,text,action='',ico='Search')=>`<div class="empty">${icon(ico)}<h3>${title}</h3><p>${text}</p>${action}</div>`;
+const fact=(label,value,mono=false)=>`<div class="fact"><dl><dt>${label}</dt><dd class="${mono?'mono':''}">${value}</dd></dl></div>`;
+const note=(text,ico='CircleAlert')=>`<p class="note">${icon(ico)}<span>${text}</span></p>`;
+const card=(title,body,action='')=>`<section class="card"><div class="card-head"><h2>${title}</h2>${action}</div>${body}</section>`;
+const segment=(key,items,value)=>`<div class="segment" role="tablist" aria-label="${key==='tab'?'页面视图':key==='provider'?'平台筛选':key==='freshness'?'目录状态':'分组维度'}">${items.map(([v,l])=>`<button type="button" role="tab" aria-selected="${value===v}" data-param="${key}" data-value="${v}">${l}</button>`).join('')}</div>`;
+const row=(cells)=>`<tr>${cells.map(c=>`<td>${c}</td>`).join('')}</tr>`;
+const u=(key,def='')=>new URLSearchParams(location.hash.split('?')[1]||'').get(key)||def;
+const route=()=>location.hash.replace(/^#\/?/,'').split('?')[0]||'overview';
+function setParams(changes,replace=false){const p=new URLSearchParams(location.hash.split('?')[1]||'');for(const[k,v]of Object.entries(changes)){if(v)p.set(k,v);else p.delete(k)}const target='#/'+route()+(p.size?'?'+p.toString():'');if(replace){const absolute=new URL(location.href);absolute.hash=target;history.replaceState(null,'',absolute.href);renderPage()}else location.hash=target;}
+function scope(text){return `<div class="scope-row"><i class="scope-dot"></i><span>${text}</span><span>·</span><span>09 月 09 日 14:32 的合成快照</span></div>`}
+function pageHead(title,desc,actions='',scopeText=''){return `<header class="page-head"><div><div class="eyebrow">PRISM WORKSPACE</div><h1 tabindex="-1">${title}</h1><p class="subtitle">${desc}</p></div><div class="row head-actions">${actions}</div></header>${scope(scopeText||PAGES.find(p=>p[0]===route())?.[4]||'设计预览')}`;}
+function footer(text='所有展示数据均为合成示例；操作仅作用于当前预览。'){return `<footer class="preview-footer"><span>${text}</span><span>Apple Liquid Glass · Prism</span></footer>`}
+function search(placeholder='搜索名称或 ID',id='page-search',value=u('q')){return `<label class="searchbox">${icon('Search')}<input id="${id}" type="search" placeholder="${placeholder}" aria-label="${placeholder}" value="${esc(value)}" autocomplete="off"></label>`}
+function filteredAccounts(){return accounts.filter(a=>(u('provider','all')==='all'||a.provider===u('provider'))&&(!u('q')||(a.name+' '+a.account+' '+a.channel).toLowerCase().includes(u('q').toLowerCase()))&&(u('status','all')==='all'||a.auth===u('status')||a.runtime===u('status')))}
+function concurrency(a){return `<span class="concurrency mono">${a.inflight} / ${a.limit}<svg class="mini-meter" viewBox="0 0 44 6" aria-hidden="true"><line x1="2" y1="3" x2="${2+40*a.inflight/a.limit}" y2="3"/></svg></span>`}
+function accountRows(){const list=filteredAccounts();if(!list.length)return empty('没有符合条件的账号','调整平台、状态或关键词后再试。',btn('清除筛选','clear-filters','X'));return table(['账号','认证','运行时','并发','凭据期限',''],list.map(a=>row([`<button type="button" class="linkbtn entity" data-action="account:${a.id}">${provider(a)}<span><b>${a.name}</b><small>${a.channel} · ${a.id}</small></span></button>`,badge(a.auth),badge(a.runtime),concurrency(a),`<span>${a.expires}</span><span class="cell-secondary">${a.refresh.includes('后')?'计划续期 '+a.refresh:a.refresh}</span>`,`<button type="button" class="icon-btn" aria-label="查看 ${a.name}" data-action="account:${a.id}">${icon('ChevronRight')}</button>`])),'account-table')+`<div class="mobile-cards">${list.map(a=>`<article class="account-card"><div class="row spread"><button class="entity linkbtn" data-action="account:${a.id}">${provider(a)}<span><b>${a.name}</b><small>${a.channel}</small></span></button><button class="icon-btn" aria-label="查看 ${a.name}" data-action="account:${a.id}">${icon('ChevronRight')}</button></div><div class="account-facts">${badge(a.auth)}${badge(a.runtime)}</div><div class="account-facts"><span class="muted">并发 ${a.inflight} / ${a.limit}</span><span>${a.expires}</span></div></article>`).join('')}</div><div class="table-foot"><span>已展示 ${list.length} 个账号 · 快照 demo-pool-108</span><span>认证与调度状态独立呈现</span></div>`}
+function accountsPage(){return pageHead('账号池','每个账号的认证、调度与权益，一处看清。',btn('添加账号','add-account','Plus','primary'))+metrics([['账号总数','6','4 个平台 · 当前示例全集'],['可调度','4','运行时判定为 available'],['需要处理','2','1 个冷却 · 1 个需重授权'],['正在使用','6','当前 in-flight','/ 24']])+`<div class="toolbar">${segment('provider',[['all','全部平台'],['grok','Grok'],['codex','Codex'],['claude','Claude'],['api','兼容 API']],u('provider','all'))}${search('搜索账号或 ID')}<select class="filter-select" id="account-status" aria-label="账号状态"><option value="all">全部状态</option><option value="available">可调度</option><option value="cooldown">冷却中</option><option value="reauth_required">需重授权</option></select></div><div id="account-results">${accountRows()}</div>`+footer();}
+function overviewPage(){return pageHead('总览','从当前状态出发，找到下一项需要处理的工作。',link('monitoring?tab=failures','查看失败','ArrowUpRight'))+metrics([['累计尝试','18,426','自当前进程启动累计'],['尝试成功率','96.8%','17,836 成功 / 18,426 尝试'],['账号可调度','4','当前运行时投影','/ 6'],['待处理事件','37','队列 backlog · 丢弃 0']])+`<div class="two-cols">${card('需要处理',`<div class="info-list"><div class="info-row"><div class="row">${provider(accounts[3])}<div><p>Vega Codex 需要重新授权</p><small>认证已失效，凭据不能参与调度。</small></div></div>${btn('查看账号','account:vega','ChevronRight','quiet compact')}</div><div class="info-row"><div class="row">${provider(accounts[1])}<div><p>Grove Build 进入冷却</p><small>最近失败分类：rate_limit</small></div></div>${btn('查看证据','account:grove','ChevronRight','quiet compact')}</div><div class="info-row"><div class="row"><span class="provider api">${icon('BookOpen')}</span><div><p>1 个目录 target 已过期</p><small>目录新鲜度与账号认证分别判断。</small></div></div>${link('catalog?freshness=expired','查看目录','ChevronRight','btn quiet compact')}</div></div>`,`<span class="tag">3 项关注</span>`)}${card('尝试处理结果',`<div class="row spread"><div><div class="hero-number">96.8<span class="muted">%</span></div><p class="small muted">进程级累计 · 非时间趋势</p></div>${icon('Activity')}</div><div class="mt bar-chart"><div><div class="bar-label"><span>成功尝试</span><span class="mono">17,836</span></div><svg class="bar-svg chart-blue" viewBox="0 0 100 8" preserveAspectRatio="none" role="img" aria-label="成功尝试 96.8%"><rect width="96.8" height="8" rx="4"/></svg></div><div class="row spread small"><span class="muted">失败尝试</span><span class="mono">590</span></div></div>`)}</div><div class="equal-cols mt">${card('消费记录',empty('暂无账本记录','空账本不能用于判断没有消费。查看账本范围与定价状态。',link('monitoring?tab=ledger','查看账本','ArrowRight'),'Receipt'))}${card('工作空间',`<div class="info-list"><div class="info-row"><div><p>配置版本 v24</p><small>活动版本 · revision 17</small></div>${link('versions','管理版本','ChevronRight','btn quiet compact')}</div><div class="info-row"><div><p>模型目录</p><small>2 新鲜 · 1 陈旧 · 1 过期 · 2 未观测</small></div>${link('catalog','打开','ChevronRight','btn quiet compact')}</div><div class="info-row"><div><p>用量观测</p><small>按 token 类型查看覆盖与置信度</small></div>${link('usage','查看用量','ChevronRight','btn quiet compact')}</div></div>`)}</div>`+footer();}
+const failureRows=[{id:'demo_req_03',account:'grove',time:'14:31:08',code:'rate_limit',stage:'provider',attempt:1},{id:'demo_req_02',account:'vega',time:'14:29:42',code:'credential_forbidden',stage:'credential',attempt:1},{id:'demo_req_01',account:'grove',time:'14:24:11',code:'rate_limit',stage:'provider',attempt:2}];
+function monitoringPage(){const tab=u('tab','failures');const q=u('q').toLowerCase();const failures=failureRows.filter(f=>(f.id+' '+f.code+' '+accounts.find(a=>a.id===f.account).name).toLowerCase().includes(q));return pageHead('请求与失败','沿着请求尝试，定位到具体账号与失败原因。',btn('按 Request ID 查找','lookup-request','Search'))+`<div class="toolbar">${segment('tab',[['failures','失败归因'],['ledger','计费账本']],tab)}${search('搜索请求 ID、账号或错误码')}</div>`+(tab==='failures'?`${scope('失败归因 · 所选配置版本')}<div class="row wrap gap6 filter-summary"><span class="tag">3 条失败尝试</span><span class="tag">2 个关联账号</span><span class="tag">按安全分类展示</span></div>${failures.length?table(['发生时间','请求','账号','归因层','失败分类',''],failures.map(f=>row([`<span class="mono">${f.time}</span>`,`<button class="linkbtn mono" data-action="request:${f.id}">${f.id}</button>`,btn(accounts.find(a=>a.id===f.account).name,'account:'+f.account,'','quiet compact'),`<span class="tag mono">${f.stage}</span>`,badge(f.code==='rate_limit'?'cooldown':'credential_forbidden',f.code),btn('尝试详情','request:'+f.id,'ChevronRight','quiet compact')]))):empty('没有匹配的失败记录','请调整搜索条件。',btn('清除筛选','clear-filters','X'))}<div class="table-foot"><span>已展示 ${failures.length} 条 · 14:24–14:32 的示例范围</span><span>同一请求可能包含多次尝试</span></div><div class="mt">${note('失败归因与账本是独立数据流。此列表不代表请求全集，不据此计算请求成功率。')}</div>`:`${scope('计费账本 · 跨版本')}<div class="card">${empty('暂无账本记录','当前示例展示真实空态：账本为空，不代表没有请求或没有消费。',link('billing','查看价格配置','ArrowRight'),'Receipt')}</div><div class="equal-cols mt">${card('账本范围',`<div class="fact-grid">${fact('时间范围','09 月 09 日 00:00–14:32')}${fact('观测水位','未观测')}${fact('金额','未观测')}${fact('定价置信度',badge('unpriced'))}</div>`)}${card('已有请求定位',`<p class="muted small">已知 Request ID 时，可独立查看其尝试。尝试记录只包含状态与标识符。</p><div class="mt">${btn('查看示例尝试','request:demo_req_03','Activity')}</div>`)}</div>`)+footer();}
+const usageData=[{provider:'Grok',account:'Atlas Build',model:'demo-model-build',requests:680,input:680000,output:204000,reasoning:52000,read:300000,creation:null,cached:null},{provider:'Codex',account:'Orion Codex',model:'demo-model-code',requests:490,input:490000,output:147000,reasoning:34500,read:340000,creation:128000,cached:null},{provider:'Claude',account:'Amber Claude',model:'demo-model-chat',requests:78,input:78000,output:35400,reasoning:null,read:null,creation:null,cached:null}];
+function usagePage(){const dim=u('dimension','provider');const filtered=usageData.filter(x=>JSON.stringify(x).toLowerCase().includes(u('q').toLowerCase()));const sum=k=>filtered.reduce((n,x)=>n+(x[k]??0),0);const fmt=n=>n.toLocaleString('en-US');return pageHead('用量分析','看清 token 的构成，也看清每一项观测的完整程度。',btn('观测口径','usage-help','CircleAlert'))+`<div class="toolbar">${segment('dimension',[['provider','按平台'],['account','按账号'],['model','按模型']],dim)}${search('搜索平台、账号或模型')}<span class="tag">09 月 09 日 · 00:00–14:32</span></div>`+metrics([['输入 token',fmt(sum('input')),'准确 · exact'],['输出 token',fmt(sum('output')),'准确 · exact'],['推理 token',fmt(sum('reasoning')),'已观测下界 · 覆盖不完整'],['请求计数',fmt(sum('requests')),'当前聚合行的计数']])+`<div class="two-cols">${card('六类 token 观测',`<div class="info-list">${[['输入','input','exact'],['输出','output','exact'],['推理','reasoning','partial'],['缓存读取','read','partial'],['缓存创建','creation','partial'],['聚合缓存','cached','unknown']].map(([label,k,c])=>`<div class="info-row"><div><p>${label}</p><small>${c==='exact'?'所有示例行均有观测':c==='unknown'?'没有可用观测值':'仅累加已观测部分'}</small></div><div class="row"><span class="mono">${c==='unknown'?'—':fmt(sum(k))}</span>${badge(c)}</div></div>`).join('')}</div>`)}${card('输入 token 分布',`<div class="bar-chart">${filtered.map((x,i)=>`<div><div class="bar-label"><span>${x[dim]}</span><span class="mono">${fmt(x.input)}</span></div><svg class="bar-svg ${['chart-blue','chart-orange','chart-cyan'][i]}" viewBox="0 0 100 8" preserveAspectRatio="none" role="img" aria-label="${x[dim]} 输入 ${x.input} token"><rect width="${sum('input')?x.input/sum('input')*100:0}" height="8" rx="4"/></svg></div>`).join('')}</div><div class="mt">${note('这是所选范围的聚合构成，没有时间桶或延迟数据。')}</div>`)}</div><section class="mt"><div class="card-head"><h2>聚合明细</h2><span class="small muted">金额请查看计费账本</span></div>${filtered.length?table([dim==='provider'?'平台':dim==='account'?'账号':'模型','请求','输入 token','输出 token','观测'],filtered.map(x=>row([x[dim],`<span class="mono">${fmt(x.requests)}</span>`,`<span class="mono">${fmt(x.input)}</span>`,`<span class="mono">${fmt(x.output)}</span>`,badge('partial','部分类型缺失')]))):empty('没有匹配的用量','请调整筛选。',btn('清除筛选','clear-filters'))}</section>`+footer();}
+const catalogs=[{name:'demo-prices-sep',source:'手动导入',entries:3,date:'09 月 09 日 10:00'},{name:'demo-prices-aug',source:'历史导入',entries:3,date:'08 月 28 日 09:00'}];
+let policyCatalog='demo-prices-sep';
+function billingPage(){const tab=u('tab','catalogs');return pageHead('计费与价格','全局价格目录与版本价格策略，在各自的范围内管理。',btn('导入价格目录','import-prices','Plus','primary'))+`<div class="toolbar">${segment('tab',[['catalogs','价格目录'],['policy','路由价格策略']],tab)}${link('monitoring?tab=ledger','消费账本','ArrowUpRight')}</div>`+(tab==='catalogs'?`<div class="notice">价格目录对所有配置版本可见。导入目录时，不会自动修改当前版本的价格策略。</div><div class="mt">${table(['目录版本','来源','条目数','生效时间',''],catalogs.map(c=>row([`<button class="linkbtn mono" data-action="prices:${esc(c.name)}">${esc(c.name)}</button>`,c.source,`<span class="mono">${c.entries}</span>`,c.date,btn('查看条目','prices:'+c.name,'ChevronRight','quiet compact')])) )}</div><div class="equal-cols mt">${card('当前版本的绑定',`<p class="mono">${esc(policyCatalog||'未配置')}</p><p class="small muted mt">配置 ${versionState.selected==='draft'?'v25 · 草稿':'v24 · 活动'} 的路由价格证据来源。</p><div class="mt">${link('billing?tab=policy','查看策略','ArrowRight')}</div>`)}${card('金额与观测',`<div class="info-list"><div class="info-row"><div><p>账本金额</p><small>只显示已记录的账本金额</small></div>${link('monitoring?tab=ledger','查看账本','ChevronRight','btn quiet compact')}</div><div class="info-row"><div><p>token 用量</p><small>每类 token 保留自身置信度</small></div>${link('usage','查看用量','ChevronRight','btn quiet compact')}</div></div>`)}</div>`:`${card('路由价格策略',`<div class="fact-grid">${fact('所属版本',versionLabel())}${fact('绑定目录',policyCatalog?`<code>${esc(policyCatalog)}</code>`:'未配置')}${fact('比较方式','以当前策略定义为准')}${fact('价格证据',policyCatalog?'使用绑定目录':'disabled · 未启用价格比较')}</div><div class="line"></div><p class="muted small">编辑属于所选草稿。活动与归档版本保持只读。</p><div class="row mt">${btn(versionState.selected==='draft'?'修改绑定':'在草稿中编辑','edit-policy','Settings2','primary')}${policyCatalog?btn('查看价格条目','prices:'+policyCatalog,'ChevronRight'):''}</div>`)}`)+footer();}
+function catalogPage(){const freshness=u('freshness','all');const list=accounts.filter(a=>(freshness==='all'||a.catalog===freshness)&&((a.name+' '+a.channel+' '+a.account).toLowerCase().includes(u('q').toLowerCase())));return pageHead('模型目录','逐个 target 查看目录新鲜度、观测时间与刷新需求。',btn('目录口径','catalog-help','CircleAlert'))+metrics([['新鲜','2','目录仍在有效观测期'],['需要更新','2','1 陈旧 · 1 已过期'],['未观测','2','不等同于空目录'],['目录 target','6','端点 × 凭据']])+`<div class="toolbar">${segment('freshness',[['all','全部'],['fresh','新鲜'],['stale','陈旧'],['expired','已过期'],['missing','未观测']],freshness)}${search('搜索 target 或账号')}</div>`+(list.length?table(['Target / 账号','目录状态','模型数','最近观测','需要刷新',''],list.map(a=>row([`<button class="linkbtn entity" data-action="catalog:${a.id}">${provider(a)}<span><b>${a.name}</b><small>${a.channel}</small></span></button>`,badge(a.catalog),`<span class="mono">${a.count??'—'}</span>`,a.observed||'未观测',a.due===null?'未观测':a.due?badge('stale','是'):badge('fresh','否'),btn('详情','catalog:'+a.id,'ChevronRight','quiet compact')]))):empty('没有符合条件的目录','调整状态或搜索关键词。',btn('清除筛选','clear-filters')))+`<div class="table-foot"><span>已展示 ${list.length} 个 target · 目录计数不等同于授权后可调用数</span></div><div class="notice mt" data-kind="unwired"><strong>有效模型清单</strong><br>管理端尚无授权后的完整模型枚举接口。目前可查看目录状态和配置模型；完整可调用清单将在后端提供管理投影后接入。<div class="mt">${link('models','查看配置模型','ArrowRight')}</div></div>`+footer();}
+const upstreams=[{id:'demo-up-grok',name:'Grok',type:'grok',provider:'grok',protocol:'openai_chat_completions',channel:'grok_build',endpoints:1,credentials:2},{id:'demo-up-codex',name:'Codex',type:'chatgpt',provider:'codex',protocol:'openai_responses',channel:'chatgpt',endpoints:1,credentials:2},{id:'demo-up-claude',name:'Claude',type:'claude',provider:'claude',protocol:'anthropic_messages',channel:'claude',endpoints:1,credentials:1},{id:'demo-up-relay',name:'Compatible API',type:'openai_compatible',provider:'api',protocol:'openai_chat_completions',channel:'openai_compatible',endpoints:1,credentials:1}];
+function versionLabel(){return versionState.selected==='draft'?(versionState.draftPublished?'v25 · 活动':'v25 · 草稿'):versionState.selected==='archived'?'v23 · 已归档':versionState.draftPublished?'v24 · 已归档':'v24 · 活动'}
+function upstreamsPage(){const list=upstreams.filter(x=>(x.name+' '+x.id+' '+x.type).toLowerCase().includes(u('q').toLowerCase()));return pageHead('上游','管理平台连接、端点与凭据绑定。',btn('创建上游','create-upstream','Plus','primary'))+`<div class="toolbar">${search('搜索上游名称或 ID')}<span class="grow"></span><span class="tag">${versionLabel()}</span></div><div class="equal-cols">${list.map(s=>card(`<span class="row">${provider(s)}<span>${esc(s.name)}</span></span>`,`<p class="small mono muted">${s.id}</p><div class="line"></div><div class="fact-grid two">${fact('端点',s.endpoints+' 个')}${fact('凭据',s.credentials+' 个')}${fact('渠道',`<code>${s.channel}</code>`)}${fact('出口策略','demo-egress-direct')}</div><div class="row mt">${btn('管理连接','upstream:'+s.id,'Settings2')}${link('accounts?provider='+s.provider,'关联账号','ArrowUpRight','btn quiet')}</div>`,`<span class="tag">${s.type}</span>`)).join('')}</div>${list.length?'':empty('没有匹配的上游','请调整名称或 ID。',btn('清除筛选','clear-filters'))}<div class="notice mt">当前选择 ${versionLabel()}。配置变更先进入草稿，再完成校验与发布；已导入账号的日常刷新状态在账号池查看。</div>`+footer();}
+let publicModels=[{id:'demo-model-build',name:'Build Assistant',protocol:'openai_chat_completions',route:'demo-route-build'},{id:'demo-model-code',name:'Code Assistant',protocol:'openai_responses',route:'demo-route-code'},{id:'demo-model-chat',name:'Chat Assistant',protocol:'anthropic_messages',route:'demo-route-chat'}];
+function modelsPage(){const tab=u('tab','models');const list=publicModels.filter(m=>(m.id+' '+m.name).toLowerCase().includes(u('q').toLowerCase()));return pageHead('模型与路由','把公开模型、路由和候选的配置关系组织清楚。',btn('创建公开模型','create-model','Plus','primary'))+`<div class="toolbar">${segment('tab',[['models','公开模型'],['workbench','路由工作台']],tab)}${tab==='models'?search('搜索模型名称或 ID'):''}${link('catalog','目录状态','ArrowUpRight')}</div>`+(tab==='models'?(list.length?table(['公开模型','协议','已关联路由',''],list.map(m=>row([`<button class="linkbtn" data-action="model:${m.id}"><b>${esc(m.name)}</b><span class="cell-secondary mono">${m.id}</span></button>`,`<code>${m.protocol}</code>`,`<button class="linkbtn mono" data-action="route:${m.route}">${m.route}</button>`,btn('管理','model:'+m.id,'ChevronRight','quiet compact')]))):empty('没有匹配的配置模型','请调整关键词。',btn('清除筛选','clear-filters')))+`<div class="notice mt">此处是公开模型配置。是否能被特定 Client Key 调用，仍由授权与运行时共同决定。</div>`:`<div class="card"><h2>定位路由</h2><p class="small muted mt">用 Route ID 加载已知路由，再查看价格证据与候选配置。</p><form id="route-lookup" class="row wrap mt"><label class="field grow"><span class="sr-only">Route ID</span><input name="route" placeholder="例如 demo-route-build" value="${esc(u('route','demo-route-build'))}" required aria-label="Route ID"></label><button class="btn primary" type="submit">${icon('Search')}加载路由</button></form><div class="route-steps"><div class="route-step"><span class="step-num">1</span><h3>公开模型</h3><p>面向客户端的配置身份</p></div><div class="route-step"><span class="step-num">2</span><h3>路由与候选</h3><p>按 Route ID 定位与维护</p></div><div class="route-step"><span class="step-num">3</span><h3>端点与凭据</h3><p>保持 exact target 身份</p></div></div></div><div class="notice mt" data-kind="unwired">当前契约支持定位已有路由和创建候选。完整 Route / Candidate / Alias 枚举与候选修改、删除仍依赖后端补齐；此处不展示伪造的全量配置图。</div>`)+footer();}
+let groups=[{id:'demo-group-dev',name:'开发团队',routes:2,keys:2,status:'active'},{id:'demo-group-ci',name:'CI 工作流',routes:1,keys:1,status:'active'}];
+let keys=[{id:'demo-key-dev',name:'开发环境',prefix:'demo_key_dev…',group:'开发团队',state:'active'},{id:'demo-key-local',name:'本地调试',prefix:'demo_key_local…',group:'开发团队',state:'disabled'},{id:'demo-key-ci',name:'CI 构建',prefix:'demo_key_ci…',group:'CI 工作流',state:'active'}];
+function accessPage(){const tab=u('tab','groups');return pageHead('访问控制','围绕访问组分配路由，为客户端管理最小必要的权限。',btn(tab==='groups'?'创建访问组':'签发 Client Key',tab==='groups'?'create-group':'issue-key','Plus','primary'))+`<div class="toolbar">${segment('tab',[['groups','访问组'],['keys','Client Keys']],tab)}${search(tab==='groups'?'搜索访问组':'搜索 Key 名称或前缀')}</div>`+(tab==='groups'?table(['访问组','状态','路由绑定','关联 Keys',''],groups.filter(g=>(g.name+' '+g.id).toLowerCase().includes(u('q').toLowerCase())).map(g=>row([`<button class="linkbtn" data-action="group:${g.id}"><b>${esc(g.name)}</b><span class="cell-secondary mono">${g.id}</span></button>`,badge(g.status,g.status==='active'?'启用':'停用'),`${g.routes} 个`,`${g.keys} 个`,btn('管理授权','group:'+g.id,'ChevronRight','quiet compact')]))):table(['Client Key','所属访问组','状态','前缀',''],keys.filter(k=>(k.name+' '+k.prefix).toLowerCase().includes(u('q').toLowerCase())).map(k=>row([esc(k.name),esc(k.group),badge(k.state,k.state==='active'?'启用':undefined),`<code>${k.prefix}</code>`,btn('管理','key:'+k.id,'ChevronRight','quiet compact')]))))+`<div class="notice mt">完整密钥只在签发成功时展示一次。列表只保留前缀，预览使用不能用于认证的示例占位。</div>`+footer();}
+function runtimePage(){const tab=u('tab','matrix');const list=accounts.filter(a=>u('abnormal')!=='yes'||a.runtime!=='available');return pageHead('运行诊断','先定位一个 target，再检查调度判定与路由解释。',btn('重新读取示例','refresh','RefreshCw'))+`<div class="toolbar">${segment('tab',[['matrix','可用性矩阵'],['explain','Route Explain'],['pin','Channel Pin']],tab)}${tab==='matrix'?`<label class="form-check"><input type="checkbox" id="only-abnormal" ${u('abnormal')==='yes'?'checked':''}>仅异常 target</label>`:''}</div>`+(tab==='matrix'?`${table(['Target','运行时判定','认证','并发',''],list.map(a=>row([`<button class="linkbtn" data-action="runtime:${a.id}"><b>${a.name}</b><span class="cell-secondary mono">demo-ep-${a.channel} × demo-cred-${a.id}</span></button>`,badge(a.runtime),badge(a.auth),concurrency(a),btn('诊断','runtime:'+a.id,'ChevronRight','quiet compact')])))}<div class="equal-cols mt">${card('账号与权益',`<p class="small muted">日常账号状态与权益证据已集中到独立账号池。</p><div class="mt">${link('accounts','打开账号池','Users')}</div>`)}${card('目录与出口',`<p class="small muted">目录新鲜度和 Provider 出口状态有独立观测范围。</p><div class="row mt">${link('catalog','模型目录','BookOpen')}${link('egress?tab=runtime','出口状态','ShieldCheck')}</div>`)}</div>`:tab==='explain'?`${card('解释一个路由',`<p class="small muted">Explain 展示配置和运行时决策依据，不发起 Provider 推理请求。</p><form id="explain-form" class="stack mt"><div class="field-row"><div class="field"><label for="explain-route">Route ID</label><input id="explain-route" name="route" value="${esc(u('route','demo-route-build'))}" required></div><div class="field"><label for="explain-group">访问组</label><select id="explain-group"><option>demo-group-dev</option><option>demo-group-ci</option></select></div></div><div><button class="btn primary" type="submit">${icon('Network')}查看解释</button></div></form>`)}`:`${card('精确渠道验证',`<p class="muted small">锁定模型、Channel 和账号，分开记录目录、文本、工具回传与历史重放的验证结果。</p><form id="pin-form" class="stack mt"><div class="field-row"><div class="field"><label for="pin-model">Exact model</label><input id="pin-model" value="demo-model-build" required></div><div class="field"><label for="pin-account">目标账号</label><select id="pin-account"><option value="atlas">Atlas Build</option><option value="orion">Orion Codex</option></select></div></div><div class="notice">正式产品执行此操作会向指定 Provider 发送真实请求。本设计只预览确认步骤，不执行外部请求。</div><div><button class="btn primary" type="submit">${icon('Radio')}预览验证确认</button></div></form>`)}`)+footer();}
+let egressPolicies=[{id:'demo-egress-direct',name:'HTTPS 直连',hosts:['api.example.test'],ports:'443',redirect:'deny',refs:4},{id:'demo-egress-limited',name:'受限重定向',hosts:['relay.example.test'],ports:'443',redirect:'revalidate',refs:0}];
+function egressPage(){const tab=u('tab','policies');return pageHead('出口策略','把配置约束、兼容代理与 Provider 出口观测分开管理。',tab==='policies'?btn('创建策略','create-egress','Plus','primary'):tab==='proxy'?btn('创建代理池','create-proxy','Plus','primary'):btn('重新读取示例','refresh','RefreshCw'))+`<div class="toolbar">${segment('tab',[['policies','出口策略'],['proxy','兼容代理'],['runtime','Provider 出口']],tab)}</div>`+(tab==='policies'?table(['策略','允许目标','端口','重定向','被引用',''],egressPolicies.map(p=>row([`<b>${esc(p.name)}</b><span class="cell-secondary mono">${p.id}</span>`,`<code>${p.hosts.join(', ')}</code>`,`<span class="mono">${p.ports}</span>`,`<span class="tag mono">${p.redirect}</span>`,`${p.refs} 个上游`,btn('详情','egress:'+p.id,'ChevronRight','quiet compact')]))):tab==='proxy'?`<div class="equal-cols">${card('兼容代理池',`<div class="info-list"><div class="info-row"><div><p>demo-proxy-pool</p><small>1 个演示节点 · 配置视图</small></div>${btn('管理代理池','proxy-detail','ChevronRight','quiet compact')}</div><div class="info-row"><div><p>默认绑定</p><small>demo-up-relay</small></div><span class="tag">显式绑定</span></div></div>`)}${card('代理节点',`<div class="fact-grid">${fact('节点','demo-node-01')}${fact('地址','<code>https://proxy.example.test</code>')}${fact('认证','仅显示配置引用')}${fact('运行结果','未观测')}</div><div class="mt">${btn('编辑示例节点','edit-proxy-node','Settings2')}</div>`)}</div><div class="notice mt">兼容代理配置与 Provider 出口投影是不同的域。节点存在不代表真实连接已验证。</div>`:table(['Provider / 渠道','出口模式','当前判定','观测',''],[['Grok / grok_build','Provider 出口','可用','8 分钟前','atlas'],['Codex / chatgpt','Provider 出口','未观测','—','orion'],['Claude / claude','Provider 出口','未观测','—','amber']].map(([n,m,s,t,a])=>row([n,m,badge(s==='可用'?'available':'missing',s),t,btn('关联 target','runtime:'+a,'ChevronRight','quiet compact')]))))+`<div class="mt">${note('允许域名使用 exact host。策略默认只允许 HTTPS；重定向需要明确选择并重新校验。')}</div>`+footer();}
+function versionsPage(){return pageHead('配置版本','在草稿里修改，校验后发布；历史版本保留可追溯记录。',btn('从当前版本创建草稿','create-draft','Plus','primary'))+`<div class="three-cols">${card('活动版本',`<div class="hero-number">${versionState.draftPublished?'v25':'v24'}</div>${badge('active','正在服务')}<p class="small muted mt">管理配置的当前活动快照</p>`)}${card('草稿',`<div class="hero-number">${versionState.draftPublished?'—':'v25'}</div>${badge('draft',versionState.draftPublished?'暂无草稿':'待校验')}<p class="small muted mt">${versionState.dirty} 项预览变更</p>`)}${card('最近归档',`<div class="hero-number">v23</div>${badge('archived')}<p class="small muted mt">发布 v24 时被替换</p>`)}</div><div class="mt">${table(['版本','状态','Revision','来源',''],[['v25',versionState.draftPublished?'active':'draft',String(versionState.revision), '基于 v24',`<div class="row">${btn('选择','select-version:draft','','compact')}${btn('查看差异','version-diff','','quiet compact')}</div>`],['v24',versionState.draftPublished?'archived':'active','17','基于 v23',btn('选择','select-version:active','','compact')],['v23','archived','12','历史版本',btn('选择','select-version:archived','','compact')]].map(([v,s,r,o,a])=>row([`<strong>${v}</strong>`,badge(s,s==='active'?'活动':undefined),`<span class="mono">${r}</span>`,o,a])) )}</div><div class="equal-cols mt">${card('发布步骤',`<ol class="timeline"><li><b>创建并编辑草稿</b><p>每次变更以当前 revision 为基准。</p></li><li><b>验证配置</b><p>查看可定位的错误与警告。</p></li><li><b>确认发布</b><p>明确新活动版本与将被替换的版本。</p></li></ol>`)}${card('历史操作',`<p class="muted small">回滚使用后端生命周期操作，保留审计记录。预览可以查看确认页面。</p><div class="row wrap mt">${btn('预览回滚确认','rollback','ArrowLeft')}${link('audit','查看审计','ArrowUpRight')}</div>`)}</div>`+footer();}
+const auditEvents=[{id:108,action:'config_created',actor:'demo-operator',time:'14:20:06',version:'v25',replaced:'—'},{id:107,action:'config_published',actor:'demo-operator',time:'10:18:42',version:'v24',replaced:'v23'},{id:106,action:'config_created',actor:'demo-operator',time:'09:42:15',version:'v24',replaced:'—'}];
+function auditPage(){const tab=u('tab','events');const list=auditEvents.filter(x=>(x.action+' '+x.actor+' '+x.version).toLowerCase().includes(u('q').toLowerCase()));return pageHead('审计与备份','配置生命周期可追溯，备份准备有清晰边界。')+`<div class="toolbar">${segment('tab',[['events','生命周期审计'],['backup','备份预检']],tab)}${tab==='events'?search('搜索动作、执行者或版本'):''}</div>`+(tab==='events'?table(['事件','动作','执行者','时间','版本','替换版本'],list.map(e=>row([`<button class="linkbtn mono" data-action="audit:${e.id}">#${e.id}</button>`,`<code>${e.action}</code>`,`<span class="mono">${e.actor}</span>`,`<span class="mono">${e.time}</span>`,e.version,e.replaced])))+`<div class="table-foot"><span>只追加记录 · 当前显示 ${list.length} 条合成事件</span></div>`:`<div class="equal-cols">${card('源库备份预检',`<p class="muted small">检查 schema 版本与备份密钥需求。预检不创建或下载备份工件。</p><div class="mt">${btn('开始示例预检','backup-preflight','ShieldCheck','primary')}</div><div id="backup-result" class="mt"></div>`)}${card('运维交接',`<ol class="timeline"><li><b>运行源库预检</b><p>记录 schema 版本和独立备份密钥需求。</p></li><li><b>在运维侧生成备份</b><p>使用正式备份流程，不在浏览器回显秘密。</p></li><li><b>恢复到空目标库</b><p>部署侧执行恢复，在线面板不提供覆盖恢复。</p></li></ol>`)}</div>`)+footer();}
+const prefs={transparency:false,contrast:false,motion:false};
+function settingsPage(){const dark=document.documentElement.dataset.theme==='dark';return pageHead('设置','让工作空间适合你的显示环境与操作习惯。')+`<div class="equal-cols">${card('外观',`<div class="setting-row"><div><p>颜色模式</p><small>Apple 系统字体与 Prism 材质</small></div><div class="swatches"><button class="appearance" aria-label="使用浅色外观" aria-pressed="${!dark}" data-action="appearance:light"><i></i><span>浅色</span></button><button class="appearance dark" aria-label="使用深色外观" aria-pressed="${dark}" data-action="appearance:dark"><i></i><span>深色</span></button></div></div>${[['transparency','减少透明度','以实底替代玻璃，内容保持可读。'],['contrast','增强对比度','加强文字和控件边界。'],['motion','减少动态效果','关闭版本材质过渡。']].map(([k,t,d])=>`<div class="setting-row"><div><p>${t}</p><small>${d}</small></div><button class="switch" role="switch" aria-label="${t}" aria-checked="${prefs[k]}" data-action="pref:${k}"></button></div>`).join('')}`)}${card('会话与工作空间',`<div class="setting-row"><div><p>设计语言</p><small>本版以简体中文展示完整栏目。</small></div><span class="tag">简体中文</span></div><div class="setting-row"><div><p>当前会话</p><small>偏好与草稿演示只保存在页面内存。</small></div>${btn('锁定预览','lock','LogIn','compact')}</div><div class="setting-row"><div><p>设计版本</p><small>14 个工作区 + 解锁页</small></div><span class="tag">Liquid Glass V3</span></div><div class="setting-row"><div><p>页面状态样本</p><small>加载、空态、过滤空、不可用和失败。</small></div>${btn('查看','state-gallery','ChevronRight','quiet compact')}</div><div class="setting-row"><div><p>快速跳转</p><small>搜索全部栏目，快速切换工作区。</small></div><button class="btn compact" data-action="search">⌘ K</button></div>`)}</div><div class="notice mt">这份设计在支持的浏览器使用 SVG 边缘折射；其他浏览器使用模糊材质。系统的减少透明度、增强对比度和减少动态效果偏好会继续生效。</div>`+footer();}
+const renderers={overview:overviewPage,accounts:accountsPage,monitoring:monitoringPage,usage:usagePage,billing:billingPage,catalog:catalogPage,upstreams:upstreamsPage,models:modelsPage,access:accessPage,runtime:runtimePage,egress:egressPage,versions:versionsPage,audit:auditPage,settings:settingsPage};
+const modal=document.getElementById('modal');let focusReturn=null;let toastTimer;let lensObserver;
+function toast(message){const el=document.getElementById('toast');clearTimeout(toastTimer);el.innerHTML=icon('CircleCheck')+`<span>${esc(message)}</span>`;el.hidden=false;toastTimer=setTimeout(()=>el.hidden=true,4500)}
+function openModal(title,body){if(!modal.open)focusReturn=document.activeElement;modal.innerHTML=`<header class="modal-head"><h2 id="modal-title">${title}</h2><button type="button" class="icon-btn" data-action="close" aria-label="关闭详情">${icon('X')}</button></header><div class="modal-body">${body}</div>`;if(!modal.open)modal.showModal();modal.scrollTop=0;}
+function closeModal(){modal.close()}
+modal.addEventListener('close',()=>{if(focusReturn?.isConnected)focusReturn.focus();else document.querySelector('h1')?.focus({preventScroll:true})});
+function ensureDraft(next){if(versionState.selected==='draft'&&!versionState.draftPublished){next();return}openModal('在草稿中编辑',`<p class="muted">当前选择 ${versionLabel()}。选择已有草稿 v25 后继续修改。</p><div class="modal-foot">${btn('取消','close')}${btn('切换草稿并继续','continue-draft','','primary')}</div>`);pendingDraft=next;}
+let pendingDraft=null;
+function changed(){versionState.dirty++;versionState.revision++;versionState.validated=false;closeModal();renderShell();toast('已保存到预览草稿；未写入网关。')}
+function accountDetail(id,tab='runtime'){const a=accounts.find(x=>x.id===id);if(!a)return;openModal(a.name,`<div class="detail-hero">${provider(a)}<div><h2>${a.name}</h2><p class="mono">${a.account}</p></div></div><div class="segment detail-tabs" role="tablist" aria-label="账号详情"><button role="tab" aria-selected="${tab==='runtime'}" data-action="account:${id}">运行状态</button><button role="tab" aria-selected="${tab==='entitlement'}" data-action="entitlement:${id}">权益证据</button><button role="tab" aria-selected="${tab==='bindings'}" data-action="bindings:${id}">配置与失败</button></div>`+(tab==='entitlement'?a.tier?`<div class="fact-grid">${fact('权益域',a.domain,true)}${fact('套餐',a.tier+' <span class="tag mono">'+a.tier.toLowerCase()+'</span>')}${fact('来源',a.source,true)}${fact('置信度',a.confidence,true)}${fact('观测时间','09 月 09 日 14:20（示例）')}${fact('来源范围','当前账号 · 当前权益域')}</div><div class="notice mt">套餐只描述当前权益域；目录与真实可调用模型仍分别判断。</div>`:empty('权益未观测','后端为 null 时保留未观测状态，不推断为 Free 或其他套餐。','','ShieldCheck'):tab==='bindings'?`<div class="fact-grid">${fact('Endpoint',`demo-ep-${a.channel}`,true)}${fact('Credential',`demo-cred-${id}`,true)}${fact('Channel',a.channel,true)}${fact('目录状态',badge(a.catalog))}</div><div class="line"></div><h3>失败证据</h3><p class="small muted mt">${a.failure?'安全分类：'+a.failure:'当前示例未观测到失败分类。没有记录不等于验证通过。'}</p><div class="row wrap mt">${link('monitoring?tab=failures&q='+encodeURIComponent(a.name),'查看失败','Activity')}${btn('目录详情','catalog:'+id,'BookOpen')}</div>`:`<div class="fact-grid">${fact('认证',badge(a.auth))}${fact('运行时',badge(a.runtime))}${fact('并发',`${a.inflight} / ${a.limit}`,true)}${fact('凭据到期',a.expires)}${fact('计划续期',a.refresh)}${fact('Quota 同步','未观测')}</div>${a.auth==='reauth_required'?`<div class="notice warn mt">此账号需要 operator 完成交互式重新授权。页面不会自动触发 OAuth 或 Autoreg。</div>`:''}<div class="line"></div><div class="row spread"><div><h3>模型目录</h3><p class="small muted">${a.observed?'最近观测 '+a.observed:'尚无目录成功观测'}</p></div>${btn('查看 target','catalog:'+id,'ChevronRight','quiet')}</div>`)+`<div class="modal-foot">${btn('关闭','close')}${btn('运行诊断','runtime:'+id,'Radio')}</div>`)}
+function catalogDetail(id){const a=accounts.find(x=>x.id===id);if(!a)return;openModal('目录 target',`<div class="detail-hero">${provider(a)}<div><h2>${a.name}</h2><p>${a.channel} · ${badge(a.catalog)}</p></div></div><div class="fact-grid">${fact('Endpoint',`demo-ep-${a.channel}`,true)}${fact('Credential',`demo-cred-${id}`,true)}${fact('目录模型计数',a.count??'未观测')}${fact('Snapshot version',a.snapshot||'未观测',true)}${fact('最近成功观测',a.observed||'未观测')}${fact('Refresh due',a.due===null?'未观测':a.due?'是':'否')}${fact('最近失败分类',a.failure||'未观测',true)}${fact('最近失败时间',a.failure?'09 月 09 日 14:29（示例）':'未观测')}</div><div class="notice mt">这些信息来自目录状态投影；计数不表示当前访问组的授权后模型数。</div><div class="modal-foot">${btn('查看账号','account:'+id,'Users')}${btn('关闭','close')}</div>`)}
+function runtimeDetail(id){const a=accounts.find(x=>x.id===id);if(!a)return;openModal('Target 运行诊断',`<div class="detail-hero">${provider(a)}<div><h2>${a.name}</h2><p class="mono">demo-ep-${a.channel} × demo-cred-${a.id}</p></div></div><div class="fact-grid">${fact('调度器判定',badge(a.runtime))}${fact('认证状态',badge(a.auth))}${fact('目录新鲜度',badge(a.catalog))}${fact('并发',`${a.inflight} / ${a.limit}`)}</div><div class="line"></div><ol class="timeline"><li><b>识别精确目标</b><p>Endpoint、Credential 与 Channel 保持独立标识。</p></li><li><b>读取当前判定</b><p>${a.runtime==='available'?'当前投影可调度，不等同于真实请求验证。':'当前 target 暂不能参与调度。'}</p></li><li><b>继续查看证据</b><p>从账号、失败记录或 Route Explain 继续定位。</p></li></ol><div class="row wrap mt">${btn('账号证据','account:'+id,'Users')}${link('runtime?tab=explain&route=demo-route-build','Route Explain','Network')}</div>${a.runtime==='cooldown'?`<div class="modal-foot">${btn('预览恢复操作','recovery:'+id,'RefreshCw')}</div>`:''}`)}
+function requestDetail(id){const f=failureRows.find(x=>x.id===id);if(!f){openModal('请求尝试',empty('没有该请求的示例记录','当前原型只包含 demo_req_01、demo_req_02 和 demo_req_03。',btn('查看示例','request:demo_req_03'),'Search'));return}const a=accounts.find(x=>x.id===f.account);openModal('请求尝试',`<div class="row spread"><code>${id}</code><span class="tag">${f.attempt} 条示例尝试</span></div><div class="line"></div><ol class="timeline">${f.attempt===2?`<li><b>Attempt 1 · Grove Build</b><p>provider · rate_limit · 允许进入后续尝试</p></li>`:''}<li><b>Attempt ${f.attempt} · ${a.name}</b><p>${f.stage} · ${f.code}</p><div class="row mt">${badge(a.runtime)}${btn('目标账号','account:'+a.id,'Users','quiet compact')}</div></li><li><b>可追溯字段</b><p>Route：demo-route-build<br>Endpoint：demo-ep-${a.channel}<br>Credential：demo-cred-${a.id}</p></li></ol><div class="notice mt">仅展示契约中的状态、归因与 ID；此处没有请求正文或延迟数据。</div><div class="modal-foot">${link('runtime?tab=explain&route=demo-route-build','解释路由','Network')}${btn('关闭','close')}</div>`)}
+function pricesDetail(id){openModal('价格目录 · '+esc(id),`${scope('全局价格目录 · 示例')}<p class="small muted">以下为设计用价格值，单位 USD / 百万 token。</p><div class="mt">${table(['Exact model','输入','输出'],[['demo-model-build','1.00','3.00'],['demo-model-code','2.00','6.00'],['demo-model-chat','3.00','9.00']].map(x=>row(x)))}</div><div class="notice mt">生产价格由导入目录决定。无价格字段保留未观测，不使用这些示例作为默认价格。</div><div class="modal-foot">${btn('关闭','close')}</div>`)}
+function upstreamDetail(id){const s=upstreams.find(x=>x.id===id);if(!s)return;openModal('上游连接 · '+esc(s.name),`<div class="fact-grid">${fact('Upstream ID',s.id,true)}${fact('Provider 类型',s.type,true)}${fact('协议',s.protocol,true)}${fact('出口策略','demo-egress-direct',true)}</div><div class="line"></div><div class="card-head"><h3>端点与凭据</h3>${btn('编辑连接','edit-upstream:'+id,'Settings2','compact')}</div><div class="info-list"><div class="info-row"><div><p>${s.channel}</p><small>Endpoint · ${esc(s.endpoint||'https://api.example.test')}</small></div><span class="tag">HTTPS</span></div><div class="info-row"><div><p>${s.credentials} 个已绑定凭据</p><small>列表与详情均不回显凭据秘密。</small></div>${link('accounts?provider='+s.provider,'查看账号','ChevronRight','btn quiet compact')}</div></div><div class="modal-foot">${btn('绑定凭据','bind-credential:'+id,'KeyRound')}${btn('关闭','close')}</div>`)}
+function modelDetail(id){const m=publicModels.find(x=>x.id===id);if(!m)return;openModal('公开模型',`<div class="fact-grid">${fact('名称',esc(m.name))}${fact('Exact ID',m.id,true)}${fact('协议',m.protocol,true)}${fact('已知 Route ID',m.route,true)}</div><div class="line"></div><h3>配置关系</h3><div class="info-row mt"><div><p>路由</p><small>${m.route}</small></div>${btn('加载路由','route:'+m.route,'ChevronRight','quiet compact')}</div><div class="info-row"><div><p>模型别名</p><small>可以创建别名；完整枚举仍待契约支持。</small></div>${btn('创建别名','alias:'+id,'Plus','quiet compact')}</div><div class="modal-foot">${btn('编辑公开模型','edit-model:'+id,'Settings2')}${btn('关闭','close')}</div>`)}
+function routeDetail(id){if(!/^demo-route-(build|code|chat)$/.test(id)){openModal('路由定位',empty('没有该路由的示例数据','当前示例可加载 demo-route-build、demo-route-code、demo-route-chat。',btn('加载示例路由','route:demo-route-build'),'Network'));return}openModal('路由 · '+esc(id),`<div class="fact-grid">${fact('配置版本',versionLabel())}${fact('Route ID',id,true)}${fact('路由状态','已加载单个已知路由')}${fact('候选列表','完整枚举待后端')}</div><div class="line"></div><h3>可以继续的操作</h3><p class="small muted mt">保留已完成的候选创建与 Explain。不能通过运营 inventory 推定全部草稿候选。</p><div class="row wrap mt">${btn('创建候选','create-candidate:'+id,'Plus')}${link('runtime?tab=explain&route='+id,'Route Explain','Network')}</div><div class="notice mt" data-kind="unwired">候选修改、删除与完整枚举未进入当前管理契约；正式实现需要后端 BE-FE-02。</div><div class="modal-foot">${btn('关闭','close')}</div>`)}
+function groupDetail(id){const g=groups.find(x=>x.id===id);if(!g)return;openModal('访问组 · '+esc(g.name),`<div class="fact-grid">${fact('组 ID',g.id,true)}${fact('状态',badge(g.status,'启用'))}${fact('路由绑定',g.routes+' 条')}${fact('关联 Keys',g.keys+' 个')}</div><div class="line"></div><h3>授权路由</h3><div class="info-list mt">${publicModels.slice(0,g.routes).map(m=>`<div class="info-row"><div><p>${m.name}</p><small>${m.route}</small></div>${btn('查看路由','route:'+m.route,'ChevronRight','quiet compact')}</div>`).join('')}</div><div class="modal-foot">${btn('添加路由绑定','bind-route:'+id,'Plus')}${btn('编辑访问组','edit-group:'+id,'Settings2')}</div>`)}
+function keyDetail(id){const k=keys.find(x=>x.id===id);if(!k)return;openModal('Client Key · '+esc(k.name),`<div class="fact-grid">${fact('Key ID',k.id,true)}${fact('显示前缀',k.prefix,true)}${fact('访问组',esc(k.group))}${fact('状态',badge(k.state,k.state==='active'?'启用':undefined))}</div><div class="notice mt">完整密钥无法再次读取。这里仅展示前缀和配置元数据。</div><div class="modal-foot">${btn(k.state==='active'?'停用 Key':'启用 Key','toggle-key:'+id,'ShieldCheck')}${btn('关闭','close')}</div>`)}
+function egressDetail(id){const p=egressPolicies.find(x=>x.id===id);if(!p)return;openModal('出口策略 · '+esc(p.name),`<div class="fact-grid">${fact('策略 ID',p.id,true)}${fact('允许协议','HTTPS')}${fact('允许主机',p.hosts.map(esc).join(', '),true)}${fact('允许端口',p.ports,true)}${fact('重定向',p.redirect,true)}${fact('被引用',p.refs+' 个上游')}</div><div class="notice mt">策略约束是配置事实；真实出口状态请在 Provider 出口视图中检查。</div><div class="modal-foot">${btn('编辑策略','edit-egress:'+id,'Settings2')}${btn('关闭','close')}</div>`)}
+function simpleForm(title,fields,submitLabel,kind,extra=''){openModal(title,`<form id="editor-form" data-kind="${kind}" class="stack">${fields}${extra}<p class="small muted">只演示当前页面内的配置变更，不发送管理 API 请求。</p><div class="modal-foot">${btn('取消','close')}<button type="submit" class="btn primary">${submitLabel}</button></div></form>`)}
+function inputField(label,name,value='',help='',type='text'){return `<div class="field"><label for="f-${name}">${label}</label><input id="f-${name}" name="${name}" value="${esc(value)}" type="${type}" required maxlength="120" autocomplete="off">${help?`<small>${help}</small>`:''}</div>`}
+function selectField(label,name,options){return `<div class="field"><label for="f-${name}">${label}</label><select id="f-${name}" name="${name}">${options.map(x=>`<option value="${esc(x[0])}">${esc(x[1])}</option>`).join('')}</select></div>`}
+function validation(){versionState.validated=true;openModal('草稿校验 · 示例结果',`<div class="row spread"><h3>v25 · revision ${versionState.revision}</h3>${badge('fresh','示例校验通过')}</div><div class="line"></div><ol class="timeline"><li><b>配置引用完整</b><p>示例公开模型、路由与上游引用可以定位。</p></li><li><b>出口策略结构有效</b><p>示例主机与端口符合配置约束。</p></li><li><b>等待发布确认</b><p>配置校验不证明 Provider 的真实请求可用性。</p></li></ol><div class="notice mt">这是交互原型的固定校验样本，没有执行后端校验。</div><div class="modal-foot">${btn('返回草稿','close')}${btn('预览发布','publish','','primary')}</div>`);updateChrome()}
+function publishConfirm(){openModal('发布配置 · 预览确认',`<div class="fact-grid">${fact('新活动版本','v25')}${fact('当前活动版本','v24')}${fact('待发布 revision',versionState.revision,true)}${fact('示例校验',versionState.validated?'已查看':'尚未查看')}</div><div class="notice mt">本次操作只切换设计稿中的版本状态。正式实现会替换正在服务的配置并写入审计。</div><div class="modal-foot">${btn('取消','close')}${btn(versionState.validated?'确认演示发布':'先查看校验',versionState.validated?'confirm-publish':'validate','','primary')}</div>`)}
+function commandPalette(){openModal('前往工作区',`${search('搜索栏目','command-search','')}<div id="command-list" class="commands mt">${commandLinks('')}</div>`);document.getElementById('command-search')?.focus()}
+function commandLinks(q){const list=PAGES.filter(p=>(p[1]+' '+p[0]).toLowerCase().includes(q.toLowerCase()));return list.length?list.map(p=>`<a href="#/${p[0]}" class="command-link">${icon(p[2])}<span>${p[1]}</span><small>${p[3]}</small>${icon('ChevronRight')}</a>`).join(''):empty('没有匹配的栏目','试试“账号”“模型”或“配置”。')}
+function stateGallery(){openModal('页面状态样本',`<div class="stack">${card('加载中',`<p class="small muted">正在读取目录状态…</p><div class="skeleton"></div><div class="skeleton"></div>`)}${card('真空',`<p class="muted small">暂无账本记录；不能据此判断没有消费。</p>`)}${card('过滤后空',`<p class="muted small">没有符合当前条件的账号。</p><div class="mt">${btn('去账号池调整筛选','go-accounts','Search')}</div>`)}<div class="notice" data-kind="unwired"><b>管道未接线 / 能力待接入</b><br>以明确文案与虚线边界表达，不当作正常空数据。</div><div class="error-box"><h3>投影不可用</h3><p class="small muted mt">此部署未启用该运行时投影。停止自动轮询。</p></div><div class="error-box"><h3>读取失败</h3><p class="small muted mt">当前读取未成功；保留已选择的配置与筛选。</p><div class="mt">${btn('查看重试反馈','retry-state','RefreshCw')}</div></div><div class="error-box"><h3>会话失效</h3><p class="small muted mt">锁定工作区，清空会话中的秘密与受保护缓存。</p><div class="mt">${btn('查看解锁页','lock','LogIn')}</div></div></div>`)}
+function handleAction(action){const[k,id]=action.split(':');switch(k){
+case'close':closeModal();break;case'clear-filters':setParams({q:'',status:'',provider:'',freshness:''});break;case'account':accountDetail(id);break;case'entitlement':accountDetail(id,'entitlement');break;case'bindings':accountDetail(id,'bindings');break;case'catalog':catalogDetail(id);break;case'runtime':runtimeDetail(id);break;case'request':requestDetail(id);break;case'prices':pricesDetail(id);break;case'upstream':upstreamDetail(id);break;case'model':modelDetail(id);break;case'route':routeDetail(id);break;case'group':groupDetail(id);break;case'key':keyDetail(id);break;case'egress':egressDetail(id);break;
+case'theme':setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');break;case'appearance':setTheme(id);break;case'pref':prefs[id]=!prefs[id];document.documentElement.dataset[id]=prefs[id]?(id==='contrast'?'more':'reduce'):'normal';renderPage();break;case'nav-toggle':{const rail=document.querySelector('.rail');const on=rail.dataset.open!=='true';rail.dataset.open=String(on);document.querySelector('.mobile-menu')?.setAttribute('aria-expanded',String(on));refreshLenses();break}case'search':commandPalette();break;case'lock':closeModal();location.hash='#/unlock';break;case'unlock':location.hash='#/overview';break;case'go-accounts':closeModal();location.hash='#/accounts';break;case'state-gallery':stateGallery();break;case'retry-state':openModal('重试后的示例',empty('目录已重新读取','当前样本从读取失败恢复到已加载状态。',link('catalog','查看目录','ArrowRight'),'CircleCheck'));break;
+case'refresh':toast('已重新呈现合成快照；没有调用真实接口。');break;
+case'add-account':simpleForm('添加账号 · 连接方式',selectField('平台','provider',[['grok','Grok'],['codex','Codex'],['claude','Claude'],['api','Compatible API']])+selectField('接入方式','method',[['existing','绑定已导入凭据'],['oauth','交互式 OAuth 授权'],['key','API Key']]),'查看接入步骤','add-account');break;
+case'lookup-request':simpleForm('查找请求尝试',inputField('Request ID','request','demo_req_03'),'查找示例','lookup-request');break;
+case'catalog-help':openModal('目录状态说明',`<div class="info-list">${[['Fresh / 新鲜','默认成功观测后 6 小时内。'],['Stale / 陈旧','6 小时后进入陈旧；24 小时到达刷新需求。'],['Expired / 已过期','默认 72 小时后过期，以服务端判定为准。'],['Missing / 未观测','没有成功目录观测，不解释为空目录。']].map(([t,d])=>`<div class="info-row"><div><p>${t}</p><small>${d}</small></div></div>`).join('')}</div><div class="notice mt">具体阈值和 verdict 以部署与服务端为准。目录 refresh due 与凭据 refresh due 是两个字段。</div>`);break;
+case'usage-help':openModal('用量观测口径',`<div class="stack"><p>单行是指定范围与维度组合的聚合，不是一个时间桶。</p><p class="muted">输入、输出、推理、缓存读取、缓存创建和聚合缓存各自保留 confidence。缺失值不按零计入；不同缓存类型也不直接合并。</p><div class="notice">金额属于账本。用量投影的 unpriced 只表示未定价。</div>${link('monitoring?tab=ledger','查看计费账本','Receipt')}</div>`);break;
+case'continue-draft':versionState.selected='draft';versionState.draftPublished=false;closeModal();renderShell();pendingDraft?.();pendingDraft=null;break;
+case'create-draft':versionState.selected='draft';versionState.draftPublished=false;versionState.validated=false;renderShell();toast('已选择预览草稿 v25。');break;
+case'select-version':versionState.selected=id;renderShell();break;case'validate':validation();break;case'publish':publishConfirm();break;case'confirm-publish':versionState.draftPublished=true;versionState.selected='draft';versionState.dirty=0;closeModal();renderShell();toast('演示发布已完成：v25 变为活动版本。');break;
+case'version-diff':openModal('草稿差异 · 设计样本',`${table(['对象','变化'],[row(['公开模型','新增 demo-model-build 绑定']),row(['出口策略','允许主机更新为 api.example.test']),row(['价格策略','绑定 demo-prices-sep'])])}<div class="notice mt">这是用于展示差异层次的固定样本；不是当前网关或所有页面内编辑的自动 diff。</div><div class="modal-foot">${btn('查看校验结果','validate','CircleCheck','primary')}</div>`);break;
+case'rollback':openModal('回滚 · 确认预览',`<div class="fact-grid">${fact('当前活动','v24')}${fact('回滚对象','前一活动配置 v23')}</div><div class="notice mt">正式操作将切换服务配置并写入审计。当前原型不执行回滚。</div><div class="modal-foot">${btn('返回','close')}${btn('查看回滚记录示例','rollback-example','ArrowLeft')}</div>`);break;
+case'rollback-example':openModal('回滚审计样本',`<div class="fact-grid">${fact('动作','config_rolled_back',true)}${fact('执行者','demo-operator')}${fact('目标版本','v23')}${fact('替换版本','v24')}</div><p class="small muted mt">仅用于预览审计呈现；没有产生真实回滚记录。</p>`);break;
+case'create-upstream':ensureDraft(()=>simpleForm('创建上游',inputField('显示名称','name','')+selectField('Provider 类型','type',[['grok','Grok'],['codex','Codex'],['claude','Claude'],['api','Compatible API']]),'保存预览草稿','create-upstream'));break;
+case'edit-upstream':ensureDraft(()=>simpleForm('编辑上游',inputField('显示名称','name',upstreams.find(s=>s.id===id)?.name||'')+inputField('Endpoint 地址','endpoint','https://api.example.test','','url'),'保存预览草稿','edit-upstream:'+id));break;
+case'bind-credential':ensureDraft(()=>simpleForm('绑定已有凭据',selectField('Credential','credential',accounts.map(a=>['demo-cred-'+a.id,a.name+' · demo-cred-'+a.id])),'预览绑定结果','binding:'+id));break;
+case'create-model':ensureDraft(()=>simpleForm('创建公开模型',inputField('显示名称','name','')+selectField('协议','protocol',[['openai_responses','OpenAI Responses'],['openai_chat_completions','OpenAI Chat Completions'],['anthropic_messages','Anthropic Messages']]),'保存预览草稿','create-model'));break;
+case'edit-model':ensureDraft(()=>simpleForm('编辑公开模型',inputField('显示名称','name',publicModels.find(m=>m.id===id)?.name||''),'保存预览草稿','edit-model:'+id));break;
+case'alias':ensureDraft(()=>simpleForm('创建模型别名',inputField('Alias','alias','demo-alias','正式实现保留 exact alias，不自动改写模型 ID。'),'查看变更预览','alias:'+id));break;
+case'create-candidate':ensureDraft(()=>simpleForm('创建路由候选',inputField('Exact upstream model','model','demo-model-build')+selectField('目标账号','account',accounts.map(a=>[a.id,a.name])),'查看候选预览','candidate:'+id));break;
+case'create-group':ensureDraft(()=>simpleForm('创建访问组',inputField('名称','name',''),'保存预览草稿','create-group'));break;
+case'edit-group':ensureDraft(()=>simpleForm('编辑访问组',inputField('名称','name',groups.find(g=>g.id===id)?.name||''),'保存预览草稿','edit-group:'+id));break;
+case'bind-route':ensureDraft(()=>simpleForm('添加路由绑定',selectField('已知路由','route',publicModels.map(m=>[m.route,m.name+' · '+m.route])),'预览绑定','route-binding:'+id));break;
+case'issue-key':ensureDraft(()=>simpleForm('签发 Client Key · 原型',inputField('名称','name','')+selectField('访问组','group',groups.map(g=>[g.name,g.name])),'生成示例占位','issue-key'));break;
+case'toggle-key':ensureDraft(()=>{const k=keys.find(x=>x.id===id);openModal(k.state==='active'?'停用 Client Key':'启用 Client Key',`<p>操作对象：<strong>${esc(k.name)}</strong> · <code>${k.prefix}</code></p><div class="notice mt">只改变预览状态，正式产品需明确影响与 revision。</div><div class="modal-foot">${btn('取消','close')}${btn('确认预览变更','confirm-toggle-key:'+id,'','primary')}</div>`)});break;
+case'confirm-toggle-key':{const k=keys.find(x=>x.id===id);k.state=k.state==='active'?'disabled':'active';changed();break}
+case'create-egress':ensureDraft(()=>simpleForm('创建出口策略',inputField('名称','name','')+inputField('允许主机','host','api.example.test','精确域名，不含通配符、协议或路径。')+selectField('重定向','redirect',[['deny','拒绝重定向'],['revalidate','重定向后重新校验']]),'保存预览草稿','create-egress'));break;
+case'edit-egress':ensureDraft(()=>simpleForm('编辑出口策略',inputField('名称','name',egressPolicies.find(p=>p.id===id)?.name||'')+inputField('允许主机','host',egressPolicies.find(p=>p.id===id)?.hosts[0]||'api.example.test')+selectField('重定向','redirect',[['deny','拒绝重定向'],['revalidate','重新校验']]),'保存预览草稿','edit-egress:'+id));break;
+case'create-proxy':ensureDraft(()=>simpleForm('创建兼容代理池',inputField('代理池名称','name','')+inputField('代理节点地址','endpoint','https://proxy.example.test','','url'),'查看配置预览','proxy'));break;
+case'proxy-detail':openModal('兼容代理池',`<div class="fact-grid">${fact('Pool ID','demo-proxy-pool',true)}${fact('节点','demo-node-01',true)}${fact('绑定','demo-up-relay',true)}${fact('运行结果','未观测')}</div><div class="modal-foot">${btn('编辑节点','edit-proxy-node','Settings2')}${btn('关闭','close')}</div>`);break;
+case'edit-proxy-node':ensureDraft(()=>simpleForm('编辑代理节点',inputField('节点名称','name','demo-node-01')+inputField('代理地址','endpoint','https://proxy.example.test','','url'),'查看节点预览','proxy'));break;
+case'import-prices':simpleForm('导入全局价格目录',inputField('目录名称','name','demo-prices-new')+`<div class="notice">导入作用于全局价格目录，不属于所选草稿。本例使用 3 条固定合成价格条目。</div>`,'导入到预览','import-prices');break;
+case'edit-policy':ensureDraft(()=>simpleForm('绑定路由价格目录',selectField('目录版本','catalog',catalogs.map(c=>[c.name,c.name])),'保存预览草稿','policy'));break;
+case'backup-preflight':document.getElementById('backup-result').innerHTML=`<div class="notice"><strong>合成预检结果</strong><br>Schema：1<br>恢复时需要独立备份密钥。<br>未创建或下载备份工件。</div>`;break;
+case'audit':{const e=auditEvents.find(x=>String(x.id)===id);openModal('审计事件 #'+id,`<div class="fact-grid">${fact('动作',e.action,true)}${fact('执行者',e.actor,true)}${fact('时间',e.time,true)}${fact('版本',e.version)}${fact('被替换版本',e.replaced)}</div><p class="small muted mt">只读生命周期事件，不包含请求正文或凭据秘密。</p>`);break}
+case'recovery':openModal('账号恢复 · 确认预览',`<p>目标：<strong>${accounts.find(a=>a.id===id).name}</strong></p><div class="notice mt">正式操作仅对精确目标生效，需要所选版本。不能因为页面刷新而自动触发恢复。</div><div class="modal-foot">${btn('取消','close')}${btn('查看结果状态','recovery-states','RefreshCw')}</div>`);break;
+case'recovery-states':openModal('恢复操作结果状态',`<div class="info-list">${[['成功','重新读取精确 target 的当前判定。'],['已受理','显示回执，不提前宣称恢复完成。'],['冲突','刷新版本，保留输入，不自动重放。'],['失败','展示安全错误分类，保留人工重试入口。']].map(([t,d])=>`<div class="info-row"><div><p>${t}</p><small>${d}</small></div></div>`).join('')}</div><p class="small muted mt">以上为结果样本；未实际发送恢复操作。</p>`);break;
+case'pin-results':openModal('渠道验证 · 结果样本',`<div class="notice">未执行真实 Provider 请求。以下四项必须分别记录验证证据。</div><div class="info-list mt">${['目录可见','文本请求','流式工具回传','助手历史重放'].map(t=>`<div class="info-row"><p>${t}</p>${badge('missing','未验证')}</div>`).join('')}</div>`);break;
+default:toast('当前操作没有对应的设计样本。');}}
+function setTheme(theme){document.documentElement.dataset.theme=theme;updateChrome();if(route()==='settings')renderPage();refreshLenses()}
+function updateChrome(){const d=versionState.selected==='draft'&&!versionState.draftPublished;document.querySelector('.shell')?.setAttribute('data-draft',String(d));document.querySelectorAll('.glass[data-pane]').forEach(e=>e.setAttribute('data-material',d?'draft':versionState.selected==='archived'||versionState.selected==='active'&&versionState.draftPublished?'archived':'active'));const selector=document.getElementById('version');if(selector)selector.value=versionState.selected;document.getElementById('theme-toggle')?.setAttribute('aria-label',document.documentElement.dataset.theme==='dark'?'切换浅色外观':'切换深色外观');const themeIcon=document.getElementById('theme-toggle');if(themeIcon)themeIcon.innerHTML=icon(document.documentElement.dataset.theme==='dark'?'Sun':'Moon');refreshLenses()}
+function renderShell(){if(route()==='unlock'){renderUnlock();return}const id=route();document.getElementById('app').innerHTML=`<div class="shell" data-draft="${versionState.selected==='draft'&&!versionState.draftPublished}"><div class="ambient" aria-hidden="true"></div><svg class="ambient-grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#prism-grain)"/></svg><svg class="lens-defs" aria-hidden="true" focusable="false"><defs><filter id="prism-grain" x="0%" y="0%" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="3" seed="7" stitchTiles="stitch" result="n"/><feColorMatrix in="n" type="saturate" values="0" result="g"/><feComponentTransfer in="g"><feFuncA type="linear" slope="0.42" intercept="0"/></feComponentTransfer></filter><filter id="prism-lens-topbar" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB"><feImage result="map" preserveAspectRatio="none" x="0" y="0" width="10" height="10"/><feColorMatrix in="map" result="rimmask" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 1 0 0"/><feGaussianBlur in="SourceGraphic" stdDeviation="10" result="frost"/><feGaussianBlur in="SourceGraphic" stdDeviation="3" result="rimsrc"/><feDisplacementMap in="rimsrc" in2="map" scale="-38" xChannelSelector="R" yChannelSelector="G" result="bent"/><feComposite in="bent" in2="rimmask" operator="in" result="rim"/><feMerge result="stack"><feMergeNode in="frost"/><feMergeNode in="rim"/></feMerge><feColorMatrix in="stack" type="saturate" values="1.8" result="sat"/><feComponentTransfer in="sat"><feFuncR type="linear" slope="1.06" intercept="0"/><feFuncG type="linear" slope="1.06" intercept="0"/><feFuncB type="linear" slope="1.06" intercept="0"/></feComponentTransfer></filter><filter id="prism-lens-rail" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB"><feImage result="map" preserveAspectRatio="none" x="0" y="0" width="10" height="10"/><feColorMatrix in="map" result="rimmask" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 1 0 0"/><feGaussianBlur in="SourceGraphic" stdDeviation="10" result="frost"/><feGaussianBlur in="SourceGraphic" stdDeviation="3" result="rimsrc"/><feDisplacementMap in="rimsrc" in2="map" scale="-38" xChannelSelector="R" yChannelSelector="G" result="bent"/><feComposite in="bent" in2="rimmask" operator="in" result="rim"/><feMerge result="stack"><feMergeNode in="frost"/><feMergeNode in="rim"/></feMerge><feColorMatrix in="stack" type="saturate" values="1.8" result="sat"/><feComponentTransfer in="sat"><feFuncR type="linear" slope="1.06" intercept="0"/><feFuncG type="linear" slope="1.06" intercept="0"/><feFuncB type="linear" slope="1.06" intercept="0"/></feComponentTransfer></filter><filter id="prism-lens-dock" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB"><feImage result="map" preserveAspectRatio="none" x="0" y="0" width="10" height="10"/><feColorMatrix in="map" result="rimmask" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 1 0 0"/><feGaussianBlur in="SourceGraphic" stdDeviation="10" result="frost"/><feGaussianBlur in="SourceGraphic" stdDeviation="3" result="rimsrc"/><feDisplacementMap in="rimsrc" in2="map" scale="-38" xChannelSelector="R" yChannelSelector="G" result="bent"/><feComposite in="bent" in2="rimmask" operator="in" result="rim"/><feMerge result="stack"><feMergeNode in="frost"/><feMergeNode in="rim"/></feMerge><feColorMatrix in="stack" type="saturate" values="1.8" result="sat"/><feComponentTransfer in="sat"><feFuncR type="linear" slope="1.06" intercept="0"/><feFuncG type="linear" slope="1.06" intercept="0"/><feFuncB type="linear" slope="1.06" intercept="0"/></feComponentTransfer></filter></defs></svg><header class="topbar glass" data-pane="topbar" data-material="active"><button type="button" class="icon-btn mobile-menu" aria-label="打开全部栏目" aria-controls="sidebar" aria-expanded="false" data-action="nav-toggle">${icon('Menu')}</button><a class="brand" href="#/overview">${prism}<span class="brand-name">Prism</span><span class="brand-tag">工作空间</span></a><span class="top-divider"></span><span class="top-context">网关管理</span><span class="grow"></span><span class="preview-label">合成数据 · 设计预览</span><label><span class="sr-only">配置版本</span><select class="version-select mono" aria-label="配置版本" id="version"><option value="active">v24 · ${versionState.draftPublished?'已归档':'活动'}</option><option value="draft">v25 · ${versionState.draftPublished?'活动':'草稿'}</option><option value="archived">v23 · 已归档</option></select></label><button class="icon-btn search-trigger" data-action="search" aria-label="搜索所有栏目">${icon('Search')}</button><button class="icon-btn" id="theme-toggle" data-action="theme" aria-label="切换深色外观">${icon('Moon')}</button><span class="avatar" aria-label="演示工作空间">P</span></header><aside class="rail glass" data-pane="rail" data-material="active" id="sidebar"><nav class="nav-scroll" aria-label="主导航">${['运行','资源','管理'].map(g=>`<div class="nav-group"><div class="nav-label">${g}</div>${PAGES.filter(p=>p[3]===g).map(p=>`<a class="nav-link" href="#/${p[0]}"${p[0]===id?' aria-current="page"':''}>${icon(p[2])}<span>${p[1]}</span>${p[0]==='accounts'?'<span class="nav-count">6</span>':''}</a>`).join('')}</div>`).join('')}</nav><div class="rail-bottom"><div class="workspace-caption">${icon('ShieldCheck')}<div><b>设计工作空间</b><span>14 个栏目 · 本地预览</span></div></div></div></aside><main class="canvas" id="main"><div class="workspace" id="workspace"></div></main>${versionState.selected==='draft'&&!versionState.draftPublished?`<div class="dock glass" data-pane="dock" data-material="draft"><div><strong>v25 · 草稿</strong><br><small>revision ${versionState.revision} · ${versionState.dirty} 项预览变更</small></div>${btn('校验','validate','CircleCheck')}${btn('发布预览','publish','','primary')}</div>`:''}</div>`;renderPage();updateChrome();observeLenses()}
+function renderPage(){if(route()==='unlock'){renderUnlock();return}if(!document.getElementById('workspace')){renderShell();return}const id=route();const fn=renderers[id];document.getElementById('workspace').innerHTML=fn?fn():pageHead('找不到这个页面','从下面的栏目返回工作空间。')+empty('页面不存在','现有栏目仍可从导航或搜索进入。',link('overview','返回总览','ArrowLeft'));document.title=(PAGES.find(p=>p[0]===id)?.[1]||'Prism')+' · Prism Liquid Glass';document.querySelectorAll('.nav-link').forEach(e=>{if(e.getAttribute('href')==='#/'+id)e.setAttribute('aria-current','page');else e.removeAttribute('aria-current')});if(document.getElementById('account-status'))document.getElementById('account-status').value=u('status','all');}
+function renderUnlock(){document.getElementById('app').innerHTML=`<div class="shell"><div class="ambient" aria-hidden="true"></div><main class="unlock"><div class="unlock-card glass">${prism}<span class="tag">设计预览</span><h1 class="mt">回到你的工作空间。</h1><p>管理连接、账号与配置。解锁后继续上次的工作。</p><div class="notice">此处演示解锁页面。不需要输入真实 Management Key。</div><div class="mt">${btn('进入演示工作空间','unlock','ArrowRight','primary')}</div><p class="small">正式产品的密钥只存在于当前会话内存，失效后清空并锁定。</p></div></main></div>`;document.title='解锁 · Prism Liquid Glass'}
+document.addEventListener('click',e=>{const el=e.target.closest('[data-action]');if(el){e.preventDefault();handleAction(el.dataset.action);return}const p=e.target.closest('[data-param]');if(p){setParams({[p.dataset.param]:p.dataset.value});return}const a=e.target.closest('a[href^="#/"]');if(a){e.preventDefault();if(modal.open)closeModal();const next=a.getAttribute('href');if(location.hash===next)renderPage();else location.hash=next;document.querySelector('.rail')?.setAttribute('data-open','false')}});
+document.addEventListener('input',e=>{if(e.target.id==='command-search'){document.getElementById('command-list').innerHTML=commandLinks(e.target.value);return}if(e.target.id==='page-search'){const caret=e.target.selectionStart;setParams({q:e.target.value},true);const input=document.getElementById('page-search');input?.focus({preventScroll:true});try{input?.setSelectionRange(caret,caret)}catch{}}});
+document.addEventListener('change',e=>{if(e.target.id==='version'){versionState.selected=e.target.value;renderShell()}else if(e.target.id==='account-status')setParams({status:e.target.value==='all'?'':e.target.value});else if(e.target.id==='only-abnormal')setParams({abnormal:e.target.checked?'yes':''});});
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();commandPalette()}if(e.key==='Escape'){document.querySelector('.rail')?.setAttribute('data-open','false');document.querySelector('.mobile-menu')?.setAttribute('aria-expanded','false')}if(e.target.getAttribute('role')==='tab'&&['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){const tabs=[...e.target.parentElement.querySelectorAll('[role=tab]')];const i=tabs.indexOf(e.target);const ni=e.key==='Home'?0:e.key==='End'?tabs.length-1:(i+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;const target=tabs[ni];e.preventDefault();target.click();const group=target.dataset.param;const value=target.dataset.value;if(group)setTimeout(()=>document.querySelector(`[data-param="${group}"][data-value="${value}"]`)?.focus(),0);else target.focus()}});
+document.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const data=new FormData(form);const v=k=>String(data.get(k)||'').trim();if(form.id==='route-lookup'){routeDetail(v('route'));return}if(form.id==='explain-form'){const r=v('route');openModal('Route Explain · 设计样本',`<p class="mono">${esc(r)}</p><div class="line"></div><ol class="timeline"><li><b>配置作用域</b><p>${versionLabel()} · 当前所选访问组</p></li><li><b>候选匹配</b><p>demo-ep-grok_build × demo-cred-atlas</p></li><li><b>运行时依据</b><p>available · 认证有效 · 目录 fresh</p></li><li><b>价格证据</b><p>来自 ${esc(policyCatalog||'未绑定价格目录')}；不是一次推理请求的账单。</p></li></ol><div class="notice mt">当前是固定的解释示例。正式结果须由后端对指定 Route ID 计算。</div><div class="modal-foot">${btn('查看目标','runtime:atlas','Radio')}${btn('关闭','close')}</div>`);return}if(form.id==='pin-form'){openModal('Channel Pin · 操作确认',`<div class="fact-grid">${fact('Exact model',esc(document.getElementById('pin-model').value),true)}${fact('账号',accounts.find(a=>a.id===document.getElementById('pin-account').value).name)}${fact('配置版本',versionLabel())}${fact('执行方式','仅原型预览')}</div><div class="notice mt">真实产品的此操作会消耗 Provider 配额并发出请求。当前页面没有外部调用。</div><div class="modal-foot">${btn('取消','close')}${btn('查看结果样本','pin-results','','primary')}</div>`);return}if(form.id!=='editor-form')return;const[k,id]=form.dataset.kind.split(':');switch(k){
+case'lookup-request':requestDetail(v('request'));break;
+case'add-account':openModal('账号接入 · 下一步',`<ol class="timeline"><li><b>选择上游与渠道</b><p>${esc(v('provider'))} · ${esc(v('method'))}</p></li><li><b>准备凭据</b><p>初次授权由 operator 发起；不能因页面导航而自动调用。</p></li><li><b>查看接入后的证据</b><p>认证、调度、权益与目录分开观察。</p></li></ol><div class="modal-foot">${link('upstreams','管理上游连接','Boxes')}${btn('查看已导入样本','account:atlas','Users')}</div>`);break;
+case'create-upstream':{const t=v('type');upstreams.push({id:'demo-up-new-'+upstreams.length,name:v('name'),type:t,provider:t,protocol:'openai_responses',channel:t,endpoints:0,credentials:0});changed();break}
+case'edit-upstream':Object.assign(upstreams.find(s=>s.id===id),{name:v('name'),endpoint:v('endpoint')});changed();break;
+case'create-model':publicModels.push({id:'demo-model-new-'+publicModels.length,name:v('name'),protocol:v('protocol'),route:'尚未绑定'});changed();break;
+case'edit-model':publicModels.find(m=>m.id===id).name=v('name');changed();break;
+case'create-group':groups.push({id:'demo-group-new-'+groups.length,name:v('name'),routes:0,keys:0,status:'active'});changed();break;
+case'edit-group':{const g=groups.find(g=>g.id===id);keys.forEach(k=>{if(k.group===g.name)k.group=v('name')});g.name=v('name');changed();break;}
+case'issue-key':{const key={id:'demo-key-new-'+keys.length,name:v('name'),group:v('group'),prefix:'demo_only_not_a_key…',state:'active'};keys.push(key);groups.find(g=>g.name===key.group).keys++;versionState.dirty++;versionState.revision++;versionState.validated=false;renderShell();openModal('密钥签发 · 一次性显示样本',`<p>已创建示例 <strong>${esc(key.name)}</strong>。</p><div class="notice mono mt">DEMO_ONLY_NOT_A_VALID_SECRET</div><p class="small muted mt">这是无效占位值。正式产品只在此处回显一次，关闭后不能再次读取。</p><div class="modal-foot">${btn('已记录，关闭','close','','primary')}</div>`);break}
+case'create-egress':case'edit-egress':{if(/[*/:\s]/.test(v('host'))){const el=form.querySelector('[name=host]');el.setCustomValidity('请填写精确域名，不含通配符、协议、端口或路径。');el.reportValidity();el.addEventListener('input',()=>el.setCustomValidity(''),{once:true});return}if(k==='create-egress')egressPolicies.push({id:'demo-egress-new-'+egressPolicies.length,name:v('name'),hosts:[v('host')],ports:'443',redirect:v('redirect'),refs:0});else Object.assign(egressPolicies.find(p=>p.id===id),{name:v('name'),hosts:[v('host')],redirect:v('redirect')});changed();break}
+case'import-prices':if(catalogs.some(c=>c.name===v('name'))){const el=form.querySelector('[name=name]');el.setCustomValidity('此目录名称已存在。');el.reportValidity();el.addEventListener('input',()=>el.setCustomValidity(''),{once:true});return}catalogs.unshift({name:v('name'),source:'预览导入',entries:3,date:'当前预览会话'});closeModal();renderPage();toast('已导入全局目录样本；未调用真实接口。');break;
+case'policy':policyCatalog=v('catalog');changed();break;
+default:openModal('配置变更预览',`<div class="fact-grid">${[...data.entries()].map(([name,value])=>fact(esc(name),esc(value),true)).join('')}</div><div class="notice mt">对象 ${esc(id||'当前草稿')}。此步骤展示提交前的变更核对，不写入真实网关。</div><div class="modal-foot">${btn('关闭','close')}</div>`);}
+});
+window.addEventListener('hashchange',()=>{if(modal.open)closeModal();if(route()==='unlock'||!document.getElementById('workspace'))renderShell();else{renderPage();document.querySelector('.canvas')?.scrollTo({top:0,behavior:'instant'});document.querySelector('.rail')?.setAttribute('data-open','false');document.querySelector('.mobile-menu')?.setAttribute('aria-expanded','false');document.querySelector('h1')?.focus({preventScroll:true})}});
+const N = 200; // profile samples along one radius
+/** Apple's squircle profile: y = (1-(1-x)^4)^(1/4).
+ *  Softer flat->curve transition than a circular arc, so the refraction
+ *  gradient stays smooth when the shape is stretched into a long rectangle.
+ *  A plain circle produced a visible hard seam where the bezel met the flat
+ *  interior on the 1416px-wide topbar. */
+const squircle = (x) => Math.pow(1 - Math.pow(1 - x, 4), 0.25);
+/** Snell–Descartes along one radius: air (n=1) -> glass (n=ior).
+ *  t = 0 at the outer edge, 1 at the end of the bezel. Magnitudes come back
+ *  normalised to 1, and `max` is the px scale to hand to feDisplacementMap —
+ *  which is exactly what the `scale` attribute means. */
+function profile(bezel, thickness, ior) {
+    const mags = [];
+    for (let i = 0; i < N; i += 1) {
+        const t = i / (N - 1);
+        const d = 1e-3;
+        const slope = ((squircle(Math.min(1, t + d)) - squircle(Math.max(0, t - d))) / (2 * d)) *
+            (thickness / bezel);
+        const theta1 = Math.atan(slope);
+        const theta2 = Math.asin(Math.max(-1, Math.min(1, Math.sin(theta1) / ior)));
+        // the (1 - .55*height) term fades the bend as the glass flattens out
+        mags.push(Math.tan(theta1 - theta2) * thickness * (1 - squircle(t) * 0.55));
+    }
+    const max = Math.max(...mags, 1e-6);
+    return { mags: mags.map((m) => m / max), max };
+}
+/** R = x displacement, G = y displacement, B = bezel coverage (the rim mask —
+ *  feDisplacementMap ignores B and A, so the mask rides in the same image and
+ *  costs nothing). 128 is neutral in R/G. */
+function buildMap(w, h, radius, bezel, thickness, ior) {
+    const c = document.createElement("canvas");
+    c.width = Math.max(2, Math.round(w));
+    c.height = Math.max(2, Math.round(h));
+    const ctx = c.getContext("2d");
+    if (ctx === null)
+        return { url: "", scale: 0 };
+    // CLAMP THE BEZEL TO THE PANE'S SHORT SIDE.
+    // The rim band is the SHARP, displaced backdrop composited OVER the frost.
+    // A bezel wider than half the short side therefore covers the whole pane,
+    // the frost never shows, and what looks like glass is really a clear window
+    // that leaks every glyph underneath at full contrast.
+    // Measured on this shell at the nominal 26px bezel:
+    //   rail   196x810  rim =   6% of height   correct
+    //   topbar 1416x54  rim =  96% of height   BROKEN
+    //   dock    545x51  rim = 100% of height   BROKEN
+    // Fixing this dropped measured glyph energy under the dock from 4.28 to
+    // 1.49, against an ambient-only floor of 1.42.
+    const bez = Math.max(4, Math.min(bezel, Math.min(c.width, c.height) * 0.3));
+    const img = ctx.createImageData(c.width, c.height);
+    const { mags, max } = profile(bez, thickness, ior);
+    const r = Math.min(radius, c.width / 2, c.height / 2);
+    for (let y = 0; y < c.height; y += 1) {
+        for (let x = 0; x < c.width; x += 1) {
+            const px = x + 0.5;
+            const py = y + 0.5;
+            // signed distance to a rounded rect + its outward normal
+            const cx = Math.min(Math.max(px, r), c.width - r);
+            const cy = Math.min(Math.max(py, r), c.height - r);
+            let nx = px - cx;
+            let ny = py - cy;
+            let dist;
+            const len = Math.hypot(nx, ny);
+            if (len < 1e-6) {
+                const dl = px, dr = c.width - px, dt = py, db = c.height - py;
+                dist = Math.min(dl, dr, dt, db);
+                if (dist === dl) {
+                    nx = -1;
+                    ny = 0;
+                }
+                else if (dist === dr) {
+                    nx = 1;
+                    ny = 0;
+                }
+                else if (dist === dt) {
+                    nx = 0;
+                    ny = -1;
+                }
+                else {
+                    nx = 0;
+                    ny = 1;
+                }
+            }
+            else {
+                dist = r - len;
+                nx /= len;
+                ny /= len;
+            }
+            const t = Math.min(1, Math.max(0, dist / bez));
+            const mag = mags[Math.min(N - 1, Math.round(t * (N - 1)))] ?? 0;
+            // rim coverage: 1 across the bezel, smoothstepped to 0 just inside it
+            const u = Math.min(1, Math.max(0, 1 - t));
+            const cover = u * u * (3 - 2 * u);
+            const i = (y * c.width + x) * 4;
+            img.data[i] = Math.round(128 + nx * mag * 127);
+            img.data[i + 1] = Math.round(128 + ny * mag * 127);
+            img.data[i + 2] = Math.round(cover * 255);
+            img.data[i + 3] = 255;
+        }
+    }
+    ctx.putImageData(img, 0, 0);
+    return { url: c.toDataURL("image/png"), scale: max };
+}
+const PANES = [
+    { sel: ".topbar", id: "prism-lens-topbar" },
+    { sel: ".rail", id: "prism-lens-rail" },
+    { sel: ".dock", id: "prism-lens-dock" },
+];
+function num(el, name, fallback) {
+    const v = Number.parseFloat(getComputedStyle(el).getPropertyValue(name));
+    return Number.isFinite(v) ? v : fallback;
+}
+/** ms from a CSS duration token ("600ms" / "0.6s" / "0ms"). */
+function durationMs(el, name) {
+    const raw = getComputedStyle(el).getPropertyValue(name).trim();
+    const v = Number.parseFloat(raw);
+    if (!Number.isFinite(v))
+        return 0;
+    return raw.endsWith("ms") ? v : v * 1000;
+}
+function applyDynamics(f, d) {
+    // negative scale = sample OUTWARD (physically correct convex lens)
+    f.querySelector("feDisplacementMap")?.setAttribute("scale", (-d.scale).toFixed(2));
+    const blurs = f.querySelectorAll("feGaussianBlur");
+    blurs[0]?.setAttribute("stdDeviation", d.frost.toFixed(2));
+    blurs[1]?.setAttribute("stdDeviation", d.rim.toFixed(2));
+    f.querySelector('feColorMatrix[type="saturate"]')?.setAttribute("values", d.sat.toFixed(3));
+}
+/** cubic-bezier(0.32, 0.72, 0, 1) — the shell's --ease, sampled by bisection.
+ *  Hard-coded rather than parsed: this is the one easing the design system
+ *  defines, and the CSS transition on the layered path uses the same curve, so
+ *  both paths anneal on the same clock AND the same shape. */
+function ease(t) {
+    const bx = (u) => 3 * u * (1 - u) ** 2 * 0.32 + u ** 3;
+    const by = (u) => 3 * u * (1 - u) ** 2 * 0.72 + 3 * u ** 2 * (1 - u) + u ** 3;
+    let lo = 0;
+    let hi = 1;
+    for (let i = 0; i < 24; i += 1) {
+        const mid = (lo + hi) / 2;
+        if (bx(mid) < t)
+            lo = mid;
+        else
+            hi = mid;
+    }
+    return by((lo + hi) / 2);
+}
+/** Live tween per filter id, so a second material change mid-anneal replaces
+ *  the first instead of racing it. */
+const tweens = new Map();
+/** SVG filter primitives are attributes, not animatable CSS properties, so the
+ *  `transition: backdrop-filter` that anneals the layered path is a no-op here:
+ *  under `backdrop-filter: url(#...)` a draft->active publish snapped between
+ *  two frost levels in a single frame. Tween the primitive values on the same
+ *  duration and easing token instead. */
+function annealTo(f, id, from, to, ms) {
+    const running = tweens.get(id);
+    if (running !== undefined)
+        cancelAnimationFrame(running);
+    const t0 = performance.now();
+    const step = (now) => {
+        const p = Math.min(1, (now - t0) / ms);
+        const k = ease(p);
+        applyDynamics(f, {
+            scale: from.scale + (to.scale - from.scale) * k,
+            frost: from.frost + (to.frost - from.frost) * k,
+            rim: from.rim + (to.rim - from.rim) * k,
+            sat: from.sat + (to.sat - from.sat) * k,
+        });
+        if (p < 1)
+            tweens.set(id, requestAnimationFrame(step));
+        else
+            tweens.delete(id);
+    };
+    tweens.set(id, requestAnimationFrame(step));
+}
+function updatePane({ sel, id }) {
+    const el = document.querySelector(sel);
+    const f = document.getElementById(id);
+    if (el === null || f === null)
+        return;
+    const rect = el.getBoundingClientRect();
+    if (rect.width < 4 || rect.height < 4)
+        return;
+    const cs = getComputedStyle(el);
+    const radius = Number.parseFloat(cs.borderTopLeftRadius) || 20;
+    const bezel = num(el, "--lens-bezel", 26);
+    const thickness = num(el, "--lens-thickness", 34);
+    const ior = num(el, "--lens-ior", 1.5);
+    const gain = num(el, "--lens-gain", 1);
+    const key = [
+        Math.round(rect.width), Math.round(rect.height),
+        radius, bezel, thickness, ior,
+    ].join("/");
+    if (f.dataset.key !== key) {
+        const { url, scale } = buildMap(rect.width, rect.height, radius, bezel, thickness, ior);
+        f.dataset.key = key;
+        f.dataset.scale = String(scale);
+        const im = f.querySelector("feImage");
+        im?.setAttribute("href", url);
+        im?.setAttribute("width", String(Math.round(rect.width)));
+        im?.setAttribute("height", String(Math.round(rect.height)));
+    }
+    // --lens-frost / --lens-sat are what data-material actually overrides, so they
+    // must be re-read on every call, not only when the map is rebuilt.
+    const target = {
+        scale: Number.parseFloat(f.dataset.scale ?? "0") * gain,
+        frost: num(el, "--lens-frost", 10),
+        rim: num(el, "--lens-rim-blur", 3),
+        sat: num(el, "--lens-sat", 1.8),
+    };
+    const prev = f.dataset.dyn;
+    const next = `${target.scale}/${target.frost}/${target.rim}/${target.sat}`;
+    if (prev === next)
+        return;
+    f.dataset.dyn = next;
+    const anneal = durationMs(el, "--dur-anneal");
+    const from = prev?.split("/").map(Number);
+    if (from === undefined || from.length !== 4 ||
+        from.some((n) => !Number.isFinite(n)) || anneal <= 0) {
+        applyDynamics(f, target);
+        return;
+    }
+    annealTo(f, id, { scale: from[0] ?? 0, frost: from[1] ?? 0, rim: from[2] ?? 0, sat: from[3] ?? 0 }, target, anneal);
+}
+/** WWDC25 deepens the shadow while real content is behind the pane.
+ *  One elementFromPoint per pane per scroll frame — cheap. */
+function updateOver() {
+    for (const { sel } of PANES) {
+        const el = document.querySelector(sel);
+        if (el === null)
+            continue;
+        const r = el.getBoundingClientRect();
+        const probe = document.elementFromPoint(Math.min(window.innerWidth - 2, r.left + r.width / 2), Math.max(2, Math.min(window.innerHeight - 2, r.top + r.height + 6)));
+        const over = probe !== null && probe.closest(".canvas") !== null;
+        el.dataset.over = over ? "content" : "ambient";
+    }
+}
+
+function refreshLenses(){requestAnimationFrame(()=>{if(document.documentElement.dataset.lens==='on')PANES.forEach(updatePane);updateOver()})}
+function observeLenses(){lensObserver?.disconnect();lensObserver=new ResizeObserver(refreshLenses);document.querySelectorAll('.glass[data-pane]').forEach(el=>lensObserver.observe(el));document.querySelector('.canvas')?.addEventListener('scroll',()=>requestAnimationFrame(updateOver),{passive:true});refreshLenses()}
+const isFirefox=CSS.supports('-moz-appearance','none');const isSafari=CSS.supports('background','-webkit-named-image(i)');document.documentElement.dataset.lens=CSS.supports('backdrop-filter','url(#prism-lens-topbar)')&&!isFirefox&&!isSafari?'on':'off';
+renderShell();
+</script></body></html>

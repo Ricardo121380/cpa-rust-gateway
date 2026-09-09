@@ -12,6 +12,8 @@ describe("parseRevisionToken", () => {
     expect(parseRevisionToken("rev-")).toBeUndefined();
     expect(parseRevisionToken("W/\"rev-1\"")).toBeUndefined();
     expect(parseRevisionToken(null)).toBeUndefined();
+    expect(parseRevisionToken('"rev-1')).toBeUndefined();
+    expect(parseRevisionToken('rev-1"')).toBeUndefined();
   });
 });
 
@@ -29,6 +31,11 @@ describe("advanceRevision", () => {
   it("keeps context on missing or identical ETag", () => {
     expect(advanceRevision(context, null)).toBe(context);
     expect(advanceRevision(context, '"rev-4"')).toBe(context);
+  });
+  it("ignores older responses and compares beyond Number's integer precision", () => {
+    expect(advanceRevision(context, '"rev-3"')).toBe(context);
+    const large = { ...context, revision: "rev-9007199254740992" };
+    expect(advanceRevision(large, '"rev-9007199254740993"').revision).toBe("rev-9007199254740993");
   });
 });
 

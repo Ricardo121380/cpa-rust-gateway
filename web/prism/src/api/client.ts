@@ -7,7 +7,8 @@ import {
   type ManagementRequest,
   managementOperations,
 } from "../generated/management-client";
-import { readCsrfToken, readManagementKey } from "../session/sessionStore";
+import { CancelledError } from "@tanstack/react-query";
+import { readCsrfToken, readManagementKey, useSessionStore } from "../session/sessionStore";
 import { useVersionStore } from "../features/config-versions/versionStore";
 import { isRuntimeConflict, networkError, toAppError } from "./errors";
 
@@ -23,6 +24,14 @@ const api = new ManagementApi({
   managementKey: () => readManagementKey(),
   csrfToken: readCsrfToken,
   ...(fetchOverride === undefined ? {} : { fetch: fetchOverride }),
+});
+
+let sessionRequests = new AbortController();
+useSessionStore.subscribe((state, previous) => {
+  if (state.generation !== previous.generation) {
+    sessionRequests.abort();
+    sessionRequests = new AbortController();
+  }
 });
 
 type CallOptions = Readonly<{
@@ -57,13 +66,30 @@ function declaredHeaderNames(operation: ManagementOperationName): ReadonlySet<st
   );
 }
 
-async function send(
+async function send<T>(
   operation: ManagementOperationName,
   request: ManagementRequest,
   options: CallOptions,
-): Promise<Response> {
+  consume: (response: Response) => Promise<T>,
+): Promise<T> {
   const version = useVersionStore.getState();
+  const session = useSessionStore.getState();
   const declared = declaredHeaderNames(operation);
+  const versionBound = declared.has("x-config-version") || request.path?.["config_version_id"] !== undefined
+    || managementOperations[operation].method !== "GET";
+  const assertSession = () => {
+    if (!session.unlocked || session.generation !== useSessionStore.getState().generation) {
+      throw new CancelledError({ silent: true });
+    }
+  };
+  const assertOwner = () => {
+    assertSession();
+    if (request.signal?.aborted === true) throw new CancelledError({ silent: true });
+    if (versionBound && version.selectionGeneration !== useVersionStore.getState().selectionGeneration) {
+      throw new CancelledError({ silent: true });
+    }
+  };
+  assertOwner();
   const headers: Record<string, string> = { ...(request.headers as Record<string, string> | undefined) };
 
   // Passing an option the operation does not declare used to be a SILENT no-op:
@@ -93,30 +119,54 @@ async function send(
     }
     headers["If-Match"] = version.context.revision;
   }
+  const responseVersion = headers["X-Config-Version"] ?? request.path?.["config_version_id"]
+    ?? (options.mutating === true ? version.context?.configVersionId : undefined);
 
   let response: Response;
   try {
-    response = await api.request(operation, { ...request, headers });
+    response = await api.request(operation, {
+      ...request, headers,
+      signal: request.signal === undefined ? sessionRequests.signal
+        : AbortSignal.any([request.signal, sessionRequests.signal]),
+    });
   } catch (cause) {
+    assertOwner();
     throw networkError(cause);
   }
 
+  assertSession();
   if (!response.ok) {
     const error = await toAppError(response);
-    if (error.kind === "conflict" && !isRuntimeConflict(error)) {
+    assertSession();
+    if (error.kind === "session_invalid") {
+      useSessionStore.getState().lock();
+      throw error;
+    }
+    assertOwner();
+    if (error.kind === "conflict" && !isRuntimeConflict(error)
+        && responseVersion !== undefined && responseVersion === version.context?.configVersionId) {
       // A runtime snapshot rotating is not "someone edited your config", and
       // the shell's banner says exactly that. See isRuntimeConflict.
       version.markConflict();
     }
-    if (error.kind === "session_invalid") {
-      // Session state owns the lock transition; api layer just reports.
-      version.reset();
-    }
     throw error;
   }
 
-  version.advanceFromEtag(response.headers.get("ETag"));
-  return response;
+  assertOwner();
+  let value: T;
+  try {
+    value = await consume(response);
+  } catch (cause) {
+    assertOwner();
+    throw cause;
+  }
+  assertOwner();
+  // Unscoped reads and operations on another explicit version must not lend
+  // their ETag to the selected draft. Check after body decoding as well.
+  if (responseVersion !== undefined && responseVersion === version.context?.configVersionId) {
+    version.advanceFromEtag(response.headers.get("ETag"));
+  }
+  return value;
 }
 
 export async function call<T>(
@@ -124,11 +174,8 @@ export async function call<T>(
   request: ManagementRequest = {},
   options: CallOptions = {},
 ): Promise<T> {
-  const response = await send(operation, request, options);
-  if (response.status === 204) {
-    return undefined as T;
-  }
-  return (await response.json()) as T;
+  return send(operation, request, options, async (response) =>
+    response.status === 204 ? undefined as T : (await response.json()) as T);
 }
 
 /**
@@ -141,5 +188,5 @@ export async function callText(
   request: ManagementRequest = {},
   options: CallOptions = {},
 ): Promise<string> {
-  return (await send(operation, request, options)).text();
+  return send(operation, request, options, (response) => response.text());
 }

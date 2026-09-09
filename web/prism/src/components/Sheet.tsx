@@ -9,6 +9,7 @@
 import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { GlassSurface } from "./glass/GlassSurface";
+import { useSessionStore } from "../session/sessionStore";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]),' +
@@ -54,6 +55,7 @@ export function Sheet({
 
   useEffect(() => {
     const scrim = scrimRef.current;
+    const sessionGeneration = useSessionStore.getState().generation;
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     panelRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
 
@@ -75,7 +77,10 @@ export function Sheet({
         if (scrim === null || scrim.isConnected) {
           return;
         }
-        playExit(scrim);
+        // A lock must not reattach a reveal-once secret as an exit-animation
+        // ghost. Animate only inside the same still-unlocked session.
+        const session = useSessionStore.getState();
+        if (session.unlocked && session.generation === sessionGeneration) playExit(scrim);
         if (opener !== null && opener.isConnected) {
           opener.focus();
         }

@@ -135,6 +135,10 @@ function build() {
 }
 
 // generated client freshness: the client must match contracts/management-v1.json
+if (readFileSync(join(ROOT, "../../docs/openapi/management-v1.json"), "utf8") !==
+    readFileSync(join(ROOT, "contracts/management-v1.json"), "utf8")) {
+  failures.push("vendored contract differs from the authoritative OpenAPI — run npm run sync-contract");
+}
 try {
   execSync("node scripts/generate-client.mjs --check", { cwd: ROOT, stdio: "pipe" });
 } catch {

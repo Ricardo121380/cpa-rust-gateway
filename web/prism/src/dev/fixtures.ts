@@ -1764,6 +1764,10 @@ export const fixtureFetch: typeof fetch = (input, init) => {
           expires_at_ms: row.auth === "expired" ? FIXTURE_NOW_MS - 3_600_000 : null,
           refresh_due_at_ms: row.kind === "oauth" ? FIXTURE_NOW_MS + 7_200_000 : null,
           quota_sync_due_at_ms: null,
+          entitlement: row.id === "cred-grok-oauth" ? {
+            domain: "grok_build", tier: "supergrok", source: "provider_subscription",
+            confidence: "authoritative", observed_at_ms: Date.now() - 900_000,
+          } : null,
         }));
       return json(200, {
         snapshot_id: `snap-${state.poolSnapshot}`,
@@ -2364,13 +2368,14 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     if (route === "GET /admin/catalog/status") {
       const version = versionByHeader(headers);
       if (version instanceof Response) return version;
-      const now = 1785100000000;
+      const now = Date.now();
       return json(
         200,
         [
-          { endpoint_id: "ep-relay-a-responses", credential_id: "cred-relay-key", freshness: "fresh", observed_at_ms: now - 900_000 },
-          { endpoint_id: "ep-relay-a-responses", credential_id: "cred-grok-oauth", freshness: "stale", observed_at_ms: now - 30 * 3_600_000 },
-          { endpoint_id: "ep-grok-build", credential_id: "cred-grok-oauth", freshness: "missing", observed_at_ms: 0 },
+          { endpoint_id: "ep-relay-a-responses", credential_id: "cred-relay-key", freshness: "fresh", observed_at_ms: now - 900_000, snapshot_version: 3, refresh_due: false, model_count: 2 },
+          { endpoint_id: "ep-relay-a-responses", credential_id: "cred-grok-oauth", freshness: "stale", observed_at_ms: now - 30 * 3_600_000, snapshot_version: 2, refresh_due: true, model_count: 1, last_failure_at_ms: now - 60_000, last_failure_class: "transport" },
+          { endpoint_id: "ep-grok-build", credential_id: "cred-grok-oauth", freshness: "missing", observed_at_ms: 0, last_failure_at_ms: now - 120_000, last_failure_class: "authentication" },
+          { endpoint_id: "ep-grok-build", credential_id: "cred-grok-old", freshness: "expired", observed_at_ms: now - 73 * 3_600_000, snapshot_version: 1, refresh_due: true, model_count: 1 },
         ],
         revisionToken(version),
       );

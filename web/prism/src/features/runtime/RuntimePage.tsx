@@ -13,6 +13,7 @@
 // Everything here is SOLID: cards, tables and the matrix are content, never
 // glass. The page adds zero backdrop-filter panes to the shell's budget of 3.
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EntitlementEvidence } from "./EntitlementEvidence";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
@@ -529,6 +530,8 @@ function CatalogCard({
               <th scope="col">endpoint</th>
               <th scope="col">credential</th>
               <th scope="col">freshness</th>
+              <th scope="col">目录快照 / 模型数</th>
+              <th scope="col">刷新 / 最近失败</th>
               <th scope="col">最近观测</th>
               <th scope="col">阶段(按时钟)</th>
               <th scope="col">观测时刻(UTC)</th>
@@ -549,6 +552,11 @@ function CatalogCard({
                       attr={row.freshness}
                       raw={row.freshness}
                     />
+                  </td>
+                  <td className="mono">{row.snapshot_version ?? "—"} / {row.model_count ?? "—"}</td>
+                  <td>
+                    <div>{row.refresh_due === undefined ? "未观测" : row.refresh_due ? "待刷新" : "未到刷新期"}</div>
+                    <div>{row.last_failure_class ?? "无失败观测"} · {formatObservedAt(row.last_failure_at_ms ?? 0)}</div>
                   </td>
                   <td className="mono">{formatAge(row.observed_at_ms, nowMs)}</td>
                   <td className="rt-stage" data-stage={stage}>
@@ -1043,6 +1051,7 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
                 <th scope="col">种类</th>
                 <th scope="col">认证</th>
                 <th scope="col">运行时</th>
+                <th scope="col">权益证据</th>
                 <th scope="col">并发</th>
                 <th scope="col">过期</th>
                 <th scope="col">操作</th>
@@ -1070,6 +1079,7 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
                     />
                     {account.enabled ? null : <span className="rt-off">已禁用</span>}
                   </td>
+                  <td><EntitlementEvidence entitlement={account.entitlement} /></td>
                   <td className="mono">
                     {account.active_leases} / {account.max_concurrency}
                   </td>

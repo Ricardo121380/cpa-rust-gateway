@@ -1,4 +1,5 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./api/queryClient";
 import { createHashRouter, RouterProvider } from "react-router-dom";
 import { AppShell } from "./app/AppShell";
 import { AccessPage } from "./features/access/AccessPage";
@@ -14,12 +15,6 @@ import { SettingsPage } from "./features/settings/SettingsPage";
 import { UnlockPage } from "./features/unlock/UnlockPage";
 import { UpstreamsPage } from "./features/upstreams/UpstreamsPage";
 import { UsagePage } from "./features/usage/UsagePage";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: 1, refetchOnWindowFocus: false },
-  },
-});
 
 const router = createHashRouter([
   { path: "/unlock", element: <UnlockPage /> },

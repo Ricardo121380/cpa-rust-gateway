@@ -76,6 +76,8 @@ function VersionPicker() {
 
 export function AppShell() {
   const unlocked = useSessionStore((s) => s.unlocked);
+  const sessionGeneration = useSessionStore((s) => s.generation);
+  const selectionGeneration = useVersionStore((s) => s.selectionGeneration);
   const context = useVersionStore((s) => s.context);
   const conflict = useVersionStore((s) => s.conflict);
   const clearConflict = useVersionStore((s) => s.clearConflict);
@@ -156,10 +158,10 @@ export function AppShell() {
       </GlassSurface>
 
       <main className="canvas" ref={canvasRef}>
-        <Outlet />
+        <Outlet key={`${sessionGeneration}:${selectionGeneration}`} />
       </main>
 
-      <DraftDock />
+      <DraftDock key={`${sessionGeneration}:${context?.configVersionId ?? "none"}`} />
     </div>
   );
 }

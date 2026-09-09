@@ -1,11 +1,13 @@
 // In-memory session — the ONLY module allowed to hold secret material.
 // C6: no browser storage anywhere; refresh clears the session by design.
 import { create } from "zustand";
+import { useVersionStore } from "../features/config-versions/versionStore";
 
 type SessionState = {
   managementKey: string | undefined;
   csrfToken: string | undefined;
   unlocked: boolean;
+  generation: number;
   unlock: (managementKey: string, csrfToken: string | undefined) => void;
   lock: () => void;
 };
@@ -14,10 +16,15 @@ export const useSessionStore = create<SessionState>((set) => ({
   managementKey: undefined,
   csrfToken: undefined,
   unlocked: false,
-  unlock: (managementKey, csrfToken) =>
-    set({ managementKey, csrfToken, unlocked: true }),
-  lock: () =>
-    set({ managementKey: undefined, csrfToken: undefined, unlocked: false }),
+  generation: 0,
+  unlock: (managementKey, csrfToken) => {
+    useVersionStore.getState().reset();
+    set((state) => ({ managementKey, csrfToken, unlocked: true, generation: state.generation + 1 }));
+  },
+  lock: () => {
+    useVersionStore.getState().reset();
+    set((state) => ({ managementKey: undefined, csrfToken: undefined, unlocked: false, generation: state.generation + 1 }));
+  },
 }));
 
 // Closure accessors for the generated client — never export raw values elsewhere.

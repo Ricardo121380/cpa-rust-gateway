@@ -37,11 +37,14 @@ export function DraftDock() {
     mutationFn: (id: string) =>
       call<Publication>("publishConfigVersion", { path: { config_version_id: id } }, { mutating: true }),
     onSuccess: async (result) => {
+      const generation = useVersionStore.getState().selectionGeneration;
       setPublication(result);
       await queryClient.invalidateQueries({ queryKey: ["config-versions"] });
+      if (useVersionStore.getState().selectionGeneration !== generation) return;
       // Re-select the same version: its status flipped draft → active, which
       // triggers the anneal transition on every material-bound glass pane.
       const versions = await call<ConfigVersionSummary[]>("listConfigVersions");
+      if (useVersionStore.getState().selectionGeneration !== generation) return;
       const published = versions.find((row) => row.id === result.active_config_version_id);
       if (published !== undefined) {
         select(published);

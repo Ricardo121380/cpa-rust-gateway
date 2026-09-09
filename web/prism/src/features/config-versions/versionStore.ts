@@ -15,6 +15,7 @@ export type ConfigVersionSummary = Readonly<{
 type VersionState = {
   context: VersionContext | undefined;
   conflict: boolean;
+  selectionGeneration: number;
   select: (summary: ConfigVersionSummary) => void;
   advanceFromEtag: (etag: string | null) => void;
   markConflict: () => void;
@@ -25,15 +26,19 @@ type VersionState = {
 export const useVersionStore = create<VersionState>((set, get) => ({
   context: undefined,
   conflict: false,
+  selectionGeneration: 0,
   select: (summary) =>
-    set({
-      context: {
+    set((state) => ({
+      selectionGeneration: state.selectionGeneration + 1,
+      context: state.context?.configVersionId === summary.id ? {
+        ...advanceRevision(state.context, summary.revision), status: summary.status,
+      } : {
         configVersionId: summary.id,
         revision: summary.revision,
         status: summary.status,
       },
       conflict: false,
-    }),
+    })),
   advanceFromEtag: (etag) => {
     const current = get().context;
     if (current === undefined) {
@@ -46,5 +51,5 @@ export const useVersionStore = create<VersionState>((set, get) => ({
   },
   markConflict: () => set({ conflict: true }),
   clearConflict: () => set({ conflict: false }),
-  reset: () => set({ context: undefined, conflict: false }),
+  reset: () => set((state) => ({ context: undefined, conflict: false, selectionGeneration: state.selectionGeneration + 1 })),
 }));
