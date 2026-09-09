@@ -199,3 +199,35 @@ test("explain offers all three contract protocols", async ({ page }) => {
     "anthropic_messages",
   ]);
 });
+
+test("legacy route policies expose safe details without the unsupported route reader", async ({ page }) => {
+  await unlock(page);
+  await selectDraft(page);
+  await page.evaluate(async () => {
+    const path = "/src/generated/management-client.ts";
+    const { ManagementApi } = await import(path);
+    const original = ManagementApi.prototype.request;
+    ManagementApi.prototype.request = async function (operation: string, request: unknown) {
+      if (operation === "getRoute") throw new Error("Legacy inspector must not call getRoute");
+      const response = await original.call(this, operation, request);
+      if (operation !== "listRoutes" || !response.ok) return response;
+      const body = await response.json();
+      body.items.push(...["round_robin", "priority_failover"].map((policy) => ({
+        id: `legacy-${policy}`, public_model_id: "pm-legacy", policy,
+        max_attempts: 3, bootstrap_timeout_ms: 4500,
+      })));
+      return new Response(JSON.stringify(body), { status: 200, headers: response.headers });
+    };
+  });
+  await navigate(page, "模型与路由");
+  const inventory = page.getByRole("region", { name: "完整配置资源" });
+  for (const policy of ["round_robin", "priority_failover"]) {
+    await inventory.locator("tr", { hasText: `legacy-${policy}` }).getByRole("button", { name: "打开路由" }).click();
+    const inspector = page.getByRole("dialog", { name: "路由详情" });
+    await expect(inspector).toContainText(policy);
+    await expect(inspector).toContainText("4500");
+    await expect(inspector).toContainText("pm-legacy");
+    await page.keyboard.press("Escape");
+    await expect(inspector).toHaveCount(0);
+  }
+});

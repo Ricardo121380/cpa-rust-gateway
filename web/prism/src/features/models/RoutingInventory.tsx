@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { ObjectInspector } from "../../components/ObjectInspector";
 import { useRoutingPages } from "./useRoutingPages";
 import { asAppError } from "../../api/errors";
 import { useVersionStore } from "../config-versions/versionStore";
@@ -26,6 +27,7 @@ export function RoutingInventory({
 }>) {
   const scope = useVersionStore((state) => state.context?.configVersionId);
   const [operation, setOperation] = useState<Operation>("listRoutes");
+  const [legacy, setLegacy] = useState<RouteListItem>();
   const client = useQueryClient();
   const key = ["routing-inventory", scope, operation];
   const query = useRoutingPages<Item>(operation);
@@ -107,7 +109,14 @@ export function RoutingInventory({
                         <button
                           className="secondary"
                           disabled={query.isError}
-                          onClick={() => onOpen(routeId)}
+                          onClick={() => {
+                            if (
+                              "policy" in item &&
+                              item.policy !== "smooth_weighted_round_robin"
+                            )
+                              setLegacy(item);
+                            else onOpen(routeId);
+                          }}
                         >
                           打开路由
                         </button>
@@ -137,6 +146,34 @@ export function RoutingInventory({
             </tbody>
           </table>
         </div>
+      ) : null}
+      {legacy !== undefined ? (
+        <ObjectInspector
+          title="路由详情"
+          scope={`配置 ${scope ?? "—"} · 已读取的路由记录`}
+          onClose={() => setLegacy(undefined)}
+          facts={[
+            ["路由 ID", legacy.id],
+            ["公开模型", legacy.public_model_id],
+            ["调度策略", legacy.policy],
+            ["最大尝试次数", legacy.max_attempts],
+            ["启动超时（ms）", legacy.bootstrap_timeout_ms],
+          ]}
+        >
+          <p className="stat-sub">
+            此版本使用旧调度策略，当前路由编辑接口仅支持
+            smooth_weighted_round_robin。候选可在配置资源的「候选」中维护。
+          </p>
+          <button
+            className="secondary"
+            onClick={() => {
+              setLegacy(undefined);
+              setOperation("listRouteCandidates");
+            }}
+          >
+            查看候选
+          </button>
+        </ObjectInspector>
       ) : null}
       {query.hasNextPage ? (
         <button

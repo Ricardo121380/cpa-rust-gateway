@@ -1524,3 +1524,19 @@ legacy cursor transport stays accepted.
 Aggregation equivalence, partial token confidence, late-event exclusion, new/legacy
 cursor roundtrip, 3 operational HTTP tests, 13 contract tests, Clippy and SPA gate
 passed. M4 real gateway acceptance remains required.
+
+## 2026-09-10 — Codex / legacy route inspector compatibility
+
+**What:** `web/prism/src/features/models/RoutingInventory.tsx` opens old-policy
+route records in the existing ObjectInspector, with loaded safe fields and a
+candidate inventory entry. `ModelsPage.tsx` and `runtime/RuntimePage.tsx` remove
+obsolete missing-enumeration statements. Added regression in
+`web/prism/e2e/route-candidates.spec.ts`.
+
+**Why:** Complete route enumeration includes round_robin/priority_failover, while
+the existing single-route reader only supports smooth_weighted_round_robin.
+Opening known legacy records must not call that incompatible reader or change policy.
+
+**Other side:** FYI under current full-stack authorization. Type check, 7 Chromium
+route E2E tests and the four-file/CSP/contract double-build gate passed. The legacy
+inspector uses the approved object-details surface; no new generation or API.

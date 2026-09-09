@@ -780,7 +780,7 @@ function ExplainCard({ scope }: Readonly<{ scope: string }>) {
         <StateBlock
           kind="empty"
           text="填入 route_id 与请求模型后解释"
-          detail="契约没有 listRoutes,面板给不出路由清单 —— route_id 需要手输,或从「公开模型」页的路由工作台跳过来。"
+          detail="可从「模型与路由」的配置资源或「模型目录」的授权模型进入诊断，也可手动填写 exact 模型 ID 与路由 ID。"
         />
       ) : error !== null && error !== undefined ? (
         isProjectionUnavailable(error) ? (

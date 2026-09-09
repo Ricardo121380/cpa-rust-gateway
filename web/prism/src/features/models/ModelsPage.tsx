@@ -1,8 +1,6 @@
 import { ReadStatus } from "../../components/ReadStatus";
 // Public models: client-visible model names + capabilities + 1:1 route.
-// Top-level CRUD works against the existing contract. Alias ENUMERATION still
-// waits for a list operation the contract does not have; ROUTE work no longer
-// does — see RouteWorkbench below.
+// Complete route/candidate/alias enumeration lives in RouteWorkbench.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { call } from "../../api/client";

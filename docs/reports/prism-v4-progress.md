@@ -385,3 +385,10 @@ serve 在两个 listener 成功绑定后启动 Stored Response / compaction 维�
 本批 7 项 stored_response 回归通过，包括独立维护连接、双表限额与保留可解密的有效续接；
 新增真实文件 worker 回归通过，验证启动清除过期响应和 compaction、保留未到期记录及停止。
 gateway Clippy 通过。B4 运行装配已实现，完整真实 gateway 验收仍在 M4。
+
+## M2 旧策略路由详情
+
+完整路由列表中的 round_robin / priority_failover 现在直接使用已加载记录打开右侧详情，
+保留原策略、模型归属、尝试数和超时，并可进入候选列表。避免调用不支持旧策略的 getRoute。
+清理诊断页中「没有 listRoutes」的过时提示。新增两种旧策略、键盘关闭回归，7 项路由
+Chromium E2E、类型检查和 SPA 双构建门禁通过。模型到草稿接续和完整 M4 仍待完成。
