@@ -551,3 +551,23 @@ management_access_denied；没有伪造响应。首次测试误等401，按实�
 同目录候选编辑、发布审计、手机辅助偏好和锁定页截图。此阶段不声称发布后无需进程重启；
 新配置启动准入仍按本地重启装配机制，最终报告需明确实际查看方式与此边界。
 剩余工作以正式计划逐项审计和最终Rust/仓库门禁、交付报告为准，Goal未完成。
+
+## M4 完成审计与全仓门禁阶段检查
+
+新增 `prism-v4-completion-audit.md` 对照正式计划记录已证明与仍缺失事项。确认两个实际遗漏：
+配置版本差异没有生产接口/页面；发布与回滚缺少V4要求的操作前确认。仍需核对已有启停操作
+在runtime装配中的边界，并提供可持续查看方式与最终交付报告。Goal保持未完成，不把截图与
+绿灯测试当作这些功能已完成。
+
+本批启动 `CHECK_REPORT_PATH=output/prism-v4-final-gates.md bash scripts/check.sh fast`。
+前置离线脚本、SPA、格式通过；all-targets Clippy发现测试格式/结构问题，修正数字分隔、unit
+pattern、冗余闭包并提取测试helper，未新增豁免。完整Clippy随后通过。全Rust首次发现旧6次
+尝试拒绝测试与新16次契约冲突，更新为6次可装配（新增17次拒绝回归保留），完整重跑通过：
+115个suite结果，共1183 passed / 9 ignored。忽略项保留其原有门槛，不伪报运行。
+
+serve封装测试缺少grok-build-cache-key，补齐临时合成夹具后通过。余下source-policy、scanner
+自检、crate-boundaries、doc-links、contract-tests、tracked secret scan、全HEAD及工作树
+whitespace均通过；格式与全目标Clippy最终复核通过。此次检查结果会在剩余功能完成后按
+影响范围更新，最终报告尚未生成。
+日志：`/tmp/prism-v4-final-gates.log`（首轮失败事实）、`/tmp/prism-v4-final-clippy.log`、
+`/tmp/prism-v4-final-rust-tests.log`、`/tmp/prism-v4-final-remaining-gates.log`。

@@ -12343,7 +12343,8 @@ mod tests {
     }
 
     #[test]
-    fn max_attempts_above_the_widened_bound_fails_admission_closed() -> Result<(), Box<dyn Error>> {
+    fn six_attempt_route_is_admitted_within_management_contract_bounds()
+    -> Result<(), Box<dyn Error>> {
         let directory = TemporaryDirectory::new()?;
         let database = directory.join("control.sqlite3");
         let secret_store = test_secret_store()?;
@@ -12367,10 +12368,7 @@ mod tests {
             std::sync::Arc::clone(lifecycle.registry()),
             ClientKeyService::new(ClientKeyPepper::try_from_bytes([0xE1_u8; 32])?),
         );
-        assert!(matches!(
-            composition,
-            Err(RuntimeCompositionError::Unavailable)
-        ));
+        assert!(composition.is_ok());
         Ok(())
     }
 

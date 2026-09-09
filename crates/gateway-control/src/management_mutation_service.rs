@@ -3780,7 +3780,7 @@ mod tests {
         let (mut service, version_id, actor) = test_service()?;
         let revision = create_minimax_routing_graph(&mut service, &actor, &version_id)?;
         let original = service.configuration(&version_id)?;
-        let (_, revision) = service.repository.mutate_draft_configuration(
+        let ((), revision) = service.repository.mutate_draft_configuration(
             &version_id,
             revision.as_i64(),
             |transaction| {

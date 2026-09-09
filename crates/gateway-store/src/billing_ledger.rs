@@ -1276,7 +1276,7 @@ mod tests {
             limit: 1,
             ..BillingLedgerQuery::default()
         })?;
-        assert_eq!(all.summary.records, 100007);
+        assert_eq!(all.summary.records, 100_007);
         let empty = ledger.query_page(&BillingLedgerQuery {
             from_ms: Some(u64::MAX),
             limit: 1,

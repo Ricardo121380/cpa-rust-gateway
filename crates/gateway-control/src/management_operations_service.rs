@@ -1998,6 +1998,27 @@ mod tests {
         Ok(())
     }
 
+    fn usage_attempt(
+        request_id: &gateway_core::RequestId,
+        number: u64,
+        ended_at_ms: i64,
+    ) -> Result<AttemptEvent, Box<dyn Error>> {
+        Ok(AttemptEvent::new(
+            request_id.clone(),
+            number,
+            RouteId::try_new("usage-route")?,
+            RouteCandidateId::try_new("usage-candidate")?,
+            CredentialId::try_new("usage-account")?,
+            EndpointId::try_new("usage-channel")?,
+            UpstreamId::try_new("usage-provider")?,
+            "private-upstream-model".to_owned(),
+            ended_at_ms - 1,
+            ended_at_ms,
+            AttemptOutcome::Succeeded,
+            AttemptRetryDecision::Completed,
+        ))
+    }
+
     #[test]
     fn usage_aggregation_is_grouped_paginated_and_explicitly_unpriced() -> TestResult {
         let mut store = SqliteEventStore::open_in_memory()?;
@@ -2021,25 +2042,6 @@ mod tests {
             None,
             false,
         );
-        let attempt = |request_id: &gateway_core::RequestId,
-                       number: u64,
-                       ended_at_ms: i64|
-         -> Result<AttemptEvent, Box<dyn Error>> {
-            Ok(AttemptEvent::new(
-                request_id.clone(),
-                number,
-                RouteId::try_new("usage-route")?,
-                RouteCandidateId::try_new("usage-candidate")?,
-                CredentialId::try_new("usage-account")?,
-                EndpointId::try_new("usage-channel")?,
-                UpstreamId::try_new("usage-provider")?,
-                "private-upstream-model".to_owned(),
-                ended_at_ms - 1,
-                ended_at_ms,
-                AttemptOutcome::Succeeded,
-                AttemptRetryDecision::Completed,
-            ))
-        };
         let usage_one = UsageEvent::from_usage(
             request_one.request_id().clone(),
             gateway_core::ResponseId::try_new("usage-response-a")?,
@@ -2059,10 +2061,10 @@ mod tests {
         );
         store.append_batch(&[
             GatewayEvent::Request(request_one.clone()),
-            GatewayEvent::Attempt(attempt(request_one.request_id(), 1, 100)?),
+            GatewayEvent::Attempt(usage_attempt(request_one.request_id(), 1, 100)?),
             GatewayEvent::Usage(usage_one),
             GatewayEvent::Request(request_two.clone()),
-            GatewayEvent::Attempt(attempt(request_two.request_id(), 1, 200)?),
+            GatewayEvent::Attempt(usage_attempt(request_two.request_id(), 1, 200)?),
             GatewayEvent::Usage(usage_two),
         ])?;
         let events = store.list_events()?;
@@ -2098,6 +2100,10 @@ mod tests {
             super::read_operational_usage_page(&store, &unfiltered)?,
             compile_operational_usage_page(&events, &unfiltered)?
         );
+        assert_usage_snapshot_paging(&mut store)
+    }
+
+    fn assert_usage_snapshot_paging(store: &mut SqliteEventStore) -> TestResult {
         let append_other =
             |store: &mut SqliteEventStore, name: &str, ended: i64, tokens: u64| -> TestResult {
                 let request = RequestEvent::new(
@@ -2120,28 +2126,28 @@ mod tests {
                 );
                 store.append_batch(&[
                     GatewayEvent::Request(request.clone()),
-                    GatewayEvent::Attempt(attempt(request.request_id(), 1, ended)?),
+                    GatewayEvent::Attempt(usage_attempt(request.request_id(), 1, ended)?),
                     GatewayEvent::Usage(usage),
                 ])?;
                 Ok(())
             };
-        append_other(&mut store, "other-one", 300, 2)?;
+        append_other(store, "other-one", 300, 2)?;
         let mut paged = OperationalUsageQuery {
             limit: 1,
             ..OperationalUsageQuery::default()
         };
-        let first = super::read_operational_usage_page(&store, &paged)?;
+        let first = super::read_operational_usage_page(store, &paged)?;
         assert_eq!(first.items[0].input_tokens.total, Some(10));
         assert_eq!(
             first
                 .next_cursor
                 .as_ref()
-                .and_then(|cursor| cursor.snapshot_ordinal()),
+                .and_then(super::OperationalUsageCursor::snapshot_ordinal),
             Some(9)
         );
-        append_other(&mut store, "other-late", 400, 999)?;
+        append_other(store, "other-late", 400, 999)?;
         paged.cursor = first.next_cursor;
-        let second = super::read_operational_usage_page(&store, &paged)?;
+        let second = super::read_operational_usage_page(store, &paged)?;
         assert_eq!(second.items.len(), 1);
         assert_eq!(second.items[0].input_tokens.total, Some(2));
         assert_eq!(second.observed_through_ms, Some(300));

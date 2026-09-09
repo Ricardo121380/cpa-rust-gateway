@@ -1386,9 +1386,9 @@ mod tests {
             limit: 2,
             before_ordinal: None,
         })?;
-        assert_eq!(watermark, Some(100006));
+        assert_eq!(watermark, Some(100_006));
         assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0].ordinal(), 100006);
+        assert_eq!(rows[0].ordinal(), 100_006);
         let (same_watermark, empty) = store.failure_events_page(super::FailureEventQuery {
             account_id: Some("different-account"),
             limit: 2,
@@ -1397,7 +1397,7 @@ mod tests {
         assert_eq!(same_watermark, watermark);
         assert!(empty.is_empty());
         let (_, older) = store.failure_events_page(super::FailureEventQuery {
-            before_ordinal: Some(100006),
+            before_ordinal: Some(100_006),
             limit: 2,
             ..super::FailureEventQuery::default()
         })?;

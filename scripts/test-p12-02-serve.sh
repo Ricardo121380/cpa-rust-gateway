@@ -40,8 +40,8 @@ fixture_mgmt='mgmt_abcdefghijklmnopqrstuvwxyz0123456789'
 mkdir "$state_dir" "$credentials_dir"
 printf '%s' "$fixture_mgmt" > "$credentials_dir/management-key"
 printf '%s' 'csrf_abcdefghijklmnopqrstuvwxyz0123456789' > "$credentials_dir/management-csrf"
-ruby -e 'File.binwrite(ARGV.fetch(0), "\xA1" * 32); File.binwrite(ARGV.fetch(1), "\xB2" * 32); File.binwrite(ARGV.fetch(2), "\xC3" * 32)' \
-  "$credentials_dir/master-key" "$credentials_dir/backup-key" "$credentials_dir/client-key-pepper"
+ruby -e 'File.binwrite(ARGV.fetch(0), "\xA1" * 32); File.binwrite(ARGV.fetch(1), "\xB2" * 32); File.binwrite(ARGV.fetch(2), "\xC3" * 32); File.binwrite(ARGV.fetch(3), "\xD4" * 32)' \
+  "$credentials_dir/master-key" "$credentials_dir/backup-key" "$credentials_dir/client-key-pepper" "$credentials_dir/grok-build-cache-key"
 
 cargo build --locked --package gateway >/dev/null
 "$target_dir/debug/gateway" serve \
