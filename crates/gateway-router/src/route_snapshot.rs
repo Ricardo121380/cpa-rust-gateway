@@ -96,6 +96,19 @@ pub enum SnapshotCatalogAdmission {
     AllowedUnlisted,
 }
 
+/// Durable discovery observation pinned with a serving Candidate.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SnapshotCatalogEvidence {
+    /// Per-target durable catalog version.
+    pub version: u64,
+    /// Last successful observation time.
+    pub observed_at_ms: i64,
+    /// Soft-staleness boundary.
+    pub stale_at_ms: i64,
+    /// Hard-expiry boundary; new admission is refused at this instant.
+    pub expires_at_ms: i64,
+}
+
 /// One active public model retained in a runtime Snapshot.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnapshotPublicModel {
@@ -197,6 +210,7 @@ pub struct SnapshotRouteCandidate {
     catalog_admission: SnapshotCatalogAdmission,
     active_binding_count: usize,
     eligible_credential_ids: Option<BTreeSet<gateway_core::CredentialId>>,
+    catalog_evidence: BTreeMap<CredentialId, SnapshotCatalogEvidence>,
 }
 
 /// Complete compiler-approved input for one credential-free route Candidate.
@@ -243,6 +257,7 @@ impl SnapshotRouteCandidate {
             catalog_admission: input.catalog_admission,
             active_binding_count: input.active_binding_count,
             eligible_credential_ids: None,
+            catalog_evidence: BTreeMap::new(),
         }
     }
 
@@ -267,6 +282,39 @@ impl SnapshotRouteCandidate {
         self.eligible_credential_ids
             .as_ref()
             .is_none_or(|credential_ids| credential_ids.contains(credential_id))
+    }
+
+    /// Checks a binding against the catalog deadline without reading mutable state or storage.
+    #[must_use]
+    pub fn allows_credential_at(&self, credential_id: &CredentialId, observed_at_ms: i64) -> bool {
+        self.allows_credential(credential_id)
+            && self
+                .catalog_evidence
+                .get(credential_id)
+                .is_none_or(|evidence| {
+                    evidence.observed_at_ms >= 0
+                        && evidence.observed_at_ms <= evidence.stale_at_ms
+                        && evidence.stale_at_ms <= evidence.expires_at_ms
+                        && evidence.observed_at_ms <= observed_at_ms
+                        && observed_at_ms < evidence.expires_at_ms
+                })
+    }
+
+    /// Checks new Candidate admission at an explicit instant while retaining the pinned snapshot.
+    #[must_use]
+    pub fn is_hard_eligible_at(&self, observed_at_ms: i64) -> bool {
+        self.is_hard_eligible()
+            && self.eligible_credential_ids.as_ref().is_none_or(|ids| {
+                ids.iter()
+                    .any(|id| self.allows_credential_at(id, observed_at_ms))
+            })
+    }
+
+    /// Iterates per-Credential catalog evidence, without Credential secrets or token material.
+    pub fn catalog_evidence(
+        &self,
+    ) -> impl Iterator<Item = (&CredentialId, &SnapshotCatalogEvidence)> {
+        self.catalog_evidence.iter()
     }
 
     /// Returns the stable Candidate identity.
@@ -689,6 +737,7 @@ pub struct SnapshotCredentialCatalog {
     credential_id: CredentialId,
     state: CatalogModelState,
     models: BTreeSet<String>,
+    evidence: Option<SnapshotCatalogEvidence>,
 }
 
 impl SnapshotCredentialCatalog {
@@ -705,7 +754,14 @@ impl SnapshotCredentialCatalog {
             credential_id,
             state,
             models,
+            evidence: None,
         }
+    }
+    /// Attaches already validated durable discovery deadlines and observation identity.
+    #[must_use]
+    pub const fn with_evidence(mut self, evidence: SnapshotCatalogEvidence) -> Self {
+        self.evidence = Some(evidence);
+        self
     }
 }
 
@@ -989,6 +1045,31 @@ impl RouteSnapshot {
                 .entry(template_route.id.clone())
                 .or_default()
                 .push(route_id);
+        }
+
+        let mut evidence_by_endpoint =
+            BTreeMap::<EndpointId, BTreeMap<CredentialId, SnapshotCatalogEvidence>>::new();
+        for catalog in &catalogs {
+            if let Some(evidence) = catalog.evidence {
+                evidence_by_endpoint
+                    .entry(catalog.endpoint_id.clone())
+                    .or_default()
+                    .insert(catalog.credential_id.clone(), evidence);
+            }
+        }
+        for route in &mut routes {
+            for candidate in &mut route.candidates {
+                candidate.catalog_evidence = evidence_by_endpoint
+                    .get(candidate.endpoint_id())
+                    .map(|entries| {
+                        entries
+                            .iter()
+                            .filter(|(id, _)| candidate.allows_credential(id))
+                            .map(|(id, evidence)| (id.clone(), *evidence))
+                            .collect()
+                    })
+                    .unwrap_or_default();
+            }
         }
 
         let access_groups = self
@@ -2019,13 +2100,25 @@ mod tests {
                 CredentialId::try_new("credential-a")?,
                 CatalogModelState::Fresh,
                 BTreeSet::from(["grok-4.6".to_owned(), "upstream-model".to_owned()]),
-            ),
+            )
+            .with_evidence(super::SnapshotCatalogEvidence {
+                version: 7,
+                observed_at_ms: 1,
+                stale_at_ms: 50,
+                expires_at_ms: 100,
+            }),
             SnapshotCredentialCatalog::new(
                 EndpointId::try_new("endpoint-a")?,
                 CredentialId::try_new("credential-b")?,
                 CatalogModelState::Stale,
                 BTreeSet::from(["grok-4.6".to_owned(), "upstream-model".to_owned()]),
-            ),
+            )
+            .with_evidence(super::SnapshotCatalogEvidence {
+                version: 7,
+                observed_at_ms: 1,
+                stale_at_ms: 50,
+                expires_at_ms: 200,
+            }),
         ])?;
         let group_id = AccessGroupId::try_new("group-a")?;
         let public_model = materialized
@@ -2040,6 +2133,19 @@ mod tests {
         assert!(candidate.allows_credential(&CredentialId::try_new("credential-b")?));
         assert!(!candidate.allows_credential(&CredentialId::try_new("credential-c")?));
         assert_eq!(candidate.active_binding_count(), 2);
+        let credential_a = CredentialId::try_new("credential-a")?;
+        let credential_b = CredentialId::try_new("credential-b")?;
+        assert!(candidate.allows_credential_at(&credential_a, 99));
+        assert!(!candidate.allows_credential_at(&credential_a, 100));
+        assert!(candidate.allows_credential_at(&credential_b, 100));
+        assert!(candidate.is_hard_eligible_at(199));
+        assert!(!candidate.is_hard_eligible_at(200));
+        assert!(!candidate.is_hard_eligible_at(-1));
+        assert_eq!(candidate.catalog_evidence().count(), 2);
+        // Time-based admission does not mutate or invalidate a held snapshot.
+        assert!(candidate.is_hard_eligible());
+        assert!(candidate.allows_credential_at(&credential_a, 99));
+
         assert_eq!(
             candidate.catalog_admission(),
             SnapshotCatalogAdmission::Listed(CatalogModelState::Fresh)

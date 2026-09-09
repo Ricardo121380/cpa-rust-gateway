@@ -183,7 +183,9 @@ impl RouteCredentialScheduler {
             let Some(acquired) = self.credential_pools.try_lease_eligible_at(
                 candidate.endpoint_id(),
                 LEGACY_NO_EXPIRY_OBSERVATION_MS,
-                |credential_id| candidate.allows_credential(credential_id),
+                |credential_id| {
+                    candidate.allows_credential_at(credential_id, LEGACY_NO_EXPIRY_OBSERVATION_MS)
+                },
             ) else {
                 return false;
             };
@@ -308,7 +310,7 @@ impl RouteCredentialScheduler {
                 candidate.endpoint_id(),
                 observed_at_ms,
                 |credential_id| {
-                    candidate.allows_credential(credential_id)
+                    candidate.allows_credential_at(credential_id, observed_at_ms)
                         && is_binding_eligible(candidate, credential_id)
                         && runtime_health.endpoint_credential_is_available(
                             candidate.endpoint_id(),
@@ -430,7 +432,7 @@ impl RouteCredentialScheduler {
                 candidate.endpoint_id(),
                 observed_at_ms,
                 |credential_id| {
-                    candidate.allows_credential(credential_id)
+                    candidate.allows_credential_at(credential_id, observed_at_ms)
                         && is_binding_eligible(candidate, credential_id)
                         && runtime_health.endpoint_credential_is_available(
                             candidate.endpoint_id(),
@@ -548,7 +550,7 @@ impl RouteCredentialScheduler {
             if ranked.provider_id() != selection.provider_id()
                 || candidate_provider != *selection.provider_id()
                 || ranked.channel_id() != candidate.endpoint_id()
-                || !candidate.is_hard_eligible()
+                || !candidate.is_hard_eligible_at(observed_at_ms)
                 || !is_candidate_eligible(candidate)
                 || !runtime_health.endpoint_is_available(candidate.endpoint_id())
             {
@@ -558,7 +560,7 @@ impl RouteCredentialScheduler {
                 candidate.endpoint_id(),
                 observed_at_ms,
                 |credential_id| {
-                    candidate.allows_credential(credential_id)
+                    candidate.allows_credential_at(credential_id, observed_at_ms)
                         && is_binding_eligible(candidate, credential_id)
                         && runtime_health.endpoint_credential_is_available(
                             candidate.endpoint_id(),
@@ -629,7 +631,7 @@ impl RouteCredentialScheduler {
             .route(route_id)
             .ok_or_else(credential_unavailable_error)?;
         let mut matching = route.candidates().iter().filter(|candidate| {
-            candidate.is_hard_eligible()
+            candidate.is_hard_eligible_at(observed_at_ms)
                 && candidate.endpoint_id() == channel_id
                 && ProviderId::try_new(candidate.upstream_id().as_str().to_owned())
                     .is_ok_and(|candidate_provider| candidate_provider == *provider_id)
@@ -651,7 +653,7 @@ impl RouteCredentialScheduler {
             credential_id,
             observed_at_ms,
             |candidate_credential_id| {
-                candidate.allows_credential(candidate_credential_id)
+                candidate.allows_credential_at(candidate_credential_id, observed_at_ms)
                     && runtime_health.endpoint_credential_is_available(
                         candidate.endpoint_id(),
                         candidate_credential_id,
@@ -755,7 +757,7 @@ impl RouteCredentialScheduler {
             .iter()
             .find(|candidate| candidate.id() == route_candidate_id)
             .filter(|candidate| {
-                candidate.is_hard_eligible()
+                candidate.is_hard_eligible_at(observed_at_ms)
                     && candidate.upstream_id() == upstream_id
                     && candidate.endpoint_id() == channel_id
                     && candidate
@@ -775,7 +777,7 @@ impl RouteCredentialScheduler {
             credential_revision,
             observed_at_ms,
             |candidate_credential_id| {
-                candidate.allows_credential(candidate_credential_id)
+                candidate.allows_credential_at(candidate_credential_id, observed_at_ms)
                     && runtime_health.endpoint_credential_is_available(
                         candidate.endpoint_id(),
                         candidate_credential_id,
@@ -899,7 +901,7 @@ impl RouteCredentialScheduler {
                 candidate.endpoint_id(),
                 observed_at_ms,
                 |credential_id| {
-                    candidate.allows_credential(credential_id)
+                    candidate.allows_credential_at(credential_id, observed_at_ms)
                         && is_binding_eligible(candidate, credential_id)
                         && runtime_health.endpoint_credential_is_available(
                             candidate.endpoint_id(),
@@ -1174,12 +1176,49 @@ mod tests {
             "endpoint-a",
             vec![("credential-a", 0, 100, 1), ("credential-b", 0, 1, 1)],
         )?])?);
-        let scheduler = RouteCredentialScheduler::new(snapshot, pools);
+        let scheduler = RouteCredentialScheduler::new(Arc::clone(&snapshot), pools);
 
         for _ in 0..4 {
             let selected = scheduler.select_and_lease(&route_id)?;
             assert_eq!(selected.lease().credential_id().as_str(), "credential-b");
         }
+        let materialized =
+            snapshot.materialize_credential_catalogs([crate::SnapshotCredentialCatalog::new(
+                EndpointId::try_new("endpoint-a")?,
+                CredentialId::try_new("credential-b")?,
+                CatalogModelState::Fresh,
+                BTreeSet::from(["upstream-model".to_owned()]),
+            )
+            .with_evidence(crate::SnapshotCatalogEvidence {
+                version: 1,
+                observed_at_ms: 1,
+                stale_at_ms: 50,
+                expires_at_ms: 100,
+            })])?;
+        scheduler.publish_catalog_snapshot(Arc::new(materialized))?;
+        let health = RuntimeHealthRegistry::new();
+        let held = scheduler.select_eligible_and_lease_with_runtime_health_and_binding_at(
+            &route_id,
+            &health,
+            99,
+            |_| true,
+            |_, _| true,
+        )?;
+        assert_eq!(held.lease().credential_id().as_str(), "credential-b");
+        assert!(held.candidate().is_hard_eligible_at(99));
+        drop(held);
+        assert!(
+            scheduler
+                .select_eligible_and_lease_with_runtime_health_and_binding_at(
+                    &route_id,
+                    &health,
+                    100,
+                    |_| true,
+                    |_, _| true
+                )
+                .is_err()
+        );
+        assert!(scheduler.select_and_lease(&route_id).is_err());
         Ok(())
     }
 

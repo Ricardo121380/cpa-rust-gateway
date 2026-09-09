@@ -198,6 +198,19 @@ gateway bin Clippy（-D warnings）和 diff 检查通过。测试初次使用相
 模型选择到草稿维护的接续、目录 snapshot 观测证据与 B3 硬过期、完整本地 gateway
 验收仍待完成；本批浏览器使用合成 fixture，不是 M4 证明。
 
+## B3 目录硬过期：快照与租约第一批
+
+SnapshotCredentialCatalog 现在携带 durable version、observed/stale/expires 时间，真实
+publish_durable 将存储中的证据随候选按 Credential 固定到 snapshot。新增显式时间的
+allows_credential_at/is_hard_eligible_at；新租约、pin、continuation 和 quota recovery 的
+时间参数路径检查硬过期，不在热路径读取 SQLite，也不修改已持有的候选/lease。
+旧无时间参数入口对带期限目录拒绝准入；无期限配置保留原行为。
+
+13 项 snapshot 与16 项 credential scheduler 回归、gateway bin Clippy 通过。新增证明：
+两个 Credential 分别在100/200过期；99 时可取得租约，释放后100时即便容量空闲仍被拒绝，
+无时间入口不能绕过期限。此批没有把 B3 标为完成：有效模型/Explain 的时间视图、刷新完成
+时间纠正、真实 gateway 验收及更完整在途场景仍需接续。B1/B2/B4 仍是当前必需工作。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、

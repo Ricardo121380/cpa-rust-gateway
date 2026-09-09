@@ -3695,6 +3695,12 @@ impl RuntimeModelCatalogWorker {
                         .map(|model| model.upstream_model().to_owned())
                         .collect(),
                 )
+                .with_evidence(gateway_router::SnapshotCatalogEvidence {
+                    version: status.snapshot().version(),
+                    observed_at_ms: status.snapshot().observed_at_ms(),
+                    stale_at_ms: status.snapshot().stale_at_ms(),
+                    expires_at_ms: status.snapshot().expires_at_ms(),
+                })
             })
             .collect::<Vec<_>>();
         let snapshot = self

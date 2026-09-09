@@ -100,13 +100,13 @@ pub use route_scheduler::RouteCandidateScheduler;
 pub use route_snapshot::{
     MAX_SCHEDULE_SLOTS_PER_PRIORITY_TIER, PreparedSnapshotPublication, RouteSnapshot,
     RouteSnapshotBuildError, RouteSnapshotInput, RouteSnapshotRegistry, SnapshotAccessGroup,
-    SnapshotAuthenticatedClient, SnapshotCatalogAdmission, SnapshotClientKeyAuthenticator,
-    SnapshotClientKeyClock, SnapshotClientKeyClockError, SnapshotClientKeyView,
-    SnapshotCredentialCatalog, SnapshotEffectiveModel, SnapshotExactModelResolution,
-    SnapshotPriorityTierSchedule, SnapshotPublicModel, SnapshotRegistryError, SnapshotRoute,
-    SnapshotRouteCandidate, SnapshotRouteCandidateInput, SnapshotRoutePolicy,
-    SnapshotRouteSchedule, SnapshotTransformMode, SnapshotTransition, SnapshotVersion,
-    SystemSnapshotClientKeyClock,
+    SnapshotAuthenticatedClient, SnapshotCatalogAdmission, SnapshotCatalogEvidence,
+    SnapshotClientKeyAuthenticator, SnapshotClientKeyClock, SnapshotClientKeyClockError,
+    SnapshotClientKeyView, SnapshotCredentialCatalog, SnapshotEffectiveModel,
+    SnapshotExactModelResolution, SnapshotPriorityTierSchedule, SnapshotPublicModel,
+    SnapshotRegistryError, SnapshotRoute, SnapshotRouteCandidate, SnapshotRouteCandidateInput,
+    SnapshotRoutePolicy, SnapshotRouteSchedule, SnapshotTransformMode, SnapshotTransition,
+    SnapshotVersion, SystemSnapshotClientKeyClock,
 };
 pub use runtime_health::{
     DEFAULT_RUNTIME_HEALTH_SHARD_COUNT, MAX_RUNTIME_HEALTH_ENTRIES_PER_SHARD,
