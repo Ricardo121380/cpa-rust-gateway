@@ -4,6 +4,8 @@
 //! mutation to `gateway-control`. They never publish a Snapshot, invoke a Provider, expose a
 //! credential Secret/ciphertext, or bypass the P10-02 `/admin` security scope.
 
+mod configuration_diff;
+
 use std::{
     collections::{BTreeMap, BTreeSet},
     future::Future,
@@ -2504,6 +2506,10 @@ fn configure_routing_resource_routes(config: &mut web::ServiceConfig) {
         .route(
             "/resource-audit-events",
             web::get().to(list_resource_audit_events),
+        )
+        .route(
+            "/config-versions/{config_version_id}/diff",
+            web::get().to(configuration_diff::read),
         )
         .route("/routes", web::get().to(list_model_routes_page))
         .route(

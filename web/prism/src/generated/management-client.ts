@@ -91,6 +91,34 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "compareConfigVersions": {
+    "method": "GET",
+    "path": "/admin/config-versions/{config_version_id}/diff",
+    "parameters": [
+      {
+        "name": "config_version_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "base_id",
+        "in": "query",
+        "required": true
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "completeCredentialOAuth": {
     "method": "POST",
     "path": "/admin/credentials/{credential_id}/oauth/callback",
@@ -2392,6 +2420,10 @@ export class ManagementApi {
 
   clearRoutingPricePolicy(request: ManagementRequest = {}): Promise<Response> {
     return this.request("clearRoutingPricePolicy", request);
+  }
+
+  compareConfigVersions(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("compareConfigVersions", request);
   }
 
   completeCredentialOAuth(request: ManagementRequest = {}): Promise<Response> {

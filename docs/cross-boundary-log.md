@@ -1640,3 +1640,22 @@ version, and the gateway rejects stale confirmation after the same active ID and
 revision return. Initial authority insertion attached a header to the wrong path;
 generated-client rejection caught it, it was corrected and checks rerun. Modal uses
 approved V4 centered confirmation and states the current serve restart boundary.
+
+## 2026-09-10 — Codex / configuration comparison HTTP contract
+
+**What:** Added independent read-only ConfigurationDiffReader in gateway-store,
+source accessor in management_mutation_service, and bounded blocking
+`management_resources/configuration_diff.rs` handler. Authority adds
+compareConfigVersions with base_id/limit/cursor and safe change metadata; ran
+sync-contract, updating `web/prism/contracts/management-v1.json` and generated client.
+Extended the real local harness to verify comparison pages and stale cursors.
+
+**Why:** Complete the actual configuration comparison API needed by the approved
+V4 versions workspace. No secret/field values are returned, and a full SQL comparison
+does not retain the management mutation mutex or connection.
+
+**Other side:** FYI under full-stack authorization. Three store tests (including a
+read while a write transaction remains uncommitted), 13 contract tests, Clippy and
+SPA gate passed. Real gateway compares versions across pages, excludes test secrets,
+returns 409 after draft changes and 404 for absent versions. Frontend consumer is
+still pending; do not describe configuration diff as fully delivered yet.

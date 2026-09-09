@@ -580,6 +580,14 @@ impl ManagementMutationService {
         ConfigRevision::try_new(configuration.version.revision)
     }
 
+    /// Returns an independent file-backed comparison source, if the repository has a file.
+    #[must_use]
+    pub fn configuration_diff_reader(
+        &self,
+    ) -> Option<gateway_store::control_plane::ConfigurationDiffReader> {
+        self.repository.configuration_diff_reader()
+    }
+
     /// Returns bounded newest-first resource audit metadata for an existing version.
     ///
     /// # Errors

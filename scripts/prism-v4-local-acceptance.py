@@ -457,6 +457,27 @@ def main():
             for path, body, method in list(setup_operations):
                 if path.startswith(('/admin/egress-policies', '/admin/upstreams/', '/admin/endpoints/')) or path in ['/admin/upstreams', '/admin/access-groups', '/admin/client-keys']:
                     mutate(path, body, method)
+            diff_path = f'/admin/config-versions/{scope}/diff?base_id=prism-local-v4&limit=1'
+            _, _, first_diff = request(diff_path)
+            assert first_diff['base']['id'] == 'prism-local-v4' and first_diff['target']['id'] == scope
+            assert first_diff['next_cursor']
+            differences = list(first_diff['items'])
+            diff_cursor = first_diff['next_cursor']
+            while diff_cursor:
+                _, _, diff_page = request(diff_path + '&cursor=' + diff_cursor)
+                differences.extend(diff_page['items'])
+                diff_cursor = diff_page['next_cursor']
+            assert any(row['resource_kind'] == 'public_model' and row['change'] == 'removed' for row in differences)
+            projected = json.dumps(differences)
+            private_values = [key, csrf, issued['key']] + [body['secret'] for _, body, _ in setup_operations if isinstance(body, dict) and 'secret' in body]
+            assert all(value not in projected for value in private_values)
+            upstream_body = next(body for path, body, _ in setup_operations if path == '/admin/upstreams')
+            mutate('/admin/upstreams/local-upstream', {**upstream_body, 'name': 'Browser draft upstream'}, 'PATCH')
+            assert request(diff_path + '&cursor=' + first_diff['next_cursor'], expected_error=409)[0] == 409
+            _, _, same_diff = request(f'/admin/config-versions/{scope}/diff?base_id={scope}')
+            assert same_diff['items'] == [] and same_diff['next_cursor'] is None
+            assert request(f'/admin/config-versions/{scope}/diff?base_id=absent-version', expected_error=404)[0] == 404
+            checks.append('real configuration diff pages exclude secrets and reject stale dual-version cursor')
             subprocess.run(['node', str(ROOT / 'web/prism/e2e/real-gateway-flow.mjs')],
                            input=json.dumps({'base': base, 'key': key, 'csrf': csrf, 'output': str(root / 'browser-flow')}), text=True, check=True)
             _, _, versions_after = request('/admin/config-versions')

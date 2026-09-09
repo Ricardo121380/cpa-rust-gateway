@@ -91,7 +91,40 @@ const TABLES: &[(&str, &str)] = &[
     ("routing_price_policy", "routing_price_policies"),
 ];
 
+/// A file-backed comparison source that opens an independent read-only connection per read.
+#[derive(Clone, Debug)]
+pub struct ConfigurationDiffReader {
+    path: std::path::PathBuf,
+}
+impl ConfigurationDiffReader {
+    /// Reads without retaining the management mutation connection or running migrations.
+    ///
+    /// # Errors
+    /// Returns comparison errors or a closed persistence error for an unavailable database.
+    pub fn read(
+        &self,
+        query: ConfigurationDiffQuery<'_>,
+    ) -> Result<ConfigurationDiffPage, ConfigurationDiffError> {
+        let connection = rusqlite::Connection::open_with_flags(
+            &self.path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )?;
+        connection.busy_timeout(std::time::Duration::from_secs(5))?;
+        SqliteControlPlaneRepository { connection }.configuration_diff(query)
+    }
+}
+
 impl SqliteControlPlaneRepository {
+    /// Creates a file-backed reader without sharing this repository's connection.
+    /// In-memory repositories have no independently openable file and return None.
+    #[must_use]
+    pub fn configuration_diff_reader(&self) -> Option<ConfigurationDiffReader> {
+        self.connection
+            .path()
+            .filter(|path| !path.is_empty() && *path != ":memory:")
+            .map(|path| ConfigurationDiffReader { path: path.into() })
+    }
+
     /// Compares complete stored resources with bounded output and revision-pinned continuation.
     ///
     /// # Errors
@@ -248,6 +281,56 @@ fn table_diff_sql(
 mod tests {
     use super::*;
     use crate::control_plane::{ConfigVersionStatus, ControlPlaneConfiguration};
+
+    #[test]
+    fn file_reader_observes_committed_snapshot_while_writer_is_open() -> Result<(), Box<dyn Error>>
+    {
+        let directory = std::env::temp_dir().join(format!(
+            "prism-diff-reader-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)?
+                .as_nanos()
+        ));
+        std::fs::create_dir(&directory)?;
+        let mut repository = SqliteControlPlaneRepository::open(directory.join("control.sqlite3"))?;
+        let base = ConfigVersionId::try_new("reader-base")?;
+        let target = ConfigVersionId::try_new("reader-target")?;
+        for id in [&base, &target] {
+            repository.write_configuration(&ControlPlaneConfiguration::new(ConfigVersion {
+                id: id.clone(),
+                parent_id: None,
+                status: ConfigVersionStatus::Draft,
+                revision: 0,
+                created_at_ms: 0,
+                description: String::new(),
+            }))?;
+        }
+        let reader = repository
+            .configuration_diff_reader()
+            .ok_or("file reader unavailable")?;
+        let writer = repository.connection.transaction()?;
+        writer.execute(
+            "UPDATE config_versions SET revision=1 WHERE id=?1",
+            [target.as_str()],
+        )?;
+        let query = ConfigurationDiffQuery {
+            base: &base,
+            target: &target,
+            expected_revisions: Some((0, 0)),
+            after: None,
+            limit: 1,
+        };
+        assert_eq!(reader.read(query)?.target.revision, 0);
+        writer.commit()?;
+        assert!(matches!(
+            reader.read(query),
+            Err(ConfigurationDiffError::RevisionChanged)
+        ));
+        drop(repository);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
 
     #[test]
     fn composite_grants_and_singleton_price_policy_compare_by_identity()

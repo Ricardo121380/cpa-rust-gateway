@@ -134,3 +134,11 @@ publishConfigVersion / rollbackConfigVersion 增加可选 X-Expected-Active-Vers
 存储每页1–200条，续页携带两端revision与资源kind/key位置；任一revision改变即拒绝续页。
 新增HTTP必须使用有界blocking读取，避免在Actix事件循环执行全图比较，并绑定cursor与两个
 请求版本。前端沿用V4已确认的居中差异表，支持选择基线、分页和重新读取，禁止固定样本。
+
+
+配置差异 HTTP 定稿：`GET /admin/config-versions/{config_version_id}/diff`，operationId
+`compareConfigVersions`，必填base_id，limit 1–200（默认100），可选cursor。返回base/target
+的ID与revision、items、next_cursor。cursor绑定两端身份/revision及kind/key续页位置；身份
+混用或revision变化409，版本不存在404，参数非法400。独立文件只读连接在现有四并发blocking
+限额中执行，不持有管理mutation连接；测试用纯内存仓库没有独立文件reader，返回不可用。
+权威已同步，正式前端差异面板仍待接入。

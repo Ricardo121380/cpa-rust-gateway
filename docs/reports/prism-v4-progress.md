@@ -601,3 +601,16 @@ Clippy、SPA和构建通过。新增确认没有使用设计生成器，复用�
 复合route grant和singleton价格策略比较、非法页上限/缺少revision的续页拒绝。store全目标
 Clippy通过。CR记录比较语义：持久化字节变化不等于已判断秘密明文变化。
 当前仅存储基础，HTTP/前端差异入口仍待接入，不将配置差异标为完成。
+
+## M4 配置差异 API 与独立读取
+
+compareConfigVersions已接入权威和真实管理listener，绑定base_id与path目标；opaque cursor
+固定两端ID/revision与续页位置。输出仅ID、revision、资源key/类型、变化分类和字段名。
+新增只读文件reader，在已有4并发blocking任务内开独立连接，不占用管理mutation连接。
+纯内存嵌入没有独立文件reader，API返回不可用；正式serve文件状态支持此接口。
+
+3项存储回归通过，包括writer未提交时reader立即看到旧提交snapshot、提交后旧revision拒绝；
+13契约、gateway/store Clippy、SPA门禁通过（108 operations）。真实网关多页差异、无秘密值、
+旧游标409、相同版本空差异、缺失版本404通过，既有7阶段浏览器写入链路仍通过。
+证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-u76d_018/evidence.json`。
+正式前端差异入口仍待接入，本项尚未整体完成。

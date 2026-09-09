@@ -6,7 +6,7 @@
 
 mod configuration_diff;
 pub use configuration_diff::{
-    ConfigurationDiffError, ConfigurationDiffPage, ConfigurationDiffQuery,
+    ConfigurationDiffError, ConfigurationDiffPage, ConfigurationDiffQuery, ConfigurationDiffReader,
     ConfigurationResourceChange,
 };
 
