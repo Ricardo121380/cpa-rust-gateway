@@ -158,6 +158,11 @@
       "parameters": [{ "$ref": "#/components/parameters/ConfigVersion" }, { "$ref": "#/components/parameters/RouteId" }, { "$ref": "#/components/parameters/IfMatch" }],
       "post": { "tags": ["routing"], "operationId": "createRouteCandidate", "requestBody": { "$ref": "#/components/requestBodies/CandidateInput" }, "responses": { "201": { "$ref": "#/components/responses/Candidate" }, "default": { "$ref": "#/components/responses/Error" } } }
     },
+    "/admin/routes/{route_id}/candidates/{candidate_id}": {
+      "parameters": [{ "$ref": "#/components/parameters/ConfigVersion" }, { "$ref": "#/components/parameters/RouteId" }, { "name": "candidate_id", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/Id" } }, { "$ref": "#/components/parameters/IfMatch" }],
+      "patch": { "tags": ["routing"], "operationId": "updateRouteCandidate", "description": "Replace mutable Candidate fields in an exact draft revision. Body id must match the path; owning Route is immutable. Mutation and audit commit atomically.", "x-audit-action": "route_candidate_updated", "requestBody": { "$ref": "#/components/requestBodies/CandidateInput" }, "responses": { "200": { "$ref": "#/components/responses/Candidate" }, "default": { "$ref": "#/components/responses/Error" } } },
+      "delete": { "tags": ["routing"], "operationId": "deleteRouteCandidate", "description": "Delete one Candidate in an exact draft revision, retaining the Route and its grants. Revalidate the Route before publication.", "x-audit-action": "route_candidate_deleted", "responses": { "204": { "description": "Deleted; ETag contains the new draft revision", "headers": { "ETag": { "schema": { "type": "string" } } } }, "default": { "$ref": "#/components/responses/Error" } } }
+    },
     "/admin/routes/{route_id}/validate": {
       "parameters": [{ "$ref": "#/components/parameters/ConfigVersion" }, { "$ref": "#/components/parameters/RouteId" }],
       "post": { "tags": ["routing"], "operationId": "validateRoute", "responses": { "200": { "$ref": "#/components/responses/Validation" }, "default": { "$ref": "#/components/responses/Error" } } }

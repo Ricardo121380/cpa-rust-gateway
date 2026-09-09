@@ -103,8 +103,14 @@ Route，删除保留 Route 与 Access Group grant；数据、revision 和审计�
 以及删除后路由校验报告缺少有效候选。管理 mutation service 本批 9 项测试通过，
 `cargo fmt --all` 与 `git diff --check` 通过。
 
-这批尚未暴露 HTTP 接口，不是 BE-FE-02 完成证明。下一步接入 HTTP/权威契约与接口
-回归，再完成版本一致的有界枚举及正式前端交互。BE-FE-01、B1–B4 与 M4 仍待完成。
+后续 HTTP 批次已接入 `/admin/routes/{route_id}/candidates/{candidate_id}` 的 PATCH/DELETE，
+定稿权威契约与 CR 并运行 sync-contract（101 个生成操作）。扩展真实 Actix 测试，验证
+鉴权拒绝、缺失 If-Match、成功更新字段、新 ETag、旧 revision 冲突、错误归属、body/path
+ID 不一致、独立删除及父 Route 保留。13 项契约测试和路由 HTTP 生命周期回归通过；
+前端类型检查及权威四文件/CSP/双构建门禁通过。
+
+BE-FE-02 尚未完成：版本一致的有界枚举及正式前端交互仍待接入。BE-FE-01、B1–B4
+与 M4 仍待完成；本批测试不替代真实 gateway 联调或磁盘重启验收。
 
 ## 环境边界
 

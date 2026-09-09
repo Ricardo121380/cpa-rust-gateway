@@ -592,6 +592,34 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "deleteRouteCandidate": {
+    "method": "DELETE",
+    "path": "/admin/routes/{route_id}/candidates/{candidate_id}",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "route_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "candidate_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "deleteUpstream": {
     "method": "DELETE",
     "path": "/admin/upstreams/{upstream_id}",
@@ -1950,6 +1978,34 @@ export const managementOperations = {
     "bodyEncoding": "json",
     "bodyRequired": true
   },
+  "updateRouteCandidate": {
+    "method": "PATCH",
+    "path": "/admin/routes/{route_id}/candidates/{candidate_id}",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "route_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "candidate_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "updateUpstream": {
     "method": "PATCH",
     "path": "/admin/upstreams/{upstream_id}",
@@ -2282,6 +2338,10 @@ export class ManagementApi {
     return this.request("deleteRoute", request);
   }
 
+  deleteRouteCandidate(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("deleteRouteCandidate", request);
+  }
+
   deleteUpstream(request: ManagementRequest = {}): Promise<Response> {
     return this.request("deleteUpstream", request);
   }
@@ -2552,6 +2612,10 @@ export class ManagementApi {
 
   updateRoute(request: ManagementRequest = {}): Promise<Response> {
     return this.request("updateRoute", request);
+  }
+
+  updateRouteCandidate(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("updateRouteCandidate", request);
   }
 
   updateUpstream(request: ManagementRequest = {}): Promise<Response> {

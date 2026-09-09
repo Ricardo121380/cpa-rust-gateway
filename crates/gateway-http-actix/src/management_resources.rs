@@ -2430,6 +2430,14 @@ fn configure_routing_resource_routes(config: &mut web::ServiceConfig) {
             web::post().to(create_route_candidate),
         )
         .route(
+            "/routes/{route_id}/candidates/{candidate_id}",
+            web::patch().to(update_route_candidate),
+        )
+        .route(
+            "/routes/{route_id}/candidates/{candidate_id}",
+            web::delete().to(delete_route_candidate),
+        )
+        .route(
             "/routes/{route_id}/validate",
             web::post().to(validate_model_route),
         )
@@ -6629,6 +6637,81 @@ async fn create_route_candidate(
     };
     match service.create_route_candidate(&actor, &context.version, context.revision, candidate) {
         Ok(value) => revisioned_json(StatusCode::CREATED, value, CandidateResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn update_route_candidate(
+    request: HttpRequest,
+    path: web::Path<(String, String)>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let (route_id, candidate_id) = path.into_inner();
+    let Ok(route_id) = RouteId::try_new(route_id) else {
+        return invalid_input();
+    };
+    let input = match parse_json::<CandidateInput>(&body) {
+        Ok(input) => input,
+        Err(response) => return response,
+    };
+    if input.id != candidate_id {
+        return invalid_input();
+    }
+    let candidate = match route_candidate(input, route_id) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.update_route_candidate(&actor, &context.version, context.revision, candidate) {
+        Ok(value) => revisioned_json(StatusCode::OK, value, CandidateResponse::from),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn delete_route_candidate(
+    request: HttpRequest,
+    path: web::Path<(String, String)>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(context) => context,
+        Err(response) => return response,
+    };
+    let (route_id, candidate_id) = path.into_inner();
+    let (Ok(route_id), Ok(candidate_id)) = (
+        RouteId::try_new(route_id),
+        RouteCandidateId::try_new(candidate_id),
+    ) else {
+        return invalid_input();
+    };
+    let actor = match principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let mut service = match service(&state) {
+        Ok(service) => service,
+        Err(response) => return response,
+    };
+    match service.delete_route_candidate(
+        &actor,
+        &context.version,
+        context.revision,
+        &route_id,
+        &candidate_id,
+    ) {
+        Ok(revision) => empty_with_revision(revision),
         Err(error) => management_error(error),
     }
 }

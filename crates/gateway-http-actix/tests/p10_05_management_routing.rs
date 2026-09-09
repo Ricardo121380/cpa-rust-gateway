@@ -545,17 +545,110 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
     assert_eq!(revoked_key.status(), StatusCode::NO_CONTENT);
     assert_revision(&revoked_key, 22);
 
-    let deleted_route = test::call_service(
+    let candidate_path = "/admin/routes/route-minimax-m3/candidates/candidate-minimax-m3";
+    let candidate_input = json!({
+        "id":"candidate-minimax-m3", "endpoint_id":"endpoint-routing",
+        "upstream_model":"exact-updated-model", "credential_scope":"all_active",
+        "transform_mode":"canonical_bridge", "enabled":true,
+        "priority":3, "weight":7, "capability_override":{}
+    });
+    let denied = test::call_service(
+        &app,
+        test::TestRequest::patch()
+            .uri(candidate_path)
+            .set_json(&candidate_input)
+            .to_request(),
+    )
+    .await;
+    assert_eq!(denied.status(), StatusCode::NOT_FOUND);
+    let missing_revision = test::call_service(
         &app,
         authorized(
-            test::TestRequest::delete().uri("/admin/routes/route-minimax-m3"),
+            test::TestRequest::patch()
+                .uri(candidate_path)
+                .set_json(&candidate_input),
+            None,
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(missing_revision.status(), StatusCode::BAD_REQUEST);
+    let updated = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::patch()
+                .uri(candidate_path)
+                .set_json(&candidate_input),
             Some("rev-22"),
         )
         .to_request(),
     )
     .await;
+    assert_eq!(updated.status(), StatusCode::OK);
+    assert_revision(&updated, 23);
+    let updated_body: Value = test::read_body_json(updated).await;
+    assert_eq!(updated_body["weight"], 7);
+    assert_eq!(updated_body["upstream_model"], "exact-updated-model");
+    for (path, revision, expected) in [
+        (candidate_path, "rev-22", StatusCode::CONFLICT),
+        (
+            "/admin/routes/other-route/candidates/candidate-minimax-m3",
+            "rev-23",
+            StatusCode::NOT_FOUND,
+        ),
+        (
+            "/admin/routes/route-minimax-m3/candidates/other-candidate",
+            "rev-23",
+            StatusCode::BAD_REQUEST,
+        ),
+    ] {
+        let rejected = test::call_service(
+            &app,
+            authorized(
+                test::TestRequest::patch()
+                    .uri(path)
+                    .set_json(&candidate_input),
+                Some(revision),
+            )
+            .to_request(),
+        )
+        .await;
+        assert_eq!(rejected.status(), expected);
+    }
+    let deleted = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::delete().uri(candidate_path),
+            Some("rev-23"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(deleted.status(), StatusCode::NO_CONTENT);
+    assert_revision(&deleted, 24);
+    let retained = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/routes/route-minimax-m3"),
+            None,
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(retained.status(), StatusCode::OK);
+    assert_revision(&retained, 24);
+
+    let deleted_route = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::delete().uri("/admin/routes/route-minimax-m3"),
+            Some("rev-24"),
+        )
+        .to_request(),
+    )
+    .await;
     assert_eq!(deleted_route.status(), StatusCode::NO_CONTENT);
-    assert_revision(&deleted_route, 23);
+    assert_revision(&deleted_route, 25);
 
     let grants = test::call_service(
         &app,
@@ -567,20 +660,20 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
     )
     .await;
     assert_eq!(grants.status(), StatusCode::OK);
-    assert_revision(&grants, 23);
+    assert_revision(&grants, 25);
     assert_eq!(test::read_body_json::<Value, _>(grants).await, json!([]));
 
     let deleted_group = test::call_service(
         &app,
         authorized(
             test::TestRequest::delete().uri("/admin/access-groups/group-minimax"),
-            Some("rev-23"),
+            Some("rev-25"),
         )
         .to_request(),
     )
     .await;
     assert_eq!(deleted_group.status(), StatusCode::NO_CONTENT);
-    assert_revision(&deleted_group, 24);
+    assert_revision(&deleted_group, 26);
 
     let keys = test::call_service(
         &app,
@@ -588,7 +681,7 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
     )
     .await;
     assert_eq!(keys.status(), StatusCode::OK);
-    assert_revision(&keys, 24);
+    assert_revision(&keys, 26);
     let keys_body = test::read_body(keys).await;
     assert!(
         !keys_body
@@ -600,13 +693,13 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
         &app,
         authorized(
             test::TestRequest::delete().uri("/admin/public-models/model-minimax-m3"),
-            Some("rev-24"),
+            Some("rev-26"),
         )
         .to_request(),
     )
     .await;
     assert_eq!(deleted_public_model.status(), StatusCode::NO_CONTENT);
-    assert_revision(&deleted_public_model, 25);
+    assert_revision(&deleted_public_model, 27);
 
     let missing_public_model = test::call_service(
         &app,

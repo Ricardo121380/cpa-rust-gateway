@@ -31,3 +31,13 @@ Access Group ID 或 Client Key ID；不接收 Client Key secret。复用数据�
 提交权威 OpenAPI 和后端测试后运行 sync-contract，再接前端。验证授权一致性、snapshot
 跨页冲突、旧 revision 拒绝、孤立候选持久化、物化重启幂等和状态安全投影。
 这些是本轮内部待实施项，不等待另一位实现者。
+
+## BE-FE-02 候选写接口定稿（2026-09-10）
+
+- `PATCH /admin/routes/{route_id}/candidates/{candidate_id}`：`updateRouteCandidate`，
+  使用既有完整 `CandidateInput`，body ID 必须与路径一致，所属 Route 不可改。
+- 同路径 `DELETE`：`deleteRouteCandidate`，只移除候选，保留 Route/grants。
+- 均要求管理鉴权、`X-Config-Version` 与 `If-Match`，仅可编辑草稿；同一事务提交数据、
+  revision 和 `route_candidate_updated` / `route_candidate_deleted` 审计。
+- 成功返回新 ETag，PATCH 返回既有 Candidate DTO，DELETE 返回 204；409 不重放。
+  复用既有错误信封与输入边界，无新增秘密字段。完整枚举接口仍在实施中。

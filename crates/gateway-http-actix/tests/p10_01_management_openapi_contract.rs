@@ -36,6 +36,40 @@ fn management_contract_has_the_versioned_complete_resource_surface() -> TestResu
 }
 
 #[test]
+fn candidate_mutation_contract_preserves_revision_and_existing_dto() -> TestResult {
+    let document = document()?;
+    let path = "/admin/routes/{route_id}/candidates/{candidate_id}";
+    for (method, operation, audit) in [
+        ("patch", "updateRouteCandidate", "route_candidate_updated"),
+        ("delete", "deleteRouteCandidate", "route_candidate_deleted"),
+    ] {
+        assert_eq!(document["paths"][path][method]["operationId"], operation);
+        assert_eq!(document["paths"][path][method]["x-audit-action"], audit);
+        let parameters = operation_parameters(&document, path, method)?;
+        for required in ["ConfigVersion", "RouteId", "IfMatch"] {
+            let reference = format!("#/components/parameters/{required}");
+            assert!(
+                parameters
+                    .iter()
+                    .any(|parameter| parameter["$ref"] == reference)
+            );
+        }
+        assert!(parameters.iter().any(|parameter| {
+            parameter["name"] == "candidate_id" && parameter["required"] == true
+        }));
+    }
+    assert_eq!(
+        document["paths"][path]["patch"]["requestBody"]["$ref"],
+        "#/components/requestBodies/CandidateInput"
+    );
+    assert_eq!(
+        document["paths"][path]["patch"]["responses"]["200"]["$ref"],
+        "#/components/responses/Candidate"
+    );
+    Ok(())
+}
+
+#[test]
 fn management_contract_has_no_dangling_local_references() -> TestResult {
     let document = document()?;
     validate_references(&document, &document)?;

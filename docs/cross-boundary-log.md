@@ -1321,3 +1321,20 @@ acceptance remain mandatory work. Type-check, 251 unit tests, all 119 browser te
 and the authoritative four-file SPA gate passed. After formatting the new components,
 the build and all 119 browser tests passed again; no project dependency or lock file changed.
 No remote or real Provider action was performed.
+
+
+## 2026-09-10 — Codex / V4 M2 candidate HTTP contract
+
+**What:** Added candidate PATCH/DELETE to
+`crates/gateway-http-actix/src/management_resources.rs` and the authority
+`docs/openapi/management-v1.json`; regenerated
+`web/prism/contracts/management-v1.json` and
+`web/prism/src/generated/management-client.ts` using sync-contract.
+
+**Why:** BE-FE-02 requires independent candidate maintenance with exact draft
+revision, immutable owner and atomic audit. Existing Route CRUD remains intact.
+
+**Other side:** FYI under this Goal's full-stack authorization. New operations are
+`updateRouteCandidate` and `deleteRouteCandidate`, under the existing same-origin
+management listener. CandidateInput is reused; no new response schema or fixture
+shape is needed. UI integration and complete resource enumeration remain pending.
