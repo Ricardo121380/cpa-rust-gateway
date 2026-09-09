@@ -27,3 +27,37 @@ test("serving model contexts stay separate and source links preserve exact IDs",
   await expect(panel.getByRole("alert")).toBeVisible();
   await expect(panel).not.toContainText("exact-alpha");
 });
+
+test("an authorized model survives draft selection and seeds a new route candidate", async ({ page }) => {
+  await unlock(page);
+  await page.locator(".version-picker select").selectOption("v-2026-07");
+  await navigate(page, "模型目录");
+  await page.getByLabel("模型授权身份").selectOption("team-default");
+  await page.getByRole("button", { name: "模型来源" }).click();
+  await page.getByRole("link", { name: "用于草稿候选" }).click();
+  const handoff = page.getByRole("region", { name: "待用于草稿的模型" });
+  await expect(handoff).toContainText("exact-alpha");
+  await expect(handoff.getByRole("button", { name: "以此模型创建公开模型" })).toBeDisabled();
+  await page.locator(".version-picker select").selectOption("draft-2026-08");
+  await expect(handoff).toContainText("endpoint-exact-alpha");
+  await handoff.getByRole("button", { name: "以此模型创建公开模型" }).click();
+  let dialog = page.getByRole("dialog");
+  await expect(dialog.getByLabel("模型名", { exact: false })).toHaveValue("exact-alpha");
+  await dialog.getByLabel("模型 ID").fill("pm-handoff");
+  await dialog.getByRole("button", { name: "保存" }).click();
+  await page.locator("tr", { hasText: "exact-alpha" }).getByRole("button", { name: "建路由" }).click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByLabel("路由 ID").fill("route-handoff");
+  await dialog.getByRole("button", { name: "创建", exact: true }).click();
+  await page.locator(".route-workbench").getByRole("button", { name: "打开它" }).click();
+  await page.locator(".route-workbench").getByRole("button", { name: "加候选" }).click();
+  dialog = page.getByRole("dialog");
+  await expect(dialog.getByLabel("upstream_model", { exact: false })).toHaveValue("exact-alpha");
+  await expect(dialog.getByLabel("endpoint_id", { exact: false })).toHaveValue("endpoint-exact-alpha");
+  await expect(dialog.getByLabel("候选 ID")).toHaveValue("");
+  await page.keyboard.press("Escape");
+  await handoff.getByRole("button", { name: "清除模型选择" }).click();
+  await expect(handoff).toHaveCount(0);
+  await page.locator(".route-workbench").getByRole("button", { name: "加候选" }).click();
+  await expect(page.getByRole("dialog").getByLabel("upstream_model", { exact: false })).toHaveValue("");
+});

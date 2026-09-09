@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router-dom";
 import { ReadStatus } from "../../components/ReadStatus";
 // Public models: client-visible model names + capabilities + 1:1 route.
 // Complete route/candidate/alias enumeration lives in RouteWorkbench.
@@ -63,6 +64,16 @@ function toInput(draft: DraftModel) {
 }
 
 export function ModelsPage() {
+  const [search, setSearch] = useSearchParams();
+  const sourceModel = search.get("from_model") ?? "";
+  const sourceEndpoint = search.get("from_endpoint") ?? "";
+  const modelSeed =
+    sourceModel.length > 0 &&
+    sourceModel.length <= 256 &&
+    sourceEndpoint.length > 0 &&
+    sourceEndpoint.length <= 128
+      ? { model: sourceModel, endpoint: sourceEndpoint }
+      : undefined;
   const t = useMessages();
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
@@ -203,6 +214,48 @@ export function ModelsPage() {
         </div>
       </header>
 
+      {modelSeed !== undefined ? (
+        <section className="data-panel" aria-label="待用于草稿的模型">
+          <h3>已选择授权模型</h3>
+          <p className="mono">
+            {modelSeed.model} · {modelSeed.endpoint}
+          </p>
+          <p className="stat-sub">
+            来源 serving 配置 {search.get("from_version") ?? "—"}。
+            {editable
+              ? "打开目标路由后添加候选，或先创建公开模型和路由。保存时会校验当前草稿中的端点。"
+              : "请先选择或创建草稿版本；此选择会保留。"}
+          </p>
+          <button
+            className="secondary"
+            disabled={!editable}
+            onClick={() =>
+              setDraft({
+                ...emptyDraft(),
+                model_name: modelSeed.model,
+                display_name: modelSeed.model,
+              })
+            }
+          >
+            以此模型创建公开模型
+          </button>
+          <button
+            className="secondary"
+            onClick={() => {
+              const next = new URLSearchParams(search);
+              for (const name of [
+                "from_model",
+                "from_endpoint",
+                "from_version",
+              ])
+                next.delete(name);
+              setSearch(next, { replace: true });
+            }}
+          >
+            清除模型选择
+          </button>
+        </section>
+      ) : null}
       {notice !== undefined ? (
         <p className="action-notice">
           {notice}
@@ -294,7 +347,7 @@ export function ModelsPage() {
         ) : null}
       </div>
 
-      <RouteWorkbench focusRouteId={createdRouteId} editable={editable} />
+      <RouteWorkbench focusRouteId={createdRouteId} editable={editable} modelSeed={modelSeed} />
 
       {inspected === undefined ? null : <ObjectInspector title={inspected.display_name || inspected.model_name} scope={`配置版本 ${scope}`} onClose={() => setInspected(undefined)} facts={[
         ["配置 ID", inspected.id], ["模型名称", inspected.model_name], ["配置状态", inspected.status],

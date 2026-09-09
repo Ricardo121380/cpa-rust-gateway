@@ -238,6 +238,16 @@ export function EffectiveModels() {
                 <dt>编译目录准入</dt>
                 <dd>{source.catalog_admission}</dd>
               </div>
+              <div>
+                <dt>草稿操作</dt>
+                <dd>
+                  <Link
+                    to={`/models?${new URLSearchParams({ from_model: selected.id, from_endpoint: source.endpoint_id, from_version: first?.config_version ?? "" })}`}
+                  >
+                    用于草稿候选
+                  </Link>
+                </dd>
+              </div>
               {source.catalog_evidence.length === 0 ? (
                 <div>
                   <dt>目录观测</dt>

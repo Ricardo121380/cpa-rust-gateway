@@ -38,7 +38,12 @@ type CandidateInput = Readonly<{
 export function RouteWorkbench({
   focusRouteId,
   editable,
-}: Readonly<{ focusRouteId: string | undefined; editable: boolean }>) {
+  modelSeed,
+}: Readonly<{
+  focusRouteId: string | undefined;
+  editable: boolean;
+  modelSeed?: { model: string; endpoint: string } | undefined;
+}>) {
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
   const scope = context?.configVersionId;
@@ -429,6 +434,8 @@ export function RouteWorkbench({
         <CandidateSheet
           routeId={record.id}
           pending={addCandidate.isPending}
+          seed={modelSeed}
+          error={error}
           onCancel={() => setAddingCandidate(false)}
           onInvalid={setError}
           onSubmit={(body) => addCandidate.mutate({ routeId: record.id, body })}
@@ -573,6 +580,7 @@ export function RouteWorkbench({
 }
 
 function CandidateSheet({
+  seed,
   initial,
   error,
   routeId,
@@ -581,6 +589,7 @@ function CandidateSheet({
   onInvalid,
   onSubmit,
 }: Readonly<{
+  seed?: { model: string; endpoint: string } | undefined;
   initial?: CandidateRecord;
   error?: string | undefined;
   routeId: string;
@@ -655,13 +664,13 @@ function CandidateSheet({
             className="mono"
             required
             maxLength={128}
-            defaultValue={initial?.endpoint_id}
+            defaultValue={initial?.endpoint_id ?? seed?.endpoint}
           />
         </label>
         <label>
           upstream_model(上游侧的真实模型名)
           <input
-            defaultValue={initial?.upstream_model}
+            defaultValue={initial?.upstream_model ?? seed?.model}
             name="upstream_model"
             className="mono"
             required

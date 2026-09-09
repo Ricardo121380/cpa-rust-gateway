@@ -1540,3 +1540,22 @@ Opening known legacy records must not call that incompatible reader or change po
 **Other side:** FYI under current full-stack authorization. Type check, 7 Chromium
 route E2E tests and the four-file/CSP/contract double-build gate passed. The legacy
 inspector uses the approved object-details surface; no new generation or API.
+
+## 2026-09-10 — Codex / effective model to draft candidate handoff
+
+**What:** `web/prism/src/features/catalog/EffectiveModels.tsx` links each selected
+source into ModelsPage with safe exact model/Endpoint/source-version query values.
+`features/models/ModelsPage.tsx` preserves selection across draft switching and
+can seed a new public-model form; `RouteWorkbench.tsx` seeds new candidate forms
+only. Existing edits retain their own values; add-form errors now stay visible
+inside the form. Added `e2e/effective-models.spec.ts` coverage.
+
+**Why:** Implement the approved M2 OpenDesign “用于草稿候选” flow without copying
+serving configuration into drafts or sending Client Key secrets. Users still select
+or create a draft, choose/create a route, and explicitly save. Backend validation
+checks the target draft's Endpoint and topology.
+
+**Other side:** FYI under full-stack authorization. Two effective-model E2E tests
+passed (context isolation plus serving→draft→new model/route→candidate prefill and
+clear), seven existing route E2E tests passed, type check and SPA double-build gate
+passed. This UI fixture evidence does not replace M4 real gateway validation/publish.
