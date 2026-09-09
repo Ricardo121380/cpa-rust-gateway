@@ -907,3 +907,105 @@ async fn provider_account_pool_runtime_failures_are_service_unavailable() -> Tes
     }
     Ok(())
 }
+
+#[actix_web::test]
+async fn slow_operations_are_bounded_and_do_not_block_other_management_reads() -> TestResult {
+    use std::{
+        rc::Rc,
+        sync::{
+            Arc,
+            atomic::{AtomicBool, AtomicUsize, Ordering},
+        },
+        time::Duration,
+    };
+    struct BlockingUsage {
+        entered: Arc<AtomicUsize>,
+        released: Arc<AtomicBool>,
+    }
+    impl ManagementUsageFacade for BlockingUsage {
+        fn list_usage(
+            &self,
+            _: &OperationalUsageQuery,
+        ) -> Result<OperationalUsagePage, ManagementOperationsError> {
+            self.entered.fetch_add(1, Ordering::SeqCst);
+            while !self.released.load(Ordering::SeqCst) {
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            Err(ManagementOperationsError::SourceUnavailable)
+        }
+    }
+    struct ReleaseOnDrop(Arc<AtomicBool>);
+    impl Drop for ReleaseOnDrop {
+        fn drop(&mut self) {
+            self.0.store(true, Ordering::SeqCst);
+        }
+    }
+    let entered = Arc::new(AtomicUsize::new(0));
+    let released = Arc::new(AtomicBool::new(false));
+    let release = ReleaseOnDrop(Arc::clone(&released));
+    let state = resource_state()?.with_usage(Box::new(BlockingUsage {
+        entered: Arc::clone(&entered),
+        released,
+    }));
+    let app = Rc::new(
+        test::init_service(
+            App::new()
+                .app_data(web::Data::new(security_state()?))
+                .app_data(web::Data::new(state))
+                .configure(configure_management_resources),
+        )
+        .await,
+    );
+    let mut tasks = Vec::new();
+    for _ in 0..4 {
+        let app = Rc::clone(&app);
+        tasks.push(actix_web::rt::spawn(async move {
+            test::call_service(
+                app.as_ref(),
+                authorized(
+                    test::TestRequest::get().uri("/admin/operations/usage"),
+                    "unused",
+                )
+                .to_request(),
+            )
+            .await
+            .status()
+        }));
+    }
+    actix_web::rt::time::timeout(Duration::from_secs(10), async {
+        while entered.load(Ordering::SeqCst) < 4 {
+            actix_web::rt::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await?;
+    // Cancelling HTTP must not release the slot while its blocking source still runs.
+    let cancelled = tasks.remove(0);
+    cancelled.abort();
+    let _cancelled_result = cancelled.await;
+    let fifth = test::call_service(
+        app.as_ref(),
+        authorized(
+            test::TestRequest::get().uri("/admin/operations/usage"),
+            "unused",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(fifth.status(), StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(entered.load(Ordering::SeqCst), 4);
+    let status = test::call_service(
+        app.as_ref(),
+        authorized(
+            test::TestRequest::get().uri("/admin/operations/billing-processing"),
+            "unused",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(status.status(), StatusCode::OK);
+    drop(release);
+    for task in tasks {
+        assert_eq!(task.await?, StatusCode::INTERNAL_SERVER_ERROR);
+    }
+    Ok(())
+}

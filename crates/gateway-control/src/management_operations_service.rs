@@ -1683,6 +1683,8 @@ pub fn compile_operational_usage_page(
 /// Safe failures produced while compiling the configured operational inventory.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ManagementOperationsError {
+    /// The finite management blocking-read capacity is occupied.
+    ReadCapacityExceeded,
     /// A filter, page size, decoded cursor field, or persisted revision was invalid.
     InvalidQuery,
     /// The cursor was valid but belongs to another Config Version or revision.
@@ -1702,6 +1704,9 @@ impl fmt::Display for ManagementOperationsError {
             }
             Self::InconsistentConfiguration => {
                 formatter.write_str("management operations configuration is inconsistent")
+            }
+            Self::ReadCapacityExceeded => {
+                formatter.write_str("management read capacity is occupied")
             }
             Self::SourceUnavailable => {
                 formatter.write_str("management operations observation source is unavailable")

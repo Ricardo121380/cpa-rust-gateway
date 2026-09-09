@@ -110,8 +110,9 @@ pub struct ManagementResourceHttpState {
     workflow: Mutex<Box<dyn ManagementEndpointWorkflow>>,
     runtime: Mutex<Box<dyn ManagementRuntimeFacade>>,
     channel_pin: Mutex<Box<dyn ManagementChannelPinFacade>>,
-    usage: Mutex<Box<dyn ManagementUsageFacade>>,
-    failure_feedback: Mutex<Box<dyn ManagementFailureFeedbackFacade>>,
+    usage: std::sync::Arc<dyn ManagementUsageFacade>,
+    operational_reads: std::sync::Arc<tokio::sync::Semaphore>,
+    failure_feedback: std::sync::Arc<dyn ManagementFailureFeedbackFacade>,
     provider_account_pools: Mutex<Box<dyn ProviderAccountPoolFacade>>,
     provider_egress_status: Mutex<Box<dyn ProviderEgressStatusFacade>>,
     /// Credential ids with an in-flight refresh.  The claim spans decrypt, upstream refresh, and
@@ -341,8 +342,9 @@ impl ManagementResourceHttpState {
             workflow: Mutex::new(workflow),
             runtime: Mutex::new(runtime),
             channel_pin: Mutex::new(Box::new(RejectingManagementChannelPinFacade::new())),
-            usage: Mutex::new(usage),
-            failure_feedback: Mutex::new(Box::new(RejectingManagementFailureFeedbackFacade::new())),
+            usage: usage.into(),
+            operational_reads: std::sync::Arc::new(tokio::sync::Semaphore::new(4)),
+            failure_feedback: std::sync::Arc::new(RejectingManagementFailureFeedbackFacade::new()),
             provider_account_pools: Mutex::new(Box::new(RejectingProviderAccountPoolFacade::new())),
             provider_egress_status: Mutex::new(
                 Box::new(RejectingProviderEgressStatusFacade::new()),
@@ -365,7 +367,7 @@ impl ManagementResourceHttpState {
     /// Attaches the durable usage projection.
     #[must_use]
     pub fn with_usage(mut self, usage: Box<dyn ManagementUsageFacade>) -> Self {
-        self.usage = Mutex::new(usage);
+        self.usage = usage.into();
         self
     }
 
@@ -375,7 +377,7 @@ impl ManagementResourceHttpState {
         mut self,
         failure_feedback: Box<dyn ManagementFailureFeedbackFacade>,
     ) -> Self {
-        self.failure_feedback = Mutex::new(failure_feedback);
+        self.failure_feedback = failure_feedback.into();
         self
     }
 
@@ -3959,11 +3961,8 @@ async fn list_operational_usage(
         Ok(query) => query,
         Err(error) => return management_error(ManagementResourceError::from(error)),
     };
-    let usage_source = match usage(&state) {
-        Ok(source) => source,
-        Err(response) => return response,
-    };
-    match usage_source.list_usage(&query) {
+    let usage_source = std::sync::Arc::clone(&state.usage);
+    match read_operations(&state, move || usage_source.list_usage(&query)).await {
         Ok(page) => match operational_usage_page_response(page) {
             Ok(response) => HttpResponse::Ok()
                 .insert_header((header::CACHE_CONTROL, "no-store"))
@@ -4046,11 +4045,8 @@ async fn list_operational_billing(
         Ok(query) => query,
         Err(error) => return management_error(ManagementResourceError::from(error)),
     };
-    let source = match usage(&state) {
-        Ok(source) => source,
-        Err(response) => return response,
-    };
-    match source.list_billing(&query) {
+    let source = std::sync::Arc::clone(&state.usage);
+    match read_operations(&state, move || source.list_billing(&query)).await {
         Ok(page) => match operational_billing_page_response(page) {
             Ok(response) => HttpResponse::Ok()
                 .insert_header((header::CACHE_CONTROL, "no-store"))
@@ -4639,11 +4635,8 @@ async fn list_provider_account_failures(
             Ok(query) => query,
             Err(error) => return management_error(ManagementResourceError::from(error)),
         };
-    let source = match failure_feedback(&state) {
-        Ok(source) => source,
-        Err(response) => return response,
-    };
-    match source.list_failure_feedback(&query) {
+    let source = std::sync::Arc::clone(&state.failure_feedback);
+    match read_operations(&state, move || source.list_failure_feedback(&query)).await {
         Ok(page) => match failure_feedback_page_response(page) {
             Ok(response) => HttpResponse::Ok()
                 .insert_header((header::CACHE_CONTROL, "no-store"))
@@ -7792,16 +7785,24 @@ fn runtime(
     state.runtime.lock().map_err(|_| internal_error())
 }
 
-fn usage(
+async fn read_operations<T, F>(
     state: &web::Data<ManagementResourceHttpState>,
-) -> Result<std::sync::MutexGuard<'_, Box<dyn ManagementUsageFacade>>, HttpResponse> {
-    state.usage.lock().map_err(|_| internal_error())
-}
-
-fn failure_feedback(
-    state: &web::Data<ManagementResourceHttpState>,
-) -> Result<std::sync::MutexGuard<'_, Box<dyn ManagementFailureFeedbackFacade>>, HttpResponse> {
-    state.failure_feedback.lock().map_err(|_| internal_error())
+    read: F,
+) -> Result<T, ManagementOperationsError>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, ManagementOperationsError> + Send + 'static,
+{
+    let permit = std::sync::Arc::clone(&state.operational_reads)
+        .try_acquire_owned()
+        .map_err(|_| ManagementOperationsError::ReadCapacityExceeded)?;
+    web::block(move || {
+        // The permit belongs to the blocking job, so HTTP cancellation cannot bypass the bound.
+        let _permit = permit;
+        read()
+    })
+    .await
+    .map_err(|_| ManagementOperationsError::SourceUnavailable)?
 }
 
 fn provider_account_pools(
@@ -8726,6 +8727,13 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
                 StatusCode::CONFLICT,
                 "management_operations_cursor_conflict",
                 "Management inventory changed",
+            )
+        }
+        ManagementResourceError::Operations(ManagementOperationsError::ReadCapacityExceeded) => {
+            error_response(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "management_operations_busy",
+                "Management read capacity is occupied",
             )
         }
         ManagementResourceError::Operations(ManagementOperationsError::InvalidQuery) => {

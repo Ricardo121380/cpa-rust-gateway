@@ -84,3 +84,9 @@ source_ordinal、checkpoint_ordinal、checkpoint_updated_at_ms、unresolved_fail
 state 为 disabled/starting/current/catching_up/needs_repair/failed/stopped；未观测字段为 null。
 failed 保留上次成功观测时间和水位，failure_code 仅 batch_unavailable；未修复记录优先显示
 needs_repair，不因 checkpoint 追平而掩盖。HTTP 只复制内存 monitor，不访问 SQLite。
+
+## B2 运营读取执行边界（2026-09-10）
+
+用量、账本和失败查询共享最多4个blocking任务名额。超额请求返回503与既有 Error 信封内的
+封闭 code `management_operations_busy`；不新增响应 schema 或自动重试写入。名额归实际
+blocking任务所有，HTTP取消不提前释放。原有存储异常分类保持不变。

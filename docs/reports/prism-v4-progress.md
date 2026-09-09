@@ -328,6 +328,16 @@ keyset位置均作为SQL参数；页面最多100行、LIMIT+1。完整汇总在�
 窄窗6条分3页、完整汇总一致、页间新插入被旧snapshot排除、全范围汇总不受旧上限影响。
 用量/失败仍有旧路径，HTTP有界blocking读取也尚需接线，B2未整体完成。
 
+## B2 HTTP 有界 blocking 读取
+
+用量、账本和失败 facade 改为共享 Arc（原 trait 已要求 Send+Sync），读取通过 web::block
+执行，共享4个并发名额。permit 随blocking任务释放，取消HTTP不会绕过上限。超额新增
+ReadCapacityExceeded → 503 / management_operations_busy，原存储错误语义保持不变。
+
+3项管理运营HTTP回归及HTTP lib Clippy通过；新增慢查询并发测试确认4个任务在执行、取消
+一个HTTP后第5个仍被拒绝、独立计费状态接口继续返回200。gateway组合编译通过。
+用量/失败的全局历史读取仍待修复，B2尚未整体完成。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、
