@@ -166,6 +166,18 @@ RouteSnapshot 新增 effective_models_for_access_group，复用数据面的 exac
 隔离、歧义排除、到期/撤销/禁用、发布后的新旧快照语义。此批只有核心模型投影，尚未暴露
 HTTP 或接入正式模型目录；目录硬过期仍由后续 B3 补齐，不据此宣称 BE-FE-01 完成。
 
+## BE-FE-01 运行时接入基础
+
+真实 SnapshotManagementRuntimeFacade 已实现 effective_models：固定一次 serving snapshot，
+按 Access Group/Key ID 上下文调用核心授权投影，输出 exact ID、公开模型、Route、Candidate、
+Endpoint、Upstream、协议与编译目录准入类别。DTO 不携带 URL、Credential、Key secret/digest；
+运行时未装配时默认拒绝。空模型列表、上下文缺失和非 serving 配置分别表达。
+
+新增 gateway 运行时回归通过，覆盖缺失上下文、空授权组、缺失 Key 与非 serving 版本；
+gateway bin Clippy（-D warnings）和 diff 检查通过。测试初次使用相同版本发布被注册表拒绝，
+已改用新版本发布后验证。此批没有暴露 HTTP endpoint，目录快照时间/版本证据及 B3 仍待
+补齐；最终有效模型目录与验收未完成。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、

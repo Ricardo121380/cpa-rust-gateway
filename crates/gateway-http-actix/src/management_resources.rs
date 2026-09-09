@@ -1494,12 +1494,78 @@ impl ManagementChannelPinFacade for RejectingManagementChannelPinFacade {
     }
 }
 
+/// Existing authorization identity selected by a management operator, never a secret.
+#[derive(Clone, Debug)]
+pub enum ManagementEffectiveModelContext {
+    /// Inspect one serving Access Group.
+    AccessGroup(AccessGroupId),
+    /// Inspect one serving Client Key's current lifecycle and Access Group.
+    ClientKey(ClientKeyId),
+}
+
+/// Safe compiler provenance for one exact model Candidate.
+#[derive(Clone, Debug, Serialize)]
+pub struct ManagementEffectiveModelSource {
+    /// Candidate identity in the serving snapshot.
+    pub candidate_id: String,
+    /// Endpoint identity, never a URL.
+    pub endpoint_id: String,
+    /// Upstream identity.
+    pub upstream_id: String,
+    /// Declared protocol format.
+    pub api_format: String,
+    /// Compiler admission category; not runtime health or entitlement.
+    pub catalog_admission: &'static str,
+}
+
+/// One exact model visible to the selected serving authorization context.
+#[derive(Clone, Debug, Serialize)]
+pub struct ManagementEffectiveModel {
+    /// Exact upstream model ID, not an inferred plan whitelist.
+    pub id: String,
+    /// Unique public model identity selected by data-plane resolution.
+    pub public_model_id: String,
+    /// Public model name for human context.
+    pub public_model_name: String,
+    /// Owning Route identity.
+    pub route_id: String,
+    /// Compiler-retained Candidate evidence.
+    pub sources: Vec<ManagementEffectiveModelSource>,
+}
+
+/// Immutable serving projection; an empty models array means a valid context with no models.
+#[derive(Clone, Debug, Serialize)]
+pub struct ManagementEffectiveModels {
+    /// Serving configuration identity.
+    pub config_version: String,
+    /// Resolved Access Group identity.
+    pub access_group_id: String,
+    /// Selected Key identity when a Key context was requested, never its secret or digest.
+    pub client_key_id: Option<String>,
+    /// Exact models in stable ID order.
+    pub models: Vec<ManagementEffectiveModel>,
+}
+
 /// Explicit P10-06 runtime seam.
 ///
 /// Implementations may read only pre-admitted runtime-management projections, immutable Route
 /// Explain state, and value-free stored Attempts. They must not receive a Provider, URL, Header,
 /// Body, Secret, lease, scheduling cursor, network client, or configuration-publishing handle.
 pub trait ManagementRuntimeFacade: Send {
+    /// Projects models from one serving snapshot under independent management authentication.
+    /// Missing/ineligible contexts return `None`; drafts cannot masquerade as serving state.
+    ///
+    /// # Errors
+    /// Returns Unavailable when the serving snapshot cannot be safely obtained.
+    fn effective_models(
+        &mut self,
+        _config_version_id: &ConfigVersionId,
+        _context: &ManagementEffectiveModelContext,
+        _observed_at_ms: i64,
+    ) -> Result<Option<ManagementEffectiveModels>, ManagementRuntimeError> {
+        Err(ManagementRuntimeError::Unavailable)
+    }
+
     /// Returns bounded source-labelled Catalog observations for an exact configuration graph.
     ///
     /// # Errors

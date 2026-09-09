@@ -7247,6 +7247,73 @@ const fn management_catalog_failure_class(
 }
 
 impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
+    fn effective_models(
+        &mut self,
+        config_version_id: &gateway_store::control_plane::ConfigVersionId,
+        context: &gateway_http_actix::management_resources::ManagementEffectiveModelContext,
+        observed_at_ms: i64,
+    ) -> Result<
+        Option<gateway_http_actix::management_resources::ManagementEffectiveModels>,
+        ManagementRuntimeError,
+    > {
+        use gateway_http_actix::management_resources::{
+            ManagementEffectiveModel, ManagementEffectiveModelContext,
+            ManagementEffectiveModelSource, ManagementEffectiveModels,
+        };
+        use gateway_router::SnapshotCatalogAdmission;
+        if observed_at_ms < 0 {
+            return Err(ManagementRuntimeError::InvalidInput);
+        }
+        let snapshot = self.snapshot_for(config_version_id)?;
+        let (group, client_key_id) = match context {
+            ManagementEffectiveModelContext::AccessGroup(id) => (snapshot.access_group(id), None),
+            ManagementEffectiveModelContext::ClientKey(id) => (
+                snapshot.access_group_for_client_key_at(id, observed_at_ms),
+                Some(id.as_str().to_owned()),
+            ),
+        };
+        let Some(group) = group else {
+            return Ok(None);
+        };
+        let Some(models) = snapshot.effective_models_for_access_group(group.id()) else {
+            return Ok(None);
+        };
+        let models = models
+            .into_iter()
+            .map(|model| ManagementEffectiveModel {
+                id: model.exact_id.to_owned(),
+                public_model_id: model.public_model.id().as_str().to_owned(),
+                public_model_name: model.public_model.model_name().to_owned(),
+                route_id: model.public_model.route_id().as_str().to_owned(),
+                sources: model
+                    .candidates
+                    .into_iter()
+                    .map(|candidate| ManagementEffectiveModelSource {
+                        candidate_id: candidate.id().as_str().to_owned(),
+                        endpoint_id: candidate.endpoint_id().as_str().to_owned(),
+                        upstream_id: candidate.upstream_id().as_str().to_owned(),
+                        api_format: candidate.endpoint_api_format().to_owned(),
+                        catalog_admission: match candidate.catalog_admission() {
+                            SnapshotCatalogAdmission::AllowedUnlisted => "allowed_unlisted",
+                            SnapshotCatalogAdmission::Listed(CatalogModelState::Manual) => "manual",
+                            SnapshotCatalogAdmission::Listed(CatalogModelState::Fresh) => "fresh",
+                            SnapshotCatalogAdmission::Listed(CatalogModelState::Stale) => "stale",
+                            SnapshotCatalogAdmission::Listed(CatalogModelState::Expired) => {
+                                "expired"
+                            }
+                        },
+                    })
+                    .collect(),
+            })
+            .collect();
+        Ok(Some(ManagementEffectiveModels {
+            config_version: snapshot.version().as_str().to_owned(),
+            access_group_id: group.id().as_str().to_owned(),
+            client_key_id,
+            models,
+        }))
+    }
+
     fn catalog_status(
         &mut self,
         config_version_id: &gateway_store::control_plane::ConfigVersionId,
@@ -12526,6 +12593,60 @@ mod tests {
             catalog_store: SqliteCatalogSnapshotStore::open_in_memory()?,
         };
         Ok((facade, clock, runtime_health, runtime_quota, version))
+    }
+
+    #[test]
+    fn effective_model_facade_distinguishes_missing_empty_and_non_serving_contexts()
+    -> Result<(), Box<dyn Error>> {
+        use gateway_http_actix::management_resources::ManagementEffectiveModelContext;
+        let (mut facade, _, _, _, version) = management_facade_fixture(1_000)?;
+        let group_id = gateway_core::AccessGroupId::try_new("group-empty")?;
+        let context = ManagementEffectiveModelContext::AccessGroup(group_id.clone());
+        assert!(
+            facade
+                .effective_models(&version, &context, 1_000)
+                .map_err(|_| "projection failed")?
+                .is_none()
+        );
+        let version = ConfigVersionId::try_new("effective-serving-v2")?;
+        facade
+            .registry
+            .publish(Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
+                SnapshotVersion::try_new(version.as_str())?,
+                Vec::new(),
+                Vec::new(),
+                Vec::new(),
+                vec![gateway_router::SnapshotAccessGroup::new(
+                    group_id,
+                    "Empty group".to_owned(),
+                    BTreeSet::new(),
+                )],
+                Vec::new(),
+            ))?))?;
+        let result = facade
+            .effective_models(&version, &context, 1_000)
+            .map_err(|_| "projection failed")?
+            .ok_or("missing existing group")?;
+        assert!(result.models.is_empty());
+        assert_eq!(result.config_version, version.as_str());
+        assert_eq!(result.access_group_id, "group-empty");
+        assert!(result.client_key_id.is_none());
+        assert_eq!(
+            facade
+                .effective_models(&ConfigVersionId::try_new("draft-other")?, &context, 1_000)
+                .err(),
+            Some(ManagementRuntimeError::Unavailable)
+        );
+        let key = ManagementEffectiveModelContext::ClientKey(gateway_core::ClientKeyId::try_new(
+            "missing-key",
+        )?);
+        assert!(
+            facade
+                .effective_models(&version, &key, 1_000)
+                .map_err(|_| "projection failed")?
+                .is_none()
+        );
+        Ok(())
     }
 
     #[test]
