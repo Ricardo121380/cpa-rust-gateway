@@ -1559,3 +1559,22 @@ checks the target draft's Endpoint and topology.
 passed (context isolation plus serving→draft→new model/route→candidate prefill and
 clear), seven existing route E2E tests passed, type check and SPA double-build gate
 passed. This UI fixture evidence does not replace M4 real gateway validation/publish.
+
+## 2026-09-10 — Codex / production browser audit and V4 controls
+
+**What:** Added `web/prism/e2e/real-gateway-audit.mjs`, invoked with ephemeral
+stdin credentials by `scripts/prism-v4-local-acceptance.py --browser`. Updated
+`web/prism/src/app/v4.css` and padded panels in `features/billing/ProcessingStatus.tsx`,
+`features/catalog/EffectiveModels.tsx`, `features/models/ModelsPage.tsx`.
+
+**Why:** Real embedded screenshots exposed flush panel contents and native white,
+short inputs in dark mode. Shared control styling now uses V4 surface/ink/border
+and 36px minimum height. Padded surfaces use 16px on every side; selector specificity
+beats the legacy card-shift rule that previously zeroed the left padding.
+
+**Other side:** FYI under full-stack authorization. Final real Chromium 151.0.7922.34
+run captured 84 page views + 6 unlock views across 1440×900 / 1280×720 / 390×844,
+light/dark with reduced motion; no page overflow, JS errors, or bad panel padding.
+251 unit tests, all 123 fixture E2E, SPA double-build gate and actual gateway build
+passed. Screenshots are evidence of entry/layout coverage, not a claim that every
+interactive flow has been exercised against the real gateway.

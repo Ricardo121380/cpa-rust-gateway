@@ -88,7 +88,7 @@ export function EffectiveModels() {
   const rows = models.data?.pages.flatMap((page) => page.items) ?? [];
   const first = models.data?.pages[0];
   return (
-    <section className="data-panel" aria-label="授权有效模型">
+    <section className="data-panel data-panel--padded" aria-label="授权有效模型">
       <header className="page-head">
         <div>
           <h3>授权有效模型</h3>

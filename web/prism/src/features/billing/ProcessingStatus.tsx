@@ -49,7 +49,7 @@ export function ProcessingStatus() {
   });
   const data = query.data;
   return (
-    <aside className="data-panel" aria-label="计费处理状态" data-gap="top">
+    <aside className="data-panel data-panel--padded" aria-label="计费处理状态" data-gap="top">
       <header className="page-head">
         <h3>计费处理</h3>
         <button

@@ -501,3 +501,20 @@ transport 失败记录，重启后确认有效模型的来源截止时间。一�
 gateway build、Clippy通过；修复后重跑 `--priced --large` 的17项检查通过，证据
 `/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-0wa0qlr6/evidence.json`。
 仍需全页面真实浏览器视觉/功能验收与最终门禁，完整交付报告尚未生成。
+
+## M4 正式嵌入页面：三尺寸与浅深色
+
+新增可复跑的真实 Chromium 浏览器审计，`--browser` 通过 stdin 传递临时管理凭据，先拍
+空白解锁表单后再填入，截图/JSON不记录秘密。14栏目在1440×900、1280×720、390×844，
+浅/深色、reduced-motion 下共84页面视图与6解锁截图；确认正确页面标题、无页面溢出、
+无JS异常，并收集页面alert。人工查看桌面全入口联系表、手机深色全入口联系表和细节截图。
+
+真实截图发现新面板内边距缺失和旧筛选控件深色下呈白色细条：已统一基础输入控件外观，
+添加V4面板内边距。进一步计算样式查明legacy card-shift把左内边距归零，提升选择器后
+最终84视图中所有padded面板均为16px。未引入设计生成器或更换V4风格。
+最终证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-ait9sjbu/browser/audit.json`，
+同目录90张截图；实际浏览器 Chromium 151.0.7922.34。相关5项E2E先通过，随后本次完整
+251单测、123 E2E（121 Chromium + 2 narrow）通过，SPA双构建门禁和gateway嵌入构建通过。
+
+仍需真实浏览器编辑/发布/重读、资源写入审计读取链路、实际辅助偏好/焦点细节，以及最终
+Rust/仓库门禁与逐项交付报告。全入口截图不代替这些剩余验收。

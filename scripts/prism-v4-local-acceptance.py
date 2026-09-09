@@ -29,6 +29,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--priced', action='store_true')
     parser.add_argument('--large', action='store_true')
+    parser.add_argument('--browser', action='store_true')
     parser.add_argument('--catalog-expiry', action='store_true')
     args = parser.parse_args()
     root = Path(tempfile.mkdtemp(prefix='prism-v4-acceptance-'))
@@ -411,6 +412,12 @@ def main():
             html = response.read().decode()
             assert 'assets/main.js' in html and response.headers.get('Content-Security-Policy')
         checks.append('embedded production SPA and CSP')
+        if args.browser:
+            subprocess.run(['node', str(ROOT / 'web/prism/e2e/real-gateway-audit.mjs')],
+                           input=json.dumps({'base': base, 'key': key, 'csrf': csrf, 'output': str(root / 'browser')}),
+                           text=True, check=True)
+            checks.append('production browser pages captured at three sizes in light and dark')
+
         report = {'checks': checks, 'state_directory': str(state), 'management_url': base,
                   'processing': processing}
         (root / 'evidence.json').write_text(json.dumps(report, indent=2))

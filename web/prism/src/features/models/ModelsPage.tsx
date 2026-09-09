@@ -215,7 +215,7 @@ export function ModelsPage() {
       </header>
 
       {modelSeed !== undefined ? (
-        <section className="data-panel" aria-label="待用于草稿的模型">
+        <section className="data-panel data-panel--padded" aria-label="待用于草稿的模型">
           <h3>已选择授权模型</h3>
           <p className="mono">
             {modelSeed.model} · {modelSeed.endpoint}
