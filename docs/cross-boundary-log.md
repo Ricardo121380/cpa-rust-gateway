@@ -1618,3 +1618,25 @@ with a random invalid test key; no HTTP response is mocked. Actual 404 plus
 management_access_denied locks the UI, clears both secret fields, prevents protected
 navigation and stops management reads for the observation window. Initial test's
 401 expectation was corrected to the repository's deliberate 404 masking policy.
+
+## 2026-09-10 — Codex / lifecycle confirmation and conditional activation
+
+**What:** Added shared `web/prism/src/features/config-versions/LifecycleConfirmation.tsx`
+for DraftDock and VersionsPage publish/rollback. Authority and
+`management_lifecycle_resources.rs` add optional X-Expected-Active-Version and
+X-Expected-Lifecycle-Event conditions, checked under the lifecycle lock before writes.
+Ran sync-contract and updated relevant fixture/real browser flows.
+
+**Why:** Approved V4 requires confirmation before publication and rollback. The
+modal shows observed active/target/revision, requires fresh reads, stops after
+failure, and does not replay writes. Active identity alone cannot catch ABA;
+the latest publication/rollback append ID prevents a switch-away-and-back race.
+Both optional headers are independently enforced; legacy callers may omit them.
+
+**Other side:** FYI under full-stack authorization. Type check, 14 relevant E2E,
+13 contract tests, 2 lifecycle HTTP tests, Clippy, SPA gate and gateway build passed.
+Real browser verifies cancel/confirm publication and rollback, restores the prior
+version, and the gateway rejects stale confirmation after the same active ID and
+revision return. Initial authority insertion attached a header to the wrong path;
+generated-client rejection caught it, it was corrected and checks rerun. Modal uses
+approved V4 centered confirmation and states the current serve restart boundary.

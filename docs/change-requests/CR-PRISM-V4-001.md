@@ -108,3 +108,16 @@ blocking任务所有，HTTP取消不提前释放。原有存储异常分类保�
 响应 items + next_before_id，ID使用十进制字符串避免JS整数精度丢失。只含动作、actor、
 时间、配置ID和资源类型/ID，不包含请求body、secret或ciphertext。按配置和ID筛选下推SQL，
 最多读取limit+1条；后续新写入不进入续页。保留原生命周期审计接口及语义。
+
+
+### M4 补充：发布/回滚确认的活动对象前置条件
+
+publishConfigVersion / rollbackConfigVersion 增加可选 X-Expected-Active-Version header，值为
+活动配置ID的JSON字符串或null。后端在同一生命周期锁内核对活动身份，再进行原If-Match
+操作；身份变化返回409且不写入。省略header保持旧客户端revision-only语义。确认界面将
+发送明确身份，并固定其展示的revision，避免不同活动版本同revision时确认错对象。
+
+
+确认请求同时支持可选 X-Expected-Lifecycle-Event：观察到的最近发布/回滚追加ID，无则0。
+后端在同一生命周期锁内核对，避免活动版本切走再切回（ID/revision相同）的ABA情况。
+两个条件各自可选、独立生效，旧调用方均省略时维持原语义；新确认页同时发送两个条件。

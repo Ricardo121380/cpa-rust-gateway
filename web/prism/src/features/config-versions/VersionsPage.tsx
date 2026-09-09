@@ -1,3 +1,4 @@
+import { LifecycleConfirmation } from "./LifecycleConfirmation";
 import { ReadStatus } from "../../components/ReadStatus";
 // Config-version workspace: the lifecycle hub (docs/07 §7.4 / v0.1 §7.3).
 // List → create draft → validate → publish (If-Match) → rollback.
@@ -25,6 +26,7 @@ export function VersionsPage() {
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
   const select = useVersionStore((s) => s.select);
+  const [confirmation, setConfirmation] = useState<{ mode: "publish" | "rollback"; id: string }>();
   const [creating, setCreating] = useState(false);
   const [validation, setValidation] = useState<{ id: string; result: Validation } | undefined>();
   const [publication, setPublication] = useState<Publication | undefined>();
@@ -46,13 +48,14 @@ export function VersionsPage() {
   });
 
   const publish = useMutation({
-    mutationFn: (id: string) =>
+    mutationFn: ({ id, expectedActive, lifecycleEvent }: { id: string; expectedActive: string; lifecycleEvent: string }) =>
       call<Publication>(
         "publishConfigVersion",
-        { path: { config_version_id: id } },
+        { path: { config_version_id: id }, headers: { "X-Expected-Active-Version": expectedActive, "X-Expected-Lifecycle-Event": lifecycleEvent } },
         { mutating: true },
       ),
     onSuccess: (result) => {
+      setConfirmation(undefined);
       setPublication(result);
       refresh();
     },
@@ -60,8 +63,9 @@ export function VersionsPage() {
   });
 
   const rollback = useMutation({
-    mutationFn: () => call<Publication>("rollbackConfigVersion", {}, { mutating: true }),
+    mutationFn: ({ expectedActive, lifecycleEvent }: { expectedActive: string; lifecycleEvent: string }) => call<Publication>("rollbackConfigVersion", { headers: { "X-Expected-Active-Version": expectedActive, "X-Expected-Lifecycle-Event": lifecycleEvent } }, { mutating: true }),
     onSuccess: (result) => {
+      setConfirmation(undefined);
       setPublication(result);
       refresh();
     },
@@ -100,13 +104,16 @@ export function VersionsPage() {
           <button
             type="button"
             className="secondary"
-            disabled={rollback.isPending}
-            onClick={() => rollback.mutate()}
+            disabled={rollback.isPending || context?.status !== "active"}
+            title="先选择当前活动版本，再核对回滚目标"
+            onClick={() => { if (context) { setActionError(undefined); setConfirmation({ mode: "rollback", id: context.configVersionId }); } }}
           >
             回滚到上一版本
           </button>
         </div>
       </header>
+
+      {confirmation ? <LifecycleConfirmation {...confirmation} pending={publish.isPending || rollback.isPending} error={actionError} onCancel={() => setConfirmation(undefined)} onConfirm={(expectedActive, lifecycleEvent) => confirmation.mode === "publish" ? publish.mutate({ id: confirmation.id, expectedActive, lifecycleEvent }) : rollback.mutate({ expectedActive, lifecycleEvent })} /> : null}
 
       {actionError !== undefined ? (
         <p role="alert" className="action-error">
@@ -162,7 +169,7 @@ export function VersionsPage() {
                         type="button"
                         disabled={!selected || publish.isPending}
                         title={selected ? undefined : "先选择该版本(If-Match 需要其 revision)"}
-                        onClick={() => publish.mutate(version.id)}
+                        onClick={() => { setActionError(undefined); setConfirmation({ mode: "publish", id: version.id }); }}
                       >
                         发布
                       </button>

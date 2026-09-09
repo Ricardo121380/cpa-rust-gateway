@@ -743,6 +743,7 @@ async fn publish_version(
         Err(response) => return response,
     };
     match lifecycle(&state).and_then(|mut facade| {
+        require_expected_active(&request, facade.as_mut())?;
         facade
             .publish_version(&version_id, expected_revision)
             .map_err(lifecycle_error)
@@ -760,12 +761,76 @@ async fn rollback(
         Ok(value) => value,
         Err(response) => return response,
     };
-    match lifecycle(&state)
-        .and_then(|mut facade| facade.rollback(expected_revision).map_err(lifecycle_error))
-    {
+    match lifecycle(&state).and_then(|mut facade| {
+        require_expected_active(&request, facade.as_mut())?;
+        facade.rollback(expected_revision).map_err(lifecycle_error)
+    }) {
         Ok(publication) => HttpResponse::Ok().json(PublicationResponse::from(publication)),
         Err(response) => response,
     }
+}
+
+// Optional identity pin supplements If-Match: two different active versions may share a revision.
+fn require_expected_active(
+    request: &HttpRequest,
+    facade: &mut dyn ManagementLifecycleFacade,
+) -> Result<(), HttpResponse> {
+    let mut values = request.headers().get_all("x-expected-active-version");
+    if let Some(value) = values.next() {
+        if values.next().is_some() {
+            return Err(invalid_input());
+        }
+        let raw = value.to_str().map_err(|_| invalid_input())?;
+        if raw.len() > 512 {
+            return Err(invalid_input());
+        }
+        let expected: Option<String> = serde_json::from_str(raw).map_err(|_| invalid_input())?;
+        let expected = expected
+            .map(ConfigVersionId::try_new)
+            .transpose()
+            .map_err(|_| invalid_input())?;
+        let active = facade
+            .list_versions()
+            .map_err(lifecycle_error)?
+            .into_iter()
+            .find(|version| version.status == ManagementLifecycleVersionStatus::Active)
+            .map(|version| version.id);
+        if active != expected {
+            return Err(lifecycle_error(ManagementLifecycleError::Conflict));
+        }
+    }
+    let mut epochs = request.headers().get_all("x-expected-lifecycle-event");
+    if let Some(epoch) = epochs.next() {
+        if epochs.next().is_some() {
+            return Err(invalid_input());
+        }
+        let epoch: i64 = epoch
+            .to_str()
+            .map_err(|_| invalid_input())?
+            .parse()
+            .map_err(|_| invalid_input())?;
+        if epoch < 0 {
+            return Err(invalid_input());
+        }
+        let latest = facade
+            .audit_events()
+            .map_err(lifecycle_error)?
+            .into_iter()
+            .filter(|event| {
+                matches!(
+                    event.action,
+                    ManagementLifecycleAuditAction::Published
+                        | ManagementLifecycleAuditAction::RolledBack
+                )
+            })
+            .map(|event| event.id)
+            .max()
+            .unwrap_or(0);
+        if latest != epoch {
+            return Err(lifecycle_error(ManagementLifecycleError::Conflict));
+        }
+    }
+    Ok(())
 }
 
 async fn list_audit_events(state: web::Data<ManagementLifecycleHttpState>) -> HttpResponse {

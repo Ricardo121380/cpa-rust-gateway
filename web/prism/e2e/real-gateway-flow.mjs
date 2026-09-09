@@ -71,6 +71,11 @@ try {
   await expect(page.getByRole('dialog')).toContainText('可以发布');
   await page.keyboard.press('Escape');
   await page.locator('.dock').getByRole('button', { name: '发布', exact: true }).click();
+  await page.getByRole('dialog', { name: '确认发布' }).getByRole('button', { name: '取消', exact: true }).click();
+  await expect(page.locator('.dock')).toBeVisible();
+  await page.locator('.dock').getByRole('button', { name: '发布', exact: true }).click();
+  await page.screenshot({ path: `${output}/publish-confirmation.png` });
+  await page.getByRole("dialog", { name: "确认发布" }).getByRole("button", { name: "确认发布", exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('已发布');
   await page.getByRole('button', { name: '完成', exact: true }).click();
   await expect(page.locator('.dock')).toHaveCount(0);
@@ -83,6 +88,19 @@ try {
   for (const action of ['route_candidate_created', 'route_candidate_updated', 'route_candidate_deleted']) await expect(audit).toContainText(action);
   await page.screenshot({ path: `${output}/published-resource-audit.png` });
   steps.push('published configuration reread and actual mutation audit visible');
+  await navigate('/versions');
+  await page.getByRole('button', { name: '回滚到上一版本' }).click();
+  await expect(page.getByRole('dialog', { name: '确认回滚' })).toContainText('prism-local-v4');
+  await page.getByRole('dialog').getByRole('button', { name: '取消', exact: true }).click();
+  await expect(page.locator('tr', { hasText: 'prism-browser-draft' }).first()).toContainText('active');
+  await page.getByRole('button', { name: '回滚到上一版本' }).click();
+  await page.screenshot({ path: `${output}/rollback-confirmation.png` });
+  await page.getByRole('dialog', { name: '确认回滚' }).getByRole('button', { name: '确认回滚', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('prism-local-v4');
+  await page.getByRole('dialog').getByRole('button', { name: '完成', exact: true }).click();
+  await page.locator('.version-picker select').selectOption('prism-local-v4');
+  steps.push('rollback requires target confirmation; cancel is inert and confirm restores prior version');
+
   await page.setViewportSize({ width: 390, height: 844 });
   await navigate('/settings');
   await page.getByRole('radio', { name: '深色', exact: true }).click();

@@ -67,6 +67,7 @@ test("config-version state drives the lens, and publishing anneals it", async ({
 
   await navigate(page, "配置版本");
   await page.locator(".dock").getByRole("button", { name: "发布" }).click();
+  await page.getByRole("dialog", { name: "确认发布" }).getByRole("button", { name: "确认发布", exact: true }).click();
   await page.getByRole("button", { name: "完成" }).click();
   await expect(page.locator(".topbar")).toContainText("当前版本只读");
   await page.waitForTimeout(900);

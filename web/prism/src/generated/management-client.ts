@@ -1719,6 +1719,16 @@ export const managementOperations = {
         "name": "If-Match",
         "in": "header",
         "required": true
+      },
+      {
+        "name": "X-Expected-Active-Version",
+        "in": "header",
+        "required": false
+      },
+      {
+        "name": "X-Expected-Lifecycle-Event",
+        "in": "header",
+        "required": false
       }
     ],
     "bodyEncoding": "none",
@@ -1816,6 +1826,16 @@ export const managementOperations = {
         "name": "If-Match",
         "in": "header",
         "required": true
+      },
+      {
+        "name": "X-Expected-Active-Version",
+        "in": "header",
+        "required": false
+      },
+      {
+        "name": "X-Expected-Lifecycle-Event",
+        "in": "header",
+        "required": false
       }
     ],
     "bodyEncoding": "none",

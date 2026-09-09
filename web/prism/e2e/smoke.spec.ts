@@ -40,6 +40,7 @@ test("draft dock publishes: anneal sheet, then version reads as active", async (
   await unlock(page);
   await selectDraft(page);
   await page.locator(".dock").getByRole("button", { name: "发布" }).click();
+  await page.getByRole("dialog", { name: "确认发布" }).getByRole("button", { name: "确认发布", exact: true }).click();
   await expect(page.getByRole("dialog")).toContainText("已发布");
   await page.getByRole("button", { name: "完成" }).click();
   await expect(page.locator(".topbar")).toContainText("当前版本只读");

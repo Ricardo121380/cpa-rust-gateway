@@ -1,3 +1,4 @@
+import { LifecycleConfirmation } from "../features/config-versions/LifecycleConfirmation";
 // Draft dock — the third (and last) chrome glass pane. Appears only when the
 // selected version is a draft; publish success re-selects the same version,
 // whose status flip drives the topbar's anneal transition (material CSS).
@@ -22,6 +23,7 @@ export function DraftDock() {
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
   const select = useVersionStore((s) => s.select);
+  const [confirming, setConfirming] = useState(false);
   const [validation, setValidation] = useState<Validation | undefined>();
   const [publication, setPublication] = useState<Publication | undefined>();
   const [error, setError] = useState<string | undefined>();
@@ -34,10 +36,11 @@ export function DraftDock() {
   });
 
   const publish = useMutation({
-    mutationFn: (id: string) =>
-      call<Publication>("publishConfigVersion", { path: { config_version_id: id } }, { mutating: true }),
+    mutationFn: ({ id, expectedActive, lifecycleEvent }: { id: string; expectedActive: string; lifecycleEvent: string }) =>
+      call<Publication>("publishConfigVersion", { path: { config_version_id: id }, headers: { "X-Expected-Active-Version": expectedActive, "X-Expected-Lifecycle-Event": lifecycleEvent } }, { mutating: true }),
     onSuccess: async (result) => {
       const generation = useVersionStore.getState().selectionGeneration;
+      setConfirming(false);
       setPublication(result);
       await queryClient.invalidateQueries({ queryKey: ["config-versions"] });
       if (useVersionStore.getState().selectionGeneration !== generation) return;
@@ -89,7 +92,7 @@ export function DraftDock() {
             disabled={publish.isPending}
             onClick={() => {
               setError(undefined);
-              publish.mutate(context.configVersionId);
+              setConfirming(true);
             }}
           >
             发布
@@ -97,6 +100,8 @@ export function DraftDock() {
         </span>
       </GlassSurface>
       ) : null}
+
+      {confirming && context ? <LifecycleConfirmation mode="publish" id={context.configVersionId} pending={publish.isPending} error={error} onCancel={() => setConfirming(false)} onConfirm={(expectedActive, lifecycleEvent) => publish.mutate({ id: context.configVersionId, expectedActive, lifecycleEvent })} /> : null}
 
       {validation !== undefined ? (
         <Sheet title="验证结果" onEscape={() => setValidation(undefined)}>

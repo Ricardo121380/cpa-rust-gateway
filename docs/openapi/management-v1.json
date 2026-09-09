@@ -54,7 +54,7 @@
       }
     },
     "/admin/config-versions/{config_version_id}/publish": {
-      "parameters": [{ "$ref": "#/components/parameters/ConfigVersionId" }, { "$ref": "#/components/parameters/IfMatch" }],
+      "parameters": [{ "$ref": "#/components/parameters/ConfigVersionId" }, { "$ref": "#/components/parameters/IfMatch" }, {"name": "X-Expected-Active-Version", "in": "header", "required": false, "description": "JSON string of expected active configuration ID, or null. Mismatch returns 409 before mutation. Optional for legacy callers.", "schema": {"type": "string", "maxLength": 512}}, {"name": "X-Expected-Lifecycle-Event", "in": "header", "required": false, "description": "Latest publication or rollback append ID observed in audit, or 0 if absent. Prevents active-version ABA changes during confirmation; mismatch returns 409.", "schema": {"type": "integer", "minimum": 0}}],
       "post": {
         "tags": ["configuration"],
         "operationId": "publishConfigVersion",
@@ -63,7 +63,7 @@
       }
     },
     "/admin/config-versions/rollback": {
-      "parameters": [{ "$ref": "#/components/parameters/IfMatch" }],
+      "parameters": [{ "$ref": "#/components/parameters/IfMatch" }, {"name": "X-Expected-Active-Version", "in": "header", "required": false, "description": "JSON string of expected active configuration ID, or null. Mismatch returns 409 before mutation. Optional for legacy callers.", "schema": {"type": "string", "maxLength": 512}}, {"name": "X-Expected-Lifecycle-Event", "in": "header", "required": false, "description": "Latest publication or rollback append ID observed in audit, or 0 if absent. Prevents active-version ABA changes during confirmation; mismatch returns 409.", "schema": {"type": "integer", "minimum": 0}}],
       "post": {
         "tags": ["configuration"],
         "operationId": "rollbackConfigVersion",

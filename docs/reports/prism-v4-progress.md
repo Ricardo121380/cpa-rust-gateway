@@ -571,3 +571,21 @@ whitespace均通过；格式与全目标Clippy最终复核通过。此次检查�
 影响范围更新，最终报告尚未生成。
 日志：`/tmp/prism-v4-final-gates.log`（首轮失败事实）、`/tmp/prism-v4-final-clippy.log`、
 `/tmp/prism-v4-final-rust-tests.log`、`/tmp/prism-v4-final-remaining-gates.log`。
+
+## M4 发布与回滚前确认补齐
+
+DraftDock与VersionsPage复用居中确认：重新读取实际活动版本/审计，显示目标与冻结revision，
+取消不写入，pending/错误/版本变化时不继续提交。回滚需先选择活动版本。说明当前serve的
+数据面重启装配边界，避免把管理发布成功直接描述为进程已热切换。
+
+可选X-Expected-Active-Version（JSON字符串/null）与X-Expected-Lifecycle-Event（发布/回滚
+追加ID，无则0）在后端同一生命周期锁内独立核对，失败409不写入；兼容省略header的旧调用。
+真实ABA回归通过：活动版本切走并回到同一ID/revision后，旧事件条件仍拒绝回滚。权威同步，
+初次header插入错误被生成客户端拒绝，修正后14相关E2E、13契约、2生命周期HTTP测试、类型、
+Clippy、SPA和构建通过。新增确认没有使用设计生成器，复用已确认V4 publishConfirm/rollback。
+
+真实浏览器写入流程扩展到7阶段，验证取消发布、确认发布、取消回滚、确认回滚与重读旧活动
+版本，其他候选CRUD/审计/辅助偏好/锁定步骤仍通过。截图人工核对确认目标。
+证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-aj_t82q_/evidence.json`，
+同目录browser-flow内flow.json及publish-confirmation/rollback-confirmation截图。
+配置差异、启停装配边界核对、持续查看方式和最终交付报告仍待完成。

@@ -114,13 +114,14 @@ def main():
 
     process = start_gateway()
 
-    def request(path, method='GET', body=None, revision=None, scope=None, expected_error=None):
+    def request(path, method='GET', body=None, revision=None, scope=None, expected_error=None, extra_headers=None):
         headers = {'x-management-key': key, 'Origin': base,
                    'x-management-csrf-token': csrf, 'Content-Type': 'application/json'}
         if revision is not None:
             headers['If-Match'] = revision
         if scope is not None:
             headers['X-Config-Version'] = scope
+        headers.update(extra_headers or {})
         req = urllib.request.Request(base + path, method=method, headers=headers,
                                      data=None if body is None else json.dumps(body).encode())
         try:
@@ -240,8 +241,16 @@ def main():
         validation = mutate(f'/admin/config-versions/{scope}/validate', {})
         (root / 'validation.json').write_text(json.dumps(validation, indent=2))
         assert validation['valid'], 'configuration invalid; inspect validation.json'
+        assert request(f'/admin/config-versions/{scope}/publish', 'POST', {}, revision=revision, expected_error=409,
+                       extra_headers={'X-Expected-Active-Version': json.dumps('wrong-active')})[0] == 409
         mutate(f'/admin/config-versions/{scope}/publish', {})
+        assert request('/admin/config-versions/rollback', 'POST', {}, revision=revision, expected_error=409,
+                       extra_headers={'X-Expected-Lifecycle-Event': '0'})[0] == 409
+
         checks.append('real configuration validation and publication')
+        _, _, initial_audit = request('/admin/audit-events')
+        initial_lifecycle_event = max(event['id'] for event in initial_audit if event['action'] in ['config_published', 'config_rolled_back'])
+
         process.terminate()
         assert process.wait(timeout=40) == 0
         if args.catalog_expiry:
@@ -451,7 +460,14 @@ def main():
             subprocess.run(['node', str(ROOT / 'web/prism/e2e/real-gateway-flow.mjs')],
                            input=json.dumps({'base': base, 'key': key, 'csrf': csrf, 'output': str(root / 'browser-flow')}), text=True, check=True)
             _, _, versions_after = request('/admin/config-versions')
-            assert next(version for version in versions_after if version['id'] == scope)['status'] == 'active'
+            assert next(version for version in versions_after if version['id'] == 'prism-local-v4')['status'] == 'active'
+            assert next(version for version in versions_after if version['id'] == scope)['status'] == 'archived'
+            active_after = next(version for version in versions_after if version['id'] == 'prism-local-v4')
+            assert request('/admin/config-versions/rollback', 'POST', {}, revision=active_after['revision'], expected_error=409,
+                           extra_headers={'X-Expected-Active-Version': json.dumps(active_after['id']),
+                                          'X-Expected-Lifecycle-Event': str(initial_lifecycle_event)})[0] == 409
+            checks.append('old confirmation rejected after active identity returns with the same revision')
+
             checks.append('real browser model handoff, candidate CRUD, grant, validate, publish and audit')
         report = {'checks': checks, 'state_directory': str(state), 'management_url': base,
                   'processing': processing}

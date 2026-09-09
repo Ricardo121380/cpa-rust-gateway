@@ -7,7 +7,7 @@
 | M0 契约、会话与乱序 | authority/generated 门禁；客户端所有权/版本回归；真实 gateway access_denied 锁定、清空秘密和停止读取 | 已有证据；最终报告需逐项引用测试名，不能用总测试数代替 |
 | 14 栏目 + 解锁页 | 3 尺寸 × 浅深色 84 页面视图、6 解锁页；真实样式计算；251 单测、123 E2E 基线及后续定向回归 | 页面入口与基础布局通过；下列差异/确认缺口仍未完成 |
 | 配置差异 | V4 原型 versionsPage/version-diff 与正式计划要求；VersionsPage 和 authority 当前无实际 diff 操作 | **缺失，必须实现**。原型已有居中差异表设计；生产需要安全、一致的真实版本比较，不能显示固定样本 |
-| 发布 / 回滚确认 | V4 的 publishConfirm、rollback 确认预览；DraftDock、VersionsPage 目前直接调用写入后展示结果 | **未对齐设计，必须补齐操作前确认**。确认展示实际目标与版本；不自动重放 409 |
+| 发布 / 回滚确认 | 共享V4确认页；实际目标/revision；活动身份与生命周期事件前置条件；真实取消/发布/回滚/ABA拒绝证据 | 已补齐，见progress最新记录 |
 | BE-FE-01 | 同一 serving snapshot 授权投影；组/Key ID 上下文；目录证据；真实浏览器 model→draft handoff | 已实现并有真实链路证据 |
 | BE-FE-02 | 完整 route/candidate/alias 有界枚举；真实候选增改删/重读/审计；旧策略详情 | 已有实现与针对性证据；最终报告需列清楚旧策略写入契约边界 |
 | B1 计费运行接线 | 真实请求→持久事件→物化→有价/无价账本；重启 checkpoint 幂等；坏记录修复存储/服务回归 | 已有证据；不把 partial 金额标 exact |
