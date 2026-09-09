@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import secrets
 import socket
+import sqlite3
 import subprocess
 import tempfile
 import time
@@ -27,6 +28,7 @@ def free_port():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--priced', action='store_true')
+    parser.add_argument('--large', action='store_true')
     args = parser.parse_args()
     root = Path(tempfile.mkdtemp(prefix='prism-v4-acceptance-'))
     os.chmod(root, 0o700)
@@ -61,7 +63,15 @@ def main():
             pass
 
         def do_POST(self):
-            self.rfile.read(int(self.headers.get('Content-Length', '0')))
+            submitted = json.loads(self.rfile.read(int(self.headers.get('Content-Length', '0'))))
+            if 'controlled-failure' in json.dumps(submitted):
+                body = b'{"error":{"message":"synthetic failure","type":"server_error"}}'
+                self.send_response(503)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Content-Length', str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
             body = json.dumps({'id': 'resp_local_mock', 'object': 'response',
                 'created_at': int(time.time()), 'status': 'completed', 'model': 'local-exact-model',
                 'output': [{'id': 'msg_local', 'type': 'message', 'role': 'assistant', 'status': 'completed',
@@ -243,8 +253,22 @@ def main():
             assert row['cost_confidence'] == 'unpriced' and row['cost_microunits'] is None
         (root / 'ledger.json').write_text(json.dumps(ledger, indent=2))
         checks.append('controlled request materializes into persistent billing ledger')
+        failed_request = urllib.request.Request(f'http://127.0.0.1:{data_port}/v1/responses',
+            headers={'Authorization': 'Bearer ' + issued['key'], 'Content-Type': 'application/json'},
+            data=json.dumps({'model': 'local-exact-model', 'input': 'controlled-failure', 'stream': False}).encode())
+        try:
+            urllib.request.urlopen(failed_request, timeout=15).close()
+            raise AssertionError('controlled Provider failure unexpectedly succeeded')
+        except urllib.error.HTTPError as error:
+            assert error.code in (502, 503)
+        checks.append('controlled Provider failure reaches real request error path')
+
         process.terminate()
         assert process.wait(timeout=40) == 0
+        with sqlite3.connect(state / 'control.sqlite3') as db:
+            for table, id_column in [('stored_responses', 'response_id'), ('stored_response_compactions', 'compact_id')]:
+                for identity, expiry in [('ttl-expired', 1), ('ttl-live', 9223372036854775807)]:
+                    db.execute(f'INSERT INTO {table} (client_key_id, {id_column}, created_at_ms, expires_at_ms, payload_version, key_version, ciphertext) VALUES (?, ?, 0, ?, 1, 1, zeroblob(41))', ('local-client', identity, expiry))
         process = start_gateway()
         deadline = time.monotonic() + 15
         while True:
@@ -261,6 +285,62 @@ def main():
         _, _, replayed = request('/admin/operations/billing?limit=10')
         assert replayed == ledger, 'ledger changed after checkpoint replay'
         checks.append('restart resumes checkpoint without duplicate ledger or cost')
+        deadline = time.monotonic() + 5
+        while True:
+            with sqlite3.connect(state / 'control.sqlite3') as db:
+                counts = [db.execute(f'SELECT count(*) FROM {table} WHERE expires_at_ms=1').fetchone()[0]
+                          for table in ['stored_responses', 'stored_response_compactions']]
+                live = [db.execute(f'SELECT count(*) FROM {table} WHERE expires_at_ms=9223372036854775807').fetchone()[0]
+                        for table in ['stored_responses', 'stored_response_compactions']]
+            if counts == [0, 0]:
+                break
+            if time.monotonic() > deadline:
+                raise RuntimeError('serve TTL worker did not remove expired synthetic records')
+            time.sleep(.05)
+        assert live == [1, 1]
+        checks.append('serve TTL worker deletes expired responses and compactions and preserves live rows')
+        if args.large:
+            narrow = f"?from_ms={row['occurred_at_ms']}&to_ms={row['occurred_at_ms'] + 1}&limit=10"
+            _, _, baseline_usage = request('/admin/operations/usage' + narrow)
+            assert baseline_usage['items']
+            failure_path = '/admin/operations/provider-account-pools/failures?account_id=local-credential&limit=10'
+            _, _, baseline_failures = request(failure_path, scope=scope)
+            assert baseline_failures['items']
+
+            samples = []
+            for total in [99_999, 100_000, 100_001, 100_005]:
+                with sqlite3.connect(state / 'control.sqlite3') as db:
+                    db.row_factory = sqlite3.Row
+                    template = dict(db.execute('SELECT * FROM billing_ledger_entries LIMIT 1').fetchone())
+                    columns = [column for column in template if column != 'ledger_id']
+                    count = db.execute('SELECT count(*) FROM billing_ledger_entries').fetchone()[0]
+                    def ledger_rows():
+                        for index in range(count, total):
+                            copy = {**template, 'source_event_id': f'bulk-ledger-{index}',
+                                    'request_id': f'bulk-request-{index}', 'occurred_at_ms': 0}
+                            yield tuple(copy[column] for column in columns)
+                    db.executemany(f"INSERT INTO billing_ledger_entries ({','.join(columns)}) VALUES ({','.join('?' for _ in columns)})", ledger_rows())
+                    payload = json.loads(db.execute("SELECT payload_json FROM gateway_event_log WHERE event_type='request' LIMIT 1").fetchone()[0])
+                    event_count = db.execute('SELECT count(*) FROM gateway_event_log').fetchone()[0]
+                    def event_rows():
+                        for index in range(event_count, total):
+                            identity = f'bulk-event-{index}'
+                            payload['request']['request_id'] = identity
+                            yield (identity, identity, json.dumps(payload))
+                    db.executemany("INSERT INTO gateway_event_log (event_type, event_id, request_id, occurred_at_ms, payload_json) VALUES ('request', ?, ?, 0, ?)", event_rows())
+                _, _, narrow_ledger = request('/admin/operations/billing' + narrow)
+                assert narrow_ledger['items'] == ledger['items'] and narrow_ledger['summary'] == ledger['summary']
+                _, _, usage = request('/admin/operations/usage' + narrow)
+                assert usage['items'] == baseline_usage['items']
+                _, _, failures = request(failure_path, scope=scope)
+                assert failures['items'] == baseline_failures['items']
+
+                _, _, wide = request('/admin/operations/billing?limit=1')
+                assert wide['summary']['records'] == total
+                samples.append({'ledger_rows': total, 'event_rows': total, 'narrow_records': 1})
+            (root / 'large-sample.json').write_text(json.dumps(samples, indent=2))
+            checks.append('99999/100000/100001/100005 histories preserve filtered billing, usage, failures and complete ledger summary')
+
 
 
 

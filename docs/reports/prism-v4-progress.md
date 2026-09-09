@@ -467,3 +467,20 @@ Endpoint，导致整份配置校验/发布返回 409。RouteCompiler 新增可�
 带价证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-fhluiy15/evidence.json`；
 无价证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-sfla4mqf/evidence.json`。
 仍需真实大样本/TTL/目录过期、全页浏览器验收及其余 M4 门禁和交付报告。
+
+## M4 真实大样本与 TTL
+
+验收脚本新增 `--large`，仅向本次创建的临时 SQLite 追加合成历史：账本与事件总量分别
+达到 99999、100000、100001、100005。每一档都通过真实 HTTP 断言窄窗账本、用量与按账号
+筛选失败记录保持基线结果，全量账本摘要 records 等于完整总量，limit=1 不截断摘要。
+受控 Provider 503 经真实数据面形成失败事件，管理失败投影可读取；初次脚本遗漏该端点的
+配置版本 header，补齐后整个场景重跑通过。
+
+第二次重启前在临时库放入已过期/未过期 Stored Response 与 compaction 合成行，真实 serve
+维护 worker 启动后删除过期行并保留未过期行。这里验证运行接线和到期筛选；有效内容解密
+与单批限额由前述存储回归证明，未将 zeroblob 合成行当作有效续接内容。
+
+`python3 scripts/prism-v4-local-acceptance.py --priced --large` 本批17项检查通过。
+证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-gmly4b41/evidence.json`；
+同目录 `large-sample.json` 记录四档样本，`ledger.json` 记录真实请求账本。进程正常停止。
+仍需目录硬过期/在途语义、完整浏览器视觉与交互验收、最终仓库门禁和交付报告。
