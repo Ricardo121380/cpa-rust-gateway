@@ -29,9 +29,9 @@ use gateway_control::{
         KeyVersion, ManagementMutationService, MasterKey, MasterKeyRing, SecretStore,
     },
     management_operations_service::{
-        FailureFeedbackPage, FailureFeedbackQuery, MAX_USAGE_EVENTS, ManagementOperationsError,
+        FailureFeedbackPage, FailureFeedbackQuery, ManagementOperationsError,
         OperationalBillingPage, OperationalBillingQuery, OperationalUsagePage,
-        OperationalUsageQuery, compile_failure_feedback_page, compile_operational_usage_page,
+        OperationalUsageQuery, compile_operational_usage_page, read_failure_feedback_page,
         read_operational_billing_page,
     },
     management_service::{ManagementActor, ManagementService},
@@ -338,10 +338,7 @@ impl ManagementFailureFeedbackFacade for DeploymentManagementUsageFacade {
     ) -> Result<FailureFeedbackPage, ManagementOperationsError> {
         let store = SqliteEventStore::open_read_only(&self.database)
             .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
-        let events = store
-            .list_events_bounded(MAX_USAGE_EVENTS + 1)
-            .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
-        compile_failure_feedback_page(&events, query)
+        read_failure_feedback_page(&store, query)
     }
 }
 

@@ -74,6 +74,17 @@ pub struct StoredGatewayEvent {
     event: GatewayEvent,
 }
 
+/// Bounded newest-first Attempt-failure selection for management reads.
+#[derive(Clone, Copy, Debug, Default)]
+#[allow(missing_docs)]
+pub struct FailureEventQuery<'query> {
+    pub provider_id: Option<&'query str>,
+    pub channel_id: Option<&'query str>,
+    pub account_id: Option<&'query str>,
+    pub before_ordinal: Option<i64>,
+    pub limit: usize,
+}
+
 /// Billing-only source row that retains an ordinal when payload decoding fails.
 #[derive(Debug)]
 pub struct MaterializationEvent {
@@ -393,6 +404,36 @@ impl SqliteEventStore {
              FROM gateway_event_log WHERE event_ordinal > ?1 ORDER BY event_ordinal LIMIT ?2",
             rusqlite::params![ordinal, limit],
         )
+    }
+
+    /// Filters failure Attempts before decoding and paging, without a global history ceiling.
+    ///
+    /// Returns the global source watermark and selected events in ascending ordinal order for
+    /// existing projection consumers. Source watermark and rows share one read transaction.
+    ///
+    /// # Errors
+    /// Returns an error for invalid bounds, malformed selected data or unavailable storage.
+    pub fn failure_events_page(
+        &self,
+        query: FailureEventQuery<'_>,
+    ) -> StoreResult<(Option<i64>, Vec<StoredGatewayEvent>)> {
+        if !(1..=101).contains(&query.limit) || query.before_ordinal.is_some_and(|id| id < 0) {
+            return Err(StoreError::InvalidPersistedGatewayEvent);
+        }
+        let transaction = self.connection.unchecked_transaction()?;
+        let maximum: Option<i64> = transaction.query_row(
+            "SELECT MAX(event_ordinal) FROM gateway_event_log",
+            [],
+            |row| row.get(0),
+        )?;
+        let mut events = self.load_events(
+            "SELECT event_ordinal, event_type, event_id, request_id, occurred_at_ms, payload_json              FROM gateway_event_log WHERE event_type = 'attempt' AND event_ordinal <= ?1              AND (?2 IS NULL OR event_ordinal < ?2) AND CASE WHEN json_valid(payload_json) = 0 THEN 1 ELSE              json_type(payload_json, '$.attempt.outcome.failed') = 'object'              AND (?3 IS NULL OR json_extract(payload_json, '$.attempt.upstream_id') = ?3)              AND (?4 IS NULL OR json_extract(payload_json, '$.attempt.endpoint_id') = ?4)              AND (?5 IS NULL OR json_extract(payload_json, '$.attempt.credential_id') = ?5) END              ORDER BY event_ordinal DESC LIMIT ?6",
+            rusqlite::params![maximum.unwrap_or(0), query.before_ordinal, query.provider_id,
+                query.channel_id, query.account_id,
+                i64::try_from(query.limit).map_err(|_| StoreError::InvalidPersistedGatewayEvent)?])?;
+        events.reverse();
+        transaction.commit()?;
+        Ok((maximum, events))
     }
 
     /// Reads a bounded billing source batch without allowing one bad payload to hide later rows.
@@ -1055,6 +1096,51 @@ mod tests {
             HealthEventKind::CircuitRecovered,
         ));
         Ok((request_id, vec![request, attempt, usage, health]))
+    }
+
+    #[test]
+    fn failure_filter_ignores_large_unrelated_history_before_decoding()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteEventStore::open_in_memory()?;
+        let template = serde_json::to_string(&request_event(1)?)?;
+        store.connection.execute(
+            "WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<100005)
+            INSERT INTO gateway_event_log(event_type, event_id, request_id, payload_json)
+            SELECT 'request', 'large-request-' || x, 'large-request-' || x,
+            json_set(?1, '$.request.request_id', 'large-request-' || x) FROM n",
+            [template],
+        )?;
+        let mut failed = serde_json::to_value(attempt_event(1)?)?;
+        failed["attempt"]["outcome"] =
+            serde_json::to_value(AttemptOutcome::Failed(GatewayError::new(
+                GatewayErrorCode::CredentialUnauthorized,
+                gateway_core::ErrorScope::Credential,
+            )))?;
+        store.append_batch(&[serde_json::from_value(failed)?])?;
+        let (watermark, rows) = store.failure_events_page(super::FailureEventQuery {
+            provider_id: Some("upstream-01"),
+            channel_id: Some("endpoint-01"),
+            account_id: Some("credential-01"),
+            limit: 2,
+            before_ordinal: None,
+        })?;
+        assert_eq!(watermark, Some(100006));
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].ordinal(), 100006);
+        let (same_watermark, empty) = store.failure_events_page(super::FailureEventQuery {
+            account_id: Some("different-account"),
+            limit: 2,
+            ..super::FailureEventQuery::default()
+        })?;
+        assert_eq!(same_watermark, watermark);
+        assert!(empty.is_empty());
+        let (_, older) = store.failure_events_page(super::FailureEventQuery {
+            before_ordinal: Some(100006),
+            limit: 2,
+            ..super::FailureEventQuery::default()
+        })?;
+        assert!(older.is_empty());
+        Ok(())
     }
 
     #[test]

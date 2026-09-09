@@ -1500,6 +1500,42 @@ pub fn compile_failure_feedback_page(
     })
 }
 
+/// Reads only matching failure Attempts, retaining the existing cursor/filter contract.
+///
+/// # Errors
+/// Returns safe query, cursor or storage errors; does not decode unrelated history.
+pub fn read_failure_feedback_page(
+    store: &gateway_store::event_store::SqliteEventStore,
+    query: &FailureFeedbackQuery,
+) -> Result<FailureFeedbackPage, ManagementOperationsError> {
+    FailureFeedbackQuery::try_new(
+        query.provider_id.clone(),
+        query.channel_id.clone(),
+        query.account_id.clone(),
+        query.limit,
+        query.cursor.clone(),
+    )?;
+    if query
+        .cursor
+        .as_ref()
+        .is_some_and(|cursor| cursor.filter_fingerprint() != query.filter_fingerprint())
+    {
+        return Err(ManagementOperationsError::CursorVersionConflict);
+    }
+    let (watermark, events) = store
+        .failure_events_page(gateway_store::event_store::FailureEventQuery {
+            provider_id: query.provider_id.as_ref().map(UpstreamId::as_str),
+            channel_id: query.channel_id.as_ref().map(EndpointId::as_str),
+            account_id: query.account_id.as_ref().map(CredentialId::as_str),
+            before_ordinal: query.cursor.as_ref().map(FailureFeedbackCursor::ordinal),
+            limit: query.limit + 1,
+        })
+        .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
+    let mut page = compile_failure_feedback_page(&events, query)?;
+    page.observed_through_ordinal = watermark;
+    Ok(page)
+}
+
 fn insert_attempt_event(
     attempts: &mut BTreeMap<String, AttemptEvent>,
     next: &AttemptEvent,
@@ -1972,9 +2008,8 @@ mod tests {
                 GatewayErrorCode::CredentialForbidden,
             )?,
         ])?;
-        let events = store.list_events()?;
-        let first = compile_failure_feedback_page(
-            &events,
+        let first = super::read_failure_feedback_page(
+            &store,
             &FailureFeedbackQuery::try_new(
                 Some(UpstreamId::try_new("failure-provider")?),
                 Some(EndpointId::try_new("failure-channel")?),
@@ -1988,8 +2023,8 @@ mod tests {
         assert_eq!(first.items[0].error_code, "CredentialForbidden");
         assert_eq!(first.items[0].error_scope, "credential");
         let cursor = first.next_cursor.clone().ok_or("missing failure cursor")?;
-        let second = compile_failure_feedback_page(
-            &events,
+        let second = super::read_failure_feedback_page(
+            &store,
             &FailureFeedbackQuery::try_new(
                 Some(UpstreamId::try_new("failure-provider")?),
                 Some(EndpointId::try_new("failure-channel")?),

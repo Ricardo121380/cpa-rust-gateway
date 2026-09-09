@@ -338,6 +338,16 @@ ReadCapacityExceeded → 503 / management_operations_busy，原存储错误语�
 一个HTTP后第5个仍被拒绝、独立计费状态接口继续返回200。gateway组合编译通过。
 用量/失败的全局历史读取仍待修复，B2尚未整体完成。
 
+## B2 失败查询下推
+
+生产失败读取已改用 failure_events_page/read_failure_feedback_page：SQL先限定Attempt失败、
+Provider/Channel/Account与旧页ordinal，再读取最多limit+1条并复用原归因和cursor-fingerprint
+校验。源水位与行属于同一SQLite读取事务，结果按原顺序交给投影；不再先读取全局100001条。
+
+新增100006条事件存储回归通过（100005条无关Request + 1条目标失败），验证过滤、空结果
+水位和旧页位置；2项failure-feedback回归改为验证真实存储读取并通过，gateway Clippy通过。
+用量读取仍需修复，B2尚未整体完成；B4与完整M4仍待实施。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、
