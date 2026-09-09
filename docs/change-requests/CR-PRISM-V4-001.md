@@ -121,3 +121,16 @@ publishConfigVersion / rollbackConfigVersion 增加可选 X-Expected-Active-Vers
 确认请求同时支持可选 X-Expected-Lifecycle-Event：观察到的最近发布/回滚追加ID，无则0。
 后端在同一生命周期锁内核对，避免活动版本切走再切回（ID/revision相同）的ABA情况。
 两个条件各自可选、独立生效，旧调用方均省略时维持原语义；新确认页同时发送两个条件。
+
+
+### M4 补充：配置资源差异（存储基础已实现，HTTP 定稿接入中）
+
+以两个明确的配置版本比较全部16类版本资源；比较在同一SQLite读取事务中执行，输出每条
+仅resource_kind、主键组成的resource_key、added/removed/changed与changed_fields字段名。
+不返回字段值、密文、Key digest或秘密。加密载荷按持久化字节比较：不同不代表已判断明文
+不同；前端必须说明记录级比较语义。全局价格目录与运行观测不属于版本资源，版本的价格
+策略绑定纳入比较。版本身份/revision作为单独元数据，不把生命周期状态变化伪作资源变更。
+
+存储每页1–200条，续页携带两端revision与资源kind/key位置；任一revision改变即拒绝续页。
+新增HTTP必须使用有界blocking读取，避免在Actix事件循环执行全图比较，并绑定cursor与两个
+请求版本。前端沿用V4已确认的居中差异表，支持选择基线、分页和重新读取，禁止固定样本。

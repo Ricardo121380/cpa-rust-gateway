@@ -589,3 +589,15 @@ Clippy、SPA和构建通过。新增确认没有使用设计生成器，复用�
 证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-aj_t82q_/evidence.json`，
 同目录browser-flow内flow.json及publish-confirmation/rollback-confirmation截图。
 配置差异、启停装配边界核对、持续查看方式和最终交付报告仍待完成。
+
+## M4 配置差异存储基础
+
+新增 `gateway-store/src/control_plane/configuration_diff.rs`，完整比较ControlPlaneConfiguration
+的16类版本资源。SQLite内完成新增/删除/字段变化比较、排序与limit+1，只返回主键、变化类别
+和字段名，不读取加密字段到投影/HTTP。两个版本metadata和比较处于同一读事务，续页必须
+固定两端revision，变化返回RevisionChanged。复合主键使用JSON数组编码避免拼接碰撞。
+
+两项回归通过：208项差异完整分页、同版本为空、密文/字段值不进入结果、revision变化拒绝；
+复合route grant和singleton价格策略比较、非法页上限/缺少revision的续页拒绝。store全目标
+Clippy通过。CR记录比较语义：持久化字节变化不等于已判断秘密明文变化。
+当前仅存储基础，HTTP/前端差异入口仍待接入，不将配置差异标为完成。

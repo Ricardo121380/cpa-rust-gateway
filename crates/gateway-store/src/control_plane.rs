@@ -4,6 +4,12 @@
 //! a Provider trait or the inference request path. P2-06 compiles these rows into a validated
 //! runtime view; P2-07 owns publication of that view.
 
+mod configuration_diff;
+pub use configuration_diff::{
+    ConfigurationDiffError, ConfigurationDiffPage, ConfigurationDiffQuery,
+    ConfigurationResourceChange,
+};
+
 use std::{fmt, path::Path};
 
 use gateway_core::{
