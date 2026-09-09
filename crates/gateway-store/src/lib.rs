@@ -42,9 +42,10 @@ const STORED_RESPONSE_COMPACTION_SCHEMA_VERSION: i64 = 18;
 const COMPATIBLE_EGRESS_POOL_SCHEMA_VERSION: i64 = 19;
 const GROK_ACCOUNT_ENTITLEMENT_SCHEMA_VERSION: i64 = 20;
 const MODEL_CATALOG_SCHEMA_VERSION: i64 = 21;
+const BILLING_MATERIALIZER_FAILURE_SCHEMA_VERSION: i64 = 22;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = MODEL_CATALOG_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = BILLING_MATERIALIZER_FAILURE_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -158,6 +159,11 @@ const MIGRATIONS: &[Migration] = &[
         version: MODEL_CATALOG_SCHEMA_VERSION,
         up: include_str!("../migrations/0021_model_catalog.up.sql"),
         down: include_str!("../migrations/0021_model_catalog.down.sql"),
+    },
+    Migration {
+        version: BILLING_MATERIALIZER_FAILURE_SCHEMA_VERSION,
+        up: include_str!("../migrations/0022_billing_materializer_failures.up.sql"),
+        down: include_str!("../migrations/0022_billing_materializer_failures.down.sql"),
     },
 ];
 
@@ -582,6 +588,7 @@ mod tests {
                 "access_groups",
                 "billing_ledger_entries",
                 "billing_materializer_checkpoints",
+                "billing_materializer_failures",
                 "billing_price_catalog_entries",
                 "billing_price_catalog_versions",
                 "client_keys",

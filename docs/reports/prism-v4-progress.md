@@ -234,6 +234,17 @@ gateway bin Clippy、前端类型检查、包含 v7/硬过期/准入展示断言
 四文件/CSP/双构建门禁。未用这些测试冒充慢 discovery 的真实 loopback 回归或完整 M4。
 B3 仍需最终真实网关/在途验收；计费 B1/B2 与 B4 维护仍为当前待实施项。
 
+## B1 坏记录的持久重试基础
+
+新增 migration 0022 billing_materializer_failures：按 materializer_id/event ordinal 去重，
+记录封闭错误类别、首次/最近失败时间、尝试次数和修复时间，不存事件正文或秘密。
+重试读取下推 SQL，最多1024条，按最近尝试时间/ordinal 排序；成功修复后保留历史。
+这为后续正常 checkpoint 推进与失败记录独立重试提供基础，当前物化器尚未调用新方法。
+
+63 项 gateway-store lib 测试与 Clippy 通过，包含迁移上下行、重启可追踪、失败重试不增加
+重复行、有界查询与修复记录保留。初次迁移清单断言因新增表失败，已按实际表名增加
+expected entry，未删除断言。物化器坏记录处理、serve worker 与安全状态仍待实施。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、

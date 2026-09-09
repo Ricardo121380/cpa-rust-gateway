@@ -87,6 +87,21 @@ pub struct BillingMaterializerCheckpoint {
     pub updated_at_ms: u64,
 }
 
+/// Value-free durable retry evidence for a materialization failure.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BillingMaterializerFailure {
+    /// Source event ordinal, retained even when source decoding fails.
+    pub event_ordinal: i64,
+    /// Closed failure code, never an exception message or event contents.
+    pub reason: String,
+    /// Initial failure observation.
+    pub first_seen_at_ms: u64,
+    /// Latest retry observation.
+    pub last_attempt_at_ms: u64,
+    /// Number of failed attempts.
+    pub attempts: u64,
+}
+
 /// Cost confidence recorded for a billing row.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BillingCostConfidence {
@@ -389,6 +404,86 @@ impl SqliteBillingLedger {
              updated_at_ms = excluded.updated_at_ms",
             params![materializer_id, event_ordinal, updated_at_ms],
         )?;
+        Ok(())
+    }
+
+    /// Durably records a failed source ordinal before its checkpoint can advance.
+    ///
+    /// # Errors
+    /// Returns an error for invalid metadata or a failed durable write.
+    pub fn record_materialization_failure(
+        &mut self,
+        materializer_id: &str,
+        event_ordinal: i64,
+        reason: &str,
+        observed_at_ms: u64,
+    ) -> StoreResult<()> {
+        validate_short_id(materializer_id)?;
+        if event_ordinal <= 0
+            || !matches!(
+                reason,
+                "invalid_lineage" | "invalid_timestamp" | "pricing_overflow" | "invalid_event"
+            )
+        {
+            return Err(StoreError::InvalidPersistedBillingRecord);
+        }
+        self.connection.execute(
+            "INSERT INTO billing_materializer_failures              (materializer_id, event_ordinal, reason, first_seen_at_ms, last_attempt_at_ms, attempts)              VALUES (?1, ?2, ?3, ?4, ?4, 1)              ON CONFLICT(materializer_id, event_ordinal) DO UPDATE SET reason = excluded.reason,              last_attempt_at_ms = MAX(last_attempt_at_ms, excluded.last_attempt_at_ms),              attempts = attempts + 1, resolved_at_ms = NULL",
+            params![materializer_id, event_ordinal, reason, i64_from_u64(observed_at_ms)?],
+        )?;
+        Ok(())
+    }
+
+    /// Reads up to 1024 unresolved failures due for retry in stable oldest-attempt order.
+    ///
+    /// # Errors
+    /// Returns an error for invalid bounds, malformed rows or unavailable storage.
+    pub fn list_materialization_failures_due(
+        &self,
+        materializer_id: &str,
+        attempted_before_ms: u64,
+        limit: usize,
+    ) -> StoreResult<Vec<BillingMaterializerFailure>> {
+        validate_short_id(materializer_id)?;
+        if !(1..=1024).contains(&limit) {
+            return Err(StoreError::InvalidPersistedBillingRecord);
+        }
+        let mut statement = self.connection.prepare(
+            "SELECT event_ordinal, reason, first_seen_at_ms, last_attempt_at_ms, attempts              FROM billing_materializer_failures WHERE materializer_id = ?1 AND resolved_at_ms IS NULL              AND last_attempt_at_ms <= ?2 ORDER BY last_attempt_at_ms, event_ordinal LIMIT ?3")?;
+        let mut rows = statement.query(params![
+            materializer_id,
+            i64_from_u64(attempted_before_ms)?,
+            i64::try_from(limit).map_err(|_| StoreError::InvalidPersistedBillingRecord)?
+        ])?;
+        let mut failures = Vec::new();
+        while let Some(row) = rows.next()? {
+            failures.push(BillingMaterializerFailure {
+                event_ordinal: row.get(0)?,
+                reason: row.get(1)?,
+                first_seen_at_ms: u64_from_i64(row.get(2)?)?,
+                last_attempt_at_ms: u64_from_i64(row.get(3)?)?,
+                attempts: u64_from_i64(row.get(4)?)?,
+            });
+        }
+        Ok(failures)
+    }
+
+    /// Retains failure history while removing a successfully repaired ordinal from retry work.
+    ///
+    /// # Errors
+    /// Returns an error for invalid metadata or unavailable storage.
+    pub fn resolve_materialization_failure(
+        &mut self,
+        materializer_id: &str,
+        event_ordinal: i64,
+        observed_at_ms: u64,
+    ) -> StoreResult<()> {
+        validate_short_id(materializer_id)?;
+        if event_ordinal <= 0 {
+            return Err(StoreError::InvalidPersistedBillingRecord);
+        }
+        self.connection.execute("UPDATE billing_materializer_failures SET resolved_at_ms = MAX(last_attempt_at_ms, ?3)             WHERE materializer_id = ?1 AND event_ordinal = ?2 AND resolved_at_ms IS NULL",
+            params![materializer_id, event_ordinal, i64_from_u64(observed_at_ms)?])?;
         Ok(())
     }
 
@@ -980,6 +1075,63 @@ mod tests {
         assert_eq!(reopened.purge_expired(3_000, 10)?, 1);
         assert!(reopened.list_bounded(10)?.is_empty());
         let _ = std::fs::remove_file(path);
+        Ok(())
+    }
+
+    #[test]
+    fn materialization_failures_are_durable_bounded_and_repairable()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "cpar-billing-failures-{}-{nonce}.sqlite",
+            std::process::id()
+        ));
+        let mut store = SqliteBillingLedger::open(&path)?;
+        store.record_materialization_failure("billing-v1", 2, "invalid_lineage", 1000)?;
+        store.record_materialization_failure("billing-v1", 1, "pricing_overflow", 2000)?;
+        let first = store.list_materialization_failures_due("billing-v1", 2000, 1)?;
+        assert_eq!(first.len(), 1);
+        assert_eq!(first[0].event_ordinal, 2);
+        store.record_materialization_failure("billing-v1", 2, "invalid_lineage", 3000)?;
+        assert_eq!(
+            store
+                .list_materialization_failures_due("billing-v1", 2500, 10)?
+                .len(),
+            1
+        );
+        assert!(
+            store
+                .list_materialization_failures_due("billing-v1", 4000, 0)
+                .is_err()
+        );
+        assert!(
+            store
+                .record_materialization_failure("billing-v1", 3, "raw exception", 4000)
+                .is_err()
+        );
+        drop(store);
+        let mut store = SqliteBillingLedger::open(&path)?;
+        let pending = store.list_materialization_failures_due("billing-v1", 4000, 10)?;
+        assert_eq!(pending.len(), 2);
+        assert_eq!(pending[1].first_seen_at_ms, 1000);
+        assert_eq!(pending[1].attempts, 2);
+        store.resolve_materialization_failure("billing-v1", 2, 4000)?;
+        assert_eq!(
+            store
+                .list_materialization_failures_due("billing-v1", 5000, 10)?
+                .len(),
+            1
+        );
+        let retained: i64 = store.connection.query_row(
+            "SELECT COUNT(*) FROM billing_materializer_failures WHERE resolved_at_ms IS NOT NULL",
+            [],
+            |row| row.get(0),
+        )?;
+        assert_eq!(retained, 1);
+        drop(store);
+        std::fs::remove_file(path)?;
         Ok(())
     }
 

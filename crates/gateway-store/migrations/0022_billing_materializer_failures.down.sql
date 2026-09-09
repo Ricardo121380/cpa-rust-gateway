@@ -1,0 +1,2 @@
+DROP INDEX billing_materializer_failures_due;
+DROP TABLE billing_materializer_failures;
