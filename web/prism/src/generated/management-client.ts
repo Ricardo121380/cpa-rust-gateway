@@ -1250,6 +1250,29 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "listManagementResourceAuditEvents": {
+    "method": "GET",
+    "path": "/admin/resource-audit-events",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "before_id",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "listModelAliases": {
     "method": "GET",
     "path": "/admin/model-aliases",
@@ -2601,6 +2624,10 @@ export class ManagementApi {
 
   listManagementAuditEvents(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listManagementAuditEvents", request);
+  }
+
+  listManagementResourceAuditEvents(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listManagementResourceAuditEvents", request);
   }
 
   listModelAliases(request: ManagementRequest = {}): Promise<Response> {

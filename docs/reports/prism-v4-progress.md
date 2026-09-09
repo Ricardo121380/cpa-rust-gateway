@@ -518,3 +518,19 @@ gateway build、Clippy通过；修复后重跑 `--priced --large` 的17项检查
 
 仍需真实浏览器编辑/发布/重读、资源写入审计读取链路、实际辅助偏好/焦点细节，以及最终
 Rust/仓库门禁与逐项交付报告。全入口截图不代替这些剩余验收。
+
+## M4 资源修改审计闭环
+
+发现并补齐生命周期审计之外的资源审计读取：新增管理鉴权、按X-Config-Version限定的
+`/admin/resource-audit-events`，limit<=100，before_id独占追加ID分页。ID返回字符串避免
+JS整数精度损失；字段仅动作/actor/时间/版本/资源类型与ID，不包含secret或请求内容。
+存储复用已有(config_version_id,id DESC)索引，最多读limit+1行，不先加载全审计历史。
+前端审计页新增资源修改面板、重新读取、加载更早记录和V4只读详情。
+
+205行跨版本与新追加分页回归、13契约检查、Clippy、类型检查、SPA门禁、11相关fixture
+E2E通过。真实HTTP分页读取候选修改记录；limit=101/before_id=0返回400，不存在版本404。
+真实Chromium在3尺寸×2主题打开候选修改详情、Escape关闭和焦点恢复均通过，复核手机
+详情左右12px边距。84页+6解锁页布局检查仍通过，另保存6张资源审计详情截图。
+浏览器证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-_52jcm8u/browser/audit.json`；
+最新HTTP负向与正常链路证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-c2xzsk24/evidence.json`。
+仍需真实浏览器草稿编辑/发布完整链路及最终Rust/仓库门禁和交付报告。

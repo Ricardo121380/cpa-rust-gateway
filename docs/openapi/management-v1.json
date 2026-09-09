@@ -22,6 +22,7 @@
     { "name": "backup" }
   ],
   "paths": {
+    "/admin/resource-audit-events": {"parameters": [{"$ref": "#/components/parameters/ConfigVersion"}], "get": {"tags": ["audit"], "operationId": "listManagementResourceAuditEvents", "description": "Bounded newest-first resource mutation audit for the selected version. before_id is an exclusive append ID; later appends never enter continuation pages. ID strings preserve SQLite precision. No secrets or mutation payloads are returned.", "parameters": [{"name": "limit", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 100, "default": 50}}, {"name": "before_id", "in": "query", "schema": {"type": "string", "pattern": "^[1-9][0-9]*$", "maxLength": 19}}], "responses": {"200": {"description": "One resource audit page", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ResourceAuditPage"}}}}, "default": {"$ref": "#/components/responses/Error"}}}},
     "/admin/config-versions": {
       "get": {
         "tags": ["configuration"],
@@ -701,6 +702,7 @@
       "Error": { "description": "Safe management error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
     },
     "schemas": {
+      "ResourceAuditPage": {"type": "object", "additionalProperties": false, "required": ["items", "next_before_id"], "properties": {"items": {"type": "array", "maxItems": 100, "items": {"type": "object", "additionalProperties": false, "required": ["id", "action", "actor", "config_version_id", "resource_kind", "resource_id", "occurred_at_ms"], "properties": {"id": {"type": "string"}, "action": {"type": "string"}, "actor": {"type": "string"}, "config_version_id": {"type": "string"}, "resource_kind": {"type": "string"}, "resource_id": {"type": "string"}, "occurred_at_ms": {"type": "integer", "minimum": 0}}}}, "next_before_id": {"type": ["string", "null"]}}},
       "Id": { "type": "string", "minLength": 1, "maxLength": 128 },
       "ConfigVersionInput": { "type": "object", "additionalProperties": false, "required": ["id", "description"], "properties": { "id": { "$ref": "#/components/schemas/Id" }, "parent_id": { "anyOf": [{ "$ref": "#/components/schemas/Id" }, { "type": "null" }] }, "description": { "type": "string", "maxLength": 1024 } } },
       "ConfigVersion": { "type": "object", "additionalProperties": false, "required": ["id", "status", "revision", "created_at_ms", "description"], "properties": { "id": { "$ref": "#/components/schemas/Id" }, "parent_id": { "anyOf": [{ "$ref": "#/components/schemas/Id" }, { "type": "null" }] }, "status": { "type": "string", "enum": ["draft", "active", "archived"] }, "revision": { "type": "string", "minLength": 1, "maxLength": 128 }, "created_at_ms": { "type": "integer", "minimum": 0 }, "description": { "type": "string", "maxLength": 1024 } } },

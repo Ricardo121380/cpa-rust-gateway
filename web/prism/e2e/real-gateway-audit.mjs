@@ -40,6 +40,18 @@ try {
         const name = route === '/' ? 'overview' : route.slice(1);
         await page.screenshot({ path: `${output}/${width}-${theme}-${name}.png`, fullPage: true });
         evidence.pages.push({ ...state, theme, viewport: [width, height] });
+        if (route === '/audit') {
+          const audit = page.getByRole('region', { name: '资源修改审计' });
+          const row = audit.locator('tr', { hasText: 'route_candidate_updated' });
+          await row.getByRole('button', { name: '查看修改记录' }).click();
+          const detail = page.getByRole('dialog', { name: '资源修改记录' });
+          await detail.getByText('local-candidate', { exact: true }).waitFor();
+          await page.screenshot({ path: `${output}/${width}-${theme}-resource-audit-detail.png` });
+          await page.keyboard.press('Escape');
+          if (await detail.count()) throw new Error('audit detail did not close on Escape');
+          if (await page.locator(':focus').textContent() !== '查看修改记录') throw new Error('audit focus was not restored');
+        }
+
       }
       await context.close();
     }

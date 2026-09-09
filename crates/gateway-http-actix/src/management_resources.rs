@@ -2501,6 +2501,10 @@ fn configure_upstream_resource_routes(config: &mut web::ServiceConfig) {
 
 fn configure_routing_resource_routes(config: &mut web::ServiceConfig) {
     config
+        .route(
+            "/resource-audit-events",
+            web::get().to(list_resource_audit_events),
+        )
         .route("/routes", web::get().to(list_model_routes_page))
         .route(
             "/route-candidates",
@@ -6415,6 +6419,52 @@ async fn create_endpoint_credential_binding(
         }),
         Err(error) => management_error(error),
     }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ResourceAuditQuery {
+    limit: Option<u16>,
+    before_id: Option<i64>,
+}
+
+async fn list_resource_audit_events(
+    request: HttpRequest,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let query = match web::Query::<ResourceAuditQuery>::from_query(request.query_string()) {
+        Ok(value) => value.into_inner(),
+        Err(_) => return invalid_input(),
+    };
+    let limit = query.limit.unwrap_or(50);
+    if !(1..=100).contains(&limit) || query.before_id.is_some_and(|id| id <= 0) {
+        return invalid_input();
+    }
+    let mut events = match service(&state).and_then(|mut service| {
+        service
+            .resource_audit_page(&context.version, query.before_id, limit + 1)
+            .map_err(management_error)
+    }) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let has_more = events.len() > usize::from(limit);
+    events.truncate(usize::from(limit));
+    let next_before_id = if has_more {
+        events.last().map(|event| event.id().to_string())
+    } else {
+        None
+    };
+    let items = events.iter().map(|event| serde_json::json!({
+        "id": event.id().to_string(), "action": event.action(), "actor": event.actor(),
+        "occurred_at_ms": event.occurred_at_ms(), "config_version_id": event.config_version_id().as_str(),
+        "resource_kind": event.resource_kind(), "resource_id": event.resource_id(),
+    })).collect::<Vec<_>>();
+    HttpResponse::Ok().json(serde_json::json!({"items": items, "next_before_id": next_before_id}))
 }
 
 async fn list_public_models(

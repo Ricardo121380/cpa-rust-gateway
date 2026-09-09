@@ -98,3 +98,13 @@ blocking任务所有，HTTP取消不提前释放。原有存储异常分类保�
 携带上界。公开响应字段不变；observed_through_ms 始终覆盖整个筛选 snapshot，而非本页。
 权威 operation 描述已更新并 sync-contract。费用口径仍沿用该接口原契约，账本金额从
 独立 billing 查询读取；最终运营展示需在 M4 中逐项核对，不用 token 数猜测费用。
+
+
+### M4 补充：资源修改审计读取
+
+真实验收发现 `/admin/audit-events` 只读取配置生命周期流，资源修改虽已原子持久化，
+前端无读取入口。新增 `GET /admin/resource-audit-events`（listManagementResourceAuditEvents），
+管理鉴权、X-Config-Version 必填；limit 1–100（默认50），before_id 为可选独占追加ID。
+响应 items + next_before_id，ID使用十进制字符串避免JS整数精度丢失。只含动作、actor、
+时间、配置ID和资源类型/ID，不包含请求body、secret或ciphertext。按配置和ID筛选下推SQL，
+最多读取limit+1条；后续新写入不进入续页。保留原生命周期审计接口及语义。

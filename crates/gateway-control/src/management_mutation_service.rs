@@ -580,6 +580,25 @@ impl ManagementMutationService {
         ConfigRevision::try_new(configuration.version.revision)
     }
 
+    /// Returns bounded newest-first resource audit metadata for an existing version.
+    ///
+    /// # Errors
+    /// Returns the management read error for an absent version or invalid store records.
+    pub fn resource_audit_page(
+        &mut self,
+        version: &ConfigVersionId,
+        before_id: Option<i64>,
+        limit: u16,
+    ) -> Result<
+        Vec<gateway_store::control_plane::ManagementResourceAuditEvent>,
+        ManagementResourceError,
+    > {
+        self.require_config_version(version)?;
+        self.repository
+            .list_management_resource_audit_page(version, before_id, limit)
+            .map_err(ManagementResourceError::from)
+    }
+
     /// Returns one Version-scoped Egress Policy if present, together with the current revision.
     ///
     /// # Errors

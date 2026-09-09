@@ -113,7 +113,7 @@ def main():
 
     process = start_gateway()
 
-    def request(path, method='GET', body=None, revision=None, scope=None):
+    def request(path, method='GET', body=None, revision=None, scope=None, expected_error=None):
         headers = {'x-management-key': key, 'Origin': base,
                    'x-management-csrf-token': csrf, 'Content-Type': 'application/json'}
         if revision is not None:
@@ -127,6 +127,8 @@ def main():
                 raw = response.read()
                 return response.status, response.headers, json.loads(raw) if raw else None
         except urllib.error.HTTPError as error:
+            if expected_error == error.code:
+                return error.code, error.headers, json.loads(error.read())
             # Never include request bodies or headers in errors.
             raise RuntimeError(f'{method} {path}: HTTP {error.code}: {error.read().decode()}') from None
 
@@ -205,6 +207,24 @@ def main():
         mutate('/admin/access-groups/local-group/routes', {'route_id': 'local-route', 'enabled': True})
         issued = mutate('/admin/client-keys', {'id': 'local-client', 'access_group_id': 'local-group', 'status': 'active'})
         checks.append('real upstream, binding, candidate edit and authorization management writes')
+        audit_rows = []
+        before_id = None
+        while True:
+            suffix = '?limit=2' + (f'&before_id={before_id}' if before_id else '')
+            _, _, audit_page = request('/admin/resource-audit-events' + suffix, scope=scope)
+            audit_rows.extend(audit_page['items'])
+            before_id = audit_page['next_before_id']
+            if before_id is None:
+                break
+        assert any(event['action'] == 'route_candidate_updated' and event['resource_id'] == 'local-candidate' for event in audit_rows)
+        assert all(event['config_version_id'] == scope for event in audit_rows)
+        assert len({event['id'] for event in audit_rows}) == len(audit_rows)
+        checks.append('resource mutation audit is readable through bounded management pages')
+        assert request('/admin/resource-audit-events?limit=101', scope=scope, expected_error=400)[0] == 400
+        assert request('/admin/resource-audit-events?before_id=0', scope=scope, expected_error=400)[0] == 400
+        assert request('/admin/resource-audit-events', scope='absent-audit-version', expected_error=404)[0] == 404
+
+
         if args.priced:
             mutate('/admin/billing/catalogs', {'catalog_version_id': 'local-prices',
                 'effective_at_ms': 0, 'source': 'operator', 'entries': [{

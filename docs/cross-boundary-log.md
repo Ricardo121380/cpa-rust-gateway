@@ -1578,3 +1578,23 @@ light/dark with reduced motion; no page overflow, JS errors, or bad panel paddin
 251 unit tests, all 123 fixture E2E, SPA double-build gate and actual gateway build
 passed. Screenshots are evidence of entry/layout coverage, not a claim that every
 interactive flow has been exercised against the real gateway.
+
+## 2026-09-10 — Codex / resource mutation audit read surface
+
+**What:** Added bounded per-version append-ID resource audit reads in store/control,
+`GET /admin/resource-audit-events` in `management_resources.rs`, authority schema and
+CR supplement. Ran sync-contract (107 operations), updating the vendored contract and
+generated client. Added `web/prism/src/features/audit/ResourceAudit.tsx`, mounted by
+AuditBackupPage, and a valid empty fixture response. Extended real gateway and browser
+acceptance to inspect actual route_candidate_updated metadata and restore focus.
+
+**Why:** Existing /admin/audit-events deliberately reads lifecycle events only, while
+candidate/resource writes atomically append to a separate table that had no HTTP read.
+The new page preserves both streams and exposes no secrets or mutation payloads.
+
+**Other side:** FYI under current full-stack authorization. Config/ID filtering and
+limit+1 run in storage using the existing config/ID index; page size <=100, newest first.
+205-row pagination/version/late-append regression, 13 contract tests, gateway Clippy,
+11 relevant fixture E2E, type check and SPA gate passed. Real HTTP rejects invalid bounds
+and missing versions; actual Chromium verified details/Escape/focus at all three sizes
+in both themes. The new inspector reuses approved V4 ObjectInspector geometry.

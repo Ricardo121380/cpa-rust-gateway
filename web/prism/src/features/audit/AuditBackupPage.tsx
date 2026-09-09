@@ -1,3 +1,4 @@
+import { ResourceAudit } from "./ResourceAudit";
 import { ReadStatus } from "../../components/ReadStatus";
 // Audit trail (append-only, read-only UI) + backup preflight.
 // Restore upload is deliberately deferred: the flow only succeeds into an
@@ -105,6 +106,8 @@ export function AuditBackupPage() {
           </div>
         ) : null}
       </div>
+
+      <ResourceAudit />
 
       <div className="card" data-gap="top">
         <h3>备份</h3>

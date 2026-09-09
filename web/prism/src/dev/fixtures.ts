@@ -2554,6 +2554,11 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     }
 
     // ---- audit + backup ----
+    if (route === "GET /admin/resource-audit-events") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      return json(200, { items: [], next_before_id: null });
+    }
     if (route === "GET /admin/audit-events") {
       return json(200, state.audit);
     }

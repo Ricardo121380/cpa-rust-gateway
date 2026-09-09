@@ -1739,6 +1739,32 @@ impl SqliteControlPlaneRepository {
         Ok(audit_events)
     }
 
+    /// Reads at most 101 resource audit rows for one version, newest first.
+    /// The exclusive append-ID boundary keeps continuation stable across new mutations.
+    ///
+    /// # Errors
+    /// Returns a store error for invalid bounds or malformed persisted records.
+    pub fn list_management_resource_audit_page(
+        &mut self,
+        version: &ConfigVersionId,
+        before_id: Option<i64>,
+        limit: u16,
+    ) -> StoreResult<Vec<ManagementResourceAuditEvent>> {
+        if !(1..=101).contains(&limit) || before_id.is_some_and(|id| id <= 0) {
+            return Err(malformed("management_resource_audit_query"));
+        }
+        let transaction = self.connection.transaction()?;
+        let events = load_resource_audit_rows(
+            &transaction,
+            Some(version.as_str()),
+            before_id,
+            i64::from(limit),
+            true,
+        )?;
+        transaction.commit()?;
+        Ok(events)
+    }
+
     /// Loads the durable predecessor recorded for the active Config Version, if one exists.
     ///
     /// This reconstructs the one-step rollback slot after a process restart from the latest
@@ -3550,11 +3576,29 @@ fn load_management_audit_events(
 fn load_management_resource_audit_events(
     transaction: &Transaction<'_>,
 ) -> StoreResult<Vec<ManagementResourceAuditEvent>> {
-    let mut statement = transaction.prepare(
+    load_resource_audit_rows(transaction, None, None, i64::MAX, false)
+}
+
+fn load_resource_audit_rows(
+    transaction: &Transaction<'_>,
+    version: Option<&str>,
+    before_id: Option<i64>,
+    limit: i64,
+    newest_first: bool,
+) -> StoreResult<Vec<ManagementResourceAuditEvent>> {
+    let order = if newest_first { "DESC" } else { "ASC" };
+    let version_filter = if version.is_some() {
+        "config_version_id = ?1"
+    } else {
+        "?1 IS NULL"
+    };
+    let mut statement = transaction.prepare(&format!(
         "SELECT id, action, actor, occurred_at_ms, config_version_id, resource_kind, resource_id \
-         FROM management_resource_audit_events ORDER BY id",
-    )?;
-    let mut rows = statement.query([])?;
+         FROM management_resource_audit_events \
+         WHERE {version_filter} AND (?2 IS NULL OR id < ?2) \
+         ORDER BY id {order} LIMIT ?3"
+    ))?;
+    let mut rows = statement.query(params![version, before_id, limit])?;
     let mut audit_events = Vec::new();
     while let Some(row) = rows.next()? {
         let id: i64 = row.get(0)?;
@@ -4266,6 +4310,55 @@ mod tests {
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
+
+    #[test]
+    fn resource_audit_pages_keep_version_and_append_boundary() -> TestResult {
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        let first = draft_configuration(ConfigVersionId::try_new("audit-page-a")?, None);
+        let second = draft_configuration(ConfigVersionId::try_new("audit-page-b")?, None);
+        repository.write_configuration(&first)?;
+        repository.write_configuration(&second)?;
+        for id in 1..=205 {
+            repository.connection.execute(
+                "INSERT INTO management_resource_audit_events (action, actor, occurred_at_ms, config_version_id, resource_kind, resource_id) VALUES ('route_candidate_updated','local-test',1,?1,'route_candidate',?2)",
+                params![if id % 2 == 0 { first.version.id.as_str() } else { second.version.id.as_str() }, format!("candidate-{id}")],
+            )?;
+        }
+        let page = repository.list_management_resource_audit_page(&first.version.id, None, 100)?;
+        assert_eq!(page.len(), 100);
+        assert_eq!(page[0].id(), 204);
+        let boundary = page.last().ok_or("empty page")?.id();
+        assert!(
+            page.iter()
+                .all(|event| event.config_version_id() == &first.version.id)
+        );
+        repository.connection.execute(
+            "INSERT INTO management_resource_audit_events (action, actor, occurred_at_ms, config_version_id, resource_kind, resource_id) VALUES ('route_candidate_deleted','local-test',2,?1,'route_candidate','newer-candidate')",
+            [first.version.id.as_str()],
+        )?;
+        let tail = repository.list_management_resource_audit_page(
+            &first.version.id,
+            Some(boundary),
+            100,
+        )?;
+        assert_eq!(
+            tail.iter()
+                .map(super::ManagementResourceAuditEvent::id)
+                .collect::<Vec<_>>(),
+            vec![4, 2]
+        );
+        assert!(
+            repository
+                .list_management_resource_audit_page(&first.version.id, None, 102)
+                .is_err()
+        );
+        assert!(
+            repository
+                .list_management_resource_audit_page(&first.version.id, Some(0), 1)
+                .is_err()
+        );
+        Ok(())
+    }
 
     #[test]
     fn malformed_persisted_crypto_records_fail_closed() -> TestResult {
