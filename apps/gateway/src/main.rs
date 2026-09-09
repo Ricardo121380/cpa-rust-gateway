@@ -9,6 +9,7 @@ mod billing_worker;
 mod credential_refresh;
 mod deployment;
 mod grok_admin;
+mod maintenance_worker;
 mod provider_account_pool_adapter;
 mod provider_egress_status_adapter;
 mod runtime;

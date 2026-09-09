@@ -374,3 +374,14 @@ blocking边界已接通，仍需M4真实大样本验收。B4、模型到草稿�
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、
 计划、报告和辅助脚本均保留，未清理或并入代码批次。
+
+## B4 既有 TTL 维护接线
+
+serve 在两个 listener 成功绑定后启动 Stored Response / compaction 维护 worker，
+每分钟各最多清除 256 条到期记录；使用独立 SQLite 连接和 blocking 任务，不解密内容，
+不扩大既有 30 天 TTL 或账本/事件历史删除策略。停止信号会中断等待，等待当前批次完成，
+与计费 worker 并行进行有界关闭。错误只记录固定安全状态。
+
+本批 7 项 stored_response 回归通过，包括独立维护连接、双表限额与保留可解密的有效续接；
+新增真实文件 worker 回归通过，验证启动清除过期响应和 compaction、保留未到期记录及停止。
+gateway Clippy 通过。B4 运行装配已实现，完整真实 gateway 验收仍在 M4。

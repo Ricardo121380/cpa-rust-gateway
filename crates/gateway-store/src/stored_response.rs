@@ -620,6 +620,58 @@ pub struct SqliteStoredResponseStore {
     secret_store: SecretStore,
 }
 
+/// Removes only expired Stored Responses and compactions through a separate, secret-free connection.
+///
+/// Each table is bounded by the existing GC limit. No event log, price history or ledger is purged.
+///
+/// # Errors
+/// Returns a safe error for invalid bounds, migration failure or unavailable storage.
+pub fn maintain_expired_stored_data(
+    path: impl AsRef<Path>,
+    now_ms: i64,
+    limit: usize,
+) -> Result<(usize, usize), StoredResponseStoreError> {
+    if now_ms < 0 || limit == 0 || limit > MAX_STORED_RESPONSE_GC_BATCH {
+        return Err(StoredResponseStoreError::InvalidGcLimit);
+    }
+    let mut connection = open(path)?;
+    migrate(&mut connection)?;
+    let responses = purge_expired_rows(&mut connection, now_ms, limit, StoredGcTable::Responses)?;
+    let compactions =
+        purge_expired_rows(&mut connection, now_ms, limit, StoredGcTable::Compactions)?;
+    Ok((responses, compactions))
+}
+
+#[derive(Clone, Copy)]
+enum StoredGcTable {
+    Responses,
+    Compactions,
+}
+
+fn purge_expired_rows(
+    connection: &mut Connection,
+    now_ms: i64,
+    limit: usize,
+    target: StoredGcTable,
+) -> Result<usize, StoredResponseStoreError> {
+    if now_ms < 0 || limit == 0 || limit > MAX_STORED_RESPONSE_GC_BATCH {
+        return Err(StoredResponseStoreError::InvalidGcLimit);
+    }
+    let limit = i64::try_from(limit).map_err(|_| StoredResponseStoreError::InvalidGcLimit)?;
+    let (table, id_column) = match target {
+        StoredGcTable::Responses => ("stored_responses", "response_id"),
+        StoredGcTable::Compactions => ("stored_response_compactions", "compact_id"),
+    };
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(StoreError::from)?;
+    let deleted = transaction.execute(&format!("DELETE FROM {table} WHERE rowid IN (
+        SELECT rowid FROM {table} WHERE expires_at_ms <= ?1 ORDER BY expires_at_ms, client_key_id, {id_column} LIMIT ?2)"),
+        params![now_ms, limit]).map_err(StoreError::from)?;
+    transaction.commit().map_err(StoreError::from)?;
+    Ok(deleted)
+}
+
 impl SqliteStoredResponseStore {
     /// Opens and migrates a file-backed stored-response repository.
     ///
@@ -925,25 +977,8 @@ impl SqliteStoredResponseStore {
         now_ms: i64,
         limit: usize,
     ) -> Result<usize, StoredResponseStoreError> {
-        if now_ms < 0 || limit == 0 || limit > MAX_STORED_RESPONSE_GC_BATCH {
-            return Err(StoredResponseStoreError::InvalidGcLimit);
-        }
-        let limit = i64::try_from(limit).map_err(|_| StoredResponseStoreError::InvalidGcLimit)?;
         let mut connection = self.lock_connection()?;
-        let transaction = connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(StoreError::from)?;
-        let deleted = transaction
-            .execute(
-                "DELETE FROM stored_responses WHERE rowid IN (\
-                    SELECT rowid FROM stored_responses WHERE expires_at_ms <= ?1 \
-                    ORDER BY expires_at_ms, client_key_id, response_id LIMIT ?2\
-                 )",
-                params![now_ms, limit],
-            )
-            .map_err(StoreError::from)?;
-        transaction.commit().map_err(StoreError::from)?;
-        Ok(deleted)
+        purge_expired_rows(&mut connection, now_ms, limit, StoredGcTable::Responses)
     }
 
     /// Physically removes at most `limit` expired compact rows in deterministic order.
@@ -957,25 +992,8 @@ impl SqliteStoredResponseStore {
         now_ms: i64,
         limit: usize,
     ) -> Result<usize, StoredResponseStoreError> {
-        if now_ms < 0 || limit == 0 || limit > MAX_STORED_RESPONSE_GC_BATCH {
-            return Err(StoredResponseStoreError::InvalidGcLimit);
-        }
-        let limit = i64::try_from(limit).map_err(|_| StoredResponseStoreError::InvalidGcLimit)?;
         let mut connection = self.lock_connection()?;
-        let transaction = connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(StoreError::from)?;
-        let deleted = transaction
-            .execute(
-                "DELETE FROM stored_response_compactions WHERE rowid IN(\
-                    SELECT rowid FROM stored_response_compactions WHERE expires_at_ms <= ?1 \
-                    ORDER BY expires_at_ms, client_key_id, compact_id LIMIT ?2\
-                 )",
-                params![now_ms, limit],
-            )
-            .map_err(StoreError::from)?;
-        transaction.commit().map_err(StoreError::from)?;
-        Ok(deleted)
+        purge_expired_rows(&mut connection, now_ms, limit, StoredGcTable::Compactions)
     }
 
     fn lock_connection(&self) -> Result<MutexGuard<'_, Connection>, StoredResponseStoreError> {
@@ -1461,6 +1479,59 @@ mod tests {
                 .get_owned(&owner, &response_id("resp-c")?, first_expiry + 1_000)?
                 .is_some()
         );
+        Ok(())
+    }
+
+    #[test]
+    fn independent_maintenance_is_bounded_and_preserves_live_continuations() -> TestResult {
+        let path = temporary_database_path();
+        let owner = client_key("client-a")?;
+        let now = 2_000 + STORED_RESPONSE_TTL_MILLISECONDS;
+        let mut live_compact = String::new();
+        {
+            let store = SqliteStoredResponseStore::open(&path, secret_store(1, &[(1, 0x11)])?)?;
+            for (id, created) in [("old-a", 1_000), ("old-b", 2_000), ("live", 3_000)] {
+                store.put_owned(&owner, created, &payload(id, "continuation")?)?;
+                let compact = StoredResponseCompactionPayload::try_new(
+                    lineage()?,
+                    response_id(id)?,
+                    "model-a",
+                    "private summary",
+                )?;
+                let record = store.put_compaction_owned(&owner, created, &compact)?;
+                if id == "live" {
+                    live_compact = record.compact_id().to_owned();
+                }
+            }
+            // An independent connection performs expiry maintenance without a key ring,
+            // while the serving store stays open and can still decrypt live records.
+            assert_eq!(super::maintain_expired_stored_data(&path, now, 1)?, (1, 1));
+            assert_eq!(super::maintain_expired_stored_data(&path, now, 1)?, (1, 1));
+            assert_eq!(super::maintain_expired_stored_data(&path, now, 1)?, (0, 0));
+            assert!(
+                store
+                    .get_owned(&owner, &response_id("live")?, now)?
+                    .is_some()
+            );
+            assert!(
+                store
+                    .get_compaction_owned(&owner, &live_compact, now)?
+                    .is_some()
+            );
+            let connection = store.lock_connection()?;
+            for table in ["stored_responses", "stored_response_compactions"] {
+                let count: i64 =
+                    connection.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
+                        row.get(0)
+                    })?;
+                assert_eq!(count, 1);
+            }
+        }
+        assert!(matches!(
+            super::maintain_expired_stored_data(&path, now, 0),
+            Err(StoredResponseStoreError::InvalidGcLimit)
+        ));
+        fs::remove_file(path)?;
         Ok(())
     }
 

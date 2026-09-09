@@ -237,6 +237,9 @@ async fn run_servers(
         command.state_directory.join(CONTROL_DATABASE_FILE),
         billing_processing,
     );
+    let maintenance_worker = crate::maintenance_worker::MaintenanceWorker::start(
+        command.state_directory.join(CONTROL_DATABASE_FILE),
+    );
     let credential_refresh_worker =
         credential_refresh_worker.map(|worker| actix_web::rt::spawn(worker.run()));
     let model_catalog_worker =
@@ -273,13 +276,15 @@ async fn run_servers(
             }
         }
     };
-    let billing_result = billing_worker
-        .stop()
-        .await
-        .map_err(|()| DeploymentError::BillingWorkerStopIncomplete);
+    let (billing_result, maintenance_result) =
+        futures_util::future::join(billing_worker.stop(), maintenance_worker.stop()).await;
+    let billing_result = billing_result.map_err(|()| DeploymentError::BillingWorkerStopIncomplete);
+    let maintenance_result =
+        maintenance_result.map_err(|()| DeploymentError::MaintenanceStopIncomplete);
     server_result?;
     flush_result?;
-    billing_result
+    billing_result?;
+    maintenance_result
 }
 
 struct ApplicationState {
@@ -713,6 +718,7 @@ pub(crate) enum DeploymentError {
     /// The durable event log did not confirm its final flush inside the bounded stop window.
     EventLogFlushIncomplete,
     BillingWorkerStopIncomplete,
+    MaintenanceStopIncomplete,
 }
 
 impl fmt::Display for DeploymentError {
@@ -755,6 +761,9 @@ impl fmt::Display for DeploymentError {
             Self::DataListenerUnavailable => formatter.write_str("data listener is unavailable"),
             Self::ManagementListenerUnavailable => {
                 formatter.write_str("management listener is unavailable")
+            }
+            Self::MaintenanceStopIncomplete => {
+                formatter.write_str("stored data maintenance stop incomplete")
             }
             Self::BillingWorkerStopIncomplete => formatter
                 .write_str("billing worker stop incomplete; durable source resumes on restart"),
