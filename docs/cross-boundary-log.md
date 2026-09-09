@@ -1598,3 +1598,23 @@ limit+1 run in storage using the existing config/ID index; page size <=100, newe
 11 relevant fixture E2E, type check and SPA gate passed. Real HTTP rejects invalid bounds
 and missing versions; actual Chromium verified details/Escape/focus at all three sizes
 in both themes. The new inspector reuses approved V4 ObjectInspector geometry.
+
+## 2026-09-10 — Codex / real browser write and lock acceptance
+
+**What:** Added `web/prism/e2e/real-gateway-flow.mjs` and the local harness's
+`--browser-flow` option. The harness prepares only dependency resources in a new
+empty draft through real management APIs; the browser selects an authorized model,
+creates the model/route/candidate, edits/rereads/deletes/recreates the candidate,
+grants the route, validates and publishes, then rereads configuration and audit.
+
+**Why:** Fixture behavior and API-only writes do not prove that the embedded UI
+can complete the full authorized workflow. Input secrets use stdin and remain out
+of screenshots/reports. The new draft parent is lineage only; no direct DB cloning.
+
+**Other side:** FYI under full-stack authorization. All six real Chromium flow
+stages passed, including mobile dark/a11y controls and an actual gateway access
+denial. To exercise denial, request interception replaces only the management key
+with a random invalid test key; no HTTP response is mocked. Actual 404 plus
+management_access_denied locks the UI, clears both secret fields, prevents protected
+navigation and stops management reads for the observation window. Initial test's
+401 expectation was corrected to the repository's deliberate 404 masking policy.

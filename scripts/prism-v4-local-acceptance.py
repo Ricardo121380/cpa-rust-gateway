@@ -30,6 +30,7 @@ def main():
     parser.add_argument('--priced', action='store_true')
     parser.add_argument('--large', action='store_true')
     parser.add_argument('--browser', action='store_true')
+    parser.add_argument('--browser-flow', action='store_true')
     parser.add_argument('--catalog-expiry', action='store_true')
     args = parser.parse_args()
     root = Path(tempfile.mkdtemp(prefix='prism-v4-acceptance-'))
@@ -176,11 +177,13 @@ def main():
                                         revision=revision, scope=scope)
         assert status == 200 and not validation['valid']
         checks.append('candidate-less route fails real topology validation')
+        setup_operations = []
         def mutate(path, body, method='POST'):
             nonlocal revision
             status, headers, result = request(path, method, body, revision=revision, scope=scope)
             assert status in (200, 201, 204)
             revision = headers.get('ETag', revision)
+            setup_operations.append((path, body, method))
             return result
 
         mutate('/admin/egress-policies', {'id': 'local-egress', 'name': 'Loopback only',
@@ -438,6 +441,18 @@ def main():
                            text=True, check=True)
             checks.append('production browser pages captured at three sizes in light and dark')
 
+        if args.browser_flow:
+            scope = 'prism-browser-draft'
+            _, _, draft = request('/admin/config-versions', 'POST', {'id': scope, 'parent_id': 'prism-local-v4', 'description': 'Browser write acceptance'})
+            revision = draft['revision']
+            for path, body, method in list(setup_operations):
+                if path.startswith(('/admin/egress-policies', '/admin/upstreams/', '/admin/endpoints/')) or path in ['/admin/upstreams', '/admin/access-groups', '/admin/client-keys']:
+                    mutate(path, body, method)
+            subprocess.run(['node', str(ROOT / 'web/prism/e2e/real-gateway-flow.mjs')],
+                           input=json.dumps({'base': base, 'key': key, 'csrf': csrf, 'output': str(root / 'browser-flow')}), text=True, check=True)
+            _, _, versions_after = request('/admin/config-versions')
+            assert next(version for version in versions_after if version['id'] == scope)['status'] == 'active'
+            checks.append('real browser model handoff, candidate CRUD, grant, validate, publish and audit')
         report = {'checks': checks, 'state_directory': str(state), 'management_url': base,
                   'processing': processing}
         (root / 'evidence.json').write_text(json.dumps(report, indent=2))

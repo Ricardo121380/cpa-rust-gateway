@@ -534,3 +534,20 @@ E2E通过。真实HTTP分页读取候选修改记录；limit=101/before_id=0返�
 浏览器证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-_52jcm8u/browser/audit.json`；
 最新HTTP负向与正常链路证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-c2xzsk24/evidence.json`。
 仍需真实浏览器草稿编辑/发布完整链路及最终Rust/仓库门禁和交付报告。
+
+## M4 真实浏览器写入、辅助偏好和鉴权清理
+
+`python3 scripts/prism-v4-local-acceptance.py --priced --browser-flow` 通过。管理API准备独立
+空草稿所需上游/Endpoint/凭据/Access Group/Key；浏览器从serving授权模型接续，切换草稿，
+新建模型/路由/候选，修改权重并重读，删除并重建候选，授权路由，验证发布，重读候选及
+created/updated/deleted三类实际审计。随后管理API确认新版本active。
+
+真实手机390×844深色、减少透明度/增强对比度/减少动态效果生效；实际gateway拒绝请求后
+秘密字段清空、受保护导航回到解锁页、5.5秒窗口内无管理读取、local/sessionStorage无管理
+秘密。拒绝测试只把浏览器请求header替换成随机无效test key，由真实服务返回404及
+management_access_denied；没有伪造响应。首次测试误等401，按实际安全边界修正后重跑6阶段
+全部通过。语法检查通过，截图人工查看。
+证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-2j2gtv1f/browser-flow/flow.json`，
+同目录候选编辑、发布审计、手机辅助偏好和锁定页截图。此阶段不声称发布后无需进程重启；
+新配置启动准入仍按本地重启装配机制，最终报告需明确实际查看方式与此边界。
+剩余工作以正式计划逐项审计和最终Rust/仓库门禁、交付报告为准，Goal未完成。
