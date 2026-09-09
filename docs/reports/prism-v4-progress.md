@@ -309,6 +309,14 @@ B2/B4、模型到草稿接续、全页面复查与 M4 仍待完成。
 身份；相关2项 management runtime 回归及 gateway Clippy 通过。
 B2 有界运营读取、B4 TTL、剩余前端接续和 M4 真实网关仍待完成。
 
+## B2 账本整行批读
+
+SqliteBillingLedger::list_bounded 已改为单条 SELECT 读取完整行，不再先查 ID 后逐行 load_entry；
+单行写后回读与列表复用同一解码器，保留 fingerprint、六类 token、置信度与时间字段检查。
+新增多行回归验证 (occurred_at_ms, ledger_id) 顺序、分页上限、null/0、未定价和整行一致性。
+7 项账本存储回归、3 项物化器回归与 store Clippy 通过。
+此批仅消除 N+1；全局100000上限、筛选/snapshot/cursor下推与完整聚合仍待实施，B2未完成。
+
 ## 环境边界
 
 仅本地代码与合成数据。未访问 SSH/生产，未执行真实 Provider 调用。已有未跟踪设计、

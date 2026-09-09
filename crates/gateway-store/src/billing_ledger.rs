@@ -76,6 +76,12 @@ pub struct BillingPriceCatalog {
     pub entries: Vec<BillingPriceEntry>,
 }
 
+const LEDGER_ROW_SELECT: &str = "SELECT ledger_id, source_event_id, source_fingerprint, request_id, response_id, \
+         provider_id, channel_id, account_id, model, occurred_at_ms, catalog_version_id, \
+         input_tokens, output_tokens, reasoning_tokens, cache_read_tokens, cache_creation_tokens, \
+         cached_tokens, cost_microunits, cost_confidence, retention_expires_at_ms, recorded_at_ms \
+         FROM billing_ledger_entries";
+
 /// Durable high-water mark for one billing materializer.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BillingMaterializerCheckpoint {
@@ -599,16 +605,15 @@ impl SqliteBillingLedger {
     /// Returns [`StoreError`] when the bound cannot be represented or a persisted row is malformed.
     pub fn list_bounded(&self, limit: usize) -> StoreResult<Vec<BillingLedgerEntry>> {
         let limit = i64::try_from(limit).map_err(|_| StoreError::InvalidPersistedBillingRecord)?;
-        let mut statement = self.connection.prepare(
-            "SELECT ledger_id FROM billing_ledger_entries \
-             ORDER BY occurred_at_ms, ledger_id LIMIT ?1",
-        )?;
-        let ids = statement
-            .query_map([limit], |row| row.get::<_, i64>(0))?
-            .collect::<Result<Vec<_>, _>>()?;
-        ids.into_iter()
-            .map(|id| load_entry(&self.connection, id))
-            .collect()
+        let mut statement = self.connection.prepare(&format!(
+            "{LEDGER_ROW_SELECT} ORDER BY occurred_at_ms, ledger_id LIMIT ?1"
+        ))?;
+        let mut rows = statement.query([limit])?;
+        let mut entries = Vec::new();
+        while let Some(row) = rows.next()? {
+            entries.push(decode_ledger_row(row)?);
+        }
+        Ok(entries)
     }
 
     /// Deletes at most `limit` rows whose retention window has expired.
@@ -916,39 +921,38 @@ fn load_catalog_entries(
 }
 
 fn load_entry(connection: &Connection, ledger_id: i64) -> StoreResult<BillingLedgerEntry> {
-    let row = connection.query_row(
-        "SELECT ledger_id, source_event_id, source_fingerprint, request_id, response_id, \
-         provider_id, channel_id, account_id, model, occurred_at_ms, catalog_version_id, \
-         input_tokens, output_tokens, reasoning_tokens, cache_read_tokens, cache_creation_tokens, \
-         cached_tokens, cost_microunits, cost_confidence, retention_expires_at_ms, recorded_at_ms \
-         FROM billing_ledger_entries WHERE ledger_id = ?1",
-        [ledger_id],
-        |row| {
-            Ok((
-                row.get::<_, i64>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-                row.get::<_, String>(3)?,
-                row.get::<_, String>(4)?,
-                row.get::<_, String>(5)?,
-                row.get::<_, String>(6)?,
-                row.get::<_, String>(7)?,
-                row.get::<_, String>(8)?,
-                row.get::<_, i64>(9)?,
-                row.get::<_, Option<String>>(10)?,
-                row.get::<_, Option<i64>>(11)?,
-                row.get::<_, Option<i64>>(12)?,
-                row.get::<_, Option<i64>>(13)?,
-                row.get::<_, Option<i64>>(14)?,
-                row.get::<_, Option<i64>>(15)?,
-                row.get::<_, Option<i64>>(16)?,
-                row.get::<_, Option<i64>>(17)?,
-                row.get::<_, String>(18)?,
-                row.get::<_, i64>(19)?,
-                row.get::<_, i64>(20)?,
-            ))
-        },
-    )?;
+    let mut statement = connection.prepare(&format!("{LEDGER_ROW_SELECT} WHERE ledger_id = ?1"))?;
+    let mut rows = statement.query([ledger_id])?;
+    let row = rows
+        .next()?
+        .ok_or(StoreError::InvalidPersistedBillingRecord)?;
+    decode_ledger_row(row)
+}
+
+fn decode_ledger_row(row: &rusqlite::Row<'_>) -> StoreResult<BillingLedgerEntry> {
+    let row = (
+        row.get::<_, i64>(0)?,
+        row.get::<_, String>(1)?,
+        row.get::<_, String>(2)?,
+        row.get::<_, String>(3)?,
+        row.get::<_, String>(4)?,
+        row.get::<_, String>(5)?,
+        row.get::<_, String>(6)?,
+        row.get::<_, String>(7)?,
+        row.get::<_, String>(8)?,
+        row.get::<_, i64>(9)?,
+        row.get::<_, Option<String>>(10)?,
+        row.get::<_, Option<i64>>(11)?,
+        row.get::<_, Option<i64>>(12)?,
+        row.get::<_, Option<i64>>(13)?,
+        row.get::<_, Option<i64>>(14)?,
+        row.get::<_, Option<i64>>(15)?,
+        row.get::<_, Option<i64>>(16)?,
+        row.get::<_, Option<i64>>(17)?,
+        row.get::<_, String>(18)?,
+        row.get::<_, i64>(19)?,
+        row.get::<_, i64>(20)?,
+    );
     let (
         ledger_id,
         source_event_id,
@@ -1072,6 +1076,37 @@ mod tests {
             .catalog("catalog-1")?
             .ok_or("catalog unexpectedly missing")?;
         assert_eq!(loaded.entries, catalog().entries);
+        Ok(())
+    }
+
+    #[test]
+    fn bulk_ledger_reads_preserve_complete_rows_and_stable_order()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteBillingLedger::open_in_memory()?;
+        store.insert_catalog(&catalog())?;
+        let mut expected = Vec::new();
+        for index in 0..3 {
+            let mut value = entry();
+            value.source_event_id = format!("bulk-event-{index}");
+            value.occurred_at_ms = if index == 0 { 200 } else { 100 };
+            value.usage.reasoning_tokens = Some(0);
+            value.usage.cache_read_tokens = Some(12);
+            value.usage.cache_creation_tokens = Some(13);
+            value.usage.cached_tokens = None;
+            if index == 1 {
+                value.catalog_version_id = None;
+                value.cost_confidence = BillingCostConfidence::Unpriced;
+                value.cost_microunits = None;
+            }
+            let BillingRecordResult::Inserted(row) = store.record(&value)? else {
+                return Err("unexpected replay".into());
+            };
+            expected.push(row);
+        }
+        expected.sort_by_key(|row| (row.occurred_at_ms, row.ledger_id));
+        assert_eq!(store.list_bounded(10)?, expected);
+        assert_eq!(store.list_bounded(2)?, expected[..2]);
+        assert!(store.list_bounded(0)?.is_empty());
         Ok(())
     }
 
