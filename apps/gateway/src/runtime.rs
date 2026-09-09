@@ -115,8 +115,8 @@ use gateway_store::{
         CompatibleEgressTargetConfiguration, ConfigVersionId, ConfigVersionStatus,
         ControlPlaneConfiguration, CredentialScope, CredentialStatus, EndpointConfiguration,
         EndpointTransport, RoutePolicy, RoutingPriceComparison, SqliteControlPlaneRepository,
-        StoredClientKeyStatus, StoredCompatibleFailureScope, StoredCompatibleStickiness,
-        StoredEgressRedirectMode, TransformMode,
+        StoredCompatibleFailureScope, StoredCompatibleStickiness, StoredEgressRedirectMode,
+        TransformMode,
     },
     event_store::{
         AsyncSqliteEventWriter, EventWriterConfig, EventWriterMetricsHandle, SqliteEventStore,
@@ -440,7 +440,7 @@ const P12_BOOTSTRAP_TIMEOUT_MILLISECONDS: i64 = 120_000;
 /// deadline, admitted at no more than [`P12_BOOTSTRAP_TIMEOUT_MILLISECONDS`], still bounds the
 /// whole pre-first-byte window regardless of the attempt count.
 const P12_MAX_ROUTE_ATTEMPTS: usize = 16;
-/// The largest total Credential concurrency this composition admits across all bindings.
+/// The largest total Credential concurrency this composition admits across active bindings.
 ///
 /// Each concurrently leased attempt may buffer one complete non-streaming body or one SSE frame
 /// of up to [`MAX_UPSTREAM_RESPONSE_BYTES`], so this cap keeps the worst-case resident upstream
@@ -1207,14 +1207,17 @@ impl P12RoutedResponsesExecutor {
         let native_endpoint_providers = configuration
             .endpoints
             .iter()
+            .filter(|endpoint| endpoint_administratively_active(configuration, endpoint))
             .filter_map(|endpoint| {
                 native_grok_provider_for_endpoint(endpoint)
                     .map(|provider| (endpoint.id.clone(), provider))
             })
             .collect::<BTreeMap<_, _>>();
-        let native_endpoint_ids = native_endpoint_providers
-            .keys()
-            .cloned()
+        let native_endpoint_ids = configuration
+            .endpoints
+            .iter()
+            .filter(|endpoint| is_native_grok_endpoint(endpoint))
+            .map(|endpoint| endpoint.id.clone())
             .collect::<BTreeSet<_>>();
         let observed_at_ms = system_now_ms_runtime()
             .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::CredentialPool))?;
@@ -1227,7 +1230,7 @@ impl P12RoutedResponsesExecutor {
         let pools = CredentialPoolCompiler::new(secret_store)
             .compile_excluding_endpoints(configuration, &native_endpoint_ids)
             .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::CredentialPool))?;
-        let pools = if native_endpoint_ids.is_empty() {
+        let pools = if native_endpoint_providers.is_empty() {
             pools
         } else {
             let bindings = native_endpoint_providers
@@ -1259,7 +1262,7 @@ impl P12RoutedResponsesExecutor {
                 )?);
                 Ok(ordinary)
             });
-            for endpoint_id in &native_endpoint_ids {
+            for endpoint_id in native_endpoint_providers.keys() {
                 if native_compilation
                     .credential_pools()
                     .pool(endpoint_id)
@@ -2713,7 +2716,11 @@ fn endpoint_runtimes(
         flaresolverr_port,
     )?);
     let mut runtimes = BTreeMap::new();
-    for configured in &configuration.endpoints {
+    for configured in configuration
+        .endpoints
+        .iter()
+        .filter(|endpoint| endpoint_administratively_active(configuration, endpoint))
+    {
         let format = validate_endpoint_shape(configured)?;
         let build = registry
             .adapter(&configured.adapter_id)
@@ -2767,7 +2774,13 @@ fn compatible_egress_runtime_inputs(
     secret_store: &SecretStore,
 ) -> Result<CompatibleEgressRuntimeInputs, RuntimeCompositionError> {
     let generic_upstreams = compatible_generic_upstreams(configuration);
-    validate_compatible_resource_ownership(configuration, &generic_upstreams)?;
+    let configured_generic_upstreams = configuration
+        .endpoints
+        .iter()
+        .filter(|endpoint| is_generic_compatible_adapter(&endpoint.adapter_id))
+        .map(|endpoint| endpoint.upstream_id.clone())
+        .collect();
+    validate_compatible_resource_ownership(configuration, &configured_generic_upstreams)?;
     let registries = compatible_transport_registries(
         configuration,
         endpoints,
@@ -2804,20 +2817,24 @@ fn validate_compatible_resource_ownership(
     // pool/node for a native Provider and hope a later path interprets it; that would make the
     // active graph appear healthy while the resource is unreachable. Disabled draft rows remain
     // inert until an operator explicitly enables them.
-    for pool in configuration
-        .compatible_proxy_pools
-        .iter()
-        .filter(|pool| pool.enabled)
-    {
+    for pool in configuration.compatible_proxy_pools.iter().filter(|pool| {
+        pool.enabled
+            && configuration
+                .upstreams
+                .iter()
+                .any(|upstream| upstream.id == pool.upstream_id && upstream.enabled)
+    }) {
         if !generic_upstreams.contains(&pool.upstream_id) {
             return Err(RuntimeCompositionError::Unavailable);
         }
     }
-    for node in configuration
-        .compatible_proxy_nodes
-        .iter()
-        .filter(|node| node.enabled)
-    {
+    for node in configuration.compatible_proxy_nodes.iter().filter(|node| {
+        node.enabled
+            && configuration
+                .upstreams
+                .iter()
+                .any(|upstream| upstream.id == node.upstream_id && upstream.enabled)
+    }) {
         if !generic_upstreams.contains(&node.upstream_id) {
             return Err(RuntimeCompositionError::Unavailable);
         }
@@ -2827,7 +2844,7 @@ fn validate_compatible_resource_ownership(
                 .iter()
                 .find(|pool| pool.id == *pool_id)
                 .ok_or(RuntimeCompositionError::Unavailable)?;
-            if pool.upstream_id != node.upstream_id || !pool.enabled {
+            if pool.upstream_id != node.upstream_id {
                 return Err(RuntimeCompositionError::Unavailable);
             }
         } else if node.weight != 1 {
@@ -2980,9 +2997,6 @@ fn compatible_binding_runtime_settings(
             .iter()
             .find(|endpoint| endpoint.id == binding.endpoint_id)
             .ok_or(RuntimeCompositionError::Unavailable)?;
-        if !endpoint.enabled || !is_generic_compatible_adapter(&endpoint.adapter_id) {
-            return Err(RuntimeCompositionError::Unavailable);
-        }
         let credential = configuration
             .credentials
             .iter()
@@ -3000,6 +3014,23 @@ fn compatible_binding_runtime_settings(
                     && item.upstream_id == endpoint.upstream_id
             });
         if !exact_binding_exists {
+            return Err(RuntimeCompositionError::Unavailable);
+        }
+        let binding_enabled = configuration
+            .endpoint_credential_bindings
+            .iter()
+            .any(|item| {
+                item.endpoint_id == binding.endpoint_id
+                    && item.credential_id == binding.credential_id
+                    && item.enabled
+            });
+        if !endpoint_administratively_active(configuration, endpoint)
+            || credential.status != CredentialStatus::Active
+            || !binding_enabled
+        {
+            continue;
+        }
+        if !is_generic_compatible_adapter(&endpoint.adapter_id) {
             return Err(RuntimeCompositionError::Unavailable);
         }
         let target = compatible_binding_target(configuration, endpoint, &binding.target)?;
@@ -3099,8 +3130,8 @@ fn is_generic_compatible_adapter(adapter_id: &str) -> bool {
 /// stays fixed is fail-closed conformance: HTTPS-only egress policies, Bearer-only active
 /// Credentials, Endpoints whose `adapter_id` and `api_format` form a pair this build binds an
 /// adapter for, Canonical Candidates, bounded attempt budgets, and a bounded total Credential
-/// concurrency.  One non-conforming row fails admission for the whole Version instead of serving
-/// a subset.
+/// concurrency. Structurally invalid rows are still rejected by the compiler. Administratively
+/// inactive records are retained but do not create transports, leases or runtime capacity.
 fn validate_p12_required_resources(
     configuration: &ControlPlaneConfiguration,
 ) -> Result<(), RuntimeCompositionError> {
@@ -3123,6 +3154,17 @@ fn validate_p12_required_resources(
     Ok(())
 }
 
+fn endpoint_administratively_active(
+    configuration: &ControlPlaneConfiguration,
+    endpoint: &EndpointConfiguration,
+) -> bool {
+    endpoint.enabled
+        && configuration
+            .upstreams
+            .iter()
+            .any(|upstream| upstream.id == endpoint.upstream_id && upstream.enabled)
+}
+
 fn validate_p12_network_shape(
     configuration: &ControlPlaneConfiguration,
 ) -> Result<(), RuntimeCompositionError> {
@@ -3138,12 +3180,15 @@ fn validate_p12_network_shape(
         .iter()
         .map(|policy| &policy.id)
         .collect::<BTreeSet<_>>();
-    for upstream in &configuration.upstreams {
-        if !upstream.enabled
-            || upstream
-                .egress_policy_id
-                .as_ref()
-                .is_none_or(|policy_id| !policy_ids.contains(policy_id))
+    for upstream in configuration
+        .upstreams
+        .iter()
+        .filter(|upstream| upstream.enabled)
+    {
+        if upstream
+            .egress_policy_id
+            .as_ref()
+            .is_none_or(|policy_id| !policy_ids.contains(policy_id))
         {
             return Err(RuntimeCompositionError::Unavailable);
         }
@@ -3154,7 +3199,9 @@ fn validate_p12_network_shape(
         .map(|upstream| &upstream.id)
         .collect::<BTreeSet<_>>();
     for endpoint in &configuration.endpoints {
-        validate_endpoint_shape(endpoint)?;
+        if endpoint_administratively_active(configuration, endpoint) {
+            validate_endpoint_shape(endpoint)?;
+        }
         if !upstream_ids.contains(&endpoint.upstream_id) {
             return Err(RuntimeCompositionError::Unavailable);
         }
@@ -3176,8 +3223,8 @@ fn validate_p12_credential_bindings(
         // shape; the request boundary still runs the strict importer and expiry/account-binding
         // checks before a byte can become an Authorization header.  Keeping this admission here
         // is the important distinction between a persisted OAuth rotation and a startup outage.
-        if !matches!(credential.kind.as_str(), "bearer" | "oauth_json")
-            || credential.status != CredentialStatus::Active
+        if (credential.status == CredentialStatus::Active
+            && !matches!(credential.kind.as_str(), "bearer" | "oauth_json"))
             || !upstream_ids.contains(&credential.upstream_id)
         {
             return Err(RuntimeCompositionError::Unavailable);
@@ -3193,6 +3240,18 @@ fn validate_p12_credential_bindings(
         .iter()
         .map(|credential| (&credential.id, &credential.upstream_id))
         .collect::<BTreeMap<_, _>>();
+    let active_endpoints = configuration
+        .endpoints
+        .iter()
+        .filter(|endpoint| endpoint_administratively_active(configuration, endpoint))
+        .map(|endpoint| &endpoint.id)
+        .collect::<BTreeSet<_>>();
+    let active_credentials = configuration
+        .credentials
+        .iter()
+        .filter(|credential| credential.status == CredentialStatus::Active)
+        .map(|credential| &credential.id)
+        .collect::<BTreeSet<_>>();
     let mut total_concurrency: i64 = 0;
     for binding in &configuration.endpoint_credential_bindings {
         let endpoint_upstream = endpoint_upstreams
@@ -3203,8 +3262,7 @@ fn validate_p12_credential_bindings(
             .get(&binding.credential_id)
             .copied()
             .ok_or(RuntimeCompositionError::Unavailable)?;
-        if !binding.enabled
-            || binding.priority < 0
+        if binding.priority < 0
             || binding.weight < 1
             || binding.concurrency < 1
             || endpoint_upstream != &binding.upstream_id
@@ -3212,7 +3270,12 @@ fn validate_p12_credential_bindings(
         {
             return Err(RuntimeCompositionError::Unavailable);
         }
-        total_concurrency = total_concurrency.saturating_add(binding.concurrency);
+        if binding.enabled
+            && active_endpoints.contains(&binding.endpoint_id)
+            && active_credentials.contains(&binding.credential_id)
+        {
+            total_concurrency = total_concurrency.saturating_add(binding.concurrency);
+        }
     }
     if total_concurrency > P12_MAX_TOTAL_BINDING_CONCURRENCY {
         return Err(RuntimeCompositionError::Unavailable);
@@ -3223,18 +3286,29 @@ fn validate_p12_credential_bindings(
 fn validate_p12_route_access_shape(
     configuration: &ControlPlaneConfiguration,
 ) -> Result<(), RuntimeCompositionError> {
-    for model in &configuration.public_models {
-        // Required capabilities have already been checked against the compiled candidates.
-        if model.status != gateway_store::control_plane::AdministrativeStatus::Active {
-            return Err(RuntimeCompositionError::Unavailable);
-        }
-    }
+    // RouteCompiler already validates inactive records structurally and excludes them.
+    let active_models = configuration
+        .public_models
+        .iter()
+        .filter(|model| model.status == gateway_store::control_plane::AdministrativeStatus::Active)
+        .map(|model| &model.id)
+        .collect::<BTreeSet<_>>();
+    let active_routes = configuration
+        .model_routes
+        .iter()
+        .filter(|route| active_models.contains(&route.public_model_id))
+        .map(|route| &route.id)
+        .collect::<BTreeSet<_>>();
     let model_ids = configuration
         .public_models
         .iter()
         .map(|model| &model.id)
         .collect::<BTreeSet<_>>();
-    for route in &configuration.model_routes {
+    for route in configuration
+        .model_routes
+        .iter()
+        .filter(|route| active_routes.contains(&route.id))
+    {
         if !model_ids.contains(&route.public_model_id)
             || route.policy != RoutePolicy::SmoothWeightedRoundRobin
             || !usize::try_from(route.max_attempts)
@@ -3260,7 +3334,11 @@ fn validate_p12_route_access_shape(
         .iter()
         .map(|endpoint| (&endpoint.id, endpoint.adapter_id.as_str()))
         .collect::<BTreeMap<_, _>>();
-    for candidate in &configuration.route_candidates {
+    for candidate in configuration
+        .route_candidates
+        .iter()
+        .filter(|candidate| candidate.enabled && active_routes.contains(&candidate.route_id))
+    {
         let adapter_id = endpoint_adapters
             .get(&candidate.endpoint_id)
             .copied()
@@ -3270,7 +3348,6 @@ fn validate_p12_route_access_shape(
             || candidate.credential_scope != CredentialScope::EndpointBindings
             || (adapter_id == "kiro.messages"
                 && candidate.transform_mode != TransformMode::Canonical)
-            || !candidate.enabled
             || candidate.priority < 0
             || candidate.weight < 1
             || !p12_candidate_override_is_admissible(
@@ -3282,8 +3359,8 @@ fn validate_p12_route_access_shape(
         }
     }
     for group in &configuration.access_groups {
-        if group.status != gateway_store::control_plane::AdministrativeStatus::Active
-            || !is_empty_capability_object(&group.limits_json)
+        if group.status == gateway_store::control_plane::AdministrativeStatus::Active
+            && !is_empty_capability_object(&group.limits_json)
         {
             return Err(RuntimeCompositionError::Unavailable);
         }
@@ -3294,17 +3371,12 @@ fn validate_p12_route_access_shape(
         .map(|group| &group.id)
         .collect::<BTreeSet<_>>();
     for binding in &configuration.access_group_routes {
-        if !group_ids.contains(&binding.access_group_id)
-            || !route_ids.contains(&binding.route_id)
-            || !binding.enabled
-        {
+        if !group_ids.contains(&binding.access_group_id) || !route_ids.contains(&binding.route_id) {
             return Err(RuntimeCompositionError::Unavailable);
         }
     }
     for key in &configuration.client_keys {
-        if !group_ids.contains(key.access_group_id())
-            || key.status() != StoredClientKeyStatus::Active
-        {
+        if !group_ids.contains(key.access_group_id()) {
             return Err(RuntimeCompositionError::Unavailable);
         }
     }

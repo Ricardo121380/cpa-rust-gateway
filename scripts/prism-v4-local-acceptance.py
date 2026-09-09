@@ -28,6 +28,7 @@ def free_port():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--priced', action='store_true')
+    parser.add_argument('--inactive', action='store_true')
     parser.add_argument('--large', action='store_true')
     parser.add_argument('--browser', action='store_true')
     parser.add_argument('--browser-flow', action='store_true')
@@ -210,6 +211,27 @@ def main():
         mutate('/admin/access-groups', {'id': 'local-group', 'name': 'Local', 'status': 'active', 'limits': {}})
         mutate('/admin/access-groups/local-group/routes', {'route_id': 'local-route', 'enabled': True})
         issued = mutate('/admin/client-keys', {'id': 'local-client', 'access_group_id': 'local-group', 'status': 'active'})
+        inactive_keys = []
+        if args.inactive:
+            mutate('/admin/public-models', {'id': 'inactive-model', 'model_name': 'inactive-model', 'status': 'disabled', 'display_name': 'Inactive', 'capabilities': {}})
+            mutate('/admin/routes/local-route/candidates', {**candidate, 'id': 'inactive-candidate', 'upstream_model': 'inactive-exact-model', 'enabled': False})
+            mutate('/admin/access-groups', {'id': 'inactive-group', 'name': 'Inactive', 'status': 'disabled', 'limits': {}})
+            mutate('/admin/access-groups/inactive-group/routes', {'route_id': 'local-route', 'enabled': True})
+            inactive_keys.append(mutate('/admin/client-keys', {'id': 'inactive-key', 'access_group_id': 'local-group', 'status': 'disabled'})['key'])
+            inactive_keys.append(mutate('/admin/client-keys', {'id': 'inactive-group-key', 'access_group_id': 'inactive-group', 'status': 'active'})['key'])
+            revoked = mutate('/admin/client-keys', {'id': 'revoked-key', 'access_group_id': 'local-group', 'status': 'active'})
+            mutate('/admin/client-keys/revoked-key', None, 'DELETE')
+            inactive_keys.append(revoked['key'])
+            mutate('/admin/upstreams/local-upstream/credentials', {'id': 'inactive-credential', 'kind': 'bearer', 'secret': secrets.token_hex(24), 'status': 'disabled'})
+            mutate('/admin/endpoints/local-endpoint/credential-bindings', {'credential_id': 'inactive-credential', 'enabled': True, 'priority': 0, 'weight': 1, 'concurrency': 1000})
+            mutate('/admin/upstreams/local-upstream/endpoints', {'id': 'inactive-endpoint', 'adapter_id': 'openai-compatible.chat-completions', 'api_format': 'openai/chat-completions', 'base_url': f'https://127.0.0.1:{provider_port}/v1', 'inference_path': '/responses', 'models_path': None, 'transport': 'https', 'enabled': False})
+            mutate('/admin/endpoints/inactive-endpoint/credential-bindings', {'credential_id': 'local-credential', 'enabled': True, 'priority': 0, 'weight': 1, 'concurrency': 1000})
+            mutate('/admin/upstreams', {'id': 'inactive-upstream', 'name': 'Inactive', 'kind': 'openai-compatible', 'enabled': False, 'tags': [], 'egress_policy_id': 'local-egress'})
+            mutate('/admin/upstreams/inactive-upstream/endpoints', {'id': 'inactive-owner-endpoint', 'adapter_id': 'openai-compatible.responses', 'api_format': 'openai/responses', 'base_url': f'https://127.0.0.1:{provider_port}/v1', 'inference_path': '/responses', 'models_path': None, 'transport': 'https', 'enabled': True})
+            for endpoint_id, credential_id in [('local-endpoint', 'inactive-credential'), ('inactive-endpoint', 'local-credential')]:
+                mutate('/admin/compatible-egress-bindings', {'endpoint_id': endpoint_id, 'credential_id': credential_id, 'target_kind': 'direct', 'target_id': None, 'failure_scope': 'credential', 'stickiness': 'none', 'pre_submit_max_attempts': 1})
+            mutate('/admin/upstreams', {'id': 'inactive-native-upstream', 'name': 'Inactive native', 'kind': 'grok', 'enabled': False, 'tags': [], 'egress_policy_id': 'local-egress'})
+            mutate('/admin/upstreams/inactive-native-upstream/endpoints', {'id': 'inactive-native-endpoint', 'adapter_id': 'grok.web.responses', 'api_format': 'openai/responses', 'base_url': f'https://127.0.0.1:{provider_port}/v1', 'inference_path': '/responses', 'models_path': None, 'transport': 'https', 'enabled': False})
         checks.append('real upstream, binding, candidate edit and authorization management writes')
         audit_rows = []
         before_id = None
@@ -326,6 +348,20 @@ def main():
         except urllib.error.HTTPError as error:
             raise RuntimeError(f'local data request: HTTP {error.code}: {error.read().decode()}') from None
         checks.append('real data listener routes a controlled request to TLS loopback Provider')
+        for inactive_key in inactive_keys:
+            calls_before = len(provider_calls)
+            denied_request = urllib.request.Request(f'http://127.0.0.1:{data_port}/v1/responses',
+                headers={'Authorization': 'Bearer ' + inactive_key, 'Content-Type': 'application/json'},
+                data=json.dumps({'model': 'local-exact-model', 'input': 'inactive-identity', 'stream': False}).encode())
+            try:
+                urllib.request.urlopen(denied_request, timeout=10).close()
+                raise AssertionError('inactive identity called provider')
+            except urllib.error.HTTPError as error:
+                assert error.code in (401, 403, 404)
+            assert len(provider_calls) == calls_before
+        if args.inactive:
+            checks.append('disabled resources preserve active service; disabled/revoked keys and inactive groups cannot call Provider')
+
         deadline = time.monotonic() + 10
         while True:
             status, _, ledger = request('/admin/operations/billing?limit=10')

@@ -628,3 +628,15 @@ VersionsPage新增“查看差异”，使用V4居中Sheet，支持基线选择�
 证据：`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-oxlnbel2/evidence.json`，
 同目录browser-flow含configuration-diff-desktop/mobile截图与flow.json。
 剩余：启停操作运行装配核对、回退路径证据核对、持续查看方式、最终门禁更新和交付报告。
+
+## M4 非活动资源运行装配修复
+
+管理面允许保留禁用资源，旧serve装配却会全局拒绝它们。现按已有编译器/授权规则保留
+结构校验，仅为有效endpoint及有效owner建立transport/native pool，非活动credential、
+binding及endpoint不占活动并发预算；禁用兼容出口条目保留且不参与运行。
+
+真实 `--priced --inactive` 包含禁用模型/候选/组/Key、撤销Key、禁用credential/endpoint、
+禁用upstream下的endpoint、禁用原生渠道及兼容出口配置；正常请求计费通过，三个不可用
+身份均在Provider调用前拒绝，重启/TTL仍通过。证据：
+`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-23hu06iq/evidence.json`。
+本批gateway全目标Clippy及126项binary回归通过；仍保留活动图的既有策略/参数限制。

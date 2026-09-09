@@ -15,7 +15,7 @@
 | B3 硬过期 | 真实进程合法历史目录+刷新失败证据，过期新选择/租约被拒，旧租约请求完成 | 已有证据；自动 discovery 渠道未扩展 |
 | B4 既有 TTL | 独立连接/有界双表删除与有效内容存储回归；真实 serve 到期清除、未到期保留 | 已有证据；未扩展账本/事件删除 |
 | 真实浏览器写操作 | model handoff、candidate CRUD、route grant、validate/publish、audit；移动辅助偏好、拒绝后锁定 | 已有证据；新增确认/差异后需更新相关验收 |
-| 运行装配兼容性 | 新 Endpoint 能力表、模型能力、路由参数、已存目录接线修复 | 仍核对已有启停操作与 runtime shape 约束；不能把管理写成功等同重启可用 |
+| 运行装配兼容性 | 新 Endpoint 能力表、模型能力、路由参数、已存目录接线修复 | 已修复并真实验收禁用模型/渠道/endpoint/credential/binding及不可用身份；活动图既有约束保留 |
 | 最终仓库门禁 | check.sh fast 已通过前置脚本/SPA/格式，在 all-targets Clippy 首次失败；修复后完整 Clippy 通过；全 Rust 回归已通过（1183 passed，9 ignored） | 续跑 serve envelope、源码/边界/文档/secret/whitespace 均通过；新增功能仍需重新验证受影响范围 |
 | 可审查交付 | 功能批次提交、cross-boundary-log、progress 与真实临时 evidence | **缺失最终 prism-v4-delivery.md 与可持续查看方式**；验收脚本默认会停止服务，不能把已停止 URL 当可查看实例 |
 
