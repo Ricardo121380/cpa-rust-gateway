@@ -59,3 +59,28 @@ ARM64产物必须经独立Cosign身份验证、仓库artifact/SBOM/哈希验证�
 服务器备份目录中的92d1d50仅为本次操作标识，不代表最后安装的revision。
 旧候选上传发生网络中断，未通过服务器哈希验收，已隔离；新版演练要求完整verified-artifact
 收据和二进制哈希一致后才启动，禁止使用部分上传。
+
+## 当前停止点：尚未上线
+
+新签名构建已经成功；新正式门禁最后读到fast通过、供应链工具安装中，连接失败后未能确认最终结果。
+GitHub产物下载出现EOF/TLS握手超时，GitHub连接器也传输失败；SSH出现Connection closed。
+没有使用未完整上传的文件切换生产，没有停机或重启生产服务；真实Provider测试请求为0。
+一次旧候选隔离启动因上传未完成提前失败，不计作验收通过；随后加入完整验签收据和SHA前置条件。
+测试Client Key文件所在机器和路径仍待用户提供，不要把密钥值发到聊天。
+
+恢复执行顺序：
+
+1. 确认18f29a3完整门禁通过，重新下载ARM64新产物并独立验签。
+2. 使用rsync压缩、partial和delay-updates上传；服务器校验SHA并保存verified-artifact收据。
+3. 同步最新offline.py，在只有lo的network namespace执行new和rollback-new演练。
+   验证新版启动、迁移、有效模型和矩阵，以及撤销22号迁移后既有表逻辑指纹保持一致。
+4. 使用用户指定的Key文件执行canary.py before；固定一个近期成功的exact模型和单渠道，
+   公网响应ID必须对应到这台主机的持久事件，不能仅用healthz推断流量归属。
+5. 同步cutover.py，NEW必须为18f29a3完整hash；确保当前active配置ID/revision匹配演练副本。
+   所有前置条件通过后才能停机、取得最终备份、切换和启动。
+6. 执行canary.py after并核对账本/用量；关键失败按已经演练的down22路径恢复旧版。
+   管理18181保持loopback，不改变Caddy/DNS/Autoreg/Jakarta。
+
+本机恢复脚本保存在output/prism-v4-rollout-20260910，只有操作逻辑和已知路径，不含密钥。
+服务端操作目录中的92d1d50是本次操作标识，不是最终待安装revision。
+本次四步尚未整体完成，也没有安排后台自动继续；既有部署和测试授权持续有效。
