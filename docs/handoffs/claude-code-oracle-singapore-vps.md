@@ -6,6 +6,20 @@ This document is a value-free connection handoff for Claude Code. It intentional
 public IP address, private-key path, password, Management Key, CSRF token, Provider credential,
 cookie, database row, request/response body, or raw remote log.
 
+## 2026-09-10: explicit CPAR domain-access update
+
+The user subsequently authorized cross-device Prism access on the existing CPAR domain. Codex
+implemented and deployed `c7cfd2c` with an explicit HTTPS management origin and CPAR-only Caddy
+path routing. See [the current domain handoff](prism-domain-access.md) and
+[verified delivery](../reports/prism-domain-delivery.md) before using the historical instructions below.
+
+Both backend listeners remain loopback-only; Management Key/CSRF and actual-peer admission are
+retained. The public domain now serves Prism and its protected management API. The old HTTP SSH
+browser origin no longer admits writes on this explicitly configured instance; use the approved
+HTTPS origin. Origin-free authenticated CLI access remains supported. This records one explicit
+user-authorized deployment, not standing permission to expose another management listener or
+change Autoreg, DNS or other sites. Below remains the original private/read-only default handoff.
+
 ## 1. Current verified topology
 
 The answer to “is CPAR configured on the Oracle Singapore VPS?” is **yes, with an important

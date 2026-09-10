@@ -1719,3 +1719,21 @@ cooldown/expiry, failure→attempt→target→Explain→back, mobile target layo
 write/audit/rollback/session paths. SPA authority/CSP/four-file double build and Clippy passed.
 Early E2E found a misplaced nested button, obsolete copy assertion and a missing URL-settle
 wait; fixed and rerun rather than counting those failed runs as acceptance.
+
+## 2026-09-10 — Codex — HTTPS domain acceptance handoff
+
+**Files:** `docs/handoffs/claude-code-oracle-singapore-vps.md`,
+`docs/handoffs/prism-domain-access.md`, `docs/handoffs/prism-v4-production-rollout.md`,
+`docs/reports/prism-domain-delivery.md`, `docs/reports/prism-v4-production-rollout-status.md`.
+
+**What / why:** The user explicitly requested Prism access from other devices on the existing
+cpar domain. Backend commit c7cfd2c adds an optional exact HTTPS management origin; production
+Caddy now routes only that site's admin/UI paths to the loopback management listener. Four SPA
+asset hashes and HTTP DTOs are unchanged. Document the actual domain entry, key/CSRF behavior,
+scoped rollback and remaining project issues instead of presenting the old SSH-only entry as current.
+
+**Other side:** FYI. Use the approved HTTPS origin for browser writes on this instance; the old
+HTTP tunnel origin will be denied. No frontend code or generated client changes are required.
+Parser/composed admission, existing security regression, local and isolated real gateway writes,
+signed release/full gates and public authenticated write/readback passed. The browser check covers
+the real HTTPS unlock page, not a claim of completed physical-device manual acceptance.
