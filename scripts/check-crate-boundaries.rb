@@ -18,7 +18,9 @@ allowed = {
   # protocol, and JSON dependencies here only; lower-layer rules still prevent them from flowing
   # back into library crates.
   "gateway" => %w[actix-web futures-util gateway-auth gateway-catalog gateway-control gateway-core gateway-http-actix gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream getrandom libc protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-grok provider-kiro provider-openai-compatible reqwest serde serde_json tokio tracing zeroize],
-  "gateway-auth" => %w[gateway-core getrandom hmac libc sha2 subtle zeroize],
+  # Administrator passwords use the reviewed Argon2id primitive here; HTTP and persistence
+  # remain in their existing adapter/store layers. No other dependency edge is widened.
+  "gateway-auth" => %w[argon2 gateway-core getrandom hmac libc sha2 subtle zeroize],
   "gateway-catalog" => %w[gateway-core gateway-provider gateway-store rusqlite tokio],
   "gateway-control" => %w[gateway-auth gateway-catalog gateway-core gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream serde_json sha2 zeroize],
   "gateway-core" => %w[serde serde_json],

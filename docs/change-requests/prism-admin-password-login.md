@@ -46,3 +46,6 @@ late login/old-session responses. UI: concise login, password visibility/autocom
 first change validation, mobile keyboard/overflow, dark/contrast/motion preferences.
 No Provider inference is needed. Existing domain deployment and rollback apply only
 to CPAR; DNS, Caddy routes, other services and historical billing data stay intact.
+
+The exact dependency boundary for `gateway-auth` includes `argon2`, the password KDF
+introduced by this request. HTTP and persistence dependencies remain outside that crate.
