@@ -96,5 +96,5 @@ test("the rail stays reachable and the version picker stays usable", async ({ pa
   expect(box).not.toBeNull();
   expect(box?.x ?? -1).toBeGreaterThanOrEqual(0);
 
-  await expect(page.locator(".version-picker select")).toBeVisible();
+  await expect(page.locator(".configuration-context")).toBeVisible();
 });

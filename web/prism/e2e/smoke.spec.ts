@@ -22,6 +22,7 @@ test("overview shows the real planes and deep-links into failure attribution", a
   // Prometheus exposition) plus the billing summary, which is one request and
   // covers the whole ledger window.
   await expect(page.getByText("网关实时计数")).toBeVisible();
+  await page.getByText("事件、Token 与观测管道", { exact: true }).click();
   await expect(page.locator(".token-mix rect").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "计价可信度" })).toBeVisible();
   await expect(page.getByText("覆盖整个账本窗口")).toBeVisible();
@@ -44,7 +45,7 @@ test("draft dock publishes: anneal sheet, then version reads as active", async (
   await page.getByRole("dialog", { name: "确认发布" }).getByRole("button", { name: "确认发布", exact: true }).click();
   await expect(page.getByRole("dialog")).toContainText("已发布");
   await page.getByRole("button", { name: "完成" }).click();
-  await expect(page.locator(".topbar")).toContainText("当前版本只读");
+  await expect(page.locator(".topbar")).toContainText("已发布配置");
   await expect(page.locator(".dock")).toHaveCount(0);
 });
 

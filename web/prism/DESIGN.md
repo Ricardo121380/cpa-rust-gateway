@@ -2100,3 +2100,22 @@ and CSRF are automatic, distinct from CLI secrets, and remain memory-only. Query
 version ownership and no-replay conflict handling still apply. Settings displays account/expiry,
 password change/sign-out, and collapses implementation diagnostics. All 14 workspaces and old
 hash/query routes remain supported. Production evidence belongs in the login delivery report.
+
+## 30. V5 统一材质与配置入口（2026-09-10）
+
+用户明确指出 V4 的玻璃导航与实底内容割裂，要求通过 OpenDesign 重新设计。
+本节替代 §28 的“内容区必须实底”视觉约定；安全、接口、资源语义与全部 14 栏目范围保持有效。
+
+- 本会话手工设计，经既有 OpenDesign MCP 项目保存、回读：
+  `docs/design/prism-liquid-glass-v5.html`。没有调用内置生成器或外部模型 CLI。
+- `src/app/v5.css` 提供银灰／石墨灰、Apple 蓝的统一透光层次。`GlassSurface`／`PrismLens`
+  保留三面 chrome 折射预算；增加一个共享 workspace 模糊层。内部数据面板只有透色、高光和细边，
+  不逐卡叠加 backdrop-filter。增强对比、减少透明度和能力回退时全部恢复实底。
+- 全局下拉框移除。登录后仅自动选择已发布配置；晚到列表不能覆盖用户主动选择的草稿或历史。
+  顶栏显示“已发布配置／正在编辑草稿／查看历史配置”，不暴露版本 ID 与 revision。
+- 配置页分为已发布卡片、草稿、历史。保留差异、谱系、revision、校验、发布、回滚及明确确认。
+  “已发布”指控制存储状态；当前 `serve` 仍在重启时加载配置，不宣称前端选中就改变运行快照。
+- 总览优先显示现有真实累计指标；事件／Token／管道说明按需展开。计费异常仍可见，空值及
+  六类 token 置信度不改变。账号统计口径集中显示，避免同一句说明重复四次。
+- 测试通过配置页的实际按钮切换上下文；旧全局选择器断言更新为新的用户流程。
+  历史请求、账本、审计不因界面改版而清空。测试草稿清理工具只处理明确清单并保留审计归档。

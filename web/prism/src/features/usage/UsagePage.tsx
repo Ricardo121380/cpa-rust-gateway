@@ -184,7 +184,7 @@ export function UsagePage() {
         也没有热力图 —— 用 K 个窗口在前端拼一条曲线,要么需要 K×页 次请求,
         要么会静默少算,两者都不如把这句话写出来。
         <br />
-        <strong>本页不受顶栏所选配置版本影响</strong>:
+        <strong>本页跨配置版本</strong>:
         <span className="mono">listOperationalUsage</span> 不带{" "}
         <span className="mono">X-Config-Version</span> —— 用量是已发生请求的持久观测,
         天然跨版本。

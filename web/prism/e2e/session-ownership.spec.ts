@@ -39,7 +39,7 @@ test("an auth denial clears the live UI, polling cache and reveal-once state", a
   });
   expect(state).toEqual({ unlocked: false, hasKey: false, hasCsrf: false, queries: 0, mutations: 0 });
   await unlock(page);
-  await expect(page.locator(".version-picker select")).toHaveValue("");
+  await expect(page.locator(".configuration-context")).toHaveAttribute("data-context-version", "v-2026-07");
   await expect(page.locator(".reveal-key")).toHaveCount(0);
 });
 

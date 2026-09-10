@@ -1782,3 +1782,27 @@ included in these docs. First password change remains for the user.
 1236 ms. Caddy/DNS/Autoreg and schema 22 were unchanged; the active configuration and 87 historical
 billing repair records were preserved. The report distinguishes local Chromium acceptance from
 physical Safari/Firefox testing and records the earlier gate/dependency declaration correction.
+
+## 2026-09-10 — Codex — V5 coherent glass workspace and configuration workflow
+
+**What:** `web/prism/src/app/{AppShell,DraftDock}.tsx`, `src/app/v5.css`, `src/main.tsx`,
+`src/features/config-versions/{VersionsPage.tsx,versionStore.ts,versionStore.test.ts}`,
+`src/features/overview/OverviewPage.tsx`, `src/features/billing/ProcessingStatus.tsx`,
+`src/features/accounts/AccountsPage.tsx`, affected configuration-context copy in access, billing,
+egress, models, monitoring, runtime, upstreams and usage, both i18n packs, `web/prism/e2e/**`,
+and `web/prism/DESIGN.md`. Backend-owned maintenance helper
+`scripts/prism-retire-test-drafts.py` and its regression script do not add an API or schema.
+
+**Why:** The user explicitly rejected V4's opaque content slab and confusing topbar version
+selector. OpenDesign MCP stores the session-authored V5 design in the existing project.
+Three chrome lenses remain; one shared frosted workspace gives content the same material.
+Published configuration is selected by default, with deliberate draft/history selection on the
+configuration page. Counter semantics, capabilities, same-origin auth, revisions and write
+confirmation remain intact. New user confirmation limits cleanup to 11 identified test drafts;
+66 resource rows were removed with private backup, audited archive tombstones and an invariant
+check over all retained data. Historical events, billing and other configurations are retained.
+
+**Other side:** FYI under the user's continuing full-stack authorization. No contract change or
+regeneration drift. Tests use visible configuration-page actions, with no-published-version cases
+explicitly arranged. Delivery evidence and verification limits are in
+`docs/reports/prism-v5-refinement.md`; production deployment is recorded there only after verification.

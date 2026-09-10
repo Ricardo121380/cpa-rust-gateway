@@ -17,7 +17,6 @@ import {
 } from "../monitoring/model";
 import { formatCount, StatTile } from "../../components/data/StatTile";
 import { TokenMixBar } from "../../components/data/TokenMixBar";
-import { StatusBadge } from "../../components/StatusBadge";
 import { ReadStatus } from "../../components/ReadStatus";
 import { useMessages } from "../../i18n/messages";
 import {
@@ -178,6 +177,7 @@ function LiveCountersSection() {
         />
       </div>
 
+      <details className="overview-telemetry"><summary>事件、Token 与观测管道</summary>
       <div className="overview-grid" data-gap="top">
         <EventMix counters={counters} />
         {/* Cumulative, and now unconditional: the "today" bar it used to step
@@ -189,6 +189,7 @@ function LiveCountersSection() {
         </div>
         <PipelineHealth counters={counters} />
       </div>
+      </details>
     </>
   );
 }
@@ -309,30 +310,15 @@ export function OverviewPage() {
 
   return (
     <section>
-      <h2>{t.nav.overview}</h2>
-      <ProcessingStatus />
+      <header className="page-head"><div><h2>{t.nav.overview}</h2><p className="page-subtitle">网关状态与资源，一目了然。</p></div><Link to="/monitoring">查看请求 →</Link></header>
+      <LiveCountersSection />
+      <ProcessingStatus compact />
       <ReadStatus pending={versions.isPending} error={versions.error} hasData={versions.data !== undefined} retry={() => void versions.refetch()} />
 
-      <div className="overview-grid">
-        <div className="card">
-          <h3>活动版本</h3>
-          {active !== undefined ? (
-            <p>
-              <span className="mono">{active.id}</span> <StatusBadge status="active" />
-              <br />
-              <span className="idchip mono">{active.revision}</span>{" "}
-              <span className="muted small">{active.description}</span>
-            </p>
-          ) : (
-            <p className="muted">{versions.data === undefined ? "尚未读取到版本信息。" : "尚无活动版本 —— 发布一个草稿后出现。"}</p>
-          )}
-          <Link to="/versions">前往配置版本 →</Link>
-        </div>
-
-        <div className="card">
-          <h3>布线规模{scope === undefined ? "(未选择版本)" : ""}</h3>
+        <div className="card overview-resources">
+          <div className="overview-resource-head"><h3>资源概览</h3><Link to="/versions">{context?.status === "draft" ? "当前草稿" : context?.status === "archived" ? "历史配置" : active === undefined ? "配置待初始化" : "已发布配置"} →</Link></div>
           {scope === undefined ? (
-            <p className="muted">在顶栏选择一个配置版本后显示。</p>
+            <p className="muted">请到“配置版本”发布或选择一份配置。</p>
           ) : (
             <div className="count-row">
               {counts.map((item) => (
@@ -344,9 +330,6 @@ export function OverviewPage() {
             </div>
           )}
         </div>
-      </div>
-
-      <LiveCountersSection />
 
       <div className="overview-grid" data-gap="top">
         <BillingGlance />

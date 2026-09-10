@@ -21,8 +21,7 @@ test("language switch reaches the whole shell, not just the settings page", asyn
 
   // and the topbar, which is a separate glass pane. Needs a version selected —
   // the read-only note only renders for a non-draft version.
-  await page.locator(".version-picker select").selectOption({ index: 1 });
-  await expect(page.locator(".topbar")).toContainText("read-only");
+  await expect(page.locator(".topbar")).toContainText("Published configuration");
 
   await page.getByRole("radio", { name: "中文" }).click();
   await expect(rail.getByRole("link", { name: "总览", exact: true })).toBeVisible();

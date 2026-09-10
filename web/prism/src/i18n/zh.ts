@@ -57,6 +57,12 @@ export const zh = {
     conflictAck: "知道了",
     readOnly: "当前版本只读(非草稿)。",
     pickerLabel: "配置版本",
+    manageContext: "管理配置版本",
+    publishedContext: "已发布配置",
+    draftContext: "正在编辑草稿",
+    historyContext: "查看历史配置",
+    contextError: "配置读取失败",
+    noPublished: "配置待初始化",
   },
   state: {
     loading: "读取中…", readFailed: "读取失败", previousData: "下面保留上次读取的结果，并非最新状态。", retry: "重试读取",

@@ -62,6 +62,12 @@ export const en: Pack = {
     conflictAck: "Got it",
     readOnly: "This version is read-only (not a draft).",
     pickerLabel: "Config version",
+    manageContext: "Manage configuration versions",
+    publishedContext: "Published configuration",
+    draftContext: "Editing a draft",
+    historyContext: "Viewing history",
+    contextError: "Configuration unavailable",
+    noPublished: "No published configuration",
   },
   state: {
     loading: "Loading…", readFailed: "Read failed", previousData: "Previous results remain below; they are not the latest state.", retry: "Retry read",

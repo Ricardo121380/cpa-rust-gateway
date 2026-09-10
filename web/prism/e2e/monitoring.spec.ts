@@ -5,7 +5,7 @@
 // traps that are easy to build wrong: a summary read from the loaded page
 // instead of the whole window, and two panels whose scopes silently differ.
 import { expect, test } from "@playwright/test";
-import { navigate, selectDraft, unlock } from "./helpers";
+import { navigate, selectDraft, unlock, clearVersionForTest } from "./helpers";
 
 async function openMonitoring(page: import("@playwright/test").Page): Promise<void> {
   await unlock(page);
@@ -77,6 +77,7 @@ test("a ledger row drills into its attempt trail", async ({ page }) => {
 
 test("the failure panel is version-scoped and says so when the ledger is not", async ({ page }) => {
   await unlock(page);
+  await clearVersionForTest(page);
   await navigate(page, "请求与失败");
   await page.getByRole("tab", { name: "失败归因" }).click();
 

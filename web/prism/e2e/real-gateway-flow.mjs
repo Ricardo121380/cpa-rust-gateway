@@ -1,3 +1,11 @@
+async function selectVersion(page, id) {
+  const hash = new URL(page.url()).hash;
+  await page.goto(new URL('#/versions', page.url()).href);
+  const button = page.locator(`[data-version-id="${id}"]`).getByRole('button', { name: /^(正在查看|编辑草稿|查看历史|查看已发布配置)$/u });
+  await button.waitFor({state:'visible'});
+  if (await button.isEnabled()) await button.click();
+  await page.goto(new URL(hash, page.url()).href);
+}
 import { randomBytes } from 'node:crypto';
 import { chromium, expect } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -15,7 +23,7 @@ try {
   await page.getByLabel('密码', { exact: true }).fill(password);
   await page.getByRole('button', { name: '登录', exact: true }).click();
   await page.getByRole('heading', { name: '总览', exact: true }).waitFor();
-  await page.locator('.version-picker select').selectOption('prism-local-v4');
+  await selectVersion(page, 'prism-local-v4');
   await navigate('/runtime');
   const matrix = page.locator('.rt-card', { has: page.getByRole('heading', { name: '可用性矩阵 · endpoint × credential' }) });
   await expect(matrix).toContainText('local-endpoint');
@@ -60,7 +68,7 @@ try {
   await page.getByLabel('模型授权身份').selectOption('local-group');
   await page.getByRole('button', { name: '模型来源' }).click();
   await page.getByRole('link', { name: '用于草稿候选' }).click();
-  await page.locator('.version-picker select').selectOption('prism-browser-draft');
+  await selectVersion(page, 'prism-browser-draft');
   await expect(page.getByRole('region', { name: '待用于草稿的模型' })).toContainText('local-exact-model');
   steps.push('authorized model selection survives draft switch');
   await page.getByRole('button', { name: '以此模型创建公开模型' }).click();
@@ -129,7 +137,7 @@ try {
   await page.screenshot({ path: `${output}/published-resource-audit.png` });
   steps.push('published configuration reread and actual mutation audit visible');
   await navigate('/versions');
-  await page.locator('tr', { hasText: 'prism-browser-draft' }).first().getByRole('button', { name: '查看差异' }).click();
+  await page.locator('[data-version-id="prism-browser-draft"]').getByRole('button', { name: '查看差异' }).click();
   const diff = page.getByRole('dialog', { name: '配置资源差异' });
   await expect(diff.getByLabel('比较基线')).toHaveValue('prism-local-v4');
   await expect(diff).toContainText('browser-candidate');
@@ -151,13 +159,13 @@ try {
   await page.getByRole('button', { name: '回滚到上一版本' }).click();
   await expect(page.getByRole('dialog', { name: '确认回滚' })).toContainText('prism-local-v4');
   await page.getByRole('dialog').getByRole('button', { name: '取消', exact: true }).click();
-  await expect(page.locator('tr', { hasText: 'prism-browser-draft' }).first()).toContainText('active');
+  await expect(page.locator('.published-configuration[data-version-id="prism-browser-draft"]')).toContainText('已发布配置');
   await page.getByRole('button', { name: '回滚到上一版本' }).click();
   await page.screenshot({ path: `${output}/rollback-confirmation.png` });
   await page.getByRole('dialog', { name: '确认回滚' }).getByRole('button', { name: '确认回滚', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('prism-local-v4');
   await page.getByRole('dialog').getByRole('button', { name: '完成', exact: true }).click();
-  await page.locator('.version-picker select').selectOption('prism-local-v4');
+  await selectVersion(page, 'prism-local-v4');
   steps.push('rollback requires target confirmation; cancel is inert and confirm restores prior version');
 
   await page.setViewportSize({ width: 390, height: 844 });

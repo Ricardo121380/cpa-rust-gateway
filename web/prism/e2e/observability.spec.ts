@@ -36,6 +36,7 @@ test("pipeline health reports a clean Required path without crying wolf on shed 
   page,
 }) => {
   await unlock(page);
+  await page.getByText("事件、Token 与观测管道", { exact: true }).click();
   const card = page.locator(".card").filter({ hasText: "观测管道健康" });
   await expect(card.locator(".badge-good")).toHaveText("必需事件无丢失");
   await expect(card.locator(".badge-critical")).toHaveCount(0);
@@ -46,6 +47,8 @@ test("pipeline health reports a clean Required path without crying wolf on shed 
 test("the counters plane stands alone, and says what it cannot show", async ({ page }) => {
   await unlock(page);
   await expect(page.getByText("网关实时计数")).toBeVisible();
+
+  await page.getByText("事件、Token 与观测管道", { exact: true }).click();
 
   // The "today" plane it used to sit beside was the proposed analytics shape:
   // an hourly trend, a today-scoped token bar, a health strip. None existed

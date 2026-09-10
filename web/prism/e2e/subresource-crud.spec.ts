@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { navigate, selectDraft, unlock } from "./helpers";
+import { navigate, selectDraft, unlock, selectVersion } from "./helpers";
 
 // The subresource half of the configuration chain. Before this, the panel
 // could show channels/accounts/bindings but not create one — everything in a
@@ -95,7 +95,7 @@ test("deleting a channel warns that its bindings and candidates go with it", asy
 test("subresource editing is refused on a published version", async ({ page }) => {
   await unlock(page);
   await navigate(page, "上游");
-  await page.locator(".version-picker select").selectOption("v-2026-07");
+  await selectVersion(page, "v-2026-07");
   await page.waitForTimeout(400);
   const rows = page.locator("tr", { hasText: "relay-a" });
   if ((await rows.count()) > 0) {

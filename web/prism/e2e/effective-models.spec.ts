@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { unlock, navigate } from "./helpers";
+import { unlock, navigate, selectVersion } from "./helpers";
 
 test("serving model contexts stay separate and source links preserve exact IDs", async ({ page }) => {
   await unlock(page);
-  await page.locator(".version-picker select").selectOption("v-2026-07");
+  await selectVersion(page, "v-2026-07");
   await navigate(page, "模型目录");
   const panel = page.getByRole("region", { name: "授权有效模型" });
   await panel.getByLabel("模型授权身份").selectOption("team-default");
@@ -30,7 +30,7 @@ test("serving model contexts stay separate and source links preserve exact IDs",
 
 test("an authorized model survives draft selection and seeds a new route candidate", async ({ page }) => {
   await unlock(page);
-  await page.locator(".version-picker select").selectOption("v-2026-07");
+  await selectVersion(page, "v-2026-07");
   await navigate(page, "模型目录");
   await page.getByLabel("模型授权身份").selectOption("team-default");
   await page.getByRole("button", { name: "模型来源" }).click();
@@ -38,7 +38,7 @@ test("an authorized model survives draft selection and seeds a new route candida
   const handoff = page.getByRole("region", { name: "待用于草稿的模型" });
   await expect(handoff).toContainText("exact-alpha");
   await expect(handoff.getByRole("button", { name: "以此模型创建公开模型" })).toBeDisabled();
-  await page.locator(".version-picker select").selectOption("draft-2026-08");
+  await selectVersion(page, "draft-2026-08");
   await expect(handoff).toContainText("endpoint-exact-alpha");
   await handoff.getByRole("button", { name: "以此模型创建公开模型" }).click();
   let dialog = page.getByRole("dialog");

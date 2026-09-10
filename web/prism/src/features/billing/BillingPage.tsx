@@ -467,7 +467,7 @@ export function BillingPage() {
           </button>
         </header>
         <p className="bill-note">
-          目录是<strong>全局</strong>的,不属于任何配置版本 —— 顶栏选哪个版本都看到同一份清单,
+          目录是<strong>全局</strong>的,不属于任何配置版本 —— 查看任何配置都使用同一份清单,
           导入也会立刻对所有版本可见。上限 {MAX_CATALOGS} 份。
           <br />
           没有修改与删除算子:改价的做法是<strong>导入一份新目录</strong>,

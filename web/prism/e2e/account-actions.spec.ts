@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { navigate, selectDraft, unlock } from "./helpers";
+import { navigate, selectDraft, unlock, clearVersionForTest } from "./helpers";
 
 async function inspect(page: Page, account: string) {
   await page.getByRole("textbox", { name: "搜索已加载账号" }).fill(account);
@@ -8,6 +8,7 @@ async function inspect(page: Page, account: string) {
 
 test("accounts read without a version, while cooldown requires a selected version and confirmation", async ({ page }) => {
   await unlock(page);
+  await clearVersionForTest(page);
   await navigate(page, "账号池");
   await inspect(page, "cred-relay-key");
   await expect(page.getByRole("dialog").getByRole("button", { name: "冷却账号" })).toBeDisabled();

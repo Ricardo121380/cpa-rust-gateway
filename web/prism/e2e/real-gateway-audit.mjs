@@ -1,3 +1,11 @@
+async function selectVersion(page, id) {
+  const hash = new URL(page.url()).hash;
+  await page.goto(new URL('#/versions', page.url()).href);
+  const button = page.locator(`[data-version-id="${id}"]`).getByRole('button', { name: /^(正在查看|编辑草稿|查看历史|查看已发布配置)$/u });
+  await button.waitFor({state:'visible'});
+  if (await button.isEnabled()) await button.click();
+  await page.goto(new URL(hash, page.url()).href);
+}
 // Production-embed audit. Input is supplied over stdin; secrets never enter artifacts.
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -21,7 +29,7 @@ try {
       await page.getByLabel('密码', { exact: true }).fill(password);
       await page.getByRole('button', { name: '登录', exact: true }).click();
       await page.getByRole('heading', { name: '总览', exact: true }).waitFor();
-      await page.locator('.version-picker select').selectOption('prism-local-v4');
+      await selectVersion(page, 'prism-local-v4');
       for (const route of routes) {
         await page.evaluate(route => { location.hash = `#${route}`; }, route);
         await page.locator('main h2').first().waitFor();

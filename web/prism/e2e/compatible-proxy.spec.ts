@@ -5,7 +5,7 @@
 // inverse of the credential secret, a target id drawn from two different
 // namespaces, and a pool that must stay reachable while it has no nodes.
 import { expect, test } from "@playwright/test";
-import { navigate, selectDraft, unlock } from "./helpers";
+import { navigate, selectDraft, unlock, selectVersion } from "./helpers";
 
 const PANEL = ".compatible-proxy";
 
@@ -137,7 +137,7 @@ test("an unreferenced pool deletes, and the panel reflects it", async ({ page })
 
 test("a published version makes every write unavailable", async ({ page }) => {
   await unlock(page);
-  await page.locator(".version-picker select").selectOption("v-2026-07");
+  await selectVersion(page, "v-2026-07");
   await navigate(page, "出口策略");
 
   const panel = page.locator(PANEL);

@@ -133,7 +133,7 @@ export function UpstreamsPage() {
       <section>
         <h2>{t.nav.upstreams}</h2>
         <div className="card empty-state" data-kind="empty">
-          <p>先在顶栏选择一个配置版本。</p>
+          <p>请到“配置版本”发布或选择一份配置。</p>
         </div>
       </section>
     );

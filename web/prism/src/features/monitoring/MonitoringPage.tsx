@@ -596,7 +596,7 @@ export function MonitoringPage() {
         一边都不出现,或在失败流里出现多次。用它们相除得到的「成功率」是编的。
         <br />
         两者<strong>作用域也不同</strong>:失败归因带{" "}
-        <span className="mono">X-Config-Version</span>,账本不带 —— 顶栏选版本只影响前者。
+        <span className="mono">X-Config-Version</span>,账本不带 —— 所选配置只影响前者。
       </p></details>
 
       <div className="mon-tabs" role="tablist">

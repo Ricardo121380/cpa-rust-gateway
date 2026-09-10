@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { navigate, selectDraft, unlock } from "./helpers";
+import { navigate, selectDraft, unlock, selectVersion } from "./helpers";
 
 // The route half of the configuration chain.
 //
@@ -126,7 +126,7 @@ test("capability_override rejects a non-boolean instead of coercing it", async (
 });
 
 async function selectActive(page: import("@playwright/test").Page): Promise<void> {
-  await page.locator(".version-picker select").selectOption("v-2026-07");
+  await selectVersion(page, "v-2026-07");
 }
 
 test("explain on a draft says the snapshot is missing, not that the panel is unwired", async ({

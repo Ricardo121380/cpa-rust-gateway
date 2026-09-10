@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { navigate, selectDraft, unlock } from "./helpers";
+import { navigate, selectDraft, unlock, selectVersion } from "./helpers";
 
 // Access groups and route grants — the half of the configuration chain Prism
 // could not do. Without a group and a grant, an issued Client Key reaches no
@@ -96,6 +96,6 @@ test("group editing is refused on a published version", async ({ page }) => {
   await unlock(page);
   await navigate(page, "访问控制");
   // v-2026-07 is active, not a draft
-  await page.locator(".version-picker select").selectOption("v-2026-07");
+  await selectVersion(page, "v-2026-07");
   await expect(page.getByRole("button", { name: "新建访问组" })).toBeDisabled();
 });

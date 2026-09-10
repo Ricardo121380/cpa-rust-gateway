@@ -17,6 +17,7 @@ type VersionState = {
   conflict: boolean;
   selectionGeneration: number;
   select: (summary: ConfigVersionSummary) => void;
+  selectInitialActive: (versions: readonly ConfigVersionSummary[]) => void;
   advanceFromEtag: (etag: string | null) => void;
   markConflict: () => void;
   clearConflict: () => void;
@@ -27,6 +28,11 @@ export const useVersionStore = create<VersionState>((set, get) => ({
   context: undefined,
   conflict: false,
   selectionGeneration: 0,
+  selectInitialActive: (versions) => {
+    if (get().context !== undefined) return;
+    const active = versions.find((version) => version.status === "active");
+    if (active !== undefined) get().select(active);
+  },
   select: (summary) =>
     set((state) => ({
       selectionGeneration: state.selectionGeneration + 1,

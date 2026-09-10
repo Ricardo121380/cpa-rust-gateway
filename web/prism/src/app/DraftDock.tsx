@@ -125,7 +125,7 @@ export function DraftDock() {
       ) : null}
 
       {publication !== undefined ? (
-        <Sheet title="已发布(材质退火完成)">
+        <Sheet title="配置已发布">
           <p>
             活动版本:<span className="mono">{publication.active_config_version_id}</span>
           </p>

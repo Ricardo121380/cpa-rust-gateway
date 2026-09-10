@@ -4,10 +4,11 @@
 // two independent status axes, and the two action outcomes that are answers
 // rather than failures.
 import { expect, test } from "@playwright/test";
-import { navigate, selectDraft, unlock } from "./helpers";
+import { navigate, selectDraft, unlock, clearVersionForTest } from "./helpers";
 
 test("the pool reads with no config version, but its actions do not", async ({ page }) => {
   await unlock(page);
+  await clearVersionForTest(page);
   await navigate(page, "运行诊断");
   await page.getByText("相关资源状态", { exact: true }).click();
 
@@ -16,8 +17,8 @@ test("the pool reads with no config version, but its actions do not", async ({ p
   // would be false for it.
   await expect(page.getByText("Provider 账号池 · 实时")).toBeVisible();
   await expect(page.locator("tr", { hasText: "cred-relay-key" })).toBeVisible();
-  await expect(page.locator(".rt-card").first()).toContainText("本表不需要配置版本");
-  await expect(page.locator(".rt-card").first()).toContainText("操作按钮不可用");
+  await expect(page.locator(".rt-card").filter({ hasText: "Provider 账号池 · 实时" }).first()).toContainText("本表不需要配置版本");
+  await expect(page.locator(".rt-card").filter({ hasText: "Provider 账号池 · 实时" }).first()).toContainText("操作按钮不可用");
 
   const cool = page.locator("tr", { hasText: "cred-relay-key" }).getByRole("button", { name: "冷却" });
   await expect(cool).toBeDisabled();
@@ -37,7 +38,7 @@ test("auth status and runtime status stay two axes, never one health value", asy
   const row = page.locator("tr", { hasText: "cred-grok-oauth" });
   await expect(row.locator('.rt-chip[data-state="reauth_required"]')).toBeVisible();
   await expect(row.locator('.rt-chip[data-state="unauthorized"]')).toBeVisible();
-  await expect(page.locator(".rt-card").first()).toContainText("两个独立维度");
+  await expect(page.locator(".rt-card").filter({ hasText: "Provider 账号池 · 实时" }).first()).toContainText("两个独立维度");
 });
 
 test("cooling names the exact account and enforces the contract's window", async ({ page }) => {

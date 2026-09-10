@@ -1170,7 +1170,7 @@ function EgressDomainSection({
       ) : null}
       {conflict === "config" ? (
         <p role="alert" className="action-error">
-          所选配置版本不是这份快照的来源 —— 从头重读也不会有用,请在顶栏重新选择版本。
+          所选配置版本不是这份快照的来源 —— 从头重读也不会有用,请到“配置版本”重新选择。
         </p>
       ) : null}
 

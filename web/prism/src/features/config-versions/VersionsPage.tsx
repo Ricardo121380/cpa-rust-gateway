@@ -30,6 +30,7 @@ export function VersionsPage() {
   const [confirmation, setConfirmation] = useState<{ mode: "publish" | "rollback"; id: string }>();
   const [diffTarget, setDiffTarget] = useState<ConfigVersionSummary>();
   const [creating, setCreating] = useState(false);
+  const [collection, setCollection] = useState<"draft" | "archived">("draft");
   const [validation, setValidation] = useState<{ id: string; result: Validation } | undefined>();
   const [publication, setPublication] = useState<Publication | undefined>();
   const [actionError, setActionError] = useState<string | undefined>();
@@ -41,6 +42,8 @@ export function VersionsPage() {
   });
 
   const refresh = () => void queryClient.invalidateQueries({ queryKey: ["config-versions"] });
+  const active = versions.data?.find((version) => version.status === "active");
+  const visibleVersions = versions.data?.filter((version) => version.status === collection) ?? [];
 
   const validate = useMutation({
     mutationFn: (id: string) =>
@@ -98,7 +101,7 @@ export function VersionsPage() {
   return (
     <section>
       <header className="page-head">
-        <h2>{t.nav.versions}</h2>
+        <div><h2>{t.nav.versions}</h2><p className="page-subtitle">在草稿中调整路由，核对后再发布。</p></div>
         <div className="page-actions">
           <button type="button" onClick={() => setCreating(true)}>
             创建草稿
@@ -130,36 +133,60 @@ export function VersionsPage() {
 
       <ReadStatus pending={versions.isPending} error={versions.error} hasData={versions.data !== undefined} retry={() => void versions.refetch()} />
 
-      <div className="card tablewrap">
+      {active !== undefined ? (
+        <article className="card published-configuration" data-version-id={active.id}>
+          <div>
+            <span className="configuration-state"><span className="context-dot" />已发布配置</span>
+            <h3>{active.description || "网关配置"}</h3>
+            <p className="entity-meta mono">{active.id} · {active.revision}</p>
+            <details className="reading-notes configuration-explainer">
+              <summary>配置与应用版本有什么区别？</summary>
+              <p>这里只切换查看或编辑的配置。发布和回滚需要单独确认，更换程序版本属于部署。当前网关在重启时加载已发布配置。</p>
+              <p>创建于 {formatTime(active.created_at_ms)} · 来源 {active.parent_id ?? "无"}</p>
+            </details>
+          </div>
+          <div className="row-actions">
+            <button className="secondary" onClick={() => setDiffTarget(active)}>查看差异</button>
+            <button disabled={context?.configVersionId === active.id} onClick={() => select(active)}>
+              {context?.configVersionId === active.id ? "正在查看" : "查看已发布配置"}
+            </button>
+          </div>
+        </article>
+      ) : null}
+      <div className="configuration-tabs" role="group" aria-label="配置集合">
+        <button className="secondary" aria-pressed={collection === "draft"} onClick={() => setCollection("draft")}>
+          草稿 · {versions.data?.filter((version) => version.status === "draft").length ?? "…"}
+        </button>
+        <button className="secondary" aria-pressed={collection === "archived"} onClick={() => setCollection("archived")}>
+          历史 · {versions.data?.filter((version) => version.status === "archived").length ?? "…"}
+        </button>
+      </div>
+      <div className="data-panel configuration-list"><div className="tablewrap">
         <table>
           <thead>
             <tr>
-              <th>版本</th>
-              <th>状态</th>
-              <th>revision</th>
+              <th>配置</th>
               <th>创建时间</th>
-              <th>描述</th>
-              <th>父版本</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
-            {(versions.data ?? []).map((version) => {
+            {visibleVersions.map((version) => {
               const selected = context?.configVersionId === version.id;
               return (
-                <tr key={version.id} data-selected={selected}>
-                  <td className="mono">{version.id}</td>
+                <tr key={version.id} data-selected={selected} data-version-id={version.id}>
                   <td>
-                    <StatusBadge status={version.status} />
+                    <div className="entity-name">{version.description || (version.status === "draft" ? "未发布草稿" : "历史配置")}</div>
+                    <div className="entity-meta mono">{version.id} · {version.revision}</div>
+                    <details className="configuration-lineage"><summary>来源与状态</summary>
+                      <p className="entity-meta">{version.parent_id ?? "无来源"} · <StatusBadge status={version.status} /></p>
+                    </details>
                   </td>
-                  <td className="mono">{version.revision}</td>
-                  <td className="mono">{formatTime(version.created_at_ms)}</td>
-                  <td>{version.description}</td>
-                  <td className="mono">{version.parent_id ?? "—"}</td>
-                  <td className="row-actions">
+                  <td className="entity-meta">{formatTime(version.created_at_ms)}</td>
+                  <td><div className="row-actions">
                     <button className="secondary" onClick={() => setDiffTarget(version)}>查看差异</button>
                     <button type="button" disabled={selected} onClick={() => select(version)}>
-                      {selected ? "已选择" : "选择"}
+                      {selected ? "正在查看" : version.status === "draft" ? "编辑草稿" : "查看历史"}
                     </button>
                     <button
                       type="button"
@@ -173,21 +200,21 @@ export function VersionsPage() {
                       <button
                         type="button"
                         disabled={!selected || publish.isPending}
-                        title={selected ? undefined : "先选择该版本(If-Match 需要其 revision)"}
+                        title={selected ? undefined : "先进入此草稿，再核对发布内容"}
                         onClick={() => { setActionError(undefined); setConfirmation({ mode: "publish", id: version.id }); }}
                       >
                         发布
                       </button>
                     ) : null}
-                  </td>
+                  </div></td>
                 </tr>
               );
             })}
           </tbody>
-        </table>
-        {versions.data?.length === 0 ? (
+        </table></div>
+        {versions.data !== undefined && visibleVersions.length === 0 ? (
           <div className="empty-state" data-kind="empty">
-            <p>{t.state.empty}</p>
+            <p>{collection === "draft" ? "没有待编辑的草稿。需要调整时，创建一份新草稿。" : "暂无历史配置。"}</p>
           </div>
         ) : null}
       </div>

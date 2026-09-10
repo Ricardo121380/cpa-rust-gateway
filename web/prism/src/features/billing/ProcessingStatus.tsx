@@ -38,7 +38,7 @@ const copy: Record<
   stopped: ["已停止", "后台消费已停止，重启后从持久进度继续。"],
 };
 
-export function ProcessingStatus() {
+export function ProcessingStatus({ compact = false }: Readonly<{ compact?: boolean }>) {
   const query = useQuery({
     queryKey: ["billing-processing"],
     queryFn: () =>
@@ -49,7 +49,7 @@ export function ProcessingStatus() {
   });
   const data = query.data;
   return (
-    <aside className="data-panel data-panel--padded" aria-label="计费处理状态" data-gap="top">
+    <aside className={`data-panel data-panel--padded${compact ? " billing-processing-compact" : ""}`} aria-label="计费处理状态" data-gap="top">
       <header className="page-head">
         <h3>计费处理</h3>
         <button
@@ -68,7 +68,7 @@ export function ProcessingStatus() {
       />
       {data !== undefined ? (
         <>
-          <p>
+          <p className="processing-summary">
             <strong>{copy[data.state][0]}</strong> · {copy[data.state][1]}
           </p>
           <details>
@@ -95,13 +95,13 @@ export function ProcessingStatus() {
                 </dd>
               </div>
             </dl>
+            <p className="small muted">处理状态跨配置版本；空账本不等于零消费。</p>
           </details>
           {data.failure_code !== null ? (
             <p className="small mono">{data.failure_code}</p>
           ) : null}
         </>
       ) : null}
-      <p className="small muted">处理状态跨配置版本；空账本不等于零消费。</p>
     </aside>
   );
 }

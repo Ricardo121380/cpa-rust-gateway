@@ -1,5 +1,5 @@
 // Shell: exactly three chrome glass panes — rail, topbar, (draft-only) dock.
-// Content canvas is always solid (docs/07 §5.2).
+// V5 shares a frosted workspace beneath the three refractive chrome panes.
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Navigate, Outlet, useLocation, Link } from "react-router-dom";
@@ -16,9 +16,9 @@ import { DraftDock } from "./DraftDock";
 import { NAV_GROUPS } from "./navigation";
 import { resolvedTheme, useThemeStore } from "./themeStore";
 
-function VersionPicker() {
+function ConfigurationContext() {
   const context = useVersionStore((s) => s.context);
-  const select = useVersionStore((s) => s.select);
+  const selectInitialActive = useVersionStore((s) => s.selectInitialActive);
   const t = useMessages();
   const versions = useQuery({
     queryKey: ["config-versions"],
@@ -26,30 +26,20 @@ function VersionPicker() {
     staleTime: 30_000,
   });
 
-  return (
-    <label className="version-picker">
-      <span className="visually-hidden">{t.version.pickerLabel}</span>
-      <select
-        className="mono"
-        value={context?.configVersionId ?? ""}
-        onChange={(event) => {
-          const found = versions.data?.find((v) => v.id === event.target.value);
-          if (found !== undefined) {
-            select(found);
-          }
-        }}
-      >
-        <option value="" disabled>
-          {t.version.none}
-        </option>
-        {(versions.data ?? []).map((version) => (
-          <option key={version.id} value={version.id}>
-            {version.id} · {version.status} · {version.revision}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
+  useEffect(() => {
+    // The session clears this query cache. A late list never overrides an
+    // explicit draft/history selection, and a draft is never selected by default.
+    if (versions.data !== undefined) selectInitialActive(versions.data);
+  }, [versions.data, selectInitialActive]);
+
+  const label = context?.status === "active" ? t.version.publishedContext
+    : context?.status === "draft" ? t.version.draftContext
+    : context?.status === "archived" ? t.version.historyContext
+    : versions.isError ? t.version.contextError : t.version.noPublished;
+  return <Link className="configuration-context" to="/versions" data-status={context?.status}
+    data-context-version={context?.configVersionId} aria-label={t.version.manageContext}>
+    <span className="context-dot" aria-hidden="true" />{label}
+  </Link>;
 }
 
 export function AppShell() {
@@ -126,13 +116,7 @@ export function AppShell() {
             {currentGroup === undefined ? null : <span>{t.navigation[currentGroup.label]} / </span>}
             <strong>{currentPage === undefined ? "Prism" : t.nav[currentPage.key]}</strong>
           </div>
-          <VersionPicker />
-          {context !== undefined ? (
-            <span className="idchip mono">{context.revision}</span>
-          ) : null}
-          {context !== undefined && context.status !== "draft" ? (
-            <span className="readonly-note">{t.version.readOnly}</span>
-          ) : null}
+          <ConfigurationContext />
           <Link className="chrome-action" to="/settings?focus=search" aria-label={t.navigation.search}>⌕</Link>
           <button className="chrome-action secondary" aria-label={t.navigation.theme}
             onClick={() => setChoice(resolvedTheme(choice) === "dark" ? "light" : "dark")}>◐</button>

@@ -109,7 +109,7 @@ export function AccountsPage() {
         <div>
           <h2>{t.nav.accounts}</h2>
           <p className="scope-row">
-            实时 · 跨配置版本 · 认证、调度与权益分别呈现
+            当前已加载账号 · 跨配置版本
           </p>
         </div>
         <button
@@ -157,7 +157,6 @@ export function AccountsPage() {
             <strong className="stat-value">
               {pools.data === undefined ? "—" : value}
             </strong>
-            <span className="stat-sub">当前已加载范围</span>
           </div>
         ))}
       </div>
