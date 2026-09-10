@@ -1,3 +1,4 @@
+import { resourceName } from "../../utils/resourceNames";
 import { useSearchParams } from "react-router-dom";
 import { ReadStatus } from "../../components/ReadStatus";
 // Public models: client-visible model names + capabilities + 1:1 route.
@@ -189,7 +190,7 @@ export function ModelsPage() {
 
   if (scope === undefined) {
     return (
-      <section>
+      <section className="models-page">
         <h2>{t.nav.models}</h2>
         <div className="card empty-state" data-kind="empty">
           <p>请到“配置版本”发布或选择一份配置。</p>
@@ -199,7 +200,7 @@ export function ModelsPage() {
   }
 
   return (
-    <section>
+    <section className="models-page">
       <header className="page-head">
         <h2>{t.nav.models}</h2>
         <div className="page-actions">
@@ -349,7 +350,7 @@ export function ModelsPage() {
 
       <RouteWorkbench focusRouteId={createdRouteId} editable={editable} modelSeed={modelSeed} />
 
-      {inspected === undefined ? null : <ObjectInspector title={inspected.display_name || inspected.model_name} scope={`配置版本 ${scope}`} onClose={() => setInspected(undefined)} facts={[
+      {inspected === undefined ? null : <ObjectInspector title={inspected.display_name || inspected.model_name} scope={`配置版本 ${resourceName(scope ?? "—", "config")}`} onClose={() => setInspected(undefined)} facts={[
         ["配置 ID", inspected.id], ["模型名称", inspected.model_name], ["配置状态", inspected.status],
         ["声明能力", enabledCapabilities(inspected.capabilities).join(" · ") || "未声明"],
       ]}>

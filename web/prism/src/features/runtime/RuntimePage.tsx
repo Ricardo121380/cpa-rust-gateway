@@ -473,7 +473,7 @@ function RecoveryCard({
         </table>
       )}
       <p className="rt-footnote">
-        操作作用于配置版本 <span className="mono">{scope}</span>,不改写配置,也不产生草稿修订。
+        操作作用于配置版本 <ResourceIdentity id={scope} kind="config" />,不改写配置,也不产生草稿修订。
       </p>
     </div>
   );

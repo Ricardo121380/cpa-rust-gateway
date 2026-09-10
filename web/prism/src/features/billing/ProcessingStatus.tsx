@@ -49,7 +49,7 @@ export function ProcessingStatus({ compact = false }: Readonly<{ compact?: boole
   });
   const data = query.data;
   return (
-    <aside className={`data-panel data-panel--padded${compact ? " billing-processing-compact" : ""}`} aria-label="计费处理状态" data-gap="top">
+    <aside className={`data-panel data-panel--padded${compact ? " billing-processing-compact" : ""}`} aria-label="计费处理状态" data-state={data?.state} data-gap="top">
       <header className="page-head">
         <h3>计费处理</h3>
         <button

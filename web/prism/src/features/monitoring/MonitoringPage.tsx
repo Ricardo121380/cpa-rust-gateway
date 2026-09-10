@@ -1,3 +1,4 @@
+import { resourceName } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { ProcessingStatus } from "../billing/ProcessingStatus";
 // 请求监控 — two independent contract sources, deliberately not merged.
@@ -584,7 +585,7 @@ export function MonitoringPage() {
     <section className="monitoring-page">
       <header className="page-head">
         <h2>{t.nav.monitoring}</h2>
-        <span className="scope-row">{tab === "ledger" ? "账本 · 跨配置版本" : `失败归因 · ${scope ?? "未选择版本"}`}</span>
+        <span className="scope-row">{tab === "ledger" ? "账本 · 跨配置版本" : `失败归因 · ${scope === undefined ? "未选择版本" : resourceName(scope, "config")}`}</span>
       </header>
       <ProcessingStatus />
 

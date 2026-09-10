@@ -528,12 +528,12 @@ export function AccessPage() {
         ) : null}
       </div>
 
-      {inspectedGroup === undefined ? null : <ObjectInspector title={resourceName(inspectedGroup.id, "group", inspectedGroup.name)} scope={`配置版本 ${scope} · 访问组`} onClose={() => setInspectedGroup(undefined)} facts={[
+      {inspectedGroup === undefined ? null : <ObjectInspector title={resourceName(inspectedGroup.id, "group", inspectedGroup.name)} scope={`配置版本 ${resourceName(scope ?? "—", "config")} · 访问组`} onClose={() => setInspectedGroup(undefined)} facts={[
         ["访问组 ID", inspectedGroup.id], ["状态", inspectedGroup.status], ["限制", formatLimits(inspectedGroup.limits) || "未设置"],
       ]}><div className="sheet-actions"><button className="secondary" onClick={() => { setExpanded(inspectedGroup.id); setInspectedGroup(undefined); }}>查看授权路由</button>
         <button disabled={!editable} onClick={() => { setGroupForm(inspectedGroup); setInspectedGroup(undefined); }}>编辑访问组</button></div></ObjectInspector>}
 
-      {inspectedKey === undefined ? null : <ObjectInspector title="Client Key" scope={`配置版本 ${scope} · 只显示公开元数据`} onClose={() => setInspectedKey(undefined)} facts={[
+      {inspectedKey === undefined ? null : <ObjectInspector title="Client Key" scope={`配置版本 ${resourceName(scope ?? "—", "config")} · 只显示公开元数据`} onClose={() => setInspectedKey(undefined)} facts={[
         ["Key ID", inspectedKey.id], ["前缀", inspectedKey.prefix], ["访问组", inspectedKey.access_group_id],
         ["配置状态", inspectedKey.status], ["当前显示状态", displayKeyStatus(inspectedKey, nowMs)], ["到期时间", formatExpiry(inspectedKey.expires_at_ms)],
       ]}><p className="small muted">完整密钥仅在签发时显示一次，详情不会重新显示。</p>

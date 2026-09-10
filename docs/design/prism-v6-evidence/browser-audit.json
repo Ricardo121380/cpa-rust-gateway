@@ -1,0 +1,1278 @@
+{
+  "browser": "151.0.7922.34",
+  "pages": [
+    {
+      "route": "#/",
+      "heading": "总览",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/monitoring",
+      "heading": "请求与失败",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/usage",
+      "heading": "用量分析",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/billing",
+      "heading": "计费与价格",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/accounts",
+      "heading": "账号池",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/upstreams",
+      "heading": "上游",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/catalog",
+      "heading": "模型目录",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "授权有效模型",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/models",
+      "heading": "模型与路由",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/access",
+      "heading": "访问控制",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/runtime",
+      "heading": "运行诊断",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/egress",
+      "heading": "出口策略",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/versions",
+      "heading": "配置版本",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/audit",
+      "heading": "审计与备份",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "资源修改审计",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/settings",
+      "heading": "设置",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/",
+      "heading": "总览",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/monitoring",
+      "heading": "请求与失败",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/usage",
+      "heading": "用量分析",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/billing",
+      "heading": "计费与价格",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/accounts",
+      "heading": "账号池",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/upstreams",
+      "heading": "上游",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/catalog",
+      "heading": "模型目录",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "授权有效模型",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/models",
+      "heading": "模型与路由",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/access",
+      "heading": "访问控制",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/runtime",
+      "heading": "运行诊断",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/egress",
+      "heading": "出口策略",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/versions",
+      "heading": "配置版本",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/audit",
+      "heading": "审计与备份",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "资源修改审计",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/settings",
+      "heading": "设置",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "route": "#/",
+      "heading": "总览",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/monitoring",
+      "heading": "请求与失败",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/usage",
+      "heading": "用量分析",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/billing",
+      "heading": "计费与价格",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/accounts",
+      "heading": "账号池",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/upstreams",
+      "heading": "上游",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/catalog",
+      "heading": "模型目录",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "授权有效模型",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/models",
+      "heading": "模型与路由",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/access",
+      "heading": "访问控制",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/runtime",
+      "heading": "运行诊断",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/egress",
+      "heading": "出口策略",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/versions",
+      "heading": "配置版本",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/audit",
+      "heading": "审计与备份",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "资源修改审计",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/settings",
+      "heading": "设置",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/",
+      "heading": "总览",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/monitoring",
+      "heading": "请求与失败",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/usage",
+      "heading": "用量分析",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/billing",
+      "heading": "计费与价格",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/accounts",
+      "heading": "账号池",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/upstreams",
+      "heading": "上游",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/catalog",
+      "heading": "模型目录",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "授权有效模型",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/models",
+      "heading": "模型与路由",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/access",
+      "heading": "访问控制",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/runtime",
+      "heading": "运行诊断",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/egress",
+      "heading": "出口策略",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/versions",
+      "heading": "配置版本",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/audit",
+      "heading": "审计与备份",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "资源修改审计",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/settings",
+      "heading": "设置",
+      "width": 1280,
+      "scrollWidth": 1280,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "route": "#/",
+      "heading": "总览",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/monitoring",
+      "heading": "请求与失败",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/usage",
+      "heading": "用量分析",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/billing",
+      "heading": "计费与价格",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/accounts",
+      "heading": "账号池",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/upstreams",
+      "heading": "上游",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/catalog",
+      "heading": "模型目录",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "授权有效模型",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/models",
+      "heading": "模型与路由",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/access",
+      "heading": "访问控制",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/runtime",
+      "heading": "运行诊断",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/egress",
+      "heading": "出口策略",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/versions",
+      "heading": "配置版本",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/audit",
+      "heading": "审计与备份",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "资源修改审计",
+          "padding": "16px"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/settings",
+      "heading": "设置",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/",
+      "heading": "总览",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/monitoring",
+      "heading": "请求与失败",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/usage",
+      "heading": "用量分析",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/billing",
+      "heading": "计费与价格",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "计费处理状态",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/accounts",
+      "heading": "账号池",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/upstreams",
+      "heading": "上游",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/catalog",
+      "heading": "模型目录",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "授权有效模型",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/models",
+      "heading": "模型与路由",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/access",
+      "heading": "访问控制",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/runtime",
+      "heading": "运行诊断",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/egress",
+      "heading": "出口策略",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/versions",
+      "heading": "配置版本",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/audit",
+      "heading": "审计与备份",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [
+        {
+          "label": "资源修改审计",
+          "padding": "16px"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "route": "#/settings",
+      "heading": "设置",
+      "width": 390,
+      "scrollWidth": 390,
+      "alerts": [],
+      "panels": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  ],
+  "errors": []
+}

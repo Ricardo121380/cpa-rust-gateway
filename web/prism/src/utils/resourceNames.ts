@@ -7,7 +7,7 @@ const nouns: Record<ResourceKind, string> = {
   group: "访问组", policy: "出口策略", config: "配置", catalog: "目录", resource: "资源",
 };
 const words: Record<string, string> = {
-  codex: "Codex", grok: "Grok", openai: "OpenAI", anthropic: "Anthropic", claude: "Claude",
+  codex: "Codex", grok: "Grok", openai: "OpenAI", anthropic: "Anthropic", claude: "Claude", chatgpt: "ChatGPT", go: "Go",
   kiro: "Kiro", krill: "Krill", oauth: "OAuth", api: "API", bridge: "桥接", official: "官方",
   primary: "主", secondary: "备用", native: "原生", build: "Build", console: "Console",
   chat: "Chat", responses: "Responses", messages: "Messages", direct: "直连", proxy: "代理",
@@ -32,7 +32,7 @@ export function resourceName(id: string, kind: ResourceKind = "resource", name?:
     .replace(/^p\d{1,2}[-_]/iu, "")
     .replace(/(?:^|[-_])[a-f0-9]{24,}$/iu, "")
     .split(/[-_]+/u)
-    .filter((part) => !/^(production|existing|test|preview|credential|credentials|upstream|endpoint|route|candidate|egress|policy|group|key|config|version)$/iu.test(part))
+    .filter((part) => !/^(production|existing|test|preview|credential|credentials|upstream|endpoint|route|candidate|egress|policy|group|key|config|version|\d{10,13})$/iu.test(part))
     .map((part) => words[part.toLowerCase()] ?? part)
     .join(" ").trim();
   return `${readable}${readable ? " " : ""}${nouns[kind]}`;

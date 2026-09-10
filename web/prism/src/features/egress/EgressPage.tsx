@@ -239,7 +239,7 @@ export function EgressPage() {
       <CompatibleProxyPanel upstreams={upstreams.data ?? []} />
       <ProviderEgressCard scope={scope} nowMs={nowMs} />
 
-      {inspected === undefined ? null : <ObjectInspector title={resourceName(inspected.id, "policy", inspected.name)} scope={`配置版本 ${scope} · 出口策略`} onClose={() => setInspected(undefined)} facts={[
+      {inspected === undefined ? null : <ObjectInspector title={resourceName(inspected.id, "policy", inspected.name)} scope={`配置版本 ${resourceName(scope ?? "—", "config")} · 出口策略`} onClose={() => setInspected(undefined)} facts={[
         ["策略 ID", inspected.id], ["允许协议", inspected.allowed_schemes.join(" · ")],
         ["精确主机", inspected.allowed_hosts.join(" · ") || "无"], ["端口", inspected.allowed_ports.join(" · ") || "无"],
         ["CIDR", inspected.allowed_cidrs.join(" · ") || "无"], ["重定向模式", inspected.redirect_mode],

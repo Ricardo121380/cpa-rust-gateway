@@ -1,3 +1,4 @@
+import { StatusBadge } from "../../components/StatusBadge";
 import { ResourceIdentity, IdentityDetails } from "../../components/ResourceIdentity";
 import { ConfigurationDiff } from "./ConfigurationDiff";
 import { LifecycleConfirmation } from "./LifecycleConfirmation";
@@ -9,7 +10,6 @@ import { useState, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { Sheet } from "../../components/Sheet";
-import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
 import { useVersionStore, type ConfigVersionSummary } from "./versionStore";
 
@@ -100,7 +100,7 @@ export function VersionsPage() {
   }
 
   return (
-    <section>
+    <section className="versions-page">
       <header className="page-head">
         <div><h2>{t.nav.versions}</h2><p className="page-subtitle">在草稿中调整路由，核对后再发布。</p></div>
         <div className="page-actions">
@@ -139,12 +139,11 @@ export function VersionsPage() {
           <div>
             <span className="configuration-state"><span className="context-dot" />已发布配置</span>
             <h3><ResourceIdentity id={active.id} name={active.description || undefined} kind="config" /></h3>
-            <p className="entity-meta mono">{active.revision}</p>
-            <IdentityDetails entries={[["配置 ID", active.id]]} />
+            <p className="entity-meta">创建于 {formatTime(active.created_at_ms)}</p>
+            <IdentityDetails entries={[["配置 ID", active.id], ["修订号", active.revision], ["来源 ID", active.parent_id ?? "无"]]} />
             <details className="reading-notes configuration-explainer">
               <summary>配置与应用版本有什么区别？</summary>
               <p>这里只切换查看或编辑的配置。发布和回滚需要单独确认，更换程序版本属于部署。当前网关在重启时加载已发布配置。</p>
-              <p>创建于 {formatTime(active.created_at_ms)} · 来源 {active.parent_id ?? "无"}</p>
             </details>
           </div>
           <div className="row-actions">
@@ -179,11 +178,7 @@ export function VersionsPage() {
                 <tr key={version.id} data-selected={selected} data-version-id={version.id}>
                   <td>
                     <div className="entity-name"><ResourceIdentity id={version.id} name={version.description || undefined} kind="config" /></div>
-                    <div className="entity-meta mono">{version.revision}</div>
-                    <IdentityDetails entries={[["配置 ID", version.id]]} />
-                    <details className="configuration-lineage"><summary>来源与状态</summary>
-                      <p className="entity-meta">{version.parent_id ?? "无来源"} · <StatusBadge status={version.status} /></p>
-                    </details>
+                    <IdentityDetails entries={[["配置 ID", version.id], ["修订号", version.revision], ["来源 ID", version.parent_id ?? "无"], ["状态", version.status]]} />
                   </td>
                   <td className="entity-meta">{formatTime(version.created_at_ms)}</td>
                   <td><div className="row-actions">

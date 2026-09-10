@@ -5,6 +5,7 @@ it("uses readable production labels for legacy phase IDs and opaque accounts", (
   expect(resourceName("p12-06-codex-bridge-credential", "account")).toBe("Codex 桥接 账号");
   expect(resourceName("p12-12-production-grok-build-upstream", "upstream")).toBe("Grok Build 上游");
   expect(resourceName("grok-" + "b".repeat(32), "account")).toBe("Grok 账号");
+  expect(resourceName("p12-chatgpt-go-test-1786163922", "config")).toBe("ChatGPT Go 配置");
 });
 it("preserves custom labels and exact protocol model names", () => {
   expect(resourceName("p12-12-production-route", "route", "家庭工作区")).toBe("家庭工作区");

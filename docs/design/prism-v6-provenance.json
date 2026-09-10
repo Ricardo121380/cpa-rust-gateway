@@ -1,0 +1,23 @@
+{
+  "project": "prism-gateway-console-redesign-a735",
+  "run_id": "101cbe62-d3f6-425b-b171-ecacb2e37285",
+  "agent": "pi",
+  "model_argument": "cc-switch-kimi-for-coding/k3:max",
+  "resolved_provider": "cc-switch-kimi-for-coding",
+  "resolved_model": "k3",
+  "thinking_level": "max",
+  "thinking_selection": "Pi model resolver accepts :max suffix; explicit model thinkingLevelMap maps max to max",
+  "pi_version": "0.84.3",
+  "status": "succeeded",
+  "prompt_sha256": "cd696f1647587947e7be2d9ed774ad20246e73565b0ada7a002c60d7ab86e32a",
+  "original_html_sha256": "090437f7a489923b0ded10a77d8c01ba3f7c79ada55f3fb29781ae116545d903",
+  "reviewed_html_sha256": "4b7721ca64550bdba9acd60d583095efd18f7be91a0d114d7b7f69434be918ef",
+  "qa_fix": "Normalize the table helper for both array and prejoined string call sites; observed rows.join TypeError on account navigation.",
+  "automatic_entry_validation": "entry_not_touched: old index.html intentionally preserved; V6 entry is pulled explicitly through MCP.",
+  "spec_sha256": "1c33509c01dcdcf4d925d7eba23f62aa65a6a02b21c95051fa9306c58fd93704",
+  "reviewed_entry_checks": [
+    "MCP byte-for-byte readback",
+    "node --check",
+    "14 desktop entries via Codex in-app browser, no new page errors"
+  ]
+}

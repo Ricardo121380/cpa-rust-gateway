@@ -88,10 +88,17 @@ export function AccountsPage() {
   });
   const loaded = pools.data?.pages.flatMap((page) => page.items) ?? [];
   const rows = loaded.filter((row) =>
-    `${row.provider_id} ${row.channel_id} ${row.account_id} ${resourceName(row.account_id, "account")} ${resourceName(row.provider_id, "upstream")}`
+    `${row.provider_id} ${row.channel_id} ${row.account_id} ${resourceName(row.account_id, "account")} ${resourceName(row.provider_id, "upstream")} ${resourceName(row.channel_id, "endpoint")}`
       .toLowerCase()
       .includes(query.toLowerCase()),
   );
+  // Group presentation only: every binding and its exact operational identity stays intact.
+  const groups = new Map<string, PoolAccount[]>();
+  for (const row of rows) {
+    const group = groups.get(row.provider_id) ?? [];
+    group.push(row);
+    groups.set(row.provider_id, group);
+  }
   const update = (name: string, value: string) => {
     const next = new URLSearchParams(params);
     if (value) next.set(name, value);
@@ -106,12 +113,12 @@ export function AccountsPage() {
   const error = pools.isError ? asAppError(pools.error) : undefined;
 
   return (
-    <section>
+    <section className="accounts-page">
       <header className="page-head">
         <div>
           <h2>{t.nav.accounts}</h2>
           <p className="scope-row">
-            当前已加载账号 · 跨配置版本
+            当前已加载绑定 · 跨配置版本
           </p>
         </div>
         <button
@@ -146,7 +153,7 @@ export function AccountsPage() {
       )}
       <div className="stat-row">
         {[
-          ["已加载账号", loaded.length],
+          ["账号绑定", loaded.length],
           ["认证有效", loaded.filter((r) => r.auth_status === "active").length],
           [
             "调度冷却",
@@ -226,11 +233,13 @@ export function AccountsPage() {
           </div>
         ) : (
           <>
-            <div className="tablewrap account-desktop">
-              <table>
+            <div className="account-desktop">
+              {[...groups].map(([providerId, accounts]) => <section className="account-provider" key={providerId}>
+                <header className="account-group-head"><ResourceIdentity id={providerId} kind="upstream" /><small>{accounts.length} 个绑定</small></header>
+                <div className="tablewrap"><table>
                 <thead>
                   <tr>
-                    <th>账号 / Provider</th>
+                    <th>账号 / 端点</th>
                     <th>认证</th>
                     <th>调度</th>
                     <th>并发</th>
@@ -239,15 +248,16 @@ export function AccountsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row) => (
+                  {accounts.map((row) => (
                     <tr
                       key={`${row.provider_id}/${row.channel_id}/${row.account_id}`}
                     >
                       <td>
+                        <div className="account-identity"><span className="account-avatar" aria-hidden="true">{resourceName(row.account_id, "account").slice(0, 1).toUpperCase()}</span><div>
                         <div className="entity-name"><ResourceIdentity id={row.account_id} kind="account" /></div>
                         <div className="entity-meta">
-                          <ResourceIdentity id={row.provider_id} kind="upstream" /> / <ResourceIdentity id={row.channel_id} kind="endpoint" />
-                        </div>
+                          <ResourceIdentity id={row.channel_id} kind="endpoint" />
+                        </div></div></div>
                       </td>
                       <td>
                         <StatusBadge status={row.auth_status}>
@@ -285,16 +295,19 @@ export function AccountsPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
+              </section>)}
             </div>
             <div className="account-mobile">
-              {rows.map((row) => (
+              {[...groups].map(([providerId, accounts]) => <section className="account-provider" key={providerId}>
+                <header className="account-group-head"><ResourceIdentity id={providerId} kind="upstream" /><small>{accounts.length} 个绑定</small></header>
+              {accounts.map((row) => (
                 <article
                   key={`${row.provider_id}/${row.channel_id}/${row.account_id}`}
                 >
                   <div className="entity-name"><ResourceIdentity id={row.account_id} kind="account" /></div>
                   <div className="entity-meta">
-                    <ResourceIdentity id={row.provider_id} kind="upstream" /> / <ResourceIdentity id={row.channel_id} kind="endpoint" />
+                    <ResourceIdentity id={row.channel_id} kind="endpoint" />
                   </div>
                   <p>
                     <StatusBadge status={row.auth_status}>
@@ -315,6 +328,7 @@ export function AccountsPage() {
                   </button>
                 </article>
               ))}
+              </section>)}
             </div>
           </>
         )}
@@ -466,7 +480,7 @@ export function AccountsPage() {
               <p className="small muted">
                 {scope === undefined
                   ? "先选择配置版本以操作精确账号。"
-                  : `操作使用配置版本 ${scope}。恢复结果由运行时判定。`}
+                  : `操作使用配置版本 ${resourceName(scope ?? "—", "config")}。恢复结果由运行时判定。`}
               </p>
             </>
           )}

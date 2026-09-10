@@ -145,6 +145,9 @@ test("a failure opens request attempts and its exact diagnostic target, preservi
   await selectDraft(page);
   await navigate(page, "请求与失败");
   await page.getByRole("tab", { name: "失败归因" }).click();
+  // The tab replaces the ledger's form. Wait for that committed view before
+  // filling a field whose accessible name also exists on the departing form.
+  await expect(page.getByRole("tab", { name: "失败归因" })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("textbox", { name: "账号", exact: true }).fill("acct-0");
   await page.getByRole("button", { name: "应用筛选", exact: true }).click();
   await expect(page).toHaveURL(/account_id=acct-0/u);

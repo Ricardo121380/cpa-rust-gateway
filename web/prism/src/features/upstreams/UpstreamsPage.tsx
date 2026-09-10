@@ -239,7 +239,7 @@ export function UpstreamsPage() {
 
       {expanded !== undefined ? <SubresourcePanel upstreamId={expanded} /> : null}
 
-      {inspected === undefined ? null : <ObjectInspector title={resourceName(inspected.id, "upstream", inspected.name)} scope={`配置版本 ${scope}`} onClose={() => setInspected(undefined)} facts={[
+      {inspected === undefined ? null : <ObjectInspector title={resourceName(inspected.id, "upstream", inspected.name)} scope={`配置版本 ${resourceName(scope ?? "—", "config")}`} onClose={() => setInspected(undefined)} facts={[
         ["上游 ID", inspected.id], ["Provider 家族", inspected.kind], ["配置启用", inspected.enabled ? "已启用" : "已停用"],
         ["出口策略", inspected.egress_policy_id], ["标签", inspected.tags.join(" · ") || "—"],
       ]}>

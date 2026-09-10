@@ -1852,3 +1852,32 @@ assert the actual ID child beside its business name and passed on rerun. New E2E
 readable legacy names still copy and send exact original account/provider/channel IDs.
 The separately requested OpenDesign Pi/Kimi Coding K3 max design is in progress, not represented
 as shipped by this presentation-only batch. No production change in this commit.
+
+
+## 2026-09-10 — Codex — V6 K3 max layout and coherent production surfaces
+
+**What:** `web/prism/src/app/{AppShell.tsx,v6.css}`, `src/main.tsx`,
+`src/features/accounts/AccountsPage.tsx`, `overview/OverviewPage.tsx`,
+`billing/ProcessingStatus.tsx`, `config-versions/VersionsPage.tsx`,
+`models/{ModelsPage,RouteWorkbench,RoutingInventory}.tsx`, and the configuration-context labels
+in `access/AccessPage.tsx`, `audit/ResourceAudit.tsx`, `catalog/CatalogPage.tsx`,
+`egress/EgressPage.tsx`, `monitoring/MonitoringPage.tsx`, `runtime/RuntimePage.tsx`,
+`upstreams/UpstreamsPage.tsx` (feature paths relative to `web/prism/src/features/`).
+Also `src/utils/{resourceNames.ts,resourceNames.test.ts}`, `e2e/monitoring.spec.ts`, `DESIGN.md`,
+`docs/design/prism-liquid-glass-v6.html`, `prism-v6-k3-spec.md`, `prism-v6-provenance.json`,
+`prism-v6-evidence/`, `docs/handoffs/prism-opendesign-v6.md`, and the V6 delivery report.
+
+**Why:** The user requested real OpenDesign Pi/K3 generation at max, removed test-era names
+from primary production labels, and wanted the overall hierarchy and material reconsidered.
+The authorized Kimi Coding fallback ran with the actual `:max` Pi selector. Its section rhythm,
+asymmetric overview and grouped accounts inform the React implementation. User-required shared
+frosted content remains coherent with chrome. Prototype samples, account deduplication assumptions,
+fixed model/route pairs and public password initialization are not copied into real behavior.
+
+**Other side:** FYI under continuing full-stack authorization. No API, schema, secret storage,
+provider invocation, stable resource ID or historical-data mutation. 262 unit tests, 128 final E2E,
+111-operation authority/four-file gate and 3 Rust embed tests passed. Real gateway captured all
+14 pages plus login in three sizes/light-dark and passed the 10-stage write/audit/billing/session
+flow. A premature tab-test fill was corrected with a committed-tab assertion; prototype table
+string/array handling was corrected through MCP. Report records failures and final passes separately.
+Signed release and production handoff are recorded only after actual verification.

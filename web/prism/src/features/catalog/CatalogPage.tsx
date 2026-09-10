@@ -1,3 +1,4 @@
+import { resourceName } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { EffectiveModels } from "./EffectiveModels";
 import { useQuery } from "@tanstack/react-query";
@@ -49,7 +50,7 @@ export function CatalogPage() {
         <div>
           <h2>{t.nav.catalog}</h2>
           <p className="scope-row">
-            {scope === undefined ? "未选择配置版本" : `配置版本 ${scope}`} · 逐
+            {scope === undefined ? "未选择配置版本" : `配置版本 ${resourceName(scope ?? "—", "config")}`} · 逐
             Endpoint × Credential 的目录证据
           </p>
         </div>

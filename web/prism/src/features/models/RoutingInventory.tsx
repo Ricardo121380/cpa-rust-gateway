@@ -1,3 +1,4 @@
+import { resourceName } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -34,7 +35,7 @@ export function RoutingInventory({
   const query = useRoutingPages<Item>(operation);
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];
   return (
-    <section aria-label="完整配置资源" className="card" data-gap="top">
+    <section aria-label="完整配置资源" className="card routing-inventory" data-gap="top">
       <header className="page-head">
         <h3>配置资源</h3>
         <button
@@ -151,7 +152,7 @@ export function RoutingInventory({
       {legacy !== undefined ? (
         <ObjectInspector
           title="路由详情"
-          scope={`配置 ${scope ?? "—"} · 已读取的路由记录`}
+          scope={`配置 ${resourceName(scope ?? "—", "config")} · 已读取的路由记录`}
           onClose={() => setLegacy(undefined)}
           facts={[
             ["路由 ID", legacy.id],

@@ -64,7 +64,7 @@ export function ResourceAudit() {
         </button>
       </header>
       <p className="stat-sub">
-        配置 {scope ?? "未选择"} · 已载入 {rows.length} 条 ·
+        配置 {scope ? <ResourceIdentity id={scope} kind="config" /> : "未选择"} · 已载入 {rows.length} 条 ·
         最新在前，仅记录安全操作元数据。
       </p>
       {!scope ? (

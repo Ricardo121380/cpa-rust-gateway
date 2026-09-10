@@ -1,3 +1,4 @@
+import { resourceName } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { RoutingInventory } from "./RoutingInventory";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -446,7 +447,7 @@ export function RouteWorkbench({
       {inspecting && record !== undefined ? (
         <ObjectInspector
           title={record.id}
-          scope={`配置版本 ${scope} · 路由`}
+          scope={`配置版本 ${resourceName(scope ?? "—", "config")} · 路由`}
           onClose={() => setInspecting(false)}
           facts={[
             ["公开模型 ID", record.public_model_id],

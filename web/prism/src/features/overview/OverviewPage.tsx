@@ -151,7 +151,7 @@ function LiveCountersSection() {
 
   return (
     <>
-      <h3 data-gap="top">
+      <h3 className="overview-metrics-title" data-gap="top">
         网关实时计数 <span className="badge badge-muted">自进程启动累计</span>
       </h3>
 
@@ -267,17 +267,8 @@ function AnalyticsPointers() {
   return (
     <div className="card" data-gap="top">
       <h3>继续查看</h3>
-      <p className="stat-sub">
-        按账号检查认证、续期与权益；按目录目标查看新鲜度和失败证据。
-      </p>
-      <div className="detail-links"><Link to="/accounts">账号池 →</Link><Link to="/catalog">模型目录 →</Link></div>
+      <div className="overview-shortcuts"><Link to="/accounts">账号池 →</Link><Link to="/catalog">模型目录 →</Link><Link to="/usage">前往用量分析 →</Link><Link to="/monitoring?tab=failures">在失败归因中查看 →</Link></div>
       <details className="reading-notes"><summary>分析范围</summary><p>计数器为累计值；当前没有服务端时间桶，也没有请求延迟分布。用量页提供所选时间窗的聚合，并说明观测范围是否完整。</p></details>
-      <Link to="/usage">前往用量分析 →</Link>
-      <br />
-      {/* The "recent failures" card that used to carry this link was part of
-          the proposed analytics shape. The pointer survives it: failure
-          attribution is where that question is actually answerable. */}
-      <Link to="/monitoring?tab=failures">在失败归因中查看 →</Link>
     </div>
   );
 }
@@ -309,13 +300,18 @@ export function OverviewPage() {
   ];
 
   return (
-    <section>
-      <header className="page-head"><div><h2>{t.nav.overview}</h2><p className="page-subtitle">网关状态与资源，一目了然。</p></div><Link to="/monitoring">查看请求 →</Link></header>
+    <section className="overview-page">
+      <header className="page-head"><h2>{t.nav.overview}</h2><Link to="/monitoring">查看请求 →</Link></header>
       <LiveCountersSection />
-      <ProcessingStatus compact />
-      <ReadStatus pending={versions.isPending} error={versions.error} hasData={versions.data !== undefined} retry={() => void versions.refetch()} />
-
-        <div className="card overview-resources">
+      <div className="overview-workspace">
+        <div className="overview-primary">
+          <ProcessingStatus compact />
+          <BillingGlance />
+          <AnalyticsPointers />
+        </div>
+        <aside className="overview-aside">
+          <ReadStatus pending={versions.isPending} error={versions.error} hasData={versions.data !== undefined} retry={() => void versions.refetch()} />
+          <div className="card overview-resources">
           <div className="overview-resource-head"><h3>资源概览</h3><Link to="/versions">{context?.status === "draft" ? "当前草稿" : context?.status === "archived" ? "历史配置" : active === undefined ? "配置待初始化" : "已发布配置"} →</Link></div>
           {scope === undefined ? (
             <p className="muted">请到“配置版本”发布或选择一份配置。</p>
@@ -329,11 +325,8 @@ export function OverviewPage() {
               ))}
             </div>
           )}
-        </div>
-
-      <div className="overview-grid" data-gap="top">
-        <BillingGlance />
-        <AnalyticsPointers />
+          </div>
+        </aside>
       </div>
     </section>
   );
