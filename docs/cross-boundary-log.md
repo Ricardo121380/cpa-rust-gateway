@@ -1896,3 +1896,22 @@ scaffolding. Business names without a legacy prefix and all operational IDs rema
 references from the read-only inventory now have no residual P12 or numeric phase prefix; the
 account inventory has no further cursor. Naming unit tests and resource-identity/inspector E2E
 passed. This is a display-only follow-up to deployed V6 6b4e9a7; no production data was renamed.
+
+## 2026-09-11 — Codex — V6 final deployment and handoff receipt
+
+**What:** `docs/reports/prism-v6-refinement.md`,
+`docs/reports/evidence/prism-v6-production-20260911.json`,
+`docs/design/prism-v6-evidence/public-login.png`, and
+`docs/handoffs/{prism-domain-access,claude-code-oracle-singapore-vps,prism-opendesign-v6}.md`.
+
+**Why:** Record the completed authorized rollout of V6 and its final spaced-name fix, so the next
+frontend session sees the running revision rather than the preceding V5 deployment. The delivery
+report distinguishes full V6 acceptance from the small follow-up's targeted tests.
+
+**Other side:** FYI. Running code is 8a1b537; both signed architectures and the exact-revision
+formal gate succeeded. Independent Cosign/artifact verification, isolated real ARM64 auth/assets,
+original-service cutover and public readback passed. Stop-to-ready was 1226 ms. The active config,
+schema 22, existing administrator store, historical events/ledger and eleven retired draft records
+remain intact. No production password access, Provider requests, DNS/Caddy/Autoreg changes or
+database restore. Previous V6 binary 6b4e9a7 remains the rollback point. This documents the existing
+user authorization only; generic ownership and future deployment permission rules are unchanged.

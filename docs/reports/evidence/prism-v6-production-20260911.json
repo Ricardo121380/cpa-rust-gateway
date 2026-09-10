@@ -1,0 +1,117 @@
+{
+  "verified_date": "2026-09-11",
+  "timezone": "Asia/Shanghai",
+  "scope": "Existing CPAR service on new-vps and its existing HTTPS management entry",
+  "revision": "8a1b5377594919690c53d35a390a0c992aaf41d3",
+  "design_provenance": "../../design/prism-v6-provenance.json",
+  "workflows": {
+    "release": {
+      "head_sha": "8a1b5377594919690c53d35a390a0c992aaf41d3",
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34504176897",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Build and sign aarch64-unknown-linux-gnu",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build and sign x86_64-unknown-linux-gnu",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "gate": {
+      "head_sha": "8a1b5377594919690c53d35a390a0c992aaf41d3",
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34504181369",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Authorize explicit delivery request",
+          "conclusion": "success"
+        },
+        {
+          "name": "Fast gate (explicit delivery)",
+          "conclusion": "success"
+        },
+        {
+          "name": "Full supply-chain gate (explicit delivery)",
+          "conclusion": "success"
+        },
+        {
+          "name": "Required delivery gate",
+          "conclusion": "success"
+        }
+      ]
+    }
+  },
+  "artifact_verification": {
+    "revision": "8a1b5377594919690c53d35a390a0c992aaf41d3",
+    "signature_verified": true,
+    "artifact_and_sbom_verified": true,
+    "binary_sha256": "e7f7f3abe81df0ab807efad2bbdcdccc26af9daf68b04b31eeeb0dac9cc12e22",
+    "frontend_assets": {
+      "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+      "/admin-ui/assets/main.js": "2c1017adaae6ca2caeeb89d36d3efe186f60bdb494b93f9929507f4339b36198",
+      "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+      "/admin-ui/assets/index.css": "9277e9d19767c83b42a727c80bb17b889404f67cdcffa7e274013a8e8f24e953"
+    }
+  },
+  "isolated_gateway": {
+    "result": "passed",
+    "real_gateway": true,
+    "provider_requests": 0,
+    "checks": [
+      "one-time owner-only bootstrap, existing credentials preserved",
+      "all four embedded assets match the locally accepted V6 build",
+      "exact origin, wrong password, first-session restriction, legacy CLI",
+      "first password change, automatic CSRF, revoked initial password/session, real draft write/read",
+      "server logout revocation",
+      "restart persists changed password and discards sessions"
+    ]
+  },
+  "production": {
+    "passed": true,
+    "revision": "8a1b5377594919690c53d35a390a0c992aaf41d3",
+    "binary_sha256": "e7f7f3abe81df0ab807efad2bbdcdccc26af9daf68b04b31eeeb0dac9cc12e22",
+    "stop_to_ready_ms": 1226,
+    "four_assets": {
+      "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+      "/admin-ui/assets/main.js": "2c1017adaae6ca2caeeb89d36d3efe186f60bdb494b93f9929507f4339b36198",
+      "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+      "/admin-ui/assets/index.css": "9277e9d19767c83b42a727c80bb17b889404f67cdcffa7e274013a8e8f24e953"
+    },
+    "active_configuration_retained": true,
+    "events_retained": 2217,
+    "ledger_retained": 589,
+    "historical_repairs_retained": 87,
+    "retired_drafts": 11,
+    "control_schema": 22,
+    "existing_administrator_store_retained": true,
+    "administrator_password_accessed": false,
+    "caddy_dns_autoreg_changed": false,
+    "provider_requests": 0,
+    "cli_readback": true,
+    "public_csp_and_assets": true
+  },
+  "production_identity_check": {
+    "entries": 37,
+    "legacy_entries": 37,
+    "residual_phase_labels": [],
+    "numeric_prefixes": [],
+    "more_accounts": false
+  },
+  "public_browser_check": {
+    "browser": "Chromium 151.0.7922.34",
+    "url": "https://cpar.142857142.xyz/admin-ui/#/unlock",
+    "login_controls_and_layout": "passed",
+    "production_administrator_password_accessed": false,
+    "authenticated_production_browser_flow": "not run",
+    "screenshot": "../../design/prism-v6-evidence/public-login.png"
+  },
+  "rollback": {
+    "revision": "6b4e9a7abad2d1df8a746d1f023fc88d69b5be6a",
+    "binary_sha256": "3c3d3d7468fa862db15886fb374f18ac467b8d75035c4c333ea21fe5280b0682",
+    "triggered": false,
+    "database_restore": false
+  }
+}

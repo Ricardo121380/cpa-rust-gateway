@@ -1,21 +1,27 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
-Last verified: 2026-08-26 (Asia/Shanghai)
+Original topology verified: 2026-08-26 (Asia/Shanghai). Latest scoped CPAR release verification on
+`new-vps`: 2026-09-11. Jakarta was not rechecked in this release.
 
 This document is a value-free connection handoff for Claude Code. It intentionally contains no
 public IP address, private-key path, password, Management Key, CSRF token, Provider credential,
 cookie, database row, request/response body, or raw remote log.
 
-## 2026-09-10: latest CPAR frontend and runtime update
+## 2026-09-11: latest CPAR frontend and runtime update
 
-Current deployed code: `6489566` (V5); previous binary: `b30d191`.
+Current deployed code: `8a1b537` (V6); previous binary and rollback point: `6b4e9a7` (V6).
 The published configuration is now selected automatically; draft/history selection is on the
-configuration page. All 14 workspaces share the new OpenDesign glass material. Existing
+configuration page. All 14 workspaces use the refined OpenDesign Pi/Kimi for Coding K3 max
+layout and shared frosted material. Production labels remove legacy phase prefixes while exact
+IDs remain in technical details and operational values. Existing
 administrator credentials, same-origin admission, loopback listeners and schema 22 remain.
-The user confirmed removal of eleven test drafts' resources, retaining audited archive records,
-historical requests and billing. No other environment was changed.
-See [V5 delivery and rollback evidence](../reports/prism-v5-refinement.md), including the corrected
-release-directory permission failure and the final verified cutover. Earlier runtime IDs below
+The prior removal of eleven test drafts' resources and their audited archive records are retained;
+this release preserves historical events, billing and the active configuration. No other
+environment was changed. Both architectures' signed builds, the exact-revision formal gate,
+independent Cosign verification, isolated ARM64 auth checks and public asset/CSP readback passed.
+See [V6 delivery and rollback evidence](../reports/prism-v6-refinement.md). V5's historical
+release-directory permission failure and repair remain in [its report](../reports/prism-v5-refinement.md).
+Earlier runtime IDs below
 are historical; they do not describe the currently running binary.
 
 ## 2026-09-10: administrator login update

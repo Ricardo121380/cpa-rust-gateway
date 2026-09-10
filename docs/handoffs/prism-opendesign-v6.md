@@ -1,6 +1,6 @@
 # Prism V6：OpenDesign K3 max 与正式前端交接
 
-本轮按用户最新要求，通过既有 OpenDesign MCP 项目，调用 **Pi → Kimi for Coding K3，max 思考强度** 生成设计，再落实到正式 React。名称修正已提交 `c839321`；V6 视觉与最终验收结果见 [交付报告](../reports/prism-v6-refinement.md)。
+本轮按用户最新要求，通过既有 OpenDesign MCP 项目，调用 **Pi → Kimi for Coding K3，max 思考强度** 生成设计，再落实到正式 React。名称修正为 `c839321`，V6 布局为 `6b4e9a7`，最终空格名称修正 `8a1b537` 已在原域名上线；完整验收与发布结果见 [交付报告](../reports/prism-v6-refinement.md)。
 
 ## 设计来源与复核
 

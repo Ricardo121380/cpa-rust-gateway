@@ -1,9 +1,10 @@
 # Prism HTTPS domain access
 
-## 当前登录方式更新（2026-09-10）
+## 当前界面与登录方式（2026-09-11）
 
-当前运行 V5 `6489566`，沿用 `b30d191` 引入的管理员账号密码登录和同一 HTTPS 域名。
-新版材质、配置入口、测试草稿清理及回滚信息见 [V5 交付报告](../reports/prism-v5-refinement.md)。
+当前运行 V6 `8a1b537`，沿用 `b30d191` 引入的管理员账号密码登录和同一 HTTPS 域名。
+OpenDesign Pi／K3 max 布局、生产资源名称、签名验收及回滚点见 [V6 交付报告](../reports/prism-v6-refinement.md)。
+本轮保留历史请求、账本、当前配置与原管理员认证库；此前 11 个测试草稿清理结果见 [V5 报告](../reports/prism-v5-refinement.md)。
 登录页不再要求手工填写 Management Key/CSRF。默认账号 `admin`，随机初始密码已通过
 私有文件交付；首次登录强制改密。见 [登录交接](prism-admin-password-login.md) 与
 [实际交付报告](../reports/prism-admin-login-delivery.md)。下文 Key/CSRF 页面说明是此前域名

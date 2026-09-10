@@ -1,6 +1,6 @@
 # Prism V6：K3 max 设计与生产资源名称
 
-**V6 主体已上线，空格形式的历史显示名修正正在发布。** 原域名为 [Prism 管理台](https://cpar.142857142.xyz/admin-ui/#/unlock)。名称修正提交为 `c839321`，首轮 V6 实现为 `6b4e9a7`。
+**V6 与最终名称修正均已上线。** 直接刷新原域名 [Prism 管理台](https://cpar.142857142.xyz/admin-ui/#/unlock)，使用原管理员账号密码登录。当前运行 `8a1b5377594919690c53d35a390a0c992aaf41d3`；名称展示、V6 布局与最后的空格名称修正分别为 `c839321`、`6b4e9a7`、`8a1b537`，均在 `codex/prism-v4-delivery` 分支。
 
 ## 本轮改变
 
@@ -60,6 +60,8 @@
 
 ## 本次验证
 
+下列完整本地验收对应 V6 主体 `6b4e9a7`；随后仅有名称格式辅助函数的修正，增量验证与最终发布证据列在下一节，不把先前的完整测试数量当作补丁重跑结果。
+
 - 前端类型检查、**262 项单测**、**128 项完整 E2E**通过。
 - `node scripts/check-management-spa.mjs` 通过：**111 个权威操作**、生成客户端无漂移、
   CSP 与四文件双构建一致。构建仍为 `index.html`、`assets/main.js`、`assets/vendor.js`、`assets/index.css`。
@@ -83,8 +85,22 @@
 
 ## 正式发布
 
-首轮 V6 `6b4e9a7` 的双架构签名构建、正式门禁和隔离 ARM64 验收通过，原服务已切换，停止到恢复健康 1239 ms。公网四个资源及 CSP、CLI 读回、schema 22、原管理员认证库、2217 个事件、589 条账本、87 条历史修复记录与 11 个测试草稿归档保留。没有访问生产密码，也没有改变 Caddy／DNS／Autoreg。
+首轮 V6 `6b4e9a7` 的双架构签名构建、正式门禁和隔离 ARM64 验收通过，原服务已切换，停止到恢复健康 1239 ms。公网四个资源及 CSP、CLI 读回、schema 22、原管理员认证库、2217 个事件、589 条账本、87 条历史未修复记录与 11 个测试草稿归档保留。没有访问生产密码，也没有改变 Caddy／DNS／Autoreg。
 
-上线后的只读命名复查发现三个人工显示名用空格分隔（如 `P12-06 official ChatGPT Codex`），还残留数字阶段号。补充规则后，37 处线上身份／名称引用全部消除 P12 与数字阶段前缀，原始 ID 未更改。相关单测与身份／详情 E2E 通过；该小修正的正式回执将在完成后补齐。
+上线后的只读命名复查发现三个人工显示名用空格分隔（如 `P12-06 official ChatGPT Codex`），还残留数字阶段号。补充规则后，37 处线上身份／名称引用的展示文字全部消除 P12 与数字阶段前缀，原始 ID 未更改。这里的 37 是引用检查次数，包含重复引用，不是独立账号数量。
+
+最终 `8a1b537` 已完成以下检查与发布：
+
+- **3 项名称单测、6 项身份／详情 E2E**，以及 111 操作权威契约、生成客户端和四文件双构建门禁通过。增量日志为 `output/prism-v6/spaced-names-{unit,e2e,spa-gate}.log`。
+- [双架构签名构建](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34504176897)与[正式门禁](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34504181369)均在该完整提交上成功，包含 Fast、Full supply-chain 和 Required delivery gate。
+- 下载 ARM64 成品后，以限定仓库工作流身份和 GitHub OIDC issuer 独立执行 Cosign，结果 `Verified OK`；随后通过 manifest、二进制、SBOM、OCI 与签名回执结构核验。
+- 在 `new-vps` 的临时合成状态中启动真实 ARM64 gateway，验证四个嵌入资源逐字节一致、首次改密、错误 Origin／密码／CSRF 拒绝、CLI 兼容、草稿写入／重读、退出撤销及重启后的密码与会话语义。没有使用生产密码或发送 Provider 请求。
+- 原 CPAR 服务切换并恢复健康耗时 **1226 ms**。运行进程的二进制 SHA-256 为 `e7f7f3abe81df0ab807efad2bbdcdccc26af9daf68b04b31eeeb0dac9cc12e22`，与签名产物一致。公网四资源摘要、CSP、匿名拒绝、CLI 读回、loopback 绑定和 `/healthz` 均通过。
+- 当前配置、schema 22、管理员认证库、切换前 **2217 个持久事件、589 条账本、87 条历史未修复记录**均保留，11 个测试草稿归档记录不变。2217 是事件数，不冒充请求数；87 条历史记录也不因本轮界面改动宣称解决。
+- 内置 Chromium 重新加载正式 HTTPS 登录页，账号／密码／登录控件与布局正常；[公网截图](../design/prism-v6-evidence/public-login.png)已归档。公网未登录进入生产管理页面；完整认证功能由本地及隔离真实网关验证。
+
+[脱敏发布回执](evidence/prism-v6-production-20260911.json)保存最终提交、签名与门禁、资源摘要、隔离检查和保留性结果。原始产物及日志位于 `output/prism-v6/names-fix/`。线上私有备份与回执目录为 `/var/backups/cpa-rust-gateway/prism-v6-names-20260911`，其访问权限保持 0700／0600。
+
+本轮回滚点是上一份 V6 二进制 `6b4e9a7abad2d1df8a746d1f023fc88d69b5be6a`，SHA-256 `3c3d3d7468fa862db15886fb374f18ac467b8d75035c4c333ea21fe5280b0682`，保留于 `/opt/cpa-rust-gateway/releases/6b4e9a7abad2d1df8a746d1f023fc88d69b5be6a`。若本轮验证失败，预设恢复仅切回二进制并重启 CPAR；本次没有触发回滚，也没有恢复数据库、覆盖管理员认证或改变 DNS／Caddy／Autoreg。历史数据备份用于恢复保障，不用于覆盖运行中的新增数据。
 
 请求趋势／延迟分析、完整英文、生产真实 Provider 自动巡检、在线备份恢复等仍按原范围留待后续。
