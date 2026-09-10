@@ -22,7 +22,8 @@ file, and mandatory password change before access to management resources.
   Unsafe session requests always require their session CSRF, including without Origin.
   Legacy origin-free CLI Management Key access stays compatible.
 - Absolute sessions last eight hours, initial password sessions ten minutes; at most 32
-  sessions. A shared server budget permits ten password verifications per minute, two
+  sessions; successful login replaces the oldest when full, so abandoned sessions after
+  refresh cannot lock out the owner. A shared server budget permits ten password verifications per minute, two
   concurrently. Forwarded IP headers are not trusted for identity or rate limiting.
 - Passwords use Argon2id v19, 19 MiB, two iterations, one lane, a fresh 16-byte salt;
   accept 12–128 Unicode characters within 512 UTF-8 bytes, without trimming/truncation.

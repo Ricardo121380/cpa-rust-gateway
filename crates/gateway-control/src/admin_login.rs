@@ -26,7 +26,7 @@ pub enum AdminLoginError {
     InvalidCredentials,
     /// Session was revoked/expired, or its CSRF does not match.
     InvalidSession,
-    /// The bounded verification/session budget is exhausted.
+    /// The bounded password-verification budget is exhausted.
     RateLimited,
     /// Password does not meet policy or is unchanged.
     InvalidPassword,
@@ -154,7 +154,16 @@ impl AdminLoginService {
         let now = Instant::now();
         state.sessions.retain(|_, session| session.expires > now);
         if state.sessions.len() >= MAX_SESSIONS {
-            return Err(AdminLoginError::RateLimited);
+            // Refresh drops browser memory, so abandoned sessions must not lock out a valid
+            // administrator for eight hours. Replace the oldest after verifying the password.
+            let oldest = state
+                .sessions
+                .iter()
+                .min_by_key(|(_, session)| session.expires)
+                .map(|(key, _)| *key);
+            if let Some(oldest) = oldest {
+                state.sessions.remove(&oldest);
+            }
         }
         state.sessions.insert(
             digest(&token),
@@ -345,10 +354,16 @@ mod tests {
                 );
             }
         }
-        assert!(matches!(
-            service.login("admin", "synthetic-passphrase"),
-            Err(AdminLoginError::RateLimited)
-        ));
+        let fresh = service.login("admin", "synthetic-passphrase")?;
+        assert!(
+            service
+                .authenticate(&fresh.session_token, None, false)
+                .is_ok()
+        );
+        assert_eq!(
+            service.state.lock().map_err(|_| "state")?.sessions.len(),
+            MAX_SESSIONS
+        );
         Ok(())
     }
     #[test]
