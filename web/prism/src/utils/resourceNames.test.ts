@@ -6,6 +6,8 @@ it("uses readable production labels for legacy phase IDs and opaque accounts", (
   expect(resourceName("p12-12-production-grok-build-upstream", "upstream")).toBe("Grok Build 上游");
   expect(resourceName("grok-" + "b".repeat(32), "account")).toBe("Grok 账号");
   expect(resourceName("p12-chatgpt-go-test-1786163922", "config")).toBe("ChatGPT Go 配置");
+  expect(resourceName("p12-06-codex-upstream", "upstream", "P12-06 official ChatGPT Codex")).toBe("官方 ChatGPT Codex 上游");
+  expect(resourceName("p12-06-codex-group", "group", "P12-06 official Codex bridge staging")).toBe("官方 Codex 桥接 访问组");
 });
 it("preserves custom labels and exact protocol model names", () => {
   expect(resourceName("p12-12-production-route", "route", "家庭工作区")).toBe("家庭工作区");

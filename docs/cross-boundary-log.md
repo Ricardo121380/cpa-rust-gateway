@@ -1881,3 +1881,18 @@ provider invocation, stable resource ID or historical-data mutation. 262 unit te
 flow. A premature tab-test fill was corrected with a committed-tab assertion; prototype table
 string/array handling was corrected through MCP. Report records failures and final passes separately.
 Signed release and production handoff are recorded only after actual verification.
+
+
+## 2026-09-11 — Codex — spaced legacy display names found in live readback
+
+**What:** `web/prism/src/utils/{resourceNames.ts,resourceNames.test.ts}` and the V6 report.
+
+**Why:** Read-only production identity metadata exposed three legacy human names such as
+`P12-06 official ChatGPT Codex`: their space separator left a leading `06`. The formatter now
+recognizes whitespace after the phase number and between legacy words, including staging
+scaffolding. Business names without a legacy prefix and all operational IDs remain unchanged.
+
+**Other side:** FYI. Regression cases cover actual observed name formats. All 37 identity/name
+references from the read-only inventory now have no residual P12 or numeric phase prefix; the
+account inventory has no further cursor. Naming unit tests and resource-identity/inspector E2E
+passed. This is a display-only follow-up to deployed V6 6b4e9a7; no production data was renamed.

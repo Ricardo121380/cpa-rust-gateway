@@ -28,11 +28,11 @@ export function resourceName(id: string, kind: ResourceKind = "resource", name?:
   const source = name?.trim() || id;
   if (!isInternalLabel(source)) return source;
   const readable = source
-    .replace(/^p\d{1,2}[-_]\d+[a-z\d]*[-_]/iu, "")
+    .replace(/^p\d{1,2}[-_]\d+[a-z\d]*[-_\s]+/iu, "")
     .replace(/^p\d{1,2}[-_]/iu, "")
     .replace(/(?:^|[-_])[a-f0-9]{24,}$/iu, "")
-    .split(/[-_]+/u)
-    .filter((part) => !/^(production|existing|test|preview|credential|credentials|upstream|endpoint|route|candidate|egress|policy|group|key|config|version|\d{10,13})$/iu.test(part))
+    .split(/[\s_-]+/u)
+    .filter((part) => !/^(production|existing|test|preview|staging|credential|credentials|upstream|endpoint|route|candidate|egress|policy|group|key|config|version|\d{10,13})$/iu.test(part))
     .map((part) => words[part.toLowerCase()] ?? part)
     .join(" ").trim();
   return `${readable}${readable ? " " : ""}${nouns[kind]}`;
