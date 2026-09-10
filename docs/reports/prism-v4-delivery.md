@@ -2,10 +2,9 @@
 
 日期：2026-09-10。正式仓库 `cpa-rust-gateway`，分支 `codex/prism-v4-delivery`。
 
-**更正（2026-09-10用户操作验收）：尚不能判定全部完成。**
-后续实际操作发现运行矩阵返回占位空数组、失败到诊断深链缺失，属于原V4范围的未完成项。
-预览脚本提前保持运行导致运营数据为空的问题已修复。详见 [实际操作验收](prism-v4-user-acceptance.md)。
-下述已通过门禁/链路证据保留，但不覆盖这两项功能缺口。
+**最新状态：用户操作验收发现的运行矩阵与失败深链缺口已补齐并真实复验。**
+此前“全部完成”结论曾过早；原始问题、预览修复和此次10阶段验收详见
+[实际操作验收](prism-v4-user-acceptance.md)。下面历史门禁证据保留，此次新增结果以该报告为准。
 
 ## 交付范围与设计
 
@@ -111,10 +110,10 @@ full模式额外的在线依赖审计。前端type-check及build由SPA门禁执�
 
 ## 本地查看与重现
 
-当前预览：`http://127.0.0.1:57444/admin-ui/#/`。这是本次真实gateway，Provider仅为loopback mock。
+当前预览：`http://127.0.0.1:61488/admin-ui/#/`。这是本次真实gateway，Provider仅为loopback mock。
 新预览以独立后台进程保持；旧终端预览已停止。解锁采用临时合成凭据：
 
-`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-ogdd9sjg/credentials/`
+`/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-lxo7erq0/credentials/`
 
 在本机分别将 `management-key` 与 `management-csrf` 文件内容粘贴进对应输入，不需要真实生产凭据。
 可用 `pbcopy < 文件完整路径`，避免在终端打印。秘密不写入报告、URL、截图或浏览器持久存储。

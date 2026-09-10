@@ -301,6 +301,9 @@ def main():
                 time.sleep(.05)
         assert status == 200 and any(model['id'] == 'local-exact-model' for model in effective['items'])
         checks.append('restart serves published effective model under existing group ID')
+        _, _, availability = request('/admin/runtime/availability', scope=scope)
+        assert availability == [{'endpoint_id': 'local-endpoint', 'credential_id': 'local-credential', 'availability': 'available'}], 'runtime matrix must contain the active serving binding only'
+        checks.append('runtime matrix enumerates the active serving binding without inactive configuration rows')
         if args.catalog_expiry:
             evidence = effective['items'][0]['sources'][0]['catalog_evidence']
             assert evidence and evidence[0]['expires_at_ms'] == expiry

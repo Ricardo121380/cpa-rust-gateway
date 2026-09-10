@@ -1,7 +1,7 @@
 // Runtime (docs/07 §7.5) — three projections and one action, all against real
 // contract operations:
 //
-//   getRuntimeAvailability  GET  /admin/runtime/availability     → six-state matrix
+//   getRuntimeAvailability  GET  /admin/runtime/availability     → live binding matrix
 //   getCatalogStatus        GET  /admin/catalog/status           → freshness lifecycle
 //   requestQuotaRecovery    POST /admin/runtime/quota/reset      → tri-state, inline
 //   explainRoute            GET  /admin/routes/{id}/explain      → candidate decisions
@@ -234,7 +234,7 @@ function AvailabilityLegend() {
           </span>
         </dt>
         <dd className="mono rt-legend-enum">—</dd>
-        <dd className="rt-legend-detail">该 endpoint × credential 组合未出现在投影中(未绑定)</dd>
+        <dd className="rt-legend-detail">该组合未出现在运行凭据池投影中</dd>
       </div>
     </dl>
   );
@@ -258,7 +258,7 @@ function AvailabilityMatrixCard({
       <CardHead
         title="可用性矩阵 · endpoint × credential"
         operation="getRuntimeAvailability"
-        help="调度器对每个绑定组合的实时判定,六态闭集。颜色、形状与文字三重编码;单元格悬停显示枚举原值。"
+        help="实际装配凭据池的绑定级健康、配额与凭据有效期。模型授权、模型级限制和并发不由此矩阵代表。"
         aside={
           <label className="rt-toggle">
             <input
@@ -281,7 +281,7 @@ function AvailabilityMatrixCard({
           <StateBlock
             kind="empty"
             text={t.state.empty}
-            detail="投影已启用,但这个配置版本下没有任何 endpoint × credential 绑定。"
+            detail="此范围没有已装配的运行绑定；已停用配置不进入运行凭据池。"
           />
         )
       ) : (
@@ -314,7 +314,7 @@ function AvailabilityMatrixCard({
                             <span
                               className="rt-chip"
                               data-state="none"
-                              title="该组合未出现在可用性投影中(未绑定)"
+                              title="该组合未出现在运行凭据池投影中"
                             >
                               <span className="rt-glyph" aria-hidden="true">
                                 ·
@@ -1496,7 +1496,7 @@ function ChannelPinCard({ scope }: Readonly<{ scope: string }>) {
 }
 
 export function RuntimePage() {
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const [resourcesOpen, setResourcesOpen] = useState(params.has("account_id"));
   const t = useMessages();
   const queryClient = useQueryClient();
@@ -1548,13 +1548,25 @@ export function RuntimePage() {
     );
   }
 
-  const rows = availability.data ?? [];
+  const targetEndpoint = params.get("endpoint_id");
+  const targetCredential = params.get("credential_id");
+  const rows = (availability.data ?? []).filter((row) =>
+    (targetEndpoint === null || row.endpoint_id === targetEndpoint) &&
+    (targetCredential === null || row.credential_id === targetCredential));
   const availabilityUnavailable = isProjectionUnavailable(availability.error);
   const catalogUnavailable = isProjectionUnavailable(catalog.error);
   const counts = countByState(rows);
 
   return (
     <section className="runtime-page">
+      {targetEndpoint !== null || targetCredential !== null ? (
+        <section className="card data-panel--padded rt-target" aria-label="当前诊断对象">
+          <h3>当前诊断对象</h3>
+          <p>Endpoint：{targetEndpoint ?? "未指定"} · Credential：{targetCredential ?? "未指定"}</p>
+          <p>矩阵与恢复操作已限定此对象。历史失败不保证它仍在当前服务版本中；Explain 请填写要检查的路由与请求模型。</p>
+          <button className="secondary" onClick={() => { const next = new URLSearchParams(params); next.delete("endpoint_id"); next.delete("credential_id"); next.delete("account_id"); setParams(next); }}>查看全部绑定</button>
+        </section>
+      ) : null}
       <header className="page-head">
         <h2>{t.nav.runtime}</h2>
         <div className="page-actions rt-poll">

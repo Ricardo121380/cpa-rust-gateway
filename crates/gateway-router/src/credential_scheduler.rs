@@ -106,6 +106,14 @@ impl RouteCredentialScheduler {
         self.candidates.load_full().snapshot_arc()
     }
 
+    /// Observes the exact serving credential pools without allocating leases or exposing secrets.
+    pub fn diagnostic_bindings(
+        &self,
+    ) -> impl Iterator<Item = (EndpointId, gateway_upstream::CredentialPoolEntrySnapshot)> + '_
+    {
+        self.credential_pools.diagnostic_bindings()
+    }
+
     fn candidates_for_snapshot(
         &self,
         expected_snapshot: Option<&Arc<RouteSnapshot>>,

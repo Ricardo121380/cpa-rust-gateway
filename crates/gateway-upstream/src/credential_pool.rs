@@ -584,6 +584,17 @@ impl EndpointCredentialPools {
         Ok(Self { pools: indexed })
     }
 
+    /// Iterates secret-free live binding observations without leasing or moving cursors.
+    pub fn diagnostic_bindings(
+        &self,
+    ) -> impl Iterator<Item = (EndpointId, CredentialPoolEntrySnapshot)> + '_ {
+        self.pools.iter().flat_map(|(endpoint, pool)| {
+            pool.credentials
+                .iter()
+                .map(move |credential| (endpoint.clone(), credential.snapshot()))
+        })
+    }
+
     /// Merges two independently compiled pool sets without replacing an Endpoint identity.
     ///
     /// Native provider account pools and ordinary control-plane Credential pools are compiled by

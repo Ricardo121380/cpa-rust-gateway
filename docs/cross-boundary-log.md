@@ -1697,3 +1697,25 @@ frontend type checking passed. Full-stack authorization remains in effect; FYI o
 diff/confirmation, mobile and fallback implementation, actual browser coverage and the
 final delivery report. Documentation only; no generic ownership rule changed. Full-stack
 authorization applies, FYI. Validate links and diff; application checks already passed.
+
+## 2026-09-10 — Codex — UAT runtime matrix and failure diagnosis fixes
+
+**Files:** `web/prism/contracts/management-v1.json` (sync-contract),
+`web/prism/src/features/runtime/RuntimePage.tsx`, `model.ts`, `model.test.ts`, `runtime.css`,
+`web/prism/src/features/monitoring/MonitoringPage.tsx`,
+`web/prism/e2e/monitoring.spec.ts`, `web/prism/e2e/real-gateway-flow.mjs`.
+
+**What / why:** Connect the matrix to the serving scheduler's live, secret-free binding
+observations. Authority adds credential_unauthorized/expired instead of reporting these as
+available. Add failure request inspection and exact binding links; focus the matrix and
+recovery controls without guessing missing route/model fields. Replace the request inspector's
+implementation jargon with a data-scope explanation. Reuse V4 solid cards, existing inspector
+and Explain; no new design generator, service or secret storage.
+
+**Other side:** User explicitly authorized completing UAT-01/02. FYI, no handoff dependency.
+127 gateway binary tests, 5 HTTP runtime tests, 44 model/i18n tests, 9 monitoring E2E plus
+2 account-action E2E passed. Real gateway browser flow now has 10 stages, including live
+cooldown/expiry, failure→attempt→target→Explain→back, mobile target layout, and the existing
+write/audit/rollback/session paths. SPA authority/CSP/four-file double build and Clippy passed.
+Early E2E found a misplaced nested button, obsolete copy assertion and a missing URL-settle
+wait; fixed and rerun rather than counting those failed runs as acceptance.

@@ -15,7 +15,7 @@ import { ProcessingStatus } from "../billing/ProcessingStatus";
 //   * They disagree on scope: failures are version-scoped, the ledger is not.
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { Sheet } from "../../components/Sheet";
@@ -117,6 +117,10 @@ function FilterForm({
   );
 }
 
+function diagnosticTarget(endpoint: string, credential: string): string {
+  return `/runtime?${new URLSearchParams({ endpoint_id: endpoint, credential_id: credential, account_id: credential })}`;
+}
+
 /** The per-request attempt trail. A bare array by contract — no cursor, no
  *  paging, no time filter — and not version-scoped. */
 function AttemptsSheet({
@@ -133,9 +137,7 @@ function AttemptsSheet({
   return (
     <Sheet title={`请求 ${requestId} 的尝试`} layout="inspector" onEscape={onClose}>
       <p className="stat-sub">
-        <span className="mono">listRequestAttempts</span> 返回一个<strong>裸数组</strong> ——
-        没有游标、没有时间过滤,也不带配置版本。<span className="mono">outcome</span>{" "}
-        在契约里是自由字符串而非闭集,所以此处原样显示。
+        此请求的上游尝试记录，跨配置版本读取。执行结果保留上游原始标识；未观测的阶段或对象显示为“—”。
       </p>
       {attempts.isError ? (
         <p role="alert" className="action-error">
@@ -167,7 +169,9 @@ function AttemptsSheet({
                     : stageLabel(attempt.stage)}
                 </td>
                 <td className="mono">{attempt.endpoint_id ?? "—"}</td>
-                <td className="mono">{attempt.credential_id ?? "—"}</td>
+                <td className="mono">{attempt.credential_id ?? "—"}
+                  {attempt.endpoint_id && attempt.credential_id ? <div><Link to={diagnosticTarget(attempt.endpoint_id, attempt.credential_id)}>诊断此绑定</Link></div> : null}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -386,6 +390,7 @@ function FailurePanel({
   const context = useVersionStore((s) => s.context);
   const scope = context?.configVersionId;
 
+  const [drill, setDrill] = useState<string>();
   const failures = useInfiniteQuery({
     // IS version-scoped, unlike the ledger next door.
     queryKey: ["failures", scope, JSON.stringify(filters)],
@@ -442,6 +447,7 @@ function FailurePanel({
 
   return (
     <>
+      {drill === undefined ? null : <AttemptsSheet requestId={drill} onClose={() => setDrill(undefined)} />}
       <FilterForm keys={FAILURE_FILTER_KEYS} values={filters} onApply={onApply} onClear={onClear} />
 
       <div className="card mon-summary">
@@ -507,12 +513,13 @@ function FailurePanel({
                   <tr key={row.attempt_id}>
                     <td className="mono">{formatTime(row.ended_at_ms)}</td>
                     <td className="mono mon-triple">
-                      {row.request_id}
+                      <button type="button" className="linklike mono" onClick={() => setDrill(row.request_id)}>{row.request_id}</button>
                       <br />
                       {row.attempt_id}
                     </td>
                     <td className="mono mon-triple">
                       {row.provider_id} / {row.channel_id} / {row.account_id}
+                      <div><Link to={diagnosticTarget(row.channel_id, row.account_id)}>诊断此绑定</Link></div>
                     </td>
                     <td>
                       <span className="mono">{row.error_code}</span>

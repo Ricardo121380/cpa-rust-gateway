@@ -84,8 +84,10 @@ describe("availabilityMeta", () => {
       "quota_blocked",
       "credential_forbidden",
       "recovery_required",
+      "credential_unauthorized",
+      "expired",
     ].map((state) => availabilityMeta(state).glyph);
-    expect(new Set(glyphs).size).toBe(6);
+    expect(new Set(glyphs).size).toBe(8);
   });
 
   it("reports an unknown member as itself instead of coercing it", () => {

@@ -142,3 +142,19 @@ publishConfigVersion / rollbackConfigVersion 增加可选 X-Expected-Active-Vers
 混用或revision变化409，版本不存在404，参数非法400。独立文件只读连接在现有四并发blocking
 限额中执行，不持有管理mutation连接；测试用纯内存仓库没有独立文件reader，返回不可用。
 权威已同步，正式前端差异面板仍待接入。
+
+## UAT-01/02 运行矩阵与失败定位补齐（2026-09-10）
+
+`getRuntimeAvailability` 保留同一路径、版本scope、无秘密数组与256行上限；实际数据改为
+scheduler所用凭据池的实时诊断条目，读取Health/Quota注册表，不获取租约或调用Provider。
+只列已装配绑定；不把已停用配置写成可调度对象。绑定级信号不替代模型授权、模型级
+限制及并发判断。账号持续限制优先于瞬时冷却；配额重置后仍显示recovery_required。
+
+既有enum新增 `credential_unauthorized` 和 `expired`，分别表示明确重授权证据和当前
+凭据材料到期，避免将其伪装为available或配额恢复。过期时间读取可被续期原子替换的live
+pool材料。参数时间非法拒绝；版本不匹配/超过256行返回不可用，不截断。
+权威已定稿，执行sync-contract；既有fixture旧六态仍合法，新增两态由模型回归验证。
+
+失败响应无route/request-model字段，前端不猜测：可打开请求attempt；通过真实channel/account
+进入精确endpoint/credential定位；已有Explain保留明确用户输入并调用真实后端。返回保留
+筛选。历史绑定不存在时明确无运行投影，不伪造当前对象。

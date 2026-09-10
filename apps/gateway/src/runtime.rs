@@ -7454,9 +7454,88 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
     fn runtime_availability(
         &mut self,
         config_version_id: &gateway_store::control_plane::ConfigVersionId,
-        _observed_at_ms: i64,
+        observed_at_ms: i64,
     ) -> Result<Vec<ManagementRuntimeAvailabilityStatus>, ManagementRuntimeError> {
-        self.snapshot_for(config_version_id).map(|_| Vec::new())
+        use gateway_http_actix::management_resources::ManagementRuntimeAvailability as State;
+        use gateway_router::{RuntimeHealthAvailability as Health, RuntimeHealthKey};
+        if observed_at_ms < 0 {
+            return Err(ManagementRuntimeError::InvalidInput);
+        }
+        self.snapshot_for(config_version_id)?;
+        let Some(scheduler) = self.route_explain_scheduler.as_ref() else {
+            return Ok(Vec::new());
+        };
+        let mut rows = Vec::new();
+        // Match the HTTP projection bound; never return a silently truncated matrix.
+        for (endpoint, credential) in scheduler.diagnostic_bindings().take(257) {
+            if rows.len() == 256 {
+                return Err(ManagementRuntimeError::Unavailable);
+            }
+            let id = credential.credential_id();
+            let mut states = Vec::with_capacity(4);
+            if credential
+                .expires_at_ms()
+                .is_some_and(|expiry| expiry <= observed_at_ms)
+            {
+                states.push(State::Expired);
+            }
+            for key in [
+                RuntimeHealthKey::endpoint(endpoint.clone()),
+                RuntimeHealthKey::endpoint_credential(endpoint.clone(), id.clone()),
+            ] {
+                states.push(
+                    match self
+                        .runtime_health
+                        .availability_at(&key, observed_at_ms)
+                        .map_err(|_| ManagementRuntimeError::Unavailable)?
+                    {
+                        Health::Available => State::Available,
+                        Health::CoolingDown { .. } => State::Cooldown,
+                        Health::CircuitOpen { .. } => State::CircuitOpen,
+                        Health::AccountForbidden => State::CredentialForbidden,
+                        Health::CredentialUnauthorized => State::CredentialUnauthorized,
+                        Health::AccountRecoveryInFlight { .. } => State::RecoveryRequired,
+                    },
+                );
+            }
+            states.push(
+                match self
+                    .runtime_quota
+                    .availability_at(
+                        &RuntimeQuotaTarget::endpoint_credential(endpoint.clone(), id.clone()),
+                        observed_at_ms,
+                    )
+                    .map_err(|_| ManagementRuntimeError::Unavailable)?
+                {
+                    RuntimeQuotaAvailability::Available => State::Available,
+                    RuntimeQuotaAvailability::Exhausted { .. } => State::QuotaBlocked,
+                    RuntimeQuotaAvailability::RecoveryRequired { .. }
+                    | RuntimeQuotaAvailability::RecoveryProbeInFlight { .. } => {
+                        State::RecoveryRequired
+                    }
+                },
+            );
+            // Stronger persistent account restrictions win over transient endpoint signals.
+            let availability = states
+                .into_iter()
+                .max_by_key(|state| match state {
+                    State::Expired => 7,
+                    State::CredentialUnauthorized => 6,
+                    State::CredentialForbidden => 5,
+                    State::RecoveryRequired => 4,
+                    State::QuotaBlocked => 3,
+                    State::CircuitOpen => 2,
+                    State::Cooldown => 1,
+                    State::Available => 0,
+                })
+                .unwrap_or(State::Available);
+            rows.push(ManagementRuntimeAvailabilityStatus::new(
+                endpoint,
+                id.clone(),
+                availability,
+            ));
+        }
+        Ok(rows)
     }
 
     fn request_quota_recovery(
@@ -12699,6 +12778,95 @@ mod tests {
             catalog_store: SqliteCatalogSnapshotStore::open_in_memory()?,
         };
         Ok((facade, clock, runtime_health, runtime_quota, version))
+    }
+
+    #[test]
+    fn management_availability_observes_live_bindings_without_leases() -> Result<(), Box<dyn Error>>
+    {
+        use gateway_http_actix::management_resources::ManagementRuntimeAvailability as State;
+        use gateway_router::RuntimeHealthKey;
+        let (mut facade, _, health, quota, version) = management_facade_fixture(1_000)?;
+        let endpoint = EndpointId::try_new("availability-endpoint")?;
+        let credential = CredentialId::try_new("availability-credential")?;
+        let pool = EndpointCredentialPool::try_new(
+            endpoint.clone(),
+            [EndpointCredentialInput {
+                credential_id: credential.clone(),
+                credential_kind: "bearer".to_owned(),
+                credential_revision: 1,
+                priority: 0,
+                weight: 1,
+                concurrency: 1,
+                expires_at_ms: Some(10_000),
+                secret: CredentialSecret::try_new(b"synthetic".to_vec())?,
+            }],
+        )?;
+        let pools = Arc::new(EndpointCredentialPools::try_new([pool])?);
+        facade.route_explain_scheduler = Some(Arc::new(RouteCredentialScheduler::new(
+            facade.registry.load(),
+            Arc::clone(&pools),
+        )));
+        let read = |facade: &mut SnapshotManagementRuntimeFacade, at| {
+            facade
+                .runtime_availability(&version, at)
+                .map_err(|_| std::io::Error::other("availability failed"))
+        };
+        let rows = read(&mut facade, 1_000)?;
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].endpoint_id(), &endpoint);
+        assert_eq!(rows[0].credential_id(), &credential);
+        assert_eq!(rows[0].availability(), State::Available);
+        let endpoint_key = RuntimeHealthKey::endpoint(endpoint.clone());
+        health.cool_down_until(endpoint_key.clone(), 2_000)?;
+        assert_eq!(read(&mut facade, 1_000)?[0].availability(), State::Cooldown);
+        assert_eq!(
+            read(&mut facade, 2_000)?[0].availability(),
+            State::Available
+        );
+        health.open_circuit_until(endpoint_key.clone(), 2_000)?;
+        assert_eq!(
+            read(&mut facade, 1_000)?[0].availability(),
+            State::CircuitOpen
+        );
+        health.mark_healthy(&endpoint_key)?;
+        quota.record_rate_limited(
+            RuntimeQuotaTarget::endpoint_credential(endpoint.clone(), credential.clone()),
+            1_000,
+            None,
+            Duration::from_secs(1),
+        )?;
+        assert_eq!(
+            read(&mut facade, 1_000)?[0].availability(),
+            State::QuotaBlocked
+        );
+        assert_eq!(
+            read(&mut facade, 2_000)?[0].availability(),
+            State::RecoveryRequired
+        );
+        health.mark_credential_forbidden(endpoint.clone(), credential.clone())?;
+        assert_eq!(
+            read(&mut facade, 1_000)?[0].availability(),
+            State::CredentialForbidden
+        );
+        health.mark_credential_unauthorized(endpoint.clone(), credential.clone())?;
+        assert_eq!(
+            read(&mut facade, 1_000)?[0].availability(),
+            State::CredentialUnauthorized
+        );
+        assert_eq!(read(&mut facade, 10_000)?[0].availability(), State::Expired);
+        assert_eq!(
+            pools
+                .pool(&endpoint)
+                .and_then(|pool| pool.active_lease_count(&credential)),
+            Some(0)
+        );
+        assert!(
+            facade
+                .runtime_availability(&ConfigVersionId::try_new("other-version")?, 1_000)
+                .is_err()
+        );
+        assert!(facade.runtime_availability(&version, -1).is_err());
+        Ok(())
     }
 
     #[test]

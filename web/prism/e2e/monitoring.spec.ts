@@ -68,7 +68,7 @@ test("a ledger row drills into its attempt trail", async ({ page }) => {
   await page.locator(".mon-table tbody .linklike").first().click();
 
   const sheet = page.getByRole("dialog");
-  await expect(sheet).toContainText("裸数组");
+  await expect(sheet).toContainText("跨配置版本读取");
   // `outcome` is a free string in the contract, so it is shown verbatim rather
   // than mapped into a closed vocabulary the backend never promised.
   await expect(sheet).toContainText("provider_rate_limited");
@@ -137,4 +137,29 @@ test("the ledger exports parseable JSONL that the production CSP does not block"
   expect(header["partial"]).toBe(false);
   // Value-free: no body ever reaches the file, because none exists upstream.
   expect(text).not.toMatch(/"(body|request_body|prompt|messages|content)"/u);
+});
+
+test("a failure opens request attempts and its exact diagnostic target, preserving filters", async ({ page }) => {
+  await unlock(page);
+  await selectDraft(page);
+  await navigate(page, "请求与失败");
+  await page.getByRole("tab", { name: "失败归因" }).click();
+  await page.getByRole("textbox", { name: "账号", exact: true }).fill("acct-0");
+  await page.getByRole("button", { name: "应用筛选", exact: true }).click();
+  await expect(page).toHaveURL(/account_id=acct-0/u);
+  const source = page.url();
+  const row = page.locator(".mon-table tbody tr").first();
+  await row.getByRole("button").click();
+  await expect(page.getByRole("dialog")).toContainText("上游尝试记录");
+  await page.keyboard.press("Escape");
+  await expect(row.getByRole("button")).toBeFocused();
+  const link = row.getByRole("link", { name: "诊断此绑定" });
+  const href = await link.getAttribute("href");
+  await link.click();
+  await expect(page).toHaveURL(/credential_id=acct-0/u);
+  await expect(page.getByRole("region", { name: "当前诊断对象" })).toContainText("acct-0");
+  expect(href).toContain("endpoint_id=ch-relay-responses");
+  await page.goBack();
+  await expect(page).toHaveURL(source);
+  await expect(page.getByRole("textbox", { name: "账号", exact: true })).toHaveValue("acct-0");
 });

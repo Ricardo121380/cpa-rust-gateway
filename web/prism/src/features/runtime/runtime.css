@@ -548,10 +548,12 @@
 .runtime-page .rt-chip[data-state="reauth_required"] .rt-glyph {
   color: var(--status-warn);
 }
+.runtime-page .rt-chip[data-state="credential_unauthorized"],
 .runtime-page .rt-chip[data-state="unauthorized"] {
   background: color-mix(in srgb, var(--status-critical) 13%, var(--surface));
   border-color: color-mix(in srgb, var(--status-critical) 34%, transparent);
 }
+.runtime-page .rt-chip[data-state="credential_unauthorized"] .rt-glyph,
 .runtime-page .rt-chip[data-state="unauthorized"] .rt-glyph {
   color: var(--status-critical);
 }
@@ -671,3 +673,6 @@
   font-size: 12px;
   color: var(--ink-2);
 }
+
+/* Exact target identifiers remain readable on narrow screens. */
+.runtime-page .rt-target p { overflow-wrap: anywhere; }

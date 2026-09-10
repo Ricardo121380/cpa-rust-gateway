@@ -672,3 +672,11 @@ binding及endpoint不占活动并发预算；禁用兼容出口条目保留且�
 另修正本任务preview脚本重复块提前阻止生成请求/账本的问题；修复后priced+inactive+preview
 完成全断言并保持运行，catalog-expiry分支回归也通过。旧preview的无实际evidence声明撤回，
 新的实际证据为prism-v4-acceptance-ogdd9sjg。没有修改生产状态或调用真实Provider。
+
+## UAT-01/02 补齐复验
+
+运行矩阵已改为真实serving池+Health/Quota投影，加入expired/credential_unauthorized；
+失败记录现在可查看attempt并定位精确绑定，矩阵/恢复限定目标，Explain不猜缺失身份。
+请求详情文案同步收敛。127 gateway、5 HTTP、44前端模型、9 monitoring及2 account E2E通过。
+真实浏览器10阶段与非活动配置矩阵专项通过，手机截图已人工核对；详见user-acceptance报告
+末尾及c6fj092a/32rrftge实际证据。原始验收缺口保留历史事实，本批不掩盖早期误判。

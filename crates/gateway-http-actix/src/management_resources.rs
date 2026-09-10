@@ -658,6 +658,10 @@ impl ManagementCatalogStatus {
 /// Safe scheduling availability for one exact Endpoint/Credential binding.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ManagementRuntimeAvailability {
+    /// The live credential material has expired.
+    Expired,
+    /// The provider requires reauthorization of the credential.
+    CredentialUnauthorized,
     /// The binding is currently eligible for ordinary scheduling.
     Available,
     /// A transient Health cooldown blocks the binding.
@@ -8028,6 +8032,8 @@ const fn catalog_failure_class_response(value: ManagementCatalogFailureClass) ->
 
 fn runtime_availability_category(value: ManagementRuntimeAvailability) -> &'static str {
     match value {
+        ManagementRuntimeAvailability::Expired => "expired",
+        ManagementRuntimeAvailability::CredentialUnauthorized => "credential_unauthorized",
         ManagementRuntimeAvailability::Available => "available",
         ManagementRuntimeAvailability::Cooldown => "cooldown",
         ManagementRuntimeAvailability::CircuitOpen => "circuit_open",
