@@ -1,3 +1,4 @@
+import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { ProcessingStatus } from "../billing/ProcessingStatus";
 // 用量分析 — GET /admin/operations/usage (P13-04B).
 //
@@ -325,7 +326,7 @@ export function UsagePage() {
                   {groups.map((group) => (
                     <tr key={group.key}>
                       <th scope="row" className="mono usage-key">
-                        {group.key}
+                        {dimension === "public_model" || dimension === "protocol" ? group.key : <ResourceIdentity id={group.key} kind={dimension === "account_id" ? "account" : dimension === "channel_id" ? "endpoint" : dimension === "provider_id" ? "upstream" : dimension === "access_group_id" ? "group" : "resource"} />}
                         <ShareBar share={shareOf(group.request_count, totalRequests)} />
                       </th>
                       <td className="mono usage-num">{formatCount(group.request_count)}</td>

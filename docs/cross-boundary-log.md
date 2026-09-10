@@ -1824,3 +1824,31 @@ and no extra capabilities. Second cutover passed, stop-to-ready 1227 ms. No data
 attempt and documents binary-only rollback to b30d191. Caddy, origin settings, DNS and other
 services were not changed. Public browser verification is the login page; full authenticated
 14-page and write-flow acceptance used the real local gateway and synthetic Provider.
+
+
+## 2026-09-10 — Codex — readable production resource identities
+
+**What:** `web/prism/src/utils/{resourceNames.ts,resourceNames.test.ts}`,
+`src/components/{ResourceIdentity.tsx,resource-identity.css}`, `src/app/DraftDock.tsx`,
+`src/features/accounts/AccountsPage.tsx`, `upstreams/{UpstreamsPage,SubresourcePanel,CredentialSheet}.tsx`,
+`catalog/{CatalogPage,EffectiveModels}.tsx`, `models/{RouteWorkbench,RoutingInventory}.tsx`,
+`access/AccessPage.tsx`, `egress/{EgressPage,CompatibleProxyPanel}.tsx`, `runtime/RuntimePage.tsx`,
+`monitoring/MonitoringPage.tsx`, `billing/BillingPage.tsx`, `usage/UsagePage.tsx`,
+`config-versions/{VersionsPage,ConfigurationDiff}.tsx`, `audit/{AuditBackupPage,ResourceAudit}.tsx`,
+`overview/OverviewPage.tsx`, `web/prism/e2e/{resource-names,compatible-proxy}.spec.ts` and `DESIGN.md`.
+Feature paths above are relative to `web/prism/src/features/`.
+
+**Why:** The user rejected P12/test-era IDs and opaque account hashes as the main production
+labels. Shared presentation preserves business names, removes historical naming scaffolding and
+adds a stable short discriminator. Full IDs stay in technical details/copy and operational values.
+Repeated credentials with different bindings remain distinct rows. No database, configuration,
+secret, historical event, ledger or canonical model ID is rewritten.
+
+**Other side:** FYI under continuing full-stack authorization. Authoritative sync/check unchanged;
+TypeScript and three naming unit tests passed. The 39 focused E2E cases cover account actions,
+inspectors, config diff, billing, pools, usage, proxy and effective-model flows. After completing
+selector and proxy labels, 16 related cases passed; the case-sensitive ID check was updated to
+assert the actual ID child beside its business name and passed on rerun. New E2E verifies that
+readable legacy names still copy and send exact original account/provider/channel IDs.
+The separately requested OpenDesign Pi/Kimi Coding K3 max design is in progress, not represented
+as shipped by this presentation-only batch. No production change in this commit.

@@ -1,3 +1,4 @@
+import { ResourceIdentity } from "../../components/ResourceIdentity";
 // Runtime (docs/07 §7.5) — three projections and one action, all against real
 // contract operations:
 //
@@ -96,7 +97,7 @@ function CredentialButton({ id }: Readonly<{ id: string }>) {
   return (
     <>
       <button type="button" className="idbtn mono" onClick={() => setOpen(true)}>
-        {id}
+        <ResourceIdentity id={id} kind="account" />
       </button>
       {open ? <CredentialSheet credentialId={id} onClose={() => setOpen(false)} /> : null}
     </>
@@ -304,7 +305,7 @@ function AvailabilityMatrixCard({
                 {matrix.endpoints.map((endpoint) => (
                   <tr key={endpoint}>
                     <th scope="row" className="mono rt-rowhead">
-                      {endpoint}
+                      <ResourceIdentity id={endpoint} kind="endpoint" />
                     </th>
                     {matrix.credentials.map((credential) => {
                       const cell = matrix.cells.get(cellKey(endpoint, credential));
@@ -433,8 +434,8 @@ function RecoveryCard({
               const outcome = outcomes[key];
               return (
                 <tr key={key}>
-                  <td className="mono">{row.endpoint_id}</td>
-                  <td className="mono">{row.credential_id}</td>
+                  <td><ResourceIdentity id={row.endpoint_id} kind="endpoint" /></td>
+                  <td><ResourceIdentity id={row.credential_id} kind="account" /></td>
                   <td>
                     <StateChip
                       meta={availabilityMeta(row.availability)}
@@ -538,7 +539,7 @@ function CatalogCard({
               const stage = ageStage(row.observed_at_ms, nowMs);
               return (
                 <tr key={`${row.endpoint_id} ${row.credential_id}`}>
-                  <td className="mono">{row.endpoint_id}</td>
+                  <td><ResourceIdentity id={row.endpoint_id} kind="endpoint" /></td>
                   <td className="mono">
                     <CredentialButton id={row.credential_id} />
                   </td>
@@ -584,7 +585,7 @@ function RouteExplainResult({ explain }: Readonly<{ explain: RouteExplain }>) {
   return (
     <>
       <p className="rt-explain-summary">
-        <span className="mono">{explain.route_id}</span> · 选中 {counts.selected} / 排除{" "}
+        <span><ResourceIdentity id={explain.route_id} kind="route" /></span> · 选中 {counts.selected} / 排除{" "}
         {counts.excluded}
         {counts.other > 0 ? ` / 其他 ${counts.other}` : ""}
       </p>
@@ -599,7 +600,7 @@ function RouteExplainResult({ explain }: Readonly<{ explain: RouteExplain }>) {
         ) : (
           <>
             价格证据绑定目录{" "}
-            <span className="mono">{explain.price_policy.catalog_version_id}</span>,比较方式{" "}
+            <span><ResourceIdentity id={explain.price_policy.catalog_version_id} kind="catalog" /></span>,比较方式{" "}
             <span className="mono">{explain.price_policy.comparison}</span>。
             比较的是<strong>费率</strong>,不是本次请求的花费。
           </>
@@ -624,7 +625,7 @@ function RouteExplainResult({ explain }: Readonly<{ explain: RouteExplain }>) {
           <tbody>
             {explain.candidates.map((candidate) => (
               <tr key={candidate.candidate_id}>
-                <td className="mono">{candidate.candidate_id}</td>
+                <td><ResourceIdentity id={candidate.candidate_id} kind="candidate" /></td>
                 <td>
                   <StateChip
                     meta={decisionMeta(candidate.decision)}
@@ -971,7 +972,7 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
               {rows.map((account) => (
                 <tr key={`${account.provider_id}/${account.channel_id}/${account.account_id}`}>
                   <th scope="row" className="mono rt-rowhead">
-                    {account.provider_id} / {account.channel_id} / {account.account_id}
+                    <ResourceIdentity id={account.provider_id} kind="upstream" /> / <ResourceIdentity id={account.channel_id} kind="endpoint" /> / <ResourceIdentity id={account.account_id} kind="account" />
                   </th>
                   <td className="mono">{account.account_kind}</td>
                   <td>
@@ -1215,7 +1216,7 @@ function EgressDomainSection({
                   key={`${row.provider_id}/${row.upstream_id}/${row.channel_id}/${row.credential_id ?? ""}/${row.target_id ?? row.target_kind ?? ""}/${index}`}
                 >
                   <th scope="row" className="mono rt-rowhead">
-                    {row.provider_id} / {row.upstream_id} / {row.channel_id}
+                    <ResourceIdentity id={row.provider_id} kind="upstream" /> / <ResourceIdentity id={row.upstream_id} kind="upstream" /> / <ResourceIdentity id={row.channel_id} kind="endpoint" />
                   </th>
                   <EgressRowCells domain={domain} row={row} nowMs={nowMs} />
                 </tr>

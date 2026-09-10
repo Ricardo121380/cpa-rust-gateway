@@ -1,3 +1,4 @@
+import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { ProcessingStatus } from "./ProcessingStatus";
 // 计费与价格目录 — the control surface for P13-05C / P13-07D.
 //
@@ -139,7 +140,7 @@ function PolicyCard({
           <tbody>
             <tr>
               <th scope="row">绑定目录</th>
-              <td className="mono">{policy.data.catalog_version_id}</td>
+              <td><ResourceIdentity id={policy.data.catalog_version_id} kind="catalog" /></td>
             </tr>
             <tr>
               <th scope="row">比较方式</th>
@@ -500,7 +501,7 @@ export function BillingPage() {
               {rows.map((catalog) => (
                 <tr key={catalog.catalog_version_id} data-future={isEffective(catalog, nowMs) ? undefined : "true"}>
                   <th scope="row" className="mono">
-                    {catalog.catalog_version_id}
+                    <ResourceIdentity id={catalog.catalog_version_id} kind="catalog" />
                   </th>
                   <td className="mono">
                     {formatTime(catalog.effective_at_ms)}
@@ -578,8 +579,8 @@ export function BillingPage() {
                   {(rows.find((row) => row.catalog_version_id === expanded)?.entries ?? []).map(
                     (entry, index) => (
                       <tr key={`${entry.provider_id}/${entry.channel_id}/${entry.model}/${index}`}>
-                        <td className="mono">{entry.provider_id}</td>
-                        <td className="mono">{entry.channel_id}</td>
+                        <td>{entry.provider_id ? <ResourceIdentity id={entry.provider_id} kind="upstream" /> : "—"}</td>
+                        <td>{entry.channel_id ? <ResourceIdentity id={entry.channel_id} kind="endpoint" /> : "—"}</td>
                         <td className="mono">{entry.model}</td>
                         {RATE_FIELDS.map((field) => (
                           <td key={field} className="mono bill-num">
@@ -602,7 +603,7 @@ export function BillingPage() {
         ["价格条目", inspected.entries.length],
       ]}>
         <div className="price-evidence">{inspected.entries.map((entry, index) => <details key={index}>
-          <summary>{entry.model}<span className="entity-meta"> · {entry.provider_id} / {entry.channel_id}</span></summary>
+          <summary>{entry.model}<span className="entity-meta"> · {entry.provider_id ? <ResourceIdentity id={entry.provider_id} kind="upstream" /> : "—"} / {entry.channel_id ? <ResourceIdentity id={entry.channel_id} kind="endpoint" /> : "—"}</span></summary>
           <dl className="fact-grid">{RATE_FIELDS.map((field) => <div key={field}><dt>{rateLabel(field)}</dt><dd>{formatRate(entry[field])}</dd></div>)}</dl>
         </details>)}</div>
       </ObjectInspector>}

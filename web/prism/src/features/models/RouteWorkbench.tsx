@@ -1,3 +1,4 @@
+import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { RoutingInventory } from "./RoutingInventory";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
@@ -286,7 +287,7 @@ export function RouteWorkbench({
             <tbody>
               <tr>
                 <th scope="row">所属公开模型</th>
-                <td className="mono">{record.public_model_id}</td>
+                <td><ResourceIdentity id={record.public_model_id} kind="resource" /></td>
               </tr>
               <tr>
                 <th scope="row">调度策略</th>

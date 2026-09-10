@@ -1,3 +1,4 @@
+import { resourceOption } from "../../utils/resourceNames";
 import "./configuration-diff.css";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -93,7 +94,7 @@ export function ConfigurationDiff({
           >
             {versions.map((version) => (
               <option key={version.id} value={version.id}>
-                {version.id} · {version.status}
+                {resourceOption(version.id, "config", version.description)} · {version.status}
               </option>
             ))}
           </select>

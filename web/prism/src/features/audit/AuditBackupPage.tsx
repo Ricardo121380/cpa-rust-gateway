@@ -1,3 +1,4 @@
+import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { ResourceAudit } from "./ResourceAudit";
 import { ReadStatus } from "../../components/ReadStatus";
 // Audit trail (append-only, read-only UI) + backup preflight.
@@ -93,8 +94,8 @@ export function AuditBackupPage() {
                   </td>
                   <td className="mono">{event.actor}</td>
                   <td className="mono">{formatTime(event.occurred_at_ms)}</td>
-                  <td className="mono">{event.config_version_id}</td>
-                  <td className="mono">{event.replaced_config_version_id ?? "—"}</td>
+                  <td><ResourceIdentity id={event.config_version_id} kind="config" /></td>
+                  <td>{event.replaced_config_version_id ? <ResourceIdentity id={event.replaced_config_version_id} kind="config" /> : "—"}</td>
                   <td><button className="secondary" onClick={() => setInspected(event)}>详情</button></td>
                 </tr>
               ))}

@@ -1,3 +1,4 @@
+import { ResourceIdentity } from "../components/ResourceIdentity";
 import { LifecycleConfirmation } from "../features/config-versions/LifecycleConfirmation";
 // Draft dock — the third (and last) chrome glass pane. Appears only when the
 // selected version is a draft; publish success re-selects the same version,
@@ -71,7 +72,7 @@ export function DraftDock() {
       {isDraft && context !== undefined ? (
       <GlassSurface as="footer" className="dock" material="draft" pane="dock">
         <span>
-          草稿 <span className="idchip mono">{context.configVersionId}</span>
+          草稿 <span className="idchip"><ResourceIdentity id={context.configVersionId} kind="config" /></span>
           <span className="idchip mono">{context.revision}</span>
         </span>
         {error !== undefined ? <span className="dock-error">{error}</span> : null}

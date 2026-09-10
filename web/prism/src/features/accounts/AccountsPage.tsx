@@ -1,3 +1,5 @@
+import { ResourceIdentity, IdentityDetails } from "../../components/ResourceIdentity";
+import { resourceName } from "../../utils/resourceNames";
 import {
   useInfiniteQuery,
   useMutation,
@@ -86,7 +88,7 @@ export function AccountsPage() {
   });
   const loaded = pools.data?.pages.flatMap((page) => page.items) ?? [];
   const rows = loaded.filter((row) =>
-    `${row.provider_id} ${row.channel_id} ${row.account_id}`
+    `${row.provider_id} ${row.channel_id} ${row.account_id} ${resourceName(row.account_id, "account")} ${resourceName(row.provider_id, "upstream")}`
       .toLowerCase()
       .includes(query.toLowerCase()),
   );
@@ -242,9 +244,9 @@ export function AccountsPage() {
                       key={`${row.provider_id}/${row.channel_id}/${row.account_id}`}
                     >
                       <td>
-                        <div className="entity-name">{row.account_id}</div>
+                        <div className="entity-name"><ResourceIdentity id={row.account_id} kind="account" /></div>
                         <div className="entity-meta">
-                          {row.provider_id} / {row.channel_id}
+                          <ResourceIdentity id={row.provider_id} kind="upstream" /> / <ResourceIdentity id={row.channel_id} kind="endpoint" />
                         </div>
                       </td>
                       <td>
@@ -290,9 +292,9 @@ export function AccountsPage() {
                 <article
                   key={`${row.provider_id}/${row.channel_id}/${row.account_id}`}
                 >
-                  <div className="entity-name">{row.account_id}</div>
+                  <div className="entity-name"><ResourceIdentity id={row.account_id} kind="account" /></div>
                   <div className="entity-meta">
-                    {row.provider_id} / {row.channel_id}
+                    <ResourceIdentity id={row.provider_id} kind="upstream" /> / <ResourceIdentity id={row.channel_id} kind="endpoint" />
                   </div>
                   <p>
                     <StatusBadge status={row.auth_status}>
@@ -335,14 +337,15 @@ export function AccountsPage() {
       </div>
       {selected === undefined ? null : (
         <Sheet
-          title={selected.account_id}
+          title={resourceName(selected.account_id, "account")}
           layout="inspector"
           onEscape={() => setSelected(undefined)}
         >
           <p className="entity-meta">
-            {selected.provider_id} / {selected.channel_id} ·{" "}
+            <ResourceIdentity id={selected.provider_id} kind="upstream" /> / <ResourceIdentity id={selected.channel_id} kind="endpoint" /> ·{" "}
             {formatObservedAt(observed ?? 0)}
           </p>
+          <IdentityDetails entries={[["账号 ID", selected.account_id], ["上游 ID", selected.provider_id], ["端点 ID", selected.channel_id]]} />
           <div className="detail-tabs">
             {[
               ["runtime", "运行状态"],

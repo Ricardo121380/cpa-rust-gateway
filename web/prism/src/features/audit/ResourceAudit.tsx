@@ -1,3 +1,4 @@
+import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { call } from "../../api/client";
@@ -95,7 +96,7 @@ export function ResourceAudit() {
                       <td>
                         {event.resource_kind}
                         <br />
-                        <span className="mono">{event.resource_id}</span>
+                        <span><ResourceIdentity id={event.resource_id} kind="resource" /></span>
                       </td>
                       <td>{event.actor}</td>
                       <td>{new Date(event.occurred_at_ms).toLocaleString()}</td>

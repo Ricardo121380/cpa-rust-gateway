@@ -1,3 +1,5 @@
+import { ResourceIdentity, IdentityDetails } from "../../components/ResourceIdentity";
+import { resourceName } from "../../utils/resourceNames";
 // Credential detail — the production-reachable home for a credential.
 //
 // Until G1 lands there is no listCredentials, so the only enumeration is the
@@ -99,7 +101,8 @@ export function CredentialSheet({
   const isOAuth = row?.kind === "oauth";
 
   return (
-    <Sheet title={`凭据 · ${credentialId}`} layout="inspector" onEscape={onClose}>
+    <Sheet title={`凭据 · ${resourceName(credentialId, "account")}`} layout="inspector" onEscape={onClose}>
+      <IdentityDetails entries={[["凭据 ID", credentialId]]} />
       {error !== undefined ? (
         <p role="alert" className="reveal-warning">
           {error}
@@ -117,7 +120,7 @@ export function CredentialSheet({
           <tbody>
             <tr>
               <td>上游</td>
-              <td className="mono">{row.upstream_id}</td>
+              <td><ResourceIdentity id={row.upstream_id} kind="upstream" /></td>
             </tr>
             <tr>
               <td>类型</td>

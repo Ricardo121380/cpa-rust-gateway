@@ -1,3 +1,4 @@
+import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { EffectiveModels } from "./EffectiveModels";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -129,8 +130,8 @@ export function CatalogPage() {
                 {rows.map((row) => (
                   <tr key={`${row.endpoint_id}/${row.credential_id}`}>
                     <td>
-                      <div className="entity-name">{row.endpoint_id}</div>
-                      <div className="entity-meta">{row.credential_id}</div>
+                      <div className="entity-name"><ResourceIdentity id={row.endpoint_id} kind="endpoint" /></div>
+                      <div className="entity-meta"><ResourceIdentity id={row.credential_id} kind="account" /></div>
                     </td>
                     <td>
                       <StatusBadge status={row.freshness}>
@@ -187,8 +188,8 @@ export function CatalogPage() {
           title="目录目标"
           onEscape={() => setSelected(undefined)}
         >
-          <div className="entity-name">{selected.endpoint_id}</div>
-          <p className="entity-meta">{selected.credential_id}</p>
+          <div className="entity-name"><ResourceIdentity id={selected.endpoint_id} kind="endpoint" /></div>
+          <p className="entity-meta"><ResourceIdentity id={selected.credential_id} kind="account" /></p>
           <dl className="fact-grid">
             {[
               ["新鲜度", freshnessMeta(selected.freshness).label],

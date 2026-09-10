@@ -156,6 +156,7 @@ test("ids render in their own case, because ids are case-sensitive", async ({ pa
     .locator(".cp-section", { hasText: "代理节点" })
     .locator("tr", { hasText: "node-eu-1" })
     .locator("th");
-  await expect(head).toHaveText("node-eu-1");
+  await expect(head).toContainText("法兰克福 1");
+  await expect(head.locator(".resource-original-id")).toHaveText("node-eu-1");
   await expect(head).toHaveCSS("text-transform", "none");
 });

@@ -1,3 +1,4 @@
+import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { ProcessingStatus } from "../billing/ProcessingStatus";
 // 请求监控 — two independent contract sources, deliberately not merged.
 //
@@ -339,7 +340,7 @@ function LedgerPanel({
                   </td>
                   <td className="mono">{row.model}</td>
                   <td className="mono mon-triple">
-                    {row.provider_id} / {row.channel_id} / {row.account_id}
+                    <ResourceIdentity id={row.provider_id} kind="upstream" /> / <ResourceIdentity id={row.channel_id} kind="endpoint" /> / <ResourceIdentity id={row.account_id} kind="account" />
                   </td>
                   <td className="mono mon-num">{formatTokens(row.input_tokens)}</td>
                   <td className="mono mon-num">{formatTokens(row.output_tokens)}</td>
@@ -518,7 +519,7 @@ function FailurePanel({
                       {row.attempt_id}
                     </td>
                     <td className="mono mon-triple">
-                      {row.provider_id} / {row.channel_id} / {row.account_id}
+                      <ResourceIdentity id={row.provider_id} kind="upstream" /> / <ResourceIdentity id={row.channel_id} kind="endpoint" /> / <ResourceIdentity id={row.account_id} kind="account" />
                       <div><Link to={diagnosticTarget(row.channel_id, row.account_id)}>诊断此绑定</Link></div>
                     </td>
                     <td>

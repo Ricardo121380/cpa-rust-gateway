@@ -1,3 +1,5 @@
+import { resourceOption } from "../../utils/resourceNames";
+import { ResourceIdentity } from "../../components/ResourceIdentity";
 // Compatible proxy pools / nodes / egress bindings (P13-11 A–D) — 15 contract
 // operations, mounted under 出口 because this is the other half of "how a
 // request leaves": the policy above says where it may go, this says down which
@@ -165,7 +167,7 @@ function PoolSheet({
             </option>
             {upstreams.map((upstream) => (
               <option key={upstream.id} value={upstream.id}>
-                {upstream.id}
+                {resourceOption(upstream.id, "upstream")}
               </option>
             ))}
           </select>
@@ -266,7 +268,7 @@ function NodeSheet({
             </option>
             {upstreams.map((upstream) => (
               <option key={upstream.id} value={upstream.id}>
-                {upstream.id}
+                {resourceOption(upstream.id, "upstream")}
               </option>
             ))}
           </select>
@@ -277,7 +279,7 @@ function NodeSheet({
             <option value="">不属于任何池</option>
             {pools.map((pool) => (
               <option key={pool.id} value={pool.id}>
-                {pool.id}
+                {resourceOption(pool.id, "resource", pool.name)}
               </option>
             ))}
           </select>
@@ -463,7 +465,7 @@ function BindingSheet({
               </option>
               {options.map((option) => (
                 <option key={option.id} value={option.id}>
-                  {option.id}
+                  {resourceOption(option.id)}
                 </option>
               ))}
             </select>
@@ -623,9 +625,8 @@ export function CompatibleProxyPanel({
           <table>
             <thead>
               <tr>
-                <th scope="col">id</th>
-                <th scope="col">upstream</th>
                 <th scope="col">名称</th>
+                <th scope="col">上游</th>
                 <th scope="col">启用</th>
                 <th scope="col">节点数</th>
                 <th scope="col">操作</th>
@@ -635,10 +636,9 @@ export function CompatibleProxyPanel({
               {poolRows.map((pool) => (
                 <tr key={pool.id}>
                   <th scope="row" className="mono cp-rowhead">
-                    {pool.id}
+                    <ResourceIdentity id={pool.id} name={pool.name} />
                   </th>
-                  <td className="mono">{pool.upstream_id}</td>
-                  <td>{pool.name}</td>
+                  <td><ResourceIdentity id={pool.upstream_id} kind="upstream" /></td>
                   <td>{pool.enabled ? "是" : "否"}</td>
                   <td className="mono">
                     {nodeRows.filter((node) => node.pool_id === pool.id).length}
@@ -692,7 +692,7 @@ export function CompatibleProxyPanel({
         ) : (
           groupNodesByPool(poolRows, nodeRows).map((group) => (
             <div key={group.pool?.id ?? "__loose__"} className="cp-group">
-              <h4 className="mono">{group.pool === undefined ? "不属于任何池" : group.pool.id}</h4>
+              <h4 className="mono">{group.pool === undefined ? "不属于任何池" : <ResourceIdentity id={group.pool.id} kind="resource" />}</h4>
               {group.nodes.length === 0 ? (
                 // The state a pool is in the moment it is created. Saying so
                 // beats an empty area that reads as a rendering bug.
@@ -701,9 +701,8 @@ export function CompatibleProxyPanel({
                 <table>
                   <thead>
                     <tr>
-                      <th scope="col">id</th>
-                      <th scope="col">upstream</th>
                       <th scope="col">名称</th>
+                      <th scope="col">上游</th>
                       <th scope="col">代理地址</th>
                       <th scope="col">权重</th>
                       <th scope="col">并发上限</th>
@@ -715,10 +714,9 @@ export function CompatibleProxyPanel({
                     {group.nodes.map((node) => (
                       <tr key={node.id}>
                         <th scope="row" className="mono cp-rowhead">
-                          {node.id}
+                          <ResourceIdentity id={node.id} name={node.name} />
                         </th>
-                        <td className="mono">{node.upstream_id}</td>
-                        <td>{node.name}</td>
+                        <td><ResourceIdentity id={node.upstream_id} kind="upstream" /></td>
                         <td>
                           <span className="cp-sealed" data-configured={node.proxy_configured}>
                             {node.proxy_configured ? "已配置(封存)" : "未配置"}
@@ -787,12 +785,12 @@ export function CompatibleProxyPanel({
               {bindingRows.map((binding) => (
                 <tr key={bindingKey(binding.endpoint_id, binding.credential_id)}>
                   <th scope="row" className="mono cp-rowhead">
-                    {binding.endpoint_id} / {binding.credential_id}
+                    <ResourceIdentity id={binding.endpoint_id} kind="endpoint" /> / <ResourceIdentity id={binding.credential_id} kind="account" />
                   </th>
                   <td>
                     {targetKindLabel(binding.target_kind)}
                     {binding.target_id === null ? null : (
-                      <span className="mono cp-target"> {binding.target_id}</span>
+                      <span className="cp-target"> <ResourceIdentity id={binding.target_id} kind="resource" /></span>
                     )}
                   </td>
                   <td>{failureScopeLabel(binding.failure_scope)}</td>

@@ -1,3 +1,5 @@
+import { ResourceIdentity } from "../../components/ResourceIdentity";
+import { resourceName } from "../../utils/resourceNames";
 import { ReadStatus } from "../../components/ReadStatus";
 // Upstream top-level CRUD. Child resources (endpoints / credentials /
 // bindings) need the G1 graph projection — owned by the backend session —
@@ -170,7 +172,6 @@ export function UpstreamsPage() {
         <table>
           <thead>
             <tr>
-              <th>ID</th>
               <th>名称</th>
               <th>Provider 家族</th>
               <th>状态</th>
@@ -182,8 +183,7 @@ export function UpstreamsPage() {
           <tbody>
             {(upstreams.data ?? []).map((upstream) => (
               <tr key={upstream.id}>
-                <td className="mono">{upstream.id}</td>
-                <td>{upstream.name}</td>
+                <td><ResourceIdentity id={upstream.id} name={upstream.name} kind="upstream" /></td>
                 <td className="mono">{upstream.kind}</td>
                 <td>
                   <StatusBadge status={upstream.enabled ? "active" : "disabled"}>
@@ -199,7 +199,7 @@ export function UpstreamsPage() {
                       ))
                     : "—"}
                 </td>
-                <td className="mono">{upstream.egress_policy_id ?? "—"}</td>
+                <td>{upstream.egress_policy_id ? <ResourceIdentity id={upstream.egress_policy_id} kind="policy" /> : "—"}</td>
                 <td className="row-actions">
                   <button className="secondary" onClick={() => setInspected(upstream)}>详情</button>
                   <button
@@ -239,7 +239,7 @@ export function UpstreamsPage() {
 
       {expanded !== undefined ? <SubresourcePanel upstreamId={expanded} /> : null}
 
-      {inspected === undefined ? null : <ObjectInspector title={inspected.name} scope={`配置版本 ${scope}`} onClose={() => setInspected(undefined)} facts={[
+      {inspected === undefined ? null : <ObjectInspector title={resourceName(inspected.id, "upstream", inspected.name)} scope={`配置版本 ${scope}`} onClose={() => setInspected(undefined)} facts={[
         ["上游 ID", inspected.id], ["Provider 家族", inspected.kind], ["配置启用", inspected.enabled ? "已启用" : "已停用"],
         ["出口策略", inspected.egress_policy_id], ["标签", inspected.tags.join(" · ") || "—"],
       ]}>
@@ -313,7 +313,7 @@ export function UpstreamsPage() {
                 <option value="">(无)</option>
                 {(policies.data ?? []).map((policy) => (
                   <option key={policy.id} value={policy.id}>
-                    {policy.name}({policy.id})
+                    {resourceName(policy.id, "policy", policy.name)}
                   </option>
                 ))}
               </select>

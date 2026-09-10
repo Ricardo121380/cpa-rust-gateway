@@ -125,7 +125,7 @@ function LiveCountersSection() {
           <br />
           <small className="muted">
             <span className="mono">GET /admin/observability/metrics</span>{" "}
-            不可用 —— 该端点需要 P12 之后的网关构建。
+            不可用，请检查网关是否提供观测接口。
           </small>
         </p>
       </div>

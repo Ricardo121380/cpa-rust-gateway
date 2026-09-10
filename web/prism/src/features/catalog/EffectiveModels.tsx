@@ -1,3 +1,5 @@
+import { resourceName, resourceOption } from "../../utils/resourceNames";
+import { ResourceIdentity } from "../../components/ResourceIdentity";
 import {
   useInfiniteQuery,
   useQuery,
@@ -122,7 +124,7 @@ export function EffectiveModels() {
           <option value="">选择既有身份</option>
           {(identities.data ?? []).map((row) => (
             <option key={row.id} value={row.id}>
-              {row.id} · {row.status}
+              {resourceOption(row.id, kind === "access_group_id" ? "group" : "resource")} · {row.status}
             </option>
           ))}
         </select>
@@ -158,7 +160,7 @@ export function EffectiveModels() {
       ) : null}
       {first !== undefined ? (
         <p className="scope-row">
-          Serving {first.config_version} · Access Group {first.access_group_id}{" "}
+          Serving <ResourceIdentity id={first.config_version} kind="config" /> · Access Group <ResourceIdentity id={first.access_group_id} kind="group" />{" "}
           · 已载入 {rows.length} 项{models.hasNextPage ? " · 还有更多" : ""}
         </p>
       ) : null}
@@ -206,7 +208,7 @@ export function EffectiveModels() {
       {selected !== undefined && first !== undefined ? (
         <ObjectInspector
           title={selected.id}
-          scope={`Serving ${first.config_version} · ${first.access_group_id}`}
+          scope={`Serving ${resourceName(first.config_version, "config")} · ${resourceName(first.access_group_id, "group")}`}
           onClose={() => setSelected(undefined)}
           facts={[
             ["公开模型 ID", selected.public_model_id],
@@ -220,15 +222,15 @@ export function EffectiveModels() {
             <dl className="fact-grid" key={source.candidate_id}>
               <div>
                 <dt>Candidate</dt>
-                <dd>{source.candidate_id}</dd>
+                <dd><ResourceIdentity id={source.candidate_id} kind="candidate" /></dd>
               </div>
               <div>
                 <dt>Endpoint</dt>
-                <dd>{source.endpoint_id}</dd>
+                <dd><ResourceIdentity id={source.endpoint_id} kind="endpoint" /></dd>
               </div>
               <div>
                 <dt>Upstream</dt>
-                <dd>{source.upstream_id}</dd>
+                <dd><ResourceIdentity id={source.upstream_id} kind="upstream" /></dd>
               </div>
               <div>
                 <dt>协议</dt>
@@ -257,7 +259,7 @@ export function EffectiveModels() {
                 source.catalog_evidence.map((evidence) => (
                   <div key={evidence.credential_id}>
                     <dt>
-                      {evidence.credential_id} · 目录 v{evidence.version}
+                      <ResourceIdentity id={evidence.credential_id} kind="account" /> · 目录 v{evidence.version}
                     </dt>
                     <dd>
                       观测 {new Date(evidence.observed_at_ms).toLocaleString()}

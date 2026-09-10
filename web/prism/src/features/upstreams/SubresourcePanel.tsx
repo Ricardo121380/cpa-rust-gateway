@@ -1,3 +1,5 @@
+import { resourceName } from "../../utils/resourceNames";
+import { ResourceIdentity } from "../../components/ResourceIdentity";
 // Per-provider subresource panel, driven by the REAL operational inventory
 // (P13-04A `listOperationalAccountPools`) instead of the proposed G1 graph.
 //
@@ -103,7 +105,7 @@ function BindingReconcileSheet({
   const hidden = rows.filter((row) => !operationalCredentialIds.has(row.credential_id));
 
   return (
-    <Sheet title={`配置侧绑定 · ${channelId}`} layout="inspector" onEscape={onClose}>
+    <Sheet title={`配置侧绑定 · ${resourceName(channelId, "endpoint")}`} layout="inspector" onEscape={onClose}>
       <p className="stat-sub">
         上面的绑定表来自<strong>运营库存</strong>,一行需要 channel、account、provider
         三者都能解析才会出现。这里是<strong>配置自己</strong>的回答 ——
@@ -134,12 +136,12 @@ function BindingReconcileSheet({
             {rows.map((row) => (
               <tr key={row.credential_id}>
                 <td className="mono">
-                  {row.credential_id}
+                  <ResourceIdentity id={row.credential_id} kind="account" />
                   {operationalCredentialIds.has(row.credential_id) ? null : (
                     <strong> · 运营库存里没有</strong>
                   )}
                 </td>
-                <td className="mono">{row.upstream_id}</td>
+                <td><ResourceIdentity id={row.upstream_id} kind="upstream" /></td>
                 <td>{row.enabled ? "是" : "否"}</td>
                 <td className="mono">{row.priority}</td>
                 <td className="mono">{row.weight}</td>
@@ -151,7 +153,7 @@ function BindingReconcileSheet({
       ) : null}
       {hidden.length > 0 ? (
         <p role="alert" className="reveal-warning">
-          有 {hidden.length} 条绑定只存在于配置里:{hidden.map((r) => r.credential_id).join("、")}。
+          有 {hidden.length} 条绑定只存在于配置里:{hidden.map((r) => resourceName(r.credential_id, "account")).join("、")}。
           它们指向的凭据无法解析,所以运营库存不显示 —— 但校验与发布仍然会看到它们。
         </p>
       ) : null}
@@ -618,7 +620,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
             const result = testResults[channel.channel_id];
             return (
               <tr key={channel.channel_id}>
-                <td className="mono">{channel.channel_id}</td>
+                <td><ResourceIdentity id={channel.channel_id} kind="endpoint" /></td>
                 <td className="mono">{channel.adapter_id}</td>
                 <td className="mono">{channel.api_format}</td>
                 <td className="mono">{channel.transport}</td>
@@ -729,7 +731,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
         <tbody>
           {pool.accounts.map((account) => (
             <tr key={account.account_id}>
-              <td className="mono">{account.account_id}</td>
+              <td><ResourceIdentity id={account.account_id} kind="account" /></td>
               <td className="mono">{account.account_kind}</td>
               <td>
                 <StatusBadge status={accountStatusTone(account.account_status)}>
@@ -787,8 +789,8 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
         <tbody>
           {pool.bindings.map((binding) => (
             <tr key={`${binding.channel_id}:${binding.account_id}`}>
-              <td className="mono">{binding.channel_id}</td>
-              <td className="mono">{binding.account_id}</td>
+              <td><ResourceIdentity id={binding.channel_id} kind="endpoint" /></td>
+              <td><ResourceIdentity id={binding.account_id} kind="account" /></td>
               <td>
                 <StatusBadge status={binding.configured_enabled ? "active" : "disabled"}>
                   {binding.configured_enabled ? "enabled" : "disabled"}
@@ -807,7 +809,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
       <p className="stat-sub">
         「静态启用」= <span className="mono">provider &amp;&amp; channel &amp;&amp; binding</span>{" "}
         三者皆开。它<strong>不</strong>代表凭据健康、有额度或当前可路由 ——
-        运行时状态要等 P13-06 的 Provider 池投影。
+        运行时状态请在账号池中查看。
       </p>
 
       {reconcile !== undefined ? (

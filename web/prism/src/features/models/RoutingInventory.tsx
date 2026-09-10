@@ -1,3 +1,4 @@
+import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ObjectInspector } from "../../components/ObjectInspector";
@@ -93,8 +94,8 @@ export function RoutingInventory({
                       : undefined;
                 return (
                   <tr key={id}>
-                    <td className="mono">{id}</td>
-                    <td className="mono">{owner}</td>
+                    <td>{"alias" in item ? <span className="mono">{id}</span> : <ResourceIdentity id={id} kind={"policy" in item ? "route" : "candidate"} />}</td>
+                    <td><ResourceIdentity id={owner} kind={"route_id" in item ? "route" : "resource"} /></td>
                     <td>
                       {"policy" in item
                         ? item.policy

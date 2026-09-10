@@ -1,3 +1,5 @@
+import { ResourceIdentity } from "../../components/ResourceIdentity";
+import { resourceName } from "../../utils/resourceNames";
 import { ReadStatus } from "../../components/ReadStatus";
 // Egress policies: allowlist-based SSRF boundary (docs/07 §7.7).
 // PATCH is full-replacement (C11) — the edit sheet always loads and submits
@@ -182,7 +184,6 @@ export function EgressPage() {
         <table>
           <thead>
             <tr>
-              <th>ID</th>
               <th>名称</th>
               <th>主机</th>
               <th>端口</th>
@@ -196,15 +197,14 @@ export function EgressPage() {
               const refs = referencingUpstreams(policy.id, upstreams.data ?? []);
               return (
                 <tr key={policy.id}>
-                  <td className="mono">{policy.id}</td>
-                  <td>{policy.name}</td>
+                  <td><ResourceIdentity id={policy.id} name={policy.name} kind="policy" /></td>
                   <td className="mono">{policy.allowed_hosts.length} 条</td>
                   <td className="mono">{policy.allowed_ports.join(", ")}</td>
                   <td className="mono">
                     {policy.redirect_mode}
                     {policy.redirect_mode === "revalidate" ? ` ≤${policy.max_redirects}` : ""}
                   </td>
-                  <td className="mono">{refs.length > 0 ? refs.join(", ") : "—"}</td>
+                  <td className="mono">{refs.length > 0 ? refs.map((id) => resourceName(id, "upstream")).join(", ") : "—"}</td>
                   <td className="row-actions">
                     <button className="secondary" onClick={() => setInspected(policy)}>详情</button>
                     <button
@@ -239,7 +239,7 @@ export function EgressPage() {
       <CompatibleProxyPanel upstreams={upstreams.data ?? []} />
       <ProviderEgressCard scope={scope} nowMs={nowMs} />
 
-      {inspected === undefined ? null : <ObjectInspector title={inspected.name} scope={`配置版本 ${scope} · 出口策略`} onClose={() => setInspected(undefined)} facts={[
+      {inspected === undefined ? null : <ObjectInspector title={resourceName(inspected.id, "policy", inspected.name)} scope={`配置版本 ${scope} · 出口策略`} onClose={() => setInspected(undefined)} facts={[
         ["策略 ID", inspected.id], ["允许协议", inspected.allowed_schemes.join(" · ")],
         ["精确主机", inspected.allowed_hosts.join(" · ") || "无"], ["端口", inspected.allowed_ports.join(" · ") || "无"],
         ["CIDR", inspected.allowed_cidrs.join(" · ") || "无"], ["重定向模式", inspected.redirect_mode],

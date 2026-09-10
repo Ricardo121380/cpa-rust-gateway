@@ -1,3 +1,5 @@
+import { ResourceIdentity } from "../../components/ResourceIdentity";
+import { resourceName, resourceOption } from "../../utils/resourceNames";
 import { useRoutingPages } from "../models/useRoutingPages";
 import type { RouteListItem } from "../models/model";
 import { ReadStatus } from "../../components/ReadStatus";
@@ -108,7 +110,7 @@ function GroupRoutes({
           <tbody>
             {(grants.data ?? []).map((row) => (
               <tr key={row.route_id}>
-                <td className="mono">{row.route_id}</td>
+                <td><ResourceIdentity id={row.route_id} kind="route" /></td>
                 <td>
                   <StatusBadge status={row.enabled ? "active" : "disabled"}>
                     {row.enabled ? "enabled" : "disabled"}
@@ -400,7 +402,6 @@ export function AccessPage() {
         <table>
           <thead>
             <tr>
-              <th>ID</th>
               <th>名称</th>
               <th>状态</th>
               <th>限制</th>
@@ -411,8 +412,7 @@ export function AccessPage() {
             {(groups.data ?? []).map((group) => (
               <Fragment key={group.id}>
                 <tr>
-                  <td className="mono">{group.id}</td>
-                  <td>{group.name}</td>
+                  <td><ResourceIdentity id={group.id} name={group.name} kind="group" /></td>
                   <td>
                     <StatusBadge status={group.status} />
                   </td>
@@ -449,7 +449,7 @@ export function AccessPage() {
                 </tr>
                 {expanded === group.id ? (
                   <tr>
-                    <td colSpan={5}>
+                    <td colSpan={4}>
                       <GroupRoutes
                         groupId={group.id}
                         editable={editable}
@@ -487,7 +487,7 @@ export function AccessPage() {
               return (
                 <tr key={record.id}>
                   <td className="mono">{record.prefix}</td>
-                  <td className="mono">{record.access_group_id}</td>
+                  <td>{record.access_group_id ? <ResourceIdentity id={record.access_group_id} kind="group" /> : "—"}</td>
                   <td>
                     <StatusBadge status={status} />
                   </td>
@@ -528,7 +528,7 @@ export function AccessPage() {
         ) : null}
       </div>
 
-      {inspectedGroup === undefined ? null : <ObjectInspector title={inspectedGroup.name} scope={`配置版本 ${scope} · 访问组`} onClose={() => setInspectedGroup(undefined)} facts={[
+      {inspectedGroup === undefined ? null : <ObjectInspector title={resourceName(inspectedGroup.id, "group", inspectedGroup.name)} scope={`配置版本 ${scope} · 访问组`} onClose={() => setInspectedGroup(undefined)} facts={[
         ["访问组 ID", inspectedGroup.id], ["状态", inspectedGroup.status], ["限制", formatLimits(inspectedGroup.limits) || "未设置"],
       ]}><div className="sheet-actions"><button className="secondary" onClick={() => { setExpanded(inspectedGroup.id); setInspectedGroup(undefined); }}>查看授权路由</button>
         <button disabled={!editable} onClick={() => { setGroupForm(inspectedGroup); setInspectedGroup(undefined); }}>编辑访问组</button></div></ObjectInspector>}
@@ -635,7 +635,7 @@ export function AccessPage() {
               <select name="access_group_id" required>
                 {(groups.data ?? []).map((group) => (
                   <option key={group.id} value={group.id}>
-                    {group.name}({group.id})
+                    {resourceOption(group.id, "group", group.name)}
                   </option>
                 ))}
               </select>
@@ -682,7 +682,7 @@ export function AccessPage() {
               <select name="access_group_id" defaultValue={editKey.access_group_id} required>
                 {(groups.data ?? []).map((group) => (
                   <option key={group.id} value={group.id}>
-                    {group.name}({group.id})
+                    {resourceOption(group.id, "group", group.name)}
                   </option>
                 ))}
               </select>

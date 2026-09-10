@@ -1,3 +1,4 @@
+import { ResourceIdentity, IdentityDetails } from "../../components/ResourceIdentity";
 import { ConfigurationDiff } from "./ConfigurationDiff";
 import { LifecycleConfirmation } from "./LifecycleConfirmation";
 import { ReadStatus } from "../../components/ReadStatus";
@@ -137,8 +138,9 @@ export function VersionsPage() {
         <article className="card published-configuration" data-version-id={active.id}>
           <div>
             <span className="configuration-state"><span className="context-dot" />已发布配置</span>
-            <h3>{active.description || "网关配置"}</h3>
-            <p className="entity-meta mono">{active.id} · {active.revision}</p>
+            <h3><ResourceIdentity id={active.id} name={active.description || undefined} kind="config" /></h3>
+            <p className="entity-meta mono">{active.revision}</p>
+            <IdentityDetails entries={[["配置 ID", active.id]]} />
             <details className="reading-notes configuration-explainer">
               <summary>配置与应用版本有什么区别？</summary>
               <p>这里只切换查看或编辑的配置。发布和回滚需要单独确认，更换程序版本属于部署。当前网关在重启时加载已发布配置。</p>
@@ -176,8 +178,9 @@ export function VersionsPage() {
               return (
                 <tr key={version.id} data-selected={selected} data-version-id={version.id}>
                   <td>
-                    <div className="entity-name">{version.description || (version.status === "draft" ? "未发布草稿" : "历史配置")}</div>
-                    <div className="entity-meta mono">{version.id} · {version.revision}</div>
+                    <div className="entity-name"><ResourceIdentity id={version.id} name={version.description || undefined} kind="config" /></div>
+                    <div className="entity-meta mono">{version.revision}</div>
+                    <IdentityDetails entries={[["配置 ID", version.id]]} />
                     <details className="configuration-lineage"><summary>来源与状态</summary>
                       <p className="entity-meta">{version.parent_id ?? "无来源"} · <StatusBadge status={version.status} /></p>
                     </details>
