@@ -1915,3 +1915,23 @@ schema 22, existing administrator store, historical events/ledger and eleven ret
 remain intact. No production password access, Provider requests, DNS/Caddy/Autoreg changes or
 database restore. Previous V6 binary 6b4e9a7 remains the rollback point. This documents the existing
 user authorization only; generic ownership and future deployment permission rules are unchanged.
+
+## 2026-09-11 — Codex — CPAMP task-parity audit and functional redesign proposal
+
+**What:** `docs/reports/prism-cpamp-functional-audit-20260911.md`,
+`docs/handoffs/prism-cpamp-functional-redesign.md` and `docs/design/cpamp-parity-20260911/`.
+
+**Why:** The user rejected the internal-object-led navigation and asked for CPAMP-style CPA
+management tasks, especially account authorization. Current CPAMP source and its official demo
+were compared with fresh local real-gateway captures and current CPAR source/OpenAPI. Findings
+include the oauth versus oauth_json UI mismatch, api_key versus bearer runtime mismatch, incomplete
+credential inventory, deep account actions and empty-parent draft creation. Previous V6 navigation
+and seeded-flow passes do not prove first-account onboarding.
+
+**Other side:** Action required in the next implementation batch: use this functional proposal
+instead of treating fourteen top-level columns as a fixed requirement. The suggested eight primary
+workspaces are a proposal, not an implemented or newly user-approved navigation. Account lifecycle,
+complete inventory, safe current-configuration apply and request-level observability need real
+backend contracts. Do not enable every provider's OAuth by changing one string comparison.
+This commit changes documentation and fresh synthetic/demo captures only; no production mutation,
+provider calls, frontend/backend implementation, contract changes, or data deletion occurred.

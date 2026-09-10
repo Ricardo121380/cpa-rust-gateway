@@ -1,0 +1,86 @@
+{
+  "date": "2026-09-11",
+  "timezone": "Asia/Shanghai",
+  "cpamp_revision": "e1a8788ab796f4d001c5d1e9851c418989b05424",
+  "cpamp_surface": "official synthetic demo",
+  "cpar_source_revision": "083f486f8305b7113061c714481374616553f6d3",
+  "cpar_surface": "local real gateway with synthetic state; four assets match V6 6b4e9a7; current source UI delta is name formatter only",
+  "browser": "Codex in-app Chromium",
+  "production_mutations": 0,
+  "real_provider_requests": 0,
+  "real_oauth_exchanges": 0,
+  "screenshots": [
+    {
+      "file": "01-cpamp-dashboard.jpg",
+      "format": "JPEG",
+      "sha256": "52bb93889391a7041e3527843bb7427c9540662636c8a85175a02ab8b292654a",
+      "width": 1280,
+      "height": 720,
+      "captured_in_this_audit": true,
+      "saved_image_visually_inspected": true
+    },
+    {
+      "file": "02-cpamp-accounts.jpg",
+      "format": "JPEG",
+      "sha256": "7f31971fd864e580df7cceaa180943cc6c1fae2ef4af89bd23ff307dde4d2a4c",
+      "width": 1280,
+      "height": 720,
+      "captured_in_this_audit": true,
+      "saved_image_visually_inspected": true
+    },
+    {
+      "file": "03-cpamp-oauth.jpg",
+      "format": "JPEG",
+      "sha256": "d82042ddf4879dc5977683d25322b43f4b9c2b638f1373da1dd8d3f061975dd7",
+      "width": 1280,
+      "height": 720,
+      "captured_in_this_audit": true,
+      "saved_image_visually_inspected": true
+    },
+    {
+      "file": "04-cpar-dashboard.jpg",
+      "format": "JPEG",
+      "sha256": "72121a3be1f8a878509769180af2d41b51bd58af5963ff55fb33f987f7ee8ab7",
+      "width": 1280,
+      "height": 720,
+      "captured_in_this_audit": true,
+      "saved_image_visually_inspected": true
+    },
+    {
+      "file": "05-cpar-accounts.jpg",
+      "format": "JPEG",
+      "sha256": "1924ee2a4da6473d12813b166265091bdfc76888b1d3a1862e4329db59fedb34",
+      "width": 1280,
+      "height": 720,
+      "captured_in_this_audit": true,
+      "saved_image_visually_inspected": true
+    },
+    {
+      "file": "06-cpar-account-details.jpg",
+      "format": "JPEG",
+      "sha256": "21e9ca56f33797f3cfbacdbdbf370d685704e6e3e559aa448e84a14a990e32d6",
+      "width": 1280,
+      "height": 720,
+      "captured_in_this_audit": true,
+      "saved_image_visually_inspected": true
+    },
+    {
+      "file": "07-cpar-credential-details.jpg",
+      "format": "JPEG",
+      "sha256": "f5caa875c46e8063f7c6b69ca012db880708241db2f1fcf2760c179b66447c6d",
+      "width": 1280,
+      "height": 720,
+      "captured_in_this_audit": true,
+      "saved_image_visually_inspected": true
+    },
+    {
+      "file": "08-cpar-provider-readonly.jpg",
+      "format": "JPEG",
+      "sha256": "6e7e5452493313bf0835340426b573bb47cdd9330000986ef851056dce48479b",
+      "width": 1280,
+      "height": 720,
+      "captured_in_this_audit": true,
+      "saved_image_visually_inspected": true
+    }
+  ]
+}
