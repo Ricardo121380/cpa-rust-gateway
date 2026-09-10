@@ -339,17 +339,6 @@ def main():
             report = {'checks': checks, 'expires_at_ms': expiry, 'provider_calls': len(provider_calls)}
             (root / 'evidence.json').write_text(json.dumps(report, indent=2))
             print(json.dumps({'passed': checks, 'evidence': str(root / 'evidence.json')}, indent=2), flush=True)
-        if args.preview:
-            preview = {'url': base + '/admin-ui/#/', 'credentials_directory': str(credentials),
-                       'stop': 'Ctrl-C in the owning terminal; temporary synthetic state is retained'}
-            (root / 'preview.json').write_text(json.dumps(preview, indent=2))
-            print(json.dumps({'preview': preview}, indent=2), flush=True)
-            try:
-                while process.poll() is None:
-                    time.sleep(1)
-                raise RuntimeError('preview gateway exited unexpectedly')
-            except KeyboardInterrupt:
-                pass
             return
 
         data_request = urllib.request.Request(f'http://127.0.0.1:{data_port}/v1/responses',

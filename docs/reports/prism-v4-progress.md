@@ -664,3 +664,11 @@ binding及endpoint不占活动并发预算；禁用兼容出口条目保留且�
 证据 `/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/prism-v4-acceptance-uxkgt8rn/evidence.json`。
 持续预览HTTP200和CSP复核通过。交付报告、设计/使用交接及完成核对表已定稿；
 无生产/远端/真实Provider操作，无本轮必需未完成项。
+
+## 用户实际操作验收更正（2026-09-10）
+
+先前全部完成判断过早：真实runtime_availability固定返回空数组，失败列表缺少诊断深链。
+两项属于原范围待补齐，详见prism-v4-user-acceptance.md。独立8阶段写链路本次重新通过。
+另修正本任务preview脚本重复块提前阻止生成请求/账本的问题；修复后priced+inactive+preview
+完成全断言并保持运行，catalog-expiry分支回归也通过。旧preview的无实际evidence声明撤回，
+新的实际证据为prism-v4-acceptance-ogdd9sjg。没有修改生产状态或调用真实Provider。
