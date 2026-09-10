@@ -1,0 +1,18 @@
+# Explicit operator opt-in for HTTPS Prism access on the existing gateway domain.
+# Match this origin with gateway serve --management-origin https://cpar.example.com.
+# Both gateway listeners remain loopback-only. Forward browser Origin and management
+# headers unchanged; never inject an allowed Origin or a Management Key in this proxy.
+# Substitute the approved hostname and merge into its existing site, preserving other sites.
+cpar.example.com {
+	redir / /admin-ui/ 302
+
+	@prism path /admin /admin/* /admin-ui /admin-ui/*
+	handle @prism {
+		reverse_proxy 127.0.0.1:18181
+	}
+
+	# Preserve the data-plane paths and streaming behavior.
+	handle {
+		reverse_proxy 127.0.0.1:18180
+	}
+}

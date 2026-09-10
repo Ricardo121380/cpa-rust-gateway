@@ -93,6 +93,7 @@ const BACKUP_DIRECTORY: &str = "backups";
 pub(crate) struct ServeCommand {
     data_listener: SocketAddr,
     management_listener: SocketAddr,
+    management_browser_origin: ManagementOrigin,
     state_directory: PathBuf,
     credentials_directory: PathBuf,
     codex_oauth_proxy: UpstreamProxy,
@@ -115,6 +116,17 @@ pub(crate) fn parse(arguments: Vec<String>) -> Result<ServeCommand, DeploymentEr
     if data_listener == management_listener {
         return Err(DeploymentError::IdenticalListeners);
     }
+    let management_browser_origin = match options.remove("--management-origin") {
+        Some(value) => {
+            let origin = ManagementOrigin::try_new(value)
+                .map_err(|_| DeploymentError::InvalidManagementOrigin)?;
+            if !origin.as_str().starts_with("https://") {
+                return Err(DeploymentError::InvalidManagementOrigin);
+            }
+            origin
+        }
+        None => management_origin(management_listener)?,
+    };
     let state_directory = parse_absolute_directory(
         &required_option(&mut options, "--state-dir")?,
         "--state-dir",
@@ -163,6 +175,7 @@ pub(crate) fn parse(arguments: Vec<String>) -> Result<ServeCommand, DeploymentEr
     Ok(ServeCommand {
         data_listener,
         management_listener,
+        management_browser_origin,
         state_directory,
         credentials_directory,
         codex_oauth_proxy,
@@ -470,12 +483,11 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         .map_err(|_| DeploymentError::BackupUnavailable)?,
     );
     let resources = resources.with_billing_processing(Arc::clone(&billing_processing));
-    let origin = management_origin(command.management_listener)?;
     let security = ManagementHttpState::new(
         management_key,
         ManagementNetworkPolicy::LoopbackOnly,
         ManagementBrowserPolicy::SameOrigin {
-            origin,
+            origin: command.management_browser_origin.clone(),
             csrf_token: management_csrf,
         },
     )
@@ -691,6 +703,8 @@ pub(crate) enum DeploymentError {
     UnexpectedOption,
     /// A listener was malformed, unspecified, non-loopback, or used port zero.
     InvalidListener(&'static str),
+    /// The explicit reverse-proxy browser origin was not a canonical HTTPS origin.
+    InvalidManagementOrigin,
     /// A state or credential directory path was not a clean absolute path.
     InvalidPath(&'static str),
     /// The two listener values were identical.
@@ -733,6 +747,9 @@ impl fmt::Display for DeploymentError {
             Self::UnexpectedOption => formatter.write_str("an option is not valid for serve"),
             Self::InvalidListener(option) => {
                 write!(formatter, "invalid loopback listener for {option}")
+            }
+            Self::InvalidManagementOrigin => {
+                formatter.write_str("--management-origin requires one canonical HTTPS origin")
             }
             Self::InvalidPath(option) => {
                 write!(formatter, "invalid absolute directory for {option}")
@@ -888,6 +905,129 @@ mod tests {
             duplicate,
             Err(DeploymentError::IdenticalListeners)
         ));
+        Ok(())
+    }
+
+    #[test]
+    fn serve_parser_accepts_only_an_explicit_canonical_https_browser_origin()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let arguments = || {
+            vec![
+                "--data-listen".to_owned(),
+                "127.0.0.1:18180".to_owned(),
+                "--management-listen".to_owned(),
+                "127.0.0.1:18181".to_owned(),
+                "--state-dir".to_owned(),
+                "/tmp/prism-origin-state".to_owned(),
+                "--credential-dir".to_owned(),
+                "/tmp/prism-origin-credentials".to_owned(),
+            ]
+        };
+        assert_eq!(
+            parse(arguments())?.management_browser_origin.as_str(),
+            "http://127.0.0.1:18181"
+        );
+        let mut https = arguments();
+        https.extend([
+            "--management-origin".to_owned(),
+            "https://console.example.test".to_owned(),
+        ]);
+        assert_eq!(
+            parse(https)?.management_browser_origin.as_str(),
+            "https://console.example.test"
+        );
+        for value in [
+            "http://console.example.test",
+            "https://console.example.test/",
+            "https://console.example.test/admin-ui/",
+            "https://console.example.test?key=value",
+            "https://console.example.test#fragment",
+            "https://user:password@console.example.test",
+            "https://console.example.test,https://other.example.test",
+            "*",
+        ] {
+            let mut invalid = arguments();
+            invalid.extend(["--management-origin".to_owned(), value.to_owned()]);
+            assert!(matches!(
+                parse(invalid),
+                Err(DeploymentError::InvalidManagementOrigin)
+            ));
+        }
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn configured_https_origin_keeps_key_csrf_and_actual_peer_admission()
+    -> Result<(), Box<dyn std::error::Error>> {
+        use gateway_http_actix::management_security::{ManagementOrigin, configure_management};
+
+        let state = TemporaryDirectory::new()?;
+        let credentials = TemporaryDirectory::new()?;
+        write_required_credentials(&credentials)?;
+        let mut command = command(state.path(), credentials.path())?;
+        command.management_browser_origin =
+            ManagementOrigin::try_new("https://console.example.test")?;
+        let application = build_application_state(&command)?;
+        let app = actix_web::test::init_service(
+            actix_web::App::new()
+                .app_data(actix_web::web::Data::new(application.security.clone()))
+                .configure(|config| {
+                    configure_management(config, |routes| {
+                        routes.route(
+                            "/origin-check",
+                            actix_web::web::post()
+                                .to(|| async { actix_web::HttpResponse::NoContent().finish() }),
+                        );
+                    });
+                }),
+        )
+        .await;
+        for (origin, csrf, valid_key, local_peer, expected) in [
+            (Some("https://console.example.test"), true, true, true, 204),
+            (Some("https://console.example.test"), false, true, true, 404),
+            (
+                Some("https://untrusted.example.test"),
+                true,
+                true,
+                true,
+                404,
+            ),
+            (Some("http://127.0.0.1:18181"), true, true, true, 404),
+            (Some("https://console.example.test"), true, false, true, 404),
+            (Some("https://console.example.test"), true, true, false, 404),
+            (None, false, true, true, 204),
+        ] {
+            let peer = if local_peer {
+                [127, 0, 0, 1]
+            } else {
+                [203, 0, 113, 1]
+            };
+            let mut request = actix_web::test::TestRequest::post()
+                .uri("/admin/origin-check")
+                .peer_addr(std::net::SocketAddr::from((peer, 12345)))
+                .insert_header(("x-forwarded-for", "127.0.0.1"))
+                .insert_header(("x-forwarded-host", "console.example.test"))
+                .insert_header(("x-forwarded-proto", "https"))
+                .insert_header((
+                    "x-management-key",
+                    if valid_key {
+                        "mgmt_abcdefghijklmnopqrstuvwxyz0123456789"
+                    } else {
+                        "mgmt_wrong_abcdefghijklmnopqrstuvwxyz0123456789"
+                    },
+                ));
+            if let Some(origin) = origin {
+                request = request.insert_header(("origin", origin));
+            }
+            if csrf {
+                request = request.insert_header((
+                    "x-management-csrf-token",
+                    "csrf_abcdefghijklmnopqrstuvwxyz0123456789",
+                ));
+            }
+            let response = actix_web::test::call_service(&app, request.to_request()).await;
+            assert_eq!(response.status().as_u16(), expected);
+        }
         Ok(())
     }
 
