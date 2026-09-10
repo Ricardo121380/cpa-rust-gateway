@@ -1763,3 +1763,22 @@ Targeted HTTP/contract/security tests, session/store tests, 256 frontend unit te
 and its three i18n tests now pass (126 other E2E passed). The existing real gateway ten-stage
 browser write flow also passes under administrator login. Formal release checks and deployment
 receipt are recorded in the delivery report after they finish.
+
+
+## 2026-09-10 — Codex — administrator login production handoff
+
+**Files:** `docs/handoffs/prism-admin-password-login.md`, `prism-domain-access.md`,
+`claude-code-oracle-singapore-vps.md`, `docs/reports/prism-admin-login-delivery.md`.
+
+**What / why:** Record the completed user-authorized CPAR deployment of b30d191 and the
+actual account/password entry, replacing historical key-form instructions. The signed ARM64
+artifact was independently verified and accepted with an isolated real gateway before cutover.
+Both release architectures and the final Fast/full supply-chain gates passed. Public HTTPS
+login, initial-session restriction, CSRF rejection, logout, CLI readback and actual in-app browser
+UI passed. Initial credentials were delivered through a local owner-only file; no secret is
+included in these docs. First password change remains for the user.
+
+**Other side:** FYI under the existing full-stack/deployment authorization. Stop-to-health was
+1236 ms. Caddy/DNS/Autoreg and schema 22 were unchanged; the active configuration and 87 historical
+billing repair records were preserved. The report distinguishes local Chromium acceptance from
+physical Safari/Firefox testing and records the earlier gate/dependency declaration correction.

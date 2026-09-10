@@ -6,6 +6,14 @@ This document is a value-free connection handoff for Claude Code. It intentional
 public IP address, private-key path, password, Management Key, CSRF token, Provider credential,
 cookie, database row, request/response body, or raw remote log.
 
+## 2026-09-10: administrator login update
+
+The user approved replacing the manual Key/CSRF entry with account/password login and
+owner-only delivery of random initial `admin` credentials. Deployed source is `b30d191`;
+[administrator login handoff](prism-admin-password-login.md) and
+[delivery evidence](../reports/prism-admin-login-delivery.md) describe the current entry.
+CLI credentials remain compatible. No passwords, salts or session values belong in this handoff.
+
 ## 2026-09-10: explicit CPAR domain-access update
 
 The user subsequently authorized cross-device Prism access on the existing CPAR domain. Codex

@@ -1,5 +1,7 @@
 # Prism administrator login
 
+Deployed code: `b30d191`; [verified delivery](../reports/prism-admin-login-delivery.md).
+
 The user approved username/password login, the existing V4 visual direction, and a random
 initial `admin` password delivered through a private local file. This supersedes the old
 Key/CSRF form in the V4 and domain handoffs. It does not change the CLI credential interface.

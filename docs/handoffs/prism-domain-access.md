@@ -1,5 +1,14 @@
 # Prism HTTPS domain access
 
+## 当前登录方式更新（2026-09-10）
+
+管理员账号密码版本 `b30d191` 已上线，仍使用同一 HTTPS 域名。
+登录页不再要求手工填写 Management Key/CSRF。默认账号 `admin`，随机初始密码已通过
+私有文件交付；首次登录强制改密。见 [登录交接](prism-admin-password-login.md) 与
+[实际交付报告](../reports/prism-admin-login-delivery.md)。下文 Key/CSRF 页面说明是此前域名
+切换时的记录；CLI 凭据兼容、精确 HTTPS Origin 和 loopback listener 边界仍然生效。
+
+
 2026-09-10. Deployed and verified for the user's cross-device manual acceptance request.
 This extends the previous deployment scope only for CPAR's existing domain and management origin.
 The prior loopback-only default remains available when the option is omitted.
