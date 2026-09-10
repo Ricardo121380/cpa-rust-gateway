@@ -9,6 +9,8 @@
 
 /// Backend-only Codex OAuth session state and replay-safe lifecycle.
 pub mod codex_oauth_management;
+/// Administrator password login and restricted first-password session endpoints.
+pub mod management_admin_login;
 /// Protected P10 encrypted-backup preflight and empty-target restore handlers.
 pub mod management_backup_resources;
 /// Protected P10 Config Version lifecycle and lifecycle-audit handlers.
@@ -1056,7 +1058,9 @@ pub fn configure_readiness(config: &mut web::ServiceConfig) {
 /// no data-plane routes and requires the caller to supply every corresponding P10 state object;
 /// missing state continues to fail closed in the existing handlers and middleware.
 pub fn configure_management_listener(config: &mut web::ServiceConfig) {
+    management_admin_login::configure_login(config);
     management_security::configure_management(config, |protected| {
+        management_admin_login::configure_protected(protected);
         management_resources::configure_protected_resource_routes(protected);
         management_lifecycle_resources::configure_protected_lifecycle_routes(protected);
         management_backup_resources::configure_protected_backup_routes(protected);

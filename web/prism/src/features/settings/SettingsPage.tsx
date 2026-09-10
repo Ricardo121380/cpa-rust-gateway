@@ -11,20 +11,10 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { resolvedTheme, useAccessibilityStore, useThemeStore, type ThemeChoice } from "../../app/themeStore";
 import { NAV_ITEMS } from "../../app/navigation";
 import { useLangStore, useMessages, type Lang } from "../../i18n/messages";
+import { logoutAdministrator } from "../../api/client";
 import { useSessionStore } from "../../session/sessionStore";
 import { useMediaQuery } from "../../utils/useMediaQuery";
 import "./settings.css";
-
-/** Secrets are never rendered, not even masked. A fingerprint is enough to tell
- *  two keys apart, and it cannot be shoulder-surfed or lifted out of the DOM.
- *  The prefix is fixed by the contract so it carries no information; only the
- *  last four characters and the length do. */
-function fingerprint(secret: string | undefined): string {
-  if (secret === undefined || secret.length < 12) {
-    return "—";
-  }
-  return `…${secret.slice(-4)} · ${secret.length} chars`;
-}
 
 export function SettingsPage() {
   const t = useMessages();
@@ -40,9 +30,8 @@ export function SettingsPage() {
   const lang = useLangStore((s) => s.lang);
   const setLang = useLangStore((s) => s.setLang);
 
-  const managementKey = useSessionStore((s) => s.managementKey);
-  const csrfToken = useSessionStore((s) => s.csrfToken);
-  const lock = useSessionStore((s) => s.lock);
+  const username = useSessionStore((s) => s.username);
+  const expiresAt = useSessionStore((s) => s.expiresAt);
 
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const reduceTransparency = useMediaQuery("(prefers-reduced-transparency: reduce)");
@@ -78,7 +67,7 @@ export function SettingsPage() {
         <div className="card-head">
           <h3>{t.settings.appearance}</h3>
         </div>
-        <p className="settings-help">{t.settings.appearanceHelp}</p>
+
         <div className="settings-choice" role="radiogroup" aria-label={t.settings.appearance}>
           {THEMES.map((option) => (
             <button
@@ -105,12 +94,13 @@ export function SettingsPage() {
         <div className="card-head">
           <h3>{t.settings.language}</h3>
         </div>
-        <p className="settings-help">{t.settings.languageHelp}</p>
+
         {/* The switch used to promise "UI text switches immediately", which was
             true of the chrome and false of every page body. Saying what English
             actually reaches is the difference between a known gap and a
             surprise. */}
-        <p className="settings-help">{t.settings.languageCoverage}</p>
+
+        {lang === "en" ? <p className="settings-help">{t.settings.languageCoverage}</p> : null}
         <div className="settings-choice" role="radiogroup" aria-label={t.settings.language}>
           {LANGS.map((option) => (
             <button
@@ -146,25 +136,24 @@ export function SettingsPage() {
         <p className="settings-help">{t.settings.sessionHelp}</p>
         <dl className="settings-facts">
           <dt>{t.settings.sessionKeyLabel}</dt>
-          <dd className="mono">{fingerprint(managementKey)}</dd>
+          <dd className="mono">{username ?? "—"}</dd>
           <dt>{t.settings.sessionCsrfLabel}</dt>
-          <dd className={csrfToken === undefined ? "muted" : "mono"}>
-            {csrfToken === undefined ? t.settings.sessionCsrfAbsent : fingerprint(csrfToken)}
-          </dd>
+          <dd>{expiresAt === undefined ? "—" : new Date(expiresAt).toLocaleString()}</dd>
         </dl>
         <button
           type="button"
           className="settings-lock"
           onClick={() => {
-            lock();
+            void logoutAdministrator();
             navigate("/unlock", { replace: true });
           }}
         >
           {t.settings.lock}
         </button>
-        <p className="settings-note">{t.settings.lockHelp}</p>
+        <button type="button" className="secondary" onClick={() => navigate("/unlock?change-password=1")}>{t.unlock.changeTitle}</button>
       </div>
 
+      <details className="card settings-technical" data-gap="top"><summary>{t.settings.render} / {t.settings.build}</summary>
       <div className="card" data-gap="top">
         <div className="card-head">
           <h3>{t.settings.render}</h3>
@@ -205,6 +194,7 @@ export function SettingsPage() {
           <dd className="mono">management-v1</dd>
         </dl>
       </div>
+      </details>
     </section>
   );
 }

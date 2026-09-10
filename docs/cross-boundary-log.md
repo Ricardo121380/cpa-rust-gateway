@@ -1737,3 +1737,29 @@ HTTP tunnel origin will be denied. No frontend code or generated client changes 
 Parser/composed admission, existing security regression, local and isolated real gateway writes,
 signed release/full gates and public authenticated write/readback passed. The browser check covers
 the real HTTPS unlock page, not a claim of completed physical-device manual acceptance.
+
+## 2026-09-10 — Codex — administrator password login and quieter V4 entry
+
+**What:** `docs/openapi/management-v1.json` adds login/password/logout and their closed DTOs;
+`web/prism/contracts/management-v1.json` and `src/generated/management-client.ts` are regenerated.
+`web/prism/scripts/generate-client.mjs` derives unauthenticated login from OpenAPI security.
+`src/api/client.ts`, `src/session/{sessionStore,administrator}.ts`, `src/app/AppShell.tsx`,
+`src/features/unlock/{UnlockPage,PasswordField}.tsx`, `src/features/settings/SettingsPage.tsx`,
+`src/app/v4.css`, both i18n packs, fixtures and affected tests consume the real session contract.
+`web/prism/scripts/check.mjs` keeps the machine-key paste rule on SecretField while permitting
+real password fields/autocomplete. Existing V4 real-browser harnesses use account/password.
+
+**Why:** The user explicitly rejected key/token login and excess explanatory text, chose random
+initial `admin` credentials in an owner-only local file and mandatory first password change.
+Backend includes Argon2id, a separate private singleton account store, bounded expiring/revocable
+sessions, exact-Origin login and first-session restrictions. Existing CLI management keys,
+control schema 22 and data-plane authorization remain intact. Design was authored by this
+session and saved/read through OpenDesign MCP in the existing project, not a model generator.
+
+**Other side:** Full-stack implementation remains authorized; FYI, no separate implementer wait.
+Targeted HTTP/contract/security tests, session/store tests, 256 frontend unit tests, initial
+10 frontend E2E and the real embedded browser/password/refresh flow passed. Three viewports
+1440×900, 1280×720 and 390×844 have real Chromium light/dark captures. Full E2E found one obsolete English-coverage copy assertion; the concise coverage notice
+and its three i18n tests now pass (126 other E2E passed). The existing real gateway ten-stage
+browser write flow also passes under administrator login. Formal release checks and deployment
+receipt are recorded in the delivery report after they finish.

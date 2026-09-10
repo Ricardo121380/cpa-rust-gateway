@@ -116,6 +116,10 @@ def main():
         '--management-listen', f'127.0.0.1:{management_port}',
     ], stdout=log, stderr=log, env={**os.environ, 'SSL_CERT_FILE': str(cert)})
 
+    initial_file = root / 'initial-admin-password'
+    subprocess.run([str(ROOT / 'target/debug/gateway'), 'admin-login', 'init', '--state-dir', str(state), '--password-file', str(initial_file)],
+                   check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    admin_password = secrets.token_urlsafe(24)
     process = start_gateway()
 
     def request(path, method='GET', body=None, revision=None, scope=None, expected_error=None, extra_headers=None):
@@ -152,6 +156,15 @@ def main():
                 time.sleep(.05)
         assert status == 200 and versions == []
         checks.append('empty real management listener')
+        _, _, initial_session = request('/admin/auth/login', 'POST', {'username': 'admin', 'password': initial_file.read_text().strip()})
+        request('/admin/auth/password', 'POST', {'current_password': initial_file.read_text().strip(), 'new_password': admin_password},
+                extra_headers={'x-management-key': initial_session['session_token'], 'x-management-csrf-token': initial_session['csrf_token']})
+        if args.preview:
+            private_file = root / 'admin-preview-password'
+            fd = os.open(private_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, 'w') as password_output:
+                password_output.write(admin_password + '\n')
+        checks.append('administrator password initialized and rotated before browser acceptance')
         status, _, version = request('/admin/config-versions', 'POST',
                                      {'id': 'prism-local-v4', 'description': 'Synthetic Prism V4 acceptance'})
         assert status == 201
@@ -488,7 +501,7 @@ def main():
         checks.append('embedded production SPA and CSP')
         if args.browser:
             subprocess.run(['node', str(ROOT / 'web/prism/e2e/real-gateway-audit.mjs')],
-                           input=json.dumps({'base': base, 'key': key, 'csrf': csrf, 'output': str(root / 'browser')}),
+                           input=json.dumps({'base': base, 'username': 'admin', 'password': admin_password, 'output': str(root / 'browser')}),
                            text=True, check=True)
             checks.append('production browser pages captured at three sizes in light and dark')
 
@@ -521,7 +534,7 @@ def main():
             assert request(f'/admin/config-versions/{scope}/diff?base_id=absent-version', expected_error=404)[0] == 404
             checks.append('real configuration diff pages exclude secrets and reject stale dual-version cursor')
             subprocess.run(['node', str(ROOT / 'web/prism/e2e/real-gateway-flow.mjs')],
-                           input=json.dumps({'base': base, 'key': key, 'csrf': csrf, 'output': str(root / 'browser-flow')}), text=True, check=True)
+                           input=json.dumps({'base': base, 'username': 'admin', 'password': admin_password, 'output': str(root / 'browser-flow')}), text=True, check=True)
             _, _, versions_after = request('/admin/config-versions')
             assert next(version for version in versions_after if version['id'] == 'prism-local-v4')['status'] == 'active'
             assert next(version for version in versions_after if version['id'] == scope)['status'] == 'archived'

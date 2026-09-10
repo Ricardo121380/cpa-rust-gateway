@@ -5,6 +5,7 @@
 
 #![deny(unsafe_code)]
 
+mod admin_login;
 mod billing_worker;
 mod credential_refresh;
 mod deployment;
@@ -58,7 +59,7 @@ fn run(arguments: Vec<String>) -> Result<(), CliError> {
         || arguments
             .first()
             .is_some_and(|argument| argument == "--help")
-        || matches!(arguments.as_slice(), [top_level, action] if matches!(top_level.as_str(), "admin" | "serve") && action == "--help")
+        || matches!(arguments.as_slice(), [top_level, action] if matches!(top_level.as_str(), "admin" | "serve" | "admin-login") && action == "--help")
     {
         print_usage();
         return Ok(());
@@ -71,6 +72,9 @@ fn execute(command: GatewayCommand) -> Result<(), CliError> {
     match command {
         GatewayCommand::Admin(command) => execute_admin(command),
         GatewayCommand::Serve(command) => deployment::run(command).map_err(CliError::Deployment),
+        GatewayCommand::AdminLogin(command) => {
+            admin_login::run(&command).map_err(CliError::AdminLogin)
+        }
     }
 }
 
@@ -215,6 +219,7 @@ fn execute_grok_admin(command: &AdminCommand) -> Result<bool, CliError> {
 enum GatewayCommand {
     Admin(AdminCommand),
     Serve(deployment::ServeCommand),
+    AdminLogin(admin_login::InitCommand),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -313,6 +318,9 @@ fn parse_command(arguments: Vec<String>) -> Result<GatewayCommand, CliError> {
         "serve" => deployment::parse(arguments.collect())
             .map(GatewayCommand::Serve)
             .map_err(CliError::Deployment),
+        "admin-login" => admin_login::parse(arguments.collect())
+            .map(GatewayCommand::AdminLogin)
+            .map_err(CliError::AdminLogin),
         _ => Err(CliError::Usage),
     }
 }
@@ -440,6 +448,9 @@ fn parse_i64_option(value: &str, option: &'static str) -> Result<i64, CliError> 
 
 fn print_usage() {
     println!(
+        "Administrator bootstrap: gateway admin-login init --state-dir <absolute-dir> --password-file <new-private-file> [--username admin]"
+    );
+    println!(
         "Usage:\n  gateway serve --data-listen <loopback-host:port> --management-listen <loopback-host:port> --state-dir <absolute-dir> --credential-dir <absolute-dir> [--management-origin <https-origin>]\n  gateway admin create --db <path> --version <id> --description <text> [--parent <id>] [--actor <label>]\n  gateway admin validate --db <path> --version <id> [--actor <label>]\n  gateway admin publish --db <path> --version <id> [--actor <label>]\n  gateway admin rollback --db <path> [--actor <label>]\n  gateway admin audit --db <path> [--actor <label>]\n  gateway admin grok-import --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>\n  gateway admin grok-rollback --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>\n  gateway admin grok-probe --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --provider <grok_build|grok_console> --observed-at-ms <unix-ms>\n  gateway admin grok-build-entitlement-sync --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>"
     );
     println!(
@@ -459,6 +470,7 @@ enum CliError {
     Deployment(deployment::DeploymentError),
     Management(ManagementServiceError),
     GrokAdmin(grok_admin::GrokAdminError),
+    AdminLogin(admin_login::AdminInitError),
 }
 
 impl fmt::Display for CliError {
@@ -480,6 +492,7 @@ impl fmt::Display for CliError {
             Self::Deployment(error) => write!(formatter, "{error}"),
             Self::Management(error) => write!(formatter, "{error}"),
             Self::GrokAdmin(error) => write!(formatter, "{error}"),
+            Self::AdminLogin(error) => write!(formatter, "{error}"),
         }
     }
 }
@@ -490,6 +503,7 @@ impl Error for CliError {
             Self::Deployment(error) => Some(error),
             Self::Management(error) => Some(error),
             Self::GrokAdmin(error) => Some(error),
+            Self::AdminLogin(error) => Some(error),
             Self::Usage
             | Self::MissingOption(_)
             | Self::MissingValue

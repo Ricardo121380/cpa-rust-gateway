@@ -652,6 +652,10 @@ function renderMetrics(scrape: number): string {
   return `${lines.join("\n")}\n`;
 }
 
+const fixtureSessions = new Map<string, { csrf: string; expires: number; initial: boolean }>();
+let fixturePassword = "Prism-demo-2026";
+let fixtureSequence = 0;
+
 export const fixtureFetch: typeof fetch = (input, init) => {
   // No `new Request(...)`: Node's Request rejects relative URLs, and the
   // generated client always issues relative /admin paths.
@@ -664,6 +668,27 @@ export const fixtureFetch: typeof fetch = (input, init) => {
   const route = `${method} ${url.pathname}`;
 
   const respond = async (): Promise<Response> => {
+    if (route === "POST /admin/auth/login") {
+      const body = JSON.parse(bodyText ?? "{}") as { username: string; password: string };
+      if (body.username !== "admin" || body.password !== fixturePassword) return errorResponse(401, "management_login_invalid_credentials", "Username or password is incorrect");
+      const token = `session_${(++fixtureSequence).toString(16).padStart(64, "0")}`;
+      const csrf = `csrf_${(fixtureSequence + 100).toString(16).padStart(64, "0")}`;
+      const expires = Date.now() + 8 * 60 * 60 * 1000;
+      fixtureSessions.set(token, { csrf, expires, initial: false });
+      return json(200, { username: "admin", session_token: token, csrf_token: csrf, expires_at_ms: expires, password_change_required: false });
+    }
+    const presented = headers.get("X-Management-Key") ?? "";
+    if (presented.startsWith("session_")) {
+      const session = fixtureSessions.get(presented);
+      if (!session || session.expires <= Date.now() || (method !== "GET" && headers.get("X-Management-CSRF-Token") !== session.csrf)) return errorResponse(404, "management_access_denied", "Management access is unavailable");
+      if (route === "POST /admin/auth/logout") { fixtureSessions.delete(presented); return new Response(null, { status: 204 }); }
+      if (route === "POST /admin/auth/password") {
+        const body = JSON.parse(bodyText ?? "{}") as { current_password: string; new_password: string };
+        if (body.current_password !== fixturePassword) return errorResponse(401, "management_login_invalid_credentials", "Username or password is incorrect");
+        if ([...body.new_password].length < 12 || [...body.new_password].length > 128 || body.new_password === fixturePassword) return errorResponse(400, "management_login_invalid_password", "Invalid new password");
+        fixturePassword = body.new_password; fixtureSessions.clear(); return new Response(null, { status: 204 });
+      }
+    }
     if (headers.get("X-Management-Key") === null) {
       return errorResponse(404, "management_access_denied", "Management access is unavailable");
     }

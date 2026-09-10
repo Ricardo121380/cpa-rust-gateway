@@ -73,13 +73,14 @@ for (const file of walk(SRC)) {
   }
   // Password-typed fields summon Safari's strong-password popover and
   // password-manager widgets, which cover the input and swallow paste. The
-  // unlock secrets are machine keys: they use masked text inputs instead.
+  // machine-key SecretField retains masked text. Administrator passwords deliberately
+  // use PasswordField and password-manager autocomplete (user-approved login migration).
   const codeLines = text
     .split("\n")
     .filter((line) => !/^\s*(?:\/\/|\*|\/\*)/u.test(line))
     .join("\n");
-  if (rel.startsWith("src/features/unlock/") && /type="password"/u.test(codeLines)) {
-    failures.push(`${rel}: type="password" breaks paste on the unlock screen (use SecretField)`);
+  if (rel === "src/features/unlock/SecretField.tsx" && /type="password"/u.test(codeLines)) {
+    failures.push(`${rel}: machine keys retain paste-friendly SecretField semantics`);
   }
   // --ink-3 measures 3.26:1 (light) / 3.56:1 (dark) — below AA. It is reserved
   // for non-text marks: chart grid lines and axis ticks, the uppercase 11px

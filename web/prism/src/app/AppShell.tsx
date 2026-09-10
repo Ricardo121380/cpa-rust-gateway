@@ -54,6 +54,7 @@ function VersionPicker() {
 
 export function AppShell() {
   const unlocked = useSessionStore((s) => s.unlocked);
+  const passwordChangeRequired = useSessionStore((s) => s.passwordChangeRequired);
   const sessionGeneration = useSessionStore((s) => s.generation);
   const selectionGeneration = useVersionStore((s) => s.selectionGeneration);
   const context = useVersionStore((s) => s.context);
@@ -87,7 +88,7 @@ export function AppShell() {
     return () => window.removeEventListener("keydown", close);
   }, [menuOpen]);
 
-  if (!unlocked) {
+  if (!unlocked || passwordChangeRequired) {
     return <Navigate to="/unlock" replace />;
   }
 

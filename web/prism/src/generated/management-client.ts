@@ -14,6 +14,7 @@ export type ManagementOperation = Readonly<{
   method: ManagementHttpMethod;
   path: string;
   parameters: readonly ManagementParameter[];
+  requiresAuthentication: boolean;
   bodyEncoding: "none" | "json" | "binary";
   bodyRequired: boolean;
 }>;
@@ -39,6 +40,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -52,6 +54,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -70,8 +73,17 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
+  },
+  "changeAdministratorPassword": {
+    "method": "POST",
+    "path": "/admin/auth/password",
+    "parameters": [],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
   },
   "clearRoutingPricePolicy": {
     "method": "DELETE",
@@ -88,6 +100,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -116,6 +129,7 @@ export const managementOperations = {
         "required": false
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -134,6 +148,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -152,6 +167,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -170,6 +186,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -188,6 +205,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -206,6 +224,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -213,6 +232,7 @@ export const managementOperations = {
     "method": "POST",
     "path": "/admin/config-versions",
     "parameters": [],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -236,6 +256,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -254,6 +275,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -277,6 +299,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -300,6 +323,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -323,6 +347,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -341,6 +366,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -364,6 +390,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -387,6 +414,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -405,6 +433,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -428,6 +457,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -456,6 +486,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -479,6 +510,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -502,6 +534,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -525,6 +558,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -548,6 +582,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -571,6 +606,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -594,6 +630,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -617,6 +654,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -645,6 +683,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -668,6 +707,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -686,6 +726,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -719,6 +760,7 @@ export const managementOperations = {
         "required": false
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -737,6 +779,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -755,6 +798,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -762,6 +806,7 @@ export const managementOperations = {
     "method": "GET",
     "path": "/admin/operations/billing-processing",
     "parameters": [],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -775,6 +820,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -793,6 +839,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -816,6 +863,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -834,6 +882,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -852,6 +901,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -865,6 +915,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -883,6 +934,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -901,6 +953,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -919,6 +972,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -937,6 +991,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -955,6 +1010,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -962,6 +1018,7 @@ export const managementOperations = {
     "method": "GET",
     "path": "/admin/observability/metrics",
     "parameters": [],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -980,6 +1037,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -998,6 +1056,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1011,6 +1070,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1024,6 +1084,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1042,6 +1103,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1065,6 +1127,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -1083,6 +1146,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -1101,6 +1165,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -1119,6 +1184,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1132,6 +1198,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1145,6 +1212,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1158,6 +1226,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1171,6 +1240,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1184,6 +1254,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1197,6 +1268,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1204,6 +1276,7 @@ export const managementOperations = {
     "method": "GET",
     "path": "/admin/config-versions",
     "parameters": [],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1237,6 +1310,7 @@ export const managementOperations = {
         "required": false
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1250,6 +1324,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1268,6 +1343,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1275,6 +1351,7 @@ export const managementOperations = {
     "method": "GET",
     "path": "/admin/audit-events",
     "parameters": [],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1298,6 +1375,7 @@ export const managementOperations = {
         "required": false
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1321,6 +1399,7 @@ export const managementOperations = {
         "required": false
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1364,6 +1443,7 @@ export const managementOperations = {
         "required": false
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1417,6 +1497,7 @@ export const managementOperations = {
         "required": false
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1480,6 +1561,7 @@ export const managementOperations = {
         "required": false
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1518,6 +1600,7 @@ export const managementOperations = {
         "required": false
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1561,6 +1644,7 @@ export const managementOperations = {
         "required": false
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1614,6 +1698,7 @@ export const managementOperations = {
         "required": false
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1627,6 +1712,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1640,6 +1726,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1663,6 +1750,7 @@ export const managementOperations = {
         "required": false
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1686,6 +1774,7 @@ export const managementOperations = {
         "required": false
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1699,6 +1788,23 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "loginAdministrator": {
+    "method": "POST",
+    "path": "/admin/auth/login",
+    "parameters": [],
+    "requiresAuthentication": false,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
+  "logoutAdministrator": {
+    "method": "POST",
+    "path": "/admin/auth/logout",
+    "parameters": [],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1706,6 +1812,7 @@ export const managementOperations = {
     "method": "POST",
     "path": "/admin/backups/preflight",
     "parameters": [],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1724,6 +1831,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1731,6 +1839,7 @@ export const managementOperations = {
     "method": "POST",
     "path": "/admin/restores/preflight",
     "parameters": [],
+    "requiresAuthentication": true,
     "bodyEncoding": "binary",
     "bodyRequired": true
   },
@@ -1759,6 +1868,7 @@ export const managementOperations = {
         "required": false
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1777,6 +1887,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1790,6 +1901,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -1797,6 +1909,7 @@ export const managementOperations = {
     "method": "POST",
     "path": "/admin/restores",
     "parameters": [],
+    "requiresAuthentication": true,
     "bodyEncoding": "binary",
     "bodyRequired": true
   },
@@ -1820,6 +1933,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1843,6 +1957,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -1866,6 +1981,7 @@ export const managementOperations = {
         "required": false
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1884,6 +2000,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -1902,6 +2019,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -1920,6 +2038,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -1943,6 +2062,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -1966,6 +2086,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -1994,6 +2115,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -2017,6 +2139,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -2040,6 +2163,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -2063,6 +2187,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -2086,6 +2211,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -2109,6 +2235,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -2132,6 +2259,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -2155,6 +2283,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -2183,6 +2312,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -2206,6 +2336,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
   },
@@ -2219,6 +2350,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   },
@@ -2237,6 +2369,7 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
   }
@@ -2355,7 +2488,7 @@ export class ManagementApi {
     }
 
     const headers = new Headers({ Accept: "application/json" });
-    headers.set(managementKeyHeader, configuredSecret(this.#managementKey(), managementKeyHeader));
+    if (operation.requiresAuthentication) headers.set(managementKeyHeader, configuredSecret(this.#managementKey(), managementKeyHeader));
     for (const parameter of operation.parameters.filter((candidate) => candidate.in === "header")) {
       const value = inputFor(request.headers, parameter);
       if (value === undefined) {
@@ -2368,7 +2501,7 @@ export class ManagementApi {
     }
 
     const unsafe = operation.method !== "GET";
-    if (unsafe) {
+    if (unsafe && operation.requiresAuthentication) {
       headers.set(csrfHeader, configuredSecret(this.#csrfToken?.(), csrfHeader));
     }
 
@@ -2416,6 +2549,10 @@ export class ManagementApi {
 
   cancelCredentialOAuth(request: ManagementRequest = {}): Promise<Response> {
     return this.request("cancelCredentialOAuth", request);
+  }
+
+  changeAdministratorPassword(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("changeAdministratorPassword", request);
   }
 
   clearRoutingPricePolicy(request: ManagementRequest = {}): Promise<Response> {
@@ -2728,6 +2865,14 @@ export class ManagementApi {
 
   listUpstreams(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listUpstreams", request);
+  }
+
+  loginAdministrator(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("loginAdministrator", request);
+  }
+
+  logoutAdministrator(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("logoutAdministrator", request);
   }
 
   previewBackup(request: ManagementRequest = {}): Promise<Response> {

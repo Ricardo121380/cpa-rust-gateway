@@ -1,13 +1,14 @@
 import { expect, type Page } from "@playwright/test";
 
+export const FIXTURE_PASSWORD = "Prism-demo-2026";
 export const FIXTURE_KEY = `mgmt_${"a".repeat(40)}`;
 export const FIXTURE_CSRF = `csrf_${"b".repeat(40)}`;
 
 export async function unlock(page: Page): Promise<void> {
   await page.goto("/#/unlock");
-  await page.getByLabel("Management Key").fill(FIXTURE_KEY);
-  await page.getByLabel(/CSRF Token/u).fill(FIXTURE_CSRF);
-  await page.getByRole("button", { name: "解锁" }).click();
+  await page.getByLabel("账号", { exact: true }).fill("admin");
+  await page.getByLabel("密码", { exact: true }).fill(FIXTURE_PASSWORD);
+  await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page.getByRole("heading", { name: "总览" })).toBeVisible();
 }
 

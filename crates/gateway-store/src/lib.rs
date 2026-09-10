@@ -2,6 +2,9 @@
 
 #![deny(unsafe_code)]
 
+/// Separate, owner-only administrator credential store (excluded from configuration backups).
+pub mod admin_login;
+
 /// Encrypted control-plane backup artifacts and empty-target restoration primitives.
 pub mod backup;
 /// Versioned integer-rate price catalog and idempotent, retention-bounded billing ledger.

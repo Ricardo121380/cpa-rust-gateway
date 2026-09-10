@@ -33,6 +33,7 @@ authors = ["Huang Rui"]
 publish = false
 
 [workspace.dependencies]
+argon2 = { version = "0.5.3", default-features = false, features = ["alloc", "password-hash", "zeroize"] }
 actix-web = { version = "4.11.0", default-features = false, features = ["macros"] }
 actix-ws = { version = "0.4.0", default-features = false }
 arc-swap = { version = "1.9.2", default-features = false }

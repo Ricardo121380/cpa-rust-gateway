@@ -1,6 +1,6 @@
 //! Fail-closed management HTTP admission before P10 CRUD or UI work.
 //!
-//! The only management credential accepted here is the separate `X-Management-Key` header.
+//! `X-Management-Key` accepts a legacy CLI key or an opaque administrator session.
 //! Actual peer addresses, not forwarded headers, select the loopback/private admission policy.
 //! Browser origins are denied by default; an explicitly configured same-origin UI also needs a
 //! dedicated CSRF value for unsafe methods. This module stores no management data and sends no
@@ -228,6 +228,7 @@ pub struct ManagementHttpState {
     network_policy: ManagementNetworkPolicy,
     browser_policy: ManagementBrowserPolicy,
     actor: ManagementActor,
+    pub(crate) admin_login: Option<crate::management_admin_login::AdminLoginHttpState>,
 }
 
 impl ManagementHttpState {
@@ -248,6 +249,7 @@ impl ManagementHttpState {
             network_policy,
             browser_policy,
             actor,
+            admin_login: None,
         })
     }
 
@@ -255,6 +257,40 @@ impl ManagementHttpState {
     #[must_use]
     pub const fn network_policy(&self) -> ManagementNetworkPolicy {
         self.network_policy
+    }
+
+    /// Enable explicitly initialized administrator login, sharing sessions across all workers.
+    #[must_use]
+    pub fn with_admin_login(
+        mut self,
+        service: gateway_control::admin_login::AdminLoginService,
+    ) -> Self {
+        self.admin_login = Some(crate::management_admin_login::AdminLoginHttpState::new(
+            service,
+        ));
+        self
+    }
+
+    /// A public login still requires the actual peer policy and an exact, explicit Origin.
+    pub(crate) fn admit_login(&self, request: &HttpRequest) -> Result<(), ()> {
+        let peer = request.peer_addr().ok_or(())?;
+        if !self.network_policy.admits(peer.ip()) {
+            return Err(());
+        }
+        self.check_origin(request, true)
+    }
+
+    fn check_origin(&self, request: &HttpRequest, required: bool) -> Result<(), ()> {
+        let Some(origin) = single_header(request, "origin")? else {
+            return if required { Err(()) } else { Ok(()) };
+        };
+        let origin = ManagementOrigin::try_new(origin.to_str().map_err(|_| ())?).map_err(|_| ())?;
+        match &self.browser_policy {
+            ManagementBrowserPolicy::SameOrigin {
+                origin: admitted, ..
+            } if &origin == admitted && request.method() != Method::OPTIONS => Ok(()),
+            _ => Err(()),
+        }
     }
 
     fn authenticate(&self, request: &HttpRequest) -> Result<ManagementRequestPrincipal, ()> {
@@ -269,6 +305,30 @@ impl ManagementHttpState {
             return Err(());
         };
         let presented_key = presented_key.to_str().map_err(|_| ())?;
+        if presented_key.starts_with("session_") {
+            self.check_origin(request, false)?;
+            let login = self.admin_login.as_ref().ok_or(())?;
+            let csrf = single_header(request, CSRF_HEADER)?
+                .map(|value| value.to_str())
+                .transpose()
+                .map_err(|_| ())?;
+            let identity = login
+                .service
+                .authenticate(presented_key, csrf, unsafe_method(request.method()))
+                .map_err(|_| ())?;
+            if identity.password_change_required
+                && !(request.method() == Method::POST
+                    && matches!(
+                        request.path(),
+                        "/admin/auth/password" | "/admin/auth/logout"
+                    ))
+            {
+                return Err(());
+            }
+            let actor =
+                ManagementActor::try_new(format!("admin:{}", identity.username)).map_err(|_| ())?;
+            return Ok(ManagementRequestPrincipal { actor });
+        }
         if !self.key.matches(presented_key) {
             return Err(());
         }
@@ -316,6 +376,7 @@ impl fmt::Debug for ManagementHttpState {
             .field("network_policy", &self.network_policy)
             .field("browser_policy", &self.browser_policy)
             .field("actor", &self.actor)
+            .field("admin_login", &self.admin_login.is_some())
             .finish()
     }
 }
@@ -415,7 +476,7 @@ where
     }
 }
 
-fn single_header<'a>(
+pub(crate) fn single_header<'a>(
     request: &'a HttpRequest,
     name: &'static str,
 ) -> Result<Option<&'a header::HeaderValue>, ()> {
@@ -433,7 +494,7 @@ const fn unsafe_method(method: &Method) -> bool {
     !matches!(*method, Method::GET | Method::HEAD)
 }
 
-fn management_denied_response() -> HttpResponse {
+pub(crate) fn management_denied_response() -> HttpResponse {
     HttpResponse::NotFound()
         .insert_header((header::CACHE_CONTROL, "no-store"))
         .content_type("application/json")

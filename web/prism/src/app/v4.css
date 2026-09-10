@@ -601,3 +601,25 @@ html[data-contrast="more"] .sheet-backdrop[data-modal="scrim"] {
     --separator: var(--ink);
   }
 }
+
+/* V4 administrator entry: quiet form, one glass surface, no deployment annotations. */
+.unlock-scene { min-height: 100svh; padding: 32px 12px; }
+.unlock-card { width: min(400px, 100%); padding: 32px; border-radius: 28px; }
+.unlock-card .login-brand { display: flex; align-items: center; gap: 9px; margin-bottom: 28px; font-size: 19px; font-weight: 600; letter-spacing: -0.03em; }
+.unlock-card h1 { font-size: 26px; font-weight: 600; line-height: 1.2; margin: 0 0 26px; }
+.unlock-card form { gap: 18px; }
+.unlock-card .login-field { display: grid; gap: 8px; }
+.unlock-card .login-field > label { color: var(--ink); font-size: 13px; font-weight: 500; }
+.unlock-card input { width: 100%; min-width: 0; height: 48px; border-radius: 12px; padding: 0 14px; font-size: 16px; border-color: #86868b; }
+.unlock-card input::placeholder { color: var(--ink-2); }
+:root[data-contrast="more"] .unlock-card input { border-color: var(--ink); }
+.unlock-card input[aria-invalid="true"] { border-color: var(--status-critical); }
+.login-password-row { position: relative; }
+.unlock-card .login-password-row input { padding-right: 48px; }
+.login-eye { position: absolute; right: 3px; top: 2px; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; background: transparent; color: var(--ink-2); border: 0; border-radius: 10px; cursor: pointer; }
+.unlock-card .unlock-submit { height: 48px; padding: 0 16px; margin-top: 6px; font-size: 15px; }
+.login-note { color: var(--ink-2); font-size: 13px; margin: -12px 0 22px; }
+form .login-note { margin: 0; }
+.login-back { height: 44px; padding: 0; background: transparent; color: var(--ink-2); border: 0; cursor: pointer; font-size: 13px; }
+.settings-technical > summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+@media (max-width: 440px) { .unlock-card { padding: 28px 24px; } }

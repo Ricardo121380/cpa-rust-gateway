@@ -2084,3 +2084,19 @@ The Goal is still active. See [progress](../../docs/reports/prism-v4-progress.md
 最终251单测、127 E2E、108 operation权威契约/四文件双构建及完整fast门禁通过；
 真实gateway三尺寸浅深色与写入链路证据见交付报告。新增资源细节在原OpenDesign项目中
 由本会话模型经MCP保存，无内置生成器/外部模型CLI。
+
+## 29. Administrator login (2026-09-10)
+
+The user superseded the machine-key unlock interaction with account/password login. The V4
+visual baseline is unchanged; [administrator login handoff](../../docs/handoffs/prism-admin-password-login.md)
+and [OpenDesign artifact](../../docs/design/prism-v4-admin-login.html) define the updated entry.
+The card is 400px maximum, mobile outside margins 12px, 48px fields/primary button and a 44px
+password visibility target. It removes the intro, key/token hints and secret-storage footer.
+Real passwords use `type=password` and username/current/new-password autocomplete; the old
+SecretField paste behavior still applies to machine-key editing elsewhere.
+
+First password change is server-enforced and shows only its necessary instruction. Session
+and CSRF are automatic, distinct from CLI secrets, and remain memory-only. Query cancellation,
+version ownership and no-replay conflict handling still apply. Settings displays account/expiry,
+password change/sign-out, and collapses implementation diagnostics. All 14 workspaces and old
+hash/query routes remain supported. Production evidence belongs in the login delivery report.

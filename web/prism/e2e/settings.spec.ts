@@ -52,16 +52,17 @@ test("settings never renders a secret, and locking clears the session", async ({
   await navigate(page, "设置");
   // innerText() is a one-shot read with no retry, so the page has to be there
   // first — otherwise this races the route transition and reads bare shell.
-  await expect(page.getByRole("button", { name: "锁定并清除密钥" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "退出登录" })).toBeVisible();
 
   // the full key must not be in the DOM in any form, masked or not
   const body = await page.locator("body").innerText();
   expect(body).not.toContain("a".repeat(40));
-  expect(body).toContain("chars");
+  expect(body).toContain("admin");
+  expect(body).not.toContain("session_");
 
-  await page.getByRole("button", { name: "锁定并清除密钥" }).click();
+  await page.getByRole("button", { name: "退出登录" }).click();
   await expect(page).toHaveURL(/#\/unlock$/u);
-  await expect(page.getByRole("heading", { name: "解锁管理面板" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "管理员登录" })).toBeVisible();
 
   // the session is really gone, not just navigated away from
   await page.goto("/#/settings");

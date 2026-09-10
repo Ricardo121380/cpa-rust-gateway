@@ -51,8 +51,8 @@ test("the switch states what English does not cover", async ({ page }) => {
 
   // The old copy promised "UI copy switches immediately", which was true of the
   // chrome and false of every page body.
-  await expect(page.locator(".settings-help").filter({ hasText: "English currently covers" })).toContainText(
-    "explanatory prose on each page is still Chinese",
+  await expect(page.locator(".settings-help").filter({ hasText: "Some pages" })).toContainText(
+    "Some pages are still shown in Chinese.",
   );
   await expect(page.getByText("UI copy switches immediately")).toHaveCount(0);
 });

@@ -3,7 +3,7 @@ import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 let input = '';
 for await (const chunk of process.stdin) input += chunk;
-const { base, key, csrf, output } = JSON.parse(input);
+const { base, username = "admin", password, output } = JSON.parse(input);
 const routes = ['/', '/monitoring', '/usage', '/billing', '/accounts', '/upstreams', '/catalog', '/models', '/access', '/runtime', '/egress', '/versions', '/audit', '/settings'];
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch();
@@ -15,11 +15,11 @@ try {
       const page = await context.newPage();
       page.on('pageerror', error => evidence.errors.push({ width, theme, message: error.message }));
       await page.goto(`${base}/admin-ui/#/unlock`);
-      await page.getByRole('button', { name: '解锁', exact: true }).waitFor();
+      await page.getByRole('button', { name: '登录', exact: true }).waitFor();
       await page.screenshot({ path: `${output}/${width}-${theme}-unlock.png` });
-      await page.getByLabel('Management Key').fill(key);
-      await page.getByLabel(/CSRF Token/u).fill(csrf);
-      await page.getByRole('button', { name: '解锁', exact: true }).click();
+      await page.getByLabel('账号', { exact: true }).fill(username);
+      await page.getByLabel('密码', { exact: true }).fill(password);
+      await page.getByRole('button', { name: '登录', exact: true }).click();
       await page.getByRole('heading', { name: '总览', exact: true }).waitFor();
       await page.locator('.version-picker select').selectOption('prism-local-v4');
       for (const route of routes) {

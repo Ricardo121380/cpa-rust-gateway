@@ -1,16 +1,17 @@
 // Core flows against the fixture backend: unlock, overview observability,
 // deep-link filters, version lifecycle via the draft dock.
 import { expect, test } from "@playwright/test";
-import { FIXTURE_CSRF, FIXTURE_KEY, navigate, selectDraft, unlock } from "./helpers";
+import { FIXTURE_PASSWORD, navigate, selectDraft, unlock } from "./helpers";
 
-test("unlock rejects malformed keys locally and accepts the fixture key", async ({ page }) => {
+test("administrator login rejects incorrect credentials and accepts the fixture account", async ({ page }) => {
   await page.goto("/#/unlock");
-  await page.getByLabel("Management Key").fill("not-a-key");
-  await page.getByRole("button", { name: "解锁" }).click();
-  await expect(page.getByRole("alert")).toContainText("格式不符");
-
-  await page.getByLabel("Management Key").fill(FIXTURE_KEY);
-  await page.getByRole("button", { name: "解锁" }).click();
+  await expect(page.getByText("Management Key")).toHaveCount(0);
+  await expect(page.getByText("CSRF Token")).toHaveCount(0);
+  await page.getByLabel("密码", { exact: true }).fill("wrong-password");
+  await page.getByRole("button", { name: "登录", exact: true }).click();
+  await expect(page.getByRole("alert")).toHaveText("账号或密码不正确");
+  await page.getByLabel("密码", { exact: true }).fill(FIXTURE_PASSWORD);
+  await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page.getByRole("heading", { name: "总览" })).toBeVisible();
 });
 
@@ -64,27 +65,15 @@ test("versions workspace creates a draft and validates it", async ({ page }) => 
   await expect(page.locator(".validation-card")).toContainText("route_missing_active_candidate");
 });
 
-test("unlock secrets are paste-friendly: masked text, no password type, reveal toggle", async ({
-  page,
-}) => {
+test("login password supports autocomplete and accessible visibility without changing its value", async ({ page }) => {
   await page.goto("/#/unlock");
-  const field = page.getByLabel("Management Key");
-  // type="password" is what summons Safari's strong-password popover and
-  // password-manager widgets, which cover the input and swallow paste.
+  const field = page.getByLabel("密码", { exact: true });
+  await expect(field).toHaveAttribute("type", "password");
+  await expect(field).toHaveAttribute("autocomplete", "current-password");
+  await field.fill('  spaced-password  ');
+  await page.getByRole("button", { name: "显示密码" }).click();
   await expect(field).toHaveAttribute("type", "text");
-  await expect(field).toHaveClass(/is-masked/u);
-  await expect(field).toHaveAttribute("data-1p-ignore");
-
-  const toggle = page.getByRole("button", { name: "显示密钥" }).first();
-  await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-pressed", "true");
-  await expect(field).not.toHaveClass(/is-masked/u);
-});
-
-test("pasted secrets survive newlines, quotes and assignment prefixes", async ({ page }) => {
-  await page.goto("/#/unlock");
-  await page.getByLabel("Management Key").fill(`MGMT_KEY="${FIXTURE_KEY}"\n`);
-  await page.getByLabel(/CSRF Token/u).fill(`  ${FIXTURE_CSRF}\n`);
-  await page.getByRole("button", { name: "解锁" }).click();
-  await expect(page.getByRole("heading", { name: "总览" })).toBeVisible();
+  await expect(field).toHaveValue('  spaced-password  ');
+  await page.getByRole("button", { name: "隐藏密码" }).click();
+  await expect(field).toHaveAttribute("type", "password");
 });

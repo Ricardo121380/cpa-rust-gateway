@@ -483,7 +483,7 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         .map_err(|_| DeploymentError::BackupUnavailable)?,
     );
     let resources = resources.with_billing_processing(Arc::clone(&billing_processing));
-    let security = ManagementHttpState::new(
+    let mut security = ManagementHttpState::new(
         management_key,
         ManagementNetworkPolicy::LoopbackOnly,
         ManagementBrowserPolicy::SameOrigin {
@@ -492,6 +492,20 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         },
     )
     .map_err(|_| DeploymentError::RuntimeUnavailable)?;
+    let admin_database = command
+        .state_directory
+        .join(gateway_store::admin_login::ADMIN_DATABASE_FILE);
+    match fs::symlink_metadata(&admin_database) {
+        Ok(_) => {
+            let store = gateway_store::admin_login::AdminAccountStore::open(&admin_database)
+                .map_err(|_| DeploymentError::InvalidCredential("administrator store"))?;
+            let login = gateway_control::admin_login::AdminLoginService::new(store)
+                .map_err(|_| DeploymentError::InvalidCredential("administrator store"))?;
+            security = security.with_admin_login(login);
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(_) => return Err(DeploymentError::InvalidCredential("administrator store")),
+    }
     Ok(ApplicationState {
         data,
         security,

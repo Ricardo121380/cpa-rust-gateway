@@ -8,6 +8,7 @@ authors.workspace = true
 publish.workspace = true
 
 [dependencies]
+argon2.workspace = true
 gateway-core = { path = "../gateway-core" }
 getrandom.workspace = true
 hmac.workspace = true

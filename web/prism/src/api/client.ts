@@ -7,6 +7,7 @@ import {
   type ManagementRequest,
   managementOperations,
 } from "../generated/management-client";
+import { isAdministratorSession } from "../session/administrator";
 import { CancelledError } from "@tanstack/react-query";
 import { readCsrfToken, readManagementKey, useSessionStore } from "../session/sessionStore";
 import { useVersionStore } from "../features/config-versions/versionStore";
@@ -76,7 +77,7 @@ async function send<T>(
   const session = useSessionStore.getState();
   const declared = declaredHeaderNames(operation);
   const versionBound = declared.has("x-config-version") || request.path?.["config_version_id"] !== undefined
-    || managementOperations[operation].method !== "GET";
+    || (managementOperations[operation].method !== "GET" && !managementOperations[operation].path.startsWith("/admin/auth/"));
   const assertSession = () => {
     if (!session.unlocked || session.generation !== useSessionStore.getState().generation) {
       throw new CancelledError({ silent: true });
@@ -189,4 +190,44 @@ export async function callText(
   options: CallOptions = {},
 ): Promise<string> {
   return send(operation, request, options, (response) => response.text());
+}
+
+/** Login alone is unauthenticated. Ownership checks also cover response-body decoding. */
+export async function loginAdministrator(username: string, password: string, signal?: AbortSignal): Promise<void> {
+  useSessionStore.getState().lock();
+  const generation = useSessionStore.getState().generation;
+  const assertOwner = () => {
+    if (generation !== useSessionStore.getState().generation || signal?.aborted === true) {
+      throw new CancelledError({ silent: true });
+    }
+  };
+  const signals = [sessionRequests.signal, AbortSignal.timeout(15_000), ...(signal === undefined ? [] : [signal])];
+  try {
+    const response = await api.request("loginAdministrator", { body: { username, password }, signal: AbortSignal.any(signals) });
+    assertOwner();
+    if (!response.ok) {
+      const error = await toAppError(response);
+      assertOwner();
+      throw error;
+    }
+    const grant: unknown = await response.json();
+    assertOwner();
+    if (!isAdministratorSession(grant)) throw new Error("Invalid administrator session response");
+    useSessionStore.getState().acceptSession(grant);
+  } catch (cause) {
+    assertOwner();
+    throw cause;
+  }
+}
+
+/** Clear locally immediately; use captured credentials only for the bounded revocation request. */
+export async function logoutAdministrator(): Promise<void> {
+  const { managementKey, csrfToken } = useSessionStore.getState();
+  const logoutApi = new ManagementApi({ managementKey: () => managementKey, csrfToken: () => csrfToken,
+    ...(fetchOverride === undefined ? {} : { fetch: fetchOverride }) });
+  const request = managementKey?.startsWith("session_") === true
+    ? logoutApi.request("logoutAdministrator", { signal: AbortSignal.timeout(5_000) }) : undefined;
+  useSessionStore.getState().lock();
+  // Local logout still succeeds offline; an unreachable server expires its session absolutely.
+  await request?.catch(() => undefined);
 }

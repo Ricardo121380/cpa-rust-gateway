@@ -12,6 +12,7 @@
     }
   ],
   "tags": [
+    { "name": "administrator-auth" },
     { "name": "configuration" },
     { "name": "upstreams" },
     { "name": "routing" },
@@ -22,6 +23,9 @@
     { "name": "backup" }
   ],
   "paths": {
+    "/admin/auth/login": {"post": {"tags": ["administrator-auth"], "operationId": "loginAdministrator", "responses": {"default": {"$ref": "#/components/responses/Error"}, "200": {"description": "Administrator session; no-store", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AdministratorSession"}}}}, "401": {"$ref": "#/components/responses/Error"}, "429": {"$ref": "#/components/responses/Error"}}, "security": [], "description": "Exact configured Origin and actual management peer required; no key or preexisting CSRF. 10 verifications per minute, 2 concurrent. Returns a memory-only opaque session. Initial sessions can only change password/logout.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AdministratorLoginInput"}}}}}},
+    "/admin/auth/password": {"post": {"tags": ["administrator-auth"], "operationId": "changeAdministratorPassword", "responses": {"default": {"$ref": "#/components/responses/Error"}, "204": {"description": "Completed; no-store"}, "429": {"$ref": "#/components/responses/Error"}}, "description": "Opaque session and X-Management-CSRF-Token required, even without Origin. Password change revokes every session and requires login again.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AdministratorPasswordInput"}}}}}},
+    "/admin/auth/logout": {"post": {"tags": ["administrator-auth"], "operationId": "logoutAdministrator", "responses": {"default": {"$ref": "#/components/responses/Error"}, "204": {"description": "Completed; no-store"}}, "description": "Revoke the presented session. Always requires session CSRF."}},
     "/admin/config-versions/{config_version_id}/diff": {"parameters": [{"$ref": "#/components/parameters/ConfigVersionId"}], "get": {"tags": ["configuration"], "operationId": "compareConfigVersions", "description": "Compare persisted resources without returning field values. Ciphertext differences do not imply plaintext differences. Cursor pins both identities and revisions; changes return 409. Uses a bounded blocking reader and one read-only SQLite transaction.", "parameters": [{"name": "base_id", "in": "query", "required": true, "schema": {"$ref": "#/components/schemas/Id"}}, {"name": "limit", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 200, "default": 100}}, {"name": "cursor", "in": "query", "schema": {"type": "string", "maxLength": 8192}}], "responses": {"200": {"description": "One comparison page", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ConfigurationDiffPage"}}}}, "default": {"$ref": "#/components/responses/Error"}}}},
     "/admin/resource-audit-events": {"parameters": [{"$ref": "#/components/parameters/ConfigVersion"}], "get": {"tags": ["audit"], "operationId": "listManagementResourceAuditEvents", "description": "Bounded newest-first resource mutation audit for the selected version. before_id is an exclusive append ID; later appends never enter continuation pages. ID strings preserve SQLite precision. No secrets or mutation payloads are returned.", "parameters": [{"name": "limit", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 100, "default": 50}}, {"name": "before_id", "in": "query", "schema": {"type": "string", "pattern": "^[1-9][0-9]*$", "maxLength": 19}}], "responses": {"200": {"description": "One resource audit page", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ResourceAuditPage"}}}}, "default": {"$ref": "#/components/responses/Error"}}}},
     "/admin/config-versions": {
@@ -551,7 +555,7 @@
   },
   "components": {
     "securitySchemes": {
-      "ManagementKey": { "type": "apiKey", "in": "header", "name": "X-Management-Key", "description": "Distinct from client inference keys; P10-02 defines validation and network admission." }
+      "ManagementKey": { "type": "apiKey", "in": "header", "name": "X-Management-Key", "description": "Separate management credential: legacy CLI mgmt_ key or short-lived session_ administrator session. Client inference keys are never accepted." }
     },
     "parameters": {
       "ConfigVersion": { "name": "X-Config-Version", "in": "header", "required": true, "schema": { "$ref": "#/components/schemas/Id" }, "description": "Explicit draft or active configuration graph identity." },
@@ -703,6 +707,9 @@
       "Error": { "description": "Safe management error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
     },
     "schemas": {
+      "AdministratorLoginInput": {"type": "object", "additionalProperties": false, "required": ["username", "password"], "properties": {"username": {"type": "string", "minLength": 1, "maxLength": 64}, "password": {"type": "string", "format": "password", "minLength": 1, "maxLength": 512, "writeOnly": true}}},
+      "AdministratorPasswordInput": {"type": "object", "additionalProperties": false, "required": ["current_password", "new_password"], "properties": {"current_password": {"type": "string", "format": "password", "maxLength": 512, "writeOnly": true}, "new_password": {"type": "string", "format": "password", "minLength": 12, "maxLength": 128, "writeOnly": true, "description": "At most 512 UTF-8 bytes. Not all whitespace or identical to current password; never trimmed."}}},
+      "AdministratorSession": {"type": "object", "additionalProperties": false, "required": ["username", "session_token", "csrf_token", "expires_at_ms", "password_change_required"], "properties": {"username": {"type": "string"}, "session_token": {"type": "string", "pattern": "^session_[a-f0-9]{64}$"}, "csrf_token": {"type": "string", "pattern": "^csrf_[a-f0-9]{64}$"}, "expires_at_ms": {"type": "integer", "minimum": 1}, "password_change_required": {"type": "boolean"}}},
       "ConfigurationDiffVersion": {"type": "object", "additionalProperties": false, "required": ["id", "revision"], "properties": {"id": {"$ref": "#/components/schemas/Id"}, "revision": {"type": "string"}}},
       "ConfigurationResourceChange": {"type": "object", "additionalProperties": false, "required": ["resource_kind", "resource_key", "change", "changed_fields"], "properties": {"resource_kind": {"type": "string"}, "resource_key": {"type": "string", "maxLength": 2048, "description": "JSON primary-key identity tuple; excludes configuration ID."}, "change": {"type": "string", "enum": ["added", "removed", "changed"]}, "changed_fields": {"type": "array", "items": {"type": "string"}}}},
       "ConfigurationDiffPage": {"type": "object", "additionalProperties": false, "required": ["base", "target", "items", "next_cursor"], "properties": {"base": {"$ref": "#/components/schemas/ConfigurationDiffVersion"}, "target": {"$ref": "#/components/schemas/ConfigurationDiffVersion"}, "items": {"type": "array", "maxItems": 200, "items": {"$ref": "#/components/schemas/ConfigurationResourceChange"}}, "next_cursor": {"type": ["string", "null"]}}},

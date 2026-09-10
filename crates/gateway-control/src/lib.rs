@@ -2,6 +2,9 @@
 
 #![deny(unsafe_code)]
 
+/// Single-administrator login, bounded sessions and password rotation.
+pub mod admin_login;
+
 /// Durable Usage-to-billing materialization with restart-safe checkpoints.
 pub mod billing_materializer;
 pub mod billing_processing;

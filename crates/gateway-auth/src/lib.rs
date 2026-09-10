@@ -7,6 +7,8 @@
 
 #![deny(unsafe_code)]
 
+/// Administrator password hashing and opaque session material.
+pub mod admin_password;
 /// Client Key issuance, HMAC digest, external Pepper, and constant-time verification primitives.
 pub mod client_key;
 

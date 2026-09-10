@@ -153,3 +153,74 @@ describe("request ownership through the generated transport", () => {
     await expect(request).rejects.toBeInstanceOf(CancelledError);
   });
 });
+
+describe("administrator login ownership", () => {
+  const grant = (digit = "a", initial = false) => ({ username: "admin", session_token: `session_${digit.repeat(64)}`,
+    csrf_token: `csrf_${"b".repeat(64)}`, expires_at_ms: Date.now() + 60_000, password_change_required: initial });
+
+  it("sends no management key or CSRF during password login and accepts only the returned session", async () => {
+    const { loginAdministrator } = await import("./client");
+    transport.mockResolvedValueOnce(new Response(JSON.stringify(grant("a", true))));
+    await loginAdministrator("admin", "synthetic-password");
+    const headers = new Headers(transport.mock.calls[0]?.[1]?.headers);
+    expect(headers.has("X-Management-Key")).toBe(false);
+    expect(headers.has("X-Management-CSRF-Token")).toBe(false);
+    expect(useSessionStore.getState().passwordChangeRequired).toBe(true);
+    expect(readManagementKey()).toBe(grant().session_token);
+  });
+
+  it("a late successful login cannot resurrect a locked page", async () => {
+    const { loginAdministrator } = await import("./client");
+    let finish!: (response: Response) => void;
+    transport.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+    const request = loginAdministrator("admin", "synthetic-password");
+    const rejection = expect(request).rejects.toBeInstanceOf(CancelledError);
+    useSessionStore.getState().lock();
+    finish(new Response(JSON.stringify(grant())));
+    await rejection;
+    expect(useSessionStore.getState().unlocked).toBe(false);
+  });
+
+  it("a previous login's delayed JSON body cannot replace a newer session", async () => {
+    const { loginAdministrator } = await import("./client");
+    let finish!: (body: unknown) => void;
+    const response = new Response("{}");
+    const json = vi.spyOn(response, "json").mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+    transport.mockResolvedValueOnce(response);
+    const older = loginAdministrator("admin", "synthetic-password");
+    const rejection = expect(older).rejects.toBeInstanceOf(CancelledError);
+    await vi.waitFor(() => expect(json).toHaveBeenCalledOnce());
+    transport.mockResolvedValueOnce(new Response(JSON.stringify(grant("c"))));
+    await loginAdministrator("admin", "synthetic-password");
+    finish(grant());
+    await rejection;
+    expect(readManagementKey()).toBe(grant("c").session_token);
+  });
+
+  it("logout clears caches immediately and revokes using captured session credentials", async () => {
+    const { logoutAdministrator } = await import("./client");
+    useSessionStore.getState().acceptSession(grant());
+    queryClient.setQueryData(["private"], "private-data");
+    let finish!: (response: Response) => void;
+    transport.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+    const logout = logoutAdministrator();
+    expect(useSessionStore.getState().unlocked).toBe(false);
+    expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
+    const headers = new Headers(transport.mock.calls[0]?.[1]?.headers);
+    expect(headers.get("X-Management-Key")).toBe(grant().session_token);
+    expect(transport.mock.calls[0]?.[1]?.signal?.aborted).toBe(false);
+    finish(new Response(null, { status: 204 }));
+    await logout;
+  });
+
+  it("absolute expiry clears an idle session and its caches", () => {
+    vi.useFakeTimers();
+    try {
+      useSessionStore.getState().acceptSession(grant());
+      queryClient.setQueryData(["private"], "private-data");
+      vi.advanceTimersByTime(60_001);
+      expect(useSessionStore.getState().unlocked).toBe(false);
+      expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
+    } finally { vi.useRealTimers(); }
+  });
+});
