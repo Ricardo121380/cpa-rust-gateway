@@ -6,10 +6,22 @@ This document is a value-free connection handoff for Claude Code. It intentional
 public IP address, private-key path, password, Management Key, CSRF token, Provider credential,
 cookie, database row, request/response body, or raw remote log.
 
+## 2026-09-10: latest CPAR frontend and runtime update
+
+Current deployed code: `6489566` (V5); previous binary: `b30d191`.
+The published configuration is now selected automatically; draft/history selection is on the
+configuration page. All 14 workspaces share the new OpenDesign glass material. Existing
+administrator credentials, same-origin admission, loopback listeners and schema 22 remain.
+The user confirmed removal of eleven test drafts' resources, retaining audited archive records,
+historical requests and billing. No other environment was changed.
+See [V5 delivery and rollback evidence](../reports/prism-v5-refinement.md), including the corrected
+release-directory permission failure and the final verified cutover. Earlier runtime IDs below
+are historical; they do not describe the currently running binary.
+
 ## 2026-09-10: administrator login update
 
 The user approved replacing the manual Key/CSRF entry with account/password login and
-owner-only delivery of random initial `admin` credentials. Deployed source is `b30d191`;
+owner-only delivery of random initial `admin` credentials. The administrator-login release was `b30d191`;
 [administrator login handoff](prism-admin-password-login.md) and
 [delivery evidence](../reports/prism-admin-login-delivery.md) describe the current entry.
 CLI credentials remain compatible. No passwords, salts or session values belong in this handoff.

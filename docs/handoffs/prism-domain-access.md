@@ -2,7 +2,8 @@
 
 ## 当前登录方式更新（2026-09-10）
 
-管理员账号密码版本 `b30d191` 已上线，仍使用同一 HTTPS 域名。
+当前运行 V5 `6489566`，沿用 `b30d191` 引入的管理员账号密码登录和同一 HTTPS 域名。
+新版材质、配置入口、测试草稿清理及回滚信息见 [V5 交付报告](../reports/prism-v5-refinement.md)。
 登录页不再要求手工填写 Management Key/CSRF。默认账号 `admin`，随机初始密码已通过
 私有文件交付；首次登录强制改密。见 [登录交接](prism-admin-password-login.md) 与
 [实际交付报告](../reports/prism-admin-login-delivery.md)。下文 Key/CSRF 页面说明是此前域名
@@ -13,7 +14,8 @@
 This extends the previous deployment scope only for CPAR's existing domain and management origin.
 The prior loopback-only default remains available when the option is omitted.
 
-Current runtime: `c7cfd2c0d8771187775d2cd846cb49a8cf536046`; previous runtime: `18f29a3`.
+Original domain cutover runtime: `c7cfd2c0d8771187775d2cd846cb49a8cf536046`; its predecessor was `18f29a3`.
+Current runtime is recorded in the update above.
 Signed artifact, public HTTPS write/readback and browser evidence: [delivery report](../reports/prism-domain-delivery.md).
 The current entry is the existing approved `cpar` domain, with `/` redirecting to `/admin-ui/`.
 

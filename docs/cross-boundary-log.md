@@ -1806,3 +1806,21 @@ check over all retained data. Historical events, billing and other configuration
 regeneration drift. Tests use visible configuration-page actions, with no-published-version cases
 explicitly arranged. Delivery evidence and verification limits are in
 `docs/reports/prism-v5-refinement.md`; production deployment is recorded there only after verification.
+
+## 2026-09-10 — Codex — verified V5 deployment handoff
+
+**Files:** `docs/reports/prism-v5-refinement.md`, `docs/design/prism-v5-evidence/public-login.png`,
+`docs/handoffs/{claude-code-oracle-singapore-vps,prism-domain-access}.md`.
+
+**What / why:** Runtime `6489566` is deployed on the existing CPAR domain after both signed
+architecture builds, the exact-head full gate and isolated ARM64 real-gateway acceptance.
+Public asset hashes match the locally accepted V5 build. Existing admin credentials, published
+configuration, request/billing history and the audited test-draft retirement remain intact.
+First cutover failed due to a 0700 release directory inherited from backup umask and rolled back;
+the script now sets release permissions explicitly and checks execution with the service account
+and no extra capabilities. Second cutover passed, stop-to-ready 1227 ms. No database rollback.
+
+**Other side:** FYI. The latest report distinguishes successful final state from the failed
+attempt and documents binary-only rollback to b30d191. Caddy, origin settings, DNS and other
+services were not changed. Public browser verification is the login page; full authenticated
+14-page and write-flow acceptance used the real local gateway and synthetic Provider.
