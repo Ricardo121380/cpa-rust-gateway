@@ -67,12 +67,12 @@ test("channel chooser covers the agreed families and imports Codex from a file",
   }
   await channel.selectOption("codex");
   await dialog.getByLabel("账号名称").fill("codex-file-import");
-  const document = JSON.stringify({kind:"codex_oauth", access_token:"synthetic-file-token",refresh_token:"synthetic-file-refresh",expires_at_ms:4102444800000,account_id:"synthetic-account"});
+  const document = JSON.stringify({kind:"codex_oauth", access_token:"fixture-token",refresh_token:"fixture-refresh",expires_at_ms:4102444800000,account_id:"synthetic-account"});
   await dialog.getByLabel("读取凭据文件").setInputFiles({name:"synthetic.json",mimeType:"application/json",buffer:Buffer.from(document)});
   await expect(dialog.locator("textarea")).toHaveValue(document);
   await dialog.getByRole("button", {name:"添加账号",exact:true}).click();
   await expect(dialog).toHaveCount(0);
   await page.getByRole("textbox",{name:"搜索账号",exact:true}).fill("codex-file-import");
   await expect(page.locator("tbody tr")).toContainText("Codex OAuth");
-  await expect(page.locator("main")).not.toContainText("synthetic-file-token");
+  await expect(page.locator("main")).not.toContainText("fixture-token");
 });

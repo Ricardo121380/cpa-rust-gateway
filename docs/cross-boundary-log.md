@@ -2076,3 +2076,17 @@ its ID and import identity, advanced revision 0→1 and wrote one audit event. T
 gateway was rebuilt/restarted and API/Chrome readback verified the same record. Type checking and
 build passed for the label change; existing native regression evidence remains in the report.
 No production deployment/storage change; wider functional-plan work remains incomplete.
+
+## 2026-09-11 — Codex — production release gate corrections
+
+**What:** `scripts/check-crate-boundaries.rb` registers the existing channel import/native
+authorization adapter dependencies; `web/prism/e2e/managed-accounts.spec.ts` uses short explicit
+fixture token markers. The preceding store test commit adds migrations 23/24 tables to its
+expected inventory.
+
+**Why:** Formal deployment checks found stale table/dependency inventories and a synthetic
+fixture string matching the credential scanner. No scanner exception or runtime change is added.
+
+**Other side:** FYI under the authorized Oracle release. The provider dependencies reuse actual
+credential validators and the injected native store/Device flow. Tests and the final exact-revision
+gate must pass before cutover; existing production data and credentials are retained.

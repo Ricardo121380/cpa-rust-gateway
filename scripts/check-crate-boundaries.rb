@@ -30,7 +30,9 @@ allowed = {
   "differential-gate" => %w[gateway-core gateway-router gateway-store gateway-upstream protocol-anthropic protocol-openai-chat protocol-openai-responses provider-grok provider-kiro serde serde_json],
   # P13-10A keeps the public Responses WebSocket edge in this Actix adapter. actix-ws is the
   # runtime upgrade/framing primitive; tokio-tungstenite is dev-only for the real loopback client.
-  "gateway-http-actix" => %w[actix-web actix-ws base64 criterion futures-util gateway-auth gateway-control gateway-core gateway-observability gateway-protocol gateway-router gateway-store gateway-stream gateway-upstream getrandom protocol-anthropic protocol-openai-chat protocol-openai-responses provider-openai-compatible reqwest serde serde_json sha2 subtle tokio tokio-tungstenite url zeroize],
+  # Authorized channel enrollment reuses the provider credential parsers and native Grok store/
+  # Device OAuth flow; time handles provider expiry. Deployment still injects the store and keys.
+  "gateway-http-actix" => %w[actix-web actix-ws base64 criterion futures-util gateway-auth gateway-control gateway-core gateway-observability gateway-protocol gateway-router gateway-store gateway-stream gateway-upstream getrandom protocol-anthropic protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-grok provider-kiro provider-openai-compatible reqwest serde serde_json sha2 subtle time tokio tokio-tungstenite url zeroize],
   "gateway-observability" => %w[gateway-core opentelemetry serde serde_json sha2 tokio tracing tracing-subscriber],
   "gateway-protocol" => %w[gateway-core],
   "gateway-provider" => %w[criterion gateway-core serde serde_json tokio],
