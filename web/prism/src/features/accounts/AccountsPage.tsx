@@ -10,6 +10,7 @@ import { beginConfigurationEdit } from "../config-versions/beginEdit";
 import { useVersionStore } from "../config-versions/versionStore";
 import { CredentialSheet } from "../upstreams/CredentialSheet";
 import { OAuthWizard } from "../upstreams/OAuthWizard";
+import { NativeAccounts } from "./NativeAccounts";
 import { AddAccountDialog } from "./AddAccountDialog";
 import { AccountRuntimePanel } from "./AccountRuntimePanel";
 import { useManagedInventory, type ManagedCredential } from "./inventory";
@@ -38,7 +39,7 @@ function ManagedAccounts() {
   const [oauth, setOauth] = useState<string>();
   const [status, setStatus] = useState<ManagedCredential>();
   const [notice, setNotice] = useState<string>();
-  const refresh = () => client.resetQueries({queryKey: ["managed-inventory"]});
+  const refresh = () => Promise.all([client.resetQueries({queryKey: ["managed-inventory"]}),client.resetQueries({queryKey: ["native-accounts"]})]);
   const update = (name: string, value: string) => {
     const next = new URLSearchParams(params);
     if (value) next.set(name, value); else next.delete(name);
@@ -107,7 +108,8 @@ function ManagedAccounts() {
         {inventory.hasNextPage ? <button className="secondary" disabled={inventory.isFetchingNextPage || inventory.isError} onClick={() => void inventory.fetchNextPage()}>加载更多账号</button> : null}
       </div>
     </div>
-    {["account", "api-key"].includes(params.get("add") ?? "") && context?.status === "draft" ? <AddAccountDialog onClose={() => update("add", "")} onCreated={() => {update("add", ""); setNotice("账号已添加，尚未绑定端点。"); void refresh();}} /> : null}
+    <NativeAccounts search={search} />
+    {["account", "api-key"].includes(params.get("add") ?? "") && context?.status === "draft" ? <AddAccountDialog onClose={() => update("add", "")} onCreated={() => {update("add", ""); setNotice("账号已保存。"); void refresh();}} /> : null}
     {detail ? <CredentialSheet credentialId={detail} onClose={() => {setDetail(undefined); void refresh();}} /> : null}
     {oauth ? <OAuthWizard credentialId={oauth} onClose={() => {setOauth(undefined); void refresh();}} /> : null}
     {status ? <Sheet title={status.credential.status === "disabled" ? "启用账号" : "停用账号"} onEscape={() => !change.isPending && setStatus(undefined)}>

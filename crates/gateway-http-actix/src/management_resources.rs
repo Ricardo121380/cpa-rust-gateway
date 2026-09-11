@@ -8,6 +8,8 @@ mod account_channels;
 mod configuration_diff;
 mod configuration_edit;
 mod credential_status;
+mod grok_device;
+pub mod native_accounts;
 mod resource_inventory;
 
 use std::{
@@ -110,6 +112,7 @@ const CODEX_OAUTH_USER_AGENT: &str = "codex_cli_rs/0.144.1";
 /// serialized transactions. Provider and OAuth workflows remain separately injected in later
 /// P10-04 code and never run while this lock is held.
 pub struct ManagementResourceHttpState {
+    native_accounts: Option<std::sync::Arc<native_accounts::NativeAccountManagement>>,
     billing_processing:
         std::sync::Arc<gateway_control::billing_processing::BillingProcessingMonitor>,
     service: Mutex<ManagementMutationService>,
@@ -343,6 +346,7 @@ impl ManagementResourceHttpState {
         usage: Box<dyn ManagementUsageFacade>,
     ) -> Self {
         Self {
+            native_accounts: None,
             billing_processing: std::sync::Arc::default(),
             service: Mutex::new(service),
             workflow: Mutex::new(workflow),
@@ -358,6 +362,16 @@ impl ManagementResourceHttpState {
             oauth_refresh_claims: Mutex::new(BTreeSet::new()),
             runtime_clock,
         }
+    }
+
+    /// Attaches the native account store used by the deployed Grok runtime.
+    #[must_use]
+    pub fn with_native_accounts(
+        mut self,
+        accounts: native_accounts::NativeAccountManagement,
+    ) -> Self {
+        self.native_accounts = Some(std::sync::Arc::new(accounts));
+        self
     }
 
     /// Attaches the process-local billing monitor without enabling writes or storage reads.
@@ -2511,6 +2525,23 @@ fn configure_upstream_resource_routes(config: &mut web::ServiceConfig) {
 
 fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
     config
+        .route(
+            "/native-account-authorizations",
+            web::post().to(grok_device::start),
+        )
+        .route(
+            "/native-account-authorizations/{session_id}/poll",
+            web::post().to(grok_device::poll),
+        )
+        .route(
+            "/native-account-authorizations/{session_id}",
+            web::delete().to(grok_device::cancel),
+        )
+        .route("/native-accounts", web::get().to(native_accounts::list))
+        .route(
+            "/native-accounts/import",
+            web::post().to(native_accounts::import),
+        )
         .route("/account-channels", web::get().to(account_channels::list))
         .route(
             "/upstreams/{upstream_id}/account-import",

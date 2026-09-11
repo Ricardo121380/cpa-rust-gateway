@@ -664,6 +664,14 @@ const fixtureSessions = new Map<string, { csrf: string; expires: number; initial
 let fixturePassword = "Prism-demo-2026";
 let fixtureSequence = 0;
 
+type NativeFixtureAccount = {id:string;provider:string;auth_status:string;enabled:boolean;revision:number;import_batch_id:string};
+const nativeFixtureAccounts: NativeFixtureAccount[] = [];
+let nativeFixtureGeneration=0;
+const nativeDeviceSessions=new Map<string,{view:{session_id:string;state:string;user_code:string;verification_uri:string;expires_at_ms:number;retry_at_ms:number};name:string;target?:{account_id:string;revision:number}}>();
+const approvedNativeSessions=new Set<string>();
+/** Simulates the provider's consent, not a management API or automatic successful poll. */
+export function approveNativeDeviceForTest(session:string):void {approvedNativeSessions.add(session);}
+
 export const fixtureFetch: typeof fetch = (input, init) => {
   // No `new Request(...)`: Node's Request rejects relative URLs, and the
   // generated client always issues relative /admin paths.
@@ -1396,6 +1404,34 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       return json(200, rows[index], revisionToken(version));
     }
 
+    if (route === "GET /admin/native-accounts") {
+      const q=url.searchParams.get("q")??"";const limit=Number(url.searchParams.get("limit")??100);
+      const cursor=url.searchParams.get("cursor");let offset=0;
+      if(cursor){const decoded=JSON.parse(atob(cursor)) as {generation:number;q:string;offset:number};if(decoded.generation!==nativeFixtureGeneration||decoded.q!==q)return errorResponse(409,"management_native_account_conflict","账号列表已改变");offset=decoded.offset;}
+      const rows=nativeFixtureAccounts.filter((r)=>`${r.id} ${r.import_batch_id} ${r.provider}`.toLowerCase().includes(q.toLowerCase()));
+      return json(200,{items:rows.slice(offset,offset+limit),next_cursor:offset+limit<rows.length?btoa(JSON.stringify({generation:nativeFixtureGeneration,q,offset:offset+limit})):null});
+    }
+    if(route === "POST /admin/native-accounts/import") {
+      const input=JSON.parse(bodyText??"{}") as {id:string;channel:string;secret:string};
+      if(nativeFixtureAccounts.some((r)=>r.import_batch_id===input.id))return errorResponse(409,"management_native_account_conflict","账号名称已存在");
+      nativeFixtureAccounts.push({id:`grok-fixture-${++nativeFixtureGeneration}`,provider:input.channel.replace(".","_"),auth_status:"active",enabled:true,revision:0,import_batch_id:input.id});
+      return json(201,{created:1,unchanged:0});
+    }
+    if(route === "POST /admin/native-account-authorizations") {
+      const input=JSON.parse(bodyText??"{}") as {name:string;target?:{account_id:string;revision:number}};
+      const id=crypto.randomUUID();const view={session_id:id,state:"pending",user_code:"TEST-1234",verification_uri:"https://auth.fixture.example/verify",expires_at_ms:Date.now()+60000,retry_at_ms:Date.now()+1000};
+      nativeDeviceSessions.set(id,{view,...input});return json(200,view);
+    }
+    const nativeDevice=/^(POST|DELETE) \/admin\/native-account-authorizations\/([^/]+)(?:\/poll)?$/u.exec(route);
+    if(nativeDevice){const entry=nativeDeviceSessions.get(nativeDevice[2]??"");if(!entry)return errorResponse(400,"invalid_management_request","授权不存在");
+      if(nativeDevice[1]==="DELETE"&&entry.view.state==="pending")entry.view.state="cancelled";
+      else if(entry.view.state==="pending"&&approvedNativeSessions.has(entry.view.session_id)){
+        if(entry.target){const account=nativeFixtureAccounts.find((r)=>r.id===entry.target?.account_id);if(!account||account.revision!==entry.target.revision)entry.view.state="persistence_conflict";else{account.revision+=1;nativeFixtureGeneration+=1;entry.view.state="complete";}}
+        else{nativeFixtureAccounts.push({id:`grok-fixture-${++nativeFixtureGeneration}`,provider:"grok_build",auth_status:"active",enabled:true,revision:0,import_batch_id:entry.name});entry.view.state="complete";}
+      }
+      entry.view.retry_at_ms=Date.now()+1000;return json(200,entry.view);
+    }
+
     if (route === "GET /admin/account-channels") {
       return json(200, [
         ["openai-compatible", "OpenAI 兼容 / 中转", "api_key", true, "none", ["openai-compatible"]],
@@ -1403,11 +1439,11 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         ["codex", "Codex / ChatGPT", "cpa_sub2api_json", true, "authorization_code", ["codex", "chatgpt", "openai-compatible"]],
         ["claude", "Claude", "claude_json", true, "authorization_code", ["claude", "anthropic-compatible"]],
         ["grok.official", "Grok Official", "api_key", true, "none", ["grok.official"]],
-        ["grok.build", "Grok Build", "grok_build_json", false, "device_code", ["grok.build"]],
-        ["grok.console", "Grok Console", "sso", false, "none", ["grok.console"]],
-        ["grok.web", "Grok Web", "sso", false, "none", ["grok.web"]],
+        ["grok.build", "Grok Build", "grok_build_json", true, "device_code", ["grok.build"]],
+        ["grok.console", "Grok Console", "sso", true, "none", ["grok.console"]],
+        ["grok.web", "Grok Web", "sso", true, "none", ["grok.web"]],
         ["kiro", "Kiro", "kiro_json_or_key", true, "device_code", ["kiro"]],
-      ].map(([id,name,credential_format,import_available,authorization_flow,upstream_kinds]) => ({id,name,credential_format,import_available,authorization_flow,upstream_kinds,authorization_available:false})));
+      ].map(([id,name,credential_format,import_available,authorization_flow,upstream_kinds]) => ({id,name,credential_format,import_available,authorization_flow,upstream_kinds,authorization_available:id==="grok.build"})));
     }
 
     const credCreate = /^POST \/admin\/upstreams\/([^/]+)\/(?:credentials|account-import)$/u.exec(route);

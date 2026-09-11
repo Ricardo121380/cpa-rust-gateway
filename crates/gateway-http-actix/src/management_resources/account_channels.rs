@@ -21,7 +21,7 @@ struct Channel {
     upstream_kinds: Vec<&'static str>,
 }
 
-pub(super) async fn list() -> HttpResponse {
+pub(super) async fn list(state: web::Data<ManagementResourceHttpState>) -> HttpResponse {
     let entries = [
         (
             "openai-compatible",
@@ -68,10 +68,11 @@ pub(super) async fn list() -> HttpResponse {
             id,
             name,
             credential_format,
-            import_available,
+            import_available: import_available
+                || (id.starts_with("grok.") && state.native_accounts.is_some()),
             authorization_flow,
             // This catalog describes NEW account enrollment; legacy Codex reauth is separate.
-            authorization_available: false,
+            authorization_available: id == "grok.build" && state.native_accounts.is_some(),
             upstream_kinds: upstream_kinds(id),
         },
     );

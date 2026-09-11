@@ -1,0 +1,5 @@
+DROP TABLE native_account_authorization_events;
+DROP TRIGGER native_account_inventory_update;
+DROP TRIGGER native_account_inventory_delete;
+DROP TRIGGER native_account_inventory_insert;
+DROP TABLE native_account_inventory_generation;

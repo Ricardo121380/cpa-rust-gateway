@@ -62,8 +62,8 @@ test("channel chooser covers the agreed families and imports Codex from a file",
   await expect(channel.locator("option")).toHaveCount(9);
   for (const id of ["grok.build", "grok.console", "grok.web"]) {
     await channel.selectOption(id);
-    await expect(dialog).toContainText("此渠道暂不可从面板接入");
-    await expect(dialog.locator("textarea")).toHaveCount(0);
+    await expect(dialog.locator("textarea")).toHaveCount(1);
+    await expect(dialog.getByLabel("提供商", {exact:true})).toHaveCount(0);
   }
   await channel.selectOption("codex");
   await dialog.getByLabel("账号名称").fill("codex-file-import");

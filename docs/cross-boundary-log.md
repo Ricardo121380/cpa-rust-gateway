@@ -2041,3 +2041,23 @@ explicitly unavailable rather than misdirected to Codex.
 six real ordinary import paths. Two targeted Rust checks and five browser checks passed;
 TypeScript and Clippy passed. Native Grok/initial OAuth/full reauthorization remain in-scope work,
 not an external implementer's blocker. No production or historical-data changes.
+
+## 2026-09-11 — Codex — native Grok account import and Device OAuth
+
+**What:** `apps/gateway/src/deployment.rs`; HTTP native_accounts/grok_device modules, resource
+registration and channel availability; provider-grok account_pool/management module; store
+migration 24 and registry; authoritative/generated five native operations; Prism NativeAccounts,
+GrokDeviceWizard, AddAccountDialog, AccountsPage, API conflict mapping, fixtures and E2E; native
+contract/report and functional progress. Cargo dependencies reuse existing provider/time crates.
+
+**Why:** Native Grok accounts must use their real encrypted global store, not ordinary graph
+credential rows. First authorization must persist only a provider grant; reauthorization must
+retain identity and reject stale or wrong-account material. Pagination must ignore unrelated
+gateway traffic.
+
+**Other side:** FYI under the user's joint implementation authorization. Nine credential channel
+entries now connected, including three native Grok imports. Build Device OAuth is available from
+the actual deployment composition. Local regression and embedded gates passed; actual local UI
+obtained a real device session. User consent is pending, not a completed real grant. Schema 24 is
+local only; no production deployment or historical cleanup. Other provider first-OAuth and live
+configuration apply work remain required, not implicitly completed by this batch.

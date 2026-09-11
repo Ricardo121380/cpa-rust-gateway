@@ -48,8 +48,10 @@ const MODEL_CATALOG_SCHEMA_VERSION: i64 = 21;
 const BILLING_MATERIALIZER_FAILURE_SCHEMA_VERSION: i64 = 22;
 const CONFIGURATION_EDIT_ORIGIN_SCHEMA_VERSION: i64 = 23;
 
+const NATIVE_ACCOUNT_INVENTORY_SCHEMA_VERSION: i64 = 24;
+
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = CONFIGURATION_EDIT_ORIGIN_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = NATIVE_ACCOUNT_INVENTORY_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -173,6 +175,11 @@ const MIGRATIONS: &[Migration] = &[
         version: CONFIGURATION_EDIT_ORIGIN_SCHEMA_VERSION,
         up: include_str!("../migrations/0023_configuration_edit_origins.up.sql"),
         down: include_str!("../migrations/0023_configuration_edit_origins.down.sql"),
+    },
+    Migration {
+        version: NATIVE_ACCOUNT_INVENTORY_SCHEMA_VERSION,
+        up: include_str!("../migrations/0024_native_account_inventory.up.sql"),
+        down: include_str!("../migrations/0024_native_account_inventory.down.sql"),
     },
 ];
 

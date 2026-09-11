@@ -470,6 +470,15 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         database.clone(),
     )))
     .with_provider_account_pools(provider_account_pools);
+    let native_accounts =
+        provider_grok::GrokAccountPoolStore::try_open(&database, runtime_secret_store.clone())
+            .map_err(|_| DeploymentError::RuntimeUnavailable)?;
+    let native_accounts =
+        gateway_http_actix::management_resources::native_accounts::NativeAccountManagement::new(
+            Arc::new(native_accounts),
+        )
+        .map_err(|_| DeploymentError::RuntimeUnavailable)?;
+    let resources = resources.with_native_accounts(native_accounts);
     let resources = resources.with_provider_egress_status(provider_egress_status);
     let resources = resources.with_channel_pin(channel_pin);
     let lifecycle = ManagementLifecycleHttpState::new(lifecycle_service);

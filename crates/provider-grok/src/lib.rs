@@ -46,7 +46,7 @@ pub use account_pool::{
     GrokAccountAuthStatus, GrokAccountCredential, GrokAccountEndpointBinding,
     GrokAccountEntitlementUpdateOutcome, GrokAccountIdentity, GrokAccountImport,
     GrokAccountImportOutcome, GrokAccountImportRelation, GrokAccountMetadata, GrokAccountPoolError,
-    GrokAccountPoolStore, GrokAccountProvider, GrokAccountRollbackOutcome,
+    GrokAccountPoolStore, GrokAccountProvider, GrokAccountRollbackOutcome, GrokManagedAccountPage,
     GrokNativeAccountCompileError, GrokNativeAccountPoolCompilation,
 };
 pub use account_worker::{

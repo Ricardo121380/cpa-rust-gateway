@@ -23,6 +23,442 @@
     { "name": "backup" }
   ],
   "paths": {
+    "/admin/native-accounts": {
+      "get": {
+        "operationId": "listNativeAccounts",
+        "tags": [
+          "upstreams"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 256
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Safe native account result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "next_cursor"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "provider",
+                          "auth_status",
+                          "enabled",
+                          "revision",
+                          "import_batch_id"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "provider": {
+                            "type": "string",
+                            "enum": [
+                              "grok_build",
+                              "grok_console",
+                              "grok_web"
+                            ]
+                          },
+                          "auth_status": {
+                            "type": "string"
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "revision": {
+                            "type": "integer",
+                            "format": "int64",
+                            "minimum": 0
+                          },
+                          "import_batch_id": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/native-accounts/import": {
+      "post": {
+        "operationId": "importNativeAccount",
+        "tags": [
+          "upstreams"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "channel",
+                  "secret"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "grok.build",
+                      "grok.console",
+                      "grok.web"
+                    ]
+                  },
+                  "secret": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "writeOnly": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Atomically imported native account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "created",
+                    "unchanged"
+                  ],
+                  "properties": {
+                    "created": {
+                      "type": "integer",
+                      "format": "int64",
+                      "minimum": 0
+                    },
+                    "unchanged": {
+                      "type": "integer",
+                      "format": "int64",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/native-account-authorizations": {
+      "post": {
+        "operationId": "startNativeAccountAuthorization",
+        "tags": [
+          "upstreams"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "target": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "account_id",
+                      "revision"
+                    ],
+                    "properties": {
+                      "account_id": {
+                        "type": "string"
+                      },
+                      "revision": {
+                        "type": "integer",
+                        "format": "int64",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Safe native account result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "session_id",
+                    "state",
+                    "user_code",
+                    "verification_uri",
+                    "expires_at_ms",
+                    "retry_at_ms"
+                  ],
+                  "properties": {
+                    "session_id": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "complete",
+                        "denied",
+                        "expired",
+                        "cancelled",
+                        "failed",
+                        "persistence_conflict"
+                      ]
+                    },
+                    "user_code": {
+                      "type": "string"
+                    },
+                    "verification_uri": {
+                      "type": "string"
+                    },
+                    "expires_at_ms": {
+                      "type": "integer",
+                      "format": "int64",
+                      "minimum": 0
+                    },
+                    "retry_at_ms": {
+                      "type": "integer",
+                      "format": "int64",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/native-account-authorizations/{session_id}/poll": {
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "pollNativeAccountAuthorization",
+        "tags": [
+          "upstreams"
+        ],
+        "responses": {
+          "200": {
+            "description": "Safe native account result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "session_id",
+                    "state",
+                    "user_code",
+                    "verification_uri",
+                    "expires_at_ms",
+                    "retry_at_ms"
+                  ],
+                  "properties": {
+                    "session_id": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "complete",
+                        "denied",
+                        "expired",
+                        "cancelled",
+                        "failed",
+                        "persistence_conflict"
+                      ]
+                    },
+                    "user_code": {
+                      "type": "string"
+                    },
+                    "verification_uri": {
+                      "type": "string"
+                    },
+                    "expires_at_ms": {
+                      "type": "integer",
+                      "format": "int64",
+                      "minimum": 0
+                    },
+                    "retry_at_ms": {
+                      "type": "integer",
+                      "format": "int64",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/native-account-authorizations/{session_id}": {
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "delete": {
+        "operationId": "cancelNativeAccountAuthorization",
+        "tags": [
+          "upstreams"
+        ],
+        "responses": {
+          "200": {
+            "description": "Safe native account result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "session_id",
+                    "state",
+                    "user_code",
+                    "verification_uri",
+                    "expires_at_ms",
+                    "retry_at_ms"
+                  ],
+                  "properties": {
+                    "session_id": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "complete",
+                        "denied",
+                        "expired",
+                        "cancelled",
+                        "failed",
+                        "persistence_conflict"
+                      ]
+                    },
+                    "user_code": {
+                      "type": "string"
+                    },
+                    "verification_uri": {
+                      "type": "string"
+                    },
+                    "expires_at_ms": {
+                      "type": "integer",
+                      "format": "int64",
+                      "minimum": 0
+                    },
+                    "retry_at_ms": {
+                      "type": "integer",
+                      "format": "int64",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
     "/admin/account-channels": {
       "get": {
         "operationId": "listAccountChannels",

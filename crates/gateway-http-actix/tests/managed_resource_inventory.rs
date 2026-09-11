@@ -110,12 +110,20 @@ fn fixture(active: bool) -> Result<(Database, ManagementResourceHttpState), Box<
     if active {
         repository.activate_version(&version)?;
     }
+    let native =
+        gateway_http_actix::management_resources::native_accounts::NativeAccountManagement::new(
+            std::sync::Arc::new(provider_grok::GrokAccountPoolStore::try_open(
+                &file.0,
+                store.clone(),
+            )?),
+        )?;
     Ok((
         file,
         ManagementResourceHttpState::with_workflow(
             ManagementMutationService::new(repository, store),
             Box::new(gateway_http_actix::management_resources::CodexOAuthManagementWorkflow::new()),
-        ),
+        )
+        .with_native_accounts(native),
     ))
 }
 
@@ -497,5 +505,73 @@ async fn channel_import_is_scoped_validated_and_visible_before_binding() -> Test
             .set_json(serde_json::json!({"id":"must-not-exist", "channel":channel, "secret":material})).to_request()).await;
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
+    Ok(())
+}
+
+#[actix_web::test]
+async fn native_import_is_encrypted_global_and_pagination_ignores_unrelated_writes() -> TestResult {
+    let (_file, state) = fixture(false)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let now = i64::try_from(SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis())?;
+    let materials = [
+        (
+            "grok.build",
+            serde_json::json!({"access_token":"synthetic-build-access","refresh_token":"synthetic-refresh","expires_at":time::OffsetDateTime::from_unix_timestamp((now+600_000)/1000)?.format(&time::format_description::well_known::Rfc3339)?}),
+        ),
+        (
+            "grok.console",
+            serde_json::json!({"sso_token":"synthetic-console-sso","probe_model":"grok-4.6"}),
+        ),
+        (
+            "grok.web",
+            serde_json::json!({"kind":"grok_web_sso","account_ref":"synthetic-web","lineage_ref":"test-lineage","revision":1,"expires_at_ms":now+600_000,"cookies":[{"name":"sso","value":"synthetic-web-cookie","domain":"grok.com","path":"/","secure":true,"http_only":true}]}),
+        ),
+    ];
+    for (channel, material) in materials {
+        let response=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/native-accounts/import")).set_json(serde_json::json!({"id":channel,"channel":channel,"secret":material.to_string()})).to_request()).await;
+        assert_eq!(response.status(), StatusCode::CREATED, "{channel}");
+    }
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/native-accounts?limit=1")).to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let first: Value = test::read_body_json(response).await;
+    let cursor = first["next_cursor"].as_str().ok_or("cursor")?;
+    let response=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/credentials"))
+        .insert_header(("If-Match","rev-0")).set_json(serde_json::json!({"id":"unrelated","kind":"bearer","secret":"synthetic-unrelated","status":"active"})).to_request()).await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let response = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get()
+                .uri(&format!("/admin/native-accounts?limit=1&cursor={cursor}")),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = first.to_string();
+    assert!(!body.contains("synthetic-build-access"));
+    assert!(!body.contains("synthetic-console-sso"));
+    let response=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/native-accounts/import")).set_json(serde_json::json!({"id":"another","channel":"grok.console","secret":"{\"sso_token\":\"synthetic-another\",\"probe_model\":\"grok-4.6\"}"})).to_request()).await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let response = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get()
+                .uri(&format!("/admin/native-accounts?limit=1&cursor={cursor}")),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CONFLICT);
     Ok(())
 }

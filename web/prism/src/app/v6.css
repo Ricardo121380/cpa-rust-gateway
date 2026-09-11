@@ -337,3 +337,6 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .canvas :is(.card,
   .managed-account-cards header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; overflow-wrap:anywhere; }
   .managed-account-cards .page-actions { justify-content:flex-start; flex-wrap:wrap; }
 }
+
+.native-account-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:12px; }
+.native-account-grid article { padding:18px; border-radius:16px; border:1px solid var(--separator); }

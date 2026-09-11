@@ -17,3 +17,8 @@
 Grok 首次／重新授权验收核对：未通过，管理端尚未接入 Grok Device OAuth 和原生账号持久化。当前 10 项 Grok 底层及 2 项管理授权回归通过仅是合成验证，详见 [授权验收缺口](prism-grok-authorization-acceptance-20260911.md)。没有发生新的真实授权或生产凭据轮换。
 
 全渠道入口批次（进行中）：后端九类渠道目录及普通凭据导入契约已接入。OpenAI／Anthropic 兼容、Codex、Claude、Grok Official、Kiro 六类走真实校验与加密创建；选择器按渠道过滤提供商，支持文件读取。Grok Build／Console／Web 原生账号接入、首次 OAuth、渠道专用重授权及批量导入依旧是必需未完成项。2 项 Rust 针对性回归和 5 项浏览器检查通过，未进行真实授权或部署。
+
+原生 Grok 接入批次：Build／Console／Web 导入、原生列表与有界分页已接通；Build 首次 Device OAuth 及按原身份／revision 重新授权已实现。九类渠道均有实际凭据导入路径。7 项真实 SQLite/HTTP、2 项授权流程、7 项迁移回归、7 项浏览器检查通过。真实本地网关已从正式 UI 建立 Grok 设备授权会话，当前等待用户在官网完成登录／条款／授权，尚未宣称真实 grant 入库或重授权通过。详见 [本轮接入](prism-native-account-integration-20260911.md)。
+
+验收浏览器偏好：后续使用 Chrome，不使用侧边栏。旧侧边栏 Grok Device 会话已取消；
+Chrome 本地入口已打开，当前等待用户关闭阻挡自动化的扩展弹窗，再继续真实授权。

@@ -25,6 +25,7 @@ getrandom.workspace = true
 protocol-anthropic = { path = "../protocol-anthropic" }
 protocol-openai-chat = { path = "../protocol-openai-chat" }
 protocol-openai-responses = { path = "../protocol-openai-responses" }
+provider-grok = { path = "../provider-grok" }
 provider-kiro = { path = "../provider-kiro" }
 provider-anthropic-compatible = { path = "../provider-anthropic-compatible" }
 provider-openai-compatible = { path = "../provider-openai-compatible" }
@@ -38,6 +39,7 @@ sha2.workspace = true
 reqwest = { workspace = true, features = ["blocking"] }
 
 [dev-dependencies]
+time.workspace = true
 criterion.workspace = true
 gateway-store = { path = "../gateway-store" }
 serde_json.workspace = true

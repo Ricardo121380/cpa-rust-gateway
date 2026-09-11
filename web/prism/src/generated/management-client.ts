@@ -77,6 +77,20 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "cancelNativeAccountAuthorization": {
+    "method": "DELETE",
+    "path": "/admin/native-account-authorizations/{session_id}",
+    "parameters": [
+      {
+        "name": "session_id",
+        "in": "path",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "changeAdministratorPassword": {
     "method": "POST",
     "path": "/admin/auth/password",
@@ -1198,6 +1212,14 @@ export const managementOperations = {
     "bodyEncoding": "json",
     "bodyRequired": true
   },
+  "importNativeAccount": {
+    "method": "POST",
+    "path": "/admin/native-accounts/import",
+    "parameters": [],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "issueClientKey": {
     "method": "POST",
     "path": "/admin/client-keys",
@@ -1519,6 +1541,30 @@ export const managementOperations = {
       },
       {
         "name": "cursor",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "listNativeAccounts": {
+    "method": "GET",
+    "path": "/admin/native-accounts",
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "q",
         "in": "query",
         "required": false
       }
@@ -1932,6 +1978,20 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "pollNativeAccountAuthorization": {
+    "method": "POST",
+    "path": "/admin/native-account-authorizations/{session_id}/poll",
+    "parameters": [
+      {
+        "name": "session_id",
+        "in": "path",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "previewBackup": {
     "method": "POST",
     "path": "/admin/backups/preflight",
@@ -2146,6 +2206,14 @@ export const managementOperations = {
     "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
+  },
+  "startNativeAccountAuthorization": {
+    "method": "POST",
+    "path": "/admin/native-account-authorizations",
+    "parameters": [],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
   },
   "testEndpoint": {
     "method": "POST",
@@ -2699,6 +2767,10 @@ export class ManagementApi {
     return this.request("cancelCredentialOAuth", request);
   }
 
+  cancelNativeAccountAuthorization(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("cancelNativeAccountAuthorization", request);
+  }
+
   changeAdministratorPassword(request: ManagementRequest = {}): Promise<Response> {
     return this.request("changeAdministratorPassword", request);
   }
@@ -2919,6 +2991,10 @@ export class ManagementApi {
     return this.request("importChannelAccount", request);
   }
 
+  importNativeAccount(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("importNativeAccount", request);
+  }
+
   issueClientKey(request: ManagementRequest = {}): Promise<Response> {
     return this.request("issueClientKey", request);
   }
@@ -2991,6 +3067,10 @@ export class ManagementApi {
     return this.request("listModelAliases", request);
   }
 
+  listNativeAccounts(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listNativeAccounts", request);
+  }
+
   listOperationalAccountPools(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listOperationalAccountPools", request);
   }
@@ -3043,6 +3123,10 @@ export class ManagementApi {
     return this.request("logoutAdministrator", request);
   }
 
+  pollNativeAccountAuthorization(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("pollNativeAccountAuthorization", request);
+  }
+
   previewBackup(request: ManagementRequest = {}): Promise<Response> {
     return this.request("previewBackup", request);
   }
@@ -3089,6 +3173,10 @@ export class ManagementApi {
 
   startCredentialOAuth(request: ManagementRequest = {}): Promise<Response> {
     return this.request("startCredentialOAuth", request);
+  }
+
+  startNativeAccountAuthorization(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("startNativeAccountAuthorization", request);
   }
 
   testEndpoint(request: ManagementRequest = {}): Promise<Response> {
