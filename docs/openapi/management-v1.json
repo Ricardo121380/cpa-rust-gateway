@@ -23,6 +23,140 @@
     { "name": "backup" }
   ],
   "paths": {
+    "/admin/account-channels": {
+      "get": {
+        "operationId": "listAccountChannels",
+        "tags": [
+          "upstreams"
+        ],
+        "responses": {
+          "200": {
+            "description": "Explicit channel enrollment methods and current integration availability.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "name",
+                      "credential_format",
+                      "import_available",
+                      "authorization_flow",
+                      "authorization_available",
+                      "upstream_kinds"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "credential_format": {
+                        "type": "string"
+                      },
+                      "import_available": {
+                        "type": "boolean"
+                      },
+                      "authorization_flow": {
+                        "type": "string",
+                        "enum": [
+                          "none",
+                          "authorization_code",
+                          "device_code"
+                        ]
+                      },
+                      "authorization_available": {
+                        "type": "boolean"
+                      },
+                      "upstream_kinds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/upstreams/{upstream_id}/account-import": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ConfigVersion"
+        },
+        {
+          "$ref": "#/components/parameters/UpstreamId"
+        },
+        {
+          "$ref": "#/components/parameters/IfMatch"
+        }
+      ],
+      "post": {
+        "operationId": "importChannelAccount",
+        "tags": [
+          "upstreams"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "channel",
+                  "secret"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "openai-compatible",
+                      "anthropic-compatible",
+                      "codex",
+                      "claude",
+                      "grok.official",
+                      "kiro"
+                    ]
+                  },
+                  "secret": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "writeOnly": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/Credential"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
     "/admin/credentials/{credential_id}/status": {
       "parameters": [
         {

@@ -1396,15 +1396,34 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       return json(200, rows[index], revisionToken(version));
     }
 
-    const credCreate = /^POST \/admin\/upstreams\/([^/]+)\/credentials$/u.exec(route);
+    if (route === "GET /admin/account-channels") {
+      return json(200, [
+        ["openai-compatible", "OpenAI 兼容 / 中转", "api_key", true, "none", ["openai-compatible"]],
+        ["anthropic-compatible", "Anthropic 兼容 / 中转", "api_key", true, "none", ["anthropic-compatible"]],
+        ["codex", "Codex / ChatGPT", "cpa_sub2api_json", true, "authorization_code", ["codex", "chatgpt", "openai-compatible"]],
+        ["claude", "Claude", "claude_json", true, "authorization_code", ["claude", "anthropic-compatible"]],
+        ["grok.official", "Grok Official", "api_key", true, "none", ["grok.official"]],
+        ["grok.build", "Grok Build", "grok_build_json", false, "device_code", ["grok.build"]],
+        ["grok.console", "Grok Console", "sso", false, "none", ["grok.console"]],
+        ["grok.web", "Grok Web", "sso", false, "none", ["grok.web"]],
+        ["kiro", "Kiro", "kiro_json_or_key", true, "device_code", ["kiro"]],
+      ].map(([id,name,credential_format,import_available,authorization_flow,upstream_kinds]) => ({id,name,credential_format,import_available,authorization_flow,upstream_kinds,authorization_available:false})));
+    }
+
+    const credCreate = /^POST \/admin\/upstreams\/([^/]+)\/(?:credentials|account-import)$/u.exec(route);
     if (credCreate !== null) {
       const version = versionByHeader(headers);
       if (version instanceof Response) return version;
       const mismatch = requireDraftAndMatch(version, headers);
       if (mismatch !== undefined) return mismatch;
-      const body = JSON.parse(bodyText ?? "{}") as { id: string; kind: string; secret?: string; status: CredentialRow["status"] };
+      const body = JSON.parse(bodyText ?? "{}") as { id: string; kind: string; channel?: string; secret?: string; status: CredentialRow["status"] };
       if (body.secret === undefined || body.secret.length === 0) {
         return errorResponse(400, "invalid_management_request", "secret is required");
+      }
+      if (route.endsWith("/account-import")) {
+        if (!["openai-compatible", "anthropic-compatible", "codex", "claude", "grok.official", "kiro"].includes(body.channel ?? "")) return errorResponse(400, "invalid_management_request", "Unsupported import");
+        body.kind = body.channel === "codex" ? "oauth_json" : "bearer";
+        body.status = "active";
       }
       const rows = state.credentials.get(version.id) ?? [];
       if (rows.some((row) => row.id === body.id)) {

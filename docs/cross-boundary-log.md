@@ -2027,3 +2027,17 @@ Validation for this batch: real SQLite/HTTP ciphertext/CAS regression, four new 
 checks and nine existing runtime/workspace regressions passed. TypeScript, Clippy and the
 115-operation embedded asset gate passed. Screenshots were inspected at desktop and mobile sizes;
 mobile account actions use cards. Initial header/type errors were fixed before these passes.
+
+## 2026-09-11 — Codex — channel directory and validated account imports
+
+**What:** `crates/gateway-http-actix/{Cargo.toml,src/management_resources.rs,src/management_resources/account_channels.rs,tests/managed_resource_inventory.rs}`, Cargo.lock; authoritative OpenAPI and generated Prism contract/client; `web/prism/src/features/accounts/{AccountsPage,AddAccountDialog}.tsx` (replaces AddApiKeyAccount), fixtures and managed-account E2E; CR-PRISM-CHANNEL-ENROLLMENT-001 and progress report.
+
+**Why:** User reaffirmed all channel entry points. The first implementation step is an explicit
+channel directory and provider-validated imports, replacing the generic bearer-only form. Native
+Grok must not be written into the ordinary credential table; incomplete initial OAuth remains
+explicitly unavailable rather than misdirected to Codex.
+
+**Other side:** FYI under existing joint implementation authorization. Nine directory entries;
+six real ordinary import paths. Two targeted Rust checks and five browser checks passed;
+TypeScript and Clippy passed. Native Grok/initial OAuth/full reauthorization remain in-scope work,
+not an external implementer's blocker. No production or historical-data changes.

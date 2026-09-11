@@ -452,3 +452,50 @@ async fn status_update_keeps_ciphertext_and_rejects_stale_account_revision() -> 
     assert_eq!(after.revision, 1);
     Ok(())
 }
+
+#[actix_web::test]
+async fn channel_import_is_scoped_validated_and_visible_before_binding() -> TestResult {
+    let (_file, state) = fixture(false)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/account-channels")).to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let channels: Value = test::read_body_json(response).await;
+    assert_eq!(channels.as_array().ok_or("channels")?.len(), 9);
+    let response = test::call_service(&app, authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/account-import"))
+        .insert_header(("If-Match", "rev-0"))
+        .set_json(serde_json::json!({"id":"imported-codex", "channel":"codex", "secret":r#"{"kind":"codex_oauth","access_token":"synthetic-import-access","refresh_token":"synthetic-import-refresh","expires_at_ms":4102444800000,"account_id":"synthetic-account"}"#})).to_request()).await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let result: Value = test::read_body_json(response).await;
+    assert_eq!(result["kind"], "oauth_json");
+    assert!(result.get("secret").is_none());
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/credentials?q=imported-codex"))
+            .to_request(),
+    )
+    .await;
+    let result: Value = test::read_body_json(response).await;
+    assert_eq!(result["items"][0]["binding_count"], 0);
+    assert_eq!(result["items"][0]["credential"]["id"], "imported-codex");
+    for (channel, material) in [
+        ("codex", "bad-json"),
+        ("grok.build", "native-account-material"),
+        ("kiro", "ksk_wrong-owner"),
+    ] {
+        let response = test::call_service(&app, authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/account-import"))
+            .insert_header(("If-Match", "rev-1"))
+            .set_json(serde_json::json!({"id":"must-not-exist", "channel":channel, "secret":material})).to_request()).await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+    Ok(())
+}

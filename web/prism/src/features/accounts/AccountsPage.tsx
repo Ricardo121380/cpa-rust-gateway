@@ -10,7 +10,7 @@ import { beginConfigurationEdit } from "../config-versions/beginEdit";
 import { useVersionStore } from "../config-versions/versionStore";
 import { CredentialSheet } from "../upstreams/CredentialSheet";
 import { OAuthWizard } from "../upstreams/OAuthWizard";
-import { AddApiKeyAccount } from "./AddApiKeyAccount";
+import { AddAccountDialog } from "./AddAccountDialog";
 import { AccountRuntimePanel } from "./AccountRuntimePanel";
 import { useManagedInventory, type ManagedCredential } from "./inventory";
 
@@ -47,7 +47,7 @@ function ManagedAccounts() {
   const edit = useMutation({
     mutationFn: (_action: "create" | "edit") => beginConfigurationEdit("账号管理修改"),
     onSuccess: (version, action) => {
-      if (action === "create") update("add", "api-key");
+      if (action === "create") update("add", "account");
       void client.invalidateQueries({queryKey: ["config-versions"]});
       useVersionStore.getState().select(version);
     },
@@ -73,7 +73,7 @@ function ManagedAccounts() {
   return <section className="accounts-page">
     <header className="page-head"><div><h2>账号管理</h2><p>管理账号及其使用位置</p></div>
       <div className="page-actions">
-        <button disabled={edit.isPending} onClick={() => edit.mutate("create")}>添加 API Key 账号</button>
+        <button disabled={edit.isPending} onClick={() => edit.mutate("create")}>添加账号</button>
         {context?.status !== "draft" ? <button disabled={edit.isPending} onClick={() => edit.mutate("edit")}>编辑账号配置</button> : null}
         <button className="secondary" onClick={() => void refresh()}>刷新账号</button>
       </div>
@@ -92,14 +92,14 @@ function ManagedAccounts() {
           <tbody>{rows.map((row) => <tr key={row.credential.id}>
             <td><ResourceIdentity id={row.credential.id} kind="account" /></td>
             <td><ResourceIdentity id={row.credential.upstream_id} kind="upstream" /></td>
-            <td>{row.credential.kind === "oauth_json" ? "Codex OAuth" : row.credential.kind === "bearer" ? "API Key / Token" : row.credential.kind}</td>
+            <td>{row.credential.kind === "oauth_json" ? "Codex OAuth" : row.credential.kind === "bearer" ? "渠道凭据" : row.credential.kind}</td>
             <td><StatusBadge status={row.credential.status}>{row.credential.status === "active" ? "已启用" : "已停用"}</StatusBadge></td>
             <td><Link to={`/upstreams?upstream_id=${encodeURIComponent(row.credential.upstream_id)}`}>{row.binding_count === 0 ? "未绑定" : `${row.binding_count} 个端点`}</Link></td>
             <td>{actions(row)}</td>
           </tr>)}</tbody></table></div>
         <div className="managed-account-cards">{rows.map((row) => <article key={row.credential.id}>
           <header><strong><ResourceIdentity id={row.credential.id} kind="account" /></strong><StatusBadge status={row.credential.status}>{row.credential.status === "active" ? "已启用" : "已停用"}</StatusBadge></header>
-          <p className="entity-meta"><ResourceIdentity id={row.credential.upstream_id} kind="upstream" /> · {row.credential.kind === "oauth_json" ? "Codex OAuth" : "API Key / Token"}</p>
+          <p className="entity-meta"><ResourceIdentity id={row.credential.upstream_id} kind="upstream" /> · {row.credential.kind === "oauth_json" ? "Codex OAuth" : "渠道凭据"}</p>
           <p><Link to={`/upstreams?upstream_id=${encodeURIComponent(row.credential.upstream_id)}`}>{row.binding_count === 0 ? "未绑定端点" : `${row.binding_count} 个端点`}</Link></p>
           {actions(row)}
         </article>)}</div></>}
@@ -107,7 +107,7 @@ function ManagedAccounts() {
         {inventory.hasNextPage ? <button className="secondary" disabled={inventory.isFetchingNextPage || inventory.isError} onClick={() => void inventory.fetchNextPage()}>加载更多账号</button> : null}
       </div>
     </div>
-    {params.get("add") === "api-key" && context?.status === "draft" ? <AddApiKeyAccount onClose={() => update("add", "")} onCreated={() => {update("add", ""); setNotice("账号已添加，尚未绑定端点。"); void refresh();}} /> : null}
+    {["account", "api-key"].includes(params.get("add") ?? "") && context?.status === "draft" ? <AddAccountDialog onClose={() => update("add", "")} onCreated={() => {update("add", ""); setNotice("账号已添加，尚未绑定端点。"); void refresh();}} /> : null}
     {detail ? <CredentialSheet credentialId={detail} onClose={() => {setDetail(undefined); void refresh();}} /> : null}
     {oauth ? <OAuthWizard credentialId={oauth} onClose={() => {setOauth(undefined); void refresh();}} /> : null}
     {status ? <Sheet title={status.credential.status === "disabled" ? "启用账号" : "停用账号"} onEscape={() => !change.isPending && setStatus(undefined)}>

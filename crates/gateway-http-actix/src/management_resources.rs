@@ -4,6 +4,7 @@
 //! mutation to `gateway-control`. They never publish a Snapshot, invoke a Provider, expose a
 //! credential Secret/ciphertext, or bypass the P10-02 `/admin` security scope.
 
+mod account_channels;
 mod configuration_diff;
 mod configuration_edit;
 mod credential_status;
@@ -2510,6 +2511,11 @@ fn configure_upstream_resource_routes(config: &mut web::ServiceConfig) {
 
 fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
     config
+        .route("/account-channels", web::get().to(account_channels::list))
+        .route(
+            "/upstreams/{upstream_id}/account-import",
+            web::post().to(account_channels::import),
+        )
         .route(
             "/credentials/{credential_id}/status",
             web::patch().to(credential_status::update),

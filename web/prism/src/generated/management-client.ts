@@ -1174,6 +1174,30 @@ export const managementOperations = {
     "bodyEncoding": "json",
     "bodyRequired": true
   },
+  "importChannelAccount": {
+    "method": "POST",
+    "path": "/admin/upstreams/{upstream_id}/account-import",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "upstream_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "issueClientKey": {
     "method": "POST",
     "path": "/admin/client-keys",
@@ -1222,6 +1246,14 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "listAccountChannels": {
+    "method": "GET",
+    "path": "/admin/account-channels",
+    "parameters": [],
     "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
@@ -2883,6 +2915,10 @@ export class ManagementApi {
     return this.request("importBillingCatalog", request);
   }
 
+  importChannelAccount(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("importChannelAccount", request);
+  }
+
   issueClientKey(request: ManagementRequest = {}): Promise<Response> {
     return this.request("issueClientKey", request);
   }
@@ -2893,6 +2929,10 @@ export class ManagementApi {
 
   listAccessGroups(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listAccessGroups", request);
+  }
+
+  listAccountChannels(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listAccountChannels", request);
   }
 
   listBillingCatalogs(request: ManagementRequest = {}): Promise<Response> {

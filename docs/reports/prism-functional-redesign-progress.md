@@ -15,3 +15,5 @@
 此记录不表示全方案或生产发布完成。功能重构尚未部署；没有历史数据清理或服务配置变更。
 
 Grok 首次／重新授权验收核对：未通过，管理端尚未接入 Grok Device OAuth 和原生账号持久化。当前 10 项 Grok 底层及 2 项管理授权回归通过仅是合成验证，详见 [授权验收缺口](prism-grok-authorization-acceptance-20260911.md)。没有发生新的真实授权或生产凭据轮换。
+
+全渠道入口批次（进行中）：后端九类渠道目录及普通凭据导入契约已接入。OpenAI／Anthropic 兼容、Codex、Claude、Grok Official、Kiro 六类走真实校验与加密创建；选择器按渠道过滤提供商，支持文件读取。Grok Build／Console／Web 原生账号接入、首次 OAuth、渠道专用重授权及批量导入依旧是必需未完成项。2 项 Rust 针对性回归和 5 项浏览器检查通过，未进行真实授权或部署。

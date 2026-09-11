@@ -1193,6 +1193,8 @@ dependencies = [
  "protocol-anthropic",
  "protocol-openai-chat",
  "protocol-openai-responses",
+ "provider-anthropic-compatible",
+ "provider-kiro",
  "provider-openai-compatible",
  "reqwest",
  "serde",
