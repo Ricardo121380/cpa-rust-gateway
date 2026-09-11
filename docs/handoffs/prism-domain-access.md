@@ -1,5 +1,17 @@
 # Prism HTTPS domain access
 
+
+## 2026-09-11: channel management release (latest)
+
+Production now runs `1cbc20d` on the existing Oracle Singapore CPAR service and domain.
+Schema is 24. Nine channel import entries, native Grok inventory and Build Device authorization
+are deployed; administrator credentials and existing accounts/configuration/history are retained.
+Signed artifacts, exact-revision formal gate, isolated schema upgrade/downgrade and public
+Grok JSON/SSE-to-ledger canaries passed. See
+[release evidence and rollback](../reports/prism-channel-production-release-20260911.md).
+The V6/schema-22 statements below are historical. Other providers' first OAuth and runtime
+hot apply remain incomplete; this release does not claim the entire functional plan complete.
+
 ## 当前界面与登录方式（2026-09-11）
 
 当前运行 V6 `8a1b537`，沿用 `b30d191` 引入的管理员账号密码登录和同一 HTTPS 域名。

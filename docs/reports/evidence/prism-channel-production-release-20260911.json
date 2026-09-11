@@ -1,0 +1,115 @@
+{
+  "deployment": {
+    "passed": true,
+    "revision": "1cbc20dc095491ef6e47d501253e5150a9d03a2d",
+    "binary_sha256": "1e625c024a0af8c764cd0a0aa63da0545a6fe3c935504f36d8ab6f6f2308c8d3",
+    "stop_to_ready_ms": 1237,
+    "four_assets": {
+      "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+      "/admin-ui/assets/index.css": "5df6191126dae8acfb03c969888d3158908a74c492dcee1e28959bc0abfd43be",
+      "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+      "/admin-ui/assets/main.js": "590508311046df7684eed6388895fbeccd7b48d0e930218c4072fda3b0fd6024"
+    },
+    "active_configuration_retained": true,
+    "events_retained": 2223,
+    "ledger_retained": 591,
+    "historical_repairs_retained": 87,
+    "retired_drafts": 11,
+    "control_schema": 24,
+    "existing_administrator_store_retained": true,
+    "administrator_password_accessed": false,
+    "caddy_dns_autoreg_changed": false,
+    "provider_requests": 0,
+    "cli_readback": true,
+    "channel_entries": 9,
+    "native_accounts_retained": 5,
+    "build_authorization_available": true,
+    "public_csp_and_assets": true
+  },
+  "migration_rehearsal": {
+    "passed": true,
+    "schema_upgrade": [
+      22,
+      24
+    ],
+    "schema_downgrade": [
+      24,
+      22
+    ],
+    "network_isolated": true,
+    "service_user": true,
+    "old_binary_restarted": true,
+    "durable_tables_unchanged": [
+      "config_versions",
+      "upstream_credentials",
+      "grok_accounts",
+      "gateway_event_log",
+      "billing_ledger_entries"
+    ],
+    "native_accounts": 5,
+    "provider_requests": 0
+  },
+  "gate": {
+    "conclusion": "success",
+    "headSha": "1cbc20dc095491ef6e47d501253e5150a9d03a2d",
+    "status": "completed",
+    "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34576470769"
+  },
+  "release": {
+    "conclusion": "success",
+    "headSha": "1cbc20dc095491ef6e47d501253e5150a9d03a2d",
+    "status": "completed",
+    "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34576467734"
+  },
+  "chrome_public_login_rendered": true,
+  "production_password_login_repeated": false,
+  "grok_canary": {
+    "passed": true,
+    "results": [
+      {
+        "stream": false,
+        "request_id": "p1-request-20a29f8f0382265e7979e12af87e0fa3-0",
+        "response_id": "0f03cadc-50f0-9bce-be57-4011436c6654",
+        "attempts": 1,
+        "response_passed": true,
+        "ledger_passed": true,
+        "six_token_fields_match": true,
+        "cost_confidence": "unpriced",
+        "cost_microunits": null,
+        "tokens": {
+          "input_tokens": 210,
+          "output_tokens": 129,
+          "reasoning_tokens": 128,
+          "cache_read_tokens": null,
+          "cache_creation_tokens": null,
+          "cached_tokens": 128
+        }
+      },
+      {
+        "stream": true,
+        "request_id": "p1-request-20a29f8f0382265e7979e12af87e0fa3-1",
+        "response_id": "58993f99-3da5-9496-b437-d0071977035e",
+        "attempts": 1,
+        "response_passed": true,
+        "ledger_passed": true,
+        "six_token_fields_match": true,
+        "cost_confidence": "unpriced",
+        "cost_microunits": null,
+        "tokens": {
+          "input_tokens": 210,
+          "output_tokens": 68,
+          "reasoning_tokens": 67,
+          "cache_read_tokens": null,
+          "cache_creation_tokens": null,
+          "cached_tokens": 128
+        }
+      }
+    ],
+    "requests_sent": 2,
+    "automatic_retry": false,
+    "model": "grok-4.6",
+    "binary_sha256": "1e625c024a0af8c764cd0a0aa63da0545a6fe3c935504f36d8ab6f6f2308c8d3",
+    "historical_unresolved_before": 87,
+    "historical_unresolved_after": 87
+  }
+}

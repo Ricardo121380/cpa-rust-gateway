@@ -1,5 +1,12 @@
 # Prism 功能重构实施进度
 
+
+2026-09-11 deployment update: current implemented channel/account improvements are live at
+`https://cpar.142857142.xyz/admin-ui/`, code `1cbc20d`, schema 24.
+[Production release evidence](prism-channel-production-release-20260911.md) records signed builds,
+formal gates, rollback rehearsal and two passing Grok canaries. Remaining functional work below
+is unchanged; deployment is not completion of the whole redesign.
+
 依据：`docs/handoffs/prism-cpamp-functional-redesign.md`。用户于 2026-09-11 授权实施，
 并要求原定渠道全部有入口。以下是当前状态，不以历史测试数量代替本次验收。
 
