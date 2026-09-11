@@ -1949,3 +1949,26 @@ fixture to assert Codex authorization. Add a separate normalized Codex fixture a
 **Other side:** FYI under full-stack authorization. Type and contract checks and 20 focused browser
 cases passed. Complete account inventory and onboarding remain in progress, not blocked on another
 assistant. No backend contract or production state change in this batch.
+
+## 2026-09-11 — Codex — complete managed credential and endpoint inventory
+
+**What:** `crates/gateway-store/src/control_plane{.rs,/resource_inventory.rs}`,
+`crates/gateway-http-actix/src/management_resources{.rs,/resource_inventory.rs}`,
+`crates/gateway-http-actix/tests/managed_resource_inventory.rs`, authoritative OpenAPI,
+`docs/change-requests/CR-PRISM-ACCOUNT-INVENTORY-001.md`, generated Prism contract/client,
+`web/prism/src/features/accounts/inventory.ts`, upstream SubresourcePanel, dev fixtures,
+API conflict mapping/tests, credential/flows/subresource E2E and the implementation progress report.
+
+**Why:** Runtime binding projections cannot enumerate newly created or unbound resources. The
+new protected inventory reads complete credential/endpoint collections with SQL filtering and
+bounded pagination. A resource-audit watermark protects continuation across OAuth rotation even
+when the graph revision is unchanged. Ciphertext is not selected. Read-only connections execute
+under the existing bounded blocking admission. Existing operational bindings remain distinct.
+
+**Other side:** FYI under the authorized functional plan. `listManagedCredentials` and
+`listManagedEndpoints` are now real contract operations (113 total); sync-contract generated the
+client. The provider child panel displays unbound resources and leaves create actions available
+for an empty draft provider. Two real SQLite/HTTP tests, 21 focused E2E, 13 API unit tests and the
+authority/four-file gate passed. Initial test fixture compilation/unique-temp-path issues and old
+binding-only expectations were corrected before these passes. No production changes. Full account
+onboarding and runtime configuration application remain open in the progress report.

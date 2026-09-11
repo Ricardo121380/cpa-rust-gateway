@@ -1,17 +1,6 @@
 import { resourceName } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
-// Per-provider subresource panel, driven by the REAL operational inventory
-// (P13-04A `listOperationalAccountPools`) instead of the proposed G1 graph.
-//
-// Vocabulary is the contract's: this endpoint answers in provider / channel /
-// account, so that is what the tables say. The config plane (upstream /
-// endpoint / credential, status active|disabled|revoked) is a different
-// contract and keeps its own words on its own pages.
-//
-// Two boundaries the panel has to state rather than paper over:
-//   - one row IS one binding, so unbound channels and accounts do not appear;
-//   - the projection is URL-free by design (no base_url / inference_path).
-// Endpoint test and catalog discovery still drive their own real operations.
+// Configuration inventories own endpoint/account enumeration; runtime pools supply observed bindings.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { call } from "../../api/client";
@@ -20,6 +9,7 @@ import { Sheet } from "../../components/Sheet";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useVersionStore } from "../config-versions/versionStore";
 import { CredentialSheet } from "./CredentialSheet";
+import { useManagedInventory } from "../accounts/inventory";
 import {
   accountStatusTone,
   POOL_PAGE_LIMIT,
@@ -410,6 +400,9 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
     retry: false,
   });
 
+  const managedEndpoints = useManagedInventory("endpoints", upstreamId);
+  const managedCredentials = useManagedInventory("credentials", upstreamId);
+
   const test = useMutation({
     mutationFn: (input: { endpointId: string; mode: "non_streaming" | "sse" }) =>
       call<EndpointTest>(
@@ -446,6 +439,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
 
   function refresh(): void {
     void queryClient.invalidateQueries({ queryKey: ["account-pools", scope, upstreamId] });
+    void queryClient.resetQueries({ queryKey: ["managed-inventory", scope] });
   }
 
   // Every one of these takes a WHOLE Input on PATCH — the contract has no
@@ -525,42 +519,31 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
     onError: (cause) => setError(asAppError(cause).message),
   });
 
-  if (pools.isError) {
-    return (
-      <div className="card empty-state" data-kind="unavailable">
-        <p>
-          读取运营库存失败
-          <br />
-          <small className="muted">{asAppError(pools.error).message}</small>
-        </p>
-      </div>
-    );
+  const inventoryError = managedEndpoints.error ?? managedCredentials.error;
+  if (inventoryError) {
+    return <div className="card empty-state" role="alert">
+      <p>{asAppError(inventoryError).message}</p>
+      <button type="button" onClick={refresh}>重新读取账号与端点</button>
+    </div>;
   }
-  if (pools.data === undefined) {
-    return (
-      <div className="card empty-state" data-kind="empty">
-        <p>读取运营库存…</p>
-      </div>
-    );
+  if (!managedEndpoints.data || !managedCredentials.data) {
+    return <div className="card empty-state">读取账号与端点…</div>;
   }
-
-  const pool = providerPool(pools.data.items, upstreamId);
-  const truncated = pools.data.next_cursor != null;
-
-  if (pool === undefined) {
-    return (
-      <div className="card empty-state" data-kind="empty">
-        <p>
-          <span className="mono">{upstreamId}</span> 在本配置版本下没有任何绑定
-          <br />
-          <small className="muted">
-            运营库存按<strong>绑定</strong>成行 —— 建了端点或凭据但尚未绑定,这里就不会出现。
-            先在配置面建立 endpoint-credential 绑定。
-          </small>
-        </p>
-      </div>
-    );
-  }
+  const observed = providerPool(pools.data?.items ?? [], upstreamId);
+  const pool = {
+    channels: managedEndpoints.data.pages.flatMap((page) => page.items).map((endpoint) => ({
+      channel_id: endpoint.id, adapter_id: endpoint.adapter_id, api_format: endpoint.api_format,
+      transport: endpoint.transport, channel_enabled: endpoint.enabled,
+      account_ids: observed?.channels.find((channel) => channel.channel_id === endpoint.id)?.account_ids ?? [],
+    })),
+    accounts: managedCredentials.data.pages.flatMap((page) => page.items).map(({ credential }) => ({
+      account_id: credential.id, account_kind: credential.kind,
+      account_status: credential.status === "active" ? "active" as const : "disabled" as const,
+      account_revision: credential.revision,
+    })),
+    bindings: observed?.bindings ?? [],
+  };
+  const truncated = pools.data?.next_cursor != null;
 
   return (
     <div className="card subresource-panel">
@@ -573,6 +556,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
         </p>
       ) : null}
 
+      {pools.isError ? <p role="alert">运行绑定读取失败，账号与端点仍可管理。<button className="secondary" onClick={() => void pools.refetch()}>重新读取绑定</button></p> : null}
       {truncated ? (
         <p className="action-notice">
           该 provider 的绑定超过 {POOL_PAGE_LIMIT} 条,下面只显示第一页。
@@ -600,10 +584,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
           加绑定
         </button>
       </h3>
-      <p className="stat-sub">
-        新建的 Channel 在<strong>绑定之前不会出现在下表</strong> —— 库存按绑定成行。
-        用上面的「加绑定」把它接上凭据,它才会现身。
-      </p>
+      <p className="stat-sub">已保存端点均可管理，未绑定端点可继续添加凭据。</p>
       <table>
         <thead>
           <tr>
@@ -676,6 +657,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
                   <button
                     type="button"
                     className="secondary"
+                    disabled={pools.isError || pools.data === undefined}
                     onClick={() => setReconcile(channel.channel_id)}
                   >
                     核对绑定
@@ -702,11 +684,10 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
           })}
         </tbody>
       </table>
-      <p className="stat-sub">
-        运营库存不含地址 —— <span className="mono">base_url</span> 与
-        <span className="mono">inference_path</span> 属于配置面,该投影按设计不返回 URL。
-      </p>
+      {managedEndpoints.hasNextPage ? <button className="secondary" disabled={managedEndpoints.isFetchingNextPage} onClick={() => void managedEndpoints.fetchNextPage()}>加载更多端点</button> : null}
+      {pool.channels.length === 0 ? <p className="empty-state">尚未添加端点。</p> : null}
 
+      {managedCredentials.hasNextPage ? <button className="secondary" disabled={managedCredentials.isFetchingNextPage} onClick={() => void managedCredentials.fetchNextPage()}>加载更多账号</button> : null}
       <h3>
         Account <span className="idchip mono">{pool.accounts.length}</span>
         <button
@@ -773,7 +754,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
       </table>
 
       <h3>
-        绑定 <span className="idchip mono">{pool.bindings.length}</span>
+        绑定 <span className="idchip mono">{pools.isError || !pools.data ? "—" : pool.bindings.length}</span>
       </h3>
       <table>
         <thead>

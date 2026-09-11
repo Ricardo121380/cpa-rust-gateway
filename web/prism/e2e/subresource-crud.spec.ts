@@ -28,11 +28,8 @@ test("a channel can be created and appears in the inventory", async ({ page }) =
   await sheet.getByLabel("inference_path").fill("/responses");
   await sheet.getByRole("button", { name: "创建" }).click();
 
-  // Binding-driven: the new channel has no row yet, so the per-row bind button
-  // does not exist for it. The panel-level entry is the way out of that
-  // chicken-and-egg, and the panel says so above the table.
-  await expect(page.locator(".subresource-panel")).not.toContainText("ep-e2e");
-  await expect(page.locator(".subresource-panel")).toContainText("绑定之前不会出现在下表");
+  // Complete configuration inventory exposes the new endpoint before any binding exists.
+  await expect(page.locator(".subresource-panel")).toContainText("ep-e2e");
 
   await page.locator(".subresource-panel").getByRole("button", { name: "加绑定" }).first().click();
   const bind = page.getByRole("dialog");
@@ -88,8 +85,9 @@ test("deleting a channel warns that its bindings and candidates go with it", asy
   await expect(confirm).toContainText("连带移除它的全部绑定");
   await expect(confirm).toContainText("路由候选将失去目标");
   await confirm.getByRole("button", { name: "确认删除" }).click();
-  // the whole provider had exactly one binding, so the inventory empties
-  await expect(page.locator(".empty-state")).toContainText("没有任何绑定");
+  // Removing its usage locations must not hide the retained credentials.
+  await expect(page.locator(".subresource-panel")).not.toContainText("ep-relay-a-responses");
+  await expect(page.locator(".subresource-panel")).toContainText("cred-relay-key");
 });
 
 test("subresource editing is refused on a published version", async ({ page }) => {
@@ -115,4 +113,18 @@ test("new account defaults to the real runtime bearer kind", async ({ page }) =>
   await expect(sheet.getByLabel("认证方式")).toHaveValue("bearer");
   await sheet.getByLabel("认证方式").selectOption("oauth_json");
   await expect(sheet.getByLabel("认证方式")).toHaveValue("oauth_json");
+});
+
+
+test("new unbound credentials remain visible and editable", async ({ page }) => {
+  await openPanel(page);
+  await page.getByRole("button", { name: "新建 Account", exact: true }).click();
+  const sheet = page.getByRole("dialog");
+  await sheet.getByLabel("id", { exact: true }).fill("account-unbound");
+  await sheet.getByLabel("secret", { exact: true }).fill("synthetic-test-token");
+  await sheet.getByRole("button", { name: "创建", exact: true }).click();
+  const row = page.locator(".subresource-panel").getByRole("row", { name: /^account-unbound bearer/u });
+  await expect(row).toBeVisible();
+  await row.getByRole("button", { name: "编辑", exact: true }).click();
+  await expect(page.getByRole("dialog").getByLabel("id", { exact: true })).toHaveValue("account-unbound");
 });

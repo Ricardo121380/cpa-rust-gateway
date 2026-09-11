@@ -5,9 +5,13 @@
 //! runtime view; P2-07 owns publication of that view.
 
 mod configuration_diff;
+mod resource_inventory;
 pub use configuration_diff::{
     ConfigurationDiffError, ConfigurationDiffPage, ConfigurationDiffQuery, ConfigurationDiffReader,
     ConfigurationResourceChange,
+};
+pub use resource_inventory::{
+    ManagedCredential, ResourceInventoryPage, ResourceInventoryQuery, ResourceInventoryReader,
 };
 
 use std::{fmt, path::Path};

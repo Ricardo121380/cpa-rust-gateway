@@ -1347,6 +1347,74 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "listManagedCredentials": {
+    "method": "GET",
+    "path": "/admin/credentials",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "upstream_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "q",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "listManagedEndpoints": {
+    "method": "GET",
+    "path": "/admin/endpoints",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "upstream_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "q",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "listManagementAuditEvents": {
     "method": "GET",
     "path": "/admin/audit-events",
@@ -2809,6 +2877,14 @@ export class ManagementApi {
 
   listEndpointCredentialBindings(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listEndpointCredentialBindings", request);
+  }
+
+  listManagedCredentials(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listManagedCredentials", request);
+  }
+
+  listManagedEndpoints(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listManagedEndpoints", request);
   }
 
   listManagementAuditEvents(request: ManagementRequest = {}): Promise<Response> {

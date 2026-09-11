@@ -35,7 +35,7 @@ test("client key issuance is reveal-once and revoke is two-step", async ({ page 
   await expect(page.locator("tr", { hasText: prefix })).toContainText("revoked");
 });
 
-test("upstream subresources come from the operational inventory", async ({ page }) => {
+test("upstream resources use complete inventory and separate runtime bindings", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "上游");
@@ -52,7 +52,7 @@ test("upstream subresources come from the operational inventory", async ({ page 
   await expect(panel).toContainText("Account");
   await expect(panel).toContainText("绑定");
   // Boundaries the projection imposes, stated rather than papered over.
-  await expect(panel).toContainText("该投影按设计不返回 URL");
+  await expect(panel).toContainText("已保存端点均可管理");
   await expect(panel).toContainText("不代表凭据健康");
 
   await panel

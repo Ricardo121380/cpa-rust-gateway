@@ -18,6 +18,7 @@ describe("isRuntimeConflict", () => {
     // codes nobody edited anything — an operational cursor went stale, or an
     // action's target moved between the read and the write. Raising the banner
     // sends the operator hunting a config change that never happened.
+    expect(isRuntimeConflict(conflict("management_inventory_cursor_conflict"))).toBe(true);
     expect(isRuntimeConflict(conflict("management_operations_cursor_conflict"))).toBe(true);
     expect(isRuntimeConflict(conflict("management_provider_account_pool_cursor_conflict"))).toBe(
       true,

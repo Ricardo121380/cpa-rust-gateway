@@ -85,7 +85,7 @@ test("no secret material reaches the DOM", async ({ page }) => {
   expect(text).not.toMatch(/[A-Za-z0-9_-]{32,}/u);
 });
 
-test("a provider with no binding says so — the inventory is binding-driven", async ({ page }) => {
+test("an empty provider still exposes account and endpoint creation", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "上游");
@@ -96,8 +96,8 @@ test("a provider with no binding says so — the inventory is binding-driven", a
     .first()
     .getByRole("button", { name: "子资源" })
     .click();
-  await expect(page.locator(".empty-state")).toContainText("没有任何绑定");
-  await expect(page.locator(".empty-state")).toContainText("按");
+  await expect(page.getByRole("button", { name: "新建 Account", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "新建 Channel", exact: true })).toBeEnabled();
 });
 
 test("the account row opens the credential sheet from the pool inventory", async ({ page }) => {
@@ -113,7 +113,7 @@ test("the account row opens the credential sheet from the pool inventory", async
   const panel = page.locator(".subresource-panel");
   // The operations status vocabulary reaches the screen unmapped.
   // anchored: the id also appears in the binding table below
-  await expect(panel.getByRole("row", { name: /^cred-grok-oauth bearer/u })).toContainText("cooling");
+  await expect(panel.getByRole("row", { name: /^cred-grok-oauth bearer/u })).toContainText("active");
 
   await panel.getByRole("row", { name: /cred-grok-oauth/u }).getByRole("button", { name: "详情" }).click();
   await expect(page.getByRole("dialog")).toContainText("凭据 · cred-grok-oauth");

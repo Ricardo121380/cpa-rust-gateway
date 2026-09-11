@@ -71,6 +71,7 @@ export async function toAppError(response: Response): Promise<AppError> {
  * this only governs whether the global version banner fires.
  */
 const RUNTIME_CONFLICT_CODES: ReadonlySet<string> = new Set([
+  "management_inventory_cursor_conflict",
   "management_operations_cursor_conflict",
   "management_provider_account_pool_cursor_conflict",
   "management_provider_egress_status_cursor_conflict",

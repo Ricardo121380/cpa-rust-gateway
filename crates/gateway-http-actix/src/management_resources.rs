@@ -5,6 +5,7 @@
 //! credential Secret/ciphertext, or bypass the P10-02 `/admin` security scope.
 
 mod configuration_diff;
+mod resource_inventory;
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -2515,6 +2516,8 @@ fn configure_routing_resource_routes(config: &mut web::ServiceConfig) {
             "/config-versions/{config_version_id}/diff",
             web::get().to(configuration_diff::read),
         )
+        .route("/credentials", web::get().to(resource_inventory::credentials))
+        .route("/endpoints", web::get().to(resource_inventory::endpoints))
         .route("/routes", web::get().to(list_model_routes_page))
         .route(
             "/route-candidates",

@@ -614,6 +614,7 @@ function hex(length: number): string {
 // Required path with diagnostics shedding — the common real state, and the one
 // that proves the UI does not cry wolf over by-design backpressure.
 let scrapes = 0;
+let inventorySequence = 0;
 
 function renderMetrics(scrape: number): string {
   const requests = 1180 + scrape * 7;
@@ -2112,6 +2113,32 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     }
 
 
+    if (route === "GET /admin/credentials" || route === "GET /admin/endpoints") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const kind = route.endsWith("credentials") ? "credentials" : "endpoints";
+      const owner = url.searchParams.get("upstream_id");
+      const search = url.searchParams.get("q") ?? "";
+      const limit = Number(url.searchParams.get("limit") ?? 100);
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100 || search.length > 256) return errorResponse(400, "invalid_management_request", "invalid inventory query");
+      let after = "";
+      const encoded = url.searchParams.get("cursor");
+      if (encoded !== null) {
+        try {
+          const cursor = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(encoded.replace(/-/gu, "+").replace(/_/gu, "/")), (char) => char.charCodeAt(0)))) as {kind: string; version: string; revision: number; sequence: number; owner: string | null; search: string; after: string};
+          if (cursor.kind !== kind || cursor.version !== version.id || cursor.revision !== version.revision || cursor.sequence !== inventorySequence || cursor.owner !== owner || cursor.search !== search) return errorResponse(409, "management_inventory_cursor_conflict", "inventory changed");
+          after = cursor.after;
+        } catch { return errorResponse(400, "invalid_management_request", "invalid inventory cursor"); }
+      }
+      const all = kind === "credentials" ? state.credentials.get(version.id) ?? [] : state.endpoints.get(version.id) ?? [];
+      const ordered = all.filter((row) => row.id > after && (owner === null || row.upstream_id === owner) && `${row.id} ${row.upstream_id} ${"kind" in row ? row.kind : row.adapter_id}`.toLowerCase().includes(search.toLowerCase())).sort((a,b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+      const selected = ordered.slice(0, limit);
+      const last = selected.at(-1);
+      const cursor = last !== undefined && ordered.length > limit ? btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify({kind, version: version.id, revision: version.revision, sequence: inventorySequence, owner, search, after: last.id})))).replace(/\+/gu, "-").replace(/\//gu, "_").replace(/=+$/u, "") : null;
+      const items = kind === "credentials" ? selected.map((credential) => ({credential, binding_count: (state.bindings.get(version.id) ?? []).filter((binding) => binding.credential_id === credential.id).length})) : selected;
+      return json(200, {config_version: version.id, revision: revisionToken(version), observation_version: `audit-${inventorySequence}`, items, next_cursor: cursor}, revisionToken(version));
+    }
+
     // ---- P13-11 A–D: compatible proxy pools / nodes / egress bindings ----
     //
     // The fixture enforces the three refusals the real backend enforces, so the
@@ -2400,6 +2427,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         return errorResponse(409, "management_lifecycle_conflict", "credential does not hold an oauth token");
       }
       row.revision += 1;
+      inventorySequence += 1;
       return json(202, { credential_id: id, state: "complete", revision: row.revision });
     }
 
@@ -2467,6 +2495,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
           row.status = "active";
           row.kind = "oauth_json";
           row.revision += 1;
+          inventorySequence += 1;
         }
       }
       return json(202, {
@@ -2482,6 +2511,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const op = state.oauthOps.get(id);
       if (op !== undefined && op.state === "pending") {
         op.state = "cancelled";
+        inventorySequence += 1;
       }
       return new Response(null, { status: 204 });
     }
