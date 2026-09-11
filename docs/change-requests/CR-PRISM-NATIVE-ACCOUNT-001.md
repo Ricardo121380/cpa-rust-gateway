@@ -54,11 +54,13 @@ account ID on reauthorization and desktop/mobile entries. Schema up/down and the
 contract/four-file double-build gate passed. Clippy checked the gateway composition, HTTP and
 provider crates.
 
-A clean real local gateway was started, with nine import entries enabled and Build Device OAuth
-available. Through the embedded Prism UI it obtained a real device authorization session and
-opened the official `accounts.x.ai` verification page. User login/terms/consent is pending;
-no real grant persistence or real reauthorization success is claimed yet. The expired/cancelled
-and rejection cases above are controlled transport tests, not repeated live provider attempts.
+A clean real local gateway was started. After moving the interaction to the user's requested
+Chrome browser, first authorization and same-account reauthorization both completed against
+Grok's actual service. The account remained unique, ID/import identity stayed unchanged, revision
+advanced from 0 to 1, ciphertext changed and an authorization audit was written. After rebuilding
+and restarting the independent gateway, the encrypted row and API/UI readback remained intact.
+No provider inference request or production CPAR change was part of this authorization test.
+The live receipt is docs/reports/evidence/prism-grok-auth-live-20260911.json.
 
 All nine credential-entry families are connected. This does not mark the wider functional plan
 complete: Codex/Claude/Kiro first OAuth wiring, full batch preview/commit, provider onboarding,

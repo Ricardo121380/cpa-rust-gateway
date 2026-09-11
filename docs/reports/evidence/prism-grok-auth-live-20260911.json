@@ -1,0 +1,22 @@
+{
+  "first_authorization_passed": true,
+  "reauthorization_passed": true,
+  "browser": "Chrome",
+  "environment": "isolated local gateway",
+  "account_id": "grok-6e97a9e7ce03e2dc928b836a301aeab5",
+  "account_count_before": 1,
+  "account_count_after": 1,
+  "revision_before": 0,
+  "revision_after": 1,
+  "same_account_id": true,
+  "same_import_identity": true,
+  "ciphertext_changed": true,
+  "encryption_key_version": 1,
+  "reauthorization_audit_rows": 1,
+  "database_integrity": "ok",
+  "provider_inference_requests": 0,
+  "production_modified": false,
+  "restart_verified": true,
+  "encrypted_record_unchanged_after_restart": true,
+  "api_reread_after_restart": true
+}

@@ -1,31 +1,25 @@
-# 原生 Grok 账号接入
+# 原生 Grok 账号接入与验收
 
-本轮已把 Grok Build／Console／Web 从不可用提示接到原生加密账号池，前端九类渠道均有
-实际凭据接入路径。Build 另有首次 Device OAuth 和按稳定账号 ID 重新授权的交互。
+本轮已把 Grok Build／Console／Web 接到原生加密账号池。九类渠道均有实际凭据接入路径；
+Build 另有首次 Device OAuth 和保持原账号 ID 的重新授权交互。实现提交为 `21afa41`。
 
 - 导入后立即在账号页显示，不依赖运行绑定。
-- Build 授权等待真实 grant；取消、过期、身份不一致或 revision 过期不覆盖账号。
-- 原生库存分页与其账号变更绑定，不因普通请求增长失效。
-- 本地 schema 24；生产仍未更新，没有生产凭据轮换、配置发布或历史清理。
+- Build 授权等待实际 grant；取消、过期、身份不一致或 revision 过期不覆盖账号。
+- 原生库存分页与账号变更绑定，不因普通请求增长失效。
+- schema 24 添加库存 generation 和重授权审计。本轮仅本地运行，未部署生产。
 
-实际检查：7 项 SQLite/HTTP、2 项授权工作流、7 项既有 native migration、7 项浏览器检查
-通过；迁移往返及 122 操作嵌入门禁通过。首次编译、测试数据日期字段和原生 provider 存储
-枚举问题已修正；失败没有计作通过。
+本次 7 项 SQLite/HTTP、2 项授权工作流、7 项既有 native migration、7 项浏览器检查通过；
+迁移往返、Clippy 和 122 操作契约／四文件嵌入门禁通过。首次测试中的日期字段和原生
+provider 存储枚举问题已修正；失败没有计作通过。
 
-当前独立真实本地入口：`http://127.0.0.1:61700/admin-ui/#/accounts`。
-空库管理员已通过初始化并改密；密码仅存于该预览的本人可读临时文件，未写入报告。
-已从实际嵌入式前端发起 Grok Device Grant，并打开官方验证页面。需要用户在官网接受条款、
-登录及授权；本报告不宣称真实 grant 已入库，也不宣称真实重新授权已通过。
+随后在 Chrome 的真实本地应用完成了首次授权、同一账号重新授权和 gateway 重启重读。
+账号保持 1 个，ID 不变，revision 0→1，密文更新并有审计。具体事实及收据见
+[真实授权验收](prism-grok-authorization-acceptance-20260911.md)。
 
-该预览独立于生产；停止后其临时数据库仍保留。运行中的预览先于最后的终态 poller 清理与
-错误文案修订构建；授权流程和存储路径一致，源码与构建验证以本轮提交为准。
+本地入口：`http://127.0.0.1:61700/admin-ui/#/accounts`。管理员已初始化并改密，密码只在
+该预览本人可读的临时文件中。最终重启已加载包括终态清理和分组空态修订的新构建。
+Chrome 页面保留，停止本地进程不删除其临时加密数据库。
 
-契约、安全边界及剩余工作见 [CR-PRISM-NATIVE-ACCOUNT-001](../change-requests/CR-PRISM-NATIVE-ACCOUNT-001.md)。
-
-用户随后指定验收只使用 Chrome，不使用 Codex 侧边栏。侧边栏的旧设备会话已明确取消，
-对应临时页面已关闭；Chrome 已打开本地 Prism。Chrome 当前扩展弹窗阻止自动化登录，
-已请用户关闭弹窗；尚未在 Chrome 发起新的授权或收到真实 grant。
-
-Chrome 扩展阻挡已由用户解除。已在 Chrome 登录实际本地 Prism，重新建立设备会话并在
-Chrome 官方验证页填入新验证码；等待用户点击继续并完成授权。旧侧边栏会话保持已取消。
-没有把验证码或任何 token 写入仓库。
+其余渠道首次 OAuth、批量操作、提供商向导和运行配置热切换仍属于待完成工作，详见
+[进度](prism-functional-redesign-progress.md)及
+[CR-PRISM-NATIVE-ACCOUNT-001](../change-requests/CR-PRISM-NATIVE-ACCOUNT-001.md)。

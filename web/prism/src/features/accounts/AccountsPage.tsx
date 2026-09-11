@@ -81,6 +81,7 @@ function ManagedAccounts() {
     </header>
     {edit.isError ? <p role="alert">{asAppError(edit.error).message}</p> : null}
     {notice ? <p role="status">{notice}</p> : null}
+    <h3>API / Codex / Claude / Kiro</h3>
     <div className="data-panel">
       <div className="data-toolbar">
         <input aria-label="搜索账号" placeholder="搜索账号或提供商" value={search} onChange={(e) => update("q", e.target.value)} />
@@ -88,7 +89,7 @@ function ManagedAccounts() {
       </div>
       {error ? <div className="empty-state" role="alert">{error.message}<button onClick={() => void refresh()}>重新读取</button></div> :
         context === undefined ? <div className="empty-state">开始编辑账号配置以接入第一个账号。</div> :
-        inventory.isPending ? <div className="empty-state">读取账号…</div> : rows.length === 0 ? <div className="empty-state">{search || provider ? "没有匹配的账号" : "尚未添加账号"}</div> :
+        inventory.isPending ? <div className="empty-state">读取账号…</div> : rows.length === 0 ? <div className="empty-state">{search || provider ? "没有匹配的账号" : "该分组暂无账号"}</div> :
         <><div className="tablewrap managed-account-table"><table><thead><tr><th>账号</th><th>提供商</th><th>认证方式</th><th>启停状态</th><th>使用位置</th><th>操作</th></tr></thead>
           <tbody>{rows.map((row) => <tr key={row.credential.id}>
             <td><ResourceIdentity id={row.credential.id} kind="account" /></td>
@@ -104,7 +105,7 @@ function ManagedAccounts() {
           <p><Link to={`/upstreams?upstream_id=${encodeURIComponent(row.credential.upstream_id)}`}>{row.binding_count === 0 ? "未绑定端点" : `${row.binding_count} 个端点`}</Link></p>
           {actions(row)}
         </article>)}</div></>}
-      <div className="data-footer"><span>已加载 {rows.length} 个账号{inventory.hasNextPage ? " · 还有更多" : ""}</span>
+      <div className="data-footer"><span>本组已加载 {rows.length} 个账号{inventory.hasNextPage ? " · 还有更多" : ""}</span>
         {inventory.hasNextPage ? <button className="secondary" disabled={inventory.isFetchingNextPage || inventory.isError} onClick={() => void inventory.fetchNextPage()}>加载更多账号</button> : null}
       </div>
     </div>

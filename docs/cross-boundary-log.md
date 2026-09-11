@@ -2061,3 +2061,18 @@ the actual deployment composition. Local regression and embedded gates passed; a
 obtained a real device session. User consent is pending, not a completed real grant. Schema 24 is
 local only; no production deployment or historical cleanup. Other provider first-OAuth and live
 configuration apply work remain required, not implicitly completed by this batch.
+
+## 2026-09-11 — Codex — Chrome live authorization closeout
+
+**What:** AccountsPage group heading/empty-state labels; current native/auth reports, safe live
+authorization receipt and functional progress.
+
+**Why:** Actual Chrome enrollment showed a native account while the ordinary-account panel said
+no accounts existed. Group-specific labels now make both facts clear. Actual first/repeated Grok
+authorization and encrypted restart persistence are verified, replacing the earlier pending status.
+
+**Other side:** FYI. First grant created one encrypted native account; reauthorization retained
+its ID and import identity, advanced revision 0→1 and wrote one audit event. The independent
+gateway was rebuilt/restarted and API/Chrome readback verified the same record. Type checking and
+build passed for the label change; existing native regression evidence remains in the report.
+No production deployment/storage change; wider functional-plan work remains incomplete.
