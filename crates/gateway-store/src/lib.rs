@@ -3,6 +3,7 @@
 #![deny(unsafe_code)]
 
 /// Separate, owner-only administrator credential store (excluded from configuration backups).
+pub mod account_identity;
 pub mod admin_login;
 
 /// Encrypted control-plane backup artifacts and empty-target restoration primitives.

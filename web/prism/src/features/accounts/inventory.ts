@@ -1,3 +1,4 @@
+import type { AccountIdentity, Category } from "./presentation";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { call } from "../../api/client";
 import { useVersionStore } from "../config-versions/versionStore";
@@ -12,6 +13,10 @@ export type ManagedCredential = Readonly<{
     secret_present: boolean;
   }>;
   binding_count: number;
+  identity: AccountIdentity;
+  category: Exclude<Category,"grok">;
+  provider: string;
+  connections: readonly {id:string; api_format:string; enabled:boolean; host:string|null}[];
 }>;
 
 export type ManagedEndpoint = Readonly<{

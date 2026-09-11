@@ -664,7 +664,16 @@ const fixtureSessions = new Map<string, { csrf: string; expires: number; initial
 let fixturePassword = "Prism-demo-2026";
 let fixtureSequence = 0;
 
-type NativeFixtureAccount = {id:string;provider:string;auth_status:string;enabled:boolean;revision:number;import_batch_id:string};
+type NativeFixtureAccount = {id:string;provider:string;auth_status:string;enabled:boolean;revision:number;import_batch_id:string;identity?:{email:string|null;phone:string|null;username:string|null}};
+function fixtureBuildIdentity(material:string):{email:string|null;phone:null;username:null} {
+  let email:string|null=null;
+  try {
+    const credential=JSON.parse(material) as {access_token?:string};
+    const payload=credential.access_token?.split(".")[1];
+    if(payload) {const claims=JSON.parse(atob(payload.replace(/-/gu,"+").replace(/_/gu,"/"))) as {email?:string};email=claims.email??null;}
+  } catch { /* An opaque access token supplies no display identity. */ }
+  return {email,phone:null,username:null};
+}
 const nativeFixtureAccounts: NativeFixtureAccount[] = [];
 let nativeFixtureGeneration=0;
 const nativeDeviceSessions=new Map<string,{view:{session_id:string;state:string;user_code:string;verification_uri:string;expires_at_ms:number;retry_at_ms:number};name:string;target?:{account_id:string;revision:number}}>();
@@ -1409,12 +1418,12 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const cursor=url.searchParams.get("cursor");let offset=0;
       if(cursor){const decoded=JSON.parse(atob(cursor)) as {generation:number;q:string;offset:number};if(decoded.generation!==nativeFixtureGeneration||decoded.q!==q)return errorResponse(409,"management_native_account_conflict","账号列表已改变");offset=decoded.offset;}
       const rows=nativeFixtureAccounts.filter((r)=>`${r.id} ${r.import_batch_id} ${r.provider}`.toLowerCase().includes(q.toLowerCase()));
-      return json(200,{items:rows.slice(offset,offset+limit),next_cursor:offset+limit<rows.length?btoa(JSON.stringify({generation:nativeFixtureGeneration,q,offset:offset+limit})):null});
+      return json(200,{items:rows.slice(offset,offset+limit).map((row)=>({...row,identity:row.identity??{email:row.provider==="grok_build"?"grok.member@example.test":null,phone:null,username:null}})),next_cursor:offset+limit<rows.length?btoa(JSON.stringify({generation:nativeFixtureGeneration,q,offset:offset+limit})):null});
     }
     if(route === "POST /admin/native-accounts/import") {
       const input=JSON.parse(bodyText??"{}") as {id:string;channel:string;secret:string};
       if(nativeFixtureAccounts.some((r)=>r.import_batch_id===input.id))return errorResponse(409,"management_native_account_conflict","账号名称已存在");
-      nativeFixtureAccounts.push({id:`grok-fixture-${++nativeFixtureGeneration}`,provider:input.channel.replace(".","_"),auth_status:"active",enabled:true,revision:0,import_batch_id:input.id});
+      nativeFixtureAccounts.push({id:`grok-fixture-${++nativeFixtureGeneration}`,provider:input.channel.replace(".","_"),auth_status:"active",enabled:true,revision:0,import_batch_id:input.id,identity:input.channel==="grok.build"?fixtureBuildIdentity(input.secret):{email:null,phone:null,username:null}});
       return json(201,{created:1,unchanged:0});
     }
     if(route === "POST /admin/native-account-authorizations") {
@@ -2224,7 +2233,13 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const selected = ordered.slice(0, limit);
       const last = selected.at(-1);
       const cursor = last !== undefined && ordered.length > limit ? btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify({kind, version: version.id, revision: version.revision, sequence: inventorySequence, owner, search, after: last.id})))).replace(/\+/gu, "-").replace(/\//gu, "_").replace(/=+$/u, "") : null;
-      const items = kind === "credentials" ? selected.map((credential) => ({credential, binding_count: (state.bindings.get(version.id) ?? []).filter((binding) => binding.credential_id === credential.id).length})) : selected;
+      const items = kind === "credentials" ? selected.map((item) => {
+        const credential = item as CredentialRow;
+        const bindings=(state.bindings.get(version.id)??[]).filter((b)=>b.credential_id===credential.id);
+        const connections=bindings.flatMap((b)=>{const e=state.endpoints.get(version.id)?.find((e)=>e.id===b.endpoint_id);return e?[{id:e.id,api_format:e.api_format,enabled:b.enabled&&e.enabled,host:new URL(e.base_url).hostname}]:[];});
+        const category=credential.kind==="oauth_json"?"codex":"api";
+        return {credential,binding_count:bindings.length,identity:{email:credential.id==="cred-codex-oauth"?"alex@example.test":null,phone:null,username:null},category,provider:category==="codex"?"Codex":"API",connections};
+      }) : selected;
       return json(200, {config_version: version.id, revision: revisionToken(version), observation_version: `audit-${inventorySequence}`, items, next_cursor: cursor}, revisionToken(version));
     }
 

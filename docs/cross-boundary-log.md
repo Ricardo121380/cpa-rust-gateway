@@ -2090,3 +2090,23 @@ fixture string matching the credential scanner. No scanner exception or runtime 
 **Other side:** FYI under the authorized Oracle release. The provider dependencies reuse actual
 credential validators and the injected native store/Device flow. Tests and the final exact-revision
 gate must pass before cutover; existing production data and credentials are retained.
+
+## 2026-09-11 — Codex — human account directory presentation
+
+**What:** `gateway-store` account_identity and resource_inventory, control mutation service's
+bounded display projector, HTTP managed/native inventory responses and regression; authoritative
+OpenAPI plus synced Prism contract; accounts AccountsPage/AccountList/NativeAccounts/inventory/
+presentation, V6 styles, fixtures and account E2E. `gateway-store` reuses workspace base64 only
+for bounded, display-only JWT identity claims; dependency policy is updated accordingly.
+
+**Why:** User rejects phase labels/digests/import batches as account names, requires six separate
+families and consistent Grok Web/Console/Build rows, and needs connection purposes instead of
+unexplained endpoint counts. Identity is an allowlisted server-side projection; missing identity
+remains null. No token reaches the browser, no provider is contacted and no migration is added.
+
+**Other side:** FYI under joint frontend/backend implementation authorization. Existing identifiers,
+revision/CAS/session boundaries, draft writes and native account separation remain. Source labels
+such as Autoreg are separate from identities. Identity search is explicitly scoped to loaded rows;
+counts do not claim full totals before pagination ends. Further manual identity supplementation is
+awaiting user preference. Chrome verification is blocked by an extension popup; fixture Chromium
+and actual local gateway API evidence are distinguished in the report. No production deployment.

@@ -329,14 +329,76 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .canvas :is(.card,
 
 .workspace-navigation button { background:transparent; border:0; box-shadow:none; min-height:40px; }
 
-.managed-account-cards { display:none; }
-@media (max-width: 700px) {
-  .managed-account-table { display:none; }
-  .managed-account-cards { display:grid; gap:12px; }
-  .managed-account-cards article { padding:16px; border:1px solid var(--separator); border-radius:16px; background:var(--surface); }
-  .managed-account-cards header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; overflow-wrap:anywhere; }
-  .managed-account-cards .page-actions { justify-content:flex-start; flex-wrap:wrap; }
+/* Account directory: the same rows and material for every channel, including native Grok. */
+.account-directory-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:16px; margin:24px 0 16px; }
+.account-search { flex:1; min-width:220px; max-width:480px; margin:0; }
+.account-search input { width:100%; margin:0; }
+.account-category-filter { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:28px; }
+.account-category-filter button { background:transparent; color:var(--ink-2); border:1px solid transparent; box-shadow:none; border-radius:999px; padding:8px 16px; min-height:40px; }
+.account-category-filter button[aria-pressed="true"] { background:color-mix(in srgb, var(--tint) 10%, transparent); color:var(--tint); border-color:var(--separator); }
+.account-directory { display:grid; gap:28px; }
+.account-group { min-width:0; border:1px solid var(--separator); border-radius:20px; overflow:hidden; background:var(--panel-tint); box-shadow:inset 0 1px var(--panel-shine); }
+.account-directory-head { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 24px; border-bottom:1px solid var(--separator); }
+.account-directory-head > div { display:flex; flex-wrap:wrap; align-items:baseline; gap:12px; }
+.account-directory-head h3 { margin:0; font-size:18px; font-weight:650; }
+.account-group-count { color:var(--ink-2); font-size:12px; white-space:nowrap; }
+.account-subgroup h4 { margin:0; padding:16px 24px 8px; color:var(--ink-2); font-size:13px; font-weight:600; }
+.account-subgroup + .account-subgroup { border-top:1px solid var(--separator); }
+.account-list-wrap { width:100%; overflow-x:auto; }
+.account-list { width:100%; table-layout:fixed; margin:0; }
+.account-list th { font-size:12px; font-weight:500; color:var(--ink-2); }
+.account-list th:nth-child(1) { width:29%; }
+.account-list th:nth-child(2) { width:15%; }
+.account-list th:nth-child(3) { width:14%; }
+.account-list th:nth-child(4) { width:23%; }
+.account-list th:nth-child(5) { width:19%; }
+.account-list td, .account-list th { padding:16px 18px; text-align:left; overflow-wrap:anywhere; vertical-align:middle; }
+.account-list td:first-child, .account-list th:first-child { padding-left:24px; }
+.account-list td:last-child, .account-list th:last-child { padding-right:24px; }
+.account-list td strong { display:block; font-size:14px; font-weight:600; line-height:1.55; }
+.account-list .entity-meta { display:block; margin:4px 0 0; font-size:12px; color:var(--ink-2); line-height:1.5; }
+.account-source { display:block; font-size:12px; color:var(--ink-2); margin-top:5px; }
+.account-list .page-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; }
+.account-list .page-actions button { min-height:36px; padding:6px 10px; font-size:12px; white-space:nowrap; }
+.account-connection-link { display:block; text-align:left; color:var(--tint); background:transparent; box-shadow:none; border:0; border-radius:8px; padding:4px 0; line-height:1.5; font-size:13px; }
+.account-group-empty { padding:22px 24px; margin:0; color:var(--ink-2); font-size:13px; }
+.account-directory-footer { flex-wrap:wrap; gap:12px; margin-top:20px; }
+.account-connections { display:grid; gap:12px; padding:0; list-style:none; }
+.account-connections li { display:grid; gap:8px; padding:16px; border:1px solid var(--separator); border-radius:12px; overflow-wrap:anywhere; }
+@media (max-width: 900px) {
+  .account-list th:nth-child(1) { width:25%; }
+  .account-list th:nth-child(4) { width:24%; }
+  .account-list th:nth-child(5) { width:22%; }
+  .account-list td, .account-list th { padding:14px 10px; }
+}
+@media (max-width: 720px) {
+  .account-directory { gap:18px; }
+  .account-directory-head { align-items:flex-start; padding:18px 16px; }
+  .account-directory-head > div { display:grid; gap:4px; }
+  .account-category-filter { gap:4px; margin-bottom:20px; }
+  .account-category-filter button { padding:8px 12px; min-height:44px; }
+  .account-list-wrap { overflow:visible; }
+  .canvas table.account-list, .account-list tbody, .account-list tr { display:block; width:100%; }
+  .account-list thead { display:none; }
+  .account-list tr { padding:16px; border-bottom:1px solid var(--separator); }
+  .account-list tr:last-child { border-bottom:0; }
+  .account-list td, .account-list td:first-child, .account-list td:last-child { display:block; padding:6px 0; border:0; width:auto; }
+  .account-list td[data-label] { display:grid; grid-template-columns:72px 1fr; align-items:start; gap:4px 8px; }
+  .account-list td[data-label]::before { content:attr(data-label); color:var(--ink-2); font-size:12px; }
+  .account-list td[data-label] .entity-meta { grid-column:2; margin-top:0; }
+  .account-list td[data-label] .account-connection-link .entity-meta { display:block; margin-top:4px; }
+  .account-list .page-actions { justify-content:flex-start; padding-top:8px; }
+  .account-list .page-actions button { min-height:44px; padding:8px 14px; }
+  .account-list-identity { margin-bottom:10px; }
+  .account-subgroup h4 { padding-left:16px; }
 }
 
-.native-account-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:12px; }
-.native-account-grid article { padding:18px; border-radius:16px; border:1px solid var(--separator); }
+html:is([data-transparency="reduce"], [data-contrast="more"]) .account-group { background:var(--surface); }
+@media (prefers-reduced-transparency:reduce), (prefers-contrast:more) { .account-group { background:var(--surface); } }
+
+.accounts-page .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0; }
+/* Restore inner spacing after the shell's legacy section-underlap rule. */
+.shell .account-directory-head, .shell .account-group-empty, .shell .account-subgroup > h4 { margin-left:0; padding-left:24px; }
+@media (max-width:720px) {
+  .shell .account-directory-head, .shell .account-group-empty, .shell .account-subgroup > h4 { padding-left:16px; }
+}

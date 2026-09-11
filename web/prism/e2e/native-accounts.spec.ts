@@ -17,8 +17,8 @@ test("native SSO import is immediately listed without a provider binding",async(
   await dialog.locator('textarea').fill(JSON.stringify({sso_token:'synthetic-sso',probe_model:'grok-4.6'}));
   await dialog.getByRole('button',{name:'添加账号',exact:true}).click();
   await expect(dialog).toHaveCount(0);
-  await expect(page.locator('.native-accounts')).toContainText('Console 团队账号');
-  await expect(page.locator('.native-accounts')).not.toContainText('synthetic-sso');
+  await expect(page.getByRole('region',{name:'Grok 账号',exact:true})).toContainText('Console 团队账号');
+  await expect(page.getByRole('region',{name:'Grok 账号',exact:true})).not.toContainText('synthetic-sso');
 });
 test("Grok first authorization waits for provider consent, then reauthorizes the same account",async({page})=>{
   await unlock(page);await selectDraft(page);await navigate(page,"账号池");
@@ -30,18 +30,18 @@ test("Grok first authorization waits for provider consent, then reauthorizes the
   await page.getByRole('button',{name:'开始 Grok 授权',exact:true}).click();
   await expect(page.getByRole('link',{name:'打开 Grok 授权页面'})).toBeVisible();
   await expect(page.locator('[data-native-session-id]')).toHaveText('等待 Grok 授权');
-  await expect(page.locator('.native-account-grid article')).toHaveCount(0);
+  await expect(page.locator('[data-account-key^=grok-]')).toHaveCount(0);
   await approve(page);
   await expect(page.locator('[data-native-session-id]')).toHaveText('授权已保存');
   await page.getByRole('button',{name:'关闭',exact:true}).click();
-  await expect(page.locator('.native-account-grid article')).toHaveCount(1);
-  const firstId=await page.locator('.native-account-grid [data-resource-id]').getAttribute('data-resource-id');
-  await page.locator('.native-accounts').getByRole('button',{name:'重新授权',exact:true}).click();
+  await expect(page.locator('[data-account-key^=grok-]')).toHaveCount(1);
+  const firstId=await page.locator('[data-account-key^=grok-]').getAttribute('data-account-key');
+  await page.getByRole('region',{name:'Grok 账号',exact:true}).getByRole('button',{name:'重新授权',exact:true}).click();
   await page.getByRole('button',{name:'开始 Grok 授权',exact:true}).click();
   await expect(page.locator('[data-native-session-id]')).toHaveText('等待 Grok 授权');
   await approve(page);
   await expect(page.locator('[data-native-session-id]')).toHaveText('授权已保存');
   await page.getByRole('button',{name:'关闭',exact:true}).click();
-  await expect(page.locator('.native-account-grid article')).toHaveCount(1);
-  await expect(page.locator('.native-account-grid [data-resource-id]')).toHaveAttribute('data-resource-id',firstId!);
+  await expect(page.locator('[data-account-key^=grok-]')).toHaveCount(1);
+  await expect(page.locator('[data-account-key^=grok-]')).toHaveAttribute('data-account-key',firstId!);
 });

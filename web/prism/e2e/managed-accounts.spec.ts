@@ -15,7 +15,7 @@ test("an unbound account is discoverable and can be disabled without resubmittin
   await page.getByRole("textbox", {name: "搜索账号", exact: true}).fill("team-unbound");
   const row = page.locator("tbody tr");
   await expect(row).toHaveCount(1);
-  await expect(row).toContainText("未绑定");
+  await expect(row).toContainText("未连接接口");
   await expect(row).not.toContainText("synthetic-private-token");
   await row.getByRole("button", {name: "停用", exact: true}).click();
   const confirm = page.getByRole("dialog", {name: "停用账号"});
@@ -23,7 +23,8 @@ test("an unbound account is discoverable and can be disabled without resubmittin
   await confirm.getByRole("button", {name: "确认更改"}).click();
   await expect(confirm).toHaveCount(0);
   await expect(row).toContainText("已停用");
-  await row.getByRole("link", {name: "未绑定", exact: true}).click();
+  await row.getByRole("button", {name: /未连接接口/u}).click();
+  await page.getByRole("link",{name:"管理接口连接",exact:true}).click();
   await expect(page.locator(".subresource-panel")).toContainText("team-unbound");
 });
 
@@ -45,7 +46,7 @@ for (const width of [1440, 390]) {
     await unlock(page);
     await selectDraft(page);
     await navigate(page, "账号池");
-    await expect(page.locator(width === 390 ? ".managed-account-cards article" : "tbody tr").first()).toBeVisible();
+    await expect(page.locator(".account-list tbody tr").first()).toBeVisible();
     await expect(page.getByRole("button", {name: "添加账号", exact: true})).toBeVisible();
     await page.screenshot({path: `../../output/managed-accounts-${width}.png`, fullPage: true});
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -73,6 +74,6 @@ test("channel chooser covers the agreed families and imports Codex from a file",
   await dialog.getByRole("button", {name:"添加账号",exact:true}).click();
   await expect(dialog).toHaveCount(0);
   await page.getByRole("textbox",{name:"搜索账号",exact:true}).fill("codex-file-import");
-  await expect(page.locator("tbody tr")).toContainText("Codex OAuth");
+  await expect(page.locator("tbody tr")).toContainText("OAuth 授权");
   await expect(page.locator("main")).not.toContainText("fixture-token");
 });

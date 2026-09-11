@@ -1041,6 +1041,25 @@ impl ManagementMutationService {
         Ok(Revisioned::new(CredentialView::from(credential), revision))
     }
 
+    /// Builds a display-only projector for bounded inventory reads. No plaintext can leave it.
+    #[must_use]
+    pub fn account_identity_projector(
+        &self,
+    ) -> std::sync::Arc<gateway_store::control_plane::CredentialIdentityProjector> {
+        let store = self.secret_store.clone();
+        std::sync::Arc::new(move |version, credential| {
+            credential_associated_data(version, &credential.id, &credential.upstream_id)
+                .ok()
+                .and_then(|aad| store.open(&credential.encrypted_secret, &aad).ok())
+                .map(|plain| {
+                    gateway_store::account_identity::AccountIdentity::from_credential(
+                        plain.as_bytes(),
+                    )
+                })
+                .unwrap_or_default()
+        })
+    }
+
     /// Opens one Credential only for an explicitly authorized one-time export operation.
     ///
     /// The caller receives zeroizing bytes and must immediately transform or return them through

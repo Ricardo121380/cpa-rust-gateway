@@ -109,10 +109,11 @@ pub(super) async fn list(
     };
     let result=read_operations(&state,move || {
         let page=native.store.managed_account_page(limit,cursor.as_ref().map_or("",|c|c.after.as_str()),&search,cursor.as_ref().map(|c|c.stamp));
-        Ok(page.map(|page| {
+        Ok(page.and_then(|page| {
             let next=if page.has_more {page.items.last().and_then(|last|serde_json::to_vec(&Cursor {epoch:native.epoch.clone(),after:last.id.clone(),search,limit,stamp:page.stamp}).ok()).map(|bytes|URL_SAFE_NO_PAD.encode(bytes))} else {None};
-            let items=page.items.into_iter().map(|row| serde_json::json!({"id":row.id,"provider":match row.provider {provider_grok::GrokAccountProvider::Build=>"grok_build",provider_grok::GrokAccountProvider::Console=>"grok_console",provider_grok::GrokAccountProvider::Web=>"grok_web"},"auth_status":match row.auth_status {provider_grok::GrokAccountAuthStatus::Active=>"active",provider_grok::GrokAccountAuthStatus::ReauthRequired=>"reauth_required",provider_grok::GrokAccountAuthStatus::Disabled=>"disabled"},"enabled":row.enabled,"revision":row.revision,"import_batch_id":row.import_batch_id})).collect::<Vec<_>>();
-            serde_json::json!({"items":items,"next_cursor":next})
+            let items=page.items.into_iter().map(|row| { let identity=native.store.open_credential(&row.id).ok().map(|secret|gateway_store::account_identity::AccountIdentity::from_credential(secret.as_bytes())).unwrap_or_default(); serde_json::json!({"id":row.id,"provider":match row.provider {provider_grok::GrokAccountProvider::Build=>"grok_build",provider_grok::GrokAccountProvider::Console=>"grok_console",provider_grok::GrokAccountProvider::Web=>"grok_web"},"auth_status":match row.auth_status {provider_grok::GrokAccountAuthStatus::Active=>"active",provider_grok::GrokAccountAuthStatus::ReauthRequired=>"reauth_required",provider_grok::GrokAccountAuthStatus::Disabled=>"disabled"},"enabled":row.enabled,"revision":row.revision,"import_batch_id":row.import_batch_id,"identity":identity})}).collect::<Vec<_>>();
+            native.store.managed_account_page(1,"","",Some(page.stamp))?;
+            Ok(serde_json::json!({"items":items,"next_cursor":next}))
         }))
     }).await;
     match result {

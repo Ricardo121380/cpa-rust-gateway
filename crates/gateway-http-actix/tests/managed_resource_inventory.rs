@@ -97,7 +97,7 @@ fn fixture(active: bool) -> Result<(Database, ManagementResourceHttpState), Box<
             id,
             upstream_id,
             kind: "bearer".to_owned(),
-            encrypted_secret: store.seal(b"inventory-secret-must-not-leak", &aad)?,
+            encrypted_secret: store.seal(if index==0 {br#"{"email":"owner@example.test","access_token":"inventory-secret-must-not-leak","sub":"opaque-subject"}"#} else {b"inventory-secret-must-not-leak"}, &aad)?,
             status: if index % 2 == 0 {
                 CredentialStatus::Active
             } else {
@@ -573,5 +573,31 @@ async fn native_import_is_encrypted_global_and_pagination_ignores_unrelated_writ
     )
     .await;
     assert_eq!(response.status(), StatusCode::CONFLICT);
+    Ok(())
+}
+
+#[actix_web::test]
+async fn identity_projection_exposes_email_but_not_token_subject_or_random_labels() -> TestResult {
+    let (_file, resources) = fixture(false)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(resources))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/credentials?limit=1")).to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = test::read_body(response).await;
+    let body: Value = serde_json::from_slice(&bytes)?;
+    assert_eq!(body["items"][0]["identity"]["email"], "owner@example.test");
+    assert_eq!(body["items"][0]["category"], "api");
+    assert!(body["items"][0]["identity"]["username"].is_null());
+    assert!(!std::str::from_utf8(&bytes)?.contains("inventory-secret-must-not-leak"));
+    assert!(!std::str::from_utf8(&bytes)?.contains("opaque-subject"));
     Ok(())
 }

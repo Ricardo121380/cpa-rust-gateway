@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "real_gateway": true,
+  "synthetic_state": true,
+  "ordinary_families": 5,
+  "ordinary_email_projections": 5,
+  "connection_previews": 5,
+  "native_subclasses": 3,
+  "build_jwt_email_projection": true,
+  "opaque_sso_identity_not_invented": true,
+  "secret_values_in_response": false,
+  "external_provider_calls": 0,
+  "chrome_interaction": "blocked_by_extension_popup"
+}
