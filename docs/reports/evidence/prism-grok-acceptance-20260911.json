@@ -1,0 +1,49 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "stream": false,
+      "request_id": "p1-request-f707984ee1e42dbeda3397061921a05e-0",
+      "response_id": "d87a8e00-3469-9fcc-a408-9127e4faf432",
+      "attempts": 1,
+      "response_passed": true,
+      "ledger_passed": true,
+      "six_token_fields_match": true,
+      "cost_confidence": "unpriced",
+      "cost_microunits": null,
+      "tokens": {
+        "input_tokens": 210,
+        "output_tokens": 74,
+        "reasoning_tokens": 73,
+        "cache_read_tokens": null,
+        "cache_creation_tokens": null,
+        "cached_tokens": 128
+      }
+    },
+    {
+      "stream": true,
+      "request_id": "p1-request-f707984ee1e42dbeda3397061921a05e-1",
+      "response_id": "5452fdd8-e94e-9f1b-baa0-b673bcb106ba",
+      "attempts": 1,
+      "response_passed": true,
+      "ledger_passed": true,
+      "six_token_fields_match": true,
+      "cost_confidence": "unpriced",
+      "cost_microunits": null,
+      "tokens": {
+        "input_tokens": 210,
+        "output_tokens": 59,
+        "reasoning_tokens": 58,
+        "cache_read_tokens": null,
+        "cache_creation_tokens": null,
+        "cached_tokens": 128
+      }
+    }
+  ],
+  "requests_sent": 2,
+  "automatic_retry": false,
+  "model": "grok-4.6",
+  "binary_sha256": "e7f7f3abe81df0ab807efad2bbdcdccc26af9daf68b04b31eeeb0dac9cc12e22",
+  "historical_unresolved_before": 87,
+  "historical_unresolved_after": 87
+}
