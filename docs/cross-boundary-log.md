@@ -1935,3 +1935,17 @@ complete inventory, safe current-configuration apply and request-level observabi
 backend contracts. Do not enable every provider's OAuth by changing one string comparison.
 This commit changes documentation and fresh synthetic/demo captures only; no production mutation,
 provider calls, frontend/backend implementation, contract changes, or data deletion occurred.
+
+## 2026-09-11 — Codex — real credential types in the first functional batch
+
+**What:** `web/prism/src/features/upstreams/{CredentialSheet,SubresourcePanel}.tsx`,
+`web/prism/src/dev/fixtures.ts`, `web/prism/e2e/{credential,flows,subresource-crud}.spec.ts`,
+and `docs/reports/prism-functional-redesign-progress.md`.
+
+**Why:** User authorized the functional redesign. Show existing Codex OAuth operations for the
+actual oauth_json envelope; offer bearer as the new API credential default. Stop using a Grok
+fixture to assert Codex authorization. Add a separate normalized Codex fixture and type selection.
+
+**Other side:** FYI under full-stack authorization. Type and contract checks and 20 focused browser
+cases passed. Complete account inventory and onboarding remain in progress, not blocked on another
+assistant. No backend contract or production state change in this batch.

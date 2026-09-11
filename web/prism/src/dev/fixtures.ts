@@ -334,8 +334,9 @@ const state = {
     [
       "draft-2026-08",
       [
-        { id: "cred-relay-key", upstream_id: "relay-a", kind: "api_key", status: "active", revision: 2, secret_present: true },
-        { id: "cred-grok-oauth", upstream_id: "grok-build-pool", kind: "oauth", status: "active", revision: 0, secret_present: true },
+        { id: "cred-relay-key", upstream_id: "relay-a", kind: "bearer", status: "active", revision: 2, secret_present: true },
+        { id: "cred-codex-oauth", upstream_id: "relay-a", kind: "oauth_json", status: "active", revision: 0, secret_present: true },
+        { id: "cred-grok-oauth", upstream_id: "grok-build-pool", kind: "bearer", status: "active", revision: 0, secret_present: true },
       ],
     ],
   ]),
@@ -343,6 +344,7 @@ const state = {
     [
       "draft-2026-08",
       [
+        { endpoint_id: "ep-relay-a-responses", upstream_id: "relay-a", credential_id: "cred-codex-oauth", enabled: true, priority: 0, weight: 1, concurrency: 4 },
         {
           endpoint_id: "ep-relay-a-responses",
           upstream_id: "relay-a",
@@ -1471,7 +1473,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
           // is mapped, not reused, so the fixture exercises the real set.
           const accountStatus =
             account.status === "active"
-              ? account.kind === "oauth"
+              ? account.id === "cred-grok-oauth"
                 ? "cooling"
                 : "active"
               : account.status === "revoked"
@@ -1892,15 +1894,15 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const now = Date.now();
       const accounts = [
         { provider: "relay-a", channel: "ep-relay-a-responses", id: "cred-relay-key",
-          kind: "api_key", auth: "active", runtime: "available", enabled: true, leases: 2 },
+          kind: "bearer", auth: "active", runtime: "available", enabled: true, leases: 2 },
         { provider: "relay-a", channel: "ep-relay-a-responses", id: "cred-relay-spare",
-          kind: "api_key", auth: "active", runtime: "cooling", enabled: true, leases: 0 },
+          kind: "bearer", auth: "active", runtime: "cooling", enabled: true, leases: 0 },
         { provider: "grok-build-pool", channel: "ep-grok-build", id: "cred-grok-oauth",
-          kind: "oauth", auth: "reauth_required", runtime: "unauthorized", enabled: true, leases: 0 },
+          kind: "bearer", auth: "reauth_required", runtime: "unauthorized", enabled: true, leases: 0 },
         { provider: "grok-build-pool", channel: "ep-grok-build", id: "cred-grok-old",
-          kind: "oauth", auth: "expired", runtime: "expired", enabled: false, leases: 0 },
+          kind: "bearer", auth: "expired", runtime: "expired", enabled: false, leases: 0 },
         { provider: "relay-a", channel: "ep-relay-a-responses", id: "cred-relay-quota",
-          kind: "api_key", auth: "active", runtime: "quota_blocked", enabled: true, leases: 0 },
+          kind: "bearer", auth: "active", runtime: "quota_blocked", enabled: true, leases: 0 },
       ];
       const items = accounts
         .filter((row) => {
@@ -1932,7 +1934,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
           // Nullable on purpose: an unreported due time is neither "now" nor
           // "never", and the UI has to render that difference.
           expires_at_ms: row.auth === "expired" ? now - 3_600_000 : null,
-          refresh_due_at_ms: row.kind === "oauth" ? now + 7_200_000 : null,
+          refresh_due_at_ms: row.id === "cred-grok-oauth" ? now + 7_200_000 : null,
           quota_sync_due_at_ms: null,
           entitlement: row.id === "cred-grok-oauth" ? {
             domain: "grok_build", tier: "supergrok", source: "provider_subscription",
@@ -2376,14 +2378,14 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       // Every metadata field is nullable in the contract. The oauth credential
       // carries a full account identity; the api_key one carries almost
       // nothing — both are real shapes and the UI has to read honestly.
-      const rich = row.kind === "oauth";
+      const rich = row.kind === "oauth_json";
       return json(200, {
         credential_id: row.id,
         kind: row.kind,
         revision: row.revision,
-        plan: rich ? "SuperGrok Heavy" : null,
+        plan: rich ? "Plus" : null,
         quota: rich ? "1000 req/day" : null,
-        platform: rich ? "grok" : null,
+        platform: rich ? "codex" : null,
         email: rich ? "ops@fixture.example" : null,
         source_format: rich ? "direct_oauth" : null,
       });
@@ -2394,7 +2396,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if (version instanceof Response) return version;
       const id = decodeURIComponent(oauthRefresh[1] ?? "");
       const row = (state.credentials.get(version.id) ?? []).find((entry) => entry.id === id);
-      if (row === undefined || row.kind !== "oauth") {
+      if (row === undefined || row.kind !== "oauth_json") {
         return errorResponse(409, "management_lifecycle_conflict", "credential does not hold an oauth token");
       }
       row.revision += 1;
@@ -2463,6 +2465,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         const row = (state.credentials.get("draft-2026-08") ?? []).find((entry) => entry.id === id);
         if (row !== undefined) {
           row.status = "active";
+          row.kind = "oauth_json";
           row.revision += 1;
         }
       }
@@ -2529,6 +2532,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if (version instanceof Response) return version;
       const rows = [
         { endpoint_id: "ep-relay-a-responses", credential_id: "cred-relay-key", availability: "available" },
+        { endpoint_id: "ep-relay-a-responses", credential_id: "cred-codex-oauth", availability: "available" },
         { endpoint_id: "ep-relay-a-responses", credential_id: "cred-grok-oauth", availability: "cooldown" },
         { endpoint_id: "ep-grok-build", credential_id: "cred-grok-oauth", availability: "credential_forbidden" },
         { endpoint_id: "ep-grok-build", credential_id: "cred-relay-key", availability: "quota_blocked" },

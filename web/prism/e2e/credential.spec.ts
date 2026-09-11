@@ -14,10 +14,10 @@ async function openRuntime(page: import("@playwright/test").Page): Promise<void>
 test("a credential id in the availability matrix opens its detail", async ({ page }) => {
   await openRuntime(page);
 
-  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-grok-oauth" }).click();
+  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-codex-oauth" }).click();
   const sheet = page.getByRole("dialog");
-  await expect(sheet).toContainText("凭据 · cred-grok-oauth");
-  await expect(sheet).toContainText("grok-build-pool");
+  await expect(sheet).toContainText("凭据 · cred-codex-oauth");
+  await expect(sheet).toContainText("relay-a");
   await expect(sheet).toContainText("oauth");
 });
 
@@ -27,10 +27,10 @@ test("G5 metadata renders, and its all-null case says so instead of showing blan
   await openRuntime(page);
 
   // The oauth credential carries a full identity.
-  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-grok-oauth" }).click();
+  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-codex-oauth" }).click();
   const rich = page.getByRole("dialog");
   await expect(rich).toContainText("ops@fixture.example");
-  await expect(rich).toContainText("SuperGrok Heavy");
+  await expect(rich).toContainText("Plus");
   await expect(rich).toContainText("direct_oauth");
   await rich.getByRole("button", { name: "关闭", exact: true }).click();
 
@@ -42,7 +42,7 @@ test("G5 metadata renders, and its all-null case says so instead of showing blan
 
 test("token rotation advances the credential revision", async ({ page }) => {
   await openRuntime(page);
-  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-grok-oauth" }).click();
+  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-codex-oauth" }).click();
   const sheet = page.getByRole("dialog");
 
   const before = await sheet.locator("tbody tr", { hasText: "修订" }).locator("td.mono").innerText();
@@ -56,26 +56,26 @@ test("rotation is offered only where a token exists", async ({ page }) => {
   await openRuntime(page);
   await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-relay-key" }).click();
   const sheet = page.getByRole("dialog");
-  await expect(sheet).toContainText("api_key");
+  await expect(sheet).toContainText("bearer");
   await expect(sheet.getByRole("button", { name: "轮换令牌" })).toHaveCount(0);
   await expect(sheet.getByRole("button", { name: "重新授权" })).toHaveCount(0);
 });
 
 test("re-authorisation reaches the wizard and comes back to the credential", async ({ page }) => {
   await openRuntime(page);
-  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-grok-oauth" }).click();
+  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-codex-oauth" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "重新授权" }).click();
 
   const wizard = page.getByRole("dialog");
-  await expect(wizard).toContainText("OAuth 授权 · cred-grok-oauth");
+  await expect(wizard).toContainText("OAuth 授权 · cred-codex-oauth");
   await wizard.getByRole("button", { name: "关闭", exact: true }).click();
   // closing the wizard returns to the credential, not to the page
-  await expect(page.getByRole("dialog")).toContainText("凭据 · cred-grok-oauth");
+  await expect(page.getByRole("dialog")).toContainText("凭据 · cred-codex-oauth");
 });
 
 test("no secret material reaches the DOM", async ({ page }) => {
   await openRuntime(page);
-  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-grok-oauth" }).click();
+  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-codex-oauth" }).click();
   const sheet = page.getByRole("dialog");
   await expect(sheet).toContainText("秘密");
   // presence is reported; the value never is
@@ -113,7 +113,7 @@ test("the account row opens the credential sheet from the pool inventory", async
   const panel = page.locator(".subresource-panel");
   // The operations status vocabulary reaches the screen unmapped.
   // anchored: the id also appears in the binding table below
-  await expect(panel.getByRole("row", { name: /^cred-grok-oauth oauth/u })).toContainText("cooling");
+  await expect(panel.getByRole("row", { name: /^cred-grok-oauth bearer/u })).toContainText("cooling");
 
   await panel.getByRole("row", { name: /cred-grok-oauth/u }).getByRole("button", { name: "详情" }).click();
   await expect(page.getByRole("dialog")).toContainText("凭据 · cred-grok-oauth");

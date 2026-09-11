@@ -98,7 +98,9 @@ export function CredentialSheet({
   const present = META_FIELDS.map((field) => ({ ...field, value: meta?.[field.key] ?? null })).filter(
     (field) => field.value !== null && field.value !== "",
   );
-  const isOAuth = row?.kind === "oauth";
+  // oauth_json is the normalized Codex envelope accepted by the real refresh endpoint.
+  // Other provider credentials must not be sent to the Codex OAuth workflow.
+  const isOAuth = row?.kind === "oauth_json";
 
   return (
     <Sheet title={`凭据 · ${resourceName(credentialId, "account")}`} layout="inspector" onEscape={onClose}>

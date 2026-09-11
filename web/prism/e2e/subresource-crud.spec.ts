@@ -66,7 +66,7 @@ test("editing an account demands the secret again, and says why", async ({ page 
   await openPanel(page);
   await page
     .locator(".subresource-panel")
-    .getByRole("row", { name: /^cred-relay-key api_key/u })
+    .getByRole("row", { name: /^cred-relay-key bearer/u })
     .getByRole("button", { name: "编辑" })
     .click();
   const sheet = page.getByRole("dialog");
@@ -105,4 +105,14 @@ test("subresource editing is refused on a published version", async ({ page }) =
       await expect(panel.getByRole("button", { name: "新建 Channel" })).toBeDisabled();
     }
   }
+});
+
+
+test("new account defaults to the real runtime bearer kind", async ({ page }) => {
+  await openPanel(page);
+  await page.getByRole("button", { name: "新建 Account", exact: true }).click();
+  const sheet = page.getByRole("dialog");
+  await expect(sheet.getByLabel("认证方式")).toHaveValue("bearer");
+  await sheet.getByLabel("认证方式").selectOption("oauth_json");
+  await expect(sheet.getByLabel("认证方式")).toHaveValue("oauth_json");
 });

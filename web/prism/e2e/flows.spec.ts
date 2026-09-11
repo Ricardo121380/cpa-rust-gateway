@@ -68,11 +68,11 @@ test("oauth wizard completes through the callback paste, not by waiting", async 
   await navigate(page, "上游");
 
   await page
-    .locator("tr", { hasText: "grok-build-pool" })
+    .locator("tr", { hasText: "relay-a" })
     .first()
     .getByRole("button", { name: "子资源" })
     .click();
-  await page.getByRole("row", { name: /cred-grok-oauth/u }).getByRole("button", { name: "详情" }).click();
+  await page.getByRole("row", { name: /cred-codex-oauth/u }).getByRole("button", { name: "详情" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "重新授权" }).click();
   const wizard = page.getByRole("dialog");
   await wizard.getByRole("button", { name: "启动授权" }).click();
@@ -99,11 +99,11 @@ test("a callback from another session is refused with the contract's reason", as
   await selectDraft(page);
   await navigate(page, "上游");
   await page
-    .locator("tr", { hasText: "grok-build-pool" })
+    .locator("tr", { hasText: "relay-a" })
     .first()
     .getByRole("button", { name: "子资源" })
     .click();
-  await page.getByRole("row", { name: /cred-grok-oauth/u }).getByRole("button", { name: "详情" }).click();
+  await page.getByRole("row", { name: /cred-codex-oauth/u }).getByRole("button", { name: "详情" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "重新授权" }).click();
   const wizard = page.getByRole("dialog");
   await wizard.getByRole("button", { name: "启动授权" }).click();
@@ -120,11 +120,11 @@ test("a paste with no state is refused before it reaches the gateway", async ({ 
   await selectDraft(page);
   await navigate(page, "上游");
   await page
-    .locator("tr", { hasText: "grok-build-pool" })
+    .locator("tr", { hasText: "relay-a" })
     .first()
     .getByRole("button", { name: "子资源" })
     .click();
-  await page.getByRole("row", { name: /cred-grok-oauth/u }).getByRole("button", { name: "详情" }).click();
+  await page.getByRole("row", { name: /cred-codex-oauth/u }).getByRole("button", { name: "详情" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "重新授权" }).click();
   const wizard = page.getByRole("dialog");
   await wizard.getByRole("button", { name: "启动授权" }).click();

@@ -327,13 +327,14 @@ function AccountSheet({
           />
         </label>
         <label>
-          kind
-          <input
-            name="kind"
-            className="mono"
-            required
-            defaultValue={form.mode === "edit" ? form.kind : "api_key"}
-          />
+          认证方式
+          <select name="kind" required defaultValue={form.mode === "edit" ? form.kind : "bearer"}>
+            <option value="bearer">API Key / Token</option>
+            <option value="oauth_json">Codex OAuth JSON</option>
+            {form.mode === "edit" && !["bearer", "oauth_json"].includes(form.kind) ? (
+              <option value={form.kind}>{form.kind}（现有类型）</option>
+            ) : null}
+          </select>
         </label>
         <label>
           status
