@@ -26,6 +26,7 @@ test("legacy account labels stay readable while copying and operations retain ex
     };
   });
   await navigate(page, "账号池");
+  await page.getByRole("navigation", {name: "账号视图"}).getByRole("button", {name: "运行状态", exact: true}).click();
   await expect(page.locator(".account-desktop tbody tr")).toHaveCount(2);
   expect(await page.locator(".account-desktop").innerText()).not.toContain("p12-");
   const id = "p12-09-codex-bridge-credential";

@@ -2283,6 +2283,30 @@ export const managementOperations = {
     "bodyEncoding": "json",
     "bodyRequired": true
   },
+  "updateCredentialStatus": {
+    "method": "PATCH",
+    "path": "/admin/credentials/{credential_id}/status",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "credential_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "updateEgressPolicy": {
     "method": "PATCH",
     "path": "/admin/egress-policies/{egress_policy_id}",
@@ -3053,6 +3077,10 @@ export class ManagementApi {
 
   updateCredential(request: ManagementRequest = {}): Promise<Response> {
     return this.request("updateCredential", request);
+  }
+
+  updateCredentialStatus(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("updateCredentialStatus", request);
   }
 
   updateEgressPolicy(request: ManagementRequest = {}): Promise<Response> {

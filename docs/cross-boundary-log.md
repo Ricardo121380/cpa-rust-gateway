@@ -2005,3 +2005,25 @@ tests, two existing OAuth HTTP tests, migration up/down, browser edit regression
 Clippy and authority/four-file double-build gate passed. Runtime generation switching remains
 open; this API starts an edit and does not represent live application. Schema 23 is local only.
 No production or historical-data changes.
+
+## 2026-09-11 — Codex — managed account workspace and secret-free status
+
+**What:** control mutation credential_status module; HTTP credential_status module and route;
+managed_resource_inventory integration test; authoritative/generated status contract;
+`web/prism/src/features/accounts/{AccountsPage,AccountRuntimePanel,AddApiKeyAccount}.tsx`;
+upstream provider deep link and inspector comments; dev fixtures and affected account/E2E tests;
+CR-PRISM-ACCOUNT-STATUS-001 and functional progress report.
+
+**Why:** A bound runtime record is not a complete account list. Users need to see and manage
+unbound credentials and disable them without supplying secrets again. Draft status writes retain
+ciphertext, check both revisions and record an audit. Existing runtime controls remain reachable.
+
+**Other side:** FYI under the approved plan. The new API is real, not fixture-only. Browser tests
+cover adding an unbound API Key account, secret-free disabling, provider deep links and direct
+Codex reauthorization. Initial OAuth/import/bulk flows and actual runtime apply remain pending.
+No production, external provider or history mutation occurred in this batch.
+
+Validation for this batch: real SQLite/HTTP ciphertext/CAS regression, four new account browser
+checks and nine existing runtime/workspace regressions passed. TypeScript, Clippy and the
+115-operation embedded asset gate passed. Screenshots were inspected at desktop and mobile sizes;
+mobile account actions use cards. Initial header/type errors were fixed before these passes.

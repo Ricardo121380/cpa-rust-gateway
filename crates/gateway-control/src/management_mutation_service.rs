@@ -7,6 +7,7 @@
 //! plaintext/ciphertext.
 
 mod configuration_edit;
+mod credential_status;
 
 use std::{error::Error, fmt, sync::Arc};
 

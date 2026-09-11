@@ -1,12 +1,6 @@
 import { ResourceIdentity, IdentityDetails } from "../../components/ResourceIdentity";
 import { resourceName } from "../../utils/resourceNames";
-// Credential detail — the production-reachable home for a credential.
-//
-// Until G1 lands there is no listCredentials, so the only enumeration is the
-// runtime's own projections (runtime/availability and catalog/status both
-// carry credential_id). That is where this sheet is opened from, and it is
-// also its limit: credentials that exist but the runtime has never observed do
-// not appear anywhere yet.
+// Shared account inspector for complete inventory and runtime projections.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { call } from "../../api/client";

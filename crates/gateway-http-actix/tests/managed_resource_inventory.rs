@@ -391,3 +391,64 @@ async fn forked_credentials_have_independent_oauth_sessions() -> TestResult {
     assert_eq!(status["state"], "pending");
     Ok(())
 }
+
+#[actix_web::test]
+async fn status_update_keeps_ciphertext_and_rejects_stale_account_revision() -> TestResult {
+    let (file, state) = fixture(false)?;
+    let version = ConfigVersionId::try_new(VERSION)?;
+    let mut repository = SqliteControlPlaneRepository::open(&file.0)?;
+    let before = repository
+        .load_configuration(&version)?
+        .ok_or("configuration")?
+        .credentials
+        .remove(0);
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let uri = format!("/admin/credentials/{}/status", before.id.as_str());
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::patch().uri(&uri))
+            .insert_header(("If-Match", "rev-0"))
+            .set_json(serde_json::json!({"status":"disabled", "credential_revision":0}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let result: Value = test::read_body_json(response).await;
+    assert_eq!(result["status"], "disabled");
+    assert_eq!(result["revision"], 1);
+    assert!(result.get("secret").is_none());
+    let after = repository
+        .load_configuration(&version)?
+        .ok_or("configuration")?
+        .credentials
+        .remove(0);
+    assert_eq!(
+        before.encrypted_secret.ciphertext(),
+        after.encrypted_secret.ciphertext()
+    );
+    assert_eq!(before.kind, after.kind);
+    assert_eq!(before.upstream_id, after.upstream_id);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::patch().uri(&uri))
+            .insert_header(("If-Match", "rev-1"))
+            .set_json(serde_json::json!({"status":"active", "credential_revision":0}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CONFLICT);
+    let after = repository
+        .load_configuration(&version)?
+        .ok_or("configuration")?
+        .credentials
+        .remove(0);
+    assert_eq!(after.status, CredentialStatus::Disabled);
+    assert_eq!(after.revision, 1);
+    Ok(())
+}

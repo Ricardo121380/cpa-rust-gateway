@@ -23,6 +23,65 @@
     { "name": "backup" }
   ],
   "paths": {
+    "/admin/credentials/{credential_id}/status": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ConfigVersion"
+        },
+        {
+          "$ref": "#/components/parameters/CredentialId"
+        }
+      ],
+      "patch": {
+        "tags": [
+          "upstreams"
+        ],
+        "operationId": "updateCredentialStatus",
+        "description": "Draft-only administrative status change. Retains ciphertext and identity; checks both config and credential revisions. Never accepts secret material.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "status",
+                  "credential_revision"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "disabled"
+                    ]
+                  },
+                  "credential_revision": {
+                    "type": "integer",
+                    "format": "int64",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Credential"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
     "/admin/auth/login": {"post": {"tags": ["administrator-auth"], "operationId": "loginAdministrator", "responses": {"default": {"$ref": "#/components/responses/Error"}, "200": {"description": "Administrator session; no-store", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AdministratorSession"}}}}, "401": {"$ref": "#/components/responses/Error"}, "429": {"$ref": "#/components/responses/Error"}}, "security": [], "description": "Exact configured Origin and actual management peer required; no key or preexisting CSRF. 10 verifications per minute, 2 concurrent. Returns a memory-only opaque session. Initial sessions can only change password/logout.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AdministratorLoginInput"}}}}}},
     "/admin/auth/password": {"post": {"tags": ["administrator-auth"], "operationId": "changeAdministratorPassword", "responses": {"default": {"$ref": "#/components/responses/Error"}, "204": {"description": "Completed; no-store"}, "429": {"$ref": "#/components/responses/Error"}}, "description": "Opaque session and X-Management-CSRF-Token required, even without Origin. Password change revokes every session and requires login again.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AdministratorPasswordInput"}}}}}},
     "/admin/auth/logout": {"post": {"tags": ["administrator-auth"], "operationId": "logoutAdministrator", "responses": {"default": {"$ref": "#/components/responses/Error"}, "204": {"description": "Completed; no-store"}}, "description": "Revoke the presented session. Always requires session CSRF."}},

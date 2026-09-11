@@ -6,6 +6,7 @@
 
 mod configuration_diff;
 mod configuration_edit;
+mod credential_status;
 mod resource_inventory;
 
 use std::{
@@ -2509,6 +2510,10 @@ fn configure_upstream_resource_routes(config: &mut web::ServiceConfig) {
 
 fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
     config
+        .route(
+            "/credentials/{credential_id}/status",
+            web::patch().to(credential_status::update),
+        )
         .route(
             "/config-versions/{config_version_id}/fork",
             web::post().to(configuration_edit::fork),

@@ -10,6 +10,7 @@ test("accounts read without a version, while cooldown requires a selected versio
   await unlock(page);
   await clearVersionForTest(page);
   await navigate(page, "账号池");
+  await page.getByRole("navigation", {name: "账号视图"}).getByRole("button", {name: "运行状态", exact: true}).click();
   await inspect(page, "cred-relay-key");
   await expect(page.getByRole("dialog").getByRole("button", { name: "冷却账号" })).toBeDisabled();
   await page.keyboard.press("Escape");
@@ -30,6 +31,7 @@ test("recovery and target conflicts remain runtime facts", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "账号池");
+  await page.getByRole("navigation", {name: "账号视图"}).getByRole("button", {name: "运行状态", exact: true}).click();
   await inspect(page, "cred-grok-oauth");
   await page.getByRole("dialog").getByRole("button", { name: "请求恢复", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "确认请求恢复" }).click();

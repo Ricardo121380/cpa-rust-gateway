@@ -28,6 +28,7 @@ test("account filtering, evidence, failure deep link and focus restoration", asy
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "账号池");
+  await page.getByRole("navigation", {name: "账号视图"}).getByRole("button", {name: "运行状态", exact: true}).click();
   await page.getByRole("textbox", { name: "搜索已加载账号" }).fill("cred-grok-oauth");
   const detail = page.locator(".account-desktop").getByRole("button", { name: "详情" });
   await detail.click();
@@ -65,6 +66,7 @@ test("mobile inspector has 12px margins; dark and accessibility controls keep so
   await page.setViewportSize({ width: 390, height: 844 });
   await unlock(page);
   await navigate(page, "账号池");
+  await page.getByRole("navigation", {name: "账号视图"}).getByRole("button", {name: "运行状态", exact: true}).click();
   await page.locator(".account-mobile").getByRole("button", { name: "详情" }).first().click();
   const box = await page.getByRole("dialog").boundingBox();
   expect(box?.x).toBeCloseTo(12, 0);

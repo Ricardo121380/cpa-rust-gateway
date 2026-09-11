@@ -2416,6 +2416,23 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       return json(200, [...rows, ...extra], revisionToken(version));
     }
 
+    const statusUpdate = /^PATCH \/admin\/credentials\/([^/]+)\/status$/u.exec(route);
+    if (statusUpdate !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const rejected = requireDraftAndMatch(version, headers);
+      if (rejected) return rejected;
+      const input = JSON.parse(bodyText ?? "{}") as {status: string; credential_revision: number};
+      const row = (state.credentials.get(version.id) ?? []).find((entry) => entry.id === decodeURIComponent(statusUpdate[1] ?? ""));
+      if (!row || row.revision !== input.credential_revision) return errorResponse(409, "management_credential_revision_conflict", "Account changed");
+      if (input.status !== "active" && input.status !== "disabled") return errorResponse(400, "management_invalid_input", "Invalid status");
+      row.status = input.status;
+      row.revision += 1;
+      version.revision += 1;
+      inventorySequence += 1;
+      return json(200, row, revisionToken(version));
+    }
+
     const credGet = /^GET \/admin\/credentials\/([^/]+)$/u.exec(route);
     if (credGet !== null) {
       const version = versionByHeader(headers);

@@ -30,6 +30,7 @@ try {
   await expect(matrix).toContainText('local-credential');
   await expect(matrix.locator('td .rt-chip[data-state="available"]')).toHaveCount(1);
   await navigate('/accounts');
+  await page.getByRole('navigation', {name: '账号视图'}).getByRole('button', {name: '运行状态', exact: true}).click();
   await page.locator('.account-desktop').getByRole('button', { name: '详情' }).click();
   await page.getByRole('dialog').getByRole('button', { name: '冷却账号' }).click();
   await page.getByRole('dialog').getByLabel('冷却时长', { exact: false }).fill('5000');

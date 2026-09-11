@@ -323,6 +323,17 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .canvas :is(.card,
 
 /* User workspaces share one secondary navigation; advanced tools stay out of the rail. */
 .workspace-navigation { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 20px; padding:0 0 14px; border-bottom:1px solid var(--separator); }
-.workspace-navigation a { padding:8px 14px; border-radius:10px; color:var(--ink-2); text-decoration:none; }
-.workspace-navigation a[aria-current="page"] { color:var(--tint); background:var(--surface); font-weight:600; }
-.workspace-navigation a:focus-visible { outline:2px solid var(--tint); outline-offset:2px; }
+.workspace-navigation :is(a, button) { padding:8px 14px; border-radius:10px; color:var(--ink-2); text-decoration:none; }
+.workspace-navigation :is(a[aria-current="page"], button[aria-pressed="true"]) { color:var(--tint); background:var(--surface); font-weight:600; }
+.workspace-navigation :is(a, button):focus-visible { outline:2px solid var(--tint); outline-offset:2px; }
+
+.workspace-navigation button { background:transparent; border:0; box-shadow:none; min-height:40px; }
+
+.managed-account-cards { display:none; }
+@media (max-width: 700px) {
+  .managed-account-table { display:none; }
+  .managed-account-cards { display:grid; gap:12px; }
+  .managed-account-cards article { padding:16px; border:1px solid var(--separator); border-radius:16px; background:var(--surface); }
+  .managed-account-cards header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; overflow-wrap:anywhere; }
+  .managed-account-cards .page-actions { justify-content:flex-start; flex-wrap:wrap; }
+}

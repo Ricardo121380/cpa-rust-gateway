@@ -1,10 +1,8 @@
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { resourceName } from "../../utils/resourceNames";
 import { ReadStatus } from "../../components/ReadStatus";
-// Upstream top-level CRUD. Child resources (endpoints / credentials /
-// bindings) need the G1 graph projection — owned by the backend session —
-// so their panel renders an honest "waiting for contract" state, not a fake.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { useState, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
@@ -81,7 +79,8 @@ export function UpstreamsPage() {
   const [draft, setDraft] = useState<DraftUpstream | undefined>();
   const [inspected, setInspected] = useState<Upstream>();
   const [confirmDelete, setConfirmDelete] = useState<Upstream | undefined>();
-  const [expanded, setExpanded] = useState<string | undefined>();
+  const [searchParams] = useSearchParams();
+  const [expanded, setExpanded] = useState<string | undefined>(searchParams.get("upstream_id") ?? undefined);
   const [actionError, setActionError] = useState<string | undefined>();
 
   const upstreams = useQuery({
