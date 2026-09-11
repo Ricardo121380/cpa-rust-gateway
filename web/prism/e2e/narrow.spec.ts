@@ -89,7 +89,7 @@ test("the rail stays reachable and the version picker stays usable", async ({ pa
 
   // The rail is the only way between pages; if it collapses off-screen at this
   // width the app is unusable rather than merely ugly.
-  const rail = page.getByRole("navigation");
+  const rail = page.locator("#main-navigation");
   if (!(await rail.isVisible())) await page.locator("#nav-toggle").click();
   await expect(rail).toBeVisible();
   const box = await rail.boundingBox();

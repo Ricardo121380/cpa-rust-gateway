@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { navigate, selectDraft, unlock } from "./helpers";
 
-const WORKSPACES = ["总览", "请求与失败", "用量分析", "计费与价格", "账号池", "上游", "模型目录", "模型与路由", "访问控制", "运行诊断", "出口策略", "配置版本", "审计与备份", "设置"];
+const WORKSPACES = ["仪表盘", "请求日志", "用量与费用", "计费与价格", "账号管理", "AI 提供商", "模型目录", "模型管理", "API 密钥", "运行诊断", "出口策略", "配置版本", "审计与备份", "设置"];
 
 for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
   test(`all 14 workspaces and unlock at ${width}×${height}`, async ({ page }, info) => {

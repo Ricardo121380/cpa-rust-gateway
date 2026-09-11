@@ -1972,3 +1972,18 @@ for an empty draft provider. Two real SQLite/HTTP tests, 21 focused E2E, 13 API 
 authority/four-file gate passed. Initial test fixture compilation/unique-temp-path issues and old
 binding-only expectations were corrected before these passes. No production changes. Full account
 onboarding and runtime configuration application remain open in the progress report.
+
+## 2026-09-11 — Codex — eight task-oriented primary workspaces
+
+**What:** `web/prism/src/app/{navigation.ts,navigation.test.ts,AppShell.tsx,v6.css}`,
+Chinese/English navigation labels, affected E2E navigation helpers and real-gateway entry headings,
+`web/prism/DESIGN.md` and the functional progress report.
+
+**Why:** User approved the functional proposal. Remove internal configuration/audit tools from
+the primary rail while preserving all existing destinations through workspace subnavigation.
+Keep catalog with models and pricing with usage, with correct parent highlighting and old URLs.
+
+**Other side:** FYI. Twelve settings/language/three-size workspace E2E cases passed. Navigation
+unit tests verify eight primary entries and reachability of all fourteen old destinations.
+This changes information architecture, not the underlying configuration apply semantics. Account
+onboarding and live runtime composition work remain tracked separately. No production change.

@@ -319,3 +319,10 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .canvas :is(.card,
 @supports not (backdrop-filter: blur(1px)) {
   .shell .canvas > .workspace, .canvas :is(.card, .data-panel, .stat-row, .rt-card) { background: var(--surface); }
 }
+
+
+/* User workspaces share one secondary navigation; advanced tools stay out of the rail. */
+.workspace-navigation { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 20px; padding:0 0 14px; border-bottom:1px solid var(--separator); }
+.workspace-navigation a { padding:8px 14px; border-radius:10px; color:var(--ink-2); text-decoration:none; }
+.workspace-navigation a[aria-current="page"] { color:var(--tint); background:var(--surface); font-weight:600; }
+.workspace-navigation a:focus-visible { outline:2px solid var(--tint); outline-offset:2px; }

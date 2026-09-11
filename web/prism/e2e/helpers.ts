@@ -9,15 +9,24 @@ export async function unlock(page: Page): Promise<void> {
   await page.getByLabel("账号", { exact: true }).fill("admin");
   await page.getByLabel("密码", { exact: true }).fill(FIXTURE_PASSWORD);
   await page.getByRole("button", { name: "登录", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "总览" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "仪表盘" })).toBeVisible();
 }
 
 /** Navigate via the rail (scoped: page bodies also link to the same routes). */
 export async function navigate(page: Page, label: string): Promise<void> {
-  if (!(await page.getByRole("navigation").isVisible())) {
-    await page.locator("#nav-toggle").click();
-  }
-  await page.getByRole("navigation").getByRole("link", { name: label, exact: true }).click();
+  const destinations: Record<string, [string, string?]> = {
+    "总览": ["仪表盘"], "账号池": ["账号管理"], "上游": ["AI 提供商"],
+    "模型与路由": ["模型管理"], "访问控制": ["API 密钥"], "请求与失败": ["请求日志"], "用量分析": ["用量与费用"],
+    "模型目录": ["模型管理", "模型目录"], "计费与价格": ["用量与费用", "计费与价格"],
+    "配置版本": ["设置", "配置版本"], "审计与备份": ["设置", "审计与备份"],
+    "运行诊断": ["设置", "运行诊断"], "出口策略": ["设置", "出口策略"],
+    "Runtime": ["Settings", "Runtime"],
+  };
+  const [primary, secondary] = destinations[label] ?? [label];
+  const rail = page.locator("#main-navigation");
+  if (!(await rail.isVisible())) await page.locator("#nav-toggle").click();
+  await rail.getByRole("link", { name: primary, exact: true }).click();
+  if (secondary) await page.getByRole("navigation", {name:"工作区页面"}).getByRole("link", {name:secondary, exact:true}).click();
 }
 
 export async function selectVersion(page: Page, id: string): Promise<void> {

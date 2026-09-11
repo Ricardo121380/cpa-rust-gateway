@@ -14,8 +14,8 @@ test("language switch reaches the whole shell, not just the settings page", asyn
 
   // the rail is rendered by AppShell: nav labels were computed at module scope
   // once, so a switch used to leave them in Chinese forever
-  const rail = page.getByRole("navigation");
-  await expect(rail.getByRole("link", { name: "Overview", exact: true })).toBeVisible();
+  const rail = page.locator("#main-navigation");
+  await expect(rail.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();
   await expect(rail.getByRole("link", { name: "Settings", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
 
@@ -24,7 +24,7 @@ test("language switch reaches the whole shell, not just the settings page", asyn
   await expect(page.locator(".topbar")).toContainText("Published configuration");
 
   await page.getByRole("radio", { name: "中文" }).click();
-  await expect(rail.getByRole("link", { name: "总览", exact: true })).toBeVisible();
+  await expect(rail.getByRole("link", { name: "仪表盘", exact: true })).toBeVisible();
 });
 
 test("theme choice writes the third theming layer; system writes nothing", async ({ page }) => {

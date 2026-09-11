@@ -13,7 +13,7 @@ import {
 import { useMessages } from "../i18n/messages";
 import { useSessionStore } from "../session/sessionStore";
 import { DraftDock } from "./DraftDock";
-import { NAV_GROUPS } from "./navigation";
+import { NAV_GROUPS, NAV_ITEMS, primaryRoute, workspacePages } from "./navigation";
 import { resolvedTheme, useThemeStore } from "./themeStore";
 
 function ConfigurationContext() {
@@ -55,8 +55,9 @@ export function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false);
   const choice = useThemeStore((s) => s.choice);
   const setChoice = useThemeStore((s) => s.setChoice);
-  const currentGroup = NAV_GROUPS.find((group) => group.items.some((item) => item.to === pathname));
-  const currentPage = currentGroup?.items.find((item) => item.to === pathname);
+  const currentGroup = NAV_GROUPS.find((group) => group.items.some((item) => item.to === primaryRoute(pathname)));
+  const currentPage = NAV_ITEMS.find((item) => item.to === pathname);
+  const pages = workspacePages(pathname);
   const canvasRef = useRef<HTMLElement>(null);
 
   // The canvas — not the window — is the scroll container now (content slides
@@ -138,23 +139,28 @@ export function AppShell() {
           <div key={group.label} className="rail-group">
             <div className="rail-label">{t.navigation[group.label]}</div>
             {group.items.map((item) => (
-              <NavLink
+              <Link
                 key={item.to}
                 to={item.to}
-                end={item.to === "/"}
-                className={({ isActive }) => (isActive ? "on" : "")}
+                aria-current={primaryRoute(pathname) === item.to ? "page" : undefined}
+                className={primaryRoute(pathname) === item.to ? "on" : ""}
                 onClick={() => setMenuOpen(false)}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={item.icon} /></svg>
                 <span>{t.nav[item.key]}</span>
-              </NavLink>
+              </Link>
             ))}
           </div>
         ))}
       </GlassSurface>
 
       <main className="canvas" ref={canvasRef}>
-        <div className="workspace"><Outlet key={`${sessionGeneration}:${selectionGeneration}`} /></div>
+        <div className="workspace">
+          {pages.length > 1 ? <nav className="workspace-navigation" aria-label="工作区页面">
+            {pages.map((item) => <NavLink key={item.to} to={item.to} end>{t.nav[item.key]}</NavLink>)}
+          </nav> : null}
+          <Outlet key={`${sessionGeneration}:${selectionGeneration}`} />
+        </div>
       </main>
 
       <DraftDock key={`${sessionGeneration}:${context?.configVersionId ?? "none"}`} />

@@ -1,6 +1,6 @@
 import type { Pack } from "../i18n/messages";
 
-export const NAV_GROUPS: ReadonlyArray<{
+const ALL_NAV_GROUPS: ReadonlyArray<{
   label: keyof Pack["navigation"];
   items: ReadonlyArray<{ to: string; key: keyof Pack["nav"]; icon: string }>;
 }> = [
@@ -83,4 +83,25 @@ export const NAV_GROUPS: ReadonlyArray<{
   },
 ];
 
-export const NAV_ITEMS = NAV_GROUPS.flatMap((group) => group.items);
+export const NAV_ITEMS = ALL_NAV_GROUPS.flatMap((group) => group.items);
+
+
+const WORKSPACES: Readonly<Record<string, readonly string[]>> = {
+  "/models": ["/models", "/catalog"],
+  "/usage": ["/usage", "/billing"],
+  "/settings": ["/settings", "/egress", "/runtime", "/versions", "/audit"],
+};
+
+export function primaryRoute(path: string): string {
+  return Object.entries(WORKSPACES).find(([, pages]) => pages.includes(path))?.[0] ?? path;
+}
+
+export function workspacePages(path: string) {
+  const pages = WORKSPACES[primaryRoute(path)] ?? [];
+  return pages.flatMap((route) => NAV_ITEMS.filter((item) => item.to === route));
+}
+
+export const NAV_GROUPS = ALL_NAV_GROUPS.map((group) => ({
+  ...group,
+  items: group.items.filter((item) => primaryRoute(item.to) === item.to),
+}));

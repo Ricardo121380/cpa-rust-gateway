@@ -45,7 +45,7 @@ try {
   await expect(page.getByLabel('密码',{exact:true})).toHaveValue('');
   await page.getByLabel('密码',{exact:true}).fill(newPassword);
   await page.getByRole('button',{name:'登录',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'总览',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'仪表盘',exact:true})).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading',{name:'管理员登录',exact:true})).toBeVisible();
   await expect(page.getByLabel('密码',{exact:true})).toHaveValue('');

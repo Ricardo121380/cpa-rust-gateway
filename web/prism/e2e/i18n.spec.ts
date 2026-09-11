@@ -16,7 +16,7 @@ test("state vocabularies translate, glyph and enum value do not change", async (
   await unlock(page);
   await selectDraft(page);
   await switchToEnglish(page);
-  await page.getByRole("navigation").getByRole("link", { name: "Runtime", exact: true }).click();
+  await navigate(page, "Runtime");
   await page.getByText("相关资源状态", { exact: true }).click();
 
   // The pool card's two axes are the densest chip surface in the app.
@@ -32,7 +32,7 @@ test("the same word in two vocabularies gets two translations", async ({ page })
   await unlock(page);
   await selectDraft(page);
   await switchToEnglish(page);
-  await page.getByRole("navigation").getByRole("link", { name: "Runtime", exact: true }).click();
+  await navigate(page, "Runtime");
   await page.getByText("相关资源状态", { exact: true }).click();
 
   // `disabled` is an operator-disabled credential on the auth axis and an

@@ -12,7 +12,7 @@ test("administrator login rejects incorrect credentials and accepts the fixture 
   await expect(page.getByRole("alert")).toHaveText("账号或密码不正确");
   await page.getByLabel("密码", { exact: true }).fill(FIXTURE_PASSWORD);
   await page.getByRole("button", { name: "登录", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "总览" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "仪表盘" })).toBeVisible();
 });
 
 test("overview shows the real planes and deep-links into failure attribution", async ({ page }) => {

@@ -28,7 +28,7 @@ try {
       await page.getByLabel('账号', { exact: true }).fill(username);
       await page.getByLabel('密码', { exact: true }).fill(password);
       await page.getByRole('button', { name: '登录', exact: true }).click();
-      await page.getByRole('heading', { name: '总览', exact: true }).waitFor();
+      await page.getByRole('heading', { name: '仪表盘', exact: true }).waitFor();
       await selectVersion(page, 'prism-local-v4');
       for (const route of routes) {
         await page.evaluate(route => { location.hash = `#${route}`; }, route);
