@@ -45,7 +45,7 @@ impl Drop for Database {
     }
 }
 
-fn fixture() -> Result<(Database, ManagementResourceHttpState), Box<dyn Error>> {
+fn fixture(active: bool) -> Result<(Database, ManagementResourceHttpState), Box<dyn Error>> {
     let name = format!(
         "prism-inventory-{}-{}-{}.sqlite3",
         std::process::id(),
@@ -107,9 +107,15 @@ fn fixture() -> Result<(Database, ManagementResourceHttpState), Box<dyn Error>> 
         });
     }
     repository.write_configuration(&configuration)?;
+    if active {
+        repository.activate_version(&version)?;
+    }
     Ok((
         file,
-        ManagementResourceHttpState::new(ManagementMutationService::new(repository, store)),
+        ManagementResourceHttpState::with_workflow(
+            ManagementMutationService::new(repository, store),
+            Box::new(gateway_http_actix::management_resources::CodexOAuthManagementWorkflow::new()),
+        ),
     ))
 }
 
@@ -129,7 +135,7 @@ fn authorized(request: test::TestRequest) -> test::TestRequest {
 
 #[actix_web::test]
 async fn unbound_inventory_is_complete_filtered_bounded_and_secret_free() -> TestResult {
-    let (_file, state) = fixture()?;
+    let (_file, state) = fixture(false)?;
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(security()?))
@@ -203,7 +209,7 @@ async fn unbound_inventory_is_complete_filtered_bounded_and_secret_free() -> Tes
 
 #[actix_web::test]
 async fn inventory_cursor_rejects_filter_changes_and_same_revision_audit_changes() -> TestResult {
-    let (_file, state) = fixture()?;
+    let (_file, state) = fixture(false)?;
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(security()?))
@@ -267,5 +273,121 @@ async fn inventory_cursor_rejects_filter_changes_and_same_revision_audit_changes
     let second: Value = test::read_body_json(response).await;
     assert_eq!(first["revision"], second["revision"]);
     assert_ne!(first["observation_version"], second["observation_version"]);
+    Ok(())
+}
+
+#[actix_web::test]
+async fn active_fork_returns_a_complete_draft_without_secret_material() -> TestResult {
+    let (_file, state) = fixture(true)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let path = format!("/admin/config-versions/{VERSION}/fork");
+    let response = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri(&path)
+                .insert_header(("If-Match", "rev-0"))
+                .set_json(serde_json::json!({"id":"editable-copy", "description":"edit accounts"})),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let version: Value = test::read_body_json(response).await;
+    assert_eq!(version["id"], "editable-copy");
+    assert_eq!(version["parent_id"], VERSION);
+    assert_eq!(version["status"], "draft");
+    assert_eq!(version["revision"], "rev-0");
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/credentials?limit=100"))
+            .insert_header(("X-Config-Version", "editable-copy"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = test::read_body(response).await;
+    assert!(!std::str::from_utf8(&body)?.contains("inventory-secret-must-not-leak"));
+    let copied: Value = serde_json::from_slice(&body)?;
+    assert_eq!(copied["items"].as_array().ok_or("items")?.len(), 100);
+    assert!(copied["next_cursor"].is_string());
+    let stale = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri(&path)
+                .insert_header(("If-Match", "rev-99"))
+                .set_json(serde_json::json!({"id":"stale-copy", "description":""})),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(stale.status(), StatusCode::CONFLICT);
+    Ok(())
+}
+
+#[actix_web::test]
+async fn forked_credentials_have_independent_oauth_sessions() -> TestResult {
+    let (_file, state) = fixture(true)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let fork = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri(&format!("/admin/config-versions/{VERSION}/fork"))
+                .insert_header(("If-Match", "rev-0"))
+                .set_json(serde_json::json!({"id":"oauth-edit", "description":""})),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(fork.status(), StatusCode::CREATED);
+    let path = "/admin/credentials/account-000/oauth/start";
+    let first = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri(path)).to_request(),
+    )
+    .await;
+    assert_eq!(first.status(), StatusCode::ACCEPTED);
+    let first: Value = test::read_body_json(first).await;
+    let second = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri(path))
+            .insert_header(("X-Config-Version", "oauth-edit"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(second.status(), StatusCode::ACCEPTED);
+    let second: Value = test::read_body_json(second).await;
+    assert_eq!(first["credential_id"], second["credential_id"]);
+    assert_ne!(first["authorization_url"], second["authorization_url"]);
+    let cancel = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/credentials/account-000/oauth/cancel"))
+            .insert_header(("X-Config-Version", "oauth-edit"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(cancel.status(), StatusCode::NO_CONTENT);
+    let status = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/credentials/account-000/oauth/status"))
+            .to_request(),
+    )
+    .await;
+    let status: Value = test::read_body_json(status).await;
+    assert_eq!(status["state"], "pending");
     Ok(())
 }

@@ -6,6 +6,8 @@
 //! `SQLite` transaction. It never publishes a Snapshot, calls a Provider, or returns credential
 //! plaintext/ciphertext.
 
+mod configuration_edit;
+
 use std::{error::Error, fmt, sync::Arc};
 
 use sha2::{Digest, Sha256};
@@ -4077,6 +4079,184 @@ mod tests {
         )?;
         assert_eq!(deleted_group.as_i64(), 16);
         assert!(service.list_client_keys(version_id)?.value().is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn configuration_edit_preserves_graph_keys_and_reseals_secrets() -> TestResult {
+        let (mut service, source_id, actor) = test_service_with_client_key_issuer()?;
+        let revision = create_minimax_routing_graph(&mut service, &actor, &source_id)?;
+        let revision =
+            issue_and_assert_redacted_client_key(&mut service, &actor, &source_id, revision)?;
+        let node = service.create_compatible_proxy_node(
+            &actor,
+            &source_id,
+            revision,
+            &super::CompatibleProxyNodeUpsert {
+                id: super::CompatibleProxyNodeId::try_new("edit-proxy")?,
+                upstream_id: UpstreamId::try_new("upstream-a")?,
+                pool_id: None,
+                name: "edit proxy".to_owned(),
+                proxy_endpoint: Some("socks5://127.0.0.1:1080".to_owned()),
+                enabled: true,
+                weight: 1,
+                maximum_concurrency: 2,
+            },
+        )?;
+        let revision = node.revision();
+        service.repository_mut().activate_version(&source_id)?;
+        let target_id = ConfigVersionId::try_new("user-edit")?;
+        let result = service.fork_active_configuration(
+            &actor,
+            &source_id,
+            revision,
+            target_id.clone(),
+            "update provider".to_owned(),
+        )?;
+        assert_eq!(result.status, ConfigVersionStatus::Draft);
+        assert_eq!(result.revision, 0);
+        let source = service
+            .repository_mut()
+            .load_configuration(&source_id)?
+            .ok_or("source")?;
+        let target = service
+            .repository_mut()
+            .load_configuration(&target_id)?
+            .ok_or("target")?;
+        assert_eq!(target.upstreams, source.upstreams);
+        assert_eq!(target.endpoints, source.endpoints);
+        assert_eq!(
+            target.endpoint_credential_bindings,
+            source.endpoint_credential_bindings
+        );
+        assert_eq!(target.public_models, source.public_models);
+        assert_eq!(target.model_aliases, source.model_aliases);
+        assert_eq!(target.model_routes, source.model_routes);
+        assert_eq!(target.route_candidates, source.route_candidates);
+        assert_eq!(target.access_groups, source.access_groups);
+        assert_eq!(target.access_group_routes, source.access_group_routes);
+        assert_eq!(target.client_keys, source.client_keys);
+        let id = CredentialId::try_new("credential-a")?;
+        let plaintext = service.open_credential_for_export(&target_id, &id)?;
+        assert_eq!(plaintext.as_bytes(), b"test-secret-not-returned");
+        let old_aad = super::credential_associated_data(
+            &source_id,
+            &id,
+            &UpstreamId::try_new("upstream-a")?,
+        )?;
+        assert!(
+            service
+                .secret_store
+                .open(&target.credentials[0].encrypted_secret, &old_aad)
+                .is_err()
+        );
+        let copied = &target.compatible_proxy_nodes[0];
+        let proxy = crate::control_plane_service::open_compatible_proxy_node_endpoint(
+            &service.secret_store,
+            &target_id,
+            &copied.upstream_id,
+            copied.pool_id.as_ref(),
+            &copied.id,
+            &copied.encrypted_proxy,
+        )?;
+        assert!(matches!(proxy, gateway_upstream::UpstreamProxy::Socks5(_)));
+        service.repository_mut().activate_version(&target_id)?;
+        Ok(())
+    }
+
+    #[test]
+    fn configuration_edit_rejects_oauth_rotation_without_losing_new_credentials() -> TestResult {
+        let (mut service, source_id, actor) = test_service()?;
+        let revision = create_minimax_routing_graph(&mut service, &actor, &source_id)?;
+        service.repository_mut().activate_version(&source_id)?;
+        let stale = ConfigVersionId::try_new("stale-edit")?;
+        service.fork_active_configuration(
+            &actor,
+            &source_id,
+            revision,
+            stale.clone(),
+            String::new(),
+        )?;
+        service.persist_oauth_credential_if_revision(
+            &actor,
+            &source_id,
+            revision,
+            CredentialId::try_new("credential-a")?,
+            0,
+            b"new-rotated-envelope",
+        )?;
+        assert!(matches!(
+            service.repository_mut().activate_version(&stale),
+            Err(StoreError::ConfigVersionRevisionConflict)
+        ));
+        assert_eq!(
+            service
+                .repository_mut()
+                .load_active_configuration()?
+                .ok_or("active")?
+                .version
+                .id,
+            source_id
+        );
+        let fresh = ConfigVersionId::try_new("fresh-edit")?;
+        service.fork_active_configuration(
+            &actor,
+            &source_id,
+            revision,
+            fresh.clone(),
+            String::new(),
+        )?;
+        assert_eq!(
+            service
+                .open_credential_for_export(&fresh, &CredentialId::try_new("credential-a")?)?
+                .as_bytes(),
+            b"new-rotated-envelope"
+        );
+        service.repository_mut().activate_version(&fresh)?;
+        Ok(())
+    }
+
+    #[test]
+    fn configuration_edit_rejects_lifecycle_aba() -> TestResult {
+        let (mut service, source_id, actor) = test_service()?;
+        let revision = create_minimax_routing_graph(&mut service, &actor, &source_id)?;
+        service.repository_mut().activate_version(&source_id)?;
+        let old = ConfigVersionId::try_new("old-edit")?;
+        let newer = ConfigVersionId::try_new("newer-edit")?;
+        service.fork_active_configuration(
+            &actor,
+            &source_id,
+            revision,
+            old.clone(),
+            String::new(),
+        )?;
+        service.fork_active_configuration(
+            &actor,
+            &source_id,
+            revision,
+            newer.clone(),
+            String::new(),
+        )?;
+        let publish = gateway_store::control_plane::ManagementAuditEventDraft::try_new(
+            gateway_store::control_plane::ManagementAuditAction::Published,
+            actor.as_str(),
+            50,
+        )?;
+        service
+            .repository_mut()
+            .activate_version_with_audit(&newer, &publish)?;
+        let rollback = gateway_store::control_plane::ManagementAuditEventDraft::try_new(
+            gateway_store::control_plane::ManagementAuditAction::RolledBack,
+            actor.as_str(),
+            51,
+        )?;
+        service
+            .repository_mut()
+            .activate_version_with_audit(&source_id, &rollback)?;
+        assert!(matches!(
+            service.repository_mut().activate_version(&old),
+            Err(StoreError::ConfigVersionRevisionConflict)
+        ));
         Ok(())
     }
 

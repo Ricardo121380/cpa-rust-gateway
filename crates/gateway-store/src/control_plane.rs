@@ -5,6 +5,8 @@
 //! runtime view; P2-07 owns publication of that view.
 
 mod configuration_diff;
+mod configuration_edit;
+pub use configuration_edit::{ConfigurationEditOrigin, ConfigurationEditSource};
 mod resource_inventory;
 pub use configuration_diff::{
     ConfigurationDiffError, ConfigurationDiffPage, ConfigurationDiffQuery, ConfigurationDiffReader,
@@ -2473,7 +2475,10 @@ impl ControlPlaneTransaction<'_> {
             .optional()?;
         let target_status = target_status.ok_or(StoreError::ConfigVersionNotFound)?;
         match ConfigVersionStatus::from_sql(&target_status) {
-            Some(ConfigVersionStatus::Draft | ConfigVersionStatus::Archived) => {}
+            Some(ConfigVersionStatus::Draft) => {
+                configuration_edit::validate_origin(&self.transaction, config_version_id)?;
+            }
+            Some(ConfigVersionStatus::Archived) => {}
             Some(ConfigVersionStatus::Active) => {
                 return Err(StoreError::ConfigVersionAlreadyActive);
             }

@@ -615,6 +615,11 @@ function hex(length: number): string {
 // that proves the UI does not cry wolf over by-design backpressure.
 let scrapes = 0;
 let inventorySequence = 0;
+let lifecycleSequence = 0;
+const editOrigins = new Map<string, {source: string; revision: number; credentials: string; lifecycle: number}>();
+function credentialStamp(version: string): string {
+  return JSON.stringify((state.credentials.get(version) ?? []).map((row) => [row.id, row.kind, row.status, row.revision]));
+}
 
 function renderMetrics(scrape: number): string {
   const requests = 1180 + scrape * 7;
@@ -747,6 +752,28 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       );
     }
 
+    const fork = /^POST \/admin\/config-versions\/([^/]+)\/fork$/u.exec(route);
+    if (fork) {
+      const source = versionByHeader(headers);
+      if (source instanceof Response) return source;
+      if (decodeURIComponent(fork[1] ?? "") !== source.id || source.status !== "active" || headers.get("If-Match")?.replace(/"/gu, "") !== revisionToken(source)) return errorResponse(409, "management_revision_conflict", "Source changed");
+      const body = JSON.parse(bodyText ?? "{}") as {id: string; description: string};
+      if (!body.id || state.versions.some((row) => row.id === body.id)) return errorResponse(409, "management_lifecycle_conflict", "Version exists");
+      const target: VersionRow = {id: body.id, parent_id: source.id, status: "draft", revision: 0, created_at_ms: Date.now(), description: body.description};
+      const sourceId = source.id;
+      function copy<T>(collection: Map<string, T>): void {
+        const items = collection.get(sourceId);
+        if (items !== undefined) collection.set(target.id, structuredClone(items));
+      }
+      copy(state.groups); copy(state.keys); copy(state.groupRoutes); copy(state.egress);
+      copy(state.upstreams); copy(state.endpoints); copy(state.credentials); copy(state.bindings);
+      copy(state.models); copy(state.aliases); copy(state.routes); copy(state.routeCandidates);
+      copy(state.pricePolicy); copy(state.compatPools); copy(state.compatNodes); copy(state.compatBindings);
+      editOrigins.set(target.id, {source: source.id, revision: source.revision, credentials: credentialStamp(source.id), lifecycle: lifecycleSequence});
+      state.versions.push(target);
+      return json(201, {...target, revision: revisionToken(target)});
+    }
+
     if (route === "POST /admin/config-versions") {
       const body = JSON.parse(bodyText ?? "{}") as { id: string; parent_id?: string | null; description: string };
       if (state.versions.some((version) => version.id === body.id)) {
@@ -786,11 +813,17 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if (ifMatch !== revisionToken(version)) {
         return errorResponse(409, "management_revision_conflict", "revision token is stale");
       }
+      const origin = editOrigins.get(version.id);
+      if (origin) {
+        const source = state.versions.find((row) => row.id === origin.source);
+        if (!source || source.status !== "active" || source.revision !== origin.revision || credentialStamp(source.id) !== origin.credentials || lifecycleSequence !== origin.lifecycle) return errorResponse(409, "management_revision_conflict", "Edit source changed");
+      }
       const replaced = state.versions.find((row) => row.status === "active");
       if (replaced !== undefined) {
         replaced.status = "archived";
       }
       version.status = "active";
+      lifecycleSequence += 1;
       return json(200, {
         active_config_version_id: version.id,
         replaced_config_version_id: replaced?.id ?? null,
@@ -806,6 +839,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       }
       active.status = "archived";
       predecessor.status = "active";
+      lifecycleSequence += 1;
       return json(200, {
         active_config_version_id: predecessor.id,
         replaced_config_version_id: active.id,
@@ -2434,8 +2468,10 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     // ---- credential OAuth (real contract ops; authorization-code flow) ----
     const oauthStart = /^POST \/admin\/credentials\/([^/]+)\/oauth\/start$/u.exec(route);
     if (oauthStart !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
       const id = decodeURIComponent(oauthStart[1] ?? "");
-      const authState = `st-${hashString(id).toString(16)}`;
+      const authState = `st-${hashString(`${version.id}:${id}`).toString(16)}`;
       const op: OAuthOp = {
         state: "pending",
         polls: 0,
@@ -2446,7 +2482,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
           `&redirect_uri=${encodeURIComponent("http://127.0.0.1:8085/callback")}` +
           `&response_type=code&scope=openid+offline&state=${authState}`,
       };
-      state.oauthOps.set(id, op);
+      state.oauthOps.set(`${version.id}:${id}`, op);
       return json(202, {
         credential_id: id,
         state: op.state,
@@ -2456,8 +2492,10 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     }
     const oauthStatus = /^GET \/admin\/credentials\/([^/]+)\/oauth\/status$/u.exec(route);
     if (oauthStatus !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
       const id = decodeURIComponent(oauthStatus[1] ?? "");
-      const op = state.oauthOps.get(id);
+      const op = state.oauthOps.get(`${version.id}:${id}`);
       if (op === undefined) {
         return errorResponse(409, "management_lifecycle_conflict", "no oauth operation for credential");
       }
@@ -2476,8 +2514,10 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     }
     const oauthCallback = /^POST \/admin\/credentials\/([^/]+)\/oauth\/callback$/u.exec(route);
     if (oauthCallback !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
       const id = decodeURIComponent(oauthCallback[1] ?? "");
-      const op = state.oauthOps.get(id);
+      const op = state.oauthOps.get(`${version.id}:${id}`);
       if (op === undefined || op.state !== "pending") {
         return errorResponse(409, "management_lifecycle_conflict", "no pending oauth operation");
       }
@@ -2490,7 +2530,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         op.failure_class = "provider_rejected";
       } else {
         op.state = "complete";
-        const row = (state.credentials.get("draft-2026-08") ?? []).find((entry) => entry.id === id);
+        const row = (state.credentials.get(version.id) ?? []).find((entry) => entry.id === id);
         if (row !== undefined) {
           row.status = "active";
           row.kind = "oauth_json";
@@ -2507,8 +2547,10 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     }
     const oauthCancel = /^POST \/admin\/credentials\/([^/]+)\/oauth\/cancel$/u.exec(route);
     if (oauthCancel !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
       const id = decodeURIComponent(oauthCancel[1] ?? "");
-      const op = state.oauthOps.get(id);
+      const op = state.oauthOps.get(`${version.id}:${id}`);
       if (op !== undefined && op.state === "pending") {
         op.state = "cancelled";
         inventorySequence += 1;

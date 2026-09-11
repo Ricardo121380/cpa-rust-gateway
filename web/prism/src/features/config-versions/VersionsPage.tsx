@@ -2,6 +2,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { ResourceIdentity, IdentityDetails } from "../../components/ResourceIdentity";
 import { ConfigurationDiff } from "./ConfigurationDiff";
 import { LifecycleConfirmation } from "./LifecycleConfirmation";
+import { beginConfigurationEdit } from "./beginEdit";
 import { ReadStatus } from "../../components/ReadStatus";
 // Config-version workspace: the lifecycle hub (docs/07 §7.4 / v0.1 §7.3).
 // List → create draft → validate → publish (If-Match) → rollback.
@@ -44,6 +45,11 @@ export function VersionsPage() {
 
   const refresh = () => void queryClient.invalidateQueries({ queryKey: ["config-versions"] });
   const active = versions.data?.find((version) => version.status === "active");
+  const beginEdit = useMutation({
+    mutationFn: () => beginConfigurationEdit("编辑服务配置", false),
+    onSuccess: (version) => { refresh(); select(version); },
+    onError: (error) => setActionError(asAppError(error).message),
+  });
   const visibleVersions = versions.data?.filter((version) => version.status === collection) ?? [];
 
   const validate = useMutation({
@@ -104,6 +110,9 @@ export function VersionsPage() {
       <header className="page-head">
         <div><h2>{t.nav.versions}</h2><p className="page-subtitle">在草稿中调整路由，核对后再发布。</p></div>
         <div className="page-actions">
+          <button type="button" disabled={beginEdit.isPending} onClick={() => beginEdit.mutate()}>
+            {beginEdit.isPending ? "准备编辑…" : "编辑当前配置"}
+          </button>
           <button type="button" onClick={() => setCreating(true)}>
             创建草稿
           </button>

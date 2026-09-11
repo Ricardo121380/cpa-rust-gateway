@@ -783,6 +783,30 @@ export const managementOperations = {
     "bodyEncoding": "json",
     "bodyRequired": true
   },
+  "forkConfigVersion": {
+    "method": "POST",
+    "path": "/admin/config-versions/{config_version_id}/fork",
+    "parameters": [
+      {
+        "name": "config_version_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "getAccessGroup": {
     "method": "GET",
     "path": "/admin/access-groups/{access_group_id}",
@@ -2745,6 +2769,10 @@ export class ManagementApi {
 
   exportCredential(request: ManagementRequest = {}): Promise<Response> {
     return this.request("exportCredential", request);
+  }
+
+  forkConfigVersion(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("forkConfigVersion", request);
   }
 
   getAccessGroup(request: ManagementRequest = {}): Promise<Response> {

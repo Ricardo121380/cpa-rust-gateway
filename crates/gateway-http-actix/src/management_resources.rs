@@ -5,6 +5,7 @@
 //! credential Secret/ciphertext, or bypass the P10-02 `/admin` security scope.
 
 mod configuration_diff;
+mod configuration_edit;
 mod resource_inventory;
 
 use std::{
@@ -2506,7 +2507,21 @@ fn configure_upstream_resource_routes(config: &mut web::ServiceConfig) {
         );
 }
 
+fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
+    config
+        .route(
+            "/config-versions/{config_version_id}/fork",
+            web::post().to(configuration_edit::fork),
+        )
+        .route(
+            "/credentials",
+            web::get().to(resource_inventory::credentials),
+        )
+        .route("/endpoints", web::get().to(resource_inventory::endpoints));
+}
+
 fn configure_routing_resource_routes(config: &mut web::ServiceConfig) {
+    configure_inventory_resource_routes(config);
     config
         .route(
             "/resource-audit-events",
@@ -2516,8 +2531,6 @@ fn configure_routing_resource_routes(config: &mut web::ServiceConfig) {
             "/config-versions/{config_version_id}/diff",
             web::get().to(configuration_diff::read),
         )
-        .route("/credentials", web::get().to(resource_inventory::credentials))
-        .route("/endpoints", web::get().to(resource_inventory::endpoints))
         .route("/routes", web::get().to(list_model_routes_page))
         .route(
             "/route-candidates",
@@ -5955,6 +5968,26 @@ async fn delete_credential(
     }
 }
 
+// A copied graph retains credential IDs; its pending OAuth operation must not share a session
+// with the active graph. Only this private lookup identity changes, never persisted resource IDs.
+fn credential_oauth_scope(
+    version: &ConfigVersionId,
+    credential: &CredentialId,
+) -> Result<CredentialId, HttpResponse> {
+    let mut digest = sha2::Sha256::new();
+    digest.update(b"cpar-management-credential-oauth");
+    for bytes in [version.as_str().as_bytes(), credential.as_str().as_bytes()] {
+        let length = u64::try_from(bytes.len()).map_err(|_| internal_error())?;
+        digest.update(length.to_be_bytes());
+        digest.update(bytes);
+    }
+    CredentialId::try_new(format!(
+        "oauth-{}",
+        URL_SAFE_NO_PAD.encode(digest.finalize())
+    ))
+    .map_err(|_| internal_error())
+}
+
 async fn start_credential_oauth(
     request: HttpRequest,
     path: web::Path<String>,
@@ -5970,8 +6003,12 @@ async fn start_credential_oauth(
     if let Err(response) = require_credential(&state, &context.version, &credential_id) {
         return response;
     }
+    let workflow_id = match credential_oauth_scope(&context.version, &credential_id) {
+        Ok(id) => id,
+        Err(response) => return response,
+    };
     let operation = match workflow(&state) {
-        Ok(mut workflow) => workflow.start_oauth(&credential_id),
+        Ok(mut workflow) => workflow.start_oauth(&workflow_id),
         Err(response) => return response,
     };
     HttpResponse::Accepted().json(CredentialOAuthResponse::new(&credential_id, operation))
@@ -5992,8 +6029,12 @@ async fn get_credential_oauth_status(
     if let Err(response) = require_credential(&state, &context.version, &credential_id) {
         return response;
     }
+    let workflow_id = match credential_oauth_scope(&context.version, &credential_id) {
+        Ok(id) => id,
+        Err(response) => return response,
+    };
     let mut operation = match workflow(&state) {
-        Ok(mut workflow) => workflow.oauth_status(&credential_id),
+        Ok(mut workflow) => workflow.oauth_status(&workflow_id),
         Err(response) => return response,
     };
     // OAuth state/challenge material is intentionally process-local.  After a clean restart the
@@ -6028,8 +6069,12 @@ async fn cancel_credential_oauth(
     if let Err(response) = require_credential(&state, &context.version, &credential_id) {
         return response;
     }
+    let workflow_id = match credential_oauth_scope(&context.version, &credential_id) {
+        Ok(id) => id,
+        Err(response) => return response,
+    };
     match workflow(&state) {
-        Ok(mut workflow) => workflow.cancel_oauth(&credential_id),
+        Ok(mut workflow) => workflow.cancel_oauth(&workflow_id),
         Err(response) => return response,
     }
     let actor = match principal(&request) {
@@ -6068,6 +6113,10 @@ async fn complete_credential_oauth(
     if let Err(response) = require_credential(&state, &context.version, &credential_id) {
         return response;
     }
+    let workflow_id = match credential_oauth_scope(&context.version, &credential_id) {
+        Ok(id) => id,
+        Err(response) => return response,
+    };
     let callback = match parse_oauth_callback_request(&payload) {
         Ok(callback) => callback,
         Err(OAuthCallbackInputError::Invalid) => return invalid_input(),
@@ -6079,7 +6128,7 @@ async fn complete_credential_oauth(
                 .and_then(|value| decode_oauth_state(value.as_bytes()))
                 && let Ok(mut workflow) = workflow(&state)
             {
-                let _ = workflow.reject_oauth(&credential_id, &callback_state);
+                let _ = workflow.reject_oauth(&workflow_id, &callback_state);
             }
             return HttpResponse::Conflict().json(serde_json::json!({
                 "error": "oauth_provider_rejected",
@@ -6092,11 +6141,9 @@ async fn complete_credential_oauth(
         return invalid_input();
     };
     let envelope = match workflow(&state) {
-        Ok(mut workflow) => workflow.complete_oauth(
-            &credential_id,
-            &decoded_state,
-            Zeroizing::new(callback.code),
-        ),
+        Ok(mut workflow) => {
+            workflow.complete_oauth(&workflow_id, &decoded_state, Zeroizing::new(callback.code))
+        }
         Err(response) => return response,
     };
     let Some(envelope) = envelope else {
@@ -6128,12 +6175,12 @@ async fn complete_credential_oauth(
     drop(service);
     if let Err(error) = persisted {
         if let Ok(mut workflow) = workflow(&state) {
-            let _ = workflow.finalize_oauth(&credential_id, false);
+            let _ = workflow.finalize_oauth(&workflow_id, false);
         }
         return management_error(error);
     }
     let finalized = match workflow(&state) {
-        Ok(mut workflow) => workflow.finalize_oauth(&credential_id, true),
+        Ok(mut workflow) => workflow.finalize_oauth(&workflow_id, true),
         Err(_) => false,
     };
     if !finalized {

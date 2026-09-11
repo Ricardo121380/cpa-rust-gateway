@@ -1987,3 +1987,21 @@ Keep catalog with models and pricing with usage, with correct parent highlightin
 unit tests verify eight primary entries and reachability of all fourteen old destinations.
 This changes information architecture, not the underlying configuration apply semantics. Account
 onboarding and live runtime composition work remain tracked separately. No production change.
+
+## 2026-09-11 — Codex — guarded active configuration editing
+
+**What:** Store migration 23 and configuration_edit origin guards; control-plane full graph
+fork with credential/proxy AAD resealing; HTTP fork endpoint and version-scoped OAuth workflow
+keys; authority/generated 114-operation contract; Prism begin-edit helper, versions action,
+fixtures and browser regression; configuration-edit CR and progress report.
+
+**Why:** parent_id did not clone resources. Editing live configuration must preserve unrelated
+resources and secrets without returning them to the browser, and reject concurrent rotations
+or lifecycle changes before activation. Same credential IDs in copied versions must not share
+an OAuth session.
+
+**Other side:** FYI under the approved functional redesign. Three control tests, four SQLite/HTTP
+tests, two existing OAuth HTTP tests, migration up/down, browser edit regression, TypeScript,
+Clippy and authority/four-file double-build gate passed. Runtime generation switching remains
+open; this API starts an edit and does not represent live application. Schema 23 is local only.
+No production or historical-data changes.
