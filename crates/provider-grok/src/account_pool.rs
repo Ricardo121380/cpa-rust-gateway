@@ -420,7 +420,7 @@ impl GrokNativeAccountPoolCompilation {
         runtime_quota: &RuntimeQuotaRegistry,
     ) -> Result<(), gateway_router::RuntimeQuotaError> {
         for snapshot in &self.quota_bootstrap {
-            runtime_quota.record_snapshot(snapshot.clone())?;
+            runtime_quota.restore_snapshot(snapshot.clone())?;
         }
         Ok(())
     }

@@ -19,9 +19,10 @@ pub use compatible_egress::{
     CompatibleStickiness, MAX_COMPATIBLE_EGRESS_LABEL_LENGTH, MAX_COMPATIBLE_PRE_SUBMIT_ATTEMPTS,
 };
 pub use credential_pool::{
-    CredentialLease, CredentialMaterialReplacement, CredentialPoolBuildError,
-    CredentialPoolEntrySnapshot, CredentialSecret, EndpointCredentialInput, EndpointCredentialPool,
-    EndpointCredentialPools, MAX_CREDENTIAL_SCHEDULE_SLOTS_PER_PRIORITY_TIER,
+    CredentialConcurrencyRegistry, CredentialLease, CredentialMaterialReplacement,
+    CredentialPoolBuildError, CredentialPoolEntrySnapshot, CredentialSecret,
+    EndpointCredentialInput, EndpointCredentialPool, EndpointCredentialPools,
+    MAX_CREDENTIAL_SCHEDULE_SLOTS_PER_PRIORITY_TIER,
 };
 pub use egress_policy::{
     AdmittedEgressTarget, EgressAdmissionError, EgressAdmissionErrorCode, EgressCidr,

@@ -186,6 +186,18 @@ impl<'a> CompatibleEgressRuntimeCompiler<'a> {
         if self.configuration.version.status != ConfigVersionStatus::Active {
             return Err(CompatibleEgressRuntimeCompileError::ConfigVersionNotActive);
         }
+        self.prepare()
+    }
+
+    /// Builds an isolated runtime before activation. The caller must publish this map only
+    /// after committing the exact configuration revision used here.
+    ///
+    /// # Errors
+    /// Returns the same graph, credential and egress errors as [`Self::compile`].
+    pub fn prepare(
+        &self,
+    ) -> Result<BTreeMap<EndpointId, CompatibleEndpointRuntime>, CompatibleEgressRuntimeCompileError>
+    {
         let expected_policies = EgressPolicyCompiler::compile(self.configuration)
             .map_err(|_| CompatibleEgressRuntimeCompileError::EgressPolicySnapshotMismatch)?;
         if &expected_policies != self.policies {
@@ -693,6 +705,7 @@ mod tests {
             draft_compiler.compile(),
             Err(super::CompatibleEgressRuntimeCompileError::ConfigVersionNotActive)
         ));
+        assert_eq!(draft_compiler.prepare()?.len(), 1);
 
         let active = config(&store)?;
         let policies = EgressPolicyCompiler::compile(&active)?;

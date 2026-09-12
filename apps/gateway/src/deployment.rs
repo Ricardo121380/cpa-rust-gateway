@@ -200,6 +200,7 @@ async fn run_servers(
 ) -> Result<(), DeploymentError> {
     let ApplicationState {
         data,
+        reload,
         security,
         resources,
         lifecycle,
@@ -210,7 +211,9 @@ async fn run_servers(
         model_catalog_worker,
         billing_processing,
     } = application;
-    let data = web::Data::new(data);
+    drop(data);
+    let data_source: Arc<dyn gateway_http_actix::ResponsesStateSource> = reload.clone();
+    let data = web::Data::from(data_source);
     let data_server = HttpServer::new(move || App::new().app_data(data.clone()).configure(configure))
             .workers(1)
             // Each in-flight request may buffer up to MAX_INFERENCE_REQUEST_BODY_BYTES, so the
@@ -253,19 +256,11 @@ async fn run_servers(
     let maintenance_worker = crate::maintenance_worker::MaintenanceWorker::start(
         command.state_directory.join(CONTROL_DATABASE_FILE),
     );
-    let credential_refresh_worker =
-        credential_refresh_worker.map(|worker| actix_web::rt::spawn(worker.run()));
-    let model_catalog_worker =
-        model_catalog_worker.map(|worker| actix_web::rt::spawn(worker.run()));
+    let runtime_workers = reload.start_workers(credential_refresh_worker, model_catalog_worker);
     let server_result = try_join(data_server, management_server).await;
-    if let Some(worker) = credential_refresh_worker {
-        worker.abort();
-        let _ = worker.await;
-    }
-    if let Some(worker) = model_catalog_worker {
-        worker.abort();
-        let _ = worker.await;
-    }
+    runtime_workers.abort();
+    let _ = runtime_workers.await;
+    drop(reload);
     let server_result = server_result
         .map(|_| ())
         .map_err(|_| DeploymentError::RuntimeUnavailable);
@@ -302,6 +297,7 @@ async fn run_servers(
 
 struct ApplicationState {
     data: gateway_http_actix::ResponsesHttpState,
+    reload: Arc<runtime::RuntimePublicationController>,
     security: ManagementHttpState,
     resources: ManagementResourceHttpState,
     lifecycle: ManagementLifecycleHttpState,
@@ -398,7 +394,7 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
 
     let actor = ManagementActor::try_new("management-key")
         .map_err(|_| DeploymentError::RuntimeUnavailable)?;
-    let lifecycle_service = ManagementService::bootstrap(
+    let mut lifecycle_service = ManagementService::bootstrap(
         SqliteControlPlaneRepository::open(&database)
             .map_err(|_| DeploymentError::ControlPlaneUnavailable)?,
         runtime::deployment_route_compiler(&database)
@@ -429,6 +425,7 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
     );
     let runtime::DataPlaneComposition {
         data,
+        reload,
         management_runtime,
         provider_account_pools,
         provider_egress_status,
@@ -485,6 +482,7 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
     let resources = resources.with_native_accounts(native_accounts);
     let resources = resources.with_provider_egress_status(provider_egress_status);
     let resources = resources.with_channel_pin(channel_pin);
+    lifecycle_service.set_runtime_preparer(reload.clone());
     let lifecycle = ManagementLifecycleHttpState::new(lifecycle_service);
     let backup = ManagementBackupHttpState::new(
         ManagementBackupService::try_new(
@@ -521,6 +519,7 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
     }
     Ok(ApplicationState {
         data,
+        reload,
         security,
         resources,
         lifecycle,
@@ -1186,6 +1185,7 @@ mod tests {
         let application = build_application_state(&command(state.path(), credentials.path())?)?;
         let super::ApplicationState {
             data,
+            reload,
             security,
             resources,
             lifecycle,
@@ -1196,7 +1196,15 @@ mod tests {
             model_catalog_worker: _,
             billing_processing: _,
         } = application;
-        drop((data, security, resources, lifecycle, backup, observability));
+        drop((
+            data,
+            reload,
+            security,
+            resources,
+            lifecycle,
+            backup,
+            observability,
+        ));
 
         let metrics = actix_web::rt::System::new().block_on(event_writer.run());
         assert_eq!(metrics.pending_required, 0);

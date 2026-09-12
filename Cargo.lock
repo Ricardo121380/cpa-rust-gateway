@@ -1094,6 +1094,7 @@ name = "gateway"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "arc-swap",
  "futures-util",
  "gateway-auth",
  "gateway-catalog",

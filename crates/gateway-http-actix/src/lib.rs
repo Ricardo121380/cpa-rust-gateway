@@ -306,6 +306,43 @@ pub struct ResponsesHttpState {
     stored_responses: Option<Arc<SqliteStoredResponseStore>>,
 }
 
+/// Supplies a coherent executor/authenticator/store generation for each admitted HTTP request.
+/// Deployments may publish a replacement; existing requests retain their captured generation.
+pub trait ResponsesStateSource: Send + Sync {
+    /// Captures one complete, immutable HTTP generation without I/O or blocking compilation.
+    fn capture(&self) -> Arc<ResponsesHttpState>;
+}
+
+#[derive(Clone)]
+struct CapturedResponsesState(Arc<ResponsesHttpState>);
+
+impl std::ops::Deref for CapturedResponsesState {
+    type Target = ResponsesHttpState;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl actix_web::FromRequest for CapturedResponsesState {
+    type Error = actix_web::Error;
+    type Future = std::future::Ready<Result<Self, Self::Error>>;
+    fn from_request(request: &HttpRequest, _payload: &mut actix_web::dev::Payload) -> Self::Future {
+        let captured =
+            if let Some(source) = request.app_data::<web::Data<dyn ResponsesStateSource>>() {
+                Some(source.capture())
+            } else {
+                request
+                    .app_data::<web::Data<ResponsesHttpState>>()
+                    .map(|state| web::Data::into_inner(state.clone()))
+            };
+        std::future::ready(
+            captured.map(Self).ok_or_else(|| {
+                actix_web::error::ErrorServiceUnavailable("serving state unavailable")
+            }),
+        )
+    }
+}
+
 #[derive(Clone)]
 enum ResponsesAuthenticator {
     Generic(Arc<dyn ClientKeyAuthenticator>),
@@ -1079,7 +1116,7 @@ async fn healthz() -> HttpResponse {
         .body(r#"{"status":"ok"}"#)
 }
 
-async fn models(request: HttpRequest, state: web::Data<ResponsesHttpState>) -> HttpResponse {
+async fn models(request: HttpRequest, state: CapturedResponsesState) -> HttpResponse {
     let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
     {
         Ok(AuthenticatedResponsesClient::Snapshot(authenticated_client)) => authenticated_client,
@@ -1099,7 +1136,7 @@ async fn models(request: HttpRequest, state: web::Data<ResponsesHttpState>) -> H
 #[allow(clippy::too_many_lines)] // Keep the complete public upgrade admission boundary auditable.
 async fn responses_websocket(
     request: HttpRequest,
-    state: web::Data<ResponsesHttpState>,
+    state: CapturedResponsesState,
     payload: web::Payload,
 ) -> HttpResponse {
     let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
@@ -1158,7 +1195,7 @@ fn pre_websocket_error(error: &GatewayError) -> HttpResponse {
 async fn run_responses_websocket_session(
     mut session: actix_ws::Session,
     mut messages: actix_ws::MessageStream,
-    state: web::Data<ResponsesHttpState>,
+    state: CapturedResponsesState,
     authenticated_client: Arc<AuthenticatedResponsesClient>,
 ) {
     let cache = Arc::new(tokio::sync::Mutex::new(WebSocketSessionCache::default()));
@@ -1349,7 +1386,7 @@ async fn write_websocket_pong(
 fn spawn_responses_websocket_turn(
     request: String,
     mut session: actix_ws::Session,
-    state: web::Data<ResponsesHttpState>,
+    state: CapturedResponsesState,
     authenticated_client: Arc<AuthenticatedResponsesClient>,
     cache: Arc<tokio::sync::Mutex<WebSocketSessionCache>>,
     done_sender: tokio::sync::mpsc::Sender<()>,
@@ -1633,7 +1670,7 @@ async fn send_websocket_error(
 
 async fn chat_completions(
     request: HttpRequest,
-    state: web::Data<ResponsesHttpState>,
+    state: CapturedResponsesState,
     payload: web::Payload,
 ) -> HttpResponse {
     let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
@@ -1729,7 +1766,7 @@ async fn chat_completions(
 #[allow(clippy::too_many_lines)] // Keep public admission, first-event, and durable-store ordering auditable.
 async fn responses(
     request: HttpRequest,
-    state: web::Data<ResponsesHttpState>,
+    state: CapturedResponsesState,
     payload: web::Payload,
 ) -> HttpResponse {
     let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
@@ -1890,7 +1927,7 @@ async fn deliver_responses(
 #[allow(clippy::too_many_lines)] // One linear flow proves owner lookup precedes the sole exact attempt and AEAD write.
 async fn compact_responses(
     request: HttpRequest,
-    state: web::Data<ResponsesHttpState>,
+    state: CapturedResponsesState,
     payload: web::Payload,
 ) -> HttpResponse {
     let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
@@ -2048,7 +2085,7 @@ async fn compact_responses(
 
 async fn retrieve_stored_response(
     request: HttpRequest,
-    state: web::Data<ResponsesHttpState>,
+    state: CapturedResponsesState,
     response_id: web::Path<String>,
 ) -> HttpResponse {
     let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
@@ -2098,7 +2135,7 @@ async fn retrieve_stored_response(
 
 async fn delete_stored_response(
     request: HttpRequest,
-    state: web::Data<ResponsesHttpState>,
+    state: CapturedResponsesState,
     response_id: web::Path<String>,
 ) -> HttpResponse {
     let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
@@ -2143,7 +2180,7 @@ async fn delete_stored_response(
 
 async fn messages(
     request: HttpRequest,
-    state: web::Data<ResponsesHttpState>,
+    state: CapturedResponsesState,
     payload: web::Payload,
 ) -> HttpResponse {
     let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
@@ -2243,7 +2280,7 @@ async fn messages(
 
 async fn count_tokens(
     request: HttpRequest,
-    state: web::Data<ResponsesHttpState>,
+    state: CapturedResponsesState,
     payload: web::Payload,
 ) -> HttpResponse {
     let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)

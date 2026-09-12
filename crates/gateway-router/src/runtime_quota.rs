@@ -618,10 +618,31 @@ impl RuntimeQuotaRegistry {
         &self,
         snapshot: QuotaSnapshot,
     ) -> Result<QuotaSnapshot, RuntimeQuotaError> {
+        self.record_snapshot_with_policy(snapshot, false)
+    }
+
+    /// Restores durable evidence without replacing equal/newer live evidence or recovery tickets.
+    /// # Errors
+    /// Returns a bounded registry error when the target cannot be retained.
+    pub fn restore_snapshot(
+        &self,
+        snapshot: QuotaSnapshot,
+    ) -> Result<QuotaSnapshot, RuntimeQuotaError> {
+        self.record_snapshot_with_policy(snapshot, true)
+    }
+
+    fn record_snapshot_with_policy(
+        &self,
+        snapshot: QuotaSnapshot,
+        preserve_newer: bool,
+    ) -> Result<QuotaSnapshot, RuntimeQuotaError> {
         let target = snapshot.target().clone();
         let now_ms = self.clock.now_ms()?;
         let mut states = self.write_shard(&target)?;
         if let Some(previous) = states.get(&target) {
+            if preserve_newer && snapshot.observed_at_ms() <= previous.snapshot.observed_at_ms() {
+                return Ok(previous.snapshot.clone());
+            }
             if snapshot.observed_at_ms() < previous.snapshot.observed_at_ms() {
                 return Err(RuntimeQuotaError::ObservationTimeRegressed);
             }
@@ -1058,6 +1079,15 @@ mod tests {
             QuotaConfidence::Authoritative,
         )?;
         registry.record_snapshot(snapshot.clone())?;
+
+        let older = exhausted_snapshot(
+            model_a.clone(),
+            90,
+            190,
+            QuotaSource::Billing,
+            QuotaConfidence::Authoritative,
+        )?;
+        assert_eq!(registry.restore_snapshot(older)?.observed_at_ms(), 100);
 
         let retained = registry
             .snapshot(&model_a)?

@@ -4,7 +4,7 @@
 //! repository, publisher, Provider, Secret, network client, or backup material. Publication and
 //! rollback continue to use P2's transaction-before-`ArcSwap` lifecycle implementation.
 
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use actix_web::{
     HttpRequest, HttpResponse,
@@ -32,6 +32,7 @@ const MAX_AUDIT_EVENTS: usize = 512;
 /// are management-only control operations, never inference-path work.
 pub struct ManagementLifecycleHttpState {
     lifecycle: Mutex<Box<dyn ManagementLifecycleFacade>>,
+    operations: Arc<tokio::sync::Semaphore>,
 }
 
 impl ManagementLifecycleHttpState {
@@ -46,6 +47,7 @@ impl ManagementLifecycleHttpState {
     pub fn with_facade(lifecycle: Box<dyn ManagementLifecycleFacade>) -> Self {
         Self {
             lifecycle: Mutex::new(lifecycle),
+            operations: Arc::new(tokio::sync::Semaphore::new(8)),
         }
     }
 }
@@ -659,8 +661,9 @@ struct AuditEventResponse {
 }
 
 async fn list_versions(state: web::Data<ManagementLifecycleHttpState>) -> HttpResponse {
-    let versions = match lifecycle(&state)
-        .and_then(|mut facade| facade.list_versions().map_err(lifecycle_error))
+    let versions = match run_lifecycle(state, |facade| facade.list_versions())
+        .await
+        .map_err(lifecycle_error)
     {
         Ok(versions) => versions,
         Err(response) => return response,
@@ -681,8 +684,9 @@ async fn get_version(
         Ok(value) => value,
         Err(response) => return response,
     };
-    let version = match lifecycle(&state)
-        .and_then(|mut facade| facade.get_version(&version_id).map_err(lifecycle_error))
+    let version = match run_lifecycle(state, move |facade| facade.get_version(&version_id))
+        .await
+        .map_err(lifecycle_error)
     {
         Ok(Some(version)) => version,
         Ok(None) => return lifecycle_error(ManagementLifecycleError::Conflict),
@@ -699,8 +703,9 @@ async fn create_version(
         Ok(value) => value,
         Err(response) => return response,
     };
-    let version = match lifecycle(&state)
-        .and_then(|mut facade| facade.create_version(&input).map_err(lifecycle_error))
+    let version = match run_lifecycle(state, move |facade| facade.create_version(&input))
+        .await
+        .map_err(lifecycle_error)
     {
         Ok(version) => version,
         Err(response) => return response,
@@ -716,11 +721,10 @@ async fn validate_version(
         Ok(value) => value,
         Err(response) => return response,
     };
-    match lifecycle(&state).and_then(|mut facade| {
-        facade
-            .validate_version(&version_id)
-            .map_err(lifecycle_error)
-    }) {
+    match run_lifecycle(state, move |facade| facade.validate_version(&version_id))
+        .await
+        .map_err(lifecycle_error)
+    {
         Ok(()) => HttpResponse::Ok().json(ValidationResponse {
             valid: true,
             error_codes: Vec::new(),
@@ -742,12 +746,17 @@ async fn publish_version(
         Ok(value) => value,
         Err(response) => return response,
     };
-    match lifecycle(&state).and_then(|mut facade| {
-        require_expected_active(&request, facade.as_mut())?;
-        facade
-            .publish_version(&version_id, expected_revision)
-            .map_err(lifecycle_error)
-    }) {
+    let expected = match expected_lifecycle(&request) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    match run_lifecycle(state, move |facade| {
+        expected.check(facade)?;
+        facade.publish_version(&version_id, expected_revision)
+    })
+    .await
+    .map_err(lifecycle_error)
+    {
         Ok(publication) => HttpResponse::Ok().json(PublicationResponse::from(publication)),
         Err(response) => response,
     }
@@ -761,20 +770,36 @@ async fn rollback(
         Ok(value) => value,
         Err(response) => return response,
     };
-    match lifecycle(&state).and_then(|mut facade| {
-        require_expected_active(&request, facade.as_mut())?;
-        facade.rollback(expected_revision).map_err(lifecycle_error)
-    }) {
+    let expected = match expected_lifecycle(&request) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    match run_lifecycle(state, move |facade| {
+        expected.check(facade)?;
+        facade.rollback(expected_revision)
+    })
+    .await
+    .map_err(lifecycle_error)
+    {
         Ok(publication) => HttpResponse::Ok().json(PublicationResponse::from(publication)),
         Err(response) => response,
     }
 }
 
-// Optional identity pin supplements If-Match: two different active versions may share a revision.
-fn require_expected_active(
-    request: &HttpRequest,
-    facade: &mut dyn ManagementLifecycleFacade,
-) -> Result<(), HttpResponse> {
+// Parse request-owned headers before moving bounded work off the listener thread.
+struct ExpectedLifecycle {
+    active: ExpectedActive,
+    epoch: Option<i64>,
+}
+enum ExpectedActive {
+    Unspecified,
+    Match(Option<ConfigVersionId>),
+}
+fn expected_lifecycle(request: &HttpRequest) -> Result<ExpectedLifecycle, HttpResponse> {
+    let mut result = ExpectedLifecycle {
+        active: ExpectedActive::Unspecified,
+        epoch: None,
+    };
     let mut values = request.headers().get_all("x-expected-active-version");
     if let Some(value) = values.next() {
         if values.next().is_some() {
@@ -785,26 +810,19 @@ fn require_expected_active(
             return Err(invalid_input());
         }
         let expected: Option<String> = serde_json::from_str(raw).map_err(|_| invalid_input())?;
-        let expected = expected
-            .map(ConfigVersionId::try_new)
-            .transpose()
-            .map_err(|_| invalid_input())?;
-        let active = facade
-            .list_versions()
-            .map_err(lifecycle_error)?
-            .into_iter()
-            .find(|version| version.status == ManagementLifecycleVersionStatus::Active)
-            .map(|version| version.id);
-        if active != expected {
-            return Err(lifecycle_error(ManagementLifecycleError::Conflict));
-        }
+        result.active = ExpectedActive::Match(
+            expected
+                .map(ConfigVersionId::try_new)
+                .transpose()
+                .map_err(|_| invalid_input())?,
+        );
     }
-    let mut epochs = request.headers().get_all("x-expected-lifecycle-event");
-    if let Some(epoch) = epochs.next() {
-        if epochs.next().is_some() {
+    let mut values = request.headers().get_all("x-expected-lifecycle-event");
+    if let Some(value) = values.next() {
+        if values.next().is_some() {
             return Err(invalid_input());
         }
-        let epoch: i64 = epoch
+        let epoch: i64 = value
             .to_str()
             .map_err(|_| invalid_input())?
             .parse()
@@ -812,30 +830,51 @@ fn require_expected_active(
         if epoch < 0 {
             return Err(invalid_input());
         }
-        let latest = facade
-            .audit_events()
-            .map_err(lifecycle_error)?
-            .into_iter()
-            .filter(|event| {
-                matches!(
-                    event.action,
-                    ManagementLifecycleAuditAction::Published
-                        | ManagementLifecycleAuditAction::RolledBack
-                )
-            })
-            .map(|event| event.id)
-            .max()
-            .unwrap_or(0);
-        if latest != epoch {
-            return Err(lifecycle_error(ManagementLifecycleError::Conflict));
-        }
+        result.epoch = Some(epoch);
     }
-    Ok(())
+    Ok(result)
+}
+impl ExpectedLifecycle {
+    fn check(
+        self,
+        facade: &mut dyn ManagementLifecycleFacade,
+    ) -> Result<(), ManagementLifecycleError> {
+        if let ExpectedActive::Match(expected) = self.active {
+            let active = facade
+                .list_versions()?
+                .into_iter()
+                .find(|v| v.status == ManagementLifecycleVersionStatus::Active)
+                .map(|v| v.id);
+            if active != expected {
+                return Err(ManagementLifecycleError::Conflict);
+            }
+        }
+        if let Some(epoch) = self.epoch {
+            let latest = facade
+                .audit_events()?
+                .into_iter()
+                .filter(|v| {
+                    matches!(
+                        v.action,
+                        ManagementLifecycleAuditAction::Published
+                            | ManagementLifecycleAuditAction::RolledBack
+                    )
+                })
+                .map(|v| v.id)
+                .max()
+                .unwrap_or(0);
+            if latest != epoch {
+                return Err(ManagementLifecycleError::Conflict);
+            }
+        }
+        Ok(())
+    }
 }
 
 async fn list_audit_events(state: web::Data<ManagementLifecycleHttpState>) -> HttpResponse {
-    let events = match lifecycle(&state)
-        .and_then(|mut facade| facade.audit_events().map_err(lifecycle_error))
+    let events = match run_lifecycle(state, |facade| facade.audit_events())
+        .await
+        .map_err(lifecycle_error)
     {
         Ok(events) => events,
         Err(response) => return response,
@@ -892,13 +931,25 @@ fn required_header<'request>(
         .ok_or_else(invalid_input)
 }
 
-fn lifecycle(
-    state: &web::Data<ManagementLifecycleHttpState>,
-) -> Result<std::sync::MutexGuard<'_, Box<dyn ManagementLifecycleFacade>>, HttpResponse> {
-    state
-        .lifecycle
-        .lock()
-        .map_err(|_| lifecycle_error(ManagementLifecycleError::Unavailable))
+async fn run_lifecycle<T: Send + 'static>(
+    state: web::Data<ManagementLifecycleHttpState>,
+    action: impl FnOnce(&mut dyn ManagementLifecycleFacade) -> Result<T, ManagementLifecycleError>
+    + Send
+    + 'static,
+) -> Result<T, ManagementLifecycleError> {
+    let permit = Arc::clone(&state.operations)
+        .try_acquire_owned()
+        .map_err(|_| ManagementLifecycleError::Unavailable)?;
+    web::block(move || {
+        let _permit = permit;
+        let mut facade = state
+            .lifecycle
+            .lock()
+            .map_err(|_| ManagementLifecycleError::Unavailable)?;
+        action(facade.as_mut())
+    })
+    .await
+    .map_err(|_| ManagementLifecycleError::Unavailable)?
 }
 
 fn parse_json<T: DeserializeOwned>(body: &[u8]) -> Result<T, HttpResponse> {

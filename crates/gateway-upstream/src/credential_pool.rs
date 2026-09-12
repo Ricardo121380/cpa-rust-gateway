@@ -10,7 +10,7 @@ use std::{
     error::Error,
     fmt,
     sync::{
-        Arc,
+        Arc, Mutex, Weak,
         atomic::{AtomicUsize, Ordering},
     },
 };
@@ -261,7 +261,7 @@ impl EndpointCredentialPool {
                     expires_at_ms: entry.expires_at_ms,
                     secret: entry.secret,
                 }),
-                active_leases: AtomicUsize::new(0),
+                active_leases: Arc::new(AtomicUsize::new(0)),
             }));
             credentials_by_priority
                 .entry(priority)
@@ -564,7 +564,65 @@ pub struct EndpointCredentialPools {
     pools: BTreeMap<EndpointId, Arc<EndpointCredentialPool>>,
 }
 
+/// Shares only capacity counters across serving generations; secret material stays isolated.
+/// Dead generations leave weak entries which are reclaimed on the next compilation.
+#[derive(Default)]
+pub struct CredentialConcurrencyRegistry {
+    counters: Mutex<BTreeMap<(EndpointId, CredentialId), Weak<AtomicUsize>>>,
+}
+
 impl EndpointCredentialPools {
+    /// Attaches newly compiled pools to the process-wide capacity for each stable binding.
+    /// In-flight leases in retired generations continue to count against the new schedule.
+    /// # Errors
+    /// Rejects unavailable or excessively large registries without publishing any pool.
+    pub fn with_shared_concurrency(
+        self,
+        registry: &CredentialConcurrencyRegistry,
+    ) -> Result<Self, CredentialPoolBuildError> {
+        let mut counters = registry
+            .counters
+            .lock()
+            .map_err(|_| CredentialPoolBuildError::InconsistentCredentialPool)?;
+        counters.retain(|_, counter| counter.strong_count() > 0);
+        let mut pools = BTreeMap::new();
+        for (endpoint, pool) in self.pools {
+            let mut credentials = Vec::new();
+            for credential in &pool.credentials {
+                let key = (endpoint.clone(), credential.credential_id.clone());
+                let counter = if let Some(counter) = counters.get(&key).and_then(Weak::upgrade) {
+                    counter
+                } else {
+                    if counters.len() >= 65_536 {
+                        return Err(CredentialPoolBuildError::InconsistentCredentialPool);
+                    }
+                    let counter = Arc::new(AtomicUsize::new(0));
+                    counters.insert(key, Arc::downgrade(&counter));
+                    counter
+                };
+                credentials.push(Arc::new(CredentialSlot {
+                    credential_id: credential.credential_id.clone(),
+                    credential_kind: credential.credential_kind.clone(),
+                    priority: credential.priority,
+                    weight: credential.weight,
+                    maximum_concurrency: credential.maximum_concurrency,
+                    material: ArcSwap::from(credential.material.load_full()),
+                    active_leases: counter,
+                }));
+            }
+            pools.insert(
+                endpoint.clone(),
+                Arc::new(EndpointCredentialPool {
+                    endpoint_id: endpoint,
+                    credentials,
+                    priority_tiers: pool.priority_tiers.clone(),
+                    cursors: pool.cursors.iter().map(|_| AtomicUsize::new(0)).collect(),
+                }),
+            );
+        }
+        Ok(Self { pools })
+    }
+
     /// Creates an Endpoint-indexed set and rejects duplicate Endpoint pools.
     ///
     /// # Errors
@@ -796,7 +854,7 @@ struct CredentialSlot {
     weight: usize,
     maximum_concurrency: usize,
     material: ArcSwap<CredentialMaterial>,
-    active_leases: AtomicUsize,
+    active_leases: Arc<AtomicUsize>,
 }
 
 struct CredentialMaterial {
@@ -851,6 +909,7 @@ impl CredentialSlot {
     }
 }
 
+#[derive(Clone)]
 struct CredentialPriorityTier {
     priority: i64,
     slot_indexes: Vec<usize>,
@@ -1011,6 +1070,31 @@ mod tests {
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
+
+    #[test]
+    fn retired_generations_hold_capacity_until_their_leases_end() -> TestResult {
+        let shared = super::CredentialConcurrencyRegistry::default();
+        let build = || -> Result<super::EndpointCredentialPools, Box<dyn Error>> {
+            super::EndpointCredentialPools::try_new([pool(
+                "endpoint-a",
+                vec![("credential-a", 0, 1, 1)],
+            )?])?
+            .with_shared_concurrency(&shared)
+            .map_err(Into::into)
+        };
+        let endpoint = EndpointId::try_new("endpoint-a")?;
+        let first: super::EndpointCredentialPools = build()?;
+        let held = first.try_lease(&endpoint).ok_or("first lease")?;
+        drop(first);
+        let second: super::EndpointCredentialPools = build()?;
+        assert!(second.try_lease(&endpoint).is_none());
+        drop(second);
+        let third: super::EndpointCredentialPools = build()?;
+        assert!(third.try_lease(&endpoint).is_none());
+        drop(held);
+        assert!(third.try_lease(&endpoint).is_some());
+        Ok(())
+    }
 
     #[test]
     fn smooth_weighted_tier_has_an_exact_complete_cycle() -> TestResult {

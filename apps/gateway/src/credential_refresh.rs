@@ -144,6 +144,7 @@ pub(crate) fn refresh_due_credentials_before_compile(
         None,
         None,
         observed_at_ms,
+        None,
     )?;
     Ok(RuntimeCredentialRefreshSummary::with_runtime_replaced(
         summary, 0, codex,
@@ -152,6 +153,10 @@ pub(crate) fn refresh_due_credentials_before_compile(
 
 /// Periodic refresh owner bound to one running data-plane pool set.
 pub(crate) struct RuntimeCredentialRefreshWorker {
+    generation_guard: Option<(
+        Arc<tokio::sync::Mutex<()>>,
+        Arc<std::sync::atomic::AtomicBool>,
+    )>,
     store: Arc<GrokAccountPoolStore>,
     pools: Arc<EndpointCredentialPools>,
     runtime_health: Arc<RuntimeHealthRegistry>,
@@ -184,6 +189,7 @@ impl RuntimeCredentialRefreshWorker {
         let store = GrokAccountPoolStore::try_open(database, secret_store.clone())
             .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?;
         Ok(Some(Self {
+            generation_guard: None,
             store: Arc::new(store),
             pools,
             runtime_health,
@@ -196,6 +202,15 @@ impl RuntimeCredentialRefreshWorker {
             codex_credential_ids,
             codex_backoff: Mutex::new(BTreeMap::new()),
         }))
+    }
+
+    pub(crate) fn with_generation_guard(
+        mut self,
+        gate: Arc<tokio::sync::Mutex<()>>,
+        active: Arc<std::sync::atomic::AtomicBool>,
+    ) -> Self {
+        self.generation_guard = Some((gate, active));
+        self
     }
 
     /// Runs until the process runtime stops. Each network/store pass stays on the blocking pool.
@@ -234,6 +249,22 @@ impl RuntimeCredentialRefreshWorker {
     }
 
     fn run_once(&self) -> Result<RuntimeCredentialRefreshSummary, GrokAccountWorkerError> {
+        // Publication waits for any refresh exchange and durable CAS already in progress.
+        // A retired worker can never start another exchange after the serving pointer changes.
+        let guard = match &self.generation_guard {
+            Some((gate, active)) => {
+                let guard = gate.blocking_lock();
+                if !active.load(std::sync::atomic::Ordering::Acquire) {
+                    return Ok(RuntimeCredentialRefreshSummary::with_runtime_replaced(
+                        empty_grok_summary(),
+                        0,
+                        CodexRefreshSummary::default(),
+                    ));
+                }
+                Some(guard)
+            }
+            None => None,
+        };
         let observed_at_ms = now_ms()?;
         let summary = if self.build_endpoints.is_empty() {
             empty_grok_summary()
@@ -247,6 +278,7 @@ impl RuntimeCredentialRefreshWorker {
             )?
         };
         let mut runtime_replaced = self.sync_runtime_material(observed_at_ms)?;
+        drop(guard);
         let codex = refresh_codex_credentials(
             &self.database,
             &self.secret_store,
@@ -257,6 +289,7 @@ impl RuntimeCredentialRefreshWorker {
             Some(self.runtime_health.as_ref()),
             Some(&self.codex_backoff),
             observed_at_ms,
+            self.generation_guard.as_ref(),
         )?;
         runtime_replaced = runtime_replaced.saturating_add(codex.runtime_replaced);
         Ok(RuntimeCredentialRefreshSummary::with_runtime_replaced(
@@ -415,7 +448,7 @@ fn refresh_scope(configuration: &ControlPlaneConfiguration) -> RefreshScope {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn refresh_codex_credentials(
     database: &Path,
     secret_store: &SecretStore,
@@ -426,6 +459,10 @@ fn refresh_codex_credentials(
     runtime_health: Option<&RuntimeHealthRegistry>,
     backoff: Option<&Mutex<BTreeMap<CredentialId, CodexRefreshBackoff>>>,
     observed_at_ms: i64,
+    generation_guard: Option<&(
+        Arc<tokio::sync::Mutex<()>>,
+        Arc<std::sync::atomic::AtomicBool>,
+    )>,
 ) -> Result<CodexRefreshSummary, GrokAccountWorkerError> {
     let mut repository = SqliteControlPlaneRepository::open(database)
         .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?;
@@ -454,6 +491,16 @@ fn refresh_codex_credentials(
         .iter()
         .filter(|credential| codex_credential_ids.contains(&credential.id))
     {
+        let _guard = match generation_guard {
+            Some((gate, active)) => {
+                let guard = gate.blocking_lock();
+                if !active.load(std::sync::atomic::Ordering::Acquire) {
+                    return Ok(summary);
+                }
+                Some(guard)
+            }
+            None => None,
+        };
         let (mut runtime_bytes, mut runtime_credential, mut runtime_revision) =
             open_codex_runtime_credential(
                 &configuration,

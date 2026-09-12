@@ -1836,7 +1836,7 @@ impl Error for SnapshotClientKeyClockError {}
 /// Prefix-indexed HMAC Client Key authenticator backed only by the current immutable Snapshot.
 pub struct SnapshotClientKeyAuthenticator {
     source: SnapshotSource,
-    verifier: ClientKeyService,
+    verifier: Arc<ClientKeyService>,
     clock: Arc<dyn SnapshotClientKeyClock>,
 }
 
@@ -1956,7 +1956,7 @@ impl SnapshotClientKeyAuthenticator {
     ) -> Self {
         Self {
             source: SnapshotSource::Registry(registry),
-            verifier,
+            verifier: Arc::new(verifier),
             clock,
         }
     }
@@ -1969,6 +1969,23 @@ impl SnapshotClientKeyAuthenticator {
     ) -> Self {
         Self {
             source: SnapshotSource::Scheduler(scheduler),
+            verifier: Arc::new(verifier),
+            clock: Arc::new(SystemSnapshotClientKeyClock),
+        }
+    }
+
+    /// Shares one immutable HMAC verifier across independently pinned serving generations.
+    #[must_use]
+    pub fn with_shared_verifier(
+        registry: Arc<RouteSnapshotRegistry>,
+        scheduler: Option<Arc<crate::RouteCredentialScheduler>>,
+        verifier: Arc<ClientKeyService>,
+    ) -> Self {
+        Self {
+            source: scheduler.map_or(
+                SnapshotSource::Registry(registry),
+                SnapshotSource::Scheduler,
+            ),
             verifier,
             clock: Arc::new(SystemSnapshotClientKeyClock),
         }
@@ -2069,6 +2086,12 @@ impl PreparedSnapshotPublication<'_> {
     #[must_use]
     pub fn target_version(&self) -> &SnapshotVersion {
         self.next.version()
+    }
+
+    /// Returns the exact immutable target while the publication slot is reserved.
+    #[must_use]
+    pub fn target_snapshot(&self) -> &Arc<RouteSnapshot> {
+        &self.next
     }
 
     /// Stores the already allocated Snapshot and retains the former current value for rollback.

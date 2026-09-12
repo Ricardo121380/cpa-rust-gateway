@@ -2317,3 +2317,27 @@ inventory/runtime readback passed; EgoLite retained the production login page wi
 password. No Provider, DNS/Caddy/Autoreg, configuration publication or data deletion in this release.
 Rollback to `5b92e15` preserves schema 25 and latest data; do not apply the preceding 25→24 migration
 rollback. Production rollback was not executed. Two missing Console emails remain unresolved.
+
+## 2026-09-12 — Codex — complete runtime publication foundation
+
+**What:** `Cargo.lock`, `apps/gateway/Cargo.toml`, `apps/gateway/src/credential_refresh.rs`,
+`apps/gateway/src/deployment.rs`, `apps/gateway/src/runtime.rs`, `apps/gateway/src/runtime/reload.rs`,
+`crates/gateway-control/src/compatible_egress_runtime_compiler.rs`,
+`crates/gateway-control/src/management_service.rs`, `crates/gateway-control/src/snapshot_publisher.rs`,
+`crates/gateway-http-actix/src/lib.rs`, `crates/gateway-http-actix/src/management_lifecycle_resources.rs`,
+`crates/gateway-router/src/route_snapshot.rs`, `crates/gateway-router/src/runtime_quota.rs`,
+`crates/gateway-store/src/control_plane.rs`, `crates/gateway-upstream/src/credential_pool.rs`,
+`crates/gateway-upstream/src/lib.rs`, `crates/provider-grok/src/account_pool.rs` prepare and switch complete
+serving generations. The new execution record and comparison/runtime reports describe source evidence
+and remaining work: `docs/handoffs/prism-cpa-alignment-execution-20260912.md`,
+`docs/reports/prism-cpa-alignment-matrix-20260912.md`, `docs/reports/prism-runtime-publication-20260912.md`.
+
+**Why:** User requested real CPA-style frontend workflows and deployment. Save/apply cannot be exposed
+as an ordinary action while only the route snapshot updates and execution still requires a restart.
+
+**Other side:** FYI under this session's joint implementation authorization. No OpenAPI/schema or
+frontend changes in this commit. The actual frontend simplification and native account mutation sync
+remain in progress in this session. Publication prepares before durable activation, checks all relevant
+revisions, preserves captured requests and shared concurrency, and switches bounded runtime workers.
+Invalid runtime graphs and stale OAuth material fail before activation. Validation and evidence are in
+the runtime report; production remains `7432763`, schema 25. No production/Provider/data cleanup action.

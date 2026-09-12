@@ -5,6 +5,7 @@
 //! runtime view; P2-07 owns publication of that view.
 
 mod configuration_diff;
+use std::collections::BTreeMap;
 mod configuration_edit;
 pub use configuration_edit::{ConfigurationEditOrigin, ConfigurationEditSource};
 mod resource_inventory;
@@ -1857,6 +1858,109 @@ impl SqliteControlPlaneRepository {
         )?;
         transaction.commit()?;
         Ok((activation, audit_event))
+    }
+
+    /// Activates only the exact graph and runtime sources that were prepared by the caller.
+    /// The target revision, previous active identity, optional native inventory clock and audit
+    /// are checked in the same immediate transaction as the lifecycle transition.
+    /// # Errors
+    /// Returns a revision conflict when any source changed during preparation, without activation.
+    pub fn activate_prepared_version(
+        &mut self,
+        version: &ConfigVersionId,
+        expected_revision: i64,
+        expected_active: Option<&ConfigVersionId>,
+        expected_credentials: &[CredentialConfiguration],
+        native_generation: Option<i64>,
+        audit: Option<&ManagementAuditEventDraft>,
+    ) -> StoreResult<(ConfigVersionActivation, Option<ManagementAuditEvent>)> {
+        if audit.is_some_and(|value| {
+            !matches!(
+                value.action(),
+                ManagementAuditAction::Published | ManagementAuditAction::RolledBack
+            )
+        }) {
+            return Err(StoreError::InvalidManagementAuditEvent);
+        }
+        let mut transaction = self.begin_transaction()?;
+        let revision: Option<i64> = transaction
+            .transaction
+            .query_row(
+                "SELECT revision FROM config_versions WHERE id=?1",
+                [version.as_str()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let active: Option<String> = transaction
+            .transaction
+            .query_row(
+                "SELECT id FROM config_versions WHERE status='active'",
+                [],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if revision != Some(expected_revision)
+            || active.as_deref() != expected_active.map(ConfigVersionId::as_str)
+        {
+            return Err(StoreError::ConfigVersionRevisionConflict);
+        }
+        if let Some(expected) = native_generation {
+            let current: i64 = transaction.transaction.query_row(
+                "SELECT generation FROM native_account_inventory_generation WHERE singleton=1",
+                [],
+                |row| row.get(0),
+            )?;
+            if current != expected {
+                return Err(StoreError::ConfigVersionRevisionConflict);
+            }
+        }
+        // Active OAuth rotation has its own revision and deliberately does not edit graph
+        // revision. Detect rotation during preparation, and reject a draft/rollback carrying
+        // older material for an identity still present in the currently serving graph.
+        let revisions = |id: &ConfigVersionId| -> StoreResult<BTreeMap<(String, String), i64>> {
+            let mut query = transaction.transaction.prepare(
+                "SELECT id, upstream_id, revision FROM upstream_credentials WHERE config_version_id=?1")?;
+            let rows = query.query_map([id.as_str()], |row| {
+                Ok(((row.get(0)?, row.get(1)?), row.get(2)?))
+            })?;
+            Ok(rows.collect::<Result<BTreeMap<_, _>, _>>()?)
+        };
+        let expected = expected_credentials
+            .iter()
+            .map(|value| {
+                (
+                    (
+                        value.id.as_str().to_owned(),
+                        value.upstream_id.as_str().to_owned(),
+                    ),
+                    value.revision,
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        if revisions(version)? != expected {
+            return Err(StoreError::ConfigVersionRevisionConflict);
+        }
+        if let Some(active) = expected_active
+            && revisions(active)?.iter().any(|(identity, revision)| {
+                expected
+                    .get(identity)
+                    .is_some_and(|prepared| prepared < revision)
+            })
+        {
+            return Err(StoreError::ConfigVersionRevisionConflict);
+        }
+        let activation = transaction.activate_version(version)?;
+        let event = audit
+            .map(|draft| {
+                transaction.record_management_audit_event(
+                    draft,
+                    activation.activated_version_id().clone(),
+                    activation.replaced_active_version_id().cloned(),
+                )
+            })
+            .transpose()?;
+        transaction.commit()?;
+        Ok((activation, event))
     }
 
     /// Runs one draft-only graph mutation with an exact expected revision.
@@ -4326,6 +4430,128 @@ mod tests {
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
+
+    #[test]
+    fn prepared_activation_rejects_changed_sources_without_a_partial_transition() -> TestResult {
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        let first = draft_configuration(ConfigVersionId::try_new("prepared-first")?, None);
+        let next = draft_configuration(ConfigVersionId::try_new("prepared-next")?, None);
+        repository.write_configuration(&first)?;
+        repository.write_configuration(&next)?;
+        repository.activate_prepared_version(&first.version.id, 0, None, &[], Some(0), None)?;
+        for (revision, active, native) in [
+            (1, Some(&first.version.id), 0),
+            (0, None, 0),
+            (0, Some(&first.version.id), 1),
+        ] {
+            assert!(matches!(
+                repository.activate_prepared_version(
+                    &next.version.id,
+                    revision,
+                    active,
+                    &[],
+                    Some(native),
+                    None
+                ),
+                Err(StoreError::ConfigVersionRevisionConflict)
+            ));
+            assert_eq!(
+                repository
+                    .load_active_configuration()?
+                    .ok_or("active")?
+                    .version
+                    .id,
+                first.version.id
+            );
+        }
+        repository.activate_prepared_version(
+            &next.version.id,
+            0,
+            Some(&first.version.id),
+            &[],
+            Some(0),
+            None,
+        )?;
+        assert_eq!(
+            repository
+                .load_active_configuration()?
+                .ok_or("active")?
+                .version
+                .id,
+            next.version.id
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn prepared_activation_never_restores_rotated_oauth_material() -> TestResult {
+        let key_version = KeyVersion::try_new(1)?;
+        let secrets = SecretStore::new(MasterKeyRing::try_new(
+            key_version,
+            [(key_version, MasterKey::try_from_bytes([7; 32])?)],
+        )?);
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        let build = |name, revision| -> Result<ControlPlaneConfiguration, Box<dyn Error>> {
+            let mut graph = draft_configuration(ConfigVersionId::try_new(name)?, None);
+            graph.upstreams.push(UpstreamConfiguration {
+                id: UpstreamId::try_new("provider")?,
+                name: "Provider".to_owned(),
+                kind: "relay".to_owned(),
+                enabled: true,
+                tags_json: "[]".to_owned(),
+                egress_policy_id: None,
+            });
+            graph.credentials.push(CredentialConfiguration {
+                id: CredentialId::try_new("account")?,
+                upstream_id: UpstreamId::try_new("provider")?,
+                kind: "oauth_json".to_owned(),
+                status: CredentialStatus::Active,
+                revision,
+                encrypted_secret: secrets.seal(b"synthetic-oauth", b"store-only-test")?,
+            });
+            Ok(graph)
+        };
+        let first = build("rotation-active", 2)?;
+        let stale = build("rotation-draft", 1)?;
+        repository.write_configuration(&first)?;
+        repository.write_configuration(&stale)?;
+        repository.activate_version(&first.version.id)?;
+        assert!(matches!(
+            repository.activate_prepared_version(
+                &stale.version.id,
+                0,
+                Some(&first.version.id),
+                &stale.credentials,
+                None,
+                None
+            ),
+            Err(StoreError::ConfigVersionRevisionConflict)
+        ));
+        repository.connection.execute(
+            "UPDATE upstream_credentials SET revision=3 WHERE config_version_id=?1",
+            [first.version.id.as_str()],
+        )?;
+        assert!(matches!(
+            repository.activate_prepared_version(
+                &first.version.id,
+                0,
+                Some(&first.version.id),
+                &first.credentials,
+                None,
+                None
+            ),
+            Err(StoreError::ConfigVersionRevisionConflict)
+        ));
+        assert_eq!(
+            repository
+                .load_active_configuration()?
+                .ok_or("active")?
+                .version
+                .id,
+            first.version.id
+        );
+        Ok(())
+    }
 
     #[test]
     fn resource_audit_pages_keep_version_and_append_boundary() -> TestResult {

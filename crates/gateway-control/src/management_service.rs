@@ -176,6 +176,14 @@ impl ManagementService {
         })
     }
 
+    /// Attaches complete serving-generation preparation to validation, publish and rollback.
+    pub fn set_runtime_preparer(
+        &mut self,
+        preparer: Arc<dyn crate::snapshot_publisher::RuntimePublicationPreparer>,
+    ) {
+        self.publisher.set_runtime_preparer(preparer);
+    }
+
     /// Opens a local `SQLite` database with empty injected Catalog and Endpoint-capability views.
     ///
     /// This is the intentionally narrow CLI bootstrap: it can create, validate, publish, and

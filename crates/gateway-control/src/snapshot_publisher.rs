@@ -32,12 +32,36 @@ use crate::route_compiler::{
 
 const SYNTHETIC_BOOTSTRAP_VERSION: &str = "bootstrap-empty";
 
+/// Prepares the serving generation before a durable configuration transition.
+/// Implementations must not issue Provider requests or expose a partially built generation.
+pub trait RuntimePublicationPreparer: fmt::Debug + Send + Sync {
+    /// Builds an immutable request-time generation from the exact candidate graph.
+    /// # Errors
+    /// Rejects configurations that cannot be assembled by the serving runtime.
+    fn prepare(
+        &self,
+        configuration: &ControlPlaneConfiguration,
+        snapshot: Arc<RouteSnapshot>,
+    ) -> Result<Box<dyn PreparedRuntimePublication>, SnapshotPublicationError>;
+}
+
+/// An already allocated serving generation, invisible until its matching database commit.
+pub trait PreparedRuntimePublication: Send {
+    /// Native account inventory observed while assembling this generation, when applicable.
+    fn native_inventory_generation(&self) -> Option<i64> {
+        None
+    }
+    /// Publishes an already prepared generation without failure, I/O or Provider requests.
+    fn commit(self: Box<Self>);
+}
+
 /// Publishes compiler-approved Config Versions through the runtime Snapshot registry.
 #[derive(Clone, Debug)]
 pub struct SnapshotPublicationService {
     compiler: RouteCompiler,
     registry: Arc<RouteSnapshotRegistry>,
     synthetic_bootstrap_version: Option<SnapshotVersion>,
+    runtime_preparer: Option<Arc<dyn RuntimePublicationPreparer>>,
 }
 
 impl SnapshotPublicationService {
@@ -48,7 +72,13 @@ impl SnapshotPublicationService {
             compiler,
             registry,
             synthetic_bootstrap_version: None,
+            runtime_preparer: None,
         }
+    }
+
+    /// Attaches the deployment's complete serving-generation compiler.
+    pub fn set_runtime_preparer(&mut self, preparer: Arc<dyn RuntimePublicationPreparer>) {
+        self.runtime_preparer = Some(preparer);
     }
 
     /// Returns the shared runtime registry used by this service.
@@ -94,6 +124,7 @@ impl SnapshotPublicationService {
             compiler,
             registry,
             synthetic_bootstrap_version,
+            runtime_preparer: None,
         })
     }
 
@@ -112,7 +143,10 @@ impl SnapshotPublicationService {
         let configuration = repository
             .load_configuration(config_version_id)?
             .ok_or(SnapshotPublicationError::ConfigVersionNotFound)?;
-        let snapshot = compiled_snapshot(&self.compiler, &configuration)?;
+        let snapshot = Arc::new(compiled_snapshot(&self.compiler, &configuration)?);
+        if let Some(preparer) = &self.runtime_preparer {
+            let _prepared = preparer.prepare(&configuration, Arc::clone(&snapshot))?;
+        }
         Ok(SnapshotValidation {
             config_version_id: configuration.version.id,
             snapshot_version: snapshot.version().clone(),
@@ -167,16 +201,36 @@ impl SnapshotPublicationService {
             .load_configuration(config_version_id)?
             .ok_or(SnapshotPublicationError::ConfigVersionNotFound)?;
         let replacement = Arc::new(compiled_snapshot(&self.compiler, &configuration)?);
+        let current = self.registry.load();
+        let active = repository
+            .load_active_configuration()?
+            .map(|value| value.version.id);
+        if active
+            .as_ref()
+            .is_some_and(|value| value.as_str() != current.version().as_str())
+        {
+            return Err(StoreError::ConfigVersionRevisionConflict.into());
+        }
+        let runtime = self
+            .runtime_preparer
+            .as_ref()
+            .map(|preparer| preparer.prepare(&configuration, Arc::clone(&replacement)))
+            .transpose()?;
         let prepared = self.registry.prepare_publication(replacement)?;
-        let (activation, audit_event) = match audit_draft {
-            Some(audit_draft) => {
-                let (activation, audit_event) =
-                    repository.activate_version_with_audit(config_version_id, audit_draft)?;
-                (activation, Some(audit_event))
-            }
-            None => (repository.activate_version(config_version_id)?, None),
-        };
+        let (activation, audit_event) = repository.activate_prepared_version(
+            config_version_id,
+            configuration.version.revision,
+            active.as_ref(),
+            &configuration.credentials,
+            runtime
+                .as_ref()
+                .and_then(|value| value.native_inventory_generation()),
+            audit_draft,
+        )?;
         let transition = prepared.commit();
+        if let Some(runtime) = runtime {
+            runtime.commit();
+        }
 
         Ok(SnapshotPublication {
             activation,
@@ -232,15 +286,33 @@ impl SnapshotPublicationService {
         let target_version =
             ConfigVersionId::try_new(prepared.target_version().as_str().to_owned())
                 .map_err(|_| SnapshotPublicationError::InvalidSnapshotVersion)?;
-        let (activation, audit_event) = match audit_draft {
-            Some(audit_draft) => {
-                let (activation, audit_event) =
-                    repository.activate_version_with_audit(&target_version, audit_draft)?;
-                (activation, Some(audit_event))
-            }
-            None => (repository.activate_version(&target_version)?, None),
-        };
+        let configuration = repository
+            .load_configuration(&target_version)?
+            .ok_or(SnapshotPublicationError::ConfigVersionNotFound)?;
+        let runtime = self
+            .runtime_preparer
+            .as_ref()
+            .map(|preparer| {
+                preparer.prepare(&configuration, Arc::clone(prepared.target_snapshot()))
+            })
+            .transpose()?;
+        let current = self.registry.load();
+        let active = ConfigVersionId::try_new(current.version().as_str().to_owned())
+            .map_err(|_| SnapshotPublicationError::InvalidSnapshotVersion)?;
+        let (activation, audit_event) = repository.activate_prepared_version(
+            &target_version,
+            configuration.version.revision,
+            Some(&active),
+            &configuration.credentials,
+            runtime
+                .as_ref()
+                .and_then(|value| value.native_inventory_generation()),
+            audit_draft,
+        )?;
         let transition = prepared.commit();
+        if let Some(runtime) = runtime {
+            runtime.commit();
+        }
 
         Ok(SnapshotPublication {
             activation,
@@ -303,6 +375,8 @@ impl SnapshotPublication {
 /// Safe failures emitted by Config Version Snapshot publication.
 #[derive(Debug)]
 pub enum SnapshotPublicationError {
+    /// The graph cannot be assembled into a complete serving generation.
+    RuntimePreparation,
     /// The requested Config Version was not stored.
     ConfigVersionNotFound,
     /// P2-06 rejected the complete persisted graph.
@@ -328,6 +402,9 @@ pub enum SnapshotPublicationError {
 impl fmt::Display for SnapshotPublicationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::RuntimePreparation => {
+                formatter.write_str("serving generation preparation failed")
+            }
             Self::ConfigVersionNotFound => {
                 formatter.write_str("requested Config Version was not found")
             }
@@ -362,7 +439,8 @@ impl fmt::Display for SnapshotPublicationError {
 impl Error for SnapshotPublicationError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::ConfigVersionNotFound
+            Self::RuntimePreparation
+            | Self::ConfigVersionNotFound
             | Self::InvalidSnapshotVersion
             | Self::NoPersistedRollbackTarget
             | Self::ClientKeyAccessGroupMissing => None,

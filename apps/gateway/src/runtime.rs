@@ -6,8 +6,9 @@
 //! `api_format` this build binds an adapter for and every Candidate the Canonical transform
 //! (`CR-P12-ROLLOUT-001`).  Each Endpoint is bound to its adapter once, at composition, from the
 //! same Config Version and `RouteSnapshot` the executor pins.  It pins the encrypted Credential
-//! pools to the active Snapshot and fails closed after a management publication until the isolated
-//! process restarts, so a new `RouteSnapshot` can never use an old runtime pool, and a graph
+//! pools to an isolated serving generation. Publication prepares and swaps the entire generation,
+//! while admitted requests retain their original generation. A new `RouteSnapshot` cannot use an
+//! old runtime pool, and a graph
 //! declaring a format this build cannot serve fails admission instead of being silently skipped.
 
 #![deny(unsafe_code)]
@@ -112,11 +113,10 @@ use gateway_router::{
 };
 use gateway_store::{
     control_plane::{
-        CompatibleEgressTargetConfiguration, ConfigVersionId, ConfigVersionStatus,
-        ControlPlaneConfiguration, CredentialScope, CredentialStatus, EndpointConfiguration,
-        EndpointTransport, RoutePolicy, RoutingPriceComparison, SqliteControlPlaneRepository,
-        StoredCompatibleFailureScope, StoredCompatibleStickiness, StoredEgressRedirectMode,
-        TransformMode,
+        CompatibleEgressTargetConfiguration, ConfigVersionId, ControlPlaneConfiguration,
+        CredentialScope, CredentialStatus, EndpointConfiguration, EndpointTransport, RoutePolicy,
+        RoutingPriceComparison, SqliteControlPlaneRepository, StoredCompatibleFailureScope,
+        StoredCompatibleStickiness, StoredEgressRedirectMode, TransformMode,
     },
     event_store::{
         AsyncSqliteEventWriter, EventWriterConfig, EventWriterMetricsHandle, SqliteEventStore,
@@ -491,9 +491,14 @@ fn p13_channel_pin_request_id() -> Result<RequestId, ManagementChannelPinError> 
 }
 
 /// Production pieces that must be attached to the separate P12 listeners together.
+mod reload;
+pub(crate) use reload::RuntimePublicationController;
+
 pub(crate) struct DataPlaneComposition {
     /// Authenticated data-plane state for the loopback data listener.
     pub(crate) data: ResponsesHttpState,
+    /// Coherent live configuration publication shared by both listeners.
+    pub(crate) reload: Arc<RuntimePublicationController>,
     /// Management projection backed by the Snapshot registry, durable event log, and stage ledger.
     pub(crate) management_runtime: Box<dyn ManagementRuntimeFacade>,
     /// Read-only projection over the exact account pools and runtime registries used by routing.
@@ -619,9 +624,8 @@ fn p12_adapter_capabilities(adapter_id: &str) -> Result<CapabilitySet, RuntimeCo
 
 /// Builds the request-time state from exactly the active isolated control-plane configuration.
 ///
-/// An empty Staging database deliberately starts with an authenticated but unsendable data plane.
-/// Once management publishes the temporary graph, systemd must restart this isolated process so a
-/// new encrypted Credential pool and exact Snapshot are built atomically at process bootstrap.
+/// An empty database starts with an unsendable data plane. Management publication prepares the
+/// encrypted Credential pools, authenticator and exact Snapshot before activating the graph.
 #[cfg(test)]
 pub(crate) fn build_data_plane_composition(
     database: &Path,
@@ -684,132 +688,44 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
         Arc::clone(&attempt_stages),
         Arc::clone(&event_queue),
     ));
-    let mut routing_price_snapshot: Option<Arc<RoutingPriceSnapshot>> = None;
-    let (
-        executor,
-        provider_account_pools,
-        route_explain_scheduler,
-        provider_egress_status,
-        channel_pin,
-        credential_refresh_worker,
-        model_catalog_worker,
-    ): ProviderAccountPoolComposition = match repository
-        .load_active_configuration()
-        .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::ControlPlane))?
-    {
-        Some(configuration) => {
-            let observed_at_ms = system_now_ms_runtime()?;
-            if let Some(policy) = configuration.routing_price_policy.as_ref() {
-                let catalog = repository
-                    .load_billing_catalog(&policy.catalog_version_id)
-                    .map_err(|_| {
-                        RuntimeCompositionError::Stage(RuntimeCompositionStage::RoutingPricePolicy)
-                    })?
-                    .ok_or(RuntimeCompositionError::Stage(
-                        RuntimeCompositionStage::RoutingPricePolicy,
-                    ))?;
-                let snapshot = registry.load();
-                let compiled = compile_routing_price_snapshot(
-                    &snapshot,
-                    &configuration.version.id,
-                    policy,
-                    &catalog,
-                    u64::try_from(observed_at_ms).map_err(|_| {
-                        RuntimeCompositionError::Stage(RuntimeCompositionStage::RoutingPricePolicy)
-                    })?,
-                )
-                .map_err(|_| {
-                    RuntimeCompositionError::Stage(RuntimeCompositionStage::RoutingPricePolicy)
-                })?;
-                routing_price_snapshot = Some(Arc::new(compiled));
-            }
-            let (
-                executor,
-                provider_account_pools,
-                route_explain_scheduler,
-                provider_egress_status,
-                credential_refresh_worker,
-                model_catalog_worker,
-            ) = P12RoutedResponsesExecutor::try_new(
-                database,
-                &configuration,
-                secret_store,
-                Arc::clone(&registry),
-                Arc::clone(&attempt_stages),
-                Arc::clone(&event_sink),
-                Arc::clone(&runtime_health),
-                Arc::clone(&runtime_quota),
-                grok_build_cache_identity_deriver,
-                codex_oauth_proxy,
-                web_proxy,
-                flaresolverr_proxy,
-                flaresolverr_port,
-                routing_price_snapshot.as_ref(),
-            )?;
-            let executor = Arc::new(executor);
-            let channel_pin: Box<dyn ManagementChannelPinFacade> =
-                Box::new(P12ChannelPinFacade::new(Arc::clone(&executor)));
-            (
-                executor,
-                provider_account_pools,
-                Some(route_explain_scheduler),
-                provider_egress_status,
-                channel_pin,
-                credential_refresh_worker,
-                model_catalog_worker,
-            )
-        }
-        None => (
-            Arc::new(NoActiveConfigurationExecutor),
-            Box::new(RejectingProviderAccountPoolFacade::new()),
-            None,
-            Box::new(RejectingProviderEgressStatusFacade::new()),
-            Box::new(RejectingManagementChannelPinFacade::new()),
-            None,
-            None,
-        ),
-    };
-    let authenticator = Arc::new(match route_explain_scheduler.as_ref() {
-        Some(scheduler) => gateway_router::SnapshotClientKeyAuthenticator::new_with_scheduler(
-            Arc::clone(scheduler),
-            client_key_service,
-        ),
-        None => gateway_router::SnapshotClientKeyAuthenticator::new(
-            Arc::clone(&registry),
-            client_key_service,
-        ),
-    });
     let stored_responses = Arc::new(
         SqliteStoredResponseStore::open(database, secret_store.clone())
             .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::StoredResponse))?,
     );
-    let data = ResponsesHttpState::with_snapshot_metadata_and_event_sink(
-        executor,
-        Arc::new(SystemResponsesMetadataFactory::new()),
-        authenticator,
+    let factory = reload::RuntimeFactory {
+        database: database.to_path_buf(),
+        secret_store: secret_store.clone(),
+        client_keys: Arc::new(client_key_service),
+        cache_identity: grok_build_cache_identity_deriver,
+        codex_proxy: codex_oauth_proxy,
+        web_proxy,
+        flaresolverr_proxy,
+        flaresolverr_port,
+        attempt_stages,
+        runtime_health,
+        runtime_quota,
         event_sink,
-        default_stream_capacity().map_err(|_| {
-            RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime)
-        })?,
-    )
-    .with_stored_response_store(stored_responses);
-    let event_store = SqliteEventStore::open(database)
-        .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EventStore))?;
-    let catalog_store = SqliteCatalogSnapshotStore::open(database)
-        .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::Snapshot))?;
-
+        stored_responses,
+        concurrency: gateway_upstream::CredentialConcurrencyRegistry::default(),
+        publication_gate: Arc::new(tokio::sync::Mutex::new(())),
+        lifecycle_registry: registry,
+    };
+    let configuration = repository
+        .load_active_configuration()
+        .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::ControlPlane))?;
+    let (
+        reload,
+        data,
+        management_runtime,
+        provider_account_pools,
+        provider_egress_status,
+        channel_pin,
+        credential_refresh_worker,
+        model_catalog_worker,
+    ) = reload::RuntimePublicationController::bootstrap(factory, configuration.as_ref())?;
     Ok(DataPlaneComposition {
         data,
-        management_runtime: Box::new(SnapshotManagementRuntimeFacade {
-            registry,
-            attempt_stages,
-            runtime_health,
-            runtime_quota,
-            route_explain_scheduler,
-            routing_price_snapshot,
-            event_store,
-            catalog_store,
-        }),
+        management_runtime,
         provider_account_pools,
         provider_egress_status,
         channel_pin,
@@ -820,6 +736,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
         event_writer,
         credential_refresh_worker,
         model_catalog_worker,
+        reload,
     })
 }
 
@@ -860,7 +777,6 @@ pub(crate) enum RuntimeCompositionError {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum RuntimeCompositionStage {
     ControlPlane,
-    RequiredResources,
     NetworkShape,
     CredentialBindings,
     RouteAccess,
@@ -880,7 +796,6 @@ impl RuntimeCompositionStage {
     const fn label(self) -> &'static str {
         match self {
             Self::ControlPlane => "control_plane",
-            Self::RequiredResources => "required_resources",
             Self::NetworkShape => "network_shape",
             Self::CredentialBindings => "credential_bindings",
             Self::RouteAccess => "route_access",
@@ -1175,6 +1090,7 @@ impl P12RoutedResponsesExecutor {
         flaresolverr_proxy: Option<UpstreamProxy>,
         flaresolverr_port: u16,
         routing_price_snapshot: Option<&Arc<RoutingPriceSnapshot>>,
+        concurrency: &gateway_upstream::CredentialConcurrencyRegistry,
     ) -> Result<P12ExecutorComposition, RuntimeCompositionError> {
         // Keep the value-free stage detail for the native Grok diagnostic boundary, while
         // retaining the historical generic failure for ordinary graphs.  Existing callers use
@@ -1188,8 +1104,6 @@ impl P12RoutedResponsesExecutor {
                 RuntimeCompositionError::Unavailable
             }
         };
-        validate_p12_required_resources(configuration)
-            .map_err(|_| stage_error(RuntimeCompositionStage::RequiredResources))?;
         validate_p12_network_shape(configuration)
             .map_err(|_| stage_error(RuntimeCompositionStage::NetworkShape))?;
         validate_p12_credential_bindings(configuration)
@@ -1264,17 +1178,6 @@ impl P12RoutedResponsesExecutor {
                 )?);
                 Ok(ordinary)
             });
-            for endpoint_id in native_endpoint_providers.keys() {
-                if native_compilation
-                    .credential_pools()
-                    .pool(endpoint_id)
-                    .is_none()
-                {
-                    return Err(RuntimeCompositionError::Stage(
-                        RuntimeCompositionStage::NativeAccountPool,
-                    ));
-                }
-            }
             native_compilation
                 .seed_runtime_health(&runtime_health)
                 .map_err(|_| {
@@ -1291,7 +1194,9 @@ impl P12RoutedResponsesExecutor {
                     RuntimeCompositionError::Stage(RuntimeCompositionStage::CredentialPool)
                 })?
         };
-        let pools = Arc::new(pools);
+        let pools = Arc::new(pools.with_shared_concurrency(concurrency).map_err(|_| {
+            RuntimeCompositionError::Stage(RuntimeCompositionStage::CredentialPool)
+        })?);
         let build_endpoints = configuration
             .endpoints
             .iter()
@@ -1360,7 +1265,7 @@ impl P12RoutedResponsesExecutor {
             compatible_transport_registries,
             compatible_binding_settings,
         )
-        .compile()
+        .prepare()
         .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime))?
         .into_iter()
         .map(|(endpoint_id, runtime)| (endpoint_id, Arc::new(runtime)))
@@ -3204,38 +3109,7 @@ fn is_generic_compatible_adapter(adapter_id: &str) -> bool {
     )
 }
 
-/// Narrows this composition to the reviewed production graph shape before a Secret can be
-/// opened or an outbound request can be constructed.
-///
-/// The shape is no longer singleton: any number of upstreams, Endpoints, weighted Credential
-/// bindings, aliases, public models, Routes, Candidates, and Client Keys are admitted.  What
-/// stays fixed is fail-closed conformance: HTTPS-only egress policies, Bearer-only active
-/// Credentials, Endpoints whose `adapter_id` and `api_format` form a pair this build binds an
-/// adapter for, Canonical Candidates, bounded attempt budgets, and a bounded total Credential
-/// concurrency. Structurally invalid rows are still rejected by the compiler. Administratively
-/// inactive records are retained but do not create transports, leases or runtime capacity.
-fn validate_p12_required_resources(
-    configuration: &ControlPlaneConfiguration,
-) -> Result<(), RuntimeCompositionError> {
-    let has_native_grok_endpoint = configuration.endpoints.iter().any(is_native_grok_endpoint);
-    if configuration.version.status != ConfigVersionStatus::Active
-        || configuration.egress_policies.is_empty()
-        || configuration.upstreams.is_empty()
-        || configuration.endpoints.is_empty()
-        || (!has_native_grok_endpoint && configuration.credentials.is_empty())
-        || (!has_native_grok_endpoint && configuration.endpoint_credential_bindings.is_empty())
-        || configuration.public_models.is_empty()
-        || configuration.model_routes.is_empty()
-        || configuration.route_candidates.is_empty()
-        || configuration.access_groups.is_empty()
-        || configuration.access_group_routes.is_empty()
-        || configuration.client_keys.is_empty()
-    {
-        return Err(RuntimeCompositionError::Unavailable);
-    }
-    Ok(())
-}
-
+/// Disabled Endpoints or Upstreams retain configuration but create no serving capacity.
 fn endpoint_administratively_active(
     configuration: &ControlPlaneConfiguration,
     endpoint: &EndpointConfiguration,
@@ -3568,6 +3442,7 @@ struct RuntimeCatalogTarget {
 
 /// Background owner for P13-15C/D durable discovery and atomic route publication.
 pub(crate) struct RuntimeModelCatalogWorker {
+    generation_guard: Option<(Arc<tokio::sync::Mutex<()>>, Arc<AtomicBool>)>,
     config_version_id: String,
     store: Arc<SqliteCatalogSnapshotStore>,
     base_snapshot: Arc<RouteSnapshot>,
@@ -3620,6 +3495,7 @@ impl RuntimeModelCatalogWorker {
         }
         let worker =
             Self {
+                generation_guard: None,
                 config_version_id: configuration.version.id.as_str().to_owned(),
                 store: Arc::new(SqliteCatalogSnapshotStore::open(database).map_err(|_| {
                     RuntimeCompositionError::Stage(RuntimeCompositionStage::Snapshot)
@@ -3672,6 +3548,17 @@ impl RuntimeModelCatalogWorker {
                 })
                 .unwrap_or_default();
             for credential_id in credential_ids {
+                // Yield publication between bounded discovery requests, even for large pools.
+                let _guard = match &self.generation_guard {
+                    Some((gate, active)) => {
+                        let guard = gate.lock().await;
+                        if !active.load(Ordering::Acquire) {
+                            return Ok((attempted, succeeded));
+                        }
+                        Some(guard)
+                    }
+                    None => None,
+                };
                 // Previous network work may have crossed both lease and Catalog deadlines.
                 let observed_at_ms = system_now_ms_runtime()?;
                 let catalog_target =
@@ -9527,6 +9414,7 @@ mod tests {
                 None,
                 8191,
                 None,
+                &gateway_upstream::CredentialConcurrencyRegistry::default(),
             )?;
         let decoded = protocol_openai_responses::decode_request(
             r#"{"model":"primary","input":"must not reach a provider","stream":false}"#,
@@ -13264,11 +13152,150 @@ mod tests {
         }
     }
 
+    #[test]
+    #[allow(clippy::too_many_lines)]
+    fn live_publication_switches_admission_and_retains_captured_http_generation()
+    -> Result<(), Box<dyn Error>> {
+        use actix_web::{App, http::StatusCode, test, web};
+        use gateway_auth::client_key::{ClientKeyPepper, ClientKeyService};
+        use gateway_http_actix::ResponsesStateSource;
+        let directory = TemporaryDirectory::new()?;
+        let database = directory.path().join("live-publication.sqlite3");
+        let secrets = test_secret_store()?;
+        let mut repository = SqliteControlPlaneRepository::open(&database)?;
+        let mut lifecycle = ManagementService::bootstrap(
+            SqliteControlPlaneRepository::open(&database)?,
+            super::deployment_route_compiler(&database)?,
+            ManagementActor::try_new("runtime-publication-test")?,
+        )?;
+        let composition = super::build_data_plane_composition(
+            &database,
+            &secrets,
+            Arc::clone(lifecycle.registry()),
+            ClientKeyService::new(ClientKeyPepper::try_from_bytes([0x71; 32])?),
+        )?;
+        lifecycle.set_runtime_preparer(composition.reload.clone());
+        let empty = ControlPlaneConfiguration::new(ConfigVersion {
+            id: ConfigVersionId::try_new("live-empty")?,
+            parent_id: None,
+            status: ConfigVersionStatus::Draft,
+            revision: 0,
+            created_at_ms: 1,
+            description: "Empty installation".to_owned(),
+        });
+        repository.write_configuration(&empty)?;
+        lifecycle.publish_configuration(&empty.version.id)?;
+        let issuer = ClientKeyService::new(ClientKeyPepper::try_from_bytes([0x71; 32])?);
+        let mut first = p12_configuration_for(&secrets, "live-first")?;
+        let mut second = p12_configuration_for(&secrets, "live-second")?;
+        let mut invalid = p12_configuration_for(&secrets, "live-invalid")?;
+        let (key, presented) = issuer
+            .issue(
+                ClientKeyId::try_new("live-client")?,
+                first.access_groups[0].id.clone(),
+                None,
+            )?
+            .into_parts();
+        for (graph, status) in [
+            (&mut first, StoredClientKeyStatus::Active),
+            (&mut second, StoredClientKeyStatus::Revoked),
+            (&mut invalid, StoredClientKeyStatus::Active),
+        ] {
+            graph.client_keys = vec![StoredClientKey::try_new(
+                key.client_key_id().clone(),
+                key.access_group_id().clone(),
+                key.prefix().as_str(),
+                key.secret_digest().as_bytes(),
+                status,
+                None,
+            )?];
+        }
+        invalid.endpoints[0].api_format = "anthropic/messages".to_owned();
+        for graph in [&first, &second, &invalid] {
+            repository.write_configuration(graph)?;
+        }
+        lifecycle.publish_configuration(&first.version.id)?;
+        let source: Arc<dyn ResponsesStateSource> = composition.reload.clone();
+        let captured = source.capture();
+        actix_web::rt::System::new().block_on(async move {
+            let current = test::init_service(
+                App::new()
+                    .app_data(web::Data::from(source))
+                    .configure(gateway_http_actix::configure),
+            )
+            .await;
+            let held = test::init_service(
+                App::new()
+                    .app_data(web::Data::from(captured))
+                    .configure(gateway_http_actix::configure),
+            )
+            .await;
+            let request = || {
+                test::TestRequest::get()
+                    .uri("/v1/models")
+                    .insert_header(("authorization", format!("Bearer {}", presented.as_str())))
+                    .to_request()
+            };
+            assert_eq!(
+                test::call_service(&current, request()).await.status(),
+                StatusCode::OK
+            );
+            let second_id = second.version.id;
+            let (mut lifecycle, outcome) = web::block(move || {
+                let result = lifecycle.publish_configuration(&second_id);
+                (lifecycle, result)
+            })
+            .await?;
+            outcome?;
+            assert_eq!(
+                test::call_service(&current, request()).await.status(),
+                StatusCode::UNAUTHORIZED
+            );
+            assert_eq!(
+                test::call_service(&held, request()).await.status(),
+                StatusCode::OK
+            );
+            let invalid_id = invalid.version.id;
+            let (mut lifecycle, rejected) = web::block(move || {
+                let result = lifecycle.publish_configuration(&invalid_id);
+                (lifecycle, result)
+            })
+            .await?;
+            assert!(rejected.is_err());
+            assert_eq!(
+                lifecycle.registry().load().version().as_str(),
+                "live-second"
+            );
+            assert_eq!(
+                test::call_service(&current, request()).await.status(),
+                StatusCode::UNAUTHORIZED
+            );
+            assert_eq!(
+                test::call_service(&held, request()).await.status(),
+                StatusCode::OK
+            );
+            web::block(move || lifecycle.rollback_configuration()).await??;
+            assert_eq!(
+                test::call_service(&current, request()).await.status(),
+                StatusCode::OK
+            );
+            Ok::<(), Box<dyn Error>>(())
+        })?;
+        Ok(())
+    }
+
     fn p12_configuration(
         secret_store: &SecretStore,
     ) -> Result<ControlPlaneConfiguration, Box<dyn Error>> {
+        p12_configuration_for(secret_store, "p12-runtime-config")
+    }
+
+    fn p12_configuration_for(
+        secret_store: &SecretStore,
+        id: &str,
+    ) -> Result<ControlPlaneConfiguration, Box<dyn Error>> {
         let version = ConfigVersion {
-            id: ConfigVersionId::try_new("p12-runtime-config")?,
+            id: ConfigVersionId::try_new(id)?,
             parent_id: None,
             status: ConfigVersionStatus::Draft,
             revision: 0,
