@@ -32,6 +32,97 @@ use std::{
 };
 
 type TestResult = Result<(), Box<dyn Error>>;
+
+#[actix_web::test]
+async fn deleting_provider_clears_only_its_current_catalog_targets() -> TestResult {
+    let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    for (owner, account) in [("owner-a", "account-000"), ("owner-b", "account-001")] {
+        db.execute(
+            "INSERT INTO model_catalog_targets VALUES (?1,?2,?3,1,1000,2000,3000,4000)",
+            (VERSION, format!("endpoint-{owner}"), account),
+        )?;
+        db.execute(
+            "INSERT INTO model_catalog_models VALUES (?1,?2,?3,'known-model',1,0,NULL,NULL)",
+            (VERSION, format!("endpoint-{owner}"), account),
+        )?;
+    }
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::delete().uri("/admin/upstreams/owner-a"))
+            .insert_header(("If-Match", "rev-0"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+    let remaining: String =
+        db.query_row("SELECT endpoint_id FROM model_catalog_targets", [], |row| {
+            row.get(0)
+        })?;
+    assert_eq!(remaining, "endpoint-owner-b");
+    assert_eq!(
+        db.query_row("SELECT COUNT(*) FROM model_catalog_models", [], |row| row
+            .get::<_, i64>(
+            0
+        ))?,
+        1
+    );
+    Ok(())
+}
+
+#[actix_web::test]
+async fn system_information_is_authenticated_and_contains_only_explicit_build_fields() -> TestResult
+{
+    use gateway_http_actix::management_resources::ManagementSystemInformation;
+    let (_file, state) = fixture(false)?;
+    let state = state.with_system_information(ManagementSystemInformation {
+        version: "0.1.0",
+        build_revision: "development",
+        build_target: "development",
+        rust_version: "development",
+        schema_version: gateway_store::CURRENT_SCHEMA_VERSION,
+    });
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let response = test::call_service(
+        &app,
+        test::TestRequest::get().uri("/admin/system").to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/system")).to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = test::read_body_json(response).await;
+    assert_eq!(body["configuration_application"], "live");
+    assert_eq!(
+        body["build"]["schema_version"],
+        gateway_store::CURRENT_SCHEMA_VERSION
+    );
+    assert_eq!(body["build"].as_object().ok_or("build")?.len(), 5);
+    assert!(body["uptime_seconds"].is_u64());
+    assert!(
+        body["accepting_requests"].is_null(),
+        "a facade without a runtime observer must not claim readiness"
+    );
+    assert!(!body.to_string().contains("inventory-secret"));
+    Ok(())
+}
 struct SessionIdentityFixture(std::sync::Arc<std::sync::atomic::AtomicUsize>);
 struct RefusedSessionIdentity;
 impl provider_grok::GrokSessionIdentityTransport for RefusedSessionIdentity {
@@ -69,8 +160,13 @@ impl provider_grok::GrokSessionIdentityTransport for SessionIdentityFixture {
     > {
         assert!(request.cookie().contains("synthetic-"));
         self.0.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        Box::pin(async {
-            provider_grok::parse_grok_session_identity(br#"{"status":"authenticated","session":{"userId":"fixture-subject","email":"sso.member@example.test"}}"#)
+        let different = request.cookie().contains("another-user");
+        Box::pin(async move {
+            provider_grok::parse_grok_session_identity(if different {
+                br#"{"status":"authenticated","session":{"email":"different@example.test"}}"#
+            } else {
+                br#"{"status":"authenticated","session":{"userId":"fixture-subject","email":"sso.member@example.test"}}"#
+            })
         })
     }
 }
@@ -181,6 +277,140 @@ fn authorized(request: test::TestRequest) -> test::TestRequest {
         .peer_addr(SocketAddr::from(([127, 0, 0, 1], 41001)))
         .insert_header((MANAGEMENT_KEY_HEADER, KEY))
         .insert_header(("X-Config-Version", VERSION))
+}
+
+struct RuntimeApplyFixture(std::sync::Arc<std::sync::atomic::AtomicBool>);
+impl gateway_http_actix::management_resources::native_accounts::NativeAccountRuntime
+    for RuntimeApplyFixture
+{
+    fn apply(&self, _: Option<&str>) -> bool {
+        self.0.load(std::sync::atomic::Ordering::Acquire)
+    }
+}
+
+#[actix_web::test]
+#[allow(clippy::too_many_lines)]
+async fn native_account_http_actions_are_guarded_audited_and_report_saved_vs_applied() -> TestResult
+{
+    let (file, resources) = fixture(false)?;
+    let version = KeyVersion::try_new(1)?;
+    let secrets = SecretStore::new(MasterKeyRing::try_new(
+        version,
+        [(version, MasterKey::try_from_bytes([0x51; 32])?)],
+    )?);
+    let ready = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let native =
+        gateway_http_actix::management_resources::native_accounts::NativeAccountManagement::new(
+            std::sync::Arc::new(provider_grok::GrokAccountPoolStore::try_open(
+                &file.0, secrets,
+            )?),
+        )?
+        .with_identity_transport(std::sync::Arc::new(SessionIdentityFixture(
+            std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+        )))
+        .with_runtime(std::sync::Arc::new(RuntimeApplyFixture(ready.clone())));
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(resources.with_native_accounts(native)))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let imported=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/native-accounts/import"))
+        .set_json(serde_json::json!({"id":"account-actions","channel":"grok.console","secret":"synthetic-session"})).to_request()).await;
+    assert_eq!(imported.status(), StatusCode::CREATED);
+    let receipt: Value = test::read_body_json(imported).await;
+    assert_eq!(receipt["runtime_applied"], false);
+    let rows: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri("/admin/native-accounts")).to_request(),
+        )
+        .await,
+    )
+    .await;
+    let id = rows["items"][0]["id"].as_str().ok_or("account")?;
+    let path = format!("/admin/native-accounts/{id}");
+    let denied = test::call_service(
+        &app,
+        test::TestRequest::patch()
+            .uri(&path)
+            .set_json(serde_json::json!({"revision":0,"enabled":false}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(denied.status(), StatusCode::NOT_FOUND);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::patch().uri(&path))
+            .set_json(serde_json::json!({"revision":0,"enabled":false}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let changed: Value = test::read_body_json(response).await;
+    assert_eq!(changed["revision"], 1);
+    assert_eq!(changed["runtime_applied"], false);
+    let stale = test::call_service(
+        &app,
+        authorized(test::TestRequest::delete().uri(&format!("{path}?revision=0"))).to_request(),
+    )
+    .await;
+    assert_eq!(stale.status(), StatusCode::CONFLICT);
+    ready.store(true, std::sync::atomic::Ordering::Release);
+    let applied: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::post().uri("/admin/operations/runtime/apply"))
+                .to_request(),
+        )
+        .await,
+    )
+    .await;
+    assert_eq!(applied["runtime_applied"], true);
+    let mismatch = test::call_service(
+        &app,
+        authorized(test::TestRequest::put().uri(&format!("{path}/credential")))
+            .set_json(serde_json::json!({"revision":1,"secret":"synthetic-another-user"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(mismatch.status(), StatusCode::CONFLICT);
+    let update = test::call_service(
+        &app,
+        authorized(test::TestRequest::put().uri(&format!("{path}/credential")))
+            .set_json(serde_json::json!({"revision":1,"secret":"synthetic-updated-session"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(update.status(), StatusCode::OK);
+    let updated: Value = test::read_body_json(update).await;
+    assert_eq!(updated["revision"], 2);
+    assert_eq!(updated["runtime_applied"], true);
+    let remove = test::call_service(
+        &app,
+        authorized(test::TestRequest::delete().uri(&format!("{path}?revision=2"))).to_request(),
+    )
+    .await;
+    assert_eq!(remove.status(), StatusCode::OK);
+    let audit: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri(&format!("{path}/audit"))).to_request(),
+        )
+        .await,
+    )
+    .await;
+    assert_eq!(audit.as_array().ok_or("audit")?.len(), 3);
+    assert_eq!(audit[0]["action"], "removed");
+    assert!(!audit.to_string().contains("synthetic-session"));
+    let missing = test::call_service(
+        &app,
+        authorized(test::TestRequest::delete().uri(&format!("{path}?revision=3"))).to_request(),
+    )
+    .await;
+    assert_eq!(missing.status(), StatusCode::NOT_FOUND);
+    Ok(())
 }
 
 #[actix_web::test]
@@ -328,7 +558,10 @@ async fn inventory_cursor_rejects_filter_changes_and_same_revision_audit_changes
 
 #[actix_web::test]
 async fn active_fork_returns_a_complete_draft_without_secret_material() -> TestResult {
-    let (_file, state) = fixture(true)?;
+    let (file, state) = fixture(true)?;
+    let db = gateway_store::open(&file.0)?;
+    db.execute("INSERT INTO model_catalog_targets VALUES (?1,'endpoint-owner-a','account-000',7,1000,2000,3000,4000)",[VERSION])?;
+    db.execute("INSERT INTO model_catalog_models VALUES (?1,'endpoint-owner-a','account-000','known-model',1,0,NULL,NULL)",[VERSION])?;
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(security()?))
@@ -367,6 +600,55 @@ async fn active_fork_returns_a_complete_draft_without_secret_material() -> TestR
     let copied: Value = serde_json::from_slice(&body)?;
     assert_eq!(copied["items"].as_array().ok_or("items")?.len(), 100);
     assert!(copied["next_cursor"].is_string());
+    let copied_deadline: i64 = db.query_row(
+        "SELECT expires_at_ms FROM model_catalog_targets WHERE config_version_id='editable-copy'",
+        [],
+        |row| row.get(0),
+    )?;
+    assert_eq!(
+        copied_deadline, 4000,
+        "forking must not renew expired evidence"
+    );
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::patch().uri("/admin/credentials/account-000/status"))
+            .insert_header(("X-Config-Version", "editable-copy"))
+            .insert_header(("If-Match", "rev-0"))
+            .set_json(serde_json::json!({"status":"disabled","credential_revision":0}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM model_catalog_targets WHERE config_version_id='editable-copy'",
+            [],
+            |row| row.get::<_, i64>(0)
+        )?,
+        1
+    );
+    let response=test::call_service(&app,authorized(test::TestRequest::patch().uri("/admin/credentials/account-000"))
+        .insert_header(("X-Config-Version","editable-copy")).insert_header(("If-Match","rev-1"))
+        .set_json(serde_json::json!({"id":"account-000","kind":"bearer","status":"disabled","secret":"replacement-synthetic-key"})).to_request()).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM model_catalog_targets WHERE config_version_id='editable-copy'",
+            [],
+            |row| row.get::<_, i64>(0)
+        )?,
+        0,
+        "new authorization cannot retain old identity evidence"
+    );
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM model_catalog_targets WHERE config_version_id=?1",
+            [VERSION],
+            |row| row.get::<_, i64>(0)
+        )?,
+        1,
+        "original observation remains intact"
+    );
     let stale = test::call_service(
         &app,
         authorized(
@@ -520,7 +802,7 @@ async fn channel_import_is_scoped_validated_and_visible_before_binding() -> Test
     .await;
     assert_eq!(response.status(), StatusCode::OK);
     let channels: Value = test::read_body_json(response).await;
-    assert_eq!(channels.as_array().ok_or("channels")?.len(), 9);
+    assert_eq!(channels.as_array().ok_or("channels")?.len(), 10);
     let response = test::call_service(&app, authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/account-import"))
         .insert_header(("If-Match", "rev-0"))
         .set_json(serde_json::json!({"id":"imported-codex", "channel":"codex", "secret":r#"{"kind":"codex_oauth","access_token":"synthetic-import-access","refresh_token":"synthetic-import-refresh","expires_at_ms":4102444800000,"account_id":"synthetic-account"}"#})).to_request()).await;
@@ -547,6 +829,69 @@ async fn channel_import_is_scoped_validated_and_visible_before_binding() -> Test
             .set_json(serde_json::json!({"id":"must-not-exist", "channel":channel, "secret":material})).to_request()).await;
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
+    Ok(())
+}
+
+#[actix_web::test]
+async fn repeated_channel_import_retains_disabled_account_and_connections() -> TestResult {
+    let (_file, state) = fixture(false)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let material = "synthetic-kimi-api-key";
+    for (id, revision, expected) in [
+        ("first-kimi", 0, StatusCode::CREATED),
+        ("second-label", 3, StatusCode::OK),
+    ] {
+        let response = test::call_service(
+            &app,
+            authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/account-import"))
+                .insert_header(("If-Match", format!("rev-{revision}")))
+                .set_json(serde_json::json!({"id":id,"channel":"kimi","secret":material}))
+                .to_request(),
+        )
+        .await;
+        assert_eq!(response.status(), expected);
+        let body: Value = test::read_body_json(response).await;
+        assert_eq!(body["id"], "first-kimi");
+        assert!(body.get("secret").is_none());
+        if revision == 0 {
+            let response = test::call_service(
+                &app,
+                authorized(test::TestRequest::patch().uri("/admin/credentials/first-kimi/status"))
+                    .insert_header(("If-Match", "rev-1"))
+                    .set_json(serde_json::json!({"status":"disabled","credential_revision":0}))
+                    .to_request(),
+            )
+            .await;
+            assert_eq!(response.status(), StatusCode::OK);
+            let response = test::call_service(&app, authorized(test::TestRequest::post().uri("/admin/endpoints/endpoint-owner-a/credential-bindings"))
+                .insert_header(("If-Match","rev-2"))
+                .set_json(serde_json::json!({"credential_id":"first-kimi","enabled":true,"priority":2,"weight":3,"concurrency":4})).to_request()).await;
+            assert_eq!(response.status(), StatusCode::CREATED);
+        } else {
+            assert_eq!(body["status"], "disabled");
+            assert_eq!(body["revision"], 1);
+        }
+    }
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/credentials?q=first-kimi")).to_request(),
+    )
+    .await;
+    let body: Value = test::read_body_json(response).await;
+    assert_eq!(body["items"][0]["binding_count"], 1);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/credentials?q=second-label")).to_request(),
+    )
+    .await;
+    let body: Value = test::read_body_json(response).await;
+    assert!(body["items"].as_array().ok_or("items")?.is_empty());
     Ok(())
 }
 

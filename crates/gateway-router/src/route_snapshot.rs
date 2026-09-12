@@ -898,6 +898,20 @@ impl RouteSnapshot {
         })
     }
 
+    /// Replaces control-plane binding hints with counts from the actual compiled runtime pools.
+    /// In particular, a native provider channel with no enrolled accounts has zero capacity.
+    #[must_use]
+    pub fn materialize_binding_counts(&self, counts: &BTreeMap<EndpointId, usize>) -> Self {
+        let mut snapshot = self.clone();
+        for route in snapshot.routes.values_mut() {
+            for candidate in &mut route.candidates {
+                candidate.active_binding_count =
+                    counts.get(&candidate.endpoint_id).copied().unwrap_or(0);
+            }
+        }
+        snapshot
+    }
+
     /// Materializes exact discovered models into a new immutable Snapshot.
     ///
     /// Existing Routes remain the capability and permission templates. A model is bound only to

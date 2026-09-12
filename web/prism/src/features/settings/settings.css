@@ -75,3 +75,13 @@
     margin-bottom: 10px;
   }
 }
+
+.system-information .page-head { align-items:center; }
+.system-information .page-head h3 { margin:0; }
+.system-facts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:20px; margin:20px 0; }
+.system-facts dt { color:var(--ink-2); font-size:13px; }
+.system-facts dd { margin:8px 0 0; color:var(--ink); font-size:16px; overflow-wrap:anywhere; }
+.system-links { display:flex; flex-wrap:wrap; gap:16px; margin-top:16px; }
+.system-links a { color:var(--tint); text-decoration:none; }
+.system-links a:hover { text-decoration:underline; }
+@media (max-width:900px) { .system-facts { grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px 12px; } }

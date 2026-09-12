@@ -1021,6 +1021,68 @@ impl ManagementMutationService {
         ))
     }
 
+    /// Imports a normalized credential without duplicating identical material within an Upstream.
+    /// Matching imports keep account status, connections and secret revision; the graph CAS and
+    /// audit still acknowledge the operator action. A different credential is never overwritten.
+    /// # Errors
+    /// Returns the ordinary draft, revision, encryption and audit failures.
+    pub fn import_credential(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        upstream_id: UpstreamId,
+        input: CredentialUpsert<'_>,
+    ) -> Result<(Revisioned<CredentialView>, bool), ManagementResourceError> {
+        let configuration = self.configuration(config_version_id)?;
+        if configuration.version.status != ConfigVersionStatus::Draft {
+            return Err(StoreError::ControlPlaneMutationRequiresDraft.into());
+        }
+        if configuration.version.revision != expected_revision.as_i64() {
+            return Err(StoreError::ConfigVersionRevisionConflict.into());
+        }
+        for credential in configuration
+            .credentials
+            .into_iter()
+            .filter(|row| row.upstream_id == upstream_id && row.kind == input.kind)
+        {
+            let aad = credential_associated_data(config_version_id, &credential.id, &upstream_id)?;
+            let material = self.secret_store.open(&credential.encrypted_secret, &aad)?;
+            if material.as_bytes() != input.plaintext_secret {
+                continue;
+            }
+            let audit = self.audit(
+                "credential_import_matched",
+                actor,
+                config_version_id,
+                "credential",
+                credential.id.as_str(),
+            )?;
+            let ((), revision) = self.repository.mutate_draft_configuration(
+                config_version_id,
+                expected_revision.as_i64(),
+                |transaction| {
+                    transaction.record_management_resource_audit_event(&audit, config_version_id)
+                },
+            )?;
+            return Ok((
+                Revisioned::new(
+                    CredentialView::from(credential),
+                    ConfigRevision::try_new(revision)?,
+                ),
+                false,
+            ));
+        }
+        self.create_credential(
+            actor,
+            config_version_id,
+            expected_revision,
+            upstream_id,
+            input,
+        )
+        .map(|value| (value, true))
+    }
+
     /// Returns safe metadata for one persisted Credential and the current Version revision.
     ///
     /// # Errors

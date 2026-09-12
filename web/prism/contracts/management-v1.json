@@ -205,6 +205,9 @@
                         "unavailable"
                       ],
                       "description": "SSO imports attempt identity lookup after saving; failure does not discard a valid imported credential."
+                    },
+                    "runtime_applied": {
+                      "type": "boolean"
                     }
                   }
                 }
@@ -329,6 +332,12 @@
                         "not_provided",
                         "unavailable"
                       ]
+                    },
+                    "runtime_applied": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
                     }
                   }
                 }
@@ -425,6 +434,12 @@
                         "not_provided",
                         "unavailable"
                       ]
+                    },
+                    "runtime_applied": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
                     }
                   }
                 }
@@ -520,6 +535,12 @@
                         "observed",
                         "not_provided",
                         "unavailable"
+                      ]
+                    },
+                    "runtime_applied": {
+                      "type": [
+                        "boolean",
+                        "null"
                       ]
                     }
                   }
@@ -643,7 +664,8 @@
                       "codex",
                       "claude",
                       "grok.official",
-                      "kiro"
+                      "kiro",
+                      "kimi"
                     ]
                   },
                   "secret": {
@@ -663,8 +685,13 @@
           },
           "default": {
             "$ref": "#/components/responses/Error"
+          },
+          "200": {
+            "$ref": "#/components/responses/Credential",
+            "description": "Identical existing credential retained; status and bindings unchanged, graph revision and import audit advanced."
           }
-        }
+        },
+        "description": " Identical normalized material in the same Upstream returns the existing account instead of duplicating it."
       }
     },
     "/admin/credentials/{credential_id}/status": {
@@ -1330,6 +1357,319 @@
           }
         }
       }
+    },
+    "/admin/native-accounts/{account_id}": {
+      "patch": {
+        "operationId": "updateNativeAccount",
+        "tags": [
+          "upstreams"
+        ],
+        "description": "Administrative enable/disable under exact account revision CAS. The durable receipt distinguishes saved changes from runtime application.",
+        "responses": {
+          "200": {
+            "description": "Management operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NativeAccountMutationReceipt"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "revision",
+                  "enabled"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "format": "int64",
+                    "minimum": 0
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteNativeAccount",
+        "tags": [
+          "upstreams"
+        ],
+        "description": "Remove one exact authorization, retaining request, billing and independent maintenance history. No automatic cascade to unrelated accounts.",
+        "responses": {
+          "200": {
+            "description": "Management operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NativeAccountMutationReceipt"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "revision",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          }
+        ]
+      }
+    },
+    "/admin/native-accounts/{account_id}/credential": {
+      "put": {
+        "operationId": "replaceNativeAccountCredential",
+        "tags": [
+          "upstreams"
+        ],
+        "description": "Replace Web or Console SSO only. Collect identity at submission; reject a different observed account, apply exact revision CAS and never return material.",
+        "responses": {
+          "200": {
+            "description": "Management operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NativeAccountMutationReceipt"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "revision",
+                  "secret"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "format": "int64",
+                    "minimum": 0
+                  },
+                  "secret": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "writeOnly": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/native-accounts/{account_id}/audit": {
+      "get": {
+        "operationId": "listNativeAccountAudit",
+        "tags": [
+          "upstreams"
+        ],
+        "description": "Last 100 append-only account maintenance records, including removed accounts.",
+        "responses": {
+          "200": {
+            "description": "Management operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "maxItems": 100,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "provider",
+                      "action",
+                      "revision",
+                      "actor",
+                      "occurred_at_ms"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "format": "int64",
+                        "minimum": 0
+                      },
+                      "provider": {
+                        "type": "string",
+                        "enum": [
+                          "web",
+                          "console",
+                          "build"
+                        ]
+                      },
+                      "action": {
+                        "type": "string",
+                        "enum": [
+                          "enabled",
+                          "disabled",
+                          "credential_updated",
+                          "removed"
+                        ]
+                      },
+                      "revision": {
+                        "type": "integer",
+                        "format": "int64",
+                        "minimum": 0
+                      },
+                      "actor": {
+                        "type": "string",
+                        "maxLength": 128
+                      },
+                      "occurred_at_ms": {
+                        "type": "integer",
+                        "format": "int64",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ]
+      }
+    },
+    "/admin/operations/runtime/apply": {
+      "post": {
+        "operationId": "applyRuntimeConfiguration",
+        "tags": [
+          "upstreams"
+        ],
+        "description": "Reconcile already persisted active configuration and native accounts. Does not publish a draft or invoke Provider transports during compilation. Configured background workers keep their existing policies. Failed reconciliation pauses new inference admission while keeping management and in-flight requests available.",
+        "responses": {
+          "200": {
+            "description": "Management operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "runtime_applied"
+                  ],
+                  "properties": {
+                    "runtime_applied": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/system": {
+      "get": {
+        "tags": [
+          "operations"
+        ],
+        "operationId": "getSystemInformation",
+        "description": "Safe metadata of the running binary and elapsed service uptime. No environment values, paths, credentials or provider requests. Unavailable without deployment attachment.",
+        "responses": {
+          "200": {
+            "description": "Running service information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemInformation"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1671,6 +2011,107 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "NativeAccountMutationReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "account_id",
+          "revision",
+          "removed",
+          "runtime_applied"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "removed": {
+            "type": "boolean"
+          },
+          "runtime_applied": {
+            "type": "boolean"
+          },
+          "identity_state": {
+            "type": "string",
+            "enum": [
+              "observed",
+              "unavailable"
+            ]
+          }
+        }
+      },
+      "SystemInformation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "build",
+          "uptime_seconds",
+          "configuration_application",
+          "accepting_requests"
+        ],
+        "properties": {
+          "build": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "version",
+              "build_revision",
+              "build_target",
+              "rust_version",
+              "schema_version"
+            ],
+            "properties": {
+              "version": {
+                "type": "string",
+                "maxLength": 256
+              },
+              "build_revision": {
+                "type": "string",
+                "maxLength": 256
+              },
+              "build_target": {
+                "type": "string",
+                "maxLength": 256
+              },
+              "rust_version": {
+                "type": "string",
+                "maxLength": 256
+              },
+              "schema_version": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "uptime_seconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "configuration_application": {
+            "type": "string",
+            "enum": [
+              "live"
+            ]
+          },
+          "accepting_requests": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current admission of new requests. Null means not observed; false after an unapplied durable runtime change."
           }
         }
       }

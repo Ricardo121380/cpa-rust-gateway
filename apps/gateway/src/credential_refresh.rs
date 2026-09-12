@@ -725,7 +725,7 @@ fn sync_codex_runtime_material(
     Ok(replaced_count)
 }
 
-fn complete_runtime_recovery(
+pub(crate) fn complete_runtime_recovery(
     runtime_health: &RuntimeHealthRegistry,
     endpoint_id: &EndpointId,
     credential_id: &CredentialId,

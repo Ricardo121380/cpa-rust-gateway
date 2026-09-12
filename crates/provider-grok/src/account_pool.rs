@@ -9,6 +9,8 @@ mod identity;
 mod management;
 pub use identity::GrokAccountIdentitySnapshot;
 pub use management::GrokManagedAccountPage;
+mod maintenance;
+pub use maintenance::{GrokManagedAccountChange, GrokManagedAccountEvent};
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -153,6 +155,76 @@ impl Drop for GrokAccountIdentity {
 pub struct GrokAccountCredential(Vec<u8>);
 
 impl GrokAccountCredential {
+    /// Derives a private enrollment identity independent of the user's import batch label.
+    /// Re-importing the same SSO session cannot create another randomly named account.
+    /// # Errors
+    /// Rejects invalid credentials. Opaque Build tokens use an exact material fingerprint.
+    pub fn enrollment_identity(
+        &self,
+        provider: GrokAccountProvider,
+        now: i64,
+        observed: Option<&gateway_store::account_identity::AccountIdentity>,
+    ) -> Result<GrokAccountIdentity, GrokAccountPoolError> {
+        if provider == GrokAccountProvider::Build {
+            let credential = crate::GrokBuildCredential::import_active_runtime(&self.0, now)
+                .map_err(|_| GrokAccountPoolError::InvalidCredential)?;
+            return match management::build_subject(credential.access_token()) {
+                Ok(subject) => GrokAccountIdentity::try_from_bytes(subject.as_bytes()),
+                Err(_) => GrokAccountIdentity::try_from_bytes(Sha256::digest(
+                    credential.access_token().as_bytes(),
+                )),
+            };
+        }
+        if let Some(email) = observed.and_then(|identity| identity.email.as_ref()) {
+            return GrokAccountIdentity::try_from_bytes(
+                format!("email:{}", email.to_lowercase()).as_bytes(),
+            );
+        }
+        if let Some(phone) = observed.and_then(|identity| identity.phone.as_ref()) {
+            return GrokAccountIdentity::try_from_bytes(format!("phone:{phone}").as_bytes());
+        }
+        let request = self
+            .session_identity_request(provider, now)
+            .map_err(|_| GrokAccountPoolError::InvalidCredential)?;
+        GrokAccountIdentity::try_from_bytes(Sha256::digest(request.cookie().as_bytes()))
+    }
+    /// Validates and normalizes a Web or Console SSO credential for immediate storage.
+    /// # Errors
+    /// Rejects other channels, invalid sessions and oversized input.
+    pub fn try_from_sso(
+        provider: GrokAccountProvider,
+        bytes: &[u8],
+        now: i64,
+    ) -> Result<Self, GrokAccountPoolError> {
+        if bytes.len() > 65_536 {
+            return Err(GrokAccountPoolError::InvalidCredential);
+        }
+        match provider {
+            GrokAccountProvider::Web => {
+                let (bytes, _) =
+                    crate::GrokWebCredential::normalize_sso_json_for_migration(bytes, now)
+                        .map_err(|_| GrokAccountPoolError::InvalidCredential)?;
+                Self::try_from_bytes(bytes.as_slice())
+            }
+            GrokAccountProvider::Console => {
+                crate::GrokConsoleSsoToken::try_from_bytes(bytes)
+                    .map_err(|_| GrokAccountPoolError::InvalidCredential)?;
+                Self::try_from_bytes(bytes)
+            }
+            GrokAccountProvider::Build => Err(GrokAccountPoolError::InvalidCredential),
+        }
+    }
+
+    /// Builds the fixed-target identity request from this normalized SSO material.
+    /// # Errors
+    /// Rejects malformed credentials or a mismatching provider.
+    pub fn session_identity_request(
+        &self,
+        provider: GrokAccountProvider,
+        now: i64,
+    ) -> Result<crate::GrokSessionIdentityRequest, crate::GrokSessionIdentityError> {
+        crate::GrokSessionIdentityRequest::from_credential(provider, &self.0, now)
+    }
     /// Copies a bounded, non-empty provider credential for immediate authenticated encryption.
     ///
     /// # Errors
@@ -645,6 +717,30 @@ impl GrokAccountPoolStore {
         relations: &[GrokAccountImportRelation],
         observed_at_ms: i64,
     ) -> Result<GrokAccountImportOutcome, GrokAccountPoolError> {
+        self.import_batch_inner(batch_id, entries, relations, observed_at_ms, false)
+    }
+
+    /// Enrolls one management account; a repeated identical credential preserves operator settings.
+    /// # Errors
+    /// Rejects a conflicting credential for the same identity and the ordinary bounded import errors.
+    pub fn import_managed_account(
+        &self,
+        batch_id: &str,
+        entry: &GrokAccountImport,
+        now: i64,
+    ) -> Result<GrokAccountImportOutcome, GrokAccountPoolError> {
+        self.import_batch_inner(batch_id, std::slice::from_ref(entry), &[], now, true)
+    }
+
+    #[allow(clippy::too_many_lines)]
+    fn import_batch_inner(
+        &self,
+        batch_id: &str,
+        entries: &[GrokAccountImport],
+        relations: &[GrokAccountImportRelation],
+        observed_at_ms: i64,
+        preserve_existing_settings: bool,
+    ) -> Result<GrokAccountImportOutcome, GrokAccountPoolError> {
         if !valid_component(batch_id, MAX_OPAQUE_ID_BYTES)
             || entries.is_empty()
             || entries.len() > MAX_BATCH_ITEMS
@@ -709,7 +805,13 @@ impl GrokAccountPoolStore {
         let mut unchanged = 0_usize;
         let mut account_ids = Vec::with_capacity(entries.len());
         for entry in entries {
-            let account_id = match self.import_one(&transaction, batch_id, entry, observed_at_ms)? {
+            let account_id = match self.import_one(
+                &transaction,
+                batch_id,
+                entry,
+                observed_at_ms,
+                preserve_existing_settings,
+            )? {
                 ImportOneOutcome::Created(account_id) => {
                     created += 1;
                     account_id
@@ -1151,6 +1253,7 @@ impl GrokAccountPoolStore {
         batch_id: &str,
         entry: &GrokAccountImport,
         observed_at_ms: i64,
+        preserve_existing_settings: bool,
     ) -> Result<ImportOneOutcome, GrokAccountPoolError> {
         let digest = identity_digest(entry.provider, &entry.identity.0);
         let existing = load_existing_by_identity(transaction, entry.provider, &digest)?;
@@ -1165,7 +1268,7 @@ impl GrokAccountPoolStore {
                 && existing.refresh_due_at_ms == entry.refresh_due_at_ms
                 && existing.quota_sync_due_at_ms == entry.quota_sync_due_at_ms
                 && existing.cooldown_until_ms == entry.cooldown_until_ms;
-            return if credential_matches && metadata_matches {
+            return if credential_matches && (metadata_matches || preserve_existing_settings) {
                 Ok(ImportOneOutcome::Unchanged(existing.id))
             } else {
                 Err(GrokAccountPoolError::ExistingAccountConflict)

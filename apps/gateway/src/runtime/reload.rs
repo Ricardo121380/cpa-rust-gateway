@@ -246,6 +246,7 @@ type Bootstrap = (
 /// One publication pointer for HTTP admission, execution and management projections.
 #[derive(Clone)]
 pub(crate) struct RuntimePublicationController {
+    available: Arc<AtomicBool>,
     current: Arc<ArcSwap<Generation>>,
     factory: Arc<RuntimeFactory>,
     workers: tokio::sync::watch::Sender<Option<WorkerUpdate>>,
@@ -265,6 +266,7 @@ impl RuntimePublicationController {
         let data = initial.generation.data.as_ref().clone();
         let (workers, _) = tokio::sync::watch::channel(None);
         let controller = Arc::new(Self {
+            available: Arc::new(AtomicBool::new(true)),
             current: Arc::new(ArcSwap::from(initial.generation)),
             factory: Arc::new(factory),
             workers,
@@ -353,6 +355,7 @@ impl PreparedRuntimePublication for PreparedGeneration {
             .store(false, Ordering::Release);
         self.built.generation.active.store(true, Ordering::Release);
         self.controller.current.store(self.built.generation);
+        self.controller.available.store(true, Ordering::Release);
         self.controller
             .workers
             .send_replace(Some(Arc::new(Mutex::new(Some(self.built.workers)))));
@@ -377,8 +380,73 @@ impl RuntimePublicationPreparer for RuntimePublicationController {
     }
 }
 impl ResponsesStateSource for RuntimePublicationController {
+    fn try_capture(&self) -> Option<Arc<ResponsesHttpState>> {
+        self.available
+            .load(Ordering::Acquire)
+            .then(|| self.capture())
+    }
     fn capture(&self) -> Arc<ResponsesHttpState> {
         Arc::clone(&self.current.load().data)
+    }
+}
+
+impl gateway_http_actix::management_resources::native_accounts::NativeAccountRuntime
+    for RuntimePublicationController
+{
+    fn accepting_requests(&self) -> Option<bool> {
+        Some(self.available.load(Ordering::Acquire))
+    }
+
+    fn apply(&self, recovered: Option<&str>) -> bool {
+        let guard = Arc::clone(&self.factory.publication_gate).blocking_lock_owned();
+        self.available.store(false, Ordering::Release);
+        self.current.load().active.store(false, Ordering::Release);
+        let prepared = (|| -> Result<BuiltGeneration, RuntimeCompositionError> {
+            let mut repository = SqliteControlPlaneRepository::open(&self.factory.database)
+                .map_err(|_| RuntimeCompositionError::Unavailable)?;
+            let configuration = repository
+                .load_active_configuration()
+                .map_err(|_| RuntimeCompositionError::Unavailable)?;
+            let snapshot = self.factory.lifecycle_registry.load();
+            if configuration
+                .as_ref()
+                .is_some_and(|cfg| cfg.version.id.as_str() != snapshot.version().as_str())
+            {
+                return Err(RuntimeCompositionError::Unavailable);
+            }
+            let built = self.factory.build(configuration.as_ref(), snapshot)?;
+            repository
+                .check_runtime_sources(configuration.as_ref(), built.native_generation)
+                .map_err(|_| RuntimeCompositionError::Unavailable)?;
+            if let (Some(account), Some(configuration)) = (recovered, &configuration) {
+                let credential = gateway_core::CredentialId::try_new(account)
+                    .map_err(|_| RuntimeCompositionError::Unavailable)?;
+                for endpoint in configuration
+                    .endpoints
+                    .iter()
+                    .filter(|endpoint| super::is_native_grok_endpoint(endpoint))
+                {
+                    crate::credential_refresh::complete_runtime_recovery(
+                        &self.factory.runtime_health,
+                        &endpoint.id,
+                        &credential,
+                        system_now_ms_runtime()?,
+                    )
+                    .map_err(|_| RuntimeCompositionError::Unavailable)?;
+                }
+            }
+            Ok(built)
+        })();
+        let Ok(built) = prepared else {
+            return false;
+        };
+        Box::new(PreparedGeneration {
+            _guard: guard,
+            controller: self.clone(),
+            built,
+        })
+        .commit();
+        true
     }
 }
 

@@ -12,6 +12,7 @@ import { CancelledError } from "@tanstack/react-query";
 import { readCsrfToken, readManagementKey, useSessionStore } from "../session/sessionStore";
 import { useVersionStore } from "../features/config-versions/versionStore";
 import { isRuntimeConflict, networkError, toAppError } from "./errors";
+import { parseRevisionToken } from "../utils/revision";
 
 // Dev-only fixture backend via the sanctioned options.fetch seam (C5 intact).
 // Guarded by import.meta.env.DEV: release builds eliminate this branch and the
@@ -177,6 +178,15 @@ export async function call<T>(
 ): Promise<T> {
   return send(operation, request, options, async (response) =>
     response.status === 204 ? undefined as T : (await response.json()) as T);
+}
+
+/** Keep a workflow's private draft revision without switching the user's current page. */
+export async function callRevisioned<T>(operation: ManagementOperationName, request: ManagementRequest): Promise<Readonly<{value:T;revision:string}>> {
+  return send(operation, request, {}, async(response)=>{
+    const revision=parseRevisionToken(response.headers.get("ETag"));
+    if(!revision)throw new Error("修改可能已保存，但未能确认版本。请重读核对，不要重复提交。");
+    return {revision,value:response.status===204?undefined as T:await response.json() as T};
+  });
 }
 
 /**

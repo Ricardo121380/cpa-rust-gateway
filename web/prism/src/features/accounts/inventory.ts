@@ -54,13 +54,14 @@ export function useManagedInventory<K extends "credentials" | "endpoints">(
   kind: K,
   upstreamId?: string,
   search = "",
+  enabled = true,
 ) {
   const scope = useVersionStore((state) => state.context?.configVersionId);
   type Item = K extends "credentials" ? ManagedCredential : ManagedEndpoint;
   return useInfiniteQuery({
     queryKey: ["managed-inventory", scope, kind, upstreamId, search],
     initialPageParam: undefined as string | undefined,
-    enabled: scope !== undefined,
+    enabled: enabled && scope !== undefined,
     retry: false,
     queryFn: ({ pageParam }) => call<InventoryPage<Item>>(
       kind === "credentials" ? "listManagedCredentials" : "listManagedEndpoints",

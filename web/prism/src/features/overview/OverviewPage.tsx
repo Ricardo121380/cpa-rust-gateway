@@ -13,6 +13,7 @@ import { asAppError } from "../../api/errors";
 import {
   exactShare,
   formatPercent,
+  formatMicrounits,
   type BillingResponse,
 } from "../monitoring/model";
 import { formatCount, StatTile } from "../../components/data/StatTile";
@@ -234,7 +235,7 @@ function BillingGlance() {
 
   return (
     <div className="card" data-gap="top">
-      <h3>计价可信度</h3>
+      <h3>费用概览</h3>
       <p className="stat-sub">
         覆盖整个账本窗口 · 跨配置版本。金额与计价置信度以已处理的账本为准。
       </p>
@@ -244,6 +245,7 @@ function BillingGlance() {
         <p className="muted">账本暂无记录。可能尚未处理或没有可计价事件，不能据此判断没有消费。</p>
       ) : (
         <div className="count-row">
+          <span className="count-tile"><span className="count-value mono">{formatMicrounits(summary.known_cost_microunits)}</span><span className="count-label">已知费用 · 微单位</span></span>
           <span className="count-tile">
             <span className="count-value mono">{formatCount(summary.records)}</span>
             <span className="count-label">账本记录</span>
@@ -258,7 +260,7 @@ function BillingGlance() {
           </span>
         </div>
       )}
-      <Link to="/monitoring">前往请求监控 →</Link>
+      <Link to="/billing">查看费用与计价详情 →</Link>
     </div>
   );
 }
@@ -286,35 +288,31 @@ export function OverviewPage() {
   const active = versions.data?.find((row) => row.status === "active");
 
   const upstreams = useCount("upstreams-count", "listUpstreams", scope);
-  const egress = useCount("egress-count", "listEgressPolicies", scope);
   const models = useCount("models-count", "listPublicModels", scope);
-  const groups = useCount("groups-count", "listAccessGroups", scope);
   const keys = useCount("keys-count", "listClientKeys", scope);
 
   const counts: ReadonlyArray<{ label: string; to: string; value: number | undefined }> = [
-    { label: "上游", to: "/upstreams", value: upstreams.data },
-    { label: "出口策略", to: "/egress", value: egress.data },
+    { label: "提供商", to: "/upstreams", value: upstreams.data },
     { label: "公开模型", to: "/models", value: models.data },
-    { label: "访问组", to: "/access", value: groups.data },
-    { label: "Client Key", to: "/access", value: keys.data },
+    { label: "客户端密钥", to: "/access", value: keys.data },
   ];
 
   return (
     <section className="overview-page">
       <header className="page-head"><h2>{t.nav.overview}</h2><Link to="/monitoring">查看请求 →</Link></header>
-      <LiveCountersSection />
+      {!versions.isPending&&(!active||upstreams.data===0||models.data===0||keys.data===0)?<div className="card setup-guide"><h3>开始使用</h3><ol className="setup-steps"><li><Link to="/upstreams?add=provider"><strong>1. 接入提供商</strong><span>设置接口地址并添加账号</span></Link></li><li><Link to="/models?add=model"><strong>2. 开放模型</strong><span>选择模型与接口连接</span></Link></li><li><Link to="/access"><strong>3. 创建客户端密钥</strong><span>选择允许使用的模型</span></Link></li></ol></div>:null}
       <div className="overview-workspace">
         <div className="overview-primary">
-          <ProcessingStatus compact />
           <BillingGlance />
+          <ProcessingStatus compact />
           <AnalyticsPointers />
         </div>
         <aside className="overview-aside">
           <ReadStatus pending={versions.isPending} error={versions.error} hasData={versions.data !== undefined} retry={() => void versions.refetch()} />
           <div className="card overview-resources">
-          <div className="overview-resource-head"><h3>资源概览</h3><Link to="/versions">{context?.status === "draft" ? "当前草稿" : context?.status === "archived" ? "历史配置" : active === undefined ? "配置待初始化" : "已发布配置"} →</Link></div>
+          <div className="overview-resource-head"><h3>资源概览</h3><span className="entity-meta">{context?.status === "draft" ? "待应用" : context?.status === "archived" ? "历史配置" : active === undefined ? "等待接入" : "当前配置"}</span></div>
           {scope === undefined ? (
-            <p className="muted">请到“配置版本”发布或选择一份配置。</p>
+            <Link to="/upstreams?add=provider">接入第一个提供商 →</Link>
           ) : (
             <div className="count-row">
               {counts.map((item) => (
@@ -328,6 +326,7 @@ export function OverviewPage() {
           </div>
         </aside>
       </div>
+      <details className="overview-telemetry"><summary>进程计数与运行事件</summary><LiveCountersSection/></details>
     </section>
   );
 }

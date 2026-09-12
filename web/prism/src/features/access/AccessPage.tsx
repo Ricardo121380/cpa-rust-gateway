@@ -16,6 +16,9 @@ import { ObjectInspector } from "../../components/ObjectInspector";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
+import { beginConfigurationTask } from "../config-versions/configurationTask";
+import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
+import { IssueKeyDialog } from "./IssueKeyDialog";
 import {
   displayKeyStatus,
   formatExpiry,
@@ -24,6 +27,7 @@ import {
   type AccessGroupRecord,
   isReactivation,
   toLocalInput,
+  editedExpiry,
   type ClientKeyRecord,
   type IssuedClientKey,
 } from "./model";
@@ -162,6 +166,8 @@ function GroupRoutes({
 }
 
 export function AccessPage() {
+  const [creating,setCreating]=useState(false);
+  const [workingId,setWorkingId]=useState<string>();
   const t = useMessages();
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
@@ -218,49 +224,17 @@ export function AccessPage() {
     onError: (error) => setActionError(asAppError(error).message),
   });
 
-  // PATCH replaces the whole ClientKeyInput. The plan expected a getClientKey
-  // pre-read first — but listClientKeys returns the SAME ClientKey schema, so
-  // the row already is the full record and a detail read would only add a round
-  // trip. (getEndpoint is the real counterexample: there is no listEndpoints,
-  // and the operational inventory omits base_url.)
-  const updateKey = useMutation({
-    // ClientKeyInput has NO prefix — it is derived from the issued secret and is
-    // not the operator's to set — so the mutation takes the input shape rather
-    // than the record shape.
-    mutationFn: (input: Omit<ClientKeyRecord, "prefix">) =>
-      call<ClientKeyRecord>(
-        "updateClientKey",
-        {
-          path: { client_key_id: input.id },
-          body: {
-            id: input.id,
-            access_group_id: input.access_group_id,
-            status: input.status,
-            expires_at_ms: input.expires_at_ms ?? null,
-          },
-        },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: () => {
-      setEditKey(undefined);
-      void queryClient.invalidateQueries({ queryKey: ["client-keys", scope] });
-    },
-    onError: (error) => setActionError(asAppError(error).message),
-  });
-
-  const revoke = useMutation({
-    mutationFn: (id: string) =>
-      call<undefined>(
-        "revokeClientKey",
-        { path: { client_key_id: id } },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: () => {
-      setConfirmRevoke(undefined);
-      void queryClient.invalidateQueries({ queryKey: ["client-keys", scope] });
-    },
-    onError: (error) => setActionError(asAppError(error).message),
-  });
+  const updateKey=useMutation({mutationFn:async(input:Omit<ClientKeyRecord,"prefix">)=>{
+    const task=await beginConfigurationTask("更新客户端密钥");setWorkingId(task.version.id);
+    const current=(await task.read<ClientKeyRecord[]>("listClientKeys")).find((row)=>row.id===input.id);
+    if(!editKey||!current||current.status!==editKey.status||current.access_group_id!==editKey.access_group_id||(current.expires_at_ms??null)!==(editKey.expires_at_ms??null))throw new Error("密钥已被修改，请重新读取后操作。");
+    await task.mutate("updateClientKey",{path:{client_key_id:input.id},body:{...input,expires_at_ms:input.expires_at_ms??null}});
+    return task.finish();
+  },onSuccess:(version)=>{setEditKey(undefined);void queryClient.invalidateQueries({queryKey:["client-keys"]});useVersionStore.getState().select(version);},onError:(error)=>setActionError(asAppError(error).message)});
+  const revoke=useMutation({mutationFn:async(id:string)=>{
+    const task=await beginConfigurationTask("吊销客户端密钥");setWorkingId(task.version.id);
+    await task.mutate("revokeClientKey",{path:{client_key_id:id}});return task.finish();
+  },onSuccess:(version)=>{setConfirmRevoke(undefined);void queryClient.invalidateQueries({queryKey:["client-keys"]});useVersionStore.getState().select(version);},onError:(error)=>setActionError(asAppError(error).message)});
 
   // PATCH takes the whole AccessGroupInput, not a partial — editing is a
   // full replacement, so the form is seeded with the current record.
@@ -342,19 +316,9 @@ export function AccessPage() {
   }
 
   function closeReveal() {
+    issue.reset();
     setIssued(undefined); // the key is gone for good — by design
     setCopied(false);
-  }
-
-  if (scope === undefined) {
-    return (
-      <section>
-        <h2>{t.nav.access}</h2>
-        <div className="card empty-state" data-kind="empty">
-          <p>请到“配置版本”发布或选择一份配置。</p>
-        </div>
-      </section>
-    );
   }
 
   const nowMs = Date.now();
@@ -364,6 +328,7 @@ export function AccessPage() {
       <header className="page-head">
         <h2>{t.nav.access}</h2>
         <div className="page-actions">
+          <button onClick={()=>setCreating(true)}>创建客户端密钥</button>
           <button
             type="button"
             className="secondary"
@@ -379,10 +344,11 @@ export function AccessPage() {
             title={editable ? undefined : t.version.readOnly}
             onClick={() => setIssuing(true)}
           >
-            签发 Client Key
+            按访问组签发
           </button>
         </div>
       </header>
+      {creating?<IssueKeyDialog onClose={()=>setCreating(false)} onSaved={(version)=>{setCreating(false);useVersionStore.getState().select(version);}}/>:null}
 
       {actionError !== undefined ? (
         <p role="alert" className="action-error">
@@ -393,11 +359,10 @@ export function AccessPage() {
         </p>
       ) : null}
 
-      <ReadStatus pending={groups.isPending} error={groups.error} hasData={groups.data !== undefined} retry={() => void groups.refetch()} />
-      <ReadStatus pending={keys.isPending} error={keys.error} hasData={keys.data !== undefined} retry={() => void keys.refetch()} />
+      <ReadStatus pending={!!scope&&groups.isPending} error={groups.error} hasData={groups.data !== undefined} retry={() => void groups.refetch()} />
+      <ReadStatus pending={!!scope&&keys.isPending} error={keys.error} hasData={keys.data !== undefined} retry={() => void keys.refetch()} />
 
-      <div className="card tablewrap">
-        <h3>访问组</h3>
+      <details className="card"><summary>高级访问组</summary><div className="tablewrap">
         <table>
           <thead>
             <tr>
@@ -468,8 +433,9 @@ export function AccessPage() {
         ) : null}
       </div>
 
+      </details>
       <div className="card tablewrap">
-        <h3>Client Key(仅前缀,完整密钥永不回显)</h3>
+        <h3>客户端密钥</h3>
         <table>
           <thead>
             <tr>
@@ -486,9 +452,9 @@ export function AccessPage() {
               return (
                 <tr key={record.id}>
                   <td className="mono">{record.prefix}</td>
-                  <td>{record.access_group_id ? <ResourceIdentity id={record.access_group_id} kind="group" /> : "—"}</td>
+                  <td>{record.access_group_id ? <ResourceIdentity id={record.access_group_id} kind="group" name={groups.data?.find((group)=>group.id===record.access_group_id)?.name}/> : "—"}</td>
                   <td>
-                    <StatusBadge status={status} />
+                    <StatusBadge status={status}>{({active:"已启用",disabled:"已停用",revoked:"已吊销",expired:"已过期"})[status]}</StatusBadge>
                   </td>
                   <td className="mono">{formatExpiry(record.expires_at_ms)}</td>
                   <td className="row-actions">
@@ -496,8 +462,8 @@ export function AccessPage() {
                     <button
                       type="button"
                       className="secondary"
-                      disabled={!editable}
                       onClick={() => {
+                        updateKey.reset();setActionError(undefined);setWorkingId(undefined);
                         setEditKey(record);
                         setEditStatus(record.status);
                       }}
@@ -508,8 +474,7 @@ export function AccessPage() {
                       <button
                         type="button"
                         className="danger"
-                        disabled={!editable}
-                        onClick={() => setConfirmRevoke(record.id)}
+                        onClick={() => {revoke.reset();setActionError(undefined);setWorkingId(undefined);setConfirmRevoke(record.id);}}
                       >
                         吊销
                       </button>
@@ -656,7 +621,8 @@ export function AccessPage() {
       ) : null}
 
       {editKey !== undefined ? (
-        <Sheet title={`编辑 Client Key · ${editKey.prefix}`} onEscape={() => setEditKey(undefined)}>
+        <Sheet title={`编辑客户端密钥 · ${editKey.prefix}`} onEscape={() => !updateKey.isPending&&setEditKey(undefined)}>
+          <ConfigurationTaskNotice workingId={workingId} error={updateKey.error} onReview={(version)=>{setEditKey(undefined);useVersionStore.getState().select(version);}}/>
           <form
             className="sheet-form"
             onSubmit={(event: FormEvent<HTMLFormElement>) => {
@@ -667,15 +633,10 @@ export function AccessPage() {
                 id: editKey.id,
                 access_group_id: String(data.get("access_group_id") ?? ""),
                 status: editStatus as ClientKeyRecord["status"],
-                expires_at_ms: expiresRaw === "" ? null : new Date(expiresRaw).getTime(),
+                expires_at_ms: editedExpiry(expiresRaw,editKey.expires_at_ms),
               });
             }}
           >
-            <p className="stat-sub">
-              PATCH 是<strong>整体替换</strong>,所以这三项一起提交。
-              <span className="mono"> prefix</span> 不在输入模型里 —— 它由签发时的密钥派生,
-              改不了,也不需要重填密钥(密钥从来就没有存在这边)。
-            </p>
             <label>
               访问组
               <select name="access_group_id" defaultValue={editKey.access_group_id} required>
@@ -693,9 +654,9 @@ export function AccessPage() {
                 value={editStatus}
                 onChange={(event) => setEditStatus(event.target.value)}
               >
-                <option value="active">active</option>
-                <option value="disabled">disabled</option>
-                <option value="revoked">revoked</option>
+                <option value="active">启用</option>
+                <option value="disabled">停用</option>
+                <option value="revoked">吊销</option>
               </select>
             </label>
             {isReactivation(editKey.status, editStatus) ? (
@@ -751,11 +712,9 @@ export function AccessPage() {
       ) : null}
 
       {confirmRevoke !== undefined ? (
-        <Sheet title="确认吊销" onEscape={() => setConfirmRevoke(undefined)}>
-          <p>
-            吊销 <span className="mono">{confirmRevoke}</span> 不可逆:记录保留、状态转为
-            revoked,该 Key 立即不能再认证。
-          </p>
+        <Sheet title="确认吊销" onEscape={() => !revoke.isPending&&setConfirmRevoke(undefined)}>
+          <ConfigurationTaskNotice workingId={workingId} error={revoke.error} onReview={(version)=>{setConfirmRevoke(undefined);useVersionStore.getState().select(version);}}/>
+          <p>吊销 {keys.data?.find((row)=>row.id===confirmRevoke)?.prefix}。应用后，该密钥不能再发起请求，历史记录保留。</p>
           <div className="sheet-actions">
             <button type="button" className="secondary" onClick={() => setConfirmRevoke(undefined)}>
               取消

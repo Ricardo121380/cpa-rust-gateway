@@ -121,6 +121,27 @@ impl SqliteControlPlaneRepository {
             source.lifecycle_sequence,
         )?;
         transaction.write_configuration(target)?;
+        // Preserve observation timestamps and removal evidence, not a fresh observation.
+        // Re-sealing a configuration does not renew a provider's model entitlement.
+        for (table, columns) in [
+            (
+                "model_catalog_targets",
+                "endpoint_id, credential_id, snapshot_version, observed_at_ms, stale_at_ms, refresh_due_at_ms, expires_at_ms",
+            ),
+            (
+                "model_catalog_models",
+                "endpoint_id, credential_id, model, present_in_last_success, consecutive_successful_misses, first_missing_at_ms, removal_eligible_at_ms",
+            ),
+            (
+                "model_catalog_failures",
+                "endpoint_id, credential_id, failed_at_ms, failure_class",
+            ),
+        ] {
+            transaction.transaction.execute(
+                &format!("INSERT INTO {table} (config_version_id, {columns}) SELECT ?1, {columns} FROM {table} WHERE config_version_id = ?2"),
+                params![target.version.id.as_str(),source.source_version.id.as_str()],
+            )?;
+        }
         transaction.transaction.execute(
             "INSERT INTO configuration_edit_origins (config_version_id, source_version_id, source_revision, source_resource_sequence, source_lifecycle_sequence) VALUES (?1, ?2, ?3, ?4, ?5)",
             params![target.version.id.as_str(), source.source_version.id.as_str(), source.source_version.revision, source.resource_sequence, source.lifecycle_sequence],

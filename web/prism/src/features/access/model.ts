@@ -34,7 +34,7 @@ export function formatExpiry(expiresAtMs: number | null | undefined): string {
   if (expiresAtMs === null || expiresAtMs === undefined) {
     return "永不过期";
   }
-  return new Date(expiresAtMs).toISOString().replace("T", " ").slice(0, 16);
+  return toLocalInput(expiresAtMs).replace("T", " ");
 }
 
 export function isValidIdShape(value: string): boolean {
@@ -95,6 +95,11 @@ export function toLocalInput(expiresAtMs: number | null | undefined): string {
   }
   const at = new Date(expiresAtMs);
   return new Date(at.getTime() - at.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
+/** A status-only edit must preserve seconds/milliseconds hidden by the minute input. */
+export function editedExpiry(value:string,current:number|null|undefined):number|null {
+  return value===toLocalInput(current)?current??null:value===""?null:new Date(value).getTime();
 }
 
 /**

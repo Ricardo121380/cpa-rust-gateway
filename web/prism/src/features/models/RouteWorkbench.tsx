@@ -206,9 +206,6 @@ export function RouteWorkbench({
     <div className="card route-workbench" data-gap="top">
       <header className="page-head">
         <h3>路由工作台</h3>
-        <code className="idchip mono">
-          getRoute · validateRoute · createRouteCandidate
-        </code>
       </header>
 
       <RoutingInventory

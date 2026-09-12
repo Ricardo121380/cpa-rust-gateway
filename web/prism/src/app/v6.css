@@ -360,6 +360,12 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .canvas :is(.card,
 .account-list td:last-child, .account-list th:last-child { padding-right:24px; }
 .account-list td strong { display:block; font-size:14px; font-weight:600; line-height:1.55; }
 .account-list .entity-meta { display:block; margin:4px 0 0; font-size:12px; color:var(--ink-2); line-height:1.5; }
+.account-list .account-row-checkbox { float:left; width:18px; height:18px; min-height:0; margin:3px 10px 8px 0; accent-color:var(--tint); }
+.account-batch-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; border:1px solid var(--separator); border-radius:14px; background:var(--panel-tint); }
+.setup-steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; list-style:none; padding:0; margin:18px 0 0; }
+.setup-steps a { display:grid; gap:8px; height:100%; padding:16px; border:1px solid var(--separator); border-radius:14px; background:var(--panel-tint); text-decoration:none; }
+.setup-steps span { color:var(--ink-2); font-size:13px; }
+@media (max-width:720px) { .setup-steps { grid-template-columns:1fr; } }
 .account-source { display:block; font-size:12px; color:var(--ink-2); margin-top:5px; }
 .account-list .page-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; }
 .account-list .page-actions button { min-height:36px; padding:6px 10px; font-size:12px; white-space:nowrap; }

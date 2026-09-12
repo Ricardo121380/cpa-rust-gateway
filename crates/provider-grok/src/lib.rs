@@ -52,7 +52,8 @@ pub use account_pool::{
     GrokAccountEntitlementUpdateOutcome, GrokAccountIdentity, GrokAccountIdentitySnapshot,
     GrokAccountImport, GrokAccountImportOutcome, GrokAccountImportRelation, GrokAccountMetadata,
     GrokAccountPoolError, GrokAccountPoolStore, GrokAccountProvider, GrokAccountRollbackOutcome,
-    GrokManagedAccountPage, GrokNativeAccountCompileError, GrokNativeAccountPoolCompilation,
+    GrokManagedAccountChange, GrokManagedAccountEvent, GrokManagedAccountPage,
+    GrokNativeAccountCompileError, GrokNativeAccountPoolCompilation,
 };
 pub use account_worker::{
     GrokAccountQuotaConfidence, GrokAccountQuotaScope, GrokAccountQuotaSource,

@@ -1,0 +1,3 @@
+DROP TRIGGER native_account_management_events_no_delete;
+DROP TRIGGER native_account_management_events_no_update;
+DROP TABLE native_account_management_events;

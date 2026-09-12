@@ -1,8 +1,10 @@
 //! Native Grok account enrollment uses the same encrypted store as the serving runtime.
+mod maintenance;
 use super::{ManagementResourceHttpState, invalid_input, parse_json, principal, read_operations};
 use actix_web::{HttpRequest, HttpResponse, http::StatusCode, web};
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use provider_grok::{Grok2ApiMemoryStreamMigration, GrokAccountPoolError, GrokAccountPoolStore};
+pub(super) use maintenance::{apply_runtime, audit, remove, replace_credential, set_enabled};
+use provider_grok::{GrokAccountPoolError, GrokAccountPoolStore};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use zeroize::Zeroizing;
@@ -13,8 +15,35 @@ pub struct NativeAccountManagement {
     pub(super) device: super::grok_device::DeviceSessions,
     identity_transport: Option<Arc<dyn provider_grok::GrokSessionIdentityTransport>>,
     epoch: String,
+    runtime: Option<Arc<dyn NativeAccountRuntime>>,
+}
+/// Deployment-owned reconciliation; called on the bounded blocking pool after durable changes.
+pub trait NativeAccountRuntime: Send + Sync {
+    /// Current new-request admission state; None when this facade cannot observe it.
+    fn accepting_requests(&self) -> Option<bool> {
+        None
+    }
+    /// Rebuilds the current configuration with current native accounts, without Provider requests.
+    /// `recovered` identifies an account whose new authorization was actually verified.
+    fn apply(&self, recovered: Option<&str>) -> bool;
 }
 impl NativeAccountManagement {
+    pub(super) fn accepting_requests(&self) -> Option<bool> {
+        self.runtime
+            .as_ref()
+            .and_then(|runtime| runtime.accepting_requests())
+    }
+    /// Connects native account maintenance to the running data plane.
+    #[must_use]
+    pub fn with_runtime(mut self, runtime: Arc<dyn NativeAccountRuntime>) -> Self {
+        self.runtime = Some(runtime);
+        self
+    }
+    pub(super) fn apply_runtime(&self, recovered: Option<&str>) -> bool {
+        self.runtime
+            .as_ref()
+            .is_some_and(|runtime| runtime.apply(recovered))
+    }
     /// Attaches the serving environment's fixed-target SSO identity transport.
     #[must_use]
     pub fn with_identity_transport(
@@ -45,6 +74,7 @@ impl NativeAccountManagement {
             device: super::grok_device::DeviceSessions::new(),
             identity_transport: None,
             epoch: URL_SAFE_NO_PAD.encode(bytes),
+            runtime: None,
         })
     }
 }
@@ -267,20 +297,6 @@ struct Input {
 fn secret_input<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Zeroizing<String>, D::Error> {
     String::deserialize(d).map(Zeroizing::new)
 }
-#[derive(Serialize)]
-struct Transfer<'a> {
-    kind: &'static str,
-    source_ref: &'a str,
-    provider: &'a str,
-    identity_key: &'a str,
-    credential: &'a str,
-    auth_status: &'static str,
-    enabled: bool,
-    priority: i64,
-    weight: u32,
-    max_concurrency: u32,
-}
-
 pub(super) async fn import(
     request: HttpRequest,
     body: web::Bytes,
@@ -304,74 +320,65 @@ pub(super) async fn import(
         return invalid_input();
     }
     let provider = match input.channel.as_str() {
-        "grok.build" => "grok_build",
-        "grok.console" => "grok_console",
-        "grok.web" => "grok_web",
+        "grok.build" => return import_build(state, native, input).await,
+        "grok.console" => provider_grok::GrokAccountProvider::Console,
+        "grok.web" => provider_grok::GrokAccountProvider::Web,
         _ => return invalid_input(),
     };
-    if provider == "grok_build" {
-        return import_build(state, native, input).await;
-    }
-    let lookup_native = Arc::clone(&native);
-    let import_id = input.id.clone();
+    let Some(now) = now_ms() else {
+        return unavailable();
+    };
+    let Ok(credential) =
+        provider_grok::GrokAccountCredential::try_from_sso(provider, input.secret.as_bytes(), now)
+    else {
+        return invalid_input();
+    };
+    let identity = maintenance::identity_for(&native, provider, &credential, now).await;
     let result = read_operations(&state, move || {
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .ok()
-            .and_then(|v| i64::try_from(v.as_millis()).ok())
-            .ok_or(super::ManagementOperationsError::SourceUnavailable)?;
-        let record = Transfer {
-            kind: "account",
-            source_ref: &input.id,
-            provider,
-            identity_key: &input.id,
-            credential: &input.secret,
-            auth_status: "active",
-            enabled: true,
-            priority: 0,
-            weight: 1,
-            max_concurrency: 1,
-        };
-        let bytes = Zeroizing::new(
-            serde_json::to_vec(&record)
-                .map_err(|_| super::ManagementOperationsError::SourceUnavailable)?,
-        );
-        Ok(Grok2ApiMemoryStreamMigration::import(
-            &native.store,
-            &input.id,
-            std::io::Cursor::new(bytes.as_slice()),
-            now,
-        ))
+        Ok((|| {
+            let account = provider_grok::GrokAccountImport {
+                provider,
+                identity: credential.enrollment_identity(provider, now, identity.as_ref())?,
+                credential,
+                auth_status: provider_grok::GrokAccountAuthStatus::Active,
+                enabled: true,
+                priority: 0,
+                weight: 1,
+                max_concurrency: 1,
+                refresh_due_at_ms: None,
+                quota_sync_due_at_ms: None,
+                cooldown_until_ms: None,
+            };
+            let entries = [account];
+            let outcome = native
+                .store
+                .import_managed_account(&input.id, &entries[0], now)?;
+            let observed = if let (Some(identity), Some(id)) = (
+                identity,
+                native
+                    .store
+                    .account_for_identity(provider, &entries[0].identity)?,
+            ) {
+                let snapshot = native.store.identity_snapshot(&id)?;
+                // Identity can race another update; imported material remains valid even if the
+                // display observation loses its own CAS. Never overwrite that newer observation.
+                native
+                    .store
+                    .save_observed_identity(&snapshot, &identity, now)
+                    .is_ok()
+            } else {
+                false
+            };
+            Ok::<_, GrokAccountPoolError>((outcome, native.apply_runtime(None), observed))
+        })())
     })
     .await;
     match result {
-        Ok(Ok(value)) => {
-            let lookup = Arc::clone(&lookup_native);
-            let id = read_operations(&state, move || {
-                Ok(lookup.store.single_import_account(&import_id))
-            })
-            .await;
-            let identity_state = if let Ok(Ok(id)) = id {
-                if lookup_identity(&state, lookup_native, &id, None)
-                    .await
-                    .is_ok()
-                {
-                    "observed"
-                } else {
-                    "unavailable"
-                }
-            } else {
-                "unavailable"
-            };
-            HttpResponse::Created().insert_header(("Cache-Control","no-store")).json(serde_json::json!({"created":value.created_accounts,"unchanged":value.unchanged_accounts,"identity_state":identity_state}))
-        }
-        Ok(Err(error))
-            if error.kind() == provider_grok::Grok2ApiMigrationFailureKind::ImportFailed =>
-        {
-            conflict()
-        }
-        Ok(Err(_)) => invalid_input(),
-        Err(_) => unavailable(),
+        Ok(Ok((value, applied, observed))) => HttpResponse::Created().insert_header(("Cache-Control","no-store"))
+            .json(serde_json::json!({"created":value.created,"unchanged":value.unchanged,"identity_state":if observed {"observed"} else {"unavailable"},"runtime_applied":applied})),
+        Ok(Err(GrokAccountPoolError::ExistingAccountConflict | GrokAccountPoolError::BatchAlreadyExists)) => conflict(),
+        Ok(Err(GrokAccountPoolError::InvalidCredential | GrokAccountPoolError::InvalidRequest)) => invalid_input(),
+        _ => unavailable(),
     }
 }
 
@@ -381,6 +388,7 @@ async fn import_build(
     native: Arc<NativeAccountManagement>,
     input: Input,
 ) -> HttpResponse {
+    let runtime_native = Arc::clone(&native);
     let result = read_operations(&state, move || {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -393,14 +401,14 @@ async fn import_build(
             return Ok(Err(GrokAccountPoolError::InvalidCredential));
         };
         native.device.acquire_identity(&mut credential);
+        let material = provider_grok::GrokAccountCredential::try_from_build_credential(&credential)
+            .map_err(|_| super::ManagementOperationsError::SourceUnavailable)?;
         let account = provider_grok::GrokAccountImport {
             provider: provider_grok::GrokAccountProvider::Build,
-            identity: provider_grok::GrokAccountIdentity::try_from_bytes(input.id.as_bytes())
+            identity: material
+                .enrollment_identity(provider_grok::GrokAccountProvider::Build, now, None)
                 .map_err(|_| super::ManagementOperationsError::SourceUnavailable)?,
-            credential: provider_grok::GrokAccountCredential::try_from_build_credential(
-                &credential,
-            )
-            .map_err(|_| super::ManagementOperationsError::SourceUnavailable)?,
+            credential: material,
             auth_status: provider_grok::GrokAccountAuthStatus::Active,
             enabled: true,
             priority: 0,
@@ -410,13 +418,21 @@ async fn import_build(
             quota_sync_due_at_ms: None,
             cooldown_until_ms: None,
         };
-        Ok(native.store.import_batch(&input.id, &[account], now))
+        Ok(native
+            .store
+            .import_managed_account(&input.id, &account, now))
     })
     .await;
     match result {
-        Ok(Ok(value)) => HttpResponse::Created()
+        Ok(Ok(value)) => {
+            let runtime_applied =
+                read_operations(&state, move || Ok(runtime_native.apply_runtime(None)))
+                    .await
+                    .unwrap_or(false);
+            HttpResponse::Created()
             .insert_header(("Cache-Control", "no-store"))
-            .json(serde_json::json!({"created":value.created,"unchanged":value.unchanged})),
+            .json(serde_json::json!({"created":value.created,"unchanged":value.unchanged,"runtime_applied":runtime_applied}))
+        }
         Ok(Err(GrokAccountPoolError::InvalidCredential)) => invalid_input(),
         Ok(Err(GrokAccountPoolError::ExistingAccountConflict)) => conflict(),
         _ => unavailable(),

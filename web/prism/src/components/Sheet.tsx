@@ -27,6 +27,9 @@ let openSheets = 0;
  *  opens in the same tick (issue -> reveal) the two crossfade instead of
  *  fighting. */
 function playExit(scrim: HTMLElement): void {
+  // Exit animation retains a detached DOM tree briefly. Secret values must not outlive close.
+  for (const node of scrim.querySelectorAll(".reveal-key")) node.textContent = "";
+  for (const input of scrim.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input[type=password], textarea")) input.value = "";
   scrim.classList.add("sheet-ghost");
   scrim.setAttribute("aria-hidden", "true");
   scrim.setAttribute("inert", "");

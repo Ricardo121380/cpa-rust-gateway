@@ -51,9 +51,10 @@ const CONFIGURATION_EDIT_ORIGIN_SCHEMA_VERSION: i64 = 23;
 
 const NATIVE_ACCOUNT_INVENTORY_SCHEMA_VERSION: i64 = 24;
 const NATIVE_ACCOUNT_IDENTITY_SCHEMA_VERSION: i64 = 25;
+const NATIVE_ACCOUNT_MANAGEMENT_SCHEMA_VERSION: i64 = 26;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = NATIVE_ACCOUNT_IDENTITY_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = NATIVE_ACCOUNT_MANAGEMENT_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -187,6 +188,11 @@ const MIGRATIONS: &[Migration] = &[
         version: NATIVE_ACCOUNT_IDENTITY_SCHEMA_VERSION,
         up: include_str!("../migrations/0025_native_account_identity.up.sql"),
         down: include_str!("../migrations/0025_native_account_identity.down.sql"),
+    },
+    Migration {
+        version: NATIVE_ACCOUNT_MANAGEMENT_SCHEMA_VERSION,
+        up: include_str!("../migrations/0026_native_account_management.up.sql"),
+        down: include_str!("../migrations/0026_native_account_management.down.sql"),
     },
 ];
 
@@ -596,6 +602,42 @@ mod tests {
     const TEST_CLIENT_KEY_DIGEST_B: [u8; 32] = [0x5A; 32];
 
     #[test]
+    fn native_account_management_migration_preserves_prior_authorization_history() -> TestResult {
+        let mut connection = Connection::open_in_memory()?;
+        migrate(&mut connection)?;
+        rollback_to_version(&mut connection, 25)?;
+        connection.execute("INSERT INTO native_account_authorization_events(account_id,revision,action,occurred_at_ms) VALUES('retained-account',1,'device_reauthorized',1)",[])?;
+        migrate(&mut connection)?;
+        connection.execute("INSERT INTO native_account_management_events(account_id,provider,action,revision,actor,occurred_at_ms) VALUES('retained-account','build','disabled',2,'admin',2)",[])?;
+        assert!(
+            connection
+                .execute("DELETE FROM native_account_management_events", [])
+                .is_err()
+        );
+        assert!(
+            connection
+                .execute(
+                    "UPDATE native_account_management_events SET action='enabled'",
+                    []
+                )
+                .is_err()
+        );
+        rollback_to_version(&mut connection, 25)?;
+        assert_eq!(
+            connection.query_row(
+                "SELECT COUNT(*) FROM native_account_authorization_events",
+                [],
+                |row| row.get::<_, i64>(0)
+            )?,
+            1
+        );
+        assert_eq!(schema_version(&connection)?, Some(25));
+        migrate(&mut connection)?;
+        assert_eq!(schema_version(&connection)?, Some(26));
+        Ok(())
+    }
+
+    #[test]
     fn migrations_are_idempotent_and_create_all_known_schema_tables() -> TestResult {
         let mut connection = Connection::open_in_memory()?;
 
@@ -647,6 +689,7 @@ mod tests {
                 "native_account_authorization_events",
                 "native_account_identity_observations",
                 "native_account_inventory_generation",
+                "native_account_management_events",
                 "public_models",
                 "route_candidates",
                 "routing_price_policies",

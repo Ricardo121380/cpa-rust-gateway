@@ -33,7 +33,7 @@ impl std::fmt::Debug for GrokAccountIdentitySnapshot {
     }
 }
 
-fn aad(account: &str, fingerprint: &[u8; 32]) -> Vec<u8> {
+pub(super) fn aad(account: &str, fingerprint: &[u8; 32]) -> Vec<u8> {
     let mut value = b"cpar/native-account/identity/v1\0".to_vec();
     value.extend_from_slice(account.as_bytes());
     value.push(0);

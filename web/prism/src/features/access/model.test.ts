@@ -6,6 +6,7 @@ import {
   formatExpiry,
   formatLimits,
   parseLimits,
+  editedExpiry,
 } from "./model";
 
 const base = {
@@ -34,6 +35,12 @@ describe("displayKeyStatus", () => {
 });
 
 describe("formatExpiry", () => {
+  it("uses the same local clock as the editor and preserves an untouched deadline",()=>{
+    const deadline=new Date("2030-05-15T13:05:17.345").getTime();
+    expect(formatExpiry(deadline)).toBe("2030-05-15 13:05");
+    expect(editedExpiry("2030-05-15T13:05",deadline)).toBe(deadline);
+    expect(editedExpiry("",deadline)).toBeNull();
+  });
   it("labels absent expiry", () => {
     expect(formatExpiry(null)).toBe("永不过期");
     expect(formatExpiry(undefined)).toBe("永不过期");

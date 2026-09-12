@@ -1,11 +1,4 @@
-// Settings — deliberately small. The gateway has no settings endpoint and the
-// panel writes no browser storage, so this page can only offer things that are
-// true for THIS session. It says so rather than presenting session-scoped
-// toggles as if they persisted.
-//
-// Two of its four sections are read-only on purpose: rendering capability and
-// OS accessibility preferences are probed, not chosen, and showing them as
-// switches would imply the panel can override the operating system.
+// Safe service information and session-only display preferences.
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { resolvedTheme, useAccessibilityStore, useThemeStore, type ThemeChoice } from "../../app/themeStore";
@@ -15,6 +8,7 @@ import { logoutAdministrator } from "../../api/client";
 import { useSessionStore } from "../../session/sessionStore";
 import { useMediaQuery } from "../../utils/useMediaQuery";
 import "./settings.css";
+import { SystemInformation } from "./SystemInformation";
 
 export function SettingsPage() {
   const t = useMessages();
@@ -56,17 +50,13 @@ export function SettingsPage() {
       <header className="page-head">
         <h2>{t.settings.title}</h2>
       </header>
-
-      {/* In a card, not loose on the canvas: out there its backdrop is the
-          ambient gradient and it measured 3.5:1 (DESIGN.md §9 rule 3). */}
-      <div className="card settings-lead-card">
-        <p className="settings-lead">{t.settings.lead}</p>
-      </div>
+      <SystemInformation/>
 
       <div className="card" data-gap="top">
         <div className="card-head">
           <h3>{t.settings.appearance}</h3>
         </div>
+        <p className="settings-help">{t.settings.lead}</p>
 
         <div className="settings-choice" role="radiogroup" aria-label={t.settings.appearance}>
           {THEMES.map((option) => (

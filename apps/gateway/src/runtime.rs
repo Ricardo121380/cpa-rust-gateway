@@ -566,10 +566,10 @@ pub(crate) fn deployment_route_compiler(
     ] {
         profiles.insert(adapter.to_owned(), p12_adapter_capabilities(adapter)?);
     }
-    Ok(RouteCompiler::with_adapter_capabilities(
-        CatalogView::default(),
-        profiles,
-    ))
+    Ok(
+        RouteCompiler::with_adapter_capabilities(CatalogView::default(), profiles)
+            .with_durable_catalog(database.to_owned()),
+    )
 }
 
 /// Returns the conservative semantic capabilities proved by this build for one adapter.
@@ -1295,7 +1295,7 @@ impl P12RoutedResponsesExecutor {
         let model_catalog_worker = RuntimeModelCatalogWorker::try_new(
             database,
             configuration,
-            Arc::clone(&snapshot),
+            &snapshot,
             Arc::clone(&route_explain_scheduler),
             Arc::clone(&pools),
             endpoints.as_ref(),
@@ -3375,7 +3375,8 @@ fn has_p12_unlisted_model_override(value: &str) -> bool {
 /// exposed through a Chat bridge: it is a capability subtraction, so it cannot manufacture a
 /// private-reasoning event that Chat cannot represent. Native Grok routes use the same shape.
 fn p12_candidate_override_is_admissible(adapter_id: &str, value: &str) -> bool {
-    has_p12_unlisted_model_override(value)
+    is_empty_capability_object(value)
+        || has_p12_unlisted_model_override(value)
         || (matches!(
             adapter_id,
             "openai-compatible.responses" | "grok.build.responses" | "grok.console.responses"
@@ -3456,7 +3457,7 @@ impl RuntimeModelCatalogWorker {
     fn try_new(
         database: &Path,
         configuration: &ControlPlaneConfiguration,
-        base_snapshot: Arc<RouteSnapshot>,
+        base_snapshot: &RouteSnapshot,
         scheduler: Arc<RouteCredentialScheduler>,
         pools: Arc<EndpointCredentialPools>,
         endpoints: &BTreeMap<EndpointId, EndpointRuntime>,
@@ -3493,6 +3494,11 @@ impl RuntimeModelCatalogWorker {
                 profile: runtime.transports.non_streaming.clone(),
             });
         }
+        let mut binding_counts = BTreeMap::new();
+        for (endpoint, _) in pools.diagnostic_bindings() {
+            *binding_counts.entry(endpoint).or_insert(0) += 1;
+        }
+        let base_snapshot = Arc::new(base_snapshot.materialize_binding_counts(&binding_counts));
         let worker =
             Self {
                 generation_guard: None,
@@ -3695,19 +3701,24 @@ impl RuntimeModelCatalogWorker {
             .list_statuses_at(&self.config_version_id, observed_at_ms)
             .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::Snapshot))?
             .into_iter()
-            .filter(|status| {
+            .map(|status| {
                 let target = status.snapshot().target();
-                self.pools.pool(target.endpoint_id()).is_some_and(|pool| {
+                let active_owner = self.pools.pool(target.endpoint_id()).is_some_and(|pool| {
                     pool.diagnostic_entries()
                         .iter()
                         .any(|entry| entry.credential_id() == target.credential_id())
-                })
-            })
-            .map(|status| {
-                let state = match status.freshness() {
-                    CatalogSnapshotFreshness::Fresh => CatalogModelState::Fresh,
-                    CatalogSnapshotFreshness::Stale => CatalogModelState::Stale,
-                    CatalogSnapshotFreshness::Expired => CatalogModelState::Expired,
+                });
+                // Keep a negative observation for inactive/removed owners. Dropping the last
+                // catalog would restore the base candidate's unscoped model permission and
+                // incorrectly admit another account with no catalog of its own.
+                let state = if active_owner {
+                    match status.freshness() {
+                        CatalogSnapshotFreshness::Fresh => CatalogModelState::Fresh,
+                        CatalogSnapshotFreshness::Stale => CatalogModelState::Stale,
+                        CatalogSnapshotFreshness::Expired => CatalogModelState::Expired,
+                    }
+                } else {
+                    CatalogModelState::Expired
                 };
                 SnapshotCredentialCatalog::new(
                     status.snapshot().target().endpoint_id().clone(),
@@ -13189,6 +13200,8 @@ mod tests {
         let mut first = p12_configuration_for(&secrets, "live-first")?;
         let mut second = p12_configuration_for(&secrets, "live-second")?;
         let mut invalid = p12_configuration_for(&secrets, "live-invalid")?;
+        let mut disabled = p12_configuration_for(&secrets, "live-disabled-accounts")?;
+        disabled.credentials[0].status = CredentialStatus::Disabled;
         let (key, presented) = issuer
             .issue(
                 ClientKeyId::try_new("live-client")?,
@@ -13200,6 +13213,7 @@ mod tests {
             (&mut first, StoredClientKeyStatus::Active),
             (&mut second, StoredClientKeyStatus::Revoked),
             (&mut invalid, StoredClientKeyStatus::Active),
+            (&mut disabled, StoredClientKeyStatus::Active),
         ] {
             graph.client_keys = vec![StoredClientKey::try_new(
                 key.client_key_id().clone(),
@@ -13211,7 +13225,7 @@ mod tests {
             )?];
         }
         invalid.endpoints[0].api_format = "anthropic/messages".to_owned();
-        for graph in [&first, &second, &invalid] {
+        for graph in [&first, &second, &invalid, &disabled] {
             repository.write_configuration(graph)?;
         }
         lifecycle.publish_configuration(&first.version.id)?;
@@ -13274,13 +13288,229 @@ mod tests {
                 test::call_service(&held, request()).await.status(),
                 StatusCode::OK
             );
-            web::block(move || lifecycle.rollback_configuration()).await??;
+            let (mut lifecycle, rolled_back) = web::block(move || {
+                let result = lifecycle.rollback_configuration();
+                (lifecycle, result)
+            })
+            .await?;
+            rolled_back?;
             assert_eq!(
                 test::call_service(&current, request()).await.status(),
                 StatusCode::OK
             );
+            web::block(move || lifecycle.publish_configuration(&disabled.version.id)).await??;
+            let response = test::call_service(&current, request()).await;
+            assert_eq!(response.status(), StatusCode::OK);
+            let models: serde_json::Value = test::read_body_json(response).await;
+            assert_eq!(models["data"], serde_json::json!([]));
             Ok::<(), Box<dyn Error>>(())
         })?;
+        Ok(())
+    }
+
+    #[test]
+    #[allow(clippy::too_many_lines)] // One complete admission/pool/catalog/failure/recovery lifecycle.
+    fn native_account_changes_rebuild_the_running_generation_including_an_empty_pool()
+    -> Result<(), Box<dyn Error>> {
+        use gateway_http_actix::ResponsesStateSource;
+        use gateway_http_actix::management_resources::native_accounts::NativeAccountRuntime;
+        let directory = TemporaryDirectory::new()?;
+        let database = directory.path().join("native-apply.sqlite3");
+        let secrets = test_secret_store()?;
+        let mut repository = SqliteControlPlaneRepository::open(&database)?;
+        let mut configuration = p12_configuration_for(&secrets, "native-apply")?;
+        configuration.upstreams[0].kind = "grok-console-native".to_owned();
+        configuration.endpoints[0].adapter_id = "grok.console.responses".to_owned();
+        configuration.endpoints[0].base_url =
+            provider_grok::GROK_CONSOLE_RESPONSES_BASE_URL.to_owned();
+        configuration.endpoints[0].inference_path =
+            provider_grok::GROK_CONSOLE_RESPONSES_PATH.to_owned();
+        configuration.egress_policies[0].allowed_hosts_json = r#"["console.x.ai"]"#.to_owned();
+        configuration.credentials.clear();
+        configuration.endpoint_credential_bindings.clear();
+        repository.write_configuration(&configuration)?;
+        let mut lifecycle = ManagementService::bootstrap(
+            SqliteControlPlaneRepository::open(&database)?,
+            super::deployment_route_compiler(&database)?,
+            ManagementActor::try_new("native-apply-test")?,
+        )?;
+        let composition = super::build_data_plane_composition(
+            &database,
+            &secrets,
+            Arc::clone(lifecycle.registry()),
+            ClientKeyService::new(ClientKeyPepper::try_from_bytes([0x74; 32])?),
+        )?;
+        lifecycle.set_runtime_preparer(composition.reload.clone());
+        lifecycle.publish_configuration(&configuration.version.id)?;
+        let old = composition.reload.capture();
+        let query =
+            gateway_control::provider_account_pool_service::ProviderAccountPoolQuery::default();
+        let mut runtime: Box<
+            dyn gateway_http_actix::management_resources::ManagementRuntimeFacade,
+        > = Box::new(composition.reload.as_ref().clone());
+        let mut model_count = || -> Result<usize, Box<dyn Error>> {
+            Ok(runtime.effective_models(&configuration.version.id,
+                &gateway_http_actix::management_resources::ManagementEffectiveModelContext::AccessGroup(configuration.access_groups[0].id.clone()),
+                super::system_now_ms_runtime()?).map_err(|_|"effective model projection")?.ok_or("effective models")?.models.len())
+        };
+        assert_eq!(model_count()?, 0);
+
+        assert!(
+            composition
+                .provider_account_pools
+                .list_provider_account_pools(&query)?
+                .items
+                .is_empty()
+        );
+        let foreign = ControlPlaneConfiguration::new(ConfigVersion {
+            id: ConfigVersionId::try_new("uncoordinated-external-change")?,
+            parent_id: None,
+            status: ConfigVersionStatus::Draft,
+            revision: 0,
+            created_at_ms: 1,
+            description: "Source conflict fixture".to_owned(),
+        });
+        repository.write_configuration(&foreign)?;
+        repository.activate_version(&foreign.version.id)?;
+        assert!(!composition.reload.apply(None));
+        assert!(composition.reload.try_capture().is_none());
+        assert_eq!(composition.reload.accepting_requests(), Some(false));
+        repository.activate_version(&configuration.version.id)?;
+        assert!(composition.reload.apply(None));
+        assert!(composition.reload.try_capture().is_some());
+        assert_eq!(composition.reload.accepting_requests(), Some(true));
+        let store = provider_grok::GrokAccountPoolStore::try_open(&database, secrets)?;
+        let credential = provider_grok::GrokAccountCredential::try_from_sso(
+            provider_grok::GrokAccountProvider::Console,
+            b"synthetic-native",
+            1,
+        )?;
+        let account = provider_grok::GrokAccountImport {
+            provider: provider_grok::GrokAccountProvider::Console,
+            identity: credential.enrollment_identity(
+                provider_grok::GrokAccountProvider::Console,
+                1,
+                None,
+            )?,
+            credential,
+            auth_status: provider_grok::GrokAccountAuthStatus::Active,
+            enabled: true,
+            priority: 0,
+            weight: 1,
+            max_concurrency: 1,
+            refresh_due_at_ms: None,
+            quota_sync_due_at_ms: None,
+            cooldown_until_ms: None,
+        };
+        store.import_batch("native-apply-import", &[account], 1)?;
+        assert!(composition.reload.apply(None));
+        assert!(!Arc::ptr_eq(&old, &composition.reload.capture()));
+        let active = composition
+            .provider_account_pools
+            .list_provider_account_pools(&query)?;
+        assert_eq!(active.items.len(), 1);
+        assert!(active.items[0].enabled);
+        assert_eq!(model_count()?, 1);
+        let id = store.single_import_account("native-apply-import")?;
+        let catalog = SqliteCatalogSnapshotStore::open(&database)?;
+        let model = configuration.route_candidates[0].upstream_model.clone();
+        catalog.record_success(
+            configuration.version.id.as_str(),
+            &ModelCatalogTarget::new(
+                configuration.endpoints[0].id.clone(),
+                CredentialId::try_new(id.clone())?,
+            ),
+            [DiscoveredModel::try_new(model.clone())?],
+            super::system_now_ms_runtime()?,
+        )?;
+        let second_credential = provider_grok::GrokAccountCredential::try_from_sso(
+            provider_grok::GrokAccountProvider::Console,
+            b"synthetic-native-second",
+            1,
+        )?;
+        let second = provider_grok::GrokAccountImport {
+            provider: provider_grok::GrokAccountProvider::Console,
+            identity: second_credential.enrollment_identity(
+                provider_grok::GrokAccountProvider::Console,
+                1,
+                None,
+            )?,
+            credential: second_credential,
+            auth_status: provider_grok::GrokAccountAuthStatus::Active,
+            enabled: true,
+            priority: 0,
+            weight: 1,
+            max_concurrency: 1,
+            refresh_due_at_ms: None,
+            quota_sync_due_at_ms: None,
+            cooldown_until_ms: None,
+        };
+        store.import_batch("native-second-import", &[second], 1)?;
+        let second_id = store.single_import_account("native-second-import")?;
+        store.manage_account(
+            &id,
+            0,
+            provider_grok::GrokManagedAccountChange::SetEnabled(false),
+            "admin",
+            2,
+        )?;
+        assert!(composition.reload.apply(None));
+        assert!(composition.reload.try_capture().is_some());
+        let disabled = composition
+            .provider_account_pools
+            .list_provider_account_pools(&query)?;
+        assert_eq!(disabled.items.len(), 2);
+        assert_eq!(disabled.items.iter().filter(|row| row.enabled).count(), 1);
+        assert_eq!(
+            model_count()?,
+            0,
+            "an account without its own catalog cannot inherit a disabled account's models"
+        );
+        store.manage_account(
+            &id,
+            1,
+            provider_grok::GrokManagedAccountChange::Remove,
+            "admin",
+            3,
+        )?;
+        assert!(composition.reload.apply(None));
+        assert!(composition.reload.try_capture().is_some());
+        assert_eq!(
+            model_count()?,
+            0,
+            "removing the catalog owner must retain the admission boundary"
+        );
+        catalog.record_success(
+            configuration.version.id.as_str(),
+            &ModelCatalogTarget::new(
+                configuration.endpoints[0].id.clone(),
+                CredentialId::try_new(second_id.clone())?,
+            ),
+            [DiscoveredModel::try_new(model)?],
+            super::system_now_ms_runtime()?,
+        )?;
+        assert!(composition.reload.apply(None));
+        assert_eq!(
+            model_count()?,
+            1,
+            "the remaining account's own observation restores eligibility"
+        );
+        store.manage_account(
+            &second_id,
+            0,
+            provider_grok::GrokManagedAccountChange::Remove,
+            "admin",
+            4,
+        )?;
+        assert!(composition.reload.apply(None));
+        assert_eq!(model_count()?, 0);
+        assert!(
+            composition
+                .provider_account_pools
+                .list_provider_account_pools(&query)?
+                .items
+                .is_empty()
+        );
         Ok(())
     }
 

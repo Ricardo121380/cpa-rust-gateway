@@ -2341,3 +2341,66 @@ remain in progress in this session. Publication prepares before durable activati
 revisions, preserves captured requests and shared concurrency, and switches bounded runtime workers.
 Invalid runtime graphs and stale OAuth material fail before activation. Validation and evidence are in
 the runtime report; production remains `7432763`, schema 25. No production/Provider/data cleanup action.
+
+## 2026-09-13 — Codex — CPA daily workflows and live account application
+
+**What:** The following exact frontend paths implement normal account/import/batch, provider, model and
+client-key workflows, private revisioned save/apply, safe system information, corrected observations,
+fixtures and synchronized contracts:
+
+- `web/prism/contracts/management-v1.json`
+- `web/prism/e2e/account-presentation.spec.ts`
+- `web/prism/src/api/client.ts`
+- `web/prism/src/app/v6.css`
+- `web/prism/src/components/Sheet.tsx`
+- `web/prism/src/dev/fixtures.ts`
+- `web/prism/src/features/access/AccessPage.tsx`
+- `web/prism/src/features/access/IssueKeyDialog.tsx`
+- `web/prism/src/features/access/model.test.ts`
+- `web/prism/src/features/access/model.ts`
+- `web/prism/src/features/accounts/AccountBatchDialog.tsx`
+- `web/prism/src/features/accounts/AccountList.tsx`
+- `web/prism/src/features/accounts/AccountsPage.tsx`
+- `web/prism/src/features/accounts/AddAccountDialog.tsx`
+- `web/prism/src/features/accounts/CredentialUpdateDialog.tsx`
+- `web/prism/src/features/accounts/GrokDeviceWizard.tsx`
+- `web/prism/src/features/accounts/NativeAccountDialog.tsx`
+- `web/prism/src/features/accounts/RuntimeApplyNotice.tsx`
+- `web/prism/src/features/accounts/inventory.ts`
+- `web/prism/src/features/config-versions/ConfigurationTaskNotice.tsx`
+- `web/prism/src/features/config-versions/LifecycleConfirmation.tsx`
+- `web/prism/src/features/config-versions/beginEdit.ts`
+- `web/prism/src/features/config-versions/configurationTask.test.ts`
+- `web/prism/src/features/config-versions/configurationTask.ts`
+- `web/prism/src/features/models/ConnectModelDialog.tsx`
+- `web/prism/src/features/models/ModelsPage.tsx`
+- `web/prism/src/features/models/RouteWorkbench.tsx`
+- `web/prism/src/features/models/connectModel.ts`
+- `web/prism/src/features/overview/OverviewPage.tsx`
+- `web/prism/src/features/settings/SettingsPage.tsx`
+- `web/prism/src/features/settings/SystemInformation.tsx`
+- `web/prism/src/features/settings/settings.css`
+- `web/prism/src/features/upstreams/ProviderDialog.tsx`
+- `web/prism/src/features/upstreams/SubresourcePanel.tsx`
+- `web/prism/src/features/upstreams/UpstreamsPage.tsx`
+- `web/prism/src/features/upstreams/connectionPresets.ts`
+- `web/prism/src/generated/management-client.ts`
+
+Backend changes are listed in the same commit and in
+`docs/change-requests/CR-PRISM-ACCOUNT-LIFECYCLE-002.md` and
+`docs/change-requests/CR-PRISM-SYSTEM-INFORMATION-003.md`. The authority is
+`docs/openapi/management-v1.json` (129 operations); the vendored contract and client were generated
+with sync-contract. Schema 26 adds append-only native account maintenance audit.
+
+**Why:** User explicitly requested comparison with CPA-Manager-Plus / CLIProxyAPI / Management Center,
+removal of the manual identity-read workaround, complete usable daily workflows and deployment.
+Identity remains part of authorization/import/replacement. Whole-runtime publication, source CAS,
+standby semantics and durable catalog isolation are necessary for truthful save/apply and account
+maintenance. Deactivating A must not grant A's discovered models to an unobserved B.
+
+**Other side:** FYI under ongoing joint frontend/backend authorization. No separate implementer action
+is required. Eight primary workspaces, fourteen legacy routes, same-origin auth, CSP, in-memory
+secrets, exact model IDs and four deterministic assets remain. New interfaces are implemented, not
+fixture-only. This commit is not yet deployed. Local test evidence, remaining release checks and
+schema 26 rollback constraints are in `docs/reports/prism-cpa-alignment-delivery-20260913.md`.
+No production account/history cleanup, DNS/Caddy/Autoreg mutation or new real Provider test request.

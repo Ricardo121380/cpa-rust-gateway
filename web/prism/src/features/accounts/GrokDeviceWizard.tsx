@@ -6,7 +6,8 @@ import type {AccountIdentity} from "./presentation";
 import {accountName} from "./presentation";
 import { Sheet } from "../../components/Sheet";
 import { safeExternalUrl } from "../upstreams/model";
-type View = Readonly<{session_id:string;state:string;user_code:string;verification_uri:string;expires_at_ms:number;retry_at_ms:number;identity:AccountIdentity|null;identity_state:string}>;
+import { RuntimeApplyNotice } from "./RuntimeApplyNotice";
+type View = Readonly<{session_id:string;state:string;user_code:string;verification_uri:string;expires_at_ms:number;retry_at_ms:number;identity:AccountIdentity|null;identity_state:string;runtime_applied?:boolean|null}>;
 export function GrokDeviceWizard({name,target,onClose,onComplete}:Readonly<{name:string;target?:{account_id:string;revision:number};onClose:()=>void;onComplete?:()=>void}>) {
   const client=useQueryClient();
   const [session,setSession]=useState<View>();
@@ -34,7 +35,7 @@ export function GrokDeviceWizard({name,target,onClose,onComplete}:Readonly<{name
       {view.state==="complete"?<>
         {view.identity?<p className="authorized-account-identity"><strong>{accountName(view.identity)}</strong></p>:null}
         {view.identity_state==="unavailable"?<p role="status">授权已保存，但暂未取得账号身份。</p>:view.identity_state==="not_provided"?<p role="status">授权服务未返回邮箱、电话或用户名。</p>:null}
-        <p>账号已保存，新授权将在网关重新载入配置后用于请求。</p>
+        {view.runtime_applied===true?<p>新授权已应用。</p>:<RuntimeApplyNotice onApplied={()=>client.setQueryData(key,{...view,runtime_applied:true})}/>}
       </>:null}
     </>}
     {error?<p role="alert">{asAppError(error).message}</p>:null}

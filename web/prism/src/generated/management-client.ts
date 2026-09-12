@@ -58,6 +58,14 @@ export const managementOperations = {
     "bodyEncoding": "json",
     "bodyRequired": true
   },
+  "applyRuntimeConfiguration": {
+    "method": "POST",
+    "path": "/admin/operations/runtime/apply",
+    "parameters": [],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "cancelCredentialOAuth": {
     "method": "POST",
     "path": "/admin/credentials/{credential_id}/oauth/cancel",
@@ -624,6 +632,25 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "deleteNativeAccount": {
+    "method": "DELETE",
+    "path": "/admin/native-accounts/{account_id}",
+    "parameters": [
+      {
+        "name": "account_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "revision",
+        "in": "query",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "deletePublicModel": {
     "method": "DELETE",
     "path": "/admin/public-models/{public_model_id}",
@@ -1126,6 +1153,14 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "getSystemInformation": {
+    "method": "GET",
+    "path": "/admin/system",
+    "parameters": [],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "getUpstream": {
     "method": "GET",
     "path": "/admin/upstreams/{upstream_id}",
@@ -1543,6 +1578,20 @@ export const managementOperations = {
         "name": "cursor",
         "in": "query",
         "required": false
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "listNativeAccountAudit": {
+    "method": "GET",
+    "path": "/admin/native-accounts/{account_id}/audit",
+    "parameters": [
+      {
+        "name": "account_id",
+        "in": "path",
+        "required": true
       }
     ],
     "requiresAuthentication": true,
@@ -2089,6 +2138,20 @@ export const managementOperations = {
     "bodyEncoding": "json",
     "bodyRequired": true
   },
+  "replaceNativeAccountCredential": {
+    "method": "PUT",
+    "path": "/admin/native-accounts/{account_id}/credential",
+    "parameters": [
+      {
+        "name": "account_id",
+        "in": "path",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "requestQuotaRecovery": {
     "method": "POST",
     "path": "/admin/runtime/quota/reset",
@@ -2469,6 +2532,20 @@ export const managementOperations = {
     "bodyEncoding": "json",
     "bodyRequired": true
   },
+  "updateNativeAccount": {
+    "method": "PATCH",
+    "path": "/admin/native-accounts/{account_id}",
+    "parameters": [
+      {
+        "name": "account_id",
+        "in": "path",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "updatePublicModel": {
     "method": "PATCH",
     "path": "/admin/public-models/{public_model_id}",
@@ -2777,6 +2854,10 @@ export class ManagementApi {
     return this.request("applyProviderAccountPoolAction", request);
   }
 
+  applyRuntimeConfiguration(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("applyRuntimeConfiguration", request);
+  }
+
   cancelCredentialOAuth(request: ManagementRequest = {}): Promise<Response> {
     return this.request("cancelCredentialOAuth", request);
   }
@@ -2885,6 +2966,10 @@ export class ManagementApi {
     return this.request("deleteEndpoint", request);
   }
 
+  deleteNativeAccount(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("deleteNativeAccount", request);
+  }
+
   deletePublicModel(request: ManagementRequest = {}): Promise<Response> {
     return this.request("deletePublicModel", request);
   }
@@ -2989,6 +3074,10 @@ export class ManagementApi {
     return this.request("getRuntimeAvailability", request);
   }
 
+  getSystemInformation(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("getSystemInformation", request);
+  }
+
   getUpstream(request: ManagementRequest = {}): Promise<Response> {
     return this.request("getUpstream", request);
   }
@@ -3081,6 +3170,10 @@ export class ManagementApi {
     return this.request("listModelAliases", request);
   }
 
+  listNativeAccountAudit(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listNativeAccountAudit", request);
+  }
+
   listNativeAccounts(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listNativeAccounts", request);
   }
@@ -3165,6 +3258,10 @@ export class ManagementApi {
     return this.request("refreshNativeAccountIdentity", request);
   }
 
+  replaceNativeAccountCredential(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("replaceNativeAccountCredential", request);
+  }
+
   requestQuotaRecovery(request: ManagementRequest = {}): Promise<Response> {
     return this.request("requestQuotaRecovery", request);
   }
@@ -3235,6 +3332,10 @@ export class ManagementApi {
 
   updateEndpoint(request: ManagementRequest = {}): Promise<Response> {
     return this.request("updateEndpoint", request);
+  }
+
+  updateNativeAccount(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("updateNativeAccount", request);
   }
 
   updatePublicModel(request: ManagementRequest = {}): Promise<Response> {

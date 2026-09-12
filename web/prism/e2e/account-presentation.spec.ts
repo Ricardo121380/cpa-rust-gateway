@@ -15,17 +15,17 @@ test("runtime uses human identities and connection meaning in rows and confirmat
   await expect(page.getByRole("dialog")).toContainText("runtime.member@example.test");
   await expect(page.getByRole("dialog").locator(".identity-details")).not.toHaveAttribute("open","");
 });
-test("existing SSO account can read provider identity without reimporting",async({page})=>{
+test("SSO identity is obtained during import and maintenance does not expose identity repair",async({page})=>{
   await unlock(page);await selectDraft(page);await navigate(page,"账号池");
   await page.getByRole("button",{name:"添加账号",exact:true}).click();
   const dialog=page.getByRole("dialog",{name:"添加账号",exact:true});
   await dialog.getByLabel("渠道",{exact:true}).selectOption("grok.console");
-  await dialog.getByLabel("导入标记").fill("identity-trace");
   await dialog.locator("textarea").fill("fixture-sso");
   await dialog.getByRole("button",{name:"添加账号",exact:true}).click();
+  await expect(dialog).toContainText("导入结果");
+  await dialog.getByRole("button",{name:"完成",exact:true}).click();
   const grok=page.getByRole("region",{name:"Grok 账号",exact:true});
-  await expect(grok).toContainText("未提供账号身份");
-  await grok.getByRole("button",{name:"读取身份",exact:true}).click();
+  await expect(grok.getByRole("button",{name:"读取身份",exact:true})).toHaveCount(0);
   await expect(grok).toContainText("session.member@example.test");
   await expect(grok.locator(".account-list tbody tr")).toHaveCount(1);
   await expect(grok).not.toContainText("identity-trace");
@@ -63,14 +63,12 @@ for(const width of [1440,1280,390])test(`unified account directory at ${width}`,
   await page.getByRole("button",{name:"添加账号",exact:true}).click();
   const dialog=page.getByRole("dialog",{name:"添加账号",exact:true});
   await dialog.getByLabel("渠道",{exact:true}).selectOption("grok.build");
-  await dialog.getByLabel("导入标记").fill("autoreg-test-batch");
   const claims=Buffer.from(JSON.stringify({email:"build.member@example.test",sub:"fixture-subject",exp:Math.floor(Date.now()/1000)+3600})).toString("base64url");
   await dialog.locator("textarea").fill(JSON.stringify({access_token:`header.${claims}.signature`,refresh_token:"fixture-refresh",expires_at:new Date(Date.now()+3600000).toISOString()}));
   await dialog.getByRole("button",{name:"添加账号",exact:true}).click();
   await expect(dialog).toHaveCount(0);
   const grok=page.getByRole("region",{name:"Grok 账号",exact:true});
   await expect(grok.getByText("build.member@example.test",{exact:true})).toBeVisible();
-  await expect(grok).toContainText("来源 · Autoreg");
   await expect(page.locator("main")).not.toContainText("autoreg-test-batch");
   await expect(grok.locator(".account-list tbody tr")).toHaveCount(1);
   await expect(page.locator(".sheet-ghost")).toHaveCount(0);

@@ -89,8 +89,7 @@ export function LifecycleConfirmation({
         </div>
       </dl>
       <p>
-        操作会更新活动配置并写入审计。当前 serve
-        进程需重启，才能装配切换后的数据面。
+        应用后，新请求使用此配置，已开始的请求继续完成。操作会写入审计。
       </p>
       {query.data && !valid ? (
         <p role="alert">版本已变化或没有可用目标，请关闭后重新选择并核对。</p>

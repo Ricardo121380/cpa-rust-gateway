@@ -112,6 +112,8 @@ const CODEX_OAUTH_USER_AGENT: &str = "codex_cli_rs/0.144.1";
 /// serialized transactions. Provider and OAuth workflows remain separately injected in later
 /// P10-04 code and never run while this lock is held.
 pub struct ManagementResourceHttpState {
+    system_information: Option<ManagementSystemInformation>,
+    started_at: std::time::Instant,
     native_accounts: Option<std::sync::Arc<native_accounts::NativeAccountManagement>>,
     billing_processing:
         std::sync::Arc<gateway_control::billing_processing::BillingProcessingMonitor>,
@@ -129,6 +131,33 @@ pub struct ManagementResourceHttpState {
     /// rotating refresh token concurrently.
     oauth_refresh_claims: Mutex<BTreeSet<CredentialId>>,
     runtime_clock: Box<dyn ManagementRuntimeClock>,
+}
+
+/// Explicit, non-secret build identity supplied by the running gateway binary.
+#[derive(Clone, Serialize)]
+pub struct ManagementSystemInformation {
+    /// Application release version.
+    pub version: &'static str,
+    /// Revision embedded by the signed release build, or development.
+    pub build_revision: &'static str,
+    /// Compilation target embedded by the release build.
+    pub build_target: &'static str,
+    /// Rust compiler version embedded by the release build.
+    pub rust_version: &'static str,
+    /// Schema supported and migrated by this running binary.
+    pub schema_version: i64,
+}
+
+async fn system_information(state: web::Data<ManagementResourceHttpState>) -> HttpResponse {
+    match &state.system_information {
+        Some(info) => HttpResponse::Ok().json(serde_json::json!({
+            "build": info,
+            "uptime_seconds": state.started_at.elapsed().as_secs(),
+            "configuration_application": "live",
+            "accepting_requests": state.native_accounts.as_ref().and_then(|native| native.accepting_requests()),
+        })),
+        None => HttpResponse::ServiceUnavailable().json(serde_json::json!({"error":{"code":"system_information_unavailable","message":"服务信息暂不可用"}})),
+    }
 }
 
 /// Read-only source for the durable usage/cost operations projection.
@@ -346,6 +375,8 @@ impl ManagementResourceHttpState {
         usage: Box<dyn ManagementUsageFacade>,
     ) -> Self {
         Self {
+            system_information: None,
+            started_at: std::time::Instant::now(),
             native_accounts: None,
             billing_processing: std::sync::Arc::default(),
             service: Mutex::new(service),
@@ -362,6 +393,13 @@ impl ManagementResourceHttpState {
             oauth_refresh_claims: Mutex::new(BTreeSet::new()),
             runtime_clock,
         }
+    }
+
+    /// Attaches this binary's safe build information; does not read environment secrets.
+    #[must_use]
+    pub fn with_system_information(mut self, information: ManagementSystemInformation) -> Self {
+        self.system_information = Some(information);
+        self
     }
 
     /// Attaches the native account store used by the deployed Grok runtime.
@@ -2539,6 +2577,26 @@ fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
         )
         .route("/native-accounts", web::get().to(native_accounts::list))
         .route(
+            "/native-accounts/{account_id}",
+            web::patch().to(native_accounts::set_enabled),
+        )
+        .route(
+            "/native-accounts/{account_id}",
+            web::delete().to(native_accounts::remove),
+        )
+        .route(
+            "/native-accounts/{account_id}/credential",
+            web::put().to(native_accounts::replace_credential),
+        )
+        .route(
+            "/native-accounts/{account_id}/audit",
+            web::get().to(native_accounts::audit),
+        )
+        .route(
+            "/operations/runtime/apply",
+            web::post().to(native_accounts::apply_runtime),
+        )
+        .route(
             "/native-accounts/{account_id}/identity",
             web::post().to(native_accounts::refresh_identity),
         )
@@ -2547,6 +2605,7 @@ fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
             web::post().to(native_accounts::import),
         )
         .route("/account-channels", web::get().to(account_channels::list))
+        .route("/system", web::get().to(system_information))
         .route(
             "/upstreams/{upstream_id}/account-import",
             web::post().to(account_channels::import),

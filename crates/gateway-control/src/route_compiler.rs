@@ -7,6 +7,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     error::Error,
     fmt,
+    path::PathBuf,
 };
 
 use gateway_catalog::{
@@ -30,6 +31,8 @@ pub struct RouteCompiler {
     catalog: CatalogView,
     endpoint_capabilities: EndpointCapabilityView,
     adapter_capabilities: Option<BTreeMap<String, CapabilitySet>>,
+    durable_catalog: Option<PathBuf>,
+    expired_catalog_standby: bool,
 }
 
 impl RouteCompiler {
@@ -40,6 +43,8 @@ impl RouteCompiler {
             catalog,
             endpoint_capabilities,
             adapter_capabilities: None,
+            durable_catalog: None,
+            expired_catalog_standby: false,
         }
     }
 
@@ -54,7 +59,19 @@ impl RouteCompiler {
             catalog,
             endpoint_capabilities: EndpointCapabilityView::default(),
             adapter_capabilities: Some(profiles),
+            durable_catalog: None,
+            expired_catalog_standby: false,
         }
+    }
+
+    /// Resolves current, version-scoped durable evidence for deployment compilation.
+    /// Pure callers retain their explicitly injected immutable view.
+    #[must_use]
+    pub fn with_durable_catalog(mut self, database: PathBuf) -> Self {
+        self.durable_catalog = Some(database);
+        // Expiry disables admission, not the management service or unrelated routes on restart.
+        self.expired_catalog_standby = true;
+        self
     }
 
     /// Validates and compiles one complete Config Version.
@@ -69,6 +86,12 @@ impl RouteCompiler {
         &self,
         configuration: &ControlPlaneConfiguration,
     ) -> Result<CompiledRouteConfiguration, RouteCompileError> {
+        if let Some(database) = &self.durable_catalog {
+            let mut compiler = self.clone();
+            compiler.durable_catalog = None;
+            compiler.catalog = durable_catalog_view(database, configuration)?;
+            return compiler.compile(configuration);
+        }
         let upstreams = index_upstreams(&configuration.upstreams)?;
         let endpoints = index_endpoints(&configuration.endpoints, &upstreams)?;
         let credentials = index_credentials(&configuration.credentials, &upstreams)?;
@@ -103,7 +126,7 @@ impl RouteCompiler {
         let compiled_routes =
             compile_active_routes(&routes, &public_models, &candidates, &compiled_candidates)?;
         let compiled_access_groups =
-            compile_access_groups(&access_groups, &access_group_routes, &compiled_routes)?;
+            compile_access_groups(&access_groups, &access_group_routes, &compiled_routes);
 
         let mut compiled_public_models = BTreeMap::new();
         for public_model in public_models.values() {
@@ -200,14 +223,11 @@ impl RouteCompiler {
             endpoint,
             candidate,
             override_declaration.allow_unlisted_model,
+            self.expired_catalog_standby,
         )?;
         let active_binding_count = active_binding_count(endpoint, upstream, context);
-        if active_binding_count == 0 {
-            return Err(route_error(
-                RouteCompileErrorCode::MissingActiveCredentialBinding,
-                candidate.id.as_str(),
-            ));
-        }
+        // Empty/disabled pools retain their configuration with zero hard-eligible bindings.
+        // Runtime discovery and admission cannot use these candidates until capacity exists.
         Ok(CompiledRouteCandidate {
             id: candidate.id.clone(),
             endpoint_id: endpoint.id.clone(),
@@ -222,6 +242,66 @@ impl RouteCompiler {
             active_binding_count,
         })
     }
+}
+
+fn durable_catalog_view(
+    database: &std::path::Path,
+    configuration: &ControlPlaneConfiguration,
+) -> Result<CatalogView, RouteCompileError> {
+    use gateway_catalog::{
+        CatalogModelEntry, CatalogSnapshotFreshness, SqliteCatalogSnapshotStore,
+    };
+    let unavailable = || route_error(RouteCompileErrorCode::CatalogModelNotEligible, "catalog");
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()
+        .and_then(|value| i64::try_from(value.as_millis()).ok())
+        .ok_or_else(unavailable)?;
+    let store = SqliteCatalogSnapshotStore::open(database).map_err(|_| unavailable())?;
+    let statuses = store
+        .list_statuses_at(configuration.version.id.as_str(), now)
+        .map_err(|_| unavailable())?;
+    let mut models = BTreeMap::new();
+    for status in statuses {
+        let target = status.snapshot().target();
+        if !configuration
+            .endpoints
+            .iter()
+            .any(|endpoint| &endpoint.id == target.endpoint_id())
+        {
+            continue;
+        }
+        let state = match status.freshness() {
+            CatalogSnapshotFreshness::Fresh => CatalogModelState::Fresh,
+            CatalogSnapshotFreshness::Stale => CatalogModelState::Stale,
+            CatalogSnapshotFreshness::Expired => CatalogModelState::Expired,
+        };
+        for model in status.eligible_models() {
+            let current = models
+                .entry((
+                    target.endpoint_id().clone(),
+                    model.upstream_model().to_owned(),
+                ))
+                .or_insert(state);
+            // Endpoint-level compilation requires evidence from any account. Runtime publication
+            // separately restores exact account eligibility and immutable expiry deadlines.
+            if state == CatalogModelState::Fresh
+                || (*current == CatalogModelState::Expired && state == CatalogModelState::Stale)
+            {
+                *current = state;
+            }
+        }
+    }
+    CatalogView::try_new(
+        models
+            .into_iter()
+            .map(|((endpoint_id, upstream_model), state)| CatalogModelEntry {
+                endpoint_id,
+                upstream_model,
+                state,
+            }),
+    )
+    .map_err(|_| unavailable())
 }
 
 fn candidate_has_active_public_model(
@@ -775,12 +855,6 @@ fn active_candidate_target<'configuration>(
                 candidate.id.as_str(),
             )
         })?;
-    if !endpoint.enabled {
-        return Err(route_error(
-            RouteCompileErrorCode::ActiveCandidateDisabledEndpoint,
-            candidate.id.as_str(),
-        ));
-    }
     let upstream = context
         .upstreams
         .get(&endpoint.upstream_id)
@@ -790,12 +864,6 @@ fn active_candidate_target<'configuration>(
                 endpoint.id.as_str(),
             )
         })?;
-    if !upstream.enabled {
-        return Err(route_error(
-            RouteCompileErrorCode::ActiveCandidateDisabledUpstream,
-            candidate.id.as_str(),
-        ));
-    }
     Ok((endpoint, upstream))
 }
 
@@ -856,9 +924,13 @@ fn catalog_admission(
     endpoint: &EndpointConfiguration,
     candidate: &RouteCandidateConfiguration,
     allow_unlisted_model: bool,
+    expired_standby: bool,
 ) -> Result<CatalogAdmission, RouteCompileError> {
     match catalog.model_state(&endpoint.id, &candidate.upstream_model) {
         Some(state) if state.is_hard_eligible() => Ok(CatalogAdmission::Listed(state)),
+        Some(CatalogModelState::Expired) if expired_standby => {
+            Ok(CatalogAdmission::Listed(CatalogModelState::Expired))
+        }
         _ if allow_unlisted_model => Ok(CatalogAdmission::AllowedUnlisted),
         _ => Err(route_error(
             RouteCompileErrorCode::CatalogModelNotEligible,
@@ -872,18 +944,21 @@ fn active_binding_count(
     upstream: &UpstreamConfiguration,
     context: &CandidateCompilationContext<'_, '_>,
 ) -> usize {
+    if !endpoint.enabled || !upstream.enabled {
+        return 0;
+    }
     // Native Grok endpoints deliberately source their credentials from the provider-owned
     // account pool.  The runtime composes that pool after the control-plane compiler has
     // excluded this Endpoint from ordinary encrypted Credential bindings, so a native route must
     // not be forced to carry a duplicate placeholder Credential merely to satisfy this generic
-    // count.  Keep the exemption narrow to the reviewed adapter/upstream pair; every other
-    // Endpoint still requires an active same-Upstream binding.
+    // count. The deployment materializes native capacity from the actual account pools before
+    // exposing models. Ordinary endpoints count only their active same-Upstream bindings.
     if (upstream.kind == "grok-build-native" && endpoint.adapter_id == "grok.build.responses")
         || (upstream.kind == "grok-console-native"
             && endpoint.adapter_id == "grok.console.responses")
         || (upstream.kind == "grok-web-native" && endpoint.adapter_id == "grok.web.responses")
     {
-        return 1;
+        return 0;
     }
     context
         .bindings
@@ -1296,7 +1371,7 @@ fn compile_access_groups(
         Vec<&gateway_store::control_plane::AccessGroupRouteConfiguration>,
     >,
     routes: &BTreeMap<RouteId, CompiledRoute>,
-) -> Result<BTreeMap<AccessGroupId, CompiledAccessGroup>, RouteCompileError> {
+) -> BTreeMap<AccessGroupId, CompiledAccessGroup> {
     let mut compiled = BTreeMap::new();
     for access_group in access_groups.values() {
         if access_group.status != AdministrativeStatus::Active {
@@ -1311,11 +1386,10 @@ fn compile_access_groups(
             if !access_group_route.enabled {
                 continue;
             }
+            // A disabled model keeps its stored grant for a later re-enable. Missing references
+            // were rejected by validate_access_group_routes; only serving routes enter the view.
             if !routes.contains_key(&access_group_route.route_id) {
-                return Err(route_error(
-                    RouteCompileErrorCode::AccessGroupRouteNotPublishable,
-                    access_group_route.route_id.as_str(),
-                ));
+                continue;
             }
             allowed_route_ids.insert(access_group_route.route_id.clone());
         }
@@ -1328,7 +1402,7 @@ fn compile_access_groups(
             },
         );
     }
-    Ok(compiled)
+    compiled
 }
 
 fn parse_candidate_override(
@@ -1489,7 +1563,7 @@ mod tests {
             .route(&RouteId::try_new("route-a")?)
             .ok_or("native Grok route is missing")?;
         assert_eq!(route.candidates().len(), 1);
-        assert_eq!(route.candidates()[0].active_binding_count(), 1);
+        assert_eq!(route.candidates()[0].active_binding_count(), 0);
         Ok(())
     }
 
@@ -1507,7 +1581,7 @@ mod tests {
             .route(&RouteId::try_new("route-a")?)
             .ok_or("native Grok Console route is missing")?;
         assert_eq!(route.candidates().len(), 1);
-        assert_eq!(route.candidates()[0].active_binding_count(), 1);
+        assert_eq!(route.candidates()[0].active_binding_count(), 0);
         Ok(())
     }
 
@@ -1525,7 +1599,7 @@ mod tests {
             .route(&RouteId::try_new("route-a")?)
             .ok_or("native Grok Web route is missing")?;
         assert_eq!(route.candidates().len(), 1);
-        assert_eq!(route.candidates()[0].active_binding_count(), 1);
+        assert_eq!(route.candidates()[0].active_binding_count(), 0);
         Ok(())
     }
 
@@ -1716,6 +1790,37 @@ mod tests {
     }
 
     #[test]
+    fn administrative_standby_retains_routes_without_admitting_capacity() -> TestResult {
+        for mode in ["empty", "credential", "endpoint", "upstream", "model"] {
+            let mut fixture = fixture()?;
+            match mode {
+                "empty" => fixture.configuration.endpoint_credential_bindings.clear(),
+                "credential" => {
+                    fixture.configuration.credentials[0].status = CredentialStatus::Disabled;
+                }
+                "endpoint" => fixture.configuration.endpoints[0].enabled = false,
+                "upstream" => fixture.configuration.upstreams[0].enabled = false,
+                _ => fixture.configuration.public_models[0].status = AdministrativeStatus::Disabled,
+            }
+            let compiled = fixture.compiler().compile(&fixture.configuration)?;
+            if mode == "model" {
+                assert!(compiled.public_models().next().is_none());
+                assert!(
+                    compiled
+                        .access_groups()
+                        .all(|group| group.allowed_route_ids().next().is_none())
+                );
+            } else {
+                let route = compiled
+                    .route(&RouteId::try_new("route-a")?)
+                    .ok_or("route")?;
+                assert_eq!(route.candidates()[0].active_binding_count(), 0);
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
     fn conflict_matrix_returns_stable_codes() -> TestResult {
         let snapshot = [
             (
@@ -1765,14 +1870,10 @@ mod tests {
                 "capability_narrowing",
                 capability_narrowing_error()?.as_str(),
             ),
-            ("no_active_binding", no_active_binding_error()?.as_str()),
-            ("disabled_endpoint", disabled_endpoint_error()?.as_str()),
-            ("disabled_upstream", disabled_upstream_error()?.as_str()),
             (
                 "route_without_candidate",
                 route_without_candidate_error()?.as_str(),
             ),
-            ("unpublishable_grant", unpublishable_grant_error()?.as_str()),
         ];
         assert_eq!(
             snapshot,
@@ -1800,14 +1901,10 @@ mod tests {
                 ),
                 ("capability_escalation", "candidate_capability_escalation",),
                 ("capability_narrowing", "candidate_capability_mismatch",),
-                ("no_active_binding", "missing_active_credential_binding",),
-                ("disabled_endpoint", "active_candidate_disabled_endpoint",),
-                ("disabled_upstream", "active_candidate_disabled_upstream",),
                 (
                     "route_without_candidate",
                     "route_has_no_hard_eligible_candidate",
                 ),
-                ("unpublishable_grant", "access_group_route_not_publishable",),
             ]
         );
         Ok(())
@@ -1927,6 +2024,53 @@ mod tests {
         assert!(compiled.public_model("public-model-a").is_none());
         assert!(compiled.alias_target("model-a").is_none());
         assert!(compiled.route(&RouteId::try_new("route-a")?).is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn deployment_compilation_reads_durable_catalog_and_retains_expired_standby() -> TestResult {
+        use gateway_catalog::{DiscoveredModel, ModelCatalogTarget, SqliteCatalogSnapshotStore};
+        let fixture = fixture()?;
+        let path = std::env::temp_dir().join(format!(
+            "cpar-durable-compiler-{}-{}.sqlite3",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)?
+                .as_nanos()
+        ));
+        let store = SqliteCatalogSnapshotStore::open(&path)?;
+        let compiler = fixture.compiler().with_durable_catalog(path.clone());
+        assert!(
+            compiler.compile(&fixture.configuration).is_err(),
+            "static fixture evidence cannot fill a missing durable scope"
+        );
+        let candidate = &fixture.configuration.route_candidates[0];
+        let now = i64::try_from(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)?
+                .as_millis(),
+        )?;
+        store.record_success(
+            fixture.configuration.version.id.as_str(),
+            &ModelCatalogTarget::new(
+                candidate.endpoint_id.clone(),
+                fixture.configuration.credentials[0].id.clone(),
+            ),
+            vec![DiscoveredModel::try_new(candidate.upstream_model.clone())?],
+            now,
+        )?;
+        assert!(compiler.compile(&fixture.configuration).is_ok());
+        let db = gateway_store::open(&path)?;
+        db.execute("UPDATE model_catalog_targets SET observed_at_ms=observed_at_ms-604800000, stale_at_ms=stale_at_ms-604800000, refresh_due_at_ms=refresh_due_at_ms-604800000, expires_at_ms=expires_at_ms-604800000",[])?;
+        let routes = compiler.compile(&fixture.configuration)?;
+        let route = routes.route(&candidate.route_id).ok_or("route")?;
+        assert_eq!(
+            route.candidates()[0].catalog_admission(),
+            super::CatalogAdmission::Listed(CatalogModelState::Expired)
+        );
+        drop(db);
+        drop(store);
+        std::fs::remove_file(path)?;
         Ok(())
     }
 
@@ -2298,33 +2442,9 @@ mod tests {
         compile_error_code(&fixture)
     }
 
-    fn no_active_binding_error() -> Result<RouteCompileErrorCode, Box<dyn Error>> {
-        let mut fixture = fixture()?;
-        fixture.configuration.credentials[0].status = CredentialStatus::Disabled;
-        compile_error_code(&fixture)
-    }
-
-    fn disabled_endpoint_error() -> Result<RouteCompileErrorCode, Box<dyn Error>> {
-        let mut fixture = fixture()?;
-        fixture.configuration.endpoints[0].enabled = false;
-        compile_error_code(&fixture)
-    }
-
-    fn disabled_upstream_error() -> Result<RouteCompileErrorCode, Box<dyn Error>> {
-        let mut fixture = fixture()?;
-        fixture.configuration.upstreams[0].enabled = false;
-        compile_error_code(&fixture)
-    }
-
     fn route_without_candidate_error() -> Result<RouteCompileErrorCode, Box<dyn Error>> {
         let mut fixture = fixture()?;
         fixture.configuration.route_candidates[0].enabled = false;
-        compile_error_code(&fixture)
-    }
-
-    fn unpublishable_grant_error() -> Result<RouteCompileErrorCode, Box<dyn Error>> {
-        let mut fixture = fixture()?;
-        fixture.configuration.public_models[0].status = AdministrativeStatus::Disabled;
         compile_error_code(&fixture)
     }
 }

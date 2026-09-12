@@ -1963,6 +1963,58 @@ impl SqliteControlPlaneRepository {
         Ok((activation, event))
     }
 
+    /// Verifies an account-driven runtime rebuild against one coherent durable snapshot.
+    /// # Errors
+    /// Rejects changed active configuration, rotated credentials or native inventory.
+    pub fn check_runtime_sources(
+        &mut self,
+        configuration: Option<&ControlPlaneConfiguration>,
+        native_generation: i64,
+    ) -> StoreResult<()> {
+        let transaction = self.begin_transaction()?;
+        let active = transaction
+            .transaction
+            .query_row(
+                "SELECT id,revision FROM config_versions WHERE status='active'",
+                [],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .optional()?;
+        if active
+            .as_ref()
+            .map(|(id, revision)| (id.as_str(), *revision))
+            != configuration.map(|value| (value.version.id.as_str(), value.version.revision))
+        {
+            return Err(StoreError::ConfigVersionRevisionConflict);
+        }
+        let generation: i64 = transaction.transaction.query_row(
+            "SELECT generation FROM native_account_inventory_generation WHERE singleton=1",
+            [],
+            |row| row.get(0),
+        )?;
+        if generation != native_generation {
+            return Err(StoreError::ConfigVersionRevisionConflict);
+        }
+        if let Some(configuration) = configuration {
+            let mut query = transaction.transaction.prepare(
+                "SELECT id,revision FROM upstream_credentials WHERE config_version_id=?1",
+            )?;
+            let revisions = query
+                .query_map([configuration.version.id.as_str()], |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+                })?
+                .collect::<Result<BTreeMap<_, _>, _>>()?;
+            if revisions.len() != configuration.credentials.len()
+                || configuration.credentials.iter().any(|credential| {
+                    revisions.get(credential.id.as_str()) != Some(&credential.revision)
+                })
+            {
+                return Err(StoreError::ConfigVersionRevisionConflict);
+            }
+        }
+        transaction.commit()
+    }
+
     /// Runs one draft-only graph mutation with an exact expected revision.
     ///
     /// The revision compare-and-increment and every callback write share one immediate `SQLite`
@@ -2353,6 +2405,12 @@ impl ControlPlaneTransaction<'_> {
         upstream_id: &UpstreamId,
     ) -> StoreResult<()> {
         self.ensure_draft_config_version(config_version_id)?;
+        for table in ["model_catalog_targets", "model_catalog_failures"] {
+            self.transaction.execute(
+                &format!("DELETE FROM {table} WHERE config_version_id = ?1 AND endpoint_id IN (SELECT id FROM upstream_endpoints WHERE config_version_id = ?1 AND upstream_id = ?2)"),
+                params![config_version_id.as_str(),upstream_id.as_str()],
+            )?;
+        }
         let deleted = self.transaction.execute(
             "DELETE FROM upstreams WHERE config_version_id = ?1 AND id = ?2",
             params![config_version_id.as_str(), upstream_id.as_str()],
@@ -2373,6 +2431,12 @@ impl ControlPlaneTransaction<'_> {
         endpoint: &EndpointConfiguration,
     ) -> StoreResult<()> {
         self.ensure_draft_config_version(config_version_id)?;
+        for table in ["model_catalog_targets", "model_catalog_failures"] {
+            self.transaction.execute(
+                &format!("DELETE FROM {table} WHERE config_version_id = ?1 AND endpoint_id = ?2 AND EXISTS (SELECT 1 FROM upstream_endpoints WHERE config_version_id = ?1 AND id = ?2 AND (adapter_id != ?3 OR api_format != ?4 OR base_url != ?5 OR inference_path != ?6 OR models_path IS NOT ?7))"),
+                params![config_version_id.as_str(),endpoint.id.as_str(),endpoint.adapter_id,endpoint.api_format,endpoint.base_url,endpoint.inference_path,endpoint.models_path],
+            )?;
+        }
         let updated = self.transaction.execute(
             "UPDATE upstream_endpoints SET adapter_id = ?3, api_format = ?4, base_url = ?5, \
              inference_path = ?6, models_path = ?7, transport = ?8, enabled = ?9 \
@@ -2405,6 +2469,12 @@ impl ControlPlaneTransaction<'_> {
         endpoint_id: &EndpointId,
     ) -> StoreResult<()> {
         self.ensure_draft_config_version(config_version_id)?;
+        for table in ["model_catalog_targets", "model_catalog_failures"] {
+            self.transaction.execute(
+                &format!("DELETE FROM {table} WHERE config_version_id = ?1 AND endpoint_id = ?2"),
+                params![config_version_id.as_str(), endpoint_id.as_str()],
+            )?;
+        }
         let deleted = self.transaction.execute(
             "DELETE FROM upstream_endpoints WHERE config_version_id = ?1 AND id = ?2",
             params![config_version_id.as_str(), endpoint_id.as_str()],
@@ -2424,6 +2494,12 @@ impl ControlPlaneTransaction<'_> {
         credential: &CredentialConfiguration,
     ) -> StoreResult<()> {
         self.ensure_draft_config_version(config_version_id)?;
+        for table in ["model_catalog_targets", "model_catalog_failures"] {
+            self.transaction.execute(
+                &format!("DELETE FROM {table} WHERE config_version_id = ?1 AND credential_id = ?2 AND EXISTS (SELECT 1 FROM upstream_credentials WHERE config_version_id = ?1 AND id = ?2 AND (ciphertext != ?3 OR kind != ?4))"),
+                params![config_version_id.as_str(),credential.id.as_str(),credential.encrypted_secret.ciphertext(),credential.kind],
+            )?;
+        }
         let updated = self.transaction.execute(
             "UPDATE upstream_credentials SET kind = ?3, ciphertext = ?4, key_version = ?5, \
              status = ?6, revision = ?7 WHERE config_version_id = ?1 AND id = ?2 \
@@ -2517,6 +2593,12 @@ impl ControlPlaneTransaction<'_> {
         credential_id: &CredentialId,
     ) -> StoreResult<()> {
         self.ensure_draft_config_version(config_version_id)?;
+        for table in ["model_catalog_targets", "model_catalog_failures"] {
+            self.transaction.execute(
+                &format!("DELETE FROM {table} WHERE config_version_id = ?1 AND credential_id = ?2"),
+                params![config_version_id.as_str(), credential_id.as_str()],
+            )?;
+        }
         let deleted = self.transaction.execute(
             "DELETE FROM upstream_credentials WHERE config_version_id = ?1 AND id = ?2",
             params![config_version_id.as_str(), credential_id.as_str()],

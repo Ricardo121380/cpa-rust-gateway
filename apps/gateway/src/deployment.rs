@@ -479,9 +479,18 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         crate::account_identity::SessionIdentityTransport::new(command.grok_web_proxy.clone())
             .map_err(|_| DeploymentError::RuntimeUnavailable)?,
     ));
-    let resources = resources.with_native_accounts(native_accounts);
+    let resources = resources.with_native_accounts(native_accounts.with_runtime(reload.clone()));
     let resources = resources.with_provider_egress_status(provider_egress_status);
     let resources = resources.with_channel_pin(channel_pin);
+    let resources = resources.with_system_information(
+        gateway_http_actix::management_resources::ManagementSystemInformation {
+            version: env!("CARGO_PKG_VERSION"),
+            build_revision: env!("GATEWAY_RELEASE_REVISION"),
+            build_target: env!("GATEWAY_RELEASE_TARGET"),
+            rust_version: env!("GATEWAY_RELEASE_RUST_VERSION"),
+            schema_version: gateway_store::CURRENT_SCHEMA_VERSION,
+        },
+    );
     lifecycle_service.set_runtime_preparer(reload.clone());
     let lifecycle = ManagementLifecycleHttpState::new(lifecycle_service);
     let backup = ManagementBackupHttpState::new(

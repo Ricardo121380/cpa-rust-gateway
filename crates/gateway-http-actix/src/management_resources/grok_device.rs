@@ -2,8 +2,8 @@
 use super::native_accounts::NativeAccountManagement;
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use provider_grok::{
-    GrokAccountAuthStatus, GrokAccountCredential, GrokAccountIdentity, GrokAccountImport,
-    GrokAccountProvider, GrokBuildDevicePollOutcome, GrokBuildDevicePoller, GrokBuildOAuthFlow,
+    GrokAccountAuthStatus, GrokAccountCredential, GrokAccountImport, GrokAccountProvider,
+    GrokBuildDevicePollOutcome, GrokBuildDevicePoller, GrokBuildOAuthFlow,
     GrokBuildOAuthHttpResponse, GrokBuildOAuthRequest, GrokBuildOAuthTransport,
     GrokBuildOAuthTransportError,
 };
@@ -34,6 +34,7 @@ pub(super) struct View {
     retry_at_ms: i64,
     identity: Option<gateway_store::account_identity::AccountIdentity>,
     identity_state: String,
+    runtime_applied: Option<bool>,
 }
 #[derive(Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -163,6 +164,7 @@ impl DeviceSessions {
             input.name
         };
         let view = View {
+            runtime_applied: None,
             identity: None,
             identity_state: "pending".to_owned(),
             session_id: id.clone(),
@@ -228,12 +230,14 @@ impl DeviceSessions {
                         now,
                     )
                 } else {
+                    let material = GrokAccountCredential::try_from_build_credential(&credential)
+                        .map_err(|_| ())?;
                     let account = GrokAccountImport {
                         provider: GrokAccountProvider::Build,
-                        identity: GrokAccountIdentity::try_from_bytes(entry.name.as_bytes())
+                        identity: material
+                            .enrollment_identity(GrokAccountProvider::Build, now, None)
                             .map_err(|_| ())?,
-                        credential: GrokAccountCredential::try_from_build_credential(&credential)
-                            .map_err(|_| ())?,
+                        credential: material,
                         auth_status: GrokAccountAuthStatus::Active,
                         enabled: true,
                         priority: 0,
@@ -247,7 +251,7 @@ impl DeviceSessions {
                     };
                     native
                         .store
-                        .import_batch(&entry.name, &[account], now)
+                        .import_managed_account(&entry.name, &account, now)
                         .map(|_| ())
                 };
                 if result.is_ok()
@@ -264,6 +268,14 @@ impl DeviceSessions {
                     "observed".clone_into(&mut entry.view.identity_state);
                 }
                 entry.view.state = if result.is_ok() {
+                    entry.view.runtime_applied = Some(
+                        native.apply_runtime(
+                            entry
+                                .target
+                                .as_ref()
+                                .map(|target| target.account_id.as_str()),
+                        ),
+                    );
                     "complete"
                 } else {
                     "persistence_conflict"

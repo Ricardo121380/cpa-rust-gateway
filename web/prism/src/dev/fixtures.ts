@@ -1420,6 +1420,22 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const rows=nativeFixtureAccounts.filter((r)=>`${r.id} ${r.import_batch_id} ${r.provider}`.toLowerCase().includes(q.toLowerCase()));
       return json(200,{items:rows.slice(offset,offset+limit).map((row)=>({...row,identity:row.identity??{email:row.provider==="grok_build"?"grok.member@example.test":null,phone:null,username:null}})),next_cursor:offset+limit<rows.length?btoa(JSON.stringify({generation:nativeFixtureGeneration,q,offset:offset+limit})):null});
     }
+    const nativeAction=/^(PATCH|PUT|DELETE) \/admin\/native-accounts\/([^/?]+)(?:\/credential)?$/u.exec(route);
+    if(nativeAction){
+      const row=nativeFixtureAccounts.find((row)=>row.id===nativeAction[2]);
+      if(!row)return errorResponse(404,"management_native_account_not_found","账号不存在");
+      const input=JSON.parse(bodyText??"{}") as {revision:number;enabled?:boolean;secret?:string};
+      const revision=nativeAction[1]==="DELETE"?Number(url.searchParams.get("revision")):input.revision;
+      if(row.revision!==revision)return errorResponse(409,"management_native_account_conflict","账号已变化");
+      if(nativeAction[1]==="PUT"&&row.provider==="grok_build")return errorResponse(400,"invalid_management_request","请使用重新授权");
+      row.revision+=1;nativeFixtureGeneration+=1;
+      if(nativeAction[1]==="PATCH")row.enabled=Boolean(input.enabled);
+      if(nativeAction[1]==="PUT")row.identity={email:"session.member@example.test",phone:null,username:null};
+      if(nativeAction[1]==="DELETE")nativeFixtureAccounts.splice(nativeFixtureAccounts.indexOf(row),1);
+      return json(200,{account_id:row.id,revision:row.revision,removed:nativeAction[1]==="DELETE",runtime_applied:true,...(nativeAction[1]==="PUT"?{identity_state:"observed"}:{})});
+    }
+    if(/^GET \/admin\/native-accounts\/[^/]+\/audit$/u.test(route))return json(200,[]);
+    if(route==="POST /admin/operations/runtime/apply")return json(200,{runtime_applied:true});
     const nativeIdentity=/^POST \/admin\/native-accounts\/([^/]+)\/identity$/u.exec(route);
     if(nativeIdentity){
       const row=nativeFixtureAccounts.find((r)=>r.id===nativeIdentity[1]);const input=JSON.parse(bodyText??"{}") as {revision:number};
@@ -1430,8 +1446,8 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     if(route === "POST /admin/native-accounts/import") {
       const input=JSON.parse(bodyText??"{}") as {id:string;channel:string;secret:string};
       if(nativeFixtureAccounts.some((r)=>r.import_batch_id===input.id))return errorResponse(409,"management_native_account_conflict","账号名称已存在");
-      nativeFixtureAccounts.push({id:`grok-fixture-${++nativeFixtureGeneration}`,provider:input.channel.replace(".","_"),auth_status:"active",enabled:true,revision:0,import_batch_id:input.id,identity:input.channel==="grok.build"?fixtureBuildIdentity(input.secret):{email:null,phone:null,username:null}});
-      return json(201,{created:1,unchanged:0});
+      nativeFixtureAccounts.push({id:`grok-fixture-${++nativeFixtureGeneration}`,provider:input.channel.replace(".","_"),auth_status:"active",enabled:true,revision:0,import_batch_id:input.id,identity:input.channel==="grok.build"?fixtureBuildIdentity(input.secret):{email:"session.member@example.test",phone:null,username:null}});
+      return json(201,{created:1,unchanged:0,runtime_applied:true,identity_state:"observed"});
     }
     if(route === "POST /admin/native-account-authorizations") {
       const input=JSON.parse(bodyText??"{}") as {name:string;target?:{account_id:string;revision:number}};
@@ -1446,15 +1462,17 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         else{nativeFixtureAccounts.push({id:`grok-fixture-${++nativeFixtureGeneration}`,provider:"grok_build",auth_status:"active",enabled:true,revision:0,import_batch_id:entry.name,identity:{email:"authorized.member@example.test",phone:null,username:null}});entry.view.state="complete";}
       }
       if(entry.view.state==="complete"){entry.view.identity={email:"authorized.member@example.test",phone:null,username:null};entry.view.identity_state="observed";}
-      entry.view.retry_at_ms=Date.now()+1000;return json(200,entry.view);
+      entry.view.retry_at_ms=Date.now()+1000;return json(200,{...entry.view,runtime_applied:entry.view.state==="complete"?true:null});
     }
 
+    if (route === "GET /admin/system") return json(200,{build:{version:"0.1.0",build_revision:"development",build_target:"development",rust_version:"development",schema_version:26},uptime_seconds:120,configuration_application:"live",accepting_requests:true});
     if (route === "GET /admin/account-channels") {
       return json(200, [
         ["openai-compatible", "OpenAI 兼容 / 中转", "api_key", true, "none", ["openai-compatible"]],
         ["anthropic-compatible", "Anthropic 兼容 / 中转", "api_key", true, "none", ["anthropic-compatible"]],
         ["codex", "Codex / ChatGPT", "cpa_sub2api_json", true, "authorization_code", ["codex", "chatgpt", "openai-compatible"]],
         ["claude", "Claude", "claude_json", true, "authorization_code", ["claude", "anthropic-compatible"]],
+        ["kimi", "Kimi", "api_key", true, "none", ["kimi", "openai-compatible", "anthropic-compatible"]],
         ["grok.official", "Grok Official", "api_key", true, "none", ["grok.official"]],
         ["grok.build", "Grok Build", "grok_build_json", true, "device_code", ["grok.build"]],
         ["grok.console", "Grok Console", "sso", true, "none", ["grok.console"]],
@@ -1474,7 +1492,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         return errorResponse(400, "invalid_management_request", "secret is required");
       }
       if (route.endsWith("/account-import")) {
-        if (!["openai-compatible", "anthropic-compatible", "codex", "claude", "grok.official", "kiro"].includes(body.channel ?? "")) return errorResponse(400, "invalid_management_request", "Unsupported import");
+        if (!["openai-compatible", "anthropic-compatible", "codex", "claude", "kimi", "grok.official", "kiro"].includes(body.channel ?? "")) return errorResponse(400, "invalid_management_request", "Unsupported import");
         body.kind = body.channel === "codex" ? "oauth_json" : "bearer";
         body.status = "active";
       }

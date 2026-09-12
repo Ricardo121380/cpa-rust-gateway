@@ -52,6 +52,7 @@ pub(super) async fn list(state: web::Data<ManagementResourceHttpState>) -> HttpR
             "authorization_code",
         ),
         ("grok.official", "Grok Official", "api_key", true, "none"),
+        ("kimi", "Kimi", "api_key", true, "none"),
         (
             "grok.build",
             "Grok Build",
@@ -98,6 +99,7 @@ fn upstream_kinds(channel: &str) -> Vec<&'static str> {
     match channel {
         "codex" => vec!["codex", "chatgpt", "openai-compatible"],
         "claude" => vec!["claude", "anthropic-compatible"],
+        "kimi" => vec!["kimi", "openai-compatible", "anthropic-compatible"],
         "openai-compatible" => vec!["openai-compatible"],
         "anthropic-compatible" => vec!["anthropic-compatible"],
         "grok.official" => vec!["grok.official"],
@@ -118,7 +120,7 @@ fn normalize(
         return Err(());
     }
     match channel {
-        "openai-compatible" | "anthropic-compatible" | "grok.official" => {
+        "openai-compatible" | "anthropic-compatible" | "grok.official" | "kimi" => {
             if !secret.bytes().all(|b| b.is_ascii_graphic()) || secret.starts_with('{') {
                 return Err(());
             }
@@ -206,7 +208,7 @@ pub(super) async fn import(
             Ok(_) => return Ok(Err(ManagementResourceError::InvalidCredentialInput)),
             Err(error) => return Ok(Err(error)),
         }
-        Ok(service.create_credential(
+        Ok(service.import_credential(
             &actor,
             &context.version,
             context.revision,
@@ -221,7 +223,15 @@ pub(super) async fn import(
     })
     .await;
     match result {
-        Ok(Ok(value)) => revisioned_json(StatusCode::CREATED, value, CredentialResponse::from),
+        Ok(Ok((value, created))) => revisioned_json(
+            if created {
+                StatusCode::CREATED
+            } else {
+                StatusCode::OK
+            },
+            value,
+            CredentialResponse::from,
+        ),
         Ok(Err(error)) => management_error(error),
         Err(error) => management_error(ManagementResourceError::from(error)),
     }

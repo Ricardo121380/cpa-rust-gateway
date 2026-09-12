@@ -12,6 +12,9 @@ import { ObjectInspector } from "../../components/ObjectInspector";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
+import { ConnectModelDialog } from "./ConnectModelDialog";
+import { beginConfigurationTask } from "../config-versions/configurationTask";
+import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
 import "./models.css";
 import { RouteWorkbench } from "./RouteWorkbench";
 import {
@@ -24,6 +27,7 @@ import {
 } from "./model";
 
 type DraftModel = {
+  original?: PublicModel;
   id: string;
   model_name: string;
   status: "active" | "disabled";
@@ -45,6 +49,7 @@ function emptyDraft(): DraftModel {
 
 function toDraft(model: PublicModel): DraftModel {
   return {
+    original:model,
     id: model.id,
     model_name: model.model_name,
     status: model.status,
@@ -87,7 +92,10 @@ export function ModelsPage() {
   const [routeTarget, setRouteTarget] = useState<PublicModel | undefined>();
   const [createdRouteId, setCreatedRouteId] = useState<string | undefined>();
   const [notice, setNotice] = useState<string | undefined>();
+  const [connecting,setConnecting]=useState(search.get("add")==="model");
+  const closeConnecting=()=>{setConnecting(false);const next=new URLSearchParams(search);next.delete("add");setSearch(next,{replace:true});};
   const [actionError, setActionError] = useState<string | undefined>();
+  const [workingId,setWorkingId]=useState<string>();
 
   const models = useQuery({
     queryKey: ["public-models", scope],
@@ -101,46 +109,44 @@ export function ModelsPage() {
   };
 
   const save = useMutation({
-    mutationFn: (input: DraftModel) =>
-      input.isNew
-        ? call<PublicModel>("createPublicModel", { body: toInput(input) }, { versionScoped: true, mutating: true })
-        : call<PublicModel>(
-            "updatePublicModel",
-            { path: { public_model_id: input.id }, body: toInput(input) },
-            { versionScoped: true, mutating: true },
-          ),
-    onSuccess: () => {
+    mutationFn: async (input: DraftModel) => {
+      const task=await beginConfigurationTask("编辑模型");setWorkingId(task.version.id);
+      if(input.original&&JSON.stringify(await task.read<PublicModel>("getPublicModel",{path:{public_model_id:input.id}}))!==JSON.stringify(input.original))throw new Error("模型已被修改，请重新读取后编辑。");
+      await task.mutate(input.isNew?"createPublicModel":"updatePublicModel",{...(input.isNew?{}:{path:{public_model_id:input.id}}),body:toInput(input)});
+      return task.finish();
+    },
+    onSuccess: (version) => {
       setDraft(undefined);
       invalidate();
+      useVersionStore.getState().select(version);
     },
     onError: (error) => setActionError(asAppError(error).message),
   });
 
   const remove = useMutation({
-    mutationFn: (id: string) =>
-      call<undefined>(
-        "deletePublicModel",
-        { path: { public_model_id: id } },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: () => {
+    mutationFn: async (id: string) => {
+      const task=await beginConfigurationTask("移除模型");setWorkingId(task.version.id);
+      await task.mutate("deletePublicModel",{path:{public_model_id:id}});return task.finish();
+    },
+    onSuccess: (version) => {
       setConfirmDelete(undefined);
       invalidate();
+      useVersionStore.getState().select(version);
     },
     onError: (error) => setActionError(asAppError(error).message),
   });
 
   const addAlias = useMutation({
-    mutationFn: (input: { modelId: string; alias: string }) =>
-      call<{ alias: string }>(
-        "createModelAlias",
-        { path: { public_model_id: input.modelId }, body: { alias: input.alias } },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: (created) => {
+    mutationFn: async (input: { modelId: string; alias: string }) => {
+      const task=await beginConfigurationTask("添加模型别名");setWorkingId(task.version.id);
+      const created=await task.mutate<{alias:string}>("createModelAlias",{path:{public_model_id:input.modelId},body:{alias:input.alias}});
+      return {created,version:await task.finish()};
+    },
+    onSuccess: ({created,version}) => {
       setAliasTarget(undefined);
       setNotice(`别名 ${created.alias} 已创建，可在配置资源中查看。`);
       void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
+      useVersionStore.getState().select(version);
     },
     onError: (error) => setActionError(asAppError(error).message),
   });
@@ -188,57 +194,38 @@ export function ModelsPage() {
     }
   }
 
-  if (scope === undefined) {
-    return (
-      <section className="models-page">
-        <h2>{t.nav.models}</h2>
-        <div className="card empty-state" data-kind="empty">
-          <p>请到“配置版本”发布或选择一份配置。</p>
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section className="models-page">
       <header className="page-head">
         <h2>{t.nav.models}</h2>
         <div className="page-actions">
+          <button onClick={()=>setConnecting(true)}>开放模型</button>
           <button
             type="button"
             disabled={!editable}
             title={editable ? undefined : t.version.readOnly}
             onClick={() => setDraft(emptyDraft())}
           >
-            新建公开模型
+            高级模型配置
           </button>
         </div>
       </header>
+      {connecting?<ConnectModelDialog seed={modelSeed} onClose={closeConnecting} onSaved={(version)=>{closeConnecting();invalidate();useVersionStore.getState().select(version);}}/>:null}
 
       {modelSeed !== undefined ? (
         <section className="data-panel data-panel--padded" aria-label="待用于草稿的模型">
           <h3>已选择授权模型</h3>
           <p className="mono">
-            {modelSeed.model} · {modelSeed.endpoint}
+            {modelSeed.model}
           </p>
           <p className="stat-sub">
-            来源 serving 配置 {search.get("from_version") ?? "—"}。
-            {editable
-              ? "打开目标路由后添加候选，或先创建公开模型和路由。保存时会校验当前草稿中的端点。"
-              : "请先选择或创建草稿版本；此选择会保留。"}
+            已选择模型与接口，保存时会校验最新的账号目录。
           </p>
           <button
             className="secondary"
-            disabled={!editable}
-            onClick={() =>
-              setDraft({
-                ...emptyDraft(),
-                model_name: modelSeed.model,
-                display_name: modelSeed.model,
-              })
-            }
+            onClick={() => setConnecting(true)}
           >
-            以此模型创建公开模型
+            开放此模型
           </button>
           <button
             className="secondary"
@@ -274,7 +261,7 @@ export function ModelsPage() {
         </p>
       ) : null}
 
-      <ReadStatus pending={models.isPending} error={models.error} hasData={models.data !== undefined} retry={() => void models.refetch()} />
+      <ReadStatus pending={!!scope&&models.isPending} error={models.error} hasData={models.data !== undefined} retry={() => void models.refetch()} />
 
       <div className="card tablewrap">
         <table>
@@ -293,7 +280,7 @@ export function ModelsPage() {
                 <td className="mono">{model.model_name}</td>
                 <td>{model.display_name}</td>
                 <td>
-                  <StatusBadge status={model.status} />
+                  <StatusBadge status={model.status}>{model.status==="active"?"已启用":"已停用"}</StatusBadge>
                 </td>
                 <td>
                   {enabledCapabilities(model.capabilities).map((capability) => (
@@ -307,16 +294,14 @@ export function ModelsPage() {
                   <button
                     type="button"
                     className="secondary"
-                    disabled={!editable}
-                    onClick={() => setDraft(toDraft(model))}
+                    onClick={() => {save.reset();setWorkingId(undefined);setDraft(toDraft(model));}}
                   >
                     编辑
                   </button>
                   <button
                     type="button"
                     className="secondary"
-                    disabled={!editable}
-                    onClick={() => setAliasTarget(model)}
+                    onClick={() => {addAlias.reset();setWorkingId(undefined);setAliasTarget(model);}}
                   >
                     加别名
                   </button>
@@ -331,8 +316,7 @@ export function ModelsPage() {
                   <button
                     type="button"
                     className="danger"
-                    disabled={!editable}
-                    onClick={() => setConfirmDelete(model)}
+                    onClick={() => {remove.reset();setWorkingId(undefined);setConfirmDelete(model);}}
                   >
                     删除
                   </button>
@@ -348,21 +332,22 @@ export function ModelsPage() {
         ) : null}
       </div>
 
-      <RouteWorkbench focusRouteId={createdRouteId} editable={editable} modelSeed={modelSeed} />
+      <details className="models-advanced" open={createdRouteId!==undefined?true:undefined}><summary>高级路由、候选与别名</summary><RouteWorkbench focusRouteId={createdRouteId} editable={editable} modelSeed={modelSeed} /></details>
 
       {inspected === undefined ? null : <ObjectInspector title={inspected.display_name || inspected.model_name} scope={`配置版本 ${resourceName(scope ?? "—", "config")}`} onClose={() => setInspected(undefined)} facts={[
         ["配置 ID", inspected.id], ["模型名称", inspected.model_name], ["配置状态", inspected.status],
         ["声明能力", enabledCapabilities(inspected.capabilities).join(" · ") || "未声明"],
       ]}>
         <p className="small muted">这是版本配置中的公开模型；客户端实际可见性还取决于 serving 配置和访问授权。</p>
-        <div className="sheet-actions"><button disabled={!editable} onClick={() => { setDraft(toDraft(inspected)); setInspected(undefined); }}>编辑模型</button></div>
+        <div className="sheet-actions"><button onClick={() => {save.reset();setWorkingId(undefined);setDraft(toDraft(inspected));setInspected(undefined);}}>编辑模型</button></div>
       </ObjectInspector>}
 
       {draft !== undefined ? (
         <Sheet
           title={draft.isNew ? "新建公开模型" : `编辑 ${draft.model_name}`}
-          onEscape={() => setDraft(undefined)}
+          onEscape={() => !save.isPending&&setDraft(undefined)}
         >
+          <ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={(version)=>{setDraft(undefined);useVersionStore.getState().select(version);}}/>
           <form className="sheet-form" onSubmit={onSaveSubmit}>
             {draft.isNew ? (
               <label>
@@ -430,7 +415,7 @@ export function ModelsPage() {
               ))}
             </fieldset>
             <div className="sheet-actions">
-              <button type="button" className="secondary" onClick={() => setDraft(undefined)}>
+              <button type="button" className="secondary" disabled={save.isPending} onClick={() => setDraft(undefined)}>
                 取消
               </button>
               <button type="submit" disabled={save.isPending}>
@@ -442,7 +427,8 @@ export function ModelsPage() {
       ) : null}
 
       {aliasTarget !== undefined ? (
-        <Sheet title={`为 ${aliasTarget.model_name} 添加别名`} onEscape={() => setAliasTarget(undefined)}>
+        <Sheet title={`为 ${aliasTarget.model_name} 添加别名`} onEscape={() => !addAlias.isPending&&setAliasTarget(undefined)}>
+          <ConfigurationTaskNotice workingId={workingId} error={addAlias.error} onReview={(version)=>{setAliasTarget(undefined);useVersionStore.getState().select(version);}}/>
           <form
             className="sheet-form"
             onSubmit={(event) => {
@@ -456,7 +442,7 @@ export function ModelsPage() {
               <input name="alias" className="mono" required maxLength={256} />
             </label>
             <div className="sheet-actions">
-              <button type="button" className="secondary" onClick={() => setAliasTarget(undefined)}>
+              <button type="button" className="secondary" disabled={addAlias.isPending} onClick={() => setAliasTarget(undefined)}>
                 取消
               </button>
               <button type="submit" disabled={addAlias.isPending}>
@@ -523,13 +509,14 @@ export function ModelsPage() {
       ) : null}
 
       {confirmDelete !== undefined ? (
-        <Sheet title="确认删除" onEscape={() => setConfirmDelete(undefined)}>
+        <Sheet title="确认删除" onEscape={() => !remove.isPending&&setConfirmDelete(undefined)}>
+          <ConfigurationTaskNotice workingId={workingId} error={remove.error} onReview={(version)=>{setConfirmDelete(undefined);useVersionStore.getState().select(version);}}/>
           <p className="reveal-warning">
             删除公开模型 <span className="mono">{confirmDelete.model_name}</span>
             将级联删除其全部别名与路由(含候选),客户端将无法再解析该模型名。
           </p>
           <div className="sheet-actions">
-            <button type="button" className="secondary" onClick={() => setConfirmDelete(undefined)}>
+            <button type="button" className="secondary" disabled={remove.isPending} onClick={() => setConfirmDelete(undefined)}>
               取消
             </button>
             <button

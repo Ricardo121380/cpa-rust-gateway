@@ -17,7 +17,9 @@ allowed = {
   # data-plane adapter and its immutable RouteSnapshot, encrypted Credential-pool, direct egress,
   # protocol, and JSON dependencies here only; lower-layer rules still prevent them from flowing
   # back into library crates.
-  "gateway" => %w[actix-web futures-util gateway-auth gateway-catalog gateway-control gateway-core gateway-http-actix gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream getrandom libc protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-grok provider-kiro provider-openai-compatible reqwest serde serde_json tokio tracing zeroize],
+  # Live configuration application atomically replaces the complete serving generation in this
+  # composition root; arc-swap is already the workspace's reviewed snapshot primitive.
+  "gateway" => %w[actix-web arc-swap futures-util gateway-auth gateway-catalog gateway-control gateway-core gateway-http-actix gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream getrandom libc protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-grok provider-kiro provider-openai-compatible reqwest serde serde_json tokio tracing zeroize],
   # Administrator passwords use the reviewed Argon2id primitive here; HTTP and persistence
   # remain in their existing adapter/store layers. No other dependency edge is widened.
   "gateway-auth" => %w[argon2 gateway-core getrandom hmac libc sha2 subtle zeroize],

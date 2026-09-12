@@ -311,6 +311,10 @@ pub struct ResponsesHttpState {
 pub trait ResponsesStateSource: Send + Sync {
     /// Captures one complete, immutable HTTP generation without I/O or blocking compilation.
     fn capture(&self) -> Arc<ResponsesHttpState>;
+    /// Allows admission to pause after a durable account change could not be applied.
+    fn try_capture(&self) -> Option<Arc<ResponsesHttpState>> {
+        Some(self.capture())
+    }
 }
 
 #[derive(Clone)]
@@ -329,7 +333,7 @@ impl actix_web::FromRequest for CapturedResponsesState {
     fn from_request(request: &HttpRequest, _payload: &mut actix_web::dev::Payload) -> Self::Future {
         let captured =
             if let Some(source) = request.app_data::<web::Data<dyn ResponsesStateSource>>() {
-                Some(source.capture())
+                source.try_capture()
             } else {
                 request
                     .app_data::<web::Data<ResponsesHttpState>>()

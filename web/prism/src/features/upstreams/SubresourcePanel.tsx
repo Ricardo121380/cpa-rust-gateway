@@ -4,12 +4,15 @@ import { resourceName } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 // Configuration inventories own endpoint/account enumeration; runtime pools supply observed bindings.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
+import { useState, useRef, type FormEvent, type ReactNode } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { Sheet } from "../../components/Sheet";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useVersionStore } from "../config-versions/versionStore";
+import { beginConfigurationTask } from "../config-versions/configurationTask";
+import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
+import type { ManagementOperationName, ManagementRequest } from "../../generated/management-client";
 import { CredentialSheet } from "./CredentialSheet";
 import { useManagedInventory } from "../accounts/inventory";
 import {
@@ -41,7 +44,7 @@ type EndpointRecord = Readonly<{
 }>;
 
 type ChannelForm = { mode: "create" } | { mode: "edit"; channelId: string };
-type AccountForm = { mode: "create" } | { mode: "edit"; accountId: string; kind: string };
+type AccountForm = { mode: "create" } | { mode: "edit"; accountId: string; kind: string; status:string; revision:number };
 
 const TEST_TONE: Record<EndpointTest["outcome"], string> = {
   pass: "active",
@@ -60,7 +63,7 @@ type ConfigBinding = Readonly<{
   concurrency: number;
 }>;
 
-type SheetSubmit = (body: unknown, existing: string | undefined) => void;
+type SheetSubmit = (body: unknown, existing: string | undefined, expected?:unknown) => void;
 
 /** Channel create/edit. PATCH replaces the whole EndpointInput, and the pool
  *  inventory omits base_url by design, so editing reads the full record first
@@ -118,7 +121,7 @@ function BindingReconcileSheet({
             <tr>
               <th>credential</th>
               <th>upstream</th>
-              <th>enabled</th>
+              <th>启用</th>
               <th>优先级</th>
               <th>权重</th>
               <th>并发上限</th>
@@ -163,8 +166,10 @@ function ChannelSheet({
   pending,
   onCancel,
   onSubmit,
-}: Readonly<{ form: ChannelForm; pending: boolean; onCancel: () => void; onSubmit: SheetSubmit }>) {
+  feedback,
+}: Readonly<{ form: ChannelForm; pending: boolean; feedback?:ReactNode; onCancel: () => void; onSubmit: SheetSubmit }>) {
   const editing = form.mode === "edit" ? form.channelId : undefined;
+  const original=useRef<EndpointRecord|undefined>(undefined);
   const record = useQuery({
     queryKey: ["endpoint", editing],
     queryFn: () =>
@@ -188,13 +193,15 @@ function ChannelSheet({
       </Sheet>
     );
   }
-  const current = record.data;
+  if(!original.current&&record.data)original.current=record.data;
+  const current = original.current;
 
   return (
     <Sheet
       title={editing === undefined ? "新建接口" : `编辑接口 · ${resourceName(editing,"endpoint")}`}
       onEscape={onCancel}
     >
+      {feedback}
       <form
         className="sheet-form"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
@@ -213,6 +220,7 @@ function ChannelSheet({
               enabled: data.get("enabled") === "on",
             },
             editing,
+            current,
           );
         }}
       >
@@ -224,23 +232,23 @@ function ChannelSheet({
             required
             maxLength={128}
             readOnly={editing !== undefined}
-            defaultValue={current?.id ?? ""}
+            defaultValue={current?.id ?? `endpoint-${crypto.randomUUID()}`}
           />
         </label>
         <label>
-          adapter_id
+          接口实现
           <input name="adapter_id" className="mono" required defaultValue={current?.adapter_id ?? ""} />
         </label>
         <label>
-          api_format
+          请求格式
           <input name="api_format" className="mono" required defaultValue={current?.api_format ?? ""} />
         </label>
         <label>
-          base_url
+          接口地址
           <input name="base_url" className="mono" required defaultValue={current?.base_url ?? ""} />
         </label>
         <label>
-          inference_path
+          请求路径
           <input
             name="inference_path"
             className="mono"
@@ -249,17 +257,14 @@ function ChannelSheet({
           />
         </label>
         <label>
-          models_path(可空)
+          模型目录路径（可选）
           <input name="models_path" className="mono" defaultValue={current?.models_path ?? ""} />
         </label>
         <label className="check-row">
           <input name="enabled" type="checkbox" defaultChecked={current?.enabled ?? true} />
           启用
         </label>
-        <p className="stat-sub">
-          契约的 transport 目前只有 <span className="mono">https</span> 一个取值,故不作为可选项。
-          保存等于整体替换。
-        </p>
+
         <div className="sheet-actions">
           <button type="button" className="secondary" onClick={onCancel}>
             取消
@@ -285,18 +290,21 @@ function AccountSheet({
   pending,
   onCancel,
   onSubmit,
-}: Readonly<{ form: AccountForm; displayName?: string; pending: boolean; onCancel: () => void; onSubmit: SheetSubmit }>) {
+  feedback,
+}: Readonly<{ form: AccountForm; displayName?: string; pending: boolean; feedback?:ReactNode; onCancel: () => void; onSubmit: SheetSubmit }>) {
   const editing = form.mode === "edit" ? form.accountId : undefined;
   return (
     <Sheet
       title={editing === undefined ? "新建账号" : `编辑账号 · ${displayName??"未提供账号身份"}`}
       onEscape={onCancel}
     >
+      {feedback}
       <form
         className="sheet-form"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
+          const secretField=event.currentTarget.elements.namedItem("secret");if(secretField instanceof HTMLInputElement)secretField.value="";
           onSubmit(
             {
               id: String(data.get("id") ?? "").trim(),
@@ -305,6 +313,7 @@ function AccountSheet({
               status: String(data.get("status") ?? "active"),
             },
             editing,
+            form.mode==="edit"?form.revision:undefined,
           );
         }}
       >
@@ -331,7 +340,7 @@ function AccountSheet({
         </label>
         <label>
           状态
-          <select name="status" defaultValue="active">
+          <select name="status" defaultValue={form.mode==="edit"?form.status:"active"}>
             <option value="active">active</option>
             <option value="disabled">disabled</option>
             <option value="revoked">revoked</option>
@@ -351,13 +360,7 @@ function AccountSheet({
             spellCheck={false}
           />
         </label>
-        {editing !== undefined ? (
-          <p className="stat-sub">
-            契约的 <span className="mono">CredentialInput.secret</span> 是必填,而读模型
-            <strong>永不返回密钥</strong> —— 所以哪怕只想改状态,也必须重新输入密钥。
-            这不是本页的限制,是 PATCH 整体替换语义的直接后果。
-          </p>
-        ) : null}
+        {editing!==undefined?<p className="muted">更新授权资料会重新校验账号。只需启停时，可在全部账号中操作。</p>:null}
         <div className="sheet-actions">
           <button type="button" className="secondary" onClick={onCancel}>
             取消
@@ -373,7 +376,7 @@ function AccountSheet({
 
 export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }>) {
   const context = useVersionStore((s) => s.context);
-  const editable = context?.status === "draft";
+  const editable = context!==undefined;
   const scope = context?.configVersionId;
   const [testResults, setTestResults] = useState<Record<string, EndpointTest>>({});
   const [reconcile, setReconcile] = useState<string | undefined>();
@@ -388,6 +391,13 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
     { kind: "channel" | "account"; id: string } | undefined
   >();
   const [error, setError] = useState<string | undefined>();
+  const [workingId,setWorkingId]=useState<string>();
+  const editResource=async(operation:ManagementOperationName,request:ManagementRequest,expected?:unknown)=>{
+    const task=await beginConfigurationTask("修改提供商连接");setWorkingId(task.version.id);
+    if(operation==="updateEndpoint"&&JSON.stringify(await task.read("getEndpoint",{path:request.path}))!==JSON.stringify(expected))throw new Error("接口已被修改，请重新读取后编辑。");
+    if(operation==="updateCredential"&&(await task.read<{revision:number}>("getCredential",{path:request.path})).revision!==expected)throw new Error("账号已被修改，请重新读取后编辑。");
+    await task.mutate(operation,request);return task.finish();
+  };
   const queryClient = useQueryClient();
 
   const pools = useQuery({
@@ -449,78 +459,27 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
   // partial update for subresources, so each form is seeded with current
   // values and saving replaces the record.
   const saveChannel = useMutation({
-    mutationFn: (input: { existing: string | undefined; body: unknown }) =>
-      input.existing === undefined
-        ? call<EndpointRecord>(
-            "createEndpoint",
-            { path: { upstream_id: upstreamId }, body: input.body },
-            { versionScoped: true, mutating: true },
-          )
-        : call<EndpointRecord>(
-            "updateEndpoint",
-            { path: { endpoint_id: input.existing }, body: input.body },
-            { versionScoped: true, mutating: true },
-          ),
-    onSuccess: () => {
-      setChannelForm(undefined);
-      refresh();
-    },
-    onError: (cause) => setError(asAppError(cause).message),
+    mutationFn: (input: { existing: string | undefined; body: unknown; expected?:unknown }) => editResource(input.existing?"updateEndpoint":"createEndpoint",{path:input.existing?{endpoint_id:input.existing}:{upstream_id:upstreamId},body:input.body},input.expected),
+    onSuccess:(version)=>{setChannelForm(undefined);refresh();useVersionStore.getState().select(version);},
+    onError:(cause)=>setError(asAppError(cause).message),
   });
-
-  const saveAccount = useMutation({
-    mutationFn: (input: { existing: string | undefined; body: unknown }) =>
-      input.existing === undefined
-        ? call<unknown>(
-            "createCredential",
-            { path: { upstream_id: upstreamId }, body: input.body },
-            { versionScoped: true, mutating: true },
-          )
-        : call<unknown>(
-            "updateCredential",
-            { path: { credential_id: input.existing }, body: input.body },
-            { versionScoped: true, mutating: true },
-          ),
-    onSuccess: () => {
-      setAccountForm(undefined);
-      refresh();
-    },
-    onError: (cause) => setError(asAppError(cause).message),
+  const saveAccount = useMutation({gcTime:0,
+    mutationFn:(input:{existing:string|undefined;body:unknown;expected?:unknown})=>editResource(input.existing?"updateCredential":"createCredential",{path:input.existing?{credential_id:input.existing}:{upstream_id:upstreamId},body:input.body},input.expected),
+    onSuccess:(version)=>{setAccountForm(undefined);refresh();useVersionStore.getState().select(version);},
+    onError:(cause)=>setError(asAppError(cause).message),
+    onSettled:():void=>{saveAccount.reset();},
   });
-
-  const saveBinding = useMutation({
-    mutationFn: (input: { endpointId: string; body: unknown }) =>
-      call<unknown>(
-        "createEndpointCredentialBinding",
-        { path: { endpoint_id: input.endpointId }, body: input.body },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: () => {
-      setBindingForm(undefined);
-      refresh();
-    },
-    onError: (cause) => setError(asAppError(cause).message),
+  const saveBinding=useMutation({
+    mutationFn:(input:{endpointId:string;body:unknown})=>editResource("createEndpointCredentialBinding",{path:{endpoint_id:input.endpointId},body:input.body}),
+    onSuccess:(version)=>{setBindingForm(undefined);refresh();useVersionStore.getState().select(version);},
+    onError:(cause)=>setError(asAppError(cause).message),
   });
-
-  const remove = useMutation({
-    mutationFn: (target: { kind: "channel" | "account"; id: string }) =>
-      target.kind === "channel"
-        ? call<undefined>(
-            "deleteEndpoint",
-            { path: { endpoint_id: target.id } },
-            { versionScoped: true, mutating: true },
-          )
-        : call<undefined>(
-            "deleteCredential",
-            { path: { credential_id: target.id } },
-            { versionScoped: true, mutating: true },
-          ),
-    onSuccess: () => {
-      setConfirmDelete(undefined);
-      refresh();
-    },
-    onError: (cause) => setError(asAppError(cause).message),
+  const remove=useMutation({
+    mutationFn:(target:{kind:"channel"|"account";id:string})=>editResource(target.kind==="channel"?"deleteEndpoint":"deleteCredential",{path:target.kind==="channel"?{endpoint_id:target.id}:{credential_id:target.id}}),
+    onSuccess:(version)=>{setConfirmDelete(undefined);refresh();useVersionStore.getState().select(version);},
+    onError:(cause)=>setError(asAppError(cause).message),
   });
+  const feedback=<ConfigurationTaskNotice workingId={workingId} error={error?new Error(error):undefined} onReview={(version)=>useVersionStore.getState().select(version)}/>;
 
   const inventoryError = managedEndpoints.error ?? managedCredentials.error;
   if (inventoryError) {
@@ -543,7 +502,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
       display: accountName(identity) ?? "未提供账号身份", provider,
       account_id: credential.id, account_kind: credential.kind,
       account_status: credential.status === "active" ? "active" as const : "disabled" as const,
-      account_revision: credential.revision,
+      account_revision: credential.revision, raw_status:credential.status,
     })),
     bindings: observed?.bindings ?? [],
   };
@@ -608,11 +567,11 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
               <tr key={channel.channel_id}>
                 <td><ResourceIdentity id={channel.channel_id} kind="endpoint" name={channel.display} /></td>
                 <td className="mono">{channel.adapter_id}</td>
-                <td className="mono">{channel.api_format}</td>
+                <td>{protocolName(channel.api_format)}</td>
                 <td className="mono">{channel.transport}</td>
                 <td>
                   <StatusBadge status={channel.channel_enabled ? "active" : "disabled"}>
-                    {channel.channel_enabled ? "enabled" : "disabled"}
+                    {channel.channel_enabled ? "已启用" : "已停用"}
                   </StatusBadge>
                 </td>
                 <td className="row-actions">
@@ -710,22 +669,20 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
             <th>账号</th>
             <th>认证方式</th>
             <th>状态</th>
-            <th>修订</th>
-            <th>操作</th>
+                        <th>操作</th>
           </tr>
         </thead>
         <tbody>
           {pool.accounts.map((account) => (
             <tr key={account.account_id}>
               <td><ResourceIdentity id={account.account_id} kind="account" name={account.display} /></td>
-              <td className="mono">{account.account_kind}</td>
+              <td>{account.account_kind === "oauth_json" ? "OAuth 授权" : account.account_kind === "bearer" ? "API 密钥" : account.account_kind}</td>
               <td>
                 <StatusBadge status={accountStatusTone(account.account_status)}>
-                  {account.account_status}
+                  {account.account_status === "active" ? "已启用" : account.account_status === "disabled" ? "已停用" : account.account_status}
                 </StatusBadge>
               </td>
-              <td className="mono">{account.account_revision}</td>
-              <td className="row-actions">
+                            <td className="row-actions">
                 <button type="button" onClick={() => setAccountTarget(account.account_id)}>
                   详情
                 </button>
@@ -738,6 +695,8 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
                       mode: "edit",
                       accountId: account.account_id,
                       kind: account.account_kind,
+                      status:account.raw_status,
+                      revision:account.account_revision,
                     })
                   }
                 >
@@ -765,7 +724,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
           <tr>
             <th>接口</th>
             <th>账号</th>
-            <th>静态启用</th>
+            <th>连接状态</th>
             <th>优先级</th>
             <th>权重</th>
             <th>并发上限</th>
@@ -779,7 +738,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
               <td><ResourceIdentity id={binding.account_id} kind="account" name={pool.accounts.find(a=>a.account_id===binding.account_id)?.display} /></td>
               <td>
                 <StatusBadge status={binding.configured_enabled ? "active" : "disabled"}>
-                  {binding.configured_enabled ? "enabled" : "disabled"}
+                  {binding.configured_enabled ? "已启用" : "已停用"}
                 </StatusBadge>
               </td>
               <td className="mono">{binding.priority}</td>
@@ -793,9 +752,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
         </tbody>
       </table>
       <p className="stat-sub">
-        「静态启用」= <span className="mono">provider &amp;&amp; channel &amp;&amp; binding</span>{" "}
-        三者皆开。它<strong>不</strong>代表凭据健康、有额度或当前可路由 ——
-        运行时状态请在账号池中查看。
+        认证、额度和调度情况见账号管理的运行状态。
       </p>
 
       {reconcile !== undefined ? (
@@ -830,7 +787,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
             {!discovery.applied ? (
               <button
                 type="button"
-                disabled={!editable || apply.isPending}
+                disabled={context?.status!=="draft" || apply.isPending}
                 title={editable ? undefined : "仅草稿版本可应用"}
                 onClick={() => apply.mutate(discovery.endpointId)}
               >
@@ -845,8 +802,9 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
         <ChannelSheet
           form={channelForm}
           pending={saveChannel.isPending}
-          onCancel={() => setChannelForm(undefined)}
-          onSubmit={(body, existing) => saveChannel.mutate({ existing, body })}
+          feedback={feedback}
+          onCancel={() => !saveChannel.isPending&&setChannelForm(undefined)}
+          onSubmit={(body, existing,expected) => saveChannel.mutate({ existing, body,expected })}
         />
       ) : null}
 
@@ -855,16 +813,18 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
           form={accountForm}
           displayName={accountForm.mode==="edit"?pool.accounts.find(a=>a.account_id===accountForm.accountId)?.display:undefined}
           pending={saveAccount.isPending}
-          onCancel={() => setAccountForm(undefined)}
-          onSubmit={(body, existing) => saveAccount.mutate({ existing, body })}
+          feedback={feedback}
+          onCancel={() => !saveAccount.isPending&&setAccountForm(undefined)}
+          onSubmit={(body, existing,expected) => saveAccount.mutate({ existing, body,expected })}
         />
       ) : null}
 
       {bindingForm !== undefined ? (
         <Sheet
           title={bindingForm.channelId === "" ? "加绑定" : `加绑定 · ${resourceName(bindingForm.channelId,"endpoint")}`}
-          onEscape={() => setBindingForm(undefined)}
+          onEscape={() => !saveBinding.isPending&&setBindingForm(undefined)}
         >
+          {feedback}
           <form
             className="sheet-form"
             onSubmit={(event: FormEvent<HTMLFormElement>) => {
@@ -925,7 +885,8 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
       ) : null}
 
       {confirmDelete !== undefined ? (
-        <Sheet title="确认删除" onEscape={() => setConfirmDelete(undefined)}>
+        <Sheet title="确认删除" onEscape={() => !remove.isPending&&setConfirmDelete(undefined)}>
+          {feedback}
           <p>
             删除 <span className="mono">{resourceName(confirmDelete.id,confirmDelete.kind==="channel"?"endpoint":"account")}</span>
             {confirmDelete.kind === "channel"

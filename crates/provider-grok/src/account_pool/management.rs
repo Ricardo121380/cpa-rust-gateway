@@ -16,6 +16,30 @@ pub struct GrokManagedAccountPage {
 }
 
 impl GrokAccountPoolStore {
+    /// Resolves the account produced by a stable enrollment identity, including idempotent imports.
+    /// # Errors
+    /// Rejects unavailable storage; no credential is opened or returned.
+    pub fn account_for_identity(
+        &self,
+        provider: super::GrokAccountProvider,
+        identity: &super::GrokAccountIdentity,
+    ) -> Result<Option<String>, GrokAccountPoolError> {
+        use rusqlite::OptionalExtension;
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+        let digest = super::identity_digest(provider, &identity.0);
+        connection
+            .query_row(
+                "SELECT id FROM grok_accounts WHERE provider=?1 AND identity_digest=?2",
+                params![provider.as_str(), digest.as_slice()],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(|_| GrokAccountPoolError::StoreUnavailable)
+    }
+
     /// Enumerates native account metadata without selecting any credential ciphertext.
     /// # Errors
     /// Rejects invalid bounds, stale continuation stamps and unavailable stores.
@@ -128,14 +152,25 @@ impl GrokAccountPoolStore {
         let bytes = credential
             .persisted_bytes()
             .map_err(|_| GrokAccountPoolError::InvalidCredential)?;
+        let identity = super::GrokAccountCredential::try_from_build_credential(&credential)?
+            .enrollment_identity(super::GrokAccountProvider::Build, now, None)?;
+        let digest = super::identity_digest(super::GrokAccountProvider::Build, &identity.0);
+        let duplicate: bool = transaction.query_row("SELECT EXISTS(SELECT 1 FROM grok_accounts WHERE provider='build' AND identity_digest=?1 AND id<>?2)",params![digest.as_slice(),id],|row|row.get(0))
+            .map_err(|_|GrokAccountPoolError::StoreUnavailable)?;
+        if duplicate {
+            return Err(GrokAccountPoolError::ExistingAccountConflict);
+        }
         let sealed = self
             .secret_store
-            .seal(&bytes, &aad)
+            .seal(
+                &bytes,
+                &super::credential_aad(super::GrokAccountProvider::Build, &digest),
+            )
             .map_err(|_| GrokAccountPoolError::SecretStoreFailure)?;
         let next = revision
             .checked_add(1)
             .ok_or(GrokAccountPoolError::InvalidPersistedState)?;
-        transaction.execute("UPDATE grok_accounts SET credential_ciphertext=?1,credential_key_version=?2,revision=?3,auth_status='active',refresh_due_at_ms=?4,last_refresh_at_ms=?5,refresh_failure_count=0,updated_at_ms=?5,worker_claim_kind=NULL,worker_claim_id=NULL,worker_claim_expires_at_ms=NULL WHERE id=?6 AND revision=?7",params![sealed.ciphertext(),sealed.key_version().as_sqlite_i64(),next,credential.expires_at_ms().saturating_sub(60000).max(now),now,id,revision]).map_err(|_|GrokAccountPoolError::StoreUnavailable)?;
+        transaction.execute("UPDATE grok_accounts SET credential_ciphertext=?1,credential_key_version=?2,revision=?3,auth_status='active',refresh_due_at_ms=?4,last_refresh_at_ms=?5,refresh_failure_count=0,updated_at_ms=?5,worker_claim_kind=NULL,worker_claim_id=NULL,worker_claim_expires_at_ms=NULL,identity_digest=?8 WHERE id=?6 AND revision=?7",params![sealed.ciphertext(),sealed.key_version().as_sqlite_i64(),next,credential.expires_at_ms().saturating_sub(60000).max(now),now,id,revision,digest.as_slice()]).map_err(|_|GrokAccountPoolError::StoreUnavailable)?;
         transaction
             .execute(
                 "DELETE FROM grok_account_reauth_state WHERE account_id=?1",
@@ -149,7 +184,7 @@ impl GrokAccountPoolStore {
     }
 }
 
-fn build_subject(token: &str) -> Result<String, GrokAccountPoolError> {
+pub(super) fn build_subject(token: &str) -> Result<String, GrokAccountPoolError> {
     use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
     let payload = token
         .split('.')
