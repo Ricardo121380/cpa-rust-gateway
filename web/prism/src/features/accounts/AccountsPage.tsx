@@ -156,7 +156,7 @@ function ManagedAccounts() {
         <div className="page-actions"><strong>{row.provider} · {row.credential.kind==="oauth_json"?"OAuth 授权":"渠道凭据"}</strong>{ordinaryView(row).status}</div>
         <p>{row.connections.length?row.connections.map((c)=>`${protocolName(c.api_format)}${c.host?` · ${c.host}`:""}`).join(" / "):"未连接接口"}</p>
         {accountSource(row.credential.id)?<p className="entity-meta">来源 · {accountSource(row.credential.id)}</p>:null}
-        <IdentityDetails entries={[["凭据 ID",row.credential.id],["上游 ID",row.credential.upstream_id]]}/>
+        <IdentityDetails entries={[["账号",row.credential.id,accountName(row.identity)],["提供商",row.credential.upstream_id,row.provider]]}/>
         {actions(row)}
       </section>)}</div>
     </Sheet>:null}
@@ -171,7 +171,7 @@ function ManagedAccounts() {
       <h3>{accountName(nativeDetail.identity,nativeDetail.import_batch_id)??"未提供账号身份"}</h3><p>{nativeNames[nativeDetail.provider]}</p>
       {accountSource(nativeDetail.import_batch_id)?<p>来源：{accountSource(nativeDetail.import_batch_id)}</p>:null}
       <p>账号加入对应 Grok 渠道池，由网关按该渠道选择。它没有普通 API 账号的逐项接口绑定。</p>
-      <details><summary>技术标识</summary><dl><dt>账号 ID</dt><dd className="mono">{nativeDetail.id}</dd><dt>导入批次</dt><dd className="mono">{nativeDetail.import_batch_id}</dd></dl></details>
+      <IdentityDetails entries={[["账号",nativeDetail.id,accountName(nativeDetail.identity)??"未提供账号身份"]]} />
     </Sheet>:null}
     {nativeOauth?<GrokDeviceWizard name={accountName(nativeOauth.identity,nativeOauth.import_batch_id)??"Grok Build 账号"} target={{account_id:nativeOauth.id,revision:nativeOauth.revision}} onClose={()=>{setNativeOauth(undefined);void refresh();}} />:null}
     {["account", "api-key"].includes(params.get("add") ?? "") && context?.status === "draft" ? <AddAccountDialog onClose={() => update("add", "")} onCreated={(notice) => {update("add", ""); setNotice(notice??"账号已保存。"); void refresh();}} /> : null}

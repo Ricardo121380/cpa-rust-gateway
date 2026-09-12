@@ -1,0 +1,760 @@
+{
+  "date": "2026-09-12",
+  "base_commit": "e033fe3",
+  "scope": "frontend candidate and explicitly requested production duplicate consolidation",
+  "frontend_deployed": false,
+  "production": {
+    "published": true,
+    "source": "p12-09-codex-official-oauth-v6",
+    "target": "production-accounts-20260912",
+    "same_grant_verified": true,
+    "same_connections_verified": true,
+    "retained_priority": 0,
+    "removed_duplicate_priority": 1,
+    "same_egress_verified": true,
+    "removed_credentials": 1,
+    "removed_duplicate_bindings": 1,
+    "remaining_codex_credentials": 1,
+    "provider_requests": 0,
+    "secret_output": false,
+    "passed": true,
+    "scope": "production",
+    "runtime_codex_connections": 1,
+    "runtime_total_connections": 8,
+    "restart_to_ready_ms": 767,
+    "history_retained": {
+      "gateway_event_log": 2229,
+      "billing_ledger_entries": 593,
+      "grok_accounts": 5
+    },
+    "binary_changed": false,
+    "administrator_password_changed": false
+  },
+  "preflight": {
+    "read_only": true,
+    "codex_credentials": [
+      {
+        "revision": 1,
+        "bindings": 1,
+        "email_observed": true,
+        "subject_observed": true,
+        "refresh_present": true,
+        "source_format": null
+      },
+      {
+        "revision": 0,
+        "bindings": 1,
+        "email_observed": true,
+        "subject_observed": true,
+        "refresh_present": true,
+        "source_format": null
+      }
+    ],
+    "same_email": true,
+    "same_subject": true,
+    "same_chatgpt_account": true,
+    "same_access_token": true,
+    "same_refresh_token": true,
+    "same_upstream": true,
+    "secret_or_identity_values_output": false
+  },
+  "offline_rehearsal": {
+    "published": true,
+    "source": "p12-09-codex-official-oauth-v6",
+    "target": "production-accounts-20260912",
+    "same_grant_verified": true,
+    "same_connections_verified": true,
+    "retained_priority": 0,
+    "removed_duplicate_priority": 1,
+    "same_egress_verified": true,
+    "removed_credentials": 1,
+    "removed_duplicate_bindings": 1,
+    "remaining_codex_credentials": 1,
+    "provider_requests": 0,
+    "secret_output": false,
+    "running_codex_connections": 1,
+    "passed": true,
+    "network_isolated": true,
+    "rollback_verified": true,
+    "old_binary_retained": true
+  },
+  "browser": {
+    "tool": "EgoLite",
+    "task_space": 6,
+    "finished": true,
+    "actual_gateway": true,
+    "fixture_backend": false,
+    "data": "synthetic only",
+    "url": "http://127.0.0.1:51075/admin-ui/#/accounts",
+    "sweeps": {
+      "1440": [
+        {
+          "route": "#/",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/accounts",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/upstreams",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/models",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/catalog",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/access",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/runtime",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/egress",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/versions",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/audit",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/monitoring",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/usage",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/billing",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/settings",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        }
+      ],
+      "1280": [
+        {
+          "route": "#/",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/accounts",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/upstreams",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/models",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/catalog",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/access",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/runtime",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/egress",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/versions",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/audit",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/monitoring",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/usage",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/billing",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/settings",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        }
+      ],
+      "390": [
+        {
+          "route": "#/",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/accounts",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/upstreams",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/models",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/catalog",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/access",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/runtime",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/egress",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/versions",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/audit",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/monitoring",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/usage",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/billing",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/settings",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        }
+      ]
+    },
+    "draft_error_rendering": {
+      "1280": [
+        {
+          "route": "#/",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/accounts",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/upstreams",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/models",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/catalog",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "此部署未启用该运行时投影"
+          ]
+        },
+        {
+          "route": "#/access",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/runtime",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": []
+        },
+        {
+          "route": "#/egress",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了",
+            "所选配置版本不是这份快照的来源 —— 从头重读也不会有用,请到“配置版本”重新选择。",
+            "所选配置版本不是这份快照的来源 —— 从头重读也不会有用,请到“配置版本”重新选择。",
+            "所选配置版本不是这份快照的来源 —— 从头重读也不会有用,请到“配置版本”重新选择。"
+          ]
+        },
+        {
+          "route": "#/versions",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        },
+        {
+          "route": "#/audit",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        },
+        {
+          "route": "#/monitoring",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        },
+        {
+          "route": "#/usage",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        },
+        {
+          "route": "#/billing",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        },
+        {
+          "route": "#/settings",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        }
+      ],
+      "390": [
+        {
+          "route": "#/",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        },
+        {
+          "route": "#/accounts",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        },
+        {
+          "route": "#/upstreams",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        },
+        {
+          "route": "#/models",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        },
+        {
+          "route": "#/catalog",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了",
+            "此部署未启用该运行时投影"
+          ]
+        },
+        {
+          "route": "#/access",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        },
+        {
+          "route": "#/runtime",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        },
+        {
+          "route": "#/egress",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了",
+            "所选配置版本不是这份快照的来源 —— 从头重读也不会有用,请到“配置版本”重新选择。",
+            "所选配置版本不是这份快照的来源 —— 从头重读也不会有用,请到“配置版本”重新选择。",
+            "所选配置版本不是这份快照的来源 —— 从头重读也不会有用,请到“配置版本”重新选择。"
+          ]
+        },
+        {
+          "route": "#/versions",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        },
+        {
+          "route": "#/audit",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        },
+        {
+          "route": "#/monitoring",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        },
+        {
+          "route": "#/usage",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        },
+        {
+          "route": "#/billing",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        },
+        {
+          "route": "#/settings",
+          "legacy": [],
+          "fields": [],
+          "overflow": false,
+          "alerts": [
+            "配置已被其他会话修改,已刷新数据 —— 请确认后重试。\n知道了"
+          ]
+        }
+      ]
+    },
+    "checks": {
+      "mutation-check": {
+        "endpointTargetPreserved": true,
+        "savedValueReadBack": true,
+        "legacyVisible": false
+      },
+      "picker-check": {
+        "selection": {
+          "endpoint": true,
+          "credential": true,
+          "visibleLegacy": false
+        },
+        "mobile": {
+          "left": 12,
+          "right": 12,
+          "overflow": false,
+          "focusInside": true
+        }
+      },
+      "legacy-query-check": {
+        "legacyQueryPreserved": true,
+        "formProviderPreserved": true,
+        "formAccountPreserved": true,
+        "visibleLegacy": false,
+        "legitimateEmailsExcludedFromIdScan": true,
+        "overflow": false
+      },
+      "manual-history-check": {
+        "manualReferenceApplied": true,
+        "selectedValue": true,
+        "typedInputCleared": true,
+        "legacyVisible": false,
+        "overflow": false
+      },
+      "accessibility-check": {
+        "left": 12,
+        "right": 12,
+        "focusInside": true,
+        "overflow": false,
+        "appearance": {
+          "data-transparency": "reduce",
+          "data-contrast": "more",
+          "data-motion": "reduce"
+        },
+        "legacyVisible": false
+      },
+      "route-picker-check": {
+        "loaded": true,
+        "value": true,
+        "visibleLegacy": false,
+        "overflow": false
+      },
+      "grant-picker-check": {
+        "exactRoute": true,
+        "visibleName": "Codex 路由",
+        "legacyVisible": false,
+        "overflow": false
+      },
+      "candidate-title-check": {
+        "title": "为 Codex 路由 添加候选",
+        "legacyVisible": false,
+        "overflow": false
+      },
+      "final-desktop-check": {
+        "width": 520,
+        "identityVisible": true,
+        "legacyVisible": false,
+        "overflow": false,
+        "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"
+      }
+    },
+    "final_string_only_followup": "Price catalog rollback source and egress reference lists use the same naming functions; final type/unit/embedded build checks passed, browser not rerun."
+  },
+  "validation": {
+    "prism_check": "passed",
+    "typescript": "passed",
+    "unit_tests": 274,
+    "unit_files": 28,
+    "contract_operations": 123,
+    "double_build_four_files": "passed",
+    "cargo_build_gateway": "passed",
+    "changed_e2e_types": "passed",
+    "playwright_browser_execution": "not run; browser acceptance used EgoLite",
+    "docs_gate": "passed"
+  },
+  "maintenance_script_sha256": {
+    "consolidate.py": "f48168b9952238c64e12b467e0464bf80e08546e97e5ada4dce9706db54ea0bf",
+    "rehearse-consolidation.py": "0e2da7fc1281cbd7628215a825b0663438ea27f384cf72656ef36e75740c89a3",
+    "apply-consolidation.py": "456f9d4db5f48a1157036905caecd8e2c99ba332b57bcea3a91570bf693677a8"
+  },
+  "source_boundaries": {
+    "rust_changed": false,
+    "openapi_changed": false,
+    "schema_changed": false,
+    "production_binary_changed": false,
+    "history_deleted": false,
+    "new_provider_requests": 0
+  },
+  "preview_asset_readback": {
+    "index.html": {
+      "matches_final_build": true,
+      "sha256": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19"
+    },
+    "assets/main.js": {
+      "matches_final_build": true,
+      "sha256": "4a71859f67674accaf6d4360057cc0e148746a9617c53a056aa457184bdbb575"
+    },
+    "assets/vendor.js": {
+      "matches_final_build": true,
+      "sha256": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f"
+    },
+    "assets/index.css": {
+      "matches_final_build": true,
+      "sha256": "44259ad44e0af8c95b6dbb7681feb8bc68e14e6a3ecb5dab25daf08047c0139f"
+    }
+  }
+}

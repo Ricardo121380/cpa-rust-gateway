@@ -1,4 +1,6 @@
-import { resourceOption } from "../../utils/resourceNames";
+import { ResourcePicker } from "../../components/ResourcePicker";
+import { ResourceIdInput } from "../../components/ResourceIdentity";
+import { resourceOption, referenceText } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 // Compatible proxy pools / nodes / egress bindings (P13-11 A–D) — 15 contract
 // operations, mounted under 出口 because this is the other half of "how a
@@ -130,7 +132,7 @@ function PoolSheet({
   onSubmit: (body: Record<string, unknown>, path: Record<string, string> | undefined) => void;
 }>) {
   return (
-    <Sheet title={existing === undefined ? "新建代理池" : `编辑代理池 · ${existing.id}`} onEscape={onCancel}>
+    <Sheet title={existing === undefined ? "新建代理池" : `编辑代理池 · ${resourceOption(existing.id,"resource",existing.name)}`} onEscape={onCancel}>
       <form
         className="sheet-form"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
@@ -149,8 +151,8 @@ function PoolSheet({
         }}
       >
         <label>
-          id
-          <input
+          资源
+          <ResourceIdInput
             name="id"
             className="mono"
             required
@@ -174,7 +176,7 @@ function PoolSheet({
         </label>
         <label>
           名称
-          <input name="name" required maxLength={256} defaultValue={existing?.name ?? ""} />
+          <input name="name" required maxLength={256} defaultValue={existing ? resourceOption(existing.id,"resource",existing.name) : ""} />
         </label>
         <label className="checkline">
           <input type="checkbox" name="enabled" defaultChecked={existing?.enabled ?? true} />
@@ -215,7 +217,7 @@ function NodeSheet({
   const creating = existing === undefined;
 
   return (
-    <Sheet title={creating ? "新建代理节点" : `编辑代理节点 · ${existing.id}`} onEscape={onCancel}>
+    <Sheet title={creating ? "新建代理节点" : `编辑代理节点 · ${resourceOption(existing.id,"resource",existing.name)}`} onEscape={onCancel}>
       <form
         className="sheet-form"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
@@ -250,8 +252,8 @@ function NodeSheet({
         }}
       >
         <label>
-          id
-          <input
+          资源
+          <ResourceIdInput
             name="id"
             className="mono"
             required
@@ -286,7 +288,7 @@ function NodeSheet({
         </label>
         <label>
           名称
-          <input name="name" required maxLength={256} defaultValue={existing?.name ?? ""} />
+          <input name="name" required maxLength={256} defaultValue={existing ? resourceOption(existing.id,"resource",existing.name) : ""} />
         </label>
         <label>
           proxy_endpoint
@@ -384,7 +386,7 @@ function BindingSheet({
   return (
     <Sheet
       title={
-        creating ? "新建兼容出口绑定" : `编辑绑定 · ${existing.endpoint_id}/${existing.credential_id}`
+        creating ? "新建兼容出口绑定" : `编辑绑定 · ${resourceOption(existing.endpoint_id,"endpoint")} / ${resourceOption(existing.credential_id,"account")}`
       }
       onEscape={onCancel}
     >
@@ -414,26 +416,12 @@ function BindingSheet({
       >
         <div className="cp-pair">
           <label>
-            endpoint_id
-            <input
-              name="endpoint_id"
-              className="mono"
-              required
-              maxLength={128}
-              readOnly={!creating}
-              defaultValue={existing?.endpoint_id ?? ""}
-            />
+            接口
+            {creating ? <ResourcePicker kind="endpoint" name="endpoint_id" required /> : <ResourceIdInput kind="endpoint" name="endpoint_id" readOnly value={existing.endpoint_id} />}
           </label>
           <label>
-            credential_id
-            <input
-              name="credential_id"
-              className="mono"
-              required
-              maxLength={128}
-              readOnly={!creating}
-              defaultValue={existing?.credential_id ?? ""}
-            />
+            账号
+            {creating ? <ResourcePicker kind="account" name="credential_id" required /> : <ResourceIdInput kind="account" name="credential_id" readOnly value={existing.credential_id} />}
           </label>
         </div>
         <p className="stat-sub">
@@ -659,7 +647,7 @@ export function CompatibleProxyPanel({
                       onClick={() =>
                         setDoomed({
                           entity: "pool",
-                          label: `代理池 ${pool.id}`,
+                          label: `代理池 ${resourceOption(pool.id,"resource",pool.name)}`,
                           path: { pool_id: pool.id },
                           blockers: poolReferences(pool.id, nodeRows, bindingRows),
                         })
@@ -741,7 +729,7 @@ export function CompatibleProxyPanel({
                             onClick={() =>
                               setDoomed({
                                 entity: "node",
-                                label: `代理节点 ${node.id}`,
+                                label: `代理节点 ${resourceOption(node.id,"resource",node.name)}`,
                                 path: { node_id: node.id },
                                 blockers: nodeReferences(node.id, bindingRows),
                               })
@@ -812,7 +800,7 @@ export function CompatibleProxyPanel({
                       onClick={() =>
                         setDoomed({
                           entity: "binding",
-                          label: `绑定 ${binding.endpoint_id}/${binding.credential_id}`,
+                          label: `绑定 ${resourceOption(binding.endpoint_id,"endpoint")} / ${resourceOption(binding.credential_id,"account")}`,
                           path: {
                             endpoint_id: binding.endpoint_id,
                             credential_id: binding.credential_id,
@@ -869,7 +857,7 @@ export function CompatibleProxyPanel({
             // is no cascade. Both lists are already here, so the refusal is
             // predicted rather than delivered as a failed request.
             <p role="alert" className="reveal-warning">
-              仍被引用,后端会拒绝这次删除:{doomed.blockers.join("、")}。先解除这些引用。
+              仍被引用,后端会拒绝这次删除:{doomed.blockers.map(referenceText).join("、")}。先解除这些引用。
             </p>
           ) : null}
           <div className="sheet-actions">

@@ -41,7 +41,7 @@ test("upstream resources use complete inventory and separate runtime bindings", 
   await navigate(page, "上游");
 
   await page
-    .locator("tr", { hasText: "relay-a" })
+    .locator('tr:has([data-resource-id="relay-a"])')
     .first()
     .getByRole("button", { name: "子资源" })
     .click();
@@ -56,10 +56,10 @@ test("upstream resources use complete inventory and separate runtime bindings", 
   await expect(panel).toContainText("不代表凭据健康");
 
   await panel
-    .getByRole("row", { name: /ep-relay-a-responses openai/u })
+    .locator('tr:has([data-resource-id="ep-relay-a-responses"])')
     .getByRole("button", { name: "非流式" })
     .click();
-  await expect(panel.getByRole("row", { name: /ep-relay-a-responses openai/u })).toContainText("pass · 2xx");
+  await expect(panel.locator('tr:has([data-resource-id="ep-relay-a-responses"])')).toContainText("pass · 2xx");
 });
 
 test("oauth wizard completes through the callback paste, not by waiting", async ({ page }) => {
@@ -68,11 +68,11 @@ test("oauth wizard completes through the callback paste, not by waiting", async 
   await navigate(page, "上游");
 
   await page
-    .locator("tr", { hasText: "relay-a" })
+    .locator('tr:has([data-resource-id="relay-a"])')
     .first()
     .getByRole("button", { name: "子资源" })
     .click();
-  await page.getByRole("row", { name: /cred-codex-oauth/u }).getByRole("button", { name: "详情" }).click();
+  await page.locator('tr:has([data-resource-id="cred-codex-oauth"])').getByRole("button", { name: "详情" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "重新授权" }).click();
   const wizard = page.getByRole("dialog");
   await wizard.getByRole("button", { name: "启动授权" }).click();
@@ -99,11 +99,11 @@ test("a callback from another session is refused with the contract's reason", as
   await selectDraft(page);
   await navigate(page, "上游");
   await page
-    .locator("tr", { hasText: "relay-a" })
+    .locator('tr:has([data-resource-id="relay-a"])')
     .first()
     .getByRole("button", { name: "子资源" })
     .click();
-  await page.getByRole("row", { name: /cred-codex-oauth/u }).getByRole("button", { name: "详情" }).click();
+  await page.locator('tr:has([data-resource-id="cred-codex-oauth"])').getByRole("button", { name: "详情" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "重新授权" }).click();
   const wizard = page.getByRole("dialog");
   await wizard.getByRole("button", { name: "启动授权" }).click();
@@ -120,11 +120,11 @@ test("a paste with no state is refused before it reaches the gateway", async ({ 
   await selectDraft(page);
   await navigate(page, "上游");
   await page
-    .locator("tr", { hasText: "relay-a" })
+    .locator('tr:has([data-resource-id="relay-a"])')
     .first()
     .getByRole("button", { name: "子资源" })
     .click();
-  await page.getByRole("row", { name: /cred-codex-oauth/u }).getByRole("button", { name: "详情" }).click();
+  await page.locator('tr:has([data-resource-id="cred-codex-oauth"])').getByRole("button", { name: "详情" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "重新授权" }).click();
   const wizard = page.getByRole("dialog");
   await wizard.getByRole("button", { name: "启动授权" }).click();

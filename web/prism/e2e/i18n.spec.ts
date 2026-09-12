@@ -20,7 +20,7 @@ test("state vocabularies translate, glyph and enum value do not change", async (
   await page.getByText("相关资源状态", { exact: true }).click();
 
   // The pool card's two axes are the densest chip surface in the app.
-  const row = page.locator("tr", { hasText: "cred-grok-oauth" });
+  const row = page.locator('tr[data-account-id="cred-grok-oauth"]');
   await expect(row.locator('.rt-chip[data-state="reauth_required"]')).toContainText("Reauth needed");
   await expect(row.locator('.rt-chip[data-state="unauthorized"]')).toContainText("Refused");
   // The raw contract value stays available to assistive tech in both languages —

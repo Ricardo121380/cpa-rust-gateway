@@ -54,7 +54,7 @@ function emptyDraft(): DraftPolicy {
 function toDraft(policy: EgressPolicy): DraftPolicy {
   return {
     id: policy.id,
-    name: policy.name,
+    name: resourceName(policy.id,"policy",policy.name),
     hosts: [...policy.allowed_hosts],
     ports: policy.allowed_ports.map(String),
     cidrs: [...policy.allowed_cidrs],
@@ -243,12 +243,12 @@ export function EgressPage() {
         ["策略 ID", inspected.id], ["允许协议", inspected.allowed_schemes.join(" · ")],
         ["精确主机", inspected.allowed_hosts.join(" · ") || "无"], ["端口", inspected.allowed_ports.join(" · ") || "无"],
         ["CIDR", inspected.allowed_cidrs.join(" · ") || "无"], ["重定向模式", inspected.redirect_mode],
-        ["重定向上限", inspected.max_redirects], ["引用上游", referencingUpstreams(inspected.id, upstreams.data ?? []).join(" · ") || "无"],
+        ["重定向上限", inspected.max_redirects], ["引用上游", referencingUpstreams(inspected.id, upstreams.data ?? []).map(id=>resourceName(id,"upstream")).join(" · ") || "无"],
       ]}><div className="sheet-actions"><button disabled={!editable} onClick={() => { setDraft(toDraft(inspected)); setInspected(undefined); }}>编辑策略</button></div></ObjectInspector>}
 
       {draft !== undefined ? (
         <Sheet
-          title={draft.isNew ? "新建出口策略" : `编辑 ${draft.id}`}
+          title={draft.isNew ? "新建出口策略" : `编辑 ${resourceName(draft.id,"policy",draft.name)}`}
           onEscape={() => setDraft(undefined)}
         >
           <form className="sheet-form" onSubmit={onSubmit}>
@@ -344,12 +344,12 @@ export function EgressPage() {
       {confirmDelete !== undefined ? (
         <Sheet title="确认删除" onEscape={() => setConfirmDelete(undefined)}>
           <p>
-            删除 <span className="mono">{confirmDelete.id}</span> 后,引用它的上游的
+            删除 <span className="mono">{resourceName(confirmDelete.id,"policy",confirmDelete.name)}</span> 后,引用它的上游的
             egress_policy_id 将被清空(不会级联删除上游)。
           </p>
           {referencingUpstreams(confirmDelete.id, upstreams.data ?? []).length > 0 ? (
             <p className="reveal-warning">
-              当前被引用:{referencingUpstreams(confirmDelete.id, upstreams.data ?? []).join(", ")}
+              当前被引用:{referencingUpstreams(confirmDelete.id, upstreams.data ?? []).map(id=>resourceName(id,"upstream")).join("、")}
             </p>
           ) : null}
           <div className="sheet-actions">

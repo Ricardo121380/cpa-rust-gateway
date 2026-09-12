@@ -12,7 +12,7 @@ test("configuration diff selects a baseline, stops stale pages and restarts expl
     } }, { versionScoped: true, mutating: true });
   });
   await navigate(page, "配置版本");
-  await page.locator("tr", { hasText: "draft-2026-08" }).first().getByRole("button", { name: "查看差异" }).click();
+  await page.locator('tr[data-version-id="draft-2026-08"]').first().getByRole("button", { name: "查看差异" }).click();
   const dialog = page.getByRole("dialog", { name: "配置资源差异" });
   await expect(dialog).toContainText("已载入 50 项差异");
   await expect(dialog).toContainText("仅展示变化字段名");

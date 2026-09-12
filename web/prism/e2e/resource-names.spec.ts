@@ -21,6 +21,7 @@ test("legacy account labels stay readable while copying and operations retain ex
         provider_id: "p12-06-codex-bridge-upstream",
         channel_id: "p12-06-codex-bridge-endpoint",
         account_id: `p12-${String(phase).padStart(2, "0")}-codex-bridge-credential`,
+        presentation: {...data.items[0].presentation,provider:"Codex",category:"codex",identity:{email:`member-${phase}@example.test`,phone:null,username:null}},
       }));
       return new Response(JSON.stringify(data), { status: response.status, headers: response.headers });
     };
@@ -30,14 +31,13 @@ test("legacy account labels stay readable while copying and operations retain ex
   await expect(page.locator(".account-desktop tbody tr")).toHaveCount(2);
   expect(await page.locator(".account-desktop").innerText()).not.toContain("p12-");
   const id = "p12-09-codex-bridge-credential";
-  const row = page.locator(".account-desktop tbody tr").filter({ has: page.locator(`[data-resource-id="${id}"]`) });
-  await expect(row).toContainText("Codex 桥接 账号");
-  const codes = await page.locator(".account-desktop .entity-name .resource-code").allTextContents();
-  expect(new Set(codes).size).toBe(2);
+  const row = page.locator(".account-desktop tbody tr").filter({ hasText: "member-9@example.test" });
+  await expect(row).toContainText("member-9@example.test");
+  await expect(page.locator(".account-desktop .resource-code")).toHaveCount(0);
   await row.getByRole("button", { name: "详情", exact: true }).click();
   const detail = page.getByRole("dialog");
-  await detail.getByText("技术标识", { exact: true }).click();
-  await detail.getByRole("button", { name: "复制账号 ID", exact: true }).click();
+  await detail.getByText("关联信息", { exact: true }).click();
+  await detail.getByRole("button", { name: "复制账号内部引用", exact: true }).click();
   expect(await page.evaluate(() => (window as unknown as { copied: string }).copied)).toBe(id);
   await detail.getByRole("button", { name: "冷却账号" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "确认冷却" }).click();

@@ -1,28 +1,32 @@
-import { useState } from "react";
+import { useState, type InputHTMLAttributes } from "react";
 import "./resource-identity.css";
-import { isInternalLabel, resourceCode, resourceName, type ResourceKind } from "../utils/resourceNames";
+import { resourceName, referenceKind, type ResourceKind } from "../utils/resourceNames";
 
 export function ResourceIdentity({ id, kind = "resource", name }: Readonly<{
   id: string; kind?: ResourceKind; name?: string | null;
 }>) {
-  const internal = isInternalLabel(id) || isInternalLabel(name?.trim() || id);
-  return <span className="resource-identity" title={id} data-resource-id={id}>
+  return <span className="resource-identity" data-resource-id={id}>
     <span>{resourceName(id, kind, name)}</span>
-    {!internal && name && name !== id ? <small className="resource-original-id">{id}</small> : null}
-    {internal ? <small className="resource-code" aria-label={`标识 ${resourceCode(id)}`}>{resourceCode(id)}</small> : null}
   </span>;
 }
 
-export function IdentityDetails({ entries }: Readonly<{ entries: ReadonlyArray<readonly [string, string]> }>) {
+export function IdentityDetails({ entries }: Readonly<{ entries: ReadonlyArray<readonly [string, string, (string | null)?]> }>) {
   const [notice, setNotice] = useState("");
   async function copy(id: string) {
-    try { await navigator.clipboard.writeText(id); setNotice("已复制标识"); }
-    catch { setNotice("未能复制，请选中文本复制。"); }
+    try { await navigator.clipboard.writeText(id); setNotice("已复制内部引用"); }
+    catch { setNotice("未能复制，请检查浏览器的剪贴板权限。"); }
   }
   return <details className="identity-details">
-    <summary>技术标识</summary>
-    <dl>{entries.map(([label, id]) => <div key={label}>
-      <dt>{label}</dt><dd><code>{id}</code><button className="secondary" aria-label={`复制${label}`} onClick={() => void copy(id)}>复制</button></dd>
+    <summary>关联信息</summary>
+    <dl>{entries.map(([label, id, name]) => <div key={label}>
+      <dt>{label.replace(/\s*ID$/u, "")}</dt><dd><ResourceIdentity id={id} kind={referenceKind(label)} name={name} /><button className="secondary" aria-label={`复制${label}内部引用`} onClick={() => void copy(id)}>复制内部引用</button></dd>
     </div>)}</dl><span role="status">{notice}</span>
   </details>;
+}
+
+/** Preserve the original form value while showing a readable immutable resource. */
+export function ResourceIdInput({kind="resource",displayName,...props}: InputHTMLAttributes<HTMLInputElement> & {kind?:ResourceKind;displayName?:string|null}) {
+  if (!props.readOnly && !props.disabled) return <input {...props} />;
+  const value=String(props.value??props.defaultValue??"");
+  return <><input type="hidden" name={props.name} value={value} disabled={props.disabled}/><ResourceIdentity id={value} kind={kind} name={displayName}/></>;
 }

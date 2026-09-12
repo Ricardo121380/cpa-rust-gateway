@@ -1,10 +1,10 @@
 /** Presentation only. Original IDs must remain the values used by APIs, URLs,
  * filters, React keys and audit references. Model protocol names are excluded. */
-export type ResourceKind = "account" | "upstream" | "endpoint" | "route" | "candidate" | "group" | "policy" | "config" | "catalog" | "resource";
+export type ResourceKind = "account" | "upstream" | "endpoint" | "route" | "candidate" | "group" | "key" | "policy" | "config" | "catalog" | "resource";
 
 const nouns: Record<ResourceKind, string> = {
-  account: "账号", upstream: "上游", endpoint: "端点", route: "路由", candidate: "候选",
-  group: "访问组", policy: "出口策略", config: "配置", catalog: "目录", resource: "资源",
+  account: "账号", upstream: "提供商", endpoint: "接口", route: "路由", candidate: "候选",
+  group: "访问组", key:"访问密钥", policy: "出口策略", config: "配置", catalog: "目录", resource: "资源",
 };
 const words: Record<string, string> = {
   codex: "Codex", grok: "Grok", openai: "OpenAI", anthropic: "Anthropic", claude: "Claude", chatgpt: "ChatGPT", go: "Go",
@@ -14,33 +14,50 @@ const words: Record<string, string> = {
 };
 
 export function isInternalLabel(value: string): boolean {
-  return /^p\d{1,2}[-_]/iu.test(value) || /(?:^|[-_])[a-f0-9]{24,}$/iu.test(value);
-}
-
-/** Short visual discriminator, never an identifier or authorization input. */
-export function resourceCode(id: string): string {
-  let hash = 2166136261;
-  for (const character of id) hash = Math.imul(hash ^ character.codePointAt(0)!, 16777619);
-  return (hash >>> 0).toString(16).toUpperCase().padStart(8, "0");
+  return /^p\d{1,2}[-_]/iu.test(value)
+    || /(?:^|[-_])(?:test|testing|e2e|fixture|smoke|preview|staging|acceptance)(?:[-_]|$)/iu.test(value)
+    || /(?:^|[-_])[a-f0-9]{24,}$/iu.test(value)
+    || /[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu.test(value);
 }
 
 export function resourceName(id: string, kind: ResourceKind = "resource", name?: string | null): string {
   const source = name?.trim() || id;
-  if (!isInternalLabel(source)) return source;
+  if (kind === "config" && !name?.trim() && /^edit-/u.test(id)) return "配置副本";
+  if (kind === "account" && name?.trim()) return name.trim();
+  if (/^p\d{1,2}[-_]\d+[a-z\d]*$/iu.test(source)) return kind === "resource" ? "历史标签" : nouns[kind];
+  if (!isInternalLabel(source)) return source.replace(/p\d{1,2}[-_][\w.-]+/giu, value=>resourceName(value,kind));
   const readable = source
     .replace(/^p\d{1,2}[-_]\d+[a-z\d]*[-_\s]+/iu, "")
     .replace(/^p\d{1,2}[-_]/iu, "")
     .replace(/(?:^|[-_])[a-f0-9]{24,}$/iu, "")
+    .replace(/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu, "")
     .split(/[\s_-]+/u)
-    .filter((part) => !/^(production|existing|test|preview|staging|credential|credentials|upstream|endpoint|route|candidate|egress|policy|group|key|config|version|\d{10,13})$/iu.test(part))
+    .filter((part) => !/^(production|existing|test|testing|e2e|fixture|smoke|preview|staging|acceptance|bridge|credential|credentials|upstream|endpoint|route|candidate|egress|policy|group|key|config|version|v\d+|\d{6,})$/iu.test(part))
     .map((part) => words[part.toLowerCase()] ?? part)
     .join(" ").trim();
   return `${readable}${readable ? " " : ""}${nouns[kind]}`;
 }
 
-/** Native option elements need plain text while retaining a discriminator. */
+/** Option values remain exact IDs; labels never add invented hash suffixes. */
 export function resourceOption(id: string, kind: ResourceKind = "resource", name?: string | null): string {
-  const label = resourceName(id, kind, name);
-  return isInternalLabel(id) || isInternalLabel(name?.trim() || id)
-    ? `${label} · ${resourceCode(id)}` : label;
+  return resourceName(id, kind, name);
+}
+
+export function referenceKind(label: string): ResourceKind {
+  if (/凭据|账号|credential|account/iu.test(label)) return "account";
+  if (/提供商|上游|provider|upstream/iu.test(label)) return "upstream";
+  if (/接口|端点|endpoint|channel/iu.test(label)) return "endpoint";
+  if (/候选|candidate/iu.test(label)) return "candidate";
+  if (/路由|route/iu.test(label)) return "route";
+  if (/访问组|group/iu.test(label)) return "group";
+  if (/key/iu.test(label)) return "key";
+  if (/策略|policy/iu.test(label)) return "policy";
+  if (/目录|catalog/iu.test(label)) return "catalog";
+  if (/配置|版本|config|version/iu.test(label)) return "config";
+  return "resource";
+}
+
+/** Display-only prose (not API payloads, model names or exported audit evidence). */
+export function referenceText(text: string): string {
+  return text.replace(/[\w][\w.-]*/gu, (value) => isInternalLabel(value) ? resourceName(value, referenceKind(value)) : value);
 }

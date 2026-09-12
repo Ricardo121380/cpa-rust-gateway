@@ -60,7 +60,7 @@ test("versions workspace creates a draft and validates it", async ({ page }) => 
   await expect(page.locator("tbody")).toContainText("draft-e2e");
 
   await page
-    .locator("tr", { hasText: "draft-e2e" })
+    .locator('tr[data-version-id="draft-e2e"]')
     .getByRole("button", { name: "验证" })
     .click();
   await expect(page.locator(".validation-card")).toContainText("route_missing_active_candidate");

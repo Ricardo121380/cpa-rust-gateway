@@ -1,6 +1,17 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
-## 2026-09-12: identity continuity release (latest)
+## 2026-09-12: exact Codex grant consolidation (latest state)
+
+The explicitly requested duplicate grant cleanup is live. Active configuration is now
+`production-accounts-20260912`; Codex has one credential and one runtime connection.
+The original configuration is archived for history and recovery. Runtime binary remains
+`5b92e15`, schema 25; admin credentials, request history and ledger remain. No Provider request,
+DNS/Caddy/Autoreg change or frontend binary deployment occurred in this operation.
+The frontend-wide reference presentation changes are still a local candidate. See
+[consolidation, backup and local frontend evidence](../reports/prism-resource-presentation-20260912.md).
+
+
+## 2026-09-12: identity continuity release
 
 Production now runs `5b92e15`, schema 25, on the existing CPAR service/domain. Contact grouping,
 per-authorization actions, human runtime presentation and guarded SSO profile acquisition are live.

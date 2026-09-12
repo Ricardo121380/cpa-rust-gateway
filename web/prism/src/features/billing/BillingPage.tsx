@@ -1,3 +1,4 @@
+import { resourceName } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { ProcessingStatus } from "./ProcessingStatus";
 // 计费与价格目录 — the control surface for P13-05C / P13-07D.
@@ -199,7 +200,7 @@ function PolicyCard({
               <select name="catalog_version_id" defaultValue={effective[0]?.catalog_version_id}>
                 {effective.map((catalog) => (
                   <option key={catalog.catalog_version_id} value={catalog.catalog_version_id}>
-                    {catalog.catalog_version_id} · 生效 {formatTime(catalog.effective_at_ms)} ·{" "}
+                    {resourceName(catalog.catalog_version_id,"catalog")} · 生效 {formatTime(catalog.effective_at_ms)} ·{" "}
                     {formatCount(catalog.entries.length)} 条
                   </option>
                 ))}
@@ -375,9 +376,9 @@ export function BillingPage() {
     setImporting(undefined);
     setRollback(undefined);
     setNotice(
-      `目录 ${result.catalog_version_id} 已${result.operation === "rolled_back" ? "回滚创建" : "导入"}` +
+      `目录 ${resourceName(result.catalog_version_id,"catalog")} 已${result.operation === "rolled_back" ? "回滚创建" : "导入"}` +
         `(${formatCount(result.entry_count)} 条` +
-        `${result.rolled_back_from === null ? "" : `,复制自 ${result.rolled_back_from}`})。` +
+        `${result.rolled_back_from === null ? "" : `,复制自 ${resourceName(result.rolled_back_from,"catalog")}`})。` +
         `它对所有配置版本可见;要让路由用它,还需在上方绑定为价格策略。`,
     );
     invalidate();
@@ -597,7 +598,7 @@ export function BillingPage() {
         )}
       </div>
 
-      {inspected === undefined ? null : <ObjectInspector title={inspected.catalog_version_id} scope="全局价格目录 · 单位 microunits / 百万 token" onClose={() => setInspected(undefined)} facts={[
+      {inspected === undefined ? null : <ObjectInspector title={resourceName(inspected.catalog_version_id,"catalog")} scope="全局价格目录 · 单位 microunits / 百万 token" onClose={() => setInspected(undefined)} facts={[
         ["来源", sourceLabel(inspected.source)], ["生效时间", formatTime(inspected.effective_at_ms)],
         ["创建时间", formatTime(inspected.created_at_ms)], ["生效状态", isEffective(inspected, nowMs) ? "已生效" : "尚未生效"],
         ["价格条目", inspected.entries.length],
@@ -622,7 +623,7 @@ export function BillingPage() {
       ) : null}
 
       {rollback === undefined ? null : (
-        <Sheet title={`回滚到 ${rollback.catalog_version_id}`} onEscape={() => setRollback(undefined)}>
+        <Sheet title={`回滚到 ${resourceName(rollback.catalog_version_id,"catalog")}`} onEscape={() => setRollback(undefined)}>
           <p className="stat-sub">
             回滚<strong>不会删除任何东西</strong>:它复制这份目录的条目,创建一个
             <strong>新的目录版本</strong>向前追加。旧目录与其间的目录都原样保留。

@@ -1,3 +1,5 @@
+import { ResourcePicker } from "../../components/ResourcePicker";
+import { ResourceIdInput } from "../../components/ResourceIdentity";
 import { resourceName } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { RoutingInventory } from "./RoutingInventory";
@@ -102,7 +104,7 @@ export function RouteWorkbench({
     onSuccess: (created, variables) => {
       setAddingCandidate(false);
       void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
-      setNotice(`候选 ${created.id} 已加入。重新校验以确认路由现在通得过。`);
+      setNotice(`候选 ${resourceName(created.id,"candidate")} 已加入。重新校验以确认路由现在通得过。`);
       validation.mutate(variables.routeId);
     },
     onError: (cause) => setError(asAppError(cause).message),
@@ -124,7 +126,7 @@ export function RouteWorkbench({
       void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
       setLoaded(updated.route_id);
       validation.mutate(updated.route_id);
-      setNotice(`候选 ${updated.id} 已保存。`);
+      setNotice(`候选 ${resourceName(updated.id,"candidate")} 已保存。`);
     },
     onError: (cause) => setError(asAppError(cause).message),
   });
@@ -143,7 +145,7 @@ export function RouteWorkbench({
       void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
       setLoaded(candidate.route_id);
       validation.mutate(candidate.route_id);
-      setNotice(`候选 ${candidate.id} 已删除，所属路由保留。`);
+      setNotice(`候选 ${resourceName(candidate.id,"candidate")} 已删除，所属路由保留。`);
     },
     onError: (cause) => setError(asAppError(cause).message),
   });
@@ -228,7 +230,7 @@ export function RouteWorkbench({
 
       {pending !== undefined ? (
         <p className="action-notice">
-          刚创建了路由 <span className="mono">{pending}</span>。
+          刚创建了路由 <span>{resourceName(pending,"route")}</span>。
           <button
             type="button"
             onClick={() => {
@@ -261,15 +263,8 @@ export function RouteWorkbench({
 
       <form className="rw-load" onSubmit={onLoad}>
         <label>
-          route_id
-          <input
-            className="mono"
-            required
-            maxLength={128}
-            placeholder="route-minimax-m3"
-            value={field}
-            onChange={(event) => setField(event.target.value)}
-          />
+          路由
+          <ResourcePicker kind="route" required value={field} onChange={setField} />
         </label>
         <button type="submit" disabled={route.isFetching}>
           {route.isFetching ? "载入中…" : "载入"}
@@ -411,7 +406,7 @@ export function RouteWorkbench({
           onEscape={() => setCandidateDelete(undefined)}
         >
           <p>
-            删除 {candidateDelete.id}。所属路由 {candidateDelete.route_id}{" "}
+            删除 {resourceName(candidateDelete.id,"candidate")}。所属路由 {resourceName(candidateDelete.route_id,"route")}{" "}
             将保留；若无启用候选，拓扑校验将失败。
           </p>
           {error !== undefined ? <p role="alert">{error}</p> : null}
@@ -446,7 +441,7 @@ export function RouteWorkbench({
 
       {inspecting && record !== undefined ? (
         <ObjectInspector
-          title={record.id}
+          title={resourceName(record.id,"route")}
           scope={`配置版本 ${resourceName(scope ?? "—", "config")} · 路由`}
           onClose={() => setInspecting(false)}
           facts={[
@@ -472,7 +467,7 @@ export function RouteWorkbench({
 
       {editingRoute && record !== undefined ? (
         <Sheet
-          title={`编辑路由 ${record.id}`}
+          title={`编辑路由 ${resourceName(record.id,"route")}`}
           onEscape={() => setEditingRoute(false)}
         >
           <p className="stat-sub">
@@ -507,8 +502,8 @@ export function RouteWorkbench({
             }}
           >
             <label>
-              路由 ID(不可改)
-              <input className="mono" value={record.id} disabled />
+              路由
+              <ResourceIdInput kind="route" className="mono" value={record.id} disabled />
             </label>
             <label>
               调度策略(契约当前唯一值)
@@ -553,9 +548,9 @@ export function RouteWorkbench({
       {confirmDelete && record !== undefined ? (
         <Sheet title="确认删除路由" onEscape={() => setConfirmDelete(false)}>
           <p className="reveal-warning">
-            删除路由 <span className="mono">{record.id}</span>{" "}
+            删除路由 <span className="mono">{resourceName(record.id,"route")}</span>{" "}
             会一并移除它的全部候选。 公开模型{" "}
-            <span className="mono">{record.public_model_id}</span>{" "}
+            <ResourceIdentity id={record.public_model_id} />{" "}
             将没有可用路由,客户端解析到它的请求会失败。
           </p>
           <div className="sheet-actions">
@@ -608,8 +603,8 @@ function CandidateSheet({
     <Sheet
       title={
         initial === undefined
-          ? `为 ${routeId} 添加候选`
-          : `编辑候选 ${initial.id}`
+          ? `为 ${resourceName(routeId,"route")} 添加候选`
+          : `编辑候选 ${resourceName(initial.id,"candidate")}`
       }
       onEscape={onCancel}
     >
@@ -649,8 +644,8 @@ function CandidateSheet({
         }}
       >
         <label>
-          候选 ID
-          <input
+          {initial ? "候选" : "候选标识"}
+          <ResourceIdInput kind="candidate"
             name="id"
             className="mono"
             required
@@ -660,17 +655,11 @@ function CandidateSheet({
           />
         </label>
         <label>
-          endpoint_id(必须是本版本里已存在且启用的端点)
-          <input
-            name="endpoint_id"
-            className="mono"
-            required
-            maxLength={128}
-            defaultValue={initial?.endpoint_id ?? seed?.endpoint}
-          />
+          接口连接
+          <ResourcePicker kind="endpoint" name="endpoint_id" required defaultValue={initial?.endpoint_id ?? seed?.endpoint} />
         </label>
         <label>
-          upstream_model(上游侧的真实模型名)
+          上游模型名称
           <input
             defaultValue={initial?.upstream_model ?? seed?.model}
             name="upstream_model"

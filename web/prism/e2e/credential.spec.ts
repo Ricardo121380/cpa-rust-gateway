@@ -95,12 +95,12 @@ test("an empty provider still exposes account and endpoint creation", async ({ p
   // kiro-sub has an upstream row but no endpoint-credential binding, so the
   // projection returns zero rows for it. That is not "no upstream".
   await page
-    .locator("tr", { hasText: "kiro-sub" })
+    .locator('tr:has([data-resource-id="kiro-sub"])')
     .first()
     .getByRole("button", { name: "子资源" })
     .click();
-  await expect(page.getByRole("button", { name: "新建 Account", exact: true })).toBeEnabled();
-  await expect(page.getByRole("button", { name: "新建 Channel", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "新建账号", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "新建接口", exact: true })).toBeEnabled();
 });
 
 test("the account row opens the credential sheet from the pool inventory", async ({ page }) => {
@@ -108,7 +108,7 @@ test("the account row opens the credential sheet from the pool inventory", async
   await selectDraft(page);
   await navigate(page, "上游");
   await page
-    .locator("tr", { hasText: "grok-build-pool" })
+    .locator('tr:has([data-resource-id="grok-build-pool"])')
     .first()
     .getByRole("button", { name: "子资源" })
     .click();
@@ -116,9 +116,9 @@ test("the account row opens the credential sheet from the pool inventory", async
   const panel = page.locator(".subresource-panel");
   // The operations status vocabulary reaches the screen unmapped.
   // anchored: the id also appears in the binding table below
-  await expect(panel.getByRole("row", { name: /^cred-grok-oauth bearer/u })).toContainText("active");
+  await expect(panel.locator('tr:has([data-resource-id="cred-grok-oauth"])')).toContainText("active");
 
-  await panel.getByRole("row", { name: /cred-grok-oauth/u }).getByRole("button", { name: "详情" }).click();
+  await panel.locator('tr:has([data-resource-id="cred-grok-oauth"])').getByRole("button", { name: "详情" }).click();
   await expect(page.getByRole("dialog")).toHaveAccessibleName("账号详情");
   await expect(page.getByRole("dialog").getByRole("heading", { name: "未提供账号身份" })).toBeVisible();
 });

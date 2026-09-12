@@ -1,3 +1,4 @@
+import { resourceName } from "../../utils/resourceNames";
 import { StatusBadge } from "../../components/StatusBadge";
 import { ResourceIdentity, IdentityDetails } from "../../components/ResourceIdentity";
 import { ConfigurationDiff } from "./ConfigurationDiff";
@@ -229,7 +230,7 @@ export function VersionsPage() {
       {validation !== undefined ? (
         <div className="card validation-card">
           <h3>
-            验证结果 · <span className="mono">{validation.id}</span>
+            验证结果 · <span className="mono">{resourceName(validation.id,"config")}</span>
           </h3>
           {validation.result.valid ? (
             <StatusBadge status="active">通过</StatusBadge>
@@ -278,11 +279,11 @@ export function VersionsPage() {
       {publication !== undefined ? (
         <Sheet title="发布结果">
           <p>
-            当前活动版本:<span className="mono">{publication.active_config_version_id}</span>
+            当前活动版本:<span className="mono">{resourceName(publication.active_config_version_id,"config")}</span>
           </p>
           {publication.replaced_config_version_id != null ? (
             <p>
-              被替换版本:<span className="mono">{publication.replaced_config_version_id}</span>
+              被替换版本:<span className="mono">{resourceName(publication.replaced_config_version_id,"config")}</span>
               (保留为一步回滚目标)
             </p>
           ) : null}

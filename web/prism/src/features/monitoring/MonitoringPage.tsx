@@ -1,3 +1,4 @@
+import { ResourcePicker, resourceFilterKinds } from "../../components/ResourcePicker";
 import { resourceName } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { ProcessingStatus } from "../billing/ProcessingStatus";
@@ -105,7 +106,7 @@ function FilterForm({
         ) : (
           <label key={key}>
             {filterLabel(key)}
-            <input name={key} className="mono" maxLength={256} defaultValue={values[key] ?? ""} />
+            {resourceFilterKinds[key] ? <ResourcePicker key={values[key]??""} allowCustom name={key} kind={resourceFilterKinds[key]} defaultValue={values[key]??""} runtime={key==="account_id"}/> : <input name={key} className="mono" maxLength={256} defaultValue={values[key] ?? ""} />}
           </label>
         ),
       )}
@@ -170,8 +171,8 @@ function AttemptsSheet({
                     ? "—"
                     : stageLabel(attempt.stage)}
                 </td>
-                <td className="mono">{attempt.endpoint_id ?? "—"}</td>
-                <td className="mono">{attempt.credential_id ?? "—"}
+                <td>{attempt.endpoint_id ? <ResourceIdentity id={attempt.endpoint_id} kind="endpoint" /> : "—"}</td>
+                <td>{attempt.credential_id ? <ResourceIdentity id={attempt.credential_id} kind="account" /> : "—"}
                   {attempt.endpoint_id && attempt.credential_id ? <div><Link to={diagnosticTarget(attempt.endpoint_id, attempt.credential_id)}>诊断此绑定</Link></div> : null}
                 </td>
               </tr>

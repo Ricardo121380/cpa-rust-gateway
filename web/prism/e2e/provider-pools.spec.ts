@@ -16,11 +16,11 @@ test("the pool reads with no config version, but its actions do not", async ({ p
   // there before anything is selected — a blanket "pick a version" state
   // would be false for it.
   await expect(page.getByText("Provider 账号池 · 实时")).toBeVisible();
-  await expect(page.locator("tr", { hasText: "cred-relay-key" })).toBeVisible();
+  await expect(page.locator('tr[data-account-id="cred-relay-key"]')).toBeVisible();
   await expect(page.locator(".rt-card").filter({ hasText: "Provider 账号池 · 实时" }).first()).toContainText("本表不需要配置版本");
   await expect(page.locator(".rt-card").filter({ hasText: "Provider 账号池 · 实时" }).first()).toContainText("操作按钮不可用");
 
-  const cool = page.locator("tr", { hasText: "cred-relay-key" }).getByRole("button", { name: "冷却" });
+  const cool = page.locator('tr[data-account-id="cred-relay-key"]').getByRole("button", { name: "冷却" });
   await expect(cool).toBeDisabled();
 
   await selectDraft(page);
@@ -35,7 +35,7 @@ test("auth status and runtime status stay two axes, never one health value", asy
 
   // cred-grok-oauth is reauth_required on the auth axis and unauthorized on
   // the runtime one. Both must be visible; neither may be merged away.
-  const row = page.locator("tr", { hasText: "cred-grok-oauth" });
+  const row = page.locator('tr[data-account-id="cred-grok-oauth"]');
   await expect(row.locator('.rt-chip[data-state="reauth_required"]')).toBeVisible();
   await expect(row.locator('.rt-chip[data-state="unauthorized"]')).toBeVisible();
   await expect(page.locator(".rt-card").filter({ hasText: "Provider 账号池 · 实时" }).first()).toContainText("两个独立维度");
@@ -47,7 +47,7 @@ test("cooling names the exact account and enforces the contract's window", async
   await navigate(page, "运行诊断");
   await page.getByText("相关资源状态", { exact: true }).click();
 
-  await page.locator("tr", { hasText: "cred-relay-key" }).getByRole("button", { name: "冷却" }).click();
+  await page.locator('tr[data-account-id="cred-relay-key"]').getByRole("button", { name: "冷却" }).click();
   const sheet = page.getByRole("dialog");
   // An action on one account out of a pool must say which one.
   await expect(sheet).toContainText("runtime.member@example.test");
@@ -76,7 +76,7 @@ test("a refused recovery is reported as an answer, not an error", async ({ page 
   await page.getByText("相关资源状态", { exact: true }).click();
 
   await page
-    .locator("tr", { hasText: "cred-grok-oauth" })
+    .locator('tr[data-account-id="cred-grok-oauth"]')
     .getByRole("button", { name: "请求恢复" })
     .click();
   const sheet = page.getByRole("dialog");
@@ -94,7 +94,7 @@ test("a stale target re-reads the snapshot instead of retrying blind", async ({ 
   await navigate(page, "运行诊断");
   await page.getByText("相关资源状态", { exact: true }).click();
 
-  await page.locator("tr", { hasText: "cred-grok-old" }).getByRole("button", { name: "冷却" }).click();
+  await page.locator('tr[data-account-id="cred-grok-old"]').getByRole("button", { name: "冷却" }).click();
   const sheet = page.getByRole("dialog");
   await sheet.getByLabel("冷却时长", { exact: false }).fill("60000");
   await sheet.getByRole("button", { name: "确认冷却" }).click();

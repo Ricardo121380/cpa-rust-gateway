@@ -1,3 +1,6 @@
+import { accountName, protocolName } from "../accounts/presentation";
+import { ResourcePicker } from "../../components/ResourcePicker";
+import { resourceName, referenceText } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 // Runtime (docs/07 §7.5) — three projections and one action, all against real
 // contract operations:
@@ -727,14 +730,7 @@ function ExplainCard({ scope }: Readonly<{ scope: string }>) {
       <form className="rt-explain-form" aria-label="路由解释" onSubmit={onSubmit}>
         <label>
           route_id
-          <input
-            className="mono"
-            required
-            maxLength={128}
-            placeholder="route-minimax-m3"
-            value={form.route_id}
-            onChange={(event) => setForm({ ...form, route_id: event.target.value })}
-          />
+          <ResourcePicker kind="route" required value={form.route_id} onChange={value=>setForm({...form,route_id:value})}/>
         </label>
         <label>
           请求模型
@@ -764,13 +760,7 @@ function ExplainCard({ scope }: Readonly<{ scope: string }>) {
         </label>
         <label>
           provider_id(跨 Provider 的路由必填)
-          <input
-            className="mono"
-            maxLength={128}
-            placeholder="留空 = 单 Provider 路由"
-            value={form.provider_id ?? ""}
-            onChange={(event) => setForm({ ...form, provider_id: event.target.value })}
-          />
+          <ResourcePicker kind="upstream" value={form.provider_id ?? ""} onChange={value=>setForm({...form,provider_id:value})}/>
         </label>
         <button type="submit" disabled={explain.isFetching}>
           {explain.isFetching ? "解释中…" : "解释"}
@@ -970,9 +960,9 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
             </thead>
             <tbody>
               {rows.map((account) => (
-                <tr key={`${account.provider_id}/${account.channel_id}/${account.account_id}`}>
+                <tr key={`${account.provider_id}/${account.channel_id}/${account.account_id}`} data-account-id={account.account_id}>
                   <th scope="row" className="mono rt-rowhead">
-                    <ResourceIdentity id={account.provider_id} kind="upstream" /> / <ResourceIdentity id={account.channel_id} kind="endpoint" /> / <ResourceIdentity id={account.account_id} kind="account" />
+                    <strong>{accountName(account.presentation?.identity)??"未提供账号身份"}</strong><div className="entity-meta">{account.presentation?.provider??resourceName(account.provider_id,"upstream")} · {account.presentation?protocolName(account.presentation.api_format):resourceName(account.channel_id,"endpoint")} {account.presentation?.host}</div>
                   </th>
                   <td className="mono">{account.account_kind}</td>
                   <td>
@@ -1087,7 +1077,7 @@ function EgressRowCells({
     return (
       <>
         <td className="mono">{row.channel_kind}</td>
-        <td className="mono">{formatTarget(row.target_kind, row.target_id)}</td>
+        <td className="mono">{referenceText(formatTarget(row.target_kind, row.target_id))}</td>
         <td>{chip}</td>
         <td className="mono">{formatDue(row.deadline_ms ?? null, nowMs)}</td>
       </>
@@ -1110,7 +1100,7 @@ function EgressRowCells({
     <>
       <td className="mono">{row.channel_kind}</td>
       <td>{row.credential_id === undefined ? "—" : <CredentialButton id={row.credential_id} />}</td>
-      <td className="mono">{formatTarget(row.target_kind, row.target_id)}</td>
+      <td className="mono">{referenceText(formatTarget(row.target_kind, row.target_id))}</td>
       <td className="mono">
         {row.credential_revision ?? "—"} / {row.session_revision ?? "—"} /{" "}
         {row.clearance_revision ?? "—"}
@@ -1319,10 +1309,10 @@ export function ProviderEgressCard({ scope, nowMs }: Readonly<{ scope: string; n
 // ---------------------------------------------------------------------------
 
 const PIN_FIELDS: ReadonlyArray<Readonly<{ name: keyof PinInput; label: string }>> = [
-  { name: "provider_id", label: "provider_id" },
-  { name: "channel_id", label: "channel_id" },
-  { name: "route_id", label: "route_id" },
-  { name: "credential_id", label: "credential_id" },
+  { name: "provider_id", label: "提供商" },
+  { name: "channel_id", label: "接口" },
+  { name: "route_id", label: "路由" },
+  { name: "credential_id", label: "账号" },
 ];
 
 function ChannelPinCard({ scope }: Readonly<{ scope: string }>) {
@@ -1393,7 +1383,7 @@ function ChannelPinCard({ scope }: Readonly<{ scope: string }>) {
         {PIN_FIELDS.map((field) => (
           <label key={field.name}>
             {field.label}
-            <input name={field.name} className="mono" required maxLength={128} />
+            <ResourcePicker name={field.name} kind={field.name==="provider_id"?"upstream":field.name==="channel_id"?"endpoint":field.name==="route_id"?"route":"account"} runtime={field.name==="credential_id"} required />
           </label>
         ))}
         <label>
@@ -1487,7 +1477,7 @@ function ChannelPinCard({ scope }: Readonly<{ scope: string }>) {
           <p className="rt-footnote">
             观测于 <span className="mono">{formatObservedAt(receipt.observed_at_ms)}</span> · 配置{" "}
             <span className="mono">
-              {receipt.config_version_id}@{receipt.config_revision}
+              {resourceName(receipt.config_version_id,"config")} · {receipt.config_revision}
             </span>
           </p>
         </div>

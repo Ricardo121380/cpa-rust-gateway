@@ -1,3 +1,4 @@
+import { ResourceIdInput } from "../../components/ResourceIdentity";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { resourceName, resourceOption } from "../../utils/resourceNames";
 import { useRoutingPages } from "../models/useRoutingPages";
@@ -103,7 +104,7 @@ function GroupRoutes({
         <table>
           <thead>
             <tr>
-              <th>route_id</th>
+              <th>路由</th>
               <th>状态</th>
             </tr>
           </thead>
@@ -123,17 +124,15 @@ function GroupRoutes({
       )}
 
       {adding ? (
-        <Sheet title={`授权路由 · ${groupId}`} onEscape={() => setAdding(false)}>
+        <Sheet title={`授权路由 · ${resourceName(groupId,"group")}`} onEscape={() => setAdding(false)}>
           <form className="sheet-form" onSubmit={onGrantSubmit}>
             <label>
-              route_id
-              <input name="route_id" className="mono" required maxLength={128} list="route-ids" />
+              路由
+              <select name="route_id" required defaultValue="">
+                <option value="" disabled>选择路由</option>
+                {routeIds.map((id) => <option key={id} value={id}>{resourceName(id,"route")}</option>)}
+              </select>
             </label>
-            <datalist id="route-ids">
-              {routeIds.map((id) => (
-                <option key={id} value={id} />
-              ))}
-            </datalist>
             <p className="stat-sub">
               包含未绑定草稿路由 · 已载入 {routeIds.length} 项{suggestions.hasNextPage ? " · 还有更多" : ""}
             </p>
@@ -541,13 +540,13 @@ export function AccessPage() {
 
       {groupForm !== undefined ? (
         <Sheet
-          title={groupForm === null ? "新建访问组" : `编辑访问组 · ${groupForm.id}`}
+          title={groupForm === null ? "新建访问组" : `编辑访问组 · ${resourceName(groupForm.id,"group",groupForm.name)}`}
           onEscape={() => setGroupForm(undefined)}
         >
           <form className="sheet-form" onSubmit={onGroupSubmit}>
             <label>
-              ID
-              <input
+              {groupForm === null ? "访问组标识" : "访问组"}
+              <ResourceIdInput kind="group"
                 name="id"
                 className="mono"
                 required
@@ -558,7 +557,7 @@ export function AccessPage() {
             </label>
             <label>
               名称
-              <input name="name" required maxLength={128} defaultValue={groupForm?.name ?? ""} />
+              <input name="name" required maxLength={128} defaultValue={groupForm ? resourceName(groupForm.id,"group",groupForm.name) : ""} />
             </label>
             <label>
               状态
@@ -600,7 +599,7 @@ export function AccessPage() {
       {confirmDeleteGroup !== undefined ? (
         <Sheet title="确认删除访问组" onEscape={() => setConfirmDeleteGroup(undefined)}>
           <p>
-            删除 <span className="mono">{confirmDeleteGroup}</span> 会同时移除它的路由授权。
+            删除 <span className="mono">{resourceName(confirmDeleteGroup,"group")}</span> 会同时移除它的路由授权。
             指向该组的 Client Key 会失去访问组 —— 请先确认没有在用的 Key 挂在它下面。
           </p>
           <div className="sheet-actions">

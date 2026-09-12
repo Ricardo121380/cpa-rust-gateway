@@ -1,5 +1,5 @@
 import { ResourceIdentity } from "../../components/ResourceIdentity";
-import { resourceName } from "../../utils/resourceNames";
+import { resourceName, referenceText, isInternalLabel } from "../../utils/resourceNames";
 import { ReadStatus } from "../../components/ReadStatus";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
@@ -50,7 +50,7 @@ function emptyDraft(): DraftUpstream {
 function toDraft(upstream: Upstream): DraftUpstream {
   return {
     id: upstream.id,
-    name: upstream.name,
+    name: resourceName(upstream.id,"upstream",upstream.name),
     kind: upstream.kind,
     enabled: upstream.enabled,
     tags: [...upstream.tags],
@@ -190,10 +190,10 @@ export function UpstreamsPage() {
                   </StatusBadge>
                 </td>
                 <td>
-                  {upstream.tags.length > 0
-                    ? upstream.tags.map((tag) => (
-                        <span key={tag} className="idchip">
-                          {tag}
+                  {upstream.tags.some(tag=>!isInternalLabel(tag))
+                    ? upstream.tags.filter(tag=>!isInternalLabel(tag)).map((tag) => (
+                        <span key={referenceText(tag)} className="idchip">
+                          {referenceText(tag)}
                         </span>
                       ))
                     : "—"}
@@ -248,7 +248,7 @@ export function UpstreamsPage() {
       </ObjectInspector>}
 
       {draft !== undefined ? (
-        <Sheet title={draft.isNew ? "新建上游" : `编辑 ${draft.id}`} onEscape={() => setDraft(undefined)}>
+        <Sheet title={draft.isNew ? "新建上游" : `编辑 ${resourceName(draft.id,"upstream",draft.name)}`} onEscape={() => setDraft(undefined)}>
           <form className="sheet-form" onSubmit={onSubmit}>
             {draft.isNew ? (
               <label>
@@ -300,6 +300,7 @@ export function UpstreamsPage() {
               <ChipsInput
                 value={draft.tags}
                 onChange={(tags) => setDraft({ ...draft, tags })}
+                formatLabel={referenceText}
                 placeholder="回车添加"
               />
             </label>
@@ -332,7 +333,7 @@ export function UpstreamsPage() {
       {confirmDelete !== undefined ? (
         <Sheet title="确认删除" onEscape={() => setConfirmDelete(undefined)}>
           <p className="reveal-warning">
-            删除上游 <span className="mono">{confirmDelete.id}</span>
+            删除上游 <span className="mono">{resourceName(confirmDelete.id,"upstream",confirmDelete.name)}</span>
             将级联删除其全部端点、凭据与绑定,且引用这些端点的路由候选一并失效。
           </p>
           <div className="sheet-actions">

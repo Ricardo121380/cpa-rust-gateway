@@ -36,7 +36,7 @@ test("the node form refuses a bad proxy address before sending anything", async 
   const nodeSection = page.locator(".cp-section", { hasText: "代理节点" });
   await nodeSection.getByRole("button", { name: "新建" }).click();
   const sheet = page.getByRole("dialog");
-  await sheet.getByLabel("id", { exact: true }).fill("node-new");
+  await sheet.getByLabel("资源", { exact: true }).fill("node-new");
   await sheet.getByLabel("upstream").selectOption("relay-a");
   await sheet.getByLabel("名称").fill("测试节点");
   await sheet.getByLabel("proxy_endpoint").fill("http://user:pw@example.com/path");
@@ -50,7 +50,7 @@ test("the node form refuses a bad proxy address before sending anything", async 
   // are injected through options.fetch, so no request reaches the network layer
   // for Playwright to observe. The absence of the row is the observable fact.)
   await sheet.getByRole("button", { name: "取消" }).click();
-  await expect(nodeSection.locator("tr", { hasText: "node-new" })).toHaveCount(0);
+  await expect(nodeSection.locator('tr:has([data-resource-id="node-new"])')).toHaveCount(0);
 });
 
 test("editing a node keeps the sealed address when the field is left blank", async ({ page }) => {
@@ -59,7 +59,7 @@ test("editing a node keeps the sealed address when the field is left blank", asy
   // Scoped to the node section: "node-eu-1" is also the target of a binding,
   // so an unscoped row match finds two rows.
   const nodeSection = page.locator(".cp-section", { hasText: "代理节点" });
-  await nodeSection.locator("tr", { hasText: "node-eu-1" }).getByRole("button", { name: "编辑" }).click();
+  await nodeSection.locator('tr:has([data-resource-id="node-eu-1"])').getByRole("button", { name: "编辑" }).click();
   const sheet = page.getByRole("dialog");
   // The OPPOSITE of the account sheet, which demands the secret again. The
   // contract says omitted or null preserves the sealed endpoint.
@@ -71,9 +71,9 @@ test("editing a node keeps the sealed address when the field is left blank", asy
   // The save SUCCEEDING is the proof that proxy_endpoint was omitted rather
   // than sent blank: the fixture validates any present endpoint the way the
   // gateway does, and "" fails that check, so a blank one would have 400ed.
-  await expect(nodeSection.locator("tr", { hasText: "node-eu-1" })).toContainText("法兰克福 1 改名");
+  await expect(nodeSection.locator('tr:has([data-resource-id="node-eu-1"])')).toContainText("法兰克福 1 改名");
   await expect(page.locator(".action-error")).toHaveCount(0);
-  await expect(nodeSection.locator("tr", { hasText: "node-eu-1" })).toContainText("已配置(封存)");
+  await expect(nodeSection.locator('tr:has([data-resource-id="node-eu-1"])')).toContainText("已配置(封存)");
 });
 
 test("the target id switches namespace with the target kind", async ({ page }) => {
@@ -108,7 +108,7 @@ test("a referenced pool is refused before the request, not after", async ({ page
   // Scoped: "pool-eu" also appears as a binding's target.
   await page
     .locator(".cp-section", { hasText: "代理池" })
-    .locator("tr", { hasText: "pool-eu" })
+    .locator('tr:has([data-resource-id="pool-eu"])')
     .first()
     .getByRole("button", { name: "删除" })
     .click();
@@ -125,14 +125,14 @@ test("an unreferenced pool deletes, and the panel reflects it", async ({ page })
 
   await page
     .locator(".cp-section", { hasText: "代理池" })
-    .locator("tr", { hasText: "pool-empty" })
+    .locator('tr:has([data-resource-id="pool-empty"])')
     .getByRole("button", { name: "删除" })
     .click();
   const sheet = page.getByRole("dialog");
   await expect(sheet).not.toContainText("仍被引用");
   await sheet.getByRole("button", { name: "确认删除" }).click();
 
-  await expect(page.locator(".cp-section", { hasText: "代理池" }).locator("tr", { hasText: "pool-empty" })).toHaveCount(0);
+  await expect(page.locator(".cp-section", { hasText: "代理池" }).locator('tr:has([data-resource-id="pool-empty"])')).toHaveCount(0);
 });
 
 test("a published version makes every write unavailable", async ({ page }) => {
@@ -154,7 +154,7 @@ test("ids render in their own case, because ids are case-sensitive", async ({ pa
   // an operator who retypes NODE-EU-1 from the screen addresses nothing.
   const head = page
     .locator(".cp-section", { hasText: "代理节点" })
-    .locator("tr", { hasText: "node-eu-1" })
+    .locator('tr:has([data-resource-id="node-eu-1"])')
     .locator("th");
   await expect(head).toContainText("法兰克福 1");
   await expect(head.locator(".resource-original-id")).toHaveText("node-eu-1");

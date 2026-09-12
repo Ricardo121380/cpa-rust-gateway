@@ -69,7 +69,9 @@ test("truncation is announced, never silent", async ({ page }) => {
 
   // prov-flood yields 2,400 rows; the page stops at 20 pages x 100 and must say
   // the totals below are incomplete rather than presenting 2,000 as the answer.
-  await page.getByLabel("Provider", { exact: true }).fill("prov-flood");
+  await page.getByLabel("Provider", { exact: true }).selectOption({label:"指定历史资源…"});
+  await page.getByLabel("历史资源引用").fill("prov-flood");
+  await page.getByRole("button",{name:"使用此引用"}).click();
   await page.getByRole("button", { name: "应用筛选" }).click();
 
   const warning = page.locator(".action-error");

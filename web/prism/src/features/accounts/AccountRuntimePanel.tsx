@@ -249,7 +249,7 @@ export function AccountRuntimePanel() {
                 <tbody>
                   {accounts.map((row) => (
                     <tr
-                      key={`${row.provider_id}/${row.channel_id}/${row.account_id}`}
+                      key={`${row.provider_id}/${row.channel_id}/${row.account_id}`} data-account-id={row.account_id}
                     >
                       <td>
                         <div className="account-identity"><span className="account-avatar" aria-hidden="true">{runtimeName(row).slice(0, 1).toUpperCase()}</span><div>
@@ -302,7 +302,7 @@ export function AccountRuntimePanel() {
                 <header className="account-group-head"><span>{providerId}</span><small>{accounts.length} 个绑定</small></header>
               {accounts.map((row) => (
                 <article
-                  key={`${row.provider_id}/${row.channel_id}/${row.account_id}`}
+                  key={`${row.provider_id}/${row.channel_id}/${row.account_id}`} data-account-id={row.account_id}
                 >
                   <div className="entity-name">{runtimeName(row)}</div>
                   <div className="entity-meta">
@@ -363,7 +363,7 @@ export function AccountRuntimePanel() {
             {runtimeProvider(selected)} · {runtimeConnection(selected)} ·{" "}
             {formatObservedAt(observed ?? 0)}
           </p>
-          <IdentityDetails entries={[["账号 ID", selected.account_id], ["上游 ID", selected.provider_id], ["端点 ID", selected.channel_id]]} />
+          <IdentityDetails entries={[["账号", selected.account_id, runtimeName(selected)], ["提供商", selected.provider_id, runtimeProvider(selected)], ["接口", selected.channel_id, runtimeConnection(selected)]]} />
           <div className="detail-tabs">
             {[
               ["runtime", "运行状态"],

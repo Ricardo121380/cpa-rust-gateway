@@ -1,3 +1,4 @@
+import { ResourcePicker, resourceFilterKinds } from "../../components/ResourcePicker";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { ProcessingStatus } from "../billing/ProcessingStatus";
 // 用量分析 — GET /admin/operations/usage (P13-04B).
@@ -237,12 +238,12 @@ export function UsagePage() {
           ) : (
             <label key={key}>
               {filterLabel(key)}
-              <input
+              {resourceFilterKinds[key] ? <ResourcePicker key={filters[key]??""} allowCustom name={key} kind={resourceFilterKinds[key]} defaultValue={filters[key]??""} runtime={key==="account_id"}/> : <input
                 name={key}
                 className="mono"
                 maxLength={key === "model" ? 256 : 128}
                 defaultValue={filters[key] ?? ""}
-              />
+              />}
             </label>
           ),
         )}

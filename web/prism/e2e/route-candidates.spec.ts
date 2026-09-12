@@ -1,3 +1,4 @@
+import { resourceChoices } from "./resource-choice-fixtures";
 import { expect, test } from "@playwright/test";
 import { navigate, selectDraft, unlock, selectVersion } from "./helpers";
 
@@ -45,8 +46,8 @@ test("a new route fails validation until a candidate is added", async ({ page })
   await openModels(page);
   await makeRoute(page, "rt-e2e");
   const inventory = page.getByRole("region", { name: "完整配置资源" });
-  await expect(inventory).toContainText("rt-e2e");
-  await expect(inventory).toContainText("pm-rt-e2e");
+  await expect(inventory.locator('[data-resource-id="rt-e2e"]').first()).toBeVisible();
+  await expect(inventory.locator('[data-resource-id="pm-rt-e2e"]').first()).toBeVisible();
 
 
   // The panel says what it just did to the draft rather than reporting success.
@@ -70,21 +71,21 @@ test("a new route fails validation until a candidate is added", async ({ page })
   await page.locator(".route-workbench").getByRole("button", { name: "加候选" }).click();
   const sheet = page.getByRole("dialog");
   await expect(sheet).toContainText("exact 模型 ID");
-  await sheet.getByLabel("候选 ID").fill("cand-e2e");
-  await sheet.getByLabel("endpoint_id", { exact: false }).fill("ep-relay-a-responses");
-  await sheet.getByLabel("upstream_model", { exact: false }).fill("relay-x");
+  await sheet.getByLabel("候选标识").fill("cand-e2e");
+  await sheet.getByLabel("接口连接", { exact: true }).selectOption("ep-relay-a-responses");
+  await sheet.getByLabel("上游模型名称", { exact: true }).fill("relay-x");
   await sheet.getByRole("button", { name: "创建候选" }).click();
 
   // Adding a candidate re-validates on its own — the operator should not have
   // to re-ask whether the thing they just fixed is fixed.
   await expect(page.locator(".rw-validation")).toHaveAttribute("data-valid", "true");
   await inventory.getByRole("button", { name: "候选", exact: true }).click();
-  await expect(inventory).toContainText("cand-e2e");
+  await expect(inventory.locator('[data-resource-id="cand-e2e"]').first()).toBeVisible();
   await expect(inventory).toContainText("relay-x");
   await inventory.getByRole("button", { name: "编辑候选" }).click();
   const editor = page.getByRole("dialog");
-  await expect(editor.getByLabel("候选 ID")).toHaveValue("cand-e2e");
-  await expect(editor.getByLabel("候选 ID")).toHaveAttribute("readonly", "");
+  await expect(editor.locator('input[name="id"]')).toHaveValue("cand-e2e");
+  await expect(editor.locator('input[name="id"]')).toHaveAttribute("type", "hidden");
   await editor.getByLabel("weight", { exact: false }).fill("7");
   await editor.getByLabel("priority", { exact: false }).fill("3");
   await editor.getByLabel("transform_mode", { exact: false }).selectOption("canonical_bridge");
@@ -99,10 +100,10 @@ test("a new route fails validation until a candidate is added", async ({ page })
   await editor.getByRole("button", { name: "取消", exact: true }).click();
   await inventory.getByRole("button", { name: "删除候选" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "确认删除候选" }).click();
-  await expect(inventory).not.toContainText("cand-e2e");
+  await expect(inventory.locator('[data-resource-id="cand-e2e"]')).toHaveCount(0);
   await expect(page.locator(".rw-validation")).toHaveAttribute("data-valid", "false");
   await inventory.getByRole("button", { name: "路由", exact: true }).click();
-  await expect(inventory).toContainText("rt-e2e");
+  await expect(inventory.locator('[data-resource-id="rt-e2e"]').first()).toBeVisible();
 
   await inventory.getByRole("button", { name: "别名", exact: true }).click();
   await expect(inventory).toContainText("此版本暂无该类资源");
@@ -116,9 +117,9 @@ test("capability_override rejects a non-boolean instead of coercing it", async (
   await page.locator(".route-workbench").getByRole("button", { name: "加候选" }).click();
 
   const sheet = page.getByRole("dialog");
-  await sheet.getByLabel("候选 ID").fill("cand-cap");
-  await sheet.getByLabel("endpoint_id", { exact: false }).fill("ep-relay-a-responses");
-  await sheet.getByLabel("upstream_model", { exact: false }).fill("relay-x");
+  await sheet.getByLabel("候选标识").fill("cand-cap");
+  await sheet.getByLabel("接口连接", { exact: true }).selectOption("ep-relay-a-responses");
+  await sheet.getByLabel("上游模型名称", { exact: true }).fill("relay-x");
   await sheet.getByLabel("capability_override", { exact: false }).fill("vision=1");
   await sheet.getByRole("button", { name: "创建候选" }).click();
 
@@ -138,8 +139,9 @@ test("explain on a draft says the snapshot is missing, not that the panel is unw
   // problem that is not theirs.
   await unlock(page);
   await selectDraft(page);
+  await resourceChoices(page,{routes:["rt-minimax","rt-multi-provider"],upstreams:["prov-a"]});
   await navigate(page, "运行诊断");
-  await page.getByRole("form", { name: "路由解释" }).getByLabel("route_id", { exact: true }).fill("rt-minimax");
+  await page.getByRole("form", { name: "路由解释" }).getByLabel("路由", { exact: true }).selectOption("rt-minimax");
   await page.getByLabel("请求模型").fill("minimax-m3");
   await page.getByRole("button", { name: "解释" }).click();
 
@@ -151,9 +153,10 @@ test("explain on a draft says the snapshot is missing, not that the panel is unw
 test("route explain shows price evidence and the catalog it came from", async ({ page }) => {
   await unlock(page);
   await selectActive(page);
+  await resourceChoices(page,{routes:["rt-minimax","rt-multi-provider"],upstreams:["prov-a"]});
   await navigate(page, "运行诊断");
 
-  await page.getByRole("form", { name: "路由解释" }).getByLabel("route_id", { exact: true }).fill("rt-minimax");
+  await page.getByRole("form", { name: "路由解释" }).getByLabel("路由", { exact: true }).selectOption("rt-minimax");
   await page.getByLabel("请求模型").fill("minimax-m3");
   await page.getByRole("button", { name: "解释" }).click();
 
@@ -170,9 +173,10 @@ test("a multi-Provider route asks for a Provider instead of failing generically"
 }) => {
   await unlock(page);
   await selectActive(page);
+  await resourceChoices(page,{routes:["rt-minimax","rt-multi-provider"],upstreams:["prov-a"]});
   await navigate(page, "运行诊断");
 
-  await page.getByRole("form", { name: "路由解释" }).getByLabel("route_id", { exact: true }).fill("rt-multi-provider");
+  await page.getByRole("form", { name: "路由解释" }).getByLabel("路由", { exact: true }).selectOption("rt-multi-provider");
   await page.getByLabel("请求模型").fill("minimax-m3");
   await page.getByRole("button", { name: "解释" }).click();
 
@@ -181,7 +185,7 @@ test("a multi-Provider route asks for a Provider instead of failing generically"
   await expect(explainCard).toContainText("需要显式指定 Provider");
   await expect(explainCard).toContainText("必须显式选一个");
 
-  await page.getByRole("form", { name: "路由解释" }).getByLabel("provider_id", { exact: false }).fill("prov-a");
+  await page.getByRole("form", { name: "路由解释" }).getByLabel("provider_id", { exact: false }).selectOption("prov-a");
   await page.getByRole("button", { name: "解释" }).click();
   await expect(page.locator('.rt-chip[data-state="dominant"]')).toBeVisible();
 });
@@ -189,6 +193,7 @@ test("a multi-Provider route asks for a Provider instead of failing generically"
 test("explain offers all three contract protocols", async ({ page }) => {
   await unlock(page);
   await selectActive(page);
+  await resourceChoices(page,{routes:["rt-minimax","rt-multi-provider"],upstreams:["prov-a"]});
   await navigate(page, "运行诊断");
 
   // openai_chat_completions was absent until 2026-08-18: the drift gate cannot

@@ -1,3 +1,4 @@
+import { resourceName } from "../../utils/resourceNames";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { call } from "../../api/client";
@@ -76,11 +77,11 @@ export function LifecycleConfirmation({
       <dl className="fact-grid">
         <div>
           <dt>当前活动版本</dt>
-          <dd>{query.isPending ? "读取中…" : (active?.id ?? "无")}</dd>
+          <dd>{query.isPending ? "读取中…" : (active ? resourceName(active.id,"config",active.description) : "无")}</dd>
         </div>
         <div>
           <dt>{mode === "publish" ? "发布目标" : "回滚目标"}</dt>
-          <dd>{target ?? "无可用目标"}</dd>
+          <dd>{target ? resourceName(target,"config",query.data?.versions.find(v=>v.id===target)?.description) : "无可用目标"}</dd>
         </div>
         <div>
           <dt>核对 revision</dt>

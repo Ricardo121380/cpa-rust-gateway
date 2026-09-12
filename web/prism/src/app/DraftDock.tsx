@@ -128,11 +128,11 @@ export function DraftDock() {
       {publication !== undefined ? (
         <Sheet title="配置已发布">
           <p>
-            活动版本:<span className="mono">{publication.active_config_version_id}</span>
+            活动版本:<span className="mono"><ResourceIdentity id={publication.active_config_version_id} kind="config" /></span>
           </p>
           {publication.replaced_config_version_id != null ? (
             <p>
-              被替换:<span className="mono">{publication.replaced_config_version_id}</span>
+              被替换:<span className="mono"><ResourceIdentity id={publication.replaced_config_version_id} kind="config" /></span>
               (保留为一步回滚目标)
             </p>
           ) : null}

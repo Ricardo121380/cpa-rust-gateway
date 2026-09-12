@@ -40,7 +40,7 @@ export function PoolActionSheet({
           ? "冷却会把它移出调度直到到期，同渠道的其他账号继续服务。"
           : "请求恢复只是登记意图 —— 是否放行仍由运行时与上游决定,不保证恢复。"}
       </p>
-      <IdentityDetails entries={[["账号 ID",account.account_id],["上游 ID",account.provider_id],["接口 ID",account.channel_id]]} />
+      <IdentityDetails entries={[["账号",account.account_id,accountName(account.presentation?.identity)??"未提供账号身份"],["提供商",account.provider_id,account.presentation?.provider],["接口",account.channel_id,account.presentation?protocolName(account.presentation.api_format):undefined]]} />
       <form
         className="sheet-form"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {

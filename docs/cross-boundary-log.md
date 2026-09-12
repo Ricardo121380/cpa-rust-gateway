@@ -2222,3 +2222,77 @@ retains the real login entry for the user. Existing admin/configuration/accounts
 Two Console accounts still have no email; no new Provider profile, refresh, authorization or inference
 request was initiated for this release. No DNS/Caddy/Autoreg change. Future rollback requires a fresh
 backup and migration 25 downgrade, preserving latest tokens; production rollback was not executed.
+
+
+## 2026-09-12 — Codex — resource names and exact duplicate grant consolidation
+
+**What:**
+- `docs/handoffs/claude-code-oracle-singapore-vps.md`
+- `docs/handoffs/prism-domain-access.md`
+- `docs/reports/evidence/prism-resource-presentation-20260912-binding-mobile.png`
+- `docs/reports/evidence/prism-resource-presentation-20260912-desktop.png`
+- `docs/reports/evidence/prism-resource-presentation-20260912-mobile-accessible.png`
+- `docs/reports/evidence/prism-resource-presentation-20260912.json`
+- `docs/reports/prism-resource-presentation-20260912.md`
+- `web/prism/DESIGN.md`
+- `web/prism/e2e/access-groups.spec.ts`
+- `web/prism/e2e/batch-d.spec.ts`
+- `web/prism/e2e/compatible-proxy.spec.ts`
+- `web/prism/e2e/configuration-diff.spec.ts`
+- `web/prism/e2e/credential.spec.ts`
+- `web/prism/e2e/effective-models.spec.ts`
+- `web/prism/e2e/flows.spec.ts`
+- `web/prism/e2e/i18n.spec.ts`
+- `web/prism/e2e/provider-pools.spec.ts`
+- `web/prism/e2e/resource-choice-fixtures.ts`
+- `web/prism/e2e/resource-names.spec.ts`
+- `web/prism/e2e/route-candidates.spec.ts`
+- `web/prism/e2e/smoke.spec.ts`
+- `web/prism/e2e/subresource-crud.spec.ts`
+- `web/prism/e2e/usage.spec.ts`
+- `web/prism/src/app/DraftDock.tsx`
+- `web/prism/src/components/ChipsInput.tsx`
+- `web/prism/src/components/ObjectInspector.tsx`
+- `web/prism/src/components/ResourceIdentity.test.ts`
+- `web/prism/src/components/ResourceIdentity.tsx`
+- `web/prism/src/components/ResourcePicker.tsx`
+- `web/prism/src/components/resource-identity.css`
+- `web/prism/src/features/access/AccessPage.tsx`
+- `web/prism/src/features/accounts/AccountRuntimePanel.tsx`
+- `web/prism/src/features/accounts/AccountsPage.tsx`
+- `web/prism/src/features/accounts/AddAccountDialog.tsx`
+- `web/prism/src/features/billing/BillingPage.tsx`
+- `web/prism/src/features/config-versions/ConfigurationDiff.tsx`
+- `web/prism/src/features/config-versions/LifecycleConfirmation.tsx`
+- `web/prism/src/features/config-versions/VersionsPage.tsx`
+- `web/prism/src/features/egress/CompatibleProxyPanel.tsx`
+- `web/prism/src/features/egress/EgressPage.tsx`
+- `web/prism/src/features/models/ModelsPage.tsx`
+- `web/prism/src/features/models/RouteWorkbench.tsx`
+- `web/prism/src/features/monitoring/MonitoringPage.tsx`
+- `web/prism/src/features/runtime/PoolActionSheet.tsx`
+- `web/prism/src/features/runtime/RuntimePage.tsx`
+- `web/prism/src/features/upstreams/CredentialSheet.tsx`
+- `web/prism/src/features/upstreams/SubresourcePanel.tsx`
+- `web/prism/src/features/upstreams/UpstreamsPage.tsx`
+- `web/prism/src/features/usage/UsagePage.tsx`
+- `web/prism/src/utils/resourceNames.test.ts`
+- `web/prism/src/utils/resourceNames.ts`
+
+**Why:** User requested retaining one genuinely duplicate Codex authorization and removing historical
+testing IDs/codes across every management surface. Human names replace old phase IDs in ordinary
+content, immutable editors, choices and confirmations; exact original values remain in API requests,
+URLs, hidden form values and deliberate internal-reference copy/raw exports. Actual identity/model
+names are preserved. The narrowly verified identical production grant was removed through a forked,
+validated and guarded published configuration, then read back after a controlled service restart.
+
+**Other side:** FYI under continuing joint frontend/backend implementation authorization and the
+user's explicit request to consolidate this duplicate. No Rust, schema or OpenAPI/client generation
+changes. Production is still binary `5b92e15`/schema 25, active config `production-accounts-20260912`,
+Codex credential/connection 1. History, native accounts and admin credentials remain; the old config
+is archived. Offline production-copy publish/restart/rollback passed; production rollback was not run.
+No Provider/DNS/Caddy/Autoreg action. Frontend candidate is NOT deployed. 274 frontend tests,
+TypeScript, 123-operation/four-file double build and real gateway embedding passed. EgoLite checked
+14 existing entries at three sizes plus scoped real form read/write and identity/reference behavior;
+last dialog fixes were rechecked on the rebuilt gateway. Changed Playwright specs were type-checked,
+not run in another browser. Two missing Console emails remain outside this batch's acceptance.

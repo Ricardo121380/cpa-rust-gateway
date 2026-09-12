@@ -100,7 +100,7 @@ export function CredentialSheet({
   return (
     <Sheet title="账号详情" layout="inspector" onEscape={onClose}>
       <h3>{accountName ?? meta?.email ?? "未提供账号身份"}</h3>
-      <IdentityDetails entries={[["凭据 ID", credentialId], ...(row ? [["上游 ID", row.upstream_id] as const] : [])]} />
+      <IdentityDetails entries={[["账号", credentialId, accountName ?? meta?.email ?? "未提供账号身份"], ...(row ? [["提供商", row.upstream_id, providerName] as const] : [])]} />
       {error !== undefined ? (
         <p role="alert" className="reveal-warning">
           {error}

@@ -175,7 +175,7 @@ export function ModelsPage() {
       // discover from a failed publish.
       setCreatedRouteId(created.id);
       setNotice(
-        `路由 ${created.id} 已创建,但它还没有候选 —— 现在校验会报 route_missing_active_candidate,发布会被挡。下方「路由工作台」里加一个候选即可。`,
+        `路由 ${resourceName(created.id,"route")} 已创建,但它还没有候选 —— 现在校验会报 route_missing_active_candidate,发布会被挡。下方「路由工作台」里加一个候选即可。`,
       );
     },
     onError: (error) => setActionError(asAppError(error).message),

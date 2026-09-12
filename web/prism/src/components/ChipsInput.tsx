@@ -8,6 +8,7 @@ export function ChipsInput({
   placeholder,
   validate,
   mono = true,
+  formatLabel = (value: string) => value,
 }: Readonly<{
   value: readonly string[];
   onChange: (next: string[]) => void;
@@ -15,6 +16,7 @@ export function ChipsInput({
   /** returns an error message, or undefined when the entry is acceptable */
   validate?: (entry: string) => string | undefined;
   mono?: boolean;
+  formatLabel?: (value: string) => string;
 }>) {
   const [pending, setPending] = useState("");
   const [error, setError] = useState<string | undefined>();
@@ -59,7 +61,7 @@ export function ChipsInput({
             title="点击移除"
             onClick={() => onChange(value.filter((candidate) => candidate !== entry))}
           >
-            {entry} ×
+            {formatLabel(entry)} ×
           </button>
         ))}
         <input

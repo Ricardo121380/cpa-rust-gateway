@@ -1,3 +1,5 @@
+import { accountName, protocolName } from "../accounts/presentation";
+import { ResourceIdInput } from "../../components/ResourceIdentity";
 import { resourceName } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 // Configuration inventories own endpoint/account enumeration; runtime pools supply observed bindings.
@@ -117,9 +119,9 @@ function BindingReconcileSheet({
               <th>credential</th>
               <th>upstream</th>
               <th>enabled</th>
-              <th>priority</th>
-              <th>weight</th>
-              <th>concurrency</th>
+              <th>优先级</th>
+              <th>权重</th>
+              <th>并发上限</th>
             </tr>
           </thead>
           <tbody>
@@ -176,7 +178,7 @@ function ChannelSheet({
 
   if (editing !== undefined && record.data === undefined) {
     return (
-      <Sheet title={`编辑 Channel · ${editing}`} onEscape={onCancel}>
+      <Sheet title={`编辑接口 · ${resourceName(editing,"endpoint")}`} onEscape={onCancel}>
         <p className="muted">{record.isError ? "读取端点失败" : "读取端点…"}</p>
         <div className="sheet-actions">
           <button type="button" onClick={onCancel}>
@@ -190,7 +192,7 @@ function ChannelSheet({
 
   return (
     <Sheet
-      title={editing === undefined ? "新建 Channel" : `编辑 Channel · ${editing}`}
+      title={editing === undefined ? "新建接口" : `编辑接口 · ${resourceName(editing,"endpoint")}`}
       onEscape={onCancel}
     >
       <form
@@ -215,8 +217,8 @@ function ChannelSheet({
         }}
       >
         <label>
-          id
-          <input
+          {editing === undefined ? "接口标识" : "接口"}
+          <ResourceIdInput kind="endpoint"
             name="id"
             className="mono"
             required
@@ -279,14 +281,15 @@ function ChannelSheet({
  *  The form says so instead of quietly posting a blank and earning a 400. */
 function AccountSheet({
   form,
+  displayName,
   pending,
   onCancel,
   onSubmit,
-}: Readonly<{ form: AccountForm; pending: boolean; onCancel: () => void; onSubmit: SheetSubmit }>) {
+}: Readonly<{ form: AccountForm; displayName?: string; pending: boolean; onCancel: () => void; onSubmit: SheetSubmit }>) {
   const editing = form.mode === "edit" ? form.accountId : undefined;
   return (
     <Sheet
-      title={editing === undefined ? "新建 Account" : `编辑 Account · ${editing}`}
+      title={editing === undefined ? "新建账号" : `编辑账号 · ${displayName??"未提供账号身份"}`}
       onEscape={onCancel}
     >
       <form
@@ -306,9 +309,9 @@ function AccountSheet({
         }}
       >
         <label>
-          id
-          <input
-            name="id"
+          {editing === undefined ? "凭据标识" : "账号"}
+          <ResourceIdInput
+            name="id" kind="account" displayName={displayName??"未提供账号身份"}
             className="mono"
             required
             maxLength={128}
@@ -327,7 +330,7 @@ function AccountSheet({
           </select>
         </label>
         <label>
-          status
+          状态
           <select name="status" defaultValue="active">
             <option value="active">active</option>
             <option value="disabled">disabled</option>
@@ -335,7 +338,7 @@ function AccountSheet({
           </select>
         </label>
         <label>
-          secret
+          授权资料
           {/* Not type="password": Safari's password manager covers the field and
               swallows paste, and these are machine credentials that are always
               pasted. Same reason the unlock screen uses a masked text input. */}
@@ -532,11 +535,12 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
   const observed = providerPool(pools.data?.items ?? [], upstreamId);
   const pool = {
     channels: managedEndpoints.data.pages.flatMap((page) => page.items).map((endpoint) => ({
-      channel_id: endpoint.id, adapter_id: endpoint.adapter_id, api_format: endpoint.api_format,
+      channel_id: endpoint.id, display: `${protocolName(endpoint.api_format)} · ${new URL(endpoint.base_url).host}`, adapter_id: endpoint.adapter_id, api_format: endpoint.api_format,
       transport: endpoint.transport, channel_enabled: endpoint.enabled,
       account_ids: observed?.channels.find((channel) => channel.channel_id === endpoint.id)?.account_ids ?? [],
     })),
-    accounts: managedCredentials.data.pages.flatMap((page) => page.items).map(({ credential }) => ({
+    accounts: managedCredentials.data.pages.flatMap((page) => page.items).map(({ credential, identity, provider }) => ({
+      display: accountName(identity) ?? "未提供账号身份", provider,
       account_id: credential.id, account_kind: credential.kind,
       account_status: credential.status === "active" ? "active" as const : "disabled" as const,
       account_revision: credential.revision,
@@ -564,7 +568,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
       ) : null}
 
       <h3>
-        Channel <span className="idchip mono">{pool.channels.length}</span>
+        接口 <span className="idchip mono">{pool.channels.length}</span>
         <button
           type="button"
           className="secondary"
@@ -572,7 +576,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
           title={editable ? undefined : "仅草稿版本可编辑"}
           onClick={() => setChannelForm({ mode: "create" })}
         >
-          新建 Channel
+          新建接口
         </button>
         <button
           type="button"
@@ -588,10 +592,10 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
       <table>
         <thead>
           <tr>
-            <th>channel_id</th>
-            <th>adapter</th>
-            <th>api_format</th>
-            <th>transport</th>
+            <th>接口</th>
+            <th>连接方式</th>
+            <th>协议</th>
+            <th>传输</th>
             <th>状态</th>
             <th>测试</th>
             <th>目录发现</th>
@@ -602,7 +606,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
             const result = testResults[channel.channel_id];
             return (
               <tr key={channel.channel_id}>
-                <td><ResourceIdentity id={channel.channel_id} kind="endpoint" /></td>
+                <td><ResourceIdentity id={channel.channel_id} kind="endpoint" name={channel.display} /></td>
                 <td className="mono">{channel.adapter_id}</td>
                 <td className="mono">{channel.api_format}</td>
                 <td className="mono">{channel.transport}</td>
@@ -689,7 +693,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
 
       {managedCredentials.hasNextPage ? <button className="secondary" disabled={managedCredentials.isFetchingNextPage} onClick={() => void managedCredentials.fetchNextPage()}>加载更多账号</button> : null}
       <h3>
-        Account <span className="idchip mono">{pool.accounts.length}</span>
+        账号 <span className="idchip mono">{pool.accounts.length}</span>
         <button
           type="button"
           className="secondary"
@@ -697,23 +701,23 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
           title={editable ? undefined : "仅草稿版本可编辑"}
           onClick={() => setAccountForm({ mode: "create" })}
         >
-          新建 Account
+          新建账号
         </button>
       </h3>
       <table>
         <thead>
           <tr>
-            <th>account_id</th>
-            <th>kind</th>
-            <th>status</th>
-            <th>revision</th>
+            <th>账号</th>
+            <th>认证方式</th>
+            <th>状态</th>
+            <th>修订</th>
             <th>操作</th>
           </tr>
         </thead>
         <tbody>
           {pool.accounts.map((account) => (
             <tr key={account.account_id}>
-              <td><ResourceIdentity id={account.account_id} kind="account" /></td>
+              <td><ResourceIdentity id={account.account_id} kind="account" name={account.display} /></td>
               <td className="mono">{account.account_kind}</td>
               <td>
                 <StatusBadge status={accountStatusTone(account.account_status)}>
@@ -759,20 +763,20 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
       <table>
         <thead>
           <tr>
-            <th>channel</th>
-            <th>account</th>
+            <th>接口</th>
+            <th>账号</th>
             <th>静态启用</th>
-            <th>priority</th>
-            <th>weight</th>
-            <th>concurrency</th>
-            <th>route</th>
+            <th>优先级</th>
+            <th>权重</th>
+            <th>并发上限</th>
+            <th>路由</th>
           </tr>
         </thead>
         <tbody>
           {pool.bindings.map((binding) => (
             <tr key={`${binding.channel_id}:${binding.account_id}`}>
-              <td><ResourceIdentity id={binding.channel_id} kind="endpoint" /></td>
-              <td><ResourceIdentity id={binding.account_id} kind="account" /></td>
+              <td><ResourceIdentity id={binding.channel_id} kind="endpoint" name={pool.channels.find(c=>c.channel_id===binding.channel_id)?.display} /></td>
+              <td><ResourceIdentity id={binding.account_id} kind="account" name={pool.accounts.find(a=>a.account_id===binding.account_id)?.display} /></td>
               <td>
                 <StatusBadge status={binding.configured_enabled ? "active" : "disabled"}>
                   {binding.configured_enabled ? "enabled" : "disabled"}
@@ -782,7 +786,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
               <td className="mono">{binding.weight}</td>
               <td className="mono">{binding.concurrency}</td>
               <td className="mono">
-                {binding.route_ids.length === 0 ? "—" : binding.route_ids.join(" ")}
+                {binding.route_ids.length === 0 ? "—" : binding.route_ids.map((id)=>resourceName(id,"route")).join(" · ")}
               </td>
             </tr>
           ))}
@@ -810,7 +814,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
 
       {discovery !== undefined ? (
         <Sheet
-          title={`目录发现 · ${discovery.endpointId}`}
+          title={`目录发现 · ${resourceName(discovery.endpointId,"endpoint")}`}
           onEscape={() => setDiscovery(undefined)}
         >
           <div className="diff-row">
@@ -849,6 +853,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
       {accountForm !== undefined ? (
         <AccountSheet
           form={accountForm}
+          displayName={accountForm.mode==="edit"?pool.accounts.find(a=>a.account_id===accountForm.accountId)?.display:undefined}
           pending={saveAccount.isPending}
           onCancel={() => setAccountForm(undefined)}
           onSubmit={(body, existing) => saveAccount.mutate({ existing, body })}
@@ -857,7 +862,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
 
       {bindingForm !== undefined ? (
         <Sheet
-          title={bindingForm.channelId === "" ? "加绑定" : `加绑定 · ${bindingForm.channelId}`}
+          title={bindingForm.channelId === "" ? "加绑定" : `加绑定 · ${resourceName(bindingForm.channelId,"endpoint")}`}
           onEscape={() => setBindingForm(undefined)}
         >
           <form
@@ -878,33 +883,19 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
             }}
           >
             <label>
-              channel_id
-              <input
-                name="channel_id"
-                className="mono"
-                required
-                maxLength={128}
-                list="pool-channels"
-                defaultValue={bindingForm.channelId}
-              />
+              接口
+              <select name="channel_id" required defaultValue={bindingForm.channelId}>
+                <option value="" disabled>选择接口</option>
+                {pool.channels.map(channel=><option key={channel.channel_id} value={channel.channel_id}>{channel.display}</option>)}
+              </select>
             </label>
-            <datalist id="pool-channels">
-              {pool.channels.map((channel) => (
-                <option key={channel.channel_id} value={channel.channel_id} />
-              ))}
-            </datalist>
-            <p className="stat-sub">
-              建议列表只含<strong>已有绑定</strong>的 Channel。刚建的那个不在其中 —— 直接把 id 输进来。
-            </p>
             <label>
-              credential_id
-              <input name="credential_id" className="mono" required maxLength={128} list="pool-accounts" />
+              账号
+              <select name="credential_id" required defaultValue="">
+                <option value="" disabled>选择账号</option>
+                {pool.accounts.map(account=><option key={account.account_id} value={account.account_id}>{account.display} · {account.provider}</option>)}
+              </select>
             </label>
-            <datalist id="pool-accounts">
-              {pool.accounts.map((account) => (
-                <option key={account.account_id} value={account.account_id} />
-              ))}
-            </datalist>
             <label>
               priority
               <input name="priority" type="number" defaultValue={0} min={0} required />
@@ -936,7 +927,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
       {confirmDelete !== undefined ? (
         <Sheet title="确认删除" onEscape={() => setConfirmDelete(undefined)}>
           <p>
-            删除 <span className="mono">{confirmDelete.id}</span>
+            删除 <span className="mono">{resourceName(confirmDelete.id,confirmDelete.kind==="channel"?"endpoint":"account")}</span>
             {confirmDelete.kind === "channel"
               ? " 会连带移除它的全部绑定,引用它的路由候选将失去目标 —— 该配置版本可能因此验证失败。"
               : " 会连带移除它的全部绑定。若某个 Channel 只剩这一个可用凭据,相关路由将无候选可选。"}
@@ -960,6 +951,8 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
       {accountTarget !== undefined ? (
         <CredentialSheet
           credentialId={accountTarget}
+          accountName={pool.accounts.find(a=>a.account_id===accountTarget)?.display}
+          providerName={pool.accounts.find(a=>a.account_id===accountTarget)?.provider}
           onClose={() => setAccountTarget(undefined)}
         />
       ) : null}

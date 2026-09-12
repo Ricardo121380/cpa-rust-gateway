@@ -10,7 +10,7 @@ async function openPanel(page: import("@playwright/test").Page): Promise<void> {
   await selectDraft(page);
   await navigate(page, "上游");
   await page
-    .locator("tr", { hasText: "relay-a" })
+    .locator('tr:has([data-resource-id="relay-a"])')
     .first()
     .getByRole("button", { name: "子资源" })
     .click();
@@ -19,9 +19,9 @@ async function openPanel(page: import("@playwright/test").Page): Promise<void> {
 
 test("a channel can be created and appears in the inventory", async ({ page }) => {
   await openPanel(page);
-  await page.getByRole("button", { name: "新建 Channel" }).click();
+  await page.getByRole("button", { name: "新建接口" }).click();
   const sheet = page.getByRole("dialog");
-  await sheet.getByLabel("id", { exact: true }).fill("ep-e2e");
+  await sheet.getByLabel("接口标识", { exact: true }).fill("ep-e2e");
   await sheet.getByLabel("adapter_id").fill("openai-compatible.responses");
   await sheet.getByLabel("api_format").fill("openai/responses");
   await sheet.getByLabel("base_url").fill("https://e2e.example/v1");
@@ -29,23 +29,23 @@ test("a channel can be created and appears in the inventory", async ({ page }) =
   await sheet.getByRole("button", { name: "创建" }).click();
 
   // Complete configuration inventory exposes the new endpoint before any binding exists.
-  await expect(page.locator(".subresource-panel")).toContainText("ep-e2e");
+  await expect(page.locator('.subresource-panel [data-resource-id="ep-e2e"]').first()).toBeVisible();
 
   await page.locator(".subresource-panel").getByRole("button", { name: "加绑定" }).first().click();
   const bind = page.getByRole("dialog");
-  await expect(bind.getByLabel("channel_id")).toHaveValue("");
-  await bind.getByLabel("channel_id").fill("ep-e2e");
-  await bind.getByLabel("credential_id").fill("cred-relay-key");
+  await expect(bind.getByLabel("接口",{exact:true})).toHaveValue("");
+  await bind.getByLabel("接口",{exact:true}).selectOption("ep-e2e");
+  await bind.getByLabel("账号",{exact:true}).selectOption("cred-relay-key");
   await bind.getByRole("button", { name: "添加" }).click();
 
   // now it exists in the inventory
-  await expect(page.locator(".subresource-panel")).toContainText("ep-e2e");
+  await expect(page.locator('.subresource-panel [data-resource-id="ep-e2e"]').first()).toBeVisible();
 });
 
 test("editing a channel pre-fills the URL the inventory does not carry", async ({ page }) => {
   await openPanel(page);
   await page
-    .locator("tr", { hasText: "ep-relay-a-responses" })
+    .locator('tr:has([data-resource-id="ep-relay-a-responses"])')
     .first()
     .getByRole("button", { name: "编辑" })
     .click();
@@ -63,21 +63,21 @@ test("editing an account demands the secret again, and says why", async ({ page 
   await openPanel(page);
   await page
     .locator(".subresource-panel")
-    .getByRole("row", { name: /^cred-relay-key bearer/u })
+    .locator('tr:has([data-resource-id="cred-relay-key"])').filter({has:page.getByRole("button",{name:"编辑",exact:true})})
     .getByRole("button", { name: "编辑" })
     .click();
   const sheet = page.getByRole("dialog");
   await expect(sheet).toContainText("永不返回密钥");
   await expect(sheet).toContainText("整体替换");
-  await expect(sheet.getByLabel("secret")).toHaveAttribute("required", "");
+  await expect(sheet.getByLabel("授权资料")).toHaveAttribute("required", "");
   // and it is not a password field — those swallow paste in Safari
-  await expect(sheet.getByLabel("secret")).toHaveAttribute("type", "text");
+  await expect(sheet.getByLabel("授权资料")).toHaveAttribute("type", "text");
 });
 
 test("deleting a channel warns that its bindings and candidates go with it", async ({ page }) => {
   await openPanel(page);
   await page
-    .locator("tr", { hasText: "ep-relay-a-responses" })
+    .locator('tr:has([data-resource-id="ep-relay-a-responses"])')
     .first()
     .getByRole("button", { name: "删除" })
     .click();
@@ -86,8 +86,8 @@ test("deleting a channel warns that its bindings and candidates go with it", asy
   await expect(confirm).toContainText("路由候选将失去目标");
   await confirm.getByRole("button", { name: "确认删除" }).click();
   // Removing its usage locations must not hide the retained credentials.
-  await expect(page.locator(".subresource-panel")).not.toContainText("ep-relay-a-responses");
-  await expect(page.locator(".subresource-panel")).toContainText("cred-relay-key");
+  await expect(page.locator('.subresource-panel [data-resource-id="ep-relay-a-responses"]')).toHaveCount(0);
+  await expect(page.locator('.subresource-panel [data-resource-id="cred-relay-key"]').first()).toBeVisible();
 });
 
 test("subresource editing is refused on a published version", async ({ page }) => {
@@ -95,12 +95,12 @@ test("subresource editing is refused on a published version", async ({ page }) =
   await navigate(page, "上游");
   await selectVersion(page, "v-2026-07");
   await page.waitForTimeout(400);
-  const rows = page.locator("tr", { hasText: "relay-a" });
+  const rows = page.locator('tr:has([data-resource-id="relay-a"])');
   if ((await rows.count()) > 0) {
     await rows.first().getByRole("button", { name: "子资源" }).click();
     const panel = page.locator(".subresource-panel");
     if (await panel.isVisible()) {
-      await expect(panel.getByRole("button", { name: "新建 Channel" })).toBeDisabled();
+      await expect(panel.getByRole("button", { name: "新建接口" })).toBeDisabled();
     }
   }
 });
@@ -108,7 +108,7 @@ test("subresource editing is refused on a published version", async ({ page }) =
 
 test("new account defaults to the real runtime bearer kind", async ({ page }) => {
   await openPanel(page);
-  await page.getByRole("button", { name: "新建 Account", exact: true }).click();
+  await page.getByRole("button", { name: "新建账号", exact: true }).click();
   const sheet = page.getByRole("dialog");
   await expect(sheet.getByLabel("认证方式")).toHaveValue("bearer");
   await sheet.getByLabel("认证方式").selectOption("oauth_json");
@@ -118,13 +118,13 @@ test("new account defaults to the real runtime bearer kind", async ({ page }) =>
 
 test("new unbound credentials remain visible and editable", async ({ page }) => {
   await openPanel(page);
-  await page.getByRole("button", { name: "新建 Account", exact: true }).click();
+  await page.getByRole("button", { name: "新建账号", exact: true }).click();
   const sheet = page.getByRole("dialog");
-  await sheet.getByLabel("id", { exact: true }).fill("account-unbound");
-  await sheet.getByLabel("secret", { exact: true }).fill("synthetic-test-token");
+  await sheet.getByLabel("凭据标识", { exact: true }).fill("account-unbound");
+  await sheet.getByLabel("授权资料", { exact: true }).fill("synthetic-test-token");
   await sheet.getByRole("button", { name: "创建", exact: true }).click();
-  const row = page.locator(".subresource-panel").getByRole("row", { name: /^account-unbound bearer/u });
+  const row = page.locator(".subresource-panel").locator('tr:has([data-resource-id="account-unbound"])');
   await expect(row).toBeVisible();
   await row.getByRole("button", { name: "编辑", exact: true }).click();
-  await expect(page.getByRole("dialog").getByLabel("id", { exact: true })).toHaveValue("account-unbound");
+  await expect(page.getByRole("dialog").locator('input[name="id"]')).toHaveValue("account-unbound");
 });

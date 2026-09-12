@@ -1,3 +1,4 @@
+import { resourceChoices } from "./resource-choice-fixtures";
 // Batch D — the remaining contract surface.
 //
 // Three separate things, each wired because the list model could NOT answer the
@@ -43,6 +44,7 @@ test("reviving a revoked key warns that the old secret works again", async ({ pa
 test("channel pin says it spends a real call, and offers no free-form body", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
+  await resourceChoices(page,{routes:["route-1"],accounts:["cred-relay-quota","cred-grok-old"]});
   await navigate(page, "运行诊断");
 
   const card = page.locator(".rt-card", { hasText: "通道诊断" });
@@ -58,6 +60,7 @@ test("channel pin says it spends a real call, and offers no free-form body", asy
 test("a receipt keeps upstream_sent and outcome as separate facts", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
+  await resourceChoices(page,{routes:["route-1"],accounts:["cred-relay-quota","cred-grok-old"]});
   await navigate(page, "运行诊断");
 
   const card = page.locator(".rt-card", { hasText: "通道诊断" });
@@ -68,7 +71,8 @@ test("a receipt keeps upstream_sent and outcome as separate facts", async ({ pag
     ["credential_id", "cred-relay-quota"],
     ["requested_model", "glm-5-air"],
   ] as const) {
-    await card.locator(`input[name="${label}"]`).fill(value);
+    if(label==="requested_model")await card.locator(`input[name="${label}"]`).fill(value);
+    else await card.locator(`select[name="${label}"]`).selectOption(value);
   }
   await card.getByRole("button", { name: "发一次真实请求" }).click();
 
@@ -85,6 +89,7 @@ test("a receipt keeps upstream_sent and outcome as separate facts", async ({ pag
 test("a moved pin target is reported without claiming the config changed", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
+  await resourceChoices(page,{routes:["route-1"],accounts:["cred-relay-quota","cred-grok-old"]});
   await navigate(page, "运行诊断");
 
   const card = page.locator(".rt-card", { hasText: "通道诊断" });
@@ -95,7 +100,8 @@ test("a moved pin target is reported without claiming the config changed", async
     ["credential_id", "cred-grok-old"],
     ["requested_model", "glm-5-air"],
   ] as const) {
-    await card.locator(`input[name="${label}"]`).fill(value);
+    if(label==="requested_model")await card.locator(`input[name="${label}"]`).fill(value);
+    else await card.locator(`select[name="${label}"]`).selectOption(value);
   }
   await card.getByRole("button", { name: "发一次真实请求" }).click();
 
@@ -111,7 +117,7 @@ test("the config plane reports a binding the operational inventory cannot show",
   await selectDraft(page);
   await navigate(page, "上游");
   await page
-    .locator("tr", { hasText: "relay-a" })
+    .locator('tr:has([data-resource-id="relay-a"])')
     .first()
     .getByRole("button", { name: "子资源" })
     .click();

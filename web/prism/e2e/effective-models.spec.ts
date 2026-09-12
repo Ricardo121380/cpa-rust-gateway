@@ -54,7 +54,7 @@ test("an authorized model survives draft selection and seeds a new route candida
   dialog = page.getByRole("dialog");
   await expect(dialog.getByLabel("upstream_model", { exact: false })).toHaveValue("exact-alpha");
   await expect(dialog.getByLabel("endpoint_id", { exact: false })).toHaveValue("endpoint-exact-alpha");
-  await expect(dialog.getByLabel("候选 ID")).toHaveValue("");
+  await expect(dialog.getByLabel("候选标识")).toHaveValue("");
   await page.keyboard.press("Escape");
   await handoff.getByRole("button", { name: "清除模型选择" }).click();
   await expect(handoff).toHaveCount(0);

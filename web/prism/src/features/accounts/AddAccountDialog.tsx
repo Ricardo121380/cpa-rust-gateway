@@ -1,3 +1,4 @@
+import { resourceName } from "../../utils/resourceNames";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
@@ -48,7 +49,7 @@ export function AddAccountDialog({onClose, onCreated}: Readonly<{onClose: () => 
       {channel?.authorization_available ? <button type="button" onClick={()=>{if(secret.current)secret.current.value="";setOauthName("");}}>授权登录</button> : null}
       {channel?.import_available ? !native && matches.length === 0 ? <p>先添加此渠道的 <Link to="/upstreams" onClick={onClose}>AI 提供商</Link>。</p> :
         <form className="sheet-form" onSubmit={submit} autoComplete="off" key={channelId}>
-          {!native ? <label>提供商<select name="provider" required>{matches.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label> : null}
+          {!native ? <label>提供商<select name="provider" required>{matches.map((p) => <option key={p.id} value={p.id}>{resourceName(p.id,"upstream",p.name)}</option>)}</select></label> : null}
           <label>导入标记<input name="name" required maxLength={128} placeholder="用于追溯本次导入" /></label>
           <label>{formats[channel.credential_format] ?? "凭据"}<textarea ref={secret} name="secret" required maxLength={65536} autoComplete="off" spellCheck={false} className="credential-input" /></label>
           {channel.credential_format !== "api_key" ? <label>读取凭据文件<input type="file" accept=".json,application/json" onChange={async (event) => {

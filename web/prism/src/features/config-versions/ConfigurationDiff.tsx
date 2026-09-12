@@ -1,4 +1,4 @@
-import { resourceOption } from "../../utils/resourceNames";
+import { resourceOption, referenceText } from "../../utils/resourceNames";
 import "./configuration-diff.css";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -41,11 +41,11 @@ function identity(value: string): string {
   try {
     const parts: unknown = JSON.parse(value);
     if (Array.isArray(parts) && parts.every((part) => typeof part === "string"))
-      return parts.join(" · ");
+      return parts.map(part=>referenceText(part)).join(" · ");
   } catch {
     /* Retain the opaque identity if a future server changes its encoding. */
   }
-  return value;
+  return referenceText(value);
 }
 export function ConfigurationDiff({
   target,
@@ -108,8 +108,8 @@ export function ConfigurationDiff({
         </button>
       </div>
       <dl className="fact-grid">
-        <div><dt>基线版本</dt><dd>{base}</dd></div>
-        <div><dt>目标版本</dt><dd>{target.id}</dd></div>
+        <div><dt>基线版本</dt><dd>{resourceOption(base,"config",versions.find(v=>v.id===base)?.description)}</dd></div>
+        <div><dt>目标版本</dt><dd>{resourceOption(target.id,"config",target.description)}</dd></div>
       </dl>
       {snapshot ? (
         <p className="scope-row">

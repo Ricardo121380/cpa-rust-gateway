@@ -16,12 +16,12 @@ test("a group can be created, edited and deleted", async ({ page }) => {
 
   await page.getByRole("button", { name: "新建访问组" }).click();
   const create = page.getByRole("dialog");
-  await create.getByLabel("ID").fill("team-e2e");
+  await create.getByLabel("访问组标识").fill("team-e2e");
   await create.getByLabel("名称").fill("端到端组");
   await create.getByLabel("限制").fill("max_concurrency=8 rpm=120");
   await create.getByRole("button", { name: "创建" }).click();
 
-  const row = page.locator("tr", { hasText: "team-e2e" }).first();
+  const row = page.locator('tr:has([data-resource-id="team-e2e"])').first();
   await expect(row).toContainText("端到端组");
   await expect(row).toContainText("max_concurrency=8 rpm=120");
 
@@ -29,25 +29,25 @@ test("a group can be created, edited and deleted", async ({ page }) => {
   // would silently blank the fields the operator did not touch.
   await row.getByRole("button", { name: "编辑" }).click();
   const edit = page.getByRole("dialog");
-  await expect(edit.getByLabel("ID")).toHaveValue("team-e2e");
+  await expect(edit.locator('input[name="id"]')).toHaveValue("team-e2e");
   await expect(edit.getByLabel("名称")).toHaveValue("端到端组");
   await expect(edit.getByLabel("限制")).toHaveValue("max_concurrency=8 rpm=120");
   await edit.getByLabel("名称").fill("改名后");
   await edit.getByRole("button", { name: "保存" }).click();
-  await expect(page.locator("tr", { hasText: "team-e2e" }).first()).toContainText("改名后");
+  await expect(page.locator('tr:has([data-resource-id="team-e2e"])').first()).toContainText("改名后");
 
-  await page.locator("tr", { hasText: "team-e2e" }).first().getByRole("button", { name: "删除" }).click();
+  await page.locator('tr:has([data-resource-id="team-e2e"])').first().getByRole("button", { name: "删除" }).click();
   const confirm = page.getByRole("dialog");
   await expect(confirm).toContainText("会同时移除它的路由授权");
   await confirm.getByRole("button", { name: "确认删除" }).click();
-  await expect(page.locator("tr", { hasText: "team-e2e" })).toHaveCount(0);
+  await expect(page.locator('tr:has([data-resource-id="team-e2e"])')).toHaveCount(0);
 });
 
 test("limits are judged before they reach the gateway", async ({ page }) => {
   await openAccess(page);
   await page.getByRole("button", { name: "新建访问组" }).click();
   const create = page.getByRole("dialog");
-  await create.getByLabel("ID").fill("team-bad");
+  await create.getByLabel("访问组标识").fill("team-bad");
   await create.getByLabel("名称").fill("坏限额");
   await create.getByLabel("限制").fill("rpm=-1");
   await create.getByRole("button", { name: "创建" }).click();
@@ -71,7 +71,7 @@ test("route grants are listed per group and can be added", async ({ page }) => {
   await navigate(page, "访问控制");
 
 
-  const row = page.locator("tr", { hasText: "team-default" }).first();
+  const row = page.locator('tr:has([data-resource-id="team-default"])').first();
   await row.getByRole("button", { name: "路由" }).click();
   const routes = page.locator(".group-routes");
   await expect(routes).toContainText("rt-minimax");
@@ -79,16 +79,16 @@ test("route grants are listed per group and can be added", async ({ page }) => {
   await routes.getByRole("button", { name: "授权路由" }).click();
   const sheet = page.getByRole("dialog");
   await expect(sheet).toContainText("包含未绑定草稿路由");
-  await expect(sheet.locator('datalist option[value="rt-e2e"]')).toHaveCount(1);
-  await sheet.getByLabel("route_id").fill("rt-e2e");
+  await expect(sheet.locator('select[name="route_id"] option[value="rt-e2e"]')).toHaveCount(1);
+  await sheet.getByLabel("路由", {exact:true}).selectOption("rt-e2e");
   await sheet.getByRole("button", { name: "授权" }).click();
-  await expect(page.locator(".group-routes")).toContainText("rt-e2e");
+  await expect(page.locator('.group-routes [data-resource-id="rt-e2e"]')).toBeVisible();
 });
 
 test("a group with no grant says the keys under it reach nothing", async ({ page }) => {
   await openAccess(page);
   // team-batch exists with no grants seeded
-  await page.locator("tr", { hasText: "team-batch" }).first().getByRole("button", { name: "路由" }).click();
+  await page.locator('tr:has([data-resource-id="team-batch"])').first().getByRole("button", { name: "路由" }).click();
   await expect(page.locator(".group-routes")).toContainText("到不了任何模型");
 });
 
