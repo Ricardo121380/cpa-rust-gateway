@@ -2296,3 +2296,24 @@ TypeScript, 123-operation/four-file double build and real gateway embedding pass
 14 existing entries at three sizes plus scoped real form read/write and identity/reference behavior;
 last dialog fixes were rechecked on the rebuilt gateway. Changed Playwright specs were type-checked,
 not run in another browser. Two missing Console emails remain outside this batch's acceptance.
+
+
+## 2026-09-12 — Codex — resource presentation production deployment
+
+**What:** Released already-reviewed `7432763` to the existing Oracle Singapore CPAR service/domain.
+`docs/reports/prism-resource-presentation-production-20260912.md`,
+`docs/reports/evidence/prism-resource-presentation-production-20260912.{json,png}`,
+`docs/reports/prism-resource-presentation-20260912.md`,
+`docs/handoffs/claude-code-oracle-singapore-vps.md` and `docs/handoffs/prism-domain-access.md`
+and `web/prism/DESIGN.md` record the production receipt. No new application-code changes in this deployment batch.
+
+**Why:** User explicitly requested deployment for manual acceptance after the resource-name fixes.
+
+**Other side:** FYI. Both signed architectures and exact-revision formal checks passed. ARM64 auth,
+four assets and network-isolated production-copy candidate/rollback startup passed. Production remains
+schema 25, active config `production-accounts-20260912`, Codex credential/connection 1; stop-to-ready
+was 1025 ms. Original administrator store and history remain. Public HTTPS assets/CSP and authenticated
+inventory/runtime readback passed; EgoLite retained the production login page without entering an admin
+password. No Provider, DNS/Caddy/Autoreg, configuration publication or data deletion in this release.
+Rollback to `5b92e15` preserves schema 25 and latest data; do not apply the preceding 25→24 migration
+rollback. Production rollback was not executed. Two missing Console emails remain unresolved.

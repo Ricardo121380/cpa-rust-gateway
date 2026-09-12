@@ -2228,3 +2228,7 @@ API、URL、缓存、操作目标、原始审计/导出及机器 JSON 中的引�
 这项生产配置整理已生效，新的前端展示尚未发布。274 单测、类型/契约/嵌入构建、
 EgoLite 三尺寸入口与实际表单验证见
 [全站名称交付报告](../../docs/reports/prism-resource-presentation-20260912.md)。
+
+本节实现后已按用户授权发布 `7432763`，生产继续使用 schema 25。
+[上线与回滚记录](../../docs/reports/prism-resource-presentation-production-20260912.md)
+替代本节“前端尚未发布”的交付状态，设计和精确引用规则保持不变。

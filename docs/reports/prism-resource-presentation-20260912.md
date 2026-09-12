@@ -1,7 +1,9 @@
 # 全站资源名称与重复授权整理（2026-09-12）
 
-生产中的两份相同 Codex 授权已实际整理为一份；前端资源展示改动已完成本地验收，**尚未部署新版前端**。
-当前生产二进制仍为 `5b92e15443bd0c2e3a8c44c5d9264999a2066a3e`，schema 25。
+生产中的两份相同 Codex 授权已实际整理为一份；前端资源展示改动已完成本地验收。
+后续已按用户授权发布 `7432763`，见 [上线记录](prism-resource-presentation-production-20260912.md)。
+以下生产整理与本地验证段落保留实施当时的证据。
+整理时生产二进制为 `5b92e15443bd0c2e3a8c44c5d9264999a2066a3e`，schema 25。
 本地代码基线为 `e033fe3`；本批提交可通过本报告的 Git 历史定位。
 
 ## 生产重复授权处理
@@ -100,8 +102,8 @@ cargo build -p gateway --bin gateway
   最终嵌入包重启后需重新登录；合成管理员为 `admin`，密码只在本机临时目录
   `prism-resource-presentation-6l0f4uwz/admin-preview-password` 的私有文件中。
   该页面是本机临时合成环境，其他设备不能通过这个 loopback 地址访问。
-- 生产：[Prism](https://cpar.142857142.xyz/admin-ui/) 已生效的是**重复授权整理**。
-  新的全站名称展示尚未发布；发布时需沿用现有签名构建与上线验收流程。
+- 生产：[Prism](https://cpar.142857142.xyz/admin-ui/) 已上线重复授权整理及全站名称展示。
+  当前版本与签名、备份、域名验证见 [后续上线记录](prism-resource-presentation-production-20260912.md)。
 - 完整回执：[脱敏 JSON](evidence/prism-resource-presentation-20260912.json)。
 - 既有两条 Console 缺邮箱的问题仍未解决，本次没有重试其此前的 403 资料请求。
   本报告不将界面命名修复表述为新增身份获取成功。

@@ -1,0 +1,759 @@
+{
+  "date": "2026-09-12",
+  "authorization": "User explicitly requested deployment to existing CPAR for manual acceptance.",
+  "production": {
+    "passed": true,
+    "revision": "743276393486b672703e662d4798b3dc56897ab3",
+    "binary_sha256": "3bcf31b555cdca80ecc0b5a83b30c1c240bc8bd67d5f432439516bc3b4902916",
+    "stop_to_ready_ms": 1025,
+    "four_assets": {
+      "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+      "/admin-ui/assets/main.js": "4a71859f67674accaf6d4360057cc0e148746a9617c53a056aa457184bdbb575",
+      "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+      "/admin-ui/assets/index.css": "44259ad44e0af8c95b6dbb7681feb8bc68e14e6a3ecb5dab25daf08047c0139f"
+    },
+    "active_configuration_retained": true,
+    "events_retained": 2229,
+    "ledger_retained": 593,
+    "historical_repairs_retained": 87,
+    "retired_drafts": 11,
+    "control_schema": 25,
+    "existing_administrator_store_retained": true,
+    "administrator_password_accessed": false,
+    "caddy_dns_autoreg_changed": false,
+    "provider_requests": 0,
+    "cli_readback": true,
+    "channel_entries": 9,
+    "native_accounts_retained": 5,
+    "build_authorization_available": true,
+    "public_csp_and_assets": true,
+    "native_identity_available": 3,
+    "ordinary_accounts_loaded": 2,
+    "ordinary_identity_available": 1,
+    "same_schema_rollback_rehearsed": true,
+    "runtime_presentation": true,
+    "runtime_connections": 8,
+    "same_identity_authorizations": [],
+    "codex_credentials": 1,
+    "codex_runtime_connections": 1
+  },
+  "public": {
+    "passed": true,
+    "revision": "743276393486b672703e662d4798b3dc56897ab3",
+    "operator_https": true,
+    "four_assets": {
+      "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+      "/admin-ui/assets/main.js": "4a71859f67674accaf6d4360057cc0e148746a9617c53a056aa457184bdbb575",
+      "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+      "/admin-ui/assets/index.css": "44259ad44e0af8c95b6dbb7681feb8bc68e14e6a3ecb5dab25daf08047c0139f"
+    },
+    "csp_checked": true,
+    "unauthenticated_management_denied": true,
+    "health": true,
+    "provider_requests": 0
+  },
+  "browser": {
+    "url": "https://cpar.142857142.xyz/admin-ui/#/unlock",
+    "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "administratorLoginVisible": true,
+    "usernameField": true,
+    "passwordEmpty": true,
+    "overflow": false,
+    "viewport": {
+      "width": 836,
+      "height": 600
+    }
+  },
+  "browser_tool": "EgoLite",
+  "browser_task_space": 10,
+  "browser_finished": true,
+  "browser_password_entered": false,
+  "release": {
+    "conclusion": "success",
+    "headSha": "743276393486b672703e662d4798b3dc56897ab3",
+    "jobs": [
+      {
+        "completedAt": "2026-09-12T12:54:53Z",
+        "conclusion": "success",
+        "databaseId": 103556110136,
+        "name": "Build and sign aarch64-unknown-linux-gnu",
+        "startedAt": "2026-09-12T12:49:23Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-09-12T12:49:24Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-09-12T12:49:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:49:27Z",
+            "conclusion": "success",
+            "name": "Checkout selected revision",
+            "number": 2,
+            "startedAt": "2026-09-12T12:49:24Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:50:56Z",
+            "conclusion": "success",
+            "name": "Install build prerequisites",
+            "number": 3,
+            "startedAt": "2026-09-12T12:49:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:51:02Z",
+            "conclusion": "success",
+            "name": "Install locked Rust toolchain",
+            "number": 4,
+            "startedAt": "2026-09-12T12:50:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:51:04Z",
+            "conclusion": "success",
+            "name": "Restore pinned quality-tool cache",
+            "number": 5,
+            "startedAt": "2026-09-12T12:51:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:51:05Z",
+            "conclusion": "success",
+            "name": "Install pinned SBOM tool",
+            "number": 6,
+            "startedAt": "2026-09-12T12:51:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:51:08Z",
+            "conclusion": "success",
+            "name": "Install management SPA build inputs",
+            "number": 7,
+            "startedAt": "2026-09-12T12:51:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:51:08Z",
+            "conclusion": "success",
+            "name": "Verify the runner architecture matches the release target",
+            "number": 8,
+            "startedAt": "2026-09-12T12:51:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:54:20Z",
+            "conclusion": "success",
+            "name": "Build revision-bound Linux binary",
+            "number": 9,
+            "startedAt": "2026-09-12T12:51:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:54:20Z",
+            "conclusion": "success",
+            "name": "Generate redacted CycloneDX SBOM",
+            "number": 10,
+            "startedAt": "2026-09-12T12:54:20Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:54:32Z",
+            "conclusion": "success",
+            "name": "Build non-root OCI archive and Docker smoke image",
+            "number": 11,
+            "startedAt": "2026-09-12T12:54:20Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:54:33Z",
+            "conclusion": "success",
+            "name": "Verify unsigned artifact structure before signing",
+            "number": 12,
+            "startedAt": "2026-09-12T12:54:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:54:36Z",
+            "conclusion": "success",
+            "name": "Load and smoke the temporary Docker archive without a network",
+            "number": 13,
+            "startedAt": "2026-09-12T12:54:33Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:54:46Z",
+            "conclusion": "success",
+            "name": "Install pinned Cosign",
+            "number": 14,
+            "startedAt": "2026-09-12T12:54:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:54:47Z",
+            "conclusion": "success",
+            "name": "Keylessly sign the immutable manifest",
+            "number": 15,
+            "startedAt": "2026-09-12T12:54:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:54:47Z",
+            "conclusion": "success",
+            "name": "Independently verify the Sigstore bundle identity",
+            "number": 16,
+            "startedAt": "2026-09-12T12:54:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:54:49Z",
+            "conclusion": "success",
+            "name": "Record and structurally verify signed receipt",
+            "number": 17,
+            "startedAt": "2026-09-12T12:54:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:54:49Z",
+            "conclusion": "success",
+            "name": "Publish value-free receipt summary",
+            "number": 18,
+            "startedAt": "2026-09-12T12:54:49Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:54:51Z",
+            "conclusion": "success",
+            "name": "Upload private release artifact",
+            "number": 19,
+            "startedAt": "2026-09-12T12:54:49Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:54:51Z",
+            "conclusion": "success",
+            "name": "Post Restore pinned quality-tool cache",
+            "number": 37,
+            "startedAt": "2026-09-12T12:54:51Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:54:51Z",
+            "conclusion": "success",
+            "name": "Post Checkout selected revision",
+            "number": 38,
+            "startedAt": "2026-09-12T12:54:51Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:54:51Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 39,
+            "startedAt": "2026-09-12T12:54:51Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34694716386/job/103556110136"
+      },
+      {
+        "completedAt": "2026-09-12T12:55:37Z",
+        "conclusion": "success",
+        "databaseId": 103556110222,
+        "name": "Build and sign x86_64-unknown-linux-gnu",
+        "startedAt": "2026-09-12T12:49:20Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-09-12T12:49:23Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-09-12T12:49:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:49:25Z",
+            "conclusion": "success",
+            "name": "Checkout selected revision",
+            "number": 2,
+            "startedAt": "2026-09-12T12:49:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:50:36Z",
+            "conclusion": "success",
+            "name": "Install build prerequisites",
+            "number": 3,
+            "startedAt": "2026-09-12T12:49:25Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:50:45Z",
+            "conclusion": "success",
+            "name": "Install locked Rust toolchain",
+            "number": 4,
+            "startedAt": "2026-09-12T12:50:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:50:52Z",
+            "conclusion": "success",
+            "name": "Restore pinned quality-tool cache",
+            "number": 5,
+            "startedAt": "2026-09-12T12:50:45Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:50:53Z",
+            "conclusion": "success",
+            "name": "Install pinned SBOM tool",
+            "number": 6,
+            "startedAt": "2026-09-12T12:50:52Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:51:02Z",
+            "conclusion": "success",
+            "name": "Install management SPA build inputs",
+            "number": 7,
+            "startedAt": "2026-09-12T12:50:53Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:51:02Z",
+            "conclusion": "success",
+            "name": "Verify the runner architecture matches the release target",
+            "number": 8,
+            "startedAt": "2026-09-12T12:51:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:54:58Z",
+            "conclusion": "success",
+            "name": "Build revision-bound Linux binary",
+            "number": 9,
+            "startedAt": "2026-09-12T12:51:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:54:58Z",
+            "conclusion": "success",
+            "name": "Generate redacted CycloneDX SBOM",
+            "number": 10,
+            "startedAt": "2026-09-12T12:54:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:55:19Z",
+            "conclusion": "success",
+            "name": "Build non-root OCI archive and Docker smoke image",
+            "number": 11,
+            "startedAt": "2026-09-12T12:54:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:55:20Z",
+            "conclusion": "success",
+            "name": "Verify unsigned artifact structure before signing",
+            "number": 12,
+            "startedAt": "2026-09-12T12:55:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:55:24Z",
+            "conclusion": "success",
+            "name": "Load and smoke the temporary Docker archive without a network",
+            "number": 13,
+            "startedAt": "2026-09-12T12:55:20Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:55:29Z",
+            "conclusion": "success",
+            "name": "Install pinned Cosign",
+            "number": 14,
+            "startedAt": "2026-09-12T12:55:24Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:55:31Z",
+            "conclusion": "success",
+            "name": "Keylessly sign the immutable manifest",
+            "number": 15,
+            "startedAt": "2026-09-12T12:55:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:55:31Z",
+            "conclusion": "success",
+            "name": "Independently verify the Sigstore bundle identity",
+            "number": 16,
+            "startedAt": "2026-09-12T12:55:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:55:32Z",
+            "conclusion": "success",
+            "name": "Record and structurally verify signed receipt",
+            "number": 17,
+            "startedAt": "2026-09-12T12:55:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:55:32Z",
+            "conclusion": "success",
+            "name": "Publish value-free receipt summary",
+            "number": 18,
+            "startedAt": "2026-09-12T12:55:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:55:35Z",
+            "conclusion": "success",
+            "name": "Upload private release artifact",
+            "number": 19,
+            "startedAt": "2026-09-12T12:55:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:55:35Z",
+            "conclusion": "success",
+            "name": "Post Restore pinned quality-tool cache",
+            "number": 37,
+            "startedAt": "2026-09-12T12:55:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:55:36Z",
+            "conclusion": "success",
+            "name": "Post Checkout selected revision",
+            "number": 38,
+            "startedAt": "2026-09-12T12:55:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:55:36Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 39,
+            "startedAt": "2026-09-12T12:55:36Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34694716386/job/103556110222"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34694716386"
+  },
+  "formal_gate": {
+    "conclusion": "success",
+    "headSha": "743276393486b672703e662d4798b3dc56897ab3",
+    "jobs": [
+      {
+        "completedAt": "2026-09-12T12:49:26Z",
+        "conclusion": "success",
+        "databaseId": 103556114288,
+        "name": "Authorize explicit delivery request",
+        "startedAt": "2026-09-12T12:49:22Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-09-12T12:49:23Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-09-12T12:49:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:49:23Z",
+            "conclusion": "success",
+            "name": "Check trigger boundary",
+            "number": 2,
+            "startedAt": "2026-09-12T12:49:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:49:23Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 3,
+            "startedAt": "2026-09-12T12:49:23Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34694717977/job/103556114288"
+      },
+      {
+        "completedAt": "2026-09-12T12:57:24Z",
+        "conclusion": "success",
+        "databaseId": 103556127876,
+        "name": "Fast gate (explicit delivery)",
+        "startedAt": "2026-09-12T12:49:29Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-09-12T12:49:30Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-09-12T12:49:30Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:49:32Z",
+            "conclusion": "success",
+            "name": "Checkout requested revision",
+            "number": 2,
+            "startedAt": "2026-09-12T12:49:30Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:51:01Z",
+            "conclusion": "success",
+            "name": "Install CI prerequisites",
+            "number": 3,
+            "startedAt": "2026-09-12T12:49:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:51:09Z",
+            "conclusion": "success",
+            "name": "Install pinned Rust toolchain",
+            "number": 4,
+            "startedAt": "2026-09-12T12:51:01Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:57:21Z",
+            "conclusion": "success",
+            "name": "Run fast gate",
+            "number": 5,
+            "startedAt": "2026-09-12T12:51:09Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:57:21Z",
+            "conclusion": "success",
+            "name": "Post Checkout requested revision",
+            "number": 10,
+            "startedAt": "2026-09-12T12:57:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:57:21Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 11,
+            "startedAt": "2026-09-12T12:57:21Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34694717977/job/103556127876"
+      },
+      {
+        "completedAt": "2026-09-12T12:59:11Z",
+        "conclusion": "success",
+        "databaseId": 103557067477,
+        "name": "Full supply-chain gate (explicit delivery)",
+        "startedAt": "2026-09-12T12:57:27Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-09-12T12:57:29Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-09-12T12:57:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:57:33Z",
+            "conclusion": "success",
+            "name": "Checkout requested revision",
+            "number": 2,
+            "startedAt": "2026-09-12T12:57:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:58:45Z",
+            "conclusion": "success",
+            "name": "Install native build prerequisites",
+            "number": 3,
+            "startedAt": "2026-09-12T12:57:33Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:58:53Z",
+            "conclusion": "success",
+            "name": "Install pinned Rust toolchain",
+            "number": 4,
+            "startedAt": "2026-09-12T12:58:45Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:58:58Z",
+            "conclusion": "success",
+            "name": "Restore pinned quality-tool cache",
+            "number": 5,
+            "startedAt": "2026-09-12T12:58:53Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:58:59Z",
+            "conclusion": "success",
+            "name": "Install pinned quality tools",
+            "number": 6,
+            "startedAt": "2026-09-12T12:58:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:58:59Z",
+            "conclusion": "success",
+            "name": "Summarize quality-tool cache",
+            "number": 7,
+            "startedAt": "2026-09-12T12:58:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:59:09Z",
+            "conclusion": "success",
+            "name": "Run supplemental supply-chain gate",
+            "number": 8,
+            "startedAt": "2026-09-12T12:58:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:59:09Z",
+            "conclusion": "success",
+            "name": "Post Restore pinned quality-tool cache",
+            "number": 15,
+            "startedAt": "2026-09-12T12:59:09Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:59:09Z",
+            "conclusion": "success",
+            "name": "Post Checkout requested revision",
+            "number": 16,
+            "startedAt": "2026-09-12T12:59:09Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:59:09Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "startedAt": "2026-09-12T12:59:09Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34694717977/job/103557067477"
+      },
+      {
+        "completedAt": "2026-09-12T12:59:16Z",
+        "conclusion": "success",
+        "databaseId": 103557265412,
+        "name": "Required delivery gate",
+        "startedAt": "2026-09-12T12:59:14Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-09-12T12:59:14Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-09-12T12:59:14Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:59:15Z",
+            "conclusion": "success",
+            "name": "Verify formal delivery path",
+            "number": 2,
+            "startedAt": "2026-09-12T12:59:14Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-09-12T12:59:15Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 3,
+            "startedAt": "2026-09-12T12:59:15Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34694717977/job/103557265412"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34694717977"
+  },
+  "artifact": {
+    "revision": "743276393486b672703e662d4798b3dc56897ab3",
+    "signature_verified": true,
+    "artifact_and_sbom_verified": true,
+    "binary_sha256": "3bcf31b555cdca80ecc0b5a83b30c1c240bc8bd67d5f432439516bc3b4902916",
+    "frontend_assets": {
+      "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+      "/admin-ui/assets/main.js": "4a71859f67674accaf6d4360057cc0e148746a9617c53a056aa457184bdbb575",
+      "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+      "/admin-ui/assets/index.css": "44259ad44e0af8c95b6dbb7681feb8bc68e14e6a3ecb5dab25daf08047c0139f"
+    }
+  },
+  "isolated_auth": {
+    "result": "passed",
+    "real_gateway": true,
+    "provider_requests": 0,
+    "checks": [
+      "one-time owner-only bootstrap, existing credentials preserved",
+      "all four embedded assets match the locally accepted channel-management build",
+      "exact origin, wrong password, first-session restriction, legacy CLI",
+      "first password change, automatic CSRF, revoked initial password/session, real draft write/read",
+      "server logout revocation",
+      "restart persists changed password and discards sessions"
+    ]
+  },
+  "production_copy_rehearsal": {
+    "passed": true,
+    "schema": 25,
+    "schema_changed": false,
+    "network_isolated": true,
+    "service_user": true,
+    "candidate_production_copy_start": true,
+    "ordinary_accounts": 2,
+    "native_accounts": 5,
+    "runtime_connections": 8,
+    "codex_credentials": 1,
+    "codex_runtime_connections": 1,
+    "rollback_verified": true,
+    "durable_tables_unchanged": [
+      "config_versions",
+      "upstream_credentials",
+      "grok_accounts",
+      "gateway_event_log",
+      "billing_ledger_entries",
+      "native_account_identity_observations"
+    ],
+    "administrator_store_unchanged": true,
+    "old_binary_restarted": true,
+    "provider_requests": 0
+  },
+  "orchestration_hashes": {
+    "cutover.py": "3c4e8bb6bc7d26c0f57ae22847b7c04adbecac9521a1d275dd40ca8f66964407",
+    "deploy.py": "8b21ef9c861896ce25020c74db08adadde6d7ce0d1ab7ff61d2365a5640a51cc",
+    "isolated-auth.py": "5fbf7455acebebc637c525075b346485b07df7500b87d64dad9e37393ddc4259",
+    "public-check.py": "dd24dabce48651f11b9a151e411978a22cd35262a1392caa4e6abcbd87af158a",
+    "rehearsal.py": "e9ebe7f3fc8740c0b521c97c0a5472185d4271549bee1aa6d6d479a83032a0fd",
+    "stage-release.py": "a578712bfc7d8b085b6fba2762991126917b7b09ccad66c00558c8bdcefea325",
+    "verify.py": "8aebdb1ba0c002af47f77b82b7b1f27658238bda0e0d3b9a58a4f07e9fd2297d"
+  },
+  "schema_changed": false,
+  "production_rollback_executed": false,
+  "remote_backup_directory": "/var/backups/cpa-rust-gateway/prism-resource-presentation-20260912"
+}

@@ -1,6 +1,20 @@
 # Prism HTTPS domain access
 
-## 2026-09-12: exact Codex grant consolidation (latest state)
+## 2026-09-12: resource presentation release (latest)
+
+Production now serves `7432763`, schema 25. Human resource names replace historical test IDs and
+generated codes in ordinary details, choices and confirmations; exact internal references remain
+in APIs/URLs and deliberate copy/raw exports. Active configuration `production-accounts-20260912`
+is retained, with one Codex credential and one runtime connection. Existing admin credentials and
+history remain. Both signed architectures, exact-revision formal checks, ARM64 auth/assets,
+offline production-copy same-schema rollback and public HTTPS readback passed. EgoLite retains
+the real login page for manual acceptance. No Provider, DNS/Caddy/Autoreg or schema change.
+Rollback target `5b92e15` uses the same schema 25: retain latest data and switch binary; do not run
+the earlier schema 25→24 downgrade. See
+[release and rollback evidence](../reports/prism-resource-presentation-production-20260912.md).
+
+
+## 2026-09-12: exact Codex grant consolidation
 
 The explicitly requested duplicate grant cleanup is live. Active configuration is now
 `production-accounts-20260912`; Codex has one credential and one runtime connection.
