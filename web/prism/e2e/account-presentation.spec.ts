@@ -1,5 +1,23 @@
 import {expect,test} from "@playwright/test";
 import {unlock,selectDraft,navigate} from "./helpers";
+test("account identity follows detail and both reauthorization entries",async({page})=>{
+  await unlock(page);await selectDraft(page);await navigate(page,"账号池");
+  await page.getByRole("button",{name:"Codex / ChatGPT",exact:true}).click();
+  await page.getByRole("button",{name:"重新授权",exact:true}).click();
+  const wizard=page.getByRole("dialog",{name:"重新授权",exact:true});
+  await expect(wizard).toContainText("alex@example.test");
+  await expect(wizard).not.toContainText("cred-codex-oauth");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button",{name:"详情",exact:true}).click();
+  const detail=page.getByRole("dialog",{name:"账号详情",exact:true});
+  await expect(detail.getByRole("heading",{name:"alex@example.test",exact:true})).toBeVisible();
+  await expect(detail.getByRole("cell",{name:"Codex",exact:true})).toBeVisible();
+  await expect(detail.locator(".resource-code")).toHaveCount(0);
+  await expect(detail.locator(".identity-details")).not.toHaveAttribute("open","");
+  await detail.getByRole("button",{name:"重新授权",exact:true}).click();
+  await expect(wizard).toContainText("alex@example.test");
+  await expect(wizard).not.toContainText("cred-codex-oauth");
+});
 for(const width of [1440,1280,390])test(`unified account directory at ${width}`,async({page})=>{
   await page.setViewportSize({width,height:width===390?844:900});
   await unlock(page);await selectDraft(page);await navigate(page,"账号池");

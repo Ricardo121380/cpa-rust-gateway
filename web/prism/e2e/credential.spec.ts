@@ -16,7 +16,8 @@ test("a credential id in the availability matrix opens its detail", async ({ pag
 
   await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-codex-oauth" }).click();
   const sheet = page.getByRole("dialog");
-  await expect(sheet).toContainText("凭据 · cred-codex-oauth");
+  await expect(sheet).toHaveAccessibleName("账号详情");
+  await expect(sheet.getByRole("heading", { name: "ops@fixture.example" })).toBeVisible();
   await expect(sheet).toContainText("relay-a");
   await expect(sheet).toContainText("oauth");
 });
@@ -67,10 +68,12 @@ test("re-authorisation reaches the wizard and comes back to the credential", asy
   await page.getByRole("dialog").getByRole("button", { name: "重新授权" }).click();
 
   const wizard = page.getByRole("dialog");
-  await expect(wizard).toContainText("OAuth 授权 · cred-codex-oauth");
+  await expect(wizard).toHaveAccessibleName("重新授权");
+  await expect(wizard).toContainText("ops@fixture.example");
+  await expect(wizard).not.toContainText("cred-codex-oauth");
   await wizard.getByRole("button", { name: "关闭", exact: true }).click();
   // closing the wizard returns to the credential, not to the page
-  await expect(page.getByRole("dialog")).toContainText("凭据 · cred-codex-oauth");
+  await expect(page.getByRole("dialog")).toHaveAccessibleName("账号详情");
 });
 
 test("no secret material reaches the DOM", async ({ page }) => {
@@ -116,5 +119,6 @@ test("the account row opens the credential sheet from the pool inventory", async
   await expect(panel.getByRole("row", { name: /^cred-grok-oauth bearer/u })).toContainText("active");
 
   await panel.getByRole("row", { name: /cred-grok-oauth/u }).getByRole("button", { name: "详情" }).click();
-  await expect(page.getByRole("dialog")).toContainText("凭据 · cred-grok-oauth");
+  await expect(page.getByRole("dialog")).toHaveAccessibleName("账号详情");
+  await expect(page.getByRole("dialog").getByRole("heading", { name: "未提供账号身份" })).toBeVisible();
 });

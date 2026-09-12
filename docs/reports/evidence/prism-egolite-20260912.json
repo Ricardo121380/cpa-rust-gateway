@@ -1,0 +1,265 @@
+{
+  "date": "2026-09-12",
+  "browser": "EgoLite (Chromium 152, macOS)",
+  "source_base": "b369700",
+  "frontend_followup": "human identity in account details and both Codex reauthorization entries",
+  "production_untouched": true,
+  "new_real_provider_requests": 0,
+  "new_real_oauth_grants": 0,
+  "first_authorization_entry_only": true,
+  "viewports": [
+    [
+      1440,
+      900
+    ],
+    [
+      1280,
+      720
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "desktop_inspector_width": 520,
+  "artifacts": [
+    {
+      "path": "docs/reports/evidence/prism-egolite-20260912/accounts-1440-light.png",
+      "sha256": "6a45bc470a974f265ff2bb79365982717538d64b720f946c19d283d566fc57b3",
+      "bytes": 455351
+    },
+    {
+      "path": "docs/reports/evidence/prism-egolite-20260912/accounts-390-dark.png",
+      "sha256": "57233ccc8fe090088c6ab9c65ae987a6f5ff0468cf7fcf6eb5d8720e64ca0338",
+      "bytes": 163216
+    },
+    {
+      "path": "docs/reports/evidence/prism-egolite-20260912/codex-detail-fixed.png",
+      "sha256": "32278bebffa1966b3cd8c847d52219623f271a1737f185d05cbdf6ec34270c9b",
+      "bytes": 223901
+    }
+  ],
+  "real_account": {
+    "url": "http://127.0.0.1:61700/admin-ui/#/accounts?category=grok",
+    "realEmailVisible": true,
+    "randomIdentityVisible": false,
+    "reauthorizationOpenedAndCancelled": true,
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"
+  },
+  "categories": [
+    {
+      "category": "api",
+      "groups": [
+        "API 账号"
+      ],
+      "tableCount": 1
+    },
+    {
+      "category": "codex",
+      "groups": [
+        "Codex / ChatGPT 账号"
+      ],
+      "tableCount": 1
+    },
+    {
+      "category": "claude",
+      "groups": [
+        "Claude 账号"
+      ],
+      "tableCount": 1
+    },
+    {
+      "category": "kimi",
+      "groups": [
+        "Kimi 账号"
+      ],
+      "tableCount": 1
+    },
+    {
+      "category": "kiro",
+      "groups": [
+        "Kiro 账号"
+      ],
+      "tableCount": 1
+    },
+    {
+      "category": "grok",
+      "groups": [
+        "Grok 账号"
+      ],
+      "tableCount": 3
+    }
+  ],
+  "channel_forms": [
+    {
+      "channel": "OpenAI 兼容 / 中转",
+      "secretFieldPresent": true,
+      "requiresConfiguredProvider": false,
+      "actions": [
+        "×",
+        "取消",
+        "添加账号"
+      ]
+    },
+    {
+      "channel": "Anthropic 兼容 / 中转",
+      "secretFieldPresent": false,
+      "requiresConfiguredProvider": true,
+      "actions": [
+        "×"
+      ]
+    },
+    {
+      "channel": "Codex / ChatGPT",
+      "secretFieldPresent": true,
+      "requiresConfiguredProvider": false,
+      "actions": [
+        "×",
+        "取消",
+        "添加账号"
+      ]
+    },
+    {
+      "channel": "Claude",
+      "secretFieldPresent": true,
+      "requiresConfiguredProvider": false,
+      "actions": [
+        "×",
+        "取消",
+        "添加账号"
+      ]
+    },
+    {
+      "channel": "Grok Official",
+      "secretFieldPresent": false,
+      "requiresConfiguredProvider": true,
+      "actions": [
+        "×"
+      ]
+    },
+    {
+      "channel": "Grok Build",
+      "secretFieldPresent": true,
+      "requiresConfiguredProvider": false,
+      "actions": [
+        "×",
+        "授权登录",
+        "取消",
+        "添加账号"
+      ]
+    },
+    {
+      "channel": "Grok Console",
+      "secretFieldPresent": true,
+      "requiresConfiguredProvider": false,
+      "actions": [
+        "×",
+        "取消",
+        "添加账号"
+      ]
+    },
+    {
+      "channel": "Grok Web",
+      "secretFieldPresent": true,
+      "requiresConfiguredProvider": false,
+      "actions": [
+        "×",
+        "取消",
+        "添加账号"
+      ]
+    },
+    {
+      "channel": "Kiro",
+      "secretFieldPresent": true,
+      "requiresConfiguredProvider": false,
+      "actions": [
+        "×",
+        "取消",
+        "添加账号"
+      ]
+    }
+  ],
+  "mobile": {
+    "layout": {
+      "viewport": [
+        390,
+        844
+      ],
+      "overflow": false,
+      "rows": [
+        {
+          "display": "block",
+          "left": 30,
+          "right": 360
+        },
+        {
+          "display": "block",
+          "left": 30,
+          "right": 360
+        },
+        {
+          "display": "block",
+          "left": 30,
+          "right": 360
+        }
+      ],
+      "familyCount": 1
+    },
+    "mobileSheet": {
+      "left": 12,
+      "rightMargin": 12,
+      "width": 366,
+      "focusInside": true,
+      "label": "账号详情"
+    },
+    "accessibility": {
+      "motion": true,
+      "contrast": true,
+      "transparency": true,
+      "theme": "light",
+      "overflow": false
+    }
+  },
+  "fix": {
+    "direct": {
+      "title": "重新授权",
+      "emailVisible": true,
+      "internalIdVisible": false
+    },
+    "detail": {
+      "title": "账号详情",
+      "emailVisible": true,
+      "providerVisible": true,
+      "technicalIdsCollapsed": true,
+      "randomDisplayCodes": 0
+    },
+    "nested": {
+      "emailVisible": true,
+      "internalIdVisible": false
+    },
+    "syntheticStatusMutation": {
+      "disabledAndReadBack": true,
+      "restoredEnabled": true,
+      "configurationPublished": false
+    },
+    "restartLockedSession": true
+  },
+  "session": {
+    "productionMode": true,
+    "locked": true,
+    "accountDataCleared": true,
+    "passwordEmpty": true,
+    "localStorageEmpty": true,
+    "sessionStorageEmpty": true
+  },
+  "checks": {
+    "focused_e2e_passed": 13,
+    "type_check": true,
+    "contract_sync_unchanged": true,
+    "prism_check": true,
+    "gateway_build": true,
+    "embedded_spa_double_build": true,
+    "operations": 122,
+    "embedded_files": 4
+  }
+}

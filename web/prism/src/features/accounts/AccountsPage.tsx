@@ -148,8 +148,8 @@ function ManagedAccounts() {
     </Sheet>:null}
     {nativeOauth?<GrokDeviceWizard name={accountName(nativeOauth.identity,nativeOauth.import_batch_id)??"Grok Build 账号"} target={{account_id:nativeOauth.id,revision:nativeOauth.revision}} onClose={()=>{setNativeOauth(undefined);void refresh();}} />:null}
     {["account", "api-key"].includes(params.get("add") ?? "") && context?.status === "draft" ? <AddAccountDialog onClose={() => update("add", "")} onCreated={() => {update("add", ""); setNotice("账号已保存。"); void refresh();}} /> : null}
-    {detail ? <CredentialSheet credentialId={detail} onClose={() => {setDetail(undefined); void refresh();}} /> : null}
-    {oauth ? <OAuthWizard credentialId={oauth} onClose={() => {setOauth(undefined); void refresh();}} /> : null}
+    {detail ? <CredentialSheet credentialId={detail} accountName={accountName(rows.find((row)=>row.credential.id===detail)?.identity)} providerName={rows.find((row)=>row.credential.id===detail)?.provider} onClose={() => {setDetail(undefined); void refresh();}} /> : null}
+    {oauth ? <OAuthWizard credentialId={oauth} accountName={accountName(rows.find((row)=>row.credential.id===oauth)?.identity)} onClose={() => {setOauth(undefined); void refresh();}} /> : null}
     {status ? <Sheet title={status.credential.status === "disabled" ? "启用账号" : "停用账号"} onEscape={() => !change.isPending && setStatus(undefined)}>
       <p>{accountName(status.identity,status.credential.id)??"未提供账号身份"}</p>
       <p>更改将在配置应用后生效。凭据和历史记录保留。</p>

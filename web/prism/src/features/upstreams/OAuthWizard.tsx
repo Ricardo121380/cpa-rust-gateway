@@ -37,8 +37,9 @@ type OAuthOperation = Readonly<{
 
 export function OAuthWizard({
   credentialId,
+  accountName,
   onClose,
-}: Readonly<{ credentialId: string; onClose: () => void }>) {
+}: Readonly<{ credentialId: string; accountName?: string; onClose: () => void }>) {
   const queryClient = useQueryClient();
   const [started, setStarted] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -117,7 +118,8 @@ export function OAuthWizard({
   }
 
   return (
-    <Sheet title={`OAuth 授权 · ${credentialId}`} onEscape={onClose}>
+    <Sheet title="重新授权" onEscape={onClose}>
+      <p>{accountName ?? "未提供账号身份"}</p>
       {error !== undefined ? (
         <p role="alert" className="reveal-warning">
           {error}

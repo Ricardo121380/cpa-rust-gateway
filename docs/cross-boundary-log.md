@@ -2135,3 +2135,22 @@ This batch's real local follow-up used the existing durable refresh coordinator 
 authorized Build account: one refresh and one issuer profile read, no retry, stable account ID,
 revision 1→2, encrypted identity persisted and new gateway API readback passed. This supersedes
 the earlier read-only expired-grant finding as the final local status; production remains unchanged.
+
+## 2026-09-12 — Codex — EgoLite account verification and dialog identity
+
+**What:** `web/prism/src/features/accounts/AccountsPage.tsx`,
+`web/prism/src/features/upstreams/{CredentialSheet,OAuthWizard}.tsx`,
+`web/prism/e2e/{account-presentation,credential}.spec.ts`, `web/prism/DESIGN.md`;
+`docs/reports/prism-egolite-20260912.md` and its safe evidence, with the prior identity report linked.
+
+**Why:** The requested EgoLite test reached the actual Codex reauthorization dialog and exposed
+an internal phase ID left in its title. Inventory identity/provider now follows details and both
+reauthorization entries. Existing metadata supplies identity at other inspector entry points;
+missing identity remains explicit. API IDs and OAuth behavior are unchanged.
+
+**Other side:** FYI under the existing joint implementation authorization. EgoLite exercised two
+real local gateways, the existing real Grok profile, six groups/eight synthetic accounts, connection
+meaning, three sizes and session cleanup. One synthetic draft account was disabled, read back and
+restored without publishing. After fixing the title, 13 focused E2E, type check, contract/Prism gates,
+gateway build and 122-operation/four-file double build passed; rebuilt gateway UI readback passed.
+No new provider requests, authorization grants, production deployment or production state change.

@@ -1,5 +1,4 @@
 import { ResourceIdentity, IdentityDetails } from "../../components/ResourceIdentity";
-import { resourceName } from "../../utils/resourceNames";
 // Shared account inspector for complete inventory and runtime projections.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -39,8 +38,10 @@ const META_FIELDS = [
 
 export function CredentialSheet({
   credentialId,
+  accountName,
+  providerName,
   onClose,
-}: Readonly<{ credentialId: string; onClose: () => void }>) {
+}: Readonly<{ credentialId: string; accountName?: string; providerName?: string; onClose: () => void }>) {
   const queryClient = useQueryClient();
   const [oauthOpen, setOauthOpen] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -84,7 +85,7 @@ export function CredentialSheet({
   });
 
   if (oauthOpen) {
-    return <OAuthWizard credentialId={credentialId} onClose={() => setOauthOpen(false)} />;
+    return <OAuthWizard credentialId={credentialId} accountName={accountName ?? metadata.data?.email ?? undefined} onClose={() => setOauthOpen(false)} />;
   }
 
   const row = credential.data;
@@ -97,8 +98,9 @@ export function CredentialSheet({
   const isOAuth = row?.kind === "oauth_json";
 
   return (
-    <Sheet title={`凭据 · ${resourceName(credentialId, "account")}`} layout="inspector" onEscape={onClose}>
-      <IdentityDetails entries={[["凭据 ID", credentialId]]} />
+    <Sheet title="账号详情" layout="inspector" onEscape={onClose}>
+      <h3>{accountName ?? meta?.email ?? "未提供账号身份"}</h3>
+      <IdentityDetails entries={[["凭据 ID", credentialId], ...(row ? [["上游 ID", row.upstream_id] as const] : [])]} />
       {error !== undefined ? (
         <p role="alert" className="reveal-warning">
           {error}
@@ -115,8 +117,8 @@ export function CredentialSheet({
         <table>
           <tbody>
             <tr>
-              <td>上游</td>
-              <td><ResourceIdentity id={row.upstream_id} kind="upstream" /></td>
+              <td>{providerName ? "渠道" : "上游"}</td>
+              <td>{providerName ?? <ResourceIdentity id={row.upstream_id} kind="upstream" />}</td>
             </tr>
             <tr>
               <td>类型</td>
