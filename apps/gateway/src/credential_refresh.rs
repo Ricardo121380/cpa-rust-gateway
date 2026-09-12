@@ -784,6 +784,28 @@ struct GrokBuildRefreshTransport {
 }
 
 impl GrokBuildOAuthTransport for GrokBuildRefreshTransport {
+    fn user_info(
+        &self,
+        access_token: &str,
+    ) -> Result<GrokBuildOAuthHttpResponse, GrokBuildOAuthTransportError> {
+        let response = self
+            .client
+            .get(provider_grok::GROK_BUILD_USERINFO_URL)
+            .timeout(Duration::from_secs(10))
+            .bearer_auth(access_token)
+            .send()
+            .map_err(|_| GrokBuildOAuthTransportError::Unavailable)?;
+        let status = response.status().as_u16();
+        let mut bytes = Vec::new();
+        response
+            .take((MAX_GROK_BUILD_OAUTH_HTTP_RESPONSE_BYTES + 1) as u64)
+            .read_to_end(&mut bytes)
+            .map_err(|_| GrokBuildOAuthTransportError::Unavailable)?;
+        // Profile failures must not overwrite the token exchange status or revoke a valid grant.
+        GrokBuildOAuthHttpResponse::try_new(status, bytes)
+            .map_err(|_| GrokBuildOAuthTransportError::Unavailable)
+    }
+
     fn send(
         &self,
         request: GrokBuildOAuthRequest,

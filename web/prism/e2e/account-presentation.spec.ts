@@ -15,7 +15,7 @@ for(const width of [1440,1280,390])test(`unified account directory at ${width}`,
   await page.getByRole("button",{name:"添加账号",exact:true}).click();
   const dialog=page.getByRole("dialog",{name:"添加账号",exact:true});
   await dialog.getByLabel("渠道",{exact:true}).selectOption("grok.build");
-  await dialog.getByLabel("账号名称").fill("autoreg-test-batch");
+  await dialog.getByLabel("导入标记").fill("autoreg-test-batch");
   const claims=Buffer.from(JSON.stringify({email:"build.member@example.test",sub:"fixture-subject",exp:Math.floor(Date.now()/1000)+3600})).toString("base64url");
   await dialog.locator("textarea").fill(JSON.stringify({access_token:`header.${claims}.signature`,refresh_token:"fixture-refresh",expires_at:new Date(Date.now()+3600000).toISOString()}));
   await dialog.getByRole("button",{name:"添加账号",exact:true}).click();

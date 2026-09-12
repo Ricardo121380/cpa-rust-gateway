@@ -18,7 +18,6 @@ export function AddAccountDialog({onClose, onCreated}: Readonly<{onClose: () => 
   const [error, setError] = useState<string>();
   const [channelId, setChannelId] = useState("openai-compatible");
   const [oauthName, setOauthName] = useState<string>();
-  const nameInput = useRef<HTMLInputElement>(null);
   const native = ["grok.build", "grok.console", "grok.web"].includes(channelId);
   const secret = useRef<HTMLTextAreaElement>(null);
   const channels = useQuery({queryKey: ["account-channels"], queryFn: () => call<readonly Channel[]>("listAccountChannels")});
@@ -40,22 +39,17 @@ export function AddAccountDialog({onClose, onCreated}: Readonly<{onClose: () => 
     create.mutate({provider: String(values.get("provider")), name: String(values.get("name")).trim(), material: String(values.get("secret"))});
     if (secret.current) secret.current.value = "";
   };
-  if (oauthName) return <GrokDeviceWizard name={oauthName} onClose={() => setOauthName(undefined)} onComplete={onCreated} />;
+  if (oauthName !== undefined) return <GrokDeviceWizard name={oauthName} onClose={() => setOauthName(undefined)} onComplete={onCreated} />;
   return <Sheet title="添加账号" onEscape={() => !create.isPending && onClose()}>
     {channels.isError || providers.isError ? <p role="alert">{asAppError(channels.error ?? providers.error).message}</p> : channels.isPending || providers.isPending ? <p>读取接入方式…</p> : <>
       <label>渠道<select aria-label="渠道" value={channelId} disabled={create.isPending} onChange={(e) => {setChannelId(e.target.value); setError(undefined); if (secret.current) secret.current.value = "";}}>
         {channels.data.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
       </select></label>
+      {channel?.authorization_available ? <button type="button" onClick={()=>{if(secret.current)secret.current.value="";setOauthName("");}}>授权登录</button> : null}
       {channel?.import_available ? !native && matches.length === 0 ? <p>先添加此渠道的 <Link to="/upstreams" onClick={onClose}>AI 提供商</Link>。</p> :
         <form className="sheet-form" onSubmit={submit} autoComplete="off" key={channelId}>
           {!native ? <label>提供商<select name="provider" required>{matches.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label> : null}
-          <label>账号名称<input ref={nameInput} name="name" required maxLength={128} placeholder="例如：团队账号" /></label>
-          {channel.authorization_available ? <button type="button" className="secondary" onClick={() => {
-            const name = nameInput.current?.value.trim();
-            if (!name) {setError("先填写账号名称"); return;}
-            if (secret.current) secret.current.value="";
-            setOauthName(name);
-          }}>授权登录</button> : null}
+          <label>导入标记<input name="name" required maxLength={128} placeholder="用于追溯本次导入" /></label>
           <label>{formats[channel.credential_format] ?? "凭据"}<textarea ref={secret} name="secret" required maxLength={65536} autoComplete="off" spellCheck={false} className="credential-input" /></label>
           {channel.credential_format !== "api_key" ? <label>读取凭据文件<input type="file" accept=".json,application/json" onChange={async (event) => {
             const file = event.currentTarget.files?.[0]; event.currentTarget.value = "";

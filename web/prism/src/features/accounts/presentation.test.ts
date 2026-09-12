@@ -9,8 +9,8 @@ describe("account presentation",()=>{
   it("never dresses up hashes or source batches as a user",()=>{
     for(const name of ["p12-06-codex-bridge-credential","autoreg-batch-20260911","A8CD43F1","grok-6e97a9e7ce03e2dc","账号测试","验收账号"])expect(accountName(undefined,name)).toBeUndefined();
     expect(accountSource("autoreg-batch-20260911")).toBe("Autoreg");
-    expect(accountName(undefined,"billing-owner")).toBe("billing-owner");
-    expect(accountName(undefined,"+8613800138000")).toBe("+8613800138000");
+    expect(accountName(undefined,"billing-owner")).toBeUndefined();
+    expect(accountName(undefined,"+8613800138000")).toBeUndefined();
   });
   it("labels actual connection protocols instead of opaque endpoint counts",()=>{
     expect(protocolName("openai/responses")).toBe("Responses");

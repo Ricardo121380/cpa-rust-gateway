@@ -222,14 +222,13 @@
               "schema": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": [
-                  "name"
-                ],
+                "required": [],
                 "properties": {
                   "name": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128
+                    "minLength": 0,
+                    "maxLength": 128,
+                    "description": "Optional import trace label. Identity is obtained from the OAuth provider, never inferred from this label."
                   },
                   "target": {
                     "type": "object",
@@ -268,7 +267,9 @@
                     "user_code",
                     "verification_uri",
                     "expires_at_ms",
-                    "retry_at_ms"
+                    "retry_at_ms",
+                    "identity",
+                    "identity_state"
                   ],
                   "properties": {
                     "session_id": {
@@ -301,6 +302,25 @@
                       "type": "integer",
                       "format": "int64",
                       "minimum": 0
+                    },
+                    "identity": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/AccountDisplayIdentity"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "identity_state": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "observed",
+                        "not_provided",
+                        "unavailable"
+                      ]
                     }
                   }
                 }
@@ -343,7 +363,9 @@
                     "user_code",
                     "verification_uri",
                     "expires_at_ms",
-                    "retry_at_ms"
+                    "retry_at_ms",
+                    "identity",
+                    "identity_state"
                   ],
                   "properties": {
                     "session_id": {
@@ -376,6 +398,25 @@
                       "type": "integer",
                       "format": "int64",
                       "minimum": 0
+                    },
+                    "identity": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/AccountDisplayIdentity"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "identity_state": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "observed",
+                        "not_provided",
+                        "unavailable"
+                      ]
                     }
                   }
                 }
@@ -418,7 +459,9 @@
                     "user_code",
                     "verification_uri",
                     "expires_at_ms",
-                    "retry_at_ms"
+                    "retry_at_ms",
+                    "identity",
+                    "identity_state"
                   ],
                   "properties": {
                     "session_id": {
@@ -451,6 +494,25 @@
                       "type": "integer",
                       "format": "int64",
                       "minimum": 0
+                    },
+                    "identity": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/AccountDisplayIdentity"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "identity_state": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "observed",
+                        "not_provided",
+                        "unavailable"
+                      ]
                     }
                   }
                 }

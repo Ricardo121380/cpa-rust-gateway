@@ -601,3 +601,48 @@ async fn identity_projection_exposes_email_but_not_token_subject_or_random_label
     assert!(!std::str::from_utf8(&bytes)?.contains("opaque-subject"));
     Ok(())
 }
+
+#[actix_web::test]
+async fn native_build_import_captures_id_token_identity_and_lists_compact_credentials() -> TestResult
+{
+    use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+    let (file, resources) = fixture(false)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(resources))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let now = i64::try_from(SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis())?;
+    let claims = URL_SAFE_NO_PAD
+        .encode(br#"{"email":"imported.member@example.test","sub":"provider-user"}"#);
+    let material = serde_json::json!({"access_token":"fixture-token","refresh_token":"fixture-refresh","id_token":format!("header.{claims}.signature"),"expires_at":time::OffsetDateTime::from_unix_timestamp((now+600_000)/1000)?.format(&time::format_description::well_known::Rfc3339)?});
+    let response=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/native-accounts/import")).set_json(serde_json::json!({"id":"autoreg-import-marker","channel":"grok.build","secret":material.to_string()})).to_request()).await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/native-accounts")).to_request(),
+    )
+    .await;
+    let bytes = test::read_body(response).await;
+    let body: Value = serde_json::from_slice(&bytes)?;
+    assert_eq!(
+        body["items"][0]["identity"]["email"],
+        "imported.member@example.test"
+    );
+    assert!(!std::str::from_utf8(&bytes)?.contains("fixture-refresh"));
+    assert!(!std::str::from_utf8(&bytes)?.contains("header."));
+    let db = gateway_store::open(&file.0)?;
+    let ciphertext: Vec<u8> = db.query_row(
+        "SELECT credential_ciphertext FROM grok_accounts",
+        [],
+        |row| row.get(0),
+    )?;
+    assert!(
+        !ciphertext
+            .windows(b"imported.member".len())
+            .any(|w| w == b"imported.member")
+    );
+    Ok(())
+}

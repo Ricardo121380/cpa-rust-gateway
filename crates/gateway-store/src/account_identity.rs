@@ -34,6 +34,30 @@ impl AccountIdentity {
         }
         result
     }
+    /// Extracts display fields from a JWT payload without using its claims for authorization.
+    #[must_use]
+    pub fn from_token(token: &str) -> Self {
+        let mut parts = token.split('.');
+        if let (Some(_), Some(payload), Some(_), None) =
+            (parts.next(), parts.next(), parts.next(), parts.next())
+            && payload.len() <= 16_384
+            && let Ok(bytes) = URL_SAFE_NO_PAD.decode(payload)
+        {
+            return Self::from_credential(&zeroize::Zeroizing::new(bytes));
+        }
+        Self::default()
+    }
+    /// Whether the provider supplied any human identity.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.email.is_none() && self.phone.is_none() && self.username.is_none()
+    }
+    /// Retains earlier provider observations when a refresh omits profile fields.
+    pub fn retain_missing(&mut self, previous: &Self) {
+        self.email = self.email.take().or_else(|| previous.email.clone());
+        self.phone = self.phone.take().or_else(|| previous.phone.clone());
+        self.username = self.username.take().or_else(|| previous.username.clone());
+    }
     fn visit(&mut self, value: &Value, depth: usize) {
         if depth > 4 {
             return;

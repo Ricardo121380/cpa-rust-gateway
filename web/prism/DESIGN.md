@@ -2176,3 +2176,11 @@ Claude、Kimi、Kiro、Grok 六类，Grok 下面 Web / Console / Build。共用 
 
 规则、测试与未完成的 Chrome 人工检查见
 [本轮报告](../../docs/reports/prism-account-directory-20260911.md)。本次未部署生产。
+
+
+## 35. 授权取得身份（2026-09-12）
+
+用户明确身份必须从授权获得。账号姓名不再回退到导入标记或内部 ID。Grok Build 的授权
+按钮无需填写名称；完成页显示服务端取得的邮箱/电话/用户名，失败或未提供时如实提示。
+导入标记仅用于追溯，不作为人类身份。后端保存与续期规则见
+[授权身份报告](../../docs/reports/prism-authorization-identity-20260912.md)。

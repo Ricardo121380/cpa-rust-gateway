@@ -2,10 +2,12 @@
 //!
 //! This module is intentionally transport-injectable. It validates and retains only the
 //! short-lived credential material needed by a later request path; it neither opens a socket nor
-//! interprets an `id_token` claim as an account identity.
+//! uses profile claims for authentication. Allowlisted identity is retained only for display.
 
 use std::{collections::BTreeMap, error::Error, fmt};
 
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+use gateway_store::account_identity::AccountIdentity;
 use serde::{
     Deserialize,
     de::{self, MapAccess, SeqAccess, Visitor},
@@ -26,6 +28,8 @@ pub const GROK_BUILD_OAUTH_SCOPE: &str =
 pub const GROK_BUILD_DEVICE_AUTHORIZATION_URL: &str = "https://auth.x.ai/oauth2/device/code";
 /// Fixed OAuth token endpoint for Grok Build.
 pub const GROK_BUILD_TOKEN_URL: &str = "https://auth.x.ai/oauth2/token";
+/// Fixed issuer profile endpoint, using the existing openid/profile/email grant.
+pub const GROK_BUILD_USERINFO_URL: &str = "https://auth.x.ai/oauth2/userinfo";
 
 const MAX_OAUTH_JSON_BYTES: usize = 64 * 1024;
 /// Maximum raw body accepted from the fixed Grok Build OAuth endpoints.
@@ -41,7 +45,7 @@ const ABSOLUTE_EXPIRY_FIELD_ALIASES: &[&str] = &[
 ];
 const DEFAULT_DEVICE_POLL_INTERVAL_SECONDS: u64 = 5;
 const DEVICE_SLOW_DOWN_SECONDS: u64 = 5;
-const PERSISTED_CREDENTIAL_FORMAT_VERSION: u8 = 1;
+const PERSISTED_CREDENTIAL_FORMAT_VERSION: u8 = 2;
 
 /// Non-secret origin for one Grok Build OAuth credential.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -73,6 +77,7 @@ pub struct GrokBuildCredential {
     client_id: String,
     scope: String,
     source: GrokBuildCredentialSource,
+    identity: AccountIdentity,
 }
 
 impl GrokBuildCredential {
@@ -161,7 +166,7 @@ impl GrokBuildCredential {
     ///
     /// The importer accepts only the documented token fields, rejects duplicate names at every JSON
     /// nesting level, and accepts exactly one unambiguous `expires_in` lifetime. `id_token` is
-    /// accepted as a compatibility field but is discarded without inspecting any claim.
+    /// accepted for display-only identity extraction; its claims do not grant access.
     ///
     /// # Errors
     ///
@@ -309,6 +314,43 @@ impl GrokBuildCredential {
         self.source
     }
 
+    /// Provider-supplied human identity; never an opaque account key or authorization decision.
+    #[must_use]
+    pub fn identity(&self) -> &AccountIdentity {
+        &self.identity
+    }
+
+    pub(crate) fn retain_identity(&mut self, previous: &Self) {
+        self.identity.retain_missing(&previous.identity);
+    }
+
+    /// Retrieves missing identity once from the fixed issuer using the existing OAuth grant.
+    /// # Errors
+    /// Returns a closed error for unavailable, malformed or wrong-subject profile responses.
+    pub fn acquire_identity<T: GrokBuildOAuthTransport>(
+        &mut self,
+        transport: &T,
+    ) -> Result<(), GrokBuildOAuthError> {
+        if !self.identity.is_empty() {
+            return Ok(());
+        }
+        let expected =
+            token_subject(self.access_token()).ok_or(GrokBuildOAuthError::InvalidTokenResponse)?;
+        let response = transport
+            .user_info(self.access_token())
+            .map_err(|_| GrokBuildOAuthError::TransportUnavailable)?;
+        if response.status() != 200 {
+            return Err(GrokBuildOAuthError::InvalidTokenResponse);
+        }
+        let object = parse_strict_json_object(response.body())?;
+        let subject = required_nonsecret_field(&object, "sub")?;
+        if subject != expected {
+            return Err(GrokBuildOAuthError::InvalidTokenResponse);
+        }
+        self.identity = AccountIdentity::from_credential(response.body());
+        Ok(())
+    }
+
     pub(crate) fn persisted_bytes(&self) -> Result<Zeroizing<Vec<u8>>, GrokBuildOAuthError> {
         validate_secret_field(self.access_token())?;
         validate_secret_field(self.refresh_token())?;
@@ -316,7 +358,11 @@ impl GrokBuildCredential {
         validate_scope(&self.scope)?;
 
         let mut output = Zeroizing::new(Vec::new());
-        output.push(PERSISTED_CREDENTIAL_FORMAT_VERSION);
+        output.push(if self.identity.is_empty() {
+            1
+        } else {
+            PERSISTED_CREDENTIAL_FORMAT_VERSION
+        });
         output.push(match self.source {
             GrokBuildCredentialSource::ImportedJson => 0,
             GrokBuildCredentialSource::DeviceCode => 1,
@@ -330,6 +376,11 @@ impl GrokBuildCredential {
         write_persisted_segment(&mut output, self.refresh_token())?;
         write_persisted_segment(&mut output, &self.client_id)?;
         write_persisted_segment(&mut output, &self.scope)?;
+        if !self.identity.is_empty() {
+            let identity = serde_json::to_string(&self.identity)
+                .map_err(|_| GrokBuildOAuthError::InvalidPersistedCredential)?;
+            write_persisted_segment(&mut output, &identity)?;
+        }
         Ok(output)
     }
 
@@ -339,7 +390,7 @@ impl GrokBuildCredential {
         }
         let mut cursor = 0;
         let format_version = read_persisted_byte(input, &mut cursor)?;
-        if format_version != PERSISTED_CREDENTIAL_FORMAT_VERSION {
+        if format_version != 1 && format_version != PERSISTED_CREDENTIAL_FORMAT_VERSION {
             return Err(GrokBuildOAuthError::InvalidPersistedCredential);
         }
         let source = match read_persisted_byte(input, &mut cursor)? {
@@ -360,6 +411,15 @@ impl GrokBuildCredential {
         let refresh = read_persisted_segment(input, &mut cursor)?;
         let client_id = read_persisted_segment(input, &mut cursor)?;
         let scope = read_persisted_segment(input, &mut cursor)?;
+        let mut identity = if format_version == 2 {
+            AccountIdentity::from_credential(read_persisted_segment(input, &mut cursor)?.as_bytes())
+        } else {
+            AccountIdentity::default()
+        };
+        if format_version == 2 && identity.is_empty() {
+            return Err(GrokBuildOAuthError::InvalidPersistedCredential);
+        }
+        identity.retain_missing(&AccountIdentity::from_token(access));
         if cursor != input.len() {
             return Err(GrokBuildOAuthError::InvalidPersistedCredential);
         }
@@ -378,6 +438,7 @@ impl GrokBuildCredential {
             client_id: client_id.to_owned(),
             scope: scope.to_owned(),
             source,
+            identity,
         })
     }
 }
@@ -392,6 +453,7 @@ impl fmt::Debug for GrokBuildCredential {
             .field("client_id", &self.client_id)
             .field("scope", &self.scope)
             .field("source", &self.source)
+            .field("identity", &self.identity)
             .finish()
     }
 }
@@ -620,6 +682,17 @@ pub trait GrokBuildOAuthTransport {
         &self,
         request: GrokBuildOAuthRequest,
     ) -> Result<GrokBuildOAuthHttpResponse, GrokBuildOAuthTransportError>;
+
+    /// Reads the fixed issuer's userinfo with this already-authorized access token.
+    /// Implementations must bound the response and reject redirects; no tokens may be logged.
+    /// # Errors
+    /// Returns Unavailable when this transport cannot read provider identity.
+    fn user_info(
+        &self,
+        _access_token: &str,
+    ) -> Result<GrokBuildOAuthHttpResponse, GrokBuildOAuthTransportError> {
+        Err(GrokBuildOAuthTransportError::Unavailable)
+    }
 }
 
 /// Validated Device Authorization details displayed to a user or local UI.
@@ -895,7 +968,18 @@ impl GrokBuildOAuthFlow {
             Some(&self.client_id),
             Some(&credential.scope),
         )? {
-            TokenResult::Granted(credential) => Ok(credential),
+            TokenResult::Granted(mut refreshed) => {
+                if let (Some(before), Some(after)) = (
+                    token_subject(credential.access_token()),
+                    token_subject(refreshed.access_token()),
+                ) && before != after
+                {
+                    return Err(GrokBuildOAuthError::InvalidTokenResponse);
+                }
+                refreshed.retain_identity(credential);
+                let _ = refreshed.acquire_identity(transport);
+                Ok(refreshed)
+            }
             TokenResult::Pending
             | TokenResult::SlowDown
             | TokenResult::Denied
@@ -1082,6 +1166,39 @@ fn parse_token_result(
     }
 }
 
+fn token_subject(token: &str) -> Option<String> {
+    let mut parts = token.split('.');
+    let (Some(_), Some(payload), Some(_), None) =
+        (parts.next(), parts.next(), parts.next(), parts.next())
+    else {
+        return None;
+    };
+    if payload.len() > MAX_OAUTH_FIELD_BYTES {
+        return None;
+    }
+    let bytes = Zeroizing::new(URL_SAFE_NO_PAD.decode(payload).ok()?);
+    let object = parse_strict_json_object(&bytes).ok()?;
+    required_nonsecret_field(&object, "sub")
+        .ok()
+        .map(str::to_owned)
+}
+fn profile_from_object(
+    object: &BTreeMap<String, StrictJsonValue>,
+) -> Result<AccountIdentity, GrokBuildOAuthError> {
+    let mut identity = optional_secret_field(object, "id_token")?
+        .map(AccountIdentity::from_token)
+        .unwrap_or_default();
+    for field in ["access_token", "key"] {
+        if let Some(token) = optional_secret_field(object, field)? {
+            identity.retain_missing(&AccountIdentity::from_token(token));
+        }
+    }
+    let profile = serde_json::json!({"email":object.get("email").and_then(StrictJsonValue::as_str),"phone_number":object.get("phone_number").and_then(StrictJsonValue::as_str),"username":object.get("username").and_then(StrictJsonValue::as_str),"name":object.get("name").and_then(StrictJsonValue::as_str)});
+    let bytes = serde_json::to_vec(&profile).map_err(|_| GrokBuildOAuthError::InvalidField)?;
+    identity.retain_missing(&AccountIdentity::from_credential(&bytes));
+    Ok(identity)
+}
+
 fn credential_from_absolute_expiry_object(
     object: &BTreeMap<String, StrictJsonValue>,
     access_token_field: &str,
@@ -1100,9 +1217,7 @@ fn credential_from_absolute_expiry_object(
     {
         return Err(GrokBuildOAuthError::UnsupportedTokenType);
     }
-    if let Some(id_token) = optional_secret_field(object, "id_token")? {
-        let _discarded_id_token = Zeroizing::new(id_token.to_owned());
-    }
+    let identity = profile_from_object(object)?;
 
     let client_id =
         optional_nonsecret_field(object, "client_id")?.unwrap_or(GROK_BUILD_PUBLIC_CLIENT_ID);
@@ -1121,6 +1236,7 @@ fn credential_from_absolute_expiry_object(
         client_id: client_id.to_owned(),
         scope: scope.to_owned(),
         source,
+        identity,
     })
 }
 
@@ -1239,9 +1355,7 @@ fn credential_from_object(
     {
         return Err(GrokBuildOAuthError::UnsupportedTokenType);
     }
-    if let Some(id_token) = optional_secret_field(object, "id_token")? {
-        let _discarded_id_token = Zeroizing::new(id_token.to_owned());
-    }
+    let identity = profile_from_object(object)?;
 
     let client_id = optional_nonsecret_field(object, "client_id")?
         .or(required_client_id)
@@ -1267,6 +1381,7 @@ fn credential_from_object(
         client_id,
         scope,
         source,
+        identity,
     })
 }
 
@@ -1638,5 +1753,140 @@ impl<'de> Visitor<'de> for StrictJsonVisitor {
             values.insert(key, value);
         }
         Ok(StrictJsonValue::Object(values))
+    }
+}
+
+#[cfg(test)]
+mod identity_tests {
+    use super::*;
+    type TestResult = Result<(), Box<dyn std::error::Error>>;
+    fn jwt(claims: &serde_json::Value) -> String {
+        format!(
+            "header.{}.signature",
+            URL_SAFE_NO_PAD.encode(claims.to_string())
+        )
+    }
+    fn credential(profile: bool) -> Result<GrokBuildCredential, GrokBuildOAuthError> {
+        let mut value = serde_json::json!({"access_token":jwt(&serde_json::json!({"sub":"same-user"})),"refresh_token":"fixture-refresh","expires_in":3600});
+        if profile {
+            value["id_token"] = serde_json::Value::String(jwt(
+                &serde_json::json!({"sub":"same-user","email":"member@example.test","name":"Member"}),
+            ));
+        }
+        GrokBuildCredential::import_json(value.to_string().as_bytes(), 1000)
+    }
+    struct Transport {
+        subject: &'static str,
+        available: bool,
+    }
+    impl GrokBuildOAuthTransport for Transport {
+        fn send(
+            &self,
+            _: GrokBuildOAuthRequest,
+        ) -> Result<GrokBuildOAuthHttpResponse, GrokBuildOAuthTransportError> {
+            GrokBuildOAuthHttpResponse::try_new(200,serde_json::json!({"access_token":jwt(&serde_json::json!({"sub":self.subject})),"refresh_token":"fixture-new","expires_in":3600}).to_string().into_bytes()).map_err(|_|GrokBuildOAuthTransportError::Unavailable)
+        }
+        fn user_info(
+            &self,
+            _: &str,
+        ) -> Result<GrokBuildOAuthHttpResponse, GrokBuildOAuthTransportError> {
+            if !self.available {
+                return Err(GrokBuildOAuthTransportError::Unavailable);
+            }
+            GrokBuildOAuthHttpResponse::try_new(200,serde_json::json!({"sub":self.subject,"email":"profile@example.test","phone_number":"+8613800138000"}).to_string().into_bytes()).map_err(|_|GrokBuildOAuthTransportError::Unavailable)
+        }
+    }
+    #[test]
+    fn id_token_identity_survives_compact_storage_and_metadata_free_refresh() -> TestResult {
+        let first = credential(true)?;
+        assert_eq!(
+            first.identity().email.as_deref(),
+            Some("member@example.test")
+        );
+        let bytes = first.persisted_bytes()?;
+        assert_eq!(bytes[0], 2);
+        let restored = GrokBuildCredential::from_persisted_bytes(&bytes)?;
+        let refreshed = GrokBuildOAuthFlow::default().refresh(
+            &Transport {
+                subject: "same-user",
+                available: true,
+            },
+            &restored,
+            2000,
+        )?;
+        assert_eq!(refreshed.identity(), first.identity());
+        assert_eq!(
+            GrokBuildCredential::from_persisted_bytes(&refreshed.persisted_bytes()?)?.identity(),
+            first.identity()
+        );
+        assert!(!format!("{first:?}").contains("member@example.test"));
+        assert!(!format!("{first:?}").contains("fixture-refresh"));
+        Ok(())
+    }
+    #[test]
+    fn legacy_compact_credentials_remain_readable_and_can_acquire_issuer_profile() -> TestResult {
+        let legacy = credential(false)?.persisted_bytes()?;
+        assert_eq!(legacy[0], 1);
+        let mut loaded = GrokBuildCredential::from_persisted_bytes(&legacy)?;
+        loaded.acquire_identity(&Transport {
+            subject: "same-user",
+            available: true,
+        })?;
+        assert_eq!(
+            loaded.identity().email.as_deref(),
+            Some("profile@example.test")
+        );
+        assert_eq!(loaded.identity().phone.as_deref(), Some("+8613800138000"));
+        assert_eq!(loaded.persisted_bytes()?[0], 2);
+        Ok(())
+    }
+    #[test]
+    fn legacy_refresh_automatically_recovers_provider_identity() -> TestResult {
+        let original = credential(false)?;
+        let refreshed = GrokBuildOAuthFlow::default().refresh(
+            &Transport {
+                subject: "same-user",
+                available: true,
+            },
+            &original,
+            2000,
+        )?;
+        assert_eq!(
+            refreshed.identity().email.as_deref(),
+            Some("profile@example.test")
+        );
+        assert_eq!(refreshed.persisted_bytes()?[0], 2);
+        Ok(())
+    }
+    #[test]
+    fn wrong_subject_and_unavailable_profiles_never_replace_identity() -> TestResult {
+        for transport in [
+            Transport {
+                subject: "another-user",
+                available: true,
+            },
+            Transport {
+                subject: "same-user",
+                available: false,
+            },
+        ] {
+            let mut loaded = credential(false)?;
+            assert!(loaded.acquire_identity(&transport).is_err());
+            assert!(loaded.identity().is_empty());
+        }
+        let original = credential(true)?;
+        assert!(
+            GrokBuildOAuthFlow::default()
+                .refresh(
+                    &Transport {
+                        subject: "another-user",
+                        available: true
+                    },
+                    &original,
+                    2000
+                )
+                .is_err()
+        );
+        Ok(())
     }
 }

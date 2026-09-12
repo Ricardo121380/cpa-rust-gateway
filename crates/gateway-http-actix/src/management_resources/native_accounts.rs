@@ -111,7 +111,13 @@ pub(super) async fn list(
         let page=native.store.managed_account_page(limit,cursor.as_ref().map_or("",|c|c.after.as_str()),&search,cursor.as_ref().map(|c|c.stamp));
         Ok(page.and_then(|page| {
             let next=if page.has_more {page.items.last().and_then(|last|serde_json::to_vec(&Cursor {epoch:native.epoch.clone(),after:last.id.clone(),search,limit,stamp:page.stamp}).ok()).map(|bytes|URL_SAFE_NO_PAD.encode(bytes))} else {None};
-            let items=page.items.into_iter().map(|row| { let identity=native.store.open_credential(&row.id).ok().map(|secret|gateway_store::account_identity::AccountIdentity::from_credential(secret.as_bytes())).unwrap_or_default(); serde_json::json!({"id":row.id,"provider":match row.provider {provider_grok::GrokAccountProvider::Build=>"grok_build",provider_grok::GrokAccountProvider::Console=>"grok_console",provider_grok::GrokAccountProvider::Web=>"grok_web"},"auth_status":match row.auth_status {provider_grok::GrokAccountAuthStatus::Active=>"active",provider_grok::GrokAccountAuthStatus::ReauthRequired=>"reauth_required",provider_grok::GrokAccountAuthStatus::Disabled=>"disabled"},"enabled":row.enabled,"revision":row.revision,"import_batch_id":row.import_batch_id,"identity":identity})}).collect::<Vec<_>>();
+            let items=page.items.into_iter().map(|row| { let identity=native.store.open_credential(&row.id).ok().map(|secret| {
+                let fallback=gateway_store::account_identity::AccountIdentity::from_credential(secret.as_bytes());
+                if row.provider==provider_grok::GrokAccountProvider::Build {
+                    let now=std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).ok().and_then(|v|i64::try_from(v.as_millis()).ok()).unwrap_or(0);
+                    provider_grok::GrokBuildCredential::import_refreshable_runtime(secret.as_bytes(),now).ok().map_or(fallback,|c|c.identity().clone())
+                } else { fallback }
+            }).unwrap_or_default(); serde_json::json!({"id":row.id,"provider":match row.provider {provider_grok::GrokAccountProvider::Build=>"grok_build",provider_grok::GrokAccountProvider::Console=>"grok_console",provider_grok::GrokAccountProvider::Web=>"grok_web"},"auth_status":match row.auth_status {provider_grok::GrokAccountAuthStatus::Active=>"active",provider_grok::GrokAccountAuthStatus::ReauthRequired=>"reauth_required",provider_grok::GrokAccountAuthStatus::Disabled=>"disabled"},"enabled":row.enabled,"revision":row.revision,"import_batch_id":row.import_batch_id,"identity":identity})}).collect::<Vec<_>>();
             native.store.managed_account_page(1,"","",Some(page.stamp))?;
             Ok(serde_json::json!({"items":items,"next_cursor":next}))
         }))
@@ -178,6 +184,9 @@ pub(super) async fn import(
         "grok.web" => "grok_web",
         _ => return invalid_input(),
     };
+    if provider == "grok_build" {
+        return import_build(state, native, input).await;
+    }
     let result = read_operations(&state, move || {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -213,5 +222,53 @@ pub(super) async fn import(
         Ok(Err(error)) if error.kind()==provider_grok::Grok2ApiMigrationFailureKind::ImportFailed=>conflict(),
         Ok(Err(_))=>invalid_input(),
         Err(_)=>unavailable(),
+    }
+}
+
+// Build imports use the same identity capture and encrypted compact format as device grants.
+async fn import_build(
+    state: web::Data<ManagementResourceHttpState>,
+    native: Arc<NativeAccountManagement>,
+    input: Input,
+) -> HttpResponse {
+    let result = read_operations(&state, move || {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .ok()
+            .and_then(|v| i64::try_from(v.as_millis()).ok())
+            .ok_or(super::ManagementOperationsError::SourceUnavailable)?;
+        let Ok(mut credential) =
+            provider_grok::GrokBuildCredential::import_active_runtime(input.secret.as_bytes(), now)
+        else {
+            return Ok(Err(GrokAccountPoolError::InvalidCredential));
+        };
+        native.device.acquire_identity(&mut credential);
+        let account = provider_grok::GrokAccountImport {
+            provider: provider_grok::GrokAccountProvider::Build,
+            identity: provider_grok::GrokAccountIdentity::try_from_bytes(input.id.as_bytes())
+                .map_err(|_| super::ManagementOperationsError::SourceUnavailable)?,
+            credential: provider_grok::GrokAccountCredential::try_from_build_credential(
+                &credential,
+            )
+            .map_err(|_| super::ManagementOperationsError::SourceUnavailable)?,
+            auth_status: provider_grok::GrokAccountAuthStatus::Active,
+            enabled: true,
+            priority: 0,
+            weight: 1,
+            max_concurrency: 1,
+            refresh_due_at_ms: Some(credential.expires_at_ms().saturating_sub(60_000).max(now)),
+            quota_sync_due_at_ms: None,
+            cooldown_until_ms: None,
+        };
+        Ok(native.store.import_batch(&input.id, &[account], now))
+    })
+    .await;
+    match result {
+        Ok(Ok(value)) => HttpResponse::Created()
+            .insert_header(("Cache-Control", "no-store"))
+            .json(serde_json::json!({"created":value.created,"unchanged":value.unchanged})),
+        Ok(Err(GrokAccountPoolError::InvalidCredential)) => invalid_input(),
+        Ok(Err(GrokAccountPoolError::ExistingAccountConflict)) => conflict(),
+        _ => unavailable(),
     }
 }

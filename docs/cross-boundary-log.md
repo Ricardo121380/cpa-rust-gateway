@@ -2110,3 +2110,28 @@ such as Autoreg are separate from identities. Identity search is explicitly scop
 counts do not claim full totals before pagination ends. Further manual identity supplementation is
 awaiting user preference. Chrome verification is blocked by an extension popup; fixture Chromium
 and actual local gateway API evidence are distinguished in the report. No production deployment.
+
+## 2026-09-12 — Codex — capture provider identity during enrollment
+
+**What:** `apps/gateway/src/credential_refresh.rs`; `crates/provider-grok/src/{oauth.rs,lib.rs,account_pool/management.rs}`;
+`crates/gateway-store/src/account_identity.rs`; `crates/gateway-http-actix/src/management_resources/{grok_device.rs,native_accounts.rs}` and
+`crates/gateway-http-actix/tests/managed_resource_inventory.rs`; `docs/openapi/management-v1.json` and
+`web/prism/contracts/management-v1.json`; `web/prism/src/features/accounts/{AccountList.tsx,AddAccountDialog.tsx,GrokDeviceWizard.tsx,presentation.ts,presentation.test.ts}`;
+`web/prism/src/dev/fixtures.ts`, `web/prism/e2e/{native-accounts,managed-accounts,account-presentation}.spec.ts`,
+`web/prism/DESIGN.md`; focused report/CR and safe live receipt.
+
+**Why:** User rejected manual identity entry. The grant previously discarded id_token and the
+list missed binary credential contents. Identity is now captured automatically and retained inside
+AEAD storage; a missing profile uses one fixed issuer userinfo request with sub binding and bounded
+transport. No extra scope, token response, provider inference or production change.
+
+**Other side:** FYI under joint implementation authorization. Native authorization name is optional;
+views add identity/identity_state. Compact v2 carries profile fields and reads v1; a future production
+rollback must account for this format, not just swap an older binary. Chrome's connection still
+reports extension occupancy/timeouts despite the user's closed-popup confirmation; no new real
+Chrome authorization acceptance is claimed. Manual supplementation is superseded, not pending.
+
+This batch's real local follow-up used the existing durable refresh coordinator for one previously
+authorized Build account: one refresh and one issuer profile read, no retry, stable account ID,
+revision 1→2, encrypted identity persisted and new gateway API readback passed. This supersedes
+the earlier read-only expired-grant finding as the final local status; production remains unchanged.

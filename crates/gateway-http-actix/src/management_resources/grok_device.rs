@@ -32,6 +32,8 @@ pub(super) struct View {
     verification_uri: String,
     expires_at_ms: i64,
     retry_at_ms: i64,
+    identity: Option<gateway_store::account_identity::AccountIdentity>,
+    identity_state: String,
 }
 #[derive(Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -42,6 +44,7 @@ pub(super) struct Target {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Start {
+    #[serde(default)]
     name: String,
     target: Option<Target>,
 }
@@ -54,9 +57,36 @@ impl GrokBuildOAuthTransport for Transport {
     ) -> Result<GrokBuildOAuthHttpResponse, GrokBuildOAuthTransportError> {
         self.0.send(request)
     }
+    fn user_info(
+        &self,
+        access_token: &str,
+    ) -> Result<GrokBuildOAuthHttpResponse, GrokBuildOAuthTransportError> {
+        self.0.user_info(access_token)
+    }
 }
 struct HttpTransport;
 impl GrokBuildOAuthTransport for HttpTransport {
+    fn user_info(
+        &self,
+        access_token: &str,
+    ) -> Result<GrokBuildOAuthHttpResponse, GrokBuildOAuthTransportError> {
+        let run = || -> Result<GrokBuildOAuthHttpResponse, Box<dyn std::error::Error>> {
+            let response = reqwest::blocking::Client::builder()
+                .no_proxy()
+                .timeout(std::time::Duration::from_secs(10))
+                .redirect(reqwest::redirect::Policy::none())
+                .build()?
+                .get(provider_grok::GROK_BUILD_USERINFO_URL)
+                .bearer_auth(access_token)
+                .send()?;
+            let status = response.status().as_u16();
+            let mut bytes = Vec::new();
+            response.take(65_537).read_to_end(&mut bytes)?;
+            Ok(GrokBuildOAuthHttpResponse::try_new(status, bytes)?)
+        };
+        run().map_err(|_| GrokBuildOAuthTransportError::Unavailable)
+    }
+
     fn send(
         &self,
         request: GrokBuildOAuthRequest,
@@ -97,9 +127,12 @@ impl DeviceSessions {
             transport: Transport(transport),
         }
     }
+    pub(super) fn acquire_identity(&self, credential: &mut provider_grok::GrokBuildCredential) {
+        // Enrollment remains valid if the issuer temporarily omits profile information.
+        let _ = credential.acquire_identity(&self.transport);
+    }
     fn start(&self, input: Start, now: i64) -> Result<View, ()> {
-        if input.name.trim().is_empty()
-            || input.name.len() > 128
+        if input.name.len() > 128
             || input
                 .target
                 .as_ref()
@@ -118,7 +151,14 @@ impl DeviceSessions {
         let mut id = [0; 32];
         getrandom::fill(&mut id).map_err(|_| ())?;
         let id = URL_SAFE_NO_PAD.encode(id);
+        let name = if input.name.trim().is_empty() {
+            format!("grok-authorization-{id}")
+        } else {
+            input.name
+        };
         let view = View {
+            identity: None,
+            identity_state: "pending".to_owned(),
             session_id: id.clone(),
             state: "pending".into(),
             user_code: auth.user_code().to_owned(),
@@ -133,7 +173,7 @@ impl DeviceSessions {
         sessions.insert(
             id,
             Session {
-                name: input.name,
+                name,
                 target: input.target,
                 poller: Some(GrokBuildDevicePoller::new(auth)),
                 view: view.clone(),
@@ -162,7 +202,18 @@ impl DeviceSessions {
             ) => entry.view.retry_at_ms = retry_at_ms,
             Ok(GrokBuildDevicePollOutcome::Denied) => entry.view.state = "denied".into(),
             Ok(GrokBuildDevicePollOutcome::Expired) => entry.view.state = "expired".into(),
-            Ok(GrokBuildDevicePollOutcome::Granted(credential)) => {
+            Ok(GrokBuildDevicePollOutcome::Granted(mut credential)) => {
+                let acquired = credential.acquire_identity(&self.transport);
+                if !credential.identity().is_empty() {
+                    "observed"
+                } else if acquired.is_ok() {
+                    "not_provided"
+                } else {
+                    "unavailable"
+                }
+                .clone_into(&mut entry.view.identity_state);
+                entry.view.identity =
+                    (!credential.identity().is_empty()).then(|| credential.identity().clone());
                 let result = if let Some(target) = &entry.target {
                     native.store.replace_build_authorization(
                         &target.account_id,
@@ -193,6 +244,19 @@ impl DeviceSessions {
                         .import_batch(&entry.name, &[account], now)
                         .map(|_| ())
                 };
+                if result.is_ok()
+                    && let Some(target) = &entry.target
+                    && let Ok(stored) = native.store.open_credential(&target.account_id)
+                    && let Ok(retained) =
+                        provider_grok::GrokBuildCredential::import_refreshable_runtime(
+                            stored.as_bytes(),
+                            now,
+                        )
+                    && !retained.identity().is_empty()
+                {
+                    entry.view.identity = Some(retained.identity().clone());
+                    "observed".clone_into(&mut entry.view.identity_state);
+                }
                 entry.view.state = if result.is_ok() {
                     "complete"
                 } else {
@@ -312,7 +376,11 @@ mod tests {
                         serde_json::to_vec(&serde_json::json!({"sub":subject}))
                             .map_err(|_| GrokBuildOAuthTransportError::Unavailable)?,
                     );
-                    serde_json::json!({"access_token":format!("header.{claims}.synthetic-signature"),"refresh_token":"synthetic-private-refresh","expires_in":3600,"token_type":"Bearer"})
+                    let identity = URL_SAFE_NO_PAD.encode(
+                        serde_json::json!({"sub":subject,"email":"authorized.member@example.test"})
+                            .to_string(),
+                    );
+                    serde_json::json!({"access_token":format!("header.{claims}.synthetic-signature"),"refresh_token":"synthetic-private-refresh","expires_in":3600,"token_type":"Bearer","id_token":format!("header.{identity}.signature")})
                 }
                 GrokBuildOAuthRequestKind::Refresh => {
                     return Err(GrokBuildOAuthTransportError::Unavailable);
@@ -355,6 +423,21 @@ mod tests {
             }));
         Ok((file, native))
     }
+    fn assert_stored_identity(
+        native: &NativeAccountManagement,
+        id: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        let stored = native.store.open_credential(id)?;
+        let restored = provider_grok::GrokBuildCredential::import_refreshable_runtime(
+            stored.as_bytes(),
+            2000,
+        )?;
+        assert_eq!(
+            restored.identity().email.as_deref(),
+            Some("authorized.member@example.test")
+        );
+        Ok(())
+    }
     #[test]
     fn first_device_grant_and_reauthorization_preserve_identity_and_reject_wrong_or_stale_grants()
     -> Result<(), Box<dyn Error>> {
@@ -363,7 +446,7 @@ mod tests {
             .device
             .start(
                 Start {
-                    name: "local-grok".into(),
+                    name: String::new(),
                     target: None,
                 },
                 1000,
@@ -388,6 +471,16 @@ mod tests {
         let before = native.store.managed_account_page(100, "", "", None)?;
         assert_eq!(before.items.len(), 1);
         let id = before.items[0].id.clone();
+        assert_stored_identity(&native, &id)?;
+        let terminal = native
+            .device
+            .poll(&first.session_id, &native, 2500)
+            .map_err(|()| "terminal")?;
+        assert_eq!(terminal.identity_state, "observed");
+        assert_eq!(
+            terminal.identity.as_ref().and_then(|i| i.email.as_deref()),
+            Some("authorized.member@example.test")
+        );
         let second = native
             .device
             .start(

@@ -123,6 +123,8 @@ impl GrokAccountPoolStore {
         if build_subject(previous.access_token())? != build_subject(credential.access_token())? {
             return Err(GrokAccountPoolError::ExistingAccountConflict);
         }
+        let mut credential = credential.clone();
+        credential.retain_identity(&previous);
         let bytes = credential
             .persisted_bytes()
             .map_err(|_| GrokAccountPoolError::InvalidCredential)?;

@@ -8,7 +8,7 @@ test("an unbound account is discoverable and can be disabled without resubmittin
   await page.getByRole("button", {name: "添加账号", exact: true}).click();
   const dialog = page.getByRole("dialog", {name: "添加账号"});
   await dialog.getByLabel("提供商").selectOption("relay-a");
-  await dialog.getByLabel("账号名称").fill("team-unbound");
+  await dialog.getByLabel("导入标记").fill("team-unbound");
   await dialog.getByLabel("API Key / Token", {exact: true}).fill("synthetic-private-token");
   await dialog.getByRole("button", {name: "添加账号", exact: true}).click();
   await expect(dialog).toHaveCount(0);
@@ -67,7 +67,7 @@ test("channel chooser covers the agreed families and imports Codex from a file",
     await expect(dialog.getByLabel("提供商", {exact:true})).toHaveCount(0);
   }
   await channel.selectOption("codex");
-  await dialog.getByLabel("账号名称").fill("codex-file-import");
+  await dialog.getByLabel("导入标记").fill("codex-file-import");
   const document = JSON.stringify({kind:"codex_oauth", access_token:"fixture-token",refresh_token:"fixture-refresh",expires_at_ms:4102444800000,account_id:"synthetic-account"});
   await dialog.getByLabel("读取凭据文件").setInputFiles({name:"synthetic.json",mimeType:"application/json",buffer:Buffer.from(document)});
   await expect(dialog.locator("textarea")).toHaveValue(document);

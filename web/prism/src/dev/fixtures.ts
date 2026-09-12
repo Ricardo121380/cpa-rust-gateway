@@ -676,7 +676,7 @@ function fixtureBuildIdentity(material:string):{email:string|null;phone:null;use
 }
 const nativeFixtureAccounts: NativeFixtureAccount[] = [];
 let nativeFixtureGeneration=0;
-const nativeDeviceSessions=new Map<string,{view:{session_id:string;state:string;user_code:string;verification_uri:string;expires_at_ms:number;retry_at_ms:number};name:string;target?:{account_id:string;revision:number}}>();
+const nativeDeviceSessions=new Map<string,{view:{session_id:string;state:string;user_code:string;verification_uri:string;expires_at_ms:number;retry_at_ms:number;identity:{email:string|null;phone:string|null;username:string|null}|null;identity_state:string};name:string;target?:{account_id:string;revision:number}}>();
 const approvedNativeSessions=new Set<string>();
 /** Simulates the provider's consent, not a management API or automatic successful poll. */
 export function approveNativeDeviceForTest(session:string):void {approvedNativeSessions.add(session);}
@@ -1428,16 +1428,17 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     }
     if(route === "POST /admin/native-account-authorizations") {
       const input=JSON.parse(bodyText??"{}") as {name:string;target?:{account_id:string;revision:number}};
-      const id=crypto.randomUUID();const view={session_id:id,state:"pending",user_code:"TEST-1234",verification_uri:"https://auth.fixture.example/verify",expires_at_ms:Date.now()+60000,retry_at_ms:Date.now()+1000};
-      nativeDeviceSessions.set(id,{view,...input});return json(200,view);
+      const id=crypto.randomUUID();const view={session_id:id,state:"pending",user_code:"TEST-1234",verification_uri:"https://auth.fixture.example/verify",expires_at_ms:Date.now()+60000,retry_at_ms:Date.now()+1000,identity:null,identity_state:"pending"};
+      nativeDeviceSessions.set(id,{view,...input,name:input.name||`grok-authorization-${id}`});return json(200,view);
     }
     const nativeDevice=/^(POST|DELETE) \/admin\/native-account-authorizations\/([^/]+)(?:\/poll)?$/u.exec(route);
     if(nativeDevice){const entry=nativeDeviceSessions.get(nativeDevice[2]??"");if(!entry)return errorResponse(400,"invalid_management_request","授权不存在");
       if(nativeDevice[1]==="DELETE"&&entry.view.state==="pending")entry.view.state="cancelled";
       else if(entry.view.state==="pending"&&approvedNativeSessions.has(entry.view.session_id)){
         if(entry.target){const account=nativeFixtureAccounts.find((r)=>r.id===entry.target?.account_id);if(!account||account.revision!==entry.target.revision)entry.view.state="persistence_conflict";else{account.revision+=1;nativeFixtureGeneration+=1;entry.view.state="complete";}}
-        else{nativeFixtureAccounts.push({id:`grok-fixture-${++nativeFixtureGeneration}`,provider:"grok_build",auth_status:"active",enabled:true,revision:0,import_batch_id:entry.name});entry.view.state="complete";}
+        else{nativeFixtureAccounts.push({id:`grok-fixture-${++nativeFixtureGeneration}`,provider:"grok_build",auth_status:"active",enabled:true,revision:0,import_batch_id:entry.name,identity:{email:"authorized.member@example.test",phone:null,username:null}});entry.view.state="complete";}
       }
+      if(entry.view.state==="complete"){entry.view.identity={email:"authorized.member@example.test",phone:null,username:null};entry.view.identity_state="observed";}
       entry.view.retry_at_ms=Date.now()+1000;return json(200,entry.view);
     }
 
