@@ -32,6 +32,48 @@ use std::{
 };
 
 type TestResult = Result<(), Box<dyn Error>>;
+struct SessionIdentityFixture(std::sync::Arc<std::sync::atomic::AtomicUsize>);
+struct RefusedSessionIdentity;
+impl provider_grok::GrokSessionIdentityTransport for RefusedSessionIdentity {
+    fn fetch(
+        &self,
+        _: provider_grok::GrokSessionIdentityRequest,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<
+                    Output = Result<
+                        gateway_store::account_identity::AccountIdentity,
+                        provider_grok::GrokSessionIdentityError,
+                    >,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async { Err(provider_grok::GrokSessionIdentityError::Forbidden) })
+    }
+}
+impl provider_grok::GrokSessionIdentityTransport for SessionIdentityFixture {
+    fn fetch(
+        &self,
+        request: provider_grok::GrokSessionIdentityRequest,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<
+                    Output = Result<
+                        gateway_store::account_identity::AccountIdentity,
+                        provider_grok::GrokSessionIdentityError,
+                    >,
+                > + Send
+                + '_,
+        >,
+    > {
+        assert!(request.cookie().contains("synthetic-"));
+        self.0.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Box::pin(async {
+            provider_grok::parse_grok_session_identity(br#"{"status":"authenticated","session":{"userId":"fixture-subject","email":"sso.member@example.test"}}"#)
+        })
+    }
+}
 const KEY: &str = "mgmt_0123456789abcdefghijklmnopqrstuvwxyz";
 const VERSION: &str = "inventory-draft";
 static NEXT_FILE: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
@@ -643,6 +685,162 @@ async fn native_build_import_captures_id_token_identity_and_lists_compact_creden
         !ciphertext
             .windows(b"imported.member".len())
             .any(|w| w == b"imported.member")
+    );
+    Ok(())
+}
+
+#[actix_web::test]
+async fn sso_import_observes_identity_and_existing_account_refresh_is_revision_guarded()
+-> TestResult {
+    let (file, resources) = fixture(false)?;
+    let version = KeyVersion::try_new(1)?;
+    let secrets = SecretStore::new(MasterKeyRing::try_new(
+        version,
+        [(version, MasterKey::try_from_bytes([0x51; 32])?)],
+    )?);
+    let pool = std::sync::Arc::new(provider_grok::GrokAccountPoolStore::try_open(
+        &file.0,
+        secrets.clone(),
+    )?);
+    let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let native =
+        gateway_http_actix::management_resources::native_accounts::NativeAccountManagement::new(
+            pool,
+        )?
+        .with_identity_transport(std::sync::Arc::new(SessionIdentityFixture(
+            std::sync::Arc::clone(&calls),
+        )));
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(resources.with_native_accounts(native)))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let now = i64::try_from(SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis())?;
+    let materials = [
+        (
+            "grok.console",
+            serde_json::json!({"sso_token":"synthetic-console-session","probe_model":"grok-4.6"}),
+        ),
+        (
+            "grok.web",
+            serde_json::json!({"kind":"grok_web_sso","account_ref":"web-fixture","lineage_ref":"lineage-fixture","revision":1,"expires_at_ms":now+600_000,"cookies":[{"name":"sso","value":"synthetic-web-session","domain":"grok.com","path":"/","secure":true,"http_only":true}]}),
+        ),
+    ];
+    for (channel, material) in materials {
+        let response=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/native-accounts/import")).set_json(serde_json::json!({"id":channel,"channel":channel,"secret":material.to_string()})).to_request()).await;
+        assert_eq!(response.status(), StatusCode::CREATED);
+        let body: Value = test::read_body_json(response).await;
+        assert_eq!(body["identity_state"], "observed");
+    }
+    assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed), 2);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/native-accounts")).to_request(),
+    )
+    .await;
+    let body: Value = test::read_body_json(response).await;
+    let rows = body["items"].as_array().ok_or("items")?;
+    assert_eq!(rows.len(), 2);
+    assert!(
+        rows.iter()
+            .all(|r| r["identity"]["email"] == "sso.member@example.test")
+    );
+    assert!(!body.to_string().contains("synthetic-console-session"));
+    assert_eq!(
+        calls.load(std::sync::atomic::Ordering::Relaxed),
+        2,
+        "GET must not contact provider"
+    );
+    let id = rows[0]["id"].as_str().ok_or("id")?;
+    let path = format!("/admin/native-accounts/{id}/identity");
+    let response = test::call_service(
+        &app,
+        test::TestRequest::post()
+            .uri(&path)
+            .set_json(serde_json::json!({"revision":0}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri(&path))
+            .set_json(serde_json::json!({"revision":1}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CONFLICT);
+    assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed), 2);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri(&path))
+            .set_json(serde_json::json!({"revision":0}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed), 3);
+    let reopened = provider_grok::GrokAccountPoolStore::try_open(&file.0, secrets)?;
+    assert_eq!(
+        reopened.observed_identity(id, now)?.email.as_deref(),
+        Some("sso.member@example.test")
+    );
+    Ok(())
+}
+
+#[actix_web::test]
+async fn refused_identity_read_preserves_import_and_reports_the_provider_refusal() -> TestResult {
+    let (file, resources) = fixture(false)?;
+    let version = KeyVersion::try_new(1)?;
+    let secrets = SecretStore::new(MasterKeyRing::try_new(
+        version,
+        [(version, MasterKey::try_from_bytes([0x51; 32])?)],
+    )?);
+    let pool = std::sync::Arc::new(provider_grok::GrokAccountPoolStore::try_open(
+        &file.0, secrets,
+    )?);
+    let native =
+        gateway_http_actix::management_resources::native_accounts::NativeAccountManagement::new(
+            pool,
+        )?
+        .with_identity_transport(std::sync::Arc::new(RefusedSessionIdentity));
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(resources.with_native_accounts(native)))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let response=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/native-accounts/import")).set_json(serde_json::json!({"id":"refused-profile","channel":"grok.console","secret":"synthetic-sso"})).to_request()).await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let imported: Value = test::read_body_json(response).await;
+    assert_eq!(imported["identity_state"], "unavailable");
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/native-accounts")).to_request(),
+    )
+    .await;
+    let rows: Value = test::read_body_json(response).await;
+    assert_eq!(rows["items"][0]["auth_status"], "active");
+    assert!(rows["items"][0]["identity"]["email"].is_null());
+    let id = rows["items"][0]["id"].as_str().ok_or("id")?;
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri(&format!("/admin/native-accounts/{id}/identity")))
+            .set_json(serde_json::json!({"revision":0}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::BAD_GATEWAY);
+    let error: Value = test::read_body_json(response).await;
+    assert_eq!(error["error"]["code"], "management_identity_rejected");
+    assert!(
+        error["error"]["message"]
+            .as_str()
+            .ok_or("message")?
+            .contains("403")
     );
     Ok(())
 }

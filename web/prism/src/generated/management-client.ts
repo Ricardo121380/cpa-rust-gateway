@@ -2075,6 +2075,20 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "refreshNativeAccountIdentity": {
+    "method": "POST",
+    "path": "/admin/native-accounts/{account_id}/identity",
+    "parameters": [
+      {
+        "name": "account_id",
+        "in": "path",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "requestQuotaRecovery": {
     "method": "POST",
     "path": "/admin/runtime/quota/reset",
@@ -3145,6 +3159,10 @@ export class ManagementApi {
 
   refreshCredentialOAuth(request: ManagementRequest = {}): Promise<Response> {
     return this.request("refreshCredentialOAuth", request);
+  }
+
+  refreshNativeAccountIdentity(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("refreshNativeAccountIdentity", request);
   }
 
   requestQuotaRecovery(request: ManagementRequest = {}): Promise<Response> {

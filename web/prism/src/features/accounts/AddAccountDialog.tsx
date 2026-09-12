@@ -14,7 +14,7 @@ const formats: Record<string, string> = {
   grok_build_json: "Grok Build 凭据 JSON", sso: "SSO 凭据 JSON",
 };
 
-export function AddAccountDialog({onClose, onCreated}: Readonly<{onClose: () => void; onCreated: () => void}>) {
+export function AddAccountDialog({onClose, onCreated}: Readonly<{onClose: () => void; onCreated: (notice?:string) => void}>) {
   const [error, setError] = useState<string>();
   const [channelId, setChannelId] = useState("openai-compatible");
   const [oauthName, setOauthName] = useState<string>();
@@ -29,7 +29,7 @@ export function AddAccountDialog({onClose, onCreated}: Readonly<{onClose: () => 
     gcTime: 0,
     mutationFn: ({provider, name, material}: {provider: string; name: string; material: string}) =>
       native ? call("importNativeAccount", {body:{id:name,channel:channelId,secret:material}}) : call("importChannelAccount", {path: {upstream_id: provider}, body: {id: name, channel: channelId, secret: material}}, {versionScoped: true, mutating: true}),
-    onSuccess: onCreated,
+    onSuccess: (result)=>onCreated(native&&typeof result==="object"&&result!==null&&"identity_state" in result&&result.identity_state==="unavailable"?"账号已保存，暂未读到渠道身份，可在账号列表重试。":undefined),
     onSettled: (): void => { create.reset(); },
     onError: (cause) => setError(asAppError(cause).message),
   });

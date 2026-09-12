@@ -76,6 +76,7 @@ impl AccountIdentity {
         for key in [
             "user",
             "profile",
+            "session",
             "account",
             "metadata",
             "_meta",

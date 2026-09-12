@@ -274,6 +274,7 @@ fn resource_state() -> Result<ManagementResourceHttpState, Box<dyn Error>> {
         123,
         vec![
             ProviderAccountPoolItem {
+                presentation: None,
                 provider_id: ProviderId::try_new("grok")?,
                 channel_id: EndpointId::try_new("channel-build")?,
                 account_id: CredentialId::try_new("grok-account-a")?,
@@ -296,6 +297,7 @@ fn resource_state() -> Result<ManagementResourceHttpState, Box<dyn Error>> {
                 )?),
             },
             ProviderAccountPoolItem {
+                presentation: None,
                 provider_id: ProviderId::try_new("grok")?,
                 channel_id: EndpointId::try_new("channel-build")?,
                 account_id: CredentialId::try_new("grok-account-b")?,
@@ -313,6 +315,7 @@ fn resource_state() -> Result<ManagementResourceHttpState, Box<dyn Error>> {
                 entitlement: None,
             },
             ProviderAccountPoolItem {
+                presentation: None,
                 provider_id: ProviderId::try_new("codex")?,
                 channel_id: EndpointId::try_new("channel-chat")?,
                 account_id: CredentialId::try_new("codex-account-a")?,

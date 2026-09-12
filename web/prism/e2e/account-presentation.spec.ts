@@ -1,5 +1,35 @@
 import {expect,test} from "@playwright/test";
 import {unlock,selectDraft,navigate} from "./helpers";
+test("runtime uses human identities and connection meaning in rows and confirmation",async({page})=>{
+  await unlock(page);await selectDraft(page);await navigate(page,"账号池");
+  await page.getByRole("button",{name:"运行状态",exact:true}).click();
+  const runtime=page.locator(".accounts-page");
+  await expect(runtime).toContainText("runtime.member@example.test");
+  await expect(runtime.locator(".account-desktop")).not.toContainText("relay-a");
+  await expect(runtime.locator(".resource-code")).toHaveCount(0);
+  await page.getByLabel("搜索已加载账号").fill("runtime.member@example.test");
+  await runtime.locator(".account-desktop").getByRole("button",{name:"详情",exact:true}).click();
+  const details=page.getByRole("dialog",{name:"runtime.member@example.test"});
+  await expect(details).toContainText("Responses · api.example.test");
+  await details.getByRole("button",{name:"冷却账号"}).click();
+  await expect(page.getByRole("dialog")).toContainText("runtime.member@example.test");
+  await expect(page.getByRole("dialog").locator(".identity-details")).not.toHaveAttribute("open","");
+});
+test("existing SSO account can read provider identity without reimporting",async({page})=>{
+  await unlock(page);await selectDraft(page);await navigate(page,"账号池");
+  await page.getByRole("button",{name:"添加账号",exact:true}).click();
+  const dialog=page.getByRole("dialog",{name:"添加账号",exact:true});
+  await dialog.getByLabel("渠道",{exact:true}).selectOption("grok.console");
+  await dialog.getByLabel("导入标记").fill("identity-trace");
+  await dialog.locator("textarea").fill("fixture-sso");
+  await dialog.getByRole("button",{name:"添加账号",exact:true}).click();
+  const grok=page.getByRole("region",{name:"Grok 账号",exact:true});
+  await expect(grok).toContainText("未提供账号身份");
+  await grok.getByRole("button",{name:"读取身份",exact:true}).click();
+  await expect(grok).toContainText("session.member@example.test");
+  await expect(grok.locator(".account-list tbody tr")).toHaveCount(1);
+  await expect(grok).not.toContainText("identity-trace");
+});
 test("account identity follows detail and both reauthorization entries",async({page})=>{
   await unlock(page);await selectDraft(page);await navigate(page,"账号池");
   await page.getByRole("button",{name:"Codex / ChatGPT",exact:true}).click();

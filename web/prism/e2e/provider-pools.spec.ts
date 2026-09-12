@@ -50,7 +50,7 @@ test("cooling names the exact account and enforces the contract's window", async
   await page.locator("tr", { hasText: "cred-relay-key" }).getByRole("button", { name: "冷却" }).click();
   const sheet = page.getByRole("dialog");
   // An action on one account out of a pool must say which one.
-  await expect(sheet).toContainText("精确到账号");
+  await expect(sheet).toContainText("runtime.member@example.test");
   await expect(sheet).toContainText("cred-relay-key");
 
   // Below the contract's floor. The input carries min/max, so the browser's own

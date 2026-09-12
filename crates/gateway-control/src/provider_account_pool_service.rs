@@ -214,6 +214,8 @@ impl ProviderAccountRuntimeStatus {
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct ProviderAccountPoolItem {
+    /// Display evidence; operational IDs and state retain their original semantics.
+    pub presentation: Option<crate::account_presentation::AccountPresentation>,
     /// Provider implementation family, not an endpoint URL or credential.
     pub provider_id: ProviderId,
     /// Provider-specific channel represented by its compiler-approved Endpoint identity.
@@ -725,6 +727,7 @@ mod tests {
 
     fn item(provider: &str, channel: &str, account: &str) -> ProviderAccountPoolItem {
         ProviderAccountPoolItem {
+            presentation: None,
             provider_id: must(ProviderId::try_new(provider)),
             channel_id: must(EndpointId::try_new(channel)),
             account_id: must(CredentialId::try_new(account)),

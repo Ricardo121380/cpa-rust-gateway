@@ -1,0 +1,162 @@
+{
+  "base_commit": "2d4e27e",
+  "production_runtime_unchanged": "a243aab",
+  "production_schema_unchanged": 24,
+  "candidate_schema": 25,
+  "candidate_operations": 123,
+  "production_mutations": 0,
+  "provider_inference": 0,
+  "production_profile_gets": 3,
+  "source": "https://github.com/chenyme/grok2api/blob/main/backend/internal/infra/provider/sessionidentity/session.go",
+  "screenshots": [
+    {
+      "path": "docs/reports/evidence/prism-account-identity-continuity-20260912/deduplicated-directory.png",
+      "sha256": "30916695ef7995f22fc1c2c55c7bdc7c93b0b7edff253167bdf786709e75eac1"
+    },
+    {
+      "path": "docs/reports/evidence/prism-account-identity-continuity-20260912/runtime-1440.png",
+      "sha256": "b6b8be75661038dd1452985c0560e92358fdc669e001c9e40fc1915ab38e8190"
+    },
+    {
+      "path": "docs/reports/evidence/prism-account-identity-continuity-20260912/runtime-390-dark.png",
+      "sha256": "68acb720482d86b16ad747a283bd2e32f204fd8209f68bf29b4b121fe40cec59"
+    },
+    {
+      "path": "docs/reports/evidence/prism-account-identity-continuity-20260912/grants-390-accessible.png",
+      "sha256": "8a3752badbd106fa4c85672388efd140023f67f55df348294551fda6208f84fc"
+    }
+  ],
+  "duplicate_diagnostic": {
+    "read_only": true,
+    "codex_credentials": [
+      {
+        "revision": 1,
+        "bindings": 1,
+        "email_observed": true,
+        "subject_observed": true,
+        "refresh_present": true,
+        "source_format": null
+      },
+      {
+        "revision": 0,
+        "bindings": 1,
+        "email_observed": true,
+        "subject_observed": true,
+        "refresh_present": true,
+        "source_format": null
+      }
+    ],
+    "same_email": true,
+    "same_subject": true,
+    "same_chatgpt_account": true,
+    "same_access_token": true,
+    "same_refresh_token": true,
+    "same_upstream": true,
+    "secret_or_identity_values_output": false
+  },
+  "sso_live_diagnostic": {
+    "read_only": true,
+    "requests": 2,
+    "retries": 0,
+    "results": [
+      {
+        "provider": "console",
+        "http_status": 403,
+        "request_completed": true,
+        "session_status": null,
+        "email_present": false,
+        "used_configured_web_proxy": false
+      },
+      {
+        "provider": "console",
+        "http_status": 403,
+        "request_completed": true,
+        "session_status": null,
+        "email_present": false,
+        "used_configured_web_proxy": false
+      }
+    ],
+    "production_mutations": 0,
+    "provider_inference": 0,
+    "secret_or_email_values_output": false
+  },
+  "sso_refusal_classification": {
+    "read_only": true,
+    "requests": 1,
+    "retries": 0,
+    "results": [
+      {
+        "provider": "console",
+        "http_status": 403,
+        "challenge_response": true,
+        "request_completed": true,
+        "session_status": null,
+        "email_present": false,
+        "used_configured_web_proxy": false
+      }
+    ],
+    "production_mutations": 0,
+    "provider_inference": 0,
+    "secret_or_email_values_output": false
+  },
+  "egolite": {
+    "browser": "EgoLite Chromium 152",
+    "realGateway": true,
+    "syntheticState": true,
+    "viewports": [
+      [
+        1440,
+        900
+      ],
+      [
+        1280,
+        720
+      ],
+      [
+        390,
+        844
+      ]
+    ],
+    "runtimeRows": 6,
+    "allRuntimeIdentitiesPresent": true,
+    "opaqueRuntimeLabelsVisible": false,
+    "duplicateDirectoryRows": 1,
+    "authorizationRecords": 2,
+    "correctAuthorizationTarget": true,
+    "mobileDetailMargins": [
+      12,
+      12
+    ],
+    "keyboardFocusInside": true,
+    "mobile": {
+      "width": 390,
+      "overflow": false,
+      "identity": true,
+      "disabledVisible": true,
+      "separateAxes": true
+    },
+    "grants": {
+      "rows": 2,
+      "left": 12,
+      "right": 12,
+      "overflow": false,
+      "contrast": true,
+      "reducedMotion": true
+    }
+  },
+  "validation": {
+    "frontend_unit_tests": 269,
+    "related_e2e_unique_tests": 16,
+    "last_affected_e2e_subset": 9,
+    "provider_identity_tests": 7,
+    "http_inventory_tests": 11,
+    "runtime_pool_tests": 11,
+    "native_runtime_descriptor_tests": 1,
+    "provider_http_tests": 3,
+    "migration_tests": 7,
+    "clippy": true,
+    "contract_sync_and_embedded_build": true,
+    "build_files": 4,
+    "source_and_crate_boundaries": true
+  }
+}

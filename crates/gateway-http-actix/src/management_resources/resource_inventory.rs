@@ -171,9 +171,8 @@ async fn read(
         Ok(if kind == "credentials" {
             reader.credentials_with_identity(query,project.as_ref()).map(|page| {
                 mapped(page, |row| {
-                    let hosts = row.connections.iter().filter_map(|c|url::Url::parse(&c.base_url).ok()).filter_map(|u|u.host_str().map(str::to_owned)).collect::<Vec<_>>();
-                    let kimi = ["kimi","moonshot"].contains(&row.upstream_kind.as_str()) || hosts.iter().any(|h|["api.moonshot.cn","api.moonshot.ai","api.kimi.com"].contains(&h.as_str()));
-                    let (category,provider) = if kimi {("kimi","Kimi")} else if row.kind=="oauth_json" {("codex",if row.upstream_kind=="chatgpt" {"ChatGPT"} else {"Codex"})} else if row.upstream_kind=="kiro" || row.connections.iter().any(|c|c.adapter_id.starts_with("kiro")) {("kiro","Kiro")} else if ["claude","anthropic-compatible"].contains(&row.upstream_kind.as_str()) || row.connections.iter().any(|c|c.adapter_id.starts_with("anthropic")) {("claude","Claude")} else {("api","API")};
+                    let urls=row.connections.iter().map(|c|url::Url::parse(&c.base_url).ok()).collect::<Vec<_>>();
+                    let (category,provider) = gateway_control::account_presentation::ordinary_channel(&row.kind,&row.upstream_kind,row.connections.iter().zip(&urls).map(|(c,u)|(c.adapter_id.as_str(),u.as_ref().and_then(url::Url::host_str))));
                     let connections=row.connections.iter().map(|c|serde_json::json!({"id":c.id,"api_format":c.api_format,"enabled":c.enabled,"host":url::Url::parse(&c.base_url).ok().and_then(|u|u.host_str().map(str::to_owned))})).collect::<Vec<_>>();
                     let body = CredentialResponse {
                         id: row.id.to_string(),

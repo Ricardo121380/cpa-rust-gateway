@@ -31,6 +31,17 @@ export type ManagedEndpoint = Readonly<{
   enabled: boolean;
 }>;
 
+// Group observed contact identities for display. Credentials and their mutation targets remain separate.
+export function groupManagedIdentities(rows:readonly ManagedCredential[]):ManagedCredential[][] {
+  const groups=new Map<string,ManagedCredential[]>();
+  for(const row of rows){
+    const contact=row.identity?.email?.trim().toLocaleLowerCase()||row.identity?.phone?.replace(/[\s()-]/g,"");
+    const key=contact?JSON.stringify([row.category,row.provider,contact]):JSON.stringify(["credential",row.credential.id]);
+    const group=groups.get(key)??[];group.push(row);groups.set(key,group);
+  }
+  return [...groups.values()];
+}
+
 export type InventoryPage<T> = Readonly<{
   config_version: string;
   revision: string;

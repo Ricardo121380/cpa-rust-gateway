@@ -2539,6 +2539,10 @@ fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
         )
         .route("/native-accounts", web::get().to(native_accounts::list))
         .route(
+            "/native-accounts/{account_id}/identity",
+            web::post().to(native_accounts::refresh_identity),
+        )
+        .route(
             "/native-accounts/import",
             web::post().to(native_accounts::import),
         )
@@ -3620,6 +3624,7 @@ struct ProviderEgressStatusCursorKeyWire {
 #[derive(Serialize)]
 #[allow(clippy::struct_excessive_bools)]
 struct ProviderAccountPoolItemResponse {
+    presentation: Option<serde_json::Value>,
     provider_id: String,
     channel_id: String,
     account_id: String,
@@ -4442,18 +4447,41 @@ async fn list_provider_account_pools(
         Ok(query) => query,
         Err(error) => return provider_account_pool_error(error),
     };
-    let source = match provider_account_pools(&state) {
-        Ok(source) => source,
-        Err(response) => return response,
-    };
-    match source.list_provider_account_pools(&query) {
-        Ok(page) => match provider_account_pool_page_response(page) {
+    let source_state = state.clone();
+    let result = read_operations(&state, move || {
+        let source = source_state
+            .provider_account_pools
+            .lock()
+            .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
+        let page = source.list_provider_account_pools(&query);
+        drop(source);
+        Ok(page.map(|mut page| {
+            if let Some(native) = &source_state.native_accounts {
+                for row in &mut page.items {
+                    if ["grok_build_oauth", "grok_web_sso", "grok_console_sso"]
+                        .contains(&row.account_kind.as_str())
+                        && let Some(display) = &mut row.presentation
+                        && let Ok(identity) = native
+                            .store
+                            .observed_identity(row.account_id.as_str(), page.observed_at_ms)
+                    {
+                        display.identity = identity;
+                    }
+                }
+            }
+            page
+        }))
+    })
+    .await;
+    match result {
+        Ok(Ok(page)) => match provider_account_pool_page_response(page) {
             Ok(response) => HttpResponse::Ok()
                 .insert_header((header::CACHE_CONTROL, "no-store"))
                 .json(response),
             Err(response) => response,
         },
-        Err(error) => provider_account_pool_error(error),
+        Ok(Err(error)) => provider_account_pool_error(error),
+        Err(_) => provider_account_pool_error(ProviderAccountPoolError::SourceUnavailable),
     }
 }
 
@@ -9574,6 +9602,7 @@ fn provider_account_pool_item_response(
     value: ProviderAccountPoolItem,
 ) -> ProviderAccountPoolItemResponse {
     ProviderAccountPoolItemResponse {
+        presentation: value.presentation.map(|p|serde_json::json!({"identity":p.identity,"category":p.category,"provider":p.provider,"api_format":p.api_format,"host":p.host,"source":p.source})),
         provider_id: value.provider_id.as_str().to_owned(),
         channel_id: value.channel_id.as_str().to_owned(),
         account_id: value.account_id.as_str().to_owned(),

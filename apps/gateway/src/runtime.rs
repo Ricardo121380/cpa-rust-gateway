@@ -1259,6 +1259,8 @@ impl P12RoutedResponsesExecutor {
                     configuration,
                     &bindings,
                     native_accounts,
+                    &native_store,
+                    observed_at_ms,
                 )?);
                 Ok(ordinary)
             });
@@ -2192,25 +2194,15 @@ fn ordinary_provider_account_descriptors(
                 RuntimeCompositionStage::ProviderAccountPool,
             ));
         }
-        let (auth_status, runtime_status_hint) = match credential.status {
-            CredentialStatus::Active => (
-                ProviderAccountAuthStatus::Active,
-                ProviderAccountRuntimeStatus::Available,
-            ),
-            CredentialStatus::Cooling => (
-                ProviderAccountAuthStatus::Active,
-                ProviderAccountRuntimeStatus::Cooling,
-            ),
-            CredentialStatus::Unauthorized => (
-                ProviderAccountAuthStatus::ReauthRequired,
-                ProviderAccountRuntimeStatus::Unauthorized,
-            ),
-            CredentialStatus::Disabled => (
-                ProviderAccountAuthStatus::Disabled,
-                ProviderAccountRuntimeStatus::Available,
-            ),
-        };
+        let (auth_status, runtime_status_hint) = ordinary_auth_status(credential.status);
         descriptors.push(ProviderAccountDescriptor {
+            presentation: Some(ordinary_account_presentation(
+                configuration,
+                endpoint,
+                credential,
+                upstream.kind.as_str(),
+                secret_store,
+            )),
             source: ProviderAccountDescriptorSource::Ordinary,
             provider_id: ProviderId::try_new(upstream.id.as_str().to_owned()).map_err(|_| {
                 RuntimeCompositionError::Stage(RuntimeCompositionStage::ProviderAccountPool)
@@ -2245,6 +2237,73 @@ fn ordinary_provider_account_descriptors(
         });
     }
     Ok(descriptors)
+}
+
+fn ordinary_auth_status(
+    status: CredentialStatus,
+) -> (ProviderAccountAuthStatus, ProviderAccountRuntimeStatus) {
+    match status {
+        CredentialStatus::Active => (
+            ProviderAccountAuthStatus::Active,
+            ProviderAccountRuntimeStatus::Available,
+        ),
+        CredentialStatus::Cooling => (
+            ProviderAccountAuthStatus::Active,
+            ProviderAccountRuntimeStatus::Cooling,
+        ),
+        CredentialStatus::Unauthorized => (
+            ProviderAccountAuthStatus::ReauthRequired,
+            ProviderAccountRuntimeStatus::Unauthorized,
+        ),
+        CredentialStatus::Disabled => (
+            ProviderAccountAuthStatus::Disabled,
+            ProviderAccountRuntimeStatus::Available,
+        ),
+    }
+}
+
+fn ordinary_account_presentation(
+    configuration: &ControlPlaneConfiguration,
+    endpoint: &EndpointConfiguration,
+    credential: &gateway_store::control_plane::CredentialConfiguration,
+    upstream_kind: &str,
+    secret_store: &SecretStore,
+) -> gateway_control::account_presentation::AccountPresentation {
+    let identity = credential_associated_data(
+        &configuration.version.id,
+        &credential.id,
+        &credential.upstream_id,
+    )
+    .ok()
+    .and_then(|aad| secret_store.open(&credential.encrypted_secret, &aad).ok())
+    .map(|plain| {
+        gateway_store::account_identity::AccountIdentity::from_credential(plain.as_bytes())
+    })
+    .unwrap_or_default();
+    let url = reqwest::Url::parse(&endpoint.base_url).ok();
+    let (category, provider) = gateway_control::account_presentation::ordinary_channel(
+        &credential.kind,
+        upstream_kind,
+        [(
+            endpoint.adapter_id.as_str(),
+            url.as_ref().and_then(reqwest::Url::host_str),
+        )],
+    );
+    gateway_control::account_presentation::AccountPresentation {
+        identity,
+        category: category.to_owned(),
+        provider: provider.to_owned(),
+        api_format: endpoint.api_format.clone(),
+        host: reqwest::Url::parse(&endpoint.base_url)
+            .ok()
+            .and_then(|u| u.host_str().map(str::to_owned)),
+        source: credential
+            .id
+            .as_str()
+            .to_ascii_lowercase()
+            .contains("autoreg")
+            .then(|| "Autoreg".to_owned()),
+    }
 }
 
 fn ordinary_account_entitlement(
@@ -2289,6 +2348,8 @@ fn native_provider_account_descriptors(
     configuration: &ControlPlaneConfiguration,
     bindings: &[GrokAccountEndpointBinding],
     accounts: &[GrokAccountMetadata],
+    store: &GrokAccountPoolStore,
+    observed_at_ms: i64,
 ) -> Result<Vec<ProviderAccountDescriptor>, RuntimeCompositionError> {
     let upstreams = configuration
         .upstreams
@@ -2340,6 +2401,27 @@ fn native_provider_account_descriptors(
             ProviderAccountRuntimeStatus::Available
         };
         descriptors.push(ProviderAccountDescriptor {
+            presentation: Some(gateway_control::account_presentation::AccountPresentation {
+                identity: store
+                    .observed_identity(&account.id, observed_at_ms)
+                    .unwrap_or_default(),
+                category: "grok".to_owned(),
+                provider: match account.provider {
+                    GrokAccountProvider::Build => "Grok Build",
+                    GrokAccountProvider::Web => "Grok Web",
+                    GrokAccountProvider::Console => "Grok Console",
+                }
+                .to_owned(),
+                api_format: endpoint.api_format.clone(),
+                host: reqwest::Url::parse(&endpoint.base_url)
+                    .ok()
+                    .and_then(|u| u.host_str().map(str::to_owned)),
+                source: account
+                    .import_batch_id
+                    .to_ascii_lowercase()
+                    .contains("autoreg")
+                    .then(|| "Autoreg".to_owned()),
+            }),
             source: ProviderAccountDescriptorSource::Native,
             provider_id: ProviderId::try_new(upstream.id.as_str().to_owned()).map_err(|_| {
                 RuntimeCompositionError::Stage(RuntimeCompositionStage::ProviderAccountPool)
@@ -12164,8 +12246,17 @@ mod tests {
             },
         ];
 
-        let rows =
-            super::native_provider_account_descriptors(&configuration, &bindings, &accounts)?;
+        let native_store = provider_grok::GrokAccountPoolStore::try_new(
+            gateway_store::open_in_memory()?,
+            secret_store.clone(),
+        )?;
+        let rows = super::native_provider_account_descriptors(
+            &configuration,
+            &bindings,
+            &accounts,
+            &native_store,
+            20,
+        )?;
         assert_eq!(rows.len(), 2);
         let active = rows
             .iter()

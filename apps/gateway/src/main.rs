@@ -5,6 +5,7 @@
 
 #![deny(unsafe_code)]
 
+mod account_identity;
 mod admin_login;
 mod billing_worker;
 mod credential_refresh;

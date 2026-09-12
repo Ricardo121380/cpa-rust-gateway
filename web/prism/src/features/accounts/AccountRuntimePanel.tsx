@@ -1,5 +1,5 @@
-import { ResourceIdentity, IdentityDetails } from "../../components/ResourceIdentity";
-import { resourceName } from "../../utils/resourceNames";
+import { IdentityDetails } from "../../components/ResourceIdentity";
+import {accountName, accountGroups, protocolName} from "./presentation";
 import {
   useInfiniteQuery,
   useMutation,
@@ -29,6 +29,10 @@ import {
   type ActionReceipt,
 } from "../runtime/model";
 
+const runtimeName=(row:PoolAccount)=>accountName(row.presentation?.identity)??"未提供账号身份";
+const runtimeProvider=(row:PoolAccount)=>row.presentation?.provider??({grok_build_oauth:"Grok Build",grok_console_sso:"Grok Console",grok_web_sso:"Grok Web",oauth_json:"Codex"}[row.account_kind]??"API");
+const runtimeConnection=(row:PoolAccount)=>row.presentation?`${protocolName(row.presentation.api_format)}${row.presentation.host?` · ${row.presentation.host}`:""}`:"连接信息未提供";
+
 export function AccountRuntimePanel() {
   const t = useMessages();
   const queryClient = useQueryClient();
@@ -47,6 +51,7 @@ export function AccountRuntimePanel() {
   const auth = params.get("auth") ?? "";
   const runtime = params.get("runtime") ?? "";
   const query = params.get("q") ?? "";
+  const category=params.get("category")??"";
   const key = ["accounts", provider, auth, runtime];
   const act = useMutation({
     mutationFn: (body: Readonly<Record<string, unknown>>) =>
@@ -87,17 +92,13 @@ export function AccountRuntimePanel() {
     retry: false,
   });
   const loaded = pools.data?.pages.flatMap((page) => page.items) ?? [];
-  const rows = loaded.filter((row) =>
-    `${row.provider_id} ${row.channel_id} ${row.account_id} ${resourceName(row.account_id, "account")} ${resourceName(row.provider_id, "upstream")} ${resourceName(row.channel_id, "endpoint")}`
-      .toLowerCase()
-      .includes(query.toLowerCase()),
-  );
-  // Group presentation only: every binding and its exact operational identity stays intact.
+  const rows = loaded.filter((row) => (!category||row.presentation?.category===category) &&
+    [runtimeName(row),runtimeProvider(row),runtimeConnection(row),row.account_id,row.channel_id].join(" ").toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  // Each runtime row remains one exact binding even when several rows share a human identity.
   const groups = new Map<string, PoolAccount[]>();
   for (const row of rows) {
-    const group = groups.get(row.provider_id) ?? [];
-    group.push(row);
-    groups.set(row.provider_id, group);
+    const label=runtimeProvider(row);const group=groups.get(label)??[];
+    group.push(row);groups.set(label,group);
   }
   const update = (name: string, value: string) => {
     const next = new URLSearchParams(params);
@@ -118,7 +119,7 @@ export function AccountRuntimePanel() {
         <div>
           <h2>{t.nav.accounts}</h2>
           <p className="scope-row">
-            当前已加载绑定 · 跨配置版本
+            当前运行快照 · 每条接口连接单独显示状态
           </p>
         </div>
         <button
@@ -173,16 +174,14 @@ export function AccountRuntimePanel() {
         <div className="data-toolbar">
           <input
             aria-label="搜索已加载账号"
-            placeholder="搜索账号、Channel"
+            placeholder="搜索邮箱、渠道或接口"
             value={query}
             onChange={(e) => update("q", e.target.value)}
           />
-          <input
-            aria-label="Provider ID"
-            placeholder="全部 Provider"
-            value={provider}
-            onChange={(e) => update("provider", e.target.value)}
-          />
+          <select aria-label="账号类别" value={category} onChange={(e)=>update("category",e.target.value)}>
+            <option value="">全部渠道</option>{accountGroups.map((group)=><option key={group.id} value={group.id}>{group.name}</option>)}
+          </select>
+          {provider?<button className="secondary" onClick={()=>update("provider","")}>清除提供商限定</button>:null}
           <select
             aria-label="认证状态"
             value={auth}
@@ -235,11 +234,11 @@ export function AccountRuntimePanel() {
           <>
             <div className="account-desktop">
               {[...groups].map(([providerId, accounts]) => <section className="account-provider" key={providerId}>
-                <header className="account-group-head"><ResourceIdentity id={providerId} kind="upstream" /><small>{accounts.length} 个绑定</small></header>
+                <header className="account-group-head"><span>{providerId}</span><small>{accounts.length} 个绑定</small></header>
                 <div className="tablewrap"><table>
                 <thead>
                   <tr>
-                    <th>账号 / 端点</th>
+                    <th>账号 / 接口连接</th>
                     <th>认证</th>
                     <th>调度</th>
                     <th>并发</th>
@@ -253,10 +252,10 @@ export function AccountRuntimePanel() {
                       key={`${row.provider_id}/${row.channel_id}/${row.account_id}`}
                     >
                       <td>
-                        <div className="account-identity"><span className="account-avatar" aria-hidden="true">{resourceName(row.account_id, "account").slice(0, 1).toUpperCase()}</span><div>
-                        <div className="entity-name"><ResourceIdentity id={row.account_id} kind="account" /></div>
+                        <div className="account-identity"><span className="account-avatar" aria-hidden="true">{runtimeName(row).slice(0, 1).toUpperCase()}</span><div>
+                        <div className="entity-name">{runtimeName(row)}</div>
                         <div className="entity-meta">
-                          <ResourceIdentity id={row.channel_id} kind="endpoint" />
+                          {runtimeConnection(row)}
                         </div></div></div>
                       </td>
                       <td>
@@ -300,22 +299,27 @@ export function AccountRuntimePanel() {
             </div>
             <div className="account-mobile">
               {[...groups].map(([providerId, accounts]) => <section className="account-provider" key={providerId}>
-                <header className="account-group-head"><ResourceIdentity id={providerId} kind="upstream" /><small>{accounts.length} 个绑定</small></header>
+                <header className="account-group-head"><span>{providerId}</span><small>{accounts.length} 个绑定</small></header>
               {accounts.map((row) => (
                 <article
                   key={`${row.provider_id}/${row.channel_id}/${row.account_id}`}
                 >
-                  <div className="entity-name"><ResourceIdentity id={row.account_id} kind="account" /></div>
+                  <div className="entity-name">{runtimeName(row)}</div>
                   <div className="entity-meta">
-                    <ResourceIdentity id={row.channel_id} kind="endpoint" />
+                    {runtimeConnection(row)}
                   </div>
                   <p>
+                    认证：
                     <StatusBadge status={row.auth_status}>
                       {authStatusMeta(row.auth_status).label}
-                    </StatusBadge>{" "}
+                    </StatusBadge>
+                  </p>
+                  <p>
+                    调度：
                     <StatusBadge status={row.runtime_status}>
                       {runtimeStatusMeta(row.runtime_status).label}
                     </StatusBadge>
+                    {row.enabled?null:<> <StatusBadge status="disabled">已停用</StatusBadge></>}
                   </p>
                   <p className="small">
                     并发 {row.active_leases} / {row.max_concurrency} ·{" "}
@@ -351,12 +355,12 @@ export function AccountRuntimePanel() {
       </div>
       {selected === undefined ? null : (
         <Sheet
-          title={resourceName(selected.account_id, "account")}
+          title={runtimeName(selected)}
           layout="inspector"
           onEscape={() => setSelected(undefined)}
         >
           <p className="entity-meta">
-            <ResourceIdentity id={selected.provider_id} kind="upstream" /> / <ResourceIdentity id={selected.channel_id} kind="endpoint" /> ·{" "}
+            {runtimeProvider(selected)} · {runtimeConnection(selected)} ·{" "}
             {formatObservedAt(observed ?? 0)}
           </p>
           <IdentityDetails entries={[["账号 ID", selected.account_id], ["上游 ID", selected.provider_id], ["端点 ID", selected.channel_id]]} />
@@ -480,7 +484,7 @@ export function AccountRuntimePanel() {
               <p className="small muted">
                 {scope === undefined
                   ? "先选择配置版本以操作精确账号。"
-                  : `操作使用配置版本 ${resourceName(scope ?? "—", "config")}。恢复结果由运行时判定。`}
+                  : "操作针对当前选中的账号连接，恢复结果由运行时判定。"}
               </p>
             </>
           )}
@@ -499,6 +503,8 @@ export function AccountRuntimePanel() {
       {credential === undefined ? null : (
         <CredentialSheet
           credentialId={credential}
+          accountName={accountName(loaded.find((row)=>row.account_id===credential)?.presentation?.identity)}
+          providerName={loaded.find((row)=>row.account_id===credential)?.presentation?.provider}
           onClose={() => setCredential(undefined)}
         />
       )}

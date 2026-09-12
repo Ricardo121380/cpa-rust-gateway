@@ -50,9 +50,10 @@ const BILLING_MATERIALIZER_FAILURE_SCHEMA_VERSION: i64 = 22;
 const CONFIGURATION_EDIT_ORIGIN_SCHEMA_VERSION: i64 = 23;
 
 const NATIVE_ACCOUNT_INVENTORY_SCHEMA_VERSION: i64 = 24;
+const NATIVE_ACCOUNT_IDENTITY_SCHEMA_VERSION: i64 = 25;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = NATIVE_ACCOUNT_INVENTORY_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = NATIVE_ACCOUNT_IDENTITY_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -181,6 +182,11 @@ const MIGRATIONS: &[Migration] = &[
         version: NATIVE_ACCOUNT_INVENTORY_SCHEMA_VERSION,
         up: include_str!("../migrations/0024_native_account_inventory.up.sql"),
         down: include_str!("../migrations/0024_native_account_inventory.down.sql"),
+    },
+    Migration {
+        version: NATIVE_ACCOUNT_IDENTITY_SCHEMA_VERSION,
+        up: include_str!("../migrations/0025_native_account_identity.up.sql"),
+        down: include_str!("../migrations/0025_native_account_identity.down.sql"),
     },
 ];
 
@@ -639,6 +645,7 @@ mod tests {
                 "model_catalog_targets",
                 "model_routes",
                 "native_account_authorization_events",
+                "native_account_identity_observations",
                 "native_account_inventory_generation",
                 "public_models",
                 "route_candidates",

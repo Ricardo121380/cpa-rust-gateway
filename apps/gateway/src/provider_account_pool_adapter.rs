@@ -99,6 +99,7 @@ pub(crate) enum ProviderAccountDescriptorSource {
 /// identifier as credential material and never opens a Store to fill a missing field.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct ProviderAccountDescriptor {
+    pub(crate) presentation: Option<gateway_control::account_presentation::AccountPresentation>,
     pub(crate) source: ProviderAccountDescriptorSource,
     pub(crate) provider_id: ProviderId,
     pub(crate) channel_id: EndpointId,
@@ -584,6 +585,7 @@ impl ProviderAccountPoolAdapter {
             let auth_status = effective_auth_status(descriptor, expires_at_ms, observed_at_ms);
             let runtime_status = self.runtime_status(descriptor, auth_status, observed_at_ms)?;
             items.push(ProviderAccountPoolItem {
+                presentation: descriptor.presentation.clone(),
                 provider_id: descriptor.provider_id.clone(),
                 channel_id: descriptor.channel_id.clone(),
                 account_id: descriptor.account_id.clone(),
@@ -961,6 +963,7 @@ mod tests {
 
     fn descriptor(provider: &str, channel: &str, account: &str) -> ProviderAccountDescriptor {
         ProviderAccountDescriptor {
+            presentation: None,
             source: ProviderAccountDescriptorSource::Ordinary,
             provider_id: must(ProviderId::try_new(provider)),
             channel_id: must(EndpointId::try_new(channel)),

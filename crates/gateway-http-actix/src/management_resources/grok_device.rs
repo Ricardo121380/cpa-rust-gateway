@@ -129,7 +129,13 @@ impl DeviceSessions {
     }
     pub(super) fn acquire_identity(&self, credential: &mut provider_grok::GrokBuildCredential) {
         // Enrollment remains valid if the issuer temporarily omits profile information.
-        let _ = credential.acquire_identity(&self.transport);
+        let _ = self.read_identity(credential);
+    }
+    pub(super) fn read_identity(
+        &self,
+        credential: &mut provider_grok::GrokBuildCredential,
+    ) -> Result<(), provider_grok::GrokBuildOAuthError> {
+        credential.acquire_identity(&self.transport)
     }
     fn start(&self, input: Start, now: i64) -> Result<View, ()> {
         if input.name.len() > 128

@@ -331,7 +331,7 @@ impl GrokBuildCredential {
         &mut self,
         transport: &T,
     ) -> Result<(), GrokBuildOAuthError> {
-        if !self.identity.is_empty() {
+        if self.identity.email.is_some() {
             return Ok(());
         }
         let expected =
@@ -347,7 +347,8 @@ impl GrokBuildCredential {
         if subject != expected {
             return Err(GrokBuildOAuthError::InvalidTokenResponse);
         }
-        self.identity = AccountIdentity::from_credential(response.body());
+        self.identity
+            .retain_missing(&AccountIdentity::from_credential(response.body()));
         Ok(())
     }
 
@@ -1821,6 +1822,21 @@ mod identity_tests {
         );
         assert!(!format!("{first:?}").contains("member@example.test"));
         assert!(!format!("{first:?}").contains("fixture-refresh"));
+        Ok(())
+    }
+    #[test]
+    fn a_display_name_does_not_prevent_email_lookup() -> TestResult {
+        let mut value = credential(false)?;
+        value.identity.username = Some("Existing Member".to_owned());
+        value.acquire_identity(&Transport {
+            subject: "same-user",
+            available: true,
+        })?;
+        assert_eq!(
+            value.identity.email.as_deref(),
+            Some("profile@example.test")
+        );
+        assert_eq!(value.identity.username.as_deref(), Some("Existing Member"));
         Ok(())
     }
     #[test]

@@ -2,6 +2,7 @@
 
 #![deny(unsafe_code)]
 
+pub mod account_presentation;
 /// Single-administrator login, bounded sessions and password rotation.
 pub mod admin_login;
 

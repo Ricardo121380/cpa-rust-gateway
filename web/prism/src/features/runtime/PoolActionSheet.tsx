@@ -1,5 +1,7 @@
 import type { FormEvent } from "react";
 import { Sheet } from "../../components/Sheet";
+import { IdentityDetails } from "../../components/ResourceIdentity";
+import {accountName,protocolName} from "../accounts/presentation";
 import {
   validCooldown,
   COOLDOWN_MIN_MS,
@@ -30,16 +32,15 @@ export function PoolActionSheet({
       onEscape={onCancel}
     >
       <p className="reveal-warning">
-        作用对象是<strong>精确到账号</strong>的一条:
+        <strong>{accountName(account.presentation?.identity)??"未提供账号身份"}</strong>
         <br />
-        <span className="mono">
-          {account.provider_id} / {account.channel_id} / {account.account_id}
-        </span>
+        {account.presentation?`${account.presentation.provider} · ${protocolName(account.presentation.api_format)}${account.presentation.host?` · ${account.presentation.host}`:""}`:"当前选中的账号连接"}
         <br />
         {isCooldown
-          ? "冷却会把它移出调度直到到期,同 Provider 下的其他账号继续服务。"
+          ? "冷却会把它移出调度直到到期，同渠道的其他账号继续服务。"
           : "请求恢复只是登记意图 —— 是否放行仍由运行时与上游决定,不保证恢复。"}
       </p>
+      <IdentityDetails entries={[["账号 ID",account.account_id],["上游 ID",account.provider_id],["接口 ID",account.channel_id]]} />
       <form
         className="sheet-form"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
@@ -84,7 +85,7 @@ export function PoolActionSheet({
           </label>
         ) : null}
         <label>
-          upstream_model(可选)
+          上游模型（可选）
           <input name="upstream_model" className="mono" maxLength={256} />
           <small>只想影响某一个上游模型时填写;留空表示整个账号。</small>
         </label>

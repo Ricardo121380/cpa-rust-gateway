@@ -23,7 +23,12 @@ mod official_runtime;
 mod provider_egress;
 mod reauth;
 mod runtime_state;
+mod session_identity;
 mod strict_json;
+pub use session_identity::{
+    GROK_SESSION_IDENTITY_URL, GrokSessionIdentityError, GrokSessionIdentityRequest,
+    GrokSessionIdentityTransport, MAX_GROK_SESSION_IDENTITY_BYTES, parse_grok_session_identity,
+};
 mod web_canary;
 mod web_chat;
 mod web_conversation;
@@ -44,10 +49,10 @@ pub use account_entitlement::{
 };
 pub use account_pool::{
     GrokAccountAuthStatus, GrokAccountCredential, GrokAccountEndpointBinding,
-    GrokAccountEntitlementUpdateOutcome, GrokAccountIdentity, GrokAccountImport,
-    GrokAccountImportOutcome, GrokAccountImportRelation, GrokAccountMetadata, GrokAccountPoolError,
-    GrokAccountPoolStore, GrokAccountProvider, GrokAccountRollbackOutcome, GrokManagedAccountPage,
-    GrokNativeAccountCompileError, GrokNativeAccountPoolCompilation,
+    GrokAccountEntitlementUpdateOutcome, GrokAccountIdentity, GrokAccountIdentitySnapshot,
+    GrokAccountImport, GrokAccountImportOutcome, GrokAccountImportRelation, GrokAccountMetadata,
+    GrokAccountPoolError, GrokAccountPoolStore, GrokAccountProvider, GrokAccountRollbackOutcome,
+    GrokManagedAccountPage, GrokNativeAccountCompileError, GrokNativeAccountPoolCompilation,
 };
 pub use account_worker::{
     GrokAccountQuotaConfidence, GrokAccountQuotaScope, GrokAccountQuotaSource,

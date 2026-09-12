@@ -18,7 +18,8 @@ test("accounts read without a version, while cooldown requires a selected versio
   await inspect(page, "cred-relay-key");
   await page.getByRole("dialog").getByRole("button", { name: "冷却账号" }).click();
   const confirm = page.getByRole("dialog");
-  await expect(confirm).toContainText("relay-a / ep-relay-a-responses / cred-relay-key");
+  await expect(confirm).toContainText("runtime.member@example.test");
+  await expect(confirm.locator(".identity-details")).not.toHaveAttribute("open", "");
   await confirm.getByLabel("冷却时长", { exact: false }).fill("500");
   await confirm.getByRole("button", { name: "确认冷却" }).click();
   await expect(confirm).toBeVisible();

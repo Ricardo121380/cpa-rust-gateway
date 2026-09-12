@@ -2169,3 +2169,37 @@ The successful cutover took 1245 ms to readiness; existing admin/account/configu
 remain, public assets match, and EgoLite displays the production login page. Some historical grants
 still lack human identity; no name is invented. Format-aware rollback is required, not binary-only
 rollback. No forced Provider canary, new authorization, password reset, DNS/Caddy/Autoreg change.
+
+## 2026-09-12 — Codex — account identity continuity and duplicate authorization presentation
+
+**What:** `apps/gateway/src/{account_identity.rs,deployment.rs,main.rs,provider_account_pool_adapter.rs,runtime.rs}`;
+`crates/gateway-control/src/{account_presentation.rs,lib.rs,provider_account_pool_service.rs}`;
+`crates/gateway-store/src/{account_identity.rs,lib.rs}` and
+`crates/gateway-store/migrations/0025_native_account_identity.{up,down}.sql`;
+`crates/provider-grok/src/{account_pool.rs,account_pool/identity.rs,console_responses.rs,lib.rs,oauth.rs,session_identity.rs}`;
+`crates/gateway-http-actix/src/management_resources.rs`, its
+`management_resources/{grok_device.rs,native_accounts.rs,resource_inventory.rs}` and
+`crates/gateway-http-actix/tests/{managed_resource_inventory.rs,p13_04_management_inventory.rs}`;
+`docs/openapi/management-v1.json`, synced `web/prism/contracts/management-v1.json` and
+`web/prism/src/generated/management-client.ts`; `web/prism/src/features/accounts/{AccountsPage.tsx,AccountRuntimePanel.tsx,AddAccountDialog.tsx,inventory.ts,inventory.test.ts}`,
+`web/prism/src/features/runtime/{PoolActionSheet.tsx,model.ts}`, `web/prism/src/{app/v6.css,dev/fixtures.ts}`,
+`web/prism/e2e/{account-actions,account-presentation,provider-pools}.spec.ts` and `web/prism/DESIGN.md`;
+`docs/change-requests/CR-PRISM-ACCOUNT-IDENTITY-CONTINUITY-001.md`,
+`docs/reports/prism-account-identity-continuity-20260912.md`, its evidence JSON and four synthetic screenshots.
+
+**Why:** User's production acceptance exposed two identical Codex grants, missing SSO email acquisition,
+and legacy IDs/upstream labels in runtime status. Directory contacts now group without deleting grants;
+runtime connections retain exact targets with human presentation from serving state. Fixed-target SSO
+profile reads run automatically on import or explicitly on an existing record, with bounded transport,
+encrypted observations, credential/observation CAS and inventory invalidation. Failed profile reads do
+not invalidate imported credentials, lock the admin session or automatically replay writes.
+
+**Other side:** FYI under continuing joint frontend/backend authorization. Schema 25 and 123 operations
+are candidate-only; production remains `a243aab`/schema 24. Contract was edited at its authority and
+synced. Relevant Rust, frontend, contract and four-file checks passed; EgoLite used a real isolated
+gateway at three sizes with synthetic identities. Read-only production diagnostics confirmed identical
+Codex token/subject values without outputting them. Three Console profile GETs returned 403; one
+additional classification within those three confirmed a Cloudflare challenge. This standard-curl
+diagnostic does not validate the candidate Chrome transport on Oracle. Real Console emails remain
+unretrieved. No production data/configuration changes, inference, new authorization or deployment.
+Future release/rollback must account for migration 25; no credential-format change in this batch.

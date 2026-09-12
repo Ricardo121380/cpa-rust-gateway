@@ -1420,6 +1420,13 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const rows=nativeFixtureAccounts.filter((r)=>`${r.id} ${r.import_batch_id} ${r.provider}`.toLowerCase().includes(q.toLowerCase()));
       return json(200,{items:rows.slice(offset,offset+limit).map((row)=>({...row,identity:row.identity??{email:row.provider==="grok_build"?"grok.member@example.test":null,phone:null,username:null}})),next_cursor:offset+limit<rows.length?btoa(JSON.stringify({generation:nativeFixtureGeneration,q,offset:offset+limit})):null});
     }
+    const nativeIdentity=/^POST \/admin\/native-accounts\/([^/]+)\/identity$/u.exec(route);
+    if(nativeIdentity){
+      const row=nativeFixtureAccounts.find((r)=>r.id===nativeIdentity[1]);const input=JSON.parse(bodyText??"{}") as {revision:number};
+      if(!row||row.revision!==input.revision)return errorResponse(409,"management_native_account_conflict","账号列表已改变");
+      row.identity={email:"session.member@example.test",phone:null,username:null};nativeFixtureGeneration+=1;
+      return json(200,{identity:row.identity,identity_state:"observed"});
+    }
     if(route === "POST /admin/native-accounts/import") {
       const input=JSON.parse(bodyText??"{}") as {id:string;channel:string;secret:string};
       if(nativeFixtureAccounts.some((r)=>r.import_batch_id===input.id))return errorResponse(409,"management_native_account_conflict","账号名称已存在");
@@ -2020,6 +2027,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
           );
         })
         .map((row, index) => ({
+          presentation:{identity:{email:row.id==="cred-relay-key"?"runtime.member@example.test":row.id==="cred-grok-oauth"?"grok.runtime@example.test":null,phone:null,username:null},category:row.provider.startsWith("grok")?"grok":"api",provider:row.provider.startsWith("grok")?"Grok Build":"API",api_format:"openai/responses",host:row.provider.startsWith("grok")?"api.x.ai":"api.example.test",source:null},
           provider_id: row.provider,
           channel_id: row.channel,
           account_id: row.id,

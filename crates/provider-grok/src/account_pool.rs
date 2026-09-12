@@ -5,7 +5,9 @@
 //! authenticated-encrypted immediately, duplicates are idempotent only when both metadata and
 //! plaintext match, and every newly created account remains attributable to a reversible batch.
 
+mod identity;
 mod management;
+pub use identity::GrokAccountIdentitySnapshot;
 pub use management::GrokManagedAccountPage;
 
 use std::{

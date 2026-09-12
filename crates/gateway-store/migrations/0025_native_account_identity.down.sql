@@ -1,0 +1,4 @@
+DROP TRIGGER native_identity_delete;
+DROP TRIGGER native_identity_update;
+DROP TRIGGER native_identity_insert;
+DROP TABLE native_account_identity_observations;

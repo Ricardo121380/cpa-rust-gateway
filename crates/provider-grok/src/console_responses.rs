@@ -92,7 +92,7 @@ impl GrokConsoleSsoToken {
         Ok(Self(Zeroizing::new(value)))
     }
 
-    fn cookie_header(&self) -> Zeroizing<String> {
+    pub(crate) fn cookie_header(&self) -> Zeroizing<String> {
         Zeroizing::new(format!("sso={0}; sso-rw={0}", self.0.as_str()))
     }
 }
