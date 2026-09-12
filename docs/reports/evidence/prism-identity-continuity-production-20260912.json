@@ -1,0 +1,195 @@
+{
+  "recorded_at": "2026-09-12T10:26:25.090265+00:00",
+  "deployment": {
+    "revision": "5b92e15443bd0c2e3a8c44c5d9264999a2066a3e",
+    "previous": "a243aabe66ea456d158afcc3fa62e95f49d3ee82",
+    "release_run": 34687887227,
+    "gate_run": 34687888277,
+    "remote": "/var/backups/cpa-rust-gateway/prism-identity-continuity-20260912",
+    "origin": "https://cpar.142857142.xyz",
+    "schema_upgrade": [
+      24,
+      25
+    ],
+    "provider_canary": false
+  },
+  "release": {
+    "conclusion": "success",
+    "headSha": "5b92e15443bd0c2e3a8c44c5d9264999a2066a3e",
+    "status": "completed",
+    "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34687887227"
+  },
+  "gate": {
+    "conclusion": "success",
+    "headSha": "5b92e15443bd0c2e3a8c44c5d9264999a2066a3e",
+    "status": "completed",
+    "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34687888277"
+  },
+  "artifact": {
+    "revision": "5b92e15443bd0c2e3a8c44c5d9264999a2066a3e",
+    "signature_verified": true,
+    "artifact_and_sbom_verified": true,
+    "binary_sha256": "b3d239b2538bf5f2ec7741002c32e074f82bea81622ddc9d2e2d68321ac28e96",
+    "frontend_assets": {
+      "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+      "/admin-ui/assets/index.css": "519826def73b8bd66a6f7ca670e21d7f8317efe44ab8576727fd8112c10883f9",
+      "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+      "/admin-ui/assets/main.js": "2bcfef13a4eb31686b8adad1d4269d45798233586041228a80b699eebddc0f39"
+    }
+  },
+  "preflight": {
+    "cpar": "active",
+    "architecture": "aarch64",
+    "revision": "a243aabe66ea456d158afcc3fa62e95f49d3ee82",
+    "process_sha256": "037f46b77131bc8241cbb1c7dfb14455f388ea0b9a0ce7688f6247a51e9f7d5b",
+    "backup_free_bytes": 32196026368,
+    "caddy": "active",
+    "autoreg_wrapper": "active"
+  },
+  "isolated_auth": {
+    "result": "passed",
+    "real_gateway": true,
+    "provider_requests": 0,
+    "checks": [
+      "one-time owner-only bootstrap, existing credentials preserved",
+      "all four embedded assets match the locally accepted channel-management build",
+      "exact origin, wrong password, first-session restriction, legacy CLI",
+      "first password change, automatic CSRF, revoked initial password/session, real draft write/read",
+      "server logout revocation",
+      "restart persists changed password and discards sessions"
+    ]
+  },
+  "migration_rehearsal": {
+    "passed": true,
+    "schema_upgrade": [
+      24,
+      25
+    ],
+    "schema_downgrade": [
+      25,
+      24
+    ],
+    "network_isolated": true,
+    "service_user": true,
+    "candidate_production_copy_start": true,
+    "ordinary_accounts": 3,
+    "native_accounts": 5,
+    "runtime_connections": 9,
+    "candidate_observed_encrypted_identity": true,
+    "rollback": {
+      "from": 25,
+      "to": 24,
+      "changed": true,
+      "existing_tables_unchanged": true,
+      "credential_bytes_unchanged": true
+    },
+    "rollback_idempotent": true,
+    "durable_tables_unchanged": [
+      "config_versions",
+      "upstream_credentials",
+      "grok_accounts",
+      "gateway_event_log",
+      "billing_ledger_entries"
+    ],
+    "old_binary_restarted": true,
+    "provider_requests": 0
+  },
+  "production": {
+    "passed": true,
+    "revision": "5b92e15443bd0c2e3a8c44c5d9264999a2066a3e",
+    "binary_sha256": "b3d239b2538bf5f2ec7741002c32e074f82bea81622ddc9d2e2d68321ac28e96",
+    "stop_to_ready_ms": 1236,
+    "four_assets": {
+      "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+      "/admin-ui/assets/index.css": "519826def73b8bd66a6f7ca670e21d7f8317efe44ab8576727fd8112c10883f9",
+      "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+      "/admin-ui/assets/main.js": "2bcfef13a4eb31686b8adad1d4269d45798233586041228a80b699eebddc0f39"
+    },
+    "active_configuration_retained": true,
+    "events_retained": 2229,
+    "ledger_retained": 593,
+    "historical_repairs_retained": 87,
+    "retired_drafts": 11,
+    "control_schema": 25,
+    "existing_administrator_store_retained": true,
+    "administrator_password_accessed": false,
+    "caddy_dns_autoreg_changed": false,
+    "provider_requests": 0,
+    "cli_readback": true,
+    "channel_entries": 9,
+    "native_accounts_retained": 5,
+    "build_authorization_available": true,
+    "public_csp_and_assets": true,
+    "native_identity_available": 2,
+    "ordinary_accounts_loaded": 3,
+    "ordinary_identity_available": 2,
+    "schema_rollback_rehearsed": true,
+    "runtime_presentation": true,
+    "runtime_connections": 9,
+    "same_identity_authorizations": [
+      2
+    ]
+  },
+  "public": {
+    "passed": true,
+    "revision": "5b92e15443bd0c2e3a8c44c5d9264999a2066a3e",
+    "operator_https": true,
+    "four_assets": {
+      "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+      "/admin-ui/assets/index.css": "519826def73b8bd66a6f7ca670e21d7f8317efe44ab8576727fd8112c10883f9",
+      "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+      "/admin-ui/assets/main.js": "2bcfef13a4eb31686b8adad1d4269d45798233586041228a80b699eebddc0f39"
+    },
+    "csp_checked": true,
+    "unauthenticated_management_denied": true,
+    "health": true,
+    "provider_requests": 0
+  },
+  "browser": {
+    "passed": true,
+    "browser": "EgoLite",
+    "space": 5,
+    "production": true,
+    "passwordAccessed": false,
+    "authenticatedUiTest": false,
+    "url": "https://cpar.142857142.xyz/admin-ui/#/unlock",
+    "title": "Prism · Gateway Management",
+    "loginVisible": true,
+    "usernamePresent": true,
+    "passwordEmpty": true,
+    "viewport": [
+      836,
+      600
+    ]
+  },
+  "identity_readback": {
+    "read_only": true,
+    "native_identity": {
+      "grok_console": {
+        "accounts": 2,
+        "email_present": 0
+      },
+      "grok_build": {
+        "accounts": 3,
+        "email_present": 2
+      }
+    },
+    "provider_requests": 0,
+    "identity_values_output": false
+  },
+  "orchestration_hashes": {
+    "migration_rollback.py": "bf7919520086276c87315e007cdecc9e6f61519190d4f5972f1ed645cbca9f62",
+    "deploy.py": "248220f84388f8e4efc3c5e706945d71a92b52f8fcdb1d56d3882c5f5714ef6d",
+    "cutover.py": "030a0b1c8f4f1b098a8723456940485fcf7a6ca456b24d9bd334c7fe816f5a82",
+    "public-check.py": "dd24dabce48651f11b9a151e411978a22cd35262a1392caa4e6abcbd87af158a",
+    "rehearsal.py": "5b6ce03c108db6d5a6a0230f94f4b667e0741493bc2202309a625f9e84c9c6e5",
+    "verify.py": "d37a745b2d2a506a8f21796cc6489c7d5e177432aaa98693c2ee4668778af7bf",
+    "isolated-auth.py": "5fbf7455acebebc637c525075b346485b07df7500b87d64dad9e37393ddc4259",
+    "stage-release.py": "99934133b2a5ca0301949f1a63f1aee3baaba70405046a156433e0519893127a",
+    "25.down.sql": "8b453e85bb5887a5c0befb6f98ca9e06c17b6c0f82401f35c88d5d15c6f68068"
+  },
+  "provider_requests_for_this_release": 0,
+  "production_account_deletions": 0,
+  "production_rollback_executed": false,
+  "screenshot_sha256": "607e8a0d806355ba46faacd6910cd9898ebfce30901bf63a49cfd50d40079cf0"
+}

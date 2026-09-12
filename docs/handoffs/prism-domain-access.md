@@ -1,6 +1,16 @@
 # Prism HTTPS domain access
 
-## 2026-09-12: account identity release (latest)
+## 2026-09-12: identity continuity release (latest)
+
+The existing HTTPS domain now serves `5b92e15`, schema 25. Directory identities group related
+authorizations; runtime status uses real channel/identity/connection metadata. SSO identity lookup
+is available, but two Console emails remain missing and prior 403 responses were not retried.
+Existing admin credentials and all prior data remain. Exact-revision checks, signed ARM64 readback,
+isolated migration rollback and EgoLite's production login entry passed. See
+[release and schema rollback evidence](../reports/prism-identity-continuity-production-20260912.md).
+Rollback to `a243aab` requires the migration 25 downgrade; do not swap only the binary.
+
+## 2026-09-12: account identity release
 
 Production runs `a243aab`, schema 24, at the existing CPAR HTTPS domain. Six account groups,
 human identity projection, shared account layout and automatic Build identity capture are live.

@@ -1,6 +1,19 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
-## 2026-09-12: account identity and directory release (latest)
+## 2026-09-12: identity continuity release (latest)
+
+Production now runs `5b92e15`, schema 25, on the existing CPAR service/domain. Contact grouping,
+per-authorization actions, human runtime presentation and guarded SSO profile acquisition are live.
+Existing administrator credentials, accounts, active configuration and history remain. Both signed
+architectures, the exact-revision formal gate, isolated ARM64 auth and schema 24→25→24 rehearsal passed.
+EgoLite's public login page is retained for manual acceptance. Two Console accounts still lack email;
+this deployment did not retry their prior 403 profile reads. Rollback to `a243aab` requires a fresh
+stopped-service backup and the reviewed migration 25 downgrade before starting the old binary;
+no credential-format conversion is needed for that target. See
+[release evidence and rollback](../reports/prism-identity-continuity-production-20260912.md).
+Earlier release entries below are historical.
+
+## 2026-09-12: account identity and directory release
 
 Production now runs `a243aab` on the existing CPAR service/domain, schema 24. Six account groups,
 shared list/mobile layout and automatic Grok Build profile capture are deployed. Existing admin

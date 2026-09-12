@@ -2203,3 +2203,22 @@ additional classification within those three confirmed a Cloudflare challenge. T
 diagnostic does not validate the candidate Chrome transport on Oracle. Real Console emails remain
 unretrieved. No production data/configuration changes, inference, new authorization or deployment.
 Future release/rollback must account for migration 25; no credential-format change in this batch.
+
+## 2026-09-12 — Codex — identity continuity production deployment
+
+**What:** Released `5b92e15` to the existing Oracle Singapore CPAR service/domain;
+`docs/reports/prism-identity-continuity-production-20260912.md`, its evidence JSON/PNG,
+`docs/reports/prism-account-identity-continuity-20260912.md`,
+`docs/handoffs/claude-code-oracle-singapore-vps.md` and `docs/handoffs/prism-domain-access.md`
+record the production state and rollback. No additional application-code changes in this receipt.
+
+**Why:** User explicitly requested deployment for manual acceptance after the local repair.
+
+**Other side:** FYI. Both signed architectures and exact-revision formal checks passed. ARM64
+auth/assets and an offline production-copy schema 24→25→24 rehearsal passed, including encrypted
+observation readback and retained existing tables/credential bytes. Production now uses schema 25;
+cutover took 1236 ms to readiness. Public assets and runtime presentation readback passed; EgoLite
+retains the real login entry for the user. Existing admin/configuration/accounts/history remain.
+Two Console accounts still have no email; no new Provider profile, refresh, authorization or inference
+request was initiated for this release. No DNS/Caddy/Autoreg change. Future rollback requires a fresh
+backup and migration 25 downgrade, preserving latest tokens; production rollback was not executed.
