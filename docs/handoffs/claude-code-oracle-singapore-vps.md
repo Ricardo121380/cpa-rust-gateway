@@ -1,6 +1,32 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
-## 2026-09-12: resource presentation release (latest)
+## 2026-09-13: CPA daily workflow alignment (latest)
+
+Production serves `1b81ce7`, schema 26, at the existing domain and CPAR service. Native account
+maintenance, bounded import/batch actions, provider/model/client-key workflows and complete live
+runtime application are deployed. Identity acquisition belongs to authorization/import/replacement;
+the manual identity-read button is removed. Ten genuine import channels are available, including
+Kimi API. Existing eight workspaces and fourteen legacy routes remain.
+
+Both signed architectures, exact-revision formal gate, isolated ARM64 auth/assets and a network-isolated
+production-copy 25→26→25 rollback passed. The new native maintenance audit was exported before downgrade.
+Cutover readiness took 1049 ms; original active configuration, administrator store, 2229 events,
+593 ledger rows, five native accounts and the single Codex credential/connection remain. No DNS/Caddy/
+Autoreg changes, production cleanup or manual real Provider request. Two old Console emails remain
+missing; the UI does not fabricate identity. Public HTTPS assets and authenticated host-local inventory/
+system readback passed. EgoLite retains the actual login page for the user's manual acceptance.
+
+Rollback target is `7432763`, schema 25: preserve latest state/rotating secrets, back up and export the
+new native audit, then apply only migration 26 down before starting the old binary. Do not blindly
+rollback after users publish new configurations or modify native accounts: revalidate current graph
+compatibility, prefer roll-forward, and never restore old token or administrator databases. Private
+release/backup path: `/var/backups/cpa-rust-gateway/prism-cpa-alignment-20260913`.
+See [implementation, tests and production receipt](../reports/prism-cpa-alignment-delivery-20260913.md).
+Earlier deployment and default access entries below are historical; this release does not grant new
+remote mutation/Provider authority outside the user's ongoing explicit request.
+
+
+## 2026-09-12: resource presentation release (historical)
 
 Production now serves `7432763`, schema 25. Human resource names replace historical test IDs and
 generated codes in ordinary details, choices and confirmations; exact internal references remain

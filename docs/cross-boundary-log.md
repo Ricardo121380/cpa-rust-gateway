@@ -2404,3 +2404,24 @@ secrets, exact model IDs and four deterministic assets remain. New interfaces ar
 fixture-only. This commit is not yet deployed. Local test evidence, remaining release checks and
 schema 26 rollback constraints are in `docs/reports/prism-cpa-alignment-delivery-20260913.md`.
 No production account/history cleanup, DNS/Caddy/Autoreg mutation or new real Provider test request.
+
+
+## 2026-09-13 — Codex — CPA workflow production acceptance
+
+**What:** `web/prism/DESIGN.md` records the verified live workflow and removes the applicability of
+old manual-identity/restart descriptions. `docs/handoffs/prism-cpa-alignment-execution-20260912.md`,
+`docs/handoffs/claude-code-oracle-singapore-vps.md`, `docs/handoffs/prism-domain-access.md`,
+`docs/reports/prism-cpa-alignment-delivery-20260913.md`,
+`docs/reports/evidence/prism-cpa-alignment-local-20260913.json`,
+`docs/reports/evidence/prism-cpa-alignment-production-20260913.json` and
+`docs/reports/evidence/prism-cpa-alignment-production-20260913.png` contain completed receipts.
+
+**Why:** User explicitly requested deployment after CPA frontends/functionality alignment.
+This documentation batch follows the reviewed application commits c7c86b4 and 1b81ce7.
+
+**Other side:** FYI. Production now runs signed 1b81ce7/schema 26, with independent ARM64 signature,
+SBOM/assets verification, exact-revision formal gate and network-isolated production-copy 25→26→25
+rollback (new audit exported). Public readback and real EgoLite login page passed. Original admin,
+accounts/config/history remain; no production data cleanup or manual Provider call. DNS/Caddy/Autoreg
+unchanged. Rollback must preserve latest state and downgrade only schema 26 after exporting audit;
+new user configuration/native mutations require a fresh compatibility review, not blind rollback.

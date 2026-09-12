@@ -1,0 +1,93 @@
+{
+  "revision": "1b81ce7742949d4c8aef73c0dda5753e87779e45",
+  "browser": "EgoLite / Chromium",
+  "real_gateway": true,
+  "fixture_backend": false,
+  "viewports": [
+    [
+      1440,
+      900
+    ],
+    [
+      1280,
+      720
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "routes": [
+    "/",
+    "/monitoring",
+    "/usage",
+    "/billing",
+    "/accounts",
+    "/upstreams",
+    "/catalog",
+    "/models",
+    "/access",
+    "/runtime",
+    "/egress",
+    "/versions",
+    "/audit",
+    "/settings"
+  ],
+  "page_checks": 56,
+  "page_headings_matched": true,
+  "body_horizontal_overflow": false,
+  "light_and_dark": true,
+  "reduced_motion_transparency_and_increased_contrast": true,
+  "mobile_import_keyboard_focus_and_escape": true,
+  "system_fetch_error_and_retry": true,
+  "session_revocation": {
+    "locked": true,
+    "passwordEmpty": true,
+    "storedKeys": 0,
+    "dialogs": 0,
+    "contentCleared": true
+  },
+  "local_chain": {
+    "administrator_initial_password_change": true,
+    "provider_created_in_browser": true,
+    "model_created_in_browser": true,
+    "client_key_issued_in_browser": true,
+    "configurations_applied_without_restart": 3,
+    "data_plane_models": [
+      "acceptance-model"
+    ],
+    "real_provider_requests": 0,
+    "response_status": "completed",
+    "ledger_records": 1,
+    "ledger_cost_microunits": 16,
+    "cost_confidence": "partial",
+    "configuration_applied_without_post_edit_restart": true,
+    "schema": 26,
+    "last_account_disable_hides_models": true,
+    "duplicate_import_preserves_disabled_state": true,
+    "batch_invalid_file_reported_independently": true,
+    "batch_21_files_rejected": true,
+    "reenable_restores_models": true,
+    "identity_repair_buttons": 0,
+    "credential_update_preserves_connection_and_status": true,
+    "client_key_edit_applied": true,
+    "client_key_revoke_blocks_data_plane": true,
+    "new_key_status": 200,
+    "alias_resolved": true,
+    "rotated_credential_accepted": true,
+    "provider": "loopback TLS mock",
+    "initial_request_mock_calls": 1
+  },
+  "closed_key_animation_scrubbed": true,
+  "provider_model_and_endpoint_edits_applied": true,
+  "provider_removal_stops_dependent_model": true,
+  "model_removal_applied": true,
+  "historical_events": 6,
+  "ledger_rows": 2,
+  "frontend_tests": 280,
+  "runtime_tests": 96,
+  "management_inventory_http_tests": 15,
+  "contract_operations": 129,
+  "manual_real_provider_requests": 0,
+  "total_loopback_mock_requests": 2
+}

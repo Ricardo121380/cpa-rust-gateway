@@ -1,0 +1,121 @@
+{
+  "production-receipt": {
+    "passed": true,
+    "revision": "1b81ce7742949d4c8aef73c0dda5753e87779e45",
+    "binary_sha256": "f648db35ade089e58218b974a004e7f72e42d4c5916bbbc34692b1ed2727a57c",
+    "stop_to_ready_ms": 1049,
+    "four_assets": {
+      "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+      "/admin-ui/assets/main.js": "35c6b51956623bafe9437e160ee6be642c7f1f1d2f13ddaae61bd040bbac5492",
+      "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+      "/admin-ui/assets/index.css": "406f5ec03e8270fcb4591204b8dd03b3d48ca03785a65f5e4af62df04a20454a"
+    },
+    "active_configuration_retained": true,
+    "events_retained": 2229,
+    "ledger_retained": 593,
+    "historical_repairs_retained": 87,
+    "retired_drafts": 11,
+    "control_schema": 26,
+    "existing_administrator_store_retained": true,
+    "administrator_password_accessed": false,
+    "caddy_dns_autoreg_changed": false,
+    "manual_provider_requests": 0,
+    "cli_readback": true,
+    "channel_entries": 10,
+    "native_accounts_retained": 5,
+    "build_authorization_available": true,
+    "public_csp_and_assets": true,
+    "native_identity_available": 3,
+    "ordinary_accounts_loaded": 2,
+    "ordinary_identity_available": 1,
+    "schema_26_to_25_rollback_rehearsed": true,
+    "runtime_presentation": true,
+    "runtime_connections": 8,
+    "same_identity_authorizations": [],
+    "codex_credentials": 1,
+    "codex_runtime_connections": 1
+  },
+  "public-check": {
+    "passed": true,
+    "revision": "1b81ce7742949d4c8aef73c0dda5753e87779e45",
+    "operator_https": true,
+    "four_assets": {
+      "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+      "/admin-ui/assets/main.js": "35c6b51956623bafe9437e160ee6be642c7f1f1d2f13ddaae61bd040bbac5492",
+      "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+      "/admin-ui/assets/index.css": "406f5ec03e8270fcb4591204b8dd03b3d48ca03785a65f5e4af62df04a20454a"
+    },
+    "csp_checked": true,
+    "unauthenticated_management_denied": true,
+    "health": true,
+    "provider_requests": 0
+  },
+  "rehearsal": {
+    "passed": true,
+    "schema": 25,
+    "candidate_schema": 26,
+    "schema_rollback": {
+      "schema": 25,
+      "audit_exported": 1,
+      "changed": true
+    },
+    "schema_changed": true,
+    "network_isolated": true,
+    "service_user": true,
+    "candidate_production_copy_start": true,
+    "ordinary_accounts": 2,
+    "native_accounts": 5,
+    "runtime_connections": 8,
+    "codex_credentials": 1,
+    "codex_runtime_connections": 1,
+    "rollback_verified": true,
+    "durable_tables_unchanged": [
+      "config_versions",
+      "upstream_credentials",
+      "grok_accounts",
+      "gateway_event_log",
+      "billing_ledger_entries",
+      "native_account_identity_observations"
+    ],
+    "administrator_store_unchanged": true,
+    "old_binary_restarted": true,
+    "provider_requests": 0
+  },
+  "isolated-auth": {
+    "result": "passed",
+    "real_gateway": true,
+    "provider_requests": 0,
+    "checks": [
+      "one-time owner-only bootstrap, existing credentials preserved",
+      "all four embedded assets match the locally accepted channel-management build",
+      "exact origin, wrong password, first-session restriction, legacy CLI",
+      "first password change, automatic CSRF, revoked initial password/session, real draft write/read",
+      "server logout revocation",
+      "restart persists changed password and discards sessions"
+    ]
+  },
+  "gate-status": {
+    "conclusion": "success",
+    "headSha": "1b81ce7742949d4c8aef73c0dda5753e87779e45",
+    "status": "completed",
+    "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34710444014"
+  },
+  "release-status": {
+    "conclusion": "success",
+    "headSha": "1b81ce7742949d4c8aef73c0dda5753e87779e45",
+    "status": "completed",
+    "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34710442278"
+  },
+  "verified-artifact": {
+    "revision": "1b81ce7742949d4c8aef73c0dda5753e87779e45",
+    "signature_verified": true,
+    "artifact_and_sbom_verified": true,
+    "binary_sha256": "f648db35ade089e58218b974a004e7f72e42d4c5916bbbc34692b1ed2727a57c",
+    "frontend_assets": {
+      "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+      "/admin-ui/assets/main.js": "35c6b51956623bafe9437e160ee6be642c7f1f1d2f13ddaae61bd040bbac5492",
+      "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+      "/admin-ui/assets/index.css": "406f5ec03e8270fcb4591204b8dd03b3d48ca03785a65f5e4af62df04a20454a"
+    }
+  }
+}
