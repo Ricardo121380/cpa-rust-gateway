@@ -1,5 +1,9 @@
 # EgoLite 账号管理验收（2026-09-12）
 
+后续：用户明确授权后，`a243aab` 已于同日上线 Oracle 新加坡，见
+[生产发布与人工验收入口](prism-identity-production-20260912.md)。下文“未部署生产”
+描述本地验收结束时的范围。
+
 已使用 EgoLite（macOS，Chromium 152）操作本地真实 gateway 的正式嵌入 Prism，完成本轮
 账号目录与身份显示复验。没有启用 fixture 后端。发现并修复 Codex 重新授权弹窗仍展示
 内部测试 ID 的遗漏；重新构建 gateway 后在同一 EgoLite 任务空间复验通过。未部署生产。

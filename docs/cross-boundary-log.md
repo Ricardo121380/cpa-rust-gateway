@@ -2154,3 +2154,18 @@ meaning, three sizes and session cleanup. One synthetic draft account was disabl
 restored without publishing. After fixing the title, 13 focused E2E, type check, contract/Prism gates,
 gateway build and 122-operation/four-file double build passed; rebuilt gateway UI readback passed.
 No new provider requests, authorization grants, production deployment or production state change.
+
+## 2026-09-12 — Codex — account identity production deployment
+
+**What:** Deployed already-reviewed `a243aab` to the existing Oracle Singapore CPAR service/domain;
+`docs/reports/prism-identity-production-20260912.md`, its safe evidence JSON and latest Oracle/domain handoffs
+record the result. No additional frontend or backend application changes in this receipt commit.
+
+**Why:** User explicitly requested deployment for manual acceptance after the EgoLite verification.
+
+**Other side:** FYI. Both signed architectures and the exact-revision formal gate passed. ARM64
+production-copy startup and compact v2→v1 rollback preserving current token bytes passed offline.
+The successful cutover took 1245 ms to readiness; existing admin/account/configuration/history data
+remain, public assets match, and EgoLite displays the production login page. Some historical grants
+still lack human identity; no name is invented. Format-aware rollback is required, not binary-only
+rollback. No forced Provider canary, new authorization, password reset, DNS/Caddy/Autoreg change.

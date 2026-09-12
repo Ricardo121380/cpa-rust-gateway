@@ -1,7 +1,18 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
+## 2026-09-12: account identity and directory release (latest)
 
-## 2026-09-11: channel management release (latest)
+Production now runs `a243aab` on the existing CPAR service/domain, schema 24. Six account groups,
+shared list/mobile layout and automatic Grok Build profile capture are deployed. Existing admin
+credentials, accounts/configuration and history remain. EgoLite opened the production login page
+for user acceptance; signed artifacts, exact-revision gate and isolated production-copy checks passed.
+Compact Grok credentials may now contain v2 identity metadata: **do not roll back by swapping only
+the binary or restoring stale tokens**. The format-aware offline conversion and encrypted backup
+were rehearsed; see [release and rollback evidence](../reports/prism-identity-production-20260912.md).
+The older release statements below are historical.
+
+
+## 2026-09-11: channel management release
 
 Production now runs `1cbc20d` on the existing Oracle Singapore CPAR service and domain.
 Schema is 24. Nine channel import entries, native Grok inventory and Build Device authorization

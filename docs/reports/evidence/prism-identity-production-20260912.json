@@ -1,0 +1,172 @@
+{
+  "plan": {
+    "revision": "a243aabe66ea456d158afcc3fa62e95f49d3ee82",
+    "previous": "1cbc20dc095491ef6e47d501253e5150a9d03a2d",
+    "release_run": 34679527020,
+    "gate_run": 34679537441,
+    "remote": "/var/backups/cpa-rust-gateway/prism-identity-20260912",
+    "origin": "https://cpar.142857142.xyz",
+    "provider_canary": false
+  },
+  "release": {
+    "conclusion": "success",
+    "headSha": "a243aabe66ea456d158afcc3fa62e95f49d3ee82",
+    "status": "completed",
+    "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34679527020"
+  },
+  "gate": {
+    "conclusion": "success",
+    "headSha": "a243aabe66ea456d158afcc3fa62e95f49d3ee82",
+    "status": "completed",
+    "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34679537441"
+  },
+  "artifact": {
+    "revision": "a243aabe66ea456d158afcc3fa62e95f49d3ee82",
+    "signature_verified": true,
+    "artifact_and_sbom_verified": true,
+    "binary_sha256": "037f46b77131bc8241cbb1c7dfb14455f388ea0b9a0ce7688f6247a51e9f7d5b",
+    "frontend_assets": {
+      "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+      "/admin-ui/assets/main.js": "683df7d25e9efd8469d3e1be3fca109c3b8b775f3e2f1d5689dc6b7ab3645b4e",
+      "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+      "/admin-ui/assets/index.css": "558f809249cc2ead5d2ceca83f4802658e8c15efe524910e06a865e6540ac2ee"
+    }
+  },
+  "isolated_auth": {
+    "result": "passed",
+    "real_gateway": true,
+    "provider_requests": 0,
+    "checks": [
+      "one-time owner-only bootstrap, existing credentials preserved",
+      "all four embedded assets match the locally accepted channel-management build",
+      "exact origin, wrong password, first-session restriction, legacy CLI",
+      "first password change, automatic CSRF, revoked initial password/session, real draft write/read",
+      "server logout revocation",
+      "restart persists changed password and discards sessions"
+    ]
+  },
+  "rollback_rehearsal": {
+    "passed": true,
+    "schema": 24,
+    "network_isolated": true,
+    "service_user": true,
+    "candidate_production_copy_start": true,
+    "ordinary_accounts": 3,
+    "native_accounts": 5,
+    "candidate_decoded_v2_profiles": 2,
+    "synthetic_v2_records": 2,
+    "converted": {
+      "native_converted": 2,
+      "runtime_converted": 0,
+      "unchanged": 1
+    },
+    "rollback_idempotent": true,
+    "latest_token_bytes_preserved": true,
+    "other_tables_unchanged": true,
+    "old_binary_restarted": true,
+    "provider_requests": 0
+  },
+  "production": {
+    "passed": true,
+    "revision": "a243aabe66ea456d158afcc3fa62e95f49d3ee82",
+    "binary_sha256": "037f46b77131bc8241cbb1c7dfb14455f388ea0b9a0ce7688f6247a51e9f7d5b",
+    "stop_to_ready_ms": 1245,
+    "four_assets": {
+      "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+      "/admin-ui/assets/main.js": "683df7d25e9efd8469d3e1be3fca109c3b8b775f3e2f1d5689dc6b7ab3645b4e",
+      "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+      "/admin-ui/assets/index.css": "558f809249cc2ead5d2ceca83f4802658e8c15efe524910e06a865e6540ac2ee"
+    },
+    "active_configuration_retained": true,
+    "events_retained": 2229,
+    "ledger_retained": 593,
+    "historical_repairs_retained": 87,
+    "retired_drafts": 11,
+    "control_schema": 24,
+    "existing_administrator_store_retained": true,
+    "administrator_password_accessed": false,
+    "caddy_dns_autoreg_changed": false,
+    "provider_requests": 0,
+    "cli_readback": true,
+    "channel_entries": 9,
+    "native_accounts_retained": 5,
+    "build_authorization_available": true,
+    "public_csp_and_assets": true,
+    "native_identity_available": 1,
+    "ordinary_accounts_loaded": 3,
+    "ordinary_identity_available": 2,
+    "format_rollback_rehearsed": true
+  },
+  "public": {
+    "public_assets_from_operator_network": {
+      "/admin-ui/": {
+        "status": 200,
+        "matches_release": true
+      },
+      "/admin-ui/assets/main.js": {
+        "status": 200,
+        "matches_release": true
+      },
+      "/admin-ui/assets/vendor.js": {
+        "status": 200,
+        "matches_release": true
+      },
+      "/admin-ui/assets/index.css": {
+        "status": 200,
+        "matches_release": true
+      }
+    },
+    "anonymous_management_denied": true,
+    "csp_verified": true
+  },
+  "browser": {
+    "url": "https://cpar.142857142.xyz/admin-ui/#/unlock",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "loginFormVisible": true,
+    "usernameIsAdmin": true,
+    "passwordEmpty": true,
+    "viewport": [
+      836,
+      600
+    ]
+  },
+  "rollback_helper": {
+    "format_roundtrip": true,
+    "current_token_bytes_preserved": true,
+    "malformed_rejected": true,
+    "aad_binding": true
+  },
+  "orchestration": {
+    "deploy.py": "31e93e8b819a4807d6f4d1c5d29d7b0d8048f18f709d4202edf97e8e7cc52816",
+    "compact_rollback.py": "8a4065ff1becde2bfe14f5fac6da864cc5ecf569f1206bd4cfa7df60b41f2b4a",
+    "rehearsal.py": "c21a3b772d8d0a5a81fc239313dd9c47daae3de9a7b5151073d274c68fe749ac",
+    "isolated-auth.py": "5fbf7455acebebc637c525075b346485b07df7500b87d64dad9e37393ddc4259"
+  },
+  "rollback_helper_dependencies": [
+    {
+      "package": "PyNaCl",
+      "version": "1.6.0",
+      "filename": "pynacl-1.6.0-cp38-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+      "sha256": "16dd347cdc8ae0b0f6187a2608c0af1c8b7ecbbe6b4a06bff8253c192f696990"
+    },
+    {
+      "package": "cffi",
+      "version": "1.17.1",
+      "filename": "cffi-1.17.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+      "sha256": "da95af8214998d77a98cc14e3a3bd00aa191526343078b530ceb0bd710fb48a5"
+    },
+    {
+      "package": "pycparser",
+      "version": "2.22",
+      "filename": "pycparser-2.22-py3-none-any.whl",
+      "sha256": "c3702b6d3dd8c7abc1afa565d7e63d53a1d0bd86cdc24edd75470f4de499cfcc"
+    }
+  ],
+  "scope": {
+    "administrator_password_read_or_reset": false,
+    "local_test_accounts_imported_to_production": false,
+    "explicit_provider_canaries": 0,
+    "routine_worker_behavior": "existing scheduler retained; new identity read occurs during supported normal renewal",
+    "dns_caddy_autoreg_changed": false
+  }
+}

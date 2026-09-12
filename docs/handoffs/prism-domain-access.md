@@ -1,7 +1,15 @@
 # Prism HTTPS domain access
 
+## 2026-09-12: account identity release (latest)
 
-## 2026-09-11: channel management release (latest)
+Production runs `a243aab`, schema 24, at the existing CPAR HTTPS domain. Six account groups,
+human identity projection, shared account layout and automatic Build identity capture are live.
+Existing administrator passwords and data remain; EgoLite confirmed the public login entry.
+See [production evidence and format-aware rollback](../reports/prism-identity-production-20260912.md).
+Grok compact credentials may now be v2: a binary-only downgrade is unsafe. Prior entries below
+describe earlier deployments.
+
+## 2026-09-11: channel management release
 
 Production now runs `1cbc20d` on the existing Oracle Singapore CPAR service and domain.
 Schema is 24. Nine channel import entries, native Grok inventory and Build Device authorization
