@@ -135,7 +135,11 @@ pub(super) async fn list(
             "management_account_inventory_capacity",
             "目录超过本次完整查询范围，请按提供商查询",
         ),
-        Ok(Err("unavailable")) => error_response(StatusCode::SERVICE_UNAVAILABLE,"management_account_inventory_unavailable","暂时无法读取完整账号目录，请重试"),
+        Ok(Err("unavailable")) => error_response(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "management_account_inventory_unavailable",
+            "暂时无法读取完整账号目录，请重试",
+        ),
         Ok(Err(_)) => conflict(),
         Err(_) => internal_error(),
     }

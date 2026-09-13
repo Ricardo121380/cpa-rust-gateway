@@ -1535,64 +1535,164 @@ async fn request_history_is_authenticated_and_cursor_bound_to_filters() -> TestR
 async fn unified_account_search_covers_later_pages_and_binds_filters() -> TestResult {
     let (file, state) = fixture(false)?;
     let key_version = KeyVersion::try_new(1)?;
-    let secrets = SecretStore::new(MasterKeyRing::try_new(key_version, [(key_version, MasterKey::try_from_bytes([0x51; 32])?)])?);
-    let aad=credential_associated_data(&ConfigVersionId::try_new(VERSION)?,&CredentialId::try_new("account-249")?,&UpstreamId::try_new("owner-b")?)?;
-    let sealed=secrets.seal(br#"{"email":"last.page@example.test","access_token":"never-return-me"}"#,&aad)?;
-    let db=gateway_store::open(&file.0)?;
+    let secrets = SecretStore::new(MasterKeyRing::try_new(
+        key_version,
+        [(key_version, MasterKey::try_from_bytes([0x51; 32])?)],
+    )?);
+    let aad = credential_associated_data(
+        &ConfigVersionId::try_new(VERSION)?,
+        &CredentialId::try_new("account-249")?,
+        &UpstreamId::try_new("owner-b")?,
+    )?;
+    let sealed = secrets.seal(
+        br#"{"email":"last.page@example.test","access_token":"never-return-me"}"#,
+        &aad,
+    )?;
+    let db = gateway_store::open(&file.0)?;
     db.execute("UPDATE upstream_credentials SET ciphertext=?1 WHERE config_version_id=?2 AND id='account-249'",(sealed.ciphertext(),VERSION))?;
-    let app=test::init_service(App::new().app_data(web::Data::new(security()?)).app_data(web::Data::new(state)).configure(configure_management_resources)).await;
-    let path="/admin/accounts/inventory";
-    let denied=test::call_service(&app,test::TestRequest::get().uri(path).to_request()).await;
-    assert_eq!(denied.status(),StatusCode::NOT_FOUND);
-    let response=test::call_service(&app,authorized(test::TestRequest::get().uri(&format!("{path}?q=LAST.PAGE&status=disabled"))).to_request()).await;
-    assert_eq!(response.status(),StatusCode::OK);
-    let found:Value=test::read_body_json(response).await;
-    assert_eq!(found["total"],1);
-    assert_eq!(found["items"][0]["name"],"last.page@example.test");
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let path = "/admin/accounts/inventory";
+    let denied = test::call_service(&app, test::TestRequest::get().uri(path).to_request()).await;
+    assert_eq!(denied.status(), StatusCode::NOT_FOUND);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(&format!("{path}?q=LAST.PAGE&status=disabled")))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let found: Value = test::read_body_json(response).await;
+    assert_eq!(found["total"], 1);
+    assert_eq!(found["items"][0]["name"], "last.page@example.test");
     assert!(!found.to_string().contains("never-return-me"));
-    let response=test::call_service(&app,authorized(test::TestRequest::get().uri(&format!("{path}?limit=1&sort=name_desc"))).to_request()).await;
-    assert_eq!(response.status(),StatusCode::OK);
-    let first:Value=test::read_body_json(response).await;
-    assert_eq!(first["total"],250);
-    assert_eq!(first["items"][0]["name"],"owner@example.test");
-    let cursor=first["next_cursor"].as_str().ok_or("cursor")?;
-    let response=test::call_service(&app,authorized(test::TestRequest::get().uri(&format!("{path}?limit=1&sort=name_desc&cursor={cursor}"))).to_request()).await;
-    assert_eq!(response.status(),StatusCode::OK);
-    let next:Value=test::read_body_json(response).await;
-    assert_eq!(next["items"][0]["name"],"last.page@example.test");
-    let changed=test::call_service(&app,authorized(test::TestRequest::get().uri(&format!("{path}?limit=1&sort=name_desc&status=disabled&cursor={cursor}"))).to_request()).await;
-    assert_eq!(changed.status(),StatusCode::CONFLICT);
-    db.execute("UPDATE config_versions SET revision=revision+1 WHERE id=?1",[VERSION])?;
-    let stale=test::call_service(&app,authorized(test::TestRequest::get().uri(&format!("{path}?limit=1&sort=name_desc&cursor={cursor}"))).to_request()).await;
-    assert_eq!(stale.status(),StatusCode::CONFLICT);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(&format!("{path}?limit=1&sort=name_desc")))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let first: Value = test::read_body_json(response).await;
+    assert_eq!(first["total"], 250);
+    assert_eq!(first["items"][0]["name"], "owner@example.test");
+    let cursor = first["next_cursor"].as_str().ok_or("cursor")?;
+    let response = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri(&format!("{path}?limit=1&sort=name_desc&cursor={cursor}")),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let next: Value = test::read_body_json(response).await;
+    assert_eq!(next["items"][0]["name"], "last.page@example.test");
+    let changed = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(&format!(
+            "{path}?limit=1&sort=name_desc&status=disabled&cursor={cursor}"
+        )))
+        .to_request(),
+    )
+    .await;
+    assert_eq!(changed.status(), StatusCode::CONFLICT);
+    db.execute(
+        "UPDATE config_versions SET revision=revision+1 WHERE id=?1",
+        [VERSION],
+    )?;
+    let stale = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri(&format!("{path}?limit=1&sort=name_desc&cursor={cursor}")),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(stale.status(), StatusCode::CONFLICT);
     Ok(())
 }
 
 #[actix_web::test]
 async fn unified_native_identity_and_generation_are_in_the_same_cursor() -> TestResult {
-    let (file, resources)=fixture(false)?;
-    let version=KeyVersion::try_new(1)?;
-    let secrets=SecretStore::new(MasterKeyRing::try_new(version,[(version,MasterKey::try_from_bytes([0x51;32])?)])?);
-    let pool=std::sync::Arc::new(provider_grok::GrokAccountPoolStore::try_open(&file.0,secrets)?);
-    let calls=std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
-    let native=gateway_http_actix::management_resources::native_accounts::NativeAccountManagement::new(pool)?.with_identity_transport(std::sync::Arc::new(SessionIdentityFixture(std::sync::Arc::clone(&calls))));
-    let app=test::init_service(App::new().app_data(web::Data::new(security()?)).app_data(web::Data::new(resources.with_native_accounts(native))).configure(configure_management_resources)).await;
-    let first:Value=test::read_body_json(test::call_service(&app,authorized(test::TestRequest::get().uri("/admin/accounts/inventory?limit=1")).to_request()).await).await;
-    let cursor=first["next_cursor"].as_str().ok_or("cursor")?;
+    let (file, resources) = fixture(false)?;
+    let version = KeyVersion::try_new(1)?;
+    let secrets = SecretStore::new(MasterKeyRing::try_new(
+        version,
+        [(version, MasterKey::try_from_bytes([0x51; 32])?)],
+    )?);
+    let pool = std::sync::Arc::new(provider_grok::GrokAccountPoolStore::try_open(
+        &file.0, secrets,
+    )?);
+    let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let native =
+        gateway_http_actix::management_resources::native_accounts::NativeAccountManagement::new(
+            pool,
+        )?
+        .with_identity_transport(std::sync::Arc::new(SessionIdentityFixture(
+            std::sync::Arc::clone(&calls),
+        )));
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(resources.with_native_accounts(native)))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let first: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri("/admin/accounts/inventory?limit=1"))
+                .to_request(),
+        )
+        .await,
+    )
+    .await;
+    let cursor = first["next_cursor"].as_str().ok_or("cursor")?;
     let imported=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/native-accounts/import")).set_json(serde_json::json!({"id":"unified-identity","channel":"grok.console","secret":"synthetic-session"})).to_request()).await;
-    assert_eq!(imported.status(),StatusCode::CREATED);
-    let stale=test::call_service(&app,authorized(test::TestRequest::get().uri(&format!("/admin/accounts/inventory?limit=1&cursor={cursor}"))).to_request()).await;
-    assert_eq!(stale.status(),StatusCode::CONFLICT);
-    let response=test::call_service(&app,authorized(test::TestRequest::get().uri("/admin/accounts/inventory?q=sso.member&category=grok")).to_request()).await;
-    assert_eq!(response.status(),StatusCode::OK);
-    let found:Value=test::read_body_json(response).await;
-    assert_eq!(found["total"],1);
-    assert_eq!(found["items"][0]["identity"]["email"],"sso.member@example.test");
-    assert_eq!(found["items"][0]["provider"],"Grok Console");
-    assert_eq!(found["items"][0]["native"],true);
-    let before=calls.load(std::sync::atomic::Ordering::Relaxed);
-    let _:Value=test::read_body_json(test::call_service(&app,authorized(test::TestRequest::get().uri("/admin/accounts/inventory?q=sso.member")).to_request()).await).await;
-    assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed),before);
+    assert_eq!(imported.status(), StatusCode::CREATED);
+    let stale = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(&format!(
+            "/admin/accounts/inventory?limit=1&cursor={cursor}"
+        )))
+        .to_request(),
+    )
+    .await;
+    assert_eq!(stale.status(), StatusCode::CONFLICT);
+    let response = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/accounts/inventory?q=sso.member&category=grok"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let found: Value = test::read_body_json(response).await;
+    assert_eq!(found["total"], 1);
+    assert_eq!(
+        found["items"][0]["identity"]["email"],
+        "sso.member@example.test"
+    );
+    assert_eq!(found["items"][0]["provider"], "Grok Console");
+    assert_eq!(found["items"][0]["native"], true);
+    let before = calls.load(std::sync::atomic::Ordering::Relaxed);
+    let _: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri("/admin/accounts/inventory?q=sso.member"))
+                .to_request(),
+        )
+        .await,
+    )
+    .await;
+    assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed), before);
     assert!(!found.to_string().contains("synthetic-session"));
     Ok(())
 }

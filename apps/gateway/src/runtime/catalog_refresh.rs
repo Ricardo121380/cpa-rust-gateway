@@ -1,5 +1,9 @@
 //! Metadata-only reads share the serving generation's credential and egress boundaries.
-use super::*;
+use super::{
+    BTreeMap, BTreeSet, CredentialId, CredentialLease, EndpointId, ErrorScope, GatewayError,
+    GatewayErrorCode, ModelCatalogTarget, OpenAiCompatibleRuntimeCredential, Ordering,
+    RuntimeCatalogTarget, RuntimeModelCatalogWorker, catalog_failure_class, system_now_ms_runtime,
+};
 use gateway_http_actix::management_resources::catalog_refresh::{
     CatalogRefreshError, CatalogRefreshReceipt,
 };
